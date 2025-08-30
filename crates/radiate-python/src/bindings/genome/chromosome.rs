@@ -1,6 +1,8 @@
 use crate::{AnyChromosome, AnyGene, PyGene, PyGeneType, RwSequence};
 use pyo3::{
-    Bound, IntoPyObjectExt, Py, PyAny, PyRef, PyResult, Python, pyclass, pymethods,
+    Bound, IntoPyObjectExt, Py, PyAny, PyRef, PyResult, Python,
+    exceptions::{PyIndexError, PyTypeError, PyValueError},
+    pyclass, pymethods,
     types::{PyAnyMethods, PySlice, PySliceMethods},
 };
 use radiate::prelude::*;
@@ -129,22 +131,9 @@ impl PyChromosome {
         }
     }
 
-    fn apply<'py>(&mut self, py: Python<'py>, f: Py<PyAny>) -> PyResult<()> {
+    fn apply<'py>(&self, py: Python<'py>, f: Py<PyAny>) -> PyResult<()> {
         for i in 0..self.genes.len() {
-            let new_gene = {
-                let gene = &self.genes.read()[i];
-                let new_allele = f.call1(py, (gene.allele(py)?,))?;
-
-                if new_allele.is_none(py) {
-                    None
-                } else {
-                    Some(gene.new_instance(py, Some(new_allele))?)
-                }
-            };
-
-            if let Some(new_gene) = new_gene {
-                self.genes.write()[i] = new_gene;
-            }
+            self.genes.write()[i].apply(py, f.clone_ref(py))?;
         }
 
         Ok(())
@@ -152,20 +141,9 @@ impl PyChromosome {
 
     pub fn map<'py>(&self, py: Python<'py>, f: Py<PyAny>) -> PyResult<PyChromosome> {
         for i in 0..self.genes.len() {
-            let new_gene = {
-                let gene = &self.genes.read()[i];
-                let new_allele = f.call1(py, (gene.allele(py)?,))?;
-
-                if new_allele.is_none(py) {
-                    None
-                } else {
-                    Some(gene.new_instance(py, Some(new_allele))?)
-                }
-            };
-
-            if let Some(new_gene) = new_gene {
-                self.genes.write()[i] = new_gene;
-            }
+            let mut writer = self.genes.write();
+            let new_gene = writer[i].map(py, f.clone_ref(py))?;
+            writer[i] = new_gene;
         }
 
         Ok(self.clone())
@@ -198,9 +176,7 @@ impl PyChromosome {
             }
 
             if idx < 0 || idx >= n {
-                return Err(pyo3::exceptions::PyIndexError::new_err(
-                    "index out of range",
-                ));
+                return Err(PyIndexError::new_err("index out of range"));
             }
 
             if view {
@@ -213,9 +189,9 @@ impl PyChromosome {
         }
 
         if let Ok(py_slice) = index.downcast::<PySlice>() {
-            let indices = py_slice.indices(self.genes.len() as isize).map_err(|e| {
-                pyo3::exceptions::PyIndexError::new_err(format!("invalid slice: {}", e))
-            })?;
+            let indices = py_slice
+                .indices(self.genes.len() as isize)
+                .map_err(|e| PyIndexError::new_err(format!("invalid slice: {}", e)))?;
 
             let (start, stop, step) = (
                 indices.start as usize,
@@ -238,7 +214,7 @@ impl PyChromosome {
             .into_bound_py_any(py);
         }
 
-        Err(pyo3::exceptions::PyTypeError::new_err("invalid index type"))
+        Err(PyTypeError::new_err("invalid index type"))
     }
 
     fn set_item<'py>(
@@ -255,14 +231,12 @@ impl PyChromosome {
             }
 
             if idx < 0 || idx >= n {
-                return Err(pyo3::exceptions::PyIndexError::new_err(
-                    "index out of range",
-                ));
+                return Err(PyIndexError::new_err("index out of range"));
             }
 
             let mut v = value.extract::<PyGene>(py)?;
             if self.gene_type() != v.gene_type() {
-                return Err(pyo3::exceptions::PyTypeError::new_err("gene type mismatch"));
+                return Err(PyTypeError::new_err("gene type mismatch"));
             }
 
             if v.is_view() {
@@ -276,9 +250,9 @@ impl PyChromosome {
 
         let bound = index.into_bound(py);
         if let Ok(py_slice) = bound.downcast::<PySlice>() {
-            let indices = py_slice.indices(self.genes.len() as isize).map_err(|e| {
-                pyo3::exceptions::PyIndexError::new_err(format!("invalid slice: {}", e))
-            })?;
+            let indices = py_slice
+                .indices(self.genes.len() as isize)
+                .map_err(|e| PyIndexError::new_err(format!("invalid slice: {}", e)))?;
             let (start, stop, step) = (
                 indices.start as usize,
                 indices.stop as usize,
@@ -289,12 +263,10 @@ impl PyChromosome {
             let expected = ((stop.saturating_sub(start)) + step - 1) / step;
 
             if value.genes.len() != expected {
-                return Err(pyo3::exceptions::PyValueError::new_err(
-                    "slice assignment length mismatch",
-                ));
+                return Err(PyValueError::new_err("slice assignment length mismatch"));
             }
             if self.gene_type() != value.gene_type() {
-                return Err(pyo3::exceptions::PyTypeError::new_err("gene type mismatch"));
+                return Err(PyTypeError::new_err("gene type mismatch"));
             }
             let vals = value.genes.read();
             let mut w = self.genes.write();
@@ -310,7 +282,7 @@ impl PyChromosome {
             return Ok(());
         }
 
-        Err(pyo3::exceptions::PyTypeError::new_err("invalid index type"))
+        Err(PyTypeError::new_err("invalid index type"))
     }
 }
 

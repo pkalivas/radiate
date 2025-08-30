@@ -26,4 +26,9 @@ impl PyRandomProvider {
         random_provider::shuffle(&mut data);
         data.into_iter().take(count).collect()
     }
+
+    #[staticmethod]
+    pub fn choose(data: Vec<Py<PyAny>>) -> Py<PyAny> {
+        Self::sample(data, 1).into_iter().next().unwrap()
+    }
 }

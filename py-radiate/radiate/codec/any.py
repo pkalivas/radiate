@@ -16,21 +16,17 @@ class AnyCodec[T: AnyGene](CodecBase[T, list[T]]):
         """
         values = [genes_factory() for _ in range(len)]
 
-        factories = {
-            g.__class__.__module__
-            + "."
-            + g.__class__.__qualname__: g.__class__.__fromgene__
+        self._factories = {
+            f"{g.__class__.__module__}.{g.__class__.__qualname__}": g.__class__.__fromgene__
             for g in values
         }
 
-        def creator(gene_dict, metadata):
+        def creator(gene_dict: dict, metadata: dict):
             cls_name = metadata.get("__class__")
-            if cls_name is None:
-                raise ValueError("Gene dictionary must contain a '__class__' key.")
-            try:
-                return factories[cls_name](gene_dict)
-            except KeyError:
-                raise ValueError(f"Unknown class '{cls_name}' in gene dictionary.")
+            fn = self._factories.get(cls_name)
+            if fn is None:
+                raise ValueError(f"Unknown class '{cls_name}'")
+            return fn(gene_dict)
 
         self.codec = PyAnyCodec(
             list(map(lambda g: g.__backend__(), values)),

@@ -21,13 +21,12 @@ class ObjectMutator(rd.Mutator):
     def __init__(self, rate):
         super().__init__(rate)
 
-    def mutate(self, chromosome: rd.Chromosome) -> rd.Chromosome:
+    def mutate(self, chromosome: rd.Chromosome):
         for gene in chromosome:
             if rd.random.float() < self.rate:
                 gene.apply(
-                    lambda g: {**g, "number": g["number"] + rd.random.float(-0.1, 0.1)}
+                    lambda g: {"number": g["number"] + rd.random.float(-0.1, 0.1)}
                 )
-        return chromosome
 
 
 engine = rd.GeneticEngine(
@@ -35,7 +34,7 @@ engine = rd.GeneticEngine(
     fitness_func=lambda x: abs(sum(g.number for g in x) - 4),
     objectives="min",
     alters=[rd.UniformCrossover(0.5), ObjectMutator(0.1)],
-    executor=rd.Executor.WorkerPool()
+    executor=rd.Executor.FixedSizedWorkerPool(4),
 )
 
 print(engine.run([rd.ScoreLimit(0.0001), rd.SecondsLimit(4)], log=True))

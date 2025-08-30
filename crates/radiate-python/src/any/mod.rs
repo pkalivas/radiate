@@ -13,8 +13,8 @@ use pyo3::{
     Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python,
     exceptions::{PyOverflowError, PyValueError},
     types::{
-        PyAnyMethods, PyBool, PyBytes, PyDict, PyDictMethods, PyFloat, PyInt, PyList,
-        PyListMethods, PySequence, PyString, PyTuple, PyType, PyTypeMethods,
+        PyAnyMethods, PyBool, PyBytes, PyDict, PyDictMethods, PyFloat, PyInt, PyList, PySequence,
+        PyString, PyTuple, PyType, PyTypeMethods,
     },
 };
 use std::{
@@ -26,6 +26,63 @@ type InitFn = for<'py> fn(&Bound<'py, PyAny>, bool) -> PyResult<AnyValue<'py>>;
 
 pub(crate) static LUT: crate::GILOnceCell<HashMap<TypeObjectKey, InitFn>> =
     crate::GILOnceCell::new();
+
+pub fn any_value_into_py_object_ref<'py, 'a>(
+    av: &'a AnyValue<'a>,
+    py: Python<'py>,
+) -> PyResult<Bound<'py, PyAny>> {
+    use AnyValue::*;
+    match av {
+        Null => py.None().into_bound_py_any(py),
+        Bool(v) => v.into_bound_py_any(py),
+        Char(v) => v.into_bound_py_any(py),
+
+        UInt8(v) => v.into_bound_py_any(py),
+        UInt16(v) => v.into_bound_py_any(py),
+        UInt32(v) => v.into_bound_py_any(py),
+        UInt64(v) => v.into_bound_py_any(py),
+        Int8(v) => v.into_bound_py_any(py),
+        Int16(v) => v.into_bound_py_any(py),
+        Int32(v) => v.into_bound_py_any(py),
+        Int64(v) => v.into_bound_py_any(py),
+        Int128(v) => v.into_bound_py_any(py),
+        Float32(v) => v.into_bound_py_any(py),
+        Float64(v) => v.into_bound_py_any(py),
+
+        Str(s) => s.into_bound_py_any(py),
+        StrOwned(s) => s.into_bound_py_any(py),
+
+        Binary(b) => pyo3::types::PyBytes::new(py, b).into_bound_py_any(py),
+
+        Vector(v) => Ok(PyList::new(
+            py,
+            v.iter()
+                .map(|item| any_value_into_py_object_ref(item, py))
+                .collect::<PyResult<Vec<_>>>()?,
+        )?
+        .into_any()),
+
+        Struct(pairs) => {
+            let dict = pyo3::types::PyDict::new(py);
+            for (val, fld) in pairs.iter() {
+                let key = fld.name().to_string();
+                let value = any_value_into_py_object_ref(val, py)?;
+                dict.set_item(key, value)?;
+            }
+            Ok(dict.into_any())
+        }
+
+        StructView(pairs) => {
+            let dict = pyo3::types::PyDict::new(py);
+            for (val, fld) in pairs.iter() {
+                let key = fld.name().to_string();
+                let value = any_value_into_py_object_ref(val, py)?;
+                dict.set_item(key, value)?;
+            }
+            Ok(dict.into_any())
+        }
+    }
+}
 
 pub fn any_value_into_py_object<'py>(av: AnyValue, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
     match av {
@@ -41,13 +98,13 @@ pub fn any_value_into_py_object<'py>(av: AnyValue, py: Python<'py>) -> PyResult<
         AnyValue::Float32(v) => v.into_bound_py_any(py),
         AnyValue::Float64(v) => v.into_bound_py_any(py),
         AnyValue::Char(v) => v.into_bound_py_any(py),
-        AnyValue::Vector(v) => {
-            let list = PyList::empty(py);
-            for item in v.into_iter() {
-                list.append(any_value_into_py_object(item, py)?)?;
-            }
-            Ok(list.into_any())
-        }
+        AnyValue::Vector(v) => Ok(PyList::new(
+            py,
+            v.into_iter()
+                .map(|item| any_value_into_py_object(item, py))
+                .collect::<PyResult<Vec<_>>>()?,
+        )?
+        .into_any()),
         AnyValue::Null => py.None().into_bound_py_any(py),
         AnyValue::Bool(v) => v.into_bound_py_any(py),
         AnyValue::Str(v) => v.into_bound_py_any(py),
@@ -55,6 +112,17 @@ pub fn any_value_into_py_object<'py>(av: AnyValue, py: Python<'py>) -> PyResult<
         AnyValue::Binary(v) => PyBytes::new(py, &v).into_bound_py_any(py),
         AnyValue::Struct(v) => {
             let dict = struct_dict(py, v.into_iter())?;
+            dict.into_bound_py_any(py)
+        }
+        AnyValue::StructView(v) => {
+            let dict = PyDict::new(py);
+
+            for (val, fld) in v {
+                let key = fld.name().to_string();
+                let value = any_value_into_py_object(val.clone(), py)?;
+                dict.set_item(key, value)?;
+            }
+
             dict.into_bound_py_any(py)
         }
     }
@@ -102,53 +170,13 @@ pub fn py_object_to_any_value<'py>(
     }
 
     fn get_list(ob: &Bound<'_, PyAny>, strict: bool) -> PyResult<AnyValue<'static>> {
-        if ob.is_empty()? {
-            Ok(AnyValue::Null)
-        } else if ob.is_instance_of::<PyList>() | ob.is_instance_of::<PyTuple>() {
-            const INFER_SCHEMA_LENGTH: usize = 25;
-
-            let list = ob.downcast::<PySequence>()?;
-
-            let mut avs = Vec::with_capacity(INFER_SCHEMA_LENGTH);
-            let mut iter = list.try_iter()?;
-            let mut items = Vec::with_capacity(INFER_SCHEMA_LENGTH);
-            for item in (&mut iter).take(INFER_SCHEMA_LENGTH) {
-                items.push(item?);
-                let av = py_object_to_any_value(items.last().unwrap(), strict)?;
-                avs.push(av)
-            }
-
-            if avs.is_empty() {
-                return Ok(AnyValue::Null);
-            } else {
-                if !strict {
-                    return Ok(AnyValue::Vector(Box::new(
-                        avs.into_iter().map(|av| av.into_static()).collect(),
-                    )));
-                } else {
-                    // Push the rest.
-                    let length = list.len()?;
-                    avs.reserve(length);
-                    let mut rest = Vec::with_capacity(length);
-                    for item in iter {
-                        rest.push(item?);
-                        let av = py_object_to_any_value(rest.last().unwrap(), strict)?;
-                        avs.push(av)
-                    }
-
-                    Ok(AnyValue::Vector(Box::new(
-                        avs.into_iter().map(|av| av.into_static()).collect(),
-                    )))
-                }
-            }
-        } else if !strict {
-            Ok(AnyValue::Null)
-        } else {
-            Err(PyValueError::new_err(format!(
-                "Cannot convert Python object of type {} to AnyValue",
-                ob.get_type().qualname()?
-            )))
+        let seq = ob.downcast::<PySequence>()?;
+        let mut out: Vec<AnyValue<'static>> = Vec::with_capacity(seq.len().unwrap_or(0).max(0));
+        for item in seq.try_iter()? {
+            let av = py_object_to_any_value(&item?, strict)?;
+            out.push(av.into_static());
         }
+        Ok(AnyValue::Vector(Box::new(out)))
     }
 
     fn get_conversion_function(ob: &Bound<'_, PyAny>, strict: bool) -> PyResult<InitFn> {
@@ -202,23 +230,23 @@ pub fn py_object_to_any_value<'py>(
     let py_type = ob.get_type();
     let py_type_address = py_type.as_ptr() as usize;
 
-    Python::with_gil(|py| {
-        if !LUT.is_initialized() {
-            LUT.set(py, Default::default()).unwrap();
+    let py = ob.py();
+
+    if !LUT.is_initialized() {
+        LUT.set(py, Default::default()).unwrap();
+    }
+
+    LUT.with_gil(py, |lut| {
+        if !lut.contains_key(&py_type_address) {
+            let k = TypeObjectKey::new(py_type.clone().unbind());
+
+            assert_eq!(k.address, py_type_address);
+
+            lut.insert(k, get_conversion_function(ob, strict)?);
         }
 
-        LUT.with_gil(py, |lut| {
-            if !lut.contains_key(&py_type_address) {
-                let k = TypeObjectKey::new(py_type.clone().unbind());
-
-                assert_eq!(k.address, py_type_address);
-
-                lut.insert(k, get_conversion_function(ob, strict)?);
-            }
-
-            let conversion_func = lut.get(&py_type_address).unwrap();
-            conversion_func(ob, strict)
-        })
+        let conversion_func = lut.get(&py_type_address).unwrap();
+        conversion_func(ob, strict)
     })
 }
 

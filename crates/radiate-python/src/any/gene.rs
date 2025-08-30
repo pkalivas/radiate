@@ -21,16 +21,14 @@ impl<'a> AnyGene<'a> {
         }
     }
 
-    pub fn with_factory<F>(self, factory: F) -> Self
+    pub fn with_factory<F>(mut self, factory: F) -> Self
     where
         F: Fn() -> AnyValue<'static> + Send + Sync + 'static,
     {
-        AnyGene {
-            allele: self.allele,
-            factory: Some(Arc::new(factory)),
-            metadata: self.metadata.clone(),
-        }
+        self.factory = Some(Arc::new(factory));
+        self
     }
+
     pub fn with_metadata(mut self, metadata: HashMap<String, String>) -> Self {
         self.metadata = Some(Arc::new(metadata));
         self
@@ -38,6 +36,24 @@ impl<'a> AnyGene<'a> {
 
     pub fn metadata(&self) -> Option<&HashMap<String, String>> {
         self.metadata.as_ref().map(|m| m.as_ref())
+    }
+
+    pub fn with_allele_owned(&self, allele: AnyValue<'static>) -> Self {
+        AnyGene {
+            allele,
+            factory: self.factory.clone(),
+            metadata: self.metadata.clone(),
+        }
+    }
+
+    pub fn merge(&mut self, other: Self) {
+        super::value::merge_any_values(&mut self.allele, other.allele);
+        if self.factory.is_none() {
+            self.factory = other.factory;
+        }
+        if self.metadata.is_none() {
+            self.metadata = other.metadata;
+        }
     }
 }
 

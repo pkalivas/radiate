@@ -75,6 +75,7 @@ class Mutator(AlterBase, ABC):
 
     def __mutate_internal(self, chromosome: PyChromosome) -> PyChromosome:
         result = self.mutate(cast(Chromosome, chromosome))
+        result = result if result is not None else chromosome
         if isinstance(result, PyChromosome):
             return result
         elif isinstance(result, Chromosome):

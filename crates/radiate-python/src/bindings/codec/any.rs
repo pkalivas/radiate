@@ -38,40 +38,40 @@ impl PyAnyCodec {
                 }
 
                 if genotype.len() == 1 {
-                    let py_list = PyList::new(
-                        py,
-                        genotype
-                            .iter()
-                            .flat_map(|chromo| {
-                                chromo
-                                    .iter()
-                                    .map(|gene| call_creator(py, gene).unwrap().inner)
-                            })
-                            .collect::<Vec<_>>(),
-                    )
-                    .unwrap();
-
                     return PyAnyObject {
-                        inner: py_list.unbind().into_any(),
+                        inner: PyList::new(
+                            py,
+                            genotype
+                                .iter()
+                                .flat_map(|chromo| {
+                                    chromo
+                                        .iter()
+                                        .map(|gene| call_creator(py, gene).unwrap().inner)
+                                })
+                                .collect::<Vec<_>>(),
+                        )
+                        .unwrap()
+                        .unbind()
+                        .into_any(),
                     };
                 }
 
-                let py_list = PyList::new(
-                    py,
-                    genotype
-                        .iter()
-                        .map(|chromo| {
-                            chromo
-                                .iter()
-                                .map(|gene| call_creator(py, gene).unwrap().inner)
-                                .collect::<Vec<_>>()
-                        })
-                        .collect::<Vec<_>>(),
-                )
-                .unwrap();
-
                 return PyAnyObject {
-                    inner: py_list.unbind().into_any(),
+                    inner: PyList::new(
+                        py,
+                        genotype
+                            .iter()
+                            .map(|chromo| {
+                                chromo
+                                    .iter()
+                                    .map(|gene| call_creator(py, gene).unwrap().inner)
+                                    .collect::<Vec<_>>()
+                            })
+                            .collect::<Vec<_>>(),
+                    )
+                    .unwrap()
+                    .unbind()
+                    .into_any(),
                 };
             });
 

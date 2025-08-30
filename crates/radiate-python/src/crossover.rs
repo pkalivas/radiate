@@ -63,22 +63,20 @@ impl<C: Chromosome> PyCrossover<C> {
             let py_chrom_two = &mut geno_two.chromosomes[chromosome_index];
 
             let mut count = 0;
-            if random_provider::random::<f32>() < rate {
-                Python::with_gil(|py| {
-                    let result = self
-                        .chromosome_crossover
-                        .as_ref()
-                        .call1(py, (py_chrom_one.clone(), py_chrom_two.clone()))
-                        .expect("crossover function should not fail");
-                    let (mutated_one, mutated_two) = result
-                        .extract::<(PyChromosome, PyChromosome)>(py)
-                        .expect("should return a tuple of PyChromosome");
-                    *py_chrom_one = mutated_one;
-                    *py_chrom_two = mutated_two;
+            Python::with_gil(|py| {
+                let result = self
+                    .chromosome_crossover
+                    .as_ref()
+                    .call1(py, (py_chrom_one.clone(), py_chrom_two.clone()))
+                    .expect("crossover function should not fail");
+                let (mutated_one, mutated_two) = result
+                    .extract::<(PyChromosome, PyChromosome)>(py)
+                    .expect("should return a tuple of PyChromosome");
+                *py_chrom_one = mutated_one;
+                *py_chrom_two = mutated_two;
 
-                    count += 1;
-                });
-            }
+                count += 1;
+            });
 
             result.0 += count;
         }

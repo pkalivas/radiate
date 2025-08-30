@@ -27,15 +27,43 @@ pub enum AnyValue<'a> {
     StrOwned(String),
     Vector(Box<Vec<AnyValue<'a>>>),
     Struct(Vec<(AnyValue<'a>, Field)>),
+    StructView(&'a [(AnyValue<'a>, Field)]),
 }
 
 impl<'a> AnyValue<'a> {
+    #[inline]
     pub fn is_null(&self) -> bool {
         matches!(self, Self::Null)
     }
 
+    #[inline]
     pub fn is_boolean(&self) -> bool {
         matches!(self, Self::Bool(_))
+    }
+
+    #[inline]
+    pub fn is_struct(&self) -> bool {
+        matches!(self, Self::Struct(_) | Self::StructView(_))
+    }
+
+    #[inline]
+    pub fn struct_fields(&self) -> Option<&[(AnyValue<'a>, Field)]> {
+        match self {
+            AnyValue::Struct(v) => Some(v.as_slice()),
+            AnyValue::StructView(s) => Some(s),
+            _ => None,
+        }
+    }
+
+    pub fn get_field(&self, name: &str) -> Option<&AnyValue<'a>> {
+        if let Some(fields) = self.struct_fields() {
+            for (value, field) in fields {
+                if field.name() == name {
+                    return Some(value);
+                }
+            }
+        }
+        None
     }
 
     pub fn is_numeric(&self) -> bool {
@@ -75,7 +103,7 @@ impl<'a> AnyValue<'a> {
             Self::Vector(_) => "list",
             Self::StrOwned(_) => "string",
             Self::Binary(_) => "binary",
-            Self::Struct(_) => "struct",
+            Self::Struct(_) | Self::StructView(_) => "struct",
         }
     }
 
@@ -99,12 +127,10 @@ impl<'a> AnyValue<'a> {
             Self::Vector(_) => DataType::Vec,
             Self::StrOwned(_) => DataType::String,
             Self::Binary(_) => DataType::BinaryView,
-            Self::Struct(fields) => DataType::Struct(
-                fields
-                    .iter()
-                    .map(|(_, field)| field.clone())
-                    .collect::<Vec<_>>(),
-            ),
+            Self::Struct(_) | Self::StructView(_) => {
+                let fields = self.struct_fields().expect("covered by match arms above");
+                DataType::Struct(fields.iter().map(|(_, f)| f.clone()).collect())
+            }
         }
     }
 
@@ -129,9 +155,7 @@ impl<'a> AnyValue<'a> {
             Float64(v) => Float64(v),
             Char(v) => Char(v),
             Str(v) => StrOwned(v.to_string()),
-            Vector(v) => Vector(Box::new(
-                v.iter().cloned().map(AnyValue::into_static).collect(),
-            )),
+            Vector(v) => Vector(Box::new(v.into_iter().map(AnyValue::into_static).collect())),
             StrOwned(v) => StrOwned(v),
             Binary(v) => Binary(v),
             Struct(v) => Struct(
@@ -139,6 +163,33 @@ impl<'a> AnyValue<'a> {
                     .map(|(val, field)| (val.into_static(), field))
                     .collect(),
             ),
+            StructView(v) => Struct(
+                v.into_iter()
+                    .cloned()
+                    .map(|(val, field)| (val.into_static(), field))
+                    .collect(),
+            ),
+        }
+    }
+}
+
+pub(crate) fn merge_any_values<'a>(base: &mut AnyValue<'a>, patch: AnyValue<'a>) {
+    use AnyValue::*;
+    match (base, patch) {
+        (Struct(base_map), Struct(patch_map)) => {
+            for (k, v_patch) in patch_map.into_iter() {
+                if let Some((v_base, _)) = base_map
+                    .iter_mut()
+                    .find(|(_, f)| f.name() == v_patch.name())
+                {
+                    merge_any_values(v_base, k);
+                } else {
+                    base_map.push((k, v_patch));
+                }
+            }
+        }
+        (slot @ _, v_patch) => {
+            *slot = v_patch;
         }
     }
 }
@@ -219,6 +270,6 @@ impl<'py> IntoPyObject<'py> for Wrap<&AnyValue<'_>> {
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        Wrap(self.0.clone()).into_pyobject(py)
+        super::any_value_into_py_object_ref(self.0, py)
     }
 }

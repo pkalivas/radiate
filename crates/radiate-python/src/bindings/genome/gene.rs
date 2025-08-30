@@ -1,14 +1,13 @@
-use std::collections::HashMap;
-
 use crate::{AnyGene, AnyValue, PyGeneType, RwSequence, Wrap, py_object_to_any_value};
 use pyo3::{
     Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python, exceptions::PyTypeError, pyclass,
-    pymethods,
+    pymethods, types::PyAnyMethods,
 };
 use radiate::{
     BitGene, CharGene, FloatGene, Gene, GraphNode, IntGene, Op, PermutationGene, TreeNode,
     random_provider,
 };
+use std::collections::HashMap;
 
 #[derive(Clone, Debug)]
 enum GeneInner {
@@ -153,8 +152,8 @@ impl PyGene {
                         GeneInner::Permutation(gene.with_allele(&allele.extract(py)?))
                     }
                     GeneInner::AnyGene(gene) => GeneInner::AnyGene(
-                        gene.with_allele(
-                            &py_object_to_any_value(&allele.into_bound_py_any(py).unwrap(), true)?
+                        gene.with_allele_owned(
+                            py_object_to_any_value(&allele.into_bound_py_any(py).unwrap(), true)?
                                 .into_static(),
                         ),
                     ),
@@ -178,19 +177,56 @@ impl PyGene {
             return writer[*idx].apply(py, f);
         }
 
-        let allele = self.allele(py)?;
-        let new_allele = f.call1(py, (allele,))?;
-        let new_gene = self.new_instance(py, Some(new_allele))?;
+        match &mut self.inner {
+            GeneInner::AnyGene(g) => {
+                let py_out = f
+                    .call1(py, (Wrap(g.allele()),))?
+                    .into_bound_py_any(py)
+                    .expect("convert to bound py any");
 
-        self.inner = new_gene.inner;
+                if py_out.is_none() {
+                    return Ok(());
+                }
 
-        Ok(())
+                let new_av = py_object_to_any_value(&py_out, true)?.into_static();
+                g.merge(AnyGene::new(new_av));
+
+                Ok(())
+            }
+            _ => {
+                let allele = self.allele(py)?;
+                let new_allele = f.call1(py, (allele,))?;
+                let new_gene = self.new_instance(py, Some(new_allele))?;
+                self.inner = new_gene.inner;
+                Ok(())
+            }
+        }
     }
 
     pub fn map<'py>(&self, py: Python<'py>, f: Py<PyAny>) -> PyResult<PyGene> {
-        let allele = self.allele(py)?;
-        let new_allele = f.call1(py, (allele,))?;
-        self.new_instance(py, Some(new_allele))
+        match &self.inner {
+            GeneInner::AnyGene(g) => {
+                let py_in = Wrap(g.allele()).into_bound_py_any(py)?;
+                let py_out = f.call1(py, (py_in,))?.into_bound_py_any(py).unwrap();
+
+                if py_out.is_none() {
+                    return Ok(self.clone());
+                }
+
+                let mut base = g.clone();
+                let patch_av = py_object_to_any_value(&py_out, true)?.into_static();
+                base.merge(AnyGene::new(patch_av));
+
+                Ok(PyGene {
+                    inner: GeneInner::AnyGene(base),
+                })
+            }
+            _ => {
+                let allele = self.allele(py)?;
+                let new_allele = f.call1(py, (allele,))?;
+                self.new_instance(py, Some(new_allele))
+            }
+        }
     }
 
     #[staticmethod]
@@ -302,6 +338,8 @@ impl PartialEq for PyGene {
         } else if let (GeneInner::View(a, ai), GeneInner::View(b, bi)) = (&self.inner, &other.inner)
         {
             a == b && ai == bi
+        } else if let (GeneInner::AnyGene(a), GeneInner::AnyGene(b)) = (&self.inner, &other.inner) {
+            a == b
         } else {
             false
         }

@@ -141,14 +141,10 @@ impl PyEngineBuilder {
     where
         F: Fn(EngineBuilderHandle, &PyEngineInput) -> PyResult<EngineBuilderHandle>,
     {
-        if inputs.len() > 1 {
-            processor(builder, &inputs[inputs.len() - 1])
-        } else if inputs.len() == 1 {
-            processor(builder, &inputs[0])
-        } else {
-            Err(PyTypeError::new_err(
-                "Expected exactly one input for this configuration",
-            ))
+        match inputs {
+            [] => Ok(builder),
+            [only] => processor(builder, only),
+            many => processor(builder, &many[many.len() - 1]),
         }
     }
 
@@ -166,21 +162,15 @@ impl PyEngineBuilder {
         builder: EngineBuilderHandle,
         inputs: &[PyEngineInput],
     ) -> PyResult<EngineBuilderHandle> {
-        let mut subscribers = Vec::new();
+        let mut subs = Vec::with_capacity(inputs.len());
         for input in inputs {
-            if let Ok(subscriber) = input.extract::<PySubscriber>("subscriber") {
-                subscribers.push(subscriber);
-            } else {
-                return Err(PyTypeError::new_err("Expected subscriber input"));
-            }
+            subs.push(input.extract::<PySubscriber>("subscriber")?);
         }
-
-        if subscribers.is_empty() {
+        if subs.is_empty() {
             return Ok(builder);
         }
-
-        let py_subscriber = PyEventHandler::new(subscribers.clone());
-        apply_to_builder!(builder, subscribe(py_subscriber))
+        let handler = PyEventHandler::new(subs);
+        apply_to_builder!(builder, subscribe(handler))
     }
 
     fn process_max_species_age(
@@ -199,6 +189,11 @@ impl PyEngineBuilder {
     ) -> PyResult<EngineBuilderHandle> {
         Self::process_single_value(builder, inputs, |builder, input| {
             let threshold = input.get_f32("threshold").unwrap_or(0.3);
+
+            if threshold.is_sign_negative() {
+                return Err(PyTypeError::new_err("species threshold must be >= 0"));
+            }
+
             apply_to_builder!(builder, species_threshold(threshold))
         })
     }
@@ -209,6 +204,11 @@ impl PyEngineBuilder {
     ) -> PyResult<EngineBuilderHandle> {
         Self::process_single_value(builder, inputs, |builder, input| {
             let fraction = input.get_f32("fraction").unwrap_or(0.8);
+
+            if !(0.0..=1.0).contains(&fraction) {
+                return Err(PyTypeError::new_err("offspring fraction must be in [0,1]"));
+            }
+
             apply_to_builder!(builder, offspring_fraction(fraction))
         })
     }
@@ -524,21 +524,13 @@ impl PyEngineBuilder {
                 executor,
             ))
         } else if let Ok(graph_codec) = codec.extract::<PyGraphCodec>() {
-            let cloned_codec = graph_codec.codec.clone();
-            let py_codec = PyCodec::new()
-                .with_encoder(move || cloned_codec.encode())
-                .with_decoder(move |_, genotype| graph_codec.codec.decode(genotype));
-
+            let py_codec = Self::wrapped_codec(graph_codec.codec);
             EngineBuilderHandle::Graph(
                 Self::new_builder(fitness_fn, py_codec, executor)
                     .replace_strategy(GraphReplacement),
             )
         } else if let Ok(tree_codec) = codec.extract::<PyTreeCodec>() {
-            let cloned_codec = tree_codec.codec.clone();
-            let py_codec = PyCodec::new()
-                .with_encoder(move || cloned_codec.encode())
-                .with_decoder(move |_, genotype| tree_codec.codec.decode(genotype));
-
+            let py_codec = Self::wrapped_codec(tree_codec.codec);
             EngineBuilderHandle::Tree(Self::new_builder(fitness_fn, py_codec, executor))
         } else {
             return Err(PyErr::new::<PyTypeError, _>(
@@ -603,20 +595,12 @@ impl PyEngineBuilder {
                 executor,
             ))
         } else if let Ok(graph_codec) = codec.extract::<PyGraphCodec>() {
-            let cloned_codec = graph_codec.codec.clone();
-            let py_codec = PyCodec::new()
-                .with_encoder(move || cloned_codec.encode())
-                .with_decoder(move |_, genotype| graph_codec.codec.decode(genotype));
-
+            let py_codec = Self::wrapped_codec(graph_codec.codec);
             EngineBuilderHandle::Graph(
                 Self::new_builder(fitness, py_codec, executor).replace_strategy(GraphReplacement),
             )
         } else if let Ok(tree_codec) = codec.extract::<PyTreeCodec>() {
-            let cloned_codec = tree_codec.codec.clone();
-            let py_codec = PyCodec::new()
-                .with_encoder(move || cloned_codec.encode())
-                .with_decoder(move |_, genotype| tree_codec.codec.decode(genotype));
-
+            let py_codec = Self::wrapped_codec(tree_codec.codec);
             EngineBuilderHandle::Tree(Self::new_builder(fitness, py_codec, executor))
         } else {
             return Err(PyErr::new::<PyTypeError, _>(
@@ -638,9 +622,21 @@ impl PyEngineBuilder {
     {
         let problem = PyProblem::new(fitness_fn, codec);
         GeneticEngine::builder()
-            .problem(problem.clone())
+            .problem(problem)
             .executor(executor.clone())
-            .evaluator(FreeThreadPyEvaluator::new(executor, problem))
+            .evaluator(FreeThreadPyEvaluator::new(executor))
             .bus_executor(Executor::default())
+    }
+
+    fn wrapped_codec<C, T, PC>(original: PC) -> PyCodec<C, T>
+    where
+        PC: Codec<C, T> + Clone + 'static,
+        C: Chromosome + 'static,
+        T: Send + Sync + Clone + IntoPyAnyObject + 'static,
+    {
+        let cloned = original.clone();
+        PyCodec::new()
+            .with_encoder(move || cloned.encode())
+            .with_decoder(move |_, genotype| original.decode(genotype))
     }
 }
