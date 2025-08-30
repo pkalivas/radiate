@@ -166,9 +166,11 @@ impl PyEngineBuilder {
         for input in inputs {
             subs.push(input.extract::<PySubscriber>("subscriber")?);
         }
+
         if subs.is_empty() {
             return Ok(builder);
         }
+
         let handler = PyEventHandler::new(subs);
         apply_to_builder!(builder, subscribe(handler))
     }

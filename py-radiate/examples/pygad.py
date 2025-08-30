@@ -28,6 +28,7 @@ engine = rd.GeneticEngine(
     codec=rd.FloatCodec.vector(len(function_inputs), (-4.0, 4.0), use_numpy=True),
     fitness_func=fitness,
     objectives="min",
+    subscribe=lambda event: print(event)
 )
 
 result = engine.run(rd.ScoreLimit(0.01), log=True)
@@ -38,4 +39,4 @@ print(f"Generations completed: {result.index()}")
 print(f"Function output: {np.sum(result.value() * function_inputs)}")
 print(f"Duration: {result.duration()}")
 
-print(result)
+print(result.metrics())

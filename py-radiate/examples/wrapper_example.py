@@ -41,10 +41,3 @@ print(engine.run([rd.ScoreLimit(0.0001), rd.SecondsLimit(4)], log=True))
 
 
 codec = rd.AnyCodec(1, lambda: ObjectGene())
-
-print(ObjectGene.__newinstance__().__backend__())
-print(codec.encode())
-print(codec.decode(codec.encode()))
-
-
-# print(rd.gene.any(ObjectGene()).__backend__())

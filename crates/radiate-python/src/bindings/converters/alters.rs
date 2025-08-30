@@ -103,7 +103,6 @@ fn int_alterers() -> &'static HashMap<&'static str, AlterConv<IntChromosome<i32>
             crate::names::ARITHMETIC_MUTATOR      => convert_arithmetic_mutator,
             crate::names::SWAP_MUTATOR            => convert_swap_mutator,
             crate::names::SCRAMBLE_MUTATOR        => convert_scramble_mutator,
-            crate::names::GAUSSIAN_MUTATOR        => convert_gaussian_mutator,
             crate::names::UNIFORM_MUTATOR         => convert_uniform_mutator,
             crate::names::INVERSION_MUTATOR       => convert_inversion_mutator,
             crate::names::CUSTOM_MUTATOR          => convert_custom_mutator,

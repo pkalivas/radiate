@@ -15,7 +15,6 @@ class Generation[T](PyObject[PyGeneration]):
     This class provides a simple interface to access the value of the generation.
     """
 
-
     def __repr__(self):
         return f"{self._pyobj.__repr__()}"
 
@@ -27,7 +26,7 @@ class Generation[T](PyObject[PyGeneration]):
         return self._pyobj.score()
 
     def index(self) -> int:
-        """ 
+        """
         Get the index of the generation.
         :return: The index of the generation.
         """

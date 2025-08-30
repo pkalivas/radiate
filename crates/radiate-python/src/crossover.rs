@@ -25,7 +25,7 @@ impl<C: Chromosome> PyCrossover<C> {
         population: &mut Population<C>,
         index_pairs: &[Vec<usize>],
         generation: usize,
-        rate: f32,
+        _: f32,
     ) -> AlterResult
     where
         C: Chromosome + Clone + From<PyChromosome>,
