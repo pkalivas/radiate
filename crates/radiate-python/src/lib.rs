@@ -15,7 +15,7 @@ pub use any::*;
 pub use bindings::*;
 pub use crossover::PyCrossover;
 pub use evaluator::FreeThreadPyEvaluator;
-pub use mutator::PyMutator;
+pub use mutator::{AnyGeneMutator, PyMutator};
 pub use object::*;
 pub use problem::PyProblem;
 pub use pyo3::{PyResult, Python, exceptions::PyRuntimeError};

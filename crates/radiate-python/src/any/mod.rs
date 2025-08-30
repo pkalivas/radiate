@@ -2,7 +2,7 @@ mod arithmatic;
 mod dtype;
 mod field;
 mod gene;
-mod value;
+pub(crate) mod value;
 
 pub use dtype::DataType;
 pub use field::Field;
@@ -71,16 +71,6 @@ pub fn any_value_into_py_object_ref<'py, 'a>(
             }
             Ok(dict.into_any())
         }
-
-        StructView(pairs) => {
-            let dict = pyo3::types::PyDict::new(py);
-            for (val, fld) in pairs.iter() {
-                let key = fld.name().to_string();
-                let value = any_value_into_py_object_ref(val, py)?;
-                dict.set_item(key, value)?;
-            }
-            Ok(dict.into_any())
-        }
     }
 }
 
@@ -112,17 +102,6 @@ pub fn any_value_into_py_object<'py>(av: AnyValue, py: Python<'py>) -> PyResult<
         AnyValue::Binary(v) => PyBytes::new(py, &v).into_bound_py_any(py),
         AnyValue::Struct(v) => {
             let dict = struct_dict(py, v.into_iter())?;
-            dict.into_bound_py_any(py)
-        }
-        AnyValue::StructView(v) => {
-            let dict = PyDict::new(py);
-
-            for (val, fld) in v {
-                let key = fld.name().to_string();
-                let value = any_value_into_py_object(val.clone(), py)?;
-                dict.set_item(key, value)?;
-            }
-
             dict.into_bound_py_any(py)
         }
     }

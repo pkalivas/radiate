@@ -70,6 +70,7 @@ from .inputs.alterer import (
     PolynomialMutator,
     EdgeRecombinationCrossover,
     JitterMutator,
+    AnyFieldMutator,
     Mutator,
     Crossover,
 )
@@ -147,6 +148,7 @@ __all__ = [
     "EdgeRecombinationCrossover",
     "Mutator",
     "JitterMutator",
+    "AnyFieldMutator",
     # Executor
     "Executor",
     # Limits

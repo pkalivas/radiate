@@ -1,41 +1,25 @@
-use std::fmt::Display;
+use std::{fmt::Display, sync::Arc};
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Default)]
 pub struct Field {
-    pub name: String,
+    pub name: Arc<[u8]>,
 }
 
 impl Field {
     pub fn new(name: String) -> Self {
-        Field { name }
+        Field {
+            name: name.into_bytes().into(),
+        }
     }
 
     #[inline]
-    pub fn name(&self) -> &String {
-        &self.name
-    }
-}
-
-impl From<Field> for (String, Field) {
-    fn from(value: Field) -> Self {
-        (value.name.clone(), value)
-    }
-}
-
-impl From<String> for Field {
-    fn from(name: String) -> Self {
-        Field::new(name)
-    }
-}
-
-impl From<&str> for Field {
-    fn from(name: &str) -> Self {
-        Field::new(name.to_string())
+    pub fn name(&self) -> &str {
+        std::str::from_utf8(&self.name).unwrap()
     }
 }
 
 impl Display for Field {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Field {{\n name: {},\n }}", self.name)
+        write!(f, "Field {{\n name: {},\n }}", self.name())
     }
 }

@@ -1,4 +1,7 @@
-use crate::{AnyGene, AnyValue, PyGeneType, RwSequence, Wrap, py_object_to_any_value};
+use crate::{
+    AnyGene, AnyValue, PyGeneType, RwSequence, Wrap, any_value_into_py_object_ref,
+    py_object_to_any_value,
+};
 use pyo3::{
     Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python, exceptions::PyTypeError, pyclass,
     pymethods, types::PyAnyMethods,
@@ -56,6 +59,51 @@ impl PyGene {
 
     pub fn __eq__(&self, other: &Self) -> bool {
         self == other
+    }
+
+    pub fn __getattr__<'py>(&self, py: Python<'py>, name: &str) -> PyResult<Py<PyAny>> {
+        match &self.inner {
+            GeneInner::AnyGene(gene) => {
+                let val = gene.allele().get_field(name).unwrap();
+                any_value_into_py_object_ref(val, py)?.into_py_any(py)
+            }
+            GeneInner::View(genes, idx) => {
+                let reader = genes.read();
+                reader[*idx].__getattr__(py, name)
+            }
+            _ => Err(PyTypeError::new_err(format!(
+                "Attribute '{}' not found",
+                name
+            ))),
+        }
+    }
+
+    pub fn __setattr__<'py>(
+        &mut self,
+        py: Python<'py>,
+        name: &str,
+        value: Py<PyAny>,
+    ) -> PyResult<()> {
+        match &mut self.inner {
+            GeneInner::AnyGene(gene) => {
+                let value = py_object_to_any_value(&value.into_bound_py_any(py)?, true)
+                    .unwrap()
+                    .into_static();
+
+                crate::value::set_any_value_at_field(gene.allele_mut(), name, value);
+                Ok(())
+            }
+            GeneInner::View(genes, idx) => {
+                let mut reader = genes.write();
+                reader[*idx].__setattr__(py, name, value)
+            }
+            _ => {
+                return Err(PyTypeError::new_err(format!(
+                    "Attribute '{}' not found",
+                    name
+                )));
+            }
+        }
     }
 
     pub fn copy(&self) -> PyGene {
@@ -189,6 +237,7 @@ impl PyGene {
                 }
 
                 let new_av = py_object_to_any_value(&py_out, true)?.into_static();
+
                 g.merge(AnyGene::new(new_av));
 
                 Ok(())

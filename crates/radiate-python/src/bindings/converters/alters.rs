@@ -1,6 +1,6 @@
 use crate::{
-    AnyChromosome, InputTransform, PyChromosome, PyCrossover, PyEngineInput, PyEngineInputType,
-    PyMutator,
+    AnyChromosome, AnyGeneMutator, InputTransform, PyChromosome, PyCrossover, PyEngineInput,
+    PyEngineInputType, PyMutator,
 };
 use pyo3::{Py, PyAny, PyResult, exceptions::PyTypeError};
 use radiate::*;
@@ -239,6 +239,7 @@ fn any_alterers() -> &'static HashMap<&'static str, AlterConv<AnyChromosome<'sta
             crate::names::INVERSION_MUTATOR       => convert_inversion_mutator,
             crate::names::CUSTOM_MUTATOR          => convert_custom_mutator,
             crate::names::ARITHMETIC_MUTATOR      => convert_arithmetic_mutator,
+            crate::names::ANY_FIELD_MUTATOR       => convert_any_field_mutator,
         }
     })
 }
@@ -271,6 +272,18 @@ where
         .get_string("name")
         .unwrap_or_else(|| "CustomCrossover".to_string());
     PyCrossover::new(rate, name, crossover_func)
+}
+
+fn convert_any_field_mutator(input: &PyEngineInput) -> AnyGeneMutator {
+    let rate = input.get_f32("rate").unwrap_or(0.5);
+    let mutate_func = input
+        .extract::<Py<PyAny>>("mutate")
+        .expect("Mutate function must be provided");
+    let field_name = input
+        .get_string("field_name")
+        .unwrap_or_else(|| "AnyFieldMutator".to_string());
+
+    AnyGeneMutator::new(rate, field_name, mutate_func)
 }
 
 fn convert_jitter_mutator(input: &PyEngineInput) -> JitterMutator {

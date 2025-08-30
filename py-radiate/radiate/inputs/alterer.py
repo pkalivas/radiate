@@ -1,4 +1,4 @@
-from typing import Any, cast
+from typing import Any, Callable, cast
 from abc import ABC, abstractmethod
 
 from radiate.genome.chromosome import Chromosome
@@ -130,6 +130,19 @@ class Crossover(AlterBase, ABC):
         :return: The offspring produced by the crossover.
         """
         raise NotImplementedError
+
+
+class AnyFieldMutator(AlterBase):
+    def __init__(self, rate: float, field_name: str, mutate_func: Callable[[Any], Any]):
+        super().__init__(
+            component="AnyFieldMutator",
+            args={
+                "rate": rate,
+                "field_name": field_name,
+                "mutate": mutate_func
+            },
+            allowed_genes=GeneType.ANY,
+        )
 
 
 class BlendCrossover(AlterBase):

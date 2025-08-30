@@ -24,16 +24,21 @@ class ObjectMutator(rd.Mutator):
     def mutate(self, chromosome: rd.Chromosome):
         for gene in chromosome:
             if rd.random.float() < self.rate:
-                gene.apply(
-                    lambda g: {"number": g["number"] + rd.random.float(-0.1, 0.1)}
-                )
+                gene.number += rd.random.float(-0.1, 0.1)
+                # gene.apply(
+                #     lambda g: {"number": g["number"] + rd.random.float(-0.1, 0.1)}
+                # )
 
 
 engine = rd.GeneticEngine(
     codec=rd.AnyCodec(5, lambda: ObjectGene()),
     fitness_func=lambda x: abs(sum(g.number for g in x) - 4),
     objectives="min",
-    alters=[rd.UniformCrossover(0.5), ObjectMutator(0.1)],
+    alters=[
+        rd.UniformCrossover(0.5),
+        # ObjectMutator(0.1),
+        rd.AnyFieldMutator(0.1, "number", lambda val: val + rd.random.float(-0.1, 0.1)),
+    ],
     executor=rd.Executor.FixedSizedWorkerPool(4),
 )
 
@@ -41,3 +46,5 @@ print(engine.run([rd.ScoreLimit(0.0001), rd.SecondsLimit(4)], log=True))
 
 
 codec = rd.AnyCodec(1, lambda: ObjectGene())
+
+# print(ObjectGene().__backend__().number)

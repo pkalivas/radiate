@@ -48,3 +48,4 @@ pub(crate) const INVERSION_MUTATOR: &str = "InversionMutator";
 pub(crate) const POLYNOMIAL_MUTATOR: &str = "PolynomialMutator";
 pub(crate) const CUSTOM_MUTATOR: &str = "CustomMutator";
 pub(crate) const JITTER_MUTATOR: &str = "JitterMutator";
+pub(crate) const ANY_FIELD_MUTATOR: &str = "AnyFieldMutator";

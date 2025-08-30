@@ -27,7 +27,6 @@ pub enum AnyValue<'a> {
     StrOwned(String),
     Vector(Box<Vec<AnyValue<'a>>>),
     Struct(Vec<(AnyValue<'a>, Field)>),
-    StructView(&'a [(AnyValue<'a>, Field)]),
 }
 
 impl<'a> AnyValue<'a> {
@@ -43,18 +42,26 @@ impl<'a> AnyValue<'a> {
 
     #[inline]
     pub fn is_struct(&self) -> bool {
-        matches!(self, Self::Struct(_) | Self::StructView(_))
+        matches!(self, Self::Struct(_))
     }
 
     #[inline]
     pub fn struct_fields(&self) -> Option<&[(AnyValue<'a>, Field)]> {
         match self {
             AnyValue::Struct(v) => Some(v.as_slice()),
-            AnyValue::StructView(s) => Some(s),
             _ => None,
         }
     }
 
+    #[inline]
+    pub fn struct_fields_mut(&mut self) -> Option<&mut [(AnyValue<'a>, Field)]> {
+        match self {
+            AnyValue::Struct(v) => Some(v.as_mut_slice()),
+            _ => None,
+        }
+    }
+
+    #[inline]
     pub fn get_field(&self, name: &str) -> Option<&AnyValue<'a>> {
         if let Some(fields) = self.struct_fields() {
             for (value, field) in fields {
@@ -63,6 +70,19 @@ impl<'a> AnyValue<'a> {
                 }
             }
         }
+
+        None
+    }
+
+    pub fn get_field_mut(&mut self, name: &str) -> Option<&mut AnyValue<'a>> {
+        if let Some(fields) = self.struct_fields_mut() {
+            for (value, field) in fields {
+                if field.name() == name {
+                    return Some(value);
+                }
+            }
+        }
+
         None
     }
 
@@ -103,7 +123,7 @@ impl<'a> AnyValue<'a> {
             Self::Vector(_) => "list",
             Self::StrOwned(_) => "string",
             Self::Binary(_) => "binary",
-            Self::Struct(_) | Self::StructView(_) => "struct",
+            Self::Struct(_) => "struct",
         }
     }
 
@@ -127,7 +147,7 @@ impl<'a> AnyValue<'a> {
             Self::Vector(_) => DataType::Vec,
             Self::StrOwned(_) => DataType::String,
             Self::Binary(_) => DataType::BinaryView,
-            Self::Struct(_) | Self::StructView(_) => {
+            Self::Struct(_) => {
                 let fields = self.struct_fields().expect("covered by match arms above");
                 DataType::Struct(fields.iter().map(|(_, f)| f.clone()).collect())
             }
@@ -163,33 +183,6 @@ impl<'a> AnyValue<'a> {
                     .map(|(val, field)| (val.into_static(), field))
                     .collect(),
             ),
-            StructView(v) => Struct(
-                v.into_iter()
-                    .cloned()
-                    .map(|(val, field)| (val.into_static(), field))
-                    .collect(),
-            ),
-        }
-    }
-}
-
-pub(crate) fn merge_any_values<'a>(base: &mut AnyValue<'a>, patch: AnyValue<'a>) {
-    use AnyValue::*;
-    match (base, patch) {
-        (Struct(base_map), Struct(patch_map)) => {
-            for (k, v_patch) in patch_map.into_iter() {
-                if let Some((v_base, _)) = base_map
-                    .iter_mut()
-                    .find(|(_, f)| f.name() == v_patch.name())
-                {
-                    merge_any_values(v_base, k);
-                } else {
-                    base_map.push((k, v_patch));
-                }
-            }
-        }
-        (slot @ _, v_patch) => {
-            *slot = v_patch;
         }
     }
 }
@@ -271,5 +264,36 @@ impl<'py> IntoPyObject<'py> for Wrap<&AnyValue<'_>> {
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         super::any_value_into_py_object_ref(self.0, py)
+    }
+}
+
+pub(crate) fn merge_any_values<'a>(base: &mut AnyValue<'a>, patch: AnyValue<'a>) {
+    use AnyValue::*;
+    match (base, patch) {
+        (Struct(base_map), Struct(patch_map)) => {
+            for (k, v_patch) in patch_map.into_iter() {
+                if let Some((v_base, _)) = base_map
+                    .iter_mut()
+                    .find(|(_, f)| f.name() == v_patch.name())
+                {
+                    merge_any_values(v_base, k);
+                } else {
+                    base_map.push((k, v_patch));
+                }
+            }
+        }
+        (slot @ _, v_patch) => {
+            *slot = v_patch;
+        }
+    }
+}
+
+pub(crate) fn set_any_value_at_field<'a>(
+    allele: &mut AnyValue<'a>,
+    field_name: &str,
+    new_value: AnyValue<'a>,
+) {
+    if let Some(field) = allele.get_field_mut(field_name) {
+        *field = new_value;
     }
 }

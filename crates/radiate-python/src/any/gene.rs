@@ -55,6 +55,10 @@ impl<'a> AnyGene<'a> {
             self.metadata = other.metadata;
         }
     }
+
+    pub fn allele_mut(&mut self) -> &mut AnyValue<'a> {
+        &mut self.allele
+    }
 }
 
 impl Valid for AnyGene<'_> {

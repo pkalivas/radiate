@@ -23,6 +23,7 @@ from .alterer import (
     Crossover,
     EdgeRecombinationCrossover,
     JitterMutator,
+    AnyFieldMutator
 )
 
 from .selector import (
@@ -87,6 +88,7 @@ __all__ = [
     "EuclideanDistance",
     "NeatDistance",
     "Executor",
+    "AnyFieldMutator",
     "SecondsLimit",
     "GenerationsLimit",
     "ScoreLimit",
