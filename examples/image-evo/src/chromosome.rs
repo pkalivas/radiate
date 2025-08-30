@@ -45,23 +45,25 @@ impl Gene for ImageGene {
 }
 
 impl ArithmeticGene for ImageGene {
-    fn max(&self) -> &Self::Allele {
-        &self.allele
-    }
-
-    fn min(&self) -> &Self::Allele {
-        &self.allele
-    }
-
     fn mean(&self, other: &Self) -> Self {
         let allele = self.allele.mean(&other.allele);
         Self { allele }
     }
 
-    fn from_f32(&self, _: f32) -> Self {
-        Self {
-            allele: Polygon::new(self.allele.len()),
-        }
+    fn add(&self, other: Self) -> Self {
+        self.clone() + other
+    }
+
+    fn sub(&self, other: Self) -> Self {
+        self.clone() - other
+    }
+
+    fn mul(&self, other: Self) -> Self {
+        self.clone() * other
+    }
+
+    fn div(&self, other: Self) -> Self {
+        self.clone() / other
     }
 }
 

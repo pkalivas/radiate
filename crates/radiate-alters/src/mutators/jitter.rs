@@ -1,5 +1,5 @@
 use radiate_core::{
-    AlterResult, ArithmeticGene, Chromosome, FloatGene, Gene, Mutate, random_provider,
+    AlterResult, BoundedGene, Chromosome, FloatGene, Gene, Mutate, random_provider,
 };
 
 pub struct JitterMutator {

@@ -50,7 +50,7 @@ class AlterBase(ComponentBase):
             input_type=EngineInputType.Alterer,
             allowed_genes=self.allowed_genes,
             args=self.args,
-        ).backend()
+        ).__backend__()
 
         return Population(
             individuals=py_alter(
@@ -78,7 +78,7 @@ class Mutator(AlterBase, ABC):
         if isinstance(result, PyChromosome):
             return result
         elif isinstance(result, Chromosome):
-            return result.backend()
+            return result.__backend__()
         else:
             raise TypeError("Mutator.mutate must return a Chromosome or PyChromosome")
 
@@ -114,7 +114,7 @@ class Crossover(AlterBase, ABC):
             if isinstance(one, PyChromosome) and isinstance(two, PyChromosome):
                 return one, two
             elif isinstance(one, Chromosome) and isinstance(two, Chromosome):
-                return one.backend(), two.backend()
+                return one.__backend__(), two.__backend__()
         else:
             raise TypeError("Crossover must return a tuple of Chromosomes")
 
@@ -154,7 +154,7 @@ class MeanCrossover(AlterBase):
         super().__init__(
             component="MeanCrossover",
             args={"rate": rate},
-            allowed_genes={GeneType.FLOAT, GeneType.INT},
+            allowed_genes={GeneType.FLOAT, GeneType.INT, GeneType.ANY},
         )
 
 
@@ -204,7 +204,7 @@ class ArithmeticMutator(AlterBase):
         super().__init__(
             component="ArithmeticMutator",
             args={"rate": rate},
-            allowed_genes={GeneType.FLOAT, GeneType.INT},
+            allowed_genes={GeneType.FLOAT, GeneType.INT, GeneType.ANY},
         )
 
 

@@ -10,7 +10,7 @@ from PIL import Image, ImageDraw, ImageChops, ImageStat
 NUM_POLYGONS = 175
 POLYGON_SIZE = 5
 SEED = 18
-STEPS = 1000
+STEPS = 20
 
 rd.random.seed(SEED)
 
@@ -159,6 +159,9 @@ class PolygonGene(rd.AnyGene):
             py = min(1.0, max(0.0, py))
             pts.append((px, py))
         self.points = pts
+
+    def __factory__(self):
+        return PolygonGene(self.n, self.width, self.height)
 
     # Convenience to draw this polygon onto a PIL RGBA canvas (with alpha)
     def draw(self, canvas: Image.Image) -> None:

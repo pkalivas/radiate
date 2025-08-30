@@ -1,4 +1,5 @@
-use radiate_core::{AlterResult, ArithmeticGene, Chromosome, Gene, Mutate, random_provider};
+use radiate_core::{AlterResult, ArithmeticGene, Chromosome, Mutate, random_provider};
+// use std::ops::{Add, Div, Mul, Sub};
 
 /// Arithmetic Mutator. Mutates genes by performing arithmetic operations on them.
 /// The ArithmeticMutator takes a rate parameter that determines the likelihood that
@@ -23,10 +24,7 @@ impl ArithmeticMutator {
     }
 }
 
-impl<C: Chromosome> Mutate<C> for ArithmeticMutator
-where
-    C::Gene: ArithmeticGene,
-{
+impl<G: ArithmeticGene, C: Chromosome<Gene = G>> Mutate<C> for ArithmeticMutator {
     fn rate(&self) -> f32 {
         self.rate
     }
@@ -36,21 +34,19 @@ where
     /// arithmetic operation on the gene.
     fn mutate_chromosome(&self, chromosome: &mut C, rate: f32) -> AlterResult {
         let mut mutations = 0;
-        for i in 0..chromosome.len() {
+        for gene in chromosome.iter_mut() {
             if random_provider::random::<f32>() < rate {
-                let curr_gene = chromosome.get(i);
-                let new_instance = curr_gene.new_instance();
                 let operator = random_provider::range(0..4);
 
                 let new_gene = match operator {
-                    0 => curr_gene.clone() + new_instance,
-                    1 => curr_gene.clone() - new_instance,
-                    2 => curr_gene.clone() * new_instance,
-                    3 => curr_gene.clone() / new_instance,
+                    0 => gene.add(gene.new_instance()),
+                    1 => gene.sub(gene.new_instance()),
+                    2 => gene.mul(gene.new_instance()),
+                    3 => gene.div(gene.new_instance()),
                     _ => panic!("Invalid operator: {}", operator),
                 };
 
-                chromosome.set(i, new_gene);
+                *gene = new_gene;
                 mutations += 1;
             }
         }

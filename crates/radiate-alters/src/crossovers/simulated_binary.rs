@@ -1,5 +1,5 @@
 use radiate_core::{
-    AlterResult, ArithmeticGene, Chromosome, Crossover, FloatGene, Gene, random_provider,
+    AlterResult, BoundedGene, Chromosome, Crossover, FloatGene, Gene, random_provider,
 };
 
 pub struct SimulatedBinaryCrossover {

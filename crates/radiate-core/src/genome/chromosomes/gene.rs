@@ -1,5 +1,3 @@
-use std::ops::{Add, Div, Mul, Sub};
-
 /// A [`Valid`] type is a type that can be checked for validity. This is used for checking if a gene
 /// or a chromosome is valid. For example, a gene that represents a number between 0 and 1 can be checked
 /// for validity by ensuring that the allele is between 0 and 1.
@@ -68,26 +66,21 @@ pub trait Gene: Clone + Valid {
     fn with_allele(&self, allele: &Self::Allele) -> Self;
 }
 
+pub trait BoundedGene: Gene {
+    fn min(&self) -> &Self::Allele;
+    fn max(&self) -> &Self::Allele;
+    fn bounds(&self) -> (&Self::Allele, &Self::Allele);
+}
+
 /// A [Gene] that represents a number. This gene can be used to represent any type of number,
 /// including integers, floats, etc. Essentially, any gene that can `Add`, `Sub`, `Mul`, and `Div`
 /// can be used as a [ArithmeticGene].
-pub trait ArithmeticGene:
-    Gene + Add<Output = Self> + Sub<Output = Self> + Mul<Output = Self> + Div<Output = Self>
-{
-    /// Get the min value of the gene as a number.
-    // fn min(&self) -> &Self::Allele;
-
-    /// Get the max value of the gene as a number.
-    fn max(&self) -> &Self::Allele;
-
+pub trait ArithmeticGene: Gene {
     /// Get the value of the gene as a number.
     fn mean(&self, other: &Self) -> Self;
 
-    /// Create a new gene from an f32.
-    fn from_f32(&self, value: f32) -> Self;
-
-    /// Create a new gene from an i32.
-    fn from_i32(&self, value: i32) -> Self {
-        self.from_f32(value as f32)
-    }
+    fn add(&self, other: Self) -> Self;
+    fn sub(&self, other: Self) -> Self;
+    fn mul(&self, other: Self) -> Self;
+    fn div(&self, other: Self) -> Self;
 }

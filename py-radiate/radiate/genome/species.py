@@ -13,7 +13,7 @@ class Species[T](PyObject[PySpecies]):
 
     def __init__(self, mascot: Phenotype[T], generation: int = 0):
         super().__init__()
-        self._pyobj = PySpecies(mascot.backend(), generation)
+        self._pyobj = PySpecies(mascot.__backend__(), generation)
 
     def __repr__(self):
         return self._pyobj.__repr__()
@@ -24,7 +24,7 @@ class Species[T](PyObject[PySpecies]):
 
         :param individual: The individual to add.
         """
-        self._pyobj.add_individual(individual.backend())
+        self._pyobj.add_individual(individual.__backend__())
 
     def population(self) -> Population[T]:
         """

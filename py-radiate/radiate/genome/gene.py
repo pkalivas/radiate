@@ -63,19 +63,39 @@ class Gene[T](PyObject[PyGene]):
 
 class AnyGene(Gene):
     @classmethod
-    def __from_gene__(klass, gene_dict: dict):
+    def __newinstance__(cls):
+        instance = cls.__new__(cls)
+        instance.__init__()
+        return instance
+
+    @classmethod
+    def __fromgene__(klass, gene_dict: dict):
         inst = klass.__new__(klass)
         inst.__dict__.update(gene_dict)
         return inst
 
-    def __to_gene__(self):
-        return self.__dict__ | {
-            "__class__": f"{self.__class__.__module__}.{self.__class__.__qualname__}"
-        }
+    def __factory__(self):
+        return self.__class__.__newinstance__()
+
+    # @overload
+    def __backend__(self) -> PyGene:
+        if "_pyobj" not in self.__dict__:
+            properties = self.__dict__
+            metadata = {
+                "__class__": f"{self.__class__.__module__}.{self.__class__.__qualname__}"
+            }
+
+            self._pyobj = PyGene.any(
+                allele=properties,
+                metadata=metadata,
+                factory=lambda: self.__factory__().__dict__,
+            )
+
+        return self._pyobj
 
     @overload
     def allele(self) -> AnyGene:
-        return self
+        return self.__dict__
 
 
 def float(

@@ -27,7 +27,7 @@ class Phenotype[T](PyObject[PyPhenotype]):
             if isinstance(score, float):
                 score = [score]
 
-            self._pyobj = PyPhenotype(genotype=genotype.backend(), score=score)
+            self._pyobj = PyPhenotype(genotype=genotype.__backend__(), score=score)
         else:
             raise TypeError(f"Cannot create Phenotype with instance of {genotype}")
 

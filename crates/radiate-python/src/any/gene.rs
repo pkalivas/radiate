@@ -1,12 +1,14 @@
-use std::{fmt::Debug, sync::Arc};
-
 use crate::AnyValue;
 use radiate::{ArithmeticGene, Chromosome, Gene, Valid};
+use std::{collections::HashMap, fmt::Debug, sync::Arc};
+
+type MetaData<'a> = Option<Arc<HashMap<String, String>>>;
 
 #[derive(Clone)]
 pub struct AnyGene<'a> {
     allele: AnyValue<'a>,
     factory: Option<Arc<dyn Fn() -> AnyValue<'static> + Send + Sync>>,
+    metadata: MetaData<'a>,
 }
 
 impl<'a> AnyGene<'a> {
@@ -14,6 +16,7 @@ impl<'a> AnyGene<'a> {
         AnyGene {
             allele,
             factory: None,
+            metadata: None,
         }
     }
 
@@ -24,7 +27,16 @@ impl<'a> AnyGene<'a> {
         AnyGene {
             allele: self.allele,
             factory: Some(Arc::new(factory)),
+            metadata: self.metadata.clone(),
         }
+    }
+    pub fn with_metadata(mut self, metadata: HashMap<String, String>) -> Self {
+        self.metadata = Some(Arc::new(metadata));
+        self
+    }
+
+    pub fn metadata(&self) -> Option<&HashMap<String, String>> {
+        self.metadata.as_ref().map(|m| m.as_ref())
     }
 }
 
@@ -46,6 +58,7 @@ impl<'a> Gene for AnyGene<'a> {
             AnyGene {
                 allele: factory(),
                 factory: self.factory.clone(),
+                metadata: self.metadata.clone(),
             }
         } else {
             self.clone()
@@ -56,77 +69,54 @@ impl<'a> Gene for AnyGene<'a> {
         AnyGene {
             allele: allele.clone(),
             factory: self.factory.clone(),
+            metadata: self.metadata.clone(),
         }
     }
 }
 
 impl<'a> ArithmeticGene for AnyGene<'a> {
-    fn min(&self) -> &Self::Allele {
-        &self.allele
-    }
-
-    fn max(&self) -> &Self::Allele {
-        &self.allele
-    }
-
     fn mean(&self, other: &Self) -> Self {
-        match (self.allele(), other.allele()) {
-            (AnyValue::Bool(a), AnyValue::Bool(b)) => AnyGene::new(AnyValue::Bool(*a && *b)),
-            (AnyValue::UInt8(a), AnyValue::UInt8(b)) => {
-                AnyGene::new(AnyValue::UInt8((*a + *b) / 2))
-            }
-            (AnyValue::UInt16(a), AnyValue::UInt16(b)) => {
-                AnyGene::new(AnyValue::UInt16((*a + *b) / 2))
-            }
-            (AnyValue::UInt32(a), AnyValue::UInt32(b)) => {
-                AnyGene::new(AnyValue::UInt32((*a + *b) / 2))
-            }
-            (AnyValue::UInt64(a), AnyValue::UInt64(b)) => {
-                AnyGene::new(AnyValue::UInt64((*a + *b) / 2))
-            }
-            (AnyValue::Int8(a), AnyValue::Int8(b)) => AnyGene::new(AnyValue::Int8((*a + *b) / 2)),
-            (AnyValue::Int16(a), AnyValue::Int16(b)) => {
-                AnyGene::new(AnyValue::Int16((*a + *b) / 2))
-            }
-            (AnyValue::Int32(a), AnyValue::Int32(b)) => {
-                AnyGene::new(AnyValue::Int32((*a + *b) / 2))
-            }
-            (AnyValue::Int64(a), AnyValue::Int64(b)) => {
-                AnyGene::new(AnyValue::Int64((*a + *b) / 2))
-            }
-            (AnyValue::Int128(a), AnyValue::Int128(b)) => {
-                AnyGene::new(AnyValue::Int128((*a + *b) / 2))
-            }
-            (AnyValue::Float32(a), AnyValue::Float32(b)) => {
-                AnyGene::new(AnyValue::Float32((*a + *b) / 2.0))
-            }
-            (AnyValue::Float64(a), AnyValue::Float64(b)) => {
-                AnyGene::new(AnyValue::Float64((*a + *b) / 2.0))
-            }
-            (AnyValue::Binary(a), AnyValue::Binary(b)) => {
-                let m = core::cmp::min(a.len(), b.len());
-                let mut out = Vec::with_capacity(m);
-                for i in 0..m {
-                    let avg = ((a[i] as u16 + b[i] as u16) / 2) as u8;
-                    out.push(avg);
-                }
-                AnyGene::new(AnyValue::Binary(out))
-            }
-            // Char
-            // (AnyValue::Vec(a), AnyValue::Vec(b)) if a.len() == b.len() => {
-            //     let v = a
-            //         .iter()
-            //         .zip(b.iter())
-            //         .map(|(x, y)| x.mean(y))
-            //         .collect::<Vec<_>>();
-            //     AnyGene::new(AnyValue::Vec(Box::new(v)))
-            // }
-            _ => self.clone(),
+        if let Some(avg) = super::arithmatic::mean_anyvalue(self.allele(), other.allele()) {
+            AnyGene::new(avg)
+        } else {
+            // policy: keep self when incompatible; you could also pick `other.clone()`
+            self.clone()
         }
     }
 
-    fn from_f32(&self, value: f32) -> Self {
-        AnyGene::new(AnyValue::Float32(value))
+    fn add(&self, other: Self) -> Self {
+        let new_allele = self.allele.clone() + other.allele;
+        AnyGene {
+            allele: new_allele,
+            factory: self.factory.clone(),
+            metadata: self.metadata.clone(),
+        }
+    }
+
+    fn sub(&self, other: Self) -> Self {
+        let new_allele = self.allele.clone() - other.allele;
+        AnyGene {
+            allele: new_allele,
+            factory: self.factory.clone(),
+            metadata: self.metadata.clone(),
+        }
+    }
+
+    fn mul(&self, other: Self) -> Self {
+        let new_allele = self.allele.clone() * other.allele;
+        AnyGene {
+            allele: new_allele,
+            factory: self.factory.clone(),
+            metadata: self.metadata.clone(),
+        }
+    }
+
+    fn div(&self, other: Self) -> Self {
+        AnyGene {
+            allele: self.allele.clone() / other.allele,
+            factory: self.factory.clone(),
+            metadata: self.metadata.clone(),
+        }
     }
 }
 
@@ -138,9 +128,14 @@ impl PartialEq for AnyGene<'_> {
 
 impl Debug for AnyGene<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("AnyGene")
-            .field("allele", &self.allele)
-            .finish()
+        write!(f, "AnyGene {{ ")?;
+        write!(f, "allele: {:?}, ", self.allele)?;
+        if let Some(metadata) = &self.metadata {
+            write!(f, "metadata: {:?}, ", metadata)?;
+        } else {
+            write!(f, "metadata: None, ")?;
+        }
+        write!(f, "}}")
     }
 }
 

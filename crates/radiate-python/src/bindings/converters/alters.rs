@@ -190,11 +190,13 @@ impl InputTransform<Vec<Box<dyn Alter<AnyChromosome<'static>>>>> for PyEngineInp
             crate::names::UNIFORM_CROSSOVER => alters!(convert_uniform_crossover(&self)),
             crate::names::SHUFFLE_CROSSOVER => alters!(convert_shuffle_crossover(&self)),
             crate::names::CUSTOM_CROSSOVER => alters!(convert_custom_crossover(&self)),
+            crate::names::MEAN_CROSSOVER => alters!(convert_mean_crossover(&self)),
             crate::names::SWAP_MUTATOR => alters!(convert_swap_mutator(&self)),
             crate::names::SCRAMBLE_MUTATOR => alters!(convert_scramble_mutator(&self)),
             crate::names::UNIFORM_MUTATOR => alters!(convert_uniform_mutator(&self)),
             crate::names::INVERSION_MUTATOR => alters!(convert_inversion_mutator(&self)),
             crate::names::CUSTOM_MUTATOR => alters!(convert_custom_mutator(&self)),
+            crate::names::ARITHMETIC_MUTATOR => alters!(convert_arithmetic_mutator(&self)),
             _ => panic!("Invalid alterer type {}", self.component),
         }
     }

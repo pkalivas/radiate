@@ -37,7 +37,7 @@ class BitCodec[T](CodecBase[bool, T]):
         """
         if not isinstance(genotype, Genotype):
             raise TypeError("genotype must be an instance of Genotype.")
-        return self.codec.decode_py(genotype.backend())
+        return self.codec.decode_py(genotype.__backend__())
 
     @staticmethod
     def matrix(

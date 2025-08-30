@@ -57,7 +57,7 @@ class SelectorBase(ComponentBase):
             component=self.component,
             input_type=EngineInputType.SurvivorSelector,
             args=self.args,
-        ).backend()
+        ).__backend__()
 
         objective_input = EngineInput(
             component="Objective",
@@ -66,14 +66,14 @@ class SelectorBase(ComponentBase):
             args={"objective": "|".join(objective)}
             if isinstance(objective, list)
             else {"objective": objective},
-        ).backend()
+        ).__backend__()
 
         return Population.from_rust(
             py_select(
                 gene_type=GENE_TYPE_MAPPING["rs"][gene_type],
                 selector=selector_input,
                 objective=objective_input,
-                population=population.backend(),
+                population=population.__backend__(),
                 count=count,
             )
         )

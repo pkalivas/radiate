@@ -23,9 +23,9 @@ class Genotype[T](PyObject[PyGenotype]):
         super().__init__()
 
         if isinstance(chromosomes, Chromosome):
-            self._pyobj = PyGenotype([chromosomes.backend()])
+            self._pyobj = PyGenotype([chromosomes.__backend__()])
         elif isinstance(chromosomes, Iterable):
-            self._pyobj = PyGenotype(list(map(lambda c: c.backend(), chromosomes)))
+            self._pyobj = PyGenotype(list(map(lambda c: c.__backend__(), chromosomes)))
 
     def __repr__(self):
         return self._pyobj.__repr__()

@@ -32,4 +32,4 @@ class PermutationCodec[T](CodecBase[T, list[T]]):
         """
         if not isinstance(genotype, Genotype):
             raise TypeError("genotype must be an instance of Genotype.")
-        return self.codec.decode_py(genotype=genotype.backend())
+        return self.codec.decode_py(genotype=genotype.__backend__())

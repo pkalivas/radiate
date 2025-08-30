@@ -28,7 +28,7 @@ class CharCodec[T](CodecBase[str, T]):
         """
         if not isinstance(genotype, Genotype):
             raise TypeError("genotype must be an instance of Genotype.")
-        return self.codec.decode_py(genotype=genotype.backend())
+        return self.codec.decode_py(genotype=genotype.__backend__())
     
     def _create_encoding(self, encoding: CharEncoding) -> PyCharCodec:
         """
@@ -39,14 +39,14 @@ class CharCodec[T](CodecBase[str, T]):
         if isinstance(encoding, PyCharCodec):
             return encoding
         elif isinstance(encoding, Gene):
-            return PyCharCodec.from_genes([encoding.backend()])
+            return PyCharCodec.from_genes([encoding.__backend__()])
         elif isinstance(encoding, Chromosome):
-            return PyCharCodec.from_chromosomes([encoding.backend()])
+            return PyCharCodec.from_chromosomes([encoding.__backend__()])
         elif isinstance(encoding, list):
             if all(isinstance(g, Gene) for g in encoding):
-                return PyCharCodec.from_genes([g.backend() for g in encoding])
+                return PyCharCodec.from_genes([g.__backend__() for g in encoding])
             elif all(isinstance(c, Chromosome) for c in encoding):
-                return PyCharCodec.from_chromosomes([c.backend() for c in encoding])
+                return PyCharCodec.from_chromosomes([c.__backend__() for c in encoding])
             else:
                 raise TypeError("Invalid list type for IntCodec encoding.")
         else:
@@ -69,7 +69,7 @@ class CharCodec[T](CodecBase[str, T]):
             raise TypeError("All genes must be of type 'char'.")
 
         return CharCodec(
-            PyCharCodec.from_genes(list(map(lambda g: g.backend(), genes)))
+            PyCharCodec.from_genes(list(map(lambda g: g.__backend__(), genes)))
         )
 
     @staticmethod

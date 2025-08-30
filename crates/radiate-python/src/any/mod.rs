@@ -1,3 +1,4 @@
+mod arithmatic;
 mod dtype;
 mod field;
 mod gene;

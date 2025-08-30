@@ -3,7 +3,53 @@ use crate::Wrap;
 use pyo3::{
     Bound, FromPyObject, IntoPyObject, PyAny, PyErr, PyResult, Python, exceptions::PyValueError,
 };
-use std::{fmt::Debug, ops::Add};
+use std::{
+    fmt::Debug,
+    ops::{Add, Div, Mul, Sub},
+};
+
+/// Internal helper: perform `lhs <op> rhs` for all numeric AnyValue variants.
+/// On type mismatch, returns `AnyValue::Null`.
+macro_rules! bin_numeric_op {
+    ($lhs:expr, $rhs:expr, $op:tt) => {{
+        use AnyValue::*;
+        match ($lhs, $rhs) {
+            (Int8(a),    Int8(b))    => Int8(a $op b),
+            (Int16(a),   Int16(b))   => Int16(a $op b),
+            (Int32(a),   Int32(b))   => Int32(a $op b),
+            (Int64(a),   Int64(b))   => Int64(a $op b),
+            (Int128(a),  Int128(b))  => Int128(a $op b),
+            (UInt8(a),   UInt8(b))   => UInt8(a $op b),
+            (UInt16(a),  UInt16(b))  => UInt16(a $op b),
+            (UInt32(a),  UInt32(b))  => UInt32(a $op b),
+            (UInt64(a),  UInt64(b))  => UInt64(a $op b),
+            (Float32(a), Float32(b)) => Float32(a $op b),
+            (Float64(a), Float64(b)) => Float64(a $op b),
+            _ => Null,
+        }
+    }};
+}
+
+/// Like `bin_numeric_op!`, but with integer safe divide (avoid div-by-zero).
+macro_rules! bin_numeric_div {
+    ($lhs:expr, $rhs:expr) => {{
+        use AnyValue::*;
+        match ($lhs, $rhs) {
+            (Int8(a), Int8(b)) => Int8(if b == 0 { a } else { a / b }),
+            (Int16(a), Int16(b)) => Int16(if b == 0 { a } else { a / b }),
+            (Int32(a), Int32(b)) => Int32(if b == 0 { a } else { a / b }),
+            (Int64(a), Int64(b)) => Int64(if b == 0 { a } else { a / b }),
+            (Int128(a), Int128(b)) => Int128(if b == 0 { a } else { a / b }),
+            (UInt8(a), UInt8(b)) => UInt8(if b == 0 { a } else { a / b }),
+            (UInt16(a), UInt16(b)) => UInt16(if b == 0 { a } else { a / b }),
+            (UInt32(a), UInt32(b)) => UInt32(if b == 0 { a } else { a / b }),
+            (UInt64(a), UInt64(b)) => UInt64(if b == 0 { a } else { a / b }),
+            (Float32(a), Float32(b)) => Float32(a / b), // IEEE handles inf/NaN
+            (Float64(a), Float64(b)) => Float64(a / b),
+            _ => Null,
+        }
+    }};
+}
 
 #[derive(Clone, Default, Debug)]
 pub enum AnyValue<'a> {
@@ -141,6 +187,156 @@ impl<'a> AnyValue<'a> {
             ),
         }
     }
+
+    pub fn map<'b, F>(&'b self, f: F) -> AnyValue<'b>
+    where
+        F: Fn(&'b AnyValue<'b>) -> AnyValue<'b>,
+        'b: 'a,
+    {
+        match self {
+            AnyValue::Vec(v) => AnyValue::Vec(Box::new(v.iter().map(f).collect())),
+            AnyValue::Struct(v) => AnyValue::Struct(
+                v.iter()
+                    .map(|(val, field)| (f(val), field.clone()))
+                    .collect(),
+            ),
+            _ => f(self),
+        }
+    }
+}
+
+impl Add for AnyValue<'_> {
+    type Output = Self;
+    fn add(self, other: Self) -> Self {
+        let is_numeric = self.dtype().is_numeric() && other.dtype().is_numeric();
+        let is_nested = self.dtype().is_nested() && other.dtype().is_nested();
+
+        if !is_numeric && !is_nested {
+            return self;
+        }
+
+        match (self, other) {
+            // your special Bool policy for "add"
+            (AnyValue::Bool(a), AnyValue::Bool(b)) => AnyValue::Bool(a && b),
+
+            // element-wise recursion for nested values
+            (AnyValue::Vec(a), AnyValue::Vec(b)) => AnyValue::Vec(Box::new(
+                a.iter()
+                    .cloned()
+                    .zip(b.iter().cloned())
+                    .map(|(x, y)| x + y)
+                    .collect(),
+            )),
+            (AnyValue::Struct(a), AnyValue::Struct(b)) => AnyValue::Struct(
+                a.iter()
+                    .zip(b.iter())
+                    .map(|((v1, f1), (v2, f2))| {
+                        assert_eq!(f1.name(), f2.name());
+                        (v1.clone() + v2.clone(), f1.clone())
+                    })
+                    .collect(),
+            ),
+
+            // numeric variants (same-typed)
+            (lhs, rhs) => bin_numeric_op!(lhs, rhs, +),
+        }
+    }
+}
+
+impl Sub for AnyValue<'_> {
+    type Output = Self;
+    fn sub(self, other: Self) -> Self {
+        let is_numeric = self.dtype().is_numeric() && other.dtype().is_numeric();
+        let is_nested = self.dtype().is_nested() && other.dtype().is_nested();
+
+        if !is_numeric && !is_nested {
+            return self;
+        }
+
+        match (self, other) {
+            (AnyValue::Vec(a), AnyValue::Vec(b)) => AnyValue::Vec(Box::new(
+                a.iter()
+                    .cloned()
+                    .zip(b.iter().cloned())
+                    .map(|(x, y)| x - y)
+                    .collect(),
+            )),
+            (AnyValue::Struct(a), AnyValue::Struct(b)) => AnyValue::Struct(
+                a.iter()
+                    .zip(b.iter())
+                    .map(|((v1, f1), (v2, f2))| {
+                        assert_eq!(f1.name(), f2.name());
+                        (v1.clone() - v2.clone(), f1.clone())
+                    })
+                    .collect(),
+            ),
+            (lhs, rhs) => bin_numeric_op!(lhs, rhs, -),
+        }
+    }
+}
+
+impl Mul for AnyValue<'_> {
+    type Output = Self;
+    fn mul(self, other: Self) -> Self {
+        let is_numeric = self.dtype().is_numeric() && other.dtype().is_numeric();
+        let is_nested = self.dtype().is_nested() && other.dtype().is_nested();
+
+        if !is_numeric && !is_nested {
+            return self;
+        }
+
+        match (self, other) {
+            (AnyValue::Vec(a), AnyValue::Vec(b)) => AnyValue::Vec(Box::new(
+                a.iter()
+                    .cloned()
+                    .zip(b.iter().cloned())
+                    .map(|(x, y)| x * y)
+                    .collect(),
+            )),
+            (AnyValue::Struct(a), AnyValue::Struct(b)) => AnyValue::Struct(
+                a.iter()
+                    .zip(b.iter())
+                    .map(|((v1, f1), (v2, f2))| {
+                        assert_eq!(f1.name(), f2.name());
+                        (v1.clone() * v2.clone(), f1.clone())
+                    })
+                    .collect(),
+            ),
+            (lhs, rhs) => bin_numeric_op!(lhs, rhs, *),
+        }
+    }
+}
+
+impl Div for AnyValue<'_> {
+    type Output = Self;
+    fn div(self, other: Self) -> Self {
+        let is_numeric = self.dtype().is_numeric() && other.dtype().is_numeric();
+        let is_nested = self.dtype().is_nested() && other.dtype().is_nested();
+
+        if !is_numeric && !is_nested {
+            return self;
+        }
+
+        match (self, other) {
+            (AnyValue::Vec(a), AnyValue::Vec(b)) => AnyValue::Vec(Box::new(
+                a.iter()
+                    .cloned()
+                    .zip(b.iter().cloned())
+                    .map(|(x, y)| x / y)
+                    .collect(),
+            )),
+            (AnyValue::Struct(a), AnyValue::Struct(b)) => AnyValue::Struct(
+                a.iter()
+                    .zip(b.iter())
+                    .map(|((v1, f1), (v2, f2))| {
+                        assert_eq!(f1.name(), f2.name());
+                        (v1.clone() / v2.clone(), f1.clone())
+                    })
+                    .collect(),
+            ),
+            (lhs, rhs) => bin_numeric_div!(lhs, rhs),
+        }
+    }
 }
 
 impl<'a> PartialEq for AnyValue<'a> {
@@ -180,80 +376,7 @@ impl<'a> PartialEq for AnyValue<'a> {
     }
 }
 
-impl Add for AnyValue<'_> {
-    type Output = Self;
-    fn add(self, other: Self) -> Self {
-        match (self, other) {
-            (AnyValue::Bool(a), AnyValue::Bool(b)) => AnyValue::Bool(a && b),
-            (AnyValue::Int8(a), AnyValue::Int8(b)) => AnyValue::Int8(a + b),
-            (AnyValue::Int16(a), AnyValue::Int16(b)) => AnyValue::Int16(a + b),
-            (AnyValue::Int32(a), AnyValue::Int32(b)) => AnyValue::Int32(a + b),
-            (AnyValue::Int64(a), AnyValue::Int64(b)) => AnyValue::Int64(a + b),
-            (AnyValue::Int128(a), AnyValue::Int128(b)) => AnyValue::Int128(a + b),
-            (AnyValue::UInt8(a), AnyValue::UInt8(b)) => AnyValue::UInt8(a + b),
-            (AnyValue::UInt16(a), AnyValue::UInt16(b)) => AnyValue::UInt16(a + b),
-            (AnyValue::UInt32(a), AnyValue::UInt32(b)) => AnyValue::UInt32(a + b),
-            (AnyValue::UInt64(a), AnyValue::UInt64(b)) => AnyValue::UInt64(a + b),
-            (AnyValue::Float32(a), AnyValue::Float32(b)) => AnyValue::Float32(a + b),
-            (AnyValue::Float64(a), AnyValue::Float64(b)) => AnyValue::Float64(a + b),
-            (AnyValue::Vec(a), AnyValue::Vec(b)) => AnyValue::Vec(Box::new(
-                a.iter()
-                    .zip(b.iter())
-                    .map(|(x, y)| x.clone() + y.clone())
-                    .collect(),
-            )),
-            (AnyValue::Struct(a), AnyValue::Struct(b)) => AnyValue::Struct(
-                a.iter()
-                    .zip(b.iter())
-                    .map(|((v1, f1), (v2, f2))| {
-                        assert_eq!(f1.name(), f2.name());
-                        (v1.clone() + v2.clone(), f1.clone())
-                    })
-                    .collect(),
-            ),
-            _ => panic!("Incompatible types"),
-        }
-    }
-}
-
-impl<'a, T> From<Vec<T>> for AnyValue<'a>
-where
-    T: Into<AnyValue<'a>>,
-{
-    fn from(value: Vec<T>) -> Self {
-        Self::Vec(Box::new(value.into_iter().map(Into::into).collect()))
-    }
-}
-
-macro_rules! impl_from {
-    ($($dtype:ty => $variant:ident),+ $(,)?) => {
-        $(
-            impl<'a> From<$dtype> for AnyValue<'a> {
-                fn from(value: $dtype) -> Self {
-                    Self::$variant(value)
-                }
-            }
-        )*
-    };
-}
-
-impl_from!(
-    bool => Bool,
-    u8 => UInt8,
-    u16 => UInt16,
-    u32 => UInt32,
-    u64 => UInt64,
-    i8 => Int8,
-    i16 => Int16,
-    i32 => Int32,
-    i64 => Int64,
-    i128 => Int128,
-    f32 => Float32,
-    f64 => Float64,
-    String => StrOwned,
-    char => Char,
-    &'a str => Str,
-);
+/// One function to “mean” any two AnyValue trees.
 
 impl<'py> FromPyObject<'py> for Wrap<AnyValue<'py>> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {

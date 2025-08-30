@@ -1,4 +1,6 @@
-use crate::{AnyGene, PyGeneType, RwSequence, Wrap, py_object_to_any_value};
+use std::collections::HashMap;
+
+use crate::{AnyGene, AnyValue, PyGeneType, RwSequence, Wrap, py_object_to_any_value};
 use pyo3::{Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
     BitGene, CharGene, FloatGene, Gene, GraphNode, IntGene, Op, PermutationGene, TreeNode,
@@ -251,6 +253,30 @@ impl PyGene {
                     None => CharGene::default(),
                 },
             }),
+        }
+    }
+
+    #[staticmethod]
+    #[pyo3(signature = (allele, metadata, factory))]
+    pub fn any(
+        allele: Wrap<AnyValue<'_>>,
+        metadata: HashMap<String, String>,
+        factory: Py<PyAny>,
+    ) -> PyGene {
+        let fact = move || {
+            Python::with_gil(|py| {
+                let obj = factory.call0(py).unwrap();
+                let gene = obj.extract::<Wrap<AnyValue<'_>>>(py).unwrap();
+                gene.0.into_static()
+            })
+        };
+
+        PyGene {
+            inner: GeneInner::AnyGene(
+                AnyGene::new(allele.0.into_static())
+                    .with_metadata(metadata)
+                    .with_factory(fact),
+            ),
         }
     }
 }

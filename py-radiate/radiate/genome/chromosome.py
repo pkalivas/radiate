@@ -25,9 +25,9 @@ class Chromosome[T](PyObject[PyChromosome]):
             return
 
         if isinstance(genes, Gene):
-            self._pyobj = PyChromosome([genes.backend()])
+            self._pyobj = PyChromosome([genes.__backend__()])
         if isinstance(genes, Iterable):
-            self._pyobj = PyChromosome(list(map(lambda g: g.backend(), genes)))
+            self._pyobj = PyChromosome(list(map(lambda g: g.__backend__(), genes)))
         else:
             raise TypeError("genes must be a Gene instance or a list of Gene instances")
 
@@ -58,7 +58,7 @@ class Chromosome[T](PyObject[PyChromosome]):
         :param gene: Gene instance to set at the specified index.
         """
         if isinstance(value, Chromosome) or isinstance(value, Gene):
-            self._pyobj[index] = value.backend()
+            self._pyobj[index] = value.__backend__()
         elif isinstance(value, PyChromosome) or isinstance(value, PyGene):
             self._pyobj[index] = value
         else:

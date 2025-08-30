@@ -2,7 +2,7 @@ use super::{
     Chromosome,
     gene::{ArithmeticGene, Gene, Valid},
 };
-use crate::random_provider;
+use crate::{chromosomes::gene::BoundedGene, random_provider};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::{
@@ -95,15 +95,21 @@ impl Gene for FloatGene {
     }
 }
 
-impl ArithmeticGene for FloatGene {
-    // fn min(&self) -> &Self::Allele {
-    //     &self.value_range.start
-    // }
+impl BoundedGene for FloatGene {
+    fn min(&self) -> &f32 {
+        &self.value_range.start
+    }
 
-    fn max(&self) -> &Self::Allele {
+    fn max(&self) -> &f32 {
         &self.value_range.end
     }
 
+    fn bounds(&self) -> (&f32, &f32) {
+        (&self.bounds.start, &self.bounds.end)
+    }
+}
+
+impl ArithmeticGene for FloatGene {
     fn mean(&self, other: &FloatGene) -> FloatGene {
         FloatGene {
             allele: (self.allele + other.allele) / 2_f32,
@@ -112,9 +118,39 @@ impl ArithmeticGene for FloatGene {
         }
     }
 
-    fn from_f32(&self, value: f32) -> Self {
+    fn add(&self, other: Self) -> Self {
         FloatGene {
-            allele: value,
+            allele: self.allele + other.allele,
+            value_range: self.value_range.clone(),
+            bounds: self.bounds.clone(),
+        }
+    }
+
+    fn sub(&self, other: Self) -> Self {
+        FloatGene {
+            allele: self.allele - other.allele,
+            value_range: self.value_range.clone(),
+            bounds: self.bounds.clone(),
+        }
+    }
+
+    fn mul(&self, other: Self) -> Self {
+        FloatGene {
+            allele: self.allele * other.allele,
+            value_range: self.value_range.clone(),
+            bounds: self.bounds.clone(),
+        }
+    }
+
+    fn div(&self, other: Self) -> Self {
+        let denominator = if other.allele == 0.0 {
+            1.0
+        } else {
+            other.allele
+        };
+
+        FloatGene {
+            allele: self.allele / denominator,
             value_range: self.value_range.clone(),
             bounds: self.bounds.clone(),
         }

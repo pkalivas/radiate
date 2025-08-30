@@ -1,5 +1,5 @@
 use num_traits::{FromPrimitive, ToPrimitive};
-use radiate_core::{ArithmeticGene, Chromosome, Gene, Mutate, random_provider};
+use radiate_core::{BoundedGene, Chromosome, Gene, Mutate, random_provider};
 
 /// The `GaussianMutator` is a simple mutator that adds a small amount of Gaussian noise to the gene.
 ///
@@ -23,7 +23,7 @@ impl GaussianMutator {
 impl<C, G> Mutate<C> for GaussianMutator
 where
     C: Chromosome<Gene = G>,
-    G: ArithmeticGene + Gene,
+    G: BoundedGene,
     <G as Gene>::Allele: ToPrimitive + FromPrimitive + Copy,
 {
     fn rate(&self) -> f32 {

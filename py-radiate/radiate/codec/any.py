@@ -19,24 +19,22 @@ class AnyCodec[T: AnyGene](CodecBase[T, list[T]]):
         factories = {
             g.__class__.__module__
             + "."
-            + g.__class__.__qualname__: g.__class__.__from_gene__
+            + g.__class__.__qualname__: g.__class__.__fromgene__
             for g in values
         }
 
-        def creator(gene_dict):
-            cls_name = gene_dict.get("__class__")
+        def creator(gene_dict, metadata):
+            cls_name = metadata.get("__class__")
             if cls_name is None:
                 raise ValueError("Gene dictionary must contain a '__class__' key.")
-            body = {k: v for k, v in gene_dict.items() if k != "__class__"}
             try:
-                return factories[cls_name](body)
+                return factories[cls_name](gene_dict)
             except KeyError:
                 raise ValueError(f"Unknown class '{cls_name}' in gene dictionary.")
 
         self.codec = PyAnyCodec(
-            list(map(lambda g: g.__to_gene__(), values)),
+            list(map(lambda g: g.__backend__(), values)),
             creator,
-            new_instance=lambda: genes_factory().__to_gene__(),
         )
 
     def encode(self) -> Genotype[T]:
@@ -52,4 +50,4 @@ class AnyCodec[T: AnyGene](CodecBase[T, list[T]]):
         :param genotype: A PyAnyCodec instance to decode.
         :return: The decoded representation of the PyAnyCodec.
         """
-        return self.codec.decode_py(genotype.backend())
+        return self.codec.decode_py(genotype.__backend__())
