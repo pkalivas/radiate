@@ -1,6 +1,5 @@
 mod any;
 mod bindings;
-mod crossover;
 mod evaluator;
 mod events;
 mod mutator;
@@ -13,9 +12,8 @@ use std::cell::UnsafeCell;
 
 pub use any::*;
 pub use bindings::*;
-pub use crossover::PyCrossover;
 pub use evaluator::FreeThreadPyEvaluator;
-pub use mutator::{AnyGeneMutator, PyMutator};
+pub use mutator::AnyGeneMutator;
 pub use object::*;
 pub use problem::PyProblem;
 pub use pyo3::{PyResult, Python, exceptions::PyRuntimeError};

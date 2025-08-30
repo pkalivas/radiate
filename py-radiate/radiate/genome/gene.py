@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, overload, TYPE_CHECKING
+from typing import overload, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from . import GeneType
@@ -23,42 +23,6 @@ class Gene[T](PyObject[PyGene]):
         :return: The allele of the gene, which can be a float, int, bool, str, or None.
         """
         return self._pyobj.allele()
-
-    def new_instance(self, allele: T | None = None) -> Gene[T]:
-        """
-        Set the allele of the gene.
-        :param allele: The new allele value, which can be a float, int, bool, str, or None.
-        """
-        return Gene.from_rust(self._pyobj.new_instance(allele))
-
-    def is_view(self) -> bool:
-        """
-        Check if the gene is a view.
-        :return: True if the gene is a view, False otherwise.
-        """
-        return self._pyobj.is_view()
-
-    def copy(self) -> Gene[T]:
-        """
-        Create a copy of the gene.
-        :return: A new gene instance with the same allele.
-        """
-        return Gene.from_rust(self._pyobj.copy())
-
-    def apply(self, f: Callable[[T], T]) -> None:
-        """
-        Apply a function to the allele of the gene.
-        :param f: The function to apply to the allele.
-        """
-        self._pyobj.apply(f)
-
-    def map(self, f: Callable[[T], T]) -> Gene[T]:
-        """
-        Map a function over the allele of the gene.
-        :param f: The function to apply to the allele.
-        :return: A new gene with the mapped allele.
-        """
-        return Gene.from_rust(self._pyobj.map(f))
 
 
 class AnyGene(Gene):

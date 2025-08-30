@@ -38,7 +38,6 @@ impl PyFloatCodec {
                                 FloatChromosome::from(
                                     chrom
                                         .genes
-                                        .read()
                                         .iter()
                                         .map(|gene| FloatGene::from(gene.clone()))
                                         .collect::<Vec<FloatGene>>(),

@@ -19,11 +19,8 @@ from .alterer import (
     GraphCrossover,
     InversionMutator,
     PolynomialMutator,
-    Mutator,
-    Crossover,
     EdgeRecombinationCrossover,
     JitterMutator,
-    AnyFieldMutator
 )
 
 from .selector import (
@@ -63,8 +60,6 @@ __all__ = [
     "SimulatedBinaryCrossover",
     "PartiallyMappedCrossover",
     "EdgeRecombinationCrossover",
-    "Crossover",
-    "Mutator",
     "PolynomialMutator",
     "GaussianMutator",
     "ScrambleMutator",
@@ -88,7 +83,6 @@ __all__ = [
     "EuclideanDistance",
     "NeatDistance",
     "Executor",
-    "AnyFieldMutator",
     "SecondsLimit",
     "GenerationsLimit",
     "ScoreLimit",

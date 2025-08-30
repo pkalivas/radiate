@@ -142,4 +142,4 @@ class TestFloatCodec:
         genes = [rd.gene.float(0.5), rd.gene.float(0.8)]
         codec = FloatCodec(genes)
         assert isinstance(codec, FloatCodec)
-        assert codec.decode(codec.encode()) != [genes[0].allele(), genes[1].allele()]
+        assert codec.decode(codec.encode()) == [genes[0].allele(), genes[1].allele()]

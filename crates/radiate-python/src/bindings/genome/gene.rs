@@ -1,18 +1,12 @@
-use crate::{
-    AnyGene, AnyValue, PyGeneType, RwSequence, Wrap, any_value_into_py_object_ref,
-    py_object_to_any_value,
-};
-use pyo3::{
-    Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python, exceptions::PyTypeError, pyclass,
-    pymethods, types::PyAnyMethods,
-};
+use crate::{AnyGene, AnyValue, PyGeneType, Wrap};
+use pyo3::{Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
     BitGene, CharGene, FloatGene, Gene, GraphNode, IntGene, Op, PermutationGene, TreeNode,
     random_provider,
 };
 use std::collections::HashMap;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 enum GeneInner {
     Float(FloatGene),
     Int(IntGene<i32>),
@@ -24,12 +18,10 @@ enum GeneInner {
     TreeNode(TreeNode<Op<f32>>),
 
     AnyGene(AnyGene<'static>),
-
-    View(RwSequence<PyGene>, usize),
 }
 
 #[pyclass]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct PyGene {
     inner: GeneInner,
 }
@@ -46,10 +38,6 @@ impl PyGene {
             GeneInner::TreeNode(gene) => format!("{:?}", gene),
             GeneInner::AnyGene(gene) => format!("{:?}", gene),
             GeneInner::Permutation(gene) => format!("{:?}", gene),
-            GeneInner::View(genes, idx) => {
-                let reader = genes.read();
-                reader[*idx].__str__()
-            }
         }
     }
 
@@ -59,72 +47,6 @@ impl PyGene {
 
     pub fn __eq__(&self, other: &Self) -> bool {
         self == other
-    }
-
-    pub fn __getattr__<'py>(&self, py: Python<'py>, name: &str) -> PyResult<Py<PyAny>> {
-        match &self.inner {
-            GeneInner::AnyGene(gene) => {
-                let val = gene.allele().get_field(name).unwrap();
-                any_value_into_py_object_ref(val, py)?.into_py_any(py)
-            }
-            GeneInner::View(genes, idx) => {
-                let reader = genes.read();
-                reader[*idx].__getattr__(py, name)
-            }
-            _ => Err(PyTypeError::new_err(format!(
-                "Attribute '{}' not found",
-                name
-            ))),
-        }
-    }
-
-    pub fn __setattr__<'py>(
-        &mut self,
-        py: Python<'py>,
-        name: &str,
-        value: Py<PyAny>,
-    ) -> PyResult<()> {
-        match &mut self.inner {
-            GeneInner::AnyGene(gene) => {
-                let value = py_object_to_any_value(&value.into_bound_py_any(py)?, true)
-                    .unwrap()
-                    .into_static();
-
-                crate::value::set_any_value_at_field(gene.allele_mut(), name, value);
-                Ok(())
-            }
-            GeneInner::View(genes, idx) => {
-                let mut reader = genes.write();
-                reader[*idx].__setattr__(py, name, value)
-            }
-            _ => {
-                return Err(PyTypeError::new_err(format!(
-                    "Attribute '{}' not found",
-                    name
-                )));
-            }
-        }
-    }
-
-    pub fn copy(&self) -> PyGene {
-        if self.is_view() {
-            self.flatten()
-        } else {
-            self.clone()
-        }
-    }
-
-    pub fn is_view(&self) -> bool {
-        matches!(self.inner, GeneInner::View(_, _))
-    }
-
-    pub fn flatten(&self) -> PyGene {
-        if let GeneInner::View(genes, idx) = &self.inner {
-            let reader = genes.read();
-            reader[*idx].flatten()
-        } else {
-            self.clone()
-        }
     }
 
     pub fn gene_type(&self) -> PyGeneType {
@@ -137,10 +59,6 @@ impl PyGene {
             GeneInner::TreeNode(_) => PyGeneType::TreeNode,
             GeneInner::Permutation(_) => PyGeneType::Permutation,
             GeneInner::AnyGene(_) => PyGeneType::AnyGene,
-            GeneInner::View(genes, idx) => {
-                let reader = genes.read();
-                reader[*idx].gene_type()
-            }
         }
     }
 
@@ -154,127 +72,6 @@ impl PyGene {
             GeneInner::TreeNode(gene) => gene.allele().name().into_bound_py_any(py),
             GeneInner::Permutation(gene) => gene.allele().into_bound_py_any(py),
             GeneInner::AnyGene(gene) => Wrap(gene.allele()).into_bound_py_any(py),
-            GeneInner::View(genes, idx) => {
-                let reader = genes.read();
-                reader[*idx].allele(py)
-            }
-        }
-    }
-
-    #[pyo3(signature = (allele=None))]
-    pub fn new_instance<'py>(
-        &self,
-        py: Python<'py>,
-        allele: Option<Py<PyAny>>,
-    ) -> PyResult<PyGene> {
-        if allele.is_none() {
-            return Ok(PyGene {
-                inner: match &self.inner {
-                    GeneInner::Float(gene) => GeneInner::Float(gene.new_instance()),
-                    GeneInner::Int(gene) => GeneInner::Int(gene.new_instance()),
-                    GeneInner::Bit(gene) => GeneInner::Bit(gene.new_instance()),
-                    GeneInner::Char(gene) => GeneInner::Char(gene.new_instance()),
-                    GeneInner::Permutation(gene) => GeneInner::Permutation(gene.new_instance()),
-                    GeneInner::AnyGene(gene) => GeneInner::AnyGene(gene.new_instance()),
-                    GeneInner::View(genes, idx) => {
-                        let reader = genes.read();
-                        return reader[*idx].new_instance(py, allele);
-                    }
-                    _ => {
-                        return Err(PyTypeError::new_err("Cannot set allele on this gene type"));
-                    }
-                },
-            });
-        } else if let Some(allele) = allele {
-            return Ok(PyGene {
-                inner: match &self.inner {
-                    GeneInner::Float(gene) => {
-                        GeneInner::Float(gene.with_allele(&allele.extract(py)?))
-                    }
-                    GeneInner::Int(gene) => GeneInner::Int(gene.with_allele(&allele.extract(py)?)),
-                    GeneInner::Bit(gene) => GeneInner::Bit(gene.with_allele(&allele.extract(py)?)),
-                    GeneInner::Char(gene) => {
-                        GeneInner::Char(gene.with_allele(&allele.extract(py)?))
-                    }
-                    GeneInner::Permutation(gene) => {
-                        GeneInner::Permutation(gene.with_allele(&allele.extract(py)?))
-                    }
-                    GeneInner::AnyGene(gene) => GeneInner::AnyGene(
-                        gene.with_allele_owned(
-                            py_object_to_any_value(&allele.into_bound_py_any(py).unwrap(), true)?
-                                .into_static(),
-                        ),
-                    ),
-                    GeneInner::View(genes, idx) => {
-                        let reader = genes.read();
-                        return reader[*idx].new_instance(py, Some(allele));
-                    }
-                    _ => {
-                        return Err(PyTypeError::new_err("Cannot set allele on this gene type"));
-                    }
-                },
-            });
-        } else {
-            Err(PyTypeError::new_err("Allele must be of the correct type"))
-        }
-    }
-
-    pub fn apply<'py>(&mut self, py: Python<'py>, f: Py<PyAny>) -> PyResult<()> {
-        if let GeneInner::View(genes, idx) = &self.inner {
-            let mut writer = genes.write();
-            return writer[*idx].apply(py, f);
-        }
-
-        match &mut self.inner {
-            GeneInner::AnyGene(g) => {
-                let py_out = f
-                    .call1(py, (Wrap(g.allele()),))?
-                    .into_bound_py_any(py)
-                    .expect("convert to bound py any");
-
-                if py_out.is_none() {
-                    return Ok(());
-                }
-
-                let new_av = py_object_to_any_value(&py_out, true)?.into_static();
-
-                g.merge(AnyGene::new(new_av));
-
-                Ok(())
-            }
-            _ => {
-                let allele = self.allele(py)?;
-                let new_allele = f.call1(py, (allele,))?;
-                let new_gene = self.new_instance(py, Some(new_allele))?;
-                self.inner = new_gene.inner;
-                Ok(())
-            }
-        }
-    }
-
-    pub fn map<'py>(&self, py: Python<'py>, f: Py<PyAny>) -> PyResult<PyGene> {
-        match &self.inner {
-            GeneInner::AnyGene(g) => {
-                let py_in = Wrap(g.allele()).into_bound_py_any(py)?;
-                let py_out = f.call1(py, (py_in,))?.into_bound_py_any(py).unwrap();
-
-                if py_out.is_none() {
-                    return Ok(self.clone());
-                }
-
-                let mut base = g.clone();
-                let patch_av = py_object_to_any_value(&py_out, true)?.into_static();
-                base.merge(AnyGene::new(patch_av));
-
-                Ok(PyGene {
-                    inner: GeneInner::AnyGene(base),
-                })
-            }
-            _ => {
-                let allele = self.allele(py)?;
-                let new_allele = f.call1(py, (allele,))?;
-                self.new_instance(py, Some(new_allele))
-            }
         }
     }
 
@@ -363,46 +160,6 @@ impl PyGene {
     }
 }
 
-impl PartialEq for PyGene {
-    fn eq(&self, other: &Self) -> bool {
-        if let (GeneInner::Float(a), GeneInner::Float(b)) = (&self.inner, &other.inner) {
-            a == b
-        } else if let (GeneInner::Int(a), GeneInner::Int(b)) = (&self.inner, &other.inner) {
-            a == b
-        } else if let (GeneInner::Bit(a), GeneInner::Bit(b)) = (&self.inner, &other.inner) {
-            a == b
-        } else if let (GeneInner::Char(a), GeneInner::Char(b)) = (&self.inner, &other.inner) {
-            a == b
-        } else if let (GeneInner::GraphNode(a), GeneInner::GraphNode(b)) =
-            (&self.inner, &other.inner)
-        {
-            a == b
-        } else if let (GeneInner::TreeNode(a), GeneInner::TreeNode(b)) = (&self.inner, &other.inner)
-        {
-            a == b
-        } else if let (GeneInner::Permutation(a), GeneInner::Permutation(b)) =
-            (&self.inner, &other.inner)
-        {
-            a == b
-        } else if let (GeneInner::View(a, ai), GeneInner::View(b, bi)) = (&self.inner, &other.inner)
-        {
-            a == b && ai == bi
-        } else if let (GeneInner::AnyGene(a), GeneInner::AnyGene(b)) = (&self.inner, &other.inner) {
-            a == b
-        } else {
-            false
-        }
-    }
-}
-
-impl From<(RwSequence<PyGene>, usize)> for PyGene {
-    fn from((genes, index): (RwSequence<PyGene>, usize)) -> Self {
-        PyGene {
-            inner: GeneInner::View(genes, index),
-        }
-    }
-}
-
 macro_rules! impl_into_py_gene {
     ($gene_type:ty, $gene_variant:ident) => {
         impl From<$gene_type> for PyGene {
@@ -415,18 +172,6 @@ macro_rules! impl_into_py_gene {
 
         impl From<PyGene> for $gene_type {
             fn from(py_gene: PyGene) -> Self {
-                if matches!(py_gene.inner, GeneInner::View(_, _)) {
-                    let flat = py_gene.flatten();
-                    if let GeneInner::$gene_variant(inner_gene) = flat.inner {
-                        return inner_gene;
-                    } else {
-                        panic!(
-                            "Expected {}, got {:?}",
-                            stringify!($gene_type),
-                            flat.gene_type()
-                        );
-                    }
-                }
                 match py_gene.inner {
                     GeneInner::$gene_variant(gene) => gene,
                     _ => panic!("Cannot convert PyGene to {}", stringify!($gene_type)),

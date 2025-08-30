@@ -1,13 +1,9 @@
-from typing import Any, Callable, cast
-from abc import ABC, abstractmethod
+from typing import Any
 
-from radiate.genome.chromosome import Chromosome
 from radiate.genome.population import Population
 from radiate.inputs.input import EngineInput, EngineInputType
 from .component import ComponentBase
 from ..genome import GeneType
-
-from radiate.radiate import PyChromosome
 
 
 class AlterBase(ComponentBase):
@@ -59,89 +55,6 @@ class AlterBase(ComponentBase):
                 population.backend(),
                 generation,
             )
-        )
-
-
-class Mutator(AlterBase, ABC):
-    def __init__(self, rate: float = 1.0):
-        super().__init__(
-            component="CustomMutator",
-            args={
-                "rate": rate,
-                "mutate": lambda chrom: self.__mutate_internal(chrom),
-            },
-        )
-        self.rate = rate
-
-    def __mutate_internal(self, chromosome: PyChromosome) -> PyChromosome:
-        result = self.mutate(cast(Chromosome, chromosome))
-        result = result if result is not None else chromosome
-        if isinstance(result, PyChromosome):
-            return result
-        elif isinstance(result, Chromosome):
-            return result.__backend__()
-        else:
-            raise TypeError("Mutator.mutate must return a Chromosome or PyChromosome")
-
-    @abstractmethod
-    def mutate(self, chromosome: Chromosome) -> Chromosome:
-        """
-        Abstract method to mutate a chromosome.
-        :param chromosome: The chromosome to mutate.
-        :return: The mutated chromosome.
-        """
-        raise NotImplementedError
-
-
-class Crossover(AlterBase, ABC):
-    def __init__(self, rate: float = 1.0):
-        super().__init__(
-            component="CustomCrossover",
-            args={
-                "rate": rate,
-                "crossover": lambda p1, p2: self.__crossover_internal(p1, p2),
-            },
-        )
-        self.rate = rate
-
-    def __crossover_internal(
-        self, parent_one: PyChromosome, parent_two: PyChromosome
-    ) -> tuple[PyChromosome, PyChromosome]:
-        result = self.crossover(
-            cast(Chromosome, parent_one), cast(Chromosome, parent_two)
-        )
-        if isinstance(result, tuple) and len(result) == 2:
-            one, two = result
-            if isinstance(one, PyChromosome) and isinstance(two, PyChromosome):
-                return one, two
-            elif isinstance(one, Chromosome) and isinstance(two, Chromosome):
-                return one.__backend__(), two.__backend__()
-        else:
-            raise TypeError("Crossover must return a tuple of Chromosomes")
-
-    @abstractmethod
-    def crossover(
-        self, parent_one: Chromosome, parent_two: Chromosome
-    ) -> tuple[Chromosome, Chromosome]:
-        """
-        Abstract method to perform crossover between two parents.
-        :param parent1: The first parent.
-        :param parent2: The second parent.
-        :return: The offspring produced by the crossover.
-        """
-        raise NotImplementedError
-
-
-class AnyFieldMutator(AlterBase):
-    def __init__(self, rate: float, field_name: str, mutate_func: Callable[[Any], Any]):
-        super().__init__(
-            component="AnyFieldMutator",
-            args={
-                "rate": rate,
-                "field_name": field_name,
-                "mutate": mutate_func
-            },
-            allowed_genes=GeneType.ANY,
         )
 
 

@@ -70,9 +70,6 @@ from .inputs.alterer import (
     PolynomialMutator,
     EdgeRecombinationCrossover,
     JitterMutator,
-    AnyFieldMutator,
-    Mutator,
-    Crossover,
 )
 
 from .inputs.distance import (
@@ -134,7 +131,6 @@ __all__ = [
     "SimulatedBinaryCrossover",
     "PartiallyMappedCrossover",
     "UniformCrossover",
-    "Crossover",
     "ArithmeticMutator",
     "UniformMutator",
     "GaussianMutator",
@@ -146,9 +142,7 @@ __all__ = [
     "InversionMutator",
     "PolynomialMutator",
     "EdgeRecombinationCrossover",
-    "Mutator",
     "JitterMutator",
-    "AnyFieldMutator",
     # Executor
     "Executor",
     # Limits

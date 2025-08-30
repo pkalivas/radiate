@@ -17,28 +17,14 @@ class ObjectGene(rd.AnyGene):
         return f"ObjectGene(number={self.number})"
 
 
-class ObjectMutator(rd.Mutator):
-    def __init__(self, rate):
-        super().__init__(rate)
-
-    def mutate(self, chromosome: rd.Chromosome):
-        for gene in chromosome:
-            if rd.random.float() < self.rate:
-                gene.number += rd.random.float(-0.1, 0.1)
-                # gene.apply(
-                #     lambda g: {"number": g["number"] + rd.random.float(-0.1, 0.1)}
-                # )
-
-
 engine = rd.GeneticEngine(
     codec=rd.AnyCodec(5, lambda: ObjectGene()),
     fitness_func=lambda x: abs(sum(g.number for g in x) - 4),
     objectives="min",
-    alters=[
-        rd.UniformCrossover(0.5),
-        # ObjectMutator(0.1),
-        rd.AnyFieldMutator(0.1, "number", lambda val: val + rd.random.float(-0.1, 0.1)),
-    ],
+    # alters=[
+    #     rd.UniformCrossover(0.5),
+    #     ObjectMutator(0.1),
+    # ],
     executor=rd.Executor.FixedSizedWorkerPool(4),
 )
 

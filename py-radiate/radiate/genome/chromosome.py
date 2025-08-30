@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Iterable, TYPE_CHECKING, Callable
+from typing import Iterable, TYPE_CHECKING
 from radiate.wrapper import PyObject
-from radiate.radiate import PyChromosome, PyGene
+from radiate.radiate import PyChromosome
 from .gene import Gene
 from radiate.genome import gene
 
@@ -51,21 +51,6 @@ class Chromosome[T](PyObject[PyChromosome]):
             return Chromosome.from_rust(self._pyobj.view(index))
         return Gene.from_rust(self._pyobj[index])
 
-    def __setitem__(self, index: int | slice, value: Gene[T] | Chromosome[T] | T):
-        """
-        Sets the gene at the specified index.
-        :param index: Index of the gene to set.
-        :param gene: Gene instance to set at the specified index.
-        """
-        if isinstance(value, Chromosome) or isinstance(value, Gene):
-            self._pyobj[index] = value.__backend__()
-        elif isinstance(value, PyChromosome) or isinstance(value, PyGene):
-            self._pyobj[index] = value
-        else:
-            raise TypeError(
-                "Chromosome.__setitem__ value must be a Gene instance or a Chromosome instance"
-            )
-
     def __iter__(self):
         """
         Creates an iterator over a View of the chromosome. This means that
@@ -79,30 +64,8 @@ class Chromosome[T](PyObject[PyChromosome]):
 
     def gene_type(self) -> "GeneType":
         from . import GeneType
+
         return GeneType.from_str(self._pyobj.gene_type())
-
-    def is_view(self) -> bool:
-        return self._pyobj.is_view()
-
-    def view(self, index: int | slice | None = None) -> Gene[T] | Chromosome[T]:
-        if index is None:
-            return Chromosome.from_rust(self._pyobj.view())
-        if isinstance(index, slice):
-            return Chromosome.from_rust(self._pyobj.view(index))
-        return Gene.from_rust(self._pyobj.view(index))
-
-    def copy(self, index: int | slice | None = None) -> Gene[T] | Chromosome[T]:
-        if index is None:
-            return Chromosome.from_rust(self._pyobj.copy())
-        if isinstance(index, slice):
-            return Chromosome.from_rust(self._pyobj.copy(index))
-        return Gene.from_rust(self._pyobj.copy(index))
-    
-    def apply(self, f: Callable[[T], T]) -> None:
-        self._pyobj.apply(f)
-
-    def map(self, f: Callable[[T], T]) -> Chromosome[T]:
-        return Chromosome.from_rust(self._pyobj.map(f))
 
 
 def int(
