@@ -1,10 +1,10 @@
 # image_evo_anygene.py
 import math
 
-import numpy as np
+# import numpy as np
 import radiate as rd
 
-from PIL import Image, ImageDraw, ImageChops, ImageStat
+from PIL import Image, ImageDraw #, ImageChops, ImageStat
 
 
 NUM_POLYGONS = 175
@@ -249,44 +249,49 @@ class ImageMutator(rd.Mutator):
 
     def mutate(self, candidate: rd.Chromosome) -> rd.Chromosome:
         # mutate in-place via .apply on any-gene dicts
-        for i in range(len(candidate)):
+        # for gene in candidate:
+
+        def jitter(g: dict) -> dict:
             if rd.random.float() < self.rate:
 
-                def jitter(g: dict) -> dict:
-                    colors = ["r", "g", "b", "a"]
+                colors = ["r", "g", "b", "a"]
 
-                    for color in colors:
-                        if rd.random.float() < self.rate:
-                            g[color] = min(
-                                1.0,
-                                max(
-                                    0.0,
-                                    g[color]
-                                    + (rd.random.float() * 2 - 1) * self.magnitude,
-                                ),
-                            )
-                    # points
-                    pts = []
-                    for x, y in g["points"]:
-                        dx = (
-                            (rd.random.float() * 2 - 1) * self.magnitude
-                            if rd.random.float() < self.rate
-                            else 0
+                for color in colors:
+                    if rd.random.float() < self.rate:
+                        g[color] = min(
+                            1.0,
+                            max(
+                                0.0,
+                                g[color]
+                                + (rd.random.float() * 2 - 1) * self.magnitude,
+                            ),
                         )
-                        dy = (
-                            (rd.random.float() * 2 - 1) * self.magnitude
-                            if rd.random.float() < self.rate
-                            else 0
+                # points
+                pts = []
+                for x, y in g["points"]:
+                    dx = (
+                        (rd.random.float() * 2 - 1) * self.magnitude
+                        if rd.random.float() < self.rate
+                        else 0
+                    )
+                    dy = (
+                        (rd.random.float() * 2 - 1) * self.magnitude
+                        if rd.random.float() < self.rate
+                        else 0
+                    )
+                    pts.append(
+                        (
+                            min(1.0, max(0.0, x + dx)),
+                            min(1.0, max(0.0, y + dy)),
                         )
-                        pts.append(
-                            (
-                                min(1.0, max(0.0, x + dx)),
-                                min(1.0, max(0.0, y + dy)),
-                            )
-                        )
-                    return {**g, "points": pts}
+                    )
+                return {**g, "points": pts}
+            return None
+            
 
-                candidate.view(i).apply(jitter)
+                # gene.apply(jitter)
+        candidate.apply(jitter)
+    
         return candidate
 
 

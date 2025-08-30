@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Iterable, TYPE_CHECKING
+from typing import Iterable, TYPE_CHECKING, Callable
 from radiate.wrapper import PyObject
 from radiate.radiate import PyChromosome, PyGene
 from .gene import Gene
@@ -79,7 +79,6 @@ class Chromosome[T](PyObject[PyChromosome]):
 
     def gene_type(self) -> "GeneType":
         from . import GeneType
-
         return GeneType.from_str(self._pyobj.gene_type())
 
     def is_view(self) -> bool:
@@ -98,6 +97,12 @@ class Chromosome[T](PyObject[PyChromosome]):
         if isinstance(index, slice):
             return Chromosome.from_rust(self._pyobj.copy(index))
         return Gene.from_rust(self._pyobj.copy(index))
+    
+    def apply(self, f: Callable[[T], T]) -> None:
+        self._pyobj.apply(f)
+
+    def map(self, f: Callable[[T], T]) -> Chromosome[T]:
+        return Chromosome.from_rust(self._pyobj.map(f))
 
 
 def int(

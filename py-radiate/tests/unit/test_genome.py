@@ -186,7 +186,9 @@ class TestChromosomes:
         assert chromosome_two.is_view()
 
         # Modify the view and check original is affected
+        assert gene.is_view()
         gene.apply(lambda allele: allele * 2)
+        assert gene.is_view()
         assert gene.allele() == chromosome_one[0].allele()
         assert chromosome_two[0].allele() == chromosome_one[0].allele()
 

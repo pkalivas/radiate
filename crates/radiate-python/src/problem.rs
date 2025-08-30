@@ -1,22 +1,24 @@
-use crate::{IntoPyAnyObject, bindings::PyCodec};
+use crate::{IntoPyAnyObject, PyAnyObject, bindings::PyCodec};
 use pyo3::{Borrowed, PyAny, PyObject, Python};
 use radiate::{Chromosome, Codec, Genotype, Problem, Score};
 
 pub struct PyProblem<C: Chromosome, T> {
-    fitness_func: PyObject,
+    fitness_func: PyAnyObject,
     codec: PyCodec<C, T>,
 }
 
 impl<C: Chromosome, T> PyProblem<C, T> {
     pub fn new(fitness_func: PyObject, codec: PyCodec<C, T>) -> Self {
         PyProblem {
-            fitness_func,
+            fitness_func: PyAnyObject {
+                inner: fitness_func,
+            },
             codec,
         }
     }
 
-    pub fn fitness_func(&self) -> &PyObject {
-        &self.fitness_func
+    pub fn fitness_func(&self) -> PyAnyObject {
+        self.fitness_func.clone()
     }
 
     pub fn decode_with_py<'py>(&self, py: Python<'py>, genotype: &Genotype<C>) -> T {
@@ -36,7 +38,7 @@ impl<C: Chromosome, T: IntoPyAnyObject> Problem<C, T> for PyProblem<C, T> {
     fn eval(&self, individual: &Genotype<C>) -> Score {
         Python::with_gil(|py| {
             let phenotype = self.codec.decode_with_py(py, individual).into_py(py);
-            let fitness_func = self.fitness_func.bind_borrowed(py);
+            let fitness_func = self.fitness_func.inner.bind_borrowed(py);
             call_fitness(py, fitness_func, phenotype.inner.bind_borrowed(py))
         })
     }
@@ -44,14 +46,12 @@ impl<C: Chromosome, T: IntoPyAnyObject> Problem<C, T> for PyProblem<C, T> {
 
 impl<C: Chromosome + Clone, T: Clone> Clone for PyProblem<C, T> {
     fn clone(&self) -> Self {
-        Python::with_gil(|py| {
-            let fitness_func = self.fitness_func.clone_ref(py);
-            let codec = self.codec.clone();
-            PyProblem {
-                fitness_func,
-                codec,
-            }
-        })
+        let fitness_func = self.fitness_func.clone();
+        let codec = self.codec.clone();
+        PyProblem {
+            fitness_func,
+            codec,
+        }
     }
 }
 

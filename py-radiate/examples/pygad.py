@@ -36,5 +36,6 @@ print(f"\nBest solution found: {result.value()}")
 print(f"Fitness: {result.score()}")
 print(f"Generations completed: {result.index()}")
 print(f"Function output: {np.sum(result.value() * function_inputs)}")
+print(f"Duration: {result.duration()}")
 
 print(result)

@@ -73,7 +73,7 @@ where
                         .into_iter()
                         .map(|(_, geno)| geno.into_py_any(outer).unwrap())
                         .collect::<Vec<_>>(),
-                    fitness_fn: self.problem.fitness_func().clone_ref(outer),
+                    fitness_fn: self.problem.fitness_func().inner,
                 };
 
                 batches.push(batch);

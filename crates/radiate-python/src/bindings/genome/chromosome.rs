@@ -129,6 +129,48 @@ impl PyChromosome {
         }
     }
 
+    fn apply<'py>(&mut self, py: Python<'py>, f: Py<PyAny>) -> PyResult<()> {
+        for i in 0..self.genes.len() {
+            let new_gene = {
+                let gene = &self.genes.read()[i];
+                let new_allele = f.call1(py, (gene.allele(py)?,))?;
+
+                if new_allele.is_none(py) {
+                    None
+                } else {
+                    Some(gene.new_instance(py, Some(new_allele))?)
+                }
+            };
+
+            if let Some(new_gene) = new_gene {
+                self.genes.write()[i] = new_gene;
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn map<'py>(&self, py: Python<'py>, f: Py<PyAny>) -> PyResult<PyChromosome> {
+        for i in 0..self.genes.len() {
+            let new_gene = {
+                let gene = &self.genes.read()[i];
+                let new_allele = f.call1(py, (gene.allele(py)?,))?;
+
+                if new_allele.is_none(py) {
+                    None
+                } else {
+                    Some(gene.new_instance(py, Some(new_allele))?)
+                }
+            };
+
+            if let Some(new_gene) = new_gene {
+                self.genes.write()[i] = new_gene;
+            }
+        }
+
+        Ok(self.clone())
+    }
+
     pub fn is_view(&self) -> bool {
         let ref_count = self.genes.strong_count() + self.genes.weak_count();
         self.genes.read().iter().any(|gene| gene.is_view()) || ref_count > 1
@@ -306,7 +348,6 @@ macro_rules! impl_into_py_chromosome {
                             .collect::<Vec<$gene_type>>(),
                     )
                 } else {
-                    println!("Happy path");
                     let genes = py_chromosome
                         .genes
                         .take()

@@ -1,7 +1,10 @@
 use std::collections::HashMap;
 
 use crate::{AnyGene, AnyValue, PyGeneType, RwSequence, Wrap, py_object_to_any_value};
-use pyo3::{Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
+use pyo3::{
+    Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python, exceptions::PyTypeError, pyclass,
+    pymethods,
+};
 use radiate::{
     BitGene, CharGene, FloatGene, Gene, GraphNode, IntGene, Op, PermutationGene, TreeNode,
     random_provider,
@@ -131,9 +134,7 @@ impl PyGene {
                         return reader[*idx].new_instance(py, allele);
                     }
                     _ => {
-                        return Err(pyo3::exceptions::PyTypeError::new_err(
-                            "Cannot set allele on this gene type",
-                        ));
+                        return Err(PyTypeError::new_err("Cannot set allele on this gene type"));
                     }
                 },
             });
@@ -162,16 +163,12 @@ impl PyGene {
                         return reader[*idx].new_instance(py, Some(allele));
                     }
                     _ => {
-                        return Err(pyo3::exceptions::PyTypeError::new_err(
-                            "Cannot set allele on this gene type",
-                        ));
+                        return Err(PyTypeError::new_err("Cannot set allele on this gene type"));
                     }
                 },
             });
         } else {
-            Err(pyo3::exceptions::PyTypeError::new_err(
-                "Allele must be of the correct type",
-            ))
+            Err(PyTypeError::new_err("Allele must be of the correct type"))
         }
     }
 
