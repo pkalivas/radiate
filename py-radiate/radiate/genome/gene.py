@@ -77,7 +77,6 @@ class AnyGene(Gene):
     def __factory__(self):
         return self.__class__.__newinstance__()
 
-    # @overload
     def __backend__(self) -> PyGene:
         if "_pyobj" not in self.__dict__:
             properties = self.__dict__

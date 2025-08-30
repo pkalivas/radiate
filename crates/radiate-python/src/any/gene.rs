@@ -3,11 +3,12 @@ use radiate::{ArithmeticGene, Chromosome, Gene, Valid};
 use std::{collections::HashMap, fmt::Debug, sync::Arc};
 
 type MetaData<'a> = Option<Arc<HashMap<String, String>>>;
+type Factory = Arc<dyn Fn() -> AnyValue<'static> + Send + Sync>;
 
 #[derive(Clone)]
 pub struct AnyGene<'a> {
     allele: AnyValue<'a>,
-    factory: Option<Arc<dyn Fn() -> AnyValue<'static> + Send + Sync>>,
+    factory: Option<Factory>,
     metadata: MetaData<'a>,
 }
 
@@ -79,7 +80,6 @@ impl<'a> ArithmeticGene for AnyGene<'a> {
         if let Some(avg) = super::arithmatic::mean_anyvalue(self.allele(), other.allele()) {
             AnyGene::new(avg)
         } else {
-            // policy: keep self when incompatible; you could also pick `other.clone()`
             self.clone()
         }
     }

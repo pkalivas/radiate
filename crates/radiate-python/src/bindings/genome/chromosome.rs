@@ -306,6 +306,7 @@ macro_rules! impl_into_py_chromosome {
                             .collect::<Vec<$gene_type>>(),
                     )
                 } else {
+                    println!("Happy path");
                     let genes = py_chromosome
                         .genes
                         .take()

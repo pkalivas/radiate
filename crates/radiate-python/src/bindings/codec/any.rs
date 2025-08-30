@@ -1,8 +1,5 @@
 use crate::{AnyChromosome, AnyGene, PyAnyObject, PyCodec, PyGene, PyGenotype, prelude::Wrap};
-use pyo3::{
-    IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods,
-    types::{PyList, PyListMethods},
-};
+use pyo3::{IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods, types::PyList};
 use radiate::{Chromosome, Codec, Gene, Genotype};
 
 #[pyclass]
@@ -15,6 +12,17 @@ pub struct PyAnyCodec {
 impl PyAnyCodec {
     #[new]
     pub fn new(genes: Vec<PyGene>, creator: Py<PyAny>) -> PyResult<Self> {
+        let call_creator = move |py: Python<'_>, allele: &AnyGene| -> PyResult<PyAnyObject> {
+            let obj = creator.call1(
+                py,
+                (Wrap(allele.allele()).into_py_any(py)?, allele.metadata()),
+            )?;
+
+            Ok(PyAnyObject {
+                inner: obj.into_any(),
+            })
+        };
+
         let codec = PyCodec::new()
             .with_encoder(move || {
                 Genotype::from(
@@ -25,47 +33,46 @@ impl PyAnyCodec {
                 )
             })
             .with_decoder(move |py, genotype| {
-                let call_creator = |py: Python<'_>, allele: &AnyGene| -> PyResult<PyAnyObject> {
-                    let obj = creator.call1(
-                        py,
-                        (Wrap(allele.allele()).into_py_any(py)?, allele.metadata()),
-                    )?;
-
-                    Ok(PyAnyObject {
-                        inner: obj.into_any(),
-                    })
-                };
-
                 if genotype.len() == 1 && genotype[0].len() == 1 {
                     return call_creator(py, &genotype[0].get(0)).unwrap();
                 }
 
                 if genotype.len() == 1 {
-                    let py_list = PyList::empty(py);
-                    for gene in genotype[0].iter() {
-                        py_list
-                            .append(call_creator(py, &gene).unwrap().inner.as_ref())
-                            .unwrap();
-                    }
+                    let py_list = PyList::new(
+                        py,
+                        genotype
+                            .iter()
+                            .flat_map(|chromo| {
+                                chromo
+                                    .iter()
+                                    .map(|gene| call_creator(py, gene).unwrap().inner)
+                            })
+                            .collect::<Vec<_>>(),
+                    )
+                    .unwrap();
+
                     return PyAnyObject {
                         inner: py_list.unbind().into_any(),
                     };
                 }
 
-                let outer = PyList::empty(py);
-                for chromo in genotype.iter() {
-                    let inner = PyList::empty(py);
-                    for gene in chromo.iter() {
-                        inner
-                            .append(call_creator(py, &gene).unwrap().inner.as_ref())
-                            .unwrap();
-                    }
-                    outer.append(inner).unwrap();
-                }
+                let py_list = PyList::new(
+                    py,
+                    genotype
+                        .iter()
+                        .map(|chromo| {
+                            chromo
+                                .iter()
+                                .map(|gene| call_creator(py, gene).unwrap().inner)
+                                .collect::<Vec<_>>()
+                        })
+                        .collect::<Vec<_>>(),
+                )
+                .unwrap();
 
-                PyAnyObject {
-                    inner: outer.unbind().into_any(),
-                }
+                return PyAnyObject {
+                    inner: py_list.unbind().into_any(),
+                };
             });
 
         Ok(PyAnyCodec { codec })

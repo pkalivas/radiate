@@ -41,7 +41,7 @@ pub fn any_value_into_py_object<'py>(av: AnyValue, py: Python<'py>) -> PyResult<
         AnyValue::Float32(v) => v.into_bound_py_any(py),
         AnyValue::Float64(v) => v.into_bound_py_any(py),
         AnyValue::Char(v) => v.into_bound_py_any(py),
-        AnyValue::Vec(v) => {
+        AnyValue::Vector(v) => {
             let list = PyList::empty(py);
             for item in v.into_iter() {
                 list.append(any_value_into_py_object(item, py)?)?;
@@ -122,7 +122,7 @@ pub fn py_object_to_any_value<'py>(
                 return Ok(AnyValue::Null);
             } else {
                 if !strict {
-                    return Ok(AnyValue::Vec(Box::new(
+                    return Ok(AnyValue::Vector(Box::new(
                         avs.into_iter().map(|av| av.into_static()).collect(),
                     )));
                 } else {
@@ -136,7 +136,7 @@ pub fn py_object_to_any_value<'py>(
                         avs.push(av)
                     }
 
-                    Ok(AnyValue::Vec(Box::new(
+                    Ok(AnyValue::Vector(Box::new(
                         avs.into_iter().map(|av| av.into_static()).collect(),
                     )))
                 }
