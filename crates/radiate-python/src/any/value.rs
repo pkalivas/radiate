@@ -41,7 +41,7 @@ impl<'a> AnyValue<'a> {
     }
 
     #[inline]
-    pub fn is_struct(&self) -> bool {
+    pub fn is_nested(&self) -> bool {
         matches!(self, Self::Struct(_))
     }
 
@@ -62,10 +62,14 @@ impl<'a> AnyValue<'a> {
     }
 
     #[inline]
-    pub fn get_field(&self, name: &str) -> Option<&AnyValue<'a>> {
+    pub fn get_struct_value(&self, name: &str) -> Option<&AnyValue<'a>> {
         if let Some(fields) = self.struct_fields() {
             for (value, field) in fields {
-                if field.name() == name {
+                if value.is_nested() {
+                    if let Some(v) = value.get_struct_value(name) {
+                        return Some(v);
+                    }
+                } else if field.name() == name {
                     return Some(value);
                 }
             }
@@ -74,10 +78,15 @@ impl<'a> AnyValue<'a> {
         None
     }
 
-    pub fn get_field_mut(&mut self, name: &str) -> Option<&mut AnyValue<'a>> {
+    #[inline]
+    pub fn get_struct_value_mut(&mut self, name: &str) -> Option<&mut AnyValue<'a>> {
         if let Some(fields) = self.struct_fields_mut() {
             for (value, field) in fields {
-                if field.name() == name {
+                if value.is_nested() {
+                    if let Some(v) = value.get_struct_value_mut(name) {
+                        return Some(v);
+                    }
+                } else if field.name() == name {
                     return Some(value);
                 }
             }
@@ -267,33 +276,80 @@ impl<'py> IntoPyObject<'py> for Wrap<&AnyValue<'_>> {
     }
 }
 
-pub(crate) fn merge_any_values<'a>(base: &mut AnyValue<'a>, patch: AnyValue<'a>) {
-    use AnyValue::*;
-    match (base, patch) {
-        (Struct(base_map), Struct(patch_map)) => {
-            for (k, v_patch) in patch_map.into_iter() {
-                if let Some((v_base, _)) = base_map
-                    .iter_mut()
-                    .find(|(_, f)| f.name() == v_patch.name())
-                {
-                    merge_any_values(v_base, k);
-                } else {
-                    base_map.push((k, v_patch));
-                }
-            }
-        }
-        (slot @ _, v_patch) => {
-            *slot = v_patch;
-        }
-    }
-}
+// #[inline]
+// pub(crate) fn merge_any_values<'a>(base: &mut AnyValue<'a>, patch: AnyValue<'a>) {
+//     use AnyValue::*;
+//     match (base, patch) {
+//         (Struct(base_map), Struct(patch_map)) => {
+//             for (k, v_patch) in patch_map.into_iter() {
+//                 if let Some((v_base, _)) = base_map
+//                     .iter_mut()
+//                     .find(|(_, f)| f.name() == v_patch.name())
+//                 {
+//                     merge_any_values(v_base, k);
+//                 } else {
+//                     base_map.push((k, v_patch));
+//                 }
+//             }
+//         }
+//         (slot @ _, v_patch) => {
+//             *slot = v_patch;
+//         }
+//     }
+// }
 
-pub(crate) fn set_any_value_at_field<'a>(
+#[inline]
+pub(crate) fn set_struct_value_at_field<'a>(
     allele: &mut AnyValue<'a>,
     field_name: &str,
     new_value: AnyValue<'a>,
 ) {
-    if let Some(field) = allele.get_field_mut(field_name) {
+    if let Some(field) = allele.get_struct_value_mut(field_name) {
         *field = new_value;
     }
+}
+
+#[inline]
+pub(crate) fn zip_vec_any_value_apply(
+    one: &[AnyValue<'_>],
+    two: &[AnyValue<'_>],
+    f: impl Fn(&AnyValue<'_>, &AnyValue<'_>) -> Option<AnyValue<'static>>,
+) -> Option<AnyValue<'static>> {
+    if one.len() != two.len() {
+        return None;
+    }
+
+    let mut out = Vec::with_capacity(one.len());
+    for (x, y) in one.iter().zip(two) {
+        out.push(f(x, y)?);
+    }
+
+    Some(AnyValue::Vector(Box::new(out)))
+}
+
+#[inline]
+pub(crate) fn zip_struct_any_value_apply(
+    one: &[(AnyValue<'_>, Field)],
+    two: &[(AnyValue<'_>, Field)],
+    f: impl Fn(&AnyValue<'_>, &AnyValue<'_>) -> Option<AnyValue<'static>>,
+) -> Option<AnyValue<'static>> {
+    if one.len() != two.len() {
+        return None;
+    }
+
+    if !one
+        .iter()
+        .map(|(_, f)| f.name())
+        .eq(two.iter().map(|(_, f)| f.name()))
+    {
+        return None;
+    }
+
+    let mut out = Vec::with_capacity(one.len());
+    for ((va, fa), (vb, fb)) in one.iter().zip(two.iter()) {
+        debug_assert_eq!(fa.name(), fb.name());
+        out.push((f(va, vb)?, fa.clone()));
+    }
+
+    Some(AnyValue::Struct(out))
 }

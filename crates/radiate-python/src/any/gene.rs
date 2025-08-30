@@ -8,8 +8,8 @@ type Factory = Arc<dyn Fn() -> AnyValue<'static> + Send + Sync>;
 #[derive(Clone)]
 pub struct AnyGene<'a> {
     allele: AnyValue<'a>,
-    factory: Option<Factory>,
     metadata: MetaData<'a>,
+    factory: Option<Factory>,
 }
 
 impl<'a> AnyGene<'a> {
@@ -36,24 +36,6 @@ impl<'a> AnyGene<'a> {
 
     pub fn metadata(&self) -> Option<&HashMap<String, String>> {
         self.metadata.as_ref().map(|m| m.as_ref())
-    }
-
-    pub fn with_allele_owned(&self, allele: AnyValue<'static>) -> Self {
-        AnyGene {
-            allele,
-            factory: self.factory.clone(),
-            metadata: self.metadata.clone(),
-        }
-    }
-
-    pub fn merge(&mut self, other: Self) {
-        super::value::merge_any_values(&mut self.allele, other.allele);
-        if self.factory.is_none() {
-            self.factory = other.factory;
-        }
-        if self.metadata.is_none() {
-            self.metadata = other.metadata;
-        }
     }
 
     pub fn allele_mut(&mut self) -> &mut AnyValue<'a> {
@@ -105,27 +87,24 @@ impl<'a> ArithmeticGene for AnyGene<'a> {
     }
 
     fn add(&self, other: Self) -> Self {
-        let new_allele = self.allele.clone() + other.allele;
         AnyGene {
-            allele: new_allele,
+            allele: self.allele.clone() + other.allele,
             factory: self.factory.clone(),
             metadata: self.metadata.clone(),
         }
     }
 
     fn sub(&self, other: Self) -> Self {
-        let new_allele = self.allele.clone() - other.allele;
         AnyGene {
-            allele: new_allele,
+            allele: self.allele.clone() - other.allele,
             factory: self.factory.clone(),
             metadata: self.metadata.clone(),
         }
     }
 
     fn mul(&self, other: Self) -> Self {
-        let new_allele = self.allele.clone() * other.allele;
         AnyGene {
-            allele: new_allele,
+            allele: self.allele.clone() * other.allele,
             factory: self.factory.clone(),
             metadata: self.metadata.clone(),
         }

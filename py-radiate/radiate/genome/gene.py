@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import overload, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from . import GeneType
@@ -10,37 +10,33 @@ from radiate.wrapper import PyObject
 
 
 class Gene[T](PyObject[PyGene]):
-    def gene_type(self) -> GeneType:
+    @classmethod
+    def __factory__(cls):
+        instance = cls.__new__(cls)
+        instance.__init__()
+        return instance
+
+    def __repr__(self):
+        return f"{self.gene_type().value}({self.allele()})"
+
+    def gene_type(self) -> "GeneType":
         """
         Get the type of the gene.
         :return: The type of the gene as a string.
         """
-        return GeneType.from_str(self._pyobj.gene_type().name())
+        from . import GeneType
+
+        return GeneType.from_str(self.__backend__().gene_type().name())
 
     def allele(self) -> T:
         """
         Get the allele of the gene.
         :return: The allele of the gene, which can be a float, int, bool, str, or None.
         """
-        return self._pyobj.allele()
+        return self.__backend__().allele()
 
 
 class AnyGene(Gene):
-    @classmethod
-    def __newinstance__(cls):
-        instance = cls.__new__(cls)
-        instance.__init__()
-        return instance
-
-    @classmethod
-    def __fromgene__(klass, gene_dict: dict):
-        inst = klass.__new__(klass)
-        inst.__dict__.update(gene_dict)
-        return inst
-
-    def __factory__(self):
-        return self.__class__.__newinstance__()
-
     def __backend__(self) -> PyGene:
         if "_pyobj" not in self.__dict__:
             properties = self.__dict__
@@ -51,12 +47,11 @@ class AnyGene(Gene):
             self._pyobj = PyGene.any(
                 allele=properties,
                 metadata=metadata,
-                factory=lambda: self.__factory__().__dict__,
+                factory=lambda: self.__class__.__factory__().__dict__,
             )
 
         return self._pyobj
 
-    @overload
     def allele(self) -> AnyGene:
         return self.__dict__
 

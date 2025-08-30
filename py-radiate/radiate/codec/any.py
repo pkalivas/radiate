@@ -17,7 +17,7 @@ class AnyCodec[T: AnyGene](CodecBase[T, list[T]]):
         values = [genes_factory() for _ in range(len)]
 
         self._factories = {
-            f"{g.__class__.__module__}.{g.__class__.__qualname__}": g.__class__.__fromgene__
+            f"{g.__class__.__module__}.{g.__class__.__qualname__}": g.__class__.from_rust
             for g in values
         }
 

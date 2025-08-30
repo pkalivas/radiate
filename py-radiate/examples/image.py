@@ -32,7 +32,7 @@ def draw(alleles: np.ndarray, canvas: Image.Image) -> None:
         return
 
     # Dedup consecutive identical points
-    dedup: list[tuple[float, float]] = []
+    dedup= []
     for p in pts:
         if not dedup or dedup[-1] != p:
             dedup.append(p)
@@ -76,7 +76,7 @@ def rmse_rgb(canvas: Image.Image, target_rgb_img: Image.Image) -> float:
 
     diff = ImageChops.difference(c_rgb, target_rgb_img)
     stat = ImageStat.Stat(diff)
-    per_channel_rms = stat.rms  # [r,g,b]
+    per_channel_rms = stat.rms  # length 3 for RGB
     mse_overall = sum((v * v) for v in per_channel_rms) / 3.0
     return float(math.sqrt(mse_overall))
 

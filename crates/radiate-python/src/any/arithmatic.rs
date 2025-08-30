@@ -1,4 +1,4 @@
-use crate::{AnyValue, Field};
+use crate::AnyValue;
 use std::ops::{Add, Div, Mul, Sub};
 
 /// Internal helper: perform `lhs <op> rhs` for all numeric AnyValue variants.
@@ -173,18 +173,26 @@ impl Div for AnyValue<'_> {
     }
 }
 
-/// Returns None when the types are incompatible (policy: you can choose to fallback differently).
-pub fn mean_anyvalue(a: &AnyValue<'_>, b: &AnyValue<'_>) -> Option<AnyValue<'static>> {
+pub fn mean_anyvalue(one: &AnyValue<'_>, two: &AnyValue<'_>) -> Option<AnyValue<'static>> {
     use AnyValue::*;
-    if let Some(v) = mean_numeric(a, b) {
+    if let Some(v) = mean_numeric(one, two) {
         return Some(v);
     }
 
-    match (a, b) {
+    match (one, two) {
         (Bool(x), Bool(y)) => Some(Bool(*x && *y)),
-        (Binary(x), Binary(y)) => Some(mean_binary(x, y)),
-        (Vector(xs), Vector(ys)) => zip_vec_mean(xs, ys),
-        (Struct(xs), Struct(ys)) => zip_struct_mean(xs, ys),
+        (Binary(x), Binary(y)) => {
+            let m = x.len().min(y.len());
+            let mut out = Vec::with_capacity(m);
+
+            for i in 0..m {
+                out.push(((x[i] as u16 + y[i] as u16) / 2) as u8);
+            }
+
+            Some(AnyValue::Binary(out))
+        }
+        (Vector(xs), Vector(ys)) => crate::value::zip_vec_any_value_apply(xs, ys, mean_anyvalue),
+        (Struct(xs), Struct(ys)) => crate::value::zip_struct_any_value_apply(xs, ys, mean_anyvalue),
         _ => None,
     }
 }
@@ -214,49 +222,4 @@ fn mean_numeric(a: &AnyValue<'_>, b: &AnyValue<'_>) -> Option<AnyValue<'static>>
     };
 
     Some(out)
-}
-
-#[inline]
-fn mean_binary(a: &[u8], b: &[u8]) -> AnyValue<'static> {
-    let m = a.len().min(b.len());
-    let mut out = Vec::with_capacity(m);
-    for i in 0..m {
-        out.push(((a[i] as u16 + b[i] as u16) / 2) as u8);
-    }
-    AnyValue::Binary(out)
-}
-
-#[inline]
-fn zip_vec_mean(a: &[AnyValue<'_>], b: &[AnyValue<'_>]) -> Option<AnyValue<'static>> {
-    if a.len() != b.len() {
-        return None;
-    }
-    let mut out = Vec::with_capacity(a.len());
-    for (x, y) in a.iter().zip(b) {
-        out.push(mean_anyvalue(x, y)?);
-    }
-    Some(AnyValue::Vector(Box::new(out)))
-}
-
-#[inline]
-fn zip_struct_mean(
-    a: &[(AnyValue<'_>, Field)],
-    b: &[(AnyValue<'_>, Field)],
-) -> Option<AnyValue<'static>> {
-    if a.len() != b.len() {
-        return None;
-    }
-    if !a
-        .iter()
-        .map(|(_, f)| f.name())
-        .eq(b.iter().map(|(_, f)| f.name()))
-    {
-        return None;
-    }
-    let mut out = Vec::with_capacity(a.len());
-    for ((va, fa), (vb, fb)) in a.iter().zip(b.iter()) {
-        debug_assert_eq!(fa.name(), fb.name());
-        out.push((mean_anyvalue(va, vb)?, fa.clone()));
-    }
-    Some(AnyValue::Struct(out))
 }

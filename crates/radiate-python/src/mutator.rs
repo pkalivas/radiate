@@ -35,7 +35,7 @@ impl Mutate<AnyChromosome<'_>> for AnyGeneMutator {
             for gene in chromosome.genes_mut() {
                 if random_provider::random::<f32>() < rate {
                     let allele = gene.allele_mut();
-                    if let Some(field) = allele.get_field(&self.name) {
+                    if let Some(field) = allele.get_struct_value(&self.name) {
                         let new_field = self
                             .gene_mutator
                             .call1(py, (Wrap(field),))
@@ -46,8 +46,7 @@ impl Mutate<AnyChromosome<'_>> for AnyGeneMutator {
                                 .unwrap()
                                 .into_static();
 
-                        // crate::value::merge_any_values(allele, new_any_value.into_static());
-                        crate::value::set_any_value_at_field(allele, &self.name, new_any_value);
+                        crate::value::set_struct_value_at_field(allele, &self.name, new_any_value);
 
                         count += 1;
                     }

@@ -17,9 +17,12 @@ class PyObject[T](ABC):
         self._pyobj = None
 
     @classmethod
-    def from_rust(cls, py_obj: T):
+    def from_rust(cls, py_obj: T | dict):
         instance = cls.__new__(cls)
-        instance._pyobj = py_obj
+        if isinstance(py_obj, dict):
+            instance.__dict__.update(py_obj)
+        else:
+            instance._pyobj = py_obj
         return instance
 
     def __backend__(self) -> T:
