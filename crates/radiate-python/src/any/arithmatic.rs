@@ -191,7 +191,7 @@ pub fn mean_anyvalue(one: &AnyValue<'_>, two: &AnyValue<'_>) -> Option<AnyValue<
 
             Some(AnyValue::Binary(out))
         }
-        (Vector(xs), Vector(ys)) => crate::value::zip_vec_any_value_apply(xs, ys, mean_anyvalue),
+        (Vector(xs), Vector(ys)) => crate::value::zip_slice_any_value_apply(xs, ys, mean_anyvalue),
         (Struct(xs), Struct(ys)) => crate::value::zip_struct_any_value_apply(xs, ys, mean_anyvalue),
         _ => None,
     }

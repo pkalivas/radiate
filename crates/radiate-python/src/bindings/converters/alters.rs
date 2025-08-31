@@ -1,5 +1,6 @@
 use crate::{
-    AnyChromosome, ExprMutator, InputTransform, PyAlteration, PyEngineInput, PyEngineInputType,
+    AnyChromosome, ExprCrossover, ExprMutator, InputTransform, PyAlteration, PyEngineInput,
+    PyEngineInputType,
 };
 use pyo3::{PyResult, exceptions::PyTypeError};
 use radiate::*;
@@ -226,7 +227,8 @@ fn any_alterers() -> &'static HashMap<&'static str, AlterConv<AnyChromosome<'sta
             crate::names::UNIFORM_MUTATOR         => convert_uniform_mutator,
             crate::names::INVERSION_MUTATOR       => convert_inversion_mutator,
             crate::names::ARITHMETIC_MUTATOR      => convert_arithmetic_mutator,
-            crate::names::FIELD_ALTERATION        => convert_any_mutator,
+            crate::names::EXPRESSION_MUTATOR        => convert_any_mutator,
+            crate::names::EXPRESSION_CROSSOVER      => convert_expression_crossover,
         }
     })
 }
@@ -240,9 +242,19 @@ fn convert_any_mutator(input: &PyEngineInput) -> ExprMutator {
             )
         });
 
-    println!("{:?}", alterations);
-
     ExprMutator::new(alterations.into_iter().map(|a| a.inner).collect())
+}
+
+fn convert_expression_crossover(input: &PyEngineInput) -> ExprCrossover {
+    let alterations = input
+        .extract::<Vec<PyAlteration>>("alterations")
+        .unwrap_or_else(|_| {
+            panic!(
+                "FieldAlteration requires 'alterations' field to be a list of Alteration objects"
+            )
+        });
+
+    ExprCrossover::new(alterations.into_iter().map(|a| a.inner).collect())
 }
 
 fn convert_jitter_mutator(input: &PyEngineInput) -> JitterMutator {

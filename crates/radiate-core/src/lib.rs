@@ -4,6 +4,7 @@ pub mod distance;
 pub mod domain;
 pub mod engine;
 pub mod evaluator;
+pub mod expr;
 pub mod fitness;
 pub mod genome;
 pub mod objectives;

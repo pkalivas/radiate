@@ -136,20 +136,6 @@ impl<'a> AnyValue<'a> {
         self.numeric_mut().map(f)
     }
 
-    //     use crate::any::value::{apply_numeric_slot_mut, NumericSlotMut};
-
-    // allele.with_struct_field_numeric_mut("x", |slot| {
-    //     apply_numeric_slot_mut(
-    //         slot,
-    //         |f| f + jitter_f32,                    // floats
-    //         |f| f + jitter_f64,                    // doubles
-    //         |i, unsigned| {
-    //             let delta: i128 = gaussian_round as i128;
-    //             let y = i.saturating_add(delta);
-    //             if unsigned { y.max(0) } else { y }
-    //         },
-    //     );
-    // });
     #[inline]
     pub fn with_struct_field_numeric_mut<R>(
         &mut self,
@@ -347,7 +333,7 @@ impl<'py> IntoPyObject<'py> for Wrap<&AnyValue<'_>> {
 }
 
 #[inline]
-pub(crate) fn zip_vec_any_value_apply(
+pub(crate) fn zip_slice_any_value_apply(
     one: &[AnyValue<'_>],
     two: &[AnyValue<'_>],
     f: impl Fn(&AnyValue<'_>, &AnyValue<'_>) -> Option<AnyValue<'static>>,
@@ -383,8 +369,12 @@ pub(crate) fn zip_struct_any_value_apply(
     }
 
     let mut out = Vec::with_capacity(one.len());
-    for ((va, fa), (vb, fb)) in one.iter().zip(two.iter()) {
-        debug_assert_eq!(fa.name(), fb.name());
+    for ((va, fa), (vb, _)) in one.iter().zip(two.iter()) {
+        if va.is_null() || vb.is_null() {
+            out.push((AnyValue::Null, fa.clone()));
+            continue;
+        }
+
         out.push((f(va, vb)?, fa.clone()));
     }
 

@@ -68,18 +68,29 @@ class FieldAlterer(AlterBase):
     ):
         super().__init__(component=component, args=args, allowed_genes=allowed_genes)
 
+    # @staticmethod
+    # def at_field(
+    #     target: str,
+    #     alteration: PyAlteration,
+    #     allowed_genes: set[GeneType] | GeneType = GeneType.ANY,
+    # ):
+    #     return FieldAlterer(
+    #         component="ExprMutator" if alteration.is_mutation() else "ExprCrossover",
+    #         args={"alterations": [alteration]},
+    #         allowed_genes=allowed_genes,
+    #     )
+
     @staticmethod
     def uniform(
         target: str,
         rate: float = 0.1,
-        bounds: tuple[float, float] = (0.0, 1.0),
-        dtype: str = 'float64'
+        bounds: tuple[float, float] = (0.0, 1.0)
     ):
         return FieldAlterer(
-            component="FieldAlterer",
+            component="ExprMutator",
             args={
                 "alterations": [PyAlteration.uniform(
-                    target=target, p=rate, range=bounds, dtype=dtype
+                    target=target, p=rate, range=bounds
                 )]
             },
             allowed_genes=GeneType.ANY,
@@ -91,13 +102,12 @@ class FieldAlterer(AlterBase):
         rate: float = 0.1,
         mean: float = 0.0,
         stddev: float = 1.0,
-        dtype: str = 'float64'
     ):
         return FieldAlterer(
-            component="FieldAlterer",
+            component="ExprMutator",
             args={
                 "alterations": [PyAlteration.gaussian(
-                    target=target, p=rate, mean=mean, stddev=stddev, dtype=dtype
+                    target=target, p=rate, mean=mean, stddev=stddev,    
                 )]
             },
             allowed_genes=GeneType.ANY,
@@ -107,14 +117,13 @@ class FieldAlterer(AlterBase):
     def jitter(
         target: str,
         rate: float = 0.1,
-        amount: float = 0.1,
-        dtype: str = 'float64'
+        amount: float = 0.1
     ):
         return FieldAlterer(
-            component="FieldAlterer",
+            component="ExprMutator",
             args={
                 "alterations": [PyAlteration.jitter(
-                    target=target, p=rate, amount=amount, dtype=dtype
+                    target=target, p=rate, amount=amount
                 )]
             },
             allowed_genes=GeneType.ANY,
@@ -123,14 +132,13 @@ class FieldAlterer(AlterBase):
     @staticmethod
     def swap(
         target: str,
-        rate: float = 0.1,
-        dtype: str = 'float64'
+        rate: float = 0.1
     ):
         return FieldAlterer(
-            component="FieldAlterer",
+            component="ExprCrossover",
             args={
                 "alterations": [PyAlteration.swap(
-                    target=target, p=rate, dtype=dtype
+                    target=target, p=rate
                 )]
             },
             allowed_genes=GeneType.ANY,
@@ -139,14 +147,13 @@ class FieldAlterer(AlterBase):
     @staticmethod
     def mean(
         target: str,
-        rate: float = 0.1,
-        dtype: str = 'float64'
+        rate: float = 0.1
     ):
         return FieldAlterer(
-            component="FieldAlterer",
+            component="ExprCrossover",
             args={
                 "alterations": [PyAlteration.mean(
-                    target=target, p=rate, dtype=dtype
+                    target=target, p=rate
                 )]
             },
             allowed_genes=GeneType.ANY,
@@ -155,14 +162,13 @@ class FieldAlterer(AlterBase):
     @staticmethod
     def two_point(
         target: str,
-        rate: float = 0.1,
-        dtype: str = 'float64'
+        rate: float = 0.1
     ):
         return FieldAlterer(
-            component="FieldAlterer",
+            component="ExprCrossover",
             args={
                 "alterations": [PyAlteration.two_point(
-                    target=target, p=rate, dtype=dtype
+                    target=target, p=rate
                 )]
             },
             allowed_genes=GeneType.ANY,
@@ -171,14 +177,13 @@ class FieldAlterer(AlterBase):
     @staticmethod
     def one_point(
         target: str,
-        rate: float = 0.1,
-        dtype: str = 'float64'
+        rate: float = 0.1
     ):
         return FieldAlterer(
-            component="FieldAlterer",
+            component="ExprCrossover",
             args={
                 "alterations": [PyAlteration.one_point(
-                    target=target, p=rate, dtype=dtype
+                    target=target, p=rate
                 )]
             },
             allowed_genes=GeneType.ANY,
