@@ -18,6 +18,18 @@ impl Field {
     }
 }
 
+impl From<&str> for Field {
+    fn from(s: &str) -> Self {
+        Self::new(s.to_string())
+    }
+}
+
+impl From<String> for Field {
+    fn from(s: String) -> Self {
+        Self::new(s)
+    }
+}
+
 impl Display for Field {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Field {{\n name: {},\n }}", self.name())

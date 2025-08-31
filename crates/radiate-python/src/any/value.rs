@@ -5,6 +5,23 @@ use pyo3::{
 };
 use std::fmt::Debug;
 
+/// A mutable view into an `AnyValue` that is known to be numeric.
+/// This lets callers mutate in-place in the slot's native dtype.
+#[derive(Debug)]
+pub enum NumericSlotMut<'a> {
+    F32(&'a mut f32),
+    F64(&'a mut f64),
+    U8(&'a mut u8),
+    U16(&'a mut u16),
+    U32(&'a mut u32),
+    U64(&'a mut u64),
+    I8(&'a mut i8),
+    I16(&'a mut i16),
+    I32(&'a mut i32),
+    I64(&'a mut i64),
+    I128(&'a mut i128),
+}
+
 #[derive(Clone, Default, Debug)]
 pub enum AnyValue<'a> {
     #[default]
@@ -93,6 +110,59 @@ impl<'a> AnyValue<'a> {
         }
 
         None
+    }
+
+    #[inline]
+    pub fn numeric_mut(&mut self) -> Option<NumericSlotMut<'_>> {
+        use AnyValue::*;
+        Some(match self {
+            Float32(v) => NumericSlotMut::F32(v),
+            Float64(v) => NumericSlotMut::F64(v),
+            UInt8(v) => NumericSlotMut::U8(v),
+            UInt16(v) => NumericSlotMut::U16(v),
+            UInt32(v) => NumericSlotMut::U32(v),
+            UInt64(v) => NumericSlotMut::U64(v),
+            Int8(v) => NumericSlotMut::I8(v),
+            Int16(v) => NumericSlotMut::I16(v),
+            Int32(v) => NumericSlotMut::I32(v),
+            Int64(v) => NumericSlotMut::I64(v),
+            Int128(v) => NumericSlotMut::I128(v),
+            _ => return None,
+        })
+    }
+
+    #[inline]
+    pub fn with_numeric_mut<R>(&mut self, f: impl FnOnce(NumericSlotMut<'_>) -> R) -> Option<R> {
+        self.numeric_mut().map(f)
+    }
+
+    //     use crate::any::value::{apply_numeric_slot_mut, NumericSlotMut};
+
+    // allele.with_struct_field_numeric_mut("x", |slot| {
+    //     apply_numeric_slot_mut(
+    //         slot,
+    //         |f| f + jitter_f32,                    // floats
+    //         |f| f + jitter_f64,                    // doubles
+    //         |i, unsigned| {
+    //             let delta: i128 = gaussian_round as i128;
+    //             let y = i.saturating_add(delta);
+    //             if unsigned { y.max(0) } else { y }
+    //         },
+    //     );
+    // });
+    #[inline]
+    pub fn with_struct_field_numeric_mut<R>(
+        &mut self,
+        field_name: &str,
+        f: impl FnOnce(NumericSlotMut<'_>) -> R,
+    ) -> bool {
+        if let Some(slot) = self.get_struct_value_mut(field_name) {
+            if let Some(n) = slot.numeric_mut() {
+                let _ = f(n);
+                return true;
+            }
+        }
+        false
     }
 
     pub fn is_numeric(&self) -> bool {
@@ -276,39 +346,6 @@ impl<'py> IntoPyObject<'py> for Wrap<&AnyValue<'_>> {
     }
 }
 
-// #[inline]
-// pub(crate) fn merge_any_values<'a>(base: &mut AnyValue<'a>, patch: AnyValue<'a>) {
-//     use AnyValue::*;
-//     match (base, patch) {
-//         (Struct(base_map), Struct(patch_map)) => {
-//             for (k, v_patch) in patch_map.into_iter() {
-//                 if let Some((v_base, _)) = base_map
-//                     .iter_mut()
-//                     .find(|(_, f)| f.name() == v_patch.name())
-//                 {
-//                     merge_any_values(v_base, k);
-//                 } else {
-//                     base_map.push((k, v_patch));
-//                 }
-//             }
-//         }
-//         (slot @ _, v_patch) => {
-//             *slot = v_patch;
-//         }
-//     }
-// }
-
-#[inline]
-pub(crate) fn set_struct_value_at_field<'a>(
-    allele: &mut AnyValue<'a>,
-    field_name: &str,
-    new_value: AnyValue<'a>,
-) {
-    if let Some(field) = allele.get_struct_value_mut(field_name) {
-        *field = new_value;
-    }
-}
-
 #[inline]
 pub(crate) fn zip_vec_any_value_apply(
     one: &[AnyValue<'_>],
@@ -352,4 +389,36 @@ pub(crate) fn zip_struct_any_value_apply(
     }
 
     Some(AnyValue::Struct(out))
+}
+
+/// Apply separate integer/float mutators to a numeric slot.
+/// - `f_f32`/`f_f64` are used for floats
+/// - `f_i` is used for all integer widths; `unsigned=true` for U* variants
+pub(crate) fn apply_numeric_slot_mut(
+    slot: NumericSlotMut<'_>,
+    mut f_f32: impl FnMut(f32) -> f32,
+    mut f_f64: impl FnMut(f64) -> f64,
+    mut f_i: impl FnMut(i128, bool) -> i128,
+) {
+    match slot {
+        NumericSlotMut::F32(v) => *v = f_f32(*v),
+        NumericSlotMut::F64(v) => *v = f_f64(*v),
+        NumericSlotMut::U8(v) => *v = f_i(*v as i128, true).max(0).min(u8::MAX as i128) as u8,
+        NumericSlotMut::U16(v) => *v = f_i(*v as i128, true).max(0).min(u16::MAX as i128) as u16,
+        NumericSlotMut::U32(v) => *v = f_i(*v as i128, true).max(0).min(u32::MAX as i128) as u32,
+        NumericSlotMut::U64(v) => *v = f_i(*v as i128, true).max(0).min(u64::MAX as i128) as u64,
+        NumericSlotMut::I8(v) => {
+            *v = f_i(*v as i128, false).clamp(i8::MIN as i128, i8::MAX as i128) as i8
+        }
+        NumericSlotMut::I16(v) => {
+            *v = f_i(*v as i128, false).clamp(i16::MIN as i128, i16::MAX as i128) as i16
+        }
+        NumericSlotMut::I32(v) => {
+            *v = f_i(*v as i128, false).clamp(i32::MIN as i128, i32::MAX as i128) as i32
+        }
+        NumericSlotMut::I64(v) => {
+            *v = f_i(*v as i128, false).clamp(i64::MIN as i128, i64::MAX as i128) as i64
+        }
+        NumericSlotMut::I128(v) => *v = f_i(*v as i128, false),
+    }
 }

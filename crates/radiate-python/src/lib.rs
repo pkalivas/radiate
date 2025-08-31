@@ -13,7 +13,7 @@ use std::cell::UnsafeCell;
 pub use any::*;
 pub use bindings::*;
 pub use evaluator::FreeThreadPyEvaluator;
-pub use mutator::AnyGeneMutator;
+pub use mutator::{ExprCrossover, ExprMutator, PyAlteration};
 pub use object::*;
 pub use problem::PyProblem;
 pub use pyo3::{PyResult, Python, exceptions::PyRuntimeError};

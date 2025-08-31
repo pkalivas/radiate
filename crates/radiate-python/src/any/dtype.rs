@@ -77,3 +77,29 @@ impl DataType {
         )
     }
 }
+
+impl From<String> for DataType {
+    fn from(value: String) -> Self {
+        match value.as_str() {
+            "null" => DataType::Null,
+            "boolean" => DataType::Boolean,
+            "int8" => DataType::Int8,
+            "int16" => DataType::Int16,
+            "int32" => DataType::Int32,
+            "int64" => DataType::Int64,
+            "int128" => DataType::Int128,
+            "uint8" => DataType::UInt8,
+            "uint16" => DataType::UInt16,
+            "uint32" => DataType::UInt32,
+            "uint64" => DataType::UInt64,
+            "float16" => DataType::Float16,
+            "float32" => DataType::Float32,
+            "float64" => DataType::Float64,
+            "binary" => DataType::BinaryView,
+            "char" => DataType::Char,
+            "string" => DataType::String,
+            "vec" => DataType::Vec,
+            _ => DataType::Unknown,
+        }
+    }
+}
