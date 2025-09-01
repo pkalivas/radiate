@@ -127,7 +127,7 @@ impl Mutate<AnyChromosome<'_>> for ExprMutator {
         for alteration in &self.alters {
             for gene in chromosome.iter_mut() {
                 if random_provider::random::<f32>() < alteration.p {
-                    count += alteration.expr.eval_on(gene.allele_mut()) as usize;
+                    // count += alteration.expr.apply(gene.allele_mut()) as usize;
                 }
             }
         }
@@ -178,7 +178,7 @@ impl Crossover<AnyChromosome<'static>> for ExprCrossover {
                         let a = chrom_one.genes_mut()[i].allele_mut();
                         let b = chrom_two.genes_mut()[i].allele_mut();
 
-                        count += Expr::Cross(CrossoverExpr::Swap).eval_on_pair(a, b);
+                        count += Expr::Cross(CrossoverExpr::Swap).apply_pair(a, b);
                     }
                 }
                 Expr::Cross(CrossoverExpr::TwoPoint) => {
@@ -190,10 +190,12 @@ impl Crossover<AnyChromosome<'static>> for ExprCrossover {
                     let j = random_provider::range((i + 1)..n);
 
                     for k in i..j {
-                        let a = chrom_one.genes_mut()[k].allele_mut();
-                        let b = chrom_two.genes_mut()[k].allele_mut();
+                        let mut a = &mut chrom_one.genes_mut()[0..2]; //.allele_mut();
+                        let mut b = &mut chrom_two.genes_mut()[0..2]; //.allele_mut();
 
-                        count += Expr::Cross(CrossoverExpr::Swap).eval_on_pair(a, b);
+                        std::mem::swap(&mut a, &mut b);
+
+                        // count += Expr::Cross(CrossoverExpr::Swap).eval_on_pair(a, b);
                     }
                 }
                 Expr::Cross(CrossoverExpr::Swap) | Expr::Cross(CrossoverExpr::Mean) => {
@@ -202,7 +204,7 @@ impl Crossover<AnyChromosome<'static>> for ExprCrossover {
                             let a = chrom_one.genes_mut()[idx].allele_mut();
                             let b = chrom_two.genes_mut()[idx].allele_mut();
 
-                            count += alter.expr.eval_on_pair(a, b);
+                            // count += alter.expr.apply_pair(a, b);
                         }
                     }
                 }
