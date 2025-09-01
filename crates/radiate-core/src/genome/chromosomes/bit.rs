@@ -49,6 +49,10 @@ impl Gene for BitGene {
         &self.allele
     }
 
+    fn allele_mut(&mut self) -> &mut bool {
+        &mut self.allele
+    }
+
     fn new_instance(&self) -> BitGene {
         BitGene::new()
     }

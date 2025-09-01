@@ -37,10 +37,6 @@ impl<'a> AnyGene<'a> {
     pub fn metadata(&self) -> Option<&HashMap<String, String>> {
         self.metadata.as_ref().map(|m| m.as_ref())
     }
-
-    pub fn allele_mut(&mut self) -> &mut AnyValue<'a> {
-        &mut self.allele
-    }
 }
 
 impl Valid for AnyGene<'_> {
@@ -54,6 +50,10 @@ impl<'a> Gene for AnyGene<'a> {
 
     fn allele(&self) -> &Self::Allele {
         &self.allele
+    }
+
+    fn allele_mut(&mut self) -> &mut AnyValue<'a> {
+        &mut self.allele
     }
 
     fn new_instance(&self) -> Self {

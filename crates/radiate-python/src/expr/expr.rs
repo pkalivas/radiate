@@ -1,8 +1,5 @@
-use crate::{
-    AnyChromosome, AnyGene, AnyValue, DataType, FilterExpr,
-    value::{self, NumericSlotMut},
-};
-use radiate::{Chromosome, Select, random_provider};
+use crate::{AnyChromosome, ExprNode, ExprValue, FilterExpr};
+use radiate::{Chromosome, FloatChromosome, expr::DataType, random_provider};
 use std::ops::Range;
 
 // let mut_logical =
@@ -50,12 +47,6 @@ pub enum SelectExpr {
 }
 
 #[derive(Debug, Clone)]
-pub enum AlterExpr {
-    Mutate(MutateExpr),
-    Crossover(CrossoverExpr),
-}
-
-#[derive(Debug, Clone)]
 pub struct Alteration {
     pub name: String,
     pub expr: Expr,
@@ -94,7 +85,7 @@ pub enum Expr {
 
     // leaf ops
     Mut(MutateExpr),
-    Cross(CrossoverExpr), // used by pair eval
+    Cross(CrossoverExpr),
 }
 
 #[derive(Debug, Clone)]
@@ -105,13 +96,13 @@ pub struct PlanExpr {
 }
 
 #[derive(Debug, Clone)]
-pub struct PipelineExpr {
+pub struct AlterExpr {
     steps: Vec<PlanExpr>,
 }
 
-impl PipelineExpr {
+impl AlterExpr {
     pub fn new() -> Self {
-        PipelineExpr { steps: Vec::new() }
+        AlterExpr { steps: Vec::new() }
     }
 
     pub fn all(self) -> Self {
@@ -138,10 +129,14 @@ impl PipelineExpr {
         self.apply(Expr::Mut(mut_expr))
     }
 
-    pub fn then(self, step: PipelineExpr) -> Self {
+    pub fn cross(self, cross_expr: CrossoverExpr) -> Self {
+        self.apply(Expr::Cross(cross_expr))
+    }
+
+    pub fn then(self, step: AlterExpr) -> Self {
         let mut new_steps = self.steps;
         new_steps.extend(step.steps);
-        PipelineExpr { steps: new_steps }
+        AlterExpr { steps: new_steps }
     }
 
     fn select(mut self, sel: SelectExpr) -> Self {
@@ -238,26 +233,6 @@ impl<I: ?Sized, O> EvalMut<I, O> for dyn Eval<I, O> {
     }
 }
 
-pub enum ExprValue<'a, N> {
-    Single(&'a mut N),
-    Sequence(&'a mut [N]),
-}
-
-pub trait ExprTarget {
-    type Value: ExprTarget;
-
-    fn visit<F>(&mut self, f: &mut F)
-    where
-        F: for<'b> FnMut(ExprPath<'b>, ExprValue<'b, Self::Value>);
-
-    fn dtype(&self) -> DataType;
-
-    #[inline]
-    fn numeric_mut(&mut self) -> Option<NumericSlotMut<'_>> {
-        None
-    }
-}
-
 pub trait ExprDispatch {
     fn dispatch(&mut self, expr: &mut Expr) -> usize;
 }
@@ -269,7 +244,7 @@ impl ExprDispatch for AnyChromosome<'_> {
 }
 
 impl Expr {
-    pub fn apply<'a, N: ExprTarget>(&mut self, input: ExprValue<'a, N>) -> usize {
+    pub fn apply<'a, N: ExprNode>(&mut self, input: ExprValue<'a, N>) -> usize {
         let mut changed = 0;
         // Removed debug print to avoid noisy logs in tight loops
         println!("Applying expr: {:?}", self);
@@ -281,42 +256,25 @@ impl Expr {
         changed
     }
 
-    fn apply_single<'a, N: ExprTarget>(&mut self, input: ExprValue<'a, N>) -> usize {
+    fn apply_single<'a, N: ExprNode>(&mut self, input: ExprValue<'a, N>) -> usize {
         let mut changed = 0;
         match input {
             ExprValue::Single(value) => match self {
                 Expr::This => {}
-                Expr::Select(select, inner) => {
-                    match select {
-                        SelectExpr::All => {
+                Expr::Select(select, inner) => match select {
+                    SelectExpr::All => {
+                        changed += inner.apply(ExprValue::Single(value));
+                    }
+                    SelectExpr::Index(i) => {
+                        if *i == 0 {
                             changed += inner.apply(ExprValue::Single(value));
                         }
-                        SelectExpr::Index(i) => {
-                            if *i == 0 {
-                                changed += inner.apply(ExprValue::Single(value));
-                            }
-                        }
-                        _ => {
-                            // For other selection kinds on a single, do nothing
-                        }
                     }
-                }
-                Expr::AtField(name, inner) => {
-                    value.visit(&mut |path, value| {
-                        if matches!(path, ExprPath::Field(n) if n == name.as_str()) {
-                            changed += inner.apply(value);
-                        }
-                    });
-                }
-                Expr::AtIndex(i, expr) => {
-                    value.visit(&mut |path, inner| {
-                        if matches!(path, ExprPath::Index(j) if j == *i) {
-                            changed += expr.apply(inner);
-                        }
-                    });
-                }
+                    _ => {}
+                },
+
                 Expr::All(expr) => {
-                    value.visit(&mut |_, value| {
+                    value.visit(&mut |value| {
                         expr.apply(value);
                     });
                 }
@@ -335,7 +293,7 @@ impl Expr {
                     }
                 }
                 Expr::Mut(mutation) => {
-                    value.visit(&mut |_, inner| match inner {
+                    value.visit(&mut |inner| match inner {
                         ExprValue::Single(n) => {
                             changed += mutation.eval_mut(n);
                         }
@@ -345,6 +303,10 @@ impl Expr {
                             }
                         }
                     });
+                }
+                Expr::Cross(crossover) => {
+                    // Crossover requires a pair of inputs; cannot be applied to a single node
+                    // No operation performed
                 }
                 _ => {}
             },
@@ -357,7 +319,7 @@ impl Expr {
         changed
     }
 
-    fn apply_sequence(&mut self, input: ExprValue<'_, impl ExprTarget>) -> usize {
+    fn apply_sequence(&mut self, input: ExprValue<'_, impl ExprNode>) -> usize {
         let mut changed = 0;
         if let ExprValue::Sequence(ns) = input {
             match self {
@@ -426,151 +388,17 @@ impl Expr {
         }
         changed
     }
-
-    pub fn apply_pair<N: ExprTarget>(&mut self, one: &mut N, two: &mut N) -> usize {
-        let mut changed = 0;
-        match self {
-            Expr::Cross(c) => c.eval_mut(&mut (one, two)),
-            Expr::Seq(list) => {
-                for e in list.iter_mut() {
-                    changed += e.apply_pair(one, two);
-                }
-                changed
-            }
-            Expr::Prob(p, inner) => {
-                if *p <= 0.0 || *p > 1.0 {
-                    return 0;
-                } else if random_provider::random::<f32>() < *p {
-                    return inner.apply_pair(one, two);
-                } else {
-                    return 0;
-                }
-            }
-            Expr::DType(dt, inner) => {
-                if one.dtype() == *dt && two.dtype() == *dt {
-                    inner.apply_pair(one, two)
-                } else {
-                    0
-                }
-            }
-            _ => 0,
-        }
-    }
-}
-
-impl<'a, N: ExprTarget> EvalMut<(&mut N, &mut N), usize> for CrossoverExpr {
-    fn eval_mut(&mut self, input: &mut (&mut N, &mut N)) -> usize {
-        match self {
-            CrossoverExpr::OnePoint => 0,
-            CrossoverExpr::TwoPoint => 0,
-            CrossoverExpr::Swap => 0,
-            CrossoverExpr::Mean => 0,
-        }
-    }
-}
-
-impl<'a> ExprTarget for AnyChromosome<'a> {
-    type Value = AnyGene<'a>;
-
-    fn visit<F>(&mut self, f: &mut F)
-    where
-        F: for<'b> FnMut(ExprPath<'b>, ExprValue<'b, Self::Value>),
-    {
-        f(ExprPath::Root, ExprValue::Sequence(&mut self.genes_mut()));
-    }
-
-    fn dtype(&self) -> DataType {
-        DataType::Float16
-    }
-}
-
-impl<'a> ExprTarget for AnyGene<'a> {
-    type Value = AnyValue<'a>;
-
-    fn visit<F>(&mut self, f: &mut F)
-    where
-        F: for<'b> FnMut(ExprPath<'b>, ExprValue<'b, Self::Value>),
-    {
-        self.allele_mut().visit(f);
-    }
-
-    fn dtype(&self) -> DataType {
-        DataType::Float16
-    }
-}
-
-impl<'a> ExprTarget for AnyValue<'a> {
-    type Value = Self;
-
-    fn visit<F>(&mut self, f: &mut F)
-    where
-        F: for<'b> FnMut(ExprPath<'b>, ExprValue<'b, Self::Value>),
-    {
-        match self {
-            AnyValue::Struct(pairs) => {
-                for (value, field) in pairs.iter_mut() {
-                    value.visit(f);
-                    f(ExprPath::Field(field.name()), ExprValue::Single(value));
-                }
-            }
-            AnyValue::Vector(vec) => {
-                for (i, v) in vec.iter_mut().enumerate() {
-                    v.visit(f);
-                    f(ExprPath::Index(i), ExprValue::Single(v));
-                }
-            }
-            _ => {
-                f(ExprPath::Root, ExprValue::Single(self));
-            }
-        }
-    }
-
-    fn dtype(&self) -> DataType {
-        self.dtype()
-    }
-
-    fn numeric_mut(&mut self) -> Option<NumericSlotMut<'_>> {
-        self.numeric_mut()
-    }
-}
-
-impl ExprTarget for Vec<f32> {
-    type Value = f32;
-
-    fn visit<F>(&mut self, f: &mut F)
-    where
-        F: for<'b> FnMut(ExprPath<'b>, ExprValue<'b, Self::Value>),
-    {
-        f(ExprPath::Root, ExprValue::Sequence(self.as_mut_slice()));
-    }
-
-    fn dtype(&self) -> DataType {
-        DataType::Float32
-    }
-}
-
-impl ExprTarget for f32 {
-    type Value = Self;
-
-    fn visit<F>(&mut self, f: &mut F)
-    where
-        F: for<'b> FnMut(ExprPath<'b>, ExprValue<'b, Self::Value>),
-    {
-        f(ExprPath::Root, ExprValue::Single(self));
-    }
-
-    fn dtype(&self) -> DataType {
-        DataType::Float32
-    }
-
-    fn numeric_mut(&mut self) -> Option<NumericSlotMut<'_>> {
-        Some(NumericSlotMut::F32(self))
-    }
 }
 
 impl ExprDispatch for Vec<f32> {
     fn dispatch(&mut self, expr: &mut Expr) -> usize {
         expr.apply(ExprValue::Sequence(self.as_mut_slice()))
+    }
+}
+
+impl ExprDispatch for FloatChromosome {
+    fn dispatch(&mut self, expr: &mut Expr) -> usize {
+        expr.apply(ExprValue::Sequence(self.genes_mut()))
     }
 }
 
@@ -587,6 +415,8 @@ impl Alteration {
 
 #[cfg(test)]
 mod tests {
+
+    use crate::{AnyGene, AnyValue};
 
     use super::*;
 
@@ -625,14 +455,14 @@ mod tests {
         let gene2 = AnyGene::new(nested_value2.clone());
         let mut chromosomes = AnyChromosome::new(vec![gene, gene2]);
 
-        let mut vec = vec![0.0f32, 1.0, 2.0, 3.0, 4.0];
+        let mut vec = FloatChromosome::from(vec![0.0f32, 1.0, 2.0, 3.0, 4.0]);
 
-        let mut expr = PipelineExpr::new()
+        let mut expr = AlterExpr::new()
             .range(1..4)
             .prob(1.0)
             .mutate(MutateExpr::Jitter(0.5))
             .then(
-                PipelineExpr::new()
+                AlterExpr::new()
                     .index(0)
                     .prob(0.99)
                     .mutate(MutateExpr::Gaussian(0.0, 0.25)),
@@ -650,6 +480,6 @@ mod tests {
         //     )),
         // )
         // .apply2(&mut chromosomes);
-        println!("Nested value after alteration: {:?}", vec);
+        println!("Nested value after alteration: {:#?}", vec);
     }
 }

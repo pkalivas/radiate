@@ -1,6 +1,6 @@
-use crate::{Alteration, AnyChromosome, AnyValue, CrossoverExpr, DataType, Expr, MutateExpr};
+use crate::{Alteration, AnyChromosome, AnyValue, CrossoverExpr, Expr, MutateExpr};
 use pyo3::{pyclass, pymethods};
-use radiate::{AlterResult, Chromosome, Crossover, Mutate, random_provider};
+use radiate::{AlterResult, Chromosome, Crossover, Gene, Mutate, random_provider};
 use std::ops::Range;
 
 #[pyclass]
@@ -178,7 +178,7 @@ impl Crossover<AnyChromosome<'static>> for ExprCrossover {
                         let a = chrom_one.genes_mut()[i].allele_mut();
                         let b = chrom_two.genes_mut()[i].allele_mut();
 
-                        count += Expr::Cross(CrossoverExpr::Swap).apply_pair(a, b);
+                        // count += Expr::Cross(CrossoverExpr::Swap).apply_pair(a, b);
                     }
                 }
                 Expr::Cross(CrossoverExpr::TwoPoint) => {

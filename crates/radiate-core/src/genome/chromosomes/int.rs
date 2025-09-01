@@ -82,6 +82,10 @@ impl<T: Integer<T>> Gene for IntGene<T> {
         &self.allele
     }
 
+    fn allele_mut(&mut self) -> &mut T {
+        &mut self.allele
+    }
+
     /// Create a new instance of the [`IntGene`] with a random allele between the min and max values.
     fn new_instance(&self) -> IntGene<T> {
         IntGene {

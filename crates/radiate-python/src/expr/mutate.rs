@@ -1,7 +1,7 @@
-use crate::{EvalMut, ExprTarget, MutateExpr};
+use crate::{EvalMut, ExprNode, MutateExpr};
 use radiate::random_provider;
 
-impl<'a, N: ExprTarget + ?Sized> EvalMut<N, usize> for MutateExpr {
+impl<'a, N: ExprNode + ?Sized> EvalMut<N, usize> for MutateExpr {
     fn eval_mut(&mut self, input: &mut N) -> usize {
         let mut changed = false;
         match self {

@@ -1,5 +1,3 @@
-use crate::DataType;
-
 #[derive(Debug, Clone)]
 pub enum FilterExpr {
     Prob(f32),

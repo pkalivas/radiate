@@ -4,7 +4,7 @@ mod field;
 mod gene;
 pub(crate) mod value;
 
-pub use dtype::DataType;
+// pub use dtype::DataType;
 pub use field::Field;
 pub use gene::{AnyChromosome, AnyGene};
 pub use value::AnyValue;

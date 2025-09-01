@@ -78,6 +78,10 @@ impl Gene for FloatGene {
         &self.allele
     }
 
+    fn allele_mut(&mut self) -> &mut f32 {
+        &mut self.allele
+    }
+
     fn new_instance(&self) -> FloatGene {
         FloatGene {
             allele: random_provider::range(self.value_range.clone()),

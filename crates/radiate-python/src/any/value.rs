@@ -1,8 +1,9 @@
-use super::{DataType, Field};
+use super::Field;
 use crate::Wrap;
 use pyo3::{
     Bound, FromPyObject, IntoPyObject, PyAny, PyErr, PyResult, Python, exceptions::PyValueError,
 };
+use radiate::expr::DataType;
 use std::fmt::Debug;
 
 /// A mutable view into an `AnyValue` that is known to be numeric.
@@ -214,7 +215,7 @@ impl<'a> AnyValue<'a> {
             Self::Binary(_) => DataType::BinaryView,
             Self::Struct(_) => {
                 let fields = self.struct_fields().expect("covered by match arms above");
-                DataType::Struct(fields.iter().map(|(_, f)| f.clone()).collect())
+                DataType::Struct(fields.iter().map(|(_, f)| DataType::Unknown).collect())
             }
         }
     }

@@ -1,3 +1,5 @@
+use crate::expr::DataType;
+
 /// A [`Valid`] type is a type that can be checked for validity. This is used for checking if a gene
 /// or a chromosome is valid. For example, a gene that represents a number between 0 and 1 can be checked
 /// for validity by ensuring that the allele is between 0 and 1.
@@ -58,6 +60,9 @@ pub trait Gene: Clone + Valid {
 
     /// Get the `allele` of the [Gene]. This is the value that the [Gene] represents or "expresses".
     fn allele(&self) -> &Self::Allele;
+
+    /// Get a mutable reference to the `allele` of the [Gene].
+    fn allele_mut(&mut self) -> &mut Self::Allele;
 
     /// Create a new instance of the [Gene].
     fn new_instance(&self) -> Self;

@@ -31,6 +31,10 @@ impl Gene for ImageGene {
         &self.allele
     }
 
+    fn allele_mut(&mut self) -> &mut Self::Allele {
+        &mut self.allele
+    }
+
     fn new_instance(&self) -> Self {
         Self {
             allele: Polygon::new(self.allele.len()),
