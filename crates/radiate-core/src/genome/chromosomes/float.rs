@@ -2,7 +2,10 @@ use super::{
     Chromosome,
     gene::{ArithmeticGene, Gene, Valid},
 };
-use crate::{chromosomes::gene::BoundedGene, random_provider};
+use crate::{
+    chromosomes::gene::{BoundedGene, NumericSlotMut},
+    random_provider,
+};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::{
@@ -158,6 +161,10 @@ impl ArithmeticGene for FloatGene {
             value_range: self.value_range.clone(),
             bounds: self.bounds.clone(),
         }
+    }
+
+    fn numeric_slot_mut(&mut self) -> Option<NumericSlotMut<'_>> {
+        Some(NumericSlotMut::F32(&mut self.allele))
     }
 }
 

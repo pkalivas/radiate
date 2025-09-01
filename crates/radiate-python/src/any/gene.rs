@@ -1,5 +1,5 @@
-use crate::AnyValue;
-use radiate::{ArithmeticGene, Chromosome, Gene, Valid};
+use crate::{AnyValue, ExprNode};
+use radiate::{ArithmeticGene, Chromosome, Gene, Valid, chromosomes::gene::NumericSlotMut};
 use std::{collections::HashMap, fmt::Debug, sync::Arc};
 
 type MetaData<'a> = Option<Arc<HashMap<String, String>>>;
@@ -116,6 +116,10 @@ impl<'a> ArithmeticGene for AnyGene<'a> {
             factory: self.factory.clone(),
             metadata: self.metadata.clone(),
         }
+    }
+
+    fn numeric_slot_mut(&mut self) -> Option<NumericSlotMut<'_>> {
+        self.allele.numeric_mut()
     }
 }
 

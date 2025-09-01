@@ -1,12 +1,16 @@
-use crate::{AnyChromosome, AnyGene, AnyValue, value::NumericSlotMut};
-use radiate::{Chromosome, FloatChromosome, FloatGene, Gene};
+use std::fmt::Debug;
+
+use crate::{AnyChromosome, AnyGene, AnyValue};
+use radiate::{Chromosome, FloatChromosome, FloatGene, Gene, chromosomes::gene::NumericSlotMut};
 
 pub enum ExprValue<'a, T> {
     Single(&'a mut T),
     Sequence(&'a mut [T]),
+    Pair(&'a mut T, &'a mut T),
+    SequencePair(&'a mut [T], &'a mut [T]),
 }
 
-pub trait ExprNode {
+pub trait ExprNode: Debug {
     type Value: ExprNode;
 
     fn visit<F>(&mut self, f: &mut F)
@@ -73,19 +77,23 @@ impl<'a> ExprNode for AnyValue<'a> {
             AnyValue::Struct(pairs) => {
                 for (value, _) in pairs.iter_mut() {
                     value.visit(f);
-                    f(ExprValue::Single(value));
+                    // f(ExprValue::Single(value));
                 }
             }
             AnyValue::Vector(vec) => {
                 for (_, v) in vec.iter_mut().enumerate() {
                     v.visit(f);
-                    f(ExprValue::Single(v));
+                    // f(ExprValue::Single(v));
                 }
             }
             _ => {
                 f(ExprValue::Single(self));
             }
         }
+    }
+
+    fn numeric_mut(&mut self) -> Option<NumericSlotMut<'_>> {
+        self.numeric_mut()
     }
 }
 

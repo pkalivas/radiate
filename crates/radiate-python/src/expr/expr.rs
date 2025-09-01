@@ -1,5 +1,5 @@
 use crate::{AnyChromosome, ExprNode, ExprValue, FilterExpr};
-use radiate::{Chromosome, FloatChromosome, expr::DataType, random_provider};
+use radiate::{ArithmeticGene, Chromosome, FloatChromosome, Gene, expr::DataType, random_provider};
 use std::ops::Range;
 
 // let mut_logical =
@@ -41,7 +41,7 @@ pub enum CrossoverExpr {
 #[derive(Debug, Clone)]
 pub enum SelectExpr {
     All,
-    Random(usize),
+    Random,
     Index(usize),
     Range(Range<usize>),
 }
@@ -62,6 +62,15 @@ pub enum ExprPath<'a> {
 }
 
 #[derive(Debug, Clone)]
+pub enum Literal {
+    Float(f32),
+    Double(f64),
+    Int(i32),
+    Long(i64),
+    String(String),
+}
+
+#[derive(Debug, Clone)]
 pub enum Expr {
     // structure/navigation
     This,                       // do nothing
@@ -70,12 +79,12 @@ pub enum Expr {
     All(Box<Expr>),             // map inner across all children (vectors/structs)
 
     // combinators
-    Seq(Vec<Expr>),             // run in order (pipe)
-    Prob(f32, Box<Expr>),       // run inner with probability p
-    DType(DataType, Box<Expr>), // run inner only if leaf dtype matches
+    Seq(Vec<Expr>),       // run in order (pipe)
+    Prob(f32, Box<Expr>), // run inner with probability p
 
     // filtering
     Filter(FilterExpr),
+
     // branching
     If(Box<Expr>, Box<Expr>), // if true, run first, else second
     Ternary(Box<Expr>, Box<Expr>, Box<Expr>),
@@ -113,8 +122,8 @@ impl AlterExpr {
         self.select(SelectExpr::Index(index))
     }
 
-    pub fn random(self, count: usize) -> Self {
-        self.select(SelectExpr::Random(count))
+    pub fn random(self) -> Self {
+        self.select(SelectExpr::Random)
     }
 
     pub fn range(self, range: Range<usize>) -> Self {
@@ -182,7 +191,6 @@ impl AlterExpr {
         let mut exprs = Vec::new();
 
         for step in self.steps {
-            // 1) Build application chain first (fold from end)
             let mut current = if step.application.is_empty() {
                 Expr::This
             } else {
@@ -194,7 +202,6 @@ impl AlterExpr {
                 acc
             };
 
-            // 2) For each filter (reverse), wrap current
             for filter in step.filtering.into_iter().rev() {
                 match filter {
                     FilterExpr::Prob(p) => {
@@ -203,7 +210,6 @@ impl AlterExpr {
                 }
             }
 
-            // 3) For each selection (reverse), wrap current
             for sel in step.selection.into_iter().rev() {
                 current = Expr::Select(sel, Box::new(current));
             }
@@ -219,20 +225,6 @@ impl AlterExpr {
     }
 }
 
-pub trait Eval<I: ?Sized, O> {
-    fn eval(&self, input: &I) -> O;
-}
-
-pub trait EvalMut<I: ?Sized, O> {
-    fn eval_mut(&mut self, input: &mut I) -> O;
-}
-
-impl<I: ?Sized, O> EvalMut<I, O> for dyn Eval<I, O> {
-    fn eval_mut(&mut self, input: &mut I) -> O {
-        self.eval(input)
-    }
-}
-
 pub trait ExprDispatch {
     fn dispatch(&mut self, expr: &mut Expr) -> usize;
 }
@@ -244,148 +236,191 @@ impl ExprDispatch for AnyChromosome<'_> {
 }
 
 impl Expr {
-    pub fn apply<'a, N: ExprNode>(&mut self, input: ExprValue<'a, N>) -> usize {
+    pub fn apply<'a, N: ExprNode>(&self, input: ExprValue<'a, N>) -> usize {
         let mut changed = 0;
-        // Removed debug print to avoid noisy logs in tight loops
         println!("Applying expr: {:?}", self);
-        if let ExprValue::Single(n) = input {
-            changed += self.apply_single(ExprValue::Single(n));
-        } else if let ExprValue::Sequence(ns) = input {
-            changed += self.apply_sequence(ExprValue::Sequence(ns));
+        match self {
+            Expr::Prob(p, inner) => {
+                changed += if random_provider::random::<f32>() < *p && (0.0..=1.0).contains(p) {
+                    inner.apply(input)
+                } else {
+                    0
+                };
+            }
+            _ => {
+                if let ExprValue::Single(n) = input {
+                    changed += self.apply_single(n);
+                } else if let ExprValue::Sequence(ns) = input {
+                    changed += self.apply_sequence(ns);
+                } else if let ExprValue::Pair(a, b) = input {
+                    changed += self.apply_pair(a, b);
+                } else if let ExprValue::SequencePair(a, b) = input {
+                    changed += self.apply_sequence_pair(a, b);
+                }
+            }
         }
+
         changed
     }
 
-    fn apply_single<'a, N: ExprNode>(&mut self, input: ExprValue<'a, N>) -> usize {
+    fn apply_single<'a, N: ExprNode>(&self, input: &'a mut N) -> usize {
         let mut changed = 0;
-        match input {
-            ExprValue::Single(value) => match self {
-                Expr::This => {}
-                Expr::Select(select, inner) => match select {
-                    SelectExpr::All => {
-                        changed += inner.apply(ExprValue::Single(value));
+        match self {
+            Expr::All(expr) => {
+                input.visit(&mut |value| {
+                    expr.apply(value);
+                });
+            }
+            Expr::Seq(list) => {
+                for n in list.iter() {
+                    changed += n.apply(ExprValue::Single(input));
+                }
+            }
+            Expr::Mut(mutation) => {
+                input.visit(&mut |inner| match inner {
+                    ExprValue::Single(n) => {
+                        changed += mutation.apply_mutator(n);
                     }
-                    SelectExpr::Index(i) => {
-                        if *i == 0 {
-                            changed += inner.apply(ExprValue::Single(value));
+                    ExprValue::Sequence(ns) => {
+                        for n in ns.iter_mut() {
+                            changed += mutation.apply_mutator(n);
                         }
                     }
                     _ => {}
-                },
-
-                Expr::All(expr) => {
-                    value.visit(&mut |value| {
-                        expr.apply(value);
-                    });
-                }
-                Expr::Seq(list) => {
-                    for n in list.iter_mut() {
-                        changed += n.apply(ExprValue::Single(value));
-                    }
-                }
-                Expr::Prob(p, inner) => {
-                    if *p <= 0.0 || *p > 1.0 {
-                        return 0;
-                    } else if random_provider::random::<f32>() < *p {
-                        return inner.apply(ExprValue::Single(value));
-                    } else {
-                        return 0;
-                    }
-                }
-                Expr::Mut(mutation) => {
-                    value.visit(&mut |inner| match inner {
-                        ExprValue::Single(n) => {
-                            changed += mutation.eval_mut(n);
-                        }
-                        ExprValue::Sequence(ns) => {
-                            for n in ns.iter_mut() {
-                                changed += mutation.eval_mut(n);
-                            }
-                        }
-                    });
-                }
-                Expr::Cross(crossover) => {
-                    // Crossover requires a pair of inputs; cannot be applied to a single node
-                    // No operation performed
-                }
-                _ => {}
-            },
-            ExprValue::Sequence(ns) => {
-                for n in ns.iter_mut() {
-                    changed += self.apply(ExprValue::Single(n));
-                }
+                });
             }
+            _ => {}
         }
         changed
     }
 
-    fn apply_sequence(&mut self, input: ExprValue<'_, impl ExprNode>) -> usize {
+    fn apply_sequence<'a, N: ExprNode>(&self, input: &mut [N]) -> usize {
         let mut changed = 0;
-        if let ExprValue::Sequence(ns) = input {
-            match self {
-                Expr::This => {}
-                Expr::AtField(_, inner) => {
-                    for n in ns.iter_mut() {
+        match self {
+            Expr::AtField(_, inner) => {
+                for n in input.iter_mut() {
+                    changed += inner.apply(ExprValue::Single(n));
+                }
+            }
+            Expr::Select(select, inner) => match select {
+                SelectExpr::All => {
+                    for n in input.iter_mut() {
                         changed += inner.apply(ExprValue::Single(n));
                     }
                 }
-                Expr::Select(select, inner) => match select {
-                    SelectExpr::All => {
-                        for n in ns.iter_mut() {
-                            changed += inner.apply(ExprValue::Single(n));
-                        }
+                SelectExpr::Index(i) => {
+                    if *i < input.len() {
+                        changed += inner.apply(ExprValue::Single(&mut input[*i]));
                     }
-                    SelectExpr::Index(i) => {
-                        if *i < ns.len() {
-                            changed += inner.apply(ExprValue::Single(&mut ns[*i]));
-                        }
-                    }
-                    SelectExpr::Random(count) => {
-                        let indices = random_provider::indexes(0..ns.len());
-                        for &i in indices.iter().take(*count) {
-                            if i < ns.len() {
-                                changed += inner.apply(ExprValue::Single(&mut ns[i]));
-                            }
-                        }
-                    }
-                    SelectExpr::Range(range) => {
-                        let start = range.start.min(ns.len());
-                        let end = range.end.min(ns.len());
-                        for n in &mut ns[start..end] {
-                            changed += inner.apply(ExprValue::Single(n));
-                        }
-                    }
-                },
-                Expr::AtIndex(i, inner) => {
-                    changed += inner.apply(ExprValue::Single(&mut ns[*i]));
                 }
-                Expr::All(inner) => {
-                    for n in ns.iter_mut() {
+                SelectExpr::Random => {
+                    for i in 0..input.len() {
+                        if random_provider::bool(0.5) {
+                            changed += inner.apply(ExprValue::Single(&mut input[i]));
+                        }
+                    }
+                }
+                SelectExpr::Range(range) => {
+                    let start = range.start.min(input.len());
+                    let end = range.end.min(input.len());
+                    for n in &mut input[start..end] {
                         changed += inner.apply(ExprValue::Single(n));
                     }
                 }
-                Expr::Seq(list) => {
-                    for n in list.iter_mut() {
-                        changed += n.apply(ExprValue::Sequence(ns));
-                    }
+            },
+            Expr::Seq(list) => {
+                for n in list.iter() {
+                    changed += n.apply(ExprValue::Sequence(input));
                 }
-                Expr::Prob(p, inner) => {
-                    if *p <= 0.0 || *p > 1.0 {
-                        return 0;
-                    } else if random_provider::random::<f32>() < *p {
-                        return inner.apply(ExprValue::Sequence(ns));
-                    } else {
-                        return 0;
-                    }
+            }
+            Expr::Mut(mutation) => {
+                for n in input.iter_mut() {
+                    changed += mutation.apply_mutator(n);
                 }
-                Expr::Mut(mutation) => {
-                    for n in ns.iter_mut() {
-                        changed += mutation.eval_mut(n);
+            }
+            _ => {}
+        }
+
+        changed
+    }
+
+    fn apply_pair<'a, N: ExprNode>(&self, one: &mut N, two: &mut N) -> usize {
+        let mut changed = 0;
+        match self {
+            Expr::Select(select, inner) => match select {
+                SelectExpr::All => {
+                    inner.apply(ExprValue::Pair(one, two));
+                }
+
+                SelectExpr::Random => {
+                    if random_provider::bool(0.5) {
+                        changed += inner.apply(ExprValue::Pair(one, two));
                     }
                 }
                 _ => {}
+            },
+            Expr::Seq(list) => {
+                for n in list.iter() {
+                    changed += n.apply(ExprValue::Pair(one, two));
+                }
             }
+            Expr::Mut(mutation) => {
+                changed += mutation.apply_mutator(one);
+                changed += mutation.apply_mutator(two);
+            }
+            Expr::Cross(crossover) => {
+                changed += crossover.apply_crossover(ExprValue::Pair(one, two));
+            }
+            _ => {}
         }
+
+        changed
+    }
+
+    fn apply_sequence_pair<N: ExprNode>(&self, one: &mut [N], two: &mut [N]) -> usize {
+        let mut changed = 0;
+        match self {
+            Expr::Select(select, inner) => match select {
+                SelectExpr::All => {
+                    inner.apply(ExprValue::SequencePair(one, two));
+                }
+                SelectExpr::Index(i) => {
+                    changed += inner.apply(ExprValue::Pair(&mut one[*i], &mut two[*i]));
+                }
+                SelectExpr::Random => {
+                    for i in 0..one.len() {
+                        if random_provider::bool(0.5) {
+                            changed += inner.apply(ExprValue::Pair(&mut one[i], &mut two[i]));
+                        }
+                    }
+                }
+                SelectExpr::Range(range) => {
+                    let start = range.start.min(one.len());
+                    let end = range.end.min(two.len());
+                    for i in start..end {
+                        changed += inner.apply(ExprValue::Pair(&mut one[i], &mut two[i]));
+                    }
+                }
+            },
+            Expr::Seq(list) => {
+                for n in list.iter() {
+                    changed += n.apply(ExprValue::SequencePair(one, two));
+                }
+            }
+            Expr::Mut(mutation) => {
+                for n in one.iter_mut() {
+                    changed += mutation.apply_mutator(n);
+                }
+                for n in two.iter_mut() {
+                    changed += mutation.apply_mutator(n);
+                }
+            }
+            Expr::Cross(crossover) => {
+                changed += crossover.apply_crossover(ExprValue::SequencePair(one, two));
+            }
+            _ => {}
+        }
+
         changed
     }
 }
@@ -393,6 +428,15 @@ impl Expr {
 impl ExprDispatch for Vec<f32> {
     fn dispatch(&mut self, expr: &mut Expr) -> usize {
         expr.apply(ExprValue::Sequence(self.as_mut_slice()))
+    }
+}
+
+impl ExprDispatch for (&mut Vec<f32>, &mut Vec<f32>) {
+    fn dispatch(&mut self, expr: &mut Expr) -> usize {
+        expr.apply(ExprValue::SequencePair(
+            self.0.as_mut_slice(),
+            self.1.as_mut_slice(),
+        ))
     }
 }
 
@@ -413,12 +457,14 @@ impl Alteration {
     }
 }
 
+//////
+///
+/// ///
+
 #[cfg(test)]
 mod tests {
-
-    use crate::{AnyGene, AnyValue};
-
     use super::*;
+    use crate::{AnyGene, AnyValue};
 
     #[test]
     fn it_works() {
@@ -455,7 +501,22 @@ mod tests {
         let gene2 = AnyGene::new(nested_value2.clone());
         let mut chromosomes = AnyChromosome::new(vec![gene, gene2]);
 
-        let mut vec = FloatChromosome::from(vec![0.0f32, 1.0, 2.0, 3.0, 4.0]);
+        let mut vec = vec![0.0f32; 10];
+        let mut two = vec![1.0f32; 10];
+
+        let mut expr = AlterExpr::new()
+            .all()
+            .prob(0.99)
+            .cross(CrossoverExpr::OnePoint)
+            .then(
+                AlterExpr::new()
+                    .all()
+                    .prob(0.99)
+                    .mutate(MutateExpr::Jitter(0.1)),
+            )
+            .build();
+
+        (&mut vec, &mut two).dispatch(&mut expr);
 
         let mut expr = AlterExpr::new()
             .range(1..4)
@@ -469,17 +530,23 @@ mod tests {
             )
             .build();
 
-        vec.dispatch(&mut expr);
-
-        // println!("Nested value after alteration: {:?}", nested_value);
-        // Expr::AtIndex(
-        //     1,
-        //     Box::new(Expr::AtField(
-        //         "target".into(),
-        //         Box::new(Expr::Mut(MutateExpr::Jitter(0.5))),
-        //     )),
-        // )
-        // .apply2(&mut chromosomes);
         println!("Nested value after alteration: {:#?}", vec);
+        println!("Nested value after alteration: {:#?}", two);
+
+        let mut expr = AlterExpr::new()
+            .range(1..4)
+            .prob(0.99)
+            .mutate(MutateExpr::Jitter(0.5))
+            .then(
+                AlterExpr::new()
+                    .index(0)
+                    .prob(0.99)
+                    .mutate(MutateExpr::Gaussian(0.0, 0.25)),
+            )
+            .build();
+
+        chromosomes.dispatch(&mut expr);
+
+        println!("Nested value after alteration: {:#?}", chromosomes);
     }
 }

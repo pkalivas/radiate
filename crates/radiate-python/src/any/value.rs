@@ -1,27 +1,27 @@
 use super::Field;
-use crate::Wrap;
+use crate::{ExprNode, Wrap};
 use pyo3::{
     Bound, FromPyObject, IntoPyObject, PyAny, PyErr, PyResult, Python, exceptions::PyValueError,
 };
-use radiate::expr::DataType;
+use radiate::{chromosomes::gene::NumericSlotMut, expr::DataType};
 use std::fmt::Debug;
 
 /// A mutable view into an `AnyValue` that is known to be numeric.
 /// This lets callers mutate in-place in the slot's native dtype.
-#[derive(Debug)]
-pub enum NumericSlotMut<'a> {
-    F32(&'a mut f32),
-    F64(&'a mut f64),
-    U8(&'a mut u8),
-    U16(&'a mut u16),
-    U32(&'a mut u32),
-    U64(&'a mut u64),
-    I8(&'a mut i8),
-    I16(&'a mut i16),
-    I32(&'a mut i32),
-    I64(&'a mut i64),
-    I128(&'a mut i128),
-}
+// #[derive(Debug)]
+// pub enum NumericSlotMut<'a> {
+//     F32(&'a mut f32),
+//     F64(&'a mut f64),
+//     U8(&'a mut u8),
+//     U16(&'a mut u16),
+//     U32(&'a mut u32),
+//     U64(&'a mut u64),
+//     I8(&'a mut i8),
+//     I16(&'a mut i16),
+//     I32(&'a mut i32),
+//     I64(&'a mut i64),
+//     I128(&'a mut i128),
+// }
 
 #[derive(Clone, Default, Debug)]
 pub enum AnyValue<'a> {
