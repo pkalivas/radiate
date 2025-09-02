@@ -1,4 +1,4 @@
-use crate::{AnyValue, ExprNode};
+use crate::AnyValue;
 use radiate::{ArithmeticGene, Chromosome, Gene, Valid, chromosomes::gene::NumericSlotMut};
 use std::{collections::HashMap, fmt::Debug, sync::Arc};
 

@@ -1,27 +1,6 @@
-use crate::{AnyChromosome, ExprNode, ExprValue, FilterExpr};
-use radiate::{ArithmeticGene, Chromosome, FloatChromosome, Gene, expr::DataType, random_provider};
+use crate::{AnyChromosome, ExprNode, ExprNodeMeta, ExprValue, FilterExpr};
+use radiate::{Chromosome, random_provider};
 use std::ops::Range;
-
-// let mut_logical =
-//     genes().every(2).on(mfun::jitter(0.10))
-//     .then( genes().index(1).on_prob(0.5, mfun::gaussian(0.0, 0.25)) );
-
-// let cross_logical =
-//     pairs().adjacent().on_prob(0.3, cfun::mean());
-
-// // Plan against the population/individual schema
-// let schema = ChromosomeSchema::from(&chromosomes);
-// let mut_planned   = plan_unary(mut_logical, &schema);
-// let cross_planned = plan_pairs(cross_logical, &schema);
-
-// // Compile to your physical Expr
-// let mut expr = Expr::Seq(vec![
-//     compile_to_expr(&mut_planned),
-//     compile_pairs_to_expr(&cross_planned),
-// ]);
-
-// // Run with your existing runtime
-// let changed = expr.apply2(&mut chromosomes);
 
 #[derive(Debug, Clone)]
 pub enum MutateExpr {
@@ -44,21 +23,15 @@ pub enum SelectExpr {
     Random,
     Index(usize),
     Range(Range<usize>),
+    Name(String),
 }
 
 #[derive(Debug, Clone)]
 pub struct Alteration {
     pub name: String,
-    pub expr: Expr,
+    pub expr: PyExpr,
     pub target: String,
     pub p: f32,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum ExprPath<'a> {
-    Root,
-    Field(&'a str),
-    Index(usize),
 }
 
 #[derive(Debug, Clone)]
@@ -71,26 +44,21 @@ pub enum Literal {
 }
 
 #[derive(Debug, Clone)]
-pub enum Expr {
+pub enum PyExpr {
     // structure/navigation
-    This,                       // do nothing
-    AtField(String, Box<Expr>), // run inner where path == field
-    AtIndex(usize, Box<Expr>),  // run inner at a specific index
-    All(Box<Expr>),             // map inner across all children (vectors/structs)
+    This,                        // do nothing
+    AtIndex(usize, Box<PyExpr>), // run inner at a specific index
+    All(Box<PyExpr>),            // map inner across all children (vectors/structs)
 
     // combinators
-    Seq(Vec<Expr>),       // run in order (pipe)
-    Prob(f32, Box<Expr>), // run inner with probability p
+    Seq(Vec<PyExpr>),       // run in order (pipe)
+    Prob(f32, Box<PyExpr>), // run inner with probability p
 
     // filtering
     Filter(FilterExpr),
 
-    // branching
-    If(Box<Expr>, Box<Expr>), // if true, run first, else second
-    Ternary(Box<Expr>, Box<Expr>, Box<Expr>),
-
     // selection
-    Select(SelectExpr, Box<Expr>),
+    Select(SelectExpr, Box<PyExpr>),
 
     // leaf ops
     Mut(MutateExpr),
@@ -101,17 +69,17 @@ pub enum Expr {
 pub struct PlanExpr {
     selection: Vec<SelectExpr>,
     filtering: Vec<FilterExpr>,
-    application: Vec<Expr>,
+    application: Vec<PyExpr>,
 }
 
 #[derive(Debug, Clone)]
-pub struct AlterExpr {
+pub struct PyAlterExpr {
     steps: Vec<PlanExpr>,
 }
 
-impl AlterExpr {
+impl PyAlterExpr {
     pub fn new() -> Self {
-        AlterExpr { steps: Vec::new() }
+        PyAlterExpr { steps: Vec::new() }
     }
 
     pub fn all(self) -> Self {
@@ -130,22 +98,26 @@ impl AlterExpr {
         self.select(SelectExpr::Range(range))
     }
 
+    pub fn name(self, name: String) -> Self {
+        self.select(SelectExpr::Name(name))
+    }
+
     pub fn prob(self, p: f32) -> Self {
         self.filter(FilterExpr::Prob(p))
     }
 
     pub fn mutate(self, mut_expr: MutateExpr) -> Self {
-        self.apply(Expr::Mut(mut_expr))
+        self.apply(PyExpr::Mut(mut_expr))
     }
 
     pub fn cross(self, cross_expr: CrossoverExpr) -> Self {
-        self.apply(Expr::Cross(cross_expr))
+        self.apply(PyExpr::Cross(cross_expr))
     }
 
-    pub fn then(self, step: AlterExpr) -> Self {
+    pub fn then(self, step: PyAlterExpr) -> Self {
         let mut new_steps = self.steps;
         new_steps.extend(step.steps);
-        AlterExpr { steps: new_steps }
+        PyAlterExpr { steps: new_steps }
     }
 
     fn select(mut self, sel: SelectExpr) -> Self {
@@ -174,7 +146,7 @@ impl AlterExpr {
         self
     }
 
-    fn apply(mut self, expr: Expr) -> Self {
+    fn apply(mut self, expr: PyExpr) -> Self {
         if let Some(last) = self.steps.last_mut() {
             last.application.push(expr);
         } else {
@@ -187,17 +159,17 @@ impl AlterExpr {
         self
     }
 
-    pub fn build(self) -> Expr {
+    pub fn build(self) -> PyExpr {
         let mut exprs = Vec::new();
 
         for step in self.steps {
             let mut current = if step.application.is_empty() {
-                Expr::This
+                PyExpr::This
             } else {
                 let mut apps = step.application.into_iter().rev();
                 let mut acc = apps.next().unwrap();
                 for app in apps {
-                    acc = Expr::Seq(vec![app, acc]);
+                    acc = PyExpr::Seq(vec![app, acc]);
                 }
                 acc
             };
@@ -205,13 +177,13 @@ impl AlterExpr {
             for filter in step.filtering.into_iter().rev() {
                 match filter {
                     FilterExpr::Prob(p) => {
-                        current = Expr::Prob(p, Box::new(current));
+                        current = PyExpr::Prob(p, Box::new(current));
                     }
                 }
             }
 
             for sel in step.selection.into_iter().rev() {
-                current = Expr::Select(sel, Box::new(current));
+                current = PyExpr::Select(sel, Box::new(current));
             }
 
             exprs.push(current);
@@ -220,27 +192,36 @@ impl AlterExpr {
         if exprs.len() == 1 {
             exprs.pop().unwrap()
         } else {
-            Expr::Seq(exprs)
+            PyExpr::Seq(exprs)
         }
     }
 }
 
 pub trait ExprDispatch {
-    fn dispatch(&mut self, expr: &mut Expr) -> usize;
+    fn dispatch(&mut self, expr: &PyExpr) -> usize;
 }
 
 impl ExprDispatch for AnyChromosome<'_> {
-    fn dispatch(&mut self, expr: &mut Expr) -> usize {
+    fn dispatch(&mut self, expr: &PyExpr) -> usize {
         expr.apply(ExprValue::Sequence(self.genes_mut()))
     }
 }
 
-impl Expr {
+impl<'a> ExprDispatch for (&mut AnyChromosome<'a>, &mut AnyChromosome<'a>) {
+    fn dispatch(&mut self, expr: &PyExpr) -> usize {
+        expr.apply(ExprValue::SequencePair(
+            self.0.genes_mut(),
+            self.1.genes_mut(),
+        ))
+    }
+}
+
+impl PyExpr {
     pub fn apply<'a, N: ExprNode>(&self, input: ExprValue<'a, N>) -> usize {
         let mut changed = 0;
-        println!("Applying expr: {:?}", self);
+
         match self {
-            Expr::Prob(p, inner) => {
+            PyExpr::Prob(p, inner) => {
                 changed += if random_provider::random::<f32>() < *p && (0.0..=1.0).contains(p) {
                     inner.apply(input)
                 } else {
@@ -266,27 +247,38 @@ impl Expr {
     fn apply_single<'a, N: ExprNode>(&self, input: &'a mut N) -> usize {
         let mut changed = 0;
         match self {
-            Expr::All(expr) => {
-                input.visit(&mut |value| {
-                    expr.apply(value);
-                });
-            }
-            Expr::Seq(list) => {
+            PyExpr::Select(select, inner) => match select {
+                SelectExpr::Name(name) => {
+                    input.visit(&mut |meta, value| {
+                        if let ExprNodeMeta::Name(n) = meta {
+                            if n == name {
+                                changed += inner.apply(value);
+                                return true;
+                            }
+                        }
+                        false
+                    });
+                }
+                _ => {}
+            },
+            PyExpr::Seq(list) => {
                 for n in list.iter() {
                     changed += n.apply(ExprValue::Single(input));
                 }
             }
-            Expr::Mut(mutation) => {
-                input.visit(&mut |inner| match inner {
+            PyExpr::Mut(mutation) => {
+                input.visit(&mut |_, inner| match inner {
                     ExprValue::Single(n) => {
                         changed += mutation.apply_mutator(n);
+                        true
                     }
                     ExprValue::Sequence(ns) => {
                         for n in ns.iter_mut() {
                             changed += mutation.apply_mutator(n);
                         }
+                        true
                     }
-                    _ => {}
+                    _ => false,
                 });
             }
             _ => {}
@@ -296,13 +288,9 @@ impl Expr {
 
     fn apply_sequence<'a, N: ExprNode>(&self, input: &mut [N]) -> usize {
         let mut changed = 0;
+
         match self {
-            Expr::AtField(_, inner) => {
-                for n in input.iter_mut() {
-                    changed += inner.apply(ExprValue::Single(n));
-                }
-            }
-            Expr::Select(select, inner) => match select {
+            PyExpr::Select(select, inner) => match select {
                 SelectExpr::All => {
                     for n in input.iter_mut() {
                         changed += inner.apply(ExprValue::Single(n));
@@ -327,13 +315,27 @@ impl Expr {
                         changed += inner.apply(ExprValue::Single(n));
                     }
                 }
+                SelectExpr::Name(name) => {
+                    for n in input.iter_mut() {
+                        n.visit(&mut |meta, value| {
+                            if let ExprNodeMeta::Name(n) = meta {
+                                if n == name {
+                                    changed += inner.apply(value);
+                                    return true;
+                                }
+                            }
+
+                            false
+                        });
+                    }
+                }
             },
-            Expr::Seq(list) => {
+            PyExpr::Seq(list) => {
                 for n in list.iter() {
                     changed += n.apply(ExprValue::Sequence(input));
                 }
             }
-            Expr::Mut(mutation) => {
+            PyExpr::Mut(mutation) => {
                 for n in input.iter_mut() {
                     changed += mutation.apply_mutator(n);
                 }
@@ -347,7 +349,7 @@ impl Expr {
     fn apply_pair<'a, N: ExprNode>(&self, one: &mut N, two: &mut N) -> usize {
         let mut changed = 0;
         match self {
-            Expr::Select(select, inner) => match select {
+            PyExpr::Select(select, inner) => match select {
                 SelectExpr::All => {
                     inner.apply(ExprValue::Pair(one, two));
                 }
@@ -359,16 +361,16 @@ impl Expr {
                 }
                 _ => {}
             },
-            Expr::Seq(list) => {
+            PyExpr::Seq(list) => {
                 for n in list.iter() {
                     changed += n.apply(ExprValue::Pair(one, two));
                 }
             }
-            Expr::Mut(mutation) => {
+            PyExpr::Mut(mutation) => {
                 changed += mutation.apply_mutator(one);
                 changed += mutation.apply_mutator(two);
             }
-            Expr::Cross(crossover) => {
+            PyExpr::Cross(crossover) => {
                 changed += crossover.apply_crossover(ExprValue::Pair(one, two));
             }
             _ => {}
@@ -380,7 +382,7 @@ impl Expr {
     fn apply_sequence_pair<N: ExprNode>(&self, one: &mut [N], two: &mut [N]) -> usize {
         let mut changed = 0;
         match self {
-            Expr::Select(select, inner) => match select {
+            PyExpr::Select(select, inner) => match select {
                 SelectExpr::All => {
                     inner.apply(ExprValue::SequencePair(one, two));
                 }
@@ -401,13 +403,30 @@ impl Expr {
                         changed += inner.apply(ExprValue::Pair(&mut one[i], &mut two[i]));
                     }
                 }
+                SelectExpr::Name(name) => {
+                    for (one_val, two_val) in one.iter_mut().zip(two.iter_mut()) {
+                        let one_by_name = one_val.get_by_name(name);
+                        let two_by_name = two_val.get_by_name(name);
+
+                        if let (Some(one), Some(two)) = (one_by_name, two_by_name) {
+                            if let (Some(one_slice), Some(two_slice)) =
+                                (one.as_mut_slice(), two.as_mut_slice())
+                            {
+                                changed +=
+                                    inner.apply(ExprValue::SequencePair(one_slice, two_slice));
+                            } else {
+                                changed += inner.apply(ExprValue::Pair(one, two));
+                            }
+                        }
+                    }
+                }
             },
-            Expr::Seq(list) => {
+            PyExpr::Seq(list) => {
                 for n in list.iter() {
                     changed += n.apply(ExprValue::SequencePair(one, two));
                 }
             }
-            Expr::Mut(mutation) => {
+            PyExpr::Mut(mutation) => {
                 for n in one.iter_mut() {
                     changed += mutation.apply_mutator(n);
                 }
@@ -415,7 +434,7 @@ impl Expr {
                     changed += mutation.apply_mutator(n);
                 }
             }
-            Expr::Cross(crossover) => {
+            PyExpr::Cross(crossover) => {
                 changed += crossover.apply_crossover(ExprValue::SequencePair(one, two));
             }
             _ => {}
@@ -425,42 +444,6 @@ impl Expr {
     }
 }
 
-impl ExprDispatch for Vec<f32> {
-    fn dispatch(&mut self, expr: &mut Expr) -> usize {
-        expr.apply(ExprValue::Sequence(self.as_mut_slice()))
-    }
-}
-
-impl ExprDispatch for (&mut Vec<f32>, &mut Vec<f32>) {
-    fn dispatch(&mut self, expr: &mut Expr) -> usize {
-        expr.apply(ExprValue::SequencePair(
-            self.0.as_mut_slice(),
-            self.1.as_mut_slice(),
-        ))
-    }
-}
-
-impl ExprDispatch for FloatChromosome {
-    fn dispatch(&mut self, expr: &mut Expr) -> usize {
-        expr.apply(ExprValue::Sequence(self.genes_mut()))
-    }
-}
-
-impl Alteration {
-    pub fn new(name: String, expr: Expr, target: String, p: f32) -> Self {
-        Alteration {
-            name,
-            expr,
-            target,
-            p,
-        }
-    }
-}
-
-//////
-///
-/// ///
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -469,83 +452,62 @@ mod tests {
     #[test]
     fn it_works() {
         let nested_value = AnyValue::Struct(vec![
-            (AnyValue::StrOwned("a".into()), "a".into()),
-            (AnyValue::Float32(2.0), "target".into()),
+            (AnyValue::Float64(3.0), "nuumber".into()),
+            (AnyValue::StrOwned("hello".into()), "text".into()),
+            (AnyValue::Bool(true), "flag".into()),
             (
-                AnyValue::Vector(Box::new(vec![
-                    AnyValue::Float32(3.0),
-                    AnyValue::Struct(vec![
-                        (AnyValue::StrOwned("t".into()), "a".into()),
-                        (AnyValue::Float32(4.0), "target".into()),
-                    ]),
-                ])),
-                "list".into(),
+                AnyValue::Struct(vec![
+                    (AnyValue::StrOwned("key".into()), "value".into()),
+                    (
+                        AnyValue::Vector(Box::new(vec![
+                            AnyValue::Int64(0),
+                            AnyValue::Int64(1),
+                            AnyValue::Int64(2),
+                        ])),
+                        "list".into(),
+                    ),
+                ]),
+                "complex".into(),
             ),
         ]);
 
         let nested_value2 = AnyValue::Struct(vec![
-            (AnyValue::StrOwned("a".into()), "a".into()),
-            (AnyValue::Float32(5.0), "target".into()),
+            (AnyValue::Float64(3.0), "nuumber".into()),
+            (AnyValue::StrOwned("hello".into()), "text".into()),
+            (AnyValue::Bool(true), "flag".into()),
             (
-                AnyValue::Vector(Box::new(vec![
-                    AnyValue::Float32(3.0),
-                    AnyValue::Struct(vec![
-                        (AnyValue::StrOwned("t".into()), "a".into()),
-                        (AnyValue::Float32(1.0), "target".into()),
-                    ]),
-                ])),
-                "list".into(),
+                AnyValue::Struct(vec![
+                    (AnyValue::StrOwned("key".into()), "value".into()),
+                    (
+                        AnyValue::Vector(Box::new(vec![
+                            AnyValue::Int64(4),
+                            AnyValue::Int64(5),
+                            AnyValue::Int64(6),
+                        ])),
+                        "list".into(),
+                    ),
+                ]),
+                "complex".into(),
             ),
         ]);
+
         let gene = AnyGene::new(nested_value.clone());
         let gene2 = AnyGene::new(nested_value2.clone());
         let mut chromosomes = AnyChromosome::new(vec![gene, gene2]);
 
-        let mut vec = vec![0.0f32; 10];
-        let mut two = vec![1.0f32; 10];
-
-        let mut expr = AlterExpr::new()
-            .all()
+        let expr = PyAlterExpr::new()
+            .name("list".into())
             .prob(0.99)
-            .cross(CrossoverExpr::OnePoint)
+            .mutate(MutateExpr::Uniform(-10.0..10.0))
             .then(
-                AlterExpr::new()
-                    .all()
-                    .prob(0.99)
-                    .mutate(MutateExpr::Jitter(0.1)),
-            )
-            .build();
-
-        (&mut vec, &mut two).dispatch(&mut expr);
-
-        let mut expr = AlterExpr::new()
-            .range(1..4)
-            .prob(1.0)
-            .mutate(MutateExpr::Jitter(0.5))
-            .then(
-                AlterExpr::new()
+                PyAlterExpr::new()
                     .index(0)
                     .prob(0.99)
                     .mutate(MutateExpr::Gaussian(0.0, 0.25)),
             )
             .build();
 
-        println!("Nested value after alteration: {:#?}", vec);
-        println!("Nested value after alteration: {:#?}", two);
-
-        let mut expr = AlterExpr::new()
-            .range(1..4)
-            .prob(0.99)
-            .mutate(MutateExpr::Jitter(0.5))
-            .then(
-                AlterExpr::new()
-                    .index(0)
-                    .prob(0.99)
-                    .mutate(MutateExpr::Gaussian(0.0, 0.25)),
-            )
-            .build();
-
-        chromosomes.dispatch(&mut expr);
+        chromosomes.dispatch(&expr);
 
         println!("Nested value after alteration: {:#?}", chromosomes);
     }

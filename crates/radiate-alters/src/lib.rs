@@ -1,5 +1,9 @@
 pub mod crossovers;
+#[allow(dead_code)]
+mod expr;
 pub mod mutators;
+
+pub use expr::{Expr, ExprBuilder, IntoMut, MutFn, Pred, SelectExpr, dsl};
 
 pub use crossovers::{
     BlendCrossover, EdgeRecombinationCrossover, IntermediateCrossover, MeanCrossover,

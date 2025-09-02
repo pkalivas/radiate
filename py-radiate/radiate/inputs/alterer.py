@@ -68,17 +68,6 @@ class FieldAlterer(AlterBase):
     ):
         super().__init__(component=component, args=args, allowed_genes=allowed_genes)
 
-    # @staticmethod
-    # def at_field(
-    #     target: str,
-    #     alteration: PyAlteration,
-    #     allowed_genes: set[GeneType] | GeneType = GeneType.ANY,
-    # ):
-    #     return FieldAlterer(
-    #         component="ExprMutator" if alteration.is_mutation() else "ExprCrossover",
-    #         args={"alterations": [alteration]},
-    #         allowed_genes=allowed_genes,
-    #     )
 
     @staticmethod
     def uniform(

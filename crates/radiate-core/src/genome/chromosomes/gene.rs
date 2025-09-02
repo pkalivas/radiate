@@ -1,5 +1,3 @@
-use crate::expr::DataType;
-
 /// A [`Valid`] type is a type that can be checked for validity. This is used for checking if a gene
 /// or a chromosome is valid. For example, a gene that represents a number between 0 and 1 can be checked
 /// for validity by ensuring that the allele is between 0 and 1.
@@ -106,7 +104,50 @@ pub enum NumericSlotMut<'a> {
     I128(&'a mut i128),
 }
 
-pub(crate) fn apply_numeric_slot_mut(
+/// Primitive alleles that can become a slot.
+pub trait NumericAllele {
+    fn slot<'a>(&'a mut self) -> NumericSlotMut<'a>;
+    fn as_f64(&self) -> f64;
+}
+
+macro_rules! impl_numeric_allele {
+    ($($t:ty,$name:ident),*) => {
+        $(
+            impl NumericAllele for $t {
+                fn slot<'a>(&'a mut self) -> NumericSlotMut<'a> {
+                    NumericSlotMut::$name(self)
+                }
+
+                fn as_f64(&self) -> f64 {
+                    *self as f64
+                }
+            }
+        )*
+    };
+}
+
+impl_numeric_allele!(
+    f32, F32, f64, F64, u8, U8, u16, U16, u32, U32, u64, U64, i8, I8, i16, I16, i32, I32, i64, I64,
+    i128, I128
+);
+
+pub trait HasNumericSlot {
+    fn numeric_slot_mut(&mut self) -> Option<NumericSlotMut<'_>> {
+        None
+    }
+}
+
+impl<G> HasNumericSlot for G
+where
+    G: Gene,
+    G::Allele: NumericAllele,
+{
+    fn numeric_slot_mut(&mut self) -> Option<NumericSlotMut<'_>> {
+        Some(self.allele_mut().slot())
+    }
+}
+
+pub fn apply_numeric_slot_mut(
     slot: NumericSlotMut<'_>,
     mut f_f32: impl FnMut(f32) -> f32,
     mut f_f64: impl FnMut(f64) -> f64,
@@ -132,5 +173,72 @@ pub(crate) fn apply_numeric_slot_mut(
             *v = f_i(*v as i128, false).clamp(i64::MIN as i128, i64::MAX as i128) as i64
         }
         NumericSlotMut::I128(v) => *v = f_i(*v as i128, false),
+    }
+}
+
+pub fn apply_pair_numeric_slot_mut(
+    slot_one: NumericSlotMut<'_>,
+    slot_two: NumericSlotMut<'_>,
+    mut f_f32: impl FnMut(f32, f32) -> (f32, f32),
+    mut f_f64: impl FnMut(f64, f64) -> (f64, f64),
+    mut f_i: impl FnMut(i128, i128, bool) -> (i128, i128),
+) {
+    match (slot_one, slot_two) {
+        (NumericSlotMut::F32(v1), NumericSlotMut::F32(v2)) => {
+            let (new_v1, new_v2) = f_f32(*v1, *v2);
+            *v1 = new_v1;
+            *v2 = new_v2;
+        }
+        (NumericSlotMut::F64(v1), NumericSlotMut::F64(v2)) => {
+            let (new_v1, new_v2) = f_f64(*v1, *v2);
+            *v1 = new_v1;
+            *v2 = new_v2;
+        }
+        (NumericSlotMut::U8(v1), NumericSlotMut::U8(v2)) => {
+            let (new_v1, new_v2) = f_i(*v1 as i128, *v2 as i128, true);
+            *v1 = new_v1.max(0).min(u8::MAX as i128) as u8;
+            *v2 = new_v2.max(0).min(u8::MAX as i128) as u8;
+        }
+        (NumericSlotMut::U16(v1), NumericSlotMut::U16(v2)) => {
+            let (new_v1, new_v2) = f_i(*v1 as i128, *v2 as i128, true);
+            *v1 = new_v1.max(0).min(u16::MAX as i128) as u16;
+            *v2 = new_v2.max(0).min(u16::MAX as i128) as u16;
+        }
+        (NumericSlotMut::U32(v1), NumericSlotMut::U32(v2)) => {
+            let (new_v1, new_v2) = f_i(*v1 as i128, *v2 as i128, true);
+            *v1 = new_v1.max(0).min(u32::MAX as i128) as u32;
+            *v2 = new_v2.max(0).min(u32::MAX as i128) as u32;
+        }
+        (NumericSlotMut::U64(v1), NumericSlotMut::U64(v2)) => {
+            let (new_v1, new_v2) = f_i(*v1 as i128, *v2 as i128, true);
+            *v1 = new_v1.max(0).min(u64::MAX as i128) as u64;
+            *v2 = new_v2.max(0).min(u64::MAX as i128) as u64;
+        }
+        (NumericSlotMut::I8(v1), NumericSlotMut::I8(v2)) => {
+            let (new_v1, new_v2) = f_i(*v1 as i128, *v2 as i128, false);
+            *v1 = new_v1.clamp(i8::MIN as i128, i8::MAX as i128) as i8;
+            *v2 = new_v2.clamp(i8::MIN as i128, i8::MAX as i128) as i8;
+        }
+        (NumericSlotMut::I16(v1), NumericSlotMut::I16(v2)) => {
+            let (new_v1, new_v2) = f_i(*v1 as i128, *v2 as i128, false);
+            *v1 = new_v1.clamp(i16::MIN as i128, i16::MAX as i128) as i16;
+            *v2 = new_v2.clamp(i16::MIN as i128, i16::MAX as i128) as i16;
+        }
+        (NumericSlotMut::I32(v1), NumericSlotMut::I32(v2)) => {
+            let (new_v1, new_v2) = f_i(*v1 as i128, *v2 as i128, false);
+            *v1 = new_v1.clamp(i32::MIN as i128, i32::MAX as i128) as i32;
+            *v2 = new_v2.clamp(i32::MIN as i128, i32::MAX as i128) as i32;
+        }
+        (NumericSlotMut::I64(v1), NumericSlotMut::I64(v2)) => {
+            let (new_v1, new_v2) = f_i(*v1 as i128, *v2 as i128, false);
+            *v1 = new_v1.clamp(i64::MIN as i128, i64::MAX as i128) as i64;
+            *v2 = new_v2.clamp(i64::MIN as i128, i64::MAX as i128) as i64;
+        }
+        (NumericSlotMut::I128(v1), NumericSlotMut::I128(v2)) => {
+            let (new_v1, new_v2) = f_i(*v1 as i128, *v2 as i128, false);
+            *v1 = new_v1;
+            *v2 = new_v2;
+        }
+        _ => {}
     }
 }
