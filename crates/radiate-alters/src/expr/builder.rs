@@ -1,5 +1,10 @@
-use crate::expr::{CrossOp, CrossoverExpr, Expr, IntoMut, MutFn, Pred, SelectExpr, Xover};
-use std::sync::Arc;
+use radiate_core::chromosomes::gene::HasNumericSlot;
+
+use crate::expr::{
+    CrossoverExpr, Expr, MutFn, MutateExpr, NumericCrossoverExpr, NumericMutateExpr, Pred,
+    SelectExpr, Xover,
+};
+use std::{ops::Range, sync::Arc};
 
 type Wrap<G> = Box<dyn Fn(Expr<G>) -> Expr<G> + Send + Sync>;
 
@@ -82,19 +87,29 @@ impl<G> ExprBuilder<G> {
         self
     }
 
-    pub fn mutate<M: IntoMut<G>>(mut self, m: M) -> Self {
-        self.push_terminal(Expr::Mut(m.into_mut()));
+    pub fn map_each(mut self, inner: impl Into<Expr<G>>) -> Self
+    where
+        G: 'static,
+    {
+        let inner = Arc::new(inner.into());
+        self.pending
+            .push(Box::new(move |_| Expr::MapEach(inner.clone())));
         self
     }
 
-    pub fn cross<C: CrossOp<G>>(mut self, kind: C) -> Self
+    pub fn mutate<M: Into<MutFn<G>>>(mut self, m: M) -> Self {
+        self.push_terminal(Expr::Mut(m.into()));
+        self
+    }
+
+    pub fn cross<C: Into<Xover<G>>>(mut self, kind: C) -> Self
     where
         C: Send + Sync + 'static,
     {
         self.push_terminal(Expr::Cross(
-            Xover::new(kind),
-            Arc::new(Expr::Mut(MutFn::new(|_: &mut G| 0))),
-            Arc::new(Expr::Mut(MutFn::new(|_: &mut G| 0))),
+            kind.into(),
+            Arc::new(Expr::NoOp),
+            Arc::new(Expr::NoOp),
         ));
         self
     }
@@ -111,12 +126,65 @@ impl<G> ExprBuilder<G> {
         self
     }
 
-    pub fn cross_one_point(self) -> Self {
+    pub fn one_point_cross(self) -> Self {
         self.cross(CrossoverExpr::OnePoint)
     }
 
-    pub fn cross_two_point(self) -> Self {
+    pub fn two_point_cross(self) -> Self {
         self.cross(CrossoverExpr::TwoPoint)
+    }
+
+    pub fn swap_cross(self) -> Self {
+        self.cross(CrossoverExpr::Swap)
+    }
+
+    pub fn blend_cross(self, factor: f32) -> Self
+    where
+        G: HasNumericSlot,
+    {
+        self.cross(NumericCrossoverExpr::Blend(factor))
+    }
+
+    pub fn intermediate_cross(self, alpha: f32) -> Self
+    where
+        G: HasNumericSlot,
+    {
+        self.cross(NumericCrossoverExpr::Intermediate(alpha))
+    }
+
+    pub fn mean_cross(self) -> Self
+    where
+        G: HasNumericSlot,
+    {
+        self.cross(NumericCrossoverExpr::Mean)
+    }
+
+    pub fn uniform_mutate(self, range: Range<f32>) -> Self
+    where
+        G: HasNumericSlot + 'static,
+    {
+        self.mutate(NumericMutateExpr::Uniform(range))
+    }
+
+    pub fn gausian_mutate(self, mean: f32, std_dev: f32) -> Self
+    where
+        G: HasNumericSlot + 'static,
+    {
+        self.mutate(NumericMutateExpr::Gaussian(mean, std_dev))
+    }
+
+    pub fn jitter_mutate(self, amount: f32) -> Self
+    where
+        G: HasNumericSlot + 'static,
+    {
+        self.mutate(NumericMutateExpr::Jitter(amount))
+    }
+
+    pub fn inversion_mutate(self) -> Self
+    where
+        G: 'static,
+    {
+        self.mutate(MutateExpr::Invert)
     }
 
     pub fn build(mut self) -> Expr<G> {

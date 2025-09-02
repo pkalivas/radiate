@@ -3,7 +3,7 @@ pub mod crossovers;
 mod expr;
 pub mod mutators;
 
-pub use expr::{Expr, ExprBuilder, IntoMut, MutFn, Pred, SelectExpr, dsl};
+pub use expr::{Expr, ExprBuilder, MutFn, Pred, SelectExpr, dsl};
 
 pub use crossovers::{
     BlendCrossover, EdgeRecombinationCrossover, IntermediateCrossover, MeanCrossover,

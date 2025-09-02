@@ -1,8 +1,4 @@
-use radiate_core::{
-    AlterResult, Chromosome, Crossover, FloatGene, Gene,
-    chromosomes::gene::{HasNumericSlot, apply_pair_numeric_slot_mut},
-    random_provider,
-};
+use radiate_core::{AlterResult, Chromosome, Crossover, FloatGene, Gene, random_provider};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct BlendCrossover {
@@ -58,26 +54,6 @@ where
 
         cross_count.into()
     }
-}
-
-pub(crate) fn blend_crossover<N: HasNumericSlot>(one: &mut N, two: &mut N, alpha: f32) -> usize {
-    let slot_one = one.numeric_slot_mut();
-    let slot_two = two.numeric_slot_mut();
-
-    if let (Some(slot_one), Some(slot_two)) = (slot_one, slot_two) {
-        let a = alpha as f64;
-        apply_pair_numeric_slot_mut(
-            slot_one,
-            slot_two,
-            |v1, v2| (v1 - (alpha * (v2 - v1)), v2 - (alpha * (v1 - v2))),
-            |f64_1, f64_2| (f64_1 - (a * (f64_2 - f64_1)), f64_2 - (a * (f64_1 - f64_2))),
-            |_, _, _| panic!("i32 blending not supported"),
-        );
-
-        return 1;
-    }
-
-    0
 }
 
 #[cfg(test)]

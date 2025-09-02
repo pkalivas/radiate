@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct Pred<G> {
-    f: Arc<dyn Fn(&G) -> bool + Send + Sync + 'static>,
+    pub(crate) f: Arc<dyn Fn(&G) -> bool + Send + Sync + 'static>,
     name: Option<&'static str>,
 }
 

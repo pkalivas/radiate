@@ -74,6 +74,10 @@ impl<'a, G> fmt::Display for ExprTree<'a, G> {
                         format!("Cross(<{tn}>)")
                     }
                 }
+                Expr::MapEach(inner) => {
+                    let tn = short_type(type_name_of_val(&*inner));
+                    format!("MapEach(<{tn}>)")
+                }
                 Expr::NoOp => "NoOp".to_string(),
             };
 
@@ -95,6 +99,7 @@ impl<'a, G> fmt::Display for ExprTree<'a, G> {
                 Expr::Select(_, inner)
                 | Expr::Index(_, inner)
                 | Expr::Filter(_, inner)
+                | Expr::MapEach(inner)
                 | Expr::Prob(_, inner) => {
                     write_node(f, inner, &next_prefix, true)?;
                 }
