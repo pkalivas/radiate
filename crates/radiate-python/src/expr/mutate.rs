@@ -1,12 +1,12 @@
-use crate::{ExprNode, MutateExpr};
-use radiate::{ArithmeticGene, chromosomes::gene::apply_numeric_slot_mut, random_provider};
+use crate::{ExprNode, MutateExpr, apply_numeric_slot_mut};
+use radiate::random_provider;
 
 impl MutateExpr {
-    pub fn apply_numeric_mutate<G: ArithmeticGene>(&self, input: &mut G) -> usize {
+    pub fn apply_numeric_mutate<G: ExprNode>(&self, input: &mut G) -> usize {
         let mut changed = false;
         match self {
             MutateExpr::Uniform(amount) => {
-                input.numeric_slot_mut().map(|slot| {
+                input.numeric_mut().map(|slot| {
                     apply_numeric_slot_mut(
                         slot,
                         |x_f32| {
@@ -31,7 +31,7 @@ impl MutateExpr {
             MutateExpr::Gaussian(mean, stddev) => {
                 let mu = *mean as f64;
                 let sd = (*stddev as f64).max(1e-12);
-                input.numeric_slot_mut().map(|slot| {
+                input.numeric_mut().map(|slot| {
                     apply_numeric_slot_mut(
                         slot,
                         |x_f32| {
@@ -54,7 +54,7 @@ impl MutateExpr {
             }
             MutateExpr::Jitter(frac) => {
                 let frac = *frac as f64;
-                input.numeric_slot_mut().map(|slot| {
+                input.numeric_mut().map(|slot| {
                     apply_numeric_slot_mut(
                         slot,
                         |x_f32| {

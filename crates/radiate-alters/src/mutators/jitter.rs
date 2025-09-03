@@ -30,7 +30,7 @@ where
                 let new_allele = gene.allele() + change;
                 let bounds = (gene.min(), gene.max());
 
-                *gene = gene.with_allele(&new_allele.clamp(*bounds.0, *bounds.1));
+                (*gene.allele_mut()) = new_allele.clamp(*bounds.0, *bounds.1);
                 count += 1;
             }
         }

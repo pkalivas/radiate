@@ -6,7 +6,9 @@ pub(crate) mod value;
 
 // pub use dtype::DataType;
 pub use field::Field;
-pub use gene::{AnyChromosome, AnyGene};
+pub use gene::{
+    AnyChromosome, AnyGene, NumericSlotMut, apply_numeric_slot_mut, apply_pair_numeric_slot_mut,
+};
 pub use value::AnyValue;
 
 use pyo3::{

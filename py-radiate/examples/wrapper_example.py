@@ -28,7 +28,6 @@ c = codec.encode()
 #         print(o)
 
 def fitness_function(individuals):
-    # return abs(sum(individual.number for individual in individuals) - 4)
     number_sum = abs(sum(individual.number for individual in individuals))  
     return abs(sum(g for ind in individuals for g in ind.complex['list'])) + number_sum
 

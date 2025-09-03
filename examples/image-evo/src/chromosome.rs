@@ -1,6 +1,6 @@
 use super::polygon::*;
 use image::{Rgba, RgbaImage};
-use radiate::{chromosomes::gene::NumericSlotMut, *};
+use radiate::*;
 use std::ops::{Add, Div, Mul, Sub};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -68,10 +68,6 @@ impl ArithmeticGene for ImageGene {
 
     fn div(&self, other: Self) -> Self {
         self.clone() / other
-    }
-
-    fn numeric_slot_mut(&mut self) -> Option<NumericSlotMut<'_>> {
-        None
     }
 }
 

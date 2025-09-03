@@ -1,5 +1,5 @@
-use crate::{CrossoverExpr, ExprNode, ExprValue};
-use radiate::{chromosomes::gene::NumericSlotMut, random_provider};
+use crate::{CrossoverExpr, ExprNode, ExprValue, NumericSlotMut};
+use radiate::random_provider;
 
 impl CrossoverExpr {
     pub fn apply_crossover<'a, T: ExprNode>(&self, input: ExprValue<'a, T>) -> usize {

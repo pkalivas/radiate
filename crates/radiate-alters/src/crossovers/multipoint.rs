@@ -52,7 +52,6 @@ pub fn crossover_multi_point<G>(
     }
 
     let mut crossover_points = random_provider::indexes(0..length);
-    random_provider::shuffle(&mut crossover_points);
 
     let selected_points = &mut crossover_points[..num_points];
     selected_points.sort();

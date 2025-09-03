@@ -1,9 +1,11 @@
 use super::Field;
-use crate::{Wrap, any::dtype::DataType};
+use crate::{
+    Wrap,
+    any::{dtype::DataType, gene::NumericSlotMut},
+};
 use pyo3::{
     Bound, FromPyObject, IntoPyObject, PyAny, PyErr, PyResult, Python, exceptions::PyValueError,
 };
-use radiate::chromosomes::gene::NumericSlotMut;
 use std::fmt::Debug;
 
 #[derive(Clone, Default, Debug)]

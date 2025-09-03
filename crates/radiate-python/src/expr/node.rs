@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 
-use crate::{AnyChromosome, AnyGene, AnyValue};
-use radiate::{Chromosome, Gene, chromosomes::gene::NumericSlotMut};
+use crate::{AnyChromosome, AnyGene, AnyValue, NumericSlotMut};
+use radiate::{Chromosome, Gene};
 
 pub enum ExprValue<'a, T> {
     Single(&'a mut T),
