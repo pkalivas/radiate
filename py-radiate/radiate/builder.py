@@ -11,7 +11,7 @@ from .inputs.alterer import AlterBase
 from .inputs.distance import DistanceBase
 from .inputs.executor import Executor
 from .fitness import CallableFitness
-from .genome.gene import GeneType
+from .genome import GeneType
 
 
 class EngineBuilder:
@@ -40,7 +40,7 @@ class EngineBuilder:
         builder = PyEngineBuilder(
             codec=self._codec.codec,
             problem=self.fitness.problem,
-            inputs=[self_input.to_python() for self_input in self._inputs],
+            inputs=[self_input.__backend__() for self_input in self._inputs],
         )
         return builder.build()
 
@@ -89,7 +89,7 @@ class EngineBuilder:
             EngineInput(
                 input_type=EngineInputType.Population,
                 component="population",
-                population=population.to_python(),
+                population=population.__backend__(),
             )
         )
 

@@ -2,10 +2,26 @@ use super::{
     Chromosome, Integer,
     gene::{ArithmeticGene, Gene, Valid},
 };
-use crate::random_provider;
+use crate::{chromosomes::BoundedGene, random_provider};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::ops::{Add, Bound, Div, Mul, Range, RangeBounds, Sub};
+
+#[macro_export]
+macro_rules! impl_integer {
+    ($($t:ty),*) => {
+        $(
+            impl Integer<$t> for $t {
+                const MIN: $t = <$t>::MIN;
+                const MAX: $t = <$t>::MAX;
+                const ZERO: $t = 0;
+                const ONE: $t = 1;
+                const TWO: $t = 2;
+
+            }
+        )*
+    };
+}
 
 /// A [`Gene`] that represents an integer value. This gene just wraps an integer value and provides
 /// functionality for it to be used in a genetic algorithm. In this [`Gene`] implementation, the
@@ -66,6 +82,10 @@ impl<T: Integer<T>> Gene for IntGene<T> {
         &self.allele
     }
 
+    fn allele_mut(&mut self) -> &mut T {
+        &mut self.allele
+    }
+
     /// Create a new instance of the [`IntGene`] with a random allele between the min and max values.
     fn new_instance(&self) -> IntGene<T> {
         IntGene {
@@ -94,29 +114,65 @@ impl<T: Integer<T>> Valid for IntGene<T> {
     }
 }
 
+impl<T: Integer<T>> BoundedGene for IntGene<T> {
+    fn min(&self) -> &Self::Allele {
+        &self.value_range.start
+    }
+
+    fn max(&self) -> &Self::Allele {
+        &self.value_range.end
+    }
+
+    fn bounds(&self) -> (&Self::Allele, &Self::Allele) {
+        (&self.bounds.start, &self.bounds.end)
+    }
+}
+
 /// Implement the `ArithmeticGene` trait for [`IntGene`]. This allows the [`IntGene`] to be used in numeric
 /// operations. The `ArithmeticGene` trait is a superset of the [`Gene`] trait, and adds functionality
 /// for numeric operations such as addition, subtraction, multiplication, division and mean.
 impl<T: Integer<T>> ArithmeticGene for IntGene<T> {
-    fn min(&self) -> &T {
-        &self.value_range.start
-    }
-
-    fn max(&self) -> &T {
-        &self.value_range.end
-    }
-
     fn mean(&self, other: &IntGene<T>) -> IntGene<T> {
         IntGene {
-            allele: (self.allele + other.allele) / T::from_i32(2),
+            allele: (self.allele + other.allele) / T::TWO,
             value_range: self.value_range.clone(),
             bounds: self.bounds.clone(),
         }
     }
 
-    fn from_f32(&self, value: f32) -> Self {
+    fn add(&self, other: Self) -> Self {
         IntGene {
-            allele: T::from_i32(value as i32),
+            allele: self.allele + other.allele,
+            value_range: self.value_range.clone(),
+            bounds: self.bounds.clone(),
+        }
+    }
+
+    fn sub(&self, other: Self) -> Self {
+        IntGene {
+            allele: self.allele - other.allele,
+            value_range: self.value_range.clone(),
+            bounds: self.bounds.clone(),
+        }
+    }
+
+    fn mul(&self, other: Self) -> Self {
+        IntGene {
+            allele: self.allele * other.allele,
+            value_range: self.value_range.clone(),
+            bounds: self.bounds.clone(),
+        }
+    }
+
+    fn div(&self, other: Self) -> Self {
+        let denominator = if other.allele == T::ZERO {
+            T::ONE
+        } else {
+            other.allele
+        };
+
+        IntGene {
+            allele: self.allele / denominator,
             value_range: self.value_range.clone(),
             bounds: self.bounds.clone(),
         }
@@ -174,8 +230,8 @@ impl<T: Integer<T>> Div for IntGene<T> {
     type Output = IntGene<T>;
 
     fn div(self, other: IntGene<T>) -> IntGene<T> {
-        let denominator = if other.allele == T::from_i32(0) {
-            T::from_i32(1)
+        let denominator = if other.allele == T::ZERO {
+            T::ONE
         } else {
             other.allele
         };

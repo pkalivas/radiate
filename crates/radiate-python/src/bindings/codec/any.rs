@@ -1,13 +1,6 @@
-use crate::{
-    AnyChromosome, AnyGene, AnyValue, PyAnyObject, PyCodec, PyGenotype,
-    any::py_object_to_any_value, prelude::Wrap,
-};
-use pyo3::{
-    IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods,
-    types::{PyList, PyListMethods},
-};
+use crate::{AnyChromosome, AnyGene, PyAnyObject, PyCodec, PyGene, PyGenotype, prelude::Wrap};
+use pyo3::{IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods, types::PyList};
 use radiate::{Chromosome, Codec, Gene, Genotype};
-use std::sync::Arc;
 
 #[pyclass]
 #[derive(Clone)]
@@ -18,80 +11,68 @@ pub struct PyAnyCodec {
 #[pymethods]
 impl PyAnyCodec {
     #[new]
-    pub fn new(encoder: Py<PyAny>, creator: Py<PyAny>, new_instance: Py<PyAny>) -> PyResult<Self> {
-        let allele_factory = Arc::new(move || {
-            Python::with_gil(|py| {
-                let dict = new_instance.call0(py).expect("new_instance() failed");
-                py_object_to_any_value(&dict.into_bound_py_any(py).unwrap(), true)
-                    .expect("convert new_instance result")
-                    .into_static()
+    pub fn new(genes: Vec<PyGene>, creator: Py<PyAny>) -> PyResult<Self> {
+        let call_creator = move |py: Python<'_>, allele: &AnyGene| -> PyResult<PyAnyObject> {
+            let obj = creator.call1(
+                py,
+                (Wrap(allele.allele()).into_py_any(py)?, allele.metadata()),
+            )?;
+
+            Ok(PyAnyObject {
+                inner: obj.into_any(),
             })
-        });
+        };
+
         let codec = PyCodec::new()
             .with_encoder(move || {
-                Python::with_gil(|py| {
-                    let bound = encoder.as_ref().into_bound_py_any(py).unwrap();
-                    let any_val = py_object_to_any_value(&bound, true)
-                        .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))
-                        .unwrap();
-
-                    match any_val {
-                        AnyValue::Vec(vec) => {
-                            let chromos = vec
-                                .into_iter()
-                                .map(|v| {
-                                    let v_static = v.into_static();
-                                    let allele_factory = allele_factory.clone();
-                                    AnyGene::new(v_static).with_factory(move || allele_factory())
-                                })
-                                .collect::<AnyChromosome<'static>>();
-
-                            Genotype::from(chromos)
-                        }
-                        _ => Genotype::from(AnyChromosome::from(vec![AnyGene::new(
-                            any_val.into_static(),
-                        )])),
-                    }
-                })
+                Genotype::from(
+                    genes
+                        .iter()
+                        .map(|v| AnyGene::from(v.clone()))
+                        .collect::<AnyChromosome<'static>>(),
+                )
             })
             .with_decoder(move |py, genotype| {
-                let call_creator = |py: Python<'_>, allele: &AnyGene| -> PyResult<PyAnyObject> {
-                    let obj = creator.call1(py, (Wrap(allele.allele()).into_py_any(py)?,))?;
-                    Ok(PyAnyObject {
-                        inner: obj.into_any(),
-                    })
-                };
-
                 if genotype.len() == 1 && genotype[0].len() == 1 {
                     return call_creator(py, &genotype[0].get(0)).unwrap();
                 }
 
                 if genotype.len() == 1 {
-                    let py_list = PyList::empty(py);
-                    for gene in genotype[0].iter() {
-                        py_list
-                            .append(call_creator(py, &gene).unwrap().inner.as_ref())
-                            .unwrap();
-                    }
                     return PyAnyObject {
-                        inner: py_list.unbind().into_any(),
+                        inner: PyList::new(
+                            py,
+                            genotype
+                                .iter()
+                                .flat_map(|chromo| {
+                                    chromo
+                                        .iter()
+                                        .map(|gene| call_creator(py, gene).unwrap().inner)
+                                })
+                                .collect::<Vec<_>>(),
+                        )
+                        .unwrap()
+                        .unbind()
+                        .into_any(),
                     };
                 }
 
-                let outer = PyList::empty(py);
-                for chromo in genotype.iter() {
-                    let inner = PyList::empty(py);
-                    for gene in chromo.iter() {
-                        inner
-                            .append(call_creator(py, &gene).unwrap().inner.as_ref())
-                            .unwrap();
-                    }
-                    outer.append(inner).unwrap();
-                }
-
-                PyAnyObject {
-                    inner: outer.unbind().into_any(),
-                }
+                return PyAnyObject {
+                    inner: PyList::new(
+                        py,
+                        genotype
+                            .iter()
+                            .map(|chromo| {
+                                chromo
+                                    .iter()
+                                    .map(|gene| call_creator(py, gene).unwrap().inner)
+                                    .collect::<Vec<_>>()
+                            })
+                            .collect::<Vec<_>>(),
+                    )
+                    .unwrap()
+                    .unbind()
+                    .into_any(),
+                };
             });
 
         Ok(PyAnyCodec { codec })

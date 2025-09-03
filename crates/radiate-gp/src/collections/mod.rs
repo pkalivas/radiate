@@ -67,9 +67,3 @@ pub trait Eval<I: ?Sized, O> {
 pub trait EvalMut<I: ?Sized, O> {
     fn eval_mut(&mut self, input: &I) -> O;
 }
-
-impl<I: ?Sized, O> EvalMut<I, O> for dyn Eval<I, O> {
-    fn eval_mut(&mut self, input: &I) -> O {
-        self.eval(input)
-    }
-}

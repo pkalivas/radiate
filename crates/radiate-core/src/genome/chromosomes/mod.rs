@@ -19,7 +19,7 @@ pub use bit::{BitChromosome, BitGene};
 pub use char::{CharChromosome, CharGene};
 pub use chromosome::*;
 pub use float::{FloatChromosome, FloatGene};
-pub use gene::{ArithmeticGene, Gene, Valid};
+pub use gene::{ArithmeticGene, BoundedGene, Gene, Valid};
 pub use int::{IntChromosome, IntGene};
 pub use permutation::{PermutationChromosome, PermutationGene};
 
@@ -38,8 +38,9 @@ pub trait Integer<T>:
 {
     const MIN: T;
     const MAX: T;
-
-    fn from_i32(value: i32) -> T;
+    const ZERO: T;
+    const ONE: T;
+    const TWO: T;
 }
 
 impl_integer!(i8, i16, i32, i64, i128, u8, u16, u32, u64, u128);

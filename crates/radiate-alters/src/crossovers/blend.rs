@@ -1,6 +1,4 @@
-use radiate_core::{
-    AlterResult, ArithmeticGene, Chromosome, Crossover, FloatGene, Gene, random_provider,
-};
+use radiate_core::{AlterResult, Chromosome, Crossover, FloatGene, Gene, random_provider};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct BlendCrossover {
@@ -47,8 +45,8 @@ where
                 let new_allele_one = allele_one - (self.alpha * (allele_two - allele_one));
                 let new_allele_two = allele_two - (self.alpha * (allele_one - allele_two));
 
-                chrom_one.set(i, gene_one.from_f32(new_allele_one));
-                chrom_two.set(i, gene_two.from_f32(new_allele_two));
+                chrom_one.set(i, gene_one.with_allele(&new_allele_one));
+                chrom_two.set(i, gene_two.with_allele(&new_allele_two));
 
                 cross_count += 1;
             }

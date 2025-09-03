@@ -13,4 +13,3 @@ homepage = { workspace = true }
 
 [dependencies]
 radiate-core = { workspace = true }
-num-traits = { workspace = true }

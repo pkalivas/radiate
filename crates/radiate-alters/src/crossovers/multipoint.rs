@@ -33,50 +33,58 @@ impl<C: Chromosome> Crossover<C> for MultiPointCrossover {
 
     #[inline]
     fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C, _: f32) -> AlterResult {
-        let length = std::cmp::min(chrom_one.len(), chrom_two.len());
-
-        if length < 2 {
-            return 0.into();
-        }
-
-        let mut crossover_points = random_provider::indexes(0..length);
-        crossover_points.sort();
-
-        let selected_points = &crossover_points[..self.num_points];
-        let mut offspring_one = Vec::with_capacity(length);
-        let mut offspring_two = Vec::with_capacity(length);
-
-        let mut current_parent = 1;
-        let mut last_point = 0;
-
-        for &point in selected_points {
-            if current_parent == 1 {
-                offspring_one.extend_from_slice(&chrom_one.genes()[last_point..point]);
-                offspring_two.extend_from_slice(&chrom_two.genes()[last_point..point]);
-            } else {
-                offspring_one.extend_from_slice(&chrom_two.genes()[last_point..point]);
-                offspring_two.extend_from_slice(&chrom_one.genes()[last_point..point]);
-            }
-
-            current_parent = 3 - current_parent;
-            last_point = point;
-        }
-
-        if current_parent == 1 {
-            offspring_one.extend_from_slice(&chrom_one.genes()[last_point..]);
-            offspring_two.extend_from_slice(&chrom_two.genes()[last_point..]);
-        } else {
-            offspring_one.extend_from_slice(&chrom_two.genes()[last_point..]);
-            offspring_two.extend_from_slice(&chrom_one.genes()[last_point..]);
-        }
-
-        for i in 0..length {
-            let gene_one = &offspring_one[i];
-            let gene_two = &offspring_two[i];
-            chrom_one.set(i, gene_one.clone());
-            chrom_two.set(i, gene_two.clone());
-        }
-
-        self.num_points.into()
+        let one = chrom_one.genes_mut();
+        let two = chrom_two.genes_mut();
+        crossover_multi_point(one, two, self.num_points).into()
     }
+}
+
+#[inline]
+pub fn crossover_multi_point<G>(
+    chrom_one: &mut [G],
+    chrom_two: &mut [G],
+    num_points: usize,
+) -> usize {
+    let length = std::cmp::min(chrom_one.len(), chrom_two.len());
+
+    if length < 2 {
+        return 0;
+    }
+
+    let mut crossover_points = random_provider::indexes(0..length);
+
+    let selected_points = &mut crossover_points[..num_points];
+    selected_points.sort();
+
+    let mut current_parent = 1;
+    let mut last_point = 0;
+
+    for i in selected_points {
+        if current_parent == 1 {
+            chrom_one[last_point..*i].swap_with_slice(&mut chrom_two[last_point..*i]);
+        }
+
+        current_parent = 3 - current_parent;
+        last_point = *i;
+    }
+
+    if current_parent == 1 {
+        chrom_one[last_point..].swap_with_slice(&mut chrom_two[last_point..]);
+    }
+
+    crossover_points.len()
+}
+
+#[allow(dead_code)]
+pub fn crossover_single_point<G>(chrom_one: &mut [G], chrom_two: &mut [G]) -> usize {
+    let length = std::cmp::min(chrom_one.len(), chrom_two.len());
+
+    if length < 2 {
+        return 0;
+    }
+
+    let crossover_point = random_provider::range(1..length);
+    chrom_one[crossover_point..].swap_with_slice(&mut chrom_two[crossover_point..]);
+
+    1
 }

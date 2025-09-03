@@ -35,3 +35,11 @@ class RandomProvider:
         :return: List of sampled elements.
         """
         return PyRandomProvider.sample(data, count)
+
+    def choose(data: list) -> any:
+        """
+        Randomly choose an element from a list.
+        :param data: List of elements to choose from.
+        :return: Randomly chosen element.
+        """
+        return PyRandomProvider.choose(data)

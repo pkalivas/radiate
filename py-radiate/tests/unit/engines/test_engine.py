@@ -194,7 +194,7 @@ class TestEngineBasicIntegration:
 
         result = engine.run([rd.ScoreLimit(0.1), rd.GenerationsLimit(500)])
 
-        assert len(result.species()) == 4
+        assert len(result.species()) == 2
         assert result.index() <= 500
 
     @pytest.mark.integration

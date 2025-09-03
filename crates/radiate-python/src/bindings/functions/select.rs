@@ -1,7 +1,8 @@
+use crate::{
+    AnyChromosome, InputTransform, PyEngineInput, PyEngineInputType, PyGeneType, PyPopulation,
+};
 use pyo3::{PyResult, pyfunction};
 use radiate::prelude::*;
-
-use crate::{InputTransform, PyEngineInput, PyEngineInputType, PyGeneType, PyPopulation};
 
 #[pyfunction]
 pub fn py_select(
@@ -99,6 +100,12 @@ pub fn py_select(
         PyGeneType::TreeNode => {
             let selector: Box<dyn Select<TreeChromosome<Op<f32>>>> = selector.transform();
             let population: Population<TreeChromosome<Op<f32>>> = population.into();
+
+            Ok(selector.select(&population, &obj, count)).map(|pop| PyPopulation::from(&pop))
+        }
+        PyGeneType::AnyGene => {
+            let selector: Box<dyn Select<AnyChromosome<'static>>> = selector.transform();
+            let population: Population<AnyChromosome<'static>> = population.into();
 
             Ok(selector.select(&population, &obj, count)).map(|pop| PyPopulation::from(&pop))
         }

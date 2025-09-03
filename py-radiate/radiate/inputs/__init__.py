@@ -19,9 +19,9 @@ from .alterer import (
     GraphCrossover,
     InversionMutator,
     PolynomialMutator,
-    Mutator,
-    Crossover,
     EdgeRecombinationCrossover,
+    JitterMutator,
+    FieldAlterer,
 )
 
 from .selector import (
@@ -46,7 +46,7 @@ from .distance import (
 
 from .limit import SecondsLimit, GenerationsLimit, ScoreLimit, ConvergenceLimit
 
-from .descriptor import PhenotypeDescriptor, CustomDescriptor
+from .descriptor import CustomDescriptor
 
 __all__ = [
     "BlendCrossover",
@@ -61,12 +61,11 @@ __all__ = [
     "SimulatedBinaryCrossover",
     "PartiallyMappedCrossover",
     "EdgeRecombinationCrossover",
-    "Crossover",
-    "Mutator",
     "PolynomialMutator",
     "GaussianMutator",
     "ScrambleMutator",
     "InversionMutator",
+    "JitterMutator",
     "SwapMutator",
     "GraphMutator",
     "OperationMutator",
@@ -90,6 +89,6 @@ __all__ = [
     "ScoreLimit",
     "Regression",
     "ConvergenceLimit",
-    "PhenotypeDescriptor",
     "CustomDescriptor",
+    "FieldAlterer",
 ]

@@ -1,121 +1,89 @@
-use crate::{
-    IntoPyAnyObject,
-    problem::{PyProblem, call_fitness},
-};
-use pyo3::{IntoPyObjectExt, Py, PyAny, Python};
+use crate::IntoPyAnyObject;
+use pyo3::Python;
 use radiate::{Chromosome, Ecosystem, Evaluator, Executor, Problem};
 use std::sync::Arc;
-
-/// Simple wrapper around the batch that will be evaluated
-/// together on the same thread or in the same scope
-struct PyBatch {
-    indices: Vec<usize>,
-    genotypes: Vec<Py<PyAny>>,
-    fitness_fn: Py<PyAny>,
-}
 
 /// Based off of the [pyo3 documentation](https://pyo3.rs/v0.24.2/parallelism)
 ///
 /// The `PyEvaluator` is an [Evaluator<C, T>] implementation that allows for free-threaded evaluation.
 /// We avoid Python's GIL by using the `allow_threads` method, bypassing the
 /// GIL for the duration of the evaluation.
-pub struct FreeThreadPyEvaluator<C: Chromosome, T> {
+pub struct FreeThreadPyEvaluator {
     executor: Executor,
-    problem: PyProblem<C, T>,
 }
 
-impl<C: Chromosome, T> FreeThreadPyEvaluator<C, T> {
-    pub fn new(executor: Executor, problem: PyProblem<C, T>) -> Self {
-        FreeThreadPyEvaluator { executor, problem }
+impl FreeThreadPyEvaluator {
+    pub fn new(executor: Executor) -> Self {
+        FreeThreadPyEvaluator { executor }
     }
 }
 
-impl<C, T> Evaluator<C, T> for FreeThreadPyEvaluator<C, T>
+impl<C, T> Evaluator<C, T> for FreeThreadPyEvaluator
 where
     C: Chromosome + 'static,
     T: IntoPyAnyObject + Send + Sync + 'static,
 {
-    fn eval(&self, ecosystem: &mut Ecosystem<C>, _: Arc<dyn Problem<C, T>>) -> usize {
-        Python::with_gil(|outer| {
-            let mut jobs = Vec::new();
-            let len = ecosystem.population.len();
-            for idx in 0..len {
-                if ecosystem.population[idx].score().is_none() {
-                    let geno = self
-                        .problem
-                        .decode_with_py(outer, ecosystem.population[idx].genotype())
-                        .into_py(outer);
-                    jobs.push((idx, Some(geno)));
-                }
+    fn eval(&self, ecosystem: &mut Ecosystem<C>, prob: Arc<dyn Problem<C, T>>) -> usize {
+        let mut pairs = Vec::new();
+        let len = ecosystem.population.len();
+        for idx in 0..len {
+            if ecosystem.population[idx].score().is_none() {
+                let geno = ecosystem.population[idx].take_genotype();
+                pairs.push((idx, geno));
+            }
+        }
+
+        let num_workers = self.executor.num_workers();
+        let batch_size = (pairs.len() + num_workers - 1) / num_workers;
+
+        if pairs.is_empty() || batch_size == 0 {
+            return 0;
+        }
+
+        let mut batches = Vec::with_capacity(num_workers);
+
+        while !pairs.is_empty() {
+            let take = pairs.len().min(batch_size);
+
+            let mut batch_indices = Vec::with_capacity(take);
+            let mut batch_genotypes = Vec::with_capacity(take);
+
+            for (idx, geno) in pairs.drain(pairs.len() - take..) {
+                batch_indices.push(idx);
+                batch_genotypes.push(geno);
             }
 
-            let num_workers = self.executor.num_workers();
-            let batch_size = (jobs.len() + num_workers - 1) / num_workers;
+            batches.push((batch_indices, batch_genotypes));
+        }
 
-            if batch_size == 0 {
-                return 0;
-            }
-
-            let mut batches = Vec::new();
-            for i in (0..jobs.len()).step_by(batch_size) {
-                let end = std::cmp::min(i + batch_size, jobs.len());
-
-                let batch = jobs
-                    .iter_mut()
-                    .skip(i)
-                    .take(end - i)
-                    .map(|(idx, geno)| (*idx, geno.take().unwrap()))
-                    .collect::<Vec<_>>();
-
-                let batch = PyBatch {
-                    indices: batch.iter().map(|(idx, _)| *idx).collect(),
-                    genotypes: batch
+        let results = Python::attach(|py| {
+            py.detach(|| {
+                self.executor.execute_batch(
+                    batches
                         .into_iter()
-                        .map(|(_, geno)| geno.into_py_any(outer).unwrap())
-                        .collect::<Vec<_>>(),
-                    fitness_fn: self.problem.fitness_func().clone_ref(outer),
-                };
-
-                batches.push(batch);
-            }
-
-            outer.allow_threads(|| {
-                let jobs = batches
-                    .into_iter()
-                    .map(|batch| {
-                        move || {
-                            Python::with_gil(|inner| {
-                                let problem = batch.fitness_fn.bind_borrowed(inner);
-                                let mut scores = Vec::with_capacity(batch.genotypes.len());
-                                for ind in batch.genotypes.iter() {
-                                    let borrowed = ind.bind_borrowed(inner);
-                                    let score = call_fitness(inner, problem, borrowed);
-                                    scores.push(score);
-                                }
-
-                                (batch, scores)
-                            })
-                        }
-                    })
-                    .collect::<Vec<_>>();
-
-                let results = self.executor.execute_batch(jobs);
-
-                let mut count = 0;
-                for (batch, scores) in results {
-                    for ((idx, _), score) in batch
-                        .indices
-                        .iter()
-                        .zip(batch.genotypes.into_iter())
-                        .zip(scores.into_iter())
-                    {
-                        count += 1;
-                        ecosystem.population[*idx].set_score(Some(score));
-                    }
-                }
-
-                count
+                        .map(|batch| {
+                            let problem = Arc::clone(&prob);
+                            move || {
+                                let scores = problem.eval_batch(&batch.1);
+                                (batch.0, scores, batch.1)
+                            }
+                        })
+                        .collect(),
+                )
             })
-        })
+        });
+
+        let mut count = 0;
+        for (indices, scores, genotypes) in results {
+            count += indices.len();
+            let score_genotype_iter = scores.into_iter().zip(genotypes.into_iter());
+            for (i, (score, genotype)) in score_genotype_iter.enumerate() {
+                let idx = indices[i];
+                ecosystem.population[idx].set_score(Some(score));
+                ecosystem.population[idx].set_genotype(genotype);
+            }
+        }
+
+        count
     }
 }

@@ -34,7 +34,15 @@ impl PyFloatCodec {
                     Genotype::from(
                         chromosomes
                             .iter()
-                            .map(|chrom| FloatChromosome::from(chrom.clone()))
+                            .map(|chrom| {
+                                FloatChromosome::from(
+                                    chrom
+                                        .genes
+                                        .iter()
+                                        .map(|gene| FloatGene::from(gene.clone()))
+                                        .collect::<Vec<FloatGene>>(),
+                                )
+                            })
                             .collect::<Vec<FloatChromosome>>(),
                     )
                 })
@@ -50,6 +58,10 @@ impl PyFloatCodec {
     #[staticmethod]
     #[pyo3(signature = (genes, use_numpy=false))]
     pub fn from_genes(genes: Vec<PyGene>, use_numpy: bool) -> Self {
+        let genes = genes
+            .into_iter()
+            .map(|gene| FloatGene::from(gene))
+            .collect::<Vec<FloatGene>>();
         PyFloatCodec {
             codec: PyCodec::new()
                 .with_encoder(move || {

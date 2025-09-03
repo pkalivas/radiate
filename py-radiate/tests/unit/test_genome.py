@@ -1,7 +1,6 @@
 import pytest
 import radiate as rd
-from radiate.genome import Population, Phenotype, Genotype
-from radiate.genome.gene import GeneType
+from radiate.genome import Population, Phenotype, Genotype, GeneType
 
 
 class TestPopulation:
@@ -56,10 +55,8 @@ class TestPopulation:
         population = Population(
             Phenotype(
                 Genotype(
-                    [
-                        rd.chromosome.int(num_genes, init_range=(0, 10))
-                        for _ in range(num_chromosomes)
-                    ]
+                    rd.chromosome.int(num_genes, init_range=(0, 10))
+                    for _ in range(num_chromosomes)
                 )
             )
             for _ in range(num_phenotypes)

@@ -1,5 +1,5 @@
 use crate::{PyAnyObject, PyGeneType};
-use pyo3::{FromPyObject, Py, PyAny, PyResult, Python, pyclass, pymethods};
+use pyo3::{FromPyObject, Py, PyAny, PyResult, Python, exceptions::PyKeyError, pyclass, pymethods};
 use std::{
     collections::{HashMap, HashSet},
     fmt::Debug,
@@ -73,9 +73,9 @@ impl PyEngineInput {
 
 impl PyEngineInput {
     pub fn extract<T: for<'py> FromPyObject<'py>>(&self, key: &str) -> PyResult<T> {
-        Python::with_gil(|py| match self.args.get(key) {
+        Python::attach(|py| match self.args.get(key) {
             Some(v) => v.extract(py),
-            None => Err(pyo3::exceptions::PyKeyError::new_err(format!(
+            None => Err(PyKeyError::new_err(format!(
                 "Key '{}' not found in PyEngineInput args",
                 key
             ))),

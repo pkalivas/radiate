@@ -1,9 +1,13 @@
 from __future__ import annotations
 
-from radiate.genome.gene import GeneType
+from typing import TYPE_CHECKING
+
 from radiate.wrapper import PyObject
 from .genotype import Genotype
 from radiate.radiate import PyPhenotype
+
+if TYPE_CHECKING:
+    from radiate.genome import GeneType
 
 
 class Phenotype[T](PyObject[PyPhenotype]):
@@ -23,7 +27,7 @@ class Phenotype[T](PyObject[PyPhenotype]):
             if isinstance(score, float):
                 score = [score]
 
-            self._pyobj = PyPhenotype(genotype=genotype.to_python(), score=score)
+            self._pyobj = PyPhenotype(genotype=genotype.__backend__(), score=score)
         else:
             raise TypeError(f"Cannot create Phenotype with instance of {genotype}")
 
@@ -37,11 +41,12 @@ class Phenotype[T](PyObject[PyPhenotype]):
         """
         return len(self._pyobj.genotype)
 
-    def gene_type(self) -> GeneType:
+    def gene_type(self) -> 'GeneType':
         """
         Returns the type of the genes in the phenotype.
         :return: The gene type as a string.
         """
+        from . import GeneType
         return GeneType.from_str(self._pyobj.genotype.gene_type())
 
     def score(self) -> list[float]:
@@ -56,4 +61,4 @@ class Phenotype[T](PyObject[PyPhenotype]):
         Returns the genotype of the phenotype.
         :return: The genotype of the phenotype.
         """
-        return Genotype.from_python(self._pyobj.genotype)
+        return Genotype.from_rust(self._pyobj.genotype)

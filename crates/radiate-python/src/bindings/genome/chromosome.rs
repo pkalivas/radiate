@@ -1,69 +1,29 @@
 use crate::{AnyChromosome, AnyGene, PyGene, PyGeneType};
 use pyo3::{
-    Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods,
+    Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python,
+    exceptions::{PyIndexError, PyTypeError},
+    pyclass, pymethods,
     types::{PyAnyMethods, PySlice, PySliceMethods},
 };
-use radiate::{
-    BitChromosome, BitGene, CharChromosome, CharGene, FloatChromosome, FloatGene, GraphChromosome,
-    GraphNode, IntChromosome, IntGene, Op, PermutationChromosome, PermutationGene, TreeChromosome,
-    TreeNode,
-};
-use std::sync::{Arc, RwLock};
-
-#[derive(Clone, Debug)]
-pub struct GeneSequence {
-    genes: Arc<RwLock<Vec<PyGene>>>,
-}
-
-impl GeneSequence {
-    pub fn new(genes: Vec<PyGene>) -> Self {
-        GeneSequence {
-            genes: Arc::new(RwLock::new(genes)),
-        }
-    }
-
-    pub fn read(&self) -> std::sync::RwLockReadGuard<'_, Vec<PyGene>> {
-        self.genes.read().unwrap()
-    }
-
-    pub fn write(&self) -> std::sync::RwLockWriteGuard<'_, Vec<PyGene>> {
-        self.genes.write().unwrap()
-    }
-
-    pub fn len(&self) -> usize {
-        self.genes.read().unwrap().len()
-    }
-}
-
-impl PartialEq for GeneSequence {
-    fn eq(&self, other: &Self) -> bool {
-        *self.genes.read().unwrap() == *other.genes.read().unwrap()
-    }
-}
+use radiate::prelude::*;
 
 #[pyclass]
 #[derive(Clone, Debug, PartialEq)]
 pub struct PyChromosome {
-    pub(crate) genes: GeneSequence,
+    pub(crate) genes: Vec<PyGene>,
 }
 
 #[pymethods]
 impl PyChromosome {
     #[new]
     pub fn new(genes: Vec<PyGene>) -> Self {
-        PyChromosome {
-            genes: GeneSequence::new(genes),
-        }
+        PyChromosome { genes }
     }
 
     pub fn __repr__(&self) -> String {
         format!(
             "{:?}",
-            self.genes
-                .read()
-                .iter()
-                .map(|g| g.__repr__())
-                .collect::<Vec<_>>()
+            self.genes.iter().map(|g| g.__repr__()).collect::<Vec<_>>()
         )
     }
 
@@ -76,11 +36,7 @@ impl PyChromosome {
     }
 
     pub fn __eq__(&self, other: &Self) -> bool {
-        self.genes
-            .read()
-            .iter()
-            .zip(&*other.genes.read())
-            .all(|(a, b)| a == b)
+        self.genes.iter().zip(&other.genes).all(|(a, b)| a == b)
     }
 
     pub fn __getitem__<'py>(
@@ -88,27 +44,40 @@ impl PyChromosome {
         py: Python<'py>,
         index: Py<PyAny>,
     ) -> PyResult<Bound<'py, PyAny>> {
-        if let Ok(mut idx) = index.extract::<isize>(py) {
+        let index = index.into_bound(py);
+        self.get_item(py, index)
+    }
+
+    pub fn gene_type(&self) -> PyGeneType {
+        if self.genes.is_empty() {
+            PyGeneType::Empty
+        } else {
+            self.genes[0].gene_type()
+        }
+    }
+
+    fn get_item<'py>(
+        &self,
+        py: Python<'py>,
+        index: Bound<'py, PyAny>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        if let Ok(mut idx) = index.extract::<isize>() {
             let n = self.genes.len() as isize;
             if idx < 0 {
                 idx += n;
             }
 
             if idx < 0 || idx >= n {
-                return Err(pyo3::exceptions::PyIndexError::new_err(
-                    "index out of range",
-                ));
+                return Err(PyIndexError::new_err("index out of range"));
             }
 
-            return PyGene::from((Arc::clone(&self.genes.genes), idx as usize))
-                .into_bound_py_any(py);
+            return self.genes[idx as usize].clone().into_bound_py_any(py);
         }
 
-        let bound = index.into_bound(py);
-        if let Ok(py_slice) = bound.downcast::<PySlice>() {
-            let indices = py_slice.indices(self.genes.len() as isize).map_err(|e| {
-                pyo3::exceptions::PyIndexError::new_err(format!("invalid slice: {}", e))
-            })?;
+        if let Ok(py_slice) = index.downcast::<PySlice>() {
+            let indices = py_slice
+                .indices(self.genes.len() as isize)
+                .map_err(|e| PyIndexError::new_err(format!("invalid slice: {}", e)))?;
 
             let (start, stop, step) = (
                 indices.start as usize,
@@ -118,125 +87,13 @@ impl PyChromosome {
 
             let mut result = Vec::with_capacity(((stop.saturating_sub(start)) + step - 1) / step);
             for i in (start..stop).step_by(step) {
-                result.push(PyGene::from((Arc::clone(&self.genes.genes), i)));
+                result.push(self.genes[i].clone());
             }
 
-            return PyChromosome {
-                genes: GeneSequence::new(result),
-            }
-            .into_bound_py_any(py);
+            return PyChromosome { genes: result }.into_bound_py_any(py);
         }
 
-        Err(pyo3::exceptions::PyTypeError::new_err("invalid index type"))
-    }
-
-    pub fn __setitem__<'py>(
-        &mut self,
-        py: Python<'py>,
-        index: Py<PyAny>,
-        value: Py<PyAny>,
-    ) -> PyResult<()> {
-        if let Ok(mut idx) = index.extract::<isize>(py) {
-            let n = self.genes.len() as isize;
-
-            if idx < 0 {
-                idx += n;
-            }
-
-            if idx < 0 || idx >= n {
-                return Err(pyo3::exceptions::PyIndexError::new_err(
-                    "index out of range",
-                ));
-            }
-
-            let mut v = value.extract::<PyGene>(py)?;
-            if self.gene_type() != v.gene_type() {
-                return Err(pyo3::exceptions::PyTypeError::new_err("gene type mismatch"));
-            }
-
-            if v.is_view() {
-                v = v.flatten();
-            }
-
-            self.genes.write()[idx as usize] = v;
-
-            return Ok(());
-        }
-
-        let bound = index.into_bound(py);
-        if let Ok(py_slice) = bound.downcast::<PySlice>() {
-            let indices = py_slice.indices(self.genes.len() as isize).map_err(|e| {
-                pyo3::exceptions::PyIndexError::new_err(format!("invalid slice: {}", e))
-            })?;
-            let (start, stop, step) = (
-                indices.start as usize,
-                indices.stop as usize,
-                indices.step as usize,
-            );
-
-            let value = value.extract::<PyChromosome>(py)?;
-            let expected = ((stop.saturating_sub(start)) + step - 1) / step;
-
-            if value.genes.len() != expected {
-                return Err(pyo3::exceptions::PyValueError::new_err(
-                    "slice assignment length mismatch",
-                ));
-            }
-            if self.gene_type() != value.gene_type() {
-                return Err(pyo3::exceptions::PyTypeError::new_err("gene type mismatch"));
-            }
-            let vals = value.genes.read();
-            let mut w = self.genes.write();
-            let mut vi = 0usize;
-            for i in (start..stop).step_by(step) {
-                let mut v = vals[vi].clone();
-                if v.is_view() {
-                    v = v.flatten();
-                }
-                w[i] = v;
-                vi += 1;
-            }
-            return Ok(());
-        }
-
-        Err(pyo3::exceptions::PyTypeError::new_err("invalid index type"))
-    }
-
-    pub fn gene_type(&self) -> PyGeneType {
-        let reader = self.genes.read();
-        if reader.is_empty() {
-            PyGeneType::Empty
-        } else {
-            reader[0].gene_type()
-        }
-    }
-
-    pub fn allele<'py>(&self, py: Python<'py>, index: usize) -> PyResult<Bound<'py, PyAny>> {
-        let reader = self.genes.read();
-        if index >= reader.len() {
-            return Err(pyo3::exceptions::PyIndexError::new_err(
-                "index out of range",
-            ));
-        }
-
-        reader[index].allele(py)
-    }
-
-    pub fn set_allele<'py>(
-        &mut self,
-        py: Python<'py>,
-        index: usize,
-        value: Option<Py<PyAny>>,
-    ) -> PyResult<()> {
-        let mut writer = self.genes.write();
-        if index >= writer.len() {
-            return Err(pyo3::exceptions::PyIndexError::new_err(
-                "index out of range",
-            ));
-        }
-
-        writer[index] = writer[index].new_instance(py, value)?;
-        Ok(())
+        Err(PyTypeError::new_err("invalid index type"))
     }
 }
 
@@ -245,12 +102,10 @@ macro_rules! impl_into_py_chromosome {
         impl From<$chromosome_type> for PyChromosome {
             fn from(chromosome: $chromosome_type) -> Self {
                 PyChromosome {
-                    genes: GeneSequence::new(
-                        chromosome
-                            .into_iter()
-                            .map(|gene| PyGene::from(gene))
-                            .collect(),
-                    ),
+                    genes: chromosome
+                        .into_iter()
+                        .map(|gene| PyGene::from(gene))
+                        .collect(),
                 }
             }
         }
@@ -259,15 +114,8 @@ macro_rules! impl_into_py_chromosome {
             fn from(py_chromosome: PyChromosome) -> Self {
                 let genes = py_chromosome
                     .genes
-                    .read()
-                    .iter()
-                    .map(|gene| {
-                        if gene.is_view() {
-                            <$gene_type>::from(gene.flatten())
-                        } else {
-                            <$gene_type>::from(gene.clone())
-                        }
-                    })
+                    .into_iter()
+                    .map(|gene| <$gene_type>::from(gene))
                     .collect::<Vec<_>>();
                 <$chromosome_type>::from(genes)
             }

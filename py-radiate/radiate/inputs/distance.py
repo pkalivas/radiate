@@ -1,7 +1,7 @@
 from typing import Any, Dict
 
 from .component import ComponentBase
-from ..genome.gene import GeneType
+from ..genome import GeneType
 
 
 class DistanceBase(ComponentBase):

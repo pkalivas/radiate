@@ -1,8 +1,8 @@
 mod any;
 mod bindings;
-mod crossover;
 mod evaluator;
 mod events;
+mod expr;
 mod mutator;
 mod names;
 mod object;
@@ -13,12 +13,12 @@ use std::cell::UnsafeCell;
 
 pub use any::*;
 pub use bindings::*;
-pub use crossover::PyCrossover;
 pub use evaluator::FreeThreadPyEvaluator;
-pub use mutator::PyMutator;
+pub use expr::*;
+pub use mutator::{ExprCrossover, ExprMutator, PyAlteration};
 pub use object::*;
 pub use problem::PyProblem;
-use pyo3::{PyResult, Python};
+pub use pyo3::{PyResult, Python, exceptions::PyRuntimeError};
 pub use random::PyRandomProvider;
 
 pub mod prelude {

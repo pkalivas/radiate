@@ -22,7 +22,7 @@ class PermutationCodec[T](CodecBase[T, list[T]]):
         Encode the codec into a Genotype.
         :return: A Genotype instance.
         """
-        return Genotype.from_python(self.codec.encode_py())
+        return Genotype.from_rust(self.codec.encode_py())
 
     def decode(self, genotype: Genotype[T]) -> list[T]:
         """
@@ -32,4 +32,4 @@ class PermutationCodec[T](CodecBase[T, list[T]]):
         """
         if not isinstance(genotype, Genotype):
             raise TypeError("genotype must be an instance of Genotype.")
-        return self.codec.decode_py(genotype=genotype.to_python())
+        return self.codec.decode_py(genotype=genotype.__backend__())

@@ -42,7 +42,7 @@ pub mod prelude {
         BatchFitnessFunction, CompositeFitnessFn, FitnessFunction, NoveltySearch,
     };
     pub use super::genome::{
-        ArithmeticGene, BitChromosome, BitGene, CharChromosome, CharGene, Chromosome,
+        ArithmeticGene, BitChromosome, BitGene, BoundedGene, CharChromosome, CharGene, Chromosome,
         FloatChromosome, FloatGene, Gene, IntChromosome, IntGene, Integer, Valid,
     };
     pub use super::objectives::{Front, Objective, Optimize, Score, pareto};

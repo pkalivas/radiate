@@ -3,8 +3,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Callable
 
 from radiate.genome.chromosome import Chromosome
-from radiate.genome.gene import Gene
+from radiate.genome.gene import Gene 
 from radiate.gp.op import Op
+
+# from radiate.radiate import PyChromosome, PyGene
 
 from .handlers import EventHandler
 
@@ -37,3 +39,7 @@ type CharEncoding = (
 type BitEncoding = (
     "BitCodec" | list[Gene[bool]] | Chromosome[bool] | list[Chromosome[bool]]
 )
+
+# Genome
+# type Gene = rg | PyGene
+# type Chromosome = Chromosome | PyChromosome

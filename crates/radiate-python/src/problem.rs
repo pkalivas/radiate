@@ -1,26 +1,20 @@
-use crate::{IntoPyAnyObject, bindings::PyCodec};
-use pyo3::{Borrowed, PyAny, PyObject, Python};
+use crate::{IntoPyAnyObject, PyAnyObject, bindings::PyCodec};
+use pyo3::{Py, PyAny, Python};
 use radiate::{Chromosome, Codec, Genotype, Problem, Score};
 
 pub struct PyProblem<C: Chromosome, T> {
-    fitness_func: PyObject,
+    fitness_func: PyAnyObject,
     codec: PyCodec<C, T>,
 }
 
 impl<C: Chromosome, T> PyProblem<C, T> {
-    pub fn new(fitness_func: PyObject, codec: PyCodec<C, T>) -> Self {
+    pub fn new(fitness_func: Py<PyAny>, codec: PyCodec<C, T>) -> Self {
         PyProblem {
-            fitness_func,
+            fitness_func: PyAnyObject {
+                inner: fitness_func,
+            },
             codec,
         }
-    }
-
-    pub fn fitness_func(&self) -> &PyObject {
-        &self.fitness_func
-    }
-
-    pub fn decode_with_py<'py>(&self, py: Python<'py>, genotype: &Genotype<C>) -> T {
-        self.codec.decode_with_py(py, genotype)
     }
 }
 
@@ -34,23 +28,21 @@ impl<C: Chromosome, T: IntoPyAnyObject> Problem<C, T> for PyProblem<C, T> {
     }
 
     fn eval(&self, individual: &Genotype<C>) -> Score {
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             let phenotype = self.codec.decode_with_py(py, individual).into_py(py);
-            let fitness_func = self.fitness_func.bind_borrowed(py);
-            call_fitness(py, fitness_func, phenotype.inner.bind_borrowed(py))
+            call_fitness(py, self.fitness_func.clone(), phenotype)
         })
     }
-}
 
-impl<C: Chromosome + Clone, T: Clone> Clone for PyProblem<C, T> {
-    fn clone(&self) -> Self {
-        Python::with_gil(|py| {
-            let fitness_func = self.fitness_func.clone_ref(py);
-            let codec = self.codec.clone();
-            PyProblem {
-                fitness_func,
-                codec,
-            }
+    fn eval_batch(&self, individuals: &[Genotype<C>]) -> Vec<Score> {
+        Python::attach(|py| {
+            individuals
+                .iter()
+                .map(|ind| {
+                    let phenotype = self.codec.decode_with_py(py, ind).into_py(py);
+                    call_fitness(py, self.fitness_func.clone(), phenotype)
+                })
+                .collect()
         })
     }
 }
@@ -60,12 +52,12 @@ unsafe impl<C: Chromosome, T> Sync for PyProblem<C, T> {}
 
 pub(crate) fn call_fitness<'a, 'py>(
     py: Python<'py>,
-    func: Borrowed<'a, 'py, PyAny>,
-    input: Borrowed<'a, 'py, PyAny>,
+    func: PyAnyObject,
+    input: PyAnyObject,
 ) -> Score {
     let any_value = func
-        .as_ref()
-        .call1(py, (input,))
+        .inner
+        .call1(py, (input.inner,))
         .expect("Python call failed");
 
     if let Ok(parsed) = any_value.extract::<f32>(py) {
