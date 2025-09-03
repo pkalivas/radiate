@@ -3,7 +3,7 @@ use super::{
     gene::{ArithmeticGene, Gene, Valid},
 };
 use crate::{
-    chromosomes::gene::{BoundedGene, NumericSlotMut},
+    chromosomes::gene::{BoundedGene, NumericGene, NumericSlotMut},
     random_provider,
 };
 #[cfg(feature = "serde")]
@@ -115,6 +115,8 @@ impl BoundedGene for FloatGene {
         (&self.bounds.start, &self.bounds.end)
     }
 }
+
+impl NumericGene for FloatGene {}
 
 impl ArithmeticGene for FloatGene {
     fn mean(&self, other: &FloatGene) -> FloatGene {

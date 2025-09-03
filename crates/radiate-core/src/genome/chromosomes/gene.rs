@@ -1,3 +1,5 @@
+use std::ops::{Add, Div, Mul, Sub};
+
 /// A [`Valid`] type is a type that can be checked for validity. This is used for checking if a gene
 /// or a chromosome is valid. For example, a gene that represents a number between 0 and 1 can be checked
 /// for validity by ensuring that the allele is between 0 and 1.
@@ -90,6 +92,58 @@ pub trait ArithmeticGene: Gene {
     fn numeric_slot_mut(&mut self) -> Option<NumericSlotMut<'_>>;
 }
 
+pub trait NumericGene: BoundedGene
+where
+    Self::Allele: NumericAllele,
+{
+    fn numeric_slot_mut(&mut self) -> Option<NumericSlotMut<'_>> {
+        Some(self.allele_mut().slot())
+    }
+}
+
+/// Primitive alleles that can become a slot.
+pub trait NumericAllele: Add + Sub + Mul + Div + Copy + PartialOrd {
+    fn slot<'a>(&'a mut self) -> NumericSlotMut<'a>;
+
+    fn as_f64(&self) -> f64;
+
+    fn set_f64(&mut self, value: f64);
+
+    // fn add(&self, other: &Self) -> Self;
+
+    fn set<T>(&mut self, value: T)
+    where
+        Self: From<T>,
+    {
+        *self = Self::from(value);
+    }
+}
+
+macro_rules! impl_numeric_allele {
+    ($($t:ty,$name:ident),*) => {
+        $(
+            impl NumericAllele for $t {
+                fn slot<'a>(&'a mut self) -> NumericSlotMut<'a> {
+                    NumericSlotMut::$name(self)
+                }
+
+                fn as_f64(&self) -> f64 {
+                    *self as f64
+                }
+
+                fn set_f64(&mut self, value: f64) {
+                    *self = value as Self;
+                }
+            }
+        )*
+    };
+}
+
+impl_numeric_allele!(
+    f32, F32, f64, F64, u8, U8, u16, U16, u32, U32, u64, U64, i8, I8, i16, I16, i32, I32, i64, I64,
+    i128, I128
+);
+
 pub enum NumericSlotMut<'a> {
     F32(&'a mut f32),
     F64(&'a mut f64),
@@ -104,49 +158,38 @@ pub enum NumericSlotMut<'a> {
     I128(&'a mut i128),
 }
 
-/// Primitive alleles that can become a slot.
-pub trait NumericAllele {
-    fn slot<'a>(&'a mut self) -> NumericSlotMut<'a>;
-    fn as_f64(&self) -> f64;
-}
-
-macro_rules! impl_numeric_allele {
-    ($($t:ty,$name:ident),*) => {
-        $(
-            impl NumericAllele for $t {
-                fn slot<'a>(&'a mut self) -> NumericSlotMut<'a> {
-                    NumericSlotMut::$name(self)
-                }
-
-                fn as_f64(&self) -> f64 {
-                    *self as f64
-                }
-            }
-        )*
-    };
-}
-
-impl_numeric_allele!(
-    f32, F32, f64, F64, u8, U8, u16, U16, u32, U32, u64, U64, i8, I8, i16, I16, i32, I32, i64, I64,
-    i128, I128
-);
-
 pub trait HasNumericSlot {
+    #[inline(always)]
     fn numeric_slot_mut(&mut self) -> Option<NumericSlotMut<'_>> {
         None
+    }
+
+    #[inline(always)]
+    fn set_slot_f32(&mut self, value: f32) -> bool {
+        self.numeric_slot_mut()
+            .map(|slot| match slot {
+                NumericSlotMut::F32(v) => {
+                    *v = value;
+                    true
+                }
+                _ => false,
+            })
+            .unwrap_or(false)
     }
 }
 
 impl<G> HasNumericSlot for G
 where
-    G: Gene,
+    G: ArithmeticGene,
     G::Allele: NumericAllele,
 {
+    #[inline(always)]
     fn numeric_slot_mut(&mut self) -> Option<NumericSlotMut<'_>> {
         Some(self.allele_mut().slot())
     }
 }
 
+#[inline(always)]
 pub fn apply_numeric_slot_mut(
     slot: NumericSlotMut<'_>,
     mut f_f32: impl FnMut(f32) -> f32,
@@ -176,6 +219,7 @@ pub fn apply_numeric_slot_mut(
     }
 }
 
+#[inline(always)]
 pub fn apply_pair_numeric_slot_mut(
     slot_one: NumericSlotMut<'_>,
     slot_two: NumericSlotMut<'_>,
@@ -242,3 +286,98 @@ pub fn apply_pair_numeric_slot_mut(
         _ => {}
     }
 }
+
+#[inline(always)]
+pub fn slot_add_scalar(mut slot: NumericSlotMut<'_>, df32: f32) {
+    match &mut slot {
+        NumericSlotMut::F32(v) => **v = **v + df32,
+        _ => {}
+    }
+}
+
+#[inline(always)]
+pub fn slot_set_scalar(slot: NumericSlotMut<'_>, val_f64: f32) {
+    match slot {
+        NumericSlotMut::F32(v) => {
+            *v = val_f64 as f32;
+        }
+        _ => {}
+    }
+}
+
+#[inline(always)]
+fn clamp<T: PartialOrd>(x: T, lo: T, hi: T) -> T {
+    if x < lo {
+        lo
+    } else if x > hi {
+        hi
+    } else {
+        x
+    }
+}
+
+pub trait NumericCast: Copy {
+    /// Convert to f64 for math.
+    #[inline(always)]
+    fn to_f64(self) -> f64;
+    /// Build from f64 with clamping for this type.
+    #[inline(always)]
+    fn from_f64_clamped(x: f64, lo: Self, hi: Self) -> Self;
+}
+
+/* ---------- floats ---------- */
+
+impl NumericCast for f32 {
+    #[inline(always)]
+    fn to_f64(self) -> f64 {
+        self as f64
+    }
+    #[inline(always)]
+    fn from_f64_clamped(x: f64, lo: Self, hi: Self) -> Self {
+        clamp(x as f32, lo, hi)
+    }
+}
+impl NumericCast for f64 {
+    #[inline(always)]
+    fn to_f64(self) -> f64 {
+        self
+    }
+    #[inline(always)]
+    fn from_f64_clamped(x: f64, lo: Self, hi: Self) -> Self {
+        clamp(x, lo, hi)
+    }
+}
+
+/* ---------- unsigned ints ---------- */
+
+macro_rules! impl_numeric_cast_unsigned {
+    ($($t:ty),* $(,)?) => {$(
+        impl NumericCast for $t {
+            #[inline(always)] fn to_f64(self) -> f64 { self as f64 }
+            #[inline(always)] fn from_f64_clamped(x: f64, lo: Self, hi: Self) -> Self {
+                let xr = x.round();
+                let lo = lo as f64;
+                let hi = hi as f64;
+                clamp(xr, lo, hi) as $t
+            }
+        }
+    )*}
+}
+impl_numeric_cast_unsigned!(u8, u16, u32, u64);
+
+/* ---------- signed ints ---------- */
+
+macro_rules! impl_numeric_cast_signed {
+    ($($t:ty),* $(,)?) => {$(
+        impl NumericCast for $t {
+            #[inline(always)] fn to_f64(self) -> f64 { self as f64 }
+            #[inline(always)] fn from_f64_clamped(x: f64, lo: Self, hi: Self) -> Self {
+                let xr = x.round();
+                let lo = lo as f64;
+                let hi = hi as f64;
+                clamp(xr, lo, hi) as $t
+            }
+        }
+    )*}
+}
+impl_numeric_cast_signed!(i8, i16, i32, i64, i128);

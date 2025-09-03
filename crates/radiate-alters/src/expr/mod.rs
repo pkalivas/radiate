@@ -11,10 +11,11 @@ pub use crossover::*;
 pub use expr::*;
 pub use mutate::*;
 pub use pred::*;
+use radiate_core::Gene;
 
-struct ExprTree<'a, G>(pub &'a Expr<G>);
+struct ExprTree<'a, G: Gene>(pub &'a Expr<G>);
 
-impl<'a, G> fmt::Display for ExprTree<'a, G> {
+impl<'a, G: Gene> fmt::Display for ExprTree<'a, G> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use std::any::type_name_of_val;
 
@@ -23,7 +24,7 @@ impl<'a, G> fmt::Display for ExprTree<'a, G> {
             full.rsplit("::").next().unwrap_or(full)
         }
 
-        fn write_node<G>(
+        fn write_node<G: Gene>(
             f: &mut fmt::Formatter<'_>,
             node: &Expr<G>,
             prefix: &str,
@@ -74,11 +75,23 @@ impl<'a, G> fmt::Display for ExprTree<'a, G> {
                         format!("Cross(<{tn}>)")
                     }
                 }
-                Expr::MapEach(inner) => {
-                    let tn = short_type(type_name_of_val(&*inner));
-                    format!("MapEach(<{tn}>)")
-                }
                 Expr::NoOp => "NoOp".to_string(),
+                Expr::Fused(fused) => match fused {
+                    FusedExpr::Mutate(prob, f) => {
+                        let prob_str = if let Some(p) = prob {
+                            format!("Some({:.2})", p)
+                        } else {
+                            "None".to_string()
+                        };
+                        if let Some(name) = f.name() {
+                            format!("Fused::Mutate(prob={prob_str}, {name})")
+                        } else {
+                            let tn = short_type(type_name_of_val(&*f));
+                            format!("Fused::Mutate(prob={prob_str}, <{tn}>)")
+                        }
+                    }
+                    FusedExpr::None => "Fused::None".to_string(),
+                },
             };
 
             // Print this node's label
@@ -99,7 +112,6 @@ impl<'a, G> fmt::Display for ExprTree<'a, G> {
                 Expr::Select(_, inner)
                 | Expr::Index(_, inner)
                 | Expr::Filter(_, inner)
-                | Expr::MapEach(inner)
                 | Expr::Prob(_, inner) => {
                     write_node(f, inner, &next_prefix, true)?;
                 }
@@ -110,6 +122,13 @@ impl<'a, G> fmt::Display for ExprTree<'a, G> {
                     write_node(f, rhs, &format!("{next_prefix}   "), true)?;
                 }
                 Expr::Mut(_) | Expr::NoOp => {}
+                Expr::Fused(fused) => match fused {
+                    FusedExpr::Mutate(_, f) => {
+                        // writeln!(f, "{next_prefix}└─ func")?;
+                        // write_node(f, f, &format!("{next_prefix}   "), true)?;
+                    }
+                    FusedExpr::None => {}
+                },
             }
 
             Ok(())
@@ -120,7 +139,7 @@ impl<'a, G> fmt::Display for ExprTree<'a, G> {
 }
 
 // Handy convenience on Expr itself
-impl<G> Expr<G> {
+impl<G: Gene> Expr<G> {
     /// Print a tree to stdout (convenience).
     pub fn dump_tree(&self) {
         println!("{}", ExprTree(self));

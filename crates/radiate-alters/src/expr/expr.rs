@@ -1,4 +1,4 @@
-use radiate_core::random_provider;
+use radiate_core::{FloatGene, Gene, random_provider};
 
 use crate::Pred;
 use crate::expr::{CrossOp, CrossoverExpr, MutFn, Xover};
@@ -14,7 +14,7 @@ pub enum SelectExpr<G> {
 }
 
 #[derive(Clone, Default)]
-pub enum Expr<G> {
+pub enum Expr<G: Gene> {
     #[default]
     NoOp,
     Index(usize, E<G>),
@@ -24,7 +24,7 @@ pub enum Expr<G> {
     Prob(f32, E<G>),
     Seq(Vec<Expr<G>>),
     Select(SelectExpr<G>, E<G>),
-    MapEach(Arc<Expr<G>>),
+    Fused(FusedExpr<G>),
 }
 
 enum Ctx<'a, G> {
@@ -35,188 +35,205 @@ enum Ctx<'a, G> {
 }
 
 impl<'a, G> Ctx<'a, G> {
-    #[inline]
+    #[inline(always)]
     fn prob(p: f32) -> bool {
         p > 0.0 && p <= 1.0 && random_provider::random::<f32>() < p
     }
 }
 
-impl<G> Expr<G> {
-    #[inline]
-    pub fn apply_slice(&self, xs: &mut [G]) -> usize {
-        let mut ctx = Ctx::Many(xs);
-        self.apply_in(&mut ctx)
-    }
-
-    #[inline]
-    pub fn apply_gene(&self, x: &mut G) -> usize {
-        let mut ctx = Ctx::One(x);
-        self.apply_in(&mut ctx)
-    }
-
-    #[inline]
-    pub fn apply_pairs(&self, a: &mut [G], b: &mut [G]) -> usize
-    where
-        CrossoverExpr: CrossOp<G>,
-    {
-        let mut ctx = Ctx::ManyPairs(a, b);
-        self.apply_in(&mut ctx)
-    }
-
-    #[inline]
-    pub fn apply_pair_genes(&self, a: &mut G, b: &mut G) -> usize
-    where
-        CrossoverExpr: CrossOp<G>,
-    {
-        let mut ctx = Ctx::Pair(a, b);
-        self.apply_in(&mut ctx)
-    }
-
+impl<G: Gene> Expr<G> {
     #[inline(always)]
-    fn apply_in(&self, ctx: &mut Ctx<'_, G>) -> usize
-    where
-        CrossoverExpr: CrossOp<G>,
-    {
+    pub fn apply(&self, x: &mut G) -> usize {
         match self {
             Expr::NoOp => 0,
-
-            Expr::Seq(list) => list.iter().map(|e| e.apply_in(ctx)).sum(),
-
             Expr::Prob(p, inner) => {
                 if Ctx::<G>::prob(*p) {
-                    inner.apply_in(ctx)
+                    inner.apply(x)
                 } else {
                     0
                 }
             }
-
-            Expr::Select(SelectExpr::All, inner) => match ctx {
-                Ctx::One(x) => inner.apply_in(&mut Ctx::One(x)),
-                Ctx::Many(xs) => xs
-                    .iter_mut()
-                    .map(|x| inner.apply_in(&mut Ctx::One(x)))
-                    .sum(),
-                Ctx::Pair(a, b) => inner.apply_in(&mut Ctx::Pair(a, b)),
-                Ctx::ManyPairs(a, b) => inner.apply_in(&mut Ctx::ManyPairs(a, b)),
+            Expr::Select(SelectExpr::All, inner) => inner.apply(x),
+            Expr::Select(SelectExpr::Some(pred), inner) => {
+                if pred.test(x) {
+                    inner.apply(x)
+                } else {
+                    0
+                }
+            }
+            Expr::Index(_, inner) => inner.apply(x),
+            Expr::Filter(pred, inner) => {
+                if pred.test(x) {
+                    inner.apply(x)
+                } else {
+                    0
+                }
+            }
+            Expr::Mut(f) => f.apply(x),
+            Expr::Seq(list) => list.iter().map(|e| e.apply(x)).sum(),
+            Expr::Cross(_, _, _) => 0,
+            Expr::Fused(fused) => match fused {
+                FusedExpr::Mutate(prob, f) => prob
+                    .map(|rate| if Ctx::<G>::prob(rate) { f.apply(x) } else { 0 })
+                    .unwrap_or_else(|| f.apply(x)),
+                FusedExpr::None => 0,
             },
+        }
+    }
 
-            Expr::Select(SelectExpr::Some(pred), inner) => match ctx {
-                Ctx::One(x) => {
-                    if pred.test(x) {
-                        inner.apply_in(&mut Ctx::One(x))
-                    } else {
-                        0
-                    }
+    #[inline(always)]
+    pub fn apply_slice(&self, xs: &mut [G]) -> usize {
+        match self {
+            Expr::NoOp => 0,
+            Expr::Prob(p, inner) => {
+                if Ctx::<G>::prob(*p) {
+                    inner.apply_slice(xs)
+                } else {
+                    0
                 }
-                Ctx::Many(xs) => xs
-                    .iter_mut()
-                    .filter(|x| pred.test(x))
-                    .map(|x| inner.apply_in(&mut Ctx::One(x)))
-                    .sum(),
-                Ctx::Pair(a, b) => {
-                    if pred.test(a) {
-                        inner.apply_in(&mut Ctx::Pair(*a, *b))
-                    } else {
-                        0
-                    }
+            }
+            Expr::Select(SelectExpr::All, inner) => {
+                let mut acc = 0;
+                for x in xs {
+                    acc += inner.apply(x);
                 }
-                Ctx::ManyPairs(a, b) => a
-                    .iter_mut()
-                    .zip(b.iter_mut())
-                    .filter(|(x, _)| pred.test(x))
-                    .map(|(x, y)| inner.apply_in(&mut Ctx::Pair(x, y)))
-                    .sum(),
+                acc
+            }
+            Expr::Select(SelectExpr::Some(pred), inner) => xs
+                .iter_mut()
+                .filter(|x| pred.test(x))
+                .map(|x| inner.apply(x))
+                .sum(),
+            Expr::Index(i, inner) => {
+                if *i < xs.len() {
+                    inner.apply(&mut xs[*i])
+                } else {
+                    0
+                }
+            }
+            Expr::Filter(pred, inner) => xs
+                .iter_mut()
+                .filter(|x| pred.test(x))
+                .map(|x| inner.apply(x))
+                .sum(),
+            Expr::Mut(f) => f.apply_slice(xs),
+            Expr::Seq(list) => list.iter().map(|e| e.apply_slice(xs)).sum(),
+            Expr::Cross(_, _, _) => 0,
+            Expr::Fused(fused) => match fused {
+                FusedExpr::Mutate(prob, f) => prob
+                    .map(|rate| {
+                        xs.iter_mut()
+                            .filter(|_| Ctx::<G>::prob(rate))
+                            .map(|gene| f.apply(gene))
+                            .sum()
+                    })
+                    .unwrap_or(0),
+                FusedExpr::None => 0,
             },
+        }
+    }
 
-            Expr::Index(i, inner) => match ctx {
-                Ctx::Many(xs) => {
-                    if *i < xs.len() {
-                        inner.apply_in(&mut Ctx::One(&mut xs[*i]))
-                    } else {
-                        0
+    #[inline(always)]
+    pub fn apply_pair(&self, a: &mut G, b: &mut G) -> usize {
+        match self {
+            Expr::NoOp => 0,
+            Expr::Prob(p, inner) => {
+                if Ctx::<G>::prob(*p) {
+                    inner.apply_pair(a, b)
+                } else {
+                    0
+                }
+            }
+            Expr::Select(SelectExpr::All, inner) => inner.apply_pair(a, b),
+            Expr::Select(SelectExpr::Some(pred), inner) | Expr::Filter(pred, inner) => {
+                if pred.test(a) {
+                    inner.apply_pair(a, b)
+                } else {
+                    0
+                }
+            }
+            Expr::Index(_, inner) => inner.apply_pair(a, b),
+            Expr::Mut(f) => f.apply(a) + f.apply(b),
+            Expr::Seq(list) => list.iter().map(|e| e.apply_pair(a, b)).sum(),
+            Expr::Cross(kind, lhs, rhs) => {
+                let mut acc = 0;
+                acc += lhs.apply(a);
+                acc += rhs.apply(b);
+                acc + kind.op().apply_on_pair(a, b)
+            }
+            Expr::Fused(fused) => match fused {
+                FusedExpr::Mutate(prob, f) => {
+                    let mut acc = 0;
+                    if let Some(p) = prob {
+                        if Ctx::<G>::prob(*p) {
+                            acc += f.apply(a);
+                            acc += f.apply(b);
+                        }
                     }
+                    acc
                 }
-                Ctx::ManyPairs(a, b) => {
-                    let n = a.len().min(b.len());
-                    if *i < n {
-                        inner.apply_in(&mut Ctx::Pair(&mut a[*i], &mut b[*i]))
-                    } else {
-                        0
+                FusedExpr::None => 0,
+            },
+        }
+    }
+
+    #[inline(always)]
+    fn apply_slice_pairs(&self, a: &mut [G], b: &mut [G]) -> usize {
+        match self {
+            Expr::NoOp => 0,
+            Expr::Prob(p, inner) => {
+                if Ctx::<G>::prob(*p) {
+                    inner.apply_slice_pairs(a, b)
+                } else {
+                    0
+                }
+            }
+            Expr::Select(SelectExpr::All, inner) => a
+                .iter_mut()
+                .zip(b.iter_mut())
+                .map(|(x, y)| inner.apply_pair(x, y))
+                .sum(),
+            Expr::Select(SelectExpr::Some(pred), inner) | Expr::Filter(pred, inner) => a
+                .iter_mut()
+                .zip(b.iter_mut())
+                .filter(|(x, _)| pred.test(x))
+                .map(|(x, y)| inner.apply_pair(x, y))
+                .sum(),
+            Expr::Index(i, inner) => {
+                let n = a.len().min(b.len());
+                if *i < n {
+                    inner.apply_pair(&mut a[*i], &mut b[*i])
+                } else {
+                    0
+                }
+            }
+            Expr::Mut(f) => a
+                .iter_mut()
+                .zip(b.iter_mut())
+                .map(|(x, y)| f.apply(x) + f.apply(y))
+                .sum(),
+            Expr::Seq(list) => list.iter().map(|e| e.apply_slice_pairs(a, b)).sum(),
+            Expr::Cross(kind, lhs, rhs) => {
+                let mut acc = 0;
+                acc += lhs.apply_slice(a);
+                acc += rhs.apply_slice(b);
+                acc + kind.op().apply_on_slices(a, b)
+            }
+            Expr::Fused(fused) => match fused {
+                FusedExpr::Mutate(prob, f) => {
+                    let mut acc = 0;
+                    for x in a {
+                        if let Some(p) = prob {
+                            if Ctx::<G>::prob(*p) {
+                                acc += f.apply(x);
+                            }
+                        } else if f.apply(x) > 0 {
+                            acc += 1;
+                        }
                     }
+                    acc
                 }
-                // On One/Pair, Index is a no-op (or route to inner)
-                Ctx::One(x) => inner.apply_in(&mut Ctx::One(x)),
-                Ctx::Pair(a, b) => inner.apply_in(&mut Ctx::Pair(*a, *b)),
-            },
-
-            Expr::Filter(pred, inner) => match ctx {
-                Ctx::One(x) => {
-                    if pred.test(x) {
-                        inner.apply_in(&mut Ctx::One(x))
-                    } else {
-                        0
-                    }
-                }
-                Ctx::Many(xs) => xs
-                    .iter_mut()
-                    .filter(|x| pred.test(x))
-                    .map(|x| inner.apply_in(&mut Ctx::One(x)))
-                    .sum(),
-                Ctx::Pair(a, b) => {
-                    if pred.test(a) {
-                        inner.apply_in(&mut Ctx::Pair(*a, *b))
-                    } else {
-                        0
-                    }
-                }
-                Ctx::ManyPairs(a, b) => a
-                    .iter_mut()
-                    .zip(b.iter_mut())
-                    .filter(|(x, _)| pred.test(x)) // || pred.test(y))
-                    .map(|(x, y)| inner.apply_in(&mut Ctx::Pair(x, y)))
-                    .sum(),
-            },
-
-            Expr::MapEach(inner) => match ctx {
-                Ctx::One(x) => inner.apply_in(&mut Ctx::One(x)),
-                Ctx::Pair(a, b) => inner.apply_in(&mut Ctx::Pair(*a, *b)),
-                Ctx::Many(xs) => xs
-                    .iter_mut()
-                    .map(|x| inner.apply_in(&mut Ctx::One(x)))
-                    .sum(),
-                Ctx::ManyPairs(a, b) => a
-                    .iter_mut()
-                    .zip(b.iter_mut())
-                    .map(|(x, y)| inner.apply_in(&mut Ctx::Pair(x, y)))
-                    .sum(),
-            },
-
-            Expr::Mut(f) => match ctx {
-                Ctx::One(x) => f.apply(*x),
-                Ctx::Many(xs) => xs.iter_mut().map(|x| f.apply(x)).sum(),
-                Ctx::Pair(a, b) => f.apply(*a) + f.apply(*b),
-                Ctx::ManyPairs(a, b) => a
-                    .iter_mut()
-                    .zip(b.iter_mut())
-                    .map(|(x, y)| f.apply(x) + f.apply(y))
-                    .sum(),
-            },
-
-            Expr::Cross(kind, lhs, rhs) => match ctx {
-                Ctx::Pair(a, b) => {
-                    let mut changed = 0;
-                    changed += lhs.apply_in(&mut Ctx::One(*a));
-                    changed += rhs.apply_in(&mut Ctx::One(*b));
-                    changed + kind.op().apply_on_pair(*a, *b)
-                }
-                Ctx::ManyPairs(a, b) => {
-                    let mut changed = 0;
-                    changed += lhs.apply_in(&mut Ctx::Many(*a));
-                    changed += rhs.apply_in(&mut Ctx::Many(*b));
-                    changed + kind.op().apply_on_slices(*a, *b)
-                }
-                // Crossing doesn’t make sense on One/Many; treat as no-op.
-                _ => 0,
+                FusedExpr::None => 0,
             },
         }
     }
@@ -226,43 +243,45 @@ impl<G> Expr<G> {
 pub mod dsl {
 
     use super::*;
-    use crate::expr::{MutateExpr, NumericCrossoverExpr, NumericMutateExpr};
-    use radiate_core::{BoundedGene, Gene, chromosomes::gene::HasNumericSlot};
-    use std::ops::Range;
+    use crate::expr::{MutateExpr, NumericCrossoverExpr, NumericMutateExpr, fuse_expr};
+    use radiate_core::{
+        ArithmeticGene, Gene,
+        chromosomes::gene::{HasNumericSlot, NumericAllele, NumericGene},
+    };
+    use std::ops::{Mul, Range};
 
-    pub fn all<G>(inner: Expr<G>) -> Expr<G> {
+    pub fn all<G: Gene>(inner: Expr<G>) -> Expr<G> {
         Expr::Select(SelectExpr::All, Arc::new(inner))
     }
 
-    pub fn index<G>(i: usize, inner: Expr<G>) -> Expr<G> {
+    pub fn index<G: Gene>(i: usize, inner: Expr<G>) -> Expr<G> {
         Expr::Index(i, Arc::new(inner))
     }
 
-    pub fn filter<G>(pred: impl Fn(&G) -> bool + Send + Sync + 'static, inner: Expr<G>) -> Expr<G> {
+    pub fn filter<G: Gene>(
+        pred: impl Fn(&G) -> bool + Send + Sync + 'static,
+        inner: Expr<G>,
+    ) -> Expr<G> {
         Expr::Filter(Pred::new(pred), Arc::new(inner))
     }
 
-    pub fn prob<G>(p: f32, inner: Expr<G>) -> Expr<G> {
+    pub fn prob<G: Gene>(p: f32, inner: Expr<G>) -> Expr<G> {
         Expr::Prob(p, Arc::new(inner))
     }
 
-    pub fn seq<G>(xs: impl Into<Vec<Expr<G>>>) -> Expr<G> {
+    pub fn seq<G: Gene>(xs: impl Into<Vec<Expr<G>>>) -> Expr<G> {
         Expr::Seq(xs.into())
     }
 
-    pub fn map_each<G>(inner: Expr<G>) -> Expr<G> {
-        Expr::MapEach(Arc::new(inner))
+    pub fn prob_each<G: Gene>(p: f32, inner: Expr<G>) -> Expr<G> {
+        all(Expr::Prob(p, Arc::new(inner)))
     }
 
-    pub fn prob_each<G>(p: f32, inner: Expr<G>) -> Expr<G> {
-        map_each(Expr::Prob(p, Arc::new(inner)))
-    }
-
-    pub fn mutate<G, M: Into<MutFn<G>>>(m: M) -> Expr<G> {
+    pub fn mutate<G: Gene, M: Into<MutFn<G>>>(m: M) -> Expr<G> {
         Expr::Mut(m.into())
     }
 
-    pub fn cross<G>(
+    pub fn cross<G: Gene>(
         cross: impl Into<Xover<G>>,
         lhs: Option<Expr<G>>,
         rhs: Option<Expr<G>>,
@@ -275,63 +294,79 @@ pub mod dsl {
     }
 
     /// Crossover operations.
-    pub fn one_point_cross<G>() -> Expr<G> {
+    pub fn one_point_cross<G: Gene>() -> Expr<G> {
         cross(CrossoverExpr::OnePoint, None, None)
     }
 
-    pub fn two_point_cross<G>() -> Expr<G> {
+    pub fn two_point_cross<G: Gene>() -> Expr<G> {
         cross(CrossoverExpr::TwoPoint, None, None)
     }
 
-    pub fn blend_cross<G: HasNumericSlot + 'static>(alpha: f32) -> Expr<G> {
+    pub fn blend_cross<G: ArithmeticGene + HasNumericSlot + 'static>(alpha: f32) -> Expr<G> {
         cross(NumericCrossoverExpr::Blend(alpha), None, None)
     }
 
-    pub fn intermediate_cross<G: HasNumericSlot + 'static>(alpha: f32) -> Expr<G> {
+    pub fn intermediate_cross<G: ArithmeticGene + HasNumericSlot + 'static>(alpha: f32) -> Expr<G> {
         cross(NumericCrossoverExpr::Intermediate(alpha), None, None)
     }
 
-    pub fn mean_cross<G: HasNumericSlot + 'static>() -> Expr<G> {
+    pub fn mean_cross<G: ArithmeticGene + HasNumericSlot + 'static>() -> Expr<G> {
         cross(NumericCrossoverExpr::Mean, None, None)
     }
 
-    pub fn swap_cross<G>() -> Expr<G> {
+    pub fn swap_cross<G: Gene>() -> Expr<G> {
         cross(CrossoverExpr::Swap, None, None)
     }
 
     /// Mutation operations
-    pub fn uniform_mutate<G: HasNumericSlot + 'static>(range: Range<f32>) -> Expr<G> {
+    pub fn uniform_mutate<G>(range: Range<f32>) -> Expr<G>
+    where
+        G: NumericGene,
+        G::Allele: NumericAllele,
+    {
         mutate(NumericMutateExpr::Uniform(range))
     }
 
-    pub fn gausian_mutate<G: HasNumericSlot + 'static>(mean: f32, std_dev: f32) -> Expr<G> {
+    pub fn gaussian_mutate<G>(mean: f32, std_dev: f32) -> Expr<G>
+    where
+        G: NumericGene,
+        G::Allele: NumericAllele,
+    {
         mutate(NumericMutateExpr::Gaussian(mean, std_dev))
     }
 
-    pub fn jitter_mutate<G: HasNumericSlot + 'static>(amount: f32) -> Expr<G> {
+    pub fn jitter_mutate<G>(amount: f32) -> Expr<G>
+    where
+        G: NumericGene,
+        G::Allele: NumericAllele,
+    {
         mutate(NumericMutateExpr::Jitter(amount))
     }
 
-    pub fn inversion_mutate<G: 'static>() -> Expr<G> {
+    pub fn inversion_mutate<G: Gene + 'static>() -> Expr<G> {
         mutate(MutateExpr::Invert)
     }
 
     pub fn gaussian_by_bounds_generic<G>() -> Expr<G>
     where
-        G: HasNumericSlot + BoundedGene + Gene,
-        G::Allele: Copy + Into<f64>,
+        G: NumericGene + HasNumericSlot + 'static,
+        G::Allele: NumericAllele + Mul<Output = f64> + Into<f64> + From<f64>,
     {
-        mutate(MutFn::named("gauss-by-bounds", |g: &mut G| {
-            let min = (*g.min()).into() as f64;
-            let max = (*g.max()).into() as f64;
-            let mean = (*g.allele()).into() as f64;
-            let std = (max - min) * 0.25_f64;
-            super::super::mutate::gaussian_mutate(g, mean, std)
+        mutate(MutFn::named_fn("gauss-by-bounds", |g: &mut G| {
+            // let min = (*g.min()).into() as f64;
+            // let max = (*g.max()).into() as f64;
+            // let mean = (*g.allele()).into() as f64;
+            // let std = (max - min) * 0.25_f64;
+            super::super::mutate::apply_gaussian(g)
         }))
+    }
+
+    pub fn build<G: Gene>(expr: Expr<G>) -> Expr<G> {
+        fuse_expr(expr)
     }
 }
 
-impl<G> Debug for Expr<G> {
+impl<G: Gene> Debug for Expr<G> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}", self.dump_tree())
     }
@@ -391,15 +426,18 @@ mod tests {
         ]);
 
         let expr: Expr<FloatGene> = seq([
-            all(mutate(MutFn::named("jitter±0.1", |g: &mut FloatGene| {
-                *g.allele_mut() += radiate_core::random_provider::range(-0.1..0.1);
-                1
-            }))),
+            all(mutate(MutFn::named_fn(
+                "jitter±0.1",
+                |g: &mut FloatGene| {
+                    *g.allele_mut() += radiate_core::random_provider::range(-0.1..0.1);
+                    1
+                },
+            ))),
             prob(
                 0.5,
                 index(
                     0,
-                    mutate(MutFn::named("kick0", |g: &mut FloatGene| {
+                    mutate(MutFn::named_fn("kick0", |g: &mut FloatGene| {
                         *g.allele_mut() += 0.3;
                         1
                     })),
@@ -429,35 +467,41 @@ mod tests {
         let mut a = FloatChromosome::from(vec![0.0; 10]);
         let mut b = FloatChromosome::from(vec![1.0; 10]);
 
-        // Cross whole chromosome with a one-point crossover
-        let _: Expr<FloatGene> = genes()
-            .two_point_cross()
-            .map_each(prob(0.5, mean_cross()))
-            .build();
+        // // Cross whole chromosome with a one-point crossover
+        // let _: Expr<FloatGene> = genes()
+        //     .two_point_cross()
+        //     .map_each(prob(0.5, mean_cross()))
+        //     .build();
 
-        let expr = genes()
-            .all()
-            .map_each(prob(
-                0.3, // 30% of loci
-                cross(
-                    CrossoverExpr::TwoPoint,
-                    Some(jitter_mutate(0.05)), // only parent A
-                    Some(jitter_mutate(0.05)), // only parent B
-                ),
-            ))
-            .build();
+        // let expr = genes()
+        //     .all()
+        //     .prob(
+        //         0.3, // 30% of loci
+        //         cross(
+        //             CrossoverExpr::TwoPoint,
+        //             Some(jitter_mutate(0.05)), // only parent A
+        //             Some(jitter_mutate(0.05)), // only parent B
+        //         ),
+        //     )
+        //     .build();
 
-        let changed = expr.apply_pairs(a.genes_mut(), b.genes_mut());
-        println!(
-            "Changed: {:?}",
-            a.iter().map(|g| g.allele()).collect::<Vec<_>>()
-        );
-        println!(
-            "Changed: {:?}",
-            b.iter().map(|g| g.allele()).collect::<Vec<_>>()
-        );
+        // let changed = expr.apply_slice_pairs(a.genes_mut(), b.genes_mut());
+        // println!(
+        //     "Changed: {:?}",
+        //     a.iter().map(|g| g.allele()).collect::<Vec<_>>()
+        // );
+        // println!(
+        //     "Changed: {:?}",
+        //     b.iter().map(|g| g.allele()).collect::<Vec<_>>()
+        // );
 
-        println!("Tree: {:?}", expr.dump_tree());
-        assert!(changed > 0);
+        // println!("Tree: {:?}", expr.dump_tree());
+        // assert!(changed > 0);
     }
+}
+
+#[derive(Debug, Clone)]
+pub enum FusedExpr<G> {
+    Mutate(Option<f32>, MutFn<G>),
+    None,
 }

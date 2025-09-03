@@ -1,24 +1,26 @@
-use radiate_core::chromosomes::gene::HasNumericSlot;
-
 use crate::expr::{
-    CrossoverExpr, Expr, MutFn, MutateExpr, NumericCrossoverExpr, NumericMutateExpr, Pred,
-    SelectExpr, Xover,
+    CrossoverExpr, Expr, FusedExpr, MutFn, MutateExpr, NumericCrossoverExpr, NumericMutateExpr,
+    Pred, SelectExpr, Xover,
+};
+use radiate_core::{
+    ArithmeticGene, Gene,
+    chromosomes::gene::{HasNumericSlot, NumericAllele, NumericGene},
 };
 use std::{ops::Range, sync::Arc};
 
 type Wrap<G> = Box<dyn Fn(Expr<G>) -> Expr<G> + Send + Sync>;
 
-pub struct ExprBuilder<G> {
+pub struct ExprBuilder<G: Gene> {
     stages: Vec<Expr<G>>,
     pending: Vec<Wrap<G>>,
 }
 
 #[allow(dead_code)]
-pub fn genes<G>() -> ExprBuilder<G> {
+pub fn genes<G: Gene>() -> ExprBuilder<G> {
     ExprBuilder::new()
 }
 
-impl<G> Default for ExprBuilder<G> {
+impl<G: Gene> Default for ExprBuilder<G> {
     fn default() -> Self {
         Self {
             stages: Vec::new(),
@@ -28,7 +30,7 @@ impl<G> Default for ExprBuilder<G> {
 }
 
 #[allow(dead_code)]
-impl<G> ExprBuilder<G> {
+impl<G: Gene> ExprBuilder<G> {
     pub fn new() -> Self {
         Self::default()
     }
@@ -76,24 +78,13 @@ impl<G> ExprBuilder<G> {
         self
     }
 
-    pub fn map<F>(mut self, f: F) -> Self
+    pub fn map<F>(mut self, f: fn(&mut G) -> usize) -> Self
     where
         G: Clone + 'static,
-        F: Fn(&mut G) -> usize + Send + Sync + 'static,
     {
-        let mapper = MutFn::new(f);
+        let mapper = MutFn::from_fn_ptr(f);
         let expr = Expr::Mut(mapper.clone());
         self.pending.push(Box::new(move |_| expr.clone()));
-        self
-    }
-
-    pub fn map_each(mut self, inner: impl Into<Expr<G>>) -> Self
-    where
-        G: 'static,
-    {
-        let inner = Arc::new(inner.into());
-        self.pending
-            .push(Box::new(move |_| Expr::MapEach(inner.clone())));
         self
     }
 
@@ -114,14 +105,9 @@ impl<G> ExprBuilder<G> {
         self
     }
 
-    /// Start a new stage in the top-level sequence.
-    /// (No-op if a stage hasn't been closed by a terminal; you typically call
-    /// `then()` after a terminal like `.mutate(...)`.)
     pub fn then(mut self) -> Self {
-        // If a user calls then() with pending wrappers and no terminal,
-        // we close the stage with a no-op Map so the structure is preserved.
         if !self.pending.is_empty() {
-            self.push_terminal(Expr::Mut(MutFn::new(|_: &mut G| 0)));
+            self.push_terminal(Expr::NoOp);
         }
         self
     }
@@ -161,21 +147,24 @@ impl<G> ExprBuilder<G> {
 
     pub fn uniform_mutate(self, range: Range<f32>) -> Self
     where
-        G: HasNumericSlot + 'static,
+        G: NumericGene,
+        G::Allele: NumericAllele,
     {
         self.mutate(NumericMutateExpr::Uniform(range))
     }
 
-    pub fn gausian_mutate(self, mean: f32, std_dev: f32) -> Self
+    pub fn gaussian_mutate(self, mean: f32, std_dev: f32) -> Self
     where
-        G: HasNumericSlot + 'static,
+        G: NumericGene,
+        G::Allele: NumericAllele,
     {
         self.mutate(NumericMutateExpr::Gaussian(mean, std_dev))
     }
 
     pub fn jitter_mutate(self, amount: f32) -> Self
     where
-        G: HasNumericSlot + 'static,
+        G: NumericGene,
+        G::Allele: NumericAllele,
     {
         self.mutate(NumericMutateExpr::Jitter(amount))
     }
@@ -189,7 +178,7 @@ impl<G> ExprBuilder<G> {
 
     pub fn build(mut self) -> Expr<G> {
         if !self.pending.is_empty() {
-            self.push_terminal(Expr::Mut(MutFn::new(|_: &mut G| 0)));
+            self.push_terminal(Expr::NoOp);
         }
 
         match self.stages.len() {
@@ -200,7 +189,21 @@ impl<G> ExprBuilder<G> {
     }
 
     fn push_terminal(&mut self, terminal: Expr<G>) {
-        let expr = self.pending.drain(..).rfold(terminal, |acc, w| (w)(acc));
+        let expr = fuse_expr(self.pending.drain(..).rfold(terminal, |acc, w| (w)(acc)));
         self.stages.push(expr);
+    }
+}
+
+pub fn fuse_expr<G: Gene>(expr: Expr<G>) -> Expr<G> {
+    match expr {
+        Expr::Select(SelectExpr::All, inner) => match inner.as_ref() {
+            Expr::Prob(p, inner) => match inner.as_ref() {
+                Expr::Mut(m) => Expr::Fused(FusedExpr::Mutate(Some(*p), (*m).clone())),
+                _ => Expr::Fused(FusedExpr::None),
+            },
+
+            _ => Expr::Fused(FusedExpr::None),
+        },
+        _ => Expr::Fused(FusedExpr::None),
     }
 }
