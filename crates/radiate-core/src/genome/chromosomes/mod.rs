@@ -28,6 +28,7 @@ pub trait Integer<T>:
     + Clone
     + PartialOrd
     + Debug
+    + PartialEq
     + Add<Output = T>
     + Sub<Output = T>
     + Mul<Output = T>
@@ -35,12 +36,20 @@ pub trait Integer<T>:
     + SampleUniform
     + Display
     + Default
+where
+    T: PartialEq + PartialOrd + Copy + Clone + Debug + Display + Default,
 {
     const MIN: T;
     const MAX: T;
     const ZERO: T;
     const ONE: T;
     const TWO: T;
+
+    fn sat_add(self, rhs: T) -> T;
+    fn sat_sub(self, rhs: T) -> T;
+    fn sat_mul(self, rhs: T) -> T;
+    fn sat_div(self, rhs: T) -> T;
+    fn clamp(self, min: T, max: T) -> T;
 }
 
 impl_integer!(i8, i16, i32, i64, i128, u8, u16, u32, u64, u128);

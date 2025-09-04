@@ -55,9 +55,9 @@ impl FloatGene {
         }
     }
 
-    pub fn bounds(&self) -> &Range<f32> {
-        &self.bounds
-    }
+    // pub fn bounds(&self) -> &Range<f32> {
+    //     &self.bounds
+    // }
 }
 
 /// Implement the [`Valid`] trait for the [`FloatGene`].
@@ -116,45 +116,7 @@ impl BoundedGene for FloatGene {
 impl ArithmeticGene for FloatGene {
     fn mean(&self, other: &FloatGene) -> FloatGene {
         FloatGene {
-            allele: (self.allele + other.allele) / 2_f32,
-            value_range: self.value_range.clone(),
-            bounds: self.bounds.clone(),
-        }
-    }
-
-    fn add(&self, other: Self) -> Self {
-        FloatGene {
-            allele: self.allele + other.allele,
-            value_range: self.value_range.clone(),
-            bounds: self.bounds.clone(),
-        }
-    }
-
-    fn sub(&self, other: Self) -> Self {
-        FloatGene {
-            allele: self.allele - other.allele,
-            value_range: self.value_range.clone(),
-            bounds: self.bounds.clone(),
-        }
-    }
-
-    fn mul(&self, other: Self) -> Self {
-        FloatGene {
-            allele: self.allele * other.allele,
-            value_range: self.value_range.clone(),
-            bounds: self.bounds.clone(),
-        }
-    }
-
-    fn div(&self, other: Self) -> Self {
-        let denominator = if other.allele == 0.0 {
-            1.0
-        } else {
-            other.allele
-        };
-
-        FloatGene {
-            allele: self.allele / denominator,
+            allele: ((self.allele + other.allele) * 0.5).clamp(self.bounds.start, self.bounds.end),
             value_range: self.value_range.clone(),
             bounds: self.bounds.clone(),
         }
@@ -176,7 +138,7 @@ impl Add for FloatGene {
 
     fn add(self, other: FloatGene) -> FloatGene {
         FloatGene {
-            allele: self.allele + other.allele,
+            allele: (self.allele + other.allele).clamp(self.bounds.start, self.bounds.end),
             value_range: self.value_range.clone(),
             bounds: self.bounds.clone(),
         }
@@ -188,7 +150,7 @@ impl Sub for FloatGene {
 
     fn sub(self, other: FloatGene) -> FloatGene {
         FloatGene {
-            allele: self.allele - other.allele,
+            allele: (self.allele - other.allele).clamp(self.bounds.start, self.bounds.end),
             value_range: self.value_range.clone(),
             bounds: self.bounds.clone(),
         }
@@ -200,7 +162,7 @@ impl Mul for FloatGene {
 
     fn mul(self, other: FloatGene) -> FloatGene {
         FloatGene {
-            allele: self.allele * other.allele,
+            allele: (self.allele * other.allele).clamp(self.bounds.start, self.bounds.end),
             value_range: self.value_range.clone(),
             bounds: self.bounds.clone(),
         }
@@ -218,7 +180,7 @@ impl Div for FloatGene {
         };
 
         FloatGene {
-            allele: self.allele / denominator,
+            allele: (self.allele / denominator).clamp(self.bounds.start, self.bounds.end),
             value_range: self.value_range.clone(),
             bounds: self.bounds.clone(),
         }
@@ -460,6 +422,33 @@ mod tests {
         let gene = FloatGene::from(0_f32..1_f32);
         assert!(gene.is_valid());
         assert!(gene.allele >= 0_f32 && gene.allele <= 1_f32);
+    }
+
+    #[test]
+    fn test_gene_clamping() {
+        let one = FloatGene::new(5.0, 0.0..10.0, 0.0..10.0);
+        let two = FloatGene::new(5.0, 0.0..10.0, 0.0..10.0);
+        let really_big = FloatGene::new(100000.0, 0.0..10.0, 0.0..10.0);
+
+        let add = one.clone() + two.clone();
+        let sub = one.clone() - two.clone();
+        let mul = one.clone() * two.clone();
+        let div = one.clone() / two.clone();
+
+        assert_eq!(add.allele, 10.0);
+        assert_eq!(sub.allele, 0.0);
+        assert_eq!(mul.allele, 10.0);
+        assert_eq!(div.allele, 1.0);
+
+        let big_add = one.clone() + really_big.clone();
+        let big_sub = one.clone() - really_big.clone();
+        let big_mul = one.clone() * really_big.clone();
+        let big_div = really_big.clone() / one.clone();
+
+        assert_eq!(big_add.allele, 10.0);
+        assert_eq!(big_sub.allele, 0.0);
+        assert_eq!(big_mul.allele, 10.0);
+        assert_eq!(big_div.allele, 10.0);
     }
 
     #[test]

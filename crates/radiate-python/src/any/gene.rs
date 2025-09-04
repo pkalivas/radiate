@@ -1,6 +1,11 @@
 use crate::AnyValue;
 use radiate::{ArithmeticGene, Chromosome, Gene, Valid};
-use std::{collections::HashMap, fmt::Debug, sync::Arc};
+use std::{
+    collections::HashMap,
+    fmt::Debug,
+    ops::{Add, Div, Mul, Sub},
+    sync::Arc,
+};
 
 type MetaData<'a> = Option<Arc<HashMap<String, String>>>;
 type Factory = Arc<dyn Fn() -> AnyValue<'static> + Send + Sync>;
@@ -89,34 +94,50 @@ impl<'a> ArithmeticGene for AnyGene<'a> {
             self.clone()
         }
     }
+}
 
-    fn add(&self, other: Self) -> Self {
+impl Add for AnyGene<'_> {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
         AnyGene {
-            allele: self.allele.clone() + other.allele,
+            allele: self.allele + rhs.allele,
             factory: self.factory.clone(),
             metadata: self.metadata.clone(),
         }
     }
+}
 
-    fn sub(&self, other: Self) -> Self {
+impl Sub for AnyGene<'_> {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
         AnyGene {
-            allele: self.allele.clone() - other.allele,
+            allele: self.allele - rhs.allele,
             factory: self.factory.clone(),
             metadata: self.metadata.clone(),
         }
     }
+}
 
-    fn mul(&self, other: Self) -> Self {
+impl Mul for AnyGene<'_> {
+    type Output = Self;
+
+    fn mul(self, rhs: Self) -> Self::Output {
         AnyGene {
-            allele: self.allele.clone() * other.allele,
+            allele: self.allele * rhs.allele,
             factory: self.factory.clone(),
             metadata: self.metadata.clone(),
         }
     }
+}
 
-    fn div(&self, other: Self) -> Self {
+impl Div for AnyGene<'_> {
+    type Output = Self;
+
+    fn div(self, rhs: Self) -> Self::Output {
         AnyGene {
-            allele: self.allele.clone() / other.allele,
+            allele: self.allele / rhs.allele,
             factory: self.factory.clone(),
             metadata: self.metadata.clone(),
         }

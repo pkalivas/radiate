@@ -50,24 +50,9 @@ impl Gene for ImageGene {
 
 impl ArithmeticGene for ImageGene {
     fn mean(&self, other: &Self) -> Self {
-        let allele = self.allele.mean(&other.allele);
-        Self { allele }
-    }
-
-    fn add(&self, other: Self) -> Self {
-        self.clone() + other
-    }
-
-    fn sub(&self, other: Self) -> Self {
-        self.clone() - other
-    }
-
-    fn mul(&self, other: Self) -> Self {
-        self.clone() * other
-    }
-
-    fn div(&self, other: Self) -> Self {
-        self.clone() / other
+        Self {
+            allele: self.allele.mean(&other.allele),
+        }
     }
 }
 

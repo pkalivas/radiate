@@ -39,11 +39,11 @@ impl<G: ArithmeticGene, C: Chromosome<Gene = G>> Mutate<C> for ArithmeticMutator
                 let operator = random_provider::range(0..4);
 
                 let new_gene = match operator {
-                    0 => gene.add(gene.new_instance()),
-                    1 => gene.sub(gene.new_instance()),
-                    2 => gene.mul(gene.new_instance()),
-                    3 => gene.div(gene.new_instance()),
-                    _ => panic!("Invalid operator: {}", operator),
+                    0 => gene.clone() + gene.new_instance(),
+                    1 => gene.clone() - gene.new_instance(),
+                    2 => gene.clone() * gene.new_instance(),
+                    3 => gene.clone() / gene.new_instance(),
+                    _ => panic!("Invalid operator - this shouldn't happen: {}", operator),
                 };
 
                 *gene = new_gene;

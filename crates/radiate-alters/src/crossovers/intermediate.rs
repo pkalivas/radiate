@@ -1,4 +1,6 @@
-use radiate_core::{AlterResult, Chromosome, Crossover, FloatGene, Gene, random_provider};
+use radiate_core::{
+    AlterResult, BoundedGene, Chromosome, Crossover, FloatGene, Gene, random_provider,
+};
 
 /// Intermediate Crossover. This crossover method takes two chromosomes and crosses them
 /// by taking a weighted average of the two alleles. The weight is determined by the `alpha`
@@ -41,16 +43,22 @@ impl<C: Chromosome<Gene = FloatGene>> Crossover<C> for IntermediateCrossover {
 
         for i in 0..std::cmp::min(chrom_one.len(), chrom_two.len()) {
             if random_provider::random::<f32>() < rate {
-                let gene_one = chrom_one.get(i);
-                let gene_two = chrom_two.get(i);
+                let gene_one = chrom_one.get_mut(i);
+                let gene_two = chrom_two.get_mut(i);
 
                 let allele_one = gene_one.allele();
                 let allele_two = gene_two.allele();
 
                 let alpha = random_provider::range(0.0..self.alpha);
-                let allele = allele_one * alpha + allele_two * (1.0 - alpha);
+                let new_allele_one = allele_one * alpha + allele_two * (1.0 - alpha);
+                let new_allele_two = allele_two * alpha + allele_one * (1.0 - alpha);
 
-                chrom_one.set(i, gene_one.with_allele(&allele));
+                let (one_min, one_max) = gene_one.bounds();
+                let (two_min, two_max) = gene_two.bounds();
+
+                *gene_one.allele_mut() = new_allele_one.clamp(*one_min, *one_max);
+                *gene_two.allele_mut() = new_allele_two.clamp(*two_min, *two_max);
+
                 cross_count += 1;
             }
         }

@@ -40,11 +40,12 @@ impl<C: Chromosome<Gene = FloatGene>> Mutate<C> for GaussianMutator {
                 let gaussian = random_provider::gaussian(value, std_dev);
                 let allele = gaussian.clamp(min, max) as f32;
 
-                (*gene.allele_mut()) = allele;
+                *gene.allele_mut() = allele;
 
                 count += 1;
             }
         }
+
         count.into()
     }
 }

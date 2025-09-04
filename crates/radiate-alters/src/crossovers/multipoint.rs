@@ -72,10 +72,10 @@ pub fn crossover_multi_point<G>(
         chrom_one[last_point..].swap_with_slice(&mut chrom_two[last_point..]);
     }
 
-    crossover_points.len()
+    num_points
 }
 
-#[allow(dead_code)]
+#[inline]
 pub fn crossover_single_point<G>(chrom_one: &mut [G], chrom_two: &mut [G]) -> usize {
     let length = std::cmp::min(chrom_one.len(), chrom_two.len());
 
@@ -87,4 +87,21 @@ pub fn crossover_single_point<G>(chrom_one: &mut [G], chrom_two: &mut [G]) -> us
     chrom_one[crossover_point..].swap_with_slice(&mut chrom_two[crossover_point..]);
 
     1
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_crossover_multi_point() {
+        let mut chrom_one = vec![0; 10];
+        let mut chrom_two = vec![1; 10];
+
+        let points = crossover_multi_point(&mut chrom_one, &mut chrom_two, 2);
+
+        assert_eq!(chrom_one.len(), 10);
+        assert_eq!(chrom_two.len(), 10);
+        assert_eq!(points, 2);
+    }
 }
