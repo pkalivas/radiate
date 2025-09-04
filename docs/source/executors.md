@@ -30,9 +30,9 @@ Continuing with our example from the preious sections - evolving a simple functi
 
     # Create a codec for two parameters (a and b)
     codec = rd.FloatCodec.vector(
-        length=2,                   # We need two parameters: a and b
-        value_range=(-1.0, 1.0),    # Start with values between -1 and 1
-        bound_range=(-10.0, 10.0)   # Allow evolution to modify the values between -10 and 10
+        length=2,                  # We need two parameters: a and b
+        init_range=(-1.0, 1.0),    # Start with values between -1 and 1
+        bounds=(-10.0, 10.0)       # Allow evolution to modify the values between -10 and 10
     )
 
     # Use Boltzmann selection for offspring - individuals which

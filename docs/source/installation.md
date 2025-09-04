@@ -51,7 +51,7 @@ Python's radiate package does not have any optional features - it is a single pa
 
 ```toml
 [dependencies]
-radiate = { version = "1.2.16", features = ["gp", "serde", "rayon"] }
+radiate = { version = "1.2.17", features = ["gp", "serde", "rayon"] }
 ```
 
 opt-in features include:

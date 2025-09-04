@@ -37,7 +37,7 @@ The `minimizing()` method configures the genetic algorithm to find the minimum v
     ```python
     import radiate as rd
 
-    codec = rd.FloatCodec.vector(10, (0.0, 1.0))  # Example codec
+    codec = rd.FloatCodec.vector(10, init_range=(0.0, 1.0))  # Example codec
 
     engine = rd.GeneticEngine(
         codec=codec,
