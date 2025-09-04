@@ -28,7 +28,9 @@ impl PyEventHandler {
                 handler
                     .event_name()
                     .map(|name| {
-                        if matches!(event, EngineEvent::Start) {
+                        if name == "all" {
+                            true
+                        } else if matches!(event, EngineEvent::Start) {
                             name == ON_START
                         } else if matches!(event, EngineEvent::Stop { .. }) {
                             name == ON_STOP
@@ -126,7 +128,7 @@ where
             return;
         }
 
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             let event_dict = self.event_to_py_dict(py, &event);
 
             for handler in subscribers {

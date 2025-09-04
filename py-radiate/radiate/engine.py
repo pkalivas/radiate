@@ -23,7 +23,7 @@ from .inputs.executor import Executor
 from .fitness import FitnessBase
 from .inputs.limit import LimitBase
 
-from .genome.gene import GeneType
+from .genome import GeneType
 from .genome.population import Population
 
 
@@ -111,7 +111,7 @@ class GeneticEngine[G, T]:
             self.engine = self.builder.build()
         return Generation(self.engine.next())
 
-    def run(self, limits: LimitBase | list[LimitBase], log: bool = False) -> Generation:
+    def run(self, limits: LimitBase | list[LimitBase], log: bool = False) -> Generation[T]:
         """Run the engine with the given limits.
         Args:
             limits: A single Limit or a list of Limits to apply to the engine.
@@ -149,11 +149,11 @@ class GeneticEngine[G, T]:
                 component=lim.component,
                 allowed_genes=[self.gene_type],
                 **lim.args,
-            ).to_python()
+            ).__backend__()
             for lim in limits
         ]
 
-        return Generation(engine.run(limit_inputs, log))
+        return Generation.from_rust(engine.run(limit_inputs, log))
 
     def population_size(self, size: int):
         """Set the population size.

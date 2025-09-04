@@ -73,7 +73,7 @@ impl<C: Chromosome, T> Codec<C, T> for PyCodec<C, T> {
     }
 
     fn decode(&self, genotype: &Genotype<C>) -> T {
-        Python::with_gil(|py| match &self.decoder {
+        Python::attach(|py| match &self.decoder {
             Some(decoder) => decoder(py, genotype),
             None => panic!("Decoder function is not set"),
         })
@@ -110,7 +110,9 @@ where
         if is_square && use_numpy {
             return match lengths.len() {
                 1 => Ok(PyArray1::from_vec(py, values).into_any()),
-                _ => Ok(PyArray::from_iter(py, values).reshape(lengths)?.into_any()),
+                _ => Ok(PyArray::from_iter(py, values)
+                    .reshape([lengths.len(), lengths[0]])?
+                    .into_any()),
             };
         }
 
@@ -127,7 +129,9 @@ where
 
         return match lengths.len() {
             1 => Ok(PyArray1::from_vec(py, values).into_any()),
-            _ => Ok(PyArray::from_iter(py, values).reshape(lengths)?.into_any()),
+            _ => Ok(PyArray::from_iter(py, values)
+                .reshape([lengths.len(), lengths[0]])?
+                .into_any()),
         };
     }
 

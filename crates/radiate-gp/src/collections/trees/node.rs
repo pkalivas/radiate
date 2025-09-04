@@ -261,6 +261,10 @@ where
         &self.value
     }
 
+    fn allele_mut(&mut self) -> &mut Self::Allele {
+        &mut self.value
+    }
+
     fn new_instance(&self) -> Self {
         TreeNode {
             value: self.value.clone(),

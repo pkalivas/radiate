@@ -25,10 +25,7 @@ class EventHandler(abc.ABC):
         Initialize the event handler.
         :param event_type: Type of the event to handle.
         """
-        self.event_type = event_type if event_type != EventType.ALL else None
-        self._py_handler = PySubscriber(
-            self.on_event, self.event_type.value if self.event_type else "all"
-        )
+        self._py_handler = PySubscriber(self.on_event, event_type.value)
 
     def __call__(self, event: Any) -> None:
         """

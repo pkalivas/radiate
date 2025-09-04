@@ -40,6 +40,12 @@ impl<A: PartialEq + Clone> Gene for PermutationGene<A> {
         &self.alleles[self.index]
     }
 
+    fn allele_mut(&mut self) -> &mut Self::Allele {
+        panic!(
+            "Cannot mutate allele of PermutationGene directly. Create a new gene with `with_allele` or `with_index`."
+        );
+    }
+
     fn new_instance(&self) -> Self {
         PermutationGene {
             index: self.index,
@@ -253,6 +259,12 @@ mod test {
 
         fn allele(&self) -> &Self::Allele {
             &self.alleles[self.index]
+        }
+
+        fn allele_mut(&mut self) -> &mut Self::Allele {
+            panic!(
+                "Cannot mutate allele of PermutationGene directly. Create a new gene with `with_allele` or `with_index`."
+            );
         }
 
         fn new_instance(&self) -> Self {

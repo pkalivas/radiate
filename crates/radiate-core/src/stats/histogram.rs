@@ -1,5 +1,21 @@
 use crate::Distribution;
 
+#[macro_export]
+macro_rules! histogram {
+    ($title:expr, $data:expr) => {{
+        let max = $data.iter().cloned().fold(f32::MIN, f32::max);
+        let min = $data.iter().cloned().fold(f32::MAX, f32::min);
+        let bins = 10;
+        let step = (max - min) / bins as f32;
+        for i in 0..bins {
+            let lower = min + i as f32 * step;
+            let upper = lower + step;
+            let count = $data.iter().filter(|&&x| x >= lower && x < upper).count();
+            println!("  {:6.2} - {:6.2}: {}", lower, upper, "█".repeat(count));
+        }
+    }};
+}
+
 pub struct Histogram {
     pub bins: Vec<usize>,
     pub min: f32,

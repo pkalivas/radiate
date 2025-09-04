@@ -69,8 +69,8 @@ from .inputs.alterer import (
     InversionMutator,
     PolynomialMutator,
     EdgeRecombinationCrossover,
-    Mutator,
-    Crossover,
+    JitterMutator,
+    FieldAlterer,
 )
 
 from .inputs.distance import (
@@ -82,13 +82,13 @@ from .inputs.distance import (
 
 from .inputs.limit import SecondsLimit, GenerationsLimit, ScoreLimit, ConvergenceLimit
 
-from .inputs.descriptor import PhenotypeDescriptor
-
 from .dependancies import _NUMPY_AVAILABLE
 
+
 __all__ = [
+    "PyRustBase",
     # Version information
-    "__version__",
+    "__version__",  
     "__version_tuple__",
     # Dependencies
     "_NUMPY_AVAILABLE",
@@ -122,6 +122,7 @@ __all__ = [
     "EventHandler",
     "EventType",
     # Alters
+    "FieldAlterer",
     "BlendCrossover",
     "TreeCrossover",
     "GraphCrossover",
@@ -132,7 +133,6 @@ __all__ = [
     "SimulatedBinaryCrossover",
     "PartiallyMappedCrossover",
     "UniformCrossover",
-    "Crossover",
     "ArithmeticMutator",
     "UniformMutator",
     "GaussianMutator",
@@ -144,7 +144,7 @@ __all__ = [
     "InversionMutator",
     "PolynomialMutator",
     "EdgeRecombinationCrossover",
-    "Mutator",
+    "JitterMutator",
     # Executor
     "Executor",
     # Limits
@@ -174,6 +174,4 @@ __all__ = [
     # Engine
     "GeneticEngine",
     "Generation",
-    # Descriptors
-    "PhenotypeDescriptor",
 ]

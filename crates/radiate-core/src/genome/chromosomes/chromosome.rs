@@ -30,6 +30,10 @@ pub trait Chromosome: Valid {
         &self.genes()[index]
     }
 
+    fn get_mut(&mut self, index: usize) -> &mut Self::Gene {
+        &mut self.genes_mut()[index]
+    }
+
     /// Sets the gene at the specified index.
     ///
     /// # Arguments

@@ -6,9 +6,9 @@ pub mod population;
 pub mod species;
 
 pub use chromosomes::{
-    ArithmeticGene, BitChromosome, BitGene, CharChromosome, CharGene, Chromosome, FloatChromosome,
-    FloatGene, Gene, IntChromosome, IntGene, Integer, PermutationChromosome, PermutationGene,
-    Valid,
+    ArithmeticGene, BitChromosome, BitGene, BoundedGene, CharChromosome, CharGene, Chromosome,
+    FloatChromosome, FloatGene, Gene, IntChromosome, IntGene, Integer, PermutationChromosome,
+    PermutationGene, Valid,
 };
 pub use ecosystem::Ecosystem;
 pub use genotype::Genotype;

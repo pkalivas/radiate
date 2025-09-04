@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from typing import Iterable
-from radiate.genome.gene import GeneType
 from radiate.radiate import PyPopulation
 from .phenotype import Phenotype
 from ..wrapper import PyObject
+
+if TYPE_CHECKING:
+    from radiate.genome.gene import GeneType
 
 
 class Population[T](PyObject[PyPopulation]):
@@ -16,7 +20,7 @@ class Population[T](PyObject[PyPopulation]):
         super().__init__()
 
         if isinstance(individuals, Iterable):
-            self._pyobj = PyPopulation(list(map(lambda p: p.to_python(), individuals)))
+            self._pyobj = PyPopulation(list(map(lambda p: p.__backend__(), individuals)))
 
     def __repr__(self):
         return self._pyobj.__repr__()
@@ -34,7 +38,7 @@ class Population[T](PyObject[PyPopulation]):
         :return: An iterator over the individuals in the population.
         """
         for phenotype in self._pyobj.phenotypes:
-            yield Phenotype.from_python(phenotype)
+            yield Phenotype.from_rust(phenotype)
 
     def __getitem__(self, index: int) -> Phenotype[T]:
         """
@@ -42,7 +46,7 @@ class Population[T](PyObject[PyPopulation]):
         :param index: The index of the Phenotype to retrieve.
         :return: The Phenotype at the specified index.
         """
-        return Phenotype.from_python(self._pyobj[index])
+        return Phenotype.from_rust(self._pyobj[index])
 
     def __setitem__(self, index: int, value: Phenotype[T]):
         """
@@ -52,11 +56,12 @@ class Population[T](PyObject[PyPopulation]):
         """
         if not isinstance(value, Phenotype):
             raise TypeError("Value must be an instance of Phenotype")
-        self._pyobj[index] = value.to_python()
+        self._pyobj[index] = value.__backend__()
 
-    def gene_type(self) -> GeneType:
+    def gene_type(self) -> 'GeneType':
         """
         Returns the type of the genes in the population.
         :return: The gene type as a string.
         """
+        from . import GeneType
         return GeneType.from_str(self._pyobj.gene_type())

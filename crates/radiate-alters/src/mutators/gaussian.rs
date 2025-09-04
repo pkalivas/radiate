@@ -1,5 +1,6 @@
-use num_traits::{FromPrimitive, ToPrimitive};
-use radiate_core::{ArithmeticGene, Chromosome, Gene, Mutate, random_provider};
+use radiate_core::{
+    AlterResult, BoundedGene, Chromosome, FloatGene, Gene, Mutate, random_provider,
+};
 
 /// The `GaussianMutator` is a simple mutator that adds a small amount of Gaussian noise to the gene.
 ///
@@ -20,54 +21,31 @@ impl GaussianMutator {
     }
 }
 
-impl<C, G> Mutate<C> for GaussianMutator
-where
-    C: Chromosome<Gene = G>,
-    G: ArithmeticGene + Gene,
-    <G as Gene>::Allele: ToPrimitive + FromPrimitive + Copy,
-{
+impl<C: Chromosome<Gene = FloatGene>> Mutate<C> for GaussianMutator {
     fn rate(&self) -> f32 {
         self.rate
     }
 
     #[inline]
-    fn mutate_gene(&self, gene: &C::Gene) -> C::Gene {
-        let min = gene.min().to_f64().unwrap_or(f64::NEG_INFINITY);
-        let max = gene.max().to_f64().unwrap_or(f64::INFINITY);
+    fn mutate_chromosome(&self, chromosome: &mut C, rate: f32) -> AlterResult {
+        let mut count = 0;
+        for gene in chromosome.genes_mut() {
+            if random_provider::random::<f32>() < rate {
+                let min = *gene.min() as f64;
+                let max = *gene.max() as f64;
 
-        // default sigma = 25% of range, with a sane fallback
-        let mut std_dev = (max - min) * 0.25f64;
-        if !std_dev.is_finite() || std_dev == 0.0 {
-            std_dev = 0.1;
+                let std_dev = (max - min) * 0.25;
+                let value = *gene.allele() as f64;
+
+                let gaussian = random_provider::gaussian(value, std_dev);
+                let allele = gaussian.clamp(min, max) as f32;
+
+                *gene.allele_mut() = allele;
+
+                count += 1;
+            }
         }
 
-        let value = gene.allele().to_f64().unwrap_or(0.0);
-        let gaussian = random_provider::gaussian(value, std_dev);
-        let clamped = gaussian.clamp(min, max);
-
-        let new_allele = <G as Gene>::Allele::from_f64(clamped)
-            .unwrap_or_else(|| <G as Gene>::Allele::from_f64(value).unwrap());
-
-        gene.with_allele(&new_allele)
+        count.into()
     }
 }
-
-// impl<C: Chromosome<Gene = FloatGene>> Mutate<C> for GaussianMutator {
-//     fn rate(&self) -> f32 {
-//         self.rate
-//     }
-
-//     #[inline]
-//     fn mutate_gene(&self, gene: &C::Gene) -> C::Gene {
-//         let min = *gene.min() as f64;
-//         let max = *gene.max() as f64;
-
-//         let std_dev = (max - min) * 0.25;
-//         let value = *gene.allele() as f64;
-
-//         let gaussian = random_provider::gaussian(value, std_dev);
-//         let allele = gaussian.clamp(min, max) as f32;
-
-//         gene.with_allele(&allele)
-//     }
-// }

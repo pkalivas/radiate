@@ -1,6 +1,6 @@
 use pyo3::types::{PyFloat, PyInt};
-use pyo3::{Borrowed, IntoPyObject, PyAny, PyObject, Python, types::PyAnyMethods};
-use pyo3::{FromPyObject, PyResult};
+use pyo3::{Borrowed, IntoPyObject, PyAny, Python, types::PyAnyMethods};
+use pyo3::{FromPyObject, Py, PyResult};
 use std::fmt::{Display, Formatter};
 use std::hash::{Hash, Hasher};
 
@@ -17,7 +17,7 @@ impl IntoPyAnyObject for PyAnyObject {
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct PyAnyObject {
-    pub inner: PyObject,
+    pub inner: Py<PyAny>,
 }
 
 impl PyAnyObject {
@@ -26,7 +26,7 @@ impl PyAnyObject {
     }
 
     pub fn get_f32(&self) -> Option<f32> {
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             let bound = self.inner.bind_borrowed(py);
             if bound.is_instance_of::<PyFloat>() {
                 bound.extract::<f64>().ok().map(|v| v as f32)
@@ -39,7 +39,7 @@ impl PyAnyObject {
     }
 
     pub fn get_f64(&self) -> Option<f64> {
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             let bound = self.inner.bind_borrowed(py);
             if bound.is_instance_of::<PyFloat>() {
                 bound.extract::<f64>().ok()
@@ -52,7 +52,7 @@ impl PyAnyObject {
     }
 
     pub fn get_i32(&self) -> Option<i32> {
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             let bound = self.inner.bind_borrowed(py);
             if bound.is_instance_of::<PyInt>() {
                 bound.extract::<i64>().ok().map(|v| v as i32)
@@ -65,7 +65,7 @@ impl PyAnyObject {
     }
 
     pub fn get_usize(&self) -> Option<usize> {
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             let bound = self.inner.bind_borrowed(py);
             if bound.is_instance_of::<PyInt>() {
                 bound.extract::<i64>().ok().map(|v| v as usize)
@@ -78,21 +78,21 @@ impl PyAnyObject {
     }
 
     pub fn get_string(&self) -> Option<String> {
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             let bound = self.inner.bind_borrowed(py);
             bound.extract::<String>().ok()
         })
     }
 
     pub fn get_bool(&self) -> Option<bool> {
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             let bound = self.inner.bind_borrowed(py);
             bound.extract::<bool>().ok()
         })
     }
 
     pub fn get_vec_f32(&self) -> Option<Vec<f32>> {
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             let bound = self.inner.bind_borrowed(py);
             bound.extract::<Vec<f32>>().ok()
         })
@@ -101,7 +101,7 @@ impl PyAnyObject {
 
 impl Clone for PyAnyObject {
     fn clone(&self) -> Self {
-        Python::with_gil(|py| Self {
+        Python::attach(|py| Self {
             inner: self.inner.clone_ref(py),
         })
     }
@@ -109,7 +109,7 @@ impl Clone for PyAnyObject {
 
 impl Hash for PyAnyObject {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        let h = Python::with_gil(|py| self.inner.bind(py).hash().expect("should be hashable"));
+        let h = Python::attach(|py| self.inner.bind(py).hash().expect("should be hashable"));
         state.write_isize(h)
     }
 }
@@ -120,8 +120,8 @@ impl Display for PyAnyObject {
     }
 }
 
-impl From<PyObject> for PyAnyObject {
-    fn from(p: PyObject) -> Self {
+impl From<Py<PyAny>> for PyAnyObject {
+    fn from(p: Py<PyAny>) -> Self {
         Self { inner: p }
     }
 }
@@ -138,7 +138,7 @@ impl<'a, 'py> IntoPyObject<'py> for &'a PyAnyObject {
 
 impl Default for PyAnyObject {
     fn default() -> Self {
-        Python::with_gil(|py| PyAnyObject { inner: py.None() })
+        Python::attach(|py| PyAnyObject { inner: py.None() })
     }
 }
 

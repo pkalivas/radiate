@@ -64,6 +64,10 @@ impl Gene for CharGene {
         &self.allele
     }
 
+    fn allele_mut(&mut self) -> &mut char {
+        &mut self.allele
+    }
+
     fn new_instance(&self) -> CharGene {
         let index = random_provider::range(0..self.char_set.len());
         CharGene {

@@ -13,14 +13,14 @@ class GraphCodec(CodecBase[Op, Graph]):
         self.codec = codec
 
     def encode(self) -> Genotype[Op]:
-        return Genotype.from_python(self.codec.encode_py())
+        return Genotype.from_rust(self.codec.encode_py())
 
     def decode(self, genotype: Genotype) -> Graph:
         if genotype.gene_type() != GeneType.GRAPH:
             raise ValueError(f"genotype must be of type {genotype.gene_type()}.")
         if not isinstance(genotype, Genotype):
             raise TypeError("genotype must be an instance of Genotype.")
-        return Graph(self.codec.decode_py(genotype.to_python()))
+        return Graph(self.codec.decode_py(genotype.__backend__()))
 
     @staticmethod
     def weighted_directed(
@@ -126,34 +126,52 @@ class GraphCodec(CodecBase[Op, Graph]):
             if output is not None:
                 ops_map["output"] = [output] if isinstance(output, Op) else output
 
-        if name == "weighted_directed":
-            return GraphCodec(
-                PyGraphCodec(
-                    "weighted_directed",
-                    input_size,
-                    output_size,
-                    ops_map,
-                    max_nodes,
-                )
-            )
-        elif name == "weighted_recurrent":
-            return GraphCodec(
-                PyGraphCodec(
-                    "weighted_recurrent",
-                    input_size,
-                    output_size,
-                    ops_map,
-                    max_nodes,
-                )
-            )
-        elif name == "recurrent":
-            return GraphCodec(
-                PyGraphCodec("recurrent", input_size, output_size, ops_map, max_nodes)
-            )
-        else:
-            if name != "directed":
-                raise ValueError(f"Unknown graph type: {name}")
-        # Default to directed graph
+        if name not in [
+            "weighted_directed",
+            "weighted_recurrent",
+            "recurrent",
+            "directed",
+        ]:
+            raise ValueError(f"Unknown graph type: {name}")
+
         return GraphCodec(
-            PyGraphCodec("directed", input_size, output_size, ops_map, max_nodes)
+            PyGraphCodec(
+                name,
+                input_size,
+                output_size,
+                ops_map,
+                max_nodes,
+            )
         )
+
+        # if name == "weighted_directed":
+        #     return GraphCodec(
+        #         PyGraphCodec(
+        #             "weighted_directed",
+        #             input_size,
+        #             output_size,
+        #             ops_map,
+        #             max_nodes,
+        #         )
+        #     )
+        # elif name == "weighted_recurrent":
+        #     return GraphCodec(
+        #         PyGraphCodec(
+        #             "weighted_recurrent",
+        #             input_size,
+        #             output_size,
+        #             ops_map,
+        #             max_nodes,
+        #         )
+        #     )
+        # elif name == "recurrent":
+        #     return GraphCodec(
+        #         PyGraphCodec("recurrent", input_size, output_size, ops_map, max_nodes)
+        #     )
+        # else:
+        #     if name != "directed":
+        #         raise ValueError(f"Unknown graph type: {name}")
+        # Default to directed graph
+        # return GraphCodec(
+        #     PyGraphCodec("directed", input_size, output_size, ops_map, max_nodes)
+        # )

@@ -36,6 +36,10 @@ pub trait Valid {
 ///         &self.allele
 ///     }
 ///
+///     fn allele_mut(&mut self) -> &mut Self::Allele {
+///         &mut self.allele
+///     }
+///
 ///     fn new_instance(&self) -> Self {
 ///        PointGene { allele: (0.0, 0.0) }
 ///     }
@@ -61,11 +65,20 @@ pub trait Gene: Clone + Valid {
     /// Get the `allele` of the [Gene]. This is the value that the [Gene] represents or "expresses".
     fn allele(&self) -> &Self::Allele;
 
+    /// Get a mutable reference to the `allele` of the [Gene].
+    fn allele_mut(&mut self) -> &mut Self::Allele;
+
     /// Create a new instance of the [Gene].
     fn new_instance(&self) -> Self;
 
     /// Create a new [Gene] with the given `allele`.
     fn with_allele(&self, allele: &Self::Allele) -> Self;
+}
+
+pub trait BoundedGene: Gene {
+    fn min(&self) -> &Self::Allele;
+    fn max(&self) -> &Self::Allele;
+    fn bounds(&self) -> (&Self::Allele, &Self::Allele);
 }
 
 /// A [Gene] that represents a number. This gene can be used to represent any type of number,
@@ -74,20 +87,6 @@ pub trait Gene: Clone + Valid {
 pub trait ArithmeticGene:
     Gene + Add<Output = Self> + Sub<Output = Self> + Mul<Output = Self> + Div<Output = Self>
 {
-    /// Get the min value of the gene as a number.
-    fn min(&self) -> &Self::Allele;
-
-    /// Get the max value of the gene as a number.
-    fn max(&self) -> &Self::Allele;
-
     /// Get the value of the gene as a number.
     fn mean(&self, other: &Self) -> Self;
-
-    /// Create a new gene from an f32.
-    fn from_f32(&self, value: f32) -> Self;
-
-    /// Create a new gene from an i32.
-    fn from_i32(&self, value: i32) -> Self {
-        self.from_f32(value as f32)
-    }
 }

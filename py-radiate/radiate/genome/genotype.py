@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from collections.abc import Iterable
-from radiate.genome.gene import GeneType
 from radiate.wrapper import PyObject
 from radiate.radiate import PyGenotype
 from .chromosome import Chromosome
+
+if TYPE_CHECKING:
+    from radiate.genome import GeneType
 
 
 class Genotype[T](PyObject[PyGenotype]):
@@ -19,12 +23,9 @@ class Genotype[T](PyObject[PyGenotype]):
         super().__init__()
 
         if isinstance(chromosomes, Chromosome):
-            self._pyobj = PyGenotype([chromosomes.to_python()])
+            self._pyobj = PyGenotype([chromosomes.__backend__()])
         elif isinstance(chromosomes, Iterable):
-            if all(isinstance(chromo, Chromosome) for chromo in chromosomes):
-                self._pyobj = PyGenotype(list(map(lambda c: c.to_python(), chromosomes)))
-            else:
-                raise ValueError("All chromosomes must be instances of Chromosome")
+            self._pyobj = PyGenotype(list(map(lambda c: c.__backend__(), chromosomes)))
 
     def __repr__(self):
         return self._pyobj.__repr__()
@@ -42,7 +43,7 @@ class Genotype[T](PyObject[PyGenotype]):
         :param index: Index of the chromosome to retrieve.
         :return: Chromosome instance at the specified index.
         """
-        return Chromosome.from_python(self._pyobj[index])
+        return Chromosome.from_rust(self._pyobj[index])
 
     def __iter__(self):
         """
@@ -50,11 +51,13 @@ class Genotype[T](PyObject[PyGenotype]):
         :return: An iterator over the chromosomes in the genotype.
         """
         for chromosome in self._pyobj.chromosomes:
-            yield Chromosome.from_python(chromosome)
+            yield Chromosome.from_rust(chromosome)
 
-    def gene_type(self) -> GeneType:
+    def gene_type(self) -> "GeneType":
         """
         Returns the type of the genes in the genotype.
         :return: The gene type as a string.
         """
+        from . import GeneType
+
         return GeneType.from_str(self._pyobj.gene_type())

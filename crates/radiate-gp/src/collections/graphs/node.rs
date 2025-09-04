@@ -318,6 +318,10 @@ where
         self.value()
     }
 
+    fn allele_mut(&mut self) -> &mut Self::Allele {
+        &mut self.value
+    }
+
     fn new_instance(&self) -> GraphNode<T> {
         GraphNode {
             id: GraphNodeId::new(),

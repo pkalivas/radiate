@@ -40,8 +40,8 @@ fn main() {
 
     engine
         .iter()
+        .logging()
         .take_while(|epoch| epoch.score().as_f32() > MIN_SCORE && epoch.seconds() < MAX_SECONDS)
-        .inspect(|ctx| log_gen!(ctx))
         .last()
         .inspect(|ctx| display(&train, &test, ctx));
 }

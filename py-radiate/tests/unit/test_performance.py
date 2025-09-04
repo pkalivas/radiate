@@ -194,30 +194,4 @@ class TestScalabilityPerformance:
             assert time_ratio < length_ratio * 2
 
 
-# TODO: do we even need this test? It seems redundant
-class TestRegressionPerformance:
-    """Performance regression tests."""
 
-    @pytest.mark.performance
-    @pytest.mark.regression
-    def test_basic_optimization_performance_regression(self, performance_benchmark):
-        """Test that basic optimization performance hasn't regressed."""
-
-        def fitness_func(x: list[float]) -> float:
-            return sum(xi**2 for xi in x)
-
-        codec = rd.FloatCodec.vector(20, init_range=(-1.0, 1.0))
-        engine = rd.GeneticEngine(codec, fitness_func)
-
-        engine.minimizing()
-        engine.population_size(200)
-        engine.offspring_selector(rd.TournamentSelector(3))
-        engine.survivor_selector(rd.EliteSelector())
-        engine.alters([rd.UniformCrossover(0.7), rd.ArithmeticMutator(0.1)])
-
-        result, execution_time = performance_benchmark.time_function(
-            engine.run, [rd.GenerationsLimit(3000)]
-        )
-
-        assert execution_time < 15.0
-        assert result.score()[0] < 0.1

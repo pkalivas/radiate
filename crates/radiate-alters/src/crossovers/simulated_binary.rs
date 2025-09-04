@@ -1,5 +1,5 @@
 use radiate_core::{
-    AlterResult, ArithmeticGene, Chromosome, Crossover, FloatGene, Gene, random_provider,
+    AlterResult, BoundedGene, Chromosome, Crossover, FloatGene, Gene, random_provider,
 };
 
 pub struct SimulatedBinaryCrossover {
@@ -32,7 +32,7 @@ impl<C: Chromosome<Gene = FloatGene>> Crossover<C> for SimulatedBinaryCrossover 
         let mut count = 0;
 
         for i in 0..length {
-            if random_provider::range(0..2) == 0 {
+            if random_provider::bool(0.5) {
                 let u = random_provider::random::<f32>();
                 let beta = if u <= 0.5 {
                     (2.0 * u).powf(1.0 / (self.contiguty + 1.0))
@@ -43,7 +43,7 @@ impl<C: Chromosome<Gene = FloatGene>> Crossover<C> for SimulatedBinaryCrossover 
                 let v1 = chrom_one.get(i).allele();
                 let v2 = chrom_two.get(i).allele();
 
-                let v = if random_provider::range(0..2) == 0 {
+                let v = if random_provider::bool(0.5) {
                     (v1 - v2) * 0.5 - (beta * 0.5 * (v1 - v2).abs())
                 } else {
                     (v1 - v2) * 0.5 + (beta * 0.5 * (v1 - v2).abs())

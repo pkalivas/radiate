@@ -11,17 +11,21 @@ class PyObject[T](ABC):
     """
 
     __slots__ = ["_pyobj"]
+    _pyobj: T
 
     def __init__(self):
         self._pyobj = None
 
     @classmethod
-    def from_python(cls, py_obj: T):
+    def from_rust(cls, py_obj: T | dict):
         instance = cls.__new__(cls)
-        instance._pyobj = py_obj
+        if isinstance(py_obj, dict):
+            instance.__dict__.update(py_obj)
+        else:
+            instance._pyobj = py_obj
         return instance
 
-    def to_python(self) -> T:
+    def __backend__(self) -> T:
         return self._pyobj
 
     def __repr__(self) -> str:
@@ -33,9 +37,9 @@ class PyObject[T](ABC):
     def __eq__(self, other: Any) -> bool:
         """Compare with another wrapper or the inner object."""
         if isinstance(other, type(self)):
-            return self.to_python() == other.to_python()
-        return self.to_python() == other
+            return self.__backend__() == other.__backend__()
+        return self.__backend__() == other
 
     def __hash__(self) -> int:
         """Hash based on the inner object."""
-        return hash(self.to_python())
+        return hash(self.__backend__())
