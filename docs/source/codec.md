@@ -415,8 +415,8 @@ Let's look at a basic example of how to use the `Codec` for evolving a simple fu
     # Create a codec for two parameters (a and b)
     codec = rd.FloatCodec.vector(
         length=2,                   # We need two parameters: a and b
-        value_range=(-1.0, 1.0),    # Start with values between -1 and 1
-        bound_range=(-10.0, 10.0)   # Allow evolution to modify the values between -10 and 10
+        init_range=(-1.0, 1.0),    # Start with values between -1 and 1
+        bounds=(-10.0, 10.0)       # Allow evolution to modify the values between -10 and 10
     )
 
     # Create the evolution engine

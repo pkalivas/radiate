@@ -100,7 +100,7 @@ def bit(length: int) -> Chromosome[bool]:
 
     Example
     --------
-    >>> rd.Chromosome.bit(length=4)
+    >>> rd.chromosome.bit(length=4)
     Chromosome(genes=[True, False, True, False])
     """
     genes = [gene.bit() for _ in range(length)]
@@ -116,7 +116,7 @@ def char(length: int, char_set: set[str] | None = None) -> Chromosome[str]:
 
     Example
     --------
-    >>> rd.Chromosome.char(length=5, char_set={'a', 'b', 'c'})
+    >>> rd.chromosome.char(length=5, char_set={'a', 'b', 'c'})
     Chromosome(genes=[a, b, c, a, b])
     """
     genes = [gene.char(char_set=char_set) for _ in range(length)]
@@ -139,7 +139,7 @@ def float(
 
     Example
     --------
-    >>> rd.Chromosome.float(length=5, value_range=(0.0, 10.0), bound_range=(-5.0, 15.0))
+    >>> rd.chromosome.float(length=5, value_range=(0.0, 10.0), bound_range=(-5.0, 15.0))
     Chromosome(genes=[0.0, 2.5, 5.0, 7.5, 10.0])
     """
     genes = [gene.float(init_range=init_range, bounds=bounds) for _ in range(length)]
