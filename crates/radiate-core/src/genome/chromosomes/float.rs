@@ -1,8 +1,8 @@
 use super::{
     Chromosome,
-    gene::{ArithmeticGene, Gene, Valid},
+    gene::{ArithmeticGene, BoundedGene, Gene, Valid},
 };
-use crate::{chromosomes::gene::BoundedGene, random_provider};
+use crate::random_provider;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::{

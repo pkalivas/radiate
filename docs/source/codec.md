@@ -55,7 +55,7 @@ Radiate provides several codec types out of the box that should be able to cover
     - Continuous optimization problems
     - Real-valued parameters
 
-    In all `FloatCodec` varients, the `bound_range` is optional and defaults to the `value_range` if not specified.
+    In all `FloatCodec` varients, the `bounds` is optional and defaults to the `init_range` if not specified.
 
 
     === ":fontawesome-brands-python: Python"
@@ -64,16 +64,16 @@ Radiate provides several codec types out of the box that should be able to cover
         import radiate as rd
 
         # For a single parameter
-        codec = rd.FloatCodec.scalar(value_range=(0.0, 1.0), bound_range=(-10.0, 10.0))
+        codec = rd.FloatCodec.scalar(init_range=(0.0, 1.0), bounds=(-10.0, 10.0))
 
         # For a list of parameters
-        codec = rd.FloatCodec.vector(length=5, value_range=(-1.0, 1.0), bound_range=(-10.0, 10.0))
+        codec = rd.FloatCodec.vector(length=5, init_range=(-1.0, 1.0), bounds=(-10.0, 10.0))
 
         # For a matrix of parameters (like neural network weights)
-        codec = rd.FloatCodec.matrix(shape=(3, 2), value_range=(-0.1, 0.1), bound_range=(-1.0, 1.0))
+        codec = rd.FloatCodec.matrix(shape=(3, 2), init_range=(-0.1, 0.1), bounds=(-1.0, 1.0))
         # -- or --
         # supply a list of shapes for jagged matrices e.g. matrix with three rows (chromosomes) and two columns (genes)
-        codec = rd.FloatCodec.matrix([2, 2, 2], value_range=(-0.1, 0.1), bound_range=(-1.0, 1.0))
+        codec = rd.FloatCodec.matrix([2, 2, 2], init_range=(-0.1, 0.1), bounds=(-1.0, 1.0))
         ```
 
     === ":fontawesome-brands-rust: Rust"
@@ -107,7 +107,7 @@ Radiate provides several codec types out of the box that should be able to cover
     - Array indices
     - Configuration parameters that must be whole numbers
 
-    In all `IntCodec` varients, the `bound_range` is optional and defaults to the `value_range` if not specified. 
+    In all `IntCodec` varients, the `bounds` is optional and defaults to the `init_range` if not specified.
 
     === ":fontawesome-brands-python: Python"
 
@@ -115,16 +115,16 @@ Radiate provides several codec types out of the box that should be able to cover
         import radiate as rd
 
         # For a single parameter
-        codec = rd.IntCodec.scalar(value_range=(0, 1), bound_range=(-10, 10))
+        codec = rd.IntCodec.scalar(init_range=(0, 1), bounds=(-10, 10))
 
         # For a list of parameters
-        codec = rd.IntCodec.vector(length=5, value_range=(-1, 1), bound_range=(-10, 10))
+        codec = rd.IntCodec.vector(length=5, init_range=(-1, 1), bounds=(-10, 10))
 
         # For a matrix of ints
-        codec = rd.IntCodec.matrix(shape=(3, 2), value_range=(-1, 1), bound_range=(-10, 10))
+        codec = rd.IntCodec.matrix(shape=(3, 2), init_range=(-1, 1), bounds=(-10, 10))
         # -- or --
         # supply a list of shapes for jagged matrices e.g. matrix with three rows (chromosomes) and two columns (genes)
-        codec = rd.IntCodec.matrix([2, 2, 2], value_range=(-1, 1), bound_range=(-10, 10))
+        codec = rd.IntCodec.matrix([2, 2, 2], init_range=(-1, 1), bounds=(-10, 10))
         ```
 
     === ":fontawesome-brands-rust: Rust"
