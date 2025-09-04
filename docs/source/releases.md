@@ -2,6 +2,17 @@
 
 ---
 
+## v1.2.17 - py 0.0.7
+
+- 2025-09-04
+- [Release](https://github.com/pkalivas/radiate/releases/tag/v1.2.17)
+
+In response to github issue [#23](https://github.com/pkalivas/radiate/issues/23).
+
+Ensuring that FloatGenes/IntGene<T>'s respect their bounds during mutation and crossover. This was a bug where mutated or crossovered genes could exceed their defined bounds, which could lead to invalid individuals in the population. This fix ensures that all FloatGenes/IntGene<T>'s remain within their specified bounds after any genetic operation. Also some optimizations and code cleanup for py-radiate. Large additions to tests.
+
+Also adding new mutator: `JitterMutator` for FloatGenes. This mutator adds a small random value (jitter) to each gene, controlled by a `magnitude` parameter.
+
 ## v1.2.16
 
 - 2025-08-19
