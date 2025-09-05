@@ -21,6 +21,7 @@ where
         self.rate
     }
 
+    #[inline]
     fn mutate_chromosome(&self, chromosome: &mut C, rate: f32) -> AlterResult {
         let mut count = 0;
 

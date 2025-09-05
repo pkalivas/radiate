@@ -32,6 +32,7 @@ impl<G: ArithmeticGene, C: Chromosome<Gene = G>> Mutate<C> for ArithmeticMutator
     /// Mutate a gene by performing an arithmetic operation on it.
     /// Randomly select a number between 0 and 3, and perform the corresponding
     /// arithmetic operation on the gene.
+    #[inline]
     fn mutate_chromosome(&self, chromosome: &mut C, rate: f32) -> AlterResult {
         let mut mutations = 0;
         for gene in chromosome.iter_mut() {

@@ -12,10 +12,10 @@ pub trait Scored {
     fn score(&self) -> Option<&Score>;
 }
 
-/// A score is a value that can be used to compare the fitness of two individuals and represents
+/// A [Score] is a value that can be used to compare the fitness of two individuals and represents
 /// the 'fitness' of an individual within the genetic algorithm.
-/// The score can be a single value or multiple values, depending on the problem being solved.
-/// For ease of use the `Score` struct provides methods
+/// The [Score] can be a single value or multiple values, depending on the problem being solved.
+/// For ease of use the [Score] struct provides methods
 /// to convert the score to a single value, an integer, a string, or a vector of `f32` values.
 ///
 /// Note: The reason it is a Vec is for multi-objective optimization problems. This allows for multiple

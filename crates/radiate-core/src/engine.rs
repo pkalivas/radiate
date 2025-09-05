@@ -63,7 +63,7 @@
 ///
 /// The [Engine] trait is intentionally minimal, focusing on the core concept of
 /// progression through evolutionary time. This allows for maximum flexibility in
-/// implementing different evolutionary algorithms while maintaining a consistent
+/// implementing different evolutionary algorithms while maintaining a small, consistent
 /// interface for execution control.
 pub trait Engine {
     /// The type representing a single epoch or generation in the evolutionary process.

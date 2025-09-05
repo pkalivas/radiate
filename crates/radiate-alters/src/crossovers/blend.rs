@@ -63,9 +63,8 @@ mod tests {
 
     #[test]
     fn test_cross_chromosomes_basic() {
-        let crossover = BlendCrossover::new(1.0, 0.5); // 100% crossover rate for deterministic testing
+        let crossover = BlendCrossover::new(1.0, 0.5);
 
-        // Create test chromosomes with known values
         let genes1 = vec![
             FloatGene::new(1.0, 0.0..10.0, 0.0..10.0),
             FloatGene::new(2.0, 0.0..10.0, 0.0..10.0),
@@ -80,13 +79,11 @@ mod tests {
         let mut chrom_one = FloatChromosome::new(genes1);
         let mut chrom_two = FloatChromosome::new(genes2);
 
-        // Store original values for comparison
         let original_one: Vec<f32> = chrom_one.iter().map(|g| *g.allele()).collect();
         let original_two: Vec<f32> = chrom_two.iter().map(|g| *g.allele()).collect();
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, 1.0);
 
-        // Should perform 3 crossover operations (one for each gene)
         assert_eq!(result.count(), 3);
 
         // Check that values have been blended according to the formula
@@ -124,7 +121,6 @@ mod tests {
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, 0.0);
 
-        // Should perform 0 crossover operations
         assert_eq!(result.count(), 0);
 
         // Values should remain unchanged
@@ -153,10 +149,8 @@ mod tests {
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, 1.0);
 
-        // Should perform 2 crossover operations (min length is 2)
         assert_eq!(result.count(), 2);
 
-        // Only the first 2 genes should be affected
         let alpha = 0.3;
         let expected_one_0 = 1.0 - (alpha * (4.0 - 1.0));
         let expected_two_0 = 4.0 - (alpha * (1.0 - 4.0));
@@ -168,7 +162,6 @@ mod tests {
         assert!((chrom_one.get(1).allele() - expected_one_1).abs() < 1e-6);
         assert!((chrom_two.get(1).allele() - expected_two_1).abs() < 1e-6);
 
-        // Third gene should remain unchanged
         assert_eq!(*chrom_one.get(2).allele(), 3.0);
     }
 

@@ -1,9 +1,9 @@
 use radiate::*;
 
-const N_QUEENS: usize = 32;
+const N_QUEENS: usize = 45;
 
 fn main() {
-    random_provider::set_seed(500);
+    random_provider::set_seed(12345);
 
     let engine = GeneticEngine::builder()
         .codec(IntChromosome::from((N_QUEENS, 0..N_QUEENS as i8)))
@@ -32,7 +32,6 @@ fn main() {
     let result = engine.iter().logging().until_score(0).last().unwrap();
 
     println!("Best Score: {:?}", result);
-
     println!("\nResult Queens Board ({:.3?}):", result.time());
 
     let board = &result.value();
