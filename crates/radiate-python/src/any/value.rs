@@ -152,11 +152,6 @@ impl<'a> AnyValue<'a> {
         })
     }
 
-    // #[inline]
-    // pub fn with_numeric_mut<R>(&mut self, f: impl FnOnce(NumericSlotMut<'_>) -> R) -> Option<R> {
-    //     self.numeric_mut().map(f)
-    // }
-
     #[inline]
     pub fn with_struct_field_numeric_mut<R>(
         &mut self,

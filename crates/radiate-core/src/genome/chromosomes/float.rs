@@ -7,7 +7,7 @@ use crate::random_provider;
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::{Debug, Display},
-    ops::{Add, Bound, Div, Mul, Range, RangeBounds, Sub},
+    ops::{Add, Div, Mul, Range, Sub},
 };
 
 /// Minimum and maximum values for the `FloatGene` allele.
@@ -54,10 +54,6 @@ impl FloatGene {
             bounds: MIN.max(bounds.start)..MAX.min(bounds.end),
         }
     }
-
-    // pub fn bounds(&self) -> &Range<f32> {
-    //     &self.bounds
-    // }
 }
 
 /// Implement the [`Valid`] trait for the [`FloatGene`].
@@ -100,15 +96,15 @@ impl Gene for FloatGene {
 }
 
 impl BoundedGene for FloatGene {
-    fn min(&self) -> &f32 {
+    fn min(&self) -> &Self::Allele {
         &self.value_range.start
     }
 
-    fn max(&self) -> &f32 {
+    fn max(&self) -> &Self::Allele {
         &self.value_range.end
     }
 
-    fn bounds(&self) -> (&f32, &f32) {
+    fn bounds(&self) -> (&Self::Allele, &Self::Allele) {
         (&self.bounds.start, &self.bounds.end)
     }
 }
@@ -120,16 +116,6 @@ impl ArithmeticGene for FloatGene {
             value_range: self.value_range.clone(),
             bounds: self.bounds.clone(),
         }
-    }
-}
-
-impl RangeBounds<f32> for FloatGene {
-    fn start_bound(&self) -> Bound<&f32> {
-        self.bounds.start_bound()
-    }
-
-    fn end_bound(&self) -> Bound<&f32> {
-        self.bounds.end_bound()
     }
 }
 
@@ -385,21 +371,21 @@ mod tests {
 
         // assert_eq!(*gene_one.min(), 0_f32);
         assert_eq!(*gene_one.max(), 1_f32);
-        assert_eq!(gene_one.start_bound(), Bound::Included(&0_f32));
-        assert_eq!(gene_one.end_bound(), Bound::Excluded(&1_f32));
+        assert_eq!(gene_one.bounds().0, &0_f32);
+        assert_eq!(gene_one.bounds().1, &1_f32);
         assert!(gene_one.is_valid());
 
         // assert_eq!(*gene_two.min(), -1.0);
         assert_eq!(*gene_two.max(), 1.0);
-        assert_eq!(gene_two.start_bound(), Bound::Included(&-100.0));
-        assert_eq!(gene_two.end_bound(), Bound::Excluded(&100.0));
+        assert_eq!(gene_two.bounds().0, &-100.0);
+        assert_eq!(gene_two.bounds().1, &100.0);
         assert!(gene_two.is_valid());
 
         assert_eq!(*gene_three.allele(), 10.0);
         // assert_eq!(*gene_three.min(), MIN);
         assert_eq!(*gene_three.max(), MAX);
-        assert_eq!(gene_three.start_bound(), Bound::Included(&-1000.0));
-        assert_eq!(gene_three.end_bound(), Bound::Excluded(&1000.0));
+        assert_eq!(gene_three.bounds().0, &-1000.0);
+        assert_eq!(gene_three.bounds().1, &1000.0);
     }
 
     #[test]

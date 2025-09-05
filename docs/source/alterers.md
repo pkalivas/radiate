@@ -88,7 +88,7 @@ The `GaussianMutator` operator is a mutation mechanism designed for `ArithmeticG
 - **Example**: Useful for numerical optimization where you want to explore the space through arithmetic operations
 - **Compatible with**: `FloatGene`, `IntGene<I>`
 
-The `ArithmeticMutator` introduces diversity into genetic algorithms by mutating numerically based `genes` through basic arithmetic operations. It is designed to work on `genes` that support addition, subtraction, multiplication, and division.
+The `ArithmeticMutator` introduces diversity into genetic algorithms by mutating numerically based `genes` through basic arithmetic operations. It is designed to work on `genes` that support addition, subtraction, multiplication, and division. Once the values have gone through their arithmatic operation, the result is clamped by the `gene`'s bounds to ensure it remains valid.
 
 1. Choose a random arithmetic operation: addition, subtraction, multiplication, or division.
 2. Apply the operation to the `gene` value using a randomly generated value of the same `gene` type.
@@ -231,6 +231,36 @@ The `eta` parameter controls the shape of the mutation distribution. A higher `e
 	use radiate::*;
 
 	let mutator = PolynomialMutator::new(0.1, 20.0);
+	```
+
+
+### Jitter
+
+> Inputs
+> 
+> * `rate`: f32 - Mutation rate (0.0 to 1.0)
+> * `magnitude`: f32 - Maximum jitter magnitude
+
+- **Purpose**: Adds small random perturbations to gene values
+- **Best for**: Fine-tuning solutions in continuous spaces
+- **Example**: Useful for exploring the neighborhood of a solution
+- **Compatible with**: `FloatGene`
+
+The `JitterMutator` adds small random perturbations to the values of a `gene` within a `chromosome`. A random value is sampled from a uniform distribution between [-1, 1], then it is scaled by the `magnitude` parameter and added to the current gene value. This mutation operator is particularly useful for fine-tuning solutions in continuous spaces, as it allows for small adjustments that can help explore the local neighborhood of a solution.
+
+=== ":fontawesome-brands-python: Python"
+
+	```python
+	import radiate as rd
+
+	mutator = rd.JitterMutator(rate=0.1, magnitude=0.5)
+	```
+=== ":fontawesome-brands-rust: Rust"
+
+	```rust
+	use radiate::*;
+
+	let mutator = JitterMutator::new(0.1, 0.5);
 	```
 
 ---
