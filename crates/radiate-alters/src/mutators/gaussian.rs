@@ -4,7 +4,8 @@ use radiate_core::{
 
 /// The `GaussianMutator` is a simple mutator that adds a small amount of Gaussian noise to the gene.
 ///
-/// This mutator is for use with the `FloatChromosome` or any `Chromosome` which holds `FloatGene`s.
+/// This mutator is for use with any [Chromosome] which holds [FloatGene]s.
+#[derive(Debug, Clone)]
 pub struct GaussianMutator {
     rate: f32,
 }

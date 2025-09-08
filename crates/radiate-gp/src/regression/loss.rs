@@ -11,6 +11,7 @@ pub enum Loss {
 }
 
 impl Loss {
+    #[inline]
     pub fn calculate<F>(&self, samples: &DataSet, eval_func: &mut F) -> f32
     where
         F: FnMut(&Vec<f32>) -> Vec<f32>,

@@ -1,4 +1,5 @@
-use crate::{ExprNode, MutateExpr, apply_numeric_slot_mut};
+use super::super::apply_numeric_slot_mut;
+use super::{ExprNode, MutateExpr};
 use radiate::random_provider;
 
 impl MutateExpr {

@@ -1,6 +1,8 @@
 use crate::chromosome::{ImageChromosome, ImageGene};
 use radiate::{Gene, Mutate, random_provider};
 
+/// This is a simple mutator for the [ImageChromosome] that mutates the vertices of the polygons.
+/// This is the same logic used by the [JitterMutator](radiate::JitterMutator) but adapted/applied to the [ImageGene].
 #[derive(Clone, Debug)]
 pub struct ImageMutator {
     rate: f32,

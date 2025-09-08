@@ -1,5 +1,9 @@
 # Events and Subscriptions
 
+!!! warning ":construction: Under Construction :construction:"
+
+    As of `9/8/2025`: These docs are a work in progress and may not be complete or fully accurate. Please check back later for updates.
+
 Radiate provides an event system that allows you to monitor and react to the evolution process in real-time. This is great for:
 
 - Tracking the progress of evolution
@@ -20,11 +24,18 @@ The `GeneticEngine` tries it's best to off-load almost the entire compute worklo
 --- 
 ## Event Types
 
-Radiate provides several key events that you can subscribe to:
+Radiate provides several key events that you can subscribe to as seen below with their respective data payloads in json:
 
 ??? note "Start Event"
 
     This event is triggered when the evolution process starts. It provides an opportunity to initialize any resources or perform setup tasks before the evolution begins.
+
+    ```json
+    {
+        'id': 0, 
+        'type': 'start'
+    }
+    ```
 
 ??? note "Stop Event"
 
@@ -34,9 +45,30 @@ Radiate provides several key events that you can subscribe to:
     - The best individual found
     - The final `score`, or fitness, of the best individual
 
+    ```json
+    {
+        'id': 11,
+        'type': 'stop',
+        // This will be a dictionary of metrics collected, see Engine's metrics docs for more info
+        'metrics': ..., 
+        // This will be the decoded best individual found so far. So, if you are 
+        // evolving a vector of FloatGenes, this will be a list of floats
+        'best': [3.9699993,  1.5489225, -1.7164116,  1.0756674, -1.932127 , -2.3247557], 
+        'score': 0.3327971398830414
+    }
+    ```
+
 ??? note "Epoch Start Event"
 
     This event is triggered at the start of each generation (epoch) and provides the current generation number. It allows you to perform actions before the evolution step begins, such as resetting counters or logging initial state.
+
+    ```json
+    {
+        'id': 1,
+        'type': 'epoch_start',
+        'index': 0
+    }
+    ```
 
 ??? note "Epoch Complete Event"
 
@@ -47,13 +79,43 @@ Radiate provides several key events that you can subscribe to:
     - The best individual found from the `GeneticEngine` so far
     - The best `score`, or fitness, from the best individual
 
+    ```json
+    {
+        'id': 12,
+        'type': 'epoch_complete',
+        'index': 0,
+        // This will be a dictionary of metrics collected, see Engine's metrics docs for more info
+        'metrics': ..., 
+        // This will be the decoded best individual found so far. So, if you are 
+        // evolving a vector of FloatGenes, this will be a list of floats
+        'best': [3.9699993,  1.5489225, -1.7164116,  1.0756674, -1.932127 , -2.3247557], 
+        'score': 0.3327971398830414
+    }
+    ```
+
 ??? note "Step Start Event"
 
     This event is triggered at the start of each evolution step. It provides the name of the step being executed, allowing you to monitor the progress of specific steps in the evolution process.
 
+    ```json
+    {
+        'id': 14,
+        'type': 'step_start',
+        'step': 'EvaluateStep'
+    }
+    ```
+
 ??? note "Step Complete Event"
 
     This event is triggered at the end of each evolution step. It provides the name of the step that was executed, allowing you to log or monitor the completion of specific steps in the evolution process.
+
+    ```json
+    {
+        'id': 15,
+        'type': 'step_complete',
+        'step': 'EvaluateStep'
+    }
+    ```
 
 ??? note "Engine Improvement Event"
 
@@ -63,183 +125,129 @@ Radiate provides several key events that you can subscribe to:
     - The best individual found at that point
     - The `score`, or fitness, of the best individual
 
+    ```json
+    {
+        'id': 2,
+        'type': 'engine_improvement',
+        'index': 0,
+        // This will be the decoded best individual found so far. So, if you are 
+        // evolving a vector of FloatGenes, this will be a list of floats
+        'best': [3.9699993,  1.5489225, -1.7164116,  1.0756674, -1.932127 , -2.3247557], 
+        'score': 0.3327971398830414
+    }
+    ```
+
 ---
 
 ## Subscribing to Events
 
 You can subscribe to events in two ways:
 
-### 1. Using a Callback Function
+### 1. Callback Function
 
 The simplest way to subscribe to events is by providing a callback function:
 
-
-!!! warning ":construction: Under Construction :construction:"
-
-    These docs are a work in progress and may not be complete or accurate. Please check back later for updates.
-
-<!-- === ":fontawesome-brands-python: Python"
-
-    ```python
-    import radiate as rd
-
-    def epoch_callback(generation):
-        # Access generation information
-        print(f"Generation {generation.number}:")
-        print(f"Best score: {generation.score()}")
-        print(f"Population size: {len(generation.population())}")
-        
-        # Access metrics
-        metrics = generation.metrics()
-        if metrics:
-            print("Metrics:")
-            for name, metric in metrics.iter():
-                print(f"  {name}: {metric}")
-
-    # Create and configure the engine
-    engine = rd.GeneticEngine(
-        codec=your_codec,
-        fitness_func=your_fitness_func,
-        # ... other parameters ...
-    )
-
-    # Subscribe to events
-    engine.subscribe(epoch_callback)
-
-    # Run the engine
-    result = engine.run([rd.ScoreLimit(0.01)])
-    ```
-
-=== ":fontawesome-brands-rust: Rust"
-
-    ```rust
-    use radiate::*;
-
-    fn epoch_callback(generation: &Epoch) {
-        // Access generation information
-        println!("Generation {}:", generation.index());
-        println!("Best score: {:?}", generation.score());
-        println!("Population size: {}", generation.population().len());
-        
-        // Access metrics
-        if let Some(metrics) = generation.metrics() {
-            println!("Metrics:");
-            for (name, metric) in metrics.iter() {
-                println!("  {}: {:?}", name, metric);
-            }
-        }
-    }
-
-    // Create and configure the engine
-    let mut engine = GeneticEngine::builder()
-        .codec(your_codec)
-        .fitness_fn(your_fitness_fn)
-        // ... other parameters ...
-        .build();
-
-    // Subscribe to events
-    engine.subscribe(epoch_callback);
-
-    // Run the engine
-    let result = engine.run(|generation| {
-        epoch_callback(generation);
-        generation.score().as_f32() <= 0.01
-    });
-    ``` -->
-
-### 2. Using an Event Handler Class
-
-For more complex event handling, you can create a custom event handler class:
-
-
-!!! warning ":construction: Under Construction :construction:"
-
-    These docs are a work in progress and may not be complete or accurate. Please check back later for updates.
-
-<!-- 
 === ":fontawesome-brands-python: Python"
 
     ```python
     import radiate as rd
-    from radiate.handlers import EventHandler
 
-    class CustomEventHandler(EventHandler):
-        def __init__(self):
-            self.best_score = float('inf')
-            self.generations_without_improvement = 0
-        
-        def on_event(self, generation):
-            # Track best score
-            current_score = generation.score()
-            if current_score < self.best_score:
-                self.best_score = current_score
-                self.generations_without_improvement = 0
-            else:
-                self.generations_without_improvement += 1
-            
-            # Print progress
-            print(f"Generation {generation.number}:")
-            print(f"Current score: {current_score}")
-            print(f"Best score: {self.best_score}")
-            print(f"Generations without improvement: {self.generations_without_improvement}")
-            
-            # Access species information if diversity is enabled
-            if generation.species():
-                print(f"Number of species: {len(generation.species())}")
-
-    # Create and configure the engine
     engine = rd.GeneticEngine(
         codec=your_codec,
         fitness_func=your_fitness_func,
+        # Subscribe to all events using a lambda function
+        subscribe=lambda event: print(event),  
         # ... other parameters ...
     )
 
-    # Subscribe using the event handler
-    handler = CustomEventHandler()
-    engine.subscribe(handler)
+    # or add it later
+    engine.subscribe(lambda event: print(event))
 
     # Run the engine
-    result = engine.run([rd.ScoreLimit(0.01)])
+    engine.run(rd.GenerationsLimit(100))
     ```
 
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
     use radiate::*;
-    use std::sync::Arc;
 
-    struct CustomEventHandler {
-        best_score: f32,
-        generations_without_improvement: usize,
-    }
+    let mut engine = GeneticEngine::builder()
+        .codec(your_codec)
+        .fitness_fn(your_fitness_fn)
+        .subscribe(|event: Event<EngineEvent<Vec<f32>>>| {
+            if let EngineEvent::EpochComplete {
+                index,
+                metrics: _,
+                best: _,
+                score,
+            } = event.data()
+            {
+                println!("Printing from event handler! [ {:?} ]: {:?}", index, score);
+            }
+        })
+        // ... other parameters ...
+        .build();
 
-    impl CustomEventHandler {
-        fn new() -> Self {
-            Self {
-                best_score: f32::INFINITY,
-                generations_without_improvement: 0,
-            }
-        }
-        
-        fn handle_event(&mut self, generation: &Epoch) {
-            // Track best score
-            let current_score = generation.score().as_f32();
-            if current_score < self.best_score {
-                self.best_score = current_score;
-                self.generations_without_improvement = 0;
-            } else {
-                self.generations_without_improvement += 1;
-            }
-            
-            // Print progress
-            println!("Generation {}:", generation.index());
-            println!("Current score: {}", current_score);
-            println!("Best score: {}", self.best_score);
-            println!("Generations without improvement: {}", self.generations_without_improvement);
-            
-            // Access species information if diversity is enabled
-            if let Some(species) = generation.species() {
-                println!("Number of species: {}", species.len());
+    // Run the engine
+    let result = engine.run(|generation| {
+        generation.index() >= 100
+    });
+    ``` 
+
+### 2. Event Handler Class
+
+For more complex event handling, you can create a custom event handler class:
+
+=== ":fontawesome-brands-python: Python"
+
+    ```python
+    import radiate as rd
+
+    # Inherit from EventHandler, tell the super class which event you'd like to subscribe to, 
+    # then override the on_event method
+    class Subscriber(rd.EventHandler):
+        def __init__(self):
+            super().__init__(rd.EventType.EPOCH_COMPLETE)
+
+        def on_event(self, event):
+            print(f"Event: {event}")
+
+    # Create an instance of your event handler
+    handler = Subscriber()
+
+    engine = rd.GeneticEngine(
+        codec=your_codec,
+        fitness_func=your_fitness_func,
+        subscribe=handler,
+        # ... other parameters ...
+    )
+
+    # or add it later
+    engine.subscribe(handler)
+
+    # Run the engine for 100 generations
+    engine.run(rd.GenerationsLimit(100))
+
+    ```
+
+=== ":fontawesome-brands-rust: Rust"
+
+    ```rust
+    use radiate::*;
+
+    struct MyHandler;
+
+    impl EventHandler<EngineEvent<Vec<f32>>> for MyHandler {
+        fn handle(&mut self, event: Event<EngineEvent<Vec<f32>>>) {
+            if let EngineEvent::EpochComplete {
+                index,
+                metrics: _,
+                best: _,
+                score,
+            } = event.data()
+            {
+                println!("Printing from event handler! [ {:?} ]: {:?}", index, score);
             }
         }
     }
@@ -247,21 +255,16 @@ For more complex event handling, you can create a custom event handler class:
     // Create and configure the engine
     let mut engine = GeneticEngine::builder()
         .codec(your_codec)
+        .subscribe(MyHandler)   // Add your handler here
         .fitness_fn(your_fitness_fn)
         // ... other parameters ...
         .build();
 
-    // Create and use the event handler
-    let mut handler = CustomEventHandler::new();
-    engine.subscribe(Arc::new(move |generation| {
-        handler.handle_event(generation);
-    }));
-
     // Run the engine
     let result = engine.run(|generation| {
-        generation.score().as_f32() <= 0.01
+        generation.index() >= 100
     });
-    ``` -->
+    ``` 
 
 ## Best Practices
 
@@ -283,240 +286,3 @@ For more complex event handling, you can create a custom event handler class:
     - Use built in `metrics` to track certain metrics or performance characteristics if possible
     - Be cautious of your implementation - consider disabling event handling in production if not essential
 
-
-<!-- ## Available Metrics
-
-The event system provides access to various metrics through the `metrics()` method. Here are some of the key metrics available:
-
-- `age`: The age of individuals in the population
-- `score`: The fitness scores of individuals
-- `genome_size`: The size of genomes in the population
-- `unique_scores`: The number of unique fitness scores
-- `unique_members`: The number of unique individuals
-- `species_age`: The age of species (if diversity is enabled)
-- `evolution_time`: The time taken for evolution -->
-
-<!-- ## Example: Complete Monitoring Setup
-
-Here's a complete example showing how to set up comprehensive monitoring:
-
-=== ":fontawesome-brands-python: Python"
-
-    ```python
-    import radiate as rd
-    from radiate.handlers import EventHandler
-    import json
-    from datetime import datetime
-
-    class MonitoringHandler(EventHandler):
-        def __init__(self, log_file="evolution.log"):
-            self.log_file = log_file
-            self.start_time = datetime.now()
-            self.best_score = float('inf')
-            self.generations_without_improvement = 0
-            
-            # Initialize log file
-            with open(self.log_file, 'w') as f:
-                f.write("Evolution Log\n")
-                f.write("=============\n\n")
-        
-        def on_event(self, generation):
-            # Calculate metrics
-            current_score = generation.score()
-            time_elapsed = (datetime.now() - self.start_time).total_seconds()
-            
-            # Update best score tracking
-            if current_score < self.best_score:
-                self.best_score = current_score
-                self.generations_without_improvement = 0
-            else:
-                self.generations_without_improvement += 1
-            
-            # Collect metrics
-            metrics = {
-                "generation": generation.number,
-                "current_score": current_score,
-                "best_score": self.best_score,
-                "time_elapsed": time_elapsed,
-                "population_size": len(generation.population()),
-                "generations_without_improvement": self.generations_without_improvement
-            }
-            
-            # Add species information if available
-            if generation.species():
-                metrics["species_count"] = len(generation.species())
-                metrics["species_ages"] = [
-                    species.age(generation.number)
-                    for species in generation.species()
-                ]
-            
-            # Add other metrics from the generation
-            for name, metric in generation.metrics().iter():
-                metrics[name] = metric.distribution_mean()
-            
-            # Log to file
-            with open(self.log_file, 'a') as f:
-                f.write(f"\nGeneration {generation.number}:\n")
-                f.write(json.dumps(metrics, indent=2))
-                f.write("\n")
-            
-            # Print progress
-            print(f"Generation {generation.number}:")
-            print(f"  Score: {current_score:.6f}")
-            print(f"  Best: {self.best_score:.6f}")
-            print(f"  Time: {time_elapsed:.1f}s")
-            print(f"  Species: {metrics.get('species_count', 'N/A')}")
-
-    # Create and configure the engine
-    engine = rd.GeneticEngine(
-        codec=your_codec,
-        fitness_func=your_fitness_func,
-        diversity=rd.EuclideanDistance(),
-        species_threshold=0.5,
-        # ... other parameters ...
-    )
-
-    # Set up monitoring
-    monitor = MonitoringHandler("evolution.log")
-    engine.subscribe(monitor)
-
-    # Run the engine
-    result = engine.run([
-        rd.ScoreLimit(0.01),
-        rd.GenerationsLimit(1000)
-    ])
-    ```
-
-=== ":fontawesome-brands-rust: Rust"
-
-    ```rust
-    use radiate::*;
-    use std::{
-        fs::File,
-        io::Write,
-        sync::Arc,
-        time::Instant,
-    };
-    use serde_json::json;
-
-    struct MonitoringHandler {
-        log_file: String,
-        start_time: Instant,
-        best_score: f32,
-        generations_without_improvement: usize,
-    }
-
-    impl MonitoringHandler {
-        fn new(log_file: &str) -> Self {
-            // Initialize log file
-            let mut file = File::create(log_file).unwrap();
-            writeln!(file, "Evolution Log").unwrap();
-            writeln!(file, "=============\n").unwrap();
-            
-            Self {
-                log_file: log_file.to_string(),
-                start_time: Instant::now(),
-                best_score: f32::INFINITY,
-                generations_without_improvement: 0,
-            }
-        }
-        
-        fn handle_event(&mut self, generation: &Epoch) {
-            // Calculate metrics
-            let current_score = generation.score().as_f32();
-            let time_elapsed = self.start_time.elapsed().as_secs_f64();
-            
-            // Update best score tracking
-            if current_score < self.best_score {
-                self.best_score = current_score;
-                self.generations_without_improvement = 0;
-            } else {
-                self.generations_without_improvement += 1;
-            }
-            
-            // Collect metrics
-            let mut metrics = json!({
-                "generation": generation.index(),
-                "current_score": current_score,
-                "best_score": self.best_score,
-                "time_elapsed": time_elapsed,
-                "population_size": generation.population().len(),
-                "generations_without_improvement": self.generations_without_improvement
-            });
-            
-            // Add species information if available
-            if let Some(species) = generation.species() {
-                metrics["species_count"] = json!(species.len());
-                metrics["species_ages"] = json!(
-                    species.iter()
-                        .map(|s| s.age(generation.index()))
-                        .collect::<Vec<_>>()
-                );
-            }
-            
-            // Add other metrics from the generation
-            if let Some(metrics_set) = generation.metrics() {
-                for (name, metric) in metrics_set.iter() {
-                    if let Some(mean) = metric.distribution_mean() {
-                        metrics[name] = json!(mean);
-                    }
-                }
-            }
-            
-            // Log to file
-            let mut file = File::options()
-                .append(true)
-                .open(&self.log_file)
-                .unwrap();
-            
-            writeln!(file, "\nGeneration {}:", generation.index()).unwrap();
-            writeln!(file, "{}", serde_json::to_string_pretty(&metrics).unwrap()).unwrap();
-            
-            // Print progress
-            println!("Generation {}:", generation.index());
-            println!("  Score: {:.6}", current_score);
-            println!("  Best: {:.6}", self.best_score);
-            println!("  Time: {:.1}s", time_elapsed);
-            println!("  Species: {}", 
-                metrics.get("species_count")
-                    .map_or("N/A", |v| v.as_str().unwrap_or("N/A"))
-            );
-        }
-    }
-
-    // Create and configure the engine
-    let mut engine = GeneticEngine::builder()
-        .codec(your_codec)
-        .fitness_fn(your_fitness_fn)
-        .diversity(EuclideanDistance::new())
-        .species_threshold(0.5)
-        // ... other parameters ...
-        .build();
-
-    // Set up monitoring
-    let mut monitor = MonitoringHandler::new("evolution.log");
-    engine.subscribe(Arc::new(move |generation| {
-        monitor.handle_event(generation);
-    }));
-
-    // Run the engine
-    let result = engine.run(|generation| {
-        generation.index() >= 1000 || generation.score().as_f32() <= 0.01
-    });
-    ``` -->
-
-<!-- This example demonstrates:
-- Comprehensive metric collection
-- File-based logging
-- Progress monitoring
-- Species tracking
-- Performance measurement
-- Best score tracking
-- Early stopping conditions
-
-The logged data can be used for:
-- Post-evolution analysis
-- Visualization
-- Performance optimization
-- Debugging
-- Documentation of evolution runs -->

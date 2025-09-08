@@ -1,4 +1,5 @@
-use crate::{AnyChromosome, ExprNode, ExprNodeMeta, ExprValue, FilterExpr};
+use super::{ExprNode, ExprNodeMeta, ExprValue};
+use crate::AnyChromosome;
 use radiate::{Chromosome, random_provider};
 use std::ops::Range;
 
@@ -27,40 +28,19 @@ pub enum SelectExpr {
 }
 
 #[derive(Debug, Clone)]
-pub struct Alteration {
-    pub name: String,
-    pub expr: PyExpr,
-    pub target: String,
-    pub p: f32,
-}
-
-#[derive(Debug, Clone)]
-pub enum Literal {
-    Float(f32),
-    Double(f64),
-    Int(i32),
-    Long(i64),
-    String(String),
+pub enum FilterExpr {
+    Prob(f32),
 }
 
 #[derive(Debug, Clone)]
 pub enum PyExpr {
-    // structure/navigation
-    This,                        // do nothing
-    AtIndex(usize, Box<PyExpr>), // run inner at a specific index
-    All(Box<PyExpr>),            // map inner across all children (vectors/structs)
-
-    // combinators
-    Seq(Vec<PyExpr>),       // run in order (pipe)
-    Prob(f32, Box<PyExpr>), // run inner with probability p
-
-    // filtering
+    This,
+    AtIndex(usize, Box<PyExpr>),
+    All(Box<PyExpr>),
+    Seq(Vec<PyExpr>),
+    Prob(f32, Box<PyExpr>),
     Filter(FilterExpr),
-
-    // selection
     Select(SelectExpr, Box<PyExpr>),
-
-    // leaf ops
     Mut(MutateExpr),
     Cross(CrossoverExpr),
 }

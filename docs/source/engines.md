@@ -165,6 +165,8 @@ When the engine is configured for multi-objective optimization, the engine `Gene
 
 The `GeneticEngine` is an inherently iterable concept, as such we can treat the engine as an iterato. Because of this we can use it in a `for` loop or with iterator methods like `map`, `filter`, etc. We can also extend the iterator with custom methods to provide additional functionality, such as running until a certain fitness (score) is reached, time limit, or convergence. These custom methods are essentially sytactic sugar for 'take_until' or 'skip_while' style iterators.
 
+During any sort of optimization task its useful to visually see the progress of the engine. Using the iterator API, we do this by calling `logging()` on the engine's iterator. This will give us nice console output of the progress provided by the [tracing](https://github.com/tokio-rs/tracing) project.
+
 !!! warning "Stopping Condition"
 
     The engine's iterator is an 'infinite iterator', meaning it will continue to produce epochs until a stopping condition, a `break` or a `return` is met. So, unless you want to run the engine indefinitely, you should always use a method like `take`, `until`, or `last` to limit the number of epochs produced.
@@ -187,6 +189,9 @@ The `GeneticEngine` is an inherently iterable concept, as such we can treat the 
         if epoch.index() >= 100:
             break
         print(f"Generation {epoch.index()}: Score = {epoch.score()}")
+
+    # Log the progress of the engine to the console
+    result = engine.run(rd.ScoreLimit(0.01), log=True)
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -219,6 +224,9 @@ The `GeneticEngine` is an inherently iterable concept, as such we can treat the 
     let window = 50;
     let epsilon = 0.01; // how close the scores must be over the window to consider convergence
     let result = engine.iter().until_convergence(window, epsilon).take(1).last().unwrap();
+
+    // 5.) log the progress of the engine to the console using the `logging()` method
+    let result = engine.iter().logging().until_seconds(10).last().unwrap();
     ```
 ---
 
@@ -228,9 +236,7 @@ For certain optimization problems, it is useful to have a more structured way to
 
 === ":fontawesome-brands-python: Python"
 
-    !!! warning ":construction: Under Construction :construction:"
-
-        The problem API in Python is still under construction and is not yet available.
+    The `Problem` interface is not available in python because it isn't needed.
 
 === ":fontawesome-brands-rust: Rust"
 

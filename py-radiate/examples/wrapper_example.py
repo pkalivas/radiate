@@ -25,7 +25,8 @@ class ObjectGene(rd.AnyGene):
 
 def fitness_function(individuals):
     number_sum = abs(sum(individual.number for individual in individuals))
-    return abs(sum(g for ind in individuals for g in ind.complex["list"])) + number_sum
+    list_sum = abs(sum(g for ind in individuals for g in ind.complex["list"]))
+    return list_sum + number_sum
 
 
 engine = rd.GeneticEngine(
@@ -33,9 +34,9 @@ engine = rd.GeneticEngine(
     fitness_func=fitness_function,
     objectives="min",
     alters=[
-        rd.FieldAlterer.two_point("list", rate=0.5),
-        rd.FieldAlterer.uniform("list", rate=0.1, bounds=(-10, 10)),
-        rd.FieldAlterer.jitter("number", rate=0.1, amount=0.1),
+        rd.AnyAlterer.two_point("list", rate=0.5),
+        rd.AnyAlterer.uniform("list", rate=0.1, bounds=(-10, 10)),
+        rd.AnyAlterer.jitter("number", rate=0.1, amount=0.1),
         # rd.FieldAlterer.swap("list", rate=0.5),
         # rd.UniformCrossover(0.5),
     ],
@@ -44,8 +45,6 @@ engine = rd.GeneticEngine(
 
 result = engine.run([rd.ScoreLimit(0.0001), rd.SecondsLimit(4)], log=True)
 
-number_sum = abs(sum(individual.number for individual in result.value())) - 50
-# list_sum = abs(sum([individual.complex['list'] for individual in result.value()]) - 10)
 
 t = result.value()
 
@@ -66,5 +65,3 @@ c = codec.encode()
 for g in c:
     for o in g:
         print(o)
-
-# print(ObjectGene().__backend__().number)

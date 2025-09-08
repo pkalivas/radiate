@@ -1,6 +1,5 @@
-use std::sync::{Mutex, RwLock};
-
 use radiate_core::{BoundedGene, Chromosome, FloatGene, Gene, Mutate, random_provider};
+use std::sync::{Mutex, RwLock};
 
 // Use it when:
 // 	- You’re evolving floating-point representations (like real-valued neural nets, control parameters, orbital mechanics).

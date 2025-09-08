@@ -12,7 +12,7 @@ pub trait Valid {
     }
 }
 
-/// A [`Gene`] is a single unit of information in a `Chromosome`.
+/// A [`Gene`] is a single unit of information in a [Chromosome](super::chromosome::Chromosome).
 /// This is the most basic building block of this entire library.
 ///
 /// Any type that implements this trait can be used as a gene in a chromosome, as such

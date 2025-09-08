@@ -177,9 +177,9 @@ impl<C: Chromosome> From<(Genotype<C>, usize)> for Phenotype<C> {
     }
 }
 
-/// This is a convenience method that allows you to create a `Phenotype` from a list of chromosomes.
-/// Without it, we end up neededing to create a list of `Genes` then a list of `Chromosomes` then a `Genotype`,
-/// its just a lot. This method allows you to create a `Phenotype` from a list of chromosomes directly.
+/// This is a convenience method that allows you to create a [Phenotype] from a list of [Chromosome]s.
+/// Without it, we end up neededing to create a list of [Genes] then a list of [Chromosome]s then a [Genotype],
+/// its just a lot. This method allows you to create a [Phenotype] from a list of chromosomes directly.
 impl<C: Chromosome> From<(Vec<C>, usize)> for Phenotype<C> {
     fn from((chromosomes, generation): (Vec<C>, usize)) -> Self {
         Phenotype {
@@ -211,8 +211,8 @@ mod test {
     fn test_phenotype_creation() {
         let phenotype = Phenotype::from((
             vec![
-                FloatChromosome::new(vec![FloatGene::from(0.0..5.0)]),
-                FloatChromosome::new(vec![FloatGene::from(5.0..10.0)]),
+                FloatChromosome::from(FloatGene::from(0.0..5.0)),
+                FloatChromosome::from(FloatGene::from(5.0..10.0)),
             ],
             0,
         ));

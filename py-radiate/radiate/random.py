@@ -1,4 +1,5 @@
 from radiate.radiate import PyRandomProvider
+from typing import Any
 
 
 class RandomProvider:
@@ -26,8 +27,16 @@ class RandomProvider:
         :return: Random float.
         """
         return PyRandomProvider.random_float(min, max)
+    
+    def bool(prob: float = 0.5) -> bool:
+        """
+        Generate a random boolean value with a given probability of being True.
+        :param prob: Probability of returning True (between 0.0 and 1.0).
+        :return: Random boolean.
+        """
+        return PyRandomProvider.random_bool(prob)
 
-    def sample(data: list, count: int) -> list:
+    def sample(data: list[Any], count: int) -> list[Any]:
         """
         Randomly sample elements from a list.
         :param data: List of elements to sample from.
@@ -36,7 +45,7 @@ class RandomProvider:
         """
         return PyRandomProvider.sample(data, count)
 
-    def choose(data: list) -> any:
+    def choose(data: list[Any]) -> Any:
         """
         Randomly choose an element from a list.
         :param data: List of elements to choose from.

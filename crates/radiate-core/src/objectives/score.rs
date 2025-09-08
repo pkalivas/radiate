@@ -469,6 +469,55 @@ mod tests {
     }
 
     #[test]
+    fn test_score_add() {
+        let score1 = Score::from(vec![1.0, 2.0, 3.0]);
+        let score2 = Score::from(vec![4.0, 5.0, 6.0]);
+        let score3 = score1 + score2;
+
+        assert_eq!(score3.values.len(), 3);
+        assert_eq!(score3.as_f32(), 5.0);
+        assert_eq!(score3[0], 5.0);
+        assert_eq!(score3[1], 7.0);
+        assert_eq!(score3[2], 9.0);
+    }
+
+    #[test]
+    fn test_score_sub() {
+        let score1 = Score::from(vec![5.0, 7.0, 9.0]);
+        let score2 = Score::from(vec![4.0, 5.0, 6.0]);
+        let score3 = score1 - score2;
+        assert_eq!(score3.values.len(), 3);
+        assert_eq!(score3.as_f32(), 1.0);
+        assert_eq!(score3[0], 1.0);
+        assert_eq!(score3[1], 2.0);
+        assert_eq!(score3[2], 3.0);
+    }
+
+    #[test]
+    fn test_score_mul() {
+        let score1 = Score::from(vec![1.0, 2.0, 3.0]);
+        let score2 = Score::from(vec![4.0, 5.0, 6.0]);
+        let score3 = score1 * score2;
+        assert_eq!(score3.values.len(), 3);
+        assert_eq!(score3.as_f32(), 4.0);
+        assert_eq!(score3[0], 4.0);
+        assert_eq!(score3[1], 10.0);
+        assert_eq!(score3[2], 18.0);
+    }
+
+    #[test]
+    fn test_score_div() {
+        let score1 = Score::from(vec![4.0, 8.0, 12.0]);
+        let score2 = Score::from(vec![2.0, 4.0, 6.0]);
+        let score3 = score1 / score2;
+        assert_eq!(score3.values.len(), 3);
+        assert_eq!(score3.as_f32(), 2.0);
+        assert_eq!(score3[0], 2.0);
+        assert_eq!(score3[1], 2.0);
+        assert_eq!(score3[2], 2.0);
+    }
+
+    #[test]
     #[cfg(feature = "serde")]
     fn test_score_can_serialize() {
         let score = Score::from(vec![1.0, 2.0, 3.0]);

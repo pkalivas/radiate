@@ -1,4 +1,5 @@
-use crate::{CrossoverExpr, ExprNode, ExprValue, NumericSlotMut};
+use super::super::NumericSlotMut;
+use super::{CrossoverExpr, ExprNode, ExprValue};
 use radiate::random_provider;
 
 impl CrossoverExpr {
@@ -32,7 +33,7 @@ impl CrossoverExpr {
                 let mut changed = 0;
                 for i in 0..n {
                     if let (Some(mut sa), Some(mut sb)) = (a[i].numeric_mut(), b[i].numeric_mut()) {
-                        if set_both_mean(&mut sa, &mut sb) {
+                        if mean_crossover(&mut sa, &mut sb) {
                             changed += 1;
                         }
                     }
@@ -50,7 +51,7 @@ impl CrossoverExpr {
             }
             CrossoverExpr::Mean => {
                 if let (Some(mut sa), Some(mut sb)) = (a.numeric_mut(), b.numeric_mut()) {
-                    return if set_both_mean(&mut sa, &mut sb) {
+                    return if mean_crossover(&mut sa, &mut sb) {
                         1
                     } else {
                         0
@@ -58,12 +59,12 @@ impl CrossoverExpr {
                 }
                 0
             }
-            _ => 0, // OnePoint/TwoPoint don't apply to a single pair of nodes
+            _ => 0,
         }
     }
 }
 
-fn set_both_mean(a: &mut NumericSlotMut<'_>, b: &mut NumericSlotMut<'_>) -> bool {
+fn mean_crossover(a: &mut NumericSlotMut<'_>, b: &mut NumericSlotMut<'_>) -> bool {
     match (a, b) {
         (NumericSlotMut::F32(aa), NumericSlotMut::F32(bb)) => {
             let m = (**aa + **bb) * 0.5;

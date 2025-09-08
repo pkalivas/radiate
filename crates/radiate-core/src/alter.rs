@@ -16,12 +16,12 @@ macro_rules! alters {
 }
 
 /// This is the main trait that is used to define the different types of alterations that can be
-/// performed on a population. The `Alter` trait is used to define the `alter` method that is used
-/// to perform the alteration on the population. The `alter` method takes a mutable reference to
-/// the population and a generation number as parameters. The `alter` method returns a vector of
-/// `Metric` objects that represent the metrics that were collected during the alteration process.
+/// performed on a [Population]. The [Alter] trait is used to define the `alter` method that is used
+/// to perform the alteration on the [Population]. The `alter` method takes a mutable reference to
+/// the [Population] and a generation number as parameters. The `alter` method returns a vector of
+/// [Metric] objects that represent the metrics that were collected during the alteration process.
 ///
-/// An 'Alter' in a traditional genetic algorithm is a process that modifies the population of
+/// An '[Alter]' in a traditional genetic algorithm is a process that modifies the [Population] of
 /// individuals in some way. This can include operations such as mutation or crossover. The goal of
 /// an alter is to introduce new genetic material into the population, which can help to improve
 /// the overall fitness of the population. In a genetic algorithm, the alter is typically
@@ -32,14 +32,14 @@ macro_rules! alters {
 /// into the population. This can help to improve the overall performance of the algorithm and
 /// ensure that the population remains healthy and diverse.
 ///
-/// In `radiate` the `alter` trait performs similar operations to a traditional genetic algorithm,
-/// but it is designed to be more flexible and extensible. Because an `Alter` can be of type `Mutate`
-/// or `Crossover`, it is abstracted out of those core traits into this trait.
+/// In `radiate` the [Alter] trait performs similar operations to a traditional genetic algorithm,
+/// but it is designed to be more flexible and extensible. Because an [Alter] can be of type [Mutate]
+/// or [Crossover], it is abstracted out of those core traits into this trait.
 pub trait Alter<C: Chromosome>: Send + Sync {
     fn alter(&self, population: &mut Population<C>, generation: usize) -> Vec<Metric>;
 }
 
-/// The `AlterResult` struct is used to represent the result of an
+/// The [AlterResult] struct is used to represent the result of an
 /// alteration operation. It contains the number of operations
 /// performed and a vector of metrics that were collected
 /// during the alteration process.
@@ -87,7 +87,7 @@ impl Into<AlterResult> for (usize, Metric) {
     }
 }
 
-/// The `AlterAction` enum is used to represent the different
+/// The [AlterAction] enum is used to represent the different
 /// types of alterations that can be performed on a
 /// population - It can be either a mutation or a crossover operation.
 pub enum AlterAction<C: Chromosome> {
@@ -160,17 +160,17 @@ impl<C: Chromosome> Alter<C> for AlterAction<C> {
     }
 }
 
-/// The `Crossover` trait is used to define the crossover operation for a genetic algorithm.
+/// The [Crossover] trait is used to define the crossover operation for a genetic algorithm.
 ///
 /// In a genetic algorithm, crossover is a genetic operator used to vary the
 /// programming of a chromosome or chromosomes from one generation to the next.
 /// It is analogous to reproduction and biological crossover, upon which genetic algorithms are based.
 ///
-/// A `Crossover` typically takes two parent chromosomes and produces two or more offspring chromosomes.
+/// A [Crossover] typically takes two parent [Chromosome]s and produces two or more offspring [Chromosome]s.
 /// This trait allows you to define your own crossover operation on either the entire population
-/// or a subset of the population. If a struct implements the `Crossover` trait but does not override
+/// or a subset of the population. If a struct implements the [Crossover] trait but does not override
 /// any of the methods, the default implementation will perform a simple crossover operation on the
-/// entire population. This is the case with the `UniformCrossover` struct.
+/// entire population.
 pub trait Crossover<C: Chromosome>: Send + Sync {
     fn name(&self) -> String {
         std::any::type_name::<Self>()

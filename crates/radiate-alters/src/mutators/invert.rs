@@ -4,6 +4,7 @@ use radiate_core::{AlterResult, Chromosome, Mutate, random_provider};
 ///
 /// Because the slice of the chromosome is of random length, with small chromosomes, the inversion
 /// may not be very effective. This mutator is best used with larger chromosomes.
+#[derive(Debug, Clone)]
 pub struct InversionMutator {
     rate: f32,
 }
