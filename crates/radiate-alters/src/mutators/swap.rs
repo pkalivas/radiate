@@ -1,5 +1,7 @@
 use radiate_core::{AlterResult, Chromosome, Mutate, random_provider};
 
+/// The [SwapMutator] is a simple mutator that swaps random genes in the [Chromosome].
+#[derive(Debug, Clone)]
 pub struct SwapMutator {
     rate: f32,
 }

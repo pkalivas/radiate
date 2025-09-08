@@ -27,7 +27,6 @@ macro_rules! impl_input_transform_for {
     ($chrom:ty, $map_fn:ident) => {
         impl InputTransform<Vec<Box<dyn Alter<$chrom>>>> for PyEngineInput {
             fn transform(&self) -> Vec<Box<dyn Alter<$chrom>>> {
-                // Safe unwrap: we only call this from code that will surface errors
                 alters_from_table(self, $map_fn())
                     .expect("alter conversion")
                     .into()

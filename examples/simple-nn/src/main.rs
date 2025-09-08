@@ -1,4 +1,4 @@
-use radiate::*;
+use radiate::prelude::*;
 
 const MIN_SCORE: f32 = 0.0001;
 const MAX_INDEX: usize = 500;
@@ -78,8 +78,8 @@ impl NeuralNet {
                     sum += layer[j][i] * output[j];
                 }
 
-                // ReLU activation function
-                new_output.push(if sum > 0.0 { sum } else { 0.0 });
+                // Sigmoid activation
+                new_output.push(1.0 / (1.0 + (-sum).exp()));
             }
 
             output = new_output;

@@ -1,9 +1,8 @@
-use std::fmt::Debug;
-
 use crate::collections::GraphChromosome;
 use crate::node::Node;
 use radiate_core::genome::*;
 use radiate_core::{AlterResult, Crossover, random_provider};
+use std::fmt::Debug;
 
 const NUM_PARENTS: usize = 2;
 

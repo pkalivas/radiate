@@ -1,6 +1,6 @@
 use radiate_core::{AlterResult, Chromosome, Crossover, random_provider};
 
-/// The `MultiPointCrossover` is a crossover method that takes two chromosomes and crosses them
+/// The [MultiPointCrossover] is a crossover method that takes two chromosomes and crosses them
 /// by selecting multiple points in the chromosome and swapping the genes between the two chromosomes.
 /// The number of points to swap is determined by the `num_points` parameter and must be between 1 and the
 /// length of the chromosome. Note, in most cases having more than 2 points is not useful and actually
@@ -14,7 +14,7 @@ pub struct MultiPointCrossover {
 }
 
 impl MultiPointCrossover {
-    /// Create a new instance of the `MultiPointCrossover` with the given rate and number of points.
+    /// Create a new instance of the [MultiPointCrossover] with the given rate and number of points.
     /// The rate must be between 0.0 and 1.0, and the number of points must be between 1 and the length
     /// of the chromosome.
     pub fn new(rate: f32, num_points: usize) -> Self {

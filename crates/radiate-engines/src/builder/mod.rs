@@ -79,10 +79,10 @@ where
     C: Chromosome + PartialEq + Clone,
     T: Clone + Send,
 {
-    /// The `FilterStrategy` is used to determine how a new individual is added to the `Population`
+    /// The `ReplacementStrategy` is used to determine how a new individual is added to the `Population`
     /// if an individual is deemed to be either invalid or reaches the maximum age.
     ///
-    /// Default is `FilterStrategy::Encode`, which means that a new individual will be created
+    /// Default is `ReplacementStrategy::Encode`, which means that a new individual will be created
     /// be using the `Codec` to encode a new individual from scratch.
     pub fn replace_strategy<R: ReplacementStrategy<C> + 'static>(mut self, replace: R) -> Self {
         self.params.replacement_strategy = Arc::new(replace);

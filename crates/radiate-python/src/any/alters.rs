@@ -1,4 +1,5 @@
-use crate::{AnyChromosome, CrossoverExpr, ExprDispatch, MutateExpr, PyAlterExpr, PyExpr};
+use crate::AnyChromosome;
+use crate::any::{CrossoverExpr, ExprDispatch, MutateExpr, PyAlterExpr, PyExpr};
 use pyo3::{pyclass, pymethods};
 use radiate::{AlterResult, Chromosome, Crossover, Mutate};
 
@@ -49,46 +50,49 @@ impl PyAlteration {
     #[staticmethod]
     #[pyo3(signature = (target, p=1.0))]
     fn swap(target: String, p: f32) -> Self {
-        let temp = PyAlterExpr::new()
-            .name(target.clone())
-            .prob(p)
-            .cross(CrossoverExpr::Swap)
-            .build();
-        PyAlteration { inner: temp }
+        PyAlteration {
+            inner: PyAlterExpr::new()
+                .name(target.clone())
+                .prob(p)
+                .cross(CrossoverExpr::Swap)
+                .build(),
+        }
     }
 
     #[staticmethod]
     #[pyo3(signature = (target, p=1.0))]
     fn mean(target: String, p: f32) -> Self {
-        let temp = PyAlterExpr::new()
-            .name(target.clone())
-            .prob(p)
-            .cross(CrossoverExpr::Mean)
-            .build();
-        PyAlteration { inner: temp }
+        PyAlteration {
+            inner: PyAlterExpr::new()
+                .name(target.clone())
+                .prob(p)
+                .cross(CrossoverExpr::Mean)
+                .build(),
+        }
     }
 
     #[staticmethod]
     #[pyo3(signature = (target, p=1.0))]
     fn one_point(target: String, p: f32) -> Self {
-        let temp = PyAlterExpr::new()
-            .name(target.clone())
-            .prob(p)
-            .cross(CrossoverExpr::OnePoint)
-            .build();
-
-        PyAlteration { inner: temp }
+        PyAlteration {
+            inner: PyAlterExpr::new()
+                .name(target.clone())
+                .prob(p)
+                .cross(CrossoverExpr::OnePoint)
+                .build(),
+        }
     }
 
     #[staticmethod]
     #[pyo3(signature = (target, p=1.0))]
     fn two_point(target: String, p: f32) -> Self {
-        let temp = PyAlterExpr::new()
-            .name(target.clone())
-            .prob(p)
-            .cross(CrossoverExpr::TwoPoint)
-            .build();
-        PyAlteration { inner: temp }
+        PyAlteration {
+            inner: PyAlterExpr::new()
+                .name(target.clone())
+                .prob(p)
+                .cross(CrossoverExpr::TwoPoint)
+                .build(),
+        }
     }
 }
 

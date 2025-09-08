@@ -1,5 +1,10 @@
 use radiate_core::{AlterResult, Chromosome, Mutate, random_provider};
 
+/// The [ScrambleMutator] is a simple mutator that scrambles a random section of the [Chromosome].
+///
+/// Because the slice of the chromosome is of random length, with small chromosomes, the scrambling
+/// may not be very effective. This mutator is best used with larger [Chromosome]s.
+#[derive(Debug, Clone)]
 pub struct ScrambleMutator {
     rate: f32,
 }

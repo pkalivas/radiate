@@ -5,6 +5,7 @@ use std::collections::HashSet;
 pub struct AuditStep;
 
 impl AuditStep {
+    #[inline]
     fn calc_metrics<C: Chromosome>(
         generation: usize,
         metrics: &mut MetricSet,
@@ -52,6 +53,7 @@ impl AuditStep {
         metrics.add_or_update(equal_metric);
     }
 
+    #[inline]
     fn calc_species_metrics<C: Chromosome>(
         generation: usize,
         metrics: &mut MetricSet,
@@ -80,6 +82,7 @@ impl AuditStep {
         }
     }
 
+    #[inline]
     fn calc_derived_metrics<C: Chromosome>(
         _: usize,
         metrics: &mut MetricSet,

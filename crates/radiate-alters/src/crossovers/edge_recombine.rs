@@ -96,13 +96,11 @@ where
         chrom_two: &mut PermutationChromosome<T>,
         _: f32,
     ) -> AlterResult {
-        // Convert chromosomes to permutation representation
-        let parent1: Vec<usize> = chrom_one.iter().map(|g| g.index()).collect();
-        let parent2: Vec<usize> = chrom_two.iter().map(|g| g.index()).collect();
+        let parent1 = chrom_one.iter().map(|g| g.index()).collect::<Vec<usize>>();
+        let parent2 = chrom_two.iter().map(|g| g.index()).collect::<Vec<usize>>();
 
         let edge_table = self.build_edge_table(&parent1, &parent2);
 
-        // Build offspring
         let mut offspring = Vec::new();
         let mut used = HashSet::new();
 
@@ -127,7 +125,6 @@ where
             }
         }
 
-        // Update chromosomes
         for (i, allele) in offspring.iter().enumerate() {
             chrom_one.set(i, chrom_one.get(i).with_index(*allele));
         }

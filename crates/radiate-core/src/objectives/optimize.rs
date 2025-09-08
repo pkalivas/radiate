@@ -149,4 +149,14 @@ mod tests {
         assert!(Optimize::Maximize.is_better(&2, &1));
         assert!(!Optimize::Maximize.is_better(&1, &2));
     }
+
+    #[test]
+    fn test_objective_is_better_single() {
+        let obj = Objective::Single(Optimize::Minimize);
+        assert!(obj.is_better(&1, &2));
+        assert!(!obj.is_better(&2, &1));
+        let obj = Objective::Single(Optimize::Maximize);
+        assert!(obj.is_better(&2, &1));
+        assert!(!obj.is_better(&1, &2));
+    }
 }

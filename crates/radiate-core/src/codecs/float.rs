@@ -30,6 +30,7 @@ impl<T> FloatCodec<T> {
     /// Every impl of `Codec` uses the same encode function for the `FloatCodec`, just with a few
     /// different parameters (e.g. `num_chromosomes` and `num_genes`). So, we can just use
     /// the same function for all of them.
+    #[inline]
     fn common_encode(&self) -> Genotype<FloatChromosome> {
         Genotype::from(
             (0..self.num_chromosomes)
@@ -106,10 +107,12 @@ impl FloatCodec<f32> {
 /// assert_eq!(decoded[0].len(), 4);
 /// ```
 impl Codec<FloatChromosome, Vec<Vec<f32>>> for FloatCodec<Vec<Vec<f32>>> {
+    #[inline]
     fn encode(&self) -> Genotype<FloatChromosome> {
         self.common_encode()
     }
 
+    #[inline]
     fn decode(&self, genotype: &Genotype<FloatChromosome>) -> Vec<Vec<f32>> {
         genotype
             .iter()
@@ -141,10 +144,12 @@ impl Codec<FloatChromosome, Vec<Vec<f32>>> for FloatCodec<Vec<Vec<f32>>> {
 /// assert_eq!(decoded.len(), 3);
 /// ```
 impl Codec<FloatChromosome, Vec<f32>> for FloatCodec<Vec<f32>> {
+    #[inline]
     fn encode(&self) -> Genotype<FloatChromosome> {
         self.common_encode()
     }
 
+    #[inline]
     fn decode(&self, genotype: &Genotype<FloatChromosome>) -> Vec<f32> {
         genotype
             .iter()
@@ -174,10 +179,12 @@ impl Codec<FloatChromosome, Vec<f32>> for FloatCodec<Vec<f32>> {
 /// let decoded: f32 = codec.decode(&genotype);
 /// ```
 impl Codec<FloatChromosome, f32> for FloatCodec<f32> {
+    #[inline]
     fn encode(&self) -> Genotype<FloatChromosome> {
         self.common_encode()
     }
 
+    #[inline]
     fn decode(&self, genotype: &Genotype<FloatChromosome>) -> f32 {
         genotype
             .iter()
@@ -212,6 +219,7 @@ impl Codec<FloatChromosome, f32> for FloatCodec<f32> {
 /// assert_eq!(decoded[1].len(), 4);
 /// ```
 impl Codec<FloatChromosome, Vec<Vec<f32>>> for Vec<FloatChromosome> {
+    #[inline]
     fn encode(&self) -> Genotype<FloatChromosome> {
         Genotype::from(
             self.iter()
@@ -225,6 +233,7 @@ impl Codec<FloatChromosome, Vec<Vec<f32>>> for Vec<FloatChromosome> {
         )
     }
 
+    #[inline]
     fn decode(&self, genotype: &Genotype<FloatChromosome>) -> Vec<Vec<f32>> {
         genotype
             .iter()
@@ -252,6 +261,7 @@ impl Codec<FloatChromosome, Vec<Vec<f32>>> for Vec<FloatChromosome> {
 /// assert_eq!(decoded.len(), 3);
 /// ```
 impl Codec<FloatChromosome, Vec<f32>> for FloatChromosome {
+    #[inline]
     fn encode(&self) -> Genotype<FloatChromosome> {
         Genotype::from(
             self.iter()
@@ -260,6 +270,7 @@ impl Codec<FloatChromosome, Vec<f32>> for FloatChromosome {
         )
     }
 
+    #[inline]
     fn decode(&self, genotype: &Genotype<FloatChromosome>) -> Vec<f32> {
         genotype
             .iter()

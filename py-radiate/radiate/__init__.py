@@ -70,7 +70,7 @@ from .inputs.alterer import (
     PolynomialMutator,
     EdgeRecombinationCrossover,
     JitterMutator,
-    FieldAlterer,
+    AnyAlterer,
 )
 
 from .inputs.distance import (
@@ -122,7 +122,7 @@ __all__ = [
     "EventHandler",
     "EventType",
     # Alters
-    "FieldAlterer",
+    "AnyAlterer",
     "BlendCrossover",
     "TreeCrossover",
     "GraphCrossover",

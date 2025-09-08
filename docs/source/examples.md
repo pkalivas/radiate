@@ -125,15 +125,13 @@ For example, a solution for `n=8` would be:
     ```rust
     use radiate::*;
 
-    const N_QUEENS: usize = 32;
+    const N_QUEENS: usize = 45;
 
     fn main() {
-        random_provider::set_seed(500);
-
-        let codec = IntCodec::vector(N_QUEENS, 0..N_QUEENS as i8);
+        random_provider::set_seed(12345);
 
         let engine = GeneticEngine::builder()
-            .codec(codec)
+            .codec(IntChromosome::from((N_QUEENS, 0..N_QUEENS as i8)))
             .minimizing()
             .offspring_selector(BoltzmannSelector::new(4.0))
             .crossover(MultiPointCrossover::new(0.75, 2))
@@ -156,15 +154,9 @@ For example, a solution for `n=8` would be:
             })
             .build();
 
-        let result = engine
-            .iter()
-            .inspect(|ctx| {
-                println!("[ {:?} ]: {:?}", ctx.index(), ctx.score().as_usize());
-            })
-            .until_score(0)
-            .unwrap();
+        let result = engine.iter().logging().until_score(0).last().unwrap();
 
-        println!("Result: {:?}", result);
+        println!("Best Score: {:?}", result);
         println!("\nResult Queens Board ({:.3?}):", result.time());
 
         let board = &result.value();
@@ -316,14 +308,14 @@ $$
 
 
     engine = rd.GeneticEngine(
-        codec=rd.FloatCodec.vector(variables, (0.0, 1.0), (-100.0, 100.0), use_numpy=True),
+        codec=rd.FloatCodec.vector(variables, (0.0, 1.0), (-2.0, 2.0), use_numpy=True),
         fitness_func=dtlz_1,
-        offspring_selector=rd.TournamentSelector(k=5),
+        offspring_selector=rd.TournamentSelector(k=8),
         survivor_selector=rd.NSGA2Selector(),
         objectives=["min" for _ in range(objectives)],
         alters=[
-            rd.SimulatedBinaryCrossover(1.0, 1.0),
-            rd.UniformMutator(0.1)
+            rd.SimulatedBinaryCrossover(1.0, 2.0),
+            rd.UniformMutator(0.1),
         ],
     )
 

@@ -379,8 +379,8 @@ Radiate provides several codec types out of the box that should be able to cover
 
 1. **Start Simple**: Begin with a simple codec structure and expand as needed
 2. **Choose Appropriate Ranges (IntCodec & FloatCodec)**:
-    - `value_range`: Set this to reasonable initial values
-    - `bound_range`: Set this to the valid range for your problem
+    - `value_range`/`init_range`: Set this to reasonable initial values
+    - `bound_range`/`bounds`: Set this to the valid range for your problem
 3. **Match Your Problem**: Choose the codec type that best represents your solution space
 4. **Consider Structure**: Use the appropriate configuration (scalar/vector/matrix) for your problem
 

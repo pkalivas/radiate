@@ -1,10 +1,13 @@
+mod alters;
 mod arithmatic;
 mod dtype;
+mod expr;
 mod field;
 mod gene;
 pub(crate) mod value;
 
-// pub use dtype::DataType;
+pub use alters::{ExprCrossover, ExprMutator, PyAlteration};
+pub use expr::{CrossoverExpr, ExprDispatch, MutateExpr, PyAlterExpr, PyExpr};
 pub use field::Field;
 pub use gene::{
     AnyChromosome, AnyGene, NumericSlotMut, apply_numeric_slot_mut, apply_pair_numeric_slot_mut,

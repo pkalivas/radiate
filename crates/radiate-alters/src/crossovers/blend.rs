@@ -1,5 +1,8 @@
 use radiate_core::{AlterResult, Chromosome, Crossover, FloatGene, Gene, random_provider};
 
+/// The [BlendCrossover] is a crossover operator that blends the genes of two parent chromosomes
+/// to produce two offspring chromosomes.
+/// This operator is specifically designed for chromosomes containing [FloatGene]s.
 #[derive(Debug, Clone, PartialEq)]
 pub struct BlendCrossover {
     rate: f32,
@@ -7,7 +10,7 @@ pub struct BlendCrossover {
 }
 
 impl BlendCrossover {
-    /// Create a new instance of the `BlendCrossover` with the given rate and alpha.
+    /// Create a new instance of the [BlendCrossover] with the given rate and alpha.
     /// The rate must be between 0.0 and 1.0, and the alpha must be between 0.0 and 1.0.
     pub fn new(rate: f32, alpha: f32) -> Self {
         if !(0.0..=1.0).contains(&rate) {
@@ -39,8 +42,8 @@ where
                 let gene_one = chrom_one.get(i);
                 let gene_two = chrom_two.get(i);
 
-                let allele_one: f32 = gene_one.allele().clone().into();
-                let allele_two: f32 = gene_two.allele().clone().into();
+                let allele_one: f32 = gene_one.allele().clone();
+                let allele_two: f32 = gene_two.allele().clone();
 
                 let new_allele_one = allele_one - (self.alpha * (allele_two - allele_one));
                 let new_allele_two = allele_two - (self.alpha * (allele_one - allele_two));
@@ -248,7 +251,6 @@ mod tests {
     fn test_cross_chromosomes_property_based() {
         let crossover = BlendCrossover::new(1.0, 0.5);
 
-        // Test multiple random combinations
         for _ in 0..50 {
             let genes1: Vec<FloatGene> = (0..5)
                 .map(|_| {
@@ -277,10 +279,8 @@ mod tests {
 
             let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, 1.0);
 
-            // Should always perform exactly 5 crossover operations
             assert_eq!(result.count(), 5);
 
-            // Check that blending formula is correctly applied
             let alpha = 0.5;
             for i in 0..chrom_one.len() {
                 let expected_one = original_one[i] - (alpha * (original_two[i] - original_one[i]));

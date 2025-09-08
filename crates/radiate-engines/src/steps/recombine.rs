@@ -14,6 +14,7 @@ pub struct RecombineStep<C: Chromosome> {
 }
 
 impl<C: Chromosome + PartialEq> RecombineStep<C> {
+    #[inline]
     pub fn select_survivors(
         &self,
         population: &Ecosystem<C>,
@@ -40,6 +41,7 @@ impl<C: Chromosome + PartialEq> RecombineStep<C> {
         selected
     }
 
+    #[inline]
     pub fn select_offspring(
         &self,
         count: usize,
@@ -67,6 +69,7 @@ impl<C: Chromosome + PartialEq> RecombineStep<C> {
         selected
     }
 
+    #[inline]
     pub fn create_offspring(
         &self,
         generation: usize,
@@ -112,6 +115,7 @@ impl<C: Chromosome + PartialEq> RecombineStep<C> {
         }
     }
 
+    #[inline]
     fn select(
         count: usize,
         population: &Population<C>,
@@ -135,6 +139,7 @@ impl<C: Chromosome + PartialEq> RecombineStep<C> {
         selected
     }
 
+    #[inline]
     fn apply_alterations(
         &self,
         generation: usize,

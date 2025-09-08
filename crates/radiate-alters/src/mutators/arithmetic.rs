@@ -7,7 +7,8 @@ use radiate_core::{AlterResult, ArithmeticGene, Chromosome, Mutate, random_provi
 /// multiplication, and division on genes.
 ///
 /// This is a simple mutator that can be used with any gene that implements the
-/// `Add`, `Sub`, `Mul`, and `Div` traits - `ArithmeticGene` is a good example.
+/// `Add`, `Sub`, `Mul`, and `Div` traits - [ArithmeticGene] is a good example.
+#[derive(Debug, Clone)]
 pub struct ArithmeticMutator {
     rate: f32,
 }

@@ -22,6 +22,11 @@ impl PyRandomProvider {
     }
 
     #[staticmethod]
+    pub fn random_bool(prob: f64) -> bool {
+        random_provider::bool(prob)
+    }
+
+    #[staticmethod]
     pub fn sample(mut data: Vec<Py<PyAny>>, count: usize) -> Vec<Py<PyAny>> {
         random_provider::shuffle(&mut data);
         data.into_iter().take(count).collect()

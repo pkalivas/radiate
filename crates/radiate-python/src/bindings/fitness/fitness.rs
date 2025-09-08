@@ -29,6 +29,8 @@ impl PyFitnessFn {
         let loss = match loss.as_str() {
             "mse" => Loss::MSE,
             "mae" => Loss::MAE,
+            "cross_entropy" => Loss::CrossEntropy,
+            "diff" => Loss::Diff,
             _ => panic!("Unsupported loss function: {}", loss),
         };
 
