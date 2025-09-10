@@ -107,8 +107,8 @@ pub enum Direction {
 /// * `id` - A unique identifier for the node ([GraphNodeId])
 /// * `index` - The position of the node in the graph's node collection
 /// * `direction` - The direction of the node's connections (Forward or Backward)
-/// * `node_type` - Optional NodeType that specifies the role of the node (Input, Output, Vertex, Edge, etc.)
-/// * `arity` - Optional Arity that specifies how many incoming connections the node can have. If
+/// * `node_type` - Optional [NodeType] that specifies the role of the node (Input, Output, Vertex, Edge, etc.)
+/// * `arity` - Optional [Arity] that specifies how many incoming connections the node can have. If
 /// the arity is not supplied, the node will try it's best to determine it based on the node type and
 /// the number of connections.
 /// * `incoming` - Set of indices of nodes that have connections to this node
@@ -251,8 +251,8 @@ impl<T> GraphNode<T> {
     }
 }
 
-// Implementing the Node trait for GraphNode
-// This joins common functionality for nodes in a graph structure together.
+/// Implementing the [Node] trait for [GraphNode]
+/// This joins common functionality for nodes in a graph structure together.
 impl<T> Node for GraphNode<T> {
     type Value = T;
 
@@ -349,7 +349,7 @@ where
     }
 }
 
-/// Implementing the Valid trait for GraphNode
+/// Implementing the [Valid] trait for [GraphNode]
 /// This trait checks if the node is valid based on its type and connections.
 /// A valid node must have the correct number of incoming and outgoing connections
 /// according to its arity and node type.

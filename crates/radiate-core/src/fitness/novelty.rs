@@ -4,6 +4,8 @@ use std::{
     sync::{Arc, RwLock},
 };
 
+const DEFAULT_ARCHIVE_SIZE: usize = 1000;
+
 pub trait Novelty<T> {
     fn description(&self, member: &T) -> Vec<f32>;
 }
@@ -37,7 +39,7 @@ impl<T> NoveltySearch<T> {
             archive: Arc::new(RwLock::new(VecDeque::new())),
             k,
             threshold,
-            max_archive_size: 1000,
+            max_archive_size: DEFAULT_ARCHIVE_SIZE,
             distance_fn: Arc::new(|a, b| {
                 if a.len() != b.len() {
                     return f32::INFINITY;

@@ -73,7 +73,7 @@ where
     pub(crate) engine: E,
 }
 
-/// Implementation of `Iterator` for `EngineIterator`.
+/// Implementation of `Iterator` for [EngineIterator].
 ///
 /// Each call to `next()` advances the engine by one generation and returns
 /// the resulting generation data. The iterator continues indefinitely until
