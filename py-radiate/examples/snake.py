@@ -129,10 +129,7 @@ class SnakeGame:
         new_direction = directions[action]
 
         # Prevent 180-degree turns
-        if (
-            new_direction[0] != -self.direction[0]
-            or new_direction[1] != -self.direction[1]
-        ):
+        if new_direction != (-self.direction[0], -self.direction[1]):
             self.direction = new_direction
 
         head_x, head_y = self.snake[0]
@@ -217,7 +214,7 @@ class SnakeEvolver:
     def fitness_function(graph: rd.Graph) -> float:
         """Enhanced fitness function for Snake AI."""
         total_fitness = 0.0
-        num_games = 3
+        num_games = 1
 
         for _ in range(num_games):
             graph.reset()  # Reset graph state for each game
@@ -357,7 +354,7 @@ class SnakeEvolver:
             SnakeEvolver.fitness_function,
         )
 
-        engine.offspring_selector(rd.BoltzmannSelector(4))
+        engine.offspring_selector(rd.TournamentSelector(4))
         engine.alters(
             [
                 rd.GraphCrossover(0.5, 0.5),

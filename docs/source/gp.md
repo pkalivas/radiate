@@ -122,7 +122,6 @@ Provided `Ops` include:
     | `LeakyReLU` | Any | x if x > 0 else 0.01x | `Op::leaky_relu()` | Fn |
     | `ELU` | Any | x if x > 0 else a(e^x - 1) | `Op::elu()` | Fn |
     | `Linear` | Any | Linear combination of n values | `Op::linear()` | Fn |
-    | `Softmax` | Any | Softmax of n values | `Op::softmax()` | Fn |
     | `Softplus` | Any | log(1 + e^x) | `Op::softplus()` | Fn |
     | `SELU` | Any | x if x > 0 else a(e^x - 1) | `Op::selu()` | Fn |
     | `Swish` | Any | x / (1 + e^-x) | `Op::swish()` | Fn |

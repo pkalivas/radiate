@@ -325,6 +325,11 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
 mod tests {
     use crate::{GraphAggregate, GraphNode, Node, NodeType};
     use radiate_core::Valid;
+    use std::panic;
+
+    fn should_panic<F: FnOnce() -> () + panic::UnwindSafe>(f: F) {
+        assert!(panic::catch_unwind(f).is_err());
+    }
 
     #[test]
     fn test_graph_aggregate_one_to_one() {
@@ -569,5 +574,244 @@ mod tests {
         assert!(vertex_two.outgoing().contains(&output_two.index()));
         assert!(output_one.incoming().contains(&vertex_one.index()));
         assert!(output_two.incoming().contains(&vertex_two.index()));
+    }
+
+    #[test]
+    fn one_to_one_size_mismatch_panics() {
+        should_panic(|| {
+            let _ = GraphAggregate::new()
+                .one_to_one(
+                    &vec![GraphNode::new(0, NodeType::Input, 0)],
+                    &vec![
+                        GraphNode::new(1, NodeType::Output, 0),
+                        GraphNode::new(2, NodeType::Output, 1),
+                    ],
+                )
+                .build();
+        });
+    }
+
+    #[test]
+    fn one_to_many_invalid_multiple_panics() {
+        should_panic(|| {
+            let _ = GraphAggregate::new()
+                .one_to_many(
+                    &vec![
+                        GraphNode::new(0, NodeType::Input, 0),
+                        GraphNode::new(1, NodeType::Input, 1),
+                    ],
+                    &vec![
+                        // 3 is NOT a multiple of 2 -> should panic
+                        GraphNode::new(2, NodeType::Output, 0),
+                        GraphNode::new(3, NodeType::Output, 1),
+                        GraphNode::new(4, NodeType::Output, 2),
+                    ],
+                )
+                .build();
+        });
+    }
+
+    #[test]
+    fn many_to_one_invalid_multiple_panics() {
+        should_panic(|| {
+            let _ = GraphAggregate::new()
+                .many_to_one(
+                    &vec![
+                        GraphNode::new(0, NodeType::Input, 0),
+                        GraphNode::new(1, NodeType::Input, 1),
+                        GraphNode::new(2, NodeType::Input, 2),
+                    ],
+                    &vec![
+                        // 3 (one) % 2 (two) != 0 -> panic
+                        GraphNode::new(10, NodeType::Output, 0),
+                        GraphNode::new(11, NodeType::Output, 1),
+                    ],
+                )
+                .build();
+        });
+    }
+
+    #[test]
+    fn duplicate_insert_does_not_duplicate_nodes_or_edges() {
+        let inputs = vec![
+            GraphNode::new(0, NodeType::Input, "A"),
+            GraphNode::new(1, NodeType::Input, "B"),
+        ];
+        let outputs = vec![
+            GraphNode::new(2, NodeType::Output, "C"),
+            GraphNode::new(3, NodeType::Output, "D"),
+        ];
+
+        let graph = GraphAggregate::new()
+            .insert(&inputs) // first insert
+            .insert(&inputs) // duplicate insert
+            .one_to_one(&inputs, &outputs)
+            .build();
+
+        // Expect 4 nodes only
+        assert_eq!(graph.len(), 4);
+
+        // And exactly the two one-to-one edges
+        let out0 = &graph[0].outgoing();
+        let out1 = &graph[1].outgoing();
+        assert_eq!(out0.len(), 1);
+        assert_eq!(out1.len(), 1);
+        assert!(out0.contains(&2));
+        assert!(out1.contains(&3));
+    }
+
+    #[test]
+    fn node_index_order_is_deterministic_by_insert_order() {
+        // Insert order: inputs then outputs; indices should follow that order.
+        let inputs = vec![
+            GraphNode::new(10, NodeType::Input, "i0"),
+            GraphNode::new(11, NodeType::Input, "i1"),
+        ];
+        let outputs = vec![
+            GraphNode::new(20, NodeType::Output, "o0"),
+            GraphNode::new(21, NodeType::Output, "o1"),
+        ];
+
+        let g1 = GraphAggregate::new()
+            .insert(&inputs)
+            .insert(&outputs)
+            .build();
+
+        assert_eq!(g1[0].node_type(), NodeType::Input);
+        assert_eq!(g1[1].node_type(), NodeType::Input);
+        assert_eq!(g1[2].node_type(), NodeType::Output);
+        assert_eq!(g1[3].node_type(), NodeType::Output);
+    }
+
+    #[test]
+    fn get_inputs_fallback_paths_are_respected() {
+        // Make outputs with no incoming/outgoing to trigger input-fallback
+        let outs = vec![
+            GraphNode::new(100, NodeType::Output, "o0"),
+            GraphNode::new(101, NodeType::Output, "o1"),
+        ];
+
+        let g = GraphAggregate::new()
+            .one_to_one(
+                &vec![
+                    GraphNode::new(0, NodeType::Input, "i0"),
+                    GraphNode::new(1, NodeType::Input, "i1"),
+                ],
+                &outs,
+            )
+            .build();
+
+        // Inputs 0..1 connect to 2..3
+        assert!(g[0].outgoing().contains(&2));
+        assert!(g[1].outgoing().contains(&3));
+        assert!(g[2].incoming().contains(&0));
+        assert!(g[3].incoming().contains(&1));
+        assert!(g.is_valid());
+    }
+
+    #[test]
+    fn all_to_all_edge_counts_match() {
+        let ins = vec![
+            GraphNode::new(0, NodeType::Input, 0),
+            GraphNode::new(1, NodeType::Input, 1),
+            GraphNode::new(2, NodeType::Input, 2),
+        ];
+        let outs = vec![
+            GraphNode::new(3, NodeType::Output, 0),
+            GraphNode::new(4, NodeType::Output, 1),
+        ];
+
+        let g = GraphAggregate::new().all_to_all(&ins, &outs).build();
+
+        // Each input connects to all outputs
+        for i in 0..ins.len() {
+            assert_eq!(g[i].outgoing().len(), outs.len());
+        }
+        // Each output receives from all inputs
+        for j in 0..outs.len() {
+            assert_eq!(g[ins.len() + j].incoming().len(), ins.len());
+        }
+        assert!(g.is_valid());
+    }
+
+    #[test]
+    fn cycle_builds_self_loops_only() {
+        let verts = vec![
+            GraphNode::new(0, NodeType::Vertex, 0),
+            GraphNode::new(1, NodeType::Vertex, 1),
+            GraphNode::new(2, NodeType::Vertex, 2),
+        ];
+
+        let g = GraphAggregate::new().cycle(&verts).build();
+
+        for i in 0..verts.len() {
+            assert!(g[i].outgoing().contains(&i));
+            assert!(g[i].incoming().contains(&i));
+            assert_eq!(g[i].outgoing().len(), 1);
+            assert_eq!(g[i].incoming().len(), 1);
+        }
+        assert!(g.is_valid());
+    }
+
+    #[test]
+    fn one_to_many_chunking_is_correct() {
+        // 2 inputs -> 6 outputs (chunks of 2)
+        let ins = vec![
+            GraphNode::new(0, NodeType::Input, "a"),
+            GraphNode::new(1, NodeType::Input, "b"),
+        ];
+        let outs = vec![
+            GraphNode::new(2, NodeType::Output, "o0"),
+            GraphNode::new(3, NodeType::Output, "o1"),
+            GraphNode::new(4, NodeType::Output, "o2"),
+            GraphNode::new(5, NodeType::Output, "o3"),
+            GraphNode::new(6, NodeType::Output, "o4"),
+            GraphNode::new(7, NodeType::Output, "o5"),
+        ];
+
+        let g = GraphAggregate::new().one_to_many(&ins, &outs).build();
+
+        // Expect pairs: (0->2,1->3),(0->4,1->5),(0->6,1->7)
+        for (_, chunk_start) in (2..=6).step_by(2).enumerate() {
+            let i0 = 0;
+            let i1 = 1;
+            let o0 = chunk_start;
+            let o1 = chunk_start + 1;
+
+            assert!(g[i0].outgoing().contains(&o0));
+            assert!(g[i1].outgoing().contains(&o1));
+            assert!(g[o0].incoming().contains(&i0));
+            assert!(g[o1].incoming().contains(&i1));
+        }
+        assert!(g.is_valid());
+    }
+
+    #[test]
+    fn many_to_one_chunking_is_correct() {
+        // 6 inputs -> 2 outputs (chunks of 2)
+        let ins = vec![
+            GraphNode::new(0, NodeType::Input, "a"),
+            GraphNode::new(1, NodeType::Input, "b"),
+            GraphNode::new(2, NodeType::Input, "c"),
+            GraphNode::new(3, NodeType::Input, "d"),
+            GraphNode::new(4, NodeType::Input, "e"),
+            GraphNode::new(5, NodeType::Input, "f"),
+        ];
+        let outs = vec![
+            GraphNode::new(6, NodeType::Output, "o0"),
+            GraphNode::new(7, NodeType::Output, "o1"),
+        ];
+
+        let g = GraphAggregate::new().many_to_one(&ins, &outs).build();
+
+        // Expect pairs of inputs mapping to both outputs by chunks of outs.len()
+        // Chunks: [0,1] -> [6,7]; [2,3] -> [6,7]; [4,5] -> [6,7]
+        for pair in &[(0, 1), (2, 3), (4, 5)] {
+            assert!(g[pair.0].outgoing().contains(&6));
+            assert!(g[pair.1].outgoing().contains(&7));
+            assert!(g[6].incoming().contains(&pair.0));
+            assert!(g[7].incoming().contains(&pair.1));
+        }
+        assert!(g.is_valid());
     }
 }
