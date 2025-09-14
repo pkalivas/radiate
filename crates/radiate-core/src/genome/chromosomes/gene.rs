@@ -4,7 +4,7 @@ use std::ops::{Add, Div, Mul, Sub};
 /// or a chromosome is valid. For example, a gene that represents a number between 0 and 1 can be checked
 /// for validity by ensuring that the allele is between 0 and 1.
 ///
-/// The `GeneticEngine` will check the validity of the `Chromosome` and `Phenotype` and remove any
+/// The `GeneticEngine` will check the validity of the [Chromosome](super::chromosome::Chromosome) and `Phenotype` and remove any
 /// invalid individuals from the population, replacing them with new individuals at the given generation.
 pub trait Valid {
     fn is_valid(&self) -> bool {
@@ -87,6 +87,5 @@ pub trait BoundedGene: Gene {
 pub trait ArithmeticGene:
     Gene + Add<Output = Self> + Sub<Output = Self> + Mul<Output = Self> + Div<Output = Self>
 {
-    /// Get the value of the gene as a number.
     fn mean(&self, other: &Self) -> Self;
 }

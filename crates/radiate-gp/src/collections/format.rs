@@ -15,8 +15,7 @@ impl<T: Debug> Format for TreeNode<T> {
             result: &mut String,
         ) {
             let connector = if is_last { "└── " } else { "├── " };
-            let new_str_to_print = format!("{}{}{:?}\n", prefix, connector, node.value());
-            result.push_str(&new_str_to_print);
+            result.push_str(&format!("{}{}{:?}\n", prefix, connector, node.value()));
 
             if let Some(children) = &node.children() {
                 let len = children.len();
@@ -27,6 +26,7 @@ impl<T: Debug> Format for TreeNode<T> {
                     } else {
                         format!("{}│   ", prefix)
                     };
+
                     pretty_print_lines(child, &new_prefix, is_last_child, result);
                 }
             }

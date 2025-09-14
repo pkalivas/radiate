@@ -3,7 +3,7 @@ use crate::{ArithmeticGene, Chromosome, Gene, Genotype, fitness::Novelty};
 /// Trait for measuring diversity between two [Genotype]s.
 /// Within radiate this is mostly used for speciation and determining how genetically
 /// similar two individuals are. Through this, the engine can determine
-/// whether two individuals belong to the same species or not.
+/// whether two individuals belong to the same [Species](super::genome::species::Species) or not.
 pub trait Diversity<C: Chromosome>: Send + Sync {
     fn measure(&self, geno_one: &Genotype<C>, geno_two: &Genotype<C>) -> f32;
 }
@@ -14,8 +14,10 @@ pub trait Diversity<C: Chromosome>: Send + Sync {
 #[derive(Clone)]
 pub struct HammingDistance;
 
-impl<G: Gene, C: Chromosome<Gene = G>> Diversity<C> for HammingDistance
+impl<G, C> Diversity<C> for HammingDistance
 where
+    C: Chromosome<Gene = G>,
+    G: Gene,
     G::Allele: PartialEq,
 {
     fn measure(&self, geno_one: &Genotype<C>, geno_two: &Genotype<C>) -> f32 {
@@ -46,8 +48,10 @@ impl Novelty<Vec<f32>> for HammingDistance {
 #[derive(Clone)]
 pub struct EuclideanDistance;
 
-impl<G: ArithmeticGene, C: Chromosome<Gene = G>> Diversity<C> for EuclideanDistance
+impl<G, C> Diversity<C> for EuclideanDistance
 where
+    C: Chromosome<Gene = G>,
+    G: ArithmeticGene,
     G::Allele: Into<f32> + Copy,
 {
     fn measure(&self, geno_one: &Genotype<C>, geno_two: &Genotype<C>) -> f32 {
@@ -84,8 +88,10 @@ impl Novelty<Vec<f32>> for EuclideanDistance {
 #[derive(Clone)]
 pub struct CosineDistance;
 
-impl<G: ArithmeticGene, C: Chromosome<Gene = G>> Diversity<C> for CosineDistance
+impl<G, C> Diversity<C> for CosineDistance
 where
+    C: Chromosome<Gene = G>,
+    G: ArithmeticGene,
     G::Allele: Into<f32> + Copy,
 {
     fn measure(&self, geno_one: &Genotype<C>, geno_two: &Genotype<C>) -> f32 {

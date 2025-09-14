@@ -40,7 +40,6 @@ engine = rd.GeneticEngine(
         # rd.FieldAlterer.swap("list", rate=0.5),
         # rd.UniformCrossover(0.5),
     ],
-    # executor=rd.Executor.FixedSizedWorkerPool(4),
 )
 
 result = engine.run([rd.ScoreLimit(0.0001), rd.SecondsLimit(4)], log=True)

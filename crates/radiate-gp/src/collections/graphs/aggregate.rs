@@ -323,7 +323,7 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{GraphAggregate, GraphNode, NodeType};
+    use crate::{GraphAggregate, GraphNode, Node, NodeType};
     use radiate_core::Valid;
 
     #[test]
@@ -506,5 +506,68 @@ mod tests {
         assert_eq!(output_three.incoming().len(), 2);
 
         assert!(graph.is_valid());
+    }
+
+    #[test]
+    fn test_graph_aggregate_cycle() {
+        let graph = GraphAggregate::new()
+            .cycle(&vec![
+                GraphNode::new(0, NodeType::Vertex, 0),
+                GraphNode::new(1, NodeType::Vertex, 1),
+            ])
+            .build();
+
+        let node_one = &graph[0];
+        let node_two = &graph[1];
+
+        assert!(node_one.outgoing().contains(&node_one.index()));
+        assert!(node_one.incoming().contains(&node_one.index()));
+        assert!(node_one.is_recurrent());
+        assert!(node_one.node_type() == NodeType::Vertex);
+
+        assert!(node_two.outgoing().contains(&node_two.index()));
+        assert!(node_two.incoming().contains(&node_two.index()));
+        assert!(node_two.is_recurrent());
+        assert!(node_two.node_type() == NodeType::Vertex);
+
+        assert!(graph.is_valid());
+    }
+
+    #[test]
+    fn test_graph_aggregate_layer() {
+        let graph = GraphAggregate::new()
+            .layer(vec![
+                &vec![
+                    GraphNode::new(0, NodeType::Input, "ONE"),
+                    GraphNode::new(1, NodeType::Input, "TWO"),
+                ],
+                &vec![
+                    GraphNode::new(2, NodeType::Vertex, "THREE"),
+                    GraphNode::new(3, NodeType::Vertex, "FOUR"),
+                ],
+                &vec![
+                    GraphNode::new(4, NodeType::Output, "FIVE"),
+                    GraphNode::new(5, NodeType::Output, "SIX"),
+                ],
+            ])
+            .build();
+
+        assert!(graph.is_valid());
+
+        let input_one = &graph[0];
+        let input_two = &graph[1];
+        let vertex_one = &graph[2];
+        let vertex_two = &graph[3];
+        let output_one = &graph[4];
+        let output_two = &graph[5];
+
+        assert!(input_one.outgoing().contains(&vertex_one.index()));
+        assert!(input_two.outgoing().contains(&vertex_two.index()));
+        assert!(vertex_one.incoming().contains(&input_one.index()));
+        assert!(vertex_two.incoming().contains(&input_two.index()));
+        assert!(vertex_one.outgoing().contains(&output_one.index()));
+        assert!(vertex_two.outgoing().contains(&output_two.index()));
+        assert!(output_one.incoming().contains(&vertex_one.index()));
+        assert!(output_two.incoming().contains(&vertex_two.index()));
     }
 }

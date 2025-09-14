@@ -73,7 +73,7 @@ where
     pub(crate) engine: E,
 }
 
-/// Implementation of `Iterator` for `EngineIterator`.
+/// Implementation of `Iterator` for [EngineIterator].
 ///
 /// Each call to `next()` advances the engine by one generation and returns
 /// the resulting generation data. The iterator continues indefinitely until
@@ -634,7 +634,7 @@ where
     iter: I,
 }
 
-/// Implementation of `Iterator` for `LoggingIterator`.
+/// Implementation of `Iterator` for [LoggingIterator].
 ///
 /// Each call to `next()` retrieves the next generation, logs relevant
 /// information, and returns the generation unchanged. The logging provides

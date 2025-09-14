@@ -7,9 +7,9 @@ use std::hash::Hash;
 use std::ops::Deref;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-/// A unique identifier for a `Phenotype`. This is used to identify the `Phenotype` in the population.
-/// It is a simple wrapper around a `u64` value. Using this, we can uniquely identify each `Phenotype`
-/// and can track them by a sort of 'version'. Every time a Phenotype is created or invalidated, its ID is updated.
+/// A unique identifier for a [Phenotype]. This is used to identify the [Phenotype] in the population.
+/// It is a simple wrapper around a `u64` value. Using this, we can uniquely identify each [Phenotype]
+/// and can track them by a sort of 'version'. Every time a [Phenotype] is created or invalidated, its ID is updated.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[repr(transparent)]
@@ -30,17 +30,17 @@ impl Deref for PhenotypeId {
     }
 }
 
-/// A `Phenotype` is a representation of an individual in the population. It contains:
+/// A [Phenotype] is a representation of an individual in the population. It contains:
 /// * `Genotype` - the genetic representation of the individual
 /// * `Score` - the score (fitness) of the individual as calculated by the fitness function
 /// * `Generation` - the generation in which the individual was created
-/// * `id` - a unique identifier for the `Phenotype`
+/// * `id` - a unique identifier for the [Phenotype]
 ///
-/// The `Phenotype` is a wrapper around the `Genotype` that adds additional information about the individual.
+/// The [Phenotype] is a wrapper around the [Genotype] that adds additional information about the individual.
 /// In traditional (biological) genetics, a phenotype is "the set of observable characteristics of an individual resulting
-/// from the interaction of its genotype with the environment". As such, the `Phenotype` is the 'observable' part of the
-/// individual (`Genotype`) that is being evolved by the genetic algorithm, hence the `Score` and `Generation` fields.
-/// This allows the `Phenotype` to be sorted and compared based on the fitness (`Score`) of the individual (`Genotype`)
+/// from the interaction of its genotype with the environment". As such, the [Phenotype] is the 'observable' part of the
+/// individual ([Genotype]) that is being evolved by the genetic algorithm, hence the [Score] and generation fields.
+/// This allows the [Phenotype] to be sorted and compared based on the fitness ([Score]) of the individual ([Genotype])
 ///
 /// # Type Parameters
 /// - `C`: The type of chromosome used in the genotype, which must implement the `Chromosome` trait.
@@ -178,8 +178,9 @@ impl<C: Chromosome> From<(Genotype<C>, usize)> for Phenotype<C> {
 }
 
 /// This is a convenience method that allows you to create a [Phenotype] from a list of [Chromosome]s.
-/// Without it, we end up neededing to create a list of [Genes] then a list of [Chromosome]s then a [Genotype],
-/// its just a lot. This method allows you to create a [Phenotype] from a list of chromosomes directly.
+/// Without it, we end up neededing to create a list of [Gene](super::chromosomes::Gene)s
+/// then a list of [Chromosome]s then a [Genotype], its just a lot.
+/// This method allows you to create a [Phenotype] from a list of chromosomes directly.
 impl<C: Chromosome> From<(Vec<C>, usize)> for Phenotype<C> {
     fn from((chromosomes, generation): (Vec<C>, usize)) -> Self {
         Phenotype {

@@ -160,7 +160,7 @@ class GraphMutator(AlterBase):
         self,
         vertex_rate: float = 0.1,
         edge_rate: float = 0.1,
-        allow_recurrent: bool = False,
+        allow_recurrent: bool = True,
     ):
         super().__init__(
             component="GraphMutator",

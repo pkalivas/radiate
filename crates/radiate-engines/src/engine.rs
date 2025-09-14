@@ -70,7 +70,7 @@ where
     /// Creates a new genetic engine with the specified components.
     ///
     /// This constructor is primarily used internally by the builder pattern.
-    /// Users should typically create engines using `GeneticEngine::builder()`.
+    /// Users should create engines using `GeneticEngine::builder()`.
     pub(crate) fn new(
         context: Context<C, T>,
         pipeline: Pipeline<C>,

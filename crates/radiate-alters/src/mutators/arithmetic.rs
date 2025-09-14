@@ -1,9 +1,8 @@
 use radiate_core::{AlterResult, ArithmeticGene, Chromosome, Mutate, random_provider};
-// use std::ops::{Add, Div, Mul, Sub};
 
 /// Arithmetic Mutator. Mutates genes by performing arithmetic operations on them.
-/// The ArithmeticMutator takes a rate parameter that determines the likelihood that
-/// a gene will be mutated. The ArithmeticMutator can perform addition, subtraction,
+/// The [ArithmeticMutator] takes a rate parameter that determines the likelihood that
+/// a gene will be mutated. The [ArithmeticMutator] can perform addition, subtraction,
 /// multiplication, and division on genes.
 ///
 /// This is a simple mutator that can be used with any gene that implements the

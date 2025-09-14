@@ -1,6 +1,10 @@
 use crate::{Context, EngineEvent, EventBus, steps::EngineStep};
 use radiate_core::Chromosome;
 
+/// A [Pipeline] is a sequence of steps that are executed in order during each epoch of the engine.
+/// Each step is represented by an implementation of the [EngineStep] trait.
+/// The pipeline is responsible for managing the execution of these steps,
+/// ensuring that they are run in the correct order and that the necessary data is passed between them.
 pub(crate) struct Pipeline<C>
 where
     C: Chromosome,
