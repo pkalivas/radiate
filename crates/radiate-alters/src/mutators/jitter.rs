@@ -17,6 +17,14 @@ pub struct JitterMutator {
 
 impl JitterMutator {
     pub fn new(rate: f32, magnitude: f32) -> Self {
+        if !(0.0..=1.0).contains(&rate) {
+            panic!("Rate must be between 0 and 1");
+        }
+
+        if magnitude <= 0.0 {
+            panic!("Magnitude must be greater than 0");
+        }
+
         Self { rate, magnitude }
     }
 }
@@ -37,9 +45,9 @@ where
             if random_provider::random::<f32>() < rate {
                 let change = random_provider::range(-1.0..1.0) * self.magnitude;
                 let new_allele = gene.allele() + change;
-                let bounds = (gene.min(), gene.max());
+                let (min, max) = gene.bounds();
 
-                (*gene.allele_mut()) = new_allele.clamp(*bounds.0, *bounds.1);
+                (*gene.allele_mut()) = new_allele.clamp(*min, *max);
                 count += 1;
             }
         }

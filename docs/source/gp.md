@@ -80,7 +80,7 @@ Provided `Ops` include:
     |------|-------|-------------|----------|---- |
     | `const` | 0 | x | `Op::constant()` | Const |
     | `named_const` | 0 | x | `Op::named_constant(name)` | Const |
-    | `var` | 0 | input[i] - return the value of the input at index `i` | `Op::var(i)` | Var |
+    | `var` | 0 | Variable. input[i] - return the value of the input at index `i` | `Op::var(i)` | Var |
     | `identity` |1| return the input value | `Op::identity()` | Fn |
 
 
@@ -202,7 +202,8 @@ This mutator randomly changes or alters the `op` of a node within a `TreeChromos
     ```python
     import radiate as rd
 
-    mutator = rd.OperationMutator(0.07, 0.05),
+    # Create a mutator that has a 10% chance to mutate an op and a 50% chance to replace it with a new one
+    mutator = rd.OperationMutator(0.1, 0.5)
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -583,17 +584,19 @@ Manually create a simple graph:
 
 === ":fontawesome-brands-python: Python"
 
-    Creating a graph in python doesn't offer as much flexibility as in rust at the current time, but it can still be done. 
+    Creating a graph in python doesn't offer as much flexibility as in rust at the current time, but it can still be done through the codec.
 
     ```python
     import radiate as rd
 
-    graph = rd.Graph(
+    codec = rd.GraphCodec.directed(
         shape=(2, 1),
         vertex=[rd.Op.add(), rd.Op.sub(), rd.Op.mul(), rd.Op.div()],
         edge=[rd.Op.weight()],
         output=[rd.Op.linear()],
     )
+
+    graph = codec.decode(codec.encode())
 
     inputs = [[1.0, 2.0]]
     outputs = graph.eval(inputs)
@@ -636,15 +639,34 @@ Now, the above works just fine, but can become cumbersome quickly. To ease the p
 
 === ":fontawesome-brands-python: Python"
 
+    There isn't a direct way to create a Graph in python, instead we can use the codec to create on directly if needed.
+
     ```python
     import radiate as rd
 
-    graph = rd.Graph(
+    codec = rd.GraphCodec.directed(
         shape=(2, 1),
         vertex=[rd.Op.add(), rd.Op.sub(), rd.Op.mul(), rd.Op.div()],
         edge=[rd.Op.weight()],
         output=[rd.Op.linear()],
     )
+
+    # or recurrent graph
+    codec = rd.GraphCodec.recurrent(
+        # ... same as above
+    )
+
+    # or weighted directed graph
+    codec = rd.GraphCodec.weighted_directed(
+        # ... same as above
+    )
+
+    # or weighted recurrent graph
+    codec = rd.GraphCodec.weighted_recurrent(
+        # ... same as above
+    )
+
+    graph = codec.decode(codec.encode())
 
     inputs = [[1.0, 2.0]]
     outputs = graph.eval(inputs)
@@ -683,6 +705,47 @@ Now, the above works just fine, but can become cumbersome quickly. To ease the p
     let inputs = vec![vec![1.0, 2.0]];
     let outputs = graph.eval(&inputs);
     ```
+
+The `Graph` can be visualized using the `dot` format, which can be rendered using tools like Graphviz. This is especially useful for understanding the structure of complex graphs. Calling `.to_dot()` on a graph will generate the dot representation. The dot format for graphs can be intpreted as follows:
+
+* Blue squares represent input nodes
+* Yellow circles represent vertex nodes
+* Green squares represent output nodes.
+* Grey diamonds represent edge nodes.
+* Solid lines represent directed connections
+* Dashed lines represent recurrent connections or connections that come from cycles.
+
+??? note "Directed"
+
+    A directed graph is a graph in which the edges have a direction. This means that the connections between nodes are one-way, and data can only flow in the direction of the edges. Here we can see a simple directed graph with 2 input nodes and 1 output node.
+
+    <figure markdown="span">
+        ![directed-graph](../assets/graphviz_directed.svg){ width="300" }
+    </figure>
+
+??? note "Recurrent"
+
+    A recurrent graph is a graph in which the edges can form cycles. This means that data can flow in loops, allowing for more complex behaviors. Here we can see a simple recurrent graph with 2 input nodes, two recurrent vertex nodes, and 1 output node.
+
+    <figure markdown="span">
+        ![recurrent-graph](../assets/graphviz_recurrent.svg){ width="300" }
+    </figure>
+
+??? note "Weighted Directed"
+
+    A weighted directed graph is a directed graph in which the edges have weights. These weights can represent the strength or importance of the connection between nodes. Here we can see a simple weighted directed graph with 2 input nodes, 2 weighted edge nodes, and 1 output node.
+
+    <figure markdown="span">
+        ![weighted-directed-graph](../assets/graphviz_weighted_directed.svg){ width="300" }
+    </figure>
+
+??? note "Weighted Recurrent"
+
+    A weighted recurrent graph is a recurrent graph in which the edges have weights. These weights can represent the strength or importance of the connection between nodes. Here we can see a simple weighted recurrent graph with 2 input nodes, 2 recurrent vertex nodes, 2 weighted edge nodes, and 1 output node.
+
+    <figure markdown="span">
+        ![weighted-recurrent-graph](../assets/graphviz_weighted_recurrent.svg){ width="300" }
+    </figure>
 
 ### Node
 
@@ -774,7 +837,7 @@ The `GraphCodec` is a codec that encodes a `GraphChromosome` and decodes it back
 > 
 >   * `vertex_rate`: f32 - Probabilty of adding a vertex to the graph (0.0 to 1.0)
 >   * `edge_rate`: f32 - Probabilty of adding an edge to the graph (0.0 to 1.0)
->   * `allow_recurrent`: bool - Whether to allow recurrent connections in the graph. The default is `false`, meaning the graph will be a directed acyclic graph (DAG).
+>   * `allow_recurrent`: bool - Whether to allow recurrent connections in the graph. The default is `true`, meaning the graph can have cycles.
 
 - **Purpose**: Randomly adds vertices and edges to the graph.
 
@@ -786,7 +849,7 @@ This mutator is used to add new nodes and connections to the graph. It can be us
     import radiate as rd
 
     # Create a mutator that adds vertices and edges with a 10% chance for either
-    mutator = rd.GraphMutator(vertex_rate=0.1, edge_rate=0.1, allow_recurrent=True)
+    mutator = rd.GraphMutator(vertex_rate=0.1, edge_rate=0.1, allow_recurrent=False)
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -797,7 +860,7 @@ This mutator is used to add new nodes and connections to the graph. It can be us
     // Create a mutator that adds vertices and edges with a 10% chance for either
     let mutator = GraphMutator::new(0.1, 0.1);
 
-    let mutator = GraphMutator::new(0.1, 0.1).allow_recurrent(true); // Allow recurrent connections
+    let mutator = GraphMutator::new(0.1, 0.1).allow_recurrent(false); // Disallow recurrent connections
     ```
 
 #### GraphCrossover

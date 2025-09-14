@@ -93,6 +93,7 @@ impl<C: Chromosome<Gene = FloatGene>> Mutate<C> for PolynomialMutator {
 
     #[inline]
     fn mutate_gene(&self, gene: &C::Gene) -> C::Gene {
+        // TODO: Should these be from the bounds?
         let min = *gene.min();
         let max = *gene.max();
         let value = *gene.allele();

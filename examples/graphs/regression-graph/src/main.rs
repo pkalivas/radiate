@@ -1,6 +1,5 @@
+use radiate::prelude::*;
 use std::io::Write;
-
-use radiate::*;
 
 const MIN_SCORE: f32 = 0.001;
 

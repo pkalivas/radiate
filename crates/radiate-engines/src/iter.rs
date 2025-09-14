@@ -634,7 +634,7 @@ where
     iter: I,
 }
 
-/// Implementation of `Iterator` for `LoggingIterator`.
+/// Implementation of `Iterator` for [LoggingIterator].
 ///
 /// Each call to `next()` retrieves the next generation, logs relevant
 /// information, and returns the generation unchanged. The logging provides

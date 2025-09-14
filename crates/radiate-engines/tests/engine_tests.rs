@@ -86,4 +86,34 @@ mod engine_tests {
 
         assert_eq!(result.value().iter().sum::<i32>(), 0);
     }
+
+    #[test]
+    fn test_engine_score_iterator() {
+        let engine = GeneticEngine::builder()
+            .minimizing()
+            .codec(IntCodec::vector(5, 0..100))
+            .fitness_fn(|geno: Vec<i32>| geno.iter().sum::<i32>())
+            .build();
+
+        let result = engine.iter().until_score(0).last().unwrap();
+
+        let best = result.value();
+        assert_eq!(best.iter().sum::<i32>(), 0);
+        assert_eq!(result.score().as_i32(), 0);
+    }
+
+    #[test]
+    fn test_engine_seconds_iterator() {
+        let engine = GeneticEngine::builder()
+            .minimizing()
+            .codec(IntCodec::vector(5, 0..100))
+            .fitness_fn(|geno: Vec<i32>| geno.iter().sum::<i32>())
+            .build();
+
+        let result = engine.iter().until_seconds(2_f64).last().unwrap();
+
+        // Round here as the time taken to execute the engine may
+        // be slightly over or under 2 seconds
+        assert_eq!((result.time().as_secs_f64() - 2_f64).abs().round(), 0.0);
+    }
 }
