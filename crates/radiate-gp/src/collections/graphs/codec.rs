@@ -88,6 +88,7 @@ where
         Genotype::from(chromosome)
     }
 
+    #[inline]
     fn decode(&self, genotype: &Genotype<GraphChromosome<T>>) -> Graph<T> {
         Graph::new(
             genotype

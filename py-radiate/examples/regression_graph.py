@@ -37,7 +37,7 @@ engine = rd.GeneticEngine(
     alters=[
         rd.GraphCrossover(0.5, 0.5),
         rd.OperationMutator(0.07, 0.05),
-        rd.GraphMutator(0.1, 0.1),
+        rd.GraphMutator(0.1, 0.1, False),
     ],
 )
 

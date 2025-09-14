@@ -1,5 +1,4 @@
 use radiate::prelude::*;
-use std::io::Write;
 
 const MIN_SCORE: f32 = 0.001;
 
@@ -36,17 +35,10 @@ fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
     let mut evaluator = GraphEvaluator::new(result.value());
 
     let data_set = dataset().into();
-    let accuracy = Accuracy::new("reg", &data_set, Loss::MSE);
-    let accuracy_result = accuracy.calc(|input| evaluator.eval_mut(input));
+    let accuracy_result = Accuracy::new("reg", &data_set, Loss::MSE).calc(&mut evaluator);
 
     println!("{:?}", result);
     println!("{:?}", accuracy_result);
-
-    let file = std::fs::File::create("graph.dot").unwrap();
-    let mut writer = std::io::BufWriter::new(file);
-    writer
-        .write_all(result.value().to_dot().as_bytes())
-        .unwrap();
 }
 
 fn dataset() -> impl Into<DataSet> {
@@ -68,3 +60,9 @@ fn compute(x: f32) -> f32 {
 }
 
 // .diversity(NeatDistance::new(0.1, 0.1, 0.5))
+
+// let file = std::fs::File::create("graph.dot").unwrap();
+// let mut writer = std::io::BufWriter::new(file);
+// writer
+//     .write_all(result.value().to_dot().as_bytes())
+//     .unwrap();

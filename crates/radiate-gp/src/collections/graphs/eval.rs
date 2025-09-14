@@ -127,7 +127,7 @@ where
     }
 }
 
-impl<T, V> Eval<Vec<Vec<V>>, Vec<Vec<V>>> for Graph<T>
+impl<T, V> Eval<[Vec<V>], Vec<Vec<V>>> for Graph<T>
 where
     T: Eval<[V], V>,
     V: Clone + Default,
@@ -141,7 +141,7 @@ where
     /// # Returns
     /// * A `Vec<Vec<T>>` which is the output of the [Graph].
     #[inline]
-    fn eval(&self, input: &Vec<Vec<V>>) -> Vec<Vec<V>> {
+    fn eval(&self, input: &[Vec<V>]) -> Vec<Vec<V>> {
         let mut evaluator = GraphEvaluator::new(self);
         input
             .iter()
@@ -155,12 +155,12 @@ where
     T: Eval<[V], V>,
     V: Clone,
 {
-    /// Evaluates the [GraphNode]' with the given input. Returns the output of the [GraphNode].
+    /// Evaluates the [GraphNode] with the given input. Returns the output of the [GraphNode].
     /// # Arguments
-    /// * `inputs` - A `Vec` of `V` to evaluate the [GraphNode]' with.
+    /// * `inputs` - A `Vec` of `V` to evaluate the [GraphNode] with.
     ///
     /// # Returns
-    /// * A `V` which is the output of the [GraphNode]'.
+    /// * A `V` which is the output of the [GraphNode].
     #[inline]
     fn eval(&self, inputs: &[V]) -> V {
         self.value().eval(inputs)
@@ -204,9 +204,9 @@ mod tests {
             .attach(idx_two, idx_three)
             .attach(idx_three, idx_four);
 
-        let six = graph.eval(&vec![vec![1_f32]]);
-        let seven = graph.eval(&vec![vec![2_f32]]);
-        let eight = graph.eval(&vec![vec![3_f32]]);
+        let six = graph.eval(&[vec![1_f32]]);
+        let seven = graph.eval(&[vec![2_f32]]);
+        let eight = graph.eval(&[vec![3_f32]]);
 
         assert_eq!(six, &[&[6_f32]]);
         assert_eq!(seven, &[&[7_f32]]);

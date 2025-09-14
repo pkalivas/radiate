@@ -18,6 +18,7 @@ impl Regression {
 }
 
 impl FitnessFunction<Graph<Op<f32>>, f32> for Regression {
+    #[inline]
     fn evaluate(&self, input: Graph<Op<f32>>) -> f32 {
         let mut evaluator = GraphEvaluator::new(&input);
 
@@ -27,6 +28,7 @@ impl FitnessFunction<Graph<Op<f32>>, f32> for Regression {
 }
 
 impl FitnessFunction<GraphChromosome<Op<f32>>, f32> for Regression {
+    #[inline]
     fn evaluate(&self, input: GraphChromosome<Op<f32>>) -> f32 {
         let mut evaluator = GraphEvaluator::new(&input);
 
@@ -36,6 +38,7 @@ impl FitnessFunction<GraphChromosome<Op<f32>>, f32> for Regression {
 }
 
 impl FitnessFunction<Tree<Op<f32>>, f32> for Regression {
+    #[inline]
     fn evaluate(&self, input: Tree<Op<f32>>) -> f32 {
         self.loss
             .calculate(&self.data_set, &mut |vals| vec![input.eval(vals)])
@@ -43,6 +46,7 @@ impl FitnessFunction<Tree<Op<f32>>, f32> for Regression {
 }
 
 impl FitnessFunction<Vec<Tree<Op<f32>>>, f32> for Regression {
+    #[inline]
     fn evaluate(&self, input: Vec<Tree<Op<f32>>>) -> f32 {
         self.loss.calculate(&self.data_set, &mut |vals| {
             input.iter().map(|tree| tree.eval(vals)).collect()
@@ -51,6 +55,7 @@ impl FitnessFunction<Vec<Tree<Op<f32>>>, f32> for Regression {
 }
 
 impl FitnessFunction<Vec<&TreeNode<Op<f32>>>, f32> for Regression {
+    #[inline]
     fn evaluate(&self, input: Vec<&TreeNode<Op<f32>>>) -> f32 {
         self.loss.calculate(&self.data_set, &mut |vals| {
             input.iter().map(|tree| tree.eval(vals)).collect()

@@ -192,7 +192,6 @@ def run_novelty_search_evolution(generations: int = 200) -> rd.Generation:
         ),
         survivor_selector=rd.TournamentSelector(3),
         offspring_selector=rd.BoltzmannSelector(4),
-        executor=rd.Executor.WorkerPool(),
         alters=[
             rd.BlendCrossover(),
             rd.GaussianMutator(0.1),

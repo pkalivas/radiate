@@ -15,7 +15,7 @@ fn main() {
 
     let result = engine.run(|ctx| {
         println!("[ {:?} ]: {:?}", ctx.index(), ctx.value());
-        ctx.score().as_i32() == MIN_SCORE
+        ctx.score().as_i32() == MIN_SCORE || ctx.seconds() > 3.0
     });
 
     println!("{:?}", result);

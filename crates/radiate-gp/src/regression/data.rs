@@ -11,11 +11,11 @@ impl Row {
         Row { input, output }
     }
 
-    pub fn input(&self) -> &Vec<f32> {
+    pub fn input(&self) -> &[f32] {
         &self.input
     }
 
-    pub fn output(&self) -> &Vec<f32> {
+    pub fn output(&self) -> &[f32] {
         &self.output
     }
 }

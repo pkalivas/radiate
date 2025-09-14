@@ -43,10 +43,10 @@ fn display(
 ) {
     let train_acc = Accuracy::new("train", &train, Loss::MSE);
     let test_acc = Accuracy::new("test", &test, Loss::MSE);
-    let best = result.value().clone();
+    let mut best = result.value().clone();
 
-    let train_acc_result = train_acc.calc(|input| best.eval(input));
-    let test_acc_result = test_acc.calc(|input| best.eval(input));
+    let train_acc_result = train_acc.calc(&mut best);
+    let test_acc_result = test_acc.calc(&mut best);
 
     println!("{:?}", result);
     println!("{:?}", train_acc_result);
