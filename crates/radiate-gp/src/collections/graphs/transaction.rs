@@ -1,7 +1,7 @@
 use super::{Direction, Graph, GraphNode};
 use crate::{Arity, NodeType, node::Node};
 use radiate_core::{Valid, random_provider};
-use std::{collections::HashSet, fmt::Debug, ops::Deref};
+use std::{collections::BTreeSet, fmt::Debug, ops::Deref};
 
 /// Represents a reversible change to the graph
 #[derive(Debug, Clone)]
@@ -39,7 +39,7 @@ pub enum InsertStep {
 pub struct GraphTransaction<'a, T> {
     graph: &'a mut Graph<T>,
     steps: Vec<MutationStep>,
-    effects: HashSet<usize>,
+    effects: BTreeSet<usize>,
 }
 
 impl<'a, T> GraphTransaction<'a, T> {
@@ -47,7 +47,7 @@ impl<'a, T> GraphTransaction<'a, T> {
         GraphTransaction {
             graph,
             steps: Vec::new(),
-            effects: HashSet::new(),
+            effects: BTreeSet::new(),
         }
     }
 
@@ -190,6 +190,7 @@ impl<'a, T> GraphTransaction<'a, T> {
         }
     }
 
+    #[inline]
     pub fn get_insertion_steps(
         &self,
         source_idx: usize,

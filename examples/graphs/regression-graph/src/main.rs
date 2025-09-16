@@ -37,8 +37,7 @@ fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
     let data_set = dataset().into();
     let accuracy_result = Accuracy::new("reg", &data_set, Loss::MSE).calc(&mut evaluator);
 
-    println!("{:?}", result);
-    println!("{:?}", accuracy_result);
+    println!("{result:?}\n{accuracy_result:?}");
 }
 
 fn dataset() -> impl Into<DataSet> {
@@ -58,11 +57,3 @@ fn dataset() -> impl Into<DataSet> {
 fn compute(x: f32) -> f32 {
     4.0 * x.powf(3.0) - 3.0 * x.powf(2.0) + x
 }
-
-// .diversity(NeatDistance::new(0.1, 0.1, 0.5))
-
-// let file = std::fs::File::create("graph.dot").unwrap();
-// let mut writer = std::io::BufWriter::new(file);
-// writer
-//     .write_all(result.value().to_dot().as_bytes())
-//     .unwrap();

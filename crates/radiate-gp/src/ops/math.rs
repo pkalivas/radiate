@@ -125,6 +125,7 @@ pub enum ActivationOperation {
 /// accept any number of inputs. Thus, they act as reducers or aggregates and are a key part of
 /// being able to define complex 'Graph' and 'Tree' structures.
 impl ActivationOperation {
+    #[inline]
     pub fn apply(&self, inputs: &[f32]) -> f32 {
         match self {
             ActivationOperation::Sigmoid => {
@@ -177,6 +178,23 @@ impl Op<f32> {
             name: "w",
             arity: 1.into(),
             value: supplier(),
+            supplier: Arc::new(supplier),
+            modifier: Arc::new(modifier),
+            operation: Arc::new(operation),
+        }
+    }
+
+    pub fn weight_with(value: f32) -> Self {
+        let supplier = || random_provider::random::<f32>() * TWO - ONE;
+        let operation = |inputs: &[f32], weight: &f32| clamp(inputs[0] * weight);
+        let modifier = |current: &f32| {
+            let diff = (random_provider::random::<f32>() * TWO - ONE) * TENTH;
+            clamp(current + diff)
+        };
+        Op::MutableConst {
+            name: "w",
+            arity: 1.into(),
+            value: clamp(value),
             supplier: Arc::new(supplier),
             modifier: Arc::new(modifier),
             operation: Arc::new(operation),

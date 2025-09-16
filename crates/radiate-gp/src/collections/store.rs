@@ -6,7 +6,7 @@ use serde::{
     de::Deserializer,
     ser::{Error as SerError, Serializer},
 };
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fmt::Debug;
 use std::sync::{Arc, RwLock};
 
@@ -77,13 +77,13 @@ impl_node_value!(
 
 #[derive(Default)]
 pub struct NodeStore<T> {
-    values: Arc<RwLock<HashMap<NodeType, Vec<NodeValue<T>>>>>,
+    values: Arc<RwLock<BTreeMap<NodeType, Vec<NodeValue<T>>>>>,
 }
 
 impl<T> NodeStore<T> {
     pub fn new() -> Self {
         NodeStore {
-            values: Arc::new(RwLock::new(HashMap::new())),
+            values: Arc::new(RwLock::new(BTreeMap::new())),
         }
     }
 
@@ -286,7 +286,7 @@ where
     {
         let values: Vec<(NodeType, Vec<NodeValue<T>>)> = Vec::deserialize(deserializer)?;
 
-        let mut map = HashMap::new();
+        let mut map = BTreeMap::new();
         for (node_type, node_values) in values {
             map.insert(node_type, node_values);
         }

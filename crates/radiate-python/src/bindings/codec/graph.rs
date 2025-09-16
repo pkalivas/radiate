@@ -78,6 +78,8 @@ impl PyGraphCodec {
             Some("weighted_recurrent") => {
                 GraphCodec::weighted_recurrent(input_size, output_size, values)
             }
+            Some("gru") => GraphCodec::gru(input_size, output_size, values),
+            Some("lstm") => GraphCodec::lstm(input_size, output_size, values),
             _ => GraphCodec::directed(input_size, output_size, values),
         };
 

@@ -14,8 +14,8 @@ from matplotlib.animation import FuncAnimation  # type: ignore
 rd.random.seed(42)
 np.random.seed(42)
 
-HEIGHT = 20
-WIDTH = 20
+HEIGHT = 15
+WIDTH = 15
 MAX_STEPS = 1500
 FOOD_POSITIONS = [
     (rd.random.int(0, WIDTH), rd.random.int(0, HEIGHT)) for _ in range(MAX_STEPS * 2)

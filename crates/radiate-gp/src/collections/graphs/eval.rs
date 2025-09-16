@@ -22,10 +22,7 @@ pub struct GraphEvalCache<V> {
 }
 
 /// [GraphEvaluator] is a struct that is used to evaluate a [Graph] of [GraphNode]'s. It uses the [GraphIterator]
-/// to traverse the [Graph] in a sudo-topological order and evaluate the nodes in the correct order.
-///
-/// On the first iteration it caches the order of nodes in the [Graph] and then uses that order to
-/// evaluate the nodes in the correct order. This is a massive performance improvement.
+/// to traverse the [Graph] in a pseudo-topological order and evaluate the nodes in the correct order.
 pub struct GraphEvaluator<'a, T, V> {
     nodes: &'a [GraphNode<T>],
     inner: GraphEvalCache<V>,
@@ -36,11 +33,10 @@ where
     T: Eval<[V], V>,
     V: Default + Clone,
 {
-    /// Creates a new [GraphEvaluator] with the given [Graph]. We pre-allocate a
-    /// `Vec<Vec<V>>` to hold the inputs for each node and a `Vec<V>` to hold the outputs
-    /// of nodes which serve as the inputs for their descendants. Then, iterating over
-    /// the nodes in topological order, we evaluate the nodes in one pass. Because of this,
-    /// the 'heavy lifting' is done upfront which makes subsequent evaluations much faster.
+    /// Creates a new [GraphEvaluator] with the given [Graph]. We pre-allocate the necessary
+    /// storage for inputs and outputs based on the structure of the graph on creation.
+    /// This way, we can reuse the same evaluator for multiple evaluations of the same graph
+    /// without needing to reallocate memory each time.
     ///
     /// # Arguments
     /// * graph - The [Graph] to reduce.
@@ -88,8 +84,6 @@ where
     V: Clone + Default,
 {
     /// Evaluates the [Graph] with the given input. Returns the output of the [Graph].
-    /// The `eval` method will cache the order of nodes in the [Graph] on the first iteration.
-    /// On subsequent iterations it will use the cached order to evaluate the [Graph] in the correct order.
     ///
     /// # Arguments
     /// * `input` - A `Vec` of `T` to evaluate the [Graph] with.
@@ -98,7 +92,7 @@ where
     /// * A `Vec` of `T` which is the output of the [Graph].
     #[inline]
     fn eval_mut(&mut self, input: &[V]) -> Vec<V> {
-        self.inner.output_outs.truncate(0);
+        self.inner.output_outs.clear();
 
         for index in self.inner.eval_order.iter() {
             let node = &self.nodes[*index];
@@ -123,7 +117,7 @@ where
             }
         }
 
-        self.inner.output_outs.clone()
+        std::mem::take(&mut self.inner.output_outs)
     }
 }
 
@@ -190,6 +184,11 @@ mod tests {
     use super::*;
     use crate::{Graph, Op};
 
+    fn round(value: f32, places: u32) -> f32 {
+        let factor = 10_f32.powi(places as i32);
+        (value * factor).round() / factor
+    }
+
     #[test]
     fn test_graph_eval_simple() {
         let mut graph = Graph::<Op<f32>>::default();
@@ -208,9 +207,62 @@ mod tests {
         let seven = graph.eval(&[vec![2_f32]]);
         let eight = graph.eval(&[vec![3_f32]]);
 
-        assert_eq!(six, &[&[6_f32]]);
-        assert_eq!(seven, &[&[7_f32]]);
-        assert_eq!(eight, &[&[8_f32]]);
+        assert_eq!(six, vec![vec![6_f32]]);
+        assert_eq!(seven, vec![vec![7_f32]]);
+        assert_eq!(eight, vec![vec![8_f32]]);
         assert_eq!(graph.len(), 4);
+    }
+
+    #[test]
+    fn test_graph_eval_recurrent() {
+        let mut graph = Graph::<Op<f32>>::default();
+
+        graph.insert(NodeType::Input, Op::var(0));
+        graph.insert(NodeType::Vertex, Op::diff());
+        graph.insert(NodeType::Output, Op::sigmoid());
+        graph.insert(NodeType::Edge, Op::weight_with(-1.41));
+        graph.insert(NodeType::Vertex, Op::sigmoid());
+        graph.insert(NodeType::Vertex, Op::exp());
+        graph.insert(NodeType::Edge, Op::weight_with(-1.10));
+        graph.insert(NodeType::Vertex, Op::exp());
+        graph.insert(NodeType::Vertex, Op::exp());
+        graph.insert(NodeType::Vertex, Op::div());
+
+        graph.attach(0, 1);
+        graph.attach(1, 1);
+        graph.attach(4, 1);
+        graph.attach(7, 1);
+        graph.attach(8, 1);
+        graph.attach(1, 2);
+        graph.attach(3, 2);
+        graph.attach(6, 2);
+        graph.attach(5, 3);
+        graph.attach(1, 4);
+        graph.attach(0, 5);
+        graph.attach(9, 6);
+        graph.attach(4, 7);
+        graph.attach(7, 8);
+        graph.attach(0, 9);
+        graph.attach(9, 9);
+
+        graph.set_cycles(vec![]);
+
+        let mut evaluator = GraphEvaluator::new(&graph);
+
+        let out1 = evaluator.eval_mut(&vec![0.0])[0];
+        let out2 = evaluator.eval_mut(&vec![0.0])[0];
+        let out3 = evaluator.eval_mut(&vec![0.0])[0];
+        let out4 = evaluator.eval_mut(&vec![1.0])[0];
+        let out5 = evaluator.eval_mut(&vec![0.0])[0];
+        let out6 = evaluator.eval_mut(&vec![0.0])[0];
+        let out7 = evaluator.eval_mut(&vec![0.0])[0];
+
+        assert_eq!(round(out1, 3), 0.196);
+        assert_eq!(round(out2, 3), 0.000);
+        assert_eq!(round(out3, 3), 0.902);
+        assert_eq!(round(out4, 3), 0.000);
+        assert_eq!(round(out5, 3), 0.000);
+        assert_eq!(round(out6, 3), 0.000);
+        assert_eq!(round(out7, 3), 1.000);
     }
 }

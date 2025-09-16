@@ -4,12 +4,22 @@ const MAX_INDEX: usize = 5000;
 const MIN_SCORE: f32 = 0.01;
 
 fn main() {
-    random_provider::set_seed(501);
+    random_provider::set_seed(42);
 
     let values = vec![
         (NodeType::Input, vec![Op::var(0), Op::var(1)]),
         (NodeType::Edge, vec![Op::weight(), Op::identity()]),
-        (NodeType::Vertex, ops::all_ops()),
+        (
+            NodeType::Vertex,
+            vec![
+                Op::add(),
+                Op::sub(),
+                Op::mul(),
+                Op::div(),
+                Op::linear(),
+                Op::sigmoid(),
+            ],
+        ),
         (NodeType::Output, vec![Op::sigmoid()]),
     ];
 
@@ -47,7 +57,7 @@ fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
         );
     }
 
-    println!("{:?}", result)
+    println!("{result:?}");
 }
 
 fn get_dataset() -> DataSet {

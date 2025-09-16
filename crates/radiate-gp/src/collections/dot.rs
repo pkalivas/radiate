@@ -1,5 +1,5 @@
 use crate::{Direction, Graph, Node, NodeType, Tree, TreeNode};
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 
 pub trait ToDot {
     fn to_dot(&self) -> String;
@@ -7,7 +7,7 @@ pub trait ToDot {
 
 impl<T> ToDot for Graph<T>
 where
-    T: Display,
+    T: Debug,
 {
     fn to_dot(&self) -> String {
         let mut dot = String::new();
@@ -17,27 +17,27 @@ where
         for (i, node) in self.iter().enumerate() {
             let node_label = match node.node_type() {
                 NodeType::Input => format!(
-                    "{} [label=\"I {}\", shape=box, color=blue];",
+                    "{} [label=\"{:?}\", shape=box, color=blue];",
                     i,
                     node.value()
                 ),
                 NodeType::Output => {
                     format!(
-                        "{} [label=\"O {}\", shape=box, color=green];",
+                        "{} [label=\"{:?}\", shape=box, color=green];",
                         i,
                         node.value()
                     )
                 }
                 NodeType::Vertex => {
                     format!(
-                        "{} [label=\"V {}\", shape=circle, color=orange];",
+                        "{} [label=\"{:?}\", shape=circle, color=orange];",
                         i,
                         node.value()
                     )
                 }
                 NodeType::Edge => {
                     format!(
-                        "{} [label=\"E {}\", shape=diamond, color=gray];",
+                        "{} [label=\"{:?}\", shape=diamond, color=gray];",
                         i,
                         node.value()
                     )

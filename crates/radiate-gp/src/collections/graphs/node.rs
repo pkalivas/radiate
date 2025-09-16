@@ -204,6 +204,16 @@ impl<T> GraphNode<T> {
         }
     }
 
+    pub fn with_incoming<I: IntoIterator<Item = usize>>(mut self, incoming: I) -> Self {
+        self.incoming = incoming.into_iter().collect();
+        self
+    }
+
+    pub fn with_outgoing<O: IntoIterator<Item = usize>>(mut self, outgoing: O) -> Self {
+        self.outgoing = outgoing.into_iter().collect();
+        self
+    }
+
     pub fn direction(&self) -> Direction {
         self.direction
     }
@@ -360,6 +370,7 @@ where
 /// * `Vertex` nodes are valid when they have both incoming and outgoing connections
 /// * `Edge` nodes are valid when they have exactly one incoming and one outgoing connection
 impl<T> Valid for GraphNode<T> {
+    #[inline]
     fn is_valid(&self) -> bool {
         match self.node_type() {
             NodeType::Input => self.incoming.is_empty() && !self.outgoing.is_empty(),
@@ -427,6 +438,24 @@ impl<T: Default> From<(usize, T, Arity)> for GraphNode<T> {
             arity: Some(arity),
             incoming: BTreeSet::new(),
             outgoing: BTreeSet::new(),
+        }
+    }
+}
+
+impl<T, I> From<(usize, NodeType, T, I, I)> for GraphNode<T>
+where
+    I: IntoIterator<Item = usize>,
+{
+    fn from((index, node_type, value, incoming, outgoing): (usize, NodeType, T, I, I)) -> Self {
+        GraphNode {
+            index,
+            id: GraphNodeId::new(),
+            value,
+            direction: Direction::Forward,
+            node_type: Some(node_type),
+            arity: None,
+            incoming: incoming.into_iter().collect(),
+            outgoing: outgoing.into_iter().collect(),
         }
     }
 }

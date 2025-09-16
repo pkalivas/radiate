@@ -4,7 +4,7 @@ const MAX_INDEX: usize = 500;
 const MIN_SCORE: f32 = 0.01;
 
 fn main() {
-    random_provider::set_seed(42);
+    random_provider::set_seed(2);
 
     let values = vec![
         (NodeType::Input, vec![Op::var(0)]),
@@ -13,12 +13,9 @@ fn main() {
         (NodeType::Output, vec![Op::sigmoid()]),
     ];
 
-    let graph_codec = GraphCodec::recurrent(1, 1, values);
-    let regression = Regression::new(dataset(), Loss::MSE);
-
     let mut engine = GeneticEngine::builder()
-        .codec(graph_codec)
-        .fitness_fn(regression)
+        .codec(GraphCodec::lstm(1, 1, values))
+        .fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
         .offspring_selector(BoltzmannSelector::new(4_f32))
         .survivor_selector(TournamentSelector::new(4))
@@ -42,14 +39,13 @@ fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
     for sample in dataset().iter() {
         let output = reducer.eval_mut(sample.input());
         println!(
-            "{:?} -> epected: {:?}, actual: {:.3?}",
+            "{:?} -> expected: {:?}, actual: {output:.3?}",
             sample.input(),
             sample.output(),
-            output
         );
     }
 
-    println!("{:?}", result);
+    println!("{result:?}");
 }
 
 fn dataset() -> DataSet {
