@@ -99,7 +99,7 @@ class TestEngineBasicIntegration:
             return value
 
         codec = rd.FloatCodec.vector(N_GENES, init_range=(-RANGE, RANGE))
-        population = rd.Population(rd.Phenotype(codec.encode()) for _ in range(100))
+        population = rd.Population(rd.Phenotype(codec.encode()) for _ in range(107))
 
         engine = rd.GeneticEngine(codec, fitness_fn, population=population)
         engine.minimizing()
@@ -110,6 +110,7 @@ class TestEngineBasicIntegration:
         assert all(i < 0.001 for i in result.value())
         assert len(result.value()) == N_GENES
         assert result.index() < 1000
+        assert len(result.population()) == 107
 
     @pytest.mark.integration
     def test_engine_graph_xor(self, xor_dataset, random_seed):
@@ -130,7 +131,7 @@ class TestEngineBasicIntegration:
             alters=[
                 rd.GraphCrossover(0.5, 0.5),
                 rd.OperationMutator(0.07, 0.05),
-                rd.GraphMutator(0.1, 0.1),
+                rd.GraphMutator(0.1, 0.1, False),
             ],
         )
 

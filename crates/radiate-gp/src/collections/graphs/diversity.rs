@@ -3,10 +3,13 @@ use crate::{Node, Op};
 use radiate_core::{Diversity, Genotype};
 use std::cmp::Ordering;
 
+const OP_MISMATCH_PENALTY: f32 = 0.3;
+
 pub struct NeatDistance {
     excess: f32,
     disjoint: f32,
     weight_diff: f32,
+    op_mismatch_penalty: f32,
 }
 
 impl NeatDistance {
@@ -15,7 +18,13 @@ impl NeatDistance {
             excess,
             disjoint,
             weight_diff,
+            op_mismatch_penalty: OP_MISMATCH_PENALTY,
         }
+    }
+
+    pub fn with_mismatch_penalty(mut self, penalty: f32) -> Self {
+        self.op_mismatch_penalty = penalty;
+        self
     }
 }
 
@@ -107,6 +116,6 @@ impl NeatDistance {
         (self.excess * excess / max_genes)
             + (self.disjoint * disjoint / max_genes)
             + (self.weight_diff * avg_weight_diff)
-            + (0.3 * op_mismatch_penalty)
+            + (self.op_mismatch_penalty * op_mismatch_penalty)
     }
 }

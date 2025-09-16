@@ -91,8 +91,6 @@ impl<'py> FromPyObject<'py> for Wrap<Op<f32>> {
             return Ok(Wrap(Op::swish()));
         } else if name == "softplus" {
             return Ok(Wrap(Op::softplus()));
-        } else if name == "softmax" {
-            return Ok(Wrap(Op::softmax()));
         }
 
         Err(pyo3::exceptions::PyValueError::new_err(format!(

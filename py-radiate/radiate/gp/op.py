@@ -148,10 +148,6 @@ class Op:
         return Op("softplus")
 
     @staticmethod
-    def softmax() -> Op:
-        return Op("softmax")
-
-    @staticmethod
     def all_ops() -> list[Op]:
         return [
             Op.add(),
@@ -182,7 +178,6 @@ class Op:
             Op.linear(),
             Op.mish(),
             Op.swish(),
-            Op.softmax(),
             Op.identity(),
             Op.weight(),
         ]

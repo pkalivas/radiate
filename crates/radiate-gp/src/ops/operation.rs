@@ -1,9 +1,26 @@
 use crate::{Arity, Eval, Factory, NodeValue, TreeNode};
 use std::{
+    collections::HashSet,
     fmt::{Debug, Display},
     hash::Hash,
-    sync::Arc,
+    sync::{Arc, Mutex, OnceLock},
 };
+
+static INTERNED: OnceLock<Mutex<HashSet<&'static str>>> = OnceLock::new();
+
+pub(crate) fn intern(name: String) -> &'static str {
+    let mut interned = INTERNED
+        .get_or_init(|| Mutex::new(HashSet::new()))
+        .lock()
+        .unwrap();
+    if let Some(&existing) = interned.get(&*name) {
+        return existing;
+    }
+
+    let static_name: &'static str = Box::leak(name.into_boxed_str());
+    interned.insert(static_name);
+    static_name
+}
 
 /// A generic operation type that can represent several kinds of “ops”.
 pub enum Op<T> {
@@ -81,7 +98,7 @@ impl<T> Op<T> {
     where
         T: Display,
     {
-        let name = Box::leak(Box::new(format!("{}", value)));
+        let name = intern(format!("{}", value));
         Op::Const(name, value)
     }
 
@@ -101,7 +118,7 @@ impl<T> Op<T> {
     }
 
     pub fn var(index: usize) -> Self {
-        let name = Box::leak(Box::new(format!("{}", index)));
+        let name = intern(format!("{}", index));
         Op::Var(name, index)
     }
 }

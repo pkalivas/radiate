@@ -109,7 +109,6 @@ impl<'de> Deserialize<'de> for Op<f32> {
                     "mish" => Ok(Op::mish()),
                     "swish" => Ok(Op::swish()),
                     "softplus" => Ok(Op::softplus()),
-                    "softmax" => Ok(Op::softmax()),
                     "identity" => Ok(Op::identity()),
                     _ => Err(serde::de::Error::custom(format!(
                         "Unknown function name: {}",

@@ -34,7 +34,7 @@ impl<T: Default + Clone> Factory<(usize, NodeType), GraphNode<T>> for NodeStore<
     fn new_instance(&self, (index, node_type): (usize, NodeType)) -> GraphNode<T> {
         self.map_by_type(node_type, |values| {
             let node_value = match node_type {
-                NodeType::Input => &values[index % values.len()],
+                NodeType::Input => values[index % values.len()],
                 _ => random_provider::choose(&values),
             };
 

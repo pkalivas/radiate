@@ -1,4 +1,5 @@
 use super::{DataSet, Loss};
+use crate::EvalMut;
 use std::fmt::Debug;
 
 #[derive(Clone)]
@@ -17,10 +18,7 @@ impl<'a> Accuracy<'a> {
         }
     }
 
-    pub fn calc<F>(&self, mut eval: F) -> AccuracyResult
-    where
-        F: FnMut(&Vec<f32>) -> Vec<f32>,
-    {
+    pub fn calc(&self, eval: &mut impl EvalMut<[f32], Vec<f32>>) -> AccuracyResult {
         let mut outputs = Vec::new();
         let mut total_samples = 0.0;
         let mut correct_predictions = 0.0;
@@ -38,7 +36,9 @@ impl<'a> Accuracy<'a> {
         let mut fp = 0.0;
         let mut fn_ = 0.0;
 
-        let loss = self.loss_fn.calculate(self.data_set, &mut eval);
+        let loss = self
+            .loss_fn
+            .calculate(self.data_set, &mut |input| eval.eval_mut(input));
 
         // Compute the mean of actual values for R² calculation
         let total_values: usize = self.data_set.len();
@@ -48,7 +48,7 @@ impl<'a> Accuracy<'a> {
         }
 
         for row in self.data_set.iter() {
-            let output = eval(row.input());
+            let output = eval.eval_mut(row.input());
             outputs.push(output.clone());
 
             if output.len() == 1 {

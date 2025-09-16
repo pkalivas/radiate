@@ -44,7 +44,7 @@ use std::fmt::Debug;
 ///
 /// let graph = Graph::directed(1, 1, store.clone());
 ///
-/// let chromosome = GraphChromosome::new(graph.into_iter().collect::<Vec<_>>(), store);
+/// let chromosome = GraphChromosome::from((graph, store));
 /// ```
 ///
 /// # Genetic Operations
@@ -169,6 +169,19 @@ impl<T> From<Vec<GraphNode<T>>> for GraphChromosome<T> {
         GraphChromosome {
             nodes,
             store: None,
+            max_nodes: None,
+        }
+    }
+}
+
+impl<T, I> From<(I, NodeStore<T>)> for GraphChromosome<T>
+where
+    I: IntoIterator<Item = GraphNode<T>>,
+{
+    fn from((iter, store): (I, NodeStore<T>)) -> Self {
+        GraphChromosome {
+            nodes: iter.into_iter().collect(),
+            store: Some(store),
             max_nodes: None,
         }
     }

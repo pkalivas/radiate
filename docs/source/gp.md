@@ -122,7 +122,6 @@ Provided `Ops` include:
     | `LeakyReLU` | Any | x if x > 0 else 0.01x | `Op::leaky_relu()` | Fn |
     | `ELU` | Any | x if x > 0 else a(e^x - 1) | `Op::elu()` | Fn |
     | `Linear` | Any | Linear combination of n values | `Op::linear()` | Fn |
-    | `Softmax` | Any | Softmax of n values | `Op::softmax()` | Fn |
     | `Softplus` | Any | log(1 + e^x) | `Op::softplus()` | Fn |
     | `SELU` | Any | x if x > 0 else a(e^x - 1) | `Op::selu()` | Fn |
     | `Swish` | Any | x / (1 + e^-x) | `Op::swish()` | Fn |
@@ -666,6 +665,16 @@ Now, the above works just fine, but can become cumbersome quickly. To ease the p
         # ... same as above
     )
 
+    # or lstm graph
+    codec = rd.GraphCodec.lstm(
+        # ... same as above
+    )
+
+    # or gru graph
+    codec = rd.GraphCodec.gru(
+        # ... same as above
+    )
+
     graph = codec.decode(codec.encode())
 
     inputs = [[1.0, 2.0]]
@@ -700,6 +709,12 @@ Now, the above works just fine, but can become cumbersome quickly. To ease the p
 
     // create a weighted recurrent graph with 2 input nodes and 2 output nodes
     let graph: Graph<Op<f32>> = Graph::weighted_recurrent(2, 2, values);
+
+    // create an LSTM graph with 2 input nodes and 2 output nodes
+    let graph: Graph<Op<f32>> = Graph::lstm(2, 2, values);
+
+    // create a GRU graph with 2 input nodes and 2 output nodes
+    let graph: Graph<Op<f32>> = Graph::gru(2, 2, values);
 
     // Op graphs can be evaluated much like trees, but with the added complexity of connections.
     let inputs = vec![vec![1.0, 2.0]];
@@ -745,6 +760,22 @@ The `Graph` can be visualized using the `dot` format, which can be rendered usin
 
     <figure markdown="span">
         ![weighted-recurrent-graph](../assets/graphviz_weighted_recurrent.svg){ width="300" }
+    </figure>
+
+??? note "Lstm"
+
+    A Long Short-Term Memory (LSTM) network is a type of recurrent neural network that is designed to handle sequential data. It is capable of learning long-term dependencies and is often used in tasks such as language modeling and time series prediction. Here we can see a simple LSTM with 2 input node and 2 output node. The internal nodes are generated randomly from the provided store. This is an intentionally simplified LSTM structure with the intent of the rest of the nodes being evolved.
+
+    <figure markdown="span">
+        ![lstm-graph](../assets/graphviz_lstm.svg){ width="300" }
+    </figure>
+
+??? note "Gru"
+
+    A Gated Recurrent Unit (GRU) is a type of recurrent neural network that is designed to handle sequential data. It is similar to a Long Short-Term Memory (LSTM) network, but it has a simpler architecture and is easier to train. Here we can see a simple GRU with 1 input node and 1 output node. The internal nodes are generated randomly from the provided store. This is an intentionally simplified GRU structure with the intent of the rest of the nodes being evolved.
+
+    <figure markdown="span">
+        ![gru-graph](../assets/graphviz_gru.svg){ width="300" }
     </figure>
 
 ### Node

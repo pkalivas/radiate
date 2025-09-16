@@ -1,0 +1,521 @@
+{
+  "nodes": [
+    {
+      "value": {
+        "type": "Var",
+        "data": {
+          "name": "0",
+          "index": 0
+        }
+      },
+      "id": 44,
+      "index": 0,
+      "direction": "Forward",
+      "node_type": "Input",
+      "arity": "Zero",
+      "incoming": [],
+      "outgoing": [
+        1,
+        3,
+        8,
+        16,
+        18,
+        19,
+        21
+      ]
+    },
+    {
+      "value": {
+        "type": "Fn",
+        "data": {
+          "name": "diff",
+          "arity": "Any"
+        }
+      },
+      "id": 47,
+      "index": 1,
+      "direction": "Backward",
+      "node_type": "Vertex",
+      "arity": "Any",
+      "incoming": [
+        0,
+        1,
+        6,
+        7,
+        8,
+        10,
+        12,
+        17,
+        19
+      ],
+      "outgoing": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "value": {
+        "type": "Fn",
+        "data": {
+          "name": "sigmoid",
+          "arity": "Any"
+        }
+      },
+      "id": 50,
+      "index": 2,
+      "direction": "Forward",
+      "node_type": "Output",
+      "arity": "Any",
+      "incoming": [
+        1,
+        3
+      ],
+      "outgoing": []
+    },
+    {
+      "value": {
+        "type": "Fn",
+        "data": {
+          "name": "sub",
+          "arity": {
+            "Exact": 2
+          }
+        }
+      },
+      "id": 883,
+      "index": 3,
+      "direction": "Backward",
+      "node_type": "Vertex",
+      "arity": {
+        "Exact": 2
+      },
+      "incoming": [
+        0,
+        1
+      ],
+      "outgoing": [
+        2,
+        9
+      ]
+    },
+    {
+      "value": {
+        "type": "MutableConst",
+        "data": {
+          "name": "w",
+          "arity": {
+            "Exact": 1
+          },
+          "value": -1.1588326
+        }
+      },
+      "id": 911,
+      "index": 4,
+      "direction": "Backward",
+      "node_type": "Edge",
+      "arity": {
+        "Exact": 1
+      },
+      "incoming": [
+        13
+      ],
+      "outgoing": [
+        7
+      ]
+    },
+    {
+      "value": {
+        "type": "Fn",
+        "data": {
+          "name": "exp",
+          "arity": {
+            "Exact": 1
+          }
+        }
+      },
+      "id": 931,
+      "index": 5,
+      "direction": "Backward",
+      "node_type": "Vertex",
+      "arity": {
+        "Exact": 1
+      },
+      "incoming": [
+        11
+      ],
+      "outgoing": [
+        6,
+        13
+      ]
+    },
+    {
+      "value": {
+        "type": "Fn",
+        "data": {
+          "name": "abs",
+          "arity": {
+            "Exact": 1
+          }
+        }
+      },
+      "id": 935,
+      "index": 6,
+      "direction": "Backward",
+      "node_type": "Vertex",
+      "arity": {
+        "Exact": 1
+      },
+      "incoming": [
+        5
+      ],
+      "outgoing": [
+        1,
+        10
+      ]
+    },
+    {
+      "value": {
+        "type": "Fn",
+        "data": {
+          "name": "tan",
+          "arity": {
+            "Exact": 1
+          }
+        }
+      },
+      "id": 943,
+      "index": 7,
+      "direction": "Backward",
+      "node_type": "Vertex",
+      "arity": {
+        "Exact": 1
+      },
+      "incoming": [
+        4
+      ],
+      "outgoing": [
+        1
+      ]
+    },
+    {
+      "value": {
+        "type": "Fn",
+        "data": {
+          "name": "exp",
+          "arity": {
+            "Exact": 1
+          }
+        }
+      },
+      "id": 1077,
+      "index": 8,
+      "direction": "Forward",
+      "node_type": "Vertex",
+      "arity": {
+        "Exact": 1
+      },
+      "incoming": [
+        0
+      ],
+      "outgoing": [
+        1,
+        12,
+        20
+      ]
+    },
+    {
+      "value": {
+        "type": "MutableConst",
+        "data": {
+          "name": "w",
+          "arity": {
+            "Exact": 1
+          },
+          "value": -0.8364157
+        }
+      },
+      "id": 1193,
+      "index": 9,
+      "direction": "Backward",
+      "node_type": "Edge",
+      "arity": {
+        "Exact": 1
+      },
+      "incoming": [
+        3
+      ],
+      "outgoing": [
+        11
+      ]
+    },
+    {
+      "value": {
+        "type": "Fn",
+        "data": {
+          "name": "relu",
+          "arity": "Any"
+        }
+      },
+      "id": 1295,
+      "index": 10,
+      "direction": "Backward",
+      "node_type": "Vertex",
+      "arity": "Any",
+      "incoming": [
+        6,
+        16,
+        21
+      ],
+      "outgoing": [
+        1
+      ]
+    },
+    {
+      "value": {
+        "type": "Fn",
+        "data": {
+          "name": "linear",
+          "arity": "Any"
+        }
+      },
+      "id": 1381,
+      "index": 11,
+      "direction": "Backward",
+      "node_type": "Vertex",
+      "arity": "Any",
+      "incoming": [
+        9
+      ],
+      "outgoing": [
+        5
+      ]
+    },
+    {
+      "value": {
+        "type": "Fn",
+        "data": {
+          "name": "softplus",
+          "arity": "Any"
+        }
+      },
+      "id": 1857,
+      "index": 12,
+      "direction": "Forward",
+      "node_type": "Vertex",
+      "arity": "Any",
+      "incoming": [
+        8
+      ],
+      "outgoing": [
+        1
+      ]
+    },
+    {
+      "value": {
+        "type": "Fn",
+        "data": {
+          "name": "identity",
+          "arity": {
+            "Exact": 1
+          }
+        }
+      },
+      "id": 2127,
+      "index": 13,
+      "direction": "Backward",
+      "node_type": "Edge",
+      "arity": {
+        "Exact": 1
+      },
+      "incoming": [
+        5
+      ],
+      "outgoing": [
+        4
+      ]
+    },
+    {
+      "value": {
+        "type": "MutableConst",
+        "data": {
+          "name": "w",
+          "arity": {
+            "Exact": 1
+          },
+          "value": 1.017695
+        }
+      },
+      "id": 2265,
+      "index": 14,
+      "direction": "Forward",
+      "node_type": "Edge",
+      "arity": {
+        "Exact": 1
+      },
+      "incoming": [
+        15
+      ],
+      "outgoing": [
+        17
+      ]
+    },
+    {
+      "value": {
+        "type": "Fn",
+        "data": {
+          "name": "identity",
+          "arity": {
+            "Exact": 1
+          }
+        }
+      },
+      "id": 2405,
+      "index": 15,
+      "direction": "Forward",
+      "node_type": "Edge",
+      "arity": {
+        "Exact": 1
+      },
+      "incoming": [
+        18
+      ],
+      "outgoing": [
+        14
+      ]
+    },
+    {
+      "value": {
+        "type": "Fn",
+        "data": {
+          "name": "elu",
+          "arity": "Any"
+        }
+      },
+      "id": 2527,
+      "index": 16,
+      "direction": "Forward",
+      "node_type": "Vertex",
+      "arity": "Any",
+      "incoming": [
+        0,
+        20
+      ],
+      "outgoing": [
+        10
+      ]
+    },
+    {
+      "value": {
+        "type": "Fn",
+        "data": {
+          "name": "exp",
+          "arity": {
+            "Exact": 1
+          }
+        }
+      },
+      "id": 2613,
+      "index": 17,
+      "direction": "Forward",
+      "node_type": "Vertex",
+      "arity": {
+        "Exact": 1
+      },
+      "incoming": [
+        14
+      ],
+      "outgoing": [
+        1
+      ]
+    },
+    {
+      "value": {
+        "type": "Fn",
+        "data": {
+          "name": "cos",
+          "arity": {
+            "Exact": 1
+          }
+        }
+      },
+      "id": 3021,
+      "index": 18,
+      "direction": "Forward",
+      "node_type": "Vertex",
+      "arity": {
+        "Exact": 1
+      },
+      "incoming": [
+        0
+      ],
+      "outgoing": [
+        15
+      ]
+    },
+    {
+      "value": {
+        "type": "Fn",
+        "data": {
+          "name": "softplus",
+          "arity": "Any"
+        }
+      },
+      "id": 3063,
+      "index": 19,
+      "direction": "Forward",
+      "node_type": "Vertex",
+      "arity": "Any",
+      "incoming": [
+        0
+      ],
+      "outgoing": [
+        1
+      ]
+    },
+    {
+      "value": {
+        "type": "Fn",
+        "data": {
+          "name": "identity",
+          "arity": {
+            "Exact": 1
+          }
+        }
+      },
+      "id": 3225,
+      "index": 20,
+      "direction": "Forward",
+      "node_type": "Edge",
+      "arity": {
+        "Exact": 1
+      },
+      "incoming": [
+        8
+      ],
+      "outgoing": [
+        16
+      ]
+    },
+    {
+      "value": {
+        "type": "Fn",
+        "data": {
+          "name": "softplus",
+          "arity": "Any"
+        }
+      },
+      "id": 3323,
+      "index": 21,
+      "direction": "Forward",
+      "node_type": "Vertex",
+      "arity": "Any",
+      "incoming": [
+        0
+      ],
+      "outgoing": [
+        10
+      ]
+    }
+  ]
+}

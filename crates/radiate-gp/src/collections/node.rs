@@ -24,7 +24,7 @@ use serde::{Deserialize, Serialize};
 ///
 /// Within each node (`GraphNode` or `TreeNode`), the [NodeType] is used to determine the validity of the
 /// node given the value it holds.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum NodeType {
     /// `Input` types are only used within graph structrues and are
@@ -52,8 +52,9 @@ pub enum NodeType {
     Root,
 }
 
-/// Node is a trait that abstracts out common information and behavior needed within the `GraphNode`
-/// and `TreeNode` implementations. Both these nodes handle their connections differently, but they share
+/// Node is a trait that abstracts out common information and behavior needed within the
+/// [GraphNode](crate::collections::GraphNode) and [TreeNode](crate::collections::TreeNode) implementations.
+/// Both these nodes handle their connections differently, but they share
 /// this common interface. Within this crate, we also handle these data structures a little differently
 /// than they would usually be defined, so we leave the core implementation up to the struct, and allow
 /// this trait to supply the 'radiate' interface for working with nodes.

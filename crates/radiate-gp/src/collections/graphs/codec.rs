@@ -9,6 +9,19 @@ pub struct GraphCodec<T> {
 }
 
 impl<T> GraphCodec<T> {
+    pub fn new(
+        template: impl IntoIterator<Item = GraphNode<T>>,
+        store: impl Into<NodeStore<T>>,
+    ) -> Self
+    where
+        T: Clone + Default,
+    {
+        GraphCodec {
+            store: store.into(),
+            template: template.into_iter().collect(),
+        }
+    }
+
     pub fn directed(input_size: usize, output_size: usize, store: impl Into<NodeStore<T>>) -> Self
     where
         T: Clone + Default,
@@ -73,6 +86,54 @@ impl<T> GraphCodec<T> {
         }
     }
 
+    pub fn lstm(input_size: usize, output_size: usize, store: impl Into<NodeStore<T>>) -> Self
+    where
+        T: Clone + Default,
+    {
+        let new_store = store.into();
+
+        GraphCodec {
+            store: new_store.clone(),
+            template: Graph::lstm(input_size, output_size, &new_store)
+                .into_iter()
+                .collect(),
+        }
+    }
+
+    pub fn gru(input_size: usize, output_size: usize, store: impl Into<NodeStore<T>>) -> Self
+    where
+        T: Clone + Default,
+    {
+        let new_store = store.into();
+
+        GraphCodec {
+            store: new_store.clone(),
+            template: Graph::gru(input_size, output_size, &new_store)
+                .into_iter()
+                .collect(),
+        }
+    }
+
+    pub fn mesh(
+        input_size: usize,
+        output_size: usize,
+        rows: usize,
+        cols: usize,
+        store: impl Into<NodeStore<T>>,
+    ) -> Self
+    where
+        T: Clone + Default,
+    {
+        let new_store = store.into();
+
+        GraphCodec {
+            store: new_store.clone(),
+            template: Graph::mesh(input_size, output_size, rows, cols, &new_store)
+                .into_iter()
+                .collect(),
+        }
+    }
+
     pub fn with_max_nodes(mut self, max_nodes: usize) -> Self {
         self.template = self.template.with_max_nodes(max_nodes);
         self
@@ -88,6 +149,7 @@ where
         Genotype::from(chromosome)
     }
 
+    #[inline]
     fn decode(&self, genotype: &Genotype<GraphChromosome<T>>) -> Graph<T> {
         Graph::new(
             genotype

@@ -14,6 +14,25 @@ from matplotlib.animation import FuncAnimation  # type: ignore
 rd.random.seed(42)
 np.random.seed(42)
 
+HEIGHT = 15
+WIDTH = 15
+MAX_STEPS = 1500
+FOOD_POSITIONS = [
+    (rd.random.int(0, WIDTH), rd.random.int(0, HEIGHT)) for _ in range(MAX_STEPS * 2)
+]
+NUM_GAMES = 5
+GAMMA = 0.99  # discount factor for per-step rewards
+K_POTENTIAL = 2.0  # weight for distance-based shaping (per step)
+STEP_PENALTY = -0.02  # mild time penalty to discourage stalling
+JITTER_PENALTY = -0.05  # applied when direction changes from previous step
+LOOP_WINDOW = 12  # size of recent positions window for loop detection
+LOOP_PENALTY = -0.15  # penalty when revisiting within recent window
+EXPLORATION_BONUS = 0.2  # per unique cell visited
+EAT_REWARD = 200.0  # big hit when food eaten (per event)
+SCORE_TERMINAL = 400.0  # terminal bonus * (score^2) to push reliable eating
+EARLY_DEATH_PENALTY = -120.0  # if die < min steps and score == 0
+MIN_SURVIVAL_STEPS = 50
+
 
 class SnakeGame:
     """Classic Snake game with detailed logging."""
@@ -22,6 +41,7 @@ class SnakeGame:
         self.width = width
         self.height = height
         self.debug = debug
+        self.food_index = 0
         self.reset()
 
     def reset(self):
@@ -43,10 +63,8 @@ class SnakeGame:
         """Generate food at random position."""
         attempts = 0
         while attempts < 100:
-            food = (
-                rd.random.int(0, self.width),
-                rd.random.int(0, self.height),
-            )
+            food = FOOD_POSITIONS[self.food_index % len(FOOD_POSITIONS)]
+            self.food_index += 1
             if food not in self.snake:
                 return food
             attempts += 1
@@ -129,10 +147,7 @@ class SnakeGame:
         new_direction = directions[action]
 
         # Prevent 180-degree turns
-        if (
-            new_direction[0] != -self.direction[0]
-            or new_direction[1] != -self.direction[1]
-        ):
+        if new_direction != (-self.direction[0], -self.direction[1]):
             self.direction = new_direction
 
         head_x, head_y = self.snake[0]
@@ -208,102 +223,95 @@ class SnakeAI:
 
 
 class SnakeEvolver:
-    """Main class for evolving Snake AI."""
-
     def __init__(self):
         self.input_size = 13
         self.output_size = 4
 
+    @staticmethod
     def fitness_function(graph: rd.Graph) -> float:
-        """Enhanced fitness function for Snake AI."""
+        """
+        Dense, shaped fitness:
+        - Potential-based reward on Manhattan distance to food (policy-invariant shaping with discount)
+        - Small per-step penalty to avoid stalling
+        - Exploration bonus (unique cells)
+        - Anti-jitter (too many direction changes)
+        - Loop penalty (revisiting recent positions)
+        - Strong terminal reward for eating; early-death penalty
+        """
+
         total_fitness = 0.0
-        num_games = 3
 
-        for _ in range(num_games):
-            graph.reset()  # Reset graph state for each game
+        game = SnakeGame(debug=False)
+        ai = SnakeAI(graph)
 
-            game = SnakeGame(debug=False)
-            ai = SnakeAI(graph)
+        # Tracking
+        unique_cells = set([game.snake[0]])
+        recent_positions = [game.snake[0]]
+        last_direction = game.direction
+        discounted_return = 0.0
+        discount = 1.0
+        last_score = 0
 
-            # Track additional metrics
-            max_score_in_game = 0
-            consecutive_moves_towards_food = 0
-            total_distance_to_food = 0
-            moves_count = 0
+        while not game.game_over:
+            state = game.get_state()
+            action = ai.predict(state)
 
-            while not game.game_over:
-                state = game.get_state()
-                action = ai.predict(state)
+            # Distances before move
+            hx, hy = game.snake[0]
+            old_dist = abs(game.food[0] - hx) + abs(game.food[1] - hy)
 
-                # Track distance to food before move
-                head_x, head_y = game.snake[0]
-                old_distance = abs(game.food[0] - head_x) + abs(game.food[1] - head_y)
+            # Take step
+            alive = game.step(action)
 
-                game.step(action)
+            # Prepare step reward
+            step_reward = 0.0
 
-                # Track distance to food after move
-                new_head_x, new_head_y = game.snake[0]
-                new_distance = abs(game.food[0] - new_head_x) + abs(
-                    game.food[1] - new_head_y
-                )
+            if not alive:
+                # Early death penalty if no food and died quickly
+                if game.steps < MIN_SURVIVAL_STEPS and game.score == 0:
+                    step_reward += EARLY_DEATH_PENALTY
+                discounted_return += discount * step_reward
+                break
 
-                # Reward for moving towards food
-                if new_distance < old_distance:
-                    consecutive_moves_towards_food += 1
-                else:
-                    consecutive_moves_towards_food = 0
+            # Distances after move
+            nhx, nhy = game.snake[0]
+            new_dist = abs(game.food[0] - nhx) + abs(game.food[1] - nhy)
 
-                total_distance_to_food += new_distance
-                moves_count += 1
-                max_score_in_game = max(max_score_in_game, game.score)
+            step_reward += K_POTENTIAL * (old_dist - new_dist)
+            step_reward += STEP_PENALTY
 
-            # Enhanced fitness calculation
-            score_fitness = max_score_in_game * 200.0  # Increased weight for score
+            # Jitter penalty for frequent direction changes (avoid “vibrating”)
+            if game.direction != last_direction:
+                step_reward += JITTER_PENALTY
+            last_direction = game.direction
 
-            # Survival bonus with diminishing returns
-            survival_bonus = min(game.steps * 0.5, 100.0)  # Cap survival bonus
+            # Exploration bonus (credit new unique cells)
+            if (nhx, nhy) not in unique_cells:
+                unique_cells.add((nhx, nhy))
+                step_reward += EXPLORATION_BONUS
 
-            # Efficiency bonus - reward for high score-to-steps ratio
-            efficiency_bonus = 0.0
-            if game.steps > 0:
-                efficiency_ratio = max_score_in_game / game.steps
-                efficiency_bonus = efficiency_ratio * 100.0
+            # Loop penalty (recent positions window)
+            if (nhx, nhy) in recent_positions:
+                step_reward += LOOP_PENALTY
+            recent_positions.append((nhx, nhy))
+            if len(recent_positions) > LOOP_WINDOW:
+                recent_positions.pop(0)
 
-            # Food-seeking behavior bonus
-            food_seeking_bonus = consecutive_moves_towards_food * 2.0
+            # Eating bonus when score increases
+            if game.score > last_score:
+                step_reward += EAT_REWARD + 0.5 * len(game.snake)
+                last_score = game.score
 
-            # Average distance to food penalty
-            avg_distance_penalty = 0.0
-            if moves_count > 0:
-                avg_distance = total_distance_to_food / moves_count
-                avg_distance_penalty = max(0, avg_distance - 5.0) * 5.0
+            # Discounted accumulation
+            discounted_return += discount * step_reward
+            discount *= GAMMA
 
-            # Exploration bonus - reward for visiting different areas
-            unique_positions = len(set(game.snake))
-            exploration_bonus = unique_positions * 0.5
+        # Terminal score bonus to strongly prefer consistent eaters
+        discounted_return += (game.score**2) * SCORE_TERMINAL
 
-            # Early death penalty
-            early_death_penalty = 0.0
-            if game.steps < 50 and max_score_in_game == 0:
-                early_death_penalty = 50.0
+        total_fitness += max(discounted_return, 1.0)  # keep positive floor
 
-            # Calculate total fitness for this game
-            game_fitness = (
-                score_fitness
-                + survival_bonus
-                + efficiency_bonus
-                + food_seeking_bonus
-                + exploration_bonus
-                - avg_distance_penalty
-                - early_death_penalty
-            )
-
-            # Ensure minimum fitness
-            game_fitness = game_fitness
-            total_fitness += game_fitness
-
-        # Return average fitness across all games
-        return total_fitness / num_games
+        return total_fitness / NUM_GAMES
 
     def test_individual(self, graph: rd.Graph, debug: bool = False) -> dict:
         """Test an individual with detailed logging."""
@@ -357,7 +365,7 @@ class SnakeEvolver:
             SnakeEvolver.fitness_function,
         )
 
-        engine.offspring_selector(rd.BoltzmannSelector(4))
+        engine.offspring_selector(rd.TournamentSelector(4))
         engine.alters(
             [
                 rd.GraphCrossover(0.5, 0.5),

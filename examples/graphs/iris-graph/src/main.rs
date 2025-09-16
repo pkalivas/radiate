@@ -56,8 +56,8 @@ fn display(
     let train_acc = Accuracy::new("train", &train, Loss::MSE);
     let test_acc = Accuracy::new("test", &test, Loss::MSE);
 
-    let train_acc_result = train_acc.calc(|input| reducer.eval_mut(input));
-    let test_acc_result = test_acc.calc(|input| reducer.eval_mut(input));
+    let train_acc_result = train_acc.calc(&mut reducer);
+    let test_acc_result = test_acc.calc(&mut reducer);
 
     println!("{:?}", result);
     println!("{:?}", train_acc_result);

@@ -7,15 +7,15 @@ use std::fmt::Debug;
 const NUM_PARENTS: usize = 2;
 
 pub struct GraphCrossover {
-    crossover_rate: f32,
-    crossover_parent_node_rate: f32,
+    rate: f32,
+    parent_node_rate: f32,
 }
 
 impl GraphCrossover {
     pub fn new(rate: f32, crossover_parent_node_rate: f32) -> Self {
         GraphCrossover {
-            crossover_rate: rate,
-            crossover_parent_node_rate,
+            rate,
+            parent_node_rate: crossover_parent_node_rate,
         }
     }
 }
@@ -25,7 +25,7 @@ where
     T: Clone + PartialEq + Debug,
 {
     fn rate(&self) -> f32 {
-        self.crossover_rate
+        self.rate
     }
 
     #[inline]
@@ -59,7 +59,7 @@ where
                         let node_two = chromo_two.get(*i);
 
                         node_one.arity() == node_two.arity()
-                            && random_provider::random::<f32>() < self.crossover_parent_node_rate
+                            && random_provider::random::<f32>() < self.parent_node_rate
                     })
                     .collect::<Vec<usize>>();
 
