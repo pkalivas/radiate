@@ -21,12 +21,11 @@ unsafe impl<T: Sync> Sync for MutCell<T> {}
 
 impl<T> MutCell<T> {
     pub fn new(value: T) -> Self {
-        let inner = Box::into_raw(Box::new(ArcInner {
-            value: UnsafeCell::new(value),
-            ref_count: AtomicUsize::new(1),
-        }));
         Self {
-            inner,
+            inner: Box::into_raw(Box::new(ArcInner {
+                value: UnsafeCell::new(value),
+                ref_count: AtomicUsize::new(1),
+            })),
             consumed: false,
         }
     }
@@ -60,7 +59,7 @@ impl<T> MutCell<T> {
     where
         T: Clone,
     {
-        // SAFETY: This is safe because if there is more than one reference to the
+        // SAFETY: If there is more than one reference to the
         // inner value, we will clone it and decrement the ref count.
         // If there is only one reference, we will consume the inner value and
         // drop the inner box.

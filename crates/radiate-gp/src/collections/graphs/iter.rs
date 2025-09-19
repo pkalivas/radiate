@@ -40,7 +40,7 @@ impl<'a, T> GraphTopologicalIterator<'a, T> {
     }
 }
 
-/// Implement the `Iterator` trait for [GraphIterator].
+/// Implement the `Iterator` trait for [GraphTopologicalIterator].
 /// The `Item` type is a reference to a [GraphNode].
 ///
 /// This implementation is a bit more complex than the typical iterator implementation. The iterator
