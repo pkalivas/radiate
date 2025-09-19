@@ -69,7 +69,7 @@ pub enum MathOperation {
     Min,
 }
 
-/// Implementations of the `MathOperation` enum. These are the basic math operations.
+/// Implementations of the [MathOperation] enum. These are the basic math operations.
 /// Each operation takes a slice of `f32` values and returns a single `f32` value.
 impl MathOperation {
     pub fn apply(&self, inputs: &[f32]) -> f32 {
@@ -120,7 +120,7 @@ pub enum ActivationOperation {
     Softplus,
 }
 
-/// Implementations of the `ActivationOperation` enum. These are the basic activation functions used
+/// Implementations of the [ActivationOperation] enum. These are the basic activation functions used
 /// in neural networks. However, they are particularly useful in this context because they can
 /// accept any number of inputs. Thus, they act as reducers or aggregates and are a key part of
 /// being able to define complex 'Graph' and 'Tree' structures.
@@ -174,6 +174,7 @@ impl Op<f32> {
             let diff = (random_provider::random::<f32>() * TWO - ONE) * TENTH;
             clamp(current + diff)
         };
+
         Op::MutableConst {
             name: "w",
             arity: 1.into(),
@@ -191,6 +192,7 @@ impl Op<f32> {
             let diff = (random_provider::random::<f32>() * TWO - ONE) * TENTH;
             clamp(current + diff)
         };
+
         Op::MutableConst {
             name: "w",
             arity: 1.into(),

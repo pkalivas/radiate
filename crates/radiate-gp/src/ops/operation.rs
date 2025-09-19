@@ -273,18 +273,6 @@ impl From<f32> for Op<f32> {
     }
 }
 
-impl From<i32> for Op<i32> {
-    fn from(value: i32) -> Self {
-        Op::Value("Value(i32)", Arity::Any, value, Arc::new(|_, v| *v))
-    }
-}
-
-impl From<bool> for Op<bool> {
-    fn from(value: bool) -> Self {
-        Op::Value("Value(bool)", Arity::Any, value, Arc::new(|_, v| *v))
-    }
-}
-
 #[cfg(test)]
 mod test {
     use super::*;

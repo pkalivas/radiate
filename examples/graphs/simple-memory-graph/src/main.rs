@@ -35,13 +35,15 @@ fn main() {
 }
 
 fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
-    let mut reducer = GraphEvaluator::new(result.value());
-    for sample in dataset().iter() {
-        let output = reducer.eval_mut(sample.input());
+    let dataset = dataset();
+    let outputs = result.value().eval(&dataset.features());
+
+    for (idx, row) in dataset.iter().enumerate() {
+        let output = outputs[idx].clone();
         println!(
             "{:?} -> expected: {:?}, actual: {output:.3?}",
-            sample.input(),
-            sample.output(),
+            row.input(),
+            row.output(),
         );
     }
 

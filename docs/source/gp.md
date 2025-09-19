@@ -813,8 +813,10 @@ The `GraphCodec` is a codec that encodes a `GraphChromosome` and decodes it back
 === ":fontawesome-brands-python: Python"
 
     ```python
+    import radiate as rd
+
     # Create a directed graph codec 
-    codec = GraphCodec.directed(
+    codec = rd.GraphCodec.directed(
         shape=(2, 1),
         vertex=[rd.Op.add(), rd.Op.mul()],
         edge=rd.Op.weight(),
@@ -825,7 +827,7 @@ The `GraphCodec` is a codec that encodes a `GraphChromosome` and decodes it back
     graph = codec.decode(genotype)
 
     # Create a recurrent graph codec
-    codec = GraphCodec.recurrent(
+    codec = rd.GraphCodec.recurrent(
         shape=(2, 1),
         vertex=[rd.Op.add(), rd.Op.mul()],
         edge=rd.Op.weight(),

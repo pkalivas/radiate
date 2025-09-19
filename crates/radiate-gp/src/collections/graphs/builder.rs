@@ -95,7 +95,7 @@ impl<T: Clone + Default> Graph<T> {
         let builder = NodeBuilder::new(values);
 
         let input = builder.input(input_size);
-        let aggregate = builder.vertecies(input_size);
+        let aggregate = builder.vertices(input_size);
         let output = builder.output(output_size);
 
         GraphAggregate::new()
@@ -151,7 +151,7 @@ impl<T: Clone + Default> Graph<T> {
         let builder = NodeBuilder::new(values);
 
         let input = builder.input(input_size);
-        let aggregate = builder.vertecies(input_size);
+        let aggregate = builder.vertices(input_size);
         let output = builder.output(output_size);
         let weights = builder.edge(input_size * output_size);
 
@@ -187,13 +187,13 @@ impl<T: Clone + Default> Graph<T> {
         let input = builder.input(input_size);
         let output = builder.output(output_size);
 
-        let cell_state = builder.vertecies(1);
-        let hidden_state = builder.vertecies(1);
+        let cell_state = builder.vertices(1);
+        let hidden_state = builder.vertices(1);
 
-        let forget_gate = builder.vertecies(1);
-        let input_gate = builder.vertecies(1);
-        let output_gate = builder.vertecies(1);
-        let candidate = builder.vertecies(1);
+        let forget_gate = builder.vertices(1);
+        let input_gate = builder.vertices(1);
+        let output_gate = builder.vertices(1);
+        let candidate = builder.vertices(1);
 
         GraphAggregate::new()
             .all_to_all(&input, &forget_gate)
@@ -237,14 +237,14 @@ impl<T: Clone + Default> Graph<T> {
         let input = builder.input(input_size);
         let output = builder.output(output_size);
 
-        let hidden = builder.vertecies(1);
+        let hidden = builder.vertices(1);
 
-        let update = builder.vertecies(1);
-        let reset = builder.vertecies(1);
-        let candidate = builder.vertecies(1);
+        let update = builder.vertices(1);
+        let reset = builder.vertices(1);
+        let candidate = builder.vertices(1);
 
-        let blend = builder.vertecies(1);
-        let gate_flip = builder.vertecies(1);
+        let blend = builder.vertices(1);
+        let gate_flip = builder.vertices(1);
 
         GraphAggregate::new()
             .many_to_one(&input, &reset)
@@ -289,7 +289,7 @@ impl<T: Clone + Default> Graph<T> {
         let inputs = builder.input(input_size);
         let outputs = builder.output(output_size);
         let nodes = (0..width * height)
-            .map(|_| builder.vertecies(1))
+            .map(|_| builder.vertices(1))
             .collect::<Vec<Vec<GraphNode<T>>>>();
 
         let mut aggregate = GraphAggregate::new();
@@ -343,7 +343,7 @@ impl<T: Clone + Default> NodeBuilder<T> {
         self.new_nodes(NodeType::Edge, size, Arity::Exact(1))
     }
 
-    pub fn vertecies(&self, size: usize) -> Vec<GraphNode<T>> {
+    pub fn vertices(&self, size: usize) -> Vec<GraphNode<T>> {
         (0..size)
             .map(|idx| {
                 self.store
