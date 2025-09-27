@@ -363,11 +363,8 @@ class SnakeEvolver:
         engine = rd.GeneticEngine(
             codec,
             SnakeEvolver.fitness_function,
-        )
-
-        engine.offspring_selector(rd.TournamentSelector(4))
-        engine.alters(
-            [
+            offspring_selector=rd.TournamentSelector(4),
+            alters=[
                 rd.GraphCrossover(0.5, 0.5),
                 rd.OperationMutator(0.04, 0.05),
                 rd.GraphMutator(0.08, 0.04, True),

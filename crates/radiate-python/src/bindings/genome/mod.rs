@@ -4,7 +4,6 @@ mod gene;
 mod genotype;
 mod phenotype;
 mod population;
-mod sequence;
 mod species;
 
 pub use chromosome::PyChromosome;
@@ -13,7 +12,6 @@ pub use gene::PyGene;
 pub use genotype::PyGenotype;
 pub use phenotype::PyPhenotype;
 pub use population::PyPopulation;
-pub use sequence::RwSequence;
 pub use species::PySpecies;
 
 use pyo3::{pyclass, pymethods};

@@ -89,6 +89,10 @@ where
         self
     }
 
+    /// Subscribe to engine events with the given event handler.
+    /// The event handler will be called whenever an event is emitted by the engine.
+    /// You can use this to log events, or to perform custom actions
+    /// based on the events emitted by the engine.
     pub fn subscribe<H>(mut self, handler: H) -> Self
     where
         H: EventHandler<EngineEvent<T>> + 'static,
