@@ -358,8 +358,9 @@ mod test {
             population[i].set_score(Some(Score::from(i)));
         }
 
-        let mut minimize_population = population.clone();
-        let mut maximize_population = population.clone();
+        // deep clone population
+        let mut minimize_population = Population::from(&population);
+        let mut maximize_population = Population::from(&population);
 
         Optimize::Minimize.sort(&mut minimize_population);
         Optimize::Maximize.sort(&mut maximize_population);

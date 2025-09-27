@@ -36,12 +36,9 @@ impl<'a> Accuracy<'a> {
         let mut fp = 0.0;
         let mut fn_ = 0.0;
 
-        let loss = self
-            .loss_fn
-            .calculate(self.data_set, &mut |input| eval.eval_mut(input));
+        let loss = self.loss_fn.calculate(self.data_set, eval);
 
-        // Compute the mean of actual values for R² calculation
-        let total_values: usize = self.data_set.len();
+        let total_values = self.data_set.len();
         if total_values > 0 {
             y_mean =
                 self.data_set.iter().map(|row| row.output()[0]).sum::<f32>() / total_values as f32;

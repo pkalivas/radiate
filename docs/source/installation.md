@@ -42,7 +42,7 @@ By installing the above, you will get the core library. However, Radiate has a f
 
 ```text
 # requirements.txt
-radiate=0.0.7
+radiate=0.0.8
 ```
 
 Python's radiate package does not have any optional features - it is a single package that includes all functionality.
@@ -51,7 +51,7 @@ Python's radiate package does not have any optional features - it is a single pa
 
 ```toml
 [dependencies]
-radiate = { version = "1.2.17", features = ["gp", "serde", "rayon"] }
+radiate = { version = "1.2.18", features = ["gp", "serde", "rayon"] }
 ```
 
 opt-in features include:

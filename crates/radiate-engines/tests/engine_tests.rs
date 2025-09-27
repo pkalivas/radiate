@@ -116,4 +116,16 @@ mod engine_tests {
         // be slightly over or under 2 seconds
         assert_eq!((result.time().as_secs_f64() - 2_f64).abs().round(), 0.0);
     }
+
+    #[test]
+    fn test_engine_iterations_iterator() {
+        let engine = GeneticEngine::builder()
+            .minimizing()
+            .codec(IntCodec::vector(5, 0..100))
+            .fitness_fn(|geno: Vec<i32>| geno.iter().sum::<i32>())
+            .build();
+
+        let result = engine.iter().limit(10).last().unwrap();
+        assert_eq!(result.index(), 10);
+    }
 }

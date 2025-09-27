@@ -79,16 +79,20 @@ where
     C: Chromosome + PartialEq + Clone,
     T: Clone + Send,
 {
-    /// The `ReplacementStrategy` is used to determine how a new individual is added to the `Population`
+    /// The [ReplacementStrategy] is used to determine how a new individual is added to the [Population]
     /// if an individual is deemed to be either invalid or reaches the maximum age.
     ///
-    /// Default is `ReplacementStrategy::Encode`, which means that a new individual will be created
+    /// Default is [EncodeReplace], which means that a new individual will be created
     /// be using the `Codec` to encode a new individual from scratch.
     pub fn replace_strategy<R: ReplacementStrategy<C> + 'static>(mut self, replace: R) -> Self {
         self.params.replacement_strategy = Arc::new(replace);
         self
     }
 
+    /// Subscribe to engine events with the given event handler.
+    /// The event handler will be called whenever an event is emitted by the engine.
+    /// You can use this to log events, or to perform custom actions
+    /// based on the events emitted by the engine.
     pub fn subscribe<H>(mut self, handler: H) -> Self
     where
         H: EventHandler<EngineEvent<T>> + 'static,

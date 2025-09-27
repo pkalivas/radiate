@@ -11,11 +11,13 @@ pub struct Distribution {
 }
 
 impl Distribution {
+    #[inline(always)]
     pub fn push(&mut self, value: f32) {
         self.statistic.add(value);
         self.last_sequence.push(value);
     }
 
+    #[inline(always)]
     pub fn add(&mut self, value: &[f32]) {
         self.clear();
         for v in value {

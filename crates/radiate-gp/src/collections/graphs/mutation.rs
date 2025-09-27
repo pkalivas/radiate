@@ -79,64 +79,60 @@ where
             }
         }
 
-        if let Some(node_type_to_add) = self.mutate_type() {
-            if let Some(store) = chromosome.store() {
-                let new_node = store.new_instance((chromosome.len(), node_type_to_add));
+        if let Some(node_type) = self.mutate_type()
+            && let Some(store) = chromosome.store()
+        {
+            let new_node = store.new_instance((chromosome.len(), node_type));
 
-                let mut graph = Graph::new(chromosome.iter().cloned().collect());
+            let mut graph = Graph::new(chromosome.iter().cloned().collect());
 
-                let result = graph.try_modify(|mut trans| {
-                    let needed_insertions = match new_node.arity() {
-                        Arity::Zero | Arity::Any => 1,
-                        Arity::Exact(n) => n,
-                    };
+            let result = graph.try_modify(|mut trans| {
+                let needed_insertions = match new_node.arity() {
+                    Arity::Zero | Arity::Any => 1,
+                    Arity::Exact(n) => n,
+                };
 
-                    let target_idx = trans.random_target_node().map(|n| n.index());
-                    let source_idx = (0..needed_insertions)
-                        .filter_map(|_| trans.random_source_node().map(|n| n.index()))
-                        .collect::<Vec<usize>>();
+                let target_idx = trans.random_target_node().map(|n| n.index());
+                let source_idx = (0..needed_insertions)
+                    .filter_map(|_| trans.random_source_node().map(|n| n.index()))
+                    .collect::<Vec<usize>>();
 
-                    let node_idx = trans.add_node(new_node);
+                let node_idx = trans.add_node(new_node);
 
-                    if let Some(trgt) = target_idx {
-                        for src in source_idx {
-                            let insertion_type = trans.get_insertion_steps(src, trgt, node_idx);
+                if let Some(trgt) = target_idx {
+                    for src in source_idx {
+                        let insertion_type = trans.get_insertion_steps(src, trgt, node_idx);
 
-                            for step in insertion_type {
-                                match step {
-                                    InsertStep::Connect(source, target) => {
-                                        trans.attach(source, target)
-                                    }
-                                    InsertStep::Detach(source, target) => {
-                                        trans.detach(source, target)
-                                    }
-                                    _ => {}
-                                }
+                        for step in insertion_type {
+                            match step {
+                                InsertStep::Connect(source, target) => trans.attach(source, target),
+                                InsertStep::Detach(source, target) => trans.detach(source, target),
+                                _ => {}
                             }
                         }
                     }
+                }
 
-                    trans.commit_with(Some(|graph: &Graph<T>| {
-                        self.allow_recurrent || !graph.iter().any(|node| node.is_recurrent())
-                    }))
-                });
+                trans.commit_with(|graph: &Graph<T>| {
+                    self.allow_recurrent || !graph.iter().any(|node| node.is_recurrent())
+                })
+            });
 
-                return match result {
-                    TransactionResult::Invalid(_, _) => {
-                        let metric = Metric::new(INVALID_MUTATION)
-                            .with_labels(labels![
-                                "domain" => "graph",
-                                "validation" => "invalid",
-                            ])
-                            .upsert(1);
-                        (0, metric).into()
-                    }
-                    TransactionResult::Valid(steps) => {
-                        chromosome.set_nodes(graph.into_iter().collect());
-                        steps.len().into()
-                    }
-                };
-            }
+            return match result {
+                TransactionResult::Invalid(_, _) => {
+                    let metric = Metric::new(INVALID_MUTATION)
+                        .with_labels(labels![
+                            "domain" => "graph",
+                            "validation" => "invalid",
+                        ])
+                        .upsert(1);
+                    (0, metric).into()
+                }
+                TransactionResult::Valid(steps) => {
+                    chromosome.set_nodes(graph.into_iter().collect());
+                    steps.len().into()
+                }
+            };
         }
 
         0.into()

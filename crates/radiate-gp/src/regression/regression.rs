@@ -1,6 +1,7 @@
 use super::{DataSet, Loss};
-use crate::{Eval, EvalMut, Graph, GraphChromosome, GraphEvaluator, Op, Tree, TreeNode};
+use crate::{Graph, GraphChromosome, GraphEvaluator, Op, Tree, TreeNode};
 use radiate_core::fitness::FitnessFunction;
+use std::vec;
 
 #[derive(Clone)]
 pub struct Regression {
@@ -21,9 +22,7 @@ impl FitnessFunction<Graph<Op<f32>>, f32> for Regression {
     #[inline]
     fn evaluate(&self, input: Graph<Op<f32>>) -> f32 {
         let mut evaluator = GraphEvaluator::new(&input);
-
-        self.loss
-            .calculate(&self.data_set, &mut |input| evaluator.eval_mut(input))
+        self.loss.calculate(&self.data_set, &mut evaluator)
     }
 }
 
@@ -31,34 +30,27 @@ impl FitnessFunction<GraphChromosome<Op<f32>>, f32> for Regression {
     #[inline]
     fn evaluate(&self, input: GraphChromosome<Op<f32>>) -> f32 {
         let mut evaluator = GraphEvaluator::new(&input);
-
-        self.loss
-            .calculate(&self.data_set, &mut |input| evaluator.eval_mut(input))
+        self.loss.calculate(&self.data_set, &mut evaluator)
     }
 }
 
 impl FitnessFunction<Tree<Op<f32>>, f32> for Regression {
     #[inline]
     fn evaluate(&self, input: Tree<Op<f32>>) -> f32 {
-        self.loss
-            .calculate(&self.data_set, &mut |vals| vec![input.eval(vals)])
+        self.loss.calculate(&self.data_set, &mut vec![input])
     }
 }
 
 impl FitnessFunction<Vec<Tree<Op<f32>>>, f32> for Regression {
     #[inline]
-    fn evaluate(&self, input: Vec<Tree<Op<f32>>>) -> f32 {
-        self.loss.calculate(&self.data_set, &mut |vals| {
-            input.iter().map(|tree| tree.eval(vals)).collect()
-        })
+    fn evaluate(&self, mut input: Vec<Tree<Op<f32>>>) -> f32 {
+        self.loss.calculate(&self.data_set, &mut input)
     }
 }
 
 impl FitnessFunction<Vec<&TreeNode<Op<f32>>>, f32> for Regression {
     #[inline]
-    fn evaluate(&self, input: Vec<&TreeNode<Op<f32>>>) -> f32 {
-        self.loss.calculate(&self.data_set, &mut |vals| {
-            input.iter().map(|tree| tree.eval(vals)).collect()
-        })
+    fn evaluate(&self, mut input: Vec<&TreeNode<Op<f32>>>) -> f32 {
+        self.loss.calculate(&self.data_set, &mut input)
     }
 }

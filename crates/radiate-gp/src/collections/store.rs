@@ -143,11 +143,11 @@ impl<T> NodeStore<T> {
 
     pub fn map_by_type<F, K>(&self, node_type: NodeType, mapper: F) -> Option<K>
     where
-        F: Fn(Vec<&NodeValue<T>>) -> K,
+        F: Fn(&[NodeValue<T>]) -> K,
     {
         let values = self.values.read().unwrap();
         if let Some(values) = values.get(&node_type) {
-            return Some(mapper(values.iter().collect()));
+            return Some(mapper(values));
         }
 
         None

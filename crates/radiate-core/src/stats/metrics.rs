@@ -108,6 +108,7 @@ impl MetricSet {
         }
     }
 
+    #[inline(always)]
     pub fn merge(&mut self, other: &MetricSet) {
         for (name, metric) in other.iter() {
             if let Some(existing_metric) = self.metrics.get_mut(name) {
@@ -144,6 +145,7 @@ impl MetricSet {
         }
     }
 
+    #[inline(always)]
     pub fn add_labels(&mut self, name: &'static str, labels: Vec<MetricLabel>) {
         if let Some(m) = self.metrics.get_mut(name) {
             for label in labels {
@@ -152,6 +154,7 @@ impl MetricSet {
         }
     }
 
+    #[inline(always)]
     pub fn upsert<'a>(&mut self, name: &'static str, update: impl Into<MetricUpdate<'a>>) {
         if let Some(m) = self.metrics.get_mut(name) {
             m.apply_update(update);
@@ -161,6 +164,7 @@ impl MetricSet {
         }
     }
 
+    #[inline(always)]
     pub fn add_or_update<'a>(&mut self, metric: Metric) {
         if let Some(m) = self.metrics.get_mut(metric.name()) {
             m.apply_update(metric.last_value());
@@ -169,6 +173,7 @@ impl MetricSet {
         }
     }
 
+    #[inline(always)]
     pub fn add(&mut self, metric: Metric) {
         self.metrics.insert(metric.name(), metric);
     }
@@ -282,20 +287,24 @@ impl Metric {
         self.labels.as_ref()
     }
 
+    #[inline(always)]
     pub fn with_labels(mut self, labels: Vec<MetricLabel>) -> Self {
         self.labels.get_or_insert_with(HashSet::new).extend(labels);
         self
     }
 
+    #[inline(always)]
     pub fn add_label(&mut self, label: MetricLabel) {
         self.labels.get_or_insert_with(HashSet::new).insert(label);
     }
 
+    #[inline(always)]
     pub fn upsert<'a>(mut self, update: impl Into<MetricUpdate<'a>>) -> Self {
         self.apply_update(update);
         self
     }
 
+    #[inline(always)]
     pub fn apply_update<'a>(&mut self, update: impl Into<MetricUpdate<'a>>) {
         let update = update.into();
         match update {

@@ -95,6 +95,7 @@ impl<T> Drop for MutCell<T> {
         if self.consumed {
             return;
         }
+
         unsafe {
             if (*self.inner).ref_count.fetch_sub(1, Ordering::Release) == 1 {
                 std::sync::atomic::fence(Ordering::Acquire);

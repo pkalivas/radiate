@@ -30,5 +30,5 @@ fn main() {
         ctx.score().as_f32() <= MIN_SCORE || ctx.seconds() > MAX_SECONDS
     });
 
-    println!("{:?}", result);
+    println!("{result:?}");
 }

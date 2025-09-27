@@ -168,21 +168,7 @@ impl ActivationOperation {
 
 impl Op<f32> {
     pub fn weight() -> Self {
-        let supplier = || random_provider::random::<f32>() * TWO - ONE;
-        let operation = |inputs: &[f32], weight: &f32| clamp(inputs[0] * weight);
-        let modifier = |current: &f32| {
-            let diff = (random_provider::random::<f32>() * TWO - ONE) * TENTH;
-            clamp(current + diff)
-        };
-
-        Op::MutableConst {
-            name: "w",
-            arity: 1.into(),
-            value: supplier(),
-            supplier: Arc::new(supplier),
-            modifier: Arc::new(modifier),
-            operation: Arc::new(operation),
-        }
+        Self::weight_with(random_provider::random::<f32>() * TWO - ONE)
     }
 
     pub fn weight_with(value: f32) -> Self {

@@ -89,6 +89,7 @@ impl Statistic {
         self.sum.value()
     }
 
+    #[inline(always)]
     pub fn variance(&self) -> f32 {
         let mut value = f32::NAN;
         if self.count == 1 {
@@ -100,10 +101,12 @@ impl Statistic {
         value
     }
 
+    #[inline(always)]
     pub fn std_dev(&self) -> f32 {
         self.variance().sqrt()
     }
 
+    #[inline(always)]
     pub fn skewness(&self) -> f32 {
         let mut value = f32::NAN;
         if self.count >= 3 {
@@ -122,6 +125,7 @@ impl Statistic {
         value
     }
 
+    #[inline(always)]
     pub fn kurtosis(&self) -> f32 {
         let mut value = f32::NAN;
         if self.count >= 4 {
@@ -141,6 +145,7 @@ impl Statistic {
         value
     }
 
+    #[inline(always)]
     pub fn add(&mut self, value: f32) {
         self.count += 1;
 
