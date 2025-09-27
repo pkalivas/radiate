@@ -67,6 +67,7 @@ pub fn set_seed(seed: u64) {
 ///
 /// For floating point types, the number will be in the range [0, 1).
 /// For integer types, the number will be in the range [0, MAX).
+#[inline]
 pub fn random<T>() -> T
 where
     T: SampleUniform,
@@ -76,11 +77,13 @@ where
 }
 
 /// Generates a random boolean with the given probability of being true.
+#[inline]
 pub fn bool(prob: f64) -> bool {
     RandomProvider::bool(prob)
 }
 
 /// Generates a random number of type T in the given range.
+#[inline]
 pub fn range<T>(range: std::ops::Range<T>) -> T
 where
     T: SampleUniform + PartialOrd,
@@ -89,6 +92,7 @@ where
 }
 
 /// Chooses a random item from the given slice.
+#[inline]
 pub fn choose<T>(items: &[T]) -> &T {
     let index = range(0..items.len());
     &items[index]
@@ -96,6 +100,7 @@ pub fn choose<T>(items: &[T]) -> &T {
 
 /// Generates a random number from a Gaussian distribution with the given mean and standard deviation.
 /// The Box-Muller transform is used to generate the random number.
+#[inline]
 pub fn gaussian(mean: f64, std_dev: f64) -> f64 {
     let u1: f64 = RandomProvider::random();
     let u2: f64 = RandomProvider::random();
@@ -106,18 +111,21 @@ pub fn gaussian(mean: f64, std_dev: f64) -> f64 {
 }
 
 /// Shuffles the given slice in place.
+#[inline]
 pub fn shuffle<T>(items: &mut [T]) {
     let instance = RandomProvider::global();
     items.shuffle(&mut *instance.rng.lock().unwrap());
 }
 
 /// Generates a vector of indexes from 0 to n-1 in random order.
+#[inline]
 pub fn indexes(range: std::ops::Range<usize>) -> Vec<usize> {
     let mut indexes = range.collect::<Vec<usize>>();
     shuffle(&mut indexes);
     indexes
 }
 
+#[inline]
 pub fn weighted_choice(weights: &[f32]) -> usize {
     let mut rng = RandomProvider::get_rng();
 

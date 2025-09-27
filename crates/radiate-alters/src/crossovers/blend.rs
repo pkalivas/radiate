@@ -1,8 +1,13 @@
 use radiate_core::{AlterResult, Chromosome, Crossover, FloatGene, Gene, random_provider};
 
-/// The [BlendCrossover] is a crossover operator that blends the genes of two parent chromosomes
-/// to produce two offspring chromosomes.
-/// This operator is specifically designed for chromosomes containing [FloatGene]s.
+/// The [BlendCrossover] is a crossover operator that blends [FloatGene] alleles from two parent chromosomes to create offspring.
+/// The blending is controlled by the `alpha` parameter, which determines the extent of blending between the two alleles.
+/// The formula used for blending is:
+///
+/// ```text
+/// new_allele_one = allele_one - (alpha * (allele_two - allele_one))
+/// new_allele_two = allele_two - (alpha * (allele_one - allele_two))
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct BlendCrossover {
     rate: f32,

@@ -4,7 +4,6 @@ use std::collections::{HashMap, HashSet};
 // Example: Parents [1,2,3,4,5] and [1,3,5,2,4]
 // Edge table: 1->[2,3], 2->[1,4], 3->[2,5], 4->[5,2], 5->[4,3]
 // Offspring: [1,2,4,5,3] (following edges when possible)
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct EdgeRecombinationCrossover {
     rate: f32,

@@ -141,6 +141,7 @@ where
 }
 
 impl<T> Valid for GraphChromosome<T> {
+    #[inline]
     fn is_valid(&self) -> bool {
         self.nodes.iter().all(|gene| gene.is_valid())
     }

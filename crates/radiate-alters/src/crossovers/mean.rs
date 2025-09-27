@@ -1,10 +1,10 @@
 use radiate_core::{AlterResult, ArithmeticGene, Chromosome, Crossover, random_provider};
 
-/// The `MeanCrossover` is a simple crossover method that replaces the genes of the first chromosome
+/// The [MeanCrossover] is a simple crossover method that replaces the genes of the first chromosome
 /// with the mean of the two genes. The mean is calculated by adding the two genes together and dividing
 /// by two.
 ///
-/// This crossover can only be used with `ArithmeticGene`s and can be largely benifitial. However, keep
+/// This crossover can only be used with [ArithmeticGene]`s and can be largely benifitial. However, keep
 /// in mind that because we are taking the mean of two genes, this results in children that
 /// converge towards a common distribution. This can be useful in some cases, but it can also
 /// result in a loss of diversity in the population in others.

@@ -376,7 +376,8 @@ impl<T: Clone + Default> NodeBuilder<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Node, Op};
+    use crate::{Node, Op, node_store};
+    use radiate_core::Valid;
 
     #[test]
     fn test_graph_builder() {
@@ -421,57 +422,155 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn test_graph_builder_with_no_any() {
+        let graph = Graph::directed(3, 3, Op::add());
+
+        assert_eq!(graph.len(), 6);
+        assert!(!graph.is_valid());
+    }
+
+    #[test]
+    fn test_graph_builder_weighted() {
+        let store = vec![
+            (NodeType::Input, vec![Op::var(0), Op::var(1), Op::var(2)]),
+            (NodeType::Output, vec![Op::sigmoid()]),
+            (NodeType::Edge, vec![Op::weight_with(1.0)]),
+        ];
+
+        let graph = Graph::weighted_directed(3, 3, store);
+
+        assert_eq!(graph.len(), 15);
+        assert!(graph.is_valid());
+
+        for node in graph.iter() {
+            if node.node_type() == NodeType::Input {
+                assert_eq!(node.arity(), Arity::Zero);
+                assert_eq!(node.incoming().iter().count(), 0);
+                assert_eq!(node.outgoing().iter().count(), 3);
+            } else if node.node_type() == NodeType::Edge {
+                assert_eq!(node.arity(), Arity::Exact(1));
+                assert_eq!(node.incoming().iter().count(), 1);
+                assert_eq!(node.outgoing().iter().count(), 1);
+                assert_eq!(node.value(), &Op::weight_with(1.0));
+            } else if node.node_type() == NodeType::Output {
+                assert_eq!(node.arity(), Arity::Any);
+                assert_eq!(node.incoming().iter().count(), 3);
+                assert_eq!(node.outgoing().iter().count(), 0);
+                assert_eq!(node.value(), &Op::sigmoid());
+            }
+        }
+    }
+
+    #[test]
+    fn test_graph_builder_weighted_recurrent() {
+        let store = node_store![
+            Input => vec![Op::var(0), Op::var(1), Op::var(2)],
+            Output => vec![Op::sigmoid()],
+            Edge => vec![Op::weight_with(1.0)]
+        ];
+
+        let graph = Graph::weighted_recurrent(3, 3, store);
+
+        assert_eq!(graph.len(), 18);
+        assert!(graph.is_valid());
+
+        for node in graph.iter() {
+            if node.node_type() == NodeType::Input {
+                assert_eq!(node.arity(), Arity::Zero);
+                assert_eq!(node.incoming().iter().count(), 0);
+                assert_eq!(node.outgoing().iter().count(), 1);
+            } else if node.node_type() == NodeType::Edge {
+                assert_eq!(node.arity(), Arity::Exact(1));
+                assert_eq!(node.incoming().iter().count(), 1);
+                assert_eq!(node.outgoing().iter().count(), 1);
+                assert_eq!(node.value(), &Op::weight_with(1.0));
+            } else if node.node_type() == NodeType::Output {
+                assert_eq!(node.arity(), Arity::Any);
+                assert_eq!(node.incoming().iter().count(), 3);
+                assert_eq!(node.outgoing().iter().count(), 0);
+                assert_eq!(node.value(), &Op::sigmoid());
+            } else if node.node_type() == NodeType::Vertex {
+                assert_eq!(node.arity(), Arity::Any);
+                assert!(node.is_recurrent());
+                assert_eq!(node.value(), &Op::sigmoid());
+            }
+        }
+    }
+
+    #[test]
+    fn test_graph_builder_lstm() {
+        let store = node_store![
+            Input => vec![Op::var(0)],
+            Output => vec![Op::sigmoid()],
+            Vertex => vec![Op::sigmoid(), Op::tanh(), Op::mul(), Op::add()],
+            Edge => vec![Op::weight_with(1.0)]
+        ];
+
+        let graph = Graph::lstm(1, 1, store);
+        assert_eq!(graph.len(), 8);
+        assert!(graph.is_valid());
+
+        for node in graph.iter() {
+            if node.node_type() == NodeType::Input {
+                assert_eq!(node.arity(), Arity::Zero);
+                assert_eq!(node.incoming().iter().count(), 0);
+                assert_eq!(node.outgoing().iter().count(), 4);
+            } else if node.node_type() == NodeType::Output {
+                assert_eq!(node.arity(), Arity::Any);
+                assert_eq!(node.incoming().iter().count(), 1);
+                assert_eq!(node.outgoing().iter().count(), 0);
+                assert_eq!(node.value(), &Op::sigmoid());
+            } else if node.node_type() == NodeType::Vertex {
+                assert_eq!(node.arity(), Arity::Any);
+                assert!(
+                    vec![Op::sigmoid(), Op::tanh(), Op::mul(), Op::add()].contains(&node.value())
+                );
+            } else if node.node_type() == NodeType::Edge {
+                assert_eq!(node.arity(), Arity::Exact(1));
+                assert_eq!(node.incoming().iter().count(), 1);
+                assert_eq!(node.outgoing().iter().count(), 1);
+                assert_eq!(node.value(), &Op::weight_with(1.0));
+            }
+        }
+    }
+
+    #[test]
+    fn test_graph_builder_gru() {
+        let store = node_store![
+            Input => vec![Op::var(0)],
+            Output => vec![Op::sigmoid()],
+            Vertex => vec![Op::sigmoid(), Op::tanh(), Op::mul(), Op::add()],
+            Edge => vec![Op::weight_with(1.0)]
+        ];
+
+        let graph = Graph::gru(1, 1, store);
+
+        assert_eq!(graph.len(), 8);
+        assert!(graph.is_valid());
+
+        for node in graph.iter() {
+            if node.node_type() == NodeType::Input {
+                assert_eq!(node.arity(), Arity::Zero);
+                assert_eq!(node.incoming().iter().count(), 0);
+                assert_eq!(node.outgoing().iter().count(), 3);
+            } else if node.node_type() == NodeType::Output {
+                assert_eq!(node.arity(), Arity::Any);
+                assert_eq!(node.incoming().iter().count(), 1);
+                assert_eq!(node.outgoing().iter().count(), 0);
+                assert_eq!(node.value(), &Op::sigmoid());
+            } else if node.node_type() == NodeType::Vertex {
+                assert_eq!(node.arity(), Arity::Any);
+                assert!(
+                    vec![Op::sigmoid(), Op::tanh(), Op::mul(), Op::add()].contains(&node.value())
+                );
+            } else if node.node_type() == NodeType::Edge {
+                assert_eq!(node.arity(), Arity::Exact(1));
+                assert_eq!(node.incoming().iter().count(), 1);
+                assert_eq!(node.outgoing().iter().count(), 1);
+                assert_eq!(node.value(), &Op::weight_with(1.0));
+            }
+        }
+    }
 }
-
-// pub fn lstm(input_size: usize, output_size: usize, store: impl Into<NodeStore<T>>) -> Graph<T> {
-//     let builder = NodeBuilder::new(store);
-
-//     let input = builder.input(input_size);
-//     let output = builder.output(output_size);
-
-//     let cell_state = builder.vertecies(1);
-//     let hidden_state = builder.vertecies(1);
-
-//     let forget_gate = builder.vertecies(1);
-//     let input_gate = builder.vertecies(1);
-//     let output_gate = builder.vertecies(1);
-//     let candidate = builder.vertecies(1);
-
-//     let input_to_forget_weights = builder.edge(input_size);
-//     let input_to_input_weights = builder.edge(input_size);
-//     let input_to_output_weights = builder.edge(input_size);
-//     let input_to_candidate_weights = builder.edge(input_size);
-
-//     let hidden_to_forget_weights = builder.edge(1);
-//     let hidden_to_input_weights = builder.edge(1);
-//     let hidden_to_output_weights = builder.edge(1);
-//     let hidden_to_candidate_weights = builder.edge(1);
-
-//     let final_weights = builder.edge(output_size);
-
-//     GraphAggregate::new()
-//         .one_to_one(&input, &input_to_forget_weights)
-//         .one_to_one(&input, &input_to_input_weights)
-//         .one_to_one(&input, &input_to_output_weights)
-//         .one_to_one(&input, &input_to_candidate_weights)
-//         .one_to_one(&hidden_state, &hidden_to_forget_weights)
-//         .one_to_one(&hidden_state, &hidden_to_input_weights)
-//         .one_to_one(&hidden_state, &hidden_to_output_weights)
-//         .one_to_one(&hidden_state, &hidden_to_candidate_weights)
-//         .many_to_one(&input_to_forget_weights, &forget_gate)
-//         .many_to_one(&hidden_to_forget_weights, &forget_gate)
-//         .many_to_one(&input_to_input_weights, &input_gate)
-//         .many_to_one(&hidden_to_input_weights, &input_gate)
-//         .many_to_one(&input_to_output_weights, &output_gate)
-//         .many_to_one(&hidden_to_output_weights, &output_gate)
-//         .many_to_one(&input_to_candidate_weights, &candidate)
-//         .many_to_one(&hidden_to_candidate_weights, &candidate)
-//         .one_to_one(&forget_gate, &cell_state)
-//         .one_to_one(&input_gate, &candidate)
-//         .one_to_one(&candidate, &cell_state)
-//         .one_to_one(&cell_state, &hidden_state)
-//         .one_to_one(&output_gate, &hidden_state)
-//         .one_to_many(&hidden_state, &final_weights)
-//         .one_to_one(&final_weights, &output)
-//         .build()
-// }

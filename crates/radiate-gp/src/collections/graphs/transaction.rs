@@ -269,8 +269,7 @@ impl<'a, T> GraphTransaction<'a, T> {
             return None;
         }
 
-        let gene_node_type_index = random_provider::range(0..node_types.len());
-        let gene_node_type = node_types.get(gene_node_type_index).unwrap();
+        let gene_node_type = random_provider::choose(&node_types);
 
         let genes = match gene_node_type {
             NodeType::Input => self
