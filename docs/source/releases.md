@@ -41,7 +41,7 @@ Adding support for batch fitness functions and batch engine problems through a n
 
 Adding Novelty Search to python and refactoring engine building across the rust/python bridge. Improving python's speed. Adding type checking to python and upgrading python package to >= python 3.12 to support new python generics. Improving docs to reference new functionality.
 
-New alters:
+New alters :
 
   * EdgeRecombinationCrossover for PermutationGenes 
   * PolynomialMutator for chromosomes with FloatGenes
