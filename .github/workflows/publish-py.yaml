@@ -178,7 +178,6 @@ jobs:
           command: build
           args: >
             --release
-            -m py-radiate/pyproject.toml
             -o dist
             ${{ steps.envsel.outputs.flags }}
           target: ${{ matrix.target }}
@@ -195,7 +194,6 @@ jobs:
           command: build
           args: >
             --release
-            -m py-radiate/pyproject.toml
             -o dist
             ${{ steps.envsel.outputs.flags }}
 
