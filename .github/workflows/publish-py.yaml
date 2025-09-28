@@ -29,7 +29,7 @@ jobs:
       - name: Build sdist
         run: |
           cd py-radiate
-          uvx maturin sdist -m pyproject.toml -o target-sdist
+          uvx maturin sdist -o target-sdist
 
       - uses: actions/upload-artifact@v4
         with:
