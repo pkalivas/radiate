@@ -1,5 +1,5 @@
 [build-system]
-requires = ["maturin>=1.8,<2.0"]
+requires = ["maturin>=1.8.4,<2.0"]
 build-backend = "maturin"
 
 [project]
@@ -23,6 +23,7 @@ dynamic = ["version"]
 all = [
     "radiate",
 ]
+dependencies = []
 
 [project.test-dependencies]
 numpy = ["numpy>=1.20.0"]
@@ -43,4 +44,11 @@ warn_return_any = false
 [tool.ruff]
 line-length = 88
 fix = true
+
+[dependency-groups]
+dev = [
+    "maturin>=1.9.4",
+    "numpy>=2.3.3",
+    "pillow>=11.3.0",
+]
 

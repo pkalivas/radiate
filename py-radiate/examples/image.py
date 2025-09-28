@@ -108,6 +108,7 @@ def run_image_evo(
         objectives="min",
         survivor_selector=rd.RouletteSelector(),
         offspring_selector=rd.TournamentSelector(3),
+        executor=rd.Executor.WorkerPool(),
         alters=[
             rd.MeanCrossover(0.3),
             rd.JitterMutator(rate=0.01, magnitude=0.15),
@@ -124,4 +125,6 @@ def run_image_evo(
 
 if __name__ == "__main__":
     run_image_evo("examples/data/monalisa.png")
+    import sys
+    print(sys._is_gil_enabled())
 
