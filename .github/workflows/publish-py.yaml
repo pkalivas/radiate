@@ -2,12 +2,12 @@ name: Publish Python Wheels and Sdist
 
 on:
   push:
-    tags: [ 'v*' ]         # tag-triggered only
+    tags: [ 'v*' ]   # publish on version tags, e.g. v0.1.0
   workflow_dispatch: {}
 
 permissions:
   contents: read
-  id-token: write          # for trusted publisher to PyPI
+  id-token: write      # PyPI Trusted Publisher
 
 env:
   CARGO_INCREMENTAL: 0
@@ -19,13 +19,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # - uses: actions/setup-python@v5
-      #   with: { python-version: '3.12' }
-      - run: python -m pip install -U pip uv
+
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+
+      - name: Install uv
+        run: python -m pip install -U pip uv
+
       - name: Build sdist
         run: |
           cd py-radiate
-          uvx maturin sdist -o target-sdist
+          uvx maturin sdist -m pyproject.toml -o target-sdist
+
       - uses: actions/upload-artifact@v4
         with:
           name: sdist
@@ -38,30 +43,35 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Linux (x86_64, aarch64)
-          - { os: ubuntu-latest, arch: x86_64,  mode: gil,   py: '3.12' }
-          - { os: ubuntu-latest, arch: aarch64, mode: gil,   py: '3.12', target: aarch64-unknown-linux-gnu }
+          # ---------- Linux ----------
+          - { os: ubuntu-latest, arch: x86_64,  mode: gil,   py: '3.12',  manylinux: auto }
+          - { os: ubuntu-latest, arch: aarch64, mode: gil,   py: '3.12',  manylinux: '2_24', target: aarch64-unknown-linux-gnu }
 
-          - { os: ubuntu-latest, arch: x86_64,  mode: nogil, py: '3.13t' }
-          - { os: ubuntu-latest, arch: aarch64, mode: nogil, py: '3.13t', target: aarch64-unknown-linux-gnu }
+          - { os: ubuntu-latest, arch: x86_64,  mode: nogil, py: '3.13t', manylinux: auto }
+          - { os: ubuntu-latest, arch: aarch64, mode: nogil, py: '3.13t', manylinux: '2_24', target: aarch64-unknown-linux-gnu }
 
-          # macOS (x86_64, arm64)
+          # ---------- macOS ----------
           - { os: macos-13, arch: x86_64, mode: gil,   py: '3.12' }
           - { os: macos-15, arch: arm64,  mode: gil,   py: '3.12' }
           - { os: macos-13, arch: x86_64, mode: nogil, py: '3.13t' }
           - { os: macos-15, arch: arm64,  mode: nogil, py: '3.13t' }
 
-          # Windows (x64). Skip ARM for now unless you have runners.
+          # ---------- Windows (x64) ----------
           - { os: windows-latest, arch: x64, mode: gil,   py: '3.12' }
           - { os: windows-latest, arch: x64, mode: nogil, py: '3.13t' }
+
+          # (Optional) Windows ARM64 – enable when you want it:
+          # - { os: windows-11-arm, arch: arm64, mode: gil,   py: '3.12' }
+          # - { os: windows-11-arm, arch: arm64, mode: nogil, py: '3.13t' }
 
     steps:
       - uses: actions/checkout@v4
 
-      # - uses: actions/setup-python@v5
-      #   with: { python-version: '3.12' }
-
       - uses: dtolnay/rust-toolchain@stable
+
+      # Host python for tooling; uv will install/find the matrix interpreter itself
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
 
       - name: Install uv
         run: python -m pip install -U pip uv
@@ -73,83 +83,89 @@ jobs:
           uv python install "${{ matrix.py }}" || true
           uv python list --only-installed
 
-      - name: Select interpreter and flags
+      - name: Select interpreter, flags, and target dir
         id: envsel
         shell: bash
         run: |
           set -e
-          echo "Matrix: ${{ toJson(matrix) }}"
           PY="$(uv python find --python ${{ matrix.py }} 2>/dev/null || true)"
-          temp=$(uv python list --only-installed | grep "^${{ matrix.py }} " || true)
-          
-          for i in $temp; do
-            echo $i
-          done
-
-          VERSIONS="$(python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
-          echo $VERSIONS
           if [[ -z "$PY" ]]; then
             echo "Requested interpreter ${{ matrix.py }} not available on ${{ runner.os }} (${{ matrix.arch }})"
             echo "skip=1" >> $GITHUB_OUTPUT
             exit 0
           fi
+
           if [[ "${{ matrix.mode }}" == "nogil" ]]; then
             FLAGS="--no-default-features --features nogil"
+            TARGET_DIR="target-nogil"
           else
             FLAGS="--features gil"
+            TARGET_DIR="target-gil"
           fi
-          echo "py=$PY"       >> $GITHUB_OUTPUT
-          echo "flags=$FLAGS" >> $GITHUB_OUTPUT
-          echo "skip=0"       >> $GITHUB_OUTPUT
 
+          echo "py=$PY"          >> $GITHUB_OUTPUT
+          echo "flags=$FLAGS"    >> $GITHUB_OUTPUT
+          echo "target_dir=$TARGET_DIR" >> $GITHUB_OUTPUT
+          echo "skip=0"          >> $GITHUB_OUTPUT
+
+      - name: Cache cargo
+        if: steps.envsel.outputs.skip == '0'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      # Build on Linux (handles manylinux + cross aarch64)
       - name: Build wheel (Linux)
         if: runner.os == 'Linux' && steps.envsel.outputs.skip == '0'
         uses: PyO3/maturin-action@v1
         env:
           PYO3_PYTHON: ${{ steps.envsel.outputs.py }}
+          CARGO_TARGET_DIR: ${{ steps.envsel.outputs.target_dir }}
         with:
           maturin-version: '1.9.4'
-          command: build
+          target: ${{ matrix.target }}
+          manylinux: ${{ matrix.manylinux || 'off' }}
           args: >
+            build
             --release
             -m py-radiate/pyproject.toml
             -o dist
             ${{ steps.envsel.outputs.flags }}
-            ${{ matrix.target && format('--target {0}', matrix.target) || '' }}
-          manylinux: auto
 
+      # Build on macOS/Windows (no manylinux/target flags)
       - name: Build wheel (macOS/Windows)
         if: runner.os != 'Linux' && steps.envsel.outputs.skip == '0'
         uses: PyO3/maturin-action@v1
         env:
           PYO3_PYTHON: ${{ steps.envsel.outputs.py }}
+          CARGO_TARGET_DIR: ${{ steps.envsel.outputs.target_dir }}
         with:
           maturin-version: '1.9.4'
-          command: build
           args: >
+            build
             --release
             -m py-radiate/pyproject.toml
             -o dist
             ${{ steps.envsel.outputs.flags }}
 
-      - name: Upload wheels
-        if: steps.envsel.outputs.skip == '0'
-        uses: actions/upload-artifact@v4
-        with:
-          name: wheels-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.mode }}
-          path: dist/*.whl
-
   publish:
     name: Publish to PyPI
     needs: [ sdist, wheels ]
     runs-on: ubuntu-latest
-    # if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v')  # only on tag
     steps:
       - uses: actions/download-artifact@v4
         with:
           path: dist
           merge-multiple: true
+
       - run: ls -R dist
+
       - name: Publish (Trusted Publisher)
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
