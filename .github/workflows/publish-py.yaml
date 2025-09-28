@@ -168,8 +168,8 @@ jobs:
 
       # Build on Linux (handles manylinux + cross aarch64)
       - name: Build wheel (Linux)
-        if: runner.os == 'Linux' && steps.envsel.outputs.skip == '0'
         uses: PyO3/maturin-action@v1
+        working-directory: py-radiate          # <—— build inside the Python crate
         env:
           PYO3_PYTHON: ${{ steps.envsel.outputs.py }}
           CARGO_TARGET_DIR: ${{ steps.envsel.outputs.target_dir }}
@@ -180,7 +180,7 @@ jobs:
           args: >
             build
             --release
-            -o dist
+            -o ../dist                         # write wheels back to repo-level dist
             ${{ steps.envsel.outputs.flags }}
 
       # Build on macOS/Windows (no manylinux/target flags)
