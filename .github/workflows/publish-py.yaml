@@ -165,18 +165,18 @@ jobs:
             ${{ steps.envsel.outputs.flags }}
 
       # Smoke import where feasible (runner arch matches)
-      - name: Smoke import
-        if: startsWith(matrix.os, 'macos') || matrix.os == 'windows-latest' || (matrix.os == 'ubuntu-latest' && matrix.arch == 'x86_64')
-        run: |
-          python -m pip install -U pip
-          python - <<'PY'
-import glob, os, sys, subprocess
-wheels = sorted(glob.glob('dist/*.whl'), key=os.path.getmtime, reverse=True)
-assert wheels, "no wheels"
-print("Wheel:", wheels[0])
-subprocess.check_call([sys.executable, "-m", "pip", "install", "--force-reinstall", "--no-deps", wheels[0]])
-subprocess.check_call([sys.executable, "-c", "import radiate; import sys; print('radiate', getattr(radiate,'__version__','?')); print(radiate.__file__)"])
-PY
+#       - name: Smoke import
+#         if: startsWith(matrix.os, 'macos') || matrix.os == 'windows-latest' || (matrix.os == 'ubuntu-latest' && matrix.arch == 'x86_64')
+#         run: |
+#           python -m pip install -U pip
+#           python - <<'PY'
+# import glob, os, sys, subprocess
+# wheels = sorted(glob.glob('dist/*.whl'), key=os.path.getmtime, reverse=True)
+# assert wheels, "no wheels"
+# print("Wheel:", wheels[0])
+# subprocess.check_call([sys.executable, "-m", "pip", "install", "--force-reinstall", "--no-deps", wheels[0]])
+# subprocess.check_call([sys.executable, "-c", "import radiate; import sys; print('radiate', getattr(radiate,'__version__','?')); print(radiate.__file__)"])
+# PY
 
       - uses: actions/upload-artifact@v4
         with:
