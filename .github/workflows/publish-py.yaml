@@ -87,14 +87,59 @@ jobs:
         id: envsel
         shell: bash
         run: |
-          set -e
-          PY="$(uv python find --python ${{ matrix.py }} 2>/dev/null || true)"
-          if [[ -z "$PY" ]]; then
-            echo "Requested interpreter ${{ matrix.py }} not available on ${{ runner.os }} (${{ matrix.arch }})"
-            echo "skip=1" >> $GITHUB_OUTPUT
+          set -euo pipefail
+
+          echo "::group::uv versions"
+          uv --version || true
+          uv python --version || true
+          echo "::endgroup::"
+
+          # 1) Try to ensure the exact interpreter exists (best-effort).
+          #    For 3.13t on some runners, this may fail; that's OK—we'll fallback.
+          echo "::group::Ensuring interpreter ${{ matrix.py }}"
+          if ! uv python install "${{ matrix.py }}"; then
+            echo "WARN: uv could not install ${{ matrix.py }} on ${{ runner.os }} (${{ matrix.arch }}). Will try fallbacks." >&2
+          fi
+          echo "::endgroup::"
+
+          echo "::group::Installed Pythons"
+          uv python list --only-installed || true
+          echo "::endgroup::"
+
+          # Helper: resolve the latest installed interpreter *by mode*
+          pick_latest_by_mode() {
+            local want="$1"  # "gil" or "nogil"
+            local id
+            if [[ "$want" == "nogil" ]]; then
+              # pick the newest +freethreaded id
+              id="$(uv python list --only-installed | awk 'tolower($1) ~ /\+freethreaded/ {print $1}' | sort -rV | head -n1)"
+            else
+              # pick the newest *non*-freethreaded id
+              id="$(uv python list --only-installed | awk 'tolower($1) !~ /\+freethreaded/ {print $1}' | sort -rV | head -n1)"
+            fi
+            [[ -n "${id:-}" ]] && uv python find --python "$id" || true
+          }
+
+          # 2) First, try to find the exact spec from the matrix.
+          PY="$(uv python find --python "${{ matrix.py }}" 2>/dev/null || true)"
+
+          # 3) If that failed, fall back to "latest by mode".
+          if [[ -z "${PY}" ]]; then
+            if [[ "${{ matrix.mode }}" == "nogil" ]]; then
+              PY="$(pick_latest_by_mode nogil)"
+            else
+              PY="$(pick_latest_by_mode gil)"
+            fi
+          fi
+
+          # 4) If still empty, skip this matrix axis cleanly.
+          if [[ -z "${PY}" ]]; then
+            echo "Requested interpreter '${{ matrix.py }}' not available; no suitable fallback found on ${{ runner.os }} (${{ matrix.arch }})." >&2
+            echo "skip=1" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
+          # Flags & target dir by mode
           if [[ "${{ matrix.mode }}" == "nogil" ]]; then
             FLAGS="--no-default-features --features nogil"
             TARGET_DIR="target-nogil"
@@ -103,10 +148,12 @@ jobs:
             TARGET_DIR="target-gil"
           fi
 
-          echo "py=$PY"          >> $GITHUB_OUTPUT
-          echo "flags=$FLAGS"    >> $GITHUB_OUTPUT
-          echo "target_dir=$TARGET_DIR" >> $GITHUB_OUTPUT
-          echo "skip=0"          >> $GITHUB_OUTPUT
+          echo "Using interpreter: $PY"
+          "$PY" -c 'import sys; print("Python:", sys.version)'
+          echo "py=$PY"                >> "$GITHUB_OUTPUT"
+          echo "flags=$FLAGS"          >> "$GITHUB_OUTPUT"
+          echo "target_dir=$TARGET_DIR">> "$GITHUB_OUTPUT"
+          echo "skip=0"                >> "$GITHUB_OUTPUT"
 
       - name: Cache cargo
         if: steps.envsel.outputs.skip == '0'
