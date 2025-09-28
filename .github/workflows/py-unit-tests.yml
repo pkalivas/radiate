@@ -10,100 +10,46 @@ permissions:
   contents: read
 
 jobs:
-  build-and-test:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python (host)
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"   # test against 3.12 (GIL)
-
-      - name: Install uv
-        run: python -m pip install -U pip uv
+          python-version: '3.x'
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
 
-      - name: Build wheel (GIL)
-        working-directory: py-radiate
-        env:
-          # Use the same interpreter for maturin
-          PYO3_PYTHON: ${{ steps.setup-python.outputs.python-path }}
+      - name: Create virtual environment
         run: |
-          uvx maturin build --release --features gil -o dist
+          python -m venv .venv
+          echo "$GITHUB_WORKSPACE/py-radiate/.venv/bin" >> $GITHUB_PATH
+          echo "VIRTUAL_ENV=$GITHUB_WORKSPACE/py-radiate/.venv" >> $GITHUB_ENV
 
-      - name: Create venv + install package + test extras (uv)
+      - name: Build wheel
+        uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          args: --release --features gil --out dist
+          working-directory: py-radiate
+
+      - name: Install wheel and test dependencies
         run: |
-          uv venv
-          # install the built wheel (from py-radiate/dist) into this env
-          uv pip install --find-links py-radiate/dist --force-reinstall radiate
-          # install test extras from the repo (resolves markers)
-          uv pip install -e py-radiate/.[test]
+          pip install radiate --find-links py-radiate/dist --force-reinstall
+          pip install pytest
+          pip install -e py-radiate/.[test]
+          
+
+          # pip install -r py-radiate/requirements-dev.txt
 
       - name: Run tests
         working-directory: py-radiate
         run: |
-          uv run -m pytest -n auto --import-mode=importlib
-
-# name: py-unit-tests
-
-# on:
-#   push:
-#     branches: [ "main", "master" ]
-#   pull_request:
-#     branches: [ "main", "master" ]
-
-# permissions:
-#   contents: read
-
-# jobs:
-#   build:
-#     runs-on: ubuntu-latest
-#     steps:
-#       - name: Checkout code
-#         uses: actions/checkout@v4
-
-#       - name: Set up Python
-#         uses: actions/setup-python@v5
-#         with:
-#           python-version: '3.x'
-
-#       - name: Install Rust
-#         uses: dtolnay/rust-toolchain@stable
-#         with:
-#           toolchain: stable
-
-#       - name: Create virtual environment
-#         run: |
-#           python -m venv .venv
-#           echo "$GITHUB_WORKSPACE/py-radiate/.venv/bin" >> $GITHUB_PATH
-#           echo "VIRTUAL_ENV=$GITHUB_WORKSPACE/py-radiate/.venv" >> $GITHUB_ENV
-
-#       - name: Build wheel
-#         uses: PyO3/maturin-action@v1
-#         with:
-#           command: build
-#           args: --release --features gil --out dist
-#           working-directory: py-radiate
-
-#       - name: Install wheel and test dependencies
-#         run: |
-#           pip install radiate --find-links py-radiate/dist --force-reinstall
-#           cd py-radiate
-#           pip install pytest
-#           pip install -e .[test-dependencies]
-#           cd ..
-#           # pip install -e .[test]
-
-#           # pip install -r py-radiate/requirements-dev.txt
-
-#       - name: Run tests
-#         working-directory: py-radiate
-#         run: |
-#           pytest tests --import-mode=importlib
+          pytest tests --import-mode=importlib
           
