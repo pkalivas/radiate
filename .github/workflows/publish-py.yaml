@@ -117,11 +117,11 @@ jobs:
               # pick the newest *non*-freethreaded id
               id="$(uv python list --only-installed | awk 'tolower($1) !~ /\+freethreaded/ {print $1}' | sort -rV | head -n1)"
             fi
-            [[ -n "${id:-}" ]] && uv python find --python "$id" || true
+            [[ -n "${id:-}" ]] && uv python find  "$id" || true
           }
 
           # 2) First, try to find the exact spec from the matrix.
-          PY="$(uv python find --python "${{ matrix.py }}" 2>/dev/null || true)"
+          PY="$(uv python find "${{ matrix.py }}" 2>/dev/null || true)"
 
           # 3) If that failed, fall back to "latest by mode".
           if [[ -z "${PY}" ]]; then
