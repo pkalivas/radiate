@@ -47,8 +47,8 @@ jobs:
           - { os: ubuntu-latest, arch: x86_64,  mode: gil,   py: '3.12',  manylinux: auto }
           - { os: ubuntu-latest, arch: aarch64, mode: gil,   py: '3.12',  manylinux: '2_24', target: aarch64-unknown-linux-gnu }
 
-          - { os: ubuntu-latest, arch: x86_64,  mode: nogil, py: '3.13t', manylinux: auto }
-          - { os: ubuntu-latest, arch: aarch64, mode: nogil, py: '3.13t', manylinux: '2_24', target: aarch64-unknown-linux-gnu }
+          # - { os: ubuntu-latest, arch: x86_64,  mode: nogil, py: '3.13t', manylinux: auto }
+          # - { os: ubuntu-latest, arch: aarch64, mode: nogil, py: '3.13t', manylinux: '2_24', target: aarch64-unknown-linux-gnu }
 
           # ---------- macOS ----------
           - { os: macos-13, arch: x86_64, mode: gil,   py: '3.12' }
