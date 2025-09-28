@@ -169,11 +169,11 @@ jobs:
       # Build on Linux (handles manylinux + cross aarch64)
       - name: Build wheel (Linux)
         uses: PyO3/maturin-action@v1
-        working-directory: py-radiate          # <—— build inside the Python crate
         env:
           PYO3_PYTHON: ${{ steps.envsel.outputs.py }}
           CARGO_TARGET_DIR: ${{ steps.envsel.outputs.target_dir }}
         with:
+          working-directory: py-radiate          # <—— build inside the Python crate
           maturin-version: '1.9.4'
           target: ${{ matrix.target }}
           manylinux: ${{ matrix.manylinux || 'off' }}
