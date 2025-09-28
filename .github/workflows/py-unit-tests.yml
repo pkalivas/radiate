@@ -44,7 +44,7 @@ jobs:
           pip install radiate --find-links py-radiate/dist --force-reinstall
           cd py-radiate
           pip install pytest
-          pip install -e .[dev]
+          pip install -e .[test-dependencies]
           cd ..
           # pip install -e .[test]
 
