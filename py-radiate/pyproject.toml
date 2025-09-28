@@ -29,26 +29,23 @@ dependencies = []
 numpy = ["numpy>=1.20.0"]
 numba = ["numba>=0.61.2"]
 
+[dependency-groups]
+dev = [
+    "matplotlib>=3.10.6",
+    "maturin>=1.9.4",
+    "numpy>=2.3.3",
+    "pillow>=11.3.0",
+]
+
 [tool.maturin]
 features = ["pyo3/extension-module"]
 
 [[tool.mypy.overrides]]
 module = ["radiate.*"]
-# We exclude the radiate module from warn_return_any, because the PyO3 api does not have Python
-# type annotations. See https://github.com/PyO3/pyo3/issues/1112 for a discussion on adding
-# this capability. We could add a stub file for radiate.radiate (the PyO3 api), but that
-# amounts to duplicating almost all type annotations on our api, as the Python api itself is a
-# thin wrapper around the PyO3 api to start with.
 warn_return_any = false
 
 [tool.ruff]
 line-length = 88
 fix = true
 
-[dependency-groups]
-dev = [
-    "maturin>=1.9.4",
-    "numpy>=2.3.3",
-    "pillow>=11.3.0",
-]
 

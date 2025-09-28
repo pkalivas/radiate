@@ -1,6 +1,6 @@
 SHELL := bash
 
-ARGS ?=
+TEST_ARGS ?=
 GIL  ?= 1
 
 .PHONY: develop build develop-gil develop-nogil build-gil build-nogil test clean
@@ -31,9 +31,11 @@ build-nogil:
 	../scripts/build_wheel.sh --freethreaded --build
 
 test: develop
-	uv run pytest $(ARGS)
+	uv run pytest $(TEST_ARGS)
 
 clean:
 	@rm -rf .venv
 	@rm -rf radiate/*.so
 	@rm -rf .coverage
+	@rm -rf .benchmarks
+	@rm -rf .pytest_cache

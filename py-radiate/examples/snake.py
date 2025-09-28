@@ -364,6 +364,7 @@ class SnakeEvolver:
             codec,
             SnakeEvolver.fitness_function,
             offspring_selector=rd.TournamentSelector(4),
+            executor=rd.Executor.WorkerPool(),
             alters=[
                 rd.GraphCrossover(0.5, 0.5),
                 rd.OperationMutator(0.04, 0.05),
@@ -430,7 +431,6 @@ def main():
 
     best_graph = generation.value()
     evolver.visualize_best_snake(best_graph, "Best Evolved Snake AI")
-
 
 if __name__ == "__main__":
     main()

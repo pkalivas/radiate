@@ -82,7 +82,7 @@ from .inputs.distance import (
 
 from .inputs.limit import SecondsLimit, GenerationsLimit, ScoreLimit, ConvergenceLimit
 
-from .dependancies import _NUMPY_AVAILABLE
+from .dependancies import _NUMPY_AVAILABLE, _GIL_ENABLED
 
 
 __all__ = [
@@ -92,6 +92,7 @@ __all__ = [
     "__version_tuple__",
     # Dependencies
     "_NUMPY_AVAILABLE",
+    "_GIL_ENABLED",
     # Random
     "random",
     # Codecs

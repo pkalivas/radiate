@@ -1,5 +1,6 @@
 from typing import Any, Dict
 from .component import ComponentBase
+from ..dependancies import _GIL_ENABLED
 
 
 class Executor(ComponentBase):
@@ -20,7 +21,9 @@ class Executor(ComponentBase):
         Worker pool executor.
         :return: An Executor instance configured for worker pool execution.
         """
-        return Executor(component="WorkerPool")
+        if not _GIL_ENABLED:
+            return Executor(component="WorkerPool")
+        return Executor.Serial()
 
     @staticmethod
     def FixedSizedWorkerPool(num_workers: int) -> "Executor":
@@ -29,6 +32,8 @@ class Executor(ComponentBase):
         :param num_workers: The number of worker threads in the pool.
         :return: An Executor instance configured for a fixed-sized worker pool.
         """
-        return Executor(
-            component="FixedSizedWorkerPool", args={"num_workers": num_workers}
-        )
+        if not _GIL_ENABLED:
+            return Executor(
+                component="FixedSizedWorkerPool", args={"num_workers": num_workers}
+            )
+        return Executor.Serial()
