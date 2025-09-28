@@ -90,7 +90,7 @@ ensure_venv() {
     echo "Creating venv for $spec"
     uv venv --python "$spec"
     uv python pin "$py"
-    uv sync
+    uv sync --group dev
   fi
 }
 
