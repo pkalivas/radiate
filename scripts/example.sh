@@ -20,18 +20,16 @@ done
 if [[ -z "$EXAMPLE_NAME" ]]; then
   echo "Usage: $0 --example <example_name> [-p|-r]"
   echo "  -p for Python example"
-  echo "  -r for R example"
+  echo "  -r for Rust example"
   exit 1
 fi
 
 if [[ "$LANG" == "P" ]]; then
     cd $PY_DIR
-    
-    uv run examples/"${EXAMPLE_NAME}.py" 
-
+    uv sync
+    uv run examples/$EXAMPLE_NAME.py
 elif [[ "$LANG" == "R" ]]; then
     cd $RUST_DIR
-
     example_names=$(ls | grep $EXAMPLE_NAME | tr '\n' ' ')
 
     for ex in $example_names; do

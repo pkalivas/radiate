@@ -1,30 +1,38 @@
-ARGS =
+SHELL := bash
 
-.PHONY: develop
-develop:
-	../scripts/build.sh
+ARGS ?=
+GIL  ?= 1
 
-.PHONY: develop-nogil
+.PHONY: develop build develop-gil develop-nogil build-gil build-nogil test clean
+
+# Choose develop target based on GIL
+ifeq ($(GIL),1)
+develop: develop-gil
+build: build-gil
+else
+develop: develop-nogil
+build: build-nogil
+endif
+
+develop-gil:
+	$(MAKE) clean
+	../scripts/build_wheel.sh
+
 develop-nogil:
-	../scripts/build.sh --freethreaded
+	$(MAKE) clean
+	../scripts/build_wheel.sh --freethreaded
 
-.PHONY: build-gil
 build-gil:
-	../scripts/build.sh --build
+	$(MAKE) clean
+	../scripts/build_wheel.sh --build
 
-.PHONY: build-nogil
 build-nogil:
-	../scripts/build.sh --freethreaded --build
+	$(MAKE) clean
+	../scripts/build_wheel.sh --freethreaded --build
 
-.PHONY: build-both
-build-both:
-	../scripts/build.sh --build && ../scripts/build.sh --freethreaded --build
-
-.PHONY: test
-test:
+test: develop
 	uv run pytest $(ARGS)
 
-.PHONY: clean
 clean:
 	@rm -rf .venv
 	@rm -rf radiate/*.so

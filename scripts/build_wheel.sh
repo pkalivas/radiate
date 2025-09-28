@@ -5,7 +5,7 @@
 #   ./build.sh --freethreaded # develop-install against latest free-threaded CPython
 #   ./build.sh --build        # build wheel instead of develop
 #   ./build.sh --python 3.13  # pick a specific version/spec or absolute path
-#
+
 FREETHREADED=0
 DO_BUILD=0
 PY_SPEC=""
@@ -26,23 +26,6 @@ need_uv() {
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PYPROJECT="$ROOT/../py-radiate/pyproject.toml"
-
-
-ensure_nogil() {
-  "$1" - <<'PY'
-import sys, sysconfig
-ok = (getattr(sys, "_is_gil_enabled", lambda: None)() is False) and (sysconfig.get_config_var("PY_GIL_DISABLED") == 1)
-print("nogil:", ok)
-raise SystemExit(0 if ok else 1)
-PY
-}
-
-ensure_gil() {
-  "$1" - <<'PY'
-import sys, sysconfig
-print("gil enabled:", getattr(sys, "_is_gil_enabled", lambda: True)())
-PY
-}
 
 # Resolve absolute interpreter path from a spec or absolute path
 resolve_with_uv() {
@@ -82,32 +65,30 @@ choose_interpreter() {
 }
 
 need_uv
-
 cd "$ROOT/../py-radiate"
-
-DIRECTORY=".venv"
 
 if [[ $FREETHREADED -eq 1 ]]; then
   PY="$(choose_interpreter nogil)"
   
-  if [ ! -d "$DIRECTORY" ]; then
+  if [ ! -d '.venv' ]; then
     version=$("$PY" -c 'import sys; print(".".join(map(str, sys.version_info[:3])))')
     uv venv --python $version+freethreaded
     uv python pin $PY 
     uv sync
-    uv pip install maturin_import_hook
   fi
 
   echo "Using free-threaded interpreter: $PY"
   if [[ $DO_BUILD -eq 1 ]]; then
-    PYO3_PYTHON="$PY" uvx --python "$PY" maturin build  --release --no-default-features --features nogil 
+    PYO3_PYTHON="$PY" 
+    uvx --python "$PY" maturin build  --release --no-default-features --features nogil 
   else
-    PYO3_PYTHON="$PY" uvx --python "$PY" maturin develop  --release --no-default-features --features nogil
+    PYO3_PYTHON="$PY" 
+    uvx --python "$PY" maturin develop  --release --no-default-features --features nogil
   fi
 else
   PY="$(choose_interpreter gil)"
-  
-  if [ ! -d "$DIRECTORY" ]; then
+
+  if [ ! -d '.venv' ]; then
     version=$("$PY" -c 'import sys; print(".".join(map(str, sys.version_info[:3])))')
     uv venv --python $version
     uv python pin $PY

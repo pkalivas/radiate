@@ -20,13 +20,10 @@ clean:
 	cargo clean
 	$(MAKE) -C py-radiate clean
 
-
 .PHONY: nogil-env
 nogil-env:
-	$(MAKE) -C py-radiate clean
-	$(MAKE) -C py-radiate develop-nogil
+	$(MAKE) -C py-radiate develop GIL=0
 
 .PHONY: gil-env
 gil-env:
-	$(MAKE) -C py-radiate clean
-	$(MAKE) -C py-radiate develop
+	$(MAKE) -C py-radiate develop GIL=1
