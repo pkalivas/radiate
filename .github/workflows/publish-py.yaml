@@ -193,6 +193,8 @@ jobs:
     needs: [ sdist, wheels ]
     runs-on: ubuntu-latest
     if: true #startsWith(github.ref, 'refs/tags/v')  # only on tag
+    environment:
+      name: publish_pypi
     steps:
       - uses: actions/download-artifact@v4
         with:
