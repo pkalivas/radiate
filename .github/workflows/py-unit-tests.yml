@@ -42,8 +42,10 @@ jobs:
       - name: Install wheel and test dependencies
         run: |
           pip install radiate --find-links py-radiate/dist --force-reinstall
+          cd py-radiate
           pip install pytest
           pip install -e .[dev]
+          cd ..
           # pip install -e .[test]
 
           # pip install -r py-radiate/requirements-dev.txt
