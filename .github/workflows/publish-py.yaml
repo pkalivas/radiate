@@ -8,7 +8,7 @@ on:
 
 permissions:
   contents: read
-  id-token: write  # for PyPI Trusted Publisher
+  id-token: write 
 
 env:
   CARGO_INCREMENTAL: 0
