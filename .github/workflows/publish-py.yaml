@@ -126,7 +126,7 @@ jobs:
         shell: bash
         run: |
           set -e
-          PY=$(uv python find --python "${{ matrix.py }}")
+          PY=$(uv python find "${{ matrix.py }}")
           if [[ "${{ matrix.mode }}" == "nogil" ]]; then
             FLAGS="--no-default-features --features nogil"
             TARGET_DIR="target-nogil"
