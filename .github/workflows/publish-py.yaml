@@ -168,22 +168,22 @@ jobs:
 
       # Build on Linux (handles manylinux + cross aarch64)
       - name: Build wheel (Linux)
+        if: runner.os == 'Linux' && steps.envsel.outputs.skip == '0'
         uses: PyO3/maturin-action@v1
         env:
           PYO3_PYTHON: ${{ steps.envsel.outputs.py }}
           CARGO_TARGET_DIR: ${{ steps.envsel.outputs.target_dir }}
         with:
-          working-directory: py-radiate          # <—— build inside the Python crate
           maturin-version: '1.9.4'
+          command: build
+          args: >
+            --release
+            -m py-radiate/pyproject.toml
+            -o dist
+            ${{ steps.envsel.outputs.flags }}
           target: ${{ matrix.target }}
           manylinux: ${{ matrix.manylinux || 'off' }}
-          args: >
-            build
-            --release
-            -o ../dist                         # write wheels back to repo-level dist
-            ${{ steps.envsel.outputs.flags }}
 
-      # Build on macOS/Windows (no manylinux/target flags)
       - name: Build wheel (macOS/Windows)
         if: runner.os != 'Linux' && steps.envsel.outputs.skip == '0'
         uses: PyO3/maturin-action@v1
@@ -192,9 +192,10 @@ jobs:
           CARGO_TARGET_DIR: ${{ steps.envsel.outputs.target_dir }}
         with:
           maturin-version: '1.9.4'
+          command: build
           args: >
-            build
             --release
+            -m py-radiate/pyproject.toml
             -o dist
             ${{ steps.envsel.outputs.flags }}
 
