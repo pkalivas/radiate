@@ -160,7 +160,7 @@ jobs:
           args: >
             build
             --release
-            -m py-radiate/pyproject.toml
+            
             -o dist
             ${{ steps.envsel.outputs.flags }}
 
