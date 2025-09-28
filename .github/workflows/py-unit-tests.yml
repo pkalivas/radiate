@@ -35,7 +35,7 @@ jobs:
           # Use the same interpreter for maturin
           PYO3_PYTHON: ${{ steps.setup-python.outputs.python-path }}
         run: |
-          uvx maturin build --release --features gil -m py-radiate/pyproject.toml -o dist
+          uvx maturin build --release --features gil -o dist
 
       - name: Create venv + install package + test extras (uv)
         run: |
