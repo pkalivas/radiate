@@ -165,6 +165,7 @@ jobs:
         with:
           maturin-version: '1.9.4'
           command: build
+          working-directory: py-radiate
           args: >
             --release
             -o dist
@@ -179,6 +180,7 @@ jobs:
           PYO3_PYTHON: ${{ steps.envsel.outputs.py }}
           CARGO_TARGET_DIR: ${{ steps.envsel.outputs.target_dir }}
         with:
+          working-directory: py-radiate
           maturin-version: '1.9.4'
           command: build
           args: >
