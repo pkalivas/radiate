@@ -155,10 +155,6 @@ jobs:
           echo "target_dir=$TARGET_DIR">> "$GITHUB_OUTPUT"
           echo "skip=0"                >> "$GITHUB_OUTPUT"
 
-      - name: Cache cargo
-        if: steps.envsel.outputs.skip == '0'
-        run: echo "HERE: ${{ steps.envsel.outputs.target_dir }}"
-
       # Build on Linux (handles manylinux + cross aarch64)
       - name: Build wheel (Linux)
         if: runner.os == 'Linux' && steps.envsel.outputs.skip == '0'
