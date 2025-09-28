@@ -92,7 +92,7 @@ run_python() {
   cd "$PY_DIR"
 
   info "Syncing Python deps with uv (if needed)"
-  uv sync
+  uv sync --group dev
 
   info "Running: uv run ${example_file#$PY_DIR/}"
   uv run "${example_file#$PY_DIR/}"

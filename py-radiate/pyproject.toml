@@ -36,6 +36,12 @@ dev = [
     "numpy>=2.3.3",
     "pillow>=11.3.0",
 ]
+test = [
+    "numba>=0.62.0",
+    "numpy>=2.3.3",
+    "pytest>=8.4.2",
+    "pytest-xdist>=3.8.0",
+]
 
 [tool.maturin]
 features = ["pyo3/extension-module"]
