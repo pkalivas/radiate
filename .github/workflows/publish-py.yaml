@@ -79,6 +79,8 @@ jobs:
         run: |
           set -e
           PY="$(uv python find --python ${{ matrix.py }} 2>/dev/null || true)"
+          VERSIONS="$(python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
+          echo $VERSIONS
           if [[ -z "$PY" ]]; then
             echo "Requested interpreter ${{ matrix.py }} not available on ${{ runner.os }} (${{ matrix.arch }})"
             echo "skip=1" >> $GITHUB_OUTPUT
