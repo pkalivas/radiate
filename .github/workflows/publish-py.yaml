@@ -78,7 +78,7 @@ jobs:
         shell: bash
         run: |
           set -e
-          PY="$(uv python find --python "${{ matrix.py }}" 2>/dev/null || true)"
+          PY="$(uv python find --python ${{ matrix.py }} 2>/dev/null || true)"
           if [[ -z "$PY" ]]; then
             echo "Requested interpreter ${{ matrix.py }} not available on ${{ runner.os }} (${{ matrix.arch }})"
             echo "skip=1" >> $GITHUB_OUTPUT
