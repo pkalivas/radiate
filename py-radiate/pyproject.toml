@@ -25,6 +25,20 @@ all = [
 ]
 dependencies = []
 
+[project.optional-dependencies]
+dev = [
+    "matplotlib>=3.10.6",
+    "maturin>=1.9.4",
+    "numpy>=2.3.3",
+    "pillow>=11.3.0",
+]
+test = [
+    "numba>=0.62.0",
+    "numpy>=2.3.3",
+    "pytest>=8.4.2",
+    "pytest-xdist>=3.8.0",
+]
+
 [project.test-dependencies]
 numpy = ["numpy>=1.20.0"]
 numba = ["numba>=0.61.2"]
