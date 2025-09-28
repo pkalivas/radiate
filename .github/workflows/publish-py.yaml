@@ -80,7 +80,7 @@ jobs:
           set -e
           echo "Matrix: ${{ toJson(matrix) }}"
           PY="$(uv python find --python ${{ matrix.py }} 2>/dev/null || true)"
-          temp =$(uv python list --only-installed | grep "^${{ matrix.py }} " || true)
+          temp=$(uv python list --only-installed | grep "^${{ matrix.py }} " || true)
           
           for i in $temp; do
             echo $i
