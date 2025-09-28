@@ -44,9 +44,6 @@ jobs:
           pip install radiate --find-links py-radiate/dist --force-reinstall
           pip install pytest
           pip install -e py-radiate/'.[test]'
-          
-
-          # pip install -r py-radiate/requirements-dev.txt
 
       - name: Run tests
         working-directory: py-radiate
