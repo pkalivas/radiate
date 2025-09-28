@@ -10,9 +10,3 @@ serde = { workspace = true, features = ["derive"] }
 numpy = { workspace = true }
 serde_json = { workspace = true }
 radiate = { workspace = true, features = ["gp", "rayon", "serde"] }
-
-[features]
-default = []
-gp = ["radiate/gp"]
-rayon = ["radiate/rayon"]
-serde = ["radiate/serde"]
