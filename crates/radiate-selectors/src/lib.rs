@@ -50,6 +50,7 @@ impl<'a> ProbabilityWheelIterator<'a> {
 impl Iterator for ProbabilityWheelIterator<'_> {
     type Item = usize;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         // In `Radiate` there is a selector for surviving individuals (members who will be selected
         // to be passed on to the next generation without any changes)

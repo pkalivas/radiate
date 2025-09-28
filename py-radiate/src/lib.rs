@@ -7,7 +7,7 @@ use radiate_python::{
     py_alter, py_select,
 };
 
-#[pymodule]
+#[pymodule(gil_used = false)]
 fn radiate(m: &Bound<'_, PyModule>) -> PyResult<()> {
     radiate_python::init_logging();
 
