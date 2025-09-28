@@ -157,14 +157,7 @@ jobs:
 
       - name: Cache cargo
         if: steps.envsel.outputs.skip == '0'
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
+        run: echo "HERE: ${{ steps.envsel.outputs.target_dir }}"
 
       # Build on Linux (handles manylinux + cross aarch64)
       - name: Build wheel (Linux)
