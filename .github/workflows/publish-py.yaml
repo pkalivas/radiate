@@ -95,7 +95,7 @@ jobs:
           echo "::endgroup::"
 
           # 1) Try to ensure the exact interpreter exists (best-effort).
-          #    For 3.13t on some runners, this may fail; that's OK—we'll fallback.
+          #    For 3.13t on some runners, this may fail; that's OK—we fallback.
           echo "::group::Ensuring interpreter ${{ matrix.py }}"
           if ! uv python install "${{ matrix.py }}"; then
             echo "WARN: uv could not install ${{ matrix.py }} on ${{ runner.os }} (${{ matrix.arch }}). Will try fallbacks." >&2
@@ -106,7 +106,6 @@ jobs:
           uv python list --only-installed || true
           echo "::endgroup::"
 
-          # Helper: resolve the latest installed interpreter *by mode*
           pick_latest_by_mode() {
             local want="$1"  # "gil" or "nogil"
             local id
@@ -188,11 +187,18 @@ jobs:
             -o dist
             ${{ steps.envsel.outputs.flags }}
 
+      - uses: actions/upload-artifact@v4
+        if: steps.envsel.outputs.skip == '0'
+        with:
+          name: wheels-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.mode }}
+          path: dist/*.whl
+
   publish:
     name: Publish to PyPI
     needs: [ sdist, wheels ]
     runs-on: ubuntu-latest
-    if: true #startsWith(github.ref, 'refs/tags/v')  # only on t ag
+    # if: true #startsWith(github.ref, 'refs/tags/v')  
+    if: ${{ needs.sdist.result == 'success' && needs.wheels.result == 'success' }}
     environment:
       name: publish_pypi
     steps:
