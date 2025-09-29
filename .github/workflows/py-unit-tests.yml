@@ -49,5 +49,5 @@ jobs:
       - name: Run tests
         working-directory: py-radiate
         run: |
-          pytest tests --import-mode=importlib
+          pytest tests --benchmark-skip --import-mode=importlib 
           
