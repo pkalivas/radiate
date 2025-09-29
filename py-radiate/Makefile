@@ -1,5 +1,3 @@
-SHELL := bash
-
 TEST_ARGS ?=
 GIL  ?= 1
 
@@ -15,23 +13,23 @@ build: build-nogil
 endif
 
 develop-gil:
-	$(MAKE) clean
-	../scripts/build_wheel.sh
+	@$(MAKE) clean
+	@../scripts/build_wheel.sh
 
 develop-nogil:
-	$(MAKE) clean
-	../scripts/build_wheel.sh --freethreaded
+	@$(MAKE) clean
+	@../scripts/build_wheel.sh --nogil
 
 build-gil:
-	$(MAKE) clean
-	../scripts/build_wheel.sh --build
+	@$(MAKE) clean
+	@../scripts/build_wheel.sh --build
 
 build-nogil:
-	$(MAKE) clean
-	../scripts/build_wheel.sh --freethreaded --build
+	@$(MAKE) clean
+	@../scripts/build_wheel.sh --nogil --build
 
 test: develop
-	uv run pytest $(TEST_ARGS)
+	@uv run pytest $(TEST_ARGS)
 
 clean:
 	@rm -rf .venv
@@ -39,3 +37,6 @@ clean:
 	@rm -rf .coverage
 	@rm -rf .benchmarks
 	@rm -rf .pytest_cache
+	@rm -rf tests/.benchmarks
+	@rm -rf tests/.coverage
+

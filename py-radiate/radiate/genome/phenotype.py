@@ -41,12 +41,13 @@ class Phenotype[T](PyObject[PyPhenotype]):
         """
         return len(self._pyobj.genotype)
 
-    def gene_type(self) -> 'GeneType':
+    def gene_type(self) -> "GeneType":
         """
         Returns the type of the genes in the phenotype.
         :return: The gene type as a string.
         """
         from . import GeneType
+
         return GeneType.from_str(self._pyobj.genotype.gene_type())
 
     def score(self) -> list[float]:

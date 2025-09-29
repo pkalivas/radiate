@@ -105,4 +105,3 @@ class CosineDistance(DistanceBase):
         Initialize the Cosine Distance diversity parameter.
         """
         super().__init__(component="CosineDistance", allowed_genes=GeneType.FLOAT)
-

@@ -1,6 +1,7 @@
 import radiate as rd
 import pytest
 
+
 def calc_population_diversity(population: rd.Population) -> float:
     """Calculate diversity of the population."""
     descriptors = [
@@ -12,8 +13,7 @@ def calc_population_diversity(population: rd.Population) -> float:
 
     dimension = len(descriptors[0])
     total_range = sum(
-        max(desc[d] for desc in descriptors)
-        - min(desc[d] for desc in descriptors)
+        max(desc[d] for desc in descriptors) - min(desc[d] for desc in descriptors)
         for d in range(dimension)
     )
     return total_range / (dimension * 200.0)

@@ -98,8 +98,6 @@ GENE_TYPE_MAPPING = {
 }
 
 
-
-
 __all__ = [
     "GeneType",
     "Genotype",

@@ -432,5 +432,6 @@ def main():
     best_graph = generation.value()
     evolver.visualize_best_snake(best_graph, "Best Evolved Snake AI")
 
+
 if __name__ == "__main__":
     main()

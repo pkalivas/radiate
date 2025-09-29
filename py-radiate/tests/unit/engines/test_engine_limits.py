@@ -29,7 +29,6 @@ class TestEngineLimits:
 
         assert result.score()[0] <= 0.01
 
-
     @pytest.mark.unit
     def test_convergence_limit(self, simple_float_engine):
         """Test convergence limit functionality."""
@@ -49,25 +48,20 @@ class TestEngineLimits:
 
         handler = Subscriber()
         simple_float_engine.subscribe(handler)
-        
-        simple_float_engine.run(rd.ConvergenceLimit(window_size, threshold))
 
+        simple_float_engine.run(rd.ConvergenceLimit(window_size, threshold))
 
         assert len(handler.convergence_data) == window_size
         assert all(
-            abs(handler.convergence_data[i] - handler.convergence_data[i - 1]) < threshold
+            abs(handler.convergence_data[i] - handler.convergence_data[i - 1])
+            < threshold
             for i in range(1, len(handler.convergence_data))
         ), "Convergence limit should ensure scores are within threshold"
-
 
     @pytest.mark.unit
     def test_multiple_limits(self, simple_float_engine):
         """Test running with multiple limits."""
-        limits = [
-            rd.GenerationsLimit(5),
-            rd.ScoreLimit(0.1),
-            rd.SecondsLimit(2)
-        ]
+        limits = [rd.GenerationsLimit(5), rd.ScoreLimit(0.1), rd.SecondsLimit(2)]
         result = simple_float_engine.run(limits)
 
         if result.index() < 5 and result.score()[0] > 0.1:

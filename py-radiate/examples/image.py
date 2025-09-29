@@ -1,4 +1,3 @@
-
 # image_evo_anygene.py
 import math
 
@@ -33,7 +32,7 @@ def draw(alleles: np.ndarray, canvas: Image.Image) -> None:
         return
 
     # Dedup consecutive identical points
-    dedup= []
+    dedup = []
     for p in pts:
         if not dedup or dedup[-1] != p:
             dedup.append(p)
@@ -126,6 +125,3 @@ def run_image_evo(
 
 if __name__ == "__main__":
     run_image_evo("examples/data/monalisa.png")
-    import sys
-    print(sys._is_gil_enabled())
-

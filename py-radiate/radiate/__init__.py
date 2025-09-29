@@ -88,7 +88,7 @@ from .dependancies import _NUMPY_AVAILABLE, _GIL_ENABLED
 __all__ = [
     "PyRustBase",
     # Version information
-    "__version__",  
+    "__version__",
     "__version_tuple__",
     # Dependencies
     "_NUMPY_AVAILABLE",
