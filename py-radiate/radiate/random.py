@@ -27,7 +27,7 @@ class RandomProvider:
         :return: Random float.
         """
         return PyRandomProvider.random_float(min, max)
-    
+
     def bool(prob: float = 0.5) -> bool:
         """
         Generate a random boolean value with a given probability of being True.

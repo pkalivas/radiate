@@ -20,7 +20,9 @@ class Population[T](PyObject[PyPopulation]):
         super().__init__()
 
         if isinstance(individuals, Iterable):
-            self._pyobj = PyPopulation(list(map(lambda p: p.__backend__(), individuals)))
+            self._pyobj = PyPopulation(
+                list(map(lambda p: p.__backend__(), individuals))
+            )
 
     def __repr__(self):
         return self._pyobj.__repr__()
@@ -58,10 +60,11 @@ class Population[T](PyObject[PyPopulation]):
             raise TypeError("Value must be an instance of Phenotype")
         self._pyobj[index] = value.__backend__()
 
-    def gene_type(self) -> 'GeneType':
+    def gene_type(self) -> "GeneType":
         """
         Returns the type of the genes in the population.
         :return: The gene type as a string.
         """
         from . import GeneType
+
         return GeneType.from_str(self._pyobj.gene_type())

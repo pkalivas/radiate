@@ -109,9 +109,11 @@ class GeneticEngine[G, T]:
         """Return the next generation from the engine."""
         if not hasattr(self, "engine"):
             self.engine = self.builder.build()
-        return Generation(self.engine.next())
+        return Generation.from_rust(self.engine.next())
 
-    def run(self, limits: LimitBase | list[LimitBase], log: bool = False) -> Generation[T]:
+    def run(
+        self, limits: LimitBase | list[LimitBase], log: bool = False
+    ) -> Generation[T]:
         """Run the engine with the given limits.
         Args:
             limits: A single Limit or a list of Limits to apply to the engine.

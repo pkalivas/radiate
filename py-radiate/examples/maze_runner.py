@@ -129,7 +129,7 @@ def run_maze_evolution(
             # PartiallyMappedCrossover and SwapMutator are common for TSP-like problems
             # where we want to maintain the permutation structure. ie., we don't want to
             # create duplicates or invalid permutations - we want to keep all waypoints and just
-            # change their order around during crossover/mutation. There are a few other operators 
+            # change their order around during crossover/mutation. There are a few other operators
             # that would also fit this type of problem, such as InversionMutator,
             # etc. See the For a little more color, check out the docs:
             # https://pkalivas.github.io/radiate/source/alterers/

@@ -18,6 +18,7 @@ except ImportError:
 # Enable test-only imports
 os.environ["RADIATE_TESTING"] = "1"
 
+
 @pytest.fixture(autouse=True)
 def enable_test_imports():
     """Automatically enable test-only imports for all tests."""
@@ -97,6 +98,7 @@ def tree_simple():
     )
     return codec.decode(codec.encode())
 
+
 @pytest.fixture
 def simple_float_engine():
     """Create a simple float codec engine for testing."""
@@ -109,8 +111,9 @@ def simple_float_engine():
         alters=[
             rd.UniformCrossover(0.5),
             rd.ArithmeticMutator(0.1),
-        ]
+        ],
     )
+
 
 @pytest.fixture
 def simple_multi_objective_engine():
@@ -119,7 +122,10 @@ def simple_multi_objective_engine():
 
     return rd.GeneticEngine(
         codec=codec,
-        fitness_func=lambda x: [sum(xi**2 for xi in x), sum((xi - 0.5)**2 for xi in x)],
+        fitness_func=lambda x: [
+            sum(xi**2 for xi in x),
+            sum((xi - 0.5) ** 2 for xi in x),
+        ],
         objectives=["min", "min"],
         population_size=100,
         offspring_selector=rd.TournamentSelector(3),
@@ -127,7 +133,7 @@ def simple_multi_objective_engine():
         alters=[
             rd.UniformCrossover(0.5),
             rd.ArithmeticMutator(0.1),
-        ]
+        ],
     )
 
 
@@ -172,3 +178,4 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "regression: mark test as a regression test")
     config.addinivalue_line("markers", "smoke: mark test as a smoke test")
     config.addinivalue_line("markers", "skipif: mark test to skip if condition is true")
+    config.addinivalue_line("markers", "bench: mark test as a benchmark test")

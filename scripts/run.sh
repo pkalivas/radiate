@@ -1,17 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# run.sh
-# Usage:
-#   ./run.sh --example <name> [-p | -r] [--list] [--debug]
-# Notes:
-#   - If <name> ends with ".py", Python mode is assumed.
-#   - Python examples are run from py-radiate/examples/<name>.py via `uv run`.
-#   - Rust examples are searched under examples/** (top-level, graphs/, trees/, etc.) and run with cargo.
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/env.sh"
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$ROOT/.." && pwd)"
-PY_DIR="$REPO_ROOT/py-radiate"
 RUST_DIR="$REPO_ROOT/examples"
 
 LANG=""                # "P" or "R"; if empty we'll try to infer
@@ -37,10 +28,6 @@ Examples:
   $0 --example image_filter.py -p
 EOF
 }
-
-info(){ printf '\033[1;36m[INFO]\033[0m %s\n' "$*"; }
-warn(){ printf '\033[1;33m[WARN]\033[0m %s\n' "$*"; }
-die(){ printf '\033[1;31m[ERROR]\033[0m %s\n' "$*" >&2; exit 1; }
 
 # ---- args ----
 while [[ $# -gt 0 ]]; do

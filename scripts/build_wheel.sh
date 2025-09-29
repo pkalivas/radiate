@@ -1,115 +1,90 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
-# Usage:
-#   ./build.sh                # develop-install against latest regular CPython
-#   ./build.sh --freethreaded # develop-install against latest free-threaded CPython
-#   ./build.sh --build        # build wheel instead of develop
-#   ./build.sh --python 3.13  # pick a specific version/spec or absolute path
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/env.sh"
 
-FREETHREADED=0
-DO_BUILD=0
-PY_SPEC=""
+# Defaults
+MODE="gil"                 # or "nogil"
+PY_SPEC=                   # optional override (spec or abs path)
+BUILD_KIND="develop"       # or "build"
+VENV_DIR=".venv"           # venv directory  
+SYNC_ARGS=(--group dev)    # default uv sync group
+MATURIN_EXTRA=()           # passthrough to maturin
 
+usage() {
+  cat <<EOF
+Usage: $0 [--gil|--nogil] [--python <spec|path>] [--build|--develop]
+          [--venv-dir <dir>] [--sync-arg <arg>]... [--] [maturin args...]
+
+Options:
+  --gil / --nogil         Select mode (defaults from env GIL=${GIL:-1})
+  --python <spec|path>    Interpreter to use (e.g. 3.12, 3.13t, /abs/path/python)
+  --build                 Build wheel (maturin build)
+  --develop               Develop install (maturin develop) [default]
+  --venv-dir <dir>        Venv directory (default: .venv)
+  --sync-arg <arg>        Extra 'uv sync' arg (repeatable)
+  --                      End of script options; rest go to maturin
+
+Examples:
+  $0 --nogil --python 3.13t --build
+  $0 --gil --venv-dir .venv-312 --sync-arg --group test
+  $0 -- --locked
+EOF
+}
+
+# ---- parse args ----
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --freethreaded) FREETHREADED=1; shift;;
-    --build) DO_BUILD=1; shift;;
-    --python) PY_SPEC="${2:-}"; shift 2;;
-    *) echo "Unknown arg: $1" >&2; exit 1;;
+    --gil) MODE="gil"; shift;;
+    --nogil) MODE="nogil"; shift;;
+    --python|-p) PY_SPEC="${2:-}"; shift 2;;
+    --build|-b) BUILD_KIND="build"; shift;;
+    --develop|-d) BUILD_KIND="develop"; shift;;
+    --venv-dir) VENV_DIR="${2:-.venv}"; shift 2;;
+    --sync-arg) SYNC_ARGS+=("${2:-}"); shift 2;;
+    -h|--help) usage; exit 0;;
+    --) shift; MATURIN_EXTRA=("$@"); break;;
+    *)  # passthrough unknowns to maturin
+        MATURIN_EXTRA+=("$1"); shift;;
   esac
 done
 
-need_uv() {
-  command -v uv >/dev/null || { echo "uv not found (brew install uv)"; exit 1; }
-  command -v uvx >/dev/null || { echo "uvx not found (part of uv)"; exit 1; }
-}
-
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PYPROJECT="$ROOT/../py-radiate/pyproject.toml"
-
-# Resolve absolute interpreter path from a spec or absolute path
-resolve_with_uv() {
-  local spec="$1"
-  if [[ -x "$spec" ]]; then
-    python3 - <<'PY' "$spec"
-import os, sys; print(os.path.realpath(sys.argv[1]))
-PY
+PY=
+if [[ -n "${PY_SPEC:-}" ]]; then
+  # user provided a spec or a path
+  if [[ -x "$PY_SPEC" ]]; then
+    # absolute/existing python path -> normalize
+    PY="$(_realpath_py "$PY_SPEC")"
   else
-    uv python find "$spec"
+    # spec like "3.12" or "3.13t" -> ensure via uv + resolve
+    ensure_uv_python "$PY_SPEC" 
+    PY="$(resolve_py_spec "$PY_SPEC")"
   fi
-}
+else
+  # pick according to mode + defaults
+  PY="$(choose_python "$MODE" "$PY_DIR")"
+fi
 
-pick_latest_by_mode() {
-  local want="$1"  # "gil" or "nogil"
-  local line id path ver
-  local lines
-  lines="$(uv python list --only-installed)"
-  if [[ "$want" == "nogil" ]]; then
-    #	nogil branch: keeps only interpreter IDs that contain +freethreaded (case-insensitive).
-    # That’s how uv tags free-threaded builds (e.g. cpython-3.13.7+freethreaded-macos-aarch64-none).
-    line="$(echo "$lines" | grep -i '+freethreaded' | awk '{print $1}' | sort -rV | head -n1 || true)"
-    [[ -n "$line" ]] || { echo "No free-threaded Python found. Try: uv python install 3.13t"; exit 1; }
-    resolve_with_uv "$line"
-  else
-    #	gil branch: keeps everything that does not have +freethreaded.
-    # That’s how you get “normal” CPython builds (e.g. cpython-3.12.7-macos-aarch64-none).
-    line="$(echo "$lines" | grep -vi '+freethreaded' | awk '{print $1}' | sort -rV | head -n1 || true)"
-    [[ -n "$line" ]] || { echo "No regular CPython found. Try: uv python install 3.12"; exit 1; }
-    resolve_with_uv "$line"
-  fi
-}
+if [[ -z "${PY}" ]]; then
+  warn "Could not resolve Python interpreter." >&2
+  exit 1
+fi
 
-choose_interpreter() {
-  local mode="$1"
-  if [[ -n "$PY_SPEC" ]]; then
-    resolve_with_uv "$PY_SPEC"
-  else
-    pick_latest_by_mode "$mode"
-  fi
-}
+pushd "$PY_DIR" >/dev/null
+configure_uv_env "$MODE" "$PY" "$VENV_DIR" "${SYNC_ARGS[@]:-}"
 
-need_uv
-cd "$ROOT/../py-radiate"
+if [[ "$MODE" == "nogil" ]]; then
+  FEAT=(--no-default-features --features nogil)
+else
+  FEAT=(--features gil)
+fi
 
-MODE="gil"
-[[ ${FREETHREADED:-0} -eq 1 ]] && MODE="nogil"
+if [[ "$BUILD_KIND" == "build" ]]; then
+  CMD=(maturin build --release "${FEAT[@]}" "${MATURIN_EXTRA[@]}")
+else
+  CMD=(maturin develop --release "${FEAT[@]}" "${MATURIN_EXTRA[@]}")
+fi
 
-PY="$(choose_interpreter "$MODE")"
+PYO3_PYTHON="$PY" uvx --python "$PY" "${CMD[@]}"
 
-ensure_venv() {
-  local mode="$1" py="$2"
-  if [[ ! -d ".venv" ]]; then
-    local version spec
-    version="$("$py" -c 'import sys; print(".".join(map(str, sys.version_info[:3])))')"
-    if [[ "$mode" == "nogil" ]]; then
-      # works with uv (equivalent to 3.13t)
-      spec="${version}+freethreaded"
-    else
-      spec="${version}"
-    fi
-    echo "Creating venv for $spec"
-    uv venv --python "$spec"
-    uv python pin "$py"
-    uv sync --group dev
-  fi
-}
-
-run_maturin() {
-  local mode="$1" py="$2" cmd flags
-  if [[ "$mode" == "nogil" ]]; then
-    flags=(--no-default-features --features nogil)
-  else
-    flags=(--features gil)
-  fi
-  if [[ ${DO_BUILD:-0} -eq 1 ]]; then
-    cmd=(maturin build --release "${flags[@]}")
-  else
-    cmd=(maturin develop --release "${flags[@]}")
-  fi
-  PYO3_PYTHON="$py" uvx --python "$py" "${cmd[@]}"
-}
-
-ensure_venv "$MODE" "$PY"
-run_maturin "$MODE" "$PY"
-
-echo "Successful wheel build: $PY ($MODE)"
+popd >/dev/null

@@ -46,7 +46,9 @@ class FloatCodec[T](CodecBase[float, T]):
         if isinstance(encoding, PyFloatCodec):
             return encoding
         elif isinstance(encoding, Gene):
-            return PyFloatCodec.from_genes([encoding.__backend__()], use_numpy=use_numpy)
+            return PyFloatCodec.from_genes(
+                [encoding.__backend__()], use_numpy=use_numpy
+            )
         elif isinstance(encoding, Chromosome):
             return PyFloatCodec.from_chromosomes(
                 [encoding.__backend__()], use_numpy=use_numpy
@@ -106,7 +108,9 @@ class FloatCodec[T](CodecBase[float, T]):
             raise TypeError("All chromosomes must be of type 'float'.")
 
         return FloatCodec(
-            PyFloatCodec.from_chromosomes(list(map(lambda c: c.__backend__(), chromosomes)))
+            PyFloatCodec.from_chromosomes(
+                list(map(lambda c: c.__backend__(), chromosomes))
+            )
         )
 
     @staticmethod

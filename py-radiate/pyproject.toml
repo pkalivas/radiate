@@ -37,6 +37,7 @@ test = [
     "numpy>=2.3.3",
     "pytest>=8.4.2",
     "pytest-xdist>=3.8.0",
+    "pytest-benchmark>=5.1.0",
 ]
 
 [dependency-groups]
@@ -45,6 +46,9 @@ dev = [
     "maturin>=1.9.4",
     "numpy>=2.3.3",
     "pillow>=11.3.0",
+]
+test = [
+    "pytest-benchmark>=5.1.0",
 ]
 
 [tool.maturin]

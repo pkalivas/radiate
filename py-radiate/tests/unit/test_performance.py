@@ -192,6 +192,3 @@ class TestScalabilityPerformance:
             time_ratio = execution_times[i] / execution_times[i - 1]
             length_ratio = lengths[i] / lengths[i - 1]
             assert time_ratio < length_ratio * 2
-
-
-

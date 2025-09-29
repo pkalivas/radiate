@@ -5,9 +5,12 @@ from importlib import import_module
 from importlib.util import find_spec
 from types import ModuleType
 from typing import TYPE_CHECKING, Any
-    
 
-_GIL_ENABLED = sys._is_gil_enabled()
+if hasattr(sys, "_is_gil_enabled"):
+    _GIL_ENABLED = sys._is_gil_enabled()
+else:
+    _GIL_ENABLED = True
+
 
 class _LazyModule(ModuleType):
     """Lazy-loading proxy module for optional dependencies."""

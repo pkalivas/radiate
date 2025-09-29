@@ -2,12 +2,13 @@ name: publish
 
 on:
   push:
-    tags: [ 'v*' ]       # only on version tags
+    branches: [ "main", "master" ]
+    tags: [ 'v*' ]
   workflow_dispatch: {}
 
 permissions:
   contents: read
-  id-token: write        # for PyPI Trusted Publisher
+  id-token: write
 
 env:
   CARGO_INCREMENTAL: 0
@@ -32,7 +33,7 @@ jobs:
           path: py-radiate/target-sdist/*.tar.gz
 
   wheels:
-    continue-on-error: true        # ← key line
+    continue-on-error: true 
     name: ${{ matrix.os }} • ${{ matrix.arch }} • ${{ matrix.mode }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -74,6 +75,7 @@ jobs:
         shell: bash
         run: |
           set -e
+          
           if [[ "${{ matrix.mode }}" == "nogil" ]]; then
             PY="$(uv python find "${{ matrix.py }}" 2>/dev/null || true)"
             FLAGS="--no-default-features --features nogil"
@@ -82,10 +84,12 @@ jobs:
             PY="$(which python)"
             FLAGS="--features gil"
           fi
+
           if [[ -z "$PY" ]]; then
             echo "skip=1" >> $GITHUB_OUTPUT
             exit 0
           fi
+
           echo "skip=0"       >> $GITHUB_OUTPUT
           echo "py=$PY"       >> $GITHUB_OUTPUT
           echo "flags=$FLAGS" >> $GITHUB_OUTPUT
@@ -121,7 +125,7 @@ jobs:
             ${{ steps.envsel.outputs.flags }}
 
       - uses: actions/upload-artifact@v4
-        if: true # steps.envsel.outputs.skip == '0'
+        if: always()
         with:
           name: wheels-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.mode }}
           path: dist/*.whl
@@ -129,7 +133,7 @@ jobs:
   publish:
     needs: [ sdist, wheels ]
     runs-on: ubuntu-latest
-    if: ${{ needs.sdist.result == 'success' }} # && startsWith(github.ref, 'refs/tags/v') }}
+    if: ${{ needs.sdist.result == 'success' && startsWith(github.ref, 'refs/tags/v') }}
     environment:
       name: publish_pypi
     steps:

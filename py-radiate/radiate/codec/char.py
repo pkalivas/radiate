@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from radiate._typing import CharEncoding
 from radiate.genome.chromosome import Chromosome
-from radiate.genome.gene import  Gene
+from radiate.genome.gene import Gene
 from .base import CodecBase
 
 from radiate.radiate import PyCharCodec
@@ -29,7 +29,7 @@ class CharCodec[T](CodecBase[str, T]):
         if not isinstance(genotype, Genotype):
             raise TypeError("genotype must be an instance of Genotype.")
         return self.codec.decode_py(genotype=genotype.__backend__())
-    
+
     def _create_encoding(self, encoding: CharEncoding) -> PyCharCodec:
         """
         Create a PyFloatCodec from the provided encoding.
@@ -62,7 +62,7 @@ class CharCodec[T](CodecBase[str, T]):
             A new FloatCodec instance with the specified genes.
         """
         from radiate.genome import GeneType
-        
+
         if not isinstance(genes, (list, tuple)):
             raise TypeError("genes must be a list or tuple of Gene instances.")
         if not all(g.gene_type() == GeneType.CHAR for g in genes):
