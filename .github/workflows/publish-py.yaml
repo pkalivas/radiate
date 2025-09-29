@@ -76,14 +76,30 @@ jobs:
           - { os: windows-latest, arch: x64, mode: gil,   py: '3.12' }
           - { os: windows-latest, arch: x64, mode: nogil, py: '3.13t' }
 
+      MATCH: ${{ github.event_name != 'workflow_dispatch' || (
+        (inputs.os   == '' || matrix.os   == inputs.os)   &&
+        (inputs.arch == '' || matrix.arch == inputs.arch) &&
+        (inputs.py   == '' || matrix.py   == inputs.py)   &&
+        (inputs.mode == '' || matrix.mode == inputs.mode)
+      ) }}
+
+
     steps:
       - uses: actions/checkout@v4
+        if: ${{ env.MATCH }}
+
       - uses: dtolnay/rust-toolchain@stable
+        if: ${{ env.MATCH }}
+
       - uses: actions/setup-python@v5
+        if: ${{ env.MATCH }}
         with: { python-version: '3.12' }
+
       - uses: astral-sh/setup-uv@v6
+        if: ${{ env.MATCH }}
 
       - name: Ensure requested interpreter (best effort)
+        if: ${{ env.MATCH }}
         shell: bash
         run: |
           set -e
@@ -92,6 +108,7 @@ jobs:
 
       - name: Select interpreter and flags
         id: envsel
+        if: ${{ env.MATCH }}
         shell: bash
         run: |
           set -e
@@ -115,7 +132,7 @@ jobs:
           echo "flags=$FLAGS" >> $GITHUB_OUTPUT
 
       - name: Build wheel (Linux)
-        if: runner.os == 'Linux' && steps.envsel.outputs.skip == '0'
+        if: env.MATCH && runner.os == 'Linux' && steps.envsel.outputs.skip == '0'
         uses: PyO3/maturin-action@v1
         env:
           PYO3_PYTHON: ${{ steps.envsel.outputs.py }}
@@ -131,7 +148,7 @@ jobs:
           manylinux: auto
 
       - name: Build wheel (macOS/Windows)
-        if: runner.os != 'Linux' && steps.envsel.outputs.skip == '0'
+        if: env.MATCH && runner.os != 'Linux' && steps.envsel.outputs.skip == '0'
         uses: PyO3/maturin-action@v1
         env:
           PYO3_PYTHON: ${{ steps.envsel.outputs.py }}
