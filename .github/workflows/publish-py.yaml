@@ -95,11 +95,11 @@ jobs:
         env:
           PYO3_PYTHON: ${{ steps.envsel.outputs.py }}
         with:
-          working-directory: py-radiate
           maturin-version: '1.9.4'
           command: build
           args: >
             --release
+            -m py-radiate/Cargo.toml
             -o dist
             ${{ steps.envsel.outputs.flags }}
             ${{ matrix.target && format('--target {0}', matrix.target) || '' }}
@@ -111,11 +111,11 @@ jobs:
         env:
           PYO3_PYTHON: ${{ steps.envsel.outputs.py }}
         with:
-          working-directory: py-radiate
           maturin-version: '1.9.4'
           command: build
           args: >
             --release
+            -m py-radiate/Cargo.toml
             -o dist
             ${{ steps.envsel.outputs.flags }}
 
