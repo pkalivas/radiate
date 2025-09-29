@@ -72,12 +72,13 @@ jobs:
           - { os: windows-latest, arch: x64, mode: gil,   py: '3.12' }
           - { os: windows-latest, arch: x64, mode: nogil, py: '3.13t' }
     
-    MATCH: ${{ github.event_name != 'workflow_dispatch' || (
-        (inputs.os   == '' || matrix.os   == inputs.os)   &&
-        (inputs.arch == '' || matrix.arch == inputs.arch) &&
-        (inputs.py   == '' || matrix.py   == inputs.py)   &&
-        (inputs.mode == '' || matrix.mode == inputs.mode)
-      ) }}
+    env:
+      MATCH: ${{ github.event_name != 'workflow_dispatch' || (
+          (inputs.os   == '' || matrix.os   == inputs.os)   &&
+          (inputs.arch == '' || matrix.arch == inputs.arch) &&
+          (inputs.py   == '' || matrix.py   == inputs.py)   &&
+          (inputs.mode == '' || matrix.mode == inputs.mode)
+        ) }}
 
 
     steps:
