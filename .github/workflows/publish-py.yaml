@@ -2,7 +2,7 @@ name: publish
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: [ "main2", "master2" ]
     tags: [ 'v*' ]
   workflow_dispatch: {}
 
@@ -133,7 +133,7 @@ jobs:
   publish:
     needs: [ sdist, wheels ]
     runs-on: ubuntu-latest
-    if: ${{ needs.sdist.result == 'success' && startsWith(github.ref, 'refs/tags/v') }}
+    if: 1 == 2 #${{ needs.sdist.result == 'success' && startsWith(github.ref, 'refs/tags/v') }}
     environment:
       name: publish_pypi
     steps:
