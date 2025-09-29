@@ -129,6 +129,8 @@ jobs:
     needs: [ sdist, wheels ]
     runs-on: ubuntu-latest
     if: true
+    environment:
+      name: publish_pypi
     steps:
       - uses: actions/download-artifact@v4
         with:
