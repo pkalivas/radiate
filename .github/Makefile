@@ -21,6 +21,12 @@ define map_inputs
 $(foreach p,$(INPUTS),-f $(p))
 endef
 
+# Helper: get latest run id for a workflow
+define latest_run_id
+gh run list -R $(OWNER)/$(REPO) --workflow "$(1)" --json databaseId -q '.[0].databaseId'
+endef
+
+
 .PHONY: help
 help:
 	@echo "Workflows in $(OWNER)/$(REPO) (ref=$(REF))"
@@ -56,15 +62,22 @@ trigger:
 	@echo "Triggering $(WORKFLOW) on ref=$(REF) with inputs: $(INPUTS)"
 	gh workflow run "$(WORKFLOW)" -R $(OWNER)/$(REPO) --ref "$(REF)" $(call map_inputs)
 
-.PHONY: watch
-watch:
-	@test -n "$(WORKFLOW)" || (echo "WORKFLOW=<file.yml> required"; exit 1)
-	gh run watch -R $(OWNER)/$(REPO) --workflow "$(WORKFLOW)" --exit-status
 
 .PHONY: logs
 logs:
-	@test -n "$(WORKFLOW)" || (echo "WORKFLOW=<file.yml> required"; exit 1)
-	gh run view -R $(OWNER)/$(REPO) --workflow "$(WORKFLOW)" --log
+	@test -n "$${WORKFLOW:-}" || WORKFLOW="$(WF_PYTEST)"; \
+	run_id="$$(gh run list -R $(OWNER)/$(REPO) --workflow "$$WORKFLOW" --json databaseId -q '.[0].databaseId')"; \
+	if [ -z "$$run_id" ]; then echo "No runs found for $$WORKFLOW"; exit 1; fi; \
+	echo "Showing logs for run $$run_id (workflow=$$WORKFLOW)"; \
+	gh run view -R $(OWNER)/$(REPO) "$$run_id" --log
+
+.PHONY: watch
+watch:
+	@test -n "$${WORKFLOW:-}" || WORKFLOW="$(WF_PYTEST)"; \
+	run_id="$$(gh run list -R $(OWNER)/$(REPO) --workflow "$$WORKFLOW" --json databaseId -q '.[0].databaseId')"; \
+	if [ -z "$$run_id" ]; then echo "No runs found for $$WORKFLOW"; exit 1; fi; \
+	echo "Watching run $$run_id (workflow=$$WORKFLOW)"; \
+	gh run watch -R $(OWNER)/$(REPO) "$$run_id" --exit-status
 
 .PHONY: pages publish pytest rusttest ci
 pages:
