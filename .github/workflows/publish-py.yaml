@@ -3,7 +3,24 @@ name: publish
 on:
   push:
     tags: [ 'rc' ]
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      os:
+        description: "Limit to one OS (ubuntu-latest|macos-13|macos-15|windows-latest)"
+        required: false
+        default: ""
+      arch:
+        description: "Limit to one arch (x86_64|aarch64|arm64|x64)"
+        required: false
+        default: ""
+      py:
+        description: "Limit to one Python (e.g. 3.12 or 3.13t)"
+        required: false
+        default: ""
+      mode:
+        description: "Limit to one mode (gil|nogil)"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -32,6 +49,10 @@ jobs:
           path: py-radiate/target-sdist/*.tar.gz
 
   wheels:
+    if: ${{ (inputs.os   == '' || matrix.os   == inputs.os)
+        && (inputs.arch == '' || matrix.arch == inputs.arch)
+        && (inputs.py   == '' || matrix.py   == inputs.py)
+        && (inputs.mode == '' || matrix.mode == inputs.mode) }}
     continue-on-error: true 
     name: ${{ matrix.os }} • ${{ matrix.arch }} • ${{ matrix.mode }}
     runs-on: ${{ matrix.os }}
