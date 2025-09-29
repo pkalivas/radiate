@@ -42,7 +42,7 @@ jobs:
           - { os: ubuntu-latest, arch: x86_64,  mode: gil,   py: '3.12' }
           # - { os: ubuntu-latest, arch: aarch64, mode: gil,   py: '3.12', target: aarch64-unknown-linux-gnu }
           # - { os: ubuntu-latest, arch: x86_64,  mode: nogil, py: '3.13t' }
-          - { os: ubuntu-latest, arch: aarch64, mode: nogil, py: '3.13t', target: aarch64-unknown-linux-gnu }
+          # - { os: ubuntu-latest, arch: aarch64, mode: nogil, py: '3.13t', target: aarch64-unknown-linux-gnu }
 
           # macOS
           # - { os: macos-13, arch: x86_64, mode: gil,   py: '3.12' }
@@ -120,7 +120,7 @@ jobs:
             ${{ steps.envsel.outputs.flags }}
 
       - uses: actions/upload-artifact@v4
-        if: steps.envsel.outputs.skip == '0'
+        if: true # steps.envsel.outputs.skip == '0'
         with:
           name: wheels-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.mode }}
           path: dist/*.whl
