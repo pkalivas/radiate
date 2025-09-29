@@ -40,19 +40,19 @@ jobs:
         include:
           # Linux
           - { os: ubuntu-latest, arch: x86_64,  mode: gil,   py: '3.12' }
-          - { os: ubuntu-latest, arch: aarch64, mode: gil,   py: '3.12', target: aarch64-unknown-linux-gnu }
-          - { os: ubuntu-latest, arch: x86_64,  mode: nogil, py: '3.13t' }
+          # - { os: ubuntu-latest, arch: aarch64, mode: gil,   py: '3.12', target: aarch64-unknown-linux-gnu }
+          # - { os: ubuntu-latest, arch: x86_64,  mode: nogil, py: '3.13t' }
           - { os: ubuntu-latest, arch: aarch64, mode: nogil, py: '3.13t', target: aarch64-unknown-linux-gnu }
 
           # macOS
-          - { os: macos-13, arch: x86_64, mode: gil,   py: '3.12' }
-          - { os: macos-15, arch: arm64,  mode: gil,   py: '3.12' }
-          - { os: macos-13, arch: x86_64, mode: nogil, py: '3.13t' }
+          # - { os: macos-13, arch: x86_64, mode: gil,   py: '3.12' }
+          # - { os: macos-15, arch: arm64,  mode: gil,   py: '3.12' }
+          # - { os: macos-13, arch: x86_64, mode: nogil, py: '3.13t' }
           - { os: macos-15, arch: arm64,  mode: nogil, py: '3.13t' }
 
           # Windows
-          - { os: windows-latest, arch: x64, mode: gil,   py: '3.12' }
-          - { os: windows-latest, arch: x64, mode: nogil, py: '3.13t' }
+          # - { os: windows-latest, arch: x64, mode: gil,   py: '3.12' }
+          # - { os: windows-latest, arch: x64, mode: nogil, py: '3.13t' }
 
     steps:
       - uses: actions/checkout@v4
