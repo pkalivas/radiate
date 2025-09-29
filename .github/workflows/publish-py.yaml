@@ -57,8 +57,8 @@ jobs:
           - { os: macos-15, arch: arm64,  mode: nogil, py: '3.13t' }
 
           # ---------- Windows (x64) ----------
-          - { os: windows-latest, arch: x64, mode: gil,   py: '3.12' }
-          - { os: windows-latest, arch: x64, mode: nogil, py: '3.13t' }
+          # - { os: windows-latest, arch: x64, mode: gil,   py: '3.12' }
+          # - { os: windows-latest, arch: x64, mode: nogil, py: '3.13t' }
 
           # (Optional) Windows ARM64 – enable when you want it:
           # - { os: windows-11-arm, arch: arm64, mode: gil,   py: '3.12' }
@@ -207,3 +207,4 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           verbose: true
+          skip-existing: true
