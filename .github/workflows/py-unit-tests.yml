@@ -20,7 +20,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
+          python-version: '3.12'
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -37,17 +37,18 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           command: build
-          args: --release --features gil --out dist
-          working-directory: py-radiate
+          args: --release --out dist -m py-radiate/Cargo.toml
 
-      - name: Install wheel and test dependencies
+      - name: Install Python dependencies
         run: |
-          pip install radiate --find-links py-radiate/dist --force-reinstall
-          pip install pytest
-          pip install -e py-radiate/'.[test]'
+          pip install uv
+          uv pip install --compile-bytecode -r py-radiate/requirements-dev.txt
+
+      - name: Set up Rust
+        run: rustup show
 
       - name: Run tests
-        working-directory: py-radiate
+        # working-directory: py-radiate
         run: |
-          pytest tests --benchmark-skip --import-mode=importlib 
+          uv run py-radiate/pytest tests --import-mode=importlib 
           
