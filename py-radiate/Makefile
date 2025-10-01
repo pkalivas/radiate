@@ -1,42 +1,32 @@
-TEST_ARGS ?=
-GIL  ?= 1
+.DEFAULT_GOAL := help
 
-.PHONY: develop build develop-gil develop-nogil build-gil build-nogil test clean
-
-# Choose develop target based on GIL
-ifeq ($(GIL),1)
-develop: develop-gil
-build: build-gil
-else
-develop: develop-nogil
-build: build-nogil
+SHELL=bash
+ifeq ($(VENV),)
+VENV := ../.venv
 endif
 
-develop-gil:
-	@$(MAKE) clean
-	@../scripts/build_wheel.sh
+ifeq ($(OS),Windows_NT)
+	VENV_BIN=$(VENV)/Scripts
+else
+	VENV_BIN=$(VENV)/bin
+endif
 
-develop-nogil:
-	@$(MAKE) clean
-	@../scripts/build_wheel.sh --nogil
+.PHONY: .venv
+.venv:  ## Set up virtual environment and install requirements
+	@$(MAKE) -s -C .. $@
 
-build-gil:
-	@$(MAKE) clean
-	@../scripts/build_wheel.sh --build
+.PHONY: build
+build: .venv  ## Compile and install Python Radiate for development
+	@$(MAKE) -s -C .. $@
 
-build-nogil:
-	@$(MAKE) clean
-	@../scripts/build_wheel.sh --nogil --build
+.PHONY: test
+test: .venv build  ## Run fast unittests
+	$(VENV_BIN)/pytest -n auto $(PYTEST_ARGS)
 
-test: develop
-	@uv run pytest $(TEST_ARGS)
-
-clean:
-	@rm -rf .venv
-	@rm -rf radiate/*.so
-	@rm -rf .coverage
-	@rm -rf .benchmarks
-	@rm -rf .pytest_cache
-	@rm -rf tests/.benchmarks
-	@rm -rf tests/.coverage
-
+.PHONY: clean
+clean:  ## Clean up caches and build artifacts
+	@rm -rf .benchmarks/
+	@rm -rf .pytest_cache/
+	@rm -f .coverage
+	@rm -f radiate/*.so
+	@find . -type f -name '*.py[co]' -delete -or -type d -name __pycache__ -exec rm -r {} +
