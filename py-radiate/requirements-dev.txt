@@ -1,0 +1,29 @@
+# We're pinning our tooling, because it's an environment we can strictly control.
+# We're not pinning package dependencies, because our tests need to pass with the
+# latest version of the packages.
+
+# -----
+# BUILD
+# -----
+
+maturin
+# extra dependency for maturin (linux-only)
+patchelf; platform_system == 'Linux'
+pip
+
+# -------
+# EXAMPLES
+# -------
+
+numpy
+# numba >= 0.54; python_version < '3.14' && python_version != '3.13t'
+pillow >= 11.3.0
+matplotlib >= 3.10.6
+
+# -------
+# TOOLING
+# -------
+
+pytest==8.3.2
+pytest-cov==7.0.0
+pytest-xdist==3.6.1

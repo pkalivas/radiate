@@ -17,10 +17,5 @@ name = "radiate"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { workspace = true, features = ["extension-module", "multiple-pymethods"] }
+pyo3 = { workspace = true, features = ["extension-module", "multiple-pymethods", "abi3-py39"] }
 radiate-python = { workspace = true }
-
-[features]
-default = ["gil"]
-gil = ["pyo3/abi3-py312"]
-nogil = []

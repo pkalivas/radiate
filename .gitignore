@@ -9,7 +9,7 @@ radiate/.vs
 *.suo
 *.user
 *.DS_Store
-*/.venv
+/**/*.venv
 *__pycache__
 *.so
 *.pytest_cache

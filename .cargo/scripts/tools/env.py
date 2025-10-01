@@ -1,3 +1,4 @@
+# env.py
 import os
 import platform
 from .utils import info, die, run, require_tool, realpath, which
@@ -79,12 +80,9 @@ def resolve_python(spec: str) -> str:
     return ""  # unreachable
 
 
-def configure_uv_env(
-    py_bin: str, venv_dir: Path, sync_args: list[str] | None = None
-) -> None:
+def configure_uv_env(py_bin: str, venv_dir: Path) -> None:
     require_tool("uv")
     venv_dir = venv_dir or Path(DEFAULT_VENV)
-    sync_args = list(sync_args or []) or ["--group", "dev"]
 
     info(f"current_venv_dir={venv_dir}")
 

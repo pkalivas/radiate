@@ -5,7 +5,7 @@ edition = { workspace = true }
 authors = { workspace = true }
 
 [dependencies]
-pyo3 = { workspace = true, features = ["multiple-pymethods"] }
+pyo3 = { workspace = true, features = ["multiple-pymethods", "abi3-py39"] }
 serde = { workspace = true, features = ["derive"] }
 numpy = { workspace = true }
 serde_json = { workspace = true }

@@ -20,6 +20,13 @@ script = '''
 .cargo/scripts/cargo.py "$@"
 '''
 
+[tasks.python]
+description = "UV + maturin"
+script_extension = "py"
+cwd = "${CARGO_MAKE_WORKSPACE_WORKING_DIRECTORY}"
+script = '''
+.cargo/scripts/cargo.py "$@"
+'''
 
 [tasks.example-run]
 description = "Run an example"

@@ -120,8 +120,12 @@ def run_image_evo(
     print(result)
 
     best = render_chromosome(W, H, result.value())
-    best.save("examples/data/monalisa_output.png")
+    best.save("py-radiate/examples/data/monalisa_output.png")
 
 
 if __name__ == "__main__":
-    run_image_evo("examples/data/monalisa.png")
+    import os
+    import sys
+    print('gil enabled:', sys._is_gil_enabled())
+    print('python version:', os.sys.version)
+    run_image_evo("py-radiate/examples/data/monalisa.png")

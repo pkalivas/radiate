@@ -20,37 +20,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Physics",
 ]
 dynamic = ["version"]
-
-all = [
-    "radiate",
-]
 dependencies = []
-
-[project.optional-dependencies]
-dev = [
-    "matplotlib>=3.10.6",
-    "maturin>=1.9.4",
-    "numpy>=2.3.3",
-    "pillow>=11.3.0",
-]
-test = [
-    "numba>=0.62.0",
-    "numpy>=2.3.3",
-    "pytest>=8.4.2",
-    "pytest-xdist>=3.8.0",
-    "pytest-benchmark>=5.1.0",
-]
-
-[dependency-groups]
-dev = [
-    "matplotlib>=3.10.6",
-    "maturin>=1.9.4",
-    "numpy>=2.3.3",
-    "pillow>=11.3.0",
-]
-test = [
-    "pytest-benchmark>=5.1.0",
-]
 
 [tool.maturin]
 features = ["pyo3/extension-module"]

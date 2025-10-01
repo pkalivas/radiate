@@ -1,0 +1,125 @@
+name: test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  CARGO_INCREMENTAL: 0
+  CARGO_NET_RETRY: 10
+  RUSTUP_MAX_RETRIES: 10
+
+jobs:
+  wheels:
+    name: ${{ matrix.os }} • ${{ matrix.arch }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux
+          - { os: ubuntu-latest, arch: x86_64 }
+          - { os: ubuntu-latest, arch: aarch64, target: aarch64-unknown-linux-gnu }
+
+          # # macOS
+          # - { os: macos-13, arch: x86_64 }
+          # - { os: macos-15, arch: arm64 }
+
+          # Windows
+          # - { os: windows-latest, arch: x64 }
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+
+
+      # Host Python only matters on macOS/Windows (Linux uses manylinux pythons)
+      - uses: actions/setup-python@v5
+        if: runner.os != 'Linux'
+        with:
+          python-version: '3.12'
+
+      # -------------------------
+      # ABI3 wheel (all platforms)
+      # -------------------------
+      - name: Build wheel (ABI3)
+        uses: PyO3/maturin-action@v1
+        with:
+          maturin-version: '1.9.4'
+          command: build
+          args: >
+            --release
+            -m py-radiate/Cargo.toml
+            -o dist
+          target: ${{ matrix.target }}
+          # On Linux, maturin runs inside manylinux automatically
+          manylinux: auto
+
+      # ---------------------------------------------------------
+      # Free-threaded cp313t wheel (Linux only, minimal & reliable)
+      # ---------------------------------------------------------
+      - name: Build wheel (cp313t, Linux only)
+        if: runner.os == 'Linux'
+        uses: PyO3/maturin-action@v1
+        with:
+          maturin-version: '1.9.4'
+          command: build
+          args: >
+            --release
+            -m py-radiate/Cargo.toml
+            -o dist
+            --no-default-features --features nogil
+            -i python3.13t
+          target: ${{ matrix.target }}
+          manylinux: auto
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.os }}-${{ matrix.arch }}
+          path: dist/*.whl
+# name: CI-ACT
+
+# on:
+#   workflow_dispatch:
+
+# jobs:
+#   linux:
+#     runs-on: ubuntu-latest
+#     strategy:
+#       fail-fast: false
+#       matrix:
+#         include:
+#           - { target: x86_64 }
+#           - { target: arm64 }
+#     steps:
+#       - uses: actions/checkout@v4
+#       - name: Build sdist
+#         run: |
+#           echo "pwd is $(pwd)"
+#           # cd py-radiate
+#           # uvx maturin sdist -o target-sdist
+#       - name: Build wheels (abi3)
+#         uses: PyO3/maturin-action@v1
+#         with:
+#           maturin-version: '1.9.4'
+#           target: ${{ matrix.target }}
+#           manylinux: auto
+#           args: >
+#             build --release --out dist
+#           sccache: false
+#       - name: Build wheels (cp313t)
+#         uses: PyO3/maturin-action@v1
+#         with:
+#           maturin-version: '1.9.4'
+#           target: ${{ matrix.target }}
+#           manylinux: auto
+#           args: >
+#             build --release --out dist -i python3.13t
+#           sccache: false
+#       - uses: actions/upload-artifact@v4
+#         with:
+#           name: wheels-linux-${{ matrix.target }}
+          
