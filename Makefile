@@ -66,16 +66,14 @@ ACT_IMAGES := \
   -P ubuntu-latest=catthehacker/ubuntu:act-22.04 \
   -P macos-latest=nektos/act-environments-macos:latest \
 
-# On Apple Silicon, force amd64 to match GH runners
-ACT_ARCH := --container-architecture linux/amd64
+# Force amd64 on Apple Silicon
+# ACT_ARCH := --container-architecture linux/amd64
 
-# Allow runner container to launch manylinux containers
-ACT_DIND := --container-options "--privileged -v /var/run/docker.sock:/var/run/docker.sock"
+# Only share /tmp; do NOT mount docker.sock (act already does, causing duplicates)
+ACT_DIND := --container-options "--privileged -v /tmp:/tmp"
 
-# Optional: bind-mount workspace instead of copying (faster). Comment out to copy instead.
-
-# Bundle all CLI opts so make expands them correctly
-ACT_OPTS := $(ACT_ARCH) $(ACT_IMAGES) 
+# Bundle flags
+ACT_OPTS := #$(ACT_IMAGES) 
 
 
 # Local helper paths
@@ -92,14 +90,14 @@ act-init:
 # List jobs in the selected workflow file
 .PHONY: act-list
 act-list: act-init
-	@DOCKER_CONFIG="$(PWD)/$(ACT_DOCKER_DIR)" \
-	act -C . -l -W $(WF) $(ACT_OPTS)
+# 	@DOCKER_CONFIG="$(PWD)/$(ACT_DOCKER_DIR)" 
+	act -l -W $(WF) $(ACT_OPTS)
 
 # Run the 'wheels' job (Linux matrix entries will execute; macOS/Windows are skipped by act)
 .PHONY: act-wheels
 act-wheels: act-init
-	@DOCKER_CONFIG="$(PWD)/$(ACT_DOCKER_DIR)" \
-	act -C . workflow_dispatch -W $(WF) -j wheels $(ACT_OPTS) --eventpath $(ACT_EVENT_FILE)
+# 	@DOCKER_CONFIG="$(PWD)/$(ACT_DOCKER_DIR)" 
+	act workflow_dispatch -W $(WF) $(ACT_OPTS) --eventpath $(ACT_EVENT_FILE)
 
 # Clean local act artifacts
 .PHONY: act-clean
