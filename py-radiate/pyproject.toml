@@ -22,6 +22,9 @@ classifiers = [
 dynamic = ["version"]
 dependencies = []
 
+[tool.pytest.ini_options]
+addopts = "--import-mode=importlib"
+
 [tool.maturin]
 features = ["pyo3/extension-module"]
 

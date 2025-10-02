@@ -27,28 +27,28 @@ jobs:
         with:
           toolchain: stable
 
-      - name: Create virtual environment
-        run: |
-          python -m venv .venv
-          echo "$GITHUB_WORKSPACE/py-radiate/.venv/bin" >> $GITHUB_PATH
-          echo "VIRTUAL_ENV=$GITHUB_WORKSPACE/py-radiate/.venv" >> $GITHUB_ENV
+      - name: Run Python tests
+        run: make test-py
 
-      - name: Build wheel
-        uses: PyO3/maturin-action@v1
-        with:
-          command: build
-          args: --release --out dist -m py-radiate/Cargo.toml
+      # - name: Create virtual environment
+      #   working-directory: py-radiate
+      #   run: |
+      #     python -m venv .venv
+      #     echo "$GITHUB_WORKSPACE/py-radiate/.venv/bin" >> $GITHUB_PATH
+      #     echo "VIRTUAL_ENV=$GITHUB_WORKSPACE/py-radiate/.venv" >> $GITHUB_ENV
 
-      - name: Install Python dependencies
-        run: |
-          pip install uv
-          uv pip install --compile-bytecode -r py-radiate/requirements-dev.txt
+      # - name: Install Python dependencies
+      #   run: |
+      #     $GITHUB_WORKSPACE/py-radiate/.venv/bin/pip install -r py-radiate/requirements-dev.txt
 
-      - name: Set up Rust
-        run: rustup show
+      # - name: Build and install py-radiate
+      #   working-directory: py-radiate
+      #   run: |
+      #     $GITHUB_WORKSPACE/py-radiate/.venv/bin/pip install maturin
+      #     $GITHUB_WORKSPACE/py-radiate/.venv/bin/maturin develop 
 
-      - name: Run tests
-        # working-directory: py-radiate
-        run: |
-          uv run py-radiate/pytest tests --import-mode=importlib 
+      # - name: Run tests
+      #   working-directory: py-radiate
+      #   run: |
+      #     $GITHUB_WORKSPACE/py-radiate/.venv/bin/python -m pytest tests --import-mode=importlib 
           

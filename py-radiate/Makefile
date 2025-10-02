@@ -21,7 +21,7 @@ build: .venv  ## Compile and install Python Radiate for development
 
 .PHONY: test
 test: .venv build  ## Run fast unittests
-	$(VENV_BIN)/pytest -n auto $(PYTEST_ARGS)
+	@$(VENV_BIN)/pytest -n auto $(PYTEST_ARGS)
 
 .PHONY: clean
 clean:  ## Clean up caches and build artifacts
