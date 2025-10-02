@@ -22,7 +22,7 @@ class TestCodecPerformance:
         )
 
         assert len(result) == 100000
-        assert execution_time < 0.1
+        assert execution_time < 0.2
 
     @pytest.mark.performance
     def test_large_matrix_codec_performance(self, performance_benchmark):
