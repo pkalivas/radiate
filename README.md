@@ -35,7 +35,7 @@ inspired by natural selection and genetics. The core is written in Rust and is a
 Add this to your `Cargo.toml`:
 ```toml
 [dependencies]
-radiate = { version = "1.2.18", features = [...] }
+radiate = { version = "1.2.18", features = ["x"] }
 ``` 
 ### Python
 ```bash
@@ -54,6 +54,6 @@ The core build options are below, there are a few others that can be found throu
   * add `ARGS="--release"` to build both packages in release mode
   * add `PY=3.x` to build python package for specific python version (e.g. `PY=3.12`, `PY=3.13t` for free-threading interpreter)
   
-`make test-rs` to run tests for rust package
+`make test-rs` to run tests for rust
 `make test-py` to run tests for python package
 
