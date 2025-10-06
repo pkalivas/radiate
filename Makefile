@@ -47,6 +47,14 @@ test-py:  ## Run Python unittests
 test-rs:  ## Run Rust unittests
 	@cargo test --all-features
 
+.PHONY: test
+test: test-py test-rs  ## Run all unittests - Python and Rust
+
+.PHONY: lint
+lint: .venv  ## Run linters (ruff for Python, clippy for Rust)
+	@$(VENV_BIN)/ruff check py-radiate
+	@cargo clippy --all-features -- -D warnings
+
 .PHONY: clean
 clean:  ## Clean up build artifacts
 	@rm -rf target/ 

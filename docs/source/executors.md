@@ -18,6 +18,10 @@ Continuing with our example from the preious sections - evolving a simple functi
 
 === ":fontawesome-brands-python: Python"
 
+    Its important to note that the `WorkerPool` and `FixedSizedWorkerPool` executors use multiple threads to run the fitness function concurrently. If you are not using a free-threaded interpreter (ie: `python3.13t/3.14t`) or the GIL is enabled, these options will be replaced with the `Serial` executor. 
+
+    If you are in fact using a free-threaded interpreter, your engine can take advantage of multiple threads to evaluate fitness concurrently. This can **significantly** speed up evolution, especially if your fitness function is computationally expensive. However, your fitness function **must** be thread-safe.
+
     ```python
     import radiate as rd
 

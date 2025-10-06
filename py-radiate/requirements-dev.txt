@@ -16,7 +16,7 @@ pip
 # -------
 
 numpy
-numba >= 0.54; python_version < '3.14' and python_version != '3.13t'
+# numba >= 0.54; python_version < '3.13' and python_version != '3.13t'
 pillow >= 11.3.0
 matplotlib >= 3.10.6
 
