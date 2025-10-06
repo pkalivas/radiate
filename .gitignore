@@ -16,3 +16,4 @@ radiate/.vs
 *.benchmarks
 .coverage
 *uv.lock
+*ruff_cache

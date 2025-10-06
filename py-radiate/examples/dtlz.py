@@ -12,7 +12,7 @@ import radiate as rd
 import numpy as np
 from numba import jit, float32
 
-rd.random.seed(500)
+rd.random.seed(501)
 
 variables = 4
 objectives = 3

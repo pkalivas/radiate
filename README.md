@@ -28,3 +28,32 @@ inspired by natural selection and genetics. The core is written in Rust and is a
 * Opt-in speciation for maintaining diversity.
 * Novelty search support.
 * First-class metric tracking.
+
+--- 
+## Installation
+### Rust
+Add this to your `Cargo.toml`:
+```toml
+[dependencies]
+radiate = { version = "1.2.18", features = [...] }
+``` 
+### Python
+```bash
+pip install radiate # --or-- uv add radiate
+```
+
+---
+## Building from source
+```bash
+git clone https://github.com/pkalivas/radiate.git
+cd radiate
+```
+The core build options are below, there are a few others that can be found through the `make help` command.
+
+`make build` to build both Rust and Python packages in develop mode
+  * add `ARGS="--release"` to build both packages in release mode
+  * add `PY=3.x` to build python package for specific python version (e.g. `PY=3.12`, `PY=3.13t` for free-threading interpreter)
+  
+`make test-rs` to run tests for rust package
+`make test-py` to run tests for python package
+
