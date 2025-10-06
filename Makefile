@@ -25,7 +25,7 @@ FILTER_PIP_WARNINGS=| grep -v "don't match your environment"; test $${PIPESTATUS
 
 .PHONY: requirements
 requirements: .venv  ## Install/refresh Python project requirements
-	@$(VENV_BIN)/python -m pip install --upgrade uv \
+	@$(VENV_BIN)/python -m pip install --upgrade uv pip \
 	&& $(VENV_BIN)/uv pip install --upgrade --compile-bytecode --no-build \
 	   -r py-radiate/requirements-dev.txt 
 
@@ -36,17 +36,16 @@ build: .venv  ## Compile and install Python radiate for development
 
 .PHONY: wheel
 wheel: .venv  ## Build a wheel for Python radiate
-	@$(VENV_BIN)/maturin build -m py-radiate/Cargo.toml $(ARGS) \
+	@$(VENV_BIN)/maturin build -i $(PY) -m py-radiate/Cargo.toml $(ARGS) \
 	$(FILTER_PIP_WARNINGS)
 
 .PHONY: test-py
-test-py: .venv build  ## Run Python unittests
+test-py:  ## Run Python unittests
 	@$(MAKE) -s -C py-radiate test
 
 .PHONY: test-rs
 test-rs:  ## Run Rust unittests
 	@cargo test --all-features
-
 
 .PHONY: clean
 clean:  ## Clean up build artifacts
@@ -54,6 +53,7 @@ clean:  ## Clean up build artifacts
 	@rm -rf .venv
 	@rm -rf .benchmarks/
 	@rm -rf .pytest_cache/
+	@rm -rf .ruff_cache/
 	@rm -f .coverage
 	@$(MAKE) -s -C py-radiate clean
 
