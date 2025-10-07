@@ -69,21 +69,21 @@ impl AlterResult {
     }
 }
 
-impl Into<AlterResult> for usize {
-    fn into(self) -> AlterResult {
-        AlterResult(self, None)
+impl From<usize> for AlterResult {
+    fn from(value: usize) -> Self {
+        AlterResult(value, None)
     }
 }
 
-impl Into<AlterResult> for (usize, Vec<Metric>) {
-    fn into(self) -> AlterResult {
-        AlterResult(self.0, Some(self.1))
+impl From<(usize, Vec<Metric>)> for AlterResult {
+    fn from(value: (usize, Vec<Metric>)) -> Self {
+        AlterResult(value.0, Some(value.1))
     }
 }
 
-impl Into<AlterResult> for (usize, Metric) {
-    fn into(self) -> AlterResult {
-        AlterResult(self.0, Some(vec![self.1]))
+impl From<(usize, Metric)> for AlterResult {
+    fn from(value: (usize, Metric)) -> Self {
+        AlterResult(value.0, Some(vec![value.1]))
     }
 }
 

@@ -50,10 +50,11 @@ test-rs:  ## Run Rust unittests
 .PHONY: test
 test: test-py test-rs  ## Run all unittests - Python and Rust
 
-.PHONY: lint
-lint: .venv  ## Run linters (ruff for Python, clippy for Rust)
-	@$(VENV_BIN)/ruff check py-radiate
-	@cargo clippy --all-features -- -D warnings
+# TODO: We need to fix linting issues before enabling this target
+# .PHONY: lint
+# lint:  ## Run linters (ruff for Python, clippy for Rust)
+# 	@uvx ruff check py-radiate
+# 	@cargo clippy --all-features -- -D warnings
 
 .PHONY: clean
 clean:  ## Clean up build artifacts

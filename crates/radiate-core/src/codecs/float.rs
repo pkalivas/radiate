@@ -250,7 +250,7 @@ impl Codec<FloatChromosome, Vec<Vec<f32>>> for Vec<FloatChromosome> {
 /// Implement the [Codec] trait for a single [FloatChromosome].
 /// This is effectively the same as creating a [FloatCodec] vector
 ///
-//// # Example
+/// # Example
 /// ``` rust
 /// use radiate_core::*;
 ///

@@ -119,18 +119,16 @@ impl<'a> MetricQuery<'a> {
             .metric_set
             .iter()
             .filter(|(name, metric)| {
-                let name_ok = self.name_filter.as_ref().map_or(true, |f| f(name));
+                let name_ok = self.name_filter.as_ref().is_none_or(|f| f(name));
                 let type_ok = self.type_filter.map_or(true, |typ| match typ {
                     MetricType::Value => metric.inner().value_statistic.is_some(),
                     MetricType::Time => metric.inner().time_statistic.is_some(),
                     MetricType::Distribution => metric.inner().distribution.is_some(),
                 });
-                let label_ok = self.label_filter.as_ref().map_or(true, |f| {
-                    if let Some(labels) = metric.labels() {
-                        labels.iter().any(|l| f(l))
-                    } else {
-                        false
-                    }
+                let label_ok = self.label_filter.as_ref().is_none_or(|f| {
+                    metric
+                        .labels()
+                        .map_or(false, |labels| labels.iter().any(|l| f(l)))
                 });
 
                 name_ok && type_ok && label_ok
@@ -159,7 +157,7 @@ impl<'a> MetricQuery<'a> {
                         Aggregate::Sum => vals.iter().copied().sum(),
                         Aggregate::Mean => {
                             let sum: f32 = vals.iter().copied().sum();
-                            if vals.len() > 0 {
+                            if !vals.is_empty() {
                                 sum / vals.len() as f32
                             } else {
                                 0.0
