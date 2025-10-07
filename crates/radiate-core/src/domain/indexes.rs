@@ -37,21 +37,21 @@ pub fn subset(max_index: usize, num_indicies: usize, mode: SubsetMode) -> Vec<us
         SubsetMode::StratifiedCorrect => {
             let mut sub = vec![0; num_indicies];
             next(max_index, &mut sub);
-            return sub;
+            sub
         }
         SubsetMode::FastRandom => {
             let mut sub = vec![0; num_indicies];
             for i in 0..num_indicies {
                 sub[i] = random_provider::range(0..max_index);
             }
-            return sub;
+            sub
         }
         SubsetMode::Weighted(weights) => {
             let mut sub = vec![0; num_indicies];
             for i in 0..num_indicies {
                 sub[i] = random_provider::weighted_choice(weights);
             }
-            return sub;
+            sub
         }
         SubsetMode::Exclude(exclude) => {
             let mut sub = vec![0; num_indicies];
@@ -64,7 +64,7 @@ pub fn subset(max_index: usize, num_indicies: usize, mode: SubsetMode) -> Vec<us
                     }
                 }
             }
-            return sub;
+            sub
         }
         SubsetMode::RangeList(range_list) => {
             let mut sub = vec![0; num_indicies];
@@ -72,7 +72,7 @@ pub fn subset(max_index: usize, num_indicies: usize, mode: SubsetMode) -> Vec<us
                 let (start, end) = range_list[i % range_list.len()];
                 sub[i] = random_provider::range(start..end);
             }
-            return sub;
+            sub
         }
     }
 }
