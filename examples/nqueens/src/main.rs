@@ -31,7 +31,7 @@ fn main() {
 
     let result = engine.iter().logging().until_score(0).last().unwrap();
 
-    println!("Best Score: {:?}", result);
+    println!("Best Score: {result:?}");
     println!("\nResult Queens Board ({:.3?}):", result.time());
 
     let board = &result.value();

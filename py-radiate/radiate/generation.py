@@ -16,49 +16,49 @@ class Generation[T](PyObject[PyGeneration]):
     """
 
     def __repr__(self):
-        return f"{self._pyobj.__repr__()}"
+        return f"{self.__backend__().__repr__()}"
 
     def score(self) -> list[float]:
         """
         Get the fitness of the generation.
         :return: The fitness of the generation.
         """
-        return self._pyobj.score()
+        return self.__backend__().score()
 
     def index(self) -> int:
         """
         Get the index of the generation.
         :return: The index of the generation.
         """
-        return self._pyobj.index()
+        return self.__backend__().index()
 
     def value(self) -> T:
         """
         Get the value of the generation.
         :return: The value of the generation.
         """
-        return self._pyobj.value()
+        return self.__backend__().value()
 
     def metrics(self) -> dict[str, Any]:
         """
         Get the metrics of the generation.
         :return: The metrics of the generation.
         """
-        return self._pyobj.metrics()
+        return self.__backend__().metrics()
 
     def population(self) -> Population:
         """
         Get the population of the generation.
         :return: The population of the generation.
         """
-        return Population.from_rust(self._pyobj.population())
+        return Population.from_rust(self.__backend__().population())
 
     def species(self) -> list[Species] | None:
         """
         Get the species of the generation.
         :return: The species of the generation.
         """
-        species = self._pyobj.species()
+        species = self.__backend__().species()
         if species is None:
             return None
         return [Species.from_rust(s) for s in species]
@@ -68,11 +68,11 @@ class Generation[T](PyObject[PyGeneration]):
         Get the ecosystem of the generation.
         :return: The ecosystem of the generation.
         """
-        return Ecosystem.from_rust(self._pyobj.ecosystem())
+        return Ecosystem.from_rust(self.__backend__().ecosystem())
 
     def duration(self) -> timedelta:
         """
         Get the duration of the generation.
         :return: The duration of the generation.
         """
-        return self._pyobj.duration()
+        return self.__backend__().duration()
