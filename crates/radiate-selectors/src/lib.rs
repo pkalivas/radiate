@@ -66,7 +66,7 @@ impl Iterator for ProbabilityWheelIterator<'_> {
         let mut index = 0;
 
         // We iterate over the probabilities of the individuals in the population - the 'wheel'
-        for (i, &prob) in self.probabilities.iter().enumerate() {
+        for (i, prob) in self.probabilities.iter().enumerate() {
             value -= prob;
             if value <= 0.0 {
                 index = i;

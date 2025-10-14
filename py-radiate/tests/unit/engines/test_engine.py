@@ -20,6 +20,8 @@ class TestEngineBasicIntegration:
         assert result.value() == [0 for _ in range(num_genes)]
         assert result.score() == [0]
         assert result.index() <= 500
+        assert len(result.population()) == len(result.ecosystem().population())
+        assert len(result.ecosystem().species()) == 0
 
     @pytest.mark.integration
     def test_engine_float_maximization(self, random_seed):
@@ -44,6 +46,8 @@ class TestEngineBasicIntegration:
         # Should find values close to ±1.0
         assert result.score()[0] > 2.5
         assert result.index() <= 100
+        assert len(result.population()) == len(result.ecosystem().population())
+        assert len(result.ecosystem().species()) == 0
 
     def test_engine_can_maximize(self):
         target = "Testing, Radiate!"
@@ -66,14 +70,9 @@ class TestEngineBasicIntegration:
     @pytest.mark.integration
     def test_engine_bit_optimization(self, random_seed):
         """Test engine with bit codec for binary optimization."""
-
-        # Maximize number of 1s
-        def fitness_func(x: list[bool]) -> float:
-            return sum(1 for bit in x if bit)
-
         engine = rd.GeneticEngine(
-            codec=rd.BitCodec.vector(length=10),
-            fitness_func=fitness_func,
+            codec=rd.BitCodec.vector(10),
+            fitness_func=lambda x: sum(1 for bit in x if bit),
             survivor_selector=rd.EliteSelector(),
             alters=[rd.UniformCrossover(0.7), rd.UniformMutator(0.1)],
         )
@@ -82,7 +81,7 @@ class TestEngineBasicIntegration:
 
         assert result.value() == [True] * 10  # All ones
         assert result.score()[0] == 10.0
-        assert result.index() <= 100
+        assert result.index() <= 100 # Should converge quickly
 
     @pytest.mark.integration
     def test_engine_minimizing_limits(self):
@@ -196,7 +195,7 @@ class TestEngineBasicIntegration:
         result = engine.run([rd.ScoreLimit(0.1), rd.GenerationsLimit(500)])
 
         # Testing in multithreaded mode can lead to slightly different results so we
-        # relax the assertion a bit
+        # relax the assertion a bit by allowing a few # of species
         assert len(result.species()) in [2, 3, 4], "Should maintain multiple species"
         assert result.index() <= 500
 

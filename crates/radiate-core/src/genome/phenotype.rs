@@ -116,7 +116,7 @@ impl<C: Chromosome> Scored for Phenotype<C> {
     }
 }
 
-/// Implement the `Valid` trait for the `Phenotype`. This allows the `Phenotype` to be checked for validity.
+/// Implement the [Valid] trait for the `Phenotype`. This allows the `Phenotype` to be checked for validity.
 /// A `Phenotype` is valid if the `Genotype` is valid. The `GeneticEngine` checks the validity of the `Phenotype`
 /// and will remove any invalid individuals from the population, replacing them with new individuals at the given generation.
 impl<C: Chromosome> Valid for Phenotype<C> {

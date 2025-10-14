@@ -289,14 +289,12 @@ mod tests {
     use super::*;
     use crate::{Chromosome, Codec, FloatChromosome, FloatGene, Gene, Genotype, Score};
 
-    // Mock phenotype for testing
     #[derive(Debug, Clone)]
     struct MockPhenotype {
         x: f32,
         y: f32,
     }
 
-    // Mock codec for testing
     struct MockCodec;
 
     impl Codec<FloatChromosome, MockPhenotype> for MockCodec {
@@ -325,16 +323,13 @@ mod tests {
             fitness_fn,
         };
 
-        // Test encoding
         let genotype = problem.encode();
         assert_eq!(genotype.len(), 2);
 
-        // Test decoding
         let phenotype = problem.decode(&genotype);
         assert_eq!(phenotype.x, 1.0);
         assert_eq!(phenotype.y, 2.0);
 
-        // Test evaluation
         let fitness = problem.eval(&genotype);
         assert_eq!(fitness.as_f32(), 3.0);
     }
@@ -368,16 +363,13 @@ mod tests {
             batch_fitness_fn,
         };
 
-        // Test encoding
         let genotype = problem.encode();
         assert_eq!(genotype.len(), 2);
 
-        // Test decoding
         let phenotype = problem.decode(&genotype);
         assert_eq!(phenotype.x, 1.0);
         assert_eq!(phenotype.y, 2.0);
 
-        // Test individual evaluation
         let fitness = problem.eval(&genotype);
         assert_eq!(fitness.as_f32(), 2.0); // 1.0 * 2.0
     }
@@ -414,14 +406,11 @@ mod tests {
 
         let genotype = problem.encode();
 
-        // Individual evaluation
         let individual_fitness = problem.eval(&genotype);
 
-        // Batch evaluation with single individual
         let batch_scores = problem.eval_batch(&[genotype.clone()]);
         let batch_fitness = &batch_scores[0];
 
-        // Results should be consistent
         assert_eq!(individual_fitness.as_f32(), batch_fitness.as_f32());
     }
 }

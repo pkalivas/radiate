@@ -37,6 +37,7 @@ pub mod prelude {
     pub use super::distance::{CosineDistance, Diversity, EuclideanDistance, HammingDistance};
     pub use super::domain::random_provider;
     pub use super::engine::{Engine, EngineExt};
+    pub use super::evaluator::{BatchFitnessEvaluator, Evaluator, FitnessEvaluator};
     pub use super::executor::Executor;
     pub use super::fitness::{
         BatchFitnessFunction, CompositeFitnessFn, FitnessFunction, NoveltySearch,

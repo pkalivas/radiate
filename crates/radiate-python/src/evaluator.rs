@@ -3,11 +3,11 @@ use pyo3::Python;
 use radiate::{Chromosome, Ecosystem, Evaluator, Executor, Problem};
 use std::sync::Arc;
 
-/// Based off of the [pyo3 documentation](https://pyo3.rs/v0.24.2/parallelism)
+/// Based off of the [pyo3 documentation](https://pyo3.rs/v0.26.0/parallelism)
 ///
 /// The `PyEvaluator` is an [Evaluator<C, T>] implementation that allows for free-threaded evaluation.
-/// We avoid Python's GIL by using the `allow_threads` method, bypassing the
-/// GIL for the duration of the evaluation.
+/// This is almost the exact same as the [BatchFitnessEvaluator](radiate::evaluator::BatchFitnessEvaluator),
+/// with the only difference being the adaptation to work with Python's GIL (or lack thereof).
 pub struct FreeThreadPyEvaluator {
     executor: Executor,
 }
