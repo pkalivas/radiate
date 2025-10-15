@@ -2,7 +2,7 @@
 
 !!! warning ":construction: Under Construction :construction:"
 
-    As of `9/8/2025`: These docs are a work in progress and may not be complete or fully accurate. Please check back later for updates.
+    As of `10/14/2025`: These docs are a work in progress and may not be complete or fully accurate. Please check back later for updates.
 
 ___
 
@@ -930,7 +930,7 @@ This crossover operator is used to combine two parent graphs by swapping the val
 
 In machine learning its common to have a regression task. This is where you have a set of inputs and outputs, and you want to find a function that maps the inputs to the outputs. In Radiate, we can use genetic programming to evolve a `tree` or `graph` to do just that. The regression `problem` is a special type of `problem` that simplifies this process. It provides functionality to normalize/standarize/OHE the inputs and outputs, as well as calculate the fitness of a `genotype` based on how well it maps the inputs to the outputs.
 
-The regression problem (fitness function) takes a set of inputs and outputs, and optionally a loss function. The default loss function is mean squared error (MSE), but other options include MAE (mean average error), CrossEntropy loss, and Diff (Difference) - a simple difference between output and target.
+The regression problem (fitness function) takes a set of inputs and outputs, and optionally a loss function. The default loss function is mean squared error (MSE), but other options include MAE (mean average error), CrossEntropy loss, and Diff (Difference - a simple difference between output and target).
 
 Lets take a quick look at how we would put together a regression problem using a `tree` and a `graph`.
 

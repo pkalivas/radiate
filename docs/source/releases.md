@@ -10,9 +10,10 @@
 Fixing subtle bug in recurrent graphs where a random seed wasn't being respected, leading to non-deterministic behavior in some cases. This fix ensures that all random operations within recurrent graphs are consistent and reproducible when a seed is provided. 
 
 Added three new types of graphs:
-- LSTM (Long Short-Term Memory) Graphs: These are a type of recurrent neural network (RNN) that can learn long-term dependencies.
-- GRU (Gated Recurrent Unit) Graphs: Similar to LSTMs, GRUs are a type of RNN that are simpler and often more efficient.
-- Mesh Graphs: Graphs structured in a mesh topology.
+
+- **LSTM** (Long Short-Term Memory) Graphs: These are a type of recurrent neural network (RNN) that can learn long-term dependencies.
+- **GRU** (Gated Recurrent Unit) Graphs: Similar to LSTMs, GRUs are a type of RNN that are simpler and often more efficient.
+- **Mesh** Graphs: Graphs structured in a mesh topology.
 
 ## v1.2.17 - py 0.0.7
 
