@@ -171,6 +171,19 @@ impl PyGeneration {
         }
     }
 
+    pub fn objective(&self) -> Vec<String> {
+        get_objective_names(match &self.inner {
+            EpochHandle::Int(epoch) => epoch.objective(),
+            EpochHandle::Float(epoch) => epoch.objective(),
+            EpochHandle::Char(epoch) => epoch.objective(),
+            EpochHandle::Bit(epoch) => epoch.objective(),
+            EpochHandle::Any(epoch) => epoch.objective(),
+            EpochHandle::Permutation(epoch) => epoch.objective(),
+            EpochHandle::Graph(epoch) => epoch.objective(),
+            EpochHandle::Tree(epoch) => epoch.objective(),
+        })
+    }
+
     pub fn __repr__(&self, py: Python) -> PyResult<String> {
         let score = self.score(py);
         let value = self.value(py)?;
@@ -198,6 +211,27 @@ impl PyGeneration {
             },
             metrics
         ))
+    }
+}
+
+fn get_objective_names(objective: &Objective) -> Vec<String> {
+    match objective {
+        Objective::Single(opt) => {
+            vec![match opt {
+                Optimize::Minimize => String::from("min"),
+                Optimize::Maximize => String::from("max"),
+            }]
+        }
+        Objective::Multi(opts) => opts
+            .iter()
+            .map(|opt| {
+                match opt {
+                    Optimize::Minimize => "min",
+                    Optimize::Maximize => "max",
+                }
+                .to_string()
+            })
+            .collect(),
     }
 }
 

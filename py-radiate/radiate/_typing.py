@@ -6,8 +6,6 @@ from radiate.genome.chromosome import Chromosome
 from radiate.genome.gene import Gene
 from radiate.gp.op import Op
 
-# from radiate.radiate import PyChromosome, PyGene
-
 from .handlers import EventHandler
 
 if TYPE_CHECKING:

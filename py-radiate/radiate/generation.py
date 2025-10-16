@@ -46,6 +46,16 @@ class Generation[T](PyObject[PyGeneration]):
         """
         return self.__backend__().metrics()
 
+    def objective(self) -> list[str] | str:
+        """
+        Get the objective names of the generation.
+        :return: The objective names of the generation.
+        """
+        obj = self.__backend__().objective()
+        if len(obj) == 1:
+            return obj[0]
+        return obj
+
     def population(self) -> Population:
         """
         Get the population of the generation.

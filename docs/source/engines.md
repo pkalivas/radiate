@@ -50,6 +50,9 @@ This is the default epoch for the engine - `Generation`. It contains:
 
     # Get the metrics of the engine
     metrics = result.metrics()  # MetricSet object
+
+    # Get the objective of the engine
+    objective = result.objective()  # list[str] | str (list[str] if multi-objective) - "min" or "max"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -94,6 +97,9 @@ This is the default epoch for the engine - `Generation`. It contains:
 
     // Get evolution duration (also available in metrics):
     let time: Duration = result.time();
+
+    // Get the objective of the engine
+    let objective: &Objective = result.objective(); 
     ```
 
 ### Multi-Objective Epoch

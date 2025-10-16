@@ -22,6 +22,7 @@ class TestEngineBasicIntegration:
         assert result.index() <= 500
         assert len(result.population()) == len(result.ecosystem().population())
         assert len(result.ecosystem().species()) == 0
+        assert result.objective() == "min"
 
     @pytest.mark.integration
     def test_engine_float_maximization(self, random_seed):
@@ -48,6 +49,7 @@ class TestEngineBasicIntegration:
         assert result.index() <= 100
         assert len(result.population()) == len(result.ecosystem().population())
         assert len(result.ecosystem().species()) == 0
+        assert result.objective() == "max"
 
     def test_engine_can_maximize(self):
         target = "Testing, Radiate!"
@@ -245,6 +247,7 @@ class TestEngineBasicIntegration:
 
         assert len(result.score()) == 2, "Should return two objectives"
         assert result.index() == 50, "Should complete within 50 generations"
+        assert result.objective() == ["min", "max"]
 
     @pytest.mark.integration
     def test_engine_multi_objective_front(
@@ -255,6 +258,7 @@ class TestEngineBasicIntegration:
 
         fitness_values = list(set(map(lambda x: tuple(x["fitness"]), result.value())))
 
+        assert result.objective() == ["min", "min"]
         # Check if the Pareto front is non-dominated
         for i, f1 in enumerate(fitness_values):
             for j, f2 in enumerate(fitness_values):

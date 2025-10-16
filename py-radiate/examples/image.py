@@ -1,4 +1,3 @@
-# image_evo_anygene.py
 import math
 
 import numpy as np
@@ -126,6 +125,7 @@ def run_image_evo(
 if __name__ == "__main__":
     import os
     import sys
-    print('gil enabled:', sys._is_gil_enabled())
-    print('python version:', os.sys.version)
+
+    print("gil enabled:", sys._is_gil_enabled())
+    print("python version:", os.sys.version)
     run_image_evo("py-radiate/examples/data/monalisa.png")
