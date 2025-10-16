@@ -41,7 +41,6 @@ pub fn any_value_into_py_object_ref<'py, 'a>(
         Null => py.None().into_bound_py_any(py),
         Bool(v) => v.into_bound_py_any(py),
         Char(v) => v.into_bound_py_any(py),
-
         UInt8(v) => v.into_bound_py_any(py),
         UInt16(v) => v.into_bound_py_any(py),
         UInt32(v) => v.into_bound_py_any(py),
@@ -53,12 +52,9 @@ pub fn any_value_into_py_object_ref<'py, 'a>(
         Int128(v) => v.into_bound_py_any(py),
         Float32(v) => v.into_bound_py_any(py),
         Float64(v) => v.into_bound_py_any(py),
-
         Str(s) => s.into_bound_py_any(py),
         StrOwned(s) => s.into_bound_py_any(py),
-
         Binary(b) => pyo3::types::PyBytes::new(py, b).into_bound_py_any(py),
-
         Vector(v) => Ok(PyList::new(
             py,
             v.iter()
@@ -66,7 +62,6 @@ pub fn any_value_into_py_object_ref<'py, 'a>(
                 .collect::<PyResult<Vec<_>>>()?,
         )?
         .into_any()),
-
         Struct(pairs) => {
             let dict = pyo3::types::PyDict::new(py);
             for (val, fld) in pairs.iter() {

@@ -138,9 +138,7 @@ struct Worker {
 impl Worker {
     /// Create a new Worker.
     ///
-    /// The Worker will listen for incoming jobs on the given receiver.
-    /// When a job is received, it will be executed in a new thread and the
-    /// mutex will release allowing another job to be received from a different worker.
+    /// Runs jobs on a long-lived worker thread that pulls tasks from the queue.
     fn new(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Message>>>) -> Self {
         Worker {
             id,

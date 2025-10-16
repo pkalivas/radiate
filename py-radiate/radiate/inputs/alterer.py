@@ -33,7 +33,7 @@ class AlterBase(ComponentBase):
             and self.allowed_genes == value.allowed_genes
         )
 
-    def alter(self, population, generation: int = 0):
+    def alter(self, population: Population, generation: int = 0):
         """
         Alter the population based on the alterer's criteria.
         :param population: The population to alter.
@@ -51,9 +51,9 @@ class AlterBase(ComponentBase):
 
         return Population(
             individuals=py_alter(
-                population.backend().gene_type(),
+                population.__backend__().gene_type(),
                 alterer_input,
-                population.backend(),
+                population.__backend__(),
                 generation,
             )
         )

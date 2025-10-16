@@ -442,7 +442,7 @@ impl Metric {
     }
 
     ///
-    /// ---Get the time statistics ---
+    /// --- Get the time statistics ---
     ///
     pub fn time_mean(&self) -> Option<Duration> {
         self.time_statistic().map(|stat| stat.mean())

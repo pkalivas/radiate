@@ -16,10 +16,10 @@ class Ecosystem[T](PyObject[PyEcosystem]):
             raise TypeError(f"Expected PyEcosystem, got {type(inner)}")
 
     def __repr__(self):
-        return self._pyobj.__repr__()
+        return self.__backend__().__repr__()
 
     def population(self) -> Population[T]:
-        return Population.from_rust(self._pyobj.population())
+        return Population.from_rust(self.__backend__().population)
 
     def species(self) -> list[Species[T]]:
-        return [Species.from_rust(s) for s in self._pyobj.species()]
+        return [Species.from_rust(s) for s in self.__backend__().species]

@@ -14,12 +14,19 @@
 use crate::{Chromosome, Ecosystem, Executor, Problem};
 use std::sync::Arc;
 
-/// A trait for evaluating fitness of individuals in a genetic algorithm ecosystem.
+/// A trait for evaluating fitness of individuals in the ecosystem.
 ///
 /// The [Evaluator] trait defines the interface for fitness evaluation strategies.
 /// Implementors can define different approaches to computing fitness scores,
 /// such as individual evaluation, batch evaluation, or specialized evaluation
 /// strategies for specific problem domains.
+///
+/// The two main implementations provided are:
+/// - [FitnessEvaluator]: Evaluates individuals one at a time
+/// - [BatchFitnessEvaluator]: Evaluates individuals in batches
+/// Custom evaluators can be created and used, however, take special note on how the
+/// members of the ecosystem are accessed and modified, (taken out of the phenotype then restored).
+/// This is important to ensure memory safety and avoid unnecessary cloning of genotypes.
 ///
 /// # Generic Parameters
 /// - `C`: The chromosome type that represents the genetic material
@@ -33,7 +40,7 @@ pub trait Evaluator<C: Chromosome, T>: Send + Sync {
     ///
     /// # Arguments
     ///
-    /// * `ecosystem` - The genetic algorithm ecosystem containing the population
+    /// * `ecosystem` - The ecosystem containing the population
     /// * `problem` - The problem instance used to evaluate fitness
     ///
     /// # Returns

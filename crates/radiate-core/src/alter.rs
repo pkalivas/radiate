@@ -160,6 +160,14 @@ impl<C: Chromosome> Alter<C> for AlterAction<C> {
     }
 }
 
+/// Minimum population size required to perform crossover - this ensures that there
+/// are enough individuals to select parents from. If the population size is
+/// less than this value, we will not be able to select two distinct parents.
+const MIN_POPULATION_SIZE: usize = 3;
+/// Minimum number of parents required for crossover operation. This is typically
+/// two, as crossover usually involves two parents to produce offspring.
+const MIN_NUM_PARENTS: usize = 2;
+
 /// The [Crossover] trait is used to define the crossover operation for a genetic algorithm.
 ///
 /// In a genetic algorithm, crossover is a genetic operator used to vary the
@@ -203,8 +211,9 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
         let mut result = AlterResult::default();
 
         for i in 0..population.len() {
-            if random_provider::random::<f32>() < rate && population.len() > 3 {
-                let parent_indexes = indexes::individual_indexes(i, population.len(), 2);
+            if random_provider::random::<f32>() < rate && population.len() > MIN_POPULATION_SIZE {
+                let parent_indexes =
+                    indexes::individual_indexes(i, population.len(), MIN_NUM_PARENTS);
                 let cross_result = self.cross(population, &parent_indexes, generation, rate);
                 result.merge(cross_result);
             }

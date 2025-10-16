@@ -400,7 +400,7 @@ Let's look at a basic example of how to use the `Codec` for evolving a simple fu
 
     Python also allows you to pass a flag to most codecs to specify if you want a `numpy.array` or a `list` to be returned when decoding. You can do this by passing `use_numpy=True` to the codec constructor. 
 
-    E.g. `rd.FloatCodec.vector(length=2, value_range=(-1.0, 1.0), bound_range=(-10.0, 10.0), use_numpy=True)` will return a `numpy.array` when decoding. You can also just write the decoded value in your `fitnesss_func` in a `numpy.arry(my_decoded_value)` format to get a `numpy.array` back. The performance difference between the two is negligible, so you can choose the one that best fits your needs.
+    E.g. `rd.FloatCodec.vector(length=2, init_range=(-1.0, 1.0), bound_range=(-10.0, 10.0), use_numpy=True)` will return a `numpy.array` when decoding. You can also just write the decoded value in your `fitnesss_func` in a `numpy.arry(my_decoded_value)` format to get a `numpy.array` back. The performance difference between the two is negligible, so you can choose the one that best fits your needs.
 
     ```python
     import radiate as rd

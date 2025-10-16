@@ -1,7 +1,7 @@
 use super::{Chromosome, Genotype, Population, random_provider};
 use std::sync::Arc;
 
-/// Trait for replacement strategies in genetic algorithms.
+/// Trait for replacement strategies in the algorithms.
 ///
 /// This trait defines a method for replacing a member of the [Population] with a new individual
 /// after the current individual has been determined to be invalid. Typically, this is done by

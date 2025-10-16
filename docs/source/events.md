@@ -15,11 +15,11 @@ Radiate provides an event system that allows you to monitor and react to the evo
 
 The event system in Radiate is built around the concept of event handlers or subscribers that can be attached to the `GeneticEngine`. These subscribers receive events at key points during the evolution process, allowing you to monitor and react to changes in the environment in real-time. The event system is designed to be flexible and extensible, allowing you to create custom event handlers that can perform various actions based on the evolution state.
 
-The `GeneticEngine` tries it's best to off-load almost the entire compute workload of the subscribers (handlers) to the user - be aware of this when implementing your handlers.
+The `GeneticEngine` trys it's best to off-load almost the entire compute workload of the subscribers (handlers) to the user - be aware of this when implementing your handlers.
 
 !!! note "Threading Behavior"
     
-    Currently, the rust implementation is multi-threaded, meaning if you have multiple subscribers, there is no guarantee of the order in which they will be called. For python, the GIL locks the implementation into a single-thread, so subscribers will be called in the order they were added.
+    Currently, the rust implementation is multi-threaded, meaning if you have multiple subscribers, there is no guarantee of the order in which they will be called. For python, regardless of if you are using a free-threaded interpreter (3.13t/3.14t, ect) or not, the events will be dispatched on a single thread in the order they were added.
 
 --- 
 ## Event Types

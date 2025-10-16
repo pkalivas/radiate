@@ -108,6 +108,7 @@ fn int_alterers() -> &'static HashMap<&'static str, AlterConv<IntChromosome<i32>
     })
 }
 
+// FLOAT
 fn float_alterers() -> &'static HashMap<&'static str, AlterConv<FloatChromosome>> {
     use std::sync::OnceLock;
     static MAP: OnceLock<HashMap<&'static str, AlterConv<FloatChromosome>>> = OnceLock::new();

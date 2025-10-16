@@ -443,17 +443,17 @@ Evolve a `Graph<Op<f32>>` to solve the XOR problem (NeuroEvolution).
     fn main() {
         random_provider::set_seed(501);
 
-        let values = vec![
+        let store = vec![
             (NodeType::Input, vec![Op::var(0), Op::var(1)]),
             (NodeType::Edge, vec![Op::weight(), Op::identity()]),
             (NodeType::Vertex, ops::all_ops()),
             (NodeType::Output, vec![Op::sigmoid()]),
         ];
 
-        let graph_codec = GraphCodec::directed(2, 1, values);
+        let graph_codec = GraphCodec::directed(2, 1, store);
         let regression = Regression::new(get_dataset(), Loss::MSE);
 
-        let mut engine = GeneticEngine::builder()
+        let engine = GeneticEngine::builder()
             .codec(graph_codec)
             .fitness_fn(regression)
             .minimizing()
@@ -474,7 +474,7 @@ Evolve a `Graph<Op<f32>>` to solve the XOR problem (NeuroEvolution).
     }
 
     fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
-        let mut reducer = GraphEvaluator::new(&result.best);
+        let mut reducer = GraphEvaluator::new(result.value());
         for sample in get_dataset().iter() {
             let output = &reducer.eval_mut(sample.input())[0];
             println!(
@@ -485,7 +485,7 @@ Evolve a `Graph<Op<f32>>` to solve the XOR problem (NeuroEvolution).
             );
         }
 
-        println!("{:?}", result)
+        println!("{result:?}");
     }
 
     fn get_dataset() -> DataSet {
@@ -580,10 +580,11 @@ Evolve a `Tree<Op<f32>>` to solve the a regression problem (Genetic Programming)
     fn display(result: &Generation<TreeChromosome<Op<f32>>, Tree<Op<f32>>>) {
         let data_set = get_dataset();
         let accuracy = Accuracy::new("reg", &data_set, Loss::MSE);
-        let accuracy_result = accuracy.calc(|input| vec![result.best.eval(input)]);
+        let mut result_clone = vec![result.value().clone()];
+        let accuracy_result = accuracy.calc(&mut result_clone);
 
         println!("{:?}", result);
-        println!("Best Tree: {}", result.best.format());
+        println!("Best Tree: {}", result.value().format());
         println!("{:?}", accuracy_result);
     }
 
@@ -655,56 +656,3 @@ Promise.all([
 })
 .catch(error => console.error(error));
 </script>
-
-
-<!--
-     ```python
-    import radiate as rd
-
-    MAX_INDEX = 500
-    MIN_SCORE = 0.01
-
-    def get_dataset():
-        inputs = [[0.0, 0.0], [1.0, 1.0], [1.0, 0.0], [0.0, 1.0]]
-        answers = [[0.0], [0.0], [1.0], [1.0]]
-        return rd.DataSet(inputs, answers)
-
-    engine = rd.GeneticEngine(
-        problem=rd.Regression(
-            dataset=get_dataset(),
-            loss=rd.Loss.MSE,
-            codec=rd.GraphCodec.directed(
-                input_size=2,
-                output_size=1,
-                values=[
-                    (rd.NodeType.Input, [rd.Op.var(0), rd.Op.var(1)]),
-                    (rd.NodeType.Edge, [rd.Op.weight(), rd.Op.identity()]),
-                    (rd.NodeType.Vertex, rd.ops.all_ops()),
-                    (rd.NodeType.Output, [rd.Op.sigmoid()]),
-                ]
-            )
-        ),
-        minimizing=True,
-        alters=[
-            rd.GraphCrossover(0.5, 0.5),
-            rd.OperationMutator(0.05, 0.05),
-            rd.GraphMutator(0.06, 0.01).allow_recurrent(False)
-        ]
-    )
-
-    result = engine.run(lambda ctx: (
-        print(f"[ {ctx.index} ]: {ctx.score.as_f32()}"),
-        ctx.index == MAX_INDEX or ctx.score.as_f32() < MIN_SCORE
-    ))
-
-    def display(result):
-        reducer = rd.GraphEvaluator(result.best)
-        for sample in get_dataset().iter():
-            output = reducer.eval_mut(sample.input())[0]
-            print(f"{sample.input()} -> expected: {sample.output()}, actual: {output:.3f}")
-
-        print(result)
-
-    display(result)
-    ``` 
--->
