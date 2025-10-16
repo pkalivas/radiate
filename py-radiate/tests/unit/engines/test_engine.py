@@ -51,6 +51,7 @@ class TestEngineBasicIntegration:
         assert len(result.ecosystem().species()) == 0
         assert result.objective() == "max"
 
+    @pytest.mark.integration
     def test_engine_can_maximize(self):
         target = "Testing, Radiate!"
 
@@ -83,7 +84,7 @@ class TestEngineBasicIntegration:
 
         assert result.value() == [True] * 10  # All ones
         assert result.score()[0] == 10.0
-        assert result.index() <= 100 # Should converge quickly
+        assert result.index() <= 100  # Should converge quickly
 
     @pytest.mark.integration
     def test_engine_minimizing_limits(self):
@@ -102,9 +103,13 @@ class TestEngineBasicIntegration:
         codec = rd.FloatCodec.vector(N_GENES, init_range=(-RANGE, RANGE))
         population = rd.Population(rd.Phenotype(codec.encode()) for _ in range(107))
 
-        engine = rd.GeneticEngine(codec, fitness_fn, population=population)
-        engine.minimizing()
-        engine.alters([rd.UniformCrossover(0.5), rd.ArithmeticMutator(0.01)])
+        engine = rd.GeneticEngine(
+            codec,
+            fitness_fn,
+            population,
+            objectives="min",
+            alters=[rd.UniformCrossover(0.5), rd.ArithmeticMutator(0.01)],
+        )
 
         result = engine.run([rd.ScoreLimit(0.0001), rd.GenerationsLimit(1000)])
 

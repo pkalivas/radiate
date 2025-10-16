@@ -68,7 +68,7 @@ class EngineInput(PyObject[PyEngineInput]):
             input_type=input_type_mapping[input_type],
             component=component,
             allowed_genes=set(
-                [GENE_TYPE_MAPPING["rs"][gene_type] for gene_type in allowed_genes]
+                GENE_TYPE_MAPPING["rs"][gene_type] for gene_type in allowed_genes
             ),
             args={k: v for k, v in kwargs.items()},
         )
