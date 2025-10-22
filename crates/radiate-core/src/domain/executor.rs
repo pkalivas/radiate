@@ -36,7 +36,7 @@ impl Executor {
             Executor::WorkerPool => {
                 use std::sync::{Arc, Mutex};
 
-                let result: Arc<Mutex<Option<R>>> = Arc::new(Mutex::new(None));
+                let result = Arc::new(Mutex::new(None));
                 let result_clone = Arc::clone(&result);
                 let wg = WaitGroup::new();
                 let _wg_clone = wg.guard();

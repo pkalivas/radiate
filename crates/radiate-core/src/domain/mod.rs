@@ -7,4 +7,3 @@ pub mod tracker;
 
 pub use executor::Executor;
 pub use indexes::SubsetMode;
-pub use thread_pool::get_thread_pool;

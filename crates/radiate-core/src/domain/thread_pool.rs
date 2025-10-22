@@ -22,7 +22,7 @@ impl FixedThreadPool {
     }
 }
 
-pub fn get_thread_pool(num_workers: usize) -> Arc<ThreadPool> {
+pub(crate) fn get_thread_pool(num_workers: usize) -> Arc<ThreadPool> {
     Arc::clone(&FixedThreadPool::instance(num_workers).inner)
 }
 
@@ -62,16 +62,38 @@ impl ThreadPool {
         }
     }
 
-    pub fn group_submit(&self, wg: &WaitGroup, f: impl FnOnce() + Send + 'static) {
-        let guard = wg.guard();
-
-        self.submit(move || {
-            f();
-            drop(guard);
-        });
+    pub fn num_workers(&self) -> usize {
+        self.workers.len()
     }
 
-    /// Execute a job in the thread pool. This is a 'fire and forget' method.
+    pub fn is_alive(&self) -> bool {
+        self.workers.iter().any(|worker| worker.is_alive())
+    }
+
+    /// Execute a job in the thread pool. This method does not return anything
+    /// and as such can be thought of as a 'fire-and-forget' job submission.
+    ///
+    /// # Example
+    /// ```rust,ignore
+    /// use radiate_core::domain::thread_pool::ThreadPool;
+    /// use std::sync::{Arc, Mutex};
+    ///
+    /// let pool = ThreadPool::new(4);
+    /// let counter = Arc::new(Mutex::new(0));
+    ///
+    /// for _ in 0..8 {
+    ///     let counter = Arc::clone(&counter);
+    ///     pool.submit(move || {
+    ///         let mut num = counter.lock().unwrap();
+    ///         *num += 1;
+    ///     });
+    /// }
+    ///
+    /// // Drop the pool to join all threads
+    /// drop(pool);
+    ///
+    /// assert_eq!(*counter.lock().unwrap(), 8);
+    /// ```
     pub fn submit<F>(&self, f: F)
     where
         F: FnOnce() + Send + 'static,
@@ -80,7 +102,25 @@ impl ThreadPool {
         self.sender.send(Message::NewJob(job)).unwrap();
     }
 
-    /// Execute a job in the thread pool and return a `WorkResult` that can be used to get the result of the job.
+    /// Execute a job in the thread pool and return a [WorkResult]
+    /// that can be used to get the result of the job. This method
+    /// is similar to a 'future' in that it allows the user to get
+    /// the result of the job at a later time. It should be noted that the [WorkResult]
+    /// will block when calling `result()` until the job is complete.
+    ///
+    /// # Example
+    /// ```rust,ignore
+    /// use radiate_core::domain::thread_pool::ThreadPool;
+    ///
+    /// let pool = ThreadPool::new(4);
+    /// let work_result = pool.submit_with_result(|| 10 + 32);
+    ///
+    /// // Drop the pool to join all threads
+    /// drop(pool);
+    ///
+    /// let result = work_result.result();
+    /// assert_eq!(result, 42);
+    /// ```
     pub fn submit_with_result<F, T>(&self, f: F) -> WorkResult<T>
     where
         F: FnOnce() -> T + Send + 'static,
@@ -90,15 +130,8 @@ impl ThreadPool {
         let job = Box::new(move || tx.send(f()).unwrap());
 
         self.sender.send(Message::NewJob(job)).unwrap();
+
         WorkResult { receiver: rx }
-    }
-
-    pub fn num_workers(&self) -> usize {
-        self.workers.len()
-    }
-
-    pub fn is_alive(&self) -> bool {
-        self.workers.iter().any(|worker| worker.is_alive())
     }
 }
 
