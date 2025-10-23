@@ -7,12 +7,23 @@ use std::{
 };
 use std::{sync::mpsc, thread};
 
+/// A fixed-size thread pool implementation. This thread pool will create a fixed number of worker threads
+/// that will be reused for executing jobs. This is useful for limiting the number of concurrent threads
+/// in the application.
+///
+/// The thread pool within the `FixedThreadPool` is created only once and will be reused for the lifetime of the program.
+/// Meaning that the first time you request a thread pool with a specific number of workers, that number will be used.
+/// Subsequent requests with different numbers will be ignored.
 struct FixedThreadPool {
     inner: Arc<ThreadPool>,
 }
 
 impl FixedThreadPool {
-    /// Returns the global instance of the registry.
+    /// Returns the global instance of the threadpool.
+    ///
+    /// This thread pool is fixed in size and will be created only once. This means that
+    /// the first time you call this method with a specific number of workers, that number will be used
+    /// for the lifetime of the program. Subsequent calls with different numbers will be ignored.
     pub(self) fn instance(num_workers: usize) -> &'static FixedThreadPool {
         static INSTANCE: OnceLock<FixedThreadPool> = OnceLock::new();
 
