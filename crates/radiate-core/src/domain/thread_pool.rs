@@ -256,7 +256,6 @@ impl WaitGroup {
         self.total_count.load(Ordering::Acquire)
     }
 
-    /// Adds one to the counter and returns a scoped guard that will decrement when dropped.
     pub fn guard(&self) -> WaitGuard {
         self.inner.counter.fetch_add(1, Ordering::AcqRel);
         self.total_count.fetch_add(1, Ordering::AcqRel);
@@ -281,9 +280,8 @@ impl WaitGroup {
 
 #[cfg(test)]
 mod tests {
-    use std::time::{Duration, Instant};
-
     use super::*;
+    use std::time::{Duration, Instant};
 
     #[test]
     fn test_thread_pool_creation() {
@@ -384,5 +382,64 @@ mod tests {
         assert!(elapsed < Duration::from_secs(3));
         assert_eq!(results.len(), num_jobs);
         assert!(results.iter().all(|&x| x < num_jobs));
+    }
+
+    #[test]
+    fn tests_thread_pool_submit_with_result_returns_correct_order() {
+        let pool = ThreadPool::new(5);
+        let num_jobs = 10;
+        let mut work_results = vec![];
+
+        for i in 0..num_jobs {
+            let work_result = pool.submit_with_result(move || {
+                thread::sleep(Duration::from_millis(50 * (num_jobs - i) as u64));
+                i * i
+            });
+            work_results.push(work_result);
+        }
+
+        for (i, work_result) in work_results.into_iter().enumerate() {
+            let result = work_result.result();
+            assert_eq!(result, i * i);
+        }
+    }
+
+    #[test]
+    fn test_wait_group() {
+        let pool = ThreadPool::new(4);
+        let wg = WaitGroup::new();
+        let num_tasks = 10;
+        let total = Arc::new(Mutex::new(0));
+
+        for _ in 0..num_tasks {
+            let guard = wg.guard();
+            let total = Arc::clone(&total);
+            pool.submit(move || {
+                thread::sleep(Duration::from_millis(100));
+                let mut num = total.lock().unwrap();
+                *num += 1;
+                drop(guard);
+            });
+        }
+
+        // Not all tasks should be done yet - so the total should be less than num_tasks
+        {
+            let total = total.lock().unwrap();
+            assert_ne!(*total, num_tasks);
+        }
+
+        let total_tasks_waited_for = wg.wait();
+
+        // Now all tasks should be done - so the total should equal num_tasks
+        let total = total.lock().unwrap();
+        assert_eq!(*total, num_tasks);
+        assert_eq!(total_tasks_waited_for, num_tasks);
+    }
+
+    #[test]
+    fn test_wait_group_zero_tasks() {
+        let wg = WaitGroup::new();
+        let total_tasks_waited_for = wg.wait();
+        assert_eq!(total_tasks_waited_for, 0);
     }
 }

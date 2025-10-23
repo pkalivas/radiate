@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use super::PyGenotype;
 use crate::EpochHandle;
 use crate::PyAnyObject;
@@ -10,6 +8,7 @@ use crate::bindings::gp::{PyGraph, PyTree};
 use crate::object::Wrap;
 use numpy::PyArray1;
 use pyo3::IntoPyObject;
+use pyo3::intern;
 use pyo3::types::PyAnyMethods;
 use pyo3::types::PyDict;
 use pyo3::{
@@ -18,6 +17,7 @@ use pyo3::{
 };
 use radiate::Generation;
 use radiate::prelude::*;
+use std::time::Duration;
 
 #[pyclass(unsendable)]
 pub struct PyGeneration {
@@ -256,8 +256,8 @@ where
             let fitness = member.score().unwrap().iter().cloned().collect::<Vec<_>>();
 
             let member = PyDict::new(py);
-            member.set_item("genotype", temp).unwrap();
-            member.set_item("fitness", fitness).unwrap();
+            member.set_item(intern!(py, "genotype"), temp).unwrap();
+            member.set_item(intern!(py, "fitness"), fitness).unwrap();
 
             result.append(member).unwrap();
         }

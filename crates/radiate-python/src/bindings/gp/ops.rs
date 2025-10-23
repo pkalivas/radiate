@@ -1,4 +1,5 @@
 use crate::object::Wrap;
+use pyo3::exceptions::PyValueError;
 use pyo3::{Bound, FromPyObject, PyAny, PyResult, pyclass, types::PyAnyMethods};
 use radiate::Op;
 
@@ -93,9 +94,6 @@ impl<'py> FromPyObject<'py> for Wrap<Op<f32>> {
             return Ok(Wrap(Op::softplus()));
         }
 
-        Err(pyo3::exceptions::PyValueError::new_err(format!(
-            "Unknown Op name: {}",
-            name
-        )))
+        Err(PyValueError::new_err(format!("Unknown Op name: {}", name)))
     }
 }

@@ -13,10 +13,8 @@ enum GeneInner {
     Bit(BitGene),
     Char(CharGene),
     Permutation(PermutationGene<usize>),
-
     GraphNode(GraphNode<Op<f32>>),
     TreeNode(TreeNode<Op<f32>>),
-
     AnyGene(AnyGene<'static>),
 }
 
