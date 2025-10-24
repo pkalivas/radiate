@@ -1,7 +1,9 @@
-use super::Field;
 use crate::{
     Wrap,
-    any::{dtype::DataType, gene::NumericSlotMut},
+    any::{
+        dtype::{DataType, Field},
+        gene::NumericSlotMut,
+    },
 };
 use pyo3::{
     Bound, FromPyObject, IntoPyObject, PyAny, PyErr, PyResult, Python, exceptions::PyValueError,

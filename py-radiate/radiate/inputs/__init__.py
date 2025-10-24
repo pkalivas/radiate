@@ -21,7 +21,6 @@ from .alterer import (
     PolynomialMutator,
     EdgeRecombinationCrossover,
     JitterMutator,
-    AnyAlterer,
 )
 
 from .selector import (
@@ -90,5 +89,4 @@ __all__ = [
     "Regression",
     "ConvergenceLimit",
     "CustomDescriptor",
-    "AnyAlterer",
 ]

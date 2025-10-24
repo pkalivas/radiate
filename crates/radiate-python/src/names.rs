@@ -32,7 +32,6 @@ pub(crate) const SIMULATED_BINARY_CROSSOVER: &str = "SimulatedBinaryCrossover";
 pub(crate) const GRAPH_CROSSOVER: &str = "GraphCrossover";
 pub(crate) const PARTIALLY_MAPPED_CROSSOVER: &str = "PartiallyMappedCrossover";
 pub(crate) const EDGE_RECOMBINE_CROSSOVER: &str = "EdgeRecombinationCrossover";
-pub(crate) const CUSTOM_CROSSOVER: &str = "CustomCrossover";
 
 // Mutators
 pub(crate) const UNIFORM_MUTATOR: &str = "UniformMutator";
@@ -47,7 +46,3 @@ pub(crate) const HOIST_MUTATOR: &str = "HoistMutator";
 pub(crate) const INVERSION_MUTATOR: &str = "InversionMutator";
 pub(crate) const POLYNOMIAL_MUTATOR: &str = "PolynomialMutator";
 pub(crate) const JITTER_MUTATOR: &str = "JitterMutator";
-pub(crate) const CUSTOM_MUTATOR: &str = "CustomMutator";
-
-pub(crate) const EXPRESSION_MUTATOR: &str = "ExprMutator";
-pub(crate) const EXPRESSION_CROSSOVER: &str = "ExprCrossover";
