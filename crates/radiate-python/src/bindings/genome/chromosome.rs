@@ -48,21 +48,6 @@ impl PyChromosome {
         Ok(self.genes[index].clone())
     }
 
-    pub fn __setitem__(&mut self, index: isize, value: PyGene) -> PyResult<()> {
-        if index >= self.genes.len() as isize || index < -(self.genes.len() as isize) {
-            return Err(PyIndexError::new_err("index out of range"));
-        }
-
-        let index = if index < 0 {
-            index + self.genes.len() as isize
-        } else {
-            index
-        } as usize;
-
-        self.genes[index] = value;
-        Ok(())
-    }
-
     pub fn gene_type(&self) -> PyGeneType {
         if self.genes.is_empty() {
             PyGeneType::Empty

@@ -21,23 +21,6 @@ class ObjectGene(rd.AnyGene):
 
     def __repr__(self):
         return f"ObjectGene(number={self.number}, text={self.text}, flag={self.flag}, complex={self.complex})"
-    
-class TestMutator(rd.Mutator):
-    def mutate(self, chromosome: rd.Chromosome) -> rd.Chromosome:
-        chromosome[0].with_allele(chromosome[0].allele() * 2)
-        # for i in range(len(chromosome)):
-        #     gene = chromosome.view(i)
-        #     chromosome[i] = gene.new_instance(gene.allele() * 2)
-        return chromosome
-    
-chrom = rd.Chromosome(rd.gene.float() for _ in range(1))
-mutator = TestMutator()
-
-print("Before mutation:")
-print(chrom)
-mutated_chrom = mutator.mutate(chrom)
-print("After mutation:")
-print(mutated_chrom)
 
 
 # def fitness_function(individuals):
