@@ -1,8 +1,8 @@
 use crate::{
-    AnyChromosome, ExprCrossover, ExprMutator, InputTransform, PyAlteration, PyEngineInput,
-    PyEngineInputType,
+    AnyChromosome, ExprCrossover, ExprMutator, InputTransform, PyAlteration, PyChromosome,
+    PyCrossover, PyEngineInput, PyEngineInputType, PyMutator,
 };
-use pyo3::{PyResult, exceptions::PyTypeError};
+use pyo3::{Py, PyAny, PyResult, exceptions::PyTypeError};
 use radiate::*;
 use std::collections::HashMap;
 
@@ -99,6 +99,8 @@ fn int_alterers() -> &'static HashMap<&'static str, AlterConv<IntChromosome<i32>
             crate::names::UNIFORM_CROSSOVER       => convert_uniform_crossover,
             crate::names::MEAN_CROSSOVER          => convert_mean_crossover,
             crate::names::SHUFFLE_CROSSOVER       => convert_shuffle_crossover,
+            crate::names::CUSTOM_CROSSOVER        => convert_custom_crossover,
+            crate::names::CUSTOM_MUTATOR          => convert_custom_mutator,
             crate::names::ARITHMETIC_MUTATOR      => convert_arithmetic_mutator,
             crate::names::SWAP_MUTATOR            => convert_swap_mutator,
             crate::names::SCRAMBLE_MUTATOR        => convert_scramble_mutator,
@@ -120,6 +122,8 @@ fn float_alterers() -> &'static HashMap<&'static str, AlterConv<FloatChromosome>
             crate::names::INTERMEDIATE_CROSSOVER       => convert_intermediate_crossover,
             crate::names::BLEND_CROSSOVER              => convert_blend_crossover,
             crate::names::SIMULATED_BINARY_CROSSOVER   => convert_simulated_binary_crossover,
+            crate::names::CUSTOM_CROSSOVER             => convert_custom_crossover,
+            crate::names::CUSTOM_MUTATOR               => convert_custom_mutator,
             crate::names::GAUSSIAN_MUTATOR             => convert_gaussian_mutator,
             crate::names::ARITHMETIC_MUTATOR           => convert_arithmetic_mutator,
             crate::names::SWAP_MUTATOR                 => convert_swap_mutator,
@@ -141,6 +145,8 @@ fn char_alterers() -> &'static HashMap<&'static str, AlterConv<CharChromosome>> 
             crate::names::MULTI_POINT_CROSSOVER   => convert_multi_point_crossover,
             crate::names::UNIFORM_CROSSOVER       => convert_uniform_crossover,
             crate::names::SHUFFLE_CROSSOVER       => convert_shuffle_crossover,
+            crate::names::CUSTOM_CROSSOVER        => convert_custom_crossover,
+            crate::names::CUSTOM_MUTATOR          => convert_custom_mutator,
             crate::names::SWAP_MUTATOR            => convert_swap_mutator,
             crate::names::SCRAMBLE_MUTATOR        => convert_scramble_mutator,
             crate::names::UNIFORM_MUTATOR         => convert_uniform_mutator,
@@ -158,6 +164,8 @@ fn bit_alterers() -> &'static HashMap<&'static str, AlterConv<BitChromosome>> {
             crate::names::MULTI_POINT_CROSSOVER   => convert_multi_point_crossover,
             crate::names::UNIFORM_CROSSOVER       => convert_uniform_crossover,
             crate::names::SHUFFLE_CROSSOVER       => convert_shuffle_crossover,
+            crate::names::CUSTOM_CROSSOVER        => convert_custom_crossover,
+            crate::names::CUSTOM_MUTATOR          => convert_custom_mutator,
             crate::names::SWAP_MUTATOR            => convert_swap_mutator,
             crate::names::SCRAMBLE_MUTATOR        => convert_scramble_mutator,
             crate::names::UNIFORM_MUTATOR         => convert_uniform_mutator,
@@ -175,6 +183,8 @@ fn perm_alterers() -> &'static HashMap<&'static str, AlterConv<PermutationChromo
         table! {
             crate::names::PARTIALLY_MAPPED_CROSSOVER  => convert_partially_mapped_crossover,
             crate::names::EDGE_RECOMBINE_CROSSOVER    => convert_edge_recombine_crossover,
+            crate::names::CUSTOM_CROSSOVER            => convert_custom_crossover,
+            crate::names::CUSTOM_MUTATOR              => convert_custom_mutator,
             crate::names::SWAP_MUTATOR                => convert_swap_mutator,
             crate::names::SCRAMBLE_MUTATOR            => convert_scramble_mutator,
             crate::names::UNIFORM_MUTATOR             => convert_uniform_mutator,
@@ -222,13 +232,15 @@ fn any_alterers() -> &'static HashMap<&'static str, AlterConv<AnyChromosome<'sta
             crate::names::UNIFORM_CROSSOVER       => convert_uniform_crossover,
             crate::names::SHUFFLE_CROSSOVER       => convert_shuffle_crossover,
             crate::names::MEAN_CROSSOVER          => convert_mean_crossover,
+            crate::names::CUSTOM_CROSSOVER        => convert_custom_crossover,
+            crate::names::CUSTOM_MUTATOR          => convert_custom_mutator,
             crate::names::SWAP_MUTATOR            => convert_swap_mutator,
             crate::names::SCRAMBLE_MUTATOR        => convert_scramble_mutator,
             crate::names::UNIFORM_MUTATOR         => convert_uniform_mutator,
             crate::names::INVERSION_MUTATOR       => convert_inversion_mutator,
             crate::names::ARITHMETIC_MUTATOR      => convert_arithmetic_mutator,
-            crate::names::EXPRESSION_MUTATOR        => convert_any_mutator,
-            crate::names::EXPRESSION_CROSSOVER      => convert_expression_crossover,
+            crate::names::EXPRESSION_MUTATOR      => convert_any_mutator,
+            crate::names::EXPRESSION_CROSSOVER    => convert_expression_crossover,
         }
     })
 }
@@ -380,4 +392,34 @@ fn convert_polynomial_mutator(input: &PyEngineInput) -> PolynomialMutator {
     let rate = input.get_f32("rate").unwrap_or(0.5);
     let eta = input.get_f32("eta").unwrap_or(20.0);
     PolynomialMutator::new(rate, eta)
+}
+
+fn convert_custom_mutator<C>(input: &PyEngineInput) -> PyMutator<C>
+where
+    C: Chromosome + Clone,
+    PyChromosome: From<C>,
+{
+    let rate = input.get_f32("rate").unwrap_or(1.0);
+    let mutate_func = input
+        .extract::<Py<PyAny>>("mutate")
+        .expect("Mutate function must be provided");
+    let name = input
+        .get_string("name")
+        .unwrap_or_else(|| "CustomMutator".to_string());
+    PyMutator::new(rate, name, mutate_func)
+}
+
+fn convert_custom_crossover<C>(input: &PyEngineInput) -> PyCrossover<C>
+where
+    C: Chromosome + Clone,
+    PyChromosome: From<C>,
+{
+    let rate = input.get_f32("rate").unwrap_or(1.0);
+    let crossover_func = input
+        .extract::<Py<PyAny>>("crossover")
+        .expect("Crossover function must be provided");
+    let name = input
+        .get_string("name")
+        .unwrap_or_else(|| "CustomCrossover".to_string());
+    PyCrossover::new(rate, name, crossover_func)
 }

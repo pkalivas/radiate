@@ -1,10 +1,11 @@
-from typing import Any
+from typing import Any, cast
 
 from radiate.genome.population import Population
 from radiate.inputs.input import EngineInput, EngineInputType
 from .component import ComponentBase
-from ..genome import GeneType
+from ..genome import GeneType, Chromosome
 from radiate.radiate import PyAlteration
+from abc import ABC, abstractmethod
 
 
 class AlterBase(ComponentBase):
@@ -57,6 +58,53 @@ class AlterBase(ComponentBase):
                 generation,
             )
         )
+
+
+class Mutator(AlterBase, ABC):
+    def __init__(self, rate: float = 1.0):
+        super().__init__(
+            component="CustomMutator",
+            args={
+                "rate": rate,
+                "mutate": lambda chrom: self.mutate(cast(Chromosome, chrom)),
+            },
+        )
+        self.rate = rate
+
+    @abstractmethod
+    def mutate(self, chromosome: Chromosome) -> Chromosome:
+        """
+        Abstract method to mutate a chromosome.
+        :param chromosome: The chromosome to mutate.
+        :return: The mutated chromosome.
+        """
+        pass
+
+
+class Crossover(AlterBase, ABC):
+    def __init__(self, rate: float = 1.0):
+        super().__init__(
+            component="CustomCrossover",
+            args={
+                "rate": rate,
+                "crossover": lambda p1, p2: self.crossover(
+                    cast(Chromosome, p1), cast(Chromosome, p2)
+                ),
+            },
+        )
+        self.rate = rate
+
+    @abstractmethod
+    def crossover(
+        self, parent1: Chromosome, parent2: Chromosome
+    ) -> tuple[Chromosome, Chromosome]:
+        """
+        Abstract method to perform crossover between two parents.
+        :param parent1: The first parent.
+        :param parent2: The second parent.
+        :return: The offspring produced by the crossover.
+        """
+        pass
 
 
 class BlendCrossover(AlterBase):

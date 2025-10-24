@@ -73,6 +73,63 @@ impl PyGene {
         }
     }
 
+    // TODO: Hmmmm, this feels messy
+    pub fn with_allele<'py>(&mut self, py: Python<'py>, allele: Py<PyAny>) -> PyResult<()> {
+        match &mut self.inner {
+            GeneInner::Float(gene) => {
+                if let Ok(allele_f64) = allele.extract::<f64>(py) {
+                    *gene.allele_mut() = allele_f64 as f32;
+                } else if let Ok(allele_f32) = allele.extract::<f32>(py) {
+                    *gene.allele_mut() = allele_f32;
+                } else {
+                    return Err(pyo3::exceptions::PyTypeError::new_err(
+                        "Expected a float value for FloatGene allele",
+                    ));
+                }
+            }
+            GeneInner::Int(gene) => {
+                if let Ok(allele_i64) = allele.extract::<i64>(py) {
+                    *gene.allele_mut() = allele_i64 as i32;
+                } else if let Ok(allele_i32) = allele.extract::<i32>(py) {
+                    *gene.allele_mut() = allele_i32;
+                } else {
+                    return Err(pyo3::exceptions::PyTypeError::new_err(
+                        "Expected an int value for IntGene allele",
+                    ));
+                }
+            }
+            GeneInner::Bit(gene) => {
+                if let Ok(allele_bool) = allele.extract::<bool>(py) {
+                    *gene.allele_mut() = allele_bool;
+                } else {
+                    return Err(pyo3::exceptions::PyTypeError::new_err(
+                        "Expected a bool value for BitGene allele",
+                    ));
+                }
+            }
+            GeneInner::Char(gene) => {
+                if let Ok(allele_char) = allele.extract::<char>(py) {
+                    *gene.allele_mut() = allele_char;
+                } else {
+                    return Err(pyo3::exceptions::PyTypeError::new_err(
+                        "Expected a char value for CharGene allele",
+                    ));
+                }
+            }
+            GeneInner::Permutation(_) => {
+                return Err(pyo3::exceptions::PyTypeError::new_err(
+                    "Cannot set allele for PermutationGene",
+                ));
+            }
+            GeneInner::GraphNode(_) | GeneInner::TreeNode(_) | GeneInner::AnyGene(_) => {
+                return Err(pyo3::exceptions::PyTypeError::new_err(
+                    "Cannot set allele for this gene type",
+                ));
+            }
+        }
+        Ok(())
+    }
+
     #[staticmethod]
     #[pyo3(signature = (allele=None, range=None, bounds=None))]
     pub fn float(

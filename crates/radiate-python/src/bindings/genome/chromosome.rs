@@ -1,10 +1,5 @@
 use crate::{AnyChromosome, AnyGene, PyGene, PyGeneType};
-use pyo3::{
-    Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python,
-    exceptions::{PyIndexError, PyTypeError},
-    pyclass, pymethods,
-    types::{PyAnyMethods, PySlice, PySliceMethods},
-};
+use pyo3::{PyResult, exceptions::PyIndexError, pyclass, pymethods};
 use radiate::prelude::*;
 
 #[pyclass]
@@ -39,13 +34,33 @@ impl PyChromosome {
         self.genes.iter().zip(&other.genes).all(|(a, b)| a == b)
     }
 
-    pub fn __getitem__<'py>(
-        &self,
-        py: Python<'py>,
-        index: Py<PyAny>,
-    ) -> PyResult<Bound<'py, PyAny>> {
-        let index = index.into_bound(py);
-        self.get_item(py, index)
+    pub fn __getitem__<'py>(&self, index: isize) -> PyResult<PyGene> {
+        if index >= self.genes.len() as isize || index < -(self.genes.len() as isize) {
+            return Err(PyIndexError::new_err("index out of range"));
+        }
+
+        let index = if index < 0 {
+            index + self.genes.len() as isize
+        } else {
+            index
+        } as usize;
+
+        Ok(self.genes[index].clone())
+    }
+
+    pub fn __setitem__(&mut self, index: isize, value: PyGene) -> PyResult<()> {
+        if index >= self.genes.len() as isize || index < -(self.genes.len() as isize) {
+            return Err(PyIndexError::new_err("index out of range"));
+        }
+
+        let index = if index < 0 {
+            index + self.genes.len() as isize
+        } else {
+            index
+        } as usize;
+
+        self.genes[index] = value;
+        Ok(())
     }
 
     pub fn gene_type(&self) -> PyGeneType {
@@ -54,46 +69,6 @@ impl PyChromosome {
         } else {
             self.genes[0].gene_type()
         }
-    }
-
-    fn get_item<'py>(
-        &self,
-        py: Python<'py>,
-        index: Bound<'py, PyAny>,
-    ) -> PyResult<Bound<'py, PyAny>> {
-        if let Ok(mut idx) = index.extract::<isize>() {
-            let n = self.genes.len() as isize;
-            if idx < 0 {
-                idx += n;
-            }
-
-            if idx < 0 || idx >= n {
-                return Err(PyIndexError::new_err("index out of range"));
-            }
-
-            return self.genes[idx as usize].clone().into_bound_py_any(py);
-        }
-
-        if let Ok(py_slice) = index.downcast::<PySlice>() {
-            let indices = py_slice
-                .indices(self.genes.len() as isize)
-                .map_err(|e| PyIndexError::new_err(format!("invalid slice: {}", e)))?;
-
-            let (start, stop, step) = (
-                indices.start as usize,
-                indices.stop as usize,
-                indices.step as usize,
-            );
-
-            let mut result = Vec::with_capacity(((stop.saturating_sub(start)) + step - 1) / step);
-            for i in (start..stop).step_by(step) {
-                result.push(self.genes[i].clone());
-            }
-
-            return PyChromosome { genes: result }.into_bound_py_any(py);
-        }
-
-        Err(PyTypeError::new_err("invalid index type"))
     }
 }
 
@@ -131,3 +106,54 @@ impl_into_py_chromosome!(GraphChromosome<Op<f32>>, GraphNode<Op<f32>>);
 impl_into_py_chromosome!(TreeChromosome<Op<f32>>, TreeNode<Op<f32>>);
 impl_into_py_chromosome!(PermutationChromosome<usize>, PermutationGene<usize>);
 impl_into_py_chromosome!(AnyChromosome<'static>, AnyGene<'static>);
+
+// types::{PyAnyMethods, PySlice, PySliceMethods},
+
+// pub fn __getitem__<'py>(
+//     &self,
+//     py: Python<'py>,
+//     index: Py<PyAny>,
+// ) -> PyResult<Bound<'py, PyAny>> {
+//     let index = index.into_bound(py);
+//     self.get_item(py, index)
+// }
+
+// fn get_item<'py>(
+//     &self,
+//     py: Python<'py>,
+//     index: Bound<'py, PyAny>,
+// ) -> PyResult<Bound<'py, PyAny>> {
+//     if let Ok(mut idx) = index.extract::<isize>() {
+//         let n = self.genes.len() as isize;
+//         if idx < 0 {
+//             idx += n;
+//         }
+
+//         if idx < 0 || idx >= n {
+//             return Err(PyIndexError::new_err("index out of range"));
+//         }
+
+//         return self.genes[idx as usize].clone().into_bound_py_any(py);
+//     }
+
+//     if let Ok(py_slice) = index.downcast::<PySlice>() {
+//         let indices = py_slice
+//             .indices(self.genes.len() as isize)
+//             .map_err(|e| PyIndexError::new_err(format!("invalid slice: {}", e)))?;
+
+//         let (start, stop, step) = (
+//             indices.start as usize,
+//             indices.stop as usize,
+//             indices.step as usize,
+//         );
+
+//         let mut result = Vec::with_capacity(((stop.saturating_sub(start)) + step - 1) / step);
+//         for i in (start..stop).step_by(step) {
+//             result.push(self.genes[i].clone());
+//         }
+
+//         return PyChromosome { genes: result }.into_bound_py_any(py);
+//     }
+
+//     Err(PyTypeError::new_err("invalid index type"))
+// }

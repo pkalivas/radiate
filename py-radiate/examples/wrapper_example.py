@@ -21,46 +21,63 @@ class ObjectGene(rd.AnyGene):
 
     def __repr__(self):
         return f"ObjectGene(number={self.number}, text={self.text}, flag={self.flag}, complex={self.complex})"
+    
+class TestMutator(rd.Mutator):
+    def mutate(self, chromosome: rd.Chromosome) -> rd.Chromosome:
+        chromosome[0].with_allele(chromosome[0].allele() * 2)
+        # for i in range(len(chromosome)):
+        #     gene = chromosome.view(i)
+        #     chromosome[i] = gene.new_instance(gene.allele() * 2)
+        return chromosome
+    
+chrom = rd.Chromosome(rd.gene.float() for _ in range(1))
+mutator = TestMutator()
+
+print("Before mutation:")
+print(chrom)
+mutated_chrom = mutator.mutate(chrom)
+print("After mutation:")
+print(mutated_chrom)
 
 
-def fitness_function(individuals):
-    number_sum = abs(sum(individual.number for individual in individuals))
-    list_sum = abs(sum(g for ind in individuals for g in ind.complex["list"]))
-    return list_sum + number_sum
+# def fitness_function(individuals):
+#     number_sum = abs(sum(individual.number for individual in individuals))
+#     list_sum = abs(sum(g for ind in individuals for g in ind.complex["list"]))
+#     return list_sum + number_sum
 
 
-engine = rd.GeneticEngine(
-    codec=rd.AnyCodec(5, lambda: ObjectGene()),
-    fitness_func=fitness_function,
-    objectives="min",
-    alters=[
-        rd.AnyAlterer.two_point("list", rate=0.5),
-        rd.AnyAlterer.uniform("list", rate=0.1, bounds=(-10, 10)),
-        rd.AnyAlterer.jitter("number", rate=0.1, amount=0.1),
-        # rd.FieldAlterer.swap("list", rate=0.5),
-        # rd.UniformCrossover(0.5),
-    ],
-)
+# engine = rd.GeneticEngine(
+#     codec=rd.AnyCodec(5, lambda: ObjectGene()),
+#     fitness_func=fitness_function,
+#     objectives="min",
+#     alters=[
+#         rd.AnyAlterer.two_point("list", rate=0.5),
+#         rd.AnyAlterer.uniform("list", rate=0.1, bounds=(-10, 10)),
+#         rd.AnyAlterer.jitter("number", rate=0.1, amount=0.1),
+#         # rd.FieldAlterer.swap("list", rate=0.5),
+#         # rd.UniformCrossover(0.5),
+#     ],
+# )
 
-result = engine.run([rd.ScoreLimit(0.0001), rd.SecondsLimit(4)], log=True)
+# result = engine.run([rd.ScoreLimit(0.0001), rd.SecondsLimit(4)], log=True)
 
 
-t = result.value()
+# t = result.value()
 
-number_sum = 0
-list_sum = 0
+# number_sum = 0
+# list_sum = 0
 
-for individual in t:
-    number_sum += abs(individual.number)
-    list_sum += abs(sum(individual.complex["list"]))
+# for individual in t:
+#     number_sum += abs(individual.number)
+#     list_sum += abs(sum(individual.complex["list"]))
 
-print(t)
-print(fitness_function(t))
+# print(t)
+# print(fitness_function(t))
 
-codec = rd.AnyCodec(2, lambda: ObjectGene())
+# codec = rd.AnyCodec(2, lambda: ObjectGene())
 
-c = codec.encode()
+# c = codec.encode()
 
-for g in c:
-    for o in g:
-        print(o)
+# for g in c:
+#     for o in g:
+#         print(o)
