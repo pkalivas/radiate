@@ -13,7 +13,7 @@ class TestAnyCodec:
                 self.three = 3.0
                 self.four = [4, 4, 4]
 
-        codec = rd.AnyCodec(2, lambda: MyGene())
+        codec = rd.AnyCodec(MyGene() for _ in range(2))
 
         genotype = codec.encode()
 
@@ -43,7 +43,7 @@ class TestAnyCodec:
                     "attr4": [4, 4, 4],
                 }
 
-        codec = rd.AnyCodec(2, lambda: ComplexGene())
+        codec = rd.AnyCodec(ComplexGene() for _ in range(2))
 
         genotype = codec.encode()
 
@@ -74,7 +74,7 @@ class TestAnyCodec:
             assert all(isinstance(g, CustomGene) for g in genes)
             return sum(g.value for g in genes)
 
-        codec = rd.AnyCodec(3, lambda: CustomGene())
+        codec = rd.AnyCodec(CustomGene() for _ in range(3))
 
         engine = rd.GeneticEngine(codec, fitness_fn)
         result = engine.run(rd.GenerationsLimit(1))
