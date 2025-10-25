@@ -67,13 +67,3 @@ pub trait Eval<I: ?Sized, O> {
 pub trait EvalMut<I: ?Sized, O> {
     fn eval_mut(&mut self, input: &I) -> O;
 }
-
-impl<I, O, T> EvalMut<I, O> for T
-where
-    I: ?Sized,
-    T: Eval<I, O>,
-{
-    fn eval_mut(&mut self, input: &I) -> O {
-        self.eval(input)
-    }
-}
