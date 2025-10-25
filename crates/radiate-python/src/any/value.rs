@@ -31,7 +31,7 @@ pub enum AnyValue<'a> {
     Str(&'a str),
     StrOwned(String),
     Vector(Box<Vec<AnyValue<'a>>>),
-    Struct(Vec<(AnyValue<'a>, Field)>),
+    Struct(Vec<(Field, AnyValue<'a>)>),
 }
 
 impl<'a> AnyValue<'a> {
@@ -51,7 +51,7 @@ impl<'a> AnyValue<'a> {
     }
 
     #[inline]
-    pub fn struct_fields(&self) -> Option<&[(AnyValue<'a>, Field)]> {
+    pub fn struct_as_slice(&self) -> Option<&[(Field, AnyValue<'a>)]> {
         match self {
             AnyValue::Struct(v) => Some(v.as_slice()),
             _ => None,
@@ -59,7 +59,7 @@ impl<'a> AnyValue<'a> {
     }
 
     #[inline]
-    pub fn struct_fields_mut(&mut self) -> Option<&mut [(AnyValue<'a>, Field)]> {
+    pub fn struct_as_slice_mut(&mut self) -> Option<&mut [(Field, AnyValue<'a>)]> {
         match self {
             AnyValue::Struct(v) => Some(v.as_mut_slice()),
             _ => None,
@@ -76,8 +76,8 @@ impl<'a> AnyValue<'a> {
 
     #[inline]
     pub fn get_struct_value(&self, name: &str) -> Option<&AnyValue<'a>> {
-        if let Some(fields) = self.struct_fields() {
-            for (value, field) in fields {
+        if let Some(fields) = self.struct_as_slice() {
+            for (field, value) in fields {
                 if value.is_nested() {
                     if let Some(v) = value.get_struct_value(name) {
                         return Some(v);
@@ -93,8 +93,8 @@ impl<'a> AnyValue<'a> {
 
     #[inline]
     pub fn get_struct_value_mut(&mut self, name: &str) -> Option<&mut AnyValue<'a>> {
-        if let Some(fields) = self.struct_fields_mut() {
-            for (value, field) in fields {
+        if let Some(fields) = self.struct_as_slice_mut() {
+            for (field, value) in fields {
                 if value.is_nested() {
                     if let Some(v) = value.get_struct_value_mut(name) {
                         return Some(v);
@@ -112,7 +112,7 @@ impl<'a> AnyValue<'a> {
     pub fn get_nested_value(&mut self, name: &str) -> Option<&mut AnyValue<'a>> {
         match self {
             AnyValue::Struct(pairs) => {
-                for (value, field) in pairs.iter_mut() {
+                for (field, value) in pairs.iter_mut() {
                     if field.name() == name {
                         return Some(value);
                     }
@@ -233,8 +233,8 @@ impl<'a> AnyValue<'a> {
             Self::StrOwned(_) => DataType::String,
             Self::Binary(_) => DataType::BinaryView,
             Self::Struct(_) => {
-                let fields = self.struct_fields().expect("covered by match arms above");
-                DataType::Struct(fields.iter().map(|(_, f)| f.clone()).collect())
+                let fields = self.struct_as_slice().expect("covered by match arms above");
+                DataType::Struct(fields.iter().map(|(f, _)| f.clone()).collect())
             }
         }
     }
@@ -265,7 +265,7 @@ impl<'a> AnyValue<'a> {
             Binary(v) => Binary(v),
             Struct(v) => Struct(
                 v.into_iter()
-                    .map(|(val, field)| (val.into_static(), field))
+                    .map(|(field, val)| (field, val.into_static()))
                     .collect(),
             ),
         }
@@ -299,12 +299,12 @@ impl<'a> PartialEq for AnyValue<'a> {
             (Struct(a), Struct(b))
                 if a.len() == b.len()
                     && a.iter()
-                        .map(|(_, f)| f.name())
-                        .eq(b.iter().map(|(_, f)| f.name())) =>
+                        .map(|(f, _)| f.name())
+                        .eq(b.iter().map(|(f, _)| f.name())) =>
             {
                 a.iter()
                     .zip(b.iter())
-                    .all(|((v1, f1), (v2, f2))| f1.name() == f2.name() && v1 == v2)
+                    .all(|((f1, v1), (f2, v2))| f1.name() == f2.name() && v1 == v2)
             }
             _ => false,
         }
@@ -372,8 +372,8 @@ pub(crate) fn zip_slice_any_value_apply(
 
 #[inline]
 pub(crate) fn zip_struct_any_value_apply(
-    one: &[(AnyValue<'_>, Field)],
-    two: &[(AnyValue<'_>, Field)],
+    one: &[(Field, AnyValue<'_>)],
+    two: &[(Field, AnyValue<'_>)],
     f: impl Fn(&AnyValue<'_>, &AnyValue<'_>) -> Option<AnyValue<'static>>,
 ) -> Option<AnyValue<'static>> {
     if one.len() != two.len() {
@@ -382,20 +382,20 @@ pub(crate) fn zip_struct_any_value_apply(
 
     if !one
         .iter()
-        .map(|(_, f)| f.name())
-        .eq(two.iter().map(|(_, f)| f.name()))
+        .map(|(f, _)| f.name())
+        .eq(two.iter().map(|(f, _)| f.name()))
     {
         return None;
     }
 
     let mut out = Vec::with_capacity(one.len());
-    for ((va, fa), (vb, _)) in one.iter().zip(two.iter()) {
+    for ((fa, va), (_, vb)) in one.iter().zip(two.iter()) {
         if va.is_null() || vb.is_null() {
-            out.push((AnyValue::Null, fa.clone()));
+            out.push((fa.clone(), AnyValue::Null));
             continue;
         }
 
-        out.push((f(va, vb)?, fa.clone()));
+        out.push((fa.clone(), f(va, vb)?));
     }
 
     Some(AnyValue::Struct(out))

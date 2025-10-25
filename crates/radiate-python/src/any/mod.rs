@@ -59,7 +59,7 @@ pub fn any_value_into_py_object_ref<'py, 'a>(
         .into_any()),
         Struct(pairs) => {
             let dict = pyo3::types::PyDict::new(py);
-            for (val, fld) in pairs.iter() {
+            for (fld, val) in pairs.iter() {
                 let key = fld.name().to_string();
                 let value = any_value_into_py_object_ref(val, py)?;
                 dict.set_item(key, value)?;
@@ -181,7 +181,7 @@ pub fn py_object_to_any_value<'py>(
                     vals.push(val)
                 }
 
-                Ok(AnyValue::Struct(vals.into_iter().zip(keys).collect()))
+                Ok(AnyValue::Struct(keys.into_iter().zip(vals).collect()))
             })
         } else {
             let ob_type = ob.get_type();
@@ -226,11 +226,11 @@ pub fn py_object_to_any_value<'py>(
 
 fn struct_dict<'py, 'a>(
     py: Python<'py>,
-    vals: impl Iterator<Item = (AnyValue<'a>, Field)>,
+    vals: impl Iterator<Item = (Field, AnyValue<'a>)>,
 ) -> PyResult<Bound<'py, PyDict>> {
     let dict = PyDict::new(py);
 
-    for (val, fld) in vals {
+    for (fld, val) in vals {
         let key = fld.name().to_string();
         let value = any_value_into_py_object(val, py)?;
         dict.set_item(key, value)?;

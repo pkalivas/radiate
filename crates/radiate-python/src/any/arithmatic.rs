@@ -66,9 +66,9 @@ impl Add for AnyValue<'_> {
             (AnyValue::Struct(a), AnyValue::Struct(b)) => AnyValue::Struct(
                 a.iter()
                     .zip(b.iter())
-                    .map(|((v1, f1), (v2, f2))| {
+                    .map(|((f1, v1), (f2, v2))| {
                         assert_eq!(f1.name(), f2.name());
-                        (v1.clone() + v2.clone(), f1.clone())
+                        (f1.clone(), v1.clone() + v2.clone())
                     })
                     .collect(),
             ),
@@ -98,9 +98,9 @@ impl Sub for AnyValue<'_> {
             (AnyValue::Struct(a), AnyValue::Struct(b)) => AnyValue::Struct(
                 a.iter()
                     .zip(b.iter())
-                    .map(|((v1, f1), (v2, f2))| {
+                    .map(|((f1, v1), (f2, v2))| {
                         assert_eq!(f1.name(), f2.name());
-                        (v1.clone() - v2.clone(), f1.clone())
+                        (f1.clone(), v1.clone() - v2.clone())
                     })
                     .collect(),
             ),
@@ -130,9 +130,9 @@ impl Mul for AnyValue<'_> {
             (AnyValue::Struct(a), AnyValue::Struct(b)) => AnyValue::Struct(
                 a.iter()
                     .zip(b.iter())
-                    .map(|((v1, f1), (v2, f2))| {
+                    .map(|((f1, v1), (f2, v2))| {
                         assert_eq!(f1.name(), f2.name());
-                        (v1.clone() * v2.clone(), f1.clone())
+                        (f1.clone(), v1.clone() * v2.clone())
                     })
                     .collect(),
             ),
@@ -162,9 +162,9 @@ impl Div for AnyValue<'_> {
             (AnyValue::Struct(a), AnyValue::Struct(b)) => AnyValue::Struct(
                 a.iter()
                     .zip(b.iter())
-                    .map(|((v1, f1), (v2, f2))| {
+                    .map(|((f1, v1), (f2, v2))| {
                         assert_eq!(f1.name(), f2.name());
-                        (v1.clone() / v2.clone(), f1.clone())
+                        (f1.clone(), v1.clone() / v2.clone())
                     })
                     .collect(),
             ),

@@ -89,7 +89,11 @@ impl<'a> Gene for AnyGene<'a> {
 impl<'a> ArithmeticGene for AnyGene<'a> {
     fn mean(&self, other: &Self) -> Self {
         if let Some(avg) = super::arithmatic::mean_anyvalue(self.allele(), other.allele()) {
-            AnyGene::new(avg)
+            AnyGene {
+                allele: avg,
+                factory: self.factory.clone(),
+                metadata: self.metadata.clone(),
+            }
         } else {
             self.clone()
         }
