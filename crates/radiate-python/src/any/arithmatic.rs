@@ -173,6 +173,7 @@ impl Div for AnyValue<'_> {
     }
 }
 
+#[inline]
 pub fn mean_anyvalue(one: &AnyValue<'_>, two: &AnyValue<'_>) -> Option<AnyValue<'static>> {
     use AnyValue::*;
     if let Some(v) = mean_numeric(one, two) {

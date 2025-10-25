@@ -109,35 +109,6 @@ impl<'a> AnyValue<'a> {
     }
 
     #[inline]
-    pub fn get_nested_value(&mut self, name: &str) -> Option<&mut AnyValue<'a>> {
-        match self {
-            AnyValue::Struct(pairs) => {
-                for (field, value) in pairs.iter_mut() {
-                    if field.name() == name {
-                        return Some(value);
-                    }
-                    if value.is_nested() {
-                        if let Some(v) = value.get_nested_value(name) {
-                            return Some(v);
-                        }
-                    }
-                }
-
-                return None;
-            }
-            AnyValue::Vector(vec) => {
-                for v in vec.iter_mut() {
-                    if let Some(vv) = v.get_nested_value(name) {
-                        return Some(vv);
-                    }
-                }
-                return None;
-            }
-            _ => None,
-        }
-    }
-
-    #[inline]
     pub fn numeric_mut(&mut self) -> Option<NumericSlotMut<'_>> {
         use AnyValue::*;
         Some(match self {
@@ -311,47 +282,6 @@ impl<'a> PartialEq for AnyValue<'a> {
     }
 }
 
-impl<'py> FromPyObject<'py> for Wrap<AnyValue<'py>> {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        super::py_object_to_any_value(ob, true).map_err(|e| {
-            PyValueError::new_err(format!(
-                "{e}\n\nHint: Try setting `strict=False` to allow passing data with mixed types."
-            ))
-        })
-        .map(Wrap)
-    }
-}
-
-impl<'py> IntoPyObject<'py> for Wrap<AnyValue<'_>> {
-    type Target = PyAny;
-    type Output = Bound<'py, Self::Target>;
-    type Error = PyErr;
-
-    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        super::any_value_into_py_object(self.0, py)
-    }
-}
-
-impl<'py> IntoPyObject<'py> for &Wrap<AnyValue<'_>> {
-    type Target = PyAny;
-    type Output = Bound<'py, Self::Target>;
-    type Error = PyErr;
-
-    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        self.clone().into_pyobject(py)
-    }
-}
-
-impl<'py> IntoPyObject<'py> for Wrap<&AnyValue<'_>> {
-    type Target = PyAny;
-    type Output = Bound<'py, Self::Target>;
-    type Error = PyErr;
-
-    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        super::any_value_into_py_object_ref(self.0, py)
-    }
-}
-
 #[inline]
 pub(crate) fn zip_slice_any_value_apply(
     one: &[AnyValue<'_>],
@@ -399,4 +329,45 @@ pub(crate) fn zip_struct_any_value_apply(
     }
 
     Some(AnyValue::Struct(out))
+}
+
+impl<'py> FromPyObject<'py> for Wrap<AnyValue<'py>> {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        super::py_object_to_any_value(ob, true).map_err(|e| {
+            PyValueError::new_err(format!(
+                "{e}\n\nHint: Try setting `strict=False` to allow passing data with mixed types."
+            ))
+        })
+        .map(Wrap)
+    }
+}
+
+impl<'py> IntoPyObject<'py> for Wrap<AnyValue<'_>> {
+    type Target = PyAny;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        super::any_value_into_py_object(self.0, py)
+    }
+}
+
+impl<'py> IntoPyObject<'py> for &Wrap<AnyValue<'_>> {
+    type Target = PyAny;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        self.clone().into_pyobject(py)
+    }
+}
+
+impl<'py> IntoPyObject<'py> for Wrap<&AnyValue<'_>> {
+    type Target = PyAny;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        super::any_value_into_py_object_ref(self.0, py)
+    }
 }

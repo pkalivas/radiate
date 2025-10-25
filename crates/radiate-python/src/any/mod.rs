@@ -172,16 +172,14 @@ pub fn py_object_to_any_value<'py>(
             Ok(|ob, strict| {
                 let dict = ob.downcast::<PyDict>().unwrap();
                 let len = dict.len();
-                let mut keys = Vec::with_capacity(len);
-                let mut vals = Vec::with_capacity(len);
+                let mut key_value_pairs = Vec::with_capacity(len);
                 for (k, v) in dict.into_iter() {
                     let key = k.extract::<Cow<str>>()?;
                     let val = py_object_to_any_value(&v, strict)?;
-                    keys.push(Field::new(key.as_ref().into()));
-                    vals.push(val)
+                    key_value_pairs.push((Field::new(key.as_ref().into()), val));
                 }
 
-                Ok(AnyValue::Struct(keys.into_iter().zip(vals).collect()))
+                Ok(AnyValue::Struct(key_value_pairs))
             })
         } else {
             let ob_type = ob.get_type();
