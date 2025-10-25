@@ -110,7 +110,7 @@ impl ThreadPool {
         F: FnOnce() + Send + 'static,
     {
         let job = Box::new(f);
-        self.sender.send(Message::NewJob(job)).unwrap();
+        self.sender.send(Message::Work(job)).unwrap();
     }
 
     /// Execute a job in the thread pool and return a [WorkResult]
@@ -140,7 +140,7 @@ impl ThreadPool {
         let (tx, rx) = mpsc::sync_channel(1);
         let job = Box::new(move || tx.send(f()).unwrap());
 
-        self.sender.send(Message::NewJob(job)).unwrap();
+        self.sender.send(Message::Work(job)).unwrap();
 
         WorkResult { receiver: rx }
     }
@@ -169,7 +169,7 @@ type Job = Box<dyn FnOnce() + Send + 'static>;
 
 /// Message type that can be sent to the worker threads.
 enum Message {
-    NewJob(Job),
+    Work(Job),
     Terminate,
 }
 
@@ -191,7 +191,7 @@ impl Worker {
                     let message = receiver.lock().unwrap().recv().unwrap();
 
                     match message {
-                        Message::NewJob(job) => job(),
+                        Message::Work(job) => job(),
                         Message::Terminate => break,
                     }
                 }
