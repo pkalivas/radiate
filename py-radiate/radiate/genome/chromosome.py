@@ -48,14 +48,6 @@ class Chromosome[T](PyObject[PyChromosome]):
         :return: Gene instance at the specified index.
         """
         return Gene.from_rust(self._pyobj[index])
-    
-    def __setitem__(self, index: int, value: Gene[T]) -> None:
-        """
-        Sets the gene at the specified index.
-        :param index: Index of the gene to set.
-        :param value: Gene instance to set at the specified index.
-        """
-        self.__backend__()[index] = value.__backend__()
 
     def __iter__(self):
         """

@@ -66,6 +66,7 @@ impl<'a> AnyValue<'a> {
         }
     }
 
+    #[inline]
     pub fn as_mut_slice(&mut self) -> Option<&mut [AnyValue<'a>]> {
         match self {
             AnyValue::Vector(v) => Some(v.as_mut_slice()),
@@ -107,6 +108,7 @@ impl<'a> AnyValue<'a> {
         None
     }
 
+    #[inline]
     pub fn get_nested_value(&mut self, name: &str) -> Option<&mut AnyValue<'a>> {
         match self {
             AnyValue::Struct(pairs) => {

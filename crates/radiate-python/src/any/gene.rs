@@ -7,13 +7,13 @@ use std::{
     sync::Arc,
 };
 
-type MetaData<'a> = Option<Arc<HashMap<String, String>>>;
+type MetaData = Option<Arc<HashMap<String, String>>>;
 type Factory = Arc<dyn Fn() -> AnyValue<'static> + Send + Sync>;
 
 #[derive(Clone)]
 pub struct AnyGene<'a> {
     allele: AnyValue<'a>,
-    metadata: MetaData<'a>,
+    metadata: MetaData,
     factory: Option<Factory>,
 }
 
