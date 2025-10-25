@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Iterable
 
 from radiate.genome.genotype import Genotype
 from radiate.genome.gene import AnyGene
@@ -8,13 +8,16 @@ from . import CodecBase
 
 
 class AnyCodec[T: AnyGene](CodecBase[T, list[T]]):
-    def __init__(self, len: int, genes_factory: Callable[[], T]):
+    def __init__(self, genes: list[T] | Iterable[T]):
         """
         Initialize the AnyCodec with encoder and decoder functions.
         :param len: The number of genes in the codec.
         :param genes_factory: A callable that produces new gene instances.
         """
-        values = [genes_factory() for _ in range(len)]
+        if isinstance(genes, list):
+            values = genes
+        else:
+            values = list(genes)
 
         self._factories = {
             f"{g.__class__.__module__}.{g.__class__.__qualname__}": g.__class__.from_rust

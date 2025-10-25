@@ -70,7 +70,6 @@ from .inputs.alterer import (
     PolynomialMutator,
     EdgeRecombinationCrossover,
     JitterMutator,
-    AnyAlterer,
 )
 
 from .inputs.distance import (
@@ -86,7 +85,6 @@ from .dependancies import _NUMPY_AVAILABLE, _GIL_ENABLED
 
 
 __all__ = [
-    "PyRustBase",
     # Version information
     "__version__",
     "__version_tuple__",
@@ -123,7 +121,6 @@ __all__ = [
     "EventHandler",
     "EventType",
     # Alters
-    "AnyAlterer",
     "BlendCrossover",
     "TreeCrossover",
     "GraphCrossover",

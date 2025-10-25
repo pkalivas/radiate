@@ -36,7 +36,7 @@ impl Executor {
             Executor::WorkerPool => {
                 use std::sync::{Arc, Mutex};
 
-                let result: Arc<Mutex<Option<R>>> = Arc::new(Mutex::new(None));
+                let result = Arc::new(Mutex::new(None));
                 let result_clone = Arc::clone(&result);
                 let wg = WaitGroup::new();
                 let _wg_clone = wg.guard();
@@ -63,21 +63,11 @@ impl Executor {
             Executor::Serial => f.into_iter().map(|func| func()).collect(),
             Executor::FixedSizedWorkerPool(num_workers) => {
                 let pool = get_thread_pool(*num_workers);
-                let wg = WaitGroup::new();
                 let mut results = Vec::with_capacity(f.len());
 
                 for job in f {
-                    let wg_clone = wg.guard();
-                    let result = pool.submit_with_result(move || {
-                        let res = job();
-                        drop(wg_clone);
-                        res
-                    });
-
-                    results.push(result);
+                    results.push(pool.submit_with_result(|| job()));
                 }
-
-                wg.wait();
 
                 results.into_iter().map(|r| r.result()).collect()
             }
@@ -105,7 +95,7 @@ impl Executor {
         }
     }
 
-    pub fn submit_batch<F>(&self, f: Vec<F>)
+    pub fn submit_blocking<F>(&self, f: Vec<F>)
     where
         F: FnOnce() + Send + 'static,
     {
@@ -149,5 +139,35 @@ impl Executor {
                 wg.wait();
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::Executor;
+
+    #[test]
+    fn test_executor_serial() {
+        let executor = Executor::Serial;
+        let result = executor.execute(|| 42);
+        assert_eq!(result, 42);
+
+        let batch = vec![|| 1 * 2, || 2 * 2, || 3 * 2];
+        let results = executor.execute_batch(batch);
+        assert_eq!(results, vec![2, 4, 6]);
+    }
+
+    #[test]
+    fn test_executor_fixed_sized_worker_pool() {
+        let executor = Executor::FixedSizedWorkerPool(4);
+        let result = executor.execute(|| 42);
+
+        let batch = vec![|| 1 * 2, || 2 * 2, || 3 * 2];
+        let results = executor.execute_batch(batch);
+
+        assert_eq!(executor.num_workers(), 4);
+        assert_eq!(result, 42);
+        assert_eq!(results, vec![2, 4, 6]);
     }
 }

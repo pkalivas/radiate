@@ -115,7 +115,7 @@ where
             chunked_members.push(chunk_population);
         }
 
-        self.executor.submit_batch(batches);
+        self.executor.submit_blocking(batches);
 
         for chunks in chunked_members {
             let mut chunks = chunks.write().unwrap();

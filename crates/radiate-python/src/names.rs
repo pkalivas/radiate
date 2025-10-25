@@ -46,6 +46,3 @@ pub(crate) const HOIST_MUTATOR: &str = "HoistMutator";
 pub(crate) const INVERSION_MUTATOR: &str = "InversionMutator";
 pub(crate) const POLYNOMIAL_MUTATOR: &str = "PolynomialMutator";
 pub(crate) const JITTER_MUTATOR: &str = "JitterMutator";
-
-pub(crate) const EXPRESSION_MUTATOR: &str = "ExprMutator";
-pub(crate) const EXPRESSION_CROSSOVER: &str = "ExprCrossover";

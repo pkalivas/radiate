@@ -32,24 +32,30 @@ class Chromosome[T](PyObject[PyChromosome]):
             raise TypeError("genes must be a Gene instance or a list of Gene instances")
 
     def __repr__(self):
-        return self._pyobj.__repr__()
+        return self.__backend__().__repr__()
 
     def __len__(self):
         """
         Returns the length of the chromosome.
         :return: Length of the chromosome.
         """
-        return self._pyobj.__len__()
+        return self.__backend__().__len__()
 
-    def __getitem__(self, index: int | slice) -> Gene[T] | Chromosome[T]:
+    def __getitem__(self, index: int) -> Gene[T]:
         """
         Returns the gene at the specified index.
         :param index: Index of the gene to retrieve.
         :return: Gene instance at the specified index.
         """
-        if isinstance(index, slice):
-            return Chromosome.from_rust(self._pyobj.view(index))
         return Gene.from_rust(self._pyobj[index])
+    
+    def __setitem__(self, index: int, value: Gene[T]) -> None:
+        """
+        Sets the gene at the specified index.
+        :param index: Index of the gene to set.
+        :param value: Gene instance to set at the specified index.
+        """
+        self.__backend__()[index] = value.__backend__()
 
     def __iter__(self):
         """
@@ -59,13 +65,13 @@ class Chromosome[T](PyObject[PyChromosome]):
 
         :return: An iterator over the genes in the chromosome.
         """
-        for i in self._pyobj:
+        for i in self.__backend__():
             yield Gene.from_rust(i)
 
     def gene_type(self) -> "GeneType":
         from . import GeneType
 
-        return GeneType.from_str(self._pyobj.gene_type())
+        return GeneType.from_str(self.__backend__().gene_type())
 
 
 def int(

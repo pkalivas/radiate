@@ -183,6 +183,22 @@ Provided `Ops` include:
     let inputs = var_op.eval(&[5.0, 10.0]); // result is 5.0 when evaluated with inputs
     ```
 
+    Want to create your own `Op<T>`? Its pretty simple! Let create a custom `Square` operation that squares it's input.
+
+    ```rust
+    use std::sync::Arc;
+    use radiate::*;
+
+    fn my_square_op(inputs: &[f32]) -> f32 {
+        inputs[0] * inputs[0]
+    }
+
+    // Supply a name, arity (number of inputs - 1 in this case), and function to create the Op
+    let square_op = Op::new("Square", Arity::Exact(1), Arc::new(my_square_op));
+    ```
+
+    Now you have a new `square_op` which is completely compatible with the rest of the Radiate GP system and can be plugged in anywhere a regular `Op` can be used! For more information on creating ops, checkout the [API docs](https://docs.rs/radiate-gp/1.2.18/radiate_gp/ops/operation/enum.Op.html) to see how the rest are created - its not too crazy. 
+
 ### Alters
 
 #### OperationMutator

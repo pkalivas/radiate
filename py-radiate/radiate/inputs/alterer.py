@@ -4,7 +4,6 @@ from radiate.genome.population import Population
 from radiate.inputs.input import EngineInput, EngineInputType
 from .component import ComponentBase
 from ..genome import GeneType
-from radiate.radiate import PyAlteration
 
 
 class AlterBase(ComponentBase):
@@ -241,95 +240,4 @@ class JitterMutator(AlterBase):
             component="JitterMutator",
             args={"rate": rate, "magnitude": magnitude},
             allowed_genes=GeneType.FLOAT,
-        )
-
-
-# Expression based alterers for AnyGene
-class AnyAlterer(AlterBase):
-    def __init__(
-        self,
-        component: str,
-        args: dict[str, Any],
-        allowed_genes: set[GeneType] | GeneType = set(),
-    ):
-        super().__init__(component=component, args=args, allowed_genes=allowed_genes)
-
-    @staticmethod
-    def uniform(
-        target: str, rate: float = 0.1, bounds: tuple[float, float] = (0.0, 1.0)
-    ):
-        return AnyAlterer(
-            component="ExprMutator",
-            args={
-                "alterations": [
-                    PyAlteration.uniform(target=target, p=rate, range=bounds)
-                ]
-            },
-            allowed_genes=GeneType.ANY,
-        )
-
-    @staticmethod
-    def gaussian(
-        target: str,
-        rate: float = 0.1,
-        mean: float = 0.0,
-        stddev: float = 1.0,
-    ):
-        return AnyAlterer(
-            component="ExprMutator",
-            args={
-                "alterations": [
-                    PyAlteration.gaussian(
-                        target=target,
-                        p=rate,
-                        mean=mean,
-                        stddev=stddev,
-                    )
-                ]
-            },
-            allowed_genes=GeneType.ANY,
-        )
-
-    @staticmethod
-    def jitter(target: str, rate: float = 0.1, amount: float = 0.1):
-        return AnyAlterer(
-            component="ExprMutator",
-            args={
-                "alterations": [
-                    PyAlteration.jitter(target=target, p=rate, amount=amount)
-                ]
-            },
-            allowed_genes=GeneType.ANY,
-        )
-
-    @staticmethod
-    def swap(target: str, rate: float = 0.1):
-        return AnyAlterer(
-            component="ExprCrossover",
-            args={"alterations": [PyAlteration.swap(target=target, p=rate)]},
-            allowed_genes=GeneType.ANY,
-        )
-
-    @staticmethod
-    def mean(target: str, rate: float = 0.1):
-        return AnyAlterer(
-            component="ExprCrossover",
-            args={"alterations": [PyAlteration.mean(target=target, p=rate)]},
-            allowed_genes=GeneType.ANY,
-        )
-
-    @staticmethod
-    def two_point(target: str, rate: float = 0.1):
-        return AnyAlterer(
-            component="ExprCrossover",
-            args={"alterations": [PyAlteration.two_point(target=target, p=rate)]},
-            allowed_genes=GeneType.ANY,
-        )
-
-    @staticmethod
-    def one_point(target: str, rate: float = 0.1):
-        return AnyAlterer(
-            component="ExprCrossover",
-            args={"alterations": [PyAlteration.one_point(target=target, p=rate)]},
-            allowed_genes=GeneType.ANY,
         )
