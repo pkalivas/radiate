@@ -24,6 +24,11 @@ where
         self
     }
 
+    #[cfg(feature = "rayon")]
+    pub fn parallel(self) -> Self {
+        self.executor(Executor::WorkerPool)
+    }
+
     pub fn executor(mut self, executor: Executor) -> Self {
         let executor = Arc::new(executor);
         self.params.evaluation_params = EvaluationParams {

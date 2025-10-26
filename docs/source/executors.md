@@ -150,3 +150,12 @@ Continuing with our example from the preious sections - evolving a simple functi
         generation.index() >= 1000 || generation.score().as_f32() <= 0.01
     });
     ```
+
+    If you have the feature `rayon` enabled, you can also use the convenient `.parallel()` method on the engine builder to set the executor to `WorkerPool`:
+
+    ```rust
+    let mut engine = GeneticEngine::builder()
+        // ... other builder methods ...
+        .parallel() // sets executor to WorkerPool
+        .build();
+    ```

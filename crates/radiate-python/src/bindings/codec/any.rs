@@ -23,30 +23,50 @@ impl PyAnyCodec {
             })
         };
 
-        let codec = PyCodec::new()
-            .with_encoder(move || {
-                Genotype::from(
-                    genes
-                        .iter()
-                        .map(|v| AnyGene::from(v.clone()))
-                        .collect::<AnyChromosome<'static>>(),
-                )
-            })
-            .with_decoder(move |py, genotype| {
-                if genotype.len() == 1 && genotype[0].len() == 1 {
-                    return call_creator(py, &genotype[0].get(0)).unwrap();
-                }
+        Ok(PyAnyCodec {
+            codec: PyCodec::new()
+                .with_encoder(move || {
+                    Genotype::from(
+                        genes
+                            .iter()
+                            .map(|v| AnyGene::from(v.clone()))
+                            .collect::<AnyChromosome<'static>>(),
+                    )
+                })
+                .with_decoder(move |py, genotype| {
+                    if genotype.len() == 1 && genotype[0].len() == 1 {
+                        return call_creator(py, &genotype[0].get(0)).unwrap();
+                    }
 
-                if genotype.len() == 1 {
+                    if genotype.len() == 1 {
+                        return PyAnyObject {
+                            inner: PyList::new(
+                                py,
+                                genotype
+                                    .iter()
+                                    .flat_map(|chromo| {
+                                        chromo
+                                            .iter()
+                                            .map(|gene| call_creator(py, gene).unwrap().inner)
+                                    })
+                                    .collect::<Vec<_>>(),
+                            )
+                            .unwrap()
+                            .unbind()
+                            .into_any(),
+                        };
+                    }
+
                     return PyAnyObject {
                         inner: PyList::new(
                             py,
                             genotype
                                 .iter()
-                                .flat_map(|chromo| {
+                                .map(|chromo| {
                                     chromo
                                         .iter()
                                         .map(|gene| call_creator(py, gene).unwrap().inner)
+                                        .collect::<Vec<_>>()
                                 })
                                 .collect::<Vec<_>>(),
                         )
@@ -54,28 +74,8 @@ impl PyAnyCodec {
                         .unbind()
                         .into_any(),
                     };
-                }
-
-                return PyAnyObject {
-                    inner: PyList::new(
-                        py,
-                        genotype
-                            .iter()
-                            .map(|chromo| {
-                                chromo
-                                    .iter()
-                                    .map(|gene| call_creator(py, gene).unwrap().inner)
-                                    .collect::<Vec<_>>()
-                            })
-                            .collect::<Vec<_>>(),
-                    )
-                    .unwrap()
-                    .unbind()
-                    .into_any(),
-                };
-            });
-
-        Ok(PyAnyCodec { codec })
+                }),
+        })
     }
 
     pub fn encode_py(&self) -> PyResult<PyGenotype> {

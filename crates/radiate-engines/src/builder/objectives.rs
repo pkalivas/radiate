@@ -26,8 +26,11 @@ where
         self
     }
 
-    pub fn multi_objective(mut self, objectives: Vec<Optimize>) -> GeneticEngineBuilder<C, T> {
-        self.params.optimization_params.objectives = Objective::Multi(objectives);
+    pub fn multi_objective(
+        mut self,
+        objectives: impl Into<Vec<Optimize>>,
+    ) -> GeneticEngineBuilder<C, T> {
+        self.params.optimization_params.objectives = Objective::Multi(objectives.into());
         self
     }
 
