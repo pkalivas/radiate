@@ -19,6 +19,7 @@ fn main() {
                     if queens[i] == queens[j] {
                         score += 1;
                     }
+
                     if (i as i8 - j as i8).abs() == (queens[i] - queens[j]).abs() {
                         score += 1;
                     }
