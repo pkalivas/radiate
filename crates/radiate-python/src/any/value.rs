@@ -1,9 +1,6 @@
 use crate::{
-    Wrap,
-    any::{
-        dtype::{DataType, Field},
-        gene::NumericSlotMut,
-    },
+    NumericSlotMut, Wrap,
+    any::dtype::{DataType, Field},
 };
 use pyo3::{
     Borrowed, Bound, FromPyObject, IntoPyObject, PyAny, PyErr, PyResult, Python,
@@ -68,7 +65,15 @@ impl<'a> AnyValue<'a> {
     }
 
     #[inline]
-    pub fn as_mut_slice(&mut self) -> Option<&mut [AnyValue<'a>]> {
+    pub fn vec_as_slice(&self) -> Option<&[AnyValue<'a>]> {
+        match self {
+            AnyValue::Vector(v) => Some(v.as_slice()),
+            _ => None,
+        }
+    }
+
+    #[inline]
+    pub fn vec_as_slice_mut(&mut self) -> Option<&mut [AnyValue<'a>]> {
         match self {
             AnyValue::Vector(v) => Some(v.as_mut_slice()),
             _ => None,
@@ -110,7 +115,7 @@ impl<'a> AnyValue<'a> {
     }
 
     #[inline]
-    pub fn numeric_mut(&mut self) -> Option<NumericSlotMut<'_>> {
+    pub fn get_numeric_slot_mut(&mut self) -> Option<NumericSlotMut<'_>> {
         use AnyValue::*;
         Some(match self {
             Float32(v) => NumericSlotMut::F32(v),
@@ -129,20 +134,6 @@ impl<'a> AnyValue<'a> {
     }
 
     #[inline]
-    pub fn with_struct_field_numeric_mut<R>(
-        &mut self,
-        field_name: &str,
-        f: impl FnOnce(NumericSlotMut<'_>) -> R,
-    ) -> bool {
-        if let Some(slot) = self.get_struct_value_mut(field_name) {
-            if let Some(n) = slot.numeric_mut() {
-                let _ = f(n);
-                return true;
-            }
-        }
-        false
-    }
-
     pub fn is_numeric(&self) -> bool {
         matches!(
             self,
@@ -160,6 +151,7 @@ impl<'a> AnyValue<'a> {
         )
     }
 
+    #[inline]
     pub fn type_name(&self) -> &'static str {
         match self {
             Self::Null => "null",
@@ -184,6 +176,7 @@ impl<'a> AnyValue<'a> {
         }
     }
 
+    #[inline]
     pub fn dtype(&self) -> DataType {
         match self {
             Self::Null => DataType::Null,
@@ -245,6 +238,7 @@ impl<'a> AnyValue<'a> {
 }
 
 impl<'a> PartialEq for AnyValue<'a> {
+    #[inline]
     fn eq(&self, other: &Self) -> bool {
         use AnyValue::*;
         match (self, other) {
@@ -284,7 +278,7 @@ impl<'a> PartialEq for AnyValue<'a> {
 }
 
 #[inline]
-pub(crate) fn zip_slice_any_value_apply(
+pub(crate) fn apply_zipped_slice(
     one: &[AnyValue<'_>],
     two: &[AnyValue<'_>],
     f: impl Fn(&AnyValue<'_>, &AnyValue<'_>) -> Option<AnyValue<'static>>,
@@ -293,16 +287,19 @@ pub(crate) fn zip_slice_any_value_apply(
         return None;
     }
 
-    let mut out = Vec::with_capacity(one.len());
-    for (x, y) in one.iter().zip(two) {
-        out.push(f(x, y)?);
-    }
-
-    Some(AnyValue::Vector(Box::new(out)))
+    Some(AnyValue::Vector(Box::new(
+        one.iter()
+            .zip(two.iter())
+            .map(|pair| match f(pair.0, pair.1) {
+                Some(v) => v,
+                None => AnyValue::Null,
+            })
+            .collect::<Vec<AnyValue>>(),
+    )))
 }
 
 #[inline]
-pub(crate) fn zip_struct_any_value_apply(
+pub(crate) fn apply_zipped_struct_slice(
     one: &[(Field, AnyValue<'_>)],
     two: &[(Field, AnyValue<'_>)],
     f: impl Fn(&AnyValue<'_>, &AnyValue<'_>) -> Option<AnyValue<'static>>,
