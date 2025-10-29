@@ -13,7 +13,8 @@ pub(crate) fn intern(name: String) -> &'static str {
         .get_or_init(|| Mutex::new(HashSet::new()))
         .lock()
         .unwrap();
-    if let Some(&existing) = interned.get(&*name) {
+
+    if let Some(existing) = interned.get(&*name) {
         return existing;
     }
 
@@ -22,7 +23,6 @@ pub(crate) fn intern(name: String) -> &'static str {
     static_name
 }
 
-/// A generic operation type that can represent several kinds of “ops”.
 pub enum Op<T> {
     /// 1) A stateless function operation:
     ///

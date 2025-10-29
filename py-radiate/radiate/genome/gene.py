@@ -19,16 +19,6 @@ class Gene[T](PyObject[PyGene]):
     def __repr__(self):
         return f"{self.gene_type().value}({self.allele()})"
 
-    def with_allele(self, allele: T) -> None:
-        """
-        Create a new instance of the gene with the specified allele.
-        :param allele: The allele for the new gene instance.
-        :return: A new Gene instance with the specified allele.
-        """
-        self.__backend__().with_allele(allele)
-        # new_pygene = self.__backend__().with_allele(allele)
-        # return Gene.from_rust(new_pygene)
-
     def gene_type(self) -> "GeneType":
         """
         Get the type of the gene.

@@ -1,12 +1,10 @@
 use crate::{
-    Wrap,
-    any::{
-        dtype::{DataType, Field},
-        gene::NumericSlotMut,
-    },
+    NumericSlotMut, Wrap,
+    any::dtype::{DataType, Field},
 };
 use pyo3::{
-    Bound, FromPyObject, IntoPyObject, PyAny, PyErr, PyResult, Python, exceptions::PyValueError,
+    Borrowed, Bound, FromPyObject, IntoPyObject, PyAny, PyErr, PyResult, Python,
+    exceptions::PyValueError,
 };
 use std::fmt::Debug;
 
@@ -31,7 +29,7 @@ pub enum AnyValue<'a> {
     Str(&'a str),
     StrOwned(String),
     Vector(Box<Vec<AnyValue<'a>>>),
-    Struct(Vec<(AnyValue<'a>, Field)>),
+    Struct(Vec<(Field, AnyValue<'a>)>),
 }
 
 impl<'a> AnyValue<'a> {
@@ -51,7 +49,7 @@ impl<'a> AnyValue<'a> {
     }
 
     #[inline]
-    pub fn struct_fields(&self) -> Option<&[(AnyValue<'a>, Field)]> {
+    pub fn struct_as_slice(&self) -> Option<&[(Field, AnyValue<'a>)]> {
         match self {
             AnyValue::Struct(v) => Some(v.as_slice()),
             _ => None,
@@ -59,14 +57,23 @@ impl<'a> AnyValue<'a> {
     }
 
     #[inline]
-    pub fn struct_fields_mut(&mut self) -> Option<&mut [(AnyValue<'a>, Field)]> {
+    pub fn struct_as_slice_mut(&mut self) -> Option<&mut [(Field, AnyValue<'a>)]> {
         match self {
             AnyValue::Struct(v) => Some(v.as_mut_slice()),
             _ => None,
         }
     }
 
-    pub fn as_mut_slice(&mut self) -> Option<&mut [AnyValue<'a>]> {
+    #[inline]
+    pub fn vec_as_slice(&self) -> Option<&[AnyValue<'a>]> {
+        match self {
+            AnyValue::Vector(v) => Some(v.as_slice()),
+            _ => None,
+        }
+    }
+
+    #[inline]
+    pub fn vec_as_slice_mut(&mut self) -> Option<&mut [AnyValue<'a>]> {
         match self {
             AnyValue::Vector(v) => Some(v.as_mut_slice()),
             _ => None,
@@ -75,8 +82,8 @@ impl<'a> AnyValue<'a> {
 
     #[inline]
     pub fn get_struct_value(&self, name: &str) -> Option<&AnyValue<'a>> {
-        if let Some(fields) = self.struct_fields() {
-            for (value, field) in fields {
+        if let Some(fields) = self.struct_as_slice() {
+            for (field, value) in fields {
                 if value.is_nested() {
                     if let Some(v) = value.get_struct_value(name) {
                         return Some(v);
@@ -92,8 +99,8 @@ impl<'a> AnyValue<'a> {
 
     #[inline]
     pub fn get_struct_value_mut(&mut self, name: &str) -> Option<&mut AnyValue<'a>> {
-        if let Some(fields) = self.struct_fields_mut() {
-            for (value, field) in fields {
+        if let Some(fields) = self.struct_as_slice_mut() {
+            for (field, value) in fields {
                 if value.is_nested() {
                     if let Some(v) = value.get_struct_value_mut(name) {
                         return Some(v);
@@ -107,36 +114,8 @@ impl<'a> AnyValue<'a> {
         None
     }
 
-    pub fn get_nested_value(&mut self, name: &str) -> Option<&mut AnyValue<'a>> {
-        match self {
-            AnyValue::Struct(pairs) => {
-                for (value, field) in pairs.iter_mut() {
-                    if field.name() == name {
-                        return Some(value);
-                    }
-                    if value.is_nested() {
-                        if let Some(v) = value.get_nested_value(name) {
-                            return Some(v);
-                        }
-                    }
-                }
-
-                return None;
-            }
-            AnyValue::Vector(vec) => {
-                for v in vec.iter_mut() {
-                    if let Some(vv) = v.get_nested_value(name) {
-                        return Some(vv);
-                    }
-                }
-                return None;
-            }
-            _ => None,
-        }
-    }
-
     #[inline]
-    pub fn numeric_mut(&mut self) -> Option<NumericSlotMut<'_>> {
+    pub fn get_numeric_slot_mut(&mut self) -> Option<NumericSlotMut<'_>> {
         use AnyValue::*;
         Some(match self {
             Float32(v) => NumericSlotMut::F32(v),
@@ -155,20 +134,6 @@ impl<'a> AnyValue<'a> {
     }
 
     #[inline]
-    pub fn with_struct_field_numeric_mut<R>(
-        &mut self,
-        field_name: &str,
-        f: impl FnOnce(NumericSlotMut<'_>) -> R,
-    ) -> bool {
-        if let Some(slot) = self.get_struct_value_mut(field_name) {
-            if let Some(n) = slot.numeric_mut() {
-                let _ = f(n);
-                return true;
-            }
-        }
-        false
-    }
-
     pub fn is_numeric(&self) -> bool {
         matches!(
             self,
@@ -186,6 +151,7 @@ impl<'a> AnyValue<'a> {
         )
     }
 
+    #[inline]
     pub fn type_name(&self) -> &'static str {
         match self {
             Self::Null => "null",
@@ -210,6 +176,7 @@ impl<'a> AnyValue<'a> {
         }
     }
 
+    #[inline]
     pub fn dtype(&self) -> DataType {
         match self {
             Self::Null => DataType::Null,
@@ -231,8 +198,8 @@ impl<'a> AnyValue<'a> {
             Self::StrOwned(_) => DataType::String,
             Self::Binary(_) => DataType::BinaryView,
             Self::Struct(_) => {
-                let fields = self.struct_fields().expect("covered by match arms above");
-                DataType::Struct(fields.iter().map(|(_, f)| f.clone()).collect())
+                let fields = self.struct_as_slice().expect("covered by match arms above");
+                DataType::Struct(fields.iter().map(|(f, _)| f.clone()).collect())
             }
         }
     }
@@ -263,7 +230,7 @@ impl<'a> AnyValue<'a> {
             Binary(v) => Binary(v),
             Struct(v) => Struct(
                 v.into_iter()
-                    .map(|(val, field)| (val.into_static(), field))
+                    .map(|(field, val)| (field, val.into_static()))
                     .collect(),
             ),
         }
@@ -271,6 +238,7 @@ impl<'a> AnyValue<'a> {
 }
 
 impl<'a> PartialEq for AnyValue<'a> {
+    #[inline]
     fn eq(&self, other: &Self) -> bool {
         use AnyValue::*;
         match (self, other) {
@@ -297,20 +265,74 @@ impl<'a> PartialEq for AnyValue<'a> {
             (Struct(a), Struct(b))
                 if a.len() == b.len()
                     && a.iter()
-                        .map(|(_, f)| f.name())
-                        .eq(b.iter().map(|(_, f)| f.name())) =>
+                        .map(|(f, _)| f.name())
+                        .eq(b.iter().map(|(f, _)| f.name())) =>
             {
                 a.iter()
                     .zip(b.iter())
-                    .all(|((v1, f1), (v2, f2))| f1.name() == f2.name() && v1 == v2)
+                    .all(|((f1, v1), (f2, v2))| f1.name() == f2.name() && v1 == v2)
             }
             _ => false,
         }
     }
 }
 
-impl<'py> FromPyObject<'py> for Wrap<AnyValue<'py>> {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+#[inline]
+pub(crate) fn apply_zipped_slice(
+    one: &[AnyValue<'_>],
+    two: &[AnyValue<'_>],
+    f: impl Fn(&AnyValue<'_>, &AnyValue<'_>) -> Option<AnyValue<'static>>,
+) -> Option<AnyValue<'static>> {
+    if one.len() != two.len() {
+        return None;
+    }
+
+    Some(AnyValue::Vector(Box::new(
+        one.iter()
+            .zip(two.iter())
+            .map(|pair| match f(pair.0, pair.1) {
+                Some(v) => v,
+                None => AnyValue::Null,
+            })
+            .collect::<Vec<AnyValue>>(),
+    )))
+}
+
+#[inline]
+pub(crate) fn apply_zipped_struct_slice(
+    one: &[(Field, AnyValue<'_>)],
+    two: &[(Field, AnyValue<'_>)],
+    f: impl Fn(&AnyValue<'_>, &AnyValue<'_>) -> Option<AnyValue<'static>>,
+) -> Option<AnyValue<'static>> {
+    if one.len() != two.len() {
+        return None;
+    }
+
+    if !one
+        .iter()
+        .map(|(f, _)| f.name())
+        .eq(two.iter().map(|(f, _)| f.name()))
+    {
+        return None;
+    }
+
+    let mut out = Vec::with_capacity(one.len());
+    for ((fa, va), (_, vb)) in one.iter().zip(two.iter()) {
+        if va.is_null() || vb.is_null() {
+            out.push((fa.clone(), AnyValue::Null));
+            continue;
+        }
+
+        out.push((fa.clone(), f(va, vb)?));
+    }
+
+    Some(AnyValue::Struct(out))
+}
+
+impl<'py> FromPyObject<'_, 'py> for Wrap<AnyValue<'py>> {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'_, 'py, PyAny>) -> PyResult<Self> {
         super::py_object_to_any_value(ob, true).map_err(|e| {
             PyValueError::new_err(format!(
                 "{e}\n\nHint: Try setting `strict=False` to allow passing data with mixed types."
@@ -348,53 +370,4 @@ impl<'py> IntoPyObject<'py> for Wrap<&AnyValue<'_>> {
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         super::any_value_into_py_object_ref(self.0, py)
     }
-}
-
-#[inline]
-pub(crate) fn zip_slice_any_value_apply(
-    one: &[AnyValue<'_>],
-    two: &[AnyValue<'_>],
-    f: impl Fn(&AnyValue<'_>, &AnyValue<'_>) -> Option<AnyValue<'static>>,
-) -> Option<AnyValue<'static>> {
-    if one.len() != two.len() {
-        return None;
-    }
-
-    let mut out = Vec::with_capacity(one.len());
-    for (x, y) in one.iter().zip(two) {
-        out.push(f(x, y)?);
-    }
-
-    Some(AnyValue::Vector(Box::new(out)))
-}
-
-#[inline]
-pub(crate) fn zip_struct_any_value_apply(
-    one: &[(AnyValue<'_>, Field)],
-    two: &[(AnyValue<'_>, Field)],
-    f: impl Fn(&AnyValue<'_>, &AnyValue<'_>) -> Option<AnyValue<'static>>,
-) -> Option<AnyValue<'static>> {
-    if one.len() != two.len() {
-        return None;
-    }
-
-    if !one
-        .iter()
-        .map(|(_, f)| f.name())
-        .eq(two.iter().map(|(_, f)| f.name()))
-    {
-        return None;
-    }
-
-    let mut out = Vec::with_capacity(one.len());
-    for ((va, fa), (vb, _)) in one.iter().zip(two.iter()) {
-        if va.is_null() || vb.is_null() {
-            out.push((AnyValue::Null, fa.clone()));
-            continue;
-        }
-
-        out.push((f(va, vb)?, fa.clone()));
-    }
-
-    Some(AnyValue::Struct(out))
 }

@@ -22,19 +22,26 @@ use std::fmt::Debug;
 ///
 /// # Examples
 /// ```
-/// use radiate_gp::{collections::{TreeNode}, Arity};
+/// use radiate_gp::{collections::{TreeNode}, Arity, Node};
 ///
 /// // Create a new node with value 42
 /// let node = TreeNode::new(42);
 ///
 /// // Create a node with specific arity
 /// let node_with_arity = TreeNode::with_arity(42, Arity::Exact(2));
+/// let other_node_with_arity = TreeNode::from((42, Arity::Exact(2)));
+///
+/// assert_eq!(node_with_arity.arity(), other_node_with_arity.arity());
 ///
 /// // Create a node with children
 /// let node_with_children = TreeNode::with_children(42, vec![
 ///     TreeNode::new(1),
 ///     TreeNode::new(2)
 /// ]);
+/// let other_node_with_children = TreeNode::from((42, vec![
+///     TreeNode::new(1),
+///     TreeNode::new(2),
+/// ]));
 /// ```
 ///
 /// # Node Types and [Arity]
@@ -338,6 +345,18 @@ impl<T: Debug> Debug for TreeNode<T> {
                 None => 0,
             }
         )
+    }
+}
+
+impl<T> From<(T, Arity)> for TreeNode<T> {
+    fn from(value: (T, Arity)) -> Self {
+        TreeNode::with_arity(value.0, value.1)
+    }
+}
+
+impl<T> From<(T, Vec<TreeNode<T>>)> for TreeNode<T> {
+    fn from(value: (T, Vec<TreeNode<T>>)) -> Self {
+        TreeNode::with_children(value.0, value.1)
     }
 }
 

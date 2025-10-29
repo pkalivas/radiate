@@ -63,8 +63,8 @@ homepage = "https://pkalivas.github.io/radiate/"
 
 [workspace.dependencies]
 rand = "0.9.2"
-pyo3 = "0.26.0"
-numpy ="0.26.0"
+pyo3 = "0.27.1"
+numpy ="0.27.0"
 rayon = "1.11.0"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = { version = "1.0.143" }

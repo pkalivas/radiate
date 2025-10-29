@@ -24,7 +24,7 @@ use std::fmt::{Debug, Display};
 /// let gene = gene.with_allele(allele);
 /// ```
 ///
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct BitGene {
     allele: bool,
@@ -64,12 +64,6 @@ impl Gene for BitGene {
 
 /// Because a [`BitGene`] is either `true` or `false` it is always valid.
 impl Valid for BitGene {}
-
-impl Default for BitGene {
-    fn default() -> Self {
-        Self::new()
-    }
-}
 
 impl Display for BitGene {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

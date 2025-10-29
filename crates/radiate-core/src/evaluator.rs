@@ -267,7 +267,6 @@ where
             }
         }
 
-        // integer ceiling division to determine batch size - number of individuals per batch
         let num_workers = self.executor.num_workers();
         let batch_size = (pairs.len() + num_workers - 1) / num_workers;
 
@@ -305,7 +304,6 @@ where
                 .collect(),
         );
 
-        // replace the genotypes and add their associated scores
         let mut count = 0;
         for (indices, scores, genotypes) in results {
             count += indices.len();

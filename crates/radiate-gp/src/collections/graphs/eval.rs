@@ -40,6 +40,7 @@ where
     ///
     /// # Arguments
     /// * graph - The [Graph] to reduce.
+    #[inline]
     pub fn new<N>(graph: &'a N) -> GraphEvaluator<'a, T, V>
     where
         N: AsRef<[GraphNode<T>]>,

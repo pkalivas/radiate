@@ -253,7 +253,9 @@ where
         for member in front.values().iter() {
             let temp = PyGenotype::from(member.genotype().clone());
 
-            let fitness = member.score().unwrap().iter().cloned().collect::<Vec<_>>();
+            let fitness = member
+                .score()
+                .map(|inner| inner.iter().cloned().collect::<Vec<_>>());
 
             let member = PyDict::new(py);
             member.set_item(intern!(py, "genotype"), temp).unwrap();

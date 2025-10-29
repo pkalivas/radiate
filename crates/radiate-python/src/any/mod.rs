@@ -1,16 +1,16 @@
 mod arithmatic;
 mod dtype;
 mod gene;
+mod numeric;
 pub(crate) mod value;
 
 pub use dtype::Field;
-pub use gene::{
-    AnyChromosome, AnyGene, NumericSlotMut, apply_numeric_slot_mut, apply_pair_numeric_slot_mut,
-};
+pub use gene::{AnyChromosome, AnyGene};
+pub use numeric::NumericSlotMut;
 pub use value::AnyValue;
 
 use pyo3::{
-    Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python,
+    Borrowed, Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python,
     exceptions::{PyOverflowError, PyValueError},
     types::{
         PyAnyMethods, PyBool, PyBytes, PyDict, PyDictMethods, PyFloat, PyInt, PyList, PySequence,
@@ -21,6 +21,8 @@ use std::{
     borrow::{Borrow, Cow},
     collections::HashMap,
 };
+
+// https://pyo3.rs/v0.27.1/migration.html
 
 type InitFn = for<'py> fn(&Bound<'py, PyAny>, bool) -> PyResult<AnyValue<'py>>;
 
@@ -59,7 +61,7 @@ pub fn any_value_into_py_object_ref<'py, 'a>(
         .into_any()),
         Struct(pairs) => {
             let dict = pyo3::types::PyDict::new(py);
-            for (val, fld) in pairs.iter() {
+            for (fld, val) in pairs.iter() {
                 let key = fld.name().to_string();
                 let value = any_value_into_py_object_ref(val, py)?;
                 dict.set_item(key, value)?;
@@ -102,8 +104,8 @@ pub fn any_value_into_py_object<'py>(av: AnyValue, py: Python<'py>) -> PyResult<
     }
 }
 
-pub fn py_object_to_any_value<'py>(
-    ob: &Bound<'py, PyAny>,
+pub fn py_object_to_any_value<'a, 'py>(
+    ob: Borrowed<'a, 'py, PyAny>,
     strict: bool,
 ) -> PyResult<AnyValue<'py>> {
     fn get_null(_ob: &Bound<'_, PyAny>, _strict: bool) -> PyResult<AnyValue<'static>> {
@@ -144,10 +146,10 @@ pub fn py_object_to_any_value<'py>(
     }
 
     fn get_list(ob: &Bound<'_, PyAny>, strict: bool) -> PyResult<AnyValue<'static>> {
-        let seq = ob.downcast::<PySequence>()?;
+        let seq = ob.cast::<PySequence>()?;
         let mut out: Vec<AnyValue<'static>> = Vec::with_capacity(seq.len().unwrap_or(0).max(0));
         for item in seq.try_iter()? {
-            let av = py_object_to_any_value(&item?, strict)?;
+            let av = py_object_to_any_value(item?.as_borrowed(), strict)?;
             out.push(av.into_static());
         }
         Ok(AnyValue::Vector(Box::new(out)))
@@ -170,18 +172,16 @@ pub fn py_object_to_any_value<'py>(
             Ok(get_list)
         } else if ob.is_instance_of::<PyDict>() {
             Ok(|ob, strict| {
-                let dict = ob.downcast::<PyDict>().unwrap();
+                let dict = ob.cast::<PyDict>().unwrap();
                 let len = dict.len();
-                let mut keys = Vec::with_capacity(len);
-                let mut vals = Vec::with_capacity(len);
+                let mut key_value_pairs = Vec::with_capacity(len);
                 for (k, v) in dict.into_iter() {
                     let key = k.extract::<Cow<str>>()?;
-                    let val = py_object_to_any_value(&v, strict)?;
-                    keys.push(Field::new(key.as_ref().into()));
-                    vals.push(val)
+                    let val = py_object_to_any_value(v.as_borrowed(), strict)?;
+                    key_value_pairs.push((Field::new(key.as_ref().into()), val));
                 }
 
-                Ok(AnyValue::Struct(vals.into_iter().zip(keys).collect()))
+                Ok(AnyValue::Struct(key_value_pairs))
             })
         } else {
             let ob_type = ob.get_type();
@@ -216,21 +216,21 @@ pub fn py_object_to_any_value<'py>(
 
             assert_eq!(k.address, py_type_address);
 
-            lut.insert(k, get_conversion_function(ob, strict)?);
+            lut.insert(k, get_conversion_function(ob.as_any(), strict)?);
         }
 
         let conversion_func = lut.get(&py_type_address).unwrap();
-        conversion_func(ob, strict)
+        conversion_func(ob.as_any(), strict)
     })
 }
 
 fn struct_dict<'py, 'a>(
     py: Python<'py>,
-    vals: impl Iterator<Item = (AnyValue<'a>, Field)>,
+    vals: impl Iterator<Item = (Field, AnyValue<'a>)>,
 ) -> PyResult<Bound<'py, PyDict>> {
     let dict = PyDict::new(py);
 
-    for (val, fld) in vals {
+    for (fld, val) in vals {
         let key = fld.name().to_string();
         let value = any_value_into_py_object(val, py)?;
         dict.set_item(key, value)?;

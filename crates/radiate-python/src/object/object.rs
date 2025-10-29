@@ -1,6 +1,7 @@
+use pyo3::prelude::FromPyObjectOwned;
 use pyo3::types::{PyFloat, PyInt};
 use pyo3::{Borrowed, IntoPyObject, PyAny, Python, types::PyAnyMethods};
-use pyo3::{FromPyObject, Py, PyResult};
+use pyo3::{Py, PyResult};
 use std::fmt::{Display, Formatter};
 use std::hash::{Hash, Hasher};
 
@@ -21,8 +22,8 @@ pub struct PyAnyObject {
 }
 
 impl PyAnyObject {
-    pub fn extract<'py, T: FromPyObject<'py>>(&self, py: Python<'py>) -> PyResult<T> {
-        self.clone().inner.bind_borrowed(py).extract()
+    pub fn extract<'py, T: FromPyObjectOwned<'py>>(&self, py: Python<'py>) -> PyResult<T> {
+        self.inner.as_any().extract::<T>(py).map_err(Into::into)
     }
 
     pub fn get_f32(&self) -> Option<f32> {
