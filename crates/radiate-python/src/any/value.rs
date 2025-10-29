@@ -6,7 +6,8 @@ use crate::{
     },
 };
 use pyo3::{
-    Bound, FromPyObject, IntoPyObject, PyAny, PyErr, PyResult, Python, exceptions::PyValueError,
+    Borrowed, Bound, FromPyObject, IntoPyObject, PyAny, PyErr, PyResult, Python,
+    exceptions::PyValueError,
 };
 use std::fmt::Debug;
 
@@ -331,8 +332,10 @@ pub(crate) fn zip_struct_any_value_apply(
     Some(AnyValue::Struct(out))
 }
 
-impl<'py> FromPyObject<'py> for Wrap<AnyValue<'py>> {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'py> FromPyObject<'_, 'py> for Wrap<AnyValue<'py>> {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'_, 'py, PyAny>) -> PyResult<Self> {
         super::py_object_to_any_value(ob, true).map_err(|e| {
             PyValueError::new_err(format!(
                 "{e}\n\nHint: Try setting `strict=False` to allow passing data with mixed types."

@@ -1,16 +1,19 @@
 use crate::object::Wrap;
 use pyo3::exceptions::PyValueError;
-use pyo3::{Bound, FromPyObject, PyAny, PyResult, pyclass, types::PyAnyMethods};
+use pyo3::{Borrowed, PyErr};
+use pyo3::{FromPyObject, PyAny, PyResult, pyclass, types::PyAnyMethods};
 use radiate::Op;
 
 #[pyclass]
 #[derive(Clone)]
 pub struct PyOp {
-    pub inner: Op<f32>,
+    _inner: Op<f32>,
 }
 
-impl<'py> FromPyObject<'py> for Wrap<Vec<Op<f32>>> {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'py> FromPyObject<'_, 'py> for Wrap<Vec<Op<f32>>> {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'_, 'py, PyAny>) -> PyResult<Self> {
         let mut ops = Vec::new();
         for item in ob.try_iter()? {
             let wrap: Wrap<Op<f32>> = item?.extract()?;
@@ -20,8 +23,10 @@ impl<'py> FromPyObject<'py> for Wrap<Vec<Op<f32>>> {
     }
 }
 
-impl<'py> FromPyObject<'py> for Wrap<Op<f32>> {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'py> FromPyObject<'_, 'py> for Wrap<Op<f32>> {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'_, 'py, PyAny>) -> PyResult<Self> {
         let name: String = ob.getattr("name")?.extract()?;
 
         if name == "constant" {
