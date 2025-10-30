@@ -1,8 +1,42 @@
 use crate::steps::EngineStep;
 use radiate_core::{
-    Alter, Chromosome, Ecosystem, MetricSet, Objective, Optimize, Population, Select, labels,
+    Alter, Chromosome, Ecosystem, MetricSet, ModelLearner, Objective, Optimize, Phenotype,
+    Population, Select, labels,
 };
 use std::sync::Arc;
+
+// impl<C> EngineStep<C> for EdaStep<C>
+// where C: Chromosome + PartialEq + Clone {
+//     fn execute(&mut self, generation: usize, metrics: &mut MetricSet, ecosystem: &mut Ecosystem<C>) {
+//         let survivors = Self::select(self.survivor_count, &ecosystem.population, &self.objective, metrics, &self.survivor_selector);
+//         let parents   = Self::select(self.offspring_count, &ecosystem.population, &self.objective, metrics, &self.offspring_selector);
+
+//         let t0 = std::time::Instant::now();
+//         let model = self.learner.learn(&parents);
+//         metrics.upsert(model.name(), ("train_time", t0.elapsed().as_secs_f32()));
+
+//         let n_model = ((self.offspring_count as f32) * self.mix_ratio).round() as usize;
+//         let n_fallback = self.offspring_count - n_model;
+
+//         let t1 = std::time::Instant::now();
+//         let mut offspring = Population::new(
+//             model.sample(n_model).into_iter().map(|g| Phenotype::from((g, generation))).collect()
+//         );
+//         metrics.upsert(model.name(), ("sample_time", t1.elapsed().as_secs_f32()));
+//         metrics.upsert("EDA", ("offspring_model", n_model as i32));
+
+//         if n_fallback > 0 {
+//             let mut fb = parents.clone();
+//             fb.truncate(n_fallback);
+//             self.apply_alterations(generation, &mut fb, metrics);
+//             offspring.extend(fb);
+//         }
+//         metrics.upsert("EDA", ("offspring_fallback", n_fallback as i32));
+
+//         ecosystem.population_mut().clear();
+//         survivors.into_iter().chain(offspring.into_iter()).for_each(|ind| ecosystem.population_mut().push(ind));
+//     }
+// }
 
 pub struct RecombineStep<C: Chromosome> {
     pub(crate) survivor_selector: Arc<dyn Select<C>>,
@@ -11,6 +45,7 @@ pub struct RecombineStep<C: Chromosome> {
     pub(crate) survivor_count: usize,
     pub(crate) offspring_count: usize,
     pub(crate) objective: Objective,
+    pub(crate) dist_learner: Option<Arc<dyn ModelLearner<C>>>,
 }
 
 impl<C: Chromosome + PartialEq> RecombineStep<C> {
@@ -110,8 +145,32 @@ impl<C: Chromosome + PartialEq> RecombineStep<C> {
 
             self.objective.sort(&mut offspring);
 
-            self.apply_alterations(generation, &mut offspring, metrics);
-            offspring
+            if let Some(learner) = &self.dist_learner {
+                let model = learner.fit(&offspring);
+                let n_model = (self.offspring_count as f32 * 0.95).round() as usize;
+                let n_fallback = self.offspring_count - n_model;
+
+                let mut model_offspring = Population::new(
+                    model
+                        .sample(n_model)
+                        .into_iter()
+                        .map(|g| Phenotype::from((g, generation)))
+                        .collect(),
+                );
+
+                if n_fallback > 0 {
+                    offspring.truncate(n_fallback);
+                    self.apply_alterations(generation, &mut offspring, metrics);
+                    model_offspring.extend(offspring);
+                }
+
+                self.objective.sort(&mut model_offspring);
+
+                model_offspring
+            } else {
+                self.apply_alterations(generation, &mut offspring, metrics);
+                offspring
+            }
         }
     }
 

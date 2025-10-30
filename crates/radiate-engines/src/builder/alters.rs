@@ -1,5 +1,5 @@
 use crate::GeneticEngineBuilder;
-use radiate_core::{Alter, AlterAction, Chromosome, Crossover, Mutate};
+use radiate_core::{Alter, AlterAction, Chromosome, Crossover, ModelLearner, Mutate};
 use std::sync::Arc;
 
 impl<C, T> GeneticEngineBuilder<C, T>
@@ -64,6 +64,16 @@ where
             .collect::<Vec<_>>();
 
         self.params.alterers.extend(crossover_actions);
+        self
+    }
+
+    /// Define a distribution learner for the genetic engine - this will be used to
+    /// learn a probabilistic model of the population distribution.
+    pub fn dist_learner<L>(mut self, dist_learner: L) -> Self
+    where
+        L: ModelLearner<C> + 'static,
+    {
+        self.params.dist_learner = Some(Arc::new(dist_learner));
         self
     }
 }

@@ -28,7 +28,7 @@ use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::evaluator::BatchFitnessEvaluator;
 use radiate_core::problem::BatchEngineProblem;
 use radiate_core::{
-    Diversity, Ecosystem, Evaluator, Executor, FitnessEvaluator, Genotype, MetricSet,
+    Diversity, Ecosystem, Evaluator, Executor, FitnessEvaluator, Genotype, MetricSet, ModelLearner,
 };
 use radiate_error::RadiateError;
 use std::cmp::Ordering;
@@ -48,6 +48,7 @@ where
     pub problem_params: ProblemParams<C, T>,
 
     pub alterers: Vec<Arc<dyn Alter<C>>>,
+    pub dist_learner: Option<Arc<dyn ModelLearner<C>>>,
     pub replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
     pub handlers: Vec<Arc<Mutex<dyn EventHandler<EngineEvent<T>>>>>,
 }
@@ -172,6 +173,7 @@ where
             survivor_count: config.survivor_count(),
             offspring_count: config.offspring_count(),
             objective: config.objective(),
+            dist_learner: config.dist_learner(),
         };
 
         Some(Box::new(recombine_step))
@@ -357,6 +359,7 @@ where
                 },
 
                 replacement_strategy: Arc::new(EncodeReplace),
+                dist_learner: None,
                 alterers: Vec::new(),
                 handlers: Vec::new(),
             },
@@ -382,6 +385,7 @@ struct EngineConfig<C: Chromosome, T: Clone> {
     front: Arc<RwLock<Front<Phenotype<C>>>>,
     offspring_fraction: f32,
     executor: EvaluationParams<C, T>,
+    dist_learner: Option<Arc<dyn ModelLearner<C>>>,
 }
 
 impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
@@ -403,6 +407,10 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
 
     pub fn alters(&self) -> &[Arc<dyn Alter<C>>] {
         &self.alterers
+    }
+
+    pub fn dist_learner(&self) -> Option<Arc<dyn ModelLearner<C>>> {
+        self.dist_learner.clone()
     }
 
     pub fn objective(&self) -> Objective {
@@ -475,6 +483,7 @@ where
             offspring_fraction: params.selection_params.offspring_fraction,
             evaluator: params.evaluation_params.evaluator.clone(),
             executor: params.evaluation_params.clone(),
+            dist_learner: params.dist_learner.clone(),
         }
     }
 }

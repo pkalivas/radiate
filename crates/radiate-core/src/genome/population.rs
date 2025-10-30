@@ -111,6 +111,14 @@ impl<C: Chromosome> Population<C> {
             Some((right[0].get_mut(), left[second].get_mut()))
         }
     }
+
+    pub fn truncate(&mut self, len: usize) {
+        self.individuals.truncate(len);
+    }
+
+    pub fn extend<I: IntoIterator<Item = Phenotype<C>>>(&mut self, iter: I) {
+        self.individuals.extend(iter.into_iter().map(Member::from));
+    }
 }
 
 impl<C: Chromosome + Clone> From<&Population<C>> for Population<C> {

@@ -108,5 +108,13 @@ impl<C: Chromosome> IntoIterator for Genotype<C> {
     }
 }
 
+impl<C: Chromosome> FromIterator<C> for Genotype<C> {
+    fn from_iter<I: IntoIterator<Item = C>>(iter: I) -> Self {
+        Genotype {
+            chromosomes: iter.into_iter().collect(),
+        }
+    }
+}
+
 unsafe impl<C: Chromosome> Send for Genotype<C> {}
 unsafe impl<C: Chromosome> Sync for Genotype<C> {}
