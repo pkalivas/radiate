@@ -20,7 +20,7 @@ impl<T> Op<T> {
                 name,
                 *arity,
                 Arc::new(programs.into().into_iter().map(|p| p.into()).collect()),
-                Arc::clone(eval_fn),
+                *eval_fn,
             ),
             _ => self.clone(),
         }
@@ -62,22 +62,18 @@ impl Op<f32> {
             name,
             arity,
             Arc::new(pre_progs),
-            Arc::new(|inputs: &[f32], programs: &[TreeNode<Op<f32>>]| {
+            |inputs: &[f32], programs: &[TreeNode<Op<f32>>]| {
                 let logits = (&programs[1..]).eval(inputs);
 
                 if logits.is_empty() {
                     return 0.0;
                 }
 
-                let result = programs[0].eval(inputs);
+                let result = programs[0].eval(&logits);
                 super::math::clamp(result)
-            }),
+            },
         )
     }
-
-    // pub fn pgm_with_builder(args: impl Into<PgmConfig<f32>>) -> Self {
-    //     args.into().build()
-    // }
 
     /// PGM(LogSumExp): stable log(sum(exp(probs_i)))
     pub fn log_sum_exp<N>(programs: impl Into<Vec<N>>) -> Self
@@ -88,7 +84,7 @@ impl Op<f32> {
             "log_sum_exp",
             Arity::Any,
             Arc::new(programs.into().into_iter().map(|p| p.into()).collect()),
-            Arc::new(|inputs: &[f32], progs: &[TreeNode<Op<f32>>]| {
+            |inputs: &[f32], progs: &[TreeNode<Op<f32>>]| {
                 if progs.is_empty() {
                     return 0.0;
                 }
@@ -101,7 +97,7 @@ impl Op<f32> {
                     .fold(f32::NEG_INFINITY, f32::max);
                 let sum_exp = probabilities.iter().map(|v| (v - m).exp()).sum::<f32>();
                 super::math::clamp(m + sum_exp.ln())
-            }),
+            },
         )
     }
 
@@ -115,7 +111,7 @@ impl Op<f32> {
             "weighted_mean",
             Arity::Any,
             Arc::new(programs.into().into_iter().map(|p| p.into()).collect()),
-            Arc::new(|inputs: &[f32], progs: &[TreeNode<Op<f32>>]| {
+            |inputs: &[f32], progs: &[TreeNode<Op<f32>>]| {
                 let probabilities = progs.eval(inputs);
                 if probabilities.len() < 2 {
                     return 0.0;
@@ -136,7 +132,7 @@ impl Op<f32> {
                 } else {
                     super::math::clamp(num / den)
                 }
-            }),
+            },
         )
     }
 
@@ -149,7 +145,7 @@ impl Op<f32> {
             "clamp_norm",
             Arity::Any,
             Arc::new(programs.into().into_iter().map(|p| p.into()).collect()),
-            Arc::new(|inputs: &[f32], progs: &[TreeNode<Op<f32>>]| {
+            |inputs: &[f32], progs: &[TreeNode<Op<f32>>]| {
                 let probabilities = progs.eval(inputs);
                 if probabilities.is_empty() {
                     return 0.0;
@@ -164,7 +160,7 @@ impl Op<f32> {
                     .filter(|v| v.abs() >= super::math::THRESHOLD)
                     .sum::<f32>();
                 super::math::clamp(s)
-            }),
+            },
         )
     }
 
@@ -176,7 +172,7 @@ impl Op<f32> {
             "softmax",
             Arity::Any,
             Arc::new(programs.into().into_iter().map(|p| p.into()).collect()),
-            Arc::new(|inputs: &[f32], progs: &[TreeNode<Op<f32>>]| {
+            |inputs: &[f32], progs: &[TreeNode<Op<f32>>]| {
                 let logits = progs.eval(inputs);
                 if logits.is_empty() {
                     return 0.0;
@@ -208,160 +204,7 @@ impl Op<f32> {
                     .unwrap_or(0);
 
                 super::math::clamp(max_index as f32)
-            }),
+            },
         )
     }
 }
-
-// #[derive(Clone)]
-// pub struct PgmConfig<T> {
-//     name: &'static str,
-//     arity: Arity,
-//     programs: Vec<TreeNode<Op<T>>>,
-//     eval_fn: Arc<dyn Fn(&[T], &[TreeNode<Op<T>>]) -> T>,
-// }
-
-// impl<T> PgmConfig<T> {
-//     pub fn new(name: &'static str) -> Self
-//     where
-//         T: Default,
-//     {
-//         Self {
-//             name,
-//             arity: Arity::Any,
-//             programs: Vec::new(),
-//             eval_fn: Arc::new(|_: &[T], _: &[TreeNode<Op<T>>]| T::default()),
-//         }
-//     }
-
-//     pub fn build(self) -> Op<T> {
-//         Op::PGM(
-//             self.name,
-//             self.arity,
-//             Arc::new(self.programs),
-//             Arc::clone(&self.eval_fn),
-//         )
-//     }
-
-//     pub fn with_arity(mut self, arity: Arity) -> Self {
-//         self.arity = arity;
-//         self
-//     }
-
-//     pub fn with_programs<N>(mut self, programs: impl Into<Vec<N>>) -> Self
-//     where
-//         N: Into<TreeNode<Op<T>>>,
-//     {
-//         self.programs = programs
-//             .into()
-//             .into_iter()
-//             .map(|p| p.into())
-//             .collect::<Vec<TreeNode<Op<T>>>>();
-//         self
-//     }
-
-//     pub fn with_eval_fn<F>(mut self, eval_fn: F) -> Self
-//     where
-//         F: Fn(&[T], &[TreeNode<Op<T>>]) -> T + 'static,
-//     {
-//         self.eval_fn = Arc::new(eval_fn);
-//         self
-//     }
-// }
-
-// impl<T> From<&'static str> for PgmConfig<T>
-// where
-//     T: Default,
-// {
-//     fn from(name: &'static str) -> Self {
-//         Self {
-//             name: radiate_core::intern!(name),
-//             arity: Arity::Any,
-//             programs: Vec::new(),
-//             eval_fn: Arc::new(|_: &[T], _: &[TreeNode<Op<T>>]| T::default()),
-//         }
-//     }
-// }
-
-// impl<T> From<Vec<TreeNode<Op<T>>>> for PgmConfig<T>
-// where
-//     T: Default,
-// {
-//     fn from(programs: Vec<TreeNode<Op<T>>>) -> Self {
-//         Self {
-//             name: "pgm",
-//             arity: Arity::Any,
-//             programs,
-//             eval_fn: Arc::new(|_: &[T], _: &[TreeNode<Op<T>>]| T::default()),
-//         }
-//     }
-// }
-
-// impl<T> From<TreeNode<Op<T>>> for PgmConfig<T>
-// where
-//     T: Default,
-// {
-//     fn from(program: TreeNode<Op<T>>) -> Self {
-//         Self::new("pgm")
-//             .with_programs(vec![program])
-//             .with_eval_fn(|_: &[T], _: &[TreeNode<Op<T>>]| T::default())
-//     }
-// }
-
-// impl<T, F, N> From<(&'static str, Vec<N>, F)> for PgmConfig<T>
-// where
-//     T: Default,
-//     N: Into<TreeNode<Op<T>>>,
-//     F: Fn(&[T], &[TreeNode<Op<T>>]) -> T + 'static,
-// {
-//     fn from(tuple: (&'static str, Vec<N>, F)) -> Self {
-//         let (name, programs, eval_fn) = tuple;
-//         Self::new(name)
-//             .with_programs(programs)
-//             .with_eval_fn(eval_fn)
-//     }
-// }
-
-// impl<T, F, N> From<(&'static str, Arity, Vec<N>, F)> for PgmConfig<T>
-// where
-//     T: Default,
-//     N: Into<TreeNode<Op<T>>>,
-//     F: Fn(&[T], &[TreeNode<Op<T>>]) -> T + 'static,
-// {
-//     fn from(tuple: (&'static str, Arity, Vec<N>, F)) -> Self {
-//         let (name, arity, programs, eval_fn) = tuple;
-//         Self::new(name)
-//             .with_arity(arity)
-//             .with_programs(programs)
-//             .with_eval_fn(eval_fn)
-//     }
-// }
-
-// impl<T> From<PgmConfig<T>> for Op<T> {
-//     fn from(config: PgmConfig<T>) -> Self {
-//         Op::PGM(
-//             config.name,
-//             config.arity,
-//             Arc::new(config.programs),
-//             config.eval_fn,
-//         )
-//     }
-// }
-
-// impl<T> From<PgmConfig<T>> for NodeValue<Op<T>> {
-//     fn from(config: PgmConfig<T>) -> Self {
-//         let arity = config.arity;
-//         NodeValue::Bounded(config.build(), arity)
-//     }
-// }
-
-// impl<T: Default> Default for PgmConfig<T> {
-//     fn default() -> Self {
-//         Self {
-//             name: "pgm",
-//             arity: Arity::Any,
-//             programs: Vec::new(),
-//             eval_fn: Arc::new(|_: &[T], _: &[TreeNode<Op<T>>]| T::default()),
-//         }
-//     }
-// }

@@ -40,19 +40,11 @@ pub enum Op<T> {
         name: &'static str,
         arity: Arity,
         value: T,
-        supplier: Arc<dyn Fn() -> T>,
-        modifier: Arc<dyn Fn(&T) -> T>,
-        operation: Arc<dyn Fn(&[T], &T) -> T>,
+        supplier: fn() -> T,
+        modifier: fn(&T) -> T,
+        operation: fn(&[T], &T) -> T,
     },
-    /// 5) A 'Value' operation that can be used as a 'stateful' constant:
-    ///
-    /// # Arguments
-    /// - `&'static str` name
-    /// - `Arity` of how many inputs it might read
-    /// - Current value of type `T`
-    /// - An `Arc<dyn Fn(&[T], &T) -> T>` for updating or combining inputs & old value -> new value
-    Value(&'static str, Arity, T, Arc<dyn Fn(&[T], &T) -> T>),
-    /// 6) A Probabilistic Graph Model (PGM) operation that can be used to create complex functions that can
+    /// 5) A Probabilistic Graph Model (PGM) operation that can be used to create complex functions that can
     /// be used to discover _how_ the inputs relate to the output and can be used to sample new inputs
     /// based on the learned relationships.
     ///
@@ -65,11 +57,10 @@ pub enum Op<T> {
         &'static str,
         Arity,
         Arc<Vec<TreeNode<Op<T>>>>,
-        Arc<dyn Fn(&[T], &[TreeNode<Op<T>>]) -> T>,
+        fn(&[T], &[TreeNode<Op<T>>]) -> T,
     ),
 }
 
-/// Base functionality for operations.
 impl<T> Op<T> {
     pub fn name(&self) -> &str {
         match self {
@@ -77,7 +68,6 @@ impl<T> Op<T> {
             Op::Var(name, _) => name,
             Op::Const(name, _) => name,
             Op::MutableConst { name, .. } => name,
-            Op::Value(name, _, _, _) => name,
             #[cfg(feature = "pgm")]
             Op::PGM(name, _, _, _) => name,
         }
@@ -89,22 +79,36 @@ impl<T> Op<T> {
             Op::Var(_, _) => Arity::Zero,
             Op::Const(_, _) => Arity::Zero,
             Op::MutableConst { arity, .. } => *arity,
-            Op::Value(_, arity, _, _) => *arity,
             #[cfg(feature = "pgm")]
             Op::PGM(_, arity, _, _) => *arity,
         }
     }
 
-    pub fn constant(value: T) -> Self
-    where
-        T: Display,
-    {
-        let name = radiate_core::intern!(format!("{}", value));
-        Op::Const(name, value)
+    pub fn is_fn(&self) -> bool {
+        matches!(self, Op::Fn(_, _, _))
     }
 
-    pub fn named_constant(name: &'static str, value: T) -> Self {
-        Op::Const(name, value)
+    pub fn is_var(&self) -> bool {
+        matches!(self, Op::Var(_, _))
+    }
+
+    pub fn is_const(&self) -> bool {
+        matches!(self, Op::Const(_, _))
+    }
+
+    pub fn is_mutable_const(&self) -> bool {
+        matches!(self, Op::MutableConst { .. })
+    }
+
+    pub fn is_pgm(&self) -> bool {
+        #[cfg(feature = "pgm")]
+        {
+            matches!(self, Op::PGM(_, _, _, _))
+        }
+        #[cfg(not(feature = "pgm"))]
+        {
+            false
+        }
     }
 
     pub fn identity() -> Self
@@ -113,15 +117,10 @@ impl<T> Op<T> {
     {
         Op::Fn("identity", 1.into(), |inputs: &[T]| inputs[0].clone())
     }
-
-    pub fn var(index: usize) -> Self {
-        let name = radiate_core::intern!(format!("{}", index));
-        Op::Var(name, index)
-    }
 }
 
-unsafe impl<T: Send> Send for Op<T> {}
-unsafe impl<T: Sync> Sync for Op<T> {}
+unsafe impl<T> Send for Op<T> {}
+unsafe impl<T> Sync for Op<T> {}
 
 impl<T> Eval<[T], T> for Op<T>
 where
@@ -135,7 +134,6 @@ where
             Op::MutableConst {
                 value, operation, ..
             } => operation(inputs, value),
-            Op::Value(_, _, value, operation) => operation(inputs, value),
             #[cfg(feature = "pgm")]
             Op::PGM(_, _, model, operation) => operation(inputs, &model),
         }
@@ -162,16 +160,13 @@ where
                 name,
                 arity: *arity,
                 value: (*supplier)(),
-                supplier: Arc::clone(supplier),
-                modifier: Arc::clone(modifier),
-                operation: Arc::clone(operation),
+                supplier: *supplier,
+                modifier: *modifier,
+                operation: *operation,
             },
-            Op::Value(name, arity, value, operation) => {
-                Op::Value(name, *arity, value.clone(), Arc::clone(operation))
-            }
             #[cfg(feature = "pgm")]
             Op::PGM(name, arity, model, operation) => {
-                Op::PGM(name, *arity, Arc::clone(model), Arc::clone(operation))
+                Op::PGM(name, *arity, Arc::clone(model), *operation)
             }
         }
     }
@@ -197,16 +192,13 @@ where
                 name,
                 arity: *arity,
                 value: value.clone(),
-                supplier: Arc::clone(supplier),
-                modifier: Arc::clone(modifier),
-                operation: Arc::clone(operation),
+                supplier: *supplier,
+                modifier: *modifier,
+                operation: *operation,
             },
-            Op::Value(name, arity, value, operation) => {
-                Op::Value(name, *arity, value.clone(), Arc::clone(operation))
-            }
             #[cfg(feature = "pgm")]
             Op::PGM(name, arity, model, operation) => {
-                Op::PGM(name, *arity, Arc::clone(model), Arc::clone(operation))
+                Op::PGM(name, *arity, Arc::clone(model), *operation)
             }
         }
     }
@@ -252,7 +244,6 @@ where
             Op::Var(name, index) => write!(f, "Var: {}({})", name, index),
             Op::Const(name, value) => write!(f, "C: {}({:?})", name, value),
             Op::MutableConst { name, value, .. } => write!(f, "{}({:.2?})", name, value),
-            Op::Value(name, _, value, _) => write!(f, "{}({:.2?})", name, value),
             #[cfg(feature = "pgm")]
             Op::PGM(name, _, model, _) => {
                 let mut model_str = String::new();
@@ -270,10 +261,7 @@ where
     }
 }
 
-impl<T> From<Op<T>> for NodeValue<Op<T>>
-where
-    T: Clone,
-{
+impl<T> From<Op<T>> for NodeValue<Op<T>> {
     fn from(value: Op<T>) -> Self {
         let arity = value.arity();
         NodeValue::Bounded(value, arity)
@@ -290,12 +278,6 @@ impl<T> From<Op<T>> for TreeNode<Op<T>> {
 impl<T> From<Op<T>> for Vec<TreeNode<Op<T>>> {
     fn from(value: Op<T>) -> Self {
         vec![TreeNode::from(value)]
-    }
-}
-
-impl From<f32> for Op<f32> {
-    fn from(value: f32) -> Self {
-        Op::Value("Value(f32)", Arity::Any, value, Arc::new(|_, v| *v))
     }
 }
 
@@ -361,10 +343,10 @@ mod test {
             "pgm",
             Arity::Any,
             Arc::new(vec![model]),
-            Arc::new(|inputs: &[f32], prog: &[TreeNode<Op<f32>>]| {
+            |inputs: &[f32], prog: &[TreeNode<Op<f32>>]| {
                 let sum: f32 = prog.iter().map(|node| node.eval(inputs)).sum();
                 sum + inputs.iter().sum::<f32>()
-            }),
+            },
         );
 
         let result = pgm_op.eval(&[]);

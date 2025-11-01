@@ -257,7 +257,7 @@ where
                         name,
                         *arity,
                         Arc::new(programs.iter().map(|p| p.clone()).collect()),
-                        Arc::clone(eval_fn),
+                        *eval_fn,
                     ));
 
                     for prog in programs.iter() {

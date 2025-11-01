@@ -81,6 +81,36 @@ where
     }
 }
 
+impl<T, F> Factory<F, TreeNode<T>> for NodeStore<T>
+where
+    T: Default + Clone,
+    F: Fn(Arity) -> bool,
+{
+    fn new_instance(&self, input: F) -> TreeNode<T> {
+        self.map(|values| {
+            let mapped_values = values
+                .into_iter()
+                .filter(|value| match value {
+                    NodeValue::Bounded(_, arity) => input(*arity),
+                    _ => false,
+                })
+                .collect::<Vec<&NodeValue<T>>>();
+
+            if mapped_values.is_empty() {
+                TreeNode::new(T::default())
+            } else {
+                let node_value = random_provider::choose(&mapped_values);
+
+                match node_value {
+                    NodeValue::Bounded(value, arity) => TreeNode::with_arity(value.clone(), *arity),
+                    NodeValue::Unbound(value) => TreeNode::new(value.clone()),
+                }
+            }
+        })
+        .unwrap_or(TreeNode::new(T::default()))
+    }
+}
+
 impl<T: Clone + Default> Factory<NodeType, TreeNode<T>> for NodeStore<T> {
     fn new_instance(&self, input: NodeType) -> TreeNode<T> {
         self.map_by_type(input, |values| {
@@ -91,6 +121,10 @@ impl<T: Clone + Default> Factory<NodeType, TreeNode<T>> for NodeStore<T> {
                 NodeValue::Unbound(value) => TreeNode::new(value.clone()),
             }
         })
-        .unwrap_or(TreeNode::new(T::default()))
+        .unwrap_or(self.new_instance(|arity| match input {
+            NodeType::Input | NodeType::Leaf => arity == Arity::Zero,
+            NodeType::Output | NodeType::Root | NodeType::Vertex => arity != Arity::Zero,
+            NodeType::Edge => arity == Arity::Exact(1),
+        }))
     }
 }

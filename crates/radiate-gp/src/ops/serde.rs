@@ -2,6 +2,7 @@ use crate::Arity;
 use crate::ops::operation::Op;
 #[cfg(feature = "pgm")]
 use crate::{TopologicalMapper, TreeNode};
+use radiate_core::intern;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::sync::Arc;
 
@@ -21,11 +22,6 @@ enum OpVariant<T> {
         value: T,
     },
     MutableConst {
-        name: String,
-        arity: Arity,
-        value: T,
-    },
-    Value {
         name: String,
         arity: Arity,
         value: T,
@@ -96,11 +92,6 @@ impl<T: Clone> From<Op<T>> for OpVariant<T> {
             Op::MutableConst {
                 name, arity, value, ..
             } => OpVariant::MutableConst {
-                name: name.to_string(),
-                arity,
-                value,
-            },
-            Op::Value(name, arity, value, _) => OpVariant::Value {
                 name: name.to_string(),
                 arity,
                 value,
@@ -184,16 +175,16 @@ impl From<OpVariant<f32>> for Result<Op<f32>, serde::de::value::Error> {
                                 name,
                                 arity: w_arity.clone(),
                                 value: value.clone(),
-                                supplier: Arc::clone(&w_supplier),
-                                modifier: Arc::clone(&w_modifier),
-                                operation: Arc::clone(&w_operation),
+                                supplier: w_supplier,
+                                modifier: w_modifier,
+                                operation: w_operation,
                             });
                         }
                         _ => {
-                            let name = Box::leak(name.into_boxed_str());
-                            let supplier = Arc::new(move || value.clone());
-                            let modifier = Arc::new(|v: &f32| v.clone());
-                            let operation = Arc::new(|_: &[f32], v: &f32| v.clone());
+                            let name = intern!(name);
+                            let supplier = move || 0.0_f32;
+                            let modifier = move |v: &f32| *v;
+                            let operation = |_: &[f32], v: &f32| v.clone();
                             Ok(Op::MutableConst {
                                 name,
                                 arity,
@@ -212,15 +203,6 @@ impl From<OpVariant<f32>> for Result<Op<f32>, serde::de::value::Error> {
                     )));
                 }
             },
-            OpVariant::Value { name, arity, value } => {
-                let name = Box::leak(name.into_boxed_str());
-                Ok(Op::Value(
-                    name,
-                    arity,
-                    value,
-                    Arc::new(|_: &[f32], v: &f32| v.clone()),
-                ))
-            }
             #[cfg(feature = "pgm")]
             OpVariant::PGM {
                 name,
@@ -244,7 +226,7 @@ impl From<OpVariant<f32>> for Result<Op<f32>, serde::de::value::Error> {
                     name,
                     arity,
                     Arc::new(model_tree),
-                    Arc::new(|inputs: &[f32], progs: &[TreeNode<Op<f32>>]| {
+                    |inputs: &[f32], progs: &[TreeNode<Op<f32>>]| {
                         use crate::Eval;
 
                         let probabilities = progs.eval(inputs);
@@ -258,7 +240,7 @@ impl From<OpVariant<f32>> for Result<Op<f32>, serde::de::value::Error> {
                             .fold(f32::NEG_INFINITY, f32::max);
                         let sum_exp = probabilities.iter().map(|v| (v - m).exp()).sum::<f32>();
                         super::math::clamp(m + sum_exp.ln())
-                    }),
+                    },
                 ))
             }
         }
@@ -301,15 +283,6 @@ impl From<OpVariant<bool>> for Result<Op<bool>, serde::de::value::Error> {
                     name
                 )));
             }
-            OpVariant::Value { name, arity, value } => {
-                let name = Box::leak(name.into_boxed_str());
-                Ok(Op::Value(
-                    name,
-                    arity,
-                    value,
-                    Arc::new(|_: &[bool], v: &bool| v.clone()),
-                ))
-            }
             OpVariant::Var { name, index } => {
                 let name = Box::leak(name.into_boxed_str());
                 Ok(Op::Var(name, index))
@@ -341,7 +314,7 @@ impl From<OpVariant<bool>> for Result<Op<bool>, serde::de::value::Error> {
                     name,
                     arity,
                     Arc::new(model_tree),
-                    Arc::new(|inputs: &[bool], progs: &[TreeNode<Op<bool>>]| {
+                    |inputs: &[bool], progs: &[TreeNode<Op<bool>>]| {
                         use crate::Eval;
 
                         let probabilities = progs.eval(inputs);
@@ -351,7 +324,7 @@ impl From<OpVariant<bool>> for Result<Op<bool>, serde::de::value::Error> {
 
                         let result = false;
                         result
-                    }),
+                    },
                 ))
             }
         }
@@ -399,15 +372,6 @@ mod tests {
     #[test]
     fn test_serialize_deserialize_mutable_const() {
         let op = Op::weight();
-        let serialized = serde_json::to_string(&op).unwrap();
-        let deserialized: Op<f32> = serde_json::from_str(&serialized).unwrap();
-        assert_eq!(op.name(), deserialized.name());
-        assert_eq!(op.arity(), deserialized.arity());
-    }
-
-    #[test]
-    fn test_serialize_deserialize_value() {
-        let op = Op::from(42.0);
         let serialized = serde_json::to_string(&op).unwrap();
         let deserialized: Op<f32> = serde_json::from_str(&serialized).unwrap();
         assert_eq!(op.name(), deserialized.name());

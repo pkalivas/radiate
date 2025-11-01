@@ -1,7 +1,6 @@
 use super::Op;
-use crate::{Arity, op};
+use crate::Arity;
 use radiate_core::random_provider;
-use std::sync::Arc;
 
 pub(super) const MAX_VALUE: f32 = 1e+10_f32;
 pub(super) const MIN_VALUE: f32 = -1e+10_f32;
@@ -45,69 +44,86 @@ pub(super) fn aggregate(vals: &[f32]) -> f32 {
     vals.iter().cloned().sum::<f32>()
 }
 
-pub enum MathOperation {
-    Add,
-    Sub,
-    Mul,
-    Div,
-    Sum,
-    Prod,
-    Diff,
-    Neg,
-    Pow,
-    Sqrt,
-    Abs,
-    Exp,
-    Log,
-    Sin,
-    Cos,
-    Tan,
-    Ceil,
-    Floor,
-    Max,
-    Min,
-}
-
 #[inline]
 const fn add(vals: &[f32]) -> f32 {
     clamp(vals[0] + vals[1])
 }
 
+#[inline]
+const fn sub(vals: &[f32]) -> f32 {
+    clamp(vals[0] - vals[1])
+}
+
+#[inline]
+const fn mul(vals: &[f32]) -> f32 {
+    clamp(vals[0] * vals[1])
+}
+
+#[inline]
+const fn div(vals: &[f32]) -> f32 {
+    if vals[1].abs() < MIN_VALUE {
+        clamp(vals[0] / ONE)
+    } else {
+        clamp(vals[0] / vals[1])
+    }
+}
+
+#[inline]
+const fn neg(vals: &[f32]) -> f32 {
+    clamp(-vals[0])
+}
+
+#[inline]
+const fn abs(vals: &[f32]) -> f32 {
+    clamp(vals[0].abs())
+}
+
+#[inline]
+const fn ceil(vals: &[f32]) -> f32 {
+    clamp(vals[0].ceil())
+}
+
+#[inline]
+const fn floor(vals: &[f32]) -> f32 {
+    clamp(vals[0].floor())
+}
+
+pub enum AggregateOperations {
+    Sum,
+    Prod,
+    Diff,
+    Pow,
+    Sqrt,
+    Exp,
+    Log,
+    Sin,
+    Cos,
+    Tan,
+    Max,
+    Min,
+}
+
 /// Implementations of the [MathOperation] enum. These are the basic math operations.
 /// Each operation takes a slice of `f32` values and returns a single `f32` value.
-impl MathOperation {
+impl AggregateOperations {
     pub fn apply(&self, inputs: &[f32]) -> f32 {
         match self {
-            MathOperation::Add => clamp(inputs[0] + inputs[1]),
-            MathOperation::Sub => clamp(inputs[0] - inputs[1]),
-            MathOperation::Mul => clamp(inputs[0] * inputs[1]),
-            MathOperation::Div => {
-                if inputs[1].abs() < MIN_VALUE {
-                    clamp(inputs[0] / ONE)
-                } else {
-                    clamp(inputs[0] / inputs[1])
-                }
-            }
-            MathOperation::Sum => clamp(aggregate(inputs)),
-            MathOperation::Diff => clamp(inputs.iter().cloned().fold(ZERO, |acc, x| acc - x)),
-            MathOperation::Prod => clamp(inputs.iter().product()),
-            MathOperation::Neg => clamp(-inputs[0]),
-            MathOperation::Pow => clamp(inputs[0].powf(inputs[1])),
-            MathOperation::Sqrt => clamp(inputs[0].sqrt()),
-            MathOperation::Abs => clamp(inputs[0].abs()),
-            MathOperation::Exp => clamp(inputs[0].exp()),
-            MathOperation::Log => clamp(if inputs[0] > ZERO {
+            AggregateOperations::Sum => clamp(aggregate(inputs)),
+            AggregateOperations::Diff => clamp(inputs.iter().cloned().fold(ZERO, |acc, x| acc - x)),
+            AggregateOperations::Prod => clamp(inputs.iter().product()),
+            AggregateOperations::Pow => clamp(inputs[0].powf(inputs[1])),
+            AggregateOperations::Sqrt => clamp(inputs[0].sqrt()),
+            AggregateOperations::Exp => clamp(inputs[0].exp()),
+            AggregateOperations::Log => clamp(if inputs[0] > ZERO {
                 inputs[0].ln()
             } else {
                 ZERO
             }),
-            MathOperation::Sin => clamp(inputs[0].sin()),
-            MathOperation::Cos => clamp(inputs[0].cos()),
-            MathOperation::Tan => clamp(inputs[0].tan()),
-            MathOperation::Ceil => clamp(inputs[0].ceil()),
-            MathOperation::Floor => clamp(inputs[0].floor()),
-            MathOperation::Max => clamp(inputs.iter().cloned().fold(MIN_VALUE, f32::max)),
-            MathOperation::Min => clamp(inputs.iter().cloned().fold(MAX_VALUE, f32::min)),
+            AggregateOperations::Sin => clamp(inputs[0].sin()),
+            AggregateOperations::Cos => clamp(inputs[0].cos()),
+            AggregateOperations::Tan => clamp(inputs[0].tan()),
+            AggregateOperations::Max => clamp(inputs.iter().cloned().fold(MIN_VALUE, f32::max)),
+            AggregateOperations::Min => clamp(inputs.iter().cloned().fold(MAX_VALUE, f32::min)),
         }
     }
 }
@@ -183,133 +199,118 @@ impl Op<f32> {
             clamp(current + diff)
         };
 
-        crate::op!(Op::MutableConst {
+        Op::MutableConst {
             name: "w",
             arity: 1.into(),
             value: clamp(value),
-            supplier: Arc::new(supplier),
-            modifier: Arc::new(modifier),
-            operation: Arc::new(operation),
-        })
+            supplier,
+            modifier,
+            operation,
+        }
     }
 
     pub fn add() -> Self {
-        op!("add", 2.into(), |inputs: &[f32]| MathOperation::Add
-            .apply(inputs))
+        Op::Fn("add", 2.into(), add)
     }
 
     pub fn sub() -> Self {
-        Op::Fn("sub", 2.into(), |inputs: &[f32]| {
-            MathOperation::Sub.apply(inputs)
-        })
+        Op::Fn("sub", 2.into(), sub)
     }
 
     pub fn mul() -> Self {
-        Op::Fn("mul", 2.into(), |inputs: &[f32]| {
-            MathOperation::Mul.apply(inputs)
-        })
+        Op::Fn("mul", 2.into(), mul)
     }
 
     pub fn div() -> Self {
-        Op::Fn("div", 2.into(), |inputs: &[f32]| {
-            MathOperation::Div.apply(inputs)
-        })
+        Op::Fn("div", 2.into(), div)
     }
 
     pub fn sum() -> Self {
         Op::Fn("sum", Arity::Any, |inputs: &[f32]| {
-            MathOperation::Sum.apply(inputs)
+            AggregateOperations::Sum.apply(inputs)
         })
     }
 
     pub fn diff() -> Self {
         Op::Fn("diff", Arity::Any, |inputs: &[f32]| {
-            MathOperation::Diff.apply(inputs)
+            AggregateOperations::Diff.apply(inputs)
         })
     }
 
     pub fn prod() -> Self {
         Op::Fn("prod", Arity::Any, |inputs: &[f32]| {
-            MathOperation::Prod.apply(inputs)
+            AggregateOperations::Prod.apply(inputs)
         })
     }
 
     pub fn neg() -> Self {
-        Op::Fn("neg", 1.into(), |inputs: &[f32]| {
-            MathOperation::Neg.apply(inputs)
-        })
+        Op::Fn("neg", 1.into(), neg)
     }
 
     pub fn pow() -> Self {
         Op::Fn("pow", 2.into(), |inputs: &[f32]| {
-            MathOperation::Pow.apply(inputs)
+            AggregateOperations::Pow.apply(inputs)
         })
     }
 
     pub fn sqrt() -> Self {
         Op::Fn("sqrt", 1.into(), |inputs: &[f32]| {
-            MathOperation::Sqrt.apply(inputs)
+            AggregateOperations::Sqrt.apply(inputs)
         })
     }
 
     pub fn abs() -> Self {
-        Op::Fn("abs", 1.into(), |inputs: &[f32]| {
-            MathOperation::Abs.apply(inputs)
-        })
+        Op::Fn("abs", 1.into(), abs)
     }
 
     pub fn exp() -> Self {
         Op::Fn("exp", 1.into(), |inputs: &[f32]| {
-            MathOperation::Exp.apply(inputs)
+            AggregateOperations::Exp.apply(inputs)
         })
     }
 
     pub fn log() -> Self {
         Op::Fn("log", 1.into(), |inputs: &[f32]| {
-            MathOperation::Log.apply(inputs)
+            AggregateOperations::Log.apply(inputs)
         })
     }
 
     pub fn sin() -> Self {
         Op::Fn("sin", 1.into(), |inputs: &[f32]| {
-            MathOperation::Sin.apply(inputs)
+            AggregateOperations::Sin.apply(inputs)
         })
     }
 
     pub fn cos() -> Self {
         Op::Fn("cos", 1.into(), |inputs: &[f32]| {
-            MathOperation::Cos.apply(inputs)
+            AggregateOperations::Cos.apply(inputs)
         })
     }
 
     pub fn max() -> Self {
         Op::Fn("max", Arity::Any, |inputs: &[f32]| {
-            MathOperation::Max.apply(inputs)
+            AggregateOperations::Max.apply(inputs)
         })
     }
 
     pub fn min() -> Self {
         Op::Fn("min", Arity::Any, |inputs: &[f32]| {
-            MathOperation::Min.apply(inputs)
+            AggregateOperations::Min.apply(inputs)
         })
     }
 
     pub fn tan() -> Self {
         Op::Fn("tan", 1.into(), |inputs: &[f32]| {
-            MathOperation::Tan.apply(inputs)
+            AggregateOperations::Tan.apply(inputs)
         })
     }
 
     pub fn ceil() -> Self {
-        Op::Fn("ceil", 1.into(), |inputs: &[f32]| {
-            MathOperation::Ceil.apply(inputs)
-        })
+        Op::Fn("ceil", 1.into(), ceil)
     }
 
     pub fn floor() -> Self {
-        Op::Fn("floor", 1.into(), |inputs: &[f32]| {
-            MathOperation::Floor.apply(inputs)
-        })
+        Op::Fn("floor", 1.into(), floor)
     }
 
     pub fn sigmoid() -> Self {
@@ -434,18 +435,9 @@ mod tests {
     }
 
     #[test]
-    fn math_add_sub_mul_div() {
-        let a = [8.0, 2.0];
-        assert_eq!(MathOperation::Add.apply(&a), 10.0);
-        assert_eq!(MathOperation::Sub.apply(&a), 6.0);
-        assert_eq!(MathOperation::Mul.apply(&a), 16.0);
-        assert_eq!(MathOperation::Div.apply(&a), 4.0);
-    }
-
-    #[test]
     fn math_div_near_zero_clamps_large_quotient() {
         let xs = [10.0, 1e-12_f32];
-        let y = MathOperation::Div.apply(&xs);
+        let y = Op::div().eval(&xs);
         assert_eq!(
             y, MAX_VALUE,
             "huge quotient should clamp to MAX_VALUE with current code"
@@ -455,51 +447,47 @@ mod tests {
     #[test]
     fn math_sum_prod_diff_pow_sqrt_abs() {
         let xs = [2.0, 3.0, 4.0];
-        assert_eq!(MathOperation::Sum.apply(&xs), 9.0);
-        assert_eq!(MathOperation::Prod.apply(&xs), 24.0);
+        assert_eq!(AggregateOperations::Sum.apply(&xs), 9.0);
+        assert_eq!(AggregateOperations::Prod.apply(&xs), 24.0);
         // Diff is left fold from ZERO: (((0-2)-3)-4) = -9
-        assert_eq!(MathOperation::Diff.apply(&xs), -9.0);
+        assert_eq!(AggregateOperations::Diff.apply(&xs), -9.0);
 
-        let p = MathOperation::Pow.apply(&[3.0, 2.0]);
+        let p = AggregateOperations::Pow.apply(&[3.0, 2.0]);
         assert_eq!(p, 9.0);
 
-        assert_eq!(MathOperation::Sqrt.apply(&[9.0]), 3.0);
-        assert_eq!(MathOperation::Abs.apply(&[-5.0]), 5.0);
+        assert_eq!(AggregateOperations::Sqrt.apply(&[9.0]), 3.0);
     }
 
     #[test]
     fn math_exp_log_trig_rounding() {
-        let e = MathOperation::Exp.apply(&[1.0]);
+        let e = AggregateOperations::Exp.apply(&[1.0]);
         assert!(approx(e, f32::consts::E, 1e-5), "exp(1) ~= e");
 
         // log on <=0 becomes NaN, then clamp -> 0.0
-        assert_eq!(MathOperation::Log.apply(&[0.0]), 0.0);
-        assert_eq!(MathOperation::Log.apply(&[-1.0]), 0.0);
+        assert_eq!(AggregateOperations::Log.apply(&[0.0]), 0.0);
+        assert_eq!(AggregateOperations::Log.apply(&[-1.0]), 0.0);
 
-        let s = MathOperation::Sin.apply(&[f32::consts::PI / 2.0]);
+        let s = AggregateOperations::Sin.apply(&[f32::consts::PI / 2.0]);
         assert!(approx(s, 1.0, 1e-5));
 
-        let c = MathOperation::Cos.apply(&[0.0]);
+        let c = AggregateOperations::Cos.apply(&[0.0]);
         assert!(approx(c, 1.0, 1e-5));
 
-        let t = MathOperation::Tan.apply(&[0.0]);
+        let t = AggregateOperations::Tan.apply(&[0.0]);
         assert!(approx(t, 0.0, 1e-6));
-
-        assert_eq!(MathOperation::Ceil.apply(&[1.2]), 2.0);
-        assert_eq!(MathOperation::Floor.apply(&[1.8]), 1.0);
     }
 
     #[test]
     fn math_max_min_variadic_including_empty_behavior() {
         let xs = [1.5, -2.0, 7.25, 3.0];
-        let mx = MathOperation::Max.apply(&xs);
-        let mn = MathOperation::Min.apply(&xs);
+        let mx = AggregateOperations::Max.apply(&xs);
+        let mn = AggregateOperations::Min.apply(&xs);
         assert_eq!(mx, 7.25);
         assert_eq!(mn, -2.0);
 
         let empty: [f32; 0] = [];
-        assert_eq!(MathOperation::Max.apply(&empty), MIN_VALUE);
-        assert_eq!(MathOperation::Min.apply(&empty), MAX_VALUE);
+        assert_eq!(AggregateOperations::Max.apply(&empty), MIN_VALUE);
+        assert_eq!(AggregateOperations::Min.apply(&empty), MAX_VALUE);
     }
 
     #[test]

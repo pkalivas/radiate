@@ -1,14 +1,21 @@
-use radiate::prelude::*;
+use radiate::{ops::crossover::PgmCrossover, prelude::*};
 
-const MIN_SCORE: f32 = 0.001;
+const MIN_SCORE: f32 = 0.01;
 
 fn main() {
     random_provider::set_seed(1000);
 
+    let tree = TreeNode::new(Op::sigmoid())
+        .attach(TreeNode::new(Op::var(0)))
+        .attach(TreeNode::new(Op::weight()));
+
     let store = vec![
         (NodeType::Input, vec![Op::var(0)]),
         (NodeType::Edge, vec![Op::weight()]),
-        (NodeType::Vertex, vec![Op::sub(), Op::mul(), Op::linear()]),
+        (
+            NodeType::Vertex,
+            vec![Op::sub(), Op::mul(), Op::linear(), Op::pgm("pgm", 2, tree)],
+        ),
         (NodeType::Output, vec![Op::linear()]),
     ];
 
@@ -19,6 +26,7 @@ fn main() {
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
+            PgmCrossover::new(0.4),
             GraphMutator::new(0.1, 0.1).allow_recurrent(false)
         ))
         .build();

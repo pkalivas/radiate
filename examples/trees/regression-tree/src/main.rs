@@ -36,7 +36,10 @@ fn main() {
         .codec(tree_codec)
         .fitness_fn(problem)
         .minimizing()
-        .mutator(HoistMutator::new(0.01))
+        .mutators(vec![
+            Box::new(HoistMutator::new(0.01)),
+            Box::new(OperationMutator::new(0.05, 0.05)),
+        ])
         .crossovers(vec![
             Box::new(TreeCrossover::new(0.5)),
             Box::new(PgmCrossover::new(0.4)),
