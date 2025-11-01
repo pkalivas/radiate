@@ -1,7 +1,8 @@
-use crate::{GraphChromosome, Node, Op, TreeChromosome, TreeCrossover, TreeNode};
+use crate::{GraphChromosome, Node, Op, TreeChromosome, TreeNode, trees::tree_crossover};
 use radiate_core::{AlterResult, Chromosome, Crossover, random_provider};
+use std::fmt::Debug;
 
-const DEFAULT_MAX_SIZE: usize = 30;
+const DEFAULT_MAX_SIZE: usize = 15;
 
 #[derive(Clone, Debug)]
 pub struct PgmCrossover {
@@ -41,33 +42,31 @@ where
         let one_pgm_indices = chrom_one
             .iter()
             .enumerate()
-            .filter_map(|(i, node)| node.value().programs().map(|progs| (i, progs)))
-            .collect::<Vec<(usize, &[TreeNode<Op<T>>])>>();
+            .filter_map(|(i, node)| node.value().programs().map(|_| i))
+            .collect::<Vec<usize>>();
         let two_pgm_indices = chrom_two
             .iter()
             .enumerate()
-            .filter_map(|(i, node)| node.value().programs().map(|progs| (i, progs)))
-            .collect::<Vec<(usize, &[TreeNode<Op<T>>])>>();
+            .filter_map(|(i, node)| node.value().programs().map(|_| i))
+            .collect::<Vec<usize>>();
 
         if one_pgm_indices.is_empty() || two_pgm_indices.is_empty() {
-            return 0.into();
+            return AlterResult::empty();
         }
 
-        let (one_index, one_progs) = random_provider::choose(&one_pgm_indices);
-        let (two_index, two_progs) = random_provider::choose(&two_pgm_indices);
+        let one_index = random_provider::choose(&one_pgm_indices);
+        let two_index = random_provider::choose(&two_pgm_indices);
 
-        let (result, one_copies, two_copies) =
-            matched_pgm_crossover(one_progs, two_progs, self.max_size);
+        let one_value = chrom_one.get_mut(*one_index).value_mut();
+        let two_value = chrom_two.get_mut(*two_index).value_mut();
 
-        if result.0 > 0 {
-            let one_node = chrom_one.get_mut(*one_index);
-            let two_node = chrom_two.get_mut(*two_index);
-
-            *one_node.value_mut() = one_node.value().with_programs(one_copies);
-            *two_node.value_mut() = two_node.value().with_programs(two_copies);
+        if let Some(one_progs) = one_value.programs_mut()
+            && let Some(two_progs) = two_value.programs_mut()
+        {
+            return matched_pgm_crossover(one_progs, two_progs, self.max_size);
         }
 
-        result
+        AlterResult::empty()
     }
 }
 
@@ -102,70 +101,43 @@ where
         let two_sub_node = two_node.get_mut(two_sub_node_index);
 
         if let (Some(one_sub_node), Some(two_sub_node)) = (one_sub_node, two_sub_node) {
-            let one_progs = one_sub_node.value().programs();
-            let two_progs = two_sub_node.value().programs();
+            let one_progs = one_sub_node.value_mut().programs_mut();
+            let two_progs = two_sub_node.value_mut().programs_mut();
 
-            if let (Some(one_progs), Some(two_progs)) = (one_progs, two_progs) {
-                let (count, one_copies, two_copies) =
-                    matched_pgm_crossover(one_progs, two_progs, self.max_size);
-
-                (*one_sub_node.value_mut()) = one_sub_node.value().with_programs(one_copies);
-                (*two_sub_node.value_mut()) = two_sub_node.value().with_programs(two_copies);
-
-                return count.into();
-            } else if let Some(one_progs) = one_progs {
-                let mut one_copies = one_progs
-                    .iter()
-                    .map(|program| program.clone())
-                    .collect::<Vec<TreeNode<Op<T>>>>();
-
-                let one_rand_prog = random_provider::choose_mut(&mut one_copies);
-                let count = TreeCrossover::cross_nodes(one_rand_prog, two_sub_node, self.max_size);
-
-                (*one_sub_node.value_mut()) = one_sub_node.value().with_programs(one_copies);
-
-                return count.into();
-            } else if let Some(two_progs) = two_progs {
-                let mut two_copies = two_progs
-                    .iter()
-                    .map(|program| program.clone())
-                    .collect::<Vec<TreeNode<Op<T>>>>();
-
-                let two_rand_prog = random_provider::choose_mut(&mut two_copies);
-                let count = TreeCrossover::cross_nodes(one_sub_node, two_rand_prog, self.max_size);
-
-                (*two_sub_node.value_mut()) = two_sub_node.value().with_programs(two_copies);
-
-                return count.into();
+            match (one_progs, two_progs) {
+                (Some(one_progs_mut), Some(two_progs_mut)) => {
+                    return matched_pgm_crossover(one_progs_mut, two_progs_mut, self.max_size);
+                }
+                (Some(one_progs_mut), None) => {
+                    let one_rand_prog = random_provider::choose_mut(one_progs_mut);
+                    return tree_crossover::cross_nodes(one_rand_prog, two_sub_node, self.max_size);
+                }
+                (None, Some(two_progs_mut)) => {
+                    let two_rand_prog = random_provider::choose_mut(two_progs_mut);
+                    return tree_crossover::cross_nodes(one_sub_node, two_rand_prog, self.max_size);
+                }
+                _ => {}
             }
         }
 
-        0.into()
+        AlterResult::empty()
     }
 }
 
 fn matched_pgm_crossover<T>(
-    progs_one: &[TreeNode<Op<T>>],
-    progs_two: &[TreeNode<Op<T>>],
+    mut progs_one: &mut Vec<TreeNode<Op<T>>>,
+    mut progs_two: &mut Vec<TreeNode<Op<T>>>,
     max_size: usize,
-) -> (AlterResult, Vec<TreeNode<Op<T>>>, Vec<TreeNode<Op<T>>>)
+) -> AlterResult
 where
     T: Clone,
 {
-    let mut one_copies = progs_one
-        .iter()
-        .map(|program| program.clone())
-        .collect::<Vec<TreeNode<Op<T>>>>();
+    let one_rand_prog = random_provider::choose_mut(&mut progs_one);
+    let two_rand_prog = random_provider::choose_mut(&mut progs_two);
 
-    let mut two_copies = progs_two
-        .iter()
-        .map(|program| program.clone())
-        .collect::<Vec<TreeNode<Op<T>>>>();
-
-    let one_rand_prog = random_provider::choose_mut(&mut one_copies);
-    let two_rand_prog = random_provider::choose_mut(&mut two_copies);
-
-    let count = TreeCrossover::cross_nodes(one_rand_prog, two_rand_prog, max_size);
-
-    (count, one_copies, two_copies)
+    AlterResult::from(tree_crossover::cross_nodes(
+        one_rand_prog,
+        two_rand_prog,
+        max_size,
+    ))
 }

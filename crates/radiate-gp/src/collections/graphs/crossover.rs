@@ -37,7 +37,7 @@ where
         _: f32,
     ) -> AlterResult {
         if population.len() <= NUM_PARENTS {
-            return 0.into();
+            return AlterResult::empty();
         }
 
         if let Some((parent_one, parent_two)) = population.get_pair_mut(indexes[0], indexes[1]) {
@@ -77,9 +77,9 @@ where
                 parent_one.invalidate(generation);
             }
 
-            num_crosses.into()
+            AlterResult::from(num_crosses)
         } else {
-            0.into()
+            AlterResult::empty()
         }
     }
 }

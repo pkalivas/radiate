@@ -3,8 +3,8 @@ pub mod ops;
 pub mod regression;
 
 pub use collections::*;
-// #[cfg(feature = "pgm")]
-// pub use ops::pgm::*;
+#[cfg(feature = "pgm")]
+pub use ops::crossover::PgmCrossover;
 pub use ops::{Op, OperationMutator, activation_ops, all_ops, math_ops};
 pub use regression::{Accuracy, AccuracyResult, DataSet, Loss, Regression};
 

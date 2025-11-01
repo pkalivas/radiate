@@ -45,6 +45,25 @@ pub(super) fn aggregate(vals: &[f32]) -> f32 {
 }
 
 #[inline]
+pub(super) fn stable_softmax(xs: &[f32]) -> Vec<f32> {
+    if xs.is_empty() {
+        return vec![];
+    }
+
+    let m = xs.iter().copied().fold(f32::NEG_INFINITY, f32::max);
+    let exps = xs
+        .iter()
+        .map(|&x| super::math::clamp((x - m).exp()))
+        .collect::<Vec<f32>>();
+
+    let s = exps.iter().sum::<f32>().max(super::math::EPSILON);
+
+    exps.into_iter()
+        .map(|e| super::math::clamp(e / s))
+        .collect()
+}
+
+#[inline]
 const fn add(vals: &[f32]) -> f32 {
     clamp(vals[0] + vals[1])
 }
@@ -416,7 +435,7 @@ pub fn all_ops() -> Vec<Op<f32>> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Eval, TreeNode};
+    use crate::Eval;
 
     use super::*;
     use std::f32;
@@ -559,16 +578,5 @@ mod tests {
         } else {
             panic!("weight() did not return MutableConst as expected");
         }
-    }
-
-    #[test]
-    fn pgm_op_runs_and_is_clamped() {
-        let tree = TreeNode::new(Op::add());
-        let pgm = Op::pgm("add", 2, tree);
-
-        let out = pgm.eval(&[1.0, 2.0]);
-        assert!(out.is_finite());
-        assert!(out <= MAX_VALUE && out >= MIN_VALUE);
-        assert_eq!(out, 3.0, "pgm with add should return the sum of inputs");
     }
 }

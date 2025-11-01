@@ -1,6 +1,6 @@
-use crate::{Arity, Eval, NodeStore, Op, Tree, TreeNode};
+use crate::{Arity, Eval, Node, NodeStore, Op, Tree, TreeNode};
 use radiate_core::random_provider;
-use std::sync::Arc;
+use std::{fmt::Debug, sync::Arc};
 
 impl<T> Op<T> {
     pub fn programs(&self) -> Option<&[TreeNode<Op<T>>]> {
@@ -10,66 +10,102 @@ impl<T> Op<T> {
         }
     }
 
-    pub fn with_programs<N>(&self, programs: impl Into<Vec<N>>) -> Self
+    pub fn programs_mut(&mut self) -> Option<&mut Vec<TreeNode<Op<T>>>>
     where
-        N: Into<TreeNode<Op<T>>>,
         T: Clone,
     {
         match self {
-            Op::PGM(name, arity, _, eval_fn) => Op::PGM(
-                name,
-                *arity,
-                Arc::new(programs.into().into_iter().map(|p| p.into()).collect()),
-                *eval_fn,
-            ),
-            _ => self.clone(),
+            Op::PGM(_, _, programs, _) => Some(Arc::make_mut(programs)),
+            _ => None,
         }
+    }
+
+    // Program seeding utility used by defaults
+    pub(self) fn seed_programs(
+        arity: Arity,
+        store: &NodeStore<Op<T>>,
+        seeds: &[TreeNode<Op<T>>],
+        depth: usize,
+        keep_ratio: f32,
+        add_tail: bool,
+    ) -> Arc<Vec<TreeNode<Op<T>>>>
+    where
+        T: Clone + Default + Debug,
+    {
+        let n = match arity {
+            Arity::Zero => 1,
+            Arity::Exact(k) => k,
+            Arity::Any => 2,
+        };
+
+        // First program is the “head”; the rest are “tail” (inputs → probs/logits)
+        let num_progs = if add_tail { n + 1 } else { n };
+
+        let mut out = Vec::with_capacity(num_progs);
+        for i in 0..num_progs {
+            let from_seed = !seeds.is_empty() && !random_provider::bool(1.0 - keep_ratio as f64);
+            if from_seed {
+                let mut current = seeds[i % seeds.len()].clone();
+                if current.value().arity() != Arity::Zero {
+                    Tree::repair_node(&mut current, store);
+                }
+
+                out.push(current);
+            } else {
+                if let Some(node) = Tree::with_depth(depth, store.clone()).take_root() {
+                    out.push(node);
+                }
+            }
+        }
+
+        Arc::new(out)
     }
 }
 
 impl Op<f32> {
+    pub fn pgm_with<N>(
+        name: &'static str,
+        arity: impl Into<Arity>,
+        seeds: impl Into<Vec<N>>,
+        depth: usize,
+        keep_ratio: f32,
+        add_tail: bool,
+        eval: fn(&[f32], &[TreeNode<Op<f32>>]) -> f32,
+    ) -> Op<f32>
+    where
+        N: Into<TreeNode<Op<f32>>>,
+    {
+        let arity = arity.into();
+        let seeds = seeds
+            .into()
+            .into_iter()
+            .map(|s| s.into())
+            .collect::<Vec<TreeNode<Op<f32>>>>();
+        let store = NodeStore::from(seeds.to_vec());
+        let programs = Self::seed_programs(arity, &store, &seeds, depth, keep_ratio, add_tail);
+
+        Op::PGM(name, arity, programs, eval)
+    }
+
     pub fn pgm<N>(name: &'static str, arity: impl Into<Arity>, programs: impl Into<Vec<N>>) -> Self
     where
         N: Into<TreeNode<Op<f32>>> + Clone,
     {
-        let programs = programs
-            .into()
-            .into_iter()
-            .map(|p| p.into())
-            .collect::<Vec<TreeNode<Op<f32>>>>();
-
-        let store = NodeStore::from(programs.clone());
-        let arity = arity.into();
-
-        let num_programs = match arity {
-            Arity::Zero => 1,
-            Arity::Exact(n) => n,
-            Arity::Any => 2,
-        };
-        let pre_progs = (0..num_programs + 1)
-            .filter_map(|_| Tree::with_depth(3, store.clone()).take_root())
-            .enumerate()
-            .map(|(i, node)| {
-                if random_provider::bool(0.5) {
-                    node
-                } else {
-                    programs[i % programs.len()].clone()
-                }
-            })
-            .collect::<Vec<TreeNode<Op<f32>>>>();
-
-        Op::PGM(
+        Self::pgm_with(
             name,
             arity,
-            Arc::new(pre_progs),
+            programs,
+            3,
+            0.5,
+            true,
             |inputs: &[f32], programs: &[TreeNode<Op<f32>>]| {
                 let logits = (&programs[1..]).eval(inputs);
-
                 if logits.is_empty() {
                     return 0.0;
                 }
 
-                let result = programs[0].eval(&logits);
+                let probabilities = super::math::stable_softmax(&logits);
+                let result = programs[0].eval(&probabilities);
                 super::math::clamp(result)
             },
         )
@@ -80,10 +116,13 @@ impl Op<f32> {
     where
         N: Into<TreeNode<Op<f32>>>,
     {
-        Op::PGM(
+        Self::pgm_with(
             "log_sum_exp",
             Arity::Any,
-            Arc::new(programs.into().into_iter().map(|p| p.into()).collect()),
+            programs,
+            3,
+            0.5,
+            false,
             |inputs: &[f32], progs: &[TreeNode<Op<f32>>]| {
                 if progs.is_empty() {
                     return 0.0;
@@ -107,10 +146,13 @@ impl Op<f32> {
     where
         N: Into<TreeNode<Op<f32>>>,
     {
-        Op::PGM(
+        Self::pgm_with(
             "weighted_mean",
             Arity::Any,
-            Arc::new(programs.into().into_iter().map(|p| p.into()).collect()),
+            programs,
+            3,
+            0.5,
+            false,
             |inputs: &[f32], progs: &[TreeNode<Op<f32>>]| {
                 let probabilities = progs.eval(inputs);
                 if probabilities.len() < 2 {
@@ -141,70 +183,122 @@ impl Op<f32> {
     where
         N: Into<TreeNode<Op<f32>>>,
     {
-        Op::PGM(
+        Self::pgm_with(
             "clamp_norm",
             Arity::Any,
-            Arc::new(programs.into().into_iter().map(|p| p.into()).collect()),
+            programs,
+            3,
+            0.5,
+            false,
             |inputs: &[f32], progs: &[TreeNode<Op<f32>>]| {
                 let probabilities = progs.eval(inputs);
                 if probabilities.is_empty() {
                     return 0.0;
                 }
 
-                let n = (probabilities.iter().map(|v| v * v).sum::<f32>())
-                    .sqrt()
-                    .max(super::math::EPSILON);
+                let n = (probabilities
+                    .iter()
+                    .map(|v| super::math::clamp(*v * *v))
+                    .sum::<f32>())
+                .sqrt()
+                .max(super::math::EPSILON);
+
                 let s = probabilities
                     .iter()
-                    .map(|v| v / n)
+                    .map(|v| super::math::clamp(*v / n))
                     .filter(|v| v.abs() >= super::math::THRESHOLD)
                     .sum::<f32>();
+
                 super::math::clamp(s)
             },
         )
     }
 
-    pub fn softmax<N>(programs: impl Into<Vec<N>>) -> Self
+    // Default: Softmax of tail, return argmax (index)
+    pub fn softmax_argmax<N>(seeds: impl Into<Vec<N>>) -> Op<f32>
     where
         N: Into<TreeNode<Op<f32>>>,
     {
-        Op::PGM(
-            "softmax",
+        Self::pgm_with(
+            "softmax_argmax",
             Arity::Any,
-            Arc::new(programs.into().into_iter().map(|p| p.into()).collect()),
+            seeds,
+            3,
+            0.5,
+            false,
             |inputs: &[f32], progs: &[TreeNode<Op<f32>>]| {
                 let logits = progs.eval(inputs);
                 if logits.is_empty() {
                     return 0.0;
                 }
 
-                let max_logit = logits.iter().copied().fold(f32::NEG_INFINITY, f32::max);
-                let exp_sum: f32 = logits
-                    .iter()
-                    .map(|&x| super::math::clamp(x - max_logit).exp())
-                    .sum();
-
-                let softmaxed = logits
-                    .iter()
-                    .map(|&x| super::math::clamp((x - max_logit).exp() / exp_sum))
-                    .collect::<Vec<f32>>();
-
-                // Apply softmax normalization
-                let sum = softmaxed.iter().sum::<f32>();
-                let softmaxed = softmaxed
-                    .into_iter()
-                    .map(|x| super::math::clamp(x / sum))
-                    .collect::<Vec<f32>>();
-
-                let max_index = softmaxed
+                let sm = super::math::stable_softmax(&logits);
+                let idx = sm
                     .iter()
                     .enumerate()
                     .max_by(|a, b| a.1.partial_cmp(b.1).unwrap())
                     .map(|(i, _)| i)
                     .unwrap_or(0);
 
-                super::math::clamp(max_index as f32)
+                super::math::clamp(idx as f32)
             },
         )
+    }
+
+    // Default: Attention-like weighted sum with softmax weights over even positions
+    pub fn attention_sum<N>(seeds: impl Into<Vec<N>>) -> Op<f32>
+    where
+        N: Into<TreeNode<Op<f32>>>,
+    {
+        Self::pgm_with(
+            "attn_sum",
+            Arity::Any,
+            seeds,
+            2,
+            0.5,
+            false,
+            |inputs, progs| {
+                let vals = progs.eval(inputs);
+                if vals.len() < 2 {
+                    return 0.0;
+                }
+                // Interpret as (logit_w0, x0, logit_w1, x1, ...)
+                let logits = vals.iter().copied().step_by(2).collect::<Vec<f32>>();
+                let xs = vals
+                    .iter()
+                    .copied()
+                    .skip(1)
+                    .step_by(2)
+                    .collect::<Vec<f32>>();
+
+                if logits.is_empty() || xs.is_empty() {
+                    return 0.0;
+                }
+
+                let ws = super::math::stable_softmax(&logits);
+                let m = ws.iter().zip(xs.iter()).map(|(w, x)| w * x).sum::<f32>();
+
+                super::math::clamp(m)
+            },
+        )
+    }
+
+    pub fn pgm_set<N>(seeds: impl Into<Vec<N>>) -> Vec<Op<f32>>
+    where
+        N: Into<TreeNode<Op<f32>>>,
+    {
+        let seeds = seeds
+            .into()
+            .into_iter()
+            .map(|s| s.into())
+            .collect::<Vec<TreeNode<Op<f32>>>>();
+
+        vec![
+            Op::log_sum_exp(seeds.clone()),
+            Op::weighted_mean(seeds.clone()),
+            Op::clamp_norm(seeds.clone()),
+            Op::softmax_argmax(seeds.clone()),
+            Op::attention_sum(seeds.clone()),
+        ]
     }
 }

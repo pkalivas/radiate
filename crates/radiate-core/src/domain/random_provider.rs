@@ -136,10 +136,18 @@ pub fn shuffle<T>(items: &mut [T]) {
 
 /// Generates a vector of indexes from 0 to n-1 in random order.
 #[inline]
-pub fn indexes(range: std::ops::Range<usize>) -> Vec<usize> {
+pub fn shuffled_indices(range: std::ops::Range<usize>) -> Vec<usize> {
     let mut indexes = range.collect::<Vec<usize>>();
     shuffle(&mut indexes);
     indexes
+}
+
+pub fn cond_indices(range: std::ops::Range<usize>, prob: f32) -> Vec<usize> {
+    if prob >= 1.0 {
+        return range.collect();
+    }
+
+    range.filter(|_| random::<f32>() < prob).collect()
 }
 
 #[inline]
@@ -207,7 +215,7 @@ mod tests {
 
     #[test]
     fn test_indexes() {
-        let indexes = indexes(0..10);
+        let indexes = shuffled_indices(0..10);
         assert_eq!(indexes.len(), 10);
         assert_ne!(indexes, vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
     }

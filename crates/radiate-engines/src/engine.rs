@@ -4,7 +4,7 @@ use crate::iter::EngineIterator;
 use crate::pipeline::Pipeline;
 use crate::{Chromosome, EngineEvent};
 use crate::{EventBus, Generation};
-use radiate_core::{Engine, metric_names};
+use radiate_core::Engine;
 
 /// The [GeneticEngine] is the core component of the Radiate library's genetic algorithm implementation.
 /// The engine is designed to be fast, flexible and extensible, allowing users to
@@ -154,15 +154,7 @@ where
 
         self.bus.emit(EngineEvent::epoch_start(&self.context));
 
-        let timer = std::time::Instant::now();
         self.pipeline.run(&mut self.context, &self.bus);
-        let elapsed = timer.elapsed();
-
-        self.context
-            .epoch_metrics
-            .upsert(metric_names::TIME, elapsed);
-
-        self.context.metrics.merge(&self.context.epoch_metrics);
 
         let best = self.context.ecosystem.population().get(0);
         if let Some(best) = best {

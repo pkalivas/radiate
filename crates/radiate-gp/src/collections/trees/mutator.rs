@@ -29,12 +29,12 @@ where
         let rand_index = random_provider::range(0..root_size);
 
         if rand_index < 1 {
-            return 0.into();
+            return AlterResult::empty();
         }
 
         if let Some(rand_node) = root.get_mut(rand_index) {
             if rand_node.children().is_none() {
-                return 0.into();
+                return AlterResult::empty();
             }
 
             let child_idx = random_provider::range(0..rand_node.children().map_or(0, |c| c.len()));
@@ -44,10 +44,10 @@ where
                 std::mem::swap(rand_node, child);
                 AlterResult::from(1)
             } else {
-                0.into()
+                AlterResult::empty()
             };
         }
 
-        0.into()
+        AlterResult::empty()
     }
 }

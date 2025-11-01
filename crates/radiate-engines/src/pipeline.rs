@@ -1,5 +1,5 @@
 use crate::{Context, EngineEvent, EventBus, steps::EngineStep};
-use radiate_core::Chromosome;
+use radiate_core::{Chromosome, metric_names};
 
 /// A [Pipeline] is a sequence of steps that are executed in order during each epoch of the engine.
 /// Each step is represented by an implementation of the [EngineStep] trait.
@@ -29,6 +29,8 @@ where
     {
         context.epoch_metrics.clear();
 
+        let timer = std::time::Instant::now();
+
         for step in self.steps.iter_mut() {
             bus.emit(EngineEvent::step_start(step.name()));
             let timer = std::time::Instant::now();
@@ -41,6 +43,10 @@ where
 
             context.epoch_metrics.upsert(step.name(), timer.elapsed());
         }
+
+        let elapsed = timer.elapsed();
+        context.epoch_metrics.upsert(metric_names::TIME, elapsed);
+        context.metrics.merge(&context.epoch_metrics);
     }
 }
 

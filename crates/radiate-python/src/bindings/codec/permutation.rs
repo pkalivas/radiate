@@ -42,7 +42,7 @@ impl PyPermutationCodec {
             codec: PyCodec::new()
                 .with_encoder(move || {
                     PermutationChromosome::new(
-                        random_provider::indexes(0..allele_count)
+                        random_provider::shuffled_indices(0..allele_count)
                             .iter()
                             .map(|i| PermutationGene::new(*i, Arc::clone(&indexed_alleles)))
                             .collect(),

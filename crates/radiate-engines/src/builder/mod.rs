@@ -28,7 +28,8 @@ use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::evaluator::BatchFitnessEvaluator;
 use radiate_core::problem::BatchEngineProblem;
 use radiate_core::{
-    Diversity, Ecosystem, Evaluator, Executor, FitnessEvaluator, Genotype, MetricSet,
+    CollectionMode, Diversity, Ecosystem, Evaluator, Executor, FitnessEvaluator, Genotype,
+    MetricSet,
 };
 use radiate_error::RadiateError;
 use std::cmp::Ordering;
@@ -135,8 +136,8 @@ where
                 ecosystem: Ecosystem::new(config.population.clone()),
                 best: config.problem.decode(config.population()[0].genotype()),
                 index: 0,
-                metrics: MetricSet::new(),
-                epoch_metrics: MetricSet::new(),
+                metrics: MetricSet::default(),
+                epoch_metrics: MetricSet::new(CollectionMode::Batch),
                 score: None,
                 front: config.front.clone(),
                 objective: config.objective.clone(),

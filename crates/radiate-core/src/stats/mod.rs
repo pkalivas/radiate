@@ -1,7 +1,6 @@
 pub mod distribution;
 pub mod histogram;
 pub mod metrics;
-pub mod query;
 pub mod statistics;
 pub mod time_statistic;
 
@@ -9,7 +8,6 @@ pub use distribution::*;
 pub use histogram::*;
 pub use metric_names::*;
 pub use metrics::*;
-pub use query::*;
 pub use statistics::*;
 pub use time_statistic::*;
 

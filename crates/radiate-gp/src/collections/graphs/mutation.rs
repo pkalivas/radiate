@@ -2,8 +2,8 @@ use super::transaction::{InsertStep, TransactionResult};
 use super::{Graph, GraphChromosome};
 use crate::node::Node;
 use crate::{Arity, Factory, NodeType};
-use radiate_core::{AlterResult, Metric, Mutate, random_provider};
-use radiate_core::{Chromosome, labels};
+use radiate_core::Chromosome;
+use radiate_core::{AlterResult, Mutate, metric, random_provider};
 
 const INVALID_MUTATION: &str = "GraphMutator(Ivld)";
 
@@ -119,22 +119,14 @@ where
             });
 
             return match result {
-                TransactionResult::Invalid(_, _) => {
-                    let metric = Metric::new(INVALID_MUTATION)
-                        .with_labels(labels![
-                            "domain" => "graph",
-                            "validation" => "invalid",
-                        ])
-                        .upsert(1);
-                    (0, metric).into()
-                }
+                TransactionResult::Invalid(_, _) => AlterResult::from(metric!(INVALID_MUTATION)),
                 TransactionResult::Valid(steps) => {
                     chromosome.set_nodes(graph.into_iter().collect());
-                    steps.len().into()
+                    AlterResult::from(steps.len())
                 }
             };
         }
 
-        0.into()
+        AlterResult::empty()
     }
 }

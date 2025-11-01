@@ -1,26 +1,14 @@
-use radiate::{ops::crossover::PgmCrossover, *};
+use radiate::*;
 
-const MIN_SCORE: f32 = 0.01;
+const MIN_SCORE: f32 = 0.001;
 
 fn main() {
     random_provider::set_seed(518);
 
-    let pgm = TreeNode::new(Op::add())
-        .attach(
-            TreeNode::new(Op::mul())
-                .attach(TreeNode::new(Op::constant(2.0)))
-                .attach(TreeNode::new(Op::constant(3.0))),
-        )
-        .attach(
-            TreeNode::new(Op::sigmoid())
-                .attach(TreeNode::new(Op::constant(2.0)))
-                .attach(TreeNode::new(Op::var(0))),
-        );
-
     let store = vec![
         (
             NodeType::Vertex,
-            vec![Op::add(), Op::sub(), Op::mul(), Op::pgm("pgm", 1, pgm)],
+            vec![Op::add(), Op::sub(), Op::mul(), Op::linear()],
         ),
         (NodeType::Leaf, vec![Op::var(0)]),
     ];
@@ -30,19 +18,17 @@ fn main() {
 
     println!("{:?}", tree_codec.decode(&tree_codec.encode()));
 
-    // panic!();
-
     let engine = GeneticEngine::builder()
         .codec(tree_codec)
         .fitness_fn(problem)
         .minimizing()
         .mutators(vec![
             Box::new(HoistMutator::new(0.01)),
-            Box::new(OperationMutator::new(0.05, 0.05)),
+            // Box::new(OperationMutator::new(0.05, 0.05)),
         ])
         .crossovers(vec![
-            Box::new(TreeCrossover::new(0.5)),
-            Box::new(PgmCrossover::new(0.4)),
+            Box::new(TreeCrossover::new(0.7)),
+            // Box::new(PgmCrossover::new(0.4)),
         ])
         .build();
 

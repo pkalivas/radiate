@@ -186,12 +186,42 @@ where
 
 impl<T> From<Vec<(NodeType, Vec<T>)>> for NodeStore<T>
 where
-    T: Into<NodeValue<T>>,
+    T: Into<NodeValue<T>> + Clone,
 {
     fn from(values: Vec<(NodeType, Vec<T>)>) -> Self {
         let store = NodeStore::new();
         for (node_type, ops) in values {
             store.insert(node_type, ops);
+        }
+
+        if !store.contains_type(NodeType::Leaf) && store.contains_type(NodeType::Input) {
+            let input_values = store
+                .map(|vals| {
+                    vals.iter()
+                        .filter_map(|v| match v.arity() {
+                            Some(Arity::Zero) => Some((*v.value()).clone()),
+                            _ => None,
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_default();
+
+            store.insert(NodeType::Leaf, input_values);
+        }
+
+        if !store.contains_type(NodeType::Root) && store.contains_type(NodeType::Output) {
+            let output_values = store
+                .map(|vals| {
+                    vals.iter()
+                        .filter_map(|v| match v.arity() {
+                            Some(Arity::Any) | Some(Arity::Exact(_)) => Some((*v.value()).clone()),
+                            _ => None,
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_default();
+
+            store.insert(NodeType::Root, output_values);
         }
 
         store

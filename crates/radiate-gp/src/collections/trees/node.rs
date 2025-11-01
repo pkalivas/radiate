@@ -174,6 +174,7 @@ impl<T> TreeNode<T> {
         self.children.take()
     }
 
+    #[inline]
     pub fn size(&self) -> usize {
         if let Some(children) = self.children.as_ref() {
             children.iter().fold(1, |acc, child| acc + child.size())
@@ -182,6 +183,7 @@ impl<T> TreeNode<T> {
         }
     }
 
+    #[inline]
     pub fn height(&self) -> usize {
         if let Some(children) = self.children.as_ref() {
             1 + children
@@ -194,13 +196,32 @@ impl<T> TreeNode<T> {
         }
     }
 
-    pub fn swap_subtrees(&mut self, other: &mut TreeNode<T>, self_idx: usize, other_idx: usize) {
-        let self_subtree = self.get_mut(self_idx);
-        let other_subtree = other.get_mut(other_idx);
+    #[inline]
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut TreeNode<T>> {
+        let mut cur = 0;
+        Self::get_mut_preorder(self, index, &mut cur)
+    }
 
-        if let (Some(self_sub), Some(other_sub)) = (self_subtree, other_subtree) {
-            std::mem::swap(self_sub, other_sub);
+    #[inline]
+    fn get_mut_preorder<'a>(
+        node: &'a mut TreeNode<T>,
+        target: usize,
+        cur: &mut usize,
+    ) -> Option<&'a mut TreeNode<T>> {
+        if *cur == target {
+            return Some(node);
         }
+
+        if let Some(children) = node.children_mut() {
+            for child in children {
+                *cur += 1;
+                if let Some(found) = Self::get_mut_preorder(child, target, cur) {
+                    return Some(found);
+                }
+            }
+        }
+
+        None
     }
 }
 

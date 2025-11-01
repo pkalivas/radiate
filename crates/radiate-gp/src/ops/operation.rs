@@ -51,7 +51,8 @@ pub enum Op<T> {
     /// # Arguments
     /// - `&'static str` name
     /// - `Arity` of how many inputs it might read
-    /// - A `Box<dyn ProbabilisticModel<T>>` that can be used to learn from the inputs and generate new outputs based on the learned relationships.
+    /// - A `Vec<TreeNode<Op<T>>>` that can be used to learn from the inputs and generate new outputs based on the learned relationships.
+    /// - An `Arc<dyn Fn(&[T], &[TreeNode<Op<T>>]) -> T>` for the actual function logic that uses the inputs and the PGM to produce an output.
     #[cfg(feature = "pgm")]
     PGM(
         &'static str,
@@ -100,22 +101,9 @@ impl<T> Op<T> {
         matches!(self, Op::MutableConst { .. })
     }
 
+    #[cfg(feature = "pgm")]
     pub fn is_pgm(&self) -> bool {
-        #[cfg(feature = "pgm")]
-        {
-            matches!(self, Op::PGM(_, _, _, _))
-        }
-        #[cfg(not(feature = "pgm"))]
-        {
-            false
-        }
-    }
-
-    pub fn identity() -> Self
-    where
-        T: Clone,
-    {
-        Op::Fn("identity", 1.into(), |inputs: &[T]| inputs[0].clone())
+        matches!(self, Op::PGM(_, _, _, _))
     }
 }
 
@@ -248,12 +236,10 @@ where
             Op::PGM(name, _, model, _) => {
                 let mut model_str = String::new();
                 for (i, node) in model.iter().enumerate() {
-                    model_str.push_str(&format!(
-                        "[{}: S {:?} H {:?}], ",
-                        i,
-                        node.size(),
-                        node.height()
-                    ));
+                    use crate::Format;
+
+                    let node_str = &node.format();
+                    model_str.push_str(&format!("[{}: S {} Prog {}], ", i, node.size(), node_str));
                 }
                 write!(f, "PGM: {}({})", name, model_str)
             }

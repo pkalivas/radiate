@@ -55,6 +55,30 @@ impl<T> MutCell<T> {
         unsafe { &mut *(*self.inner).value.get() }
     }
 
+    pub fn with_unique_mut<F>(&mut self, f: F)
+    where
+        T: Clone,
+        F: FnOnce(&mut T),
+    {
+        unsafe {
+            if !self.is_unique() {
+                let cloned_value = (*(*self.inner).value.get()).clone();
+
+                if (*self.inner).ref_count.fetch_sub(1, Ordering::AcqRel) == 1 {
+                    std::sync::atomic::fence(Ordering::Acquire);
+                    drop(Box::from_raw(self.inner as *mut ArcInner<T>));
+                }
+
+                self.inner = Box::into_raw(Box::new(ArcInner {
+                    value: UnsafeCell::new(cloned_value),
+                    ref_count: AtomicUsize::new(1),
+                }));
+            }
+
+            f(&mut *(*self.inner).value.get());
+        }
+    }
+
     pub fn into_inner(mut self) -> T
     where
         T: Clone,

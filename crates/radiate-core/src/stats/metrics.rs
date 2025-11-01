@@ -8,29 +8,14 @@ use std::{
     time::Duration,
 };
 
-// static INTERNED: OnceLock<Mutex<HashSet<&'static str>>> = OnceLock::new();
-
-// pub fn intern(name: String) -> &'static str {
-//     let mut interned = INTERNED
-//         .get_or_init(|| Mutex::new(HashSet::new()))
-//         .lock()
-//         .unwrap();
-//     if let Some(&existing) = interned.get(&*name) {
-//         return existing;
-//     }
-
-//     let static_name: &'static str = Box::leak(name.into_boxed_str());
-//     interned.insert(static_name);
-//     static_name
-// }
-
 #[macro_export]
 macro_rules! metric {
-    ($name:expr, $time:expr) => {{
+    ($name:expr, $update:expr) => {{
         let mut metric = $crate::Metric::new($name);
-        metric.apply_update($time);
+        metric.apply_update($update);
         metric
     }};
+    ($name:expr) => {{ $crate::Metric::new($name) }};
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
@@ -94,15 +79,25 @@ macro_rules! labels {
     };
 }
 
-#[derive(Default, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Copy, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub enum CollectionMode {
+    #[default]
+    Individual,
+    Batch,
+}
+
+#[derive(Clone)]
 pub struct MetricSet {
     metrics: BTreeMap<&'static str, Metric>,
+    mode: CollectionMode,
 }
 
 impl MetricSet {
-    pub fn new() -> Self {
+    pub fn new(mode: CollectionMode) -> Self {
         MetricSet {
             metrics: BTreeMap::new(),
+            mode,
         }
     }
 
@@ -111,18 +106,64 @@ impl MetricSet {
         for (name, metric) in other.iter() {
             if let Some(existing_metric) = self.metrics.get_mut(name) {
                 if let Some(value_stat) = &metric.inner.value_statistic {
-                    if let Some(existing_value_stat) = &mut existing_metric.inner.value_statistic {
-                        existing_value_stat.add(value_stat.last_value());
-                    } else {
-                        existing_metric.inner.value_statistic = Some(value_stat.clone());
+                    match (self.mode, other.mode) {
+                        (CollectionMode::Individual, CollectionMode::Individual) => {
+                            existing_metric
+                                .inner
+                                .value_statistic
+                                .as_mut()
+                                .map(|stat| stat.add(value_stat.last_value()))
+                                .or_else(|| {
+                                    Some(
+                                        existing_metric.inner.value_statistic =
+                                            Some(value_stat.clone()),
+                                    )
+                                });
+                        }
+                        (CollectionMode::Batch, _) | (_, CollectionMode::Batch) => {
+                            existing_metric
+                                .inner
+                                .value_statistic
+                                .as_mut()
+                                .map(|stat| stat.add(value_stat.sum()))
+                                .or_else(|| {
+                                    Some(
+                                        existing_metric.inner.value_statistic =
+                                            Some(Statistic::from(value_stat.sum())),
+                                    )
+                                });
+                        }
                     }
                 }
 
                 if let Some(time_stat) = &metric.inner.time_statistic {
-                    if let Some(existing_time_stat) = &mut existing_metric.inner.time_statistic {
-                        existing_time_stat.add(time_stat.last_time());
-                    } else {
-                        existing_metric.inner.time_statistic = Some(time_stat.clone());
+                    match (self.mode, other.mode) {
+                        (CollectionMode::Individual, CollectionMode::Individual) => {
+                            existing_metric
+                                .inner
+                                .time_statistic
+                                .as_mut()
+                                .map(|stat| stat.add(time_stat.last_time()))
+                                .or_else(|| {
+                                    Some(
+                                        existing_metric.inner.time_statistic =
+                                            Some(time_stat.clone()),
+                                    )
+                                });
+                        }
+                        (CollectionMode::Batch, _) | (_, CollectionMode::Batch) => {
+                            existing_metric
+                                .inner
+                                .time_statistic
+                                .as_mut()
+                                .map(|stat| stat.add(time_stat.sum()))
+                                .or_else(|| {
+                                    Some(
+                                        existing_metric.inner.time_statistic =
+                                            Some(TimeStatistic::from(time_stat.sum())),
+                                    )
+                                });
+                        }
                     }
                 }
 
@@ -172,6 +213,16 @@ impl MetricSet {
     }
 
     #[inline(always)]
+    pub fn extend<I>(&mut self, other: I)
+    where
+        I: IntoIterator<Item = Metric>,
+    {
+        for metric in other {
+            self.add_or_update(metric);
+        }
+    }
+
+    #[inline(always)]
     pub fn add(&mut self, metric: Metric) {
         self.metrics.insert(metric.name(), metric);
     }
@@ -194,6 +245,35 @@ impl MetricSet {
 
     pub fn contains_key(&self, name: impl Into<String>) -> bool {
         self.metrics.contains_key(intern!(name.into()))
+    }
+
+    pub fn len(&self) -> usize {
+        self.metrics.len()
+    }
+}
+
+impl FromIterator<Metric> for MetricSet {
+    fn from_iter<T: IntoIterator<Item = Metric>>(iter: T) -> Self {
+        let mut metric_set = MetricSet::new(CollectionMode::Individual);
+        for metric in iter {
+            metric_set.add_or_update(metric);
+        }
+        metric_set
+    }
+}
+
+impl IntoIterator for MetricSet {
+    type Item = (&'static str, Metric);
+    type IntoIter = std::collections::btree_map::IntoIter<&'static str, Metric>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.metrics.into_iter()
+    }
+}
+
+impl Default for MetricSet {
+    fn default() -> Self {
+        MetricSet::new(CollectionMode::Individual)
     }
 }
 
@@ -235,7 +315,7 @@ impl<'de> Deserialize<'de> for MetricSet {
 
         let metrics = Vec::<MetricOwned>::deserialize(deserializer)?;
 
-        let mut metric_set = MetricSet::new();
+        let mut metric_set = MetricSet::new(CollectionMode::Individual);
         for metric in metrics {
             let metric = Metric {
                 name: intern!(metric.name),
@@ -691,7 +771,7 @@ mod tests {
 
     #[test]
     fn test_metric_set() {
-        let mut metric_set = MetricSet::new();
+        let mut metric_set = MetricSet::new(CollectionMode::Individual);
         metric_set.upsert("test", 1.0);
         metric_set.upsert("test", 2.0);
         metric_set.upsert("test", 3.0);

@@ -47,6 +47,10 @@ pub trait Alter<C: Chromosome>: Send + Sync {
 pub struct AlterResult(pub usize, pub Option<Vec<Metric>>);
 
 impl AlterResult {
+    pub fn empty() -> Self {
+        AlterResult(0, None)
+    }
+
     pub fn count(&self) -> usize {
         self.0
     }
@@ -84,6 +88,12 @@ impl From<(usize, Vec<Metric>)> for AlterResult {
 impl From<(usize, Metric)> for AlterResult {
     fn from(value: (usize, Metric)) -> Self {
         AlterResult(value.0, Some(vec![value.1]))
+    }
+}
+
+impl From<Metric> for AlterResult {
+    fn from(value: Metric) -> Self {
+        AlterResult(1, Some(vec![value]))
     }
 }
 

@@ -79,3 +79,12 @@ pub trait Node {
     /// this is the number of children it is allowed to have.
     fn arity(&self) -> Arity;
 }
+
+pub trait NodeExt: Node {
+    /// Set the value of the node.
+    fn set_value(&mut self, value: Self::Value) {
+        *self.value_mut() = value;
+    }
+}
+
+impl<T: Node> NodeExt for T {}

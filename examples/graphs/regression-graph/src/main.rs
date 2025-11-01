@@ -1,23 +1,29 @@
-use radiate::{ops::crossover::PgmCrossover, prelude::*};
+use radiate::prelude::*;
 
-const MIN_SCORE: f32 = 0.01;
+const MIN_SCORE: f32 = 0.001;
 
 fn main() {
     random_provider::set_seed(1000);
 
-    let tree = TreeNode::new(Op::sigmoid())
-        .attach(TreeNode::new(Op::var(0)))
-        .attach(TreeNode::new(Op::weight()));
+    // let pgm_set = Op::pgm_set(vec![
+    //     Op::var(0),
+    //     Op::linear(),
+    //     Op::add(),
+    //     Op::sub(),
+    //     Op::mul(),
+    //     Op::relu(),
+    //     Op::sum(),
+    // ]);
 
     let store = vec![
         (NodeType::Input, vec![Op::var(0)]),
         (NodeType::Edge, vec![Op::weight()]),
-        (
-            NodeType::Vertex,
-            vec![Op::sub(), Op::mul(), Op::linear(), Op::pgm("pgm", 2, tree)],
-        ),
+        (NodeType::Vertex, vec![Op::sub(), Op::mul(), Op::linear()]),
         (NodeType::Output, vec![Op::linear()]),
     ];
+
+    // println!("Store: {:?}", NodeStore::from(store.clone()));
+    // panic!("Debugging");
 
     let engine = GeneticEngine::builder()
         .codec(GraphCodec::directed(1, 1, store))
@@ -26,7 +32,7 @@ fn main() {
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
-            PgmCrossover::new(0.4),
+            // PgmCrossover::new(0.3),
             GraphMutator::new(0.1, 0.1).allow_recurrent(false)
         ))
         .build();
