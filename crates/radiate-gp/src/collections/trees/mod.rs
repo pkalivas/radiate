@@ -6,6 +6,7 @@ mod eval;
 mod iter;
 mod mutator;
 mod node;
+mod rewriter;
 mod tree;
 
 pub use chromosome::TreeChromosome;
@@ -15,4 +16,5 @@ pub(crate) use crossover::tree_crossover;
 pub use iter::TreeIterator;
 pub use mutator::HoistMutator;
 pub use node::TreeNode;
+pub use rewriter::{TreeRewriter, TreeRewriterRule};
 pub use tree::Tree;

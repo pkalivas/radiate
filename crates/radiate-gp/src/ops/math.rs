@@ -1,5 +1,5 @@
 use super::Op;
-use crate::Arity;
+use crate::{Arity, ops::op_names};
 use radiate_core::random_provider;
 
 pub(super) const MAX_VALUE: f32 = 1e+10_f32;
@@ -219,7 +219,7 @@ impl Op<f32> {
         };
 
         Op::MutableConst {
-            name: "w",
+            name: op_names::WEIGHT,
             arity: 1.into(),
             value: clamp(value),
             supplier,
@@ -229,159 +229,159 @@ impl Op<f32> {
     }
 
     pub fn add() -> Self {
-        Op::Fn("add", 2.into(), add)
+        Op::Fn(op_names::ADD, 2.into(), add)
     }
 
     pub fn sub() -> Self {
-        Op::Fn("sub", 2.into(), sub)
+        Op::Fn(op_names::SUB, 2.into(), sub)
     }
 
     pub fn mul() -> Self {
-        Op::Fn("mul", 2.into(), mul)
+        Op::Fn(op_names::MUL, 2.into(), mul)
     }
 
     pub fn div() -> Self {
-        Op::Fn("div", 2.into(), div)
+        Op::Fn(op_names::DIV, 2.into(), div)
     }
 
     pub fn sum() -> Self {
-        Op::Fn("sum", Arity::Any, |inputs: &[f32]| {
+        Op::Fn(op_names::SUM, Arity::Any, |inputs: &[f32]| {
             AggregateOperations::Sum.apply(inputs)
         })
     }
 
     pub fn diff() -> Self {
-        Op::Fn("diff", Arity::Any, |inputs: &[f32]| {
+        Op::Fn(op_names::DIFF, Arity::Any, |inputs: &[f32]| {
             AggregateOperations::Diff.apply(inputs)
         })
     }
 
     pub fn prod() -> Self {
-        Op::Fn("prod", Arity::Any, |inputs: &[f32]| {
+        Op::Fn(op_names::PROD, Arity::Any, |inputs: &[f32]| {
             AggregateOperations::Prod.apply(inputs)
         })
     }
 
     pub fn neg() -> Self {
-        Op::Fn("neg", 1.into(), neg)
+        Op::Fn(op_names::NEG, 1.into(), neg)
     }
 
     pub fn pow() -> Self {
-        Op::Fn("pow", 2.into(), |inputs: &[f32]| {
+        Op::Fn(op_names::POW, 2.into(), |inputs: &[f32]| {
             AggregateOperations::Pow.apply(inputs)
         })
     }
 
     pub fn sqrt() -> Self {
-        Op::Fn("sqrt", 1.into(), |inputs: &[f32]| {
+        Op::Fn(op_names::SQRT, 1.into(), |inputs: &[f32]| {
             AggregateOperations::Sqrt.apply(inputs)
         })
     }
 
     pub fn abs() -> Self {
-        Op::Fn("abs", 1.into(), abs)
+        Op::Fn(op_names::ABS, 1.into(), abs)
     }
 
     pub fn exp() -> Self {
-        Op::Fn("exp", 1.into(), |inputs: &[f32]| {
+        Op::Fn(op_names::EXP, 1.into(), |inputs: &[f32]| {
             AggregateOperations::Exp.apply(inputs)
         })
     }
 
     pub fn log() -> Self {
-        Op::Fn("log", 1.into(), |inputs: &[f32]| {
+        Op::Fn(op_names::LOG, 1.into(), |inputs: &[f32]| {
             AggregateOperations::Log.apply(inputs)
         })
     }
 
     pub fn sin() -> Self {
-        Op::Fn("sin", 1.into(), |inputs: &[f32]| {
+        Op::Fn(op_names::SIN, 1.into(), |inputs: &[f32]| {
             AggregateOperations::Sin.apply(inputs)
         })
     }
 
     pub fn cos() -> Self {
-        Op::Fn("cos", 1.into(), |inputs: &[f32]| {
+        Op::Fn(op_names::COS, 1.into(), |inputs: &[f32]| {
             AggregateOperations::Cos.apply(inputs)
         })
     }
 
     pub fn max() -> Self {
-        Op::Fn("max", Arity::Any, |inputs: &[f32]| {
+        Op::Fn(op_names::MAX, Arity::Any, |inputs: &[f32]| {
             AggregateOperations::Max.apply(inputs)
         })
     }
 
     pub fn min() -> Self {
-        Op::Fn("min", Arity::Any, |inputs: &[f32]| {
+        Op::Fn(op_names::MIN, Arity::Any, |inputs: &[f32]| {
             AggregateOperations::Min.apply(inputs)
         })
     }
 
     pub fn tan() -> Self {
-        Op::Fn("tan", 1.into(), |inputs: &[f32]| {
+        Op::Fn(op_names::TAN, 1.into(), |inputs: &[f32]| {
             AggregateOperations::Tan.apply(inputs)
         })
     }
 
     pub fn ceil() -> Self {
-        Op::Fn("ceil", 1.into(), ceil)
+        Op::Fn(op_names::CEIL, 1.into(), ceil)
     }
 
     pub fn floor() -> Self {
-        Op::Fn("floor", 1.into(), floor)
+        Op::Fn(op_names::FLOOR, 1.into(), floor)
     }
 
     pub fn sigmoid() -> Self {
-        Op::Fn("sigmoid", Arity::Any, |inputs: &[f32]| {
+        Op::Fn(op_names::SIGMOID, Arity::Any, |inputs: &[f32]| {
             ActivationOperation::Sigmoid.apply(inputs)
         })
     }
 
     pub fn tanh() -> Self {
-        Op::Fn("tanh", Arity::Any, |inputs: &[f32]| {
+        Op::Fn(op_names::TANH, Arity::Any, |inputs: &[f32]| {
             ActivationOperation::Tanh.apply(inputs)
         })
     }
 
     pub fn relu() -> Self {
-        Op::Fn("relu", Arity::Any, |inputs: &[f32]| {
+        Op::Fn(op_names::RELU, Arity::Any, |inputs: &[f32]| {
             ActivationOperation::ReLU.apply(inputs)
         })
     }
 
     pub fn leaky_relu() -> Self {
-        Op::Fn("l_relu", Arity::Any, |inputs: &[f32]| {
+        Op::Fn(op_names::LEAKY_RELU, Arity::Any, |inputs: &[f32]| {
             ActivationOperation::LeakyReLU.apply(inputs)
         })
     }
 
     pub fn elu() -> Self {
-        Op::Fn("elu", Arity::Any, |inputs: &[f32]| {
+        Op::Fn(op_names::ELU, Arity::Any, |inputs: &[f32]| {
             ActivationOperation::ELU.apply(inputs)
         })
     }
 
     pub fn linear() -> Self {
-        Op::Fn("linear", Arity::Any, |inputs: &[f32]| {
+        Op::Fn(op_names::LINEAR, Arity::Any, |inputs: &[f32]| {
             ActivationOperation::Linear.apply(inputs)
         })
     }
 
     pub fn mish() -> Self {
-        Op::Fn("mish", Arity::Any, |inputs: &[f32]| {
+        Op::Fn(op_names::MISH, Arity::Any, |inputs: &[f32]| {
             ActivationOperation::Mish.apply(inputs)
         })
     }
 
     pub fn swish() -> Self {
-        Op::Fn("swish", Arity::Any, |inputs: &[f32]| {
+        Op::Fn(op_names::SWISH, Arity::Any, |inputs: &[f32]| {
             ActivationOperation::Swish.apply(inputs)
         })
     }
 
     pub fn softplus() -> Self {
-        Op::Fn("softplus", Arity::Any, |inputs: &[f32]| {
+        Op::Fn(op_names::SOFTPLUS, Arity::Any, |inputs: &[f32]| {
             ActivationOperation::Softplus.apply(inputs)
         })
     }

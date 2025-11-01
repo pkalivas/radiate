@@ -19,6 +19,7 @@ pub use node::{Node, NodeType};
 pub use store::{NodeStore, NodeValue};
 pub use trees::{
     HoistMutator, Tree, TreeChromosome, TreeCodec, TreeCrossover, TreeIterator, TreeNode,
+    TreeRewriter, TreeRewriterRule,
 };
 
 pub trait TopologicalMapper<T, U> {

@@ -45,8 +45,8 @@ where
         let swap_one_index = random_provider::range(0..chrom_one.len());
         let swap_two_index = random_provider::range(0..chrom_two.len());
 
-        let one_node = &mut chrom_one.as_mut()[swap_one_index];
-        let two_node = &mut chrom_two.as_mut()[swap_two_index];
+        let one_node = chrom_one.get_mut(swap_one_index);
+        let two_node = chrom_two.get_mut(swap_two_index);
 
         tree_crossover::cross_nodes(one_node, two_node, self.max_size)
     }

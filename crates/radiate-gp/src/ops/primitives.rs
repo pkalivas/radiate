@@ -1,4 +1,4 @@
-use crate::Op;
+use crate::{Op, ops::op_names};
 use std::{fmt::Display, ops::Range};
 
 impl<T> Op<T> {
@@ -27,6 +27,8 @@ impl<T> Op<T> {
     where
         T: Clone,
     {
-        Op::Fn("identity", 1.into(), |inputs: &[T]| inputs[0].clone())
+        Op::Fn(op_names::IDENTITY, 1.into(), |inputs: &[T]| {
+            inputs[0].clone()
+        })
     }
 }

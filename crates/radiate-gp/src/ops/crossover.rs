@@ -2,7 +2,7 @@ use crate::{GraphChromosome, Node, Op, TreeChromosome, TreeNode, trees::tree_cro
 use radiate_core::{AlterResult, Chromosome, Crossover, random_provider};
 use std::fmt::Debug;
 
-const DEFAULT_MAX_SIZE: usize = 15;
+const DEFAULT_MAX_SIZE: usize = 10;
 
 #[derive(Clone, Debug)]
 pub struct PgmCrossover {
@@ -88,8 +88,8 @@ where
         let swap_one_index = random_provider::range(0..chrom_one.len());
         let swap_two_index = random_provider::range(0..chrom_two.len());
 
-        let one_node = &mut chrom_one.as_mut()[swap_one_index];
-        let two_node = &mut chrom_two.as_mut()[swap_two_index];
+        let one_node = chrom_one.get_mut(swap_one_index);
+        let two_node = chrom_two.get_mut(swap_two_index);
 
         let size_one = one_node.size();
         let size_two = two_node.size();

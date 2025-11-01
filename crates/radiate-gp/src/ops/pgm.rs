@@ -1,4 +1,4 @@
-use crate::{Arity, Eval, Node, NodeStore, Op, Tree, TreeNode};
+use crate::{Arity, Eval, Node, NodeStore, Op, Tree, TreeNode, ops::op_names};
 use radiate_core::random_provider;
 use std::{fmt::Debug, sync::Arc};
 
@@ -117,7 +117,7 @@ impl Op<f32> {
         N: Into<TreeNode<Op<f32>>>,
     {
         Self::pgm_with(
-            "log_sum_exp",
+            op_names::LOG_SUM_EXP,
             Arity::Any,
             programs,
             3,
@@ -147,7 +147,7 @@ impl Op<f32> {
         N: Into<TreeNode<Op<f32>>>,
     {
         Self::pgm_with(
-            "weighted_mean",
+            op_names::WEIGHTED_MEAN,
             Arity::Any,
             programs,
             3,
@@ -184,7 +184,7 @@ impl Op<f32> {
         N: Into<TreeNode<Op<f32>>>,
     {
         Self::pgm_with(
-            "clamp_norm",
+            op_names::CLAMP_NORM,
             Arity::Any,
             programs,
             3,
@@ -220,7 +220,7 @@ impl Op<f32> {
         N: Into<TreeNode<Op<f32>>>,
     {
         Self::pgm_with(
-            "softmax_argmax",
+            op_names::SOFTMAX_ARGMAX,
             Arity::Any,
             seeds,
             3,
@@ -251,7 +251,7 @@ impl Op<f32> {
         N: Into<TreeNode<Op<f32>>>,
     {
         Self::pgm_with(
-            "attn_sum",
+            op_names::ATTENTION_SUM,
             Arity::Any,
             seeds,
             2,

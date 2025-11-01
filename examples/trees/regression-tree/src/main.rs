@@ -1,4 +1,4 @@
-use radiate::*;
+use radiate::{ops::rewrite::all_rewrite_rules, *};
 
 const MIN_SCORE: f32 = 0.001;
 
@@ -48,6 +48,25 @@ fn display(result: &Generation<TreeChromosome<Op<f32>>, Tree<Op<f32>>>) {
     println!("{:?}", result);
     println!("Best Tree: {}", result.value().format());
     println!("{:?}", accuracy_result);
+
+    let tree = result.value();
+    println!("BEFORE SIMPLIFY: Size={}", tree.root().unwrap().format());
+    let rules = all_rewrite_rules();
+    let mut simplified_tree = tree.root().unwrap().clone();
+    let rules = all_rewrite_rules();
+    let mut rewriter = TreeRewriter::new();
+    for rule in rules {
+        rewriter.add_rule(rule);
+    }
+
+    let total_applied = rewriter.rewrite(&mut simplified_tree);
+    println!(
+        "AFTER SIMPLIFY: Size={}, Applied {} rules",
+        simplified_tree.format(),
+        total_applied
+    );
+
+    println!("Simplified Tree: {}", simplified_tree.format());
 }
 
 fn get_dataset() -> DataSet {
