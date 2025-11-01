@@ -5,6 +5,18 @@ use std::{
     sync::Arc,
 };
 
+/// [Op] is an enumeration that represents the different types of operations
+/// that can be performed within the genetic programming framework. Each variant
+/// of the enum encapsulates a different kind of operation, allowing for a flexible
+/// and extensible way to define the behavior of nodes within trees and graphs.
+///
+/// The [Op] heavilty depends on it's [Arity] to define how many inputs it expects.
+/// This is crucial for ensuring that the operations receive the correct number of inputs
+/// and that the structures built using these operations are built in ways that respect
+/// these input requirements. For example, an addition operation would typically have an arity of 2,
+/// while a constant operation would have an arity of 0. This is the _base_ level of the GP system, meaning
+/// that everything built on top of it (trees, graphs, etc.) will relies *heavily* on how these
+/// operations are defined and used.
 pub enum Op<T> {
     /// 1) A stateless function operation:
     ///

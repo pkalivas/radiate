@@ -13,10 +13,12 @@ homepage = { workspace = true }
 
 [dependencies]
 radiate-core = { workspace = true }
+smallvec = { workspace = true }
 serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 
+
 [features]
 default = []
-serde = ["dep:serde", "dep:serde_json"]
+serde = ["dep:serde", "dep:serde_json", "smallvec/serde"]
 pgm = []

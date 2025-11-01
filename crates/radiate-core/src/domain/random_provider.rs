@@ -42,16 +42,6 @@ impl RandomProvider {
         rng.random()
     }
 
-    pub(self) fn n_random<T>(n: usize) -> Vec<T>
-    where
-        T: SampleUniform,
-        StandardUniform: Distribution<T>,
-    {
-        let instance = Self::global();
-        let mut rng = instance.rng.lock().unwrap();
-        (0..n).map(|_| rng.random()).collect()
-    }
-
     pub(self) fn range<T>(range: std::ops::Range<T>) -> T
     where
         T: SampleUniform + PartialOrd,
@@ -148,15 +138,6 @@ pub fn cond_indices(range: std::ops::Range<usize>, prob: f32) -> Vec<usize> {
     }
 
     range.filter(|_| random::<f32>() < prob).collect()
-}
-
-#[inline]
-pub fn n_random<T>(n: usize) -> Vec<T>
-where
-    T: SampleUniform,
-    StandardUniform: Distribution<T>,
-{
-    RandomProvider::n_random(n)
 }
 
 #[inline]

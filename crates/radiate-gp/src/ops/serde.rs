@@ -1,7 +1,7 @@
 use crate::Arity;
 use crate::ops::operation::Op;
 #[cfg(feature = "pgm")]
-use crate::{TopologicalMapper, TreeNode};
+use crate::{TreeMapper, TreeNode};
 use radiate_core::intern;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::sync::Arc;

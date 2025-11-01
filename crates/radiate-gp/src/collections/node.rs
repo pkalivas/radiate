@@ -80,6 +80,9 @@ pub trait Node {
     fn arity(&self) -> Arity;
 }
 
+/// [NodeExt] is an extension trait for the [Node] trait that provides additional
+/// functionality for working with nodes. Super stupid little thing but I got
+/// tired of writing out the same code over and over again.
 pub trait NodeExt: Node {
     /// Set the value of the node.
     fn set_value(&mut self, value: Self::Value) {

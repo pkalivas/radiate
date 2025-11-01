@@ -3,6 +3,7 @@ use crate::{Arity, NodeType};
 use radiate_core::{Gene, Valid};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+use smallvec::SmallVec;
 use std::collections::BTreeSet;
 use std::fmt::Debug;
 use std::hash::Hash;
@@ -155,8 +156,8 @@ pub struct GraphNode<T> {
     direction: Direction,
     node_type: Option<NodeType>,
     arity: Option<Arity>,
-    incoming: BTreeSet<usize>,
-    outgoing: BTreeSet<usize>,
+    incoming: SmallVec<[usize; 4]>,
+    outgoing: SmallVec<[usize; 4]>,
 }
 
 impl<T> GraphNode<T> {
@@ -172,8 +173,8 @@ impl<T> GraphNode<T> {
             direction: Direction::Forward,
             node_type: Some(node_type),
             arity: None,
-            incoming: BTreeSet::new(),
-            outgoing: BTreeSet::new(),
+            incoming: SmallVec::new(),
+            outgoing: SmallVec::new(),
         }
     }
 
@@ -190,18 +191,26 @@ impl<T> GraphNode<T> {
             direction: Direction::Forward,
             node_type: Some(node_type),
             arity: Some(arity),
-            incoming: BTreeSet::new(),
-            outgoing: BTreeSet::new(),
+            incoming: SmallVec::new(),
+            outgoing: SmallVec::new(),
         }
     }
 
+    // helper used by with_incoming/with_outgoing
+    fn set_sorted_unique(dst: &mut SmallVec<[usize; 4]>, src: impl IntoIterator<Item = usize>) {
+        dst.clear();
+        dst.extend(src);
+        dst.sort_unstable();
+        dst.dedup();
+    }
+
     pub fn with_incoming<I: IntoIterator<Item = usize>>(mut self, incoming: I) -> Self {
-        self.incoming = incoming.into_iter().collect();
+        Self::set_sorted_unique(&mut self.incoming, incoming);
         self
     }
 
     pub fn with_outgoing<O: IntoIterator<Item = usize>>(mut self, outgoing: O) -> Self {
-        self.outgoing = outgoing.into_iter().collect();
+        Self::set_sorted_unique(&mut self.outgoing, outgoing);
         self
     }
 
@@ -227,19 +236,19 @@ impl<T> GraphNode<T> {
             || self.outgoing.contains(&self.index)
     }
 
-    pub fn incoming(&self) -> &BTreeSet<usize> {
+    pub fn incoming(&self) -> &[usize] {
         &self.incoming
     }
 
-    pub fn outgoing(&self) -> &BTreeSet<usize> {
+    pub fn outgoing(&self) -> &[usize] {
         &self.outgoing
     }
 
-    pub fn incoming_mut(&mut self) -> &mut BTreeSet<usize> {
+    pub fn incoming_mut(&mut self) -> &mut [usize] {
         &mut self.incoming
     }
 
-    pub fn outgoing_mut(&mut self) -> &mut BTreeSet<usize> {
+    pub fn outgoing_mut(&mut self) -> &mut [usize] {
         &mut self.outgoing
     }
 
@@ -249,6 +258,37 @@ impl<T> GraphNode<T> {
         }
 
         self.incoming.len() == *self.arity()
+    }
+
+    pub fn insert_incoming(&mut self, value: usize) {
+        Self::insert_sorted_unique(&mut self.incoming, value);
+    }
+
+    pub fn remove_incoming(&mut self, value: &usize) {
+        Self::remove_sorted(&mut self.incoming, value);
+    }
+
+    pub fn insert_outgoing(&mut self, value: usize) {
+        Self::insert_sorted_unique(&mut self.outgoing, value);
+    }
+
+    pub fn remove_outgoing(&mut self, value: &usize) {
+        Self::remove_sorted(&mut self.outgoing, value);
+    }
+
+    #[inline]
+    fn insert_sorted_unique(v: &mut SmallVec<[usize; 4]>, value: usize) {
+        match v.binary_search(&value) {
+            Ok(_) => {}
+            Err(pos) => v.insert(pos, value),
+        }
+    }
+
+    #[inline]
+    fn remove_sorted(v: &mut SmallVec<[usize; 4]>, value: &usize) {
+        if let Ok(pos) = v.binary_search(value) {
+            v.remove(pos);
+        }
     }
 }
 
@@ -406,8 +446,8 @@ impl<T: Default> From<(usize, T)> for GraphNode<T> {
             direction: Direction::Forward,
             node_type: None,
             arity: None,
-            incoming: BTreeSet::new(),
-            outgoing: BTreeSet::new(),
+            incoming: SmallVec::new(),
+            outgoing: SmallVec::new(),
         }
     }
 }
@@ -427,8 +467,8 @@ impl<T: Default> From<(usize, T, Arity)> for GraphNode<T> {
             direction: Direction::Forward,
             node_type: None,
             arity: Some(arity),
-            incoming: BTreeSet::new(),
-            outgoing: BTreeSet::new(),
+            incoming: SmallVec::new(),
+            outgoing: SmallVec::new(),
         }
     }
 }
@@ -438,6 +478,12 @@ where
     I: IntoIterator<Item = usize>,
 {
     fn from((index, node_type, value, incoming, outgoing): (usize, NodeType, T, I, I)) -> Self {
+        let mut incoming = SmallVec::<[usize; 4]>::from_iter(incoming);
+        let mut outgoing = SmallVec::<[usize; 4]>::from_iter(outgoing);
+        incoming.sort_unstable();
+        incoming.dedup();
+        outgoing.sort_unstable();
+        outgoing.dedup();
         GraphNode {
             index,
             id: GraphNodeId::new(),
@@ -445,8 +491,8 @@ where
             direction: Direction::Forward,
             node_type: Some(node_type),
             arity: None,
-            incoming: incoming.into_iter().collect(),
-            outgoing: outgoing.into_iter().collect(),
+            incoming,
+            outgoing,
         }
     }
 }
@@ -460,8 +506,8 @@ impl<T: Default> Default for GraphNode<T> {
             direction: Direction::Forward,
             node_type: None,
             arity: None,
-            incoming: BTreeSet::new(),
-            outgoing: BTreeSet::new(),
+            incoming: SmallVec::new(),
+            outgoing: SmallVec::new(),
         }
     }
 }
@@ -507,8 +553,8 @@ mod tests {
         assert_eq!(node.arity(), Arity::Any);
         assert!(!node.is_valid());
         assert!(!node.is_recurrent());
-        assert_eq!(node.incoming(), &BTreeSet::new());
-        assert_eq!(node.outgoing(), &BTreeSet::new());
+        assert_eq!(node.incoming(), &[] as &[usize]);
+        assert_eq!(node.outgoing(), &[] as &[usize]);
     }
 
     #[test]
@@ -520,8 +566,8 @@ mod tests {
         assert_eq!(node.arity(), Arity::Zero);
         assert!(!node.is_valid());
         assert!(!node.is_recurrent());
-        assert_eq!(node.incoming(), &BTreeSet::new());
-        assert_eq!(node.outgoing(), &BTreeSet::new());
+        assert_eq!(node.incoming(), &[] as &[usize]);
+        assert_eq!(node.outgoing(), &[] as &[usize]);
     }
 
     #[test]
@@ -533,8 +579,8 @@ mod tests {
         assert_eq!(node.arity(), Arity::Zero);
         assert!(!node.is_valid());
         assert!(!node.is_recurrent());
-        assert_eq!(node.incoming(), &BTreeSet::new());
-        assert_eq!(node.outgoing(), &BTreeSet::new());
+        assert_eq!(node.incoming(), &[] as &[usize]);
+        assert_eq!(node.outgoing(), &[] as &[usize]);
     }
 
     #[test]
@@ -547,8 +593,8 @@ mod tests {
         assert_eq!(new_node.arity(), Arity::Zero);
         assert!(!new_node.is_valid());
         assert!(!new_node.is_recurrent());
-        assert_eq!(new_node.incoming(), &BTreeSet::new());
-        assert_eq!(new_node.outgoing(), &BTreeSet::new());
+        assert_eq!(new_node.incoming(), &[] as &[usize]);
+        assert_eq!(new_node.outgoing(), &[] as &[usize]);
     }
 
     #[test]

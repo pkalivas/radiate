@@ -137,7 +137,7 @@ where
                 best: config.problem.decode(config.population()[0].genotype()),
                 index: 0,
                 metrics: MetricSet::default(),
-                epoch_metrics: MetricSet::new(CollectionMode::Batch),
+                epoch_metrics: MetricSet::new(CollectionMode::Individual),
                 score: None,
                 front: config.front.clone(),
                 objective: config.objective.clone(),

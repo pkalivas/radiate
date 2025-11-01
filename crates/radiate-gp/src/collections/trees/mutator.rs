@@ -1,6 +1,7 @@
 use super::TreeChromosome;
 use radiate_core::{AlterResult, Mutate, random_provider};
 
+#[derive(Clone, Debug)]
 pub struct HoistMutator {
     rate: f32,
 }

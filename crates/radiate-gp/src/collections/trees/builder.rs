@@ -1,8 +1,7 @@
-use radiate_core::Valid;
-
 use crate::collections::{Tree, TreeNode};
 use crate::node::Node;
 use crate::{Arity, Factory, NodeStore, NodeType};
+use radiate_core::Valid;
 
 const NUM_CHILDREN_ANY: usize = 2;
 
