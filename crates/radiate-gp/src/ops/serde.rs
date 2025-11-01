@@ -1,9 +1,11 @@
 use crate::Arity;
 use crate::ops::operation::Op;
+#[cfg(feature = "pgm")]
+use crate::{TopologicalMapper, TreeNode};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::sync::Arc;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(tag = "type", content = "data")]
 enum OpVariant<T> {
     Fn {
@@ -28,6 +30,12 @@ enum OpVariant<T> {
         arity: Arity,
         value: T,
     },
+    #[cfg(feature = "pgm")]
+    PGM {
+        name: String,
+        arity: Arity,
+        programs: Vec<TreeNode<OpVariant<T>>>,
+    },
 }
 
 #[cfg(feature = "serde")]
@@ -39,32 +47,7 @@ where
     where
         S: Serializer,
     {
-        let variant = match self {
-            Op::Fn(name, arity, _) => OpVariant::Fn {
-                name: name.to_string(),
-                arity: *arity,
-            },
-            Op::Var(name, index) => OpVariant::Var {
-                name: name.to_string(),
-                index: *index,
-            },
-            Op::Const(name, value) => OpVariant::Const {
-                name: name.to_string(),
-                value: value.clone(),
-            },
-            Op::MutableConst {
-                name, arity, value, ..
-            } => OpVariant::MutableConst {
-                name: name.to_string(),
-                arity: *arity,
-                value: value.clone(),
-            },
-            Op::Value(name, arity, value, _) => OpVariant::Value {
-                name: name.to_string(),
-                arity: *arity,
-                value: value.clone(),
-            },
-        };
+        let variant = OpVariant::from(self.clone());
         variant.serialize(serializer)
     }
 }
@@ -76,6 +59,67 @@ impl<'de> Deserialize<'de> for Op<f32> {
         D: Deserializer<'de>,
     {
         let variant = OpVariant::<f32>::deserialize(deserializer)?;
+        Result::from(variant).map_err(|e| {
+            serde::de::Error::custom(format!("Failed to convert OpVariant to Op: {}", e))
+        })
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> Deserialize<'de> for Op<bool> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let variant = OpVariant::<bool>::deserialize(deserializer)?;
+        Result::from(variant).map_err(|e| {
+            serde::de::Error::custom(format!("Failed to convert OpVariant to Op: {}", e))
+        })
+    }
+}
+
+impl<T: Clone> From<Op<T>> for OpVariant<T> {
+    fn from(op: Op<T>) -> Self {
+        match op {
+            Op::Fn(name, arity, _) => OpVariant::Fn {
+                name: name.to_string(),
+                arity,
+            },
+            Op::Var(name, index) => OpVariant::Var {
+                name: name.to_string(),
+                index,
+            },
+            Op::Const(name, value) => OpVariant::Const {
+                name: name.to_string(),
+                value,
+            },
+            Op::MutableConst {
+                name, arity, value, ..
+            } => OpVariant::MutableConst {
+                name: name.to_string(),
+                arity,
+                value,
+            },
+            Op::Value(name, arity, value, _) => OpVariant::Value {
+                name: name.to_string(),
+                arity,
+                value,
+            },
+            #[cfg(feature = "pgm")]
+            Op::PGM(name, arity, programs, _func) => OpVariant::PGM {
+                name: name.to_string(),
+                arity,
+                programs: programs
+                    .iter()
+                    .map(|node| node.map(|val| OpVariant::from((*val).clone())))
+                    .collect(),
+            },
+        }
+    }
+}
+
+impl From<OpVariant<f32>> for Result<Op<f32>, serde::de::value::Error> {
+    fn from(variant: OpVariant<f32>) -> Self {
         match variant {
             OpVariant::Fn { name, .. } => {
                 let name: &'static str = Box::leak(name.into_boxed_str());
@@ -177,17 +221,52 @@ impl<'de> Deserialize<'de> for Op<f32> {
                     Arc::new(|_: &[f32], v: &f32| v.clone()),
                 ))
             }
+            #[cfg(feature = "pgm")]
+            OpVariant::PGM {
+                name,
+                arity,
+                programs,
+            } => {
+                let name = Box::leak(name.into_boxed_str());
+                let model_tree = programs
+                    .iter()
+                    .map(|node| {
+                        node.map(|val| match Result::<Op<f32>, _>::from((*val).clone()) {
+                            Ok(op) => op,
+                            Err(e) => {
+                                panic!("Failed to convert OpVariant to Op in PGM programs: {}", e)
+                            }
+                        })
+                    })
+                    .collect::<Vec<TreeNode<Op<f32>>>>();
+
+                Ok(Op::PGM(
+                    name,
+                    arity,
+                    Arc::new(model_tree),
+                    Arc::new(|inputs: &[f32], progs: &[TreeNode<Op<f32>>]| {
+                        use crate::Eval;
+
+                        let probabilities = progs.eval(inputs);
+                        if probabilities.is_empty() {
+                            return 0.0;
+                        }
+
+                        let m = probabilities
+                            .iter()
+                            .copied()
+                            .fold(f32::NEG_INFINITY, f32::max);
+                        let sum_exp = probabilities.iter().map(|v| (v - m).exp()).sum::<f32>();
+                        super::math::clamp(m + sum_exp.ln())
+                    }),
+                ))
+            }
         }
     }
 }
 
-#[cfg(feature = "serde")]
-impl<'de> Deserialize<'de> for Op<bool> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let variant = OpVariant::<bool>::deserialize(deserializer)?;
+impl From<OpVariant<bool>> for Result<Op<bool>, serde::de::value::Error> {
+    fn from(variant: OpVariant<bool>) -> Self {
         match variant {
             OpVariant::Fn { name, .. } => {
                 let name: &'static str = Box::leak(name.into_boxed_str());
@@ -238,6 +317,42 @@ impl<'de> Deserialize<'de> for Op<bool> {
             OpVariant::Const { name, value } => {
                 let name = Box::leak(name.into_boxed_str());
                 Ok(Op::Const(name, value))
+            }
+            #[cfg(feature = "pgm")]
+            OpVariant::PGM {
+                name,
+                arity,
+                programs,
+            } => {
+                let name = Box::leak(name.into_boxed_str());
+                let model_tree = programs
+                    .iter()
+                    .map(|node| {
+                        node.map(|val| match Result::<Op<bool>, _>::from((*val).clone()) {
+                            Ok(op) => op,
+                            Err(e) => {
+                                panic!("Failed to convert OpVariant to Op in PGM programs for boolean ops: {}", e)
+                            }
+                        })
+                    })
+                    .collect::<Vec<TreeNode<Op<bool>>>>();
+
+                Ok(Op::PGM(
+                    name,
+                    arity,
+                    Arc::new(model_tree),
+                    Arc::new(|inputs: &[bool], progs: &[TreeNode<Op<bool>>]| {
+                        use crate::Eval;
+
+                        let probabilities = progs.eval(inputs);
+                        if probabilities.is_empty() {
+                            return false;
+                        }
+
+                        let result = false;
+                        result
+                    }),
+                ))
             }
         }
     }

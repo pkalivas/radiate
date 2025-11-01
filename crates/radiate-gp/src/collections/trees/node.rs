@@ -162,8 +162,8 @@ impl<T> TreeNode<T> {
         None
     }
 
-    pub fn children(&self) -> Option<&Vec<TreeNode<T>>> {
-        self.children.as_ref()
+    pub fn children(&self) -> Option<&[TreeNode<T>]> {
+        self.children.as_ref().map(|children| children.as_slice())
     }
 
     pub fn children_mut(&mut self) -> Option<&mut Vec<TreeNode<T>>> {
@@ -201,25 +201,6 @@ impl<T> TreeNode<T> {
         if let (Some(self_sub), Some(other_sub)) = (self_subtree, other_subtree) {
             std::mem::swap(self_sub, other_sub);
         }
-    }
-
-    pub fn get_mut(&mut self, index: usize) -> Option<&mut TreeNode<T>> {
-        if index == 0 {
-            return Some(self);
-        }
-
-        if let Some(children) = self.children.as_mut() {
-            let mut count = 0;
-            for child in children {
-                let size = child.size();
-                if index <= count + size {
-                    return child.get_mut(index - count - 1);
-                }
-                count += size;
-            }
-        }
-
-        None
     }
 }
 
@@ -343,7 +324,7 @@ impl<T: Debug> Debug for TreeNode<T> {
             match &self.children {
                 Some(children) => children.len(),
                 None => 0,
-            }
+            },
         )
     }
 }
@@ -393,6 +374,12 @@ impl_from!(
     &'static str,
     ()
 );
+
+impl<T> From<TreeNode<T>> for Vec<TreeNode<T>> {
+    fn from(node: TreeNode<T>) -> Self {
+        vec![node]
+    }
+}
 
 #[cfg(test)]
 mod tests {

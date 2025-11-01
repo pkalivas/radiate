@@ -6,7 +6,6 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::fmt::Debug;
 use std::hash::Hash;
-use std::ops::Deref;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 /// A unique identifier for nodes in a graph structure.
@@ -38,14 +37,6 @@ impl GraphNodeId {
     pub fn new() -> Self {
         static GRAPH_NODE_ID: AtomicU64 = AtomicU64::new(0);
         GraphNodeId(GRAPH_NODE_ID.fetch_add(1, Ordering::SeqCst))
-    }
-}
-
-impl Deref for GraphNodeId {
-    type Target = u64;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
     }
 }
 

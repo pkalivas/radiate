@@ -1,19 +1,21 @@
 use super::Op;
-use crate::Arity;
+use crate::{Arity, op};
 use radiate_core::random_provider;
 use std::sync::Arc;
 
-const MAX_VALUE: f32 = 1e+10_f32;
-const MIN_VALUE: f32 = -1e+10_f32;
-const ONE: f32 = 1.0_f32;
-const ZERO: f32 = 0.0_f32;
-const TWO: f32 = 2.0_f32;
-const HALF: f32 = 0.5_f32;
-const TENTH: f32 = 0.1_f32;
+pub(super) const MAX_VALUE: f32 = 1e+10_f32;
+pub(super) const MIN_VALUE: f32 = -1e+10_f32;
+pub(super) const EPSILON: f32 = 1e-12_f32;
+pub(super) const ONE: f32 = 1.0_f32;
+pub(super) const ZERO: f32 = 0.0_f32;
+pub(super) const TWO: f32 = 2.0_f32;
+pub(super) const HALF: f32 = 0.5_f32;
+pub(super) const TENTH: f32 = 0.1_f32;
+pub(super) const THRESHOLD: f32 = 1e-3_f32;
 
 /// Clamp a value to the range [-1e+10, 1e+10]. Without this, values can quickly become
 /// too large or too small to be useful.
-fn clamp(value: f32) -> f32 {
+pub(super) const fn clamp(value: f32) -> f32 {
     if value.is_nan() {
         return ZERO;
     }
@@ -24,26 +26,23 @@ fn clamp(value: f32) -> f32 {
 /// Aggregate a slice of 'f32' values by summing them, then applying a function to the result.
 /// There usually arent too many inputs, so we can use an if statement to handle a few of the
 /// common cases - vals with a len <= 5.
-fn aggregate<F>(vals: &[f32], f: F) -> f32
-where
-    F: Fn(f32) -> f32,
-{
+pub(super) fn aggregate(vals: &[f32]) -> f32 {
     let len = vals.len();
     if len == 0 {
         return ZERO;
     } else if len == 1 {
         return vals[0];
     } else if len == 2 {
-        return f(vals[0] + vals[1]);
+        return vals[0] + vals[1];
     } else if len == 3 {
-        return f(vals[0] + vals[1] + vals[2]);
+        return vals[0] + vals[1] + vals[2];
     } else if len == 4 {
-        return f(vals[0] + vals[1] + vals[2] + vals[3]);
+        return vals[0] + vals[1] + vals[2] + vals[3];
     } else if len == 5 {
-        return f(vals[0] + vals[1] + vals[2] + vals[3] + vals[4]);
+        return vals[0] + vals[1] + vals[2] + vals[3] + vals[4];
     }
 
-    f(vals.iter().cloned().sum::<f32>())
+    vals.iter().cloned().sum::<f32>()
 }
 
 pub enum MathOperation {
@@ -69,6 +68,11 @@ pub enum MathOperation {
     Min,
 }
 
+#[inline]
+const fn add(vals: &[f32]) -> f32 {
+    clamp(vals[0] + vals[1])
+}
+
 /// Implementations of the [MathOperation] enum. These are the basic math operations.
 /// Each operation takes a slice of `f32` values and returns a single `f32` value.
 impl MathOperation {
@@ -84,7 +88,7 @@ impl MathOperation {
                     clamp(inputs[0] / inputs[1])
                 }
             }
-            MathOperation::Sum => clamp(aggregate(inputs, |x| x)),
+            MathOperation::Sum => clamp(aggregate(inputs)),
             MathOperation::Diff => clamp(inputs.iter().cloned().fold(ZERO, |acc, x| acc - x)),
             MathOperation::Prod => clamp(inputs.iter().product()),
             MathOperation::Neg => clamp(-inputs[0]),
@@ -129,11 +133,11 @@ impl ActivationOperation {
     pub fn apply(&self, inputs: &[f32]) -> f32 {
         match self {
             ActivationOperation::Sigmoid => {
-                let total = aggregate(inputs, |x| x);
+                let total = aggregate(inputs);
                 clamp(ONE / (ONE + (-total).exp()))
             }
             ActivationOperation::Tanh => {
-                let total = aggregate(inputs, |x| x);
+                let total = aggregate(inputs);
                 clamp(total.tanh())
             }
             ActivationOperation::ReLU => clamp(inputs.iter().cloned().sum::<f32>().max(ZERO)),
@@ -179,246 +183,187 @@ impl Op<f32> {
             clamp(current + diff)
         };
 
-        Op::MutableConst {
+        crate::op!(Op::MutableConst {
             name: "w",
             arity: 1.into(),
             value: clamp(value),
             supplier: Arc::new(supplier),
             modifier: Arc::new(modifier),
             operation: Arc::new(operation),
-        }
+        })
     }
 
     pub fn add() -> Self {
-        Op::Fn(
-            "add",
-            2.into(),
-            Arc::new(|inputs: &[f32]| MathOperation::Add.apply(inputs)),
-        )
+        op!("add", 2.into(), |inputs: &[f32]| MathOperation::Add
+            .apply(inputs))
     }
 
     pub fn sub() -> Self {
-        Op::Fn(
-            "sub",
-            2.into(),
-            Arc::new(|inputs: &[f32]| MathOperation::Sub.apply(inputs)),
-        )
+        Op::Fn("sub", 2.into(), |inputs: &[f32]| {
+            MathOperation::Sub.apply(inputs)
+        })
     }
 
     pub fn mul() -> Self {
-        Op::Fn(
-            "mul",
-            2.into(),
-            Arc::new(|inputs: &[f32]| MathOperation::Mul.apply(inputs)),
-        )
+        Op::Fn("mul", 2.into(), |inputs: &[f32]| {
+            MathOperation::Mul.apply(inputs)
+        })
     }
 
     pub fn div() -> Self {
-        Op::Fn(
-            "div",
-            2.into(),
-            Arc::new(|inputs: &[f32]| MathOperation::Div.apply(inputs)),
-        )
+        Op::Fn("div", 2.into(), |inputs: &[f32]| {
+            MathOperation::Div.apply(inputs)
+        })
     }
 
     pub fn sum() -> Self {
-        Op::Fn(
-            "sum",
-            Arity::Any,
-            Arc::new(|inputs: &[f32]| MathOperation::Sum.apply(inputs)),
-        )
+        Op::Fn("sum", Arity::Any, |inputs: &[f32]| {
+            MathOperation::Sum.apply(inputs)
+        })
     }
 
     pub fn diff() -> Self {
-        Op::Fn(
-            "diff",
-            Arity::Any,
-            Arc::new(|inputs: &[f32]| MathOperation::Diff.apply(inputs)),
-        )
+        Op::Fn("diff", Arity::Any, |inputs: &[f32]| {
+            MathOperation::Diff.apply(inputs)
+        })
     }
 
     pub fn prod() -> Self {
-        Op::Fn(
-            "prod",
-            Arity::Any,
-            Arc::new(|inputs: &[f32]| MathOperation::Prod.apply(inputs)),
-        )
+        Op::Fn("prod", Arity::Any, |inputs: &[f32]| {
+            MathOperation::Prod.apply(inputs)
+        })
     }
 
     pub fn neg() -> Self {
-        Op::Fn(
-            "neg",
-            1.into(),
-            Arc::new(|inputs: &[f32]| MathOperation::Neg.apply(inputs)),
-        )
+        Op::Fn("neg", 1.into(), |inputs: &[f32]| {
+            MathOperation::Neg.apply(inputs)
+        })
     }
 
     pub fn pow() -> Self {
-        Op::Fn(
-            "pow",
-            2.into(),
-            Arc::new(|inputs: &[f32]| MathOperation::Pow.apply(inputs)),
-        )
+        Op::Fn("pow", 2.into(), |inputs: &[f32]| {
+            MathOperation::Pow.apply(inputs)
+        })
     }
 
     pub fn sqrt() -> Self {
-        Op::Fn(
-            "sqrt",
-            1.into(),
-            Arc::new(|inputs: &[f32]| MathOperation::Sqrt.apply(inputs)),
-        )
+        Op::Fn("sqrt", 1.into(), |inputs: &[f32]| {
+            MathOperation::Sqrt.apply(inputs)
+        })
     }
 
     pub fn abs() -> Self {
-        Op::Fn(
-            "abs",
-            1.into(),
-            Arc::new(|inputs: &[f32]| MathOperation::Abs.apply(inputs)),
-        )
+        Op::Fn("abs", 1.into(), |inputs: &[f32]| {
+            MathOperation::Abs.apply(inputs)
+        })
     }
 
     pub fn exp() -> Self {
-        Op::Fn(
-            "exp",
-            1.into(),
-            Arc::new(|inputs: &[f32]| MathOperation::Exp.apply(inputs)),
-        )
+        Op::Fn("exp", 1.into(), |inputs: &[f32]| {
+            MathOperation::Exp.apply(inputs)
+        })
     }
 
     pub fn log() -> Self {
-        Op::Fn(
-            "log",
-            1.into(),
-            Arc::new(|inputs: &[f32]| MathOperation::Log.apply(inputs)),
-        )
+        Op::Fn("log", 1.into(), |inputs: &[f32]| {
+            MathOperation::Log.apply(inputs)
+        })
     }
 
     pub fn sin() -> Self {
-        Op::Fn(
-            "sin",
-            1.into(),
-            Arc::new(|inputs: &[f32]| MathOperation::Sin.apply(inputs)),
-        )
+        Op::Fn("sin", 1.into(), |inputs: &[f32]| {
+            MathOperation::Sin.apply(inputs)
+        })
     }
 
     pub fn cos() -> Self {
-        Op::Fn(
-            "cos",
-            1.into(),
-            Arc::new(|inputs: &[f32]| MathOperation::Cos.apply(inputs)),
-        )
+        Op::Fn("cos", 1.into(), |inputs: &[f32]| {
+            MathOperation::Cos.apply(inputs)
+        })
     }
 
     pub fn max() -> Self {
-        Op::Fn(
-            "max",
-            Arity::Any,
-            Arc::new(|inputs: &[f32]| MathOperation::Max.apply(inputs)),
-        )
+        Op::Fn("max", Arity::Any, |inputs: &[f32]| {
+            MathOperation::Max.apply(inputs)
+        })
     }
 
     pub fn min() -> Self {
-        Op::Fn(
-            "min",
-            Arity::Any,
-            Arc::new(|inputs: &[f32]| MathOperation::Min.apply(inputs)),
-        )
+        Op::Fn("min", Arity::Any, |inputs: &[f32]| {
+            MathOperation::Min.apply(inputs)
+        })
     }
 
     pub fn tan() -> Self {
-        Op::Fn(
-            "tan",
-            1.into(),
-            Arc::new(|inputs: &[f32]| MathOperation::Tan.apply(inputs)),
-        )
+        Op::Fn("tan", 1.into(), |inputs: &[f32]| {
+            MathOperation::Tan.apply(inputs)
+        })
     }
 
     pub fn ceil() -> Self {
-        Op::Fn(
-            "ceil",
-            1.into(),
-            Arc::new(|inputs: &[f32]| MathOperation::Ceil.apply(inputs)),
-        )
+        Op::Fn("ceil", 1.into(), |inputs: &[f32]| {
+            MathOperation::Ceil.apply(inputs)
+        })
     }
 
     pub fn floor() -> Self {
-        Op::Fn(
-            "floor",
-            1.into(),
-            Arc::new(|inputs: &[f32]| MathOperation::Floor.apply(inputs)),
-        )
+        Op::Fn("floor", 1.into(), |inputs: &[f32]| {
+            MathOperation::Floor.apply(inputs)
+        })
     }
 
     pub fn sigmoid() -> Self {
-        Op::Fn(
-            "sigmoid",
-            Arity::Any,
-            Arc::new(|inputs: &[f32]| ActivationOperation::Sigmoid.apply(inputs)),
-        )
+        Op::Fn("sigmoid", Arity::Any, |inputs: &[f32]| {
+            ActivationOperation::Sigmoid.apply(inputs)
+        })
     }
 
     pub fn tanh() -> Self {
-        Op::Fn(
-            "tanh",
-            Arity::Any,
-            Arc::new(|inputs: &[f32]| ActivationOperation::Tanh.apply(inputs)),
-        )
+        Op::Fn("tanh", Arity::Any, |inputs: &[f32]| {
+            ActivationOperation::Tanh.apply(inputs)
+        })
     }
 
     pub fn relu() -> Self {
-        Op::Fn(
-            "relu",
-            Arity::Any,
-            Arc::new(|inputs: &[f32]| ActivationOperation::ReLU.apply(inputs)),
-        )
+        Op::Fn("relu", Arity::Any, |inputs: &[f32]| {
+            ActivationOperation::ReLU.apply(inputs)
+        })
     }
 
     pub fn leaky_relu() -> Self {
-        Op::Fn(
-            "l_relu",
-            Arity::Any,
-            Arc::new(|inputs: &[f32]| ActivationOperation::LeakyReLU.apply(inputs)),
-        )
+        Op::Fn("l_relu", Arity::Any, |inputs: &[f32]| {
+            ActivationOperation::LeakyReLU.apply(inputs)
+        })
     }
 
     pub fn elu() -> Self {
-        Op::Fn(
-            "elu",
-            Arity::Any,
-            Arc::new(|inputs: &[f32]| ActivationOperation::ELU.apply(inputs)),
-        )
+        Op::Fn("elu", Arity::Any, |inputs: &[f32]| {
+            ActivationOperation::ELU.apply(inputs)
+        })
     }
 
     pub fn linear() -> Self {
-        Op::Fn(
-            "linear",
-            Arity::Any,
-            Arc::new(|inputs: &[f32]| ActivationOperation::Linear.apply(inputs)),
-        )
+        Op::Fn("linear", Arity::Any, |inputs: &[f32]| {
+            ActivationOperation::Linear.apply(inputs)
+        })
     }
 
     pub fn mish() -> Self {
-        Op::Fn(
-            "mish",
-            Arity::Any,
-            Arc::new(|inputs: &[f32]| ActivationOperation::Mish.apply(inputs)),
-        )
+        Op::Fn("mish", Arity::Any, |inputs: &[f32]| {
+            ActivationOperation::Mish.apply(inputs)
+        })
     }
 
     pub fn swish() -> Self {
-        Op::Fn(
-            "swish",
-            Arity::Any,
-            Arc::new(|inputs: &[f32]| ActivationOperation::Swish.apply(inputs)),
-        )
+        Op::Fn("swish", Arity::Any, |inputs: &[f32]| {
+            ActivationOperation::Swish.apply(inputs)
+        })
     }
 
     pub fn softplus() -> Self {
-        Op::Fn(
-            "softplus",
-            Arity::Any,
-            Arc::new(|inputs: &[f32]| ActivationOperation::Softplus.apply(inputs)),
-        )
+        Op::Fn("softplus", Arity::Any, |inputs: &[f32]| {
+            ActivationOperation::Softplus.apply(inputs)
+        })
     }
 }
 
@@ -470,6 +415,8 @@ pub fn all_ops() -> Vec<Op<f32>> {
 
 #[cfg(test)]
 mod tests {
+    use crate::{Eval, TreeNode};
+
     use super::*;
     use std::f32;
 
@@ -484,37 +431,6 @@ mod tests {
         assert_eq!(super::clamp(1e20_f32), MAX_VALUE);
         assert_eq!(super::clamp(-1e20_f32), MIN_VALUE);
         assert_eq!(super::clamp(123.456), 123.456);
-    }
-
-    #[test]
-    fn aggregate_len_cases() {
-        // Current semantics: len==0 -> ZERO; len==1 -> returns value (does NOT apply f)
-        let f = |x: f32| x * 2.0;
-
-        let empty: [f32; 0] = [];
-        assert_eq!(super::aggregate(&empty, f), ZERO);
-
-        let single = [5.0];
-        assert_eq!(
-            super::aggregate(&single, f),
-            5.0,
-            "len==1 path returns the value directly"
-        );
-
-        let two = [2.0, 3.0];
-        assert_eq!(super::aggregate(&two, f), 10.0);
-
-        let three = [1.0, 2.0, 3.0];
-        assert_eq!(super::aggregate(&three, f), 12.0);
-
-        let four = [1.0, 2.0, 3.0, 4.0];
-        assert_eq!(super::aggregate(&four, f), 20.0);
-
-        let five = [1.0, 2.0, 3.0, 4.0, 5.0];
-        assert_eq!(super::aggregate(&five, f), 30.0);
-
-        let many = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
-        assert_eq!(super::aggregate(&many, f), 42.0);
     }
 
     #[test]
@@ -655,5 +571,16 @@ mod tests {
         } else {
             panic!("weight() did not return MutableConst as expected");
         }
+    }
+
+    #[test]
+    fn pgm_op_runs_and_is_clamped() {
+        let tree = TreeNode::new(Op::add());
+        let pgm = Op::pgm("add", 2, tree);
+
+        let out = pgm.eval(&[1.0, 2.0]);
+        assert!(out.is_finite());
+        assert!(out <= MAX_VALUE && out >= MIN_VALUE);
+        assert_eq!(out, 3.0, "pgm with add should return the sum of inputs");
     }
 }

@@ -58,6 +58,7 @@ impl RandomProvider {
     {
         let instance = Self::global();
         let mut rng = instance.rng.lock().unwrap();
+
         rng.random_range(range)
     }
 
@@ -106,6 +107,12 @@ where
 pub fn choose<T>(items: &[T]) -> &T {
     let index = range(0..items.len());
     &items[index]
+}
+
+#[inline]
+pub fn choose_mut<T>(items: &mut [T]) -> &mut T {
+    let index = range(0..items.len());
+    &mut items[index]
 }
 
 /// Generates a random number from a Gaussian distribution with the given mean and standard deviation.

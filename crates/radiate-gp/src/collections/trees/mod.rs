@@ -6,6 +6,7 @@ mod eval;
 mod iter;
 mod mutator;
 mod node;
+mod path;
 mod tree;
 
 pub use chromosome::TreeChromosome;

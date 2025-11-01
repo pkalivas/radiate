@@ -1,30 +1,28 @@
 use super::Statistic;
-use crate::{Distribution, TimeStatistic};
+use crate::{Distribution, TimeStatistic, intern};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use std::sync::OnceLock;
 use std::{
     collections::{BTreeMap, HashSet},
     fmt::Debug,
-    sync::Mutex,
     time::Duration,
 };
 
-static INTERNED: OnceLock<Mutex<HashSet<&'static str>>> = OnceLock::new();
+// static INTERNED: OnceLock<Mutex<HashSet<&'static str>>> = OnceLock::new();
 
-pub fn intern(name: String) -> &'static str {
-    let mut interned = INTERNED
-        .get_or_init(|| Mutex::new(HashSet::new()))
-        .lock()
-        .unwrap();
-    if let Some(&existing) = interned.get(&*name) {
-        return existing;
-    }
+// pub fn intern(name: String) -> &'static str {
+//     let mut interned = INTERNED
+//         .get_or_init(|| Mutex::new(HashSet::new()))
+//         .lock()
+//         .unwrap();
+//     if let Some(&existing) = interned.get(&*name) {
+//         return existing;
+//     }
 
-    let static_name: &'static str = Box::leak(name.into_boxed_str());
-    interned.insert(static_name);
-    static_name
-}
+//     let static_name: &'static str = Box::leak(name.into_boxed_str());
+//     interned.insert(static_name);
+//     static_name
+// }
 
 #[macro_export]
 macro_rules! metric {
@@ -79,7 +77,7 @@ impl<'de> Deserialize<'de> for MetricLabel {
 
         let data = MetricLabelData::deserialize(deserializer)?;
         Ok(MetricLabel {
-            key: intern(data.key),
+            key: intern!(data.key),
             value: data.value,
         })
     }
@@ -195,7 +193,7 @@ impl MetricSet {
     }
 
     pub fn contains_key(&self, name: impl Into<String>) -> bool {
-        self.metrics.contains_key(intern(name.into()))
+        self.metrics.contains_key(intern!(name.into()))
     }
 }
 
@@ -240,7 +238,7 @@ impl<'de> Deserialize<'de> for MetricSet {
         let mut metric_set = MetricSet::new();
         for metric in metrics {
             let metric = Metric {
-                name: intern(metric.name),
+                name: intern!(metric.name),
                 inner: metric.inner,
                 labels: metric.labels,
             };

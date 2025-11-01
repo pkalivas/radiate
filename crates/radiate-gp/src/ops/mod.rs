@@ -1,8 +1,13 @@
 pub mod bool;
+#[cfg(feature = "pgm")]
+pub mod crossover;
 pub mod expr;
 pub mod math;
 pub mod mutator;
 pub mod operation;
+#[cfg(feature = "pgm")]
+pub mod pgm;
+pub mod registry;
 #[cfg(feature = "serde")]
 mod serde;
 

@@ -1,6 +1,8 @@
 use crate::node::Node;
 use crate::ops::operation::Op;
-use crate::{Factory, GraphChromosome, NodeType, TreeChromosome, TreeIterator};
+use crate::{
+    Factory, GraphChromosome, NodeStore, NodeType, TreeChromosome, TreeIterator, TreeNode,
+};
 use radiate_core::genome::Gene;
 use radiate_core::{AlterResult, Mutate};
 use radiate_core::{Chromosome, random_provider};
@@ -81,6 +83,25 @@ where
                         operation: Arc::clone(operation),
                     };
                 }
+                #[cfg(feature = "pgm")]
+                Op::PGM(name, arity, programs, eval_fn) => {
+                    let new_programs = programs
+                        .iter()
+                        .map(|program| {
+                            let mut new_program = program.clone();
+                            mutate_tree_node(
+                                &mut new_program,
+                                chromosome.store().unwrap(),
+                                self.replace_rate,
+                                rate,
+                            );
+                            new_program
+                        })
+                        .collect::<Vec<TreeNode<Op<T>>>>();
+
+                    (*chromosome.as_mut()[*i].value_mut()) =
+                        Op::PGM(name, *arity, Arc::new(new_programs), Arc::clone(eval_fn));
+                }
                 _ => {
                     let new_op: Option<Op<T>> = chromosome
                         .store()
@@ -116,45 +137,8 @@ where
             let root = chromosome.root_mut();
 
             root.apply(move |node| {
-                if random_provider::random::<f32>() < rate {
-                    match node.allele() {
-                        Op::MutableConst {
-                            name,
-                            arity,
-                            value,
-                            supplier: get_value,
-                            modifier,
-                            operation,
-                        } => {
-                            let new_value = get_value();
-                            let new_value = if random_provider::random::<f32>() < self.replace_rate
-                            {
-                                new_value
-                            } else {
-                                modifier(value)
-                            };
-
-                            (*node.value_mut()) = Op::MutableConst {
-                                name,
-                                arity: *arity,
-                                value: new_value,
-                                modifier: Arc::clone(modifier),
-                                supplier: Arc::clone(get_value),
-                                operation: Arc::clone(operation),
-                            };
-
-                            (*cloned_count.lock().unwrap()) += 1;
-                        }
-                        _ => {
-                            let new_op: Op<T> = store.new_instance(node.node_type());
-
-                            if new_op.arity() == node.arity() {
-                                *node.value_mut() = new_op;
-                                (*cloned_count.lock().unwrap()) += 1;
-                            }
-                        }
-                    }
-                }
+                (*cloned_count.lock().unwrap()) +=
+                    mutate_tree_node(node, &store, self.replace_rate, rate);
             });
 
             return (*count.lock().unwrap()).into();
@@ -162,4 +146,74 @@ where
             0.into()
         }
     }
+}
+
+fn mutate_tree_node<T>(
+    node: &mut TreeNode<Op<T>>,
+    store: &NodeStore<Op<T>>,
+    replace_rate: f32,
+    rate: f32,
+) -> usize
+where
+    T: Clone + PartialEq + Default,
+{
+    let mut count = 0;
+
+    if random_provider::random::<f32>() < rate {
+        match node.allele() {
+            Op::MutableConst {
+                name,
+                arity,
+                value,
+                supplier: get_value,
+                modifier,
+                operation,
+            } => {
+                let new_value = get_value();
+                let new_value = if random_provider::random::<f32>() < replace_rate {
+                    new_value
+                } else {
+                    modifier(value)
+                };
+
+                (*node.value_mut()) = Op::MutableConst {
+                    name,
+                    arity: *arity,
+                    value: new_value,
+                    modifier: Arc::clone(modifier),
+                    supplier: Arc::clone(get_value),
+                    operation: Arc::clone(operation),
+                };
+
+                count += 1;
+            }
+            #[cfg(feature = "pgm")]
+            Op::PGM(name, arity, programs, eval_fn) => {
+                let new_programs = programs
+                    .iter()
+                    .map(|program| {
+                        let mut new_program = program.clone();
+                        mutate_tree_node(&mut new_program, store, replace_rate, rate);
+                        new_program
+                    })
+                    .collect::<Vec<TreeNode<Op<T>>>>();
+
+                (*node.value_mut()) =
+                    Op::PGM(name, *arity, Arc::new(new_programs), Arc::clone(eval_fn));
+
+                count += 1;
+            }
+
+            _ => {
+                let new_op: Op<T> = store.new_instance(node.node_type());
+
+                if new_op.arity() == node.arity() {
+                    *node.value_mut() = new_op;
+                    count += 1;
+                }
+            }
+        }
+    }
+
+    count
 }

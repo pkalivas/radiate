@@ -33,20 +33,19 @@ where
         }
 
         if let Some(rand_node) = root.get_mut(rand_index) {
-            if rand_node.is_leaf() {
+            if rand_node.children().is_none() {
                 return 0.into();
             }
 
             let child_idx = random_provider::range(0..rand_node.children().map_or(0, |c| c.len()));
-            let mut child = rand_node.detach(child_idx).unwrap();
+            let mut child = rand_node.detach(child_idx);
 
-            let child_decendant_count = child.size();
-            let child_replacement = random_provider::range(0..child_decendant_count);
-            let child_replacement_node = child.get_mut(child_replacement).unwrap();
-
-            rand_node.add_child(child_replacement_node.clone());
-
-            return 1.into();
+            return if let Some(child) = child.as_mut() {
+                std::mem::swap(rand_node, child);
+                AlterResult::from(1)
+            } else {
+                0.into()
+            };
         }
 
         0.into()

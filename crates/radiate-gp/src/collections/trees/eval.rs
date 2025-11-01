@@ -84,6 +84,17 @@ where
     }
 }
 
+impl<T, V> Eval<[V], Vec<V>> for &[TreeNode<T>]
+where
+    T: Eval<[V], V>,
+    V: Clone,
+{
+    #[inline]
+    fn eval(&self, inputs: &[V]) -> Vec<V> {
+        self.iter().map(|node| node.eval(inputs)).collect()
+    }
+}
+
 /// Implements the [Eval] trait for `TreeNode<T>` where `T` is `Eval<[V], V>`. This is where the real work is done.
 /// It recursively evaluates the [TreeNode] and its children until it reaches a leaf node,
 /// at which point it applies the `T`'s eval fn to the input.

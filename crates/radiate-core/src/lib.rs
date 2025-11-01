@@ -2,7 +2,6 @@ pub mod alter;
 pub mod codecs;
 pub mod distance;
 pub mod domain;
-pub mod eda;
 pub mod engine;
 pub mod evaluator;
 pub mod fitness;
@@ -19,7 +18,6 @@ pub use codecs::{
 };
 pub use distance::{CosineDistance, Diversity, EuclideanDistance, HammingDistance};
 pub use domain::*;
-pub use eda::{ModelLearner, ProbabilisticModel, UmdaBitLearner, UmdaBitModel};
 pub use engine::{Engine, EngineExt};
 pub use evaluator::{BatchFitnessEvaluator, Evaluator, FitnessEvaluator};
 pub use executor::Executor;
@@ -38,7 +36,6 @@ pub mod prelude {
     };
     pub use super::distance::{CosineDistance, Diversity, EuclideanDistance, HammingDistance};
     pub use super::domain::random_provider;
-    pub use super::eda::{ModelLearner, ProbabilisticModel};
     pub use super::engine::{Engine, EngineExt};
     pub use super::evaluator::{BatchFitnessEvaluator, Evaluator, FitnessEvaluator};
     pub use super::executor::Executor;
