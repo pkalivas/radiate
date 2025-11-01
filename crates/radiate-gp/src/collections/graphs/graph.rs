@@ -150,6 +150,10 @@ impl<T> Graph<T> {
         Graph { nodes }
     }
 
+    pub fn take_nodes(&mut self) -> Vec<GraphNode<T>> {
+        std::mem::take(&mut self.nodes)
+    }
+
     pub fn push(&mut self, node: impl Into<GraphNode<T>>) {
         self.nodes.push(node.into());
     }
@@ -221,8 +225,8 @@ impl<T> Graph<T> {
     /// - incoming: The index of the node that will have an outgoing connection to the node at the 'outgoing' index.
     /// - outgoing: The index of the node that will have an incoming connection from the node at the 'incoming' index.
     pub fn attach(&mut self, incoming: usize, outgoing: usize) -> &mut Self {
-        self.as_mut()[incoming].outgoing_mut().insert(outgoing);
-        self.as_mut()[outgoing].incoming_mut().insert(incoming);
+        self.as_mut()[incoming].insert_outgoing(outgoing);
+        self.as_mut()[outgoing].insert_incoming(incoming);
         self
     }
     /// Detaches the node at the 'incoming' index from the node at the 'outgoing' index.
@@ -234,8 +238,8 @@ impl<T> Graph<T> {
     /// - incoming: The index of the node that will no longer have an outgoing connection to the node at the 'outgoing' index.
     /// - outgoing: The index of the node that will no longer have an incoming connection from the node at the 'incoming' index.
     pub fn detach(&mut self, incoming: usize, outgoing: usize) -> &mut Self {
-        self.as_mut()[incoming].outgoing_mut().remove(&outgoing);
-        self.as_mut()[outgoing].incoming_mut().remove(&incoming);
+        self.as_mut()[incoming].remove_outgoing(&outgoing);
+        self.as_mut()[outgoing].remove_incoming(&incoming);
         self
     }
 
@@ -291,7 +295,7 @@ impl<T> Graph<T> {
     ///
     /// # Arguments
     /// - index: The index of the node to get the cycles for.
-    #[inline]
+    // #[inline]
     pub fn get_cycles(&self, from: usize) -> HashSet<usize> {
         let mut stack = Vec::new();
         let mut visited = HashSet::new();
@@ -407,7 +411,6 @@ impl<T: Debug> Debug for Graph<T> {
 mod test {
     use super::*;
     use crate::{Arity, Node, Op};
-    use std::collections::BTreeSet;
 
     #[test]
     fn test_graph_is_valid() {
@@ -431,8 +434,8 @@ mod test {
         graph.push((1, NodeType::Output, 1));
         graph.attach(0, 1);
 
-        assert_eq!(graph[0].outgoing(), &BTreeSet::from_iter(vec![1]));
-        assert_eq!(graph[1].incoming(), &BTreeSet::from_iter(vec![0]));
+        assert_eq!(graph[0].outgoing(), &[1]);
+        assert_eq!(graph[1].incoming(), &[0]);
     }
 
     #[test]

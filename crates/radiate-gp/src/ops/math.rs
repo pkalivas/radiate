@@ -4,13 +4,11 @@ use radiate_core::random_provider;
 
 pub(super) const MAX_VALUE: f32 = 1e+10_f32;
 pub(super) const MIN_VALUE: f32 = -1e+10_f32;
-pub(super) const EPSILON: f32 = 1e-12_f32;
 pub(super) const ONE: f32 = 1.0_f32;
 pub(super) const ZERO: f32 = 0.0_f32;
 pub(super) const TWO: f32 = 2.0_f32;
 pub(super) const HALF: f32 = 0.5_f32;
 pub(super) const TENTH: f32 = 0.1_f32;
-pub(super) const THRESHOLD: f32 = 1e-3_f32;
 
 /// Clamp a value to the range [-1e+10, 1e+10]. Without this, values can quickly become
 /// too large or too small to be useful.
@@ -42,25 +40,6 @@ pub(super) fn aggregate(vals: &[f32]) -> f32 {
     }
 
     vals.iter().cloned().sum::<f32>()
-}
-
-#[inline]
-pub(super) fn stable_softmax(xs: &[f32]) -> Vec<f32> {
-    if xs.is_empty() {
-        return vec![];
-    }
-
-    let m = xs.iter().copied().fold(f32::NEG_INFINITY, f32::max);
-    let exps = xs
-        .iter()
-        .map(|&x| super::math::clamp((x - m).exp()))
-        .collect::<Vec<f32>>();
-
-    let s = exps.iter().sum::<f32>().max(super::math::EPSILON);
-
-    exps.into_iter()
-        .map(|e| super::math::clamp(e / s))
-        .collect()
 }
 
 #[inline]

@@ -4,7 +4,6 @@ use radiate_core::{Gene, Valid};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
-use std::collections::BTreeSet;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -196,14 +195,6 @@ impl<T> GraphNode<T> {
         }
     }
 
-    // helper used by with_incoming/with_outgoing
-    fn set_sorted_unique(dst: &mut SmallVec<[usize; 4]>, src: impl IntoIterator<Item = usize>) {
-        dst.clear();
-        dst.extend(src);
-        dst.sort_unstable();
-        dst.dedup();
-    }
-
     pub fn with_incoming<I: IntoIterator<Item = usize>>(mut self, incoming: I) -> Self {
         Self::set_sorted_unique(&mut self.incoming, incoming);
         self
@@ -289,6 +280,14 @@ impl<T> GraphNode<T> {
         if let Ok(pos) = v.binary_search(value) {
             v.remove(pos);
         }
+    }
+
+    #[inline]
+    fn set_sorted_unique(dst: &mut SmallVec<[usize; 4]>, src: impl IntoIterator<Item = usize>) {
+        dst.clear();
+        dst.extend(src);
+        dst.sort_unstable();
+        dst.dedup();
     }
 }
 
@@ -542,7 +541,6 @@ impl<T: Debug> Debug for GraphNode<T> {
 mod tests {
     use super::*;
     use crate::NodeType;
-    use std::collections::BTreeSet;
 
     #[test]
     fn test_graph_node_default() {
@@ -608,7 +606,7 @@ mod tests {
         let mut node_two = GraphNode::new(0, NodeType::Input, 0.0);
 
         assert!(!node_two.is_recurrent());
-        node_two.incoming_mut().insert(0);
+        node_two.insert_incoming(0);
         assert!(node_two.is_recurrent());
     }
 

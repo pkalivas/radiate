@@ -2,6 +2,9 @@ use crate::{Arity, Eval, Node, NodeStore, Op, Tree, TreeNode, ops::op_names};
 use radiate_core::random_provider;
 use std::{fmt::Debug, sync::Arc};
 
+pub(super) const THRESHOLD: f32 = 1e-3_f32;
+pub(super) const EPSILON: f32 = 1e-12_f32;
+
 impl<T> Op<T> {
     pub fn programs(&self) -> Option<&[TreeNode<Op<T>>]> {
         match self {
@@ -104,7 +107,7 @@ impl Op<f32> {
                     return 0.0;
                 }
 
-                let probabilities = super::math::stable_softmax(&logits);
+                let probabilities = Self::stable_softmax(&logits);
                 let result = programs[0].eval(&probabilities);
                 super::math::clamp(result)
             },
@@ -169,7 +172,7 @@ impl Op<f32> {
                     den += w;
                     i += 2;
                 }
-                if den.abs() <= super::math::EPSILON {
+                if den.abs() <= EPSILON {
                     0.0
                 } else {
                     super::math::clamp(num / den)
@@ -201,12 +204,12 @@ impl Op<f32> {
                     .map(|v| super::math::clamp(*v * *v))
                     .sum::<f32>())
                 .sqrt()
-                .max(super::math::EPSILON);
+                .max(EPSILON);
 
                 let s = probabilities
                     .iter()
                     .map(|v| super::math::clamp(*v / n))
-                    .filter(|v| v.abs() >= super::math::THRESHOLD)
+                    .filter(|v| v.abs() >= THRESHOLD)
                     .sum::<f32>();
 
                 super::math::clamp(s)
@@ -232,7 +235,7 @@ impl Op<f32> {
                     return 0.0;
                 }
 
-                let sm = super::math::stable_softmax(&logits);
+                let sm = Self::stable_softmax(&logits);
                 let idx = sm
                     .iter()
                     .enumerate()
@@ -275,7 +278,7 @@ impl Op<f32> {
                     return 0.0;
                 }
 
-                let ws = super::math::stable_softmax(&logits);
+                let ws = Self::stable_softmax(&logits);
                 let m = ws.iter().zip(xs.iter()).map(|(w, x)| w * x).sum::<f32>();
 
                 super::math::clamp(m)
@@ -300,5 +303,24 @@ impl Op<f32> {
             Op::softmax_argmax(seeds.clone()),
             Op::attention_sum(seeds.clone()),
         ]
+    }
+
+    #[inline]
+    fn stable_softmax(xs: &[f32]) -> Vec<f32> {
+        if xs.is_empty() {
+            return vec![];
+        }
+
+        let m = xs.iter().copied().fold(f32::NEG_INFINITY, f32::max);
+        let exps = xs
+            .iter()
+            .map(|&x| super::math::clamp((x - m).exp()))
+            .collect::<Vec<f32>>();
+
+        let s = exps.iter().sum::<f32>().max(EPSILON);
+
+        exps.into_iter()
+            .map(|e| super::math::clamp(e / s))
+            .collect()
     }
 }

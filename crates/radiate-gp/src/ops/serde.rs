@@ -4,7 +4,6 @@ use crate::ops::operation::Op;
 use crate::{TreeMapper, TreeNode};
 use radiate_core::intern;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std::sync::Arc;
 
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(tag = "type", content = "data")]
@@ -209,6 +208,8 @@ impl From<OpVariant<f32>> for Result<Op<f32>, serde::de::value::Error> {
                 arity,
                 programs,
             } => {
+                use std::sync::Arc;
+
                 let name = Box::leak(name.into_boxed_str());
                 let model_tree = programs
                     .iter()
@@ -297,6 +298,8 @@ impl From<OpVariant<bool>> for Result<Op<bool>, serde::de::value::Error> {
                 arity,
                 programs,
             } => {
+                use std::sync::Arc;
+
                 let name = Box::leak(name.into_boxed_str());
                 let model_tree = programs
                     .iter()

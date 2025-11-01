@@ -75,6 +75,7 @@ impl<T: Clone + Default> Tree<T> {
         parent
     }
 
+    #[allow(dead_code)]
     pub(crate) fn repair_node(node: &mut TreeNode<T>, store: &NodeStore<T>) {
         if node.children().is_none() && node.is_valid() {
             return;

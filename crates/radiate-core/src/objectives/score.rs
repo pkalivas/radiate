@@ -229,14 +229,16 @@ impl Add for Score {
         if self.values.is_empty() {
             return other;
         }
-        let values = self
-            .values
-            .iter()
-            .zip(other.values.iter())
-            .map(|(a, b)| a + b)
-            .collect();
 
-        Score { values }
+        let mut values = Vec::with_capacity(self.values.len());
+
+        for i in 0..self.values.len() {
+            values.push(self.values[i] + other.values[i]);
+        }
+
+        Score {
+            values: Arc::from(values),
+        }
     }
 }
 
@@ -248,9 +250,14 @@ impl Add<f32> for Score {
             return Score::from(other);
         }
 
-        let values = self.values.iter().map(|a| a + other).collect();
+        let mut values = Vec::with_capacity(self.values.len());
+        for i in 0..self.values.len() {
+            values.push(self.values[i] + other);
+        }
 
-        Score { values }
+        Score {
+            values: Arc::from(self.values),
+        }
     }
 }
 
@@ -262,14 +269,15 @@ impl Sub for Score {
             return other;
         }
 
-        let values = self
-            .values
-            .iter()
-            .zip(other.values.iter())
-            .map(|(a, b)| a - b)
-            .collect();
+        let mut values = Vec::with_capacity(self.values.len());
 
-        Score { values }
+        for i in 0..self.values.len() {
+            values.push(self.values[i] - other.values[i]);
+        }
+
+        Score {
+            values: Arc::from(values),
+        }
     }
 }
 
@@ -281,9 +289,14 @@ impl Sub<f32> for Score {
             return Score::from(-other);
         }
 
-        let values = self.values.iter().map(|a| a - other).collect();
+        let mut values = Vec::with_capacity(self.values.len());
+        for i in 0..self.values.len() {
+            values.push(self.values[i] - other);
+        }
 
-        Score { values }
+        Score {
+            values: Arc::from(values),
+        }
     }
 }
 
@@ -295,14 +308,14 @@ impl Mul for Score {
             return other;
         }
 
-        let values = self
-            .values
-            .iter()
-            .zip(other.values.iter())
-            .map(|(a, b)| a * b)
-            .collect();
+        let mut values = Vec::with_capacity(self.values.len());
+        for i in 0..self.values.len() {
+            values.push(self.values[i] * other.values[i]);
+        }
 
-        Score { values }
+        Score {
+            values: Arc::from(values),
+        }
     }
 }
 
@@ -314,9 +327,14 @@ impl Mul<f32> for Score {
             return Score::from(other);
         }
 
-        let values = self.values.iter().map(|a| a * other).collect();
+        let mut values = Vec::with_capacity(self.values.len());
+        for i in 0..self.values.len() {
+            values.push(self.values[i] * other);
+        }
 
-        Score { values }
+        Score {
+            values: Arc::from(values),
+        }
     }
 }
 
@@ -328,9 +346,14 @@ impl Mul<Score> for f32 {
             return Score::from(self);
         }
 
-        let values = other.values.iter().map(|a| a * self).collect();
+        let mut values = Vec::with_capacity(other.values.len());
+        for i in 0..other.values.len() {
+            values.push(other.values[i] * self);
+        }
 
-        Score { values }
+        Score {
+            values: Arc::from(values),
+        }
     }
 }
 
@@ -342,14 +365,14 @@ impl Div for Score {
             return other;
         }
 
-        let values = self
-            .values
-            .iter()
-            .zip(other.values.iter())
-            .map(|(a, b)| a / b)
-            .collect();
+        let mut values = Vec::with_capacity(self.values.len());
+        for i in 0..self.values.len() {
+            values.push(self.values[i] / other.values[i]);
+        }
 
-        Score { values }
+        Score {
+            values: Arc::from(values),
+        }
     }
 }
 
@@ -361,9 +384,14 @@ impl Div<f32> for Score {
             return Score::from(other);
         }
 
-        let values = self.values.iter().map(|a| a / other).collect();
+        let mut values = Vec::with_capacity(self.values.len());
+        for i in 0..self.values.len() {
+            values.push(self.values[i] / other);
+        }
 
-        Score { values }
+        Score {
+            values: Arc::from(values),
+        }
     }
 }
 

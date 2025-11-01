@@ -4,6 +4,7 @@ use crate::node::Node;
 use crate::{Arity, Factory, NodeType};
 use radiate_core::Chromosome;
 use radiate_core::{AlterResult, Mutate, metric, random_provider};
+use smallvec::SmallVec;
 
 const INVALID_MUTATION: &str = "GraphMutator(Ivld)";
 
@@ -83,8 +84,8 @@ where
             && let Some(store) = chromosome.store()
         {
             let new_node = store.new_instance((chromosome.len(), node_type));
-
-            let mut graph = Graph::new(chromosome.iter().cloned().collect());
+            let mut graph = Graph::new(chromosome.take_nodes());
+            // let mut graph = Graph::new(chromosome.iter().cloned().collect());
 
             let result = graph.try_modify(|mut trans| {
                 let needed_insertions = match new_node.arity() {
@@ -95,7 +96,7 @@ where
                 let target_idx = trans.random_target_node().map(|n| n.index());
                 let source_idx = (0..needed_insertions)
                     .filter_map(|_| trans.random_source_node().map(|n| n.index()))
-                    .collect::<Vec<usize>>();
+                    .collect::<SmallVec<[_; 4]>>();
 
                 let node_idx = trans.add_node(new_node);
 
@@ -118,12 +119,11 @@ where
                 })
             });
 
+            chromosome.set_nodes(graph.take_nodes());
+
             return match result {
                 TransactionResult::Invalid(_, _) => AlterResult::from(metric!(INVALID_MUTATION)),
-                TransactionResult::Valid(steps) => {
-                    chromosome.set_nodes(graph.into_iter().collect());
-                    AlterResult::from(steps.len())
-                }
+                TransactionResult::Valid(steps) => AlterResult::from(steps.len()),
             };
         }
 

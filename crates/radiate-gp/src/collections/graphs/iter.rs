@@ -191,3 +191,65 @@ mod tests {
         assert_eq!(results, vec![0, 1, 3, 4, 5, 6, 7, 8, 9, 2]);
     }
 }
+
+// pub struct KahnTopologicalIterator<'a, T> {
+//     graph: &'a [GraphNode<T>],
+//     indeg: Vec<usize>,
+//     queue: VecDeque<usize>,
+// }
+
+// impl<'a, T> KahnTopologicalIterator<'a, T> {
+//     pub fn new(graph: &'a [GraphNode<T>]) -> Self {
+//         if graph.iter().any(|n| !n.is_valid()) {
+//             return KahnTopologicalIterator {
+//                 graph,
+//                 indeg: Vec::new(),
+//                 queue: VecDeque::new(),
+//             };
+//         }
+
+//         let mut indeg = vec![0_usize; graph.len()];
+//         for (i, node) in graph.iter().enumerate() {
+//             for &src in node.incoming() {
+//                 let src_node = &graph[src];
+//                 if !src_node.is_recurrent() {
+//                     indeg[i] += 1;
+//                 }
+//             }
+//         }
+
+//         let mut queue = VecDeque::new();
+//         for (i, &d) in indeg.iter().enumerate() {
+//             if d == 0 {
+//                 queue.push_back(i);
+//             }
+//         }
+
+//         KahnTopologicalIterator {
+//             graph,
+//             indeg,
+//             queue,
+//         }
+//     }
+// }
+
+// impl<'a, T> Iterator for KahnTopologicalIterator<'a, T> {
+//     type Item = &'a GraphNode<T>;
+
+//     #[inline]
+//     fn next(&mut self) -> Option<Self::Item> {
+//         let idx = self.queue.pop_front()?;
+//         // "Relax" edges: every outgoing edge reduces indegree of its target
+//         for &tgt in self.graph[idx].outgoing() {
+//             // Recurrent targets should have been effectively excluded by zero-indegree seed,
+//             // but reducing doesn't hurt; saturating subtract guards underflow.
+//             if self.indeg[tgt] > 0 {
+//                 self.indeg[tgt] -= 1;
+//                 if self.indeg[tgt] == 0 {
+//                     self.queue.push_back(tgt);
+//                 }
+//             }
+//         }
+//         Some(&self.graph[idx])
+//     }
+// }

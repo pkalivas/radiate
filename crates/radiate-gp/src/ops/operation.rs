@@ -2,7 +2,6 @@ use crate::{Arity, Eval, Factory, NodeValue, TreeNode};
 use std::{
     fmt::{Debug, Display},
     hash::Hash,
-    sync::Arc,
 };
 
 /// [Op] is an enumeration that represents the different types of operations
@@ -69,7 +68,7 @@ pub enum Op<T> {
     PGM(
         &'static str,
         Arity,
-        Arc<Vec<TreeNode<Op<T>>>>,
+        std::sync::Arc<Vec<TreeNode<Op<T>>>>,
         fn(&[T], &[TreeNode<Op<T>>]) -> T,
     ),
 }
@@ -166,6 +165,7 @@ where
             },
             #[cfg(feature = "pgm")]
             Op::PGM(name, arity, model, operation) => {
+                use std::sync::Arc;
                 Op::PGM(name, *arity, Arc::clone(model), *operation)
             }
         }
@@ -198,6 +198,7 @@ where
             },
             #[cfg(feature = "pgm")]
             Op::PGM(name, arity, model, operation) => {
+                use std::sync::Arc;
                 Op::PGM(name, *arity, Arc::clone(model), *operation)
             }
         }
@@ -329,6 +330,7 @@ mod test {
     #[test]
     #[cfg(feature = "pgm")]
     fn test_pgm_op() {
+        use std::sync::Arc;
         let model = TreeNode::with_children(
             Op::add(),
             vec![

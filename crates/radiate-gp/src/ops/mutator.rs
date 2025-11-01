@@ -3,9 +3,9 @@ use crate::ops::operation::Op;
 use crate::{Factory, GraphChromosome, NodeStore, NodeType, TreeChromosome};
 use radiate_core::{AlterResult, Metric, Mutate, metric};
 use radiate_core::{Chromosome, random_provider};
-use std::sync::Arc;
 
 const MUT_CONST_OP_MUTATED: &str = "op_mc";
+#[cfg(feature = "pgm")]
 const PGM_OP_MUTATED: &str = "op_pgm";
 const FALLBACK_OP_MUTATED: &str = "op_new";
 
@@ -104,6 +104,8 @@ impl OperationMutator {
     where
         T: Clone + PartialEq + Default,
     {
+        use std::sync::Arc;
+
         let mut result = Vec::new();
 
         if let Op::PGM(_, _, programs, _) = node.value_mut() {
