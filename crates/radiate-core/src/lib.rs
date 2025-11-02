@@ -12,6 +12,9 @@ pub mod replacement;
 pub mod selector;
 pub mod stats;
 
+use radiate_error::Result;
+pub use radiate_error::{RadiateError, ensure, radiate_err};
+
 pub use alter::{Alter, AlterAction, AlterResult, Crossover, Mutate};
 pub use codecs::{
     BitCodec, CharCodec, Codec, FloatCodec, FnCodec, IntCodec, PermutationCodec, SubSetCodec,
@@ -30,6 +33,8 @@ pub use selector::Select;
 pub use stats::*;
 
 pub mod prelude {
+    pub use radiate_error::*;
+
     pub use super::alter::{Alter, Crossover, Mutate};
     pub use super::codecs::{
         BitCodec, CharCodec, Codec, FloatCodec, FnCodec, IntCodec, PermutationCodec, SubSetCodec,

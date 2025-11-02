@@ -12,8 +12,8 @@ license = { workspace = true }
 homepage = { workspace = true }
 
 [dependencies]
-radiate-core = { workspace = true }
 pyo3 = { workspace = true, optional = true }
+thiserror = { workspace = true }
 
 [features]
 default = []

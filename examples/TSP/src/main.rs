@@ -50,7 +50,7 @@ fn read_tsp_file(file_path: &PathBuf) -> io::Result<(Vec<Vec<f32>>, Vec<(f32, f3
     let mut edge_weights = Vec::new();
     let mut in_edge_weight_section = false;
 
-    for line in lines.map_while(Result::ok) {
+    for line in lines.map_while(std::result::Result::ok) {
         if line.starts_with("DIMENSION") {
             dimension = line
                 .split_whitespace()

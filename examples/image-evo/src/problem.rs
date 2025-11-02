@@ -3,7 +3,7 @@ use crate::{
     polygon::Polygon,
 };
 use image::{DynamicImage, ImageBuffer, Rgba};
-use radiate::*;
+use radiate::prelude::*;
 
 #[derive(Debug, Clone)]
 pub struct ImageProblem {
@@ -42,7 +42,7 @@ impl Problem<ImageChromosome, ImageBuffer<Rgba<u8>, Vec<u8>>> for ImageProblem {
         genotype[0].draw(self.width, self.height)
     }
 
-    fn eval(&self, individual: &Genotype<ImageChromosome>) -> Score {
+    fn eval(&self, individual: &Genotype<ImageChromosome>) -> Result<Score> {
         let decoded = self.decode(individual);
 
         let mut diff = 0.0;
@@ -56,7 +56,7 @@ impl Problem<ImageChromosome, ImageBuffer<Rgba<u8>, Vec<u8>>> for ImageProblem {
 
         let score = diff / (self.target_pixels.len() * 3) as f32;
 
-        Score::from(score.sqrt())
+        Ok(Score::from(score.sqrt()))
     }
 }
 

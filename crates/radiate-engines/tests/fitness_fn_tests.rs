@@ -1,4 +1,5 @@
 use radiate_core::*;
+use radiate_error::Result;
 
 #[derive(Clone)]
 pub struct FunctionDiversityProblem {
@@ -32,9 +33,9 @@ impl Problem<FloatChromosome, Vec<f32>> for FunctionDiversityProblem {
         self.codec.decode(genotype)
     }
 
-    fn eval(&self, individual: &Genotype<FloatChromosome>) -> Score {
+    fn eval(&self, individual: &Genotype<FloatChromosome>) -> Result<Score> {
         let weights = self.decode(individual);
-        Score::from(self.eval_raw(&weights))
+        Ok(Score::from(self.eval_raw(&weights)))
     }
 }
 

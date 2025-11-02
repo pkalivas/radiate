@@ -19,11 +19,11 @@ class ObjectGene(rd.AnyGene):
 
 engine = rd.GeneticEngine(
     rd.AnyCodec(ObjectGene() for _ in range(10)),
-    lambda x: sum(gene.number for gene in x),
+    lambda x: 'asdfadfadf' + sum(gene.number for gene in x),
     objectives="min",
 )
 
-result = engine.run(rd.ScoreLimit(0), log=True)
+result = engine.run(rd.ScoreLimit(0), log=False)
 
 for obj_gene in result.value():
     print(obj_gene)

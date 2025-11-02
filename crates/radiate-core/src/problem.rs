@@ -11,6 +11,7 @@
 //! - **BatchEngineProblem**: Optimized implementation for batch fitness evaluation
 
 use super::{Chromosome, Codec, Genotype, Score};
+use crate::Result;
 use std::sync::Arc;
 
 /// The core interface for genetic algorithm problems.
@@ -85,7 +86,7 @@ pub trait Problem<C: Chromosome, T>: Send + Sync {
     /// # Returns
     ///
     /// A fitness score representing the quality of the individual
-    fn eval(&self, individual: &Genotype<C>) -> Score;
+    fn eval(&self, individual: &Genotype<C>) -> Result<Score>;
 
     /// Evaluates the fitness of multiple individuals in a batch.
     ///
@@ -113,7 +114,7 @@ pub trait Problem<C: Chromosome, T>: Send + Sync {
     ///
     /// The order in which the scores are returned must match the order in which
     /// the genotypes are provided.
-    fn eval_batch(&self, individuals: &[Genotype<C>]) -> Vec<Score> {
+    fn eval_batch(&self, individuals: &[Genotype<C>]) -> Result<Vec<Score>> {
         individuals.iter().map(|ind| self.eval(ind)).collect()
     }
 }
@@ -178,9 +179,9 @@ impl<C: Chromosome, T> Problem<C, T> for EngineProblem<C, T> {
         self.codec.decode(genotype)
     }
 
-    fn eval(&self, individual: &Genotype<C>) -> Score {
+    fn eval(&self, individual: &Genotype<C>) -> Result<Score> {
         let phenotype = self.decode(individual);
-        (self.fitness_fn)(phenotype)
+        Ok((self.fitness_fn)(phenotype))
     }
 }
 
@@ -256,21 +257,21 @@ impl<C: Chromosome, T> Problem<C, T> for BatchEngineProblem<C, T> {
         self.codec.decode(genotype)
     }
 
-    fn eval(&self, individual: &Genotype<C>) -> Score {
+    fn eval(&self, individual: &Genotype<C>) -> Result<Score> {
         let phenotype = self.decode(individual);
         let scores = (self.batch_fitness_fn)(&[phenotype]);
 
         // Cloning a score is a lightweight operation - the internal of a score is a Arc<[f32]>
         // This function will likely never be called anyways as we expect `eval_batch` to be used.
-        scores[0].clone()
+        Ok(scores[0].clone())
     }
 
-    fn eval_batch(&self, individuals: &[Genotype<C>]) -> Vec<Score> {
+    fn eval_batch(&self, individuals: &[Genotype<C>]) -> Result<Vec<Score>> {
         let phenotypes = individuals
             .iter()
             .map(|genotype| self.decode(genotype))
             .collect::<Vec<T>>();
-        (self.batch_fitness_fn)(&phenotypes)
+        Ok((self.batch_fitness_fn)(&phenotypes))
     }
 }
 
@@ -330,7 +331,7 @@ mod tests {
         assert_eq!(phenotype.x, 1.0);
         assert_eq!(phenotype.y, 2.0);
 
-        let fitness = problem.eval(&genotype);
+        let fitness = problem.eval(&genotype).unwrap();
         assert_eq!(fitness.as_f32(), 3.0);
     }
 
@@ -346,7 +347,7 @@ mod tests {
 
         let genotypes = vec![problem.encode(), problem.encode()];
 
-        let scores = problem.eval_batch(&genotypes);
+        let scores = problem.eval_batch(&genotypes).unwrap();
         assert_eq!(scores.len(), 2);
         assert_eq!(scores[0].as_f32(), 3.0);
         assert_eq!(scores[1].as_f32(), 3.0);
@@ -370,7 +371,7 @@ mod tests {
         assert_eq!(phenotype.x, 1.0);
         assert_eq!(phenotype.y, 2.0);
 
-        let fitness = problem.eval(&genotype);
+        let fitness = problem.eval(&genotype).unwrap();
         assert_eq!(fitness.as_f32(), 2.0); // 1.0 * 2.0
     }
 
@@ -387,7 +388,7 @@ mod tests {
 
         let genotypes = vec![problem.encode(), problem.encode()];
 
-        let scores = problem.eval_batch(&genotypes);
+        let scores = problem.eval_batch(&genotypes).unwrap();
         assert_eq!(scores.len(), 2);
         assert_eq!(scores[0].as_f32(), 2.0); // 1.0 * 2.0
         assert_eq!(scores[1].as_f32(), 2.0); // 1.0 * 2.0
@@ -406,9 +407,9 @@ mod tests {
 
         let genotype = problem.encode();
 
-        let individual_fitness = problem.eval(&genotype);
+        let individual_fitness = problem.eval(&genotype).unwrap();
 
-        let batch_scores = problem.eval_batch(&[genotype.clone()]);
+        let batch_scores = problem.eval_batch(&[genotype.clone()]).unwrap();
         let batch_fitness = &batch_scores[0];
 
         assert_eq!(individual_fitness.as_f32(), batch_fitness.as_f32());

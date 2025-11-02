@@ -1,6 +1,7 @@
 use crate::{IntoPyAnyObject, PyAnyObject, bindings::PyCodec};
 use pyo3::{Py, PyAny, Python};
-use radiate::{Chromosome, Codec, Genotype, Problem, Score};
+use radiate::{Chromosome, Codec, Genotype, Problem, Score, radiate_err};
+use radiate_error::{Result, radiate_bail};
 
 pub struct PyProblem<C: Chromosome, T> {
     fitness_func: PyAnyObject,
@@ -27,14 +28,14 @@ impl<C: Chromosome, T: IntoPyAnyObject> Problem<C, T> for PyProblem<C, T> {
         self.codec.decode(genotype)
     }
 
-    fn eval(&self, individual: &Genotype<C>) -> Score {
+    fn eval(&self, individual: &Genotype<C>) -> Result<Score> {
         Python::attach(|py| {
             let phenotype = self.codec.decode_with_py(py, individual).into_py(py);
             call_fitness(py, self.fitness_func.clone(), phenotype)
         })
     }
 
-    fn eval_batch(&self, individuals: &[Genotype<C>]) -> Vec<Score> {
+    fn eval_batch(&self, individuals: &[Genotype<C>]) -> Result<Vec<Score>> {
         Python::attach(|py| {
             individuals
                 .iter()
@@ -54,35 +55,39 @@ pub(crate) fn call_fitness<'a, 'py>(
     py: Python<'py>,
     func: PyAnyObject,
     input: PyAnyObject,
-) -> Score {
-    let any_value = func
-        .inner
-        .call1(py, (input.inner,))
-        .expect("Python call failed");
+) -> Result<Score> {
+    let any_value = func.inner.call1(py, (input.inner,)).map_err(|e| {
+        radiate_err!(Evaluation:
+            "Ensure the function is callable, accepts one argument (Genotype), and returns a valid score. Details: {}",
+            e
+        )
+    })?;
 
-    if let Ok(parsed) = any_value.extract::<f32>(py) {
-        return Score::from(parsed);
+    let score = if let Ok(parsed) = any_value.extract::<f32>(py) {
+        Score::from(parsed)
     } else if let Ok(parsed) = any_value.extract::<i32>(py) {
-        return Score::from(parsed);
+        Score::from(parsed)
     } else if let Ok(parsed) = any_value.extract::<f64>(py) {
-        return Score::from(parsed);
+        Score::from(parsed)
     } else if let Ok(parsed) = any_value.extract::<i64>(py) {
-        return Score::from(parsed);
+        Score::from(parsed)
     } else if let Ok(scores_vec) = any_value.extract::<Vec<f32>>(py) {
         if scores_vec.is_empty() {
-            return Score::from(0.0);
+            Score::from(0.0)
         } else {
-            return Score::from(scores_vec);
+            Score::from(scores_vec)
         }
     } else if let Ok(scores_vec) = any_value.extract::<Vec<i32>>(py) {
         if scores_vec.is_empty() {
-            return Score::from(0.0);
+            Score::from(0.0)
         } else {
-            return Score::from(scores_vec.into_iter().map(|s| s as f32).collect::<Vec<_>>());
+            Score::from(scores_vec.into_iter().map(|s| s as f32).collect::<Vec<_>>())
         }
-    }
+    } else {
+        radiate_bail!(Evaluation:
+            "Failed to extract fitness score from Python function call. Ensure the function returns a valid score type."
+        );
+    };
 
-    panic!(
-        "Failed to extract scores from Python function call. Ensure the function returns a valid score type."
-    );
+    Ok(score)
 }

@@ -36,6 +36,7 @@ macro_rules! alters {
 /// but it is designed to be more flexible and extensible. Because an [Alter] can be of type [Mutate]
 /// or [Crossover], it is abstracted out of those core traits into this trait.
 pub trait Alter<C: Chromosome>: Send + Sync {
+    fn rate(&self) -> f32;
     fn alter(&self, population: &mut Population<C>, generation: usize) -> Vec<Metric>;
 }
 
@@ -106,6 +107,13 @@ pub enum AlterAction<C: Chromosome> {
 }
 
 impl<C: Chromosome> Alter<C> for AlterAction<C> {
+    fn rate(&self) -> f32 {
+        match &self {
+            AlterAction::Mutate(_, rate, _) => *rate,
+            AlterAction::Crossover(_, rate, _) => *rate,
+        }
+    }
+
     fn alter(&self, population: &mut Population<C>, generation: usize) -> Vec<Metric> {
         match &self {
             AlterAction::Mutate(name, rate, m) => {

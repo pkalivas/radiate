@@ -10,6 +10,8 @@ pub use evaluate::*;
 pub use filter::*;
 pub use front::*;
 use radiate_core::{Chromosome, Ecosystem, MetricSet};
+use radiate_error::Result;
+
 pub use recombine::*;
 pub use speciate::*;
 
@@ -27,5 +29,10 @@ where
             .unwrap_or("Unknown Step")
     }
 
-    fn execute(&mut self, generation: usize, metrics: &mut MetricSet, ecosystem: &mut Ecosystem<C>);
+    fn execute(
+        &mut self,
+        generation: usize,
+        metrics: &mut MetricSet,
+        ecosystem: &mut Ecosystem<C>,
+    ) -> Result<()>;
 }

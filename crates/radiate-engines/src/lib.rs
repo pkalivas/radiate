@@ -19,11 +19,13 @@ pub use radiate_alters::*;
 pub use radiate_core::*;
 pub use radiate_selectors::*;
 
-use std::sync::Once;
-
-static INIT_LOGGING: Once = Once::new();
+pub use radiate_error::{RadiateError, ensure, radiate_err};
+pub(crate) type Result<T> = std::result::Result<T, RadiateError>;
 
 pub fn init_logging() {
+    pub use std::sync::Once;
+    static INIT_LOGGING: Once = Once::new();
+
     INIT_LOGGING.call_once(|| {
         use tracing_subscriber::fmt::format::FmtSpan;
         use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};

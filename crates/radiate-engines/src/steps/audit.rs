@@ -1,5 +1,6 @@
 use crate::steps::EngineStep;
 use radiate_core::{Chromosome, Ecosystem, Metric, MetricSet, metric, metric_names};
+use radiate_error::Result;
 use std::collections::HashSet;
 
 pub struct AuditStep;
@@ -124,9 +125,11 @@ impl<C: Chromosome> EngineStep<C> for AuditStep {
         generation: usize,
         metrics: &mut MetricSet,
         ecosystem: &mut Ecosystem<C>,
-    ) {
+    ) -> Result<()> {
         Self::calc_metrics(generation, metrics, ecosystem);
         Self::calc_species_metrics(generation, metrics, ecosystem);
         Self::calc_derived_metrics(generation, metrics, ecosystem);
+
+        Ok(())
     }
 }

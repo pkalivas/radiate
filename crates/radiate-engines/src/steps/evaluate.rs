@@ -1,5 +1,6 @@
 use crate::steps::EngineStep;
 use radiate_core::{Chromosome, Ecosystem, Evaluator, MetricSet, Objective, Problem, metric_names};
+use radiate_error::Result;
 use std::sync::Arc;
 
 pub struct EvaluateStep<C: Chromosome, T> {
@@ -27,15 +28,20 @@ where
     C: Chromosome + PartialEq,
 {
     #[inline]
-    fn execute(&mut self, _: usize, metrics: &mut MetricSet, ecosystem: &mut Ecosystem<C>) {
-        let count = self.evaluator.eval(ecosystem, Arc::clone(&self.problem));
+    fn execute(
+        &mut self,
+        _: usize,
+        metrics: &mut MetricSet,
+        ecosystem: &mut Ecosystem<C>,
+    ) -> Result<()> {
+        let count = self.evaluator.eval(ecosystem, Arc::clone(&self.problem))?;
 
         self.objective.sort(&mut ecosystem.population);
 
-        if count == 0 {
-            return;
+        if count > 0 {
+            metrics.upsert(metric_names::EVALUATION_COUNT, count);
         }
 
-        metrics.upsert(metric_names::EVALUATION_COUNT, count);
+        Ok(())
     }
 }

@@ -85,7 +85,10 @@ where
     type Item = E::Epoch;
 
     fn next(&mut self) -> Option<Self::Item> {
-        Some(self.engine.next())
+        match self.engine.next() {
+            Ok(epoch) => Some(epoch),
+            Err(e) => panic!("{e}"),
+        }
     }
 }
 

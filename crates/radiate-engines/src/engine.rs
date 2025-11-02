@@ -5,6 +5,7 @@ use crate::pipeline::Pipeline;
 use crate::{Chromosome, EngineEvent};
 use crate::{EventBus, Generation};
 use radiate_core::Engine;
+use radiate_error::Result;
 
 /// The [GeneticEngine] is the core component of the Radiate library's genetic algorithm implementation.
 /// The engine is designed to be fast, flexible and extensible, allowing users to
@@ -147,14 +148,14 @@ where
     type Epoch = Generation<C, T>;
 
     #[inline]
-    fn next(&mut self) -> Generation<C, T> {
+    fn next(&mut self) -> Result<Generation<C, T>> {
         if matches!(self.context.index, 0) {
             self.bus.emit(EngineEvent::start());
         }
 
         self.bus.emit(EngineEvent::epoch_start(&self.context));
 
-        self.pipeline.run(&mut self.context, &self.bus);
+        self.pipeline.run(&mut self.context, &self.bus)?;
 
         let best = self.context.ecosystem.population().get(0);
         if let Some(best) = best {
@@ -174,7 +175,7 @@ where
 
         self.context.index += 1;
 
-        Generation::from(&self.context)
+        Ok(Generation::from(&self.context))
     }
 }
 

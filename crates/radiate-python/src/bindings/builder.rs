@@ -6,10 +6,10 @@ use crate::{
     FreeThreadPyEvaluator, InputTransform, PyCodec, PyEngine, PyEngineInput, PyEngineInputType,
     PyFitnessFn, PyFitnessInner, PyPermutationCodec, PyPopulation, prelude::*,
 };
-use core::panic;
 use pyo3::exceptions::PyTypeError;
 use pyo3::{Py, PyAny, pyclass, pymethods, types::PyAnyMethods};
 use radiate::prelude::*;
+use radiate_error::{radiate_py_bail, radiate_py_err};
 use std::collections::HashMap;
 
 macro_rules! apply_to_builder {
@@ -23,8 +23,8 @@ macro_rules! apply_to_builder {
             EngineBuilderHandle::Graph(b) => Ok(EngineBuilderHandle::Graph(b.$method($($args),*))),
             EngineBuilderHandle::Tree(b) => Ok(EngineBuilderHandle::Tree(b.$method($($args),*))),
             EngineBuilderHandle::Any(b) => Ok(EngineBuilderHandle::Any(b.$method($($args),*))),
-            EngineBuilderHandle::Empty => Err(PyTypeError::new_err(
-                "EngineBuilder must have a problem and codec before processing other inputs",
+            EngineBuilderHandle::Empty => Err(radiate_py_err!(
+                "Cannot apply method to Empty builder"
             )),
         }
     };
@@ -64,17 +64,19 @@ impl PyEngineBuilder {
         }
 
         Ok(PyEngine::new(match inner {
-            EngineBuilderHandle::Int(builder) => EngineHandle::Int(builder.build()),
-            EngineBuilderHandle::Float(builder) => EngineHandle::Float(builder.build()),
-            EngineBuilderHandle::Char(builder) => EngineHandle::Char(builder.build()),
-            EngineBuilderHandle::Bit(builder) => EngineHandle::Bit(builder.build()),
-            EngineBuilderHandle::Any(builder) => EngineHandle::Any(builder.build()),
-            EngineBuilderHandle::Permutation(builder) => EngineHandle::Permutation(builder.build()),
-            EngineBuilderHandle::Graph(builder) => EngineHandle::Graph(builder.build()),
-            EngineBuilderHandle::Tree(builder) => EngineHandle::Tree(builder.build()),
+            EngineBuilderHandle::Int(builder) => EngineHandle::Int(builder.try_build()?),
+            EngineBuilderHandle::Float(builder) => EngineHandle::Float(builder.try_build()?),
+            EngineBuilderHandle::Char(builder) => EngineHandle::Char(builder.try_build()?),
+            EngineBuilderHandle::Bit(builder) => EngineHandle::Bit(builder.try_build()?),
+            EngineBuilderHandle::Any(builder) => EngineHandle::Any(builder.try_build()?),
+            EngineBuilderHandle::Permutation(builder) => {
+                EngineHandle::Permutation(builder.try_build()?)
+            }
+            EngineBuilderHandle::Graph(builder) => EngineHandle::Graph(builder.try_build()?),
+            EngineBuilderHandle::Tree(builder) => EngineHandle::Tree(builder.try_build()?),
             _ => {
-                return Err(PyTypeError::new_err(
-                    "Unsupported builder type for engine creation",
+                return Err(radiate_py_err!(
+                    "Unsupported builder type for engine creation"
                 ));
             }
         }))
@@ -193,7 +195,7 @@ impl PyEngineBuilder {
             let threshold = input.get_f32("threshold").unwrap_or(0.3);
 
             if threshold.is_sign_negative() {
-                return Err(PyTypeError::new_err("species threshold must be >= 0"));
+                return Err(radiate_py_err!("species threshold must be >= 0"));
             }
 
             apply_to_builder!(builder, species_threshold(threshold))
@@ -208,7 +210,9 @@ impl PyEngineBuilder {
             let fraction = input.get_f32("fraction").unwrap_or(0.8);
 
             if !(0.0..=1.0).contains(&fraction) {
-                return Err(PyTypeError::new_err("offspring fraction must be in [0,1]"));
+                return Err(radiate_py_err!(
+                    "offspring fraction must be in the range [0.0, 1.0]"
+                ));
             }
 
             apply_to_builder!(builder, offspring_fraction(fraction))
@@ -352,8 +356,8 @@ impl PyEngineBuilder {
                     )),
                 }
             }
-            _ => Err(PyTypeError::new_err(
-                "process_alterer only implemented for Int gene type",
+            _ => Err(radiate_py_err!(
+                "process_selector only implemented for Int, Float, Char, Bit, Any, Graph, and Tree builder types"
             )),
         })
     }
@@ -395,9 +399,9 @@ impl PyEngineBuilder {
                 let alters: Vec<Box<dyn Alter<PermutationChromosome<usize>>>> = inputs.transform();
                 Ok(EngineBuilderHandle::Permutation(builder.alter(alters)))
             }
-            _ => Err(PyTypeError::new_err(format!(
-                "Process Alterer not implemented",
-            ))),
+            _ => Err(radiate_py_err!(
+                "process_alterer only implemented for Int, Float, Char, Bit, Any, Graph, Tree, and Permutation builder types"
+            )),
         }
     }
 
@@ -434,8 +438,8 @@ impl PyEngineBuilder {
                     b.boxed_diversity(diversity),
                 ))
             }
-            _ => Err(PyTypeError::new_err(
-                "process_diversity only implemented for Int, Float, Char, Bit, and Graph gene types",
+            _ => Err(radiate_py_err!(
+                "Unable to process diversity for this builder type"
             )),
         })
     }
@@ -447,10 +451,10 @@ impl PyEngineBuilder {
         Self::process_single_value(builder, inputs, |builder, input| {
             let objectives = input.get_string("objective").map(|objs| {
                 objs.split('|')
-                    .map(|s| match s.trim().to_lowercase().as_str() {
-                        "min" => Optimize::Minimize,
-                        "max" => Optimize::Maximize,
-                        _ => panic!("Objective {} not recognized", s),
+                    .filter_map(|s| match s.trim().to_lowercase().as_str() {
+                        "min" => Some(Optimize::Minimize),
+                        "max" => Some(Optimize::Maximize),
+                        _ => None,
                     })
                     .collect::<Vec<Optimize>>()
             });
@@ -462,7 +466,9 @@ impl PyEngineBuilder {
                     } else if objs.len() > 1 {
                         Objective::Multi(objs)
                     } else {
-                        panic!("No objectives provided");
+                        radiate_py_bail!(
+                            "No objectives provided - I'm not even sure this is possible"
+                        );
                     }
                 }
                 None => Objective::Single(Optimize::Maximize),
@@ -487,14 +493,16 @@ impl PyEngineBuilder {
             let max = input.get_usize("max").unwrap_or(1000);
 
             if min > max {
-                return Err(PyTypeError::new_err(
-                    "Minimum size cannot be greater than maximum size",
+                radiate_py_bail!(format!(
+                    "Front sizes (min, max) values are invalid: got ({}, {})",
+                    min, max
                 ));
             }
 
             if min == 0 || max == 0 {
-                return Err(PyTypeError::new_err(
-                    "Minimum and maximum size must be greater than zero",
+                radiate_py_bail!(format!(
+                    "Front sizes (min, max) values must be greater than zero: got ({}, {})",
+                    min, max
                 ));
             }
 
@@ -535,9 +543,7 @@ impl PyEngineBuilder {
             let py_codec = Self::wrapped_codec(tree_codec.codec);
             EngineBuilderHandle::Tree(Self::new_builder(fitness_fn, py_codec, executor))
         } else {
-            return Err(PyErr::new::<PyTypeError, _>(
-                "Unsupported codec type for custom problem",
-            ));
+            radiate_py_bail!("Unsupported codec type for custom fitness function");
         };
 
         Ok(builder)
@@ -566,9 +572,7 @@ impl PyEngineBuilder {
                     .bus_executor(Executor::default()),
             )
         } else {
-            return Err(PyErr::new::<PyTypeError, _>(
-                "Unsupported codec type for regression problem",
-            ));
+            radiate_py_bail!("Unsupported codec type for regression problem");
         };
 
         Ok(builder)
@@ -605,9 +609,7 @@ impl PyEngineBuilder {
             let py_codec = Self::wrapped_codec(tree_codec.codec);
             EngineBuilderHandle::Tree(Self::new_builder(fitness, py_codec, executor))
         } else {
-            return Err(PyErr::new::<PyTypeError, _>(
-                "Unsupported codec type for novelty search problem",
-            ));
+            radiate_py_bail!("Unsupported codec type for novelty search problem");
         };
 
         Ok(builder)

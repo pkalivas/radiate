@@ -1,5 +1,6 @@
 use crate::{Context, EngineEvent, EventBus, steps::EngineStep};
 use radiate_core::{Chromosome, metric_names};
+use radiate_error::Result;
 
 /// A [Pipeline] is a sequence of steps that are executed in order during each epoch of the engine.
 /// Each step is represented by an implementation of the [EngineStep] trait.
@@ -23,7 +24,11 @@ where
     }
 
     #[inline]
-    pub fn run<T>(&mut self, context: &mut Context<C, T>, bus: &EventBus<EngineEvent<T>>)
+    pub fn run<T>(
+        &mut self,
+        context: &mut Context<C, T>,
+        bus: &EventBus<EngineEvent<T>>,
+    ) -> Result<()>
     where
         T: Send + Sync + 'static,
     {
@@ -38,7 +43,8 @@ where
                 context.index,
                 &mut context.epoch_metrics,
                 &mut context.ecosystem,
-            );
+            )?;
+
             bus.emit(EngineEvent::step_complete(step.name()));
 
             context.epoch_metrics.upsert(step.name(), timer.elapsed());
@@ -47,6 +53,8 @@ where
         let elapsed = timer.elapsed();
         context.epoch_metrics.upsert(metric_names::TIME, elapsed);
         context.metrics.merge(&context.epoch_metrics);
+
+        Ok(())
     }
 }
 

@@ -1,6 +1,5 @@
 use crate::GeneticEngineBuilder;
 use radiate_core::{Chromosome, Population};
-use radiate_error::radiate_err;
 
 #[derive(Clone)]
 pub struct PopulationParams<C: Chromosome> {
@@ -16,10 +15,7 @@ where
 {
     /// Set the population size of the genetic engine. Default is 100.
     pub fn population_size(mut self, population_size: usize) -> Self {
-        if population_size < 1 {
-            self.errors
-                .push(radiate_err!(InvalidConfig: "population_size must be greater than 0"));
-        }
+        self.add_error_if(|| population_size < 3, "population_size must be at least 3");
 
         self.params.population_params.population_size = population_size;
         self
@@ -27,10 +23,7 @@ where
 
     /// Set the maximum age of an individual in the population. Default is 25.
     pub fn max_age(mut self, max_age: usize) -> Self {
-        if max_age < 1 {
-            self.errors
-                .push(radiate_err!(InvalidConfig: "max_age must be greater than 0"));
-        }
+        self.add_error_if(|| max_age < 1, "max_age must be greater than 0");
 
         self.params.population_params.max_age = max_age;
         self

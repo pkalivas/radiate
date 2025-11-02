@@ -2,6 +2,7 @@ use crate::steps::EngineStep;
 use radiate_core::{
     Alter, Chromosome, Ecosystem, MetricSet, Objective, Optimize, Population, Select, labels,
 };
+use radiate_error::Result;
 use std::sync::Arc;
 
 pub struct RecombineStep<C: Chromosome> {
@@ -166,7 +167,7 @@ where
         generation: usize,
         metrics: &mut MetricSet,
         ecosystem: &mut Ecosystem<C>,
-    ) {
+    ) -> Result<()> {
         let survivors = self.select_survivors(ecosystem, metrics);
         let offspring = self.create_offspring(generation, ecosystem, metrics);
 
@@ -178,5 +179,7 @@ where
             .for_each(|individual| {
                 ecosystem.population_mut().push(individual);
             });
+
+        Ok(())
     }
 }

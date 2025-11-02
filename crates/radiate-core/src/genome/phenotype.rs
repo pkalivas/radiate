@@ -1,6 +1,8 @@
 use super::{Valid, genotype::Genotype};
+use crate::Result;
 use crate::objectives::Score;
 use crate::{Chromosome, objectives::Scored};
+use radiate_error::radiate_err;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::hash::Hash;
@@ -69,8 +71,11 @@ impl<C: Chromosome> Phenotype<C> {
         }
     }
 
-    pub fn take_genotype(&mut self) -> Genotype<C> {
-        self.genotype.take().unwrap()
+    pub fn take_genotype(&mut self) -> Result<Genotype<C>> {
+        self.genotype.take().map_or(
+            Err(radiate_err!(Genome: "Genotype is None - cannot take ownership.")),
+            Ok,
+        )
     }
 
     pub fn set_genotype(&mut self, genotype: Genotype<C>) {

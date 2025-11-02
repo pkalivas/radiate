@@ -17,6 +17,7 @@ radiate-core = { workspace = true }
 radiate-alters = { workspace = true }
 radiate-selectors = { workspace = true }
 radiate-engines = { workspace = true }
+radiate-error = { workspace = true }
 radiate-gp = { workspace = true, optional = true }
 
 [features]
