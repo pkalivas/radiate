@@ -31,7 +31,7 @@ use radiate_core::{
     CollectionMode, Diversity, Ecosystem, Evaluator, Executor, FitnessEvaluator, Genotype,
     MetricSet,
 };
-use radiate_error::RadiateError;
+use radiate_error::{RadiateError, ensure, radiate_err};
 use std::cmp::Ordering;
 use std::sync::{Arc, Mutex, RwLock};
 
@@ -65,7 +65,6 @@ where
 /// # Type Parameters
 /// - `C`: The type of chromosome used in the genotype, which must implement the `Chromosome` trait.
 /// - `T`: The type of the best individual in the population.
-#[derive(Clone)]
 pub struct GeneticEngineBuilder<C, T>
 where
     C: Chromosome + Clone + 'static,

@@ -85,7 +85,6 @@ where
         {
             let new_node = store.new_instance((chromosome.len(), node_type));
             let mut graph = Graph::new(chromosome.take_nodes());
-            // let mut graph = Graph::new(chromosome.iter().cloned().collect());
 
             let result = graph.try_modify(|mut trans| {
                 let needed_insertions = match new_node.arity() {

@@ -1,4 +1,3 @@
-mod alter;
 mod builder;
 mod codec;
 mod converters;
@@ -12,7 +11,6 @@ mod inputs;
 mod metric;
 mod subscriber;
 
-pub use alter::{PyCrossover, PyMutator};
 pub use builder::*;
 pub use codec::{
     PyAnyCodec, PyBitCodec, PyCharCodec, PyCodec, PyFloatCodec, PyGraphCodec, PyIntCodec,

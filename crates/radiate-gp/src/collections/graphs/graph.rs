@@ -191,19 +191,19 @@ impl<T> Graph<T> {
         self.nodes.iter_mut()
     }
 
-    pub fn inputs(&self) -> Vec<&GraphNode<T>> {
+    pub fn inputs(&self) -> impl Iterator<Item = &GraphNode<T>> {
         self.get_nodes_of_type(NodeType::Input)
     }
 
-    pub fn outputs(&self) -> Vec<&GraphNode<T>> {
+    pub fn outputs(&self) -> impl Iterator<Item = &GraphNode<T>> {
         self.get_nodes_of_type(NodeType::Output)
     }
 
-    pub fn vertices(&self) -> Vec<&GraphNode<T>> {
+    pub fn vertices(&self) -> impl Iterator<Item = &GraphNode<T>> {
         self.get_nodes_of_type(NodeType::Vertex)
     }
 
-    pub fn edges(&self) -> Vec<&GraphNode<T>> {
+    pub fn edges(&self) -> impl Iterator<Item = &GraphNode<T>> {
         self.get_nodes_of_type(NodeType::Edge)
     }
 
@@ -333,11 +333,10 @@ impl<T> Graph<T> {
     }
 
     #[inline]
-    fn get_nodes_of_type(&self, node_type: NodeType) -> Vec<&GraphNode<T>> {
+    fn get_nodes_of_type(&self, node_type: NodeType) -> impl Iterator<Item = &GraphNode<T>> {
         self.nodes
             .iter()
-            .filter(|node| node.node_type() == node_type)
-            .collect()
+            .filter(move |node| node.node_type() == node_type)
     }
 }
 
@@ -646,7 +645,7 @@ mod test {
         graph.insert(NodeType::Output, 5);
 
         // Test inputs()
-        let inputs = graph.inputs();
+        let inputs = graph.inputs().collect::<Vec<_>>();
         assert_eq!(inputs.len(), 2);
         assert!(
             inputs
@@ -655,7 +654,7 @@ mod test {
         );
 
         // Test vertices()
-        let vertices = graph.vertices();
+        let vertices = graph.vertices().collect::<Vec<_>>();
         assert_eq!(vertices.len(), 2);
         assert!(
             vertices
@@ -664,7 +663,7 @@ mod test {
         );
 
         // Test outputs()
-        let outputs = graph.outputs();
+        let outputs = graph.outputs().collect::<Vec<_>>();
         assert_eq!(outputs.len(), 2);
         assert!(
             outputs

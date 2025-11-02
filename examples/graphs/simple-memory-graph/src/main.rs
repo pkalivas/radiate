@@ -14,7 +14,6 @@ fn main() {
     ];
 
     let mut engine = GeneticEngine::builder()
-        // .codec(GraphCodec::lstm(1, 1, values))
         .codec(GraphCodec::directed(1, 1, values))
         .fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()

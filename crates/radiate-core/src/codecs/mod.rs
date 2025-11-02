@@ -88,3 +88,11 @@ pub trait Codec<C: Chromosome, T> {
 
     fn decode(&self, genotype: &Genotype<C>) -> T;
 }
+
+pub trait RefCodec<'a, C: Chromosome, T> {
+    fn encode(&self) -> Genotype<C>;
+
+    fn decode<'b>(&self, genotype: &'b Genotype<C>) -> T
+    where
+        'b: 'a;
+}

@@ -13,7 +13,6 @@ mod tree;
 pub use chromosome::TreeChromosome;
 pub use codec::TreeCodec;
 pub use crossover::TreeCrossover;
-pub(crate) use crossover::cross_nodes;
 pub use iter::TreeIterator;
 pub use mapping::TreeMapper;
 pub use mutator::HoistMutator;

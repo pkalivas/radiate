@@ -1,4 +1,4 @@
-use crate::{GraphChromosome, Node, Op, TreeChromosome, TreeNode};
+use crate::{GraphChromosome, Node, Op, TreeChromosome, TreeCrossover, TreeNode};
 use radiate_core::{AlterResult, Chromosome, Crossover, random_provider};
 use std::fmt::Debug;
 
@@ -110,11 +110,11 @@ where
                 }
                 (Some(one_progs_mut), None) => {
                     let one_rand_prog = random_provider::choose_mut(one_progs_mut);
-                    return crate::trees::cross_nodes(one_rand_prog, two_sub_node, self.max_size);
+                    return TreeCrossover::cross_nodes(one_rand_prog, two_sub_node, self.max_size);
                 }
                 (None, Some(two_progs_mut)) => {
                     let two_rand_prog = random_provider::choose_mut(two_progs_mut);
-                    return crate::trees::cross_nodes(one_sub_node, two_rand_prog, self.max_size);
+                    return TreeCrossover::cross_nodes(one_sub_node, two_rand_prog, self.max_size);
                 }
                 _ => {}
             }
@@ -135,7 +135,7 @@ where
     let one_rand_prog = random_provider::choose_mut(&mut progs_one);
     let two_rand_prog = random_provider::choose_mut(&mut progs_two);
 
-    AlterResult::from(crate::trees::cross_nodes(
+    AlterResult::from(TreeCrossover::cross_nodes(
         one_rand_prog,
         two_rand_prog,
         max_size,

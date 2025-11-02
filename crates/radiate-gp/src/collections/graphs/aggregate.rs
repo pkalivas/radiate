@@ -359,7 +359,7 @@ mod tests {
         assert_eq!(output_one.index(), 2);
         assert_eq!(output_two.index(), 3);
 
-        for (in_node, out_node) in input_nodes.iter().zip(output_nodes.iter()) {
+        for (in_node, out_node) in input_nodes.zip(output_nodes) {
             assert!(in_node.outgoing().contains(&out_node.index()));
             assert!(out_node.incoming().contains(&in_node.index()));
 

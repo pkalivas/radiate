@@ -12,5 +12,10 @@ license = { workspace = true }
 homepage = { workspace = true }
 
 [dependencies]
-thiserror = "2.0.12"
 radiate-core = { workspace = true }
+pyo3 = { workspace = true, optional = true }
+
+[features]
+default = []
+backtrace = []
+python = ["dep:pyo3"]
