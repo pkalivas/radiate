@@ -3,6 +3,7 @@ pub mod codecs;
 pub mod distance;
 pub mod domain;
 pub mod engine;
+pub mod error;
 pub mod evaluator;
 pub mod fitness;
 pub mod genome;

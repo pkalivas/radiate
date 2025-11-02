@@ -145,8 +145,7 @@ where
     T: Clone + PartialEq + Default,
 {
     fn encode(&self) -> Genotype<GraphChromosome<T>> {
-        let chromosome = self.template.new_instance(Some(self.store.clone()));
-        Genotype::from(chromosome)
+        self.template.new_instance(Some(self.store.clone())).into()
     }
 
     #[inline]

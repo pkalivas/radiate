@@ -59,9 +59,11 @@ impl<C: Chromosome> Genotype<C> {
 
 impl<C: Chromosome> Valid for Genotype<C> {
     fn is_valid(&self) -> bool {
-        self.chromosomes
-            .iter()
-            .all(|chromosome| chromosome.is_valid())
+        !self.chromosomes.is_empty()
+            && self
+                .chromosomes
+                .iter()
+                .all(|chromosome| chromosome.is_valid())
     }
 }
 

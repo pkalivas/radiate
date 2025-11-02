@@ -1,3 +1,4 @@
+use radiate_error::RadiateError;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
@@ -111,6 +112,16 @@ impl From<f32> for Score {
         Score {
             values: Arc::from(vec![value]),
         }
+    }
+}
+
+impl TryFrom<i16> for Score {
+    type Error = RadiateError;
+
+    fn try_from(value: i16) -> Result<Self, Self::Error> {
+        Ok(Score {
+            values: Arc::from(vec![value as f32]),
+        })
     }
 }
 

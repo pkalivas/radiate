@@ -477,12 +477,12 @@ where
     I: IntoIterator<Item = usize>,
 {
     fn from((index, node_type, value, incoming, outgoing): (usize, NodeType, T, I, I)) -> Self {
-        let mut incoming = SmallVec::<[usize; 4]>::from_iter(incoming);
-        let mut outgoing = SmallVec::<[usize; 4]>::from_iter(outgoing);
-        incoming.sort_unstable();
-        incoming.dedup();
-        outgoing.sort_unstable();
-        outgoing.dedup();
+        let mut incoming_indices = SmallVec::<[usize; 4]>::new();
+        let mut outgoing_indices = SmallVec::<[usize; 4]>::new();
+
+        GraphNode::<T>::set_sorted_unique(&mut incoming_indices, incoming);
+        GraphNode::<T>::set_sorted_unique(&mut outgoing_indices, outgoing);
+
         GraphNode {
             index,
             id: GraphNodeId::new(),
@@ -490,8 +490,8 @@ where
             direction: Direction::Forward,
             node_type: Some(node_type),
             arity: None,
-            incoming,
-            outgoing,
+            incoming: incoming_indices,
+            outgoing: outgoing_indices,
         }
     }
 }

@@ -30,6 +30,7 @@ where
         Context {
             ecosystem: Ecosystem::new(Population::from(config.population())),
             best: config.problem().decode(config.population()[0].genotype()),
+
             index: 0,
             metrics: MetricSet::default(),
             epoch_metrics: MetricSet::default(),

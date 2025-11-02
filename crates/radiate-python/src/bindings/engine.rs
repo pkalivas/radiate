@@ -28,10 +28,6 @@ impl PyEngine {
 #[pymethods]
 impl PyEngine {
     pub fn run(&mut self, limits: Vec<PyEngineInput>, log: bool) -> PyResult<PyGeneration> {
-        if self.engine.is_none() {
-            return Err(radiate_err!(Python: "Engine has already been run"));
-        }
-
         let engine = self
             .engine
             .take()
@@ -58,10 +54,6 @@ impl PyEngine {
     }
 
     pub fn next(&mut self) -> PyResult<PyGeneration> {
-        if self.engine.is_none() {
-            return Err(radiate_err!(Python: "Engine has already been run"));
-        }
-
         let engine = self
             .engine
             .as_mut()

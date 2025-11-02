@@ -11,7 +11,8 @@
 //! - **BatchEngineProblem**: Optimized implementation for batch fitness evaluation
 
 use super::{Chromosome, Codec, Genotype, Score};
-use crate::Result;
+use crate::{Objective, error::RadiateResult};
+use radiate_error::{RadiateError, radiate_err};
 use std::sync::Arc;
 
 /// The core interface for genetic algorithm problems.
@@ -86,7 +87,7 @@ pub trait Problem<C: Chromosome, T>: Send + Sync {
     /// # Returns
     ///
     /// A fitness score representing the quality of the individual
-    fn eval(&self, individual: &Genotype<C>) -> Result<Score>;
+    fn eval(&self, individual: &Genotype<C>) -> Result<Score, RadiateError>;
 
     /// Evaluates the fitness of multiple individuals in a batch.
     ///
@@ -114,7 +115,7 @@ pub trait Problem<C: Chromosome, T>: Send + Sync {
     ///
     /// The order in which the scores are returned must match the order in which
     /// the genotypes are provided.
-    fn eval_batch(&self, individuals: &[Genotype<C>]) -> Result<Vec<Score>> {
+    fn eval_batch(&self, individuals: &[Genotype<C>]) -> Result<Vec<Score>, RadiateError> {
         individuals.iter().map(|ind| self.eval(ind)).collect()
     }
 }
@@ -161,6 +162,7 @@ pub struct EngineProblem<C, T>
 where
     C: Chromosome,
 {
+    pub objective: Objective,
     pub codec: Arc<dyn Codec<C, T>>,
     pub fitness_fn: Arc<dyn Fn(T) -> Score + Send + Sync>,
 }
@@ -179,9 +181,19 @@ impl<C: Chromosome, T> Problem<C, T> for EngineProblem<C, T> {
         self.codec.decode(genotype)
     }
 
-    fn eval(&self, individual: &Genotype<C>) -> Result<Score> {
+    fn eval(&self, individual: &Genotype<C>) -> RadiateResult<Score> {
         let phenotype = self.decode(individual);
-        Ok((self.fitness_fn)(phenotype))
+        let score = (self.fitness_fn)(phenotype);
+
+        if self.objective.validate(&score) {
+            return Ok(score);
+        }
+
+        Err(radiate_err!(
+            Evaluation: "Invalid fitness score {:?} for objective {:?}",
+            score,
+            self.objective
+        ))
     }
 }
 
@@ -237,6 +249,7 @@ pub struct BatchEngineProblem<C, T>
 where
     C: Chromosome,
 {
+    pub objective: Objective,
     pub codec: Arc<dyn Codec<C, T>>,
     pub batch_fitness_fn: Arc<dyn Fn(&[T]) -> Vec<Score> + Send + Sync>,
 }
@@ -257,7 +270,7 @@ impl<C: Chromosome, T> Problem<C, T> for BatchEngineProblem<C, T> {
         self.codec.decode(genotype)
     }
 
-    fn eval(&self, individual: &Genotype<C>) -> Result<Score> {
+    fn eval(&self, individual: &Genotype<C>) -> RadiateResult<Score> {
         let phenotype = self.decode(individual);
         let scores = (self.batch_fitness_fn)(&[phenotype]);
 
@@ -266,12 +279,25 @@ impl<C: Chromosome, T> Problem<C, T> for BatchEngineProblem<C, T> {
         Ok(scores[0].clone())
     }
 
-    fn eval_batch(&self, individuals: &[Genotype<C>]) -> Result<Vec<Score>> {
+    fn eval_batch(&self, individuals: &[Genotype<C>]) -> RadiateResult<Vec<Score>> {
         let phenotypes = individuals
             .iter()
             .map(|genotype| self.decode(genotype))
             .collect::<Vec<T>>();
-        Ok((self.batch_fitness_fn)(&phenotypes))
+
+        let scores = (self.batch_fitness_fn)(&phenotypes);
+
+        for i in 0..scores.len() {
+            if !self.objective.validate(&scores[i]) {
+                return Err(radiate_err!(
+                    Evaluation: "Invalid fitness score {:?} for objective {:?}",
+                    scores[i],
+                    self.objective
+                ));
+            }
+        }
+
+        Ok(scores)
     }
 }
 
@@ -288,7 +314,7 @@ unsafe impl<C: Chromosome, T> Sync for BatchEngineProblem<C, T> {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Chromosome, Codec, FloatChromosome, FloatGene, Gene, Genotype, Score};
+    use crate::{Chromosome, Codec, FloatChromosome, FloatGene, Gene, Genotype, Optimize, Score};
 
     #[derive(Debug, Clone)]
     struct MockPhenotype {
@@ -320,6 +346,7 @@ mod tests {
             Arc::new(|phenotype: MockPhenotype| Score::from(phenotype.x + phenotype.y));
 
         let problem = EngineProblem {
+            objective: Objective::Single(Optimize::Maximize),
             codec: Arc::new(MockCodec),
             fitness_fn,
         };
@@ -341,6 +368,7 @@ mod tests {
             Arc::new(|phenotype: MockPhenotype| Score::from(phenotype.x + phenotype.y));
 
         let problem = EngineProblem {
+            objective: Objective::Single(Optimize::Maximize),
             codec: Arc::new(MockCodec),
             fitness_fn,
         };
@@ -360,6 +388,7 @@ mod tests {
         });
 
         let problem = BatchEngineProblem {
+            objective: Objective::Single(Optimize::Maximize),
             codec: Arc::new(MockCodec),
             batch_fitness_fn,
         };
@@ -382,6 +411,7 @@ mod tests {
         });
 
         let problem = BatchEngineProblem {
+            objective: Objective::Single(Optimize::Maximize),
             codec: Arc::new(MockCodec),
             batch_fitness_fn,
         };
@@ -401,6 +431,7 @@ mod tests {
         });
 
         let problem = BatchEngineProblem {
+            objective: Objective::Single(Optimize::Maximize),
             codec: Arc::new(MockCodec),
             batch_fitness_fn,
         };

@@ -27,6 +27,7 @@ use radiate_error::Result;
 ///
 /// ```rust
 /// use radiate_core::engine::{Engine, EngineExt};
+/// use radiate_error::RadiateError;
 ///
 /// #[derive(Default)]
 /// struct MyEngine {
@@ -43,15 +44,15 @@ use radiate_error::Result;
 /// impl Engine for MyEngine {
 ///     type Epoch = MyEpoch;
 ///     
-///     fn next(&mut self) -> Self::Epoch {
+///     fn next(&mut self) -> Result<Self::Epoch, RadiateError> {
 ///         // Perform one generation of evolution
 ///         // ... evolve population ...
 ///         self.generation += 1;
 ///         
-///         MyEpoch {
+///         Ok(MyEpoch {
 ///             generation: self.generation,
 ///             population_size: self.population.len()
-///         }
+///         })
 ///     }
 /// }
 ///

@@ -1,6 +1,6 @@
 use crate::NodeStore;
 use crate::collections::{Tree, TreeChromosome, TreeNode};
-use radiate_core::{Chromosome, Codec, Genotype};
+use radiate_core::{Codec, Genotype};
 use std::sync::Arc;
 
 type Constraint<N> = Arc<dyn Fn(&N) -> bool>;
@@ -72,16 +72,6 @@ where
                 .filter_map(|tree| tree.take_root().map(|root| vec![root]))
                 .map(|node| TreeChromosome::new(node, Some(store.clone()), self.constraint.clone()))
                 .collect::<Vec<TreeChromosome<T>>>();
-
-            if let Some(constraint) = self.constraint.as_ref() {
-                for chromosome in new_chromosomes.iter() {
-                    for node in chromosome.iter() {
-                        if !constraint(node) {
-                            panic!("TreeCodec.encode() - Root node does not meet constraint.");
-                        }
-                    }
-                }
-            }
 
             return Genotype::new(new_chromosomes);
         }

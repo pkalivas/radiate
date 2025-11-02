@@ -27,7 +27,7 @@ use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::evaluator::BatchFitnessEvaluator;
 use radiate_core::problem::BatchEngineProblem;
-use radiate_core::{Diversity, Evaluator, Executor, FitnessEvaluator, Genotype};
+use radiate_core::{Diversity, Evaluator, Executor, FitnessEvaluator, Genotype, Valid};
 use radiate_core::{RadiateError, ensure, radiate_err};
 use std::cmp::Ordering;
 use std::sync::{Arc, Mutex, RwLock};
@@ -234,6 +234,7 @@ where
 
         if let Some(batch_fn) = &self.params.problem_params.batch_fitness_fn {
             self.params.problem_params.problem = Some(Arc::new(BatchEngineProblem {
+                objective: self.params.optimization_params.objectives.clone(),
                 codec: self.params.problem_params.codec.clone().unwrap(),
                 batch_fitness_fn: batch_fn.clone(),
             }));
@@ -246,6 +247,7 @@ where
             Ok(())
         } else if let Some(fitness_fn) = &self.params.problem_params.fitness_fn {
             self.params.problem_params.problem = Some(Arc::new(EngineProblem {
+                objective: self.params.optimization_params.objectives.clone(),
                 codec: self.params.problem_params.codec.clone().unwrap(),
                 fitness_fn: fitness_fn.clone(),
             }));
@@ -262,9 +264,22 @@ where
         self.params.population_params.population = match &self.params.population_params.population {
             None => Some(match self.params.problem_params.problem.as_ref() {
                 Some(problem) => {
-                    Population::from((self.params.population_params.population_size, || {
-                        Phenotype::from((problem.encode(), 0))
-                    }))
+                    let size = self.params.population_params.population_size;
+                    let mut phenotypes = Vec::with_capacity(size);
+
+                    for _ in 0..size {
+                        let genotype = problem.encode();
+
+                        if !genotype.is_valid() {
+                            return Err(radiate_err!(
+                                Builder: "Encoded genotype is not valid",
+                            ));
+                        }
+
+                        phenotypes.push(Phenotype::from((genotype, 0)));
+                    }
+
+                    Population::from(phenotypes)
                 }
                 None => return Err(radiate_err!(Builder: "Codec not set")),
             }),

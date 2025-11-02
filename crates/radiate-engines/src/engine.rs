@@ -5,7 +5,7 @@ use crate::pipeline::Pipeline;
 use crate::{Chromosome, EngineEvent};
 use crate::{EventBus, Generation};
 use radiate_core::Engine;
-use radiate_error::Result;
+use radiate_core::error::Result;
 
 /// The [GeneticEngine] is the core component of the Radiate library's genetic algorithm implementation.
 /// The engine is designed to be fast, flexible and extensible, allowing users to

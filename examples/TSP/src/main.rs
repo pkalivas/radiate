@@ -3,7 +3,7 @@ use plotters::chart::ChartBuilder;
 use plotters::drawing::IntoDrawingArea;
 use plotters::element::Circle;
 use plotters::prelude::{BLUE, Color, IntoFont, LineSeries, RED, WHITE};
-use radiate::*;
+use radiate::prelude::*;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::PathBuf;

@@ -1,7 +1,6 @@
 use crate::{IntoPyAnyObject, PyAnyObject, bindings::PyCodec};
 use pyo3::{Py, PyAny, Python};
-use radiate::{Chromosome, Codec, Genotype, Problem, Score, radiate_err};
-use radiate_error::{Result, radiate_bail};
+use radiate::{Chromosome, Codec, Genotype, Problem, Score, error};
 
 pub struct PyProblem<C: Chromosome, T> {
     fitness_func: PyAnyObject,
@@ -28,14 +27,14 @@ impl<C: Chromosome, T: IntoPyAnyObject> Problem<C, T> for PyProblem<C, T> {
         self.codec.decode(genotype)
     }
 
-    fn eval(&self, individual: &Genotype<C>) -> Result<Score> {
+    fn eval(&self, individual: &Genotype<C>) -> radiate::Result<Score> {
         Python::attach(|py| {
             let phenotype = self.codec.decode_with_py(py, individual).into_py(py);
             call_fitness(py, self.fitness_func.clone(), phenotype)
         })
     }
 
-    fn eval_batch(&self, individuals: &[Genotype<C>]) -> Result<Vec<Score>> {
+    fn eval_batch(&self, individuals: &[Genotype<C>]) -> radiate::Result<Vec<Score>> {
         Python::attach(|py| {
             individuals
                 .iter()
@@ -55,9 +54,9 @@ pub(crate) fn call_fitness<'a, 'py>(
     py: Python<'py>,
     func: PyAnyObject,
     input: PyAnyObject,
-) -> Result<Score> {
+) -> radiate::Result<Score> {
     let any_value = func.inner.call1(py, (input.inner,)).map_err(|e| {
-        radiate_err!(Evaluation:
+        error::radiate_err!(Evaluation:
             "Ensure the function is callable, accepts one argument (Genotype), and returns a valid score. Details: {}",
             e
         )
@@ -73,18 +72,22 @@ pub(crate) fn call_fitness<'a, 'py>(
         Score::from(parsed)
     } else if let Ok(scores_vec) = any_value.extract::<Vec<f32>>(py) {
         if scores_vec.is_empty() {
-            Score::from(0.0)
+            error::radiate_bail!(Evaluation:
+                "Fitness function returned an empty score vector."
+            );
         } else {
             Score::from(scores_vec)
         }
     } else if let Ok(scores_vec) = any_value.extract::<Vec<i32>>(py) {
         if scores_vec.is_empty() {
-            Score::from(0.0)
+            error::radiate_bail!(Evaluation:
+                "Fitness function returned an empty score vector."
+            );
         } else {
-            Score::from(scores_vec.into_iter().map(|s| s as f32).collect::<Vec<_>>())
+            Score::from(scores_vec)
         }
     } else {
-        radiate_bail!(Evaluation:
+        error::radiate_bail!(Evaluation:
             "Failed to extract fitness score from Python function call. Ensure the function returns a valid score type."
         );
     };

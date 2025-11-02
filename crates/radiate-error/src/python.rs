@@ -5,18 +5,19 @@ use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError};
 impl From<RadiateError> for PyErr {
     fn from(e: RadiateError) -> Self {
         match e {
-            RadiateError::InvalidParameter { message } | RadiateError::Builder { message } => {
+            RadiateError::InvalidParameter(message) | RadiateError::Builder(message) => {
                 PyValueError::new_err(message)
             }
-            RadiateError::Codec { message } => PyTypeError::new_err(message),
-            RadiateError::Engine { message }
-            | RadiateError::Evaluation { message }
-            | RadiateError::Genome { message } => PyRuntimeError::new_err(message),
-            RadiateError::Io { source } => PyRuntimeError::new_err(source.to_string()),
+            RadiateError::Codec(message) => PyTypeError::new_err(message),
+            RadiateError::Engine(message)
+            | RadiateError::Evaluation(message)
+            | RadiateError::Genome(message) => PyRuntimeError::new_err(message),
+            RadiateError::Fitness(message) => PyRuntimeError::new_err(message),
+            RadiateError::Io(source) => PyRuntimeError::new_err(source.to_string()),
             RadiateError::Multiple(m) => PyRuntimeError::new_err(m),
             RadiateError::Context { .. } => PyRuntimeError::new_err(e.to_string()),
             #[cfg(feature = "python")]
-            RadiateError::Python { source } => source,
+            RadiateError::Python(source) => source,
         }
     }
 }
