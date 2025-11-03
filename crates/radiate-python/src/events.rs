@@ -2,7 +2,7 @@ use crate::prelude::*;
 use crate::{PySubscriber, object::Wrap};
 use pyo3::intern;
 use pyo3::{Python, types::PyDict};
-use radiate::{EngineEvent, Event, EventHandler};
+use radiate::{EngineEvent, EventHandler};
 
 const ON_START: &'static str = "on_start";
 const ON_STOP: &'static str = "on_stop";
@@ -32,17 +32,17 @@ impl PyEventHandler {
                             true
                         } else if matches!(event, EngineEvent::Start) {
                             name == ON_START
-                        } else if matches!(event, EngineEvent::Stop { .. }) {
+                        } else if matches!(event, EngineEvent::Stop(..)) {
                             name == ON_STOP
                         } else if matches!(event, EngineEvent::EpochStart(_)) {
                             name == ON_EPOCH_START
-                        } else if matches!(event, EngineEvent::EpochComplete { .. }) {
+                        } else if matches!(event, EngineEvent::EpochComplete(..)) {
                             name == ON_EPOCH_COMPLETE
                         } else if matches!(event, EngineEvent::StepStart(_)) {
                             name == ON_STEP_START
                         } else if matches!(event, EngineEvent::StepComplete(_)) {
                             name == ON_STEP_COMPLETE
-                        } else if matches!(event, EngineEvent::EngineImprovement { .. }) {
+                        } else if matches!(event, EngineEvent::Improvement(..)) {
                             name == ON_ENGINE_IMPROVEMENT
                         } else {
                             false
@@ -53,22 +53,18 @@ impl PyEventHandler {
             .collect()
     }
 
-    fn event_to_py_dict<T>(&self, py: Python, event: &Event<EngineEvent<T>>) -> Py<PyDict>
+    fn event_to_py_dict<T>(&self, py: Python, event: &EngineEvent<T>) -> Py<PyDict>
     where
         T: IntoPyAnyObject + Clone,
     {
         let dict = PyDict::new(py);
-        dict.set_item(intern!(py, "id"), *event.id()).unwrap();
+        // dict.set_item(intern!(py, "id"), *event.id()).unwrap();
 
-        match event.data() {
+        match event {
             EngineEvent::Start => {
                 dict.set_item(intern!(py, "type"), "start").unwrap();
             }
-            EngineEvent::Stop {
-                metrics,
-                best,
-                score,
-            } => {
+            EngineEvent::Stop(best, metrics, score) => {
                 let best = best.clone().into_py(py);
                 dict.set_item(intern!(py, "type"), "stop").unwrap();
                 dict.set_item(intern!(py, "metrics"), Wrap(metrics.clone()))
@@ -80,12 +76,7 @@ impl PyEventHandler {
                 dict.set_item(intern!(py, "type"), "epoch_start").unwrap();
                 dict.set_item(intern!(py, "index"), index).unwrap();
             }
-            EngineEvent::EpochComplete {
-                index,
-                metrics,
-                best,
-                score,
-            } => {
+            EngineEvent::EpochComplete(index, best, metrics, score) => {
                 let best = best.clone().into_py(py);
                 dict.set_item(intern!(py, "type"), "epoch_complete")
                     .unwrap();
@@ -103,7 +94,7 @@ impl PyEventHandler {
                 dict.set_item(intern!(py, "type"), "step_complete").unwrap();
                 dict.set_item(intern!(py, "step"), step).unwrap();
             }
-            EngineEvent::EngineImprovement { index, best, score } => {
+            EngineEvent::Improvement(index, best, score) => {
                 let best = best.clone().into_py(py);
                 dict.set_item(intern!(py, "type"), "engine_improvement")
                     .unwrap();
@@ -117,12 +108,12 @@ impl PyEventHandler {
     }
 }
 
-impl<T> EventHandler<EngineEvent<T>> for PyEventHandler
+impl<T> EventHandler<T> for PyEventHandler
 where
     T: IntoPyAnyObject + Clone,
 {
-    fn handle(&mut self, event: Event<EngineEvent<T>>) {
-        let subscribers = self.get_valid_handlers(event.data());
+    fn handle(&mut self, event: &EngineEvent<T>) {
+        let subscribers = self.get_valid_handlers(event);
 
         if subscribers.is_empty() {
             return;

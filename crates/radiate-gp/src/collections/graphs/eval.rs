@@ -1,9 +1,5 @@
 use super::{Graph, GraphNode, iter::GraphIterator};
-use crate::{
-    Eval, EvalMut, NodeType,
-    eval::{EvalInto, EvalIntoMut},
-    node::Node,
-};
+use crate::{Eval, EvalMut, NodeType, eval::EvalIntoMut, node::Node};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
@@ -152,27 +148,6 @@ where
             .iter()
             .map(|input| evaluator.eval_mut(input))
             .collect()
-    }
-}
-
-impl<T, V> EvalInto<[Vec<V>], [Vec<V>]> for Graph<T>
-where
-    T: Eval<[V], V>,
-    V: Clone + Default,
-{
-    /// Evaluates the [Graph] with the given input `Vec<Vec<T>>` into the provided buffer.
-    /// This is intended to be used when evaluating a batch of inputs.
-    ///
-    /// # Arguments
-    /// * `input` - A `Vec<Vec<T>>` to evaluate the [Graph] with.
-    /// * `buffer` - A mutable reference to a `Vec<Vec<T>>` to store the output of the [Graph].
-    #[inline]
-    fn eval_into(self, input: &[Vec<V>], buffer: &mut [Vec<V>]) {
-        let mut evaluator = GraphEvaluator::new(&self);
-
-        for i in 0..input.len() {
-            evaluator.eval_into_mut(&input[i], &mut buffer[i]);
-        }
     }
 }
 

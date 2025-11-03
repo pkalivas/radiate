@@ -1,8 +1,9 @@
+use crate::Chromosome;
 use crate::Context;
 use crate::builder::GeneticEngineBuilder;
+use crate::events::EngineMessage;
 use crate::iter::EngineIterator;
 use crate::pipeline::Pipeline;
-use crate::{Chromosome, EngineEvent};
 use crate::{EventBus, Generation};
 use radiate_core::Engine;
 use radiate_core::error::Result;
@@ -60,7 +61,7 @@ where
 {
     context: Context<C, T>,
     pipeline: Pipeline<C>,
-    bus: EventBus<EngineEvent<T>>,
+    bus: EventBus<T>,
 }
 
 impl<C, T> GeneticEngine<C, T>
@@ -72,11 +73,7 @@ where
     ///
     /// This constructor is primarily used internally by the builder pattern.
     /// Users should create engines using `GeneticEngine::builder()`.
-    pub(crate) fn new(
-        context: Context<C, T>,
-        pipeline: Pipeline<C>,
-        bus: EventBus<EngineEvent<T>>,
-    ) -> Self {
+    pub(crate) fn new(context: Context<C, T>, pipeline: Pipeline<C>, bus: EventBus<T>) -> Self {
         GeneticEngine {
             context,
             pipeline,
@@ -150,10 +147,10 @@ where
     #[inline]
     fn next(&mut self) -> Result<Generation<C, T>> {
         if matches!(self.context.index, 0) {
-            self.bus.emit(EngineEvent::start());
+            self.bus.publish(EngineMessage::<C, T>::Start);
         }
 
-        self.bus.emit(EngineEvent::epoch_start(&self.context));
+        self.bus.publish(EngineMessage::EpochStart(&self.context));
 
         self.pipeline.run(&mut self.context, &self.bus)?;
 
@@ -163,7 +160,7 @@ where
                 if self.context.objective.is_better(score, current) {
                     self.context.score = Some(score.clone());
                     self.context.best = self.context.problem.decode(best.genotype());
-                    self.bus.emit(EngineEvent::improvement(&self.context));
+                    self.bus.publish(EngineMessage::Improvement(&self.context));
                 }
             } else {
                 self.context.score = Some(best.score().unwrap().clone());
@@ -171,7 +168,7 @@ where
             }
         }
 
-        self.bus.emit(EngineEvent::epoch_complete(&self.context));
+        self.bus.publish(EngineMessage::EpochEnd(&self.context));
 
         self.context.index += 1;
 
@@ -199,6 +196,6 @@ where
     T: Clone + Send + Sync + 'static,
 {
     fn drop(&mut self) {
-        self.bus.emit(EngineEvent::stop(&self.context));
+        self.bus.publish(EngineMessage::Stop(&self.context));
     }
 }

@@ -20,7 +20,7 @@ pub trait BatchFitnessFunction<T, S = f32>: Send + Sync
 where
     S: Into<Score>,
 {
-    fn evaluate(&self, individuals: &[T]) -> Vec<S>;
+    fn evaluate(&self, individuals: Vec<T>) -> Vec<S>;
 }
 
 /// Blanket implement FitnessFunction for any function that takes a single argument.
@@ -42,7 +42,7 @@ where
     F: for<'a> Fn(&'a [T]) -> Vec<S> + Send + Sync,
     S: Into<Score>,
 {
-    fn evaluate(&self, individuals: &[T]) -> Vec<S> {
-        self(individuals)
+    fn evaluate(&self, individuals: Vec<T>) -> Vec<S> {
+        self(&individuals)
     }
 }

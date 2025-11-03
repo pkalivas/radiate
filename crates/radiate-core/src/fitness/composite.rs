@@ -105,7 +105,7 @@ impl<T> FitnessFunction<T> for CompositeFitnessFn<T, f32> {
 /// This is the same logic as above, but for a batch. Again, here we are assuming that the
 /// result of the internal fitness_fns returns an f32.
 impl<T> BatchFitnessFunction<T> for CompositeFitnessFn<T, f32> {
-    fn evaluate(&self, individuals: &[T]) -> Vec<f32> {
+    fn evaluate(&self, individuals: Vec<T>) -> Vec<f32> {
         let mut results = Vec::with_capacity(individuals.len());
 
         for individual in individuals {
@@ -113,7 +113,7 @@ impl<T> BatchFitnessFunction<T> for CompositeFitnessFn<T, f32> {
             let mut total_weight = 0.0;
 
             for (objective, weight) in self.objectives.iter().zip(&self.weights) {
-                let score = objective.evaluate(individual);
+                let score = objective.evaluate(&individual);
                 total_score += score * weight;
                 total_weight += weight;
             }
@@ -180,7 +180,7 @@ mod tests {
             .add_weighted_fn(mock_complexity_fn, 0.3);
 
         let individuals = vec![10, 20, 30];
-        let fitness_scores = BatchFitnessFunction::evaluate(&composite, &individuals);
+        let fitness_scores = BatchFitnessFunction::evaluate(&composite, individuals);
 
         assert_eq!(fitness_scores.len(), 3);
 

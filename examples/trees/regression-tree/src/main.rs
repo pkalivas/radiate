@@ -42,12 +42,14 @@ fn main() {
 
 fn display(result: &Generation<TreeChromosome<Op<f32>>, Tree<Op<f32>>>) {
     let data_set = get_dataset();
-    let accuracy = Accuracy::new("reg", &data_set, Loss::MSE);
-    let accuracy_result = accuracy.calc(&mut result.value().clone());
+    let accuracy = Accuracy::new("reg")
+        .on(&data_set)
+        .loss(Loss::MSE)
+        .calc(&mut vec![result.value().clone()]);
 
     println!("{:?}", result);
     println!("Best Tree: {}", result.value().format());
-    println!("{:?}", accuracy_result);
+    println!("{:?}", accuracy);
 }
 
 fn get_dataset() -> DataSet {

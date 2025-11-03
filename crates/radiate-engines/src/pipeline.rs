@@ -1,4 +1,4 @@
-use crate::{Context, EngineEvent, EventBus, steps::EngineStep};
+use crate::{Context, EventBus, events::EngineMessage, steps::EngineStep};
 use radiate_core::{Chromosome, metric_names};
 use radiate_error::Result;
 
@@ -24,20 +24,17 @@ where
     }
 
     #[inline]
-    pub fn run<T>(
-        &mut self,
-        context: &mut Context<C, T>,
-        bus: &EventBus<EngineEvent<T>>,
-    ) -> Result<()>
+    pub fn run<T>(&mut self, context: &mut Context<C, T>, bus: &EventBus<T>) -> Result<()>
     where
-        T: Send + Sync + 'static,
+        C: Chromosome,
+        T: Clone + Send + Sync + 'static,
     {
         context.epoch_metrics.clear();
 
         let timer = std::time::Instant::now();
 
         for step in self.steps.iter_mut() {
-            bus.emit(EngineEvent::step_start(step.name()));
+            bus.publish(EngineMessage::StepStart(context, step.name()));
             let timer = std::time::Instant::now();
             step.execute(
                 context.index,
@@ -45,7 +42,7 @@ where
                 &mut context.ecosystem,
             )?;
 
-            bus.emit(EngineEvent::step_complete(step.name()));
+            bus.publish(EngineMessage::StepComplete(context, step.name()));
 
             context.epoch_metrics.upsert(step.name(), timer.elapsed());
         }

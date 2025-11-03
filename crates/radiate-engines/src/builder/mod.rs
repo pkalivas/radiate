@@ -19,9 +19,8 @@ use crate::objectives::{Objective, Optimize};
 use crate::pipeline::Pipeline;
 use crate::steps::{AuditStep, EngineStep, FilterStep, FrontStep, RecombineStep, SpeciateStep};
 use crate::{
-    Alter, Context, Crossover, EncodeReplace, EngineEvent, EngineProblem, EventBus, EventHandler,
-    Front, Mutate, Problem, ReplacementStrategy, RouletteSelector, Select, TournamentSelector,
-    pareto,
+    Alter, Context, Crossover, EncodeReplace, EngineProblem, EventBus, EventHandler, Front, Mutate,
+    Problem, ReplacementStrategy, RouletteSelector, Select, TournamentSelector, pareto,
 };
 use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use radiate_alters::{UniformCrossover, UniformMutator};
@@ -47,7 +46,7 @@ where
 
     pub alterers: Vec<Arc<dyn Alter<C>>>,
     pub replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
-    pub handlers: Vec<Arc<Mutex<dyn EventHandler<EngineEvent<T>>>>>,
+    pub handlers: Vec<Arc<Mutex<dyn EventHandler<T>>>>,
 }
 
 /// Parameters for the genetic engine.
@@ -100,7 +99,7 @@ where
     /// based on the events emitted by the engine.
     pub fn subscribe<H>(mut self, handler: H) -> Self
     where
-        H: EventHandler<EngineEvent<T>> + 'static,
+        H: EventHandler<T> + 'static,
     {
         self.params.handlers.push(Arc::new(Mutex::new(handler)));
         self
@@ -414,7 +413,7 @@ pub(crate) struct EngineConfig<C: Chromosome, T: Clone> {
     front: Arc<RwLock<Front<Phenotype<C>>>>,
     offspring_fraction: f32,
     executor: EvaluationParams<C, T>,
-    handlers: Vec<Arc<Mutex<dyn EventHandler<EngineEvent<T>>>>>,
+    handlers: Vec<Arc<Mutex<dyn EventHandler<T>>>>,
 }
 
 impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
@@ -478,7 +477,7 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
         Arc::clone(&self.executor.bus_executor)
     }
 
-    pub fn handlers(&self) -> Vec<Arc<Mutex<dyn EventHandler<EngineEvent<T>>>>> {
+    pub fn handlers(&self) -> Vec<Arc<Mutex<dyn EventHandler<T>>>> {
         self.handlers.clone()
     }
 

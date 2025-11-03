@@ -124,7 +124,6 @@ impl<C: Chromosome> Ecosystem<C> {
         species
             .population
             .get_scores()
-            .iter()
             .map(|score| (*score).clone() / species.len() as f32)
             .collect()
     }

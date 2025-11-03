@@ -185,10 +185,10 @@ impl<T> BatchFitnessFunction<T, f32> for NoveltySearch<T>
 where
     T: Send + Sync,
 {
-    fn evaluate(&self, individuals: &[T]) -> Vec<f32> {
+    fn evaluate(&self, individuals: Vec<T>) -> Vec<f32> {
         individuals
             .into_iter()
-            .map(|ind| self.evaluate_internal(ind))
+            .map(|ind| self.evaluate_internal(&ind))
             .collect()
     }
 }
@@ -197,7 +197,7 @@ impl<T> BatchFitnessFunction<&T, f32> for NoveltySearch<T>
 where
     T: Send + Sync,
 {
-    fn evaluate(&self, individuals: &[&T]) -> Vec<f32> {
+    fn evaluate(&self, individuals: Vec<&T>) -> Vec<f32> {
         individuals
             .into_iter()
             .map(|ind| self.evaluate_internal(ind))

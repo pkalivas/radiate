@@ -89,11 +89,10 @@ impl<C: Chromosome> Population<C> {
         self.individuals.is_empty()
     }
 
-    pub fn get_scores(&self) -> Vec<&Score> {
+    pub fn get_scores(&self) -> impl Iterator<Item = &Score> {
         self.individuals
             .iter()
             .filter_map(|individual| individual.get().score())
-            .collect()
     }
 
     pub fn get_pair_mut(

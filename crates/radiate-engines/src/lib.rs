@@ -10,7 +10,7 @@ mod steps;
 pub use builder::GeneticEngineBuilder;
 pub use engine::GeneticEngine;
 pub use epoch::{Context, Generation};
-pub use events::{EngineEvent, Event, EventBus, EventHandler};
+pub use events::{EngineEvent, EventBus, EventHandler};
 pub use iter::EngineIteratorExt;
 pub use limit::Limit;
 pub use steps::EvaluateStep;

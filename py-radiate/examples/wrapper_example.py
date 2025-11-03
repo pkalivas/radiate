@@ -22,6 +22,7 @@ def fitness_function(phenotypes: list[list[ObjectGene]]) -> list[float]:
 engine = rd.GeneticEngine(
     rd.AnyCodec(ObjectGene() for _ in range(10)),
     fitness_func=rd.BatchFitness(fitness_function),
+    subscribe=lambda event: print(event),
     objectives="min",
 )
 

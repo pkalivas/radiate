@@ -251,7 +251,7 @@ where
 {
     pub objective: Objective,
     pub codec: Arc<dyn Codec<C, T>>,
-    pub batch_fitness_fn: Arc<dyn Fn(&[T]) -> Vec<Score> + Send + Sync>,
+    pub batch_fitness_fn: Arc<dyn Fn(Vec<T>) -> Vec<Score> + Send + Sync>,
 }
 
 /// Implementation of [Problem] for [BatchEngineProblem].
@@ -272,7 +272,7 @@ impl<C: Chromosome, T> Problem<C, T> for BatchEngineProblem<C, T> {
 
     fn eval(&self, individual: &Genotype<C>) -> RadiateResult<Score> {
         let phenotype = self.decode(individual);
-        let scores = (self.batch_fitness_fn)(&[phenotype]);
+        let scores = (self.batch_fitness_fn)(vec![phenotype]);
 
         // Cloning a score is a lightweight operation - the internal of a score is a Arc<[f32]>
         // This function will likely never be called anyways as we expect `eval_batch` to be used.
@@ -285,7 +285,7 @@ impl<C: Chromosome, T> Problem<C, T> for BatchEngineProblem<C, T> {
             .map(|genotype| self.decode(genotype))
             .collect::<Vec<T>>();
 
-        let scores = (self.batch_fitness_fn)(&phenotypes);
+        let scores = (self.batch_fitness_fn)(phenotypes);
 
         for i in 0..scores.len() {
             if !self.objective.validate(&scores[i]) {
@@ -383,7 +383,7 @@ mod tests {
 
     #[test]
     fn test_batch_engine_problem_basic_functionality() {
-        let batch_fitness_fn = Arc::new(|phenotypes: &[MockPhenotype]| {
+        let batch_fitness_fn = Arc::new(|phenotypes: Vec<MockPhenotype>| {
             phenotypes.iter().map(|p| Score::from(p.x * p.y)).collect()
         });
 
@@ -406,7 +406,7 @@ mod tests {
 
     #[test]
     fn test_batch_engine_problem_batch_evaluation() {
-        let batch_fitness_fn = Arc::new(|phenotypes: &[MockPhenotype]| {
+        let batch_fitness_fn = Arc::new(|phenotypes: Vec<MockPhenotype>| {
             phenotypes.iter().map(|p| Score::from(p.x * p.y)).collect()
         });
 
@@ -426,7 +426,7 @@ mod tests {
 
     #[test]
     fn test_consistency_between_eval_and_eval_batch() {
-        let batch_fitness_fn = Arc::new(|phenotypes: &[MockPhenotype]| {
+        let batch_fitness_fn = Arc::new(|phenotypes: Vec<MockPhenotype>| {
             phenotypes.iter().map(|p| Score::from(p.x * p.y)).collect()
         });
 

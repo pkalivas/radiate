@@ -14,7 +14,7 @@ where
     pub codec: Option<Arc<dyn Codec<C, T>>>,
     pub problem: Option<Arc<dyn Problem<C, T>>>,
     pub fitness_fn: Option<Arc<dyn Fn(T) -> Score + Send + Sync>>,
-    pub batch_fitness_fn: Option<Arc<dyn Fn(&[T]) -> Vec<Score> + Send + Sync>>,
+    pub batch_fitness_fn: Option<Arc<dyn Fn(Vec<T>) -> Vec<Score> + Send + Sync>>,
 }
 
 impl<C, T> GeneticEngineBuilder<C, T>
@@ -59,7 +59,7 @@ where
         mut self,
         batch_fitness_func: impl BatchFitnessFunction<T, S> + 'static,
     ) -> Self {
-        let other = move |x: &[T]| {
+        let other = move |x: Vec<T>| {
             batch_fitness_func
                 .evaluate(x)
                 .into_iter()
