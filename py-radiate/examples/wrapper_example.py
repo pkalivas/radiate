@@ -16,10 +16,12 @@ class ObjectGene(rd.AnyGene):
     def __repr__(self):
         return f"ObjectGene(number={self.number})"
 
+def fitness_function(phenotypes: list[list[ObjectGene]]) -> list[float]:
+    return [sum(gene.number for gene in individual) for individual in phenotypes]
 
 engine = rd.GeneticEngine(
     rd.AnyCodec(ObjectGene() for _ in range(10)),
-    lambda x: 'asdfadfadf' + sum(gene.number for gene in x),
+    fitness_func=rd.BatchFitness(fitness_function),
     objectives="min",
 )
 

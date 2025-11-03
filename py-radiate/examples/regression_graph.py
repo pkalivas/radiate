@@ -32,7 +32,7 @@ engine = rd.GeneticEngine(
         edge=rd.Op.weight(),
         output=rd.Op.linear(),
     ),
-    fitness_func=rd.Regression(inputs, answers),
+    fitness_func=rd.Regression(inputs, answers, batch=True),
     objectives="min",
     alters=[
         rd.GraphCrossover(0.5, 0.5),

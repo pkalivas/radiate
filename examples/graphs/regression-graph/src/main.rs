@@ -14,8 +14,9 @@ fn main() {
 
     let engine = GeneticEngine::builder()
         .codec(GraphCodec::directed(1, 1, store))
-        .fitness_fn(Regression::new(dataset(), Loss::MSE))
+        .batch_fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
+        // .executor(Executor::FixedSizedWorkerPool(10))
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),

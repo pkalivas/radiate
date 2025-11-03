@@ -47,3 +47,11 @@ pub trait Eval<I: ?Sized, O> {
 pub trait EvalMut<I: ?Sized, O> {
     fn eval_mut(&mut self, input: &I) -> O;
 }
+
+pub trait EvalInto<I: ?Sized, O: ?Sized> {
+    fn eval_into(self, input: &I, buffer: &mut O);
+}
+
+pub trait EvalIntoMut<I: ?Sized, O: ?Sized> {
+    fn eval_into_mut(&mut self, input: &I, buffer: &mut O);
+}

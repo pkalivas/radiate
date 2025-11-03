@@ -48,6 +48,16 @@ impl DataSet {
         self
     }
 
+    pub fn shape(&self) -> (usize, usize, usize) {
+        if self.rows.is_empty() {
+            return (0, 0, 0);
+        }
+
+        let input_size = self.rows[0].input.len();
+        let output_size = self.rows[0].output.len();
+        (self.rows.len(), input_size, output_size)
+    }
+
     #[inline]
     pub fn features(&self) -> Vec<Vec<f32>> {
         self.rows.iter().map(|row| row.input.clone()).collect()
