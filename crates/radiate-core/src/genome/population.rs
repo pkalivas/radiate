@@ -95,6 +95,10 @@ impl<C: Chromosome> Population<C> {
             .filter_map(|individual| individual.get().score())
     }
 
+    pub fn extend(&mut self, other: Self) {
+        self.individuals.extend(other.individuals);
+    }
+
     pub fn get_pair_mut(
         &mut self,
         first: usize,
@@ -273,6 +277,10 @@ impl<C: Chromosome> Member<C> {
 
     pub fn is_unique(&self) -> bool {
         self.cell.is_unique()
+    }
+
+    pub fn ref_count(&self) -> usize {
+        self.cell.strong_count()
     }
 }
 

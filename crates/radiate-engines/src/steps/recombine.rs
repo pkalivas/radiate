@@ -128,14 +128,14 @@ impl<C: Chromosome + PartialEq> RecombineStep<C> {
         let selected = selector.select(population, objective, count);
 
         metrics.upsert(selector.name(), (selected.len(), timer.elapsed()));
-        metrics.upsert(
-            selector.name(),
-            selected
-                .iter()
-                .map(|p| *p.id() as f32)
-                .collect::<Vec<_>>()
-                .as_slice(),
-        );
+        // metrics.upsert(
+        //     selector.name(),
+        //     selected
+        //         .iter()
+        //         .map(|p| *p.id() as f32)
+        //         .collect::<Vec<_>>()
+        //         .as_slice(),
+        // );
 
         selected
     }
@@ -172,13 +172,8 @@ where
         let offspring = self.create_offspring(generation, ecosystem, metrics);
 
         ecosystem.population_mut().clear();
-
-        survivors
-            .into_iter()
-            .chain(offspring.into_iter())
-            .for_each(|individual| {
-                ecosystem.population_mut().push(individual);
-            });
+        ecosystem.population_mut().extend(survivors);
+        ecosystem.population_mut().extend(offspring);
 
         Ok(())
     }

@@ -90,7 +90,7 @@ impl<'a, T> GraphTransaction<'a, T> {
     pub fn new(graph: &'a mut Graph<T>) -> Self {
         GraphTransaction {
             graph,
-            steps: Vec::new(),
+            steps: Vec::with_capacity(5),
             effects: BTreeSet::new(),
         }
     }
@@ -252,7 +252,7 @@ impl<'a, T> GraphTransaction<'a, T> {
         let source_node = self.graph.get(source_idx).unwrap();
         let new_node = self.graph.get(new_node_idx).unwrap();
 
-        let mut steps = Vec::new();
+        let mut steps = Vec::with_capacity(4);
 
         let source_is_edge = source_node.node_type() == NodeType::Edge;
         let target_is_edge = target_node.node_type() == NodeType::Edge;

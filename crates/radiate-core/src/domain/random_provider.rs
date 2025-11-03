@@ -132,6 +132,7 @@ pub fn shuffled_indices(range: std::ops::Range<usize>) -> Vec<usize> {
     indexes
 }
 
+#[inline]
 pub fn cond_indices(range: std::ops::Range<usize>, prob: f32) -> Vec<usize> {
     if prob >= 1.0 {
         return range.collect();

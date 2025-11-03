@@ -16,12 +16,20 @@ fn main() {
         .codec(GraphCodec::directed(1, 1, store))
         .fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
+        .diversity(NeatDistance::new(1.0, 1.0, 0.4))
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
             GraphMutator::new(0.1, 0.1).allow_recurrent(false)
         ))
         .build();
+
+    // let result = engine.run(|generation| {
+    //     let unique_cnt = generation.population().unique_count();
+    //     println!("{:?}", unique_cnt);
+
+    //     generation.score().as_f32() < MIN_SCORE
+    // });
 
     engine
         .iter()

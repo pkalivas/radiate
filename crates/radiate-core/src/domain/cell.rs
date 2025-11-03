@@ -39,6 +39,11 @@ impl<T> MutCell<T> {
         !self.is_unique()
     }
 
+    pub fn strong_count(&self) -> usize {
+        // SAFETY: We're only reading the ref_count
+        unsafe { (*self.inner).ref_count.load(Ordering::Acquire) }
+    }
+
     pub fn get(&self) -> &T {
         // SAFETY: This is inherently unsafe because we don't know if there exists a mutable
         // reference to the inner value elsewhere.

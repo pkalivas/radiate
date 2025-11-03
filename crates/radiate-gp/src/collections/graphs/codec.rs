@@ -150,12 +150,8 @@ where
 
     #[inline]
     fn decode(&self, genotype: &Genotype<GraphChromosome<T>>) -> Graph<T> {
-        Graph::new(
-            genotype
-                .iter()
-                .flat_map(|chrom| chrom.iter())
-                .cloned()
-                .collect::<Vec<GraphNode<T>>>(),
-        )
+        let mut new_nodes = Vec::with_capacity(genotype[0].len());
+        new_nodes.extend_from_slice(genotype[0].as_ref());
+        Graph::new(new_nodes)
     }
 }
