@@ -25,7 +25,7 @@ pub use genome::*;
 pub use gp::{PyGraph, PyTree};
 pub use inputs::{PyEngineInput, PyEngineInputType};
 pub use metric::PyMetricSet;
-pub use subscriber::PySubscriber;
+pub use subscriber::{PyEngineEvent, PySubscriber};
 
 use crate::{AnyChromosome, PyAnyObject};
 use radiate::{

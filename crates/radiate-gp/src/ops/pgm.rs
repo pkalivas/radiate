@@ -46,7 +46,7 @@ impl<T> Op<T> {
 
         let mut out = Vec::with_capacity(num_progs);
         for i in 0..num_progs {
-            let from_seed = !seeds.is_empty() && !random_provider::bool(1.0 - keep_ratio as f64);
+            let from_seed = !seeds.is_empty() && !random_provider::bool(1.0 - keep_ratio);
             if from_seed {
                 let mut current = seeds[i % seeds.len()].clone();
                 if current.value().arity() != Arity::Zero {

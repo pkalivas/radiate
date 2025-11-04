@@ -14,8 +14,9 @@ impl<C: Chromosome + Clone> Select<C> for RandomSelector {
         let mut selected = Vec::with_capacity(count);
 
         for _ in 0..count {
-            let member = random_provider::choose(population.members());
-            selected.push(member.get().clone());
+            let idx = random_provider::range(0..population.len());
+            let member = population.get(idx).expect("Index in range");
+            selected.push(member.clone());
         }
 
         Population::from(selected)

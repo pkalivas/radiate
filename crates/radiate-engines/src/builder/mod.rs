@@ -19,8 +19,8 @@ use crate::objectives::{Objective, Optimize};
 use crate::pipeline::Pipeline;
 use crate::steps::{AuditStep, EngineStep, FilterStep, FrontStep, RecombineStep, SpeciateStep};
 use crate::{
-    Alter, Context, Crossover, EncodeReplace, EngineProblem, EventBus, EventHandler, Front, Mutate,
-    Problem, ReplacementStrategy, RouletteSelector, Select, TournamentSelector, pareto,
+    Alter, Crossover, EncodeReplace, EngineProblem, EventBus, EventHandler, Front, Mutate, Problem,
+    ReplacementStrategy, RouletteSelector, Select, TournamentSelector, context::Context, pareto,
 };
 use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use radiate_alters::{UniformCrossover, UniformMutator};
@@ -186,7 +186,7 @@ where
     }
 
     fn build_audit_step(_: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
-        Some(Box::new(AuditStep))
+        Some(Box::new(AuditStep::default()))
     }
 
     fn build_front_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
@@ -521,41 +521,5 @@ where
             executor: params.evaluation_params.clone(),
             handlers: params.handlers.clone(),
         }
-    }
-}
-
-impl<C, T> std::fmt::Debug for EngineConfig<C, T>
-where
-    C: Chromosome + Clone + 'static,
-    T: Clone + Send + Sync + 'static,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("EngineConfig")
-            .field("population_size", &self.population.len())
-            .field("problem", &"EngineProblem")
-            .field(
-                "survivor_selector",
-                &self.survivor_selector.name().to_string(),
-            )
-            .field(
-                "offspring_selector",
-                &self.offspring_selector.name().to_string(),
-            )
-            .field("alterers", &self.alterers.len())
-            .field("objective", &self.objective)
-            .field("max_age", &self.max_age)
-            .field("max_species_age", &self.max_species_age)
-            .field("species_threshold", &self.species_threshold)
-            .field(
-                "diversity",
-                if self.diversity.is_some() {
-                    &"Some(Diversity)"
-                } else {
-                    &"None"
-                },
-            )
-            .field("front_range", &self.front.read().unwrap().range())
-            .field("offspring_fraction", &self.offspring_fraction)
-            .finish()
     }
 }

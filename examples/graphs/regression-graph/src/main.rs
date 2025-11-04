@@ -1,6 +1,6 @@
 use radiate::prelude::*;
 
-const MIN_SCORE: f32 = 0.001;
+// const MIN_SCORE: f32 = 0.001;
 
 fn main() {
     random_provider::set_seed(1000);
@@ -16,7 +16,8 @@ fn main() {
         .codec(GraphCodec::directed(1, 1, store))
         .fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
-        .diversity(NeatDistance::new(1.0, 1.0, 0.4))
+        // .diversity(NeatDistance::new(0.3, 0.4, 1.0))
+        // .executor(Executor::FixedSizedWorkerPool(10))
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
@@ -24,17 +25,11 @@ fn main() {
         ))
         .build();
 
-    // let result = engine.run(|generation| {
-    //     let unique_cnt = generation.population().unique_count();
-    //     println!("{:?}", unique_cnt);
-
-    //     generation.score().as_f32() < MIN_SCORE
-    // });
-
     engine
         .iter()
         .logging()
-        .until_score(MIN_SCORE)
+        .take(146)
+        // .until_score(MIN_SCORE)
         .last()
         .inspect(display);
 }
@@ -47,6 +42,7 @@ fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
         .calc(&mut evaluator);
 
     println!("{result:?}\n{accuracy_result:?}");
+    println!("{}", result.metrics());
 }
 
 fn dataset() -> impl Into<DataSet> {

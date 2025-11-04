@@ -8,7 +8,7 @@ pub struct SimulatedBinaryCrossover {
 }
 
 impl SimulatedBinaryCrossover {
-    pub fn new(contiguty: f32, crossover_rate: f32) -> Self {
+    pub fn new(crossover_rate: f32, contiguty: f32) -> Self {
         Self {
             contiguty,
             crossover_rate,
@@ -26,7 +26,7 @@ impl<C: Chromosome<Gene = FloatGene>> Crossover<C> for SimulatedBinaryCrossover 
         let length = std::cmp::min(chrom_one.len(), chrom_two.len());
 
         if length < 2 {
-            return 0.into();
+            return AlterResult::empty();
         }
 
         let mut count = 0;
@@ -57,6 +57,6 @@ impl<C: Chromosome<Gene = FloatGene>> Crossover<C> for SimulatedBinaryCrossover 
             }
         }
 
-        count.into()
+        AlterResult::from(count)
     }
 }

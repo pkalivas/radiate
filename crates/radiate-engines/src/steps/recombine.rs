@@ -1,6 +1,6 @@
 use crate::steps::EngineStep;
 use radiate_core::{
-    Alter, Chromosome, Ecosystem, MetricSet, Objective, Optimize, Population, Select, labels,
+    Alter, Chromosome, Ecosystem, MetricSet, Objective, Optimize, Population, Select,
 };
 use radiate_error::Result;
 use std::sync::Arc;
@@ -21,25 +21,13 @@ impl<C: Chromosome + PartialEq> RecombineStep<C> {
         population: &Ecosystem<C>,
         metrics: &mut MetricSet,
     ) -> Population<C> {
-        let selected = Self::select(
+        Self::select(
             self.survivor_count,
             &population.population,
             &self.objective,
             metrics,
             &self.survivor_selector,
-        );
-
-        let name = self.survivor_selector.name();
-        metrics.add_labels(
-            name,
-            labels![
-                "operator" => "selector",
-                "type" => "survivor",
-                "method" => name,
-            ],
-        );
-
-        selected
+        )
     }
 
     #[inline]
@@ -49,25 +37,13 @@ impl<C: Chromosome + PartialEq> RecombineStep<C> {
         population: &Population<C>,
         metrics: &mut MetricSet,
     ) -> Population<C> {
-        let selected = Self::select(
+        Self::select(
             count,
             &population,
             &self.objective,
             metrics,
             &self.offspring_selector,
-        );
-
-        let name = self.offspring_selector.name();
-        metrics.add_labels(
-            name,
-            labels![
-                "operator" => "selector",
-                "type" => "offspring",
-                "method" => name,
-            ],
-        );
-
-        selected
+        )
     }
 
     #[inline]
@@ -128,15 +104,6 @@ impl<C: Chromosome + PartialEq> RecombineStep<C> {
         let selected = selector.select(population, objective, count);
 
         metrics.upsert(selector.name(), (selected.len(), timer.elapsed()));
-        // metrics.upsert(
-        //     selector.name(),
-        //     selected
-        //         .iter()
-        //         .map(|p| *p.id() as f32)
-        //         .collect::<Vec<_>>()
-        //         .as_slice(),
-        // );
-
         selected
     }
 

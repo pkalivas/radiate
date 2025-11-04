@@ -1,5 +1,5 @@
-use crate::{Context, EventBus, events::EngineMessage, steps::EngineStep};
-use radiate_core::{Chromosome, metric_names};
+use crate::{context::Context, steps::EngineStep};
+use radiate_core::{Chromosome, MetricScope, Rollup, metric, metric_names};
 use radiate_error::Result;
 
 /// A [Pipeline] is a sequence of steps that are executed in order during each epoch of the engine.
@@ -24,7 +24,7 @@ where
     }
 
     #[inline]
-    pub fn run<T>(&mut self, context: &mut Context<C, T>, bus: &EventBus<T>) -> Result<()>
+    pub fn run<T>(&mut self, context: &mut Context<C, T>) -> Result<()>
     where
         C: Chromosome,
         T: Clone + Send + Sync + 'static,
@@ -34,22 +34,21 @@ where
         let timer = std::time::Instant::now();
 
         for step in self.steps.iter_mut() {
-            bus.publish(EngineMessage::StepStart(context, step.name()));
             let timer = std::time::Instant::now();
             step.execute(
                 context.index,
                 &mut context.epoch_metrics,
                 &mut context.ecosystem,
             )?;
+            let elapsed = timer.elapsed();
 
-            bus.publish(EngineMessage::StepComplete(context, step.name()));
-
-            context.epoch_metrics.upsert(step.name(), timer.elapsed());
+            let metric = metric!(MetricScope::Step, step.name(), elapsed).with_rollup(Rollup::Last);
+            context.epoch_metrics.add_or_update(metric);
         }
 
         let elapsed = timer.elapsed();
         context.epoch_metrics.upsert(metric_names::TIME, elapsed);
-        context.metrics.merge(&context.epoch_metrics);
+        context.epoch_metrics.flush_all_into(&mut context.metrics);
 
         Ok(())
     }

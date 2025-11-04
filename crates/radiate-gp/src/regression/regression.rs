@@ -1,10 +1,10 @@
 use super::{DataSet, Loss};
-use crate::{Graph, GraphChromosome, GraphEvaluator, Op, Tree, eval::EvalIntoMut};
+use crate::{Graph, GraphEvaluator, Op, Tree, eval::EvalIntoMut};
 use radiate_core::{BatchFitnessFunction, fitness::FitnessFunction};
 use std::cell::RefCell;
 
 thread_local! {
-    static LOSS_SCRATCH: RefCell<Vec<f32>> = RefCell::new(Vec::new());
+    static LOSS_BUFFER: RefCell<Vec<f32>> = RefCell::new(Vec::new());
 }
 
 #[derive(Clone)]
@@ -27,7 +27,7 @@ impl Regression {
         EV: EvalIntoMut<[f32], [f32]>,
     {
         let out_len = self.data_set.shape().2;
-        LOSS_SCRATCH.with(|cell| {
+        LOSS_BUFFER.with(|cell| {
             let mut buf = cell.borrow_mut();
             if buf.len() < out_len {
                 buf.resize(out_len, 0.0);
@@ -45,14 +45,6 @@ impl Regression {
 impl FitnessFunction<Graph<Op<f32>>, f32> for Regression {
     #[inline]
     fn evaluate(&self, input: Graph<Op<f32>>) -> f32 {
-        let mut evaluator = GraphEvaluator::new(&input);
-        self.calc_into_buff_mut(&mut evaluator)
-    }
-}
-
-impl FitnessFunction<GraphChromosome<Op<f32>>, f32> for Regression {
-    #[inline]
-    fn evaluate(&self, input: GraphChromosome<Op<f32>>) -> f32 {
         let mut evaluator = GraphEvaluator::new(&input);
         self.calc_into_buff_mut(&mut evaluator)
     }

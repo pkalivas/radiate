@@ -3,7 +3,6 @@ use crate::random_provider;
 pub enum SubsetMode<'a> {
     StratifiedCorrect,
     FastRandom,
-    Weighted(&'a [f32]),
     Exclude(&'a [usize]),
     RangeList(&'a [(usize, usize)]),
 }
@@ -43,13 +42,6 @@ pub fn subset(max_index: usize, num_indicies: usize, mode: SubsetMode) -> Vec<us
             let mut sub = vec![0; num_indicies];
             for i in 0..num_indicies {
                 sub[i] = random_provider::range(0..max_index);
-            }
-            sub
-        }
-        SubsetMode::Weighted(weights) => {
-            let mut sub = vec![0; num_indicies];
-            for i in 0..num_indicies {
-                sub[i] = random_provider::weighted_choice(weights);
             }
             sub
         }
@@ -206,14 +198,6 @@ mod tests {
         let result = subset(n, k, SubsetMode::FastRandom);
         assert_eq!(result.len(), k);
         assert!(result.iter().all(|&x| x < n));
-    }
-
-    #[test]
-    fn test_weighted_subset() {
-        let weights = vec![0.1, 0.2, 0.3, 0.4, 0.5];
-        let result = subset(weights.len(), 5, SubsetMode::Weighted(&weights));
-        assert_eq!(result.len(), 5);
-        assert!(result.iter().all(|&x| x < weights.len()));
     }
 
     #[test]

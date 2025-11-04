@@ -23,7 +23,7 @@ impl PyRandomProvider {
 
     #[staticmethod]
     pub fn random_bool(prob: f64) -> bool {
-        random_provider::bool(prob)
+        random_provider::bool(prob as f32)
     }
 
     #[staticmethod]

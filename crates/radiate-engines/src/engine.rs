@@ -1,6 +1,6 @@
 use crate::Chromosome;
-use crate::Context;
 use crate::builder::GeneticEngineBuilder;
+use crate::context::Context;
 use crate::events::EngineMessage;
 use crate::iter::EngineIterator;
 use crate::pipeline::Pipeline;
@@ -152,7 +152,7 @@ where
 
         self.bus.publish(EngineMessage::EpochStart(&self.context));
 
-        self.pipeline.run(&mut self.context, &self.bus)?;
+        self.pipeline.run(&mut self.context)?;
 
         let best = self.context.ecosystem.population().get(0);
         if let Some(best) = best {

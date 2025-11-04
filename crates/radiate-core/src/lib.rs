@@ -31,7 +31,10 @@ pub use objectives::{Front, Objective, Optimize, Score, pareto};
 pub use problem::{BatchEngineProblem, EngineProblem, Problem};
 pub use replacement::{EncodeReplace, PopulationSampleReplace, ReplacementStrategy};
 pub use selector::Select;
-pub use stats::*;
+pub use stats::{
+    Distribution, Metric, MetricScope, MetricSet, MetricUpdate, Rollup, Statistic, TimeStatistic,
+    metric_names, render_dashboard, render_full,
+};
 
 pub mod prelude {
     pub use radiate_error::*;

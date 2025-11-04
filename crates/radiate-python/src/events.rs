@@ -1,16 +1,7 @@
-use crate::prelude::*;
-use crate::{PySubscriber, object::Wrap};
-use pyo3::intern;
-use pyo3::{Python, types::PyDict};
+use crate::PySubscriber;
+use crate::{PyEngineEvent, PyMetricSet, prelude::*};
+use pyo3::Python;
 use radiate::{EngineEvent, EventHandler};
-
-const ON_START: &'static str = "on_start";
-const ON_STOP: &'static str = "on_stop";
-const ON_EPOCH_START: &'static str = "on_epoch_start";
-const ON_EPOCH_COMPLETE: &'static str = "on_epoch_complete";
-const ON_STEP_START: &'static str = "on_step_start";
-const ON_STEP_COMPLETE: &'static str = "on_step_complete";
-const ON_ENGINE_IMPROVEMENT: &'static str = "on_engine_improvement";
 
 pub struct PyEventHandler {
     handlers: Vec<PySubscriber>,
@@ -31,19 +22,15 @@ impl PyEventHandler {
                         if name == "all" {
                             true
                         } else if matches!(event, EngineEvent::Start) {
-                            name == ON_START
+                            name == crate::names::START_EVENT
                         } else if matches!(event, EngineEvent::Stop(..)) {
-                            name == ON_STOP
+                            name == crate::names::STOP_EVENT
                         } else if matches!(event, EngineEvent::EpochStart(_)) {
-                            name == ON_EPOCH_START
+                            name == crate::names::EPOCH_START_EVENT
                         } else if matches!(event, EngineEvent::EpochComplete(..)) {
-                            name == ON_EPOCH_COMPLETE
-                        } else if matches!(event, EngineEvent::StepStart(_)) {
-                            name == ON_STEP_START
-                        } else if matches!(event, EngineEvent::StepComplete(_)) {
-                            name == ON_STEP_COMPLETE
+                            name == crate::names::EPOCH_COMPLETE_EVENT
                         } else if matches!(event, EngineEvent::Improvement(..)) {
-                            name == ON_ENGINE_IMPROVEMENT
+                            name == crate::names::ENGINE_IMPROVEMENT_EVENT
                         } else {
                             false
                         }
@@ -53,58 +40,28 @@ impl PyEventHandler {
             .collect()
     }
 
-    fn event_to_py_dict<T>(&self, py: Python, event: &EngineEvent<T>) -> Py<PyDict>
+    fn event_to_py<T>(&self, py: Python<'_>, event: &EngineEvent<T>) -> PyEngineEvent
     where
         T: IntoPyAnyObject + Clone,
     {
-        let dict = PyDict::new(py);
-        // dict.set_item(intern!(py, "id"), *event.id()).unwrap();
-
         match event {
-            EngineEvent::Start => {
-                dict.set_item(intern!(py, "type"), "start").unwrap();
-            }
+            EngineEvent::Start => PyEngineEvent::start(),
             EngineEvent::Stop(best, metrics, score) => {
                 let best = best.clone().into_py(py);
-                dict.set_item(intern!(py, "type"), "stop").unwrap();
-                dict.set_item(intern!(py, "metrics"), Wrap(metrics.clone()))
-                    .unwrap();
-                dict.set_item(intern!(py, "best"), best.inner).unwrap();
-                dict.set_item(intern!(py, "score"), score.as_f32()).unwrap();
+                let metrics = PyMetricSet::from(metrics.clone());
+                PyEngineEvent::stop(best, metrics, score.as_ref().to_vec())
             }
-            EngineEvent::EpochStart(index) => {
-                dict.set_item(intern!(py, "type"), "epoch_start").unwrap();
-                dict.set_item(intern!(py, "index"), index).unwrap();
-            }
+            EngineEvent::EpochStart(index) => PyEngineEvent::epoch_start(*index),
             EngineEvent::EpochComplete(index, best, metrics, score) => {
                 let best = best.clone().into_py(py);
-                dict.set_item(intern!(py, "type"), "epoch_complete")
-                    .unwrap();
-                dict.set_item(intern!(py, "index"), index).unwrap();
-                dict.set_item(intern!(py, "metrics"), Wrap(metrics.clone()))
-                    .unwrap();
-                dict.set_item(intern!(py, "best"), best.inner).unwrap();
-                dict.set_item(intern!(py, "score"), score.as_f32()).unwrap();
-            }
-            EngineEvent::StepStart(step) => {
-                dict.set_item(intern!(py, "type"), "step_start").unwrap();
-                dict.set_item(intern!(py, "step"), step).unwrap();
-            }
-            EngineEvent::StepComplete(step) => {
-                dict.set_item(intern!(py, "type"), "step_complete").unwrap();
-                dict.set_item(intern!(py, "step"), step).unwrap();
+                let metrics = PyMetricSet::from(metrics.clone());
+                PyEngineEvent::epoch_complete(*index, best, metrics, score.as_ref().to_vec())
             }
             EngineEvent::Improvement(index, best, score) => {
                 let best = best.clone().into_py(py);
-                dict.set_item(intern!(py, "type"), "engine_improvement")
-                    .unwrap();
-                dict.set_item(intern!(py, "index"), index).unwrap();
-                dict.set_item(intern!(py, "best"), best.inner).unwrap();
-                dict.set_item(intern!(py, "score"), score.as_f32()).unwrap();
+                PyEngineEvent::improvement(*index, best, score.as_ref().to_vec())
             }
         }
-
-        dict.unbind()
     }
 }
 
@@ -120,7 +77,7 @@ where
         }
 
         Python::attach(|py| {
-            let event_dict = self.event_to_py_dict(py, &event);
+            let event_dict = self.event_to_py(py, &event).into_py_any(py).unwrap();
 
             for handler in subscribers {
                 let cloned_event = event_dict.clone_ref(py);

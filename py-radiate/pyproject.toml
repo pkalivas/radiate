@@ -22,7 +22,6 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Physics",
 ]
 dynamic = ["version"]
-dependencies = []
 
 [tool.pytest.ini_options]
 addopts = "--import-mode=importlib"

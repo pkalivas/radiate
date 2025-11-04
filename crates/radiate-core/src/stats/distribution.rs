@@ -31,7 +31,7 @@ impl Distribution {
     }
 
     pub fn count(&self) -> i32 {
-        self.statistic.count()
+        self.last_sequence.len() as i32
     }
 
     pub fn mean(&self) -> f32 {
@@ -63,8 +63,6 @@ impl Distribution {
     }
 
     pub fn clear(&mut self) {
-        // Lets think about the below line - how do we want to handle
-        // self.statistic.clear();
         self.last_sequence.clear();
     }
 
@@ -72,6 +70,7 @@ impl Distribution {
         (self.last_sequence().len() as f32).log2()
     }
 
+    #[inline(always)]
     pub fn entropy(&self) -> f32 {
         let bin_width = 0.01;
         let mut counts = HashMap::new();
@@ -95,6 +94,7 @@ impl Distribution {
             .sum()
     }
 
+    #[inline(always)]
     pub fn percentile(&self, p: f32) -> f32 {
         if p < 0.0 || p > 100.0 {
             panic!("Percentile must be between 0 and 100");

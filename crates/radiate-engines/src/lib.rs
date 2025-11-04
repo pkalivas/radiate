@@ -1,7 +1,8 @@
 pub mod builder;
+mod context;
 pub mod engine;
-pub mod epoch;
 mod events;
+pub mod generation;
 mod iter;
 mod limit;
 mod pipeline;
@@ -9,8 +10,8 @@ mod steps;
 
 pub use builder::GeneticEngineBuilder;
 pub use engine::GeneticEngine;
-pub use epoch::{Context, Generation};
 pub use events::{EngineEvent, EventBus, EventHandler};
+pub use generation::Generation;
 pub use iter::EngineIteratorExt;
 pub use limit::Limit;
 pub use steps::EvaluateStep;

@@ -134,10 +134,10 @@ impl Optimize {
         match self {
             Optimize::Minimize => population
                 .as_mut()
-                .sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)),
+                .sort_unstable_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)),
             Optimize::Maximize => population
                 .as_mut()
-                .sort_by(|a, b| b.partial_cmp(a).unwrap_or(std::cmp::Ordering::Equal)),
+                .sort_unstable_by(|a, b| b.partial_cmp(a).unwrap_or(std::cmp::Ordering::Equal)),
         }
     }
 

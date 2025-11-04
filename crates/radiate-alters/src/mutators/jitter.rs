@@ -42,7 +42,7 @@ where
         let mut count = 0;
 
         for gene in chromosome.genes_mut() {
-            if random_provider::random::<f32>() < rate {
+            if random_provider::bool(rate) {
                 let change = random_provider::range(-1.0..1.0) * self.magnitude;
                 let new_allele = gene.allele() + change;
                 let (min, max) = gene.bounds();
@@ -52,6 +52,6 @@ where
             }
         }
 
-        count.into()
+        AlterResult::from(count)
     }
 }

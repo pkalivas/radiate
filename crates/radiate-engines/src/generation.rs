@@ -1,66 +1,11 @@
 use crate::Chromosome;
-use crate::builder::EngineConfig;
+use crate::context::Context;
 use radiate_core::objectives::Scored;
 use radiate_core::{
-    Ecosystem, Front, MetricSet, Objective, Phenotype, Population, Problem, Score, Species,
-    metric_names,
+    Ecosystem, Front, MetricSet, Objective, Phenotype, Population, Score, Species, metric_names,
 };
 use std::fmt::Debug;
-use std::sync::{Arc, RwLock};
 use std::time::Duration;
-
-pub struct Context<C: Chromosome, T> {
-    pub(crate) ecosystem: Ecosystem<C>,
-    pub(crate) best: T,
-    pub(crate) index: usize,
-    pub(crate) metrics: MetricSet,
-    pub(crate) epoch_metrics: MetricSet,
-    pub(crate) score: Option<Score>,
-    pub(crate) front: Arc<RwLock<Front<Phenotype<C>>>>,
-    pub(crate) objective: Objective,
-    pub(crate) problem: Arc<dyn Problem<C, T>>,
-}
-
-impl<C, T> From<EngineConfig<C, T>> for Context<C, T>
-where
-    C: Chromosome + Clone,
-    T: Clone,
-{
-    fn from(config: EngineConfig<C, T>) -> Self {
-        Context {
-            ecosystem: Ecosystem::new(Population::from(config.population())),
-            best: config.problem().decode(config.population()[0].genotype()),
-
-            index: 0,
-            metrics: MetricSet::default(),
-            epoch_metrics: MetricSet::default(),
-            score: None,
-            front: config.front(),
-            objective: config.objective().clone(),
-            problem: config.problem().clone(),
-        }
-    }
-}
-
-impl<C, T> Clone for Context<C, T>
-where
-    C: Chromosome + Clone,
-    T: Clone,
-{
-    fn clone(&self) -> Self {
-        Context {
-            ecosystem: self.ecosystem.clone(),
-            best: self.best.clone(),
-            index: self.index,
-            metrics: self.metrics.clone(),
-            epoch_metrics: self.epoch_metrics.clone(),
-            score: self.score.clone(),
-            front: self.front.clone(),
-            objective: self.objective.clone(),
-            problem: Arc::clone(&self.problem),
-        }
-    }
-}
 
 pub struct Generation<C, T>
 where
@@ -134,7 +79,7 @@ impl<C: Chromosome, T> Scored for Generation<C, T> {
 impl<C: Chromosome + Clone, T: Clone> From<&Context<C, T>> for Generation<C, T> {
     fn from(context: &Context<C, T>) -> Self {
         Generation {
-            ecosystem: context.ecosystem.clone(),
+            ecosystem: Ecosystem::clone(&context.ecosystem),
             value: context.best.clone(),
             index: context.index,
             metrics: context.metrics.clone(),
@@ -151,6 +96,7 @@ impl<C: Chromosome + Clone, T: Clone> From<&Context<C, T>> for Generation<C, T> 
 impl<C: Chromosome, T: Debug> Debug for Generation<C, T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Generation {{\n")?;
+        write!(f, "  metrics: {:?},\n", self.metrics)?;
         write!(f, "  value: {:?},\n", self.value)?;
         write!(f, "  score: {:?},\n", self.score)?;
         write!(f, "  index: {:?},\n", self.index)?;
@@ -163,7 +109,6 @@ impl<C: Chromosome, T: Debug> Debug for Generation<C, T> {
             }
         }
 
-        write!(f, "  metrics: {:?},\n", self.metrics)?;
         write!(f, "}}")
     }
 }

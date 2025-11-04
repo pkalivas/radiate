@@ -3,7 +3,7 @@ use crate::{Objective, Score, random_provider};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Ecosystem<C: Chromosome> {
     pub population: Population<C>,
@@ -15,6 +15,21 @@ impl<C: Chromosome> Ecosystem<C> {
         Ecosystem {
             population,
             species: None,
+        }
+    }
+
+    pub fn clone(other: &Ecosystem<C>) -> Self
+    where
+        C: Clone,
+    {
+        Ecosystem {
+            population: Population::clone(&other.population),
+            species: other.species.as_ref().map(|specs| {
+                specs
+                    .iter()
+                    .map(|species| Species::clone(species))
+                    .collect()
+            }),
         }
     }
 
@@ -79,8 +94,8 @@ impl<C: Chromosome> Ecosystem<C> {
     {
         if let Some(species) = &mut self.species {
             if let Some(spec) = species.get_mut(species_idx) {
-                if let Some(member) = self.population.get_cell(member_idx) {
-                    spec.population.push(member.clone());
+                if let Some(member) = self.population.ref_clone_member(member_idx) {
+                    spec.population.push(member);
                 }
             }
         }
@@ -92,8 +107,8 @@ impl<C: Chromosome> Ecosystem<C> {
     {
         if let Some(species) = &mut self.species {
             for spec in species {
-                let mascot = random_provider::choose(&spec.population.as_ref());
-                spec.mascot = mascot.get().clone();
+                let idx = random_provider::range(0..spec.population.len());
+                spec.mascot = spec.population.get(idx).unwrap().clone();
                 spec.population.clear();
             }
         }
@@ -126,5 +141,14 @@ impl<C: Chromosome> Ecosystem<C> {
             .get_scores()
             .map(|score| (*score).clone() / species.len() as f32)
             .collect()
+    }
+}
+
+impl<C: Chromosome + Clone> Clone for Ecosystem<C> {
+    fn clone(&self) -> Self {
+        Ecosystem {
+            population: self.population.clone(),
+            species: self.species.clone(),
+        }
     }
 }

@@ -93,7 +93,7 @@ mod fitness_fn_tests {
 
         let regular_engine = GeneticEngine::builder()
             .problem(base_problem.clone())
-            .population(&base_population)
+            .population(base_population.clone())
             .survivor_selector(TournamentSelector::new(3))
             .offspring_selector(RouletteSelector::new())
             .alter(alters![
@@ -105,7 +105,7 @@ mod fitness_fn_tests {
 
         let novelty_engine = GeneticEngine::builder()
             .codec(codec.clone())
-            .population(&base_population)
+            .population(base_population.clone())
             .survivor_selector(TournamentSelector::new(3))
             .offspring_selector(RouletteSelector::new())
             .alter(alters![
@@ -118,7 +118,7 @@ mod fitness_fn_tests {
         let cloned_base_problem = base_problem.clone();
         let combined_engine = GeneticEngine::builder()
             .codec(codec)
-            .population(&base_population)
+            .population(base_population.clone())
             .survivor_selector(TournamentSelector::new(3))
             .offspring_selector(RouletteSelector::new())
             .alter(alters![

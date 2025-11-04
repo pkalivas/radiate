@@ -26,34 +26,17 @@ macro_rules! dispatch_builder_typed {
     // private core: actually match all variants once
     // ------------------------------------------------------------
     (@do $builder:expr, $call:expr) => {{
+        use EngineBuilderHandle::*;
         match $builder {
-            EngineBuilderHandle::Int(b) => {
-                $call(b).map(EngineBuilderHandle::Int)
-            }
-            EngineBuilderHandle::Float(b) => {
-                $call(b).map(EngineBuilderHandle::Float)
-            }
-            EngineBuilderHandle::Char(b) => {
-                $call(b).map(EngineBuilderHandle::Char)
-            }
-            EngineBuilderHandle::Bit(b) => {
-                $call(b).map(EngineBuilderHandle::Bit)
-            }
-            EngineBuilderHandle::Permutation(b) => {
-                $call(b).map(EngineBuilderHandle::Permutation)
-            }
-            EngineBuilderHandle::Any(b) => {
-                $call(b).map(EngineBuilderHandle::Any)
-            }
-            EngineBuilderHandle::Graph(b) => {
-                $call(b).map(EngineBuilderHandle::Graph)
-            }
-            EngineBuilderHandle::Tree(b) => {
-                $call(b).map(EngineBuilderHandle::Tree)
-            }
-            EngineBuilderHandle::Empty => {
-                Err(radiate_py_err!("Cannot apply method to Empty builder"))
-            }
+            Int(b) => $call(b).map(Int),
+            Float(b) => $call(b).map(Float),
+            Char(b) => $call(b).map(Char),
+            Bit(b) => $call(b).map(Bit),
+            Permutation(b) => $call(b).map(Permutation),
+            Any(b) => $call(b).map(Any),
+            Graph(b) => $call(b).map(Graph),
+            Tree(b) => $call(b).map(Tree),
+            Empty => Err(radiate_py_err!("Cannot apply method to Empty builder"))
         }
     }};
 }
@@ -77,6 +60,7 @@ impl PyEngineBuilder {
     }
 
     pub fn build<'py>(&mut self, py: Python<'py>) -> PyResult<PyEngine> {
+        use EngineBuilderHandle::*;
         let mut inner = self.create_builder(py)?;
 
         let mut accum = HashMap::<PyEngineInputType, Vec<PyEngineInput>>::new();
@@ -92,20 +76,16 @@ impl PyEngineBuilder {
         }
 
         Ok(PyEngine::new(match inner {
-            EngineBuilderHandle::Int(builder) => EngineHandle::Int(builder.try_build()?),
-            EngineBuilderHandle::Float(builder) => EngineHandle::Float(builder.try_build()?),
-            EngineBuilderHandle::Char(builder) => EngineHandle::Char(builder.try_build()?),
-            EngineBuilderHandle::Bit(builder) => EngineHandle::Bit(builder.try_build()?),
-            EngineBuilderHandle::Any(builder) => EngineHandle::Any(builder.try_build()?),
-            EngineBuilderHandle::Permutation(builder) => {
-                EngineHandle::Permutation(builder.try_build()?)
-            }
-            EngineBuilderHandle::Graph(builder) => EngineHandle::Graph(builder.try_build()?),
-            EngineBuilderHandle::Tree(builder) => EngineHandle::Tree(builder.try_build()?),
+            Int(builder) => EngineHandle::Int(builder.try_build()?),
+            Float(builder) => EngineHandle::Float(builder.try_build()?),
+            Char(builder) => EngineHandle::Char(builder.try_build()?),
+            Bit(builder) => EngineHandle::Bit(builder.try_build()?),
+            Any(builder) => EngineHandle::Any(builder.try_build()?),
+            Permutation(builder) => EngineHandle::Permutation(builder.try_build()?),
+            Graph(builder) => EngineHandle::Graph(builder.try_build()?),
+            Tree(builder) => EngineHandle::Tree(builder.try_build()?),
             _ => {
-                return Err(radiate_py_err!(
-                    "Unsupported builder type for engine creation"
-                ));
+                radiate_py_bail!("Unsupported builder type for engine creation");
             }
         }))
     }
@@ -138,23 +118,20 @@ impl PyEngineBuilder {
         input_type: PyEngineInputType,
         inputs: &[PyEngineInput],
     ) -> PyResult<EngineBuilderHandle> {
+        use PyEngineInputType::*;
         match input_type {
-            PyEngineInputType::SurvivorSelector | PyEngineInputType::OffspringSelector => {
-                Self::process_selector(builder, inputs)
-            }
-            PyEngineInputType::Alterer => Self::process_alterers(builder, inputs),
-            PyEngineInputType::Objective => Self::process_objective(builder, inputs),
-            PyEngineInputType::MaxPhenotypeAge => Self::process_max_phenotype_age(builder, inputs),
-            PyEngineInputType::PopulationSize => Self::process_population_size(builder, inputs),
-            PyEngineInputType::MaxSpeciesAge => Self::process_max_species_age(builder, inputs),
-            PyEngineInputType::SpeciesThreshold => Self::process_species_threshold(builder, inputs),
-            PyEngineInputType::OffspringFraction => {
-                Self::process_offspring_fraction(builder, inputs)
-            }
-            PyEngineInputType::FrontRange => Self::process_front_range(builder, inputs),
-            PyEngineInputType::Diversity => Self::process_diversity(builder, inputs),
-            PyEngineInputType::Population => Self::process_population(builder, inputs),
-            PyEngineInputType::Subscriber => Self::process_subscribers(builder, inputs),
+            SurvivorSelector | OffspringSelector => Self::process_selector(builder, inputs),
+            Alterer => Self::process_alterers(builder, inputs),
+            Objective => Self::process_objective(builder, inputs),
+            MaxPhenotypeAge => Self::process_max_phenotype_age(builder, inputs),
+            PopulationSize => Self::process_population_size(builder, inputs),
+            MaxSpeciesAge => Self::process_max_species_age(builder, inputs),
+            SpeciesThreshold => Self::process_species_threshold(builder, inputs),
+            OffspringFraction => Self::process_offspring_fraction(builder, inputs),
+            FrontRange => Self::process_front_range(builder, inputs),
+            Diversity => Self::process_diversity(builder, inputs),
+            Population => Self::process_population(builder, inputs),
+            Subscriber => Self::process_subscribers(builder, inputs),
             _ => Ok(builder),
         }
     }
@@ -282,21 +259,18 @@ impl PyEngineBuilder {
         builder: EngineBuilderHandle,
         inputs: &[PyEngineInput],
     ) -> PyResult<EngineBuilderHandle> {
+        use PyEngineInputType::*;
         dispatch_builder_typed!(
             builder,
             inputs,
             Self::process_single_typed(|typed_builder, input| {
                 let selector = input.transform();
                 Ok(match input.input_type() {
-                    PyEngineInputType::SurvivorSelector => {
-                        typed_builder.boxed_survivor_selector(selector)
+                    SurvivorSelector => typed_builder.boxed_survivor_selector(selector),
+                    OffspringSelector => typed_builder.boxed_offspring_selector(selector),
+                    _ => {
+                        radiate_py_bail!("process_selector only implemented for Survivor/Offspring")
                     }
-                    PyEngineInputType::OffspringSelector => {
-                        typed_builder.boxed_offspring_selector(selector)
-                    }
-                    _ => radiate_py_bail!(
-                        "parse_selector_typed only implemented for Survivor/Offspring"
-                    ),
                 })
             })
         )

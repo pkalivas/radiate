@@ -53,12 +53,12 @@ impl GraphMutator {
     /// we attempt to add an edge. If false, we attempt to add a vertex.
     fn mutate_type(&self) -> Option<NodeType> {
         if random_provider::bool(0.5) {
-            if random_provider::random::<f32>() < self.edge_rate {
+            if random_provider::bool(self.edge_rate) {
                 Some(NodeType::Edge)
             } else {
                 None
             }
-        } else if random_provider::random::<f32>() < self.vertex_rate {
+        } else if random_provider::bool(self.vertex_rate) {
             Some(NodeType::Vertex)
         } else {
             None
@@ -76,7 +76,7 @@ where
         // If we have reached this point, this graph is simply optimizing it's nodes.
         if let Some(max_nodes) = chromosome.max_nodes() {
             if chromosome.len() >= max_nodes {
-                return 0.into();
+                return AlterResult::empty();
             }
         }
 

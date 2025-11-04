@@ -22,7 +22,7 @@ impl<C: Chromosome> Mutate<C> for SwapMutator {
         let mut mutations = 0;
 
         for i in 0..chromosome.len() {
-            if random_provider::random::<f32>() < rate {
+            if random_provider::bool(rate) {
                 let swap_index = random_provider::range(0..chromosome.len());
 
                 if swap_index == i {
@@ -34,6 +34,6 @@ impl<C: Chromosome> Mutate<C> for SwapMutator {
             }
         }
 
-        mutations.into()
+        AlterResult::from(mutations)
     }
 }

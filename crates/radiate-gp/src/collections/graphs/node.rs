@@ -155,8 +155,8 @@ pub struct GraphNode<T> {
     direction: Direction,
     node_type: Option<NodeType>,
     arity: Option<Arity>,
-    incoming: SmallVec<[usize; 4]>,
-    outgoing: SmallVec<[usize; 4]>,
+    incoming: SmallVec<[usize; 8]>,
+    outgoing: SmallVec<[usize; 8]>,
 }
 
 impl<T> GraphNode<T> {
@@ -268,7 +268,7 @@ impl<T> GraphNode<T> {
     }
 
     #[inline]
-    fn insert_sorted_unique(v: &mut SmallVec<[usize; 4]>, value: usize) {
+    fn insert_sorted_unique(v: &mut SmallVec<[usize; 8]>, value: usize) {
         match v.binary_search(&value) {
             Ok(_) => {}
             Err(pos) => v.insert(pos, value),
@@ -276,14 +276,14 @@ impl<T> GraphNode<T> {
     }
 
     #[inline]
-    fn remove_sorted(v: &mut SmallVec<[usize; 4]>, value: &usize) {
+    fn remove_sorted(v: &mut SmallVec<[usize; 8]>, value: &usize) {
         if let Ok(pos) = v.binary_search(value) {
             v.remove(pos);
         }
     }
 
     #[inline]
-    fn set_sorted_unique(dst: &mut SmallVec<[usize; 4]>, src: impl IntoIterator<Item = usize>) {
+    fn set_sorted_unique(dst: &mut SmallVec<[usize; 8]>, src: impl IntoIterator<Item = usize>) {
         dst.clear();
         dst.extend(src);
         dst.sort_unstable();
@@ -477,8 +477,8 @@ where
     I: IntoIterator<Item = usize>,
 {
     fn from((index, node_type, value, incoming, outgoing): (usize, NodeType, T, I, I)) -> Self {
-        let mut incoming_indices = SmallVec::<[usize; 4]>::new();
-        let mut outgoing_indices = SmallVec::<[usize; 4]>::new();
+        let mut incoming_indices = SmallVec::<[usize; 8]>::new();
+        let mut outgoing_indices = SmallVec::<[usize; 8]>::new();
 
         GraphNode::<T>::set_sorted_unique(&mut incoming_indices, incoming);
         GraphNode::<T>::set_sorted_unique(&mut outgoing_indices, outgoing);

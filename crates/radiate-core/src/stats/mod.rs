@@ -1,43 +1,30 @@
-pub mod distribution;
-pub mod histogram;
-pub mod metrics;
-pub mod statistics;
-pub mod time_statistic;
+mod defaults;
+mod distribution;
+mod fmt;
+mod metrics;
+mod set;
+mod statistics;
+mod time_statistic;
 
+pub use defaults::metric_names;
 pub use distribution::*;
-pub use histogram::*;
-pub use metric_names::*;
+pub use fmt::{render_dashboard, render_full, render_metric_rows};
 pub use metrics::*;
+pub use set::MetricSet;
 pub use statistics::*;
 pub use time_statistic::*;
 
-pub mod metric_names {
-    pub const TIME: &str = "time";
+#[inline]
+fn normalize_name(name: &'static str) -> &'static str {
+    let is_snake = name
+        .bytes()
+        .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_');
 
-    pub const SCORE_IMPROVEMENT_RATE: &str = "score_improv_rate";
-    pub const SCORES: &str = "scores";
-    pub const AGE: &str = "age";
+    if is_snake {
+        return name;
+    }
 
-    pub const REPLACE_AGE: &str = "replace_age";
-    pub const REPLACE_INVALID: &str = "replace_invalid";
-
-    pub const GENOME_SIZE: &str = "genome_size";
-    pub const FRONT_ADDITIONS: &str = "front_additions";
-
-    pub const UNIQUE_MEMBERS: &str = "unique_members";
-    pub const UNIQUE_SCORES: &str = "unique_scores";
-
-    pub const EVALUATION_COUNT: &str = "evaluation_count";
-
-    pub const DIVERSITY_RATIO: &str = "diversity_ratio";
-    pub const SCORE_VOLATILITY: &str = "score_volatility";
-
-    pub const SPECIES_COUNT: &str = "species_count";
-    pub const SPECIES_AGE_FAIL: &str = "species_age_fail";
-    pub const SPECIES_DISTANCE_DIST: &str = "species_distance_dist";
-    pub const SPECIES_CREATED: &str = "species_created";
-    pub const SPECIES_DIED: &str = "species_died";
-    pub const SPECIES_AGE: &str = "species_age";
+    crate::intern!(name.to_snake_case())
 }
 
 pub trait ToSnakeCase {

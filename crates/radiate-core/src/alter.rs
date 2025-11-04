@@ -1,6 +1,7 @@
-use crate::{
-    Chromosome, Gene, Genotype, Metric, Population, ToSnakeCase, indexes, labels, random_provider,
-};
+use std::iter::once;
+
+use crate::stats::ToSnakeCase;
+use crate::{Chromosome, Gene, Genotype, Metric, Population, indexes, intern, random_provider};
 
 #[macro_export]
 macro_rules! alters {
@@ -114,6 +115,7 @@ impl<C: Chromosome> Alter<C> for AlterAction<C> {
         }
     }
 
+    #[inline(always)]
     fn alter(&self, population: &mut Population<C>, generation: usize) -> Vec<Metric> {
         match &self {
             AlterAction::Mutate(name, rate, m) => {
@@ -121,27 +123,10 @@ impl<C: Chromosome> Alter<C> for AlterAction<C> {
 
                 let timer = std::time::Instant::now();
                 let AlterResult(count, metrics) = m.mutate(population, generation, *rate);
-                let metric = Metric::new(name)
-                    .with_labels(labels![
-                        "operator" => "mutation",
-                        "type" => "alter",
-                        "rate" => rate.to_string(),
-                    ])
-                    .upsert(count)
-                    .upsert(timer.elapsed());
+                let metric = Metric::new(name).upsert(count).upsert(timer.elapsed());
 
                 match metrics {
-                    Some(metrics) => metrics
-                        .into_iter()
-                        .map(|m| {
-                            m.with_labels(labels![
-                                "operator" => "mutation",
-                                "type" => "alter",
-                                "rate" => rate.to_string(),
-                            ])
-                        })
-                        .chain(std::iter::once(metric))
-                        .collect(),
+                    Some(metrics) => metrics.into_iter().chain(once(metric)).collect(),
                     None => vec![metric],
                 }
             }
@@ -150,27 +135,10 @@ impl<C: Chromosome> Alter<C> for AlterAction<C> {
 
                 let timer = std::time::Instant::now();
                 let AlterResult(count, metrics) = c.crossover(population, generation, *rate);
-                let metric = Metric::new(name)
-                    .with_labels(labels![
-                        "operator" => "crossover",
-                        "type" => "alter",
-                        "rate" => rate.to_string(),
-                    ])
-                    .upsert(count)
-                    .upsert(timer.elapsed());
+                let metric = Metric::new(name).upsert(count).upsert(timer.elapsed());
 
                 match metrics {
-                    Some(metrics) => metrics
-                        .into_iter()
-                        .map(|m| {
-                            m.with_labels(labels![
-                                "operator" => "crossover",
-                                "type" => "alter",
-                                "rate" => rate.to_string(),
-                            ])
-                        })
-                        .chain(std::iter::once(metric))
-                        .collect(),
+                    Some(metrics) => metrics.into_iter().chain(once(metric)).collect(),
                     None => vec![metric],
                 }
             }
@@ -216,7 +184,7 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
     where
         Self: Sized + 'static,
     {
-        AlterAction::Crossover(self.name().leak(), self.rate(), Box::new(self))
+        AlterAction::Crossover(intern!(self.name()), self.rate(), Box::new(self))
     }
 
     #[inline]
@@ -229,7 +197,7 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
         let mut result = AlterResult::default();
 
         for i in 0..population.len() {
-            if random_provider::random::<f32>() < rate && population.len() > MIN_POPULATION_SIZE {
+            if random_provider::bool(rate) && population.len() > MIN_POPULATION_SIZE {
                 let parent_indexes =
                     indexes::individual_indexes(i, population.len(), MIN_NUM_PARENTS);
                 let cross_result = self.cross(population, &parent_indexes, generation, rate);
@@ -279,7 +247,7 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
         let mut cross_count = 0;
 
         for i in 0..std::cmp::min(chrom_one.len(), chrom_two.len()) {
-            if random_provider::random::<f32>() < rate {
+            if random_provider::bool(rate) {
                 let gene_one = chrom_one.get(i);
                 let gene_two = chrom_two.get(i);
 
@@ -316,7 +284,7 @@ pub trait Mutate<C: Chromosome>: Send + Sync {
     where
         Self: Sized + 'static,
     {
-        AlterAction::Mutate(self.name().leak(), self.rate(), Box::new(self))
+        AlterAction::Mutate(intern!(self.name()), self.rate(), Box::new(self))
     }
 
     #[inline]
@@ -352,7 +320,7 @@ pub trait Mutate<C: Chromosome>: Send + Sync {
     fn mutate_chromosome(&self, chromosome: &mut C, rate: f32) -> AlterResult {
         let mut count = 0;
         for gene in chromosome.iter_mut() {
-            if random_provider::random::<f32>() < rate {
+            if random_provider::bool(rate) {
                 *gene = self.mutate_gene(gene);
                 count += 1;
             }

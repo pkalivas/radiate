@@ -144,6 +144,7 @@ pub trait Problem<C: Chromosome, T>: Send + Sync {
 /// let problem = EngineProblem {
 ///     codec: Arc::new(FloatCodec::vector(5, 0.0..1.0)),
 ///     fitness_fn,
+///     objective: Objective::Single(Optimize::Maximize),
 /// };
 /// ```
 ///
@@ -225,7 +226,7 @@ unsafe impl<C: Chromosome, T> Sync for EngineProblem<C, T> {}
 /// use std::sync::Arc;
 ///
 /// // Create a simple fitness function
-/// let batch_fitness_fn = Arc::new(|phenotypes: &[Vec<f32>]| {
+/// let batch_fitness_fn = Arc::new(|phenotypes: Vec<Vec<f32>>| {
 ///     phenotypes.iter().map(|p| {
 ///         Score::from(p.iter().cloned().fold(0.0, f32::max))
 ///     }).collect()
@@ -234,6 +235,7 @@ unsafe impl<C: Chromosome, T> Sync for EngineProblem<C, T> {}
 /// let problem = BatchEngineProblem {
 ///     codec: Arc::new(FloatCodec::vector(5, 0.0..1.0)),
 ///     batch_fitness_fn,
+///     objective: Objective::Single(Optimize::Maximize),
 /// };
 /// ```
 ///

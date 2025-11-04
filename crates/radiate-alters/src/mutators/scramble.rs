@@ -24,7 +24,7 @@ impl<C: Chromosome> Mutate<C> for ScrambleMutator {
     fn mutate_chromosome(&self, chromosome: &mut C, rate: f32) -> AlterResult {
         let mut mutations = 0;
 
-        if random_provider::random::<f32>() < rate {
+        if random_provider::bool(rate) {
             let start = random_provider::range(0..chromosome.len());
             let end = random_provider::range(start..chromosome.len());
 
@@ -33,6 +33,6 @@ impl<C: Chromosome> Mutate<C> for ScrambleMutator {
             mutations += 1;
         }
 
-        mutations.into()
+        AlterResult::from(mutations)
     }
 }

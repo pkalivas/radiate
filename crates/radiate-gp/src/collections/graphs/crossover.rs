@@ -59,7 +59,7 @@ where
                         let node_two = chromo_two.get(*i);
 
                         node_one.arity() == node_two.arity()
-                            && random_provider::random::<f32>() < self.parent_node_rate
+                            && random_provider::bool(self.parent_node_rate)
                     })
                     .collect::<Vec<usize>>();
 

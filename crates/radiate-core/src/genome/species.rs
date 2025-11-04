@@ -28,7 +28,6 @@ impl Deref for SpeciesId {
     }
 }
 
-#[derive(Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Species<C: Chromosome> {
     pub id: SpeciesId,
@@ -51,6 +50,20 @@ impl<C: Chromosome> Species<C> {
             score: Some(initial.score().unwrap().clone()),
             mascot: initial.clone(),
             population: Population::new(vec![initial.clone()]),
+        }
+    }
+
+    pub fn clone(other: &Self) -> Self
+    where
+        C: Clone,
+    {
+        Species {
+            id: other.id,
+            generation: other.generation,
+            tracker: other.tracker.clone(),
+            score: other.score.clone(),
+            mascot: other.mascot.clone(),
+            population: other.population.clone(),
         }
     }
 
@@ -105,6 +118,19 @@ impl<C: Chromosome> Species<C> {
 impl<C: Chromosome> Scored for Species<C> {
     fn score(&self) -> Option<&Score> {
         self.score.as_ref()
+    }
+}
+
+impl<C: Chromosome + Clone> Clone for Species<C> {
+    fn clone(&self) -> Self {
+        Species {
+            id: self.id,
+            generation: self.generation,
+            tracker: self.tracker.clone(),
+            score: self.score.clone(),
+            mascot: self.mascot.clone(),
+            population: self.population.clone(),
+        }
     }
 }
 

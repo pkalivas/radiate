@@ -46,3 +46,10 @@ pub(crate) const HOIST_MUTATOR: &str = "HoistMutator";
 pub(crate) const INVERSION_MUTATOR: &str = "InversionMutator";
 pub(crate) const POLYNOMIAL_MUTATOR: &str = "PolynomialMutator";
 pub(crate) const JITTER_MUTATOR: &str = "JitterMutator";
+
+// Events
+pub const START_EVENT: &str = "start_event";
+pub const STOP_EVENT: &str = "stop_event";
+pub const EPOCH_START_EVENT: &str = "epoch_start_event";
+pub const EPOCH_COMPLETE_EVENT: &str = "epoch_complete_event";
+pub const ENGINE_IMPROVEMENT_EVENT: &str = "engine_improvement_event";

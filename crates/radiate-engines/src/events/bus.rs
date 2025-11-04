@@ -47,8 +47,6 @@ impl<T> EventBus<T> {
                 ctx.metrics.clone(),
                 ctx.score.clone().unwrap_or_default(),
             ),
-            EngineMessage::StepStart(_, step) => EngineEvent::StepStart(step),
-            EngineMessage::StepComplete(_, step) => EngineEvent::StepComplete(step),
             EngineMessage::Improvement(ctx) => EngineEvent::Improvement(
                 ctx.index,
                 ctx.best.clone(),

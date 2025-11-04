@@ -1,9 +1,10 @@
 use pyo3::prelude::*;
 use radiate_python::{
     PyAnyCodec, PyBitCodec, PyCharCodec, PyChromosome, PyEcosystem, PyEngine, PyEngineBuilder,
-    PyEngineInput, PyEngineInputType, PyFitnessFn, PyFloatCodec, PyGene, PyGeneType, PyGeneration,
-    PyGenotype, PyGraph, PyGraphCodec, PyIntCodec, PyPermutationCodec, PyPhenotype, PyPopulation,
-    PyRandomProvider, PySpecies, PySubscriber, PyTree, PyTreeCodec, py_alter, py_select,
+    PyEngineEvent, PyEngineInput, PyEngineInputType, PyFitnessFn, PyFloatCodec, PyGene, PyGeneType,
+    PyGeneration, PyGenotype, PyGraph, PyGraphCodec, PyIntCodec, PyPermutationCodec, PyPhenotype,
+    PyPopulation, PyRandomProvider, PySpecies, PySubscriber, PyTree, PyTreeCodec, py_alter,
+    py_select,
 };
 
 #[pymodule(gil_used = false)]
@@ -35,6 +36,7 @@ fn radiate(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyAnyCodec>()?;
 
     m.add_class::<PySubscriber>()?;
+    m.add_class::<PyEngineEvent>()?;
 
     m.add_class::<PyGraph>()?;
     m.add_class::<PyTree>()?;

@@ -19,7 +19,7 @@ fn main() {
         .survivor_selector(NSGA2Selector::new())
         .front_size(250..350)
         .alter(alters!(
-            SimulatedBinaryCrossover::new(1_f32, 1.0),
+            SimulatedBinaryCrossover::new(1_f32, 2.0),
             UniformMutator::new(0.1),
         ))
         .build();
