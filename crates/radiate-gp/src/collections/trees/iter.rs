@@ -1,7 +1,6 @@
+use super::TreeChromosome;
 use crate::collections::{Tree, TreeNode};
 use std::{collections::VecDeque, marker::PhantomData};
-
-use super::TreeChromosome;
 
 /// Tree traversal iterators for pre-order, post-order, and breadth-first search.
 /// These iterators allow for efficient traversal of tree structures, providing

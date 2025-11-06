@@ -1,4 +1,5 @@
 use radiate_core::*;
+use radiate_error::Result;
 
 #[derive(Clone)]
 pub struct FunctionDiversityProblem {
@@ -32,9 +33,9 @@ impl Problem<FloatChromosome, Vec<f32>> for FunctionDiversityProblem {
         self.codec.decode(genotype)
     }
 
-    fn eval(&self, individual: &Genotype<FloatChromosome>) -> Score {
+    fn eval(&self, individual: &Genotype<FloatChromosome>) -> Result<Score> {
         let weights = self.decode(individual);
-        Score::from(self.eval_raw(&weights))
+        Ok(Score::from(self.eval_raw(&weights)))
     }
 }
 
@@ -92,7 +93,7 @@ mod fitness_fn_tests {
 
         let regular_engine = GeneticEngine::builder()
             .problem(base_problem.clone())
-            .population(&base_population)
+            .population(base_population.clone())
             .survivor_selector(TournamentSelector::new(3))
             .offspring_selector(RouletteSelector::new())
             .alter(alters![
@@ -104,7 +105,7 @@ mod fitness_fn_tests {
 
         let novelty_engine = GeneticEngine::builder()
             .codec(codec.clone())
-            .population(&base_population)
+            .population(base_population.clone())
             .survivor_selector(TournamentSelector::new(3))
             .offspring_selector(RouletteSelector::new())
             .alter(alters![
@@ -117,7 +118,7 @@ mod fitness_fn_tests {
         let cloned_base_problem = base_problem.clone();
         let combined_engine = GeneticEngine::builder()
             .codec(codec)
-            .population(&base_population)
+            .population(base_population.clone())
             .survivor_selector(TournamentSelector::new(3))
             .offspring_selector(RouletteSelector::new())
             .alter(alters![

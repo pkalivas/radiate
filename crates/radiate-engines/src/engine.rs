@@ -1,10 +1,12 @@
-use crate::Context;
+use crate::Chromosome;
 use crate::builder::GeneticEngineBuilder;
+use crate::context::Context;
+use crate::events::EngineMessage;
 use crate::iter::EngineIterator;
 use crate::pipeline::Pipeline;
-use crate::{Chromosome, EngineEvent};
 use crate::{EventBus, Generation};
-use radiate_core::{Engine, metric_names};
+use radiate_core::Engine;
+use radiate_core::error::Result;
 
 /// The [GeneticEngine] is the core component of the Radiate library's genetic algorithm implementation.
 /// The engine is designed to be fast, flexible and extensible, allowing users to
@@ -59,7 +61,7 @@ where
 {
     context: Context<C, T>,
     pipeline: Pipeline<C>,
-    bus: EventBus<EngineEvent<T>>,
+    bus: EventBus<T>,
 }
 
 impl<C, T> GeneticEngine<C, T>
@@ -71,11 +73,7 @@ where
     ///
     /// This constructor is primarily used internally by the builder pattern.
     /// Users should create engines using `GeneticEngine::builder()`.
-    pub(crate) fn new(
-        context: Context<C, T>,
-        pipeline: Pipeline<C>,
-        bus: EventBus<EngineEvent<T>>,
-    ) -> Self {
+    pub(crate) fn new(context: Context<C, T>, pipeline: Pipeline<C>, bus: EventBus<T>) -> Self {
         GeneticEngine {
             context,
             pipeline,
@@ -147,42 +145,20 @@ where
     type Epoch = Generation<C, T>;
 
     #[inline]
-    fn next(&mut self) -> Generation<C, T> {
+    fn next(&mut self) -> Result<Generation<C, T>> {
         if matches!(self.context.index, 0) {
-            self.bus.emit(EngineEvent::start());
+            self.bus.publish(EngineMessage::<C, T>::Start);
         }
 
-        self.bus.emit(EngineEvent::epoch_start(&self.context));
+        self.bus.publish(EngineMessage::EpochStart(&self.context));
+        self.pipeline.run(&mut self.context)?;
+        self.bus.publish(EngineMessage::EpochEnd(&self.context));
 
-        let timer = std::time::Instant::now();
-        self.pipeline.run(&mut self.context, &self.bus);
-        let elapsed = timer.elapsed();
-
-        self.context
-            .epoch_metrics
-            .upsert(metric_names::TIME, elapsed);
-
-        self.context.metrics.merge(&self.context.epoch_metrics);
-
-        let best = self.context.ecosystem.population().get(0);
-        if let Some(best) = best {
-            if let (Some(score), Some(current)) = (best.score(), &self.context.score) {
-                if self.context.objective.is_better(score, current) {
-                    self.context.score = Some(score.clone());
-                    self.context.best = self.context.problem.decode(best.genotype());
-                    self.bus.emit(EngineEvent::improvement(&self.context));
-                }
-            } else {
-                self.context.score = Some(best.score().unwrap().clone());
-                self.context.best = self.context.problem.decode(best.genotype());
-            }
+        if self.context.try_advance_one() {
+            self.bus.publish(EngineMessage::Improvement(&self.context));
         }
 
-        self.bus.emit(EngineEvent::epoch_complete(&self.context));
-
-        self.context.index += 1;
-
-        Generation::from(&self.context)
+        Ok(Generation::from(&self.context))
     }
 }
 
@@ -206,6 +182,6 @@ where
     T: Clone + Send + Sync + 'static,
 {
     fn drop(&mut self) {
-        self.bus.emit(EngineEvent::stop(&self.context));
+        self.bus.publish(EngineMessage::Stop(&self.context));
     }
 }

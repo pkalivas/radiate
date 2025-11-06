@@ -4,31 +4,21 @@ use crate::{Objective, Score, objectives::Scored, tracker::Tracker};
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::{self, Debug, Formatter},
-    ops::Deref,
     sync::atomic::{AtomicU64, Ordering},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[repr(transparent)]
-pub struct SpeciesId(u64);
+pub struct SpeciesId(pub u64);
 
 impl SpeciesId {
     pub fn new() -> Self {
         static SPECIES_ID: AtomicU64 = AtomicU64::new(0);
-        SpeciesId(SPECIES_ID.fetch_add(1, Ordering::SeqCst))
+        SpeciesId(SPECIES_ID.fetch_add(1, Ordering::Relaxed))
     }
 }
 
-impl Deref for SpeciesId {
-    type Target = u64;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-#[derive(Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Species<C: Chromosome> {
     pub id: SpeciesId,
@@ -51,6 +41,20 @@ impl<C: Chromosome> Species<C> {
             score: Some(initial.score().unwrap().clone()),
             mascot: initial.clone(),
             population: Population::new(vec![initial.clone()]),
+        }
+    }
+
+    pub fn clone(other: &Self) -> Self
+    where
+        C: Clone,
+    {
+        Species {
+            id: other.id,
+            generation: other.generation,
+            tracker: other.tracker.clone(),
+            score: other.score.clone(),
+            mascot: other.mascot.clone(),
+            population: other.population.clone(),
         }
     }
 
@@ -105,6 +109,19 @@ impl<C: Chromosome> Species<C> {
 impl<C: Chromosome> Scored for Species<C> {
     fn score(&self) -> Option<&Score> {
         self.score.as_ref()
+    }
+}
+
+impl<C: Chromosome + Clone> Clone for Species<C> {
+    fn clone(&self) -> Self {
+        Species {
+            id: self.id,
+            generation: self.generation,
+            tracker: self.tracker.clone(),
+            score: self.score.clone(),
+            mascot: self.mascot.clone(),
+            population: self.population.clone(),
+        }
     }
 }
 

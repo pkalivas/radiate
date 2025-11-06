@@ -1,4 +1,5 @@
 use radiate_core::*;
+use radiate_error::Result;
 
 pub fn float_ecosystem() -> Ecosystem<FloatChromosome> {
     Ecosystem::new(Population::from(vec![
@@ -19,7 +20,7 @@ impl Problem<FloatChromosome, f32> for FloatEvalProblem {
         unreachable!()
     }
 
-    fn eval(&self, individual: &Genotype<FloatChromosome>) -> Score {
-        Score::from(*individual[0].get(0).allele())
+    fn eval(&self, individual: &Genotype<FloatChromosome>) -> Result<Score> {
+        Ok(Score::from(*individual[0].get(0).allele()))
     }
 }

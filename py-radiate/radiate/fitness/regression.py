@@ -11,6 +11,7 @@ class Regression[T](FitnessBase[T]):
         features: list[list[float]],
         targets: list[list[float]],
         loss: str = "mse",
+        batch: bool = False,
     ):
         """Initialize regression fitness with features, targets, and loss function."""
         if not isinstance(features, list):
@@ -19,5 +20,5 @@ class Regression[T](FitnessBase[T]):
             raise TypeError("targets must be a list of lists.")
 
         super().__init__(
-            PyFitnessFn.regression(features=features, targets=targets, loss=loss)
+            PyFitnessFn.regression(features=features, targets=targets, loss=loss, is_batch=batch)
         )

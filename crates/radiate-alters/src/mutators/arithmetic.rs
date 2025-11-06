@@ -36,7 +36,7 @@ impl<G: ArithmeticGene, C: Chromosome<Gene = G>> Mutate<C> for ArithmeticMutator
     fn mutate_chromosome(&self, chromosome: &mut C, rate: f32) -> AlterResult {
         let mut mutations = 0;
         for gene in chromosome.iter_mut() {
-            if random_provider::random::<f32>() < rate {
+            if random_provider::bool(rate) {
                 let operator = random_provider::range(0..4);
 
                 let new_gene = match operator {
@@ -52,6 +52,6 @@ impl<G: ArithmeticGene, C: Chromosome<Gene = G>> Mutate<C> for ArithmeticMutator
             }
         }
 
-        mutations.into()
+        AlterResult::from(mutations)
     }
 }

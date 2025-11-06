@@ -9,6 +9,8 @@
 //! evolutionary algorithms to implement their own epoch types and progression logic
 //! while providing a common interface for execution control.
 
+use radiate_error::Result;
+
 /// A trait representing an evolutionary computation engine.
 //
 /// The [Engine] trait defines the fundamental interface for evolutionary algorithms.
@@ -25,6 +27,7 @@
 ///
 /// ```rust
 /// use radiate_core::engine::{Engine, EngineExt};
+/// use radiate_error::RadiateError;
 ///
 /// #[derive(Default)]
 /// struct MyEngine {
@@ -41,15 +44,15 @@
 /// impl Engine for MyEngine {
 ///     type Epoch = MyEpoch;
 ///     
-///     fn next(&mut self) -> Self::Epoch {
+///     fn next(&mut self) -> Result<Self::Epoch, RadiateError> {
 ///         // Perform one generation of evolution
 ///         // ... evolve population ...
 ///         self.generation += 1;
 ///         
-///         MyEpoch {
+///         Ok(MyEpoch {
 ///             generation: self.generation,
 ///             population_size: self.population.len()
-///         }
+///         })
 ///     }
 /// }
 ///
@@ -102,7 +105,7 @@ pub trait Engine {
     ///
     /// This method is called repeatedly during execution, so it should be
     /// optimized for performance.
-    fn next(&mut self) -> Self::Epoch;
+    fn next(&mut self) -> Result<Self::Epoch>;
 }
 
 /// Extension trait providing convenient methods for running engines with custom logic.
@@ -183,10 +186,15 @@ where
         F: Fn(&E::Epoch) -> bool,
     {
         loop {
-            let epoch = self.next();
-
-            if limit(&epoch) {
-                break epoch;
+            match self.next() {
+                Ok(epoch) => {
+                    if limit(&epoch) {
+                        return epoch;
+                    }
+                }
+                Err(e) => {
+                    panic!("{e}");
+                }
             }
         }
     }
@@ -209,12 +217,12 @@ mod tests {
     impl Engine for MockEngine {
         type Epoch = MockEpoch;
 
-        fn next(&mut self) -> Self::Epoch {
+        fn next(&mut self) -> Result<Self::Epoch> {
             self.generation += 1;
-            MockEpoch {
+            Ok(MockEpoch {
                 generation: self.generation,
                 fitness: 1.0 / (self.generation as f32),
-            }
+            })
         }
     }
 
@@ -222,11 +230,11 @@ mod tests {
     fn test_engine_next() {
         let mut engine = MockEngine::default();
 
-        let epoch1 = engine.next();
+        let epoch1 = engine.next().unwrap();
         assert_eq!(epoch1.generation, 1);
         assert_eq!(epoch1.fitness, 1.0);
 
-        let epoch2 = engine.next();
+        let epoch2 = engine.next().unwrap();
         assert_eq!(epoch2.generation, 2);
         assert_eq!(epoch2.fitness, 0.5);
     }

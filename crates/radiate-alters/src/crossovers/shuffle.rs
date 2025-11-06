@@ -19,10 +19,10 @@ impl<C: Chromosome + Clone> Crossover<C> for ShuffleCrossover {
     fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C, _: f32) -> AlterResult {
         let length = std::cmp::min(chrom_one.len(), chrom_two.len());
         if length < 2 {
-            return 0.into();
+            return AlterResult::empty();
         }
 
-        let mut indices: Vec<usize> = (0..length).collect();
+        let mut indices = (0..length).collect::<Vec<usize>>();
         random_provider::shuffle(&mut indices);
 
         let temp_chrom_one = chrom_one.clone();
@@ -37,6 +37,6 @@ impl<C: Chromosome + Clone> Crossover<C> for ShuffleCrossover {
             }
         }
 
-        cross_count.into()
+        AlterResult::from(cross_count)
     }
 }

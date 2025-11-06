@@ -1,6 +1,5 @@
 use crate::GeneticEngineBuilder;
 use radiate_core::{Chromosome, Diversity};
-use radiate_error::radiate_err;
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -26,21 +25,20 @@ where
     }
 
     pub fn species_threshold(mut self, threshold: f32) -> Self {
-        if threshold < 0.0 {
-            self.errors
-                .push(radiate_err!(InvalidConfig: "species_threshold must be greater than 0"));
-        }
+        self.add_error_if(
+            || threshold < 0.0,
+            "species_threshold must be greater than 0",
+        );
 
         self.params.species_params.species_threshold = threshold;
         self
     }
 
     pub fn max_species_age(mut self, max_species_age: usize) -> Self {
-        if max_species_age < 1 {
-            self.errors.push(radiate_err!(
-                InvalidConfig: "max_species_age must be greater than 0"
-            ));
-        }
+        self.add_error_if(
+            || max_species_age < 1,
+            "max_species_age must be greater than 0",
+        );
 
         self.params.species_params.max_species_age = max_species_age;
         self

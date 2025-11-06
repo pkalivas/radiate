@@ -9,4 +9,5 @@ pyo3 = { workspace = true, features = ["multiple-pymethods", "abi3-py39"] }
 serde = { workspace = true, features = ["derive"] }
 numpy = { workspace = true }
 serde_json = { workspace = true }
+radiate-error = { workspace = true, features = ["python"] }
 radiate = { workspace = true, features = ["gp", "rayon", "serde"] }

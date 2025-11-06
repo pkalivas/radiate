@@ -1,8 +1,6 @@
 use super::DataSet;
 use crate::EvalMut;
 
-const ZERO: f32 = 0.0;
-
 #[derive(Debug, Clone, Copy)]
 pub enum Loss {
     MSE,
@@ -13,66 +11,76 @@ pub enum Loss {
 
 impl Loss {
     #[inline]
-    pub fn calculate(&self, data_set: &DataSet, eval: &mut impl EvalMut<[f32], Vec<f32>>) -> f32 {
-        let len = data_set.len() as f32;
+    pub fn calc(&self, data_set: &DataSet, eval: &mut impl EvalMut<[f32], Vec<f32>>) -> f32 {
+        let out_len = data_set.shape().2;
+        let mut buffer = vec![0.0; out_len];
+
+        self.calculate(
+            data_set,
+            |x, y| {
+                let v = eval.eval_mut(x);
+                y.copy_from_slice(&v);
+            },
+            &mut buffer[..out_len],
+        )
+    }
+
+    #[inline]
+    pub fn calculate<F>(&self, data_set: &DataSet, mut eval_into_buf: F, buffer: &mut [f32]) -> f32
+    where
+        F: FnMut(&[f32], &mut [f32]),
+    {
+        let n = data_set.len() as f32;
 
         match self {
             Loss::MSE => {
-                let sum = data_set
-                    .iter()
-                    .map(|sample| {
-                        let output = eval.eval_mut(sample.input());
-                        sample
-                            .output()
-                            .iter()
-                            .zip(output.iter())
-                            .map(|(y_true, y_pred)| {
-                                let diff = y_true - y_pred;
-                                diff * diff
-                            })
-                            .sum::<f32>()
-                    })
-                    .sum::<f32>();
-
-                sum / len
+                let mut sum = 0.0;
+                for sample in data_set.iter() {
+                    eval_into_buf(sample.input(), buffer);
+                    let target = sample.output();
+                    for i in 0..target.len() {
+                        let d = target[i] - buffer[i];
+                        sum += d * d;
+                    }
+                }
+                sum / n
             }
             Loss::MAE => {
-                let mut sum = ZERO;
+                let mut sum = 0.0;
                 for sample in data_set.iter() {
-                    let output = eval.eval_mut(sample.input());
-
-                    for i in 0..sample.output().len() {
-                        let diff = sample.output()[i] - output[i];
-                        sum += diff.abs();
+                    eval_into_buf(sample.input(), buffer);
+                    let target = sample.output();
+                    for i in 0..target.len() {
+                        let d = target[i] - buffer[i];
+                        sum += d.abs();
                     }
                 }
-
-                sum /= data_set.iter().len() as f32;
-                sum
+                sum / n
             }
             Loss::CrossEntropy => {
-                let mut sum = ZERO;
+                const EPS: f32 = 1e-7;
+                let mut sum = 0.0;
                 for sample in data_set.iter() {
-                    let output = eval.eval_mut(sample.input());
-
-                    for i in 0..sample.output().len() {
-                        sum += sample.output()[i] * output[i].ln();
+                    eval_into_buf(sample.input(), buffer);
+                    let target = sample.output();
+                    for i in 0..target.len() {
+                        let p = target[i];
+                        let q = buffer[i].clamp(EPS, 1.0);
+                        sum += -p * q.ln();
                     }
                 }
-
-                sum
+                sum / n
             }
             Loss::Diff => {
-                let mut sum = ZERO;
+                let mut sum = 0.0;
                 for sample in data_set.iter() {
-                    let output = eval.eval_mut(sample.input());
-
-                    for i in 0..sample.output().len() {
-                        sum += (sample.output()[i] - output[i]).abs();
+                    eval_into_buf(sample.input(), buffer);
+                    let target = sample.output();
+                    for i in 0..target.len() {
+                        sum += (target[i] - buffer[i]).abs();
                     }
                 }
-
-                sum
+                sum / n
             }
         }
     }

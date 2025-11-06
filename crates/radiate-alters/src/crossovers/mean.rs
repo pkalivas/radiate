@@ -37,7 +37,7 @@ where
         let mut count = 0;
 
         for (gene_one, gene_two) in chrom_one.iter_mut().zip(chrom_two.iter()) {
-            if random_provider::random::<f32>() < rate {
+            if random_provider::bool(rate) {
                 *gene_one = gene_one.mean(gene_two);
                 count += 1;
             }

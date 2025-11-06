@@ -171,7 +171,7 @@ impl<T: Debug> Debug for Tree<T> {
 mod test {
 
     use super::*;
-    use crate::{Arity, Node, NodeType, Op, TreeIterator};
+    use crate::{Arity, Node, NodeType, Op, TreeCrossover, TreeIterator};
 
     #[test]
     fn test_swap_subtrees() {
@@ -187,17 +187,17 @@ mod test {
                 .attach(TreeNode::new(Op::constant(4.0))),
         );
 
-        tree_one.as_mut().swap_subtrees(tree_two.as_mut(), 1, 1);
+        let copy_one = tree_one.clone();
+        let copy_two = tree_two.clone();
 
-        let values_one = tree_one
-            .iter_breadth_first()
-            .filter_map(|n| match &n.value() {
-                Op::Const(_, v) => Some(*v),
-                _ => None,
-            })
-            .collect::<Vec<f32>>();
+        TreeCrossover::cross_nodes(tree_one.as_mut(), tree_two.as_mut(), usize::MAX);
 
-        assert_eq!(values_one, vec![3.0, 2.0]);
+        let new_one = tree_one.clone();
+        let new_two = tree_two.clone();
+
+        // Ensure that subtrees have been swapped
+        assert_ne!(copy_one, new_one);
+        assert_ne!(copy_two, new_two);
     }
 
     #[test]

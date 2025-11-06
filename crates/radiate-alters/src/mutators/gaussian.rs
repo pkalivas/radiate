@@ -31,7 +31,7 @@ impl<C: Chromosome<Gene = FloatGene>> Mutate<C> for GaussianMutator {
     fn mutate_chromosome(&self, chromosome: &mut C, rate: f32) -> AlterResult {
         let mut count = 0;
         for gene in chromosome.genes_mut() {
-            if random_provider::random::<f32>() < rate {
+            if random_provider::bool(rate) {
                 let min = *gene.min() as f64;
                 let max = *gene.max() as f64;
 
@@ -47,6 +47,6 @@ impl<C: Chromosome<Gene = FloatGene>> Mutate<C> for GaussianMutator {
             }
         }
 
-        count.into()
+        AlterResult::from(count)
     }
 }

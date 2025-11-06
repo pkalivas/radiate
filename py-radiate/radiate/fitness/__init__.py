@@ -1,6 +1,6 @@
 from .base import FitnessBase
 from .regression import Regression
-from .custom import CallableFitness
+from .custom import CallableFitness, BatchFitness
 from .novelty import NoveltySearch
 
 __all__ = [
@@ -8,4 +8,5 @@ __all__ = [
     "Regression",
     "CallableFitness",
     "NoveltySearch",
+    "BatchFitness",
 ]

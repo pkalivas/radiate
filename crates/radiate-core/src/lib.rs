@@ -3,6 +3,7 @@ pub mod codecs;
 pub mod distance;
 pub mod domain;
 pub mod engine;
+pub mod error;
 pub mod evaluator;
 pub mod fitness;
 pub mod genome;
@@ -11,6 +12,9 @@ pub mod problem;
 pub mod replacement;
 pub mod selector;
 pub mod stats;
+
+use radiate_error::Result;
+pub use radiate_error::{RadiateError, ensure, radiate_err};
 
 pub use alter::{Alter, AlterAction, AlterResult, Crossover, Mutate};
 pub use codecs::{
@@ -27,9 +31,14 @@ pub use objectives::{Front, Objective, Optimize, Score, pareto};
 pub use problem::{BatchEngineProblem, EngineProblem, Problem};
 pub use replacement::{EncodeReplace, PopulationSampleReplace, ReplacementStrategy};
 pub use selector::Select;
-pub use stats::*;
+pub use stats::{
+    Distribution, Metric, MetricScope, MetricSet, MetricUpdate, Rollup, Statistic, TimeStatistic,
+    metric_names, render_dashboard, render_full,
+};
 
 pub mod prelude {
+    pub use radiate_error::*;
+
     pub use super::alter::{Alter, Crossover, Mutate};
     pub use super::codecs::{
         BitCodec, CharCodec, Codec, FloatCodec, FnCodec, IntCodec, PermutationCodec, SubSetCodec,

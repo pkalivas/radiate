@@ -53,15 +53,19 @@ fn display(
 ) {
     let mut reducer = GraphEvaluator::new(result.value());
 
-    let train_acc = Accuracy::new("train", &train, Loss::MSE);
-    let test_acc = Accuracy::new("test", &test, Loss::MSE);
+    let train_acc = Accuracy::new("train")
+        .on(train)
+        .loss(Loss::MSE)
+        .calc(&mut reducer);
 
-    let train_acc_result = train_acc.calc(&mut reducer);
-    let test_acc_result = test_acc.calc(&mut reducer);
+    let test_acc = Accuracy::new("test")
+        .on(test)
+        .loss(Loss::MSE)
+        .calc(&mut reducer);
 
     println!("{:?}", result);
-    println!("{:?}", train_acc_result);
-    println!("{:?}", test_acc_result);
+    println!("{:?}", train_acc);
+    println!("{:?}", test_acc);
 }
 
 fn load_iris_dataset() -> DataSet {

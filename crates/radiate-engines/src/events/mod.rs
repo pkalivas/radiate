@@ -3,5 +3,5 @@ mod events;
 mod handlers;
 
 pub use bus::EventBus;
-pub use events::{EngineEvent, Event};
+pub use events::{EngineEvent, EngineMessage};
 pub use handlers::EventHandler;

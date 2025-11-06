@@ -1,5 +1,5 @@
 use super::NodeType;
-use crate::{Arity, Op};
+use crate::{Arity, Node, Op, TreeIterator, TreeNode};
 #[cfg(feature = "serde")]
 use serde::{
     Deserialize, Serialize,
@@ -116,6 +116,22 @@ impl<T> NodeStore<T> {
         }
     }
 
+    pub fn merge(&self, other: impl Into<NodeStore<T>>)
+    where
+        T: Clone,
+    {
+        let other_store = other.into();
+        let mut store_values = self.values.write().unwrap();
+        let other_values = other_store.values.read().unwrap();
+
+        for (node_type, values) in other_values.iter() {
+            store_values
+                .entry(*node_type)
+                .or_default()
+                .extend(values.iter().cloned());
+        }
+    }
+
     pub fn insert(&self, node_type: NodeType, values: Vec<T>)
     where
         T: Into<NodeValue<T>>,
@@ -170,12 +186,42 @@ where
 
 impl<T> From<Vec<(NodeType, Vec<T>)>> for NodeStore<T>
 where
-    T: Into<NodeValue<T>>,
+    T: Into<NodeValue<T>> + Clone,
 {
     fn from(values: Vec<(NodeType, Vec<T>)>) -> Self {
         let store = NodeStore::new();
         for (node_type, ops) in values {
             store.insert(node_type, ops);
+        }
+
+        if !store.contains_type(NodeType::Leaf) && store.contains_type(NodeType::Input) {
+            let input_values = store
+                .map(|vals| {
+                    vals.iter()
+                        .filter_map(|v| match v.arity() {
+                            Some(Arity::Zero) => Some((*v.value()).clone()),
+                            _ => None,
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_default();
+
+            store.insert(NodeType::Leaf, input_values);
+        }
+
+        if !store.contains_type(NodeType::Root) && store.contains_type(NodeType::Output) {
+            let output_values = store
+                .map(|vals| {
+                    vals.iter()
+                        .filter_map(|v| match v.arity() {
+                            Some(Arity::Any) | Some(Arity::Exact(_)) => Some((*v.value()).clone()),
+                            _ => None,
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_default();
+
+            store.insert(NodeType::Root, output_values);
         }
 
         store
@@ -207,6 +253,57 @@ impl<T: Clone> From<Op<T>> for NodeStore<Op<T>> {
         store.insert(NodeType::Edge, edge_values);
         store.insert(NodeType::Vertex, node_values);
 
+        store
+    }
+}
+
+impl<T> From<Vec<TreeNode<Op<T>>>> for NodeStore<Op<T>>
+where
+    T: Clone,
+{
+    fn from(tree_nodes: Vec<TreeNode<Op<T>>>) -> Self {
+        let store = NodeStore::new();
+        for root in tree_nodes.iter() {
+            store.merge(NodeStore::from(root.clone()));
+        }
+
+        store
+    }
+}
+
+impl<T> From<TreeNode<Op<T>>> for NodeStore<Op<T>>
+where
+    T: Clone,
+{
+    fn from(tree_node: TreeNode<Op<T>>) -> Self {
+        let store = NodeStore::new();
+
+        let mut nodes = Vec::new();
+        tree_node.iter_pre_order().for_each(|node| {
+            #[cfg(feature = "pgm")]
+            {
+                if let Op::PGM(name, arity, programs, eval_fn) = node.value() {
+                    nodes.push(Op::PGM(
+                        name,
+                        *arity,
+                        Arc::new(programs.iter().map(|p| p.clone()).collect()),
+                        *eval_fn,
+                    ));
+
+                    for prog in programs.iter() {
+                        nodes.extend(prog.iter_pre_order().map(|n| n.value().clone()));
+                    }
+                } else {
+                    nodes.push(node.value().clone());
+                }
+            }
+            #[cfg(not(feature = "pgm"))]
+            {
+                nodes.push(node.value().clone());
+            }
+        });
+
+        store.add(nodes);
         store
     }
 }
@@ -315,20 +412,18 @@ mod tests {
     use super::*;
     use crate::{Factory, Node, ops};
 
-    // Helper function to create a test NodeStore
     fn create_test_store() -> NodeStore<i32> {
         let store = NodeStore::new();
 
-        // Add some test values for different node types
         store.insert(NodeType::Input, vec![1, 2, 3]);
         store.insert(NodeType::Output, vec![4, 5]);
         store.insert(NodeType::Vertex, vec![6, 7, 8, 9]);
 
-        // Add some bounded values
         let bounded_values = vec![
             NodeValue::Bounded(10, Arity::Exact(2)),
             NodeValue::Bounded(11, Arity::Zero),
         ];
+
         store.insert(
             NodeType::Edge,
             bounded_values
@@ -344,7 +439,7 @@ mod tests {
     fn test_node_store() {
         let store = NodeStore::from(ops::all_ops());
 
-        store.add((0..3).map(Op::var).collect());
+        store.add(Op::vars(0..3));
 
         assert!(store.contains_type(NodeType::Input));
         assert!(store.contains_type(NodeType::Output));

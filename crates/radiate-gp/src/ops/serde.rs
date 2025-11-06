@@ -1,9 +1,11 @@
 use crate::Arity;
 use crate::ops::operation::Op;
+#[cfg(feature = "pgm")]
+use crate::{TreeMapper, TreeNode};
+use radiate_core::intern;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std::sync::Arc;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(tag = "type", content = "data")]
 enum OpVariant<T> {
     Fn {
@@ -23,10 +25,11 @@ enum OpVariant<T> {
         arity: Arity,
         value: T,
     },
-    Value {
+    #[cfg(feature = "pgm")]
+    PGM {
         name: String,
         arity: Arity,
-        value: T,
+        programs: Vec<TreeNode<OpVariant<T>>>,
     },
 }
 
@@ -39,32 +42,7 @@ where
     where
         S: Serializer,
     {
-        let variant = match self {
-            Op::Fn(name, arity, _) => OpVariant::Fn {
-                name: name.to_string(),
-                arity: *arity,
-            },
-            Op::Var(name, index) => OpVariant::Var {
-                name: name.to_string(),
-                index: *index,
-            },
-            Op::Const(name, value) => OpVariant::Const {
-                name: name.to_string(),
-                value: value.clone(),
-            },
-            Op::MutableConst {
-                name, arity, value, ..
-            } => OpVariant::MutableConst {
-                name: name.to_string(),
-                arity: *arity,
-                value: value.clone(),
-            },
-            Op::Value(name, arity, value, _) => OpVariant::Value {
-                name: name.to_string(),
-                arity: *arity,
-                value: value.clone(),
-            },
-        };
+        let variant = OpVariant::from(self.clone());
         variant.serialize(serializer)
     }
 }
@@ -76,6 +54,62 @@ impl<'de> Deserialize<'de> for Op<f32> {
         D: Deserializer<'de>,
     {
         let variant = OpVariant::<f32>::deserialize(deserializer)?;
+        Result::from(variant).map_err(|e| {
+            serde::de::Error::custom(format!("Failed to convert OpVariant to Op: {}", e))
+        })
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> Deserialize<'de> for Op<bool> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let variant = OpVariant::<bool>::deserialize(deserializer)?;
+        Result::from(variant).map_err(|e| {
+            serde::de::Error::custom(format!("Failed to convert OpVariant to Op: {}", e))
+        })
+    }
+}
+
+impl<T: Clone> From<Op<T>> for OpVariant<T> {
+    fn from(op: Op<T>) -> Self {
+        match op {
+            Op::Fn(name, arity, _) => OpVariant::Fn {
+                name: name.to_string(),
+                arity,
+            },
+            Op::Var(name, index) => OpVariant::Var {
+                name: name.to_string(),
+                index,
+            },
+            Op::Const(name, value) => OpVariant::Const {
+                name: name.to_string(),
+                value,
+            },
+            Op::MutableConst {
+                name, arity, value, ..
+            } => OpVariant::MutableConst {
+                name: name.to_string(),
+                arity,
+                value,
+            },
+            #[cfg(feature = "pgm")]
+            Op::PGM(name, arity, programs, _func) => OpVariant::PGM {
+                name: name.to_string(),
+                arity,
+                programs: programs
+                    .iter()
+                    .map(|node| node.map(|val| OpVariant::from((*val).clone())))
+                    .collect(),
+            },
+        }
+    }
+}
+
+impl From<OpVariant<f32>> for Result<Op<f32>, serde::de::value::Error> {
+    fn from(variant: OpVariant<f32>) -> Self {
         match variant {
             OpVariant::Fn { name, .. } => {
                 let name: &'static str = Box::leak(name.into_boxed_str());
@@ -140,16 +174,16 @@ impl<'de> Deserialize<'de> for Op<f32> {
                                 name,
                                 arity: w_arity.clone(),
                                 value: value.clone(),
-                                supplier: Arc::clone(&w_supplier),
-                                modifier: Arc::clone(&w_modifier),
-                                operation: Arc::clone(&w_operation),
+                                supplier: w_supplier,
+                                modifier: w_modifier,
+                                operation: w_operation,
                             });
                         }
                         _ => {
-                            let name = Box::leak(name.into_boxed_str());
-                            let supplier = Arc::new(move || value.clone());
-                            let modifier = Arc::new(|v: &f32| v.clone());
-                            let operation = Arc::new(|_: &[f32], v: &f32| v.clone());
+                            let name = intern!(name);
+                            let supplier = move || 0.0_f32;
+                            let modifier = move |v: &f32| *v;
+                            let operation = |_: &[f32], v: &f32| v.clone();
                             Ok(Op::MutableConst {
                                 name,
                                 arity,
@@ -168,26 +202,54 @@ impl<'de> Deserialize<'de> for Op<f32> {
                     )));
                 }
             },
-            OpVariant::Value { name, arity, value } => {
+            #[cfg(feature = "pgm")]
+            OpVariant::PGM {
+                name,
+                arity,
+                programs,
+            } => {
+                use std::sync::Arc;
+
                 let name = Box::leak(name.into_boxed_str());
-                Ok(Op::Value(
+                let model_tree = programs
+                    .iter()
+                    .map(|node| {
+                        node.map(|val| match Result::<Op<f32>, _>::from((*val).clone()) {
+                            Ok(op) => op,
+                            Err(e) => {
+                                panic!("Failed to convert OpVariant to Op in PGM programs: {}", e)
+                            }
+                        })
+                    })
+                    .collect::<Vec<TreeNode<Op<f32>>>>();
+
+                Ok(Op::PGM(
                     name,
                     arity,
-                    value,
-                    Arc::new(|_: &[f32], v: &f32| v.clone()),
+                    Arc::new(model_tree),
+                    |inputs: &[f32], progs: &[TreeNode<Op<f32>>]| {
+                        use crate::Eval;
+
+                        let probabilities = progs.eval(inputs);
+                        if probabilities.is_empty() {
+                            return 0.0;
+                        }
+
+                        let m = probabilities
+                            .iter()
+                            .copied()
+                            .fold(f32::NEG_INFINITY, f32::max);
+                        let sum_exp = probabilities.iter().map(|v| (v - m).exp()).sum::<f32>();
+                        super::math::clamp(m + sum_exp.ln())
+                    },
                 ))
             }
         }
     }
 }
 
-#[cfg(feature = "serde")]
-impl<'de> Deserialize<'de> for Op<bool> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let variant = OpVariant::<bool>::deserialize(deserializer)?;
+impl From<OpVariant<bool>> for Result<Op<bool>, serde::de::value::Error> {
+    fn from(variant: OpVariant<bool>) -> Self {
         match variant {
             OpVariant::Fn { name, .. } => {
                 let name: &'static str = Box::leak(name.into_boxed_str());
@@ -222,15 +284,6 @@ impl<'de> Deserialize<'de> for Op<bool> {
                     name
                 )));
             }
-            OpVariant::Value { name, arity, value } => {
-                let name = Box::leak(name.into_boxed_str());
-                Ok(Op::Value(
-                    name,
-                    arity,
-                    value,
-                    Arc::new(|_: &[bool], v: &bool| v.clone()),
-                ))
-            }
             OpVariant::Var { name, index } => {
                 let name = Box::leak(name.into_boxed_str());
                 Ok(Op::Var(name, index))
@@ -238,6 +291,44 @@ impl<'de> Deserialize<'de> for Op<bool> {
             OpVariant::Const { name, value } => {
                 let name = Box::leak(name.into_boxed_str());
                 Ok(Op::Const(name, value))
+            }
+            #[cfg(feature = "pgm")]
+            OpVariant::PGM {
+                name,
+                arity,
+                programs,
+            } => {
+                use std::sync::Arc;
+
+                let name = Box::leak(name.into_boxed_str());
+                let model_tree = programs
+                    .iter()
+                    .map(|node| {
+                        node.map(|val| match Result::<Op<bool>, _>::from((*val).clone()) {
+                            Ok(op) => op,
+                            Err(e) => {
+                                panic!("Failed to convert OpVariant to Op in PGM programs for boolean ops: {}", e)
+                            }
+                        })
+                    })
+                    .collect::<Vec<TreeNode<Op<bool>>>>();
+
+                Ok(Op::PGM(
+                    name,
+                    arity,
+                    Arc::new(model_tree),
+                    |inputs: &[bool], progs: &[TreeNode<Op<bool>>]| {
+                        use crate::Eval;
+
+                        let probabilities = progs.eval(inputs);
+                        if probabilities.is_empty() {
+                            return false;
+                        }
+
+                        let result = false;
+                        result
+                    },
+                ))
             }
         }
     }
@@ -284,15 +375,6 @@ mod tests {
     #[test]
     fn test_serialize_deserialize_mutable_const() {
         let op = Op::weight();
-        let serialized = serde_json::to_string(&op).unwrap();
-        let deserialized: Op<f32> = serde_json::from_str(&serialized).unwrap();
-        assert_eq!(op.name(), deserialized.name());
-        assert_eq!(op.arity(), deserialized.arity());
-    }
-
-    #[test]
-    fn test_serialize_deserialize_value() {
-        let op = Op::from(42.0);
         let serialized = serde_json::to_string(&op).unwrap();
         let deserialized: Op<f32> = serde_json::from_str(&serialized).unwrap();
         assert_eq!(op.name(), deserialized.name());
