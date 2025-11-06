@@ -4,7 +4,7 @@ Example of using radiate to solve the PyGAD example problem found on their homep
 
 https://pygad.readthedocs.io/en/latest/
 
-This example should resolve within ~15-20 generations, or about 1ms
+This example should resolve within ~5-10 generations, or a little less than 1ms
 depending on your random seed & your machine.
 """
 
@@ -38,4 +38,4 @@ print(f"Generations completed: {result.index()}")
 print(f"Function output: {np.sum(result.value() * function_inputs)}")
 print(f"Duration: {result.duration()}")
 
-print(result.metrics())
+print(result.metrics().dashboard())

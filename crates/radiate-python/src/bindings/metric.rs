@@ -76,10 +76,7 @@ impl PyMetricSet {
 
         Ok(vec)
     }
-}
 
-#[pymethods]
-impl PyMetricSet {
     /// Columns:
     ///   name, scope, rollup, kind, count, mean, min, max, std, total, entropy,
     ///   time_mean_ns, time_min_ns, time_max_ns, time_std_ns, time_sum_ns,

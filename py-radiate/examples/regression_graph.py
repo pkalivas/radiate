@@ -16,7 +16,7 @@ rd.random.seed(5)
 class Subscriber(rd.EventHandler):
     def __init__(self):
         super().__init__()
-        self.history = []  # store one Polars DataFrame per epoch
+        self.history = []
 
     def on_event(self, event):
         if event.event_type() == rd.EventType.EPOCH_COMPLETE:
@@ -97,3 +97,4 @@ engine = rd.GeneticEngine(
 
 result = engine.run([rd.ScoreLimit(0.001), rd.GenerationsLimit(1000)], log=True)
 print(result)
+print(result.metrics().dashboard())

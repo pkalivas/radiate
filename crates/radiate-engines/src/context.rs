@@ -17,6 +17,8 @@ pub struct Context<C: Chromosome, T> {
 
 impl<C: Chromosome, T> Context<C, T> {
     pub fn try_advance_one(&mut self) -> bool {
+        self.index += 1;
+
         let best = self.ecosystem.population().get(0);
         if let Some(best) = best {
             if let (Some(score), Some(current)) = (best.score(), &self.score) {
@@ -31,8 +33,6 @@ impl<C: Chromosome, T> Context<C, T> {
                 return true;
             }
         }
-
-        self.index += 1;
 
         false
     }
