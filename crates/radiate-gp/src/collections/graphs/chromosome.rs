@@ -83,6 +83,10 @@ impl<T> GraphChromosome<T> {
         self
     }
 
+    pub fn take_nodes(&mut self) -> Vec<GraphNode<T>> {
+        std::mem::take(&mut self.nodes)
+    }
+
     pub fn set_nodes(&mut self, nodes: Vec<GraphNode<T>>) {
         self.nodes = nodes;
     }

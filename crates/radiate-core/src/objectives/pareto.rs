@@ -18,7 +18,7 @@ pub fn crowding_distance<T: AsRef<[f32]>>(scores: &[T]) -> Vec<f32> {
 
     for i in 0..indices[0].0.len() {
         let mut distance_values = indices.clone();
-        distance_values.sort_by(|a, b| a.0[i].partial_cmp(&b.0[i]).unwrap());
+        distance_values.sort_unstable_by(|a, b| a.0[i].partial_cmp(&b.0[i]).unwrap());
 
         let min = indices[distance_values[0].1];
         let max = indices[distance_values[distance_values.len() - 1].1];

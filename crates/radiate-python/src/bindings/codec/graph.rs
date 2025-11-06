@@ -1,6 +1,7 @@
 use crate::{PyGenotype, bindings::gp::PyGraph, object::Wrap};
 use pyo3::{Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{Codec, Genotype, GraphChromosome, GraphCodec, NodeType, Op};
+use radiate_error::radiate_py_bail;
 use std::collections::HashMap;
 
 const INPUT_NODE_TYPE: &str = "input";
@@ -44,7 +45,7 @@ impl PyGraphCodec {
         output_size: usize,
         ops: Option<HashMap<String, Vec<Py<PyAny>>>>,
         max_nodes: Option<usize>,
-    ) -> Self {
+    ) -> PyResult<Self> {
         let mut values = Vec::new();
         if let Some(ops) = &ops {
             for (key, value) in ops.iter() {
@@ -65,7 +66,9 @@ impl PyGraphCodec {
                 } else if key == EDGE_NODE_TYPE {
                     values.push((NodeType::Edge, ops_converted));
                 } else {
-                    panic!("Unknown node type: {}", key);
+                    radiate_py_bail!(
+                        "Invalid node type key: {} - valid keys are: input, output, vertex, edge",
+                    );
                 }
             }
         }
@@ -83,11 +86,11 @@ impl PyGraphCodec {
             _ => GraphCodec::directed(input_size, output_size, values),
         };
 
-        Self {
+        Ok(Self {
             codec: match max_nodes {
                 Some(max_nodes) => codec.with_max_nodes(max_nodes),
                 None => codec,
             },
-        }
+        })
     }
 }

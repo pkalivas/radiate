@@ -1,3 +1,4 @@
+pub use radiate_core::{RadiateError, error::RadiateResult, error::Result};
 pub use radiate_engines::*;
 
 #[cfg(feature = "gp")]

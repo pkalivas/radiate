@@ -19,7 +19,7 @@ impl<A: PartialEq + Clone> PermutationCodec<A> {
 impl<A: PartialEq + Clone> Codec<PermutationChromosome<A>, Vec<A>> for PermutationCodec<A> {
     fn encode(&self) -> Genotype<PermutationChromosome<A>> {
         Genotype::from(PermutationChromosome::new(
-            random_provider::indexes(0..self.alleles.len())
+            random_provider::shuffled_indices(0..self.alleles.len())
                 .iter()
                 .map(|i| PermutationGene::new(*i, Arc::clone(&self.alleles)))
                 .collect(),

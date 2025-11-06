@@ -1,10 +1,11 @@
 use super::{Valid, genotype::Genotype};
+use crate::Result;
 use crate::objectives::Score;
 use crate::{Chromosome, objectives::Scored};
+use radiate_error::radiate_err;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::hash::Hash;
-use std::ops::Deref;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 /// A unique identifier for a [Phenotype]. This is used to identify the [Phenotype] in the population.
@@ -13,20 +14,12 @@ use std::sync::atomic::{AtomicU64, Ordering};
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[repr(transparent)]
-pub struct PhenotypeId(u64);
+pub struct PhenotypeId(pub u64);
 
 impl PhenotypeId {
     pub fn new() -> Self {
         static PHENOTYPE_ID: AtomicU64 = AtomicU64::new(0);
-        PhenotypeId(PHENOTYPE_ID.fetch_add(1, Ordering::SeqCst))
-    }
-}
-
-impl Deref for PhenotypeId {
-    type Target = u64;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
+        PhenotypeId(PHENOTYPE_ID.fetch_add(1, Ordering::Relaxed))
     }
 }
 
@@ -69,8 +62,11 @@ impl<C: Chromosome> Phenotype<C> {
         }
     }
 
-    pub fn take_genotype(&mut self) -> Genotype<C> {
-        self.genotype.take().unwrap()
+    pub fn take_genotype(&mut self) -> Result<Genotype<C>> {
+        self.genotype.take().map_or(
+            Err(radiate_err!(Genome: "Genotype is None - this shouldn't happen.")),
+            Ok,
+        )
     }
 
     pub fn set_genotype(&mut self, genotype: Genotype<C>) {
@@ -133,7 +129,7 @@ impl<C: Chromosome> AsRef<[f32]> for Phenotype<C> {
     }
 }
 
-/// Implement the `PartialOrd` trait for the `Phenotype`. This allows the `Phenotype` to be compared
+/// Implement the `PartialOrd` trait for the [Phenotype]. This allows the [Phenotype] to be compared
 /// with other `Phenotype` instances. The comparison is based on the `Score` (fitness) of the `Phenotype`.
 impl<C> PartialOrd for Phenotype<C>
 where
@@ -192,17 +188,6 @@ impl<C: Chromosome> From<(Vec<C>, usize)> for Phenotype<C> {
     }
 }
 
-impl<C: Chromosome> From<(Vec<C>, usize, Score)> for Phenotype<C> {
-    fn from((chromosomes, generation, score): (Vec<C>, usize, Score)) -> Self {
-        Phenotype {
-            genotype: Some(Genotype::new(chromosomes)),
-            score: Some(score),
-            generation,
-            id: PhenotypeId::new(),
-        }
-    }
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
@@ -225,7 +210,7 @@ mod test {
 
     #[test]
     fn test_phenotype_age() {
-        let genotype = Genotype::new(vec![FloatChromosome::new(vec![FloatGene::from(0.0..5.0)])]);
+        let genotype = Genotype::from(FloatChromosome::from(FloatGene::from(0.0..5.0)));
         let phenotype = Phenotype::from((genotype, 5));
 
         assert_eq!(phenotype.age(10), 5);

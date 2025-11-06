@@ -3,6 +3,7 @@ use radiate_core::{
     Chromosome, Diversity, Ecosystem, Executor, Genotype, MetricSet, Objective, Species,
     metric_names,
 };
+use radiate_error::Result;
 use std::sync::{Arc, Mutex, RwLock};
 
 pub struct SpeciateStep<C>
@@ -59,7 +60,7 @@ where
         generation: usize,
         metrics: &mut MetricSet,
         ecosystem: &mut Ecosystem<C>,
-    ) {
+    ) -> Result<()> {
         ecosystem.generate_mascots();
 
         let num_threads = self.executor.num_workers();
@@ -89,8 +90,11 @@ where
                     .enumerate()
                     .skip(chunk_start)
                     .take(chunk_size)
-                    .map(|(idx, pheno)| (idx, pheno.take_genotype()))
-                    .collect::<Vec<_>>(),
+                    .try_fold(Vec::new(), |mut acc, (idx, pheno)| {
+                        let genotype = pheno.take_genotype()?;
+                        acc.push((idx, genotype));
+                        Ok::<_, radiate_core::RadiateError>(acc)
+                    })?,
             ));
 
             let threshold = self.threashold;
@@ -174,5 +178,7 @@ where
         metrics.upsert(metric_names::SPECIES_DIED, before_species - after_species);
 
         ecosystem.fitness_share(&self.objective);
+
+        Ok(())
     }
 }

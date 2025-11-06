@@ -20,20 +20,9 @@ use std::ops::{Index, IndexMut, Range};
 /// you should create a new [Population] instance with the new individuals. To further facilitate this way of
 /// thinking, the [Population] struct and everything it contains implements the `Clone` trait.
 ///
-/// # Note
-///
-/// A raw call to `clone` of the population will *NOT* clone the individuals themselves, but rather the
-/// references to them. This means that if you mutate an individual in one population, the change
-/// will be reflected in the other population as well. To deep clone a population, you must clone
-/// each individual within it. The simplest way to do this is by:
-///
-/// ```ignore
-/// let deep_cloned_population = Population::from(&original_population);
-/// ```
-///
 /// # Type Parameters
 /// - `C`: The type of chromosome used in the genotype, which must implement the `Chromosome` trait.
-#[derive(Clone, Default, PartialEq)]
+#[derive(Default, PartialEq)]
 pub struct Population<C: Chromosome> {
     individuals: Vec<Member<C>>,
 }
@@ -45,8 +34,16 @@ impl<C: Chromosome> Population<C> {
         }
     }
 
-    pub fn members(&self) -> &[Member<C>] {
-        &self.individuals
+    pub fn clone(other: &Self) -> Self
+    where
+        C: Clone,
+    {
+        let mut individuals = Vec::with_capacity(other.len());
+        for member in other.individuals.iter() {
+            individuals.push(member.clone());
+        }
+
+        Population { individuals }
     }
 
     pub fn get(&self, index: usize) -> Option<&Phenotype<C>> {
@@ -57,12 +54,11 @@ impl<C: Chromosome> Population<C> {
         self.individuals.get_mut(index).map(|cell| cell.get_mut())
     }
 
-    pub fn get_cell_mut(&mut self, index: usize) -> Option<&mut Member<C>> {
-        self.individuals.get_mut(index)
-    }
-
-    pub fn get_cell(&self, index: usize) -> Option<&Member<C>> {
-        self.individuals.get(index)
+    pub fn ref_clone_member(&self, index: usize) -> Option<Member<C>>
+    where
+        C: Clone,
+    {
+        self.individuals.get(index).map(|cell| cell.clone())
     }
 
     pub fn push(&mut self, individual: impl Into<Member<C>>) {
@@ -89,11 +85,21 @@ impl<C: Chromosome> Population<C> {
         self.individuals.is_empty()
     }
 
-    pub fn get_scores(&self) -> Vec<&Score> {
+    pub fn get_scores(&self) -> impl Iterator<Item = &Score> {
         self.individuals
             .iter()
             .filter_map(|individual| individual.get().score())
-            .collect()
+    }
+
+    pub fn extend(&mut self, other: Self) {
+        self.individuals.extend(other.individuals);
+    }
+
+    pub fn shared_count(&self) -> usize {
+        self.individuals
+            .iter()
+            .filter(|individual| !individual.is_unique())
+            .count()
     }
 
     pub fn get_pair_mut(
@@ -115,10 +121,7 @@ impl<C: Chromosome> Population<C> {
 
 impl<C: Chromosome + Clone> From<&Population<C>> for Population<C> {
     fn from(population: &Population<C>) -> Self {
-        population
-            .iter()
-            .map(|individual| individual.clone())
-            .collect::<Population<C>>()
+        population.clone()
     }
 }
 
@@ -127,18 +130,6 @@ impl<C: Chromosome> From<Vec<Phenotype<C>>> for Population<C> {
         Population {
             individuals: individuals.into_iter().map(Member::from).collect(),
         }
-    }
-}
-
-impl<C: Chromosome> From<Vec<Member<C>>> for Population<C> {
-    fn from(individuals: Vec<Member<C>>) -> Self {
-        Population { individuals }
-    }
-}
-
-impl<C: Chromosome> AsRef<[Member<C>]> for Population<C> {
-    fn as_ref(&self) -> &[Member<C>] {
-        self.individuals.as_ref()
     }
 }
 
@@ -216,6 +207,15 @@ where
     }
 }
 
+impl<C: Chromosome + Clone> Clone for Population<C> {
+    fn clone(&self) -> Self {
+        self.individuals
+            .iter()
+            .map(|individual| individual.get().clone())
+            .collect::<Population<C>>()
+    }
+}
+
 impl<C: Chromosome + Debug> Debug for Population<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Population [\n")?;
@@ -274,6 +274,10 @@ impl<C: Chromosome> Member<C> {
 
     pub fn is_unique(&self) -> bool {
         self.cell.is_unique()
+    }
+
+    pub fn ref_count(&self) -> usize {
+        self.cell.strong_count()
     }
 }
 
@@ -359,8 +363,8 @@ mod test {
         }
 
         // deep clone population
-        let mut minimize_population = Population::from(&population);
-        let mut maximize_population = Population::from(&population);
+        let mut minimize_population = population.clone();
+        let mut maximize_population = population.clone();
 
         Optimize::Minimize.sort(&mut minimize_population);
         Optimize::Maximize.sort(&mut maximize_population);

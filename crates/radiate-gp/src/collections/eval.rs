@@ -47,3 +47,51 @@ pub trait Eval<I: ?Sized, O> {
 pub trait EvalMut<I: ?Sized, O> {
     fn eval_mut(&mut self, input: &I) -> O;
 }
+
+impl<I: ?Sized, O, T> EvalMut<I, O> for T
+where
+    T: Eval<I, O>,
+{
+    #[inline]
+    fn eval_mut(&mut self, input: &I) -> O {
+        self.eval(input)
+    }
+}
+
+pub trait EvalInto<I: ?Sized, O: ?Sized> {
+    fn eval_into(&self, input: &I, buffer: &mut O);
+}
+
+pub trait EvalIntoMut<I: ?Sized, O: ?Sized> {
+    fn eval_into_mut(&mut self, input: &I, buffer: &mut O);
+}
+
+impl<I: ?Sized, O: ?Sized, T> EvalIntoMut<I, O> for T
+where
+    T: EvalInto<I, O>,
+{
+    #[inline]
+    fn eval_into_mut(&mut self, input: &I, buffer: &mut O) {
+        self.eval_into(input, buffer)
+    }
+}
+
+impl<F, I: ?Sized, O: ?Sized> EvalInto<I, O> for F
+where
+    F: Fn(&I, &mut O),
+{
+    #[inline]
+    fn eval_into(&self, input: &I, buffer: &mut O) {
+        (self)(input, buffer)
+    }
+}
+
+impl<F, I: ?Sized, O> Eval<I, O> for F
+where
+    F: Fn(&I) -> O,
+{
+    #[inline]
+    fn eval(&self, input: &I) -> O {
+        (self)(input)
+    }
+}

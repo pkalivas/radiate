@@ -1,40 +1,57 @@
-use super::{EventHandler, events::Event};
-use radiate_core::Executor;
+use super::EventHandler;
+use crate::events::events::*;
+use radiate_core::{Chromosome, Executor};
 use std::sync::{Arc, Mutex};
+
+type Subscriber<T> = Arc<Mutex<dyn EventHandler<T>>>;
 
 #[derive(Clone)]
 pub struct EventBus<T> {
-    handlers: Vec<Arc<Mutex<dyn EventHandler<T>>>>,
+    handlers: Vec<Subscriber<T>>,
     executor: Arc<Executor>,
 }
 
 impl<T> EventBus<T> {
-    pub fn new(executor: Arc<Executor>, handlers: Vec<Arc<Mutex<dyn EventHandler<T>>>>) -> Self {
+    pub fn new(executor: Arc<Executor>, handlers: Vec<Subscriber<T>>) -> Self {
         EventBus { handlers, executor }
     }
 
-    pub fn clear(&mut self) {
-        self.handlers.clear();
-    }
-
-    pub fn register(&mut self, handler: Arc<Mutex<dyn EventHandler<T>>>) {
-        self.handlers.push(handler);
-    }
-
-    pub fn emit(&self, event: T)
+    pub fn publish<'a, C>(&self, message: EngineMessage<'a, C, T>)
     where
-        T: Send + Sync + 'static,
+        C: Chromosome,
+        T: Clone + Send + Sync + 'static,
     {
         if self.handlers.is_empty() {
             return;
         }
 
-        let wrapped_event = Event::new(event);
+        let event = match message {
+            EngineMessage::Start => EngineEvent::Start,
+            EngineMessage::Stop(ctx) => EngineEvent::Stop(
+                ctx.best.clone(),
+                ctx.metrics.clone(),
+                ctx.score.clone().unwrap_or_default(),
+            ),
+            EngineMessage::EpochStart(ctx) => EngineEvent::EpochStart(ctx.index),
+            EngineMessage::EpochEnd(ctx) => EngineEvent::EpochComplete(
+                ctx.index,
+                ctx.best.clone(),
+                ctx.metrics.clone(),
+                ctx.score.clone().unwrap_or_default(),
+            ),
+            EngineMessage::Improvement(ctx) => EngineEvent::Improvement(
+                ctx.index,
+                ctx.best.clone(),
+                ctx.score.clone().unwrap_or_default(),
+            ),
+        };
+
+        let wrapped_event = Arc::new(event);
         for handler in self.handlers.iter() {
             let clone_handler = Arc::clone(handler);
-            let clone_event = wrapped_event.clone();
+            let clone_event = Arc::clone(&wrapped_event);
             self.executor.submit(move || {
-                clone_handler.lock().unwrap().handle(clone_event);
+                clone_handler.lock().unwrap().handle(&clone_event);
             });
         }
     }

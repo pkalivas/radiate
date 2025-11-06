@@ -1,7 +1,8 @@
 use super::{Graph, GraphNode, iter::GraphIterator};
-use crate::{Eval, EvalMut, NodeType, node::Node};
+use crate::{Eval, EvalMut, NodeType, eval::EvalIntoMut, node::Node};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+use smallvec::SmallVec;
 use std::ops::Range;
 
 /// A cache for storing intermediate results during graph evaluation.
@@ -17,8 +18,8 @@ pub struct GraphEvalCache<V> {
     eval_order: Vec<usize>,
     outputs: Vec<V>,
     inputs: Vec<V>,
-    output_outs: Vec<V>,
     input_ranges: Vec<Range<usize>>,
+    output_indices: SmallVec<[usize; 8]>,
 }
 
 /// [GraphEvaluator] is a struct that is used to evaluate a [Graph] of [GraphNode]'s. It uses the [GraphIterator]
@@ -51,24 +52,26 @@ where
         let mut input_ranges = Vec::with_capacity(nodes.len());
 
         for node in nodes {
-            let input_len = node.incoming().len();
-            input_ranges.push(total_inputs..total_inputs + input_len);
-            total_inputs += input_len;
+            let k = node.incoming().len();
+            input_ranges.push(total_inputs..total_inputs + k);
+            total_inputs += k;
         }
 
-        let output_size = nodes
-            .iter()
-            .filter(|node| node.node_type() == NodeType::Output)
-            .count();
+        let mut output_indices: SmallVec<[usize; 8]> = SmallVec::new();
+        for (i, n) in nodes.iter().enumerate() {
+            if n.node_type() == NodeType::Output {
+                output_indices.push(i);
+            }
+        }
 
         GraphEvaluator {
             nodes,
             inner: GraphEvalCache {
                 inputs: vec![V::default(); total_inputs],
-                output_outs: vec![V::default(); output_size],
-                eval_order: nodes.iter_topological().map(|node| node.index()).collect(),
                 outputs: vec![V::default(); nodes.len()],
+                eval_order: nodes.iter_topological().map(|n| n.index()).collect(),
                 input_ranges,
+                output_indices,
             },
         }
     }
@@ -78,47 +81,50 @@ where
     }
 }
 
-/// Implements the `EvalMut` trait for [GraphEvaluator].
 impl<T, V> EvalMut<[V], Vec<V>> for GraphEvaluator<'_, T, V>
 where
     T: Eval<[V], V>,
     V: Clone + Default,
 {
-    /// Evaluates the [Graph] with the given input. Returns the output of the [Graph].
-    ///
-    /// # Arguments
-    /// * `input` - A `Vec` of `T` to evaluate the [Graph] with.
-    ///
-    ///  # Returns
-    /// * A `Vec` of `T` which is the output of the [Graph].
     #[inline]
     fn eval_mut(&mut self, input: &[V]) -> Vec<V> {
-        self.inner.output_outs.clear();
+        let out_len = self.inner.output_indices.len();
+        let mut buffer: Vec<V> = vec![V::default(); out_len];
+        self.eval_into_mut(input, &mut buffer[..]);
+        buffer
+    }
+}
 
-        for index in self.inner.eval_order.iter() {
-            let node = &self.nodes[*index];
+impl<T, V> EvalIntoMut<[V], [V]> for GraphEvaluator<'_, T, V>
+where
+    T: Eval<[V], V>,
+    V: Clone + Default,
+{
+    #[inline]
+    fn eval_into_mut(&mut self, input: &[V], buffer: &mut [V]) {
+        for &index in self.inner.eval_order.iter() {
+            let node = &self.nodes[index];
             let incoming = node.incoming();
-            if incoming.is_empty() {
-                self.inner.outputs[node.index()] = node.eval(input);
-            } else {
-                let input_range = &self.inner.input_ranges[node.index()];
-                let input_slice = &mut self.inner.inputs[input_range.clone()];
 
-                for (dst, incoming) in input_slice.iter_mut().zip(incoming) {
-                    *dst = self.inner.outputs[*incoming].clone();
+            if incoming.is_empty() {
+                self.inner.outputs[index] = node.eval(input);
+            } else {
+                let range = &self.inner.input_ranges[index];
+                let buf = &mut self.inner.inputs[range.clone()];
+
+                for (dst, &src_idx) in buf.iter_mut().zip(incoming.iter()) {
+                    *dst = self.inner.outputs[src_idx].clone();
                 }
 
-                self.inner.outputs[node.index()] = node.eval(input_slice);
-            }
-
-            if node.node_type() == NodeType::Output {
-                self.inner
-                    .output_outs
-                    .push(self.inner.outputs[node.index()].clone());
+                self.inner.outputs[index] = node.eval(buf);
             }
         }
 
-        std::mem::take(&mut self.inner.output_outs)
+        let mut count = 0;
+        for &idx in &self.inner.output_indices {
+            buffer[count] = self.inner.outputs[idx].clone();
+            count += 1;
+        }
     }
 }
 
@@ -177,6 +183,16 @@ where
             nodes: graph.as_ref(),
             inner: cache,
         }
+    }
+}
+
+impl<'a, T, V> From<&'a Graph<T>> for GraphEvaluator<'a, T, V>
+where
+    T: Eval<[V], V>,
+    V: Default + Clone,
+{
+    fn from(graph: &'a Graph<T>) -> Self {
+        GraphEvaluator::new(graph)
     }
 }
 

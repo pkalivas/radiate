@@ -246,7 +246,8 @@ fn convert_hoist_mutator(input: &PyEngineInput) -> HoistMutator {
 
 fn convert_tree_crossover(input: &PyEngineInput) -> TreeCrossover {
     let rate = input.get_f32("rate").unwrap_or(0.5);
-    TreeCrossover::new(rate)
+    let max_size = input.get_usize("max_size").unwrap_or(30);
+    TreeCrossover::new(rate).with_max_size(max_size)
 }
 
 fn convert_multi_point_crossover(input: &PyEngineInput) -> MultiPointCrossover {

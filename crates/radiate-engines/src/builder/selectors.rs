@@ -1,6 +1,5 @@
 use crate::GeneticEngineBuilder;
 use radiate_core::{Chromosome, Select};
-use radiate_error::radiate_err;
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -19,11 +18,10 @@ where
     /// Default is 0.8. This is a value from 0...=1 that represents the fraction of
     /// population that will be replaced by offspring each generation. The remainder will 'survive' to the next generation.
     pub fn offspring_fraction(mut self, offspring_fraction: f32) -> Self {
-        if !(0.0..=1.0).contains(&offspring_fraction) {
-            self.errors.push(radiate_err!(
-                InvalidConfig: "offspring_fraction must be between 0.0 and 1.0"
-            ));
-        }
+        self.add_error_if(
+            || !(0.0..=1.0).contains(&offspring_fraction),
+            "offspring_fraction must be between 0.0 and 1.0",
+        );
 
         self.params.selection_params.offspring_fraction = offspring_fraction;
         self

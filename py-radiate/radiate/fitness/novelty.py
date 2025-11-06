@@ -17,6 +17,7 @@ class NoveltySearch[T](FitnessBase[T]):
         k: int = 15,
         threshold: float = 0.03,
         archive_size: int = 1000,
+        batch: bool = False,
     ):
         """Initialize novelty search with descriptor, distance function, and parameters."""
         self._validate_inputs(descriptor, distance, k, threshold, archive_size)
@@ -31,6 +32,7 @@ class NoveltySearch[T](FitnessBase[T]):
                 k=k,
                 threshold=threshold,
                 archive_size=archive_size,
+                is_batch=batch,
             )
         )
 

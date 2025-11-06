@@ -150,6 +150,10 @@ impl<T> Graph<T> {
         Graph { nodes }
     }
 
+    pub fn take_nodes(&mut self) -> Vec<GraphNode<T>> {
+        std::mem::take(&mut self.nodes)
+    }
+
     pub fn push(&mut self, node: impl Into<GraphNode<T>>) {
         self.nodes.push(node.into());
     }
@@ -187,19 +191,19 @@ impl<T> Graph<T> {
         self.nodes.iter_mut()
     }
 
-    pub fn inputs(&self) -> Vec<&GraphNode<T>> {
+    pub fn inputs(&self) -> impl Iterator<Item = &GraphNode<T>> {
         self.get_nodes_of_type(NodeType::Input)
     }
 
-    pub fn outputs(&self) -> Vec<&GraphNode<T>> {
+    pub fn outputs(&self) -> impl Iterator<Item = &GraphNode<T>> {
         self.get_nodes_of_type(NodeType::Output)
     }
 
-    pub fn vertices(&self) -> Vec<&GraphNode<T>> {
+    pub fn vertices(&self) -> impl Iterator<Item = &GraphNode<T>> {
         self.get_nodes_of_type(NodeType::Vertex)
     }
 
-    pub fn edges(&self) -> Vec<&GraphNode<T>> {
+    pub fn edges(&self) -> impl Iterator<Item = &GraphNode<T>> {
         self.get_nodes_of_type(NodeType::Edge)
     }
 
@@ -221,8 +225,8 @@ impl<T> Graph<T> {
     /// - incoming: The index of the node that will have an outgoing connection to the node at the 'outgoing' index.
     /// - outgoing: The index of the node that will have an incoming connection from the node at the 'incoming' index.
     pub fn attach(&mut self, incoming: usize, outgoing: usize) -> &mut Self {
-        self.as_mut()[incoming].outgoing_mut().insert(outgoing);
-        self.as_mut()[outgoing].incoming_mut().insert(incoming);
+        self.as_mut()[incoming].insert_outgoing(outgoing);
+        self.as_mut()[outgoing].insert_incoming(incoming);
         self
     }
     /// Detaches the node at the 'incoming' index from the node at the 'outgoing' index.
@@ -234,8 +238,8 @@ impl<T> Graph<T> {
     /// - incoming: The index of the node that will no longer have an outgoing connection to the node at the 'outgoing' index.
     /// - outgoing: The index of the node that will no longer have an incoming connection from the node at the 'incoming' index.
     pub fn detach(&mut self, incoming: usize, outgoing: usize) -> &mut Self {
-        self.as_mut()[incoming].outgoing_mut().remove(&outgoing);
-        self.as_mut()[outgoing].incoming_mut().remove(&incoming);
+        self.as_mut()[incoming].remove_outgoing(&outgoing);
+        self.as_mut()[outgoing].remove_incoming(&incoming);
         self
     }
 
@@ -292,48 +296,64 @@ impl<T> Graph<T> {
     /// # Arguments
     /// - index: The index of the node to get the cycles for.
     #[inline]
-    pub fn get_cycles(&self, from: usize) -> HashSet<usize> {
-        let mut stack = Vec::new();
-        let mut visited = HashSet::new();
-        let mut cycles = HashSet::new();
+    pub fn get_cycles(&self, from: usize) -> std::collections::HashSet<usize> {
+        let n = self.len();
+        let mut on_stack = vec![false; n];
+        let mut visited = vec![false; n];
+        let mut cycles = vec![false; n];
+        let mut stack: Vec<usize> = Vec::with_capacity(n.min(64));
 
-        self.dfs_visit(from, &mut stack, &mut visited, &mut cycles);
+        fn dfs<T>(
+            g: &Graph<T>,
+            u: usize,
+            visited: &mut [bool],
+            on_stack: &mut [bool],
+            cycles: &mut [bool],
+            stack: &mut Vec<usize>,
+        ) {
+            visited[u] = true;
+            on_stack[u] = true;
+            stack.push(u);
 
-        cycles
-    }
-
-    #[inline]
-    fn dfs_visit(
-        &self,
-        node: usize,
-        stack: &mut Vec<usize>,
-        visited: &mut HashSet<usize>,
-        cycles: &mut HashSet<usize>,
-    ) {
-        visited.insert(node);
-        stack.push(node);
-
-        for &neighbor in self.get(node).unwrap().outgoing() {
-            if !visited.contains(&neighbor) {
-                self.dfs_visit(neighbor, stack, visited, cycles);
-            } else if stack.contains(&neighbor) {
-                if let Some(cycle_start) = stack.iter().position(|&x| x == neighbor) {
-                    for cycle_node in &stack[cycle_start..] {
-                        cycles.insert(*cycle_node);
+            for &v in g.get(u).unwrap().outgoing() {
+                if !visited[v] {
+                    dfs(g, v, visited, on_stack, cycles, stack);
+                } else if on_stack[v] {
+                    let start = stack.iter().rposition(|&x| x == v).unwrap();
+                    for &w in &stack[start..] {
+                        cycles[w] = true;
                     }
                 }
             }
+
+            stack.pop();
+            on_stack[u] = false;
         }
 
-        stack.pop();
+        dfs(
+            self,
+            from,
+            &mut visited,
+            &mut on_stack,
+            &mut cycles,
+            &mut stack,
+        );
+
+        // collect results
+        let mut out = HashSet::with_capacity(stack.len());
+        for (i, &c) in cycles.iter().enumerate() {
+            if c {
+                out.insert(i);
+            }
+        }
+        out
     }
 
     #[inline]
-    fn get_nodes_of_type(&self, node_type: NodeType) -> Vec<&GraphNode<T>> {
+    fn get_nodes_of_type(&self, node_type: NodeType) -> impl Iterator<Item = &GraphNode<T>> {
         self.nodes
             .iter()
-            .filter(|node| node.node_type() == node_type)
-            .collect()
+            .filter(move |node| node.node_type() == node_type)
     }
 }
 
@@ -407,7 +427,6 @@ impl<T: Debug> Debug for Graph<T> {
 mod test {
     use super::*;
     use crate::{Arity, Node, Op};
-    use std::collections::BTreeSet;
 
     #[test]
     fn test_graph_is_valid() {
@@ -431,8 +450,8 @@ mod test {
         graph.push((1, NodeType::Output, 1));
         graph.attach(0, 1);
 
-        assert_eq!(graph[0].outgoing(), &BTreeSet::from_iter(vec![1]));
-        assert_eq!(graph[1].incoming(), &BTreeSet::from_iter(vec![0]));
+        assert_eq!(graph[0].outgoing(), &[1]);
+        assert_eq!(graph[1].incoming(), &[0]);
     }
 
     #[test]
@@ -643,7 +662,7 @@ mod test {
         graph.insert(NodeType::Output, 5);
 
         // Test inputs()
-        let inputs = graph.inputs();
+        let inputs = graph.inputs().collect::<Vec<_>>();
         assert_eq!(inputs.len(), 2);
         assert!(
             inputs
@@ -652,7 +671,7 @@ mod test {
         );
 
         // Test vertices()
-        let vertices = graph.vertices();
+        let vertices = graph.vertices().collect::<Vec<_>>();
         assert_eq!(vertices.len(), 2);
         assert!(
             vertices
@@ -661,7 +680,7 @@ mod test {
         );
 
         // Test outputs()
-        let outputs = graph.outputs();
+        let outputs = graph.outputs().collect::<Vec<_>>();
         assert_eq!(outputs.len(), 2);
         assert!(
             outputs

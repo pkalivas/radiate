@@ -2,8 +2,9 @@ use super::transaction::{InsertStep, TransactionResult};
 use super::{Graph, GraphChromosome};
 use crate::node::Node;
 use crate::{Arity, Factory, NodeType};
-use radiate_core::{AlterResult, Metric, Mutate, random_provider};
-use radiate_core::{Chromosome, labels};
+use radiate_core::Chromosome;
+use radiate_core::{AlterResult, Mutate, metric, random_provider};
+use smallvec::SmallVec;
 
 const INVALID_MUTATION: &str = "GraphMutator(Ivld)";
 
@@ -52,12 +53,12 @@ impl GraphMutator {
     /// we attempt to add an edge. If false, we attempt to add a vertex.
     fn mutate_type(&self) -> Option<NodeType> {
         if random_provider::bool(0.5) {
-            if random_provider::random::<f32>() < self.edge_rate {
+            if random_provider::bool(self.edge_rate) {
                 Some(NodeType::Edge)
             } else {
                 None
             }
-        } else if random_provider::random::<f32>() < self.vertex_rate {
+        } else if random_provider::bool(self.vertex_rate) {
             Some(NodeType::Vertex)
         } else {
             None
@@ -72,10 +73,11 @@ where
     #[inline]
     fn mutate_chromosome(&self, chromosome: &mut GraphChromosome<T>, _: f32) -> AlterResult {
         // If the chromosome has a maximum number of nodes then just return 0.
-        // If we have reached this point, this graph is simply optimizing it's nodes.
+        // If we have reached this point, this graph is simply optimizing the
+        // node's values and not the structure.
         if let Some(max_nodes) = chromosome.max_nodes() {
             if chromosome.len() >= max_nodes {
-                return 0.into();
+                return AlterResult::empty();
             }
         }
 
@@ -83,19 +85,18 @@ where
             && let Some(store) = chromosome.store()
         {
             let new_node = store.new_instance((chromosome.len(), node_type));
-
-            let mut graph = Graph::new(chromosome.iter().cloned().collect());
+            let mut graph = Graph::new(chromosome.take_nodes());
 
             let result = graph.try_modify(|mut trans| {
                 let needed_insertions = match new_node.arity() {
-                    Arity::Zero | Arity::Any => 1,
                     Arity::Exact(n) => n,
+                    _ => 1,
                 };
 
                 let target_idx = trans.random_target_node().map(|n| n.index());
                 let source_idx = (0..needed_insertions)
                     .filter_map(|_| trans.random_source_node().map(|n| n.index()))
-                    .collect::<Vec<usize>>();
+                    .collect::<SmallVec<[_; 4]>>();
 
                 let node_idx = trans.add_node(new_node);
 
@@ -118,23 +119,14 @@ where
                 })
             });
 
+            chromosome.set_nodes(graph.take_nodes());
+
             return match result {
-                TransactionResult::Invalid(_, _) => {
-                    let metric = Metric::new(INVALID_MUTATION)
-                        .with_labels(labels![
-                            "domain" => "graph",
-                            "validation" => "invalid",
-                        ])
-                        .upsert(1);
-                    (0, metric).into()
-                }
-                TransactionResult::Valid(steps) => {
-                    chromosome.set_nodes(graph.into_iter().collect());
-                    steps.len().into()
-                }
+                TransactionResult::Invalid(_, _) => AlterResult::from(metric!(INVALID_MUTATION)),
+                TransactionResult::Valid(steps) => AlterResult::from(steps.len()),
             };
         }
 
-        0.into()
+        AlterResult::empty()
     }
 }

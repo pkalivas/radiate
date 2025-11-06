@@ -1,6 +1,6 @@
 use crate::NodeStore;
 use crate::collections::{Tree, TreeChromosome, TreeNode};
-use radiate_core::{Chromosome, Codec, Genotype};
+use radiate_core::{Codec, Genotype};
 use std::sync::Arc;
 
 type Constraint<N> = Arc<dyn Fn(&N) -> bool>;
@@ -73,20 +73,10 @@ where
                 .map(|node| TreeChromosome::new(node, Some(store.clone()), self.constraint.clone()))
                 .collect::<Vec<TreeChromosome<T>>>();
 
-            if let Some(constraint) = self.constraint.as_ref() {
-                for chromosome in new_chromosomes.iter() {
-                    for node in chromosome.iter() {
-                        if !constraint(node) {
-                            panic!("TreeCodec.encode() - Root node does not meet constraint.");
-                        }
-                    }
-                }
-            }
-
             return Genotype::new(new_chromosomes);
         }
 
-        Genotype::new(vec![])
+        Genotype::default()
     }
 
     fn decode(&self, genotype: &Genotype<TreeChromosome<T>>) -> Vec<Tree<T>> {
@@ -113,12 +103,6 @@ where
                 .map(|root| vec![root])
                 .map(|tree| TreeChromosome::new(tree, Some(store.clone()), self.constraint.clone()))
                 .unwrap_or_else(|| TreeChromosome::new(vec![], None, self.constraint.clone()));
-
-            if let Some(constraint) = &self.constraint {
-                if !constraint(new_chromosome.root()) {
-                    panic!("TreeCodec.encode() - Root node does not meet constraint.");
-                }
-            }
 
             return Genotype::new(vec![new_chromosome]);
         }

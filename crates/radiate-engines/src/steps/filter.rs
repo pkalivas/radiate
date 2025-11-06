@@ -2,6 +2,7 @@ use crate::steps::EngineStep;
 use radiate_core::{
     Chromosome, Ecosystem, Genotype, MetricSet, Phenotype, ReplacementStrategy, Valid, metric_names,
 };
+use radiate_error::Result;
 use std::sync::Arc;
 
 pub struct FilterStep<C: Chromosome> {
@@ -18,7 +19,7 @@ impl<C: Chromosome> EngineStep<C> for FilterStep<C> {
         generation: usize,
         metrics: &mut MetricSet,
         ecosystem: &mut Ecosystem<C>,
-    ) {
+    ) -> Result<()> {
         let mut age_count = 0;
         let mut invalid_count = 0;
         for i in 0..ecosystem.population.len() {
@@ -58,5 +59,7 @@ impl<C: Chromosome> EngineStep<C> for FilterStep<C> {
         if invalid_count > 0 {
             metrics.upsert(metric_names::REPLACE_INVALID, invalid_count);
         }
+
+        Ok(())
     }
 }

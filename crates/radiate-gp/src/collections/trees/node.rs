@@ -1,5 +1,5 @@
 use super::TreeIterator;
-use crate::{Arity, NodeType, node::Node};
+use crate::{Arity, Factory, NodeStore, NodeType, Tree, node::Node};
 use radiate_core::genome::{Gene, Valid};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -162,8 +162,8 @@ impl<T> TreeNode<T> {
         None
     }
 
-    pub fn children(&self) -> Option<&Vec<TreeNode<T>>> {
-        self.children.as_ref()
+    pub fn children(&self) -> Option<&[TreeNode<T>]> {
+        self.children.as_ref().map(|children| children.as_slice())
     }
 
     pub fn children_mut(&mut self) -> Option<&mut Vec<TreeNode<T>>> {
@@ -174,6 +174,7 @@ impl<T> TreeNode<T> {
         self.children.take()
     }
 
+    #[inline]
     pub fn size(&self) -> usize {
         if let Some(children) = self.children.as_ref() {
             children.iter().fold(1, |acc, child| acc + child.size())
@@ -182,6 +183,7 @@ impl<T> TreeNode<T> {
         }
     }
 
+    #[inline]
     pub fn height(&self) -> usize {
         if let Some(children) = self.children.as_ref() {
             1 + children
@@ -194,28 +196,28 @@ impl<T> TreeNode<T> {
         }
     }
 
-    pub fn swap_subtrees(&mut self, other: &mut TreeNode<T>, self_idx: usize, other_idx: usize) {
-        let self_subtree = self.get_mut(self_idx);
-        let other_subtree = other.get_mut(other_idx);
-
-        if let (Some(self_sub), Some(other_sub)) = (self_subtree, other_subtree) {
-            std::mem::swap(self_sub, other_sub);
-        }
+    #[inline]
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut TreeNode<T>> {
+        let mut cur = 0;
+        Self::get_mut_preorder(self, index, &mut cur)
     }
 
-    pub fn get_mut(&mut self, index: usize) -> Option<&mut TreeNode<T>> {
-        if index == 0 {
-            return Some(self);
+    #[inline]
+    fn get_mut_preorder<'a>(
+        node: &'a mut TreeNode<T>,
+        target: usize,
+        cur: &mut usize,
+    ) -> Option<&'a mut TreeNode<T>> {
+        if *cur == target {
+            return Some(node);
         }
 
-        if let Some(children) = self.children.as_mut() {
-            let mut count = 0;
+        if let Some(children) = node.children_mut() {
             for child in children {
-                let size = child.size();
-                if index <= count + size {
-                    return child.get_mut(index - count - 1);
+                *cur += 1;
+                if let Some(found) = Self::get_mut_preorder(child, target, cur) {
+                    return Some(found);
                 }
-                count += size;
             }
         }
 
@@ -312,6 +314,17 @@ impl<T> Valid for TreeNode<T> {
     }
 }
 
+impl<T> Factory<(usize, Option<NodeStore<T>>), Option<TreeNode<T>>> for TreeNode<T>
+where
+    T: Clone + Default,
+{
+    fn new_instance(&self, (index, store): (usize, Option<NodeStore<T>>)) -> Option<TreeNode<T>> {
+        store
+            .map(|store| Tree::with_depth(index, store).take_root())
+            .flatten()
+    }
+}
+
 impl<T: Clone> Clone for TreeNode<T> {
     fn clone(&self) -> Self {
         TreeNode {
@@ -343,7 +356,7 @@ impl<T: Debug> Debug for TreeNode<T> {
             match &self.children {
                 Some(children) => children.len(),
                 None => 0,
-            }
+            },
         )
     }
 }
@@ -393,6 +406,12 @@ impl_from!(
     &'static str,
     ()
 );
+
+impl<T> From<TreeNode<T>> for Vec<TreeNode<T>> {
+    fn from(node: TreeNode<T>) -> Self {
+        vec![node]
+    }
+}
 
 #[cfg(test)]
 mod tests {

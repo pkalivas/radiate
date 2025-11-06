@@ -3,6 +3,8 @@ pub mod ops;
 pub mod regression;
 
 pub use collections::*;
+#[cfg(feature = "pgm")]
+pub use ops::crossover::PgmCrossover;
 pub use ops::{Op, OperationMutator, activation_ops, all_ops, math_ops};
 pub use regression::{Accuracy, AccuracyResult, DataSet, Loss, Regression};
 
@@ -13,11 +15,12 @@ use std::ops::Deref;
 
 /// Arity is a way to describe how many inputs an operation expects.
 /// It can be zero, a specific number, or any number.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Copy, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Arity {
     Zero,
     Exact(usize),
+    #[default]
     Any,
 }
 

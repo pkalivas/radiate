@@ -5,20 +5,46 @@ use std::fmt::Debug;
 #[derive(Clone)]
 pub struct Accuracy<'a> {
     name: String,
-    data_set: &'a DataSet,
-    loss_fn: Loss,
+    data_set: Option<&'a DataSet>,
+    loss_fn: Option<Loss>,
 }
 
 impl<'a> Accuracy<'a> {
-    pub fn new(name: impl Into<String>, data_set: &'a DataSet, loss_fn: Loss) -> Self {
+    pub fn new(name: impl Into<String>) -> Self {
         Accuracy {
             name: name.into(),
-            data_set,
-            loss_fn,
+            data_set: None,
+            loss_fn: None,
         }
     }
 
+    pub fn on(mut self, data_set: &'a DataSet) -> Self {
+        self.data_set = Some(data_set);
+        self
+    }
+
+    pub fn loss(mut self, loss_fn: Loss) -> Self {
+        self.loss_fn = Some(loss_fn);
+        self
+    }
+
     pub fn calc(&self, eval: &mut impl EvalMut<[f32], Vec<f32>>) -> AccuracyResult {
+        let data_set = self
+            .data_set
+            .expect("DataSet reference must be provided for accuracy calculation");
+        let loss_fn = self
+            .loss_fn
+            .expect("Loss function must be provided for accuracy calculation");
+
+        self.calc_internal(eval, data_set, loss_fn)
+    }
+
+    pub fn calc_internal(
+        &self,
+        eval: &mut impl EvalMut<[f32], Vec<f32>>,
+        data_set: &DataSet,
+        loss_fn: Loss,
+    ) -> AccuracyResult {
         let mut outputs = Vec::new();
         let mut total_samples = 0.0;
         let mut correct_predictions = 0.0;
@@ -36,15 +62,14 @@ impl<'a> Accuracy<'a> {
         let mut fp = 0.0;
         let mut fn_ = 0.0;
 
-        let loss = self.loss_fn.calculate(self.data_set, eval);
+        let loss = loss_fn.calc(data_set, eval);
 
-        let total_values = self.data_set.len();
+        let total_values = data_set.len();
         if total_values > 0 {
-            y_mean =
-                self.data_set.iter().map(|row| row.output()[0]).sum::<f32>() / total_values as f32;
+            y_mean = data_set.iter().map(|row| row.output()[0]).sum::<f32>() / total_values as f32;
         }
 
-        for row in self.data_set.iter() {
+        for row in data_set.iter() {
             let output = eval.eval_mut(row.input());
             outputs.push(output.clone());
 
@@ -132,8 +157,8 @@ impl<'a> Accuracy<'a> {
             rmse,
             r_squared,
             loss,
-            loss_fn: self.loss_fn,
-            sample_count: self.data_set.len(),
+            loss_fn,
+            sample_count: data_set.len(),
             is_regression,
         }
     }

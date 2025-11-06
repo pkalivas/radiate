@@ -11,6 +11,7 @@
 //! Both evaluators support parallel execution through the executor system and integrate
 //! seamlessly with the ecosystem and problem abstractions.
 
+use crate::Result;
 use crate::{Chromosome, Ecosystem, Executor, Problem};
 use std::sync::Arc;
 
@@ -46,7 +47,7 @@ pub trait Evaluator<C: Chromosome, T>: Send + Sync {
     /// # Returns
     ///
     /// The number of individuals that were evaluated during this call
-    fn eval(&self, ecosystem: &mut Ecosystem<C>, problem: Arc<dyn Problem<C, T>>) -> usize;
+    fn eval(&self, ecosystem: &mut Ecosystem<C>, problem: Arc<dyn Problem<C, T>>) -> Result<usize>;
 }
 
 /// A fitness evaluator that evaluates individuals one at a time.
@@ -108,12 +109,12 @@ where
     T: 'static,
 {
     #[inline]
-    fn eval(&self, ecosystem: &mut Ecosystem<C>, problem: Arc<dyn Problem<C, T>>) -> usize {
+    fn eval(&self, ecosystem: &mut Ecosystem<C>, problem: Arc<dyn Problem<C, T>>) -> Result<usize> {
         let mut jobs = Vec::new();
         let len = ecosystem.population.len();
         for idx in 0..len {
             if ecosystem.population[idx].score().is_none() {
-                let geno = ecosystem.population[idx].take_genotype();
+                let geno = ecosystem.population[idx].take_genotype()?;
                 jobs.push((idx, geno));
             }
         }
@@ -133,11 +134,11 @@ where
         let count = results.len();
         for result in results {
             let (idx, score, genotype) = result;
-            ecosystem.population[idx].set_score(Some(score));
+            ecosystem.population[idx].set_score(Some(score?));
             ecosystem.population[idx].set_genotype(genotype);
         }
 
-        count
+        Ok(count)
     }
 }
 
@@ -257,12 +258,12 @@ where
     T: 'static,
 {
     #[inline]
-    fn eval(&self, ecosystem: &mut Ecosystem<C>, problem: Arc<dyn Problem<C, T>>) -> usize {
+    fn eval(&self, ecosystem: &mut Ecosystem<C>, problem: Arc<dyn Problem<C, T>>) -> Result<usize> {
         let mut pairs = Vec::new();
         let len = ecosystem.population.len();
         for idx in 0..len {
             if ecosystem.population[idx].score().is_none() {
-                let geno = ecosystem.population[idx].take_genotype();
+                let geno = ecosystem.population[idx].take_genotype()?;
                 pairs.push((idx, geno));
             }
         }
@@ -271,7 +272,7 @@ where
         let batch_size = (pairs.len() + num_workers - 1) / num_workers;
 
         if pairs.is_empty() || batch_size == 0 {
-            return 0;
+            return Ok(0);
         }
 
         let mut batches = Vec::with_capacity(num_workers);
@@ -307,7 +308,7 @@ where
         let mut count = 0;
         for (indices, scores, genotypes) in results {
             count += indices.len();
-            let score_genotype_iter = scores.into_iter().zip(genotypes.into_iter());
+            let score_genotype_iter = scores?.into_iter().zip(genotypes.into_iter());
             for (i, (score, genotype)) in score_genotype_iter.enumerate() {
                 let idx = indices[i];
                 ecosystem.population[idx].set_score(Some(score));
@@ -315,6 +316,6 @@ where
             }
         }
 
-        count
+        Ok(count)
     }
 }

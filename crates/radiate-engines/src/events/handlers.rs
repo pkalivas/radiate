@@ -1,14 +1,14 @@
-use super::events::Event;
+use crate::events::events::*;
 
 pub trait EventHandler<T>: Send + Sync {
-    fn handle(&mut self, event: Event<T>);
+    fn handle(&mut self, event: &EngineEvent<T>);
 }
 
 impl<T, F> EventHandler<T> for F
 where
-    F: Fn(Event<T>) + Send + Sync,
+    F: Fn(&EngineEvent<T>) + Send + Sync,
 {
-    fn handle(&mut self, event: Event<T>) {
+    fn handle(&mut self, event: &EngineEvent<T>) {
         (self)(event)
     }
 }

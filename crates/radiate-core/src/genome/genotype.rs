@@ -59,9 +59,11 @@ impl<C: Chromosome> Genotype<C> {
 
 impl<C: Chromosome> Valid for Genotype<C> {
     fn is_valid(&self) -> bool {
-        self.chromosomes
-            .iter()
-            .all(|chromosome| chromosome.is_valid())
+        !self.chromosomes.is_empty()
+            && self
+                .chromosomes
+                .iter()
+                .all(|chromosome| chromosome.is_valid())
     }
 }
 
@@ -105,6 +107,14 @@ impl<C: Chromosome> IntoIterator for Genotype<C> {
 
     fn into_iter(self) -> Self::IntoIter {
         self.chromosomes.into_iter()
+    }
+}
+
+impl<C: Chromosome> FromIterator<C> for Genotype<C> {
+    fn from_iter<I: IntoIterator<Item = C>>(iter: I) -> Self {
+        Genotype {
+            chromosomes: iter.into_iter().collect(),
+        }
     }
 }
 

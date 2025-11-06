@@ -191,10 +191,10 @@ class GraphCrossover(AlterBase):
 
 
 class TreeCrossover(AlterBase):
-    def __init__(self, rate: float = 0.5):
+    def __init__(self, rate: float = 0.5, max_size: int = 30):
         super().__init__(
             component="TreeCrossover",
-            args={"rate": rate},
+            args={"rate": rate, 'max_size': max_size},
             allowed_genes=GeneType.TREE,
         )
 

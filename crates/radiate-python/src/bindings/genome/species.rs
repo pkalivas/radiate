@@ -88,7 +88,7 @@ macro_rules! impl_into_py_species {
         {
             fn from(species: Species<$chromosome>) -> Self {
                 PySpecies {
-                    id: *(species.id()),
+                    id: species.id().0,
                     mascot: PyPhenotype::from(species.mascot().clone()),
                     generation: species.generation(),
                     stagnation: species.stagnation(),

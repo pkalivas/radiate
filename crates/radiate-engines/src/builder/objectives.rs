@@ -38,6 +38,11 @@ where
     /// multi-objective optimization problems where the goal is to find the best
     /// solutions that are not dominated by any other solution.
     pub fn front_size(mut self, range: Range<usize>) -> GeneticEngineBuilder<C, T> {
+        self.add_error_if(
+            || range.start > range.end,
+            "Front range start must be less than end",
+        );
+
         self.params.optimization_params.front_range = range;
         self
     }

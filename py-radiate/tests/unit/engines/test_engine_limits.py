@@ -44,7 +44,7 @@ class TestEngineLimits:
             def on_event(self, generation):
                 if len(self.convergence_data) >= window_size:
                     self.convergence_data.pop(0)
-                self.convergence_data.append(generation["score"])
+                self.convergence_data.append(generation.score())
 
         handler = Subscriber()
         simple_float_engine.subscribe(handler)

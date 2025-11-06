@@ -1,5 +1,5 @@
 use super::Tree;
-use crate::{Eval, EvalMut, TreeNode, node::Node};
+use crate::{Eval, TreeNode, eval::EvalInto, node::Node};
 
 /// Implements the [Eval] trait for [`Tree<T>`] where `T` is `Eval<[V], V>`. All this really does is
 /// call the `eval` method on the root node of the [Tree]. The real work is
@@ -14,25 +14,6 @@ where
         self.root()
             .map(|root| root.eval(input))
             .unwrap_or_else(|| panic!("Tree has no root node."))
-    }
-}
-
-/// Implements the [EvalMut] trait for [`Tree<T>`] where `T` is `Eval<[V], V>`. This is primarily just a simple
-/// implementation to satisfy the [regression](crate::regression) use-case where we want to evaluate
-/// a `Tree` and return a `Vec` of results. Since a [`Tree<T>`] only has a single root node, we return
-/// a `Vec` with a single element. All it really does is call the `eval` method on the root node of the [Tree].
-impl<T, V> EvalMut<[V], Vec<V>> for Tree<T>
-where
-    T: Eval<[V], V>,
-    V: Clone,
-{
-    #[inline]
-    fn eval_mut(&mut self, input: &[V]) -> Vec<V> {
-        vec![
-            self.root()
-                .map(|root| root.eval(input))
-                .unwrap_or_else(|| panic!("Tree has no root node.")),
-        ]
     }
 }
 
@@ -52,28 +33,40 @@ where
     }
 }
 
-/// Implements the [EvalMut] trait for `Vec<Tree<T>>`. This is a wrapper around a `Vec<Tree<T>>`
-/// and allows for the evaluation of each [Tree] in the `Vec` with a single input.
-/// This is useful for things like `Ensemble` models where multiple models are used to make a prediction.
-///
-/// This is a simple implementation that just maps over the `Vec` and calls [Eval] on each [Tree]. Just like
-/// the implementation of [`EvalMut<[V], Vec<V>>`] for [`Tree<T>`] above, this is primarily to satisfy the
-/// [regression](crate::regression) use-case.
-impl<T, V> EvalMut<[V], Vec<V>> for Vec<Tree<T>>
+impl<T, V> EvalInto<[V], [V]> for Tree<T>
 where
     T: Eval<[V], V>,
     V: Clone,
 {
     #[inline]
-    fn eval_mut(&mut self, inputs: &[V]) -> Vec<V> {
-        self.iter_mut().map(|tree| tree.eval(inputs)).collect()
+    fn eval_into(&self, input: &[V], buffer: &mut [V]) {
+        buffer[0] = self
+            .root()
+            .map(|root| root.eval(input))
+            .unwrap_or_else(|| panic!("Tree has no root node."));
+    }
+}
+
+impl<T, V> EvalInto<[V], [V]> for Vec<Tree<T>>
+where
+    T: Eval<[V], V>,
+    V: Clone,
+{
+    #[inline]
+    fn eval_into(&self, input: &[V], buffer: &mut [V]) {
+        for i in 0..self.len() {
+            buffer[i] = self[i]
+                .root()
+                .map(|root| root.eval(input))
+                .unwrap_or_else(|| panic!("Tree has no root node."));
+        }
     }
 }
 
 /// Implements the [Eval] trait for `Vec<&TreeNode<T>>`. This is a wrapper around a `Vec<&TreeNode<T>>`
 /// and allows for the evaluation of each [TreeNode] in the `Vec` with a single input.
 /// The len of the input slice must equal the number of nodes in the `Vec`.
-impl<T, V> Eval<[V], Vec<V>> for Vec<&TreeNode<T>>
+impl<T, V> Eval<[V], Vec<V>> for &[TreeNode<T>]
 where
     T: Eval<[V], V>,
     V: Clone,

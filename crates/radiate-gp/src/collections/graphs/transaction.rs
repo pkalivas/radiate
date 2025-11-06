@@ -90,7 +90,7 @@ impl<'a, T> GraphTransaction<'a, T> {
     pub fn new(graph: &'a mut Graph<T>) -> Self {
         GraphTransaction {
             graph,
-            steps: Vec::new(),
+            steps: Vec::with_capacity(5),
             effects: BTreeSet::new(),
         }
     }
@@ -252,7 +252,7 @@ impl<'a, T> GraphTransaction<'a, T> {
         let source_node = self.graph.get(source_idx).unwrap();
         let new_node = self.graph.get(new_node_idx).unwrap();
 
-        let mut steps = Vec::new();
+        let mut steps = Vec::with_capacity(4);
 
         let source_is_edge = source_node.node_type() == NodeType::Edge;
         let target_is_edge = target_node.node_type() == NodeType::Edge;
@@ -264,26 +264,24 @@ impl<'a, T> GraphTransaction<'a, T> {
         }
 
         if source_is_edge {
-            let source_outgoing_idxes = source_node.outgoing().iter().collect::<Vec<&usize>>();
-            let source_outgoing = *random_provider::choose(&source_outgoing_idxes);
+            let source_outgoing = *random_provider::choose(&source_node.outgoing());
 
-            if source_outgoing == &new_node_idx {
+            if source_outgoing == new_node_idx {
                 steps.push(InsertStep::Connect(source_idx, new_node_idx));
             } else {
                 steps.push(InsertStep::Connect(source_idx, new_node_idx));
-                steps.push(InsertStep::Connect(new_node_idx, *source_outgoing));
-                steps.push(InsertStep::Detach(source_idx, *source_outgoing));
+                steps.push(InsertStep::Connect(new_node_idx, source_outgoing));
+                steps.push(InsertStep::Detach(source_idx, source_outgoing));
             }
         } else if target_is_edge || target_node.is_locked() {
-            let target_incoming_idxes = target_node.incoming().iter().collect::<Vec<&usize>>();
-            let target_incoming = *random_provider::choose(&target_incoming_idxes);
+            let target_incoming = *random_provider::choose(&target_node.incoming());
 
-            if target_incoming == &new_node_idx {
-                steps.push(InsertStep::Connect(*target_incoming, new_node_idx));
+            if target_incoming == new_node_idx {
+                steps.push(InsertStep::Connect(target_incoming, new_node_idx));
             } else {
-                steps.push(InsertStep::Connect(*target_incoming, new_node_idx));
+                steps.push(InsertStep::Connect(target_incoming, new_node_idx));
                 steps.push(InsertStep::Connect(new_node_idx, target_idx));
-                steps.push(InsertStep::Detach(*target_incoming, target_idx));
+                steps.push(InsertStep::Detach(target_incoming, target_idx));
             }
         } else {
             steps.push(InsertStep::Connect(source_idx, new_node_idx));

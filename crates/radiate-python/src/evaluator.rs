@@ -23,12 +23,16 @@ where
     C: Chromosome + 'static,
     T: IntoPyAnyObject + Send + Sync + 'static,
 {
-    fn eval(&self, ecosystem: &mut Ecosystem<C>, prob: Arc<dyn Problem<C, T>>) -> usize {
+    fn eval(
+        &self,
+        ecosystem: &mut Ecosystem<C>,
+        prob: Arc<dyn Problem<C, T>>,
+    ) -> radiate::Result<usize> {
         let mut pairs = Vec::new();
         let len = ecosystem.population.len();
         for idx in 0..len {
             if ecosystem.population[idx].score().is_none() {
-                let geno = ecosystem.population[idx].take_genotype();
+                let geno = ecosystem.population[idx].take_genotype()?;
                 pairs.push((idx, geno));
             }
         }
@@ -37,7 +41,7 @@ where
         let batch_size = (pairs.len() + num_workers - 1) / num_workers;
 
         if pairs.is_empty() || batch_size == 0 {
-            return 0;
+            return Ok(0);
         }
 
         let mut batches = Vec::with_capacity(num_workers);
@@ -76,7 +80,7 @@ where
         let mut count = 0;
         for (indices, scores, genotypes) in results {
             count += indices.len();
-            let score_genotype_iter = scores.into_iter().zip(genotypes.into_iter());
+            let score_genotype_iter = scores?.into_iter().zip(genotypes.into_iter());
             for (i, (score, genotype)) in score_genotype_iter.enumerate() {
                 let idx = indices[i];
                 ecosystem.population[idx].set_score(Some(score));
@@ -84,6 +88,6 @@ where
             }
         }
 
-        count
+        Ok(count)
     }
 }

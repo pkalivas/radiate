@@ -75,7 +75,7 @@ macro_rules! impl_from_py_phenotype {
                         .score()
                         .map(|score| score.as_ref().to_vec())
                         .unwrap_or_default(),
-                    id: *phenotype.id(),
+                    id: phenotype.id().0,
                 }
             }
         }

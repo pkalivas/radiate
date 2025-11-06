@@ -15,6 +15,20 @@ impl Objective {
         matches!(self, Objective::Multi(_))
     }
 
+    pub fn num_objectives(&self) -> usize {
+        match self {
+            Objective::Single(_) => 1,
+            Objective::Multi(opts) => opts.len(),
+        }
+    }
+
+    pub fn validate<T: AsRef<[K]>, K>(&self, values: &T) -> bool {
+        match self {
+            Objective::Single(_) => values.as_ref().len() == 1,
+            Objective::Multi(opts) => values.as_ref().len() == opts.len(),
+        }
+    }
+
     pub fn cmp<T>(&self, a: &T, b: &T) -> std::cmp::Ordering
     where
         T: PartialOrd,
@@ -120,10 +134,10 @@ impl Optimize {
         match self {
             Optimize::Minimize => population
                 .as_mut()
-                .sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)),
+                .sort_unstable_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)),
             Optimize::Maximize => population
                 .as_mut()
-                .sort_by(|a, b| b.partial_cmp(a).unwrap_or(std::cmp::Ordering::Equal)),
+                .sort_unstable_by(|a, b| b.partial_cmp(a).unwrap_or(std::cmp::Ordering::Equal)),
         }
     }
 

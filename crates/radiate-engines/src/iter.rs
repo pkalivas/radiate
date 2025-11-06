@@ -85,7 +85,10 @@ where
     type Item = E::Epoch;
 
     fn next(&mut self) -> Option<Self::Item> {
-        Some(self.engine.next())
+        match self.engine.next() {
+            Ok(epoch) => Some(epoch),
+            Err(e) => panic!("{e}"),
+        }
     }
 }
 
@@ -586,10 +589,6 @@ where
     /// This method wraps the iterator with logging capabilities, automatically
     /// logging information about each generation including index, scores, and
     /// execution time.
-    ///
-    /// # Returns
-    ///
-    /// An iterator that logs each generation
     ///
     /// # Examples
     ///

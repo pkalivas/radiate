@@ -15,7 +15,7 @@ mod tests {
         // All individuals should start without scores
         assert!(ecosystem.population.iter().all(|p| p.score().is_none()));
 
-        let count = evaluator.eval(&mut ecosystem, problem);
+        let count = evaluator.eval(&mut ecosystem, problem).unwrap();
 
         // All individuals should now have scores
         assert!(ecosystem.population.iter().all(|p| p.score().is_some()));
@@ -31,7 +31,7 @@ mod tests {
         // All individuals should start without scores
         assert!(ecosystem.population.iter().all(|p| p.score().is_none()));
 
-        let count = evaluator.eval(&mut ecosystem, problem);
+        let count = evaluator.eval(&mut ecosystem, problem).unwrap();
 
         // All individuals should now have scores
         assert!(ecosystem.population.iter().all(|p| p.score().is_some()));
@@ -46,7 +46,7 @@ mod tests {
         let mut ecosystem = float_ecosystem();
         let problem = Arc::new(FloatEvalProblem);
 
-        let count = evaluator.eval(&mut ecosystem, problem);
+        let count = evaluator.eval(&mut ecosystem, problem).unwrap();
         assert_eq!(count, 3);
     }
 
@@ -56,7 +56,7 @@ mod tests {
         let mut ecosystem = Ecosystem::<FloatChromosome>::default();
         let problem = Arc::new(FloatEvalProblem);
 
-        let count = evaluator.eval(&mut ecosystem, problem);
+        let count = evaluator.eval(&mut ecosystem, problem).unwrap();
         assert_eq!(count, 0);
     }
 
@@ -71,7 +71,7 @@ mod tests {
             phenotype.set_score(Some(Score::from(1.0)));
         }
 
-        let count = evaluator.eval(&mut ecosystem, problem);
+        let count = evaluator.eval(&mut ecosystem, problem).unwrap();
         assert_eq!(count, 0);
     }
 }

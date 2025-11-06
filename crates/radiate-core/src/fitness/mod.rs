@@ -1,10 +1,9 @@
 mod composite;
 mod novelty;
 
+use crate::Score;
 pub use composite::CompositeFitnessFn;
 pub use novelty::{Novelty, NoveltySearch};
-
-use crate::Score;
 
 pub trait FitnessFunction<T, S = f32>: Send + Sync
 where
@@ -20,7 +19,7 @@ pub trait BatchFitnessFunction<T, S = f32>: Send + Sync
 where
     S: Into<Score>,
 {
-    fn evaluate(&self, individuals: &[T]) -> Vec<S>;
+    fn evaluate(&self, individuals: Vec<T>) -> Vec<S>;
 }
 
 /// Blanket implement FitnessFunction for any function that takes a single argument.
@@ -42,7 +41,7 @@ where
     F: for<'a> Fn(&'a [T]) -> Vec<S> + Send + Sync,
     S: Into<Score>,
 {
-    fn evaluate(&self, individuals: &[T]) -> Vec<S> {
-        self(individuals)
+    fn evaluate(&self, individuals: Vec<T>) -> Vec<S> {
+        self(&individuals)
     }
 }

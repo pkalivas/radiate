@@ -248,7 +248,6 @@ where
     }
 
     let result = PyList::empty(py);
-
     if let Some(front) = generation.front() {
         for member in front.values().iter() {
             let temp = PyGenotype::from(member.genotype().clone());

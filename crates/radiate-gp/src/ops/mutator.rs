@@ -1,10 +1,13 @@
-use crate::node::Node;
+use crate::node::{Node, NodeExt};
 use crate::ops::operation::Op;
-use crate::{Factory, GraphChromosome, NodeType, TreeChromosome, TreeIterator};
-use radiate_core::genome::Gene;
-use radiate_core::{AlterResult, Mutate};
+use crate::{Factory, GraphChromosome, NodeStore, NodeType, TreeChromosome};
+use radiate_core::{AlterResult, Metric, Mutate, metric};
 use radiate_core::{Chromosome, random_provider};
-use std::sync::{Arc, Mutex};
+
+const MUT_CONST_OP_MUTATED: &str = "op_mc";
+#[cfg(feature = "pgm")]
+const PGM_OP_MUTATED: &str = "op_pgm";
+const FALLBACK_OP_MUTATED: &str = "op_new";
 
 pub struct OperationMutator {
     rate: f32,
@@ -23,6 +26,103 @@ impl OperationMutator {
 
         OperationMutator { rate, replace_rate }
     }
+
+    #[inline]
+    fn mutate_node<T>(
+        &self,
+        node: &mut impl Node<Value = Op<T>>,
+        store: &NodeStore<Op<T>>,
+    ) -> Vec<Metric>
+    where
+        T: Clone + PartialEq + Default,
+    {
+        let mut result = Vec::new();
+        match node.value() {
+            Op::MutableConst { .. } => {
+                if let Some(new_op) = self.try_mutate_mut_const_op(node) {
+                    node.set_value(new_op);
+                    result.push(metric!(MUT_CONST_OP_MUTATED, 1));
+                }
+            }
+            #[cfg(feature = "pgm")]
+            Op::PGM(..) => result.extend(self.try_mutate_pga_op(node, store)),
+            _ => {
+                let new_op: Op<T> = store.new_instance(node.node_type());
+                (new_op.arity() == node.value().arity())
+                    .then_some(new_op)
+                    .map(|op| {
+                        node.set_value(op);
+                        result.push(metric!(FALLBACK_OP_MUTATED, 1));
+                    });
+            }
+        }
+
+        result
+    }
+
+    #[inline]
+    fn try_mutate_mut_const_op<T>(&self, node: &impl Node<Value = Op<T>>) -> Option<Op<T>>
+    where
+        T: Clone + PartialEq + Default,
+    {
+        match node.value() {
+            Op::MutableConst {
+                name,
+                arity,
+                value,
+                supplier: get_value,
+                modifier,
+                operation,
+            } => {
+                let new_value = get_value();
+                let new_value = if random_provider::random::<f32>() < self.replace_rate {
+                    new_value
+                } else {
+                    modifier(value)
+                };
+
+                Some(Op::MutableConst {
+                    name,
+                    arity: *arity,
+                    value: new_value,
+                    modifier: *modifier,
+                    supplier: *get_value,
+                    operation: *operation,
+                })
+            }
+            _ => None,
+        }
+    }
+
+    #[inline]
+    #[cfg(feature = "pgm")]
+    fn try_mutate_pga_op<T>(
+        &self,
+        node: &mut impl Node<Value = Op<T>>,
+        store: &NodeStore<Op<T>>,
+    ) -> Vec<Metric>
+    where
+        T: Clone + PartialEq + Default,
+    {
+        use std::sync::Arc;
+
+        let mut result = Vec::new();
+
+        if let Op::PGM(_, _, programs, _) = node.value_mut() {
+            let programs_mut = Arc::make_mut(programs);
+
+            for prog in programs_mut.iter_mut() {
+                for idx in random_provider::cond_indices(0..prog.size(), self.rate) {
+                    if let Some(child_node) = prog.get_mut(idx) {
+                        result.extend(self.mutate_node(child_node, store));
+                    }
+                }
+            }
+        }
+
+        result.push(metric!(PGM_OP_MUTATED, result.len()));
+        result
+    }
 }
 
 /// This implementation is for the `GraphChromosome<Op<T>>` type.
@@ -39,63 +139,23 @@ where
 
     #[inline]
     fn mutate_chromosome(&self, chromosome: &mut GraphChromosome<Op<T>>, rate: f32) -> AlterResult {
-        let mutation_indexes = (0..chromosome.len())
-            .filter(|_| random_provider::random::<f32>() < rate)
-            .collect::<Vec<usize>>();
+        let mutation_indexes = random_provider::cond_indices(0..chromosome.len(), rate);
+        let store = chromosome.store().map(|store| store.clone());
 
-        if mutation_indexes.is_empty() {
-            return 0.into();
-        }
-
+        let mut metrics = Vec::new();
         for i in mutation_indexes.iter() {
-            let current_node = chromosome.get(*i);
+            let node = chromosome.get_mut(*i);
 
-            if current_node.node_type() == NodeType::Input
-                || current_node.node_type() == NodeType::Output
-            {
+            if matches!(node.node_type(), NodeType::Input | NodeType::Output) {
                 continue;
             }
 
-            match current_node.allele() {
-                Op::MutableConst {
-                    name,
-                    arity,
-                    value,
-                    supplier: get_value,
-                    modifier,
-                    operation,
-                } => {
-                    let new_value = get_value();
-                    let new_value = if random_provider::random::<f32>() < self.replace_rate {
-                        new_value
-                    } else {
-                        modifier(value)
-                    };
-
-                    (*chromosome.as_mut()[*i].value_mut()) = Op::MutableConst {
-                        name,
-                        arity: *arity,
-                        value: new_value,
-                        modifier: Arc::clone(modifier),
-                        supplier: Arc::clone(get_value),
-                        operation: Arc::clone(operation),
-                    };
-                }
-                _ => {
-                    let new_op: Option<Op<T>> = chromosome
-                        .store()
-                        .map(|store| store.new_instance(current_node.node_type()));
-
-                    if let Some(new_op) = new_op {
-                        if new_op.arity() == current_node.arity() {
-                            (*chromosome.as_mut()[*i].value_mut()) = new_op;
-                        }
-                    }
-                }
+            if let Some(store) = store.as_ref() {
+                metrics.extend(self.mutate_node(node, store));
             }
         }
 
-        mutation_indexes.len().into()
+        AlterResult::from((mutation_indexes.len(), metrics))
     }
 }
 
@@ -109,57 +169,20 @@ where
 
     #[inline]
     fn mutate_chromosome(&self, chromosome: &mut TreeChromosome<Op<T>>, rate: f32) -> AlterResult {
-        let store = chromosome.get_store();
+        let store = chromosome.get_store().map(|store| store.clone());
+        let mut metrics = Vec::new();
         if let Some(store) = store {
-            let count = Arc::new(Mutex::new(0));
-            let cloned_count = Arc::clone(&count);
             let root = chromosome.root_mut();
 
-            root.apply(move |node| {
-                if random_provider::random::<f32>() < rate {
-                    match node.allele() {
-                        Op::MutableConst {
-                            name,
-                            arity,
-                            value,
-                            supplier: get_value,
-                            modifier,
-                            operation,
-                        } => {
-                            let new_value = get_value();
-                            let new_value = if random_provider::random::<f32>() < self.replace_rate
-                            {
-                                new_value
-                            } else {
-                                modifier(value)
-                            };
-
-                            (*node.value_mut()) = Op::MutableConst {
-                                name,
-                                arity: *arity,
-                                value: new_value,
-                                modifier: Arc::clone(modifier),
-                                supplier: Arc::clone(get_value),
-                                operation: Arc::clone(operation),
-                            };
-
-                            (*cloned_count.lock().unwrap()) += 1;
-                        }
-                        _ => {
-                            let new_op: Op<T> = store.new_instance(node.node_type());
-
-                            if new_op.arity() == node.arity() {
-                                *node.value_mut() = new_op;
-                                (*cloned_count.lock().unwrap()) += 1;
-                            }
-                        }
-                    }
+            for idx in random_provider::cond_indices(0..root.size(), rate) {
+                if let Some(node) = root.get_mut(idx) {
+                    metrics.extend(self.mutate_node(node, &store));
                 }
-            });
+            }
 
-            return (*count.lock().unwrap()).into();
-        } else {
-            0.into()
+            return AlterResult::from((metrics.len(), metrics));
         }
+
+        AlterResult::empty()
     }
 }

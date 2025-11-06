@@ -3,7 +3,7 @@ use radiate::prelude::*;
 const MIN_SCORE: f32 = 0.001;
 
 fn main() {
-    random_provider::set_seed(1000);
+    random_provider::set_seed(567123);
 
     let store = vec![
         (NodeType::Input, vec![Op::var(0)]),
@@ -33,11 +33,13 @@ fn main() {
 
 fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
     let mut evaluator = GraphEvaluator::new(result.value());
-
-    let data_set = dataset().into();
-    let accuracy_result = Accuracy::new("reg", &data_set, Loss::MSE).calc(&mut evaluator);
+    let accuracy_result = Accuracy::new("reg")
+        .on(&dataset().into())
+        .loss(Loss::MSE)
+        .calc(&mut evaluator);
 
     println!("{result:?}\n{accuracy_result:?}");
+    println!("{}", result.metrics());
 }
 
 fn dataset() -> impl Into<DataSet> {

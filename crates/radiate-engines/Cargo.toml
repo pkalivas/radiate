@@ -16,9 +16,12 @@ radiate-core = { workspace = true}
 radiate-alters = { workspace = true }
 radiate-selectors = { workspace = true }
 radiate-error = { workspace = true }
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 
 [features]
 default = []
 rayon = [ "radiate-core/rayon" ]
+
