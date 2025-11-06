@@ -590,10 +590,6 @@ where
     /// logging information about each generation including index, scores, and
     /// execution time.
     ///
-    /// # Returns
-    ///
-    /// An iterator that logs each generation
-    ///
     /// # Examples
     ///
     /// ```rust,ignore

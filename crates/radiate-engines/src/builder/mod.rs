@@ -115,7 +115,10 @@ where
     /// Build the genetic engine with the given parameters. This will create a new
     /// instance of the `GeneticEngine` with the given parameters.
     pub fn build(self) -> GeneticEngine<C, T> {
-        self.try_build().expect("Failed to build GeneticEngine")
+        match self.try_build() {
+            Ok(engine) => engine,
+            Err(e) => panic!("{e}"),
+        }
     }
 
     pub fn try_build(mut self) -> Result<GeneticEngine<C, T>> {
@@ -190,7 +193,7 @@ where
     }
 
     fn build_front_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
-        if let Objective::Single(_) = config.objective() {
+        if config.objective().is_single() {
             return None;
         }
 

@@ -186,6 +186,16 @@ where
     }
 }
 
+impl<'a, T, V> From<&'a Graph<T>> for GraphEvaluator<'a, T, V>
+where
+    T: Eval<[V], V>,
+    V: Default + Clone,
+{
+    fn from(graph: &'a Graph<T>) -> Self {
+        GraphEvaluator::new(graph)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -187,7 +187,7 @@ impl std::fmt::Display for MetricSet {
 impl Debug for MetricSet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "MetricSet {{\n")?;
-        write!(f, "{}", fmt::render_dashboard(&self).unwrap_or_default())?;
+        write!(f, "{}\n", fmt::render_dashboard(&self).unwrap_or_default())?;
         write!(f, "}}")
     }
 }

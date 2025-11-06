@@ -24,7 +24,7 @@ where
 {
     fn new_instance(&self, input: NodeType) -> T {
         self.map_by_type(input, |values| {
-            random_provider::choose(&values).new_instance(())
+            random_provider::choose(values).new_instance(())
         })
         .unwrap_or_default()
     }
@@ -114,7 +114,7 @@ where
 impl<T: Clone + Default> Factory<NodeType, TreeNode<T>> for NodeStore<T> {
     fn new_instance(&self, input: NodeType) -> TreeNode<T> {
         self.map_by_type(input, |values| {
-            let node_value = random_provider::choose(&values);
+            let node_value = random_provider::choose(values);
 
             match node_value {
                 NodeValue::Bounded(value, arity) => TreeNode::with_arity(value.clone(), *arity),

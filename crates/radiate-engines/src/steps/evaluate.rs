@@ -15,7 +15,7 @@ impl<C: Chromosome, T> EvaluateStep<C, T> {
         problem: Arc<dyn Problem<C, T>>,
         evaluator: Arc<dyn Evaluator<C, T>>,
     ) -> Self {
-        EvaluateStep {
+        Self {
             objective,
             evaluator,
             problem,

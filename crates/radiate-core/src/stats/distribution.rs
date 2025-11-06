@@ -77,7 +77,7 @@ impl Distribution {
 
         for &value in &self.last_sequence {
             let bin = (value / bin_width).floor();
-            *counts.entry(bin as i32).or_insert(0usize) += 1;
+            *counts.entry(bin as i32).or_insert(0) += 1;
         }
 
         let total = self.last_sequence.len() as f32;

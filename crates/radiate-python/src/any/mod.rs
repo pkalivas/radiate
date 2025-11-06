@@ -22,8 +22,6 @@ use std::{
     collections::HashMap,
 };
 
-// https://pyo3.rs/v0.27.1/migration.html
-
 type InitFn = for<'py> fn(&Bound<'py, PyAny>, bool) -> PyResult<AnyValue<'py>>;
 
 pub(crate) static LUT: crate::GILOnceCell<HashMap<TypeObjectKey, InitFn>> =

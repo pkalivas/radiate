@@ -412,20 +412,18 @@ mod tests {
     use super::*;
     use crate::{Factory, Node, ops};
 
-    // Helper function to create a test NodeStore
     fn create_test_store() -> NodeStore<i32> {
         let store = NodeStore::new();
 
-        // Add some test values for different node types
         store.insert(NodeType::Input, vec![1, 2, 3]);
         store.insert(NodeType::Output, vec![4, 5]);
         store.insert(NodeType::Vertex, vec![6, 7, 8, 9]);
 
-        // Add some bounded values
         let bounded_values = vec![
             NodeValue::Bounded(10, Arity::Exact(2)),
             NodeValue::Bounded(11, Arity::Zero),
         ];
+
         store.insert(
             NodeType::Edge,
             bounded_values
@@ -441,7 +439,7 @@ mod tests {
     fn test_node_store() {
         let store = NodeStore::from(ops::all_ops());
 
-        store.add((0..3).map(Op::var).collect());
+        store.add(Op::vars(0..3));
 
         assert!(store.contains_type(NodeType::Input));
         assert!(store.contains_type(NodeType::Output));

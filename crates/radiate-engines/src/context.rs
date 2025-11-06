@@ -15,6 +15,29 @@ pub struct Context<C: Chromosome, T> {
     pub(crate) problem: Arc<dyn Problem<C, T>>,
 }
 
+impl<C: Chromosome, T> Context<C, T> {
+    pub fn try_advance_one(&mut self) -> bool {
+        let best = self.ecosystem.population().get(0);
+        if let Some(best) = best {
+            if let (Some(score), Some(current)) = (best.score(), &self.score) {
+                if self.objective.is_better(score, current) {
+                    self.score = Some(score.clone());
+                    self.best = self.problem.decode(best.genotype());
+                    return true;
+                }
+            } else {
+                self.score = Some(best.score().unwrap().clone());
+                self.best = self.problem.decode(best.genotype());
+                return true;
+            }
+        }
+
+        self.index += 1;
+
+        false
+    }
+}
+
 impl<C, T> From<EngineConfig<C, T>> for Context<C, T>
 where
     C: Chromosome + Clone,

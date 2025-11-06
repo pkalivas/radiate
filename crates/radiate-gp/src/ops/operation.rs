@@ -1,4 +1,6 @@
 use crate::{Arity, Eval, Factory, NodeValue, TreeNode};
+#[cfg(feature = "pgm")]
+use std::sync::Arc;
 use std::{
     fmt::{Debug, Display},
     hash::Hash,
@@ -68,7 +70,7 @@ pub enum Op<T> {
     PGM(
         &'static str,
         Arity,
-        std::sync::Arc<Vec<TreeNode<Op<T>>>>,
+        Arc<Vec<TreeNode<Op<T>>>>,
         fn(&[T], &[TreeNode<Op<T>>]) -> T,
     ),
 }

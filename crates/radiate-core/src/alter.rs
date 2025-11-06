@@ -50,15 +50,11 @@ pub struct AlterResult(pub usize, pub Option<Vec<Metric>>);
 
 impl AlterResult {
     pub fn empty() -> Self {
-        AlterResult(0, None)
+        Default::default()
     }
 
     pub fn count(&self) -> usize {
         self.0
-    }
-
-    pub fn metrics(&self) -> Option<&Vec<Metric>> {
-        self.1.as_ref()
     }
 
     pub fn merge(&mut self, other: AlterResult) {
@@ -115,7 +111,7 @@ impl<C: Chromosome> Alter<C> for AlterAction<C> {
         }
     }
 
-    #[inline(always)]
+    #[inline]
     fn alter(&self, population: &mut Population<C>, generation: usize) -> Vec<Metric> {
         match &self {
             AlterAction::Mutate(name, rate, m) => {

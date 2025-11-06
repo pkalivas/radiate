@@ -42,8 +42,9 @@ where
             )?;
             let elapsed = timer.elapsed();
 
-            let metric = metric!(MetricScope::Step, step.name(), elapsed).with_rollup(Rollup::Last);
-            context.epoch_metrics.add_or_update(metric);
+            context.epoch_metrics.add_or_update(
+                metric!(MetricScope::Step, step.name(), elapsed).with_rollup(Rollup::Last),
+            );
         }
 
         let elapsed = timer.elapsed();

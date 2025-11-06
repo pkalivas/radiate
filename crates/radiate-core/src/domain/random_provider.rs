@@ -16,7 +16,7 @@ thread_local! {
     });
 }
 
-fn with_rng<R>(f: impl FnOnce(&mut StdRng) -> R) -> R {
+pub fn with_rng<R>(f: impl FnOnce(&mut StdRng) -> R) -> R {
     TLS_RNG.with(|cell| {
         let mut rng = cell.borrow_mut();
         f(&mut *rng)

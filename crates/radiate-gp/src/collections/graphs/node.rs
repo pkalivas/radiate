@@ -36,7 +36,7 @@ pub struct GraphNodeId(u64);
 impl GraphNodeId {
     pub fn new() -> Self {
         static GRAPH_NODE_ID: AtomicU64 = AtomicU64::new(0);
-        GraphNodeId(GRAPH_NODE_ID.fetch_add(1, Ordering::SeqCst))
+        GraphNodeId(GRAPH_NODE_ID.fetch_add(1, Ordering::Relaxed))
     }
 }
 
@@ -635,6 +635,46 @@ mod tests {
 
         let node = GraphNode::from((0, NodeType::Edge, 0.0, Arity::Exact(1)));
         assert_eq!(node.arity(), Arity::Exact(1));
+    }
+
+    #[test]
+    fn test_graph_node_validity() {
+        let mut input_node = GraphNode::new(0, NodeType::Input, 0.0);
+        assert!(!input_node.is_valid());
+
+        input_node.insert_outgoing(1);
+        assert!(input_node.is_valid());
+
+        let mut output_node = GraphNode::new(1, NodeType::Output, 0.0);
+        assert!(!output_node.is_valid());
+
+        output_node.insert_incoming(0);
+        assert!(output_node.is_valid());
+    }
+
+    #[test]
+    fn test_graph_node_connections_sorted() {
+        let mut node = GraphNode::new(0, NodeType::Vertex, 0.0);
+
+        node.insert_incoming(3);
+        node.insert_incoming(1);
+        node.insert_incoming(2);
+        node.insert_incoming(2); // Duplicate
+
+        assert_eq!(node.incoming(), &[1, 2, 3]);
+
+        node.insert_outgoing(5);
+        node.insert_outgoing(4);
+        node.insert_outgoing(6);
+        node.insert_outgoing(5); // Duplicate
+
+        assert_eq!(node.outgoing(), &[4, 5, 6]);
+
+        node.remove_incoming(&2);
+        assert_eq!(node.incoming(), &[1, 3]);
+
+        node.remove_outgoing(&5);
+        assert_eq!(node.outgoing(), &[4, 6]);
     }
 
     #[test]

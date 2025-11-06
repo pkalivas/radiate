@@ -295,41 +295,58 @@ impl<T> Graph<T> {
     ///
     /// # Arguments
     /// - index: The index of the node to get the cycles for.
-    // #[inline]
-    pub fn get_cycles(&self, from: usize) -> HashSet<usize> {
-        let mut stack = Vec::new();
-        let mut visited = HashSet::new();
-        let mut cycles = HashSet::new();
-
-        self.dfs_visit(from, &mut stack, &mut visited, &mut cycles);
-
-        cycles
-    }
-
     #[inline]
-    fn dfs_visit(
-        &self,
-        node: usize,
-        stack: &mut Vec<usize>,
-        visited: &mut HashSet<usize>,
-        cycles: &mut HashSet<usize>,
-    ) {
-        visited.insert(node);
-        stack.push(node);
+    pub fn get_cycles(&self, from: usize) -> std::collections::HashSet<usize> {
+        let n = self.len();
+        let mut on_stack = vec![false; n];
+        let mut visited = vec![false; n];
+        let mut cycles = vec![false; n];
+        let mut stack: Vec<usize> = Vec::with_capacity(n.min(64));
 
-        for &neighbor in self.get(node).unwrap().outgoing() {
-            if !visited.contains(&neighbor) {
-                self.dfs_visit(neighbor, stack, visited, cycles);
-            } else if stack.contains(&neighbor) {
-                if let Some(cycle_start) = stack.iter().position(|&x| x == neighbor) {
-                    for cycle_node in &stack[cycle_start..] {
-                        cycles.insert(*cycle_node);
+        fn dfs<T>(
+            g: &Graph<T>,
+            u: usize,
+            visited: &mut [bool],
+            on_stack: &mut [bool],
+            cycles: &mut [bool],
+            stack: &mut Vec<usize>,
+        ) {
+            visited[u] = true;
+            on_stack[u] = true;
+            stack.push(u);
+
+            for &v in g.get(u).unwrap().outgoing() {
+                if !visited[v] {
+                    dfs(g, v, visited, on_stack, cycles, stack);
+                } else if on_stack[v] {
+                    let start = stack.iter().rposition(|&x| x == v).unwrap();
+                    for &w in &stack[start..] {
+                        cycles[w] = true;
                     }
                 }
             }
+
+            stack.pop();
+            on_stack[u] = false;
         }
 
-        stack.pop();
+        dfs(
+            self,
+            from,
+            &mut visited,
+            &mut on_stack,
+            &mut cycles,
+            &mut stack,
+        );
+
+        // collect results
+        let mut out = HashSet::with_capacity(stack.len());
+        for (i, &c) in cycles.iter().enumerate() {
+            if c {
+                out.insert(i);
+            }
+        }
+        out
     }
 
     #[inline]

@@ -80,10 +80,6 @@ impl PyMetricSet {
 
 #[pymethods]
 impl PyMetricSet {
-    /// Return a list of dict rows (tidy / long format) that’s easy to feed to pandas/polars.
-    /// Each metric can yield up to 3 rows (value/time/dist).
-    /// Durations are exported as integer nanoseconds.
-    ///
     /// Columns:
     ///   name, scope, rollup, kind, count, mean, min, max, std, total, entropy,
     ///   time_mean_ns, time_min_ns, time_max_ns, time_std_ns, time_sum_ns,

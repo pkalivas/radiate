@@ -36,9 +36,7 @@ pub mod metric_names {
 /// Lookup the default scope for a given metric name.
 pub fn default_scope(name: &'static str) -> Scope {
     match name {
-        metric_names::LIFETIME_UNIQUE_MEMBERS
-        | metric_names::EVALUATION_COUNT
-        | metric_names::TIME => Scope::Lifetime,
+        metric_names::LIFETIME_UNIQUE_MEMBERS | metric_names::TIME => Scope::Lifetime,
         _ => Scope::Generation,
     }
 }

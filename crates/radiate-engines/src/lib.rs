@@ -2,7 +2,7 @@ pub mod builder;
 mod context;
 pub mod engine;
 mod events;
-pub mod generation;
+mod generation;
 mod iter;
 mod limit;
 mod pipeline;
@@ -18,9 +18,9 @@ pub use steps::EvaluateStep;
 
 pub use radiate_alters::*;
 pub use radiate_core::*;
+pub use radiate_error::{RadiateError, ensure, radiate_err};
 pub use radiate_selectors::*;
 
-pub use radiate_error::{RadiateError, ensure, radiate_err};
 pub(crate) type Result<T> = std::result::Result<T, RadiateError>;
 
 pub fn init_logging() {

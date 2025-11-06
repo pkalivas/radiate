@@ -14,74 +14,6 @@ class EventType(Enum):
     ENGINE_IMPROVEMENT = "engine_improvement_event"
 
 
-class EngineEvent(PyObject[PyEngineEvent]):
-    """
-    EngineEvent class that wraps around the PyEngineEvent class.
-    This class provides a simple interface to access the value of the event.
-    """
-
-    def __repr__(self):
-        return f"<EngineEvent>{self.__backend__().__repr__()}"
-
-    def __str__(self):
-        return f"<EngineEvent>{self.__backend__().__str__()}"
-    
-    def index(self) -> int | None:
-        """
-        Get the index of the event.
-        :return: The index of the event.
-        """
-        return self.__backend__().index()
-    
-    def event_type(self) -> EventType:
-        """
-        Get the type of the event.
-        :return: The type of the event.
-        """
-        event_type_str = self.__backend__().event_type()
-        if event_type_str == "start_event":
-            return EventType.START
-        elif event_type_str == "stop_event":    
-            return EventType.STOP
-        elif event_type_str == "epoch_start_event":
-            return EventType.EPOCH_START
-        elif event_type_str == "epoch_complete_event":
-            return EventType.EPOCH_COMPLETE
-        elif event_type_str == "engine_improvement_event":
-            return EventType.ENGINE_IMPROVEMENT
-        else:
-            return '<EventType: unknown>'
-        
-    
-    def values(self) -> dict[str, Any]:
-        """
-        Get all values of the event.
-        :return: A dictionary of all values of the event.
-        """
-        return self.__backend__().values()
-
-    def score(self) -> float | list[float] | None:
-        """
-        Get the score of the event.
-        :return: The score of the event.
-        """
-        return self.__backend__().score()
-    
-    def value(self) -> Any:
-        """
-        Get the value of the event.
-        :return: The value of the event.
-        """
-        return self.__backend__().value()
-    
-    def metrics(self) -> dict[str, Any] | None:
-        """
-        Get the metrics of the event.
-        :return: The metrics of the event.
-        """
-        return self.__backend__().metrics()
-
-
 class EventHandler(abc.ABC):
     """
     Base class for event handlers.
@@ -120,3 +52,63 @@ class CallableEventHandler(EventHandler):
 
     def on_event(self, event: Any) -> None:
         self.func(event)
+
+
+class EngineEvent(PyObject[PyEngineEvent]):
+    """
+    EngineEvent class that wraps around the PyEngineEvent class.
+    This class provides a simple interface to access the value of the event.
+    """
+
+    def __repr__(self):
+        return f"<EngineEvent>{self.__backend__().__repr__()}"
+
+    def __str__(self):
+        return f"<EngineEvent>{self.__backend__().__str__()}"
+
+    def index(self) -> int | None:
+        """
+        Get the index of the event.
+        :return: The index of the event.
+        """
+        return self.__backend__().index()
+
+    def event_type(self) -> EventType:
+        """
+        Get the type of the event.
+        :return: The type of the event.
+        """
+        event_type_str = self.__backend__().event_type()
+        if event_type_str == "start_event":
+            return EventType.START
+        elif event_type_str == "stop_event":
+            return EventType.STOP
+        elif event_type_str == "epoch_start_event":
+            return EventType.EPOCH_START
+        elif event_type_str == "epoch_complete_event":
+            return EventType.EPOCH_COMPLETE
+        elif event_type_str == "engine_improvement_event":
+            return EventType.ENGINE_IMPROVEMENT
+        else:
+            return "<EventType: unknown>"
+
+    def score(self) -> float | list[float] | None:
+        """
+        Get the score of the event.
+        :return: The score of the event.
+        """
+        return self.__backend__().score()
+
+    def value(self) -> Any:
+        """
+        Get the value of the event.
+        :return: The value of the event.
+        """
+        return self.__backend__().value()
+
+    def metrics(self) -> dict[str, Any] | None:
+        """
+        Get the metrics of the event.
+        :return: The metrics of the event.
+        """
+        return self.__backend__().metrics()

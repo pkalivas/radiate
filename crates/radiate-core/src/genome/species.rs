@@ -4,27 +4,18 @@ use crate::{Objective, Score, objectives::Scored, tracker::Tracker};
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::{self, Debug, Formatter},
-    ops::Deref,
     sync::atomic::{AtomicU64, Ordering},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[repr(transparent)]
-pub struct SpeciesId(u64);
+pub struct SpeciesId(pub u64);
 
 impl SpeciesId {
     pub fn new() -> Self {
         static SPECIES_ID: AtomicU64 = AtomicU64::new(0);
-        SpeciesId(SPECIES_ID.fetch_add(1, Ordering::SeqCst))
-    }
-}
-
-impl Deref for SpeciesId {
-    type Target = u64;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
+        SpeciesId(SPECIES_ID.fetch_add(1, Ordering::Relaxed))
     }
 }
 

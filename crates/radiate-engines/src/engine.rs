@@ -151,26 +151,12 @@ where
         }
 
         self.bus.publish(EngineMessage::EpochStart(&self.context));
-
         self.pipeline.run(&mut self.context)?;
-
-        let best = self.context.ecosystem.population().get(0);
-        if let Some(best) = best {
-            if let (Some(score), Some(current)) = (best.score(), &self.context.score) {
-                if self.context.objective.is_better(score, current) {
-                    self.context.score = Some(score.clone());
-                    self.context.best = self.context.problem.decode(best.genotype());
-                    self.bus.publish(EngineMessage::Improvement(&self.context));
-                }
-            } else {
-                self.context.score = Some(best.score().unwrap().clone());
-                self.context.best = self.context.problem.decode(best.genotype());
-            }
-        }
-
         self.bus.publish(EngineMessage::EpochEnd(&self.context));
 
-        self.context.index += 1;
+        if self.context.try_advance_one() {
+            self.bus.publish(EngineMessage::Improvement(&self.context));
+        }
 
         Ok(Generation::from(&self.context))
     }

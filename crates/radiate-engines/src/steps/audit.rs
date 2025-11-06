@@ -59,7 +59,6 @@ impl AuditStep {
         metrics: &mut MetricSet,
         ecosystem: &Ecosystem<C>,
     ) {
-        // Collect current generation IDs
         let mut curr_ids = HashSet::with_capacity(ecosystem.population().len());
         for p in ecosystem.population().iter() {
             curr_ids.insert(p.id());
@@ -96,7 +95,7 @@ impl AuditStep {
     ) {
         let pop_len = ecosystem.population().len() as f32;
         let derived_scores = metrics.get(metric_names::SCORES).map(|score| {
-            let score_coeff = match (score.value_std_dev(), score.value_mean()) {
+            let score_coeff = match (score.distribution_std_dev(), score.distribution_mean()) {
                 (Some(std_dev), Some(mean)) if mean != 0.0 => std_dev / mean,
                 _ => 0.0,
             };

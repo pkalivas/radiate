@@ -73,7 +73,8 @@ where
     #[inline]
     fn mutate_chromosome(&self, chromosome: &mut GraphChromosome<T>, _: f32) -> AlterResult {
         // If the chromosome has a maximum number of nodes then just return 0.
-        // If we have reached this point, this graph is simply optimizing it's nodes.
+        // If we have reached this point, this graph is simply optimizing the
+        // node's values and not the structure.
         if let Some(max_nodes) = chromosome.max_nodes() {
             if chromosome.len() >= max_nodes {
                 return AlterResult::empty();
@@ -88,8 +89,8 @@ where
 
             let result = graph.try_modify(|mut trans| {
                 let needed_insertions = match new_node.arity() {
-                    Arity::Zero | Arity::Any => 1,
                     Arity::Exact(n) => n,
+                    _ => 1,
                 };
 
                 let target_idx = trans.random_target_node().map(|n| n.index());

@@ -98,7 +98,7 @@ where
 
         let mut enumerated = crowding_distances.iter().enumerate().collect::<Vec<_>>();
 
-        enumerated.sort_by(|a, b| b.1.partial_cmp(a.1).unwrap_or(Ordering::Equal));
+        enumerated.sort_unstable_by(|a, b| b.1.partial_cmp(a.1).unwrap_or(Ordering::Equal));
 
         self.values = enumerated
             .iter()

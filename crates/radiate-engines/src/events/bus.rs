@@ -16,14 +16,6 @@ impl<T> EventBus<T> {
         EventBus { handlers, executor }
     }
 
-    pub fn clear(&mut self) {
-        self.handlers.clear();
-    }
-
-    pub fn register(&mut self, handler: Subscriber<T>) {
-        self.handlers.push(handler);
-    }
-
     pub fn publish<'a, C>(&self, message: EngineMessage<'a, C, T>)
     where
         C: Chromosome,

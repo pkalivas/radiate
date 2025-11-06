@@ -109,12 +109,13 @@ pub fn render_metric_rows(
 
     if name == super::set::METRIC_SET {
         if let Some(s) = m.statistic() {
-            let _ = writeln!(
+            writeln!(
                 out,
                 "Metric Set [metrics: {}, updates: {:.0}]",
                 s.sum(),
                 s.sum()
-            );
+            )
+            .unwrap();
         }
     }
 

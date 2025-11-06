@@ -134,7 +134,6 @@ impl<C: Chromosome, T: IntoPyAnyObject> Problem<C, T> for PyProblem<C, T> {
                     individuals
                         .iter()
                         .map(|ind| self.codec.decode_with_py(py, ind).into_py(py))
-                        .into_iter()
                         .map(|p| p.inner),
                 )?;
 

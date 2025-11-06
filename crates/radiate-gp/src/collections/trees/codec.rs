@@ -76,7 +76,7 @@ where
             return Genotype::new(new_chromosomes);
         }
 
-        Genotype::new(vec![])
+        Genotype::default()
     }
 
     fn decode(&self, genotype: &Genotype<TreeChromosome<T>>) -> Vec<Tree<T>> {
@@ -103,12 +103,6 @@ where
                 .map(|root| vec![root])
                 .map(|tree| TreeChromosome::new(tree, Some(store.clone()), self.constraint.clone()))
                 .unwrap_or_else(|| TreeChromosome::new(vec![], None, self.constraint.clone()));
-
-            if let Some(constraint) = &self.constraint {
-                if !constraint(new_chromosome.root()) {
-                    panic!("TreeCodec.encode() - Root node does not meet constraint.");
-                }
-            }
 
             return Genotype::new(vec![new_chromosome]);
         }

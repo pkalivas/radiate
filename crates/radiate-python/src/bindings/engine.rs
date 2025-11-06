@@ -79,5 +79,5 @@ where
         false => engine.iter().limit(limits),
     }
     .last()
-    .ok_or_else(|| radiate_err!(Python: "Engine did not complete any generations"))
+    .ok_or_else(|| radiate_err!(Python: "Failed to run engine and obtain final generation"))
 }

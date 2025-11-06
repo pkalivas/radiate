@@ -1,9 +1,9 @@
 use radiate::prelude::*;
 
-// const MIN_SCORE: f32 = 0.001;
+const MIN_SCORE: f32 = 0.001;
 
 fn main() {
-    random_provider::set_seed(1000);
+    random_provider::set_seed(567123);
 
     let store = vec![
         (NodeType::Input, vec![Op::var(0)]),
@@ -16,8 +16,6 @@ fn main() {
         .codec(GraphCodec::directed(1, 1, store))
         .fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
-        // .diversity(NeatDistance::new(0.3, 0.4, 1.0))
-        // .executor(Executor::FixedSizedWorkerPool(10))
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
@@ -28,8 +26,7 @@ fn main() {
     engine
         .iter()
         .logging()
-        .take(146)
-        // .until_score(MIN_SCORE)
+        .until_score(MIN_SCORE)
         .last()
         .inspect(display);
 }
