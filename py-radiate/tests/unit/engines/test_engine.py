@@ -12,7 +12,7 @@ class TestEngineBasicIntegration:
         engine = rd.GeneticEngine(
             codec=rd.IntCodec.vector(num_genes, init_range=(0, 10)),
             fitness_func=lambda x: sum(x),
-            objectives="min",
+            objective="min",
         )
 
         result = engine.run([rd.ScoreLimit(0), rd.GenerationsLimit(500)])
@@ -35,7 +35,7 @@ class TestEngineBasicIntegration:
         engine = rd.GeneticEngine(
             codec=rd.FloatCodec.vector(length=3, init_range=(-1.0, 1.0)),
             fitness_func=fitness_func,
-            objectives="max",
+            objective="max",
             population_size=50,
             offspring_selector=rd.BoltzmannSelector(4.0),
             survivor_selector=rd.EliteSelector(),
@@ -107,7 +107,7 @@ class TestEngineBasicIntegration:
             codec,
             fitness_fn,
             population,
-            objectives="min",
+            objective="min",
             alters=[rd.UniformCrossover(0.5), rd.ArithmeticMutator(0.01)],
         )
 
@@ -131,7 +131,7 @@ class TestEngineBasicIntegration:
                 output=rd.Op.sigmoid(),
             ),
             fitness_func=rd.Regression(inputs, outputs),
-            objectives="min",
+            objective="min",
             population_size=100,
             offspring_selector=rd.BoltzmannSelector(4.0),
             alters=[
@@ -159,7 +159,7 @@ class TestEngineBasicIntegration:
                 root=rd.Op.linear(),
             ),
             fitness_func=rd.Regression(inputs, outputs),
-            objectives="min",
+            objective="min",
             population_size=100,
             offspring_selector=rd.TournamentSelector(3),
             survivor_selector=rd.EliteSelector(),
@@ -188,7 +188,7 @@ class TestEngineBasicIntegration:
         engine = rd.GeneticEngine(
             codec=codec,
             fitness_func=rd.Regression(inputs, outputs),
-            objectives="min",
+            objective="min",
             population_size=100,
             species_threshold=0.1,
             diversity=rd.NeatDistance(excess=0.1, disjoint=0.1, weight_diff=0.5),
@@ -217,7 +217,7 @@ class TestEngineBasicIntegration:
         engine = rd.GeneticEngine(
             codec=rd.PermutationCodec([0, 1, 2, 3, 4]),
             fitness_func=fitness_func,
-            objectives="min",
+            objective="min",
             population_size=50,
             offspring_selector=rd.TournamentSelector(3),
             survivor_selector=rd.EliteSelector(),
@@ -241,7 +241,7 @@ class TestEngineBasicIntegration:
         engine = rd.GeneticEngine(
             codec=rd.FloatCodec.vector(length=3, init_range=(-1.0, 1.0)),
             fitness_func=fitness_func,
-            objectives=["min", "max"],
+            objective=["min", "max"],
             population_size=100,
             offspring_selector=rd.TournamentSelector(3),
             survivor_selector=rd.NSGA2Selector(),

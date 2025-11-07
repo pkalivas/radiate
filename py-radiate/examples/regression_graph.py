@@ -13,7 +13,13 @@ import matplotlib.pyplot as plt
 rd.random.seed(5)
 
 
-class Subscriber(rd.EventHandler):
+class ScoreDistributionPlotter(rd.EventHandler):
+    """
+    Subscriber class to handle events and track metrics.
+    We will use this to plot score distributions over generations then
+    display the plot when the engine stops.
+    """
+
     def __init__(self):
         super().__init__()
         self.history = []
@@ -22,24 +28,14 @@ class Subscriber(rd.EventHandler):
         if event.event_type() == rd.EventType.EPOCH_COMPLETE:
             ms = event.metrics().to_polars()
             epoch = event.index()
-
-            # Add epoch column so we can track progress over time
             ms = ms.with_columns(pl.lit(epoch).alias("epoch"))
             self.history.append(ms)
         elif event.event_type() == rd.EventType.STOP:
-            self.on_stop(event)
-
-    def on_stop(self, event):
-        """Optionally handle STOP event to plot automatically."""
-        df = self.get_full_metrics()
-        plot_scores(df)
-
-    def get_full_metrics(self):
-        return pl.concat(self.history, how="diagonal_relaxed")
+            df = pl.concat(self.history, how="diagonal_relaxed")
+            plot_scores(df)
 
 
 def plot_scores(ms: pl.DataFrame):
-    # Extract all "scores" distributions across epochs
     quant = (
         ms.filter((pl.col("name") == "scores") & (pl.col("kind") == "dist"))
         .select(
@@ -86,8 +82,8 @@ engine = rd.GeneticEngine(
         output=rd.Op.linear(),
     ),
     fitness_func=rd.Regression(inputs, answers, batch=True),
-    subscribe=Subscriber(),
-    objectives="min",
+    subscribe=ScoreDistributionPlotter(),
+    objective="min",
     alters=[
         rd.GraphCrossover(0.5, 0.5),
         rd.OperationMutator(0.07, 0.05),
@@ -97,4 +93,4 @@ engine = rd.GeneticEngine(
 
 result = engine.run([rd.ScoreLimit(0.001), rd.GenerationsLimit(1000)], log=True)
 print(result)
-print(result.metrics().dashboard())
+# print(result.metrics().dashboard())

@@ -989,7 +989,7 @@ Lets take a quick look at how we would put together a regression problem using a
     engine = rd.GeneticEngine(
         codec=codec,
         fitness_func=fitness_func,
-        objectives="min",   # Minimize the loss
+        objective="min",   # Minimize the loss
         alters=[
             rd.GraphCrossover(0.5, 0.5),
             rd.OperationMutator(0.07, 0.05),

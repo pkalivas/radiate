@@ -54,7 +54,7 @@ class TestEnginePerformance:
         engine = rd.GeneticEngine(
             codec=rd.FloatCodec.vector(length=10, init_range=(-1.0, 1.0)),
             fitness_func=fitness_func,
-            objectives="min",
+            objective="min",
             population_size=100,
             offspring_selector=rd.TournamentSelector(3),
             survivor_selector=rd.EliteSelector(),
@@ -79,7 +79,7 @@ class TestEnginePerformance:
         engine = rd.GeneticEngine(
             codec=rd.FloatCodec.vector(length=20, init_range=(-1.0, 1.0)),
             fitness_func=fitness_func,
-            objectives="min",
+            objective="min",
             population_size=1000,
             offspring_selector=rd.TournamentSelector(3),
             survivor_selector=rd.EliteSelector(),
@@ -110,7 +110,7 @@ class TestMemoryPerformance:
         engine = rd.GeneticEngine(
             codec=rd.FloatCodec.vector(length=10, init_range=(-1.0, 1.0)),
             fitness_func=fitness_func,
-            objectives="min",
+            objective="min",
             population_size=100,
             offspring_selector=rd.TournamentSelector(3),
             survivor_selector=rd.EliteSelector(),
@@ -139,7 +139,7 @@ class TestMemoryPerformance:
             engine = rd.GeneticEngine(
                 codec=rd.FloatCodec.vector(length=50, init_range=(-1.0, 1.0)),
                 fitness_func=fitness_func,
-                objectives="min",
+                objective="min",
                 population_size=200,
                 offspring_selector=rd.TournamentSelector(3),
                 survivor_selector=rd.EliteSelector(),
@@ -175,7 +175,7 @@ class TestScalabilityPerformance:
             engine = rd.GeneticEngine(
                 codec=rd.FloatCodec.vector(length=length, init_range=(-1.0, 1.0)),
                 fitness_func=fitness_func,
-                objectives="min",
+                objective="min",
                 population_size=100,
                 offspring_selector=rd.TournamentSelector(3),
                 survivor_selector=rd.EliteSelector(),

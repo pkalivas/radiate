@@ -42,7 +42,7 @@ The `minimizing()` method configures the genetic algorithm to find the minimum v
     engine = rd.GeneticEngine(
         codec=codec,
         fitness_func=lambda x: sum(x),  # value to minimize
-        objectives="min" # Configure for minimization
+        objective="min" # Configure for minimization
         # ... other parameters ...
     )
     
@@ -92,7 +92,7 @@ This is the default option for the `GeneticEngine`, so you don't really need to 
     engine = rd.GeneticEngine(
         codec=codec,
         fitness_func=lambda x: sum(x),  # return a value to maximize
-        objectives="max"
+        objective="max"
         # ... other parameters ...
     )
     
@@ -148,7 +148,7 @@ Use `multi_objective()` with a list of optimization directions to configure mult
     engine = rd.GeneticEngine(
         codec=codec,
         fitness_func=lambda x: [obj1_fitness_func(x), obj2_fitness_func(x)],  # Return list of objectives
-        objectives=["min", "max"]  # Minimize obj1, maximize obj2
+        objective=["min", "max"]  # Minimize obj1, maximize obj2
         front_range=(800, 900)  # Pareto front size range
         # ... other parameters ...
     )
@@ -204,7 +204,7 @@ Although, any selector can be used, these are optimized for multi-objective prob
         codec=rd.FloatCodec.vector(10, (0.0, 1.0)),  # Example codec
         fitness_func=lambda x: [obj1(x), obj2(x)],
         front_range=(800, 900),  # Pareto front size range
-        objectives=["min", "max"]
+        objective=["min", "max"]
     )
 
     engine.survivor_selector(rd.NSGA2Selector())                # NSGA-II for Pareto ranking

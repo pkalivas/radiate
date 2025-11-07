@@ -48,7 +48,7 @@ class GeneticEngine[G, T]:
         max_phenotype_age: int = 20,
         max_species_age: int = 20,
         species_threshold: float = 0.5,
-        objectives: str | list[str] = "max",
+        objective: str | list[str] = "max",
         executor: Executor | None = None,
         front_range: tuple[int, int] | None = (800, 900),
         subscribe: Subscriber | None = None,
@@ -87,7 +87,7 @@ class GeneticEngine[G, T]:
         self.builder.set_offspring_fraction(offspring_fraction)
         self.builder.set_max_age(max_phenotype_age)
         self.builder.set_max_species_age(max_species_age)
-        self.builder.set_objective(objectives, front_range)
+        self.builder.set_objective(objective, front_range)
         self.builder.set_executor(executor)
         self.builder.set_subscribers(subscribe)
 

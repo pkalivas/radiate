@@ -44,7 +44,7 @@ engine = rd.GeneticEngine(
     fitness_func=dtlz_1,
     offspring_selector=rd.TournamentSelector(k=8),
     survivor_selector=rd.NSGA2Selector(),
-    objectives=["min" for _ in range(objectives)],
+    objective=["min" for _ in range(objectives)],
     alters=[
         rd.SimulatedBinaryCrossover(1.0, 2.0),
         rd.UniformMutator(0.1),

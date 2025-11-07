@@ -46,7 +46,7 @@ Simple fitness functions are the most common type - they take a phenotype and re
         return value
 
     codec = rd.FloatCodec.vector(N_GENES, init_range=(-RANGE, RANGE))
-    engine = rd.GeneticEngine(codec, fitness_fn, objectives="min")
+    engine = rd.GeneticEngine(codec, fitness_fn, objective="min")
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -151,7 +151,7 @@ Composite fitness functions allow you to combine multiple objectives into a sing
     engine = rd.GeneticEngine(
         codec=rd.ModelCodec(),
         fitness_func=composite_fitness,
-        objectives="max"  # We want to maximize the composite score
+        objective="max"  # We want to maximize the composite score
     )
     ```
 -->
