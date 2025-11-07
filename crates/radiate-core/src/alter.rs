@@ -78,14 +78,14 @@ impl From<usize> for AlterResult {
 }
 
 impl From<(usize, Vec<Metric>)> for AlterResult {
-    fn from(value: (usize, Vec<Metric>)) -> Self {
-        AlterResult(value.0, Some(value.1))
+    fn from((count, metrics): (usize, Vec<Metric>)) -> Self {
+        AlterResult(count, Some(metrics))
     }
 }
 
 impl From<(usize, Metric)> for AlterResult {
-    fn from(value: (usize, Metric)) -> Self {
-        AlterResult(value.0, Some(vec![value.1]))
+    fn from((count, metric): (usize, Metric)) -> Self {
+        AlterResult(count, Some(vec![metric]))
     }
 }
 

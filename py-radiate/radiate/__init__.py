@@ -33,7 +33,7 @@ from .handlers import EventHandler, EventType
 from .gp import Op, Graph, Tree
 
 from .inputs.executor import Executor
-from .fitness import Regression, NoveltySearch, BatchFitness
+from .fitness import Regression, NoveltySearch
 from .inputs.selector import (
     TournamentSelector,
     RouletteSelector,
@@ -153,7 +153,6 @@ __all__ = [
     # Problem
     "Regression",
     "NoveltySearch",
-    "BatchFitness",
     # Selectors
     "TournamentSelector",
     "RouletteSelector",
