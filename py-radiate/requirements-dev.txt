@@ -16,12 +16,13 @@ pip
 # -------
 
 numpy
-numba >= 0.54; python_version < '3.14' and python_version != '3.13t'
 pillow >= 11.3.0
 matplotlib >= 3.10.6
+numba >= 0.54; python_version < '3.14' and python_version != '3.13t'
 polars >= 1.35.1; python_version < '3.14' and python_version != '3.13t'
 pandas >= 2.1.0; python_version < '3.14' and python_version != '3.13t'
 pyarrow >= 12.0.0; python_version < '3.14' and python_version != '3.13t'
+
 
 # -------
 # TOOLING
