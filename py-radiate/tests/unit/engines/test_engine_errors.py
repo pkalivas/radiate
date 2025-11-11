@@ -16,7 +16,7 @@ class TestEngineErrorHandlingIntegration:
             engine = rd.GeneticEngine(
                 codec=rd.IntCodec.vector(length=3, init_range=(0, 10)),
                 fitness_func=fitness_func,
-                objectives="min",
+                objective="min",
                 population_size=0,  # Invalid
             )
             engine.run([rd.GenerationsLimit(10)])
@@ -31,7 +31,7 @@ class TestEngineErrorHandlingIntegration:
         engine = rd.GeneticEngine(
             codec=rd.IntCodec.vector(length=3, init_range=(0, 10)),
             fitness_func=fitness_func,
-            objectives="min",
+            objective="min",
         )
 
         with pytest.raises(ValueError):

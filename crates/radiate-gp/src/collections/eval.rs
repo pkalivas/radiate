@@ -76,6 +76,7 @@ where
     }
 }
 
+/// [EvalInto] implementation for closures that take an input and a mutable output buffer.
 impl<F, I: ?Sized, O: ?Sized> EvalInto<I, O> for F
 where
     F: Fn(&I, &mut O),
@@ -86,6 +87,7 @@ where
     }
 }
 
+/// [Eval] implementation for closures that take an input and return an output.
 impl<F, I: ?Sized, O> Eval<I, O> for F
 where
     F: Fn(&I) -> O,

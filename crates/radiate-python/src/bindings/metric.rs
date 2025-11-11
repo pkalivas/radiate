@@ -5,9 +5,10 @@ use pyo3::types::PyDict;
 use pyo3::{IntoPyObject, PyErr, PyResult, Python};
 use pyo3::{pyclass, pymethods};
 use radiate::{Metric, MetricSet};
+use serde::{Deserialize, Serialize};
 
 #[pyclass]
-#[derive(Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 #[repr(transparent)]
 pub struct PyMetricSet {
     inner: MetricSet,
@@ -49,6 +50,14 @@ impl PyMetricSet {
 
     pub fn __len__(&self) -> usize {
         self.inner.len()
+    }
+
+    pub fn to_json(&self) -> PyResult<String> {
+        serde_json::to_string(&self.inner).map_err(|e| {
+            PyValueError::new_err(format!(
+                "{e} Unknown error occurred while converting MetricSet to JSON."
+            ))
+        })
     }
 
     pub fn dashboard(&self) -> String {

@@ -7,6 +7,6 @@ __all__ = [
     "FitnessBase",
     "Regression",
     "CallableFitness",
-    "NoveltySearch",
     "BatchFitness",
+    "NoveltySearch",
 ]

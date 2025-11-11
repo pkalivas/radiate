@@ -40,7 +40,7 @@ fn main() {
     });
 
     println!("Seconds: {:?}", result.seconds());
-    println!("{:?}", result.metrics());
+    println!("{}", result.metrics());
     let best = result.value().clone();
     for (input, target) in codec.inputs.iter().zip(codec.target.iter()) {
         let output = best.feed_forward(input.clone());

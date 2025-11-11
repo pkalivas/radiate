@@ -18,16 +18,16 @@ impl<C: Chromosome> Ecosystem<C> {
         }
     }
 
-    pub fn clone(other: &Ecosystem<C>) -> Self
+    pub fn clone_ref(other: &Ecosystem<C>) -> Self
     where
         C: Clone,
     {
         Ecosystem {
-            population: Population::clone(&other.population),
+            population: Population::clone_ref(&other.population),
             species: other.species.as_ref().map(|specs| {
                 specs
                     .iter()
-                    .map(|species| Species::clone(species))
+                    .map(|species| Species::clone_ref(species))
                     .collect()
             }),
         }

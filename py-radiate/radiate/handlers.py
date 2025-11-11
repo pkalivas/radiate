@@ -64,7 +64,7 @@ class EngineEvent(PyObject[PyEngineEvent]):
         return f"<EngineEvent>{self.__backend__().__repr__()}"
 
     def __str__(self):
-        return f"<EngineEvent>{self.__backend__().__str__()}"
+        return self.__repr__()
 
     def index(self) -> int | None:
         """

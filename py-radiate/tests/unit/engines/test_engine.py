@@ -12,7 +12,7 @@ class TestEngineBasicIntegration:
         engine = rd.GeneticEngine(
             codec=rd.IntCodec.vector(num_genes, init_range=(0, 10)),
             fitness_func=lambda x: sum(x),
-            objectives="min",
+            objective="min",
         )
 
         result = engine.run([rd.ScoreLimit(0), rd.GenerationsLimit(500)])
@@ -35,7 +35,7 @@ class TestEngineBasicIntegration:
         engine = rd.GeneticEngine(
             codec=rd.FloatCodec.vector(length=3, init_range=(-1.0, 1.0)),
             fitness_func=fitness_func,
-            objectives="max",
+            objective="max",
             population_size=50,
             offspring_selector=rd.BoltzmannSelector(4.0),
             survivor_selector=rd.EliteSelector(),
@@ -107,7 +107,46 @@ class TestEngineBasicIntegration:
             codec,
             fitness_fn,
             population,
-            objectives="min",
+            objective="min",
+            alters=[rd.UniformCrossover(0.5), rd.ArithmeticMutator(0.01)],
+        )
+
+        result = engine.run([rd.ScoreLimit(0.0001), rd.GenerationsLimit(1000)])
+
+        assert all(i < 0.001 for i in result.value())
+        assert len(result.value()) == N_GENES
+        assert result.index() < 1000
+        assert len(result.population()) == 107
+
+    @pytest.mark.integration
+    def test_engine_batch_fitness(self):
+        import math
+
+        A = 10.0
+        RANGE = 5.12
+        N_GENES = 2
+
+        def fitness_fn(x: list[list[float]]) -> list[float]:
+            assert len(x) > 1
+
+            results = []
+            for member in x:
+                value = A * N_GENES
+                for i in range(N_GENES):
+                    value += member[i] ** 2 - A * math.cos(
+                        (2.0 * 3.141592653589793 * member[i])
+                    )
+                results.append(value)
+            return results
+
+        codec = rd.FloatCodec.vector(N_GENES, init_range=(-RANGE, RANGE))
+        population = rd.Population(rd.Phenotype(codec.encode()) for _ in range(107))
+
+        engine = rd.GeneticEngine(
+            codec,
+            fitness_func=rd.BatchFitness(fitness_fn),
+            population=population,
+            objective="min",
             alters=[rd.UniformCrossover(0.5), rd.ArithmeticMutator(0.01)],
         )
 
@@ -131,7 +170,7 @@ class TestEngineBasicIntegration:
                 output=rd.Op.sigmoid(),
             ),
             fitness_func=rd.Regression(inputs, outputs),
-            objectives="min",
+            objective="min",
             population_size=100,
             offspring_selector=rd.BoltzmannSelector(4.0),
             alters=[
@@ -159,7 +198,7 @@ class TestEngineBasicIntegration:
                 root=rd.Op.linear(),
             ),
             fitness_func=rd.Regression(inputs, outputs),
-            objectives="min",
+            objective="min",
             population_size=100,
             offspring_selector=rd.TournamentSelector(3),
             survivor_selector=rd.EliteSelector(),
@@ -188,7 +227,7 @@ class TestEngineBasicIntegration:
         engine = rd.GeneticEngine(
             codec=codec,
             fitness_func=rd.Regression(inputs, outputs),
-            objectives="min",
+            objective="min",
             population_size=100,
             species_threshold=0.1,
             diversity=rd.NeatDistance(excess=0.1, disjoint=0.1, weight_diff=0.5),
@@ -217,7 +256,7 @@ class TestEngineBasicIntegration:
         engine = rd.GeneticEngine(
             codec=rd.PermutationCodec([0, 1, 2, 3, 4]),
             fitness_func=fitness_func,
-            objectives="min",
+            objective="min",
             population_size=50,
             offspring_selector=rd.TournamentSelector(3),
             survivor_selector=rd.EliteSelector(),
@@ -241,7 +280,7 @@ class TestEngineBasicIntegration:
         engine = rd.GeneticEngine(
             codec=rd.FloatCodec.vector(length=3, init_range=(-1.0, 1.0)),
             fitness_func=fitness_func,
-            objectives=["min", "max"],
+            objective=["min", "max"],
             population_size=100,
             offspring_selector=rd.TournamentSelector(3),
             survivor_selector=rd.NSGA2Selector(),

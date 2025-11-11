@@ -81,6 +81,8 @@ where
             }
         }
 
+        // Else, if we are below the maximum number of nodes,
+        // attempt to mutate the graph by adding a new node of the determined type.
         if let Some(node_type) = self.mutate_type()
             && let Some(store) = chromosome.store()
         {

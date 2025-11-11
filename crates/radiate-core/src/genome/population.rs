@@ -34,7 +34,7 @@ impl<C: Chromosome> Population<C> {
         }
     }
 
-    pub fn clone(other: &Self) -> Self
+    pub fn clone_ref(other: &Self) -> Self
     where
         C: Clone,
     {

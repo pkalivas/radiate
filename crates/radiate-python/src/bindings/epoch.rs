@@ -2,12 +2,11 @@ use super::PyGenotype;
 use crate::EpochHandle;
 use crate::PyAnyObject;
 use crate::PyEcosystem;
+use crate::PyMetricSet;
 use crate::PyPopulation;
 use crate::PySpecies;
 use crate::bindings::gp::{PyGraph, PyTree};
-use crate::object::Wrap;
 use numpy::PyArray1;
-use pyo3::IntoPyObject;
 use pyo3::intern;
 use pyo3::types::PyAnyMethods;
 use pyo3::types::PyDict;
@@ -84,7 +83,7 @@ impl PyGeneration {
         }
     }
 
-    pub fn metrics<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+    pub fn metrics(&self) -> PyResult<PyMetricSet> {
         let metrics = match &self.inner {
             EpochHandle::Int(epoch) => epoch.metrics(),
             EpochHandle::Float(epoch) => epoch.metrics(),
@@ -96,11 +95,7 @@ impl PyGeneration {
             EpochHandle::Tree(epoch) => epoch.metrics(),
         };
 
-        Wrap(metrics)
-            .into_pyobject(py)
-            .unwrap()
-            .into_py_any(py)
-            .map(|b| b.into_bound(py))
+        Ok(PyMetricSet::from(metrics.clone()))
     }
 
     pub fn ecosystem(&self) -> PyEcosystem {
@@ -187,7 +182,7 @@ impl PyGeneration {
     pub fn __repr__(&self, py: Python) -> PyResult<String> {
         let score = self.score(py);
         let value = self.value(py)?;
-        let metrics = self.metrics(py)?;
+        let metrics = self.metrics()?;
 
         let (objective, index) = match &self.inner {
             EpochHandle::Int(epoch) => (epoch.objective(), epoch.index()),
@@ -201,15 +196,15 @@ impl PyGeneration {
         };
 
         Ok(format!(
-            "(\n\tindex={},\n\tscore={},\n\tvalue={},\n\t metrics={})",
+            "(\n\tindex={},\n\tscore={},\n\t{},\n\tvalue={})",
             index,
             score,
+            metrics.__repr__(),
             if objective.is_multi() {
                 "ParetoFront".to_string()
             } else {
                 value.to_string()
             },
-            metrics
         ))
     }
 }

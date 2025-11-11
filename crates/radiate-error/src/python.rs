@@ -5,9 +5,7 @@ use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError};
 impl From<RadiateError> for PyErr {
     fn from(e: RadiateError) -> Self {
         match e {
-            RadiateError::InvalidParameter(message) | RadiateError::Builder(message) => {
-                PyValueError::new_err(message)
-            }
+            RadiateError::Builder(message) => PyValueError::new_err(message),
             RadiateError::Codec(message) => PyTypeError::new_err(message),
             RadiateError::Engine(message)
             | RadiateError::Evaluation(message)

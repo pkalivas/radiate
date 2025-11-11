@@ -106,7 +106,7 @@ def simple_float_engine():
     return rd.GeneticEngine(
         codec=codec,
         fitness_func=lambda x: sum(xi**2 for xi in x),
-        objectives="min",
+        objective="min",
         population_size=100,
         alters=[
             rd.UniformCrossover(0.5),
@@ -126,7 +126,7 @@ def simple_multi_objective_engine():
             sum(xi**2 for xi in x),
             sum((xi - 0.5) ** 2 for xi in x),
         ],
-        objectives=["min", "min"],
+        objective=["min", "min"],
         population_size=100,
         offspring_selector=rd.TournamentSelector(3),
         survivor_selector=rd.NSGA2Selector(),

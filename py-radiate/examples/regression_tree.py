@@ -31,7 +31,7 @@ engine = rd.GeneticEngine(
         root=rd.Op.linear(),
     ),
     fitness_func=rd.Regression(inputs, answers),
-    objectives="min",
+    objective="min",
     alters=[
         rd.TreeCrossover(0.7),
         rd.HoistMutator(0.01),

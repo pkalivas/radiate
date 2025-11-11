@@ -61,7 +61,7 @@ engine = rd.GeneticEngine(
         training_features.values.tolist(), training_target.values.tolist()
     ),
     offspring_selector=rd.BoltzmannSelector(4),
-    objectives="min",
+    objective="min",
     alters=[
         rd.GraphCrossover(0.5, 0.5),
         rd.OperationMutator(0.02, 0.05),

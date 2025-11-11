@@ -984,16 +984,17 @@ Lets take a quick look at how we would put together a regression problem using a
 
     # All we have to do to create a regression problem is provide the features & targets for our 
     # dataset. Optionally, we can provide a loss function as well - the default is mean squared error (MSE).
-    fitness_func = rd.Regression(inputs, answers, loss="mse")   
+    # The last argument is whether to use batch evaluation or not - the default is False. This has minimal impact on performance.
+    fitness_func = rd.Regression(inputs, answers, loss="mse", batch=False)   
 
     engine = rd.GeneticEngine(
         codec=codec,
         fitness_func=fitness_func,
-        objectives="min",   # Minimize the loss
+        objective="min",   # Minimize the loss
         alters=[
             rd.GraphCrossover(0.5, 0.5),
             rd.OperationMutator(0.07, 0.05),
-            rd.GraphMutator(0.1, 0.1),
+            rd.GraphMutator(0.1, 0.1, allow_recurrent=False), # True if evolving recurrent graphs is allowed
         ],
     )
 
@@ -1043,16 +1044,14 @@ Lets take a quick look at how we would put together a regression problem using a
     // A simple function to take the output of the engine and display the accuracy 
     // of the result on the dataset
     fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
-        // NOTE: the below is subject to some change - I'm not 100% happy with how this looks
-        // and I think it can be simplified a bit.
         let mut evaluator = GraphEvaluator::new(result.value());
+        let accuracy_result = Accuracy::new("reg")
+            .on(&dataset().into())
+            .loss(Loss::MSE)
+            .calc(&mut evaluator);
 
-        let data_set = dataset().into();
-        let accuracy = Accuracy::new("reg", &data_set, Loss::MSE);
-        let accuracy_result = accuracy.calc(|input| evaluator.eval_mut(input));
-
-        println!("{:?}", result);
-        println!("{:?}", accuracy_result);
+        println!("{result:?}\n{accuracy_result:?}");
+        println!("{}", result.metrics());
     }
 
     fn dataset() -> impl Into<DataSet> {

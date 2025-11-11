@@ -124,7 +124,7 @@ def run_maze_evolution(
         fitness_func=maze_solver.calculate_path_length,
         survivor_selector=rd.TournamentSelector(3),
         offspring_selector=rd.BoltzmannSelector(3),
-        objectives="min",
+        objective="min",
         alters=[
             # PartiallyMappedCrossover and SwapMutator are common for TSP-like problems
             # where we want to maintain the permutation structure. ie., we don't want to

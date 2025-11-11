@@ -1,5 +1,5 @@
 use crate::collections::GraphChromosome;
-use crate::node::Node;
+use crate::node::{Node, NodeExt};
 use radiate_core::genome::*;
 use radiate_core::{AlterResult, Crossover, random_provider};
 use std::fmt::Debug;
@@ -51,8 +51,6 @@ where
                 let chromo_one = geno_one.get_mut(chromo_index).unwrap();
                 let chromo_two = geno_two.get(chromo_index).unwrap();
 
-                let mut num_crosses = 0;
-
                 let node_indices = (0..std::cmp::min(chromo_one.len(), chromo_two.len()))
                     .filter(|i| {
                         let node_one = chromo_one.get(*i);
@@ -63,14 +61,12 @@ where
                     })
                     .collect::<Vec<usize>>();
 
-                for i in node_indices {
+                for &i in node_indices.iter() {
                     let node_two = chromo_two.get(i);
-
-                    *chromo_one.as_mut()[i].value_mut() = node_two.value().clone();
-                    num_crosses += 1;
+                    chromo_one.get_mut(i).set_value(node_two.value().clone());
                 }
 
-                num_crosses
+                node_indices.len()
             };
 
             if num_crosses > 0 {

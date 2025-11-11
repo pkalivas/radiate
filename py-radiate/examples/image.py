@@ -104,7 +104,7 @@ def run_image_evo(
     engine = rd.GeneticEngine(
         codec=codec,
         fitness_func=fitness,
-        objectives="min",
+        objective="min",
         survivor_selector=rd.RouletteSelector(),
         offspring_selector=rd.TournamentSelector(3),
         executor=rd.Executor.WorkerPool(),

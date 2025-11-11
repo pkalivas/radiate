@@ -39,14 +39,14 @@ Simple fitness functions are the most common type - they take a phenotype and re
     RANGE = 5.12
     N_GENES = 2
 
-    def fitness_fn(x: List[float]) -> float:
+    def fitness_fn(x: list[float]) -> float:
         value = A * N_GENES
         for i in range(N_GENES):
             value += x[i]**2 - A * math.cos((2.0 * 3.141592653589793 * x[i]))
         return value
 
     codec = rd.FloatCodec.vector(N_GENES, init_range=(-RANGE, RANGE))
-    engine = rd.GeneticEngine(codec, fitness_fn, objectives="min")
+    engine = rd.GeneticEngine(codec, fitness_fn, objective="min")
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -82,9 +82,33 @@ Its important to note that other types of fitness functions like `NoveltySearch`
 
 === ":fontawesome-brands-python: Python"
 
-    !!! warning ":construction: Under Construction :construction:"
-        The batch fitness function is currently under construction and not yet available in the Python API.
+    ```python
+    import radiate as rd
+    import math
 
+    A = 10.0
+    RANGE = 5.12
+    N_GENES = 2
+
+    # NOTE this function expects a batch of inputs and returns a batch of outputs
+    # the order in which the inputs are given is the order in which the outputs are returned
+    def fitness_fn(x: list[list[float]]) -> list[float]:
+        assert len(x) > 1
+
+        results = []
+        for member in x:
+            value = A * N_GENES
+            for i in range(N_GENES):
+                value += member[i]**2 - A * math.cos((2.0 * 3.141592653589793 * member[i]))
+            results.append(value)
+        return results
+
+    codec = rd.FloatCodec.vector(N_GENES, init_range=(-RANGE, RANGE))
+
+    # Create the genetic engine with batch fitness function.
+    # Just wrap your fitness function in 'rd.BatchFitness'
+    engine = rd.GeneticEngine(codec, rd.BatchFitness(fitness_fn), objective="min")
+    ```
 
 === ":fontawesome-brands-rust: Rust"
 
@@ -151,7 +175,7 @@ Composite fitness functions allow you to combine multiple objectives into a sing
     engine = rd.GeneticEngine(
         codec=rd.ModelCodec(),
         fitness_func=composite_fitness,
-        objectives="max"  # We want to maximize the composite score
+        objective="max"  # We want to maximize the composite score
     )
     ```
 -->
@@ -253,8 +277,9 @@ You can implement your own behavioral descriptors by implementing the `Novelty` 
         # archinve or population, ultimently resulting in the individuals fitness score.
         distance=rd.CosineDistance() 
         k=10,           # Number of nearest neighbors to consider
-        threshold=0.1   # Novelty threshold for archive addition
-        archive_size=1000 # defautls to 1000
+        threshold=0.1,   # Novelty threshold for archive addition
+        archive_size=1000, # defaults to 1000
+        batch=False # Whether to use batch evaluation - the default is false
     )
 
     engine = rd.GeneticEngine(

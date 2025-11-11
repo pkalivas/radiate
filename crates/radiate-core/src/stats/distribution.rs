@@ -107,7 +107,7 @@ impl Distribution {
         let index = (p / 100.0) * count;
         let sorted_values = {
             let mut values = self.last_sequence.clone();
-            values.sort_by(|a, b| a.partial_cmp(b).unwrap());
+            values.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap());
             values
         };
 
