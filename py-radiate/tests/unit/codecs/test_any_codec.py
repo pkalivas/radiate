@@ -81,3 +81,18 @@ class TestAnyCodec:
 
         assert isinstance(result.value(), list)
         assert all(isinstance(g, CustomGene) for g in result.value())
+
+    @pytest.mark.unit
+    def test_any_gene_with_list_inner_value(self):
+        class ListGene(rd.AnyGene):
+            def __init__(self):
+                self.data = [i for i in range(10)]
+
+        codec = rd.AnyCodec([ListGene(), ListGene()])
+        genotype = codec.encode()
+        decoded = codec.decode(genotype)
+
+        assert len(decoded) == 2
+        for gene in decoded:
+            assert isinstance(gene, ListGene)
+            assert gene.data == [i for i in range(10)]

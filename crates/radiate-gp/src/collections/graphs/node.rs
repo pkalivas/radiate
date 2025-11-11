@@ -244,11 +244,10 @@ impl<T> GraphNode<T> {
     }
 
     pub fn is_locked(&self) -> bool {
-        if self.arity() == Arity::Any {
-            return false;
+        match self.arity() {
+            Arity::Any => false,
+            _ => self.incoming.len() == *self.arity(),
         }
-
-        self.incoming.len() == *self.arity()
     }
 
     pub fn insert_incoming(&mut self, value: usize) {

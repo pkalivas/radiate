@@ -119,6 +119,45 @@ class TestEngineBasicIntegration:
         assert len(result.population()) == 107
 
     @pytest.mark.integration
+    def test_engine_batch_fitness(self):
+        import math
+
+        A = 10.0
+        RANGE = 5.12
+        N_GENES = 2
+
+        def fitness_fn(x: list[list[float]]) -> list[float]:
+            assert len(x) > 1
+
+            results = []
+            for member in x:
+                value = A * N_GENES
+                for i in range(N_GENES):
+                    value += member[i] ** 2 - A * math.cos(
+                        (2.0 * 3.141592653589793 * member[i])
+                    )
+                results.append(value)
+            return results
+
+        codec = rd.FloatCodec.vector(N_GENES, init_range=(-RANGE, RANGE))
+        population = rd.Population(rd.Phenotype(codec.encode()) for _ in range(107))
+
+        engine = rd.GeneticEngine(
+            codec,
+            fitness_func=rd.BatchFitness(fitness_fn),
+            population=population,
+            objective="min",
+            alters=[rd.UniformCrossover(0.5), rd.ArithmeticMutator(0.01)],
+        )
+
+        result = engine.run([rd.ScoreLimit(0.0001), rd.GenerationsLimit(1000)])
+
+        assert all(i < 0.001 for i in result.value())
+        assert len(result.value()) == N_GENES
+        assert result.index() < 1000
+        assert len(result.population()) == 107
+
+    @pytest.mark.integration
     def test_engine_graph_xor(self, xor_dataset, random_seed):
         """Test engine with graph codec for XOR problem."""
         inputs, outputs = xor_dataset

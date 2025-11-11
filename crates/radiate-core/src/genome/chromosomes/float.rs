@@ -245,6 +245,7 @@ impl Display for FloatGene {
 /// ```rust
 /// use radiate_core::*;
 ///
+/// // Create a chromosome with 3 genes with alleles 0.0, 1.0, and 2.0 respectively
 /// let chromosome = FloatChromosome::from(vec![0.0, 1.0, 2.0]);
 /// let chromosome_allels = chromosome
 ///     .iter()
@@ -255,6 +256,7 @@ impl Display for FloatGene {
 /// assert_eq!(chromosome_allels.len(), 3);
 /// assert_eq!(chromosome_allels, vec![0.0, 1.0, 2.0]);
 ///
+/// // Create a chromosome with 3 genes all with alleles in the range 0.0 to 10.0
 /// let ranged_chromo = FloatChromosome::from((3, 0.0..10.0));
 /// let ranged_chromo_alleles = ranged_chromo
 ///    .iter()
