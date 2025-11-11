@@ -351,6 +351,8 @@ These can be accessed through the `metrics()` method of the epoch, which returns
 
     # Get the metrics of the engine
     metrics = result.metrics()  # MetricSet object
+    df = metrics.to_polars()  # Convert metrics to a Polars DataFrame for analysis
+    df = metrics.to_pandas()  # Convert metrics to a Pandas DataFrame for analysis
 
     # Access specific metrics
     time_taken = metrics["time"]['time_sum'] # Total time taken for the evolution process

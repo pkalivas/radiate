@@ -37,7 +37,7 @@ fn main() {
 
     let result = engine.iter().logging().take(1000).last().unwrap();
 
-    println!("{:?}", result.metrics());
+    println!("{}", result.metrics());
 
     result
         .value()

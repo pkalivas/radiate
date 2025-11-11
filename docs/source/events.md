@@ -2,7 +2,7 @@
 
 !!! warning ":construction: Under Construction :construction:"
 
-    As of `9/8/2025`: These docs are a work in progress and may not be complete or fully accurate. Please check back later for updates.
+    As of `11/10/2025`: These docs are a work in progress and may not be complete or fully accurate. Please check back later for updates.
 
 Radiate provides an event system that allows you to monitor and react to the evolution process in real-time. This is great for:
 
@@ -24,7 +24,25 @@ The `GeneticEngine` trys it's best to off-load almost the entire compute workloa
 --- 
 ## Event Types
 
-Radiate provides several key events that you can subscribe to as seen below with their respective data payloads in json:
+Radiate provides several key events that you can subscribe to. Here is the actual enum definition in Rust:
+
+```rust
+pub enum EngineEvent<T> {
+    /// Triggered when the evolution process starts.
+    /// Has no associated data, is simply a signal that evolution has begun.
+    Start,
+    /// Triggered when the evolution process stops. Provides the best individual, metrics, and score.
+    Stop(T, MetricSet, Score),
+    /// Triggered at the start of each epoch with the epoch index.
+    EpochStart(usize),
+    /// Triggered at the end of each epoch with the epoch index, best individual, metrics, and score.
+    EpochComplete(usize, T, MetricSet, Score),
+    /// Triggered when an improvement is found with the epoch index, best individual, and score.
+    Improvement(usize, T, Score),
+}
+```
+
+Below there is a brief description of each event type with its representative data structures expressed in json.
 
 ??? note "Start Event"
 
@@ -32,8 +50,7 @@ Radiate provides several key events that you can subscribe to as seen below with
 
     ```json
     {
-        'id': 0, 
-        'type': 'start'
+        'event_type': 'start_event'
     }
     ```
 
@@ -47,8 +64,7 @@ Radiate provides several key events that you can subscribe to as seen below with
 
     ```json
     {
-        'id': 11,
-        'type': 'stop',
+        'event_type': 'stop_event',
         // This will be a dictionary of metrics collected, see Engine's metrics docs for more info
         'metrics': ..., 
         // This will be the decoded best individual found so far. So, if you are 
@@ -64,9 +80,8 @@ Radiate provides several key events that you can subscribe to as seen below with
 
     ```json
     {
-        'id': 1,
-        'type': 'epoch_start',
-        'index': 0
+        'event_type': 'epoch_start_event',
+        'index': 0  // Current generation number
     }
     ```
 
@@ -81,39 +96,14 @@ Radiate provides several key events that you can subscribe to as seen below with
 
     ```json
     {
-        'id': 12,
-        'type': 'epoch_complete',
-        'index': 0,
-        // This will be a dictionary of metrics collected, see Engine's metrics docs for more info
+        'event_type': 'epoch_complete_event',
+        'index': 0, // Current generation number
+        // This will be the current metrics collected, see Engine's metrics docs for more info
         'metrics': ..., 
         // This will be the decoded best individual found so far. So, if you are 
         // evolving a vector of FloatGenes, this will be a list of floats
         'best': [3.9699993,  1.5489225, -1.7164116,  1.0756674, -1.932127 , -2.3247557], 
         'score': 0.3327971398830414
-    }
-    ```
-
-??? note "Step Start Event"
-
-    This event is triggered at the start of each evolution step. It provides the name of the step being executed, allowing you to monitor the progress of specific steps in the evolution process.
-
-    ```json
-    {
-        'id': 14,
-        'type': 'step_start',
-        'step': 'EvaluateStep'
-    }
-    ```
-
-??? note "Step Complete Event"
-
-    This event is triggered at the end of each evolution step. It provides the name of the step that was executed, allowing you to log or monitor the completion of specific steps in the evolution process.
-
-    ```json
-    {
-        'id': 15,
-        'type': 'step_complete',
-        'step': 'EvaluateStep'
     }
     ```
 
@@ -127,9 +117,8 @@ Radiate provides several key events that you can subscribe to as seen below with
 
     ```json
     {
-        'id': 2,
-        'type': 'engine_improvement',
-        'index': 0,
+        'event_type': 'engine_improvement_event',
+        'index': 0, // Current generation number
         // This will be the decoded best individual found so far. So, if you are 
         // evolving a vector of FloatGenes, this will be a list of floats
         'best': [3.9699993,  1.5489225, -1.7164116,  1.0756674, -1.932127 , -2.3247557], 
@@ -175,14 +164,8 @@ The simplest way to subscribe to events is by providing a callback function:
     let mut engine = GeneticEngine::builder()
         .codec(your_codec)
         .fitness_fn(your_fitness_fn)
-        .subscribe(|event: Event<EngineEvent<Vec<f32>>>| {
-            if let EngineEvent::EpochComplete {
-                index,
-                metrics: _,
-                best: _,
-                score,
-            } = event.data()
-            {
+        .subscribe(|event: EngineEvent<Vec<f32>>| {
+            if let EngineEvent::EpochComplete(index, best, metrics, score) = event {
                 println!("Printing from event handler! [ {:?} ]: {:?}", index, score);
             }
         })
@@ -228,7 +211,73 @@ For more complex event handling, you can create a custom event handler class:
 
     # Run the engine for 100 generations
     engine.run(rd.GenerationsLimit(100))
+    ```
 
+    Its also completely possible to create more advanced forms of visualization or logging through this method. For example, below we will collect the score distrubution from each epoch using polars then plot it with matplotlib.
+
+    ```python
+    class ScoreDistributionPlotter(rd.EventHandler):
+        """
+        Subscriber class to handle events and track metrics.
+        We will use this to plot score distributions over generations then
+        display the plot when the engine stops.
+        """
+
+        def __init__(self): 
+            super().__init__() # By not passing an event type, we subscribe to all events
+            self.history = []
+
+        def on_event(self, event: rd.EngineEvent) -> None:
+            if event.event_type() == rd.EventType.EPOCH_COMPLETE:
+                ms = event.metrics().to_polars()
+                epoch = event.index()
+                ms = ms.with_columns(pl.lit(epoch).alias("epoch"))
+                self.history.append(ms)
+            elif event.event_type() == rd.EventType.STOP:
+                df = pl.concat(self.history, how="diagonal_relaxed")
+                plot_scores(df)
+
+
+    def plot_scores(ms: pl.DataFrame):
+        quant = (
+            ms.filter((pl.col("name") == "scores") & (pl.col("kind") == "dist"))
+            .select(
+                "epoch",
+                pl.col("min").alias("q0"),
+                pl.col("mean").alias("q50"),
+                pl.col("max").alias("q100"),
+            )
+            .sort("epoch")
+        )
+
+        pdf = quant.to_pandas()
+        plt.figure(figsize=(8, 5))
+        plt.fill_between(
+            pdf["epoch"], pdf["q0"], pdf["q100"], alpha=0.2, label="min–max range"
+        )
+        plt.plot(pdf["epoch"], pdf["q50"], color="C0", linewidth=2, label="mean score")
+        plt.xlabel("Epoch")
+        plt.ylabel("Score")
+        plt.title("Score distribution across generations")
+        plt.legend()
+        plt.tight_layout()
+        plt.show()
+
+    # Create an instance of your event handler
+    handler = ScoreDistributionPlotter()
+
+    engine = rd.GeneticEngine(
+        codec=your_codec,
+        fitness_func=your_fitness_func,
+        subscribe=handler,
+        # ... other parameters ...
+    )
+
+    # or add it later
+    engine.subscribe(handler)
+
+    # Run the engine for 100 generations
+    engine.run(rd.GenerationsLimit(100))
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -238,15 +287,9 @@ For more complex event handling, you can create a custom event handler class:
 
     struct MyHandler;
 
-    impl EventHandler<EngineEvent<Vec<f32>>> for MyHandler {
-        fn handle(&mut self, event: Event<EngineEvent<Vec<f32>>>) {
-            if let EngineEvent::EpochComplete {
-                index,
-                metrics: _,
-                best: _,
-                score,
-            } = event.data()
-            {
+    impl EventHandler<Vec<f32>> for MyHandler {
+        fn handle(&mut self, event: &EngineEvent<Vec<f32>>) {
+            if let EngineEvent::EpochComplete(index, best, metrics, score) = event {
                 println!("Printing from event handler! [ {:?} ]: {:?}", index, score);
             }
         }

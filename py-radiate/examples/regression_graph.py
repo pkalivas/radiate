@@ -24,7 +24,7 @@ class ScoreDistributionPlotter(rd.EventHandler):
         super().__init__()
         self.history = []
 
-    def on_event(self, event):
+    def on_event(self, event: rd.EngineEvent) -> None:
         if event.event_type() == rd.EventType.EPOCH_COMPLETE:
             ms = event.metrics().to_polars()
             epoch = event.index()
@@ -93,4 +93,4 @@ engine = rd.GeneticEngine(
 
 result = engine.run([rd.ScoreLimit(0.001), rd.GenerationsLimit(1000)], log=True)
 print(result)
-# print(result.metrics().dashboard())
+print(result.metrics().dashboard())

@@ -29,7 +29,7 @@ from .genome import (
     Gene,
     AnyGene,
 )
-from .handlers import EventHandler, EventType
+from .handlers import EventHandler, EventType, EngineEvent
 from .gp import Op, Graph, Tree
 
 from .inputs.executor import Executor
@@ -120,6 +120,7 @@ __all__ = [
     # Handlers
     "EventHandler",
     "EventType",
+    "EngineEvent",
     # Alters
     "BlendCrossover",
     "TreeCrossover",

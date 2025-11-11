@@ -79,7 +79,7 @@ impl<C: Chromosome, T> Scored for Generation<C, T> {
 impl<C: Chromosome + Clone, T: Clone> From<&Context<C, T>> for Generation<C, T> {
     fn from(context: &Context<C, T>) -> Self {
         Generation {
-            ecosystem: Ecosystem::clone(&context.ecosystem),
+            ecosystem: Ecosystem::clone_ref(&context.ecosystem),
             value: context.best.clone(),
             index: context.index,
             metrics: context.metrics.clone(),

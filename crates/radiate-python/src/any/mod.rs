@@ -1,9 +1,11 @@
 mod arithmatic;
+mod cell;
 mod dtype;
 mod gene;
 mod numeric;
 pub(crate) mod value;
 
+use cell::GILOnceCell;
 pub use dtype::Field;
 pub use gene::{AnyChromosome, AnyGene};
 pub use numeric::NumericSlotMut;
@@ -24,8 +26,7 @@ use std::{
 
 type InitFn = for<'py> fn(&Bound<'py, PyAny>, bool) -> PyResult<AnyValue<'py>>;
 
-pub(crate) static LUT: crate::GILOnceCell<HashMap<TypeObjectKey, InitFn>> =
-    crate::GILOnceCell::new();
+pub(crate) static LUT: GILOnceCell<HashMap<TypeObjectKey, InitFn>> = GILOnceCell::new();
 
 pub fn any_value_into_py_object_ref<'py, 'a>(
     av: &'a AnyValue<'a>,
