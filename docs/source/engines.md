@@ -287,13 +287,18 @@ For certain optimization problems, it is useful to have a more structured way to
 
 ## Metrics
 
-The `MetricSet`, included in the engine's epoch, provides a number of built-in metrics that can be used to evaluate the performance of the `GeneticEngine`. These metrics can be used to monitor the progress of the engine, compare different runs, and tune hyperparameters. During evolution, the engine collects various metrics from it's different components as well as the overall performance of the engine. 
+Metric collection in radiate is interwoven into every aspect of the evolutionary process. It uses the [Kahan summation algorithm](https://en.wikipedia.org/wiki/Kahan_summation_algorithm) paired with [Welford's one-pass online algorithm](https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Welford's_online_algorithm) for fast, accurate, and numerically stable computation of statistics. All of this combined provides robust and reliable metric tracking throughout the evolutionary process. Using the `MetricSet` (a collection of independent `Metric`s) we can collect a whole host statistics that span the entire evolutionary process allowing us to gain deep insights into the evolutionary dynamics.
 
-A metric is defined as:
+The `MetricSet` is an object (struct) given to the user in two main forms:
 
-1. `Value` - Represents a single value metric with a name and a `Statistic`.
-2. `Time` - Represents a time metric with a name and a `TimeStatistic`.
-3. `Distribution` - Represents a distribution metric with a name and a `Distribution`.
+1. On the engine's `Generation` - given to the user after each epoch or each pass of the evolution process.
+2. Through the engine's eventing system. Various events emit metric data allowing the user to track metrics or derive their own in real-time.
+
+Each `metric` can include any combination of the following types:
+
+1. `Value` - Represents a single value metric. Ie: a count, or running sum throughout either the generation or the entire process.
+2. `Time` - Represents a time metric with a name and a collection of time samples. This can also be represented through a single generation pass or a cumulative time.
+3. `Distribution` - Represents a distribution metric. The distribution is stored as a `Vec<f32>` and stores the same statistical measures as a `Value`, but also includes the shape of the distribution allowing for calculation of distribution-specific statistics (like entropy for exampe).
 
 ### Statistic 
 
@@ -307,30 +312,34 @@ Similarly, the `TimeStatistic` exposes the same measures, however the data is as
 
 The `Distribution` metric is used to represent a distribution of values. The distribution is stored as a `Vec<f32>` and produces the same statistical measures as the `Statistic` and `TimeStatistic` with the exception of `last_value` which is changed to `last_sequence`.
 
-The default metrics collected by the engine are:
+??? info "Default metrics"
 
+    | Name                | Description                                                                 |
+    |---------------------|-----------------------------------------------------------------------------|
+    | `time`              | The time taken for the evolution process.                                   |
+    | `scores`            | The scores (fitness) of all the individuals evolved throughout the evolution process. |
+    | `age`               | The age of all the individuals in the `Ecosystem`. |
+    | `replace_age`      | The number of individuals replaced based on age. |
+    | `replace_invalid`  | The number of individuals replaced based on invalid structure (e.g. Bounds) |
+    | `genome_size`      | The size of each genome over the evolution process. This is usually static and doesn't change. |
+    | `front`            | The number of members added to the Pareto front throughout the evolution process. |
+    | `unique_members`   | The number of unique members in the `Ecosystem`. |
+    | `unique_scores`    | The number of unique scores in the `Ecosystem`. |
+    | `diversity_ratio`  | The ratio of unique scores to the size of the `Ecosystem`. |
+    | `score_volatility` | The volatility of the scores in the `Ecosystem`. This is calculated as the standard deviation of the scores / mean. |
+    | `carryover_rate`   | The rate at which unique individuals are carried over to the next generation. |
+    | `survivor_count`   | The number of individuals that survived to the next generation. |
+    | `evaluation_count` | The total number of evaluations performed per generation. |
+    | `lifetime_unique`  | The number of unique individuals that have existed throughout the entire evolution process. |
+    | `new_children`     | The number of new children each generation through either mutation or crossover (or both). |
+    | `species_count`    | The number of `species` in the 'Ecosystem`. |
+    | `species_removed`  | The number of `species` removed based on stagnation. |
+    | `species_distance` | The distance between `species` in the `Ecosystem`. |
+    | `species_created`  | The number of `species` created in the `Ecosystem`. |
+    | `species_died`     | The number of `species` that have died in the `Ecosystem`. |
+    | `species_age`      | The age of all the `species` in the `Ecosystem`. |
 
-| Name                | Type          | Description                                                                 |
-|---------------------|---------------|-----------------------------------------------------------------------------|
-| `time`              | TimeStatistic | The time taken for the evolution process.                                   |
-| `scores`            | Statistic     | The scores (fitness) of all the individuals evolved throughout the evolution process. |
-| `age`               | Statistic     | The age of all the individuals in the `Ecosystem`. |
-| `replace_age`      | Statistic     | The number of individuals replaced based on age. |
-| `replace_invalid`  | Statistic     | The number of individuals replaced based on invalid structure (e.g. Bounds) |
-| `genome_size`      | Distribution   | The size of each genome over the evolution process. This is usually static and doesn't change. |
-| `front`            | Statistic   | The number of members added to the Pareto front throughout the evolution process. |
-| `unique_members`   | Statistic     | The number of unique members in the `Ecosystem`. |
-| `unique_scores`    | Statistic     | The number of unique scores in the `Ecosystem`. |
-| `diversity_ratio`  | Statistic     | The ratio of unique scores to the size of the `Ecosystem`. |
-| `score_volatility` | Statistic     | The volatility of the scores in the `Ecosystem`. This is calculated as the standard deviation of the scores / mean. |
-| `species_count`    | Statistic     | The number of `species` in the 'Ecosystem`. |
-| `species_removed`  | Statistic     | The number of `species` removed based on stagnation. |
-| `species_distance` | Distribution | The distance between `species` in the `Ecosystem`. |
-| `species_created`  | Statistic     | The number of `species` created in the `Ecosystem`. |
-| `species_died`     | Statistic     | The number of `species` that have died in the `Ecosystem`. |
-| `species_age`      | Statistic     | The age of all the `species` in the `Ecosystem`. |
-
-Along with the default metrics, each component will also collect operation metrics (statistics and time statistics) for the operations it performs. For example, each `Alterer` and `Selector` will collect metrics and be identified by their name. Its also important to note that `species` level metrics will only be collected if the engine is configured to use species-based diversity.
+    Along with the default metrics, each component will also collect metrics for the operations it performs. For example, each `Alterer` and `Selector` will collect metrics and be identified by their name. Its also important to note that `species` level metrics will only be collected if the engine is configured to use species-based diversity.
 
 These can be accessed through the `metrics()` method of the epoch, which returns a `MetricSet`. 
 
@@ -347,19 +356,23 @@ These can be accessed through the `metrics()` method of the epoch, which returns
     )
 
     # Run the engine for 100 generations
-    result = engine.run(rd.GeneratinsLimit(100))
+    result = engine.run(rd.GenerationsLimit(100))
 
     # Get the metrics of the engine
     metrics = result.metrics()  # MetricSet object
-    df = metrics.to_polars()  # Convert metrics to a Polars DataFrame for analysis
-    df = metrics.to_pandas()  # Convert metrics to a Pandas DataFrame for analysis
+    df = metrics.to_polars()  # Convert metrics to a Polars DataFrame for analysis (if installed)
+    df = metrics.to_pandas()  # Convert metrics to a Pandas DataFrame for analysis (if installed)
 
     # Access specific metrics
-    time_taken = metrics["time"]['time_sum'] # Total time taken for the evolution process
-    scores = metrics["scores"] # dict of score statistics
+    time_taken = metrics["time"].time_sum() # Total time taken for the evolution process
+    carry_over = metrics['carryover_rate'].max() # Maximum carryover rate throughout evolution
+    scores = metrics["scores"] # Get the score metric
 
-    mean_score = scores['value_mean']  # Mean score of all individuals
-    all_last_generation_scores = scores['sequence_last']  # Last generation scores
+    mean_score = scores.seq_mean()  # Mean score of all individuals
+    all_last_generation_scores = scores.seq_last()  # Last generation scores (list[float])
+
+    # pretty-print the metrics dashboard
+    print(metrics.dashboard())
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -378,7 +391,16 @@ These can be accessed through the `metrics()` method of the epoch, which returns
 
     // Access the metrics from the result
     let metrics: MetricSet = result.metrics();
+
+    // pretty-print the metrics dashboard
+    println!("{}", metrics.dashboard())
     ```
+
+The `MetricSet` provides a nice little pretty-printed dashboard for visualizing metrics during evolution or at the end of a run. Below we can see an example output from a graph engine:
+
+<figure markdown="span">
+    ![metrics-dashboard](../assets/metrics_dashboard.png){ width="700" }
+</figure>
 
 ---
 
