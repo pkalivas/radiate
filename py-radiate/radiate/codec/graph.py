@@ -30,7 +30,7 @@ class GraphCodec(CodecBase[Op, Graph]):
         output: NodeValues | None = None,
         values: dict[str, list[Op]] | list[tuple[str, list[Op]]] | None = None,
         max_nodes: int | None = None,
-    ) -> GraphCodec[Op, Graph]:
+    ) -> GraphCodec:
         return GraphCodec.__build_common(
             name="weighted_directed",
             shape=shape,
@@ -49,7 +49,7 @@ class GraphCodec(CodecBase[Op, Graph]):
         output: NodeValues | None = None,
         values: dict[str, list[Op]] | list[tuple[str, list[Op]]] | None = None,
         max_nodes: int | None = None,
-    ) -> GraphCodec[Op, Graph]:
+    ) -> GraphCodec:
         return GraphCodec.__build_common(
             name="weighted_recurrent",
             shape=shape,
@@ -68,7 +68,7 @@ class GraphCodec(CodecBase[Op, Graph]):
         output: NodeValues | None = None,
         values: dict[str, list[Op]] | list[tuple[str, list[Op]]] | None = None,
         max_nodes: int | None = None,
-    ) -> GraphCodec[Op, Graph]:
+    ) -> GraphCodec:
         return GraphCodec.__build_common(
             name="directed",
             shape=shape,
@@ -87,7 +87,7 @@ class GraphCodec(CodecBase[Op, Graph]):
         output: NodeValues | None = None,
         values: dict[str, list[Op]] | list[tuple[str, list[Op]]] | None = None,
         max_nodes: int | None = None,
-    ) -> GraphCodec[Op, Graph]:
+    ) -> GraphCodec:
         return GraphCodec.__build_common(
             name="recurrent",
             shape=shape,
@@ -106,7 +106,7 @@ class GraphCodec(CodecBase[Op, Graph]):
         output: NodeValues | None = None,
         values: dict[str, list[Op]] | list[tuple[str, list[Op]]] | None = None,
         max_nodes: int | None = None,
-    ) -> GraphCodec[Op, Graph]:
+    ) -> GraphCodec:
         return GraphCodec.__build_common(
             name="gru",
             shape=shape,
@@ -125,7 +125,7 @@ class GraphCodec(CodecBase[Op, Graph]):
         output: NodeValues | None = None,
         values: dict[str, list[Op]] | list[tuple[str, list[Op]]] | None = None,
         max_nodes: int | None = None,
-    ) -> GraphCodec[Op, Graph]:
+    ) -> GraphCodec:
         return GraphCodec.__build_common(
             name="lstm",
             shape=shape,
@@ -145,7 +145,7 @@ class GraphCodec(CodecBase[Op, Graph]):
         output: NodeValues | None = None,
         values: dict[str, list[Op]] | list[tuple[str, list[Op]]] | None = None,
         max_nodes: int | None = None,
-    ) -> GraphCodec[Op, Graph]:
+    ) -> GraphCodec:
         input_size, output_size = shape
 
         if input_size < 1 or output_size < 1:

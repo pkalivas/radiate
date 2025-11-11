@@ -1,10 +1,9 @@
-from typing import Any
-
 from datetime import timedelta
 
 from radiate.genome.ecosystem import Ecosystem
 from radiate.genome.species import Species
 from radiate.wrapper import PyObject
+from radiate.metrics import MetricSet
 from .genome import Population
 from radiate.radiate import PyGeneration
 
@@ -39,12 +38,12 @@ class Generation[T](PyObject[PyGeneration]):
         """
         return self.__backend__().value()
 
-    def metrics(self) -> dict[str, Any]:
+    def metrics(self) -> MetricSet:
         """
         Get the metrics of the generation.
         :return: The metrics of the generation.
         """
-        return self.__backend__().metrics()
+        return MetricSet.from_rust(self.__backend__().metrics())
 
     def objective(self) -> list[str] | str:
         """
