@@ -2,6 +2,23 @@
 
 ---
 
+## v1.2.19 - py 0.0.9
+
+- 2025-11-11
+- [Release](https://github.com/pkalivas/radiate/releases/tag/v1.2.19)
+
+Adding support for experimental [PGM](https://en.wikipedia.org/wiki/Graphical_model) or Probabilistic graphical models through the GP feature (crate).
+
+Major cleanup or unused code and massive graph performance improvements through the use of [smallvec](https://docs.rs/smallvec/latest/smallvec/) as connections instead of BTreeSets. 
+
+Improving eventing system through cleaner code and removing redundant events.
+
+Introducing radiate-error (RadiateError) into the core crates ad requiring its usage in certain traits (Problem mainly). We also use this error type in py-radiate and allow it to bubble up into python's type system too. 
+
+Brining metrics to the forefront in python. 
+
+**[Full Changelog](https://github.com/pkalivas/radiate/compare/v1.2.18...v1.2.19)**
+
 ## v1.2.18 - py 0.0.8
 
 - 2025-09-27
