@@ -89,4 +89,4 @@ pub trait NodeExt: Node {
     }
 }
 
-impl<T: Node> NodeExt for T {}
+impl<N: Node> NodeExt for N {}

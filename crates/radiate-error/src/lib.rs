@@ -7,7 +7,6 @@ pub type Result<T> = std::result::Result<T, RadiateError>;
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Code {
     InvalidConfig,
-    InvalidParameter,
     Engine,
     Codec,
     Evaluation,
@@ -38,9 +37,6 @@ pub enum RadiateError {
 
     #[error("Invalid fitness: {0}")]
     Fitness(String),
-
-    #[error("Invalid parameter: {0}")]
-    InvalidParameter(String),
 
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),
@@ -74,7 +70,6 @@ impl RadiateError {
     pub fn code(&self) -> Code {
         match self {
             RadiateError::Builder { .. } => Code::InvalidConfig,
-            RadiateError::InvalidParameter { .. } => Code::InvalidParameter,
             RadiateError::Engine { .. } => Code::Engine,
             RadiateError::Genome { .. } => Code::Genome,
             RadiateError::Codec { .. } => Code::Codec,
@@ -139,9 +134,6 @@ macro_rules! radiate_err {
     (Evaluation: $fmt:literal $(, $arg:expr)* $(,)?) => {
         $crate::__private::must_use($crate::RadiateError::Evaluation(format!($fmt, $($arg),*)))
     };
-    (InvalidParameter: $fmt:literal $(, $arg:expr)* $(,)?) => {
-        $crate::__private::must_use($crate::RadiateError::InvalidParameter(format!($fmt, $($arg),*)))
-    };
     (Python: $fmt:literal $(, $arg:expr)* $(,)?) => {
         $crate::__private::must_use(pyo3::PyErr::new::<pyo3::exceptions::PyException, _>(format!($fmt, $($arg),*)))
     };
@@ -161,9 +153,6 @@ macro_rules! radiate_err {
     };
     (Evaluation: $msg:expr $(,)?) => {
         $crate::__private::must_use($crate::RadiateError::Evaluation($msg.to_string()))
-    };
-    (InvalidParameter: $msg:expr $(,)?) => {
-        $crate::__private::must_use($crate::RadiateError::InvalidParameter($msg.to_string()))
     };
 
     // Fallback -> Engine
