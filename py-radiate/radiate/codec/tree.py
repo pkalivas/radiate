@@ -27,7 +27,7 @@ class TreeCodec(CodecBase[Op, Tree]):
         leaf: NodeValues | None = None,
         root: NodeValues | None = None,
         values: dict[str, list[Op]] | list[tuple[str, list[Op]]] | None = None,
-    ) -> TreeCodec[Op, Tree]:
+    ) -> TreeCodec:
         input_size, output_size = shape
 
         if input_size < 1 or output_size < 1:

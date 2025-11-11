@@ -16,7 +16,7 @@ class FloatCodec[T](CodecBase[float, T]):
         Initialize the float codec with a PyFloatCodec instance.
         :param codec: An instance of PyFloatCodec.
         """
-        self.codec = self._create_encoding(encoding, use_numpy)
+        self.codec = self.__create_encoding(encoding, use_numpy)
 
     def encode(self) -> Genotype[float]:
         """
@@ -35,7 +35,7 @@ class FloatCodec[T](CodecBase[float, T]):
             raise TypeError("genotype must be an instance of Genotype.")
         return self.codec.decode_py(genotype=genotype.__backend__())
 
-    def _create_encoding(
+    def __create_encoding(
         self, encoding: FloatEncoding, use_numpy: bool
     ) -> PyFloatCodec:
         """
@@ -124,8 +124,9 @@ class FloatCodec[T](CodecBase[float, T]):
         Create a matrix codec with specified rows and columns.
         Args:
             shape: A tuple (rows, cols) or a list of integers specifying the shape of the matrix.
-            value_range: Minimum and maximum value for the Gene's Allele to be init with.
-            bound_range: Minimum and maximum values the allele is allowed to be within during evolution
+            init_range: Minimum and maximum value for the Gene's Allele to be init with.
+            bounds: Minimum and maximum values the allele is allowed to be within during evolution.
+            use_numpy: Whether or not to decode the Genotype into a numpy array.
         Returns:
             A new FloatCodec instance with matrix configuration.
 
@@ -133,11 +134,11 @@ class FloatCodec[T](CodecBase[float, T]):
         --------
         Create a codec that will produce a Genotype with 2 Chromosomes both containing 3 FloatGenes
         Alleles between 0.0 and 1.0, and bounds between -1.0 and 2.0:
-        >>> rd.FloatCodec.matrix(shape=(2, 3), value_range=(0.0, 1.0), bound_range=(-1.0, 2.0))
+        >>> rd.FloatCodec.matrix(shape=(2, 3), init_range=(0.0, 1.0), bounds=(-1.0, 2.0))
         FloatCodec(...)
 
         The same can be achieved with a list of shapes:
-        >>> rd.FloatCodec.matrix(shape=[3, 3], value_range=(0.0, 1.0), bound_range=(-1.0, 2.0))
+        >>> rd.FloatCodec.matrix(shape=[3, 3], init_range=(0.0, 1.0), bounds=(-1.0, 2.0))
         FloatCodec(...)
         """
         shapes = None
@@ -180,15 +181,16 @@ class FloatCodec[T](CodecBase[float, T]):
         Create a vector codec with specified length.
         Args:
             length: Length of the vector.
-            value_range: Minimum and maximum value for the Gene's Allele to be init with.
-            bound_range: Minimum and maximum values the allele is allowed to be within during evolution.
+            init_range: Minimum and maximum value for the Gene's Allele to be init with.
+            bounds: Minimum and maximum values the allele is allowed to be within during evolution.
+            use_numpy: Whether or not to decode the Genotype into a numpy array.
         Returns:
             A new FloatCodec instance with vector configuration.
 
         Example
         --------
         Create a FloatCodec that will encode a Genotype with a single Chromosome containing 5 FloatGenes
-        >>> rd.FloatCodec.vector(length=5, value_range=(0.0, 1.0), bound_range=(-1.0, 2.0))
+        >>> rd.FloatCodec.vector(length=5, init_range=(0.0, 1.0), bounds=(-1.0, 2.0), use_numpy=False)
         FloatCodec(...)
         """
         if length <= 0:
@@ -222,8 +224,8 @@ class FloatCodec[T](CodecBase[float, T]):
         """
         Create a scalar codec.
         Args:
-            value_range: Minimum and maximum value for the Gene's Allele to be init with.
-            bound_range: Minimum and maximum values the allele is allowed to be within during evolution.
+            init_range: Minimum and maximum value for the Gene's Allele to be init with.
+            bounds: Minimum and maximum values the allele is allowed to be within during evolution.
         Returns:
             A new FloatCodec instance with scalar configuration.
 
@@ -231,7 +233,7 @@ class FloatCodec[T](CodecBase[float, T]):
         --------
         Create a FloatCodec that will encode a Genotype with a single Chromosome containing a single FloatGene
         with Alleles between 0.0 and 1.0, and bounds between -1.0 and 2.0:
-        >>> rd.FloatCodec.scalar(value_range=(0.0, 1.0), bound_range=(-1.0, 2.0))
+        >>> rd.FloatCodec.scalar(init_range=(0.0, 1.0), bounds=(-1.0, 2.0))
         FloatCodec(...)
         """
         if init_range is not None:
