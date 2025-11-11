@@ -35,7 +35,7 @@ inspired by natural selection and genetics. The core is written in Rust and is a
 Add this to your `Cargo.toml`:
 ```toml
 [dependencies]
-radiate = { version = "1.2.18", features = ["x"] }
+radiate = { version = "1.2.19", features = ["x"] }
 ``` 
 ### Python
 ```bash
