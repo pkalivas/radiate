@@ -3,6 +3,7 @@ from enum import Enum
 from typing import Any, Callable
 from radiate.radiate import PySubscriber, PyEngineEvent
 from radiate.wrapper import PyObject
+from radiate.metrics import MetricSet
 
 
 class EventType(Enum):
@@ -106,9 +107,12 @@ class EngineEvent(PyObject[PyEngineEvent]):
         """
         return self.__backend__().value()
 
-    def metrics(self) -> dict[str, Any] | None:
+    def metrics(self) -> MetricSet | None:
         """
         Get the metrics of the event.
         :return: The metrics of the event.
         """
-        return self.__backend__().metrics()
+        metrics = self.__backend__().metrics()
+        if metrics is None:
+            return None
+        return MetricSet.from_rust(metrics)

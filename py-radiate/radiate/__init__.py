@@ -31,6 +31,7 @@ from .genome import (
 )
 from .handlers import EventHandler, EventType, EngineEvent
 from .gp import Op, Graph, Tree
+from .metrics import MetricSet, Metric
 
 from .inputs.executor import Executor
 from .fitness import Regression, NoveltySearch, BatchFitness
@@ -81,7 +82,12 @@ from .inputs.distance import (
 
 from .inputs.limit import SecondsLimit, GenerationsLimit, ScoreLimit, ConvergenceLimit
 
-from .dependancies import _NUMPY_AVAILABLE, _GIL_ENABLED
+from .dependancies import (
+    _NUMPY_AVAILABLE,
+    _GIL_ENABLED,
+    _PANDAS_AVAILABLE,
+    _POLARS_AVAILABLE,
+)
 
 
 __all__ = [
@@ -91,6 +97,8 @@ __all__ = [
     # Dependencies
     "_NUMPY_AVAILABLE",
     "_GIL_ENABLED",
+    "_PANDAS_AVAILABLE",
+    "_POLARS_AVAILABLE",
     # Random
     "random",
     # Codecs
@@ -174,4 +182,7 @@ __all__ = [
     # Engine
     "GeneticEngine",
     "Generation",
+    # Metrics
+    "MetricSet",
+    "Metric",
 ]

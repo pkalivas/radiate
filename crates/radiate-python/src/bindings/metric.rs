@@ -24,6 +24,16 @@ impl PyMetricSet {
         )
     }
 
+    pub fn __dict__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
+        let dict = PyDict::new(py);
+        let rows = self.to_rows(py, true)?;
+        for row in rows {
+            dict.set_item(row.get_item("name")?, row)?;
+        }
+
+        Ok(dict)
+    }
+
     pub fn __getitem__<'py>(
         &self,
         py: Python<'py>,

@@ -54,9 +54,17 @@ def _lazy_import(module_name: str) -> tuple[ModuleType, bool]:
     )
 
 
-if TYPE_CHECKING:
-    import numpy as np
+_PANDAS_AVAILABLE = False
+_POLARS_AVAILABLE = False
 
-    _NUMPY_AVAILABLE = True
+
+if TYPE_CHECKING:
+    try:
+        import numpy as np
+        _NUMPY_AVAILABLE = True
+    except ModuleNotFoundError:
+        _NUMPY_AVAILABLE = False
 else:
     np, _NUMPY_AVAILABLE = _lazy_import("numpy")
+    pl, _POLARS_AVAILABLE = _lazy_import("polars")
+    pd, _PANDAS_AVAILABLE = _lazy_import("pandas")
