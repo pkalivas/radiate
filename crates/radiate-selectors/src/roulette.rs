@@ -1,4 +1,5 @@
-use radiate_core::{Chromosome, Objective, Optimize, Population, Select, pareto, random_provider};
+use crate::ProbabilityWheelIterator;
+use radiate_core::{Chromosome, Objective, Optimize, Population, Select, pareto};
 
 #[derive(Debug, Default)]
 pub struct RouletteSelector;
@@ -47,23 +48,8 @@ impl<C: Chromosome + Clone> Select<C> for RouletteSelector {
             }
         };
 
-        let mut cdf = Vec::with_capacity(fitness_values.len());
-        let mut acc = 0.0;
-        for &p in &fitness_values {
-            acc += p;
-            cdf.push(acc);
-        }
-        let total = *cdf.last().unwrap_or(&1.0);
-
-        let mut out = Vec::with_capacity(count);
-        for _ in 0..count {
-            let r = random_provider::random::<f32>() * total;
-            let idx = cdf
-                .binary_search_by(|x| x.partial_cmp(&r).unwrap())
-                .unwrap_or_else(|i| i);
-            out.push(population[idx].clone());
-        }
-
-        out.into()
+        ProbabilityWheelIterator::new(&fitness_values, count)
+            .map(|idx| population[idx].clone())
+            .collect()
     }
 }

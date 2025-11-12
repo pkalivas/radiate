@@ -52,12 +52,6 @@ class TestMetrics:
     @pytest.mark.integration
     def test_metrics_from_events(self, random_seed):
         class ScoreDistributionPlotter(rd.EventHandler):
-            """
-            Subscriber class to handle events and track metrics.
-            We will use this to plot score distributions over generations then
-            display the plot when the engine stops.
-            """
-
             def __init__(self):
                 super().__init__(rd.EventType.EPOCH_COMPLETE)
 
@@ -100,7 +94,7 @@ class TestMetrics:
             codec=rd.IntCodec.vector(num_genes, init_range=(0, 10)),
             fitness_func=lambda x: sum(x),
             objective="min",
-            subscribe=[ScoreDistributionPlotter()]
+            subscribe=[ScoreDistributionPlotter()],
         )
 
         engine.run([rd.ScoreLimit(0), rd.GenerationsLimit(500)])
