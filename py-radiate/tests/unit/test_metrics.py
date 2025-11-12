@@ -51,7 +51,7 @@ class TestMetrics:
 
     @pytest.mark.integration
     def test_metrics_from_events(self, random_seed):
-        class ScoreDistributionPlotter(rd.EventHandler):
+        class MetricSetAssertHandler(rd.EventHandler):
             def __init__(self):
                 super().__init__(rd.EventType.EPOCH_COMPLETE)
 
@@ -89,12 +89,11 @@ class TestMetrics:
                         assert metrics[key].max() is not None
                         assert metrics[key].count() is not None
 
-        num_genes = 5
         engine = rd.GeneticEngine(
-            codec=rd.IntCodec.vector(num_genes, init_range=(0, 10)),
+            codec=rd.IntCodec.vector(5, (0, 10)),
             fitness_func=lambda x: sum(x),
             objective="min",
-            subscribe=[ScoreDistributionPlotter()],
+            subscribe=[MetricSetAssertHandler()],
         )
 
         engine.run([rd.ScoreLimit(0), rd.GenerationsLimit(500)])

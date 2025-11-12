@@ -10,7 +10,7 @@ import radiate as rd
 import polars as pl
 import matplotlib.pyplot as plt
 
-rd.random.seed(5)
+rd.random.seed(567123)
 
 
 class ScoreDistributionPlotter(rd.EventHandler):
