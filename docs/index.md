@@ -118,11 +118,11 @@ This simple maximizing problem demonstrates how to use Radiate to solve a string
                 })
                 .build();
 
-            let result = engine.run(|ctx| {
-                let best_as_string = ctx.best.iter().collect::<String>();
-                println!("[ {:?} ]: {:?}", ctx.index(), best_as_string);
+            let result = engine.run(|generation| {
+                let best_as_string = generation.value().iter().collect::<String>();
+                println!("[ {:?} ]: {:?}", generation.index(), best_as_string);
 
-                ctx.score().as_usize() == target.len()
+                generation.score().as_usize() == target.len()
             });
 
             println!("{:?}", result); 

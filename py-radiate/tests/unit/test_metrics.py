@@ -56,6 +56,8 @@ class TestMetrics:
                 super().__init__(rd.EventType.EPOCH_COMPLETE)
 
             def on_event(self, event: rd.EngineEvent) -> None:
+                assert event.event_type() == rd.EventType.EPOCH_COMPLETE
+
                 metrics = event.metrics()
                 for key in metrics.keys():
                     assert key in metrics

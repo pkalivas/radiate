@@ -68,7 +68,6 @@ class Chromosome[T](PyObject[PyChromosome]):
 
 def int(
     length: int,
-    *,
     init_range: tuple[int, int] | None = None,
     bounds: tuple[int, int] | None = None,
 ) -> Chromosome[int]:
@@ -76,13 +75,13 @@ def int(
     Create an integer chromosome with specified length and optional parameters.
     :param length: Length of the chromosome.
     :param allele: Initial value of the gene.
-    :param value_range: Minimum and maximum value for the gene.
-    :param bound_range: Minimum and maximum bound for the gene.
+    :param init_range: Minimum and maximum value for the gene.
+    :param bounds: Minimum and maximum bound for the gene.
     :return: A new Chromosome instance configured as an integer chromosome.
 
     Example
     --------
-    >>> rd.Chromosome.int(length=3, value_range=(0, 10), bound_range=(-5, 15))
+    >>> rd.Chromosome.int(length=3, init_range=(0, 10), bounds=(-5, 15))
     Chromosome(genes=[0, 5, 10])
     """
     genes = [gene.int(init_range=init_range, bounds=bounds) for _ in range(length)]
@@ -123,7 +122,6 @@ def char(length: int, char_set: set[str] | None = None) -> Chromosome[str]:
 
 def float(
     length: int,
-    *,
     init_range: tuple[float, float] | None = None,
     bounds: tuple[float, float] | None = None,
 ) -> Chromosome[float]:
@@ -131,13 +129,13 @@ def float(
     Create a float chromosome with specified length and optional parameters.
     :param length: Length of the chromosome.
     :param allele: Initial value of the gene.
-    :param value_range: Minimum and maximum value for the gene.
-    :param bound_range: Minimum and maximum bound for the gene.
+    :param init_range: Minimum and maximum value for the gene.
+    :param bounds: Minimum and maximum bound for the gene.
     :return: A new Chromosome instance configured as a float chromosome.
 
     Example
     --------
-    >>> rd.chromosome.float(length=5, value_range=(0.0, 10.0), bound_range=(-5.0, 15.0))
+    >>> rd.chromosome.float(length=5, init_range=(0.0, 10.0), bounds=(-5.0, 15.0))
     Chromosome(genes=[0.0, 2.5, 5.0, 7.5, 10.0])
     """
     genes = [gene.float(init_range=init_range, bounds=bounds) for _ in range(length)]

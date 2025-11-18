@@ -34,10 +34,6 @@ impl PyAnyCodec {
                     )
                 })
                 .with_decoder(move |py, genotype| {
-                    if genotype.len() == 1 && genotype[0].len() == 1 {
-                        return call_creator(py, &genotype[0].get(0)).unwrap();
-                    }
-
                     if genotype.len() == 1 {
                         return PyAnyObject {
                             inner: PyList::new(

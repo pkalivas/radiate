@@ -23,7 +23,6 @@ macro_rules! bin_numeric_op {
     }};
 }
 
-/// Like `bin_numeric_op!`, but with integer safe divide (avoid div-by-zero).
 macro_rules! bin_numeric_div {
     ($lhs:expr, $rhs:expr) => {{
         use AnyValue::*;
@@ -279,11 +278,11 @@ mod tests {
     use super::*;
     use AnyValue::*;
 
-    fn v(xs: Vec<AnyValue<'static>>) -> AnyValue<'static> {
+    fn make_vec(xs: Vec<AnyValue<'static>>) -> AnyValue<'static> {
         AnyValue::Vector(Box::new(xs))
     }
-    fn s(pairs: Vec<(&'static str, AnyValue<'static>)>) -> AnyValue<'static> {
-        // Replace crate::Field(...) with your real Field constructor if needed
+
+    fn make_struct(pairs: Vec<(&'static str, AnyValue<'static>)>) -> AnyValue<'static> {
         let fields = pairs
             .into_iter()
             .map(|(name, val)| (crate::Field::new(name.into()), val))
@@ -377,16 +376,16 @@ mod tests {
     // ---------- Vector elementwise ----------
     #[test]
     fn vector_elementwise_add_ok() {
-        let a = v(vec![Int32(1), Int32(2), Int32(3)]);
-        let b = v(vec![Int32(4), Int32(5), Int32(6)]);
-        let out = v(vec![Int32(5), Int32(7), Int32(9)]);
+        let a = make_vec(vec![Int32(1), Int32(2), Int32(3)]);
+        let b = make_vec(vec![Int32(4), Int32(5), Int32(6)]);
+        let out = make_vec(vec![Int32(5), Int32(7), Int32(9)]);
         assert_eq!(a + b, out);
     }
 
     #[test]
     fn vector_length_mismatch() {
-        let a = v(vec![Int32(1), Int32(2)]);
-        let b = v(vec![Int32(3)]);
+        let a = make_vec(vec![Int32(1), Int32(2)]);
+        let b = make_vec(vec![Int32(3)]);
         assert_eq!(a + b, Vector(Box::new(vec![Int32(4)])));
     }
 
@@ -394,33 +393,33 @@ mod tests {
     #[test]
     fn struct_same_shape_by_order() {
         // Current code: length check; name mismatch → per-field Null (keeps left field)
-        let a = s(vec![("x", Int32(1)), ("y", Int32(2))]);
-        let b = s(vec![("x", Int32(3)), ("y", Int32(4))]);
-        let out = s(vec![("x", Int32(4)), ("y", Int32(6))]);
+        let a = make_struct(vec![("x", Int32(1)), ("y", Int32(2))]);
+        let b = make_struct(vec![("x", Int32(3)), ("y", Int32(4))]);
+        let out = make_struct(vec![("x", Int32(4)), ("y", Int32(6))]);
         assert_eq!(a + b, out);
     }
 
     #[test]
     fn struct_length_mismatch_yields_null() {
-        let a = s(vec![("x", Int32(1))]);
-        let b = s(vec![("x", Int32(2)), ("y", Int32(3))]);
+        let a = make_struct(vec![("x", Int32(1))]);
+        let b = make_struct(vec![("x", Int32(2)), ("y", Int32(3))]);
         assert_eq!(a + b, Null);
     }
 
     #[test]
     fn struct_field_name_mismatch_sets_field_null_under_current_rules() {
-        let a = s(vec![("x", Int32(1)), ("y", Int32(2))]);
-        let b = s(vec![("x", Int32(3)), ("z", Int32(9))]);
+        let a = make_struct(vec![("x", Int32(1)), ("y", Int32(2))]);
+        let b = make_struct(vec![("x", Int32(3)), ("z", Int32(9))]);
         // Current impl: when names differ at a position, that *slot* becomes Null; rest proceed.
-        let expected = s(vec![("x", Int32(4)), ("y", Null)]);
+        let expected = make_struct(vec![("x", Int32(4)), ("y", Null)]);
         assert_eq!(a + b, expected);
     }
 
     #[test]
     fn struct_align_by_name_regardless_of_order() {
-        let a = s(vec![("x", Int32(1)), ("y", Int32(2))]);
-        let b = s(vec![("y", Int32(4)), ("x", Int32(3))]);
-        let out = s(vec![("x", Null), ("y", Null)]);
+        let a = make_struct(vec![("x", Int32(1)), ("y", Int32(2))]);
+        let b = make_struct(vec![("y", Int32(4)), ("x", Int32(3))]);
+        let out = make_struct(vec![("x", Null), ("y", Null)]);
         assert_eq!(a + b, out);
     }
 

@@ -59,13 +59,13 @@ pub fn crossover_multi_point<G>(
     let mut current_parent = 1;
     let mut last_point = 0;
 
-    for i in selected_points {
+    for &mut i in selected_points {
         if current_parent == 1 {
-            chrom_one[last_point..*i].swap_with_slice(&mut chrom_two[last_point..*i]);
+            chrom_one[last_point..i].swap_with_slice(&mut chrom_two[last_point..i]);
         }
 
         current_parent = 3 - current_parent;
-        last_point = *i;
+        last_point = i;
     }
 
     if current_parent == 1 {

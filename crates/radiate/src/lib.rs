@@ -5,6 +5,7 @@ pub use radiate_engines::*;
 pub use radiate_gp::*;
 
 pub mod prelude {
+    pub use radiate_core::{RadiateError, error::RadiateResult};
     pub use radiate_engines::*;
 
     #[cfg(feature = "gp")]

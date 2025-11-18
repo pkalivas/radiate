@@ -55,7 +55,7 @@ class TestPopulation:
         population = Population(
             Phenotype(
                 Genotype(
-                    rd.chromosome.int(num_genes, init_range=(0, 10))
+                    rd.chromosome.int(num_genes, (0, 10))
                     for _ in range(num_chromosomes)
                 )
             )
