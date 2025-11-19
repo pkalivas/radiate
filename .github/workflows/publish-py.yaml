@@ -3,7 +3,7 @@ name: publish
 on:
   push:
     tags:
-      - 'v*'
+      - 'NO_OPT*'
   workflow_dispatch:
     inputs:
       os:
