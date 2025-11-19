@@ -607,8 +607,8 @@ Manually create a simple graph:
     codec = rd.GraphCodec.directed(
         shape=(2, 1),
         vertex=[rd.Op.add(), rd.Op.sub(), rd.Op.mul(), rd.Op.div()],
-        edge=[rd.Op.weight()],
-        output=[rd.Op.linear()],
+        edge=rd.Op.weight(), # or [rd.Op.weight(), ...]
+        output=rd.Op.linear(), # or [rd.Op.linear(), ...]
     )
 
     graph = codec.decode(codec.encode())
