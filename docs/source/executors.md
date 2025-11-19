@@ -14,7 +14,7 @@ Currently, radiate supports three executors:
 
 ## Example
 
-Continuing with our example from the preious section s - evolving a simple function: finding the best values for `y = ax + b` where we want to find optimal values for `a` and `b`. We'll keep the previous inputs the same as before, but now we add an `executor` to the `GeneticEngine`.
+Continuing with our example from the preious sections - evolving a simple function: finding the best values for `y = ax + b` where we want to find optimal values for `a` and `b`. We'll keep the previous inputs the same as before, but now we add an `executor` to the `GeneticEngine`.
 
 === ":fontawesome-brands-python: Python"
 
