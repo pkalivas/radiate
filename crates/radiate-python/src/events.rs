@@ -77,10 +77,10 @@ where
         }
 
         Python::attach(|py| {
-            let event_dict = self.event_to_py(py, &event).into_py_any(py).unwrap();
+            let py_event = self.event_to_py(py, &event).into_py_any(py).unwrap();
 
             for handler in subscribers {
-                let cloned_event = event_dict.clone_ref(py);
+                let cloned_event = py_event.clone_ref(py);
                 handler
                     .function()
                     .call1(py, (cloned_event,))

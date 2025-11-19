@@ -41,3 +41,12 @@ engine = rd.GeneticEngine(
 
 result = engine.run([rd.ScoreLimit(0.01), rd.GenerationsLimit(1000)], log=True)
 print(result)
+
+
+# codec = rd.TreeCodec(
+#     shape=(1, 1),
+#     vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.add()],
+#     root=rd.Op.linear(),
+# )
+
+# print(codec.decode(codec.encode()).__repr__())

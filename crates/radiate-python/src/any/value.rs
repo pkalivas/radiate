@@ -225,8 +225,8 @@ impl<'a> AnyValue<'a> {
             Float64(v) => Float64(v),
             Char(v) => Char(v),
             Str(v) => StrOwned(v.to_string()),
-            Vector(v) => Vector(Box::new(v.into_iter().map(AnyValue::into_static).collect())),
             StrOwned(v) => StrOwned(v),
+            Vector(v) => Vector(Box::new(v.into_iter().map(AnyValue::into_static).collect())),
             Binary(v) => Binary(v),
             Struct(v) => Struct(
                 v.into_iter()

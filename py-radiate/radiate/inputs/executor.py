@@ -26,7 +26,7 @@ class Executor(ComponentBase):
         return Executor.Serial()
 
     @staticmethod
-    def FixedSizedWorkerPool(num_workers: int) -> "Executor":
+    def FixedSizedWorkerPool(num_workers: int = 1) -> "Executor":
         """
         Fixed-sized worker pool executor.
         :param num_workers: The number of worker threads in the pool.

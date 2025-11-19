@@ -20,5 +20,7 @@ class Regression[T](FitnessBase[T]):
             raise TypeError("targets must be a list of lists.")
 
         super().__init__(
-            PyFitnessFn.regression(features=features, targets=targets, loss=loss, is_batch=batch)
+            PyFitnessFn.regression(
+                features=features, targets=targets, loss=loss, is_batch=batch
+            )
         )

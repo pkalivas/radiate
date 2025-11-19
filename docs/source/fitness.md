@@ -304,7 +304,7 @@ You can implement your own behavioral descriptors by implementing the `Novelty` 
     // ... rest of impl ...
 
     impl Novelty<MyModel> for MyModelBehaviorDescriptor {
-        fn description(&self, individual: &MyModel) -> Self::Descriptor {
+        fn description(&self, individual: &MyModel) -> Vec<f32> {
             // Return behavioral characteristics (e.g., outputs on test cases)
             individual.get_behavior_vector()
         }

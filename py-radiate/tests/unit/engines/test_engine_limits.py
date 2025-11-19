@@ -30,7 +30,7 @@ class TestEngineLimits:
         assert result.score()[0] <= 0.01
 
     @pytest.mark.unit
-    def test_convergence_limit(self, simple_float_engine):
+    def test_convergence_limit(self, simple_float_engine, random_seed):
         """Test convergence limit functionality."""
 
         window_size = 15

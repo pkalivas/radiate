@@ -13,7 +13,6 @@ class CallableFitness[T](FitnessBase[T]):
         super().__init__(PyFitnessFn.custom(problem, is_batch=False))
 
 
-
 class BatchFitness[T](FitnessBase[T]):
     """Wrapper for user-defined batch callable fitness functions."""
 

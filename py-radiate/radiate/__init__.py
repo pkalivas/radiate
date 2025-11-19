@@ -83,8 +83,8 @@ from .inputs.distance import (
 from .inputs.limit import SecondsLimit, GenerationsLimit, ScoreLimit, ConvergenceLimit
 
 from .dependancies import (
-    _NUMPY_AVAILABLE,
     _GIL_ENABLED,
+    _NUMPY_AVAILABLE,
     _PANDAS_AVAILABLE,
     _POLARS_AVAILABLE,
 )

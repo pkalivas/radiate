@@ -1,6 +1,5 @@
-use std::cell::UnsafeCell;
-
 use pyo3::{PyResult, Python};
+use std::cell::UnsafeCell;
 
 // Adapted from PYO3 with the only change that
 // we allow mutable access with when the GIL is held

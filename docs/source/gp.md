@@ -194,7 +194,7 @@ Provided `Ops` include:
     }
 
     // Supply a name, arity (number of inputs - 1 in this case), and function to create the Op
-    let square_op = Op::new("Square", Arity::Exact(1), Arc::new(my_square_op));
+    let square_op = Op::new("Square", Arity::Exact(1), my_square_op);
     ```
 
     Now you have a new `square_op` which is completely compatible with the rest of the Radiate GP system and can be plugged in anywhere a regular `Op` can be used! For more information on creating ops, checkout the [API docs](https://docs.rs/radiate-gp/1.2.19/radiate_gp/ops/operation/enum.Op.html) to see how the rest are created - its not too crazy. 
@@ -607,8 +607,8 @@ Manually create a simple graph:
     codec = rd.GraphCodec.directed(
         shape=(2, 1),
         vertex=[rd.Op.add(), rd.Op.sub(), rd.Op.mul(), rd.Op.div()],
-        edge=[rd.Op.weight()],
-        output=[rd.Op.linear()],
+        edge=rd.Op.weight(), # or [rd.Op.weight(), ...]
+        output=rd.Op.linear(), # or [rd.Op.linear(), ...]
     )
 
     graph = codec.decode(codec.encode())
