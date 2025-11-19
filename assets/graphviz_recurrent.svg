@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="232pt" height="237pt" viewBox="0.00 0.00 232.00 237.00">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 232.81)">
+<title>G</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-232.81 227.81,-232.81 227.81,4 -4,4"/>
+<!-- 0 -->
+<g id="node1" class="node">
+<title>0</title>
+<polygon fill="none" stroke="blue" points="69.41,-228.81 15.41,-228.81 15.41,-192.81 69.41,-192.81 69.41,-228.81"/>
+<text xml:space="preserve" text-anchor="middle" x="42.41" y="-206.61" font-family="Times,serif" font-size="14.00">I 0</text>
+</g>
+<!-- 2 -->
+<g id="node3" class="node">
+<title>2</title>
+<ellipse fill="none" stroke="orange" cx="42.41" cy="-114.41" rx="42.41" ry="42.41"/>
+<text xml:space="preserve" text-anchor="middle" x="42.41" y="-110.21" font-family="Times,serif" font-size="14.00">V linear</text>
+</g>
+<!-- 0&#45;&gt;2 -->
+<g id="edge1" class="edge">
+<title>0-&gt;2</title>
+<path fill="none" stroke="black" d="M42.41,-192.5C42.41,-185.54 42.41,-177.11 42.41,-168.41"/>
+<polygon fill="black" stroke="black" points="45.91,-168.44 42.41,-158.44 38.91,-168.44 45.91,-168.44"/>
+</g>
+<!-- 1 -->
+<g id="node2" class="node">
+<title>1</title>
+<polygon fill="none" stroke="blue" points="190.41,-228.81 136.41,-228.81 136.41,-192.81 190.41,-192.81 190.41,-228.81"/>
+<text xml:space="preserve" text-anchor="middle" x="163.41" y="-206.61" font-family="Times,serif" font-size="14.00">I 1</text>
+</g>
+<!-- 3 -->
+<g id="node4" class="node">
+<title>3</title>
+<ellipse fill="none" stroke="orange" cx="163.41" cy="-114.41" rx="42.41" ry="42.41"/>
+<text xml:space="preserve" text-anchor="middle" x="163.41" y="-110.21" font-family="Times,serif" font-size="14.00">V linear</text>
+</g>
+<!-- 1&#45;&gt;3 -->
+<g id="edge3" class="edge">
+<title>1-&gt;3</title>
+<path fill="none" stroke="black" d="M163.41,-192.5C163.41,-185.54 163.41,-177.11 163.41,-168.41"/>
+<polygon fill="black" stroke="black" points="166.91,-168.44 163.41,-158.44 159.91,-168.44 166.91,-168.44"/>
+</g>
+<!-- 2&#45;&gt;2 -->
+<g id="edge2" class="edge">
+<title>2-&gt;2</title>
+<path fill="none" stroke="black" stroke-dasharray="5,2" d="M81.04,-132.47C93.21,-132.2 102.81,-126.18 102.81,-114.41 102.81,-106.5 98.48,-101.19 91.94,-98.47"/>
+<polygon fill="black" stroke="black" points="93.01,-95.11 82.53,-96.63 91.67,-101.98 93.01,-95.11"/>
+</g>
+<!-- 4 -->
+<g id="node5" class="node">
+<title>4</title>
+<polygon fill="none" stroke="green" points="133.15,-36 71.67,-36 71.67,0 133.15,0 133.15,-36"/>
+<text xml:space="preserve" text-anchor="middle" x="102.41" y="-13.8" font-family="Times,serif" font-size="14.00">O linear</text>
+</g>
+<!-- 2&#45;&gt;4 -->
+<g id="edge5" class="edge">
+<title>2-&gt;4</title>
+<path fill="none" stroke="black" stroke-dasharray="5,2" d="M64.92,-77.98C71.7,-67.31 79.03,-55.78 85.4,-45.77"/>
+<polygon fill="black" stroke="black" points="88.16,-47.94 90.57,-37.63 82.25,-44.19 88.16,-47.94"/>
+</g>
+<!-- 3&#45;&gt;3 -->
+<g id="edge4" class="edge">
+<title>3-&gt;3</title>
+<path fill="none" stroke="black" stroke-dasharray="5,2" d="M202.04,-132.47C214.21,-132.2 223.81,-126.18 223.81,-114.41 223.81,-106.5 219.48,-101.19 212.94,-98.47"/>
+<polygon fill="black" stroke="black" points="214.01,-95.11 203.53,-96.63 212.67,-101.98 214.01,-95.11"/>
+</g>
+<!-- 3&#45;&gt;4 -->
+<g id="edge6" class="edge">
+<title>3-&gt;4</title>
+<path fill="none" stroke="black" stroke-dasharray="5,2" d="M140.69,-78.25C133.78,-67.56 126.3,-55.98 119.8,-45.92"/>
+<polygon fill="black" stroke="black" points="122.87,-44.22 114.51,-37.72 116.99,-48.02 122.87,-44.22"/>
+</g>
+</g>
+</svg>
