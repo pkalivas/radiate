@@ -52,10 +52,10 @@ where
 /// Parameters for the genetic engine.
 /// This struct is used to configure the genetic engine before it is created.
 ///
-/// When the `GeneticEngineParams`  calls the `build` method, it will create a new instance
+/// When the `GeneticEngineBuilder`  calls the `build` method, it will create a new instance
 /// of the `GeneticEngine` with the given parameters. If any of the required parameters are not
 /// set, the `build` method will panic. At a minimum, the `codec` and `fitness_fn` must be set.
-/// The `GeneticEngineParams` struct is a builder pattern that allows you to set the parameters of
+/// The `GeneticEngineBuilder` struct is a builder pattern that allows you to set the parameters of
 /// the `GeneticEngine` in a fluent and functional way.
 ///
 /// # Type Parameters
@@ -153,12 +153,10 @@ where
     }
 
     fn build_eval_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
-        let evaluator = config.evaluator.clone();
-
         let eval_step = EvaluateStep {
-            objective: config.objective.clone(),
-            problem: config.problem.clone(),
-            evaluator: evaluator.clone(),
+            objective: config.objective(),
+            problem: config.problem(),
+            evaluator: config.evaluator(),
         };
 
         Some(Box::new(eval_step))
@@ -198,7 +196,7 @@ where
         }
 
         let front_step = FrontStep {
-            front: config.front().clone(),
+            front: config.front(),
         };
 
         Some(Box::new(front_step))
@@ -212,7 +210,7 @@ where
         let species_step = SpeciateStep {
             threashold: config.species_threshold(),
             diversity: config.diversity().clone().unwrap(),
-            executor: config.executor().species_executor.clone(),
+            executor: config.species_executor(),
             objective: config.objective(),
         };
 
@@ -464,6 +462,10 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
         Arc::clone(&self.front)
     }
 
+    pub fn evaluator(&self) -> Arc<dyn Evaluator<C, T>> {
+        Arc::clone(&self.evaluator)
+    }
+
     pub fn survivor_count(&self) -> usize {
         self.population.len() - self.offspring_count()
     }
@@ -472,12 +474,12 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
         (self.population.len() as f32 * self.offspring_fraction) as usize
     }
 
-    pub fn executor(&self) -> &EvaluationParams<C, T> {
-        &self.executor
-    }
-
     pub fn bus_executor(&self) -> Arc<Executor> {
         Arc::clone(&self.executor.bus_executor)
+    }
+
+    pub fn species_executor(&self) -> Arc<Executor> {
+        Arc::clone(&self.executor.species_executor)
     }
 
     pub fn handlers(&self) -> Vec<Arc<Mutex<dyn EventHandler<T>>>> {

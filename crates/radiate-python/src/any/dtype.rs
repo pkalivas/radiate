@@ -53,9 +53,9 @@ pub enum DataType {
     Float16,
     Float32,
     Float64,
-    BinaryView,
+    Binary,
     Char,
-    StringView,
+    Str,
     String,
     Vec,
     Struct(Vec<Field>),
@@ -105,9 +105,9 @@ impl DataType {
                 | D::Float16
                 | D::Float32
                 | D::Float64
-                | D::BinaryView
+                | D::Binary
                 | D::Char
-                | D::StringView
+                | D::Str
                 | D::String
                 | D::Vec
         )
@@ -131,7 +131,7 @@ impl From<String> for DataType {
             "float16" => DataType::Float16,
             "float32" => DataType::Float32,
             "float64" => DataType::Float64,
-            "binary" => DataType::BinaryView,
+            "binary" => DataType::Binary,
             "char" => DataType::Char,
             "string" => DataType::String,
             "vec" => DataType::Vec,

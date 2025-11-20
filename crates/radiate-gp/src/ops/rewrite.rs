@@ -1,8 +1,9 @@
-use std::sync::Arc;
-
 use crate::collections::trees::TreeNode;
 use crate::ops::{Op, op_names};
 use crate::{Node, TreeRewriterRule};
+use std::sync::Arc;
+
+/// TODO: This needs a lot of work. Currently only a few simple rules are implemented and its not done well
 
 pub struct OpTreeRewriteRule<T> {
     pub apply: Arc<dyn for<'a> Fn(&'a mut TreeNode<Op<T>>) -> bool>,

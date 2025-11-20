@@ -114,6 +114,7 @@ pub fn shuffled_indices(range: Range<usize>) -> Vec<usize> {
     })
 }
 
+/// Returns a vector of indexes from the given range, each included with the given probability.
 pub fn cond_indices(range: Range<usize>, prob: f32) -> Vec<usize> {
     with_rng(|rng| {
         if prob >= 1.0 {

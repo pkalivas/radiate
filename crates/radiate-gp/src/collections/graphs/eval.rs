@@ -89,7 +89,7 @@ where
     #[inline]
     fn eval_mut(&mut self, input: &[V]) -> Vec<V> {
         let out_len = self.inner.output_indices.len();
-        let mut buffer: Vec<V> = vec![V::default(); out_len];
+        let mut buffer = vec![V::default(); out_len];
         self.eval_into_mut(input, &mut buffer[..]);
         buffer
     }

@@ -1,5 +1,5 @@
 use crate::{
-    NumericSlotMut, Wrap,
+    Wrap,
     any::dtype::{DataType, Field},
 };
 use pyo3::{
@@ -46,91 +46,6 @@ impl<'a> AnyValue<'a> {
     #[inline]
     pub fn is_nested(&self) -> bool {
         matches!(self, Self::Struct(_) | Self::Vector(_))
-    }
-
-    #[inline]
-    pub fn struct_as_slice(&self) -> Option<&[(Field, AnyValue<'a>)]> {
-        match self {
-            AnyValue::Struct(v) => Some(v.as_slice()),
-            _ => None,
-        }
-    }
-
-    #[inline]
-    pub fn struct_as_slice_mut(&mut self) -> Option<&mut [(Field, AnyValue<'a>)]> {
-        match self {
-            AnyValue::Struct(v) => Some(v.as_mut_slice()),
-            _ => None,
-        }
-    }
-
-    #[inline]
-    pub fn vec_as_slice(&self) -> Option<&[AnyValue<'a>]> {
-        match self {
-            AnyValue::Vector(v) => Some(v.as_slice()),
-            _ => None,
-        }
-    }
-
-    #[inline]
-    pub fn vec_as_slice_mut(&mut self) -> Option<&mut [AnyValue<'a>]> {
-        match self {
-            AnyValue::Vector(v) => Some(v.as_mut_slice()),
-            _ => None,
-        }
-    }
-
-    #[inline]
-    pub fn get_struct_value(&self, name: &str) -> Option<&AnyValue<'a>> {
-        if let Some(fields) = self.struct_as_slice() {
-            for (field, value) in fields {
-                if value.is_nested() {
-                    if let Some(v) = value.get_struct_value(name) {
-                        return Some(v);
-                    }
-                } else if field.name() == name {
-                    return Some(value);
-                }
-            }
-        }
-
-        None
-    }
-
-    #[inline]
-    pub fn get_struct_value_mut(&mut self, name: &str) -> Option<&mut AnyValue<'a>> {
-        if let Some(fields) = self.struct_as_slice_mut() {
-            for (field, value) in fields {
-                if value.is_nested() {
-                    if let Some(v) = value.get_struct_value_mut(name) {
-                        return Some(v);
-                    }
-                } else if field.name() == name {
-                    return Some(value);
-                }
-            }
-        }
-
-        None
-    }
-
-    #[inline]
-    pub fn get_numeric_slot_mut(&mut self) -> Option<NumericSlotMut<'_>> {
-        use AnyValue::*;
-        Some(match self {
-            Float32(v) => NumericSlotMut::F32(v),
-            Float64(v) => NumericSlotMut::F64(v),
-            UInt8(v) => NumericSlotMut::U8(v),
-            UInt16(v) => NumericSlotMut::U16(v),
-            UInt32(v) => NumericSlotMut::U32(v),
-            UInt64(v) => NumericSlotMut::U64(v),
-            Int8(v) => NumericSlotMut::I8(v),
-            Int16(v) => NumericSlotMut::I16(v),
-            Int32(v) => NumericSlotMut::I32(v),
-            Int64(v) => NumericSlotMut::I64(v),
-            Int128(v) => NumericSlotMut::I128(v),
-            _ => return None,
-        })
     }
 
     #[inline]
@@ -181,7 +96,7 @@ impl<'a> AnyValue<'a> {
         match self {
             Self::Null => DataType::Null,
             Self::Bool(_) => DataType::Boolean,
-            Self::Str(_) => DataType::StringView,
+            Self::Str(_) => DataType::Str,
             Self::UInt8(_) => DataType::UInt8,
             Self::UInt16(_) => DataType::UInt16,
             Self::UInt32(_) => DataType::UInt32,
@@ -196,11 +111,8 @@ impl<'a> AnyValue<'a> {
             Self::Char(_) => DataType::Char,
             Self::Vector(_) => DataType::Vec,
             Self::StrOwned(_) => DataType::String,
-            Self::Binary(_) => DataType::BinaryView,
-            Self::Struct(_) => {
-                let fields = self.struct_as_slice().expect("covered by match arms above");
-                DataType::Struct(fields.iter().map(|(f, _)| f.clone()).collect())
-            }
+            Self::Binary(_) => DataType::Binary,
+            Self::Struct(vals) => DataType::Struct(vals.iter().map(|(f, _)| f.clone()).collect()),
         }
     }
 
@@ -358,7 +270,7 @@ impl<'py> IntoPyObject<'py> for &Wrap<AnyValue<'_>> {
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        self.clone().into_pyobject(py)
+        Wrap(&self.0).into_pyobject(py)
     }
 }
 

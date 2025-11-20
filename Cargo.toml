@@ -13,6 +13,7 @@ members = [
     "examples/TSP",
     "examples/rastrigin",
     "examples/rosenbrock",
+    "examples/image-evo",
 
     "examples/graphs/iris-graph",
     "examples/graphs/regression-graph",
@@ -21,8 +22,6 @@ members = [
 
     "examples/trees/regression-tree",
     "examples/trees/iris-tree",
-
-    "examples/image-evo",
 ]
 default-members = [
     "crates/*"
@@ -37,6 +36,7 @@ exclude = [
     "examples/DTLZ",
     "examples/rastrigin",
     "examples/rosenbrock",
+    "examples/image-evo",
 
     "examples/graphs/iris-graph",
     "examples/graphs/xor-graph",
@@ -44,9 +44,7 @@ exclude = [
     "examples/graphs/simple-memory-graph",
 
     "examples/trees/regression-tree",
-    "examples/trees/iris-tree",
-    
-    "examples/image-evo",
+    "examples/trees/iris-tree",    
 ]
 
 [workspace.package]
