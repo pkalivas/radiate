@@ -89,6 +89,7 @@ impl Metric {
     pub fn scope(&self) -> MetricScope {
         self.scope
     }
+
     pub fn rollup(&self) -> Rollup {
         self.rollup
     }

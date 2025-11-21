@@ -453,7 +453,7 @@ impl PyEngineBuilder {
                 Tree(base_engine.fitness_fn(regression))
             }
         } else {
-            radiate_py_bail!("Unsupported codec type for regression problem");
+            radiate_py_bail!("Only Graph or Tree codecs are supported for regression problems");
         };
 
         Ok(builder)

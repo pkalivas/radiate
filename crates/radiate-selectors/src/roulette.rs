@@ -27,7 +27,7 @@ impl<C: Chromosome + Clone> Select<C> for RouletteSelector {
                     sum += single_score;
                 }
 
-                for fit in &mut population_scores {
+                for fit in population_scores.iter_mut() {
                     *fit /= sum;
                 }
 
@@ -38,13 +38,15 @@ impl<C: Chromosome + Clone> Select<C> for RouletteSelector {
                 population_scores
             }
             Objective::Multi(_) => {
-                let weights =
+                let mut weights =
                     pareto::weights(&population.get_scores().collect::<Vec<_>>(), objective);
                 let total_weights = weights.iter().sum::<f32>();
+
+                for fit in weights.iter_mut() {
+                    *fit /= total_weights;
+                }
+
                 weights
-                    .iter()
-                    .map(|&fit| fit / total_weights)
-                    .collect::<Vec<f32>>()
             }
         };
 

@@ -53,13 +53,13 @@ where
 /// This struct is used to configure the genetic engine before it is created.
 ///
 /// When the `GeneticEngineBuilder`  calls the `build` method, it will create a new instance
-/// of the `GeneticEngine` with the given parameters. If any of the required parameters are not
+/// of the [GeneticEngine] with the given parameters. If any of the required parameters are not
 /// set, the `build` method will panic. At a minimum, the `codec` and `fitness_fn` must be set.
 /// The `GeneticEngineBuilder` struct is a builder pattern that allows you to set the parameters of
-/// the `GeneticEngine` in a fluent and functional way.
+/// the [GeneticEngine] in a fluent and functional way.
 ///
 /// # Type Parameters
-/// - `C`: The type of chromosome used in the genotype, which must implement the `Chromosome` trait.
+/// - `C`: The type of chromosome used in the genotype, which must implement the [Chromosome] trait.
 /// - `T`: The type of the best individual in the population.
 pub struct GeneticEngineBuilder<C, T>
 where
@@ -113,7 +113,7 @@ where
     T: Clone + Send + Sync + 'static,
 {
     /// Build the genetic engine with the given parameters. This will create a new
-    /// instance of the `GeneticEngine` with the given parameters.
+    /// instance of the [GeneticEngine] with the given parameters.
     pub fn build(self) -> GeneticEngine<C, T> {
         match self.try_build() {
             Ok(engine) => engine,
@@ -152,76 +152,11 @@ where
         Ok(GeneticEngine::<C, T>::new(context, pipeline, event_bus))
     }
 
-    fn build_eval_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
-        let eval_step = EvaluateStep {
-            objective: config.objective(),
-            problem: config.problem(),
-            evaluator: config.evaluator(),
-        };
-
-        Some(Box::new(eval_step))
-    }
-
-    fn build_recombine_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
-        let recombine_step = RecombineStep {
-            survivor_selector: config.survivor_selector(),
-            offspring_selector: config.offspring_selector(),
-            alters: config.alters().to_vec(),
-            survivor_count: config.survivor_count(),
-            offspring_count: config.offspring_count(),
-            objective: config.objective(),
-        };
-
-        Some(Box::new(recombine_step))
-    }
-
-    fn build_filter_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
-        let filter_step = FilterStep {
-            replacer: config.replacement_strategy(),
-            encoder: config.encoder(),
-            max_age: config.max_age(),
-            max_species_age: config.max_species_age(),
-        };
-
-        Some(Box::new(filter_step))
-    }
-
-    fn build_audit_step(_: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
-        Some(Box::new(AuditStep::default()))
-    }
-
-    fn build_front_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
-        if config.objective().is_single() {
-            return None;
-        }
-
-        let front_step = FrontStep {
-            front: config.front(),
-        };
-
-        Some(Box::new(front_step))
-    }
-
-    fn build_species_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
-        if config.diversity().is_none() {
-            return None;
-        }
-
-        let species_step = SpeciateStep {
-            threashold: config.species_threshold(),
-            diversity: config.diversity().clone().unwrap(),
-            executor: config.species_executor(),
-            objective: config.objective(),
-        };
-
-        Some(Box::new(species_step))
-    }
-
     /// Build the problem of the genetic engine. This will create a new problem
     /// using the codec and fitness function if the problem is not set. If the
     /// problem is already set, this function will do nothing. Else, if the fitness function is
-    /// a batch fitness function, it will create a new `BatchFitnessProblem` and swap the evaluator
-    /// to use a `BatchFitnessEvaluator`.
+    /// a batch fitness function, it will create a new [BatchEngineProblem] and swap the evaluator
+    /// to use a [BatchFitnessEvaluator].
     fn build_problem(&mut self) -> Result<()> {
         if self.params.problem_params.problem.is_some() {
             return Ok(());
@@ -344,6 +279,71 @@ where
         ));
 
         Ok(())
+    }
+
+    fn build_eval_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
+        let eval_step = EvaluateStep {
+            objective: config.objective(),
+            problem: config.problem(),
+            evaluator: config.evaluator(),
+        };
+
+        Some(Box::new(eval_step))
+    }
+
+    fn build_recombine_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
+        let recombine_step = RecombineStep {
+            survivor_selector: config.survivor_selector(),
+            offspring_selector: config.offspring_selector(),
+            alters: config.alters().to_vec(),
+            survivor_count: config.survivor_count(),
+            offspring_count: config.offspring_count(),
+            objective: config.objective(),
+        };
+
+        Some(Box::new(recombine_step))
+    }
+
+    fn build_filter_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
+        let filter_step = FilterStep {
+            replacer: config.replacement_strategy(),
+            encoder: config.encoder(),
+            max_age: config.max_age(),
+            max_species_age: config.max_species_age(),
+        };
+
+        Some(Box::new(filter_step))
+    }
+
+    fn build_audit_step(_: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
+        Some(Box::new(AuditStep::default()))
+    }
+
+    fn build_front_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
+        if config.objective().is_single() {
+            return None;
+        }
+
+        let front_step = FrontStep {
+            front: config.front(),
+        };
+
+        Some(Box::new(front_step))
+    }
+
+    fn build_species_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
+        if config.diversity().is_none() {
+            return None;
+        }
+
+        let species_step = SpeciateStep {
+            threashold: config.species_threshold(),
+            diversity: config.diversity().clone().unwrap(),
+            executor: config.species_executor(),
+            objective: config.objective(),
+        };
+
+        Some(Box::new(species_step))
     }
 }
 
