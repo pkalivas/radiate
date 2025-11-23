@@ -107,7 +107,7 @@ impl PyEngineBuilder {
             .unwrap_or(Executor::Serial);
 
         match problem.inner {
-            custom @ Custom(..) => Self::init_custom_handle(codec, custom, executor),
+            custom @ Custom(..) => Self::init_custom_builder(codec, custom, executor),
             reg @ Regression(..) => Self::init_regression_builder(reg, codec, executor),
             novelty @ NoveltySearch(..) => Self::init_novelty_builder(novelty, codec, executor),
         }
@@ -378,7 +378,7 @@ impl PyEngineBuilder {
         )
     }
 
-    fn init_custom_handle<'py>(
+    fn init_custom_builder<'py>(
         codec: &Bound<'py, PyAny>,
         fitness: PyFitnessInner,
         executor: Executor,

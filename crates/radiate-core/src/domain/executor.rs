@@ -109,10 +109,10 @@ impl Executor {
                 let pool = get_thread_pool(*num_workers);
                 let wg = WaitGroup::new();
                 for job in f {
-                    let wg_clone = wg.guard();
+                    let guard = wg.guard();
                     pool.submit(move || {
                         job();
-                        drop(wg_clone);
+                        drop(guard);
                     });
                 }
 
@@ -124,10 +124,10 @@ impl Executor {
                 let with_guards = f
                     .into_iter()
                     .map(|job| {
-                        let _wg_clone = wg.guard();
+                        let guard = wg.guard();
                         move || {
                             job();
-                            drop(_wg_clone);
+                            drop(guard);
                         }
                     })
                     .collect::<Vec<_>>();

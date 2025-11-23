@@ -53,7 +53,7 @@ impl PyEngineInput {
             allowed_genes,
             args: args
                 .into_iter()
-                .map(|(k, v)| (k, PyAnyObject { inner: v.into() }))
+                .map(|(k, v)| (k, PyAnyObject { inner: v }))
                 .collect(),
         }
     }
@@ -63,7 +63,7 @@ impl PyEngineInput {
     }
 
     pub fn input_type(&self) -> PyEngineInputType {
-        self.input_type.clone()
+        self.input_type
     }
 
     pub fn __repr__(&self) -> String {
@@ -122,7 +122,7 @@ impl Debug for PyEngineInput {
             .map(|(k, v)| format!("\t\t{}: {:?}", k, v))
             .collect::<Vec<String>>()
             .join("\n");
-        if args.len() > 0 {
+        if !args.is_empty() {
             args = format!("\n{}", args);
             args.push('\n');
         }

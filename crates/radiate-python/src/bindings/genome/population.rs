@@ -25,7 +25,7 @@ impl PyPopulation {
         for phenotype in &self.phenotypes {
             result.push_str(&format!("  {:?},\n", phenotype));
         }
-        result.push_str(")");
+        result.push(')');
         result
     }
 

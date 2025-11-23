@@ -96,7 +96,6 @@ impl<'a> AnyValue<'a> {
         match self {
             Self::Null => DataType::Null,
             Self::Bool(_) => DataType::Boolean,
-            Self::Str(_) => DataType::Str,
             Self::UInt8(_) => DataType::UInt8,
             Self::UInt16(_) => DataType::UInt16,
             Self::UInt32(_) => DataType::UInt32,
@@ -109,9 +108,10 @@ impl<'a> AnyValue<'a> {
             Self::Float32(_) => DataType::Float32,
             Self::Float64(_) => DataType::Float64,
             Self::Char(_) => DataType::Char,
-            Self::Vector(_) => DataType::Vec,
+            Self::Str(_) => DataType::Str,
             Self::StrOwned(_) => DataType::String,
             Self::Binary(_) => DataType::Binary,
+            Self::Vector(_) => DataType::Vec,
             Self::Struct(vals) => DataType::Struct(vals.iter().map(|(f, _)| f.clone()).collect()),
         }
     }

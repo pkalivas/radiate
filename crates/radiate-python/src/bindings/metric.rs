@@ -397,7 +397,7 @@ impl PyMetric {
         self.inner.time_variance().map(|d| d.as_secs_f64())
     }
 
-    // --- distribution summary (no big copies) ---
+    // --- distribution summary ---
     #[getter]
     pub fn sequence_last(&self) -> Option<Vec<f32>> {
         self.inner.last_sequence().cloned()
