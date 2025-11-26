@@ -33,11 +33,10 @@ impl Regression {
                 buf.resize(out_len, 0.0);
             }
 
-            self.loss.calculate(
-                &self.data_set,
-                |x, y| eval.eval_into_mut(x, y),
-                &mut buf[..out_len],
-            )
+            self.loss
+                .calculate(&self.data_set, &mut buf[..out_len], |x, y| {
+                    eval.eval_into_mut(x, y)
+                })
         })
     }
 }

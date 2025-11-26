@@ -264,7 +264,7 @@ impl<'a, T> GraphTransaction<'a, T> {
         }
 
         if source_is_edge {
-            let source_outgoing = *random_provider::choose(&source_node.outgoing());
+            let source_outgoing = *random_provider::choose(source_node.outgoing());
 
             if source_outgoing == new_node_idx {
                 steps.push(InsertStep::Connect(source_idx, new_node_idx));
@@ -274,7 +274,7 @@ impl<'a, T> GraphTransaction<'a, T> {
                 steps.push(InsertStep::Detach(source_idx, source_outgoing));
             }
         } else if target_is_edge || target_node.is_locked() {
-            let target_incoming = *random_provider::choose(&target_node.incoming());
+            let target_incoming = *random_provider::choose(target_node.incoming());
 
             if target_incoming == new_node_idx {
                 steps.push(InsertStep::Connect(target_incoming, new_node_idx));

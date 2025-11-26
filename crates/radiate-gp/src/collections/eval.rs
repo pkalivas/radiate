@@ -58,6 +58,31 @@ where
     }
 }
 
+/// [EvalInto] trait is used to evaluate anything that implements the trait into a mutable buffer.
+/// In some cases where we can cache a buffer to write into, this can avoid allocations and massively
+/// improve performance. Just like the [Eval] & [EvalMut] traits the mutable version offers a way for the
+/// implementing type to mutate its internal state if needed. These are also implemented for the GP structures.
+///
+/// # Example
+/// ```rust
+/// use radiate_gp::*;
+///
+/// // Create a simple graph that adds two inputs together
+/// // This is functionaly equivalent to f(x, y) = x + y
+/// let store = node_store! {
+///     Input => vec![Op::var(0), Op::var(1)],
+///     Output => vec![Op::add()]
+/// };
+///
+/// let mut graph = Graph::directed(2, 1, store);
+///
+/// // Define a buffer to store the output
+/// let mut output_buffer = vec![vec![0.0]];
+/// graph.eval_into(&vec![vec![5.0, 10.0]], &mut output_buffer);
+///
+/// // Check the output - it should be 5 + 10 = 15
+/// assert_eq!(output_buffer[0][0], 15.0);
+/// ```
 pub trait EvalInto<I: ?Sized, O: ?Sized> {
     fn eval_into(&self, input: &I, buffer: &mut O);
 }
@@ -76,7 +101,8 @@ where
     }
 }
 
-/// [EvalInto] implementation for closures that take an input and a mutable output buffer.
+/// Below are blanket implementations for closures to make it easy to use them
+/// wherever an [Eval] or [EvalInto] is required.
 impl<F, I: ?Sized, O: ?Sized> EvalInto<I, O> for F
 where
     F: Fn(&I, &mut O),

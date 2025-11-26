@@ -1,5 +1,9 @@
 use super::{Graph, GraphNode, iter::GraphIterator};
-use crate::{Eval, EvalMut, NodeType, eval::EvalIntoMut, node::Node};
+use crate::{
+    Eval, EvalMut, NodeType,
+    eval::{EvalInto, EvalIntoMut},
+    node::Node,
+};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
@@ -124,6 +128,27 @@ where
         for &idx in &self.inner.output_indices {
             buffer[count] = self.inner.outputs[idx].clone();
             count += 1;
+        }
+    }
+}
+
+impl<T, V> EvalInto<[Vec<V>], Vec<Vec<V>>> for Graph<T>
+where
+    T: Eval<[V], V>,
+    V: Clone + Default,
+{
+    /// Evaluates the [Graph] with the given input `Vec<Vec<T>>`. Returns the output of the [Graph] as `Vec<Vec<T>>`.
+    ///
+    /// # Arguments
+    /// * `input` - A `Vec<Vec<T>>` to evaluate the [Graph] with.
+    ///
+    /// # Returns
+    /// * A `Vec<Vec<T>>` which is the output of the [Graph].
+    #[inline]
+    fn eval_into(&self, input: &[Vec<V>], buffer: &mut Vec<Vec<V>>) {
+        let mut evaluator = GraphEvaluator::new(self);
+        for i in 0..input.len() {
+            evaluator.eval_into_mut(&input[i], &mut buffer[i]);
         }
     }
 }
