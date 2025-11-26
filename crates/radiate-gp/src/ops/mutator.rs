@@ -4,10 +4,10 @@ use crate::{Factory, GraphChromosome, NodeStore, NodeType, TreeChromosome};
 use radiate_core::{AlterResult, Metric, Mutate, metric};
 use radiate_core::{Chromosome, random_provider};
 
-const MUT_CONST_OP_MUTATED: &str = "op_mc";
+const MUT_CONST_OP_MUTATED: &str = "op_mut_const";
 #[cfg(feature = "pgm")]
 const PGM_OP_MUTATED: &str = "op_pgm";
-const FALLBACK_OP_MUTATED: &str = "op_new";
+const FALLBACK_OP_MUTATED: &str = "op_new_inst";
 
 pub struct OperationMutator {
     rate: f32,

@@ -1,5 +1,5 @@
 use super::Tree;
-use crate::{Eval, TreeNode, eval::EvalInto, node::Node};
+use crate::{Eval, EvalMut, TreeNode, eval::EvalInto, node::Node};
 
 /// Implements the [Eval] trait for [`Tree<T>`] where `T` is `Eval<[V], V>`. All this really does is
 /// call the `eval` method on the root node of the [Tree]. The real work is
@@ -30,6 +30,17 @@ where
     #[inline]
     fn eval(&self, inputs: &[V]) -> Vec<V> {
         self.iter().map(|tree| tree.eval(inputs)).collect()
+    }
+}
+
+impl<T, V> EvalMut<[V], Vec<V>> for Tree<T>
+where
+    T: Eval<[V], V>,
+    V: Clone + Default,
+{
+    #[inline]
+    fn eval_mut(&mut self, input: &[V]) -> Vec<V> {
+        vec![self.eval(input)]
     }
 }
 

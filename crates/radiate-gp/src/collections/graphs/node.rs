@@ -1,9 +1,9 @@
+use crate::collections::buffer::SortedBuffer;
 use crate::node::Node;
 use crate::{Arity, NodeType};
 use radiate_core::{Gene, Valid};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use smallvec::SmallVec;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -155,8 +155,8 @@ pub struct GraphNode<T> {
     direction: Direction,
     node_type: Option<NodeType>,
     arity: Option<Arity>,
-    incoming: SmallVec<[usize; 8]>,
-    outgoing: SmallVec<[usize; 8]>,
+    incoming: SortedBuffer<usize>,
+    outgoing: SortedBuffer<usize>,
 }
 
 impl<T> GraphNode<T> {
@@ -172,8 +172,8 @@ impl<T> GraphNode<T> {
             direction: Direction::Forward,
             node_type: Some(node_type),
             arity: None,
-            incoming: SmallVec::new(),
-            outgoing: SmallVec::new(),
+            incoming: SortedBuffer::new(),
+            outgoing: SortedBuffer::new(),
         }
     }
 
@@ -190,18 +190,18 @@ impl<T> GraphNode<T> {
             direction: Direction::Forward,
             node_type: Some(node_type),
             arity: Some(arity),
-            incoming: SmallVec::new(),
-            outgoing: SmallVec::new(),
+            incoming: SortedBuffer::new(),
+            outgoing: SortedBuffer::new(),
         }
     }
 
     pub fn with_incoming<I: IntoIterator<Item = usize>>(mut self, incoming: I) -> Self {
-        Self::set_sorted_unique(&mut self.incoming, incoming);
+        SortedBuffer::set_sorted_unique(&mut self.incoming, incoming);
         self
     }
 
     pub fn with_outgoing<O: IntoIterator<Item = usize>>(mut self, outgoing: O) -> Self {
-        Self::set_sorted_unique(&mut self.outgoing, outgoing);
+        SortedBuffer::set_sorted_unique(&mut self.outgoing, outgoing);
         self
     }
 
@@ -228,19 +228,19 @@ impl<T> GraphNode<T> {
     }
 
     pub fn incoming(&self) -> &[usize] {
-        &self.incoming
+        self.incoming.as_slice()
     }
 
     pub fn outgoing(&self) -> &[usize] {
-        &self.outgoing
+        self.outgoing.as_slice()
     }
 
     pub fn incoming_mut(&mut self) -> &mut [usize] {
-        &mut self.incoming
+        self.incoming.as_mut_slice()
     }
 
     pub fn outgoing_mut(&mut self) -> &mut [usize] {
-        &mut self.outgoing
+        self.outgoing.as_mut_slice()
     }
 
     pub fn is_locked(&self) -> bool {
@@ -251,42 +251,19 @@ impl<T> GraphNode<T> {
     }
 
     pub fn insert_incoming(&mut self, value: usize) {
-        Self::insert_sorted_unique(&mut self.incoming, value);
+        SortedBuffer::insert_sorted_unique(&mut self.incoming, value);
     }
 
     pub fn remove_incoming(&mut self, value: &usize) {
-        Self::remove_sorted(&mut self.incoming, value);
+        SortedBuffer::remove_sorted(&mut self.incoming, value);
     }
 
     pub fn insert_outgoing(&mut self, value: usize) {
-        Self::insert_sorted_unique(&mut self.outgoing, value);
+        SortedBuffer::insert_sorted_unique(&mut self.outgoing, value);
     }
 
     pub fn remove_outgoing(&mut self, value: &usize) {
-        Self::remove_sorted(&mut self.outgoing, value);
-    }
-
-    #[inline]
-    fn insert_sorted_unique(v: &mut SmallVec<[usize; 8]>, value: usize) {
-        match v.binary_search(&value) {
-            Ok(_) => {}
-            Err(pos) => v.insert(pos, value),
-        }
-    }
-
-    #[inline]
-    fn remove_sorted(v: &mut SmallVec<[usize; 8]>, value: &usize) {
-        if let Ok(pos) = v.binary_search(value) {
-            v.remove(pos);
-        }
-    }
-
-    #[inline]
-    fn set_sorted_unique(dst: &mut SmallVec<[usize; 8]>, src: impl IntoIterator<Item = usize>) {
-        dst.clear();
-        dst.extend(src);
-        dst.sort_unstable();
-        dst.dedup();
+        SortedBuffer::remove_sorted(&mut self.outgoing, value);
     }
 }
 
@@ -444,8 +421,8 @@ impl<T: Default> From<(usize, T)> for GraphNode<T> {
             direction: Direction::Forward,
             node_type: None,
             arity: None,
-            incoming: SmallVec::new(),
-            outgoing: SmallVec::new(),
+            incoming: SortedBuffer::new(),
+            outgoing: SortedBuffer::new(),
         }
     }
 }
@@ -465,8 +442,8 @@ impl<T: Default> From<(usize, T, Arity)> for GraphNode<T> {
             direction: Direction::Forward,
             node_type: None,
             arity: Some(arity),
-            incoming: SmallVec::new(),
-            outgoing: SmallVec::new(),
+            incoming: SortedBuffer::new(),
+            outgoing: SortedBuffer::new(),
         }
     }
 }
@@ -476,11 +453,8 @@ where
     I: IntoIterator<Item = usize>,
 {
     fn from((index, node_type, value, incoming, outgoing): (usize, NodeType, T, I, I)) -> Self {
-        let mut incoming_indices = SmallVec::<[usize; 8]>::new();
-        let mut outgoing_indices = SmallVec::<[usize; 8]>::new();
-
-        GraphNode::<T>::set_sorted_unique(&mut incoming_indices, incoming);
-        GraphNode::<T>::set_sorted_unique(&mut outgoing_indices, outgoing);
+        let incoming = SortedBuffer::from(incoming);
+        let outgoing = SortedBuffer::from(outgoing);
 
         GraphNode {
             index,
@@ -489,8 +463,8 @@ where
             direction: Direction::Forward,
             node_type: Some(node_type),
             arity: None,
-            incoming: incoming_indices,
-            outgoing: outgoing_indices,
+            incoming,
+            outgoing,
         }
     }
 }
@@ -504,8 +478,8 @@ impl<T: Default> Default for GraphNode<T> {
             direction: Direction::Forward,
             node_type: None,
             arity: None,
-            incoming: SmallVec::new(),
-            outgoing: SmallVec::new(),
+            incoming: SortedBuffer::new(),
+            outgoing: SortedBuffer::new(),
         }
     }
 }

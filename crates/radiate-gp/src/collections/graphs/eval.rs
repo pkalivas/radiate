@@ -6,7 +6,6 @@ use crate::{
 };
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use smallvec::SmallVec;
 use std::ops::Range;
 
 /// A cache for storing intermediate results during graph evaluation.
@@ -23,7 +22,7 @@ pub struct GraphEvalCache<V> {
     outputs: Vec<V>,
     inputs: Vec<V>,
     input_ranges: Vec<Range<usize>>,
-    output_indices: SmallVec<[usize; 8]>,
+    output_indices: Vec<usize>,
 }
 
 /// [GraphEvaluator] is a struct that is used to evaluate a [Graph] of [GraphNode]'s. It uses the [GraphIterator]
@@ -61,12 +60,10 @@ where
             total_inputs += k;
         }
 
-        let mut output_indices: SmallVec<[usize; 8]> = SmallVec::new();
-        for (i, n) in nodes.iter().enumerate() {
-            if n.node_type() == NodeType::Output {
-                output_indices.push(i);
-            }
-        }
+        let output_indices = graph
+            .get_nodes_of_type(NodeType::Output)
+            .map(|n| n.index())
+            .collect::<Vec<usize>>();
 
         GraphEvaluator {
             nodes,
@@ -125,7 +122,7 @@ where
         }
 
         let mut count = 0;
-        for &idx in &self.inner.output_indices {
+        for &idx in self.inner.output_indices.iter() {
             buffer[count] = self.inner.outputs[idx].clone();
             count += 1;
         }

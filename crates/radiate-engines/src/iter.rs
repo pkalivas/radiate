@@ -19,7 +19,13 @@
 
 use crate::{Generation, Limit, init_logging};
 use radiate_core::{Chromosome, Engine, Objective, Optimize, Score};
-use std::{collections::VecDeque, time::Duration};
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+use std::{
+    collections::VecDeque,
+    path::{Path, PathBuf},
+    time::Duration,
+};
 use tracing::info;
 
 /// A basic iterator wrapper around any engine that implements the [Engine] trait.
@@ -617,6 +623,81 @@ where
     {
         init_logging();
         LoggingIterator { iter: self }
+    }
+
+    /// Adds checkpointing to the iteration process.
+    ///
+    /// This method wraps the iterator with checkpointing capabilities, automatically
+    /// saving the state of each generation to disk at specified intervals. This is great if
+    /// you want to be able to resume evolution from a specific generation in case of
+    /// interruptions or crashes.
+    ///
+    /// The saved json object is simply the serialized [Generation] object. Thus, it can be
+    /// loaded back into memory using `serde_json::from_str` or similar methods then added back
+    /// to the engine using the `.generation(...)` method on the engine builder to resume evolution.
+    ///
+    /// # Arguments
+    /// * `interval` - The interval (in generations) at which to save checkpoints
+    /// * `path` - The directory path where checkpoints will be saved
+    ///
+    /// # Examples
+    /// ```rust,ignore
+    /// // Add checkpointing to save every 10 generations
+    /// for generation in engine.iter()
+    ///     .checkpoint(10, "checkpoints") {
+    ///     // Each generation will be saved automatically every 10 generations
+    /// }
+    /// ```
+    #[cfg(feature = "serde")]
+    fn checkpoint(
+        self,
+        interval: usize,
+        path: impl AsRef<Path>,
+    ) -> impl Iterator<Item = Generation<C, T>>
+    where
+        Self: Sized,
+        C: Serialize,
+        T: Serialize,
+    {
+        CheckpointIterator {
+            iter: self,
+            interval,
+            path: path.as_ref().to_path_buf(),
+        }
+    }
+}
+
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+struct CheckpointIterator<I, C, T>
+where
+    I: Iterator<Item = Generation<C, T>>,
+    C: Chromosome,
+{
+    iter: I,
+    interval: usize,
+    path: PathBuf,
+}
+
+#[cfg(feature = "serde")]
+impl<I, C, T> Iterator for CheckpointIterator<I, C, T>
+where
+    I: Iterator<Item = Generation<C, T>>,
+    C: Chromosome + Serialize,
+    T: Serialize,
+{
+    type Item = Generation<C, T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let next = self.iter.next()?;
+
+        if next.index() % self.interval == 0 {
+            let file_path = self.path.join(format!("generation_{}.json", next.index()));
+            let serialized = serde_json::to_string(&next).unwrap();
+
+            std::fs::write(&file_path, serialized).unwrap();
+        }
+
+        Some(next)
     }
 }
 

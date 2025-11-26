@@ -8,7 +8,6 @@ pub mod operation;
 #[cfg(feature = "pgm")]
 pub mod pgm;
 pub mod primitives;
-pub mod rewrite;
 #[cfg(feature = "serde")]
 mod serde;
 
@@ -16,7 +15,6 @@ pub use expr::Expression;
 pub use math::{activation_ops, all_ops, math_ops};
 pub use mutator::OperationMutator;
 pub use operation::*;
-pub use rewrite::OpTreeRewriteRule;
 
 pub(crate) mod op_names {
     /// Mathematical operation names

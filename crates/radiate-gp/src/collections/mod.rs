@@ -1,3 +1,4 @@
+mod buffer;
 pub mod dot;
 pub mod eval;
 pub mod factory;
@@ -17,5 +18,5 @@ pub use node::{Node, NodeType};
 pub use store::{NodeStore, NodeValue};
 pub use trees::{
     Format, HoistMutator, Tree, TreeChromosome, TreeCodec, TreeCrossover, TreeIterator, TreeMapper,
-    TreeNode, TreeRewriter, TreeRewriterRule,
+    TreeNode,
 };

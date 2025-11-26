@@ -45,7 +45,7 @@ fn display(result: &Generation<TreeChromosome<Op<f32>>, Tree<Op<f32>>>) {
     let accuracy = Accuracy::new("reg")
         .on(&data_set)
         .loss(Loss::MSE)
-        .calc(&mut vec![result.value().clone()]);
+        .calc(&mut result.value().clone());
 
     println!("{:?}", result);
     println!("Best Tree: {}", result.value().format());

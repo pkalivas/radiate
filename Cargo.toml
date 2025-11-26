@@ -68,8 +68,8 @@ smallvec = { version = "1.13", features = ["serde"] }
 thiserror = "2.0.17"
 serde = { version = "1.0.228", features = ["derive", "rc"] }
 serde_json = { version = "1.0.143" }
-tracing = "0.1"
-tracing-subscriber = { version = "0.3.20", features = ["env-filter", "fmt"] }
+tracing = "0.1.42"
+tracing-subscriber = { version = "0.3.21", features = ["env-filter", "fmt"] }
 radiate = { version = "1.2.19", path = "crates/radiate", default-features = false }
 radiate-core = { version = "1.2.19", path = "crates/radiate-core", default-features = false }
 radiate-alters = { version = "1.2.19", path = "crates/radiate-alters", default-features = false }

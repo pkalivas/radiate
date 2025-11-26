@@ -1,11 +1,11 @@
 use crate::GeneticEngineBuilder;
-use radiate_core::{Chromosome, Population};
+use radiate_core::{Chromosome, Ecosystem, Population};
 
 #[derive(Clone)]
 pub struct PopulationParams<C: Chromosome> {
     pub population_size: usize,
     pub max_age: usize,
-    pub population: Option<Population<C>>,
+    pub ecosystem: Option<Ecosystem<C>>,
 }
 
 impl<C, T> GeneticEngineBuilder<C, T>
@@ -32,7 +32,12 @@ where
     /// Set the population of the genetic engine. This is useful if you want to provide a custom population.
     /// If this is not set, the genetic engine will create a new population of `population_size` using the codec.
     pub fn population(mut self, population: impl Into<Population<C>>) -> Self {
-        self.params.population_params.population = Some(population.into());
+        self.params.population_params.ecosystem = Some(Ecosystem::new(population.into()));
+        self
+    }
+
+    pub fn ecosystem(mut self, ecosystem: impl Into<Ecosystem<C>>) -> Self {
+        self.params.population_params.ecosystem = Some(ecosystem.into());
         self
     }
 }

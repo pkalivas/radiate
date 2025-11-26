@@ -6,7 +6,6 @@ mod problem;
 mod selectors;
 mod species;
 
-use crate::Result;
 use crate::builder::evaluators::EvaluationParams;
 use crate::builder::objectives::OptimizeParams;
 use crate::builder::population::PopulationParams;
@@ -20,15 +19,15 @@ use crate::pipeline::Pipeline;
 use crate::steps::{AuditStep, EngineStep, FilterStep, FrontStep, RecombineStep, SpeciateStep};
 use crate::{
     Alter, Crossover, EncodeReplace, EngineProblem, EventBus, EventHandler, Front, Mutate, Problem,
-    ReplacementStrategy, RouletteSelector, Select, TournamentSelector, context::Context, pareto,
+    ReplacementStrategy, RouletteSelector, Select, TournamentSelector, context::Context,
 };
 use crate::{Chromosome, EvaluateStep, GeneticEngine};
+use crate::{Generation, Result};
 use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::evaluator::BatchFitnessEvaluator;
 use radiate_core::problem::BatchEngineProblem;
-use radiate_core::{Diversity, Evaluator, Executor, FitnessEvaluator, Genotype, Valid};
+use radiate_core::{Diversity, Ecosystem, Evaluator, Executor, FitnessEvaluator, Genotype, Valid};
 use radiate_core::{RadiateError, ensure, radiate_err};
-use std::cmp::Ordering;
 use std::sync::{Arc, Mutex, RwLock};
 
 #[derive(Clone)]
@@ -47,6 +46,7 @@ where
     pub alterers: Vec<Arc<dyn Alter<C>>>,
     pub replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
     pub handlers: Vec<Arc<Mutex<dyn EventHandler<T>>>>,
+    pub generation: Option<Generation<C, T>>,
 }
 
 /// Parameters for the genetic engine.
@@ -102,6 +102,11 @@ where
         H: EventHandler<T> + 'static,
     {
         self.params.handlers.push(Arc::new(Mutex::new(handler)));
+        self
+    }
+
+    pub fn generation(mut self, generation: Generation<C, T>) -> Self {
+        self.params.generation = Some(generation);
         self
     }
 }
@@ -196,7 +201,11 @@ where
     /// Build the population of the genetic engine. This will create a new population
     /// using the codec if the population is not set.
     fn build_population(&mut self) -> Result<()> {
-        self.params.population_params.population = match &self.params.population_params.population {
+        if self.params.population_params.ecosystem.is_some() {
+            return Ok(());
+        }
+
+        let ecosystem = match &self.params.population_params.ecosystem {
             None => Some(match self.params.problem_params.problem.as_ref() {
                 Some(problem) => {
                     let size = self.params.population_params.population_size;
@@ -214,12 +223,16 @@ where
                         phenotypes.push(Phenotype::from((genotype, 0)));
                     }
 
-                    Population::from(phenotypes)
+                    Ecosystem::new(Population::from(phenotypes))
                 }
                 None => return Err(radiate_err!(Builder: "Codec not set")),
             }),
-            Some(pop) => Some(pop.clone()),
+            Some(ecosystem) => Some(ecosystem.clone()),
         };
+
+        if let Some(ecosystem) = ecosystem {
+            self.params.population_params.ecosystem = Some(ecosystem);
+        }
 
         Ok(())
     }
@@ -255,27 +268,17 @@ where
     fn build_front(&mut self) -> Result<()> {
         if self.params.optimization_params.front.is_some() {
             return Ok(());
+        } else if let Some(generation) = &self.params.generation {
+            if let Some(front) = generation.front() {
+                self.params.optimization_params.front = Some(front.clone());
+                return Ok(());
+            }
         }
 
         let front_obj = self.params.optimization_params.objectives.clone();
         self.params.optimization_params.front = Some(Front::new(
             self.params.optimization_params.front_range.clone(),
-            front_obj.clone(),
-            move |one: &Phenotype<C>, two: &Phenotype<C>| {
-                if one.score().is_none() || two.score().is_none() {
-                    return Ordering::Equal;
-                }
-
-                if let (Some(one), Some(two)) = (one.score(), two.score()) {
-                    if pareto::dominance(one, two, &front_obj) {
-                        return Ordering::Greater;
-                    } else if pareto::dominance(two, one, &front_obj) {
-                        return Ordering::Less;
-                    }
-                }
-
-                Ordering::Equal
-            },
+            front_obj,
         ));
 
         Ok(())
@@ -358,7 +361,7 @@ where
                 population_params: PopulationParams {
                     population_size: 100,
                     max_age: 20,
-                    population: None,
+                    ecosystem: None,
                 },
                 species_params: SpeciesParams {
                     diversity: None,
@@ -391,6 +394,7 @@ where
                 replacement_strategy: Arc::new(EncodeReplace),
                 alterers: Vec::new(),
                 handlers: Vec::new(),
+                generation: None,
             },
             errors: Vec::new(),
         }
@@ -399,7 +403,7 @@ where
 
 #[derive(Clone)]
 pub(crate) struct EngineConfig<C: Chromosome, T: Clone> {
-    population: Population<C>,
+    ecosystem: Ecosystem<C>,
     problem: Arc<dyn Problem<C, T>>,
     survivor_selector: Arc<dyn Select<C>>,
     offspring_selector: Arc<dyn Select<C>>,
@@ -415,11 +419,12 @@ pub(crate) struct EngineConfig<C: Chromosome, T: Clone> {
     offspring_fraction: f32,
     executor: EvaluationParams<C, T>,
     handlers: Vec<Arc<Mutex<dyn EventHandler<T>>>>,
+    generation: Option<Generation<C, T>>,
 }
 
 impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
-    pub fn population(&self) -> &Population<C> {
-        &self.population
+    pub fn ecosystem(&self) -> &Ecosystem<C> {
+        &self.ecosystem
     }
 
     pub fn survivor_selector(&self) -> Arc<dyn Select<C>> {
@@ -467,11 +472,11 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
     }
 
     pub fn survivor_count(&self) -> usize {
-        self.population.len() - self.offspring_count()
+        self.ecosystem.population().len() - self.offspring_count()
     }
 
     pub fn offspring_count(&self) -> usize {
-        (self.population.len() as f32 * self.offspring_fraction) as usize
+        (self.ecosystem.population().len() as f32 * self.offspring_fraction) as usize
     }
 
     pub fn bus_executor(&self) -> Arc<Executor> {
@@ -488,6 +493,10 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
 
     pub fn problem(&self) -> Arc<dyn Problem<C, T>> {
         Arc::clone(&self.problem)
+    }
+
+    pub fn generation(&self) -> Option<&Generation<C, T>> {
+        self.generation.as_ref()
     }
 
     pub fn encoder(&self) -> Arc<dyn Fn() -> Genotype<C> + Send + Sync>
@@ -507,7 +516,7 @@ where
 {
     fn from(params: &EngineParams<C, T>) -> Self {
         Self {
-            population: params.population_params.population.clone().unwrap(),
+            ecosystem: params.population_params.ecosystem.clone().unwrap(),
             problem: params.problem_params.problem.clone().unwrap(),
             survivor_selector: params.selection_params.survivor_selector.clone(),
             offspring_selector: params.selection_params.offspring_selector.clone(),
@@ -525,6 +534,7 @@ where
             evaluator: params.evaluation_params.evaluator.clone(),
             executor: params.evaluation_params.clone(),
             handlers: params.handlers.clone(),
+            generation: params.generation.clone(),
         }
     }
 }

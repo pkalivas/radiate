@@ -1,7 +1,9 @@
 use crate::{
     Optimize,
-    objectives::{Objective, pareto},
+    objectives::{Objective, Scored, pareto},
 };
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use std::{cmp::Ordering, hash::Hash, ops::Range, sync::Arc};
 
 /// A `Front<T>` is a collection of `T`'s that are non-dominated with respect to each other.
@@ -9,29 +11,25 @@ use std::{cmp::Ordering, hash::Hash, ops::Range, sync::Arc};
 /// the best solutions that are not dominated by any other solution.
 /// This results in what is called the Pareto front.
 #[derive(Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Front<T>
 where
-    T: AsRef<[f32]>,
+    T: Scored,
 {
     values: Vec<Arc<T>>,
-    ord: Arc<dyn Fn(&T, &T) -> Ordering + Send + Sync>,
     range: Range<usize>,
     objective: Objective,
 }
 
 impl<T> Front<T>
 where
-    T: AsRef<[f32]>,
+    T: Scored,
 {
-    pub fn new<F>(range: Range<usize>, objective: Objective, comp: F) -> Self
-    where
-        F: Fn(&T, &T) -> Ordering + Send + Sync + 'static,
-    {
+    pub fn new(range: Range<usize>, objective: Objective) -> Self {
         Front {
             values: Vec::new(),
             range,
             objective,
-            ord: Arc::new(comp),
         }
     }
 
@@ -61,11 +59,11 @@ where
 
             for existing_val in self.values.iter() {
                 let equals = new_member == existing_val.as_ref();
-                if (self.ord)(existing_val.as_ref(), new_member) == Ordering::Greater || equals {
+                if self.dom_cmp(existing_val.as_ref(), new_member) == Ordering::Greater || equals {
                     // If an existing value dominates the new value, return false
                     is_dominated = false;
                     break;
-                } else if (self.ord)(new_member, existing_val.as_ref()) == Ordering::Greater {
+                } else if self.dom_cmp(new_member, existing_val.as_ref()) == Ordering::Greater {
                     // If the new value dominates an existing value, continue checking
                     to_remove.push(Arc::clone(existing_val));
                     continue;
@@ -92,8 +90,31 @@ where
         added_count
     }
 
+    fn dom_cmp(&self, one: &T, two: &T) -> Ordering {
+        let one_score = one.score();
+        let two_score = two.score();
+
+        if one_score.is_none() || two_score.is_none() {
+            return Ordering::Equal;
+        }
+
+        if let (Some(one), Some(two)) = (one_score, two_score) {
+            if pareto::dominance(one, two, &self.objective) {
+                return Ordering::Greater;
+            } else if pareto::dominance(two, one, &self.objective) {
+                return Ordering::Less;
+            }
+        }
+
+        Ordering::Equal
+    }
+
     pub fn filter(&mut self) {
-        let values = self.values.iter().map(|s| s.as_ref()).collect::<Vec<_>>();
+        let values = self
+            .values
+            .iter()
+            .filter_map(|s| s.score())
+            .collect::<Vec<_>>();
         let crowding_distances = pareto::crowding_distance(&values);
 
         let mut enumerated = crowding_distances.iter().enumerate().collect::<Vec<_>>();
@@ -110,11 +131,9 @@ where
 
 impl<T> Default for Front<T>
 where
-    T: AsRef<[f32]>,
+    T: Scored,
 {
     fn default() -> Self {
-        Front::new(0..0, Objective::Single(Optimize::Minimize), |_, _| {
-            std::cmp::Ordering::Equal
-        })
+        Front::new(0..0, Objective::Single(Optimize::Minimize))
     }
 }

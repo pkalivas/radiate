@@ -8,7 +8,6 @@ mod iter;
 mod mapping;
 mod mutator;
 mod node;
-mod rewriter;
 mod tree;
 
 pub use chromosome::TreeChromosome;
@@ -19,5 +18,4 @@ pub use iter::TreeIterator;
 pub use mapping::TreeMapper;
 pub use mutator::HoistMutator;
 pub use node::TreeNode;
-pub use rewriter::{TreeRewriter, TreeRewriterRule};
 pub use tree::Tree;

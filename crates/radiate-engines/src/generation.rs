@@ -4,9 +4,13 @@ use radiate_core::objectives::Scored;
 use radiate_core::{
     Ecosystem, Front, MetricSet, Objective, Phenotype, Population, Score, Species, metric_names,
 };
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use std::time::Duration;
 
+#[derive(Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Generation<C, T>
 where
     C: Chromosome,

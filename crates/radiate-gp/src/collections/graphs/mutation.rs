@@ -4,7 +4,6 @@ use crate::node::Node;
 use crate::{Arity, Factory, NodeType};
 use radiate_core::Chromosome;
 use radiate_core::{AlterResult, Mutate, metric, random_provider};
-use smallvec::SmallVec;
 
 const INVALID_MUTATION: &str = "GraphMutator(Ivld)";
 
@@ -98,7 +97,7 @@ where
                 let target_idx = trans.random_target_node().map(|n| n.index());
                 let source_idx = (0..needed_insertions)
                     .filter_map(|_| trans.random_source_node().map(|n| n.index()))
-                    .collect::<SmallVec<[_; 4]>>();
+                    .collect::<Vec<usize>>();
 
                 let node_idx = trans.add_node(new_node);
 

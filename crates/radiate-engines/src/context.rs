@@ -44,9 +44,25 @@ where
     T: Clone,
 {
     fn from(config: EngineConfig<C, T>) -> Self {
+        if let Some(generation) = config.generation() {
+            return Context {
+                ecosystem: generation.ecosystem().clone(),
+                best: generation.value().clone(),
+                index: 0,
+                metrics: generation.metrics().clone(),
+                epoch_metrics: MetricSet::default(),
+                score: Some(generation.score().clone()),
+                front: config.front(),
+                objective: config.objective().clone(),
+                problem: config.problem().clone(),
+            };
+        }
+
         Context {
-            ecosystem: Ecosystem::new(config.population().clone()),
-            best: config.problem().decode(config.population()[0].genotype()),
+            ecosystem: config.ecosystem().clone(),
+            best: config
+                .problem()
+                .decode(config.ecosystem().population()[0].genotype()),
             index: 0,
             metrics: MetricSet::default(),
             epoch_metrics: MetricSet::default(),
