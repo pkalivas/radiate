@@ -20,10 +20,10 @@
 use crate::{Generation, Limit, init_logging};
 use radiate_core::{Chromosome, Engine, Objective, Optimize, Score};
 #[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 #[cfg(feature = "serde")]
-use std::path::Path;
-use std::{collections::VecDeque, path::PathBuf, time::Duration};
+use std::path::{Path, PathBuf};
+use std::{collections::VecDeque, time::Duration};
 use tracing::info;
 
 /// A basic iterator wrapper around any engine that implements the [Engine] trait.
@@ -673,6 +673,65 @@ where
             path: path.as_ref().to_path_buf(),
         }
     }
+
+    /// Conditionally chains another iterator based on a predicate.
+    ///
+    /// This method allows for dynamic composition of iterators, where
+    /// an additional iterator can be chained based on a boolean condition.
+    /// This is useful for applying optional behaviors like logging or
+    /// checkpointing without duplicating code.
+    ///
+    /// # Arguments
+    /// * `pred` - The predicate condition to evaluate
+    /// * `chain_fn` - A function that takes the current iterator and returns another iterator to chain
+    ///
+    /// # Returns
+    /// An iterator that conditionally chains another iterator
+    ///
+    /// # Examples
+    /// ```rust,ignore  
+    /// // Conditionally add logging based on a flag
+    /// let enable_logging = true;
+    /// let generation = engine.iter()
+    ///     .chain_if(enable_logging, |iter| iter.logging())
+    ///     .take(50)
+    ///     .last()
+    ///     .unwrap();
+    /// ```
+    fn chain_if<F, I>(self, pred: bool, chain_fn: F) -> EitherIter<Self, I>
+    where
+        Self: Sized,
+        F: FnOnce(Self) -> I,
+        I: Iterator<Item = Generation<C, T>>,
+    {
+        if pred {
+            EitherIter::B(chain_fn(self))
+        } else {
+            EitherIter::A(self)
+        }
+    }
+}
+
+/// An enum representing either of two iterator types.
+/// Radiate uses this to conditionally chain iterators.
+pub enum EitherIter<A, B> {
+    A(A),
+    B(B),
+}
+
+impl<A, B, T> Iterator for EitherIter<A, B>
+where
+    A: Iterator<Item = T>,
+    B: Iterator<Item = T>,
+{
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            EitherIter::A(a) => a.next(),
+            EitherIter::B(b) => b.next(),
+        }
+    }
 }
 
 /// Iterator that adds checkpointing to each generation.
@@ -682,7 +741,7 @@ where
 /// This iterator automatically saves the state of each generation to disk
 /// at specified intervals, allowing for recovery and analysis of the
 /// evolutionary process. Checkpoints are saved as serialized JSON files.
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg(feature = "serde")]
 struct CheckpointIterator<I, C, T>
 where
     I: Iterator<Item = Generation<C, T>>,
@@ -714,6 +773,10 @@ where
         if next.index() % self.interval == 0 {
             let file_path = self.path.join(format!("generation_{}.json", next.index()));
             let serialized = serde_json::to_string(&next).unwrap();
+
+            if !self.path.exists() {
+                std::fs::create_dir_all(&self.path).unwrap();
+            }
 
             std::fs::write(&file_path, serialized).unwrap();
         }

@@ -4,6 +4,7 @@ use crate::ops::operation::Op;
 #[cfg(feature = "pgm")]
 use crate::{TreeMapper, TreeNode};
 use radiate_core::intern;
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[derive(Serialize, Deserialize, Clone)]

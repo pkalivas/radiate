@@ -6,9 +6,10 @@ use pyo3::{
     Borrowed, Bound, FromPyObject, IntoPyObject, PyAny, PyErr, PyResult, Python,
     exceptions::PyValueError,
 };
+use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Default, Debug, Serialize, Deserialize)]
 pub enum AnyValue<'a> {
     #[default]
     Null,

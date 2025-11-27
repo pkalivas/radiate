@@ -81,6 +81,7 @@ from .inputs.distance import (
 )
 
 from .inputs.limit import SecondsLimit, GenerationsLimit, ScoreLimit, ConvergenceLimit
+from .option import EngineLog, EngineCheckpoint
 
 from .dependancies import (
     _GIL_ENABLED,
@@ -185,4 +186,7 @@ __all__ = [
     # Metrics
     "MetricSet",
     "Metric",
+    # Options
+    "EngineLog",
+    "EngineCheckpoint",
 ]

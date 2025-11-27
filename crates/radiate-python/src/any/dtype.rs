@@ -1,6 +1,7 @@
+use serde::{Deserialize, Serialize};
 use std::{fmt::Display, sync::Arc};
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash, Default)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Default, Serialize, Deserialize)]
 pub struct Field {
     pub name: Arc<String>,
 }

@@ -2,6 +2,7 @@ mod arithmatic;
 mod cell;
 mod dtype;
 mod gene;
+mod serde;
 pub(crate) mod value;
 
 use cell::GILOnceCell;

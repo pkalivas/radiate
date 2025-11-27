@@ -26,6 +26,8 @@ class EngineInputType(Enum):
     Diversity = "Diversity"
     Population = "Population"
     Subscriber = "Subscriber"
+    Generation = "Generation"
+    Checkpoint = "Checkpoint"
 
 
 input_type_mapping = {
@@ -44,6 +46,8 @@ input_type_mapping = {
     EngineInputType.Diversity: PyEngineInputType.Diversity,
     EngineInputType.Population: PyEngineInputType.Population,
     EngineInputType.Subscriber: PyEngineInputType.Subscriber,
+    EngineInputType.Generation: PyEngineInputType.Generation,
+    EngineInputType.Checkpoint: PyEngineInputType.Checkpoint,
 }
 
 

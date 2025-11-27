@@ -1,6 +1,8 @@
 use super::{DataSet, Loss};
-use crate::{Graph, GraphEvaluator, Op, Tree, eval::EvalIntoMut};
-use radiate_core::{BatchFitnessFunction, fitness::FitnessFunction};
+use crate::{Graph, GraphChromosome, GraphCodec, GraphEvaluator, Op, Tree, eval::EvalIntoMut};
+use radiate_core::{
+    BatchFitnessFunction, Codec, Genotype, Problem, RadiateError, Score, fitness::FitnessFunction,
+};
 use std::cell::RefCell;
 
 thread_local! {
@@ -38,6 +40,14 @@ impl Regression {
                     eval.eval_into_mut(x, y)
                 })
         })
+    }
+}
+
+impl<'a> FitnessFunction<&'a GraphChromosome<Op<f32>>, f32> for Regression {
+    #[inline]
+    fn evaluate(&self, input: &'a GraphChromosome<Op<f32>>) -> f32 {
+        let mut evaluator = GraphEvaluator::new(input);
+        self.calc_into_buff_mut(&mut evaluator)
     }
 }
 
@@ -97,5 +107,26 @@ impl BatchFitnessFunction<Vec<Tree<Op<f32>>>, f32> for Regression {
         }
 
         results
+    }
+}
+
+impl Problem<GraphChromosome<Op<f32>>, Graph<Op<f32>>> for (Regression, GraphCodec<Op<f32>>) {
+    fn encode(&self) -> Genotype<GraphChromosome<Op<f32>>> {
+        self.1.encode()
+    }
+
+    fn decode(&self, genotype: &Genotype<GraphChromosome<Op<f32>>>) -> Graph<Op<f32>> {
+        self.1.decode(genotype)
+    }
+
+    fn eval(&self, individual: &Genotype<GraphChromosome<Op<f32>>>) -> Result<Score, RadiateError> {
+        if individual.len() != 1 {
+            return Err(RadiateError::Evaluation(
+                "Expected genotype with a single individual.".to_string(),
+            ));
+        }
+
+        let mut evaluator = GraphEvaluator::new(&individual[0]);
+        Ok(Score::from(self.0.calc_into_buff_mut(&mut evaluator)))
     }
 }

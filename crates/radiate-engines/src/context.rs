@@ -48,7 +48,7 @@ where
             return Context {
                 ecosystem: generation.ecosystem().clone(),
                 best: generation.value().clone(),
-                index: 0,
+                index: generation.index(),
                 metrics: generation.metrics().clone(),
                 epoch_metrics: MetricSet::default(),
                 score: Some(generation.score().clone()),

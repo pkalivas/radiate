@@ -14,7 +14,10 @@ const EPSILON: f32 = 1e-6;
 /// - Sort individuals by that objective
 /// - Boundary points get +∞ distance (always preferred)
 /// - Interior points get normalized distance contribution:
-///     (f_{i+1} - f_{i-1}) / (f_max - f_min)
+///
+/// ```text
+/// (f_{i+1} - f_{i-1}) / (f_max - f_min)
+/// ```
 #[inline]
 pub fn crowding_distance<T: AsRef<[f32]>>(scores: &[T]) -> Vec<f32> {
     let n = scores.len();

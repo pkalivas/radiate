@@ -20,7 +20,7 @@ use std::time::Duration;
 
 #[pyclass(unsendable)]
 pub struct PyGeneration {
-    inner: EpochHandle,
+    pub(crate) inner: EpochHandle,
 }
 
 impl PyGeneration {
@@ -31,6 +31,20 @@ impl PyGeneration {
 
 #[pymethods]
 impl PyGeneration {
+    pub fn to_json(&self) -> PyResult<String> {
+        serde_json::to_string(&self.inner).map_err(|e| {
+            pyo3::exceptions::PyValueError::new_err(format!("Failed to serialize to JSON: {}", e))
+        })
+    }
+
+    #[staticmethod]
+    pub fn from_json(json_str: &str) -> PyResult<Self> {
+        let handle = serde_json::from_str::<EpochHandle>(json_str)
+            .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("Invalid JSON: {}", e)))?;
+
+        Ok(PyGeneration::new(handle))
+    }
+
     pub fn index(&self) -> usize {
         match &self.inner {
             EpochHandle::Int(epoch) => epoch.index(),
@@ -206,6 +220,14 @@ impl PyGeneration {
                 value.to_string()
             },
         ))
+    }
+}
+
+impl Clone for PyGeneration {
+    fn clone(&self) -> Self {
+        PyGeneration {
+            inner: self.inner.clone(),
+        }
     }
 }
 

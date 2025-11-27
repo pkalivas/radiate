@@ -27,6 +27,8 @@ pub enum PyEngineInputType {
     SpeciesThreshold,
     Population,
     Subscriber,
+    Generation,
+    Checkpoint,
 }
 
 #[pyclass]

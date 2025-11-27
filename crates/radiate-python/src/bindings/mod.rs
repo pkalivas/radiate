@@ -17,7 +17,7 @@ pub use codec::{
     PyPermutationCodec, PyTreeCodec,
 };
 pub use converters::InputTransform;
-pub use engine::PyEngine;
+pub use engine::{PyEngine, PyEngineRunOption};
 pub use epoch::PyGeneration;
 pub use fitness::{PyFitnessFn, PyFitnessInner, PyNoveltySearch};
 pub use functions::*;
@@ -33,36 +33,38 @@ use radiate::{
     GeneticEngineBuilder, Graph, GraphChromosome, IntChromosome, Op, PermutationChromosome, Tree,
     TreeChromosome,
 };
+use serde::{Deserialize, Serialize};
 
-type SingleObjBuilder<C, T> = GeneticEngineBuilder<C, T>;
+type CustomBuilder<C, T> = GeneticEngineBuilder<C, T>;
 type RegressionBuilder<C, T> = GeneticEngineBuilder<C, T>;
 
-type SingleObjectiveEngine<C> = GeneticEngine<C, PyAnyObject>;
+type CustomEngine<C> = GeneticEngine<C, PyAnyObject>;
 type RegressionEngine<C, T> = GeneticEngine<C, T>;
 
 pub enum EngineBuilderHandle {
     Empty,
-    Int(SingleObjBuilder<IntChromosome<i32>, PyAnyObject>),
-    Float(SingleObjBuilder<FloatChromosome, PyAnyObject>),
-    Char(SingleObjBuilder<CharChromosome, PyAnyObject>),
-    Bit(SingleObjBuilder<BitChromosome, PyAnyObject>),
-    Permutation(SingleObjBuilder<PermutationChromosome<usize>, PyAnyObject>),
-    Any(SingleObjBuilder<AnyChromosome<'static>, PyAnyObject>),
+    Int(CustomBuilder<IntChromosome<i32>, PyAnyObject>),
+    Float(CustomBuilder<FloatChromosome, PyAnyObject>),
+    Char(CustomBuilder<CharChromosome, PyAnyObject>),
+    Bit(CustomBuilder<BitChromosome, PyAnyObject>),
+    Permutation(CustomBuilder<PermutationChromosome<usize>, PyAnyObject>),
+    Any(CustomBuilder<AnyChromosome<'static>, PyAnyObject>),
     Graph(RegressionBuilder<GraphChromosome<Op<f32>>, Graph<Op<f32>>>),
     Tree(RegressionBuilder<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>),
 }
 
 pub enum EngineHandle {
-    Int(SingleObjectiveEngine<IntChromosome<i32>>),
-    Float(SingleObjectiveEngine<FloatChromosome>),
-    Char(SingleObjectiveEngine<CharChromosome>),
-    Bit(SingleObjectiveEngine<BitChromosome>),
-    Any(SingleObjectiveEngine<AnyChromosome<'static>>),
-    Permutation(SingleObjectiveEngine<PermutationChromosome<usize>>),
+    Int(CustomEngine<IntChromosome<i32>>),
+    Float(CustomEngine<FloatChromosome>),
+    Char(CustomEngine<CharChromosome>),
+    Bit(CustomEngine<BitChromosome>),
+    Any(CustomEngine<AnyChromosome<'static>>),
+    Permutation(CustomEngine<PermutationChromosome<usize>>),
     Graph(RegressionEngine<GraphChromosome<Op<f32>>, Graph<Op<f32>>>),
     Tree(RegressionEngine<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>),
 }
 
+#[derive(Clone, Serialize, Deserialize)]
 pub enum EpochHandle {
     Int(Generation<IntChromosome<i32>, PyAnyObject>),
     Float(Generation<FloatChromosome, PyAnyObject>),

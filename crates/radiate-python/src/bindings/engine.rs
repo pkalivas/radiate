@@ -4,6 +4,27 @@ use radiate::{
     Chromosome, Engine, EngineIteratorExt, Generation, GeneticEngine, Limit, radiate_err,
 };
 use radiate_error::{radiate_py_bail, radiate_py_err};
+use serde::Serialize;
+
+#[pyclass]
+#[derive(Clone)]
+pub enum PyEngineRunOption {
+    Log(bool),
+    Checkpoint(usize, String),
+}
+
+#[pymethods]
+impl PyEngineRunOption {
+    #[staticmethod]
+    pub fn log(value: bool) -> Self {
+        PyEngineRunOption::Log(value)
+    }
+
+    #[staticmethod]
+    pub fn checkpoint(interval: usize, path: String) -> Self {
+        PyEngineRunOption::Checkpoint(interval, path)
+    }
+}
 
 #[pyclass(unsendable)]
 pub struct PyEngine {
@@ -20,7 +41,11 @@ impl PyEngine {
 
 #[pymethods]
 impl PyEngine {
-    pub fn run(&mut self, limits: Vec<PyEngineInput>, log: bool) -> PyResult<PyGeneration> {
+    pub fn run(
+        &mut self,
+        limits: Vec<PyEngineInput>,
+        options: Vec<PyEngineRunOption>,
+    ) -> PyResult<PyGeneration> {
         use EngineHandle::*;
         let engine = self
             .engine
@@ -34,14 +59,14 @@ impl PyEngine {
         }
 
         Ok(PyGeneration::new(match engine {
-            Int(eng) => EpochHandle::Int(run_engine(eng, limits, log)?),
-            Float(eng) => EpochHandle::Float(run_engine(eng, limits, log)?),
-            Char(eng) => EpochHandle::Char(run_engine(eng, limits, log)?),
-            Bit(eng) => EpochHandle::Bit(run_engine(eng, limits, log)?),
-            Any(eng) => EpochHandle::Any(run_engine(eng, limits, log)?),
-            Permutation(eng) => EpochHandle::Permutation(run_engine(eng, limits, log)?),
-            Graph(eng) => EpochHandle::Graph(run_engine(eng, limits, log)?),
-            Tree(eng) => EpochHandle::Tree(run_engine(eng, limits, log)?),
+            Int(eng) => EpochHandle::Int(run_engine(eng, limits, options)?),
+            Float(eng) => EpochHandle::Float(run_engine(eng, limits, options)?),
+            Char(eng) => EpochHandle::Char(run_engine(eng, limits, options)?),
+            Bit(eng) => EpochHandle::Bit(run_engine(eng, limits, options)?),
+            Any(eng) => EpochHandle::Any(run_engine(eng, limits, options)?),
+            Permutation(eng) => EpochHandle::Permutation(run_engine(eng, limits, options)?),
+            Graph(eng) => EpochHandle::Graph(run_engine(eng, limits, options)?),
+            Tree(eng) => EpochHandle::Tree(run_engine(eng, limits, options)?),
         }))
     }
 
@@ -68,16 +93,49 @@ impl PyEngine {
 fn run_engine<C, T>(
     engine: GeneticEngine<C, T>,
     limits: Vec<Limit>,
-    log: bool,
+    options: Vec<PyEngineRunOption>,
 ) -> PyResult<Generation<C, T>>
 where
-    C: Chromosome + Clone + 'static,
-    T: Clone + Send + Sync + 'static,
+    C: Chromosome + Clone + Serialize + 'static,
+    T: Clone + Send + Sync + Serialize + 'static,
 {
-    match log {
-        true => engine.iter().logging().limit(limits),
-        false => engine.iter().limit(limits),
-    }
-    .last()
-    .ok_or_else(|| radiate_err!(Python: "Failed to run engine and obtain final generation"))
+    let log = get_log_option(&options);
+    let checkpoint = get_checkpoint_option(&options);
+
+    engine
+        .iter()
+        .chain_if(log.unwrap_or(false), |eng| eng.logging())
+        .chain_if(checkpoint.is_some(), |eng| {
+            let (interval, path) = checkpoint.unwrap();
+            eng.checkpoint(interval, path)
+        })
+        .limit(limits)
+        .last()
+        .ok_or_else(|| radiate_err!(Python: "Failed to run engine and obtain final generation"))
+}
+
+fn get_log_option(options: &[PyEngineRunOption]) -> Option<bool> {
+    options
+        .iter()
+        .find(|opt| matches!(opt, PyEngineRunOption::Log(_)))
+        .and_then(|opt| {
+            if let PyEngineRunOption::Log(val) = opt {
+                Some(*val)
+            } else {
+                None
+            }
+        })
+}
+
+fn get_checkpoint_option(options: &[PyEngineRunOption]) -> Option<(usize, String)> {
+    options
+        .iter()
+        .find(|opt| matches!(opt, PyEngineRunOption::Checkpoint(_, _)))
+        .and_then(|opt| {
+            if let PyEngineRunOption::Checkpoint(interval, path) = opt {
+                Some((*interval, path.clone()))
+            } else {
+                None
+            }
+        })
 }

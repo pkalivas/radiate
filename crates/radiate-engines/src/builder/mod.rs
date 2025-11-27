@@ -13,7 +13,6 @@ use crate::builder::problem::ProblemParams;
 use crate::builder::selectors::SelectionParams;
 use crate::builder::species::SpeciesParams;
 use crate::genome::phenotype::Phenotype;
-use crate::genome::population::Population;
 use crate::objectives::{Objective, Optimize};
 use crate::pipeline::Pipeline;
 use crate::steps::{AuditStep, EngineStep, FilterStep, FrontStep, RecombineStep, SpeciateStep};
@@ -28,6 +27,8 @@ use radiate_core::evaluator::BatchFitnessEvaluator;
 use radiate_core::problem::BatchEngineProblem;
 use radiate_core::{Diversity, Ecosystem, Evaluator, Executor, FitnessEvaluator, Genotype, Valid};
 use radiate_core::{RadiateError, ensure, radiate_err};
+#[cfg(feature = "serde")]
+use serde::Deserialize;
 use std::sync::{Arc, Mutex, RwLock};
 
 #[derive(Clone)]
@@ -110,6 +111,40 @@ where
     pub fn generation(mut self, generation: Generation<C, T>) -> Self {
         self.params.generation = Some(generation);
         self
+    }
+
+    /// Load a checkpoint from the given file path. This will
+    /// load the generation from the file and set it as the current generation
+    /// for the engine.
+    #[cfg(feature = "serde")]
+    pub fn load_checkpoint<P: AsRef<std::path::Path>>(mut self, path: P) -> Self
+    where
+        C: for<'de> Deserialize<'de>,
+        T: for<'de> Deserialize<'de>,
+    {
+        let file_cont = std::fs::read_to_string(&path);
+        self.add_error_if(
+            || file_cont.is_err(),
+            &format!(
+                "Failed to read checkpoint file at path: {}",
+                path.as_ref().display()
+            ),
+        );
+
+        let generation = serde_json::from_str::<Generation<C, T>>(
+            &file_cont.expect("Failed to read checkpoint file"),
+        )
+        .map_err(|e| radiate_err!(Builder: "Failed to deserialize checkpoint file: {}", e));
+
+        self.add_error_if(
+            || generation.is_err(),
+            &format!(
+                "Failed to deserialize checkpoint file at path: {} ",
+                path.as_ref().display(),
+            ),
+        );
+
+        self.generation(generation.unwrap())
     }
 }
 
@@ -225,7 +260,7 @@ where
                         phenotypes.push(Phenotype::from((genotype, 0)));
                     }
 
-                    Ecosystem::new(Population::from(phenotypes))
+                    Ecosystem::from(phenotypes)
                 }
                 None => return Err(radiate_err!(Builder: "Codec not set")),
             }),

@@ -13,8 +13,8 @@ class PyObject[T](ABC):
     __slots__ = ["_pyobj"]
     _pyobj: T
 
-    def __init__(self):
-        self._pyobj = None
+    def __init__(self, pyobj: T | None = None):
+        self._pyobj = pyobj
 
     @classmethod
     def from_rust(cls, py_obj: T | dict):

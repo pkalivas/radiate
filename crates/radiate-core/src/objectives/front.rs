@@ -123,7 +123,7 @@ where
 
         self.values = enumerated
             .iter()
-            .take(self.range.end)
+            .take(self.range.start)
             .map(|(i, _)| Arc::clone(&self.values[*i]))
             .collect::<Vec<Arc<T>>>();
     }
