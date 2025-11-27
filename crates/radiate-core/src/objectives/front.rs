@@ -109,7 +109,7 @@ where
         Ordering::Equal
     }
 
-    pub fn filter(&mut self) {
+    fn filter(&mut self) {
         let values = self
             .values
             .iter()

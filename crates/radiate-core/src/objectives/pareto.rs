@@ -1,5 +1,7 @@
 use crate::objectives::{Objective, Optimize};
 
+const EPSILON: f32 = 1e-6;
+
 /// Calculate the crowding distance for each score in a population.
 ///
 /// The crowding distance is a measure of how close a score is to its neighbors
@@ -7,43 +9,59 @@ use crate::objectives::{Objective, Optimize};
 /// desirable because they are more spread out. This is useful for selecting
 /// diverse solutions in a multi-objective optimization problem and is a
 /// key component of the NSGA-II algorithm.
+///
+/// For each objective dimension:
+/// - Sort individuals by that objective
+/// - Boundary points get +∞ distance (always preferred)
+/// - Interior points get normalized distance contribution:
+///     (f_{i+1} - f_{i-1}) / (f_max - f_min)
+#[inline]
 pub fn crowding_distance<T: AsRef<[f32]>>(scores: &[T]) -> Vec<f32> {
-    let indices = scores
-        .iter()
-        .enumerate()
-        .map(|(i, score)| (score.as_ref(), i))
-        .collect::<Vec<(&[f32], usize)>>();
+    let n = scores.len();
+    if n == 0 {
+        return Vec::new();
+    }
 
-    let mut result = vec![0.0; scores.len()];
+    let m = scores[0].as_ref().len();
+    if m == 0 {
+        return vec![0.0; n];
+    }
 
-    for i in 0..indices[0].0.len() {
-        let mut distance_values = indices.clone();
-        distance_values.sort_unstable_by(|a, b| a.0[i].partial_cmp(&b.0[i]).unwrap());
+    let mut result = vec![0.0f32; n];
+    let mut indices: Vec<usize> = (0..n).collect();
 
-        let min = indices[distance_values[0].1];
-        let max = indices[distance_values[distance_values.len() - 1].1];
+    for dim in 0..m {
+        indices.sort_unstable_by(|&i, &j| {
+            scores[i].as_ref()[dim]
+                .partial_cmp(&scores[j].as_ref()[dim])
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
 
-        let dm = distance(max.0, min.0, i);
+        let min = scores[indices[0]].as_ref()[dim];
+        let max = scores[indices[n - 1]].as_ref()[dim];
+        let range = max - min;
 
-        if dm == 0.0 {
+        if !range.is_finite() || range == 0.0 {
             continue;
         }
 
-        result[min.1] = f32::INFINITY;
-        result[max.1] = f32::INFINITY;
+        // Boundary points get infinite distance so they’re always preserved
+        result[indices[0]] = f32::INFINITY;
+        result[indices[n - 1]] = f32::INFINITY;
 
-        for j in 1..distance_values.len() - 1 {
-            let prev = indices[distance_values[j - 1].1];
-            let next = indices[distance_values[j + 1].1];
-            let dp = distance(next.0, prev.0, i);
-
-            result[distance_values[j].1] += dp;
+        // Interior points: normalized distance
+        for k in 1..(n - 1) {
+            let prev = scores[indices[k - 1]].as_ref()[dim];
+            let next = scores[indices[k + 1]].as_ref()[dim];
+            let contrib = (next - prev).abs() / range;
+            result[indices[k]] += contrib;
         }
     }
 
     result
 }
 
+#[inline]
 pub fn non_dominated<T: AsRef<[f32]>>(population: &[T], objective: &Objective) -> Vec<usize> {
     let mut dominated_counts = vec![0; population.len()];
     let mut dominates = vec![Vec::new(); population.len()];
@@ -76,6 +94,7 @@ pub fn non_dominated<T: AsRef<[f32]>>(population: &[T], objective: &Objective) -
 /// individual in the population based on their dominance relationships with other
 /// individuals in the population. The result is a vector of ranks, where the rank
 /// of the individual at index `i` is `ranks[i]`.
+#[inline]
 pub fn rank<T: AsRef<[f32]>>(population: &[T], objective: &Objective) -> Vec<usize> {
     let mut dominated_counts = vec![0; population.len()];
     let mut dominates = vec![Vec::new(); population.len()];
@@ -138,25 +157,72 @@ pub fn rank<T: AsRef<[f32]>>(population: &[T], objective: &Objective) -> Vec<usi
     ranks
 }
 
+/// Combine NSGA-II rank and crowding distance into a single weight in (0, 1].
+///
+/// - Lower rank (better front) => higher weight
+/// - Higher crowding distance  => higher weight
+///
+/// This weight vector combines both rank and crowding distance to prioritize
+/// individuals that are both in better fronts and more diverse within those fronts. Selection
+/// algorithms not specifically designed for multi-objective optimization can use these weights
+/// as fitness values to guide selection towards a well-distributed Pareto front.
+///
+/// It follows the approach outlined in the paper [A Fast and Elitist Multiobjective Genetic
+/// Algorithm: NSGA-II](https://sci2s.ugr.es/sites/default/files/files/Teaching/OtherPostGraduateCourses/Metaheuristicas/Deb_NSGAII.pdf) by
+/// K. Deb, A. Pratap, S. Agarwal, and T. Meyarivan
+/// pp. 182-197, Apr. 2002, doi: 10.1109/4235.996017.
+///
+/// We follow these steps:
+/// 1. Compute ranks using the `rank` function (lower is better)
+/// 2. Compute crowding distances using the `crowding_distance` function (higher is better).
+/// 3. Normalize ranks to [0, 1], where 1 = best front.
+/// 4. Normalize crowding distances to [0, 1], where 1 = most isolated.
+/// 5. Combine the two normalized values multiplicatively to get the final weight.
+#[inline]
 pub fn weights<T: AsRef<[f32]>>(scores: &[T], objective: &Objective) -> Vec<f32> {
+    let n = scores.len();
+    if n == 0 {
+        return Vec::new();
+    }
+
     let ranks = rank(scores, objective);
     let distances = crowding_distance(scores);
 
+    let max_rank = *ranks.iter().max().unwrap_or(&0) as f32;
+
     let rank_weight = ranks
         .iter()
-        .map(|r| 1.0 / (*r as f32))
+        .map(|r| {
+            if max_rank == 0.0 {
+                1.0
+            } else {
+                1.0 - (*r as f32 / max_rank)
+            }
+        })
         .collect::<Vec<f32>>();
-    let max_crowding = distances.iter().cloned().fold(0.0, f32::max);
-    let crowding_weight = distances
+
+    let finite_max = distances
         .iter()
-        .map(|d| 1.0 - d / max_crowding)
+        .cloned()
+        .filter(|d| d.is_finite())
+        .fold(0.0f32, f32::max);
+
+    let crowd_weight = distances
+        .iter()
+        .map(|d| {
+            if !d.is_finite() || finite_max == 0.0 {
+                1.0
+            } else {
+                *d / finite_max
+            }
+        })
         .collect::<Vec<f32>>();
 
     rank_weight
-        .iter()
-        .zip(crowding_weight.iter())
-        .map(|(r, c)| r * c)
-        .collect::<Vec<f32>>()
+        .into_iter()
+        .zip(crowd_weight.into_iter())
+        .map(|(r, c)| (r + EPSILON).max(0.0) * (c + EPSILON).max(0.0))
+        .collect()
 }
 
 // Determine if one score dominates another score. A score `a` dominates a score `b`
@@ -234,10 +300,4 @@ pub fn pareto_front<K: PartialOrd, T: AsRef<[K]> + Clone>(
     }
 
     front
-}
-
-/// Calculate the distance between two scores in the objective space. This is used
-/// to calculate the crowding distance for each score in a population.
-fn distance<T: AsRef<[f32]>>(a: T, b: T, index: usize) -> f32 {
-    (a.as_ref()[index] - b.as_ref()[index]).abs()
 }

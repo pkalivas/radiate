@@ -12,16 +12,10 @@ fn main() {
         (NodeType::Output, vec![Op::linear()]),
     ];
 
-    // let generation = serde_json::from_str::<Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>>(
-    //     include_str!("../checkpoints/generation_190.json"),
-    // )
-    // .expect("Failed to load checkpoint");
-
     let engine = GeneticEngine::builder()
         .codec(GraphCodec::directed(1, 1, store))
         .fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
-        // .generation(generation)
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
@@ -32,7 +26,6 @@ fn main() {
     engine
         .iter()
         .logging()
-        // .checkpoint(10, "checkpoints")
         .until_score(MIN_SCORE)
         .last()
         .inspect(display);

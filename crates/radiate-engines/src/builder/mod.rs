@@ -105,6 +105,8 @@ where
         self
     }
 
+    /// Set the generation for the engine. This is typically used
+    /// when resuming a previously paused or stopped engine.
     pub fn generation(mut self, generation: Generation<C, T>) -> Self {
         self.params.generation = Some(generation);
         self

@@ -21,11 +21,9 @@ use crate::{Generation, Limit, init_logging};
 use radiate_core::{Chromosome, Engine, Objective, Optimize, Score};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::VecDeque,
-    path::{Path, PathBuf},
-    time::Duration,
-};
+#[cfg(feature = "serde")]
+use std::path::Path;
+use std::{collections::VecDeque, path::PathBuf, time::Duration};
 use tracing::info;
 
 /// A basic iterator wrapper around any engine that implements the [Engine] trait.
@@ -215,6 +213,13 @@ where
     C: Chromosome,
     T: Clone,
 {
+    fn run(self) -> Option<Generation<C, T>>
+    where
+        Self: Sized,
+    {
+        self.last()
+    }
+
     /// Limits iteration to a specified number of seconds.
     ///
     /// This method creates an iterator that stops when the cumulative execution
@@ -632,6 +637,8 @@ where
     /// you want to be able to resume evolution from a specific generation in case of
     /// interruptions or crashes.
     ///
+    /// **Note**: This method requires the `serde` feature to be enabled.
+    ///
     /// The saved json object is simply the serialized [Generation] object. Thus, it can be
     /// loaded back into memory using `serde_json::from_str` or similar methods then added back
     /// to the engine using the `.generation(...)` method on the engine builder to resume evolution.
@@ -643,10 +650,11 @@ where
     /// # Examples
     /// ```rust,ignore
     /// // Add checkpointing to save every 10 generations
-    /// for generation in engine.iter()
-    ///     .checkpoint(10, "checkpoints") {
-    ///     // Each generation will be saved automatically every 10 generations
-    /// }
+    /// let generation = engine.iter()
+    ///     .checkpoint(10, "checkpoints")
+    ///     .take(100)
+    ///     .last()
+    ///     .unwrap();
     /// ```
     #[cfg(feature = "serde")]
     fn checkpoint(
@@ -667,6 +675,13 @@ where
     }
 }
 
+/// Iterator that adds checkpointing to each generation.
+///
+/// **Note**: This iterator requires the `serde` feature to be enabled.
+///
+/// This iterator automatically saves the state of each generation to disk
+/// at specified intervals, allowing for recovery and analysis of the
+/// evolutionary process. Checkpoints are saved as serialized JSON files.
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 struct CheckpointIterator<I, C, T>
 where
@@ -678,6 +693,12 @@ where
     path: PathBuf,
 }
 
+/// Implementation of `Iterator` for [CheckpointIterator].
+///
+/// Each call to `next()` retrieves the next generation, and if the generation
+/// index matches the checkpoint interval, it serializes and saves the generation
+/// to a JSON file in the specified directory. The filename format is
+/// `generation_{index}.json`.
 #[cfg(feature = "serde")]
 impl<I, C, T> Iterator for CheckpointIterator<I, C, T>
 where
