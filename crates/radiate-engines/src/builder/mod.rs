@@ -532,8 +532,12 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
         Arc::clone(&self.problem)
     }
 
-    pub fn generation(&self) -> Option<&Generation<C, T>> {
-        self.generation.as_ref()
+    pub fn generation(&self) -> Option<Generation<C, T>>
+    where
+        C: Clone,
+        T: Clone,
+    {
+        self.generation.clone()
     }
 
     pub fn encoder(&self) -> Arc<dyn Fn() -> Genotype<C> + Send + Sync>

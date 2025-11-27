@@ -146,7 +146,7 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_single_typed(|typed_builder, input| {
-                let generation = input.extract::<PyGeneration>("generation")?;
+                let mut generation = input.extract::<PyGeneration>("generation")?;
                 let ecosystem = Ecosystem::from(generation.ecosystem());
                 Ok(typed_builder.ecosystem(ecosystem))
             })

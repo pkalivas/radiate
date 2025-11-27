@@ -44,7 +44,7 @@ impl<T> MutCell<T> {
         unsafe { (*self.inner).ref_count.load(Ordering::Acquire) }
     }
 
-    pub fn get(&self) -> &T {
+    pub fn borrow(&self) -> &T {
         // SAFETY: This is inherently unsafe because we don't know if there exists a mutable
         // reference to the inner value elsewhere.
         //
@@ -55,7 +55,7 @@ impl<T> MutCell<T> {
         unsafe { &*(*self.inner).value.get() }
     }
 
-    pub fn get_mut(&mut self) -> &mut T {
+    pub fn borrow_mut(&mut self) -> &mut T {
         assert!(self.is_unique(), "Cannot mutably borrow shared MutCell");
         unsafe { &mut *(*self.inner).value.get() }
     }
@@ -113,19 +113,19 @@ impl<T> Drop for MutCell<T> {
 impl<T> Deref for MutCell<T> {
     type Target = T;
     fn deref(&self) -> &Self::Target {
-        self.get()
+        self.borrow()
     }
 }
 
 impl<T: PartialEq> PartialEq for MutCell<T> {
     fn eq(&self, other: &Self) -> bool {
-        self.get() == other.get()
+        self.borrow() == other.borrow()
     }
 }
 
 impl<T: PartialOrd> PartialOrd for MutCell<T> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.get().partial_cmp(other.get())
+        self.borrow().partial_cmp(other.borrow())
     }
 }
 
@@ -137,7 +137,7 @@ impl<T> From<T> for MutCell<T> {
 
 impl<T: Debug> Debug for MutCell<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self.get())
+        write!(f, "{:?}", self.borrow())
     }
 }
 
@@ -151,7 +151,7 @@ mod tests {
         assert_eq!(*cell, 5);
 
         // Mutate the cell (unique, so this is allowed)
-        *cell.get_mut() = 10;
+        *cell.borrow_mut() = 10;
         assert_eq!(*cell, 10);
 
         // Cloning happens only after mutation:
@@ -205,7 +205,7 @@ mod tests {
         assert!(!cell2.is_unique());
         assert_eq!(*cell, 42);
         assert_eq!(*cell2, 42);
-        assert!(cell.get() == cell2.get());
+        assert!(cell.borrow() == cell2.borrow());
     }
 
     #[test]
@@ -224,7 +224,7 @@ mod tests {
     fn mut_cell_deref() {
         let mut cell = MutCell::new(42);
         assert_eq!(*cell, 42);
-        let mut_ref = cell.get_mut();
+        let mut_ref = cell.borrow_mut();
         *mut_ref = 100;
         assert_eq!(*cell, 100);
     }

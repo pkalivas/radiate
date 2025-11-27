@@ -112,8 +112,8 @@ impl PyGeneration {
         Ok(PyMetricSet::from(metrics.clone()))
     }
 
-    pub fn ecosystem(&self) -> PyEcosystem {
-        match &self.inner {
+    pub fn ecosystem(&mut self) -> PyEcosystem {
+        match &mut self.inner {
             EpochHandle::Int(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
             EpochHandle::Float(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
             EpochHandle::Char(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
@@ -125,8 +125,8 @@ impl PyGeneration {
         }
     }
 
-    pub fn species(&self) -> Option<Vec<PySpecies>> {
-        match &self.inner {
+    pub fn species(&mut self) -> Option<Vec<PySpecies>> {
+        match &mut self.inner {
             EpochHandle::Int(epoch) => epoch
                 .species()
                 .map(|s| s.iter().cloned().map(PySpecies::from).collect()),
@@ -154,8 +154,8 @@ impl PyGeneration {
         }
     }
 
-    pub fn population(&self) -> PyPopulation {
-        match &self.inner {
+    pub fn population(&mut self) -> PyPopulation {
+        match &mut self.inner {
             EpochHandle::Int(epoch) => PyPopulation::from(epoch.population()),
             EpochHandle::Float(epoch) => PyPopulation::from(epoch.population()),
             EpochHandle::Char(epoch) => PyPopulation::from(epoch.population()),

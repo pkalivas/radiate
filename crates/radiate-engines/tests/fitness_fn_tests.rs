@@ -136,9 +136,9 @@ mod fitness_fn_tests {
             )
             .build();
 
-        let regular_generation = regular_engine.iter().take(50).last().unwrap();
-        let novelty_generation = novelty_engine.iter().take(50).last().unwrap();
-        let combined_generation = combined_engine.iter().take(50).last().unwrap();
+        let mut regular_generation = regular_engine.iter().take(50).last().unwrap();
+        let mut novelty_generation = novelty_engine.iter().take(50).last().unwrap();
+        let mut combined_generation = combined_engine.iter().take(50).last().unwrap();
 
         let regular_diversity = calculate_diversity(regular_generation.population());
         let novelty_diversity = calculate_diversity(novelty_generation.population());

@@ -258,11 +258,11 @@ pub struct Member<C: Chromosome> {
 
 impl<C: Chromosome> Member<C> {
     pub fn get(&self) -> &Phenotype<C> {
-        self.cell.get()
+        self.cell.borrow()
     }
 
     pub fn get_mut(&mut self) -> &mut Phenotype<C> {
-        self.cell.get_mut()
+        self.cell.borrow_mut()
     }
 
     pub fn into_inner(self) -> Phenotype<C>
