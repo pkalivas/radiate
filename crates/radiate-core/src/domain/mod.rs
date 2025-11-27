@@ -1,3 +1,4 @@
+pub mod arena;
 pub mod cell;
 pub mod executor;
 pub mod indexes;

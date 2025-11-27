@@ -24,7 +24,10 @@ where
     front: Option<Front<Phenotype<C>>>,
 }
 
-impl<C: Chromosome, T> Generation<C, T> {
+impl<C, T> Generation<C, T>
+where
+    C: Chromosome,
+{
     pub fn score(&self) -> &Score {
         &self.score
     }
@@ -104,10 +107,10 @@ impl<C: Chromosome, T: Debug> Debug for Generation<C, T> {
         write!(f, "  value: {:?},\n", self.value)?;
         write!(f, "  score: {:?},\n", self.score)?;
         write!(f, "  index: {:?},\n", self.index)?;
-        write!(f, "  size: {:?},\n", self.ecosystem.population.len())?;
+        write!(f, "  size: {:?},\n", self.ecosystem().population().len())?;
         write!(f, "  duration: {:?},\n", self.time())?;
 
-        if let Some(species) = &self.ecosystem.species {
+        if let Some(species) = &self.ecosystem().species {
             for s in species {
                 write!(f, "  species: {:?},\n", s)?;
             }
