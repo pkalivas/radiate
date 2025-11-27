@@ -32,7 +32,7 @@ where
     /// Set the population of the genetic engine. This is useful if you want to provide a custom population.
     /// If this is not set, the genetic engine will create a new population of `population_size` using the codec.
     pub fn population(mut self, population: impl Into<Population<C>>) -> Self {
-        self.params.population_params.ecosystem = Some(Ecosystem::new(population.into()));
+        self.params.population_params.ecosystem = Some(Ecosystem::from(population.into()));
         self
     }
 

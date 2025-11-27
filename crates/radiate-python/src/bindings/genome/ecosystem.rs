@@ -80,7 +80,7 @@ macro_rules! impl_into_py_ecosystem {
                     None
                 };
 
-                let mut ecosystem = Ecosystem::new(population);
+                let mut ecosystem = Ecosystem::from(population);
                 if let Some(species_list) = species {
                     for spec in species_list {
                         ecosystem.push_species(spec);

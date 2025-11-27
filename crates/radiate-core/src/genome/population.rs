@@ -1,4 +1,5 @@
 use super::phenotype::Phenotype;
+use crate::arena::Arena;
 use crate::cell::MutCell;
 use crate::objectives::Scored;
 use crate::{Chromosome, Score};
@@ -6,6 +7,7 @@ use crate::{Chromosome, Score};
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use std::ops::{Index, IndexMut, Range};
+use std::rc::Rc;
 
 /// A [Population] is a collection of [Phenotype] instances.
 ///
@@ -25,12 +27,14 @@ use std::ops::{Index, IndexMut, Range};
 #[derive(Default, PartialEq)]
 pub struct Population<C: Chromosome> {
     individuals: Vec<Member<C>>,
+    arena: Rc<Arena<Phenotype<C>>>,
 }
 
 impl<C: Chromosome> Population<C> {
     pub fn new(individuals: Vec<Phenotype<C>>) -> Self {
         Population {
             individuals: individuals.into_iter().map(Member::from).collect(),
+            arena: Rc::new(Arena::new()),
         }
     }
 
@@ -43,7 +47,10 @@ impl<C: Chromosome> Population<C> {
             individuals.push(member.clone());
         }
 
-        Population { individuals }
+        Population {
+            individuals,
+            arena: Rc::new(Arena::new()),
+        }
     }
 
     pub fn get(&self, index: usize) -> Option<&Phenotype<C>> {
@@ -129,6 +136,7 @@ impl<C: Chromosome> From<Vec<Phenotype<C>>> for Population<C> {
     fn from(individuals: Vec<Phenotype<C>>) -> Self {
         Population {
             individuals: individuals.into_iter().map(Member::from).collect(),
+            arena: Rc::new(Arena::new()),
         }
     }
 }
@@ -177,6 +185,7 @@ impl<C: Chromosome> FromIterator<Phenotype<C>> for Population<C> {
     fn from_iter<I: IntoIterator<Item = Phenotype<C>>>(iter: I) -> Self {
         Population {
             individuals: iter.into_iter().map(Member::from).collect(),
+            arena: Rc::new(Arena::new()),
         }
     }
 }
@@ -184,7 +193,10 @@ impl<C: Chromosome> FromIterator<Phenotype<C>> for Population<C> {
 impl<C: Chromosome> FromIterator<Member<C>> for Population<C> {
     fn from_iter<I: IntoIterator<Item = Member<C>>>(iter: I) -> Self {
         let individuals = iter.into_iter().collect::<Vec<Member<C>>>();
-        Population { individuals }
+        Population {
+            individuals,
+            arena: Rc::new(Arena::new()),
+        }
     }
 }
 
@@ -203,6 +215,7 @@ where
 
         Population {
             individuals: individuals.into_iter().map(Member::from).collect(),
+            arena: Rc::new(Arena::new()),
         }
     }
 }
@@ -247,6 +260,7 @@ impl<'de, C: Chromosome + Deserialize<'de>> Deserialize<'de> for Population<C> {
 
         Ok(Population {
             individuals: phenotypes.into_iter().map(Member::from).collect(),
+            arena: Rc::new(Arena::new()),
         })
     }
 }

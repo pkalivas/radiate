@@ -1,5 +1,7 @@
+use std::rc::Rc;
+
 use super::{Chromosome, Genotype, Phenotype, Population, Species};
-use crate::{Objective, Score, random_provider};
+use crate::{Objective, Score, arena::Arena, random_provider};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
@@ -29,13 +31,22 @@ use serde::{Deserialize, Serialize};
 pub struct Ecosystem<C: Chromosome> {
     pub population: Population<C>,
     pub species: Option<Vec<Species<C>>>,
+    pub arena: Rc<Arena<Phenotype<C>>>,
 }
 
 impl<C: Chromosome> Ecosystem<C> {
-    pub fn new(population: Population<C>) -> Self {
+    pub fn new(population: Vec<Phenotype<C>>) -> Self {
+        let mut arena = Arena::new();
+        let mut nodes = Vec::with_capacity(population.len());
+        for member in population.into_iter() {
+            let node_id = arena.add(member);
+            nodes.push(node_id);
+        }
+
         Ecosystem {
-            population,
+            population: Population::from(population),
             species: None,
+            arena: Rc::new(arena),
         }
     }
 
@@ -58,6 +69,7 @@ impl<C: Chromosome> Ecosystem<C> {
                     .map(|species| Species::clone_ref(species))
                     .collect()
             }),
+            arena: Rc::clone(&other.arena),
         }
     }
 
@@ -193,6 +205,7 @@ impl<C: Chromosome + Clone> Clone for Ecosystem<C> {
         Ecosystem {
             population: self.population.clone(),
             species: self.species.clone(),
+            arena: Rc::clone(&self.arena),
         }
     }
 }
@@ -202,6 +215,7 @@ impl<C: Chromosome> From<Vec<Phenotype<C>>> for Ecosystem<C> {
         Ecosystem {
             population: Population::from(phenotypes),
             species: None,
+            arena: Rc::new(Arena::new()),
         }
     }
 }
@@ -211,6 +225,7 @@ impl<C: Chromosome> From<Population<C>> for Ecosystem<C> {
         Ecosystem {
             population,
             species: None,
+            arena: Rc::new(Arena::new()),
         }
     }
 }

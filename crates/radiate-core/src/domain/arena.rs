@@ -1,5 +1,8 @@
 use serde::{Deserialize, Serialize};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::{
+    fmt::Debug,
+    sync::atomic::{AtomicU64, Ordering},
+};
 
 /// A unique id to identify an arena member.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -13,6 +16,7 @@ impl NodeId {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Arena<T> {
     members: Vec<T>,
 }
@@ -36,5 +40,42 @@ impl<T> Arena<T> {
 
     pub fn get_mut(&mut self, id: NodeId) -> Option<&mut T> {
         self.members.get_mut(id.1)
+    }
+}
+
+impl<T> Default for Arena<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<T> Clone for Arena<T>
+where
+    T: Clone,
+{
+    fn clone(&self) -> Self {
+        Arena {
+            members: self.members.clone(),
+        }
+    }
+}
+
+impl<T> PartialEq for Arena<T>
+where
+    T: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.members == other.members
+    }
+}
+
+impl<T> Debug for Arena<T>
+where
+    T: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Arena")
+            .field("members", &self.members)
+            .finish()
     }
 }

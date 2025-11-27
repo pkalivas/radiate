@@ -2,7 +2,7 @@ use radiate_core::*;
 use radiate_error::Result;
 
 pub fn float_ecosystem() -> Ecosystem<FloatChromosome> {
-    Ecosystem::new(Population::from(vec![
+    Ecosystem::from(Population::from(vec![
         Phenotype::from((vec![FloatChromosome::from(vec![1.0])], 0)),
         Phenotype::from((vec![FloatChromosome::from(vec![2.0])], 0)),
         Phenotype::from((vec![FloatChromosome::from(vec![3.0])], 0)),
