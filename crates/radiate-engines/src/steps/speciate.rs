@@ -133,6 +133,7 @@ where
                             return Some(species_idx);
                         }
                     }
+
                     None
                 })
                 .flatten();

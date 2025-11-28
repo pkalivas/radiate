@@ -311,24 +311,20 @@ You can implement your own behavioral descriptors by implementing the `Novelty` 
     }
 
     // Create novelty search fitness function
-    let novelty_fitness = NoveltySearch::new(
-        MyModelBehaviorDescriptor,
-        10,  // k: number of nearest neighbors
-        0.1  // threshold: novelty threshold for archive addition
-    )
-    .with_archive_size(1000) // Optional: set archive size - default is 1000
-    .cosine_distance(); // Optional set the distance parameter used
-    // .euclidean_distance() // euclidean_distance is the default
-    // .hamming_distance()
+    let novelty_fitness = NoveltySearch::new(MyModelBehaviorDescriptor)
+        .k(10)
+        .threshold(0.1)        
+        .with_archive_size(1000) // Optional: set archive size - default is 1000
+        .cosine_distance(); // Optional set the distance parameter used
+        // .euclidean_distance() // euclidean_distance is the default
+        // .hamming_distance()
 
     // Novelty is also implemented for any F where F: Fn(&T) -> Vec<f32>. Meaning, you can 
     // just as easily feed a function to NoveltySearch as long as it takes a borrowed T (&T) 
     // and returns a Vec<f32>
     let function_novelty_fitness = NoveltySearch::new(
-        |individual: &MyModel| // ... return a Vec<f32> that describes MyModel ...
-        10,  
-        0.1  
-    )
+            |individual: &MyModel| // ... return a Vec<f32> that describes MyModel ...
+        );
 
     let engine = GeneticEngine::builder()
         // The decoded genotype from your codec (my_model_codec in this case) will be fed
