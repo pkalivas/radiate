@@ -23,6 +23,7 @@ use crate::{
 use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use crate::{Generation, Result};
 use radiate_alters::{UniformCrossover, UniformMutator};
+use radiate_core::diversity::DistanceDiversityAdapter;
 use radiate_core::evaluator::BatchFitnessEvaluator;
 use radiate_core::problem::BatchEngineProblem;
 use radiate_core::{Diversity, Ecosystem, Evaluator, Executor, FitnessEvaluator, Genotype, Valid};
@@ -376,9 +377,11 @@ where
             return None;
         }
 
+        let adapter = DistanceDiversityAdapter::new(config.diversity().unwrap());
+
         let species_step = SpeciateStep {
             threashold: config.species_threshold(),
-            diversity: config.diversity().clone().unwrap(),
+            diversity: Arc::new(adapter),
             executor: config.species_executor(),
             objective: config.objective(),
         };

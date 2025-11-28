@@ -1,5 +1,7 @@
 use std::ops::{Add, Div, Mul, Sub};
 
+use crate::chromosomes::NumericAllele;
+
 /// A [`Valid`] type is a type that can be checked for validity. This is used for checking if a gene
 /// or a chromosome is valid. For example, a gene that represents a number between 0 and 1 can be checked
 /// for validity by ensuring that the allele is between 0 and 1.
@@ -88,4 +90,24 @@ pub trait ArithmeticGene:
     Gene + Add<Output = Self> + Sub<Output = Self> + Mul<Output = Self> + Div<Output = Self>
 {
     fn mean(&self, other: &Self) -> Self;
+}
+
+pub trait NumericGene: Gene
+where
+    Self::Allele: NumericAllele,
+{
+    fn allele_as_f32(&self) -> Option<f32> {
+        self.allele().cast_as_f32()
+    }
+
+    fn allele_as_i32(&self) -> Option<i32> {
+        self.allele().cast_as_i32()
+    }
+}
+
+impl<T, G> NumericGene for G
+where
+    G: Gene<Allele = T>,
+    T: NumericAllele,
+{
 }

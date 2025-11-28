@@ -31,6 +31,13 @@ where
 
         if count > 0 {
             metrics.upsert(metric_names::FRONT_ADDITIONS, (count, timer.elapsed()));
+
+            if generation % 10 == 0 {
+                let reader = self.front.read().unwrap();
+                if let Some(entropy) = reader.entropy() {
+                    metrics.upsert(metric_names::FRONT_ENTROPY, entropy);
+                }
+            }
         }
 
         Ok(())

@@ -1,5 +1,7 @@
 use crate::stats::ToSnakeCase;
-use crate::{Chromosome, Gene, Genotype, Metric, Population, indexes, intern, random_provider};
+use crate::{
+    Chromosome, Gene, Genotype, Metric, Population, intern, math::indexes, random_provider,
+};
 use std::iter::once;
 
 #[macro_export]

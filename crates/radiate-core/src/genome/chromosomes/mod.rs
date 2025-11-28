@@ -6,50 +6,33 @@ pub mod gene;
 pub mod int;
 pub mod permutation;
 
-use rand::distr::uniform::SampleUniform;
-use std::{
-    fmt::Debug,
-    fmt::Display,
-    ops::{Add, Div, Mul, Sub},
-};
-
-use crate::impl_integer;
-
 pub use bit::{BitChromosome, BitGene};
 pub use char::{CharChromosome, CharGene};
 pub use chromosome::*;
 pub use float::{FloatChromosome, FloatGene};
 pub use gene::{ArithmeticGene, BoundedGene, Gene, Valid};
-pub use int::{IntChromosome, IntGene};
+pub use int::{IntChromosome, IntGene, Integer};
 pub use permutation::{PermutationChromosome, PermutationGene};
 
-pub trait Integer<T>:
-    Copy
-    + Clone
-    + PartialOrd
-    + Debug
-    + PartialEq
-    + Add<Output = T>
-    + Sub<Output = T>
-    + Mul<Output = T>
-    + Div<Output = T>
-    + SampleUniform
-    + Display
-    + Default
-where
-    T: PartialEq + PartialOrd + Copy + Clone + Debug + Display + Default,
-{
-    const MIN: T;
-    const MAX: T;
-    const ZERO: T;
-    const ONE: T;
-    const TWO: T;
-
-    fn sat_add(self, rhs: T) -> T;
-    fn sat_sub(self, rhs: T) -> T;
-    fn sat_mul(self, rhs: T) -> T;
-    fn sat_div(self, rhs: T) -> T;
-    fn clamp(self, min: T, max: T) -> T;
+pub trait NumericAllele {
+    fn cast_as_f32(&self) -> Option<f32>;
+    fn cast_as_i32(&self) -> Option<i32>;
 }
 
-impl_integer!(i8, i16, i32, i64, i128, u8, u16, u32, u64, u128);
+macro_rules! impl_numeric_allele {
+    ($($t:ty),*) => {
+        $(
+            impl NumericAllele for $t {
+                fn cast_as_f32(&self) -> Option<f32> {
+                    Some(*self as f32)
+                }
+
+                fn cast_as_i32(&self) -> Option<i32> {
+                    Some(*self as i32)
+                }
+            }
+        )*
+    };
+}
+
+impl_numeric_allele!(f32, f64, u8, u16, u32, u64, u128, i8, i16, i32, i64, i128);

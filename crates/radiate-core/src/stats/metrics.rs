@@ -1,11 +1,11 @@
 use super::Statistic;
 use crate::{
-    Distribution, TimeStatistic, intern,
+    Distribution, TimeStatistic, cache_string, intern,
     stats::{ToSnakeCase, defaults},
 };
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use std::{fmt::Debug, time::Duration};
+use std::{fmt::Debug, sync::Arc, time::Duration};
 
 #[macro_export]
 macro_rules! metric {
@@ -49,7 +49,7 @@ pub struct MetricInner {
 #[derive(Clone, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Metric {
-    pub(super) name: &'static str,
+    pub(super) name: Arc<String>,
     pub(super) inner: MetricInner,
     pub(super) scope: MetricScope,
     pub(super) rollup: Rollup,
@@ -57,9 +57,9 @@ pub struct Metric {
 
 impl Metric {
     pub fn new(name: &'static str) -> Self {
-        let name = intern!(name.to_snake_case());
-        let scope = defaults::default_scope(name);
-        let rollup = defaults::default_rollup(name);
+        let name = cache_string!(name.to_snake_case());
+        let scope = defaults::default_scope(&name);
+        let rollup = defaults::default_rollup(&name);
         Self {
             name,
             inner: MetricInner {
@@ -219,10 +219,23 @@ impl Metric {
     }
 
     ///
+    /// --- Displays ---
+    ///
+    pub fn fmt_full(&self, include_spark: bool) -> String {
+        let mut out = String::new();
+        super::fmt::render_metric_rows_full(&mut out, &self.name(), self, include_spark).unwrap();
+        out
+    }
+
+    pub fn fmt_minimal(&self, include_name: bool) -> String {
+        super::fmt::render_metric_minimal(self, include_name).unwrap()
+    }
+
+    ///
     /// --- Common statistic getters ---
     ///
-    pub fn name(&self) -> &'static str {
-        self.name
+    pub fn name(&self) -> &str {
+        &self.name
     }
 
     pub fn last_value(&self) -> f32 {

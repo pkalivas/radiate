@@ -1,4 +1,5 @@
 use crate::objectives::{Objective, Optimize};
+use std::collections::HashMap;
 
 const EPSILON: f32 = 1e-6;
 
@@ -303,4 +304,97 @@ pub fn pareto_front<K: PartialOrd, T: AsRef<[K]> + Clone>(
     }
 
     front
+}
+
+/// Calculate the Shannon entropy of a set of scores in multi-dimensional space.
+/// The scores are discretized into a grid of bins, and the entropy is computed
+/// based on the distribution of scores across these bins. Higher entropy indicates
+/// a more diverse set of scores. This can be interpreted as a measure of how well
+/// the solutions are spread out in the objective space.
+///
+/// It works by:
+/// 1. Determining the min and max values for each objective dimension.
+/// 2. Mapping each score to a discrete bin index based on its normalized position
+///    within the min-max range for each dimension.
+/// 3. Counting the number of scores in each bin (cell).
+/// 4. Calculating the probabilities of each occupied bin and computing the
+///    Shannon entropy using these probabilities.
+/// 5. Optionally normalizing the entropy by the maximum possible entropy given
+///    the number of occupied bins and total scores.
+#[inline]
+pub fn entropy<S>(scores: &[S], bins_per_dim: usize) -> f32
+where
+    S: AsRef<[f32]>,
+{
+    let len = scores.len();
+    if len == 0 || bins_per_dim == 0 {
+        return 0.0;
+    }
+
+    let num_objs = scores[0].as_ref().len();
+    if num_objs == 0 {
+        return 0.0;
+    }
+
+    let mut mins = vec![f32::INFINITY; num_objs];
+    let mut maxs = vec![f32::NEG_INFINITY; num_objs];
+
+    for score in scores {
+        let values = score.as_ref();
+        for dim in 0..num_objs {
+            let x = values[dim];
+
+            if x < mins[dim] {
+                mins[dim] = x;
+            }
+
+            if x > maxs[dim] {
+                maxs[dim] = x;
+            }
+        }
+    }
+
+    for dim in 0..num_objs {
+        if (maxs[dim] - mins[dim]).abs() < 1e-12 {
+            maxs[dim] = mins[dim] + 1.0;
+        }
+    }
+
+    let mut cell_counts = HashMap::new();
+
+    for score in scores {
+        let values = score.as_ref();
+        let mut cell = Vec::with_capacity(num_objs);
+
+        for dim in 0..num_objs {
+            let norm = (values[dim] - mins[dim]) / (maxs[dim] - mins[dim]); // in [0,1]
+            let mut idx = (norm * bins_per_dim as f32).floor() as i32;
+
+            if idx < 0 {
+                idx = 0;
+            }
+
+            if idx >= bins_per_dim as i32 {
+                idx = bins_per_dim as i32 - 1;
+            }
+
+            cell.push(idx as u8);
+        }
+
+        *cell_counts.entry(cell).or_insert(0) += 1;
+    }
+
+    let n_f = len as f32;
+    let mut h = 0.0_f32;
+    for (_, count) in cell_counts.iter() {
+        let p = *count as f32 / n_f;
+        if p > 0.0 {
+            h -= p * p.ln();
+        }
+    }
+
+    // Max entropy if all visited cells have equal probabilities.
+    // Upper bound by log(min(number_of_cells, n)):
+    let k = cell_counts.len().min(len);
+    if k > 1 { h / (k as f32).ln() } else { 0.0 }
 }

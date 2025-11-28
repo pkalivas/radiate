@@ -823,10 +823,15 @@ where
                 );
             }
             Objective::Multi(_) => {
+                let front_entropy = next.metrics().front_entropy();
+                let entropy = front_entropy
+                    .map(|ent| ent.value_mean())
+                    .flatten()
+                    .unwrap_or(0.0);
                 info!(
-                    "Epoch {:<4} | Scores: {:?} | Time: {:>5.2?}",
+                    "Epoch {:<4} | Entropy: {:.3} | Time: {:>5.2?}",
                     next.index(),
-                    next.score(),
+                    entropy,
                     next.time()
                 );
             }

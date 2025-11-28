@@ -47,9 +47,9 @@ impl MetricSet {
     }
 
     #[inline(always)]
-    pub fn flush_metric_into(&self, name: &'static str, target: &mut MetricSet) {
+    pub fn flush_metric_into(&self, name: &str, target: &mut MetricSet) {
         if let Some(m) = self.metrics.get(name) {
-            let dest = target.metrics.entry(name).or_insert_with(|| {
+            let dest = target.metrics.entry(intern!(name)).or_insert_with(|| {
                 let mut clone = m.clone();
                 clone.clear_values();
                 clone
@@ -125,11 +125,11 @@ impl MetricSet {
 
     #[inline(always)]
     pub fn add(&mut self, metric: Metric) {
-        self.metrics.insert(metric.name(), metric);
+        self.metrics.insert(intern!(metric.name()), metric);
     }
 
     #[inline(always)]
-    pub fn get(&self, name: &'static str) -> Option<&Metric> {
+    pub fn get(&self, name: &str) -> Option<&Metric> {
         self.metrics.get(name)
     }
 
@@ -164,6 +164,99 @@ impl MetricSet {
             updates: self.set_stats.statistic().map(|s| s.sum()).unwrap_or(0.0),
         }
     }
+
+    // --- Default accessors ---
+    pub fn time(&self) -> Option<&Metric> {
+        self.get(super::metric_names::TIME)
+    }
+
+    pub fn score(&self) -> Option<&Metric> {
+        self.get(super::metric_names::SCORES)
+    }
+
+    pub fn age(&self) -> Option<&Metric> {
+        self.get(super::metric_names::AGE)
+    }
+
+    pub fn replace_age(&self) -> Option<&Metric> {
+        self.get(super::metric_names::REPLACE_AGE)
+    }
+
+    pub fn replace_invalid(&self) -> Option<&Metric> {
+        self.get(super::metric_names::REPLACE_INVALID)
+    }
+
+    pub fn genome_size(&self) -> Option<&Metric> {
+        self.get(super::metric_names::GENOME_SIZE)
+    }
+
+    pub fn front_additions(&self) -> Option<&Metric> {
+        self.get(super::metric_names::FRONT_ADDITIONS)
+    }
+
+    pub fn front_entropy(&self) -> Option<&Metric> {
+        self.get(super::metric_names::FRONT_ENTROPY)
+    }
+
+    pub fn unique_members(&self) -> Option<&Metric> {
+        self.get(super::metric_names::UNIQUE_MEMBERS)
+    }
+
+    pub fn unique_scores(&self) -> Option<&Metric> {
+        self.get(super::metric_names::UNIQUE_SCORES)
+    }
+
+    pub fn new_children(&self) -> Option<&Metric> {
+        self.get(super::metric_names::NEW_CHILDREN)
+    }
+
+    pub fn survivor_count(&self) -> Option<&Metric> {
+        self.get(super::metric_names::SURVIVOR_COUNT)
+    }
+
+    pub fn carryover_rate(&self) -> Option<&Metric> {
+        self.get(super::metric_names::CARRYOVER_RATE)
+    }
+
+    pub fn lifetime_unique_members(&self) -> Option<&Metric> {
+        self.get(super::metric_names::LIFETIME_UNIQUE_MEMBERS)
+    }
+
+    pub fn evaluation_count(&self) -> Option<&Metric> {
+        self.get(super::metric_names::EVALUATION_COUNT)
+    }
+
+    pub fn diversity_ratio(&self) -> Option<&Metric> {
+        self.get(super::metric_names::DIVERSITY_RATIO)
+    }
+
+    pub fn score_volatility(&self) -> Option<&Metric> {
+        self.get(super::metric_names::SCORE_VOLATILITY)
+    }
+
+    pub fn species_count(&self) -> Option<&Metric> {
+        self.get(super::metric_names::SPECIES_COUNT)
+    }
+
+    pub fn species_age_fail(&self) -> Option<&Metric> {
+        self.get(super::metric_names::SPECIES_AGE_FAIL)
+    }
+
+    pub fn species_distance_dist(&self) -> Option<&Metric> {
+        self.get(super::metric_names::SPECIES_DISTANCE_DIST)
+    }
+
+    pub fn species_created(&self) -> Option<&Metric> {
+        self.get(super::metric_names::SPECIES_CREATED)
+    }
+
+    pub fn species_died(&self) -> Option<&Metric> {
+        self.get(super::metric_names::SPECIES_DIED)
+    }
+
+    pub fn species_age(&self) -> Option<&Metric> {
+        self.get(super::metric_names::SPECIES_AGE)
+    }
 }
 
 impl Default for MetricSet {
@@ -179,7 +272,11 @@ impl std::fmt::Display for MetricSet {
             "[{} metrics, {:.0} updates]",
             summary.metrics, summary.updates
         );
-        write!(f, "{out}\n{}", fmt::render_full(self).unwrap_or_default())?;
+        write!(
+            f,
+            "{out}\n{}",
+            fmt::render_full(self, true).unwrap_or_default()
+        )?;
         Ok(())
     }
 }
@@ -227,8 +324,10 @@ impl<'de> Deserialize<'de> for MetricSet {
 
         let mut metric_set = MetricSet::new();
         for metric in metrics {
+            use std::sync::Arc;
+
             let metric = Metric {
-                name: intern!(metric.name),
+                name: Arc::new(metric.name),
                 inner: metric.inner,
                 scope: metric.scope,
                 rollup: metric.rollup,

@@ -24,13 +24,13 @@ fn main() {
         ))
         .build();
 
-    let result = engine
-        .iter()
-        .logging()
-        .take(1000)
-        .collect::<Front<Phenotype<FloatChromosome>>>();
+    let result = engine.iter().logging().take(1000).last().unwrap();
 
-    plot_front(&result);
+    println!("{}", result.metrics());
+
+    // .collect::<Front<Phenotype<FloatChromosome>>>();
+
+    plot_front(&result.front().unwrap());
 }
 
 fn plot_front(front: &Front<Phenotype<FloatChromosome>>) {

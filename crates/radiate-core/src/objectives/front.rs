@@ -6,6 +6,13 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use std::{cmp::Ordering, hash::Hash, ops::Range, sync::Arc};
 
+const DEFAULT_ENTROPY_BINS: usize = 20;
+
+pub struct FrontAddResult {
+    pub added_count: usize,
+    pub crowding_distances: Option<Vec<f32>>,
+}
+
 /// A `Front<T>` is a collection of `T`'s that are non-dominated with respect to each other.
 /// This is useful for multi-objective optimization problems where the goal is to find
 /// the best solutions that are not dominated by any other solution.
@@ -43,6 +50,34 @@ where
 
     pub fn values(&self) -> &[Arc<T>] {
         &self.values
+    }
+
+    pub fn crowding_distance(&self) -> Option<Vec<f32>> {
+        let scores = self
+            .values
+            .iter()
+            .filter_map(|s| s.score())
+            .collect::<Vec<_>>();
+
+        if scores.is_empty() {
+            return None;
+        }
+
+        Some(pareto::crowding_distance(&scores))
+    }
+
+    pub fn entropy(&self) -> Option<f32> {
+        let scores = self
+            .values
+            .iter()
+            .filter_map(|s| s.score())
+            .collect::<Vec<_>>();
+
+        if scores.is_empty() {
+            return None;
+        }
+
+        Some(pareto::entropy(&scores, DEFAULT_ENTROPY_BINS))
     }
 
     pub fn add_all(&mut self, items: &[T]) -> usize
@@ -110,22 +145,17 @@ where
     }
 
     fn filter(&mut self) {
-        let values = self
-            .values
-            .iter()
-            .filter_map(|s| s.score())
-            .collect::<Vec<_>>();
-        let crowding_distances = pareto::crowding_distance(&values);
+        if let Some(crowding_distances) = self.crowding_distance() {
+            let mut enumerated = crowding_distances.iter().enumerate().collect::<Vec<_>>();
 
-        let mut enumerated = crowding_distances.iter().enumerate().collect::<Vec<_>>();
+            enumerated.sort_unstable_by(|a, b| b.1.partial_cmp(a.1).unwrap_or(Ordering::Equal));
 
-        enumerated.sort_unstable_by(|a, b| b.1.partial_cmp(a.1).unwrap_or(Ordering::Equal));
-
-        self.values = enumerated
-            .iter()
-            .take(self.range.start)
-            .map(|(i, _)| Arc::clone(&self.values[*i]))
-            .collect::<Vec<Arc<T>>>();
+            self.values = enumerated
+                .iter()
+                .take(self.range.start)
+                .map(|(i, _)| Arc::clone(&self.values[*i]))
+                .collect::<Vec<Arc<T>>>();
+        }
     }
 }
 

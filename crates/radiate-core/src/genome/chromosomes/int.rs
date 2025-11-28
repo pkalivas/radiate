@@ -1,14 +1,46 @@
 use super::{
-    Chromosome, Integer,
+    Chromosome,
     gene::{ArithmeticGene, Gene, Valid},
 };
+use rand::distr::uniform::SampleUniform;
+use std::{
+    fmt::Debug,
+    fmt::Display,
+    ops::{Add, Div, Mul, Range, Sub},
+};
+
 use crate::{chromosomes::BoundedGene, random_provider};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use std::{
-    fmt::Debug,
-    ops::{Add, Div, Mul, Range, Sub},
-};
+
+pub trait Integer<T>:
+    Copy
+    + Clone
+    + PartialOrd
+    + Debug
+    + PartialEq
+    + Add<Output = T>
+    + Sub<Output = T>
+    + Mul<Output = T>
+    + Div<Output = T>
+    + SampleUniform
+    + Display
+    + Default
+where
+    T: PartialEq + PartialOrd + Copy + Clone + Debug + Display + Default,
+{
+    const MIN: T;
+    const MAX: T;
+    const ZERO: T;
+    const ONE: T;
+    const TWO: T;
+
+    fn sat_add(self, rhs: T) -> T;
+    fn sat_sub(self, rhs: T) -> T;
+    fn sat_mul(self, rhs: T) -> T;
+    fn sat_div(self, rhs: T) -> T;
+    fn clamp(self, min: T, max: T) -> T;
+}
 
 #[macro_export]
 macro_rules! impl_integer {
@@ -54,6 +86,8 @@ macro_rules! impl_integer {
         )*
     };
 }
+
+impl_integer!(i8, i16, i32, i64, i128, u8, u16, u32, u64, u128);
 
 /// A [`Gene`] that represents an integer value. This gene just wraps an integer value and provides
 /// functionality for it to be used in a genetic algorithm. In this [`Gene`] implementation, the

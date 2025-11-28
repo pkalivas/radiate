@@ -191,8 +191,8 @@ impl<C: Chromosome> EngineStep<C> for AuditStep {
         metrics.add_or_update(unique_metric);
         metrics.add_or_update(score_metric);
 
-        Self::calc_species_metrics(generation, metrics, ecosystem);
         self.calc_membership_metrics(metrics, ecosystem);
+        Self::calc_species_metrics(generation, metrics, ecosystem);
         Self::calc_derived_metrics(generation, metrics, ecosystem);
 
         Ok(())

@@ -1,4 +1,8 @@
-use radiate_core::{Chromosome, Objective, Population, Select, indexes, pareto, random_provider};
+use radiate_core::{
+    Chromosome, Objective, Population, Select, math::indexes, pareto, random_provider,
+};
+
+const NSGA2_SELECTOR_NAME: &str = "nsga2_selector";
 
 /// NSGA2 Selector. Selects individuals based on the NSGA2 algorithm.
 /// This algorithm ranks individuals based on their dominance relationships
@@ -19,6 +23,10 @@ impl NSGA2Selector {
 }
 
 impl<C: Chromosome + Clone> Select<C> for NSGA2Selector {
+    fn name(&self) -> &'static str {
+        NSGA2_SELECTOR_NAME
+    }
+
     fn select(
         &self,
         population: &Population<C>,

@@ -1,14 +1,20 @@
 use crate::Chromosome;
 use crate::context::Context;
 use radiate_core::objectives::Scored;
-use radiate_core::{
-    Ecosystem, Front, MetricSet, Objective, Phenotype, Population, Score, Species, metric_names,
-};
+use radiate_core::{Ecosystem, Front, MetricSet, Objective, Phenotype, Population, Score, Species};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use std::time::Duration;
 
+/// A snapshot of an ecosystem, either owned or shared.
+///
+/// Owned ecosystems contain their own data, while shared ecosystems
+/// contain reference counted clones of the data. This allows for
+/// efficient sharing of ecosystems between generations without
+/// unnecessary cloning. However, this means that a shared ecosystem
+/// should not be modified directly, as it may affect other generations
+/// that share the same data.
 #[derive(Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum EcosystemSnapshot<C: Chromosome> {
@@ -16,6 +22,52 @@ pub enum EcosystemSnapshot<C: Chromosome> {
     Shared(Ecosystem<C>),
 }
 
+/// A [Generation] represents a single generation in the evolutionary process.
+/// It contains the ecosystem, best solution, index, metrics, score, objective,
+/// and optionally the Pareto front for multi-objective problems.
+///
+/// The [Generation] struct is designed to be efficient in terms of memory usage
+/// by utilizing reference counting for the ecosystem data when possible. This allows for
+/// multiple generations to share the same ecosystem data without unnecessary duplication. However,
+/// because of this, the generation's ecosystem is treated as 'copy on read' if it is shared. So,
+/// the first time you access the ecosystem, it will be cloned if it is shared.
+///
+/// This is the main structure returned by the engine after each epoch, and it provides
+/// access to all relevant information about that generation.
+///
+/// # Example
+/// ```rust
+/// use radiate_core::*;
+/// use radiate_engines::*;
+/// use std::time::Duration;
+///
+/// let engine = GeneticEngine::builder()
+///     .codec(FloatChromosome::from((10, 0.0..1.0)))
+///     .fitness_fn(|vec: Vec<f32>| -vec.iter().map(|x| x * x).sum::<f32>())
+///     .build();
+///
+/// let mut generation = engine.iter().take(10).last().unwrap();
+///
+/// {
+///     // triggers a clone of the ecosystem if it is shared. it is in this case.
+///     let ecosystem: &Ecosystem<FloatChromosome> = generation.ecosystem();
+/// }
+///
+/// {
+///     // Would trigger a clone of the ecosystem if it is shared. It is NOT in this case
+///     // because it was just converted to an owned ecosystem above.
+///     let population: &Population<FloatChromosome> = generation.population();
+///     assert!(population.len() == 100);
+/// }
+///
+/// let solution: &Vec<f32> = generation.value();
+/// let index: usize = generation.index();
+/// let score: &Score = generation.score();
+/// let time: Duration = generation.time();
+///
+/// assert!(solution.len() == 10);
+/// assert!(index == 10);
+/// ```
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Generation<C, T>
 where
@@ -58,6 +110,11 @@ where
         &self.objective
     }
 
+    /// Access the ecosystem, cloning it if it is shared. When this is called,
+    /// if the ecosystem is in the [EcosystemSnapshot::Shared] variant, it
+    /// will be cloned into the [EcosystemSnapshot::Owned] variant for future
+    /// accesses. When the generation is created from a [Context], the ecosystem
+    /// is always in the shared variant to avoid unnecessary cloning of the ecosystem.
     pub fn ecosystem(&mut self) -> &Ecosystem<C>
     where
         C: Clone,
@@ -71,6 +128,8 @@ where
         self.ecosystem()
     }
 
+    /// Access the population from the ecosystem. Just like [Generation::ecosystem],
+    /// if the ecosystem is shared, it will be cloned on first access.
     pub fn population(&mut self) -> &Population<C>
     where
         C: Clone,
@@ -78,6 +137,8 @@ where
         &self.ecosystem().population()
     }
 
+    /// Access the species from the ecosystem. Just like [Generation::ecosystem],
+    /// if the ecosystem is shared, it will be cloned on first access.
     pub fn species(&mut self) -> Option<&[Species<C>]>
     where
         C: Clone,
@@ -87,7 +148,7 @@ where
 
     pub fn time(&self) -> Duration {
         self.metrics()
-            .get(metric_names::TIME)
+            .time()
             .map(|m| m.time_statistic().map(|t| t.sum()))
             .flatten()
             .unwrap_or_default()
@@ -104,7 +165,11 @@ impl<C: Chromosome, T> Scored for Generation<C, T> {
     }
 }
 
-impl<C: Chromosome + Clone, T: Clone> From<&Context<C, T>> for Generation<C, T> {
+impl<C, T> From<&Context<C, T>> for Generation<C, T>
+where
+    C: Chromosome + Clone,
+    T: Clone,
+{
     fn from(context: &Context<C, T>) -> Self {
         Generation {
             ecosystem: EcosystemSnapshot::Shared(Ecosystem::clone_ref(&context.ecosystem)),
@@ -142,7 +207,11 @@ where
     }
 }
 
-impl<C: Chromosome, T: Debug> Debug for Generation<C, T> {
+impl<C, T> Debug for Generation<C, T>
+where
+    C: Chromosome,
+    T: Debug,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let ecosystem = match &self.ecosystem {
             EcosystemSnapshot::Owned(eco) => eco,
@@ -156,6 +225,7 @@ impl<C: Chromosome, T: Debug> Debug for Generation<C, T> {
         write!(f, "  index: {:?},\n", self.index)?;
         write!(f, "  size: {:?},\n", ecosystem.population().len())?;
         write!(f, "  duration: {:?},\n", self.time())?;
+        write!(f, "  objective: {:?},\n", self.objective)?;
 
         if let Some(species) = &ecosystem.species {
             for s in species {

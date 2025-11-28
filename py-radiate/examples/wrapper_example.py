@@ -27,7 +27,7 @@ engine = rd.GeneticEngine(
     objective="min",
 )
 
-result = engine.run(rd.ScoreLimit(0), log=True)
+result = engine.run(rd.ScoreLimit(0), log=True, checkpoint=(10, "wrappers"))
 
 for obj_gene in result.value():
     print(obj_gene)

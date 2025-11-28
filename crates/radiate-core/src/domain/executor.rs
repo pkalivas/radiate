@@ -1,5 +1,5 @@
-use crate::thread_pool::WaitGroup;
-use crate::thread_pool::get_thread_pool;
+use crate::sync::WaitGroup;
+use crate::sync::get_thread_pool;
 #[cfg(feature = "rayon")]
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 

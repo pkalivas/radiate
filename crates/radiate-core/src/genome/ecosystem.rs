@@ -61,6 +61,23 @@ impl<C: Chromosome> Ecosystem<C> {
         }
     }
 
+    /// Get the number of shared phenotypes in the population.
+    /// A shared phenotype is one that is reference cloned and held
+    /// by another structure, such as a [Species]. The only time the shared
+    /// count should ever be > 0 is when the ecosystem has [Species] that
+    /// hold references to phenotypes in the main population.
+    pub fn shared_count(&self) -> usize {
+        self.population.shared_count()
+    }
+
+    /// Like [Ecosystem::shared_count], but returns true if there are
+    /// any shared phenotypes in the population. This should only be true
+    /// when the ecosystem has [Species] that hold references to phenotypes
+    /// in the main population.
+    pub fn is_shared(&self) -> bool {
+        self.shared_count() > 0
+    }
+
     pub fn population(&self) -> &Population<C> {
         &self.population
     }
@@ -150,6 +167,16 @@ impl<C: Chromosome> Ecosystem<C> {
                     spec.population.clear();
                 }
             }
+        }
+    }
+
+    pub fn remvove_dead_species(&mut self) -> usize {
+        if let Some(species) = &mut self.species {
+            let initial_len = species.len();
+            species.retain(|spec| spec.len() > 0);
+            initial_len - species.len()
+        } else {
+            0
         }
     }
 
