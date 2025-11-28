@@ -1,5 +1,5 @@
 use radiate_core::{
-    AlterResult, Chromosome, Crossover, PermutationChromosome, SubsetMode, indexes,
+    AlterResult, Chromosome, Crossover, PermutationChromosome, SubsetMode, math::indexes,
 };
 
 pub struct PMXCrossover {

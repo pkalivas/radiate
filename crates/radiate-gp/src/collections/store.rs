@@ -356,13 +356,11 @@ where
     where
         S: Serializer,
     {
-        // Read the values from the RwLock
         let values = self
             .values
             .read()
             .map_err(|_| S::Error::custom("Failed to acquire read lock"))?;
 
-        // Convert the HashMap into a serializable format
         let serializable: Vec<_> = values
             .iter()
             .map(|(node_type, values)| (node_type, values))

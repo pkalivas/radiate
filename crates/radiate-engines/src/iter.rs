@@ -19,6 +19,10 @@
 
 use crate::{Generation, Limit, init_logging};
 use radiate_core::{Chromosome, Engine, Objective, Optimize, Score};
+#[cfg(feature = "serde")]
+use serde::Serialize;
+#[cfg(feature = "serde")]
+use std::path::{Path, PathBuf};
 use std::{collections::VecDeque, time::Duration};
 use tracing::info;
 
@@ -209,6 +213,13 @@ where
     C: Chromosome,
     T: Clone,
 {
+    fn run(self) -> Option<Generation<C, T>>
+    where
+        Self: Sized,
+    {
+        self.last()
+    }
+
     /// Limits iteration to a specified number of seconds.
     ///
     /// This method creates an iterator that stops when the cumulative execution
@@ -618,6 +629,160 @@ where
         init_logging();
         LoggingIterator { iter: self }
     }
+
+    /// Adds checkpointing to the iteration process.
+    ///
+    /// This method wraps the iterator with checkpointing capabilities, automatically
+    /// saving the state of each generation to disk at specified intervals. This is great if
+    /// you want to be able to resume evolution from a specific generation in case of
+    /// interruptions or crashes.
+    ///
+    /// **Note**: This method requires the `serde` feature to be enabled.
+    ///
+    /// The saved json object is simply the serialized [Generation] object. Thus, it can be
+    /// loaded back into memory using `serde_json::from_str` or similar methods then added back
+    /// to the engine using the `.generation(...)` method on the engine builder to resume evolution.
+    ///
+    /// # Arguments
+    /// * `interval` - The interval (in generations) at which to save checkpoints
+    /// * `path` - The directory path where checkpoints will be saved
+    ///
+    /// # Examples
+    /// ```rust,ignore
+    /// // Add checkpointing to save every 10 generations
+    /// let generation = engine.iter()
+    ///     .checkpoint(10, "checkpoints")
+    ///     .take(100)
+    ///     .last()
+    ///     .unwrap();
+    /// ```
+    #[cfg(feature = "serde")]
+    fn checkpoint(
+        self,
+        interval: usize,
+        path: impl AsRef<Path>,
+    ) -> impl Iterator<Item = Generation<C, T>>
+    where
+        Self: Sized,
+        C: Serialize,
+        T: Serialize,
+    {
+        CheckpointIterator {
+            iter: self,
+            interval,
+            path: path.as_ref().to_path_buf(),
+        }
+    }
+
+    /// Conditionally chains another iterator based on a predicate.
+    ///
+    /// This method allows for dynamic composition of iterators, where
+    /// an additional iterator can be chained based on a boolean condition.
+    /// This is useful for applying optional behaviors like logging or
+    /// checkpointing without duplicating code.
+    ///
+    /// # Arguments
+    /// * `pred` - The predicate condition to evaluate
+    /// * `chain_fn` - A function that takes the current iterator and returns another iterator to chain
+    ///
+    /// # Returns
+    /// An iterator that conditionally chains another iterator
+    ///
+    /// # Examples
+    /// ```rust,ignore  
+    /// // Conditionally add logging based on a flag
+    /// let enable_logging = true;
+    /// let generation = engine.iter()
+    ///     .chain_if(enable_logging, |iter| iter.logging())
+    ///     .take(50)
+    ///     .last()
+    ///     .unwrap();
+    /// ```
+    fn chain_if<F, I>(self, pred: bool, chain_fn: F) -> EitherIter<Self, I>
+    where
+        Self: Sized,
+        F: FnOnce(Self) -> I,
+        I: Iterator<Item = Generation<C, T>>,
+    {
+        if pred {
+            EitherIter::B(chain_fn(self))
+        } else {
+            EitherIter::A(self)
+        }
+    }
+}
+
+/// An enum representing either of two iterator types.
+/// Radiate uses this to conditionally chain iterators.
+pub enum EitherIter<A, B> {
+    A(A),
+    B(B),
+}
+
+impl<A, B, T> Iterator for EitherIter<A, B>
+where
+    A: Iterator<Item = T>,
+    B: Iterator<Item = T>,
+{
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            EitherIter::A(a) => a.next(),
+            EitherIter::B(b) => b.next(),
+        }
+    }
+}
+
+/// Iterator that adds checkpointing to each generation.
+///
+/// **Note**: This iterator requires the `serde` feature to be enabled.
+///
+/// This iterator automatically saves the state of each generation to disk
+/// at specified intervals, allowing for recovery and analysis of the
+/// evolutionary process. Checkpoints are saved as serialized JSON files.
+#[cfg(feature = "serde")]
+struct CheckpointIterator<I, C, T>
+where
+    I: Iterator<Item = Generation<C, T>>,
+    C: Chromosome,
+{
+    iter: I,
+    interval: usize,
+    path: PathBuf,
+}
+
+/// Implementation of `Iterator` for [CheckpointIterator].
+///
+/// Each call to `next()` retrieves the next generation, and if the generation
+/// index matches the checkpoint interval, it serializes and saves the generation
+/// to a JSON file in the specified directory. The filename format is
+/// `generation_{index}.json`.
+#[cfg(feature = "serde")]
+impl<I, C, T> Iterator for CheckpointIterator<I, C, T>
+where
+    I: Iterator<Item = Generation<C, T>>,
+    C: Chromosome + Serialize,
+    T: Serialize,
+{
+    type Item = Generation<C, T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let next = self.iter.next()?;
+
+        if next.index() % self.interval == 0 {
+            let file_path = self.path.join(format!("generation_{}.json", next.index()));
+            let serialized = serde_json::to_string(&next).unwrap();
+
+            if !self.path.exists() {
+                std::fs::create_dir_all(&self.path).unwrap();
+            }
+
+            std::fs::write(&file_path, serialized).unwrap();
+        }
+
+        Some(next)
+    }
 }
 
 /// Iterator that adds logging to each generation.
@@ -658,10 +823,15 @@ where
                 );
             }
             Objective::Multi(_) => {
+                let front_entropy = next.metrics().front_entropy();
+                let entropy = front_entropy
+                    .map(|ent| ent.value_mean())
+                    .flatten()
+                    .unwrap_or(0.0);
                 info!(
-                    "Epoch {:<4} | Scores: {:?} | Time: {:>5.2?}",
+                    "Epoch {:<4} | Entropy: {:.3} | Time: {:>5.2?}",
                     next.index(),
-                    next.score(),
+                    entropy,
                     next.time()
                 );
             }

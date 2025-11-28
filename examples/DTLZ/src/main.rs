@@ -1,4 +1,4 @@
-use plotly::{Plot, Scatter3D};
+use plotly::{Layout, Plot, Scatter3D, layout::Margin};
 use radiate::prelude::*;
 
 const VARIABLES: usize = 4;
@@ -12,25 +12,25 @@ fn main() {
 
     let engine = GeneticEngine::builder()
         .codec(codec)
-        .fitness_fn(|geno: Vec<f32>| dtlz_1(&geno))
+        .fitness_fn(|geno: Vec<f32>| dtlz_7(&geno))
         .executor(Executor::FixedSizedWorkerPool(10))
         .multi_objective(vec![Optimize::Minimize; OBJECTIVES])
         .offspring_selector(TournamentSelector::new(5))
         .survivor_selector(NSGA2Selector::new())
-        .front_size(250..350)
+        .front_size(700..900)
         .alter(alters!(
             SimulatedBinaryCrossover::new(1_f32, 2.0),
             UniformMutator::new(0.1),
         ))
         .build();
 
-    let result = engine
-        .iter()
-        .logging()
-        .take(1000)
-        .collect::<Front<Phenotype<FloatChromosome>>>();
+    let result = engine.iter().logging().take(1000).last().unwrap();
 
-    plot_front(&result);
+    println!("{}", result.metrics());
+
+    // .collect::<Front<Phenotype<FloatChromosome>>>();
+
+    plot_front(&result.front().unwrap());
 }
 
 fn plot_front(front: &Front<Phenotype<FloatChromosome>>) {
@@ -48,6 +48,12 @@ fn plot_front(front: &Front<Phenotype<FloatChromosome>>) {
     }
 
     let mut plot = Plot::new();
+    plot.set_layout(
+        Layout::new()
+            .title("DTLZ7 Pareto Front")
+            .margin(Margin::new().left(0).right(0).top(0).bottom(0))
+            .scene(plotly::layout::LayoutScene::new()),
+    );
     let trace = Scatter3D::new(x, y, z)
         .name("Pareto Front")
         .mode(plotly::common::Mode::Markers)

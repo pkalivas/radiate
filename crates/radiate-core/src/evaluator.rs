@@ -68,14 +68,6 @@ pub struct FitnessEvaluator {
 impl FitnessEvaluator {
     /// Creates a new fitness evaluator with the specified executor.
     ///
-    /// # Arguments
-    ///
-    /// * `executor` - The executor to use for running fitness evaluations
-    ///
-    /// # Returns
-    ///
-    /// A new `FitnessEvaluator` instance
-    ///
     /// # Note
     ///
     /// Choose an executor that matches your performance requirements:
@@ -206,14 +198,6 @@ pub struct BatchFitnessEvaluator {
 
 impl BatchFitnessEvaluator {
     /// Creates a new batch fitness evaluator with the specified executor.
-    ///
-    /// # Arguments
-    ///
-    /// * `executor` - The executor to use for running batch evaluations
-    ///
-    /// # Returns
-    ///
-    /// A new [BatchFitnessEvaluator] instance
     ///
     /// # Note
     ///

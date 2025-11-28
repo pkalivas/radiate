@@ -286,25 +286,6 @@ impl Op<f32> {
         )
     }
 
-    pub fn pgm_set<N>(seeds: impl Into<Vec<N>>) -> Vec<Op<f32>>
-    where
-        N: Into<TreeNode<Op<f32>>>,
-    {
-        let seeds = seeds
-            .into()
-            .into_iter()
-            .map(|s| s.into())
-            .collect::<Vec<TreeNode<Op<f32>>>>();
-
-        vec![
-            Op::log_sum_exp(seeds.clone()),
-            Op::weighted_mean(seeds.clone()),
-            Op::clamp_norm(seeds.clone()),
-            Op::softmax_argmax(seeds.clone()),
-            Op::attention_sum(seeds.clone()),
-        ]
-    }
-
     #[inline]
     fn stable_softmax(xs: &[f32]) -> Vec<f32> {
         if xs.is_empty() {
@@ -322,5 +303,24 @@ impl Op<f32> {
         exps.into_iter()
             .map(|e| super::math::clamp(e / s))
             .collect()
+    }
+
+    pub fn pgm_set<N>(seeds: impl Into<Vec<N>>) -> Vec<Op<f32>>
+    where
+        N: Into<TreeNode<Op<f32>>>,
+    {
+        let seeds = seeds
+            .into()
+            .into_iter()
+            .map(|s| s.into())
+            .collect::<Vec<TreeNode<Op<f32>>>>();
+
+        vec![
+            Op::log_sum_exp(seeds.clone()),
+            Op::weighted_mean(seeds.clone()),
+            Op::clamp_norm(seeds.clone()),
+            Op::softmax_argmax(seeds.clone()),
+            Op::attention_sum(seeds.clone()),
+        ]
     }
 }

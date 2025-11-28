@@ -4,6 +4,7 @@ from radiate.genome.population import Population
 from radiate.fitness import FitnessBase
 from radiate.handlers import CallableEventHandler, EventHandler
 from radiate.radiate import PyEngine, PyEngineBuilder
+from radiate.generation import Generation
 from ._typing import Subscriber
 from .inputs.input import EngineInput, EngineInputType
 from .inputs.selector import SelectorBase
@@ -78,6 +79,30 @@ class EngineBuilder:
                 add_subscriber(sub)
         else:
             add_subscriber(subscriber)
+
+    def set_generation(self, generation: Generation | None):
+        if generation is None:
+            return
+
+        self._inputs.append(
+            EngineInput(
+                input_type=EngineInputType.Generation,
+                component="generation",
+                generation=generation.__backend__(),
+            )
+        )
+
+    def set_checkpoint_path(self, checkpoint_path: str | None):
+        if checkpoint_path is None:
+            return
+
+        self._inputs.append(
+            EngineInput(
+                input_type=EngineInputType.Checkpoint,
+                component="checkpoint",
+                path=checkpoint_path,
+            )
+        )
 
     def set_population(self, population: Population):
         if population is None:

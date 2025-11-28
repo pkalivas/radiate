@@ -4,7 +4,6 @@ use crate::node::Node;
 use crate::{Arity, Factory, NodeType};
 use radiate_core::Chromosome;
 use radiate_core::{AlterResult, Mutate, metric, random_provider};
-use smallvec::SmallVec;
 
 const INVALID_MUTATION: &str = "GraphMutator(Ivld)";
 
@@ -39,7 +38,7 @@ impl GraphMutator {
 
     /// Set the `allow_recurrent` flag to allow or disallow recurrent nodes in the graph.
     ///
-    /// If `allow` is true, recurrent nodes are allowed. If false, they are not.
+    /// If `allow` is true, recurrent nodes/cycles can be added to the graph. If false, they are not.
     /// When a recurrent node is or cycle is created during mutation and `allow_recurrent` is false,
     /// the mutation will be discarded and the changes to the graph will be rolled back resulting in
     /// no changes to the graph.
@@ -98,7 +97,7 @@ where
                 let target_idx = trans.random_target_node().map(|n| n.index());
                 let source_idx = (0..needed_insertions)
                     .filter_map(|_| trans.random_source_node().map(|n| n.index()))
-                    .collect::<SmallVec<[_; 4]>>();
+                    .collect::<Vec<usize>>();
 
                 let node_idx = trans.add_node(new_node);
 

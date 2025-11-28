@@ -1,4 +1,3 @@
-use crate::PySubscriber;
 use crate::bindings::codec::PyTreeCodec;
 use crate::bindings::{EngineBuilderHandle, EngineHandle};
 use crate::events::PyEventHandler;
@@ -6,6 +5,7 @@ use crate::{
     FreeThreadPyEvaluator, InputTransform, PyCodec, PyEngine, PyEngineInput, PyEngineInputType,
     PyFitnessFn, PyFitnessInner, PyPermutationCodec, PyPopulation, prelude::*,
 };
+use crate::{PyGeneration, PySubscriber};
 use pyo3::{Py, PyAny, pyclass, pymethods, types::PyAnyMethods};
 use radiate::prelude::*;
 use radiate_error::{radiate_py_bail, radiate_py_err};
@@ -107,7 +107,7 @@ impl PyEngineBuilder {
             .unwrap_or(Executor::Serial);
 
         match problem.inner {
-            custom @ Custom(..) => Self::init_custom_handle(codec, custom, executor),
+            custom @ Custom(..) => Self::init_custom_builder(codec, custom, executor),
             reg @ Regression(..) => Self::init_regression_builder(reg, codec, executor),
             novelty @ NoveltySearch(..) => Self::init_novelty_builder(novelty, codec, executor),
         }
@@ -132,8 +132,39 @@ impl PyEngineBuilder {
             Diversity => Self::process_diversity(builder, inputs),
             Population => Self::process_population(builder, inputs),
             Subscriber => Self::process_subscribers(builder, inputs),
+            Generation => Self::process_generation(builder, inputs),
+            Checkpoint => Self::process_checkpoint(builder, inputs),
             _ => Ok(builder),
         }
+    }
+
+    fn process_generation(
+        builder: EngineBuilderHandle,
+        inputs: &[PyEngineInput],
+    ) -> PyResult<EngineBuilderHandle> {
+        dispatch_builder_typed!(
+            builder,
+            inputs,
+            Self::process_single_typed(|typed_builder, input| {
+                let mut generation = input.extract::<PyGeneration>("generation")?;
+                let ecosystem = Ecosystem::from(generation.ecosystem());
+                Ok(typed_builder.ecosystem(ecosystem))
+            })
+        )
+    }
+
+    fn process_checkpoint(
+        builder: EngineBuilderHandle,
+        inputs: &[PyEngineInput],
+    ) -> PyResult<EngineBuilderHandle> {
+        dispatch_builder_typed!(
+            builder,
+            inputs,
+            Self::process_single_typed(|typed_builder, input| {
+                let path = input.extract::<String>("path")?;
+                Ok(typed_builder.load_checkpoint(path))
+            })
+        )
     }
 
     fn process_population(
@@ -378,7 +409,7 @@ impl PyEngineBuilder {
         )
     }
 
-    fn init_custom_handle<'py>(
+    fn init_custom_builder<'py>(
         codec: &Bound<'py, PyAny>,
         fitness: PyFitnessInner,
         executor: Executor,
@@ -453,7 +484,7 @@ impl PyEngineBuilder {
                 Tree(base_engine.fitness_fn(regression))
             }
         } else {
-            radiate_py_bail!("Unsupported codec type for regression problem");
+            radiate_py_bail!("Only Graph or Tree codecs are supported for regression problems");
         };
 
         Ok(builder)

@@ -1,6 +1,6 @@
 pub mod alter;
 pub mod codecs;
-pub mod distance;
+pub mod diversity;
 pub mod domain;
 pub mod engine;
 pub mod error;
@@ -20,7 +20,7 @@ pub use alter::{Alter, AlterAction, AlterResult, Crossover, Mutate};
 pub use codecs::{
     BitCodec, CharCodec, Codec, FloatCodec, FnCodec, IntCodec, PermutationCodec, SubSetCodec,
 };
-pub use distance::{CosineDistance, Diversity, EuclideanDistance, HammingDistance};
+pub use diversity::{CosineDistance, Diversity, EuclideanDistance, HammingDistance};
 pub use domain::*;
 pub use engine::{Engine, EngineExt};
 pub use evaluator::{BatchFitnessEvaluator, Evaluator, FitnessEvaluator};
@@ -43,7 +43,7 @@ pub mod prelude {
     pub use super::codecs::{
         BitCodec, CharCodec, Codec, FloatCodec, FnCodec, IntCodec, PermutationCodec, SubSetCodec,
     };
-    pub use super::distance::{CosineDistance, Diversity, EuclideanDistance, HammingDistance};
+    pub use super::diversity::{CosineDistance, Diversity, EuclideanDistance, HammingDistance};
     pub use super::domain::random_provider;
     pub use super::engine::{Engine, EngineExt};
     pub use super::evaluator::{BatchFitnessEvaluator, Evaluator, FitnessEvaluator};

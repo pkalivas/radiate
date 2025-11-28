@@ -16,6 +16,22 @@ class Generation[T](PyObject[PyGeneration]):
 
     def __repr__(self):
         return f"{self.__backend__().__repr__()}"
+    
+    def to_json(self) -> str:
+        """
+        Serialize the generation to a JSON string.
+        :return: The JSON string representation of the generation.
+        """
+        return self.__backend__().to_json()
+    
+    @staticmethod
+    def from_json(json_str: str) -> "Generation":
+        """
+        Deserialize a JSON string to a Generation object.
+        :param json_str: The JSON string representation of the generation.
+        :return: A Generation object.
+        """
+        return Generation.from_rust(PyGeneration.from_json(json_str))
 
     def score(self) -> list[float]:
         """

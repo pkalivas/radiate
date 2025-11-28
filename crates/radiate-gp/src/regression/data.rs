@@ -76,6 +76,7 @@ impl DataSet {
 
     #[inline]
     pub fn split(self, ratio: f32) -> (Self, Self) {
+        let ratio = ratio.clamp(0.0, 1.0);
         let split = (self.len() as f32 * ratio).round() as usize;
         let (left, right) = self.rows.split_at(split);
 

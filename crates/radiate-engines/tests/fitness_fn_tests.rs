@@ -112,7 +112,7 @@ mod fitness_fn_tests {
                 UniformCrossover::new(0.7),
                 GaussianMutator::new(0.2),
             ])
-            .fitness_fn(NoveltySearch::new(CosineDistance, 10, 0.03))
+            .fitness_fn(NoveltySearch::new(CosineDistance).k(10).threshold(0.03))
             .build();
 
         let cloned_base_problem = base_problem.clone();
@@ -132,13 +132,16 @@ mod fitness_fn_tests {
                         move |geno: &Vec<f32>| cloned_base_problem.eval_raw(geno),
                         0.7,
                     )
-                    .add_weighted_fn(NoveltySearch::new(CosineDistance, 10, 0.03), 0.3),
+                    .add_weighted_fn(
+                        NoveltySearch::new(CosineDistance).k(10).threshold(0.03),
+                        0.3,
+                    ),
             )
             .build();
 
-        let regular_generation = regular_engine.iter().take(50).last().unwrap();
-        let novelty_generation = novelty_engine.iter().take(50).last().unwrap();
-        let combined_generation = combined_engine.iter().take(50).last().unwrap();
+        let mut regular_generation = regular_engine.iter().take(50).last().unwrap();
+        let mut novelty_generation = novelty_engine.iter().take(50).last().unwrap();
+        let mut combined_generation = combined_engine.iter().take(50).last().unwrap();
 
         let regular_diversity = calculate_diversity(regular_generation.population());
         let novelty_diversity = calculate_diversity(novelty_generation.population());

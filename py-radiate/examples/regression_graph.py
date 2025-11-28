@@ -91,6 +91,9 @@ engine = rd.GeneticEngine(
     ],
 )
 
-result = engine.run([rd.ScoreLimit(0.001), rd.GenerationsLimit(1000)], log=True)
+result = engine.run(
+    [rd.ScoreLimit(0.001), rd.GenerationsLimit(1000)],
+    log=True,
+)
 print(result)
 print(result.metrics().dashboard())

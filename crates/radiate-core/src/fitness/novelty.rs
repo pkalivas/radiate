@@ -1,18 +1,23 @@
-use crate::{BatchFitnessFunction, FitnessFunction};
+use crate::{
+    BatchFitnessFunction, CosineDistance, EuclideanDistance, FitnessFunction, HammingDistance,
+    diversity::Distance, math::knn::KNN,
+};
 use std::{
     collections::VecDeque,
     sync::{Arc, RwLock},
 };
 
 const DEFAULT_ARCHIVE_SIZE: usize = 1000;
+const DEFAULT_K: usize = 15;
+const DEFAULT_THRESHOLD: f32 = 0.5;
 
-pub trait Novelty<T> {
+pub trait Novelty<T>: Send + Sync {
     fn description(&self, member: &T) -> Vec<f32>;
 }
 
 impl<T, F> Novelty<T> for F
 where
-    F: Fn(&T) -> Vec<f32>,
+    F: Fn(&T) -> Vec<f32> + Send + Sync,
 {
     fn description(&self, member: &T) -> Vec<f32> {
         self(member)
@@ -21,110 +26,83 @@ where
 
 #[derive(Clone)]
 pub struct NoveltySearch<T> {
-    pub behavior: Arc<dyn Novelty<T> + Send + Sync>,
+    pub behavior: Arc<dyn Novelty<T>>,
     pub archive: Arc<RwLock<VecDeque<Vec<f32>>>>,
     pub k: usize,
     pub threshold: f32,
     pub max_archive_size: usize,
-    pub distance_fn: Arc<dyn Fn(&[f32], &[f32]) -> f32 + Send + Sync>,
+    pub distance_fn: Arc<dyn Distance<Vec<f32>>>,
 }
 
 impl<T> NoveltySearch<T> {
-    pub fn new<N>(behavior: N, k: usize, threshold: f32) -> Self
+    pub fn new<N>(behavior: N) -> Self
     where
         N: Novelty<T> + Send + Sync + 'static,
     {
         NoveltySearch {
             behavior: Arc::new(behavior),
             archive: Arc::new(RwLock::new(VecDeque::new())),
-            k,
-            threshold,
+            k: DEFAULT_K,
+            threshold: DEFAULT_THRESHOLD,
             max_archive_size: DEFAULT_ARCHIVE_SIZE,
-            distance_fn: Arc::new(|a, b| {
-                if a.len() != b.len() {
-                    return f32::INFINITY;
-                }
-                a.iter()
-                    .zip(b.iter())
-                    .map(|(x, y)| (x - y).powi(2))
-                    .sum::<f32>()
-                    .sqrt()
-            }),
+            distance_fn: Arc::new(EuclideanDistance),
         }
     }
 
-    pub fn with_max_archive_size(mut self, size: usize) -> Self {
+    pub fn k(mut self, k: usize) -> Self {
+        self.k = k;
+        self
+    }
+
+    pub fn threshold(mut self, threshold: f32) -> Self {
+        self.threshold = threshold;
+        self
+    }
+
+    pub fn archive_size(mut self, size: usize) -> Self {
         self.max_archive_size = size;
         self
     }
 
     pub fn cosine_distance(mut self) -> Self {
-        self.distance_fn = Arc::new(|a, b| {
-            let dot_product = a.iter().zip(b.iter()).map(|(x, y)| x * y).sum::<f32>();
-            let norm_a = a.iter().map(|x| x * x).sum::<f32>().sqrt();
-            let norm_b = b.iter().map(|x| x * x).sum::<f32>().sqrt();
-            1.0 - (dot_product / (norm_a * norm_b))
-        });
+        self.distance_fn = Arc::new(CosineDistance);
         self
     }
 
     pub fn euclidean_distance(mut self) -> Self {
-        self.distance_fn = Arc::new(|a, b| {
-            if a.len() != b.len() {
-                return f32::INFINITY;
-            }
-            a.iter()
-                .zip(b.iter())
-                .map(|(x, y)| (x - y).powi(2))
-                .sum::<f32>()
-                .sqrt()
-        });
+        self.distance_fn = Arc::new(EuclideanDistance);
         self
     }
 
     pub fn hamming_distance(mut self) -> Self {
-        self.distance_fn = Arc::new(|a, b| {
-            if a.len() != b.len() {
-                return f32::INFINITY;
-            }
-            a.iter().zip(b.iter()).filter(|(x, y)| x != y).count() as f32
-        });
+        self.distance_fn = Arc::new(HammingDistance);
         self
     }
 
-    fn normalized_novelty_score(&self, descriptor: &Vec<f32>, archive: &VecDeque<Vec<f32>>) -> f32 {
+    fn normalized_novelty_score(
+        &self,
+        descriptor: &Vec<f32>,
+        archive: &mut VecDeque<Vec<f32>>,
+    ) -> f32 {
         if archive.is_empty() {
             return 0.5;
         }
+        let slice = archive.make_contiguous();
 
-        let mut min_distance = f32::INFINITY;
-        let mut max_distance = f32::NEG_INFINITY;
-        let mut distances = archive
-            .iter()
-            .map(|archived| (self.distance_fn)(&descriptor, archived))
-            .inspect(|&d| {
-                max_distance = max_distance.max(d);
-                min_distance = min_distance.min(d);
-            })
-            .collect::<Vec<f32>>();
+        let mut knn = KNN::new(&slice, Arc::clone(&self.distance_fn));
+        let query = knn.query_point(descriptor, self.k);
 
+        let min_distance = query.min_distance;
+        let max_distance = query.max_distance;
         if max_distance == min_distance {
-            if min_distance == 0.0 {
-                return 0.0;
+            match min_distance {
+                _ if min_distance == 0.0 => return 0.0,
+                _ if min_distance > 0.0 => return 0.5,
+                _ => return 0.0,
             }
-
-            if min_distance > 0.0 {
-                return 0.5;
-            }
-
-            return 0.0;
         }
 
-        distances.sort_by(|a, b| a.partial_cmp(b).unwrap());
-        let k = std::cmp::min(self.k, distances.len());
-        let k_nearest_distances = &distances[..k];
-        let avg_distance = k_nearest_distances.iter().sum::<f32>() / k as f32;
-
+        let avg_distance = query.average_distance();
         (avg_distance - min_distance) / (max_distance - min_distance)
     }
 
@@ -143,16 +121,16 @@ impl<T> NoveltySearch<T> {
         }
 
         let (novelty, should_add) = {
-            let archive = self.archive.read().unwrap();
-            let result = self.normalized_novelty_score(&description, &archive);
+            let mut archive = self.archive.write().unwrap();
+            let result = self.normalized_novelty_score(&description, &mut archive);
             let should_add = result > self.threshold || archive.len() < self.k;
 
             (result, should_add)
         };
 
-        let mut writer = self.archive.write().unwrap();
-
         if should_add {
+            let mut writer = self.archive.write().unwrap();
+
             writer.push_back(description);
             while writer.len() > self.max_archive_size {
                 writer.pop_front();

@@ -2,13 +2,12 @@ mod arithmatic;
 mod cell;
 mod dtype;
 mod gene;
-mod numeric;
+mod serde;
 pub(crate) mod value;
 
 use cell::GILOnceCell;
 pub use dtype::Field;
 pub use gene::{AnyChromosome, AnyGene};
-pub use numeric::NumericSlotMut;
 pub use value::AnyValue;
 
 use pyo3::{

@@ -10,7 +10,9 @@ pub mod metric_names {
     pub const REPLACE_INVALID: &str = "replace_invalid";
 
     pub const GENOME_SIZE: &str = "genome_size";
+
     pub const FRONT_ADDITIONS: &str = "front_additions";
+    pub const FRONT_ENTROPY: &str = "front_entropy";
 
     pub const UNIQUE_MEMBERS: &str = "unique_members";
     pub const UNIQUE_SCORES: &str = "unique_scores";
@@ -34,7 +36,7 @@ pub mod metric_names {
 }
 
 /// Lookup the default scope for a given metric name.
-pub fn default_scope(name: &'static str) -> Scope {
+pub fn default_scope(name: &str) -> Scope {
     match name {
         metric_names::LIFETIME_UNIQUE_MEMBERS | metric_names::TIME => Scope::Lifetime,
         _ => Scope::Generation,
@@ -43,7 +45,7 @@ pub fn default_scope(name: &'static str) -> Scope {
 
 /// Lookup the default rollup mode for a given metric name.
 /// These decide how values are aggregated when flushing scopes.
-pub fn default_rollup(name: &'static str) -> Rollup {
+pub fn default_rollup(name: &str) -> Rollup {
     match name {
         metric_names::AGE
         | metric_names::GENOME_SIZE
@@ -52,18 +54,11 @@ pub fn default_rollup(name: &'static str) -> Rollup {
         | metric_names::SURVIVOR_COUNT
         | metric_names::SCORE_VOLATILITY
         | metric_names::FRONT_ADDITIONS
+        | metric_names::UNIQUE_MEMBERS
+        | metric_names::UNIQUE_SCORES
         | metric_names::SPECIES_AGE
         | metric_names::SPECIES_COUNT => Rollup::Mean,
 
-        metric_names::UNIQUE_MEMBERS | metric_names::UNIQUE_SCORES => Rollup::Mean,
-
-        metric_names::NEW_CHILDREN
-        | metric_names::SPECIES_CREATED
-        | metric_names::SPECIES_DIED
-        | metric_names::EVALUATION_COUNT
-        | metric_names::LIFETIME_UNIQUE_MEMBERS => Rollup::Sum,
-
-        metric_names::SPECIES_DISTANCE_DIST | metric_names::SCORES => Rollup::Sum,
         metric_names::TIME => Rollup::Last,
 
         _ => Rollup::Sum,

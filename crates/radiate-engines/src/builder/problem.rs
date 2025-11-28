@@ -36,7 +36,7 @@ where
 
     /// Set the fitness function of the genetic engine. This is the function that will be
     /// used to evaluate the fitness of each individual in the population. This function should
-    /// take a single argument of type T and return a `Score`. The `Score` is used to
+    /// take a single argument of type T and return a [Score]. The [Score] is used to
     /// evaluate or rank the fitness of the individual.
     ///
     /// This method is required and must be set before calling the `build` method.

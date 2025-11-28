@@ -20,6 +20,9 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Physics",
 ]
 dynamic = ["version"]
+authors = [
+  { name = "Peter Kalivas", email = "peterkalivas@gmail.com" },
+]
 
 [tool.pytest.ini_options]
 addopts = "--import-mode=importlib"

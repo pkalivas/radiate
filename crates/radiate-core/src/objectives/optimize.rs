@@ -1,6 +1,9 @@
 use super::Scored;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Objective {
     Single(Optimize),
     Multi(Vec<Optimize>),
@@ -124,6 +127,7 @@ impl AsRef<[Optimize]> for Objective {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Optimize {
     Minimize,
     Maximize,

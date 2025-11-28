@@ -15,18 +15,14 @@ impl Loss {
         let out_len = data_set.shape().2;
         let mut buffer = vec![0.0; out_len];
 
-        self.calculate(
-            data_set,
-            |x, y| {
-                let v = eval.eval_mut(x);
-                y.copy_from_slice(&v);
-            },
-            &mut buffer[..out_len],
-        )
+        self.calculate(data_set, &mut buffer[..out_len], |x, y| {
+            let v = eval.eval_mut(x);
+            y.copy_from_slice(&v);
+        })
     }
 
     #[inline]
-    pub fn calculate<F>(&self, data_set: &DataSet, mut eval_into_buf: F, buffer: &mut [f32]) -> f32
+    pub fn calculate<F>(&self, data_set: &DataSet, buffer: &mut [f32], mut eval_into_buf: F) -> f32
     where
         F: FnMut(&[f32], &mut [f32]),
     {
@@ -43,6 +39,7 @@ impl Loss {
                         sum += d * d;
                     }
                 }
+
                 sum / n
             }
             Loss::MAE => {
@@ -55,6 +52,7 @@ impl Loss {
                         sum += d.abs();
                     }
                 }
+
                 sum / n
             }
             Loss::CrossEntropy => {
@@ -69,6 +67,7 @@ impl Loss {
                         sum += -p * q.ln();
                     }
                 }
+
                 sum / n
             }
             Loss::Diff => {
@@ -80,6 +79,7 @@ impl Loss {
                         sum += (target[i] - buffer[i]).abs();
                     }
                 }
+
                 sum / n
             }
         }

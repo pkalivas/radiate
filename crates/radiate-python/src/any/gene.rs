@@ -1,5 +1,6 @@
-use crate::{AnyValue, NumericSlotMut};
+use crate::AnyValue;
 use radiate::{ArithmeticGene, Chromosome, Gene, Valid};
+
 use std::{
     collections::HashMap,
     fmt::Debug,
@@ -41,10 +42,6 @@ impl<'a> AnyGene<'a> {
 
     pub fn metadata(&self) -> Option<&HashMap<String, String>> {
         self.metadata.as_ref().map(|m| m.as_ref())
-    }
-
-    pub fn numeric_allele_mut(&mut self) -> Option<NumericSlotMut<'_>> {
-        self.allele.get_numeric_slot_mut()
     }
 }
 

@@ -56,7 +56,7 @@ impl<C: Chromosome + PartialEq> RecombineStep<C> {
     where
         C: Clone,
     {
-        if let Some(species) = ecosystem.species.as_ref() {
+        if let Some(species) = ecosystem.species() {
             let total_offspring = self.offspring_count as f32;
             let mut species_scores = species
                 .iter()
@@ -67,23 +67,22 @@ impl<C: Chromosome + PartialEq> RecombineStep<C> {
                 species_scores.reverse();
             }
 
-            let mut offspring = Vec::with_capacity(self.offspring_count);
+            let mut next_population = Vec::with_capacity(self.offspring_count);
             for (species, score) in species.iter().zip(species_scores.iter()) {
                 let count = (score.as_f32() * total_offspring).round() as usize;
-                let mut selected_offspring =
-                    self.select_offspring(count, &species.population, metrics);
+                let mut offspring = self.select_offspring(count, &species.population(), metrics);
 
-                self.objective.sort(&mut selected_offspring);
+                self.objective.sort(&mut offspring);
 
-                self.apply_alterations(generation, &mut selected_offspring, metrics);
+                self.apply_alterations(generation, &mut offspring, metrics);
 
-                offspring.extend(selected_offspring);
+                next_population.extend(offspring);
             }
 
-            Population::new(offspring)
+            Population::new(next_population)
         } else {
             let mut offspring =
-                self.select_offspring(self.offspring_count, &ecosystem.population, metrics);
+                self.select_offspring(self.offspring_count, &ecosystem.population(), metrics);
 
             self.objective.sort(&mut offspring);
 

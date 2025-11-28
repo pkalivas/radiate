@@ -23,6 +23,7 @@ pub(super) const fn clamp(value: f32) -> f32 {
 /// Aggregate a slice of 'f32' values by summing them, then applying a function to the result.
 /// There usually arent too many inputs, so we can use an if statement to handle a few of the
 /// common cases - vals with a len <= 5.
+#[inline]
 pub(super) fn aggregate(vals: &[f32]) -> f32 {
     let len = vals.len();
     if len == 0 {
@@ -37,6 +38,10 @@ pub(super) fn aggregate(vals: &[f32]) -> f32 {
         return vals[0] + vals[1] + vals[2] + vals[3];
     } else if len == 5 {
         return vals[0] + vals[1] + vals[2] + vals[3] + vals[4];
+    } else if len == 6 {
+        return vals[0] + vals[1] + vals[2] + vals[3] + vals[4] + vals[5];
+    } else if len == 7 {
+        return vals[0] + vals[1] + vals[2] + vals[3] + vals[4] + vals[5] + vals[6];
     }
 
     vals.iter().cloned().sum::<f32>()

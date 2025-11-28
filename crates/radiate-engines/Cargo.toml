@@ -24,4 +24,4 @@ tracing-subscriber = { workspace = true }
 [features]
 default = []
 rayon = [ "radiate-core/rayon" ]
-
+serde = [ "dep:serde", "dep:serde_json", "radiate-core/serde" ]

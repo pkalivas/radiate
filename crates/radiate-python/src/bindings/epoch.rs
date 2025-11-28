@@ -20,7 +20,7 @@ use std::time::Duration;
 
 #[pyclass(unsendable)]
 pub struct PyGeneration {
-    inner: EpochHandle,
+    pub(crate) inner: EpochHandle,
 }
 
 impl PyGeneration {
@@ -31,6 +31,20 @@ impl PyGeneration {
 
 #[pymethods]
 impl PyGeneration {
+    pub fn to_json(&self) -> PyResult<String> {
+        serde_json::to_string(&self.inner).map_err(|e| {
+            pyo3::exceptions::PyValueError::new_err(format!("Failed to serialize to JSON: {}", e))
+        })
+    }
+
+    #[staticmethod]
+    pub fn from_json(json_str: &str) -> PyResult<Self> {
+        let handle = serde_json::from_str::<EpochHandle>(json_str)
+            .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("Invalid JSON: {}", e)))?;
+
+        Ok(PyGeneration::new(handle))
+    }
+
     pub fn index(&self) -> usize {
         match &self.inner {
             EpochHandle::Int(epoch) => epoch.index(),
@@ -98,8 +112,8 @@ impl PyGeneration {
         Ok(PyMetricSet::from(metrics.clone()))
     }
 
-    pub fn ecosystem(&self) -> PyEcosystem {
-        match &self.inner {
+    pub fn ecosystem(&mut self) -> PyEcosystem {
+        match &mut self.inner {
             EpochHandle::Int(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
             EpochHandle::Float(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
             EpochHandle::Char(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
@@ -111,8 +125,8 @@ impl PyGeneration {
         }
     }
 
-    pub fn species(&self) -> Option<Vec<PySpecies>> {
-        match &self.inner {
+    pub fn species(&mut self) -> Option<Vec<PySpecies>> {
+        match &mut self.inner {
             EpochHandle::Int(epoch) => epoch
                 .species()
                 .map(|s| s.iter().cloned().map(PySpecies::from).collect()),
@@ -140,8 +154,8 @@ impl PyGeneration {
         }
     }
 
-    pub fn population(&self) -> PyPopulation {
-        match &self.inner {
+    pub fn population(&mut self) -> PyPopulation {
+        match &mut self.inner {
             EpochHandle::Int(epoch) => PyPopulation::from(epoch.population()),
             EpochHandle::Float(epoch) => PyPopulation::from(epoch.population()),
             EpochHandle::Char(epoch) => PyPopulation::from(epoch.population()),
@@ -206,6 +220,14 @@ impl PyGeneration {
                 value.to_string()
             },
         ))
+    }
+}
+
+impl Clone for PyGeneration {
+    fn clone(&self) -> Self {
+        PyGeneration {
+            inner: self.inner.clone(),
+        }
     }
 }
 

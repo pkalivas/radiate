@@ -22,7 +22,7 @@ impl<C: Chromosome, T> PyProblem<C, T> {
     fn call_fitness<'py>(&self, py: Python<'py>, phenotype: PyAnyObject) -> radiate::Result<Score> {
         let any_value = self.fitness_func.inner.call1(py, (phenotype.inner,)).map_err(|e| {
             error::radiate_err!(Evaluation:
-                "Ensure the function is callable, accepts one argument (Genotype), and returns a valid score. Details: {}",
+                "Ensure the function is callable, accepts one argument (Genotype), and returns a valid score: {}",
                 e
             )
         })?;

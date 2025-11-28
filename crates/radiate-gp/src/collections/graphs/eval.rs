@@ -1,8 +1,11 @@
 use super::{Graph, GraphNode, iter::GraphIterator};
-use crate::{Eval, EvalMut, NodeType, eval::EvalIntoMut, node::Node};
+use crate::{
+    Eval, EvalMut, NodeType,
+    eval::{EvalInto, EvalIntoMut},
+    node::Node,
+};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use smallvec::SmallVec;
 use std::ops::Range;
 
 /// A cache for storing intermediate results during graph evaluation.
@@ -19,7 +22,7 @@ pub struct GraphEvalCache<V> {
     outputs: Vec<V>,
     inputs: Vec<V>,
     input_ranges: Vec<Range<usize>>,
-    output_indices: SmallVec<[usize; 8]>,
+    output_indices: Vec<usize>,
 }
 
 /// [GraphEvaluator] is a struct that is used to evaluate a [Graph] of [GraphNode]'s. It uses the [GraphIterator]
@@ -57,12 +60,10 @@ where
             total_inputs += k;
         }
 
-        let mut output_indices: SmallVec<[usize; 8]> = SmallVec::new();
-        for (i, n) in nodes.iter().enumerate() {
-            if n.node_type() == NodeType::Output {
-                output_indices.push(i);
-            }
-        }
+        let output_indices = graph
+            .get_nodes_of_type(NodeType::Output)
+            .map(|n| n.index())
+            .collect::<Vec<usize>>();
 
         GraphEvaluator {
             nodes,
@@ -89,7 +90,7 @@ where
     #[inline]
     fn eval_mut(&mut self, input: &[V]) -> Vec<V> {
         let out_len = self.inner.output_indices.len();
-        let mut buffer: Vec<V> = vec![V::default(); out_len];
+        let mut buffer = vec![V::default(); out_len];
         self.eval_into_mut(input, &mut buffer[..]);
         buffer
     }
@@ -121,9 +122,30 @@ where
         }
 
         let mut count = 0;
-        for &idx in &self.inner.output_indices {
+        for &idx in self.inner.output_indices.iter() {
             buffer[count] = self.inner.outputs[idx].clone();
             count += 1;
+        }
+    }
+}
+
+impl<T, V> EvalInto<[Vec<V>], Vec<Vec<V>>> for Graph<T>
+where
+    T: Eval<[V], V>,
+    V: Clone + Default,
+{
+    /// Evaluates the [Graph] with the given input `Vec<Vec<T>>`. Returns the output of the [Graph] as `Vec<Vec<T>>`.
+    ///
+    /// # Arguments
+    /// * `input` - A `Vec<Vec<T>>` to evaluate the [Graph] with.
+    ///
+    /// # Returns
+    /// * A `Vec<Vec<T>>` which is the output of the [Graph].
+    #[inline]
+    fn eval_into(&self, input: &[Vec<V>], buffer: &mut Vec<Vec<V>>) {
+        let mut evaluator = GraphEvaluator::new(self);
+        for i in 0..input.len() {
+            evaluator.eval_into_mut(&input[i], &mut buffer[i]);
         }
     }
 }

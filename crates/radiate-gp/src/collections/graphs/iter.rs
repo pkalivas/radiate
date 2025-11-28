@@ -1,4 +1,4 @@
-use crate::collections::GraphNode;
+use crate::{Node, NodeType, collections::GraphNode};
 use radiate_core::Valid;
 use std::collections::VecDeque;
 
@@ -6,6 +6,19 @@ use std::collections::VecDeque;
 /// traverse the said nodes in a pseudo-topological order.
 pub trait GraphIterator<'a, T> {
     fn iter_topological(&'a self) -> GraphTopologicalIterator<'a, T>;
+
+    fn get_nodes_of_type(
+        &'a self,
+        node_type: NodeType,
+    ) -> impl Iterator<Item = &'a GraphNode<T>> + 'a
+    where
+        Self: AsRef<[GraphNode<T>]>,
+        T: 'a,
+    {
+        self.as_ref()
+            .iter()
+            .filter(move |node| node.node_type() == node_type)
+    }
 }
 
 impl<'a, G: AsRef<[GraphNode<T>]>, T> GraphIterator<'a, T> for G {
