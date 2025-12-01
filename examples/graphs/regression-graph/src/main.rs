@@ -16,6 +16,7 @@ fn main() {
         .codec(GraphCodec::directed(1, 1, store))
         .fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
+        // .diversity(NeatDistance::new(0.1, 0.1, 0.3))
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),

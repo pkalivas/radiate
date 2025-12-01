@@ -16,7 +16,6 @@ impl<'a> KnnQueryResult<'a> {
         }
     }
 
-    #[inline]
     pub fn average_distance(&self) -> f32 {
         if self.cluster.is_empty() {
             0.0

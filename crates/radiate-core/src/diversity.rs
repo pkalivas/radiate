@@ -117,40 +117,6 @@ where
     }
 }
 
-impl<G, C> Distance<Genotype<C>> for EuclideanDistance
-where
-    C: Chromosome<Gene = G>,
-    G: NumericGene,
-    G::Allele: NumericAllele,
-{
-    fn distance(&self, one: &Genotype<C>, two: &Genotype<C>) -> f32 {
-        let mut distance = 0.0;
-        let mut total_genes = 0.0;
-        for (chrom_one, chrom_two) in one.iter().zip(two.iter()) {
-            for (gene_one, gene_two) in chrom_one.iter().zip(chrom_two.iter()) {
-                let one_as_f32 = gene_one.allele_as_f32();
-                let two_as_f32 = gene_two.allele_as_f32();
-
-                if let Some((one, two)) = one_as_f32.zip(two_as_f32) {
-                    if one.is_nan() || two.is_nan() {
-                        continue;
-                    }
-
-                    let diff = one - two;
-                    distance += diff * diff;
-                    total_genes += 1.0;
-                }
-            }
-        }
-
-        if total_genes == 0.0 {
-            return 0.0;
-        }
-
-        (distance / total_genes).sqrt()
-    }
-}
-
 impl<P: AsRef<[f32]>> Distance<P> for EuclideanDistance {
     fn distance(&self, one: &P, two: &P) -> f32 {
         let vec_one = one.as_ref();

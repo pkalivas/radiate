@@ -144,7 +144,6 @@ impl Executor {
 
 #[cfg(test)]
 mod tests {
-
     use super::Executor;
 
     #[test]

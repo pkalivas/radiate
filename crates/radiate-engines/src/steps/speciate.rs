@@ -12,7 +12,7 @@ where
 {
     pub(crate) threashold: f32,
     pub(crate) objective: Objective,
-    pub(crate) diversity: Arc<dyn Distance<Genotype<C>>>,
+    pub(crate) distance: Arc<dyn Distance<Genotype<C>>>,
     pub(crate) executor: Arc<Executor>,
 }
 
@@ -56,7 +56,7 @@ where
             ));
 
             let threshold = self.threashold;
-            let diversity = Arc::clone(&self.diversity);
+            let distance = Arc::clone(&self.distance);
             let assignments = Arc::clone(&assignments);
             let distances = Arc::clone(&distances);
             let population = Arc::clone(&chunk_population);
@@ -67,7 +67,7 @@ where
                     population,
                     species_snapshot,
                     threshold,
-                    diversity,
+                    distance,
                     assignments,
                     distances,
                 );
@@ -124,7 +124,7 @@ where
                 .map(|specs| {
                     for (species_idx, species) in specs.iter().enumerate() {
                         let dist = self
-                            .diversity
+                            .distance
                             .distance(genotype, species.mascot().genotype());
 
                         distances.push(dist);
@@ -169,7 +169,7 @@ where
         population: Arc<RwLock<Vec<(usize, Genotype<C>)>>>,
         species_mascots: Arc<Vec<Genotype<C>>>,
         threshold: f32,
-        diversity: Arc<dyn Distance<Genotype<C>>>,
+        distance: Arc<dyn Distance<Genotype<C>>>,
         assignments: Arc<Mutex<Vec<Option<usize>>>>,
         distances: Arc<Mutex<Vec<f32>>>,
     ) {
@@ -177,7 +177,7 @@ where
         for (idx, individual) in population.read().unwrap().iter() {
             let mut assigned = None;
             for (idx, sp) in species_mascots.iter().enumerate() {
-                let dist = diversity.distance(&individual, &sp);
+                let dist = distance.distance(&individual, &sp);
                 inner_distances.push(dist);
 
                 if dist < threshold {
@@ -186,7 +186,10 @@ where
                 }
             }
 
-            assignments.lock().unwrap()[*idx] = assigned;
+            // Small optimization to avoid locking if not needed
+            if assigned.is_some() {
+                assignments.lock().unwrap()[*idx] = assigned;
+            }
         }
 
         distances.lock().unwrap().extend(inner_distances);

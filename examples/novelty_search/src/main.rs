@@ -32,14 +32,15 @@ fn main() {
         .logging()
         .take(2000)
         .last()
-        .inspect(|result| visualize(result.clone(), 6));
+        .inspect(|result| visualize(result.clone()));
 }
 
-fn visualize(mut result: Generation<FloatChromosome, Vec<f32>>, num_behaviors: usize) {
+fn visualize(mut result: Generation<FloatChromosome, Vec<f32>>) {
     let population = result.population().clone();
 
     let mut robots = Vec::new();
-    for indiv in population.iter().take(num_behaviors) {
+    // Take the first 6 individuals to visualize
+    for indiv in population.iter().take(6) {
         let genes: Vec<f32> = indiv
             .genotype()
             .iter()

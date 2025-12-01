@@ -164,6 +164,6 @@ where
     T: Scored,
 {
     fn default() -> Self {
-        Front::new(0..0, Objective::Single(Optimize::Minimize))
+        Front::new(0..0, Objective::Single(Optimize::Maximize))
     }
 }
