@@ -1,5 +1,7 @@
 use crate::steps::EngineStep;
-use radiate_core::{Chromosome, Ecosystem, Front, MetricSet, Phenotype, metric_names};
+use radiate_core::{
+    BatchMetricUpdater, Chromosome, Ecosystem, Front, MetricSet, Phenotype, metric, metric_names,
+};
 use radiate_error::Result;
 use std::sync::{Arc, RwLock};
 
@@ -15,7 +17,7 @@ where
     fn execute(
         &mut self,
         generation: usize,
-        metrics: &mut MetricSet,
+        metrics: &mut BatchMetricUpdater,
         ecosystem: &mut Ecosystem<C>,
     ) -> Result<()> {
         let timer = std::time::Instant::now();
@@ -30,12 +32,15 @@ where
         let count = self.front.write().unwrap().add_all(&phenotypes);
 
         if count > 0 {
-            metrics.upsert(metric_names::FRONT_ADDITIONS, (count, timer.elapsed()));
+            metrics.update(vec![metric!(
+                metric_names::FRONT_ADDITIONS,
+                (count, timer.elapsed())
+            )]);
 
             if generation % 10 == 0 {
                 let reader = self.front.read().unwrap();
                 if let Some(entropy) = reader.entropy() {
-                    metrics.upsert(metric_names::FRONT_ENTROPY, entropy);
+                    metrics.update(vec![metric!(metric_names::FRONT_ENTROPY, entropy)]);
                 }
             }
         }

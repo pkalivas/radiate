@@ -10,7 +10,7 @@ pub use evaluate::*;
 pub use filter::*;
 pub use front::*;
 
-use radiate_core::{Chromosome, Ecosystem, MetricSet};
+use radiate_core::{BatchMetricUpdater, Chromosome, Ecosystem, MetricSet};
 use radiate_error::Result;
 
 pub use recombine::*;
@@ -33,7 +33,7 @@ where
     fn execute(
         &mut self,
         generation: usize,
-        metrics: &mut MetricSet,
+        metrics: &mut BatchMetricUpdater,
         ecosystem: &mut Ecosystem<C>,
     ) -> Result<()>;
 }

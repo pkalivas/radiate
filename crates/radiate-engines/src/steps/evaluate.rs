@@ -1,5 +1,8 @@
 use crate::steps::EngineStep;
-use radiate_core::{Chromosome, Ecosystem, Evaluator, MetricSet, Objective, Problem, metric_names};
+use radiate_core::{
+    BatchMetricUpdater, Chromosome, Ecosystem, Evaluator, MetricSet, Objective, Problem, metric,
+    metric_names,
+};
 use radiate_error::Result;
 use std::sync::Arc;
 
@@ -31,7 +34,7 @@ where
     fn execute(
         &mut self,
         _: usize,
-        metrics: &mut MetricSet,
+        metrics: &mut BatchMetricUpdater,
         ecosystem: &mut Ecosystem<C>,
     ) -> Result<()> {
         let count = self.evaluator.eval(ecosystem, Arc::clone(&self.problem))?;
@@ -39,7 +42,8 @@ where
         self.objective.sort(&mut ecosystem.population);
 
         if count > 0 {
-            metrics.upsert(metric_names::EVALUATION_COUNT, count);
+            // metrics.upsert(metric_names::EVALUATION_COUNT, count);
+            metrics.update(vec![metric!(metric_names::EVALUATION_COUNT, count)]);
         }
 
         Ok(())

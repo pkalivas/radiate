@@ -1,6 +1,7 @@
 use crate::steps::EngineStep;
 use radiate_core::{
-    Chromosome, Ecosystem, Genotype, MetricSet, Phenotype, ReplacementStrategy, Valid, metric_names,
+    BatchMetricUpdater, Chromosome, Ecosystem, Genotype, MetricSet, Phenotype, ReplacementStrategy,
+    Valid, metric, metric_names,
 };
 use radiate_error::Result;
 use std::sync::Arc;
@@ -17,7 +18,7 @@ impl<C: Chromosome> EngineStep<C> for FilterStep<C> {
     fn execute(
         &mut self,
         generation: usize,
-        metrics: &mut MetricSet,
+        metrics: &mut BatchMetricUpdater,
         ecosystem: &mut Ecosystem<C>,
     ) -> Result<()> {
         let mut age_count = 0;
@@ -48,16 +49,16 @@ impl<C: Chromosome> EngineStep<C> for FilterStep<C> {
             let species_count = before_species - species.len();
 
             if species_count > 0 {
-                metrics.upsert(metric_names::SPECIES_AGE_FAIL, species_count);
+                metrics.update(vec![metric!(metric_names::SPECIES_AGE_FAIL, species_count)]);
             }
         }
 
         if age_count > 0 {
-            metrics.upsert(metric_names::REPLACE_AGE, age_count);
+            metrics.update(vec![metric!(metric_names::REPLACE_AGE, age_count)]);
         }
 
         if invalid_count > 0 {
-            metrics.upsert(metric_names::REPLACE_INVALID, invalid_count);
+            metrics.update(vec![metric!(metric_names::REPLACE_INVALID, invalid_count)]);
         }
 
         Ok(())

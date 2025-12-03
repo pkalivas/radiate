@@ -14,3 +14,4 @@ pub use metrics::*;
 pub use set::MetricSet;
 pub use statistics::*;
 pub use time_statistic::*;
+pub use updater::BatchMetricUpdater;

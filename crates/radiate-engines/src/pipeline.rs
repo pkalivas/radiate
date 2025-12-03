@@ -1,5 +1,7 @@
 use crate::{context::Context, steps::EngineStep};
-use radiate_core::{Chromosome, MetricScope, MetricSet, Rollup, metric, metric_names};
+use radiate_core::{
+    BatchMetricUpdater, Chromosome, MetricScope, MetricSet, Rollup, metric, metric_names,
+};
 use radiate_error::Result;
 
 /// A [Pipeline] is a sequence of steps that are executed in order during each epoch of the engine.
@@ -11,7 +13,7 @@ where
     C: Chromosome,
 {
     steps: Vec<Box<dyn EngineStep<C>>>,
-    metrics: MetricSet,
+    metrics: BatchMetricUpdater,
 }
 
 impl<C> Pipeline<C>
@@ -30,7 +32,7 @@ where
         C: Chromosome,
         T: Clone + Send + Sync + 'static,
     {
-        self.metrics.clear();
+        // self.metrics.clear();
 
         let timer = std::time::Instant::now();
 
@@ -39,14 +41,19 @@ where
             step.execute(context.index, &mut self.metrics, &mut context.ecosystem)?;
             let elapsed = timer.elapsed();
 
-            self.metrics.add_or_update(
+            // self.metrics.add_or_update(
+            //     metric!(MetricScope::Step, step.name(), elapsed).with_rollup(Rollup::Last),
+            // );
+            self.metrics.update(vec![
                 metric!(MetricScope::Step, step.name(), elapsed).with_rollup(Rollup::Last),
-            );
+            ]);
         }
 
         let elapsed = timer.elapsed();
-        self.metrics.upsert(metric_names::TIME, elapsed);
-        self.metrics.flush_all_into(&mut context.metrics);
+        // self.metrics.upsert(metric_names::TIME, elapsed);
+        self.metrics
+            .update(vec![metric!(metric_names::TIME, elapsed)]);
+        self.metrics.flush_into(&mut context.metrics);
         Ok(())
     }
 }
@@ -55,7 +62,7 @@ impl<C: Chromosome> Default for Pipeline<C> {
     fn default() -> Self {
         Pipeline {
             steps: Vec::new(),
-            metrics: MetricSet::new(),
+            metrics: BatchMetricUpdater::new(),
         }
     }
 }

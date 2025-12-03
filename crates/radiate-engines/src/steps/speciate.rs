@@ -1,7 +1,7 @@
 use crate::steps::EngineStep;
 use radiate_core::{
-    Chromosome, Ecosystem, Executor, Genotype, MetricSet, Objective, Species, diversity::Distance,
-    metric_names,
+    BatchMetricUpdater, Chromosome, Ecosystem, Executor, Genotype, MetricSet, Objective, Species,
+    diversity::Distance, metric, metric_names,
 };
 use radiate_error::Result;
 use std::sync::{Arc, Mutex, RwLock};
@@ -204,7 +204,7 @@ where
     fn execute(
         &mut self,
         generation: usize,
-        metrics: &mut MetricSet,
+        metrics: &mut BatchMetricUpdater,
         ecosystem: &mut Ecosystem<C>,
     ) -> Result<()> {
         ecosystem.generate_mascots();
@@ -237,8 +237,12 @@ where
 
         let removed_species = ecosystem.remvove_dead_species();
 
-        metrics.upsert(metric_names::SPECIES_DISTANCE_DIST, &*distances_guard);
-        metrics.upsert(metric_names::SPECIES_DIED, removed_species);
+        // metrics.upsert(metric_names::SPECIES_DISTANCE_DIST, &*distances_guard);
+        // metrics.upsert(metric_names::SPECIES_DIED, removed_species);
+        metrics.update(vec![
+            metric!(metric_names::SPECIES_DISTANCE_DIST, &*distances_guard),
+            metric!(metric_names::SPECIES_DIED, removed_species),
+        ]);
 
         ecosystem.fitness_share(&self.objective);
 

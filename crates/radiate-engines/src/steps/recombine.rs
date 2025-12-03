@@ -1,6 +1,7 @@
 use crate::steps::EngineStep;
 use radiate_core::{
-    Alter, Chromosome, Ecosystem, MetricSet, Objective, Optimize, Population, Select,
+    Alter, BatchMetricUpdater, Chromosome, Ecosystem, MetricSet, Objective, Optimize, Population,
+    Select, metric,
 };
 use radiate_error::Result;
 use std::sync::Arc;
@@ -19,7 +20,7 @@ impl<C: Chromosome + PartialEq> RecombineStep<C> {
     pub fn select_survivors(
         &self,
         population: &Ecosystem<C>,
-        metrics: &mut MetricSet,
+        metrics: &mut BatchMetricUpdater,
     ) -> Population<C> {
         Self::select(
             self.survivor_count,
@@ -35,7 +36,7 @@ impl<C: Chromosome + PartialEq> RecombineStep<C> {
         &self,
         count: usize,
         population: &Population<C>,
-        metrics: &mut MetricSet,
+        metrics: &mut BatchMetricUpdater,
     ) -> Population<C> {
         Self::select(
             count,
@@ -51,7 +52,7 @@ impl<C: Chromosome + PartialEq> RecombineStep<C> {
         &self,
         generation: usize,
         ecosystem: &Ecosystem<C>,
-        metrics: &mut MetricSet,
+        metrics: &mut BatchMetricUpdater,
     ) -> Population<C>
     where
         C: Clone,
@@ -96,13 +97,16 @@ impl<C: Chromosome + PartialEq> RecombineStep<C> {
         count: usize,
         population: &Population<C>,
         objective: &Objective,
-        metrics: &mut MetricSet,
+        metrics: &mut BatchMetricUpdater,
         selector: &Arc<dyn Select<C>>,
     ) -> Population<C> {
         let timer = std::time::Instant::now();
         let selected = selector.select(population, objective, count);
 
-        metrics.upsert(selector.name(), (selected.len(), timer.elapsed()));
+        metrics.update(vec![metric!(
+            selector.name(),
+            (selected.len(), timer.elapsed())
+        )]);
         selected
     }
 
@@ -111,19 +115,18 @@ impl<C: Chromosome + PartialEq> RecombineStep<C> {
         &self,
         generation: usize,
         offspring: &mut Population<C>,
-        metrics: &mut MetricSet,
+        metrics: &mut BatchMetricUpdater,
     ) {
         self.alters.iter().for_each(|alt| {
-            alt.alter(offspring, generation)
-                .into_iter()
-                .for_each(|metric| {
-                    // println!(
-                    //     "Altering with {} produced metric {:?}",
-                    //     metric.name(),
-                    //     metric
-                    // );
-                    metrics.add_or_update(metric);
-                });
+            metrics.update(alt.alter(offspring, generation));
+            // .into_iter()
+            // .for_each(|metric| {
+            // println!(
+            //     "Altering with {} produced metric {:?}",
+            //     metric.name(),
+            //     metric
+            // );
+            // metrics.add_or_update(metric);
         });
     }
 }
@@ -136,7 +139,7 @@ where
     fn execute(
         &mut self,
         generation: usize,
-        metrics: &mut MetricSet,
+        metrics: &mut BatchMetricUpdater,
         ecosystem: &mut Ecosystem<C>,
     ) -> Result<()> {
         let survivors = self.select_survivors(ecosystem, metrics);
