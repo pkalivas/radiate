@@ -12,6 +12,7 @@ impl From<RadiateError> for PyErr {
             | RadiateError::Genome(message) => PyRuntimeError::new_err(message),
             RadiateError::Fitness(message) => PyRuntimeError::new_err(message),
             RadiateError::Io(source) => PyRuntimeError::new_err(source.to_string()),
+            RadiateError::Other(message) => PyRuntimeError::new_err(message),
             RadiateError::Multiple(m) => PyRuntimeError::new_err(m),
             RadiateError::Context { .. } => PyRuntimeError::new_err(e.to_string()),
             #[cfg(feature = "python")]

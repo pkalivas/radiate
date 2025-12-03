@@ -1,4 +1,5 @@
-use crate::{Metric, MetricScope, MetricUpdate, Rollup, intern, stats::fmt};
+use crate::{Metric, MetricScope, MetricUpdate, Rollup, stats::fmt};
+use radiate_utils::intern;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Debug};
@@ -66,7 +67,7 @@ impl MetricSet {
             return;
         }
 
-        let new_name = super::normalize_name(name);
+        let new_name = radiate_utils::intern_name_as_snake_case(name);
         if let Some(m) = self.metrics.get_mut(&new_name) {
             self.set_stats.apply_update(1);
             m.apply_update(update);
@@ -148,8 +149,8 @@ impl MetricSet {
     }
 
     #[inline(always)]
-    pub fn contains_key(&self, name: impl Into<String>) -> bool {
-        self.metrics.contains_key(intern!(name.into()))
+    pub fn contains_key(&self, name: &str) -> bool {
+        self.metrics.contains_key(intern!(name))
     }
 
     #[inline(always)]
@@ -324,10 +325,8 @@ impl<'de> Deserialize<'de> for MetricSet {
 
         let mut metric_set = MetricSet::new();
         for metric in metrics {
-            use std::sync::Arc;
-
             let metric = Metric {
-                name: Arc::new(metric.name),
+                name: metric.name.into(),
                 inner: metric.inner,
                 scope: metric.scope,
                 rollup: metric.rollup,

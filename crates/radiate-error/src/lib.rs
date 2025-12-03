@@ -12,6 +12,7 @@ pub enum Code {
     Evaluation,
     Genome,
     Fitness,
+    Other,
     Io,
     Python,
     Multiple,
@@ -48,6 +49,9 @@ pub enum RadiateError {
     #[error("Multiple errors:\n{0}")]
     Multiple(String),
 
+    #[error("Other error: {0}")]
+    Other(String),
+
     #[error("{context}\nCaused by: {source}")]
     Context {
         context: String,
@@ -76,6 +80,7 @@ impl RadiateError {
             RadiateError::Fitness { .. } => Code::Fitness,
             RadiateError::Evaluation { .. } => Code::Evaluation,
             RadiateError::Io { .. } => Code::Io,
+            RadiateError::Other(_) => Code::Other,
             #[cfg(feature = "python")]
             RadiateError::Python { .. } => Code::Python,
             RadiateError::Multiple(_) => Code::Multiple,

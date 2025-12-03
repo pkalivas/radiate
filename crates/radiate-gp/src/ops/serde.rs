@@ -3,7 +3,7 @@ use crate::ops::op_names;
 use crate::ops::operation::Op;
 #[cfg(feature = "pgm")]
 use crate::{TreeMapper, TreeNode};
-use radiate_core::intern;
+use radiate_utils::intern;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 

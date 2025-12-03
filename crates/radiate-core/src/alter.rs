@@ -1,7 +1,7 @@
-use crate::stats::ToSnakeCase;
-use crate::{
-    Chromosome, Gene, Genotype, Metric, Population, intern, math::indexes, random_provider,
-};
+use radiate_utils::{ToSnakeCase, intern};
+
+use crate::metric;
+use crate::{Chromosome, Gene, Genotype, Metric, Population, math::indexes, random_provider};
 use std::iter::once;
 
 #[macro_export]
@@ -46,7 +46,6 @@ pub trait Alter<C: Chromosome>: Send + Sync {
 /// alteration operation. It contains the number of operations
 /// performed and a vector of metrics that were collected
 /// during the alteration process.
-#[derive(Default)]
 pub struct AlterResult(pub usize, pub Option<Vec<Metric>>);
 
 impl AlterResult {
@@ -69,6 +68,12 @@ impl AlterResult {
                 self.1 = Some(metrics);
             }
         }
+    }
+}
+
+impl Default for AlterResult {
+    fn default() -> Self {
+        AlterResult(0, None)
     }
 }
 
@@ -120,7 +125,7 @@ impl<C: Chromosome> Alter<C> for AlterAction<C> {
 
                 let timer = std::time::Instant::now();
                 let AlterResult(count, metrics) = m.mutate(population, generation, *rate);
-                let metric = Metric::new(name).upsert(count).upsert(timer.elapsed());
+                let metric = metric!(name, (count, timer.elapsed()));
 
                 match metrics {
                     Some(metrics) => metrics.into_iter().chain(once(metric)).collect(),
@@ -132,7 +137,7 @@ impl<C: Chromosome> Alter<C> for AlterAction<C> {
 
                 let timer = std::time::Instant::now();
                 let AlterResult(count, metrics) = c.crossover(population, generation, *rate);
-                let metric = Metric::new(name).upsert(count).upsert(timer.elapsed());
+                let metric = metric!(name, (count, timer.elapsed()));
 
                 match metrics {
                     Some(metrics) => metrics.into_iter().chain(once(metric)).collect(),

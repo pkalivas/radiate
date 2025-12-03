@@ -58,6 +58,9 @@ pub enum DataType {
     Char,
     Str,
     String,
+    Date,
+    Datetime,
+    DatetimeOwned,
     Vec,
     Struct(Vec<Field>),
     Unknown,
@@ -136,6 +139,7 @@ impl From<String> for DataType {
             "char" => DataType::Char,
             "string" => DataType::String,
             "vec" => DataType::Vec,
+            "date" => DataType::Date,
             _ => DataType::Unknown,
         }
     }

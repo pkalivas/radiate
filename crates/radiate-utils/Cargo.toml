@@ -1,0 +1,25 @@
+[package]
+name = "radiate-utils"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+description.workspace = true
+repository.workspace = true
+readme.workspace = true
+categories.workspace = true
+keywords.workspace = true
+license.workspace = true
+homepage.workspace = true
+
+[dependencies]
+regex = { workspace = true }
+compact_str = { workspace = true, features = ["serde"] }
+slotmap = { workspace = true }
+foldhash = { workspace = true }
+hashbrown = { workspace = true }
+serde = { workspace = true, optional = true }
+
+
+[features]
+default = []
+serde = ["dep:serde"]

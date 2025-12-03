@@ -48,8 +48,9 @@ pub trait EvalMut<I: ?Sized, O> {
     fn eval_mut(&mut self, input: &I) -> O;
 }
 
-impl<I: ?Sized, O, T> EvalMut<I, O> for T
+impl<I, O, T> EvalMut<I, O> for T
 where
+    I: ?Sized,
     T: Eval<I, O>,
 {
     #[inline]
@@ -91,8 +92,10 @@ pub trait EvalIntoMut<I: ?Sized, O: ?Sized> {
     fn eval_into_mut(&mut self, input: &I, buffer: &mut O);
 }
 
-impl<I: ?Sized, O: ?Sized, T> EvalIntoMut<I, O> for T
+impl<I, O, T> EvalIntoMut<I, O> for T
 where
+    I: ?Sized,
+    O: ?Sized,
     T: EvalInto<I, O>,
 {
     #[inline]
@@ -103,8 +106,10 @@ where
 
 /// Below are blanket implementations for closures to make it easy to use them
 /// wherever an [Eval] or [EvalInto] is required.
-impl<F, I: ?Sized, O: ?Sized> EvalInto<I, O> for F
+impl<F, I, O> EvalInto<I, O> for F
 where
+    I: ?Sized,
+    O: ?Sized,
     F: Fn(&I, &mut O),
 {
     #[inline]
@@ -114,8 +119,9 @@ where
 }
 
 /// [Eval] implementation for closures that take an input and return an output.
-impl<F, I: ?Sized, O> Eval<I, O> for F
+impl<F, I, O> Eval<I, O> for F
 where
+    I: ?Sized,
     F: Fn(&I) -> O,
 {
     #[inline]

@@ -1,13 +1,17 @@
 use crate::{
     Wrap,
-    any::dtype::{DataType, Field},
+    any::{
+        dtype::{DataType, Field},
+        time_unit::TimeUnit,
+        time_zone::TimeZone,
+    },
 };
 use pyo3::{
     Borrowed, Bound, FromPyObject, IntoPyObject, PyAny, PyErr, PyResult, Python,
     exceptions::PyValueError,
 };
 use serde::{Deserialize, Serialize};
-use std::fmt::Debug;
+use std::{fmt::Debug, sync::Arc};
 
 #[derive(Clone, Default, Debug, Serialize, Deserialize)]
 pub enum AnyValue<'a> {
@@ -29,6 +33,8 @@ pub enum AnyValue<'a> {
     Char(char),
     Str(&'a str),
     StrOwned(String),
+    Date(i32),
+    DateTime(i64, TimeUnit, Option<Arc<TimeZone>>),
     Vector(Box<Vec<AnyValue<'a>>>),
     Struct(Vec<(Field, AnyValue<'a>)>),
 }
@@ -72,7 +78,6 @@ impl<'a> AnyValue<'a> {
         match self {
             Self::Null => "null",
             Self::Bool(_) => "bool",
-            Self::Str(_) => "string",
             Self::UInt8(_) => "u8",
             Self::UInt16(_) => "u16",
             Self::UInt32(_) => "u32",
@@ -86,7 +91,10 @@ impl<'a> AnyValue<'a> {
             Self::Float64(_) => "f64",
             Self::Char(_) => "char",
             Self::Vector(_) => "list",
+            Self::Str(_) => "string",
             Self::StrOwned(_) => "string",
+            Self::Date(_) => "date",
+            Self::DateTime(_, _, _) => "datetime",
             Self::Binary(_) => "binary",
             Self::Struct(_) => "struct",
         }
@@ -111,6 +119,8 @@ impl<'a> AnyValue<'a> {
             Self::Char(_) => DataType::Char,
             Self::Str(_) => DataType::Str,
             Self::StrOwned(_) => DataType::String,
+            Self::Date(_) => DataType::Date,
+            Self::DateTime(_, _, _) => DataType::Datetime,
             Self::Binary(_) => DataType::Binary,
             Self::Vector(_) => DataType::Vec,
             Self::Struct(vals) => DataType::Struct(vals.iter().map(|(f, _)| f.clone()).collect()),
@@ -139,6 +149,8 @@ impl<'a> AnyValue<'a> {
             Char(v) => Char(v),
             Str(v) => StrOwned(v.to_string()),
             StrOwned(v) => StrOwned(v),
+            Date(v) => Date(v),
+            DateTime(v, tu, tz) => DateTime(v, tu, tz),
             Vector(v) => Vector(Box::new(v.into_iter().map(AnyValue::into_static).collect())),
             Binary(v) => Binary(v),
             Struct(v) => Struct(
@@ -172,6 +184,7 @@ impl<'a> PartialEq for AnyValue<'a> {
             (Str(a), Str(b)) => a == b,
             (StrOwned(a), StrOwned(b)) => a == b,
             (Binary(a), Binary(b)) => a == b,
+            (Date(a), Date(b)) => a == b,
             (Vector(a), Vector(b)) if a.len() == b.len() => {
                 a.iter().zip(b.iter()).all(|(x, y)| x == y)
             }

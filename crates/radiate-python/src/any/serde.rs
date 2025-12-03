@@ -1,8 +1,10 @@
+use crate::any::{time_unit, time_zone};
 use crate::{AnyChromosome, AnyGene, AnyValue, Field};
 use radiate::{Chromosome, Gene};
 use serde::ser::Serializer;
 use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashMap;
+use std::sync::Arc;
 
 #[derive(Clone, Default, Debug, Serialize, Deserialize)]
 enum AnyValueSerializable {
@@ -24,6 +26,8 @@ enum AnyValueSerializable {
     Char(char),
     Str(String),
     StrOwned(String),
+    Date(i32),
+    DateTime(i64, time_unit::TimeUnit, Option<time_zone::TimeZone>),
     Vector(Box<Vec<AnyValueSerializable>>),
     Struct(Vec<(Field, AnyValueSerializable)>),
 }
@@ -48,6 +52,10 @@ impl AnyValueSerializable {
             AnyValueSerializable::Char(c) => AnyValue::Char(c),
             AnyValueSerializable::Str(s) => AnyValue::StrOwned(s),
             AnyValueSerializable::StrOwned(s) => AnyValue::StrOwned(s),
+            AnyValueSerializable::Date(d) => AnyValue::Date(d),
+            AnyValueSerializable::DateTime(v, tu, tz) => {
+                AnyValue::DateTime(v, tu, tz.map(|t| Arc::new(t)))
+            }
             AnyValueSerializable::Vector(v) => {
                 let vec = v.into_iter().map(|av| av.into_static()).collect();
                 AnyValue::Vector(Box::new(vec))

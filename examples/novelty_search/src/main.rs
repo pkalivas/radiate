@@ -39,7 +39,6 @@ fn visualize(mut result: Generation<FloatChromosome, Vec<f32>>) {
     let population = result.population().clone();
 
     let mut robots = Vec::new();
-    // Take the first 6 individuals to visualize
     for indiv in population.iter().take(6) {
         let genes: Vec<f32> = indiv
             .genotype()

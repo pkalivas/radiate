@@ -159,4 +159,11 @@ mod tests {
         SortedBuffer::remove_sorted(&mut buffer, &10); // Not present, should do nothing
         assert_eq!(&*buffer, &[3, 8]);
     }
+
+    #[test]
+    fn test_sorted_buffer_from_iter() {
+        let vec = vec![4, 2, 7, 2, 5];
+        let buffer: SortedBuffer<i32> = vec.into_iter().collect();
+        assert_eq!(&*buffer, &[2, 4, 5, 7]);
+    }
 }

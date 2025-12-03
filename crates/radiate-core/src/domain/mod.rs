@@ -1,5 +1,4 @@
 pub mod executor;
-pub mod intern;
 pub mod math;
 pub mod random_provider;
 pub mod sync;

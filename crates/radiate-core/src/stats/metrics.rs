@@ -1,8 +1,6 @@
 use super::Statistic;
-use crate::{
-    Distribution, TimeStatistic, cache_string, intern,
-    stats::{ToSnakeCase, defaults},
-};
+use crate::{Distribution, TimeStatistic, stats::defaults};
+use radiate_utils::{ToSnakeCase, cache_string, intern, intern_snake_case};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::{fmt::Debug, sync::Arc, time::Duration};
@@ -57,7 +55,7 @@ pub struct Metric {
 
 impl Metric {
     pub fn new(name: &'static str) -> Self {
-        let name = cache_string!(name.to_snake_case());
+        let name = cache_string!(intern_snake_case!(name));
         let scope = defaults::default_scope(&name);
         let rollup = defaults::default_rollup(&name);
         Self {
@@ -77,7 +75,7 @@ impl Metric {
         Self {
             scope,
             rollup,
-            ..Self::new(intern!(name.to_snake_case()))
+            ..Self::new(intern_snake_case!(name))
         }
     }
 
