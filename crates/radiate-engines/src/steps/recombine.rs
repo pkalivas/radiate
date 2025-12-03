@@ -103,7 +103,8 @@ impl<C: Chromosome + PartialEq> RecombineStep<C> {
         let timer = std::time::Instant::now();
         let selected = selector.select(population, objective, count);
 
-        metrics.update(metric!(selector.name(), (selected.len(), timer.elapsed())));
+        // metrics.update(metric!(selector.name(), (selected.len(), timer.elapsed())));
+        metrics.upsert(selector.name(), (selected.len(), timer.elapsed()));
         selected
     }
 

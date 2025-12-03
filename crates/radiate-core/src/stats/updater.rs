@@ -34,6 +34,7 @@ where
 enum BatchCommand {
     Update((WaitGuard, MetricSetUpdate)),
     Complete,
+    Clear,
 }
 
 pub struct BatchMetricUpdater {
@@ -73,6 +74,10 @@ impl BatchMetricUpdater {
                         }
                         drop(waiter);
                     }
+                    BatchCommand::Clear => {
+                        let mut set = thread_set.lock().unwrap();
+                        set.clear();
+                    }
                     BatchCommand::Complete => return,
                 };
             }
@@ -86,6 +91,18 @@ impl BatchMetricUpdater {
         }
     }
 
+    pub fn upsert<'a>(&self, name: &'static str, update: impl Into<MetricUpdate<'static>>) {
+        let update = update.into();
+        self.sender
+            .send(BatchCommand::Update((
+                self.guard.guard(),
+                MetricSetUpdate::Fn(Box::new(move |set: &mut MetricSet| {
+                    set.upsert(name, update);
+                })),
+            )))
+            .unwrap();
+    }
+
     #[inline]
     pub fn update(&self, update: impl Into<MetricSetUpdate>) {
         self.sender
@@ -95,9 +112,13 @@ impl BatchMetricUpdater {
 
     #[inline]
     pub fn flush_into(&self, target: &mut MetricSet) {
-        self.guard.wait();
-        let set = self.set.lock().unwrap();
-        set.flush_all_into(target);
+        {
+            self.guard.wait();
+            let set = self.set.lock().unwrap();
+            set.flush_all_into(target);
+        }
+
+        self.sender.send(BatchCommand::Clear).unwrap();
     }
 
     #[inline]
@@ -111,6 +132,7 @@ impl BatchMetricUpdater {
 impl Drop for BatchMetricUpdater {
     fn drop(&mut self) {
         if let Some(thread) = self.thread.take() {
+            self.guard.wait();
             let _ = self.sender.send(BatchCommand::Complete);
             let _ = thread.join();
         }

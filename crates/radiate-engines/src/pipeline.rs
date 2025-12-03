@@ -32,8 +32,6 @@ where
         C: Chromosome,
         T: Clone + Send + Sync + 'static,
     {
-        self.metrics.clear();
-
         let timer = std::time::Instant::now();
 
         for step in self.steps.iter_mut() {
@@ -41,18 +39,14 @@ where
             step.execute(context.index, &mut self.metrics, &mut context.ecosystem)?;
             let elapsed = timer.elapsed();
 
-            // self.metrics.add_or_update(
-            //     metric!(MetricScope::Step, step.name(), elapsed).with_rollup(Rollup::Last),
-            // );
             self.metrics.update(vec![
                 metric!(MetricScope::Step, step.name(), elapsed).with_rollup(Rollup::Last),
             ]);
         }
 
         let elapsed = timer.elapsed();
-        // self.metrics.upsert(metric_names::TIME, elapsed);
-        self.metrics
-            .update(vec![metric!(metric_names::TIME, elapsed)]);
+        self.metrics.upsert(metric_names::TIME, elapsed);
+
         self.metrics.flush_into(&mut context.metrics);
         Ok(())
     }
