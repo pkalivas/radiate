@@ -1,4 +1,4 @@
-use crate::{Metric, MetricSet, MetricUpdate, WaitGroup};
+use crate::{Metric, MetricSet, MetricUpdate, WaitGroup, WaitGuard};
 use std::{
     sync::{Arc, Mutex, mpsc},
     thread::JoinHandle,
@@ -32,7 +32,7 @@ where
 }
 
 enum BatchCommand {
-    Update(MetricSetUpdate),
+    Update((WaitGuard, MetricSetUpdate)),
     Complete,
 }
 
@@ -51,14 +51,12 @@ impl BatchMetricUpdater {
         let receiver = Arc::new(Mutex::new(receiver));
         let set = Arc::new(Mutex::new(MetricSet::new()));
         let thread_set = Arc::clone(&set);
-        let thread_guard = Arc::clone(&guard);
         let thread = std::thread::spawn(move || {
             loop {
                 let updates = receiver.lock().unwrap().recv().unwrap();
-                let waiter = thread_guard.guard();
 
                 match updates {
-                    BatchCommand::Update(metrics) => {
+                    BatchCommand::Update((waiter, metrics)) => {
                         let mut set = thread_set.lock().unwrap();
                         match metrics {
                             MetricSetUpdate::Many(metrics) => {
@@ -73,10 +71,10 @@ impl BatchMetricUpdater {
                                 func(&mut set);
                             }
                         }
+                        drop(waiter);
                     }
                     BatchCommand::Complete => return,
                 };
-                drop(waiter);
             }
         });
 
@@ -88,16 +86,11 @@ impl BatchMetricUpdater {
         }
     }
 
-    pub fn upsert<'a>(&self, name: &'static str, value: impl Into<MetricUpdate<'a>>) {
-        self.guard.wait();
-        let mut set = self.set.lock().unwrap();
-        set.upsert(name, value);
-    }
-
     #[inline]
     pub fn update(&self, update: impl Into<MetricSetUpdate>) {
-        let update = update.into();
-        self.sender.send(BatchCommand::Update(update)).unwrap();
+        self.sender
+            .send(BatchCommand::Update((self.guard.guard(), update.into())))
+            .unwrap();
     }
 
     #[inline]
