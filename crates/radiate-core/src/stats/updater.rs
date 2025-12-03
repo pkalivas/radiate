@@ -97,8 +97,14 @@ impl BatchMetricUpdater {
     #[inline]
     pub fn flush_into(&self, target: &mut MetricSet) {
         self.guard.wait();
-        let mut set = self.set.lock().unwrap();
+        let set = self.set.lock().unwrap();
         set.flush_all_into(target);
+    }
+
+    #[inline]
+    pub fn clear(&self) {
+        self.guard.wait();
+        let mut set = self.set.lock().unwrap();
         set.clear();
     }
 }

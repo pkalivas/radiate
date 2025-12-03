@@ -32,7 +32,7 @@ where
         C: Chromosome,
         T: Clone + Send + Sync + 'static,
     {
-        // self.metrics.clear();
+        self.metrics.clear();
 
         let timer = std::time::Instant::now();
 
