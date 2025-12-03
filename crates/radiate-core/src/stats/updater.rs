@@ -34,13 +34,13 @@ where
 enum BatchCommand {
     Update((WaitGuard, MetricSetUpdate)),
     Complete,
-    Clear,
 }
 
 pub struct BatchMetricUpdater {
     set: Arc<Mutex<MetricSet>>,
     thread: Option<JoinHandle<()>>,
     guard: Arc<WaitGroup>,
+    queue: Vec<MetricSetUpdate>,
     sender: mpsc::Sender<BatchCommand>,
 }
 
@@ -74,10 +74,6 @@ impl BatchMetricUpdater {
                         }
                         drop(waiter);
                     }
-                    BatchCommand::Clear => {
-                        let mut set = thread_set.lock().unwrap();
-                        set.clear();
-                    }
                     BatchCommand::Complete => return,
                 };
             }
@@ -86,12 +82,18 @@ impl BatchMetricUpdater {
         BatchMetricUpdater {
             set,
             thread: Some(thread),
-            guard,
+            guard: Arc::clone(&guard),
+            queue: Vec::new(),
             sender,
         }
     }
 
-    pub fn upsert<'a>(&self, name: &'static str, update: impl Into<MetricUpdate<'static>>) {
+    pub fn upsert<'a>(&mut self, name: &'static str, update: impl Into<MetricUpdate<'static>>) {
+        // let update = update.into();
+        // self.queue
+        //     .push(MetricSetUpdate::Fn(Box::new(move |set: &mut MetricSet| {
+        //         set.upsert(name, update);
+        //     })));
         let update = update.into();
         self.sender
             .send(BatchCommand::Update((
@@ -104,21 +106,36 @@ impl BatchMetricUpdater {
     }
 
     #[inline]
-    pub fn update(&self, update: impl Into<MetricSetUpdate>) {
+    pub fn update(&mut self, update: impl Into<MetricSetUpdate>) {
+        // self.queue.push(update.into());
         self.sender
             .send(BatchCommand::Update((self.guard.guard(), update.into())))
             .unwrap();
     }
 
     #[inline]
-    pub fn flush_into(&self, target: &mut MetricSet) {
-        {
-            self.guard.wait();
-            let set = self.set.lock().unwrap();
-            set.flush_all_into(target);
-        }
+    pub fn flush_into(&mut self, target: &mut MetricSet) {
+        let mut set = self.set.lock().unwrap();
 
-        self.sender.send(BatchCommand::Clear).unwrap();
+        for update in self.queue.drain(..) {
+            match update {
+                MetricSetUpdate::Many(metrics) => {
+                    for metric in metrics {
+                        set.add_or_update(metric);
+                    }
+                }
+                MetricSetUpdate::Single(metric) => {
+                    set.add_or_update(metric);
+                }
+                MetricSetUpdate::Fn(func) => {
+                    func(&mut set);
+                }
+            }
+        }
+        // self.guard.wait();
+        // let mut set = self.set.lock().unwrap();
+        set.flush_all_into(target);
+        set.clear();
     }
 
     #[inline]
