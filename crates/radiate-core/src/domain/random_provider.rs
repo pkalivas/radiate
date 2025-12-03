@@ -23,6 +23,30 @@ pub fn with_rng<R>(f: impl FnOnce(&mut StdRng) -> R) -> R {
     })
 }
 
+pub fn scoped_seed<R>(seed: u64, f: impl FnOnce() -> R) -> R {
+    TLS_RNG.with(|cell| {
+        let original_seed = {
+            let mut rng = cell.borrow_mut();
+            let original = rng.clone();
+            *rng = StdRng::seed_from_u64(seed);
+            original
+        };
+
+        let result = f();
+
+        let mut rng = cell.borrow_mut();
+        *rng = original_seed;
+
+        result
+    })
+}
+
+pub fn seed_current_thread(seed: u64) {
+    TLS_RNG.with(|cell| {
+        *cell.borrow_mut() = StdRng::seed_from_u64(seed);
+    });
+}
+
 /// Seeds the thread-local random number generator with the given seed.
 pub fn set_seed(seed: u64) {
     let mut global = GLOBAL_RNG.lock().unwrap();

@@ -4,6 +4,7 @@ const MIN_SCORE: f32 = 0.001;
 
 fn main() {
     random_provider::set_seed(567123);
+    // random_provider::set_seed(9);
 
     let store = vec![
         (NodeType::Input, vec![Op::var(0)]),
@@ -16,6 +17,7 @@ fn main() {
         .codec(GraphCodec::directed(1, 1, store))
         .fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
+        // .executor(Executor::FixedSizedWorkerPool(10))
         // .diversity(NeatDistance::new(0.1, 0.1, 0.3))
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),

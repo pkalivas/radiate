@@ -1,6 +1,7 @@
 use std::{
     fmt::Debug,
     sync::{Arc, Mutex, OnceLock},
+    thread::Scope,
 };
 use std::{sync::mpsc, thread};
 
@@ -42,6 +43,9 @@ pub struct WorkResult<T> {
 }
 
 impl<T> WorkResult<T> {
+    pub fn new(rx: mpsc::Receiver<T>) -> Self {
+        WorkResult { receiver: rx }
+    }
     /// Get the result of the job.
     /// **Note**: This method will block until the result is available.
     pub fn result(&self) -> T {
@@ -140,6 +144,13 @@ impl ThreadPool {
         self.sender.send(Message::Work(job)).unwrap();
 
         WorkResult { receiver: rx }
+    }
+
+    pub fn scope<'a, F, R>(&'a self, f: F) -> R
+    where
+        F: for<'scope> FnOnce(&Scope<'scope, 'a>) -> R,
+    {
+        thread::scope(|s| f(s))
     }
 }
 

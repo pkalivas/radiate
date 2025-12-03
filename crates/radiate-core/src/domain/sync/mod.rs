@@ -4,4 +4,4 @@ mod thread_pool;
 
 pub use cell::MutCell;
 pub use group::{WaitGroup, WaitGuard};
-pub use thread_pool::get_thread_pool;
+pub use thread_pool::{WorkResult, get_thread_pool};

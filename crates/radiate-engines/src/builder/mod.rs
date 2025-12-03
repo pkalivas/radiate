@@ -334,12 +334,17 @@ where
 
     fn build_recombine_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
         let recombine_step = RecombineStep {
-            survivor_selector: config.survivor_selector(),
-            offspring_selector: config.offspring_selector(),
-            alters: config.alters().to_vec(),
-            survivor_count: config.survivor_count(),
-            offspring_count: config.offspring_count(),
-            objective: config.objective(),
+            survivor_handle: crate::steps::SurvivorRecombineHandle {
+                count: config.survivor_count(),
+                objective: config.objective(),
+                selector: config.survivor_selector(),
+            },
+            offspring_handle: crate::steps::OffspringRecombineHandle {
+                count: config.offspring_count(),
+                objective: config.objective(),
+                selector: config.offspring_selector(),
+                alters: config.alters().to_vec(),
+            },
         };
 
         Some(Box::new(recombine_step))
