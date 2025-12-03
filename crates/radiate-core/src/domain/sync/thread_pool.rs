@@ -1,7 +1,6 @@
 use std::{
     fmt::Debug,
     sync::{Arc, Mutex, OnceLock},
-    thread::Scope,
 };
 use std::{sync::mpsc, thread};
 
@@ -144,13 +143,6 @@ impl ThreadPool {
         self.sender.send(Message::Work(job)).unwrap();
 
         WorkResult { receiver: rx }
-    }
-
-    pub fn scope<'a, F, R>(&'a self, f: F) -> R
-    where
-        F: for<'scope> FnOnce(&Scope<'scope, 'a>) -> R,
-    {
-        thread::scope(|s| f(s))
     }
 }
 

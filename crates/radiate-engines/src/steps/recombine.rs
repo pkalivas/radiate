@@ -10,6 +10,7 @@ pub struct RecombineStep<C: Chromosome> {
     pub(crate) offspring_handle: OffspringRecombineHandle<C>,
 }
 
+#[derive(Clone)]
 pub struct SurvivorRecombineHandle<C: Chromosome> {
     pub(crate) count: usize,
     pub(crate) objective: Objective,
@@ -32,6 +33,7 @@ where
     }
 }
 
+#[derive(Clone)]
 pub struct OffspringRecombineHandle<C: Chromosome> {
     pub(crate) count: usize,
     pub(crate) objective: Objective,
@@ -131,3 +133,73 @@ where
         Ok(())
     }
 }
+
+// // Immutable views we can safely share across threads
+// let eco_ref = &*ecosystem;
+// let surv_handle_ref = self.survivor_handle.clone();
+// let off_handle_ref = self.offspring_handle.clone();
+
+// // Per-branch metrics to avoid sharing &mut MetricSet across threads
+// let mut survivor_metrics = MetricSet::new();
+// let mut offspring_metrics = MetricSet::new();
+
+// // let (survivors, offspring) = thread::scope(|scope| {
+// //     // Spawn survivor selection thread
+// //     let surv_join = scope
+// //         .spawn(|_| surv_handle_ref.select(&eco_ref.population(), &mut survivor_metrics));
+
+// //     // Spawn offspring creation thread
+// //     let off_join =
+// //         scope.spawn(|_| off_handle_ref.create(generation, eco_ref, &mut offspring_metrics));
+
+// //     let survivors = surv_join.join().expect("survivor thread panicked");
+// //     let offspring = off_join.join().expect("offspring thread panicked");
+
+// //     (survivors, offspring)
+// // });
+// // let pool = radiate_core::domain::get_thread_pool(10);
+
+// let surv_eco = Ecosystem::clone_ref(ecosystem);
+// let off_eco = Ecosystem::clone_ref(ecosystem);
+// let one_seed = random_provider::random::<u64>();
+// let two_seed = random_provider::random::<u64>();
+// let surv_task: Box<dyn FnOnce() -> Population<C> + Send> = Box::new({
+//     // random_provider::scoped_seed(one_seed, || {
+//     move || {
+//         let time = std::time::Instant::now();
+//         random_provider::seed_current_thread(one_seed);
+//         let surv = surv_handle_ref.select(&surv_eco.population(), &mut MetricSet::new());
+//         println!("Survivor selection took: {:?}", time.elapsed());
+//         surv
+//     }
+//     // })
+// });
+
+// let off_task: Box<dyn FnOnce() -> Population<C> + Send> = Box::new({
+//     move || {
+//         let time = std::time::Instant::now();
+//         random_provider::seed_current_thread(two_seed);
+//         let off = off_handle_ref.create(generation, &off_eco, &mut MetricSet::new());
+//         println!("Offspring creation took: {:?}", time.elapsed());
+//         off
+//     }
+// });
+
+// let mut t = self.executor.execute_batch(vec![off_task, surv_task]);
+// // let surv_work = radiate_core::domain::get_thread_pool(10).submit_with_result(surv_task);
+// // let off_work = radiate_core::domain::get_thread_pool(10).submit_with_result(off_task);
+
+// let survivors = t.pop().unwrap();
+// let offspring = t.pop().unwrap();
+
+// // Merge branch metrics into the main MetricSet
+// survivor_metrics.flush_all_into(metrics);
+// offspring_metrics.flush_all_into(metrics);
+
+// // Replace population with survivors + offspring
+// let pop = ecosystem.population_mut();
+// pop.clear();
+// pop.extend(survivors);
+// pop.extend(offspring);
+
+// Ok(())
