@@ -4,8 +4,35 @@ use std::{
     thread::JoinHandle,
 };
 
+pub enum MetricSetUpdate {
+    Many(Vec<Metric>),
+    Single(Metric),
+    Fn(Box<dyn FnOnce(&mut MetricSet) + Send>),
+}
+
+impl From<Vec<Metric>> for MetricSetUpdate {
+    fn from(metrics: Vec<Metric>) -> Self {
+        MetricSetUpdate::Many(metrics)
+    }
+}
+
+impl From<Metric> for MetricSetUpdate {
+    fn from(metric: Metric) -> Self {
+        MetricSetUpdate::Single(metric)
+    }
+}
+
+impl<F> From<F> for MetricSetUpdate
+where
+    F: FnOnce(&mut MetricSet) + Send + 'static,
+{
+    fn from(func: F) -> Self {
+        MetricSetUpdate::Fn(Box::new(func))
+    }
+}
+
 enum BatchCommand {
-    Update(Vec<Metric>),
+    Update(MetricSetUpdate),
     Complete,
 }
 
@@ -33,8 +60,18 @@ impl BatchMetricUpdater {
                 match updates {
                     BatchCommand::Update(metrics) => {
                         let mut set = thread_set.lock().unwrap();
-                        for metric in metrics {
-                            set.add_or_update(metric);
+                        match metrics {
+                            MetricSetUpdate::Many(metrics) => {
+                                for metric in metrics {
+                                    set.add_or_update(metric);
+                                }
+                            }
+                            MetricSetUpdate::Single(metric) => {
+                                set.add_or_update(metric);
+                            }
+                            MetricSetUpdate::Fn(func) => {
+                                func(&mut set);
+                            }
                         }
                     }
                     BatchCommand::Complete => return,
@@ -52,7 +89,8 @@ impl BatchMetricUpdater {
     }
 
     #[inline]
-    pub fn update(&self, update: Vec<Metric>) {
+    pub fn update(&self, update: impl Into<MetricSetUpdate>) {
+        let update = update.into();
         self.sender.send(BatchCommand::Update(update)).unwrap();
     }
 

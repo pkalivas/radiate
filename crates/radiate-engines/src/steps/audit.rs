@@ -102,6 +102,27 @@ impl AuditStep {
         metrics: &mut BatchMetricUpdater,
         ecosystem: &Ecosystem<C>,
     ) {
+        let pop_len = ecosystem.population().len() as f32;
+        metrics.update(move |set: &mut MetricSet| {
+            if let Some(score) = set.get(metric_names::SCORES) {
+                let score_coeff = match (score.distribution_std_dev(), score.distribution_mean()) {
+                    (Some(std_dev), Some(mean)) if mean != 0.0 => std_dev / mean,
+                    _ => 0.0,
+                };
+
+                let diversity_ratio = if pop_len > 0.0 {
+                    set.get(metric_names::UNIQUE_MEMBERS)
+                        .map(|m| m.last_value() / pop_len)
+                        .unwrap_or(0.0)
+                } else {
+                    0.0
+                };
+
+                set.add_or_update(metric!(metric_names::SCORE_VOLATILITY, score_coeff));
+                set.add_or_update(metric!(metric_names::DIVERSITY_RATIO, diversity_ratio));
+            }
+        });
+
         // let pop_len = ecosystem.population().len() as f32;
         // let derived_scores = metrics.get(metric_names::SCORES).map(|score| {
         //     let score_coeff = match (score.distribution_std_dev(), score.distribution_mean()) {
