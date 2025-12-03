@@ -106,8 +106,7 @@ impl OperationMutator {
     {
         use std::sync::Arc;
 
-        let mut result = Vec::with_capacity(100);
-
+        let mut result = Vec::new();
         if let Op::PGM(_, _, programs, _) = node.value_mut() {
             let programs_mut = Arc::make_mut(programs);
 
@@ -142,7 +141,7 @@ where
         let mutation_indexes = random_provider::cond_indices(0..chromosome.len(), rate);
         let store = chromosome.store().map(|store| store.clone());
 
-        let mut metrics = Vec::with_capacity(100);
+        let mut metrics = Vec::new();
         for i in mutation_indexes.iter() {
             let node = chromosome.get_mut(*i);
 

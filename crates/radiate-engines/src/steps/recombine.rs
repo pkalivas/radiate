@@ -117,11 +117,6 @@ impl<C: Chromosome + PartialEq> RecombineStep<C> {
             alt.alter(offspring, generation)
                 .into_iter()
                 .for_each(|metric| {
-                    // println!(
-                    //     "Altering with {} produced metric {:?}",
-                    //     metric.name(),
-                    //     metric
-                    // );
                     metrics.add_or_update(metric);
                 });
         });
