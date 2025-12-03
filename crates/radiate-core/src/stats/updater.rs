@@ -1,4 +1,4 @@
-use crate::{Metric, MetricSet, WaitGroup};
+use crate::{Metric, MetricSet, MetricUpdate, WaitGroup};
 use std::{
     sync::{Arc, Mutex, mpsc},
     thread::JoinHandle,
@@ -86,6 +86,12 @@ impl BatchMetricUpdater {
             guard,
             sender,
         }
+    }
+
+    pub fn upsert<'a>(&self, name: &'static str, value: impl Into<MetricUpdate<'a>>) {
+        self.guard.wait();
+        let mut set = self.set.lock().unwrap();
+        set.upsert(name, value);
     }
 
     #[inline]

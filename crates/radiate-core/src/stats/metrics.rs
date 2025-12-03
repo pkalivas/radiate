@@ -424,6 +424,9 @@ impl std::fmt::Debug for Metric {
     }
 }
 
+unsafe impl Send for MetricUpdate<'_> {}
+unsafe impl Sync for MetricUpdate<'_> {}
+
 #[cfg(test)]
 mod tests {
     use super::*;
