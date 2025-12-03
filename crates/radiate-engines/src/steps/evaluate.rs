@@ -43,7 +43,7 @@ where
 
         if count > 0 {
             // metrics.upsert(metric_names::EVALUATION_COUNT, count);
-            metrics.update(vec![metric!(metric_names::EVALUATION_COUNT, count)]);
+            metrics.update(metric!(metric_names::EVALUATION_COUNT, count));
         }
 
         Ok(())

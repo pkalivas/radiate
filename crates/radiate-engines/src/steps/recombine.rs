@@ -103,10 +103,7 @@ impl<C: Chromosome + PartialEq> RecombineStep<C> {
         let timer = std::time::Instant::now();
         let selected = selector.select(population, objective, count);
 
-        metrics.update(vec![metric!(
-            selector.name(),
-            (selected.len(), timer.elapsed())
-        )]);
+        metrics.update(metric!(selector.name(), (selected.len(), timer.elapsed())));
         selected
     }
 
@@ -119,14 +116,6 @@ impl<C: Chromosome + PartialEq> RecombineStep<C> {
     ) {
         self.alters.iter().for_each(|alt| {
             metrics.update(alt.alter(offspring, generation));
-            // .into_iter()
-            // .for_each(|metric| {
-            // println!(
-            //     "Altering with {} produced metric {:?}",
-            //     metric.name(),
-            //     metric
-            // );
-            // metrics.add_or_update(metric);
         });
     }
 }
