@@ -120,6 +120,26 @@ impl FloatCodec<f32> {
     }
 }
 
+/// Implement the [Codec] for a `FloatCodec` with a `Vec<Vec<Vec<f32>>>` type.
+/// Unlike the other impls, this will decode to a 3D tensor of `f32` values.
+///
+/// # Example
+/// ``` rust
+/// use radiate_core::*;
+///
+/// // Create a new FloatCodec with 2 layers:
+/// // - First layer: 2 rows and 3 columns
+/// // - Second layer: 3 rows and 4 columns
+/// let codec = FloatCodec::tensor(vec![(2, 3), (3, 4)], 0.0..1.0);
+/// let genotype: Genotype<FloatChromosome> = codec.encode();
+/// let decoded: Vec<Vec<Vec<f32>>> = codec.decode(&genotype);
+///
+/// assert_eq!(decoded.len(), 2);
+/// assert_eq!(decoded[0].len(), 2);
+/// assert_eq!(decoded[0][0].len(), 3);
+/// assert_eq!(decoded[1].len(), 3);
+/// assert_eq!(decoded[1][0].len(), 4);
+/// ```
 impl Codec<FloatChromosome, Vec<Vec<Vec<f32>>>> for FloatCodec<Vec<Vec<Vec<f32>>>> {
     #[inline]
     fn encode(&self) -> Genotype<FloatChromosome> {

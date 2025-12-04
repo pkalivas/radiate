@@ -23,6 +23,14 @@ pub fn with_rng<R>(f: impl FnOnce(&mut RdRand<'_>) -> R) -> R {
     })
 }
 
+/// Seeds the thread-local random number generator with the given seed.
+pub fn set_seed(seed: u64) {
+    let mut global = GLOBAL_RNG.lock().unwrap();
+    *global = SmallRng::seed_from_u64(seed);
+}
+
+/// Temporarily sets the seed of the thread-local random number generator to the given seed
+/// for the duration of the closure `f`. After `f` completes, the original state of the RNG is restored.
 pub fn scoped_seed<R>(seed: u64, f: impl FnOnce() -> R) -> R {
     TLS_RNG.with(|cell| {
         let original_seed = {
@@ -41,29 +49,6 @@ pub fn scoped_seed<R>(seed: u64, f: impl FnOnce() -> R) -> R {
     })
 }
 
-/// Seeds the thread-local random number generator with the given seed.
-pub fn set_seed(seed: u64) {
-    let mut global = GLOBAL_RNG.lock().unwrap();
-    *global = SmallRng::seed_from_u64(seed);
-}
-
-pub fn reseed_current_thread() {
-    let mut global = GLOBAL_RNG.lock().unwrap();
-    TLS_RNG.with(|cell| {
-        *cell.borrow_mut() = SmallRng::seed_from_u64(global.next_u64());
-    });
-}
-
-pub fn set_seed_and_reseed_current(seed: u64) {
-    {
-        let mut global = GLOBAL_RNG.lock().unwrap();
-        *global = SmallRng::seed_from_u64(seed);
-    }
-
-    reseed_current_thread();
-}
-
-/// Generates a random number of type T.
 ///
 /// For floating point types, the number will be in the range [0, 1).
 /// For integer types, the number will be in the range [0, MAX).
@@ -92,17 +77,11 @@ where
 
 /// Chooses a random item from the given slice.
 pub fn choose<T>(items: &[T]) -> &T {
-    with_rng(|rng| {
-        let index = rng.range(0..items.len());
-        &items[index]
-    })
+    with_rng(|rng| rng.choose(items))
 }
 
 pub fn choose_mut<T>(items: &mut [T]) -> &mut T {
-    with_rng(|rng| {
-        let index = rng.range(0..items.len());
-        &mut items[index]
-    })
+    with_rng(|rng| rng.choose_mut(items))
 }
 
 /// Generates a random number from a Gaussian distribution with the given mean and standard deviation.
@@ -118,11 +97,11 @@ pub fn shuffle<T>(items: &mut [T]) {
 
 /// Generates a vector of indexes from 0 to n-1 in random order.
 pub fn shuffled_indices(range: Range<usize>) -> Vec<usize> {
-    with_rng(|rng| {
-        let mut indexes = range.collect::<Vec<usize>>();
-        indexes.shuffle(&mut rng.0);
-        indexes
-    })
+    with_rng(|rng| rng.shuffled_indices(range))
+}
+
+pub fn sample_indices(range: Range<usize>, sample_size: usize) -> Vec<usize> {
+    with_rng(|rng| rng.sample_indices(range, sample_size))
 }
 
 /// Returns a vector of indexes from the given range, each included with the given probability.
@@ -188,6 +167,14 @@ impl<'a> RdRand<'a> {
     pub fn shuffled_indices(&mut self, range: Range<usize>) -> Vec<usize> {
         let mut indexes = range.collect::<Vec<usize>>();
         indexes.shuffle(&mut self.0);
+        indexes
+    }
+
+    #[inline]
+    pub fn sample_indices(&mut self, range: Range<usize>, sample_size: usize) -> Vec<usize> {
+        let mut indexes = range.collect::<Vec<usize>>();
+        indexes.shuffle(&mut self.0);
+        indexes.truncate(sample_size);
         indexes
     }
 

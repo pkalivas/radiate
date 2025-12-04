@@ -34,6 +34,15 @@ pub trait Diversity<C: Chromosome>: Send + Sync {
     fn measure(&self, geno_one: &Genotype<C>, geno_two: &Genotype<C>) -> f32;
 }
 
+impl<C: Chromosome, F> Diversity<C> for F
+where
+    F: Fn(&Genotype<C>, &Genotype<C>) -> f32 + Send + Sync,
+{
+    fn measure(&self, geno_one: &Genotype<C>, geno_two: &Genotype<C>) -> f32 {
+        (self)(geno_one, geno_two)
+    }
+}
+
 /// A concrete implementation of the [Diversity] trait that calculates the Hamming distance
 /// between two [Genotype]s. The Hamming distance is the number of positions at which the
 /// corresponding genes are different normalized by the total number of genes.

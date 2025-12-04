@@ -51,19 +51,20 @@ pub fn crossover_multi_point<G>(
         return 0;
     }
 
-    let mut crossover_points = random_provider::shuffled_indices(0..length);
+    let num_points = num_points.clamp(1, length - 1);
+    let mut selected_points = random_provider::sample_indices(0..length, num_points);
 
-    let selected_points = &mut crossover_points[..num_points];
     selected_points.sort();
 
     let mut current_parent = 1;
     let mut last_point = 0;
 
-    for &mut i in selected_points {
+    for i in selected_points {
         if current_parent == 1 {
             chrom_one[last_point..i].swap_with_slice(&mut chrom_two[last_point..i]);
         }
 
+        // Oscillate between parents
         current_parent = 3 - current_parent;
         last_point = i;
     }
