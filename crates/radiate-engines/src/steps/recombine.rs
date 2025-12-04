@@ -10,6 +10,30 @@ pub struct RecombineStep<C: Chromosome> {
     pub(crate) offspring_handle: OffspringRecombineHandle<C>,
 }
 
+impl<C> EngineStep<C> for RecombineStep<C>
+where
+    C: Chromosome + PartialEq + Clone,
+{
+    #[inline]
+    fn execute(
+        &mut self,
+        generation: usize,
+        ecosystem: &mut Ecosystem<C>,
+        metrics: &mut MetricSet,
+    ) -> Result<()> {
+        let survivors = self.survivor_handle.select(ecosystem, metrics);
+        let offspring = self.offspring_handle.create(generation, ecosystem, metrics);
+
+        let population = ecosystem.population_mut();
+
+        population.clear();
+        population.extend(survivors);
+        population.extend(offspring);
+
+        Ok(())
+    }
+}
+
 #[derive(Clone)]
 pub struct SurvivorRecombineHandle<C: Chromosome> {
     pub(crate) count: usize,
@@ -156,29 +180,5 @@ where
         }
 
         quotas
-    }
-}
-
-impl<C> EngineStep<C> for RecombineStep<C>
-where
-    C: Chromosome + PartialEq + Clone + 'static,
-{
-    #[inline]
-    fn execute(
-        &mut self,
-        generation: usize,
-        ecosystem: &mut Ecosystem<C>,
-        metrics: &mut MetricSet,
-    ) -> Result<()> {
-        let survivors = self.survivor_handle.select(ecosystem, metrics);
-        let offspring = self.offspring_handle.create(generation, ecosystem, metrics);
-
-        let population = ecosystem.population_mut();
-
-        population.clear();
-        population.extend(survivors);
-        population.extend(offspring);
-
-        Ok(())
     }
 }

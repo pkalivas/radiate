@@ -16,6 +16,7 @@ pub struct FloatCodec<T = f32> {
     num_genes: usize,
     value_range: Range<f32>,
     bounds: Range<f32>,
+    shapes: Option<Vec<(usize, usize)>>,
     _marker: std::marker::PhantomData<T>,
 }
 
@@ -32,17 +33,45 @@ impl<T> FloatCodec<T> {
     /// the same function for all of them.
     #[inline]
     fn common_encode(&self) -> Genotype<FloatChromosome> {
-        Genotype::from(
-            (0..self.num_chromosomes)
-                .map(|_| {
-                    FloatChromosome::from((
-                        self.num_genes,
-                        self.value_range.clone(),
-                        self.bounds.clone(),
-                    ))
-                })
-                .collect::<Vec<FloatChromosome>>(),
-        )
+        if let Some(shapes) = &self.shapes {
+            Genotype::from(
+                shapes
+                    .iter()
+                    .map(|(rows, cols)| {
+                        FloatChromosome::from((
+                            rows * cols,
+                            self.value_range.clone(),
+                            self.bounds.clone(),
+                        ))
+                    })
+                    .collect::<Vec<FloatChromosome>>(),
+            )
+        } else {
+            Genotype::from(
+                (0..self.num_chromosomes)
+                    .map(|_| {
+                        FloatChromosome::from((
+                            self.num_genes,
+                            self.value_range.clone(),
+                            self.bounds.clone(),
+                        ))
+                    })
+                    .collect::<Vec<FloatChromosome>>(),
+            )
+        }
+    }
+}
+
+impl FloatCodec<Vec<Vec<Vec<f32>>>> {
+    pub fn tensor(shapes: Vec<(usize, usize)>, range: Range<f32>) -> Self {
+        FloatCodec {
+            num_chromosomes: shapes.len(),
+            num_genes: 0,
+            value_range: range.clone(),
+            bounds: range,
+            shapes: Some(shapes),
+            _marker: std::marker::PhantomData,
+        }
     }
 }
 
@@ -55,6 +84,7 @@ impl FloatCodec<Vec<Vec<f32>>> {
             num_genes: cols,
             value_range: range.clone(),
             bounds: range,
+            shapes: None,
             _marker: std::marker::PhantomData,
         }
     }
@@ -69,6 +99,7 @@ impl FloatCodec<Vec<f32>> {
             num_genes: count,
             value_range: range.clone(),
             bounds: range,
+            shapes: None,
             _marker: std::marker::PhantomData,
         }
     }
@@ -83,7 +114,51 @@ impl FloatCodec<f32> {
             num_genes: 1,
             value_range: range.clone(),
             bounds: range,
+            shapes: None,
             _marker: std::marker::PhantomData,
+        }
+    }
+}
+
+impl Codec<FloatChromosome, Vec<Vec<Vec<f32>>>> for FloatCodec<Vec<Vec<Vec<f32>>>> {
+    #[inline]
+    fn encode(&self) -> Genotype<FloatChromosome> {
+        self.common_encode()
+    }
+
+    #[inline]
+    fn decode(&self, genotype: &Genotype<FloatChromosome>) -> Vec<Vec<Vec<f32>>> {
+        if let Some(shapes) = &self.shapes {
+            let mut layers = Vec::new();
+            for (i, chromosome) in genotype.iter().enumerate() {
+                layers.push(
+                    chromosome
+                        .iter()
+                        .as_slice()
+                        .chunks(shapes[i].1)
+                        .map(|chunk| {
+                            chunk
+                                .iter()
+                                .map(|gene| *gene.allele())
+                                .collect::<Vec<f32>>()
+                        })
+                        .collect::<Vec<Vec<f32>>>(),
+                );
+            }
+
+            layers
+        } else {
+            vec![
+                genotype
+                    .iter()
+                    .map(|chromosome| {
+                        chromosome
+                            .iter()
+                            .map(|gene| *gene.allele())
+                            .collect::<Vec<f32>>()
+                    })
+                    .collect::<Vec<Vec<f32>>>(),
+            ]
         }
     }
 }

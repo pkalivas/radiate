@@ -15,6 +15,7 @@ members = [
     "examples/rosenbrock",
     "examples/image-evo",
     "examples/novelty_search",
+    "examples/snake",
 
     "examples/graphs/iris-graph",
     "examples/graphs/regression-graph",
@@ -39,6 +40,7 @@ exclude = [
     "examples/rosenbrock",
     "examples/image-evo",
     "examples/novelty_search",
+    "examples/snake",
 
     "examples/graphs/iris-graph",
     "examples/graphs/xor-graph",

@@ -5,7 +5,6 @@ mod metrics;
 mod set;
 mod statistics;
 mod time_statistic;
-mod updater;
 
 pub use defaults::metric_names;
 pub use distribution::*;

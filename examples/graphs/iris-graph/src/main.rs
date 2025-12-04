@@ -27,7 +27,7 @@ fn main() {
         .codec(codec)
         .minimizing()
         .fitness_fn(regression)
-        .executor(Executor::FixedSizedWorkerPool(8))
+        .parallel()
         .offspring_fraction(0.92)
         .replace_strategy(GraphReplacement)
         .offspring_selector(BoltzmannSelector::new(4.0))

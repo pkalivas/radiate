@@ -11,7 +11,7 @@ pub struct MetricSetSummary {
     pub updates: f32,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct MetricSet {
     metrics: HashMap<&'static str, Metric>,
     set_stats: Metric,
@@ -111,6 +111,9 @@ impl MetricSet {
             MetricSetUpdate::Single(metric) => {
                 self.add_or_update_internal(metric);
             }
+            MetricSetUpdate::Fn(func) => {
+                func(self);
+            }
         }
     }
 
@@ -183,6 +186,10 @@ impl MetricSet {
             metrics: self.metrics.len(),
             updates: self.set_stats.statistic().map(|s| s.sum()).unwrap_or(0.0),
         }
+    }
+
+    pub fn dashboard(&self) -> String {
+        fmt::render_full(self, true).unwrap_or_default()
     }
 
     // --- Default accessors ---
@@ -288,12 +295,6 @@ impl MetricSet {
     }
 }
 
-impl Default for MetricSet {
-    fn default() -> Self {
-        MetricSet::new()
-    }
-}
-
 impl std::fmt::Display for MetricSet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let summary = self.summary();
@@ -366,6 +367,7 @@ impl<'de> Deserialize<'de> for MetricSet {
 }
 
 pub enum MetricSetUpdate {
+    Fn(Box<dyn FnOnce(&mut MetricSet) + Send>),
     Many(Vec<Metric>),
     Single(Metric),
     Slice2([Metric; 2]),
@@ -407,5 +409,14 @@ impl From<[Metric; 4]> for MetricSetUpdate {
 impl From<[Metric; 5]> for MetricSetUpdate {
     fn from(metrics: [Metric; 5]) -> Self {
         MetricSetUpdate::Slice5(metrics)
+    }
+}
+
+impl<F> From<F> for MetricSetUpdate
+where
+    F: FnOnce(&mut MetricSet) + Send + 'static,
+{
+    fn from(func: F) -> Self {
+        MetricSetUpdate::Fn(Box::new(func))
     }
 }

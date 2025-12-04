@@ -311,7 +311,7 @@ class SnakeEvolver:
 
         total_fitness += max(discounted_return, 1.0)  # keep positive floor
 
-        return total_fitness / NUM_GAMES
+        return total_fitness / NUM_GAMES # TODO: Delete division if running single game
 
     def test_individual(self, graph: rd.Graph, debug: bool = False) -> dict:
         """Test an individual with detailed logging."""

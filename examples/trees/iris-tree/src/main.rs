@@ -1,6 +1,5 @@
-use std::collections::HashSet;
-
 use radiate::*;
+use std::collections::HashSet;
 
 const MIN_SCORE: f32 = 0.01;
 const MAX_SECONDS: f64 = 5.0;
@@ -23,7 +22,7 @@ fn main() {
         .codec(codec)
         .fitness_fn(regression)
         .minimizing()
-        .executor(Executor::FixedSizedWorkerPool(8))
+        .parallel()
         .crossover(TreeCrossover::new(0.5))
         .mutator(OperationMutator::new(0.03, 0.02))
         .build();

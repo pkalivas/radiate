@@ -28,7 +28,6 @@ where
     pub fn run<T>(&mut self, context: &mut Context<C, T>) -> Result<()>
     where
         C: Chromosome,
-        T: Clone + Send + Sync + 'static,
     {
         let timer = std::time::Instant::now();
 
@@ -45,6 +44,7 @@ where
         let elapsed = timer.elapsed();
         self.metrics.upsert(metric_names::TIME, elapsed);
         self.metrics.flush_all_into(&mut context.metrics);
+
         Ok(())
     }
 }

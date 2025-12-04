@@ -38,7 +38,7 @@ fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
         .loss(Loss::MSE)
         .eval(result.value())
         .inspect(|acc| {
-            println!("{result:?}\n{acc:?}\n{}", result.metrics());
+            println!("{result:?}\n{acc:?}\n{}", result.metrics().dashboard());
         });
 }
 
@@ -59,7 +59,3 @@ fn dataset() -> impl Into<DataSet> {
 fn compute(x: f32) -> f32 {
     4.0 * x.powf(3.0) - 3.0 * x.powf(2.0) + x
 }
-
-// .parallel()
-// .diversity(NeatDistance::new(0.1, 0.1, 0.3))
-// .species_threshold(0.25)

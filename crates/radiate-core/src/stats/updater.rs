@@ -1,117 +1,138 @@
-use crate::{Metric, MetricSet, WaitGroup, WaitGuard};
-use std::{
-    sync::{Arc, Mutex, mpsc},
-    thread::JoinHandle,
-};
+// use crate::{MetricSet, WaitGroup, WaitGuard, stats::set::MetricSetUpdate};
+// use std::{
+//     sync::{Arc, Mutex, mpsc},
+//     thread::JoinHandle,
+// };
 
-pub enum MetricSetUpdate {
-    Many(Vec<Metric>),
-    Single(Metric),
-    Fn(Box<dyn FnOnce(&mut MetricSet) + Send>),
-}
+// #[allow(dead_code)]
+// enum BatchCommand {
+//     Update((WaitGuard, MetricSetUpdate)),
+//     Complete,
+// }
 
-impl From<Vec<Metric>> for MetricSetUpdate {
-    fn from(metrics: Vec<Metric>) -> Self {
-        MetricSetUpdate::Many(metrics)
-    }
-}
+// pub enum ProcessorInner {
+//     SingleThreaded(MetricSet),
+//     Background(BackgroundMetricProcessor),
+// }
 
-impl From<Metric> for MetricSetUpdate {
-    fn from(metric: Metric) -> Self {
-        MetricSetUpdate::Single(metric)
-    }
-}
+// pub struct MetricProcessor {
+//     inner: ProcessorInner,
+// }
 
-impl<F> From<F> for MetricSetUpdate
-where
-    F: FnOnce(&mut MetricSet) + Send + 'static,
-{
-    fn from(func: F) -> Self {
-        MetricSetUpdate::Fn(Box::new(func))
-    }
-}
+// impl MetricProcessor {
+//     pub fn new() -> Self {
+//         MetricProcessor {
+//             inner: ProcessorInner::SingleThreaded(MetricSet::new()),
+//         }
+//     }
 
-#[allow(dead_code)]
-enum BatchCommand {
-    Update((WaitGuard, MetricSetUpdate)),
-    Complete,
-}
+//     pub fn into_background(self) -> Self {
+//         match self.inner {
+//             ProcessorInner::SingleThreaded(set) => MetricProcessor {
+//                 inner: ProcessorInner::Background(BackgroundMetricProcessor::from(set)),
+//             },
+//             ProcessorInner::Background(_) => self,
+//         }
+//     }
 
-pub struct BatchMetricUpdater {
-    set: Arc<Mutex<MetricSet>>,
-    thread: Option<JoinHandle<()>>,
-    guard: Arc<WaitGroup>,
-    sender: mpsc::Sender<BatchCommand>,
-}
+//     #[inline]
+//     pub fn update(&mut self, update: impl Into<MetricSetUpdate>) {
+//         match &mut self.inner {
+//             ProcessorInner::SingleThreaded(set) => {
+//                 set.add_or_update(update.into());
+//             }
+//             ProcessorInner::Background(processor) => {
+//                 processor.update(update);
+//             }
+//         }
+//     }
 
-impl BatchMetricUpdater {
-    #[allow(dead_code)]
-    pub fn new() -> Self {
-        let (sender, receiver) = mpsc::channel::<BatchCommand>();
+//     #[inline]
+//     pub fn flush_into(&mut self, target: &mut MetricSet) {
+//         match &mut self.inner {
+//             ProcessorInner::SingleThreaded(set) => {
+//                 set.flush_all_into(target);
+//                 set.clear();
+//             }
+//             ProcessorInner::Background(processor) => {
+//                 processor.flush_into(target);
+//             }
+//         }
+//     }
+// }
 
-        let guard = Arc::new(WaitGroup::new());
-        let receiver = Arc::new(Mutex::new(receiver));
-        let set = Arc::new(Mutex::new(MetricSet::new()));
-        let thread_set = Arc::clone(&set);
-        let thread = std::thread::spawn(move || {
-            loop {
-                let updates = receiver.lock().unwrap().recv().unwrap();
+// pub struct BackgroundMetricProcessor {
+//     metrics: Arc<Mutex<MetricSet>>,
+//     thread: Option<JoinHandle<()>>,
+//     waiter: Arc<WaitGroup>,
+//     sender: mpsc::Sender<BatchCommand>,
+// }
 
-                match updates {
-                    BatchCommand::Update((waiter, metrics)) => {
-                        let mut set = thread_set.lock().unwrap();
-                        match metrics {
-                            MetricSetUpdate::Many(metrics) => {
-                                for metric in metrics {
-                                    set.add_or_update(metric);
-                                }
-                            }
-                            MetricSetUpdate::Single(metric) => {
-                                set.add_or_update(metric);
-                            }
-                            MetricSetUpdate::Fn(func) => {
-                                func(&mut set);
-                            }
-                        }
-                        drop(waiter);
-                    }
-                    BatchCommand::Complete => return,
-                };
-            }
-        });
+// impl BackgroundMetricProcessor {
+//     pub fn new() -> Self {
+//         let (sender, receiver) = mpsc::channel::<BatchCommand>();
 
-        BatchMetricUpdater {
-            set,
-            thread: Some(thread),
-            guard: Arc::clone(&guard),
-            sender,
-        }
-    }
+//         let guard = Arc::new(WaitGroup::new());
+//         let receiver = Arc::new(Mutex::new(receiver));
+//         let metrics = Arc::new(Mutex::new(MetricSet::new()));
+//         let thread_metrics = Arc::clone(&metrics);
 
-    #[allow(dead_code)]
-    #[inline]
-    pub fn update(&mut self, update: impl Into<MetricSetUpdate>) {
-        self.sender
-            .send(BatchCommand::Update((self.guard.guard(), update.into())))
-            .unwrap();
-    }
+//         BackgroundMetricProcessor {
+//             metrics,
+//             sender,
+//             waiter: Arc::clone(&guard),
+//             thread: Some(std::thread::spawn(move || {
+//                 loop {
+//                     let updates = receiver.lock().unwrap().recv().unwrap();
 
-    #[allow(dead_code)]
-    #[inline]
-    pub fn flush_into(&mut self, target: &mut MetricSet) {
-        self.guard.wait();
-        let mut set = self.set.lock().unwrap();
-        set.flush_all_into(target);
-        set.clear();
-    }
-}
+//                     match updates {
+//                         BatchCommand::Update((waiter, metrics)) => {
+//                             let mut set = thread_metrics.lock().unwrap();
+//                             set.add_or_update(metrics);
+//                             drop(waiter);
+//                         }
+//                         BatchCommand::Complete => return,
+//                     };
+//                 }
+//             })),
+//         }
+//     }
 
-impl Drop for BatchMetricUpdater {
-    fn drop(&mut self) {
-        if let Some(thread) = self.thread.take() {
-            self.guard.wait();
-            self.sender.send(BatchCommand::Complete).unwrap();
-            thread.join().unwrap();
-        }
-    }
-}
+//     #[inline]
+//     pub fn update(&mut self, update: impl Into<MetricSetUpdate>) {
+//         self.sender
+//             .send(BatchCommand::Update((self.waiter.guard(), update.into())))
+//             .unwrap();
+//     }
+
+//     #[inline]
+//     pub fn flush_into(&mut self, target: &mut MetricSet) {
+//         self.waiter.wait();
+//         let mut set = self.metrics.lock().unwrap();
+//         set.flush_all_into(target);
+//         set.clear();
+//     }
+// }
+
+// impl Drop for BackgroundMetricProcessor {
+//     fn drop(&mut self) {
+//         if let Some(thread) = self.thread.take() {
+//             self.waiter.wait();
+//             self.sender.send(BatchCommand::Complete).unwrap();
+//             thread.join().unwrap();
+//         }
+//     }
+// }
+
+// impl From<MetricSet> for BackgroundMetricProcessor {
+//     fn from(set: MetricSet) -> Self {
+//         let processor = BackgroundMetricProcessor::new();
+
+//         {
+//             let mut processor_set = processor.metrics.lock().unwrap();
+//             *processor_set = set;
+//         }
+
+//         processor
+//     }
+// }
