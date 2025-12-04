@@ -39,9 +39,6 @@ pub enum RadiateError {
     #[error("Invalid fitness: {0}")]
     Fitness(String),
 
-    #[error("I/O error: {0}")]
-    Io(#[from] std::io::Error),
-
     #[cfg(feature = "python")]
     #[error("Python error: {0}")]
     Python(#[from] pyo3::PyErr),
@@ -79,7 +76,6 @@ impl RadiateError {
             RadiateError::Codec { .. } => Code::Codec,
             RadiateError::Fitness { .. } => Code::Fitness,
             RadiateError::Evaluation { .. } => Code::Evaluation,
-            RadiateError::Io { .. } => Code::Io,
             RadiateError::Other(_) => Code::Other,
             #[cfg(feature = "python")]
             RadiateError::Python { .. } => Code::Python,
@@ -97,7 +93,6 @@ impl RadiateError {
 
 pub trait ResultExt<T> {
     fn context(self, msg: impl Into<String>) -> Result<T>;
-
     fn with_context<F: FnOnce() -> String>(self, f: F) -> Result<T>;
 }
 

@@ -62,7 +62,7 @@ impl Objective {
     pub fn sort<T: AsMut<[K]>, K: Scored + PartialOrd>(&self, population: &mut T) {
         match self {
             Objective::Single(opt) => opt.sort(population),
-            Objective::Multi(_) => population.as_mut().sort_by(|one, two| {
+            Objective::Multi(_) => population.as_mut().sort_unstable_by(|one, two| {
                 if let (Some(score_one), Some(score_two)) = (one.score(), two.score()) {
                     self.dominance_cmp(score_one.as_ref(), score_two.as_ref())
                 } else {

@@ -74,9 +74,8 @@ impl OperationMutator {
                 modifier,
                 operation,
             } => {
-                let new_value = get_value();
                 let new_value = if random_provider::random::<f32>() < self.replace_rate {
-                    new_value
+                    get_value()
                 } else {
                     modifier(value)
                 };

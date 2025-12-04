@@ -27,6 +27,7 @@ impl AuditStep {
             let mut species_ages = Metric::new(metric_names::SPECIES_AGE);
             let mut new_species_count = Metric::new(metric_names::SPECIES_CREATED);
             let mut species_count = Metric::new(metric_names::SPECIES_COUNT);
+            let mut species_size = Metric::new(metric_names::SPECIES_SIZE);
 
             for spec in species.iter() {
                 let spec_age = spec.age(generation);
@@ -36,13 +37,12 @@ impl AuditStep {
                 }
 
                 species_ages.apply_update(spec_age);
+                species_size.apply_update(spec.len());
             }
 
             species_count.apply_update(species.len());
 
-            metrics.add_or_update(new_species_count);
-            metrics.add_or_update(species_ages);
-            metrics.add_or_update(species_count);
+            metrics.add_or_update([new_species_count, species_ages, species_count, species_size]);
         } else {
             let population_unique_rc_count = ecosystem.population().shared_count();
             assert!(
@@ -78,13 +78,12 @@ impl AuditStep {
         self.seen_ids.extend(curr_ids.iter().copied());
         drop(std::mem::replace(&mut self.last_gen_ids, curr_ids));
 
-        metrics.add_or_update(metric!(metric_names::NEW_CHILDREN, new_this_gen));
-        metrics.add_or_update(metric!(metric_names::SURVIVOR_COUNT, survivor_count));
-        metrics.add_or_update(metric!(metric_names::CARRYOVER_RATE, carryover_rate));
-        metrics.add_or_update(metric!(
-            metric_names::LIFETIME_UNIQUE_MEMBERS,
-            self.seen_ids.len()
-        ));
+        metrics.add_or_update([
+            metric!(metric_names::NEW_CHILDREN, new_this_gen),
+            metric!(metric_names::SURVIVOR_COUNT),
+            metric!(metric_names::CARRYOVER_RATE, carryover_rate),
+            metric!(metric_names::LIFETIME_UNIQUE_MEMBERS, self.seen_ids.len()),
+        ]);
     }
 
     #[inline]
@@ -116,8 +115,7 @@ impl AuditStep {
         });
 
         if let Some([coeff_metric, diversity_metric]) = derived_scores {
-            metrics.add_or_update(coeff_metric);
-            metrics.add_or_update(diversity_metric);
+            metrics.add_or_update([coeff_metric, diversity_metric]);
         }
     }
 }
@@ -127,8 +125,8 @@ impl<C: Chromosome> EngineStep<C> for AuditStep {
     fn execute(
         &mut self,
         generation: usize,
-        metrics: &mut MetricSet,
         ecosystem: &mut Ecosystem<C>,
+        metrics: &mut MetricSet,
     ) -> Result<()> {
         let pop = ecosystem.population();
         let n = pop.len();
@@ -185,11 +183,13 @@ impl<C: Chromosome> EngineStep<C> for AuditStep {
             score_metric.apply_update(&self.score_distribution);
         }
 
-        metrics.add_or_update(age_metric);
-        metrics.add_or_update(size_metric);
-        metrics.add_or_update(equal_metric);
-        metrics.add_or_update(unique_metric);
-        metrics.add_or_update(score_metric);
+        metrics.add_or_update([
+            age_metric,
+            size_metric,
+            equal_metric,
+            unique_metric,
+            score_metric,
+        ]);
 
         self.calc_membership_metrics(metrics, ecosystem);
         Self::calc_species_metrics(generation, metrics, ecosystem);

@@ -30,13 +30,11 @@ where
         C: Chromosome,
         T: Clone + Send + Sync + 'static,
     {
-        self.metrics.clear();
-
         let timer = std::time::Instant::now();
 
         for step in self.steps.iter_mut() {
             let timer = std::time::Instant::now();
-            step.execute(context.index, &mut self.metrics, &mut context.ecosystem)?;
+            step.execute(context.index, &mut context.ecosystem, &mut self.metrics)?;
             let elapsed = timer.elapsed();
 
             self.metrics.add_or_update(

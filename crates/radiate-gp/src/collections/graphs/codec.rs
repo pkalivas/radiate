@@ -1,6 +1,6 @@
 use super::{Graph, GraphChromosome, GraphNode};
 use crate::{Factory, NodeStore};
-use radiate_core::{Chromosome, Codec, Genotype};
+use radiate_core::{Codec, Genotype};
 
 #[derive(Clone, Debug)]
 pub struct GraphCodec<T> {
@@ -150,8 +150,6 @@ where
 
     #[inline]
     fn decode(&self, genotype: &Genotype<GraphChromosome<T>>) -> Graph<T> {
-        let mut new_nodes = Vec::with_capacity(genotype[0].len());
-        new_nodes.extend_from_slice(genotype[0].as_ref());
-        Graph::new(new_nodes)
+        Graph::new(genotype[0].as_ref().to_vec())
     }
 }

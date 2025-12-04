@@ -12,7 +12,7 @@ fn main() {
 
     let engine = GeneticEngine::builder()
         .codec(codec)
-        .fitness_fn(|geno: Vec<f32>| dtlz_7(&geno))
+        .fitness_fn(|geno: Vec<f32>| dtlz_1(&geno))
         .executor(Executor::FixedSizedWorkerPool(10))
         .multi_objective(vec![Optimize::Minimize; OBJECTIVES])
         .offspring_selector(TournamentSelector::new(5))

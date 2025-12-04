@@ -1,5 +1,6 @@
 use crate::context::Context;
 use radiate_core::{Chromosome, MetricSet, Score};
+use std::fmt::Debug;
 
 pub enum EngineMessage<'a, C, T>
 where
@@ -18,4 +19,30 @@ pub enum EngineEvent<T> {
     EpochStart(usize),
     EpochComplete(usize, T, MetricSet, Score),
     Improvement(usize, T, Score),
+}
+
+impl<T: Debug> Debug for EngineEvent<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            EngineEvent::Start => write!(f, "EngineEvent::Start"),
+            EngineEvent::Stop(_, metrics, best_score) => write!(
+                f,
+                "EngineEvent::Stop {{ metrics: {:?}, best_score: {:?} }}",
+                metrics, best_score
+            ),
+            EngineEvent::EpochStart(epoch) => {
+                write!(f, "EngineEvent::EpochStart {{ epoch: {} }}", epoch)
+            }
+            EngineEvent::EpochComplete(epoch, _, metrics, best_score) => write!(
+                f,
+                "EngineEvent::EpochComplete {{ epoch: {}, metrics: {:?}, best_score: {:?} }}",
+                epoch, metrics, best_score
+            ),
+            EngineEvent::Improvement(epoch, _, best_score) => write!(
+                f,
+                "EngineEvent::Improvement {{ epoch: {}, best_score: {:?} }}",
+                epoch, best_score
+            ),
+        }
+    }
 }

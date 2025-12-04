@@ -213,6 +213,9 @@ impl Metric {
                     self.inner.distribution = Some(Distribution::from(values.as_slice()));
                 }
             }
+            MetricUpdate::Metric(metric) => {
+                self.update_from(metric);
+            }
         }
     }
 
@@ -368,6 +371,7 @@ pub enum MetricUpdate<'a> {
     DistributionOwned(Vec<f32>),
     FloatOperation(f32, Duration),
     UsizeOperation(usize, Duration),
+    Metric(&'a Metric),
 }
 
 impl From<f32> for MetricUpdate<'_> {
@@ -415,6 +419,12 @@ impl<'a> From<&'a Vec<f32>> for MetricUpdate<'a> {
 impl From<Vec<f32>> for MetricUpdate<'_> {
     fn from(value: Vec<f32>) -> Self {
         MetricUpdate::DistributionOwned(value)
+    }
+}
+
+impl<'a> From<&'a Metric> for MetricUpdate<'a> {
+    fn from(value: &'a Metric) -> Self {
+        MetricUpdate::Metric(value)
     }
 }
 

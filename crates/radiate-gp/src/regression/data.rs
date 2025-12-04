@@ -20,6 +20,12 @@ impl Row {
     }
 }
 
+impl From<(Vec<f32>, Vec<f32>)> for Row {
+    fn from(data: (Vec<f32>, Vec<f32>)) -> Self {
+        Row::new(data.0, data.1)
+    }
+}
+
 #[derive(Default, Clone)]
 pub struct DataSet {
     rows: Vec<Row>,
@@ -33,6 +39,11 @@ impl DataSet {
         }
 
         DataSet { rows: samples }
+    }
+
+    pub fn row(mut self, row: impl Into<Row>) -> Self {
+        self.rows.push(row.into());
+        self
     }
 
     pub fn iter(&self) -> std::slice::Iter<'_, Row> {

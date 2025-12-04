@@ -263,7 +263,7 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
             }
         }
 
-        cross_count.into()
+        AlterResult::from(cross_count)
     }
 }
 

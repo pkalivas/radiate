@@ -24,9 +24,18 @@ where
         self
     }
 
-    #[cfg(feature = "rayon")]
     pub fn parallel(self) -> Self {
-        self.executor(Executor::WorkerPool)
+        #[cfg(feature = "rayon")]
+        {
+            self.executor(Executor::WorkerPool)
+        }
+        #[cfg(not(feature = "rayon"))]
+        {
+            let num_cpus = std::thread::available_parallelism()
+                .map(|n| n.get())
+                .unwrap_or(4);
+            self.executor(Executor::FixedSizedWorkerPool(num_cpus))
+        }
     }
 
     pub fn executor(mut self, executor: Executor) -> Self {

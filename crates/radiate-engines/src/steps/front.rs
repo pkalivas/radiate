@@ -15,8 +15,8 @@ where
     fn execute(
         &mut self,
         generation: usize,
-        metrics: &mut MetricSet,
         ecosystem: &mut Ecosystem<C>,
+        metrics: &mut MetricSet,
     ) -> Result<()> {
         let timer = std::time::Instant::now();
 

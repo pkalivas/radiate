@@ -1,6 +1,6 @@
 use crate::steps::EngineStep;
 use radiate_core::{
-    Alter, Chromosome, Ecosystem, MetricSet, Objective, Optimize, Population, Select,
+    Alter, Chromosome, Ecosystem, MetricSet, Objective, Optimize, Population, Score, Select,
 };
 use radiate_error::Result;
 use std::sync::Arc;
@@ -22,12 +22,11 @@ where
     C: Chromosome + Clone,
 {
     #[inline]
-    pub fn select(&self, population: &Population<C>, metrics: &mut MetricSet) -> Population<C> {
+    pub fn select(&self, ecosystem: &Ecosystem<C>, metrics: &mut MetricSet) -> Population<C> {
         let time = std::time::Instant::now();
         let survivors = self
             .selector
-            .select(&population, &self.objective, self.count);
-
+            .select(&ecosystem.population(), &self.objective, self.count);
         metrics.upsert(self.selector.name(), (survivors.len(), time.elapsed()));
         survivors
     }
@@ -46,14 +45,13 @@ where
     C: Chromosome + PartialEq + Clone,
 {
     #[inline]
-    pub fn create(
+    pub fn create<'a>(
         &self,
         generation: usize,
         ecosystem: &Ecosystem<C>,
         metrics: &mut MetricSet,
     ) -> Population<C> {
         if let Some(species) = ecosystem.species() {
-            let total_offspring = self.count as f32;
             let mut species_scores = species
                 .iter()
                 .filter_map(|spec| spec.score())
@@ -63,143 +61,124 @@ where
                 species_scores.reverse();
             }
 
-            let mut next_population = Vec::with_capacity(self.count);
+            let quotas = self.quotas_from_scores(&species_scores);
 
-            for (species, score) in species.iter().zip(species_scores.iter()) {
-                let count = (score.as_f32() * total_offspring).round() as usize;
+            let mut next_population = Population::with_capacity(self.count);
+            for (species, count) in species.iter().zip(quotas.iter()) {
                 let time = std::time::Instant::now();
                 let mut offspring =
                     self.selector
-                        .select(&species.population(), &self.objective, count);
+                        .select(species.population(), &self.objective, *count);
                 metrics.upsert(self.selector.name(), (offspring.len(), time.elapsed()));
 
                 self.objective.sort(&mut offspring);
 
                 self.alters.iter().for_each(|alt| {
-                    alt.alter(&mut offspring, generation)
-                        .into_iter()
-                        .for_each(|metric| {
-                            metrics.add_or_update(metric);
-                        });
+                    metrics.add_or_update(alt.alter(&mut offspring, generation));
                 });
 
                 next_population.extend(offspring);
             }
 
-            Population::new(next_population)
+            next_population
         } else {
             let timer = std::time::Instant::now();
             let mut offspring =
                 self.selector
-                    .select(&ecosystem.population(), &self.objective, self.count);
+                    .select(ecosystem.population(), &self.objective, self.count);
 
             metrics.upsert(self.selector.name(), (offspring.len(), timer.elapsed()));
 
             self.objective.sort(&mut offspring);
 
             self.alters.iter().for_each(|alt| {
-                alt.alter(&mut offspring, generation)
-                    .into_iter()
-                    .for_each(|metric| {
-                        metrics.add_or_update(metric);
-                    });
+                metrics.add_or_update(alt.alter(&mut offspring, generation));
             });
 
             offspring
         }
     }
+
+    fn quotas_from_scores(&self, scores: &[&Score]) -> Vec<usize> {
+        let n = scores.len();
+        if n == 0 || self.count == 0 {
+            return vec![0; n];
+        }
+
+        let raw_scores = scores.iter().map(|s| s.as_f32()).collect::<Vec<f32>>();
+        let mut min_score = raw_scores.iter().cloned().fold(f32::INFINITY, f32::min);
+        if !min_score.is_finite() {
+            min_score = 0.0;
+        }
+
+        let shifted = raw_scores
+            .iter()
+            .map(|s| (s - min_score).max(0.0))
+            .collect::<Vec<f32>>();
+
+        let sum = shifted.iter().sum::<f32>();
+
+        if sum <= f32::EPSILON {
+            let base = self.count / n;
+            let mut quotas = vec![base; n];
+            let mut remaining = self.count - base * n;
+            let mut i = 0;
+            while remaining > 0 {
+                quotas[i] += 1;
+                remaining -= 1;
+                i += 1;
+            }
+            return quotas;
+        }
+
+        let total = self.count as f32;
+
+        let mut quotas = Vec::with_capacity(n);
+        let mut fracs = Vec::with_capacity(n);
+        let mut assigned = 0;
+
+        for (idx, w) in shifted.iter().enumerate() {
+            let p = *w / sum;
+            let exact = p * total;
+            let base = exact.floor() as usize;
+            let frac = exact - base as f32;
+
+            quotas.push(base);
+            fracs.push((frac, idx));
+            assigned += base;
+        }
+
+        let remaining = self.count.saturating_sub(assigned);
+        fracs.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
+
+        for (_, idx) in fracs.iter().take(remaining) {
+            quotas[*idx] += 1;
+        }
+
+        quotas
+    }
 }
 
 impl<C> EngineStep<C> for RecombineStep<C>
 where
-    C: Chromosome + PartialEq + Clone,
+    C: Chromosome + PartialEq + Clone + 'static,
 {
     #[inline]
     fn execute(
         &mut self,
         generation: usize,
-        metrics: &mut MetricSet,
         ecosystem: &mut Ecosystem<C>,
+        metrics: &mut MetricSet,
     ) -> Result<()> {
-        let survivors = self
-            .survivor_handle
-            .select(&ecosystem.population(), metrics);
+        let survivors = self.survivor_handle.select(ecosystem, metrics);
         let offspring = self.offspring_handle.create(generation, ecosystem, metrics);
 
-        ecosystem.population_mut().clear();
-        ecosystem.population_mut().extend(survivors);
-        ecosystem.population_mut().extend(offspring);
+        let population = ecosystem.population_mut();
+
+        population.clear();
+        population.extend(survivors);
+        population.extend(offspring);
 
         Ok(())
     }
 }
-
-// // Immutable views we can safely share across threads
-// let eco_ref = &*ecosystem;
-// let surv_handle_ref = self.survivor_handle.clone();
-// let off_handle_ref = self.offspring_handle.clone();
-
-// // Per-branch metrics to avoid sharing &mut MetricSet across threads
-// let mut survivor_metrics = MetricSet::new();
-// let mut offspring_metrics = MetricSet::new();
-
-// // let (survivors, offspring) = thread::scope(|scope| {
-// //     // Spawn survivor selection thread
-// //     let surv_join = scope
-// //         .spawn(|_| surv_handle_ref.select(&eco_ref.population(), &mut survivor_metrics));
-
-// //     // Spawn offspring creation thread
-// //     let off_join =
-// //         scope.spawn(|_| off_handle_ref.create(generation, eco_ref, &mut offspring_metrics));
-
-// //     let survivors = surv_join.join().expect("survivor thread panicked");
-// //     let offspring = off_join.join().expect("offspring thread panicked");
-
-// //     (survivors, offspring)
-// // });
-// // let pool = radiate_core::domain::get_thread_pool(10);
-
-// let surv_eco = Ecosystem::clone_ref(ecosystem);
-// let off_eco = Ecosystem::clone_ref(ecosystem);
-// let one_seed = random_provider::random::<u64>();
-// let two_seed = random_provider::random::<u64>();
-// let surv_task: Box<dyn FnOnce() -> Population<C> + Send> = Box::new({
-//     // random_provider::scoped_seed(one_seed, || {
-//     move || {
-//         let time = std::time::Instant::now();
-//         random_provider::seed_current_thread(one_seed);
-//         let surv = surv_handle_ref.select(&surv_eco.population(), &mut MetricSet::new());
-//         println!("Survivor selection took: {:?}", time.elapsed());
-//         surv
-//     }
-//     // })
-// });
-
-// let off_task: Box<dyn FnOnce() -> Population<C> + Send> = Box::new({
-//     move || {
-//         let time = std::time::Instant::now();
-//         random_provider::seed_current_thread(two_seed);
-//         let off = off_handle_ref.create(generation, &off_eco, &mut MetricSet::new());
-//         println!("Offspring creation took: {:?}", time.elapsed());
-//         off
-//     }
-// });
-
-// let mut t = self.executor.execute_batch(vec![off_task, surv_task]);
-// // let surv_work = radiate_core::domain::get_thread_pool(10).submit_with_result(surv_task);
-// // let off_work = radiate_core::domain::get_thread_pool(10).submit_with_result(off_task);
-
-// let survivors = t.pop().unwrap();
-// let offspring = t.pop().unwrap();
-
-// // Merge branch metrics into the main MetricSet
-// survivor_metrics.flush_all_into(metrics);
-// offspring_metrics.flush_all_into(metrics);
-
-// // Replace population with survivors + offspring
-// let pop = ecosystem.population_mut();
-// pop.clear();
-// pop.extend(survivors);
-// pop.extend(offspring);
-
-// Ok(())

@@ -468,9 +468,9 @@ impl PyEngineBuilder {
                 .replace_strategy(GraphReplacement);
 
             if is_batch {
-                Graph(base_engine.batch_fitness_fn(regression))
+                Graph(base_engine.raw_batch_fitness_fn(regression))
             } else {
-                Graph(base_engine.fitness_fn(regression))
+                Graph(base_engine.raw_fitness_fn(regression))
             }
         } else if let Ok(tree_codec) = codec.extract::<PyTreeCodec>() {
             let base_engine = GeneticEngine::builder()

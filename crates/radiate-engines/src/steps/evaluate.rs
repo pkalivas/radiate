@@ -31,14 +31,13 @@ where
     fn execute(
         &mut self,
         _: usize,
-        metrics: &mut MetricSet,
         ecosystem: &mut Ecosystem<C>,
+        metrics: &mut MetricSet,
     ) -> Result<()> {
         let count = self.evaluator.eval(ecosystem, Arc::clone(&self.problem))?;
 
-        self.objective.sort(&mut ecosystem.population);
-
         if count > 0 {
+            self.objective.sort(&mut ecosystem.population);
             metrics.upsert(metric_names::EVALUATION_COUNT, count);
         }
 

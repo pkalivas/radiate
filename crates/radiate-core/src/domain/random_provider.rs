@@ -1,25 +1,25 @@
 use rand::distr::{Distribution, StandardUniform, uniform::SampleUniform};
-use rand::rngs::StdRng;
+use rand::rngs::SmallRng;
 use rand::seq::SliceRandom;
 use rand::{Rng, RngCore, SeedableRng};
 use std::cell::RefCell;
 use std::ops::Range;
 use std::sync::{Arc, LazyLock, Mutex};
 
-static GLOBAL_RNG: LazyLock<Arc<Mutex<StdRng>>> =
-    LazyLock::new(|| Arc::new(Mutex::new(StdRng::from_os_rng())));
+static GLOBAL_RNG: LazyLock<Arc<Mutex<SmallRng>>> =
+    LazyLock::new(|| Arc::new(Mutex::new(SmallRng::from_os_rng())));
 
 thread_local! {
-    static TLS_RNG: RefCell<StdRng> = RefCell::new({
+    static TLS_RNG: RefCell<SmallRng> = RefCell::new({
         let mut global = GLOBAL_RNG.lock().unwrap();
-        StdRng::seed_from_u64(global.next_u64())
+        SmallRng::seed_from_u64(global.next_u64())
     });
 }
 
-pub fn with_rng<R>(f: impl FnOnce(&mut StdRng) -> R) -> R {
+pub fn with_rng<R>(f: impl FnOnce(&mut RdRand<'_>) -> R) -> R {
     TLS_RNG.with(|cell| {
         let mut rng = cell.borrow_mut();
-        f(&mut *rng)
+        f(&mut RdRand::new(&mut rng))
     })
 }
 
@@ -28,7 +28,7 @@ pub fn scoped_seed<R>(seed: u64, f: impl FnOnce() -> R) -> R {
         let original_seed = {
             let mut rng = cell.borrow_mut();
             let original = rng.clone();
-            *rng = StdRng::seed_from_u64(seed);
+            *rng = SmallRng::seed_from_u64(seed);
             original
         };
 
@@ -41,29 +41,23 @@ pub fn scoped_seed<R>(seed: u64, f: impl FnOnce() -> R) -> R {
     })
 }
 
-pub fn seed_current_thread(seed: u64) {
-    TLS_RNG.with(|cell| {
-        *cell.borrow_mut() = StdRng::seed_from_u64(seed);
-    });
-}
-
 /// Seeds the thread-local random number generator with the given seed.
 pub fn set_seed(seed: u64) {
     let mut global = GLOBAL_RNG.lock().unwrap();
-    *global = StdRng::seed_from_u64(seed);
+    *global = SmallRng::seed_from_u64(seed);
 }
 
 pub fn reseed_current_thread() {
     let mut global = GLOBAL_RNG.lock().unwrap();
     TLS_RNG.with(|cell| {
-        *cell.borrow_mut() = StdRng::seed_from_u64(global.next_u64());
+        *cell.borrow_mut() = SmallRng::seed_from_u64(global.next_u64());
     });
 }
 
 pub fn set_seed_and_reseed_current(seed: u64) {
     {
         let mut global = GLOBAL_RNG.lock().unwrap();
-        *global = StdRng::seed_from_u64(seed);
+        *global = SmallRng::seed_from_u64(seed);
     }
 
     reseed_current_thread();
@@ -85,7 +79,7 @@ where
 /// Generates a random boolean with the given probability of being true.
 #[inline(always)]
 pub fn bool(prob: f32) -> bool {
-    with_rng(|rng| rng.random_bool(prob as f64))
+    with_rng(|rng| rng.bool(prob))
 }
 
 /// Generates a random number of type T in the given range.
@@ -93,20 +87,20 @@ pub fn range<T>(range: Range<T>) -> T
 where
     T: SampleUniform + PartialOrd,
 {
-    with_rng(|rng| rng.random_range(range))
+    with_rng(|rng| rng.range(range))
 }
 
 /// Chooses a random item from the given slice.
 pub fn choose<T>(items: &[T]) -> &T {
     with_rng(|rng| {
-        let index = rng.random_range(0..items.len());
+        let index = rng.range(0..items.len());
         &items[index]
     })
 }
 
 pub fn choose_mut<T>(items: &mut [T]) -> &mut T {
     with_rng(|rng| {
-        let index = rng.random_range(0..items.len());
+        let index = rng.range(0..items.len());
         &mut items[index]
     })
 }
@@ -114,33 +108,91 @@ pub fn choose_mut<T>(items: &mut [T]) -> &mut T {
 /// Generates a random number from a Gaussian distribution with the given mean and standard deviation.
 /// The Box-Muller transform is used to generate the random number.
 pub fn gaussian(mean: f64, std_dev: f64) -> f64 {
-    with_rng(|rng| {
-        let u1: f64 = rng.random();
-        let u2: f64 = rng.random();
-
-        let z0 = (-2.0 * u1.ln()).sqrt() * (2.0 * std::f64::consts::PI * u2).cos();
-
-        mean + std_dev * z0
-    })
+    with_rng(|rng| rng.gaussian(mean, std_dev))
 }
 
 /// Shuffles the given slice in place.
 pub fn shuffle<T>(items: &mut [T]) {
-    with_rng(|rng| items.shuffle(rng));
+    with_rng(|rng| rng.shuffle(items));
 }
 
 /// Generates a vector of indexes from 0 to n-1 in random order.
 pub fn shuffled_indices(range: Range<usize>) -> Vec<usize> {
     with_rng(|rng| {
         let mut indexes = range.collect::<Vec<usize>>();
-        indexes.shuffle(rng);
+        indexes.shuffle(&mut rng.0);
         indexes
     })
 }
 
 /// Returns a vector of indexes from the given range, each included with the given probability.
 pub fn cond_indices(range: Range<usize>, prob: f32) -> Vec<usize> {
-    with_rng(|rng| {
+    with_rng(|rng| rng.cond_indices(range, prob))
+}
+
+pub struct RdRand<'a>(&'a mut SmallRng);
+
+impl<'a> RdRand<'a> {
+    pub fn new(rng: &'a mut SmallRng) -> Self {
+        RdRand(rng)
+    }
+
+    #[inline]
+    pub fn random<T>(&mut self) -> T
+    where
+        T: SampleUniform,
+        StandardUniform: Distribution<T>,
+    {
+        self.0.random()
+    }
+
+    #[inline]
+    pub fn range<T>(&mut self, range: Range<T>) -> T
+    where
+        T: SampleUniform + PartialOrd,
+    {
+        self.0.random_range(range)
+    }
+
+    #[inline]
+    pub fn bool(&mut self, prob: f32) -> bool {
+        self.0.random_bool(prob as f64)
+    }
+
+    #[inline]
+    pub fn choose<'b, T>(&mut self, items: &'b [T]) -> &'b T {
+        let index = self.0.random_range(0..items.len());
+        &items[index]
+    }
+
+    #[inline]
+    pub fn choose_mut<'b, T>(&mut self, items: &'b mut [T]) -> &'b mut T {
+        let index = self.0.random_range(0..items.len());
+        &mut items[index]
+    }
+
+    #[inline]
+    pub fn shuffle<T>(&mut self, items: &mut [T]) {
+        items.shuffle(&mut self.0);
+    }
+
+    #[inline]
+    pub fn gaussian(&mut self, mean: f64, std_dev: f64) -> f64 {
+        let u1: f64 = self.0.random();
+        let u2: f64 = self.0.random();
+        let z0 = (-2.0 * u1.ln()).sqrt() * (2.0 * std::f64::consts::PI * u2).cos();
+        mean + std_dev * z0
+    }
+
+    #[inline]
+    pub fn shuffled_indices(&mut self, range: Range<usize>) -> Vec<usize> {
+        let mut indexes = range.collect::<Vec<usize>>();
+        indexes.shuffle(&mut self.0);
+        indexes
+    }
+
+    #[inline]
+    pub fn cond_indices(&mut self, range: Range<usize>, prob: f32) -> Vec<usize> {
         if prob >= 1.0 {
             return range.collect();
         }
@@ -149,8 +201,8 @@ pub fn cond_indices(range: Range<usize>, prob: f32) -> Vec<usize> {
             return Vec::new();
         }
 
-        range.filter(|_| rng.random::<f32>() < prob).collect()
-    })
+        range.filter(|_| self.0.random::<f32>() < prob).collect()
+    }
 }
 
 #[cfg(test)]

@@ -17,28 +17,35 @@ impl<C: Chromosome> EngineStep<C> for FilterStep<C> {
     fn execute(
         &mut self,
         generation: usize,
-        metrics: &mut MetricSet,
         ecosystem: &mut Ecosystem<C>,
+        metrics: &mut MetricSet,
     ) -> Result<()> {
         let mut age_count = 0;
         let mut invalid_count = 0;
         for i in 0..ecosystem.population.len() {
-            let phenotype = &ecosystem.population[i];
-
-            let mut removed = false;
-            if phenotype.age(generation) > self.max_age {
-                removed = true;
-                age_count += 1;
-            } else if !phenotype.genotype().is_valid() {
-                removed = true;
-                invalid_count += 1;
-            }
+            let removed = ecosystem
+                .get_phenotype(i)
+                .map(|pheno| {
+                    let mut removed = false;
+                    if pheno.age(generation) > self.max_age {
+                        removed = true;
+                        age_count += 1;
+                    } else if !pheno.genotype().is_valid() {
+                        removed = true;
+                        invalid_count += 1;
+                    }
+                    removed
+                })
+                .unwrap_or(false);
 
             if removed {
                 let new_genotype = self
                     .replacer
                     .replace(ecosystem.population(), Arc::clone(&self.encoder));
-                ecosystem.population[i] = Phenotype::from((new_genotype, generation));
+
+                ecosystem
+                    .get_phenotype_mut(i)
+                    .map(|pheno| *pheno = Phenotype::from((new_genotype, generation)));
             }
         }
 

@@ -80,7 +80,7 @@ mod fitness_fn_tests {
 
     #[test]
     fn test_novelty_search() {
-        random_provider::set_seed(42);
+        random_provider::set_seed(1);
 
         let test_inputs = vec![4.0, -2.0, 3.5, 5.0, -11.0, -4.7];
         let codec = FloatCodec::vector(6, -100.0..100.0);

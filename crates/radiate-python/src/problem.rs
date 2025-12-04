@@ -1,6 +1,6 @@
 use crate::{IntoPyAnyObject, PyAnyObject, PyFitnessInner, bindings::PyCodec};
 use pyo3::{Py, PyAny, Python, types::PyList};
-use radiate::{Chromosome, Codec, Genotype, Problem, Score, error};
+use radiate::{Chromosome, Codec, Genotype, Problem, RadiateResult, Score, error};
 
 pub struct PyProblem<C: Chromosome, T> {
     fitness_func: PyAnyObject,
@@ -19,7 +19,7 @@ impl<C: Chromosome, T> PyProblem<C, T> {
         }
     }
 
-    fn call_fitness<'py>(&self, py: Python<'py>, phenotype: PyAnyObject) -> radiate::Result<Score> {
+    fn call_fitness<'py>(&self, py: Python<'py>, phenotype: PyAnyObject) -> RadiateResult<Score> {
         let any_value = self.fitness_func.inner.call1(py, (phenotype.inner,)).map_err(|e| {
             error::radiate_err!(Evaluation:
                 "Ensure the function is callable, accepts one argument (Genotype), and returns a valid score: {}",
@@ -64,7 +64,7 @@ impl<C: Chromosome, T> PyProblem<C, T> {
         &self,
         py: Python<'py>,
         phenotypes: Py<PyAny>,
-    ) -> radiate::Result<Vec<Score>> {
+    ) -> RadiateResult<Vec<Score>> {
         let any_value = self
             .fitness_func
             .inner
@@ -111,14 +111,14 @@ impl<C: Chromosome, T: IntoPyAnyObject> Problem<C, T> for PyProblem<C, T> {
         self.codec.decode(genotype)
     }
 
-    fn eval(&self, individual: &Genotype<C>) -> radiate::Result<Score> {
+    fn eval(&self, individual: &Genotype<C>) -> RadiateResult<Score> {
         Python::attach(|py| {
             let phenotype = self.codec.decode_with_py(py, individual).into_py(py);
             self.call_fitness(py, phenotype)
         })
     }
 
-    fn eval_batch(&self, individuals: &[Genotype<C>]) -> radiate::Result<Vec<Score>> {
+    fn eval_batch(&self, individuals: &[Genotype<C>]) -> RadiateResult<Vec<Score>> {
         Python::attach(|py| {
             if !self.is_batch {
                 individuals

@@ -43,10 +43,10 @@ impl Regression {
     }
 }
 
-impl<'a> FitnessFunction<&'a GraphChromosome<Op<f32>>, f32> for Regression {
+impl<'a> FitnessFunction<&'a Genotype<GraphChromosome<Op<f32>>>, f32> for Regression {
     #[inline]
-    fn evaluate(&self, input: &'a GraphChromosome<Op<f32>>) -> f32 {
-        let mut evaluator = GraphEvaluator::new(input);
+    fn evaluate(&self, input: &'a Genotype<GraphChromosome<Op<f32>>>) -> f32 {
+        let mut evaluator = GraphEvaluator::new(&input[0]);
         self.calc_into_buff_mut(&mut evaluator)
     }
 }
@@ -79,6 +79,19 @@ impl BatchFitnessFunction<Graph<Op<f32>>, f32> for Regression {
         let mut results = Vec::with_capacity(inputs.len());
         for input in inputs {
             let mut evaluator = GraphEvaluator::new(&input);
+            results.push(self.calc_into_buff_mut(&mut evaluator));
+        }
+
+        results
+    }
+}
+
+impl<'a> BatchFitnessFunction<&'a Genotype<GraphChromosome<Op<f32>>>, f32> for Regression {
+    #[inline]
+    fn evaluate(&self, inputs: Vec<&'a Genotype<GraphChromosome<Op<f32>>>>) -> Vec<f32> {
+        let mut results = Vec::with_capacity(inputs.len());
+        for input in inputs {
+            let mut evaluator = GraphEvaluator::new(&input[0]);
             results.push(self.calc_into_buff_mut(&mut evaluator));
         }
 
@@ -128,5 +141,24 @@ impl Problem<GraphChromosome<Op<f32>>, Graph<Op<f32>>> for (Regression, GraphCod
 
         let mut evaluator = GraphEvaluator::new(&individual[0]);
         Ok(Score::from(self.0.calc_into_buff_mut(&mut evaluator)))
+    }
+
+    fn eval_batch(
+        &self,
+        individuals: &[Genotype<GraphChromosome<Op<f32>>>],
+    ) -> Result<Vec<Score>, RadiateError> {
+        let mut results = Vec::with_capacity(individuals.len());
+        for individual in individuals {
+            if individual.len() != 1 {
+                return Err(RadiateError::Evaluation(
+                    "Expected genotype with a single individual.".to_string(),
+                ));
+            }
+
+            let mut evaluator = GraphEvaluator::new(&individual[0]);
+            results.push(Score::from(self.0.calc_into_buff_mut(&mut evaluator)));
+        }
+
+        Ok(results)
     }
 }

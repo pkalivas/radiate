@@ -33,6 +33,7 @@ pub mod metric_names {
     pub const SPECIES_CREATED: &str = "species_created";
     pub const SPECIES_DIED: &str = "species_died";
     pub const SPECIES_AGE: &str = "species_age";
+    pub const SPECIES_SIZE: &str = "species_size";
 }
 
 /// Lookup the default scope for a given metric name.
@@ -57,6 +58,7 @@ pub fn default_rollup(name: &str) -> Rollup {
         | metric_names::UNIQUE_MEMBERS
         | metric_names::UNIQUE_SCORES
         | metric_names::SPECIES_AGE
+        | metric_names::SPECIES_SIZE
         | metric_names::SPECIES_COUNT => Rollup::Mean,
 
         metric_names::TIME => Rollup::Last,

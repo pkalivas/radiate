@@ -32,19 +32,13 @@ impl MetricSet {
     }
 
     #[inline(always)]
-    pub fn flush_all_into(&self, target: &mut MetricSet) {
+    pub fn flush_all_into(&mut self, target: &mut MetricSet) {
         for (_, m) in self.iter() {
             self.flush_metric_into(m.name(), target);
         }
 
         target.set_stats.update_from(&self.set_stats);
-    }
-
-    #[inline(always)]
-    pub fn flush_scope_into(&self, from_scope: MetricScope, target: &mut MetricSet) {
-        for (_, m) in self.iter_scope(from_scope) {
-            self.flush_metric_into(m.name(), target);
-        }
+        self.clear();
     }
 
     #[inline(always)]
@@ -86,12 +80,37 @@ impl MetricSet {
     }
 
     #[inline(always)]
-    pub fn add_or_update<'a>(&mut self, metric: Metric) {
-        self.set_stats.apply_update(1);
-        if let Some(m) = self.metrics.get_mut(metric.name()) {
-            m.update_from(&metric);
-        } else {
-            self.add(metric);
+    pub fn add_or_update(&mut self, metric: impl Into<MetricSetUpdate>) {
+        let update = metric.into();
+        match update {
+            MetricSetUpdate::Many(metrics) => {
+                for metric in metrics {
+                    self.add_or_update_internal(metric);
+                }
+            }
+            MetricSetUpdate::Slice2(metrics) => {
+                for metric in metrics {
+                    self.add_or_update_internal(metric);
+                }
+            }
+            MetricSetUpdate::Slice3(metrics) => {
+                for metric in metrics {
+                    self.add_or_update_internal(metric);
+                }
+            }
+            MetricSetUpdate::Slice4(metrics) => {
+                for metric in metrics {
+                    self.add_or_update_internal(metric);
+                }
+            }
+            MetricSetUpdate::Slice5(metrics) => {
+                for metric in metrics {
+                    self.add_or_update_internal(metric);
+                }
+            }
+            MetricSetUpdate::Single(metric) => {
+                self.add_or_update_internal(metric);
+            }
         }
     }
 
@@ -258,6 +277,15 @@ impl MetricSet {
     pub fn species_age(&self) -> Option<&Metric> {
         self.get(super::metric_names::SPECIES_AGE)
     }
+
+    fn add_or_update_internal(&mut self, metric: Metric) {
+        self.set_stats.apply_update(1);
+        if let Some(existing) = self.metrics.get_mut(metric.name()) {
+            existing.update_from(&metric);
+        } else {
+            self.metrics.insert(intern!(metric.name()), metric);
+        }
+    }
 }
 
 impl Default for MetricSet {
@@ -334,5 +362,50 @@ impl<'de> Deserialize<'de> for MetricSet {
             metric_set.add(metric);
         }
         Ok(metric_set)
+    }
+}
+
+pub enum MetricSetUpdate {
+    Many(Vec<Metric>),
+    Single(Metric),
+    Slice2([Metric; 2]),
+    Slice3([Metric; 3]),
+    Slice4([Metric; 4]),
+    Slice5([Metric; 5]),
+}
+
+impl From<Vec<Metric>> for MetricSetUpdate {
+    fn from(metrics: Vec<Metric>) -> Self {
+        MetricSetUpdate::Many(metrics)
+    }
+}
+
+impl From<Metric> for MetricSetUpdate {
+    fn from(metric: Metric) -> Self {
+        MetricSetUpdate::Single(metric)
+    }
+}
+
+impl From<[Metric; 2]> for MetricSetUpdate {
+    fn from(metrics: [Metric; 2]) -> Self {
+        MetricSetUpdate::Slice2(metrics)
+    }
+}
+
+impl From<[Metric; 3]> for MetricSetUpdate {
+    fn from(metrics: [Metric; 3]) -> Self {
+        MetricSetUpdate::Slice3(metrics)
+    }
+}
+
+impl From<[Metric; 4]> for MetricSetUpdate {
+    fn from(metrics: [Metric; 4]) -> Self {
+        MetricSetUpdate::Slice4(metrics)
+    }
+}
+
+impl From<[Metric; 5]> for MetricSetUpdate {
+    fn from(metrics: [Metric; 5]) -> Self {
+        MetricSetUpdate::Slice5(metrics)
     }
 }

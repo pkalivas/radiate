@@ -45,28 +45,28 @@ where
                 let geno_one = parent_one.genotype_mut();
                 let geno_two = parent_two.genotype();
 
-                let chromo_index =
-                    random_provider::range(0..std::cmp::min(geno_one.len(), geno_two.len()));
+                random_provider::with_rng(|rand| {
+                    let chromo_index = rand.range(0..std::cmp::min(geno_one.len(), geno_two.len()));
 
-                let chromo_one = geno_one.get_mut(chromo_index).unwrap();
-                let chromo_two = geno_two.get(chromo_index).unwrap();
+                    let chromo_one = geno_one.get_mut(chromo_index).unwrap();
+                    let chromo_two = geno_two.get(chromo_index).unwrap();
 
-                let node_indices = (0..std::cmp::min(chromo_one.len(), chromo_two.len()))
-                    .filter(|i| {
-                        let node_one = chromo_one.get(*i);
-                        let node_two = chromo_two.get(*i);
+                    let node_indices = (0..std::cmp::min(chromo_one.len(), chromo_two.len()))
+                        .filter(|i| {
+                            let node_one = chromo_one.get(*i);
+                            let node_two = chromo_two.get(*i);
 
-                        node_one.arity() == node_two.arity()
-                            && random_provider::bool(self.parent_node_rate)
-                    })
-                    .collect::<Vec<usize>>();
+                            node_one.arity() == node_two.arity() && rand.bool(self.parent_node_rate)
+                        })
+                        .collect::<Vec<usize>>();
 
-                for &i in node_indices.iter() {
-                    let node_two = chromo_two.get(i);
-                    chromo_one.get_mut(i).set_value(node_two.value().clone());
-                }
+                    for &i in node_indices.iter() {
+                        let node_two = chromo_two.get(i);
+                        chromo_one.get_mut(i).set_value(node_two.value().clone());
+                    }
 
-                node_indices.len()
+                    node_indices.len()
+                })
             };
 
             if num_crosses > 0 {

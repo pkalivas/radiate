@@ -85,6 +85,7 @@ where
             self.errors.push(radiate_err!(Builder: "{}", message));
         }
     }
+
     /// The [ReplacementStrategy] is used to determine how a new individual is added to the [Population]
     /// if an individual is deemed to be either invalid or reaches the maximum age.
     ///
@@ -210,11 +211,17 @@ where
             Builder: "Codec not set"
         );
 
-        if let Some(batch_fn) = &self.params.problem_params.batch_fitness_fn {
+        let raw_fitness_fn = self.params.problem_params.raw_fitness_fn.clone();
+        let fitness_fn = self.params.problem_params.fitness_fn.clone();
+        let batch_fitness_fn = self.params.problem_params.batch_fitness_fn.clone();
+        let raw_batch_fitness_fn = self.params.problem_params.raw_batch_fitness_fn.clone();
+
+        if batch_fitness_fn.is_some() || raw_batch_fitness_fn.is_some() {
             self.params.problem_params.problem = Some(Arc::new(BatchEngineProblem {
                 objective: self.params.optimization_params.objectives.clone(),
                 codec: self.params.problem_params.codec.clone().unwrap(),
-                batch_fitness_fn: batch_fn.clone(),
+                batch_fitness_fn,
+                raw_batch_fitness_fn,
             }));
 
             // Replace the evaluator with BatchFitnessEvaluator
@@ -223,11 +230,12 @@ where
             ));
 
             Ok(())
-        } else if let Some(fitness_fn) = &self.params.problem_params.fitness_fn {
+        } else if fitness_fn.is_some() || raw_fitness_fn.is_some() {
             self.params.problem_params.problem = Some(Arc::new(EngineProblem {
                 objective: self.params.optimization_params.objectives.clone(),
                 codec: self.params.problem_params.codec.clone().unwrap(),
-                fitness_fn: fitness_fn.clone(),
+                fitness_fn,
+                raw_fitness_fn,
             }));
 
             Ok(())
@@ -382,13 +390,13 @@ where
             return None;
         }
 
-        let adapter = DistanceDiversityAdapter::new(config.diversity().unwrap());
-
         let species_step = SpeciateStep {
             threashold: config.species_threshold(),
-            distance: Arc::new(adapter),
+            distance: Arc::new(DistanceDiversityAdapter::new(config.diversity().unwrap())),
             executor: config.species_executor(),
             objective: config.objective(),
+            distances: Arc::new(Mutex::new(Vec::new())),
+            assignments: Arc::new(Mutex::new(Vec::new())),
         };
 
         Some(Box::new(species_step))
@@ -434,6 +442,8 @@ where
                     problem: None,
                     fitness_fn: None,
                     batch_fitness_fn: None,
+                    raw_fitness_fn: None,
+                    raw_batch_fitness_fn: None,
                 },
 
                 replacement_strategy: Arc::new(EncodeReplace),

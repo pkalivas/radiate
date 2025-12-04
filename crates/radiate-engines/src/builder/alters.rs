@@ -1,5 +1,6 @@
 use crate::GeneticEngineBuilder;
 use radiate_core::{Alter, AlterAction, Chromosome, Crossover, Mutate};
+use radiate_utils::intern;
 use std::sync::Arc;
 
 impl<C, T> GeneticEngineBuilder<C, T>
@@ -34,7 +35,7 @@ where
         let mutate_actions = mutators
             .into_iter()
             .map(|m| {
-                Arc::new(AlterAction::Mutate(m.name().leak(), m.rate(), m)) as Arc<dyn Alter<C>>
+                Arc::new(AlterAction::Mutate(intern!(m.name()), m.rate(), m)) as Arc<dyn Alter<C>>
             })
             .collect::<Vec<_>>();
 
