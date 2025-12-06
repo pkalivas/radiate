@@ -1,7 +1,10 @@
 use crate::chart::ChartData;
-use radiate_engines::{Metric, MetricSet, Objective, Optimize, Score, stats::Tag};
+use radiate_engines::{Metric, MetricSet, Objective, Optimize, Score, metric_names, stats::Tag};
 use ratatui::widgets::TableState;
-use std::time::{Duration, Instant};
+use std::{
+    collections::HashMap,
+    time::{Duration, Instant},
+};
 
 #[derive(Clone, Copy, PartialEq, Eq, Default)]
 pub enum MetricsTab {
@@ -12,69 +15,60 @@ pub enum MetricsTab {
 }
 
 pub struct ChartState {
-    pub scores: ChartData,
-    pub scores_mean: ChartData,
-    pub score_dist: ChartData,
-    pub carryover: ChartData,
-    pub diversity: ChartData,
+    fitness: ChartData,
+    keyed: HashMap<&'static str, ChartData>,
 }
 
 impl ChartState {
-    pub fn scores_mut(&mut self) -> &mut ChartData {
-        &mut self.scores
+    pub fn fitness_chart(&self) -> &ChartData {
+        &self.fitness
     }
 
-    pub fn scores_mean_mut(&mut self) -> &mut ChartData {
-        &mut self.scores_mean
+    pub fn fitness_chart_mut(&mut self) -> &mut ChartData {
+        &mut self.fitness
     }
 
-    pub fn carryover_mut(&mut self) -> &mut ChartData {
-        &mut self.carryover
+    pub fn get_by_key(&self, key: &'static str) -> Option<&ChartData> {
+        self.keyed.get(key)
     }
 
-    pub fn diversity_mut(&mut self) -> &mut ChartData {
-        &mut self.diversity
-    }
-
-    pub fn score_dist_mut(&mut self) -> &mut ChartData {
-        &mut self.score_dist
+    pub fn get_or_create_chart(&mut self, key: &'static str) -> &mut ChartData {
+        self.keyed
+            .entry(key)
+            .or_insert_with(|| ChartData::new().with_metric_name(key))
     }
 }
 
 impl Default for ChartState {
     fn default() -> Self {
         Self {
-            scores: ChartData::new()
-                .with_name("Score")
-                .with_color(ratatui::style::Color::Cyan),
-            scores_mean: ChartData::new()
-                .with_name("μ (mean)")
-                .with_color(ratatui::style::Color::Yellow),
-            score_dist: ChartData::new()
-                .with_name("Score Distribution")
-                .with_color(ratatui::style::Color::Red),
-            diversity: ChartData::new()
-                .with_name("Diversity")
-                .with_color(ratatui::style::Color::Red),
-            carryover: ChartData::new()
-                .with_name("Carryover")
-                .with_color(ratatui::style::Color::Green),
+            fitness: ChartData::new()
+                .with_metric_name(metric_names::SCORES)
+                .with_name("Score"),
+            keyed: HashMap::new(),
         }
     }
 }
 
-pub(crate) struct DashboardState {
+pub(crate) struct AppState {
     pub last_render: Option<Instant>,
     pub render_interval: Duration,
     pub chart_state: ChartState,
     pub metrics_tab: MetricsTab,
     pub tag_view: Vec<usize>,
     pub all_tags: Vec<Tag>,
+
     pub display_tag_filters: bool,
+    pub display_metric_charts: bool,
+    pub display_metric_means: bool,
+    pub is_running: bool,
+
     pub objective: Objective,
     pub metrics: MetricSet,
     pub index: usize,
     pub score: Score,
+
+    pub render_count: usize,
 
     pub time_table: TableState,
     pub stats_table: TableState,
@@ -84,7 +78,7 @@ pub(crate) struct DashboardState {
     pub distribution_row_count: usize,
 }
 
-impl DashboardState {
+impl AppState {
     pub fn last_render(&self) -> Option<Instant> {
         self.last_render
     }
@@ -99,6 +93,18 @@ impl DashboardState {
 
     pub fn toggle_display_tag_filters(&mut self) {
         self.display_tag_filters = !self.display_tag_filters;
+    }
+
+    pub fn toggle_display_metric_charts(&mut self) {
+        self.display_metric_charts = !self.display_metric_charts;
+    }
+
+    pub fn toggle_display_metric_means(&mut self) {
+        self.display_metric_means = !self.display_metric_means;
+    }
+
+    pub fn toggle_is_running(&mut self) {
+        self.is_running = !self.is_running;
     }
 
     pub fn set_tag_filter_by_index(&mut self, index: usize) {
@@ -117,24 +123,8 @@ impl DashboardState {
         }
     }
 
-    pub fn score_chart(&self) -> &ChartData {
-        &self.chart_state.scores
-    }
-
-    pub fn score_mean(&self) -> &ChartData {
-        &self.chart_state.scores_mean
-    }
-
-    pub fn score_dist_chart(&self) -> &ChartData {
-        &self.chart_state.score_dist
-    }
-
-    pub fn carryover_chart(&self) -> &ChartData {
-        &self.chart_state.carryover
-    }
-
-    pub fn diversity_chart(&self) -> &ChartData {
-        &self.chart_state.diversity
+    pub fn get_chart_by_key(&self, key: &'static str) -> Option<&ChartData> {
+        self.chart_state.get_by_key(key)
     }
 
     pub fn metrics(&self) -> &MetricSet {
@@ -147,6 +137,14 @@ impl DashboardState {
 
     pub fn score(&self) -> &Score {
         &self.score
+    }
+
+    pub fn is_running(&self) -> bool {
+        self.is_running
+    }
+
+    pub fn charts(&self) -> &ChartState {
+        &self.chart_state
     }
 
     pub fn charts_mut(&mut self) -> &mut ChartState {
@@ -213,7 +211,7 @@ impl DashboardState {
     }
 }
 
-impl Default for DashboardState {
+impl Default for AppState {
     fn default() -> Self {
         Self {
             last_render: None,
@@ -223,6 +221,9 @@ impl Default for DashboardState {
             tag_view: Vec::new(),
             all_tags: Vec::new(),
             display_tag_filters: false,
+            display_metric_charts: true,
+            display_metric_means: false,
+            is_running: false,
             time_table: TableState::default(),
             stats_table: TableState::default(),
             distribution_table: TableState::default(),
@@ -233,6 +234,7 @@ impl Default for DashboardState {
             time_row_count: 0,
             stats_row_count: 0,
             distribution_row_count: 0,
+            render_count: 0,
         }
     }
 }

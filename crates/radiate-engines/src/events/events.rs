@@ -5,6 +5,7 @@ use std::fmt::Debug;
 pub enum EngineMessage<'a, C, T>
 where
     C: Chromosome,
+    T: Clone,
 {
     Start,
     Stop(&'a Context<C, T>),

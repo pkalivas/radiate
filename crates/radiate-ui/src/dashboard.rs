@@ -1,7 +1,4 @@
-use crate::{
-    chart::ChartData,
-    state::{DashboardState, MetricsTab},
-};
+use crate::state::{AppState, MetricsTab};
 use color_eyre::Result;
 use radiate_engines::{
     Metric, MetricScope,
@@ -13,21 +10,20 @@ use ratatui::{
     backend::CrosstermBackend,
     text::Span,
     widgets::{
-        Bar, BarChart, BarGroup, List, ListItem, Paragraph, Scrollbar, ScrollbarOrientation,
-        ScrollbarState, TableState,
+        List, ListItem, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState, TableState,
     },
 };
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style, Stylize, palette::material},
-    symbols::{self},
     text::Line,
-    widgets::{Axis, Block, Cell, Chart, Dataset, GraphType, Row, Table},
+    widgets::{Block, Cell, Row, Table},
 };
 use std::{
     io,
     time::{Duration, Instant},
 };
+use tui_piechart::{PieChart, PieSlice};
 
 pub const NORMAL_ROW_BG: Color = material::GRAY.c800;
 pub const ALT_ROW_BG_COLOR: Color = material::GRAY.c900;
@@ -50,16 +46,27 @@ pub const DISTRIBUTION_HEADER_CELLS: [&str; 11] = [
     "Metric", "Min", ".25p", ".50p", ".75p", "Max", "Count", "StdDev", "Var", "Skew", "Entr.",
 ];
 
+const COLORS: [Color; 8] = [
+    material::RED.c400,
+    material::BLUE.c400,
+    material::GREEN.c400,
+    material::YELLOW.c400,
+    material::PURPLE.c400,
+    material::CYAN.c400,
+    material::ORANGE.c400,
+    material::TEAL.c400,
+];
+
 pub(crate) struct Dashboard {
     terminal: Terminal<CrosstermBackend<io::Stdout>>,
-    state: DashboardState,
+    state: AppState,
 }
 
 impl Dashboard {
     pub fn new(render_interval: Duration) -> Self {
         Self {
             terminal: ratatui::init(),
-            state: DashboardState {
+            state: AppState {
                 render_interval,
                 ..Default::default()
             },
@@ -85,8 +92,23 @@ impl Dashboard {
         self.render().unwrap_or_default();
     }
 
+    pub fn toggle_metric_charts_display(&mut self) {
+        self.state.toggle_display_metric_charts();
+        self.render().unwrap_or_default();
+    }
+
+    pub fn toggle_metric_means_display(&mut self) {
+        self.state.toggle_display_metric_means();
+        self.render().unwrap_or_default();
+    }
+
     pub fn set_tag_filter_by_index(&mut self, index: usize) {
         self.state.set_tag_filter_by_index(index);
+        self.render().unwrap_or_default();
+    }
+
+    pub fn toggle_is_running(&mut self) {
+        self.state.toggle_is_running();
         self.render().unwrap_or_default();
     }
 
@@ -114,30 +136,23 @@ impl Dashboard {
         let charts = self.state.charts_mut();
 
         charts
-            .scores_mut()
-            .add_value((index as f64, score.as_f32() as f64));
+            .fitness_chart_mut()
+            .update_last_value(index as f64, score.as_f32() as f64);
 
-        if let Some(score) = metrics.get(metric_names::SCORES) {
-            charts.scores_mean_mut().add_value((
-                index as f64,
-                score.distribution_mean().unwrap_or(0.0) as f64,
-            ));
-
-            if let Some(dist) = score.distribution() {
-                charts.score_dist_mut().set_values(dist.last_sequence());
-            }
+        if let Some(dist) = metrics
+            .get(metric_names::SCORES)
+            .and_then(|m| m.distribution())
+        {
+            charts
+                .fitness_chart_mut()
+                .update_mean_value(index as f64, dist.mean() as f64);
         }
 
-        if let Some(diversity) = metrics.get(metric_names::DIVERSITY_RATIO) {
-            charts
-                .diversity_mut()
-                .add_value((index as f64, diversity.last_value() as f64));
-        }
+        for metric in metrics.iter() {
+            let key = metric.0;
+            let chart = charts.get_or_create_chart(key);
 
-        if let Some(carryover) = metrics.get(metric_names::CARRYOVER_RATE) {
-            charts
-                .carryover_mut()
-                .add_value((index as f64, carryover.last_value() as f64));
+            chart.update(metric.1);
         }
 
         self.state.metrics = metrics;
@@ -150,7 +165,9 @@ impl Dashboard {
 }
 
 impl Dashboard {
-    pub(crate) fn ui(f: &mut ratatui::Frame, state: &mut DashboardState) {
+    pub(crate) fn ui(f: &mut ratatui::Frame, state: &mut AppState) {
+        state.render_count += 1;
+
         let size = f.area();
         f.buffer_mut().set_style(
             size,
@@ -166,7 +183,7 @@ impl Dashboard {
         Self::render_metrics_table(f, base[1], state);
     }
 
-    fn render_metrics_table(f: &mut ratatui::Frame, area: Rect, ui_state: &mut DashboardState) {
+    fn render_metrics_table(f: &mut ratatui::Frame, area: Rect, ui_state: &mut AppState) {
         if ui_state.display_tag_filters {
             let chunks = Layout::default()
                 .direction(Direction::Horizontal)
@@ -174,60 +191,38 @@ impl Dashboard {
                 .split(area);
 
             Self::render_tag_filter_panel(f, chunks[0], ui_state);
-
-            let block = Block::bordered();
-            let inner = block.inner(chunks[1]);
-            f.render_widget(block, chunks[1]);
-
-            let chunks = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([
-                    Constraint::Length(2),
-                    Constraint::Fill(1),
-                    Constraint::Length(1),
-                ])
-                .split(inner);
-
-            Self::render_metrics_tabs(f, chunks[0], ui_state.metrics_tab);
-
-            match ui_state.metrics_tab {
-                MetricsTab::Time => Self::render_time_table(f, chunks[1], ui_state),
-                MetricsTab::Stats => Self::render_stats_table(f, chunks[1], ui_state),
-                MetricsTab::Distributions => {
-                    Self::render_distribution_table(f, chunks[1], ui_state)
-                }
-            }
-
-            f.render_widget(help_text_widget(), chunks[2]);
+            Self::render_metrics_main(f, chunks[1], ui_state);
         } else {
-            let block = Block::bordered();
-            let inner = block.inner(area);
-            f.render_widget(block, area);
-
-            let chunks = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([
-                    Constraint::Length(2),
-                    Constraint::Fill(1),
-                    Constraint::Length(1),
-                ])
-                .split(inner);
-
-            Self::render_metrics_tabs(f, chunks[0], ui_state.metrics_tab);
-
-            match ui_state.metrics_tab {
-                MetricsTab::Time => Self::render_time_table(f, chunks[1], ui_state),
-                MetricsTab::Stats => Self::render_stats_table(f, chunks[1], ui_state),
-                MetricsTab::Distributions => {
-                    Self::render_distribution_table(f, chunks[1], ui_state)
-                }
-            }
-
-            f.render_widget(help_text_widget(), chunks[2]);
+            Self::render_metrics_main(f, area, ui_state);
         }
     }
 
-    fn render_tag_filter_panel(f: &mut ratatui::Frame, area: Rect, ui_state: &mut DashboardState) {
+    fn render_metrics_main(f: &mut ratatui::Frame, area: Rect, ui_state: &mut AppState) {
+        let block = Block::bordered();
+        let inner = block.inner(area);
+        f.render_widget(block, area);
+
+        let chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(2), // tabs
+                Constraint::Fill(1),   // table
+                Constraint::Length(1), // help text
+            ])
+            .split(inner);
+
+        Self::render_metrics_tabs(f, chunks[0], ui_state.metrics_tab);
+
+        match ui_state.metrics_tab {
+            MetricsTab::Time => Self::render_time_table(f, chunks[1], ui_state),
+            MetricsTab::Stats => Self::render_stats_table(f, chunks[1], ui_state),
+            MetricsTab::Distributions => Self::render_distribution_table(f, chunks[1], ui_state),
+        }
+
+        f.render_widget(help_text_widget(), chunks[2]);
+    }
+
+    fn render_tag_filter_panel(f: &mut ratatui::Frame, area: Rect, ui_state: &mut AppState) {
         let block = Block::bordered().title(Line::from(" Filter ").centered());
         let inner = block.inner(area);
         f.render_widget(block, area);
@@ -284,7 +279,7 @@ impl Dashboard {
         f.render_widget(tabs, area);
     }
 
-    fn render_base_left(f: &mut ratatui::Frame, area: Rect, ui_state: &mut DashboardState) {
+    fn render_base_left(f: &mut ratatui::Frame, area: Rect, ui_state: &mut AppState) {
         let left = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([
@@ -295,21 +290,17 @@ impl Dashboard {
             .split(area);
 
         Self::render_engine_base_table(f, left[0], ui_state);
-        Self::render_line_charts(
-            f,
+        f.render_widget(
+            ui_state.charts().fitness_chart().create_chart_widgets(),
             left[1],
-            vec![&ui_state.score_chart(), &ui_state.score_mean()],
         );
 
-        Self::render_line_charts(
-            f,
-            left[2],
-            vec![&ui_state.score_dist_chart()],
-            // vec![&ui_state.diversity_chart(), &ui_state.carryover_chart()],
-        );
+        if let Some(dist_chart) = ui_state.get_chart_by_key(metric_names::SCORES) {
+            f.render_widget(dist_chart.create_value_chart_widget(), left[2]);
+        }
     }
 
-    fn render_engine_base_table(f: &mut ratatui::Frame, area: Rect, ui_state: &mut DashboardState) {
+    fn render_engine_base_table(f: &mut ratatui::Frame, area: Rect, ui_state: &mut AppState) {
         let elapsed = ui_state
             .metrics()
             .time()
@@ -384,8 +375,14 @@ impl Dashboard {
             ]),
         ];
 
+        let engine_state = if ui_state.is_running() {
+            "Running".fg(Color::LightGreen).bold()
+        } else {
+            "Complete".fg(Color::Red).bold()
+        };
+
         let block_title = Line::from(vec![
-            " Gen ".fg(Color::Gray).bold(),
+            "Gen ".fg(Color::Gray).bold(),
             format!("{}", ui_state.index()).fg(Color::LightGreen),
             "| Score ".fg(Color::Gray).bold(),
             format!("{:.4} |", ui_state.score().as_f32()).fg(Color::LightGreen),
@@ -394,7 +391,7 @@ impl Dashboard {
         ])
         .centered();
 
-        let block = Block::bordered();
+        let block = Block::bordered().title_top(engine_state);
         let inner = block.inner(area);
         f.render_widget(block, area);
         let layout = Layout::default()
@@ -411,7 +408,7 @@ impl Dashboard {
         f.render_widget(engine_table, layout[1]);
     }
 
-    fn render_time_table(f: &mut ratatui::Frame, area: Rect, ui_state: &mut DashboardState) {
+    fn render_time_table(f: &mut ratatui::Frame, area: Rect, ui_state: &mut AppState) {
         let row_count = ui_state.time_row_count;
         let selected = ui_state.time_table.selected().unwrap_or(0);
 
@@ -420,33 +417,22 @@ impl Dashboard {
             .constraints([Constraint::Percentage(40), Constraint::Fill(1)])
             .split(area);
 
-        let mut step_metrics = ui_state
-            .metrics
-            .iter_scope(MetricScope::Step)
-            .filter(|(_, m)| ui_state.metric_has_tags(m))
-            .collect::<Vec<_>>();
-        let mut selector_metrics = ui_state
-            .metrics
-            .iter_tagged(metric_tags::SELECTOR)
-            .filter(|(_, m)| ui_state.metric_has_tags(m))
-            .collect::<Vec<_>>();
-        let mut alterer_metrics = ui_state
-            .metrics
-            .iter_tagged(metric_tags::ALTERER)
-            .filter(|(_, m)| ui_state.metric_has_tags(m))
-            .collect::<Vec<_>>();
+        // --- Left: bar chart of time by metric ---
+        let step_metrics = collect_scope_metrics(&ui_state.metrics, MetricScope::Step, ui_state);
+        let selector_metrics =
+            collect_tagged_metrics(&ui_state.metrics, metric_tags::SELECTOR, ui_state);
+        let alterer_metrics =
+            collect_tagged_metrics(&ui_state.metrics, metric_tags::ALTERER, ui_state);
 
-        step_metrics.sort_by(|a, b| a.0.cmp(b.0));
-        selector_metrics.sort_by(|a, b| a.0.cmp(b.0));
-        alterer_metrics.sort_by(|a, b| a.0.cmp(b.0));
-
-        let bars = step_metrics
+        // Create slices
+        let slices = step_metrics
             .iter()
             .chain(selector_metrics.iter())
             .chain(alterer_metrics.iter())
-            .filter_map(|(name, m)| {
+            .enumerate()
+            .filter_map(|(index, (name, m))| {
                 m.time_statistic().map(|time| {
-                    let total_ms = time.sum().as_millis() as u64;
+                    let total_ms = time.sum().as_millis() as f64;
 
                     const MAX_LABEL_LEN: usize = 12;
                     let mut label = (*name).to_string();
@@ -455,24 +441,19 @@ impl Dashboard {
                         label.push('…');
                     }
 
-                    Bar::default()
-                        .value(total_ms)
-                        .label(label.into())
-                        .text_value(format!("{} ms", total_ms))
+                    PieSlice::new(name, total_ms, COLORS[index % COLORS.len()])
                 })
             })
             .collect::<Vec<_>>();
 
-        let group = BarGroup::default().bars(&bars);
+        // With customization
+        let piechart = PieChart::new(slices)
+            .show_legend(true)
+            .show_percentages(true)
+            .block(Block::bordered())
+            .high_resolution(true);
 
-        let bar_chart = BarChart::default()
-            .data(group)
-            .bar_width(1)
-            .bar_gap(1)
-            .direction(Direction::Horizontal)
-            .block(Block::bordered());
-
-        f.render_widget(bar_chart, chunks[0]);
+        f.render_widget(piechart, chunks[0]);
 
         ui_state.time_row_count =
             step_metrics.len() + selector_metrics.len() + alterer_metrics.len();
@@ -494,71 +475,45 @@ impl Dashboard {
                 Constraint::Fill(1),
             ]);
 
-        let chunks = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([
-                Constraint::Fill(1),   // table
-                Constraint::Length(1), // scrollbar column
-            ])
-            .split(chunks[1]);
-
-        f.render_stateful_widget(table, chunks[0], &mut ui_state.time_table);
-
-        if row_count > chunks[0].height as usize {
-            let mut scrollbar_state = ScrollbarState::new(row_count).position(selected);
-
-            let scrollbar = Scrollbar::default()
-                .orientation(ScrollbarOrientation::VerticalRight)
-                .track_style(Style::default().fg(Color::DarkGray))
-                .thumb_style(Style::default().fg(Color::LightGreen));
-
-            f.render_stateful_widget(scrollbar, chunks[1], &mut scrollbar_state);
-        }
+        render_scrollable_table(
+            f,
+            chunks[1],
+            table,
+            &mut ui_state.time_table,
+            row_count,
+            selected,
+        );
     }
 
-    fn render_stats_table(f: &mut ratatui::Frame, area: Rect, ui_state: &mut DashboardState) {
-        let mut items: Vec<_> = ui_state
-            .metrics
-            .iter_scope(MetricScope::Generation)
-            .filter(|(_, m)| ui_state.metric_has_tags(m))
-            .collect();
-        items.sort_by(|a, b| a.0.cmp(b.0));
+    fn render_stats_table(f: &mut ratatui::Frame, area: Rect, ui_state: &mut AppState) {
+        let mut items = collect_scope_metrics(&ui_state.metrics, MetricScope::Generation, ui_state);
 
-        let mut alter_metrics = ui_state
-            .metrics
-            .iter_tagged(metric_tags::ALTERER)
-            .filter(|(_, m)| ui_state.metric_has_tags(m))
-            .collect::<Vec<_>>();
-        let mut species_metrics = ui_state
-            .metrics
-            .iter_tagged(metric_tags::SPECIES)
-            .filter(|(_, m)| ui_state.metric_has_tags(m))
-            .collect::<Vec<_>>();
-        let mut derived_metrics = ui_state
-            .metrics
-            .iter_tagged(metric_tags::DERIVED)
-            .filter(|(_, m)| ui_state.metric_has_tags(m))
-            .collect::<Vec<_>>();
+        let mut alter_metrics =
+            collect_tagged_metrics(&ui_state.metrics, metric_tags::ALTERER, ui_state);
+        let mut species_metrics =
+            collect_tagged_metrics(&ui_state.metrics, metric_tags::SPECIES, ui_state);
+        let mut derived_metrics =
+            collect_tagged_metrics(&ui_state.metrics, metric_tags::DERIVED, ui_state);
 
-        alter_metrics.sort_by(|a, b| a.0.cmp(b.0));
-        species_metrics.sort_by(|a, b| a.0.cmp(b.0));
-        derived_metrics.sort_by(|a, b| a.0.cmp(b.0));
         items.retain(|(name, _)| {
             !alter_metrics.iter().any(|(n, _)| n == name)
                 && !species_metrics.iter().any(|(n, _)| n == name)
                 && !derived_metrics.iter().any(|(n, _)| n == name)
         });
 
-        let row_count = ui_state.stats_row_count;
+        let ordered = alter_metrics
+            .drain(..)
+            .chain(species_metrics.drain(..))
+            .chain(items.drain(..))
+            .chain(derived_metrics.drain(..))
+            .collect::<Vec<_>>();
+
+        let prev_row_count = ui_state.stats_row_count;
         let selected = ui_state.stats_table.selected().unwrap_or(0);
 
-        ui_state.stats_row_count =
-            alter_metrics.len() + species_metrics.len() + items.len() + derived_metrics.len();
+        ui_state.stats_row_count = ordered.len();
 
-        let rows = metrics_into_stat_rows(alter_metrics.into_iter())
-            .chain(metrics_into_stat_rows(species_metrics.into_iter()))
-            .chain(metrics_into_stat_rows(items.into_iter()))
-            .chain(metrics_into_stat_rows(derived_metrics.into_iter()));
+        let rows = metrics_into_stat_rows(ordered.iter().copied());
 
         let table = Table::default()
             .block(Block::bordered())
@@ -576,48 +531,69 @@ impl Dashboard {
                 Constraint::Fill(1),
             ]);
 
-        let chunks = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([
-                Constraint::Fill(1),   // table
-                Constraint::Length(1), // scrollbar column
-            ])
-            .split(area);
+        let display_any_chart = ui_state.display_metric_charts || ui_state.display_metric_means;
 
-        f.render_stateful_widget(table, chunks[0], &mut ui_state.stats_table);
+        if display_any_chart {
+            let v_chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([
+                    Constraint::Fill(3),   // table area
+                    Constraint::Length(7), // detail panel
+                ])
+                .split(area);
 
-        if row_count > chunks[0].height as usize {
-            let mut scrollbar_state = ScrollbarState::new(row_count).position(selected);
+            render_scrollable_table(
+                f,
+                v_chunks[0],
+                table,
+                &mut ui_state.stats_table,
+                prev_row_count,
+                selected,
+            );
 
-            let scrollbar = Scrollbar::default()
-                .orientation(ScrollbarOrientation::VerticalRight)
-                .track_style(Style::default().fg(Color::DarkGray))
-                .thumb_style(Style::default().fg(Color::LightGreen));
-
-            f.render_stateful_widget(scrollbar, chunks[1], &mut scrollbar_state);
+            if !ordered.is_empty() && v_chunks[1].height > 3 {
+                let maybe_chart =
+                    ui_state.get_chart_by_key(ordered[selected.min(ordered.len() - 1)].0);
+                if let Some(chart) = maybe_chart {
+                    if ui_state.display_metric_charts && ui_state.display_metric_means {
+                        f.render_widget(chart.create_chart_widgets(), v_chunks[1]);
+                    } else if ui_state.display_metric_means {
+                        f.render_widget(chart.create_mean_chart_widget().unwrap(), v_chunks[1]);
+                    } else {
+                        f.render_widget(chart.create_value_chart_widget(), v_chunks[1]);
+                    }
+                }
+            }
+        } else {
+            render_scrollable_table(
+                f,
+                area,
+                table,
+                &mut ui_state.stats_table,
+                prev_row_count,
+                selected,
+            );
         }
     }
 
-    fn render_distribution_table(
-        f: &mut ratatui::Frame,
-        area: Rect,
-        ui_state: &mut DashboardState,
-    ) {
-        let row_count = ui_state.distribution_row_count;
+    fn render_distribution_table(f: &mut ratatui::Frame, area: Rect, ui_state: &mut AppState) {
+        let prev_row_count = ui_state.distribution_row_count;
         let selected = ui_state.distribution_table.selected().unwrap_or(0);
 
-        let distibutions = metrics_into_dist_rows(
-            ui_state
-                .metrics
-                .iter_tagged(metric_tags::DISTRIBUTION)
-                .filter(|(_, m)| ui_state.metric_has_tags(m)),
-        )
-        .collect::<Vec<_>>();
-        ui_state.distribution_row_count = distibutions.len();
+        let ordered: Vec<(&'static str, &Metric)> = ui_state
+            .metrics
+            .iter_tagged(metric_tags::DISTRIBUTION)
+            .filter(|(_, m)| ui_state.metric_has_tags(m))
+            .collect();
+
+        ui_state.distribution_row_count = ordered.len();
+
+        let dist_rows = metrics_into_dist_rows(ordered.iter().copied()).collect::<Vec<_>>();
+        let len_rows = dist_rows.len();
         let table = Table::default()
             .block(Block::bordered())
             .header(header_row(&DISTRIBUTION_HEADER_CELLS))
-            .rows(striped_rows(distibutions))
+            .rows(striped_rows(dist_rows))
             .row_highlight_style(Style::default().bg(material::LIGHT_BLUE.c800))
             .widths(&[
                 Constraint::Length(22),
@@ -633,78 +609,45 @@ impl Dashboard {
                 Constraint::Fill(1),
             ]);
 
-        let chunks = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([
-                Constraint::Fill(1),   // table
-                Constraint::Length(1), // scrollbar column
-            ])
-            .split(area);
+        let display_any_chart = ui_state.display_metric_charts || ui_state.display_metric_means;
 
-        f.render_stateful_widget(table, chunks[0], &mut ui_state.distribution_table);
+        if display_any_chart {
+            let v_chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([Constraint::Fill(3), Constraint::Length(7)])
+                .split(area);
 
-        if row_count > chunks[0].height as usize {
-            let mut scrollbar_state = ScrollbarState::new(row_count).position(selected);
+            render_scrollable_table(
+                f,
+                v_chunks[0],
+                table,
+                &mut ui_state.distribution_table,
+                prev_row_count,
+                selected,
+            );
 
-            let scrollbar = Scrollbar::default()
-                .orientation(ScrollbarOrientation::VerticalRight)
-                .track_style(Style::default().fg(Color::DarkGray))
-                .thumb_style(Style::default().fg(Color::LightGreen));
-
-            f.render_stateful_widget(scrollbar, chunks[1], &mut scrollbar_state);
+            if len_rows > 0 && v_chunks[1].height > 3 {
+                let maybe_chart = ui_state.get_chart_by_key(ordered[selected.min(len_rows - 1)].0);
+                if let Some(chart) = maybe_chart {
+                    if ui_state.display_metric_charts && ui_state.display_metric_means {
+                        f.render_widget(chart.create_chart_widgets(), v_chunks[1]);
+                    } else if ui_state.display_metric_means {
+                        f.render_widget(chart.create_mean_chart_widget().unwrap(), v_chunks[1]);
+                    } else {
+                        f.render_widget(chart.create_value_chart_widget(), v_chunks[1]);
+                    }
+                }
+            }
+        } else {
+            render_scrollable_table(
+                f,
+                area,
+                table,
+                &mut ui_state.distribution_table,
+                prev_row_count,
+                selected,
+            );
         }
-    }
-
-    fn render_line_charts(frame: &mut ratatui::Frame, area: Rect, charts: Vec<&ChartData>) {
-        let (min_x, max_x) = charts
-            .iter()
-            .fold((f64::MAX, f64::MIN), |(min_x, max_x), dim| {
-                (min_x.min(dim.min_x()), max_x.max(dim.max_x()))
-            });
-
-        let (min_y, max_y) = charts
-            .iter()
-            .fold((f64::MAX, f64::MIN), |(min_y, max_y), dim| {
-                (min_y.min(dim.min_y()), max_y.max(dim.max_y()))
-            });
-
-        let datasets = charts
-            .iter()
-            .map(|dim| {
-                Dataset::default()
-                    .name(dim.name())
-                    .marker(symbols::Marker::Braille)
-                    .style(Style::default().fg(dim.color()))
-                    .graph_type(GraphType::Line)
-                    .data(dim.values())
-            })
-            .collect::<Vec<_>>();
-
-        let chart = Chart::new(datasets)
-            .block(Block::bordered())
-            .x_axis(
-                Axis::default()
-                    .style(Style::default().gray())
-                    .bounds([min_x, max_x])
-                    .labels([
-                        "0".bold(),
-                        format!("{}", (charts[0].values().len() / 2)).into(),
-                        format!("{}", charts[0].values().len() - 1).bold().into(),
-                    ]),
-            )
-            .y_axis(
-                Axis::default()
-                    .style(Style::default().gray())
-                    .bounds([min_y, max_y])
-                    .labels([
-                        format!("{:.2}", min_y).bold(),
-                        format!("{:.2}", ((min_y + max_y) / 2.0)).into(),
-                        format!("{:.2}", max_y).bold(),
-                    ]),
-            )
-            .hidden_legend_constraints((Constraint::Ratio(1, 2), Constraint::Ratio(1, 2)));
-
-        frame.render_widget(chart, area);
     }
 }
 
@@ -736,6 +679,34 @@ fn render_scrollable_table(
 
         f.render_stateful_widget(scrollbar, chunks[1], &mut scrollbar_state);
     }
+}
+
+// --------- metric helpers ---------
+
+fn collect_scope_metrics<'a>(
+    metrics: &'a MetricSet,
+    scope: MetricScope,
+    ui_state: &AppState,
+) -> Vec<(&'static str, &'a Metric)> {
+    let mut items: Vec<_> = metrics
+        .iter_scope(scope)
+        .filter(|(_, m)| ui_state.metric_has_tags(m))
+        .collect();
+    items.sort_by(|a, b| a.0.cmp(b.0));
+    items
+}
+
+fn collect_tagged_metrics<'a>(
+    metrics: &'a MetricSet,
+    tag: &'static str,
+    ui_state: &AppState,
+) -> Vec<(&'static str, &'a Metric)> {
+    let mut items: Vec<_> = metrics
+        .iter_tagged(tag)
+        .filter(|(_, m)| ui_state.metric_has_tags(m))
+        .collect();
+    items.sort_by(|a, b| a.0.cmp(b.0));
+    items
 }
 
 /// --- Row Builders ---
@@ -827,8 +798,7 @@ fn header_row<'a>(cols: &'a [&str]) -> Row<'a> {
 
 fn help_text_widget() -> Paragraph<'static> {
     let help_text = Line::from(vec![
-        Span::from(" Metrics Table "),
-        Span::from("| Use "),
+        Span::from("Use "),
         "[j/k]".fg(Color::LightGreen).bold(),
         Span::from(" to navigate, "),
         "[t]".fg(Color::LightGreen).bold(),
@@ -836,7 +806,13 @@ fn help_text_widget() -> Paragraph<'static> {
         "[s]".fg(Color::LightGreen).bold(),
         Span::from(" for Stats, "),
         "[d]".fg(Color::LightGreen).bold(),
-        Span::from(" for Distributions. "),
+        Span::from(" for Distributions, "),
+        "[f]".fg(Color::LightGreen).bold(),
+        Span::from(" to toggle filters."),
+        "[c]".fg(Color::LightGreen).bold(),
+        Span::from(" to toggle rolling."),
+        "[m]".fg(Color::LightGreen).bold(),
+        Span::from(" to toggle means."),
     ])
     .centered();
     Paragraph::new(help_text)

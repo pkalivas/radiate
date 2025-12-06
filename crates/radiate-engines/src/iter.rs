@@ -18,7 +18,7 @@
 //! - **Limit System**: Flexible limit specification and combination
 
 use crate::{Generation, Limit, init_logging};
-use radiate_core::{Chromosome, Engine, Objective, Optimize, Score, stats::AsciiDashboard};
+use radiate_core::{Chromosome, Engine, Objective, Optimize, Score};
 #[cfg(feature = "serde")]
 use serde::Serialize;
 #[cfg(feature = "serde")]
@@ -95,11 +95,6 @@ where
     }
 }
 
-/// Implementation of `Iterator` for [EngineIterator].
-///
-/// Each call to `next()` advances the engine by one generation and returns
-/// the resulting generation data. The iterator continues indefinitely until
-/// external termination conditions are applied - so always provide termination conditions.
 impl<E> Iterator for EngineIterator<E>
 where
     E: Engine,
@@ -113,6 +108,25 @@ where
         }
     }
 }
+
+// /// Implementation of `Iterator` for [EngineIterator].
+// ///
+// /// Each call to `next()` advances the engine by one generation and returns
+// /// the resulting generation data. The iterator continues indefinitely until
+// /// external termination conditions are applied - so always provide termination conditions.
+// impl<E> Iterator for EngineIterator<E>
+// where
+//     E: Engine,
+// {
+//     type Item = E::Epoch;
+
+//     fn next(&mut self) -> Option<Self::Item> {
+//         match self.engine.next() {
+//             Ok(epoch) => Some(epoch),
+//             Err(e) => panic!("{e}"),
+//         }
+//     }
+// }
 
 /// Blanket implementation of the extension trait for any iterator over generations.
 ///
@@ -645,10 +659,7 @@ where
         Self: Sized,
     {
         init_logging();
-        LoggingIterator {
-            iter: self,
-            dashboard: AsciiDashboard::new(Duration::from_millis(10)),
-        }
+        LoggingIterator { iter: self }
     }
 
     /// Adds checkpointing to the iteration process.
@@ -816,7 +827,6 @@ where
     I: Iterator<Item = Generation<C, T>>,
     C: Chromosome,
 {
-    dashboard: AsciiDashboard,
     iter: I,
 }
 
@@ -837,16 +847,12 @@ where
 
         match next.objective() {
             Objective::Single(_) => {
-                // info!(
-                //     "Epoch {:<4} | Score: {:>8.4} | Time: {:>5.2?}",
-                //     next.index(),
-                //     next.score().as_f32(),
-                //     next.time()
-                // );
-
-                self.dashboard
-                    .maybe_render(next.index(), next.metrics())
-                    .unwrap_or_default();
+                info!(
+                    "Epoch {:<4} | Score: {:>8.4} | Time: {:>5.2?}",
+                    next.index(),
+                    next.score().as_f32(),
+                    next.time()
+                );
             }
             Objective::Multi(_) => {
                 let front_entropy = next.metrics().front_entropy();

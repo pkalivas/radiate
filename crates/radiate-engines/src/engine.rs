@@ -1,9 +1,9 @@
+use crate::Chromosome;
 use crate::builder::GeneticEngineBuilder;
 use crate::context::Context;
 use crate::events::EngineMessage;
 use crate::iter::EngineIterator;
 use crate::pipeline::Pipeline;
-use crate::{Chromosome, EventHandler};
 use crate::{EventBus, Generation};
 use radiate_core::Engine;
 use radiate_core::error::Result;
@@ -112,14 +112,6 @@ where
     /// to run the engine multiple times, create a new instance using the builder.
     pub fn iter(self) -> impl Iterator<Item = Generation<C, T>> {
         EngineIterator { engine: self }
-    }
-
-    pub fn subscribe<H>(mut self, handler: H) -> Self
-    where
-        H: EventHandler<T> + 'static,
-    {
-        self.bus.subscribe(handler);
-        self
     }
 }
 

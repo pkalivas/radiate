@@ -599,3 +599,51 @@ where
         }
     }
 }
+
+impl<C, T> Into<GeneticEngineBuilder<C, T>> for EngineConfig<C, T>
+where
+    C: Chromosome + Clone + 'static,
+    T: Clone + Send + Sync + 'static,
+{
+    fn into(self) -> GeneticEngineBuilder<C, T> {
+        GeneticEngineBuilder {
+            params: EngineParams {
+                population_params: PopulationParams {
+                    population_size: self.ecosystem.population().len(),
+                    max_age: self.max_age,
+                    ecosystem: Some(self.ecosystem),
+                },
+                species_params: SpeciesParams {
+                    diversity: self.diversity,
+                    species_threshold: self.species_threshold,
+                    max_species_age: self.max_species_age,
+                },
+                evaluation_params: self.executor,
+                selection_params: SelectionParams {
+                    offspring_fraction: self.offspring_fraction,
+                    survivor_selector: self.survivor_selector,
+                    offspring_selector: self.offspring_selector,
+                },
+                optimization_params: OptimizeParams {
+                    objectives: self.objective,
+                    front_range: self.front.read().unwrap().range().clone(),
+                    front: Some(self.front.read().unwrap().clone()),
+                },
+                problem_params: ProblemParams {
+                    codec: None,
+                    problem: Some(self.problem),
+                    fitness_fn: None,
+                    batch_fitness_fn: None,
+                    raw_fitness_fn: None,
+                    raw_batch_fitness_fn: None,
+                },
+
+                replacement_strategy: self.replacement_strategy,
+                alterers: self.alterers,
+                handlers: self.handlers,
+                generation: self.generation,
+            },
+            errors: Vec::new(),
+        }
+    }
+}
