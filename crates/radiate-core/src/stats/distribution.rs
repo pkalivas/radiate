@@ -26,7 +26,7 @@ impl Distribution {
         }
     }
 
-    pub fn last_sequence(&self) -> &Vec<f32> {
+    pub fn last_sequence(&self) -> &[f32] {
         &self.last_sequence
     }
 
@@ -140,5 +140,42 @@ impl From<Vec<f32>> for Distribution {
         let mut result = Distribution::default();
         result.add(&value);
         result
+    }
+}
+
+pub struct MultiDistribution {
+    distributions: Vec<Distribution>,
+}
+
+impl MultiDistribution {
+    pub fn new(dimensions: usize) -> Self {
+        let mut distributions = Vec::with_capacity(dimensions);
+        for _ in 0..dimensions {
+            distributions.push(Distribution::default());
+        }
+        Self { distributions }
+    }
+
+    #[inline(always)]
+    pub fn add(&mut self, values: &[f32]) {
+        for (i, &value) in values.iter().enumerate() {
+            if let Some(dist) = self.distributions.get_mut(i) {
+                dist.push(value);
+            }
+        }
+    }
+
+    pub fn get_distribution(&self, index: usize) -> Option<&Distribution> {
+        self.distributions.get(index)
+    }
+
+    pub fn dimensions(&self) -> usize {
+        self.distributions.len()
+    }
+
+    pub fn clear(&mut self) {
+        for dist in &mut self.distributions {
+            dist.clear();
+        }
     }
 }

@@ -1,5 +1,5 @@
 use crate::{
-    Distribution, Metric, MetricScope, MetricUpdate, Rollup, Statistic, TimeStatistic,
+    Distribution, Metric, MetricUpdate, Rollup, Statistic, TimeStatistic,
     stats::{Tag, fmt},
 };
 use radiate_utils::intern;
@@ -24,8 +24,7 @@ impl MetricSet {
     pub fn new() -> Self {
         MetricSet {
             metrics: HashMap::new(),
-            set_stats: Metric::new_scoped(METRIC_SET, MetricScope::Lifetime)
-                .with_rollup(Rollup::Sum),
+            set_stats: Metric::new(METRIC_SET),
         }
     }
 
@@ -36,7 +35,7 @@ impl MetricSet {
 
     #[inline(always)]
     pub fn flush_all_into(&mut self, target: &mut MetricSet) {
-        for (key, m) in self.iter() {
+        for (key, m) in self.metrics.drain() {
             let dest = target.metrics.entry(key).or_insert_with(|| {
                 let mut clone = m.clone();
                 clone.clear_values();
@@ -46,7 +45,7 @@ impl MetricSet {
             dest.update_from(m);
         }
 
-        target.set_stats.update_from(&self.set_stats);
+        target.set_stats.update_from(self.set_stats.clone());
         self.clear();
     }
 
@@ -82,6 +81,16 @@ impl MetricSet {
             MetricSetUpdate::Single(metric) => {
                 self.add_or_update_internal(metric);
             }
+            MetricSetUpdate::Slice6(metrics) => {
+                for metric in metrics {
+                    self.add_or_update_internal(metric);
+                }
+            }
+            MetricSetUpdate::Slice7(metrics) => {
+                for metric in metrics {
+                    self.add_or_update_internal(metric);
+                }
+            }
             MetricSetUpdate::Fn(func) => {
                 func(self);
             }
@@ -98,7 +107,7 @@ impl MetricSet {
                     m.apply_update(metric_update);
                 } else {
                     self.add(
-                        Metric::new_scoped(new_name, super::defaults::default_scope(new_name))
+                        Metric::new(new_name)
                             .with_rollup(super::defaults::default_rollup(new_name)),
                     );
 
@@ -130,6 +139,23 @@ impl MetricSet {
     }
 
     #[inline(always)]
+    pub fn iter_stats<'a>(&'a self) -> impl Iterator<Item = &'a Metric> {
+        self.metrics.values().filter(|m| m.statistic().is_some())
+    }
+
+    #[inline(always)]
+    pub fn iter_distributions<'a>(&'a self) -> impl Iterator<Item = &'a Metric> {
+        self.metrics.values().filter(|m| m.distribution().is_some())
+    }
+
+    #[inline(always)]
+    pub fn iter_times<'a>(&'a self) -> impl Iterator<Item = &'a Metric> {
+        self.metrics
+            .values()
+            .filter(|m| m.time_statistic().is_some())
+    }
+
+    #[inline(always)]
     pub fn tags(&self) -> impl Iterator<Item = &Tag> {
         let mut seen = HashMap::new();
 
@@ -145,32 +171,8 @@ impl MetricSet {
     }
 
     #[inline(always)]
-    pub fn iter_scope(&self, scope: MetricScope) -> impl Iterator<Item = (&'static str, &Metric)> {
-        self.metrics
-            .iter()
-            .filter_map(move |(k, m)| (m.scope() == scope).then_some((*k, m)))
-    }
-
-    #[inline(always)]
-    pub fn iter_scope_mut(
-        &mut self,
-        scope: MetricScope,
-    ) -> impl Iterator<Item = (&'static str, &mut Metric)> {
-        self.metrics
-            .iter_mut()
-            .filter_map(move |(k, m)| (m.scope() == scope).then_some((*k, m)))
-    }
-
-    #[inline(always)]
     pub fn iter(&self) -> impl Iterator<Item = (&'static str, &Metric)> {
         self.metrics.iter().map(|(name, metric)| (*name, metric))
-    }
-
-    #[inline(always)]
-    pub fn clear_scope(&mut self, scope: MetricScope) {
-        for (_, m) in self.iter_scope_mut(scope) {
-            m.clear_values();
-        }
     }
 
     #[inline(always)]
@@ -212,7 +214,14 @@ impl MetricSet {
         MetricSetSummary {
             metrics: self.metrics.len(),
             updates: self.set_stats.statistic().map(|s| s.sum()).unwrap_or(0.0),
+            // stats: self.set_stats.
         }
+    }
+
+    pub fn sorted_tagged<'a>(&'a self, tag: impl Into<Tag>) -> Vec<(&'static str, &'a Metric)> {
+        let mut items = self.iter_tagged(tag).collect::<Vec<_>>();
+        items.sort_by(|a, b| a.0.cmp(b.0));
+        items
     }
 
     pub fn get_statistic_val<F, T>(&self, name: &str, func: F) -> T
@@ -240,7 +249,7 @@ impl MetricSet {
     }
 
     pub fn dashboard(&self) -> String {
-        fmt::render_full(self, true).unwrap_or_default()
+        fmt::render_full(self).unwrap_or_default()
     }
 
     // --- Default accessors ---
@@ -343,7 +352,7 @@ impl MetricSet {
     fn add_or_update_internal(&mut self, metric: Metric) {
         self.set_stats.apply_update(1);
         if let Some(existing) = self.metrics.get_mut(metric.name()) {
-            existing.update_from(&metric);
+            existing.update_from(metric);
         } else {
             self.metrics.insert(intern!(metric.name()), metric);
         }
@@ -357,11 +366,7 @@ impl std::fmt::Display for MetricSet {
             "[{} metrics, {:.0} updates]",
             summary.metrics, summary.updates
         );
-        write!(
-            f,
-            "{out}\n{}",
-            fmt::render_full(self, true).unwrap_or_default()
-        )?;
+        write!(f, "{out}\n{}", fmt::render_full(self).unwrap_or_default())?;
         Ok(())
     }
 }
@@ -403,7 +408,6 @@ impl<'de> Deserialize<'de> for MetricSet {
         struct MetricOwned {
             name: String,
             inner: MetricInner,
-            scope: MetricScope,
             rollup: Rollup,
             tags: Option<Arc<Vec<Arc<String>>>>,
         }
@@ -415,7 +419,6 @@ impl<'de> Deserialize<'de> for MetricSet {
             let metric = Metric {
                 name: metric.name.into(),
                 inner: metric.inner,
-                scope: metric.scope,
                 rollup: metric.rollup,
                 tags: metric.tags.map(|tags| {
                     use crate::stats::Tag;
@@ -438,6 +441,8 @@ pub enum MetricSetUpdate<'a> {
     Slice3([Metric; 3]),
     Slice4([Metric; 4]),
     Slice5([Metric; 5]),
+    Slice6([Metric; 6]),
+    Slice7([Metric; 7]),
 }
 
 impl From<Vec<Metric>> for MetricSetUpdate<'_> {
@@ -482,6 +487,18 @@ where
 {
     fn from(func: F) -> Self {
         MetricSetUpdate::Fn(Box::new(func))
+    }
+}
+
+impl From<[Metric; 6]> for MetricSetUpdate<'_> {
+    fn from(metrics: [Metric; 6]) -> Self {
+        MetricSetUpdate::Slice6(metrics)
+    }
+}
+
+impl From<[Metric; 7]> for MetricSetUpdate<'_> {
+    fn from(metrics: [Metric; 7]) -> Self {
+        MetricSetUpdate::Slice7(metrics)
     }
 }
 

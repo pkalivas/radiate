@@ -1,54 +1,68 @@
-use crate::{dashboard::Dashboard, state::MetricsTab};
-use crossterm::event::{self, Event, KeyCode};
+use crate::app::{App, InputEvent};
+use color_eyre::{Result, eyre::Context};
 use radiate_engines::{
-    Chromosome, Engine, EngineIterator, Generation, GeneticEngine, MetricSet, Objective, Score,
-    error::RadiateResult,
+    Chromosome, Engine, EngineIterator, Generation, GeneticEngine, error::RadiateResult,
+    sync::ArcExt,
 };
 use std::{
     sync::{
         Arc,
-        mpsc::{self, Sender},
+        atomic::{AtomicBool, Ordering},
+        mpsc::Sender,
     },
     time::Duration,
 };
 
-enum InputEvent {
-    Key(KeyCode),
-    EngineStart,
-    EngineStop,
-    EpochComplete(usize, MetricSet, Score, Objective),
-}
+const KEY_REPEAT_DELAY: Duration = Duration::from_millis(100);
 
-pub struct EngineUi<C, T>
+pub struct UiRuntime<C, T>
 where
     C: Chromosome,
     T: Clone + Send + Sync + 'static,
 {
     inner: GeneticEngine<C, T>,
-    dispatcher: Arc<Sender<InputEvent>>,
-    event_listener: Option<std::thread::JoinHandle<()>>,
-    key_listener: Option<std::thread::JoinHandle<()>>,
+    dispatcher: Arc<Sender<InputEvent<C>>>,
+    stop_flag: Arc<AtomicBool>,
+    app_thread: Option<std::thread::JoinHandle<Result<()>>>,
+    key_thread: Option<std::thread::JoinHandle<Result<()>>>,
 }
 
-impl<C, T> EngineUi<C, T>
+impl<C, T> UiRuntime<C, T>
 where
-    C: Chromosome + Clone,
+    C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync + 'static,
 {
     pub fn new(inner: GeneticEngine<C, T>, render_interval: Duration) -> Self {
-        let (tx, rx) = mpsc::channel::<InputEvent>();
-        let arc_sender = Arc::new(tx);
+        let app = App::new(render_interval);
+        let (dispatch_one, dispatch_two) = app.dispatcher().into_pair();
+        let (stop_one, stop_two) = Arc::pair(AtomicBool::new(false));
 
-        let arc_sender_clone = Arc::clone(&arc_sender);
+        let app_thread = std::thread::spawn(move || {
+            let terminal = ratatui::init();
+            app.run(terminal)?;
+            ratatui::restore();
+            Ok(())
+        });
 
-        let event_listener = create_event_listener(rx, render_interval);
-        let key_listner = create_key_listener(arc_sender_clone);
+        let key_thread = std::thread::spawn(move || {
+            while !stop_two.load(Ordering::Relaxed) {
+                if crossterm::event::poll(KEY_REPEAT_DELAY)? {
+                    let event = crossterm::event::read()?;
+                    dispatch_two
+                        .send(InputEvent::Crossterm(event))
+                        .context("Failed to send Crossterm event")?;
+                }
+            }
+
+            Ok(())
+        });
 
         Self {
             inner,
-            dispatcher: arc_sender,
-            event_listener: Some(event_listener),
-            key_listener: Some(key_listner),
+            stop_flag: stop_one,
+            dispatcher: dispatch_one,
+            app_thread: Some(app_thread),
+            key_thread: Some(key_thread),
         }
     }
 
@@ -57,7 +71,7 @@ where
     }
 }
 
-impl<C, T> Engine for EngineUi<C, T>
+impl<C, T> Engine for UiRuntime<C, T>
 where
     C: Chromosome + Clone,
     T: Clone + Send + Sync + 'static,
@@ -66,24 +80,31 @@ where
 
     fn next(&mut self) -> RadiateResult<Self::Epoch> {
         let current = self.inner.next()?;
-        if current.index() == 1 {
-            self.dispatcher.send(InputEvent::EngineStart).unwrap();
-        }
 
-        self.dispatcher
-            .send(InputEvent::EpochComplete(
-                current.index(),
-                current.metrics().clone(),
-                current.score().clone(),
-                current.objective().clone(),
-            ))
-            .unwrap();
+        match current.index() {
+            1 => self
+                .dispatcher
+                .send(InputEvent::EngineStart(
+                    current.objective().clone(),
+                    current.front().clone(),
+                ))
+                .unwrap(),
+            _ => self
+                .dispatcher
+                .send(InputEvent::EpochComplete(
+                    current.index(),
+                    current.metrics().clone(),
+                    current.score().clone(),
+                    current.objective().clone(),
+                ))
+                .unwrap(),
+        }
 
         Ok(current)
     }
 }
 
-impl<C, T> Drop for EngineUi<C, T>
+impl<C, T> Drop for UiRuntime<C, T>
 where
     C: Chromosome,
     T: Clone + Send + Sync + 'static,
@@ -91,97 +112,18 @@ where
     fn drop(&mut self) {
         self.dispatcher.send(InputEvent::EngineStop).unwrap();
 
-        if let Some(key_listener) = self.key_listener.take() {
-            key_listener.join().unwrap();
+        if let Some(event_listener) = self.app_thread.take() {
+            if let Err(e) = event_listener.join() {
+                eprintln!("Error joining app thread: {:?}", e);
+            }
         }
 
-        if let Some(listener) = self.event_listener.take() {
-            listener.join().unwrap();
+        self.stop_flag.store(true, Ordering::SeqCst);
+
+        if let Some(key_listener) = self.key_thread.take() {
+            if let Err(e) = key_listener.join() {
+                eprintln!("Error joining key listener thread: {:?}", e);
+            }
         }
     }
-}
-
-fn create_key_listener(
-    arc_sender_clone: Arc<mpsc::Sender<InputEvent>>,
-) -> std::thread::JoinHandle<()> {
-    std::thread::spawn(move || {
-        loop {
-            if event::poll(Duration::from_millis(100)).unwrap() {
-                if let Event::Key(key) = event::read().unwrap() {
-                    match key.code {
-                        KeyCode::Char('q') => {
-                            arc_sender_clone
-                                .send(InputEvent::Key(KeyCode::Char('q')))
-                                .unwrap();
-                            break;
-                        }
-                        KeyCode::Char(c) => {
-                            arc_sender_clone
-                                .send(InputEvent::Key(KeyCode::Char(c)))
-                                .unwrap();
-                        }
-                        KeyCode::Up | KeyCode::Down => {
-                            arc_sender_clone.send(InputEvent::Key(key.code)).unwrap();
-                        }
-
-                        _ => {}
-                    }
-                }
-            }
-        }
-    })
-}
-
-fn create_event_listener(
-    dispatcher: mpsc::Receiver<InputEvent>,
-    render_interval: Duration,
-) -> std::thread::JoinHandle<()> {
-    std::thread::spawn(move || {
-        let mut et = Dashboard::new(render_interval);
-
-        loop {
-            let rec = dispatcher.recv();
-            match rec {
-                Ok(InputEvent::Key(key)) => match key {
-                    KeyCode::Char('q') => break,
-
-                    KeyCode::Char('f') => et.toggle_tag_filter_display(),
-
-                    KeyCode::Char('t') => et.set_metric_tab(MetricsTab::Time),
-                    KeyCode::Char('s') => et.set_metric_tab(MetricsTab::Stats),
-                    KeyCode::Char('d') => et.set_metric_tab(MetricsTab::Distributions),
-
-                    KeyCode::Char('c') => et.toggle_metric_charts_display(),
-                    KeyCode::Char('m') => et.toggle_metric_means_display(),
-
-                    KeyCode::Down | KeyCode::Char('j') => et.move_selection_down(),
-                    KeyCode::Up | KeyCode::Char('k') => et.move_selection_up(),
-
-                    KeyCode::Char(c) => {
-                        if let Some(digit) = c.to_digit(10) {
-                            et.set_tag_filter_by_index(digit as usize);
-                        }
-                    }
-
-                    _ => {}
-                },
-                Ok(InputEvent::EpochComplete(index, metrics, score, objective)) => {
-                    et.update(metrics, score, index, objective);
-                    et.try_render().unwrap_or_default();
-                }
-                Ok(InputEvent::EngineStart) => {
-                    et.toggle_is_running();
-                }
-                Ok(InputEvent::EngineStop) => {
-                    et.toggle_is_running();
-                    et.render().unwrap_or_default();
-                }
-                Err(_) => {
-                    break;
-                }
-            }
-        }
-
-        ratatui::restore();
-    })
 }

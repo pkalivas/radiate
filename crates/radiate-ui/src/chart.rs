@@ -1,10 +1,11 @@
 use radiate_engines::Metric;
 use ratatui::{
-    layout::Constraint,
+    buffer::Buffer,
+    layout::{Constraint, Rect},
     style::{Color, Style, Stylize},
     symbols,
     text::Line,
-    widgets::{Axis, Block, Chart, Dataset, GraphType},
+    widgets::{Axis, Block, Chart, Dataset, GraphType, Widget},
 };
 
 pub struct ChartInner {
@@ -17,7 +18,6 @@ pub struct ChartInner {
 }
 
 impl ChartInner {
-    /// Explicit capacity constructor
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
             title: "".to_string(),
@@ -51,16 +51,33 @@ impl ChartInner {
         &self.values
     }
 
+    pub fn min_x(&self) -> f64 {
+        self.values.first().map(|(x, _)| *x).unwrap_or(0.0)
+    }
+
+    pub fn max_x(&self) -> f64 {
+        self.values.last().map(|(x, _)| *x).unwrap_or(0.0)
+    }
+
+    pub fn min_y(&self) -> f64 {
+        self.min_y
+    }
+
+    pub fn max_y(&self) -> f64 {
+        self.max_y
+    }
+
     pub fn add_value(&mut self, value: (f64, f64)) {
         self.values.push(value);
 
-        // If we exceed capacity, drop oldest and recompute bounds
         if self.values.len() > self.capacity {
-            let overflow = self.values.len() - self.capacity;
-            self.values.drain(0..overflow);
+            let mut overflow = self.values.len() - self.capacity;
+            while overflow > 0 {
+                self.values.remove(0);
+                overflow -= 1;
+            }
             self.recompute_bounds();
         } else {
-            // Fast incremental update
             let y = value.1;
             if y < self.min_y {
                 self.min_y = y;
@@ -71,12 +88,9 @@ impl ChartInner {
         }
     }
 
-    /// Replace values with a new sequence.
-    /// Keeps only the last `capacity` entries if there are more.
     pub fn set_values(&mut self, values: &[f32]) {
         self.values.clear();
 
-        // keep only the tail up to capacity
         let keep = values.len().min(self.capacity);
         let start = values.len().saturating_sub(keep);
         self.min_y = f64::MAX;
@@ -108,11 +122,17 @@ impl ChartInner {
                 self.max_y = y;
             }
         }
+    }
+}
 
-        if self.values.is_empty() {
-            self.min_y = f64::MAX;
-            self.max_y = f64::MIN;
-        }
+impl Widget for &ChartInner {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        chart_widget(
+            (self.min_x(), self.max_x()),
+            (self.min_y(), self.max_y()),
+            vec![&self],
+        )
+        .render(area, buf)
     }
 }
 
@@ -124,12 +144,10 @@ pub struct ChartData {
 }
 
 impl ChartData {
-    /// Default constructor with a reasonable capacity (e.g., 1000 points)
     pub fn new() -> Self {
         Self::with_capacity(1000)
     }
 
-    /// Explicit capacity constructor
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
             name: "".to_string(),
@@ -235,68 +253,85 @@ impl ChartData {
         (self.min_y(), self.max_y())
     }
 
-    pub fn create_chart_widgets<'a>(&'a self) -> ratatui::widgets::Chart<'a> {
-        if let Some(mean) = &self.mean_value {
-            self.chart_widget(vec![&self.last_value, mean])
-        } else {
-            self.chart_widget(vec![&self.last_value])
-        }
+    pub fn value_chart<'a>(&'a self) -> &'a ChartInner {
+        &self.last_value
     }
 
-    pub fn create_value_chart_widget<'a>(&'a self) -> ratatui::widgets::Chart<'a> {
-        self.chart_widget(vec![&self.last_value])
-    }
-
-    #[allow(dead_code)]
-    pub fn create_mean_chart_widget<'a>(&'a self) -> Option<ratatui::widgets::Chart<'a>> {
-        if let Some(mean) = &self.mean_value {
-            Some(self.chart_widget(vec![mean]))
-        } else {
-            None
-        }
-    }
-
-    fn chart_widget<'a>(&'a self, charts: Vec<&'a ChartInner>) -> ratatui::widgets::Chart<'a> {
-        let (min_x, max_x) = self.x_bounds();
-        let (min_y, max_y) = self.y_bounds();
-
-        let mid_y = (min_y + max_y) / 2.0;
-
-        let datasets = charts
-            .iter()
-            .map(|dim| {
-                Dataset::default()
-                    .name(dim.title())
-                    .marker(symbols::Marker::Braille)
-                    .style(Style::default().fg(dim.color()))
-                    .graph_type(GraphType::Line)
-                    .data(dim.values())
-            })
-            .collect::<Vec<_>>();
-
-        Chart::new(datasets)
-            .block(Block::bordered())
-            .x_axis(
-                Axis::default()
-                    .style(Style::default().gray())
-                    .bounds([min_x, max_x]),
-            )
-            .y_axis(
-                Axis::default()
-                    .style(Style::default().gray())
-                    .bounds([min_y, max_y])
-                    .labels(Line::from(vec![
-                        format!("{:.2}", min_y).bold().into(),
-                        format!("{:.2}", mid_y).into(),
-                        format!("{:.2}", max_y).bold().into(),
-                    ])),
-            )
-            .hidden_legend_constraints((Constraint::Ratio(1, 2), Constraint::Ratio(1, 2)))
+    pub fn mean_chart<'a>(&'a self) -> Option<&'a ChartInner> {
+        self.mean_value.as_ref()
     }
 }
 
-impl Default for ChartData {
-    fn default() -> Self {
-        Self::with_capacity(1000).with_name("Score")
+impl Widget for &ChartData {
+    fn render(self, area: Rect, buf: &mut ratatui::buffer::Buffer) {
+        if let Some(mean) = &self.mean_value {
+            chart_widget(
+                self.x_bounds(),
+                self.y_bounds(),
+                vec![&self.last_value, mean],
+            )
+        } else {
+            chart_widget(self.x_bounds(), self.y_bounds(), vec![&self.last_value])
+        }
+        .render(area, buf)
+    }
+}
+
+fn chart_widget<'a>(
+    x_bounds: (f64, f64),
+    y_bounds: (f64, f64),
+    charts: Vec<&'a ChartInner>,
+) -> ratatui::widgets::Chart<'a> {
+    let (min_x, max_x) = x_bounds;
+    let (min_y, max_y) = y_bounds;
+
+    let mid_y = (min_y + max_y) / 2.0;
+
+    let datasets = charts
+        .iter()
+        .map(|dim| {
+            Dataset::default()
+                .name(dim.title())
+                .marker(symbols::Marker::Braille)
+                .style(Style::default().fg(dim.color()))
+                .graph_type(GraphType::Line)
+                .data(dim.values())
+        })
+        .collect::<Vec<_>>();
+
+    Chart::new(datasets)
+        .block(Block::bordered().title(Line::from(format!(" {} ", charts[0].title())).centered()))
+        .x_axis(
+            Axis::default()
+                .style(Style::default().gray())
+                .bounds([min_x, max_x]),
+        )
+        .y_axis(
+            Axis::default()
+                .style(Style::default().gray())
+                .bounds([min_y, max_y])
+                .labels(Line::from(vec![
+                    format!("{:.2}", min_y).bold().into(),
+                    format!("{:.2}", mid_y).into(),
+                    format!("{:.2}", max_y).bold().into(),
+                ])),
+        )
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::chart::ChartInner;
+
+    #[test]
+    fn it_works() {
+        let mut chart = ChartInner::with_capacity(5);
+        for i in 0..20 {
+            chart.add_value((i as f64, i as f64 * i as f64));
+            println!(
+                "Added value {}, chart len: {:?}",
+                i * i,
+                (chart.min_y(), chart.max_y())
+            );
+        }
     }
 }

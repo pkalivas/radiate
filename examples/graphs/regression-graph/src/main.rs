@@ -25,9 +25,8 @@ fn main() {
         ))
         .build();
 
-    radiate::dashboard(engine)
+    radiate::ui(engine)
         .iter()
-        // .logging()
         .until_score(MIN_SCORE)
         .last()
         .inspect(display);

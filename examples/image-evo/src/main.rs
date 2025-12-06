@@ -35,7 +35,7 @@ fn main() {
         ))
         .build();
 
-    let result = radiate::dashboard(engine)
+    let result = radiate::ui(engine)
         .iter()
         // .logging()
         .take(1000)

@@ -24,10 +24,38 @@ impl AuditStep {
         ecosystem: &Ecosystem<C>,
     ) {
         if let Some(species) = ecosystem.species() {
+            // let mut species_ages = Metric::new(metric_names::SPECIES_AGE);
+            // let mut new_species_count = Metric::new(metric_names::SPECIES_CREATED);
+            // let mut species_count = Metric::new(metric_names::SPECIES_COUNT);
+            // let mut species_size = Metric::new(metric_names::SPECIES_SIZE);
+
+            // for spec in species.iter() {
+            //     let spec_age = spec.age(generation);
+
+            //     if spec_age == 0 {
+            //         new_species_count.apply_update(1);
+            //     }
+
+            //     species_ages.apply_update(spec_age);
+            //     species_size.apply_update(spec.len());
+            // }
+
+            // species_count.apply_update(species.len());
+
+            // metrics.upsert([new_species_count, species_ages, species_count, species_size]);
             let mut species_ages = Metric::new(metric_names::SPECIES_AGE);
             let mut new_species_count = Metric::new(metric_names::SPECIES_CREATED);
             let mut species_count = Metric::new(metric_names::SPECIES_COUNT);
             let mut species_size = Metric::new(metric_names::SPECIES_SIZE);
+
+            let pop_len = ecosystem.population().len().max(1); // avoid div-by-zero
+            let pop_len_f = pop_len as f32;
+
+            let mut max_size = 0usize;
+            let mut size_sum = 0usize;
+
+            // for evenness (Shannon entropy normalized)
+            let mut size_vec = Vec::with_capacity(species.len());
 
             for spec in species.iter() {
                 let spec_age = spec.age(generation);
@@ -36,13 +64,68 @@ impl AuditStep {
                     new_species_count.apply_update(1);
                 }
 
+                let len = spec.len();
+
                 species_ages.apply_update(spec_age);
-                species_size.apply_update(spec.len());
+                species_size.apply_update(len);
+
+                max_size = max_size.max(len);
+                size_sum += len;
+                size_vec.push(len);
             }
 
             species_count.apply_update(species.len());
 
-            metrics.upsert([new_species_count, species_ages, species_count, species_size]);
+            // Largest species share (how dominant is the biggest species)
+            let largest_share = if pop_len > 0 {
+                max_size as f32 / pop_len_f
+            } else {
+                0.0
+            };
+
+            let mut largest_share_metric = Metric::new(metric_names::LARGEST_SPECIES_SHARE);
+            largest_share_metric.apply_update(largest_share);
+
+            // Species evenness via normalized Shannon entropy
+            let mut evenness = 0.0_f32;
+            let s_count = species.len();
+            if s_count > 1 && size_sum > 0 {
+                let size_sum_f = size_sum as f32;
+                let mut h = 0.0_f32;
+                for sz in size_vec {
+                    if sz > 0 {
+                        let p = sz as f32 / size_sum_f;
+                        h -= p * p.ln();
+                    }
+                }
+                let h_max = (s_count as f32).ln();
+                if h_max > 0.0 {
+                    evenness = h / h_max;
+                }
+            }
+
+            let mut evenness_metric = Metric::new(metric_names::SPECIES_EVENNESS);
+            evenness_metric.apply_update(evenness);
+
+            // Species churn ratio: new species / total species
+            let new_species_last = new_species_count.last_value();
+            let churn_ratio = if s_count > 0 {
+                new_species_last / s_count as f32
+            } else {
+                0.0
+            };
+            let mut churn_metric = Metric::new(metric_names::SPECIES_NEW_RATIO);
+            churn_metric.apply_update(churn_ratio);
+
+            metrics.upsert([
+                new_species_count,
+                species_ages,
+                species_count,
+                species_size,
+                largest_share_metric,
+                evenness_metric,
+                churn_metric,
+            ]);
         } else {
             let population_unique_rc_count = ecosystem.population().shared_count();
             assert!(
@@ -197,3 +280,72 @@ impl<C: Chromosome> EngineStep<C> for AuditStep {
         Ok(())
     }
 }
+
+// fn calc_pareto_metrics<C: Chromosome>(
+//     generation: usize,
+//     metrics: &mut MetricSet,
+//     ecosystem: &Ecosystem<C>,
+// ) {
+//     let pop = ecosystem.population();
+//     let pop_len = pop.len();
+//     if pop_len == 0 {
+//         return;
+//     }
+
+//     if let Some(front) = ecosystem.front() {
+//         let front_len = front.len();
+
+//         metrics.upsert([
+//             metric!(metric_names::PARETO_FRONT_SIZE, front_len),
+//             metric!(
+//                 metric_names::PARETO_FRONT_RATIO,
+//                 front_len as f32 / pop_len as f32
+//             ),
+//             metric!(
+//                 metric_names::PARETO_DOMINATED_RATIO,
+//                 1.0 - front_len as f32 / pop_len as f32
+//             ),
+//         ]);
+
+//         // Example: front age
+//         let mut age_sum = 0.0_f32;
+//         let mut min_age = usize::MAX;
+
+//         for p in front.iter() {
+//             let age = p.age(generation);
+//             age_sum += age as f32;
+//             min_age = min_age.min(age);
+//         }
+
+//         metrics.upsert([
+//             metric!(metric_names::PARETO_FRONT_MEAN_AGE, age_sum / front_len as f32),
+//             metric!(metric_names::PARETO_FRONT_MIN_AGE, min_age as f32),
+//         ]);
+
+//         // Example: per-dimension spread
+//         // if Score exposes `as_slice() -> &[f32]` and you know `d = objective_dims`:
+//         /*
+//         let d = objective_dims;
+//         let mut total_spread = 0.0_f32;
+
+//         for dim in 0..d {
+//             let mut min_v = f32::INFINITY;
+//             let mut max_v = f32::NEG_INFINITY;
+
+//             for p in front.iter() {
+//                 if let Some(score) = p.score() {
+//                     let v = score.as_slice()[dim];
+//                     min_v = min_v.min(v);
+//                     max_v = max_v.max(v);
+//                 }
+//             }
+
+//             if min_v.is_finite() && max_v.is_finite() {
+//                 total_spread += max_v - min_v;
+//             }
+//         }
+
+//         metrics.upsert(metric!(metric_names::PARETO_SPREAD, total_spread));
+//         */
+//     }
+// }

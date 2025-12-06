@@ -12,7 +12,7 @@ fn main() {
 
     let engine = GeneticEngine::builder()
         .codec(codec)
-        .fitness_fn(|geno: Vec<f32>| dtlz_1(&geno))
+        .fitness_fn(|geno: Vec<f32>| dtlz_7(&geno))
         .executor(Executor::FixedSizedWorkerPool(10))
         .multi_objective(vec![Optimize::Minimize; OBJECTIVES])
         .offspring_selector(TournamentSelector::new(5))
@@ -24,7 +24,7 @@ fn main() {
         ))
         .build();
 
-    let result = radiate::dashboard(engine)
+    let result = radiate::ui(engine)
         .iter()
         // .logging()
         .limit(1000)
@@ -35,7 +35,7 @@ fn main() {
 
     // .collect::<Front<Phenotype<FloatChromosome>>>();
 
-    plot_front(&result.front().unwrap());
+    // plot_front(&result.front().unwrap());
 }
 
 fn plot_front(front: &Front<Phenotype<FloatChromosome>>) {

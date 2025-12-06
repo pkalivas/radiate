@@ -318,7 +318,7 @@ where
             return Ok(());
         } else if let Some(generation) = &self.params.generation {
             if let Some(front) = generation.front() {
-                self.params.optimization_params.front = Some(front.clone());
+                self.params.optimization_params.front = Some(front.read().unwrap().clone());
                 return Ok(());
             }
         }

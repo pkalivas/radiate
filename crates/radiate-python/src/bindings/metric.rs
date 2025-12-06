@@ -111,13 +111,11 @@ impl PyMetricSet {
 
         for (_, m) in self.inner.iter() {
             let base_name = m.name().to_string();
-            let scope = format!("{:?}", m.scope());
             let rollup = format!("{:?}", m.rollup());
 
             if let Some(stat) = m.statistic() {
                 let row = PyDict::new(py);
                 row.set_item("name", &base_name)?;
-                row.set_item("scope", &scope)?;
                 row.set_item("rollup", &rollup)?;
                 row.set_item("kind", "value")?;
 
@@ -152,7 +150,6 @@ impl PyMetricSet {
 
                 let row = PyDict::new(py);
                 row.set_item("name", &base_name)?;
-                row.set_item("scope", &scope)?;
                 row.set_item("rollup", &rollup)?;
                 row.set_item("kind", "time")?;
 
@@ -186,7 +183,6 @@ impl PyMetricSet {
             if let Some(d) = m.distribution() {
                 let row = PyDict::new(py);
                 row.set_item("name", &base_name)?;
-                row.set_item("scope", &scope)?;
                 row.set_item("rollup", &rollup)?;
                 row.set_item("kind", "dist")?;
 
@@ -212,7 +208,7 @@ impl PyMetricSet {
                 row.set_item("seq_skew", Some(d.skewness()))?;
                 row.set_item("seq_kurt", Some(d.kurtosis()))?;
                 if include_last_sequence {
-                    row.set_item("seq_last", m.last_sequence().cloned())?;
+                    row.set_item("seq_last", m.last_sequence().map(|seq| seq.to_vec()))?;
                 } else {
                     row.set_item("seq_last", py.None())?;
                 }
@@ -293,9 +289,8 @@ impl From<Metric> for PyMetric {
 impl PyMetric {
     pub fn __repr__(&self) -> String {
         format!(
-            "PyMetric(name='{}', scope={:?}, rollup={:?}, count={})",
+            "PyMetric(name='{}', rollup={:?}, count={})",
             self.inner.name(),
-            self.inner.scope(),
             self.inner.rollup(),
             self.inner.count()
         )
@@ -308,11 +303,6 @@ impl PyMetric {
     #[getter]
     pub fn name(&self) -> &str {
         self.inner.name()
-    }
-
-    #[getter]
-    pub fn scope(&self) -> String {
-        format!("{:?}", self.inner.scope())
     }
 
     #[getter]
@@ -400,7 +390,7 @@ impl PyMetric {
     // --- distribution summary ---
     #[getter]
     pub fn sequence_last(&self) -> Option<Vec<f32>> {
-        self.inner.last_sequence().cloned()
+        self.inner.last_sequence().map(|seq| seq.to_vec())
     }
 
     #[getter]
@@ -449,7 +439,6 @@ impl PyMetric {
     pub fn to_dict<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
         let d = PyDict::new(py);
         d.set_item("name", self.inner.name().to_string())?;
-        d.set_item("scope", format!("{:?}", self.inner.scope()))?;
         d.set_item("rollup", format!("{:?}", self.inner.rollup()))?;
 
         d.set_item("mean", self.value_mean())?;
