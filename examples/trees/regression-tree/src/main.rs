@@ -39,7 +39,7 @@ fn display(result: &Generation<TreeChromosome<Op<f32>>, Tree<Op<f32>>>) {
         .loss(Loss::MSE)
         .eval(result.value())
         .inspect(|acc| {
-            println!("{:?}", result);
+            println!("{}", result.metrics().dashboard());
             println!("Best Tree: {}", result.value().format());
             println!("{:?}", acc);
         });

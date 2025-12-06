@@ -1,7 +1,7 @@
 use crate::node::{Node, NodeExt};
 use crate::ops::operation::Op;
 use crate::{Factory, GraphChromosome, NodeStore, NodeType, TreeChromosome};
-use radiate_core::{AlterResult, Metric, Mutate, metric};
+use radiate_core::{AlterResult, Metric, Mutate, Rate, metric};
 use radiate_core::{Chromosome, random_provider};
 
 const MUT_CONST_OP_MUTATED: &str = "op_mut_const";
@@ -10,15 +10,16 @@ const PGM_OP_MUTATED: &str = "op_pgm";
 const FALLBACK_OP_MUTATED: &str = "op_new_inst";
 
 pub struct OperationMutator {
-    rate: f32,
+    rate: Rate,
     replace_rate: f32,
 }
 
 impl OperationMutator {
-    pub fn new(rate: f32, replace_rate: f32) -> Self {
-        if !(0.0..=1.0).contains(&rate) {
-            panic!("rate must be between 0.0 and 1.0");
-        }
+    pub fn new(rate: impl Into<Rate>, replace_rate: f32) -> Self {
+        let rate = rate.into();
+        // if !(0.0..=1.0).contains(&rate.0) {
+        //     panic!("rate must be between 0.0 and 1.0");
+        // }
 
         if !(0.0..=1.0).contains(&replace_rate) {
             panic!("replace_rate must be between 0.0 and 1.0");
@@ -32,6 +33,7 @@ impl OperationMutator {
         &self,
         node: &mut impl Node<Value = Op<T>>,
         store: &NodeStore<Op<T>>,
+        rate: f32,
     ) -> Vec<Metric>
     where
         T: Clone + PartialEq + Default,
@@ -45,7 +47,7 @@ impl OperationMutator {
                 }
             }
             #[cfg(feature = "pgm")]
-            Op::PGM(..) => result.extend(self.try_mutate_pga_op(node, store)),
+            Op::PGM(..) => result.extend(self.try_mutate_pga_op(node, store, rate)),
             _ => {
                 let new_op: Op<T> = store.new_instance(node.node_type());
                 (new_op.arity() == node.value().arity())
@@ -99,6 +101,7 @@ impl OperationMutator {
         &self,
         node: &mut impl Node<Value = Op<T>>,
         store: &NodeStore<Op<T>>,
+        rate: f32,
     ) -> Vec<Metric>
     where
         T: Clone + PartialEq + Default,
@@ -110,9 +113,9 @@ impl OperationMutator {
             let programs_mut = Arc::make_mut(programs);
 
             for prog in programs_mut.iter_mut() {
-                for idx in random_provider::cond_indices(0..prog.size(), self.rate) {
+                for idx in random_provider::cond_indices(0..prog.size(), rate) {
                     if let Some(child_node) = prog.get_mut(idx) {
-                        result.extend(self.mutate_node(child_node, store));
+                        result.extend(self.mutate_node(child_node, store, rate));
                     }
                 }
             }
@@ -131,8 +134,8 @@ impl<T> Mutate<GraphChromosome<Op<T>>> for OperationMutator
 where
     T: Clone + PartialEq + Default,
 {
-    fn rate(&self) -> f32 {
-        self.rate
+    fn rate(&self) -> Rate {
+        self.rate.clone()
     }
 
     #[inline]
@@ -149,7 +152,7 @@ where
             }
 
             if let Some(store) = store.as_ref() {
-                metrics.extend(self.mutate_node(node, store));
+                metrics.extend(self.mutate_node(node, store, rate));
             }
         }
 
@@ -161,8 +164,8 @@ impl<T> Mutate<TreeChromosome<Op<T>>> for OperationMutator
 where
     T: Clone + PartialEq + Default,
 {
-    fn rate(&self) -> f32 {
-        self.rate
+    fn rate(&self) -> Rate {
+        self.rate.clone()
     }
 
     #[inline]
@@ -174,7 +177,7 @@ where
 
             for idx in random_provider::cond_indices(0..root.size(), rate) {
                 if let Some(node) = root.get_mut(idx) {
-                    metrics.extend(self.mutate_node(node, &store));
+                    metrics.extend(self.mutate_node(node, &store, rate));
                 }
             }
 

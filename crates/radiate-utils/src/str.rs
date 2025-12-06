@@ -1,6 +1,5 @@
-use std::borrow::Cow;
-
 use crate::ToSnakeCase;
+use std::borrow::Cow;
 
 #[macro_export]
 macro_rules! format_smallstr {

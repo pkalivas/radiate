@@ -4,6 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-radiate = { workspace = true }
+radiate = { workspace = true, features = ["dashboard"] }
 image = "0.25.6"
 imageproc = "0.25.0"

@@ -55,16 +55,16 @@ impl<C: Chromosome> EngineStep<C> for FilterStep<C> {
             let species_count = before_species - species.len();
 
             if species_count > 0 {
-                metrics.upsert(metric_names::SPECIES_AGE_FAIL, species_count);
+                metrics.upsert((metric_names::SPECIES_AGE_FAIL, species_count));
             }
         }
 
         if age_count > 0 {
-            metrics.upsert(metric_names::REPLACE_AGE, age_count);
+            metrics.upsert((metric_names::REPLACE_AGE, age_count));
         }
 
         if invalid_count > 0 {
-            metrics.upsert(metric_names::REPLACE_INVALID, invalid_count);
+            metrics.upsert((metric_names::REPLACE_INVALID, invalid_count));
         }
 
         Ok(())

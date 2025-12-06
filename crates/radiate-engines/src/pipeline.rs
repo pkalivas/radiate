@@ -36,13 +36,13 @@ where
             step.execute(context.index, &mut context.ecosystem, &mut self.metrics)?;
             let elapsed = timer.elapsed();
 
-            self.metrics.add_or_update(
-                metric!(MetricScope::Step, step.name(), elapsed).with_rollup(Rollup::Last),
-            );
+            self.metrics
+                .upsert(metric!(MetricScope::Step, step.name(), elapsed).with_rollup(Rollup::Last));
         }
 
         let elapsed = timer.elapsed();
-        self.metrics.upsert(metric_names::TIME, elapsed);
+
+        self.metrics.upsert((metric_names::TIME, elapsed));
         self.metrics.flush_all_into(&mut context.metrics);
 
         Ok(())

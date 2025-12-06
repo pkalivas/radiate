@@ -1,4 +1,7 @@
-use crate::{Metric, MetricScope, MetricUpdate, Rollup, stats::fmt};
+use crate::{
+    Distribution, Metric, MetricScope, MetricUpdate, Rollup, Statistic, TimeStatistic,
+    stats::{Tag, fmt},
+};
 use radiate_utils::intern;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -33,18 +36,8 @@ impl MetricSet {
 
     #[inline(always)]
     pub fn flush_all_into(&mut self, target: &mut MetricSet) {
-        for (_, m) in self.iter() {
-            self.flush_metric_into(m.name(), target);
-        }
-
-        target.set_stats.update_from(&self.set_stats);
-        self.clear();
-    }
-
-    #[inline(always)]
-    pub fn flush_metric_into(&self, name: &str, target: &mut MetricSet) {
-        if let Some(m) = self.metrics.get(name) {
-            let dest = target.metrics.entry(intern!(name)).or_insert_with(|| {
+        for (key, m) in self.iter() {
+            let dest = target.metrics.entry(key).or_insert_with(|| {
                 let mut clone = m.clone();
                 clone.clear_values();
                 clone
@@ -52,35 +45,13 @@ impl MetricSet {
 
             dest.update_from(m);
         }
-    }
 
-    pub fn upsert<'a>(&mut self, name: &'static str, update: impl Into<MetricUpdate<'a>>) {
-        if let Some(m) = self.metrics.get_mut(name) {
-            self.set_stats.apply_update(1);
-            m.apply_update(update);
-            return;
-        }
-
-        let new_name = radiate_utils::intern_name_as_snake_case(name);
-        if let Some(m) = self.metrics.get_mut(&new_name) {
-            self.set_stats.apply_update(1);
-            m.apply_update(update);
-        } else {
-            self.add(
-                Metric::new_scoped(new_name, super::defaults::default_scope(new_name))
-                    .with_rollup(super::defaults::default_rollup(new_name)),
-            );
-
-            self.set_stats.apply_update(1);
-            self.metrics
-                .get_mut(&new_name)
-                .unwrap()
-                .apply_update(update);
-        }
+        target.set_stats.update_from(&self.set_stats);
+        self.clear();
     }
 
     #[inline(always)]
-    pub fn add_or_update(&mut self, metric: impl Into<MetricSetUpdate>) {
+    pub fn upsert<'a>(&mut self, metric: impl Into<MetricSetUpdate<'a>>) {
         let update = metric.into();
         match update {
             MetricSetUpdate::Many(metrics) => {
@@ -114,7 +85,63 @@ impl MetricSet {
             MetricSetUpdate::Fn(func) => {
                 func(self);
             }
+            MetricSetUpdate::NamedSingle(name, metric_update) => {
+                if let Some(m) = self.metrics.get_mut(name) {
+                    self.set_stats.apply_update(1);
+                    m.apply_update(metric_update);
+                    return;
+                }
+
+                let new_name = radiate_utils::intern_name_as_snake_case(name);
+                if let Some(m) = self.metrics.get_mut(&new_name) {
+                    self.set_stats.apply_update(1);
+                    m.apply_update(metric_update);
+                } else {
+                    self.add(
+                        Metric::new_scoped(new_name, super::defaults::default_scope(new_name))
+                            .with_rollup(super::defaults::default_rollup(new_name)),
+                    );
+
+                    self.set_stats.apply_update(1);
+                    self.metrics
+                        .get_mut(&new_name)
+                        .unwrap()
+                        .apply_update(metric_update);
+                }
+            }
         }
+    }
+
+    #[inline(always)]
+    pub fn iter_tagged<'a>(
+        &'a self,
+        tag: impl Into<Tag>,
+    ) -> impl Iterator<Item = (&'static str, &'a Metric)> {
+        let tag = tag.into();
+        self.metrics.iter().filter_map(move |(k, m)| {
+            if let Some(tags) = m.tags() {
+                if tags.iter().any(|t| t.0 == tag.0) {
+                    return Some((*k, m));
+                }
+            }
+
+            None
+        })
+    }
+
+    #[inline(always)]
+    pub fn tags(&self) -> impl Iterator<Item = &Tag> {
+        let mut seen = HashMap::new();
+
+        for (_, metric) in self.metrics.iter() {
+            if let Some(tags) = metric.tags() {
+                for tag in tags.iter() {
+                    seen.entry(tag).or_insert(());
+                }
+            }
+        }
+
+        seen.into_keys()
     }
 
     #[inline(always)]
@@ -188,6 +215,30 @@ impl MetricSet {
         }
     }
 
+    pub fn get_statistic_val<F, T>(&self, name: &str, func: F) -> T
+    where
+        F: Fn(&Statistic) -> T,
+        T: Default,
+    {
+        self.get(name).map(|m| m.get_stat(func)).unwrap_or_default()
+    }
+
+    pub fn get_dist_val<F, T>(&self, name: &str, func: F) -> T
+    where
+        F: Fn(&Distribution) -> T,
+        T: Default,
+    {
+        self.get(name).map(|m| m.get_dist(func)).unwrap_or_default()
+    }
+
+    pub fn get_time_val<F, T>(&self, name: &str, func: F) -> T
+    where
+        F: Fn(&TimeStatistic) -> T,
+        T: Default,
+    {
+        self.get(name).map(|m| m.get_time(func)).unwrap_or_default()
+    }
+
     pub fn dashboard(&self) -> String {
         fmt::render_full(self, true).unwrap_or_default()
     }
@@ -199,6 +250,10 @@ impl MetricSet {
 
     pub fn score(&self) -> Option<&Metric> {
         self.get(super::metric_names::SCORES)
+    }
+
+    pub fn improvements(&self) -> Option<&Metric> {
+        self.get(super::metric_names::BEST_SCORE_IMPROVEMENT)
     }
 
     pub fn age(&self) -> Option<&Metric> {
@@ -340,6 +395,8 @@ impl<'de> Deserialize<'de> for MetricSet {
     where
         D: serde::Deserializer<'de>,
     {
+        use std::sync::Arc;
+
         use crate::stats::MetricInner;
 
         #[derive(Deserialize)]
@@ -348,6 +405,7 @@ impl<'de> Deserialize<'de> for MetricSet {
             inner: MetricInner,
             scope: MetricScope,
             rollup: Rollup,
+            tags: Option<Arc<Vec<Arc<String>>>>,
         }
 
         let metrics = Vec::<MetricOwned>::deserialize(deserializer)?;
@@ -359,6 +417,11 @@ impl<'de> Deserialize<'de> for MetricSet {
                 inner: metric.inner,
                 scope: metric.scope,
                 rollup: metric.rollup,
+                tags: metric.tags.map(|tags| {
+                    use crate::stats::Tag;
+
+                    Arc::new(tags.iter().map(|tag| Tag(intern!(tag.as_str()))).collect())
+                }),
             };
             metric_set.add(metric);
         }
@@ -366,9 +429,10 @@ impl<'de> Deserialize<'de> for MetricSet {
     }
 }
 
-pub enum MetricSetUpdate {
+pub enum MetricSetUpdate<'a> {
     Fn(Box<dyn FnOnce(&mut MetricSet) + Send>),
     Many(Vec<Metric>),
+    NamedSingle(&'static str, MetricUpdate<'a>),
     Single(Metric),
     Slice2([Metric; 2]),
     Slice3([Metric; 3]),
@@ -376,47 +440,56 @@ pub enum MetricSetUpdate {
     Slice5([Metric; 5]),
 }
 
-impl From<Vec<Metric>> for MetricSetUpdate {
+impl From<Vec<Metric>> for MetricSetUpdate<'_> {
     fn from(metrics: Vec<Metric>) -> Self {
         MetricSetUpdate::Many(metrics)
     }
 }
 
-impl From<Metric> for MetricSetUpdate {
+impl From<Metric> for MetricSetUpdate<'_> {
     fn from(metric: Metric) -> Self {
         MetricSetUpdate::Single(metric)
     }
 }
 
-impl From<[Metric; 2]> for MetricSetUpdate {
+impl From<[Metric; 2]> for MetricSetUpdate<'_> {
     fn from(metrics: [Metric; 2]) -> Self {
         MetricSetUpdate::Slice2(metrics)
     }
 }
 
-impl From<[Metric; 3]> for MetricSetUpdate {
+impl From<[Metric; 3]> for MetricSetUpdate<'_> {
     fn from(metrics: [Metric; 3]) -> Self {
         MetricSetUpdate::Slice3(metrics)
     }
 }
 
-impl From<[Metric; 4]> for MetricSetUpdate {
+impl From<[Metric; 4]> for MetricSetUpdate<'_> {
     fn from(metrics: [Metric; 4]) -> Self {
         MetricSetUpdate::Slice4(metrics)
     }
 }
 
-impl From<[Metric; 5]> for MetricSetUpdate {
+impl From<[Metric; 5]> for MetricSetUpdate<'_> {
     fn from(metrics: [Metric; 5]) -> Self {
         MetricSetUpdate::Slice5(metrics)
     }
 }
 
-impl<F> From<F> for MetricSetUpdate
+impl<F> From<F> for MetricSetUpdate<'_>
 where
     F: FnOnce(&mut MetricSet) + Send + 'static,
 {
     fn from(func: F) -> Self {
         MetricSetUpdate::Fn(Box::new(func))
+    }
+}
+
+impl<'a, U> From<(&'static str, U)> for MetricSetUpdate<'a>
+where
+    U: Into<MetricUpdate<'a>>,
+{
+    fn from((name, update): (&'static str, U)) -> Self {
+        MetricSetUpdate::NamedSingle(name, update.into())
     }
 }

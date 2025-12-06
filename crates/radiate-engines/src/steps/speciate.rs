@@ -83,6 +83,9 @@ where
         self.restore_genotypes(ecosystem, chunked_members);
         self.assign_unassigned(generation, ecosystem, &assignments.lock().unwrap());
 
+        let mut distances_guard = distances.lock().unwrap();
+        (*distances_guard).sort_unstable_by(|a, b| self.objective.cmp(a, b));
+
         Ok(())
     }
 
@@ -296,8 +299,8 @@ where
         let distances_guard = distances.lock().unwrap();
         let removed_species = ecosystem.remvove_dead_species();
 
-        metrics.upsert(metric_names::SPECIES_DISTANCE_DIST, &*distances_guard);
-        metrics.upsert(metric_names::SPECIES_DIED, removed_species);
+        metrics.upsert((metric_names::SPECIES_DISTANCE_DIST, &*distances_guard));
+        metrics.upsert((metric_names::SPECIES_DIED, removed_species));
 
         self.fitness_share(ecosystem);
 

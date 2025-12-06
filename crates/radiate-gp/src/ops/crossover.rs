@@ -1,17 +1,18 @@
 use crate::{GraphChromosome, Node, Op, TreeChromosome, TreeCrossover, TreeNode};
-use radiate_core::{AlterResult, Chromosome, Crossover, random_provider};
+use radiate_core::{AlterResult, Chromosome, Crossover, Rate, random_provider};
 use std::fmt::Debug;
 
 const DEFAULT_MAX_SIZE: usize = 10;
 
 #[derive(Clone, Debug)]
 pub struct PgmCrossover {
-    rate: f32,
+    rate: Rate,
     max_size: usize,
 }
 
 impl PgmCrossover {
-    pub fn new(rate: f32) -> Self {
+    pub fn new(rate: impl Into<Rate>) -> Self {
+        let rate = rate.into();
         Self {
             rate,
             max_size: DEFAULT_MAX_SIZE,
@@ -28,8 +29,8 @@ impl<T> Crossover<GraphChromosome<Op<T>>> for PgmCrossover
 where
     T: Clone + PartialEq,
 {
-    fn rate(&self) -> f32 {
-        self.rate
+    fn rate(&self) -> Rate {
+        self.rate.clone()
     }
 
     #[inline]
@@ -74,8 +75,8 @@ impl<T> Crossover<TreeChromosome<Op<T>>> for PgmCrossover
 where
     T: Clone + PartialEq,
 {
-    fn rate(&self) -> f32 {
-        self.rate
+    fn rate(&self) -> Rate {
+        self.rate.clone()
     }
 
     #[inline]

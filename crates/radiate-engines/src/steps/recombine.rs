@@ -1,6 +1,6 @@
 use crate::steps::EngineStep;
 use radiate_core::{
-    Alter, Chromosome, Ecosystem, MetricSet, Objective, Optimize, Population, Score, Select,
+    Alterer, Chromosome, Ecosystem, MetricSet, Objective, Optimize, Population, Score, Select,
 };
 use radiate_error::Result;
 use std::sync::Arc;
@@ -51,7 +51,7 @@ where
         let survivors = self
             .selector
             .select(&ecosystem.population(), &self.objective, self.count);
-        metrics.upsert(self.selector.name(), (survivors.len(), time.elapsed()));
+        metrics.upsert((self.selector.name(), (survivors.len(), time.elapsed())));
         survivors
     }
 }
@@ -61,7 +61,7 @@ pub struct OffspringRecombineHandle<C: Chromosome> {
     pub(crate) count: usize,
     pub(crate) objective: Objective,
     pub(crate) selector: Arc<dyn Select<C>>,
-    pub(crate) alters: Vec<Arc<dyn Alter<C>>>,
+    pub(crate) alters: Vec<Alterer<C>>,
 }
 
 impl<C> OffspringRecombineHandle<C>
@@ -93,12 +93,13 @@ where
                 let mut offspring =
                     self.selector
                         .select(species.population(), &self.objective, *count);
-                metrics.upsert(self.selector.name(), (offspring.len(), time.elapsed()));
+
+                metrics.upsert((self.selector.name(), (offspring.len(), time.elapsed())));
 
                 self.objective.sort(&mut offspring);
 
                 self.alters.iter().for_each(|alt| {
-                    metrics.add_or_update(alt.alter(&mut offspring, generation));
+                    metrics.upsert(alt.alter(&mut offspring, generation));
                 });
 
                 next_population.extend(offspring);
@@ -111,12 +112,12 @@ where
                 self.selector
                     .select(ecosystem.population(), &self.objective, self.count);
 
-            metrics.upsert(self.selector.name(), (offspring.len(), timer.elapsed()));
+            metrics.upsert((self.selector.name(), (offspring.len(), timer.elapsed())));
 
             self.objective.sort(&mut offspring);
 
             self.alters.iter().for_each(|alt| {
-                metrics.add_or_update(alt.alter(&mut offspring, generation));
+                metrics.upsert(alt.alter(&mut offspring, generation));
             });
 
             offspring
@@ -173,7 +174,7 @@ where
         }
 
         let remaining = self.count.saturating_sub(assigned);
-        fracs.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
+        fracs.sort_unstable_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
 
         for (_, idx) in fracs.iter().take(remaining) {
             quotas[*idx] += 1;

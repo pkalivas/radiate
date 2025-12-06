@@ -126,6 +126,12 @@ impl AsRef<[Optimize]> for Objective {
     }
 }
 
+impl Default for Objective {
+    fn default() -> Self {
+        Objective::Single(Optimize::Maximize)
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Optimize {
@@ -153,6 +159,13 @@ impl Optimize {
             Optimize::Minimize => a < b,
             Optimize::Maximize => a > b,
         }
+    }
+
+    pub fn is_minimize(&self) -> bool {
+        matches!(self, Optimize::Minimize)
+    }
+    pub fn is_maximize(&self) -> bool {
+        matches!(self, Optimize::Maximize)
     }
 }
 

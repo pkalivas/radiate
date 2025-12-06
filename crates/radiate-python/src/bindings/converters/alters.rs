@@ -3,7 +3,7 @@ use pyo3::{PyResult, exceptions::PyTypeError};
 use radiate::*;
 use std::collections::HashMap;
 
-type AlterConv<C> = fn(&PyEngineInput) -> Box<dyn Alter<C>>;
+type AlterConv<C> = fn(&PyEngineInput) -> Alterer<C>;
 
 macro_rules! table {
     ($($name:expr => $fn:ident),* $(,)?) => {{
@@ -13,7 +13,7 @@ macro_rules! table {
             m.insert($name, |inp| {
                 // $fn returns a concrete alterer type that implements Alter<C>
                 // We box that concrete type and cast to the trait object.
-                Box::new($fn(inp).alterer())
+                $fn(inp).alterer()
             });
         )*
         m
@@ -22,8 +22,8 @@ macro_rules! table {
 
 macro_rules! impl_input_transform_for {
     ($chrom:ty, $map_fn:ident) => {
-        impl InputTransform<Vec<Box<dyn Alter<$chrom>>>> for PyEngineInput {
-            fn transform(&self) -> Vec<Box<dyn Alter<$chrom>>> {
+        impl InputTransform<Vec<Alterer<$chrom>>> for PyEngineInput {
+            fn transform(&self) -> Vec<Alterer<$chrom>> {
                 alters_from_table(self, $map_fn())
                     .expect("alter conversion")
                     .into()
@@ -41,13 +41,13 @@ impl_input_transform_for!(GraphChromosome<Op<f32>>, graph_alterers);
 impl_input_transform_for!(TreeChromosome<Op<f32>>, tree_alterers);
 impl_input_transform_for!(AnyChromosome<'static>, any_alterers);
 
-impl<C> InputTransform<Vec<Box<dyn Alter<C>>>> for &[PyEngineInput]
+impl<C> InputTransform<Vec<Alterer<C>>> for &[PyEngineInput]
 where
     C: Chromosome + Clone,
-    PyEngineInput: InputTransform<Vec<Box<dyn Alter<C>>>>,
+    PyEngineInput: InputTransform<Vec<Alterer<C>>>,
 {
-    fn transform(&self) -> Vec<Box<dyn Alter<C>>> {
-        let mut alters: Vec<Box<dyn Alter<C>>> = Vec::new();
+    fn transform(&self) -> Vec<Alterer<C>> {
+        let mut alters: Vec<Alterer<C>> = Vec::new();
 
         for input in self.iter() {
             if input.input_type != PyEngineInputType::Alterer {
@@ -65,7 +65,7 @@ where
 fn alters_from_table<C>(
     input: &PyEngineInput,
     table: &HashMap<&'static str, AlterConv<C>>,
-) -> PyResult<Vec<Box<dyn Alter<C>>>>
+) -> PyResult<Vec<Alterer<C>>>
 where
     C: Chromosome + Clone + 'static,
 {

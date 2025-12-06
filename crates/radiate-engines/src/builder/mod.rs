@@ -16,17 +16,19 @@ use crate::genome::phenotype::Phenotype;
 use crate::objectives::{Objective, Optimize};
 use crate::pipeline::Pipeline;
 use crate::steps::{AuditStep, EngineStep, FilterStep, FrontStep, RecombineStep, SpeciateStep};
+use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use crate::{
-    Alter, Crossover, EncodeReplace, EngineProblem, EventBus, EventHandler, Front, Mutate, Problem,
+    Crossover, EncodeReplace, EngineProblem, EventBus, EventHandler, Front, Mutate, Problem,
     ReplacementStrategy, RouletteSelector, Select, TournamentSelector, context::Context,
 };
-use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use crate::{Generation, Result};
 use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::diversity::DistanceDiversityAdapter;
 use radiate_core::evaluator::BatchFitnessEvaluator;
 use radiate_core::problem::BatchEngineProblem;
-use radiate_core::{Diversity, Ecosystem, Evaluator, Executor, FitnessEvaluator, Genotype, Valid};
+use radiate_core::{
+    Alterer, Diversity, Ecosystem, Evaluator, Executor, FitnessEvaluator, Genotype, Valid,
+};
 use radiate_core::{RadiateError, ensure, radiate_err};
 #[cfg(feature = "serde")]
 use serde::Deserialize;
@@ -45,7 +47,7 @@ where
     pub optimization_params: OptimizeParams<C>,
     pub problem_params: ProblemParams<C, T>,
 
-    pub alterers: Vec<Arc<dyn Alter<C>>>,
+    pub alterers: Vec<Alterer<C>>,
     pub replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
     pub handlers: Vec<Arc<Mutex<dyn EventHandler<T>>>>,
     pub generation: Option<Generation<C, T>>,
@@ -289,9 +291,9 @@ where
     fn build_alterer(&mut self) -> Result<()> {
         if !self.params.alterers.is_empty() {
             for alter in self.params.alterers.iter() {
-                if !(0.0..=1.0).contains(&alter.rate()) {
+                if !alter.rate().is_valid() {
                     return Err(radiate_err!(
-                        Builder: "Alterer rate must be between 0 and 1 - found {}", alter.rate()
+                        Builder: "Alterer {} is not valid. Ensure rate {:?} is valid.", alter.name(), alter.rate()
                     ));
                 }
             }
@@ -299,8 +301,8 @@ where
             return Ok(());
         }
 
-        let crossover = Arc::new(UniformCrossover::new(0.5).alterer()) as Arc<dyn Alter<C>>;
-        let mutator = Arc::new(UniformMutator::new(0.1).alterer()) as Arc<dyn Alter<C>>;
+        let crossover = UniformCrossover::new(0.5).alterer();
+        let mutator = UniformMutator::new(0.1).alterer();
 
         self.params.alterers.push(crossover);
         self.params.alterers.push(mutator);
@@ -463,7 +465,7 @@ pub(crate) struct EngineConfig<C: Chromosome, T: Clone> {
     survivor_selector: Arc<dyn Select<C>>,
     offspring_selector: Arc<dyn Select<C>>,
     replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
-    alterers: Vec<Arc<dyn Alter<C>>>,
+    alterers: Vec<Alterer<C>>,
     species_threshold: f32,
     diversity: Option<Arc<dyn Diversity<C>>>,
     evaluator: Arc<dyn Evaluator<C, T>>,
@@ -494,7 +496,7 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
         Arc::clone(&self.replacement_strategy)
     }
 
-    pub fn alters(&self) -> &[Arc<dyn Alter<C>>] {
+    pub fn alters(&self) -> &[Alterer<C>] {
         &self.alterers
     }
 

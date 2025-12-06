@@ -1,14 +1,15 @@
 use radiate_core::{
-    AlterResult, BoundedGene, Chromosome, Crossover, FloatGene, Gene, random_provider,
+    AlterResult, BoundedGene, Chromosome, Crossover, FloatGene, Gene, Rate, random_provider,
 };
 
 pub struct SimulatedBinaryCrossover {
+    crossover_rate: Rate,
     contiguty: f32,
-    crossover_rate: f32,
 }
 
 impl SimulatedBinaryCrossover {
-    pub fn new(crossover_rate: f32, contiguty: f32) -> Self {
+    pub fn new(crossover_rate: impl Into<Rate>, contiguty: f32) -> Self {
+        let crossover_rate = crossover_rate.into();
         Self {
             contiguty,
             crossover_rate,
@@ -17,8 +18,8 @@ impl SimulatedBinaryCrossover {
 }
 
 impl<C: Chromosome<Gene = FloatGene>> Crossover<C> for SimulatedBinaryCrossover {
-    fn rate(&self) -> f32 {
-        self.crossover_rate
+    fn rate(&self) -> Rate {
+        self.crossover_rate.clone()
     }
 
     #[inline]
@@ -31,31 +32,33 @@ impl<C: Chromosome<Gene = FloatGene>> Crossover<C> for SimulatedBinaryCrossover 
 
         let mut count = 0;
 
-        for i in 0..length {
-            if random_provider::bool(0.5) {
-                let u = random_provider::random::<f32>();
-                let beta = if u <= 0.5 {
-                    (2.0 * u).powf(1.0 / (self.contiguty + 1.0))
-                } else {
-                    (0.5 / (1.0 - u)).powf(1.0 / (self.contiguty + 1.0))
-                };
+        random_provider::with_rng(|rand| {
+            for i in 0..length {
+                if rand.bool(0.5) {
+                    let u = rand.random::<f32>();
+                    let beta = if u <= 0.5 {
+                        (2.0 * u).powf(1.0 / (self.contiguty + 1.0))
+                    } else {
+                        (0.5 / (1.0 - u)).powf(1.0 / (self.contiguty + 1.0))
+                    };
 
-                let v1 = chrom_one.get(i).allele();
-                let v2 = chrom_two.get(i).allele();
+                    let v1 = chrom_one.get(i).allele();
+                    let v2 = chrom_two.get(i).allele();
 
-                let v = if random_provider::bool(0.5) {
-                    (v1 - v2) * 0.5 - (beta * 0.5 * (v1 - v2).abs())
-                } else {
-                    (v1 - v2) * 0.5 + (beta * 0.5 * (v1 - v2).abs())
-                };
+                    let v = if rand.bool(0.5) {
+                        (v1 - v2) * 0.5 - (beta * 0.5 * (v1 - v2).abs())
+                    } else {
+                        (v1 - v2) * 0.5 + (beta * 0.5 * (v1 - v2).abs())
+                    };
 
-                let new_gene = v.clamp(*chrom_one.get(i).min(), *chrom_one.get(i).max());
+                    let new_gene = v.clamp(*chrom_one.get(i).min(), *chrom_one.get(i).max());
 
-                count += 1;
+                    count += 1;
 
-                chrom_one.set(i, chrom_one.get(i).with_allele(&new_gene));
+                    chrom_one.set(i, chrom_one.get(i).with_allele(&new_gene));
+                }
             }
-        }
+        });
 
         AlterResult::from(count)
     }

@@ -42,7 +42,7 @@ impl AuditStep {
 
             species_count.apply_update(species.len());
 
-            metrics.add_or_update([new_species_count, species_ages, species_count, species_size]);
+            metrics.upsert([new_species_count, species_ages, species_count, species_size]);
         } else {
             let population_unique_rc_count = ecosystem.population().shared_count();
             assert!(
@@ -78,9 +78,8 @@ impl AuditStep {
         self.seen_ids.extend(curr_ids.iter().copied());
         drop(std::mem::replace(&mut self.last_gen_ids, curr_ids));
 
-        metrics.add_or_update([
+        metrics.upsert([
             metric!(metric_names::NEW_CHILDREN, new_this_gen),
-            metric!(metric_names::SURVIVOR_COUNT),
             metric!(metric_names::CARRYOVER_RATE, carryover_rate),
             metric!(metric_names::LIFETIME_UNIQUE_MEMBERS, self.seen_ids.len()),
         ]);
@@ -115,7 +114,7 @@ impl AuditStep {
         });
 
         if let Some([coeff_metric, diversity_metric]) = derived_scores {
-            metrics.add_or_update([coeff_metric, diversity_metric]);
+            metrics.upsert([coeff_metric, diversity_metric]);
         }
     }
 }
@@ -183,7 +182,7 @@ impl<C: Chromosome> EngineStep<C> for AuditStep {
             score_metric.apply_update(&self.score_distribution);
         }
 
-        metrics.add_or_update([
+        metrics.upsert([
             age_metric,
             size_metric,
             equal_metric,

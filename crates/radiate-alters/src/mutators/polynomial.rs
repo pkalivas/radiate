@@ -1,5 +1,4 @@
-use radiate_core::{BoundedGene, Chromosome, FloatGene, Gene, Mutate, random_provider};
-use std::sync::{Mutex, RwLock};
+use radiate_core::{BoundedGene, Chromosome, FloatGene, Gene, Mutate, Rate, random_provider};
 
 // Use it when:
 // 	- You’re evolving floating-point representations (like real-valued neural nets, control parameters, orbital mechanics).
@@ -19,36 +18,14 @@ use std::sync::{Mutex, RwLock};
 // 	- High eta (e.g. 20–100): leads to smaller, fine-grained mutations, good for local search.
 #[derive(Debug)]
 pub struct PolynomialMutator {
-    rate: f32,
-    eta: RwLock<f32>,
-    initial_eta: Option<Mutex<f32>>,
-    decay: Option<Mutex<f32>>,
+    rate: Rate,
+    eta: f32,
 }
 
 impl PolynomialMutator {
-    pub fn new(rate: f32, eta: f32) -> Self {
-        if !(0.0..=1.0).contains(&rate) {
-            panic!("Rate must be between 0 and 1");
-        }
-        if eta <= 0.0 {
-            panic!("Eta must be positive");
-        }
-
-        PolynomialMutator {
-            rate,
-            eta: RwLock::new(eta),
-            initial_eta: Some(Mutex::new(eta)),
-            decay: None,
-        }
-    }
-
-    pub fn with_decay(mut self, decay: f32) -> Self {
-        if decay <= 0.0 {
-            panic!("Decay must be positive");
-        }
-
-        self.decay = Some(Mutex::new(decay));
-        self
+    pub fn new(rate: impl Into<Rate>, eta: f32) -> Self {
+        let rate = rate.into();
+        PolynomialMutator { rate, eta }
     }
 
     fn polynomial_mutation(&self, value: f32, min: f32, max: f32, eta: f32) -> f32 {
@@ -78,17 +55,8 @@ impl PolynomialMutator {
 }
 
 impl<C: Chromosome<Gene = FloatGene>> Mutate<C> for PolynomialMutator {
-    fn rate(&self) -> f32 {
-        self.rate
-    }
-
-    fn update(&self, generation: usize) {
-        if let (Some(init), Some(decay)) = (&self.initial_eta, &self.decay) {
-            let init = init.lock().unwrap();
-            let decay = decay.lock().unwrap();
-            let mut eta = self.eta.write().unwrap();
-            *eta = *init / (1.0 + *decay * generation as f32);
-        }
+    fn rate(&self) -> Rate {
+        self.rate.clone()
     }
 
     #[inline]
@@ -97,7 +65,7 @@ impl<C: Chromosome<Gene = FloatGene>> Mutate<C> for PolynomialMutator {
         let min = *gene.min();
         let max = *gene.max();
         let value = *gene.allele();
-        let eta = *self.eta.read().unwrap();
+        let eta = self.eta;
 
         let new_value = self.polynomial_mutation(value, min, max, eta);
 

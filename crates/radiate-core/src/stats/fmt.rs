@@ -5,7 +5,7 @@ use crate::{Metric, MetricScope, MetricSet, metric_names};
 
 /// ASCII sparkline for quick trend peeks (uses last distribution sequence).
 /// Example: ▁▂▃▄▅▆▇█
-fn sparkline(values: &[f32], width: usize) -> String {
+pub fn sparkline(values: &[f32], width: usize) -> String {
     if values.is_empty() || width == 0 {
         return String::new();
     }
@@ -30,21 +30,6 @@ fn sparkline(values: &[f32], width: usize) -> String {
         idx += step;
     }
     out
-}
-
-fn fmt_dur(d: Duration) -> String {
-    let ns = d.as_nanos();
-    if ns == 0 {
-        "0ns".into()
-    } else if ns < 1_000 {
-        format!("{ns}ns")
-    } else if ns < 1_000_000 {
-        format!("{:.3}µs", ns as f64 / 1e3)
-    } else if ns < 1_000_000_000 {
-        format!("{:.3}ms", ns as f64 / 1e6)
-    } else {
-        format!("{:.3}s", ns as f64 / 1e9)
-    }
 }
 
 pub fn render_dashboard(metrics: &MetricSet) -> io::Result<String> {
@@ -72,13 +57,13 @@ pub fn render_dashboard(metrics: &MetricSet) -> io::Result<String> {
     push_int(metric_names::UNIQUE_MEMBERS, "unique_members");
     push_int(metric_names::UNIQUE_SCORES, "unique_scores");
 
-    if let Some(m) = metrics.get(metric_names::LIFETIME_UNIQUE_MEMBERS) {
-        write!(out, "  lifetime_unique: {}", m.last_value() as i64).unwrap();
+    if let Some(m) = metrics.get(metric_names::BEST_SCORE_IMPROVEMENT) {
+        write!(out, "  improvements: {}", m.count() as i64).unwrap();
     }
 
     if let Some(m) = metrics.get(metric_names::TIME) {
         if let Some(mu) = m.time_mean() {
-            write!(out, "  iter_time(mean): {}", fmt_dur(mu)).unwrap();
+            write!(out, "  iter_time(mean): {}", fmt_duration(mu)).unwrap();
         }
     }
 
@@ -145,12 +130,12 @@ pub fn render_metric_rows_full(
             "{:<24} | {:<6} | {:<10} | {:<10} | {:<10} | {:<6} | {:<12} | {:<10} | {:<10} | {:<10} | {:<10}",
             name,
             "time",
-            fmt_dur(t.mean()),
-            fmt_dur(t.min()),
-            fmt_dur(t.max()),
+            fmt_duration(t.mean()),
+            fmt_duration(t.min()),
+            fmt_duration(t.max()),
             t.count(),
-            fmt_dur(t.sum()),
-            fmt_dur(t.standard_deviation()),
+            fmt_duration(t.sum()),
+            fmt_duration(t.standard_deviation()),
             "-",
             "-",
             "-",
@@ -259,10 +244,10 @@ pub fn render_metric_rows_minimal(
                 out,
                 "{:<24} | μ: {:<10} | ↓: {:<10} | ↑: {:<10} | ∑: {:<10} | Count: {:<6}",
                 name,
-                fmt_dur(time.mean()),
-                fmt_dur(time.min()),
-                fmt_dur(time.max()),
-                fmt_dur(time.sum()),
+                fmt_duration(time.mean()),
+                fmt_duration(time.min()),
+                fmt_duration(time.max()),
+                fmt_duration(time.sum()),
                 time.count(),
             )
             .unwrap();
@@ -270,10 +255,10 @@ pub fn render_metric_rows_minimal(
             write!(
                 out,
                 "μ: {:<10} | ↓: {:<10} | ↑: {:<10} | ∑: {:<10} | Count: {:<6}",
-                fmt_dur(time.mean()),
-                fmt_dur(time.min()),
-                fmt_dur(time.max()),
-                fmt_dur(time.sum()),
+                fmt_duration(time.mean()),
+                fmt_duration(time.min()),
+                fmt_duration(time.max()),
+                fmt_duration(time.sum()),
                 time.count(),
             )
             .unwrap();
@@ -335,4 +320,19 @@ pub fn render_metric_minimal(metric: &Metric, include_name: bool) -> io::Result<
     let mut out = String::new();
     render_metric_rows_minimal(&mut out, &metric.name(), metric, include_name)?;
     Ok(out)
+}
+
+pub fn fmt_duration(d: Duration) -> String {
+    let ns = d.as_nanos();
+    if ns == 0 {
+        "0ns".into()
+    } else if ns < 1_000 {
+        format!("{ns}ns")
+    } else if ns < 1_000_000 {
+        format!("{:.3}µs", ns as f64 / 1e3)
+    } else if ns < 1_000_000_000 {
+        format!("{:.3}ms", ns as f64 / 1e6)
+    } else {
+        format!("{:.3}s", ns as f64 / 1e9)
+    }
 }

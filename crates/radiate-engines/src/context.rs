@@ -1,6 +1,8 @@
 use crate::Chromosome;
 use crate::builder::EngineConfig;
-use radiate_core::{Ecosystem, Front, MetricSet, Objective, Phenotype, Problem, Score};
+use radiate_core::{
+    Ecosystem, Front, MetricSet, Objective, Phenotype, Problem, Score, metric_names,
+};
 use std::sync::{Arc, RwLock};
 
 pub struct Context<C: Chromosome, T> {
@@ -21,6 +23,8 @@ impl<C: Chromosome, T> Context<C, T> {
         if let Some(best) = best {
             if let (Some(score), Some(current)) = (best.score(), &self.score) {
                 if self.objective.is_better(score, current) {
+                    self.metrics
+                        .upsert((metric_names::BEST_SCORE_IMPROVEMENT, 1));
                     self.score = Some(score.clone());
                     self.best = self.problem.decode(best.genotype());
                     return true;

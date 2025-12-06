@@ -1,20 +1,21 @@
 use radiate_core::{
-    AlterResult, Chromosome, Crossover, PermutationChromosome, SubsetMode, math::indexes,
+    AlterResult, Chromosome, Crossover, PermutationChromosome, Rate, SubsetMode, math::indexes,
 };
 
 pub struct PMXCrossover {
-    rate: f32,
+    rate: Rate,
 }
 
 impl PMXCrossover {
-    pub fn new(rate: f32) -> Self {
+    pub fn new(rate: impl Into<Rate>) -> Self {
+        let rate = rate.into();
         PMXCrossover { rate }
     }
 }
 
 impl<A: PartialEq + Clone> Crossover<PermutationChromosome<A>> for PMXCrossover {
-    fn rate(&self) -> f32 {
-        self.rate
+    fn rate(&self) -> Rate {
+        self.rate.clone()
     }
 
     #[inline]
@@ -26,17 +27,18 @@ impl<A: PartialEq + Clone> Crossover<PermutationChromosome<A>> for PMXCrossover 
     ) -> AlterResult {
         let length = std::cmp::min(chrom_one.genes().len(), chrom_two.genes().len());
         if length < 2 {
-            return 0.into();
+            return AlterResult::empty();
         }
 
         let subset = indexes::subset(chrom_one.genes.len(), 2, SubsetMode::StratifiedCorrect);
-        let start = subset[0] as usize;
-        let end = subset[1] as usize;
+
+        // start will always be less than end due to StratifiedCorrect
+        let start = subset[0];
+        let end = subset[1];
 
         let mut offspring_one = chrom_one.genes.clone();
         let mut offspring_two = chrom_two.genes.clone();
 
-        // PMX Crossover
         offspring_one[start..(end + 1)].clone_from_slice(&chrom_two.genes[start..(end + 1)]);
         offspring_two[start..(end + 1)].clone_from_slice(&chrom_one.genes[start..(end + 1)]);
 
@@ -63,6 +65,6 @@ impl<A: PartialEq + Clone> Crossover<PermutationChromosome<A>> for PMXCrossover 
         chrom_one.genes = offspring_one;
         chrom_two.genes = offspring_two;
 
-        2.into()
+        AlterResult::from(2)
     }
 }

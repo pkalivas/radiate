@@ -12,7 +12,7 @@ pub use builder::GeneticEngineBuilder;
 pub use engine::GeneticEngine;
 pub use events::{EngineEvent, EventBus, EventHandler};
 pub use generation::Generation;
-pub use iter::EngineIteratorExt;
+pub use iter::{EngineIterator, EngineIteratorExt};
 pub use limit::Limit;
 pub use steps::EvaluateStep;
 

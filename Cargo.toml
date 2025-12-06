@@ -79,6 +79,9 @@ regex = "1.12.2"
 foldhash = "0.2.0"
 slotmap = "1.0"
 hashbrown = { version = "0.16.1" }
+crossterm = "0.29"
+ratatui = { version = "0.29", default-features = false, features = ["crossterm"] }
+color-eyre = "0.6.3"
 tracing = "0.1.43"
 tracing-subscriber = { version = "0.3.22", features = ["env-filter", "fmt"] }
 radiate = { version = "1.2.19", path = "crates/radiate", default-features = false }
@@ -90,3 +93,4 @@ radiate-gp = { version = "1.2.19", path = "crates/radiate-gp", default-features 
 radiate-error = { version = "1.2.19", path = "crates/radiate-error", default-features = false }
 radiate-python = { version = "1.2.19", path = "crates/radiate-python", default-features = false }
 radiate-utils = { version = "1.2.19", path = "crates/radiate-utils", default-features = false }
+radiate-ui = { version = "1.2.19", path = "crates/radiate-ui", default-features = false }

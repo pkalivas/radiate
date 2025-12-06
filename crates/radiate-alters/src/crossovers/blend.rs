@@ -1,4 +1,4 @@
-use radiate_core::{AlterResult, Chromosome, Crossover, FloatGene, Gene, random_provider};
+use radiate_core::{AlterResult, Chromosome, Crossover, FloatGene, Gene, Rate, random_provider};
 
 /// The [BlendCrossover] is a crossover operator that blends [FloatGene] alleles from two parent chromosomes to create offspring.
 /// The blending is controlled by the `alpha` parameter, which determines the extent of blending between the two alleles.
@@ -10,23 +10,26 @@ use radiate_core::{AlterResult, Chromosome, Crossover, FloatGene, Gene, random_p
 /// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct BlendCrossover {
-    rate: f32,
+    rate: Rate,
     alpha: f32,
 }
 
 impl BlendCrossover {
     /// Create a new instance of the [BlendCrossover] with the given rate and alpha.
     /// The rate must be between 0.0 and 1.0, and the alpha must be between 0.0 and 1.0.
-    pub fn new(rate: f32, alpha: f32) -> Self {
-        if !(0.0..=1.0).contains(&rate) {
-            panic!("Rate must be between 0 and 1");
-        }
+    pub fn new(rate: impl Into<Rate>, alpha: f32) -> Self {
+        // if !(0.0..=1.0).contains(&rate) {
+        //     panic!("Rate must be between 0 and 1");
+        // }
 
-        if !(0.0..=1.0).contains(&alpha) {
-            panic!("Alpha must be between 0 and 1");
-        }
+        // if !(0.0..=1.0).contains(&alpha) {
+        //     panic!("Alpha must be between 0 and 1");
+        // }
 
-        BlendCrossover { rate, alpha }
+        BlendCrossover {
+            rate: rate.into(),
+            alpha,
+        }
     }
 }
 
@@ -34,31 +37,33 @@ impl<C> Crossover<C> for BlendCrossover
 where
     C: Chromosome<Gene = FloatGene>,
 {
-    fn rate(&self) -> f32 {
-        self.rate
+    fn rate(&self) -> Rate {
+        self.rate.clone()
     }
 
     #[inline]
     fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C, rate: f32) -> AlterResult {
         let mut cross_count = 0;
 
-        for i in 0..std::cmp::min(chrom_one.len(), chrom_two.len()) {
-            if random_provider::bool(rate) {
-                let gene_one = chrom_one.get(i);
-                let gene_two = chrom_two.get(i);
+        random_provider::with_rng(|rand| {
+            for i in 0..std::cmp::min(chrom_one.len(), chrom_two.len()) {
+                if rand.bool(rate) {
+                    let gene_one = chrom_one.get(i);
+                    let gene_two = chrom_two.get(i);
 
-                let allele_one: f32 = gene_one.allele().clone();
-                let allele_two: f32 = gene_two.allele().clone();
+                    let allele_one: f32 = gene_one.allele().clone();
+                    let allele_two: f32 = gene_two.allele().clone();
 
-                let new_allele_one = allele_one - (self.alpha * (allele_two - allele_one));
-                let new_allele_two = allele_two - (self.alpha * (allele_one - allele_two));
+                    let new_allele_one = allele_one - (self.alpha * (allele_two - allele_one));
+                    let new_allele_two = allele_two - (self.alpha * (allele_one - allele_two));
 
-                chrom_one.set(i, gene_one.with_allele(&new_allele_one));
-                chrom_two.set(i, gene_two.with_allele(&new_allele_two));
+                    chrom_one.set(i, gene_one.with_allele(&new_allele_one));
+                    chrom_two.set(i, gene_two.with_allele(&new_allele_two));
 
-                cross_count += 1;
+                    cross_count += 1;
+                }
             }
-        }
+        });
 
         cross_count.into()
     }

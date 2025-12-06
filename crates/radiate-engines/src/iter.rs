@@ -18,7 +18,7 @@
 //! - **Limit System**: Flexible limit specification and combination
 
 use crate::{Generation, Limit, init_logging};
-use radiate_core::{Chromosome, Engine, Objective, Optimize, Score};
+use radiate_core::{Chromosome, Engine, Objective, Optimize, Score, stats::AsciiDashboard};
 #[cfg(feature = "serde")]
 use serde::Serialize;
 #[cfg(feature = "serde")]
@@ -75,6 +75,24 @@ where
     E: Engine,
 {
     pub(crate) engine: E,
+}
+
+impl<E> EngineIterator<E>
+where
+    E: Engine,
+{
+    /// Creates a new [EngineIterator] wrapping the specified engine.
+    ///
+    /// # Arguments
+    ///
+    /// * `engine` - The engine to wrap with the iterator
+    ///
+    /// # Returns
+    ///
+    /// A new instance of [EngineIterator]
+    pub fn new(engine: E) -> Self {
+        EngineIterator { engine }
+    }
 }
 
 /// Implementation of `Iterator` for [EngineIterator].
@@ -627,7 +645,10 @@ where
         Self: Sized,
     {
         init_logging();
-        LoggingIterator { iter: self }
+        LoggingIterator {
+            iter: self,
+            dashboard: AsciiDashboard::new(Duration::from_millis(10)),
+        }
     }
 
     /// Adds checkpointing to the iteration process.
@@ -795,6 +816,7 @@ where
     I: Iterator<Item = Generation<C, T>>,
     C: Chromosome,
 {
+    dashboard: AsciiDashboard,
     iter: I,
 }
 
@@ -815,12 +837,16 @@ where
 
         match next.objective() {
             Objective::Single(_) => {
-                info!(
-                    "Epoch {:<4} | Score: {:>8.4} | Time: {:>5.2?}",
-                    next.index(),
-                    next.score().as_f32(),
-                    next.time()
-                );
+                // info!(
+                //     "Epoch {:<4} | Score: {:>8.4} | Time: {:>5.2?}",
+                //     next.index(),
+                //     next.score().as_f32(),
+                //     next.time()
+                // );
+
+                self.dashboard
+                    .maybe_render(next.index(), next.metrics())
+                    .unwrap_or_default();
             }
             Objective::Multi(_) => {
                 let front_entropy = next.metrics().front_entropy();

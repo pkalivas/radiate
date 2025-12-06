@@ -1,20 +1,20 @@
 use crate::collections::GraphChromosome;
 use crate::node::{Node, NodeExt};
-use radiate_core::genome::*;
 use radiate_core::{AlterResult, Crossover, random_provider};
+use radiate_core::{Rate, genome::*};
 use std::fmt::Debug;
 
 const NUM_PARENTS: usize = 2;
 
 pub struct GraphCrossover {
-    rate: f32,
+    rate: Rate,
     parent_node_rate: f32,
 }
 
 impl GraphCrossover {
-    pub fn new(rate: f32, crossover_parent_node_rate: f32) -> Self {
+    pub fn new(rate: impl Into<Rate>, crossover_parent_node_rate: f32) -> Self {
         GraphCrossover {
-            rate,
+            rate: rate.into(),
             parent_node_rate: crossover_parent_node_rate,
         }
     }
@@ -24,8 +24,8 @@ impl<T> Crossover<GraphChromosome<T>> for GraphCrossover
 where
     T: Clone + PartialEq + Debug,
 {
-    fn rate(&self) -> f32 {
-        self.rate
+    fn rate(&self) -> Rate {
+        self.rate.clone()
     }
 
     #[inline]

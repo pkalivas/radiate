@@ -1,17 +1,18 @@
-use radiate_core::{Chromosome, Crossover};
+use radiate_core::{Chromosome, Crossover, Rate};
 
 pub struct UniformCrossover {
-    rate: f32,
+    rate: Rate,
 }
 
 impl UniformCrossover {
-    pub fn new(rate: f32) -> Self {
+    pub fn new(rate: impl Into<Rate>) -> Self {
+        let rate = rate.into();
         Self { rate }
     }
 }
 
 impl<C: Chromosome> Crossover<C> for UniformCrossover {
-    fn rate(&self) -> f32 {
-        self.rate
+    fn rate(&self) -> Rate {
+        self.rate.clone()
     }
 }

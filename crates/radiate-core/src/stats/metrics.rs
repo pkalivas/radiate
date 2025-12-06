@@ -36,6 +36,17 @@ pub enum Rollup {
     Max,
 }
 
+#[derive(Clone, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[repr(transparent)]
+pub struct Tag(pub &'static str);
+
+impl From<&'static str> for Tag {
+    fn from(value: &'static str) -> Self {
+        Tag(intern_snake_case!(value))
+    }
+}
+
 #[derive(Clone, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct MetricInner {
@@ -45,12 +56,12 @@ pub struct MetricInner {
 }
 
 #[derive(Clone, PartialEq, Default)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Metric {
     pub(super) name: Arc<String>,
     pub(super) inner: MetricInner,
     pub(super) scope: MetricScope,
     pub(super) rollup: Rollup,
+    pub(super) tags: Option<Arc<Vec<Tag>>>,
 }
 
 impl Metric {
@@ -58,6 +69,8 @@ impl Metric {
         let name = cache_string!(intern_snake_case!(name));
         let scope = defaults::default_scope(&name);
         let rollup = defaults::default_rollup(&name);
+        let tags = defaults::default_tags(&name);
+
         Self {
             name,
             inner: MetricInner {
@@ -67,11 +80,13 @@ impl Metric {
             },
             scope,
             rollup,
+            tags: tags,
         }
     }
 
     pub fn new_scoped(name: &'static str, scope: MetricScope) -> Self {
         let rollup = defaults::default_rollup(name);
+
         Self {
             scope,
             rollup,
@@ -84,6 +99,36 @@ impl Metric {
         self
     }
 
+    pub fn with_tag(mut self, tag: &'static str) -> Self {
+        self.add_tag(tag);
+        self
+    }
+
+    pub fn with_tags(mut self, tags: Vec<&'static str>) -> Self {
+        let arc_tags = tags.into_iter().map(|tag| Tag(intern!(tag))).collect();
+
+        self.tags = Some(Arc::new(arc_tags));
+        self
+    }
+
+    pub fn add_tag<'a>(&mut self, tag: impl Into<Tag>) {
+        let tag = tag.into();
+        match &mut self.tags {
+            Some(tags) => {
+                if !tags.iter().any(|t| t.0 == tag.0) {
+                    Arc::make_mut(tags).push(tag);
+                }
+            }
+            None => {
+                self.tags = Some(Arc::new(vec![tag]));
+            }
+        }
+    }
+
+    pub fn inner(&self) -> &MetricInner {
+        &self.inner
+    }
+
     pub fn scope(&self) -> MetricScope {
         self.scope
     }
@@ -92,12 +137,56 @@ impl Metric {
         self.rollup
     }
 
-    pub fn clear_values(&mut self) {
-        self.inner = MetricInner::default();
+    pub fn tags(&self) -> Option<&[Tag]> {
+        self.tags.as_deref().map(|v| v.as_slice())
     }
 
-    pub fn inner(&self) -> &MetricInner {
-        &self.inner
+    pub fn contains_tag(&self, tag: &Tag) -> bool {
+        if let Some(tags) = &self.tags {
+            tags.iter().any(|t| t.0 == tag.0)
+        } else {
+            false
+        }
+    }
+
+    pub fn get_stat<F, T>(&self, func: F) -> T
+    where
+        F: Fn(&Statistic) -> T,
+        T: Default,
+    {
+        self.inner
+            .value_statistic
+            .as_ref()
+            .map(|stat| func(stat))
+            .unwrap_or_default()
+    }
+
+    pub fn get_dist<F, T>(&self, func: F) -> T
+    where
+        F: Fn(&Distribution) -> T,
+        T: Default,
+    {
+        self.inner
+            .distribution
+            .as_ref()
+            .map(|dist| func(dist))
+            .unwrap_or_default()
+    }
+
+    pub fn get_time<F, T>(&self, func: F) -> T
+    where
+        F: Fn(&TimeStatistic) -> T,
+        T: Default,
+    {
+        self.inner
+            .time_statistic
+            .as_ref()
+            .map(|time| func(time))
+            .unwrap_or_default()
+    }
+
+    pub fn clear_values(&mut self) {
+        self.inner = MetricInner::default();
     }
 
     #[inline(always)]
@@ -138,6 +227,12 @@ impl Metric {
         // Distributions — append most recent sequence if present.
         if let Some(d) = &other.inner.distribution {
             self.apply_update(d.last_sequence().as_slice());
+        }
+
+        if let Some(other_tags) = &other.tags {
+            for tag in other_tags.iter() {
+                self.add_tag(tag.0);
+            }
         }
     }
 
@@ -197,6 +292,38 @@ impl Metric {
                     time_stat.add(time);
                 } else {
                     self.inner.time_statistic = Some(TimeStatistic::from(time));
+                }
+            }
+            MetricUpdate::UsizeOperationTagged(value, time, tag) => {
+                if let Some(stat) = &mut self.inner.value_statistic {
+                    stat.add(value as f32);
+                } else {
+                    self.inner.value_statistic = Some(Statistic::from(value as f32));
+                }
+
+                if let Some(time_stat) = &mut self.inner.time_statistic {
+                    time_stat.add(time);
+                } else {
+                    self.inner.time_statistic = Some(TimeStatistic::from(time));
+                }
+
+                self.add_tag(tag);
+            }
+            MetricUpdate::UsizeOperationTaggedMany(value, time, tags) => {
+                if let Some(stat) = &mut self.inner.value_statistic {
+                    stat.add(value as f32);
+                } else {
+                    self.inner.value_statistic = Some(Statistic::from(value as f32));
+                }
+
+                if let Some(time_stat) = &mut self.inner.time_statistic {
+                    time_stat.add(time);
+                } else {
+                    self.inner.time_statistic = Some(TimeStatistic::from(time));
+                }
+
+                for tag in tags.into_iter() {
+                    self.add_tag(tag);
                 }
             }
             MetricUpdate::DistributionRef(values) => {
@@ -294,6 +421,10 @@ impl Metric {
         self.statistic().map(|stat| stat.max())
     }
 
+    pub fn value_sum(&self) -> Option<f32> {
+        self.statistic().map(|stat| stat.sum())
+    }
+
     ///
     /// --- Get the time statistics ---
     ///
@@ -371,6 +502,8 @@ pub enum MetricUpdate<'a> {
     DistributionOwned(Vec<f32>),
     FloatOperation(f32, Duration),
     UsizeOperation(usize, Duration),
+    UsizeOperationTagged(usize, Duration, Tag),
+    UsizeOperationTaggedMany(usize, Duration, Vec<Tag>),
     Metric(&'a Metric),
 }
 
@@ -428,9 +561,94 @@ impl<'a> From<&'a Metric> for MetricUpdate<'a> {
     }
 }
 
+impl<'a, T> From<(usize, Duration, T)> for MetricUpdate<'a>
+where
+    T: Into<Tag>,
+{
+    fn from(value: (usize, Duration, T)) -> Self {
+        MetricUpdate::UsizeOperationTagged(value.0, value.1, value.2.into())
+    }
+}
+
+impl<'a, T> From<(usize, Duration, Vec<T>)> for MetricUpdate<'a>
+where
+    T: Into<Tag>,
+{
+    fn from(value: (usize, Duration, Vec<T>)) -> Self {
+        let tags = value.2.into_iter().map(|t| t.into()).collect();
+        MetricUpdate::UsizeOperationTaggedMany(value.0, value.1, tags)
+    }
+}
+
 impl std::fmt::Debug for Metric {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Metric {{ name: {}, }}", self.name)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl Serialize for Metric {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use std::sync::Arc;
+
+        #[derive(Serialize)]
+        struct MetricOwned {
+            name: String,
+            inner: MetricInner,
+            scope: MetricScope,
+            rollup: Rollup,
+            tags: Option<Arc<Vec<Arc<String>>>>,
+        }
+
+        let tags = self
+            .tags
+            .as_ref()
+            .map(|tags| Arc::new(tags.iter().map(|tag| Arc::new(tag.0.to_string())).collect()));
+        let metric = MetricOwned {
+            name: self.name.to_string(),
+            inner: self.inner.clone(),
+            scope: self.scope,
+            rollup: self.rollup,
+            tags,
+        };
+
+        metric.serialize(serializer)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> Deserialize<'de> for Metric {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        use std::sync::Arc;
+
+        use crate::stats::MetricInner;
+
+        #[derive(Deserialize)]
+        struct MetricOwned {
+            name: String,
+            inner: MetricInner,
+            scope: MetricScope,
+            rollup: Rollup,
+            tags: Option<Arc<Vec<Arc<String>>>>,
+        }
+
+        let metric = MetricOwned::deserialize(deserializer)?;
+
+        Ok(Metric {
+            name: cache_string!(intern_snake_case!(metric.name.as_str())),
+            inner: metric.inner,
+            scope: metric.scope,
+            rollup: metric.rollup,
+            tags: metric
+                .tags
+                .map(|tags| Arc::new(tags.iter().map(|tag| Tag(intern!(tag.as_str()))).collect())),
+        })
     }
 }
 

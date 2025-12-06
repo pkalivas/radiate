@@ -1,4 +1,6 @@
-use radiate::prelude::*;
+use std::time::Duration;
+
+use radiate::{prelude::*, stats::AsciiDashboard};
 
 const MIN_SCORE: f32 = 0.001;
 
@@ -16,6 +18,10 @@ fn main() {
         .codec(GraphCodec::directed(1, 1, store))
         .raw_fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
+        // .subscribe(AsciiDashboardHandler::new(AsciiDashboard::new(
+        //     Duration::from_millis(10),
+        // )))
+        .diversity(NeatDistance::new(0.1, 0.1, 0.3))
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
@@ -23,15 +29,21 @@ fn main() {
         ))
         .build();
 
-    engine
+    radiate::dashboard(engine)
         .iter()
-        .logging()
+        // .logging()
         .until_score(MIN_SCORE)
         .last()
         .inspect(display);
 }
 
 fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
+    for (_, metric) in result.metrics().iter() {
+        if let Some(tags) = metric.tags() {
+            println!("{tags:?} => {:?}", metric);
+        }
+    }
+
     Accuracy::default()
         .named("Regression Graph")
         .on(&dataset().into())

@@ -1,4 +1,4 @@
-use radiate_core::{AlterResult, Chromosome, Mutate, random_provider};
+use radiate_core::{AlterResult, Chromosome, Mutate, Rate, random_provider};
 
 /// The [InversionMutator] is a simple mutator that inverts a random section of the chromosome.
 ///
@@ -6,37 +6,40 @@ use radiate_core::{AlterResult, Chromosome, Mutate, random_provider};
 /// may not be very effective. This mutator is best used with larger chromosomes.
 #[derive(Debug, Clone)]
 pub struct InversionMutator {
-    rate: f32,
+    rate: Rate,
 }
 
 impl InversionMutator {
     /// Create a new instance of the [InversionMutator] with the given rate.
     /// The rate must be between 0.0 and 1.0.
-    pub fn new(rate: f32) -> Self {
-        if !(0.0..=1.0).contains(&rate) {
-            panic!("rate must be between 0.0 and 1.0");
-        }
+    pub fn new(rate: impl Into<Rate>) -> Self {
+        let rate = rate.into();
+        // if !(0.0..=1.0).contains(&rate.0) {
+        //     panic!("rate must be between 0.0 and 1.0");
+        // }
 
         InversionMutator { rate }
     }
 }
 
 impl<C: Chromosome> Mutate<C> for InversionMutator {
-    fn rate(&self) -> f32 {
-        self.rate
+    fn rate(&self) -> Rate {
+        self.rate.clone()
     }
 
     #[inline]
     fn mutate_chromosome(&self, chromosome: &mut C, rate: f32) -> AlterResult {
         let mut mutations = 0;
 
-        if random_provider::bool(rate) {
-            let start = random_provider::range(0..chromosome.len());
-            let end = random_provider::range(start..chromosome.len());
+        random_provider::with_rng(|rand| {
+            if rand.bool(rate) {
+                let start = rand.range(0..chromosome.len());
+                let end = rand.range(start..chromosome.len());
 
-            chromosome.genes_mut()[start..end].reverse();
-            mutations += 1;
-        }
+                chromosome.genes_mut()[start..end].reverse();
+                mutations += 1;
+            }
+        });
 
         AlterResult::from(mutations)
     }

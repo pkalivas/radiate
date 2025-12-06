@@ -1,4 +1,4 @@
-use crate::random_provider;
+use crate::{RdRand, random_provider};
 
 pub enum SubsetMode<'a> {
     StratifiedCorrect,
@@ -32,16 +32,16 @@ pub fn subset(max_index: usize, num_indicies: usize, mode: SubsetMode) -> Vec<us
         panic!("n smaller than k: {} < {}.", max_index, num_indicies);
     }
 
-    match mode {
+    random_provider::with_rng(|rand| match mode {
         SubsetMode::StratifiedCorrect => {
             let mut sub = vec![0; num_indicies];
-            next(max_index, &mut sub);
+            next(max_index, &mut sub, rand);
             sub
         }
         SubsetMode::FastRandom => {
             let mut sub = vec![0; num_indicies];
             for i in 0..num_indicies {
-                sub[i] = random_provider::range(0..max_index);
+                sub[i] = rand.range(0..max_index);
             }
             sub
         }
@@ -49,7 +49,7 @@ pub fn subset(max_index: usize, num_indicies: usize, mode: SubsetMode) -> Vec<us
             let mut sub = vec![0; num_indicies];
             for i in 0..num_indicies {
                 loop {
-                    let index = random_provider::range(0..max_index);
+                    let index = rand.range(0..max_index);
                     if !exclude.contains(&index) {
                         sub[i] = index;
                         break;
@@ -62,11 +62,11 @@ pub fn subset(max_index: usize, num_indicies: usize, mode: SubsetMode) -> Vec<us
             let mut sub = vec![0; num_indicies];
             for i in 0..num_indicies {
                 let (start, end) = range_list[i % range_list.len()];
-                sub[i] = random_provider::range(start..end);
+                sub[i] = rand.range(start..end);
             }
             sub
         }
-    }
+    })
 }
 
 /// * Fills the subset with indices.
@@ -77,7 +77,7 @@ pub fn subset(max_index: usize, num_indicies: usize, mode: SubsetMode) -> Vec<us
 /// * Ensures the subset size and range are valid.
 /// * Initializes the subset with evenly spaced indices.
 /// * Adjusts the subset by randomly selecting indices and ensuring they are unique.
-fn next(max_index: usize, sub_set: &mut [usize]) {
+fn next(max_index: usize, sub_set: &mut [usize], rand: &mut RdRand<'_>) {
     let k = sub_set.len();
     if k == max_index {
         for i in 0..k {
@@ -85,7 +85,7 @@ fn next(max_index: usize, sub_set: &mut [usize]) {
         }
         return;
     }
-    build_subset(max_index, sub_set);
+    build_subset(max_index, sub_set, rand);
     if k > max_index - k {
         invert(max_index, sub_set);
     }
@@ -93,7 +93,7 @@ fn next(max_index: usize, sub_set: &mut [usize]) {
 
 /// * Inverts the subset to ensure all indices are unique and within the specified range.
 /// * Uses a helper vector to track used indices and fills the subset with the remaining indices.
-fn build_subset(max_index: usize, sub: &mut [usize]) {
+fn build_subset(max_index: usize, sub: &mut [usize], rand: &mut RdRand<'_>) {
     let k = sub.len();
     check_subset(max_index, k);
 
@@ -105,7 +105,7 @@ fn build_subset(max_index: usize, sub: &mut [usize]) {
         let mut ix;
         let mut l;
         loop {
-            ix = random_provider::range(1..max_index);
+            ix = rand.range(1..max_index);
             l = (ix * k - 1) / max_index;
             if sub[l] < ix {
                 break;
@@ -142,7 +142,7 @@ fn build_subset(max_index: usize, sub: &mut [usize]) {
             let m0 = 1 + (sub[l - 1] - 1) * max_index / k;
             let m = sub[l - 1] * max_index / k - m0 + 1;
 
-            let ix = random_provider::range(m0..m0 + m - 1);
+            let ix = rand.range(m0..m0 + m - 1);
             let mut i = l + 1;
             while i <= ir && ix >= sub[i - 1] {
                 sub[i - 2] = sub[i - 1];

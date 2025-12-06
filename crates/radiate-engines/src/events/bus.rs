@@ -16,6 +16,13 @@ impl<T> EventBus<T> {
         EventBus { handlers, executor }
     }
 
+    pub fn subscribe<H>(&mut self, handler: H)
+    where
+        H: EventHandler<T> + 'static,
+    {
+        self.handlers.push(Arc::new(Mutex::new(handler)));
+    }
+
     pub fn publish<'a, C>(&self, message: EngineMessage<'a, C, T>)
     where
         C: Chromosome,
@@ -28,6 +35,7 @@ impl<T> EventBus<T> {
         let event = match message {
             EngineMessage::Start => EngineEvent::Start,
             EngineMessage::Stop(ctx) => EngineEvent::Stop(
+                ctx.index,
                 ctx.best.clone(),
                 ctx.metrics.clone(),
                 ctx.score.clone().unwrap_or_default(),
@@ -38,6 +46,7 @@ impl<T> EventBus<T> {
                 ctx.best.clone(),
                 ctx.metrics.clone(),
                 ctx.score.clone().unwrap_or_default(),
+                ctx.objective.clone(),
             ),
             EngineMessage::Improvement(ctx) => EngineEvent::Improvement(
                 ctx.index,
@@ -51,7 +60,7 @@ impl<T> EventBus<T> {
             let clone_handler = Arc::clone(handler);
             let clone_event = Arc::clone(&wrapped_event);
             self.executor.submit(move || {
-                clone_handler.lock().unwrap().handle(&clone_event);
+                clone_handler.lock().unwrap().handle(clone_event);
             });
         }
     }

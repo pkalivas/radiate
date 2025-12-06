@@ -38,7 +38,7 @@ where
 
         if count > 0 {
             self.objective.sort(&mut ecosystem.population);
-            metrics.upsert(metric_names::EVALUATION_COUNT, count);
+            metrics.upsert((metric_names::EVALUATION_COUNT, count));
         }
 
         Ok(())

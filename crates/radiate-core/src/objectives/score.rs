@@ -57,6 +57,10 @@ impl Score {
     pub fn iter(&self) -> impl Iterator<Item = &f32> + '_ {
         self.values.iter()
     }
+
+    pub fn len(&self) -> usize {
+        self.values.len()
+    }
 }
 
 impl AsRef<[f32]> for Score {
