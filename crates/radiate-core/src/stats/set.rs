@@ -42,10 +42,10 @@ impl MetricSet {
                 clone
             });
 
-            dest.update_from(m);
+            dest.update_from(&m);
         }
 
-        target.set_stats.update_from(self.set_stats.clone());
+        target.set_stats.update_from(&self.set_stats);
         self.clear();
     }
 
@@ -281,6 +281,18 @@ impl MetricSet {
         self.get(super::metric_names::GENOME_SIZE)
     }
 
+    pub fn front_size(&self) -> Option<&Metric> {
+        self.get(super::metric_names::FRONT_SIZE)
+    }
+
+    pub fn front_comparisons(&self) -> Option<&Metric> {
+        self.get(super::metric_names::FRONT_COMPARISONS)
+    }
+
+    pub fn front_removals(&self) -> Option<&Metric> {
+        self.get(super::metric_names::FRONT_REMOVALS)
+    }
+
     pub fn front_additions(&self) -> Option<&Metric> {
         self.get(super::metric_names::FRONT_ADDITIONS)
     }
@@ -352,7 +364,7 @@ impl MetricSet {
     fn add_or_update_internal(&mut self, metric: Metric) {
         self.set_stats.apply_update(1);
         if let Some(existing) = self.metrics.get_mut(metric.name()) {
-            existing.update_from(metric);
+            existing.update_from(&metric);
         } else {
             self.metrics.insert(intern!(metric.name()), metric);
         }

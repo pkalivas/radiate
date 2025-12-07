@@ -156,6 +156,17 @@ impl MultiDistribution {
         Self { distributions }
     }
 
+    pub fn with_capacity(dims: usize, capacity: usize) -> Self {
+        let mut distributions = Vec::with_capacity(dims);
+        for _ in 0..dims {
+            let mut dist = Distribution::default();
+            dist.last_sequence.reserve(capacity);
+            distributions.push(dist);
+        }
+
+        Self { distributions }
+    }
+
     #[inline(always)]
     pub fn add(&mut self, values: &[f32]) {
         for (i, &value) in values.iter().enumerate() {

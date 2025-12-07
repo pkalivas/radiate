@@ -10,7 +10,8 @@ const DEFAULT_ENTROPY_BINS: usize = 20;
 
 pub struct FrontAddResult {
     pub added_count: usize,
-    pub crowding_distances: Option<Vec<f32>>,
+    pub removed_count: usize,
+    pub comparisons: usize,
 }
 
 /// A `Front<T>` is a collection of `T`'s that are non-dominated with respect to each other.
@@ -36,7 +37,7 @@ where
         Front {
             values: Vec::new(),
             range,
-            objective,
+            objective: objective.clone(),
         }
     }
 
@@ -84,13 +85,15 @@ where
         Some(pareto::entropy(&scores, DEFAULT_ENTROPY_BINS))
     }
 
-    pub fn add_all(&mut self, items: &[T]) -> usize
+    pub fn add_all(&mut self, items: &[T]) -> FrontAddResult
     where
         T: Eq + Hash + Clone + Send + Sync + 'static,
     {
         let mut updated = false;
         let mut to_remove = Vec::new();
         let mut added_count = 0;
+        let mut removed_count = 0;
+        let mut comparisons = 0;
 
         for i in 0..items.len() {
             let new_member = &items[i];
@@ -101,10 +104,12 @@ where
                 if self.dom_cmp(existing_val.as_ref(), new_member) == Ordering::Greater || equals {
                     // If an existing value dominates the new value, return false
                     is_dominated = false;
+                    comparisons += 1;
                     break;
                 } else if self.dom_cmp(new_member, existing_val.as_ref()) == Ordering::Greater {
                     // If the new value dominates an existing value, continue checking
                     to_remove.push(Arc::clone(existing_val));
+                    comparisons += 1;
                     continue;
                 }
             }
@@ -115,6 +120,7 @@ where
                 added_count += 1;
                 for rem in to_remove.drain(..) {
                     self.values.retain(|x| x.as_ref() != rem.as_ref());
+                    removed_count += 1;
                 }
             }
 
@@ -126,7 +132,11 @@ where
             updated = false;
         }
 
-        added_count
+        FrontAddResult {
+            added_count,
+            removed_count,
+            comparisons,
+        }
     }
 
     fn dom_cmp(&self, one: &T, two: &T) -> Ordering {

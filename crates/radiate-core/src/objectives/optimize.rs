@@ -18,7 +18,7 @@ impl Objective {
         matches!(self, Objective::Multi(_))
     }
 
-    pub fn num_objectives(&self) -> usize {
+    pub fn dimensions(&self) -> usize {
         match self {
             Objective::Single(_) => 1,
             Objective::Multi(opts) => opts.len(),

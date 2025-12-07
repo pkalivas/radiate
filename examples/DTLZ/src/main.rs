@@ -12,8 +12,8 @@ fn main() {
 
     let engine = GeneticEngine::builder()
         .codec(codec)
-        .fitness_fn(|geno: Vec<f32>| dtlz_7(&geno))
-        .executor(Executor::FixedSizedWorkerPool(10))
+        .fitness_fn(|geno: Vec<f32>| dtlz_6(&geno))
+        // .executor(Executor::FixedSizedWorkerPool(10))
         .multi_objective(vec![Optimize::Minimize; OBJECTIVES])
         .offspring_selector(TournamentSelector::new(5))
         .survivor_selector(NSGA2Selector::new())

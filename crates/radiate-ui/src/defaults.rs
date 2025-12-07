@@ -21,7 +21,7 @@ pub(crate) const DISTRIBUTION_HEADER_CELLS: [&str; 11] = [
     "Metric", "Min", ".25p", ".50p", ".75p", "Max", "Count", "StdDev", "Var", "Skew", "Entr.",
 ];
 
-pub(crate) const COLORS: [Color; 8] = [
+pub(crate) const COLOR_WHEEL_400: [Color; 8] = [
     material::RED.c400,
     material::BLUE.c400,
     material::GREEN.c400,
@@ -30,4 +30,26 @@ pub(crate) const COLORS: [Color; 8] = [
     material::CYAN.c400,
     material::ORANGE.c400,
     material::TEAL.c400,
+];
+
+pub(crate) const COLOR_WHEEL_600: [Color; 8] = [
+    material::RED.c600,
+    material::BLUE.c600,
+    material::GREEN.c600,
+    material::YELLOW.c600,
+    material::PURPLE.c600,
+    material::CYAN.c600,
+    material::ORANGE.c600,
+    material::TEAL.c600,
+];
+
+pub(crate) const COLOR_WHEEL_900: [Color; 8] = [
+    material::RED.c900,
+    material::BLUE.c900,
+    material::GREEN.c900,
+    material::YELLOW.c900,
+    material::PURPLE.c900,
+    material::CYAN.c900,
+    material::ORANGE.c900,
+    material::TEAL.c900,
 ];

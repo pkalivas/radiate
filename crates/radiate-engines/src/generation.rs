@@ -5,7 +5,6 @@ use radiate_core::{Ecosystem, Front, MetricSet, Objective, Phenotype, Population
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
-use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
 /// A snapshot of an ecosystem, either owned or shared.
@@ -80,7 +79,7 @@ where
     metrics: MetricSet,
     score: Score,
     objective: Objective,
-    front: Option<Arc<RwLock<Front<Phenotype<C>>>>>,
+    front: Option<Front<Phenotype<C>>>,
 }
 
 impl<C, T> Generation<C, T>
@@ -91,8 +90,8 @@ where
         &self.score
     }
 
-    pub fn front(&self) -> Option<Arc<RwLock<Front<Phenotype<C>>>>> {
-        self.front.as_ref().cloned()
+    pub fn front(&self) -> Option<&Front<Phenotype<C>>> {
+        self.front.as_ref()
     }
 
     pub fn value(&self) -> &T {
@@ -180,7 +179,7 @@ where
             score: context.score.clone().unwrap(),
             objective: context.objective.clone(),
             front: match context.objective {
-                Objective::Multi(_) => Some(context.front.clone()),
+                Objective::Multi(_) => Some(context.front.read().unwrap().clone()),
                 _ => None,
             },
         }
@@ -248,8 +247,5 @@ where
             .map(|generation| generation.front().map(|front| front.clone()))
             .flatten()
             .unwrap_or_default()
-            .read()
-            .unwrap()
-            .clone()
     }
 }

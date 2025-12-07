@@ -17,6 +17,9 @@ pub mod metric_names {
 
     pub const FRONT_ADDITIONS: &str = "front_additions";
     pub const FRONT_ENTROPY: &str = "front_entropy";
+    pub const FRONT_REMOVALS: &str = "front_removals";
+    pub const FRONT_COMPARISONS: &str = "front_comparisons";
+    pub const FRONT_SIZE: &str = "front_size";
 
     pub const UNIQUE_MEMBERS: &str = "unique_members";
     pub const UNIQUE_SCORES: &str = "unique_scores";
@@ -79,6 +82,7 @@ pub fn default_tags<'a>(name: &str) -> Option<Arc<Vec<Tag>>> {
         _ if name.contains("species") => DEFAULT_TAG_CACHE.get(metric_tags::SPECIES).cloned(),
         _ if name.contains("failure") => DEFAULT_TAG_CACHE.get(metric_tags::FAILURE).cloned(),
         _ if name.contains("age") => DEFAULT_TAG_CACHE.get(metric_tags::AGE).cloned(),
+        _ if name.contains("front") => DEFAULT_TAG_CACHE.get(metric_tags::FRONT).cloned(),
 
         _ => DEFAULT_TAG_CACHE.get(metric_tags::OTHER).cloned(),
     }
@@ -95,6 +99,9 @@ pub fn default_rollup(name: &str) -> Rollup {
         | metric_names::SURVIVOR_COUNT
         | metric_names::SCORE_VOLATILITY
         | metric_names::FRONT_ADDITIONS
+        | metric_names::FRONT_REMOVALS
+        | metric_names::FRONT_COMPARISONS
+        | metric_names::FRONT_ENTROPY
         | metric_names::UNIQUE_MEMBERS
         | metric_names::UNIQUE_SCORES
         | metric_names::SPECIES_AGE
@@ -209,6 +216,16 @@ pub static DEFAULT_TAG_CACHE: LazyLock<HashMap<&'static str, Arc<Vec<Tag>>>> =
 
         for name in [metric_names::SCORES, metric_names::SPECIES_DISTANCE_DIST] {
             m.insert(name, Arc::new(vec![Tag::from(metric_tags::DISTRIBUTION)]));
+        }
+
+        for name in [
+            metric_names::FRONT_ADDITIONS,
+            metric_names::FRONT_REMOVALS,
+            metric_names::FRONT_COMPARISONS,
+            metric_names::FRONT_ENTROPY,
+            metric_names::FRONT_SIZE,
+        ] {
+            m.insert(name, Arc::new(vec![Tag::from(metric_tags::FRONT)]));
         }
 
         m

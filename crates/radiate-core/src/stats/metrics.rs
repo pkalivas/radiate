@@ -177,7 +177,7 @@ impl Metric {
         self
     }
 
-    pub fn update_from(&mut self, other: Metric) {
+    pub fn update_from(&mut self, other: &Metric) {
         if let Some(stat) = &other.inner.value_statistic {
             let v = (stat.last_value(), stat.min(), stat.max(), stat.mean());
             match self.rollup() {

@@ -24,25 +24,6 @@ impl AuditStep {
         ecosystem: &Ecosystem<C>,
     ) {
         if let Some(species) = ecosystem.species() {
-            // let mut species_ages = Metric::new(metric_names::SPECIES_AGE);
-            // let mut new_species_count = Metric::new(metric_names::SPECIES_CREATED);
-            // let mut species_count = Metric::new(metric_names::SPECIES_COUNT);
-            // let mut species_size = Metric::new(metric_names::SPECIES_SIZE);
-
-            // for spec in species.iter() {
-            //     let spec_age = spec.age(generation);
-
-            //     if spec_age == 0 {
-            //         new_species_count.apply_update(1);
-            //     }
-
-            //     species_ages.apply_update(spec_age);
-            //     species_size.apply_update(spec.len());
-            // }
-
-            // species_count.apply_update(species.len());
-
-            // metrics.upsert([new_species_count, species_ages, species_count, species_size]);
             let mut species_ages = Metric::new(metric_names::SPECIES_AGE);
             let mut new_species_count = Metric::new(metric_names::SPECIES_CREATED);
             let mut species_count = Metric::new(metric_names::SPECIES_COUNT);

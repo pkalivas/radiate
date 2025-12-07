@@ -1,7 +1,7 @@
 use radiate_engines::Metric;
 use ratatui::{
     buffer::Buffer,
-    layout::{Constraint, Rect},
+    layout::Rect,
     style::{Color, Style, Stylize},
     symbols,
     text::Line,

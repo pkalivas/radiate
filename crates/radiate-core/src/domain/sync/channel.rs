@@ -7,7 +7,7 @@ pub struct CommandChannel<T> {
 
 impl<T> CommandChannel<T> {
     pub fn new() -> Self {
-        let (tx, rx) = mpsc::channel::<T>();
+        let (tx, rx) = mpsc::channel();
         Self {
             sender: Arc::new(tx),
             receiver: rx,

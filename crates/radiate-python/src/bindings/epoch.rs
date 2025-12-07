@@ -266,8 +266,7 @@ where
 
     let result = PyList::empty(py);
     if let Some(front) = generation.front() {
-        let reader = front.read().unwrap();
-        for member in reader.values().iter() {
+        for member in front.values().iter() {
             let temp = PyGenotype::from(member.genotype().clone());
 
             let fitness = member

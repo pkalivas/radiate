@@ -10,7 +10,7 @@ use std::{
         atomic::{AtomicBool, Ordering},
         mpsc::Sender,
     },
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 const KEY_REPEAT_DELAY: Duration = Duration::from_millis(100);
@@ -78,16 +78,14 @@ where
 {
     type Epoch = Generation<C, T>;
 
+    #[inline]
     fn next(&mut self) -> RadiateResult<Self::Epoch> {
         let current = self.inner.next()?;
 
         match current.index() {
             1 => self
                 .dispatcher
-                .send(InputEvent::EngineStart(
-                    current.objective().clone(),
-                    current.front().clone(),
-                ))
+                .send(InputEvent::EngineStart(current.objective().clone()))
                 .unwrap(),
             _ => self
                 .dispatcher
@@ -95,7 +93,7 @@ where
                     current.index(),
                     current.metrics().clone(),
                     current.score().clone(),
-                    current.objective().clone(),
+                    current.front().cloned(),
                 ))
                 .unwrap(),
         }

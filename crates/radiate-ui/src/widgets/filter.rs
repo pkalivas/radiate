@@ -4,17 +4,17 @@ use ratatui::{
     layout::Rect,
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, List, ListItem, Widget},
+    widgets::{Block, List, ListItem, StatefulWidget, Widget},
 };
 
 use crate::state::AppState;
 
 pub struct FilterWidget<'a, C: Chromosome> {
-    state: &'a AppState<C>,
+    state: &'a mut AppState<C>,
 }
 
 impl<'a, C: Chromosome> FilterWidget<'a, C> {
-    pub fn new(state: &'a AppState<C>) -> Self {
+    pub fn new(state: &'a mut AppState<C>) -> Self {
         Self { state }
     }
 }
@@ -27,6 +27,7 @@ impl<'a, C: Chromosome> Widget for FilterWidget<'a, C> {
 
         let tags = self
             .state
+            .filter_state
             .all_tags
             .iter()
             .filter(|tag| {
@@ -36,22 +37,49 @@ impl<'a, C: Chromosome> Widget for FilterWidget<'a, C> {
             })
             .enumerate()
             .map(|(i, tag)| {
-                if self.state.tag_view.contains(&i) {
-                    ListItem::new(Span::styled(
-                        format!("[{}] {}", i, tag.0),
-                        Style::default()
-                            .fg(Color::LightGreen)
-                            .add_modifier(Modifier::BOLD),
-                    ))
+                if self.state.filter_state.tag_view.contains(&i) {
+                    if i == self.state.filter_state.selected_row {
+                        return ListItem::new(Span::styled(
+                            format!(">  [x] {}", tag.0),
+                            Style::default()
+                                .fg(Color::Green)
+                                .add_modifier(Modifier::BOLD),
+                        ));
+                    } else {
+                        return ListItem::new(Line::from(vec![
+                            Span::raw("  ["),
+                            Span::styled(
+                                format!("X"),
+                                Style::default()
+                                    .fg(Color::Green)
+                                    .add_modifier(Modifier::BOLD),
+                            ),
+                            Span::raw(format!("] {}", tag.0)),
+                        ]));
+                    }
                 } else {
-                    ListItem::new(Span::styled(
-                        format!("[{}] {}", i, tag.0),
-                        Style::default().fg(Color::White),
-                    ))
+                    if i == self.state.filter_state.selected_row {
+                        return ListItem::new(Span::styled(
+                            format!(">  [ ] {}", tag.0),
+                            Style::default()
+                                .fg(Color::Green)
+                                .add_modifier(Modifier::BOLD),
+                        ));
+                    } else {
+                        ListItem::new(Span::styled(
+                            format!("  [ ] {}", tag.0),
+                            Style::default().fg(Color::White),
+                        ))
+                    }
                 }
             })
             .collect::<Vec<_>>();
 
-        List::new(tags).render(inner, buf)
+        StatefulWidget::render(
+            List::new(tags),
+            inner,
+            buf,
+            &mut self.state.filter_state.tag_list_filter_state,
+        );
     }
 }
