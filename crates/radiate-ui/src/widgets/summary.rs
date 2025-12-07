@@ -1,4 +1,4 @@
-use crate::defaults::{ALT_ROW_BG_COLOR, ENGINE_HEADER_CELLS, NORMAL_ROW_BG};
+use crate::defaults::{ALT_ROW_BG_COLOR, NORMAL_ROW_BG};
 use crate::state::AppState;
 use radiate_engines::Chromosome;
 use radiate_engines::stats::fmt_duration;
@@ -88,9 +88,9 @@ impl<'a, C: Chromosome> Widget for EngineBaseWidget<'a, C> {
         ];
 
         let engine_state = if self.state.is_engine_running() {
-            "Running".fg(Color::LightGreen).bold()
+            " Running ".fg(Color::LightGreen).bold()
         } else {
-            "Complete".fg(Color::Red).bold()
+            " Complete ".fg(Color::Red).bold()
         };
 
         let mut title = vec![

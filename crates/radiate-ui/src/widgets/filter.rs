@@ -7,7 +7,7 @@ use ratatui::{
     widgets::{Block, List, ListItem, StatefulWidget, Widget},
 };
 
-use crate::state::AppState;
+use crate::{state::AppState, styles::SELECTED_GREEN};
 
 pub struct FilterWidget<'a, C: Chromosome> {
     state: &'a mut AppState<C>,
@@ -40,34 +40,35 @@ impl<'a, C: Chromosome> Widget for FilterWidget<'a, C> {
                 if self.state.filter_state.tag_view.contains(&i) {
                     if i == self.state.filter_state.selected_row {
                         return ListItem::new(Span::styled(
-                            format!(">  [x] {}", tag.0),
+                            format!("> X {}", tag.0),
                             Style::default()
-                                .fg(Color::Green)
+                                .fg(SELECTED_GREEN)
                                 .add_modifier(Modifier::BOLD),
                         ));
                     } else {
-                        return ListItem::new(Line::from(vec![
-                            Span::raw("  ["),
+                        let spans = vec![
+                            Span::raw("  "),
                             Span::styled(
                                 format!("X"),
                                 Style::default()
-                                    .fg(Color::Green)
+                                    .fg(SELECTED_GREEN)
                                     .add_modifier(Modifier::BOLD),
                             ),
-                            Span::raw(format!("] {}", tag.0)),
-                        ]));
+                            Span::raw(format!(" {}", tag.0)),
+                        ];
+                        return ListItem::new(Line::from(spans));
                     }
                 } else {
                     if i == self.state.filter_state.selected_row {
                         return ListItem::new(Span::styled(
-                            format!(">  [ ] {}", tag.0),
+                            format!("> - {}", tag.0),
                             Style::default()
-                                .fg(Color::Green)
+                                .fg(SELECTED_GREEN)
                                 .add_modifier(Modifier::BOLD),
                         ));
                     } else {
                         ListItem::new(Span::styled(
-                            format!("  [ ] {}", tag.0),
+                            format!("  - {}", tag.0),
                             Style::default().fg(Color::White),
                         ))
                     }

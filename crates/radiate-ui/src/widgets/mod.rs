@@ -1,17 +1,20 @@
 use crate::state::{AppState, MetricsTab};
+use crate::styles;
 use radiate_engines::Chromosome;
 mod pareto;
-pub use pareto::{ParetoFrontWidget, kth_pair, num_pairs};
+pub use pareto::{ParetoFrontTemp, ParetoFrontWidget, kth_pair, num_pairs};
 use ratatui::buffer::Buffer;
 use ratatui::layout::Alignment;
+use ratatui::text::Span;
 use ratatui::widgets::{BorderType, Tabs, Widget};
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style, Stylize},
+    style::{Color, Style, Stylize},
     text::Line,
     widgets::Block,
 };
-use ratatui::{text::Span, widgets::Paragraph};
+mod chart;
+pub use chart::ChartWidget;
 
 mod tables;
 pub use tables::*;
@@ -32,6 +35,8 @@ impl<'a, C: Chromosome> MetricsTabWidget<'a, C> {
 impl<'a, C: Chromosome> Widget for &mut MetricsTabWidget<'a, C> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let block = Block::bordered()
+            .title_bottom(help_text_widget())
+            .title_top(" Metrics ")
             .border_type(BorderType::Rounded)
             .title_alignment(Alignment::Center);
         let inner = block.inner(area);
@@ -39,31 +44,24 @@ impl<'a, C: Chromosome> Widget for &mut MetricsTabWidget<'a, C> {
 
         let chunks = Layout::default()
             .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Length(2),
-                Constraint::Fill(1),
-                Constraint::Length(1),
-            ])
+            .constraints([Constraint::Length(1), Constraint::Fill(1)])
             .split(inner);
 
-        let titles = ["Time", "Stats", "Dist"]
+        let titles = ["Stats", "Time", "Dist"]
             .into_iter()
             .map(|t| Span::styled(format!(" {t} "), Style::default().fg(Color::White)));
 
         let index = match self.state.metrics_tab {
-            MetricsTab::Time => 0,
-            MetricsTab::Stats => 1,
+            MetricsTab::Stats => 0,
+            MetricsTab::Time => 1,
             MetricsTab::Distributions => 2,
         };
 
-        Tabs::default()
-            .titles(titles)
+        Tabs::new(titles)
             .select(index)
-            .highlight_style(
-                Style::default()
-                    .fg(Color::Cyan)
-                    .add_modifier(Modifier::BOLD),
-            )
+            .padding(" ", " ")
+            .divider(" ")
+            .highlight_style(styles::selected_item_style())
             .bold()
             .render(chunks[0], buf);
 
@@ -74,29 +72,21 @@ impl<'a, C: Chromosome> Widget for &mut MetricsTabWidget<'a, C> {
                 DistributionTableWidget::new(&mut self.state).render(chunks[1], buf)
             }
         }
-
-        help_text_widget().render(chunks[2], buf);
     }
 }
 
-pub fn help_text_widget() -> Paragraph<'static> {
-    Paragraph::new(
-        Line::from(vec![
-            "[j/k]".fg(Color::LightGreen).bold(),
-            Span::from(" navigate, "),
-            "◄ ► to change tab".fg(Color::LightGreen).bold(),
-            Span::from(" time, "),
-            "[s]".fg(Color::LightGreen).bold(),
-            Span::from(" stats, "),
-            "[d]".fg(Color::LightGreen).bold(),
-            Span::from(" distributions, "),
-            "[f]".fg(Color::LightGreen).bold(),
-            Span::from(" toggle filters,"),
-            "[c]".fg(Color::LightGreen).bold(),
-            Span::from(" toggle rolling, "),
-            "[m]".fg(Color::LightGreen).bold(),
-            Span::from(" toggle means"),
-        ])
-        .centered(),
-    )
+pub fn help_text_widget<'a>() -> Line<'a> {
+    Line::from(vec![
+        "[j/k]".fg(Color::LightGreen).bold(),
+        Span::from(" navigate, "),
+        "[◄ ►/h/l]".fg(Color::LightGreen).bold(),
+        Span::from(" change tab, "),
+        "[f]".fg(Color::LightGreen).bold(),
+        Span::from(" toggle filters, "),
+        "[c]".fg(Color::LightGreen).bold(),
+        Span::from(" chart metric, "),
+        "[m]".fg(Color::LightGreen).bold(),
+        Span::from(" chart metric mean "),
+    ])
+    .centered()
 }

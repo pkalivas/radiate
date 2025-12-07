@@ -1,11 +1,7 @@
-use std::iter::{once, repeat};
-
-use crate::defaults::{
-    ALT_ROW_BG_COLOR, COLOR_WHEEL_400, COLOR_WHEEL_600, COLOR_WHEEL_900, DISTRIBUTION_HEADER_CELLS,
-    NORMAL_ROW_BG, STAT_HEADER_CELLS, TIME_HEADER_CELLS,
-};
-use crate::state::{AppState, AppTableState};
-use color_eyre::owo_colors::colors::xterm::Lime;
+use crate::defaults::{DISTRIBUTION_HEADER_CELLS, STAT_HEADER_CELLS, TIME_HEADER_CELLS};
+use crate::state::{AppState, AppTableState, ChartType};
+use crate::styles::{self, COLOR_WHEEL_400};
+use crate::widgets::ChartWidget;
 use radiate_engines::{Chromosome, MetricSet, metric_names};
 use radiate_engines::{
     Metric,
@@ -17,9 +13,10 @@ use ratatui::widgets::{Scrollbar, ScrollbarOrientation, ScrollbarState};
 use ratatui::widgets::{StatefulWidget, Widget};
 use ratatui::{
     layout::{Constraint, Layout, Rect},
-    style::{Color, Style, Stylize, palette::material},
+    style::{Color, Style, Stylize},
     widgets::{Block, Cell, Row, Table},
 };
+use std::iter::{once, repeat};
 use tui_piechart::{PieChart, PieSlice};
 
 pub struct TimeTableWidget<'a, C: Chromosome> {
@@ -81,7 +78,7 @@ impl<'a, C: Chromosome> Widget for TimeTableWidget<'a, C> {
             .block(Block::bordered())
             .header(header_row(&TIME_HEADER_CELLS))
             .rows(striped_rows(metric_to_time_rows(items.into_iter())))
-            .row_highlight_style(Style::new().bg(material::LIGHT_GREEN.c500).fg(Color::Black))
+            .row_highlight_style(styles::selected_item_style())
             .highlight_spacing(ratatui::widgets::HighlightSpacing::Always)
             .widths(&[
                 Constraint::Fill(1),
@@ -120,7 +117,7 @@ impl<'a, C: Chromosome> Widget for StatsTableWidget<'a, C> {
             .block(Block::bordered())
             .header(header_row(&STAT_HEADER_CELLS))
             .rows(striped_rows(metrics_into_stat_rows(items.into_iter())))
-            .row_highlight_style(Style::new().bg(material::LIGHT_GREEN.c500).fg(Color::Black))
+            .row_highlight_style(styles::selected_item_style())
             .highlight_spacing(ratatui::widgets::HighlightSpacing::Always)
             .widths(once(Constraint::Length(22)).chain(repeat(Constraint::Fill(1)).take(7)));
 
@@ -133,19 +130,26 @@ impl<'a, C: Chromosome> Widget for StatsTableWidget<'a, C> {
             render_scrollable_table(buf, top, table, &mut self.state.stats_table);
 
             if self.state.stats_table.row_count > 0 && bottom.height > 3 {
-                let maybe_chart = self
-                    .state
-                    .get_chart_by_key(self.state.stats_table.selected_metric.unwrap_or(""));
-                if let Some(chart) = maybe_chart {
-                    if self.state.display_mini_chart() && self.state.display_mini_chart_mean() {
-                        chart.render(bottom, buf);
-                    } else if self.state.display_mini_chart_mean() {
-                        if let Some(mean_chart) = chart.mean_chart() {
-                            mean_chart.render(bottom, buf);
-                        }
-                    } else {
-                        chart.value_chart().render(bottom, buf);
-                    }
+                let selected_metric = self.state.stats_table.selected_metric.unwrap_or("");
+                if self.state.display_mini_chart() && self.state.display_mini_chart_mean() {
+                    let maybe_chart = self
+                        .state
+                        .get_chart_by_key(selected_metric, ChartType::Mean);
+                    let maybe_value_chart = self
+                        .state
+                        .get_chart_by_key(selected_metric, ChartType::Value);
+
+                    ChartWidget::from(vec![maybe_value_chart, maybe_chart]).render(bottom, buf);
+                } else if self.state.display_mini_chart_mean() {
+                    let maybe_chart = self
+                        .state
+                        .get_chart_by_key(selected_metric, ChartType::Mean);
+                    ChartWidget::from(vec![maybe_chart]).render(bottom, buf);
+                } else {
+                    let maybe_chart = self
+                        .state
+                        .get_chart_by_key(selected_metric, ChartType::Value);
+                    ChartWidget::from(vec![maybe_chart]).render(bottom, buf);
                 }
             }
         } else {
@@ -174,7 +178,7 @@ impl<'a, C: Chromosome> Widget for DistributionTableWidget<'a, C> {
             .block(Block::bordered())
             .header(header_row(&DISTRIBUTION_HEADER_CELLS))
             .rows(striped_rows(metrics_into_dist_rows(items.into_iter())))
-            .row_highlight_style(Style::new().bg(material::LIGHT_GREEN.c500).fg(Color::Black))
+            .row_highlight_style(styles::selected_item_style())
             .highlight_spacing(ratatui::widgets::HighlightSpacing::Always)
             .widths(once(Constraint::Length(22)).chain(repeat(Constraint::Fill(1)).take(10)));
 
@@ -187,19 +191,13 @@ impl<'a, C: Chromosome> Widget for DistributionTableWidget<'a, C> {
             render_scrollable_table(buf, top, table, &mut self.state.distribution_table);
 
             if self.state.distribution_table.row_count > 0 && bottom.height > 3 {
-                let maybe_chart = self
-                    .state
-                    .get_chart_by_key(self.state.distribution_table.selected_metric.unwrap_or(""));
-                if let Some(chart) = maybe_chart {
-                    if self.state.display_any_mini_chart() && self.state.display_mini_chart_mean() {
-                        chart.render(bottom, buf);
-                    } else if self.state.display_mini_chart_mean() {
-                        if let Some(mean_chart) = chart.mean_chart() {
-                            mean_chart.render(bottom, buf);
-                        }
-                    } else {
-                        chart.value_chart().render(bottom, buf);
-                    }
+                let selected_metric = self.state.distribution_table.selected_metric.unwrap_or("");
+
+                if self.state.display_mini_chart() {
+                    let maybe_chart = self
+                        .state
+                        .get_chart_by_key(selected_metric, ChartType::Distribution);
+                    ChartWidget::from(vec![maybe_chart]).render(bottom, buf);
                 }
             }
         } else {
@@ -311,14 +309,9 @@ fn metrics_into_dist_rows<'a>(
 }
 
 pub fn striped_rows<'a>(rows: impl IntoIterator<Item = Row<'a>>) -> impl Iterator<Item = Row<'a>> {
-    rows.into_iter().enumerate().map(|(i, row)| {
-        let bg = if i % 2 == 0 {
-            NORMAL_ROW_BG
-        } else {
-            ALT_ROW_BG_COLOR
-        };
-        row.style(Style::default().bg(bg))
-    })
+    rows.into_iter()
+        .enumerate()
+        .map(|(i, row)| row.style(styles::alternating_row_style(i)))
 }
 
 pub fn header_row<'a>(cols: &'a [&str]) -> Row<'a> {

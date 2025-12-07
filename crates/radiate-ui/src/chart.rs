@@ -47,6 +47,10 @@ impl ChartInner {
         self.color
     }
 
+    pub fn len(&self) -> usize {
+        self.values.len()
+    }
+
     pub fn values(&self) -> &[(f64, f64)] {
         &self.values
     }
@@ -152,7 +156,7 @@ impl ChartData {
         Self {
             name: "".to_string(),
             metric_name: "",
-            last_value: ChartInner::with_capacity(capacity).with_color(Color::Cyan),
+            last_value: ChartInner::with_capacity(capacity).with_color(Color::LightCyan),
             mean_value: None,
         }
     }
@@ -300,6 +304,7 @@ fn chart_widget<'a>(
         .collect::<Vec<_>>();
 
     Chart::new(datasets)
+        .bg(crate::styles::ALT_ROW_BG_COLOR)
         .block(Block::bordered().title(Line::from(format!(" {} ", charts[0].title())).centered()))
         .x_axis(
             Axis::default()

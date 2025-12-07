@@ -2,7 +2,7 @@ use crate::defaults::TEXT_FG_COLOR;
 use crate::state::{AppState, MetricsTab};
 use crate::widgets::filter::FilterWidget;
 use crate::widgets::summary::EngineBaseWidget;
-use crate::widgets::{MetricsTabWidget, ParetoFrontWidget, kth_pair, num_pairs};
+use crate::widgets::{MetricsTabWidget, ParetoFrontTemp, ParetoFrontWidget, kth_pair, num_pairs};
 use color_eyre::Result;
 use crossterm::event::{Event, KeyCode};
 use radiate_engines::stats::metric_tags;
@@ -106,10 +106,6 @@ where
 
             KeyCode::Char('f') => self.state.toggle_show_tag_filters(),
 
-            KeyCode::Char('t') => self.state.set_metrics_tab(MetricsTab::Time),
-            KeyCode::Char('s') => self.state.set_metrics_tab(MetricsTab::Stats),
-            KeyCode::Char('d') => self.state.set_metrics_tab(MetricsTab::Distributions),
-
             KeyCode::Char('c') => self.state.toggle_mini_chart(),
             KeyCode::Char('m') => self.state.toggle_mini_chart_mean(),
 
@@ -120,6 +116,9 @@ where
             KeyCode::Char('[') => self.state.previous_objective_pair_page(),
             KeyCode::Char('+') => self.state.expand_objective_pairs(),
             KeyCode::Char('-') => self.state.shrink_objective_pairs(),
+
+            KeyCode::Right | KeyCode::Char('l') => self.state.next_metrics_tab(),
+            KeyCode::Left | KeyCode::Char('h') => self.state.previous_metrics_tab(),
 
             KeyCode::Esc => self.state.clear_tag_filters(),
             KeyCode::Enter => self.state.toggle_tag_filter_selection(),
@@ -156,10 +155,7 @@ where
         }
 
         for metric in metrics.iter() {
-            let key = metric.0;
-            let chart = charts.get_or_create_chart(key);
-
-            chart.update(metric.1);
+            self.state.chart_state.update_from_metric(metric.1);
         }
 
         self.state.metrics = metrics;
@@ -216,27 +212,17 @@ where
         EngineBaseWidget::new(&self.state).render(engine, buf);
 
         if self.state.objective_state.objective.is_single() {
-            self.state.charts().fitness_chart().render(fitness, buf);
-        } else {
-            let d = self.state.objective_state.objective.dimensions();
-            let total = num_pairs(d);
-
-            if total == 0 {
-                ParetoFrontWidget::new(&self.state, 0, 1).render(fitness, buf);
+            if self.state.display_mini_chart_mean() {
+                self.state.charts().fitness_chart().render(fitness, buf);
             } else {
-                let start = self.state.objective_state.chart_start_index.min(total - 1);
-                let count = self.state.objective_state.charts_visible;
-
-                let areas = Layout::horizontal(std::iter::repeat(Constraint::Fill(1)).take(count))
-                    .split(fitness);
-
-                for (pane_idx, area_rect) in areas.iter().enumerate() {
-                    let k = start + pane_idx;
-                    let (i, j) = kth_pair(k, d);
-
-                    ParetoFrontWidget::new(&self.state, i, j).render(*area_rect, buf);
-                }
+                self.state
+                    .charts()
+                    .fitness_chart()
+                    .value_chart()
+                    .render(fitness, buf);
             }
+        } else {
+            ParetoFrontTemp::new(&self.state).render(fitness, buf);
         }
 
         if self.state.display.show_tag_filters {

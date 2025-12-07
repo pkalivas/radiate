@@ -36,16 +36,14 @@ impl MetricSet {
     #[inline(always)]
     pub fn flush_all_into(&mut self, target: &mut MetricSet) {
         for (key, m) in self.metrics.drain() {
-            let dest = target.metrics.entry(key).or_insert_with(|| {
-                let mut clone = m.clone();
-                clone.clear_values();
-                clone
-            });
-
-            dest.update_from(&m);
+            if let Some(target_metric) = target.metrics.get_mut(key) {
+                target_metric.update_from(m);
+            } else {
+                target.metrics.insert(key, m);
+            }
         }
 
-        target.set_stats.update_from(&self.set_stats);
+        target.set_stats.update_from(self.set_stats.clone());
         self.clear();
     }
 
@@ -90,9 +88,6 @@ impl MetricSet {
                 for metric in metrics {
                     self.add_or_update_internal(metric);
                 }
-            }
-            MetricSetUpdate::Fn(func) => {
-                func(self);
             }
             MetricSetUpdate::NamedSingle(name, metric_update) => {
                 if let Some(m) = self.metrics.get_mut(name) {
@@ -364,7 +359,7 @@ impl MetricSet {
     fn add_or_update_internal(&mut self, metric: Metric) {
         self.set_stats.apply_update(1);
         if let Some(existing) = self.metrics.get_mut(metric.name()) {
-            existing.update_from(&metric);
+            existing.update_from(metric);
         } else {
             self.metrics.insert(intern!(metric.name()), metric);
         }
@@ -445,10 +440,9 @@ impl<'de> Deserialize<'de> for MetricSet {
 }
 
 pub enum MetricSetUpdate<'a> {
-    Fn(Box<dyn FnOnce(&mut MetricSet) + Send>),
     Many(Vec<Metric>),
-    NamedSingle(&'static str, MetricUpdate<'a>),
     Single(Metric),
+    NamedSingle(&'static str, MetricUpdate<'a>),
     Slice2([Metric; 2]),
     Slice3([Metric; 3]),
     Slice4([Metric; 4]),
@@ -490,15 +484,6 @@ impl From<[Metric; 4]> for MetricSetUpdate<'_> {
 impl From<[Metric; 5]> for MetricSetUpdate<'_> {
     fn from(metrics: [Metric; 5]) -> Self {
         MetricSetUpdate::Slice5(metrics)
-    }
-}
-
-impl<F> From<F> for MetricSetUpdate<'_>
-where
-    F: FnOnce(&mut MetricSet) + Send + 'static,
-{
-    fn from(func: F) -> Self {
-        MetricSetUpdate::Fn(Box::new(func))
     }
 }
 

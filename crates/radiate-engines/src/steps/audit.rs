@@ -29,13 +29,12 @@ impl AuditStep {
             let mut species_count = Metric::new(metric_names::SPECIES_COUNT);
             let mut species_size = Metric::new(metric_names::SPECIES_SIZE);
 
-            let pop_len = ecosystem.population().len().max(1); // avoid div-by-zero
+            let pop_len = ecosystem.population().len().max(1);
             let pop_len_f = pop_len as f32;
 
             let mut max_size = 0usize;
             let mut size_sum = 0usize;
 
-            // for evenness (Shannon entropy normalized)
             let mut size_vec = Vec::with_capacity(species.len());
 
             for spec in species.iter() {

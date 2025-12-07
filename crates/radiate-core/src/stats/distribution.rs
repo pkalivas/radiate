@@ -12,12 +12,6 @@ pub struct Distribution {
 
 impl Distribution {
     #[inline(always)]
-    pub fn push(&mut self, value: f32) {
-        self.statistic.add(value);
-        self.last_sequence.push(value);
-    }
-
-    #[inline(always)]
     pub fn add(&mut self, value: &[f32]) {
         self.clear();
         for v in value {
@@ -29,6 +23,10 @@ impl Distribution {
     pub fn last_sequence(&self) -> &[f32] {
         &self.last_sequence
     }
+
+    // pub fn take_last_sequence(&mut self) -> Vec<f32> {
+    //     std::mem::take(&mut self.last_sequence)
+    // }
 
     pub fn count(&self) -> i32 {
         self.last_sequence.len() as i32
@@ -140,53 +138,5 @@ impl From<Vec<f32>> for Distribution {
         let mut result = Distribution::default();
         result.add(&value);
         result
-    }
-}
-
-pub struct MultiDistribution {
-    distributions: Vec<Distribution>,
-}
-
-impl MultiDistribution {
-    pub fn new(dimensions: usize) -> Self {
-        let mut distributions = Vec::with_capacity(dimensions);
-        for _ in 0..dimensions {
-            distributions.push(Distribution::default());
-        }
-        Self { distributions }
-    }
-
-    pub fn with_capacity(dims: usize, capacity: usize) -> Self {
-        let mut distributions = Vec::with_capacity(dims);
-        for _ in 0..dims {
-            let mut dist = Distribution::default();
-            dist.last_sequence.reserve(capacity);
-            distributions.push(dist);
-        }
-
-        Self { distributions }
-    }
-
-    #[inline(always)]
-    pub fn add(&mut self, values: &[f32]) {
-        for (i, &value) in values.iter().enumerate() {
-            if let Some(dist) = self.distributions.get_mut(i) {
-                dist.push(value);
-            }
-        }
-    }
-
-    pub fn get_distribution(&self, index: usize) -> Option<&Distribution> {
-        self.distributions.get(index)
-    }
-
-    pub fn dimensions(&self) -> usize {
-        self.distributions.len()
-    }
-
-    pub fn clear(&mut self) {
-        for dist in &mut self.distributions {
-            dist.clear();
-        }
     }
 }

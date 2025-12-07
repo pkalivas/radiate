@@ -1,8 +1,9 @@
-use crate::chart::ChartData;
+use crate::chart::{ChartData, ChartInner};
 use crate::widgets::num_pairs;
 use radiate_engines::{
     Chromosome, Front, Metric, MetricSet, Objective, Optimize, Phenotype, Score, stats::Tag,
 };
+use radiate_utils::intern;
 use ratatui::widgets::{ListState, ScrollbarState, TableState};
 use std::{
     collections::HashMap,
@@ -35,16 +36,45 @@ pub enum PanelTab {
     Metrics,
 }
 
+impl MetricsTab {
+    pub fn next(self) -> Self {
+        match self {
+            MetricsTab::Stats => MetricsTab::Time,
+            MetricsTab::Time => MetricsTab::Distributions,
+            MetricsTab::Distributions => MetricsTab::Stats,
+        }
+    }
+
+    pub fn previous(self) -> Self {
+        match self {
+            MetricsTab::Stats => MetricsTab::Distributions,
+            MetricsTab::Time => MetricsTab::Stats,
+            MetricsTab::Distributions => MetricsTab::Time,
+        }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ChartType {
+    Value,
+    Mean,
+    Distribution,
+}
+
 pub struct ChartState {
     fitness: ChartData,
-    keyed: HashMap<&'static str, ChartData>,
+    value_charts: HashMap<&'static str, ChartInner>,
+    mean_charts: HashMap<&'static str, ChartInner>,
+    distribution_charts: HashMap<&'static str, ChartInner>,
 }
 
 impl ChartState {
     pub fn new() -> Self {
         Self {
             fitness: ChartData::with_capacity(1000).with_name("Score"),
-            keyed: HashMap::new(),
+            value_charts: HashMap::new(),
+            mean_charts: HashMap::new(),
+            distribution_charts: HashMap::new(),
         }
     }
 
@@ -56,14 +86,57 @@ impl ChartState {
         &mut self.fitness
     }
 
-    pub fn get_by_key(&self, key: &'static str) -> Option<&ChartData> {
-        self.keyed.get(key)
+    pub fn get_by_key(&self, key: &'static str, chart_type: ChartType) -> Option<&ChartInner> {
+        match chart_type {
+            ChartType::Value => self.value_charts.get(key),
+            ChartType::Mean => self.mean_charts.get(key),
+            ChartType::Distribution => self.distribution_charts.get(key),
+        }
     }
 
-    pub fn get_or_create_chart(&mut self, key: &'static str) -> &mut ChartData {
-        self.keyed
-            .entry(key)
-            .or_insert_with(|| ChartData::new().with_metric_name(key))
+    pub fn get_or_create_chart(
+        &mut self,
+        key: &'static str,
+        chart_type: ChartType,
+    ) -> &mut ChartInner {
+        match chart_type {
+            ChartType::Value => self.value_charts.entry(key).or_insert_with(|| {
+                ChartInner::with_capacity(1000)
+                    .with_title(key)
+                    .with_color(ratatui::style::Color::LightCyan)
+            }),
+            ChartType::Mean => self.mean_charts.entry(key).or_insert_with(|| {
+                ChartInner::with_capacity(1000)
+                    .with_title("μ (mean)")
+                    .with_color(ratatui::style::Color::Yellow)
+            }),
+            ChartType::Distribution => self.distribution_charts.entry(key).or_insert_with(|| {
+                ChartInner::with_capacity(1000)
+                    .with_title("Distribution")
+                    .with_color(ratatui::style::Color::LightMagenta)
+            }),
+        }
+    }
+
+    pub fn update_from_metric(&mut self, metric: &Metric) {
+        if let Some(stat) = metric.statistic() {
+            let key = intern!(metric.name());
+            {
+                let value_chart = self.get_or_create_chart(key, ChartType::Value);
+                value_chart.add_value((value_chart.len() as f64, stat.last_value() as f64));
+            }
+            {
+                let mean_chart = self.get_or_create_chart(key, ChartType::Mean);
+                mean_chart.add_value((mean_chart.len() as f64, stat.mean() as f64));
+            }
+        } else if let Some(dist) = metric.distribution() {
+            let key = intern!(metric.name());
+
+            {
+                let distribution_chart = self.get_or_create_chart(key, ChartType::Distribution);
+                distribution_chart.set_values(&dist.last_sequence);
+            }
+        }
     }
 }
 
@@ -175,12 +248,16 @@ impl<C: Chromosome> AppState<C> {
         }
     }
 
-    pub fn set_metrics_tab(&mut self, tab: MetricsTab) {
-        self.metrics_tab = tab;
+    pub fn get_chart_by_key(
+        &self,
+        key: &'static str,
+        chart_type: ChartType,
+    ) -> Option<&ChartInner> {
+        self.chart_state.get_by_key(key, chart_type)
     }
 
-    pub fn get_chart_by_key(&self, key: &'static str) -> Option<&ChartData> {
-        self.chart_state.get_by_key(key)
+    pub fn get_mean_chart_by_key(&self, key: &'static str) -> Option<&ChartInner> {
+        self.chart_state.mean_charts.get(key)
     }
 
     pub fn metrics(&self) -> &MetricSet {
@@ -217,6 +294,14 @@ impl<C: Chromosome> AppState<C> {
 
     pub fn charts_mut(&mut self) -> &mut ChartState {
         &mut self.chart_state
+    }
+
+    pub fn next_metrics_tab(&mut self) {
+        self.metrics_tab = self.metrics_tab.next();
+    }
+
+    pub fn previous_metrics_tab(&mut self) {
+        self.metrics_tab = self.metrics_tab.previous();
     }
 
     pub fn metric_has_tags(&self, metric: &Metric) -> bool {
@@ -383,6 +468,10 @@ pub struct AppFilterState {
     pub tag_view: Vec<usize>,
     pub all_tags: Vec<Tag>,
     pub selected_row: usize,
+}
+
+pub struct AppTabState {
+    pub selected_tab: PanelTab,
 }
 
 pub struct AppTableState {

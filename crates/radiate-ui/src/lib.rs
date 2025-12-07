@@ -2,6 +2,7 @@ mod app;
 mod chart;
 mod defaults;
 mod state;
+mod styles;
 mod ui;
 mod widgets;
 

@@ -177,7 +177,7 @@ impl Metric {
         self
     }
 
-    pub fn update_from(&mut self, other: &Metric) {
+    pub fn update_from(&mut self, other: Metric) {
         if let Some(stat) = &other.inner.value_statistic {
             let v = (stat.last_value(), stat.min(), stat.max(), stat.mean());
             match self.rollup() {
@@ -280,21 +280,6 @@ impl Metric {
                     self.inner.time_statistic = Some(TimeStatistic::from(time));
                 }
             }
-            // MetricUpdate::UsizeOperationTagged(value, time, tag) => {
-            //     if let Some(stat) = &mut self.inner.value_statistic {
-            //         stat.add(value as f32);
-            //     } else {
-            //         self.inner.value_statistic = Some(Statistic::from(value as f32));
-            //     }
-
-            //     if let Some(time_stat) = &mut self.inner.time_statistic {
-            //         time_stat.add(time);
-            //     } else {
-            //         self.inner.time_statistic = Some(TimeStatistic::from(time));
-            //     }
-
-            //     self.add_tag(tag);
-            // }
             MetricUpdate::DistributionRef(values) => {
                 if let Some(stat) = &mut self.inner.distribution {
                     stat.add(values);
@@ -504,31 +489,6 @@ impl From<Vec<f32>> for MetricUpdate<'_> {
         MetricUpdate::DistributionOwned(value)
     }
 }
-
-// impl<'a> From<&'a Metric> for MetricUpdate<'a> {
-//     fn from(value: &'a Metric) -> Self {
-//         MetricUpdate::Metric(value)
-//     }
-// }
-
-// impl<'a, T> From<(usize, Duration, T)> for MetricUpdate<'a>
-// where
-//     T: Into<Tag>,
-// {
-//     fn from(value: (usize, Duration, T)) -> Self {
-//         MetricUpdate::UsizeOperationTagged(value.0, value.1, value.2.into())
-//     }
-// }
-
-// impl<'a, T> From<(usize, Duration, Vec<T>)> for MetricUpdate<'a>
-// where
-//     T: Into<Tag>,
-// {
-//     fn from(value: (usize, Duration, Vec<T>)) -> Self {
-//         let tags = value.2.into_iter().map(|t| t.into()).collect();
-//         MetricUpdate::UsizeOperationTaggedMany(value.0, value.1, tags)
-//     }
-// }
 
 impl std::fmt::Debug for Metric {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
