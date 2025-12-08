@@ -121,16 +121,16 @@ impl ChartState {
 
     pub fn update_from_metric(&mut self, metric: &Metric) {
         if let Some(stat) = metric.statistic() {
+            let key = intern!(metric.name());
             if !metric.contains_tag(&TagKind::Distribution) {
-                let key = intern!(metric.name());
                 {
                     let value_chart = self.get_or_create_chart(key, ChartType::Value);
                     value_chart.add_value((value_chart.len() as f64, stat.last_value() as f64));
                 }
-                {
-                    let mean_chart = self.get_or_create_chart(key, ChartType::Mean);
-                    mean_chart.add_value((mean_chart.len() as f64, stat.mean() as f64));
-                }
+            }
+            {
+                let mean_chart = self.get_or_create_chart(key, ChartType::Mean);
+                mean_chart.add_value((mean_chart.len() as f64, stat.mean() as f64));
             }
         }
     }
@@ -250,10 +250,6 @@ impl<C: Chromosome> AppState<C> {
         chart_type: ChartType,
     ) -> Option<&ChartInner> {
         self.chart_state.get_by_key(key, chart_type)
-    }
-
-    pub fn get_mean_chart_by_key(&self, key: &'static str) -> Option<&ChartInner> {
-        self.chart_state.mean_charts.get(key)
     }
 
     pub fn metrics(&self) -> &MetricSet {
@@ -464,10 +460,6 @@ pub struct AppFilterState {
     pub tag_view: Vec<usize>,
     pub all_tags: Vec<TagKind>,
     pub selected_row: usize,
-}
-
-pub struct AppTabState {
-    pub selected_tab: PanelTab,
 }
 
 pub struct AppTableState {

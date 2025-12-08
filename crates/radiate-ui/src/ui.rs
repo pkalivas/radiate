@@ -10,7 +10,7 @@ use std::{
         atomic::{AtomicBool, Ordering},
         mpsc::Sender,
     },
-    time::{Duration, Instant},
+    time::Duration,
 };
 
 const KEY_REPEAT_DELAY: Duration = Duration::from_millis(100);

@@ -1,6 +1,5 @@
 use crate::state::AppState;
 use crate::styles;
-use color_eyre::owo_colors::style;
 use radiate_engines::Chromosome;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Layout, Rect};

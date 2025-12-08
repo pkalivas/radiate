@@ -51,10 +51,10 @@ impl<'a, C: Chromosome> Widget for EngineBaseWidget<'a, C> {
             .unwrap_or(0.0);
 
         // multi-objective metrics
-        let front_size = metrics
-            .front_size()
-            .and_then(|m| m.value_mean())
-            .unwrap_or(0.0);
+        // let front_size = metrics
+        //     .front_size()
+        //     .and_then(|m| m.value_mean())
+        //     .unwrap_or(0.0);
 
         let rows = vec![
             Row::new(vec![

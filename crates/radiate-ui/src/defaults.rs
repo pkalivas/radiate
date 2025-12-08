@@ -16,7 +16,7 @@ pub const STAT_HEADER_CELLS: [&str; 8] = [
 ];
 
 pub const TIME_HEADER_CELLS: [&str; 5] = ["Metric", "Min", "Max", "μ (mean)", "Total"];
-pub(crate) const ENGINE_HEADER_CELLS: [&str; 2] = ["Metric", "Val"];
+
 pub(crate) const DISTRIBUTION_HEADER_CELLS: [&str; 11] = [
     "Metric", "Min", ".25p", ".50p", ".75p", "Max", "Count", "StdDev", "Var", "Skew", "Entr.",
 ];

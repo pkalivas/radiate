@@ -1,11 +1,11 @@
 use crate::defaults::TEXT_FG_COLOR;
-use crate::state::{AppState, MetricsTab};
+use crate::state::AppState;
 use crate::widgets::filter::FilterWidget;
 use crate::widgets::summary::EngineBaseWidget;
-use crate::widgets::{MetricsTabWidget, ParetoFrontTemp, ParetoFrontWidget, kth_pair, num_pairs};
+use crate::widgets::{MetricsTabWidget, ParetoFrontTemp};
 use color_eyre::Result;
 use crossterm::event::{Event, KeyCode};
-use radiate_engines::stats::{TagKind, metric_tags};
+use radiate_engines::stats::TagKind;
 use radiate_engines::{
     Chromosome, CommandChannel, Front, MetricSet, Objective, Phenotype, Score, metric_names,
 };

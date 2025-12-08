@@ -2,7 +2,7 @@ use crate::state::{AppState, MetricsTab};
 use crate::styles;
 use radiate_engines::Chromosome;
 mod pareto;
-pub use pareto::{ParetoFrontTemp, ParetoFrontWidget, kth_pair, num_pairs};
+pub use pareto::{ParetoFrontTemp, num_pairs};
 use ratatui::buffer::Buffer;
 use ratatui::layout::Alignment;
 use ratatui::text::Span;

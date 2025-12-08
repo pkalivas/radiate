@@ -285,7 +285,7 @@ fn metrics_into_stat_rows<'a>(
 fn metrics_into_dist_rows<'a>(
     metrics: impl Iterator<Item = (&'static str, &'a Metric)>,
 ) -> impl Iterator<Item = Row<'a>> {
-    metrics.filter_map(|(name, m)| {
+    metrics.filter_map(|(_, _)| {
         // if let Some(dist) = m.distribution() {
         //     Some(Row::new(vec![
         //         Cell::from(name.to_string()),
