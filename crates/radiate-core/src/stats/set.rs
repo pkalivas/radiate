@@ -53,54 +53,12 @@ impl MetricSet {
         let update = metric.into();
         match update {
             MetricSetUpdate::Many(metrics) => {
-                // let mut map = HashMap::<&'static str, f32>::new();
-                // for metric in metrics {
-                //     if let Some(existing) = map.get_mut(metric.name()) {
-                //         *existing += metric.get_stat(|s| s.last_value());
-                //     } else {
-                //         map.insert(intern!(metric.name()), metric.last_value());
-                //     }
-                // }
-
-                // for (pair, val) in map {
-                //     self.add_or_update_internal(crate::metric!(pair, val))
-                // }
-                for metric in metrics {
-                    self.add_or_update_internal(metric);
-                }
-            }
-            MetricSetUpdate::Slice2(metrics) => {
-                for metric in metrics {
-                    self.add_or_update_internal(metric);
-                }
-            }
-            MetricSetUpdate::Slice3(metrics) => {
-                for metric in metrics {
-                    self.add_or_update_internal(metric);
-                }
-            }
-            MetricSetUpdate::Slice4(metrics) => {
-                for metric in metrics {
-                    self.add_or_update_internal(metric);
-                }
-            }
-            MetricSetUpdate::Slice5(metrics) => {
                 for metric in metrics {
                     self.add_or_update_internal(metric);
                 }
             }
             MetricSetUpdate::Single(metric) => {
                 self.add_or_update_internal(metric);
-            }
-            MetricSetUpdate::Slice6(metrics) => {
-                for metric in metrics {
-                    self.add_or_update_internal(metric);
-                }
-            }
-            MetricSetUpdate::Slice7(metrics) => {
-                for metric in metrics {
-                    self.add_or_update_internal(metric);
-                }
             }
             MetricSetUpdate::NamedSingle(name, metric_update) => {
                 self.set_stats.apply_update(1);
@@ -407,12 +365,6 @@ pub enum MetricSetUpdate<'a> {
     Many(Vec<Metric>),
     Single(Metric),
     NamedSingle(&'static str, MetricUpdate<'a>),
-    Slice2([Metric; 2]),
-    Slice3([Metric; 3]),
-    Slice4([Metric; 4]),
-    Slice5([Metric; 5]),
-    Slice6([Metric; 6]),
-    Slice7([Metric; 7]),
 }
 
 impl From<Vec<Metric>> for MetricSetUpdate<'_> {
@@ -424,42 +376,6 @@ impl From<Vec<Metric>> for MetricSetUpdate<'_> {
 impl From<Metric> for MetricSetUpdate<'_> {
     fn from(metric: Metric) -> Self {
         MetricSetUpdate::Single(metric)
-    }
-}
-
-impl From<[Metric; 2]> for MetricSetUpdate<'_> {
-    fn from(metrics: [Metric; 2]) -> Self {
-        MetricSetUpdate::Slice2(metrics)
-    }
-}
-
-impl From<[Metric; 3]> for MetricSetUpdate<'_> {
-    fn from(metrics: [Metric; 3]) -> Self {
-        MetricSetUpdate::Slice3(metrics)
-    }
-}
-
-impl From<[Metric; 4]> for MetricSetUpdate<'_> {
-    fn from(metrics: [Metric; 4]) -> Self {
-        MetricSetUpdate::Slice4(metrics)
-    }
-}
-
-impl From<[Metric; 5]> for MetricSetUpdate<'_> {
-    fn from(metrics: [Metric; 5]) -> Self {
-        MetricSetUpdate::Slice5(metrics)
-    }
-}
-
-impl From<[Metric; 6]> for MetricSetUpdate<'_> {
-    fn from(metrics: [Metric; 6]) -> Self {
-        MetricSetUpdate::Slice6(metrics)
-    }
-}
-
-impl From<[Metric; 7]> for MetricSetUpdate<'_> {
-    fn from(metrics: [Metric; 7]) -> Self {
-        MetricSetUpdate::Slice7(metrics)
     }
 }
 
