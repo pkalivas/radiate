@@ -1,6 +1,6 @@
 use crate::{
     Metric, MetricUpdate, Statistic, TimeStatistic,
-    stats::{TagKind, TagMask, fmt},
+    stats::{Tag, TagKind, defaults::try_add_tag_from_str, fmt},
 };
 use radiate_utils::intern;
 #[cfg(feature = "serde")]
@@ -35,10 +35,11 @@ impl MetricSet {
 
     #[inline(always)]
     pub fn flush_all_into(&mut self, target: &mut MetricSet) {
-        for (key, m) in self.metrics.drain() {
+        for (key, mut m) in self.metrics.drain() {
             if let Some(target_metric) = target.metrics.get_mut(key) {
                 target_metric.update_from(m);
             } else {
+                try_add_tag_from_str(&mut m);
                 target.metrics.insert(key, m);
             }
         }
@@ -52,6 +53,18 @@ impl MetricSet {
         let update = metric.into();
         match update {
             MetricSetUpdate::Many(metrics) => {
+                // let mut map = HashMap::<&'static str, f32>::new();
+                // for metric in metrics {
+                //     if let Some(existing) = map.get_mut(metric.name()) {
+                //         *existing += metric.get_stat(|s| s.last_value());
+                //     } else {
+                //         map.insert(intern!(metric.name()), metric.last_value());
+                //     }
+                // }
+
+                // for (pair, val) in map {
+                //     self.add_or_update_internal(crate::metric!(pair, val))
+                // }
                 for metric in metrics {
                     self.add_or_update_internal(metric);
                 }
@@ -123,11 +136,6 @@ impl MetricSet {
         self.metrics.values().filter(|m| m.statistic().is_some())
     }
 
-    // #[inline(always)]
-    // pub fn iter_distributions<'a>(&'a self) -> impl Iterator<Item = &'a Metric> {
-    //     self.metrics.values().filter(|m| m.distribution().is_some())
-    // }
-
     #[inline(always)]
     pub fn iter_times<'a>(&'a self) -> impl Iterator<Item = &'a Metric> {
         self.metrics
@@ -136,13 +144,10 @@ impl MetricSet {
     }
 
     pub fn tags(&self) -> impl Iterator<Item = TagKind> {
-        let mask = self
-            .metrics
+        self.metrics
             .values()
-            .fold(TagMask::empty(), |acc, m| acc.union(m.tags));
-
-        // consumes the mask and returns TagMaskIter
-        mask.into_iter()
+            .fold(Tag::empty(), |acc, m| acc.union(m.tags))
+            .into_iter()
     }
 
     #[inline(always)]
@@ -189,7 +194,6 @@ impl MetricSet {
         MetricSetSummary {
             metrics: self.metrics.len(),
             updates: self.set_stats.statistic().map(|s| s.sum()).unwrap_or(0.0),
-            // stats: self.set_stats.
         }
     }
 
@@ -206,14 +210,6 @@ impl MetricSet {
     {
         self.get(name).map(|m| m.get_stat(func)).unwrap_or_default()
     }
-
-    // pub fn get_dist_val<F, T>(&self, name: &str, func: F) -> T
-    // where
-    //     F: Fn(&Distribution) -> T,
-    //     T: Default,
-    // {
-    //     self.get(name).map(|m| m.get_dist(func)).unwrap_or_default()
-    // }
 
     pub fn get_time_val<F, T>(&self, name: &str, func: F) -> T
     where
@@ -383,8 +379,6 @@ impl<'de> Deserialize<'de> for MetricSet {
     where
         D: serde::Deserializer<'de>,
     {
-        use std::sync::Arc;
-
         use crate::stats::MetricInner;
 
         #[derive(Deserialize)]
@@ -401,7 +395,7 @@ impl<'de> Deserialize<'de> for MetricSet {
             let metric = Metric {
                 name: metric.name.into(),
                 inner: metric.inner,
-                tags: TagMask::from(metric.tags),
+                tags: Tag::from(metric.tags),
             };
             metric_set.add(metric);
         }

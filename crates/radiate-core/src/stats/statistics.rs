@@ -190,8 +190,21 @@ impl Statistic {
         if other.count == 0 {
             return;
         }
+
         if self.count == 0 {
             *self = other.clone();
+            return;
+        }
+
+        if other.count == 1 {
+            self.add(other.last_value);
+            return;
+        }
+
+        if self.count == 1 {
+            let last_value = self.last_value;
+            *self = other.clone();
+            self.add(last_value);
             return;
         }
 

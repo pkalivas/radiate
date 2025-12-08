@@ -1,7 +1,6 @@
-use radiate_utils::{ToSnakeCase, intern};
-
 use crate::{Chromosome, Gene, Genotype, Metric, Population, math::indexes, random_provider};
 use crate::{Rate, metric};
+use radiate_utils::{ToSnakeCase, intern};
 use std::iter::once;
 use std::rc::Rc;
 

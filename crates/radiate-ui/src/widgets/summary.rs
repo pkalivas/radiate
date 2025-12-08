@@ -43,7 +43,7 @@ impl<'a, C: Chromosome> Widget for EngineBaseWidget<'a, C> {
         let improvements = metrics.improvements().map(|m| m.count()).unwrap_or(0);
         let survivor_count = metrics
             .survivor_count()
-            .map(|m| m.last_value())
+            .and_then(|m| m.value_mean())
             .unwrap_or(0.0);
         let new_children = metrics
             .new_children()

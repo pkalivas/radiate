@@ -13,5 +13,5 @@ pub use fmt::{fmt_duration, render_dashboard, render_full, render_metric_rows_fu
 pub use metrics::*;
 pub use set::MetricSet;
 pub use statistics::*;
-pub use tag::{TagKind, TagMask};
+pub use tag::{TagKind, Tag};
 pub use time_statistic::*;

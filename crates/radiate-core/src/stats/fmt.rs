@@ -1,7 +1,7 @@
 use std::time::Duration;
 use std::{fmt::Write as _, io};
 
-use crate::stats::{TagKind, metric_tags};
+use crate::stats::TagKind;
 use crate::{Metric, MetricSet, metric_names};
 
 /// ASCII sparkline for quick trend peeks (uses last distribution sequence).

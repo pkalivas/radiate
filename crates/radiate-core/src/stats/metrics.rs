@@ -1,7 +1,7 @@
 use super::Statistic;
 use crate::{
     TimeStatistic,
-    stats::{TagKind, TagMask, defaults, metric_tags},
+    stats::{Tag, TagKind, defaults},
 };
 use radiate_utils::{ToSnakeCase, cache_string, intern, intern_snake_case};
 #[cfg(feature = "serde")]
@@ -41,7 +41,7 @@ pub struct MetricInner {
 pub struct Metric {
     pub(super) name: Arc<String>,
     pub(super) inner: MetricInner,
-    pub(super) tags: TagMask,
+    pub(super) tags: Tag,
 }
 
 impl Metric {
@@ -59,15 +59,26 @@ impl Metric {
         }
     }
 
-    pub fn tags(&self) -> TagMask {
+    #[inline(always)]
+    pub fn tags(&self) -> Tag {
         self.tags
     }
 
+    #[inline(always)]
     pub fn with_tag(mut self, tag: TagKind) -> Self {
         self.add_tag(tag);
         self
     }
 
+    #[inline(always)]
+    pub fn with_tags<T>(&mut self, tags: T)
+    where
+        T: Into<Tag>,
+    {
+        self.tags = tags.into();
+    }
+
+    #[inline(always)]
     pub fn add_tag(&mut self, tag: TagKind) {
         self.tags.insert(tag);
     }
@@ -121,16 +132,13 @@ impl Metric {
     pub fn update_from(&mut self, other: Metric) {
         if let Some(stat) = other.inner.value_statistic {
             self.apply_update(stat);
-            self.add_tag(TagKind::Statistic);
         }
 
         if let Some(time) = other.inner.time_statistic {
             self.apply_update(time);
-            self.add_tag(TagKind::Time);
         }
 
-        let other_tags = other.tags;
-        self.tags = self.tags.union(other_tags);
+        self.tags = self.tags.union(other.tags);
     }
 
     #[inline(always)]
@@ -283,6 +291,10 @@ impl Metric {
         self.statistic().map(|stat| stat.sum())
     }
 
+    pub fn value_count(&self) -> Option<i32> {
+        self.statistic().map(|stat| stat.count())
+    }
+
     ///
     /// --- Get the time statistics ---
     ///
@@ -396,8 +408,6 @@ impl Serialize for Metric {
     where
         S: serde::Serializer,
     {
-        use std::sync::Arc;
-
         #[derive(Serialize)]
         struct MetricOwned {
             name: String,
@@ -409,7 +419,7 @@ impl Serialize for Metric {
         let metric = MetricOwned {
             name: self.name.to_string(),
             inner: self.inner.clone(),
-            tags: tags.0,
+            tags: tags.into(),
         };
 
         metric.serialize(serializer)
@@ -422,8 +432,6 @@ impl<'de> Deserialize<'de> for Metric {
     where
         D: serde::Deserializer<'de>,
     {
-        use std::sync::Arc;
-
         use crate::stats::MetricInner;
 
         #[derive(Deserialize)]
@@ -438,7 +446,7 @@ impl<'de> Deserialize<'de> for Metric {
         Ok(Metric {
             name: cache_string!(intern_snake_case!(metric.name.as_str())),
             inner: metric.inner,
-            tags: TagMask(metric.tags),
+            tags: Tag::from(metric.tags),
         })
     }
 }

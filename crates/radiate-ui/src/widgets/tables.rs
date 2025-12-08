@@ -4,10 +4,7 @@ use crate::styles::{self, COLOR_WHEEL_400};
 use crate::widgets::ChartWidget;
 use radiate_engines::stats::TagKind;
 use radiate_engines::{Chromosome, MetricSet, metric_names};
-use radiate_engines::{
-    Metric,
-    stats::{fmt_duration, metric_tags},
-};
+use radiate_engines::{Metric, stats::fmt_duration};
 use ratatui::buffer::Buffer;
 use ratatui::text::Line;
 use ratatui::widgets::{Scrollbar, ScrollbarOrientation, ScrollbarState};

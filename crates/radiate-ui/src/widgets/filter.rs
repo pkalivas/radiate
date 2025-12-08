@@ -1,7 +1,4 @@
-use radiate_engines::{
-    Chromosome,
-    stats::{TagKind, metric_tags},
-};
+use radiate_engines::{Chromosome, stats::TagKind};
 use ratatui::{
     buffer::Buffer,
     layout::Rect,

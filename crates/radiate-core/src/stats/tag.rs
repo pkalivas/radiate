@@ -78,12 +78,12 @@ impl Ord for TagKind {
 }
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
-pub struct TagMask(pub(crate) u16);
+pub struct Tag(u16);
 
-impl TagMask {
+impl Tag {
     #[inline]
     pub fn empty() -> Self {
-        TagMask(0)
+        Tag(0)
     }
 
     #[inline]
@@ -102,8 +102,8 @@ impl TagMask {
     }
 
     #[inline]
-    pub fn union(self, other: TagMask) -> TagMask {
-        TagMask(self.0 | other.0)
+    pub fn union(self, other: Tag) -> Tag {
+        Tag(self.0 | other.0)
     }
 
     #[inline]
@@ -112,10 +112,49 @@ impl TagMask {
     }
 }
 
-impl From<u16> for TagMask {
+impl From<TagKind> for Tag {
+    #[inline]
+    fn from(kind: TagKind) -> Self {
+        Tag(kind.bit())
+    }
+}
+
+impl From<&TagKind> for Tag {
+    #[inline]
+    fn from(kind: &TagKind) -> Self {
+        Tag(kind.bit())
+    }
+}
+
+impl From<&[TagKind]> for Tag {
+    #[inline]
+    fn from(kinds: &[TagKind]) -> Self {
+        let mut tag = Tag::empty();
+        for kind in kinds {
+            tag.insert(*kind);
+        }
+        tag
+    }
+}
+
+impl From<u8> for Tag {
+    #[inline]
+    fn from(bits: u8) -> Self {
+        Tag(bits as u16)
+    }
+}
+
+impl From<u16> for Tag {
     #[inline]
     fn from(bits: u16) -> Self {
-        TagMask(bits)
+        Tag(bits)
+    }
+}
+
+impl From<Tag> for u16 {
+    #[inline]
+    fn from(mask: Tag) -> Self {
+        mask.0
     }
 }
 
@@ -138,7 +177,7 @@ impl Iterator for TagMaskIter {
     }
 }
 
-impl IntoIterator for TagMask {
+impl IntoIterator for Tag {
     type Item = TagKind;
     type IntoIter = TagMaskIter;
 

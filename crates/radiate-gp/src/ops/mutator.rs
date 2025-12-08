@@ -34,7 +34,7 @@ impl OperationMutator {
         node: &mut impl Node<Value = Op<T>>,
         store: &NodeStore<Op<T>>,
         rate: f32,
-    ) -> Vec<Metric>
+    ) -> Vec<(&'static str, usize)>
     where
         T: Clone + PartialEq + Default,
     {
@@ -43,7 +43,7 @@ impl OperationMutator {
             Op::MutableConst { .. } => {
                 if let Some(new_op) = self.try_mutate_mut_const_op(node) {
                     node.set_value(new_op);
-                    result.push(metric!(MUT_CONST_OP_MUTATED, 1));
+                    result.push((MUT_CONST_OP_MUTATED, 1));
                 }
             }
             #[cfg(feature = "pgm")]
@@ -54,7 +54,7 @@ impl OperationMutator {
                     .then_some(new_op)
                     .map(|op| {
                         node.set_value(op);
-                        result.push(metric!(FALLBACK_OP_MUTATED, 1));
+                        result.push((FALLBACK_OP_MUTATED, 1));
                     });
             }
         }
@@ -102,7 +102,7 @@ impl OperationMutator {
         node: &mut impl Node<Value = Op<T>>,
         store: &NodeStore<Op<T>>,
         rate: f32,
-    ) -> Vec<Metric>
+    ) -> Vec<(&'static str, usize)>
     where
         T: Clone + PartialEq + Default,
     {
@@ -121,7 +121,7 @@ impl OperationMutator {
             }
         }
 
-        result.push(metric!(PGM_OP_MUTATED, result.len()));
+        result.push((PGM_OP_MUTATED, result.len()));
         result
     }
 }
@@ -156,7 +156,25 @@ where
             }
         }
 
-        AlterResult::from((mutation_indexes.len(), metrics))
+        // let grouped = metrics
+        //     .into_iter()
+        //     .fold(Vec::new(), |mut acc: Vec<(&'static str, usize)>, item| {
+        //         if let Some((_, count)) = acc.iter_mut().find(|(name, _)| *name == item.0) {
+        //             *count += item.1;
+        //         } else {
+        //             acc.push(item);
+        //         }
+        //         acc
+        //     })
+        //     .into_iter()
+        //     .map(|(name, count)| metric!(name, count))
+        //     .collect::<Vec<Metric>>();
+        let grouped = metrics
+            .into_iter()
+            .map(|(name, count)| metric!(name, count))
+            .collect::<Vec<Metric>>();
+
+        AlterResult::from((mutation_indexes.len(), grouped))
     }
 }
 
@@ -174,14 +192,29 @@ where
         let mut metrics = Vec::new();
         if let Some(store) = store {
             let root = chromosome.root_mut();
-
+            let mut count = 0;
             for idx in random_provider::cond_indices(0..root.size(), rate) {
                 if let Some(node) = root.get_mut(idx) {
                     metrics.extend(self.mutate_node(node, &store, rate));
+                    count += 1;
                 }
             }
 
-            return AlterResult::from((metrics.len(), metrics));
+            let grouped = metrics
+                .into_iter()
+                .fold(Vec::new(), |mut acc: Vec<(&'static str, usize)>, item| {
+                    if let Some((_, count)) = acc.iter_mut().find(|(name, _)| *name == item.0) {
+                        *count += item.1;
+                    } else {
+                        acc.push(item);
+                    }
+                    acc
+                })
+                .into_iter()
+                .map(|(name, count)| metric!(name, count))
+                .collect::<Vec<Metric>>();
+
+            return AlterResult::from((count, grouped));
         }
 
         AlterResult::empty()

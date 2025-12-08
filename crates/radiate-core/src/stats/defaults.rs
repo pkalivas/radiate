@@ -65,10 +65,10 @@ pub mod metric_tags {
     pub const DISTRIBUTION: &str = "distribution";
 }
 
-use crate::stats::{TagKind, TagMask};
+use crate::stats::{Tag, TagKind};
 
-pub fn default_tags(name: &str) -> TagMask {
-    let mut mask = TagMask::empty();
+pub fn default_tags(name: &str) -> Tag {
+    let mut mask = Tag::empty();
 
     // Exact-name mappings first
     match name {
@@ -110,32 +110,56 @@ pub fn default_tags(name: &str) -> TagMask {
         _ => {}
     }
 
-    // // Optional: heuristic fallbacks by substring (only if you still like that behavior)
-    // if mask.is_empty() {
-    //     if name.contains("selector") {
-    //         mask.insert(TagKind::Selector);
-    //     }
-    //     if name.contains("mutator") {
-    //         mask.insert(TagKind::Mutator);
-    //         mask.insert(TagKind::Alterer);
-    //     }
-    //     if name.contains("crossover") {
-    //         mask.insert(TagKind::Crossover);
-    //         mask.insert(TagKind::Alterer);
-    //     }
-    //     if name.contains("species") {
-    //         mask.insert(TagKind::Species);
-    //     }
-    //     if name.contains("failure") {
-    //         mask.insert(TagKind::Failure);
-    //     }
-    //     if name.contains("age") {
-    //         mask.insert(TagKind::Age);
-    //     }
-    //     if name.contains("front") {
-    //         mask.insert(TagKind::Front);
-    //     }
-    // }
-
     mask
+}
+
+pub fn try_add_tag_from_str(metric: &mut crate::stats::Metric) {
+    let mut tags = Tag::empty();
+    let tag_str = metric.name();
+
+    if tag_str.contains("selector") {
+        tags.insert(TagKind::Selector);
+    }
+
+    if tag_str.contains("mutator") {
+        tags.insert(TagKind::Alterer);
+        tags.insert(TagKind::Mutator);
+    }
+
+    if tag_str.contains("crossover") {
+        tags.insert(TagKind::Crossover);
+        tags.insert(TagKind::Alterer);
+    }
+
+    if tag_str.contains("alterer") {
+        tags.insert(TagKind::Alterer);
+    }
+
+    if tag_str.contains("species") {
+        tags.insert(TagKind::Species);
+    }
+
+    if tag_str.contains("failure") {
+        tags.insert(TagKind::Failure);
+    }
+
+    if tag_str.contains("age") {
+        tags.insert(TagKind::Age);
+    }
+
+    if tag_str.contains("front") {
+        tags.insert(TagKind::Front);
+    }
+
+    if tag_str.contains("derived") {
+        tags.insert(TagKind::Derived);
+    }
+
+    if tag_str.contains("other") {
+        tags.insert(TagKind::Other);
+    }
+
+    if !tags.is_empty() {
+        metric.with_tags(tags);
+    }
 }
