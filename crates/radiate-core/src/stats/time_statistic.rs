@@ -57,6 +57,10 @@ impl TimeStatistic {
     pub fn clear(&mut self) {
         self.statistic.clear();
     }
+
+    pub fn merge(&mut self, other: &TimeStatistic) {
+        self.statistic.merge(&other.statistic);
+    }
 }
 
 impl From<Duration> for TimeStatistic {

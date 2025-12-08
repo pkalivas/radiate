@@ -26,7 +26,7 @@ impl PyMetricSet {
 
     pub fn __dict__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
         let dict = PyDict::new(py);
-        let rows = self.to_rows(py, true)?;
+        let rows = self.to_rows(py)?;
         for row in rows {
             dict.set_item(row.get_item("name")?, row)?;
         }
@@ -101,22 +101,15 @@ impl PyMetricSet {
     ///   time_mean_ns, time_min_ns, time_max_ns, time_std_ns, time_sum_ns,
     ///   seq_mean, seq_min, seq_max, seq_std, seq_var, seq_skew, seq_kurt,
     ///   seq_last   (list[float] or None)
-    #[pyo3(signature = (include_last_sequence=false))]
-    pub fn to_rows<'py>(
-        &self,
-        py: Python<'py>,
-        include_last_sequence: bool,
-    ) -> PyResult<Vec<Bound<'py, PyDict>>> {
+    pub fn to_rows<'py>(&self, py: Python<'py>) -> PyResult<Vec<Bound<'py, PyDict>>> {
         let mut out: Vec<Bound<'py, PyDict>> = Vec::with_capacity(self.inner.len() * 3);
 
         for (_, m) in self.inner.iter() {
             let base_name = m.name().to_string();
-            let rollup = format!("{:?}", m.rollup());
 
             if let Some(stat) = m.statistic() {
                 let row = PyDict::new(py);
                 row.set_item("name", &base_name)?;
-                row.set_item("rollup", &rollup)?;
                 row.set_item("kind", "value")?;
 
                 row.set_item("count", stat.count())?;
@@ -150,7 +143,6 @@ impl PyMetricSet {
 
                 let row = PyDict::new(py);
                 row.set_item("name", &base_name)?;
-                row.set_item("rollup", &rollup)?;
                 row.set_item("kind", "time")?;
 
                 row.set_item("count", t.count())?;
@@ -180,64 +172,54 @@ impl PyMetricSet {
             }
 
             // ----- dist row -----
-            if let Some(d) = m.distribution() {
-                let row = PyDict::new(py);
-                row.set_item("name", &base_name)?;
-                row.set_item("rollup", &rollup)?;
-                row.set_item("kind", "dist")?;
+            // if let Some(d) = m.distribution() {
+            //     let row = PyDict::new(py);
+            //     row.set_item("name", &base_name)?;
+            //     row.set_item("rollup", &rollup)?;
+            //     row.set_item("kind", "dist")?;
 
-                row.set_item("count", d.count())?;
-                row.set_item("mean", Some(d.mean()))?;
-                row.set_item("min", Some(d.min()))?;
-                row.set_item("max", Some(d.max()))?;
-                row.set_item("std", Some(d.standard_deviation()))?;
-                row.set_item("total", None::<f32>)?;
-                row.set_item("entropy", Some(d.entropy()))?;
+            //     row.set_item("count", d.count())?;
+            //     row.set_item("mean", Some(d.mean()))?;
+            //     row.set_item("min", Some(d.min()))?;
+            //     row.set_item("max", Some(d.max()))?;
+            //     row.set_item("std", Some(d.standard_deviation()))?;
+            //     row.set_item("total", None::<f32>)?;
+            //     row.set_item("entropy", Some(d.entropy()))?;
 
-                row.set_item("time_mean_ns", None::<i128>)?;
-                row.set_item("time_min_ns", None::<i128>)?;
-                row.set_item("time_max_ns", None::<i128>)?;
-                row.set_item("time_std_ns", None::<i128>)?;
-                row.set_item("time_sum_ns", None::<i128>)?;
+            //     row.set_item("time_mean_ns", None::<i128>)?;
+            //     row.set_item("time_min_ns", None::<i128>)?;
+            //     row.set_item("time_max_ns", None::<i128>)?;
+            //     row.set_item("time_std_ns", None::<i128>)?;
+            //     row.set_item("time_sum_ns", None::<i128>)?;
 
-                row.set_item("seq_mean", Some(d.mean()))?;
-                row.set_item("seq_min", Some(d.min()))?;
-                row.set_item("seq_max", Some(d.max()))?;
-                row.set_item("seq_std", Some(d.standard_deviation()))?;
-                row.set_item("seq_var", Some(d.variance()))?;
-                row.set_item("seq_skew", Some(d.skewness()))?;
-                row.set_item("seq_kurt", Some(d.kurtosis()))?;
-                if include_last_sequence {
-                    row.set_item("seq_last", m.last_sequence().map(|seq| seq.to_vec()))?;
-                } else {
-                    row.set_item("seq_last", py.None())?;
-                }
+            //     // row.set_item("seq_mean", Some(d.mean()))?;
+            //     // row.set_item("seq_min", Some(d.min()))?;
+            //     // row.set_item("seq_max", Some(d.max()))?;
+            //     // row.set_item("seq_std", Some(d.standard_deviation()))?;
+            //     // row.set_item("seq_var", Some(d.variance()))?;
+            //     // row.set_item("seq_skew", Some(d.skewness()))?;
+            //     // row.set_item("seq_kurt", Some(d.kurtosis()))?;
+            //     // if include_last_sequence {
+            //     //     row.set_item("seq_last", m.last_sequence().map(|seq| seq.to_vec()))?;
+            //     // } else {
+            //     //     row.set_item("seq_last", py.None())?;
+            //     // }
 
-                out.push(row);
-            }
+            //     out.push(row);
+            // }
         }
         Ok(out)
     }
 
-    #[pyo3(signature = (include_last_sequence=false))]
-    pub fn to_pandas<'py>(
-        &self,
-        py: Python<'py>,
-        include_last_sequence: bool,
-    ) -> PyResult<pyo3::Bound<'py, PyAny>> {
-        let rows = self.to_rows(py, include_last_sequence)?;
+    pub fn to_pandas<'py>(&self, py: Python<'py>) -> PyResult<pyo3::Bound<'py, PyAny>> {
+        let rows = self.to_rows(py)?;
         let pd = py.import("pandas")?;
         let df = pd.getattr("DataFrame")?.call1((rows,))?;
         Ok(df)
     }
 
-    #[pyo3(signature = (include_last_sequence=false))]
-    pub fn to_polars<'py>(
-        &self,
-        py: Python<'py>,
-        include_last_sequence: bool,
-    ) -> PyResult<pyo3::Bound<'py, PyAny>> {
-        let rows = self.to_rows(py, include_last_sequence)?;
+    pub fn to_polars<'py>(&self, py: Python<'py>) -> PyResult<pyo3::Bound<'py, PyAny>> {
+        let rows = self.to_rows(py)?;
         let pl = py.import("polars")?;
         let df = pl.getattr("DataFrame")?.call1((rows,))?;
         Ok(df)
@@ -289,9 +271,8 @@ impl From<Metric> for PyMetric {
 impl PyMetric {
     pub fn __repr__(&self) -> String {
         format!(
-            "PyMetric(name='{}', rollup={:?}, count={})",
+            "PyMetric(name='{}', count={})",
             self.inner.name(),
-            self.inner.rollup(),
             self.inner.count()
         )
     }
@@ -303,11 +284,6 @@ impl PyMetric {
     #[getter]
     pub fn name(&self) -> &str {
         self.inner.name()
-    }
-
-    #[getter]
-    pub fn rollup(&self) -> String {
-        format!("{:?}", self.inner.rollup())
     }
 
     // --- value stats ---
@@ -387,59 +363,10 @@ impl PyMetric {
         self.inner.time_variance().map(|d| d.as_secs_f64())
     }
 
-    // --- distribution summary ---
-    #[getter]
-    pub fn sequence_last(&self) -> Option<Vec<f32>> {
-        self.inner.last_sequence().map(|seq| seq.to_vec())
-    }
-
-    #[getter]
-    pub fn sequence_mean(&self) -> Option<f32> {
-        self.inner.distribution_mean()
-    }
-
-    #[getter]
-    pub fn sequence_stddev(&self) -> Option<f32> {
-        self.inner.distribution_std_dev()
-    }
-
-    #[getter]
-    pub fn sequence_min(&self) -> Option<f32> {
-        self.inner.distribution_min()
-    }
-
-    #[getter]
-    pub fn sequence_max(&self) -> Option<f32> {
-        self.inner.distribution_max()
-    }
-
-    #[getter]
-    pub fn sequence_variance(&self) -> Option<f32> {
-        self.inner.distribution_variance()
-    }
-
-    #[getter]
-    pub fn sequence_skewness(&self) -> Option<f32> {
-        self.inner.distribution_skewness()
-    }
-
-    #[getter]
-    pub fn sequence_kurtosis(&self) -> Option<f32> {
-        self.inner.distribution_kurtosis()
-    }
-
-    /// ASCII sparkline of the last sequence; width default 40.
-    #[pyo3(signature = (width=40))]
-    pub fn spark(&self, width: usize) -> Option<String> {
-        let seq = self.inner.last_sequence()?;
-        Some(sparkline(seq, width))
-    }
-
     /// Convert to a dict (nice for DataFrame construction / JSON dumps).
     pub fn to_dict<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
         let d = PyDict::new(py);
         d.set_item("name", self.inner.name().to_string())?;
-        d.set_item("rollup", format!("{:?}", self.inner.rollup()))?;
 
         d.set_item("mean", self.value_mean())?;
         d.set_item("stddev", self.value_stddev())?;
@@ -456,45 +383,8 @@ impl PyMetric {
         d.set_item("time_max", self.time_max())?;
         d.set_item("time_var", self.time_variance())?;
 
-        d.set_item("seq_last", self.sequence_last())?;
-        d.set_item("seq_mean", self.sequence_mean())?;
-        d.set_item("seq_stddev", self.sequence_stddev())?;
-        d.set_item("seq_min", self.sequence_min())?;
-        d.set_item("seq_max", self.sequence_max())?;
-        d.set_item("seq_var", self.sequence_variance())?;
-        d.set_item("seq_skew", self.sequence_skewness())?;
-        d.set_item("seq_kurtosis", self.sequence_kurtosis())?;
-
         Ok(d)
     }
-}
-
-fn sparkline(values: &[f32], width: usize) -> String {
-    if values.is_empty() || width == 0 {
-        return String::new();
-    }
-    let blocks = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
-    let (mut mn, mut mx) = (f32::INFINITY, f32::NEG_INFINITY);
-    for &v in values {
-        if v < mn {
-            mn = v
-        }
-        if v > mx {
-            mx = v
-        }
-    }
-    let span = (mx - mn).max(1e-12);
-    let step = (values.len() as f32 / width as f32).max(1.0);
-    let mut out = String::with_capacity(width);
-    let mut idx = 0.0;
-    for _ in 0..width {
-        let i = f32::floor(idx) as usize;
-        let v = values[i.min(values.len() - 1)];
-        let level = (((v - mn) / span) * ((blocks.len() - 1) as f32)).round() as usize;
-        out.push(blocks[level.min(blocks.len() - 1)]);
-        idx += step;
-    }
-    out
 }
 
 impl<'py> IntoPyObject<'py> for Wrap<Metric> {

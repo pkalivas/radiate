@@ -2,6 +2,7 @@ use crate::defaults::{DISTRIBUTION_HEADER_CELLS, STAT_HEADER_CELLS, TIME_HEADER_
 use crate::state::{AppState, AppTableState, ChartType};
 use crate::styles::{self, COLOR_WHEEL_400};
 use crate::widgets::ChartWidget;
+use radiate_engines::stats::TagKind;
 use radiate_engines::{Chromosome, MetricSet, metric_names};
 use radiate_engines::{
     Metric,
@@ -31,7 +32,7 @@ impl<'a, C: Chromosome> TimeTableWidget<'a, C> {
 
 impl<'a, C: Chromosome> Widget for TimeTableWidget<'a, C> {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let items = tagged_metrics(&self.state.metrics, self.state, metric_tags::TIME)
+        let items = tagged_metrics(&self.state.metrics, self.state, TagKind::Time)
             .iter()
             .filter(|met| met.0 != metric_names::TIME)
             .map(|m| *m)
@@ -109,7 +110,7 @@ impl<'a, C: Chromosome> StatsTableWidget<'a, C> {
 
 impl<'a, C: Chromosome> Widget for StatsTableWidget<'a, C> {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let items = tagged_metrics(&self.state.metrics, self.state, metric_tags::STATISTIC);
+        let items = tagged_metrics(&self.state.metrics, self.state, TagKind::Statistic);
 
         self.state.stats_table.update_rows(&items);
 
@@ -170,7 +171,7 @@ impl<'a, C: Chromosome> DistributionTableWidget<'a, C> {
 
 impl<'a, C: Chromosome> Widget for DistributionTableWidget<'a, C> {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let items = tagged_metrics(&self.state.metrics, self.state, metric_tags::DISTRIBUTION);
+        let items = tagged_metrics(&self.state.metrics, self.state, TagKind::Distribution);
 
         self.state.distribution_table.update_rows(&items);
 
@@ -229,7 +230,7 @@ fn render_scrollable_table(buf: &mut Buffer, area: Rect, table: Table, state: &m
 fn tagged_metrics<'a, C: Chromosome>(
     metrics: &'a MetricSet,
     state: &AppState<C>,
-    tag: &'static str,
+    tag: TagKind,
 ) -> Vec<(&'static str, &'a Metric)> {
     let mut items: Vec<_> = metrics
         .iter_tagged(tag)
@@ -288,23 +289,25 @@ fn metrics_into_dist_rows<'a>(
     metrics: impl Iterator<Item = (&'static str, &'a Metric)>,
 ) -> impl Iterator<Item = Row<'a>> {
     metrics.filter_map(|(name, m)| {
-        if let Some(dist) = m.distribution() {
-            Some(Row::new(vec![
-                Cell::from(name.to_string()),
-                Cell::from(format!("{:.3}", dist.percentile(0.0))),
-                Cell::from(format!("{:.3}", dist.percentile(25.0))),
-                Cell::from(format!("{:.3}", dist.percentile(50.0))),
-                Cell::from(format!("{:.3}", dist.percentile(75.0))),
-                Cell::from(format!("{:.3}", dist.percentile(100.0))),
-                Cell::from(format!("{}", dist.count())),
-                Cell::from(format!("{:.2}", dist.standard_deviation())),
-                Cell::from(format!("{:.2}", dist.variance())),
-                Cell::from(format!("{:.2}", dist.skewness())),
-                Cell::from(format!("{:.2}", dist.entropy())),
-            ]))
-        } else {
-            None
-        }
+        // if let Some(dist) = m.distribution() {
+        //     Some(Row::new(vec![
+        //         Cell::from(name.to_string()),
+        //         Cell::from(format!("{:.3}", dist.percentile(0.0))),
+        //         Cell::from(format!("{:.3}", dist.percentile(25.0))),
+        //         Cell::from(format!("{:.3}", dist.percentile(50.0))),
+        //         Cell::from(format!("{:.3}", dist.percentile(75.0))),
+        //         Cell::from(format!("{:.3}", dist.percentile(100.0))),
+        //         Cell::from(format!("{}", dist.count())),
+        //         Cell::from(format!("{:.2}", dist.standard_deviation())),
+        //         Cell::from(format!("{:.2}", dist.variance())),
+        //         Cell::from(format!("{:.2}", dist.skewness())),
+        //         Cell::from(format!("{:.2}", dist.entropy())),
+        //     ]))
+        // } else {
+        //     None
+        // }
+
+        None
     })
 }
 

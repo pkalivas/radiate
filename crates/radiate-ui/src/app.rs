@@ -5,7 +5,7 @@ use crate::widgets::summary::EngineBaseWidget;
 use crate::widgets::{MetricsTabWidget, ParetoFrontTemp, ParetoFrontWidget, kth_pair, num_pairs};
 use color_eyre::Result;
 use crossterm::event::{Event, KeyCode};
-use radiate_engines::stats::metric_tags;
+use radiate_engines::stats::{TagKind, metric_tags};
 use radiate_engines::{
     Chromosome, CommandChannel, Front, MetricSet, Objective, Phenotype, Score, metric_names,
 };
@@ -147,7 +147,7 @@ where
 
         if let Some(dist) = metrics
             .get(metric_names::SCORES)
-            .and_then(|m| m.distribution())
+            .and_then(|m| m.statistic())
         {
             charts
                 .fitness_chart_mut()
@@ -166,12 +166,7 @@ where
             .state
             .metrics
             .tags()
-            .filter(|tag| {
-                tag.0 != metric_tags::STATISTIC
-                    && tag.0 != metric_tags::DISTRIBUTION
-                    && tag.0 != metric_tags::TIME
-            })
-            .cloned()
+            .filter(|tag| *tag != TagKind::Statistic && *tag != TagKind::Time)
             .collect();
         self.state.filter_state.all_tags.sort();
         if let Some(front) = front {

@@ -4,6 +4,7 @@ mod fmt;
 mod metrics;
 mod set;
 mod statistics;
+mod tag;
 mod time_statistic;
 
 pub use defaults::{metric_names, metric_tags};
@@ -12,4 +13,5 @@ pub use fmt::{fmt_duration, render_dashboard, render_full, render_metric_rows_fu
 pub use metrics::*;
 pub use set::MetricSet;
 pub use statistics::*;
+pub use tag::{TagKind, TagMask};
 pub use time_statistic::*;

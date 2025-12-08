@@ -1,5 +1,8 @@
 use super::Statistic;
-use crate::{Distribution, TimeStatistic, stats::defaults};
+use crate::{
+    TimeStatistic,
+    stats::{TagKind, TagMask, defaults, metric_tags},
+};
 use radiate_utils::{ToSnakeCase, cache_string, intern, intern_snake_case};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -27,37 +30,23 @@ pub enum Rollup {
     Max,
 }
 
-#[derive(Clone, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[repr(transparent)]
-pub struct Tag(pub &'static str);
-
-impl From<&'static str> for Tag {
-    fn from(value: &'static str) -> Self {
-        Tag(intern_snake_case!(value))
-    }
-}
-
 #[derive(Clone, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct MetricInner {
     pub(crate) value_statistic: Option<Statistic>,
     pub(crate) time_statistic: Option<TimeStatistic>,
-    pub(crate) distribution: Option<Distribution>,
 }
 
 #[derive(Clone, PartialEq, Default)]
 pub struct Metric {
     pub(super) name: Arc<String>,
     pub(super) inner: MetricInner,
-    pub(super) rollup: Rollup,
-    pub(super) tags: Option<Arc<Vec<Tag>>>,
+    pub(super) tags: TagMask,
 }
 
 impl Metric {
     pub fn new(name: &'static str) -> Self {
         let name = cache_string!(intern_snake_case!(name));
-        let rollup = defaults::default_rollup(&name);
         let tags = defaults::default_tags(&name);
 
         Self {
@@ -65,70 +54,34 @@ impl Metric {
             inner: MetricInner {
                 value_statistic: None,
                 time_statistic: None,
-                distribution: None,
             },
-            rollup,
-            tags: tags,
+            tags,
         }
     }
 
-    pub fn new_scoped(name: &'static str) -> Self {
-        let rollup = defaults::default_rollup(name);
-
-        Self {
-            rollup,
-            ..Self::new(intern_snake_case!(name))
-        }
+    pub fn tags(&self) -> TagMask {
+        self.tags
     }
 
-    pub fn with_rollup(mut self, rollup: Rollup) -> Self {
-        self.rollup = rollup;
-        self
-    }
-
-    pub fn with_tag(mut self, tag: &'static str) -> Self {
+    pub fn with_tag(mut self, tag: TagKind) -> Self {
         self.add_tag(tag);
         self
     }
 
-    pub fn with_tags(mut self, tags: Vec<&'static str>) -> Self {
-        let arc_tags = tags.into_iter().map(|tag| Tag(intern!(tag))).collect();
-        self.tags = Some(Arc::new(arc_tags));
-        self
-    }
-
-    pub fn add_tag<'a>(&mut self, tag: impl Into<Tag>) {
-        let tag = tag.into();
-        match &mut self.tags {
-            Some(tags) => {
-                if !tags.iter().any(|t| t.0 == tag.0) {
-                    Arc::make_mut(tags).push(tag);
-                }
-            }
-            None => {
-                self.tags = Some(Arc::new(vec![tag]));
-            }
-        }
+    pub fn add_tag(&mut self, tag: TagKind) {
+        self.tags.insert(tag);
     }
 
     pub fn inner(&self) -> &MetricInner {
         &self.inner
     }
 
-    pub fn rollup(&self) -> Rollup {
-        self.rollup
+    pub fn contains_tag(&self, tag: &TagKind) -> bool {
+        self.tags.has(*tag)
     }
 
-    pub fn tags(&self) -> Option<&[Tag]> {
-        self.tags.as_deref().map(|v| v.as_slice())
-    }
-
-    pub fn contains_tag(&self, tag: &Tag) -> bool {
-        if let Some(tags) = &self.tags {
-            tags.iter().any(|t| t.0 == tag.0)
-        } else {
-            false
-        }
+    pub fn tags_iter(&self) -> impl Iterator<Item = TagKind> {
+        self.tags.iter()
     }
 
     pub fn get_stat<F, T>(&self, func: F) -> T
@@ -140,18 +93,6 @@ impl Metric {
             .value_statistic
             .as_ref()
             .map(|stat| func(stat))
-            .unwrap_or_default()
-    }
-
-    pub fn get_dist<F, T>(&self, func: F) -> T
-    where
-        F: Fn(&Distribution) -> T,
-        T: Default,
-    {
-        self.inner
-            .distribution
-            .as_ref()
-            .map(|dist| func(dist))
             .unwrap_or_default()
     }
 
@@ -178,48 +119,18 @@ impl Metric {
     }
 
     pub fn update_from(&mut self, other: Metric) {
-        if let Some(stat) = &other.inner.value_statistic {
-            let v = (stat.last_value(), stat.min(), stat.max(), stat.mean());
-            match self.rollup() {
-                Rollup::Sum => self.apply_update(stat.sum()),
-                Rollup::Mean => self.apply_update(v.3),
-                Rollup::Last => self.apply_update(v.0),
-                Rollup::Min => self.apply_update(v.1),
-                Rollup::Max => self.apply_update(v.2),
-            }
-
-            self.add_tag(defaults::metric_tags::STATISTIC);
+        if let Some(stat) = other.inner.value_statistic {
+            self.apply_update(stat);
+            self.add_tag(TagKind::Statistic);
         }
 
-        if let Some(time) = &other.inner.time_statistic {
-            let t = (
-                time.last_time(),
-                time.min(),
-                time.max(),
-                time.mean(),
-                time.sum(),
-            );
-            match self.rollup() {
-                Rollup::Sum => self.apply_update(t.4),
-                Rollup::Mean => self.apply_update(t.3),
-                Rollup::Last => self.apply_update(t.0),
-                Rollup::Min => self.apply_update(t.1),
-                Rollup::Max => self.apply_update(t.2),
-            }
-
-            self.add_tag(defaults::metric_tags::TIME);
+        if let Some(time) = other.inner.time_statistic {
+            self.apply_update(time);
+            self.add_tag(TagKind::Time);
         }
 
-        if let Some(d) = &other.inner.distribution {
-            self.apply_update(d.last_sequence());
-            self.add_tag(defaults::metric_tags::DISTRIBUTION);
-        }
-
-        if let Some(other_tags) = &other.tags {
-            for tag in other_tags.iter() {
-                self.add_tag(tag.0);
-            }
-        }
+        let other_tags = other.tags;
+        self.tags = self.tags.union(other_tags);
     }
 
     #[inline(always)]
@@ -227,73 +138,86 @@ impl Metric {
         let update = update.into();
         match update {
             MetricUpdate::Float(value) => {
-                if let Some(stat) = &mut self.inner.value_statistic {
-                    stat.add(value);
-                } else {
-                    self.inner.value_statistic = Some(Statistic::from(value));
-                }
+                self.update_statistic(value);
             }
             MetricUpdate::Usize(value) => {
-                if let Some(stat) = &mut self.inner.value_statistic {
-                    stat.add(value as f32);
-                } else {
-                    self.inner.value_statistic = Some(Statistic::from(value as f32));
-                }
+                self.update_statistic(value as f32);
             }
             MetricUpdate::Duration(value) => {
-                if let Some(stat) = &mut self.inner.time_statistic {
-                    stat.add(value);
-                } else {
-                    self.inner.time_statistic = Some(TimeStatistic::from(value));
-                }
+                self.update_time_statistic(value);
             }
             MetricUpdate::Distribution(values) => {
-                if let Some(stat) = &mut self.inner.distribution {
-                    stat.add(values);
-                } else {
-                    self.inner.distribution = Some(Distribution::from(values));
-                }
+                self.update_statistic_from_iter(values.iter().cloned());
             }
             MetricUpdate::FloatOperation(value, time) => {
-                if let Some(stat) = &mut self.inner.value_statistic {
-                    stat.add(value);
-                } else {
-                    self.inner.value_statistic = Some(Statistic::from(value));
-                }
-
-                if let Some(time_stat) = &mut self.inner.time_statistic {
-                    time_stat.add(time);
-                } else {
-                    self.inner.time_statistic = Some(TimeStatistic::from(time));
-                }
+                self.update_statistic(value);
+                self.update_time_statistic(time);
             }
             MetricUpdate::UsizeOperation(value, time) => {
-                if let Some(stat) = &mut self.inner.value_statistic {
-                    stat.add(value as f32);
+                self.update_statistic(value as f32);
+                self.update_time_statistic(time);
+            }
+            MetricUpdate::UsizeDistribution(values) => {
+                self.update_statistic_from_iter(values.iter().map(|v| *v as f32));
+            }
+            MetricUpdate::Statistic(stat) => {
+                if let Some(existing_stat) = &mut self.inner.value_statistic {
+                    existing_stat.merge(&stat);
                 } else {
-                    self.inner.value_statistic = Some(Statistic::from(value as f32));
+                    self.new_statistic(stat);
                 }
+            }
+            MetricUpdate::TimeStatistic(time_stat) => {
+                if let Some(existing_time_stat) = &mut self.inner.time_statistic {
+                    existing_time_stat.merge(&time_stat);
+                } else {
+                    self.new_time_statistic(time_stat);
+                }
+            }
+        }
+    }
 
-                if let Some(time_stat) = &mut self.inner.time_statistic {
-                    time_stat.add(time);
-                } else {
-                    self.inner.time_statistic = Some(TimeStatistic::from(time));
-                }
+    pub fn new_statistic(&mut self, value: impl Into<Statistic>) {
+        self.inner.value_statistic = Some(value.into());
+        self.add_tag(TagKind::Statistic);
+    }
+
+    pub fn new_time_statistic(&mut self, value: impl Into<TimeStatistic>) {
+        self.inner.time_statistic = Some(value.into());
+        self.add_tag(TagKind::Time);
+    }
+
+    fn update_statistic(&mut self, value: f32) {
+        if let Some(stat) = &mut self.inner.value_statistic {
+            stat.add(value);
+        } else {
+            self.new_statistic(value);
+        }
+    }
+
+    fn update_time_statistic(&mut self, value: Duration) {
+        if let Some(stat) = &mut self.inner.time_statistic {
+            stat.add(value);
+        } else {
+            self.new_time_statistic(value);
+        }
+    }
+
+    fn update_statistic_from_iter<I>(&mut self, values: I)
+    where
+        I: IntoIterator<Item = f32>,
+    {
+        if let Some(stat) = &mut self.inner.value_statistic {
+            for value in values {
+                stat.add(value);
             }
-            MetricUpdate::DistributionRef(values) => {
-                if let Some(stat) = &mut self.inner.distribution {
-                    stat.add(values);
-                } else {
-                    self.inner.distribution = Some(Distribution::from(values.as_slice()));
-                }
+        } else {
+            let mut new_stat = Statistic::default();
+            for value in values {
+                new_stat.add(value);
             }
-            MetricUpdate::DistributionOwned(values) => {
-                if let Some(stat) = &mut self.inner.distribution {
-                    stat.add(&values);
-                } else {
-                    self.inner.distribution = Some(Distribution::from(values.as_slice()));
-                }
-            }
+
+            self.new_statistic(new_stat);
         }
     }
 
@@ -309,10 +233,6 @@ impl Metric {
             .value_statistic
             .as_ref()
             .map_or(0.0, |stat| stat.last_value())
-    }
-
-    pub fn distribution(&self) -> Option<&Distribution> {
-        self.inner.distribution.as_ref()
     }
 
     pub fn statistic(&self) -> Option<&Statistic> {
@@ -389,57 +309,19 @@ impl Metric {
     pub fn time_sum(&self) -> Option<Duration> {
         self.time_statistic().map(|stat| stat.sum())
     }
-
-    ///
-    /// --- Get the distribution statistics ---
-    ///
-    pub fn last_sequence(&self) -> Option<&[f32]> {
-        self.distribution().map(|dist| dist.last_sequence())
-    }
-
-    pub fn distribution_mean(&self) -> Option<f32> {
-        self.distribution().map(|dist| dist.mean())
-    }
-
-    pub fn distribution_variance(&self) -> Option<f32> {
-        self.distribution().map(|dist| dist.variance())
-    }
-
-    pub fn distribution_std_dev(&self) -> Option<f32> {
-        self.distribution().map(|dist| dist.standard_deviation())
-    }
-
-    pub fn distribution_skewness(&self) -> Option<f32> {
-        self.distribution().map(|dist| dist.skewness())
-    }
-
-    pub fn distribution_kurtosis(&self) -> Option<f32> {
-        self.distribution().map(|dist| dist.kurtosis())
-    }
-
-    pub fn distribution_min(&self) -> Option<f32> {
-        self.distribution().map(|dist| dist.min())
-    }
-
-    pub fn distribution_max(&self) -> Option<f32> {
-        self.distribution().map(|dist| dist.max())
-    }
-
-    pub fn distribution_entropy(&self) -> Option<f32> {
-        self.distribution().map(|dist| dist.entropy())
-    }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub enum MetricUpdate<'a> {
     Float(f32),
     Usize(usize),
     Duration(Duration),
-    Distribution(&'a [f32]),
-    DistributionRef(&'a Vec<f32>),
-    DistributionOwned(Vec<f32>),
     FloatOperation(f32, Duration),
     UsizeOperation(usize, Duration),
+    Distribution(&'a [f32]),
+    UsizeDistribution(&'a [usize]),
+    Statistic(Statistic),
+    TimeStatistic(TimeStatistic),
 }
 
 impl From<f32> for MetricUpdate<'_> {
@@ -480,13 +362,25 @@ impl From<(usize, Duration)> for MetricUpdate<'_> {
 
 impl<'a> From<&'a Vec<f32>> for MetricUpdate<'a> {
     fn from(value: &'a Vec<f32>) -> Self {
-        MetricUpdate::DistributionRef(value)
+        MetricUpdate::Distribution(value)
     }
 }
 
-impl From<Vec<f32>> for MetricUpdate<'_> {
-    fn from(value: Vec<f32>) -> Self {
-        MetricUpdate::DistributionOwned(value)
+impl<'a> From<&'a Vec<usize>> for MetricUpdate<'a> {
+    fn from(value: &'a Vec<usize>) -> Self {
+        MetricUpdate::UsizeDistribution(value)
+    }
+}
+
+impl From<Statistic> for MetricUpdate<'_> {
+    fn from(value: Statistic) -> Self {
+        MetricUpdate::Statistic(value)
+    }
+}
+
+impl From<TimeStatistic> for MetricUpdate<'_> {
+    fn from(value: TimeStatistic) -> Self {
+        MetricUpdate::TimeStatistic(value)
     }
 }
 
@@ -508,21 +402,14 @@ impl Serialize for Metric {
         struct MetricOwned {
             name: String,
             inner: MetricInner,
-            // scope: MetricScope,
-            rollup: Rollup,
-            tags: Option<Arc<Vec<Arc<String>>>>,
+            tags: u16,
         }
 
-        let tags = self
-            .tags
-            .as_ref()
-            .map(|tags| Arc::new(tags.iter().map(|tag| Arc::new(tag.0.to_string())).collect()));
+        let tags = self.tags;
         let metric = MetricOwned {
             name: self.name.to_string(),
             inner: self.inner.clone(),
-            // scope: self.scope,
-            rollup: self.rollup,
-            tags,
+            tags: tags.0,
         };
 
         metric.serialize(serializer)
@@ -543,8 +430,7 @@ impl<'de> Deserialize<'de> for Metric {
         struct MetricOwned {
             name: String,
             inner: MetricInner,
-            rollup: Rollup,
-            tags: Option<Arc<Vec<Arc<String>>>>,
+            tags: u16,
         }
 
         let metric = MetricOwned::deserialize(deserializer)?;
@@ -552,10 +438,7 @@ impl<'de> Deserialize<'de> for Metric {
         Ok(Metric {
             name: cache_string!(intern_snake_case!(metric.name.as_str())),
             inner: metric.inner,
-            rollup: metric.rollup,
-            tags: metric
-                .tags
-                .map(|tags| Arc::new(tags.iter().map(|tag| Tag(intern!(tag.as_str()))).collect())),
+            tags: TagMask(metric.tags),
         })
     }
 }

@@ -140,3 +140,15 @@ impl From<Vec<f32>> for Distribution {
         result
     }
 }
+
+impl From<&Vec<usize>> for Distribution {
+    fn from(value: &Vec<usize>) -> Self {
+        let mut dist = Distribution::default();
+        for v in value.iter().map(|&v| v as f32) {
+            dist.statistic.add(v);
+            dist.last_sequence.push(v);
+        }
+
+        dist
+    }
+}

@@ -1,7 +1,8 @@
 use crate::chart::{ChartData, ChartInner};
 use crate::widgets::num_pairs;
+use radiate_engines::stats::TagKind;
 use radiate_engines::{
-    Chromosome, Front, Metric, MetricSet, Objective, Optimize, Phenotype, Score, stats::Tag,
+    Chromosome, Front, Metric, MetricSet, Objective, Optimize, Phenotype, Score,
 };
 use radiate_utils::intern;
 use ratatui::widgets::{ListState, ScrollbarState, TableState};
@@ -128,13 +129,6 @@ impl ChartState {
             {
                 let mean_chart = self.get_or_create_chart(key, ChartType::Mean);
                 mean_chart.add_value((mean_chart.len() as f64, stat.mean() as f64));
-            }
-        } else if let Some(dist) = metric.distribution() {
-            let key = intern!(metric.name());
-
-            {
-                let distribution_chart = self.get_or_create_chart(key, ChartType::Distribution);
-                distribution_chart.set_values(&dist.last_sequence);
             }
         }
     }
@@ -466,7 +460,7 @@ impl<C: Chromosome> Default for AppState<C> {
 pub struct AppFilterState {
     pub tag_list_filter_state: ListState,
     pub tag_view: Vec<usize>,
-    pub all_tags: Vec<Tag>,
+    pub all_tags: Vec<TagKind>,
     pub selected_row: usize,
 }
 

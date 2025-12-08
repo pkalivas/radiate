@@ -27,9 +27,9 @@ where
 
         let add_result = self.front.write().unwrap().add_all(&phenotypes);
 
-        metrics.upsert((metric_names::FRONT_ADDITIONS, (add_result.added_count)));
-        metrics.upsert((metric_names::FRONT_REMOVALS, (add_result.removed_count)));
-        metrics.upsert((metric_names::FRONT_COMPARISONS, (add_result.comparisons)));
+        metrics.upsert((metric_names::FRONT_ADDITIONS, add_result.added_count));
+        metrics.upsert((metric_names::FRONT_REMOVALS, add_result.removed_count));
+        metrics.upsert((metric_names::FRONT_COMPARISONS, add_result.comparisons));
         metrics.upsert((
             metric_names::FRONT_SIZE,
             self.front.read().unwrap().values().len(),

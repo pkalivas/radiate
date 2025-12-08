@@ -25,18 +25,13 @@ fn main() {
         ))
         .build();
 
-    radiate::ui(engine)
-        .iter()
-        .until_score(MIN_SCORE)
-        .last()
-        .inspect(display);
+    engine.iter().until_score(MIN_SCORE).last().inspect(display);
 }
 
 fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
     for (_, metric) in result.metrics().iter() {
-        if let Some(tags) = metric.tags() {
-            println!("{tags:?} => {:?}", metric);
-        }
+        let tags = metric.tags().iter().collect::<Vec<_>>();
+        println!("{:?} => {:?}", metric.name(), tags);
     }
 
     Accuracy::default()

@@ -41,8 +41,8 @@ impl<'a, C: Chromosome> Widget for EngineBaseWidget<'a, C> {
             .and_then(|m| m.value_mean())
             .unwrap_or(0.0);
         let improvements = metrics.improvements().map(|m| m.count()).unwrap_or(0);
-        let lifetime_unique = metrics
-            .lifetime_unique_members()
+        let survivor_count = metrics
+            .survivor_count()
             .map(|m| m.last_value())
             .unwrap_or(0.0);
         let new_children = metrics
@@ -79,7 +79,7 @@ impl<'a, C: Chromosome> Widget for EngineBaseWidget<'a, C> {
             ]),
             Row::new(vec![
                 Cell::from("Phenotypes").bold(),
-                Cell::from(format!("{:.2}", lifetime_unique)),
+                Cell::from(format!("{:.2}", survivor_count)),
             ]),
             Row::new(vec![
                 Cell::from("Children / Gen.").bold(),

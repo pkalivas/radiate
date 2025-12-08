@@ -1,6 +1,6 @@
 use crate::{
-    Distribution, Metric, MetricUpdate, Rollup, Statistic, TimeStatistic,
-    stats::{Tag, fmt},
+    Metric, MetricUpdate, Statistic, TimeStatistic,
+    stats::{TagKind, TagMask, fmt},
 };
 use radiate_utils::intern;
 #[cfg(feature = "serde")]
@@ -90,27 +90,19 @@ impl MetricSet {
                 }
             }
             MetricSetUpdate::NamedSingle(name, metric_update) => {
+                self.set_stats.apply_update(1);
                 if let Some(m) = self.metrics.get_mut(name) {
-                    self.set_stats.apply_update(1);
                     m.apply_update(metric_update);
                     return;
                 }
 
                 let new_name = radiate_utils::intern_name_as_snake_case(name);
                 if let Some(m) = self.metrics.get_mut(&new_name) {
-                    self.set_stats.apply_update(1);
                     m.apply_update(metric_update);
                 } else {
-                    self.add(
-                        Metric::new(new_name)
-                            .with_rollup(super::defaults::default_rollup(new_name)),
-                    );
-
-                    self.set_stats.apply_update(1);
-                    self.metrics
-                        .get_mut(&new_name)
-                        .unwrap()
-                        .apply_update(metric_update);
+                    let mut metric = Metric::new(new_name);
+                    metric.apply_update(metric_update);
+                    self.add(metric);
                 }
             }
         }
@@ -119,18 +111,11 @@ impl MetricSet {
     #[inline(always)]
     pub fn iter_tagged<'a>(
         &'a self,
-        tag: impl Into<Tag>,
+        tag: TagKind,
     ) -> impl Iterator<Item = (&'static str, &'a Metric)> {
-        let tag = tag.into();
-        self.metrics.iter().filter_map(move |(k, m)| {
-            if let Some(tags) = m.tags() {
-                if tags.iter().any(|t| t.0 == tag.0) {
-                    return Some((*k, m));
-                }
-            }
-
-            None
-        })
+        self.metrics
+            .iter()
+            .filter_map(move |(k, m)| if m.tags.has(tag) { Some((*k, m)) } else { None })
     }
 
     #[inline(always)]
@@ -138,10 +123,10 @@ impl MetricSet {
         self.metrics.values().filter(|m| m.statistic().is_some())
     }
 
-    #[inline(always)]
-    pub fn iter_distributions<'a>(&'a self) -> impl Iterator<Item = &'a Metric> {
-        self.metrics.values().filter(|m| m.distribution().is_some())
-    }
+    // #[inline(always)]
+    // pub fn iter_distributions<'a>(&'a self) -> impl Iterator<Item = &'a Metric> {
+    //     self.metrics.values().filter(|m| m.distribution().is_some())
+    // }
 
     #[inline(always)]
     pub fn iter_times<'a>(&'a self) -> impl Iterator<Item = &'a Metric> {
@@ -150,19 +135,14 @@ impl MetricSet {
             .filter(|m| m.time_statistic().is_some())
     }
 
-    #[inline(always)]
-    pub fn tags(&self) -> impl Iterator<Item = &Tag> {
-        let mut seen = HashMap::new();
+    pub fn tags(&self) -> impl Iterator<Item = TagKind> {
+        let mask = self
+            .metrics
+            .values()
+            .fold(TagMask::empty(), |acc, m| acc.union(m.tags));
 
-        for (_, metric) in self.metrics.iter() {
-            if let Some(tags) = metric.tags() {
-                for tag in tags.iter() {
-                    seen.entry(tag).or_insert(());
-                }
-            }
-        }
-
-        seen.into_keys()
+        // consumes the mask and returns TagMaskIter
+        mask.into_iter()
     }
 
     #[inline(always)]
@@ -213,8 +193,8 @@ impl MetricSet {
         }
     }
 
-    pub fn sorted_tagged<'a>(&'a self, tag: impl Into<Tag>) -> Vec<(&'static str, &'a Metric)> {
-        let mut items = self.iter_tagged(tag).collect::<Vec<_>>();
+    pub fn sorted_tagged<'a>(&'a self, tag: impl Into<TagKind>) -> Vec<(&'static str, &'a Metric)> {
+        let mut items = self.iter_tagged(tag.into()).collect::<Vec<_>>();
         items.sort_by(|a, b| a.0.cmp(b.0));
         items
     }
@@ -227,13 +207,13 @@ impl MetricSet {
         self.get(name).map(|m| m.get_stat(func)).unwrap_or_default()
     }
 
-    pub fn get_dist_val<F, T>(&self, name: &str, func: F) -> T
-    where
-        F: Fn(&Distribution) -> T,
-        T: Default,
-    {
-        self.get(name).map(|m| m.get_dist(func)).unwrap_or_default()
-    }
+    // pub fn get_dist_val<F, T>(&self, name: &str, func: F) -> T
+    // where
+    //     F: Fn(&Distribution) -> T,
+    //     T: Default,
+    // {
+    //     self.get(name).map(|m| m.get_dist(func)).unwrap_or_default()
+    // }
 
     pub fn get_time_val<F, T>(&self, name: &str, func: F) -> T
     where
@@ -314,10 +294,6 @@ impl MetricSet {
 
     pub fn carryover_rate(&self) -> Option<&Metric> {
         self.get(super::metric_names::CARRYOVER_RATE)
-    }
-
-    pub fn lifetime_unique_members(&self) -> Option<&Metric> {
-        self.get(super::metric_names::LIFETIME_UNIQUE_MEMBERS)
     }
 
     pub fn evaluation_count(&self) -> Option<&Metric> {
@@ -415,8 +391,7 @@ impl<'de> Deserialize<'de> for MetricSet {
         struct MetricOwned {
             name: String,
             inner: MetricInner,
-            rollup: Rollup,
-            tags: Option<Arc<Vec<Arc<String>>>>,
+            tags: u16,
         }
 
         let metrics = Vec::<MetricOwned>::deserialize(deserializer)?;
@@ -426,12 +401,7 @@ impl<'de> Deserialize<'de> for MetricSet {
             let metric = Metric {
                 name: metric.name.into(),
                 inner: metric.inner,
-                rollup: metric.rollup,
-                tags: metric.tags.map(|tags| {
-                    use crate::stats::Tag;
-
-                    Arc::new(tags.iter().map(|tag| Tag(intern!(tag.as_str()))).collect())
-                }),
+                tags: TagMask::from(metric.tags),
             };
             metric_set.add(metric);
         }

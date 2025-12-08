@@ -184,6 +184,85 @@ impl Statistic {
     }
 }
 
+impl Statistic {
+    pub fn merge(&mut self, other: &Statistic) {
+        // Trivial cases first
+        if other.count == 0 {
+            return;
+        }
+        if self.count == 0 {
+            *self = other.clone();
+            return;
+        }
+
+        // Use f64 for more accurate intermediate math
+        let n1 = self.count as f64;
+        let n2 = other.count as f64;
+
+        let mean1 = self.m1.value() as f64;
+        let mean2 = other.m1.value() as f64;
+
+        let m21 = self.m2.value() as f64;
+        let m22 = other.m2.value() as f64;
+        let m31 = self.m3.value() as f64;
+        let m32 = other.m3.value() as f64;
+        let m41 = self.m4.value() as f64;
+        let m42 = other.m4.value() as f64;
+
+        let n = n1 + n2;
+        let delta = mean2 - mean1;
+        let delta2 = delta * delta;
+        let delta3 = delta2 * delta;
+        let delta4 = delta3 * delta;
+        let n1n2 = n1 * n2;
+
+        // Combined mean and moments (Pébay formulas)
+        let mean = (n1 * mean1 + n2 * mean2) / n;
+
+        let m2 = m21 + m22 + delta2 * n1n2 / n;
+
+        let m3 = m31
+            + m32
+            + delta3 * n1n2 * (n1 - n2) / (n * n)
+            + 3.0 * delta * (n1 * m22 - n2 * m21) / n;
+
+        let m4 = m41
+            + m42
+            + delta4 * n1n2 * (n1 * n1 - n1 * n2 + n2 * n2) / (n * n * n)
+            + 6.0 * delta2 * (n1 * n1 * m22 + n2 * n2 * m21) / (n * n)
+            + 4.0 * delta * (n1 * m32 - n2 * m31) / n;
+
+        // Write back into your Kahan adders.
+        // Using `Adder::default()` + single `add` is fine:
+        self.m1 = Adder::default();
+        self.m1.add(mean as f32);
+
+        self.m2 = Adder::default();
+        self.m2.add(m2 as f32);
+
+        self.m3 = Adder::default();
+        self.m3.add(m3 as f32);
+
+        self.m4 = Adder::default();
+        self.m4.add(m4 as f32);
+
+        // Merge auxiliary stats
+        self.sum.add(other.sum()); // preserves Kahan accuracy for the total sum
+        self.count += other.count;
+        self.max = self.max.max(other.max);
+        self.min = self.min.min(other.min);
+
+        // "last_value" is a bit semantic; assuming `other` is later in time:
+        self.last_value = other.last_value;
+    }
+
+    /// Convenience: return a merged copy instead of mutating in-place
+    pub fn merged(mut self, other: &Statistic) -> Statistic {
+        self.merge(other);
+        self
+    }
+}
+
 impl Default for Statistic {
     fn default() -> Self {
         Statistic {
@@ -247,5 +326,28 @@ mod tests {
         assert_eq!(statistic.variance(), 2.5_f32);
         assert_eq!(statistic.std_dev(), 1.5811388_f32);
         assert_eq!(statistic.skewness(), 0_f32);
+    }
+
+    #[test]
+    fn test_statistic_merge() {
+        let mut stat1 = Statistic::default();
+        stat1.add(1_f32);
+        stat1.add(2_f32);
+        stat1.add(3_f32);
+
+        let mut stat2 = Statistic::default();
+        stat2.add(4_f32);
+        stat2.add(5_f32);
+        stat2.add(6_f32);
+
+        let merged = stat1.merged(&stat2);
+        assert_eq!(merged.mean(), 3.5_f32);
+        assert_eq!(merged.variance(), 3.5_f32);
+        assert_eq!(merged.std_dev(), 1.8708287_f32);
+        assert_eq!(merged.skewness(), 0_f32);
+        assert_eq!(merged.count(), 6);
+        assert_eq!(merged.min(), 1_f32);
+        assert_eq!(merged.max(), 6_f32);
+        assert_eq!(merged.sum(), 21_f32);
     }
 }

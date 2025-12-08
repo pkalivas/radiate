@@ -1,9 +1,3 @@
-use std::collections::HashMap;
-use std::sync::{Arc, LazyLock};
-
-use crate::Rollup;
-use crate::stats::Tag;
-
 pub mod metric_names {
     pub const TIME: &str = "time";
 
@@ -27,7 +21,6 @@ pub mod metric_names {
 
     pub const SURVIVOR_COUNT: &str = "survivor_count";
     pub const CARRYOVER_RATE: &str = "carryover_rate";
-    pub const LIFETIME_UNIQUE_MEMBERS: &str = "lifetime_unique";
 
     pub const EVALUATION_COUNT: &str = "evaluation_count";
 
@@ -72,161 +65,77 @@ pub mod metric_tags {
     pub const DISTRIBUTION: &str = "distribution";
 }
 
-pub fn default_tags<'a>(name: &str) -> Option<Arc<Vec<Tag>>> {
+use crate::stats::{TagKind, TagMask};
+
+pub fn default_tags(name: &str) -> TagMask {
+    let mut mask = TagMask::empty();
+
+    // Exact-name mappings first
     match name {
-        n if DEFAULT_TAG_CACHE.contains_key(n) => DEFAULT_TAG_CACHE.get(n).cloned(),
-
-        _ if name.contains("selector") => DEFAULT_TAG_CACHE.get(metric_tags::SELECTOR).cloned(),
-        _ if name.contains("mutator") => DEFAULT_TAG_CACHE.get(metric_tags::MUTATOR).cloned(),
-        _ if name.contains("crossover") => DEFAULT_TAG_CACHE.get(metric_tags::CROSSOVER).cloned(),
-        _ if name.contains("species") => DEFAULT_TAG_CACHE.get(metric_tags::SPECIES).cloned(),
-        _ if name.contains("failure") => DEFAULT_TAG_CACHE.get(metric_tags::FAILURE).cloned(),
-        _ if name.contains("age") => DEFAULT_TAG_CACHE.get(metric_tags::AGE).cloned(),
-        _ if name.contains("front") => DEFAULT_TAG_CACHE.get(metric_tags::FRONT).cloned(),
-
-        _ => DEFAULT_TAG_CACHE.get(metric_tags::OTHER).cloned(),
-    }
-}
-
-/// Lookup the default rollup mode for a given metric name.
-/// These decide how values are aggregated when flushing scopes.
-pub fn default_rollup(name: &str) -> Rollup {
-    match name {
-        metric_names::AGE
-        | metric_names::GENOME_SIZE
-        | metric_names::CARRYOVER_RATE
-        | metric_names::DIVERSITY_RATIO
-        | metric_names::SURVIVOR_COUNT
-        | metric_names::SCORE_VOLATILITY
-        | metric_names::FRONT_ADDITIONS
+        metric_names::REPLACE_AGE => {
+            mask.insert(TagKind::Age);
+            mask.insert(TagKind::Failure);
+        }
+        metric_names::REPLACE_INVALID => {
+            mask.insert(TagKind::Failure);
+        }
+        metric_names::FRONT_ADDITIONS
         | metric_names::FRONT_REMOVALS
         | metric_names::FRONT_COMPARISONS
         | metric_names::FRONT_ENTROPY
-        | metric_names::UNIQUE_MEMBERS
+        | metric_names::FRONT_SIZE => {
+            mask.insert(TagKind::Front);
+        }
+        metric_names::SPECIES_AGE_FAIL => {
+            mask.insert(TagKind::Species);
+            mask.insert(TagKind::Age);
+            mask.insert(TagKind::Failure);
+        }
+        metric_names::SPECIES_AGE => {
+            mask.insert(TagKind::Species);
+            mask.insert(TagKind::Age);
+        }
+
+        // “Derived” metrics
+        metric_names::UNIQUE_MEMBERS
         | metric_names::UNIQUE_SCORES
-        | metric_names::SPECIES_AGE
-        | metric_names::SPECIES_SIZE
-        | metric_names::SPECIES_COUNT => Rollup::Mean,
+        | metric_names::NEW_CHILDREN
+        | metric_names::SURVIVOR_COUNT
+        | metric_names::CARRYOVER_RATE
+        | metric_names::DIVERSITY_RATIO
+        | metric_names::SCORE_VOLATILITY => {
+            mask.insert(TagKind::Derived);
+        }
 
-        metric_names::TIME => Rollup::Last,
-
-        _ => Rollup::Sum,
+        _ => {}
     }
+
+    // // Optional: heuristic fallbacks by substring (only if you still like that behavior)
+    // if mask.is_empty() {
+    //     if name.contains("selector") {
+    //         mask.insert(TagKind::Selector);
+    //     }
+    //     if name.contains("mutator") {
+    //         mask.insert(TagKind::Mutator);
+    //         mask.insert(TagKind::Alterer);
+    //     }
+    //     if name.contains("crossover") {
+    //         mask.insert(TagKind::Crossover);
+    //         mask.insert(TagKind::Alterer);
+    //     }
+    //     if name.contains("species") {
+    //         mask.insert(TagKind::Species);
+    //     }
+    //     if name.contains("failure") {
+    //         mask.insert(TagKind::Failure);
+    //     }
+    //     if name.contains("age") {
+    //         mask.insert(TagKind::Age);
+    //     }
+    //     if name.contains("front") {
+    //         mask.insert(TagKind::Front);
+    //     }
+    // }
+
+    mask
 }
-
-pub static DEFAULT_TAG_CACHE: LazyLock<HashMap<&'static str, Arc<Vec<Tag>>>> =
-    LazyLock::new(|| {
-        let mut m = HashMap::new();
-        m.insert(
-            metric_names::REPLACE_AGE,
-            Arc::new(vec![
-                Tag::from(metric_tags::AGE),
-                Tag::from(metric_tags::FAILURE),
-            ]),
-        );
-
-        m.insert(
-            metric_names::REPLACE_INVALID,
-            Arc::new(vec![Tag::from(metric_tags::FAILURE)]),
-        );
-
-        m.insert(
-            metric_names::FRONT_ADDITIONS,
-            Arc::new(vec![Tag::from(metric_tags::FRONT)]),
-        );
-        m.insert(
-            metric_names::FRONT_ENTROPY,
-            Arc::new(vec![Tag::from(metric_tags::FRONT)]),
-        );
-        m.insert(
-            metric_names::SPECIES_AGE_FAIL,
-            Arc::new(vec![
-                Tag::from(metric_tags::SPECIES),
-                Tag::from(metric_tags::AGE),
-                Tag::from(metric_tags::FAILURE),
-            ]),
-        );
-
-        m.insert(
-            metric_names::SPECIES_AGE,
-            Arc::new(vec![
-                Tag::from(metric_tags::SPECIES),
-                Tag::from(metric_tags::AGE),
-            ]),
-        );
-
-        m.insert(
-            metric_tags::SPECIES,
-            Arc::new(vec![Tag::from(metric_tags::SPECIES)]),
-        );
-
-        m.insert(
-            metric_tags::MUTATOR,
-            Arc::new(vec![
-                Tag::from(metric_tags::MUTATOR),
-                Tag::from(metric_tags::ALTERER),
-            ]),
-        );
-
-        m.insert(
-            metric_tags::CROSSOVER,
-            Arc::new(vec![
-                Tag::from(metric_tags::CROSSOVER),
-                Tag::from(metric_tags::ALTERER),
-            ]),
-        );
-
-        m.insert(
-            metric_tags::SELECTOR,
-            Arc::new(vec![Tag::from(metric_tags::SELECTOR)]),
-        );
-
-        m.insert(
-            metric_tags::FAILURE,
-            Arc::new(vec![Tag::from(metric_tags::FAILURE)]),
-        );
-
-        m.insert(
-            metric_tags::AGE,
-            Arc::new(vec![Tag::from(metric_tags::AGE)]),
-        );
-
-        m.insert(
-            metric_tags::OTHER,
-            Arc::new(vec![Tag::from(metric_tags::OTHER)]),
-        );
-
-        m.insert(
-            metric_tags::DISTRIBUTION,
-            Arc::new(vec![Tag::from(metric_tags::DISTRIBUTION)]),
-        );
-
-        for name in [
-            metric_names::UNIQUE_MEMBERS,
-            metric_names::UNIQUE_SCORES,
-            metric_names::NEW_CHILDREN,
-            metric_names::SURVIVOR_COUNT,
-            metric_names::CARRYOVER_RATE,
-            metric_names::LIFETIME_UNIQUE_MEMBERS,
-            metric_names::DIVERSITY_RATIO,
-            metric_names::SCORE_VOLATILITY,
-        ] {
-            m.insert(name, Arc::new(vec![Tag::from(metric_tags::DERIVED)]));
-        }
-
-        for name in [metric_names::SCORES, metric_names::SPECIES_DISTANCE_DIST] {
-            m.insert(name, Arc::new(vec![Tag::from(metric_tags::DISTRIBUTION)]));
-        }
-
-        for name in [
-            metric_names::FRONT_ADDITIONS,
-            metric_names::FRONT_REMOVALS,
-            metric_names::FRONT_COMPARISONS,
-            metric_names::FRONT_ENTROPY,
-            metric_names::FRONT_SIZE,
-        ] {
-            m.insert(name, Arc::new(vec![Tag::from(metric_tags::FRONT)]));
-        }
-
-        m
-    });

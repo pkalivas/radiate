@@ -1,6 +1,6 @@
 use crate::steps::EngineStep;
 use radiate_core::{
-    Chromosome, Ecosystem, Metric, MetricSet, metric, metric_names, phenotype::PhenotypeId,
+    Chromosome, Ecosystem, Metric, MetricSet, metric_names, phenotype::PhenotypeId,
 };
 use radiate_error::Result;
 use std::{cmp::Ordering, collections::HashSet};
@@ -24,10 +24,9 @@ impl AuditStep {
         ecosystem: &Ecosystem<C>,
     ) {
         if let Some(species) = ecosystem.species() {
-            let mut species_ages = Metric::new(metric_names::SPECIES_AGE);
-            let mut new_species_count = Metric::new(metric_names::SPECIES_CREATED);
-            let mut species_count = Metric::new(metric_names::SPECIES_COUNT);
-            let mut species_size = Metric::new(metric_names::SPECIES_SIZE);
+            let mut new_species_count = 0;
+            let mut species_ages = Vec::with_capacity(species.len());
+            let mut species_size = Vec::with_capacity(species.len());
 
             let pop_len = ecosystem.population().len().max(1);
             let pop_len_f = pop_len as f32;
@@ -41,20 +40,18 @@ impl AuditStep {
                 let spec_age = spec.age(generation);
 
                 if spec_age == 0 {
-                    new_species_count.apply_update(1);
+                    new_species_count += 1;
                 }
 
                 let len = spec.len();
 
-                species_ages.apply_update(spec_age);
-                species_size.apply_update(len);
+                species_ages.push(spec_age);
+                species_size.push(len);
 
                 max_size = max_size.max(len);
                 size_sum += len;
                 size_vec.push(len);
             }
-
-            species_count.apply_update(species.len());
 
             // Largest species share (how dominant is the biggest species)
             let largest_share = if pop_len > 0 {
@@ -84,28 +81,21 @@ impl AuditStep {
                 }
             }
 
-            let mut evenness_metric = Metric::new(metric_names::SPECIES_EVENNESS);
-            evenness_metric.apply_update(evenness);
-
             // Species churn ratio: new species / total species
-            let new_species_last = new_species_count.last_value();
             let churn_ratio = if s_count > 0 {
-                new_species_last / s_count as f32
+                new_species_count as f32 / s_count as f32
             } else {
                 0.0
             };
             let mut churn_metric = Metric::new(metric_names::SPECIES_NEW_RATIO);
             churn_metric.apply_update(churn_ratio);
 
-            metrics.upsert([
-                new_species_count,
-                species_ages,
-                species_count,
-                species_size,
-                largest_share_metric,
-                evenness_metric,
-                churn_metric,
-            ]);
+            metrics.upsert((metric_names::SPECIES_AGE, &species_ages));
+            metrics.upsert((metric_names::SPECIES_SIZE, &species_size));
+            metrics.upsert((metric_names::SPECIES_COUNT, species.len()));
+            metrics.upsert((metric_names::SPECIES_CREATED, new_species_count));
+            metrics.upsert((metric_names::SPECIES_EVENNESS, evenness));
+            metrics.upsert((metric_names::SPECIES_NEW_RATIO, churn_ratio));
         } else {
             let population_unique_rc_count = ecosystem.population().shared_count();
             assert!(
@@ -141,11 +131,9 @@ impl AuditStep {
         self.seen_ids.extend(curr_ids.iter().copied());
         drop(std::mem::replace(&mut self.last_gen_ids, curr_ids));
 
-        metrics.upsert([
-            metric!(metric_names::NEW_CHILDREN, new_this_gen),
-            metric!(metric_names::CARRYOVER_RATE, carryover_rate),
-            metric!(metric_names::LIFETIME_UNIQUE_MEMBERS, self.seen_ids.len()),
-        ]);
+        metrics.upsert((metric_names::CARRYOVER_RATE, carryover_rate));
+        metrics.upsert((metric_names::NEW_CHILDREN, new_this_gen));
+        metrics.upsert((metric_names::SURVIVOR_COUNT, survivor_count));
     }
 
     #[inline]
@@ -155,8 +143,8 @@ impl AuditStep {
         ecosystem: &Ecosystem<C>,
     ) {
         let pop_len = ecosystem.population().len() as f32;
-        let derived_scores = metrics.get(metric_names::SCORES).map(|score| {
-            let score_coeff = match (score.distribution_std_dev(), score.distribution_mean()) {
+        if let Some(scores) = metrics.get(metric_names::SCORES) {
+            let score_coeff = match (scores.value_std_dev(), scores.value_mean()) {
                 (Some(std_dev), Some(mean)) if mean != 0.0 => std_dev / mean,
                 _ => 0.0,
             };
@@ -170,14 +158,8 @@ impl AuditStep {
                 0.0
             };
 
-            let coeff_metric = metric!(metric_names::SCORE_VOLATILITY, score_coeff);
-            let diversity_metric = metric!(metric_names::DIVERSITY_RATIO, diversity_ratio);
-
-            [coeff_metric, diversity_metric]
-        });
-
-        if let Some([coeff_metric, diversity_metric]) = derived_scores {
-            metrics.upsert([coeff_metric, diversity_metric]);
+            metrics.upsert((metric_names::SCORE_VOLATILITY, score_coeff));
+            metrics.upsert((metric_names::DIVERSITY_RATIO, diversity_ratio));
         }
     }
 }
@@ -200,21 +182,20 @@ impl<C: Chromosome> EngineStep<C> for AuditStep {
         self.unique_score_work.reserve_exact(n);
         self.age_distribution.reserve_exact(n);
 
-        let mut age_metric = Metric::new(metric_names::AGE);
-        let mut size_metric = Metric::new(metric_names::GENOME_SIZE);
+        let mut size_metric = Vec::with_capacity(n);
         let mut unique_members = HashSet::with_capacity(n);
 
         for p in pop.iter() {
             unique_members.insert(p.id());
 
-            age_metric.apply_update(p.age(generation));
+            self.age_distribution.push(p.age(generation));
 
             let geno_size = p
                 .genotype()
                 .iter()
                 .map(|chromosome| chromosome.len())
                 .sum::<usize>();
-            size_metric.apply_update(geno_size);
+            size_metric.push(geno_size);
 
             if let Some(s) = p.score() {
                 let v = s.as_f32();
@@ -222,9 +203,6 @@ impl<C: Chromosome> EngineStep<C> for AuditStep {
                 self.unique_score_work.push(v);
             }
         }
-
-        let mut equal_metric = Metric::new(metric_names::UNIQUE_MEMBERS);
-        equal_metric.apply_update(unique_members.len());
 
         self.unique_score_work
             .sort_unstable_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal));
@@ -237,21 +215,14 @@ impl<C: Chromosome> EngineStep<C> for AuditStep {
             }
         }
 
-        let mut unique_metric = Metric::new(metric_names::UNIQUE_SCORES);
-        unique_metric.apply_update(unique_count);
-
-        let mut score_metric = Metric::new(metric_names::SCORES);
         if !self.score_distribution.is_empty() {
-            score_metric.apply_update(&self.score_distribution);
+            metrics.upsert((metric_names::SCORES, &self.score_distribution));
         }
 
-        metrics.upsert([
-            age_metric,
-            size_metric,
-            equal_metric,
-            unique_metric,
-            score_metric,
-        ]);
+        metrics.upsert((metric_names::AGE, &self.age_distribution));
+        metrics.upsert((metric_names::GENOME_SIZE, &size_metric));
+        metrics.upsert((metric_names::UNIQUE_MEMBERS, unique_members.len()));
+        metrics.upsert((metric_names::UNIQUE_SCORES, unique_count));
 
         self.calc_membership_metrics(metrics, ecosystem);
         Self::calc_species_metrics(generation, metrics, ecosystem);
