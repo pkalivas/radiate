@@ -79,6 +79,15 @@ impl MetricSet {
         }
     }
 
+    fn add_or_update_internal(&mut self, metric: Metric) {
+        self.set_stats.apply_update(1);
+        if let Some(existing) = self.metrics.get_mut(metric.name()) {
+            existing.update_from(metric);
+        } else {
+            self.metrics.insert(intern!(metric.name()), metric);
+        }
+    }
+
     #[inline(always)]
     pub fn iter_tagged<'a>(
         &'a self,
@@ -153,12 +162,6 @@ impl MetricSet {
             metrics: self.metrics.len(),
             updates: self.set_stats.statistic().map(|s| s.sum()).unwrap_or(0.0),
         }
-    }
-
-    pub fn sorted_tagged<'a>(&'a self, tag: impl Into<TagKind>) -> Vec<(&'static str, &'a Metric)> {
-        let mut items = self.iter_tagged(tag.into()).collect::<Vec<_>>();
-        items.sort_by(|a, b| a.0.cmp(b.0));
-        items
     }
 
     pub fn get_statistic_val<F, T>(&self, name: &str, func: F) -> T
@@ -284,15 +287,6 @@ impl MetricSet {
 
     pub fn species_age(&self) -> Option<&Metric> {
         self.get(super::metric_names::SPECIES_AGE)
-    }
-
-    fn add_or_update_internal(&mut self, metric: Metric) {
-        self.set_stats.apply_update(1);
-        if let Some(existing) = self.metrics.get_mut(metric.name()) {
-            existing.update_from(metric);
-        } else {
-            self.metrics.insert(intern!(metric.name()), metric);
-        }
     }
 }
 

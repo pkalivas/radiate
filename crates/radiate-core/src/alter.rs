@@ -1,11 +1,8 @@
 use crate::{Chromosome, Gene, Genotype, Metric, Population, math::indexes, random_provider};
-use crate::{MetricUpdate, Rate, metric};
-use core::panic;
+use crate::{Rate, metric};
 use radiate_utils::{ToSnakeCase, intern};
-use std::collections::HashMap;
 use std::iter::once;
 use std::rc::Rc;
-use std::time::Duration;
 
 #[macro_export]
 macro_rules! alters {
@@ -137,10 +134,10 @@ impl<C: Chromosome> Alterer<C> {
                 let AlterResult(count, metrics) = m.mutate(population, generation, rate_value);
                 let metric = metric!(name, (count, timer.elapsed()));
 
-                Self::aggregate_metrics(match metrics {
+                match metrics {
                     Some(metrics) => metrics.into_iter().chain(once(metric)).collect(),
                     None => vec![metric],
-                })
+                }
             }
             Alterer::Crossover(name, rate, c) => {
                 let rate_value = rate.value(generation);
@@ -149,47 +146,12 @@ impl<C: Chromosome> Alterer<C> {
                 let AlterResult(count, metrics) = c.crossover(population, generation, rate_value);
                 let metric = metric!(name, (count, timer.elapsed()));
 
-                Self::aggregate_metrics(match metrics {
+                match metrics {
                     Some(metrics) => metrics.into_iter().chain(once(metric)).collect(),
                     None => vec![metric],
-                })
+                }
             }
         }
-    }
-
-    fn aggregate_metrics(metrics: impl IntoIterator<Item = Metric>) -> Vec<Metric> {
-        let mut time_map: HashMap<&'static str, Duration> = HashMap::new();
-        let mut stat_map: HashMap<&'static str, f32> = HashMap::new();
-
-        for metric in metrics {
-            let name = intern!(metric.name());
-            if let Some(time_stat) = metric.time_statistic() {
-                let update = time_stat.last_time();
-                time_map
-                    .entry(name)
-                    .and_modify(|existing| *existing += update)
-                    .or_insert(update);
-            }
-
-            if let Some(value_stat) = metric.statistic() {
-                let update = value_stat.last_value();
-                stat_map
-                    .entry(name)
-                    .and_modify(|existing| *existing += update)
-                    .or_insert(update);
-            }
-        }
-
-        let mut aggregated_metrics = Vec::new();
-        for (name, total_time) in time_map {
-            aggregated_metrics.push(metric!(name, total_time));
-        }
-
-        for (name, total_value) in stat_map {
-            aggregated_metrics.push(metric!(name, total_value));
-        }
-
-        aggregated_metrics
     }
 }
 

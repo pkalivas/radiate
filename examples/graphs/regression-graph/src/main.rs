@@ -16,7 +16,7 @@ fn main() {
         .codec(GraphCodec::directed(1, 1, store))
         .raw_fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
-        .diversity(NeatDistance::new(0.1, 0.1, 0.3))
+        // .diversity(NeatDistance::new(0.1, 0.1, 0.3))
         .species_threshold(0.4)
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
@@ -25,7 +25,11 @@ fn main() {
         ))
         .build();
 
-    engine.iter().until_score(MIN_SCORE).last().inspect(display);
+    radiate::ui(engine)
+        .iter()
+        .until_score(MIN_SCORE)
+        .last()
+        .inspect(display);
 }
 
 fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {

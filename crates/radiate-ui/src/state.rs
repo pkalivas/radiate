@@ -121,14 +121,16 @@ impl ChartState {
 
     pub fn update_from_metric(&mut self, metric: &Metric) {
         if let Some(stat) = metric.statistic() {
-            let key = intern!(metric.name());
-            {
-                let value_chart = self.get_or_create_chart(key, ChartType::Value);
-                value_chart.add_value((value_chart.len() as f64, stat.last_value() as f64));
-            }
-            {
-                let mean_chart = self.get_or_create_chart(key, ChartType::Mean);
-                mean_chart.add_value((mean_chart.len() as f64, stat.mean() as f64));
+            if !metric.contains_tag(&TagKind::Distribution) {
+                let key = intern!(metric.name());
+                {
+                    let value_chart = self.get_or_create_chart(key, ChartType::Value);
+                    value_chart.add_value((value_chart.len() as f64, stat.last_value() as f64));
+                }
+                {
+                    let mean_chart = self.get_or_create_chart(key, ChartType::Mean);
+                    mean_chart.add_value((mean_chart.len() as f64, stat.mean() as f64));
+                }
             }
         }
     }

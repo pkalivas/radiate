@@ -41,10 +41,6 @@ where
 
         let elapsed = timer.elapsed();
 
-        for (_, metric) in self.metrics.iter() {
-            println!("Metric: {} => {:?}", metric.name(), metric.value_count());
-        }
-
         self.metrics.flush_all_into(&mut context.metrics);
 
         context.metrics.upsert((metric_names::TIME, elapsed));

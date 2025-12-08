@@ -24,10 +24,6 @@ impl Distribution {
         &self.last_sequence
     }
 
-    // pub fn take_last_sequence(&mut self) -> Vec<f32> {
-    //     std::mem::take(&mut self.last_sequence)
-    // }
-
     pub fn count(&self) -> i32 {
         self.last_sequence.len() as i32
     }

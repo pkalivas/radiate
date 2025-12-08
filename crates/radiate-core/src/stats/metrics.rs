@@ -6,7 +6,7 @@ use crate::{
 use radiate_utils::{ToSnakeCase, cache_string, intern, intern_snake_case};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use std::{fmt::Debug, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 
 #[macro_export]
 macro_rules! metric {
@@ -15,19 +15,7 @@ macro_rules! metric {
         metric.apply_update($update);
         metric
     }};
-    ($scope:expr, $name:expr, $value:expr) => {{ $crate::Metric::new_scoped($name).upsert($value) }};
     ($name:expr) => {{ $crate::Metric::new($name).upsert(1) }};
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub enum Rollup {
-    #[default]
-    Sum,
-    Mean,
-    Last,
-    Min,
-    Max,
 }
 
 #[derive(Clone, PartialEq, Default)]
@@ -129,9 +117,14 @@ impl Metric {
         self
     }
 
+    #[inline(always)]
     pub fn update_from(&mut self, other: Metric) {
         if let Some(stat) = other.inner.value_statistic {
-            self.apply_update(stat);
+            if stat.count() as f32 == stat.sum() && !other.tags.has(TagKind::Distribution) {
+                self.apply_update(stat.sum());
+            } else {
+                self.apply_update(stat);
+            }
         }
 
         if let Some(time) = other.inner.time_statistic {
@@ -154,9 +147,6 @@ impl Metric {
             MetricUpdate::Duration(value) => {
                 self.update_time_statistic(value);
             }
-            MetricUpdate::Distribution(values) => {
-                self.update_statistic_from_iter(values.iter().cloned());
-            }
             MetricUpdate::FloatOperation(value, time) => {
                 self.update_statistic(value);
                 self.update_time_statistic(time);
@@ -167,6 +157,9 @@ impl Metric {
             }
             MetricUpdate::UsizeDistribution(values) => {
                 self.update_statistic_from_iter(values.iter().map(|v| *v as f32));
+            }
+            MetricUpdate::Distribution(values) => {
+                self.update_statistic_from_iter(values.iter().cloned());
             }
             MetricUpdate::Statistic(stat) => {
                 if let Some(existing_stat) = &mut self.inner.value_statistic {
@@ -226,6 +219,7 @@ impl Metric {
             }
 
             self.new_statistic(new_stat);
+            self.add_tag(TagKind::Distribution);
         }
     }
 

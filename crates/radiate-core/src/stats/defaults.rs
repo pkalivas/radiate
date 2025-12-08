@@ -1,3 +1,5 @@
+use crate::stats::{Tag, TagKind};
+
 pub mod metric_names {
     pub const TIME: &str = "time";
 
@@ -64,8 +66,6 @@ pub mod metric_tags {
     pub const TIME: &str = "time";
     pub const DISTRIBUTION: &str = "distribution";
 }
-
-use crate::stats::{Tag, TagKind};
 
 pub fn default_tags(name: &str) -> Tag {
     let mut mask = Tag::empty();
