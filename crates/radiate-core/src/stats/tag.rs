@@ -1,82 +1,3 @@
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum TagKind {
-    Selector,
-    Alterer,
-    Mutator,
-    Crossover,
-    Species,
-    Failure,
-    Age,
-    Front,
-    Derived,
-    Other,
-    Statistic,
-    Time,
-    Distribution,
-}
-
-impl TagKind {
-    pub const COUNT: usize = 13;
-
-    #[inline]
-    pub fn from_index(idx: u8) -> Option<Self> {
-        use TagKind::*;
-        Some(match idx {
-            0 => Selector,
-            1 => Alterer,
-            2 => Mutator,
-            3 => Crossover,
-            4 => Species,
-            5 => Failure,
-            6 => Age,
-            7 => Front,
-            8 => Derived,
-            9 => Other,
-            10 => Statistic,
-            11 => Time,
-            12 => Distribution,
-            _ => return None,
-        })
-    }
-
-    #[inline]
-    pub fn bit(self) -> u16 {
-        1 << (self as u8)
-    }
-
-    #[inline]
-    pub fn as_str(&self) -> &'static str {
-        use TagKind::*;
-        match self {
-            Selector => "Selector",
-            Alterer => "Alterer",
-            Mutator => "Mutator",
-            Crossover => "Crossover",
-            Species => "Species",
-            Failure => "Failure",
-            Age => "Age",
-            Front => "Front",
-            Derived => "Derived",
-            Other => "Other",
-            Statistic => "Statistic",
-            Time => "Time",
-            Distribution => "Distribution",
-        }
-    }
-}
-
-impl PartialOrd for TagKind {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some((*self as u8).cmp(&(*other as u8)))
-    }
-}
-
-impl Ord for TagKind {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        (*self as u8).cmp(&(*other as u8))
-    }
-}
-
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub struct Tag(u16);
 
@@ -158,6 +79,85 @@ impl From<Tag> for u16 {
     }
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum TagKind {
+    Selector,
+    Alterer,
+    Mutator,
+    Crossover,
+    Species,
+    Failure,
+    Age,
+    Front,
+    Derived,
+    Other,
+    Statistic,
+    Time,
+    Distribution,
+}
+
+impl TagKind {
+    pub const COUNT: usize = 13;
+
+    #[inline]
+    pub fn from_index(idx: u8) -> Option<Self> {
+        use TagKind::*;
+        Some(match idx {
+            0 => Selector,
+            1 => Alterer,
+            2 => Mutator,
+            3 => Crossover,
+            4 => Species,
+            5 => Failure,
+            6 => Age,
+            7 => Front,
+            8 => Derived,
+            9 => Other,
+            10 => Statistic,
+            11 => Time,
+            12 => Distribution,
+            _ => return None,
+        })
+    }
+
+    #[inline]
+    pub fn bit(self) -> u16 {
+        1 << (self as u8)
+    }
+
+    #[inline]
+    pub fn as_str(&self) -> &'static str {
+        use TagKind::*;
+        match self {
+            Selector => "Selector",
+            Alterer => "Alterer",
+            Mutator => "Mutator",
+            Crossover => "Crossover",
+            Species => "Species",
+            Failure => "Failure",
+            Age => "Age",
+            Front => "Front",
+            Derived => "Derived",
+            Other => "Other",
+            Statistic => "Statistic",
+            Time => "Time",
+            Distribution => "Distribution",
+        }
+    }
+}
+
+impl PartialOrd for TagKind {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some((*self as u8).cmp(&(*other as u8)))
+    }
+}
+
+impl Ord for TagKind {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        (*self as u8).cmp(&(*other as u8))
+    }
+}
+
 pub struct TagMaskIter {
     bits: u16,
 }
@@ -172,7 +172,6 @@ impl Iterator for TagMaskIter {
 
         let tz = self.bits.trailing_zeros() as u8;
         self.bits &= self.bits - 1; // clear lowest set bit
-
         TagKind::from_index(tz)
     }
 }

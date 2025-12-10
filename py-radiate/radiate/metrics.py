@@ -128,33 +128,3 @@ class Metric(PyObject[PyMetric]):
             return None
         return timedelta(seconds=time_max)
 
-    # --- sequence stats ---
-    def seq_last(self) -> list[float] | None:
-        return self.__backend__().sequence_last
-
-    def seq_mean(self) -> float | None:
-        return self.__backend__().sequence_mean
-
-    def seq_stddev(self) -> float | None:
-        return self.__backend__().sequence_stddev
-
-    def seq_variance(self) -> float | None:
-        return self.__backend__().sequence_variance
-
-    def seq_kurt(self) -> float | None:
-        return self.__backend__().sequence_kurtosis
-
-    def seq_skew(self) -> float | None:
-        return self.__backend__().sequence_skewness
-
-    def seq_min(self) -> float | None:
-        return self.__backend__().sequence_min
-
-    def seq_max(self) -> float | None:
-        return self.__backend__().sequence_max
-
-    def seq_count(self) -> int:
-        last = self.seq_last()
-        if last is None:
-            return 0
-        return len(last)

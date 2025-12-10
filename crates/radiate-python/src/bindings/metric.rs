@@ -170,43 +170,6 @@ impl PyMetricSet {
 
                 out.push(row);
             }
-
-            // ----- dist row -----
-            // if let Some(d) = m.distribution() {
-            //     let row = PyDict::new(py);
-            //     row.set_item("name", &base_name)?;
-            //     row.set_item("rollup", &rollup)?;
-            //     row.set_item("kind", "dist")?;
-
-            //     row.set_item("count", d.count())?;
-            //     row.set_item("mean", Some(d.mean()))?;
-            //     row.set_item("min", Some(d.min()))?;
-            //     row.set_item("max", Some(d.max()))?;
-            //     row.set_item("std", Some(d.standard_deviation()))?;
-            //     row.set_item("total", None::<f32>)?;
-            //     row.set_item("entropy", Some(d.entropy()))?;
-
-            //     row.set_item("time_mean_ns", None::<i128>)?;
-            //     row.set_item("time_min_ns", None::<i128>)?;
-            //     row.set_item("time_max_ns", None::<i128>)?;
-            //     row.set_item("time_std_ns", None::<i128>)?;
-            //     row.set_item("time_sum_ns", None::<i128>)?;
-
-            //     // row.set_item("seq_mean", Some(d.mean()))?;
-            //     // row.set_item("seq_min", Some(d.min()))?;
-            //     // row.set_item("seq_max", Some(d.max()))?;
-            //     // row.set_item("seq_std", Some(d.standard_deviation()))?;
-            //     // row.set_item("seq_var", Some(d.variance()))?;
-            //     // row.set_item("seq_skew", Some(d.skewness()))?;
-            //     // row.set_item("seq_kurt", Some(d.kurtosis()))?;
-            //     // if include_last_sequence {
-            //     //     row.set_item("seq_last", m.last_sequence().map(|seq| seq.to_vec()))?;
-            //     // } else {
-            //     //     row.set_item("seq_last", py.None())?;
-            //     // }
-
-            //     out.push(row);
-            // }
         }
         Ok(out)
     }

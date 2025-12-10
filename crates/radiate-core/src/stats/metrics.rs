@@ -83,30 +83,6 @@ impl Metric {
         self.tags.iter()
     }
 
-    pub fn get_stat<F, T>(&self, func: F) -> T
-    where
-        F: Fn(&Statistic) -> T,
-        T: Default,
-    {
-        self.inner
-            .value_statistic
-            .as_ref()
-            .map(|stat| func(stat))
-            .unwrap_or_default()
-    }
-
-    pub fn get_time<F, T>(&self, func: F) -> T
-    where
-        F: Fn(&TimeStatistic) -> T,
-        T: Default,
-    {
-        self.inner
-            .time_statistic
-            .as_ref()
-            .map(|time| func(time))
-            .unwrap_or_default()
-    }
-
     pub fn clear_values(&mut self) {
         self.inner = MetricInner::default();
     }

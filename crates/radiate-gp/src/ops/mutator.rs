@@ -33,7 +33,7 @@ impl OperationMutator {
         &self,
         node: &mut impl Node<Value = Op<T>>,
         store: &NodeStore<Op<T>>,
-        rate: f32,
+        _rate: f32,
     ) -> Vec<Metric>
     where
         T: Clone + PartialEq + Default,
@@ -47,7 +47,7 @@ impl OperationMutator {
                 }
             }
             #[cfg(feature = "pgm")]
-            Op::PGM(..) => result.extend(self.try_mutate_pga_op(node, store, rate)),
+            Op::PGM(..) => result.extend(self.try_mutate_pga_op(node, store, _rate)),
             _ => {
                 let new_op: Op<T> = store.new_instance(node.node_type());
                 (new_op.arity() == node.value().arity())

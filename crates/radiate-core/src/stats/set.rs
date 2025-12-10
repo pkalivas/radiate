@@ -1,5 +1,5 @@
 use crate::{
-    Metric, MetricUpdate, Statistic, TimeStatistic,
+    Metric, MetricUpdate,
     stats::{Tag, TagKind, defaults::try_add_tag_from_str, fmt},
 };
 use radiate_utils::intern;
@@ -162,22 +162,6 @@ impl MetricSet {
             metrics: self.metrics.len(),
             updates: self.set_stats.statistic().map(|s| s.sum()).unwrap_or(0.0),
         }
-    }
-
-    pub fn get_statistic_val<F, T>(&self, name: &str, func: F) -> T
-    where
-        F: Fn(&Statistic) -> T,
-        T: Default,
-    {
-        self.get(name).map(|m| m.get_stat(func)).unwrap_or_default()
-    }
-
-    pub fn get_time_val<F, T>(&self, name: &str, func: F) -> T
-    where
-        F: Fn(&TimeStatistic) -> T,
-        T: Default,
-    {
-        self.get(name).map(|m| m.get_time(func)).unwrap_or_default()
     }
 
     pub fn dashboard(&self) -> String {

@@ -1,11 +1,8 @@
+use crate::stats::TagKind;
+use crate::{Metric, MetricSet, metric_names};
 use std::time::Duration;
 use std::{fmt::Write as _, io};
 
-use crate::stats::TagKind;
-use crate::{Metric, MetricSet, metric_names};
-
-/// ASCII sparkline for quick trend peeks (uses last distribution sequence).
-/// Example: ▁▂▃▄▅▆▇█
 pub fn sparkline(values: &[f32], width: usize) -> String {
     if values.is_empty() || width == 0 {
         return String::new();
@@ -148,45 +145,10 @@ pub fn render_metric_rows_full(
         ).unwrap();
     }
 
-    // Distribution row (+ optional sparkline)
-    // if let Some(dist) = inner.distribution.as_ref()
-    //     && tag == metric_tags::DISTRIBUTION
-    // {
-    //     writeln!(
-    //         out,
-    //         "{:<24} | {:<6} | {:<10.3} | {:<10.3} | {:<10.3} | {:<6} | {:<12} | {:<10.3} | {:<10.3} | {:<10.3} | {:<10.3}",
-    //         name,
-    //         "dist",
-    //         dist.mean(),
-    //         dist.min(),
-    //         dist.max(),
-    //         dist.count(),
-    //         "-",
-    //         dist.standard_deviation(),
-    //         dist.skewness(),
-    //         dist.kurtosis(),
-    //         format!("{:.3}", dist.entropy()),
-    //     ).unwrap();
-
-    //     if include_spark {
-    //         if let Some(seq) = m.last_sequence() {
-    //             if !seq.is_empty() {
-    //                 let s = sparkline(seq, 40);
-    //                 writeln!(out, "{:<24}   {}", "", s).unwrap();
-    //             }
-    //         }
-    //     }
-    // }
-
     Ok(())
 }
 
-fn render_scope(
-    ms: &MetricSet,
-    tag: TagKind,
-    title: &str,
-    // include_spark: bool,
-) -> io::Result<String> {
+fn render_tagged(ms: &MetricSet, tag: TagKind, title: &str) -> io::Result<String> {
     let mut out = String::new();
     writeln!(out, "== {} ==", title).unwrap();
     out = render_table_header(out)?;
@@ -201,25 +163,17 @@ fn render_scope(
     Ok(out)
 }
 
-/// Render a full, multi-scope view:
-/// - dashboard summary line
-/// - Generation table
-/// - Lifetime table
-/// - Step timings table
 pub fn render_full(metrics: &MetricSet) -> io::Result<String> {
     let mut out = String::new();
 
     let dash = render_dashboard(metrics)?;
     writeln!(out, "[metrics]{}", dash).unwrap();
 
-    let generation = render_scope(metrics, TagKind::Statistic, "Stataistics")?;
+    let generation = render_tagged(metrics, TagKind::Statistic, "Stataistics")?;
     writeln!(out, "\n{}", generation).unwrap();
 
-    let life = render_scope(metrics, TagKind::Time, "Distributions")?;
+    let life = render_tagged(metrics, TagKind::Time, "Times")?;
     writeln!(out, "\n{}", life).unwrap();
-
-    // let step = render_scope(metrics, metric_tags::DISTRIBUTION, "Distribution", true)?;
-    // writeln!(out, "\n{}", step).unwrap();
 
     Ok(out)
 }

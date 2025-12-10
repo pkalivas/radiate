@@ -41,24 +41,22 @@ where
     fn mutate_chromosome(&self, chromosome: &mut C, rate: f32) -> AlterResult {
         let mut mutations = 0;
 
-        random_provider::with_rng(|rand| {
-            for gene in chromosome.iter_mut() {
-                if rand.bool(rate) {
-                    let operator = rand.range(0..4);
+        for gene in chromosome.iter_mut() {
+            if random_provider::bool(rate) {
+                let operator = random_provider::range(0..4);
 
-                    let new_gene = match operator {
-                        0 => gene.clone() + gene.new_instance(),
-                        1 => gene.clone() - gene.new_instance(),
-                        2 => gene.clone() * gene.new_instance(),
-                        3 => gene.clone() / gene.new_instance(),
-                        _ => panic!("Invalid operator - this shouldn't happen: {}", operator),
-                    };
+                let new_gene = match operator {
+                    0 => gene.clone() + gene.new_instance(),
+                    1 => gene.clone() - gene.new_instance(),
+                    2 => gene.clone() * gene.new_instance(),
+                    3 => gene.clone() / gene.new_instance(),
+                    _ => panic!("Invalid operator - this shouldn't happen: {}", operator),
+                };
 
-                    *gene = new_gene;
-                    mutations += 1;
-                }
+                *gene = new_gene;
+                mutations += 1;
             }
-        });
+        }
 
         AlterResult::from(mutations)
     }
