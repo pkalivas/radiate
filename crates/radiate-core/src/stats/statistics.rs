@@ -182,11 +182,8 @@ impl Statistic {
         self.max = f32::MIN;
         self.min = f32::MAX;
     }
-}
 
-impl Statistic {
     pub fn merge(&mut self, other: &Statistic) {
-        // Trivial cases first
         if other.count == 0 {
             return;
         }

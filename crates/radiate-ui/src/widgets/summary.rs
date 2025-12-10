@@ -1,5 +1,5 @@
-use crate::defaults::{ALT_ROW_BG_COLOR, NORMAL_ROW_BG};
 use crate::state::AppState;
+use crate::styles::{ALT_ROW_BG_COLOR, NORMAL_ROW_BG};
 use radiate_engines::Chromosome;
 use radiate_engines::stats::fmt_duration;
 use ratatui::prelude::*;
@@ -129,7 +129,7 @@ impl<'a, C: Chromosome> Widget for EngineBaseWidget<'a, C> {
     }
 }
 
-pub fn striped_rows<'a>(rows: impl IntoIterator<Item = Row<'a>>) -> impl Iterator<Item = Row<'a>> {
+fn striped_rows<'a>(rows: impl IntoIterator<Item = Row<'a>>) -> impl Iterator<Item = Row<'a>> {
     rows.into_iter().enumerate().map(|(i, row)| {
         let bg = if i % 2 == 0 {
             NORMAL_ROW_BG

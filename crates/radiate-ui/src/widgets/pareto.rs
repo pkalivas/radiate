@@ -157,7 +157,6 @@ where
             return;
         }
 
-        // Avoid zero-width axes
         if (max_x - min_x).abs() < f64::EPSILON {
             min_x -= 0.5;
             max_x += 0.5;

@@ -8,12 +8,12 @@ use ratatui::{
     widgets::{Axis, Block, Chart, Dataset, GraphType, Widget},
 };
 pub struct ChartWidget<'a> {
-    last_value: Vec<&'a ChartInner>,
+    chart: Vec<&'a ChartInner>,
 }
 
 impl<'a> ChartWidget<'a> {
-    pub fn new(last_value: Vec<&'a ChartInner>) -> Self {
-        Self { last_value }
+    pub fn new(chart: Vec<&'a ChartInner>) -> Self {
+        Self { chart }
     }
 }
 
@@ -47,7 +47,7 @@ impl<'a> From<Vec<Option<&'a ChartInner>>> for ChartWidget<'a> {
 
 impl<'a> Widget for ChartWidget<'a> {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        if self.last_value.is_empty() {
+        if self.chart.is_empty() {
             let block = Block::bordered().title(Line::from(" No Data ").centered());
             block.render(area, buf);
             return;
@@ -58,7 +58,7 @@ impl<'a> Widget for ChartWidget<'a> {
         let mut min_x = f64::MAX;
         let mut max_x = f64::MIN;
 
-        for chart in &self.last_value {
+        for chart in &self.chart {
             if chart.min_y() < min_y {
                 min_y = chart.min_y();
             }
@@ -76,7 +76,7 @@ impl<'a> Widget for ChartWidget<'a> {
         let x_bounds = (min_x, max_x);
         let y_bounds = (min_y, max_y);
 
-        let chart = chart_widget(x_bounds, y_bounds, self.last_value);
+        let chart = chart_widget(x_bounds, y_bounds, self.chart);
         chart.render(area, buf);
     }
 }

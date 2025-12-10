@@ -8,7 +8,7 @@ use std::{
     sync::{
         Arc,
         atomic::{AtomicBool, Ordering},
-        mpsc::Sender,
+        mpsc,
     },
     time::Duration,
 };
@@ -21,7 +21,7 @@ where
     T: Clone + Send + Sync + 'static,
 {
     inner: GeneticEngine<C, T>,
-    dispatcher: Arc<Sender<InputEvent<C>>>,
+    dispatcher: Arc<mpsc::Sender<InputEvent<C>>>,
     stop_flag: Arc<AtomicBool>,
     app_thread: Option<std::thread::JoinHandle<Result<()>>>,
     key_thread: Option<std::thread::JoinHandle<Result<()>>>,

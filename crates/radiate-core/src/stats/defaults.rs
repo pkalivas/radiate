@@ -44,7 +44,6 @@ pub mod metric_names {
 }
 
 pub mod metric_tags {
-
     pub const SELECTOR: &str = "selector";
 
     pub const ALTERER: &str = "alterer";

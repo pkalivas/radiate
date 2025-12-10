@@ -24,23 +24,11 @@ fn main() {
         ))
         .build();
 
-    let result = radiate::ui(engine)
-        // let result = engine
-        .iter()
-        // .logging()
-        .limit(1000)
-        .last()
-        .unwrap();
+    let result = engine.iter().limit(1000).last().unwrap();
 
     println!("{}", result.metrics());
-
-    //     // .collect::<Front<Phenotype<FloatChromosome>>>();
-    // ront_additions          | value  | 53.074     | 4.000      | 64.000     | 1000   | -            | 4.320      | -2.386     | 26.826     | -
-    // front_comparisons        | value  | 15.558     | 6.000      | 96.000     | 1000   | -            | 4.452      | 7.019      | 124.038    | -
-    // front_entropy            | value  | 0.919      | 0.852      | 0.953      | 100    | -            | 0.020      | 0.000      | 0.000      | -
-    // front_removals           | value  | 0.012      | 0.000      | 2.000      | 1000   | -            | 0.126      | 0.000      | 0.000      | -
-    // front_size               | value  | 793.359    | 4.000      | 900.000    | 1000   | -            | 86.039     | -3.961     | 32.537     | -
-    // plot_front(&result.front().unwrap());
+    let front = result.front().unwrap();
+    plot_front(front);
 }
 
 fn plot_front(front: &Front<Phenotype<FloatChromosome>>) {

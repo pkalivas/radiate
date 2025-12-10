@@ -1,4 +1,3 @@
-use crate::defaults::{DISTRIBUTION_HEADER_CELLS, STAT_HEADER_CELLS, TIME_HEADER_CELLS};
 use crate::state::{AppState, AppTableState, ChartType};
 use crate::styles::{self, COLOR_WHEEL_400};
 use crate::widgets::ChartWidget;
@@ -16,6 +15,19 @@ use ratatui::{
 };
 use std::iter::{once, repeat};
 use tui_piechart::{PieChart, PieSlice};
+
+pub const STAT_HEADER_CELLS: [&str; 8] = [
+    "Metric",
+    "Min",
+    "Max",
+    "μ (mean)",
+    "Sum",
+    "StdDev",
+    "Var",
+    "Count",
+];
+
+pub const TIME_HEADER_CELLS: [&str; 5] = ["Metric", "Min", "Max", "μ (mean)", "Total"];
 
 pub struct TimeTableWidget<'a, C: Chromosome> {
     state: &'a mut AppState<C>,
@@ -42,13 +54,6 @@ impl<'a, C: Chromosome> Widget for TimeTableWidget<'a, C> {
             .filter_map(|(index, (name, m))| {
                 m.time_statistic().map(|time| {
                     let total_ms = time.sum().as_millis() as f64;
-
-                    const MAX_LABEL_LEN: usize = 12;
-                    let mut label = (*name).to_string();
-                    if label.len() > MAX_LABEL_LEN {
-                        label.truncate(MAX_LABEL_LEN - 1);
-                        label.push('…');
-                    }
 
                     let color = if let Some(selected_name) = self.state.time_table.selected_metric {
                         if selected_name == *name {
@@ -156,54 +161,6 @@ impl<'a, C: Chromosome> Widget for StatsTableWidget<'a, C> {
     }
 }
 
-pub struct DistributionTableWidget<'a, C: Chromosome> {
-    state: &'a mut AppState<C>,
-}
-
-impl<'a, C: Chromosome> DistributionTableWidget<'a, C> {
-    pub fn new(state: &'a mut AppState<C>) -> Self {
-        Self { state }
-    }
-}
-
-impl<'a, C: Chromosome> Widget for DistributionTableWidget<'a, C> {
-    fn render(self, area: Rect, buf: &mut Buffer) {
-        let items = tagged_metrics(&self.state.metrics, self.state, TagKind::Distribution);
-
-        self.state.distribution_table.update_rows(&items);
-
-        let table = Table::default()
-            .block(Block::bordered())
-            .header(header_row(&DISTRIBUTION_HEADER_CELLS))
-            .rows(striped_rows(metrics_into_dist_rows(items.into_iter())))
-            .row_highlight_style(styles::selected_item_style())
-            .highlight_spacing(ratatui::widgets::HighlightSpacing::Always)
-            .widths(once(Constraint::Length(22)).chain(repeat(Constraint::Fill(1)).take(10)));
-
-        let display_any_chart = self.state.display_any_mini_chart();
-
-        if display_any_chart {
-            let [top, bottom] =
-                Layout::vertical([Constraint::Fill(3), Constraint::Length(15)]).areas(area);
-
-            render_scrollable_table(buf, top, table, &mut self.state.distribution_table);
-
-            if self.state.distribution_table.row_count > 0 && bottom.height > 3 {
-                let selected_metric = self.state.distribution_table.selected_metric.unwrap_or("");
-
-                if self.state.display_mini_chart() {
-                    let maybe_chart = self
-                        .state
-                        .get_chart_by_key(selected_metric, ChartType::Distribution);
-                    ChartWidget::from(vec![maybe_chart]).render(bottom, buf);
-                }
-            }
-        } else {
-            render_scrollable_table(buf, area, table, &mut self.state.distribution_table);
-        }
-    }
-}
-
 fn render_scrollable_table(buf: &mut Buffer, area: Rect, table: Table, state: &mut AppTableState) {
     let [tbl, scroll] =
         Layout::horizontal([Constraint::Fill(1), Constraint::Length(1)]).areas(area);
@@ -229,10 +186,10 @@ fn tagged_metrics<'a, C: Chromosome>(
     state: &AppState<C>,
     tag: TagKind,
 ) -> Vec<(&'static str, &'a Metric)> {
-    let mut items: Vec<_> = metrics
+    let mut items = metrics
         .iter_tagged(tag)
         .filter(|(_, m)| state.metric_has_tags(m))
-        .collect();
+        .collect::<Vec<_>>();
     items.sort_by(|a, b| a.0.cmp(b.0));
     items
 }
@@ -282,39 +239,13 @@ fn metrics_into_stat_rows<'a>(
     })
 }
 
-fn metrics_into_dist_rows<'a>(
-    metrics: impl Iterator<Item = (&'static str, &'a Metric)>,
-) -> impl Iterator<Item = Row<'a>> {
-    metrics.filter_map(|(_, _)| {
-        // if let Some(dist) = m.distribution() {
-        //     Some(Row::new(vec![
-        //         Cell::from(name.to_string()),
-        //         Cell::from(format!("{:.3}", dist.percentile(0.0))),
-        //         Cell::from(format!("{:.3}", dist.percentile(25.0))),
-        //         Cell::from(format!("{:.3}", dist.percentile(50.0))),
-        //         Cell::from(format!("{:.3}", dist.percentile(75.0))),
-        //         Cell::from(format!("{:.3}", dist.percentile(100.0))),
-        //         Cell::from(format!("{}", dist.count())),
-        //         Cell::from(format!("{:.2}", dist.standard_deviation())),
-        //         Cell::from(format!("{:.2}", dist.variance())),
-        //         Cell::from(format!("{:.2}", dist.skewness())),
-        //         Cell::from(format!("{:.2}", dist.entropy())),
-        //     ]))
-        // } else {
-        //     None
-        // }
-
-        None
-    })
-}
-
-pub fn striped_rows<'a>(rows: impl IntoIterator<Item = Row<'a>>) -> impl Iterator<Item = Row<'a>> {
+fn striped_rows<'a>(rows: impl IntoIterator<Item = Row<'a>>) -> impl Iterator<Item = Row<'a>> {
     rows.into_iter()
         .enumerate()
         .map(|(i, row)| row.style(styles::alternating_row_style(i)))
 }
 
-pub fn header_row<'a>(cols: &'a [&str]) -> Row<'a> {
+fn header_row<'a>(cols: &'a [&str]) -> Row<'a> {
     Row::new(cols.iter().copied().map(Cell::from))
         .height(1)
         .style(Style::default().bold().underlined().fg(Color::White))

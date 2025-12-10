@@ -28,7 +28,6 @@ pub enum MetricsTab {
     #[default]
     Time,
     Stats,
-    Distributions,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -41,16 +40,14 @@ impl MetricsTab {
     pub fn next(self) -> Self {
         match self {
             MetricsTab::Stats => MetricsTab::Time,
-            MetricsTab::Time => MetricsTab::Distributions,
-            MetricsTab::Distributions => MetricsTab::Stats,
+            MetricsTab::Time => MetricsTab::Stats,
         }
     }
 
     pub fn previous(self) -> Self {
         match self {
-            MetricsTab::Stats => MetricsTab::Distributions,
+            MetricsTab::Stats => MetricsTab::Time,
             MetricsTab::Time => MetricsTab::Stats,
-            MetricsTab::Distributions => MetricsTab::Time,
         }
     }
 }
@@ -59,14 +56,12 @@ impl MetricsTab {
 pub enum ChartType {
     Value,
     Mean,
-    Distribution,
 }
 
 pub struct ChartState {
     fitness: ChartData,
     value_charts: HashMap<&'static str, ChartInner>,
     mean_charts: HashMap<&'static str, ChartInner>,
-    distribution_charts: HashMap<&'static str, ChartInner>,
 }
 
 impl ChartState {
@@ -75,7 +70,6 @@ impl ChartState {
             fitness: ChartData::with_capacity(1000).with_name("Score"),
             value_charts: HashMap::new(),
             mean_charts: HashMap::new(),
-            distribution_charts: HashMap::new(),
         }
     }
 
@@ -91,7 +85,6 @@ impl ChartState {
         match chart_type {
             ChartType::Value => self.value_charts.get(key),
             ChartType::Mean => self.mean_charts.get(key),
-            ChartType::Distribution => self.distribution_charts.get(key),
         }
     }
 
@@ -111,11 +104,6 @@ impl ChartState {
                     .with_title("μ (mean)")
                     .with_color(ratatui::style::Color::Yellow)
             }),
-            ChartType::Distribution => self.distribution_charts.entry(key).or_insert_with(|| {
-                ChartInner::with_capacity(1000)
-                    .with_title("Distribution")
-                    .with_color(ratatui::style::Color::LightMagenta)
-            }),
         }
     }
 
@@ -123,15 +111,12 @@ impl ChartState {
         if let Some(stat) = metric.statistic() {
             let key = intern!(metric.name());
             if !metric.contains_tag(&TagKind::Distribution) {
-                {
-                    let value_chart = self.get_or_create_chart(key, ChartType::Value);
-                    value_chart.add_value((value_chart.len() as f64, stat.last_value() as f64));
-                }
+                let value_chart = self.get_or_create_chart(key, ChartType::Value);
+                value_chart.add_value((value_chart.len() as f64, stat.last_value() as f64));
             }
-            {
-                let mean_chart = self.get_or_create_chart(key, ChartType::Mean);
-                mean_chart.add_value((mean_chart.len() as f64, stat.mean() as f64));
-            }
+
+            let mean_chart = self.get_or_create_chart(key, ChartType::Mean);
+            mean_chart.add_value((mean_chart.len() as f64, stat.mean() as f64));
         }
     }
 }
@@ -162,7 +147,6 @@ pub(crate) struct AppState<C: Chromosome> {
 
     pub time_table: AppTableState,
     pub stats_table: AppTableState,
-    pub distribution_table: AppTableState,
 }
 
 impl<C: Chromosome> AppState<C> {
@@ -330,7 +314,6 @@ impl<C: Chromosome> AppState<C> {
         let state = match self.metrics_tab {
             MetricsTab::Time => &mut self.time_table,
             MetricsTab::Stats => &mut self.stats_table,
-            MetricsTab::Distributions => &mut self.distribution_table,
         };
 
         if state.row_count == 0 {
@@ -369,7 +352,6 @@ impl<C: Chromosome> AppState<C> {
         let state = match self.metrics_tab {
             MetricsTab::Time => &mut self.time_table,
             MetricsTab::Stats => &mut self.stats_table,
-            MetricsTab::Distributions => &mut self.distribution_table,
         };
 
         if state.row_count == 0 {
@@ -447,7 +429,6 @@ impl<C: Chromosome> Default for AppState<C> {
 
             time_table: AppTableState::new(),
             stats_table: AppTableState::new(),
-            distribution_table: AppTableState::new(),
             metrics: MetricSet::new(),
             index: 0,
             score: Score::default(),

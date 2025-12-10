@@ -1,4 +1,3 @@
-use crate::defaults::TEXT_FG_COLOR;
 use crate::state::AppState;
 use crate::widgets::filter::FilterWidget;
 use crate::widgets::summary::EngineBaseWidget;
@@ -196,7 +195,9 @@ where
     fn render(self, area: Rect, buf: &mut Buffer) {
         buf.set_style(
             area,
-            Style::default().bg(material::GRAY.c900).fg(TEXT_FG_COLOR),
+            Style::default()
+                .bg(material::GRAY.c900)
+                .fg(crate::styles::TEXT_FG_COLOR),
         );
 
         let [top, bottom] =

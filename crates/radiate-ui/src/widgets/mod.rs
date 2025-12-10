@@ -47,14 +47,13 @@ impl<'a, C: Chromosome> Widget for &mut MetricsTabWidget<'a, C> {
             .constraints([Constraint::Length(1), Constraint::Fill(1)])
             .split(inner);
 
-        let titles = ["Stats", "Time", "Dist"]
+        let titles = ["Stats", "Time"]
             .into_iter()
             .map(|t| Span::styled(format!(" {t} "), Style::default().fg(Color::White)));
 
         let index = match self.state.metrics_tab {
             MetricsTab::Stats => 0,
             MetricsTab::Time => 1,
-            MetricsTab::Distributions => 2,
         };
 
         Tabs::new(titles)
@@ -68,14 +67,11 @@ impl<'a, C: Chromosome> Widget for &mut MetricsTabWidget<'a, C> {
         match self.state.metrics_tab {
             MetricsTab::Time => TimeTableWidget::new(&mut self.state).render(chunks[1], buf),
             MetricsTab::Stats => StatsTableWidget::new(&mut self.state).render(chunks[1], buf),
-            MetricsTab::Distributions => {
-                DistributionTableWidget::new(&mut self.state).render(chunks[1], buf)
-            }
         }
     }
 }
 
-pub fn help_text_widget<'a>() -> Line<'a> {
+fn help_text_widget<'a>() -> Line<'a> {
     Line::from(vec![
         "[j/k]".fg(Color::LightGreen).bold(),
         Span::from(" navigate, "),

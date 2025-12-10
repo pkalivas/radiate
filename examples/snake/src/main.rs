@@ -86,9 +86,10 @@ fn run_graph_engine() {
         .fitness_fn(|g: Graph<Op<f32>>| snake_fitness(SnakeAI::Graph(&g)))
         .build();
 
-    radiate::ui(engine)
+    // radiate::ui(engine)
+    engine
         .iter()
-        // .logging()
+        .logging()
         .limit(vec![
             Limit::Generation(MAX_GENERATIONS),
             Limit::Seconds(Duration::from_secs_f64(MAX_SECONDS)),

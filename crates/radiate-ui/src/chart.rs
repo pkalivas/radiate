@@ -203,19 +203,6 @@ impl ChartData {
                 self.mean_value = Some(new_inner);
             }
         }
-        //  else if let Some(dist) = metric.distribution() {
-        //     self.last_value.set_values(&dist.last_sequence);
-
-        //     if let Some(mean_chart) = &mut self.mean_value {
-        //         let mean_len = mean_chart.values.len() as f64;
-        //         mean_chart.add_value((mean_len, dist.mean() as f64));
-        //     } else {
-        //         let mut new_inner =
-        //             ChartInner::with_capacity(self.last_value.capacity).with_title("μ (mean)");
-        //         new_inner.add_value((0.0, dist.mean() as f64));
-        //         self.mean_value = Some(new_inner);
-        //     }
-        // }
     }
 
     pub fn min_y(&self) -> f64 {
