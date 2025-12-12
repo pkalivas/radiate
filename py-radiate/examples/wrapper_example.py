@@ -28,7 +28,7 @@ engine = rd.GeneticEngine(
     objective="min",
 )
 
-result = engine.run(rd.ScoreLimit(0), log=True)
+result = engine.run(rd.ScoreLimit(0), ui=True)
 
 for obj_gene in result.value():
     print(obj_gene)

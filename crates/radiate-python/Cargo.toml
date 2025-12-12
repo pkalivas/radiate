@@ -15,4 +15,4 @@ serde_json = { workspace = true }
 regex = { workspace = true }
 radiate-error = { workspace = true, features = ["python"] }
 radiate-utils = { workspace = true, features = ["serde"] }
-radiate = { workspace = true, features = ["gp", "rayon", "serde", "smallvec"] }
+radiate = { workspace = true, features = ["gp", "rayon", "serde", "smallvec", "ui"] }

@@ -106,12 +106,27 @@ where
     C: Chromosome + Clone + Serialize + 'static,
     T: Clone + Send + Sync + Serialize + 'static,
 {
+    let ui_interval = get_ui_option(&options);
+    if let Some(interval) = ui_interval {
+        iter_engine(radiate::ui((engine, interval)).iter(), limits, options)
+    } else {
+        iter_engine(engine.iter(), limits, options)
+    }
+}
+
+fn iter_engine<C, T>(
+    engine: impl Iterator<Item = Generation<C, T>> + 'static,
+    limits: Vec<Limit>,
+    options: Vec<PyEngineRunOption>,
+) -> PyResult<Generation<C, T>>
+where
+    C: Chromosome + Clone + Serialize + 'static,
+    T: Clone + Send + Sync + Serialize + 'static,
+{
     let log = get_log_option(&options);
     let checkpoint = get_checkpoint_option(&options);
-    // let ui_interval = get_ui_option(&options);
 
     engine
-        .iter()
         .chain_if(log.unwrap_or(false), |eng| eng.logging())
         .chain_if(checkpoint.is_some(), |eng| {
             let (interval, path) = checkpoint.unwrap();
@@ -163,3 +178,18 @@ fn get_ui_option(options: &[PyEngineRunOption]) -> Option<Duration> {
             }
         })
 }
+
+// let log = get_log_option(&options);
+// let checkpoint = get_checkpoint_option(&options);
+// // let ui_interval = get_ui_option(&options);
+
+// engine
+//     .iter()
+//     .chain_if(log.unwrap_or(false), |eng| eng.logging())
+//     .chain_if(checkpoint.is_some(), |eng| {
+//         let (interval, path) = checkpoint.unwrap();
+//         eng.checkpoint(interval, path)
+//     })
+//     .limit(limits)
+//     .last()
+//     .ok_or_else(|| radiate_err!(Python: "Failed to run engine and obtain final generation"))

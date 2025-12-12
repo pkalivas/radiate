@@ -22,7 +22,7 @@ from .inputs.distance import DistanceBase
 from .inputs.executor import Executor
 from .fitness import FitnessBase
 from .inputs.limit import LimitBase
-from .option import EngineCheckpoint, EngineLog
+from .option import EngineCheckpoint, EngineLog, EngineUi   
 
 from .genome import GeneType
 from .genome.population import Population
@@ -121,6 +121,7 @@ class GeneticEngine[G, T]:
         limits: LimitBase | list[LimitBase],
         log: bool | EngineLog = False,
         checkpoint: tuple[int, str] | EngineCheckpoint | None = None,
+        ui: bool | EngineUi = False,
     ) -> Generation[T]:
         """Run the engine with the given limits.
         Args:
@@ -172,10 +173,14 @@ class GeneticEngine[G, T]:
                 interval=checkpoint[0], path=checkpoint[1]
             )
 
+        ui_option = ui if isinstance(ui, EngineUi) else None
+        if ui_option is None and ui is True:
+            ui_option = EngineUi()
+
         options = list(
             map(
                 lambda opt: opt.__backend__(),
-                filter(lambda opt: opt is not None, [log_option, checkpoint_option]),
+                filter(lambda opt: opt is not None, [log_option, checkpoint_option, ui_option]),
             )
         )
 
