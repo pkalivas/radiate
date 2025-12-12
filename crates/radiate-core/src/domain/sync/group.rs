@@ -34,6 +34,7 @@ impl WaitGroup {
     pub fn guard(&self) -> WaitGuard {
         self.inner.counter.fetch_add(1, Ordering::AcqRel);
         self.total_count.fetch_add(1, Ordering::AcqRel);
+
         WaitGuard { wg: self.clone() }
     }
 

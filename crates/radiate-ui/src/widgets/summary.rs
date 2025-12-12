@@ -4,7 +4,7 @@ use radiate_engines::Chromosome;
 use radiate_engines::stats::fmt_duration;
 use ratatui::prelude::*;
 use ratatui::style::{Color, Stylize};
-use ratatui::widgets::{Block, BorderType, Cell, Paragraph, Row, Table};
+use ratatui::widgets::{Block, BorderType, Paragraph, Row, Table};
 
 pub struct EngineBaseWidget<'a, C: Chromosome> {
     state: &'a AppState<C>,
@@ -57,33 +57,30 @@ impl<'a, C: Chromosome> Widget for EngineBaseWidget<'a, C> {
         //     .unwrap_or(0.0);
 
         let rows = vec![
+            Row::new(vec!["Improvements".bold(), improvements.to_string().into()]),
             Row::new(vec![
-                Cell::from("Improvements").bold(),
-                Cell::from(improvements.to_string()),
+                "Diversity".bold(),
+                format!("{:.2}%", diversity * 100.0).into(),
             ]),
             Row::new(vec![
-                Cell::from("Diversity").bold(),
-                Cell::from(format!("{:.2}%", diversity * 100.0)),
+                "Carryover".bold(),
+                format!("{:.2}%", carryover * 100.0).into(),
             ]),
             Row::new(vec![
-                Cell::from("Carryover").bold(),
-                Cell::from(format!("{:.2}%", carryover * 100.0)),
+                "Unique Members".bold(),
+                format!("{:.2}", unique_members).into(),
             ]),
             Row::new(vec![
-                Cell::from("Unique Members").bold(),
-                Cell::from(format!("{:.2}", unique_members)),
+                "Unique Scores".bold(),
+                format!("{:.2}", unique_scores).into(),
             ]),
             Row::new(vec![
-                Cell::from("Unique Scores").bold(),
-                Cell::from(format!("{:.2}", unique_scores)),
+                "Phenotypes".bold(),
+                format!("{:.2}", survivor_count).into(),
             ]),
             Row::new(vec![
-                Cell::from("Phenotypes").bold(),
-                Cell::from(format!("{:.2}", survivor_count)),
-            ]),
-            Row::new(vec![
-                Cell::from("Children / Gen.").bold(),
-                Cell::from(format!("{:.2}", new_children)),
+                "Children / Gen.".bold(),
+                format!("{:.2}", new_children).into(),
             ]),
         ];
 

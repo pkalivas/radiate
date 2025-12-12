@@ -9,7 +9,7 @@ use crate::ui::UiRuntime;
 use radiate_engines::{Chromosome, GeneticEngine};
 use std::time::Duration;
 
-const DEFAULT_RENDER_INTERVAL: Duration = Duration::from_millis(100);
+pub const DEFAULT_RENDER_INTERVAL: Duration = Duration::from_millis(100);
 
 pub fn ui<C, T>(engine: impl Into<UiInput<C, T>>) -> UiRuntime<C, T>
 where

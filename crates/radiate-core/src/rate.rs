@@ -295,4 +295,12 @@ mod tests {
         assert_eq!(default_rate.value(0), 1.0);
         assert_eq!(default_rate.value(100), 1.0);
     }
+
+    #[test]
+    fn test_rate_validity() {
+        let valid_fixed = Rate::Fixed(0.5);
+        let invalid_fixed = Rate::Fixed(1.5);
+        assert!(valid_fixed.is_valid());
+        assert!(!invalid_fixed.is_valid());
+    }
 }

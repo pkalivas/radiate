@@ -42,7 +42,6 @@ where
         let elapsed = timer.elapsed();
 
         self.metrics.flush_all_into(&mut context.metrics);
-
         context.metrics.upsert((metric_names::TIME, elapsed));
 
         Ok(())

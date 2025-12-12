@@ -96,81 +96,13 @@ impl PyMetricSet {
         Ok(vec)
     }
 
-    /// Columns:
-    ///   name, scope, rollup, kind, count, mean, min, max, std, total, entropy,
-    ///   time_mean_ns, time_min_ns, time_max_ns, time_std_ns, time_sum_ns,
-    ///   seq_mean, seq_min, seq_max, seq_std, seq_var, seq_skew, seq_kurt,
-    ///   seq_last   (list[float] or None)
     pub fn to_rows<'py>(&self, py: Python<'py>) -> PyResult<Vec<Bound<'py, PyDict>>> {
-        let mut out: Vec<Bound<'py, PyDict>> = Vec::with_capacity(self.inner.len() * 3);
+        let mut out = Vec::with_capacity(self.inner.len() * 3);
 
         for (_, m) in self.inner.iter() {
-            let base_name = m.name().to_string();
-
-            if let Some(stat) = m.statistic() {
-                let row = PyDict::new(py);
-                row.set_item("name", &base_name)?;
-                row.set_item("kind", "value")?;
-
-                row.set_item("count", stat.count())?;
-                row.set_item("mean", stat.mean())?;
-                row.set_item("min", stat.min())?;
-                row.set_item("max", stat.max())?;
-                row.set_item("std", stat.std_dev())?;
-                row.set_item("total", stat.sum())?;
-
-                // keep time/seq fields present but None so schema is consistent
-                row.set_item("entropy", None::<f32>)?;
-                row.set_item("time_mean_ns", None::<i128>)?;
-                row.set_item("time_min_ns", None::<i128>)?;
-                row.set_item("time_max_ns", None::<i128>)?;
-                row.set_item("time_std_ns", None::<i128>)?;
-                row.set_item("time_sum_ns", None::<i128>)?;
-                row.set_item("seq_mean", None::<f32>)?;
-                row.set_item("seq_min", None::<f32>)?;
-                row.set_item("seq_max", None::<f32>)?;
-                row.set_item("seq_std", None::<f32>)?;
-                row.set_item("seq_var", None::<f32>)?;
-                row.set_item("seq_skew", None::<f32>)?;
-                row.set_item("seq_kurt", None::<f32>)?;
-                row.set_item("seq_last", py.None())?;
-
-                out.push(row);
-            }
-
-            if let Some(t) = m.time_statistic() {
-                let to_ns = |d: std::time::Duration| -> i128 { d.as_nanos() as i128 };
-
-                let row = PyDict::new(py);
-                row.set_item("name", &base_name)?;
-                row.set_item("kind", "time")?;
-
-                row.set_item("count", t.count())?;
-                row.set_item("mean", None::<f32>)?;
-                row.set_item("min", None::<f32>)?;
-                row.set_item("max", None::<f32>)?;
-                row.set_item("std", None::<f32>)?;
-                row.set_item("total", None::<f32>)?;
-                row.set_item("entropy", None::<f32>)?;
-
-                row.set_item("time_mean_ns", Some(to_ns(t.mean())))?;
-                row.set_item("time_min_ns", Some(to_ns(t.min())))?;
-                row.set_item("time_max_ns", Some(to_ns(t.max())))?;
-                row.set_item("time_std_ns", Some(to_ns(t.standard_deviation())))?;
-                row.set_item("time_sum_ns", Some(to_ns(t.sum())))?;
-
-                row.set_item("seq_mean", None::<f32>)?;
-                row.set_item("seq_min", None::<f32>)?;
-                row.set_item("seq_max", None::<f32>)?;
-                row.set_item("seq_std", None::<f32>)?;
-                row.set_item("seq_var", None::<f32>)?;
-                row.set_item("seq_skew", None::<f32>)?;
-                row.set_item("seq_kurt", None::<f32>)?;
-                row.set_item("seq_last", py.None())?;
-
-                out.push(row);
-            }
+            out.push(PyMetric::from(m.clone()).to_dict(py)?);
         }
+
         Ok(out)
     }
 
@@ -256,6 +188,11 @@ impl PyMetric {
     }
 
     #[getter]
+    pub fn value_sum(&self) -> Option<f32> {
+        self.inner.value_sum()
+    }
+
+    #[getter]
     pub fn value_mean(&self) -> Option<f32> {
         self.inner.value_mean()
     }
@@ -331,6 +268,8 @@ impl PyMetric {
         let d = PyDict::new(py);
         d.set_item("name", self.inner.name().to_string())?;
 
+        d.set_item("last", self.value_last())?;
+        d.set_item("sum", self.value_sum())?;
         d.set_item("mean", self.value_mean())?;
         d.set_item("stddev", self.value_stddev())?;
         d.set_item("var", self.value_variance())?;
@@ -354,6 +293,7 @@ impl<'py> IntoPyObject<'py> for Wrap<Metric> {
     type Target = PyMetric;
     type Output = Bound<'py, Self::Target>;
     type Error = PyErr;
+
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         Bound::new(py, PyMetric::from(self.0))
     }
@@ -363,6 +303,7 @@ impl<'py> IntoPyObject<'py> for Wrap<&Metric> {
     type Target = PyMetric;
     type Output = Bound<'py, Self::Target>;
     type Error = PyErr;
+
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         Bound::new(py, PyMetric::from(self.0.clone()))
     }

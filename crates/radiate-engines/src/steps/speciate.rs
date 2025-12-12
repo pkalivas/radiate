@@ -83,9 +83,6 @@ where
         self.restore_genotypes(ecosystem, chunked_members);
         self.assign_unassigned(generation, ecosystem, &assignments.lock().unwrap());
 
-        let mut distances_guard = distances.lock().unwrap();
-        (*distances_guard).sort_unstable_by(|a, b| self.objective.cmp(a, b));
-
         Ok(())
     }
 
@@ -236,6 +233,8 @@ where
     where
         C: Clone,
     {
+        // Update mascots for each species by selecting a random member from the species population
+        // to be the new mascot for the next generation. This follows the NEAT algorithm approach.
         if let Some(species) = ecosystem.species_mut() {
             for spec in species {
                 let idx = random_provider::range(0..spec.population.len());

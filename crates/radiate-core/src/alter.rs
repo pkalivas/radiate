@@ -76,30 +76,7 @@ impl From<Metric> for AlterResult {
     }
 }
 
-/// TODO: Fix these docs
-
-/// This is the main trait that is used to define the different types of alterations that can be
-/// performed on a [Population]. The [Alter] trait is used to define the `alter` method that is used
-/// to perform the alteration on the [Population]. The `alter` method takes a mutable reference to
-/// the [Population] and a generation number as parameters. The `alter` method returns a vector of
-/// [Metric] objects that represent the metrics that were collected during the alteration process.
-///
-/// An '[Alter]' in a traditional genetic algorithm is a process that modifies the [Population] of
-/// individuals in some way. This can include operations such as mutation or crossover. The goal of
-/// an alter is to introduce new genetic material into the population, which can help to improve
-/// the overall fitness of the population. In a genetic algorithm, the alter is typically
-/// performed on a subset of the population, rather than the entire population. This allows for
-/// more targeted modifications to be made, which can help to improve the overall performance of
-/// the algorithm. The alter is an important part of the genetic algorithm process, as it helps
-/// to ensure that the population remains diverse and that new genetic material is introduced
-/// into the population. This can help to improve the overall performance of the algorithm and
-/// ensure that the population remains healthy and diverse.
-///
-/// In `radiate` the [Alter] trait performs similar operations to a traditional genetic algorithm,
-/// but it is designed to be more flexible and extensible. Because an [Alter] can be of type [Mutate]
-/// or [Crossover], it is abstracted out of those core traits into this trait.
-
-/// The [AlterAction] enum is used to represent the different
+/// The [Alterer] enum is used to represent the different
 /// types of alterations that can be performed on a
 /// population - It can be either a mutation or a crossover operation.
 

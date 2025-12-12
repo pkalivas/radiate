@@ -84,25 +84,3 @@ macro_rules! intern_snake_case {
         }
     }};
 }
-
-#[macro_export]
-macro_rules! intern_smallstr {
-    ($name:expr) => {{
-        use crate::SmallStr;
-        use std::cell::RefCell;
-        use std::collections::HashMap;
-
-        $crate::SMALL_STR_INTERN_CACHE.with(|interned| {
-            let mut interned = interned.borrow_mut();
-            if let Some(existing) = interned.get(&*$name) {
-                existing.clone()
-            } else {
-                let name_as_string = String::from($name);
-                let static_name: &'static str = Box::leak(name_as_string.into_boxed_str());
-                let result = SmallStr::from(static_name);
-                interned.insert(static_name, result.clone());
-                result
-            }
-        })
-    }};
-}

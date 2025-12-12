@@ -147,6 +147,7 @@ mod tests {
 
         let serialized = serde_json::to_string(&gene).unwrap();
         let deserialized: AnyGene<'static> = serde_json::from_str(&serialized).unwrap();
+
         assert_eq!(gene.allele(), deserialized.allele());
         assert_eq!(gene.metadata(), deserialized.metadata());
     }
@@ -156,8 +157,10 @@ mod tests {
         let gene1 = AnyGene::new(AnyValue::Int32(42));
         let gene2 = AnyGene::new(AnyValue::StrOwned("Hello".to_string()));
         let chromosome = AnyChromosome::new(vec![gene1, gene2]);
+
         let serialized = serde_json::to_string(&chromosome).unwrap();
         let deserialized: AnyChromosome<'static> = serde_json::from_str(&serialized).unwrap();
+
         assert_eq!(chromosome.genes().len(), deserialized.genes().len());
     }
 }

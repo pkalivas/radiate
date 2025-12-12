@@ -1,17 +1,6 @@
 use crate::ToSnakeCase;
 use std::borrow::Cow;
 
-#[macro_export]
-macro_rules! format_smallstr {
-    ($($arg:tt)*) => {{
-        use std::fmt::Write;
-
-        let mut string = $crate::pl_str::PlSmallStr::EMPTY;
-        write!(string, $($arg)*).unwrap();
-        string
-    }}
-}
-
 type Inner = compact_str::CompactString;
 
 #[derive(Clone, Eq, Hash, PartialOrd, Ord)]

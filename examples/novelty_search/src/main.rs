@@ -39,6 +39,7 @@ fn visualize(mut result: Generation<FloatChromosome, Vec<f32>>) {
     let population = result.population().clone();
 
     let mut robots = Vec::new();
+    // Only visualize first 6 individuals - At this point the population is sorted by fitness (best first)
     for indiv in population.iter().take(6) {
         let genes: Vec<f32> = indiv
             .genotype()

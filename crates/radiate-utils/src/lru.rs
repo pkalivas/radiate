@@ -9,13 +9,10 @@ new_key_type! {
     struct LruKey;
 }
 
-pub struct LruCache<K, V, S = RandomState> {
-    table: HashTable<LruKey>,
-    elements: SlotMap<LruKey, LruEntry<K, V>>,
-    max_capacity: usize,
-    most_recent: LruKey,
-    least_recent: LruKey,
-    build_hasher: S,
+#[derive(Copy, Clone, Default)]
+struct LruListNode {
+    more_recent: LruKey,
+    less_recent: LruKey,
 }
 
 struct LruEntry<K, V> {
@@ -24,10 +21,13 @@ struct LruEntry<K, V> {
     list: LruListNode,
 }
 
-#[derive(Copy, Clone, Default)]
-struct LruListNode {
-    more_recent: LruKey,
-    less_recent: LruKey,
+pub struct LruCache<K, V, S = RandomState> {
+    table: HashTable<LruKey>,
+    elements: SlotMap<LruKey, LruEntry<K, V>>,
+    max_capacity: usize,
+    most_recent: LruKey,
+    least_recent: LruKey,
+    build_hasher: S,
 }
 
 impl<K, V> LruCache<K, V> {
@@ -60,6 +60,7 @@ impl<K: Hash + Eq, V, S: BuildHasher> LruCache<K, V, S> {
         } else {
             self.most_recent = list.less_recent;
         }
+
         if let Some(less_recent) = self.elements.get_mut(list.less_recent) {
             less_recent.list.more_recent = list.more_recent;
         } else {
@@ -142,8 +143,9 @@ impl<K: Hash + Eq, V, S: BuildHasher> LruCache<K, V, S> {
         }
     }
 
-    pub fn get_or_insert_with<Q, F: FnOnce(&Q) -> V>(&mut self, key: &Q, f: F) -> &mut V
+    pub fn get_or_insert_with<Q, F>(&mut self, key: &Q, f: F) -> &mut V
     where
+        F: FnOnce(&Q) -> V,
         K: Borrow<Q>,
         Q: Hash + Eq + ToOwned<Owned = K> + ?Sized,
     {
@@ -210,5 +212,16 @@ mod tests {
         assert_eq!(lru.get(&3), Some(&"three"));
         assert_eq!(lru.insert(1, "uno"), Some("one")); // Update key 1
         assert_eq!(lru.get(&1), Some(&"uno"));
+    }
+
+    #[test]
+    fn test_lru_cache_pop() {
+        let mut lru: LruCache<u32, &str> = LruCache::with_capacity(2);
+
+        assert_eq!(lru.insert(1, "one"), None);
+        assert_eq!(lru.insert(2, "two"), None);
+        assert_eq!(lru.pop_lru(), Some((1, "one")));
+        assert_eq!(lru.get(&1), None);
+        assert_eq!(lru.get(&2), Some(&"two"));
     }
 }
