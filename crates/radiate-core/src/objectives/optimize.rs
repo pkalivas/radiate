@@ -18,7 +18,7 @@ impl Objective {
         matches!(self, Objective::Multi(_))
     }
 
-    pub fn num_objectives(&self) -> usize {
+    pub fn dimensions(&self) -> usize {
         match self {
             Objective::Single(_) => 1,
             Objective::Multi(opts) => opts.len(),
@@ -62,7 +62,7 @@ impl Objective {
     pub fn sort<T: AsMut<[K]>, K: Scored + PartialOrd>(&self, population: &mut T) {
         match self {
             Objective::Single(opt) => opt.sort(population),
-            Objective::Multi(_) => population.as_mut().sort_by(|one, two| {
+            Objective::Multi(_) => population.as_mut().sort_unstable_by(|one, two| {
                 if let (Some(score_one), Some(score_two)) = (one.score(), two.score()) {
                     self.dominance_cmp(score_one.as_ref(), score_two.as_ref())
                 } else {
@@ -126,6 +126,12 @@ impl AsRef<[Optimize]> for Objective {
     }
 }
 
+impl Default for Objective {
+    fn default() -> Self {
+        Objective::Single(Optimize::Maximize)
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Optimize {
@@ -153,6 +159,14 @@ impl Optimize {
             Optimize::Minimize => a < b,
             Optimize::Maximize => a > b,
         }
+    }
+
+    pub fn is_minimize(&self) -> bool {
+        matches!(self, Optimize::Minimize)
+    }
+
+    pub fn is_maximize(&self) -> bool {
+        matches!(self, Optimize::Maximize)
     }
 }
 

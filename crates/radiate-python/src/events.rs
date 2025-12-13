@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::PySubscriber;
 use crate::{PyEngineEvent, PyMetricSet, prelude::*};
 use pyo3::Python;
@@ -46,13 +48,13 @@ impl PyEventHandler {
     {
         match event {
             EngineEvent::Start => PyEngineEvent::start(),
-            EngineEvent::Stop(best, metrics, score) => {
+            EngineEvent::Stop(_, best, metrics, score) => {
                 let best = best.clone().into_py(py);
                 let metrics = PyMetricSet::from(metrics.clone());
                 PyEngineEvent::stop(best, metrics, score.as_ref().to_vec())
             }
             EngineEvent::EpochStart(index) => PyEngineEvent::epoch_start(*index),
-            EngineEvent::EpochComplete(index, best, metrics, score) => {
+            EngineEvent::EpochComplete(index, best, metrics, score, _) => {
                 let best = best.clone().into_py(py);
                 let metrics = PyMetricSet::from(metrics.clone());
                 PyEngineEvent::epoch_complete(*index, best, metrics, score.as_ref().to_vec())
@@ -69,8 +71,8 @@ impl<T> EventHandler<T> for PyEventHandler
 where
     T: IntoPyAnyObject + Clone,
 {
-    fn handle(&mut self, event: &EngineEvent<T>) {
-        let subscribers = self.get_valid_handlers(event);
+    fn handle(&mut self, event: Arc<EngineEvent<T>>) {
+        let subscribers = self.get_valid_handlers(event.as_ref());
 
         if subscribers.is_empty() {
             return;

@@ -1,8 +1,10 @@
+use crate::any::{time_unit, time_zone};
 use crate::{AnyChromosome, AnyGene, AnyValue, Field};
 use radiate::{Chromosome, Gene};
 use serde::ser::Serializer;
 use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashMap;
+use std::sync::Arc;
 
 #[derive(Clone, Default, Debug, Serialize, Deserialize)]
 enum AnyValueSerializable {
@@ -24,6 +26,8 @@ enum AnyValueSerializable {
     Char(char),
     Str(String),
     StrOwned(String),
+    Date(i32),
+    DateTime(i64, time_unit::TimeUnit, Option<time_zone::TimeZone>),
     Vector(Box<Vec<AnyValueSerializable>>),
     Struct(Vec<(Field, AnyValueSerializable)>),
 }
@@ -48,6 +52,10 @@ impl AnyValueSerializable {
             AnyValueSerializable::Char(c) => AnyValue::Char(c),
             AnyValueSerializable::Str(s) => AnyValue::StrOwned(s),
             AnyValueSerializable::StrOwned(s) => AnyValue::StrOwned(s),
+            AnyValueSerializable::Date(d) => AnyValue::Date(d),
+            AnyValueSerializable::DateTime(v, tu, tz) => {
+                AnyValue::DateTime(v, tu, tz.map(|t| Arc::new(t)))
+            }
             AnyValueSerializable::Vector(v) => {
                 let vec = v.into_iter().map(|av| av.into_static()).collect();
                 AnyValue::Vector(Box::new(vec))
@@ -139,6 +147,7 @@ mod tests {
 
         let serialized = serde_json::to_string(&gene).unwrap();
         let deserialized: AnyGene<'static> = serde_json::from_str(&serialized).unwrap();
+
         assert_eq!(gene.allele(), deserialized.allele());
         assert_eq!(gene.metadata(), deserialized.metadata());
     }
@@ -148,8 +157,10 @@ mod tests {
         let gene1 = AnyGene::new(AnyValue::Int32(42));
         let gene2 = AnyGene::new(AnyValue::StrOwned("Hello".to_string()));
         let chromosome = AnyChromosome::new(vec![gene1, gene2]);
+
         let serialized = serde_json::to_string(&chromosome).unwrap();
         let deserialized: AnyChromosome<'static> = serde_json::from_str(&serialized).unwrap();
+
         assert_eq!(chromosome.genes().len(), deserialized.genes().len());
     }
 }

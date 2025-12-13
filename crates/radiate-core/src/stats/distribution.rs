@@ -12,12 +12,6 @@ pub struct Distribution {
 
 impl Distribution {
     #[inline(always)]
-    pub fn push(&mut self, value: f32) {
-        self.statistic.add(value);
-        self.last_sequence.push(value);
-    }
-
-    #[inline(always)]
     pub fn add(&mut self, value: &[f32]) {
         self.clear();
         for v in value {
@@ -26,7 +20,7 @@ impl Distribution {
         }
     }
 
-    pub fn last_sequence(&self) -> &Vec<f32> {
+    pub fn last_sequence(&self) -> &[f32] {
         &self.last_sequence
     }
 
@@ -101,19 +95,26 @@ impl Distribution {
         }
 
         let count = self.last_sequence.len() as f32;
-        if count == 0 as f32 {
-            panic!("Cannot calculate percentile for an empty distribution");
+        if count == 0.0 {
+            return 0.0;
         }
+
         let index = (p / 100.0) * count;
-        let sorted_values = {
-            let mut values = self.last_sequence.clone();
-            values.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap());
-            values
-        };
+
+        let sorted_values = { &self.last_sequence };
 
         let index = index as usize;
-        if index >= sorted_values.len() {
-            panic!("Index out of bounds for the sorted values");
+
+        if index == 0 && !sorted_values.is_empty() {
+            return sorted_values[0];
+        } else if index == sorted_values.len() {
+            return sorted_values[sorted_values.len() - 1];
+        } else if index >= sorted_values.len() {
+            panic!(
+                "Index out of bounds for the sorted values {} >= {}",
+                index,
+                sorted_values.len()
+            );
         }
 
         sorted_values[index]
@@ -133,5 +134,17 @@ impl From<Vec<f32>> for Distribution {
         let mut result = Distribution::default();
         result.add(&value);
         result
+    }
+}
+
+impl From<&Vec<usize>> for Distribution {
+    fn from(value: &Vec<usize>) -> Self {
+        let mut dist = Distribution::default();
+        for v in value.iter().map(|&v| v as f32) {
+            dist.statistic.add(v);
+            dist.last_sequence.push(v);
+        }
+
+        dist
     }
 }

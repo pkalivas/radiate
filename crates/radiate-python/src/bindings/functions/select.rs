@@ -39,7 +39,7 @@ pub fn py_select(
             .collect::<Vec<Optimize>>()
     });
 
-    let opt = match objectives {
+    let obj = match objectives {
         Some(objs) => {
             if objs.len() == 1 {
                 Objective::Single(objs[0])
@@ -49,15 +49,7 @@ pub fn py_select(
                 panic!("No objectives provided");
             }
         }
-        None => Objective::Single(Optimize::Maximize),
-    };
-
-    let obj = match opt {
-        Objective::Single(opt) => match opt {
-            Optimize::Minimize => Objective::Single(Optimize::Minimize),
-            Optimize::Maximize => Objective::Single(Optimize::Maximize),
-        },
-        Objective::Multi(opts) => Objective::Multi(opts),
+        None => Objective::default(),
     };
 
     match gene_type {

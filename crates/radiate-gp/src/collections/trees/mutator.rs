@@ -1,16 +1,17 @@
 use super::TreeChromosome;
-use radiate_core::{AlterResult, Mutate, random_provider};
+use radiate_core::{AlterResult, Mutate, Rate, random_provider};
 
 #[derive(Clone, Debug)]
 pub struct HoistMutator {
-    rate: f32,
+    rate: Rate,
 }
 
 impl HoistMutator {
-    pub fn new(rate: f32) -> Self {
-        if !(0.0..=1.0).contains(&rate) {
-            panic!("rate must be between 0.0 and 1.0");
-        }
+    pub fn new(rate: impl Into<Rate>) -> Self {
+        let rate = rate.into();
+        // if !(0.0..=1.0).contains(&rate.0) {
+        //     panic!("rate must be between 0.0 and 1.0");
+        // }
 
         HoistMutator { rate }
     }
@@ -20,8 +21,8 @@ impl<T> Mutate<TreeChromosome<T>> for HoistMutator
 where
     T: Clone + PartialEq,
 {
-    fn rate(&self) -> f32 {
-        self.rate
+    fn rate(&self) -> Rate {
+        self.rate.clone()
     }
 
     fn mutate_chromosome(&self, chromosome: &mut TreeChromosome<T>, _: f32) -> AlterResult {

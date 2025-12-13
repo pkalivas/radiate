@@ -1,5 +1,5 @@
 use crate::{context::Context, steps::EngineStep};
-use radiate_core::{Chromosome, MetricScope, MetricSet, Rollup, metric, metric_names};
+use radiate_core::{Chromosome, MetricSet, metric, metric_names};
 use radiate_error::Result;
 
 /// A [Pipeline] is a sequence of steps that are executed in order during each epoch of the engine.
@@ -28,25 +28,22 @@ where
     pub fn run<T>(&mut self, context: &mut Context<C, T>) -> Result<()>
     where
         C: Chromosome,
-        T: Clone + Send + Sync + 'static,
     {
-        self.metrics.clear();
-
         let timer = std::time::Instant::now();
 
         for step in self.steps.iter_mut() {
             let timer = std::time::Instant::now();
-            step.execute(context.index, &mut self.metrics, &mut context.ecosystem)?;
+            step.execute(context.index, &mut context.ecosystem, &mut self.metrics)?;
             let elapsed = timer.elapsed();
 
-            self.metrics.add_or_update(
-                metric!(MetricScope::Step, step.name(), elapsed).with_rollup(Rollup::Last),
-            );
+            self.metrics.upsert(metric!(step.name(), elapsed));
         }
 
         let elapsed = timer.elapsed();
-        self.metrics.upsert(metric_names::TIME, elapsed);
+
         self.metrics.flush_all_into(&mut context.metrics);
+        context.metrics.upsert((metric_names::TIME, elapsed));
+
         Ok(())
     }
 }

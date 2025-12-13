@@ -9,6 +9,8 @@ impl InputTransform<Option<Box<dyn Diversity<IntChromosome<i32>>>>> for PyEngine
     fn transform(&self) -> Option<Box<dyn Diversity<IntChromosome<i32>>>> {
         match self.component.as_str() {
             crate::names::HAMMING_DISTANCE => Some(Box::new(HammingDistance)),
+            crate::names::EUCLIDEAN_DISTANCE => Some(Box::new(EuclideanDistance)),
+            crate::names::COSINE_DISTANCE => Some(Box::new(CosineDistance)),
             _ => None,
         }
     }
@@ -63,6 +65,7 @@ impl InputTransform<Option<Box<dyn Diversity<AnyChromosome<'static>>>>> for PyEn
 
 impl InputTransform<Option<Box<dyn Diversity<TreeChromosome<Op<f32>>>>>> for PyEngineInput {
     fn transform(&self) -> Option<Box<dyn Diversity<TreeChromosome<Op<f32>>>>> {
+        // There are currently no diversity measures implemented for tree chromosomes
         None
     }
 }

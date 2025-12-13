@@ -34,6 +34,15 @@ pub trait Diversity<C: Chromosome>: Send + Sync {
     fn measure(&self, geno_one: &Genotype<C>, geno_two: &Genotype<C>) -> f32;
 }
 
+impl<C: Chromosome, F> Diversity<C> for F
+where
+    F: Fn(&Genotype<C>, &Genotype<C>) -> f32 + Send + Sync,
+{
+    fn measure(&self, geno_one: &Genotype<C>, geno_two: &Genotype<C>) -> f32 {
+        (self)(geno_one, geno_two)
+    }
+}
+
 /// A concrete implementation of the [Diversity] trait that calculates the Hamming distance
 /// between two [Genotype]s. The Hamming distance is the number of positions at which the
 /// corresponding genes are different normalized by the total number of genes.
@@ -93,40 +102,6 @@ where
         let mut distance = 0.0;
         let mut total_genes = 0.0;
         for (chrom_one, chrom_two) in geno_one.iter().zip(geno_two.iter()) {
-            for (gene_one, gene_two) in chrom_one.iter().zip(chrom_two.iter()) {
-                let one_as_f32 = gene_one.allele_as_f32();
-                let two_as_f32 = gene_two.allele_as_f32();
-
-                if let Some((one, two)) = one_as_f32.zip(two_as_f32) {
-                    if one.is_nan() || two.is_nan() {
-                        continue;
-                    }
-
-                    let diff = one - two;
-                    distance += diff * diff;
-                    total_genes += 1.0;
-                }
-            }
-        }
-
-        if total_genes == 0.0 {
-            return 0.0;
-        }
-
-        (distance / total_genes).sqrt()
-    }
-}
-
-impl<G, C> Distance<Genotype<C>> for EuclideanDistance
-where
-    C: Chromosome<Gene = G>,
-    G: NumericGene,
-    G::Allele: NumericAllele,
-{
-    fn distance(&self, one: &Genotype<C>, two: &Genotype<C>) -> f32 {
-        let mut distance = 0.0;
-        let mut total_genes = 0.0;
-        for (chrom_one, chrom_two) in one.iter().zip(two.iter()) {
             for (gene_one, gene_two) in chrom_one.iter().zip(chrom_two.iter()) {
                 let one_as_f32 = gene_one.allele_as_f32();
                 let two_as_f32 = gene_two.allele_as_f32();

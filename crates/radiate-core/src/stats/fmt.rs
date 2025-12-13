@@ -1,11 +1,9 @@
+use crate::stats::TagKind;
+use crate::{Metric, MetricSet, metric_names};
 use std::time::Duration;
 use std::{fmt::Write as _, io};
 
-use crate::{Metric, MetricScope, MetricSet, metric_names};
-
-/// ASCII sparkline for quick trend peeks (uses last distribution sequence).
-/// Example: ▁▂▃▄▅▆▇█
-fn sparkline(values: &[f32], width: usize) -> String {
+pub fn sparkline(values: &[f32], width: usize) -> String {
     if values.is_empty() || width == 0 {
         return String::new();
     }
@@ -30,21 +28,6 @@ fn sparkline(values: &[f32], width: usize) -> String {
         idx += step;
     }
     out
-}
-
-fn fmt_dur(d: Duration) -> String {
-    let ns = d.as_nanos();
-    if ns == 0 {
-        "0ns".into()
-    } else if ns < 1_000 {
-        format!("{ns}ns")
-    } else if ns < 1_000_000 {
-        format!("{:.3}µs", ns as f64 / 1e3)
-    } else if ns < 1_000_000_000 {
-        format!("{:.3}ms", ns as f64 / 1e6)
-    } else {
-        format!("{:.3}s", ns as f64 / 1e9)
-    }
 }
 
 pub fn render_dashboard(metrics: &MetricSet) -> io::Result<String> {
@@ -72,13 +55,13 @@ pub fn render_dashboard(metrics: &MetricSet) -> io::Result<String> {
     push_int(metric_names::UNIQUE_MEMBERS, "unique_members");
     push_int(metric_names::UNIQUE_SCORES, "unique_scores");
 
-    if let Some(m) = metrics.get(metric_names::LIFETIME_UNIQUE_MEMBERS) {
-        write!(out, "  lifetime_unique: {}", m.last_value() as i64).unwrap();
+    if let Some(m) = metrics.get(metric_names::BEST_SCORE_IMPROVEMENT) {
+        write!(out, "  improvements: {}", m.count() as i64).unwrap();
     }
 
     if let Some(m) = metrics.get(metric_names::TIME) {
         if let Some(mu) = m.time_mean() {
-            write!(out, "  iter_time(mean): {}", fmt_dur(mu)).unwrap();
+            write!(out, "  iter_time(mean): {}", fmt_duration(mu)).unwrap();
         }
     }
 
@@ -103,9 +86,10 @@ pub fn render_metric_rows_full(
     out: &mut String,
     name: &str,
     m: &Metric,
-    include_spark: bool,
+    tag: TagKind,
+    // include_spark: bool,
 ) -> io::Result<()> {
-    let inner = m.inner();
+    // let inner = m.inner();
 
     if name == super::set::METRIC_SET {
         if let Some(s) = m.statistic() {
@@ -120,7 +104,9 @@ pub fn render_metric_rows_full(
     }
 
     // Value row
-    if let Some(stat) = m.statistic() {
+    if let Some(stat) = m.statistic()
+        && tag == TagKind::Statistic
+    {
         writeln!(
             out,
             "{:<24} | {:<6} | {:<10.3} | {:<10.3} | {:<10.3} | {:<6} | {:<12} | {:<10.3} | {:<10.3} | {:<10.3} | {:<10}",
@@ -139,200 +125,70 @@ pub fn render_metric_rows_full(
     }
 
     // Time row
-    if let Some(t) = m.time_statistic() {
+    if let Some(t) = m.time_statistic()
+        && tag == TagKind::Time
+    {
         writeln!(
             out,
             "{:<24} | {:<6} | {:<10} | {:<10} | {:<10} | {:<6} | {:<12} | {:<10} | {:<10} | {:<10} | {:<10}",
             name,
             "time",
-            fmt_dur(t.mean()),
-            fmt_dur(t.min()),
-            fmt_dur(t.max()),
+            fmt_duration(t.mean()),
+            fmt_duration(t.min()),
+            fmt_duration(t.max()),
             t.count(),
-            fmt_dur(t.sum()),
-            fmt_dur(t.standard_deviation()),
+            fmt_duration(t.sum()),
+            fmt_duration(t.standard_deviation()),
             "-",
             "-",
             "-",
         ).unwrap();
     }
 
-    // Distribution row (+ optional sparkline)
-    if let Some(dist) = inner.distribution.as_ref() {
-        writeln!(
-            out,
-            "{:<24} | {:<6} | {:<10.3} | {:<10.3} | {:<10.3} | {:<6} | {:<12} | {:<10.3} | {:<10.3} | {:<10.3} | {:<10.3}",
-            name,
-            "dist",
-            dist.mean(),
-            dist.min(),
-            dist.max(),
-            dist.count(),
-            "-",
-            dist.standard_deviation(),
-            dist.skewness(),
-            dist.kurtosis(),
-            format!("{:.3}", dist.entropy()),
-        ).unwrap();
-
-        if include_spark {
-            if let Some(seq) = m.last_sequence() {
-                if !seq.is_empty() {
-                    let s = sparkline(seq, 40);
-                    writeln!(out, "{:<24}   {}", "", s).unwrap();
-                }
-            }
-        }
-    }
-
     Ok(())
 }
 
-pub fn render_metric_rows_minimal(
-    out: &mut String,
-    name: &str,
-    m: &Metric,
-    include_name: bool,
-) -> io::Result<()> {
-    let inner = m.inner();
-
-    // Value row
-    if let Some(stat) = m.statistic() {
-        if include_name {
-            write!(
-                out,
-                "{:<24} | μ: {:<10.3} | ↓: {:<10.3} | ↑: {:<10.3} | Count: {:<6}",
-                name,
-                stat.mean(),
-                stat.min(),
-                stat.max(),
-                stat.count(),
-            )
-            .unwrap();
-        } else {
-            write!(
-                out,
-                "μ: {:<10.3} | ↓: {:<10.3} | ↑: {:<10.3} | Count: {:<6}",
-                stat.mean(),
-                stat.min(),
-                stat.max(),
-                stat.count(),
-            )
-            .unwrap();
-        }
-    }
-
-    if let Some(dist) = inner.distribution.as_ref() {
-        if include_name {
-            write!(
-                out,
-                "{:<24} | μ: {:<10.3} | ↓: {:<10.3} | ↑: {:<10.3} | Count: {:<6} | σ: {:<10.3} | Skew: {:<10.3} | Kurt: {:<10.3}",
-                name,
-                dist.mean(),
-                dist.min(),
-                dist.max(),
-                dist.count(),
-                dist.standard_deviation(),
-                dist.skewness(),
-                dist.kurtosis(),
-            )
-            .unwrap();
-        } else {
-            write!(
-                out,
-                "μ: {:<10.3} | ↓: {:<10.3} | ↑: {:<10.3} | Count: {:<6} | σ: {:<10.3} | Skew: {:<10.3} | Kurt: {:<10.3}",
-                dist.mean(),
-                dist.min(),
-                dist.max(),
-                dist.count(),
-                dist.standard_deviation(),
-                dist.skewness(),
-                dist.kurtosis(),
-            )
-            .unwrap();
-        }
-    }
-
-    if let Some(time) = m.time_statistic() {
-        if include_name {
-            write!(
-                out,
-                "{:<24} | μ: {:<10} | ↓: {:<10} | ↑: {:<10} | ∑: {:<10} | Count: {:<6}",
-                name,
-                fmt_dur(time.mean()),
-                fmt_dur(time.min()),
-                fmt_dur(time.max()),
-                fmt_dur(time.sum()),
-                time.count(),
-            )
-            .unwrap();
-        } else {
-            write!(
-                out,
-                "μ: {:<10} | ↓: {:<10} | ↑: {:<10} | ∑: {:<10} | Count: {:<6}",
-                fmt_dur(time.mean()),
-                fmt_dur(time.min()),
-                fmt_dur(time.max()),
-                fmt_dur(time.sum()),
-                time.count(),
-            )
-            .unwrap();
-        }
-    }
-
-    Ok(())
-}
-
-fn render_scope(
-    ms: &MetricSet,
-    scope: MetricScope,
-    title: &str,
-    include_spark: bool,
-) -> io::Result<String> {
+fn render_tagged(ms: &MetricSet, tag: TagKind, title: &str) -> io::Result<String> {
     let mut out = String::new();
     writeln!(out, "== {} ==", title).unwrap();
     out = render_table_header(out)?;
 
-    let mut items: Vec<_> = ms.iter_scope(scope).collect();
+    let mut items: Vec<_> = ms.iter_tagged(tag).collect();
     items.sort_by(|a, b| a.0.cmp(b.0));
 
     for (name, m) in items {
-        render_metric_rows_full(&mut out, name, m, include_spark)?;
+        render_metric_rows_full(&mut out, name, m, tag)?;
     }
 
     Ok(out)
 }
 
-/// Render a full, multi-scope view:
-/// - dashboard summary line
-/// - Generation table
-/// - Lifetime table
-/// - Step timings table
-pub fn render_full(metrics: &MetricSet, include_spark: bool) -> io::Result<String> {
+pub fn render_full(metrics: &MetricSet) -> io::Result<String> {
     let mut out = String::new();
 
     let dash = render_dashboard(metrics)?;
     writeln!(out, "[metrics]{}", dash).unwrap();
 
-    let generation = render_scope(
-        metrics,
-        MetricScope::Generation,
-        "Generation",
-        include_spark,
-    )?;
+    let generation = render_tagged(metrics, TagKind::Statistic, "Stataistics")?;
     writeln!(out, "\n{}", generation).unwrap();
 
-    let life = render_scope(metrics, MetricScope::Lifetime, "Lifetime", false)?;
+    let life = render_tagged(metrics, TagKind::Time, "Times")?;
     writeln!(out, "\n{}", life).unwrap();
-
-    let step = render_scope(metrics, MetricScope::Step, "Step Timings", false)?;
-    writeln!(out, "\n{}", step).unwrap();
 
     Ok(out)
 }
 
-pub fn render_metric_minimal(metric: &Metric, include_name: bool) -> io::Result<String> {
-    let mut out = String::new();
-    render_metric_rows_minimal(&mut out, &metric.name(), metric, include_name)?;
-    Ok(out)
+pub fn fmt_duration(d: Duration) -> String {
+    let ns = d.as_nanos();
+    if ns == 0 {
+        "0ns".into()
+    } else if ns < 1_000 {
+        format!("{ns}ns")
+    } else if ns < 1_000_000 {
+        format!("{:.3}µs", ns as f64 / 1e3)
+    } else if ns < 1_000_000_000 {
+        format!("{:.3}ms", ns as f64 / 1e6)
+    } else {
+        format!("{:.3}s", ns as f64 / 1e9)
+    }
 }

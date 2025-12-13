@@ -11,10 +11,10 @@ pub struct CentroidClusterer<P> {
 }
 
 impl<P> CentroidClusterer<P> {
-    pub fn new(metric: impl Into<Arc<dyn Distance<P>>>) -> Self {
+    pub fn new(metric: Arc<dyn Distance<P>>) -> Self {
         CentroidClusterer {
             centroids: Vec::new(),
-            metric: metric.into(),
+            metric,
         }
     }
 
@@ -69,5 +69,40 @@ impl<P: Clone> CentroidClusterer<P> {
             self.centroids.push(point.clone());
             (new_idx, 0.0)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::EuclideanDistance;
+    use std::sync::Arc;
+
+    #[test]
+    fn test_centroid_clusterer() {
+        let metric = EuclideanDistance;
+        let mut clusterer = CentroidClusterer::new(Arc::new(metric));
+
+        let points = vec![
+            vec![1.0, 2.0],
+            vec![1.5, 1.8],
+            vec![5.0, 8.0],
+            vec![8.0, 8.0],
+            vec![1.0, 0.6],
+            vec![9.0, 11.0],
+        ];
+
+        let threshold = 3.0;
+        let mut assignments = Vec::new();
+        for point in &points {
+            let (idx, dist) = clusterer.assign_or_create(point, Some(threshold));
+            assignments.push((idx, dist));
+        }
+
+        assert_eq!(clusterer.len(), 3);
+        assert_eq!(assignments[0].0, assignments[1].0); // first two points in same cluster
+        assert_eq!(assignments[0].0, assignments[4].0); // first and fifth points in same cluster
+        assert_ne!(assignments[0].0, assignments[2].0); // third point in different cluster
+        assert_eq!(assignments[2].0, assignments[3].0); // fourth point in different cluster
     }
 }

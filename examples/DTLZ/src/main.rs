@@ -12,8 +12,8 @@ fn main() {
 
     let engine = GeneticEngine::builder()
         .codec(codec)
-        .fitness_fn(|geno: Vec<f32>| dtlz_7(&geno))
-        .executor(Executor::FixedSizedWorkerPool(10))
+        .fitness_fn(|geno: Vec<f32>| dtlz_6(&geno))
+        // .executor(Executor::FixedSizedWorkerPool(10))
         .multi_objective(vec![Optimize::Minimize; OBJECTIVES])
         .offspring_selector(TournamentSelector::new(5))
         .survivor_selector(NSGA2Selector::new())
@@ -24,13 +24,11 @@ fn main() {
         ))
         .build();
 
-    let result = engine.iter().logging().take(1000).last().unwrap();
+    let result = engine.iter().limit(1000).last().unwrap();
 
     println!("{}", result.metrics());
-
-    // .collect::<Front<Phenotype<FloatChromosome>>>();
-
-    plot_front(&result.front().unwrap());
+    let front = result.front().unwrap();
+    plot_front(front);
 }
 
 fn plot_front(front: &Front<Phenotype<FloatChromosome>>) {

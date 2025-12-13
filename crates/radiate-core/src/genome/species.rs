@@ -78,6 +78,11 @@ impl<C: Chromosome> Species<C> {
         self.population.len()
     }
 
+    pub fn set_new_mascot(&mut self, mascot: Phenotype<C>) {
+        self.mascot = mascot;
+        self.population.clear();
+    }
+
     pub fn mascot(&self) -> &Phenotype<C> {
         &self.mascot
     }

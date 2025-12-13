@@ -1,5 +1,5 @@
 use radiate_core::{
-    AlterResult, BoundedGene, Chromosome, FloatGene, Gene, Mutate, random_provider,
+    AlterResult, BoundedGene, Chromosome, FloatGene, Gene, Mutate, Rate, random_provider,
 };
 
 /// The `JitterMutator` is a simple mutator that adds a small random value to [FloatGene]s.
@@ -11,15 +11,16 @@ use radiate_core::{
 /// magnitudes will result in larger changes.
 #[derive(Debug, Clone)]
 pub struct JitterMutator {
-    rate: f32,
+    rate: Rate,
     magnitude: f32,
 }
 
 impl JitterMutator {
-    pub fn new(rate: f32, magnitude: f32) -> Self {
-        if !(0.0..=1.0).contains(&rate) {
-            panic!("Rate must be between 0 and 1");
-        }
+    pub fn new(rate: impl Into<Rate>, magnitude: f32) -> Self {
+        let rate = rate.into();
+        // if !(0.0..=1.0).contains(&rate.0) {
+        //     panic!("Rate must be between 0 and 1");
+        // }
 
         if magnitude <= 0.0 {
             panic!("Magnitude must be greater than 0");
@@ -33,24 +34,26 @@ impl<C> Mutate<C> for JitterMutator
 where
     C: Chromosome<Gene = FloatGene>,
 {
-    fn rate(&self) -> f32 {
-        self.rate
+    fn rate(&self) -> Rate {
+        self.rate.clone()
     }
 
     #[inline]
     fn mutate_chromosome(&self, chromosome: &mut C, rate: f32) -> AlterResult {
         let mut count = 0;
 
-        for gene in chromosome.genes_mut() {
-            if random_provider::bool(rate) {
-                let change = random_provider::range(-1.0..1.0) * self.magnitude;
-                let new_allele = gene.allele() + change;
-                let (min, max) = gene.bounds();
+        random_provider::with_rng(|rand| {
+            for gene in chromosome.genes_mut() {
+                if rand.bool(rate) {
+                    let change = rand.range(-1.0..1.0) * self.magnitude;
+                    let new_allele = gene.allele() + change;
+                    let (min, max) = gene.bounds();
 
-                (*gene.allele_mut()) = new_allele.clamp(*min, *max);
-                count += 1;
+                    (*gene.allele_mut()) = new_allele.clamp(*min, *max);
+                    count += 1;
+                }
             }
-        }
+        });
 
         AlterResult::from(count)
     }

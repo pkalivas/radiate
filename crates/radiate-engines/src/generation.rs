@@ -121,7 +121,7 @@ where
     {
         if let EcosystemSnapshot::Owned(ref eco) = self.ecosystem {
             return eco;
-        } else if let EcosystemSnapshot::Shared(eco) = &mut self.ecosystem {
+        } else if let EcosystemSnapshot::Shared(eco) = &self.ecosystem {
             self.ecosystem = EcosystemSnapshot::Owned(eco.clone());
         }
 

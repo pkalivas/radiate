@@ -4,7 +4,7 @@ this is more of a quick testing file for me
 """
 
 import radiate as rd
-
+from datetime import datetime, timezone
 
 rd.random.seed(42)
 
@@ -12,9 +12,10 @@ rd.random.seed(42)
 class ObjectGene(rd.AnyGene):
     def __init__(self):
         self.number = rd.random.int(min=0, max=10)
+        self.date = datetime(2020, 1, 1, tzinfo=timezone.utc)
 
     def __repr__(self):
-        return f"ObjectGene(number={self.number})"
+        return f"ObjectGene(number={self.number}, date={self.date})"
 
 
 def fitness_function(phenotypes: list[list[ObjectGene]]) -> list[float]:
@@ -27,9 +28,7 @@ engine = rd.GeneticEngine(
     objective="min",
 )
 
-result = engine.run(rd.ScoreLimit(0), log=True, checkpoint=(10, "wrappers"))
+result = engine.run(rd.ScoreLimit(0), ui=True)
 
 for obj_gene in result.value():
     print(obj_gene)
-
-

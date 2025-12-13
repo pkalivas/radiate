@@ -1,6 +1,6 @@
 use crate::IntoPyAnyObject;
 use pyo3::Python;
-use radiate::{Chromosome, Ecosystem, Evaluator, Executor, Problem};
+use radiate::{Chromosome, Ecosystem, Evaluator, Executor, Problem, RadiateResult};
 use std::sync::Arc;
 
 /// Based off of the [pyo3 documentation](https://pyo3.rs/v0.27.1/parallelism)
@@ -27,7 +27,7 @@ where
         &self,
         ecosystem: &mut Ecosystem<C>,
         prob: Arc<dyn Problem<C, T>>,
-    ) -> radiate::Result<usize> {
+    ) -> RadiateResult<usize> {
         let mut pairs = Vec::new();
         let len = ecosystem.population.len();
         for idx in 0..len {

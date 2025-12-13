@@ -1,4 +1,4 @@
-use radiate_core::{AlterResult, ArithmeticGene, Chromosome, Mutate, random_provider};
+use radiate_core::{AlterResult, ArithmeticGene, Chromosome, Mutate, Rate, random_provider};
 
 /// Arithmetic Mutator. Mutates genes by performing arithmetic operations on them.
 /// The [ArithmeticMutator] takes a rate parameter that determines the likelihood that
@@ -9,24 +9,29 @@ use radiate_core::{AlterResult, ArithmeticGene, Chromosome, Mutate, random_provi
 /// `Add`, `Sub`, `Mul`, and `Div` traits - [ArithmeticGene] is a good example.
 #[derive(Debug, Clone)]
 pub struct ArithmeticMutator {
-    rate: f32,
+    rate: Rate,
 }
 
 impl ArithmeticMutator {
     /// Create a new instance of the `ArithmeticMutator` with the given rate.
     /// The rate must be between 0.0 and 1.0.
-    pub fn new(rate: f32) -> Self {
-        if !(0.0..=1.0).contains(&rate) {
-            panic!("Rate must be between 0 and 1");
-        }
+    pub fn new(rate: impl Into<Rate>) -> Self {
+        let rate = rate.into();
+        // if !(0.0..=1.0).contains(&rate.0) {
+        //     panic!("Rate must be between 0 and 1");
+        // }
 
         Self { rate }
     }
 }
 
-impl<G: ArithmeticGene, C: Chromosome<Gene = G>> Mutate<C> for ArithmeticMutator {
-    fn rate(&self) -> f32 {
-        self.rate
+impl<G, C> Mutate<C> for ArithmeticMutator
+where
+    G: ArithmeticGene,
+    C: Chromosome<Gene = G>,
+{
+    fn rate(&self) -> Rate {
+        self.rate.clone()
     }
 
     /// Mutate a gene by performing an arithmetic operation on it.
@@ -35,6 +40,7 @@ impl<G: ArithmeticGene, C: Chromosome<Gene = G>> Mutate<C> for ArithmeticMutator
     #[inline]
     fn mutate_chromosome(&self, chromosome: &mut C, rate: f32) -> AlterResult {
         let mut mutations = 0;
+
         for gene in chromosome.iter_mut() {
             if random_provider::bool(rate) {
                 let operator = random_provider::range(0..4);

@@ -1,6 +1,6 @@
 use crate::GeneticEngineBuilder;
-use radiate_core::{Alter, AlterAction, Chromosome, Crossover, Mutate};
-use std::sync::Arc;
+use radiate_core::{Alterer, Chromosome, Crossover, Mutate};
+use radiate_utils::intern;
 
 impl<C, T> GeneticEngineBuilder<C, T>
 where
@@ -12,7 +12,7 @@ where
     /// and crossover operations to the offspring and will be used to create the next
     /// generation of the population. **Note**: the order of the alterers is important - the
     /// alterers will be applied in the order they are provided.
-    pub fn alter(mut self, alterers: Vec<Box<dyn Alter<C>>>) -> Self {
+    pub fn alter(mut self, alterers: Vec<Alterer<C>>) -> Self {
         self.params.alterers = alterers.into_iter().map(|alt| alt.into()).collect();
         self
     }
@@ -22,7 +22,7 @@ where
     /// mutators and crossovers are added is the order in which they will be applied during
     /// the evolution process.
     pub fn mutator<M: Mutate<C> + 'static>(mut self, mutator: M) -> Self {
-        self.params.alterers.push(Arc::new(mutator.alterer()));
+        self.params.alterers.push(mutator.alterer());
         self
     }
 
@@ -33,9 +33,7 @@ where
     pub fn mutators(mut self, mutators: Vec<Box<dyn Mutate<C>>>) -> Self {
         let mutate_actions = mutators
             .into_iter()
-            .map(|m| {
-                Arc::new(AlterAction::Mutate(m.name().leak(), m.rate(), m)) as Arc<dyn Alter<C>>
-            })
+            .map(|m| Alterer::Mutate(intern!(m.name()), m.rate(), m.into()))
             .collect::<Vec<_>>();
 
         self.params.alterers.extend(mutate_actions);
@@ -47,7 +45,7 @@ where
     /// mutators and crossovers are added is the order in which they will be applied during
     /// the evolution process.s
     pub fn crossover<R: Crossover<C> + 'static>(mut self, crossover: R) -> Self {
-        self.params.alterers.push(Arc::new(crossover.alterer()));
+        self.params.alterers.push(crossover.alterer());
         self
     }
 
@@ -58,9 +56,7 @@ where
     pub fn crossovers(mut self, crossovers: Vec<Box<dyn Crossover<C>>>) -> Self {
         let crossover_actions = crossovers
             .into_iter()
-            .map(|c| {
-                Arc::new(AlterAction::Crossover(c.name().leak(), c.rate(), c)) as Arc<dyn Alter<C>>
-            })
+            .map(|c| Alterer::Crossover(c.name().leak(), c.rate(), c.into()))
             .collect::<Vec<_>>();
 
         self.params.alterers.extend(crossover_actions);

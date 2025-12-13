@@ -3,7 +3,7 @@ use radiate::*;
 const MIN_SCORE: f32 = 0.001;
 
 fn main() {
-    random_provider::set_seed(518);
+    random_provider::set_seed(2);
 
     let store = vec![
         (
@@ -16,20 +16,12 @@ fn main() {
     let tree_codec = TreeCodec::single(3, store).constraint(|root| root.size() < 30);
     let problem = Regression::new(get_dataset(), Loss::MSE);
 
-    println!("{:?}", tree_codec.decode(&tree_codec.encode()));
-
     let engine = GeneticEngine::builder()
         .codec(tree_codec)
         .fitness_fn(problem)
         .minimizing()
-        .mutators(vec![
-            Box::new(HoistMutator::new(0.01)),
-            // Box::new(OperationMutator::new(0.05, 0.05)),
-        ])
-        .crossovers(vec![
-            Box::new(TreeCrossover::new(0.7)),
-            // Box::new(PgmCrossover::new(0.4)),
-        ])
+        .mutator(HoistMutator::new(0.01))
+        .crossover(TreeCrossover::new(0.7))
         .build();
 
     engine
@@ -41,15 +33,16 @@ fn main() {
 }
 
 fn display(result: &Generation<TreeChromosome<Op<f32>>, Tree<Op<f32>>>) {
-    let data_set = get_dataset();
-    let accuracy = Accuracy::new("reg")
-        .on(&data_set)
+    Accuracy::default()
+        .named("Regression Tree")
+        .on(&get_dataset())
         .loss(Loss::MSE)
-        .calc(&mut result.value().clone());
-
-    println!("{:?}", result);
-    println!("Best Tree: {}", result.value().format());
-    println!("{:?}", accuracy);
+        .eval(result.value())
+        .inspect(|acc| {
+            println!("{}", result.metrics().dashboard());
+            println!("Best Tree: {}", result.value().format());
+            println!("{:?}", acc);
+        });
 }
 
 fn get_dataset() -> DataSet {

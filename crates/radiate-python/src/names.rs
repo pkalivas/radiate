@@ -53,3 +53,9 @@ pub const STOP_EVENT: &str = "stop_event";
 pub const EPOCH_START_EVENT: &str = "epoch_start_event";
 pub const EPOCH_COMPLETE_EVENT: &str = "epoch_complete_event";
 pub const ENGINE_IMPROVEMENT_EVENT: &str = "engine_improvement_event";
+
+// Loss Functions
+pub const MSE_LOSS: &str = "mse";
+pub const MAE_LOSS: &str = "mae";
+pub const CROSS_ENTROPY_LOSS: &str = "cross_entropy";
+pub const DIFF_LOSS: &str = "diff";

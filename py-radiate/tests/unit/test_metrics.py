@@ -22,15 +22,12 @@ class TestMetrics:
             assert key in metrics
 
             if key == "scores":
-                assert metrics[key].seq_mean() is not None
-                assert metrics[key].seq_stddev() is not None
-                assert metrics[key].seq_variance() is not None
-                assert metrics[key].seq_kurt() is not None
-                assert metrics[key].seq_skew() is not None
-                assert metrics[key].seq_min() is not None
-                assert metrics[key].seq_max() is not None
-                assert metrics[key].seq_count() == 100  # num phenotypes in population
-                assert len(metrics[key].seq_last()) == metrics[key].seq_count()
+                assert metrics[key].mean() is not None
+                assert metrics[key].stddev() is not None
+                assert metrics[key].variance() is not None
+                assert metrics[key].skew() is not None
+                assert metrics[key].min() is not None
+                assert metrics[key].max() is not None
             elif key == "time" or "step" in key:
                 assert metrics[key].time_last() is not None
                 assert metrics[key].time_sum() is not None
@@ -62,17 +59,12 @@ class TestMetrics:
                 for key in metrics.keys():
                     assert key in metrics
                     if key == "scores":
-                        assert metrics[key].seq_mean() is not None
-                        assert metrics[key].seq_stddev() is not None
-                        assert metrics[key].seq_variance() is not None
-                        assert metrics[key].seq_kurt() is not None
-                        assert metrics[key].seq_skew() is not None
-                        assert metrics[key].seq_min() is not None
-                        assert metrics[key].seq_max() is not None
-                        assert (
-                            metrics[key].seq_count() == 100
-                        )  # num phenotypes in population
-                        assert len(metrics[key].seq_last()) == metrics[key].seq_count()
+                        assert metrics[key].mean() is not None
+                        assert metrics[key].stddev() is not None
+                        assert metrics[key].variance() is not None
+                        assert metrics[key].skew() is not None
+                        assert metrics[key].min() is not None
+                        assert metrics[key].max() is not None
                     elif key == "time" or "step" in key:
                         assert metrics[key].time_last() is not None
                         assert metrics[key].time_sum() is not None

@@ -15,11 +15,9 @@ where
     fn execute(
         &mut self,
         generation: usize,
-        metrics: &mut MetricSet,
         ecosystem: &mut Ecosystem<C>,
+        metrics: &mut MetricSet,
     ) -> Result<()> {
-        let timer = std::time::Instant::now();
-
         let phenotypes = ecosystem
             .population()
             .iter()
@@ -27,15 +25,20 @@ where
             .cloned()
             .collect::<Vec<Phenotype<C>>>();
 
-        let count = self.front.write().unwrap().add_all(&phenotypes);
+        let add_result = self.front.write().unwrap().add_all(&phenotypes);
 
-        if count > 0 {
-            metrics.upsert(metric_names::FRONT_ADDITIONS, (count, timer.elapsed()));
-
+        metrics.upsert((metric_names::FRONT_ADDITIONS, add_result.added_count));
+        metrics.upsert((metric_names::FRONT_REMOVALS, add_result.removed_count));
+        metrics.upsert((metric_names::FRONT_COMPARISONS, add_result.comparisons));
+        metrics.upsert((
+            metric_names::FRONT_SIZE,
+            self.front.read().unwrap().values().len(),
+        ));
+        if add_result.added_count > 0 {
             if generation % 10 == 0 {
                 let reader = self.front.read().unwrap();
                 if let Some(entropy) = reader.entropy() {
-                    metrics.upsert(metric_names::FRONT_ENTROPY, entropy);
+                    metrics.upsert((metric_names::FRONT_ENTROPY, entropy));
                 }
             }
         }

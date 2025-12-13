@@ -51,25 +51,12 @@ fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
 }
 
 fn dataset() -> DataSet {
-    let inputs = vec![
-        vec![0.0],
-        vec![0.0],
-        vec![0.0],
-        vec![1.0],
-        vec![0.0],
-        vec![0.0],
-        vec![0.0],
-    ];
-
-    let answers = vec![
-        vec![0.0],
-        vec![0.0],
-        vec![1.0],
-        vec![0.0],
-        vec![0.0],
-        vec![0.0],
-        vec![1.0],
-    ];
-
-    DataSet::new(inputs, answers)
+    DataSet::default()
+        .row((vec![0.0], vec![0.0]))
+        .row((vec![0.0], vec![0.0]))
+        .row((vec![0.0], vec![1.0]))
+        .row((vec![1.0], vec![0.0]))
+        .row((vec![0.0], vec![0.0]))
+        .row((vec![0.0], vec![0.0]))
+        .row((vec![0.0], vec![1.0]))
 }

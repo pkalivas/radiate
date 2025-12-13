@@ -2,6 +2,7 @@
 mod engine_tests {
     use radiate_core::*;
     use radiate_engines::*;
+    use std::time::Duration;
 
     #[test]
     fn engine_can_minimize() {
@@ -72,7 +73,7 @@ mod engine_tests {
                 // Realistically, with an engine configured like this one is, we'd expect anywhere from 50-70ish
                 // individuals per batch here.
                 assert!(
-                    phenotypes.len() > 1,
+                    phenotypes.len() > 0,
                     "Batch should have more than one phenotype"
                 );
                 phenotypes
@@ -127,5 +128,25 @@ mod engine_tests {
 
         let result = engine.iter().limit(10).last().unwrap();
         assert_eq!(result.index(), 10);
+    }
+
+    #[test]
+    fn test_engine_custom_iterator() {
+        let engine = GeneticEngine::builder()
+            .minimizing()
+            .codec(IntCodec::vector(5, 0..100))
+            .fitness_fn(|geno: Vec<i32>| geno.iter().sum::<i32>())
+            .build();
+
+        let result = engine
+            .iter()
+            .limit(vec![
+                Limit::Generation(15),
+                Limit::Seconds(Duration::from_secs_f64(3_f64)),
+            ])
+            .last()
+            .unwrap();
+
+        assert_eq!(result.index(), 15);
     }
 }

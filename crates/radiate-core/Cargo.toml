@@ -13,6 +13,7 @@ homepage = { workspace = true }
 
 [dependencies]
 radiate-error = { workspace = true }
+radiate-utils = { workspace = true, default-features = false, features = ["serde"] }
 rand = { workspace = true }
 serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }

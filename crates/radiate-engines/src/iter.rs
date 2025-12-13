@@ -77,11 +77,24 @@ where
     pub(crate) engine: E,
 }
 
-/// Implementation of `Iterator` for [EngineIterator].
-///
-/// Each call to `next()` advances the engine by one generation and returns
-/// the resulting generation data. The iterator continues indefinitely until
-/// external termination conditions are applied - so always provide termination conditions.
+impl<E> EngineIterator<E>
+where
+    E: Engine,
+{
+    /// Creates a new [EngineIterator] wrapping the specified engine.
+    ///
+    /// # Arguments
+    ///
+    /// * `engine` - The engine to wrap with the iterator
+    ///
+    /// # Returns
+    ///
+    /// A new instance of [EngineIterator]
+    pub fn new(engine: E) -> Self {
+        EngineIterator { engine }
+    }
+}
+
 impl<E> Iterator for EngineIterator<E>
 where
     E: Engine,
@@ -95,6 +108,25 @@ where
         }
     }
 }
+
+// /// Implementation of `Iterator` for [EngineIterator].
+// ///
+// /// Each call to `next()` advances the engine by one generation and returns
+// /// the resulting generation data. The iterator continues indefinitely until
+// /// external termination conditions are applied - so always provide termination conditions.
+// impl<E> Iterator for EngineIterator<E>
+// where
+//     E: Engine,
+// {
+//     type Item = E::Epoch;
+
+//     fn next(&mut self) -> Option<Self::Item> {
+//         match self.engine.next() {
+//             Ok(epoch) => Some(epoch),
+//             Err(e) => panic!("{e}"),
+//         }
+//     }
+// }
 
 /// Blanket implementation of the extension trait for any iterator over generations.
 ///

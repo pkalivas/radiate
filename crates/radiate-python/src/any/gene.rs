@@ -1,6 +1,5 @@
 use crate::AnyValue;
 use radiate::{ArithmeticGene, Chromosome, Gene, Valid};
-
 use std::{
     collections::HashMap,
     fmt::Debug,

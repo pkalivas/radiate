@@ -1,7 +1,7 @@
 use crate::steps::EngineStep;
 use radiate_core::{
-    Chromosome, Ecosystem, Executor, Genotype, MetricSet, Objective, Species, diversity::Distance,
-    metric_names,
+    Chromosome, Ecosystem, Executor, Genotype, MetricSet, Objective, Score, Species,
+    diversity::Distance, metric_names, random_provider,
 };
 use radiate_error::Result;
 use std::sync::{Arc, Mutex, RwLock};
@@ -12,25 +12,27 @@ where
 {
     pub(crate) threashold: f32,
     pub(crate) objective: Objective,
-    pub(crate) diversity: Arc<dyn Distance<Genotype<C>>>,
+    pub(crate) distance: Arc<dyn Distance<Genotype<C>>>,
     pub(crate) executor: Arc<Executor>,
+    pub(crate) distances: Arc<Mutex<Vec<f32>>>,
+    pub(crate) assignments: Arc<Mutex<Vec<Option<usize>>>>,
 }
 
 impl<C> SpeciateStep<C>
 where
     C: Chromosome + 'static,
 {
-    /// Build chunked populations and the closures to run for each chunk.
-    /// Returns:
-    /// - chunked_members: Vec of Arc<RwLock<Vec<(idx, genotype)>>>
-    /// - batches: Vec of closures to submit to the executor
-    fn build_chunks_and_batches(
+    fn assign_species(
         &self,
+        generation: usize,
         ecosystem: &mut Ecosystem<C>,
         mascots: Arc<Vec<Genotype<C>>>,
         assignments: Arc<Mutex<Vec<Option<usize>>>>,
         distances: Arc<Mutex<Vec<f32>>>,
-    ) -> Result<()> {
+    ) -> Result<()>
+    where
+        C: Clone,
+    {
         let pop_len = ecosystem.population().len();
         let num_threads = self.executor.num_workers().max(1);
         let chunk_size = (pop_len as f32 / num_threads as f32).ceil() as usize;
@@ -47,7 +49,7 @@ where
                     .iter_mut()
                     .enumerate()
                     .skip(chunk_start)
-                    .take(chunk_end)
+                    .take(chunk_end - chunk_start)
                     .try_fold(Vec::new(), |mut acc, (idx, pheno)| {
                         let genotype = pheno.take_genotype()?;
                         acc.push((idx, genotype));
@@ -56,7 +58,7 @@ where
             ));
 
             let threshold = self.threashold;
-            let diversity = Arc::clone(&self.diversity);
+            let distance = Arc::clone(&self.distance);
             let assignments = Arc::clone(&assignments);
             let distances = Arc::clone(&distances);
             let population = Arc::clone(&chunk_population);
@@ -67,7 +69,7 @@ where
                     population,
                     species_snapshot,
                     threshold,
-                    diversity,
+                    distance,
                     assignments,
                     distances,
                 );
@@ -79,6 +81,7 @@ where
         self.executor.submit_blocking(batches);
 
         self.restore_genotypes(ecosystem, chunked_members);
+        self.assign_unassigned(generation, ecosystem, &assignments.lock().unwrap());
 
         Ok(())
     }
@@ -106,7 +109,6 @@ where
         generation: usize,
         ecosystem: &mut Ecosystem<C>,
         assignments: &[Option<usize>],
-        distances: &mut Vec<f32>,
     ) where
         C: Clone,
     {
@@ -123,11 +125,13 @@ where
                 .species()
                 .map(|specs| {
                     for (species_idx, species) in specs.iter().enumerate() {
-                        let dist = self
-                            .diversity
-                            .distance(genotype, species.mascot().genotype());
+                        if species.age(generation) != 0 {
+                            continue;
+                        }
 
-                        distances.push(dist);
+                        let dist = self
+                            .distance
+                            .distance(genotype, species.mascot().genotype());
 
                         if dist < self.threashold {
                             return Some(species_idx);
@@ -151,17 +155,36 @@ where
     }
 
     #[inline]
-    fn build_mascots(ecosystem: &Ecosystem<C>) -> Arc<Vec<Genotype<C>>>
+    fn fitness_share(&self, ecosystem: &mut Ecosystem<C>)
     where
-        C: Clone,
+        C: PartialEq,
     {
-        Arc::new(
-            ecosystem
-                .species_mascots()
-                .into_iter()
-                .map(|spec| spec.genotype().clone())
-                .collect::<Vec<Genotype<C>>>(),
-        )
+        if let Some(species) = ecosystem.species_mut() {
+            let mut scores = Vec::with_capacity(species.len());
+            for spec in species.iter() {
+                let adjusted = Self::adjust_scores(spec).iter().sum::<Score>();
+
+                scores.push(adjusted);
+            }
+
+            let total_score = scores.iter().sum::<Score>();
+            for (i, spec) in species.iter_mut().enumerate() {
+                let spec_score = scores[i].clone();
+                let adjusted_score = spec_score / total_score.clone();
+                spec.update_score(adjusted_score, &self.objective);
+            }
+
+            self.objective.sort(species);
+        }
+    }
+
+    #[inline]
+    fn adjust_scores(species: &Species<C>) -> Vec<Score> {
+        species
+            .population
+            .get_scores()
+            .map(|score| (*score).clone() / species.len() as f32)
+            .collect()
     }
 
     #[inline]
@@ -169,15 +192,17 @@ where
         population: Arc<RwLock<Vec<(usize, Genotype<C>)>>>,
         species_mascots: Arc<Vec<Genotype<C>>>,
         threshold: f32,
-        diversity: Arc<dyn Distance<Genotype<C>>>,
+        distance: Arc<dyn Distance<Genotype<C>>>,
         assignments: Arc<Mutex<Vec<Option<usize>>>>,
         distances: Arc<Mutex<Vec<f32>>>,
     ) {
         let mut inner_distances = Vec::new();
+        let mut inner_assignments = Vec::new();
+
         for (idx, individual) in population.read().unwrap().iter() {
             let mut assigned = None;
             for (idx, sp) in species_mascots.iter().enumerate() {
-                let dist = diversity.distance(&individual, &sp);
+                let dist = distance.distance(&individual, &sp);
                 inner_distances.push(dist);
 
                 if dist < threshold {
@@ -186,10 +211,46 @@ where
                 }
             }
 
-            assignments.lock().unwrap()[*idx] = assigned;
+            if assigned.is_some() {
+                inner_assignments.push((*idx, assigned));
+            }
         }
 
-        distances.lock().unwrap().extend(inner_distances);
+        {
+            let mut assignments = assignments.lock().unwrap();
+            for (idx, assigned) in inner_assignments {
+                assignments[idx] = assigned;
+            }
+        }
+
+        {
+            distances.lock().unwrap().extend(inner_distances);
+        }
+    }
+
+    #[inline]
+    fn generate_mascots(ecosystem: &mut Ecosystem<C>) -> Arc<Vec<Genotype<C>>>
+    where
+        C: Clone,
+    {
+        // Update mascots for each species by selecting a random member from the species population
+        // to be the new mascot for the next generation. This follows the NEAT algorithm approach.
+        if let Some(species) = ecosystem.species_mut() {
+            for spec in species {
+                let idx = random_provider::range(0..spec.population.len());
+                spec.population().get(idx).cloned().map(|phenotype| {
+                    spec.set_new_mascot(phenotype);
+                });
+            }
+        }
+
+        Arc::new(
+            ecosystem
+                .species_mascots()
+                .into_iter()
+                .map(|spec| spec.genotype().clone())
+                .collect::<Vec<Genotype<C>>>(),
+        )
     }
 }
 
@@ -201,43 +262,44 @@ where
     fn execute(
         &mut self,
         generation: usize,
-        metrics: &mut MetricSet,
         ecosystem: &mut Ecosystem<C>,
+        metrics: &mut MetricSet,
     ) -> Result<()> {
-        ecosystem.generate_mascots();
-
         let pop_len = ecosystem.population().len();
         if pop_len == 0 {
             return Ok(());
         }
 
-        let mascots = Self::build_mascots(ecosystem);
-        let distance_capacity = pop_len * mascots.len().max(1);
-        let distances = Arc::new(Mutex::new(Vec::with_capacity(distance_capacity)));
-        let assignments = Arc::new(Mutex::new(vec![None; pop_len]));
+        let mascots = Self::generate_mascots(ecosystem);
 
-        self.build_chunks_and_batches(
+        let distances = {
+            let distance_capacity = pop_len * mascots.len().max(1);
+            let mut distances_guard = self.distances.lock().unwrap();
+            distances_guard.clear();
+            distances_guard.reserve_exact(distance_capacity);
+            Arc::clone(&self.distances)
+        };
+
+        let assignments = {
+            let mut assignments_guard = self.assignments.lock().unwrap();
+            assignments_guard.clear();
+            assignments_guard.resize(pop_len, None);
+            Arc::clone(&self.assignments)
+        };
+
+        self.assign_species(
+            generation,
             ecosystem,
             Arc::clone(&mascots),
             Arc::clone(&assignments),
             Arc::clone(&distances),
         )?;
 
-        let mut distances_guard = distances.lock().unwrap();
-        let assignments_guard = assignments.lock().unwrap();
-        self.assign_unassigned(
-            generation,
-            ecosystem,
-            &assignments_guard,
-            &mut distances_guard,
-        );
-
         let removed_species = ecosystem.remvove_dead_species();
 
-        metrics.upsert(metric_names::SPECIES_DISTANCE_DIST, &*distances_guard);
-        metrics.upsert(metric_names::SPECIES_DIED, removed_species);
+        metrics.upsert((metric_names::SPECIES_DIED, removed_species));
 
-        ecosystem.fitness_share(&self.objective);
+        self.fitness_share(ecosystem);
 
         Ok(())
     }

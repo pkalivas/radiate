@@ -5,7 +5,7 @@ use crate::{Arity, Factory, NodeType};
 use radiate_core::Chromosome;
 use radiate_core::{AlterResult, Mutate, metric, random_provider};
 
-const INVALID_MUTATION: &str = "GraphMutator(Ivld)";
+const INVALID_MUTATION: &str = "graph_mut_failure";
 
 /// A graph mutator that can be used to alter the graph structure within a [`GraphChromosome<T>`].
 /// By adding new vertices and edges to the graph, it can be used to explore the search space of a graph.
@@ -51,17 +51,19 @@ impl GraphMutator {
     /// should be an edge or a vertex. First, a random boolean is generated. If true,
     /// we attempt to add an edge. If false, we attempt to add a vertex.
     fn mutate_type(&self) -> Option<NodeType> {
-        if random_provider::bool(0.5) {
-            if random_provider::bool(self.edge_rate) {
-                Some(NodeType::Edge)
+        random_provider::with_rng(|rand| {
+            if rand.bool(0.5) {
+                if rand.bool(self.edge_rate) {
+                    Some(NodeType::Edge)
+                } else {
+                    None
+                }
+            } else if rand.bool(self.vertex_rate) {
+                Some(NodeType::Vertex)
             } else {
                 None
             }
-        } else if random_provider::bool(self.vertex_rate) {
-            Some(NodeType::Vertex)
-        } else {
-            None
-        }
+        })
     }
 }
 
@@ -88,35 +90,42 @@ where
             let new_node = store.new_instance((chromosome.len(), node_type));
             let mut graph = Graph::new(chromosome.take_nodes());
 
-            let result = graph.try_modify(|mut trans| {
-                let needed_insertions = match new_node.arity() {
-                    Arity::Exact(n) => n,
-                    _ => 1,
-                };
+            let result = random_provider::with_rng(|rand| {
+                graph.try_modify(|mut trans| {
+                    let needed_insertions = match new_node.arity() {
+                        Arity::Exact(n) => n,
+                        _ => 1,
+                    };
 
-                let target_idx = trans.random_target_node().map(|n| n.index());
-                let source_idx = (0..needed_insertions)
-                    .filter_map(|_| trans.random_source_node().map(|n| n.index()))
-                    .collect::<Vec<usize>>();
+                    let target_idx = trans.random_target_node(rand).map(|n| n.index());
+                    let source_idx = (0..needed_insertions)
+                        .filter_map(|_| trans.random_source_node(rand).map(|n| n.index()))
+                        .collect::<Vec<usize>>();
 
-                let node_idx = trans.add_node(new_node);
+                    let node_idx = trans.add_node(new_node);
 
-                if let Some(trgt) = target_idx {
-                    for src in source_idx {
-                        let insertion_type = trans.get_insertion_steps(src, trgt, node_idx);
+                    if let Some(trgt) = target_idx {
+                        for src in source_idx {
+                            let insertion_type =
+                                trans.get_insertion_steps(src, trgt, node_idx, rand);
 
-                        for step in insertion_type {
-                            match step {
-                                InsertStep::Connect(source, target) => trans.attach(source, target),
-                                InsertStep::Detach(source, target) => trans.detach(source, target),
-                                _ => {}
+                            for step in insertion_type {
+                                match step {
+                                    InsertStep::Connect(source, target) => {
+                                        trans.attach(source, target)
+                                    }
+                                    InsertStep::Detach(source, target) => {
+                                        trans.detach(source, target)
+                                    }
+                                    _ => {}
+                                }
                             }
                         }
                     }
-                }
 
-                trans.commit_with(|graph: &Graph<T>| {
-                    self.allow_recurrent || !graph.iter().any(|node| node.is_recurrent())
+                    trans.commit_with(|graph: &Graph<T>| {
+                        self.allow_recurrent || !graph.iter().any(|node| node.is_recurrent())
+                    })
                 })
             });
 

@@ -1,4 +1,4 @@
-use crate::{MetricScope as Scope, Rollup};
+use crate::stats::{Tag, TagKind};
 
 pub mod metric_names {
     pub const TIME: &str = "time";
@@ -13,6 +13,9 @@ pub mod metric_names {
 
     pub const FRONT_ADDITIONS: &str = "front_additions";
     pub const FRONT_ENTROPY: &str = "front_entropy";
+    pub const FRONT_REMOVALS: &str = "front_removals";
+    pub const FRONT_COMPARISONS: &str = "front_comparisons";
+    pub const FRONT_SIZE: &str = "front_size";
 
     pub const UNIQUE_MEMBERS: &str = "unique_members";
     pub const UNIQUE_SCORES: &str = "unique_scores";
@@ -20,12 +23,13 @@ pub mod metric_names {
 
     pub const SURVIVOR_COUNT: &str = "survivor_count";
     pub const CARRYOVER_RATE: &str = "carryover_rate";
-    pub const LIFETIME_UNIQUE_MEMBERS: &str = "lifetime_unique";
 
     pub const EVALUATION_COUNT: &str = "evaluation_count";
 
     pub const DIVERSITY_RATIO: &str = "diversity_ratio";
     pub const SCORE_VOLATILITY: &str = "score_volatility";
+
+    pub const BEST_SCORE_IMPROVEMENT: &str = "best_score_improvement";
 
     pub const SPECIES_COUNT: &str = "species_count";
     pub const SPECIES_AGE_FAIL: &str = "species_age_fail";
@@ -33,34 +37,128 @@ pub mod metric_names {
     pub const SPECIES_CREATED: &str = "species_created";
     pub const SPECIES_DIED: &str = "species_died";
     pub const SPECIES_AGE: &str = "species_age";
+    pub const SPECIES_SIZE: &str = "species_size";
+    pub const SPECIES_EVENNESS: &str = "species_evenness";
+    pub const LARGEST_SPECIES_SHARE: &str = "largest_species_share";
+    pub const SPECIES_NEW_RATIO: &str = "species_new_ratio";
 }
 
-/// Lookup the default scope for a given metric name.
-pub fn default_scope(name: &str) -> Scope {
-    match name {
-        metric_names::LIFETIME_UNIQUE_MEMBERS | metric_names::TIME => Scope::Lifetime,
-        _ => Scope::Generation,
-    }
+pub mod metric_tags {
+    pub const SELECTOR: &str = "selector";
+
+    pub const ALTERER: &str = "alterer";
+    pub const MUTATOR: &str = "mutator";
+    pub const CROSSOVER: &str = "crossover";
+
+    pub const SPECIES: &str = "species";
+    pub const FAILURE: &str = "failure";
+
+    pub const AGE: &str = "age";
+
+    pub const FRONT: &str = "front";
+
+    pub const DERIVED: &str = "derived";
+
+    pub const OTHER: &str = "other";
+
+    pub const STATISTIC: &str = "statistic";
+    pub const TIME: &str = "time";
+    pub const DISTRIBUTION: &str = "distribution";
 }
 
-/// Lookup the default rollup mode for a given metric name.
-/// These decide how values are aggregated when flushing scopes.
-pub fn default_rollup(name: &str) -> Rollup {
+pub fn default_tags(name: &str) -> Tag {
+    let mut mask = Tag::empty();
+
+    // Exact-name mappings first
     match name {
-        metric_names::AGE
-        | metric_names::GENOME_SIZE
+        metric_names::REPLACE_AGE => {
+            mask.insert(TagKind::Age);
+            mask.insert(TagKind::Failure);
+        }
+        metric_names::REPLACE_INVALID => {
+            mask.insert(TagKind::Failure);
+        }
+        metric_names::FRONT_ADDITIONS
+        | metric_names::FRONT_REMOVALS
+        | metric_names::FRONT_COMPARISONS
+        | metric_names::FRONT_ENTROPY
+        | metric_names::FRONT_SIZE => {
+            mask.insert(TagKind::Front);
+        }
+        metric_names::SPECIES_AGE_FAIL => {
+            mask.insert(TagKind::Species);
+            mask.insert(TagKind::Age);
+            mask.insert(TagKind::Failure);
+        }
+        metric_names::SPECIES_AGE => {
+            mask.insert(TagKind::Species);
+            mask.insert(TagKind::Age);
+        }
+
+        // “Derived” metrics
+        metric_names::UNIQUE_MEMBERS
+        | metric_names::UNIQUE_SCORES
+        | metric_names::NEW_CHILDREN
+        | metric_names::SURVIVOR_COUNT
         | metric_names::CARRYOVER_RATE
         | metric_names::DIVERSITY_RATIO
-        | metric_names::SURVIVOR_COUNT
-        | metric_names::SCORE_VOLATILITY
-        | metric_names::FRONT_ADDITIONS
-        | metric_names::UNIQUE_MEMBERS
-        | metric_names::UNIQUE_SCORES
-        | metric_names::SPECIES_AGE
-        | metric_names::SPECIES_COUNT => Rollup::Mean,
+        | metric_names::SCORE_VOLATILITY => {
+            mask.insert(TagKind::Derived);
+        }
 
-        metric_names::TIME => Rollup::Last,
+        _ => {}
+    }
 
-        _ => Rollup::Sum,
+    mask
+}
+
+pub fn try_add_tag_from_str(metric: &mut crate::stats::Metric) {
+    let mut tags = Tag::empty();
+    let tag_str = metric.name();
+
+    if tag_str.contains("selector") {
+        tags.insert(TagKind::Selector);
+    }
+
+    if tag_str.contains("mutator") {
+        tags.insert(TagKind::Alterer);
+        tags.insert(TagKind::Mutator);
+    }
+
+    if tag_str.contains("crossover") {
+        tags.insert(TagKind::Crossover);
+        tags.insert(TagKind::Alterer);
+    }
+
+    if tag_str.contains("alterer") {
+        tags.insert(TagKind::Alterer);
+    }
+
+    if tag_str.contains("species") {
+        tags.insert(TagKind::Species);
+    }
+
+    if tag_str.contains("failure") {
+        tags.insert(TagKind::Failure);
+    }
+
+    if tag_str.contains("age") {
+        tags.insert(TagKind::Age);
+    }
+
+    if tag_str.contains("front") {
+        tags.insert(TagKind::Front);
+    }
+
+    if tag_str.contains("derived") {
+        tags.insert(TagKind::Derived);
+    }
+
+    if tag_str.contains("other") {
+        tags.insert(TagKind::Other);
+    }
+
+    if !tags.is_empty() {
+        metric.with_tags(tags);
     }
 }

@@ -38,6 +38,18 @@ impl Score {
         }
     }
 
+    pub fn is_multi_objective(&self) -> bool {
+        self.values.len() > 1
+    }
+
+    pub fn objective(&self, idx: usize) -> Option<&f32> {
+        self.values.get(idx)
+    }
+
+    pub fn as_slice(&self) -> &[f32] {
+        &self.values
+    }
+
     pub fn as_f32(&self) -> f32 {
         self.values.get(0).cloned().unwrap_or(f32::NAN)
     }
@@ -56,6 +68,10 @@ impl Score {
 
     pub fn iter(&self) -> impl Iterator<Item = &f32> + '_ {
         self.values.iter()
+    }
+
+    pub fn len(&self) -> usize {
+        self.values.len()
     }
 }
 

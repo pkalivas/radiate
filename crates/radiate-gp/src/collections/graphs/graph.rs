@@ -1,7 +1,7 @@
 use super::transaction::TransactionResult;
 use crate::collections::graphs::GraphTransaction;
 use crate::collections::{Direction, GraphNode};
-use crate::{Node, NodeType};
+use crate::{GraphIterator, NodeType};
 use radiate_core::Valid;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -339,7 +339,6 @@ impl<T> Graph<T> {
             &mut stack,
         );
 
-        // collect results
         let mut out = HashSet::with_capacity(stack.len());
         for (i, &c) in cycles.iter().enumerate() {
             if c {
@@ -347,13 +346,6 @@ impl<T> Graph<T> {
             }
         }
         out
-    }
-
-    #[inline]
-    fn get_nodes_of_type(&self, node_type: NodeType) -> impl Iterator<Item = &GraphNode<T>> {
-        self.nodes
-            .iter()
-            .filter(move |node| node.node_type() == node_type)
     }
 }
 

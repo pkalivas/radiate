@@ -27,7 +27,7 @@ pub fn py_alter(
 
     match gene_type {
         PyGeneType::Float => {
-            let alterer: Vec<Box<dyn Alter<FloatChromosome>>> = alterer.transform();
+            let alterer: Vec<Alterer<FloatChromosome>> = alterer.transform();
 
             Ok(PyPopulation::from(&alter(
                 alterer,
@@ -36,7 +36,7 @@ pub fn py_alter(
             )))
         }
         PyGeneType::Int => {
-            let alterer: Vec<Box<dyn Alter<IntChromosome<i32>>>> = alterer.transform();
+            let alterer: Vec<Alterer<IntChromosome<i32>>> = alterer.transform();
 
             Ok(PyPopulation::from(&alter(
                 alterer,
@@ -45,7 +45,7 @@ pub fn py_alter(
             )))
         }
         PyGeneType::Char => {
-            let alterer: Vec<Box<dyn Alter<CharChromosome>>> = alterer.transform();
+            let alterer: Vec<Alterer<CharChromosome>> = alterer.transform();
 
             Ok(PyPopulation::from(&alter(
                 alterer,
@@ -54,7 +54,7 @@ pub fn py_alter(
             )))
         }
         PyGeneType::Bit => {
-            let alterer: Vec<Box<dyn Alter<BitChromosome>>> = alterer.transform();
+            let alterer: Vec<Alterer<BitChromosome>> = alterer.transform();
 
             Ok(PyPopulation::from(&alter(
                 alterer,
@@ -63,7 +63,7 @@ pub fn py_alter(
             )))
         }
         PyGeneType::Permutation => {
-            let alterer: Vec<Box<dyn Alter<PermutationChromosome<usize>>>> = alterer.transform();
+            let alterer: Vec<Alterer<PermutationChromosome<usize>>> = alterer.transform();
 
             Ok(PyPopulation::from(&alter(
                 alterer,
@@ -72,7 +72,7 @@ pub fn py_alter(
             )))
         }
         PyGeneType::AnyGene => {
-            let alterer: Vec<Box<dyn Alter<AnyChromosome<'static>>>> = alterer.transform();
+            let alterer: Vec<Alterer<AnyChromosome<'static>>> = alterer.transform();
 
             Ok(PyPopulation::from(&alter(
                 alterer,
@@ -81,7 +81,7 @@ pub fn py_alter(
             )))
         }
         PyGeneType::GraphNode => {
-            let alterer: Vec<Box<dyn Alter<GraphChromosome<Op<f32>>>>> = alterer.transform();
+            let alterer: Vec<Alterer<GraphChromosome<Op<f32>>>> = alterer.transform();
 
             Ok(PyPopulation::from(&alter(
                 alterer,
@@ -90,7 +90,7 @@ pub fn py_alter(
             )))
         }
         PyGeneType::TreeNode => {
-            let alterer: Vec<Box<dyn Alter<TreeChromosome<Op<f32>>>>> = alterer.transform();
+            let alterer: Vec<Alterer<TreeChromosome<Op<f32>>>> = alterer.transform();
 
             Ok(PyPopulation::from(&alter(
                 alterer,
@@ -106,7 +106,7 @@ pub fn py_alter(
 }
 
 fn alter<C: Chromosome>(
-    alterers: Vec<Box<dyn Alter<C>>>,
+    alterers: Vec<Alterer<C>>,
     mut population: Population<C>,
     generation: usize,
 ) -> Population<C> {

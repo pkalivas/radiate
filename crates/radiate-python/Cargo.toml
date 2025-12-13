@@ -5,9 +5,14 @@ edition = { workspace = true }
 authors = { workspace = true }
 
 [dependencies]
-pyo3 = { workspace = true, features = ["multiple-pymethods", "abi3-py39"] }
+pyo3 = { workspace = true, features = ["multiple-pymethods", "abi3-py39", "chrono", "chrono-tz"] }
 serde = { workspace = true, features = ["derive"] }
 numpy = { workspace = true }
+chrono = { workspace = true }
+chrono-tz = { workspace = true }
+compact_str = { workspace = true }
 serde_json = { workspace = true }
+regex = { workspace = true }
 radiate-error = { workspace = true, features = ["python"] }
-radiate = { workspace = true, features = ["gp", "rayon", "serde", "smallvec"] }
+radiate-utils = { workspace = true, features = ["serde"] }
+radiate = { workspace = true, features = ["gp", "rayon", "serde", "smallvec", "ui"] }

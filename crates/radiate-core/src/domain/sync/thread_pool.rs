@@ -42,6 +42,9 @@ pub struct WorkResult<T> {
 }
 
 impl<T> WorkResult<T> {
+    pub fn new(rx: mpsc::Receiver<T>) -> Self {
+        WorkResult { receiver: rx }
+    }
     /// Get the result of the job.
     /// **Note**: This method will block until the result is available.
     pub fn result(&self) -> T {

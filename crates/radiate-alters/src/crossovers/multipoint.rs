@@ -1,4 +1,4 @@
-use radiate_core::{AlterResult, Chromosome, Crossover, random_provider};
+use radiate_core::{AlterResult, Chromosome, Crossover, Rate, random_provider};
 
 /// The [MultiPointCrossover] is a crossover method that takes two chromosomes and crosses them
 /// by selecting multiple points in the chromosome and swapping the genes between the two chromosomes.
@@ -10,32 +10,41 @@ use radiate_core::{AlterResult, Chromosome, Crossover, random_provider};
 /// simple method that can be used with any type of gene.
 pub struct MultiPointCrossover {
     num_points: usize,
-    rate: f32,
+    rate: Rate,
 }
 
 impl MultiPointCrossover {
     /// Create a new instance of the [MultiPointCrossover] with the given rate and number of points.
     /// The rate must be between 0.0 and 1.0, and the number of points must be between 1 and the length
     /// of the chromosome.
-    pub fn new(rate: f32, num_points: usize) -> Self {
-        if !(0.0..=1.0).contains(&rate) {
-            panic!("Rate must be between 0 and 1");
-        }
+    pub fn new(rate: impl Into<Rate>, num_points: usize) -> Self {
+        let rate = rate.into();
+
+        // if !(0.0..=1.0).contains(&rate) {
+        //     panic!("Rate must be between 0 and 1");
+        // }
 
         Self { num_points, rate }
     }
 }
 
 impl<C: Chromosome> Crossover<C> for MultiPointCrossover {
-    fn rate(&self) -> f32 {
-        self.rate
+    fn rate(&self) -> Rate {
+        self.rate.clone()
     }
 
     #[inline]
     fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C, _: f32) -> AlterResult {
         let one = chrom_one.genes_mut();
         let two = chrom_two.genes_mut();
-        crossover_multi_point(one, two, self.num_points).into()
+
+        let num_crosses = if self.num_points == 1 {
+            crossover_single_point(one, two)
+        } else {
+            crossover_multi_point(one, two, self.num_points)
+        };
+
+        AlterResult::from(num_crosses)
     }
 }
 
@@ -51,19 +60,21 @@ pub fn crossover_multi_point<G>(
         return 0;
     }
 
-    let mut crossover_points = random_provider::shuffled_indices(0..length);
+    let num_points = num_points.clamp(1, length - 1);
 
-    let selected_points = &mut crossover_points[..num_points];
+    let mut selected_points = random_provider::sample_indices(0..length, num_points);
+
     selected_points.sort();
 
     let mut current_parent = 1;
     let mut last_point = 0;
 
-    for &mut i in selected_points {
+    for i in selected_points {
         if current_parent == 1 {
             chrom_one[last_point..i].swap_with_slice(&mut chrom_two[last_point..i]);
         }
 
+        // Oscillate between parents
         current_parent = 3 - current_parent;
         last_point = i;
     }

@@ -1,4 +1,4 @@
-use radiate_core::{AlterResult, ArithmeticGene, Chromosome, Crossover, random_provider};
+use radiate_core::{AlterResult, ArithmeticGene, Chromosome, Crossover, Rate, random_provider};
 
 /// The [MeanCrossover] is a simple crossover method that replaces the genes of the first chromosome
 /// with the mean of the two genes. The mean is calculated by adding the two genes together and dividing
@@ -9,16 +9,18 @@ use radiate_core::{AlterResult, ArithmeticGene, Chromosome, Crossover, random_pr
 /// converge towards a common distribution. This can be useful in some cases, but it can also
 /// result in a loss of diversity in the population in others.
 pub struct MeanCrossover {
-    rate: f32,
+    rate: Rate,
 }
 
 impl MeanCrossover {
     /// Create a new instance of the `MeanCrossover` with the given rate.
     /// The rate must be between 0.0 and 1.0.
-    pub fn new(rate: f32) -> Self {
-        if !(0.0..=1.0).contains(&rate) {
-            panic!("The rate must be between 0.0 and 1.0");
-        }
+    pub fn new(rate: impl Into<Rate>) -> Self {
+        let rate = rate.into();
+
+        // if !(0.0..=1.0).contains(&rate) {
+        //     panic!("The rate must be between 0.0 and 1.0");
+        // }
 
         MeanCrossover { rate }
     }
@@ -28,8 +30,8 @@ impl<C: Chromosome> Crossover<C> for MeanCrossover
 where
     C::Gene: ArithmeticGene,
 {
-    fn rate(&self) -> f32 {
-        self.rate
+    fn rate(&self) -> Rate {
+        self.rate.clone()
     }
 
     #[inline]

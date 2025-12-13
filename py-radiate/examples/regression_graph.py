@@ -21,44 +21,11 @@ class ScoreDistributionPlotter(rd.EventHandler):
     """
 
     def __init__(self):
-        super().__init__()
-        self.history = []
+        super().__init__(rd.EventType.STOP)
 
     def on_event(self, event: rd.EngineEvent) -> None:
-        if event.event_type() == rd.EventType.EPOCH_COMPLETE:
-            ms = event.metrics().to_polars()
-            epoch = event.index()
-            ms = ms.with_columns(pl.lit(epoch).alias("epoch"))
-            self.history.append(ms)
-        elif event.event_type() == rd.EventType.STOP:
-            df = pl.concat(self.history, how="diagonal_relaxed")
-            plot_scores(df)
-
-
-def plot_scores(ms: pl.DataFrame):
-    quant = (
-        ms.filter((pl.col("name") == "scores") & (pl.col("kind") == "dist"))
-        .select(
-            "epoch",
-            pl.col("min").alias("q0"),
-            pl.col("mean").alias("q50"),
-            pl.col("max").alias("q100"),
-        )
-        .sort("epoch")
-    )
-
-    pdf = quant.to_pandas()
-    plt.figure(figsize=(8, 5))
-    plt.fill_between(
-        pdf["epoch"], pdf["q0"], pdf["q100"], alpha=0.2, label="min–max range"
-    )
-    plt.plot(pdf["epoch"], pdf["q50"], color="C0", linewidth=2, label="mean score")
-    plt.xlabel("Epoch")
-    plt.ylabel("Score")
-    plt.title("Score distribution across generations")
-    plt.legend()
-    plt.tight_layout()
-    plt.show()
+        df = event.metrics().to_polars()
+        print(df.head(50))
 
 
 def compute(x: float) -> float:

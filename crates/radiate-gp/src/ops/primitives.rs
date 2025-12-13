@@ -3,7 +3,7 @@ use std::{fmt::Display, ops::Range};
 
 impl<T> Op<T> {
     pub fn var(index: usize) -> Self {
-        let name = radiate_core::intern!(format!("X{}", index));
+        let name = radiate_utils::intern!(format!("X{}", index));
         Op::Var(name, index)
     }
 
@@ -15,7 +15,7 @@ impl<T> Op<T> {
     where
         T: Display,
     {
-        let name = radiate_core::intern!(format!("{}", value));
+        let name = radiate_utils::intern!(format!("{}", value));
         Op::Const(name, value)
     }
 

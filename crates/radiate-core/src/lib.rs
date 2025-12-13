@@ -9,6 +9,7 @@ pub mod fitness;
 pub mod genome;
 pub mod objectives;
 pub mod problem;
+pub mod rate;
 pub mod replacement;
 pub mod selector;
 pub mod stats;
@@ -16,7 +17,7 @@ pub mod stats;
 use radiate_error::Result;
 pub use radiate_error::{RadiateError, ensure, radiate_err};
 
-pub use alter::{Alter, AlterAction, AlterResult, Crossover, Mutate};
+pub use alter::{AlterResult, Alterer, Crossover, Mutate};
 pub use codecs::{
     BitCodec, CharCodec, Codec, FloatCodec, FnCodec, IntCodec, PermutationCodec, SubSetCodec,
 };
@@ -29,17 +30,18 @@ pub use fitness::{BatchFitnessFunction, CompositeFitnessFn, FitnessFunction, Nov
 pub use genome::*;
 pub use objectives::{Front, Objective, Optimize, Score, pareto};
 pub use problem::{BatchEngineProblem, EngineProblem, Problem};
+pub use rate::Rate;
 pub use replacement::{EncodeReplace, PopulationSampleReplace, ReplacementStrategy};
 pub use selector::Select;
 pub use stats::{
-    Distribution, Metric, MetricScope, MetricSet, MetricUpdate, Rollup, Statistic, TimeStatistic,
-    metric_names, render_dashboard, render_full,
+    Distribution, Metric, MetricSet, MetricUpdate, Statistic, TimeStatistic, metric_names,
+    render_dashboard, render_full,
 };
 
 pub mod prelude {
     pub use radiate_error::*;
 
-    pub use super::alter::{Alter, Crossover, Mutate};
+    pub use super::alter::{Alterer, Crossover, Mutate};
     pub use super::codecs::{
         BitCodec, CharCodec, Codec, FloatCodec, FnCodec, IntCodec, PermutationCodec, SubSetCodec,
     };

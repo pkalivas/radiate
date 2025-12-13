@@ -1,6 +1,6 @@
 use crate::GeneticEngineBuilder;
 use radiate_core::{
-    Chromosome, Codec, Problem, Score,
+    Chromosome, Codec, Genotype, Problem, Score,
     fitness::{BatchFitnessFunction, FitnessFunction},
 };
 use std::sync::Arc;
@@ -15,6 +15,8 @@ where
     pub problem: Option<Arc<dyn Problem<C, T>>>,
     pub fitness_fn: Option<Arc<dyn Fn(T) -> Score + Send + Sync>>,
     pub batch_fitness_fn: Option<Arc<dyn Fn(Vec<T>) -> Vec<Score> + Send + Sync>>,
+    pub raw_fitness_fn: Option<Arc<dyn Fn(&Genotype<C>) -> Score + Send + Sync>>,
+    pub raw_batch_fitness_fn: Option<Arc<dyn Fn(Vec<&Genotype<C>>) -> Vec<Score> + Send + Sync>>,
 }
 
 impl<C, T> GeneticEngineBuilder<C, T>
@@ -67,6 +69,30 @@ where
                 .collect()
         };
         self.params.problem_params.batch_fitness_fn = Some(Arc::new(other));
+        self
+    }
+
+    pub fn raw_fitness_fn<S: Into<Score>>(
+        mut self,
+        raw_fitness_func: impl for<'a> FitnessFunction<&'a Genotype<C>, S> + 'static,
+    ) -> Self {
+        let other = move |x: &Genotype<C>| raw_fitness_func.evaluate(x).into();
+        self.params.problem_params.raw_fitness_fn = Some(Arc::new(other));
+        self
+    }
+
+    pub fn raw_batch_fitness_fn<S: Into<Score>>(
+        mut self,
+        raw_batch_fitness_func: impl for<'a> BatchFitnessFunction<&'a Genotype<C>, S> + 'static,
+    ) -> Self {
+        let other = move |x: Vec<&Genotype<C>>| {
+            raw_batch_fitness_func
+                .evaluate(x)
+                .into_iter()
+                .map(|s| s.into())
+                .collect()
+        };
+        self.params.problem_params.raw_batch_fitness_fn = Some(Arc::new(other));
         self
     }
 }

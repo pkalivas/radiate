@@ -5,12 +5,14 @@ use radiate::{
 };
 use radiate_error::{radiate_py_bail, radiate_py_err};
 use serde::Serialize;
+use std::time::Duration;
 
 #[pyclass]
 #[derive(Clone)]
 pub enum PyEngineRunOption {
     Log(bool),
     Checkpoint(usize, String),
+    Ui(Duration),
 }
 
 #[pymethods]
@@ -23,6 +25,11 @@ impl PyEngineRunOption {
     #[staticmethod]
     pub fn checkpoint(interval: usize, path: String) -> Self {
         PyEngineRunOption::Checkpoint(interval, path)
+    }
+
+    #[staticmethod]
+    pub fn ui() -> Self {
+        PyEngineRunOption::Ui(radiate::DEFAULT_RENDER_INTERVAL)
     }
 }
 
@@ -99,11 +106,27 @@ where
     C: Chromosome + Clone + Serialize + 'static,
     T: Clone + Send + Sync + Serialize + 'static,
 {
+    let ui_interval = get_ui_option(&options);
+    if let Some(interval) = ui_interval {
+        iter_engine(radiate::ui((engine, interval)).iter(), limits, options)
+    } else {
+        iter_engine(engine.iter(), limits, options)
+    }
+}
+
+fn iter_engine<C, T>(
+    engine: impl Iterator<Item = Generation<C, T>> + 'static,
+    limits: Vec<Limit>,
+    options: Vec<PyEngineRunOption>,
+) -> PyResult<Generation<C, T>>
+where
+    C: Chromosome + Clone + Serialize + 'static,
+    T: Clone + Send + Sync + Serialize + 'static,
+{
     let log = get_log_option(&options);
     let checkpoint = get_checkpoint_option(&options);
 
     engine
-        .iter()
         .chain_if(log.unwrap_or(false), |eng| eng.logging())
         .chain_if(checkpoint.is_some(), |eng| {
             let (interval, path) = checkpoint.unwrap();
@@ -115,7 +138,8 @@ where
 }
 
 fn get_log_option(options: &[PyEngineRunOption]) -> Option<bool> {
-    options
+    let ui = get_ui_option(options);
+    let log = options
         .iter()
         .find(|opt| matches!(opt, PyEngineRunOption::Log(_)))
         .and_then(|opt| {
@@ -124,7 +148,9 @@ fn get_log_option(options: &[PyEngineRunOption]) -> Option<bool> {
             } else {
                 None
             }
-        })
+        });
+
+    if ui.is_some() { Some(false) } else { log }
 }
 
 fn get_checkpoint_option(options: &[PyEngineRunOption]) -> Option<(usize, String)> {
@@ -134,6 +160,19 @@ fn get_checkpoint_option(options: &[PyEngineRunOption]) -> Option<(usize, String
         .and_then(|opt| {
             if let PyEngineRunOption::Checkpoint(interval, path) = opt {
                 Some((*interval, path.clone()))
+            } else {
+                None
+            }
+        })
+}
+
+fn get_ui_option(options: &[PyEngineRunOption]) -> Option<Duration> {
+    options
+        .iter()
+        .find(|opt| matches!(opt, PyEngineRunOption::Ui(_)))
+        .and_then(|opt| {
+            if let PyEngineRunOption::Ui(interval) = opt {
+                Some(*interval)
             } else {
                 None
             }

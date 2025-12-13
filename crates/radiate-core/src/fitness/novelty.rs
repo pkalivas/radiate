@@ -96,7 +96,6 @@ impl<T> NoveltySearch<T> {
         let max_distance = query.max_distance;
         if max_distance == min_distance {
             match min_distance {
-                _ if min_distance == 0.0 => return 0.0,
                 _ if min_distance > 0.0 => return 0.5,
                 _ => return 0.0,
             }

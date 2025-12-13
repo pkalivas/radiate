@@ -1,52 +1,26 @@
-use crate::stats::ToSnakeCase;
-use crate::{
-    Chromosome, Gene, Genotype, Metric, Population, intern, math::indexes, random_provider,
-};
+use crate::{Chromosome, Gene, Genotype, Metric, Population, math::indexes, random_provider};
+use crate::{Rate, metric};
+use radiate_utils::{ToSnakeCase, intern};
 use std::iter::once;
+use std::rc::Rc;
 
 #[macro_export]
 macro_rules! alters {
     ($($struct_instance:expr),* $(,)?) => {
         {
-            let mut vec: Vec<Box<dyn Alter<_>>> = Vec::new();
+            let mut vec: Vec<Alterer<_>> = Vec::new();
             $(
-                vec.push(Box::new($struct_instance.alterer()));
+                vec.push($struct_instance.alterer());
             )*
             vec
         }
     };
 }
 
-/// This is the main trait that is used to define the different types of alterations that can be
-/// performed on a [Population]. The [Alter] trait is used to define the `alter` method that is used
-/// to perform the alteration on the [Population]. The `alter` method takes a mutable reference to
-/// the [Population] and a generation number as parameters. The `alter` method returns a vector of
-/// [Metric] objects that represent the metrics that were collected during the alteration process.
-///
-/// An '[Alter]' in a traditional genetic algorithm is a process that modifies the [Population] of
-/// individuals in some way. This can include operations such as mutation or crossover. The goal of
-/// an alter is to introduce new genetic material into the population, which can help to improve
-/// the overall fitness of the population. In a genetic algorithm, the alter is typically
-/// performed on a subset of the population, rather than the entire population. This allows for
-/// more targeted modifications to be made, which can help to improve the overall performance of
-/// the algorithm. The alter is an important part of the genetic algorithm process, as it helps
-/// to ensure that the population remains diverse and that new genetic material is introduced
-/// into the population. This can help to improve the overall performance of the algorithm and
-/// ensure that the population remains healthy and diverse.
-///
-/// In `radiate` the [Alter] trait performs similar operations to a traditional genetic algorithm,
-/// but it is designed to be more flexible and extensible. Because an [Alter] can be of type [Mutate]
-/// or [Crossover], it is abstracted out of those core traits into this trait.
-pub trait Alter<C: Chromosome>: Send + Sync {
-    fn rate(&self) -> f32;
-    fn alter(&self, population: &mut Population<C>, generation: usize) -> Vec<Metric>;
-}
-
 /// The [AlterResult] struct is used to represent the result of an
 /// alteration operation. It contains the number of operations
 /// performed and a vector of metrics that were collected
 /// during the alteration process.
-#[derive(Default)]
 pub struct AlterResult(pub usize, pub Option<Vec<Metric>>);
 
 impl AlterResult {
@@ -69,6 +43,12 @@ impl AlterResult {
                 self.1 = Some(metrics);
             }
         }
+    }
+}
+
+impl Default for AlterResult {
+    fn default() -> Self {
+        AlterResult(0, None)
     }
 }
 
@@ -96,43 +76,52 @@ impl From<Metric> for AlterResult {
     }
 }
 
-/// The [AlterAction] enum is used to represent the different
+/// The [Alterer] enum is used to represent the different
 /// types of alterations that can be performed on a
 /// population - It can be either a mutation or a crossover operation.
-pub enum AlterAction<C: Chromosome> {
-    Mutate(&'static str, f32, Box<dyn Mutate<C>>),
-    Crossover(&'static str, f32, Box<dyn Crossover<C>>),
+
+#[derive(Clone)]
+pub enum Alterer<C: Chromosome> {
+    Mutate(&'static str, Rate, Rc<dyn Mutate<C>>),
+    Crossover(&'static str, Rate, Rc<dyn Crossover<C>>),
 }
 
-impl<C: Chromosome> Alter<C> for AlterAction<C> {
-    fn rate(&self) -> f32 {
+impl<C: Chromosome> Alterer<C> {
+    pub fn name(&self) -> &str {
         match &self {
-            AlterAction::Mutate(_, rate, _) => *rate,
-            AlterAction::Crossover(_, rate, _) => *rate,
+            Alterer::Mutate(name, _, _) => name,
+            Alterer::Crossover(name, _, _) => name,
+        }
+    }
+
+    pub fn rate(&self) -> &Rate {
+        match &self {
+            Alterer::Mutate(_, rate, _) => rate,
+            Alterer::Crossover(_, rate, _) => rate,
         }
     }
 
     #[inline]
-    fn alter(&self, population: &mut Population<C>, generation: usize) -> Vec<Metric> {
+    pub fn alter(&self, population: &mut Population<C>, generation: usize) -> Vec<Metric> {
         match &self {
-            AlterAction::Mutate(name, rate, m) => {
-                m.update(generation);
+            Alterer::Mutate(name, rate, m) => {
+                let rate_value = rate.value(generation);
 
                 let timer = std::time::Instant::now();
-                let AlterResult(count, metrics) = m.mutate(population, generation, *rate);
-                let metric = Metric::new(name).upsert(count).upsert(timer.elapsed());
+                let AlterResult(count, metrics) = m.mutate(population, generation, rate_value);
+                let metric = metric!(name, (count, timer.elapsed()));
 
                 match metrics {
                     Some(metrics) => metrics.into_iter().chain(once(metric)).collect(),
                     None => vec![metric],
                 }
             }
-            AlterAction::Crossover(name, rate, c) => {
-                c.update(generation);
+            Alterer::Crossover(name, rate, c) => {
+                let rate_value = rate.value(generation);
 
                 let timer = std::time::Instant::now();
-                let AlterResult(count, metrics) = c.crossover(population, generation, *rate);
-                let metric = Metric::new(name).upsert(count).upsert(timer.elapsed());
+                let AlterResult(count, metrics) = c.crossover(population, generation, rate_value);
+                let metric = metric!(name, (count, timer.elapsed()));
 
                 match metrics {
                     Some(metrics) => metrics.into_iter().chain(once(metric)).collect(),
@@ -171,17 +160,15 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
             .unwrap()
     }
 
-    fn update(&self, _: usize) {}
-
-    fn rate(&self) -> f32 {
-        1.0
+    fn rate(&self) -> Rate {
+        Rate::default()
     }
 
-    fn alterer(self) -> AlterAction<C>
+    fn alterer(self) -> Alterer<C>
     where
         Self: Sized + 'static,
     {
-        AlterAction::Crossover(intern!(self.name()), self.rate(), Box::new(self))
+        Alterer::Crossover(intern!(self.name()), self.rate(), Rc::new(self))
     }
 
     #[inline]
@@ -258,7 +245,7 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
             }
         }
 
-        cross_count.into()
+        AlterResult::from(cross_count)
     }
 }
 
@@ -271,17 +258,15 @@ pub trait Mutate<C: Chromosome>: Send + Sync {
             .unwrap()
     }
 
-    fn update(&self, _: usize) {}
-
-    fn rate(&self) -> f32 {
-        1.0
+    fn rate(&self) -> Rate {
+        Rate::default()
     }
 
-    fn alterer(self) -> AlterAction<C>
+    fn alterer(self) -> Alterer<C>
     where
         Self: Sized + 'static,
     {
-        AlterAction::Mutate(intern!(self.name()), self.rate(), Box::new(self))
+        Alterer::Mutate(intern!(self.name()), self.rate(), Rc::new(self))
     }
 
     #[inline]

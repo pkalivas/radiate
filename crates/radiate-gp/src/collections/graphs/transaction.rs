@@ -17,9 +17,9 @@
 //! 3) On invalid commit, use returned `replay` to re-apply later with `replay(...)`
 
 use super::{Direction, Graph, GraphNode};
-use crate::{Arity, NodeType, node::Node};
-use radiate_core::{Valid, random_provider};
-use std::{collections::BTreeSet, fmt::Debug, ops::Deref};
+use crate::{Arity, NodeType, collections::buffer::SortedBuffer, node::Node};
+use radiate_core::{RdRand, Valid};
+use std::{fmt::Debug, ops::Deref};
 
 const SOURCE_NODE_TYPES: &[NodeType] = &[NodeType::Input, NodeType::Vertex, NodeType::Edge];
 const TARGET_NODE_TYPES: &[NodeType] = &[NodeType::Output, NodeType::Vertex, NodeType::Edge];
@@ -83,7 +83,7 @@ pub enum InsertStep {
 pub struct GraphTransaction<'a, T> {
     graph: &'a mut Graph<T>,
     steps: Vec<MutationStep>,
-    effects: BTreeSet<usize>,
+    effects: SortedBuffer<usize>,
 }
 
 impl<'a, T> GraphTransaction<'a, T> {
@@ -91,7 +91,7 @@ impl<'a, T> GraphTransaction<'a, T> {
         GraphTransaction {
             graph,
             steps: Vec::with_capacity(5),
-            effects: BTreeSet::new(),
+            effects: SortedBuffer::new(),
         }
     }
 
@@ -116,7 +116,7 @@ impl<'a, T> GraphTransaction<'a, T> {
         let index = self.graph.len();
         self.steps.push(MutationStep::AddNode(index));
         self.graph.push(node);
-        self.effects.insert(index);
+        SortedBuffer::insert_sorted_unique(&mut self.effects, index);
         index
     }
 
@@ -124,16 +124,16 @@ impl<'a, T> GraphTransaction<'a, T> {
     pub fn attach(&mut self, from: usize, to: usize) {
         self.steps.push(MutationStep::AddEdge(from, to));
         self.graph.attach(from, to);
-        self.effects.insert(from);
-        self.effects.insert(to);
+        SortedBuffer::insert_sorted_unique(&mut self.effects, from);
+        SortedBuffer::insert_sorted_unique(&mut self.effects, to);
     }
 
     /// Remove an edge from `from` to `to` and record the change.
     pub fn detach(&mut self, from: usize, to: usize) {
         self.steps.push(MutationStep::RemoveEdge(from, to));
         self.graph.detach(from, to);
-        self.effects.insert(from);
-        self.effects.insert(to);
+        SortedBuffer::insert_sorted_unique(&mut self.effects, from);
+        SortedBuffer::insert_sorted_unique(&mut self.effects, to);
     }
 
     /// Change the direction of the node at `index` if it differs from its current direction.
@@ -221,7 +221,7 @@ impl<'a, T> GraphTransaction<'a, T> {
     pub fn set_cycles(&mut self) {
         let effects = self.effects.clone();
 
-        for idx in effects {
+        for &idx in effects.iter() {
             let node_cycles = self.graph.get_cycles(idx);
 
             if node_cycles.is_empty() {
@@ -247,6 +247,7 @@ impl<'a, T> GraphTransaction<'a, T> {
         source_idx: usize,
         target_idx: usize,
         new_node_idx: usize,
+        rand: &mut RdRand,
     ) -> Vec<InsertStep> {
         let target_node = self.graph.get(target_idx).unwrap();
         let source_node = self.graph.get(source_idx).unwrap();
@@ -264,7 +265,7 @@ impl<'a, T> GraphTransaction<'a, T> {
         }
 
         if source_is_edge {
-            let source_outgoing = *random_provider::choose(source_node.outgoing());
+            let source_outgoing = *rand.choose(source_node.outgoing());
 
             if source_outgoing == new_node_idx {
                 steps.push(InsertStep::Connect(source_idx, new_node_idx));
@@ -274,7 +275,7 @@ impl<'a, T> GraphTransaction<'a, T> {
                 steps.push(InsertStep::Detach(source_idx, source_outgoing));
             }
         } else if target_is_edge || target_node.is_locked() {
-            let target_incoming = *random_provider::choose(target_node.incoming());
+            let target_incoming = *rand.choose(target_node.incoming());
 
             if target_incoming == new_node_idx {
                 steps.push(InsertStep::Connect(target_incoming, new_node_idx));
@@ -300,25 +301,29 @@ impl<'a, T> GraphTransaction<'a, T> {
     /// Get a random node that can be used as a source node for a connection.
     /// A source node can be either an input or a vertex node.
     #[inline]
-    pub fn random_source_node(&self) -> Option<&GraphNode<T>> {
-        self.random_node_of_type(SOURCE_NODE_TYPES)
+    pub fn random_source_node(&self, rand: &mut RdRand) -> Option<&GraphNode<T>> {
+        self.random_node_of_type(SOURCE_NODE_TYPES, rand)
     }
     /// Get a random node that can be used as a target node for a connection.
     /// A target node can be either an output or a vertex node.
     #[inline]
-    pub fn random_target_node(&self) -> Option<&GraphNode<T>> {
-        self.random_node_of_type(TARGET_NODE_TYPES)
+    pub fn random_target_node(&self, rand: &mut RdRand) -> Option<&GraphNode<T>> {
+        self.random_node_of_type(TARGET_NODE_TYPES, rand)
     }
     /// Helper functions to get a random node of the specified type. If no nodes of the specified
     /// type are found, the function will try to get a random node of a different type.
     /// If no nodes are found, the function will panic.
     #[inline]
-    fn random_node_of_type(&self, node_types: &[NodeType]) -> Option<&GraphNode<T>> {
+    fn random_node_of_type(
+        &self,
+        node_types: &[NodeType],
+        rand: &mut RdRand,
+    ) -> Option<&GraphNode<T>> {
         if node_types.is_empty() {
             return None;
         }
 
-        let gene_node_type = random_provider::choose(&node_types);
+        let gene_node_type = rand.choose(&node_types);
 
         let genes = match gene_node_type {
             NodeType::Input => self
@@ -348,10 +353,11 @@ impl<'a, T> GraphTransaction<'a, T> {
                     .cloned()
                     .collect::<Vec<NodeType>>()
                     .as_slice(),
+                rand,
             );
         }
 
-        Some(*random_provider::choose(&genes))
+        Some(*rand.choose(&genes))
     }
 
     fn commit_internal<F: Fn(&Graph<T>) -> bool>(
@@ -519,7 +525,7 @@ mod tests {
         let tgt = tx.add_node((1, NodeType::Vertex, 1)); // Arity::Any => not locked
         let newn = tx.add_node((2, NodeType::Input, 2)); // Arity::Zero
 
-        let steps = tx.get_insertion_steps(src, tgt, newn);
+        let steps = random_provider::with_rng(|r| tx.get_insertion_steps(src, tgt, newn, r));
         assert_eq!(steps, vec![InsertStep::Connect(newn, tgt)]);
     }
 
@@ -535,7 +541,7 @@ mod tests {
         let target = tx.add_node((1, NodeType::Vertex, 1));
         let newn = tx.add_node((2, NodeType::Vertex, 2));
 
-        let steps = tx.get_insertion_steps(source, target, newn);
+        let steps = random_provider::with_rng(|r| tx.get_insertion_steps(source, target, newn, r));
         assert_eq!(steps, vec![InsertStep::Connect(source, newn)]);
     }
 
@@ -551,7 +557,7 @@ mod tests {
         let target = tx.add_node((1, NodeType::Vertex, 1));
         let newn = tx.add_node((2, NodeType::Vertex, 2));
 
-        let steps = tx.get_insertion_steps(source, target, newn);
+        let steps = random_provider::with_rng(|r| tx.get_insertion_steps(source, target, newn, r));
         assert_eq!(
             steps,
             vec![
@@ -575,7 +581,7 @@ mod tests {
         );
         let newn = tx.add_node((2, NodeType::Vertex, 2));
 
-        let steps = tx.get_insertion_steps(source, target, newn);
+        let steps = random_provider::with_rng(|r| tx.get_insertion_steps(source, target, newn, r));
         assert_eq!(
             steps,
             vec![
@@ -589,18 +595,19 @@ mod tests {
     #[test]
     fn random_node_helpers_can_return_edges_when_only_edges_exist() {
         random_provider::set_seed(1337);
+        random_provider::with_rng(|rand| {
+            let mut g = Graph::<i32>::default();
+            let mut tx = GraphTransaction::new(&mut g);
 
-        let mut g = Graph::<i32>::default();
-        let mut tx = GraphTransaction::new(&mut g);
+            // Only edge nodes exist; helpers should still return something (and it will be an Edge).
+            tx.add_node((0, NodeType::Edge, 0, Arity::Exact(1)));
+            tx.add_node((1, NodeType::Edge, 1, Arity::Exact(1)));
 
-        // Only edge nodes exist; helpers should still return something (and it will be an Edge).
-        tx.add_node((0, NodeType::Edge, 0, Arity::Exact(1)));
-        tx.add_node((1, NodeType::Edge, 1, Arity::Exact(1)));
+            let src = tx.random_source_node(rand).unwrap();
+            let tgt = tx.random_target_node(rand).unwrap();
 
-        let src = tx.random_source_node().unwrap();
-        let tgt = tx.random_target_node().unwrap();
-
-        assert_eq!(src.node_type(), NodeType::Edge);
-        assert_eq!(tgt.node_type(), NodeType::Edge);
+            assert_eq!(src.node_type(), NodeType::Edge);
+            assert_eq!(tgt.node_type(), NodeType::Edge);
+        });
     }
 }

@@ -29,19 +29,19 @@ class MetricSet(PyObject[PyMetricSet]):
     def keys(self) -> list[str]:
         return self.__backend__().keys()
 
-    def to_polars(self, include_sequence=False):
+    def to_polars(self):
         if not _POLARS_AVAILABLE:
             raise ImportError(
                 "Polars is not available. Please install it to use this feature."
             )
-        return self.__backend__().to_polars(include_last_sequence=include_sequence)
+        return self.__backend__().to_polars()
 
-    def to_pandas(self, include_sequence=False):
+    def to_pandas(self):
         if not _PANDAS_AVAILABLE:
             raise ImportError(
                 "Pandas is not available. Please install it to use this feature."
             )
-        return self.__backend__().to_pandas(include_last_sequence=include_sequence)
+        return self.__backend__().to_pandas()
 
 
 class Metric(PyObject[PyMetric]):
@@ -54,18 +54,15 @@ class Metric(PyObject[PyMetric]):
     def name(self) -> str:
         return self.__backend__().name
 
-    def scope(self) -> str:
-        return self.__backend__().scope
-
-    def rollup(self) -> str:
-        return self.__backend__().rollup
-
     # --- value stats ---
     def value_last(self) -> float:
         return self.__backend__().value_last
 
     def mean(self) -> float | None:
         return self.__backend__().value_mean
+
+    def sum(self) -> float | None:
+        return self.__backend__().value_sum
 
     def stddev(self) -> float | None:
         return self.__backend__().value_stddev
@@ -127,34 +124,3 @@ class Metric(PyObject[PyMetric]):
         if time_max is None:
             return None
         return timedelta(seconds=time_max)
-
-    # --- sequence stats ---
-    def seq_last(self) -> list[float] | None:
-        return self.__backend__().sequence_last
-
-    def seq_mean(self) -> float | None:
-        return self.__backend__().sequence_mean
-
-    def seq_stddev(self) -> float | None:
-        return self.__backend__().sequence_stddev
-
-    def seq_variance(self) -> float | None:
-        return self.__backend__().sequence_variance
-
-    def seq_kurt(self) -> float | None:
-        return self.__backend__().sequence_kurtosis
-
-    def seq_skew(self) -> float | None:
-        return self.__backend__().sequence_skewness
-
-    def seq_min(self) -> float | None:
-        return self.__backend__().sequence_min
-
-    def seq_max(self) -> float | None:
-        return self.__backend__().sequence_max
-
-    def seq_count(self) -> int:
-        last = self.seq_last()
-        if last is None:
-            return 0
-        return len(last)

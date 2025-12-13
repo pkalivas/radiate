@@ -16,17 +16,19 @@ use crate::genome::phenotype::Phenotype;
 use crate::objectives::{Objective, Optimize};
 use crate::pipeline::Pipeline;
 use crate::steps::{AuditStep, EngineStep, FilterStep, FrontStep, RecombineStep, SpeciateStep};
+use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use crate::{
-    Alter, Crossover, EncodeReplace, EngineProblem, EventBus, EventHandler, Front, Mutate, Problem,
+    Crossover, EncodeReplace, EngineProblem, EventBus, EventHandler, Front, Mutate, Problem,
     ReplacementStrategy, RouletteSelector, Select, TournamentSelector, context::Context,
 };
-use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use crate::{Generation, Result};
 use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::diversity::DistanceDiversityAdapter;
 use radiate_core::evaluator::BatchFitnessEvaluator;
 use radiate_core::problem::BatchEngineProblem;
-use radiate_core::{Diversity, Ecosystem, Evaluator, Executor, FitnessEvaluator, Genotype, Valid};
+use radiate_core::{
+    Alterer, Diversity, Ecosystem, Evaluator, Executor, FitnessEvaluator, Genotype, Valid,
+};
 use radiate_core::{RadiateError, ensure, radiate_err};
 #[cfg(feature = "serde")]
 use serde::Deserialize;
@@ -45,7 +47,7 @@ where
     pub optimization_params: OptimizeParams<C>,
     pub problem_params: ProblemParams<C, T>,
 
-    pub alterers: Vec<Arc<dyn Alter<C>>>,
+    pub alterers: Vec<Alterer<C>>,
     pub replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
     pub handlers: Vec<Arc<Mutex<dyn EventHandler<T>>>>,
     pub generation: Option<Generation<C, T>>,
@@ -85,6 +87,7 @@ where
             self.errors.push(radiate_err!(Builder: "{}", message));
         }
     }
+
     /// The [ReplacementStrategy] is used to determine how a new individual is added to the [Population]
     /// if an individual is deemed to be either invalid or reaches the maximum age.
     ///
@@ -210,11 +213,17 @@ where
             Builder: "Codec not set"
         );
 
-        if let Some(batch_fn) = &self.params.problem_params.batch_fitness_fn {
+        let raw_fitness_fn = self.params.problem_params.raw_fitness_fn.clone();
+        let fitness_fn = self.params.problem_params.fitness_fn.clone();
+        let batch_fitness_fn = self.params.problem_params.batch_fitness_fn.clone();
+        let raw_batch_fitness_fn = self.params.problem_params.raw_batch_fitness_fn.clone();
+
+        if batch_fitness_fn.is_some() || raw_batch_fitness_fn.is_some() {
             self.params.problem_params.problem = Some(Arc::new(BatchEngineProblem {
                 objective: self.params.optimization_params.objectives.clone(),
                 codec: self.params.problem_params.codec.clone().unwrap(),
-                batch_fitness_fn: batch_fn.clone(),
+                batch_fitness_fn,
+                raw_batch_fitness_fn,
             }));
 
             // Replace the evaluator with BatchFitnessEvaluator
@@ -223,11 +232,12 @@ where
             ));
 
             Ok(())
-        } else if let Some(fitness_fn) = &self.params.problem_params.fitness_fn {
+        } else if fitness_fn.is_some() || raw_fitness_fn.is_some() {
             self.params.problem_params.problem = Some(Arc::new(EngineProblem {
                 objective: self.params.optimization_params.objectives.clone(),
                 codec: self.params.problem_params.codec.clone().unwrap(),
-                fitness_fn: fitness_fn.clone(),
+                fitness_fn,
+                raw_fitness_fn,
             }));
 
             Ok(())
@@ -281,9 +291,9 @@ where
     fn build_alterer(&mut self) -> Result<()> {
         if !self.params.alterers.is_empty() {
             for alter in self.params.alterers.iter() {
-                if !(0.0..=1.0).contains(&alter.rate()) {
+                if !alter.rate().is_valid() {
                     return Err(radiate_err!(
-                        Builder: "Alterer rate must be between 0 and 1 - found {}", alter.rate()
+                        Builder: "Alterer {} is not valid. Ensure rate {:?} is valid.", alter.name(), alter.rate()
                     ));
                 }
             }
@@ -291,8 +301,8 @@ where
             return Ok(());
         }
 
-        let crossover = Arc::new(UniformCrossover::new(0.5).alterer()) as Arc<dyn Alter<C>>;
-        let mutator = Arc::new(UniformMutator::new(0.1).alterer()) as Arc<dyn Alter<C>>;
+        let crossover = UniformCrossover::new(0.5).alterer();
+        let mutator = UniformMutator::new(0.1).alterer();
 
         self.params.alterers.push(crossover);
         self.params.alterers.push(mutator);
@@ -334,12 +344,17 @@ where
 
     fn build_recombine_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
         let recombine_step = RecombineStep {
-            survivor_selector: config.survivor_selector(),
-            offspring_selector: config.offspring_selector(),
-            alters: config.alters().to_vec(),
-            survivor_count: config.survivor_count(),
-            offspring_count: config.offspring_count(),
-            objective: config.objective(),
+            survivor_handle: crate::steps::SurvivorRecombineHandle {
+                count: config.survivor_count(),
+                objective: config.objective(),
+                selector: config.survivor_selector(),
+            },
+            offspring_handle: crate::steps::OffspringRecombineHandle {
+                count: config.offspring_count(),
+                objective: config.objective(),
+                selector: config.offspring_selector(),
+                alters: config.alters().to_vec(),
+            },
         };
 
         Some(Box::new(recombine_step))
@@ -377,13 +392,13 @@ where
             return None;
         }
 
-        let adapter = DistanceDiversityAdapter::new(config.diversity().unwrap());
-
         let species_step = SpeciateStep {
             threashold: config.species_threshold(),
-            diversity: Arc::new(adapter),
+            distance: Arc::new(DistanceDiversityAdapter::new(config.diversity().unwrap())),
             executor: config.species_executor(),
             objective: config.objective(),
+            distances: Arc::new(Mutex::new(Vec::new())),
+            assignments: Arc::new(Mutex::new(Vec::new())),
         };
 
         Some(Box::new(species_step))
@@ -429,6 +444,8 @@ where
                     problem: None,
                     fitness_fn: None,
                     batch_fitness_fn: None,
+                    raw_fitness_fn: None,
+                    raw_batch_fitness_fn: None,
                 },
 
                 replacement_strategy: Arc::new(EncodeReplace),
@@ -448,7 +465,7 @@ pub(crate) struct EngineConfig<C: Chromosome, T: Clone> {
     survivor_selector: Arc<dyn Select<C>>,
     offspring_selector: Arc<dyn Select<C>>,
     replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
-    alterers: Vec<Arc<dyn Alter<C>>>,
+    alterers: Vec<Alterer<C>>,
     species_threshold: f32,
     diversity: Option<Arc<dyn Diversity<C>>>,
     evaluator: Arc<dyn Evaluator<C, T>>,
@@ -479,7 +496,7 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
         Arc::clone(&self.replacement_strategy)
     }
 
-    pub fn alters(&self) -> &[Arc<dyn Alter<C>>] {
+    pub fn alters(&self) -> &[Alterer<C>] {
         &self.alterers
     }
 
@@ -579,6 +596,54 @@ where
             executor: params.evaluation_params.clone(),
             handlers: params.handlers.clone(),
             generation: params.generation.clone(),
+        }
+    }
+}
+
+impl<C, T> Into<GeneticEngineBuilder<C, T>> for EngineConfig<C, T>
+where
+    C: Chromosome + Clone + 'static,
+    T: Clone + Send + Sync + 'static,
+{
+    fn into(self) -> GeneticEngineBuilder<C, T> {
+        GeneticEngineBuilder {
+            params: EngineParams {
+                population_params: PopulationParams {
+                    population_size: self.ecosystem.population().len(),
+                    max_age: self.max_age,
+                    ecosystem: Some(self.ecosystem),
+                },
+                species_params: SpeciesParams {
+                    diversity: self.diversity,
+                    species_threshold: self.species_threshold,
+                    max_species_age: self.max_species_age,
+                },
+                evaluation_params: self.executor,
+                selection_params: SelectionParams {
+                    offspring_fraction: self.offspring_fraction,
+                    survivor_selector: self.survivor_selector,
+                    offspring_selector: self.offspring_selector,
+                },
+                optimization_params: OptimizeParams {
+                    objectives: self.objective,
+                    front_range: self.front.read().unwrap().range().clone(),
+                    front: Some(self.front.read().unwrap().clone()),
+                },
+                problem_params: ProblemParams {
+                    codec: None,
+                    problem: Some(self.problem),
+                    fitness_fn: None,
+                    batch_fitness_fn: None,
+                    raw_fitness_fn: None,
+                    raw_batch_fitness_fn: None,
+                },
+
+                replacement_strategy: self.replacement_strategy,
+                alterers: self.alterers,
+                handlers: self.handlers,
+                generation: self.generation,
+            },
+            errors: Vec::new(),
         }
     }
 }
