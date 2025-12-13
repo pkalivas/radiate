@@ -11,8 +11,6 @@ macro_rules! table {
         let mut m: HashMap<&'static str, AlterConv<_>> = HashMap::new();
         $(
             m.insert($name, |inp| {
-                // $fn returns a concrete alterer type that implements Alter<C>
-                // We box that concrete type and cast to the trait object.
                 $fn(inp).alterer()
             });
         )*
@@ -25,7 +23,7 @@ macro_rules! impl_input_transform_for {
         impl InputTransform<Vec<Alterer<$chrom>>> for PyEngineInput {
             fn transform(&self) -> Vec<Alterer<$chrom>> {
                 alters_from_table(self, $map_fn())
-                    .expect("alter conversion")
+                    .expect("Failed to convert alterer from PyEngineInput")
                     .into()
             }
         }
@@ -96,6 +94,7 @@ fn int_alterers() -> &'static HashMap<&'static str, AlterConv<IntChromosome<i32>
             crate::names::UNIFORM_CROSSOVER       => convert_uniform_crossover,
             crate::names::MEAN_CROSSOVER          => convert_mean_crossover,
             crate::names::SHUFFLE_CROSSOVER       => convert_shuffle_crossover,
+
             crate::names::ARITHMETIC_MUTATOR      => convert_arithmetic_mutator,
             crate::names::SWAP_MUTATOR            => convert_swap_mutator,
             crate::names::SCRAMBLE_MUTATOR        => convert_scramble_mutator,
@@ -117,6 +116,7 @@ fn float_alterers() -> &'static HashMap<&'static str, AlterConv<FloatChromosome>
             crate::names::INTERMEDIATE_CROSSOVER       => convert_intermediate_crossover,
             crate::names::BLEND_CROSSOVER              => convert_blend_crossover,
             crate::names::SIMULATED_BINARY_CROSSOVER   => convert_simulated_binary_crossover,
+
             crate::names::GAUSSIAN_MUTATOR             => convert_gaussian_mutator,
             crate::names::ARITHMETIC_MUTATOR           => convert_arithmetic_mutator,
             crate::names::SWAP_MUTATOR                 => convert_swap_mutator,
@@ -138,6 +138,7 @@ fn char_alterers() -> &'static HashMap<&'static str, AlterConv<CharChromosome>> 
             crate::names::MULTI_POINT_CROSSOVER   => convert_multi_point_crossover,
             crate::names::UNIFORM_CROSSOVER       => convert_uniform_crossover,
             crate::names::SHUFFLE_CROSSOVER       => convert_shuffle_crossover,
+
             crate::names::SWAP_MUTATOR            => convert_swap_mutator,
             crate::names::SCRAMBLE_MUTATOR        => convert_scramble_mutator,
             crate::names::UNIFORM_MUTATOR         => convert_uniform_mutator,
@@ -155,6 +156,7 @@ fn bit_alterers() -> &'static HashMap<&'static str, AlterConv<BitChromosome>> {
             crate::names::MULTI_POINT_CROSSOVER   => convert_multi_point_crossover,
             crate::names::UNIFORM_CROSSOVER       => convert_uniform_crossover,
             crate::names::SHUFFLE_CROSSOVER       => convert_shuffle_crossover,
+
             crate::names::SWAP_MUTATOR            => convert_swap_mutator,
             crate::names::SCRAMBLE_MUTATOR        => convert_scramble_mutator,
             crate::names::UNIFORM_MUTATOR         => convert_uniform_mutator,
@@ -172,6 +174,7 @@ fn perm_alterers() -> &'static HashMap<&'static str, AlterConv<PermutationChromo
         table! {
             crate::names::PARTIALLY_MAPPED_CROSSOVER  => convert_partially_mapped_crossover,
             crate::names::EDGE_RECOMBINE_CROSSOVER    => convert_edge_recombine_crossover,
+
             crate::names::SWAP_MUTATOR                => convert_swap_mutator,
             crate::names::SCRAMBLE_MUTATOR            => convert_scramble_mutator,
             crate::names::UNIFORM_MUTATOR             => convert_uniform_mutator,
@@ -188,6 +191,7 @@ fn graph_alterers() -> &'static HashMap<&'static str, AlterConv<GraphChromosome<
     MAP.get_or_init(|| {
         table! {
             crate::names::GRAPH_CROSSOVER       => convert_graph_crossover,
+
             crate::names::GRAPH_MUTATOR         => convert_graph_mutator,
             crate::names::OPERATION_MUTATOR     => convert_operation_mutator,
         }
@@ -202,6 +206,7 @@ fn tree_alterers() -> &'static HashMap<&'static str, AlterConv<TreeChromosome<Op
     MAP.get_or_init(|| {
         table! {
             crate::names::TREE_CROSSOVER        => convert_tree_crossover,
+
             crate::names::HOIST_MUTATOR         => convert_hoist_mutator,
             crate::names::OPERATION_MUTATOR     => convert_operation_mutator,
         }
@@ -219,6 +224,7 @@ fn any_alterers() -> &'static HashMap<&'static str, AlterConv<AnyChromosome<'sta
             crate::names::UNIFORM_CROSSOVER       => convert_uniform_crossover,
             crate::names::SHUFFLE_CROSSOVER       => convert_shuffle_crossover,
             crate::names::MEAN_CROSSOVER          => convert_mean_crossover,
+
             crate::names::SWAP_MUTATOR            => convert_swap_mutator,
             crate::names::SCRAMBLE_MUTATOR        => convert_scramble_mutator,
             crate::names::UNIFORM_MUTATOR         => convert_uniform_mutator,
@@ -227,6 +233,16 @@ fn any_alterers() -> &'static HashMap<&'static str, AlterConv<AnyChromosome<'sta
         }
     })
 }
+
+/// Concrete alterer conversion functions
+/// These functions take a PyEngineInput and extract parameters to create the corresponding alterer.
+/// Each function corresponds to a specific alterer type.
+///
+/// Because python is dynamically typed, there is no guarantee that the parameters exist or are of the correct type.
+/// We do our best above to ensure that the correct parameters are provided by relying
+/// as much as possible on rust's type system, but we provide default values where appropriate.
+/// If a parameter is missing, we use a sensible default.
+/// -------------------------------------------------------------------
 
 fn convert_jitter_mutator(input: &PyEngineInput) -> JitterMutator {
     let rate = input.get_f32("rate").unwrap_or(0.5);

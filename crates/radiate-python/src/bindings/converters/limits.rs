@@ -1,7 +1,6 @@
-use std::time::Duration;
-
 use crate::{InputTransform, PyEngineInput, PyEngineInputType};
 use radiate::Limit;
+use std::time::Duration;
 
 impl InputTransform<Vec<Limit>> for Vec<PyEngineInput> {
     fn transform(&self) -> Vec<Limit> {

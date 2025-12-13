@@ -178,18 +178,3 @@ fn get_ui_option(options: &[PyEngineRunOption]) -> Option<Duration> {
             }
         })
 }
-
-// let log = get_log_option(&options);
-// let checkpoint = get_checkpoint_option(&options);
-// // let ui_interval = get_ui_option(&options);
-
-// engine
-//     .iter()
-//     .chain_if(log.unwrap_or(false), |eng| eng.logging())
-//     .chain_if(checkpoint.is_some(), |eng| {
-//         let (interval, path) = checkpoint.unwrap();
-//         eng.checkpoint(interval, path)
-//     })
-//     .limit(limits)
-//     .last()
-//     .ok_or_else(|| radiate_err!(Python: "Failed to run engine and obtain final generation"))

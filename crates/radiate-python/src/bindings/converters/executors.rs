@@ -11,7 +11,6 @@ impl InputTransform<Option<Executor>> for PyEngineInput {
             crate::names::SERIAL_EXECUTOR => Executor::Serial,
             crate::names::FIXED_SIZED_WORKER_POOL_EXECUTOR => {
                 let num_workers = self.get_usize("num_workers").unwrap_or(1);
-
                 Executor::FixedSizedWorkerPool(num_workers)
             }
             crate::names::WORKER_POOL_EXECUTOR => Executor::WorkerPool,

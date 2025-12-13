@@ -1,7 +1,4 @@
-use crate::{
-    Optimize,
-    objectives::{Objective, Scored, pareto},
-};
+use crate::objectives::{Objective, Scored, pareto};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::{cmp::Ordering, hash::Hash, ops::Range, sync::Arc};
@@ -178,6 +175,6 @@ where
     T: Scored,
 {
     fn default() -> Self {
-        Front::new(0..0, Objective::Single(Optimize::Maximize))
+        Front::new(0..0, Objective::default())
     }
 }

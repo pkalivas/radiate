@@ -148,18 +148,6 @@ pub trait Problem<C: Chromosome, T>: Send + Sync {
 ///     raw_fitness_fn: None,
 ///};
 /// ```
-///
-/// # Thread Safety
-///
-/// This struct is marked as `Send + Sync` to ensure it can be safely shared
-/// across multiple threads during parallel fitness evaluation.
-///
-/// # Performance Characteristics
-///
-/// - **Individual Evaluation**: Each individual is evaluated separately
-/// - **Memory Usage**: Lower memory overhead per evaluation
-/// - **Flexibility**: Easy to implement custom fitness logic
-/// - **Parallelization**: Can utilize multiple threads through the executor
 pub struct EngineProblem<C, T>
 where
     C: Chromosome,

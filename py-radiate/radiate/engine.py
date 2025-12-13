@@ -164,7 +164,10 @@ class GeneticEngine[G, T]:
             for lim in limits
         ]
 
+        # configure the logging option
         log_option = log if isinstance(log, EngineLog) else EngineLog(enable=log)
+
+        # configure the checkpoint option
         checkpoint_option = (
             checkpoint if isinstance(checkpoint, EngineCheckpoint) else None
         )
@@ -173,6 +176,7 @@ class GeneticEngine[G, T]:
                 interval=checkpoint[0], path=checkpoint[1]
             )
 
+        # configure the UI option
         ui_option = ui if isinstance(ui, EngineUi) else None
         if ui_option is None and ui is True:
             ui_option = EngineUi()

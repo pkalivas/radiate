@@ -20,7 +20,7 @@ impl<'a> KnnQueryResult<'a> {
         if self.cluster.is_empty() {
             0.0
         } else {
-            let total: f32 = self.cluster.iter().map(|(_, dist)| *dist).sum();
+            let total = self.cluster.iter().map(|(_, dist)| dist).sum::<f32>();
             total / (self.cluster.len() as f32)
         }
     }

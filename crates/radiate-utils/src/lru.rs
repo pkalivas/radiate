@@ -220,8 +220,8 @@ mod tests {
 
         assert_eq!(lru.insert(1, "one"), None);
         assert_eq!(lru.insert(2, "two"), None);
-        assert_eq!(lru.pop_lru(), Some((1, "one")));
-        assert_eq!(lru.get(&1), None);
-        assert_eq!(lru.get(&2), Some(&"two"));
+        assert_eq!(lru.pop_lru(), Some((1, "one"))); // Evicts key 1
+        assert_eq!(lru.get(&1), None); // Key 1 should be gone
+        assert_eq!(lru.get(&2), Some(&"two")); // Key 2 should still be present
     }
 }

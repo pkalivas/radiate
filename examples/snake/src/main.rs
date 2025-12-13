@@ -72,6 +72,7 @@ fn run_graph_engine() {
         (NodeType::Output, vec![Op::sigmoid()]),
     ];
 
+    // only allow graphs to evolve +10 more nodes than inputs * outputs
     let codec = GraphCodec::weighted_directed(INPUT_SIZE, OUTPUT_SIZE, store).with_max_nodes(10);
 
     let engine = GeneticEngine::builder()
@@ -90,10 +91,10 @@ fn run_graph_engine() {
     engine
         .iter()
         .logging()
-        .limit(vec![
+        .limit((
             Limit::Generation(MAX_GENERATIONS),
             Limit::Seconds(Duration::from_secs_f64(MAX_SECONDS)),
-        ])
+        ))
         .last()
         .inspect(|generation| {
             ascii_snake(SnakeAI::Graph(generation.value()));
@@ -117,10 +118,10 @@ fn run_neural_net_engine() {
     engine
         .iter()
         .logging()
-        .limit(vec![
+        .limit((
             Limit::Generation(MAX_GENERATIONS),
             Limit::Seconds(Duration::from_secs_f64(MAX_SECONDS)),
-        ])
+        ))
         .last()
         .inspect(|generation| {
             ascii_snake(SnakeAI::NeuralNet(generation.value()));

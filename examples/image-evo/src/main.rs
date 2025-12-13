@@ -25,9 +25,9 @@ fn main() {
     let engine = GeneticEngine::builder()
         .problem(problem)
         .minimizing()
+        .parallel()
         .survivor_selector(RouletteSelector::new())
         .offspring_selector(TournamentSelector::new(3))
-        .executor(Executor::FixedSizedWorkerPool(10))
         .alter(alters!(
             MeanCrossover::new(0.3),
             ImageMutator::new(0.01, 0.15),

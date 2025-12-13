@@ -164,6 +164,7 @@ impl Optimize {
     pub fn is_minimize(&self) -> bool {
         matches!(self, Optimize::Minimize)
     }
+
     pub fn is_maximize(&self) -> bool {
         matches!(self, Optimize::Maximize)
     }

@@ -142,6 +142,24 @@ impl Into<Limit> for Vec<Limit> {
     }
 }
 
+impl Into<Limit> for (Limit, Limit) {
+    fn into(self) -> Limit {
+        Limit::Combined(vec![self.0, self.1])
+    }
+}
+
+impl Into<Limit> for (Limit, Limit, Limit) {
+    fn into(self) -> Limit {
+        Limit::Combined(vec![self.0, self.1, self.2])
+    }
+}
+
+impl Into<Limit> for (Limit, Limit, Limit, Limit) {
+    fn into(self) -> Limit {
+        Limit::Combined(vec![self.0, self.1, self.2, self.3])
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
