@@ -16,6 +16,7 @@ nav:
   - Events: source/events.md
   - Engine: source/engines.md
   - Genetic Programming: source/gp.md
+  - Ui: source/ui.md
   - Miscellaneous: source/misc.md
   - Examples: source/examples.md
   - Release Notes: source/releases.md
