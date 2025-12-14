@@ -2,7 +2,7 @@
 
 !!! warning ":construction: Under Construction :construction:"
 
-    As of `10/14/2025`: These docs are a work in progress and may not be complete or fully accurate. Please check back later for updates.
+    As of `11/13/2025`: These docs are a work in progress and may not be complete or fully accurate. Please check back later for updates.
 
 ___
 

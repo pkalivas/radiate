@@ -52,7 +52,7 @@ Python's radiate package does not have any optional features - it is a single pa
 ```toml
 [dependencies]
 # Include the radiate crate with all optional features enabled.
-radiate = { version = "1.2.19", features = ["gp", "serde", "rayon", "pgm"] }
+radiate = { version = "1.2.19", features = ["gp", "serde", "rayon", "pgm", "smallvec", "ui"] }
 ```
 
 opt-in features include:
@@ -65,3 +65,5 @@ opt-in features include:
 - `pgm`: This is an **EXPERIMENTAL** feature which enables [probabilistic graphical models](https://en.wikipedia.org/wiki/Probabilistic_graphical_model) evolution. This is an add-on to the `gp` feature that allows `Op`s to hold tree structures, which enable nested graphical models.
     * This feature is still under active development and may change in future releases.
     * This feature also automatically enables the `gp` feature.
+- `smallvec`: This feature replaces standard `Vec<T>` usage in certain performance-critical areas with `SmallVec<T>`, which can reduce heap allocations and improve performance for small collections. This is particularly useful in genetic programming (Graphs) contexts where many small vectors are created and manipulated frequently.
+- `ui`: This feature enables a simple terminal command-line user interface (TUI) for monitoring and controlling evolutionary runs. It provides real-time feedback on the progress of the evolution, including a plethora of statistics and visualizations. Thanks to [ratatui](https://ratatui.rs). Note that this is a completely opt-in feature and has no dependencies on the core library. This feature is still under active development and may change in future releases.
