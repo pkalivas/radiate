@@ -5,6 +5,11 @@ use radiate_core::{
 };
 use std::sync::Arc;
 
+type FitnessFn<T> = dyn Fn(T) -> Score + Send + Sync;
+type BatchFitnessFn<T> = dyn Fn(Vec<T>) -> Vec<Score> + Send + Sync;
+type RawFitnessFn<C> = dyn Fn(&Genotype<C>) -> Score + Send + Sync;
+type RawBatchFitnessFn<C> = dyn Fn(Vec<&Genotype<C>>) -> Vec<Score> + Send + Sync;
+
 #[derive(Clone)]
 pub struct ProblemParams<C, T>
 where
@@ -13,10 +18,10 @@ where
 {
     pub codec: Option<Arc<dyn Codec<C, T>>>,
     pub problem: Option<Arc<dyn Problem<C, T>>>,
-    pub fitness_fn: Option<Arc<dyn Fn(T) -> Score + Send + Sync>>,
-    pub batch_fitness_fn: Option<Arc<dyn Fn(Vec<T>) -> Vec<Score> + Send + Sync>>,
-    pub raw_fitness_fn: Option<Arc<dyn Fn(&Genotype<C>) -> Score + Send + Sync>>,
-    pub raw_batch_fitness_fn: Option<Arc<dyn Fn(Vec<&Genotype<C>>) -> Vec<Score> + Send + Sync>>,
+    pub fitness_fn: Option<Arc<FitnessFn<T>>>,
+    pub batch_fitness_fn: Option<Arc<BatchFitnessFn<T>>>,
+    pub raw_fitness_fn: Option<Arc<RawFitnessFn<C>>>,
+    pub raw_batch_fitness_fn: Option<Arc<RawBatchFitnessFn<C>>>,
 }
 
 impl<C, T> GeneticEngineBuilder<C, T>

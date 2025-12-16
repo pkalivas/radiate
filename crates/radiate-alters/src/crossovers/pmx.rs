@@ -1,5 +1,6 @@
 use radiate_core::{
-    AlterResult, Chromosome, Crossover, PermutationChromosome, Rate, SubsetMode, math::indexes,
+    AlterResult, Chromosome, Crossover, PermutationChromosome, Rate, SubsetMode, Valid,
+    math::indexes,
 };
 
 pub struct PMXCrossover {
@@ -9,6 +10,10 @@ pub struct PMXCrossover {
 impl PMXCrossover {
     pub fn new(rate: impl Into<Rate>) -> Self {
         let rate = rate.into();
+        if !rate.is_valid() {
+            panic!("Rate {rate:?} is not valid. Must be between 0.0 and 1.0",);
+        }
+
         PMXCrossover { rate }
     }
 }

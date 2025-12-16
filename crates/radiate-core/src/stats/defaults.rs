@@ -66,6 +66,19 @@ pub mod metric_tags {
     pub const DISTRIBUTION: &str = "distribution";
 }
 
+const RULES: &[(&str, &[TagKind])] = &[
+    ("selector", &[TagKind::Selector]),
+    ("mutator", &[TagKind::Alterer, TagKind::Mutator]),
+    ("crossover", &[TagKind::Alterer, TagKind::Crossover]),
+    ("alterer", &[TagKind::Alterer]),
+    ("species", &[TagKind::Species]),
+    ("failure", &[TagKind::Failure]),
+    ("age", &[TagKind::Age]),
+    ("front", &[TagKind::Front]),
+    ("derived", &[TagKind::Derived]),
+    ("other", &[TagKind::Other]),
+];
+
 pub fn default_tags(name: &str) -> Tag {
     let mut mask = Tag::empty();
 
@@ -113,49 +126,15 @@ pub fn default_tags(name: &str) -> Tag {
 }
 
 pub fn try_add_tag_from_str(metric: &mut crate::stats::Metric) {
+    let s = metric.name();
     let mut tags = Tag::empty();
-    let tag_str = metric.name();
 
-    if tag_str.contains("selector") {
-        tags.insert(TagKind::Selector);
-    }
-
-    if tag_str.contains("mutator") {
-        tags.insert(TagKind::Alterer);
-        tags.insert(TagKind::Mutator);
-    }
-
-    if tag_str.contains("crossover") {
-        tags.insert(TagKind::Crossover);
-        tags.insert(TagKind::Alterer);
-    }
-
-    if tag_str.contains("alterer") {
-        tags.insert(TagKind::Alterer);
-    }
-
-    if tag_str.contains("species") {
-        tags.insert(TagKind::Species);
-    }
-
-    if tag_str.contains("failure") {
-        tags.insert(TagKind::Failure);
-    }
-
-    if tag_str.contains("age") {
-        tags.insert(TagKind::Age);
-    }
-
-    if tag_str.contains("front") {
-        tags.insert(TagKind::Front);
-    }
-
-    if tag_str.contains("derived") {
-        tags.insert(TagKind::Derived);
-    }
-
-    if tag_str.contains("other") {
-        tags.insert(TagKind::Other);
+    for (needle, kinds) in RULES {
+        if s.contains(needle) {
+            for &k in *kinds {
+                tags.insert(k);
+            }
+        }
     }
 
     if !tags.is_empty() {

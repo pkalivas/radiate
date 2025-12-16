@@ -11,10 +11,6 @@ pub struct UniformMutator {
 impl UniformMutator {
     pub fn new(rate: impl Into<Rate>) -> Self {
         let rate = rate.into();
-        // if !(0.0..=1.0).contains(&rate.0) {
-        //     panic!("Rate must be between 0 and 1");
-        // }
-
         UniformMutator { rate }
     }
 }

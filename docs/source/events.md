@@ -2,7 +2,7 @@
 
 !!! warning ":construction: Under Construction :construction:"
 
-    As of `11/10/2025`: These docs are a work in progress and may not be complete or fully accurate. Please check back later for updates.
+    As of `12/15/2025`: These docs are a work in progress and may not be complete or fully accurate. Please check back later for updates.
 
 Radiate provides an event system that allows you to monitor and react to the evolution process in real-time. This is great for:
 

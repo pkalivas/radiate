@@ -72,7 +72,7 @@ The Euclidean Distance calculates the square root of the sum of squared differen
 
 ### Cosine Distance
 
-**Compatible with**: `FloatGene`
+**Compatible with**: `FloatGene`, `IntGene<I>`
 
 The Cosine Distance measures diversity by calculating the cosine similarity between the vectors representing individuals. This is particularly useful for:
 

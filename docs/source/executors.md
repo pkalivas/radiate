@@ -151,11 +151,11 @@ Continuing with our example from the preious sections - evolving a simple functi
     });
     ```
 
-    If you have the feature `rayon` enabled, you can also use the convenient `.parallel()` method on the engine builder to set the executor to `WorkerPool`:
+    You can also use the convenient `.parallel()` method on the engine builder. If the `rayon` feature is enabled, this will set the executor to `WorkerPool`, otherwise it will set it to `FixedSizedWorkerPool(std::thread::available_parallelism().unwrap().get())`.:
 
     ```rust
     let mut engine = GeneticEngine::builder()
         // ... other builder methods ...
-        .parallel() // sets executor to WorkerPool
+        .parallel() 
         .build();
     ```

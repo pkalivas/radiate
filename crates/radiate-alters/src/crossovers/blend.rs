@@ -1,4 +1,6 @@
-use radiate_core::{AlterResult, Chromosome, Crossover, FloatGene, Gene, Rate, random_provider};
+use radiate_core::{
+    AlterResult, Chromosome, Crossover, FloatGene, Gene, Rate, Valid, random_provider,
+};
 
 /// The [BlendCrossover] is a crossover operator that blends [FloatGene] alleles from two parent chromosomes to create offspring.
 /// The blending is controlled by the `alpha` parameter, which determines the extent of blending between the two alleles.
@@ -18,18 +20,16 @@ impl BlendCrossover {
     /// Create a new instance of the [BlendCrossover] with the given rate and alpha.
     /// The rate must be between 0.0 and 1.0, and the alpha must be between 0.0 and 1.0.
     pub fn new(rate: impl Into<Rate>, alpha: f32) -> Self {
-        // if !(0.0..=1.0).contains(&rate) {
-        //     panic!("Rate must be between 0 and 1");
-        // }
-
-        // if !(0.0..=1.0).contains(&alpha) {
-        //     panic!("Alpha must be between 0 and 1");
-        // }
-
-        BlendCrossover {
-            rate: rate.into(),
-            alpha,
+        let rate = rate.into();
+        if !rate.is_valid() {
+            panic!("Rate is not valid");
         }
+
+        if !(0.0..=1.0).contains(&alpha) {
+            panic!("Alpha must be between 0 and 1");
+        }
+
+        BlendCrossover { rate, alpha }
     }
 }
 

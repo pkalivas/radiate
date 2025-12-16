@@ -1044,14 +1044,14 @@ Lets take a quick look at how we would put together a regression problem using a
     // A simple function to take the output of the engine and display the accuracy 
     // of the result on the dataset
     fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
-        let mut evaluator = GraphEvaluator::new(result.value());
-        let accuracy_result = Accuracy::new("reg")
+        Accuracy::default()
+            .named("Regression Graph")
             .on(&dataset().into())
             .loss(Loss::MSE)
-            .calc(&mut evaluator);
-
-        println!("{result:?}\n{accuracy_result:?}");
-        println!("{}", result.metrics());
+            .eval(result.value())
+            .inspect(|acc| {
+                println!("{result:?}\n{acc:?}\n{}", result.metrics().dashboard());
+            });
     }
 
     fn dataset() -> impl Into<DataSet> {

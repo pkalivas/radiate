@@ -242,7 +242,7 @@ impl Statistic {
             + 6.0 * delta2 * (n1 * n1 * m22 + n2 * n2 * m21) / (n * n)
             + 4.0 * delta * (n1 * m32 - n2 * m31) / n;
 
-        // Write back into your Kahan adders.
+        // Write back into Kahan adders.
         // Using `Adder::default()` + single `add` is fine:
         self.m1 = Adder::default();
         self.m1.add(mean as f32);
