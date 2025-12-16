@@ -88,6 +88,8 @@ This is the default epoch for the engine - `Generation`. It contains:
     let index: usize = result.index();
 
     // Get the ecosystem level information:
+    // Note - the result needs to be 'mut' to access these methods as 
+    // they may require mutable access internally - caching, etc.
     let ecosystem: Ecosystem<FloatChromosome> = result.ecosystem();
     let population: Population<FloatChromosome> = ecosystem.population();
     let species: Option<&[Species<FloatChromosome>]> = ecosystem.species();
@@ -308,38 +310,41 @@ The `Statistic` exposes a number of different statistical measures that can be u
 
 Similarly, the `TimeStatistic` exposes the same measures, however the data is assumed to be time-based. As such, the results are expressed as a `Duration::from_secs_f32(value)`.
 
-### Distribution
-
-The `Distribution` metric is used to represent a distribution of values. The distribution is stored as a `Vec<f32>` and produces the same statistical measures as the `Statistic` and `TimeStatistic` with the exception of `last_value` which is changed to `last_sequence`.
-
 ??? info "Default metrics"
 
     | Name                | Description                                                                 |
     |---------------------|-----------------------------------------------------------------------------|
     | `time`              | The time taken for the evolution process.                                   |
     | `scores`            | The scores (fitness) of all the individuals evolved throughout the evolution process. |
-    | `age`               | The age of all the individuals in the `Ecosystem`. |
+    | `age`               | The age of all the individuals in the `Ecosystem` throughout the evolution process. |
     | `replace_age`      | The number of individuals replaced based on age. |
     | `replace_invalid`  | The number of individuals replaced based on invalid structure (e.g. Bounds) |
     | `genome_size`      | The size of each genome over the evolution process. This is usually static and doesn't change. |
-    | `front`            | The number of members added to the Pareto front throughout the evolution process. |
+    | `front_additions`            | The number of members added to the Pareto front each generation. |
+    | `front_entropy`  | The entropy of the Pareto front throughout the evolution process - only calculated every 10 generations (its kinda an expensive calculation). |
+    | `front_removals`  | The number of members removed from the Pareto front each generation. |
+    | `front_comparisons`  | The number of comparisons made to update the Pareto front each generation. |
+    | `front_size`  | The size of the Pareto front each generation. |
     | `unique_members`   | The number of unique members in the `Ecosystem`. |
     | `unique_scores`    | The number of unique scores in the `Ecosystem`. |
+    | `new_children`     | The number of new children created each generation through either mutation or crossover (or both). |
+    | `survivor_count`   | The number of individuals that survived to the next generation - summation throughout the evolution process. |
+    | `carryover_rate`   | The rate at which unique individuals are carried over to the next generation - `survivor_count` per generation / population size. |
+    | `evaluation_count` | The total number of evaluations performed per generation. |
     | `diversity_ratio`  | The ratio of unique scores to the size of the `Ecosystem`. |
     | `score_volatility` | The volatility of the scores in the `Ecosystem`. This is calculated as the standard deviation of the scores / mean. |
-    | `carryover_rate`   | The rate at which unique individuals are carried over to the next generation. |
-    | `survivor_count`   | The number of individuals that survived to the next generation. |
-    | `evaluation_count` | The total number of evaluations performed per generation. |
-    | `lifetime_unique`  | The number of unique individuals that have existed throughout the entire evolution process. |
-    | `new_children`     | The number of new children each generation through either mutation or crossover (or both). |
+    | `best_score_improvement` | The improvement of the best score from the previous generation to the current generation - either a 1 or 0 each generation. |
     | `species_count`    | The number of `species` in the 'Ecosystem`. |
     | `species_removed`  | The number of `species` removed based on stagnation. |
-    | `species_distance` | The distance between `species` in the `Ecosystem`. |
     | `species_created`  | The number of `species` created in the `Ecosystem`. |
     | `species_died`     | The number of `species` that have died in the `Ecosystem`. |
     | `species_age`      | The age of all the `species` in the `Ecosystem`. |
+    | `species_age_fail` | The count of species that have failed based on age each generation. |
+    | `species_eveness` | The evenness of the species distribution in the `Ecosystem`. |
+    | `largest_species_share` | The share of the largest species in the `Ecosystem`. |
+    | `species_new_ratio` | The ratio of new species created each generation. |
 
-    Along with the default metrics, each component will also collect metrics for the operations it performs. For example, each `Alterer` and `Selector` will collect metrics and be identified by their name. Its also important to note that `species` level metrics will only be collected if the engine is configured to use species-based diversity.
+    Along with the default metrics, each component will also collect metrics for the operations it performs. For example, each `Alterer` and `Selector` will collect metrics and be identified by their name. Its also important to note that `species` level metrics will only be collected if the engine is configured to use species-based diversity. Also, `front` level metrics will only be collected if the engine is configured for multi-objective optimization.
 
 These can be accessed through the `metrics()` method of the epoch, which returns a `MetricSet`. 
 

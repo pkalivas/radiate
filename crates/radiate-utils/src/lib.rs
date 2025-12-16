@@ -3,6 +3,8 @@ mod fmt;
 mod intern;
 mod lru;
 mod regex;
+#[allow(dead_code)]
+mod registry;
 mod str;
 
 pub use arena::{Arena, ArenaKey};

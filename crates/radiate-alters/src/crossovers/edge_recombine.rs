@@ -1,5 +1,5 @@
 use radiate_core::{
-    AlterResult, Chromosome, Crossover, PermutationChromosome, Rate, random_provider,
+    AlterResult, Chromosome, Crossover, PermutationChromosome, Rate, Valid, random_provider,
 };
 use std::collections::{HashMap, HashSet};
 
@@ -14,9 +14,10 @@ pub struct EdgeRecombinationCrossover {
 impl EdgeRecombinationCrossover {
     pub fn new(rate: impl Into<Rate>) -> Self {
         let rate = rate.into();
-        // if !(0.0..=1.0).contains(&rate) {
-        //     panic!("Rate must be between 0 and 1");
-        // }
+        if !rate.is_valid() {
+            panic!("Crossover rate must be between 0.0 and 1.0");
+        }
+
         EdgeRecombinationCrossover { rate }
     }
 

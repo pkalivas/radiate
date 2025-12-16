@@ -578,15 +578,16 @@ Evolve a `Tree<Op<f32>>` to solve the a regression problem (Genetic Programming)
     }
 
     fn display(result: &Generation<TreeChromosome<Op<f32>>, Tree<Op<f32>>>) {
-        let data_set = get_dataset();
-        let accuracy = Accuracy::new("reg")
-            .on(&data_set)
+        Accuracy::default()
+            .named("Regression Tree")
+            .on(&get_dataset())
             .loss(Loss::MSE)
-            .calc(&mut vec![result.value().clone()]);
-
-        println!("{:?}", result);
-        println!("Best Tree: {}", result.value().format());
-        println!("{:?}", accuracy);
+            .eval(result.value())
+            .inspect(|acc| {
+                println!("{}", result.metrics().dashboard());
+                println!("Best Tree: {}", result.value().format());
+                println!("{:?}", acc);
+            });
     }
 
     fn get_dataset() -> DataSet {

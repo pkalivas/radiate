@@ -1,4 +1,4 @@
-use radiate_core::{AlterResult, ArithmeticGene, Chromosome, Mutate, Rate, random_provider};
+use radiate_core::{AlterResult, ArithmeticGene, Chromosome, Mutate, Rate, Valid, random_provider};
 
 /// Arithmetic Mutator. Mutates genes by performing arithmetic operations on them.
 /// The [ArithmeticMutator] takes a rate parameter that determines the likelihood that
@@ -17,9 +17,9 @@ impl ArithmeticMutator {
     /// The rate must be between 0.0 and 1.0.
     pub fn new(rate: impl Into<Rate>) -> Self {
         let rate = rate.into();
-        // if !(0.0..=1.0).contains(&rate.0) {
-        //     panic!("Rate must be between 0 and 1");
-        // }
+        if !rate.is_valid() {
+            panic!("Rate {rate:?} is not valid. Must be between 0.0 and 1.0",);
+        }
 
         Self { rate }
     }

@@ -1,5 +1,5 @@
 use radiate_core::{
-    AlterResult, BoundedGene, Chromosome, Crossover, FloatGene, Gene, Rate, random_provider,
+    AlterResult, BoundedGene, Chromosome, Crossover, FloatGene, Gene, Rate, Valid, random_provider,
 };
 
 pub struct SimulatedBinaryCrossover {
@@ -10,6 +10,9 @@ pub struct SimulatedBinaryCrossover {
 impl SimulatedBinaryCrossover {
     pub fn new(crossover_rate: impl Into<Rate>, contiguty: f32) -> Self {
         let crossover_rate = crossover_rate.into();
+        if !crossover_rate.is_valid() {
+            panic!("Rate {crossover_rate:?} is not valid. Must be between 0.0 and 1.0",);
+        }
         Self {
             contiguty,
             crossover_rate,

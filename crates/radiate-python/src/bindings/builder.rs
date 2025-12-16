@@ -387,8 +387,8 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_single_typed(|typed_builder, input| {
-                let min = input.get_usize("min").unwrap_or(800);
-                let max = input.get_usize("max").unwrap_or(1000);
+                let min = input.get_usize("min").unwrap_or(700);
+                let max = input.get_usize("max").unwrap_or(900);
 
                 if min > max {
                     radiate_py_bail!(format!(

@@ -14,7 +14,7 @@ User Interface (UI)
 
 Radiate includes a simple terminal command-line user interface (TUI) built with [ratatui](https://ratatui.rs) for monitoring and controlling evolutionary runs. It provides real-time feedback on the progress of the evolution, including a plethora of statistics and visualizations. 
 
-## Statistics
+## Statistics & Timings
 
 Below we can see the base TUI layout during an evolutionary run:
 
@@ -38,7 +38,7 @@ Its also possible to view the timings of various components of the genetic algor
 
 ---
 
-## Time statistics
+## Filtering
 
 Because the engine collects so many statistics, its also possible to filter the statistics by their `tag`s. You can do this by pressing the `f` key during an evolutionary run, which will bring up a prompt to enter a tag to filter by. For example, if I just want to see statistics related to `mutations` and `selections`, I can press `f` and enter and toggle the appropriate tags:
 

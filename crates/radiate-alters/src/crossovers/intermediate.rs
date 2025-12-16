@@ -1,5 +1,5 @@
 use radiate_core::{
-    AlterResult, BoundedGene, Chromosome, Crossover, FloatGene, Gene, Rate, random_provider,
+    AlterResult, BoundedGene, Chromosome, Crossover, FloatGene, Gene, Rate, Valid, random_provider,
 };
 
 /// Intermediate Crossover. This crossover method takes two chromosomes and crosses them
@@ -22,9 +22,9 @@ impl IntermediateCrossover {
     pub fn new(rate: impl Into<Rate>, alpha: f32) -> Self {
         let rate = rate.into();
 
-        // if !(0.0..=1.0).contains(&rate) {
-        //     panic!("Rate must be between 0 and 1");
-        // }
+        if !rate.is_valid() {
+            panic!("Rate {rate:?} is not valid. Must be between 0.0 and 1.0",);
+        }
 
         if !(0.0..=1.0).contains(&alpha) {
             panic!("Alpha must be between 0 and 1");

@@ -120,10 +120,15 @@ pub trait Problem<C: Chromosome, T>: Send + Sync {
     }
 }
 
+type FitnessFn<T> = dyn Fn(T) -> Score + Send + Sync;
+type RawFitnessFn<C> = dyn Fn(&Genotype<C>) -> Score + Send + Sync;
+
+/// A standard implementation of the [Problem] trait for general use.
 /// [EngineProblem] is a generic, base level concrete implementation of the [Problem] trait that is the
 /// default problem used by the engine if none other is specified during building.
 ///
 /// We take the [Codec] and the fitness function from the user and simply wrap them into this struct.
+///
 ///
 /// # Generic Parameters
 ///
@@ -154,8 +159,8 @@ where
 {
     pub objective: Objective,
     pub codec: Arc<dyn Codec<C, T>>,
-    pub fitness_fn: Option<Arc<dyn Fn(T) -> Score + Send + Sync>>,
-    pub raw_fitness_fn: Option<Arc<dyn Fn(&Genotype<C>) -> Score + Send + Sync>>,
+    pub fitness_fn: Option<Arc<FitnessFn<T>>>,
+    pub raw_fitness_fn: Option<Arc<RawFitnessFn<C>>>,
 }
 
 /// Implementation of [Problem] for [EngineProblem].
@@ -205,6 +210,9 @@ impl<C: Chromosome, T> Problem<C, T> for EngineProblem<C, T> {
 unsafe impl<C: Chromosome, T> Send for EngineProblem<C, T> {}
 unsafe impl<C: Chromosome, T> Sync for EngineProblem<C, T> {}
 
+type BatchFitnessFn<T> = dyn Fn(Vec<T>) -> Vec<Score> + Send + Sync;
+type RawBatchFitnessFn<C> = dyn Fn(Vec<&Genotype<C>>) -> Vec<Score> + Send + Sync;
+
 /// A specialized implementation of the [Problem] trait optimized for batch evaluation.
 ///
 /// [BatchEngineProblem] is designed for problems where batch fitness evaluation
@@ -252,8 +260,8 @@ where
 {
     pub objective: Objective,
     pub codec: Arc<dyn Codec<C, T>>,
-    pub batch_fitness_fn: Option<Arc<dyn Fn(Vec<T>) -> Vec<Score> + Send + Sync>>,
-    pub raw_batch_fitness_fn: Option<Arc<dyn Fn(Vec<&Genotype<C>>) -> Vec<Score> + Send + Sync>>,
+    pub batch_fitness_fn: Option<Arc<BatchFitnessFn<T>>>,
+    pub raw_batch_fitness_fn: Option<Arc<RawBatchFitnessFn<C>>>,
 }
 
 /// Implementation of [Problem] for [BatchEngineProblem].
@@ -331,7 +339,7 @@ unsafe impl<C: Chromosome, T> Sync for BatchEngineProblem<C, T> {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Chromosome, Codec, FloatChromosome, FloatGene, Gene, Genotype, Optimize, Score};
+    use crate::{Chromosome, Codec, FloatChromosome, FloatGene, Gene, Genotype, Score};
 
     #[derive(Debug, Clone)]
     struct MockPhenotype {
@@ -363,7 +371,7 @@ mod tests {
             Arc::new(|phenotype: MockPhenotype| Score::from(phenotype.x + phenotype.y));
 
         let problem = EngineProblem {
-            objective: Objective::Single(Optimize::Maximize),
+            objective: Objective::default(),
             codec: Arc::new(MockCodec),
             fitness_fn: Some(fitness_fn),
             raw_fitness_fn: None,
@@ -386,7 +394,7 @@ mod tests {
             Arc::new(|phenotype: MockPhenotype| Score::from(phenotype.x + phenotype.y));
 
         let problem = EngineProblem {
-            objective: Objective::Single(Optimize::Maximize),
+            objective: Objective::default(),
             codec: Arc::new(MockCodec),
             fitness_fn: Some(fitness_fn),
             raw_fitness_fn: None,
@@ -407,7 +415,7 @@ mod tests {
         });
 
         let problem = BatchEngineProblem {
-            objective: Objective::Single(Optimize::Maximize),
+            objective: Objective::default(),
             codec: Arc::new(MockCodec),
             batch_fitness_fn: Some(batch_fitness_fn),
             raw_batch_fitness_fn: None,
@@ -431,7 +439,7 @@ mod tests {
         });
 
         let problem = BatchEngineProblem {
-            objective: Objective::Single(Optimize::Maximize),
+            objective: Objective::default(),
             codec: Arc::new(MockCodec),
             batch_fitness_fn: Some(batch_fitness_fn),
             raw_batch_fitness_fn: None,
@@ -452,7 +460,7 @@ mod tests {
         });
 
         let problem = BatchEngineProblem {
-            objective: Objective::Single(Optimize::Maximize),
+            objective: Objective::default(),
             codec: Arc::new(MockCodec),
             batch_fitness_fn: Some(batch_fitness_fn),
             raw_batch_fitness_fn: None,

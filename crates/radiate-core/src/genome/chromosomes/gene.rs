@@ -105,7 +105,7 @@ where
     }
 }
 
-impl<T, G> NumericGene for G
+impl<G, T> NumericGene for G
 where
     G: Gene<Allele = T>,
     T: NumericAllele,

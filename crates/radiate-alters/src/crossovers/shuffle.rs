@@ -1,4 +1,4 @@
-use radiate_core::{AlterResult, Chromosome, Crossover, Rate, random_provider};
+use radiate_core::{AlterResult, Chromosome, Crossover, Rate, Valid, random_provider};
 
 pub struct ShuffleCrossover {
     rate: Rate,
@@ -7,6 +7,9 @@ pub struct ShuffleCrossover {
 impl ShuffleCrossover {
     pub fn new(rate: impl Into<Rate>) -> Self {
         let rate = rate.into();
+        if !rate.is_valid() {
+            panic!("Rate {rate:?} is not valid. Must be between 0.0 and 1.0",);
+        }
         ShuffleCrossover { rate }
     }
 }
