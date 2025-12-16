@@ -1,4 +1,8 @@
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Tag(u16);
 
 impl Tag {

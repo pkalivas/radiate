@@ -1,6 +1,12 @@
+//! Multi-objective optimization utilities, including Pareto front calculation,
+//! non-dominated sorting, crowding distance, and entropy measures.
+//! These are essential for evolutionary algorithms that need to handle
+//! multiple conflicting objectives.
+
 use crate::objectives::{Objective, Optimize};
 use std::collections::HashMap;
 
+/// A small constant to avoid division by zero and ensure non-zero weights.
 const EPSILON: f32 = 1e-6;
 
 /// Calculate the crowding distance for each score in a population.
