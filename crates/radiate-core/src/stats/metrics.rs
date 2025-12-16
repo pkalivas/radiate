@@ -96,6 +96,8 @@ impl Metric {
     #[inline(always)]
     pub fn update_from(&mut self, other: Metric) {
         if let Some(stat) = other.inner.value_statistic {
+            // Kinda a hack to take advantage of the fact that if count == sum,
+            // we can just apply the sum directly instead of merging statistics - keeps things honest
             if stat.count() as f32 == stat.sum() && !other.tags.has(TagKind::Distribution) {
                 self.apply_update(stat.sum());
             } else {
