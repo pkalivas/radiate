@@ -20,7 +20,7 @@ pub fn individual_indexes(index: usize, max_index: usize, num_indices: usize) ->
     if i < sub_set.len() {
         sub_set[i] = index;
     }
-    let mut result = sub_set.iter().map(|&x| x as usize).collect::<Vec<usize>>();
+    let mut result = sub_set.iter().map(|&x| x).collect::<Vec<usize>>();
     result.sort_unstable();
     result
 }

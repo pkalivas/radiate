@@ -72,10 +72,6 @@ impl Metric {
         self.tags.insert(tag);
     }
 
-    pub fn inner(&self) -> &MetricInner {
-        &self.inner
-    }
-
     pub fn contains_tag(&self, tag: &TagKind) -> bool {
         self.tags.has(*tag)
     }
