@@ -2,6 +2,17 @@
 
 ---
 
+## v1.2.20 - py 0.0.10
+
+- 2025-12-15
+- [Release](https://github.com/pkalivas/radiate/releases/tag/v1.2.20)
+
+Adding radiate-ui crate, bug fixes, & speed improvements. 
+
+I split up some functionality into a new crate radiate-utils and have added a new feature radiate-ui for a tui user interface through [ratitui](https://ratatui.rs). Some small bug fixes, code simplifications, and some nice little speed improvements. 
+
+**[Full Changelog](https://github.com/pkalivas/radiate/compare/v1.2.19...v1.2.20)**
+
 ## v1.2.19 - py 0.0.9
 
 - 2025-11-11
