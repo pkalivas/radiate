@@ -5,7 +5,10 @@ use crate::{
 use radiate_utils::intern;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fmt::Debug};
+use std::{
+    collections::HashMap,
+    fmt::{Debug, Display},
+};
 
 pub(super) const METRIC_SET: &str = "metric_set";
 
@@ -88,7 +91,6 @@ impl MetricSet {
         }
     }
 
-    #[inline(always)]
     pub fn iter_tagged<'a>(
         &'a self,
         tag: TagKind,
@@ -98,12 +100,10 @@ impl MetricSet {
             .filter_map(move |(k, m)| if m.tags.has(tag) { Some((*k, m)) } else { None })
     }
 
-    #[inline(always)]
     pub fn iter_stats<'a>(&'a self) -> impl Iterator<Item = &'a Metric> {
         self.metrics.values().filter(|m| m.statistic().is_some())
     }
 
-    #[inline(always)]
     pub fn iter_times<'a>(&'a self) -> impl Iterator<Item = &'a Metric> {
         self.metrics
             .values()
@@ -274,7 +274,7 @@ impl MetricSet {
     }
 }
 
-impl std::fmt::Display for MetricSet {
+impl Display for MetricSet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let summary = self.summary();
         let out = format!(
@@ -315,26 +315,13 @@ impl<'de> Deserialize<'de> for MetricSet {
     where
         D: serde::Deserializer<'de>,
     {
-        use crate::stats::MetricInner;
-
-        #[derive(Deserialize)]
-        struct MetricOwned {
-            name: String,
-            inner: MetricInner,
-            tags: u16,
-        }
-
-        let metrics = Vec::<MetricOwned>::deserialize(deserializer)?;
+        let metrics = Vec::<Metric>::deserialize(deserializer)?;
 
         let mut metric_set = MetricSet::new();
         for metric in metrics {
-            let metric = Metric {
-                name: metric.name.into(),
-                inner: metric.inner,
-                tags: Tag::from(metric.tags),
-            };
             metric_set.add(metric);
         }
+
         Ok(metric_set)
     }
 }

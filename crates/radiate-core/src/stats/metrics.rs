@@ -26,6 +26,7 @@ pub struct MetricInner {
 }
 
 #[derive(Clone, PartialEq, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Metric {
     pub(super) name: Arc<String>,
     pub(super) inner: MetricInner,
@@ -71,10 +72,6 @@ impl Metric {
         self.tags.insert(tag);
     }
 
-    pub fn inner(&self) -> &MetricInner {
-        &self.inner
-    }
-
     pub fn contains_tag(&self, tag: &TagKind) -> bool {
         self.tags.has(*tag)
     }
@@ -96,6 +93,8 @@ impl Metric {
     #[inline(always)]
     pub fn update_from(&mut self, other: Metric) {
         if let Some(stat) = other.inner.value_statistic {
+            // Kinda a hack to take advantage of the fact that if count == sum,
+            // we can just apply the sum directly instead of merging statistics - keeps things honest
             if stat.count() as f32 == stat.sum() && !other.tags.has(TagKind::Distribution) {
                 self.apply_update(stat.sum());
             } else {
@@ -227,7 +226,14 @@ impl Metric {
     }
 
     pub fn count(&self) -> i32 {
-        self.statistic().map(|stat| stat.count()).unwrap_or(0)
+        if let Some(stat) = &self.inner.value_statistic {
+            return stat.count();
+        } else if let Some(stat) = &self.inner.time_statistic {
+            return stat.count();
+        }
+
+        // No statistics recorded yet
+        0
     }
 
     ///
@@ -369,55 +375,6 @@ impl From<TimeStatistic> for MetricUpdate<'_> {
 impl std::fmt::Debug for Metric {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Metric {{ name: {}, }}", self.name)
-    }
-}
-
-#[cfg(feature = "serde")]
-impl Serialize for Metric {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        #[derive(Serialize)]
-        struct MetricOwned {
-            name: String,
-            inner: MetricInner,
-            tags: u16,
-        }
-
-        let tags = self.tags;
-        let metric = MetricOwned {
-            name: self.name.to_string(),
-            inner: self.inner.clone(),
-            tags: tags.into(),
-        };
-
-        metric.serialize(serializer)
-    }
-}
-
-#[cfg(feature = "serde")]
-impl<'de> Deserialize<'de> for Metric {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        use crate::stats::MetricInner;
-
-        #[derive(Deserialize)]
-        struct MetricOwned {
-            name: String,
-            inner: MetricInner,
-            tags: u16,
-        }
-
-        let metric = MetricOwned::deserialize(deserializer)?;
-
-        Ok(Metric {
-            name: cache_string!(intern_snake_case!(metric.name.as_str())),
-            inner: metric.inner,
-            tags: Tag::from(metric.tags),
-        })
     }
 }
 
