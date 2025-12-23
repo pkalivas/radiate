@@ -295,9 +295,9 @@ where
             Arc::clone(&distances),
         )?;
 
-        let removed_species = ecosystem.remvove_dead_species();
+        let rm_species_count = ecosystem.remove_dead_species();
 
-        metrics.upsert((metric_names::SPECIES_DIED, removed_species));
+        metrics.upsert((metric_names::SPECIES_DIED, rm_species_count));
 
         self.fitness_share(ecosystem);
 

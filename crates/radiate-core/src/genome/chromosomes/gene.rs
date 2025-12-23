@@ -1,6 +1,5 @@
-use std::ops::{Add, Div, Mul, Sub};
-
 use crate::chromosomes::NumericAllele;
+use std::ops::{Add, Div, Mul, Sub};
 
 /// A [`Valid`] type is a type that can be checked for validity. This is used for checking if a gene
 /// or a chromosome is valid. For example, a gene that represents a number between 0 and 1 can be checked

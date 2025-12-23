@@ -151,7 +151,7 @@ impl<C: Chromosome> Ecosystem<C> {
         }
     }
 
-    pub fn remvove_dead_species(&mut self) -> usize {
+    pub fn remove_dead_species(&mut self) -> usize {
         if let Some(species) = &mut self.species {
             let initial_len = species.len();
             species.retain(|spec| spec.len() > 0);

@@ -8,6 +8,10 @@ pub enum CycleShape {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Rate {
+    /// A fixed rate that does not change over time.
+    ///
+    /// # Parameters
+    /// - `f32`: The fixed rate value.
     Fixed(f32),
     /// A linear rate that changes from start to end over a number of steps.
     ///
