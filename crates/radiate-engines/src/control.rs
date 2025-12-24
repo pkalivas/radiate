@@ -3,20 +3,22 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
 };
 
-#[derive(Clone)]
-pub struct StepGate {
-    inner: Arc<(Mutex<State>, Condvar)>,
-}
-
 #[derive(Debug)]
 struct State {
     paused: bool,
-    permits: usize, // how many epochs are allowed while paused
+    permits: usize,
 }
 
-impl StepGate {
+#[derive(Clone)]
+pub struct EngineControl {
+    stop_flag: Arc<AtomicBool>,
+    inner: Arc<(Mutex<State>, Condvar)>,
+}
+
+impl EngineControl {
     pub fn new() -> Self {
         Self {
+            stop_flag: Arc::new(AtomicBool::new(false)),
             inner: Arc::new((
                 Mutex::new(State {
                     paused: false,
@@ -27,7 +29,32 @@ impl StepGate {
         }
     }
 
-    /// Pause/resume explicitly.
+    /// Create two clones for separate threads (convenience).
+    pub fn pair() -> (Self, Self) {
+        let ctl = Self::new();
+        (ctl.clone(), ctl)
+    }
+
+    // ---- stop ----
+    #[inline]
+    pub fn stop(&self) {
+        self.stop_flag.store(true, Ordering::SeqCst);
+        // wake anything blocked
+        self.set_paused(true);
+    }
+
+    #[inline]
+    pub fn is_stopped(&self) -> bool {
+        self.stop_flag.load(Ordering::Relaxed)
+    }
+
+    #[inline]
+    pub fn stop_flag(&self) -> Arc<AtomicBool> {
+        self.stop_flag.clone()
+    }
+
+    // ---- pause/step ----
+    #[inline]
     pub fn set_paused(&self, paused: bool) {
         let (lock, cv) = &*self.inner;
         let mut st = lock.lock().unwrap();
@@ -38,7 +65,8 @@ impl StepGate {
         cv.notify_all();
     }
 
-    /// Toggle paused state. Returns the new paused state.
+    /// Toggle pause. Returns new paused state.
+    #[inline]
     pub fn toggle_pause(&self) -> bool {
         let (lock, cv) = &*self.inner;
         let mut st = lock.lock().unwrap();
@@ -51,7 +79,7 @@ impl StepGate {
         now
     }
 
-    /// Allow exactly one `next()` to proceed, leaving the gate paused afterwards.
+    #[inline]
     pub fn step_once(&self) {
         let (lock, cv) = &*self.inner;
         let mut st = lock.lock().unwrap();
@@ -60,15 +88,13 @@ impl StepGate {
         cv.notify_all();
     }
 
-    /// Wait until allowed to proceed:
-    /// - If not paused => return immediately.
-    /// - If paused with permits => consume 1 permit and return.
-    /// - Else => block on the condvar.
-    pub fn wait_for_permit(&self, stop_flag: &AtomicBool) {
+    /// Called by engine thread before computing next epoch.
+    #[inline]
+    pub fn wait_before_step(&self) {
         let (lock, cv) = &*self.inner;
         let mut st = lock.lock().unwrap();
 
-        while !stop_flag.load(Ordering::Relaxed) {
+        while !self.stop_flag.load(Ordering::Relaxed) {
             if !st.paused {
                 return;
             }
@@ -82,76 +108,10 @@ impl StepGate {
         }
     }
 
-    pub fn is_paused(&self) -> bool {
-        let (lock, _) = &*self.inner;
-        lock.lock().unwrap().paused
-    }
-}
-
-#[derive(Clone)]
-pub struct EngineControl {
-    stop: Arc<AtomicBool>,
-    gate: StepGate,
-}
-
-impl EngineControl {
-    pub fn new() -> Self {
-        Self {
-            stop: Arc::new(AtomicBool::new(false)),
-            gate: StepGate::new(),
-        }
-    }
-
-    /// Create two clones for separate threads (convenience).
-    pub fn pair() -> (Self, Self) {
-        let ctl = Self::new();
-        (ctl.clone(), ctl)
-    }
-
-    // ---- stop ----
-    #[inline]
-    pub fn stop(&self) {
-        self.stop.store(true, Ordering::SeqCst);
-        // wake anything blocked
-        self.gate.set_paused(false);
-    }
-
-    #[inline]
-    pub fn is_stopped(&self) -> bool {
-        self.stop.load(Ordering::Relaxed)
-    }
-
-    #[inline]
-    pub fn stop_flag(&self) -> Arc<AtomicBool> {
-        self.stop.clone()
-    }
-
-    // ---- pause/step ----
-    #[inline]
-    pub fn set_paused(&self, paused: bool) {
-        self.gate.set_paused(paused);
-    }
-
-    /// Toggle pause. Returns new paused state.
-    #[inline]
-    pub fn toggle_pause(&self) -> bool {
-        self.gate.toggle_pause()
-    }
-
-    #[inline]
-    pub fn step_once(&self) {
-        self.gate.step_once()
-    }
-
-    /// Called by engine thread before computing next epoch.
-    #[inline]
-    pub fn wait_before_step(&self) {
-        self.gate.wait_for_permit(&self.stop);
-    }
-
     /// Optional: expose for UI display
     #[inline]
     pub fn is_paused(&self) -> bool {
-        self.gate.is_paused()
+        let (lock, _) = &*self.inner;
+        lock.lock().unwrap().paused
     }
 }

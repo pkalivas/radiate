@@ -1,6 +1,5 @@
 mod app;
 mod chart;
-mod gate;
 mod state;
 mod styles;
 mod ui;

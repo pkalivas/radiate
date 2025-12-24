@@ -2,11 +2,11 @@ use crate::state::{AppState, MetricsTab};
 use crate::styles;
 use radiate_engines::Chromosome;
 mod pareto;
-pub use pareto::{ParetoFrontTemp, num_pairs};
+pub use pareto::{ParetoPager, num_pairs};
 use ratatui::buffer::Buffer;
 use ratatui::layout::Alignment;
 use ratatui::text::Span;
-use ratatui::widgets::{BorderType, Tabs, Widget};
+use ratatui::widgets::{BorderType, Borders, Tabs, Widget};
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Style, Stylize},
@@ -20,7 +20,64 @@ mod tables;
 pub use tables::*;
 
 pub(crate) mod filter;
+pub(crate) mod modal;
+pub(crate) mod root;
 pub(crate) mod summary;
+
+pub struct Panel<W> {
+    title: Option<Line<'static>>,
+    child: W,
+}
+
+impl<W> Panel<W>
+where
+    W: Widget,
+{
+    pub fn new(title: impl Into<Line<'static>>, child: W) -> Self {
+        Self {
+            title: Some(title.into()),
+            child,
+        }
+    }
+
+    pub fn untitled(child: W) -> Self {
+        Self { title: None, child }
+    }
+}
+
+impl<W> Widget for Panel<W>
+where
+    W: Widget,
+{
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        if self.title.is_none() {
+            self.child.render(area, buf);
+            return;
+        } else if let Some(title) = self.title {
+            let block = Block::default().borders(Borders::ALL).title(title);
+            let inner = block.inner(area);
+            block.render(area, buf);
+            self.child.render(inner, buf);
+        }
+    }
+}
+
+pub struct Empty<'a> {
+    msg: &'a str,
+}
+impl<'a> Empty<'a> {
+    pub fn new(msg: &'a str) -> Self {
+        Self { msg }
+    }
+}
+impl Widget for Empty<'_> {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        Block::default()
+            .borders(Borders::ALL)
+            .title(Line::from(format!(" {} ", self.msg)).centered())
+            .render(area, buf);
+    }
+}
 
 pub struct MetricsTabWidget<'a, C: Chromosome> {
     state: &'a mut AppState<C>,
@@ -79,10 +136,8 @@ fn help_text_widget<'a>() -> Line<'a> {
         Span::from(" change tab, "),
         "[f]".fg(Color::LightGreen).bold(),
         Span::from(" toggle filters, "),
-        "[c]".fg(Color::LightGreen).bold(),
-        Span::from(" chart metric, "),
-        "[m]".fg(Color::LightGreen).bold(),
-        Span::from(" chart metric mean "),
+        "[?/H]".fg(Color::LightGreen).bold(),
+        Span::from(" help "),
     ])
     .centered()
 }

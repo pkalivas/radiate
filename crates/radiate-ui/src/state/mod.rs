@@ -1,15 +1,15 @@
-use crate::chart::{ChartData, ChartInner};
+use crate::chart::RollingChart;
 use crate::widgets::num_pairs;
 use radiate_engines::stats::TagKind;
 use radiate_engines::{
     Chromosome, Front, Metric, MetricSet, Objective, Optimize, Phenotype, Score,
 };
-use radiate_utils::intern;
 use ratatui::widgets::{ListState, ScrollbarState, TableState};
-use std::{
-    collections::HashMap,
-    time::{Duration, Instant},
-};
+use std::time::{Duration, Instant};
+
+pub(crate) mod chart;
+
+pub(crate) use chart::{ChartState, ChartType};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(crate) struct RunningState {
@@ -50,75 +50,6 @@ impl MetricsTab {
         match self {
             MetricsTab::Stats => MetricsTab::Time,
             MetricsTab::Time => MetricsTab::Stats,
-        }
-    }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub enum ChartType {
-    Value,
-    Mean,
-}
-
-pub struct ChartState {
-    fitness: ChartData,
-    value_charts: HashMap<&'static str, ChartInner>,
-    mean_charts: HashMap<&'static str, ChartInner>,
-}
-
-impl ChartState {
-    pub fn new() -> Self {
-        Self {
-            fitness: ChartData::with_capacity(1000).with_name("Score"),
-            value_charts: HashMap::new(),
-            mean_charts: HashMap::new(),
-        }
-    }
-
-    pub fn fitness_chart(&self) -> &ChartData {
-        &self.fitness
-    }
-
-    pub fn fitness_chart_mut(&mut self) -> &mut ChartData {
-        &mut self.fitness
-    }
-
-    pub fn get_by_key(&self, key: &'static str, chart_type: ChartType) -> Option<&ChartInner> {
-        match chart_type {
-            ChartType::Value => self.value_charts.get(key),
-            ChartType::Mean => self.mean_charts.get(key),
-        }
-    }
-
-    pub fn get_or_create_chart(
-        &mut self,
-        key: &'static str,
-        chart_type: ChartType,
-    ) -> &mut ChartInner {
-        match chart_type {
-            ChartType::Value => self.value_charts.entry(key).or_insert_with(|| {
-                ChartInner::with_capacity(1000)
-                    .with_title(key)
-                    .with_color(ratatui::style::Color::LightCyan)
-            }),
-            ChartType::Mean => self.mean_charts.entry(key).or_insert_with(|| {
-                ChartInner::with_capacity(1000)
-                    .with_title("μ (mean)")
-                    .with_color(ratatui::style::Color::Yellow)
-            }),
-        }
-    }
-
-    pub fn update_from_metric(&mut self, metric: &Metric) {
-        if let Some(stat) = metric.statistic() {
-            let key = intern!(metric.name());
-            if !metric.contains_tag(&TagKind::Distribution) {
-                let value_chart = self.get_or_create_chart(key, ChartType::Value);
-                value_chart.add_value((value_chart.len() as f64, stat.last_value() as f64));
-            }
-
-            let mean_chart = self.get_or_create_chart(key, ChartType::Mean);
-            mean_chart.add_value((mean_chart.len() as f64, stat.mean() as f64));
         }
     }
 }
@@ -242,7 +173,7 @@ impl<C: Chromosome> AppState<C> {
         &self,
         key: &'static str,
         chart_type: ChartType,
-    ) -> Option<&ChartInner> {
+    ) -> Option<&RollingChart> {
         self.chart_state.get_by_key(key, chart_type)
     }
 
@@ -278,11 +209,11 @@ impl<C: Chromosome> AppState<C> {
         self.display.show_mini_chart_mean
     }
 
-    pub fn charts(&self) -> &ChartState {
+    pub fn chart_state(&self) -> &ChartState {
         &self.chart_state
     }
 
-    pub fn charts_mut(&mut self) -> &mut ChartState {
+    pub fn chart_state_mut(&mut self) -> &mut ChartState {
         &mut self.chart_state
     }
 

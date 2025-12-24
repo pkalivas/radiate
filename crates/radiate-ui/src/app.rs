@@ -1,30 +1,18 @@
-use crate::gate::StepGate;
 use crate::state::AppState;
-use crate::widgets::filter::FilterWidget;
-use crate::widgets::summary::EngineBaseWidget;
-use crate::widgets::{MetricsTabWidget, ParetoFrontTemp};
+use crate::widgets::root::RootWidget;
 use color_eyre::Result;
 use crossterm::event::{Event, KeyCode};
 use radiate_engines::stats::TagKind;
 use radiate_engines::{
-    Chromosome, CommandChannel, Front, MetricSet, Objective, Phenotype, Score, metric_names,
+    Chromosome, CommandChannel, EngineControl, Front, MetricSet, Objective, Phenotype, Score,
+    metric_names,
 };
 use ratatui::buffer::Buffer;
-use ratatui::layout::Alignment;
 use ratatui::style::Style;
 use ratatui::widgets::Widget;
 use ratatui::{Terminal, backend::CrosstermBackend};
-use ratatui::{
-    layout::Direction,
-    style::Modifier,
-    text::{Line, Span, Text},
-    widgets::{Block, Borders, Clear, Paragraph, Wrap},
-};
-use ratatui::{
-    layout::{Constraint, Layout, Rect},
-    style::palette::material,
-};
-use std::sync::{Arc, mpsc};
+use ratatui::{layout::Rect, style::palette::material};
+use std::sync::{Arc, LazyLock, mpsc};
 use std::{
     io,
     time::{Duration, Instant},
@@ -46,26 +34,22 @@ where
 {
     state: AppState<C>,
     channel: CommandChannel<InputEvent<C>>,
-    gate: StepGate,
+    control: EngineControl,
 }
 
 impl<C> App<C>
 where
     C: Chromosome,
 {
-    pub fn new(render_interval: Duration) -> Self {
+    pub fn new(render_interval: Duration, control: EngineControl) -> Self {
         Self {
             channel: CommandChannel::new(),
-            gate: StepGate::new(),
+            control,
             state: AppState {
                 render_interval,
                 ..Default::default()
             },
         }
-    }
-
-    pub fn gate(&self) -> StepGate {
-        self.gate.clone()
     }
 
     pub fn dispatcher(&self) -> Arc<mpsc::Sender<InputEvent<C>>> {
@@ -115,7 +99,10 @@ where
 
     fn handle_key_event(&mut self, key: KeyCode) {
         match key {
-            KeyCode::Char('q') => self.state.running.ui = false,
+            KeyCode::Char('q') => {
+                self.control.stop();
+                self.state.running.ui = false
+            }
 
             KeyCode::Char('f') => self.state.toggle_show_tag_filters(),
 
@@ -137,11 +124,11 @@ where
             KeyCode::Left | KeyCode::Char('h') => self.state.previous_metrics_tab(),
 
             KeyCode::Char('p') => {
-                let paused = self.gate.toggle_pause(); // wakes engine thread
+                let paused = self.control.toggle_pause();
                 self.state.running.paused = paused;
             }
             KeyCode::Char('n') => {
-                self.gate.step_once(); // wakes engine thread for 1 epoch
+                self.control.step_once();
                 self.state.running.paused = true;
             }
 
@@ -165,18 +152,14 @@ where
         score: Score,
         front: Option<Front<Phenotype<C>>>,
     ) {
-        let charts = self.state.charts_mut();
-        charts
-            .fitness_chart_mut()
-            .update_last_value(index as f64, score.as_f32() as f64);
+        let charts = self.state.chart_state_mut();
+        charts.fitness_chart_mut().push(score.as_f32() as f64);
 
         if let Some(dist) = metrics
             .get(metric_names::SCORES)
             .and_then(|m| m.statistic())
         {
-            charts
-                .fitness_chart_mut()
-                .update_mean_value(index as f64, dist.mean() as f64);
+            charts.fitness_mean_chart_mut().push(dist.mean() as f64);
         }
 
         for metric in metrics.iter() {
@@ -226,51 +209,253 @@ where
                 .fg(crate::styles::TEXT_FG_COLOR),
         );
 
-        let [top, bottom] =
-            Layout::vertical([Constraint::Percentage(30), Constraint::Fill(1)]).areas(area);
-        let [engine, fitness] =
-            Layout::horizontal([Constraint::Percentage(30), Constraint::Fill(1)]).areas(top);
+        // MAIN_TEMPLATE
 
-        EngineBaseWidget::new(&self.state).render(engine, buf);
+        // RootWidget::new(&mut self.state).render(area, buf);
+    }
+}
 
-        if self.state.objective_state.objective.is_single() {
-            if self.state.display_mini_chart_mean() {
-                self.state.charts().fitness_chart().render(fitness, buf);
-            } else {
-                self.state
-                    .charts()
-                    .fitness_chart()
-                    .value_chart()
-                    .render(fitness, buf);
-            }
-        } else {
-            ParetoFrontTemp::new(&self.state).render(fitness, buf);
+use ratatui::layout::{Constraint, Direction, Layout};
+use std::collections::{HashMap, HashSet};
+
+pub static MAIN_TEMPLATE: LazyLock<Template> = LazyLock::new(|| Template {
+    root: UiNode::Overlay {
+        base: Box::new(UiNode::Split {
+            dir: Direction::Vertical,
+            constraints: vec![Constraint::Percentage(30), Constraint::Fill(1)],
+            children: vec![
+                UiNode::Split {
+                    dir: Direction::Horizontal,
+                    constraints: vec![Constraint::Percentage(30), Constraint::Fill(1)],
+                    children: vec![
+                        UiNode::Panel(PanelId::Engine),
+                        UiNode::Tabs {
+                            id: "top_right",
+                            children: vec![
+                                UiNode::Panel(PanelId::Fitness),
+                                UiNode::Panel(PanelId::Pareto),
+                            ],
+                        },
+                    ],
+                },
+                UiNode::Split {
+                    dir: Direction::Horizontal,
+                    constraints: vec![Constraint::Length(20), Constraint::Fill(1)],
+                    children: vec![
+                        UiNode::IfActive {
+                            panel: PanelId::Filters,
+                            child: Box::new(UiNode::Panel(PanelId::Filters)),
+                        },
+                        UiNode::Panel(PanelId::Metrics),
+                    ],
+                },
+            ],
+        }),
+        modal: PanelId::Help,
+        modal_rect: (70, 80),
+    },
+});
+
+// ---------- Panel registry ----------
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum PanelId {
+    Engine,
+    Fitness,
+    Pareto,
+    Metrics,
+    Filters,
+    Help,
+}
+
+pub trait Panel<C: Chromosome>: Send + Sync {
+    fn id(&self) -> PanelId;
+    fn title(&self) -> &'static str {
+        ""
+    }
+    fn render(&self, state: &AppState<C>, area: Rect, buf: &mut Buffer);
+}
+
+// Helper: store trait objects
+pub struct PanelRegistry<C: Chromosome> {
+    panels: HashMap<PanelId, Box<dyn Panel<C>>>,
+}
+
+impl<C: Chromosome> PanelRegistry<C> {
+    pub fn new() -> Self {
+        Self {
+            panels: HashMap::new(),
         }
+    }
 
-        if self.state.display.show_tag_filters {
-            let [filter, tabs] =
-                Layout::horizontal([Constraint::Length(20), Constraint::Fill(1)]).areas(bottom);
-            FilterWidget::new(&mut self.state).render(filter, buf);
-            MetricsTabWidget::new(&mut self.state).render(tabs, buf);
+    pub fn register(mut self, p: impl Panel<C> + 'static) -> Self {
+        self.panels.insert(p.id(), Box::new(p));
+        self
+    }
+
+    pub fn get(&self, id: PanelId) -> Option<&dyn Panel<C>> {
+        self.panels.get(&id).map(|b| &**b)
+    }
+}
+
+// ---------- Template tree ----------
+
+#[derive(Clone)]
+pub enum UiNode {
+    /// Render a panel (if active)
+    Panel(PanelId),
+
+    /// Split area into children
+    Split {
+        dir: Direction,
+        constraints: Vec<Constraint>,
+        children: Vec<UiNode>,
+    },
+
+    /// Tabs: render only selected child
+    Tabs {
+        id: &'static str,      // key for tab state
+        children: Vec<UiNode>, // typically panels
+    },
+
+    /// Render child only if panel is active
+    IfActive { panel: PanelId, child: Box<UiNode> },
+
+    /// Overlay: render base then optional modal panel (centered)
+    Overlay {
+        base: Box<UiNode>,
+        modal: PanelId,         // what to render when active
+        modal_rect: (u16, u16), // percent (x,y)
+    },
+}
+
+pub struct Template {
+    pub root: UiNode,
+}
+
+// ---------- Dynamic UI model ----------
+
+pub struct UiModel {
+    pub active: HashSet<PanelId>,
+    pub tabs: HashMap<&'static str, usize>,
+    pub modal: Option<PanelId>,
+}
+
+impl UiModel {
+    pub fn new() -> Self {
+        Self {
+            active: HashSet::new(),
+            tabs: HashMap::new(),
+            modal: None,
+        }
+    }
+
+    pub fn set_active(&mut self, id: PanelId, on: bool) {
+        if on {
+            self.active.insert(id);
         } else {
-            let [inner] = Layout::horizontal([Constraint::Fill(1)]).areas(bottom);
-            MetricsTabWidget::new(&mut self.state).render(inner, buf);
-        };
+            self.active.remove(&id);
+        }
+    }
 
-        if self.state.display.show_help {
-            let area = centered_rect(70, 80, area);
+    pub fn toggle(&mut self, id: PanelId) {
+        let on = !self.active.contains(&id);
+        self.set_active(id, on);
+    }
 
-            // Clear the popup area so it overlays cleanly
-            Clear.render(area, buf);
+    pub fn tab_next(&mut self, key: &'static str, len: usize) {
+        let i = self.tabs.get(key).copied().unwrap_or(0);
+        self.tabs.insert(key, (i + 1) % len.max(1));
+    }
 
-            let block = Block::default().title(" Help ").borders(Borders::ALL);
+    pub fn tab_prev(&mut self, key: &'static str, len: usize) {
+        let i = self.tabs.get(key).copied().unwrap_or(0);
+        self.tabs
+            .insert(key, i.saturating_sub(1).min(len.saturating_sub(1)));
+    }
+}
 
-            let help = Paragraph::new(help_text())
-                .block(block)
-                .alignment(Alignment::Left)
-                .wrap(Wrap { trim: true });
+// ---------- Renderer ----------
 
-            help.render(area, buf);
+pub struct Ui<'a, C: Chromosome> {
+    pub template: &'a Template,         // static
+    pub registry: &'a PanelRegistry<C>, // static
+}
+
+impl<'a, C: Chromosome> Ui<'a, C> {
+    pub fn render(&self, state: &AppState<C>, model: &UiModel, area: Rect, buf: &mut Buffer) {
+        self.render_node(&self.template.root, state, model, area, buf);
+    }
+
+    fn render_node(
+        &self,
+        node: &UiNode,
+        state: &AppState<C>,
+        model: &UiModel,
+        area: Rect,
+        buf: &mut Buffer,
+    ) {
+        match node {
+            UiNode::Panel(id) => {
+                if model.active.contains(id) {
+                    if let Some(p) = self.registry.get(*id) {
+                        p.render(state, area, buf);
+                    }
+                }
+            }
+
+            UiNode::IfActive { panel, child } => {
+                if model.active.contains(panel) {
+                    self.render_node(child, state, model, area, buf);
+                }
+            }
+
+            UiNode::Split {
+                dir,
+                constraints,
+                children,
+            } => {
+                let chunks = Layout::default()
+                    .direction(*dir)
+                    .constraints(constraints.clone())
+                    .split(area);
+
+                for (i, child) in children.iter().enumerate() {
+                    if let Some(r) = chunks.get(i).copied() {
+                        self.render_node(child, state, model, r, buf);
+                    }
+                }
+            }
+
+            UiNode::Tabs { id, children } => {
+                let idx = model
+                    .tabs
+                    .get(id)
+                    .copied()
+                    .unwrap_or(0)
+                    .min(children.len().saturating_sub(1));
+                if let Some(child) = children.get(idx) {
+                    self.render_node(child, state, model, area, buf);
+                }
+            }
+
+            UiNode::Overlay {
+                base,
+                modal,
+                modal_rect,
+            } => {
+                // render base always
+                self.render_node(base, state, model, area, buf);
+
+                // render modal if chosen
+                if model.modal == Some(*modal) {
+                    let r = centered_rect(modal_rect.0, modal_rect.1, area);
+                    // you likely want Clear + Block here inside the panel itself or wrap with a Modal panel
+                    if let Some(p) = self.registry.get(*modal) {
+                        p.render(state, r, buf);
+                    }
+                }
+            }
         }
     }
 }
@@ -293,42 +478,4 @@ fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
             Constraint::Percentage((100 - percent_x) / 2),
         ])
         .split(popup_layout[1])[1]
-}
-
-fn help_text() -> Text<'static> {
-    Text::from(vec![
-        Line::from(vec![Span::styled(
-            "Controls",
-            Style::default().add_modifier(Modifier::BOLD),
-        )]),
-        Line::from(""),
-        Line::from("General"),
-        Line::from("  q           Quit UI"),
-        Line::from("  ? / H       Toggle this help"),
-        Line::from("  p           Pause / Resume engine"),
-        Line::from("  n           Step one epoch (stays paused)"),
-        Line::from(""),
-        Line::from("Navigation"),
-        Line::from("  j / Down    Move selection down"),
-        Line::from("  k / Up      Move selection up"),
-        Line::from("  h / Left    Previous metrics tab"),
-        Line::from("  l / Right   Next metrics tab"),
-        Line::from(""),
-        Line::from("Charts / Objective pairs"),
-        Line::from("  [ / ]       Prev / next objective-pair page"),
-        Line::from("  + / -       Expand / shrink objective pairs"),
-        Line::from("  c           Toggle mini chart"),
-        Line::from("  m           Toggle mini chart mean"),
-        Line::from(""),
-        Line::from("Filters"),
-        Line::from("  f           Toggle tag filters panel"),
-        Line::from("  Enter       Toggle tag selection"),
-        Line::from("  Esc         Clear tag filters"),
-        Line::from("  0-9         Select filter by index"),
-        Line::from(""),
-        Line::from(vec![Span::styled(
-            "Press Esc to close",
-            Style::default().add_modifier(Modifier::DIM),
-        )]),
-    ])
 }
