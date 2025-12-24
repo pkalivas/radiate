@@ -1,12 +1,68 @@
 use ratatui::style::Color;
 
+pub struct RollingBuffer<T> {
+    buffer: Vec<T>,
+    cap: usize,
+    max: usize,
+    start: usize,
+}
+
+impl<T> RollingBuffer<T> {
+    pub fn with_capacity(cap: usize) -> Self {
+        assert!(cap > 0, "RollingBuffer capacity must be > 0");
+
+        let max = cap * 2;
+        Self {
+            buffer: Vec::with_capacity(max),
+            cap,
+            max,
+            start: 0,
+        }
+    }
+
+    #[inline]
+    pub fn push(&mut self, item: T) -> bool {
+        let mut resized = false;
+        if self.buffer.len() + 1 > self.max {
+            self.buffer.drain(0..self.cap);
+            self.start = self.buffer.len().saturating_sub(self.cap);
+            resized = true;
+        }
+
+        self.buffer.push(item);
+
+        let len = self.buffer.len();
+        if len > self.cap {
+            self.start = len - self.cap;
+        } else {
+            self.start = 0;
+        }
+
+        resized
+    }
+
+    #[inline]
+    pub fn len(&self) -> usize {
+        self.buffer.len().saturating_sub(self.start)
+    }
+
+    #[inline]
+    pub fn values(&self) -> &[T] {
+        &self.buffer[self.start..]
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &T> {
+        self.values().iter()
+    }
+}
+
 pub struct RollingChart {
     title: String,
     min_y: f64,
     max_y: f64,
-    values: Vec<(f64, f64)>,
+    values: RollingBuffer<(f64, f64)>,
     color: Color,
-    capacity: usize,
+    point_count: usize,
 }
 
 impl RollingChart {
@@ -15,9 +71,9 @@ impl RollingChart {
             title: "".to_string(),
             min_y: f64::MAX,
             max_y: f64::MIN,
-            values: Vec::with_capacity(capacity),
+            values: RollingBuffer::with_capacity(capacity),
             color: Color::White,
-            capacity,
+            point_count: 0,
         }
     }
 
@@ -44,15 +100,15 @@ impl RollingChart {
     }
 
     pub fn values(&self) -> &[(f64, f64)] {
-        &self.values
+        &self.values.values()
     }
 
     pub fn min_x(&self) -> f64 {
-        self.values.first().map(|(x, _)| *x).unwrap_or(0.0)
+        self.values().first().map_or(0.0, |v| v.0)
     }
 
     pub fn max_x(&self) -> f64 {
-        self.values.last().map(|(x, _)| *x).unwrap_or(0.0)
+        self.values().last().map_or(0.0, |v| v.0)
     }
 
     pub fn min_y(&self) -> f64 {
@@ -64,19 +120,15 @@ impl RollingChart {
     }
 
     pub fn push(&mut self, value: f64) {
-        let x = self.values.len() as f64;
+        let x = self.point_count as f64;
+        self.point_count += 1;
         self.add_value((x, value));
     }
 
     pub fn add_value(&mut self, value: (f64, f64)) {
-        self.values.push(value);
+        let resized = self.values.push(value);
 
-        if self.values.len() > self.capacity {
-            let mut overflow = self.values.len() - self.capacity;
-            while overflow > 0 {
-                self.values.remove(0);
-                overflow -= 1;
-            }
+        if resized {
             self.recompute_bounds();
         } else {
             let y = value.1;
@@ -89,38 +141,16 @@ impl RollingChart {
         }
     }
 
-    // pub fn set_values(&mut self, values: &[f32]) {
-    //     self.values.clear();
-
-    //     let keep = values.len().min(self.capacity);
-    //     let start = values.len().saturating_sub(keep);
-    //     self.min_y = f64::MAX;
-    //     self.max_y = f64::MIN;
-
-    //     for (i, val) in values.iter().enumerate().skip(start) {
-    //         let f_val = *val as f64;
-
-    //         if f_val < self.min_y {
-    //             self.min_y = f_val;
-    //         }
-    //         if f_val > self.max_y {
-    //             self.max_y = f_val;
-    //         }
-
-    //         self.values.push((i as f64, f_val));
-    //     }
-    // }
-
     fn recompute_bounds(&mut self) {
         self.min_y = f64::MAX;
         self.max_y = f64::MIN;
 
-        for &(_, y) in &self.values {
-            if y < self.min_y {
-                self.min_y = y;
+        for (_, y) in self.values.iter() {
+            if *y < self.min_y {
+                self.min_y = *y;
             }
-            if y > self.max_y {
-                self.max_y = y;
+            if *y > self.max_y {
+                self.max_y = *y;
             }
         }
     }
@@ -139,6 +169,20 @@ mod tests {
                 "Added value {}, chart len: {:?}",
                 i * i,
                 (chart.min_y(), chart.max_y())
+            );
+        }
+    }
+
+    #[test]
+    fn ring_buffer_works() {
+        let mut buffer = super::RollingBuffer::with_capacity(5);
+        for i in 0..20 {
+            buffer.push(i);
+            println!(
+                "Added value {}, buffer len: {:?} -> {:?}",
+                i,
+                buffer.len(),
+                buffer.values()
             );
         }
     }

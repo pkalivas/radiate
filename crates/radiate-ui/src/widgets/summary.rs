@@ -1,10 +1,10 @@
 use crate::state::AppState;
-use crate::styles::{ALT_ROW_BG_COLOR, NORMAL_ROW_BG};
+use crate::styles::{ALT_BG_COLOR, BG_COLOR};
 use radiate_engines::Chromosome;
 use radiate_engines::stats::fmt_duration;
 use ratatui::prelude::*;
 use ratatui::style::{Color, Stylize};
-use ratatui::widgets::{Block, BorderType, Paragraph, Row, Table};
+use ratatui::widgets::{Paragraph, Row, Table};
 
 pub struct EngineBaseWidget<'a, C: Chromosome> {
     state: &'a AppState<C>,
@@ -84,16 +84,6 @@ impl<'a, C: Chromosome> Widget for EngineBaseWidget<'a, C> {
             ]),
         ];
 
-        let engine_state = if self.state.is_engine_running() {
-            if self.state.is_engine_paused() {
-                " Paused ".fg(Color::Yellow).bold()
-            } else {
-                " Running ".fg(Color::LightGreen).bold()
-            }
-        } else {
-            " Complete ".fg(Color::Red).bold()
-        };
-
         let mut title = vec![
             "Gen ".fg(Color::Gray).bold(),
             format!("{}", self.state.index()).fg(Color::LightGreen),
@@ -113,17 +103,10 @@ impl<'a, C: Chromosome> Widget for EngineBaseWidget<'a, C> {
             .rows(striped_rows(rows))
             .widths(&[Constraint::Fill(1), Constraint::Fill(1)]);
 
-        let block = Block::bordered()
-            .title_top(engine_state)
-            .border_type(BorderType::Rounded)
-            .title_alignment(Alignment::Center);
-        let inner = block.inner(area);
-        block.render(area, buf);
-
         let layout = Layout::default()
             .direction(Direction::Vertical)
             .constraints([Constraint::Percentage(15), Constraint::Fill(1)])
-            .split(inner);
+            .split(area);
 
         Paragraph::new(Line::from(title).centered()).render(layout[0], buf);
         Widget::render(engine_table, layout[1], buf);
@@ -132,11 +115,7 @@ impl<'a, C: Chromosome> Widget for EngineBaseWidget<'a, C> {
 
 fn striped_rows<'a>(rows: impl IntoIterator<Item = Row<'a>>) -> impl Iterator<Item = Row<'a>> {
     rows.into_iter().enumerate().map(|(i, row)| {
-        let bg = if i % 2 == 0 {
-            NORMAL_ROW_BG
-        } else {
-            ALT_ROW_BG_COLOR
-        };
+        let bg = if i % 2 == 0 { BG_COLOR } else { ALT_BG_COLOR };
         row.style(Style::default().bg(bg))
     })
 }

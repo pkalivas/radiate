@@ -1,13 +1,12 @@
+use crate::{state::AppState, styles::SELECTED_GREEN};
 use radiate_engines::{Chromosome, stats::TagKind};
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, List, ListItem, StatefulWidget, Widget},
+    widgets::{List, ListItem, StatefulWidget, Widget},
 };
-
-use crate::{state::AppState, styles::SELECTED_GREEN};
 
 pub struct FilterWidget<'a, C: Chromosome> {
     state: &'a mut AppState<C>,
@@ -21,10 +20,6 @@ impl<'a, C: Chromosome> FilterWidget<'a, C> {
 
 impl<'a, C: Chromosome> Widget for FilterWidget<'a, C> {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let block = Block::bordered().title(Line::from(" Filter ").centered());
-        let inner = block.inner(area);
-        block.render(area, buf);
-
         let tags = self
             .state
             .filter_state
@@ -74,7 +69,7 @@ impl<'a, C: Chromosome> Widget for FilterWidget<'a, C> {
 
         StatefulWidget::render(
             List::new(tags),
-            inner,
+            area,
             buf,
             &mut self.state.filter_state.tag_list_filter_state,
         );

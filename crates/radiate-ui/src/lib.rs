@@ -1,13 +1,17 @@
 mod app;
 mod chart;
+mod panels;
+mod runtime;
 mod state;
 mod styles;
 mod ui;
 mod widgets;
 
-use crate::ui::UiRuntime;
+use crate::runtime::UiRuntime;
+pub use panels::*;
 use radiate_engines::{Chromosome, GeneticEngine};
 use std::time::Duration;
+pub use ui::*;
 
 pub const DEFAULT_RENDER_INTERVAL: Duration = Duration::from_millis(100);
 

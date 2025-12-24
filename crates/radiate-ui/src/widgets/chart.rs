@@ -104,7 +104,7 @@ fn chart_widget<'a>(
         .collect::<Vec<_>>();
 
     Chart::new(datasets)
-        .bg(crate::styles::ALT_ROW_BG_COLOR)
+        .bg(crate::styles::ALT_BG_COLOR)
         .block(Block::bordered().title(Line::from(format!(" {} ", charts[0].title())).centered()))
         .x_axis(
             Axis::default()

@@ -1,7 +1,7 @@
 use ratatui::style::{Color, Stylize, palette::material};
 
-pub const NORMAL_ROW_BG: Color = material::GRAY.c800;
-pub const ALT_ROW_BG_COLOR: Color = material::GRAY.c900;
+pub const BG_COLOR: Color = material::GRAY.c800;
+pub const ALT_BG_COLOR: Color = material::GRAY.c900;
 pub const TEXT_FG_COLOR: Color = material::GRAY.c300;
 
 pub(crate) const COLOR_WHEEL_400: [Color; 8] = [
@@ -19,12 +19,10 @@ pub const SELECTED_GREEN: Color = material::GREEN.c300;
 
 pub fn alternating_row_style(index: usize) -> ratatui::style::Style {
     if index % 2 == 0 {
-        ratatui::style::Style::new()
-            .bg(NORMAL_ROW_BG)
-            .fg(TEXT_FG_COLOR)
+        ratatui::style::Style::new().bg(BG_COLOR).fg(TEXT_FG_COLOR)
     } else {
         ratatui::style::Style::new()
-            .bg(ALT_ROW_BG_COLOR)
+            .bg(ALT_BG_COLOR)
             .fg(TEXT_FG_COLOR)
     }
 }

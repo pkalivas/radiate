@@ -1,3 +1,4 @@
+use crate::PanelId;
 use crate::chart::RollingChart;
 use crate::widgets::num_pairs;
 use radiate_engines::stats::TagKind;
@@ -12,13 +13,13 @@ pub(crate) mod chart;
 pub(crate) use chart::{ChartState, ChartType};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub(crate) struct RunningState {
+pub struct RunningState {
     pub engine: bool,
     pub ui: bool,
     pub paused: bool,
 }
 
-pub(crate) struct DisplayState {
+pub struct DisplayState {
     pub show_tag_filters: bool,
     pub show_mini_chart: bool,
     pub show_mini_chart_mean: bool,
@@ -30,12 +31,6 @@ pub enum MetricsTab {
     #[default]
     Time,
     Stats,
-}
-
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub enum PanelTab {
-    Filter,
-    Metrics,
 }
 
 impl MetricsTab {
@@ -60,13 +55,13 @@ pub struct ObjectiveState {
     pub chart_start_index: usize,
 }
 
-pub(crate) struct AppState<C: Chromosome> {
+pub struct AppState<C: Chromosome> {
     pub front: Option<Front<Phenotype<C>>>,
     pub last_render: Option<Instant>,
     pub render_interval: Duration,
     pub chart_state: ChartState,
     pub metrics_tab: MetricsTab,
-    pub panel_tab: PanelTab,
+    pub panel_tab: PanelId,
 
     pub running: RunningState,
     pub display: DisplayState,
@@ -111,17 +106,20 @@ impl<C: Chromosome> AppState<C> {
         self.display.show_mini_chart_mean = !self.display.show_mini_chart_mean;
     }
 
-    pub fn toggle_show_tag_filters(&mut self) {
+    pub fn toggle_show_tag_filters(&mut self) -> bool {
         self.display.show_tag_filters = !self.display.show_tag_filters;
         if !self.display.show_tag_filters {
-            self.panel_tab = PanelTab::Metrics;
+            self.panel_tab = PanelId::Metrics;
         } else {
-            self.panel_tab = PanelTab::Filter;
+            self.panel_tab = PanelId::Filters;
         }
+
+        self.display.show_tag_filters
     }
 
-    pub fn toggle_help(&mut self) {
+    pub fn toggle_help(&mut self) -> bool {
         self.display.show_help = !self.display.show_help;
+        self.display.show_help
     }
 
     pub fn expand_objective_pairs(&mut self) {
@@ -138,7 +136,7 @@ impl<C: Chromosome> AppState<C> {
         }
     }
 
-    pub fn clear_tag_filters(&mut self) {
+    pub fn clear_filters(&mut self) {
         if self.display.show_help {
             self.display.show_help = false;
         }
@@ -242,7 +240,7 @@ impl<C: Chromosome> AppState<C> {
     }
 
     pub fn move_selection_down(&mut self) {
-        if self.panel_tab == PanelTab::Filter {
+        if self.panel_tab == PanelId::Filters {
             if self.filter_state.all_tags.is_empty() {
                 return;
             }
@@ -279,7 +277,7 @@ impl<C: Chromosome> AppState<C> {
     }
 
     pub fn move_selection_up(&mut self) {
-        if self.panel_tab == PanelTab::Filter {
+        if self.panel_tab == PanelId::Filters {
             if self.filter_state.all_tags.is_empty() {
                 return;
             }
@@ -322,7 +320,7 @@ impl<C: Chromosome> AppState<C> {
     }
 
     pub fn toggle_tag_filter_selection(&mut self) {
-        if self.panel_tab != PanelTab::Filter {
+        if self.panel_tab != PanelId::Filters {
             return;
         }
 
@@ -347,7 +345,7 @@ impl<C: Chromosome> Default for AppState<C> {
             render_interval: Duration::from_millis(500),
             chart_state: ChartState::new(),
             metrics_tab: MetricsTab::Stats,
-            panel_tab: PanelTab::Metrics,
+            panel_tab: PanelId::Metrics,
 
             running: RunningState {
                 engine: false,
@@ -415,6 +413,13 @@ impl AppTableState {
         let current_len = items.len();
         self.prev_row_count = self.row_count;
         self.row_count = current_len;
+
+        if (self.prev_row_count == 0 && self.row_count > 0)
+            || (self.selected_row < self.prev_row_count && self.selected_row >= self.row_count)
+        {
+            self.selected_row = 0;
+            self.state.select(Some(0));
+        }
 
         if self.selected_row >= current_len && current_len > 0 {
             self.selected_row = current_len - 1;

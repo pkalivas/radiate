@@ -1,136 +1,250 @@
-use crate::app::{App, InputEvent};
-use color_eyre::{Result, eyre::Context};
-use radiate_engines::EngineControl;
-use radiate_engines::{
-    Chromosome, Engine, EngineIterator, Generation, GeneticEngine, error::RadiateResult,
-    sync::ArcExt,
+use crate::state::AppState;
+use crate::{EnginePanel, FiltersPanel, FitnessPanel, HelpPanel, MetricsPanel, PanelId, UiPanel};
+use radiate_engines::Chromosome;
+use ratatui::style::Style;
+use ratatui::widgets::StatefulWidget;
+use ratatui::{
+    buffer::Buffer,
+    layout::{Constraint, Direction, Layout, Rect},
+    widgets::{Clear, Widget},
 };
-use std::{
-    sync::{Arc, atomic::Ordering, mpsc},
-    time::Duration,
-};
+use std::collections::{HashMap, HashSet};
+use std::sync::LazyLock;
 
-const KEY_REPEAT_DELAY: Duration = Duration::from_millis(100);
+pub static MAIN_TEMPLATE: LazyLock<UiNode> = LazyLock::new(|| UiNode::Overlay {
+    base: Box::new(UiNode::Split {
+        dir: Direction::Vertical,
+        constraints: vec![Constraint::Percentage(30), Constraint::Fill(1)],
+        children: vec![
+            UiNode::Split {
+                dir: Direction::Horizontal,
+                constraints: vec![Constraint::Percentage(30), Constraint::Fill(1)],
+                children: vec![
+                    UiNode::Panel(PanelId::Engine),
+                    UiNode::Panel(PanelId::Fitness),
+                ],
+            },
+            UiNode::IfActive {
+                panel: PanelId::Filters,
+                active_child: Box::new(UiNode::Split {
+                    dir: Direction::Horizontal,
+                    constraints: vec![Constraint::Length(20), Constraint::Fill(1)],
+                    children: vec![
+                        UiNode::Panel(PanelId::Filters),
+                        UiNode::Panel(PanelId::Metrics),
+                    ],
+                }),
+                inactive_child: Some(Box::new(UiNode::Panel(PanelId::Metrics))),
+            },
+        ],
+    }),
+    modal: PanelId::Help,
+    modal_rect: (70, 80),
+});
 
-pub struct UiRuntime<C, T>
-where
-    C: Chromosome,
-    T: Clone + Send + Sync + 'static,
-{
-    inner: GeneticEngine<C, T>,
-    control: EngineControl,
-    dispatcher: Arc<mpsc::Sender<InputEvent<C>>>,
-    app_thread: Option<std::thread::JoinHandle<Result<()>>>,
-    key_thread: Option<std::thread::JoinHandle<Result<()>>>,
+#[derive(Clone)]
+pub enum UiNode {
+    Panel(PanelId),
+    Split {
+        dir: Direction,
+        constraints: Vec<Constraint>,
+        children: Vec<UiNode>,
+    },
+    IfActive {
+        panel: PanelId,
+        active_child: Box<UiNode>,
+        inactive_child: Option<Box<UiNode>>,
+    },
+    Overlay {
+        base: Box<UiNode>,
+        modal: PanelId,
+        modal_rect: (u16, u16),
+    },
 }
 
-impl<C, T> UiRuntime<C, T>
-where
-    C: Chromosome + Clone + 'static,
-    T: Clone + Send + Sync + 'static,
-{
-    pub fn new(mut inner: GeneticEngine<C, T>, render_interval: Duration) -> Self {
-        let control = inner.control();
-        let app = App::new(render_interval, control.clone());
+pub struct AppUi<C: Chromosome> {
+    pub model: UiModel,
+    pub registry: PanelRegistry<C>,
+}
 
-        let (dispatch_one, dispatch_two) = app.dispatcher().into_pair();
-        let stop_flag = control.stop_flag();
+impl<C: Chromosome> AppUi<C> {
+    pub fn new() -> Self {
+        let mut model = UiModel::default();
 
-        let app_thread = std::thread::spawn(move || {
-            let terminal = ratatui::init();
-            app.run(terminal)?;
-            ratatui::restore();
-            Ok(())
-        });
+        model.set_active(PanelId::Engine, true);
+        model.set_active(PanelId::Metrics, true);
+        model.set_active(PanelId::Fitness, true);
+        model.set_active(PanelId::Filters, false);
+        model.set_active(PanelId::Help, false);
 
-        let key_thread = std::thread::spawn(move || {
-            while !stop_flag.load(Ordering::Relaxed) {
-                if crossterm::event::poll(KEY_REPEAT_DELAY)? {
-                    let event = crossterm::event::read()?;
-                    dispatch_two
-                        .send(InputEvent::Crossterm(event))
-                        .context("Failed to send Crossterm event")?;
-                }
-            }
+        let registry = PanelRegistry::new()
+            .register(EnginePanel)
+            .register(MetricsPanel)
+            .register(FiltersPanel)
+            .register(FitnessPanel)
+            .register(HelpPanel);
 
-            Ok(())
-        });
-
-        Self {
-            inner,
-            control,
-            dispatcher: dispatch_one,
-            app_thread: Some(app_thread),
-            key_thread: Some(key_thread),
-        }
+        Self { model, registry }
     }
 
-    pub fn iter(self) -> impl Iterator<Item = Generation<C, T>> {
-        let control = self.control.clone();
-        EngineIterator::new(self, Some(control))
+    pub fn set_panel_active(&mut self, id: PanelId, on: bool) {
+        self.model.set_active(id, on);
+    }
+
+    pub fn set_modal(&mut self, id: Option<PanelId>) {
+        if let Some(id) = id {
+            self.model.set_active(id, true);
+        }
+
+        self.model.modal = id;
     }
 }
 
-impl<C, T> Engine for UiRuntime<C, T>
-where
-    C: Chromosome + Clone,
-    T: Clone + Send + Sync + 'static,
-{
-    type Epoch = Generation<C, T>;
+impl<C: Chromosome> StatefulWidget for &AppUi<C> {
+    type State = AppState<C>;
 
-    #[inline]
-    fn next(&mut self) -> RadiateResult<Self::Epoch> {
-        let current = self.inner.next()?;
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+        buf.set_style(
+            area,
+            Style::default()
+                .bg(crate::styles::ALT_BG_COLOR)
+                .fg(crate::styles::TEXT_FG_COLOR),
+        );
 
-        // Early return if stopped to avoid sending events after stop
-        if self.control.is_stopped() {
-            return Ok(current);
-        }
-
-        let send_result = match current.index() {
-            1 => self
-                .dispatcher
-                .send(InputEvent::EngineStart(current.objective().clone())),
-            _ => self.dispatcher.send(InputEvent::EpochComplete(
-                current.index(),
-                current.metrics().clone(),
-                current.score().clone(),
-                current.front().cloned(),
-            )),
+        let ui = Ui {
+            root: &MAIN_TEMPLATE,
+            registry: &self.registry,
         };
 
-        if let Err(e) = send_result {
-            eprintln!("Error sending event to UI: {}", e);
-        }
-
-        Ok(current)
+        ui.render_node(&ui.root, state, &self.model, area, buf);
     }
 }
 
-impl<C, T> Drop for UiRuntime<C, T>
-where
-    C: Chromosome,
-    T: Clone + Send + Sync + 'static,
-{
-    fn drop(&mut self) {
-        if !self.control.is_stopped() {
-            self.dispatcher.send(InputEvent::EngineStop).unwrap();
+pub struct PanelRegistry<C: Chromosome> {
+    panels: HashMap<PanelId, Box<dyn UiPanel<C>>>,
+}
+
+impl<C: Chromosome> PanelRegistry<C> {
+    pub fn new() -> Self {
+        Self {
+            panels: HashMap::new(),
         }
+    }
 
-        self.control.set_paused(false);
+    pub fn register(mut self, p: impl UiPanel<C> + 'static) -> Self {
+        self.panels.insert(p.id(), Box::new(p));
+        self
+    }
 
-        if let Some(event_listener) = self.app_thread.take() {
-            if let Err(e) = event_listener.join() {
-                eprintln!("Error joining app thread: {:?}", e);
+    pub fn get(&self, id: PanelId) -> Option<&dyn UiPanel<C>> {
+        self.panels.get(&id).map(|b| &**b)
+    }
+}
+
+#[derive(Default)]
+pub struct UiModel {
+    pub active: HashSet<PanelId>,
+    pub modal: Option<PanelId>,
+}
+
+impl UiModel {
+    pub fn set_active(&mut self, id: PanelId, on: bool) {
+        if on {
+            self.active.insert(id);
+        } else {
+            self.active.remove(&id);
+        }
+    }
+}
+
+pub struct Ui<'a, C: Chromosome> {
+    pub root: &'a UiNode,
+    pub registry: &'a PanelRegistry<C>,
+}
+
+impl<'a, C: Chromosome> Ui<'a, C> {
+    pub fn new(root: &'a UiNode, registry: &'a PanelRegistry<C>) -> Self {
+        Self { root, registry }
+    }
+
+    fn render_node(
+        &self,
+        node: &UiNode,
+        state: &mut AppState<C>,
+        model: &UiModel,
+        area: Rect,
+        buf: &mut Buffer,
+    ) {
+        match node {
+            UiNode::Panel(id) => {
+                if model.active.contains(id) {
+                    if let Some(p) = self.registry.get(*id) {
+                        p.render(state, area, buf);
+                    }
+                }
             }
-        }
+            UiNode::IfActive {
+                panel,
+                active_child: child,
+                inactive_child,
+            } => {
+                if model.active.contains(panel) {
+                    self.render_node(child, state, model, area, buf);
+                } else if let Some(inactive_child) = inactive_child {
+                    self.render_node(inactive_child, state, model, area, buf);
+                }
+            }
+            UiNode::Split {
+                dir,
+                constraints,
+                children,
+            } => {
+                let chunks = Layout::default()
+                    .direction(*dir)
+                    .constraints(constraints.clone())
+                    .split(area);
 
-        self.control.stop();
+                for (i, child) in children.iter().enumerate() {
+                    if let Some(r) = chunks.get(i).copied() {
+                        self.render_node(child, state, model, r, buf);
+                    }
+                }
+            }
+            UiNode::Overlay {
+                base,
+                modal,
+                modal_rect,
+            } => {
+                self.render_node(base, state, model, area, buf);
 
-        if let Some(key_listener) = self.key_thread.take() {
-            if let Err(e) = key_listener.join() {
-                eprintln!("Error joining key listener thread: {:?}", e);
+                if model.modal == Some(*modal) {
+                    let r = centered_rect(modal_rect.0, modal_rect.1, area);
+                    Clear.render(r, buf);
+                    if let Some(p) = self.registry.get(*modal) {
+                        p.render(state, r, buf);
+                    }
+                }
             }
         }
     }
+}
+
+fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
+    let popup_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Percentage((100 - percent_y) / 2),
+            Constraint::Percentage(percent_y),
+            Constraint::Percentage((100 - percent_y) / 2),
+        ])
+        .split(r);
+
+    Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Percentage((100 - percent_x) / 2),
+            Constraint::Percentage(percent_x),
+            Constraint::Percentage((100 - percent_x) / 2),
+        ])
+        .split(popup_layout[1])[1]
 }
