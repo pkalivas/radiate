@@ -1,7 +1,6 @@
 use crate::app::{App, InputEvent};
 use crate::gate::StepGate;
 use color_eyre::{Result, eyre::Context};
-use crossterm::event::{Event, KeyCode};
 use radiate_engines::{
     Chromosome, Engine, EngineIterator, Generation, GeneticEngine, error::RadiateResult,
     sync::ArcExt,
@@ -17,21 +16,15 @@ use std::{
 
 const KEY_REPEAT_DELAY: Duration = Duration::from_millis(100);
 
-pub enum RuntimeControl {
-    PauseToggle,
-    PauseSet(bool),
-    StepOnce,
-}
-
 pub struct UiRuntime<C, T>
 where
     C: Chromosome,
     T: Clone + Send + Sync + 'static,
 {
     inner: GeneticEngine<C, T>,
+    step_gate: StepGate,
     dispatcher: Arc<mpsc::Sender<InputEvent<C>>>,
     stop_flag: Arc<AtomicBool>,
-    pause_gate: StepGate,
     app_thread: Option<std::thread::JoinHandle<Result<()>>>,
     key_thread: Option<std::thread::JoinHandle<Result<()>>>,
 }
@@ -43,9 +36,10 @@ where
 {
     pub fn new(inner: GeneticEngine<C, T>, render_interval: Duration) -> Self {
         let app = App::new(render_interval);
+
         let (dispatch_one, dispatch_two) = app.dispatcher().into_pair();
         let (stop_one, stop_two) = Arc::pair(AtomicBool::new(false));
-        let (gate, key_gate) = StepGate::pair(false);
+        let gate = app.gate();
 
         let app_thread = std::thread::spawn(move || {
             let terminal = ratatui::init();
@@ -58,19 +52,6 @@ where
             while !stop_two.load(Ordering::Relaxed) {
                 if crossterm::event::poll(KEY_REPEAT_DELAY)? {
                     let event = crossterm::event::read()?;
-                    if let Event::Key(key_event) = event {
-                        match key_event.code {
-                            KeyCode::Char('p') => {
-                                let paused = key_gate.toggle_pause();
-                                dispatch_two.send(InputEvent::Pause(paused))?;
-                            }
-                            KeyCode::Char('n') => {
-                                key_gate.step_once();
-                                dispatch_two.send(InputEvent::Pause(true))?;
-                            }
-                            _ => {}
-                        }
-                    }
                     dispatch_two
                         .send(InputEvent::Crossterm(event))
                         .context("Failed to send Crossterm event")?;
@@ -82,9 +63,9 @@ where
 
         Self {
             inner,
+            step_gate: gate,
             stop_flag: stop_one,
             dispatcher: dispatch_one,
-            pause_gate: gate,
             app_thread: Some(app_thread),
             key_thread: Some(key_thread),
         }
@@ -104,24 +85,32 @@ where
 
     #[inline]
     fn next(&mut self) -> RadiateResult<Self::Epoch> {
-        self.pause_gate.wait_for_permit(&self.stop_flag);
+        self.step_gate.wait_for_permit(&self.stop_flag);
 
         let current = self.inner.next()?;
 
-        match current.index() {
+        let send_result = match current.index() {
             1 => self
                 .dispatcher
-                .send(InputEvent::EngineStart(current.objective().clone()))
-                .unwrap(),
-            _ => self
-                .dispatcher
-                .send(InputEvent::EpochComplete(
-                    current.index(),
-                    current.metrics().clone(),
-                    current.score().clone(),
-                    current.front().cloned(),
-                ))
-                .unwrap(),
+                .send(InputEvent::EngineStart(current.objective().clone())),
+            _ => self.dispatcher.send(InputEvent::EpochComplete(
+                current.index(),
+                current.metrics().clone(),
+                current.score().clone(),
+                current.front().cloned(),
+            )),
+        };
+
+        if send_result.is_err() {
+            // UI is gone. Stop driving the runtime.
+            self.stop_flag.store(true, Ordering::SeqCst);
+            // wake any blocked waits
+            self.step_gate.set_paused(false);
+
+            // Option A: return the epoch anyway (engine can continue headless)
+            // Option B (recommended): return an error / stop signal to end iteration
+            //
+            // If RadiateResult has a “stop”/“terminated” variant, return that here.
         }
 
         Ok(current)
@@ -134,8 +123,11 @@ where
     T: Clone + Send + Sync + 'static,
 {
     fn drop(&mut self) {
-        self.dispatcher.send(InputEvent::EngineStop).unwrap();
-        self.pause_gate.set_paused(false);
+        if !self.stop_flag.load(Ordering::Relaxed) {
+            self.dispatcher.send(InputEvent::EngineStop).unwrap();
+        }
+
+        self.step_gate.set_paused(false);
 
         if let Some(event_listener) = self.app_thread.take() {
             if let Err(e) = event_listener.join() {
@@ -144,7 +136,6 @@ where
         }
 
         self.stop_flag.store(true, Ordering::SeqCst);
-        self.pause_gate.set_paused(false);
 
         if let Some(key_listener) = self.key_thread.take() {
             if let Err(e) = key_listener.join() {

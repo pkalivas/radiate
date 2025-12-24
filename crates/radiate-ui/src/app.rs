@@ -1,3 +1,4 @@
+use crate::gate::StepGate;
 use crate::state::AppState;
 use crate::widgets::filter::FilterWidget;
 use crate::widgets::summary::EngineBaseWidget;
@@ -9,9 +10,16 @@ use radiate_engines::{
     Chromosome, CommandChannel, Front, MetricSet, Objective, Phenotype, Score, metric_names,
 };
 use ratatui::buffer::Buffer;
+use ratatui::layout::Alignment;
 use ratatui::style::Style;
 use ratatui::widgets::Widget;
 use ratatui::{Terminal, backend::CrosstermBackend};
+use ratatui::{
+    layout::Direction,
+    style::Modifier,
+    text::{Line, Span, Text},
+    widgets::{Block, Borders, Clear, Paragraph, Wrap},
+};
 use ratatui::{
     layout::{Constraint, Layout, Rect},
     style::palette::material,
@@ -30,7 +38,6 @@ where
     EngineStart(Objective),
     EngineStop,
     EpochComplete(usize, MetricSet, Score, Option<Front<Phenotype<C>>>),
-    Pause(bool),
 }
 
 pub(crate) struct App<C>
@@ -39,6 +46,7 @@ where
 {
     state: AppState<C>,
     channel: CommandChannel<InputEvent<C>>,
+    gate: StepGate,
 }
 
 impl<C> App<C>
@@ -48,11 +56,16 @@ where
     pub fn new(render_interval: Duration) -> Self {
         Self {
             channel: CommandChannel::new(),
+            gate: StepGate::new(),
             state: AppState {
                 render_interval,
                 ..Default::default()
             },
         }
+    }
+
+    pub fn gate(&self) -> StepGate {
+        self.gate.clone()
     }
 
     pub fn dispatcher(&self) -> Arc<mpsc::Sender<InputEvent<C>>> {
@@ -95,9 +108,6 @@ where
 
                 self.state.last_render = Some(now);
             }
-            InputEvent::Pause(paused) => {
-                self.state.running.paused = paused;
-            }
         }
 
         Ok(true)
@@ -111,6 +121,9 @@ where
 
             KeyCode::Char('c') => self.state.toggle_mini_chart(),
             KeyCode::Char('m') => self.state.toggle_mini_chart_mean(),
+            KeyCode::Char('?') | KeyCode::Char('H') => {
+                self.state.toggle_help();
+            }
 
             KeyCode::Down | KeyCode::Char('j') => self.state.move_selection_down(),
             KeyCode::Up | KeyCode::Char('k') => self.state.move_selection_up(),
@@ -122,6 +135,15 @@ where
 
             KeyCode::Right | KeyCode::Char('l') => self.state.next_metrics_tab(),
             KeyCode::Left | KeyCode::Char('h') => self.state.previous_metrics_tab(),
+
+            KeyCode::Char('p') => {
+                let paused = self.gate.toggle_pause(); // wakes engine thread
+                self.state.running.paused = paused;
+            }
+            KeyCode::Char('n') => {
+                self.gate.step_once(); // wakes engine thread for 1 epoch
+                self.state.running.paused = true;
+            }
 
             KeyCode::Esc => self.state.clear_tag_filters(),
             KeyCode::Enter => self.state.toggle_tag_filter_selection(),
@@ -234,5 +256,79 @@ where
             let [inner] = Layout::horizontal([Constraint::Fill(1)]).areas(bottom);
             MetricsTabWidget::new(&mut self.state).render(inner, buf);
         };
+
+        if self.state.display.show_help {
+            let area = centered_rect(70, 80, area);
+
+            // Clear the popup area so it overlays cleanly
+            Clear.render(area, buf);
+
+            let block = Block::default().title(" Help ").borders(Borders::ALL);
+
+            let help = Paragraph::new(help_text())
+                .block(block)
+                .alignment(Alignment::Left)
+                .wrap(Wrap { trim: true });
+
+            help.render(area, buf);
+        }
     }
+}
+
+fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
+    let popup_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Percentage((100 - percent_y) / 2),
+            Constraint::Percentage(percent_y),
+            Constraint::Percentage((100 - percent_y) / 2),
+        ])
+        .split(r);
+
+    Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Percentage((100 - percent_x) / 2),
+            Constraint::Percentage(percent_x),
+            Constraint::Percentage((100 - percent_x) / 2),
+        ])
+        .split(popup_layout[1])[1]
+}
+
+fn help_text() -> Text<'static> {
+    Text::from(vec![
+        Line::from(vec![Span::styled(
+            "Controls",
+            Style::default().add_modifier(Modifier::BOLD),
+        )]),
+        Line::from(""),
+        Line::from("General"),
+        Line::from("  q           Quit UI"),
+        Line::from("  ? / H       Toggle this help"),
+        Line::from("  p           Pause / Resume engine"),
+        Line::from("  n           Step one epoch (stays paused)"),
+        Line::from(""),
+        Line::from("Navigation"),
+        Line::from("  j / Down    Move selection down"),
+        Line::from("  k / Up      Move selection up"),
+        Line::from("  h / Left    Previous metrics tab"),
+        Line::from("  l / Right   Next metrics tab"),
+        Line::from(""),
+        Line::from("Charts / Objective pairs"),
+        Line::from("  [ / ]       Prev / next objective-pair page"),
+        Line::from("  + / -       Expand / shrink objective pairs"),
+        Line::from("  c           Toggle mini chart"),
+        Line::from("  m           Toggle mini chart mean"),
+        Line::from(""),
+        Line::from("Filters"),
+        Line::from("  f           Toggle tag filters panel"),
+        Line::from("  Enter       Toggle tag selection"),
+        Line::from("  Esc         Clear tag filters"),
+        Line::from("  0-9         Select filter by index"),
+        Line::from(""),
+        Line::from(vec![Span::styled(
+            "Press Esc to close",
+            Style::default().add_modifier(Modifier::DIM),
+        )]),
+    ])
 }

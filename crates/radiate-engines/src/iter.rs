@@ -17,13 +17,13 @@
 //! - **Specialized Iterators**: Various iterator types for different termination strategies
 //! - **Limit System**: Flexible limit specification and combination
 
-use crate::{Generation, Limit, init_logging};
+use crate::{Generation, Limit, control::EngineControl, init_logging};
 use radiate_core::{Chromosome, Engine, Objective, Optimize, Score};
 #[cfg(feature = "serde")]
 use serde::Serialize;
 #[cfg(feature = "serde")]
 use std::path::{Path, PathBuf};
-use std::{collections::VecDeque, time::Duration};
+use std::{collections::VecDeque, sync::Arc, time::Duration};
 use tracing::info;
 
 /// A basic iterator wrapper around any engine that implements the [Engine] trait.
@@ -741,6 +741,43 @@ where
         } else {
             EitherIter::A(self)
         }
+    }
+
+    fn gate(self, control: Arc<EngineControl>) -> impl Iterator<Item = Generation<C, T>>
+    where
+        Self: Sized,
+    {
+        GateControlIterator {
+            iter: self,
+            control,
+        }
+    }
+}
+
+pub struct GateControlIterator<I, C, T>
+where
+    I: Iterator<Item = Generation<C, T>>,
+    C: Chromosome,
+{
+    iter: I,
+    control: Arc<EngineControl>,
+}
+
+impl<I, C, T> Iterator for GateControlIterator<I, C, T>
+where
+    I: Iterator<Item = Generation<C, T>>,
+    C: Chromosome,
+{
+    type Item = Generation<C, T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.control.is_stopped() {
+            return None;
+        } else if self.control.is_paused() {
+            self.control.wait_before_step();
+        }
+
+        self.iter.next()
     }
 }
 

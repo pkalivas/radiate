@@ -81,4 +81,77 @@ impl StepGate {
             st = cv.wait(st).unwrap();
         }
     }
+
+    pub fn is_paused(&self) -> bool {
+        let (lock, _) = &*self.inner;
+        lock.lock().unwrap().paused
+    }
+}
+
+#[derive(Clone)]
+pub struct EngineControl {
+    stop: Arc<AtomicBool>,
+    gate: StepGate,
+}
+
+impl EngineControl {
+    pub fn new() -> Self {
+        Self {
+            stop: Arc::new(AtomicBool::new(false)),
+            gate: StepGate::new(),
+        }
+    }
+
+    /// Create two clones for separate threads (convenience).
+    pub fn pair() -> (Self, Self) {
+        let ctl = Self::new();
+        (ctl.clone(), ctl)
+    }
+
+    // ---- stop ----
+    #[inline]
+    pub fn stop(&self) {
+        self.stop.store(true, Ordering::SeqCst);
+        // wake anything blocked
+        self.gate.set_paused(false);
+    }
+
+    #[inline]
+    pub fn is_stopped(&self) -> bool {
+        self.stop.load(Ordering::Relaxed)
+    }
+
+    #[inline]
+    pub fn stop_flag(&self) -> Arc<AtomicBool> {
+        self.stop.clone()
+    }
+
+    // ---- pause/step ----
+    #[inline]
+    pub fn set_paused(&self, paused: bool) {
+        self.gate.set_paused(paused);
+    }
+
+    /// Toggle pause. Returns new paused state.
+    #[inline]
+    pub fn toggle_pause(&self) -> bool {
+        self.gate.toggle_pause()
+    }
+
+    #[inline]
+    pub fn step_once(&self) {
+        self.gate.step_once()
+    }
+
+    /// Called by engine thread before computing next epoch.
+    #[inline]
+    pub fn wait_before_step(&self) {
+        self.gate.wait_for_permit(&self.stop);
+    }
+
+    /// Optional: expose for UI display
+    #[inline]
+    pub fn is_paused(&self) -> bool {
+        self.gate.is_paused()
+    }
 }

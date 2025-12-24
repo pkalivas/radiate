@@ -22,6 +22,7 @@ pub(crate) struct DisplayState {
     pub show_tag_filters: bool,
     pub show_mini_chart: bool,
     pub show_mini_chart_mean: bool,
+    pub show_help: bool,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Default)]
@@ -188,6 +189,10 @@ impl<C: Chromosome> AppState<C> {
         }
     }
 
+    pub fn toggle_help(&mut self) {
+        self.display.show_help = !self.display.show_help;
+    }
+
     pub fn expand_objective_pairs(&mut self) {
         self.objective_state.charts_visible = self
             .objective_state
@@ -203,6 +208,10 @@ impl<C: Chromosome> AppState<C> {
     }
 
     pub fn clear_tag_filters(&mut self) {
+        if self.display.show_help {
+            self.display.show_help = false;
+        }
+
         if !self.display.show_tag_filters {
             return;
         }
@@ -418,6 +427,7 @@ impl<C: Chromosome> Default for AppState<C> {
                 show_tag_filters: false,
                 show_mini_chart: true,
                 show_mini_chart_mean: false,
+                show_help: false,
             },
 
             objective_state: ObjectiveState {
