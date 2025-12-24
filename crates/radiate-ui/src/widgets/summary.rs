@@ -85,7 +85,11 @@ impl<'a, C: Chromosome> Widget for EngineBaseWidget<'a, C> {
         ];
 
         let engine_state = if self.state.is_engine_running() {
-            " Running ".fg(Color::LightGreen).bold()
+            if self.state.is_engine_paused() {
+                " Paused ".fg(Color::Yellow).bold()
+            } else {
+                " Running ".fg(Color::LightGreen).bold()
+            }
         } else {
             " Complete ".fg(Color::Red).bold()
         };

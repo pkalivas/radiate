@@ -30,6 +30,7 @@ where
     EngineStart(Objective),
     EngineStop,
     EpochComplete(usize, MetricSet, Score, Option<Front<Phenotype<C>>>),
+    Pause(bool),
 }
 
 pub(crate) struct App<C>
@@ -93,6 +94,9 @@ where
                 }
 
                 self.state.last_render = Some(now);
+            }
+            InputEvent::Pause(paused) => {
+                self.state.running.paused = paused;
             }
         }
 

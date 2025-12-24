@@ -15,6 +15,7 @@ use std::{
 pub(crate) struct RunningState {
     pub engine: bool,
     pub ui: bool,
+    pub paused: bool,
 }
 
 pub(crate) struct DisplayState {
@@ -252,6 +253,10 @@ impl<C: Chromosome> AppState<C> {
         self.running.engine
     }
 
+    pub fn is_engine_paused(&self) -> bool {
+        self.running.paused
+    }
+
     pub fn display_any_mini_chart(&self) -> bool {
         self.display.show_mini_chart || self.display.show_mini_chart_mean
     }
@@ -407,6 +412,7 @@ impl<C: Chromosome> Default for AppState<C> {
             running: RunningState {
                 engine: false,
                 ui: true,
+                paused: false,
             },
             display: DisplayState {
                 show_tag_filters: false,

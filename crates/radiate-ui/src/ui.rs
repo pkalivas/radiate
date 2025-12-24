@@ -1,5 +1,7 @@
 use crate::app::{App, InputEvent};
+use crate::gate::StepGate;
 use color_eyre::{Result, eyre::Context};
+use crossterm::event::{Event, KeyCode};
 use radiate_engines::{
     Chromosome, Engine, EngineIterator, Generation, GeneticEngine, error::RadiateResult,
     sync::ArcExt,
@@ -15,6 +17,12 @@ use std::{
 
 const KEY_REPEAT_DELAY: Duration = Duration::from_millis(100);
 
+pub enum RuntimeControl {
+    PauseToggle,
+    PauseSet(bool),
+    StepOnce,
+}
+
 pub struct UiRuntime<C, T>
 where
     C: Chromosome,
@@ -23,6 +31,7 @@ where
     inner: GeneticEngine<C, T>,
     dispatcher: Arc<mpsc::Sender<InputEvent<C>>>,
     stop_flag: Arc<AtomicBool>,
+    pause_gate: StepGate,
     app_thread: Option<std::thread::JoinHandle<Result<()>>>,
     key_thread: Option<std::thread::JoinHandle<Result<()>>>,
 }
@@ -36,6 +45,7 @@ where
         let app = App::new(render_interval);
         let (dispatch_one, dispatch_two) = app.dispatcher().into_pair();
         let (stop_one, stop_two) = Arc::pair(AtomicBool::new(false));
+        let (gate, key_gate) = StepGate::pair(false);
 
         let app_thread = std::thread::spawn(move || {
             let terminal = ratatui::init();
@@ -48,6 +58,19 @@ where
             while !stop_two.load(Ordering::Relaxed) {
                 if crossterm::event::poll(KEY_REPEAT_DELAY)? {
                     let event = crossterm::event::read()?;
+                    if let Event::Key(key_event) = event {
+                        match key_event.code {
+                            KeyCode::Char('p') => {
+                                let paused = key_gate.toggle_pause();
+                                dispatch_two.send(InputEvent::Pause(paused))?;
+                            }
+                            KeyCode::Char('n') => {
+                                key_gate.step_once();
+                                dispatch_two.send(InputEvent::Pause(true))?;
+                            }
+                            _ => {}
+                        }
+                    }
                     dispatch_two
                         .send(InputEvent::Crossterm(event))
                         .context("Failed to send Crossterm event")?;
@@ -61,6 +84,7 @@ where
             inner,
             stop_flag: stop_one,
             dispatcher: dispatch_one,
+            pause_gate: gate,
             app_thread: Some(app_thread),
             key_thread: Some(key_thread),
         }
@@ -80,6 +104,8 @@ where
 
     #[inline]
     fn next(&mut self) -> RadiateResult<Self::Epoch> {
+        self.pause_gate.wait_for_permit(&self.stop_flag);
+
         let current = self.inner.next()?;
 
         match current.index() {
@@ -109,6 +135,7 @@ where
 {
     fn drop(&mut self) {
         self.dispatcher.send(InputEvent::EngineStop).unwrap();
+        self.pause_gate.set_paused(false);
 
         if let Some(event_listener) = self.app_thread.take() {
             if let Err(e) = event_listener.join() {
@@ -117,6 +144,7 @@ where
         }
 
         self.stop_flag.store(true, Ordering::SeqCst);
+        self.pause_gate.set_paused(false);
 
         if let Some(key_listener) = self.key_thread.take() {
             if let Err(e) = key_listener.join() {

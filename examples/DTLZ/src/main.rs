@@ -24,7 +24,7 @@ fn main() {
         ))
         .build();
 
-    let result = engine.iter().limit(1000).last().unwrap();
+    let result = radiate::ui(engine).iter().limit(1000).last().unwrap();
 
     println!("{}", result.metrics());
     let front = result.front().unwrap();
