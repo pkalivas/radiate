@@ -6,7 +6,7 @@ mod mutator;
 mod polygon;
 mod problem;
 
-// https://medium.com/@sebastian.charmot/genetic-algorithm-for-image-recreation-4ca54645 4aaa
+// https://medium.com/@sebastian.charmot/genetic-algorithm-for-image-recreation-4ca546454aaa
 
 const NUM_GENES: usize = 175;
 const POLYGON_SIZE: usize = 5;
