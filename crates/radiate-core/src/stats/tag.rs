@@ -99,11 +99,11 @@ pub enum TagKind {
     Statistic,
     Time,
     Distribution,
+    Score,
 }
 
 impl TagKind {
-    pub const COUNT: usize = 13;
-
+    pub const COUNT: usize = 14;
     #[inline]
     pub fn from_index(idx: u8) -> Option<Self> {
         use TagKind::*;
@@ -121,6 +121,7 @@ impl TagKind {
             10 => Statistic,
             11 => Time,
             12 => Distribution,
+            13 => Score,
             _ => return None,
         })
     }
@@ -147,6 +148,7 @@ impl TagKind {
             Statistic => "Statistic",
             Time => "Time",
             Distribution => "Distribution",
+            Score => "Score",
         }
     }
 }

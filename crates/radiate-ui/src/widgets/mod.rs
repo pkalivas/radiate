@@ -1,88 +1,21 @@
-use crate::state::{AppState, MetricsTab};
-use crate::styles;
-use radiate_engines::Chromosome;
-mod pareto;
-pub use pareto::{ParetoFrontTemp, num_pairs};
-use ratatui::buffer::Buffer;
-use ratatui::layout::Alignment;
-use ratatui::text::Span;
-use ratatui::widgets::{BorderType, Tabs, Widget};
-use ratatui::{
-    layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Style, Stylize},
-    text::Line,
-    widgets::Block,
-};
 mod chart;
-pub use chart::ChartWidget;
-
+mod filter;
+mod fitness;
+mod help;
+mod metrics;
+mod modal;
+mod panel;
+mod pareto;
+mod summary;
 mod tables;
-pub use tables::*;
 
-pub(crate) mod filter;
-pub(crate) mod summary;
-
-pub struct MetricsTabWidget<'a, C: Chromosome> {
-    state: &'a mut AppState<C>,
-}
-
-impl<'a, C: Chromosome> MetricsTabWidget<'a, C> {
-    pub(crate) fn new(state: &'a mut AppState<C>) -> Self {
-        Self { state }
-    }
-}
-
-impl<'a, C: Chromosome> Widget for &mut MetricsTabWidget<'a, C> {
-    fn render(self, area: Rect, buf: &mut Buffer) {
-        let block = Block::bordered()
-            .title_bottom(help_text_widget())
-            .title_top(" Metrics ")
-            .border_type(BorderType::Rounded)
-            .title_alignment(Alignment::Center);
-        let inner = block.inner(area);
-        block.render(area, buf);
-
-        let chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Length(1), Constraint::Fill(1)])
-            .split(inner);
-
-        let titles = ["Stats", "Time"]
-            .into_iter()
-            .map(|t| Span::styled(format!(" {t} "), Style::default().fg(Color::White)));
-
-        let index = match self.state.metrics_tab {
-            MetricsTab::Stats => 0,
-            MetricsTab::Time => 1,
-        };
-
-        Tabs::new(titles)
-            .select(index)
-            .padding(" ", " ")
-            .divider(" ")
-            .highlight_style(styles::selected_item_style())
-            .bold()
-            .render(chunks[0], buf);
-
-        match self.state.metrics_tab {
-            MetricsTab::Time => TimeTableWidget::new(&mut self.state).render(chunks[1], buf),
-            MetricsTab::Stats => StatsTableWidget::new(&mut self.state).render(chunks[1], buf),
-        }
-    }
-}
-
-fn help_text_widget<'a>() -> Line<'a> {
-    Line::from(vec![
-        "[j/k]".fg(Color::LightGreen).bold(),
-        Span::from(" navigate, "),
-        "[◄ ►/h/l]".fg(Color::LightGreen).bold(),
-        Span::from(" change tab, "),
-        "[f]".fg(Color::LightGreen).bold(),
-        Span::from(" toggle filters, "),
-        "[c]".fg(Color::LightGreen).bold(),
-        Span::from(" chart metric, "),
-        "[m]".fg(Color::LightGreen).bold(),
-        Span::from(" chart metric mean "),
-    ])
-    .centered()
-}
+pub use chart::ChartWidget;
+pub use filter::FilterWidget;
+pub use fitness::FitnessWidget;
+pub use help::HelpWidget;
+pub use metrics::MetricsWidget;
+pub use modal::ModalWidget;
+pub use panel::{FnWidget, Panel};
+pub use pareto::{ParetoPagingWidget, num_pairs};
+pub use summary::EngineSummaryWidget;
+pub use tables::{StatsTableWidget, TimeTableWidget};

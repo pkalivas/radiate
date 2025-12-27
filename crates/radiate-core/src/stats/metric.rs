@@ -3,7 +3,7 @@ use crate::{
     TimeStatistic,
     stats::{Tag, TagKind, defaults},
 };
-use radiate_utils::{ToSnakeCase, cache_string, intern, intern_snake_case};
+use radiate_utils::{ToSnakeCase, cache_arc_string, intern, intern_snake_case};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::{sync::Arc, time::Duration};
@@ -35,7 +35,7 @@ pub struct Metric {
 
 impl Metric {
     pub fn new(name: &'static str) -> Self {
-        let name = cache_string!(intern_snake_case!(name));
+        let name = cache_arc_string!(intern_snake_case!(name));
         let tags = defaults::default_tags(&name);
 
         Self {

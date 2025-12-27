@@ -1,26 +1,36 @@
-use crate::chart::{ChartData, ChartInner};
+use crate::chart::RollingChart;
 use crate::widgets::num_pairs;
 use radiate_engines::stats::TagKind;
 use radiate_engines::{
     Chromosome, Front, Metric, MetricSet, Objective, Optimize, Phenotype, Score,
 };
-use radiate_utils::intern;
 use ratatui::widgets::{ListState, ScrollbarState, TableState};
-use std::{
-    collections::HashMap,
-    time::{Duration, Instant},
-};
+use std::time::{Duration, Instant};
 
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub(crate) struct RunningState {
-    pub engine: bool,
-    pub ui: bool,
+pub mod chart;
+pub use chart::{ChartState, ChartType};
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum PanelId {
+    Filters,
+    Metrics,
+    Help,
 }
 
-pub(crate) struct DisplayState {
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct RunningState {
+    pub engine: bool,
+    pub ui: bool,
+    pub paused: bool,
+}
+
+pub struct DisplayState {
     pub show_tag_filters: bool,
     pub show_mini_chart: bool,
     pub show_mini_chart_mean: bool,
+    pub show_help: bool,
+    pub focus_panel: PanelId,
+    pub modal_panel: Option<PanelId>,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Default)]
@@ -28,12 +38,6 @@ pub enum MetricsTab {
     #[default]
     Time,
     Stats,
-}
-
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub enum PanelTab {
-    Filter,
-    Metrics,
 }
 
 impl MetricsTab {
@@ -52,88 +56,18 @@ impl MetricsTab {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub enum ChartType {
-    Value,
-    Mean,
-}
-
-pub struct ChartState {
-    fitness: ChartData,
-    value_charts: HashMap<&'static str, ChartInner>,
-    mean_charts: HashMap<&'static str, ChartInner>,
-}
-
-impl ChartState {
-    pub fn new() -> Self {
-        Self {
-            fitness: ChartData::with_capacity(1000).with_name("Score"),
-            value_charts: HashMap::new(),
-            mean_charts: HashMap::new(),
-        }
-    }
-
-    pub fn fitness_chart(&self) -> &ChartData {
-        &self.fitness
-    }
-
-    pub fn fitness_chart_mut(&mut self) -> &mut ChartData {
-        &mut self.fitness
-    }
-
-    pub fn get_by_key(&self, key: &'static str, chart_type: ChartType) -> Option<&ChartInner> {
-        match chart_type {
-            ChartType::Value => self.value_charts.get(key),
-            ChartType::Mean => self.mean_charts.get(key),
-        }
-    }
-
-    pub fn get_or_create_chart(
-        &mut self,
-        key: &'static str,
-        chart_type: ChartType,
-    ) -> &mut ChartInner {
-        match chart_type {
-            ChartType::Value => self.value_charts.entry(key).or_insert_with(|| {
-                ChartInner::with_capacity(1000)
-                    .with_title(key)
-                    .with_color(ratatui::style::Color::LightCyan)
-            }),
-            ChartType::Mean => self.mean_charts.entry(key).or_insert_with(|| {
-                ChartInner::with_capacity(1000)
-                    .with_title("μ (mean)")
-                    .with_color(ratatui::style::Color::Yellow)
-            }),
-        }
-    }
-
-    pub fn update_from_metric(&mut self, metric: &Metric) {
-        if let Some(stat) = metric.statistic() {
-            let key = intern!(metric.name());
-            if !metric.contains_tag(&TagKind::Distribution) {
-                let value_chart = self.get_or_create_chart(key, ChartType::Value);
-                value_chart.add_value((value_chart.len() as f64, stat.last_value() as f64));
-            }
-
-            let mean_chart = self.get_or_create_chart(key, ChartType::Mean);
-            mean_chart.add_value((mean_chart.len() as f64, stat.mean() as f64));
-        }
-    }
-}
-
 pub struct ObjectiveState {
     pub objective: Objective,
     pub charts_visible: usize,
     pub chart_start_index: usize,
 }
 
-pub(crate) struct AppState<C: Chromosome> {
+pub struct AppState<C: Chromosome> {
     pub front: Option<Front<Phenotype<C>>>,
     pub last_render: Option<Instant>,
     pub render_interval: Duration,
     pub chart_state: ChartState,
     pub metrics_tab: MetricsTab,
-    pub panel_tab: PanelTab,
 
     pub running: RunningState,
     pub display: DisplayState,
@@ -181,9 +115,18 @@ impl<C: Chromosome> AppState<C> {
     pub fn toggle_show_tag_filters(&mut self) {
         self.display.show_tag_filters = !self.display.show_tag_filters;
         if !self.display.show_tag_filters {
-            self.panel_tab = PanelTab::Metrics;
+            self.display.focus_panel = PanelId::Metrics;
         } else {
-            self.panel_tab = PanelTab::Filter;
+            self.display.focus_panel = PanelId::Filters;
+        }
+    }
+
+    pub fn toggle_help(&mut self) {
+        self.display.show_help = !self.display.show_help;
+        if self.display.show_help {
+            self.display.modal_panel = Some(PanelId::Help);
+        } else {
+            self.display.modal_panel = None;
         }
     }
 
@@ -192,7 +135,7 @@ impl<C: Chromosome> AppState<C> {
             .objective_state
             .charts_visible
             .saturating_add(1)
-            .min(num_pairs(self.objective_state.objective.dimensions()));
+            .min(num_pairs(self.objective_state.objective.dims()));
     }
 
     pub fn shrink_objective_pairs(&mut self) {
@@ -201,7 +144,12 @@ impl<C: Chromosome> AppState<C> {
         }
     }
 
-    pub fn clear_tag_filters(&mut self) {
+    pub fn clear_filters(&mut self) {
+        if self.display.show_help {
+            self.display.show_help = false;
+            self.display.modal_panel = None;
+        }
+
         if !self.display.show_tag_filters {
             return;
         }
@@ -211,7 +159,7 @@ impl<C: Chromosome> AppState<C> {
 
     pub fn next_objective_pair_page(&mut self) {
         let step = self.objective_state.charts_visible.max(1);
-        let total = num_pairs(self.objective_state.objective.dimensions());
+        let total = num_pairs(self.objective_state.objective.dims());
         let current = self.objective_state.chart_start_index;
         if current + step < total {
             self.objective_state.chart_start_index += step;
@@ -232,7 +180,7 @@ impl<C: Chromosome> AppState<C> {
         &self,
         key: &'static str,
         chart_type: ChartType,
-    ) -> Option<&ChartInner> {
+    ) -> Option<&RollingChart> {
         self.chart_state.get_by_key(key, chart_type)
     }
 
@@ -252,6 +200,10 @@ impl<C: Chromosome> AppState<C> {
         self.running.engine
     }
 
+    pub fn is_engine_paused(&self) -> bool {
+        self.running.paused
+    }
+
     pub fn display_any_mini_chart(&self) -> bool {
         self.display.show_mini_chart || self.display.show_mini_chart_mean
     }
@@ -264,11 +216,11 @@ impl<C: Chromosome> AppState<C> {
         self.display.show_mini_chart_mean
     }
 
-    pub fn charts(&self) -> &ChartState {
+    pub fn chart_state(&self) -> &ChartState {
         &self.chart_state
     }
 
-    pub fn charts_mut(&mut self) -> &mut ChartState {
+    pub fn chart_state_mut(&mut self) -> &mut ChartState {
         &mut self.chart_state
     }
 
@@ -297,7 +249,7 @@ impl<C: Chromosome> AppState<C> {
     }
 
     pub fn move_selection_down(&mut self) {
-        if self.panel_tab == PanelTab::Filter {
+        if self.display.focus_panel == PanelId::Filters {
             if self.filter_state.all_tags.is_empty() {
                 return;
             }
@@ -334,7 +286,7 @@ impl<C: Chromosome> AppState<C> {
     }
 
     pub fn move_selection_up(&mut self) {
-        if self.panel_tab == PanelTab::Filter {
+        if self.display.focus_panel == PanelId::Filters {
             if self.filter_state.all_tags.is_empty() {
                 return;
             }
@@ -377,7 +329,7 @@ impl<C: Chromosome> AppState<C> {
     }
 
     pub fn toggle_tag_filter_selection(&mut self) {
-        if self.panel_tab != PanelTab::Filter {
+        if self.display.focus_panel != PanelId::Filters {
             return;
         }
 
@@ -402,16 +354,19 @@ impl<C: Chromosome> Default for AppState<C> {
             render_interval: Duration::from_millis(500),
             chart_state: ChartState::new(),
             metrics_tab: MetricsTab::Stats,
-            panel_tab: PanelTab::Metrics,
 
             running: RunningState {
                 engine: false,
                 ui: true,
+                paused: false,
             },
             display: DisplayState {
                 show_tag_filters: false,
                 show_mini_chart: true,
                 show_mini_chart_mean: false,
+                show_help: false,
+                focus_panel: PanelId::Metrics,
+                modal_panel: None,
             },
 
             objective_state: ObjectiveState {
@@ -468,6 +423,13 @@ impl AppTableState {
         let current_len = items.len();
         self.prev_row_count = self.row_count;
         self.row_count = current_len;
+
+        if (self.prev_row_count == 0 && self.row_count > 0)
+            || (self.selected_row < self.prev_row_count && self.selected_row >= self.row_count)
+        {
+            self.selected_row = 0;
+            self.state.select(Some(0));
+        }
 
         if self.selected_row >= current_len && current_len > 0 {
             self.selected_row = current_len - 1;

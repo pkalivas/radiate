@@ -82,7 +82,6 @@ impl NeatDistance {
                                         weight_diff += (va - vb).abs();
                                     }
                                     (a_op, b_op) => {
-                                        // If there's a cheap, stable identity for Op, prefer it over name().
                                         if a_op.name() != b_op.name() {
                                             op_mismatch_penalty += 1.0;
                                         }

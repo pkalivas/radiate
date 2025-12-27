@@ -23,26 +23,29 @@ impl<C: Chromosome + Clone> Select<C> for BoltzmannSelector {
     ) -> Population<C> {
         let fitness_values = match objective {
             Objective::Single(opt) => {
-                let scores = population
-                    .get_scores()
-                    .map(|score| score.as_f32())
-                    .collect::<Vec<f32>>();
+                let mut scores = Vec::with_capacity(population.len());
+                let mut botlzmann_values = Vec::with_capacity(population.len());
+                let (mut min, mut max, mut total) = (f32::MAX, f32::MIN, 0.0);
 
-                let (min, max) = scores
-                    .iter()
-                    .fold((f32::MAX, f32::MIN), |(min, max), &score| {
-                        (min.min(score), max.max(score))
-                    });
+                for score in population.get_scores() {
+                    let val = score.as_f32();
+
+                    scores.push(val);
+                    min = min.min(val);
+                    max = max.max(val);
+                }
+
                 let diff = (max - min).abs().max(MIN);
-                let botzlmann_values = scores
-                    .iter()
-                    .map(|&score| (self.temperature * ((score - min) / diff)).exp())
-                    .collect::<Vec<f32>>();
+                for &score in scores.iter() {
+                    let boltzmann_value = (self.temperature * ((score - min) / diff)).exp();
 
-                let total_fitness = botzlmann_values.iter().sum::<f32>();
-                let mut fitness_values = botzlmann_values
+                    botlzmann_values.push(boltzmann_value);
+                    total += boltzmann_value;
+                }
+
+                let mut fitness_values = botlzmann_values
                     .iter()
-                    .map(|&fit| fit / total_fitness)
+                    .map(|&fit| fit / total)
                     .collect::<Vec<f32>>();
 
                 if let Optimize::Minimize = opt {

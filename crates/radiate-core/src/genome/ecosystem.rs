@@ -136,8 +136,6 @@ impl<C: Chromosome> Ecosystem<C> {
     /// The member is reference cloned from the population and added to the species' population.
     /// Just like with the [Ecosystem]'s `clone_ref` method, this creates a shared reference so
     /// any modifications to the phenotype within the [Species] will be reflected in the main [Population].
-    ///
-    /// **Use with caution**
     pub fn add_species_member(&mut self, species_idx: usize, member_idx: usize)
     where
         C: Clone,
@@ -151,7 +149,7 @@ impl<C: Chromosome> Ecosystem<C> {
         }
     }
 
-    pub fn remvove_dead_species(&mut self) -> usize {
+    pub fn remove_dead_species(&mut self) -> usize {
         if let Some(species) = &mut self.species {
             let initial_len = species.len();
             species.retain(|spec| spec.len() > 0);

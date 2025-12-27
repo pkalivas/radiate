@@ -1,9 +1,9 @@
-use crate::Chromosome;
 use crate::builder::GeneticEngineBuilder;
 use crate::context::Context;
 use crate::events::EngineMessage;
 use crate::iter::EngineIterator;
 use crate::pipeline::Pipeline;
+use crate::{Chromosome, EngineControl};
 use crate::{EventBus, Generation};
 use radiate_core::Engine;
 use radiate_core::error::Result;
@@ -62,6 +62,7 @@ where
     context: Context<C, T>,
     pipeline: Pipeline<C>,
     bus: EventBus<T>,
+    control: Option<EngineControl>,
 }
 
 impl<C, T> GeneticEngine<C, T>
@@ -78,6 +79,7 @@ where
             context,
             pipeline,
             bus,
+            control: None,
         }
     }
 
@@ -88,6 +90,21 @@ where
     /// evolutionary operators, and fitness functions.
     pub fn builder() -> GeneticEngineBuilder<C, T> {
         GeneticEngineBuilder::default()
+    }
+
+    /// Returns a clone of the engine's control interface.
+    ///
+    /// The control interface allows for pausing, resuming, and stopping the engine's execution
+    /// from external contexts. If the control interface has not been initialized yet, this method
+    /// will create a new instance.
+    pub fn control(&mut self) -> EngineControl {
+        if self.control.is_none() {
+            let (one, two) = EngineControl::pair();
+            self.control = Some(one);
+            return two;
+        }
+
+        self.control.as_ref().unwrap().clone()
     }
 
     /// Converts the engine into an iterator that yields generations.
@@ -111,7 +128,8 @@ where
     /// The iterator consumes the engine, so you can only iterate once. If you need
     /// to run the engine multiple times, create a new instance using the builder.
     pub fn iter(self) -> impl Iterator<Item = Generation<C, T>> {
-        EngineIterator { engine: self }
+        let control = self.control.clone();
+        EngineIterator::new(self, control)
     }
 }
 

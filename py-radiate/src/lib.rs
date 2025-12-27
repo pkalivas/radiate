@@ -4,7 +4,7 @@ use radiate_python::{
     PyEngineEvent, PyEngineInput, PyEngineInputType, PyEngineRunOption, PyFitnessFn, PyFloatCodec,
     PyGene, PyGeneType, PyGeneration, PyGenotype, PyGraph, PyGraphCodec, PyIntCodec, PyMetric,
     PyMetricSet, PyPermutationCodec, PyPhenotype, PyPopulation, PyRandomProvider, PySpecies,
-    PySubscriber, PyTree, PyTreeCodec, py_alter, py_select,
+    PySubscriber, PyTagKind, PyTree, PyTreeCodec, py_alter, py_select,
 };
 
 #[pymodule(gil_used = false)]
@@ -50,6 +50,7 @@ fn radiate(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     m.add_class::<PyMetricSet>()?;
     m.add_class::<PyMetric>()?;
+    m.add_class::<PyTagKind>()?;
 
     Ok(())
 }

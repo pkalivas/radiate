@@ -1,5 +1,6 @@
 pub mod builder;
 mod context;
+mod control;
 pub mod engine;
 mod events;
 mod generation;
@@ -9,6 +10,7 @@ mod pipeline;
 mod steps;
 
 pub use builder::GeneticEngineBuilder;
+pub use control::EngineControl;
 pub use engine::GeneticEngine;
 pub use events::{EngineEvent, EventBus, EventHandler};
 pub use generation::Generation;

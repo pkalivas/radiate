@@ -17,7 +17,7 @@
 //! - **Specialized Iterators**: Various iterator types for different termination strategies
 //! - **Limit System**: Flexible limit specification and combination
 
-use crate::{Generation, Limit, init_logging};
+use crate::{Generation, Limit, control::EngineControl, init_logging};
 use radiate_core::{Chromosome, Engine, Objective, Optimize, Score};
 #[cfg(feature = "serde")]
 use serde::Serialize;
@@ -75,6 +75,7 @@ where
     E: Engine,
 {
     pub(crate) engine: E,
+    control: Option<EngineControl>,
 }
 
 impl<E> EngineIterator<E>
@@ -90,11 +91,16 @@ where
     /// # Returns
     ///
     /// A new instance of [EngineIterator]
-    pub fn new(engine: E) -> Self {
-        EngineIterator { engine }
+    pub fn new(engine: E, control: Option<EngineControl>) -> Self {
+        EngineIterator { engine, control }
     }
 }
 
+/// Implementation of `Iterator` for [EngineIterator].
+///
+/// Each call to `next()` advances the engine by one generation and returns
+/// the resulting generation data. The iterator continues indefinitely until
+/// external termination conditions are applied - so always provide termination conditions.
 impl<E> Iterator for EngineIterator<E>
 where
     E: Engine,
@@ -102,31 +108,20 @@ where
     type Item = E::Epoch;
 
     fn next(&mut self) -> Option<Self::Item> {
+        if let Some(control) = &self.control {
+            if control.is_stopped() {
+                return None;
+            } else if control.is_paused() {
+                control.wait_before_step();
+            }
+        }
+
         match self.engine.next() {
             Ok(epoch) => Some(epoch),
             Err(e) => panic!("{e}"),
         }
     }
 }
-
-// /// Implementation of `Iterator` for [EngineIterator].
-// ///
-// /// Each call to `next()` advances the engine by one generation and returns
-// /// the resulting generation data. The iterator continues indefinitely until
-// /// external termination conditions are applied - so always provide termination conditions.
-// impl<E> Iterator for EngineIterator<E>
-// where
-//     E: Engine,
-// {
-//     type Item = E::Epoch;
-
-//     fn next(&mut self) -> Option<Self::Item> {
-//         match self.engine.next() {
-//             Ok(epoch) => Some(epoch),
-//             Err(e) => panic!("{e}"),
-//         }
-//     }
-// }
 
 /// Blanket implementation of the extension trait for any iterator over generations.
 ///

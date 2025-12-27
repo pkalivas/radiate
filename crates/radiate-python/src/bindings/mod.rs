@@ -24,7 +24,7 @@ pub use functions::*;
 pub use genome::*;
 pub use gp::{PyGraph, PyTree};
 pub use inputs::{PyEngineInput, PyEngineInputType};
-pub use metric::{PyMetric, PyMetricSet};
+pub use metric::{PyMetric, PyMetricSet, PyTagKind};
 pub use subscriber::{PyEngineEvent, PySubscriber};
 
 use crate::{AnyChromosome, PyAnyObject};

@@ -1,21 +1,17 @@
-use crate::state::AppState;
-use crate::widgets::filter::FilterWidget;
-use crate::widgets::summary::EngineBaseWidget;
-use crate::widgets::{MetricsTabWidget, ParetoFrontTemp};
+use crate::state::{AppState, PanelId};
+use crate::widgets::{EngineSummaryWidget, FitnessWidget, HelpWidget, MetricsWidget, ModalWidget};
 use color_eyre::Result;
 use crossterm::event::{Event, KeyCode};
 use radiate_engines::stats::TagKind;
 use radiate_engines::{
-    Chromosome, CommandChannel, Front, MetricSet, Objective, Phenotype, Score, metric_names,
+    Chromosome, CommandChannel, EngineControl, Front, MetricSet, Objective, Phenotype, Score,
+    metric_names,
 };
 use ratatui::buffer::Buffer;
+use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::Style;
-use ratatui::widgets::Widget;
+use ratatui::widgets::{StatefulWidget, Widget};
 use ratatui::{Terminal, backend::CrosstermBackend};
-use ratatui::{
-    layout::{Constraint, Layout, Rect},
-    style::palette::material,
-};
 use std::sync::{Arc, mpsc};
 use std::{
     io,
@@ -36,16 +32,18 @@ pub(crate) struct App<C>
 where
     C: Chromosome,
 {
-    state: AppState<C>,
+    control: EngineControl,
     channel: CommandChannel<InputEvent<C>>,
+    state: AppState<C>,
 }
 
 impl<C> App<C>
 where
     C: Chromosome,
 {
-    pub fn new(render_interval: Duration) -> Self {
+    pub fn new(render_interval: Duration, control: EngineControl) -> Self {
         Self {
+            control,
             channel: CommandChannel::new(),
             state: AppState {
                 render_interval,
@@ -101,10 +99,14 @@ where
 
     fn handle_key_event(&mut self, key: KeyCode) {
         match key {
-            KeyCode::Char('q') => self.state.running.ui = false,
+            KeyCode::Char('q') => {
+                self.control.stop();
+                self.state.running.ui = false
+            }
+
+            KeyCode::Char('?') | KeyCode::Char('H') => self.state.toggle_help(),
 
             KeyCode::Char('f') => self.state.toggle_show_tag_filters(),
-
             KeyCode::Char('c') => self.state.toggle_mini_chart(),
             KeyCode::Char('m') => self.state.toggle_mini_chart_mean(),
 
@@ -119,7 +121,16 @@ where
             KeyCode::Right | KeyCode::Char('l') => self.state.next_metrics_tab(),
             KeyCode::Left | KeyCode::Char('h') => self.state.previous_metrics_tab(),
 
-            KeyCode::Esc => self.state.clear_tag_filters(),
+            KeyCode::Char('p') => {
+                let paused = self.control.toggle_pause();
+                self.state.running.paused = paused;
+            }
+            KeyCode::Char('n') => {
+                self.control.step_once();
+                self.state.running.paused = true;
+            }
+
+            KeyCode::Esc => self.state.clear_filters(),
             KeyCode::Enter => self.state.toggle_tag_filter_selection(),
 
             KeyCode::Char(c) => {
@@ -139,18 +150,14 @@ where
         score: Score,
         front: Option<Front<Phenotype<C>>>,
     ) {
-        let charts = self.state.charts_mut();
-        charts
-            .fitness_chart_mut()
-            .update_last_value(index as f64, score.as_f32() as f64);
+        let charts = self.state.chart_state_mut();
+        charts.fitness_chart_mut().push(score.as_f64());
 
         if let Some(dist) = metrics
             .get(metric_names::SCORES)
             .and_then(|m| m.statistic())
         {
-            charts
-                .fitness_chart_mut()
-                .update_mean_value(index as f64, dist.mean() as f64);
+            charts.fitness_mean_chart_mut().push(dist.mean() as f64);
         }
 
         for metric in metrics.iter() {
@@ -171,8 +178,7 @@ where
         if let Some(front) = front {
             self.state.front = Some(front);
 
-            let total =
-                super::widgets::num_pairs(self.state.objective_state.objective.dimensions());
+            let total = super::widgets::num_pairs(self.state.objective_state.objective.dims());
             if total > 0 {
                 self.state.objective_state.chart_start_index =
                     self.state.objective_state.chart_start_index.min(total - 1);
@@ -196,39 +202,25 @@ where
         buf.set_style(
             area,
             Style::default()
-                .bg(material::GRAY.c900)
+                .bg(crate::styles::ALT_BG_COLOR)
                 .fg(crate::styles::TEXT_FG_COLOR),
         );
 
         let [top, bottom] =
             Layout::vertical([Constraint::Percentage(30), Constraint::Fill(1)]).areas(area);
-        let [engine, fitness] =
+        let [summary, fitness] =
             Layout::horizontal([Constraint::Percentage(30), Constraint::Fill(1)]).areas(top);
 
-        EngineBaseWidget::new(&self.state).render(engine, buf);
+        EngineSummaryWidget::new().render(summary, buf, &mut self.state);
+        FitnessWidget::new().render(fitness, buf, &mut self.state);
+        MetricsWidget::new().render(bottom, buf, &mut self.state);
 
-        if self.state.objective_state.objective.is_single() {
-            if self.state.display_mini_chart_mean() {
-                self.state.charts().fitness_chart().render(fitness, buf);
-            } else {
-                self.state
-                    .charts()
-                    .fitness_chart()
-                    .value_chart()
-                    .render(fitness, buf);
-            }
-        } else {
-            ParetoFrontTemp::new(&self.state).render(fitness, buf);
+        if let Some(panel) = self.state.display.modal_panel {
+            ModalWidget::new(match panel {
+                PanelId::Help => HelpWidget,
+                _ => HelpWidget,
+            })
+            .render(area, buf);
         }
-
-        if self.state.display.show_tag_filters {
-            let [filter, tabs] =
-                Layout::horizontal([Constraint::Length(20), Constraint::Fill(1)]).areas(bottom);
-            FilterWidget::new(&mut self.state).render(filter, buf);
-            MetricsTabWidget::new(&mut self.state).render(tabs, buf);
-        } else {
-            let [inner] = Layout::horizontal([Constraint::Fill(1)]).areas(bottom);
-            MetricsTabWidget::new(&mut self.state).render(inner, buf);
-        };
     }
 }

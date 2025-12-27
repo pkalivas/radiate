@@ -1,11 +1,11 @@
 mod app;
 mod chart;
+mod runtime;
 mod state;
 mod styles;
-mod ui;
 mod widgets;
 
-use crate::ui::UiRuntime;
+use crate::runtime::UiRuntime;
 use radiate_engines::{Chromosome, GeneticEngine};
 use std::time::Duration;
 

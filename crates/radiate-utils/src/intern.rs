@@ -40,7 +40,7 @@ macro_rules! intern {
 }
 
 #[macro_export]
-macro_rules! cache_string {
+macro_rules! cache_arc_string {
     ($name:expr) => {{
         use std::cell::RefCell;
         use std::collections::HashMap;

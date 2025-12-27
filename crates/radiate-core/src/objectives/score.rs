@@ -54,6 +54,10 @@ impl Score {
         self.values.get(0).cloned().unwrap_or(f32::NAN)
     }
 
+    pub fn as_f64(&self) -> f64 {
+        self.values.get(0).cloned().unwrap_or(f32::NAN) as f64
+    }
+
     pub fn as_i32(&self) -> i32 {
         self.values[0] as i32
     }
