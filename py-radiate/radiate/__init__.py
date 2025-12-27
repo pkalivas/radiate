@@ -31,7 +31,7 @@ from .genome import (
 )
 from .handlers import EventHandler, EventType, EngineEvent
 from .gp import Op, Graph, Tree
-from .metrics import MetricSet, Metric
+from .metrics import MetricSet, Metric, Tag
 
 from .inputs.executor import Executor
 from .fitness import Regression, NoveltySearch, BatchFitness
@@ -186,6 +186,7 @@ __all__ = [
     # Metrics
     "MetricSet",
     "Metric",
+    "Tag",
     # Options
     "EngineLog",
     "EngineCheckpoint",

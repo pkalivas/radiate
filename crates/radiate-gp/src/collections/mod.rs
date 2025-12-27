@@ -1,4 +1,3 @@
-mod buffer;
 pub mod dot;
 pub mod eval;
 pub mod factory;

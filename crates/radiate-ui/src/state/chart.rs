@@ -3,6 +3,8 @@ use radiate_engines::{Metric, stats::TagKind};
 use radiate_utils::intern;
 use std::collections::HashMap;
 
+const MAX_CHART_POINTS: usize = 1000;
+
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ChartType {
     Value,
@@ -19,10 +21,10 @@ pub struct ChartState {
 impl ChartState {
     pub fn new() -> Self {
         Self {
-            fitness_chart: RollingChart::with_capacity(1000)
+            fitness_chart: RollingChart::with_capacity(MAX_CHART_POINTS)
                 .with_title("Score")
                 .with_color(ratatui::style::Color::LightCyan),
-            fitness_mean_chart: RollingChart::with_capacity(1000)
+            fitness_mean_chart: RollingChart::with_capacity(MAX_CHART_POINTS)
                 .with_title("μ (mean)")
                 .with_color(ratatui::style::Color::Yellow),
             value_charts: HashMap::new(),
@@ -60,13 +62,13 @@ impl ChartState {
     ) -> &mut RollingChart {
         match chart_type {
             ChartType::Value => self.value_charts.entry(key).or_insert_with(|| {
-                RollingChart::with_capacity(1000)
+                RollingChart::with_capacity(MAX_CHART_POINTS)
                     .with_title(key)
                     .with_color(ratatui::style::Color::LightCyan)
             }),
             ChartType::Mean => self.mean_charts.entry(key).or_insert_with(|| {
-                RollingChart::with_capacity(1000)
-                    .with_title("μ (mean)")
+                RollingChart::with_capacity(MAX_CHART_POINTS)
+                    .with_title(format!("{} μ (mean)", key))
                     .with_color(ratatui::style::Color::Yellow)
             }),
         }
@@ -77,11 +79,11 @@ impl ChartState {
             let key = intern!(metric.name());
             if !metric.contains_tag(&TagKind::Distribution) {
                 let value_chart = self.get_or_create_chart(key, ChartType::Value);
-                value_chart.add_value((value_chart.len() as f64, stat.last_value() as f64));
+                value_chart.push(stat.last_value() as f64);
             }
 
             let mean_chart = self.get_or_create_chart(key, ChartType::Mean);
-            mean_chart.add_value((mean_chart.len() as f64, stat.mean() as f64));
+            mean_chart.push(stat.mean() as f64);
         }
     }
 }

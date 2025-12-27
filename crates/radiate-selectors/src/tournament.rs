@@ -7,7 +7,7 @@ pub struct TournamentSelector {
 
 impl TournamentSelector {
     pub fn new(num: usize) -> Self {
-        TournamentSelector { num }
+        TournamentSelector { num: num.max(1) }
     }
 }
 
@@ -18,19 +18,20 @@ impl<C: Chromosome + Clone> Select<C> for TournamentSelector {
             return Population::new(Vec::new());
         }
 
-        let k = self.num.max(1);
         let mut selected = Vec::with_capacity(count);
 
         for _ in 0..count {
             let mut best = random_provider::range(0..n);
-            for _ in 1..k {
+            for _ in 1..self.num {
                 let r = random_provider::range(0..n);
                 if r < best {
                     best = r;
                 }
             }
+
             selected.push(population[best].clone());
         }
+
         Population::new(selected)
     }
 }

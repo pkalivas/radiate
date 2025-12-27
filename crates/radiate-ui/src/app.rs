@@ -1,5 +1,5 @@
-use crate::state::AppState;
-use crate::{AppUi, PanelId};
+use crate::state::{AppState, PanelId};
+use crate::widgets::{EngineSummaryWidget, FitnessWidget, HelpWidget, MetricsWidget, ModalWidget};
 use color_eyre::Result;
 use crossterm::event::{Event, KeyCode};
 use radiate_engines::stats::TagKind;
@@ -8,7 +8,8 @@ use radiate_engines::{
     metric_names,
 };
 use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
+use ratatui::layout::{Constraint, Layout, Rect};
+use ratatui::style::Style;
 use ratatui::widgets::{StatefulWidget, Widget};
 use ratatui::{Terminal, backend::CrosstermBackend};
 use std::sync::{Arc, mpsc};
@@ -34,7 +35,6 @@ where
     control: EngineControl,
     channel: CommandChannel<InputEvent<C>>,
     state: AppState<C>,
-    ui: AppUi<C>,
 }
 
 impl<C> App<C>
@@ -45,7 +45,6 @@ where
         Self {
             control,
             channel: CommandChannel::new(),
-            ui: AppUi::new(),
             state: AppState {
                 render_interval,
                 ..Default::default()
@@ -105,20 +104,11 @@ where
                 self.state.running.ui = false
             }
 
-            KeyCode::Char('f') => {
-                let active = self.state.toggle_show_tag_filters();
-                self.ui.set_panel_active(PanelId::Filters, active);
-            }
+            KeyCode::Char('?') | KeyCode::Char('H') => self.state.toggle_help(),
 
+            KeyCode::Char('f') => self.state.toggle_show_tag_filters(),
             KeyCode::Char('c') => self.state.toggle_mini_chart(),
             KeyCode::Char('m') => self.state.toggle_mini_chart_mean(),
-            KeyCode::Char('?') | KeyCode::Char('H') => {
-                let show = self.state.toggle_help();
-                self.ui.set_modal(match show {
-                    true => Some(PanelId::Help),
-                    false => None,
-                });
-            }
 
             KeyCode::Down | KeyCode::Char('j') => self.state.move_selection_down(),
             KeyCode::Up | KeyCode::Char('k') => self.state.move_selection_up(),
@@ -140,11 +130,7 @@ where
                 self.state.running.paused = true;
             }
 
-            KeyCode::Esc => {
-                self.state.clear_filters();
-                self.ui.set_panel_active(PanelId::Filters, false);
-                self.ui.set_modal(None);
-            }
+            KeyCode::Esc => self.state.clear_filters(),
             KeyCode::Enter => self.state.toggle_tag_filter_selection(),
 
             KeyCode::Char(c) => {
@@ -165,7 +151,7 @@ where
         front: Option<Front<Phenotype<C>>>,
     ) {
         let charts = self.state.chart_state_mut();
-        charts.fitness_chart_mut().push(score.as_f32() as f64);
+        charts.fitness_chart_mut().push(score.as_f64());
 
         if let Some(dist) = metrics
             .get(metric_names::SCORES)
@@ -192,8 +178,7 @@ where
         if let Some(front) = front {
             self.state.front = Some(front);
 
-            let total =
-                super::widgets::num_pairs(self.state.objective_state.objective.dimensions());
+            let total = super::widgets::num_pairs(self.state.objective_state.objective.dims());
             if total > 0 {
                 self.state.objective_state.chart_start_index =
                     self.state.objective_state.chart_start_index.min(total - 1);
@@ -214,6 +199,28 @@ where
     C: Chromosome,
 {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        StatefulWidget::render(&self.ui, area, buf, &mut self.state);
+        buf.set_style(
+            area,
+            Style::default()
+                .bg(crate::styles::ALT_BG_COLOR)
+                .fg(crate::styles::TEXT_FG_COLOR),
+        );
+
+        let [top, bottom] =
+            Layout::vertical([Constraint::Percentage(30), Constraint::Fill(1)]).areas(area);
+        let [summary, fitness] =
+            Layout::horizontal([Constraint::Percentage(30), Constraint::Fill(1)]).areas(top);
+
+        EngineSummaryWidget::new().render(summary, buf, &mut self.state);
+        FitnessWidget::new().render(fitness, buf, &mut self.state);
+        MetricsWidget::new().render(bottom, buf, &mut self.state);
+
+        if let Some(panel) = self.state.display.modal_panel {
+            ModalWidget::new(match panel {
+                PanelId::Help => HelpWidget,
+                _ => HelpWidget,
+            })
+            .render(area, buf);
+        }
     }
 }

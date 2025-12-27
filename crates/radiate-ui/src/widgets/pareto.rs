@@ -1,9 +1,4 @@
-use crate::{
-    Empty,
-    Panel,
-    state::AppState,
-    styles, // widgets::{Empty, Panel},
-};
+use crate::{state::AppState, styles, widgets::Panel};
 use radiate_engines::Chromosome;
 use ratatui::{
     buffer::Buffer,
@@ -51,23 +46,17 @@ where
     C: Chromosome,
 {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let d = self.state.objective_state.objective.dimensions();
+        let d = self.state.objective_state.objective.dims();
         if d < 2 {
-            Panel::new(
-                Line::from(" Pareto Front ").centered(),
-                Empty::new("need 2+ objectives"),
-            )
-            .render(area, buf);
+            Panel::empty("need 2+ objectives").render(area, buf);
             return;
         }
 
         let total = num_pairs(d);
         if total == 0 {
-            Panel::new(
-                Line::from(" Pareto Front ").centered(),
-                Empty::new("no objective pairs"),
-            )
-            .render(area, buf);
+            Panel::empty("no objective pairs")
+                .titled(Line::from(" Pareto Front ").centered())
+                .render(area, buf);
             return;
         }
 
@@ -79,16 +68,14 @@ where
 
         let title = format!(" Pareto Front ({}/{} pairs of obj{}D) ", count, total, d);
 
-        Panel::new(
-            Line::from(title).centered(),
-            ParetoPagerInner {
-                state: self.state,
-                start,
-                count,
-                d,
-                total,
-            },
-        )
+        Panel::new(ParetoPagerInner {
+            state: self.state,
+            start,
+            count,
+            d,
+            total,
+        })
+        .titled(Line::from(title).centered())
         .render(area, buf);
     }
 }
@@ -190,6 +177,12 @@ where
             return;
         }
 
+        let trim = 0.02; // make this a UI setting if you want
+        let (points, bounds) = filter_outliers_quantile(&points, trim);
+
+        let (mut min_x, mut max_x, mut min_y, mut max_y) =
+            (bounds[0], bounds[1], bounds[2], bounds[3]);
+
         // Avoid zero range
         if (max_x - min_x).abs() < f64::EPSILON {
             min_x -= 0.5;
@@ -234,4 +227,42 @@ where
 
         chart.render(area, buf);
     }
+}
+
+fn quantile(sorted: &[f64], q: f64) -> f64 {
+    let n = sorted.len() as f64;
+    let pos = (n - 1.0) * q.clamp(0.0, 1.0);
+    let lo = pos.floor() as usize;
+    let hi = pos.ceil() as usize;
+
+    if lo == hi {
+        return sorted[lo];
+    }
+
+    let t = pos - (lo as f64);
+    sorted[lo] * (1.0 - t) + sorted[hi] * t
+}
+
+fn filter_outliers_quantile(points: &[(f64, f64)], trim: f64) -> (Vec<(f64, f64)>, [f64; 4]) {
+    // trim=0.02 => keep [2%, 98%]
+    let lo_q = trim;
+    let hi_q = 1.0 - trim;
+
+    let mut xs = points.iter().map(|(x, _)| *x).collect::<Vec<f64>>();
+    let mut ys = points.iter().map(|(_, y)| *y).collect::<Vec<f64>>();
+    xs.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap());
+    ys.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap());
+
+    let x_lo = quantile(&xs, lo_q);
+    let x_hi = quantile(&xs, hi_q);
+    let y_lo = quantile(&ys, lo_q);
+    let y_hi = quantile(&ys, hi_q);
+
+    let filtered: Vec<(f64, f64)> = points
+        .iter()
+        .copied()
+        .filter(|(x, y)| *x >= x_lo && *x <= x_hi && *y >= y_lo && *y <= y_hi)
+        .collect();
+
+    (filtered, [x_lo, x_hi, y_lo, y_hi])
 }

@@ -1,5 +1,4 @@
 use crate::sync::WaitGroup;
-use crate::sync::WorkResult;
 use crate::sync::get_thread_pool;
 #[cfg(feature = "rayon")]
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
@@ -20,38 +19,6 @@ impl Executor {
             #[cfg(feature = "rayon")]
             Executor::WorkerPool => rayon::current_num_threads(),
             Executor::FixedSizedWorkerPool(num_workers) => *num_workers,
-        }
-    }
-
-    pub fn task<F, R>(&self, f: F) -> WorkResult<R>
-    where
-        F: FnOnce() -> R + Send + 'static,
-        R: Send + 'static,
-    {
-        match self {
-            Executor::Serial => {
-                let result = f();
-                let (tx, rx) = std::sync::mpsc::channel();
-                tx.send(result).unwrap();
-                WorkResult::new(rx)
-            }
-            Executor::FixedSizedWorkerPool(num_workers) => {
-                let pool = get_thread_pool(*num_workers);
-                pool.submit_with_result(f)
-            }
-            #[cfg(feature = "rayon")]
-            Executor::WorkerPool => {
-                let wg = WaitGroup::new();
-                let _wg_clone = wg.guard();
-                let (rx, _tx) = std::sync::mpsc::channel();
-                let work_result = WorkResult::new(_tx);
-                rayon::spawn_fifo(move || {
-                    let res = f();
-                    rx.send(res).unwrap();
-                });
-
-                work_result
-            }
         }
     }
 

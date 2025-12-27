@@ -1,4 +1,3 @@
-use crate::PanelId;
 use crate::chart::RollingChart;
 use crate::widgets::num_pairs;
 use radiate_engines::stats::TagKind;
@@ -8,9 +7,15 @@ use radiate_engines::{
 use ratatui::widgets::{ListState, ScrollbarState, TableState};
 use std::time::{Duration, Instant};
 
-pub(crate) mod chart;
+pub mod chart;
+pub use chart::{ChartState, ChartType};
 
-pub(crate) use chart::{ChartState, ChartType};
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum PanelId {
+    Filters,
+    Metrics,
+    Help,
+}
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct RunningState {
@@ -24,6 +29,8 @@ pub struct DisplayState {
     pub show_mini_chart: bool,
     pub show_mini_chart_mean: bool,
     pub show_help: bool,
+    pub focus_panel: PanelId,
+    pub modal_panel: Option<PanelId>,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Default)]
@@ -61,7 +68,6 @@ pub struct AppState<C: Chromosome> {
     pub render_interval: Duration,
     pub chart_state: ChartState,
     pub metrics_tab: MetricsTab,
-    pub panel_tab: PanelId,
 
     pub running: RunningState,
     pub display: DisplayState,
@@ -106,20 +112,22 @@ impl<C: Chromosome> AppState<C> {
         self.display.show_mini_chart_mean = !self.display.show_mini_chart_mean;
     }
 
-    pub fn toggle_show_tag_filters(&mut self) -> bool {
+    pub fn toggle_show_tag_filters(&mut self) {
         self.display.show_tag_filters = !self.display.show_tag_filters;
         if !self.display.show_tag_filters {
-            self.panel_tab = PanelId::Metrics;
+            self.display.focus_panel = PanelId::Metrics;
         } else {
-            self.panel_tab = PanelId::Filters;
+            self.display.focus_panel = PanelId::Filters;
         }
-
-        self.display.show_tag_filters
     }
 
-    pub fn toggle_help(&mut self) -> bool {
+    pub fn toggle_help(&mut self) {
         self.display.show_help = !self.display.show_help;
-        self.display.show_help
+        if self.display.show_help {
+            self.display.modal_panel = Some(PanelId::Help);
+        } else {
+            self.display.modal_panel = None;
+        }
     }
 
     pub fn expand_objective_pairs(&mut self) {
@@ -127,7 +135,7 @@ impl<C: Chromosome> AppState<C> {
             .objective_state
             .charts_visible
             .saturating_add(1)
-            .min(num_pairs(self.objective_state.objective.dimensions()));
+            .min(num_pairs(self.objective_state.objective.dims()));
     }
 
     pub fn shrink_objective_pairs(&mut self) {
@@ -139,6 +147,7 @@ impl<C: Chromosome> AppState<C> {
     pub fn clear_filters(&mut self) {
         if self.display.show_help {
             self.display.show_help = false;
+            self.display.modal_panel = None;
         }
 
         if !self.display.show_tag_filters {
@@ -150,7 +159,7 @@ impl<C: Chromosome> AppState<C> {
 
     pub fn next_objective_pair_page(&mut self) {
         let step = self.objective_state.charts_visible.max(1);
-        let total = num_pairs(self.objective_state.objective.dimensions());
+        let total = num_pairs(self.objective_state.objective.dims());
         let current = self.objective_state.chart_start_index;
         if current + step < total {
             self.objective_state.chart_start_index += step;
@@ -240,7 +249,7 @@ impl<C: Chromosome> AppState<C> {
     }
 
     pub fn move_selection_down(&mut self) {
-        if self.panel_tab == PanelId::Filters {
+        if self.display.focus_panel == PanelId::Filters {
             if self.filter_state.all_tags.is_empty() {
                 return;
             }
@@ -277,7 +286,7 @@ impl<C: Chromosome> AppState<C> {
     }
 
     pub fn move_selection_up(&mut self) {
-        if self.panel_tab == PanelId::Filters {
+        if self.display.focus_panel == PanelId::Filters {
             if self.filter_state.all_tags.is_empty() {
                 return;
             }
@@ -320,7 +329,7 @@ impl<C: Chromosome> AppState<C> {
     }
 
     pub fn toggle_tag_filter_selection(&mut self) {
-        if self.panel_tab != PanelId::Filters {
+        if self.display.focus_panel != PanelId::Filters {
             return;
         }
 
@@ -345,7 +354,6 @@ impl<C: Chromosome> Default for AppState<C> {
             render_interval: Duration::from_millis(500),
             chart_state: ChartState::new(),
             metrics_tab: MetricsTab::Stats,
-            panel_tab: PanelId::Metrics,
 
             running: RunningState {
                 engine: false,
@@ -357,6 +365,8 @@ impl<C: Chromosome> Default for AppState<C> {
                 show_mini_chart: true,
                 show_mini_chart_mean: false,
                 show_help: false,
+                focus_panel: PanelId::Metrics,
+                modal_panel: None,
             },
 
             objective_state: ObjectiveState {

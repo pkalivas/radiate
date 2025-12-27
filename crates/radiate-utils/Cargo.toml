@@ -17,9 +17,11 @@ compact_str = { workspace = true, features = ["serde"] }
 slotmap = { workspace = true }
 foldhash = { workspace = true }
 hashbrown = { workspace = true }
+smallvec = { workspace = true, optional = true }
 serde = { workspace = true, optional = true }
 
 
 [features]
 default = []
 serde = ["dep:serde"]
+smallvec = ["dep:smallvec"]

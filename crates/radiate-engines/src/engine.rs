@@ -99,7 +99,9 @@ where
     /// will create a new instance.
     pub fn control(&mut self) -> EngineControl {
         if self.control.is_none() {
-            self.control = Some(EngineControl::new());
+            let (one, two) = EngineControl::pair();
+            self.control = Some(one);
+            return two;
         }
 
         self.control.as_ref().unwrap().clone()

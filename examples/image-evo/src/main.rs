@@ -42,7 +42,7 @@ fn main() {
         .last()
         .unwrap();
 
-    // println!("{}", result.metrics());
+    println!("{}", result.metrics().dashboard());
 
     result
         .value()

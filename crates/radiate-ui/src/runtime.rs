@@ -87,21 +87,20 @@ where
             return Ok(current);
         }
 
-        let send_result = if current.index() == 1 {
+        if current.index() == 1 {
             self.dispatcher
                 .send(InputEvent::EngineStart(current.objective().clone()))
-        } else {
-            self.dispatcher.send(InputEvent::EpochComplete(
+                .unwrap();
+        }
+
+        self.dispatcher
+            .send(InputEvent::EpochComplete(
                 current.index(),
                 current.metrics().clone(),
                 current.score().clone(),
                 current.front().cloned(),
             ))
-        };
-
-        if let Err(e) = send_result {
-            eprintln!("Error sending event to UI: {}", e);
-        }
+            .unwrap();
 
         Ok(current)
     }

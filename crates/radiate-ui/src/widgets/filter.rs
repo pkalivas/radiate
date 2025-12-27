@@ -1,5 +1,5 @@
-use crate::{state::AppState, styles::SELECTED_GREEN};
-use radiate_engines::{Chromosome, stats::TagKind};
+use crate::{state::AppFilterState, styles::SELECTED_GREEN};
+use radiate_engines::stats::TagKind;
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
@@ -8,28 +8,27 @@ use ratatui::{
     widgets::{List, ListItem, StatefulWidget, Widget},
 };
 
-pub struct FilterWidget<'a, C: Chromosome> {
-    state: &'a mut AppState<C>,
+pub struct FilterWidget<'a> {
+    state: &'a mut AppFilterState,
 }
 
-impl<'a, C: Chromosome> FilterWidget<'a, C> {
-    pub fn new(state: &'a mut AppState<C>) -> Self {
+impl<'a> FilterWidget<'a> {
+    pub fn new(state: &'a mut AppFilterState) -> Self {
         Self { state }
     }
 }
 
-impl<'a, C: Chromosome> Widget for FilterWidget<'a, C> {
+impl<'a> Widget for FilterWidget<'a> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let tags = self
             .state
-            .filter_state
             .all_tags
             .iter()
             .filter(|tag| *(*tag) != TagKind::Statistic && *(*tag) != TagKind::Time)
             .enumerate()
             .map(|(i, tag)| {
-                if self.state.filter_state.tag_view.contains(&i) {
-                    if i == self.state.filter_state.selected_row {
+                if self.state.tag_view.contains(&i) {
+                    if i == self.state.selected_row {
                         return ListItem::new(Span::styled(
                             format!("> X {}", TagKind::as_str(tag)),
                             Style::default()
@@ -50,7 +49,7 @@ impl<'a, C: Chromosome> Widget for FilterWidget<'a, C> {
                         return ListItem::new(Line::from(spans));
                     }
                 } else {
-                    if i == self.state.filter_state.selected_row {
+                    if i == self.state.selected_row {
                         return ListItem::new(Span::styled(
                             format!("> - {}", TagKind::as_str(tag)),
                             Style::default()
@@ -71,7 +70,7 @@ impl<'a, C: Chromosome> Widget for FilterWidget<'a, C> {
             List::new(tags),
             area,
             buf,
-            &mut self.state.filter_state.tag_list_filter_state,
+            &mut self.state.tag_list_filter_state,
         );
     }
 }

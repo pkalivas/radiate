@@ -1,13 +1,11 @@
-mod arena;
+mod buff;
 mod fmt;
 mod intern;
 mod lru;
 mod regex;
-#[allow(dead_code)]
-mod registry;
 mod str;
 
-pub use arena::{Arena, ArenaKey};
+pub use buff::{SortedBuffer, WindowBuffer};
 pub use fmt::{ToSnakeCase, intern_name_as_snake_case};
 pub use lru::LruCache;
 pub use regex::{RegexCache, compile_regex, with_regex_cache};

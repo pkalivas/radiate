@@ -479,9 +479,9 @@ impl PyEngineBuilder {
                 .bus_executor(Executor::default());
 
             if is_batch {
-                Tree(base_engine.batch_fitness_fn(regression))
+                Tree(base_engine.raw_batch_fitness_fn(regression))
             } else {
-                Tree(base_engine.fitness_fn(regression))
+                Tree(base_engine.raw_fitness_fn(regression))
             }
         } else {
             radiate_py_bail!("Only Graph or Tree codecs are supported for regression problems");
