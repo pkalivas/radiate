@@ -144,7 +144,7 @@ const MIN_NUM_PARENTS: usize = 2;
 ///
 /// In a genetic algorithm, crossover is a genetic operator used to vary the
 /// programming of a chromosome or chromosomes from one generation to the next.
-/// It is analogous to reproduction and biological crossover, upon which genetic algorithms are based.
+/// It is analogous to reproduction and biological crossover.
 ///
 /// A [Crossover] typically takes two parent [Chromosome]s and produces two or more offspring [Chromosome]s.
 /// This trait allows you to define your own crossover operation on either the entire population

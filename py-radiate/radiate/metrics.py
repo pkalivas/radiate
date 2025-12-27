@@ -1,10 +1,33 @@
 from __future__ import annotations
 
+import enum
 from datetime import timedelta
 
-from radiate.radiate import PyMetricSet, PyMetric
+from radiate.radiate import PyMetricSet, PyMetric, PyTagKind
 from radiate.wrapper import PyObject
 from radiate.dependancies import _PANDAS_AVAILABLE, _POLARS_AVAILABLE
+
+
+class Tag(enum.Enum):
+    """Enumeration of metric tag kinds."""
+
+    SELECTOR = PyTagKind.Selector
+    ALTERER = PyTagKind.Alterer
+    MUTATOR = PyTagKind.Mutator
+    CROSSOVER = PyTagKind.Crossover
+    SPECIES = PyTagKind.Species
+    FAILURE = PyTagKind.Failure
+    AGE = PyTagKind.Age
+    FRONT = PyTagKind.Front
+    DERIVED = PyTagKind.Derived
+    OTHER = PyTagKind.Other
+    STATISTIC = PyTagKind.Statistic
+    TIME = PyTagKind.Time
+    DISTRIBUTION = PyTagKind.Distribution
+    SCORE = PyTagKind.Score
+
+    def __repr__(self) -> str:
+        return f"Tag.{self.name}"
 
 
 class MetricSet(PyObject[PyMetricSet]):
@@ -28,6 +51,14 @@ class MetricSet(PyObject[PyMetricSet]):
 
     def keys(self) -> list[str]:
         return self.__backend__().keys()
+
+    def values(self) -> list[Metric]:
+        return [Metric.from_rust(m) for m in self.__backend__().values()]
+
+    def values_by_tag(self, tag: Tag) -> list[Metric]:
+        return [
+            Metric.from_rust(m) for m in self.__backend__().values_by_tag(tag.value)
+        ]
 
     def to_polars(self):
         if not _POLARS_AVAILABLE:

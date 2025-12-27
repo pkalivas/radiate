@@ -88,6 +88,30 @@ where
     }
 }
 
+impl<T, V> EvalInto<[V], [V]> for &[&TreeNode<T>]
+where
+    T: Eval<[V], V>,
+    V: Clone,
+{
+    #[inline]
+    fn eval_into(&self, input: &[V], buffer: &mut [V]) {
+        for (i, node) in self.iter().enumerate() {
+            buffer[i] = node.eval(input);
+        }
+    }
+}
+
+impl<T, V> Eval<[V], V> for TreeNode<T>
+where
+    T: Eval<[V], V>,
+    V: Clone,
+{
+    #[inline]
+    fn eval(&self, input: &[V]) -> V {
+        (&self).eval(input)
+    }
+}
+
 /// Implements the [Eval] trait for `TreeNode<T>` where `T` is `Eval<[V], V>`. This is where the real work is done.
 /// It recursively evaluates the [TreeNode] and its children until it reaches a leaf node,
 /// at which point it applies the `T`'s eval fn to the input.
@@ -95,7 +119,7 @@ where
 /// Because a [Tree] has only a single root node, this can only be used to return a single value.
 /// We assume here that each leaf can eval the incoming input - this is a safe and the
 /// only real logical assumption we can make.
-impl<T, V> Eval<[V], V> for TreeNode<T>
+impl<T, V> Eval<[V], V> for &TreeNode<T>
 where
     T: Eval<[V], V>,
     V: Clone,

@@ -17,8 +17,9 @@
 //! 3) On invalid commit, use returned `replay` to re-apply later with `replay(...)`
 
 use super::{Direction, Graph, GraphNode};
-use crate::{Arity, NodeType, collections::buffer::SortedBuffer, node::Node};
+use crate::{Arity, NodeType, node::Node};
 use radiate_core::{RdRand, Valid};
+use radiate_utils::SortedBuffer;
 use std::{fmt::Debug, ops::Deref};
 
 const SOURCE_NODE_TYPES: &[NodeType] = &[NodeType::Input, NodeType::Vertex, NodeType::Edge];

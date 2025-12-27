@@ -104,6 +104,8 @@ where
     }
 }
 
+/// --- Blanket Implementations ---
+///
 /// Below are blanket implementations for closures to make it easy to use them
 /// wherever an [Eval] or [EvalInto] is required.
 impl<F, I, O> EvalInto<I, O> for F

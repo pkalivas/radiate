@@ -16,6 +16,7 @@ pub mod metric_names {
     pub const FRONT_REMOVALS: &str = "front_removals";
     pub const FRONT_COMPARISONS: &str = "front_comparisons";
     pub const FRONT_SIZE: &str = "front_size";
+    pub const FRONT_FILTERS: &str = "front_filters";
 
     pub const UNIQUE_MEMBERS: &str = "unique_members";
     pub const UNIQUE_SCORES: &str = "unique_scores";
@@ -64,19 +65,25 @@ pub mod metric_tags {
     pub const STATISTIC: &str = "statistic";
     pub const TIME: &str = "time";
     pub const DISTRIBUTION: &str = "distribution";
+
+    pub const SCORE: &str = "score";
 }
 
 const RULES: &[(&str, &[TagKind])] = &[
-    ("selector", &[TagKind::Selector]),
-    ("mutator", &[TagKind::Alterer, TagKind::Mutator]),
-    ("crossover", &[TagKind::Alterer, TagKind::Crossover]),
-    ("alterer", &[TagKind::Alterer]),
-    ("species", &[TagKind::Species]),
-    ("failure", &[TagKind::Failure]),
-    ("age", &[TagKind::Age]),
-    ("front", &[TagKind::Front]),
-    ("derived", &[TagKind::Derived]),
-    ("other", &[TagKind::Other]),
+    (metric_tags::SELECTOR, &[TagKind::Selector]),
+    (metric_tags::MUTATOR, &[TagKind::Alterer, TagKind::Mutator]),
+    (
+        metric_tags::CROSSOVER,
+        &[TagKind::Alterer, TagKind::Crossover],
+    ),
+    (metric_tags::ALTERER, &[TagKind::Alterer]),
+    (metric_tags::SPECIES, &[TagKind::Species]),
+    (metric_tags::FAILURE, &[TagKind::Failure]),
+    (metric_tags::AGE, &[TagKind::Age]),
+    (metric_tags::FRONT, &[TagKind::Front]),
+    (metric_tags::DERIVED, &[TagKind::Derived]),
+    (metric_tags::OTHER, &[TagKind::Other]),
+    (metric_tags::SCORE, &[TagKind::Score]),
 ];
 
 pub fn default_tags(name: &str) -> Tag {
@@ -95,6 +102,7 @@ pub fn default_tags(name: &str) -> Tag {
         | metric_names::FRONT_REMOVALS
         | metric_names::FRONT_COMPARISONS
         | metric_names::FRONT_ENTROPY
+        | metric_names::FRONT_FILTERS
         | metric_names::FRONT_SIZE => {
             mask.insert(TagKind::Front);
         }
@@ -117,6 +125,10 @@ pub fn default_tags(name: &str) -> Tag {
         | metric_names::DIVERSITY_RATIO
         | metric_names::SCORE_VOLATILITY => {
             mask.insert(TagKind::Derived);
+        }
+
+        metric_names::SCORES => {
+            mask.insert(TagKind::Score);
         }
 
         _ => {}

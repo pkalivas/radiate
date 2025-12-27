@@ -9,6 +9,8 @@ pub struct FrontAddResult {
     pub added_count: usize,
     pub removed_count: usize,
     pub comparisons: usize,
+    pub filter_count: usize,
+    pub size: usize,
 }
 
 /// A `Front<T>` is a collection of `T`'s that are non-dominated with respect to each other.
@@ -82,7 +84,7 @@ where
         Some(pareto::entropy(&scores, DEFAULT_ENTROPY_BINS))
     }
 
-    pub fn add_all(&mut self, items: &[T]) -> FrontAddResult
+    pub fn add_all(&mut self, items: Vec<T>) -> FrontAddResult
     where
         T: Eq + Hash + Clone + Send + Sync + 'static,
     {
@@ -91,19 +93,19 @@ where
         let mut added_count = 0;
         let mut removed_count = 0;
         let mut comparisons = 0;
+        let mut filter_count = 0;
 
-        for i in 0..items.len() {
-            let new_member = &items[i];
+        for new_member in items.into_iter() {
             let mut is_dominated = true;
 
             for existing_val in self.values.iter() {
-                let equals = new_member == existing_val.as_ref();
-                if self.dom_cmp(existing_val.as_ref(), new_member) == Ordering::Greater || equals {
+                let equals = &new_member == existing_val.as_ref();
+                if self.dom_cmp(existing_val.as_ref(), &new_member) == Ordering::Greater || equals {
                     // If an existing value dominates the new value, return false
                     is_dominated = false;
                     comparisons += 1;
                     break;
-                } else if self.dom_cmp(new_member, existing_val.as_ref()) == Ordering::Greater {
+                } else if self.dom_cmp(&new_member, existing_val.as_ref()) == Ordering::Greater {
                     // If the new value dominates an existing value, continue checking
                     to_remove.push(Arc::clone(existing_val));
                     comparisons += 1;
@@ -113,7 +115,7 @@ where
 
             if is_dominated {
                 updated = true;
-                self.values.push(Arc::new(new_member.clone()));
+                self.values.push(Arc::new(new_member));
                 added_count += 1;
                 for rem in to_remove.drain(..) {
                     self.values.retain(|x| x.as_ref() != rem.as_ref());
@@ -123,6 +125,7 @@ where
 
             if updated && self.values.len() > self.range.end {
                 self.filter();
+                filter_count += 1;
             }
 
             to_remove.clear();
@@ -133,6 +136,8 @@ where
             added_count,
             removed_count,
             comparisons,
+            filter_count,
+            size: self.values.len(),
         }
     }
 

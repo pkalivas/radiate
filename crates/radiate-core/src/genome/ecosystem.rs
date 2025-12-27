@@ -136,8 +136,6 @@ impl<C: Chromosome> Ecosystem<C> {
     /// The member is reference cloned from the population and added to the species' population.
     /// Just like with the [Ecosystem]'s `clone_ref` method, this creates a shared reference so
     /// any modifications to the phenotype within the [Species] will be reflected in the main [Population].
-    ///
-    /// **Use with caution**
     pub fn add_species_member(&mut self, species_idx: usize, member_idx: usize)
     where
         C: Clone,

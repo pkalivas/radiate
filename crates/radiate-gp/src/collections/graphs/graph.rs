@@ -301,7 +301,7 @@ impl<T> Graph<T> {
         let mut on_stack = vec![false; n];
         let mut visited = vec![false; n];
         let mut cycles = vec![false; n];
-        let mut stack: Vec<usize> = Vec::with_capacity(n.min(64));
+        let mut stack = Vec::with_capacity(n.min(64));
 
         fn dfs<T>(
             g: &Graph<T>,

@@ -1,8 +1,6 @@
 use super::{DataSet, Loss};
-use crate::{Graph, GraphChromosome, GraphCodec, GraphEvaluator, Op, Tree, eval::EvalIntoMut};
-use radiate_core::{
-    BatchFitnessFunction, Codec, Genotype, Problem, RadiateError, Score, fitness::FitnessFunction,
-};
+use crate::{Graph, GraphChromosome, GraphEvaluator, Op, Tree, TreeChromosome, eval::EvalIntoMut};
+use radiate_core::{BatchFitnessFunction, Genotype, fitness::FitnessFunction};
 use std::cell::RefCell;
 
 thread_local! {
@@ -31,6 +29,7 @@ impl Regression {
         let out_len = self.data_set.shape().2;
         LOSS_BUFFER.with(|cell| {
             let mut buf = cell.borrow_mut();
+
             if buf.len() < out_len {
                 buf.resize(out_len, 0.0);
             }
@@ -43,6 +42,7 @@ impl Regression {
     }
 }
 
+/// --- Graphs ---
 impl<'a> FitnessFunction<&'a Genotype<GraphChromosome<Op<f32>>>, f32> for Regression {
     #[inline]
     fn evaluate(&self, input: &'a Genotype<GraphChromosome<Op<f32>>>) -> f32 {
@@ -56,20 +56,6 @@ impl FitnessFunction<Graph<Op<f32>>, f32> for Regression {
     fn evaluate(&self, input: Graph<Op<f32>>) -> f32 {
         let mut evaluator = GraphEvaluator::new(&input);
         self.calc_into_buff_mut(&mut evaluator)
-    }
-}
-
-impl FitnessFunction<Tree<Op<f32>>, f32> for Regression {
-    #[inline]
-    fn evaluate(&self, mut input: Tree<Op<f32>>) -> f32 {
-        self.calc_into_buff_mut(&mut input)
-    }
-}
-
-impl FitnessFunction<Vec<Tree<Op<f32>>>, f32> for Regression {
-    #[inline]
-    fn evaluate(&self, mut input: Vec<Tree<Op<f32>>>) -> f32 {
-        self.calc_into_buff_mut(&mut input)
     }
 }
 
@@ -99,6 +85,21 @@ impl<'a> BatchFitnessFunction<&'a Genotype<GraphChromosome<Op<f32>>>, f32> for R
     }
 }
 
+/// --- Trees ---
+impl FitnessFunction<Tree<Op<f32>>, f32> for Regression {
+    #[inline]
+    fn evaluate(&self, mut input: Tree<Op<f32>>) -> f32 {
+        self.calc_into_buff_mut(&mut input)
+    }
+}
+
+impl FitnessFunction<Vec<Tree<Op<f32>>>, f32> for Regression {
+    #[inline]
+    fn evaluate(&self, mut input: Vec<Tree<Op<f32>>>) -> f32 {
+        self.calc_into_buff_mut(&mut input)
+    }
+}
+
 impl BatchFitnessFunction<Tree<Op<f32>>, f32> for Regression {
     #[inline]
     fn evaluate(&self, mut inputs: Vec<Tree<Op<f32>>>) -> Vec<f32> {
@@ -123,42 +124,23 @@ impl BatchFitnessFunction<Vec<Tree<Op<f32>>>, f32> for Regression {
     }
 }
 
-impl Problem<GraphChromosome<Op<f32>>, Graph<Op<f32>>> for (Regression, GraphCodec<Op<f32>>) {
-    fn encode(&self) -> Genotype<GraphChromosome<Op<f32>>> {
-        self.1.encode()
+impl<'a> FitnessFunction<&'a Genotype<TreeChromosome<Op<f32>>>, f32> for Regression {
+    #[inline]
+    fn evaluate(&self, input: &'a Genotype<TreeChromosome<Op<f32>>>) -> f32 {
+        let roots = input.iter().map(|c| c.root()).collect::<Vec<_>>();
+        self.calc_into_buff_mut(&mut roots.as_slice())
     }
+}
 
-    fn decode(&self, genotype: &Genotype<GraphChromosome<Op<f32>>>) -> Graph<Op<f32>> {
-        self.1.decode(genotype)
-    }
-
-    fn eval(&self, individual: &Genotype<GraphChromosome<Op<f32>>>) -> Result<Score, RadiateError> {
-        if individual.len() != 1 {
-            return Err(RadiateError::Evaluation(
-                "Expected genotype with a single individual.".to_string(),
-            ));
+impl<'a> BatchFitnessFunction<&'a Genotype<TreeChromosome<Op<f32>>>, f32> for Regression {
+    #[inline]
+    fn evaluate(&self, inputs: Vec<&'a Genotype<TreeChromosome<Op<f32>>>>) -> Vec<f32> {
+        let mut results = Vec::with_capacity(inputs.len());
+        for input in inputs {
+            let roots = input.iter().map(|c| c.root()).collect::<Vec<_>>();
+            results.push(self.calc_into_buff_mut(&mut roots.as_slice()));
         }
 
-        let mut evaluator = GraphEvaluator::new(&individual[0]);
-        Ok(Score::from(self.0.calc_into_buff_mut(&mut evaluator)))
-    }
-
-    fn eval_batch(
-        &self,
-        individuals: &[Genotype<GraphChromosome<Op<f32>>>],
-    ) -> Result<Vec<Score>, RadiateError> {
-        let mut results = Vec::with_capacity(individuals.len());
-        for individual in individuals {
-            if individual.len() != 1 {
-                return Err(RadiateError::Evaluation(
-                    "Expected genotype with a single individual.".to_string(),
-                ));
-            }
-
-            let mut evaluator = GraphEvaluator::new(&individual[0]);
-            results.push(Score::from(self.0.calc_into_buff_mut(&mut evaluator)));
-        }
-
-        Ok(results)
+        results
     }
 }

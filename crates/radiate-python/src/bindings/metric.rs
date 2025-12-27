@@ -4,8 +4,49 @@ use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use pyo3::{IntoPyObject, PyErr, PyResult, Python};
 use pyo3::{pyclass, pymethods};
+use radiate::stats::TagKind;
 use radiate::{Metric, MetricSet};
 use serde::{Deserialize, Serialize};
+
+#[pyclass]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum PyTagKind {
+    Selector,
+    Alterer,
+    Mutator,
+    Crossover,
+    Species,
+    Failure,
+    Age,
+    Front,
+    Derived,
+    Other,
+    Statistic,
+    Time,
+    Distribution,
+    Score,
+}
+
+impl Into<TagKind> for PyTagKind {
+    fn into(self) -> TagKind {
+        match self {
+            PyTagKind::Selector => TagKind::Selector,
+            PyTagKind::Alterer => TagKind::Alterer,
+            PyTagKind::Mutator => TagKind::Mutator,
+            PyTagKind::Crossover => TagKind::Crossover,
+            PyTagKind::Species => TagKind::Species,
+            PyTagKind::Failure => TagKind::Failure,
+            PyTagKind::Age => TagKind::Age,
+            PyTagKind::Front => TagKind::Front,
+            PyTagKind::Derived => TagKind::Derived,
+            PyTagKind::Other => TagKind::Other,
+            PyTagKind::Statistic => TagKind::Statistic,
+            PyTagKind::Time => TagKind::Time,
+            PyTagKind::Distribution => TagKind::Distribution,
+            PyTagKind::Score => TagKind::Score,
+        }
+    }
+}
 
 #[pyclass]
 #[derive(Clone, Deserialize, Serialize)]
@@ -76,6 +117,19 @@ impl PyMetricSet {
 
     pub fn keys(&self) -> Vec<&'static str> {
         self.inner.keys()
+    }
+
+    pub fn values_by_tag<'py>(
+        &self,
+        py: Python<'py>,
+        tag: PyTagKind,
+    ) -> PyResult<Vec<Bound<'py, PyMetric>>> {
+        let mut vec = Vec::new();
+        for metric in self.inner.iter_tagged(tag.into()) {
+            vec.push(Wrap(metric.1).into_pyobject(py)?);
+        }
+
+        Ok(vec)
     }
 
     pub fn values<'py>(&self, py: Python<'py>) -> PyResult<Vec<Bound<'py, PyMetric>>> {
