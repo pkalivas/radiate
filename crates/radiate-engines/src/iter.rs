@@ -74,7 +74,7 @@ pub struct EngineIterator<E>
 where
     E: Engine,
 {
-    pub(crate) engine: E,
+    engine: E,
     control: Option<EngineControl>,
 }
 

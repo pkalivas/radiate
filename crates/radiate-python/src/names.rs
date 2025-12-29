@@ -48,14 +48,14 @@ pub(crate) const POLYNOMIAL_MUTATOR: &str = "PolynomialMutator";
 pub(crate) const JITTER_MUTATOR: &str = "JitterMutator";
 
 // Events
-pub const START_EVENT: &str = "start_event";
-pub const STOP_EVENT: &str = "stop_event";
-pub const EPOCH_START_EVENT: &str = "epoch_start_event";
-pub const EPOCH_COMPLETE_EVENT: &str = "epoch_complete_event";
-pub const ENGINE_IMPROVEMENT_EVENT: &str = "engine_improvement_event";
+pub(crate) const START_EVENT: &str = "start_event";
+pub(crate) const STOP_EVENT: &str = "stop_event";
+pub(crate) const EPOCH_START_EVENT: &str = "epoch_start_event";
+pub(crate) const EPOCH_COMPLETE_EVENT: &str = "epoch_complete_event";
+pub(crate) const ENGINE_IMPROVEMENT_EVENT: &str = "engine_improvement_event";
 
 // Loss Functions
-pub const MSE_LOSS: &str = "mse";
-pub const MAE_LOSS: &str = "mae";
-pub const CROSS_ENTROPY_LOSS: &str = "cross_entropy";
-pub const DIFF_LOSS: &str = "diff";
+pub(crate) const MSE_LOSS: &str = "mse";
+pub(crate) const MAE_LOSS: &str = "mae";
+pub(crate) const CROSS_ENTROPY_LOSS: &str = "cross_entropy";
+pub(crate) const DIFF_LOSS: &str = "diff";

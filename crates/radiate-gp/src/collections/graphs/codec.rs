@@ -8,24 +8,18 @@ pub struct GraphCodec<T> {
     template: GraphChromosome<T>,
 }
 
-impl<T> GraphCodec<T> {
+impl<T: Clone + Default> GraphCodec<T> {
     pub fn new(
         template: impl IntoIterator<Item = GraphNode<T>>,
         store: impl Into<NodeStore<T>>,
-    ) -> Self
-    where
-        T: Clone + Default,
-    {
+    ) -> Self {
         GraphCodec {
             store: store.into(),
             template: template.into_iter().collect(),
         }
     }
 
-    pub fn directed(input_size: usize, output_size: usize, store: impl Into<NodeStore<T>>) -> Self
-    where
-        T: Clone + Default,
-    {
+    pub fn directed(input_size: usize, output_size: usize, store: impl Into<NodeStore<T>>) -> Self {
         let new_store = store.into();
 
         GraphCodec {
@@ -36,10 +30,11 @@ impl<T> GraphCodec<T> {
         }
     }
 
-    pub fn recurrent(input_size: usize, output_size: usize, store: impl Into<NodeStore<T>>) -> Self
-    where
-        T: Clone + Default,
-    {
+    pub fn recurrent(
+        input_size: usize,
+        output_size: usize,
+        store: impl Into<NodeStore<T>>,
+    ) -> Self {
         let new_store = store.into();
 
         GraphCodec {
@@ -54,10 +49,7 @@ impl<T> GraphCodec<T> {
         input_size: usize,
         output_size: usize,
         store: impl Into<NodeStore<T>>,
-    ) -> Self
-    where
-        T: Clone + Default,
-    {
+    ) -> Self {
         let new_store = store.into();
 
         GraphCodec {
@@ -72,10 +64,7 @@ impl<T> GraphCodec<T> {
         input_size: usize,
         output_size: usize,
         store: impl Into<NodeStore<T>>,
-    ) -> Self
-    where
-        T: Clone + Default,
-    {
+    ) -> Self {
         let new_store = store.into();
 
         GraphCodec {
@@ -86,10 +75,7 @@ impl<T> GraphCodec<T> {
         }
     }
 
-    pub fn lstm(input_size: usize, output_size: usize, store: impl Into<NodeStore<T>>) -> Self
-    where
-        T: Clone + Default,
-    {
+    pub fn lstm(input_size: usize, output_size: usize, store: impl Into<NodeStore<T>>) -> Self {
         let new_store = store.into();
 
         GraphCodec {
@@ -100,10 +86,7 @@ impl<T> GraphCodec<T> {
         }
     }
 
-    pub fn gru(input_size: usize, output_size: usize, store: impl Into<NodeStore<T>>) -> Self
-    where
-        T: Clone + Default,
-    {
+    pub fn gru(input_size: usize, output_size: usize, store: impl Into<NodeStore<T>>) -> Self {
         let new_store = store.into();
 
         GraphCodec {
@@ -120,10 +103,7 @@ impl<T> GraphCodec<T> {
         rows: usize,
         cols: usize,
         store: impl Into<NodeStore<T>>,
-    ) -> Self
-    where
-        T: Clone + Default,
-    {
+    ) -> Self {
         let new_store = store.into();
 
         GraphCodec {
