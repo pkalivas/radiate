@@ -1,5 +1,5 @@
 use super::TreeChromosome;
-use radiate_core::{AlterResult, Mutate, Rate, random_provider};
+use radiate_core::{AlterResult, Mutate, Rate, Valid, random_provider};
 
 #[derive(Clone, Debug)]
 pub struct HoistMutator {
@@ -9,9 +9,9 @@ pub struct HoistMutator {
 impl HoistMutator {
     pub fn new(rate: impl Into<Rate>) -> Self {
         let rate = rate.into();
-        // if !(0.0..=1.0).contains(&rate.0) {
-        //     panic!("rate must be between 0.0 and 1.0");
-        // }
+        if !rate.is_valid() {
+            panic!("rate {:?} is not valid", rate);
+        }
 
         HoistMutator { rate }
     }
