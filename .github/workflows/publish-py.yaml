@@ -2,7 +2,8 @@ name: publish
 
 on:
   push:
-    tags: [ 'NO_OPT' ]
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
       os:
@@ -98,7 +99,6 @@ jobs:
           set -e
           uv python install "${{ matrix.py }}" || true
           uv python list --only-installed
-          
       - name: Select interpreter and flags
         id: envsel
         if: ${{ env.MATCH }}
@@ -107,7 +107,6 @@ jobs:
           set -e
           
           PY_TAG="${{ matrix.py }}"
-
           if [[ "$PY_TAG" == *t* ]]; then
             PY="$(uv python find "$PY_TAG" 2>/dev/null || true)"
             FLAGS=""
@@ -115,16 +114,13 @@ jobs:
             PY="$(which python)"
             FLAGS=""
           fi
-
           if [[ -z "$PY" ]]; then
             echo "skip=1" >> $GITHUB_OUTPUT
             exit 0
           fi
-
           echo "skip=0"       >> $GITHUB_OUTPUT
           echo "py=$PY"       >> $GITHUB_OUTPUT
           echo "flags=$FLAGS" >> $GITHUB_OUTPUT
-
       - name: Build wheel (Linux)
         if: ${{ env.MATCH == 'true' && runner.os == 'Linux' && steps.envsel.outputs.skip == '0' }}
         uses: PyO3/maturin-action@v1
@@ -142,7 +138,7 @@ jobs:
           manylinux: auto
 
       - name: Build wheel (macOS/Windows)
-        if: env.MATCH && runner.os != 'Linux' && steps.envsel.outputs.skip == '0'
+        if: ${{ env.MATCH == 'true' && runner.os != 'Linux' && steps.envsel.outputs.skip == '0' }}
         uses: PyO3/maturin-action@v1
         env:
           PYO3_PYTHON: ${{ steps.envsel.outputs.py }}
@@ -154,7 +150,6 @@ jobs:
             -m py-radiate/Cargo.toml
             -o dist
             ${{ steps.envsel.outputs.flags }}
-
       - uses: actions/upload-artifact@v4
         if: always()
         with:
