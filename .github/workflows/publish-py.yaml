@@ -333,8 +333,8 @@ jobs:
         platform:
           - runner: macos-13
             target: x86_64
-          # - runner: macos-14
-          #   target: aarch64
+          - runner: macos-14
+            target: aarch64
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
