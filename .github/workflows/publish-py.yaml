@@ -202,7 +202,7 @@ permissions:
 
 # Monorepo: py-radiate lives here
 env:
-  PY_RADIATE_DIR: radiate/py-radiate
+  PY_RADIATE_DIR: py-radiate
 
 jobs:
   linux:
