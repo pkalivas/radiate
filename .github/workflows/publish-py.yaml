@@ -1,171 +1,395 @@
+# name: publish
+
+# on:
+#   push:
+#     tags:
+#       - 'NO_OPT*'
+#   workflow_dispatch:
+#     inputs:
+#       os:
+#         description: "Limit to one OS (ubuntu-latest|macos-13|macos-15|windows-latest)"
+#         required: false
+#         default: ""
+#       arch:
+#         description: "Limit to one arch (x86_64|aarch64|arm64|x64)"
+#         required: false
+#         default: ""
+#       py:
+#         description: "Limit to one Python (e.g. 3.12 or 3.13t)"
+#         required: false
+#         default: ""
+
+# permissions:
+#   contents: read
+#   id-token: write
+
+# env:
+#   CARGO_INCREMENTAL: 0
+#   CARGO_NET_RETRY: 10
+#   RUSTUP_MAX_RETRIES: 10
+
+# jobs:
+#   sdist:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v4
+#       - uses: actions/setup-python@v5
+#         with: { python-version: '3.12' }
+#       - uses: astral-sh/setup-uv@v6
+#       - name: Build sdist
+#         run: |
+#           cd py-radiate
+#           uvx maturin sdist -o target-sdist
+#       - uses: actions/upload-artifact@v4
+#         with:
+#           name: sdist
+#           path: py-radiate/target-sdist/*.tar.gz
+
+#   wheels:
+#     continue-on-error: true 
+#     name: >-
+#       ${{ matrix.os }} • ${{ matrix.arch }} •
+#       ${{ contains(matrix.py, 't') && 'nogil' || 'gil' }}
+#     runs-on: ${{ matrix.os }}
+#     strategy:
+#       fail-fast: false
+#       matrix:
+#         include:
+#           # Linux
+#           - { os: ubuntu-latest, arch: x86_64,  py: '3.12' }
+#           - { os: ubuntu-latest, arch: aarch64, py: '3.12', target: aarch64-unknown-linux-gnu }
+#           - { os: ubuntu-latest, arch: x86_64,  py: '3.13t' }
+#           - { os: ubuntu-latest, arch: aarch64, py: '3.13t', target: aarch64-unknown-linux-gnu }
+
+#           # macOS
+#           - { os: macos-13, arch: x86_64, py: '3.12' }
+#           - { os: macos-15, arch: arm64,  py: '3.12' }
+#           - { os: macos-13, arch: x86_64, py: '3.13t' }
+#           - { os: macos-15, arch: arm64,  py: '3.13t' }
+
+#           # Windows
+#           - { os: windows-latest, arch: x64, py: '3.12' }
+#           - { os: windows-latest, arch: x64, py: '3.13t' }
+    
+#     env:
+#       MATCH: ${{ github.event_name != 'workflow_dispatch' || (
+#           (inputs.os   == '' || matrix.os   == inputs.os)   &&
+#           (inputs.arch == '' || matrix.arch == inputs.arch) &&
+#           (inputs.py   == '' || matrix.py   == inputs.py) 
+#         ) }}
+
+#     steps:
+#       - uses: actions/checkout@v4
+#         if: ${{ env.MATCH }}
+
+#       - uses: dtolnay/rust-toolchain@stable
+#         if: ${{ env.MATCH }}
+
+#       - uses: actions/setup-python@v5
+#         if: ${{ env.MATCH }}
+#         with: { python-version: '3.12' }
+
+#       - uses: astral-sh/setup-uv@v6
+#         if: ${{ env.MATCH }}
+
+#       - name: Ensure requested interpreter (best effort)
+#         if: ${{ env.MATCH }}
+#         shell: bash
+#         run: |
+#           set -e
+#           uv python install "${{ matrix.py }}" || true
+#           uv python list --only-installed
+
+#       - name: Select interpreter and flags
+#         id: envsel
+#         if: ${{ env.MATCH }}
+#         shell: bash
+#         run: |
+#           set -e
+          
+#           PY_TAG="${{ matrix.py }}"
+
+#           if [[ "$PY_TAG" == *t* ]]; then
+#             PY="$(uv python find "$PY_TAG" 2>/dev/null || true)"
+#             FLAGS=""
+#           else
+#             PY="$(which python)"
+#             FLAGS=""
+#           fi
+
+#           if [[ -z "$PY" ]]; then
+#             echo "skip=1" >> $GITHUB_OUTPUT
+#             exit 0
+#           fi
+
+#           echo "skip=0"       >> $GITHUB_OUTPUT
+#           echo "py=$PY"       >> $GITHUB_OUTPUT
+#           echo "flags=$FLAGS" >> $GITHUB_OUTPUT
+
+#       - name: Build wheel (Linux)
+#         if: ${{ env.MATCH == 'true' && runner.os == 'Linux' && steps.envsel.outputs.skip == '0' }}
+#         uses: PyO3/maturin-action@v1
+#         env:
+#           PYO3_PYTHON: ${{ steps.envsel.outputs.py }}
+#         with:
+#           maturin-version: '1.9.4'
+#           command: build
+#           args: >
+#             --release
+#             -m py-radiate/Cargo.toml
+#             -o dist
+#             ${{ steps.envsel.outputs.flags }}
+#             ${{ matrix.target && format('--target {0}', matrix.target) || '' }}
+#           manylinux: auto
+
+#       - name: Build wheel (macOS/Windows)
+#         if: ${{ env.MATCH == 'true' && runner.os != 'Linux' && steps.envsel.outputs.skip == '0' }}
+#         uses: PyO3/maturin-action@v1
+#         env:
+#           PYO3_PYTHON: ${{ steps.envsel.outputs.py }}
+#         with:
+#           maturin-version: '1.9.4'
+#           command: build
+#           args: >
+#             --release
+#             -m py-radiate/Cargo.toml
+#             -o dist
+#             ${{ steps.envsel.outputs.flags }}
+
+#       - uses: actions/upload-artifact@v4
+#         if: always()
+#         with:
+#           name: wheels-${{ matrix.os }}-${{ matrix.arch }}-${{ contains(matrix.py, 't') && 'nogil' || 'gil' }}
+#           path: dist/*.whl
+
+#   publish:
+#     needs: [ sdist, wheels ]
+#     runs-on: ubuntu-latest
+#     if: ${{ needs.sdist.result == 'success' }}
+#     environment:
+#       name: publish_pypi
+#     steps:
+#       - uses: actions/download-artifact@v4
+#         with:
+#           path: dist
+#           merge-multiple: true
+#       - run: ls -R dist
+#       - name: Publish (Trusted Publisher)
+#         uses: pypa/gh-action-pypi-publish@release/v1
+#         with:
+#           verbose: true
+#           skip-existing: true
+
+# This file is autogenerated by maturin v1.9.4
+# To update, run
+#
+#    maturin generate-ci github
+#
 name: publish
 
 on:
   push:
+    branches:
+      - main
+      - master
     tags:
-      - 'NO_OPT*'
+      - '*'
+  pull_request:
   workflow_dispatch:
-    inputs:
-      os:
-        description: "Limit to one OS (ubuntu-latest|macos-13|macos-15|windows-latest)"
-        required: false
-        default: ""
-      arch:
-        description: "Limit to one arch (x86_64|aarch64|arm64|x64)"
-        required: false
-        default: ""
-      py:
-        description: "Limit to one Python (e.g. 3.12 or 3.13t)"
-        required: false
-        default: ""
 
 permissions:
   contents: read
-  id-token: write
 
+# Monorepo: py-radiate lives here
 env:
-  CARGO_INCREMENTAL: 0
-  CARGO_NET_RETRY: 10
-  RUSTUP_MAX_RETRIES: 10
+  PY_RADIATE_DIR: radiate/py-radiate
 
 jobs:
+  linux:
+    runs-on: ${{ matrix.platform.runner }}
+    strategy:
+      matrix:
+        platform:
+          - runner: ubuntu-22.04
+            target: x86_64
+          - runner: ubuntu-22.04
+            target: x86
+          - runner: ubuntu-22.04
+            target: aarch64
+          - runner: ubuntu-22.04
+            target: armv7
+          - runner: ubuntu-22.04
+            target: s390x
+          - runner: ubuntu-22.04
+            target: ppc64le
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.x
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          working-directory: ${{ env.PY_RADIATE_DIR }}
+          target: ${{ matrix.platform.target }}
+          args: --release --out dist
+          sccache: ${{ !startsWith(github.ref, 'refs/tags/') }}
+          manylinux: auto
+      - name: Build free-threaded wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          working-directory: ${{ env.PY_RADIATE_DIR }}
+          target: ${{ matrix.platform.target }}
+          args: --release --out dist -i python3.13t
+          sccache: ${{ !startsWith(github.ref, 'refs/tags/') }}
+          manylinux: auto
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-linux-${{ matrix.platform.target }}
+          path: ${{ env.PY_RADIATE_DIR }}/dist
+
+  musllinux:
+    runs-on: ${{ matrix.platform.runner }}
+    strategy:
+      matrix:
+        platform:
+          - runner: ubuntu-22.04
+            target: x86_64
+          - runner: ubuntu-22.04
+            target: x86
+          - runner: ubuntu-22.04
+            target: aarch64
+          - runner: ubuntu-22.04
+            target: armv7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.x
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          working-directory: ${{ env.PY_RADIATE_DIR }}
+          target: ${{ matrix.platform.target }}
+          args: --release --out dist
+          sccache: ${{ !startsWith(github.ref, 'refs/tags/') }}
+          manylinux: musllinux_1_2
+      - name: Build free-threaded wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          working-directory: ${{ env.PY_RADIATE_DIR }}
+          target: ${{ matrix.platform.target }}
+          args: --release --out dist -i python3.13t
+          sccache: ${{ !startsWith(github.ref, 'refs/tags/') }}
+          manylinux: musllinux_1_2
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-musllinux-${{ matrix.platform.target }}
+          path: ${{ env.PY_RADIATE_DIR }}/dist
+
+  windows:
+    runs-on: ${{ matrix.platform.runner }}
+    strategy:
+      matrix:
+        platform:
+          - runner: windows-latest
+            target: x64
+          - runner: windows-latest
+            target: x86
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.x
+          architecture: ${{ matrix.platform.target }}
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          working-directory: ${{ env.PY_RADIATE_DIR }}
+          target: ${{ matrix.platform.target }}
+          args: --release --out dist
+          sccache: ${{ !startsWith(github.ref, 'refs/tags/') }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.13t
+          architecture: ${{ matrix.platform.target }}
+      - name: Build free-threaded wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          working-directory: ${{ env.PY_RADIATE_DIR }}
+          target: ${{ matrix.platform.target }}
+          args: --release --out dist -i python3.13t
+          sccache: ${{ !startsWith(github.ref, 'refs/tags/') }}
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-windows-${{ matrix.platform.target }}
+          path: ${{ env.PY_RADIATE_DIR }}/dist
+
+  macos:
+    runs-on: ${{ matrix.platform.runner }}
+    strategy:
+      matrix:
+        platform:
+          - runner: macos-13
+            target: x86_64
+          - runner: macos-14
+            target: aarch64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.x
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          working-directory: ${{ env.PY_RADIATE_DIR }}
+          target: ${{ matrix.platform.target }}
+          args: --release --out dist
+          sccache: ${{ !startsWith(github.ref, 'refs/tags/') }}
+      - name: Build free-threaded wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          working-directory: ${{ env.PY_RADIATE_DIR }}
+          target: ${{ matrix.platform.target }}
+          args: --release --out dist -i python3.13t
+          sccache: ${{ !startsWith(github.ref, 'refs/tags/') }}
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-macos-${{ matrix.platform.target }}
+          path: ${{ env.PY_RADIATE_DIR }}/dist
+
   sdist:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with: { python-version: '3.12' }
-      - uses: astral-sh/setup-uv@v6
       - name: Build sdist
-        run: |
-          cd py-radiate
-          uvx maturin sdist -o target-sdist
-      - uses: actions/upload-artifact@v4
-        with:
-          name: sdist
-          path: py-radiate/target-sdist/*.tar.gz
-
-  wheels:
-    continue-on-error: true 
-    name: >-
-      ${{ matrix.os }} • ${{ matrix.arch }} •
-      ${{ contains(matrix.py, 't') && 'nogil' || 'gil' }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          # Linux
-          - { os: ubuntu-latest, arch: x86_64,  py: '3.12' }
-          - { os: ubuntu-latest, arch: aarch64, py: '3.12', target: aarch64-unknown-linux-gnu }
-          - { os: ubuntu-latest, arch: x86_64,  py: '3.13t' }
-          - { os: ubuntu-latest, arch: aarch64, py: '3.13t', target: aarch64-unknown-linux-gnu }
-
-          # macOS
-          - { os: macos-13, arch: x86_64, py: '3.12' }
-          - { os: macos-15, arch: arm64,  py: '3.12' }
-          - { os: macos-13, arch: x86_64, py: '3.13t' }
-          - { os: macos-15, arch: arm64,  py: '3.13t' }
-
-          # Windows
-          - { os: windows-latest, arch: x64, py: '3.12' }
-          - { os: windows-latest, arch: x64, py: '3.13t' }
-    
-    env:
-      MATCH: ${{ github.event_name != 'workflow_dispatch' || (
-          (inputs.os   == '' || matrix.os   == inputs.os)   &&
-          (inputs.arch == '' || matrix.arch == inputs.arch) &&
-          (inputs.py   == '' || matrix.py   == inputs.py) 
-        ) }}
-
-    steps:
-      - uses: actions/checkout@v4
-        if: ${{ env.MATCH }}
-
-      - uses: dtolnay/rust-toolchain@stable
-        if: ${{ env.MATCH }}
-
-      - uses: actions/setup-python@v5
-        if: ${{ env.MATCH }}
-        with: { python-version: '3.12' }
-
-      - uses: astral-sh/setup-uv@v6
-        if: ${{ env.MATCH }}
-
-      - name: Ensure requested interpreter (best effort)
-        if: ${{ env.MATCH }}
-        shell: bash
-        run: |
-          set -e
-          uv python install "${{ matrix.py }}" || true
-          uv python list --only-installed
-
-      - name: Select interpreter and flags
-        id: envsel
-        if: ${{ env.MATCH }}
-        shell: bash
-        run: |
-          set -e
-          
-          PY_TAG="${{ matrix.py }}"
-
-          if [[ "$PY_TAG" == *t* ]]; then
-            PY="$(uv python find "$PY_TAG" 2>/dev/null || true)"
-            FLAGS=""
-          else
-            PY="$(which python)"
-            FLAGS=""
-          fi
-
-          if [[ -z "$PY" ]]; then
-            echo "skip=1" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          echo "skip=0"       >> $GITHUB_OUTPUT
-          echo "py=$PY"       >> $GITHUB_OUTPUT
-          echo "flags=$FLAGS" >> $GITHUB_OUTPUT
-
-      - name: Build wheel (Linux)
-        if: ${{ env.MATCH == 'true' && runner.os == 'Linux' && steps.envsel.outputs.skip == '0' }}
         uses: PyO3/maturin-action@v1
-        env:
-          PYO3_PYTHON: ${{ steps.envsel.outputs.py }}
         with:
-          maturin-version: '1.9.4'
-          command: build
-          args: >
-            --release
-            -m py-radiate/Cargo.toml
-            -o dist
-            ${{ steps.envsel.outputs.flags }}
-            ${{ matrix.target && format('--target {0}', matrix.target) || '' }}
-          manylinux: auto
-
-      - name: Build wheel (macOS/Windows)
-        if: ${{ env.MATCH == 'true' && runner.os != 'Linux' && steps.envsel.outputs.skip == '0' }}
-        uses: PyO3/maturin-action@v1
-        env:
-          PYO3_PYTHON: ${{ steps.envsel.outputs.py }}
+          working-directory: ${{ env.PY_RADIATE_DIR }}
+          command: sdist
+          args: --out dist
+      - name: Upload sdist
+        uses: actions/upload-artifact@v4
         with:
-          maturin-version: '1.9.4'
-          command: build
-          args: >
-            --release
-            -m py-radiate/Cargo.toml
-            -o dist
-            ${{ steps.envsel.outputs.flags }}
+          name: wheels-sdist
+          path: ${{ env.PY_RADIATE_DIR }}/dist
 
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: wheels-${{ matrix.os }}-${{ matrix.arch }}-${{ contains(matrix.py, 't') && 'nogil' || 'gil' }}
-          path: dist/*.whl
-
-  publish:
-    needs: [ sdist, wheels ]
+  release:
+    name: Release
     runs-on: ubuntu-latest
-    if: ${{ needs.sdist.result == 'success' }}
+    if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
+    needs: [linux, musllinux, windows, macos, sdist]
+    permissions:
+      # Used to upload release artifacts (optional, keep as maturin default)
+      contents: write
+      # Required for Trusted Publishing (OIDC)
+      id-token: write
+      # Used to generate artifact attestation
+      attestations: write
     environment:
       name: publish_pypi
     steps:
@@ -173,9 +397,19 @@ jobs:
         with:
           path: dist
           merge-multiple: true
-      - run: ls -R dist
+
+      - name: List artifacts
+        run: ls -R dist
+
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: 'dist/*'
+
       - name: Publish (Trusted Publisher)
+        # if: ${{ startsWith(github.ref, 'refs/tags/') }}
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           verbose: true
           skip-existing: true
+          packages-dir: dist
