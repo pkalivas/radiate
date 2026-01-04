@@ -15,7 +15,6 @@ use std::time::Duration;
 /// unnecessary cloning. However, this means that a shared ecosystem
 /// should not be modified directly, as it may affect other generations
 /// that share the same data.
-#[derive(Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum EcosystemSnapshot<C: Chromosome> {
     Owned(Ecosystem<C>),

@@ -31,7 +31,6 @@ impl SnakeGame {
     }
 
     pub fn get_state(&self) -> [f32; INPUT_SIZE] {
-        // Python variant:
         // - 4 dangers (up/right/down/left)
         // - 2 food direction
         // - 4 one-hot for current direction

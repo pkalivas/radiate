@@ -55,7 +55,20 @@ impl ChartState {
         }
     }
 
-    pub fn get_or_create_chart(
+    pub fn update_from_metric(&mut self, metric: &Metric) {
+        if let Some(stat) = metric.statistic() {
+            let key = intern!(metric.name());
+            if !metric.contains_tag(&TagKind::Distribution) {
+                let value_chart = self.get_or_create_chart(key, ChartType::Value);
+                value_chart.push(stat.last_value() as f64);
+            }
+
+            let mean_chart = self.get_or_create_chart(key, ChartType::Mean);
+            mean_chart.push(stat.mean() as f64);
+        }
+    }
+
+    fn get_or_create_chart(
         &mut self,
         key: &'static str,
         chart_type: ChartType,
@@ -71,19 +84,6 @@ impl ChartState {
                     .with_title(format!("{} μ (mean)", key))
                     .with_color(ratatui::style::Color::Yellow)
             }),
-        }
-    }
-
-    pub fn update_from_metric(&mut self, metric: &Metric) {
-        if let Some(stat) = metric.statistic() {
-            let key = intern!(metric.name());
-            if !metric.contains_tag(&TagKind::Distribution) {
-                let value_chart = self.get_or_create_chart(key, ChartType::Value);
-                value_chart.push(stat.last_value() as f64);
-            }
-
-            let mean_chart = self.get_or_create_chart(key, ChartType::Mean);
-            mean_chart.push(stat.mean() as f64);
         }
     }
 }

@@ -267,9 +267,8 @@ fn draw_ascii_frame(game: &SnakeGame, step: usize) {
 
 fn ascii_snake<'a>(ai: SnakeAI<'a>) {
     let mut game = SnakeGame::new(WIDTH, HEIGHT);
-    let max_steps = MAX_STEPS.min(10000);
 
-    for step in 0..max_steps {
+    for step in 0..MAX_STEPS {
         if game.game_over {
             break;
         }
