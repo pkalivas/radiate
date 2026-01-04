@@ -22,7 +22,7 @@ from .inputs.distance import DistanceBase
 from .inputs.executor import Executor
 from .fitness import FitnessBase
 from .inputs.limit import LimitBase
-from .option import EngineCheckpoint, EngineLog, EngineUi   
+from .option import EngineCheckpoint, EngineLog, EngineUi
 
 from .genome import GeneType
 from .genome.population import Population
@@ -127,10 +127,13 @@ class GeneticEngine[G, T]:
         Args:
             limits: A single Limit or a list of Limits to apply to the engine.
             log: If True, enables logging for the generation process.
+            checkpoint: If provided, enables checkpointing at the specified interval and path. Checkpoint can be
+                        specified as a tuple (interval, path) or an EngineCheckpoint instance.
+            ui: If True, enables a user interface for monitoring the evolution process.
         Returns:
             Generation: The resulting generation after running the engine.
         Raises:
-            ValueError: If limits are not provided or invalid.
+            ValueError: If limits are not provided or invalid, or if other parameters are invalid.
 
         Example:
         ---------
@@ -184,7 +187,10 @@ class GeneticEngine[G, T]:
         options = list(
             map(
                 lambda opt: opt.__backend__(),
-                filter(lambda opt: opt is not None, [log_option, checkpoint_option, ui_option]),
+                filter(
+                    lambda opt: opt is not None,
+                    [log_option, checkpoint_option, ui_option],
+                ),
             )
         )
 
