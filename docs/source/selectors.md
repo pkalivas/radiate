@@ -233,7 +233,7 @@ Stochastic Universal Sampling (SUS) is a probabilistic selection technique used 
 
 ## Rank
 
-The `RankSelector` is a selection strategy that selects individuals from the `population` based on their rank, or index, in the `population`. The fitness values of the individuals are first ranked, and then the selection probabilities are assigned based on these ranks. This helps to maintain diversity in the population and prevent premature convergence by ensuring that all individuals have a chance to be selected, regardless of their fitness values. The selection probabilities are calculated as follows:
+The `RankSelector` is a selection strategy that selects individuals from the `population` based on their rank, or index, in the `population`. The fitness values of the individuals are first ranked, and then the selection probabilities are assigned based on these ranks. This helps to maintain diversity in the population and prevent premature convergence by ensuring that all individuals have a chance to be selected, regardless of their fitness values.
 
 === ":fontawesome-brands-python: Python"
 
