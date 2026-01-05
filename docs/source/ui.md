@@ -103,13 +103,24 @@ The TUI is completely opt-in and can be configured as shown below
 
 ## Navigation
 
-The TUI can be navigated using the following keybindings:
+The TUI can be navigated using the following keybindings (or see the help menu by pressing `?` or `H`):
+
 
 | Key        | Action                                      |
 |------------|---------------------------------------------|
-| `q`        | Quit the TUI and terminate the evolutionary run. |
-| `h` / `l`  | Switch between the statistics panel and the timings panel. |
-| `j` / `k`  | Scroll down/up through the selected panel.                     |
-| `f`        | Filter statistics by tag.                   |
-| `c`        | Toggle viewing/not viewing the statistics history panel (bottom). |
-| `m`        | Toggle viewing/not viewing a line graph of the mean (bottom) - will merge with the statistics history panel.         |
+| `q`        | Quit the UI                                 |
+| `?` / `H`  | Toggle this help                            |
+| `p`        | Pause / Resume engine                       |
+| `n`        | Step one epoch (stays paused)               |
+| `j` / Down | Move selection down                         |
+| `k` / Up   | Move selection up                           |
+| `h` / Left | Previous metrics tab                        |
+| `l` / Right| Next metrics tab                            |
+| `[` / `]`  | Prev / next objective-pair page             |
+| `+` / `-`  | Expand / shrink objective pairs             |
+| `c`        | Toggle value mini chart                     |
+| `m`        | Toggle mean mini chart                      |
+| `f`        | Toggle tag filters panel                    |
+| `Enter`    | Toggle tag selection                        |
+| `Esc`      | Clear tag filters                           |
+| `0-9`      | Select filter by index                      |
