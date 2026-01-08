@@ -404,3 +404,261 @@ where
     let k = cell_counts.len().min(len);
     if k > 1 { h / (k as f32).ln() } else { 0.0 }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn obj_min2() -> Objective {
+        Objective::Multi(vec![Optimize::Minimize, Optimize::Minimize])
+    }
+
+    fn obj_max2() -> Objective {
+        Objective::Multi(vec![Optimize::Maximize, Optimize::Maximize])
+    }
+
+    // ---- crowding_distance ----
+
+    #[test]
+    fn crowding_distance_empty() {
+        let scores: Vec<Vec<f32>> = vec![];
+        let d = crowding_distance(&scores);
+        assert!(d.is_empty());
+    }
+
+    #[test]
+    fn crowding_distance_zero_dims() {
+        let scores = vec![vec![], vec![]];
+        let d = crowding_distance(&scores);
+        assert_eq!(d, vec![0.0, 0.0]);
+    }
+
+    #[test]
+    fn crowding_distance_two_points_are_infinite() {
+        let scores = vec![vec![0.0f32, 0.0], vec![1.0, 1.0]];
+        let d = crowding_distance(&scores);
+        assert!(d[0].is_infinite());
+        assert!(d[1].is_infinite());
+    }
+
+    #[test]
+    fn crowding_distance_known_values_1d() {
+        // 1D case: interior points should get normalized neighbor span.
+        // scores: 0, 1, 2, 3  => range = 3
+        // interior at 1: (2-0)/3 = 2/3
+        // interior at 2: (3-1)/3 = 2/3
+        let scores = vec![vec![0.0f32], vec![1.0], vec![2.0], vec![3.0]];
+        let d = crowding_distance(&scores);
+
+        assert!(d[0].is_infinite());
+        assert!(d[3].is_infinite());
+
+        // allow tiny float error
+        assert!((d[1] - (2.0 / 3.0)).abs() < EPSILON, "d[1] = {}", d[1]);
+        assert!((d[2] - (2.0 / 3.0)).abs() < EPSILON, "d[2] = {}", d[2]);
+    }
+
+    #[test]
+    fn crowding_distance_invariant_under_affine_transform_per_dim() {
+        // Because each dim is normalized by (max - min), scaling + shifting a dim should not change
+        // crowding distances.
+        let a = vec![vec![0.0f32], vec![2.0], vec![4.0], vec![7.0], vec![10.0]];
+        let b = a.iter().map(|v| vec![v[0] * 3.0 + 5.0]).collect::<Vec<_>>();
+
+        let da = crowding_distance(&a);
+        let db = crowding_distance(&b);
+
+        assert_eq!(da.len(), db.len());
+        for i in 0..da.len() {
+            if da[i].is_infinite() {
+                assert!(db[i].is_infinite());
+            } else {
+                assert!(
+                    (da[i] - db[i]).abs() < 1e-6,
+                    "i={}: {} vs {}",
+                    i,
+                    da[i],
+                    db[i]
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn crowding_distance_constant_dim_contributes_nothing() {
+        // Second dimension is constant -> should not affect distances (range == 0 -> skipped).
+        let scores = vec![
+            vec![0.0f32, 5.0],
+            vec![1.0, 5.0],
+            vec![2.0, 5.0],
+            vec![3.0, 5.0],
+        ];
+        let d = crowding_distance(&scores);
+
+        assert!(d[0].is_infinite());
+        assert!(d[3].is_infinite());
+
+        assert!((d[1] - (2.0 / 3.0)).abs() < EPSILON);
+        assert!((d[2] - (2.0 / 3.0)).abs() < EPSILON);
+    }
+
+    // ---- dominance ----
+
+    #[test]
+    fn dominance_minimization_basic() {
+        let a = vec![1.0f32, 2.0];
+        let b = vec![2.0f32, 3.0];
+        assert!(dominance(&a, &b, &obj_min2()));
+        assert!(!dominance(&b, &a, &obj_min2()));
+    }
+
+    #[test]
+    fn dominance_maximization_basic() {
+        let a = vec![5.0f32, 5.0];
+        let b = vec![4.0f32, 5.0];
+
+        // maximize: a dominates b (>= in all, > in at least one)
+        assert!(dominance(&a, &b, &obj_max2()));
+        assert!(!dominance(&b, &a, &obj_max2()));
+    }
+
+    #[test]
+    fn dominance_equal_scores_is_false() {
+        let a = vec![1.0f32, 2.0];
+        let b = vec![1.0f32, 2.0];
+        assert!(!dominance(&a, &b, &obj_min2()));
+        assert!(!dominance(&b, &a, &obj_min2()));
+    }
+
+    #[test]
+    fn dominance_tradeoff_neither_dominates() {
+        let a = vec![1.0f32, 10.0];
+        let b = vec![2.0f32, 9.0];
+        assert!(!dominance(&a, &b, &obj_min2()));
+        assert!(!dominance(&b, &a, &obj_min2()));
+    }
+
+    // ---- pareto_front / non_dominated ----
+
+    #[test]
+    fn non_dominated_matches_pareto_front_indices() {
+        let scores = vec![
+            vec![1.0f32, 1.0], // ND
+            vec![2.0f32, 2.0], // dominated by [1,1]
+            vec![1.0f32, 3.0], // tradeoff with [3,1], ND vs many
+            vec![3.0f32, 1.0], // tradeoff with [1,3], ND
+            vec![4.0f32, 4.0], // dominated
+        ];
+
+        let nd_idx = non_dominated(&scores, &obj_min2());
+        let front = pareto_front(&scores, &obj_min2());
+
+        let mut nd_vals = nd_idx
+            .iter()
+            .map(|&i| scores[i].clone())
+            .collect::<Vec<_>>();
+        nd_vals.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+
+        let mut front_sorted = front.clone();
+        front_sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+
+        assert_eq!(nd_vals, front_sorted);
+    }
+
+    #[test]
+    fn pareto_front_contains_all_points_when_no_dominance() {
+        // All points trade off -> all non-dominated
+        let scores = vec![
+            vec![0.0f32, 10.0],
+            vec![1.0f32, 9.0],
+            vec![2.0f32, 8.0],
+            vec![3.0f32, 7.0],
+        ];
+        let front = pareto_front(&scores, &obj_min2());
+
+        assert_eq!(front.len(), scores.len());
+    }
+
+    // ---- rank ----
+
+    #[test]
+    fn rank_two_points_dominated_order() {
+        // For minimization, [0,0] should be in front 0; [1,1] in front 1.
+        let scores = vec![vec![0.0f32, 0.0], vec![1.0f32, 1.0]];
+        let r = rank(&scores, &obj_min2());
+
+        assert_eq!(r.len(), 2);
+        assert_eq!(r[0], 0, "best point should be rank 0");
+        assert_eq!(r[1], 1, "dominated point should be rank 1");
+    }
+
+    #[test]
+    fn rank_front_partition_expected() {
+        // Construct 3 fronts for minimization:
+        // F0: A=[0,0]
+        // F1: B=[1,0], C=[0,1] (both dominated by A, but neither dominates the other)
+        // F2: D=[2,2] (dominated by B and C)
+        let a = vec![0.0f32, 0.0];
+        let b = vec![1.0f32, 0.0];
+        let c = vec![0.0f32, 1.0];
+        let d = vec![2.0f32, 2.0];
+
+        let scores = vec![a, b, c, d];
+        let r = rank(&scores, &obj_min2());
+
+        assert_eq!(r[0], 0, "A should be in front 0");
+        assert_eq!(r[1], 1, "B should be in front 1");
+        assert_eq!(r[2], 1, "C should be in front 1");
+        assert_eq!(r[3], 2, "D should be in front 2");
+    }
+
+    // ---- weights ----
+
+    #[test]
+    fn weights_are_positive_and_finite_and_length_matches() {
+        let scores = vec![
+            vec![0.0f32, 0.0],
+            vec![1.0f32, 0.0],
+            vec![0.0f32, 1.0],
+            vec![2.0f32, 2.0],
+        ];
+
+        let w = weights(&scores, &obj_min2());
+        assert_eq!(w.len(), scores.len());
+        for (i, x) in w.iter().enumerate() {
+            assert!(*x > 0.0, "w[{}] should be > 0, got {}", i, x);
+            assert!(x.is_finite(), "w[{}] should be finite, got {}", i, x);
+        }
+    }
+
+    #[test]
+    fn weights_prefer_better_front_over_dominated_point() {
+        let scores = vec![
+            vec![0.0f32, 0.0], // nondominated
+            vec![1.0f32, 1.0], // dominated
+        ];
+
+        let w = weights(&scores, &obj_min2());
+        assert!(w[0] > w[1], "nondominated point should get higher weight");
+    }
+
+    // ---- entropy ----
+
+    #[test]
+    fn entropy_empty_or_bins_zero() {
+        let scores: Vec<Vec<f32>> = vec![];
+        assert_eq!(entropy(&scores, 10), 0.0);
+
+        let scores = vec![vec![1.0f32, 2.0]];
+        assert_eq!(entropy(&scores, 0), 0.0);
+    }
+
+    #[test]
+    fn entropy_single_cell_is_zero() {
+        // All identical -> all land in one cell -> normalized entropy 0
+        let scores = vec![vec![1.0f32, 1.0], vec![1.0f32, 1.0], vec![1.0f32, 1.0]];
+        let h = entropy(&scores, 10);
+
+        assert!(h.abs() < 1e-6, "entropy should be ~0, got {}", h);
+    }
+}

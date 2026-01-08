@@ -48,7 +48,9 @@ pub enum EcosystemSnapshot<C: Chromosome> {
 /// let mut generation = engine.iter().take(10).last().unwrap();
 ///
 /// {
-///     // triggers a clone of the ecosystem if it is shared. it is in this case.
+///     // Triggers a clone of the ecosystem if it is shared - which is true in this case.
+///     // The first access to the ecosystem outside of the engine will always trigger a clone because
+///     // the engine creates generations with shared ecosystems to avoid unnecessary cloning.
 ///     let ecosystem: &Ecosystem<FloatChromosome> = generation.ecosystem();
 /// }
 ///

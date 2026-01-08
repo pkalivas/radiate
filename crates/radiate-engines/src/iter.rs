@@ -87,6 +87,7 @@ where
     /// # Arguments
     ///
     /// * `engine` - The engine to wrap with the iterator
+    /// * `control` - Optional engine control for pausing/stopping/resuming
     ///
     /// # Returns
     ///

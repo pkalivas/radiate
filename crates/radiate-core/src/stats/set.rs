@@ -82,15 +82,6 @@ impl MetricSet {
         }
     }
 
-    fn add_or_update_internal(&mut self, metric: Metric) {
-        self.set_stats.apply_update(1);
-        if let Some(existing) = self.metrics.get_mut(metric.name()) {
-            existing.update_from(metric);
-        } else {
-            self.metrics.insert(intern!(metric.name()), metric);
-        }
-    }
-
     pub fn iter_tagged<'a>(
         &'a self,
         tag: TagKind,
@@ -271,6 +262,15 @@ impl MetricSet {
 
     pub fn species_age(&self) -> Option<&Metric> {
         self.get(super::metric_names::SPECIES_AGE)
+    }
+
+    fn add_or_update_internal(&mut self, metric: Metric) {
+        self.set_stats.apply_update(1);
+        if let Some(existing) = self.metrics.get_mut(metric.name()) {
+            existing.update_from(metric);
+        } else {
+            self.metrics.insert(intern!(metric.name()), metric);
+        }
     }
 }
 
