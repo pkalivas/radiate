@@ -150,6 +150,6 @@ pub fn try_add_tag_from_str(metric: &mut crate::stats::Metric) {
     }
 
     if !tags.is_empty() {
-        metric.with_tags(tags);
+        metric.add_tags(tags);
     }
 }

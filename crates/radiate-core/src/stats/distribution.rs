@@ -57,6 +57,7 @@ impl Distribution {
     }
 
     pub fn clear(&mut self) {
+        self.statistic.clear();
         self.last_sequence.clear();
     }
 

@@ -355,3 +355,61 @@ where
         MetricSetUpdate::NamedSingle(name, update.into())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const EPSILON: f32 = 1e-5;
+
+    fn approx_eq(a: f32, b: f32, eps: f32) -> bool {
+        (a - b).abs() <= eps
+    }
+
+    fn assert_stat_eq(m: &Metric, count: i32, mean: f32, var: f32, min: f32, max: f32) {
+        assert_eq!(m.count(), count);
+        assert!(approx_eq(m.value_mean().unwrap(), mean, EPSILON), "mean");
+        assert!(approx_eq(m.value_variance().unwrap(), var, EPSILON), "var");
+        assert!(approx_eq(m.value_min().unwrap(), min, EPSILON), "min");
+        assert!(approx_eq(m.value_max().unwrap(), max, EPSILON), "max");
+    }
+
+    fn stats_of(values: &[f32]) -> (i32, f32, f32, f32, f32) {
+        // sample variance (n-1), matches your Statistic::variance
+        let n = values.len() as i32;
+        if n == 0 {
+            return (0, 0.0, f32::NAN, f32::INFINITY, f32::NEG_INFINITY);
+        }
+        let mean = values.iter().sum::<f32>() / values.len() as f32;
+
+        let mut m2 = 0.0_f32;
+        for &v in values {
+            let d = v - mean;
+            m2 += d * d;
+        }
+
+        let var = if n == 1 { 0.0 } else { m2 / (n as f32 - 1.0) };
+
+        let min = values.iter().cloned().fold(f32::INFINITY, f32::min);
+        let max = values.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
+
+        (n, mean, var, min, max)
+    }
+
+    #[test]
+    fn metric_set_flush_all_into_merges_metrics() {
+        let mut a = MetricSet::new();
+        let mut b = MetricSet::new();
+
+        a.upsert(("scores", &[1.0, 2.0, 3.0][..]));
+        b.upsert(("scores", &[10.0, 20.0][..]));
+
+        // move a into b
+        a.flush_all_into(&mut b);
+
+        let m = b.get("scores").unwrap();
+        let combined = [1.0, 2.0, 3.0, 10.0, 20.0];
+        let (n, mean, var, min, max) = stats_of(&combined);
+        assert_stat_eq(m, n, mean, var, min, max);
+    }
+}

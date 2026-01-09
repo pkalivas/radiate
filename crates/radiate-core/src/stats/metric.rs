@@ -68,6 +68,11 @@ impl Metric {
     }
 
     #[inline(always)]
+    pub fn add_tags(&mut self, tags: Tag) {
+        self.tags = self.tags.union(tags);
+    }
+
+    #[inline(always)]
     pub fn add_tag(&mut self, tag: TagKind) {
         self.tags.insert(tag);
     }
@@ -188,6 +193,8 @@ impl Metric {
             for value in values {
                 stat.add(value);
             }
+
+            self.add_tag(TagKind::Distribution);
         } else {
             let mut new_stat = Statistic::default();
             for value in values {
@@ -383,6 +390,42 @@ impl std::fmt::Debug for Metric {
 mod tests {
     use super::*;
 
+    const EPSILON: f32 = 1e-5;
+
+    fn approx_eq(a: f32, b: f32, eps: f32) -> bool {
+        (a - b).abs() <= eps
+    }
+
+    fn assert_stat_eq(m: &Metric, count: i32, mean: f32, var: f32, min: f32, max: f32) {
+        assert_eq!(m.count(), count);
+        assert!(approx_eq(m.value_mean().unwrap(), mean, EPSILON), "mean");
+        assert!(approx_eq(m.value_variance().unwrap(), var, EPSILON), "var");
+        assert!(approx_eq(m.value_min().unwrap(), min, EPSILON), "min");
+        assert!(approx_eq(m.value_max().unwrap(), max, EPSILON), "max");
+    }
+
+    fn stats_of(values: &[f32]) -> (i32, f32, f32, f32, f32) {
+        // sample variance (n-1), matches your Statistic::variance
+        let n = values.len() as i32;
+        if n == 0 {
+            return (0, 0.0, f32::NAN, f32::INFINITY, f32::NEG_INFINITY);
+        }
+        let mean = values.iter().sum::<f32>() / values.len() as f32;
+
+        let mut m2 = 0.0_f32;
+        for &v in values {
+            let d = v - mean;
+            m2 += d * d;
+        }
+
+        let var = if n == 1 { 0.0 } else { m2 / (n as f32 - 1.0) };
+
+        let min = values.iter().cloned().fold(f32::INFINITY, f32::min);
+        let max = values.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
+
+        (n, mean, var, min, max)
+    }
+
     #[test]
     fn test_metric() {
         let mut metric = Metric::new("test");
@@ -419,5 +462,61 @@ mod tests {
         assert_eq!(metric.value_std_dev().unwrap(), 1.5811388);
         assert_eq!(metric.value_min().unwrap(), 1.0);
         assert_eq!(metric.value_max().unwrap(), 5.0);
+    }
+
+    #[test]
+    fn distribution_updates_accumulate_samples_across_calls() {
+        let a = [1.0, 2.0, 3.0];
+        let b = [10.0, 20.0];
+
+        let mut m = Metric::new("scores");
+
+        m.apply_update(&a[..]);
+        // expected stats over [1,2,3]
+        let (n1, mean1, var1, min1, max1) = stats_of(&a);
+        assert_stat_eq(&m, n1, mean1, var1, min1, max1);
+
+        m.apply_update(&b[..]);
+        // expected stats over [1,2,3,10,20]
+        let combined = [1.0, 2.0, 3.0, 10.0, 20.0];
+        let (n2, mean2, var2, min2, max2) = stats_of(&combined);
+        assert_stat_eq(&m, n2, mean2, var2, min2, max2);
+    }
+
+    #[test]
+    fn distribution_tag_is_applied_on_any_slice_update() {
+        let mut m = Metric::new("scores");
+
+        // seed with scalar samples first (creates Statistic but not Distribution tag)
+        m.apply_update(1.0);
+        m.apply_update(2.0);
+        assert!(m.tags().has(TagKind::Statistic));
+        assert!(!m.tags().has(TagKind::Distribution));
+
+        // now apply a slice update - we expect Distribution tag to appear
+        m.apply_update(&[3.0, 4.0][..]);
+
+        assert!(
+            m.tags().has(TagKind::Distribution),
+            "expected Distribution tag after slice update"
+        );
+    }
+
+    #[test]
+    fn metric_merge_matches_streaming_samples() {
+        let a = [1.0, 2.0, 3.0, 4.0];
+        let b = [10.0, 20.0, 30.0];
+
+        let mut m1 = Metric::new("x");
+        m1.apply_update(&a[..]);
+
+        let mut m2 = Metric::new("x");
+        m2.apply_update(&b[..]);
+
+        m1.update_from(m2);
+
+        let combined = [1.0, 2.0, 3.0, 4.0, 10.0, 20.0, 30.0];
+        let (n, mean, var, min, max) = stats_of(&combined);
+        assert_stat_eq(&m1, n, mean, var, min, max);
     }
 }
