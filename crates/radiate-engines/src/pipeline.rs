@@ -1,5 +1,5 @@
 use crate::{context::Context, steps::EngineStep};
-use radiate_core::{Chromosome, MetricSet, metric, metric_names};
+use radiate_core::{Chromosome, metric, metric_names};
 use radiate_error::Result;
 
 /// A [Pipeline] is a sequence of steps that are executed in order during each epoch of the engine.
@@ -11,7 +11,6 @@ where
     C: Chromosome,
 {
     steps: Vec<Box<dyn EngineStep<C>>>,
-    metrics: MetricSet,
 }
 
 impl<C> Pipeline<C>
@@ -41,7 +40,6 @@ where
 
         let elapsed = timer.elapsed();
 
-        // self.metrics.flush_all_into(&mut context.metrics);
         context.metrics.upsert((metric_names::TIME, elapsed));
 
         Ok(())
@@ -50,9 +48,6 @@ where
 
 impl<C: Chromosome> Default for Pipeline<C> {
     fn default() -> Self {
-        Pipeline {
-            steps: Vec::new(),
-            metrics: MetricSet::new(),
-        }
+        Pipeline { steps: Vec::new() }
     }
 }
