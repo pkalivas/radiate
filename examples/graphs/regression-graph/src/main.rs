@@ -16,7 +16,7 @@ fn main() {
         .codec(GraphCodec::directed(1, 1, store))
         .raw_fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
-        // .diversity(NeatDistance::new(0.1, 0.1, 0.3))
+        .diversity(NeatDistance::new(0.1, 0.1, 0.3))
         .species_threshold(0.4)
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),

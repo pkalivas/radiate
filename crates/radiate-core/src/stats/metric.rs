@@ -109,7 +109,11 @@ impl Metric {
         }
 
         if let Some(time) = other.inner.time_statistic {
-            self.apply_update(time);
+            if time.count() as u32 == time.sum().as_millis() as u32 {
+                self.apply_update(time.sum());
+            } else {
+                self.apply_update(time);
+            }
         }
 
         self.tags = self.tags.union(other.tags);

@@ -55,11 +55,11 @@ class Phenotype[T](PyObject[PyPhenotype]):
         Returns the score of the phenotype.
         :return: The score of the phenotype.
         """
-        return self._pyobj.score
+        return self.try_get_cache("score_cache", lambda: self._pyobj.score)
 
     def genotype(self) -> Genotype[T]:
         """
         Returns the genotype of the phenotype.
         :return: The genotype of the phenotype.
         """
-        return Genotype.from_rust(self._pyobj.genotype)
+        return self.try_get_cache("genotype_cache", lambda: Genotype.from_rust(self._pyobj.genotype))

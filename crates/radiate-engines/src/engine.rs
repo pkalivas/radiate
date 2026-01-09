@@ -170,11 +170,11 @@ where
 
         self.bus.publish(EngineMessage::EpochStart(&self.context));
         self.pipeline.run(&mut self.context)?;
-        self.bus.publish(EngineMessage::EpochEnd(&self.context));
-
         if self.context.try_advance_one() {
             self.bus.publish(EngineMessage::Improvement(&self.context));
         }
+
+        self.bus.publish(EngineMessage::EpochEnd(&self.context));
 
         Ok(Generation::from(&self.context))
     }

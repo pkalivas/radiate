@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 rd.random.seed(567123)
 
 
-class ScoreDistributionPlotter(rd.EventHandler):
+class HeadPrinterSubscriber(rd.EventHandler):
     """
     Subscriber class to handle events and track metrics.
     We will use this to plot score distributions over generations then
@@ -21,11 +21,23 @@ class ScoreDistributionPlotter(rd.EventHandler):
     """
 
     def __init__(self):
-        super().__init__(rd.EventType.STOP)
+        super().__init__()
+        self.scores = []
 
     def on_event(self, event: rd.EngineEvent) -> None:
-        df = event.metrics().to_polars()
-        print(df.head(50))
+        if event.event_type() == rd.EventType.EPOCH_COMPLETE:
+            best_score = event.score()
+            self.scores.append(best_score)
+        elif event.event_type() == rd.EventType.STOP:
+            df = pl.DataFrame(
+                {"Generation": list(range(len(self.scores))), "Score": self.scores}
+            )
+            plt.plot(df["Generation"], df["Score"])
+            plt.xlabel("Generation")
+            plt.ylabel("Best Score")
+            plt.title("Best Score over Generations")
+            plt.grid(True)
+            plt.show()
 
 
 def compute(x: float) -> float:
@@ -49,7 +61,7 @@ engine = rd.GeneticEngine(
         output=rd.Op.linear(),
     ),
     fitness_func=rd.Regression(inputs, answers, batch=True),
-    subscribe=ScoreDistributionPlotter(),
+    subscribe=HeadPrinterSubscriber(),
     objective="min",
     alters=[
         rd.GraphCrossover(0.5, 0.5),
@@ -63,4 +75,5 @@ result = engine.run(
     log=True,
 )
 print(result)
+print(result.metrics().dashboard())
 print(result.metrics().dashboard())

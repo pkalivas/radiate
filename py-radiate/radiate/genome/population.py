@@ -39,8 +39,8 @@ class Population[T](PyObject[PyPopulation]):
         Returns an iterator over the individuals in the population.
         :return: An iterator over the individuals in the population.
         """
-        for phenotype in self._pyobj.phenotypes:
-            yield Phenotype.from_rust(phenotype)
+        for phenotype in self.phenotypes():
+            yield phenotype
 
     def __getitem__(self, index: int) -> Phenotype[T]:
         """
@@ -48,17 +48,7 @@ class Population[T](PyObject[PyPopulation]):
         :param index: The index of the Phenotype to retrieve.
         :return: The Phenotype at the specified index.
         """
-        return Phenotype.from_rust(self._pyobj[index])
-
-    def __setitem__(self, index: int, value: Phenotype[T]):
-        """
-        Sets the Phenotype at the specified index.
-        :param index: The index of the Phenotype to set.
-        :param value: The Phenotype to set at the specified index.
-        """
-        if not isinstance(value, Phenotype):
-            raise TypeError("Value must be an instance of Phenotype")
-        self._pyobj[index] = value.__backend__()
+        return self.phenotypes()[index]
 
     def gene_type(self) -> "GeneType":
         """
@@ -68,3 +58,13 @@ class Population[T](PyObject[PyPopulation]):
         from . import GeneType
 
         return GeneType.from_str(self._pyobj.gene_type())
+
+    def phenotypes(self) -> list[Phenotype[T]]:
+        """
+        Get the phenotypes of the population.
+        :return: The phenotypes of the population.
+        """
+        return self.try_get_cache(
+            "phenotypes_cache",
+            lambda: [Phenotype.from_rust(p) for p in self.__backend__().phenotypes],
+        )

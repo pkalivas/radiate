@@ -13,7 +13,7 @@ const INVALID_MUTATION: &str = "graph_mut_failure";
 /// # Arguments
 /// - `vertex_rate`: The probability of adding a vertex.
 /// - `edge_rate`: The probability of adding an edge.
-/// - `allow_recurrent`: If true, recurrent nodes are allowed. If false, they are not.
+/// - `allow_recurrent`: If true, recurrent nodes are allowed. If false, they are not. Default is true.
 #[derive(Clone, Debug)]
 pub struct GraphMutator {
     vertex_rate: f32,

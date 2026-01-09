@@ -19,7 +19,13 @@ class Ecosystem[T](PyObject[PyEcosystem]):
         return self.__backend__().__repr__()
 
     def population(self) -> Population[T]:
-        return Population.from_rust(self.__backend__().population)
+        return self.try_get_cache(
+            "population_cache",
+            lambda: Population.from_rust(self.__backend__().population),
+        )
 
     def species(self) -> list[Species[T]]:
-        return [Species.from_rust(s) for s in self.__backend__().species]
+        return self.try_get_cache(
+            "species_cache",
+            lambda: [Species.from_rust(s) for s in self.__backend__().species],
+        )

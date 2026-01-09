@@ -39,7 +39,6 @@ where
         }
 
         let elapsed = timer.elapsed();
-
         context.metrics.upsert((metric_names::TIME, elapsed));
 
         Ok(())

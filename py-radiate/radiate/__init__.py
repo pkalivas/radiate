@@ -16,6 +16,7 @@ from .codec import (
     AnyCodec,
 )
 from .random import RandomProvider as random
+from .front import Front
 from .generation import Generation
 from .genome import (
     gene,
@@ -183,6 +184,8 @@ __all__ = [
     # Engine
     "GeneticEngine",
     "Generation",
+    # Front,
+    "Front",
     # Metrics
     "MetricSet",
     "Metric",

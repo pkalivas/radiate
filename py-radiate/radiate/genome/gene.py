@@ -33,7 +33,7 @@ class Gene[T](PyObject[PyGene]):
         Get the allele of the gene.
         :return: The allele of the gene, which can be a float, int, bool, str, or None.
         """
-        return self.__backend__().allele()
+        return self.try_get_cache("allele_value", lambda: self.__backend__().allele())
 
 
 class AnyGene(Gene):

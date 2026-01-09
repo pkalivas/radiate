@@ -1,19 +1,15 @@
 use super::PyGenotype;
 use crate::EpochHandle;
+use crate::IntoPyAnyObject;
 use crate::PyAnyObject;
 use crate::PyEcosystem;
+use crate::PyFront;
 use crate::PyMetricSet;
 use crate::PyPopulation;
 use crate::PySpecies;
 use crate::bindings::gp::{PyGraph, PyTree};
 use numpy::PyArray1;
-use pyo3::intern;
-use pyo3::types::PyAnyMethods;
-use pyo3::types::PyDict;
-use pyo3::{
-    Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods,
-    types::{PyList, PyListMethods},
-};
+use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::Generation;
 use radiate::prelude::*;
 use std::time::Duration;
@@ -94,6 +90,19 @@ impl PyGeneration {
                 inner: epoch.value().clone(),
             }
             .into_bound_py_any(py),
+        }
+    }
+
+    pub fn front(&self) -> PyResult<PyFront> {
+        match &self.inner {
+            EpochHandle::Int(epoch) => get_front(epoch),
+            EpochHandle::Float(epoch) => get_front(epoch),
+            EpochHandle::Char(epoch) => get_front(epoch),
+            EpochHandle::Bit(epoch) => get_front(epoch),
+            EpochHandle::Any(epoch) => get_front(epoch),
+            EpochHandle::Permutation(epoch) => get_front(epoch),
+            EpochHandle::Graph(epoch) => get_front(epoch),
+            EpochHandle::Tree(epoch) => get_front(epoch),
         }
     }
 
@@ -252,6 +261,30 @@ fn get_objective_names(objective: &Objective) -> Vec<String> {
     }
 }
 
+fn get_front<'py, C, T: IntoPyAnyObject>(generation: &Generation<C, T>) -> PyResult<PyFront>
+where
+    C: Chromosome + Clone,
+    PyGenotype: From<Genotype<C>>,
+{
+    let mut front_objs = Vec::new();
+    if let Some(front) = generation.front() {
+        for member in front.values().iter() {
+            let temp = PyGenotype::from(member.genotype().clone());
+
+            let fitness = member
+                .score()
+                .map(|inner| inner.iter().cloned().collect::<Vec<_>>());
+
+            front_objs.push(super::front::PyFrontValue {
+                genotype: temp,
+                score: fitness,
+            });
+        }
+    }
+
+    Ok(PyFront::new(front_objs))
+}
+
 fn get_value<'py, C>(
     py: Python<'py>,
     generation: &Generation<C, PyAnyObject>,
@@ -264,22 +297,5 @@ where
         return generation.value().clone().inner.into_bound_py_any(py);
     }
 
-    let result = PyList::empty(py);
-    if let Some(front) = generation.front() {
-        for member in front.values().iter() {
-            let temp = PyGenotype::from(member.genotype().clone());
-
-            let fitness = member
-                .score()
-                .map(|inner| inner.iter().cloned().collect::<Vec<_>>());
-
-            let member = PyDict::new(py);
-            member.set_item(intern!(py, "genotype"), temp).unwrap();
-            member.set_item(intern!(py, "fitness"), fitness).unwrap();
-
-            result.append(member).unwrap();
-        }
-    }
-
-    Ok(result.into_any())
+    return Ok(py.None().into_bound(py));
 }

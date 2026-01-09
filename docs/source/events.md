@@ -32,11 +32,11 @@ pub enum EngineEvent<T> {
     /// Has no associated data, is simply a signal that evolution has begun.
     Start,
     /// Triggered when the evolution process stops. Provides the best individual, metrics, and score.
-    Stop(T, MetricSet, Score),
+    Stop(usize, T, MetricSet, Score),
     /// Triggered at the start of each epoch with the epoch index.
     EpochStart(usize),
     /// Triggered at the end of each epoch with the epoch index, best individual, metrics, and score.
-    EpochComplete(usize, T, MetricSet, Score),
+    EpochComplete(usize, T, MetricSet, Score, Objective),
     /// Triggered when an improvement is found with the epoch index, best individual, and score.
     Improvement(usize, T, Score),
 }
@@ -65,6 +65,7 @@ Below there is a brief description of each event type with its representative da
     ```json
     {
         'event_type': 'stop_event',
+        'index': 0, // Current generation number
         // This will be a dictionary of metrics collected, see Engine's metrics docs for more info
         'metrics': ..., 
         // This will be the decoded best individual found so far. So, if you are 
@@ -103,7 +104,8 @@ Below there is a brief description of each event type with its representative da
         // This will be the decoded best individual found so far. So, if you are 
         // evolving a vector of FloatGenes, this will be a list of floats
         'best': [3.9699993,  1.5489225, -1.7164116,  1.0756674, -1.932127 , -2.3247557], 
-        'score': 0.3327971398830414
+        'score': 0.3327971398830414,
+        'objective': ['min']  // The optimization objective(s) used in this run
     }
     ```
 
@@ -216,55 +218,34 @@ For more complex event handling, you can create a custom event handler class:
     Its also completely possible to create more advanced forms of visualization or logging through this method. For example, below we will collect the score distrubution from each epoch using polars then plot it with matplotlib.
 
     ```python
-    class ScoreDistributionPlotter(rd.EventHandler):
+    class HeadPrinterSubscriber(rd.EventHandler):
         """
-        Subscriber class to handle events and track metrics.
-        We will use this to plot score distributions over generations then
-        display the plot when the engine stops.
+        An event handler that collects best scores over epochs and plots them at the end.
+        1. On EPOCH_COMPLETE, it appends the best score to a list.
+        2. On STOP, it creates a DataFrame and plots the scores over generations.
         """
 
-        def __init__(self): 
-            super().__init__() # By not passing an event type, we subscribe to all events
-            self.history = []
+        def __init__(self):
+            super().__init__() # Not specifying an event type to listen to all events
+            self.scores = []
 
         def on_event(self, event: rd.EngineEvent) -> None:
             if event.event_type() == rd.EventType.EPOCH_COMPLETE:
-                ms = event.metrics().to_polars()
-                epoch = event.index()
-                ms = ms.with_columns(pl.lit(epoch).alias("epoch"))
-                self.history.append(ms)
+                best_score = event.score()
+                self.scores.append(best_score)
             elif event.event_type() == rd.EventType.STOP:
-                df = pl.concat(self.history, how="diagonal_relaxed")
-                plot_scores(df)
-
-
-    def plot_scores(ms: pl.DataFrame):
-        quant = (
-            ms.filter((pl.col("name") == "scores") & (pl.col("kind") == "dist"))
-            .select(
-                "epoch",
-                pl.col("min").alias("q0"),
-                pl.col("mean").alias("q50"),
-                pl.col("max").alias("q100"),
-            )
-            .sort("epoch")
-        )
-
-        pdf = quant.to_pandas()
-        plt.figure(figsize=(8, 5))
-        plt.fill_between(
-            pdf["epoch"], pdf["q0"], pdf["q100"], alpha=0.2, label="min–max range"
-        )
-        plt.plot(pdf["epoch"], pdf["q50"], color="C0", linewidth=2, label="mean score")
-        plt.xlabel("Epoch")
-        plt.ylabel("Score")
-        plt.title("Score distribution across generations")
-        plt.legend()
-        plt.tight_layout()
-        plt.show()
+                df = pl.DataFrame(
+                    {"Generation": list(range(len(self.scores))), "Score": self.scores}
+                )
+                plt.plot(df["Generation"], df["Score"])
+                plt.xlabel("Generation")
+                plt.ylabel("Best Score")
+                plt.title("Best Score over Generations")
+                plt.grid(True)
+                plt.show()
 
     # Create an instance of your event handler
-    handler = ScoreDistributionPlotter()
+    handler = HeadPrinterSubscriber()
 
     engine = rd.GeneticEngine(
         codec=your_codec,

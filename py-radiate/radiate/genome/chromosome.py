@@ -47,7 +47,7 @@ class Chromosome[T](PyObject[PyChromosome]):
         :param index: Index of the gene to retrieve.
         :return: Gene instance at the specified index.
         """
-        return Gene.from_rust(self._pyobj[index])
+        return self.genes()[index]
 
     def __iter__(self):
         """
@@ -57,13 +57,23 @@ class Chromosome[T](PyObject[PyChromosome]):
 
         :return: An iterator over the genes in the chromosome.
         """
-        for i in self.__backend__():
-            yield Gene.from_rust(i)
+        for i in self.genes():
+            yield i
 
     def gene_type(self) -> "GeneType":
         from . import GeneType
 
         return GeneType.from_str(self.__backend__().gene_type())
+
+    def genes(self) -> list[Gene[T]]:
+        """
+        Get the genes of the chromosome.
+        :return: The genes of the chromosome.
+        """
+        return self.try_get_cache(
+            "genes_cache",
+            lambda: [Gene.from_rust(g) for g in self.__backend__()],
+        )
 
 
 def int(

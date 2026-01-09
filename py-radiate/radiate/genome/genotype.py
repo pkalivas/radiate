@@ -37,21 +37,21 @@ class Genotype[T](PyObject[PyGenotype]):
         """
         return len(self._pyobj)
 
-    def __getitem__(self, index: int) -> Chromosome[T]:
+    def __getitem__(self, index: int | slice) -> Chromosome[T]:
         """
         Returns the chromosome at the specified index.
         :param index: Index of the chromosome to retrieve.
         :return: Chromosome instance at the specified index.
         """
-        return Chromosome.from_rust(self._pyobj[index])
+        return self.chromosomes()[index]
 
     def __iter__(self):
         """
         Returns an iterator over the chromosomes in the genotype.
         :return: An iterator over the chromosomes in the genotype.
         """
-        for chromosome in self._pyobj.chromosomes:
-            yield Chromosome.from_rust(chromosome)
+        for chromosome in self.chromosomes():
+            yield chromosome
 
     def gene_type(self) -> "GeneType":
         """
@@ -61,3 +61,13 @@ class Genotype[T](PyObject[PyGenotype]):
         from . import GeneType
 
         return GeneType.from_str(self._pyobj.gene_type())
+    
+    def chromosomes(self) -> list[Chromosome[T]]:
+        """
+        Get the chromosomes of the genotype.
+        :return: The chromosomes of the genotype.
+        """
+        return self.try_get_cache(
+            "chromosomes_cache",
+            lambda: [Chromosome.from_rust(c) for c in self.__backend__().chromosomes()],
+        )

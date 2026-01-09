@@ -266,6 +266,18 @@ impl MetricSet {
         self.get(super::metric_names::SPECIES_AGE)
     }
 
+    pub fn species_size(&self) -> Option<&Metric> {
+        self.get(super::metric_names::SPECIES_SIZE)
+    }
+
+    pub fn species_evenness(&self) -> Option<&Metric> {
+        self.get(super::metric_names::SPECIES_EVENNESS)
+    }
+
+    pub fn largest_species_share(&self) -> Option<&Metric> {
+        self.get(super::metric_names::LARGEST_SPECIES_SHARE)
+    }
+
     fn add_or_update_internal(&mut self, mut metric: Metric) {
         self.set_stats.apply_update(1);
         if let Some(existing) = self.metrics.get_mut(metric.name()) {
