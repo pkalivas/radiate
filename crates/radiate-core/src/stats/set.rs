@@ -76,8 +76,8 @@ impl MetricSet {
                     m.apply_update(metric_update);
                 } else {
                     let mut metric = Metric::new(new_name);
-                    metric.apply_update(metric_update);
                     try_add_tag_from_str(&mut metric);
+                    metric.apply_update(metric_update);
                     self.add(metric);
                 }
             }
