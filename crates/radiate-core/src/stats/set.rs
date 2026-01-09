@@ -12,12 +12,13 @@ use std::{
 
 pub(super) const METRIC_SET: &str = "metric_set";
 
+#[derive(PartialEq)]
 pub struct MetricSetSummary {
     pub metrics: usize,
     pub updates: f32,
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, PartialEq)]
 pub struct MetricSet {
     metrics: HashMap<&'static str, Metric>,
     set_stats: Metric,
@@ -76,6 +77,7 @@ impl MetricSet {
                 } else {
                     let mut metric = Metric::new(new_name);
                     metric.apply_update(metric_update);
+                    try_add_tag_from_str(&mut metric);
                     self.add(metric);
                 }
             }
@@ -264,11 +266,12 @@ impl MetricSet {
         self.get(super::metric_names::SPECIES_AGE)
     }
 
-    fn add_or_update_internal(&mut self, metric: Metric) {
+    fn add_or_update_internal(&mut self, mut metric: Metric) {
         self.set_stats.apply_update(1);
         if let Some(existing) = self.metrics.get_mut(metric.name()) {
             existing.update_from(metric);
         } else {
+            try_add_tag_from_str(&mut metric);
             self.metrics.insert(intern!(metric.name()), metric);
         }
     }

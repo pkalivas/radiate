@@ -33,15 +33,15 @@ where
 
         for step in self.steps.iter_mut() {
             let timer = std::time::Instant::now();
-            step.execute(context.index, &mut context.ecosystem, &mut self.metrics)?;
+            step.execute(context.index, &mut context.ecosystem, &mut context.metrics)?;
             let elapsed = timer.elapsed();
 
-            self.metrics.upsert(metric!(step.name(), elapsed));
+            context.metrics.upsert(metric!(step.name(), elapsed));
         }
 
         let elapsed = timer.elapsed();
 
-        self.metrics.flush_all_into(&mut context.metrics);
+        // self.metrics.flush_all_into(&mut context.metrics);
         context.metrics.upsert((metric_names::TIME, elapsed));
 
         Ok(())
