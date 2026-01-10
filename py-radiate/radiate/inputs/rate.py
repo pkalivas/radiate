@@ -37,6 +37,12 @@ class Rate(PyObject[PyRate]):
             raise ValueError(f"Unknown rate type: {rate_type}")
 
     def value(self, index: int) -> float:
+        """
+        Get the rate value at a specific index.
+
+        :param index: The index to get the rate value for.
+        :return: The rate value at the specified index.
+        """
         return self._pyobj.value(index)
 
     def fixed(rate: float):
@@ -44,9 +50,12 @@ class Rate(PyObject[PyRate]):
 
     def linear(start: float, end: float, duration: int):
         return Rate(Rate.LINEAR, start, end, duration)
+    
+    def sine(min: float, max: float, periods: int):
+        return Rate(Rate.CYCLICAL, min, max, periods, "sine")
 
-    def cyclical(min_rate: float, max_rate: float, cycle_length: int, shape: str):
-        return Rate(Rate.CYCLICAL, min_rate, max_rate, cycle_length, shape)
+    def triangular(min: float, max: float, periods: int):
+        return Rate(Rate.CYCLICAL, min, max, periods, "triangular")
 
     def stepwise(steps: list[tuple[int, float]]):
         return Rate(Rate.STEPWISE, steps=steps)

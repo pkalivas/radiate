@@ -1,14 +1,9 @@
-# Understanding the Genome System
 
-## Introduction
-
-In genetic algorithms, we need a way to represent and manipulate potential solutions to our problems. Radiate uses a genome system that breaks down genetic information into several key components. Think of it like a blueprint for building solutions, where each component has a specific role in creating and evolving individuals.
-
-## The Building Blocks
+# Ecosystem
 
 ---
 
-### Allele
+## Allele
 
 > The basic unit.
 
@@ -21,7 +16,7 @@ The `allele` is the smallest unit of genetic information in Radiate. It is a sin
 
 ---
 
-### Gene
+## Gene
 
 > The container.
 
@@ -189,7 +184,7 @@ Certain `Genes` have additional functionality that allows them to be manipulated
 
 ---
 
-### Chromosome
+## Chromosome
 
 > The Collection.
 
@@ -330,7 +325,7 @@ Because each `Chromosome` has an associated `Gene`, the built int chromosomes ar
 
 ---
 
-### Genotype
+## Genotype
 
 > The Complete Blueprint
 
@@ -392,7 +387,7 @@ Because of the typed nature of the `Genotype`, it can only hold a collection of 
 
 ---
 
-### Phenotype
+## Phenotype
 
 > The Living Solution
 
@@ -408,7 +403,7 @@ You shouldn't need to create a `Phenotype` directly, as the `GeneticEngine` will
 
 ---
 
-### Population
+## Population
 
 > The Community
 
@@ -421,7 +416,7 @@ The `Population` is a collection of `Phenotype`s that represent the current stat
 The `Population` is created and managed by the `GeneticEngine`, and you shouldn't need to create a `Population` directly. Instead, you will interact with the `GeneticEngine` to manage the population and evolve the individuals.
 
 ---
-### Species
+## Species
 
 > The Diverse Groups
 
@@ -435,7 +430,7 @@ The `Species` is an optional component of the genome system that contains a `Pop
 The `Species` is not required for the genome system to function, but it can be useful for certain types of problems where grouping similar individuals can help improve the evolution process. For different `Species` to be created, your `GeneticEngine` must contain a struct which implements the `Diversity` trait - this will allow the `GeneticEngine` to create and manage `Species` based on the diversity of the individuals in the population. More on this later.
 
 ---
-### Ecosystem
+## Ecosystem
 
 > The Environment
 
@@ -446,44 +441,3 @@ The `Ecosystem` is the highest level of the genome system and represents the ent
 - Optionally Coordinating the interactions between different `Species` and managing their diversity
 
 The `Ecosystem` is created and managed by the `GeneticEngine`, and you shouldn't need to create an `Ecosystem` directly. Instead, you will interact with the `GeneticEngine` to manage the ecosystem and evolve the individuals within it.
-
----
-
-## Best Practices
-
-1. **Choose the Right Gene Type**:
-    - Use `FloatGene` for continuous values
-    - Use `IntGene` for discrete values
-    - Use `BitGene` for binary choices
-    - Use `CharGene` for character-based problems
-    - Use `PermutationGene` for ordered sets
-
-2. **Structure Your Chromosomes**:
-    - Keep chromosomes focused on specific aspects of your solution
-    - Consider using multiple chromosomes for complex problems
-
-3. **Design Your Genotype**:
-    - Make sure it can represent all possible solutions
-    - Keep it as simple as possible
-
-## Common Pitfalls to Avoid
-
-1. **Overly Complex Genotypes**:
-    - Don't make your genotype more complex than necessary
-    - Start simple and add complexity only when needed
-
-2. **Poor Gene Constraints**:
-    - Always set appropriate value ranges and bounds
-    <!-- - Consider the impact of constraints on evolution -->
-
-## Summary
-The genome system in Radiate provides a structured way to represent and manipulate genetic information. By understanding the components of the genome system, you can effectively design and evolve solutions to complex problems using genetic algorithms. The key components include:
-
-- **[Allele](#allele)**: The basic unit of genetic information.
-- **[Gene](#gene)**: A container for an allele with additional functionality.
-- **[Chromosome](#chromosome)**: A collection of genes that represent a part or the whole of the genetic information of an individual.
-- **[Genotype](#genotype)**: A collection of chromosomes that represent the complete genetic makeup of an individual.
-- **[Phenotype](#phenotype)**: The representation of an individual in the population that holds additional information like fitness scores.
-- **[Population](#population)**: A collection of phenotypes that represent the current group being evolved
-- **[Species](#species)**: An optional grouping of similar phenotypes to manage diversity.
-- **[Ecosystem](#ecosystem)**: The highest level that wraps the entire genetic algorithm environment.

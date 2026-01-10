@@ -27,7 +27,7 @@ pub use functions::*;
 pub use genome::*;
 pub use gp::{PyGraph, PyTree};
 pub use inputs::{PyEngineInput, PyEngineInputType};
-pub use metric::{PyMetric, PyMetricSet, PyTagKind};
+pub use metric::{PyMetric, PyMetricSet};
 pub use rate::PyRate;
 pub use subscriber::{PyEngineEvent, PySubscriber};
 

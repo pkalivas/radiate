@@ -134,7 +134,7 @@ Below there is a brief description of each event type with its representative da
 
 You can subscribe to events in two ways:
 
-### 1. Callback Function
+### Callback Function
 
 The simplest way to subscribe to events is by providing a callback function:
 
@@ -166,8 +166,8 @@ The simplest way to subscribe to events is by providing a callback function:
     let mut engine = GeneticEngine::builder()
         .codec(your_codec)
         .fitness_fn(your_fitness_fn)
-        .subscribe(|event: EngineEvent<Vec<f32>>| {
-            if let EngineEvent::EpochComplete(index, best, metrics, score) = event {
+        .subscribe(|event: &EngineEvent<Vec<f32>>| {
+            if let EngineEvent::EpochComplete(index, best, metrics, score, objective) = event {
                 println!("Printing from event handler! [ {:?} ]: {:?}", index, score);
             }
         })
@@ -180,7 +180,7 @@ The simplest way to subscribe to events is by providing a callback function:
     });
     ``` 
 
-### 2. Event Handler Class
+### Event Handler Class
 
 For more complex event handling, you can create a custom event handler class:
 
@@ -269,8 +269,8 @@ For more complex event handling, you can create a custom event handler class:
     struct MyHandler;
 
     impl EventHandler<Vec<f32>> for MyHandler {
-        fn handle(&mut self, event: &EngineEvent<Vec<f32>>) {
-            if let EngineEvent::EpochComplete(index, best, metrics, score) = event {
+        fn handle(&mut self, event: Arc<EngineEvent<Vec<f32>>>) {
+            if let EngineEvent::EpochComplete(index, best, metrics, score, objective) = event.as_ref() {
                 println!("Printing from event handler! [ {:?} ]: {:?}", index, score);
             }
         }

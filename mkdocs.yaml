@@ -3,41 +3,64 @@ repo_url: http://github.com/pkalivas/radiate
 repo_name: radiate
 
 nav:
-  - User Guide: index.md
-  - Getting Started: source/installation.md
-  - Genome: source/genome.md
-  - Codec: source/codec.md
-  - Selectors: source/selectors.md
-  - Alterers: source/alterers.md
-  - Diversity: source/diversity.md
-  - Executor: source/executors.md
-  - Objectives: source/objectives.md
-  - Fitness: source/fitness.md
-  - Events: source/events.md
-  - Engine: source/engines.md
-  - Genetic Programming: source/gp.md
-  - Ui: source/ui.md
-  - Miscellaneous: source/misc.md
+  - Home:
+    - User Guide: index.md
+    - Getting Started: source/installation.md
+  - Genome:
+    - source/genome/index.md
+    - Ecosystem: source/genome/ecosystem.md
+    - Codec: source/genome/codec.md
+    - Example: source/genome/example.md
+  - Parameters:
+      - Selectors: 
+          - source/selectors/index.md
+          - Example: source/selectors/example.md
+      - Alterers:
+          - source/alters/index.md
+          - Rate: source/alters/rate.md
+          - Mutators: source/alters/mutators.md
+          - Crossovers: source/alters/crossovers.md
+          - Example: source/alters/example.md
+      - Diversity: 
+          - source/diversity/index.md
+          - Distance: source/diversity/distance.md
+          - Example: source/diversity/example.md
+      - Executor: source/executors.md
+      - Objectives: source/objectives.md
+      - Fitness: source/fitness.md
+      - Events: source/events.md
+  - Engine:
+    - source/engine/index.md
+    - Metrics: source/engine/metrics.md
+  - GP: 
+    - source/gp/index.md
+    - Ops: source/gp/op.md
+    - Node: source/gp/node.md
+    - Tree: source/gp/trees.md
+    - Graph: source/gp/graph.md
+    - Regression: source/gp/regression.md
+  - Misc: 
+    - source/misc/index.md
+    - Randomness: source/misc/random.md
+    - Problem API: source/misc/problem.md
+    - Checkpointing: source/misc/checkpoint.md
+    - UI: source/misc/ui.md
   - Examples: source/examples.md
   - Release Notes: source/releases.md
 
 theme:
-  favicon: assets/radiate.ico
-  logo: assets/radiate.png
+  favicon: assets/logo/radiate.ico
+  logo: assets/logo/radiate.png
   name: material
   features:
-    - toc.integrate
-    - navigation.sections
-    - navigation.collapsable
+    - navigation.tracking
+    # - navigation.expand        # (leave OFF if you want collapsed-by-default)
+    - navigation.instant
+    - navigation.tabs
+    - navigation.tabs.sticky
     - navigation.footer
-    - navigation.paging
-    - navigation.expand
-    - toc.collapse
-    - navigation.top
-    - search.suggest
-    - search.highlight
+    - navigation.indexes
     - content.tabs.link
-    - content.code.annotation
     - content.code.copy
   language: en
   palette:
@@ -82,23 +105,15 @@ markdown_extensions:
   - pymdownx.arithmatex:
       generic: true
 
-extra_css:
-  - stylesheets/extra.css
-  
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https:github.com/pkalivas/radiate
+      link: https://github.com/pkalivas/radiate
   generator: 
 extra_javascript:
   - javascripts/katex.js
   - https://unpkg.com/katex@0/dist/katex.min.js
   - https://unpkg.com/katex@0/dist/contrib/auto-render.min.js
 extra_css:
+  - stylesheets/extra.css
   - https://unpkg.com/katex@0/dist/katex.min.css  
-
-
-    # - navigation.tabs
-    # - navigation.tabs.sticky
-    # - toc.integrate
-    # https://github.com/squidfunk/mkdocs-material/blob/master/material/templates/.icons/fontawesome/regular/thumbs-up.svg

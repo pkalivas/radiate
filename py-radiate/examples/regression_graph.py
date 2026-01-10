@@ -64,7 +64,7 @@ engine = rd.GeneticEngine(
     subscribe=HeadPrinterSubscriber(),
     objective="min",
     alters=[
-        rd.GraphCrossover(rd.rate.fixed(0.05), 0.5),
+        rd.GraphCrossover(rd.Rate.fixed(0.05), 0.5),
         rd.OperationMutator(0.07, 0.05),
         rd.GraphMutator(0.1, 0.1, False),
     ],

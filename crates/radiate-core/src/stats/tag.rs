@@ -1,6 +1,8 @@
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
+use crate::stats::metric_tags;
+
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[repr(transparent)]
@@ -165,6 +167,30 @@ impl PartialOrd for TagKind {
 impl Ord for TagKind {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         (*self as u8).cmp(&(*other as u8))
+    }
+}
+
+impl From<String> for TagKind {
+    fn from(s: String) -> Self {
+        use TagKind::*;
+        match s.as_str().to_lowercase().as_str() {
+            metric_tags::SELECTOR => Selector,
+            metric_tags::ALTERER => Alterer,
+            metric_tags::MUTATOR => Mutator,
+            metric_tags::CROSSOVER => Crossover,
+            metric_tags::SPECIES => Species,
+            metric_tags::FAILURE => Failure,
+            metric_tags::AGE => Age,
+            metric_tags::FRONT => Front,
+            metric_tags::DERIVED => Derived,
+            metric_tags::OTHER => Other,
+            metric_tags::STATISTIC => Statistic,
+            metric_tags::TIME => Time,
+            metric_tags::DISTRIBUTION => Distribution,
+            metric_tags::SCORE => Score,
+            metric_tags::RATE => Rate,
+            _ => Other,
+        }
     }
 }
 

@@ -15,6 +15,7 @@ The fitness function takes a decoded phenotype (the actual data structure) and r
 |----------------------|---------|----------|------------|
 | [Simple Functions](#simple-fitness) | Basic optimization | Problems, benchmarks, cutstom logic | Low |
 | [Batch Fitness](#batch-fitness) | Batch optimization | Problems, benchmarks, custom logic | Low |
+| [Raw Fitness](#raw-fitness) | Direct genotype evaluation | When decoding is unnecessary | Low |
 | [Composite Functions](#composite-fitness) | Fitness combination | Balancing multiple goals | Medium |
 | [Novelty Search](#novelty-search) | Behavioral diversity | Exploration, avoiding local optima | High |
 
@@ -139,6 +140,42 @@ Its important to note that other types of fitness functions like `NoveltySearch`
                 .collect()
         })
         .build();
+    ```
+
+---
+
+## Raw Fitness
+
+Raw fitness functions provide direct access to the genotype in the fitness function. If your fitness function can operate directly on the `Genotype` without needing to decode it, you can use a raw fitness function.
+
+This can be a useful performance optimization in cases where decoding is unnecessary or when the genotype structure is simple enough to evaluate directly.
+
+=== ":fontawesome-brands-python: Python"
+
+    Due to the rust-python bridge limitations, raw fitness functions are not currently supported in the python API.
+   
+
+=== ":fontawesome-brands-rust: Rust"
+
+    ```rust
+    use radiate::*;
+
+    fn my_fitness_fn(genotype: &Genotype<FloatChromosome>) -> f32 {
+        // Evaluate the genotype directly without decoding
+        genotype.iter()
+            .map(|chromosome| chromosome.iter().map(|gene| *gene.allele()).sum::<f32>())
+            .sum::<f32>()
+    }
+
+    let mut engine = GeneticEngine::builder()
+        .codec(FloatCodec::vector(10, 0.0..1.0))
+        .raw_fitness_fn(my_fitness_fn)
+        // or .raw_batch_fitness_fn(...) for batch raw fitness functions
+        // ... other parameters ...
+        .build();
+
+    // Run the engine
+    let result = engine.run(|epoch| epoch.index() >= 100);
     ```
 
 ---
