@@ -56,7 +56,7 @@ mod tests {
         )
         .expect("Failed to deserialize engine metrics");
 
-        for key in engine_metrics.keys() {
+        for key in loaded_metrics.keys() {
             let engine_metric = engine_metrics.get(key).expect("Engine metric missing key");
             let loaded_metric = loaded_metrics.get(key).expect("Loaded metric missing key");
 

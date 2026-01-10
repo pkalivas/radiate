@@ -105,30 +105,46 @@ impl<C: Chromosome> Alterer<C> {
     pub fn alter(&self, population: &mut Population<C>, generation: usize) -> Vec<Metric> {
         match &self {
             Alterer::Mutate(name, rate, m) => {
-                let rate_value = rate.value(generation);
+                let (rate_value, rate_metric) = Self::rate_metric(generation, rate, name);
 
                 let timer = std::time::Instant::now();
                 let AlterResult(count, metrics) = m.mutate(population, generation, rate_value);
                 let metric = metric!(name, (count, timer.elapsed()));
 
                 match metrics {
-                    Some(metrics) => metrics.into_iter().chain(once(metric)).collect(),
-                    None => vec![metric],
+                    Some(metrics) => metrics
+                        .into_iter()
+                        .chain(once(metric))
+                        .chain(once(rate_metric))
+                        .collect(),
+                    None => vec![metric, rate_metric],
                 }
             }
             Alterer::Crossover(name, rate, c) => {
-                let rate_value = rate.value(generation);
+                let (rate_value, rate_metric) = Self::rate_metric(generation, rate, name);
 
                 let timer = std::time::Instant::now();
                 let AlterResult(count, metrics) = c.crossover(population, generation, rate_value);
                 let metric = metric!(name, (count, timer.elapsed()));
 
                 match metrics {
-                    Some(metrics) => metrics.into_iter().chain(once(metric)).collect(),
-                    None => vec![metric],
+                    Some(metrics) => metrics
+                        .into_iter()
+                        .chain(once(metric))
+                        .chain(once(rate_metric))
+                        .collect(),
+                    None => vec![metric, rate_metric],
                 }
             }
         }
+    }
+
+    #[inline]
+    fn rate_metric(generation: usize, rate: &Rate, name: &str) -> (f32, Metric) {
+        let rate_value = rate.value(generation);
+        let metric = metric!(radiate_utils::intern!(format!("{}_rate", name)), rate_value);
+
+        (rate_value, metric)
     }
 }
 

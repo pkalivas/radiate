@@ -16,8 +16,8 @@ class TestMetrics:
 
         metrics = result.metrics()
 
-        assert len(metrics) == 21
-        assert len(metrics.keys()) == 21
+        assert len(metrics) == 23
+        assert len(metrics.keys()) == 23
         for key in metrics.keys():
             assert key in metrics
 

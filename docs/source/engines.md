@@ -124,14 +124,16 @@ When the engine is configured for multi-objective optimization, the engine `Gene
     # Run the engine for 100 generations
     result = engine.run(rd.GenerationsLimit(100))
 
-    # Everything in the multi-objective epoch is the same as the single-objective epoch, except for the value:
-    # This will be a list of objects representing your pareto front as such:
-    # [
-    #     {'genotype': [Float], 'fitness': [obj1_fit, obj2_fit, ...]},
-    #     {'genotype': [Float], 'fitness': [obj1_fit, obj2_fit, ...]},
-    #     ...
-    # ]
-    value = result.value()  
+    # Everything in the multi-objective epoch is the same as the single-objective epoch, except for the value. 
+    # The function call to `front()` will return a `ParetoFront` object while `value()` will return None.:
+    front = result.front()  # ParetoFront object
+    # This is of type `Front` with `FrontValue` members.
+    value_at_index_0 = front[0]  # FrontValue object
+    all_values = front.values()  # list[FrontValue]
+
+    # Get the members of the Pareto front:
+    score = all_values[0].score() # list[float] - multi-objective score
+    genotype = all_values[0].genotype()  # Genotype object
     ```
 
 === ":fontawesome-brands-rust: Rust"

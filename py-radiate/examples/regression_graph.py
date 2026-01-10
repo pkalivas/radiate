@@ -64,7 +64,7 @@ engine = rd.GeneticEngine(
     subscribe=HeadPrinterSubscriber(),
     objective="min",
     alters=[
-        rd.GraphCrossover(0.5, 0.5),
+        rd.GraphCrossover(rd.rate.fixed(0.05), 0.5),
         rd.OperationMutator(0.07, 0.05),
         rd.GraphMutator(0.1, 0.1, False),
     ],
@@ -73,7 +73,7 @@ engine = rd.GeneticEngine(
 result = engine.run(
     [rd.ScoreLimit(0.001), rd.GenerationsLimit(1000)],
     log=True,
+    # ui=True,
 )
 print(result)
-print(result.metrics().dashboard())
 print(result.metrics().dashboard())

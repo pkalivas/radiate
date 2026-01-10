@@ -82,6 +82,10 @@ from .inputs.distance import (
 )
 
 from .inputs.limit import SecondsLimit, GenerationsLimit, ScoreLimit, ConvergenceLimit
+
+from .inputs.rate import Rate
+from .inputs import rate
+
 from .option import EngineLog, EngineCheckpoint, EngineUi
 
 from .dependancies import (
@@ -131,6 +135,9 @@ __all__ = [
     "EventHandler",
     "EventType",
     "EngineEvent",
+    # Rate
+    "Rate",
+    "rate",
     # Alters
     "BlendCrossover",
     "TreeCrossover",

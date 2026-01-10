@@ -100,6 +100,7 @@ pub enum TagKind {
     Time,
     Distribution,
     Score,
+    Rate,
 }
 
 impl TagKind {
@@ -122,6 +123,7 @@ impl TagKind {
             11 => Time,
             12 => Distribution,
             13 => Score,
+            14 => Rate,
             _ => return None,
         })
     }
@@ -149,6 +151,7 @@ impl TagKind {
             Time => "Time",
             Distribution => "Distribution",
             Score => "Score",
+            Rate => "Rate",
         }
     }
 }

@@ -67,6 +67,8 @@ pub mod metric_tags {
     pub const DISTRIBUTION: &str = "distribution";
 
     pub const SCORE: &str = "score";
+
+    pub const RATE: &str = "rate";
 }
 
 const RULES: &[(&str, &[TagKind])] = &[
@@ -84,6 +86,7 @@ const RULES: &[(&str, &[TagKind])] = &[
     (metric_tags::DERIVED, &[TagKind::Derived]),
     (metric_tags::OTHER, &[TagKind::Other]),
     (metric_tags::SCORE, &[TagKind::Score]),
+    (metric_tags::RATE, &[TagKind::Rate]),
 ];
 
 pub fn default_tags(name: &str) -> Tag {
