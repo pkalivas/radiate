@@ -112,8 +112,6 @@ where
         if let Some(control) = &self.control {
             if control.is_stopped() {
                 return None;
-            } else if control.is_paused() {
-                control.wait_before_step();
             }
         }
 

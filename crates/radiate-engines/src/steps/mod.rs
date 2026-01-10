@@ -16,7 +16,7 @@ use radiate_error::Result;
 pub use recombine::*;
 pub use speciate::*;
 
-pub trait EngineStep<C>
+pub trait EngineStep<C>: Send + Sync
 where
     C: Chromosome,
 {

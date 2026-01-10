@@ -292,10 +292,93 @@ Radiate provides multiple ways to run the `GeneticEngine`.
     ```
 ---
 
+## Control Interface
+
+The engine provides a control interface that allows for pausing, resuming, and stopping the evolutionary process from external contexts. For instance, you might want to pause or step through generations from another thread or based on user input.
+
+=== ":fontawesome-brands-python: Python"
+
+    Not currently implemented.
+
+
+=== ":fontawesome-brands-rust: Rust"
+
+    ```rust
+    use radiate::*;
+    use std::thread;
+    use std::time::Duration;
+
+    let mut engine = GeneticEngine::builder()
+        .minimizing()
+        .codec(IntCodec::vector(5, 0..100))
+        .fitness_fn(|geno: Vec<i32>| geno.iter().sum::<i32>())
+        .build();
+
+    let control = engine.control();
+
+    let handle = thread::spawn(move || {
+        let result = engine.iter().until_seconds(1_f64).last().unwrap();
+        assert_eq!((result.seconds() - 1_f64).abs().round(), 0.0);
+    });
+
+    thread::sleep(Duration::from_millis(100));
+    control.set_paused(true);
+
+    // Ensure the engine is paused for at least 500ms
+    thread::sleep(Duration::from_millis(500));
+    control.set_paused(false);
+    handle.join().unwrap();
+    ```
+
+---
+
 ## Tips
 
 * Use appropriate population sizes (100-500 for most problems)
 * Enable parallel execution for expensive fitness functions
-* Use efficient selection strategies for large populations
 * Consider species-based diversity for complex landscapes
+* Experiment with different mutation and crossover rates
+* Monitor convergence and adjust parameters dynamically
+* Utilize logging and checkpointing for long runs
+* Leverage the control interface for interactive runs
 
+
+<!-- ```python
+import radiate as rd
+import threading
+import time
+
+# Create an engine
+engine = rd.GeneticEngine(
+    codec=rd.FloatCodec.scalar(0.0, 1.0), 
+    fitness_fn=my_fitness_fn,  # Some fitness function
+    # ... other parameters ...
+)
+
+# Get the control interface
+control = engine.get_control()
+
+# Run the engine in a separate thread
+def run_engine():
+    engine.run(rd.GenerationsLimit(1000))
+
+engine_thread = threading.Thread(target=run_engine)
+engine_thread.start()
+
+# Pause the engine after 5 seconds
+time.sleep(5)
+control.pause()
+print("Engine paused.")
+
+# Resume the engine after another 5 seconds
+time.sleep(5)
+control.resume()
+print("Engine resumed.")
+
+# Stop the engine after another 5 seconds
+time.sleep(5)
+control.stop()
+print("Engine stopped.")
+
+engine_thread.join()
+``` -->

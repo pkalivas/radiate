@@ -201,7 +201,7 @@ All metrics have a sort of metadata which identifies them based on their charact
 
     // Get tags for a specific metric
     let tags = metrics.get("scores").unwrap().tags(); // [Tag::Score, Tag::Statistic, Tag::Distribution]
-    for metric in metrics.iter_tagged(Tag::Alterer) {
+    for metric in metrics.iter_tagged(TagKind::Alterer) {
         // ... access all metrics related to alterers (crossover, mutation) ...
     }
 

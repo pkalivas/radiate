@@ -2,7 +2,7 @@ use crate::{Chromosome, Gene, Genotype, Metric, Population, math::indexes, rando
 use crate::{Rate, metric};
 use radiate_utils::{ToSnakeCase, intern};
 use std::iter::once;
-use std::rc::Rc;
+use std::sync::Arc;
 
 #[macro_export]
 macro_rules! alters {
@@ -82,8 +82,8 @@ impl From<Metric> for AlterResult {
 
 #[derive(Clone)]
 pub enum Alterer<C: Chromosome> {
-    Mutate(&'static str, Rate, Rc<dyn Mutate<C>>),
-    Crossover(&'static str, Rate, Rc<dyn Crossover<C>>),
+    Mutate(&'static str, Rate, Arc<dyn Mutate<C>>),
+    Crossover(&'static str, Rate, Arc<dyn Crossover<C>>),
 }
 
 impl<C: Chromosome> Alterer<C> {
@@ -184,7 +184,7 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
     where
         Self: Sized + 'static,
     {
-        Alterer::Crossover(intern!(self.name()), self.rate(), Rc::new(self))
+        Alterer::Crossover(intern!(self.name()), self.rate(), Arc::new(self))
     }
 
     #[inline]
@@ -282,7 +282,7 @@ pub trait Mutate<C: Chromosome>: Send + Sync {
     where
         Self: Sized + 'static,
     {
-        Alterer::Mutate(intern!(self.name()), self.rate(), Rc::new(self))
+        Alterer::Mutate(intern!(self.name()), self.rate(), Arc::new(self))
     }
 
     #[inline]
