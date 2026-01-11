@@ -13,8 +13,8 @@
 //! - **Convergence Detection**: Stop when improvement rate falls below threshold
 //! - **Combined Limits**: Apply multiple limits simultaneously
 
-use radiate_core::Score;
-use std::time::Duration;
+use radiate_core::{Metric, Score};
+use std::{sync::Arc, time::Duration};
 
 /// Defines various types of limits for controlling genetic algorithm execution.
 ///
@@ -97,13 +97,14 @@ use std::time::Duration;
 /// let multi_score: Limit = vec![0.9, 0.8, 0.7].into(); // Multi-objective
 /// let conv_limit: Limit = (25, 0.01f32).into();        // Convergence
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum Limit {
     Generation(usize),
     Seconds(Duration),
     Score(Score),
     Convergence(usize, f32),
     Combined(Vec<Limit>),
+    Metric(String, Arc<dyn Fn(&Metric) -> bool>),
 }
 
 impl Into<Limit> for usize {
@@ -133,6 +134,15 @@ impl Into<Limit> for Vec<f32> {
 impl Into<Limit> for (usize, f32) {
     fn into(self) -> Limit {
         Limit::Convergence(self.0, self.1)
+    }
+}
+
+impl<F> Into<Limit> for (&str, F)
+where
+    F: Fn(&Metric) -> bool + 'static,
+{
+    fn into(self) -> Limit {
+        Limit::Metric(self.0.to_string(), Arc::new(self.1))
     }
 }
 

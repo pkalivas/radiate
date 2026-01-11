@@ -18,11 +18,12 @@
 //! - **Limit System**: Flexible limit specification and combination
 
 use crate::{Generation, Limit, control::EngineControl, init_logging};
-use radiate_core::{Chromosome, Engine, Objective, Optimize, Score};
+use radiate_core::{Chromosome, Engine, Metric, Objective, Optimize, Score};
 #[cfg(feature = "serde")]
 use serde::Serialize;
 #[cfg(feature = "serde")]
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::{collections::VecDeque, time::Duration};
 use tracing::info;
 
@@ -508,6 +509,22 @@ where
         }
     }
 
+    fn until_metric(
+        self,
+        name: &str,
+        predicate: impl Fn(&Metric) -> bool + 'static,
+    ) -> impl Iterator<Item = Generation<C, T>>
+    where
+        Self: Sized,
+    {
+        MetricLimitIterator {
+            iter: self,
+            metric_name: name.to_string(),
+            limit: Arc::new(predicate),
+            done: false,
+        }
+    }
+
     /// Applies a [Limit] specification to the iterator.
     ///
     /// This method provides a unified interface for applying various types
@@ -589,6 +606,12 @@ where
                 epsilon,
                 done: false,
                 history: VecDeque::new(),
+            }),
+            Limit::Metric(name, predicate) => Box::new(MetricLimitIterator {
+                iter: self,
+                metric_name: name,
+                limit: predicate,
+                done: false,
             }),
             Limit::Combined(limits) => {
                 let mut iter: Box<dyn Iterator<Item = Generation<C, T>>> = Box::new(self);
@@ -857,6 +880,40 @@ where
                     front_size_value,
                     next.time()
                 );
+            }
+        }
+
+        Some(next)
+    }
+}
+
+struct MetricLimitIterator<C, T, I>
+where
+    I: Iterator<Item = Generation<C, T>>,
+    C: Chromosome,
+{
+    iter: I,
+    metric_name: String,
+    limit: Arc<dyn Fn(&Metric) -> bool>,
+    done: bool,
+}
+
+impl<I, C, T> Iterator for MetricLimitIterator<C, T, I>
+where
+    I: Iterator<Item = Generation<C, T>>,
+    C: Chromosome,
+{
+    type Item = Generation<C, T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.done {
+            return None;
+        }
+
+        let next = self.iter.next()?;
+        if let Some(metric) = next.metrics().get(&self.metric_name) {
+            if (self.limit)(metric) {
+                self.done = true;
             }
         }
 

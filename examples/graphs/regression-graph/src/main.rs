@@ -29,6 +29,13 @@ fn main() {
         .build();
 
     engine.iter().until_score(MIN_SCORE).last().inspect(display);
+    // engine
+    //     .iter()
+    //     .until_metric(metric_names::EVALUATION_COUNT, |metric| {
+    //         metric.value_sum().map(|v| v >= 1000.0).unwrap_or(false)
+    //     })
+    //     .last()
+    //     .inspect(display);
 }
 
 fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
@@ -39,6 +46,14 @@ fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
         .eval(result.value())
         .inspect(|acc| {
             println!("{result:?}\n{acc:?}\n{}", result.metrics().dashboard());
+            println!(
+                "Evaluation sum {:?}",
+                result
+                    .metrics()
+                    .get(metric_names::EVALUATION_COUNT)
+                    .unwrap()
+                    .value_sum()
+            );
 
             for key in result.metrics().keys() {
                 let metric = result.metrics().get(key).unwrap();

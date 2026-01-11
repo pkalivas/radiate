@@ -7,20 +7,6 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use std::time::Duration;
 
-/// A snapshot of an ecosystem, either owned or shared.
-///
-/// Owned ecosystems contain their own data, while shared ecosystems
-/// contain reference counted clones of the data. This allows for
-/// efficient sharing of ecosystems between generations without
-/// unnecessary cloning. However, this means that a shared ecosystem
-/// should not be modified directly, as it may affect other generations
-/// that share the same data.
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub enum EcosystemSnapshot<C: Chromosome> {
-    Owned(Ecosystem<C>),
-    Shared(Ecosystem<C>),
-}
-
 /// A [Generation] represents a single generation in the evolutionary process.
 /// It contains the ecosystem, best solution, index, metrics, score, objective,
 /// and optionally the Pareto front for multi-objective problems.
@@ -45,21 +31,12 @@ pub enum EcosystemSnapshot<C: Chromosome> {
 ///     .fitness_fn(|vec: Vec<f32>| -vec.iter().map(|x| x * x).sum::<f32>())
 ///     .build();
 ///
-/// let mut generation = engine.iter().take(10).last().unwrap();
+/// let generation = engine.iter().take(10).last().unwrap();
 ///
-/// {
-///     // Triggers a clone of the ecosystem if it is shared - which is true in this case.
-///     // The first access to the ecosystem outside of the engine will always trigger a clone because
-///     // the engine creates generations with shared ecosystems to avoid unnecessary cloning.
-///     let ecosystem: &Ecosystem<FloatChromosome> = generation.ecosystem();
-/// }
+/// let ecosystem: &Ecosystem<FloatChromosome> = generation.ecosystem();
 ///
-/// {
-///     // Would trigger a clone of the ecosystem if it is shared. It is NOT in this case
-///     // because it was just converted to an owned ecosystem above.
-///     let population: &Population<FloatChromosome> = generation.population();
-///     assert!(population.len() == 100);
-/// }
+/// let population: &Population<FloatChromosome> = generation.population();
+/// assert!(population.len() == 100);
 ///
 /// let solution: &Vec<f32> = generation.value();
 /// let index: usize = generation.index();
@@ -74,7 +51,7 @@ pub struct Generation<C, T>
 where
     C: Chromosome,
 {
-    ecosystem: EcosystemSnapshot<C>,
+    ecosystem: Ecosystem<C>,
     value: T,
     index: usize,
     metrics: MetricSet,
@@ -111,39 +88,15 @@ where
         &self.objective
     }
 
-    /// Access the ecosystem, cloning it if it is shared. When this is called,
-    /// if the ecosystem is in the [EcosystemSnapshot::Shared] variant, it
-    /// will be cloned into the [EcosystemSnapshot::Owned] variant for future
-    /// accesses. When the generation is created from a [Context], the ecosystem
-    /// is always in the shared variant to avoid unnecessary cloning of the ecosystem.
-    pub fn ecosystem(&mut self) -> &Ecosystem<C>
-    where
-        C: Clone,
-    {
-        if let EcosystemSnapshot::Owned(ref eco) = self.ecosystem {
-            return eco;
-        } else if let EcosystemSnapshot::Shared(eco) = &self.ecosystem {
-            self.ecosystem = EcosystemSnapshot::Owned(eco.clone());
-        }
-
-        self.ecosystem()
+    pub fn ecosystem(&self) -> &Ecosystem<C> {
+        &self.ecosystem
     }
 
-    /// Access the population from the ecosystem. Just like [Generation::ecosystem],
-    /// if the ecosystem is shared, it will be cloned on first access.
-    pub fn population(&mut self) -> &Population<C>
-    where
-        C: Clone,
-    {
+    pub fn population(&self) -> &Population<C> {
         &self.ecosystem().population()
     }
 
-    /// Access the species from the ecosystem. Just like [Generation::ecosystem],
-    /// if the ecosystem is shared, it will be cloned on first access.
-    pub fn species(&mut self) -> Option<&[Species<C>]>
-    where
-        C: Clone,
-    {
+    pub fn species(&self) -> Option<&[Species<C>]> {
         self.ecosystem().species().map(|s| s.as_slice())
     }
 
@@ -173,7 +126,7 @@ where
 {
     fn from(context: &Context<C, T>) -> Self {
         Generation {
-            ecosystem: EcosystemSnapshot::Owned(context.ecosystem.clone()),
+            ecosystem: context.ecosystem.clone(),
             value: context.best.clone(),
             index: context.index,
             metrics: context.metrics.clone(),
@@ -194,10 +147,7 @@ where
 {
     fn clone(&self) -> Self {
         Generation {
-            ecosystem: match &self.ecosystem {
-                EcosystemSnapshot::Owned(eco) => EcosystemSnapshot::Owned(eco.clone()),
-                EcosystemSnapshot::Shared(eco) => EcosystemSnapshot::Owned(eco.clone()),
-            },
+            ecosystem: self.ecosystem.clone(),
             value: self.value.clone(),
             index: self.index,
             metrics: self.metrics.clone(),
@@ -214,10 +164,7 @@ where
     T: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let ecosystem = match &self.ecosystem {
-            EcosystemSnapshot::Owned(eco) => eco,
-            EcosystemSnapshot::Shared(eco) => eco,
-        };
+        let ecosystem = &self.ecosystem;
 
         write!(f, "Generation {{\n")?;
         write!(f, "  metrics: {:?},\n", self.metrics)?;

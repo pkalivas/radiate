@@ -187,7 +187,7 @@ Radiate provides multiple ways to run the `GeneticEngine`.
 
     !!! warning "Stopping Condition"
 
-        The engine's iterator is an 'infinite iterator', meaning it will continue to produce epochs until a stopping condition, a `break` or a `return` is met. So, unless you want to run the engine indefinitely, you should always use a method like `take`, `until`, or `last` to limit the number of epochs produced.
+        The engine's iterator is an 'streaming' or 'infinite iterator', meaning it will continue to produce epochs until a stopping condition, a `break` or a `return` is met. So, unless you want to run the engine indefinitely, you should always use a method like `take`, `until`, or `last` to limit the number of epochs produced.
         
 
 === ":fontawesome-brands-python: Python"
@@ -198,12 +198,19 @@ Radiate provides multiple ways to run the `GeneticEngine`.
     # Create an engine
     engine = rd.GeneticEngine(
         codec=rd.FloatCodec.scalar(0.0, 1.0), 
-        fitness_funn=my_fitness_fn,  # Some fitness function
+        fitness_func=my_fitness_fn,  # Some fitness function
         # ... other parameters ...
     )
 
     # use a simple for loop to iterate through 100 generations
     for epoch in engine:
+        if epoch.index() >= 100:
+            break
+        print(f"Generation {epoch.index()}: Score = {epoch.score()}")
+
+    # just use the next() function to get the next epoch
+    while True:
+        epoch = next(engine)
         if epoch.index() >= 100:
             break
         print(f"Generation {epoch.index()}: Score = {epoch.score()}")
@@ -276,7 +283,16 @@ Radiate provides multiple ways to run the `GeneticEngine`.
         .last()
         .unwrap();
 
-    // 6.) Checkpointing - save the engine state every 10 generations
+    // 6.) metrics limit - stop after 1000 evaluations
+    let result = engine
+        .iter()
+        .until_metric(metric_names::EVALUATION_COUNT, |metric| {
+            metric.value_sum().map(|v| v >= 1000.0).unwrap_or(false)
+        })
+        .last()
+        .unwrap();
+
+    // 7.) Checkpointing - save the engine state every 10 generations
     let checkpoint_path = "checkpoint.json";
     let result = engine
         .iter()
@@ -285,8 +301,8 @@ Radiate provides multiple ways to run the `GeneticEngine`.
         .last()
         .unwrap();
 
-    // 7.) Using the engine's run method with a closure - stop after 100 generations
-    let result = engine.run(|generation: &Generation<FloatChromosome>| {
+    // 8.) Using the engine's run method with a closure - stop after 100 generations
+    let result = engine.run(|generation: &Generation<FloatChromosome, Vec<f32>>| {
         generation.index() >= 100
     });
     ```

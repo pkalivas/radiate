@@ -114,6 +114,7 @@ These can be accessed through the `metrics()` method of the epoch, which returns
     score_max = scores.max()  
     score_count = scores.count()  
     score_skew = scores.skew()  
+    score_sum = scores.sum()
 
     time = metrics["time"].time_sum() 
 

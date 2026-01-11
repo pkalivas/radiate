@@ -8,8 +8,8 @@ nav:
     - Getting Started: source/installation.md
   - Genome:
     - source/genome/index.md
-    - Ecosystem: source/genome/ecosystem.md
     - Codec: source/genome/codec.md
+    - Any: source/genome/any.md
     - Example: source/genome/example.md
   - Parameters:
       - Selectors: 

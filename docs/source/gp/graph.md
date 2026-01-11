@@ -7,7 +7,7 @@ Graphs are a powerful way to represent problems. They are used in many fields, s
 3. Each edge node must have exactly 1 incoming connection and 1 outgoing connection.
 4. Each vertex node must have at least 1 incoming connection and at least 1 outgoing connection.
 
-With these rules in mind, we can begin to build and evolve graphs. The graph typically relies on an underlying `GraphArchitect` to construct a valid graph. This architect is a builder pattern that keeps an aggregate of nodes added and their relationships to other nodes. Because of the architect's decoupled nature, we can easily create complex graphs. When combined with the [op](#ops) functionality, the `graph` module allows for the creation of complex computational graphs that can be evolved to solve or eval regression problems. 
+With these rules in mind, we can begin to build and evolve graphs. The graph typically relies on an underlying `GraphArchitect` to construct a valid graph. This architect is a builder pattern that keeps an aggregate of nodes added and their relationships to other nodes. Because of the architect's decoupled nature, we can easily create complex graphs. When combined with the [op](op.md) functionality, the `graph` module allows for the creation of complex computational graphs that can be evolved to solve or eval regression problems. 
 
 <figure markdown="span">
     ![op-grpah](../../assets/gp/graph_gp.png){ width="300" }

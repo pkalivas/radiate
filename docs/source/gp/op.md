@@ -150,7 +150,7 @@ Provided `Ops` include:
 
 - **Purpose**: Randomly mutate an operation within a `TreeNode` or `GraphNode`.
 
-This mutator randomly changes or alters the `op` of a node within a `TreeChromosome` or `GraphChromosome`. It can replace the `op` with a new one from the [store](#store) or modify its parameters.
+This mutator randomly changes or alters the `op` of a node within a `TreeChromosome` or `GraphChromosome`. It can replace the `op` with a new one from the [store](node.md#store) or modify its parameters.
 
 === ":fontawesome-brands-python: Python"
 
