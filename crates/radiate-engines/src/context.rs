@@ -1,5 +1,5 @@
-use crate::Chromosome;
 use crate::builder::EngineConfig;
+use crate::{Chromosome, EngineControl};
 use radiate_core::{
     Ecosystem, Front, MetricSet, Objective, Phenotype, Problem, Score, metric_names,
 };
@@ -14,6 +14,7 @@ pub struct Context<C: Chromosome, T> {
     pub(crate) front: Arc<RwLock<Front<Phenotype<C>>>>,
     pub(crate) objective: Objective,
     pub(crate) problem: Arc<dyn Problem<C, T>>,
+    pub(crate) control: Option<EngineControl>,
 }
 
 impl<C: Chromosome, T> Context<C, T> {
@@ -38,6 +39,16 @@ impl<C: Chromosome, T> Context<C, T> {
 
         false
     }
+
+    pub fn get_or_create_control(&mut self) -> EngineControl {
+        if self.control.is_none() {
+            let (one, two) = EngineControl::pair();
+            self.control = Some(one);
+            return two;
+        }
+
+        self.control.as_ref().unwrap().clone()
+    }
 }
 
 impl<C, T> From<EngineConfig<C, T>> for Context<C, T>
@@ -56,6 +67,7 @@ where
                 front: config.front(),
                 objective: config.objective().clone(),
                 problem: config.problem().clone(),
+                control: None,
             };
         }
 
@@ -73,6 +85,7 @@ where
             front: config.front(),
             objective: config.objective().clone(),
             problem: config.problem().clone(),
+            control: None,
         }
     }
 }

@@ -1,0 +1,1050 @@
+[
+  {
+    "name": "uniform_crossover_rate",
+    "inner": {
+      "value_statistic": {
+        "m1": {
+          "compensation": 0.0,
+          "simple_sum": 0.5,
+          "sum": 0.5
+        },
+        "m2": {
+          "compensation": 0.0,
+          "simple_sum": 0.0,
+          "sum": 0.0
+        },
+        "m3": {
+          "compensation": 0.0,
+          "simple_sum": 0.0,
+          "sum": 0.0
+        },
+        "m4": {
+          "compensation": 0.0,
+          "simple_sum": 0.0,
+          "sum": 0.0
+        },
+        "sum": {
+          "compensation": 0.0,
+          "simple_sum": 11.0,
+          "sum": 11.0
+        },
+        "count": 22,
+        "last_value": 0.5,
+        "max": 0.5,
+        "min": 0.5
+      },
+      "time_statistic": null
+    },
+    "tags": 17418
+  },
+  {
+    "name": "arithmetic_mutator_rate",
+    "inner": {
+      "value_statistic": {
+        "m1": {
+          "compensation": 0.0,
+          "simple_sum": 0.01,
+          "sum": 0.01
+        },
+        "m2": {
+          "compensation": 0.0,
+          "simple_sum": 0.0,
+          "sum": 0.0
+        },
+        "m3": {
+          "compensation": 0.0,
+          "simple_sum": 0.0,
+          "sum": 0.0
+        },
+        "m4": {
+          "compensation": 0.0,
+          "simple_sum": 0.0,
+          "sum": 0.0
+        },
+        "sum": {
+          "compensation": 3.7252903e-9,
+          "simple_sum": 0.22000003,
+          "sum": 0.22
+        },
+        "count": 22,
+        "last_value": 0.01,
+        "max": 0.01,
+        "min": 0.01
+      },
+      "time_statistic": null
+    },
+    "tags": 17414
+  },
+  {
+    "name": "genome_size",
+    "inner": {
+      "value_statistic": {
+        "m1": {
+          "compensation": 0.0,
+          "simple_sum": 2.0,
+          "sum": 2.0
+        },
+        "m2": {
+          "compensation": 0.0,
+          "simple_sum": 0.0,
+          "sum": 0.0
+        },
+        "m3": {
+          "compensation": 0.0,
+          "simple_sum": 0.0,
+          "sum": 0.0
+        },
+        "m4": {
+          "compensation": 0.0,
+          "simple_sum": 0.0,
+          "sum": 0.0
+        },
+        "sum": {
+          "compensation": 0.0,
+          "simple_sum": 22000.0,
+          "sum": 22000.0
+        },
+        "count": 11000,
+        "last_value": 2.0,
+        "max": 2.0,
+        "min": 2.0
+      },
+      "time_statistic": null
+    },
+    "tags": 5120
+  },
+  {
+    "name": "survivor_count",
+    "inner": {
+      "value_statistic": {
+        "m1": {
+          "compensation": -0.000002861023,
+          "simple_sum": 113.63637,
+          "sum": 113.63636
+        },
+        "m2": {
+          "compensation": 0.00390625,
+          "simple_sum": 92843.09,
+          "sum": 92843.09
+        },
+        "m3": {
+          "compensation": 0.0,
+          "simple_sum": 462794.3,
+          "sum": 462794.3
+        },
+        "m4": {
+          "compensation": -7.5,
+          "simple_sum": 589757200.0,
+          "sum": 589757200.0
+        },
+        "sum": {
+          "compensation": 0.0,
+          "simple_sum": 2500.0,
+          "sum": 2500.0
+        },
+        "count": 22,
+        "last_value": 46.0,
+        "max": 217.0,
+        "min": 0.0
+      },
+      "time_statistic": null
+    },
+    "tags": 1280
+  },
+  {
+    "name": "filter_step",
+    "inner": {
+      "value_statistic": null,
+      "time_statistic": {
+        "statistic": {
+          "m1": {
+            "compensation": 1.3073986e-12,
+            "simple_sum": 0.000043840955,
+            "sum": 0.000043840955
+          },
+          "m2": {
+            "compensation": -1.0408341e-16,
+            "simple_sum": 1.8981312e-9,
+            "sum": 1.898131e-9
+          },
+          "m3": {
+            "compensation": 7.4115383e-22,
+            "simple_sum": 1.8727644e-14,
+            "sum": 1.8727646e-14
+          },
+          "m4": {
+            "compensation": 1.6155871e-26,
+            "simple_sum": 4.9380077e-19,
+            "sum": 4.9380077e-19
+          },
+          "sum": {
+            "compensation": 1.0913936e-11,
+            "simple_sum": 0.00096450094,
+            "sum": 0.000964501
+          },
+          "count": 22,
+          "last_value": 0.000033667,
+          "max": 0.0000655,
+          "min": 0.000033583
+        },
+        "last_time": {
+          "secs": 0,
+          "nanos": 64292
+        }
+      }
+    },
+    "tags": 2048
+  },
+  {
+    "name": "time",
+    "inner": {
+      "value_statistic": null,
+      "time_statistic": {
+        "statistic": {
+          "m1": {
+            "compensation": 1.1277734e-10,
+            "simple_sum": 0.0024877675,
+            "sum": 0.0024877673
+          },
+          "m2": {
+            "compensation": 9.094947e-13,
+            "simple_sum": 0.000016783086,
+            "sum": 0.000016783088
+          },
+          "m3": {
+            "compensation": -3.330669e-16,
+            "simple_sum": 1.2792788e-8,
+            "sum": 1.2792787e-8
+          },
+          "m4": {
+            "compensation": 1.0842022e-18,
+            "simple_sum": 3.378655e-11,
+            "sum": 3.3786553e-11
+          },
+          "sum": {
+            "compensation": 2.3283064e-10,
+            "simple_sum": 0.05473088,
+            "sum": 0.054730877
+          },
+          "count": 22,
+          "last_value": 0.001494917,
+          "max": 0.004555875,
+          "min": 0.001494917
+        },
+        "last_time": {
+          "secs": 0,
+          "nanos": 1494917
+        }
+      }
+    },
+    "tags": 2048
+  },
+  {
+    "name": "carryover_rate",
+    "inner": {
+      "value_statistic": {
+        "m1": {
+          "compensation": 6.519258e-9,
+          "simple_sum": 0.3559737,
+          "sum": 0.35597372
+        },
+        "m2": {
+          "compensation": 1.3038516e-8,
+          "simple_sum": 0.45609808,
+          "sum": 0.4560981
+        },
+        "m3": {
+          "compensation": -4.656613e-10,
+          "simple_sum": -0.031116711,
+          "sum": -0.03111673
+        },
+        "m4": {
+          "compensation": 6.9849193e-10,
+          "simple_sum": 0.022829719,
+          "sum": 0.022829717
+        },
+        "sum": {
+          "compensation": 1.3411045e-7,
+          "simple_sum": 7.8314223,
+          "sum": 7.831422
+        },
+        "count": 22,
+        "last_value": 0.21198156,
+        "max": 0.5521628,
+        "min": 0.0
+      },
+      "time_statistic": null
+    },
+    "tags": 17664
+  },
+  {
+    "name": "age",
+    "inner": {
+      "value_statistic": {
+        "m1": {
+          "compensation": -5.881884e-8,
+          "simple_sum": 1.0866383,
+          "sum": 1.0866363
+        },
+        "m2": {
+          "compensation": -1.1920929e-7,
+          "simple_sum": 15418.36,
+          "sum": 15418.436
+        },
+        "m3": {
+          "compensation": -0.0003836155,
+          "simple_sum": 23740.43,
+          "sum": 23740.455
+        },
+        "m4": {
+          "compensation": -0.0021486282,
+          "simple_sum": 107174.48,
+          "sum": 107174.86
+        },
+        "sum": {
+          "compensation": 0.0,
+          "simple_sum": 11953.0,
+          "sum": 11953.0
+        },
+        "count": 11000,
+        "last_value": 0.0,
+        "max": 7.0,
+        "min": 0.0
+      },
+      "time_statistic": null
+    },
+    "tags": 5184
+  },
+  {
+    "name": "audit_step",
+    "inner": {
+      "value_statistic": null,
+      "time_statistic": {
+        "statistic": {
+          "m1": {
+            "compensation": 1.4551915e-11,
+            "simple_sum": 0.00087544887,
+            "sum": 0.00087544887
+          },
+          "m2": {
+            "compensation": 5.684342e-14,
+            "simple_sum": 0.0000018066013,
+            "sum": 0.0000018066014
+          },
+          "m3": {
+            "compensation": 3.469447e-18,
+            "simple_sum": 3.1742892e-10,
+            "sum": 3.1742892e-10
+          },
+          "m4": {
+            "compensation": 1.1858461e-20,
+            "simple_sum": 2.829539e-13,
+            "sum": 2.8295392e-13
+          },
+          "sum": {
+            "compensation": 7.566996e-10,
+            "simple_sum": 0.019259876,
+            "sum": 0.019259876
+          },
+          "count": 22,
+          "last_value": 0.000551292,
+          "max": 0.001430792,
+          "min": 0.000551292
+        },
+        "last_time": {
+          "secs": 0,
+          "nanos": 1430792
+        }
+      }
+    },
+    "tags": 2048
+  },
+  {
+    "name": "best_score_improvement",
+    "inner": {
+      "value_statistic": {
+        "m1": {
+          "compensation": 0.0,
+          "simple_sum": 1.0,
+          "sum": 1.0
+        },
+        "m2": {
+          "compensation": 0.0,
+          "simple_sum": 0.0,
+          "sum": 0.0
+        },
+        "m3": {
+          "compensation": 0.0,
+          "simple_sum": 0.0,
+          "sum": 0.0
+        },
+        "m4": {
+          "compensation": 0.0,
+          "simple_sum": 0.0,
+          "sum": 0.0
+        },
+        "sum": {
+          "compensation": 0.0,
+          "simple_sum": 11.0,
+          "sum": 11.0
+        },
+        "count": 11,
+        "last_value": 1.0,
+        "max": 1.0,
+        "min": 1.0
+      },
+      "time_statistic": null
+    },
+    "tags": 9216
+  },
+  {
+    "name": "arithmetic_mutator",
+    "inner": {
+      "value_statistic": {
+        "m1": {
+          "compensation": -1.6391277e-7,
+          "simple_sum": 7.136364,
+          "sum": 7.1363635
+        },
+        "m2": {
+          "compensation": 0.00000667572,
+          "simple_sum": 138.59091,
+          "sum": 138.59091
+        },
+        "m3": {
+          "compensation": -0.000002861023,
+          "simple_sum": -101.75208,
+          "sum": -101.752075
+        },
+        "m4": {
+          "compensation": -0.000038146973,
+          "simple_sum": 1811.0308,
+          "sum": 1811.0308
+        },
+        "sum": {
+          "compensation": 0.0,
+          "simple_sum": 157.0,
+          "sum": 157.0
+        },
+        "count": 22,
+        "last_value": 11.0,
+        "max": 11.0,
+        "min": 2.0
+      },
+      "time_statistic": {
+        "statistic": {
+          "m1": {
+            "compensation": -3.4106051e-12,
+            "simple_sum": 0.00009560226,
+            "sum": 0.00009560227
+          },
+          "m2": {
+            "compensation": 2.220446e-16,
+            "simple_sum": 1.1185196e-8,
+            "sum": 1.1185196e-8
+          },
+          "m3": {
+            "compensation": -8.4703295e-21,
+            "simple_sum": 3.5707643e-13,
+            "sum": 3.5707643e-13
+          },
+          "m4": {
+            "compensation": 2.0679515e-25,
+            "simple_sum": 2.3411814e-17,
+            "sum": 2.3411815e-17
+          },
+          "sum": {
+            "compensation": -1.4551915e-11,
+            "simple_sum": 0.00210325,
+            "sum": 0.00210325
+          },
+          "count": 22,
+          "last_value": 0.00007375,
+          "max": 0.000156084,
+          "min": 0.000071958
+        },
+        "last_time": {
+          "secs": 0,
+          "nanos": 148542
+        }
+      }
+    },
+    "tags": 3078
+  },
+  {
+    "name": "evaluation_count",
+    "inner": {
+      "value_statistic": {
+        "m1": {
+          "compensation": -0.000005841255,
+          "simple_sum": 193.0435,
+          "sum": 193.04347
+        },
+        "m2": {
+          "compensation": -0.0036010742,
+          "simple_sum": 100404.96,
+          "sum": 100404.95
+        },
+        "m3": {
+          "compensation": -0.4375,
+          "simple_sum": 28781816.0,
+          "sum": 28781816.0
+        },
+        "m4": {
+          "compensation": 280.0,
+          "simple_sum": 8881329000.0,
+          "sum": 8881329000.0
+        },
+        "sum": {
+          "compensation": 0.0,
+          "simple_sum": 4440.0,
+          "sum": 4440.0
+        },
+        "count": 23,
+        "last_value": 171.0,
+        "max": 500.0,
+        "min": 162.0
+      },
+      "time_statistic": null
+    },
+    "tags": 1024
+  },
+  {
+    "name": "uniform_crossover",
+    "inner": {
+      "value_statistic": {
+        "m1": {
+          "compensation": -0.0000023543835,
+          "simple_sum": 197.90909,
+          "sum": 197.90909
+        },
+        "m2": {
+          "compensation": -0.000015258789,
+          "simple_sum": 2373.8186,
+          "sum": 2373.8186
+        },
+        "m3": {
+          "compensation": 0.00048828125,
+          "simple_sum": 8703.422,
+          "sum": 8703.422
+        },
+        "m4": {
+          "compensation": -0.02734375,
+          "simple_sum": 691809.56,
+          "sum": 691809.44
+        },
+        "sum": {
+          "compensation": 0.0,
+          "simple_sum": 4354.0,
+          "sum": 4354.0
+        },
+        "count": 22,
+        "last_value": 192.0,
+        "max": 220.0,
+        "min": 176.0
+      },
+      "time_statistic": {
+        "statistic": {
+          "m1": {
+            "compensation": 5.2295945e-12,
+            "simple_sum": 0.00033687506,
+            "sum": 0.0003368751
+          },
+          "m2": {
+            "compensation": -1.3322676e-15,
+            "simple_sum": 1.1545096e-7,
+            "sum": 1.15450966e-7
+          },
+          "m3": {
+            "compensation": 0.0,
+            "simple_sum": 6.248435e-12,
+            "sum": 6.248435e-12
+          },
+          "m4": {
+            "compensation": 2.646978e-23,
+            "simple_sum": 1.4317675e-15,
+            "sum": 1.4317676e-15
+          },
+          "sum": {
+            "compensation": -1.4551915e-10,
+            "simple_sum": 0.007411252,
+            "sum": 0.007411252
+          },
+          "count": 22,
+          "last_value": 0.000261958,
+          "max": 0.00049375,
+          "min": 0.000244375
+        },
+        "last_time": {
+          "secs": 0,
+          "nanos": 493750
+        }
+      }
+    },
+    "tags": 3082
+  },
+  {
+    "name": "tournament_selector",
+    "inner": {
+      "value_statistic": {
+        "m1": {
+          "compensation": 0.0,
+          "simple_sum": 100.0,
+          "sum": 100.0
+        },
+        "m2": {
+          "compensation": 0.0,
+          "simple_sum": 0.0,
+          "sum": 0.0
+        },
+        "m3": {
+          "compensation": 0.0,
+          "simple_sum": 0.0,
+          "sum": 0.0
+        },
+        "m4": {
+          "compensation": 0.0,
+          "simple_sum": 0.0,
+          "sum": 0.0
+        },
+        "sum": {
+          "compensation": 0.0,
+          "simple_sum": 2200.0,
+          "sum": 2200.0
+        },
+        "count": 22,
+        "last_value": 100.0,
+        "max": 100.0,
+        "min": 100.0
+      },
+      "time_statistic": {
+        "statistic": {
+          "m1": {
+            "compensation": -2.2737368e-12,
+            "simple_sum": 0.000083333376,
+            "sum": 0.00008333336
+          },
+          "m2": {
+            "compensation": -1.6653345e-16,
+            "simple_sum": 9.135724e-9,
+            "sum": 9.135724e-9
+          },
+          "m3": {
+            "compensation": 5.0821977e-21,
+            "simple_sum": 1.6635672e-13,
+            "sum": 1.663567e-13
+          },
+          "m4": {
+            "compensation": 0.0,
+            "simple_sum": 9.642571e-18,
+            "sum": 9.64257e-18
+          },
+          "sum": {
+            "compensation": -7.275958e-12,
+            "simple_sum": 0.0018333341,
+            "sum": 0.001833334
+          },
+          "count": 22,
+          "last_value": 0.000062708,
+          "max": 0.000127667,
+          "min": 0.000058208
+        },
+        "last_time": {
+          "secs": 0,
+          "nanos": 62708
+        }
+      }
+    },
+    "tags": 3073
+  },
+  {
+    "name": "roulette_selector",
+    "inner": {
+      "value_statistic": {
+        "m1": {
+          "compensation": 0.0,
+          "simple_sum": 400.0,
+          "sum": 400.0
+        },
+        "m2": {
+          "compensation": 0.0,
+          "simple_sum": 0.0,
+          "sum": 0.0
+        },
+        "m3": {
+          "compensation": 0.0,
+          "simple_sum": 0.0,
+          "sum": 0.0
+        },
+        "m4": {
+          "compensation": 0.0,
+          "simple_sum": 0.0,
+          "sum": 0.0
+        },
+        "sum": {
+          "compensation": 0.0,
+          "simple_sum": 8800.0,
+          "sum": 8800.0
+        },
+        "count": 22,
+        "last_value": 400.0,
+        "max": 400.0,
+        "min": 400.0
+      },
+      "time_statistic": {
+        "statistic": {
+          "m1": {
+            "compensation": 1.0686563e-11,
+            "simple_sum": 0.00030107753,
+            "sum": 0.00030107755
+          },
+          "m2": {
+            "compensation": 7.1054274e-15,
+            "simple_sum": 1.2337536e-7,
+            "sum": 1.2337537e-7
+          },
+          "m3": {
+            "compensation": 1.0842022e-19,
+            "simple_sum": 1.104216e-11,
+            "sum": 1.104216e-11
+          },
+          "m4": {
+            "compensation": -2.646978e-23,
+            "simple_sum": 2.6729874e-15,
+            "sum": 2.6729874e-15
+          },
+          "sum": {
+            "compensation": -1.891749e-10,
+            "simple_sum": 0.006623706,
+            "sum": 0.006623706
+          },
+          "count": 22,
+          "last_value": 0.000221,
+          "max": 0.000513833,
+          "min": 0.000221
+        },
+        "last_time": {
+          "secs": 0,
+          "nanos": 221000
+        }
+      }
+    },
+    "tags": 3073
+  },
+  {
+    "name": "recombine_step",
+    "inner": {
+      "value_statistic": null,
+      "time_statistic": {
+        "statistic": {
+          "m1": {
+            "compensation": 4.3655746e-11,
+            "simple_sum": 0.0010293941,
+            "sum": 0.001029394
+          },
+          "m2": {
+            "compensation": 4.2632564e-14,
+            "simple_sum": 0.0000022744239,
+            "sum": 0.0000022744239
+          },
+          "m3": {
+            "compensation": 2.7755576e-17,
+            "simple_sum": 5.732911e-10,
+            "sum": 5.732911e-10
+          },
+          "m4": {
+            "compensation": 2.032879e-20,
+            "simple_sum": 5.7717107e-13,
+            "sum": 5.7717107e-13
+          },
+          "sum": {
+            "compensation": 4.0745363e-10,
+            "simple_sum": 0.022646667,
+            "sum": 0.022646667
+          },
+          "count": 22,
+          "last_value": 0.000650125,
+          "max": 0.001792375,
+          "min": 0.000650125
+        },
+        "last_time": {
+          "secs": 0,
+          "nanos": 1049750
+        }
+      }
+    },
+    "tags": 2048
+  },
+  {
+    "name": "unique_members",
+    "inner": {
+      "value_statistic": {
+        "m1": {
+          "compensation": -0.00000667572,
+          "simple_sum": 303.81818,
+          "sum": 303.81818
+        },
+        "m2": {
+          "compensation": -0.0034179688,
+          "simple_sum": 106089.27,
+          "sum": 106089.27
+        },
+        "m3": {
+          "compensation": 0.0,
+          "simple_sum": 1116551.0,
+          "sum": 1116551.0
+        },
+        "m4": {
+          "compensation": -8.0,
+          "simple_sum": 724199800.0,
+          "sum": 724199900.0
+        },
+        "sum": {
+          "compensation": 0.0,
+          "simple_sum": 6684.0,
+          "sum": 6684.0
+        },
+        "count": 22,
+        "last_value": 217.0,
+        "max": 424.0,
+        "min": 217.0
+      },
+      "time_statistic": null
+    },
+    "tags": 1280
+  },
+  {
+    "name": "unique_scores",
+    "inner": {
+      "value_statistic": {
+        "m1": {
+          "compensation": 0.0,
+          "simple_sum": 108.68181,
+          "sum": 108.681816
+        },
+        "m2": {
+          "compensation": -0.01171875,
+          "simple_sum": 409310.72,
+          "sum": 409310.75
+        },
+        "m3": {
+          "compensation": 0.0,
+          "simple_sum": 56633908.0,
+          "sum": 56633910.0
+        },
+        "m4": {
+          "compensation": 896.0,
+          "simple_sum": 17843960000.0,
+          "sum": 17843960000.0
+        },
+        "sum": {
+          "compensation": 0.0,
+          "simple_sum": 2391.0,
+          "sum": 2391.0
+        },
+        "count": 22,
+        "last_value": 10.0,
+        "max": 398.0,
+        "min": 8.0
+      },
+      "time_statistic": null
+    },
+    "tags": 9472
+  },
+  {
+    "name": "evaluate_step",
+    "inner": {
+      "value_statistic": null,
+      "time_statistic": {
+        "statistic": {
+          "m1": {
+            "compensation": -1.1368684e-12,
+            "simple_sum": 0.00025989776,
+            "sum": 0.0002598977
+          },
+          "m2": {
+            "compensation": -7.371881e-14,
+            "simple_sum": 0.000003731374,
+            "sum": 0.0000037313741
+          },
+          "m3": {
+            "compensation": 2.7755576e-17,
+            "simple_sum": 1.0520828e-9,
+            "sum": 1.0520828e-9
+          },
+          "m4": {
+            "compensation": 4.6586812e-21,
+            "simple_sum": 8.624445e-13,
+            "sum": 8.6244445e-13
+          },
+          "sum": {
+            "compensation": -3.783498e-10,
+            "simple_sum": 0.0114354985,
+            "sum": 0.0114354985
+          },
+          "count": 44,
+          "last_value": 0.000237417,
+          "max": 0.000914166,
+          "min": 0.000011
+        },
+        "last_time": {
+          "secs": 0,
+          "nanos": 811542
+        }
+      }
+    },
+    "tags": 2048
+  },
+  {
+    "name": "new_children",
+    "inner": {
+      "value_statistic": {
+        "m1": {
+          "compensation": 0.00000500679,
+          "simple_sum": 190.18181,
+          "sum": 190.18182
+        },
+        "m2": {
+          "compensation": 0.0008544922,
+          "simple_sum": 59173.277,
+          "sum": 59173.273
+        },
+        "m3": {
+          "compensation": 0.46875,
+          "simple_sum": 12689832.0,
+          "sum": 12689834.0
+        },
+        "m4": {
+          "compensation": 100.0,
+          "simple_sum": 2991057200.0,
+          "sum": 2991057200.0
+        },
+        "sum": {
+          "compensation": 0.0,
+          "simple_sum": 4184.0,
+          "sum": 4184.0
+        },
+        "count": 22,
+        "last_value": 171.0,
+        "max": 424.0,
+        "min": 162.0
+      },
+      "time_statistic": null
+    },
+    "tags": 1280
+  },
+  {
+    "name": "score_volatility",
+    "inner": {
+      "value_statistic": {
+        "m1": {
+          "compensation": 5.2154064e-8,
+          "simple_sum": 1.2314945,
+          "sum": 1.2314944
+        },
+        "m2": {
+          "compensation": -1.7881393e-7,
+          "simple_sum": 5.858115,
+          "sum": 5.858115
+        },
+        "m3": {
+          "compensation": 0.0,
+          "simple_sum": -0.4434932,
+          "sum": -0.44349322
+        },
+        "m4": {
+          "compensation": 8.940697e-8,
+          "simple_sum": 2.584087,
+          "sum": 2.5840874
+        },
+        "sum": {
+          "compensation": 0.0,
+          "simple_sum": 27.092876,
+          "sum": 27.092876
+        },
+        "count": 22,
+        "last_value": 1.9977292,
+        "max": 1.9977292,
+        "min": 0.41705903
+      },
+      "time_statistic": null
+    },
+    "tags": 9472
+  },
+  {
+    "name": "diversity_ratio",
+    "inner": {
+      "value_statistic": {
+        "m1": {
+          "compensation": -2.3283064e-8,
+          "simple_sum": 0.60763645,
+          "sum": 0.60763633
+        },
+        "m2": {
+          "compensation": -1.4901161e-8,
+          "simple_sum": 0.42435706,
+          "sum": 0.42435706
+        },
+        "m3": {
+          "compensation": 0.0,
+          "simple_sum": 0.008932404,
+          "sum": 0.008932404
+        },
+        "m4": {
+          "compensation": 3.4924597e-10,
+          "simple_sum": 0.011587194,
+          "sum": 0.011587196
+        },
+        "sum": {
+          "compensation": 1.4901161e-7,
+          "simple_sum": 13.368,
+          "sum": 13.368
+        },
+        "count": 22,
+        "last_value": 0.434,
+        "max": 0.848,
+        "min": 0.434
+      },
+      "time_statistic": null
+    },
+    "tags": 1280
+  },
+  {
+    "name": "scores",
+    "inner": {
+      "value_statistic": {
+        "m1": {
+          "compensation": -1.3923272e-7,
+          "simple_sum": 4.851931,
+          "sum": 4.851943
+        },
+        "m2": {
+          "compensation": 0.022583008,
+          "simple_sum": 1033375.06,
+          "sum": 1033374.7
+        },
+        "m3": {
+          "compensation": 0.28125,
+          "simple_sum": 24928178.0,
+          "sum": 24928170.0
+        },
+        "m4": {
+          "compensation": 23.28125,
+          "simple_sum": 907316350.0,
+          "sum": 907315700.0
+        },
+        "sum": {
+          "compensation": 0.00039100647,
+          "simple_sum": 53371.07,
+          "sum": 53371.375
+        },
+        "count": 11000,
+        "last_value": 31.76019,
+        "max": 78.55808,
+        "min": 0.0
+      },
+      "time_statistic": null
+    },
+    "tags": 13312
+  }
+]

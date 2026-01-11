@@ -4,6 +4,7 @@ from radiate.genome.ecosystem import Ecosystem
 from radiate.genome.species import Species
 from radiate.wrapper import PyObject
 from radiate.metrics import MetricSet
+from radiate.front import Front
 from .genome import Population
 from radiate.radiate import PyGeneration
 
@@ -16,14 +17,14 @@ class Generation[T](PyObject[PyGeneration]):
 
     def __repr__(self):
         return f"{self.__backend__().__repr__()}"
-    
+
     def to_json(self) -> str:
         """
         Serialize the generation to a JSON string.
         :return: The JSON string representation of the generation.
         """
         return self.__backend__().to_json()
-    
+
     @staticmethod
     def from_json(json_str: str) -> "Generation":
         """
@@ -38,7 +39,7 @@ class Generation[T](PyObject[PyGeneration]):
         Get the fitness of the generation.
         :return: The fitness of the generation.
         """
-        return self.__backend__().score()
+        return self.try_get_cache("score_cache", lambda: self.__backend__().score())
 
     def index(self) -> int:
         """
@@ -52,14 +53,25 @@ class Generation[T](PyObject[PyGeneration]):
         Get the value of the generation.
         :return: The value of the generation.
         """
-        return self.__backend__().value()
+        return self.try_get_cache("value_cache", lambda: self.__backend__().value())
+
+    def front(self) -> Front:
+        """
+        Get the Pareto front of the generation.
+        :return: The Pareto front of the generation.
+        """
+        return self.try_get_cache(
+            "front_cache", lambda: Front.from_rust(self.__backend__().front())
+        )
 
     def metrics(self) -> MetricSet:
         """
         Get the metrics of the generation.
         :return: The metrics of the generation.
         """
-        return MetricSet.from_rust(self.__backend__().metrics())
+        return self.try_get_cache(
+            "metrics_cache", lambda: MetricSet.from_rust(self.__backend__().metrics())
+        )
 
     def objective(self) -> list[str] | str:
         """
@@ -76,28 +88,36 @@ class Generation[T](PyObject[PyGeneration]):
         Get the population of the generation.
         :return: The population of the generation.
         """
-        return Population.from_rust(self.__backend__().population())
+        return self.try_get_cache(
+            "population_cache", lambda: Population.from_rust(self.__backend__().population())
+        )
 
     def species(self) -> list[Species] | None:
         """
         Get the species of the generation.
         :return: The species of the generation.
         """
-        species = self.__backend__().species()
-        if species is None:
-            return None
-        return [Species.from_rust(s) for s in species]
+
+        def _get_species():
+            species = self.__backend__().species()
+            if species is None:
+                return None
+            return [Species.from_rust(s) for s in species]
+
+        return self.try_get_cache("species_cache", _get_species)
 
     def ecosystem(self) -> Ecosystem:
         """
         Get the ecosystem of the generation.
         :return: The ecosystem of the generation.
         """
-        return Ecosystem.from_rust(self.__backend__().ecosystem())
+        return self.try_get_cache(
+            "ecosystem_cache", lambda: Ecosystem.from_rust(self.__backend__().ecosystem())
+        )
 
     def duration(self) -> timedelta:
         """
         Get the duration of the generation.
         :return: The duration of the generation.
         """
-        return self.__backend__().duration()
+        return self.try_get_cache("duration_cache", lambda: self.__backend__().duration())

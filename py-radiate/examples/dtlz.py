@@ -54,14 +54,14 @@ engine = rd.GeneticEngine(
 result = engine.run(rd.GenerationsLimit(2000), ui=True)
 print(result)
 
-front = result.value()
+front = result.front()
 
 fig = plt.figure()
 ax = plt.axes(projection="3d")
 
-x = [member["fitness"][0] for member in front]
-y = [member["fitness"][1] for member in front]
-z = [member["fitness"][2] for member in front]
+x = [member.score()[0] for member in front]
+y = [member.score()[1] for member in front]
+z = [member.score()[2] for member in front]
 
 ax.scatter(x, y, z)
 ax.set_xlim([0, 0.5])

@@ -1,6 +1,7 @@
 use crate::{PyAnyObject, PyMetricSet};
 use numpy::PyArray1;
 use pyo3::{IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
+use radiate::Objective;
 use std::fmt::Debug;
 
 #[pyclass]
@@ -45,6 +46,7 @@ pub struct PyEngineEvent {
     pub best: Option<Py<PyAny>>,
     pub score: Option<Vec<f32>>,
     pub metrics: Option<PyMetricSet>,
+    pub objective: Option<Vec<&'static str>>,
 }
 
 #[pymethods]
@@ -84,6 +86,10 @@ impl PyEngineEvent {
     pub fn metrics(&self) -> Option<PyMetricSet> {
         self.metrics.as_ref().cloned()
     }
+
+    pub fn objective(&self) -> Option<Vec<&'static str>> {
+        self.objective.as_ref().cloned()
+    }
 }
 
 impl PyEngineEvent {
@@ -94,16 +100,23 @@ impl PyEngineEvent {
             best: None,
             score: None,
             metrics: None,
+            objective: None,
         }
     }
 
-    pub fn stop(best: PyAnyObject, metrics: PyMetricSet, score: Vec<f32>) -> PyEngineEvent {
+    pub fn stop(
+        generation: usize,
+        best: PyAnyObject,
+        metrics: PyMetricSet,
+        score: Vec<f32>,
+    ) -> PyEngineEvent {
         PyEngineEvent {
             event_type: crate::names::STOP_EVENT.into(),
-            index: None,
+            index: Some(generation),
             best: Some(best.inner),
             score: Some(score),
             metrics: Some(metrics),
+            objective: None,
         }
     }
 
@@ -114,6 +127,7 @@ impl PyEngineEvent {
             best: None,
             score: None,
             metrics: None,
+            objective: None,
         }
     }
 
@@ -122,6 +136,7 @@ impl PyEngineEvent {
         best: PyAnyObject,
         metrics: PyMetricSet,
         score: Vec<f32>,
+        objective: Objective,
     ) -> PyEngineEvent {
         PyEngineEvent {
             event_type: crate::names::EPOCH_COMPLETE_EVENT.into(),
@@ -129,6 +144,7 @@ impl PyEngineEvent {
             best: Some(best.inner),
             score: Some(score),
             metrics: Some(metrics),
+            objective: Some(objective.into()),
         }
     }
 
@@ -139,6 +155,7 @@ impl PyEngineEvent {
             best: Some(best.inner),
             score: Some(score),
             metrics: None,
+            objective: None,
         }
     }
 }

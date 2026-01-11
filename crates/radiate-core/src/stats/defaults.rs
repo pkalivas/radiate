@@ -67,6 +67,8 @@ pub mod metric_tags {
     pub const DISTRIBUTION: &str = "distribution";
 
     pub const SCORE: &str = "score";
+
+    pub const RATE: &str = "rate";
 }
 
 const RULES: &[(&str, &[TagKind])] = &[
@@ -84,6 +86,7 @@ const RULES: &[(&str, &[TagKind])] = &[
     (metric_tags::DERIVED, &[TagKind::Derived]),
     (metric_tags::OTHER, &[TagKind::Other]),
     (metric_tags::SCORE, &[TagKind::Score]),
+    (metric_tags::RATE, &[TagKind::Rate]),
 ];
 
 pub fn default_tags(name: &str) -> Tag {
@@ -150,6 +153,6 @@ pub fn try_add_tag_from_str(metric: &mut crate::stats::Metric) {
     }
 
     if !tags.is_empty() {
-        metric.with_tags(tags);
+        metric.add_tags(tags);
     }
 }

@@ -149,4 +149,54 @@ mod engine_tests {
 
         assert_eq!(result.index(), 15);
     }
+
+    #[test]
+    fn test_engine_control_pause_resume() {
+        use std::thread;
+        use std::time::Duration;
+
+        let mut engine = GeneticEngine::builder()
+            .minimizing()
+            .codec(IntCodec::vector(5, 0..100))
+            .fitness_fn(|geno: Vec<i32>| geno.iter().sum::<i32>())
+            .build();
+
+        let control = engine.control();
+
+        let handle = thread::spawn(move || {
+            let result = engine.iter().until_seconds(1_f64).last().unwrap();
+            assert_eq!((result.seconds() - 1_f64).abs().round(), 0.0);
+        });
+
+        thread::sleep(Duration::from_millis(100));
+        control.set_paused(true);
+
+        // Ensure the engine is paused for at least 500ms
+        thread::sleep(Duration::from_millis(500));
+        control.set_paused(false);
+        handle.join().unwrap();
+    }
+
+    #[test]
+    fn test_engine_control_stop() {
+        use std::thread;
+        use std::time::Duration;
+
+        let mut engine = GeneticEngine::builder()
+            .minimizing()
+            .codec(IntCodec::vector(5, 0..100))
+            .fitness_fn(|geno: Vec<i32>| geno.iter().sum::<i32>())
+            .build();
+
+        let control = engine.control();
+
+        let handle = thread::spawn(move || {
+            let result = engine.iter().last().unwrap();
+            assert!(result.seconds() < 5_f64);
+        });
+
+        thread::sleep(Duration::from_millis(100));
+        control.stop();
+        handle.join().unwrap();
+    }
 }

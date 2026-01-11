@@ -106,6 +106,8 @@ impl AuditStep {
             metrics.upsert((metric_names::SPECIES_CREATED, new_species_count));
             metrics.upsert((metric_names::SPECIES_EVENNESS, evenness));
             metrics.upsert((metric_names::SPECIES_NEW_RATIO, churn_ratio));
+            metrics.upsert(largest_share_metric);
+            metrics.upsert(churn_metric);
         } else {
             let population_unique_rc_count = ecosystem.population().shared_count();
             assert!(

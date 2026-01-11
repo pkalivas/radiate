@@ -62,7 +62,6 @@ where
     context: Context<C, T>,
     pipeline: Pipeline<C>,
     bus: EventBus<T>,
-    control: Option<EngineControl>,
 }
 
 impl<C, T> GeneticEngine<C, T>
@@ -79,7 +78,6 @@ where
             context,
             pipeline,
             bus,
-            control: None,
         }
     }
 
@@ -98,13 +96,7 @@ where
     /// from external contexts. If the control interface has not been initialized yet, this method
     /// will create a new instance.
     pub fn control(&mut self) -> EngineControl {
-        if self.control.is_none() {
-            let (one, two) = EngineControl::pair();
-            self.control = Some(one);
-            return two;
-        }
-
-        self.control.as_ref().unwrap().clone()
+        self.context.get_or_create_control()
     }
 
     /// Converts the engine into an iterator that yields generations.
@@ -128,7 +120,7 @@ where
     /// The iterator consumes the engine, so you can only iterate once. If you need
     /// to run the engine multiple times, create a new instance using the builder.
     pub fn iter(self) -> impl Iterator<Item = Generation<C, T>> {
-        let control = self.control.clone();
+        let control = self.context.control.clone();
         EngineIterator::new(self, control)
     }
 }
@@ -164,17 +156,23 @@ where
 
     #[inline]
     fn next(&mut self) -> Result<Generation<C, T>> {
+        if let Some(control) = &self.context.control {
+            if control.is_paused() {
+                control.wait_before_step();
+            }
+        }
+
         if matches!(self.context.index, 0) {
             self.bus.publish(EngineMessage::<C, T>::Start);
         }
 
         self.bus.publish(EngineMessage::EpochStart(&self.context));
         self.pipeline.run(&mut self.context)?;
-        self.bus.publish(EngineMessage::EpochEnd(&self.context));
-
         if self.context.try_advance_one() {
             self.bus.publish(EngineMessage::Improvement(&self.context));
         }
+
+        self.bus.publish(EngineMessage::EpochEnd(&self.context));
 
         Ok(Generation::from(&self.context))
     }

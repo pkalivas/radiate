@@ -245,100 +245,100 @@ fn any_alterers() -> &'static HashMap<&'static str, AlterConv<AnyChromosome<'sta
 /// -------------------------------------------------------------------
 
 fn convert_jitter_mutator(input: &PyEngineInput) -> JitterMutator {
-    let rate = input.get_f32("rate").unwrap_or(0.5);
+    let rate = input.get_rate().unwrap();
     let magnitude = input.get_f32("magnitude").unwrap_or(0.5);
     JitterMutator::new(rate, magnitude)
 }
 
 fn convert_inversion_mutator(input: &PyEngineInput) -> InversionMutator {
-    let rate = input.get_f32("rate").unwrap_or(0.5);
+    let rate = input.get_rate().unwrap();
     InversionMutator::new(rate)
 }
 
 fn convert_hoist_mutator(input: &PyEngineInput) -> HoistMutator {
-    let rate = input.get_f32("rate").unwrap_or(0.5);
+    let rate = input.get_rate().unwrap();
     HoistMutator::new(rate)
 }
 
 fn convert_tree_crossover(input: &PyEngineInput) -> TreeCrossover {
-    let rate = input.get_f32("rate").unwrap_or(0.5);
+    let rate = input.get_rate().unwrap();
     let max_size = input.get_usize("max_size").unwrap_or(30);
     TreeCrossover::new(rate).with_max_size(max_size)
 }
 
 fn convert_multi_point_crossover(input: &PyEngineInput) -> MultiPointCrossover {
-    let rate = input.get_f32("rate").unwrap_or(0.5);
+    let rate = input.get_rate().unwrap();
     let points = input.get_usize("num_points").unwrap_or(2);
 
     MultiPointCrossover::new(rate, points)
 }
 
 fn convert_uniform_crossover(input: &PyEngineInput) -> UniformCrossover {
-    let rate = input.get_f32("rate").unwrap_or(0.5);
+    let rate = input.get_rate().unwrap();
     UniformCrossover::new(rate)
 }
 
 fn convert_uniform_mutator(input: &PyEngineInput) -> UniformMutator {
-    let rate = input.get_f32("rate").unwrap_or(0.5);
+    let rate = input.get_rate().unwrap();
     UniformMutator::new(rate)
 }
 
 fn convert_mean_crossover(input: &PyEngineInput) -> MeanCrossover {
-    let rate = input.get_f32("rate").unwrap_or(0.5);
+    let rate = input.get_rate().unwrap();
     MeanCrossover::new(rate)
 }
 
 fn convert_intermediate_crossover(input: &PyEngineInput) -> IntermediateCrossover {
-    let rate = input.get_f32("rate").unwrap_or(0.5);
+    let rate = input.get_rate().unwrap();
     let alpha = input.get_f32("alpha").unwrap_or(0.5);
     IntermediateCrossover::new(rate, alpha)
 }
 
 fn convert_blend_crossover(input: &PyEngineInput) -> BlendCrossover {
-    let rate = input.get_f32("rate").unwrap_or(0.5);
+    let rate = input.get_rate().unwrap();
     let alpha = input.get_f32("alpha").unwrap_or(0.5);
     BlendCrossover::new(rate, alpha)
 }
 
 fn convert_shuffle_crossover(input: &PyEngineInput) -> ShuffleCrossover {
-    let rate = input.get_f32("rate").unwrap_or(0.5);
+    let rate = input.get_rate().unwrap();
     ShuffleCrossover::new(rate)
 }
 
 fn convert_partially_mapped_crossover(input: &PyEngineInput) -> PMXCrossover {
-    let rate = input.get_f32("rate").unwrap_or(0.5);
+    let rate = input.get_rate().unwrap();
     PMXCrossover::new(rate)
 }
 
 fn convert_scramble_mutator(input: &PyEngineInput) -> ScrambleMutator {
-    let rate = input.get_f32("rate").unwrap_or(0.5);
+    let rate = input.get_rate().unwrap();
     ScrambleMutator::new(rate)
 }
 
 fn convert_swap_mutator(input: &PyEngineInput) -> SwapMutator {
-    let rate = input.get_f32("rate").unwrap_or(0.5);
+    let rate = input.get_rate().unwrap();
     SwapMutator::new(rate)
 }
 
 fn convert_arithmetic_mutator(input: &PyEngineInput) -> ArithmeticMutator {
-    let rate = input.get_f32("rate").unwrap_or(0.5);
+    let rate = input.get_rate().unwrap();
     ArithmeticMutator::new(rate)
 }
 
 fn convert_gaussian_mutator(input: &PyEngineInput) -> GaussianMutator {
-    let rate = input.get_f32("rate").unwrap_or(0.5);
+    let rate = input.get_rate().unwrap();
 
     GaussianMutator::new(rate)
 }
 
 fn convert_simulated_binary_crossover(input: &PyEngineInput) -> SimulatedBinaryCrossover {
-    let rate = input.get_f32("rate").unwrap_or(0.5);
+    let rate = input.get_rate().unwrap();
     let contiguity = input.get_f32("contiguity").unwrap_or(0.5);
     SimulatedBinaryCrossover::new(rate, contiguity)
 }
 
 fn convert_graph_crossover(input: &PyEngineInput) -> GraphCrossover {
-    let rate = input.get_f32("rate").unwrap_or(0.5);
+    let rate = input.get_rate().unwrap();
     let parent_node_rate = input.get_f32("parent_node_rate").unwrap_or(0.5);
 
     GraphCrossover::new(rate, parent_node_rate)
@@ -353,19 +353,19 @@ fn convert_graph_mutator(input: &PyEngineInput) -> GraphMutator {
 }
 
 fn convert_operation_mutator(input: &PyEngineInput) -> OperationMutator {
-    let rate = input.get_f32("rate").unwrap_or(0.5);
+    let rate = input.get_rate().unwrap();
     let replace_rate = input.get_f32("replace_rate").unwrap_or(0.5);
 
     OperationMutator::new(rate, replace_rate)
 }
 
 fn convert_edge_recombine_crossover(input: &PyEngineInput) -> EdgeRecombinationCrossover {
-    let rate = input.get_f32("rate").unwrap_or(0.5);
+    let rate = input.get_rate().unwrap();
     EdgeRecombinationCrossover::new(rate)
 }
 
 fn convert_polynomial_mutator(input: &PyEngineInput) -> PolynomialMutator {
-    let rate = input.get_f32("rate").unwrap_or(0.5);
+    let rate = input.get_rate().unwrap();
     let eta = input.get_f32("eta").unwrap_or(20.0);
     PolynomialMutator::new(rate, eta)
 }

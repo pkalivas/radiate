@@ -7,3 +7,7 @@
   float: right;
   justify-self: end;
 }
+
+.md-grid {
+  max-width: 1440px; 
+}

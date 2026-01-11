@@ -17,6 +17,9 @@ fn main() {
         .raw_fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
         // .diversity(NeatDistance::new(0.1, 0.1, 0.3))
+        // .subscribe(|event: &EngineEvent<Graph<Op<f32>>>| match event {
+        //     _ => {}
+        // })
         .species_threshold(0.4)
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
@@ -25,11 +28,7 @@ fn main() {
         ))
         .build();
 
-    radiate::ui(engine)
-        .iter()
-        .until_score(MIN_SCORE)
-        .last()
-        .inspect(display);
+    engine.iter().until_score(MIN_SCORE).last().inspect(display);
 }
 
 fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
@@ -40,6 +39,11 @@ fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
         .eval(result.value())
         .inspect(|acc| {
             println!("{result:?}\n{acc:?}\n{}", result.metrics().dashboard());
+
+            for key in result.metrics().keys() {
+                let metric = result.metrics().get(key).unwrap();
+                println!("  {}: {:?}", key, metric.tags_iter().collect::<Vec<_>>());
+            }
         });
 }
 

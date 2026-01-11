@@ -108,7 +108,6 @@ impl EngineControl {
         }
     }
 
-    /// Optional: expose for UI display
     #[inline]
     pub fn is_paused(&self) -> bool {
         let (lock, _) = &*self.inner;

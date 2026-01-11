@@ -2,6 +2,9 @@ use super::Scored;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
+const MIN: &str = "min";
+const MAX: &str = "max";
+
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Objective {
@@ -132,6 +135,27 @@ impl Default for Objective {
     }
 }
 
+impl From<Vec<&str>> for Objective {
+    fn from(values: Vec<&str>) -> Self {
+        let opts: Vec<Optimize> = values.into_iter().map(|s| Optimize::from(s)).collect();
+
+        if opts.len() == 1 {
+            Objective::Single(opts[0])
+        } else {
+            Objective::Multi(opts)
+        }
+    }
+}
+
+impl Into<Vec<&str>> for Objective {
+    fn into(self) -> Vec<&'static str> {
+        match self {
+            Objective::Single(opt) => vec![opt.into()],
+            Objective::Multi(opts) => opts.into_iter().map(|opt| opt.into()).collect(),
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Optimize {
@@ -167,6 +191,25 @@ impl Optimize {
 
     pub fn is_maximize(&self) -> bool {
         matches!(self, Optimize::Maximize)
+    }
+}
+
+impl From<&str> for Optimize {
+    fn from(value: &str) -> Self {
+        match value.to_lowercase().as_str() {
+            MIN => Optimize::Minimize,
+            MAX => Optimize::Maximize,
+            _ => Optimize::Maximize,
+        }
+    }
+}
+
+impl Into<&str> for Optimize {
+    fn into(self) -> &'static str {
+        match self {
+            Optimize::Minimize => MIN,
+            Optimize::Maximize => MAX,
+        }
     }
 }
 
