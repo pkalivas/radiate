@@ -509,6 +509,32 @@ where
         }
     }
 
+    /// Limits iteration based on a custom metric predicate.
+    ///     
+    /// This method creates an iterator that stops when a specified metric
+    /// satisfies a user-defined predicate function. This allows for flexible
+    /// termination conditions based on any tracked metric.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The name of the metric to monitor
+    /// * `predicate` - A function that takes a [Metric] and returns true to
+    ///                 stop iteration
+    /// # Returns
+    ///
+    ///  An iterator that stops when the metric predicate is satisfied
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// // Stop when evaluation count exceeds 1000
+    /// let result = engine
+    ///     .iter()
+    ///     .until_metric(metric_names::EVALUATION_COUNT, |metric| {
+    ///         metric.value_sum().map(|v| v >= 1000.0).unwrap_or(false)
+    ///     })
+    ///     .last();
+    /// ```
     fn until_metric(
         self,
         name: &str,
@@ -887,6 +913,10 @@ where
     }
 }
 
+/// Iterator that limits iteration based on a custom metric predicate.
+/// This iterator stops producing items when a specified metric satisfies
+/// a user-defined predicate function. This allows for flexible termination
+/// conditions based on any tracked metric.
 struct MetricLimitIterator<C, T, I>
 where
     I: Iterator<Item = Generation<C, T>>,

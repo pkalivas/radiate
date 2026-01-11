@@ -1,5 +1,5 @@
 use radiate_core::{
-    AlterResult, BoundedGene, Chromosome, FloatGene, Gene, Mutate, Rate, random_provider,
+    AlterResult, BoundedGene, Chromosome, FloatGene, Gene, Mutate, Rate, Valid, random_provider,
 };
 
 /// The `JitterMutator` is a simple mutator that adds a small random value to [FloatGene]s.
@@ -18,6 +18,10 @@ pub struct JitterMutator {
 impl JitterMutator {
     pub fn new(rate: impl Into<Rate>, magnitude: f32) -> Self {
         let rate = rate.into();
+        if !rate.is_valid() {
+            panic!("Rate is not valid: {:?}", rate);
+        }
+
         if magnitude <= 0.0 {
             panic!("Magnitude must be greater than 0");
         }

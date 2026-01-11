@@ -1,4 +1,4 @@
-use radiate_core::{AlterResult, Chromosome, Mutate, Rate, random_provider};
+use radiate_core::{AlterResult, Chromosome, Mutate, Rate, Valid, random_provider};
 
 /// The [InversionMutator] is a simple mutator that inverts a random section of the chromosome.
 ///
@@ -14,6 +14,10 @@ impl InversionMutator {
     /// The rate must be between 0.0 and 1.0.
     pub fn new(rate: impl Into<Rate>) -> Self {
         let rate = rate.into();
+        if !rate.is_valid() {
+            panic!("Rate is not valid: {:?}", rate);
+        }
+
         InversionMutator { rate }
     }
 }

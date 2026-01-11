@@ -46,18 +46,6 @@ impl<C: Chromosome> Population<C> {
         }
     }
 
-    pub fn clone_ref(other: &Self) -> Self
-    where
-        C: Clone,
-    {
-        let mut individuals = Vec::with_capacity(other.len());
-        for member in other.individuals.iter() {
-            individuals.push(member.clone());
-        }
-
-        Population { individuals }
-    }
-
     pub fn get(&self, index: usize) -> Option<&Phenotype<C>> {
         self.individuals.get(index).map(|cell| cell.borrow())
     }
