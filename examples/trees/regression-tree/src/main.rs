@@ -5,10 +5,18 @@ const MIN_SCORE: f32 = 0.001;
 fn main() {
     random_provider::set_seed(2);
 
+    let seed_one = TreeNode::from(Op::sigmoid())
+        .attach(Op::constant(1.0))
+        .attach(Op::var(0));
+    let seed_two = TreeNode::from(Op::linear()).attach(Op::var(0));
+    let seeds = vec![seed_one, seed_two];
+
+    let pgm = Op::softmax_argmax(seeds);
+
     let store = vec![
         (
             NodeType::Vertex,
-            vec![Op::add(), Op::sub(), Op::mul(), Op::linear()],
+            vec![Op::add(), Op::sub(), Op::mul(), Op::linear(), pgm],
         ),
         (NodeType::Leaf, vec![Op::var(0)]),
     ];

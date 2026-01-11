@@ -39,6 +39,7 @@ nav:
     - Tree: source/gp/trees.md
     - Graph: source/gp/graph.md
     - Regression: source/gp/regression.md
+    - PGM: source/gp/pgm.md
   - Misc: 
     - source/misc/index.md
     - Randomness: source/misc/random.md

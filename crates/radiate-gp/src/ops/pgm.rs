@@ -38,7 +38,7 @@ impl<T> Op<T> {
         let n = match arity {
             Arity::Zero => 1,
             Arity::Exact(k) => k,
-            Arity::Any => 2,
+            Arity::Any => seeds.len().max(1),
         };
 
         // First program is the “head”; the rest are “tail” (inputs → probs/logits)
@@ -46,6 +46,7 @@ impl<T> Op<T> {
 
         let mut out = Vec::with_capacity(num_progs);
         for i in 0..num_progs {
+            // Decide whether to use a seed or generate a new random program
             let from_seed = !seeds.is_empty() && !random_provider::bool(1.0 - keep_ratio);
             if from_seed {
                 let mut current = seeds[i % seeds.len()].clone();
@@ -292,16 +293,25 @@ impl Op<f32> {
             return vec![];
         }
 
-        let m = xs.iter().copied().fold(f32::NEG_INFINITY, f32::max);
-        let exps = xs
-            .iter()
-            .map(|&x| super::math::clamp((x - m).exp()))
-            .collect::<Vec<f32>>();
+        let mut max = f32::NEG_INFINITY;
+        for &x in xs {
+            if x > max {
+                max = x;
+            }
+        }
 
-        let s = exps.iter().sum::<f32>().max(EPSILON);
+        let mut exps = Vec::with_capacity(xs.len());
+        let mut sum = 0.0_f32;
+        for &x in xs {
+            let e = super::math::clamp((x - max).exp());
+            exps.push(e);
+            sum += e;
+        }
+
+        sum = sum.max(EPSILON);
 
         exps.into_iter()
-            .map(|e| super::math::clamp(e / s))
+            .map(|e| super::math::clamp(e / sum))
             .collect()
     }
 
@@ -322,5 +332,40 @@ impl Op<f32> {
             Op::softmax_argmax(seeds.clone()),
             Op::attention_sum(seeds.clone()),
         ]
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_stable_softmax() {
+        let input = vec![1.0, 2.0, 3.0];
+        let output = Op::<f32>::stable_softmax(&input);
+        let expected = vec![0.09003057, 0.24472848, 0.66524094];
+        for (o, e) in output.iter().zip(expected.iter()) {
+            assert!((o - e).abs() < 1e-6);
+        }
+    }
+
+    #[test]
+    fn test_stable_softmax_empty() {
+        let input: Vec<f32> = vec![];
+        let output = Op::<f32>::stable_softmax(&input);
+        let expected: Vec<f32> = vec![];
+        assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn test_softmax_argmax() {
+        let prog1 = TreeNode::from(Op::constant(0.0_f32));
+        let prog2 = TreeNode::from(Op::constant(1.0_f32));
+        let prog3 = TreeNode::from(Op::constant(2.0_f32));
+
+        let pgm = Op::softmax_argmax(vec![prog1, prog2, prog3]);
+
+        let result = pgm.eval(&[0.0_f32; 3]);
+        assert_eq!(result, 2.0); // Index of the highest logit
     }
 }

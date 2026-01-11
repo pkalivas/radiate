@@ -1,0 +1,26 @@
+# PGM
+
+Probabilistic Graphical Models (PGMs) in radiate are an extension of [operations](op.md) and [trees](trees.md) that allow for the representation and manipulation of probabilistic relationships between variables. They are a way to represent, reason about, and compute with uncertainty by combining probability theory and graph theory. They provide a structured framework for modeling complex systems where variables are interdependent and uncertainty is inherent. PGMs use graphs to represent the relationships between random variables, allowing for efficient inference and learning.
+
+Suppose you have many random variables that is exponentially large and infeasible to store or reason about directly. For example, representing a full joint distribution such as
+
+$$
+P(X_1, X_2, \dots, X_n)
+$$
+
+is often impractical because the number of possible configurations grows exponentially with the number of variables.
+
+PGMs exploit conditional independence:
+
+- If variable A only depends on B and C, you don’t need to model how it depends on everything else.
+
+This allows us to factor the joint distribution into smaller, more manageable pieces. For example, if we have a set of variables {X1, X2, X3} where X1 depends on X2 and X3, we can express the joint distribution as:
+
+$$
+P(X_1, X_2, X_3) = P(X_1 | X_2, X_3) * P(X_2) * P(X_3)
+$$
+
+So, in english, you could say "if its raining (X2) and its 8am (X3), then the probability of me being late for work (X1) is high".
+
+This factorization reduces the complexity of the model and makes it easier to work with.
+
