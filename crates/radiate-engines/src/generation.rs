@@ -173,7 +173,7 @@ where
 {
     fn from(context: &Context<C, T>) -> Self {
         Generation {
-            ecosystem: EcosystemSnapshot::Shared(Ecosystem::clone_ref(&context.ecosystem)),
+            ecosystem: EcosystemSnapshot::Owned(context.ecosystem.clone()),
             value: context.best.clone(),
             index: context.index,
             metrics: context.metrics.clone(),
