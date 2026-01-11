@@ -118,7 +118,7 @@ class TestMetrics:
         assert rd.Tag.TIME in time_tags
 
         for metric in metrics.values_by_tag(rd.Tag.ALTERER):
-            if 'crossover' in metric.name():
+            if "crossover" in metric.name():
                 assert rd.Tag.CROSSOVER in metric.tags()
-            if 'mutator' in metric.name():
+            if "mutator" in metric.name():
                 assert rd.Tag.MUTATOR in metric.tags()
