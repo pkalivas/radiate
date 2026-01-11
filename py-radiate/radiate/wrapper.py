@@ -10,11 +10,13 @@ class PyObject[T](ABC):
     Provides common functionality for conversion between Python and Rust objects.
     """
 
-    __slots__ = ["_pyobj"]
+    __slots__ = ["_pyobj", "_cache"]
     _pyobj: T
+    _cache: dict[str, Any]
 
     def __init__(self, pyobj: T | None = None):
         self._pyobj = pyobj
+        self._cache = {}
 
     @classmethod
     def from_rust(cls, py_obj: T | dict):
@@ -23,6 +25,7 @@ class PyObject[T](ABC):
             instance.__dict__.update(py_obj)
         else:
             instance._pyobj = py_obj
+        instance._cache = {}
         return instance
 
     def __backend__(self) -> T:
@@ -43,3 +46,16 @@ class PyObject[T](ABC):
     def __hash__(self) -> int:
         """Hash based on the inner object."""
         return hash(self.__backend__())
+
+    def try_get_cache(self, key: str, acquire_fn: callable) -> Any:
+        """
+        Try to get a cached value by key, if not present, acquire it using the provided function.
+        :param key: The cache key.
+        :param acquire_fn: A callable that produces the value if not cached.
+        :return: The cached or newly acquired value.
+        """
+        if key in self._cache:
+            return self._cache[key]
+        value = acquire_fn()
+        self._cache[key] = value
+        return value

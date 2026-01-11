@@ -99,21 +99,32 @@ class EngineEvent(PyObject[PyEngineEvent]):
         Get the score of the event.
         :return: The score of the event.
         """
-        return self.__backend__().score()
+        return self.try_get_cache("score_cache", lambda: self.__backend__().score())
 
     def value(self) -> Any:
         """
         Get the value of the event.
         :return: The value of the event.
         """
-        return self.__backend__().value()
+        return self.try_get_cache("value_cache", lambda: self.__backend__().value())
 
     def metrics(self) -> MetricSet | None:
         """
         Get the metrics of the event.
         :return: The metrics of the event.
         """
-        metrics = self.__backend__().metrics()
-        if metrics is None:
-            return None
-        return MetricSet.from_rust(metrics)
+
+        def _acquire_metrics():
+            metrics = self.__backend__().metrics()
+            if metrics is None:
+                return None
+            return MetricSet.from_rust(metrics)
+
+        return self.try_get_cache("metrics_cache", _acquire_metrics)
+
+    def objective(self) -> list[str] | None:
+        """
+        Get the objective of the event.
+        :return: The objective of the event.
+        """
+        return self.try_get_cache("objective_cache", lambda: self.__backend__().objective())

@@ -3,7 +3,7 @@ from __future__ import annotations
 import enum
 from datetime import timedelta
 
-from radiate.radiate import PyMetricSet, PyMetric, PyTagKind
+from radiate.radiate import PyMetricSet, PyMetric
 from radiate.wrapper import PyObject
 from radiate.dependancies import _PANDAS_AVAILABLE, _POLARS_AVAILABLE
 
@@ -11,23 +11,62 @@ from radiate.dependancies import _PANDAS_AVAILABLE, _POLARS_AVAILABLE
 class Tag(enum.Enum):
     """Enumeration of metric tag kinds."""
 
-    SELECTOR = PyTagKind.Selector
-    ALTERER = PyTagKind.Alterer
-    MUTATOR = PyTagKind.Mutator
-    CROSSOVER = PyTagKind.Crossover
-    SPECIES = PyTagKind.Species
-    FAILURE = PyTagKind.Failure
-    AGE = PyTagKind.Age
-    FRONT = PyTagKind.Front
-    DERIVED = PyTagKind.Derived
-    OTHER = PyTagKind.Other
-    STATISTIC = PyTagKind.Statistic
-    TIME = PyTagKind.Time
-    DISTRIBUTION = PyTagKind.Distribution
-    SCORE = PyTagKind.Score
+    SELECTOR = "selector"
+    ALTERER = "alterer"
+    MUTATOR = "mutator"
+    CROSSOVER = "crossover"
+    SPECIES = "species"
+    FAILURE = "failure"
+    AGE = "age"
+    FRONT = "front"
+    DERIVED = "derived"
+    OTHER = "other"
+    STATISTIC = "statistic"
+    TIME = "time"
+    DISTRIBUTION = "distribution"
+    SCORE = "score"
+    RATE = "rate"
 
     def __repr__(self) -> str:
         return f"Tag.{self.name}"
+
+
+tag_map = {
+    "py": {
+        "selector": Tag.SELECTOR,
+        "alterer": Tag.ALTERER,
+        "mutator": Tag.MUTATOR,
+        "crossover": Tag.CROSSOVER,
+        "species": Tag.SPECIES,
+        "failure": Tag.FAILURE,
+        "age": Tag.AGE,
+        "front": Tag.FRONT,
+        "derived": Tag.DERIVED,
+        "other": Tag.OTHER,
+        "statistic": Tag.STATISTIC,
+        "time": Tag.TIME,
+        "distribution": Tag.DISTRIBUTION,
+        "score": Tag.SCORE,
+        "rate": Tag.RATE,
+    },
+    "rs": {
+        Tag.SELECTOR: "selector",
+        Tag.ALTERER: "alterer",
+        Tag.MUTATOR: "mutator",
+        Tag.CROSSOVER: "crossover",
+        Tag.SPECIES: "species",
+        Tag.FAILURE: "failure",
+        Tag.AGE: "age",
+        Tag.FRONT: "front",
+        Tag.DERIVED: "derived",
+        Tag.OTHER: "other",
+        Tag.STATISTIC: "statistic",
+        Tag.TIME: "time",
+        Tag.DISTRIBUTION: "distribution",
+        Tag.SCORE: "score",
+        Tag.RATE: "rate",
+    },
+}
 
 
 class MetricSet(PyObject[PyMetricSet]):
@@ -57,7 +96,7 @@ class MetricSet(PyObject[PyMetricSet]):
 
     def values_by_tag(self, tag: Tag) -> list[Metric]:
         return [
-            Metric.from_rust(m) for m in self.__backend__().values_by_tag(tag.value)
+            Metric.from_rust(m) for m in self.__backend__().values_by_tag(tag_map["rs"][tag])
         ]
 
     def to_polars(self):
@@ -84,6 +123,9 @@ class Metric(PyObject[PyMetric]):
 
     def name(self) -> str:
         return self.__backend__().name
+
+    def tags(self) -> list[Tag]:
+        return [tag_map["py"][t] for t in self.__backend__().tags]
 
     # --- value stats ---
     def value_last(self) -> float:

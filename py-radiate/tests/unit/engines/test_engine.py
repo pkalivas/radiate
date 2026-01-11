@@ -300,7 +300,7 @@ class TestEngineBasicIntegration:
         """Test multi-objective engine with Pareto front."""
         result = simple_multi_objective_engine.run(rd.GenerationsLimit(100))
 
-        fitness_values = list(set(map(lambda x: tuple(x["fitness"]), result.value())))
+        fitness_values = list(set(map(lambda x: tuple(x.score()), result.front())))
 
         assert result.objective() == ["min", "min"]
         # Check if the Pareto front is non-dominated

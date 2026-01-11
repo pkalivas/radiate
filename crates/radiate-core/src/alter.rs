@@ -2,7 +2,7 @@ use crate::{Chromosome, Gene, Genotype, Metric, Population, math::indexes, rando
 use crate::{Rate, metric};
 use radiate_utils::{ToSnakeCase, intern};
 use std::iter::once;
-use std::rc::Rc;
+use std::sync::Arc;
 
 #[macro_export]
 macro_rules! alters {
@@ -82,8 +82,8 @@ impl From<Metric> for AlterResult {
 
 #[derive(Clone)]
 pub enum Alterer<C: Chromosome> {
-    Mutate(&'static str, Rate, Rc<dyn Mutate<C>>),
-    Crossover(&'static str, Rate, Rc<dyn Crossover<C>>),
+    Mutate(&'static str, Rate, Arc<dyn Mutate<C>>),
+    Crossover(&'static str, Rate, Arc<dyn Crossover<C>>),
 }
 
 impl<C: Chromosome> Alterer<C> {
@@ -105,30 +105,46 @@ impl<C: Chromosome> Alterer<C> {
     pub fn alter(&self, population: &mut Population<C>, generation: usize) -> Vec<Metric> {
         match &self {
             Alterer::Mutate(name, rate, m) => {
-                let rate_value = rate.value(generation);
+                let (rate_value, rate_metric) = Self::rate_metric(generation, rate, name);
 
                 let timer = std::time::Instant::now();
                 let AlterResult(count, metrics) = m.mutate(population, generation, rate_value);
                 let metric = metric!(name, (count, timer.elapsed()));
 
                 match metrics {
-                    Some(metrics) => metrics.into_iter().chain(once(metric)).collect(),
-                    None => vec![metric],
+                    Some(metrics) => metrics
+                        .into_iter()
+                        .chain(once(metric))
+                        .chain(once(rate_metric))
+                        .collect(),
+                    None => vec![metric, rate_metric],
                 }
             }
             Alterer::Crossover(name, rate, c) => {
-                let rate_value = rate.value(generation);
+                let (rate_value, rate_metric) = Self::rate_metric(generation, rate, name);
 
                 let timer = std::time::Instant::now();
                 let AlterResult(count, metrics) = c.crossover(population, generation, rate_value);
                 let metric = metric!(name, (count, timer.elapsed()));
 
                 match metrics {
-                    Some(metrics) => metrics.into_iter().chain(once(metric)).collect(),
-                    None => vec![metric],
+                    Some(metrics) => metrics
+                        .into_iter()
+                        .chain(once(metric))
+                        .chain(once(rate_metric))
+                        .collect(),
+                    None => vec![metric, rate_metric],
                 }
             }
         }
+    }
+
+    #[inline]
+    fn rate_metric(generation: usize, rate: &Rate, name: &str) -> (f32, Metric) {
+        let rate_value = rate.value(generation);
+        let metric = metric!(radiate_utils::intern!(format!("{}_rate", name)), rate_value);
+
+        (rate_value, metric)
     }
 }
 
@@ -168,7 +184,7 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
     where
         Self: Sized + 'static,
     {
-        Alterer::Crossover(intern!(self.name()), self.rate(), Rc::new(self))
+        Alterer::Crossover(intern!(self.name()), self.rate(), Arc::new(self))
     }
 
     #[inline]
@@ -266,7 +282,7 @@ pub trait Mutate<C: Chromosome>: Send + Sync {
     where
         Self: Sized + 'static,
     {
-        Alterer::Mutate(intern!(self.name()), self.rate(), Rc::new(self))
+        Alterer::Mutate(intern!(self.name()), self.rate(), Arc::new(self))
     }
 
     #[inline]

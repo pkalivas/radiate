@@ -48,16 +48,22 @@ impl PyEventHandler {
     {
         match event {
             EngineEvent::Start => PyEngineEvent::start(),
-            EngineEvent::Stop(_, best, metrics, score) => {
+            EngineEvent::Stop(index, best, metrics, score) => {
                 let best = best.clone().into_py(py);
                 let metrics = PyMetricSet::from(metrics.clone());
-                PyEngineEvent::stop(best, metrics, score.as_ref().to_vec())
+                PyEngineEvent::stop(*index, best, metrics, score.as_ref().to_vec())
             }
             EngineEvent::EpochStart(index) => PyEngineEvent::epoch_start(*index),
-            EngineEvent::EpochComplete(index, best, metrics, score, _) => {
+            EngineEvent::EpochComplete(index, best, metrics, score, objective) => {
                 let best = best.clone().into_py(py);
                 let metrics = PyMetricSet::from(metrics.clone());
-                PyEngineEvent::epoch_complete(*index, best, metrics, score.as_ref().to_vec())
+                PyEngineEvent::epoch_complete(
+                    *index,
+                    best,
+                    metrics,
+                    score.as_ref().to_vec(),
+                    objective.clone(),
+                )
             }
             EngineEvent::Improvement(index, best, score) => {
                 let best = best.clone().into_py(py);

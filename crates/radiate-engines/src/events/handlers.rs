@@ -7,9 +7,9 @@ pub trait EventHandler<T>: Send + Sync {
 
 impl<T, F> EventHandler<T> for F
 where
-    F: Fn(Arc<EngineEvent<T>>) + Send + Sync,
+    F: Fn(&EngineEvent<T>) + Send + Sync,
 {
     fn handle(&mut self, event: Arc<EngineEvent<T>>) {
-        (self)(event)
+        (self)(&event)
     }
 }

@@ -16,8 +16,8 @@ class TestMetrics:
 
         metrics = result.metrics()
 
-        assert len(metrics) == 21
-        assert len(metrics.keys()) == 21
+        assert len(metrics) == 23
+        assert len(metrics.keys()) == 23
         for key in metrics.keys():
             assert key in metrics
 
@@ -91,3 +91,34 @@ class TestMetrics:
         )
 
         engine.run([rd.ScoreLimit(0), rd.GenerationsLimit(500)])
+
+    @pytest.mark.integration
+    def test_metric_tags(self, random_seed):
+        engine = rd.GeneticEngine(
+            codec=rd.IntCodec.vector(5, (0, 10)),
+            fitness_func=lambda x: sum(x),
+            objective="min",
+        )
+
+        result = engine.run([rd.ScoreLimit(0), rd.GenerationsLimit(100)])
+
+        metrics = result.metrics()
+
+        # Check that certain metrics have expected tags
+        assert "scores" in metrics
+        assert "time" in metrics
+
+        score_tags = metrics["scores"].tags()
+        time_tags = metrics["time"].tags()
+
+        assert rd.Tag.STATISTIC in score_tags
+        assert rd.Tag.SCORE in score_tags
+        assert rd.Tag.DISTRIBUTION in score_tags
+
+        assert rd.Tag.TIME in time_tags
+
+        for metric in metrics.values_by_tag(rd.Tag.ALTERER):
+            if 'crossover' in metric.name():
+                assert rd.Tag.CROSSOVER in metric.tags()
+            if 'mutator' in metric.name():
+                assert rd.Tag.MUTATOR in metric.tags()

@@ -45,6 +45,8 @@ from .distance import (
 
 from .limit import SecondsLimit, GenerationsLimit, ScoreLimit, ConvergenceLimit
 
+from .rate import Rate
+
 from .descriptor import CustomDescriptor
 
 __all__ = [
@@ -89,4 +91,5 @@ __all__ = [
     "Regression",
     "ConvergenceLimit",
     "CustomDescriptor",
+    "Rate",
 ]

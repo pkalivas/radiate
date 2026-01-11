@@ -1,8 +1,9 @@
 from __future__ import annotations
 from enum import Enum
 
-from radiate.radiate import PyEngineInput, PyEngineInputType
+from radiate.radiate import PyEngineInput, PyEngineInputType, PyRate
 from radiate.wrapper import PyObject
+from radiate.inputs.rate import Rate
 
 from ..genome import (
     GENE_TYPE_MAPPING,
@@ -56,6 +57,7 @@ class EngineInput(PyObject[PyEngineInput]):
         self,
         input_type: EngineInputType,
         component: str,
+        rate: Rate | None = None,
         allowed_genes: set[GeneType] | list[GeneType] | GeneType | None = None,
         **kwargs,
     ):
@@ -75,4 +77,5 @@ class EngineInput(PyObject[PyEngineInput]):
                 GENE_TYPE_MAPPING["rs"][gene_type] for gene_type in allowed_genes
             ),
             args={k: v for k, v in kwargs.items()},
+            rate=rate.__backend__() if rate else None,
         )

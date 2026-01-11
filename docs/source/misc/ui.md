@@ -1,4 +1,4 @@
-User Interface (UI)
+User Interface
 
 ---
 
@@ -19,7 +19,7 @@ Radiate includes a simple terminal command-line user interface (TUI) built with 
 Below we can see the base TUI layout during an evolutionary run:
 
 <figure markdown="span">
-    ![tui-stats](../assets/tui-stats.png){ width="600" }
+    ![tui-stats](../../assets/tui/tui_stats.png){ width="600" }
 </figure>
 
 The TUI is composed of several sections:
@@ -33,18 +33,18 @@ The TUI is composed of several sections:
 Its also possible to view the timings of various components of the genetic algorithm. This can be enabled by pressing the `h/l` (swap left/right between panels) key during an evolutionary run. Again, as you scroll through the timings panel, a pie chart will light up with the corresponding timing information. 
 
 <figure markdown="span">
-    ![tui-timings](../assets/tui-times.png){ width="600" }
+    ![tui-timingstui](../../assets/tui/tui_time.png){ width="600" }
 </figure>
 
 ---
 
 ## Filtering
 
-Because the engine collects so many statistics, its also possible to filter the statistics by their `tag`s. You can do this by pressing the `f` key during an evolutionary run, which will bring up a prompt to enter a tag to filter by. For example, if I just want to see statistics related to `mutations` and `selections`, I can press `f` and enter and toggle the appropriate tags:
+Because the engine collects so many statistics, its also possible to filter the statistics by their `tag`s. You can do this by pressing the `f` key during an evolutionary run, which will bring up a prompt to enter a tag to filter by. For example, if I just want to see statistics related to `alters`, I can press `f` and enter and toggle the appropriate tags:
 
 
 <figure markdown="span">
-    ![tui-timings](../assets/tui-filter.png){ width="600" }
+    ![tui-timings](../../assets/tui/tui_filter.png){ width="600" }
 </figure>
 
 
@@ -55,7 +55,7 @@ Because the engine collects so many statistics, its also possible to filter the 
 The TUI also supports multi-objective evolutionary runs. In this case, the top-right panel will show a scatter plot of the Pareto front, with each axis representing one of the objectives being optimized.
 
 <figure markdown="span">
-    ![tui-timings](../assets/tui-mo.png){ width="600" }
+    ![tui-timings](../../assets/tui/tui_mo.png){ width="600" }
 </figure>
 
 ---

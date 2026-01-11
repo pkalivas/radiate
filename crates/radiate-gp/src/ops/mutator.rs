@@ -1,7 +1,7 @@
 use crate::node::{Node, NodeExt};
 use crate::ops::operation::Op;
 use crate::{Factory, GraphChromosome, NodeStore, NodeType, TreeChromosome};
-use radiate_core::{AlterResult, Metric, Mutate, Rate, metric};
+use radiate_core::{AlterResult, Metric, Mutate, Rate, Valid, metric};
 use radiate_core::{Chromosome, random_provider};
 
 const MUT_CONST_OP_MUTATED: &str = "op_mut_const";
@@ -17,9 +17,9 @@ pub struct OperationMutator {
 impl OperationMutator {
     pub fn new(rate: impl Into<Rate>, replace_rate: f32) -> Self {
         let rate = rate.into();
-        // if !(0.0..=1.0).contains(&rate.0) {
-        //     panic!("rate must be between 0.0 and 1.0");
-        // }
+        if !rate.is_valid() {
+            panic!("rate must be between 0.0 and 1.0");
+        }
 
         if !(0.0..=1.0).contains(&replace_rate) {
             panic!("replace_rate must be between 0.0 and 1.0");

@@ -1,9 +1,5 @@
 
-# Miscellaneous
-
-This section contains various miscellaneous information about the Radiate library that doesn't fit into other sections.
-
-## Random
+# Random
 
 Random number generation is a crucial aspect of evolutionary algorithms. Radiate provides a random interface that governs all random number generation within the library through the `random_provider`. This allows for consistent and reproducible results across different runs of the algorithm.
 
@@ -59,4 +55,14 @@ Here's an example of how to use the `random_provider`:
 
     // random gaussian float with mean 0 and stddev 1
     let rand_gauss = random_provider::gaussian(0.0, 1.0);
+
+    // randomly sample n elements from a slice - range of indices, probability of each index being included
+    let conditional_indices = random_provider::cond_indices(0..10, 0.2);
+
+    // get a scoped random instance which maintains state from the calling random provider
+    // be aware that this is not thread-safe and should only be used in single-threaded contexts
+    random_provider::with_rng(|rng| {
+        let scoped_rand_float = rng.range(0.0..1.0);
+        let gaussian_float = rng.gaussian(0.0, 1.0);
+    });
     ```

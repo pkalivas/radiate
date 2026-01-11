@@ -158,6 +158,7 @@ class EngineBuilder:
                     input_type=EngineInputType.Alterer,
                     component=alter.component,
                     allowed_genes=alter.allowed_genes,
+                    rate=alter.rate,
                     **alter.args,
                 )
             )

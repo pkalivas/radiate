@@ -4,7 +4,7 @@
     <h1>Radiate</h1>
 </center>
 <figure markdown="span">
-  ![Radiate](assets/radiate.png){ width="100" }
+  ![Radiate](assets/logo/radiate.png){ width="100" }
 </figure>
 
 <div align="center">

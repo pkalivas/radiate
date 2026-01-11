@@ -4,11 +4,13 @@ mod converters;
 mod engine;
 mod epoch;
 mod fitness;
+mod front;
 mod functions;
 mod genome;
 mod gp;
 mod inputs;
 mod metric;
+mod rate;
 mod subscriber;
 
 pub use builder::*;
@@ -20,11 +22,13 @@ pub use converters::InputTransform;
 pub use engine::{PyEngine, PyEngineRunOption};
 pub use epoch::PyGeneration;
 pub use fitness::{PyFitnessFn, PyFitnessInner, PyNoveltySearch};
+pub use front::{PyFront, PyFrontValue};
 pub use functions::*;
 pub use genome::*;
 pub use gp::{PyGraph, PyTree};
 pub use inputs::{PyEngineInput, PyEngineInputType};
-pub use metric::{PyMetric, PyMetricSet, PyTagKind};
+pub use metric::{PyMetric, PyMetricSet};
+pub use rate::PyRate;
 pub use subscriber::{PyEngineEvent, PySubscriber};
 
 use crate::{AnyChromosome, PyAnyObject};

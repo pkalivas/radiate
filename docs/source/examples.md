@@ -68,7 +68,7 @@ Solve the classic N-Queens problem, where the goal is to place `n` queens on an 
 For example, a solution for `n=8` would be:
 
 <figure markdown="span">
-    ![8-Queens](../assets/nqueens.png){ width="300" }
+    ![8-Queens](../assets/examples/nqueens.png){ width="300" }
 </figure>
 
 === ":fontawesome-brands-python: Python"
@@ -190,7 +190,7 @@ where:
 - The global minimum occurs at \( x = 0 \) for all dimensions, where the function value is \( 0 \).
 
 <figure markdown="span">
-    ![Rastrigin](../assets/Rastrigin_function.png){ width="300" }
+    ![Rastrigin](../assets/examples/Rastrigin_function.png){ width="300" }
 </figure>
 
 === ":fontawesome-brands-python: Python"

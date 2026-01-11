@@ -4,49 +4,72 @@ use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use pyo3::{IntoPyObject, PyErr, PyResult, Python};
 use pyo3::{pyclass, pymethods};
-use radiate::stats::TagKind;
 use radiate::{Metric, MetricSet};
 use serde::{Deserialize, Serialize};
 
-#[pyclass]
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum PyTagKind {
-    Selector,
-    Alterer,
-    Mutator,
-    Crossover,
-    Species,
-    Failure,
-    Age,
-    Front,
-    Derived,
-    Other,
-    Statistic,
-    Time,
-    Distribution,
-    Score,
-}
+// #[pyclass]
+// #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+// pub enum PyTagKind {
+//     Selector,
+//     Alterer,
+//     Mutator,
+//     Crossover,
+//     Species,
+//     Failure,
+//     Age,
+//     Front,
+//     Derived,
+//     Other,
+//     Statistic,
+//     Time,
+//     Distribution,
+//     Score,
+//     Rate,
+// }
 
-impl Into<TagKind> for PyTagKind {
-    fn into(self) -> TagKind {
-        match self {
-            PyTagKind::Selector => TagKind::Selector,
-            PyTagKind::Alterer => TagKind::Alterer,
-            PyTagKind::Mutator => TagKind::Mutator,
-            PyTagKind::Crossover => TagKind::Crossover,
-            PyTagKind::Species => TagKind::Species,
-            PyTagKind::Failure => TagKind::Failure,
-            PyTagKind::Age => TagKind::Age,
-            PyTagKind::Front => TagKind::Front,
-            PyTagKind::Derived => TagKind::Derived,
-            PyTagKind::Other => TagKind::Other,
-            PyTagKind::Statistic => TagKind::Statistic,
-            PyTagKind::Time => TagKind::Time,
-            PyTagKind::Distribution => TagKind::Distribution,
-            PyTagKind::Score => TagKind::Score,
-        }
-    }
-}
+// impl Into<TagKind> for PyTagKind {
+//     fn into(self) -> TagKind {
+//         match self {
+//             PyTagKind::Selector => TagKind::Selector,
+//             PyTagKind::Alterer => TagKind::Alterer,
+//             PyTagKind::Mutator => TagKind::Mutator,
+//             PyTagKind::Crossover => TagKind::Crossover,
+//             PyTagKind::Species => TagKind::Species,
+//             PyTagKind::Failure => TagKind::Failure,
+//             PyTagKind::Age => TagKind::Age,
+//             PyTagKind::Front => TagKind::Front,
+//             PyTagKind::Derived => TagKind::Derived,
+//             PyTagKind::Other => TagKind::Other,
+//             PyTagKind::Statistic => TagKind::Statistic,
+//             PyTagKind::Time => TagKind::Time,
+//             PyTagKind::Distribution => TagKind::Distribution,
+//             PyTagKind::Score => TagKind::Score,
+//             PyTagKind::Rate => TagKind::Rate,
+//         }
+//     }
+// }
+
+// impl From<TagKind> for PyTagKind {
+//     fn from(tag: TagKind) -> Self {
+//         match tag {
+//             TagKind::Selector => PyTagKind::Selector,
+//             TagKind::Alterer => PyTagKind::Alterer,
+//             TagKind::Mutator => PyTagKind::Mutator,
+//             TagKind::Crossover => PyTagKind::Crossover,
+//             TagKind::Species => PyTagKind::Species,
+//             TagKind::Failure => PyTagKind::Failure,
+//             TagKind::Age => PyTagKind::Age,
+//             TagKind::Front => PyTagKind::Front,
+//             TagKind::Derived => PyTagKind::Derived,
+//             TagKind::Other => PyTagKind::Other,
+//             TagKind::Statistic => PyTagKind::Statistic,
+//             TagKind::Time => PyTagKind::Time,
+//             TagKind::Distribution => PyTagKind::Distribution,
+//             TagKind::Score => PyTagKind::Score,
+//             TagKind::Rate => PyTagKind::Rate,
+//         }
+//     }
+// }
 
 #[pyclass]
 #[derive(Clone, Deserialize, Serialize)]
@@ -122,7 +145,7 @@ impl PyMetricSet {
     pub fn values_by_tag<'py>(
         &self,
         py: Python<'py>,
-        tag: PyTagKind,
+        tag: String,
     ) -> PyResult<Vec<Bound<'py, PyMetric>>> {
         let mut vec = Vec::new();
         for metric in self.inner.iter_tagged(tag.into()) {
@@ -233,6 +256,15 @@ impl PyMetric {
     #[getter]
     pub fn name(&self) -> &str {
         self.inner.name()
+    }
+
+    #[getter]
+    pub fn tags(&self) -> Vec<&'static str> {
+        self.inner
+            .tags()
+            .iter()
+            .map(|tag| radiate_utils::intern!(tag.as_str().to_string().to_lowercase()))
+            .collect()
     }
 
     // --- value stats ---
