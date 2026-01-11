@@ -134,6 +134,7 @@ def float(
     length: int,
     init_range: tuple[float, float] | None = None,
     bounds: tuple[float, float] | None = None,
+    genes: Iterable[Gene[float]] | Gene[float] | None = None,
 ) -> Chromosome[float]:
     """
     Create a float chromosome with specified length and optional parameters.
@@ -148,5 +149,11 @@ def float(
     >>> rd.chromosome.float(length=5, init_range=(0.0, 10.0), bounds=(-5.0, 15.0))
     Chromosome(genes=[0.0, 2.5, 5.0, 7.5, 10.0])
     """
-    genes = [gene.float(init_range=init_range, bounds=bounds) for _ in range(length)]
-    return Chromosome(genes=genes)
+    if genes is not None:
+        if isinstance(genes, Iterable):
+            return Chromosome(genes=list(genes))
+        if isinstance(genes, Gene):
+            return Chromosome(genes=[genes])
+    else:
+        genes = [gene.float(init_range=init_range, bounds=bounds) for _ in range(length)]
+        return Chromosome(genes=genes)

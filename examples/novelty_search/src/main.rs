@@ -35,7 +35,7 @@ fn main() {
         .inspect(|result| visualize(result.clone()));
 }
 
-fn visualize(mut result: Generation<FloatChromosome, Vec<f32>>) {
+fn visualize(result: Generation<FloatChromosome, Vec<f32>>) {
     let population = result.population().clone();
 
     let mut robots = Vec::new();

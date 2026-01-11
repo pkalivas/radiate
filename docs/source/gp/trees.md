@@ -1,6 +1,6 @@
 # Trees
 
-A `tree` represents a hierarchical structure where each node has exactly one parent (except the root) and zero or more children. When combined with the [ops](#ops), it allows for the evolution of mathematical expressions, decision trees, and symbolic regression.
+A `tree` represents a hierarchical structure where each node has exactly one parent (except the root) and zero or more children. When combined with the [ops](op.md), it allows for the evolution of mathematical expressions, decision trees, and symbolic regression.
 
 <figure markdown="span">
     ![op-tree](../../assets/gp/Genetic_Program_Tree.png){ width="300" }

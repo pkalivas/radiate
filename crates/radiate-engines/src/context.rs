@@ -57,7 +57,7 @@ where
     T: Clone,
 {
     fn from(config: EngineConfig<C, T>) -> Self {
-        if let Some(mut generation) = config.generation() {
+        if let Some(generation) = config.generation() {
             return Context {
                 ecosystem: generation.ecosystem().clone(),
                 best: generation.value().clone(),
