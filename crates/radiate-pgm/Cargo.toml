@@ -1,0 +1,25 @@
+[package]
+name = "radiate-pgm"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+description.workspace = true
+repository.workspace = true
+readme.workspace = true
+categories.workspace = true
+keywords.workspace = true
+license.workspace = true
+homepage.workspace = true
+
+[dependencies]
+radiate-core = { workspace = true }
+radiate-gp = { workspace = true }
+radiate-utils = { workspace = true }
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+
+
+[features]
+default = []
+serde = ["dep:serde", "dep:serde_json"]
+smallvec = ["radiate-gp/smallvec"]
