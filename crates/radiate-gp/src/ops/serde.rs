@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::Arity;
 use crate::ops::op_names;
 use crate::ops::operation::Op;
@@ -32,6 +34,12 @@ enum OpVariant<T> {
         name: String,
         arity: Arity,
         programs: Vec<TreeNode<OpVariant<T>>>,
+    },
+    Table {
+        name: String,
+        arity: Arity,
+        strides: Arc<[usize]>,
+        table: Arc<[T]>,
     },
 }
 
@@ -105,6 +113,24 @@ impl<T: Clone> From<Op<T>> for OpVariant<T> {
                     .iter()
                     .map(|node| node.map(|val| OpVariant::from((*val).clone())))
                     .collect(),
+            },
+            Op::Table {
+                name,
+                arity,
+                strides,
+                table,
+                ..
+            } => OpVariant::Table {
+                name: name.to_string(),
+                arity,
+                strides,
+                table,
+            },
+            Op::Value(name, value, _) => OpVariant::Table {
+                name: name.to_string(),
+                arity: value.arity(),
+                strides: Arc::new([]),
+                table: Arc::new([]),
             },
         }
     }
@@ -246,6 +272,30 @@ impl From<OpVariant<f32>> for Result<Op<f32>, serde::de::value::Error> {
                     },
                 ))
             }
+            OpVariant::Table {
+                name,
+                arity,
+                strides,
+                table,
+            } => {
+                panic!()
+                // let name = Box::leak(name.into_boxed_str());
+                // Ok(Op::Table(
+                //     name,
+                //     arity,
+                //     strides,
+                //     table,
+                //     |inputs: &[f32], strides: &Arc<[usize]>, table: &Vec<f32>| {
+                //         let mut index = 0;
+                //         for (i, &input) in inputs.iter().enumerate() {
+                //             let stride = strides.get(i).copied().unwrap_or(1);
+                //             let idx = input as usize;
+                //             index += idx * stride;
+                //         }
+                //         table.get(index).copied().unwrap_or(0.0)
+                //     },
+                // ))
+            }
         }
     }
 }
@@ -331,6 +381,11 @@ impl From<OpVariant<bool>> for Result<Op<bool>, serde::de::value::Error> {
                         result
                     },
                 ))
+            }
+            OpVariant::Table { .. } => {
+                return Err(serde::de::Error::custom(
+                    "Table ops are not supported for boolean ops",
+                ));
             }
         }
     }

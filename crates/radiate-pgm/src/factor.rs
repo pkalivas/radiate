@@ -20,15 +20,6 @@ pub enum Potential {
     },
 }
 
-pub enum FactorType {
-    /// Factor over discrete variables
-    Discrete,
-    /// Factor over continuous (real-valued) variables
-    Continuous,
-    /// Hybrid factor (mixed discrete and continuous variables)
-    Hybrid,
-}
-
 /// A factor specification in a probabilistic graphical model.
 /// The factor defines a potential function over a set of variables.
 #[derive(Clone, Debug, PartialEq)]

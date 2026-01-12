@@ -39,6 +39,17 @@ impl<T> SortedBuffer<T> {
         &self.inner
     }
 
+    pub fn into_vec(self) -> Vec<T> {
+        #[cfg(feature = "smallvec")]
+        {
+            self.inner.into_vec()
+        }
+        #[cfg(not(feature = "smallvec"))]
+        {
+            self.inner
+        }
+    }
+
     #[inline]
     pub fn as_mut_slice(&mut self) -> &mut [T] {
         &mut self.inner

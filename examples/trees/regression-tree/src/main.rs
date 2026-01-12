@@ -5,7 +5,7 @@ use radiate::*;
 const MIN_SCORE: f32 = 0.001;
 
 fn main() {
-    random_provider::set_seed(2);
+    random_provider::set_seed(4);
 
     let var_one = Domain::Discrete(2);
     let var_two = Domain::Discrete(2);
@@ -21,26 +21,18 @@ fn main() {
         3,
     );
 
-    // let pgm_codec = PgmCodec::new(PgmCodecConfig {
-    //     variables: vec![var_one, var_two, var_three],
-    //     num_factors: 2,
-    //     max_scope: 3,
-    //     allow_linear_gaussian: true,
-    //     allow_mixture_by_discrete: true,
-    // });
-
     let encoded = codec.encode();
     println!("Encoded Genotype: {:?}", encoded);
     let decoded = codec.decode(&encoded);
-    println!("Decoded Phenotype: {:?}", decoded);
+    // println!("Decoded Phenotype: {:?}", decoded);
 
     let prob_dataset = ProbDataset::new(vec![
-        vec![Some(0), Some(0), Some(0)],
+        vec![Some(2), Some(0), Some(0)],
         vec![Some(1), Some(0), Some(0)],
-        vec![Some(0), Some(1), Some(1)],
+        vec![Some(0), Some(1), Some(2)],
     ]);
 
-    let temp = ExactDiscrete;
+    let temp = LogInfoEval;
 
     let ll = temp.log_likelihood(&decoded, &prob_dataset);
     println!("Log Likelihood of decoded PGM on dataset: {}", ll);

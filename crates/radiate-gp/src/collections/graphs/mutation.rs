@@ -102,7 +102,7 @@ where
                         .filter_map(|_| trans.random_source_node(rand).map(|n| n.index()))
                         .collect::<Vec<usize>>();
 
-                    let node_idx = trans.add_node(new_node);
+                    let node_idx = trans.push(new_node);
 
                     if let Some(trgt) = target_idx {
                         for src in source_idx {

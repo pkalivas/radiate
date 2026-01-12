@@ -50,3 +50,12 @@ impl From<(String, Domain)> for Variable {
         }
     }
 }
+
+impl Default for Variable {
+    fn default() -> Self {
+        Variable {
+            name: Some("default".to_string()),
+            domain: Domain::Discrete(0),
+        }
+    }
+}

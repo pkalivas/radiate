@@ -1,10 +1,16 @@
 use crate::{Domain, FactorSpec, Variable};
-use radiate_gp::NodeValue;
+use radiate_gp::{NodeValue, Op};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum PgmValue {
     Variable(Variable),
     Factor(FactorSpec),
+}
+
+impl Default for PgmValue {
+    fn default() -> Self {
+        PgmValue::Variable(Variable::default())
+    }
 }
 
 impl From<PgmValue> for NodeValue<PgmValue> {
@@ -16,20 +22,5 @@ impl From<PgmValue> for NodeValue<PgmValue> {
             },
             PgmValue::Factor(_) => NodeValue::Unbound(value),
         }
-    }
-}
-
-impl From<Variable> for NodeValue<PgmValue> {
-    fn from(value: Variable) -> Self {
-        match value.domain {
-            Domain::Discrete(k) => NodeValue::Bounded(PgmValue::Variable(value), k.into()),
-            Domain::Real => NodeValue::Unbound(PgmValue::Variable(value)),
-        }
-    }
-}
-
-impl From<FactorSpec> for NodeValue<PgmValue> {
-    fn from(value: FactorSpec) -> NodeValue<PgmValue> {
-        NodeValue::Unbound(PgmValue::Factor(value))
     }
 }

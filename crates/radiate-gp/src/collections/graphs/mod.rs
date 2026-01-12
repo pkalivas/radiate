@@ -13,6 +13,7 @@ mod replacement;
 mod transaction;
 
 pub use aggregate::GraphAggregate;
+pub use builder::NodeBuilder;
 pub use chromosome::GraphChromosome;
 pub use codec::GraphCodec;
 pub use crossover::GraphCrossover;

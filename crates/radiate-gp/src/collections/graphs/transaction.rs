@@ -18,12 +18,13 @@
 
 use super::{Direction, Graph, GraphNode};
 use crate::{Arity, NodeType, node::Node};
-use radiate_core::{RdRand, Valid};
+use radiate_core::{RdRand, Valid, random_provider};
 use radiate_utils::SortedBuffer;
 use std::{fmt::Debug, ops::Deref};
 
 const SOURCE_NODE_TYPES: &[NodeType] = &[NodeType::Input, NodeType::Vertex, NodeType::Edge];
 const TARGET_NODE_TYPES: &[NodeType] = &[NodeType::Output, NodeType::Vertex, NodeType::Edge];
+const MAX_REPAIR_ATTEMPTS: usize = 10;
 
 /// A single reversible mutation applied during a transaction.
 ///
@@ -62,6 +63,26 @@ pub enum ReplayStep<T> {
 pub enum TransactionResult<T> {
     Valid(Vec<MutationStep>),
     Invalid(Vec<MutationStep>, Vec<ReplayStep<T>>),
+}
+
+impl<T> TransactionResult<T> {
+    pub fn is_valid(&self) -> bool {
+        matches!(self, TransactionResult::Valid(_))
+    }
+
+    pub fn is_invalid(&self) -> bool {
+        matches!(self, TransactionResult::Invalid(_, _))
+    }
+
+    pub fn replay(&self, graph: &mut Graph<T>)
+    where
+        T: Clone,
+    {
+        if let TransactionResult::Invalid(_, replay_steps) = self {
+            let mut transaction = GraphTransaction::new(graph);
+            transaction.replay(replay_steps.clone());
+        }
+    }
 }
 
 /// A declarative plan for inserting a node between two nodes.
@@ -112,8 +133,21 @@ impl<'a, T> GraphTransaction<'a, T> {
         self.commit_internal(Some(validator))
     }
 
+    pub fn try_commit(mut self) -> TransactionResult<T> {
+        let mut repaired = false;
+        let mut attempts = 0;
+
+        self.set_cycles();
+        while repaired == false && attempts < MAX_REPAIR_ATTEMPTS {
+            repaired = self.repair_invalid_nodes();
+            attempts += 1;
+        }
+
+        self.commit()
+    }
+
     /// Append a node to the graph and record the change. Returns the new node's index.
-    pub fn add_node(&mut self, node: impl Into<GraphNode<T>>) -> usize {
+    pub fn push(&mut self, node: impl Into<GraphNode<T>>) -> usize {
         let index = self.graph.len();
         self.steps.push(MutationStep::AddNode(index));
         self.graph.push(node);
@@ -200,7 +234,7 @@ impl<'a, T> GraphTransaction<'a, T> {
             match step {
                 ReplayStep::AddNode(_, node) => {
                     if let Some(node) = node {
-                        self.add_node(node);
+                        self.push(node);
                     }
                 }
                 ReplayStep::AddEdge(from, to) => {
@@ -310,6 +344,145 @@ impl<'a, T> GraphTransaction<'a, T> {
     #[inline]
     pub fn random_target_node(&self, rand: &mut RdRand) -> Option<&GraphNode<T>> {
         self.random_node_of_type(TARGET_NODE_TYPES, rand)
+    }
+
+    #[inline]
+    pub fn random_target_node_where<F>(&self, rand: &mut RdRand, filter: F) -> Option<&GraphNode<T>>
+    where
+        F: Fn(&GraphNode<T>) -> bool,
+    {
+        let candidates = self
+            .iter()
+            .filter(|node| TARGET_NODE_TYPES.contains(&node.node_type()) && filter(node))
+            .collect::<Vec<&GraphNode<T>>>();
+
+        if candidates.is_empty() {
+            return None;
+        }
+
+        Some(*rand.choose(&candidates))
+    }
+
+    #[inline]
+    fn random_source_node_where<F>(&self, rand: &mut RdRand, filter: F) -> Option<&GraphNode<T>>
+    where
+        F: Fn(&GraphNode<T>) -> bool,
+    {
+        let candidates = self
+            .iter()
+            .filter(|node| SOURCE_NODE_TYPES.contains(&node.node_type()) && filter(node))
+            .collect::<Vec<&GraphNode<T>>>();
+
+        if candidates.is_empty() {
+            return None;
+        }
+
+        Some(*rand.choose(&candidates))
+    }
+
+    fn repair_invalid_nodes(&mut self) -> bool {
+        let mut repaired = false;
+
+        let invalid_nodes = self
+            .iter()
+            .filter(|node| !node.is_valid())
+            .map(|n| n.index())
+            .collect::<Vec<usize>>();
+
+        for idx in invalid_nodes.iter() {
+            let arity = self.graph[*idx].arity();
+            match arity {
+                Arity::Zero => {
+                    if self.repair_zero_arity_node(*idx) {
+                        repaired = true;
+                    }
+                }
+                Arity::Exact(_) => {
+                    if self.repair_exact_arity_node(*idx) {
+                        repaired = true;
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        repaired
+    }
+
+    fn repair_zero_arity_node(&mut self, node_idx: usize) -> bool {
+        let node = self.graph.get(node_idx).unwrap();
+        if node.arity() != Arity::Zero {
+            return false;
+        }
+
+        if node.outgoing().is_empty() {
+            let random_target = random_provider::with_rng(|rand| {
+                self.random_target_node_where(rand, |n| !n.is_locked() && n.index() != node_idx)
+                    .map(|n| n.index())
+            });
+
+            if let Some(target) = random_target {
+                self.attach(node.index(), target);
+
+                if self.graph[node_idx].outgoing().len() > 0 {
+                    return true;
+                }
+            }
+        }
+
+        false
+    }
+
+    fn repair_exact_arity_node(&mut self, node_idx: usize) -> bool {
+        let arity = self.graph[node_idx].arity();
+        if let Arity::Exact(n) = arity {
+            let current_incoming = self.graph[node_idx].incoming().len();
+            if current_incoming < n {
+                let needed = n - current_incoming;
+
+                let available_sources = random_provider::with_rng(|rand| {
+                    (0..needed)
+                        .filter_map(|_| {
+                            self.random_source_node_where(rand, |n| {
+                                !n.is_locked() && n.index() != node_idx
+                            })
+                            .map(|n| n.index())
+                        })
+                        .collect::<Vec<usize>>()
+                });
+
+                for src in available_sources {
+                    self.attach(src, node_idx);
+                }
+
+                if self.graph[node_idx].incoming().len() == n {
+                    return true;
+                }
+            } else if current_incoming > n {
+                let to_detach = current_incoming - n;
+
+                let valid_incoming = self.graph[node_idx]
+                    .incoming()
+                    .iter()
+                    .cloned()
+                    .filter(|incoming| self.graph[*incoming].outgoing().len() > 1)
+                    .collect::<Vec<usize>>();
+
+                let rand_indices = random_provider::shuffled_indices(0..valid_incoming.len());
+                let rand_indices = &rand_indices[0..to_detach];
+
+                for &i in rand_indices.iter() {
+                    let source_idx = valid_incoming[i];
+                    self.detach(source_idx, node_idx);
+                }
+
+                if self.graph[node_idx].incoming().len() == n {
+                    return true;
+                }
+            }
+        }
+
+        false
     }
     /// Helper functions to get a random node of the specified type. If no nodes of the specified
     /// type are found, the function will try to get a random node of a different type.
@@ -423,8 +596,8 @@ mod tests {
         let mut g = Graph::<i32>::default();
         let mut tx = GraphTransaction::new(&mut g);
 
-        let i = tx.add_node((0, NodeType::Input, 0));
-        let o = tx.add_node((1, NodeType::Output, 1));
+        let i = tx.push((0, NodeType::Input, 0));
+        let o = tx.push((1, NodeType::Output, 1));
         tx.attach(i, o);
 
         match tx.commit() {
@@ -449,9 +622,9 @@ mod tests {
 
         // Build: Input -> Vertex(arity=2) -> Output (invalid: vertex missing one incoming)
         let mut tx = GraphTransaction::new(&mut g);
-        let input = tx.add_node((0, NodeType::Input, 0));
-        let vertex = tx.add_node((1, NodeType::Vertex, 1, Arity::Exact(2)));
-        let output = tx.add_node((2, NodeType::Output, 2));
+        let input = tx.push((0, NodeType::Input, 0));
+        let vertex = tx.push((1, NodeType::Vertex, 1, Arity::Exact(2)));
+        let output = tx.push((2, NodeType::Output, 2));
 
         tx.attach(input, vertex);
         tx.attach(vertex, output);
@@ -499,8 +672,8 @@ mod tests {
         let mut g = Graph::<i32>::default();
         let mut tx = GraphTransaction::new(&mut g);
 
-        let a = tx.add_node((0, NodeType::Vertex, 10));
-        let b = tx.add_node((1, NodeType::Vertex, 20));
+        let a = tx.push((0, NodeType::Vertex, 10));
+        let b = tx.push((1, NodeType::Vertex, 20));
         tx.attach(a, b);
         tx.attach(b, a); // creates cycle {0,1}
 
@@ -522,9 +695,9 @@ mod tests {
         let mut g = Graph::<i32>::default();
         let mut tx = GraphTransaction::new(&mut g);
 
-        let src = tx.add_node((0, NodeType::Input, 0));
-        let tgt = tx.add_node((1, NodeType::Vertex, 1)); // Arity::Any => not locked
-        let newn = tx.add_node((2, NodeType::Input, 2)); // Arity::Zero
+        let src = tx.push((0, NodeType::Input, 0));
+        let tgt = tx.push((1, NodeType::Vertex, 1)); // Arity::Any => not locked
+        let newn = tx.push((2, NodeType::Input, 2)); // Arity::Zero
 
         let steps = random_provider::with_rng(|r| tx.get_insertion_steps(src, tgt, newn, r));
         assert_eq!(steps, vec![InsertStep::Connect(newn, tgt)]);
@@ -536,11 +709,10 @@ mod tests {
         let mut tx = GraphTransaction::new(&mut g);
 
         // source edge with outgoing already pointing to new node
-        let source = tx.add_node(
-            GraphNode::with_arity(0, NodeType::Edge, 0, Arity::Exact(1)).with_outgoing([2]),
-        );
-        let target = tx.add_node((1, NodeType::Vertex, 1));
-        let newn = tx.add_node((2, NodeType::Vertex, 2));
+        let source = tx
+            .push(GraphNode::with_arity(0, NodeType::Edge, 0, Arity::Exact(1)).with_outgoing([2]));
+        let target = tx.push((1, NodeType::Vertex, 1));
+        let newn = tx.push((2, NodeType::Vertex, 2));
 
         let steps = random_provider::with_rng(|r| tx.get_insertion_steps(source, target, newn, r));
         assert_eq!(steps, vec![InsertStep::Connect(source, newn)]);
@@ -552,11 +724,10 @@ mod tests {
         let mut tx = GraphTransaction::new(&mut g);
 
         // source edge with single outgoing to target (not new)
-        let source = tx.add_node(
-            GraphNode::with_arity(0, NodeType::Edge, 0, Arity::Exact(1)).with_outgoing([1]),
-        );
-        let target = tx.add_node((1, NodeType::Vertex, 1));
-        let newn = tx.add_node((2, NodeType::Vertex, 2));
+        let source = tx
+            .push(GraphNode::with_arity(0, NodeType::Edge, 0, Arity::Exact(1)).with_outgoing([1]));
+        let target = tx.push((1, NodeType::Vertex, 1));
+        let newn = tx.push((2, NodeType::Vertex, 2));
 
         let steps = random_provider::with_rng(|r| tx.get_insertion_steps(source, target, newn, r));
         assert_eq!(
@@ -576,11 +747,11 @@ mod tests {
 
         // target is "locked": Arity::Exact(1) with exactly one incoming; ensure not an Edge type
         // by keeping outgoing empty.
-        let source = tx.add_node((0, NodeType::Vertex, 0));
-        let target = tx.add_node(
+        let source = tx.push((0, NodeType::Vertex, 0));
+        let target = tx.push(
             GraphNode::with_arity(1, NodeType::Vertex, 1, Arity::Exact(1)).with_incoming([0]),
         );
-        let newn = tx.add_node((2, NodeType::Vertex, 2));
+        let newn = tx.push((2, NodeType::Vertex, 2));
 
         let steps = random_provider::with_rng(|r| tx.get_insertion_steps(source, target, newn, r));
         assert_eq!(
@@ -601,8 +772,8 @@ mod tests {
             let mut tx = GraphTransaction::new(&mut g);
 
             // Only edge nodes exist; helpers should still return something (and it will be an Edge).
-            tx.add_node((0, NodeType::Edge, 0, Arity::Exact(1)));
-            tx.add_node((1, NodeType::Edge, 1, Arity::Exact(1)));
+            tx.push((0, NodeType::Edge, 0, Arity::Exact(1)));
+            tx.push((1, NodeType::Edge, 1, Arity::Exact(1)));
 
             let src = tx.random_source_node(rand).unwrap();
             let tgt = tx.random_target_node(rand).unwrap();

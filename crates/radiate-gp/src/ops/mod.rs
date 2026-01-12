@@ -49,6 +49,10 @@ pub(crate) mod op_names {
     pub const TANH: &str = "tanh";
     pub const IDENTITY: &str = "identity";
     pub const WEIGHT: &str = "w";
+    pub const BIAS: &str = "b";
+
+    // Table operation names
+    pub const PROBABILITY_TABLE: &str = "prob_table";
 
     /// Boolean operation names
     pub const AND: &str = "and";

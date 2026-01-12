@@ -11,6 +11,12 @@ impl<T> Op<T> {
         range.map(Op::var).collect()
     }
 
+    pub fn named_var(name: impl Into<String>, index: usize) -> Self {
+        let name_as_string = name.into();
+        let name = radiate_utils::intern!(name_as_string);
+        Op::Var(name, index)
+    }
+
     pub fn constant(value: T) -> Self
     where
         T: Display,

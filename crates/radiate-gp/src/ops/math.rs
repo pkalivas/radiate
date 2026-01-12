@@ -1,6 +1,11 @@
+use std::{ops::Add, sync::Arc, vec};
+
 use super::Op;
-use crate::{Arity, ops::op_names};
-use radiate_core::random_provider;
+use crate::{
+    Arity,
+    ops::{OpData, OpValue, op_names},
+};
+use radiate_core::{chromosomes::NumericAllele, random_provider};
 
 pub(super) const MAX_VALUE: f32 = 1e+10_f32;
 pub(super) const MIN_VALUE: f32 = -1e+10_f32;
@@ -212,6 +217,24 @@ impl Op<f32> {
         }
     }
 
+    pub fn bias() -> Self {
+        let supplier = || random_provider::random::<f32>() * TWO - ONE;
+        let operation = |_: &[f32], bias: &f32| clamp(*bias);
+        let modifier = |current: &f32| {
+            let diff = (random_provider::random::<f32>() * TWO - ONE) * TENTH;
+            clamp(current + diff)
+        };
+
+        Op::MutableConst {
+            name: op_names::BIAS,
+            arity: 0.into(),
+            value: clamp(supplier()),
+            supplier,
+            modifier,
+            operation,
+        }
+    }
+
     pub fn add() -> Self {
         Op::Fn(op_names::ADD, 2.into(), add)
     }
@@ -369,8 +392,120 @@ impl Op<f32> {
             ActivationOperation::Softplus.apply(inputs)
         })
     }
+
+    pub fn probability_table(dims: impl Into<Vec<usize>>) -> Self {
+        let dims = dims.into();
+
+        assert!(!dims.is_empty(), "table dims cannot be empty");
+        assert!(dims.iter().all(|&d| d > 0), "dims must all be > 0");
+
+        // row-major strides
+        // let mut strides = vec![1usize; dims.len()];
+        // for i in (0..dims.len() - 1).rev() {
+        //     strides[i] = strides[i + 1].saturating_mul(dims[i + 1]);
+        // }
+
+        let supplier = |value: &OpData<f32>| {
+            let size = value.dims().unwrap().iter().product();
+            OpData::Array {
+                values: Arc::from(
+                    random_provider::vector::<f32>(size)
+                        .into_iter()
+                        .map(|val| val * TWO - ONE)
+                        .collect::<Vec<f32>>(),
+                ),
+                strides: Arc::from(value.strides().unwrap().to_vec()),
+                dims: Arc::from(value.dims().unwrap().to_vec()),
+            }
+        };
+
+        // let eval = |inputs: &[f32], strides: &[usize], table: &[f32]| {
+        let eval = |inputs: &[f32], val: &OpValue<f32>| {
+            let mut index: usize = 0;
+
+            match val.data() {
+                OpData::Array {
+                    strides, values, ..
+                } => {
+                    for i in 0..inputs.len() {
+                        let stride = strides[i];
+
+                        // round -> clamp into [0, d-1]
+                        let v = (inputs[i].round() as isize).max(0) as usize;
+                        index = index.saturating_add(v.saturating_mul(stride));
+                    }
+
+                    values.get(index).copied().map(clamp).unwrap_or(ZERO)
+                }
+                _ => ZERO,
+            }
+        };
+
+        let data = OpData::from((dims.clone(), |_| {
+            random_provider::random::<f32>() * TWO - ONE
+        }));
+
+        let modifier = |current: &OpData<f32>| {
+            let size = current.dims().unwrap().iter().product();
+            OpData::from((
+                random_provider::vector::<f32>(size)
+                    .into_iter()
+                    .map(|val| val * TWO - ONE)
+                    .collect::<Vec<f32>>(),
+                current.dims().unwrap().to_vec(),
+            ))
+        };
+
+        Op::Value(
+            op_names::PROBABILITY_TABLE,
+            OpValue::new(
+                supplier(&data),
+                Arity::Exact(dims.len()),
+                supplier,
+                modifier,
+            ),
+            eval,
+        )
+
+        // Op::Table {
+        //     name: op_names::PROBABILITY_TABLE,
+        //     arity: Arity::Exact(dims.len()),
+        //     dims: Arc::from(dims),
+        //     strides: Arc::from(strides),
+        //     table: Arc::from(table),
+        //     supplier: supplier,
+        //     operation: eval,
+        // }
+    }
 }
 
+impl NumericAllele for Op<f32> {
+    fn cast_as_f32(&self) -> Option<f32> {
+        match self {
+            Op::Const(_, value) => Some(*value),
+            Op::MutableConst { value, .. } => Some(*value),
+            _ => None,
+        }
+    }
+
+    fn cast_as_i32(&self) -> Option<i32> {
+        match self {
+            Op::Const(_, value) => Some(*value as i32),
+            Op::MutableConst { value, .. } => Some(*value as i32),
+            _ => None,
+        }
+    }
+}
+
+impl Add for Op<f32> {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Op::Fn(op_names::ADD, 2.into(), |inputs: &[f32]| {
+            clamp(inputs[0] + inputs[1])
+        })
+    }
+}
 /// Get a list of all the math operations.
 pub fn math_ops() -> Vec<Op<f32>> {
     vec![

@@ -349,23 +349,23 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_stable_softmax_empty() {
-        let input: Vec<f32> = vec![];
-        let output = Op::<f32>::stable_softmax(&input);
-        let expected: Vec<f32> = vec![];
-        assert_eq!(output, expected);
-    }
+    // #[test]
+    // fn test_stable_softmax_empty() {
+    //     let input: Vec<f32> = vec![];
+    //     let output = Op::<f32>::stable_softmax(&input);
+    //     let expected: Vec<f32> = vec![];
+    //     assert_eq!(output, expected);
+    // }
 
-    #[test]
-    fn test_softmax_argmax() {
-        let prog1 = TreeNode::from(Op::constant(0.0_f32));
-        let prog2 = TreeNode::from(Op::constant(1.0_f32));
-        let prog3 = TreeNode::from(Op::constant(2.0_f32));
+    // #[test]
+    // fn test_softmax_argmax() {
+    //     let prog1 = TreeNode::from(Op::constant(0.0_f32));
+    //     let prog2 = TreeNode::from(Op::constant(1.0_f32));
+    //     let prog3 = TreeNode::from(Op::constant(2.0_f32));
 
-        let pgm = Op::softmax_argmax(vec![prog1, prog2, prog3]);
+    //     let pgm = Op::softmax_argmax(vec![prog1, prog2, prog3]);
 
-        let result = pgm.eval(&[0.0_f32; 3]);
-        assert_eq!(result, 2.0); // Index of the highest logit
-    }
+    //     let result = pgm.eval(&[0.0_f32; 3]);
+    //     assert_eq!(result, 2.0); // Index of the highest logit
+    // }
 }

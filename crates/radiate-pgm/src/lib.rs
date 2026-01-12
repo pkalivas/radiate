@@ -19,13 +19,14 @@ pub use factor::{FactorSpec, Potential};
 pub use value::PgmValue;
 pub use variable::{Domain, Value, Variable};
 
+use core::num;
 use radiate_core::{Chromosome, Codec, Gene, Genotype, random_provider};
 use radiate_gp::{
-    GraphNode, NodeStore, NodeValue,
+    Eval, Graph, GraphAggregate, GraphNode, NodeBuilder, NodeStore, NodeValue, Op,
     collections::{GraphChromosome, NodeType},
 };
 use radiate_utils::SortedBuffer;
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, slice::SliceIndex};
 
 pub struct ProbDataset {
     pub observations: Vec<Vec<Option<Value>>>, // length == num_vars per row
@@ -133,6 +134,12 @@ impl PgmCodec {
         }
     }
 
+    fn factor_size(&self, scope: &[usize]) -> usize {
+        scope.iter().fold(1, |acc, &v| {
+            acc * self.card_of(v).unwrap_or(1) // Real vars treated as cardinality 1
+        })
+    }
+
     fn is_discrete_scope(&self, scope: &[usize]) -> bool {
         scope
             .iter()
@@ -192,6 +199,13 @@ impl PgmCodec {
         }
 
         s.into_iter().collect()
+    }
+
+    fn random_dims(&self) -> Vec<usize> {
+        self.random_scope()
+            .iter()
+            .map(|&v| self.card_of(v).unwrap_or(1)) // Real vars treated as cardinality 1
+            .collect()
     }
 
     fn init_discrete_table(&self, scope: &[usize]) -> Potential {
@@ -299,6 +313,85 @@ impl Codec<GraphChromosome<PgmValue>, FactorGraph> for PgmCodec {
         let num_variables = self.cfg.variables.len();
         let num_factors = self.cfg.num_factors;
 
+        // let temp_store = NodeStore::from(vec![
+        //     (
+        //         NodeType::Input,
+        //         self.cfg
+        //             .variables
+        //             .iter()
+        //             .map(|v| Op::named_var(v.name.clone().unwrap_or_default().as_str(), 0).into())
+        //             .collect::<Vec<_>>(),
+        //     ),
+        //     (
+        //         NodeType::Output,
+        //         vec![Op::weight_with(-1.3862944), Op::weight_with(-2.4849067)],
+        //     ),
+        // ]);
+
+        let temp_store = NodeStore::from(vec![
+            (
+                NodeType::Input,
+                (0..num_variables)
+                    .map(|v| {
+                        Op::named_constant(
+                            radiate_utils::intern!(format!("var_{}", v).as_str()),
+                            v as f32,
+                        )
+                    })
+                    .collect::<Vec<_>>(),
+            ),
+            (
+                NodeType::Vertex,
+                vec![
+                    Op::probability_table(self.random_dims()),
+                    Op::probability_table(self.random_dims()),
+                ],
+            ),
+            (NodeType::Output, vec![Op::sigmoid()]),
+        ]);
+
+        let builder = NodeBuilder::new(&temp_store);
+        let mut agg = GraphAggregate::default();
+        let inputs = builder.input(self.cfg.variables.len());
+
+        let vertex = builder.vertices(self.cfg.num_factors); //self.factor_size(&scope));
+        let output = builder.output(1);
+
+        println!("Building random graph PGM...");
+        println!("Inputs: {:?}", vertex);
+
+        agg = agg.insert(&inputs);
+        agg = agg.fill(&inputs, &vertex);
+        agg = agg.many_to_one(&vertex, &output);
+
+        let g = agg.build();
+
+        println!("Graph structure: {g:#?}");
+
+        let prob_dataset = ProbDataset::new(vec![
+            vec![Some(2), Some(0), Some(0)],
+            vec![Some(1), Some(0), Some(0)],
+            vec![Some(0), Some(1), Some(1)],
+        ]);
+
+        let ll: f64 = prob_dataset
+            .observations
+            .iter()
+            .map(|row| {
+                row.iter()
+                    .filter_map(|val| {
+                        val.clone().map(|v| match v {
+                            Value::Discrete(i) => Some(i),
+                            Value::Real(f) => Some(f as usize),
+                        })
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .map(|row| logp_row_graph(&g, &row) as f64)
+            .sum();
+
+        println!("Initial log-likelihood of random graph: {}", ll);
+
         // 1) Sample factor scopes
         let mut scopes = Vec::with_capacity(num_factors);
         for _ in 0..num_factors {
@@ -380,16 +473,157 @@ fn cards(vars: &[Variable]) -> Vec<usize> {
         .collect()
 }
 
+// fn logp_assignment(model: &FactorGraph, assign: &[usize]) -> f64 {
+//     let cards = cards(&model.variables);
+//     let mut sum = 0f64;
+//     for (incoming, f) in &model.factors {
+//         match &f.potential {
+//             Potential::DiscreteTable(log_table) => {
+//                 let idx = assignment_index(&incoming, assign, &cards);
+//                 sum += log_table[idx] as f64;
+//             }
+//             _ => return f64::NEG_INFINITY, // not handled in discrete MVP
+//         }
+//     }
+//     sum
+// }
+
+// fn assignment_index(scope: &[usize], assign: &[usize], cards: &[usize]) -> usize {
+//     // row-major in scope order
+//     let mut idx = 0;
+//     let mut stride = 1;
+//     println!("assignment_index:");
+//     for (pos, &vid) in scope.iter().enumerate() {
+//         if pos > 0 {
+//             stride *= cards[scope[pos - 1]];
+//         }
+//         println!("vid: {}, assign: {}, stride: {}", vid, assign[vid], stride);
+//         idx += assign[vid] * stride;
+//     }
+//     idx
+// }
+
+fn logp_assign_graph(graph: &Graph<Op<f32>>, assign: &[usize]) -> f32 {
+    let inputs = graph.inputs().map(|n| n.index()).collect::<Vec<_>>();
+    let mut total_logp = 0.0;
+
+    for node in graph.inputs() {
+        for output in node.outgoing() {
+            total_logp += graph[*output].allele().eval(&[assign[node.index()] as f32]);
+        }
+    }
+
+    // for node in graph.outputs() {
+    //     let idx = assignment_index(node.incoming(), assign, &inputs);
+    //     total_logp += graph[idx].allele().eval(&[1.0]);
+    // }
+
+    total_logp
+}
+
+fn logp_row_graph(graph: &Graph<Op<f32>>, row: &[Option<usize>]) -> f64 {
+    // build full joint over missing by enumeration
+    // let n = graph.inputs().len();
+    // let cards = cards(&graph.input_variables());
+
+    let inputs = graph
+        .inputs()
+        .enumerate()
+        .map(|(i, v)| (v, row[i]))
+        .collect::<Vec<_>>();
+
+    // observed as indices
+    // let mut obs = vec![None; n];
+    // for i in 0..n {
+    //     obs[i] = row[i];
+    // }
+
+    // unknown variable ids
+
+    // let unknown = (0..n).filter(|&i| obs[i].is_none()).collect::<Vec<_>>();
+    let unknown = inputs
+        .iter()
+        .filter(|(i, v)| v.is_none())
+        .map(|(i, _)| i)
+        .collect::<Vec<_>>();
+    if unknown.is_empty() {
+        let mut full = vec![0; inputs.len()];
+        for i in 0..inputs.len() {
+            full[i] = inputs[i].1.unwrap();
+        }
+
+        println!("\n\nFull assignment: {:?}", full);
+
+        return logp_assign_graph(graph, &full) as f64;
+    }
+
+    // enumerate unknowns
+    let mut log_total = f64::NEG_INFINITY;
+    // multi-cartesian product over unknown states
+    let mut counters = vec![0; unknown.len()];
+    // let dims = unknown.iter().map(|&i| cards[i] as f32).collect::<Vec<_>>();
+    let dims = inputs
+        .iter()
+        .map(|&i| i.0.index() as usize)
+        .collect::<Vec<_>>();
+
+    loop {
+        let mut full = vec![0; inputs.len()];
+        for i in 0..inputs.len() {
+            full[i] = inputs[i].0.index(); //.unwrap_or(0);
+        }
+
+        for (k, &vid) in unknown.iter().enumerate() {
+            // full[vid] = counters[k];
+            full[vid.index()] = counters[k];
+        }
+
+        // let lp = graph.logp_assignment(&full);
+        let lp = logp_assign_graph(graph, &full);
+        log_total = log_sum_exp(log_total, lp as f64);
+
+        // increment mixed-radix counter
+        let mut carry = true;
+        for k in 0..counters.len() {
+            if !carry {
+                break;
+            }
+
+            counters[k] += 1;
+            if counters[k] == dims[k] {
+                counters[k] = 0;
+                carry = true;
+            } else {
+                carry = false;
+            }
+        }
+
+        if carry {
+            break;
+        }
+    }
+
+    log_total
+}
+
 fn assignment_index(scope: &[usize], assign: &[usize], cards: &[usize]) -> usize {
     // row-major in scope order
-    let mut idx = 0usize;
-    let mut stride = 1usize;
+    let mut idx = 0;
+    let mut stride = 1;
+    println!("\nassignment_index:");
     for (pos, &vid) in scope.iter().enumerate() {
         if pos > 0 {
             stride *= cards[scope[pos - 1]];
         }
+        println!(
+            "assign: {:?}, vid: {}, assign: {}, stride: {}, idx: {}",
+            assign, vid, assign[vid], stride, idx
+        );
         idx += assign[vid] * stride;
+        println!(" updated idx: {}", idx);
     }
+
+    println!("final idx: {}", idx);
     idx
 }
 
@@ -402,48 +636,59 @@ fn log_sum_exp(a: f64, b: f64) -> f64 {
 }
 
 // evaluator: discrete factors only (DiscreteTable)
-pub struct ExactDiscrete;
+pub struct LogInfoEval;
 
-impl ExactDiscrete {
+impl LogInfoEval {
     fn logp_row(model: &FactorGraph, row: &[Option<Value>]) -> f64 {
         // build full joint over missing by enumeration
         let n = model.variables.len();
         let cards = cards(&model.variables);
 
         // observed as indices
-        let mut obs: Vec<Option<usize>> = vec![None; n];
+        let mut obs = vec![None; n];
         for i in 0..n {
             obs[i] = match row[i] {
                 Some(Value::Discrete(s)) => Some(s),
-                Some(Value::Real(_)) => return f64::NEG_INFINITY, // not handled in discrete MVP
+                Some(Value::Real(val)) => {
+                    panic!(
+                        "LogInfoEval only supports discrete variables, found Real value {}",
+                        val
+                    );
+                }
                 None => None,
             }
         }
 
+        println!("obs: {:?}", obs);
+
         // unknown variable ids
-        let unknown: Vec<usize> = (0..n).filter(|&i| obs[i].is_none()).collect();
+        let unknown = (0..n).filter(|&i| obs[i].is_none()).collect::<Vec<_>>();
         if unknown.is_empty() {
-            let mut full = vec![0usize; n];
+            let mut full = vec![0; n];
             for i in 0..n {
                 full[i] = obs[i].unwrap();
             }
+
             return Self::logp_assignment(model, &full);
         }
 
         // enumerate unknowns
         let mut log_total = f64::NEG_INFINITY;
         // multi-cartesian product over unknown states
-        let mut counters = vec![0usize; unknown.len()];
-        let dims: Vec<usize> = unknown.iter().map(|&i| cards[i]).collect();
+        let mut counters = vec![0; unknown.len()];
+        let dims = unknown.iter().map(|&i| cards[i]).collect::<Vec<_>>();
 
         loop {
-            let mut full = vec![0usize; n];
+            let mut full = vec![0; n];
             for i in 0..n {
                 full[i] = obs[i].unwrap_or(0);
             }
+
             for (k, &vid) in unknown.iter().enumerate() {
                 full[vid] = counters[k];
             }
+
+            println!("\n\nFull assignment: {:?}", full);
 
             let lp = Self::logp_assignment(model, &full);
             log_total = log_sum_exp(log_total, lp);
@@ -454,6 +699,7 @@ impl ExactDiscrete {
                 if !carry {
                     break;
                 }
+
                 counters[k] += 1;
                 if counters[k] == dims[k] {
                     counters[k] = 0;
@@ -462,9 +708,10 @@ impl ExactDiscrete {
                     carry = false;
                 }
             }
+
             if carry {
                 break;
-            } // wrapped around
+            }
         }
 
         log_total
@@ -486,7 +733,7 @@ impl ExactDiscrete {
     }
 }
 
-impl Infer for ExactDiscrete {
+impl Infer for LogInfoEval {
     fn log_likelihood(&self, model: &FactorGraph, data: &ProbDataset) -> f32 {
         let ll: f64 = data
             .observations
