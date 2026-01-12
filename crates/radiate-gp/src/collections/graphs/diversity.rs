@@ -1,5 +1,5 @@
 use super::{GraphChromosome, GraphIterator};
-use crate::{Node, Op};
+use crate::{Node, Op, ops::OpData};
 use radiate_core::{Chromosome, Diversity, Genotype};
 use std::cmp::Ordering;
 
@@ -75,11 +75,13 @@ impl NeatDistance {
                                 matching += 1.0;
 
                                 match (na.value(), nb.value()) {
-                                    (
-                                        Op::MutableConst { value: va, .. },
-                                        Op::MutableConst { value: vb, .. },
-                                    ) => {
-                                        weight_diff += (va - vb).abs();
+                                    (Op::Value(_, _, a_op, _), Op::Value(_, _, b_op, _)) => {
+                                        match (a_op.data(), b_op.data()) {
+                                            (OpData::Scalar(va), OpData::Scalar(vb)) => {
+                                                weight_diff += (va - vb).abs();
+                                            }
+                                            _ => {}
+                                        }
                                     }
                                     (a_op, b_op) => {
                                         if a_op.name() != b_op.name() {

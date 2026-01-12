@@ -200,39 +200,27 @@ impl Op<f32> {
     }
 
     pub fn weight_with(value: f32) -> Self {
-        let supplier = || random_provider::random::<f32>() * TWO - ONE;
-        let operation = |inputs: &[f32], weight: &f32| clamp(inputs[0] * weight);
-        let modifier = |current: &f32| {
-            let diff = (random_provider::random::<f32>() * TWO - ONE) * TENTH;
-            clamp(current + diff)
+        let supplier =
+            |_: &OpData<f32>| OpData::Scalar(random_provider::random::<f32>() * TWO - ONE);
+
+        let operation = |inputs: &[f32], weight: &OpValue<f32>| {
+            clamp(inputs[0] * weight.data().as_scalar().map_or(ZERO, |v| *v))
         };
 
-        Op::MutableConst {
-            name: op_names::WEIGHT,
-            arity: 1.into(),
-            value: clamp(value),
-            supplier,
-            modifier,
-            operation,
-        }
-    }
-
-    pub fn bias() -> Self {
-        let supplier = || random_provider::random::<f32>() * TWO - ONE;
-        let operation = |_: &[f32], bias: &f32| clamp(*bias);
-        let modifier = |current: &f32| {
+        let modifier = |current: &OpData<f32>| {
             let diff = (random_provider::random::<f32>() * TWO - ONE) * TENTH;
-            clamp(current + diff)
+            match current {
+                OpData::Scalar(v) => OpData::Scalar(clamp(v + diff)),
+                _ => OpData::Scalar(ZERO),
+            }
         };
 
-        Op::MutableConst {
-            name: op_names::BIAS,
-            arity: 0.into(),
-            value: clamp(supplier()),
-            supplier,
-            modifier,
+        Op::Value(
+            op_names::WEIGHT,
+            1.into(),
+            OpValue::new(OpData::Scalar(clamp(value)), supplier, modifier),
             operation,
-        }
+        )
     }
 
     pub fn add() -> Self {
@@ -399,12 +387,6 @@ impl Op<f32> {
         assert!(!dims.is_empty(), "table dims cannot be empty");
         assert!(dims.iter().all(|&d| d > 0), "dims must all be > 0");
 
-        // row-major strides
-        // let mut strides = vec![1usize; dims.len()];
-        // for i in (0..dims.len() - 1).rev() {
-        //     strides[i] = strides[i + 1].saturating_mul(dims[i + 1]);
-        // }
-
         let supplier = |value: &OpData<f32>| {
             let size = value.dims().unwrap().iter().product();
             OpData::Array {
@@ -441,41 +423,22 @@ impl Op<f32> {
             }
         };
 
-        let data = OpData::from((dims.clone(), |_| {
+        let modifier = |current: &OpData<f32>| {
+            OpData::from((current.dims().clone().unwrap(), |_| {
+                random_provider::random::<f32>() * TWO - ONE
+            }))
+        };
+
+        let data = OpData::from((dims.as_slice(), |_| {
             random_provider::random::<f32>() * TWO - ONE
         }));
 
-        let modifier = |current: &OpData<f32>| {
-            let size = current.dims().unwrap().iter().product();
-            OpData::from((
-                random_provider::vector::<f32>(size)
-                    .into_iter()
-                    .map(|val| val * TWO - ONE)
-                    .collect::<Vec<f32>>(),
-                current.dims().unwrap().to_vec(),
-            ))
-        };
-
         Op::Value(
             op_names::PROBABILITY_TABLE,
-            OpValue::new(
-                supplier(&data),
-                Arity::Exact(dims.len()),
-                supplier,
-                modifier,
-            ),
+            Arity::Exact(dims.len()),
+            OpValue::new(data, supplier, modifier),
             eval,
         )
-
-        // Op::Table {
-        //     name: op_names::PROBABILITY_TABLE,
-        //     arity: Arity::Exact(dims.len()),
-        //     dims: Arc::from(dims),
-        //     strides: Arc::from(strides),
-        //     table: Arc::from(table),
-        //     supplier: supplier,
-        //     operation: eval,
-        // }
     }
 }
 
@@ -483,7 +446,7 @@ impl NumericAllele for Op<f32> {
     fn cast_as_f32(&self) -> Option<f32> {
         match self {
             Op::Const(_, value) => Some(*value),
-            Op::MutableConst { value, .. } => Some(*value),
+            Op::Value(_, _, value, _) => value.data().as_scalar().copied(),
             _ => None,
         }
     }
@@ -491,7 +454,7 @@ impl NumericAllele for Op<f32> {
     fn cast_as_i32(&self) -> Option<i32> {
         match self {
             Op::Const(_, value) => Some(*value as i32),
-            Op::MutableConst { value, .. } => Some(*value as i32),
+            Op::Value(_, _, value, _) => value.data().as_scalar().map(|v| *v as i32),
             _ => None,
         }
     }
@@ -501,11 +464,27 @@ impl Add for Op<f32> {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
-        Op::Fn(op_names::ADD, 2.into(), |inputs: &[f32]| {
-            clamp(inputs[0] + inputs[1])
-        })
+        match (&self, &rhs) {
+            (Op::Value(name, arity, value, op), Op::Value(_, _, other_value, _)) => {
+                match (value.data(), other_value.data()) {
+                    (OpData::Scalar(a), OpData::Scalar(b)) => Op::Value(
+                        radiate_utils::intern!(String::from(*name)),
+                        *arity,
+                        OpValue::new(
+                            OpData::Scalar(clamp(a + b)),
+                            value.supplier(),
+                            value.modifier(),
+                        ),
+                        *op,
+                    ),
+                    _ => Op::add(),
+                }
+            }
+            _ => rhs.clone(),
+        }
     }
 }
+
 /// Get a list of all the math operations.
 pub fn math_ops() -> Vec<Op<f32>> {
     vec![
@@ -682,20 +661,5 @@ mod tests {
         let sp = ActivationOperation::Softplus.apply(&[x]);
         let sp_ref = x.exp().ln_1p();
         assert!(approx(sp, sp_ref, 1e-6));
-    }
-
-    #[test]
-    fn weight_op_runs_and_is_clamped() {
-        let w = Op::<f32>::weight();
-        if let Op::MutableConst {
-            operation, value, ..
-        } = &w
-        {
-            let out = (operation)(&[0.5], value);
-            assert!(out.is_finite());
-            assert!(out <= MAX_VALUE && out >= MIN_VALUE);
-        } else {
-            panic!("weight() did not return MutableConst as expected");
-        }
     }
 }

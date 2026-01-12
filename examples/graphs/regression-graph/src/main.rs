@@ -4,6 +4,9 @@ const MIN_SCORE: f32 = 0.001;
 
 fn main() {
     random_provider::set_seed(90);
+    // random_provider::set_seed(1111);
+    // random_provider::set_seed(5123);
+    // random_provider::set_seed(887712);
 
     let store = vec![
         (NodeType::Input, vec![Op::var(0)]),
@@ -28,7 +31,12 @@ fn main() {
         ))
         .build();
 
-    engine.iter().until_score(MIN_SCORE).last().inspect(display);
+    engine
+        .iter()
+        .logging()
+        .until_score(MIN_SCORE)
+        .last()
+        .inspect(display);
     // engine
     //     .iter()
     //     .until_metric(metric_names::EVALUATION_COUNT, |metric| {

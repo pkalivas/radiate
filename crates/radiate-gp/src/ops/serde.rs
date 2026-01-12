@@ -1,11 +1,7 @@
-use std::sync::Arc;
-
 use crate::Arity;
-use crate::ops::op_names;
 use crate::ops::operation::Op;
-#[cfg(feature = "pgm")]
-use crate::{TreeMapper, TreeNode};
-use radiate_utils::intern;
+use crate::ops::{OpData, op_names};
+
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
@@ -24,22 +20,10 @@ enum OpVariant<T> {
         name: String,
         value: T,
     },
-    MutableConst {
+    Value {
         name: String,
         arity: Arity,
-        value: T,
-    },
-    #[cfg(feature = "pgm")]
-    PGM {
-        name: String,
-        arity: Arity,
-        programs: Vec<TreeNode<OpVariant<T>>>,
-    },
-    Table {
-        name: String,
-        arity: Arity,
-        strides: Arc<[usize]>,
-        table: Arc<[T]>,
+        value: OpData<T>,
     },
 }
 
@@ -98,40 +82,26 @@ impl<T: Clone> From<Op<T>> for OpVariant<T> {
                 name: name.to_string(),
                 value,
             },
-            Op::MutableConst {
-                name, arity, value, ..
-            } => OpVariant::MutableConst {
+            Op::Value(name, arity, value, ..) => OpVariant::Value {
                 name: name.to_string(),
                 arity,
-                value,
+                value: value.data().clone(),
             },
-            #[cfg(feature = "pgm")]
-            Op::PGM(name, arity, programs, _func) => OpVariant::PGM {
-                name: name.to_string(),
-                arity,
-                programs: programs
-                    .iter()
-                    .map(|node| node.map(|val| OpVariant::from((*val).clone())))
-                    .collect(),
-            },
-            Op::Table {
-                name,
-                arity,
-                strides,
-                table,
-                ..
-            } => OpVariant::Table {
-                name: name.to_string(),
-                arity,
-                strides,
-                table,
-            },
-            Op::Value(name, value, _) => OpVariant::Table {
-                name: name.to_string(),
-                arity: value.arity(),
-                strides: Arc::new([]),
-                table: Arc::new([]),
-            },
+            // #[cfg(feature = "pgm")]
+            // Op::PGM(name, arity, programs, _func) => OpVariant::PGM {
+            //     name: name.to_string(),
+            //     arity,
+            //     programs: programs
+            //         .iter()
+            //         .map(|node| node.map(|val| OpVariant::from((*val).clone())))
+            //         .collect(),
+            // },
+            // Op::Value(name, arity, value, _) => OpVariant::Table {
+            //     name: name.to_string(),
+            //     arity,
+            //     strides: Arc::new([]),
+            //     table: Arc::new([]),
+            // },
         }
     }
 }
@@ -186,42 +156,55 @@ impl From<OpVariant<f32>> for Result<Op<f32>, serde::de::value::Error> {
                 let name = Box::leak(name.into_boxed_str());
                 Ok(Op::Const(name, value))
             }
-            OpVariant::MutableConst { name, arity, value } => match name.as_str() {
+            OpVariant::Value {
+                name,
+                arity: _,
+                value,
+            } => match name.as_str() {
                 "w" => {
-                    let weight = Op::weight();
-                    match weight {
-                        Op::MutableConst {
-                            name,
-                            arity: w_arity,
-                            value: _,
-                            supplier: w_supplier,
-                            modifier: w_modifier,
-                            operation: w_operation,
-                        } => {
-                            return Ok(Op::MutableConst {
-                                name,
-                                arity: w_arity.clone(),
-                                value: value.clone(),
-                                supplier: w_supplier,
-                                modifier: w_modifier,
-                                operation: w_operation,
-                            });
-                        }
-                        _ => {
-                            let name = intern!(name);
-                            let supplier = move || 0.0_f32;
-                            let modifier = move |v: &f32| *v;
-                            let operation = |_: &[f32], v: &f32| v.clone();
-                            Ok(Op::MutableConst {
-                                name,
-                                arity,
-                                value,
-                                supplier,
-                                modifier,
-                                operation,
-                            })
-                        }
-                    }
+                    let weight = Op::weight_with(value.as_scalar().cloned().unwrap_or(0.0));
+                    Ok(weight)
+
+                    // Ok(Op::weight_with(
+                    //     arity,
+                    //     value,
+                    //     weight.supplier().clone(),
+                    //     weight.modifier().clone(),
+                    //     weight.operation().clone(),
+                    // ))
+                    // match weight {
+                    //     Op::MutableConst {
+                    //         name,
+                    //         arity: w_arity,
+                    //         value: _,
+                    //         supplier: w_supplier,
+                    //         modifier: w_modifier,
+                    //         operation: w_operation,
+                    //     } => {
+                    //         return Ok(Op::MutableConst {
+                    //             name,
+                    //             arity: w_arity.clone(),
+                    //             value: value.clone(),
+                    //             supplier: w_supplier,
+                    //             modifier: w_modifier,
+                    //             operation: w_operation,
+                    //         });
+                    //     }
+                    //     _ => {
+                    //         let name = intern!(name);
+                    //         let supplier = move || 0.0_f32;
+                    //         let modifier = move |v: &f32| *v;
+                    //         let operation = |_: &[f32], v: &f32| v.clone();
+                    //         Ok(Op::MutableConst {
+                    //             name,
+                    //             arity,
+                    //             value,
+                    //             supplier,
+                    //             modifier,
+                    //             operation,
+                    //         })
+                    //     }
+                    // }
                 }
                 _ => {
                     return Err(serde::de::Error::custom(format!(
@@ -230,72 +213,48 @@ impl From<OpVariant<f32>> for Result<Op<f32>, serde::de::value::Error> {
                     )));
                 }
             },
-            #[cfg(feature = "pgm")]
-            OpVariant::PGM {
-                name,
-                arity,
-                programs,
-            } => {
-                use std::sync::Arc;
+            // #[cfg(feature = "pgm")]
+            // OpVariant::PGM {
+            //     name,
+            //     arity,
+            //     programs,
+            // } => {
+            //     use std::sync::Arc;
 
-                let name = Box::leak(name.into_boxed_str());
-                let model_tree = programs
-                    .iter()
-                    .map(|node| {
-                        node.map(|val| match Result::<Op<f32>, _>::from((*val).clone()) {
-                            Ok(op) => op,
-                            Err(e) => {
-                                panic!("Failed to convert OpVariant to Op in PGM programs: {}", e)
-                            }
-                        })
-                    })
-                    .collect::<Vec<TreeNode<Op<f32>>>>();
+            //     let name = Box::leak(name.into_boxed_str());
+            //     let model_tree = programs
+            //         .iter()
+            //         .map(|node| {
+            //             node.map(|val| match Result::<Op<f32>, _>::from((*val).clone()) {
+            //                 Ok(op) => op,
+            //                 Err(e) => {
+            //                     panic!("Failed to convert OpVariant to Op in PGM programs: {}", e)
+            //                 }
+            //             })
+            //         })
+            //         .collect::<Vec<TreeNode<Op<f32>>>>();
 
-                Ok(Op::PGM(
-                    name,
-                    arity,
-                    Arc::new(model_tree),
-                    |inputs: &[f32], progs: &[TreeNode<Op<f32>>]| {
-                        use crate::Eval;
+            //     Ok(Op::PGM(
+            //         name,
+            //         arity,
+            //         Arc::new(model_tree),
+            //         |inputs: &[f32], progs: &[TreeNode<Op<f32>>]| {
+            //             use crate::Eval;
 
-                        let probabilities = progs.eval(inputs);
-                        if probabilities.is_empty() {
-                            return 0.0;
-                        }
+            //             let probabilities = progs.eval(inputs);
+            //             if probabilities.is_empty() {
+            //                 return 0.0;
+            //             }
 
-                        let m = probabilities
-                            .iter()
-                            .copied()
-                            .fold(f32::NEG_INFINITY, f32::max);
-                        let sum_exp = probabilities.iter().map(|v| (v - m).exp()).sum::<f32>();
-                        super::math::clamp(m + sum_exp.ln())
-                    },
-                ))
-            }
-            OpVariant::Table {
-                name,
-                arity,
-                strides,
-                table,
-            } => {
-                panic!()
-                // let name = Box::leak(name.into_boxed_str());
-                // Ok(Op::Table(
-                //     name,
-                //     arity,
-                //     strides,
-                //     table,
-                //     |inputs: &[f32], strides: &Arc<[usize]>, table: &Vec<f32>| {
-                //         let mut index = 0;
-                //         for (i, &input) in inputs.iter().enumerate() {
-                //             let stride = strides.get(i).copied().unwrap_or(1);
-                //             let idx = input as usize;
-                //             index += idx * stride;
-                //         }
-                //         table.get(index).copied().unwrap_or(0.0)
-                //     },
-                // ))
-            }
+            //             let m = probabilities
+            //                 .iter()
+            //                 .copied()
+            //                 .fold(f32::NEG_INFINITY, f32::max);
+            //             let sum_exp = probabilities.iter().map(|v| (v - m).exp()).sum::<f32>();
+            //             super::math::clamp(m + sum_exp.ln())
+            //         },
+            //     ))
+            // }
         }
     }
 }
@@ -330,7 +289,7 @@ impl From<OpVariant<bool>> for Result<Op<bool>, serde::de::value::Error> {
                     ))),
                 }
             }
-            OpVariant::MutableConst { name, .. } => {
+            OpVariant::Value { name, .. } => {
                 return Err(serde::de::Error::custom(format!(
                     "Mutable constants are not supported for boolean ops: {}",
                     name
@@ -343,50 +302,44 @@ impl From<OpVariant<bool>> for Result<Op<bool>, serde::de::value::Error> {
             OpVariant::Const { name, value } => {
                 let name = Box::leak(name.into_boxed_str());
                 Ok(Op::Const(name, value))
-            }
-            #[cfg(feature = "pgm")]
-            OpVariant::PGM {
-                name,
-                arity,
-                programs,
-            } => {
-                use std::sync::Arc;
+            } // #[cfg(feature = "pgm")]
+              // OpVariant::PGM {
+              //     name,
+              //     arity,
+              //     programs,
+              // } => {
+              //     use std::sync::Arc;
 
-                let name = Box::leak(name.into_boxed_str());
-                let model_tree = programs
-                    .iter()
-                    .map(|node| {
-                        node.map(|val| match Result::<Op<bool>, _>::from((*val).clone()) {
-                            Ok(op) => op,
-                            Err(e) => {
-                                panic!("Failed to convert OpVariant to Op in PGM programs for boolean ops: {}", e)
-                            }
-                        })
-                    })
-                    .collect::<Vec<TreeNode<Op<bool>>>>();
+              //     let name = Box::leak(name.into_boxed_str());
+              //     let model_tree = programs
+              //         .iter()
+              //         .map(|node| {
+              //             node.map(|val| match Result::<Op<bool>, _>::from((*val).clone()) {
+              //                 Ok(op) => op,
+              //                 Err(e) => {
+              //                     panic!("Failed to convert OpVariant to Op in PGM programs for boolean ops: {}", e)
+              //                 }
+              //             })
+              //         })
+              //         .collect::<Vec<TreeNode<Op<bool>>>>();
 
-                Ok(Op::PGM(
-                    name,
-                    arity,
-                    Arc::new(model_tree),
-                    |inputs: &[bool], progs: &[TreeNode<Op<bool>>]| {
-                        use crate::Eval;
+              //     Ok(Op::PGM(
+              //         name,
+              //         arity,
+              //         Arc::new(model_tree),
+              //         |inputs: &[bool], progs: &[TreeNode<Op<bool>>]| {
+              //             use crate::Eval;
 
-                        let probabilities = progs.eval(inputs);
-                        if probabilities.is_empty() {
-                            return false;
-                        }
+              //             let probabilities = progs.eval(inputs);
+              //             if probabilities.is_empty() {
+              //                 return false;
+              //             }
 
-                        let result = false;
-                        result
-                    },
-                ))
-            }
-            OpVariant::Table { .. } => {
-                return Err(serde::de::Error::custom(
-                    "Table ops are not supported for boolean ops",
-                ));
-            }
+              //             let result = false;
+              //             result
+              //         },
+              //     ))
+              // }
         }
     }
 }

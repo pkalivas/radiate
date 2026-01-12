@@ -10,11 +10,13 @@ pub mod pgm;
 pub mod primitives;
 #[cfg(feature = "serde")]
 mod serde;
+mod value;
 
 pub use expr::Expression;
 pub use math::{activation_ops, all_ops, math_ops};
 pub use mutator::OperationMutator;
 pub use operation::*;
+pub use value::{OpData, OpValue};
 
 pub(crate) mod op_names {
     /// Mathematical operation names
@@ -49,7 +51,6 @@ pub(crate) mod op_names {
     pub const TANH: &str = "tanh";
     pub const IDENTITY: &str = "identity";
     pub const WEIGHT: &str = "w";
-    pub const BIAS: &str = "b";
 
     // Table operation names
     pub const PROBABILITY_TABLE: &str = "prob_table";
@@ -73,16 +74,4 @@ pub(crate) mod op_names {
     pub const XNOR: &str = "xnor";
     pub const IMPLIES: &str = "implies";
     pub const IFF: &str = "iff";
-
-    /// PGM operation names
-    #[cfg(feature = "pgm")]
-    pub const LOG_SUM_EXP: &str = "log_sum_exp";
-    #[cfg(feature = "pgm")]
-    pub const SOFTMAX_ARGMAX: &str = "softmax_argmax";
-    #[cfg(feature = "pgm")]
-    pub const ATTENTION_SUM: &str = "attn_sum";
-    #[cfg(feature = "pgm")]
-    pub const WEIGHTED_MEAN: &str = "weighted_mean";
-    #[cfg(feature = "pgm")]
-    pub const CLAMP_NORM: &str = "clamp_norm";
 }

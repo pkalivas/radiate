@@ -1,5 +1,5 @@
 use super::NodeType;
-use crate::{Arity, Node, Op, TreeIterator, TreeNode};
+use crate::{Arity, Op};
 #[cfg(feature = "serde")]
 use serde::{
     Deserialize, Serialize,
@@ -253,57 +253,6 @@ impl<T: Clone> From<Op<T>> for NodeStore<Op<T>> {
         store.insert(NodeType::Edge, edge_values);
         store.insert(NodeType::Vertex, node_values);
 
-        store
-    }
-}
-
-impl<T> From<Vec<TreeNode<Op<T>>>> for NodeStore<Op<T>>
-where
-    T: Clone,
-{
-    fn from(tree_nodes: Vec<TreeNode<Op<T>>>) -> Self {
-        let store = NodeStore::new();
-        for root in tree_nodes.iter() {
-            store.merge(NodeStore::from(root.clone()));
-        }
-
-        store
-    }
-}
-
-impl<T> From<TreeNode<Op<T>>> for NodeStore<Op<T>>
-where
-    T: Clone,
-{
-    fn from(tree_node: TreeNode<Op<T>>) -> Self {
-        let store = NodeStore::new();
-
-        let mut nodes = Vec::new();
-        tree_node.iter_pre_order().for_each(|node| {
-            #[cfg(feature = "pgm")]
-            {
-                if let Op::PGM(name, arity, programs, eval_fn) = node.value() {
-                    nodes.push(Op::PGM(
-                        name,
-                        *arity,
-                        Arc::new(programs.iter().map(|p| p.clone()).collect()),
-                        *eval_fn,
-                    ));
-
-                    for prog in programs.iter() {
-                        nodes.extend(prog.iter_pre_order().map(|n| n.value().clone()));
-                    }
-                } else {
-                    nodes.push(node.value().clone());
-                }
-            }
-            #[cfg(not(feature = "pgm"))]
-            {
-                nodes.push(node.value().clone());
-            }
-        });
-
-        store.add(nodes);
         store
     }
 }
