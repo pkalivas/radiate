@@ -4,10 +4,10 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use std::sync::Arc;
 
-#[derive(Clone)]
+#[derive(PartialEq, Eq, Hash, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum OpData<T> {
-    Scalar(T),
+    Unit(T),
     Array {
         values: Arc<[T]>,
         strides: Arc<[usize]>,
@@ -18,21 +18,21 @@ pub enum OpData<T> {
 impl<T> OpData<T> {
     pub fn dims(&self) -> Option<&[usize]> {
         match self {
-            OpData::Scalar(_) => None,
+            OpData::Unit(_) => None,
             OpData::Array { dims, .. } => Some(dims),
         }
     }
 
     pub fn strides(&self) -> Option<&[usize]> {
         match self {
-            OpData::Scalar(_) => None,
+            OpData::Unit(_) => None,
             OpData::Array { strides, .. } => Some(strides),
         }
     }
 
     pub fn as_scalar(&self) -> Option<&T> {
         match self {
-            OpData::Scalar(value) => Some(value),
+            OpData::Unit(value) => Some(value),
             _ => None,
         }
     }
@@ -51,7 +51,7 @@ where
 {
     fn new_instance(&self, _: ()) -> OpData<T> {
         match self {
-            OpData::Scalar(value) => OpData::Scalar(value.clone()),
+            OpData::Unit(value) => OpData::Unit(value.clone()),
             OpData::Array {
                 values,
                 strides,
@@ -65,12 +65,14 @@ where
     }
 }
 
-impl<T, F> From<(&[usize], F)> for OpData<T>
+impl<D, T, F> From<(D, F)> for OpData<T>
 where
+    D: Into<Arc<[usize]>>,
     F: FnMut(usize) -> T,
 {
-    fn from(value: (&[usize], F)) -> Self {
+    fn from(value: (D, F)) -> Self {
         let (dims, mut f) = value;
+        let dims = dims.into();
 
         let mut strides = vec![1usize; dims.len()];
         for i in (0..dims.len() - 1).rev() {
@@ -91,17 +93,18 @@ where
     }
 }
 
+#[derive(Hash)]
 pub struct OpValue<T> {
     data: OpData<T>,
     supplier: fn(&OpData<T>) -> OpData<T>,
-    modifier: fn(&OpData<T>) -> OpData<T>,
+    modifier: fn(&mut OpData<T>),
 }
 
 impl<T> OpValue<T> {
     pub fn new(
         data: impl Into<OpData<T>>,
         supplier: fn(&OpData<T>) -> OpData<T>,
-        modifier: fn(&OpData<T>) -> OpData<T>,
+        modifier: fn(&mut OpData<T>),
     ) -> Self {
         OpValue {
             data: data.into(),
@@ -111,7 +114,7 @@ impl<T> OpValue<T> {
     }
 
     pub fn is_scalar(&self) -> bool {
-        matches!(self.data, OpData::Scalar(_))
+        matches!(self.data, OpData::Unit(_))
     }
 
     pub fn is_array(&self) -> bool {
@@ -124,7 +127,7 @@ impl<T> OpValue<T> {
 
     pub fn dims(&self) -> Option<&[usize]> {
         match &self.data {
-            OpData::Scalar(_) => None,
+            OpData::Unit(_) => None,
             OpData::Array { dims, .. } => Some(dims),
         }
     }
@@ -133,7 +136,7 @@ impl<T> OpValue<T> {
         self.supplier
     }
 
-    pub fn modifier(&self) -> fn(&OpData<T>) -> OpData<T> {
+    pub fn modifier(&self) -> fn(&mut OpData<T>) {
         self.modifier
     }
 }
@@ -170,10 +173,10 @@ impl<T> Factory<OpData<T>, OpValue<T>> for OpValue<T>
 where
     T: Clone,
 {
-    fn new_instance(&self, val: OpData<T>) -> OpValue<T> {
-        let data = (self.modifier)(&val);
+    fn new_instance(&self, mut val: OpData<T>) -> OpValue<T> {
+        (self.modifier)(&mut val);
         OpValue {
-            data,
+            data: val,
             supplier: self.supplier,
             modifier: self.modifier,
         }
@@ -186,7 +189,7 @@ where
 {
     fn clone(&self) -> Self {
         let data = match &self.data {
-            OpData::Scalar(value) => OpData::Scalar(value.clone()),
+            OpData::Unit(value) => OpData::Unit(value.clone()),
             OpData::Array {
                 values,
                 strides,
@@ -206,17 +209,32 @@ where
     }
 }
 
+impl<T> PartialEq for OpValue<T>
+where
+    T: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.data == other.data
+    }
+}
+
 impl<T> Debug for OpValue<T>
 where
     T: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self.data {
-            OpData::Scalar(value) => write!(f, "Scalar({:?})", value),
+            OpData::Unit(value) => write!(f, "Unit({:?})", value),
             OpData::Array {
-                values, strides, ..
+                values,
+                strides,
+                dims,
             } => {
-                write!(f, "Array(shape={:?}, values={:?})", strides, values)
+                write!(
+                    f,
+                    "Arr(shape={:?}, dims={:?}, values={:?})",
+                    strides, dims, values
+                )
             }
         }
     }

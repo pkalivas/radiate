@@ -77,7 +77,7 @@ impl NeatDistance {
                                 match (na.value(), nb.value()) {
                                     (Op::Value(_, _, a_op, _), Op::Value(_, _, b_op, _)) => {
                                         match (a_op.data(), b_op.data()) {
-                                            (OpData::Scalar(va), OpData::Scalar(vb)) => {
+                                            (OpData::Unit(va), OpData::Unit(vb)) => {
                                                 weight_diff += (va - vb).abs();
                                             }
                                             _ => {}

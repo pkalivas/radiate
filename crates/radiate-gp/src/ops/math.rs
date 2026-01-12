@@ -200,25 +200,23 @@ impl Op<f32> {
     }
 
     pub fn weight_with(value: f32) -> Self {
-        let supplier =
-            |_: &OpData<f32>| OpData::Scalar(random_provider::random::<f32>() * TWO - ONE);
+        let supplier = |_: &OpData<f32>| OpData::Unit(random_provider::random::<f32>() * TWO - ONE);
 
         let operation = |inputs: &[f32], weight: &OpValue<f32>| {
             clamp(inputs[0] * weight.data().as_scalar().map_or(ZERO, |v| *v))
         };
 
-        let modifier = |current: &OpData<f32>| {
+        let modifier = |current: &mut OpData<f32>| {
             let diff = (random_provider::random::<f32>() * TWO - ONE) * TENTH;
-            match current {
-                OpData::Scalar(v) => OpData::Scalar(clamp(v + diff)),
-                _ => OpData::Scalar(ZERO),
+            if let OpData::Unit(v) = current {
+                *v = clamp(*v + diff);
             }
         };
 
         Op::Value(
             op_names::WEIGHT,
             1.into(),
-            OpValue::new(OpData::Scalar(clamp(value)), supplier, modifier),
+            OpValue::new(OpData::Unit(clamp(value)), supplier, modifier),
             operation,
         )
     }
@@ -387,49 +385,67 @@ impl Op<f32> {
         assert!(!dims.is_empty(), "table dims cannot be empty");
         assert!(dims.iter().all(|&d| d > 0), "dims must all be > 0");
 
-        let supplier = |value: &OpData<f32>| {
-            let size = value.dims().unwrap().iter().product();
-            OpData::Array {
-                values: Arc::from(
-                    random_provider::vector::<f32>(size)
-                        .into_iter()
-                        .map(|val| val * TWO - ONE)
-                        .collect::<Vec<f32>>(),
-                ),
-                strides: Arc::from(value.strides().unwrap().to_vec()),
-                dims: Arc::from(value.dims().unwrap().to_vec()),
-            }
-        };
-
-        // let eval = |inputs: &[f32], strides: &[usize], table: &[f32]| {
-        let eval = |inputs: &[f32], val: &OpValue<f32>| {
-            let mut index: usize = 0;
-
-            match val.data() {
-                OpData::Array {
-                    strides, values, ..
-                } => {
-                    for i in 0..inputs.len() {
-                        let stride = strides[i];
-
-                        // round -> clamp into [0, d-1]
-                        let v = (inputs[i].round() as isize).max(0) as usize;
-                        index = index.saturating_add(v.saturating_mul(stride));
-                    }
-
-                    values.get(index).copied().map(clamp).unwrap_or(ZERO)
-                }
-                _ => ZERO,
-            }
-        };
-
-        let modifier = |current: &OpData<f32>| {
-            OpData::from((current.dims().clone().unwrap(), |_| {
+        let supplier = |value: &OpData<f32>| match value {
+            OpData::Array { dims, .. } => OpData::from((Arc::clone(dims), |_| {
                 random_provider::random::<f32>() * TWO - ONE
-            }))
+            })),
+            _ => OpData::Unit(random_provider::random::<f32>() * TWO - ONE),
         };
 
-        let data = OpData::from((dims.as_slice(), |_| {
+        let eval = |inputs: &[f32], val: &OpValue<f32>| {
+            if let Some(dims) = val.dims() {
+                println!("Inputs: {:?}, Dims: {:?}", inputs, dims);
+                assert!(
+                    inputs.len() == dims.len(),
+                    "number of inputs must match table dimensions ({} != {})",
+                    inputs.len(),
+                    dims.len()
+                );
+
+                let mut index: usize = 0;
+                match val.data() {
+                    OpData::Array {
+                        strides, values, ..
+                    } => {
+                        for i in 0..inputs.len() {
+                            let stride = strides[i];
+
+                            // round -> clamp into [0, d-1]
+                            let dim = dims[i].max(1);
+
+                            let mut v = (inputs[i].round() as isize).max(0) as usize;
+
+                            if v >= dim {
+                                v = dim - 1;
+                            }
+
+                            index = index.saturating_add(v.saturating_mul(stride));
+                        }
+
+                        values.get(index).copied().map(clamp).unwrap_or(ZERO)
+                    }
+                    _ => ZERO,
+                }
+            } else {
+                ZERO
+            }
+        };
+
+        let modifier = |current: &mut OpData<f32>| {
+            if let OpData::Array { values, .. } = current {
+                let values = Arc::make_mut(values);
+
+                random_provider::with_rng(|rng| {
+                    let indecies = rng.sample_indices(0..values.len(), values.len() / 10 + 1);
+                    for &idx in &indecies {
+                        let diff = (rng.random::<f32>() * TWO - ONE) * TENTH;
+                        values[idx] = clamp(values[idx] + diff);
+                    }
+                });
+            }
+        };
+
+        let data = OpData::from((dims.clone(), |_| {
             random_provider::random::<f32>() * TWO - ONE
         }));
 
@@ -467,17 +483,31 @@ impl Add for Op<f32> {
         match (&self, &rhs) {
             (Op::Value(name, arity, value, op), Op::Value(_, _, other_value, _)) => {
                 match (value.data(), other_value.data()) {
-                    (OpData::Scalar(a), OpData::Scalar(b)) => Op::Value(
+                    (OpData::Unit(a), OpData::Unit(b)) => Op::Value(
                         radiate_utils::intern!(String::from(*name)),
                         *arity,
                         OpValue::new(
-                            OpData::Scalar(clamp(a + b)),
+                            OpData::Unit(clamp(a + b)),
                             value.supplier(),
                             value.modifier(),
                         ),
                         *op,
                     ),
-                    _ => Op::add(),
+                    (OpData::Array { .. }, OpData::Array { .. }) => Op::Value(
+                        radiate_utils::intern!(String::from(*name)),
+                        *arity,
+                        OpValue::new(
+                            OpData::from((other_value.dims().unwrap().to_vec(), |idx| {
+                                let a = value.data().as_array().unwrap()[idx];
+                                let b = other_value.data().as_array().unwrap()[idx];
+                                clamp(a + b)
+                            })),
+                            value.supplier(),
+                            value.modifier(),
+                        ),
+                        *op,
+                    ),
+                    _ => rhs.clone(),
                 }
             }
             _ => rhs.clone(),
@@ -529,6 +559,124 @@ pub fn activation_ops() -> Vec<Op<f32>> {
 /// Get a list of all the operations.
 pub fn all_ops() -> Vec<Op<f32>> {
     math_ops().into_iter().chain(activation_ops()).collect()
+}
+
+impl Op<f32> {
+    pub fn log_likelihood_table(dims: impl Into<Vec<usize>>) -> Self {
+        let dims = dims.into();
+        assert!(dims.len() >= 1, "dims must include child axis");
+        assert!(dims.iter().all(|&d| d > 0), "dims must all be > 0");
+
+        // reuse your OpData::from((dims, f)) builder
+        let data = OpData::from((dims.as_slice(), |_| {
+            random_provider::random::<f32>() * TWO - ONE
+        }));
+
+        // resample: regenerate the whole table values, keep dims/strides
+        let supplier = |value: &OpData<f32>| {
+            let size = value.dims().unwrap().iter().product::<usize>();
+            OpData::Array {
+                values: Arc::from(
+                    random_provider::vector::<f32>(size)
+                        .into_iter()
+                        .map(|v| v * TWO - ONE)
+                        .collect::<Vec<f32>>(),
+                ),
+                strides: Arc::from(value.strides().unwrap().to_vec()),
+                dims: Arc::from(value.dims().unwrap().to_vec()),
+            }
+        };
+
+        // mutate: small noise to each entry (or you can mutate a subset)
+        let modifier = |current: &mut OpData<f32>| {
+            if let OpData::Array { values, .. } = current {
+                let values = Arc::make_mut(values);
+                random_provider::with_rng(|rng| {
+                    for x in values.iter_mut() {
+                        let diff = (rng.random::<f32>() * TWO - ONE) * TENTH;
+                        *x = clamp(*x + diff);
+                    }
+                });
+            }
+        };
+
+        // loglik: score(child) - logsumexp(scores over child-axis)
+        let operation = |inputs: &[f32], val: &OpValue<f32>| -> f32 {
+            let OpData::Array {
+                values,
+                strides,
+                dims,
+            } = val.data()
+            else {
+                return ZERO;
+            };
+
+            if inputs.len() != dims.len() {
+                return ZERO;
+            }
+
+            // last axis is child
+            let child_axis = dims.len() - 1;
+            let child_states = dims[child_axis];
+            let child_stride = strides[child_axis];
+
+            // convert inputs -> indices, clamped into [0, dims[i]-1]
+            let mut idxs = vec![0usize; dims.len()];
+            for i in 0..dims.len() {
+                let mut v = inputs[i].round() as isize;
+                if v < 0 {
+                    v = 0;
+                }
+                let v = v as usize;
+                idxs[i] = v.min(dims[i].saturating_sub(1));
+            }
+
+            // base offset excluding child (set child=0)
+            let mut base = 0usize;
+            for i in 0..child_axis {
+                base = base.saturating_add(idxs[i].saturating_mul(strides[i]));
+            }
+
+            let child = idxs[child_axis];
+
+            // gather scores for this parent config across all child states
+            // and compute logsumexp stably
+            let mut max_score = f32::NEG_INFINITY;
+            for k in 0..child_states {
+                let pos = base.saturating_add(k.saturating_mul(child_stride));
+                if let Some(&s) = values.get(pos) {
+                    if s > max_score {
+                        max_score = s;
+                    }
+                }
+            }
+            if !max_score.is_finite() {
+                return ZERO;
+            }
+
+            let mut sum_exp = 0.0f32;
+            for k in 0..child_states {
+                let pos = base.saturating_add(k.saturating_mul(child_stride));
+                let s = values.get(pos).copied().unwrap_or(0.0);
+                sum_exp += (s - max_score).exp();
+            }
+            let lse = max_score + sum_exp.ln();
+
+            // selected child score
+            let child_pos = base.saturating_add(child.saturating_mul(child_stride));
+            let child_score = values.get(child_pos).copied().unwrap_or(0.0);
+
+            // log probability
+            clamp(child_score - lse)
+        };
+
+        Op::Value(
+            "log_likelihood_table",
+            Arity::Exact(dims.len()),
+            OpValue::new(data, supplier, modifier),
+            operation,
+        )
+    }
 }
 
 #[cfg(test)]

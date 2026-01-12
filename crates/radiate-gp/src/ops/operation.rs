@@ -68,6 +68,13 @@ impl<T> Op<T> {
         }
     }
 
+    pub fn shape(&self) -> Option<&[usize]> {
+        match self {
+            Op::Value(_, _, value, _) => value.dims().clone(),
+            _ => None,
+        }
+    }
+
     pub fn is_fn(&self) -> bool {
         matches!(self, Op::Fn(_, _, _))
     }
@@ -137,6 +144,14 @@ where
 {
     fn eq(&self, other: &Self) -> bool {
         self.name() == other.name()
+            && self.arity() == other.arity()
+            && match (self, other) {
+                (Op::Fn(_, _, _), Op::Fn(_, _, _)) => true,
+                (Op::Var(_, idx_a), Op::Var(_, idx_b)) => idx_a == idx_b,
+                (Op::Const(_, val_a), Op::Const(_, val_b)) => val_a == val_b,
+                (Op::Value(_, _, val_a, _), Op::Value(_, _, val_b, _)) => val_a == val_b,
+                _ => false,
+            }
     }
 }
 
@@ -171,13 +186,13 @@ where
             Op::Var(name, index) => write!(f, "Var: {}({})", name, index),
             Op::Const(name, value) => write!(f, "C: {}({:?})", name, value),
             Op::Value(name, _, value, _) => {
-                write!(f, "Value: {}({:?})", name, value)
+                write!(f, "Val: {}({:?})", name, value)
             }
         }
     }
 }
 
-impl<T> From<Op<T>> for NodeValue<Op<T>> {
+impl<T: Clone> From<Op<T>> for NodeValue<Op<T>> {
     fn from(value: Op<T>) -> Self {
         let arity = value.arity();
         NodeValue::Bounded(value, arity)
@@ -243,66 +258,4 @@ mod test {
         assert_eq!(op, op2);
         assert_eq!(result, result2);
     }
-
-    // #[test]
-    // #[cfg(feature = "pgm")]
-    // fn test_pgm_op() {
-    //     use std::sync::Arc;
-    //     let model = TreeNode::with_children(
-    //         Op::add(),
-    //         vec![
-    //             TreeNode::new(Op::constant(1_f32)),
-    //             TreeNode::new(Op::constant(2_f32)),
-    //         ],
-    //     );
-
-    //     let pgm_op = Op::PGM(
-    //         "pgm",
-    //         Arity::Any,
-    //         Arc::new(vec![model]),
-    //         |inputs: &[f32], prog: &[TreeNode<Op<f32>>]| {
-    //             let sum: f32 = prog.iter().map(|node| node.eval(inputs)).sum();
-    //             sum + inputs.iter().sum::<f32>()
-    //         },
-    //     );
-
-    //     let result = pgm_op.eval(&[]);
-    //     assert_eq!(result, 3_f32);
-    // }
 }
-
-// /// 4) A `mutable const` is a constant that can change over time:
-// ///
-// ///  # Arguments
-// /// - `&'static str` name
-// /// - `Arity` of how many inputs it might read
-// /// - Current value of type `T`
-// /// - An `Arc<dyn Fn() -> T>` for retrieving (or resetting) the value
-// /// - An `Arc<dyn Fn(&[T], &T) -> T>` for updating or combining inputs & old value -> new value
-// ///
-// ///    This suggests a node that can mutate its internal state over time, or
-// ///    one that needs a special function to incorporate the inputs into the next state.
-// MutableConst {
-//     name: &'static str,
-//     arity: Arity,
-//     value: T,
-//     supplier: fn() -> T,
-//     modifier: fn(&T) -> T,
-//     operation: fn(&[T], &T) -> T,
-// },
-// /// 5) A Probabilistic Graph Model (PGM) operation that can be used to create complex functions that can
-// /// be used to discover _how_ the inputs relate to the output and can be used to sample new inputs
-// /// based on the learned relationships.
-// ///
-// /// # Arguments
-// /// - `&'static str` name
-// /// - `Arity` of how many inputs it might read
-// /// - A `Vec<TreeNode<Op<T>>>` that can be used to learn from the inputs and generate new outputs based on the learned relationships.
-// /// - An `Arc<dyn Fn(&[T], &[TreeNode<Op<T>>]) -> T>` for the actual function logic that uses the inputs and the PGM to produce an output.
-// #[cfg(feature = "pgm")]
-// PGM(
-//     &'static str,
-//     Arity,
-//     Arc<Vec<TreeNode<Op<T>>>>,
-//     fn(&[T], &[TreeNode<Op<T>>]) -> T,
-// ),

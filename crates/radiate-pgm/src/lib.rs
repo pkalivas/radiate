@@ -22,7 +22,7 @@ pub use variable::{Domain, Value, Variable};
 use core::num;
 use radiate_core::{Chromosome, Codec, Gene, Genotype, random_provider};
 use radiate_gp::{
-    Eval, Graph, GraphAggregate, GraphNode, NodeBuilder, NodeStore, NodeValue, Op,
+    Eval, Factory, Graph, GraphAggregate, GraphNode, NodeBuilder, NodeStore, NodeValue, Op,
     collections::{GraphChromosome, NodeType},
 };
 use radiate_utils::SortedBuffer;
@@ -313,29 +313,16 @@ impl Codec<GraphChromosome<PgmValue>, FactorGraph> for PgmCodec {
         let num_variables = self.cfg.variables.len();
         let num_factors = self.cfg.num_factors;
 
-        // let temp_store = NodeStore::from(vec![
-        //     (
-        //         NodeType::Input,
-        //         self.cfg
-        //             .variables
-        //             .iter()
-        //             .map(|v| Op::named_var(v.name.clone().unwrap_or_default().as_str(), 0).into())
-        //             .collect::<Vec<_>>(),
-        //     ),
-        //     (
-        //         NodeType::Output,
-        //         vec![Op::weight_with(-1.3862944), Op::weight_with(-2.4849067)],
-        //     ),
-        // ]);
-
         let temp_store = NodeStore::from(vec![
             (
                 NodeType::Input,
                 (0..num_variables)
                     .map(|v| {
-                        Op::named_constant(
-                            radiate_utils::intern!(format!("var_{}", v).as_str()),
-                            v as f32,
+                        Op::named_var(
+                            radiate_utils::intern!(
+                                format!("var_{}", self.card_of(v).unwrap()).as_str()
+                            ),
+                            v,
                         )
                     })
                     .collect::<Vec<_>>(),
@@ -343,11 +330,14 @@ impl Codec<GraphChromosome<PgmValue>, FactorGraph> for PgmCodec {
             (
                 NodeType::Vertex,
                 vec![
-                    Op::probability_table(self.random_dims()),
-                    Op::probability_table(self.random_dims()),
+                    // Op::probability_table(self.random_dims()),
+                    // Op::probability_table(self.random_dims()),
+                    // Op::probability_table(self.random_dims()),
+                    Op::log_likelihood_table(self.random_dims()),
+                    Op::log_likelihood_table(self.random_dims()),
                 ],
             ),
-            (NodeType::Output, vec![Op::sigmoid()]),
+            (NodeType::Output, vec![Op::sum()]),
         ]);
 
         let builder = NodeBuilder::new(&temp_store);
@@ -357,14 +347,19 @@ impl Codec<GraphChromosome<PgmValue>, FactorGraph> for PgmCodec {
         let vertex = builder.vertices(self.cfg.num_factors); //self.factor_size(&scope));
         let output = builder.output(1);
 
+        println!("Vertex node store: {:#?}", temp_store);
+
         println!("Building random graph PGM...");
-        println!("Inputs: {:?}", vertex);
 
         agg = agg.insert(&inputs);
+        // agg = agg.many_to_one(&inputs, &vertex);
         agg = agg.fill(&inputs, &vertex);
         agg = agg.many_to_one(&vertex, &output);
 
         let g = agg.build();
+
+        // let g = GraphChromosome::new(agg.build().into_iter().collect(), temp_store.clone());
+        // let g = Graph::new(g.new_instance(Some(temp_store.clone())).take_nodes());
 
         println!("Graph structure: {g:#?}");
 
@@ -373,6 +368,24 @@ impl Codec<GraphChromosome<PgmValue>, FactorGraph> for PgmCodec {
             vec![Some(1), Some(0), Some(0)],
             vec![Some(0), Some(1), Some(1)],
         ]);
+
+        for row in &prob_dataset.observations {
+            let t = g.eval(&[row
+                .iter()
+                .map(|v| {
+                    v.clone()
+                        .map(|val| match val {
+                            Value::Discrete(i) => i as f32,
+                            Value::Real(f) => 1.0,
+                        })
+                        .unwrap()
+                })
+                .collect::<Vec<_>>()]);
+
+            println!("Eval input {:?} -> output {:?}", row, t);
+        }
+
+        // println!("Initial graph eval output: {:?}", temp);
 
         let ll: f64 = prob_dataset
             .observations

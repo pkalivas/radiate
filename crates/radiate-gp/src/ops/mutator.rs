@@ -68,7 +68,7 @@ impl OperationMutator {
                 let new_value = if random_provider::random::<f32>() < self.replace_rate {
                     value.new_instance(())
                 } else {
-                    value.new_instance(value.data().new_instance(()))
+                    value.new_instance(value.data().clone())
                 };
 
                 Some(Op::Value(name, *arity, new_value, *operation))

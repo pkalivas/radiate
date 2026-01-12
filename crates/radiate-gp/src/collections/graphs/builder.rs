@@ -344,13 +344,6 @@ impl<T: Clone + Default> NodeBuilder<T> {
     }
 
     pub fn vertices(&self, size: usize) -> Vec<GraphNode<T>> {
-        // (0..size)
-        //     .map(|idx| {
-        //         self.store
-        //             .new_instance((idx, NodeType::Vertex, |arity| matches!(arity, Arity::Any)))
-        //     })
-        //     .collect()
-
         self.new_nodes(NodeType::Vertex, size, Arity::Any)
     }
 
