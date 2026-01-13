@@ -139,30 +139,3 @@ where
         AlterResult::empty()
     }
 }
-
-// match node.value() {
-//     Op::MutableConst {
-//         name,
-//         arity,
-//         value,
-//         supplier: get_value,
-//         modifier,
-//         operation,
-//     } => {
-//         let new_value = if random_provider::random::<f32>() < self.replace_rate {
-//             get_value()
-//         } else {
-//             modifier(value)
-//         };
-
-//         Some(Op::MutableConst {
-//             name,
-//             arity: *arity,
-//             value: new_value,
-//             modifier: *modifier,
-//             supplier: *get_value,
-//             operation: *operation,
-//         })
-//     }
-//     _ => None,
-// }

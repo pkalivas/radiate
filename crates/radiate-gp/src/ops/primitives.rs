@@ -4,7 +4,7 @@ use std::{fmt::Display, ops::Range};
 impl<T> Op<T> {
     pub fn var(index: usize) -> Self {
         let name = radiate_utils::intern!(format!("X{}", index));
-        Op::Var(name, index)
+        Op::Var(name, index, None)
     }
 
     pub fn vars(range: Range<usize>) -> Vec<Self> {
@@ -14,7 +14,13 @@ impl<T> Op<T> {
     pub fn named_var(name: impl Into<String>, index: usize) -> Self {
         let name_as_string = name.into();
         let name = radiate_utils::intern!(name_as_string);
-        Op::Var(name, index)
+        Op::Var(name, index, None)
+    }
+
+    pub fn category(name: impl Into<String>, index: usize, k: usize) -> Self {
+        let name_as_string = name.into();
+        let name = radiate_utils::intern!(name_as_string);
+        Op::Var(name, index, Some(k))
     }
 
     pub fn constant(value: T) -> Self

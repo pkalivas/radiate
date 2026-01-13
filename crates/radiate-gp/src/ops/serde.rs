@@ -1,11 +1,10 @@
 use crate::Arity;
+use crate::ops::op_names;
 use crate::ops::operation::Op;
-use crate::ops::{OpData, op_names};
-
 #[cfg(feature = "serde")]
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Serialize, de::Deserializer, ser::Serializer};
 
-#[derive(Serialize, Deserialize, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[serde(tag = "type", content = "data")]
 enum OpVariant<T> {
     Fn {
@@ -15,6 +14,7 @@ enum OpVariant<T> {
     Var {
         name: String,
         index: usize,
+        card: Option<usize>,
     },
     Const {
         name: String,
@@ -23,7 +23,7 @@ enum OpVariant<T> {
     Value {
         name: String,
         arity: Arity,
-        value: OpData<T>,
+        value: radiate_core::Value<T>,
     },
 }
 
@@ -74,9 +74,10 @@ impl<T: Clone> From<Op<T>> for OpVariant<T> {
                 name: name.to_string(),
                 arity,
             },
-            Op::Var(name, index) => OpVariant::Var {
+            Op::Var(name, index, card) => OpVariant::Var {
                 name: name.to_string(),
                 index,
+                card,
             },
             Op::Const(name, value) => OpVariant::Const {
                 name: name.to_string(),
@@ -87,21 +88,6 @@ impl<T: Clone> From<Op<T>> for OpVariant<T> {
                 arity,
                 value: value.data().clone(),
             },
-            // #[cfg(feature = "pgm")]
-            // Op::PGM(name, arity, programs, _func) => OpVariant::PGM {
-            //     name: name.to_string(),
-            //     arity,
-            //     programs: programs
-            //         .iter()
-            //         .map(|node| node.map(|val| OpVariant::from((*val).clone())))
-            //         .collect(),
-            // },
-            // Op::Value(name, arity, value, _) => OpVariant::Table {
-            //     name: name.to_string(),
-            //     arity,
-            //     strides: Arc::new([]),
-            //     table: Arc::new([]),
-            // },
         }
     }
 }
@@ -148,12 +134,12 @@ impl From<OpVariant<f32>> for Result<Op<f32>, serde::de::value::Error> {
                     ))),
                 }
             }
-            OpVariant::Var { name, index } => {
-                let name = Box::leak(name.into_boxed_str());
-                Ok(Op::Var(name, index))
+            OpVariant::Var { name, index, card } => {
+                let name = radiate_utils::intern!(name);
+                Ok(Op::Var(name, index, card))
             }
             OpVariant::Const { name, value } => {
-                let name = Box::leak(name.into_boxed_str());
+                let name = radiate_utils::intern!(name);
                 Ok(Op::Const(name, value))
             }
             OpVariant::Value {
@@ -164,47 +150,6 @@ impl From<OpVariant<f32>> for Result<Op<f32>, serde::de::value::Error> {
                 "w" => {
                     let weight = Op::weight_with(value.as_scalar().cloned().unwrap_or(0.0));
                     Ok(weight)
-
-                    // Ok(Op::weight_with(
-                    //     arity,
-                    //     value,
-                    //     weight.supplier().clone(),
-                    //     weight.modifier().clone(),
-                    //     weight.operation().clone(),
-                    // ))
-                    // match weight {
-                    //     Op::MutableConst {
-                    //         name,
-                    //         arity: w_arity,
-                    //         value: _,
-                    //         supplier: w_supplier,
-                    //         modifier: w_modifier,
-                    //         operation: w_operation,
-                    //     } => {
-                    //         return Ok(Op::MutableConst {
-                    //             name,
-                    //             arity: w_arity.clone(),
-                    //             value: value.clone(),
-                    //             supplier: w_supplier,
-                    //             modifier: w_modifier,
-                    //             operation: w_operation,
-                    //         });
-                    //     }
-                    //     _ => {
-                    //         let name = intern!(name);
-                    //         let supplier = move || 0.0_f32;
-                    //         let modifier = move |v: &f32| *v;
-                    //         let operation = |_: &[f32], v: &f32| v.clone();
-                    //         Ok(Op::MutableConst {
-                    //             name,
-                    //             arity,
-                    //             value,
-                    //             supplier,
-                    //             modifier,
-                    //             operation,
-                    //         })
-                    //     }
-                    // }
                 }
                 _ => {
                     return Err(serde::de::Error::custom(format!(
@@ -213,48 +158,6 @@ impl From<OpVariant<f32>> for Result<Op<f32>, serde::de::value::Error> {
                     )));
                 }
             },
-            // #[cfg(feature = "pgm")]
-            // OpVariant::PGM {
-            //     name,
-            //     arity,
-            //     programs,
-            // } => {
-            //     use std::sync::Arc;
-
-            //     let name = Box::leak(name.into_boxed_str());
-            //     let model_tree = programs
-            //         .iter()
-            //         .map(|node| {
-            //             node.map(|val| match Result::<Op<f32>, _>::from((*val).clone()) {
-            //                 Ok(op) => op,
-            //                 Err(e) => {
-            //                     panic!("Failed to convert OpVariant to Op in PGM programs: {}", e)
-            //                 }
-            //             })
-            //         })
-            //         .collect::<Vec<TreeNode<Op<f32>>>>();
-
-            //     Ok(Op::PGM(
-            //         name,
-            //         arity,
-            //         Arc::new(model_tree),
-            //         |inputs: &[f32], progs: &[TreeNode<Op<f32>>]| {
-            //             use crate::Eval;
-
-            //             let probabilities = progs.eval(inputs);
-            //             if probabilities.is_empty() {
-            //                 return 0.0;
-            //             }
-
-            //             let m = probabilities
-            //                 .iter()
-            //                 .copied()
-            //                 .fold(f32::NEG_INFINITY, f32::max);
-            //             let sum_exp = probabilities.iter().map(|v| (v - m).exp()).sum::<f32>();
-            //             super::math::clamp(m + sum_exp.ln())
-            //         },
-            //     ))
-            // }
         }
     }
 }
@@ -295,51 +198,14 @@ impl From<OpVariant<bool>> for Result<Op<bool>, serde::de::value::Error> {
                     name
                 )));
             }
-            OpVariant::Var { name, index } => {
-                let name = Box::leak(name.into_boxed_str());
-                Ok(Op::Var(name, index))
+            OpVariant::Var { name, index, card } => {
+                let name = radiate_utils::intern!(name);
+                Ok(Op::Var(name, index, card))
             }
             OpVariant::Const { name, value } => {
-                let name = Box::leak(name.into_boxed_str());
+                let name = radiate_utils::intern!(name);
                 Ok(Op::Const(name, value))
-            } // #[cfg(feature = "pgm")]
-              // OpVariant::PGM {
-              //     name,
-              //     arity,
-              //     programs,
-              // } => {
-              //     use std::sync::Arc;
-
-              //     let name = Box::leak(name.into_boxed_str());
-              //     let model_tree = programs
-              //         .iter()
-              //         .map(|node| {
-              //             node.map(|val| match Result::<Op<bool>, _>::from((*val).clone()) {
-              //                 Ok(op) => op,
-              //                 Err(e) => {
-              //                     panic!("Failed to convert OpVariant to Op in PGM programs for boolean ops: {}", e)
-              //                 }
-              //             })
-              //         })
-              //         .collect::<Vec<TreeNode<Op<bool>>>>();
-
-              //     Ok(Op::PGM(
-              //         name,
-              //         arity,
-              //         Arc::new(model_tree),
-              //         |inputs: &[bool], progs: &[TreeNode<Op<bool>>]| {
-              //             use crate::Eval;
-
-              //             let probabilities = progs.eval(inputs);
-              //             if probabilities.is_empty() {
-              //                 return false;
-              //             }
-
-              //             let result = false;
-              //             result
-              //         },
-              //     ))
-              // }
+            }
         }
     }
 }

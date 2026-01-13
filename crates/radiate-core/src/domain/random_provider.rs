@@ -105,6 +105,15 @@ pub fn sample_indices(range: Range<usize>, sample_size: usize) -> Vec<usize> {
     with_rng(|rng| rng.sample_indices(range, sample_size))
 }
 
+pub fn sample_without_replacement(range: &[usize], sample_size: usize) -> Vec<usize> {
+    let mut indexes = range.to_vec();
+    with_rng(|rng| {
+        indexes.shuffle(&mut rng.0);
+    });
+    indexes.truncate(sample_size);
+    indexes
+}
+
 /// Returns a vector of indexes from the given range, each included with the given probability.
 pub fn cond_indices(range: Range<usize>, prob: f32) -> Vec<usize> {
     with_rng(|rng| rng.cond_indices(range, prob))

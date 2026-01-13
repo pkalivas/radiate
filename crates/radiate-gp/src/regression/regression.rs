@@ -9,12 +9,12 @@ thread_local! {
 
 #[derive(Clone)]
 pub struct Regression {
-    data_set: DataSet,
+    data_set: DataSet<f32>,
     loss: Loss,
 }
 
 impl Regression {
-    pub fn new(sample_set: impl Into<DataSet>, loss: Loss) -> Self {
+    pub fn new(sample_set: impl Into<DataSet<f32>>, loss: Loss) -> Self {
         Regression {
             data_set: sample_set.into(),
             loss,

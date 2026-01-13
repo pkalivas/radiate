@@ -36,3 +36,20 @@ macro_rules! impl_numeric_allele {
 }
 
 impl_numeric_allele!(f32, f64, u8, u16, u32, u64, u128, i8, i16, i32, i64, i128);
+
+macro_rules! impl_valid {
+    ($($t:ty),*) => {
+        $(
+            impl Valid for $t {
+                fn is_valid(&self) -> bool {
+                    true
+                }
+            }
+        )*
+    };
+}
+
+impl_valid!(
+    bool, char, String, isize, usize, u8, u16, u32, u64, u128, i8, i16, i32, i64, i128, f32, f64,
+    &str
+);

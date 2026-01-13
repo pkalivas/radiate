@@ -91,6 +91,15 @@ impl<T> NodeStore<T> {
         Arc::strong_count(&self.values)
     }
 
+    pub fn count_type(&self, node_type: NodeType) -> usize {
+        let values = self.values.read().unwrap();
+        if let Some(values) = values.get(&node_type) {
+            return values.len();
+        }
+
+        0
+    }
+
     pub fn contains_type(&self, node_type: NodeType) -> bool {
         let values = self.values.read().unwrap();
         values.contains_key(&node_type)
@@ -116,25 +125,9 @@ impl<T> NodeStore<T> {
         }
     }
 
-    pub fn merge(&self, other: impl Into<NodeStore<T>>)
+    pub fn insert<K>(&self, node_type: NodeType, values: Vec<K>)
     where
-        T: Clone,
-    {
-        let other_store = other.into();
-        let mut store_values = self.values.write().unwrap();
-        let other_values = other_store.values.read().unwrap();
-
-        for (node_type, values) in other_values.iter() {
-            store_values
-                .entry(*node_type)
-                .or_default()
-                .extend(values.iter().cloned());
-        }
-    }
-
-    pub fn insert(&self, node_type: NodeType, values: Vec<T>)
-    where
-        T: Into<NodeValue<T>>,
+        K: Into<NodeValue<T>>,
     {
         let mut store_values = self.values.write().unwrap();
         store_values.insert(node_type, values.into_iter().map(|x| x.into()).collect());
@@ -357,7 +350,7 @@ macro_rules! node_store {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Factory, Node, ops};
+    use crate::{Factory, Node, TreeNode, ops};
 
     fn create_test_store() -> NodeStore<i32> {
         let store = NodeStore::new();
@@ -435,7 +428,7 @@ mod tests {
         assert_eq!(graph_node.node_type(), NodeType::Vertex);
 
         // hmmmm
-        let tree_node = store.new_instance(NodeType::Vertex);
+        let tree_node: TreeNode<i32> = store.new_instance(NodeType::Vertex);
         assert_eq!(tree_node.node_type(), NodeType::Leaf);
         assert!(tree_node.is_leaf());
     }
@@ -555,7 +548,7 @@ mod tests {
 
         // Verify only new values exist
         let values: Vec<i32> = store
-            .map_by_type(NodeType::Input, |values| {
+            .map_by_type(NodeType::Input, |values: &[NodeValue<i32>]| {
                 values.iter().map(|v| v.value().clone()).collect()
             })
             .unwrap();

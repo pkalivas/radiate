@@ -70,7 +70,7 @@ fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
         });
 }
 
-fn dataset() -> impl Into<DataSet> {
+fn dataset() -> impl Into<DataSet<f32>> {
     let mut inputs = Vec::new();
     let mut answers = Vec::new();
 

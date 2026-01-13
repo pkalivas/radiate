@@ -5,7 +5,7 @@ mod lru;
 mod regex;
 mod str;
 
-pub use buff::{SortedBuffer, WindowBuffer};
+pub use buff::{Shape, SortedBuffer, Strides, WindowBuffer};
 pub use fmt::{ToSnakeCase, intern_name_as_snake_case};
 pub use lru::LruCache;
 pub use regex::{RegexCache, compile_regex, with_regex_cache};

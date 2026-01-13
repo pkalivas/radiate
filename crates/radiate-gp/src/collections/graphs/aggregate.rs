@@ -1,6 +1,3 @@
-use radiate_core::random_provider;
-use radiate_utils::SortedBuffer;
-
 use super::node::GraphNodeId;
 use crate::{
     collections::{Graph, GraphNode, NodeType},
@@ -9,55 +6,51 @@ use crate::{
 };
 use std::collections::BTreeMap;
 
+#[derive(Clone, Copy)]
 pub enum AggregateInsertValue<'a, T> {
     Single(&'a GraphNode<T>),
     Many(&'a [GraphNode<T>]),
-    Indexes(&'a [usize]),
 }
 
-impl<'a, T> Clone for AggregateInsertValue<'a, T> {
-    fn clone(&self) -> Self {
+impl<'a, T> AggregateInsertValue<'a, T> {
+    pub fn len(&self) -> usize {
         match self {
-            AggregateInsertValue::Single(node) => AggregateInsertValue::Single(node),
-            AggregateInsertValue::Many(nodes) => AggregateInsertValue::Many(nodes),
-            AggregateInsertValue::Indexes(indexes) => AggregateInsertValue::Indexes(indexes),
+            AggregateInsertValue::Single(_) => 1,
+            AggregateInsertValue::Many(nodes) => nodes.len(),
         }
     }
-}
 
-impl<'a, T> Into<AggregateInsertValue<'a, T>> for &'a GraphNode<T> {
-    fn into(self) -> AggregateInsertValue<'a, T> {
-        AggregateInsertValue::Single(self)
+    pub fn is_empty(&self) -> bool {
+        match self {
+            AggregateInsertValue::Single(_) => false,
+            AggregateInsertValue::Many(nodes) => nodes.is_empty(),
+        }
+    }
+
+    pub fn is_single(&self) -> bool {
+        matches!(self, AggregateInsertValue::Single(_))
+    }
+
+    pub fn is_many(&self) -> bool {
+        matches!(self, AggregateInsertValue::Many(_))
     }
 }
 
-impl<'a, T> Into<AggregateInsertValue<'a, T>> for &'a [GraphNode<T>] {
-    fn into(self) -> AggregateInsertValue<'a, T> {
-        AggregateInsertValue::Many(self)
+impl<'a, T> From<&'a GraphNode<T>> for AggregateInsertValue<'a, T> {
+    fn from(value: &'a GraphNode<T>) -> Self {
+        AggregateInsertValue::Single(value)
     }
 }
 
-impl<'a, T> Into<AggregateInsertValue<'a, T>> for &'a Vec<GraphNode<T>> {
-    fn into(self) -> AggregateInsertValue<'a, T> {
-        AggregateInsertValue::Many(self.as_slice())
+impl<'a, T> From<&'a [GraphNode<T>]> for AggregateInsertValue<'a, T> {
+    fn from(value: &'a [GraphNode<T>]) -> AggregateInsertValue<'a, T> {
+        AggregateInsertValue::Many(value)
     }
 }
 
-impl<'a, T> Into<AggregateInsertValue<'a, T>> for &'a [usize] {
-    fn into(self) -> AggregateInsertValue<'a, T> {
-        AggregateInsertValue::Indexes(self)
-    }
-}
-
-impl<'a, T> Into<AggregateInsertValue<'a, T>> for &'a usize {
-    fn into(self) -> AggregateInsertValue<'a, T> {
-        AggregateInsertValue::Indexes(std::slice::from_ref(self))
-    }
-}
-
-impl<'a, T> Into<AggregateInsertValue<'a, T>> for &'a SortedBuffer<usize> {
-    fn into(self) -> AggregateInsertValue<'a, T> {
-        AggregateInsertValue::Indexes(self.as_slice())
+impl<'a, T> From<&'a Vec<GraphNode<T>>> for AggregateInsertValue<'a, T> {
+    fn from(value: &'a Vec<GraphNode<T>>) -> AggregateInsertValue<'a, T> {
+        AggregateInsertValue::Many(value.as_slice())
     }
 }
 
@@ -66,11 +59,8 @@ pub struct AggregateBuildResult<T> {
     transaction_result: TransactionResult<T>,
 }
 
-impl<T> AggregateBuildResult<T> {
-    pub fn into_graph(self) -> Graph<T>
-    where
-        T: Clone,
-    {
+impl<T: Clone> AggregateBuildResult<T> {
+    pub fn into_graph(self) -> Graph<T> {
         let mut graph = self.graph;
 
         if self.transaction_result.is_invalid() {
@@ -80,10 +70,7 @@ impl<T> AggregateBuildResult<T> {
         graph
     }
 
-    pub fn unwrap(self) -> Graph<T>
-    where
-        T: Clone,
-    {
+    pub fn unwrap(self) -> Graph<T> {
         if !self.transaction_result.is_valid() {
             panic!("Cannot unwrap an invalid graph build result.");
         }
@@ -128,8 +115,6 @@ enum ConnectionCommand<'a, T> {
     /// * The `GraphNode`'s in the second collection must have an arity of either `Any` or `Exact(n)`
     ///   where `n` is the size of the first collection.
     AllToAll(AggregateInsertValue<'a, T>, AggregateInsertValue<'a, T>),
-
-    Fill(AggregateInsertValue<'a, T>, AggregateInsertValue<'a, T>),
 }
 
 /// Represents a relationship between two [GraphNode]'s where the `source_id` is the [GraphNode]'s
@@ -239,15 +224,6 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
         self
     }
 
-    pub fn fill<F, S>(mut self, one: F, two: S) -> Self
-    where
-        F: Into<AggregateInsertValue<'a, T>>,
-        S: Into<AggregateInsertValue<'a, T>>,
-    {
-        self.connect(ConnectionCommand::Fill(one.into(), two.into()));
-        self
-    }
-
     pub fn insert<G: AsRef<[GraphNode<T>]>>(mut self, collection: &'a G) -> Self {
         self.attach(&AggregateInsertValue::Many(collection.as_ref()));
         self
@@ -298,11 +274,6 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
             let two_ids = self.attach(&two);
 
             self.all_to_all_connect(&one_ids, &two_ids);
-        } else if let ConnectionCommand::Fill(one, two) = &connection {
-            let one_ids = self.attach(&one);
-            let two_ids = self.attach(&two);
-
-            self.fill_connect(&one_ids, &two_ids);
         }
     }
 
@@ -310,10 +281,6 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
         match group {
             AggregateInsertValue::Single(node) => self.attach_single(node),
             AggregateInsertValue::Many(nodes) => self.attach_many(nodes),
-            AggregateInsertValue::Indexes(indexes) => indexes
-                .iter()
-                .filter_map(|idx| self.node_order.get(idx).cloned())
-                .collect::<Vec<&'a GraphNodeId>>(),
         }
     }
 
@@ -358,43 +325,12 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
         indexes
     }
 
-    fn fill_connect(&mut self, one: &[&'a GraphNodeId], two: &[&'a GraphNodeId]) {
-        let one_outputs = self.get_outputs(&one);
-        let two_inputs = self.get_inputs(&two);
-
-        for target in two_inputs.iter() {
-            let mut arity = *target.arity();
-
-            if arity > one_outputs.len() {
-                panic!("Fill - Target node arity exceeds available source nodes.");
-            }
-
-            while arity > 0 {
-                let random_outputs = random_provider::shuffled_indices(0..one_outputs.len());
-
-                for &i in random_outputs.iter() {
-                    if arity == 0 {
-                        break;
-                    }
-
-                    let source = one_outputs[i];
-                    self.relationships.push(Relationship {
-                        source_id: source.id(),
-                        target_id: target.id(),
-                    });
-
-                    arity -= 1;
-                }
-            }
-        }
-    }
-
     fn one_to_one_connect(&mut self, one: &[&'a GraphNodeId], two: &[&'a GraphNodeId]) {
         let one_outputs = self.get_outputs(&one);
         let two_inputs = self.get_inputs(&two);
 
         if one_outputs.len() != two_inputs.len() {
-            panic!("OneToOne - oneGroup outputs must be the same length as twoGroup inputs.");
+            panic!("OneToOne - Both groups must be of the same size.");
         }
 
         for (one, two) in one_outputs.into_iter().zip(two_inputs.into_iter()) {

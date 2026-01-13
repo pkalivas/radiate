@@ -1,22 +1,21 @@
 pub mod bool;
-#[cfg(feature = "pgm")]
-pub mod crossover;
 pub mod expr;
 pub mod math;
 pub mod mutator;
 pub mod operation;
-#[cfg(feature = "pgm")]
-pub mod pgm;
 pub mod primitives;
+pub mod prob;
 #[cfg(feature = "serde")]
 mod serde;
+mod store;
 mod value;
 
 pub use expr::Expression;
 pub use math::{activation_ops, all_ops, math_ops};
 pub use mutator::OperationMutator;
 pub use operation::*;
-pub use value::{OpData, OpValue};
+pub use prob::*;
+pub use value::OpValue;
 
 pub(crate) mod op_names {
     /// Mathematical operation names
@@ -53,7 +52,10 @@ pub(crate) mod op_names {
     pub const WEIGHT: &str = "w";
 
     // Table operation names
-    pub const PROBABILITY_TABLE: &str = "prob_table";
+    pub const ND_ARRAY: &str = "nd_array";
+    pub const LOGPROB_TABLE: &str = "logprob_table";
+    pub const GAUSS1: &str = "gauss_1d";
+    pub const GAUSS_LIN2: &str = "gauss_lin_2d";
 
     /// Boolean operation names
     pub const AND: &str = "and";
@@ -75,3 +77,106 @@ pub(crate) mod op_names {
     pub const IMPLIES: &str = "implies";
     pub const IFF: &str = "iff";
 }
+
+// impl<T> Factory<(usize, &[usize]), GraphNode<Op<T>>> for NodeStore<Op<T>>
+// where
+//     T: Default + Clone,
+// {
+//     fn new_instance(&self, (index, scope): (usize, &[usize])) -> GraphNode<Op<T>> {
+//         self.map_by_type(NodeType::Input, |values| {
+//             let mapped_values = values
+//                 .into_iter()
+//                 .filter(|value| match value {
+//                     NodeValue::Bounded(val, _) => match val {
+//                         Op::Var(_, idx, domain) => scope.contains(idx),
+//                         _ => false,
+//                     },
+//                     NodeValue::Unbound(val) => match val {
+//                         Op::Var(_, idx, domain) => scope.contains(idx),
+//                         _ => false,
+//                     },
+//                 })
+//                 .collect::<Vec<&NodeValue<Op<T>>>>();
+
+//             if mapped_values.is_empty() {
+//                 self.new_instance((index, NodeType::Input))
+//             } else {
+//                 let node_value = random_provider::choose(&mapped_values);
+
+//                 match node_value {
+//                     NodeValue::Bounded(value, arity) => {
+//                         GraphNode::with_arity(index, NodeType::Input, value.clone(), *arity)
+//                     }
+//                     NodeValue::Unbound(value) => {
+//                         GraphNode::new(index, NodeType::Input, value.clone())
+//                     }
+//                 }
+//             }
+//         })
+//         .unwrap_or(GraphNode::new(index, NodeType::Input, Op::default()))
+//     }
+// }
+
+// use std::sync::Arc;
+
+// #[derive(Hash)]
+// struct OpValueInner<T> {
+//     data: Value<T>,
+//     supplier: fn(&Value<T>) -> Value<T>,
+//     modifier: fn(&mut Value<T>),
+// }
+
+// #[derive(Clone)]
+// pub struct OpValue<T> {
+//     inner: Arc<OpValueInner<T>>,
+// }
+
+// impl<T> OpValue<T> {
+//     pub fn new(
+//         data: Value<T>,
+//         supplier: fn(&Value<T>) -> Value<T>,
+//         modifier: fn(&mut Value<T>),
+//     ) -> Self {
+//         Self {
+//             inner: Arc::new(OpValueInner { data, supplier, modifier }),
+//         }
+//     }
+
+//     #[inline]
+//     pub fn data(&self) -> &Value<T> {
+//         &self.inner.data
+//     }
+
+//     #[inline]
+//     pub fn supplier(&self) -> fn(&Value<T>) -> Value<T> {
+//         self.inner.supplier
+//     }
+
+//     #[inline]
+//     pub fn modifier(&self) -> fn(&mut Value<T>) {
+//         self.inner.modifier
+//     }
+// }
+
+// impl<T: Clone> OpValue<T> {
+//     /// Copy-on-write: if multiple ops share this value, they still point at the same inner
+//     /// until you clone the OpValue handle and mutate via a different handle.
+//     #[inline]
+//     pub fn data_mut(&mut self) -> &mut Value<T> {
+//         &mut Arc::make_mut(&mut self.inner).data
+//     }
+// }
+
+// impl<T: Clone> Factory<(), OpValue<T>> for OpValue<T> {
+//     fn new_instance(&self, _: ()) -> OpValue<T> {
+//         let data = (self.inner.supplier)(&self.inner.data);
+//         OpValue::new(data, self.inner.supplier, self.inner.modifier)
+//     }
+// }
+
+// impl<T: Clone> Factory<Value<T>, OpValue<T>> for OpValue<T> {
+//     fn new_instance(&self, mut val: Value<T>) -> OpValue<T> {
+//         (self.inner.modifier)(&mut val);
+//         OpValue::new(val, self.inner.supplier, self.inner.modifier)
+//     }
+// }

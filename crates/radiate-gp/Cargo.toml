@@ -20,6 +20,6 @@ serde_json = { workspace = true, optional = true }
 
 [features]
 default = []
-serde = ["dep:serde", "dep:serde_json"]
+serde = ["dep:serde", "dep:serde_json", "radiate-utils/serde", "radiate-core/serde"]
 pgm = []
 smallvec = ["radiate-utils/smallvec"]

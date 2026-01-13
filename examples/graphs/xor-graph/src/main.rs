@@ -60,7 +60,7 @@ fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
     println!("{result:?}");
 }
 
-fn get_dataset() -> DataSet {
+fn get_dataset() -> DataSet<f32> {
     let inputs = vec![
         vec![0.0, 0.0],
         vec![1.0, 1.0],

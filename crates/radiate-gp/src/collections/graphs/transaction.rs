@@ -140,6 +140,10 @@ impl<'a, T> GraphTransaction<'a, T> {
         self.set_cycles();
         while repaired == false && attempts < MAX_REPAIR_ATTEMPTS {
             repaired = self.repair_invalid_nodes();
+            if repaired {
+                self.set_cycles();
+            }
+
             attempts += 1;
         }
 
@@ -381,6 +385,10 @@ impl<'a, T> GraphTransaction<'a, T> {
     }
 
     fn repair_invalid_nodes(&mut self) -> bool {
+        if self.is_valid() {
+            return false;
+        }
+
         let mut repaired = false;
 
         let invalid_nodes = self
@@ -484,6 +492,7 @@ impl<'a, T> GraphTransaction<'a, T> {
 
         false
     }
+
     /// Helper functions to get a random node of the specified type. If no nodes of the specified
     /// type are found, the function will try to get a random node of a different type.
     /// If no nodes are found, the function will panic.

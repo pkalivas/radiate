@@ -2,7 +2,7 @@ use super::{Graph, GraphChromosome, GraphNode};
 use crate::{Factory, NodeStore};
 use radiate_core::{Codec, Genotype};
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct GraphCodec<T> {
     store: NodeStore<T>,
     template: GraphChromosome<T>,

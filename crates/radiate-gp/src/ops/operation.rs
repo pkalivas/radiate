@@ -1,3 +1,5 @@
+use radiate_core::Value;
+
 use crate::{Arity, Eval, Factory, NodeValue, TreeNode, ops::OpValue};
 use std::{
     fmt::{Debug, Display},
@@ -29,7 +31,8 @@ pub enum Op<T> {
     /// # Arguments
     ///    - `String` = a name or identifier
     ///    - `usize` = an index to retrieve from some external context
-    Var(&'static str, usize),
+    ///   - `Option<usize>` = an optional domain size for categorical variables
+    Var(&'static str, usize, Option<usize>),
     /// 3) A compile-time constant: e.g., 1, 2, 3, etc.
     ///
     /// # Arguments
@@ -45,15 +48,15 @@ pub enum Op<T> {
     /// - `&'static str` name
     /// - `Arity` of how many inputs it might read
     /// - `OpValue<T>` the actual data/value associated with this operation
-    /// - An `fn(&[T], &OpValue<T>) -> T` for the function logic that uses the inputs and the value to produce an output.
-    Value(&'static str, Arity, OpValue<T>, fn(&[T], &OpValue<T>) -> T),
+    /// - An `fn(&[T], &Value<T>) -> T` for the function logic that uses the inputs and the value to produce an output.
+    Value(&'static str, Arity, OpValue<T>, fn(&[T], &Value<T>) -> T),
 }
 
 impl<T> Op<T> {
     pub fn name(&self) -> &str {
         match self {
             Op::Fn(name, _, _) => name,
-            Op::Var(name, _) => name,
+            Op::Var(name, _, _) => name,
             Op::Const(name, _) => name,
             Op::Value(name, _, _, _) => name,
         }
@@ -62,15 +65,22 @@ impl<T> Op<T> {
     pub fn arity(&self) -> Arity {
         match self {
             Op::Fn(_, arity, _) => *arity,
-            Op::Var(_, _) => Arity::Zero,
+            Op::Var(_, _, _) => Arity::Zero,
             Op::Const(_, _) => Arity::Zero,
             Op::Value(_, arity, _, _) => *arity,
         }
     }
 
-    pub fn shape(&self) -> Option<&[usize]> {
+    pub fn value(&self) -> Option<&Value<T>> {
         match self {
-            Op::Value(_, _, value, _) => value.dims().clone(),
+            Op::Value(_, _, value, _) => Some(value.data()),
+            _ => None,
+        }
+    }
+
+    pub fn domain(&self) -> Option<&usize> {
+        match self {
+            Op::Var(_, _, card) => card.as_ref(),
             _ => None,
         }
     }
@@ -80,7 +90,7 @@ impl<T> Op<T> {
     }
 
     pub fn is_var(&self) -> bool {
-        matches!(self, Op::Var(_, _))
+        matches!(self, Op::Var(_, _, _))
     }
 
     pub fn is_const(&self) -> bool {
@@ -99,9 +109,9 @@ where
     fn eval(&self, inputs: &[T]) -> T {
         match self {
             Op::Fn(_, _, op) => op(inputs),
-            Op::Var(_, index) => inputs[*index].clone(),
+            Op::Var(_, index, _) => inputs[*index].clone(),
             Op::Const(_, value) => value.clone(),
-            Op::Value(_, _, value, operation) => operation(inputs, value),
+            Op::Value(_, _, value, operation) => operation(inputs, value.data()),
         }
     }
 }
@@ -113,7 +123,7 @@ where
     fn new_instance(&self, _: ()) -> Op<T> {
         match self {
             Op::Fn(name, arity, op) => Op::Fn(name, *arity, *op),
-            Op::Var(name, index) => Op::Var(name, *index),
+            Op::Var(name, index, domain) => Op::Var(name, *index, domain.clone()),
             Op::Const(name, value) => Op::Const(name, value.clone()),
             Op::Value(name, arity, value, operation) => {
                 Op::Value(name, *arity, value.new_instance(()), *operation)
@@ -129,7 +139,7 @@ where
     fn clone(&self) -> Self {
         match self {
             Op::Fn(name, arity, op) => Op::Fn(name, *arity, *op),
-            Op::Var(name, index) => Op::Var(name, *index),
+            Op::Var(name, index, domain) => Op::Var(name, *index, domain.clone()),
             Op::Const(name, value) => Op::Const(name, value.clone()),
             Op::Value(name, arity, value, operation) => {
                 Op::Value(name, *arity, value.clone(), *operation)
@@ -147,7 +157,9 @@ where
             && self.arity() == other.arity()
             && match (self, other) {
                 (Op::Fn(_, _, _), Op::Fn(_, _, _)) => true,
-                (Op::Var(_, idx_a), Op::Var(_, idx_b)) => idx_a == idx_b,
+                (Op::Var(_, idx_a, card_a), Op::Var(_, idx_b, card_b)) => {
+                    idx_a == idx_b && card_a == card_b
+                }
                 (Op::Const(_, val_a), Op::Const(_, val_b)) => val_a == val_b,
                 (Op::Value(_, _, val_a, _), Op::Value(_, _, val_b, _)) => val_a == val_b,
                 _ => false,
@@ -183,7 +195,12 @@ where
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Op::Fn(name, _, _) => write!(f, "Fn: {}", name),
-            Op::Var(name, index) => write!(f, "Var: {}({})", name, index),
+            Op::Var(name, index, card) => match card {
+                Some(k) => {
+                    write!(f, "Var: {}({}, Cat:{})", name, index, k)
+                }
+                None => write!(f, "Var: {}({})", name, index),
+            },
             Op::Const(name, value) => write!(f, "C: {}({:?})", name, value),
             Op::Value(name, _, value, _) => {
                 write!(f, "Val: {}({:?})", name, value)

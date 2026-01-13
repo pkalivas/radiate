@@ -22,6 +22,7 @@ pub use radiate_alters::*;
 pub use radiate_core::*;
 pub use radiate_error::{RadiateError, ensure, radiate_err};
 pub use radiate_selectors::*;
+pub use radiate_utils::Shape;
 
 pub(crate) type Result<T> = std::result::Result<T, RadiateError>;
 

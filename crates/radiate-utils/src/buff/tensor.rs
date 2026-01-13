@@ -1,115 +1,21 @@
 use std::fmt;
 use std::ops::Index;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Shape {
-    pub dims: Vec<usize>,
-}
-
-impl Shape {
-    pub fn new(dims: Vec<usize>) -> Self {
-        Shape { dims }
-    }
-
-    pub fn size(&self) -> usize {
-        self.dims.iter().product()
-    }
-
-    pub fn dim(&self, index: usize) -> usize {
-        self.dims[index]
-    }
-
-    pub fn rank(&self) -> usize {
-        self.dims.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.dims.is_empty()
-    }
-
-    pub fn is_scalar(&self) -> bool {
-        self.dims.len() == 1 && self.dims[0] == 1
-    }
-
-    pub fn is_vector(&self) -> bool {
-        self.dims.len() == 1
-    }
-
-    pub fn is_matrix(&self) -> bool {
-        self.dims.len() == 2
-    }
-
-    pub fn is_tensor(&self) -> bool {
-        self.dims.len() > 2
-    }
-
-    pub fn is_square(&self) -> bool {
-        self.dims.len() == 2 && self.dims[0] == self.dims[1]
-    }
-}
-
-impl Into<Shape> for Vec<usize> {
-    fn into(self) -> Shape {
-        Shape::new(self)
-    }
-}
-
-impl Into<Shape> for usize {
-    fn into(self) -> Shape {
-        Shape::new(vec![self])
-    }
-}
-
-impl Into<Shape> for (usize, usize) {
-    fn into(self) -> Shape {
-        Shape::new(vec![self.0, self.1])
-    }
-}
-
-impl Into<Shape> for (usize, usize, usize) {
-    fn into(self) -> Shape {
-        Shape::new(vec![self.0, self.1, self.2])
-    }
-}
-
-impl Into<Shape> for (usize, usize, usize, usize) {
-    fn into(self) -> Shape {
-        Shape::new(vec![self.0, self.1, self.2, self.3])
-    }
-}
-
-impl Into<Shape> for (usize, usize, usize, usize, usize) {
-    fn into(self) -> Shape {
-        Shape::new(vec![self.0, self.1, self.2, self.3, self.4])
-    }
-}
+use crate::Shape;
+use crate::buff::shape::Strides;
 
 /// Row-major tensor structure. The data is stored in a contiguous vector,
 /// and the shape and strides are used to interpret the data.
 pub struct Tensor<T> {
     data: Vec<T>,
     shape: Shape,
-    strides: Vec<usize>,
+    strides: Strides,
 }
 
 impl<T> Tensor<T> {
     pub fn new(data: Vec<T>, shape: impl Into<Shape>) -> Self {
         let shape = shape.into();
-        let expected_size = shape.size();
-
-        let mut strides = vec![1; shape.rank()];
-        for i in (0..shape.rank() - 1).rev() {
-            strides[i] = strides[i + 1] * shape.dim(i + 1);
-        }
-
-        assert!(
-            data.len() == expected_size,
-            "Data length {} does not match expected size {} for shape {:?}",
-            data.len(),
-            expected_size,
-            shape
-        );
-
+        let strides = Strides::from(shape.clone());
         Self {
             data,
             shape,
@@ -125,7 +31,7 @@ impl<T> Tensor<T> {
         &self.shape
     }
 
-    pub fn strides(&self) -> &[usize] {
+    pub fn strides(&self) -> &Strides {
         &self.strides
     }
 }
@@ -142,7 +48,7 @@ impl<T> Index<(usize, usize)> for Tensor<T> {
     type Output = T;
 
     fn index(&self, index: (usize, usize)) -> &Self::Output {
-        let flat_index = index.0 * self.strides[0] + index.1 * self.strides[1];
+        let flat_index = index.0 * self.strides.stride_at(0) + index.1 * self.strides.stride_at(1);
         &self.data[flat_index]
     }
 }
@@ -151,8 +57,9 @@ impl<T> Index<(usize, usize, usize)> for Tensor<T> {
     type Output = T;
 
     fn index(&self, index: (usize, usize, usize)) -> &Self::Output {
-        let flat_index =
-            index.0 * self.strides[0] + index.1 * self.strides[1] + index.2 * self.strides[2];
+        let flat_index = index.0 * self.strides.stride_at(0)
+            + index.1 * self.strides.stride_at(1)
+            + index.2 * self.strides.stride_at(2);
         &self.data[flat_index]
     }
 }
@@ -161,10 +68,10 @@ impl<T> Index<(usize, usize, usize, usize)> for Tensor<T> {
     type Output = T;
 
     fn index(&self, index: (usize, usize, usize, usize)) -> &Self::Output {
-        let flat_index = index.0 * self.strides[0]
-            + index.1 * self.strides[1]
-            + index.2 * self.strides[2]
-            + index.3 * self.strides[3];
+        let flat_index = index.0 * self.strides.stride_at(0)
+            + index.1 * self.strides.stride_at(1)
+            + index.2 * self.strides.stride_at(2)
+            + index.3 * self.strides.stride_at(3);
         &self.data[flat_index]
     }
 }
@@ -173,11 +80,11 @@ impl<T> Index<(usize, usize, usize, usize, usize)> for Tensor<T> {
     type Output = T;
 
     fn index(&self, index: (usize, usize, usize, usize, usize)) -> &Self::Output {
-        let flat_index = index.0 * self.strides[0]
-            + index.1 * self.strides[1]
-            + index.2 * self.strides[2]
-            + index.3 * self.strides[3]
-            + index.4 * self.strides[4];
+        let flat_index = index.0 * self.strides.stride_at(0)
+            + index.1 * self.strides.stride_at(1)
+            + index.2 * self.strides.stride_at(2)
+            + index.3 * self.strides.stride_at(3)
+            + index.4 * self.strides.stride_at(4);
         &self.data[flat_index]
     }
 }
@@ -194,7 +101,7 @@ impl<T: Clone> Clone for Tensor<T> {
 
 impl<T: fmt::Debug> fmt::Debug for Tensor<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "Tensor(shape={:?}, data=", self.shape.dims)?;
+        writeln!(f, "Tensor(shape={:?}, data=", self.shape.dimensions())?;
 
         fn fmt_recursive<T: fmt::Debug>(
             f: &mut fmt::Formatter<'_>,
@@ -242,7 +149,20 @@ impl<T: fmt::Debug> fmt::Debug for Tensor<T> {
             Ok(())
         }
 
-        fmt_recursive(f, &self.data, &self.shape.dims, &self.strides, 0, 0)?;
+        fmt_recursive(
+            f,
+            &self.data,
+            (0..self.shape.dimensions())
+                .map(|i| self.shape.dim_at(i))
+                .collect::<Vec<usize>>()
+                .as_slice(),
+            (0..self.shape.dimensions())
+                .map(|i| self.strides.stride_at(i))
+                .collect::<Vec<usize>>()
+                .as_slice(),
+            0,
+            0,
+        )?;
 
         write!(f, ")")
     }
