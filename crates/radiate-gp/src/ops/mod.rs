@@ -4,17 +4,14 @@ pub mod math;
 pub mod mutator;
 pub mod operation;
 pub mod primitives;
-pub mod prob;
 #[cfg(feature = "serde")]
 mod serde;
-mod store;
 mod value;
 
 pub use expr::Expression;
 pub use math::{activation_ops, all_ops, math_ops};
 pub use mutator::OperationMutator;
 pub use operation::*;
-pub use prob::*;
 pub use value::OpValue;
 
 pub(crate) mod op_names {
@@ -50,12 +47,7 @@ pub(crate) mod op_names {
     pub const TANH: &str = "tanh";
     pub const IDENTITY: &str = "identity";
     pub const WEIGHT: &str = "w";
-
-    // Table operation names
-    pub const ND_ARRAY: &str = "nd_array";
-    pub const LOGPROB_TABLE: &str = "logprob_table";
-    pub const GAUSS1: &str = "gauss_1d";
-    pub const GAUSS_LIN2: &str = "gauss_lin_2d";
+    pub const LOGSUMEXP: &str = "logsumexp";
 
     /// Boolean operation names
     pub const AND: &str = "and";

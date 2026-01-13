@@ -1,18 +1,17 @@
+use crate::Shape;
+use crate::buff::shape::Strides;
 use std::fmt;
 use std::ops::Index;
 
-use crate::Shape;
-use crate::buff::shape::Strides;
-
 /// Row-major tensor structure. The data is stored in a contiguous vector,
 /// and the shape and strides are used to interpret the data.
-pub struct Tensor<T> {
+pub struct NdArray<T> {
     data: Vec<T>,
     shape: Shape,
     strides: Strides,
 }
 
-impl<T> Tensor<T> {
+impl<T> NdArray<T> {
     pub fn new(data: Vec<T>, shape: impl Into<Shape>) -> Self {
         let shape = shape.into();
         let strides = Strides::from(shape.clone());
@@ -36,7 +35,7 @@ impl<T> Tensor<T> {
     }
 }
 
-impl<T> Index<usize> for Tensor<T> {
+impl<T> Index<usize> for NdArray<T> {
     type Output = T;
 
     fn index(&self, index: usize) -> &Self::Output {
@@ -44,7 +43,7 @@ impl<T> Index<usize> for Tensor<T> {
     }
 }
 
-impl<T> Index<(usize, usize)> for Tensor<T> {
+impl<T> Index<(usize, usize)> for NdArray<T> {
     type Output = T;
 
     fn index(&self, index: (usize, usize)) -> &Self::Output {
@@ -53,7 +52,7 @@ impl<T> Index<(usize, usize)> for Tensor<T> {
     }
 }
 
-impl<T> Index<(usize, usize, usize)> for Tensor<T> {
+impl<T> Index<(usize, usize, usize)> for NdArray<T> {
     type Output = T;
 
     fn index(&self, index: (usize, usize, usize)) -> &Self::Output {
@@ -64,7 +63,7 @@ impl<T> Index<(usize, usize, usize)> for Tensor<T> {
     }
 }
 
-impl<T> Index<(usize, usize, usize, usize)> for Tensor<T> {
+impl<T> Index<(usize, usize, usize, usize)> for NdArray<T> {
     type Output = T;
 
     fn index(&self, index: (usize, usize, usize, usize)) -> &Self::Output {
@@ -76,7 +75,7 @@ impl<T> Index<(usize, usize, usize, usize)> for Tensor<T> {
     }
 }
 
-impl<T> Index<(usize, usize, usize, usize, usize)> for Tensor<T> {
+impl<T> Index<(usize, usize, usize, usize, usize)> for NdArray<T> {
     type Output = T;
 
     fn index(&self, index: (usize, usize, usize, usize, usize)) -> &Self::Output {
@@ -89,7 +88,7 @@ impl<T> Index<(usize, usize, usize, usize, usize)> for Tensor<T> {
     }
 }
 
-impl<T: Clone> Clone for Tensor<T> {
+impl<T: Clone> Clone for NdArray<T> {
     fn clone(&self) -> Self {
         Self {
             data: self.data.clone(),
@@ -99,9 +98,9 @@ impl<T: Clone> Clone for Tensor<T> {
     }
 }
 
-impl<T: fmt::Debug> fmt::Debug for Tensor<T> {
+impl<T: fmt::Debug> fmt::Debug for NdArray<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "Tensor(shape={:?}, data=", self.shape.dimensions())?;
+        writeln!(f, "NdArray(shape={:?}, data=", self.shape.dimensions())?;
 
         fn fmt_recursive<T: fmt::Debug>(
             f: &mut fmt::Formatter<'_>,
@@ -176,7 +175,7 @@ mod tests {
     fn test_tensor_creation() {
         let data = vec![1, 2, 3, 4, 5, 6];
         let shape = (2, 3);
-        let tensor = Tensor::new(data.clone(), shape);
+        let tensor = NdArray::new(data.clone(), shape);
         assert_eq!(tensor.data(), &data);
         assert_eq!(tensor.shape(), &Shape::new(vec![2, 3]));
     }
@@ -185,7 +184,7 @@ mod tests {
     fn test_tensor_indexing() {
         let data = vec![1, 2, 3, 4, 5, 6];
         let shape = (2, 3);
-        let tensor = Tensor::new(data, shape);
+        let tensor = NdArray::new(data, shape);
         assert_eq!(tensor[(0, 0)], 1);
         assert_eq!(tensor[(0, 1)], 2);
         assert_eq!(tensor[(1, 2)], 6);

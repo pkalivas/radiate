@@ -1,7 +1,7 @@
+#[allow(dead_code)]
+mod array;
 mod shape;
 mod sorted;
-#[allow(dead_code)]
-mod tensor;
 mod value;
 mod window;
 

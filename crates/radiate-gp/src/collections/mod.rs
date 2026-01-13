@@ -17,6 +17,5 @@ pub use graphs::{
 pub use node::{Node, NodeType};
 pub use store::{NodeStore, NodeValue};
 pub use trees::{
-    Format, HoistMutator, Tree, TreeChromosome, TreeCodec, TreeCrossover, TreeIterator, TreeMapper,
-    TreeNode,
+    Format, HoistMutator, Tree, TreeChromosome, TreeCodec, TreeCrossover, TreeIterator, TreeNode,
 };

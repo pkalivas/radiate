@@ -77,13 +77,6 @@ impl<T> Op<T> {
         }
     }
 
-    pub fn domain(&self) -> Option<&usize> {
-        match self {
-            Op::Var(_, _, card) => card.as_ref(),
-            _ => None,
-        }
-    }
-
     pub fn is_fn(&self) -> bool {
         matches!(self, Op::Fn(_, _, _))
     }

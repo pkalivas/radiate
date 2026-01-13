@@ -99,6 +99,24 @@ const fn floor(vals: &[f32]) -> f32 {
     clamp(vals[0].floor())
 }
 
+#[inline]
+fn logsumexp(xs: &[f32]) -> f32 {
+    let mut m = f32::NEG_INFINITY;
+    let mut s = 0.0;
+
+    for &x in xs {
+        if x > m {
+            m = x;
+        }
+    }
+
+    for &x in xs {
+        s += (x - m).exp();
+    }
+
+    m + s.ln()
+}
+
 pub enum AggregateOperations {
     Sum,
     Prod,
@@ -114,7 +132,7 @@ pub enum AggregateOperations {
     Min,
 }
 
-/// Implementations of the [MathOperation] enum. These are the basic math operations.
+/// Implementations of the enum. These are the basic math operations.
 /// Each operation takes a slice of `f32` values and returns a single `f32` value.
 impl AggregateOperations {
     pub fn apply(&self, inputs: &[f32]) -> f32 {
@@ -381,6 +399,14 @@ impl Op<f32> {
             ActivationOperation::Softplus.apply(inputs)
         })
     }
+
+    pub fn logsumexp() -> Self {
+        Op::Fn(
+            op_names::LOGSUMEXP,
+            Arity::Exact(2),
+            |inputs: &[f32]| -> f32 { logsumexp(&inputs[..]) },
+        )
+    }
 }
 
 impl NumericAllele for Op<f32> {
@@ -588,6 +614,7 @@ pub fn math_ops() -> Vec<Op<f32>> {
         Op::floor(),
         Op::max(),
         Op::min(),
+        Op::logsumexp(),
     ]
 }
 

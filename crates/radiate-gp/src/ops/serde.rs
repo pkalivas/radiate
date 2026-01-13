@@ -128,6 +128,7 @@ impl From<OpVariant<f32>> for Result<Op<f32>, serde::de::value::Error> {
                     op_names::SWISH => Ok(Op::swish()),
                     op_names::SOFTPLUS => Ok(Op::softplus()),
                     op_names::IDENTITY => Ok(Op::identity()),
+                    op_names::LOGSUMEXP => Ok(Op::logsumexp()),
                     _ => Err(serde::de::Error::custom(format!(
                         "Unknown function name: {}",
                         name

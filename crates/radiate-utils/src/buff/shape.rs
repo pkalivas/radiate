@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[repr(transparent)]
 pub struct Strides(Arc<[usize]>);
 
 impl Strides {
@@ -44,6 +45,7 @@ impl From<Shape> for Strides {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[repr(transparent)]
 pub struct Shape {
     dims: Arc<[usize]>,
 }

@@ -80,6 +80,19 @@ where
     }
 }
 
+impl<T> Default for OpValue<T>
+where
+    T: Default,
+{
+    fn default() -> Self {
+        OpValue {
+            data: Value::Scalar(T::default()),
+            supplier: |_| Value::Scalar(T::default()),
+            modifier: |_| {},
+        }
+    }
+}
+
 impl<T> Clone for OpValue<T>
 where
     T: Clone,

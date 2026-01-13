@@ -23,7 +23,8 @@ members = [
     "examples/graphs/simple-memory-graph",
 
     "examples/trees/regression-tree",
-    "examples/trees/iris-tree",
+    "examples/trees/iris-tree", 
+    "examples/pgm",
 ]
 default-members = [
     "crates/*"
@@ -49,6 +50,7 @@ exclude = [
 
     "examples/trees/regression-tree",
     "examples/trees/iris-tree",    
+    "examples/pgm",
 ]
 
 [workspace.package]
