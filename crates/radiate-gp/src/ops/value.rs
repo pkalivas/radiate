@@ -1,6 +1,5 @@
 use crate::Factory;
-use radiate_core::Value;
-use radiate_utils::Shape;
+use radiate_utils::{Shape, Value};
 use std::fmt::Debug;
 use std::sync::Arc;
 

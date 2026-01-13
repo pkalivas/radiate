@@ -35,6 +35,10 @@ fn main() {
 }
 
 fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
+    // save result to json
+    let json = serde_json::to_string_pretty(result.value()).unwrap();
+    std::fs::write("result.json", json).unwrap();
+
     let dataset = dataset();
     let outputs = result.value().eval(&dataset.features());
 

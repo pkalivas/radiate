@@ -39,7 +39,7 @@ impl OperationMutator {
         let mut result = Vec::new();
         match node.value() {
             Op::Value { .. } => {
-                if let Some(new_op) = self.try_mutate_mut_const_op(node) {
+                if let Some(new_op) = self.mutate_value_op(node) {
                     node.set_value(new_op);
                     result.push(metric!(MUT_CONST_OP_MUTATED, 1));
                 }
@@ -59,7 +59,7 @@ impl OperationMutator {
     }
 
     #[inline]
-    fn try_mutate_mut_const_op<T>(&self, node: &mut impl Node<Value = Op<T>>) -> Option<Op<T>>
+    fn mutate_value_op<T>(&self, node: &mut impl Node<Value = Op<T>>) -> Option<Op<T>>
     where
         T: Clone + PartialEq + Default,
     {

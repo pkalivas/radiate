@@ -1,4 +1,3 @@
-use radiate_utils::SortedBuffer;
 use rand::distr::{Distribution, StandardUniform, uniform::SampleUniform};
 use rand::rngs::SmallRng;
 use rand::seq::SliceRandom;
@@ -117,29 +116,6 @@ pub fn sample_without_replacement(range: &[usize], sample_size: usize) -> Vec<us
 /// Returns a vector of indexes from the given range, each included with the given probability.
 pub fn cond_indices(range: Range<usize>, prob: f32) -> Vec<usize> {
     with_rng(|rng| rng.cond_indices(range, prob))
-}
-
-pub fn vector<T>(size: usize) -> Vec<T>
-where
-    T: SampleUniform,
-    StandardUniform: Distribution<T>,
-{
-    with_rng(|rng| (0..size).map(|_| rng.random()).collect())
-}
-
-pub fn sorted_vector<T: Clone>(range: Range<T>, size: usize) -> Vec<T>
-where
-    T: SampleUniform + PartialOrd + Ord,
-{
-    let mut buff = SortedBuffer::new();
-    with_rng(|rng| {
-        while buff.len() < size {
-            let value = rng.range(range.clone());
-            SortedBuffer::insert_sorted_unique(&mut buff, value);
-        }
-    });
-
-    buff.into_vec()
 }
 
 pub struct RdRand<'a>(&'a mut SmallRng);

@@ -224,8 +224,9 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
         self
     }
 
-    pub fn insert<G: AsRef<[GraphNode<T>]>>(mut self, collection: &'a G) -> Self {
-        self.attach(&AggregateInsertValue::Many(collection.as_ref()));
+    pub fn insert<G: Into<AggregateInsertValue<'a, T>>>(mut self, collection: G) -> Self {
+        let group = collection.into();
+        self.attach(&group);
         self
     }
 

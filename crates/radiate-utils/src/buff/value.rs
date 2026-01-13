@@ -1,4 +1,4 @@
-use radiate_utils::{Shape, Strides};
+use crate::{Shape, Strides};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
@@ -77,16 +77,8 @@ impl<T: Debug> Debug for Value<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Value::Scalar(value) => write!(f, "Scalar({:?})", value),
-            Value::Array {
-                values,
-                shape,
-                strides,
-            } => {
-                write!(
-                    f,
-                    "Arr(shape={:?}, strides={:?}, values={:?})",
-                    shape, strides, values
-                )
+            Value::Array { shape, strides, .. } => {
+                write!(f, "Arr(shape={:?}, strides={:?})", shape, strides)
             }
         }
     }

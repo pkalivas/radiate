@@ -1,6 +1,5 @@
-use radiate_core::Value;
-
 use crate::{Arity, Eval, Factory, NodeValue, TreeNode, ops::OpValue};
+use radiate_utils::Value;
 use std::{
     fmt::{Debug, Display},
     hash::Hash,

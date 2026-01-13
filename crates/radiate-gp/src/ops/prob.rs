@@ -8,8 +8,8 @@ use crate::{
         op_names,
     },
 };
-use radiate_core::{Value, random_provider};
-use radiate_utils::Shape;
+use radiate_core::random_provider;
+use radiate_utils::{Shape, Value};
 
 impl Op<f32> {
     /// ND array lookup operation.
@@ -64,15 +64,11 @@ impl Op<f32> {
                 return ZERO;
             };
 
-            // Convert inputs -> clamped indices
             let mut idxs = vec![0usize; shape.rank()];
             for i in 0..shape.rank() {
                 let dim = shape.dim_at(i).max(1);
-                let mut v = inputs[i].round() as isize;
-                if v < 0 {
-                    v = 0;
-                }
-                let v = v as usize;
+                let v = inputs[i].round() as isize;
+                let v = v.max(0) as usize;
                 idxs[i] = v.min(dim - 1);
             }
 
@@ -124,37 +120,6 @@ impl Op<f32> {
         )
     }
 
-    fn categorical_table(shape: Shape) -> OpValue<f32> {
-        let init = Value::from((shape.clone(), |_| random_provider::range(-ONE..ONE)));
-
-        let supplier = |value: &Value<f32>| match value {
-            Value::Array { shape: sha, .. } => {
-                Value::from((sha.clone(), |_| random_provider::range(-ONE..ONE)))
-            }
-            _ => Value::from((value.shape().unwrap().clone(), |_| {
-                random_provider::range(-ONE..ONE)
-            })),
-        };
-
-        let modifier = |current: &mut Value<f32>| {
-            if let Value::Array { values, .. } = current {
-                let values = Arc::make_mut(values);
-                random_provider::with_rng(|rng| {
-                    let n = values.len().max(1);
-                    let k = (n / 10 + 1).min(n);
-                    let idxs = rng.sample_indices(0..n, k);
-
-                    for &idx in &idxs {
-                        let diff = (rng.range(-ONE..ONE)) * TENTH;
-                        values[idx] = clamp(values[idx] + diff);
-                    }
-                });
-            }
-        };
-
-        OpValue::new(init, supplier, modifier)
-    }
-
     pub fn gauss1() -> Self {
         Op::Value(
             op_names::GAUSS1,
@@ -181,29 +146,6 @@ impl Op<f32> {
                 ll
             },
         )
-    }
-
-    fn gauss1_params() -> OpValue<f32> {
-        // params = [mu, log_sigma]
-        let init = Value::from((2, |_| random_provider::range(-1.0..1.0)));
-
-        let supplier = |v: &Value<f32>| match v {
-            Value::Array { .. } => Value::from((2, |_| random_provider::range(-1.0..1.0))),
-            _ => Value::from((2, |_| random_provider::range(-1.0..1.0))),
-        };
-
-        let modifier = |current: &mut Value<f32>| {
-            if let Value::Array { values, .. } = current {
-                let values = Arc::make_mut(values);
-                // jitter mu
-                values[0] += random_provider::range(-0.1..0.1);
-                // jitter log_sigma (smaller)
-                values[1] += random_provider::range(-0.05..0.05);
-                values[1] = values[1].clamp(-8.0, 4.0);
-            }
-        };
-
-        OpValue::new(init, supplier, modifier)
     }
 
     pub fn gauss_lin2() -> Self {
@@ -234,6 +176,29 @@ impl Op<f32> {
         )
     }
 
+    fn gauss1_params() -> OpValue<f32> {
+        // params = [mu, log_sigma]
+        let init = Value::from((2, |_| random_provider::range(-1.0..1.0)));
+
+        let supplier = |v: &Value<f32>| match v {
+            Value::Array { .. } => Value::from((2, |_| random_provider::range(-1.0..1.0))),
+            _ => Value::from((2, |_| random_provider::range(-1.0..1.0))),
+        };
+
+        let modifier = |current: &mut Value<f32>| {
+            if let Value::Array { values, .. } = current {
+                let values = Arc::make_mut(values);
+                // jitter mu
+                values[0] += random_provider::range(-0.1..0.1);
+                // jitter log_sigma (smaller)
+                values[1] += random_provider::range(-0.05..0.05);
+                values[1] = values[1].clamp(-8.0, 4.0);
+            }
+        };
+
+        OpValue::new(init, supplier, modifier)
+    }
+
     fn gauss_lin2_params() -> OpValue<f32> {
         // params = [a, b, log_sigma]
         let init = Value::from((3, |_| random_provider::range(-1.0..1.0)));
@@ -247,6 +212,37 @@ impl Op<f32> {
                 values[1] += random_provider::range(-0.10..0.10); // b
                 values[2] += random_provider::range(-0.05..0.05); // log_sigma
                 values[2] = values[2].clamp(-8.0, 4.0);
+            }
+        };
+
+        OpValue::new(init, supplier, modifier)
+    }
+
+    fn categorical_table(shape: Shape) -> OpValue<f32> {
+        let init = Value::from((shape.clone(), |_| random_provider::range(-ONE..ONE)));
+
+        let supplier = |value: &Value<f32>| match value {
+            Value::Array { shape: sha, .. } => {
+                Value::from((sha.clone(), |_| random_provider::range(-ONE..ONE)))
+            }
+            _ => Value::from((value.shape().unwrap().clone(), |_| {
+                random_provider::range(-ONE..ONE)
+            })),
+        };
+
+        let modifier = |current: &mut Value<f32>| {
+            if let Value::Array { values, .. } = current {
+                let values = Arc::make_mut(values);
+                random_provider::with_rng(|rng| {
+                    let n = values.len().max(1);
+                    let k = (n / 10 + 1).min(n);
+                    let idxs = rng.sample_indices(0..n, k);
+
+                    for &idx in &idxs {
+                        let diff = (rng.range(-ONE..ONE)) * TENTH;
+                        values[idx] = clamp(values[idx] + diff);
+                    }
+                });
             }
         };
 

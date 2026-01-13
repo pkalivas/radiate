@@ -23,7 +23,7 @@ enum OpVariant<T> {
     Value {
         name: String,
         arity: Arity,
-        value: radiate_core::Value<T>,
+        value: radiate_utils::Value<T>,
     },
 }
 

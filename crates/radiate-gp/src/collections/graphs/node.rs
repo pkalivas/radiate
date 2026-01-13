@@ -477,6 +477,29 @@ where
     }
 }
 
+impl<T, I> From<(usize, NodeType, T, Arity, I, I)> for GraphNode<T>
+where
+    I: Into<SortedBuffer<usize>>,
+{
+    fn from(
+        (index, node_type, value, arity, incoming, outgoing): (usize, NodeType, T, Arity, I, I),
+    ) -> Self {
+        let incoming = incoming.into();
+        let outgoing = outgoing.into();
+
+        GraphNode {
+            index,
+            id: GraphNodeId::new(),
+            value,
+            direction: Direction::Forward,
+            node_type: Some(node_type),
+            arity: Some(arity),
+            incoming,
+            outgoing,
+        }
+    }
+}
+
 impl<T: Default> Default for GraphNode<T> {
     fn default() -> Self {
         GraphNode {

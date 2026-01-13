@@ -357,7 +357,7 @@ impl<T: Clone + Default> NodeBuilder<T> {
 
     pub fn vertices_with_arity(&self, size: usize, arity: Arity) -> Vec<GraphNode<T>> {
         (0..size)
-            .map(|idx| {
+            .filter_map(|idx| {
                 self.store
                     .new_instance((idx, NodeType::Vertex, |a| a == arity))
             })
@@ -372,11 +372,11 @@ impl<T: Clone + Default> NodeBuilder<T> {
     ) -> Vec<GraphNode<T>> {
         if self.store.contains_type(node_type) {
             (0..size)
-                .map(|idx| self.store.new_instance((idx, node_type)))
+                .filter_map(|idx| self.store.new_instance((idx, node_type)))
                 .collect()
         } else {
             (0..size)
-                .map(|idx| {
+                .filter_map(|idx| {
                     self.store
                         .new_instance((idx, node_type, |arity| arity == fallback_arity))
                 })

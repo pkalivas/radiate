@@ -1,92 +1,109 @@
+use radiate::*;
+use radiate::{FactorKind, PgmDataSet, PgmLogLik, random_provider};
 use std::vec;
-
-use radiate::{
-    pgm::{PgmDataSet, PgmLogLik},
-    *,
-};
 
 const MIN_SCORE: f32 = 0.001;
 
-pub fn pgm_store_both(num_vars: usize, num_factors: usize) -> NodeStore<PgmOp<f32>> {
-    let vars = (0..num_vars)
-        .map(|i| {
-            PgmOp::Variable(
-                "var_input",
-                i,
-                Some(random_provider::range(2..num_factors + 2)),
-            )
-        })
-        .collect::<Vec<PgmOp<f32>>>();
+fn sample_dataset(cards: &[usize], n: usize) -> PgmDataSet {
+    let mut rows = Vec::with_capacity(n);
+    for _ in 0..n {
+        let mut row = Vec::with_capacity(cards.len());
+        for &k in cards {
+            row.push(Some(random_provider::range(0..k)));
+        }
+        rows.push(row);
+    }
 
-    let st = vec![
-        (NodeType::Input, vars.clone()),
-        (
-            NodeType::Vertex,
-            vec![PgmOp::logprob(), PgmOp::gauss1(), PgmOp::gauss_lin2()],
-        ),
-        (NodeType::Output, vec![PgmOp::Op(Op::sum())]),
-    ];
-
-    NodeStore::from(st)
+    PgmDataSet::new(rows)
 }
 
 fn main() {
     random_provider::set_seed(40);
 
-    let codec = PgmCodec::<f32>::new(4, 2, pgm_store_both(4, 2));
+    let prob_dataset = sample_dataset([5, 4, 3, 2, 5, 8, 9].as_slice(), 100);
 
-    let encoded = codec.encode();
-    let decoded = codec.decode(&encoded);
+    // 3 discrete variables
+    // X0 ∈ {0,1}, X1 ∈ {0,1,2}, X2 ∈ {0,1}
+    let cards = vec![2, 3, 2];
 
-    let inputs = vec![
-        vec![Some(2), Some(0), Some(0), Some(1)],
-        vec![Some(3), Some(0), Some(0), Some(2)],
-        vec![Some(0), Some(4), Some(2), Some(3)],
-    ];
+    let data = PgmDataSet::new(vec![
+        vec![Some(0), Some(0), Some(1)],
+        vec![Some(1), Some(1), Some(0)],
+        vec![Some(1), Some(2), Some(1)],
+        vec![Some(0), Some(1), Some(0)],
+    ]);
 
-    let prob_dataset = PgmDataSet::new(inputs);
-    let loglik = PgmLogLik::new(prob_dataset.clone(), 4);
-    let ll = loglik.evaluate(decoded);
-    println!("Log Likelihood of decoded PGM on dataset: {}", ll);
+    let codec = PgmCodec::new(&cards, /*num_factors=*/ 4, /*max_scope=*/ 3);
+
+    let g = codec.encode();
+    let p = codec.decode(&g);
+    let ll = PgmLogLik::new(data.clone()).loglik(&p);
+    println!("raw loglik: {ll}");
+
+    let fitness = PgmLogLik::new(data);
+
+    // Fitness: minimize negative mean log-likelihood
 
     let engine = GeneticEngine::builder()
         .codec(codec)
-        .fitness_fn(loglik)
+        // If your builder expects a FitnessFunction<Phenotype, f32>
+        // and phenotype is PgmChromosome, this just works:
+        .fitness_fn(fitness)
         .minimizing()
         .alter(alters!(
-            OperationMutator::new(0.3, 0.05),
-            GraphCrossover::new(0.7, 0.1)
+            // replace with your actual mutators for this chromosome
+            // (examples):
+            // PgmParamMutator::new(0.3, 0.1),
+            // PgmScopeMutator::new(0.05),
         ))
         .build();
 
-    engine.iter().logging().take(150).last().inspect(|result| {
-        println!("{}", result.metrics().dashboard());
-        println!("Best PGM: {:?}", result.value());
-    });
+    engine
+        .iter()
+        .logging()
+        .take(200)
+        .last()
+        .inspect(|generation| {
+            println!("{}", generation.metrics().dashboard());
+            println!("Best score: {}", generation.score()[0]);
+            println!("Best model: {:#?}", generation.value());
+        });
+
+    // let vars = (0..prob_dataset.num_vars())
+    //     .map(|i| Op::category("var_input", i, random_provider::range(2..10)))
+    //     .collect::<Vec<_>>();
+
+    // let store = vec![(NodeType::Input, vars), (NodeType::Output, vec![Op::sum()])];
+
+    // let codec = PgmCodec::new(
+    //     prob_dataset.num_vars(),
+    //     3,
+    //     vec![FactorType::Logp, FactorType::Gauss1],
+    //     store,
+    // );
 
     // let encoded = codec.encode();
-    // println!("Encoded Genotype: {:?}", encoded);
     // let decoded = codec.decode(&encoded);
-    // // println!("Decoded Phenotype: {:?}", decoded);
 
-    // let prob_dataset = ProbDataset::new(vec![
-    //     vec![Some(2), Some(0), Some(0)],
-    //     vec![Some(1), Some(0), Some(0)],
-    //     vec![Some(0), Some(1), Some(2)],
-    // ]);
-
-    // let temp = LogInfoEval;
-
-    // let ll = temp.log_likelihood(&decoded, &prob_dataset);
+    // let loglik = PgmLogLik::new(prob_dataset.clone(), prob_dataset.num_vars());
+    // let ll = loglik.evaluate(decoded);
     // println!("Log Likelihood of decoded PGM on dataset: {}", ll);
 
-    // let seed_one = TreeNode::from(Op::sigmoid())
-    //     .attach(Op::constant(1.0))
-    //     .attach(Op::var(0));
-    // let seed_two = TreeNode::from(Op::linear()).attach(Op::var(0));
-    // let seeds = vec![seed_one, seed_two];
+    // let engine = GeneticEngine::builder()
+    //     .codec(codec)
+    //     .fitness_fn(loglik)
+    //     .minimizing()
+    //     .alter(alters!(
+    //         OperationMutator::new(0.3, 0.05),
+    //         GraphCrossover::new(0.7, 0.1),
+    //         // GraphMutator::new(0.2, 0.05)
+    //     ))
+    //     .build();
 
-    // let pgm = Op::softmax_argmax(seeds);
+    // engine.iter().logging().take(150).last().inspect(|result| {
+    //     println!("{}", result.metrics().dashboard());
+    //     println!("Best PGM: {:?}", result.value());
+    // });
 
     // let store = vec![
     //     (

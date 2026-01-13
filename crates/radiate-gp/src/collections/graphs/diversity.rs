@@ -1,6 +1,7 @@
 use super::{GraphChromosome, GraphIterator};
 use crate::{Node, Op};
-use radiate_core::{Chromosome, Diversity, Genotype, Value};
+use radiate_core::{Chromosome, Diversity, Genotype};
+use radiate_utils::Value;
 use std::cmp::Ordering;
 
 const OP_MISMATCH_PENALTY: f32 = 0.3;

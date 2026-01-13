@@ -111,13 +111,16 @@ where
                 nodes: self
                     .iter()
                     .enumerate()
-                    .map(|(index, node)| {
-                        let new_node = store.new_instance((index, node.node_type()));
-                        if new_node.arity() == node.arity() {
-                            node.with_allele(new_node.allele())
-                        } else {
-                            node.clone()
-                        }
+                    .filter_map(|(index, node)| {
+                        store
+                            .new_instance((index, node.node_type()))
+                            .map(|new_node| {
+                                if new_node.arity() == node.arity() {
+                                    node.with_allele(new_node.allele())
+                                } else {
+                                    node.clone()
+                                }
+                            })
                     })
                     .collect(),
                 store: Some(store),

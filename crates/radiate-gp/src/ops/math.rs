@@ -3,8 +3,12 @@ use crate::{
     Arity,
     ops::{OpValue, op_names},
 };
-use radiate_core::{Value, chromosomes::NumericAllele, random_provider};
-use std::{ops::Add, vec};
+use radiate_core::{chromosomes::NumericAllele, random_provider};
+use radiate_utils::Value;
+use std::{
+    ops::{Add, Div, Mul, Sub},
+    vec,
+};
 
 pub(super) const MAX_VALUE: f32 = 1e+10_f32;
 pub(super) const MIN_VALUE: f32 = -1e+10_f32;
@@ -436,6 +440,131 @@ impl Add for Op<f32> {
     }
 }
 
+impl Sub for Op<f32> {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        match (&self, &rhs) {
+            (Op::Value(name, arity, value, op), Op::Value(_, _, other_value, _)) => {
+                match (value.data(), other_value.data()) {
+                    (Value::Scalar(a), Value::Scalar(b)) => Op::Value(
+                        radiate_utils::intern!(String::from(*name)),
+                        *arity,
+                        OpValue::new(
+                            Value::Scalar(clamp(a - b)),
+                            value.supplier(),
+                            value.modifier(),
+                        ),
+                        *op,
+                    ),
+                    (Value::Array { .. }, Value::Array { .. }) => Op::Value(
+                        radiate_utils::intern!(String::from(*name)),
+                        *arity,
+                        OpValue::new(
+                            Value::from((&value.shape().map(|s| s.clone()).unwrap(), |idx| {
+                                let a = value.data().as_array().unwrap()[idx];
+                                let b = other_value.data().as_array().unwrap()[idx];
+                                clamp(a - b)
+                            })),
+                            value.supplier(),
+                            value.modifier(),
+                        ),
+                        *op,
+                    ),
+                    _ => rhs.clone(),
+                }
+            }
+            _ => rhs.clone(),
+        }
+    }
+}
+
+impl Div for Op<f32> {
+    type Output = Self;
+
+    fn div(self, rhs: Self) -> Self::Output {
+        match (&self, &rhs) {
+            (Op::Value(name, arity, value, op), Op::Value(_, _, other_value, _)) => {
+                match (value.data(), other_value.data()) {
+                    (Value::Scalar(a), Value::Scalar(b)) => Op::Value(
+                        radiate_utils::intern!(String::from(*name)),
+                        *arity,
+                        OpValue::new(
+                            Value::Scalar(if b.abs() < MIN_VALUE {
+                                clamp(a / ONE)
+                            } else {
+                                clamp(a / b)
+                            }),
+                            value.supplier(),
+                            value.modifier(),
+                        ),
+                        *op,
+                    ),
+                    (Value::Array { .. }, Value::Array { .. }) => Op::Value(
+                        radiate_utils::intern!(String::from(*name)),
+                        *arity,
+                        OpValue::new(
+                            Value::from((&value.shape().map(|s| s.clone()).unwrap(), |idx| {
+                                let a = value.data().as_array().unwrap()[idx];
+                                let b: f32 = other_value.data().as_array().unwrap()[idx];
+                                if b.abs() < MIN_VALUE {
+                                    clamp(a / ONE)
+                                } else {
+                                    clamp(a / b)
+                                }
+                            })),
+                            value.supplier(),
+                            value.modifier(),
+                        ),
+                        *op,
+                    ),
+                    _ => rhs.clone(),
+                }
+            }
+            _ => rhs.clone(),
+        }
+    }
+}
+
+impl Mul for Op<f32> {
+    type Output = Self;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        match (&self, &rhs) {
+            (Op::Value(name, arity, value, op), Op::Value(_, _, other_value, _)) => {
+                match (value.data(), other_value.data()) {
+                    (Value::Scalar(a), Value::Scalar(b)) => Op::Value(
+                        radiate_utils::intern!(String::from(*name)),
+                        *arity,
+                        OpValue::new(
+                            Value::Scalar(clamp(a * b)),
+                            value.supplier(),
+                            value.modifier(),
+                        ),
+                        *op,
+                    ),
+                    (Value::Array { .. }, Value::Array { .. }) => Op::Value(
+                        radiate_utils::intern!(String::from(*name)),
+                        *arity,
+                        OpValue::new(
+                            Value::from((&value.shape().map(|s| s.clone()).unwrap(), |idx| {
+                                let a = value.data().as_array().unwrap()[idx];
+                                let b = other_value.data().as_array().unwrap()[idx];
+                                clamp(a * b)
+                            })),
+                            value.supplier(),
+                            value.modifier(),
+                        ),
+                        *op,
+                    ),
+                    _ => rhs.clone(),
+                }
+            }
+            _ => rhs.clone(),
+        }
+    }
+}
+
 /// Get a list of all the math operations.
 pub fn math_ops() -> Vec<Op<f32>> {
     vec![
@@ -612,5 +741,18 @@ mod tests {
         let sp = ActivationOperation::Softplus.apply(&[x]);
         let sp_ref = x.exp().ln_1p();
         assert!(approx(sp, sp_ref, 1e-6));
+    }
+
+    #[test]
+    fn op_weight_multiplication_behavior() {
+        let weight_op = Op::weight_with(2.0);
+        let xs = [3.0];
+        let y = weight_op.eval(&xs);
+        assert_eq!(y, 6.0, "weight op should multiply input by weight");
+
+        let other = Op::weight_with(-0.5);
+        let combined = weight_op * other;
+        let y2 = combined.eval(&xs);
+        assert_eq!(y2, -3.0, "combined weight ops should multiply inputs");
     }
 }

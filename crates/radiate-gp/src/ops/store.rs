@@ -1,5 +1,3 @@
-use radiate_core::random_provider;
-
 use crate::NodeStore;
 use crate::{NodeType, Op};
 use std::collections::BTreeMap;
@@ -31,23 +29,6 @@ impl NodeStore<Op<f32>> {
             out
         })
         .unwrap_or_default()
-    }
-
-    pub fn random_scopes(&self, num_scopes: usize, scope_size: usize) -> Vec<Vec<usize>> {
-        let var_indices = self
-            .var_cards()
-            .iter()
-            .enumerate()
-            .map(|(i, _)| i)
-            .collect::<Vec<usize>>();
-
-        (0..num_scopes)
-            .map(|_| {
-                random_provider::sample_without_replacement(&var_indices, scope_size)
-                    .into_iter()
-                    .collect()
-            })
-            .collect()
     }
 
     /// For a given scope (var indices), return the Shape dims in the *same order*.

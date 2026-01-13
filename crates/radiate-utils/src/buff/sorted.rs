@@ -39,6 +39,7 @@ impl<T> SortedBuffer<T> {
         &self.inner
     }
 
+    #[inline]
     pub fn into_vec(self) -> Vec<T> {
         #[cfg(feature = "smallvec")]
         {

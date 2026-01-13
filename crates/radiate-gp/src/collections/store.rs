@@ -422,13 +422,14 @@ mod tests {
         assert!(store.contains_type(NodeType::Edge));
         assert!(store.contains_type(NodeType::Vertex));
 
-        let graph_node = store.new_instance((2, NodeType::Vertex));
+        let graph_node = store.new_instance((2, NodeType::Vertex)).unwrap();
 
         assert_eq!(graph_node.index(), 2);
         assert_eq!(graph_node.node_type(), NodeType::Vertex);
 
         // hmmmm
-        let tree_node: TreeNode<i32> = store.new_instance(NodeType::Vertex);
+        let tree_node: Option<TreeNode<i32>> = store.new_instance(NodeType::Vertex);
+        let tree_node = tree_node.unwrap();
         assert_eq!(tree_node.node_type(), NodeType::Leaf);
         assert!(tree_node.is_leaf());
     }
