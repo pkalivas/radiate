@@ -1,22 +1,21 @@
 use crate::Factory;
 use radiate_utils::{Shape, Value};
 use std::fmt::Debug;
-use std::sync::Arc;
 
-#[derive(Hash)]
-pub struct OpValue<T> {
+#[derive(Hash, Clone)]
+pub struct Param<T> {
     data: Value<T>,
     supplier: fn(&Value<T>) -> Value<T>,
     modifier: fn(&mut Value<T>),
 }
 
-impl<T> OpValue<T> {
+impl<T> Param<T> {
     pub fn new(
         data: impl Into<Value<T>>,
         supplier: fn(&Value<T>) -> Value<T>,
         modifier: fn(&mut Value<T>),
     ) -> Self {
-        OpValue {
+        Param {
             data: data.into(),
             supplier,
             modifier,
@@ -52,13 +51,10 @@ impl<T> OpValue<T> {
     }
 }
 
-impl<T> Factory<(), OpValue<T>> for OpValue<T>
-where
-    T: Clone,
-{
-    fn new_instance(&self, _: ()) -> OpValue<T> {
+impl<T> Factory<(), Param<T>> for Param<T> {
+    fn new_instance(&self, _: ()) -> Param<T> {
         let data = (self.supplier)(&self.data);
-        OpValue {
+        Param {
             data,
             supplier: self.supplier,
             modifier: self.modifier,
@@ -66,13 +62,10 @@ where
     }
 }
 
-impl<T> Factory<Value<T>, OpValue<T>> for OpValue<T>
-where
-    T: Clone,
-{
-    fn new_instance(&self, mut val: Value<T>) -> OpValue<T> {
+impl<T> Factory<Value<T>, Param<T>> for Param<T> {
+    fn new_instance(&self, mut val: Value<T>) -> Param<T> {
         (self.modifier)(&mut val);
-        OpValue {
+        Param {
             data: val,
             supplier: self.supplier,
             modifier: self.modifier,
@@ -80,12 +73,12 @@ where
     }
 }
 
-impl<T> Default for OpValue<T>
+impl<T> Default for Param<T>
 where
     T: Default,
 {
     fn default() -> Self {
-        OpValue {
+        Param {
             data: Value::Scalar(T::default()),
             supplier: |_| Value::Scalar(T::default()),
             modifier: |_| {},
@@ -93,33 +86,7 @@ where
     }
 }
 
-impl<T> Clone for OpValue<T>
-where
-    T: Clone,
-{
-    fn clone(&self) -> Self {
-        let data = match &self.data {
-            Value::Scalar(value) => Value::Scalar(value.clone()),
-            Value::Array {
-                values,
-                shape,
-                strides,
-            } => Value::Array {
-                values: Arc::clone(values),
-                shape: shape.clone(),
-                strides: strides.clone(),
-            },
-        };
-
-        OpValue {
-            data,
-            supplier: self.supplier,
-            modifier: self.modifier,
-        }
-    }
-}
-
-impl<T> PartialEq for OpValue<T>
+impl<T> PartialEq for Param<T>
 where
     T: PartialEq,
 {
@@ -128,7 +95,7 @@ where
     }
 }
 
-impl<T> Debug for OpValue<T>
+impl<T> Debug for Param<T>
 where
     T: Debug,
 {

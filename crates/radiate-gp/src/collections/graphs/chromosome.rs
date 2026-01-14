@@ -105,9 +105,9 @@ where
     T: Clone + PartialEq + Default,
 {
     fn new_instance(&self, input: Option<NodeStore<T>>) -> GraphChromosome<T> {
-        let maybe_store = input.or_else(|| self.store.clone());
-        if let Some(store) = maybe_store {
-            return GraphChromosome {
+        input
+            .or_else(|| self.store.clone())
+            .map(|store| GraphChromosome {
                 nodes: self
                     .iter()
                     .enumerate()
@@ -125,10 +125,15 @@ where
                     .collect(),
                 store: Some(store),
                 max_nodes: self.max_nodes,
-            };
-        }
-
-        self.clone()
+            })
+            .map(|chromosome| {
+                if chromosome.len() != self.len() {
+                    self.clone()
+                } else {
+                    chromosome
+                }
+            })
+            .unwrap_or_else(|| self.clone())
     }
 }
 

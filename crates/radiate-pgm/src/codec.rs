@@ -1,7 +1,6 @@
-use std::sync::Arc;
-
-use crate::{FactorGene, FactorKind, PgmChromosome, VarSpec};
+use crate::{FactorGene, FactorKind, PgmChromosome, VarId, VarSpec};
 use radiate_core::{Codec, Genotype};
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct PgmCodec {
@@ -15,7 +14,10 @@ impl PgmCodec {
         let vars = cards
             .iter()
             .enumerate()
-            .map(|(id, &card)| VarSpec { id, card })
+            .map(|(id, &card)| VarSpec {
+                id: VarId(id as u32),
+                card,
+            })
             .collect::<Arc<[VarSpec]>>();
 
         Self {
@@ -35,6 +37,8 @@ impl Codec<PgmChromosome, PgmChromosome> for PgmCodec {
             let scope = super::sample_scope(num_vars, self.max_scope);
             let shape = super::logp_table_shape(&self.vars, &scope);
             let params = super::init_logp_table(&shape);
+
+            println!("factor scope: {:?}", params);
 
             factors.push(FactorGene {
                 scope,

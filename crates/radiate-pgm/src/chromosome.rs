@@ -1,13 +1,11 @@
-use std::sync::Arc;
-
+use crate::{VarId, VarSpec};
 use radiate_core::{Chromosome, Gene, Valid};
 use radiate_utils::Value;
+use std::sync::Arc;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct VarSpec {
-    pub id: usize,
-    pub card: usize,
-}
+// You use DiscreteFactor as your ground-truth “math object” for inference and correctness, and keep your evolving genome
+// (FactorGene) as a parameter container. The bridge between the two is a single conversion step:
+// FactorGene (scope + params(Value<f32>))  -->  DiscreteFactor (scope + logp Vec<f32>)
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum FactorKind {
@@ -16,7 +14,7 @@ pub enum FactorKind {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct FactorGene {
-    pub scope: Vec<usize>,
+    pub scope: Vec<VarId>,
     pub kind: FactorKind,
     pub shape: Vec<usize>,
     pub params: Value<f32>,
@@ -100,7 +98,8 @@ impl Valid for PgmChromosome {
         let num_vars = self.vars.len();
         for factor in &self.factors {
             for &vid in &factor.scope {
-                if vid >= num_vars {
+                let idx = vid.0 as usize;
+                if idx >= num_vars {
                     return false;
                 }
             }
@@ -110,7 +109,8 @@ impl Valid for PgmChromosome {
             }
 
             for (i, &vid) in factor.scope.iter().enumerate() {
-                let expected = self.vars[vid].card.max(1);
+                let idx = vid.0 as usize;
+                let expected = self.vars[idx].card.max(1) as usize;
                 if factor.shape[i].max(1) != expected {
                     return false;
                 }

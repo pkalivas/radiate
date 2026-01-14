@@ -1,7 +1,7 @@
 use super::Op;
 use crate::{
     Arity,
-    ops::{OpValue, op_names},
+    ops::{Param, op_names},
 };
 use radiate_core::{chromosomes::NumericAllele, random_provider};
 use radiate_utils::Value;
@@ -12,6 +12,7 @@ use std::{
 
 pub(super) const MAX_VALUE: f32 = 1e+10_f32;
 pub(super) const MIN_VALUE: f32 = -1e+10_f32;
+pub(super) const EPSILON: f32 = 1e-6_f32;
 pub(super) const ONE: f32 = 1.0_f32;
 pub(super) const ZERO: f32 = 0.0_f32;
 pub(super) const TWO: f32 = 2.0_f32;
@@ -72,8 +73,8 @@ const fn mul(vals: &[f32]) -> f32 {
 
 #[inline]
 const fn div(vals: &[f32]) -> f32 {
-    if vals[1].abs() < MIN_VALUE {
-        clamp(vals[0] / ONE)
+    if vals[1].abs() < EPSILON {
+        ONE
     } else {
         clamp(vals[0] / vals[1])
     }
@@ -115,6 +116,18 @@ fn logsumexp(xs: &[f32]) -> f32 {
     }
 
     m + s.ln()
+}
+
+#[inline]
+fn softplus_stable(x: f32) -> f32 {
+    // x already clamped
+    if x > 20.0 {
+        x
+    } else if x < -20.0 {
+        x.exp() // ~0
+    } else {
+        (1.0 + x.exp()).ln()
+    }
 }
 
 pub enum AggregateOperations {
@@ -208,8 +221,7 @@ impl ActivationOperation {
                 clamp(x / (ONE + (-x).exp()))
             }
             ActivationOperation::Softplus => {
-                let x = clamp(inputs.iter().cloned().sum::<f32>());
-                clamp(x.exp().ln_1p())
+                softplus_stable(clamp(inputs.iter().cloned().sum::<f32>()))
             }
         }
     }
@@ -237,7 +249,7 @@ impl Op<f32> {
         Op::Value(
             op_names::WEIGHT,
             1.into(),
-            OpValue::new(Value::Scalar(clamp(value)), supplier, modifier),
+            Param::new(Value::Scalar(clamp(value)), supplier, modifier),
             operation,
         )
     }
@@ -437,7 +449,7 @@ impl Add for Op<f32> {
                     (Value::Scalar(a), Value::Scalar(b)) => Op::Value(
                         radiate_utils::intern!(String::from(*name)),
                         *arity,
-                        OpValue::new(
+                        Param::new(
                             Value::Scalar(clamp(a + b)),
                             value.supplier(),
                             value.modifier(),
@@ -447,7 +459,7 @@ impl Add for Op<f32> {
                     (Value::Array { .. }, Value::Array { .. }) => Op::Value(
                         radiate_utils::intern!(String::from(*name)),
                         *arity,
-                        OpValue::new(
+                        Param::new(
                             Value::from((&value.shape().map(|s| s.clone()).unwrap(), |idx| {
                                 let a = value.data().as_array().unwrap()[idx];
                                 let b = other_value.data().as_array().unwrap()[idx];
@@ -476,7 +488,7 @@ impl Sub for Op<f32> {
                     (Value::Scalar(a), Value::Scalar(b)) => Op::Value(
                         radiate_utils::intern!(String::from(*name)),
                         *arity,
-                        OpValue::new(
+                        Param::new(
                             Value::Scalar(clamp(a - b)),
                             value.supplier(),
                             value.modifier(),
@@ -486,7 +498,7 @@ impl Sub for Op<f32> {
                     (Value::Array { .. }, Value::Array { .. }) => Op::Value(
                         radiate_utils::intern!(String::from(*name)),
                         *arity,
-                        OpValue::new(
+                        Param::new(
                             Value::from((&value.shape().map(|s| s.clone()).unwrap(), |idx| {
                                 let a = value.data().as_array().unwrap()[idx];
                                 let b = other_value.data().as_array().unwrap()[idx];
@@ -515,7 +527,7 @@ impl Div for Op<f32> {
                     (Value::Scalar(a), Value::Scalar(b)) => Op::Value(
                         radiate_utils::intern!(String::from(*name)),
                         *arity,
-                        OpValue::new(
+                        Param::new(
                             Value::Scalar(if b.abs() < MIN_VALUE {
                                 clamp(a / ONE)
                             } else {
@@ -529,7 +541,7 @@ impl Div for Op<f32> {
                     (Value::Array { .. }, Value::Array { .. }) => Op::Value(
                         radiate_utils::intern!(String::from(*name)),
                         *arity,
-                        OpValue::new(
+                        Param::new(
                             Value::from((&value.shape().map(|s| s.clone()).unwrap(), |idx| {
                                 let a = value.data().as_array().unwrap()[idx];
                                 let b: f32 = other_value.data().as_array().unwrap()[idx];
@@ -562,7 +574,7 @@ impl Mul for Op<f32> {
                     (Value::Scalar(a), Value::Scalar(b)) => Op::Value(
                         radiate_utils::intern!(String::from(*name)),
                         *arity,
-                        OpValue::new(
+                        Param::new(
                             Value::Scalar(clamp(a * b)),
                             value.supplier(),
                             value.modifier(),
@@ -572,7 +584,7 @@ impl Mul for Op<f32> {
                     (Value::Array { .. }, Value::Array { .. }) => Op::Value(
                         radiate_utils::intern!(String::from(*name)),
                         *arity,
-                        OpValue::new(
+                        Param::new(
                             Value::from((&value.shape().map(|s| s.clone()).unwrap(), |idx| {
                                 let a = value.data().as_array().unwrap()[idx];
                                 let b = other_value.data().as_array().unwrap()[idx];
@@ -659,11 +671,11 @@ mod tests {
     }
 
     #[test]
-    fn math_div_near_zero_clamps_large_quotient() {
+    fn math_div_by_zero_behavior() {
         let xs = [10.0, 1e-12_f32];
         let y = Op::div().eval(&xs);
         assert_eq!(
-            y, MAX_VALUE,
+            y, 1.0,
             "huge quotient should clamp to MAX_VALUE with current code"
         );
     }
@@ -781,5 +793,20 @@ mod tests {
         let combined = weight_op * other;
         let y2 = combined.eval(&xs);
         assert_eq!(y2, -3.0, "combined weight ops should multiply inputs");
+    }
+
+    #[test]
+    fn div_eps_guard_works() {
+        let xs = [10.0, 0.0];
+        let y = Op::div().eval(&xs);
+        assert_eq!(y, 1.0, "10/0 should clamp to 1.0");
+    }
+
+    #[test]
+    fn softplus_is_stable_for_large_x() {
+        let big = 1e9_f32;
+        let y = ActivationOperation::Softplus.apply(&[big]);
+        assert!(y.is_finite());
+        assert!(y > 1e8, "softplus(big) should be ~ big");
     }
 }

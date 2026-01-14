@@ -34,9 +34,17 @@ impl From<Vec<usize>> for Strides {
 
 impl From<Shape> for Strides {
     fn from(shape: Shape) -> Self {
-        let mut strides = vec![1; shape.dimensions()];
-        for i in (0..shape.dimensions() - 1).rev() {
-            strides[i] = strides[i + 1] * shape.dim_at(i + 1);
+        let rank = shape.dimensions();
+        if rank == 0 {
+            return Self(Arc::from(Vec::<usize>::new()));
+        }
+
+        let mut strides = vec![1usize; rank];
+        if rank >= 2 {
+            for i in (0..rank - 1).rev() {
+                let next = shape.dim_at(i + 1).max(1);
+                strides[i] = strides[i + 1].saturating_mul(next);
+            }
         }
 
         Self(Arc::from(strides))
@@ -56,8 +64,22 @@ impl Shape {
         Self { dims }
     }
 
+    /// Total number of elements implied by this shape.
+    /// Uses saturating multiplication to avoid overflow in release builds.
     pub fn size(&self) -> usize {
-        self.dims.iter().fold(1, |acc, &d| acc * d)
+        self.dims
+            .iter()
+            .fold(1usize, |acc, &d| acc.saturating_mul(d.max(1)))
+    }
+
+    /// Checked total element count. Returns None on overflow.
+    pub fn try_size(&self) -> Option<usize> {
+        let mut acc = 1usize;
+        for &d in self.dims.iter() {
+            acc = acc.checked_mul(d.max(1))?;
+        }
+
+        Some(acc)
     }
 
     pub fn dimensions(&self) -> usize {
@@ -102,6 +124,22 @@ impl Shape {
 
     pub fn iter(&self) -> impl Iterator<Item = &usize> {
         self.dims.iter()
+    }
+
+    pub fn as_slice(&self) -> &[usize] {
+        &self.dims
+    }
+}
+
+impl AsRef<[usize]> for Shape {
+    fn as_ref(&self) -> &[usize] {
+        self.as_slice()
+    }
+}
+
+impl AsRef<[usize]> for Strides {
+    fn as_ref(&self) -> &[usize] {
+        self.as_slice()
     }
 }
 
@@ -151,4 +189,69 @@ impl From<(usize, usize, usize, usize, usize)> for Shape {
     fn from(value: (usize, usize, usize, usize, usize)) -> Shape {
         Shape::new(vec![value.0, value.1, value.2, value.3, value.4])
     }
+}
+
+/// Compute the row-major flat index for a full N-D index (panics on mismatch/OOB).
+#[inline]
+pub(crate) fn flat_index_of(shape: &Shape, strides: &Strides, index: &[usize]) -> usize {
+    assert_eq!(index.len(), shape.dimensions(), "rank mismatch");
+    let mut flat = 0usize;
+    for i in 0..index.len() {
+        let dim = shape.dim_at(i).max(1);
+        let idx = index[i];
+        assert!(
+            idx < dim,
+            "index out of bounds: axis {i} idx={idx} dim={dim}"
+        );
+        flat = flat.saturating_add(idx.saturating_mul(strides.stride_at(i)));
+    }
+    flat
+}
+
+/// Fallible version of `flat_index_of`.
+#[inline]
+pub(crate) fn try_flat_index_of(
+    shape: &Shape,
+    strides: &Strides,
+    index: &[usize],
+) -> Option<usize> {
+    if index.len() != shape.dimensions() {
+        return None;
+    }
+    let mut flat = 0usize;
+    for i in 0..index.len() {
+        let dim = shape.dim_at(i).max(1);
+        let idx = index[i];
+        if idx >= dim {
+            return None;
+        }
+        flat = flat.saturating_add(idx.saturating_mul(strides.stride_at(i)));
+    }
+    Some(flat)
+}
+
+/// Compute flat start of a “row” where `axis` varies and other axes fixed by `base` (panics).
+#[inline]
+pub(crate) fn row_start_flat_of(
+    shape: &Shape,
+    strides: &Strides,
+    base: &[usize],
+    axis: usize,
+) -> usize {
+    assert_eq!(base.len(), shape.rank(), "rank mismatch");
+    assert!(axis < shape.rank(), "axis out of bounds");
+    let mut flat = 0usize;
+    for i in 0..base.len() {
+        if i == axis {
+            continue;
+        }
+        let dim = shape.dim_at(i).max(1);
+        let idx = base[i];
+        assert!(
+            idx < dim,
+            "index out of bounds: axis {i} idx={idx} dim={dim}"
+        );
+        flat = flat.saturating_add(idx.saturating_mul(strides.stride_at(i)));
+    }
+    flat
 }

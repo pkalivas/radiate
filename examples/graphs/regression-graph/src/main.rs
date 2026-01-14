@@ -4,9 +4,6 @@ const MIN_SCORE: f32 = 0.001;
 
 fn main() {
     random_provider::set_seed(90);
-    // random_provider::set_seed(1111);
-    // random_provider::set_seed(5123);
-    // random_provider::set_seed(887712);
 
     let store = vec![
         (NodeType::Input, vec![Op::var(0)]),
@@ -20,9 +17,6 @@ fn main() {
         .raw_fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
         // .diversity(NeatDistance::new(0.1, 0.1, 0.3))
-        // .subscribe(|event: &EngineEvent<Graph<Op<f32>>>| match event {
-        //     _ => {}
-        // })
         .species_threshold(0.4)
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),

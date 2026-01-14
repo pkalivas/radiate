@@ -3,16 +3,16 @@ pub mod expr;
 pub mod math;
 pub mod mutator;
 pub mod operation;
+mod param;
 pub mod primitives;
 #[cfg(feature = "serde")]
 mod serde;
-mod value;
 
 pub use expr::Expression;
 pub use math::{activation_ops, all_ops, math_ops};
 pub use mutator::OperationMutator;
 pub use operation::*;
-pub use value::OpValue;
+pub use param::Param;
 
 pub(crate) mod op_names {
     /// Mathematical operation names

@@ -1,4 +1,4 @@
-use crate::{FactorGene, FactorKind, PgmChromosome};
+use crate::{FactorGene, FactorKind, PgmChromosome, factor};
 use radiate_core::{BatchFitnessFunction, Genotype, fitness::FitnessFunction};
 use radiate_utils::Value;
 
@@ -14,6 +14,17 @@ impl PgmDataSet {
 
     pub fn len(&self) -> usize {
         self.rows.len()
+    }
+}
+
+#[derive(Clone)]
+pub struct PgmNll {
+    pub data: Vec<Vec<Option<usize>>>,
+}
+
+impl FitnessFunction<PgmChromosome, f32> for PgmNll {
+    fn evaluate(&self, chrom: PgmChromosome) -> f32 {
+        factor::neg_mean_loglik(&chrom, &self.data).unwrap_or(f32::INFINITY) // if something goes off the rails
     }
 }
 
@@ -36,11 +47,11 @@ impl PgmLogLik {
         match factor.kind {
             FactorKind::Logp => {
                 let mut idxs = Vec::with_capacity(factor.scope.len());
-                for &vid in &factor.scope {
-                    let Some(s) = row[vid] else {
+                for &var_spec in &factor.scope {
+                    let Some(s) = row[var_spec.0 as usize] else {
                         return 0.0;
                     };
-                    idxs.push(s.min(chrom.vars[vid].card.saturating_sub(1)));
+                    idxs.push(s.min(chrom.vars[var_spec.0 as usize].card.saturating_sub(1)));
                 }
 
                 logprob_table_eval(&factor.params, &idxs)
