@@ -1,5 +1,9 @@
 use radiate::*;
 
+/// This example is mostly for me and isn't fully supported right now.
+/// It shows how to use the PGM representation and genetic operators to evolve
+/// simple graphical models to fit data generated from a known model structure.
+
 pub fn sample_categorical(probs: &[f32]) -> usize {
     // probs must sum to 1
     let r = random_provider::range(0.0..1.0);
@@ -196,104 +200,9 @@ fn main() {
     // turn the two log values into a proper probability vector
     let mut lp = vec![m_c.log_value_aligned(&[0]), m_c.log_value_aligned(&[1])];
 
-    // log-softmax in place (so exp(lp).sum() == 1)
     radiate::log_normalize_in_place(&mut lp);
 
     println!("P(C=0)={}, P(C=1)={}", lp[0].exp(), lp[1].exp());
 
     // let chrom = &result.population()[0].genotype()[0];
 }
-
-// let a = VarSpec::new(0, 2);
-// let b = VarSpec::new(1, 2);
-
-// let card = |v: VarId| match v.0 {
-//     0 => 2,
-//     1 => 2,
-//     _ => 0,
-// };
-
-// // Build an Ising factor on (A,B)
-// let ising = IsingKernel { a, b };
-// let f_ab = ising.build(&[0.0, 0.1, 0.0, 0.2, 0.5, -0.5]).unwrap();
-
-// // Build a CPT P(A) as a CPT with no parents (scope [A])
-// let prior = CptKernel {
-//     parents: vec![],
-//     child: a,
-// };
-// let p_a = prior.build(&[0.0, 1.0]).unwrap();
-
-// // Compute marginal P(B) by eliminating A from P(A)*f(A,B)
-// let out = variable_elimination(vec![p_a, f_ab], &[VarId(0)], &card).unwrap();
-// println!("scope={:?}, logp={:?}", out.scope(), out.logp());
-
-// // 1) logZ sanity
-// let z = logz(chrom).expect("logz failed");
-// println!("logZ = {z}");
-
-// // 2) how CPT-like are the factors?
-// // compute avg row-sum error if each factor treated as CPT with child = last var in its scope
-// let mut worst = 0.0f32;
-// let mut avg = 0.0f32;
-// let mut nrows = 0usize;
-
-// for g in chrom.factors.iter() {
-//     // Only meaningful if scope non-empty
-//     if g.scope.is_empty() {
-//         continue;
-//     }
-
-//     let child = *g.scope.last().unwrap();
-
-//     // Convert to DiscreteFactor and normalize rows, then check row sums of exp() are ~1
-//     let mut f = gene_to_discrete(chrom, g).expect("gene_to_discrete");
-//     // measure before normalization: row sums could be anything
-//     // normalize then check (if it’s CPT-like, normalization shouldn’t destroy the semantics too much)
-//     f.normalize_rows(child).ok();
-
-//     // check row sums == 1
-//     let axis = f.axis_of(child).unwrap();
-//     let child_card = f.dims()[axis];
-
-//     // enumerate parent assignments (all axes except child)
-//     let mut parent_axes = Vec::new();
-//     let mut parent_dims = Vec::new();
-//     for (ax, &v) in f.scope().iter().enumerate() {
-//         if v != child {
-//             parent_axes.push(ax);
-//             parent_dims.push(f.dims()[ax]);
-//         }
-//     }
-
-//     let rows = prod_usize(&parent_dims);
-//     for ridx in 0..rows {
-//         // decode parents
-//         let mut asg = vec![0usize; f.scope().len()];
-//         let mut t = ridx;
-//         for (k, &ax) in parent_axes.iter().enumerate() {
-//             let d = parent_dims[k];
-//             asg[ax] = t % d;
-//             t /= d;
-//         }
-
-//         // sum over child
-//         let mut s = 0.0f32;
-//         for c in 0..child_card {
-//             asg[axis] = c;
-//             s += f.log_value_aligned(&asg).exp();
-//         }
-//         let err = (s - 1.0).abs();
-//         avg += err;
-//         worst = worst.max(err);
-//         nrows += 1;
-//     }
-// }
-
-// if nrows > 0 {
-//     println!(
-//         "CPT row-sum error: avg={} worst={}",
-//         avg / nrows as f32,
-//         worst
-//     );
-// }

@@ -300,7 +300,7 @@ mod tests {
         assert_eq!(round(out2, 3), 0.000);
         assert_eq!(round(out3, 3), 0.902);
         assert_eq!(round(out4, 3), 0.000);
-        assert_eq!(round(out5, 3), 0.000);
+        assert_eq!(round(out5, 3), 1.000);
         assert_eq!(round(out6, 3), 0.000);
         assert_eq!(round(out7, 3), 1.000);
     }

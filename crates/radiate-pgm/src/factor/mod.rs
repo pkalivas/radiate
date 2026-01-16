@@ -6,12 +6,14 @@ use radiate_utils::Value;
 use crate::{FactorGene, PgmChromosome, VarId, VarSpec, variable_elimination};
 
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 pub enum Factor {
     Discrete(DiscreteFactor),
     // Later: Gaussian, LinearGaussian, CLG, etc.
 }
 
 impl Factor {
+    #[allow(dead_code)]
     pub fn scope(&self) -> &[crate::var::VarId] {
         match self {
             Factor::Discrete(f) => f.scope(),
