@@ -35,7 +35,7 @@ where
 
         if add_result.added_count > 0 {
             if generation % 10 == 0 {
-                let reader = self.front.read().unwrap();
+                let mut reader = self.front.write().unwrap();
                 if let Some(entropy) = reader.entropy() {
                     metrics.upsert((metric_names::FRONT_ENTROPY, entropy));
                 }

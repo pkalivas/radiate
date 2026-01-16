@@ -187,13 +187,13 @@ impl<T: Clone + Default> Graph<T> {
         let input = builder.input(input_size);
         let output = builder.output(output_size);
 
-        let cell_state = builder.vertices(1);
-        let hidden_state = builder.vertices(1);
+        let cell_state = builder.vertices_with_arity(1, Arity::Any);
+        let hidden_state = builder.vertices_with_arity(1, Arity::Any);
 
-        let forget_gate = builder.vertices(1);
-        let input_gate = builder.vertices(1);
-        let output_gate = builder.vertices(1);
-        let candidate = builder.vertices(1);
+        let forget_gate = builder.vertices_with_arity(1, Arity::Any);
+        let input_gate = builder.vertices_with_arity(1, Arity::Any);
+        let output_gate = builder.vertices_with_arity(1, Arity::Any);
+        let candidate = builder.vertices_with_arity(1, Arity::Any);
 
         GraphAggregate::new()
             .all_to_all(&input, &forget_gate)
@@ -237,14 +237,14 @@ impl<T: Clone + Default> Graph<T> {
         let input = builder.input(input_size);
         let output = builder.output(output_size);
 
-        let hidden = builder.vertices(1);
+        let hidden = builder.vertices_with_arity(1, Arity::Any);
 
-        let update = builder.vertices(1);
-        let reset = builder.vertices(1);
-        let candidate = builder.vertices(1);
+        let update = builder.vertices_with_arity(1, Arity::Any);
+        let reset = builder.vertices_with_arity(1, Arity::Any);
+        let candidate = builder.vertices_with_arity(1, Arity::Any);
 
-        let blend = builder.vertices(1);
-        let gate_flip = builder.vertices(1);
+        let blend = builder.vertices_with_arity(1, Arity::Any);
+        let gate_flip = builder.vertices_with_arity(1, Arity::Any);
 
         GraphAggregate::new()
             .many_to_one(&input, &reset)
@@ -320,7 +320,7 @@ impl<T: Clone + Default> Graph<T> {
 
 /// A simple builder struct for constructing nodes of a certain type. This is pretty much just a
 /// quality of life struct that removes boilerplate code when creating collections of nodes.
-struct NodeBuilder<T> {
+pub struct NodeBuilder<T> {
     store: NodeStore<T>,
 }
 
@@ -335,6 +335,14 @@ impl<T: Clone + Default> NodeBuilder<T> {
         self.new_nodes(NodeType::Input, size, Arity::Zero)
     }
 
+    pub fn all_input(&self) -> Vec<GraphNode<T>> {
+        self.new_nodes(
+            NodeType::Input,
+            self.store.count_type(NodeType::Input),
+            Arity::Zero,
+        )
+    }
+
     pub fn output(&self, size: usize) -> Vec<GraphNode<T>> {
         self.new_nodes(NodeType::Output, size, Arity::Any)
     }
@@ -344,10 +352,14 @@ impl<T: Clone + Default> NodeBuilder<T> {
     }
 
     pub fn vertices(&self, size: usize) -> Vec<GraphNode<T>> {
+        self.new_nodes(NodeType::Vertex, size, Arity::Any)
+    }
+
+    pub fn vertices_with_arity(&self, size: usize, arity: Arity) -> Vec<GraphNode<T>> {
         (0..size)
-            .map(|idx| {
+            .filter_map(|idx| {
                 self.store
-                    .new_instance((idx, NodeType::Vertex, |arity| matches!(arity, Arity::Any)))
+                    .new_instance((idx, NodeType::Vertex, |a| a == arity))
             })
             .collect()
     }
@@ -360,11 +372,11 @@ impl<T: Clone + Default> NodeBuilder<T> {
     ) -> Vec<GraphNode<T>> {
         if self.store.contains_type(node_type) {
             (0..size)
-                .map(|idx| self.store.new_instance((idx, node_type)))
+                .filter_map(|idx| self.store.new_instance((idx, node_type)))
                 .collect()
         } else {
             (0..size)
-                .map(|idx| {
+                .filter_map(|idx| {
                     self.store
                         .new_instance((idx, node_type, |arity| arity == fallback_arity))
                 })
@@ -428,7 +440,7 @@ mod tests {
         let graph = Graph::directed(3, 3, Op::add());
 
         assert_eq!(graph.len(), 6);
-        assert!(!graph.is_valid());
+        assert!(graph.is_valid());
     }
 
     #[test]

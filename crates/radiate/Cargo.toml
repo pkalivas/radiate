@@ -20,12 +20,13 @@ radiate-engines = { workspace = true }
 radiate-error = { workspace = true }
 radiate-gp = { workspace = true, optional = true }
 radiate-ui = { workspace = true, optional = true }
+radiate-pgm = { workspace = true, optional = true }
 
 [features]
 default = []
 gp = ["radiate-gp"]
 serde = ["radiate-core/serde", "radiate-gp/serde", "radiate-engines/serde"]
 rayon = ["radiate-core/rayon", "radiate-engines/rayon"]
-pgm = ["radiate-gp/pgm"]
+pgm = ["radiate-pgm"]
 smallvec = ["radiate-gp/smallvec"]
 ui = ["radiate-ui"]

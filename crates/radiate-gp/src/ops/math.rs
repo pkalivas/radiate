@@ -1,9 +1,14 @@
 use super::Op;
-use crate::{Arity, ops::op_names};
-use radiate_core::random_provider;
+use crate::{
+    Arity,
+    ops::{Param, op_names},
+};
+use radiate_core::{chromosomes::NumericAllele, random_provider};
+use std::vec;
 
 pub(super) const MAX_VALUE: f32 = 1e+10_f32;
 pub(super) const MIN_VALUE: f32 = -1e+10_f32;
+pub(super) const EPSILON: f32 = 1e-6_f32;
 pub(super) const ONE: f32 = 1.0_f32;
 pub(super) const ZERO: f32 = 0.0_f32;
 pub(super) const TWO: f32 = 2.0_f32;
@@ -64,8 +69,8 @@ const fn mul(vals: &[f32]) -> f32 {
 
 #[inline]
 const fn div(vals: &[f32]) -> f32 {
-    if vals[1].abs() < MIN_VALUE {
-        clamp(vals[0] / ONE)
+    if vals[1].abs() < EPSILON {
+        ONE
     } else {
         clamp(vals[0] / vals[1])
     }
@@ -91,6 +96,36 @@ const fn floor(vals: &[f32]) -> f32 {
     clamp(vals[0].floor())
 }
 
+#[inline]
+fn logsumexp(xs: &[f32]) -> f32 {
+    let mut m = f32::NEG_INFINITY;
+    let mut s = 0.0;
+
+    for &x in xs {
+        if x > m {
+            m = x;
+        }
+    }
+
+    for &x in xs {
+        s += (x - m).exp();
+    }
+
+    m + s.ln()
+}
+
+#[inline]
+fn softplus_stable(x: f32) -> f32 {
+    // x already clamped
+    if x > 20.0 {
+        x
+    } else if x < -20.0 {
+        x.exp() // ~0
+    } else {
+        (1.0 + x.exp()).ln()
+    }
+}
+
 pub enum AggregateOperations {
     Sum,
     Prod,
@@ -106,7 +141,7 @@ pub enum AggregateOperations {
     Min,
 }
 
-/// Implementations of the [MathOperation] enum. These are the basic math operations.
+/// Implementations of the enum. These are the basic math operations.
 /// Each operation takes a slice of `f32` values and returns a single `f32` value.
 impl AggregateOperations {
     pub fn apply(&self, inputs: &[f32]) -> f32 {
@@ -182,8 +217,7 @@ impl ActivationOperation {
                 clamp(x / (ONE + (-x).exp()))
             }
             ActivationOperation::Softplus => {
-                let x = clamp(inputs.iter().cloned().sum::<f32>());
-                clamp(x.exp().ln_1p())
+                softplus_stable(clamp(inputs.iter().cloned().sum::<f32>()))
             }
         }
     }
@@ -195,21 +229,21 @@ impl Op<f32> {
     }
 
     pub fn weight_with(value: f32) -> Self {
-        let supplier = || random_provider::random::<f32>() * TWO - ONE;
-        let operation = |inputs: &[f32], weight: &f32| clamp(inputs[0] * weight);
-        let modifier = |current: &f32| {
+        let supplier = |_: &f32| random_provider::random::<f32>() * TWO - ONE;
+
+        let operation = |inputs: &[f32], weight: &f32| clamp(inputs[0] * *weight);
+
+        let modifier = |current: &mut f32| {
             let diff = (random_provider::random::<f32>() * TWO - ONE) * TENTH;
-            clamp(current + diff)
+            *current = clamp(*current + diff);
         };
 
-        Op::MutableConst {
-            name: op_names::WEIGHT,
-            arity: 1.into(),
-            value: clamp(value),
-            supplier,
-            modifier,
+        Op::Value(
+            op_names::WEIGHT,
+            1.into(),
+            Param::new(clamp(value), supplier, modifier),
             operation,
-        }
+        )
     }
 
     pub fn add() -> Self {
@@ -369,6 +403,32 @@ impl Op<f32> {
             ActivationOperation::Softplus.apply(inputs)
         })
     }
+
+    pub fn logsumexp() -> Self {
+        Op::Fn(
+            op_names::LOGSUMEXP,
+            Arity::Exact(2),
+            |inputs: &[f32]| -> f32 { logsumexp(&inputs[..]) },
+        )
+    }
+}
+
+impl NumericAllele for Op<f32> {
+    fn cast_as_f32(&self) -> Option<f32> {
+        match self {
+            Op::Const(_, value) => Some(*value),
+            Op::Value(_, _, value, _) => Some(*value.data()),
+            _ => None,
+        }
+    }
+
+    fn cast_as_i32(&self) -> Option<i32> {
+        match self {
+            Op::Const(_, value) => Some(*value as i32),
+            Op::Value(_, _, value, _) => Some(*value.data() as i32),
+            _ => None,
+        }
+    }
 }
 
 /// Get a list of all the math operations.
@@ -394,6 +454,7 @@ pub fn math_ops() -> Vec<Op<f32>> {
         Op::floor(),
         Op::max(),
         Op::min(),
+        Op::logsumexp(),
     ]
 }
 
@@ -438,11 +499,11 @@ mod tests {
     }
 
     #[test]
-    fn math_div_near_zero_clamps_large_quotient() {
+    fn math_div_by_zero_behavior() {
         let xs = [10.0, 1e-12_f32];
         let y = Op::div().eval(&xs);
         assert_eq!(
-            y, MAX_VALUE,
+            y, 1.0,
             "huge quotient should clamp to MAX_VALUE with current code"
         );
     }
@@ -550,17 +611,17 @@ mod tests {
     }
 
     #[test]
-    fn weight_op_runs_and_is_clamped() {
-        let w = Op::<f32>::weight();
-        if let Op::MutableConst {
-            operation, value, ..
-        } = &w
-        {
-            let out = (operation)(&[0.5], value);
-            assert!(out.is_finite());
-            assert!(out <= MAX_VALUE && out >= MIN_VALUE);
-        } else {
-            panic!("weight() did not return MutableConst as expected");
-        }
+    fn div_eps_guard_works() {
+        let xs = [10.0, 0.0];
+        let y = Op::div().eval(&xs);
+        assert_eq!(y, 1.0, "10/0 should clamp to 1.0");
+    }
+
+    #[test]
+    fn softplus_is_stable_for_large_x() {
+        let big = 1e9_f32;
+        let y = ActivationOperation::Softplus.apply(&[big]);
+        assert!(y.is_finite());
+        assert!(y > 1e8, "softplus(big) should be ~ big");
     }
 }

@@ -3,20 +3,12 @@ use radiate::*;
 const MIN_SCORE: f32 = 0.001;
 
 fn main() {
-    random_provider::set_seed(2);
-
-    let seed_one = TreeNode::from(Op::sigmoid())
-        .attach(Op::constant(1.0))
-        .attach(Op::var(0));
-    let seed_two = TreeNode::from(Op::linear()).attach(Op::var(0));
-    let seeds = vec![seed_one, seed_two];
-
-    let pgm = Op::softmax_argmax(seeds);
+    random_provider::set_seed(40);
 
     let store = vec![
         (
             NodeType::Vertex,
-            vec![Op::add(), Op::sub(), Op::mul(), Op::linear(), pgm],
+            vec![Op::add(), Op::sub(), Op::mul(), Op::linear()],
         ),
         (NodeType::Leaf, vec![Op::var(0)]),
     ];
@@ -53,7 +45,7 @@ fn display(result: &Generation<TreeChromosome<Op<f32>>, Tree<Op<f32>>>) {
         });
 }
 
-fn get_dataset() -> DataSet {
+fn get_dataset() -> DataSet<f32> {
     let mut inputs = Vec::new();
     let mut answers = Vec::new();
 

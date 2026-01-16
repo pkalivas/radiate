@@ -47,8 +47,8 @@ fn main() {
 }
 
 fn display(
-    train: &DataSet,
-    test: &DataSet,
+    train: &DataSet<f32>,
+    test: &DataSet<f32>,
     result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>,
 ) {
     let mut reducer = GraphEvaluator::new(result.value());
@@ -68,7 +68,7 @@ fn display(
     println!("{:?}", test_acc);
 }
 
-fn load_iris_dataset() -> DataSet {
+fn load_iris_dataset() -> DataSet<f32> {
     let file = include_str!("../iris.csv")
         .split("\n")
         .collect::<Vec<&str>>();

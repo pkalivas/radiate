@@ -1,12 +1,9 @@
 pub mod bool;
-#[cfg(feature = "pgm")]
-pub mod crossover;
 pub mod expr;
 pub mod math;
 pub mod mutator;
 pub mod operation;
-#[cfg(feature = "pgm")]
-pub mod pgm;
+mod param;
 pub mod primitives;
 #[cfg(feature = "serde")]
 mod serde;
@@ -15,6 +12,7 @@ pub use expr::Expression;
 pub use math::{activation_ops, all_ops, math_ops};
 pub use mutator::OperationMutator;
 pub use operation::*;
+pub use param::Param;
 
 pub(crate) mod op_names {
     /// Mathematical operation names
@@ -49,6 +47,7 @@ pub(crate) mod op_names {
     pub const TANH: &str = "tanh";
     pub const IDENTITY: &str = "identity";
     pub const WEIGHT: &str = "w";
+    pub const LOGSUMEXP: &str = "logsumexp";
 
     /// Boolean operation names
     pub const AND: &str = "and";
@@ -69,16 +68,4 @@ pub(crate) mod op_names {
     pub const XNOR: &str = "xnor";
     pub const IMPLIES: &str = "implies";
     pub const IFF: &str = "iff";
-
-    /// PGM operation names
-    #[cfg(feature = "pgm")]
-    pub const LOG_SUM_EXP: &str = "log_sum_exp";
-    #[cfg(feature = "pgm")]
-    pub const SOFTMAX_ARGMAX: &str = "softmax_argmax";
-    #[cfg(feature = "pgm")]
-    pub const ATTENTION_SUM: &str = "attn_sum";
-    #[cfg(feature = "pgm")]
-    pub const WEIGHTED_MEAN: &str = "weighted_mean";
-    #[cfg(feature = "pgm")]
-    pub const CLAMP_NORM: &str = "clamp_norm";
 }

@@ -231,8 +231,16 @@ impl<T> GraphNode<T> {
         self.incoming.as_slice()
     }
 
+    pub fn incoming_buffer(&self) -> &SortedBuffer<usize> {
+        &self.incoming
+    }
+
     pub fn outgoing(&self) -> &[usize] {
         self.outgoing.as_slice()
+    }
+
+    pub fn outgoing_buffer(&self) -> &SortedBuffer<usize> {
+        &self.outgoing
     }
 
     pub fn incoming_mut(&mut self) -> &mut [usize] {
@@ -450,11 +458,11 @@ impl<T: Default> From<(usize, T, Arity)> for GraphNode<T> {
 
 impl<T, I> From<(usize, NodeType, T, I, I)> for GraphNode<T>
 where
-    I: IntoIterator<Item = usize>,
+    I: Into<SortedBuffer<usize>>,
 {
     fn from((index, node_type, value, incoming, outgoing): (usize, NodeType, T, I, I)) -> Self {
-        let incoming = SortedBuffer::from(incoming);
-        let outgoing = SortedBuffer::from(outgoing);
+        let incoming = incoming.into();
+        let outgoing = outgoing.into();
 
         GraphNode {
             index,
@@ -463,6 +471,29 @@ where
             direction: Direction::Forward,
             node_type: Some(node_type),
             arity: None,
+            incoming,
+            outgoing,
+        }
+    }
+}
+
+impl<T, I> From<(usize, NodeType, T, Arity, I, I)> for GraphNode<T>
+where
+    I: Into<SortedBuffer<usize>>,
+{
+    fn from(
+        (index, node_type, value, arity, incoming, outgoing): (usize, NodeType, T, Arity, I, I),
+    ) -> Self {
+        let incoming = incoming.into();
+        let outgoing = outgoing.into();
+
+        GraphNode {
+            index,
+            id: GraphNodeId::new(),
+            value,
+            direction: Direction::Forward,
+            node_type: Some(node_type),
+            arity: Some(arity),
             incoming,
             outgoing,
         }

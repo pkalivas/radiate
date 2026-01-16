@@ -1,5 +1,5 @@
 use super::NodeType;
-use crate::{Arity, Node, Op, TreeIterator, TreeNode};
+use crate::{Arity, Op};
 #[cfg(feature = "serde")]
 use serde::{
     Deserialize, Serialize,
@@ -91,6 +91,15 @@ impl<T> NodeStore<T> {
         Arc::strong_count(&self.values)
     }
 
+    pub fn count_type(&self, node_type: NodeType) -> usize {
+        let values = self.values.read().unwrap();
+        if let Some(values) = values.get(&node_type) {
+            return values.len();
+        }
+
+        0
+    }
+
     pub fn contains_type(&self, node_type: NodeType) -> bool {
         let values = self.values.read().unwrap();
         values.contains_key(&node_type)
@@ -116,25 +125,9 @@ impl<T> NodeStore<T> {
         }
     }
 
-    pub fn merge(&self, other: impl Into<NodeStore<T>>)
+    pub fn insert<K>(&self, node_type: NodeType, values: Vec<K>)
     where
-        T: Clone,
-    {
-        let other_store = other.into();
-        let mut store_values = self.values.write().unwrap();
-        let other_values = other_store.values.read().unwrap();
-
-        for (node_type, values) in other_values.iter() {
-            store_values
-                .entry(*node_type)
-                .or_default()
-                .extend(values.iter().cloned());
-        }
-    }
-
-    pub fn insert(&self, node_type: NodeType, values: Vec<T>)
-    where
-        T: Into<NodeValue<T>>,
+        K: Into<NodeValue<T>>,
     {
         let mut store_values = self.values.write().unwrap();
         store_values.insert(node_type, values.into_iter().map(|x| x.into()).collect());
@@ -257,57 +250,6 @@ impl<T: Clone> From<Op<T>> for NodeStore<Op<T>> {
     }
 }
 
-impl<T> From<Vec<TreeNode<Op<T>>>> for NodeStore<Op<T>>
-where
-    T: Clone,
-{
-    fn from(tree_nodes: Vec<TreeNode<Op<T>>>) -> Self {
-        let store = NodeStore::new();
-        for root in tree_nodes.iter() {
-            store.merge(NodeStore::from(root.clone()));
-        }
-
-        store
-    }
-}
-
-impl<T> From<TreeNode<Op<T>>> for NodeStore<Op<T>>
-where
-    T: Clone,
-{
-    fn from(tree_node: TreeNode<Op<T>>) -> Self {
-        let store = NodeStore::new();
-
-        let mut nodes = Vec::new();
-        tree_node.iter_pre_order().for_each(|node| {
-            #[cfg(feature = "pgm")]
-            {
-                if let Op::PGM(name, arity, programs, eval_fn) = node.value() {
-                    nodes.push(Op::PGM(
-                        name,
-                        *arity,
-                        Arc::new(programs.iter().map(|p| p.clone()).collect()),
-                        *eval_fn,
-                    ));
-
-                    for prog in programs.iter() {
-                        nodes.extend(prog.iter_pre_order().map(|n| n.value().clone()));
-                    }
-                } else {
-                    nodes.push(node.value().clone());
-                }
-            }
-            #[cfg(not(feature = "pgm"))]
-            {
-                nodes.push(node.value().clone());
-            }
-        });
-
-        store.add(nodes);
-        store
-    }
-}
-
 impl<T: Clone> From<&NodeStore<T>> for NodeStore<T> {
     fn from(store: &NodeStore<T>) -> Self {
         NodeStore {
@@ -408,7 +350,7 @@ macro_rules! node_store {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Factory, Node, ops};
+    use crate::{Factory, Node, TreeNode, ops};
 
     fn create_test_store() -> NodeStore<i32> {
         let store = NodeStore::new();
@@ -480,13 +422,14 @@ mod tests {
         assert!(store.contains_type(NodeType::Edge));
         assert!(store.contains_type(NodeType::Vertex));
 
-        let graph_node = store.new_instance((2, NodeType::Vertex));
+        let graph_node = store.new_instance((2, NodeType::Vertex)).unwrap();
 
         assert_eq!(graph_node.index(), 2);
         assert_eq!(graph_node.node_type(), NodeType::Vertex);
 
         // hmmmm
-        let tree_node = store.new_instance(NodeType::Vertex);
+        let tree_node: Option<TreeNode<i32>> = store.new_instance(NodeType::Vertex);
+        let tree_node = tree_node.unwrap();
         assert_eq!(tree_node.node_type(), NodeType::Leaf);
         assert!(tree_node.is_leaf());
     }
@@ -606,7 +549,7 @@ mod tests {
 
         // Verify only new values exist
         let values: Vec<i32> = store
-            .map_by_type(NodeType::Input, |values| {
+            .map_by_type(NodeType::Input, |values: &[NodeValue<i32>]| {
                 values.iter().map(|v| v.value().clone()).collect()
             })
             .unwrap();

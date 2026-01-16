@@ -87,7 +87,10 @@ where
         if let Some(node_type) = self.mutate_type()
             && let Some(store) = chromosome.store()
         {
-            let new_node = store.new_instance((chromosome.len(), node_type));
+            let Some(new_node) = store.new_instance((chromosome.len(), node_type)) else {
+                return AlterResult::from(metric!(INVALID_MUTATION));
+            };
+
             let mut graph = Graph::new(chromosome.take_nodes());
 
             let result = random_provider::with_rng(|rand| {
@@ -102,7 +105,7 @@ where
                         .filter_map(|_| trans.random_source_node(rand).map(|n| n.index()))
                         .collect::<Vec<usize>>();
 
-                    let node_idx = trans.add_node(new_node);
+                    let node_idx = trans.push(new_node);
 
                     if let Some(trgt) = target_idx {
                         for src in source_idx {

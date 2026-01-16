@@ -11,7 +11,7 @@ pub enum Loss {
 
 impl Loss {
     #[inline]
-    pub fn calc(&self, data_set: &DataSet, eval: &mut impl EvalMut<[f32], Vec<f32>>) -> f32 {
+    pub fn calc(&self, data_set: &DataSet<f32>, eval: &mut impl EvalMut<[f32], Vec<f32>>) -> f32 {
         let out_len = data_set.shape().2;
         let mut buffer = vec![0.0; out_len];
 
@@ -22,7 +22,12 @@ impl Loss {
     }
 
     #[inline]
-    pub fn calculate<F>(&self, data_set: &DataSet, buffer: &mut [f32], mut eval_into_buf: F) -> f32
+    pub fn calculate<F>(
+        &self,
+        data_set: &DataSet<f32>,
+        buffer: &mut [f32],
+        mut eval_into_buf: F,
+    ) -> f32
     where
         F: FnMut(&[f32], &mut [f32]),
     {
