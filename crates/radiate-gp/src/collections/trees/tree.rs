@@ -296,9 +296,8 @@ mod test {
     fn test_tree_with_only_leaf_nodes() {
         let store = vec![(NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)])];
         let tree = Tree::with_depth(3, store);
-        assert!(tree.root().is_some());
-        assert_eq!(tree.root().unwrap().node_type(), NodeType::Leaf);
-        assert_eq!(tree.size(), 1);
+        assert!(tree.root().is_none());
+        assert_eq!(tree.size(), 0);
         assert_eq!(tree.height(), 0);
     }
 
@@ -308,8 +307,8 @@ mod test {
         let tree = Tree::with_depth(3, empty_store);
 
         // Root will be a default node since no valid nodes were provided
-        assert!(tree.root().is_some());
-        assert_eq!(tree.size(), 1);
+        assert!(tree.root().is_none());
+        assert_eq!(tree.size(), 0);
         assert_eq!(tree.height(), 0);
     }
 

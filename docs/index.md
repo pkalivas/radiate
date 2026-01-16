@@ -133,7 +133,14 @@ This simple maximizing problem demonstrates how to use Radiate to solve a string
 
 Radiate is inspired from a multitude of other genetic algorithm libraries, all of which have their own unique features and capabilities. Some of the most notable inspirations include:
 
-* [carrot](https://github.com/liquidcarrot/carrot): An architecture-free neural network library built around neuroevolution built in javascript
+* [carrot](https://github.com/liquidcarrot/carrot): An architecture-free neural network library built around neuroevolution built in javascript.
 * [Genevo](https://github.com/innoave/genevo): A Rust library which provides building blocks to run simulations of optimization and search problems using genetic algorithms (GA).
-* [Sharpneat](https://github.com/colgreen/sharpneat): A C# library for evolutionary computation, primarily focused on neuroevolution and artificial neural networks
-* [Jenetics](https://jenetics.io): A Genetic Algorithm, Evolutionary Algorithm, Grammatical Evolution, Genetic Programming, and Multi-objective Optimization library, written in modern day Java
+* [Sharpneat](https://github.com/colgreen/sharpneat): A C# library for evolutionary computation, primarily focused on neuroevolution and artificial neural networks.
+* [Jenetics](https://jenetics.io): A Genetic Algorithm, Evolutionary Algorithm, Grammatical Evolution, Genetic Programming, and Multi-objective Optimization library, written in modern day Java.
+
+## Research & References
+
+For those interested in diving deeper into the concepts and theories behind genetic algorithms and evolutionary computation, here are some recommended research papers and books that have influenced the development of Radiate:
+
+* [Genetic Algorithms in Search, Optimization, and Machine Learning](https://www.amazon.com/Genetic-Algorithms-Search-Optimization-Machine/dp/0201157675) by David E. Goldberg: A foundational text that covers the principles and applications of genetic algorithms.
+* [Genetic Algorithms](https://www.amazon.com/Genetic-Algorithms-Concepts-Textbooks-Processing/dp/1852330724) by K.F. Man, K.S. Tang, and S. Kwong: A comprehensive book that covers the fundamental concepts and techniques of genetic algorithms.

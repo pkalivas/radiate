@@ -12,10 +12,10 @@ pub use factory::*;
 pub use graphs::{
     Direction, Graph, GraphAggregate, GraphChromosome, GraphCodec, GraphCrossover, GraphEvaluator,
     GraphIterator, GraphMutator, GraphNode, GraphNodeId, GraphReplacement, NeatDistance,
+    NodeBuilder,
 };
 pub use node::{Node, NodeType};
 pub use store::{NodeStore, NodeValue};
 pub use trees::{
-    Format, HoistMutator, Tree, TreeChromosome, TreeCodec, TreeCrossover, TreeIterator, TreeMapper,
-    TreeNode,
+    Format, HoistMutator, Tree, TreeChromosome, TreeCodec, TreeCrossover, TreeIterator, TreeNode,
 };

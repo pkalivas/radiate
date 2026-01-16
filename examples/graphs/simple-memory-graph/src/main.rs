@@ -35,6 +35,9 @@ fn main() {
 }
 
 fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
+    // Save the best result to json
+    let json = serde_json::to_string_pretty(&result.value()).unwrap();
+    std::fs::write("best_graph.json", json).expect("Failed to write best_graph.json");
     let dataset = dataset();
     let outputs = result.value().eval(&dataset.features());
 
@@ -50,7 +53,7 @@ fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
     println!("{result:?}");
 }
 
-fn dataset() -> DataSet {
+fn dataset() -> DataSet<f32> {
     DataSet::default()
         .row((vec![0.0], vec![0.0]))
         .row((vec![0.0], vec![0.0]))

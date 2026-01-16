@@ -85,7 +85,7 @@ where
 impl<T, V> EvalMut<[V], Vec<V>> for GraphEvaluator<'_, T, V>
 where
     T: Eval<[V], V>,
-    V: Clone + Default,
+    V: Copy + Default,
 {
     #[inline]
     fn eval_mut(&mut self, input: &[V]) -> Vec<V> {
@@ -99,7 +99,7 @@ where
 impl<T, V> EvalIntoMut<[V], [V]> for GraphEvaluator<'_, T, V>
 where
     T: Eval<[V], V>,
-    V: Clone + Default,
+    V: Copy + Default,
 {
     #[inline]
     fn eval_into_mut(&mut self, input: &[V], buffer: &mut [V]) {
@@ -114,7 +114,7 @@ where
                 let buf = &mut self.inner.inputs[range.clone()];
 
                 for (dst, &src_idx) in buf.iter_mut().zip(incoming.iter()) {
-                    *dst = self.inner.outputs[src_idx].clone();
+                    *dst = self.inner.outputs[src_idx];
                 }
 
                 self.inner.outputs[index] = node.eval(buf);
@@ -123,7 +123,7 @@ where
 
         let mut count = 0;
         for &idx in self.inner.output_indices.iter() {
-            buffer[count] = self.inner.outputs[idx].clone();
+            buffer[count] = self.inner.outputs[idx];
             count += 1;
         }
     }
@@ -132,7 +132,7 @@ where
 impl<T, V> EvalInto<[Vec<V>], Vec<Vec<V>>> for Graph<T>
 where
     T: Eval<[V], V>,
-    V: Clone + Default,
+    V: Copy + Default,
 {
     /// Evaluates the [Graph] with the given input `Vec<Vec<T>>`. Returns the output of the [Graph] as `Vec<Vec<T>>`.
     ///
@@ -153,7 +153,7 @@ where
 impl<T, V> Eval<[Vec<V>], Vec<Vec<V>>> for Graph<T>
 where
     T: Eval<[V], V>,
-    V: Clone + Default,
+    V: Copy + Default,
 {
     /// Evaluates the [Graph] with the given input `Vec<Vec<T>>`. Returns the output of the [Graph] as `Vec<Vec<T>>`.
     /// This is intended to be used when evaluating a batch of inputs.
@@ -176,7 +176,7 @@ where
 impl<T, V> Eval<[V], V> for GraphNode<T>
 where
     T: Eval<[V], V>,
-    V: Clone,
+    V: Copy,
 {
     /// Evaluates the [GraphNode] with the given input. Returns the output of the [GraphNode].
     /// # Arguments
@@ -300,7 +300,7 @@ mod tests {
         assert_eq!(round(out2, 3), 0.000);
         assert_eq!(round(out3, 3), 0.902);
         assert_eq!(round(out4, 3), 0.000);
-        assert_eq!(round(out5, 3), 0.000);
+        assert_eq!(round(out5, 3), 1.000);
         assert_eq!(round(out6, 3), 0.000);
         assert_eq!(round(out7, 3), 1.000);
     }

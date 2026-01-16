@@ -48,6 +48,7 @@ pub(crate) const POLYNOMIAL_MUTATOR: &str = "PolynomialMutator";
 pub(crate) const JITTER_MUTATOR: &str = "JitterMutator";
 
 // Events
+pub(crate) const ALL_EVENTS: &str = "all";
 pub(crate) const START_EVENT: &str = "start_event";
 pub(crate) const STOP_EVENT: &str = "stop_event";
 pub(crate) const EPOCH_START_EVENT: &str = "epoch_start_event";

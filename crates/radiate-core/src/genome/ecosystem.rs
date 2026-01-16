@@ -38,28 +38,6 @@ impl<C: Chromosome> Ecosystem<C> {
         }
     }
 
-    /// Reference clone an existing ecosystem. This creates a new ecosystem
-    /// with reference counted clones of the phenotypes and species. This just clones
-    /// pointers to the underlying [Population] and [Species], so any modifications to
-    /// the phenotypes will be reflected in both ecosystems. Radiate uses this internally
-    /// for efficiency when iterating over generations - this is not intended for general use.
-    ///
-    /// **Use with caution**
-    pub fn clone_ref(other: &Ecosystem<C>) -> Self
-    where
-        C: Clone,
-    {
-        Ecosystem {
-            population: Population::clone_ref(&other.population),
-            species: other.species.as_ref().map(|specs| {
-                specs
-                    .iter()
-                    .map(|species| Species::clone_ref(species))
-                    .collect()
-            }),
-        }
-    }
-
     /// Get the number of shared phenotypes in the population.
     /// A shared phenotype is one that is reference cloned and held
     /// by another structure, such as a [Species]. The only time the shared

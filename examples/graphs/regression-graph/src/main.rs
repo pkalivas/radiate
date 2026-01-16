@@ -17,9 +17,6 @@ fn main() {
         .raw_fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
         // .diversity(NeatDistance::new(0.1, 0.1, 0.3))
-        // .subscribe(|event: &EngineEvent<Graph<Op<f32>>>| match event {
-        //     _ => {}
-        // })
         .species_threshold(0.4)
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
@@ -28,7 +25,12 @@ fn main() {
         ))
         .build();
 
-    engine.iter().until_score(MIN_SCORE).last().inspect(display);
+    engine
+        .iter()
+        .logging()
+        .until_score(MIN_SCORE)
+        .last()
+        .inspect(display);
     // engine
     //     .iter()
     //     .until_metric(metric_names::EVALUATION_COUNT, |metric| {
@@ -62,7 +64,7 @@ fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
         });
 }
 
-fn dataset() -> impl Into<DataSet> {
+fn dataset() -> impl Into<DataSet<f32>> {
     let mut inputs = Vec::new();
     let mut answers = Vec::new();
 

@@ -1,46 +1,120 @@
 use super::node::GraphNodeId;
 use crate::{
     collections::{Graph, GraphNode, NodeType},
+    graphs::transaction::TransactionResult,
     node::Node,
 };
 use std::collections::BTreeMap;
 
+#[derive(Clone, Copy)]
+pub enum AggregateInsertValue<'a, T> {
+    Single(&'a GraphNode<T>),
+    Many(&'a [GraphNode<T>]),
+}
+
+impl<'a, T> AggregateInsertValue<'a, T> {
+    pub fn len(&self) -> usize {
+        match self {
+            AggregateInsertValue::Single(_) => 1,
+            AggregateInsertValue::Many(nodes) => nodes.len(),
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        match self {
+            AggregateInsertValue::Single(_) => false,
+            AggregateInsertValue::Many(nodes) => nodes.is_empty(),
+        }
+    }
+
+    pub fn is_single(&self) -> bool {
+        matches!(self, AggregateInsertValue::Single(_))
+    }
+
+    pub fn is_many(&self) -> bool {
+        matches!(self, AggregateInsertValue::Many(_))
+    }
+}
+
+impl<'a, T> From<&'a GraphNode<T>> for AggregateInsertValue<'a, T> {
+    fn from(value: &'a GraphNode<T>) -> Self {
+        AggregateInsertValue::Single(value)
+    }
+}
+
+impl<'a, T> From<&'a [GraphNode<T>]> for AggregateInsertValue<'a, T> {
+    fn from(value: &'a [GraphNode<T>]) -> AggregateInsertValue<'a, T> {
+        AggregateInsertValue::Many(value)
+    }
+}
+
+impl<'a, T> From<&'a Vec<GraphNode<T>>> for AggregateInsertValue<'a, T> {
+    fn from(value: &'a Vec<GraphNode<T>>) -> AggregateInsertValue<'a, T> {
+        AggregateInsertValue::Many(value.as_slice())
+    }
+}
+
+pub struct AggregateBuildResult<T> {
+    graph: Graph<T>,
+    transaction_result: TransactionResult<T>,
+}
+
+impl<T: Clone> AggregateBuildResult<T> {
+    pub fn into_graph(self) -> Graph<T> {
+        let mut graph = self.graph;
+
+        if self.transaction_result.is_invalid() {
+            self.transaction_result.replay(&mut graph);
+        }
+
+        graph
+    }
+
+    pub fn unwrap(self) -> Graph<T> {
+        if !self.transaction_result.is_valid() {
+            panic!("Cannot unwrap an invalid graph build result.");
+        }
+
+        self.graph
+    }
+}
+
 /// Building a [Graph<T>] can be a very complex task. Everything in this file exists
 /// to simplify the process by allowing the user to do so in a declarative way.
 ///
-/// The [ConnectTypes] are a set of available ways we can connect different [GraphNode]'s together.
+/// The [ConnectionCommand] are a set of available ways we can connect different [GraphNode]'s together.
 ///
 /// # Assumptions
 /// * The first collection is the 'source' collection and the second collection is the 'target' collection.
-/// * The target collection's [GraphNode]'s `Arity` is compatible with the [ConnectTypes].
-enum ConnectTypes {
+/// * The target collection's [GraphNode]'s `Arity` is compatible with the [ConnectionCommand].
+enum ConnectionCommand<'a, T> {
     /// Connects each `GraphNode` in the first collection to the corresponding `GraphNode` in the
     /// second collection.
     ///
     /// # Rules
     /// * The first collection must have the same number of `GraphNode`s as the second collection.
     /// * the `GraphNode`'s in the second collection must have an arity of either `Any` or `Exact(1)`.
-    OneToOne,
+    OneToOne(AggregateInsertValue<'a, T>, AggregateInsertValue<'a, T>),
     /// Connects each `GraphNode` in the first collection to all `GraphNode`s in the second collection.
     ///
     /// # Rules
     /// * The second collection must be of size `n` where `n` is a multiple of the size of the first
     ///   collection IE: `n % first.len() == 0`.
     /// * The `GraphNode`'s in the second collection must have an arity of either `Any` or `Exact(n / first.len())`.
-    OneToMany,
+    OneToMany(AggregateInsertValue<'a, T>, AggregateInsertValue<'a, T>),
     /// Connects all `GraphNode`s in the first collection to a single `GraphNode` in the second collection.
     ///
     /// # Rules
     /// * The first collection must be of size `n` where `n` is a multiple of the size of the second collection
     ///   IE: `n % second.len() == 0`.
     /// * The `GraphNode`'s in the first collection must have an arity of either `Any` or `Exact(n / second.len())`.
-    ManyToOne,
+    ManyToOne(AggregateInsertValue<'a, T>, AggregateInsertValue<'a, T>),
     /// Connects all `GraphNode`s in the first collection to all `GraphNode`s in the second collection.
     ///
     /// # Rules
     /// * The `GraphNode`'s in the second collection must have an arity of either `Any` or `Exact(n)`
     ///   where `n` is the size of the first collection.
-    AllToAll,
+    AllToAll(AggregateInsertValue<'a, T>, AggregateInsertValue<'a, T>),
 }
 
 /// Represents a relationship between two [GraphNode]'s where the `source_id` is the [GraphNode]'s
@@ -58,7 +132,7 @@ struct Relationship<'a> {
 /// connected to each other. Because of the nature of this aggregate, verifying the correctness of a
 /// [Graph] can truly only be done after building the final [Graph].
 #[derive(Default)]
-pub struct GraphAggregate<'a, T: Clone> {
+pub struct GraphAggregate<'a, T> {
     nodes: BTreeMap<&'a GraphNodeId, &'a GraphNode<T>>,
     node_order: BTreeMap<usize, &'a GraphNodeId>,
     relationships: Vec<Relationship<'a>>,
@@ -74,81 +148,168 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
     }
 
     pub fn build(&self) -> Graph<T> {
+        self.try_build().into_graph()
+    }
+
+    pub fn try_build(&self) -> AggregateBuildResult<T> {
         let mut id_index_map = BTreeMap::new();
         let mut graph = Graph::<T>::default();
 
-        for (index, node_id) in self.node_order.values().enumerate() {
-            let node = self.nodes[node_id];
+        let result = graph.try_modify(|mut trans| {
+            for (index, node_id) in self.node_order.values().enumerate() {
+                let node = self.nodes[node_id];
 
-            graph.push((index, node.node_type(), node.value().clone(), node.arity()));
-            id_index_map.insert(node_id, index);
+                trans.push((index, node.node_type(), node.value().clone(), node.arity()));
+                id_index_map.insert(node_id, index);
+            }
+
+            for rel in self.relationships.iter() {
+                let source_idx = id_index_map[&rel.source_id];
+                let target_idx = id_index_map[&rel.target_id];
+
+                trans.attach(source_idx, target_idx);
+            }
+
+            trans.try_commit()
+        });
+
+        AggregateBuildResult {
+            graph,
+            transaction_result: result,
         }
-
-        for rel in self.relationships.iter() {
-            let source_idx = id_index_map[&rel.source_id];
-            let target_idx = id_index_map[&rel.target_id];
-
-            graph.attach(source_idx, target_idx);
-        }
-
-        graph.set_cycles(vec![]);
-        graph
     }
 
-    pub fn cycle<G: AsRef<[GraphNode<T>]>>(self, one: &'a G) -> Self {
-        self.one_to_one(one, one)
-    }
-
-    pub fn one_to_one<G: AsRef<[GraphNode<T>]>>(mut self, one: &'a G, two: &'a G) -> Self {
-        self.connect(ConnectTypes::OneToOne, one, two);
+    pub fn cycle<F>(mut self, one: F) -> Self
+    where
+        F: Into<AggregateInsertValue<'a, T>>,
+    {
+        let group = one.into();
+        self.connect(ConnectionCommand::OneToOne(group.clone(), group));
         self
     }
 
-    pub fn one_to_many<G: AsRef<[GraphNode<T>]>>(mut self, one: &'a G, two: &'a G) -> Self {
-        self.connect(ConnectTypes::OneToMany, one, two);
+    pub fn one_to_one<F, S>(mut self, one: F, two: S) -> Self
+    where
+        F: Into<AggregateInsertValue<'a, T>>,
+        S: Into<AggregateInsertValue<'a, T>>,
+    {
+        self.connect(ConnectionCommand::OneToOne(one.into(), two.into()));
         self
     }
 
-    pub fn many_to_one<G: AsRef<[GraphNode<T>]>>(mut self, one: &'a G, two: &'a G) -> Self {
-        self.connect(ConnectTypes::ManyToOne, one, two);
+    pub fn one_to_many<F, S>(mut self, one: F, two: S) -> Self
+    where
+        F: Into<AggregateInsertValue<'a, T>>,
+        S: Into<AggregateInsertValue<'a, T>>,
+    {
+        self.connect(ConnectionCommand::OneToMany(one.into(), two.into()));
         self
     }
 
-    pub fn all_to_all<G: AsRef<[GraphNode<T>]>>(mut self, one: &'a G, two: &'a G) -> Self {
-        self.connect(ConnectTypes::AllToAll, one, two);
+    pub fn many_to_one<F, S>(mut self, one: F, two: S) -> Self
+    where
+        F: Into<AggregateInsertValue<'a, T>>,
+        S: Into<AggregateInsertValue<'a, T>>,
+    {
+        self.connect(ConnectionCommand::ManyToOne(one.into(), two.into()));
         self
     }
 
-    pub fn insert<G: AsRef<[GraphNode<T>]>>(mut self, collection: &'a G) -> Self {
-        self.attach(collection.as_ref());
+    pub fn all_to_all<F, S>(mut self, one: F, two: S) -> Self
+    where
+        F: Into<AggregateInsertValue<'a, T>>,
+        S: Into<AggregateInsertValue<'a, T>>,
+    {
+        self.connect(ConnectionCommand::AllToAll(one.into(), two.into()));
         self
     }
 
-    pub fn layer<G: AsRef<[GraphNode<T>]>>(&self, collections: Vec<&'a G>) -> Self {
+    pub fn insert<G: Into<AggregateInsertValue<'a, T>>>(mut self, collection: G) -> Self {
+        let group = collection.into();
+        self.attach(&group);
+        self
+    }
+
+    pub fn layer<F>(&self, collections: Vec<F>) -> Self
+    where
+        F: Into<AggregateInsertValue<'a, T>>,
+    {
         let mut conn = GraphAggregate::new();
-        let mut previous = collections[0];
+        let inserts = collections
+            .into_iter()
+            .map(|c| c.into())
+            .collect::<Vec<AggregateInsertValue<'a, T>>>();
 
-        for collection in collections.iter() {
-            conn.attach((*collection).as_ref());
+        let mut previous = &inserts[0];
+
+        for collection in inserts.iter() {
+            conn.attach(collection);
         }
 
-        for coll in collections.iter().skip(1) {
-            conn = conn.one_to_one(previous, coll);
+        for coll in inserts.iter().skip(1) {
+            conn = conn.one_to_one(previous.clone(), coll.clone());
             previous = coll;
         }
 
         conn
     }
 
-    fn attach(&mut self, group: &'a [GraphNode<T>]) {
-        for node in group.iter() {
+    fn connect(&mut self, connection: ConnectionCommand<'a, T>) {
+        if let ConnectionCommand::OneToOne(one, two) = &connection {
+            let one_ids = self.attach(&one);
+            let two_ids = self.attach(&two);
+
+            self.one_to_one_connect(&one_ids, &two_ids);
+        } else if let ConnectionCommand::OneToMany(one, two) = &connection {
+            let one_ids = self.attach(&one);
+            let two_ids = self.attach(&two);
+
+            self.one_to_many_connect(&one_ids, &two_ids);
+        } else if let ConnectionCommand::ManyToOne(one, two) = &connection {
+            let one_ids = self.attach(&one);
+            let two_ids = self.attach(&two);
+
+            self.many_to_one_connect(&one_ids, &two_ids);
+        } else if let ConnectionCommand::AllToAll(one, two) = &connection {
+            let one_ids = self.attach(&one);
+            let two_ids = self.attach(&two);
+
+            self.all_to_all_connect(&one_ids, &two_ids);
+        }
+    }
+
+    fn attach(&mut self, group: &AggregateInsertValue<'a, T>) -> Vec<&'a GraphNodeId> {
+        match group {
+            AggregateInsertValue::Single(node) => self.attach_single(node),
+            AggregateInsertValue::Many(nodes) => self.attach_many(nodes),
+        }
+    }
+
+    fn attach_single(&mut self, node: &'a GraphNode<T>) -> Vec<&'a GraphNodeId> {
+        if !self.nodes.contains_key(node.id()) {
+            let ordinal = self.node_order.len();
+            self.nodes.insert(node.id(), node);
+            self.node_order.insert(ordinal, node.id());
+
+            return vec![node.id()];
+        }
+
+        vec![node.id()]
+    }
+
+    fn attach_many(&mut self, nodes: &'a [GraphNode<T>]) -> Vec<&'a GraphNodeId> {
+        let mut indexes = Vec::with_capacity(nodes.len());
+        for node in nodes.iter() {
             let node_id = node.id();
 
             if !self.nodes.contains_key(node_id) {
-                self.nodes.insert(node_id, node);
-                self.node_order.insert(self.node_order.len(), node_id);
+                let ordinal = self.node_order.len();
 
-                group
+                self.nodes.insert(node_id, node);
+                self.node_order.insert(ordinal, node_id);
+                indexes.push(node_id);
+
+                nodes
                     .iter()
                     .filter(|item| node.outgoing().contains(&item.index()))
                     .for_each(|item| {
@@ -157,33 +318,20 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
                             target_id: item.id(),
                         });
                     });
+            } else {
+                indexes.push(node_id);
             }
         }
+
+        indexes
     }
 
-    fn connect<G: AsRef<[GraphNode<T>]>>(
-        &mut self,
-        connection: ConnectTypes,
-        one: &'a G,
-        two: &'a G,
-    ) {
-        self.attach(one.as_ref());
-        self.attach(two.as_ref());
-
-        match connection {
-            ConnectTypes::OneToOne => self.one_to_one_connect(one, two),
-            ConnectTypes::OneToMany => self.one_to_many_connect(one, two),
-            ConnectTypes::ManyToOne => self.many_to_one_connect(one, two),
-            ConnectTypes::AllToAll => self.all_to_all_connect(one, two),
-        }
-    }
-
-    fn one_to_one_connect<G: AsRef<[GraphNode<T>]>>(&mut self, one: &'a G, two: &'a G) {
-        let one_outputs = Self::get_outputs(one);
-        let two_inputs = Self::get_inputs(two);
+    fn one_to_one_connect(&mut self, one: &[&'a GraphNodeId], two: &[&'a GraphNodeId]) {
+        let one_outputs = self.get_outputs(&one);
+        let two_inputs = self.get_inputs(&two);
 
         if one_outputs.len() != two_inputs.len() {
-            panic!("OneToOne - oneGroup outputs must be the same length as twoGroup inputs.");
+            panic!("OneToOne - Both groups must be of the same size.");
         }
 
         for (one, two) in one_outputs.into_iter().zip(two_inputs.into_iter()) {
@@ -194,9 +342,9 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
         }
     }
 
-    fn one_to_many_connect<G: AsRef<[GraphNode<T>]>>(&mut self, one: &'a G, two: &'a G) {
-        let one_outputs = Self::get_outputs(one);
-        let two_inputs = Self::get_inputs(two);
+    fn one_to_many_connect(&mut self, one: &[&'a GraphNodeId], two: &[&'a GraphNodeId]) {
+        let one_outputs = self.get_outputs(one);
+        let two_inputs = self.get_inputs(two);
 
         if two_inputs.len() % one_outputs.len() != 0 {
             panic!("OneToMany - TwoGroup inputs must be a multiple of OneGroup outputs.");
@@ -212,9 +360,9 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
         }
     }
 
-    fn many_to_one_connect<G: AsRef<[GraphNode<T>]>>(&mut self, one: &'a G, two: &'a G) {
-        let one_outputs = Self::get_outputs(one);
-        let two_inputs = Self::get_inputs(two);
+    fn many_to_one_connect(&mut self, one: &[&'a GraphNodeId], two: &[&'a GraphNodeId]) {
+        let one_outputs = self.get_outputs(one);
+        let two_inputs = self.get_inputs(two);
 
         if one_outputs.len() % two_inputs.len() != 0 {
             panic!("ManyToOne - OneGroup outputs must be a multiple of TwoGroup inputs.");
@@ -230,9 +378,9 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
         }
     }
 
-    fn all_to_all_connect<G: AsRef<[GraphNode<T>]>>(&mut self, one: &'a G, two: &'a G) {
-        let one_outputs = Self::get_outputs(one);
-        let two_inputs = Self::get_inputs(two);
+    fn all_to_all_connect(&mut self, one: &[&'a GraphNodeId], two: &[&'a GraphNodeId]) {
+        let one_outputs = self.get_outputs(one);
+        let two_inputs = self.get_inputs(two);
 
         for source in one_outputs {
             for target in two_inputs.iter() {
@@ -244,13 +392,17 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
         }
     }
 
-    fn get_outputs<G: AsRef<[GraphNode<T>]>>(collection: &'a G) -> Vec<&'a GraphNode<T>> {
+    fn get_outputs(&self, ids: &[&'a GraphNodeId]) -> Vec<&'a GraphNode<T>> {
+        let collection = ids
+            .iter()
+            .map(|id| self.nodes[id])
+            .collect::<Vec<&'a GraphNode<T>>>();
+
         let outputs = collection
-            .as_ref()
             .iter()
             .enumerate()
             .skip_while(|(_, node)| !node.outgoing().is_empty())
-            .filter_map(|(idx, _)| collection.as_ref().get(idx))
+            .filter_map(|(idx, _)| collection.get(idx).cloned())
             .collect::<Vec<&GraphNode<T>>>();
 
         if !outputs.is_empty() {
@@ -258,7 +410,6 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
         }
 
         let recurrent_outputs = collection
-            .as_ref()
             .iter()
             .enumerate()
             .filter(|(_, node)| {
@@ -266,7 +417,7 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
                     && node.is_recurrent()
                     && node.node_type() == NodeType::Vertex
             })
-            .filter_map(|(idx, _)| collection.as_ref().get(idx))
+            .filter_map(|(idx, _)| collection.get(idx).cloned())
             .collect::<Vec<&GraphNode<T>>>();
 
         if !recurrent_outputs.is_empty() {
@@ -274,21 +425,24 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
         }
 
         collection
-            .as_ref()
             .iter()
             .enumerate()
             .filter(|(_, node)| node.incoming().is_empty())
-            .filter_map(|(idx, _)| collection.as_ref().get(idx))
+            .filter_map(|(idx, _)| collection.get(idx).cloned())
             .collect::<Vec<&GraphNode<T>>>()
     }
 
-    fn get_inputs<G: AsRef<[GraphNode<T>]>>(collection: &'a G) -> Vec<&'a GraphNode<T>> {
+    fn get_inputs(&self, ids: &[&'a GraphNodeId]) -> Vec<&'a GraphNode<T>> {
+        let collection = ids
+            .iter()
+            .map(|id| self.nodes[id])
+            .collect::<Vec<&'a GraphNode<T>>>();
+
         let inputs = collection
-            .as_ref()
             .iter()
             .enumerate()
             .take_while(|(_, node)| node.incoming().is_empty())
-            .filter_map(|(idx, _)| collection.as_ref().get(idx))
+            .filter_map(|(idx, _)| collection.get(idx).cloned())
             .collect::<Vec<&GraphNode<T>>>();
 
         if !inputs.is_empty() {
@@ -296,7 +450,6 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
         }
 
         let recurrent_inputs = collection
-            .as_ref()
             .iter()
             .enumerate()
             .filter(|(_, node)| {
@@ -304,7 +457,7 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
                     && node.is_recurrent()
                     && node.node_type() == NodeType::Vertex
             })
-            .filter_map(|(idx, _)| collection.as_ref().get(idx))
+            .filter_map(|(idx, _)| collection.get(idx).cloned())
             .collect::<Vec<&GraphNode<T>>>();
 
         if !recurrent_inputs.is_empty() {
@@ -312,11 +465,10 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
         }
 
         collection
-            .as_ref()
             .iter()
             .enumerate()
             .filter(|(_, node)| node.outgoing().is_empty())
-            .filter_map(|(idx, _)| collection.as_ref().get(idx))
+            .filter_map(|(idx, _)| collection.get(idx).cloned())
             .collect::<Vec<&GraphNode<T>>>()
     }
 }
@@ -328,7 +480,8 @@ mod tests {
     use std::panic;
 
     fn should_panic<F: FnOnce() -> () + panic::UnwindSafe>(f: F) {
-        assert!(panic::catch_unwind(f).is_err());
+        let does_panic = panic::catch_unwind(f).is_err();
+        assert!(does_panic, "Expected function to panic, but it did not.");
     }
 
     #[test]

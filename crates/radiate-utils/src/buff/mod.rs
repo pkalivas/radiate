@@ -1,8 +1,7 @@
 mod sorted;
-#[allow(dead_code)]
-mod tensor;
+mod value;
 mod window;
 
 pub use sorted::SortedBuffer;
-// pub use tensor::Tensor;
+pub use value::Value;
 pub use window::WindowBuffer;

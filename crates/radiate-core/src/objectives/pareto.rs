@@ -73,78 +73,77 @@ pub fn crowding_distance<T: AsRef<[f32]>>(scores: &[T]) -> Vec<f32> {
 
 #[inline]
 pub fn non_dominated<T: AsRef<[f32]>>(population: &[T], objective: &Objective) -> Vec<usize> {
-    let mut dominated_counts = vec![0; population.len()];
-    let mut dominates = vec![Vec::new(); population.len()];
+    let n = population.len();
+    if n == 0 {
+        return Vec::new();
+    }
 
-    for i in 0..population.len() {
-        for j in (i + 1)..population.len() {
-            let score_one = &population[i];
-            let score_two = &population[j];
-            if dominance(score_one, score_two, objective) {
-                dominates[i].push(j);
+    let mut dominated_counts = vec![0usize; n];
+
+    for i in 0..n {
+        for j in (i + 1)..n {
+            let a = &population[i];
+            let b = &population[j];
+
+            if dominance(a, b, objective) {
                 dominated_counts[j] += 1;
-            } else if dominance(score_two, score_one, objective) {
-                dominates[j].push(i);
+            } else if dominance(b, a, objective) {
                 dominated_counts[i] += 1;
             }
         }
     }
 
-    let mut non_dominated = Vec::new();
-    for i in 0..population.len() {
+    let mut nd = Vec::new();
+    for i in 0..n {
         if dominated_counts[i] == 0 {
-            non_dominated.push(i);
+            nd.push(i);
         }
     }
 
-    non_dominated
+    nd
 }
 
 /// Rank the population based on the NSGA-II algorithm. This assigns a rank to each
 /// individual in the population based on their dominance relationships with other
 /// individuals in the population. The result is a vector of ranks, where the rank
 /// of the individual at index `i` is `ranks[i]`.
+
 #[inline]
 pub fn rank<T: AsRef<[f32]>>(population: &[T], objective: &Objective) -> Vec<usize> {
-    let mut dominated_counts = vec![0; population.len()];
-    let mut dominates = vec![Vec::new(); population.len()];
-    let mut current_front: Vec<usize> = Vec::new();
-    let mut dominance_matrix = vec![vec![0; population.len()]; population.len()];
+    let n = population.len();
+    if n == 0 {
+        return Vec::new();
+    }
 
-    for i in 0..population.len() {
-        for j in (i + 1)..population.len() {
-            let score_one = &population[i];
-            let score_two = &population[j];
-            if dominance(score_one, score_two, objective) {
-                dominance_matrix[i][j] = 1;
-                dominance_matrix[j][i] = -1;
-            } else if dominance(score_two, score_one, objective) {
-                dominance_matrix[i][j] = -1;
-                dominance_matrix[j][i] = 1;
+    let mut dominated_counts = vec![0usize; n];
+    let mut dominates: Vec<Vec<usize>> = vec![Vec::new(); n];
+    let mut current_front: Vec<usize> = Vec::new();
+
+    // Build dominates lists + dominated counts in one pass (no NxN matrix).
+    for i in 0..n {
+        for j in (i + 1)..n {
+            let a = &population[i];
+            let b = &population[j];
+
+            if dominance(a, b, objective) {
+                dominates[i].push(j);
+                dominated_counts[j] += 1;
+            } else if dominance(b, a, objective) {
+                dominates[j].push(i);
+                dominated_counts[i] += 1;
             }
         }
     }
 
-    for i in 0..population.len() {
-        for j in 0..population.len() {
-            if i != j {
-                if dominance_matrix[i][j] == 1 {
-                    dominates[i].push(j);
-                } else if dominance_matrix[i][j] == -1 {
-                    dominated_counts[i] += 1;
-                }
-            }
-        }
-
-        // If no one dominates this solution, it belongs to the first front
+    // First front
+    for i in 0..n {
         if dominated_counts[i] == 0 {
             current_front.push(i);
         }
     }
 
-    // Assign ranks based on fronts
-    let mut ranks = vec![0; population.len()];
-    let mut front_idx = 0;
+    let mut ranks = vec![0usize; n];
+    let mut front_idx = 0usize;
 
     while !current_front.is_empty() {
         let mut next_front = Vec::new();
@@ -238,8 +237,8 @@ pub fn weights<T: AsRef<[f32]>>(scores: &[T], objective: &Objective) -> Vec<f32>
 // Determine if one score dominates another score. A score `a` dominates a score `b`
 // if it is better in every objective and at least one objective is strictly better.
 pub fn dominance<K: PartialOrd, T: AsRef<[K]>>(
-    score_a: T,
-    score_b: T,
+    score_a: &T,
+    score_b: &T,
     objective: &Objective,
 ) -> bool {
     let mut better_in_any = false;
@@ -407,6 +406,7 @@ where
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
 
     fn obj_min2() -> Objective {
@@ -660,5 +660,116 @@ mod tests {
         let h = entropy(&scores, 10);
 
         assert!(h.abs() < 1e-6, "entropy should be ~0, got {}", h);
+    }
+
+    #[test]
+    fn rank_empty_is_empty() {
+        let scores: Vec<Vec<f32>> = vec![];
+        let r = rank(&scores, &obj_min2());
+        assert!(r.is_empty());
+    }
+
+    #[test]
+    fn rank_single_is_front0() {
+        let scores = vec![vec![1.0f32, 2.0]];
+        let r = rank(&scores, &obj_min2());
+        assert_eq!(r, vec![0]);
+    }
+
+    #[test]
+    fn rank_duplicate_points_same_front() {
+        // Two identical best points should both be rank 0; dominated point should be later.
+        let scores = vec![
+            vec![0.0f32, 0.0],
+            vec![0.0f32, 0.0], // duplicate
+            vec![1.0f32, 1.0], // dominated by both
+        ];
+        let r = rank(&scores, &obj_min2());
+
+        assert_eq!(r[0], 0);
+        assert_eq!(r[1], 0);
+        assert_eq!(r[2], 1);
+    }
+
+    #[test]
+    fn rank_all_nondominated_all_front0() {
+        // Tradeoff curve: none dominates another under minimization
+        let scores = vec![
+            vec![0.0f32, 10.0],
+            vec![1.0f32, 9.0],
+            vec![2.0f32, 8.0],
+            vec![3.0f32, 7.0],
+            vec![4.0f32, 6.0],
+        ];
+        let r = rank(&scores, &obj_min2());
+        assert!(
+            r.iter().all(|&x| x == 0),
+            "expected all rank 0, got {:?}",
+            r
+        );
+    }
+
+    #[test]
+    fn rank_strict_chain_increasing_fronts() {
+        // Strict dominance chain for minimization:
+        // [0,0] dominates [1,1] dominates [2,2] dominates [3,3]
+        let scores = vec![
+            vec![0.0f32, 0.0],
+            vec![1.0f32, 1.0],
+            vec![2.0f32, 2.0],
+            vec![3.0f32, 3.0],
+        ];
+        let r = rank(&scores, &obj_min2());
+        assert_eq!(r, vec![0, 1, 2, 3]);
+    }
+
+    #[test]
+    fn rank_matches_iterative_non_dominated_peel() {
+        // Property-style test:
+        // If we repeatedly peel off the non-dominated set, the peel number should equal rank.
+        fn peel_ranks(scores: &[Vec<f32>], objective: &Objective) -> Vec<usize> {
+            let mut remaining: Vec<usize> = (0..scores.len()).collect();
+            let mut out = vec![usize::MAX; scores.len()];
+            let mut front = 0usize;
+
+            while !remaining.is_empty() {
+                let subset = remaining.iter().map(|&i| &scores[i]).collect::<Vec<_>>();
+                let nd_local = non_dominated(&subset, objective); // indices into subset
+
+                for &k in &nd_local {
+                    let global_i = remaining[k];
+                    out[global_i] = front;
+                }
+
+                // remove the ND points from remaining (in descending order of local indices)
+                let mut nd_local_sorted = nd_local;
+                nd_local_sorted.sort_unstable_by(|a, b| b.cmp(a));
+                for k in nd_local_sorted {
+                    remaining.remove(k);
+                }
+
+                front += 1;
+            }
+
+            out
+        }
+
+        let scores = vec![
+            vec![0.0f32, 0.0], // F0
+            vec![0.0f32, 1.0], // F1
+            vec![1.0f32, 0.0], // F1
+            vec![1.0f32, 1.0], // F2
+            vec![2.0f32, 2.0], // F3
+            vec![0.5f32, 0.5], // F2 (dominated by [0,0], not by [0,1] or [1,0])
+        ];
+
+        let r = rank(&scores, &obj_min2());
+        let p = peel_ranks(&scores, &obj_min2());
+
+        assert_eq!(
+            r, p,
+            "rank() should match iterative peel ranks\nrank={:?}\npeel={:?}",
+            r, p
+        );
     }
 }

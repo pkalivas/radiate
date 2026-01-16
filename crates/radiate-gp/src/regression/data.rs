@@ -1,38 +1,38 @@
 use radiate_core::random_provider;
 
 #[derive(Debug, Clone, Default)]
-pub struct Row {
-    input: Vec<f32>,
-    output: Vec<f32>,
+pub struct Row<T> {
+    input: Vec<T>,
+    output: Vec<T>,
 }
 
-impl Row {
-    pub fn new(input: Vec<f32>, output: Vec<f32>) -> Self {
+impl<T> Row<T> {
+    pub fn new(input: Vec<T>, output: Vec<T>) -> Self {
         Row { input, output }
     }
 
-    pub fn input(&self) -> &[f32] {
+    pub fn input(&self) -> &[T] {
         &self.input
     }
 
-    pub fn output(&self) -> &[f32] {
+    pub fn output(&self) -> &[T] {
         &self.output
     }
 }
 
-impl From<(Vec<f32>, Vec<f32>)> for Row {
-    fn from(data: (Vec<f32>, Vec<f32>)) -> Self {
+impl<T> From<(Vec<T>, Vec<T>)> for Row<T> {
+    fn from(data: (Vec<T>, Vec<T>)) -> Self {
         Row::new(data.0, data.1)
     }
 }
 
 #[derive(Default, Clone)]
-pub struct DataSet {
-    rows: Vec<Row>,
+pub struct DataSet<T> {
+    rows: Vec<Row<T>>,
 }
 
-impl DataSet {
-    pub fn new(inputs: Vec<Vec<f32>>, outputs: Vec<Vec<f32>>) -> Self {
+impl<T> DataSet<T> {
+    pub fn new(inputs: Vec<Vec<T>>, outputs: Vec<Vec<T>>) -> Self {
         let mut samples = Vec::new();
         for (input, output) in inputs.into_iter().zip(outputs.into_iter()) {
             samples.push(Row { input, output });
@@ -41,12 +41,12 @@ impl DataSet {
         DataSet { rows: samples }
     }
 
-    pub fn row(mut self, row: impl Into<Row>) -> Self {
+    pub fn row(mut self, row: impl Into<Row<T>>) -> Self {
         self.rows.push(row.into());
         self
     }
 
-    pub fn iter(&self) -> std::slice::Iter<'_, Row> {
+    pub fn iter(&self) -> std::slice::Iter<'_, Row<T>> {
         self.rows.iter()
     }
 
@@ -76,17 +76,26 @@ impl DataSet {
     }
 
     #[inline]
-    pub fn features(&self) -> Vec<Vec<f32>> {
+    pub fn features(&self) -> Vec<Vec<T>>
+    where
+        T: Clone,
+    {
         self.rows.iter().map(|row| row.input.clone()).collect()
     }
 
     #[inline]
-    pub fn labels(&self) -> Vec<Vec<f32>> {
+    pub fn labels(&self) -> Vec<Vec<T>>
+    where
+        T: Clone,
+    {
         self.rows.iter().map(|row| row.output.clone()).collect()
     }
 
     #[inline]
-    pub fn split(self, ratio: f32) -> (Self, Self) {
+    pub fn split(self, ratio: f32) -> (Self, Self)
+    where
+        T: Clone,
+    {
         let ratio = ratio.clamp(0.0, 1.0);
         let split = (self.len() as f32 * ratio).round() as usize;
         let (left, right) = self.rows.split_at(split);
@@ -100,7 +109,9 @@ impl DataSet {
             },
         )
     }
+}
 
+impl DataSet<f32> {
     pub fn standardize(mut self) -> Self {
         let mut means = vec![0.0; self.rows[0].input.len()];
         let mut stds = vec![0.0; self.rows[0].input.len()];
@@ -161,8 +172,31 @@ impl DataSet {
     }
 }
 
-impl From<(Vec<Vec<f32>>, Vec<Vec<f32>>)> for DataSet {
-    fn from(data: (Vec<Vec<f32>>, Vec<Vec<f32>>)) -> Self {
+impl<T> From<Vec<Vec<Option<T>>>> for DataSet<T>
+where
+    T: Clone,
+{
+    fn from(data: Vec<Vec<Option<T>>>) -> Self {
+        let mut rows = Vec::new();
+        for row in data.into_iter() {
+            let input = row
+                .iter()
+                .filter_map(|v| v.as_ref())
+                .cloned()
+                .collect::<Vec<T>>();
+
+            rows.push(Row {
+                input,
+                output: Vec::new(),
+            });
+        }
+
+        DataSet { rows }
+    }
+}
+
+impl<T> From<(Vec<Vec<T>>, Vec<Vec<T>>)> for DataSet<T> {
+    fn from(data: (Vec<Vec<T>>, Vec<Vec<T>>)) -> Self {
         DataSet::new(data.0, data.1)
     }
 }

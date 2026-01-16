@@ -1,5 +1,5 @@
 use radiate_core::{
-    AlterResult, BoundedGene, Chromosome, FloatGene, Gene, Mutate, Rate, random_provider,
+    AlterResult, BoundedGene, Chromosome, FloatGene, Gene, Mutate, Rate, Valid, random_provider,
 };
 
 /// The `GaussianMutator` is a simple mutator that adds a small amount of Gaussian noise to the gene.
@@ -15,6 +15,11 @@ impl GaussianMutator {
     /// The rate must be between 0.0 and 1.0.
     pub fn new(rate: impl Into<Rate>) -> Self {
         let rate = rate.into();
+
+        if !rate.is_valid() {
+            panic!("Rate is not valid: {:?}", rate);
+        }
+
         GaussianMutator { rate }
     }
 }

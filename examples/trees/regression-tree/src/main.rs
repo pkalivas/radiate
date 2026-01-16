@@ -3,7 +3,7 @@ use radiate::*;
 const MIN_SCORE: f32 = 0.001;
 
 fn main() {
-    random_provider::set_seed(2);
+    random_provider::set_seed(40);
 
     let store = vec![
         (
@@ -45,7 +45,7 @@ fn display(result: &Generation<TreeChromosome<Op<f32>>, Tree<Op<f32>>>) {
         });
 }
 
-fn get_dataset() -> DataSet {
+fn get_dataset() -> DataSet<f32> {
     let mut inputs = Vec::new();
     let mut answers = Vec::new();
 

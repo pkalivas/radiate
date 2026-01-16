@@ -25,23 +25,31 @@ impl<T: Clone + Default> Tree<T> {
     pub fn with_depth(depth: usize, nodes: impl Into<NodeStore<T>>) -> Self {
         let store = nodes.into();
 
-        let mut root = if store.contains_type(NodeType::Root) {
+        let root = if store.contains_type(NodeType::Root) {
             store.new_instance(NodeType::Root)
         } else {
             store.new_instance(NodeType::Vertex)
         };
 
-        if root.arity() == Arity::Any {
-            for _ in 0..NUM_CHILDREN_ANY {
-                root.add_child(Self::grow(depth - 1, &store));
+        if let Some(mut root_node) = root {
+            if root_node.arity() == Arity::Any {
+                for _ in 0..NUM_CHILDREN_ANY {
+                    if let Some(child) = Self::grow(depth - 1, &store) {
+                        root_node.add_child(child);
+                    }
+                }
+            } else {
+                for _ in 0..*root_node.arity() {
+                    if let Some(child) = Self::grow(depth - 1, &store) {
+                        root_node.add_child(child);
+                    }
+                }
             }
-        } else {
-            for _ in 0..*root.arity() {
-                root.add_child(Self::grow(depth - 1, &store));
-            }
-        }
 
-        Tree::new(root)
+            Tree::new(root_node)
+        } else {
+            Tree::default()
+        }
     }
 
     /// Recursively grow a tree from the given depth, where each node is a random node from the
@@ -56,12 +64,12 @@ impl<T: Clone + Default> Tree<T> {
     ///
     /// # Returns
     /// A tree node with the given depth, where each node is a random node from the node store.
-    pub(crate) fn grow(current_depth: usize, store: &NodeStore<T>) -> TreeNode<T> {
+    pub(crate) fn grow(current_depth: usize, store: &NodeStore<T>) -> Option<TreeNode<T>> {
         if current_depth == 0 {
             return store.new_instance(NodeType::Leaf);
         }
 
-        let mut parent = store.new_instance(NodeType::Vertex);
+        let mut parent = store.new_instance(NodeType::Vertex)?;
         let num_children = match parent.arity() {
             Arity::Zero => 0,
             Arity::Exact(n) => n,
@@ -69,10 +77,14 @@ impl<T: Clone + Default> Tree<T> {
         };
 
         for _ in 0..num_children {
-            parent.add_child(Self::grow(current_depth - 1, store));
+            if let Some(child) = Self::grow(current_depth - 1, store) {
+                parent.add_child(child);
+            } else {
+                return None;
+            }
         }
 
-        parent
+        Some(parent)
     }
 
     #[allow(dead_code)]
@@ -91,7 +103,9 @@ impl<T: Clone + Default> Tree<T> {
 
         if current_num_children < num_children {
             for _ in 0..(num_children - current_num_children) {
-                node.add_child(store.new_instance(NodeType::Leaf));
+                if let Some(leaf) = store.new_instance(NodeType::Leaf) {
+                    node.add_child(leaf);
+                }
             }
         } else if current_num_children > num_children {
             for _ in 0..(current_num_children - num_children) {

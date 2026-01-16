@@ -105,27 +105,35 @@ where
     T: Clone + PartialEq + Default,
 {
     fn new_instance(&self, input: Option<NodeStore<T>>) -> GraphChromosome<T> {
-        let maybe_store = input.or_else(|| self.store.clone());
-        if let Some(store) = maybe_store {
-            return GraphChromosome {
+        input
+            .or_else(|| self.store.clone())
+            .map(|store| GraphChromosome {
                 nodes: self
                     .iter()
                     .enumerate()
-                    .map(|(index, node)| {
-                        let new_node = store.new_instance((index, node.node_type()));
-                        if new_node.arity() == node.arity() {
-                            node.with_allele(new_node.allele())
-                        } else {
-                            node.clone()
-                        }
+                    .filter_map(|(index, node)| {
+                        store
+                            .new_instance((index, node.node_type()))
+                            .map(|new_node| {
+                                if new_node.arity() == node.arity() {
+                                    node.with_allele(new_node.allele())
+                                } else {
+                                    node.clone()
+                                }
+                            })
                     })
                     .collect(),
                 store: Some(store),
                 max_nodes: self.max_nodes,
-            };
-        }
-
-        self.clone()
+            })
+            .map(|chromosome| {
+                if chromosome.len() != self.len() {
+                    self.clone()
+                } else {
+                    chromosome
+                }
+            })
+            .unwrap_or_else(|| self.clone())
     }
 }
 

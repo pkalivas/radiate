@@ -1,0 +1,210 @@
+use radiate::*;
+
+///
+///
+/// This example is mostly for me and isn't fully supported right now.
+///
+///
+
+pub fn sample_categorical(probs: &[f32]) -> usize {
+    // probs must sum to 1
+    let r = random_provider::range(0.0..1.0);
+    let mut acc = 0.0f32;
+    for (i, &p) in probs.iter().enumerate() {
+        acc += p;
+        if r <= acc {
+            return i;
+        }
+    }
+    probs.len().saturating_sub(1)
+}
+
+/// rows: Vec<Vec<Option<usize>>> (fully observed: Some(state) everywhere)
+pub fn make_iid_dataset(n: usize, dists: &[Vec<f32>]) -> Vec<Vec<Option<usize>>> {
+    (0..n)
+        .map(|_| dists.iter().map(|p| Some(sample_categorical(p))).collect())
+        .collect()
+}
+
+pub fn chain_model_abc() -> Result<Vec<DiscreteFactor>, String> {
+    // A(2) -> B(2) -> C(2)
+    let a = VarSpec::new(0, 2);
+    let b = VarSpec::new(1, 2);
+    let c = VarSpec::new(2, 2);
+
+    // P(A): logits [0, 1]
+    let mut p_a = DiscreteFactor::new(vec![a], vec![0.0, 1.0])?;
+    p_a.normalize_rows(VarId(0))?;
+
+    // P(B|A): scope [A,B] (child is B)
+    let mut p_ba = DiscreteFactor::new(
+        vec![a, b],
+        vec![
+            2.0, 0.0, // A=0 -> B=0..1
+            0.0, 2.0, // A=1 -> B=0..1
+        ],
+    )?;
+    p_ba.normalize_rows(VarId(1))?;
+
+    // P(C|B): scope [B,C] (child is C)
+    let mut p_cb = DiscreteFactor::new(
+        vec![b, c],
+        vec![
+            2.0, 0.0, // B=0 -> C=0..1
+            0.0, 2.0, // B=1 -> C=0..1
+        ],
+    )?;
+    p_cb.normalize_rows(VarId(2))?;
+
+    Ok(vec![p_a, p_ba, p_cb])
+}
+
+fn sample_from_log_probs(logps: &[f32]) -> usize {
+    // logps already represent log(prob)
+    let max = logps.iter().copied().fold(f32::NEG_INFINITY, f32::max);
+    let mut sum = 0.0f32;
+    let mut probs = vec![0.0; logps.len()];
+    for (i, &lp) in logps.iter().enumerate() {
+        let p = (lp - max).exp();
+        probs[i] = p;
+        sum += p;
+    }
+    let r = random_provider::range(0.0..sum);
+    let mut acc = 0.0;
+    for (i, p) in probs.iter().enumerate() {
+        acc += *p;
+        if r <= acc {
+            return i;
+        }
+    }
+    probs.len() - 1
+}
+
+pub fn sample_chain_dataset(n: usize) -> Result<Vec<Vec<Option<usize>>>, String> {
+    let factors = chain_model_abc()?;
+    let p_a = &factors[0];
+    let p_ba = &factors[1];
+    let p_cb = &factors[2];
+
+    let mut rows = Vec::with_capacity(n);
+    for _ in 0..n {
+        // A
+        let a = sample_from_log_probs(&[p_a.log_value_aligned(&[0]), p_a.log_value_aligned(&[1])]);
+
+        // B | A
+        let b0 = p_ba.log_value_aligned(&[a, 0]);
+        let b1 = p_ba.log_value_aligned(&[a, 1]);
+        let b = sample_from_log_probs(&[b0, b1]);
+
+        // C | B
+        let c0 = p_cb.log_value_aligned(&[b, 0]);
+        let c1 = p_cb.log_value_aligned(&[b, 1]);
+        let c = sample_from_log_probs(&[c0, c1]);
+
+        rows.push(vec![Some(a), Some(b), Some(c)]);
+    }
+    Ok(rows)
+}
+
+pub fn drop_some(mut data: Vec<Vec<Option<usize>>>, p_missing: f32) -> Vec<Vec<Option<usize>>> {
+    for row in &mut data {
+        for v in row.iter_mut() {
+            if random_provider::range(0.0..1.0) < p_missing {
+                *v = None;
+            }
+        }
+    }
+    data
+}
+
+fn main() {
+    random_provider::set_seed(40);
+
+    // let dists = vec![
+    //     vec![0.7, 0.3],           // Var0 card 2
+    //     vec![0.2, 0.3, 0.5],      // Var1 card 3
+    //     vec![0.6, 0.4],           // Var2 card 2
+    //     vec![0.1, 0.2, 0.3, 0.4], // Var3 card 4
+    // ];
+
+    // let data = make_iid_dataset(500, &dists);
+    // println!("Data sample:");
+    let data = sample_chain_dataset(1000).expect("sampling failed");
+    let data = drop_some(data, 0.15);
+
+    // your fitness objective (exact-ish for small graphs)
+
+    for row in data.iter().take(5) {
+        println!("{:?}", row);
+    }
+    let data = PgmDataSet::new(data);
+
+    // let data = PgmDataSet::new(vec![
+    //     vec![Some(0), Some(1), Some(0)],
+    //     vec![Some(1), Some(1), Some(0)],
+    //     vec![Some(0), Some(0), Some(1)],
+    //     vec![Some(1), Some(0), Some(1)],
+    //     vec![Some(0), Some(1), Some(1)],
+    //     vec![Some(1), Some(1), Some(1)],
+    // ]);
+
+    // 1) Define the PGM structure
+    //   - 3 variables, each with 2 states - binary variables
+    let cards = vec![2, 2, 2];
+
+    // 2) Build the codec for PGMs with 6 factors and max scope size 3
+    let codec = PgmCodec::new(&cards, 4, 2);
+
+    println!("Starting evolution...");
+    println!("CHROMOSOME EXAMPLE:");
+    let example = codec.encode();
+    for f in &example[0].factors {
+        println!("{:?}", f);
+    }
+
+    // 3) Define the fitness function - log-likelihood on the data
+    let fitness = PgmLogLik::new(data.clone());
+
+    let engine = GeneticEngine::builder()
+        .codec(codec)
+        // .fitness_fn(PgmNll {
+        //     data: data.rows.clone(),
+        // })
+        .raw_fitness_fn(fitness)
+        .minimizing()
+        .alter(alters!(
+            PgmScopeMutator::new(0.05, 3),
+            PgmParamMutator::new(
+                0.50, // half the factors get touched per individual
+                0.10, // mutate ~10% of table entries
+                0.25, // jitter magnitude
+            )
+        ))
+        .build();
+
+    let result = engine
+        .iter()
+        .logging()
+        .take(300)
+        .last()
+        .inspect(|generation| {
+            println!("{}", generation.metrics().dashboard());
+            for i in generation.value().iter() {
+                println!("Factor  {:?}", i);
+                println!("");
+            }
+        })
+        .expect("evolution failed");
+
+    let chrom = &result.population()[0].genotype()[0];
+    let m_c = marginal_ve(&chrom, &[VarId(2)], None).expect("marginalization failed");
+
+    // turn the two log values into a proper probability vector
+    let mut lp = vec![m_c.log_value_aligned(&[0]), m_c.log_value_aligned(&[1])];
+
+    radiate::log_normalize_in_place(&mut lp);
+
+    println!("P(C=0)={}, P(C=1)={}", lp[0].exp(), lp[1].exp());
+
+    // let chrom = &result.population()[0].genotype()[0];
+}

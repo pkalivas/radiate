@@ -44,20 +44,6 @@ impl<C: Chromosome> Species<C> {
         }
     }
 
-    pub fn clone_ref(other: &Self) -> Self
-    where
-        C: Clone,
-    {
-        Species {
-            id: other.id,
-            generation: other.generation,
-            tracker: other.tracker.clone(),
-            score: other.score.clone(),
-            mascot: other.mascot.clone(),
-            population: other.population.clone(),
-        }
-    }
-
     pub fn id(&self) -> SpeciesId {
         self.id
     }

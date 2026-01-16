@@ -21,7 +21,7 @@ impl PyEventHandler {
                 handler
                     .event_name()
                     .map(|name| {
-                        if name == "all" {
+                        if name == crate::names::ALL_EVENTS {
                             true
                         } else if matches!(event, EngineEvent::Start) {
                             name == crate::names::START_EVENT

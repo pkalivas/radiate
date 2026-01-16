@@ -43,22 +43,6 @@ pub enum Rate {
     /// # Parameters
     /// - `Vec<(usize, f32)>`: A vector of (step, rate) pairs.
     Stepwise(Vec<(usize, f32)>),
-    /// A warmup exponential schedule that starts at `start`, rises to `peak` over `warmup_steps`,
-    /// then decays to `end` with a half-life of `half_life`.
-    ///
-    /// # Parameters
-    /// - `warmup_steps`: Number of steps to reach peak from start.
-    /// - `start`: The starting rate value.
-    /// - `peak`: The peak rate value after warmup.
-    /// - `end`: The ending rate value after decay.
-    /// - `half_life`: The half-life period for decay after warmup.
-    WarmupExp {
-        warmup_steps: usize,
-        start: f32,
-        peak: f32,
-        end: f32,
-        half_life: usize,
-    },
 }
 
 impl Rate {
@@ -113,25 +97,6 @@ impl Rate {
 
                 last_value
             }
-            Rate::WarmupExp {
-                warmup_steps,
-                start,
-                peak,
-                end,
-                half_life,
-            } => {
-                if step < *warmup_steps {
-                    if *warmup_steps == 0 {
-                        return *peak;
-                    }
-                    let t = f_step / *warmup_steps as f32;
-                    start + (peak - start) * t
-                } else {
-                    let decay_step = step - *warmup_steps;
-                    let decay = 0.5_f32.powf(decay_step as f32 / *half_life as f32);
-                    end + (peak - end) * decay
-                }
-            }
         }
     }
 }
@@ -165,13 +130,6 @@ impl Valid for Rate {
                 }
 
                 true
-            }
-            Rate::WarmupExp {
-                start, peak, end, ..
-            } => {
-                (0.0..=1.0).contains(start)
-                    && (0.0..=1.0).contains(peak)
-                    && (0.0..=1.0).contains(end)
             }
         }
     }
@@ -237,19 +195,6 @@ mod tests {
         assert_eq!(stepwise.value(7), 0.5);
         assert_eq!(stepwise.value(10), 1.0);
         assert_eq!(stepwise.value(15), 1.0);
-
-        let warmup_exp = Rate::WarmupExp {
-            warmup_steps: 5,
-            start: 0.0,
-            peak: 1.0,
-            end: 0.1,
-            half_life: 5,
-        };
-        assert_eq!(warmup_exp.value(0), 0.0);
-        assert_eq!(warmup_exp.value(2), 0.4);
-        assert_eq!(warmup_exp.value(5), 1.0);
-        assert!((warmup_exp.value(10) - 0.55).abs() < 1e-2);
-        assert!((warmup_exp.value(15) - 0.325).abs() < 1e-2);
     }
 
     #[test]
@@ -260,13 +205,6 @@ mod tests {
         let cyclical = Rate::Cyclical(0.0, 1.0, 20, CycleShape::Triangle);
         let cyclical_sine = Rate::Cyclical(0.0, 1.0, 20, CycleShape::Sine);
         let stepwise = Rate::Stepwise(vec![(0, 0.0), (10, 0.5), (20, 1.0)]);
-        let warmup_exp = Rate::WarmupExp {
-            warmup_steps: 50,
-            start: 0.0,
-            peak: 1.0,
-            end: 0.0,
-            half_life: 50,
-        };
 
         for i in 0..100_000 {
             let fixed_value = fixed.value(i);
@@ -275,7 +213,6 @@ mod tests {
             let cycle_value = cyclical.value(i);
             let cycle_sine_value = cyclical_sine.value(i);
             let stepwise_value = stepwise.value(i);
-            let warmup_exp_value = warmup_exp.value(i);
 
             assert!(fixed_value >= 0.0 && fixed_value <= 1.0);
             assert!(linear_value >= 0.0 && linear_value <= 1.0);
@@ -283,7 +220,6 @@ mod tests {
             assert!(cycle_value >= 0.0 && cycle_value <= 1.0);
             assert!(cycle_sine_value >= 0.0 && cycle_sine_value <= 1.0);
             assert!(stepwise_value >= 0.0 && stepwise_value <= 1.0);
-            assert!(warmup_exp_value >= 0.0 && warmup_exp_value <= 1.0);
         }
     }
 

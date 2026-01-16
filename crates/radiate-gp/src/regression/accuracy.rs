@@ -5,7 +5,7 @@ use std::fmt::Debug;
 #[derive(Clone, Default)]
 pub struct Accuracy<'a> {
     name: Option<String>,
-    data_set: Option<&'a DataSet>,
+    data_set: Option<&'a DataSet<f32>>,
     loss_fn: Option<Loss>,
 }
 
@@ -23,7 +23,7 @@ impl<'a> Accuracy<'a> {
         self
     }
 
-    pub fn on(mut self, data_set: &'a DataSet) -> Self {
+    pub fn on(mut self, data_set: &'a DataSet<f32>) -> Self {
         self.data_set = Some(data_set);
         self
     }
@@ -47,7 +47,7 @@ impl<'a> Accuracy<'a> {
     pub fn calc_internal(
         &self,
         eval: &mut impl EvalMut<[f32], Vec<f32>>,
-        data_set: &DataSet,
+        data_set: &DataSet<f32>,
         loss_fn: Loss,
     ) -> AccuracyResult {
         let mut outputs = Vec::new();
