@@ -9,7 +9,7 @@
           "card": null
         }
       },
-      "id": 173,
+      "id": 345,
       "index": 0,
       "direction": "Forward",
       "node_type": "Input",
@@ -20,10 +20,11 @@
       "outgoing": {
         "inner": [
           1,
-          2,
-          6,
-          10,
-          12
+          5,
+          8,
+          13,
+          16,
+          17
         ]
       }
     },
@@ -35,7 +36,7 @@
           "arity": "Any"
         }
       },
-      "id": 175,
+      "id": 347,
       "index": 1,
       "direction": "Forward",
       "node_type": "Output",
@@ -44,46 +45,19 @@
         "inner": [
           0,
           2,
-          3,
+          4,
+          6,
           8,
-          12,
+          9,
+          11,
+          13,
           14,
-          15,
-          16,
-          18
+          17,
+          21
         ]
       },
       "outgoing": {
         "inner": []
-      }
-    },
-    {
-      "value": {
-        "type": "Fn",
-        "data": {
-          "name": "sin",
-          "arity": {
-            "Exact": 1
-          }
-        }
-      },
-      "id": 409,
-      "index": 2,
-      "direction": "Forward",
-      "node_type": "Vertex",
-      "arity": {
-        "Exact": 1
-      },
-      "incoming": {
-        "inner": [
-          0
-        ]
-      },
-      "outgoing": {
-        "inner": [
-          1,
-          11
-        ]
       }
     },
     {
@@ -96,8 +70,8 @@
           }
         }
       },
-      "id": 428,
-      "index": 3,
+      "id": 411,
+      "index": 2,
       "direction": "Forward",
       "node_type": "Vertex",
       "arity": {
@@ -105,13 +79,43 @@
       },
       "incoming": {
         "inner": [
-          6
+          16
         ]
       },
       "outgoing": {
         "inner": [
           1,
-          5
+          3,
+          9,
+          21
+        ]
+      }
+    },
+    {
+      "value": {
+        "type": "Fn",
+        "data": {
+          "name": "identity",
+          "arity": {
+            "Exact": 1
+          }
+        }
+      },
+      "id": 418,
+      "index": 3,
+      "direction": "Forward",
+      "node_type": "Edge",
+      "arity": {
+        "Exact": 1
+      },
+      "incoming": {
+        "inner": [
+          2
+        ]
+      },
+      "outgoing": {
+        "inner": [
+          15
         ]
       }
     },
@@ -124,11 +128,11 @@
             "Exact": 1
           },
           "value": {
-            "Scalar": 0.87814695
+            "Scalar": -1.299958
           }
         }
       },
-      "id": 434,
+      "id": 447,
       "index": 4,
       "direction": "Forward",
       "node_type": "Edge",
@@ -137,12 +141,12 @@
       },
       "incoming": {
         "inner": [
-          5
+          7
         ]
       },
       "outgoing": {
         "inner": [
-          17
+          1
         ]
       }
     },
@@ -156,7 +160,7 @@
           }
         }
       },
-      "id": 456,
+      "id": 454,
       "index": 5,
       "direction": "Backward",
       "node_type": "Vertex",
@@ -165,69 +169,16 @@
       },
       "incoming": {
         "inner": [
-          3,
-          5
-        ]
-      },
-      "outgoing": {
-        "inner": [
-          4,
-          5
-        ]
-      }
-    },
-    {
-      "value": {
-        "type": "Fn",
-        "data": {
-          "name": "relu",
-          "arity": "Any"
-        }
-      },
-      "id": 489,
-      "index": 6,
-      "direction": "Forward",
-      "node_type": "Vertex",
-      "arity": "Any",
-      "incoming": {
-        "inner": [
           0,
+          5
+        ]
+      },
+      "outgoing": {
+        "inner": [
+          5,
           7,
-          10
-        ]
-      },
-      "outgoing": {
-        "inner": [
-          3
-        ]
-      }
-    },
-    {
-      "value": {
-        "type": "Fn",
-        "data": {
-          "name": "sin",
-          "arity": {
-            "Exact": 1
-          }
-        }
-      },
-      "id": 506,
-      "index": 7,
-      "direction": "Forward",
-      "node_type": "Vertex",
-      "arity": {
-        "Exact": 1
-      },
-      "incoming": {
-        "inner": [
-          11
-        ]
-      },
-      "outgoing": {
-        "inner": [
-          6,
-          14
+          12,
+          19
         ]
       }
     },
@@ -241,8 +192,37 @@
           }
         }
       },
-      "id": 515,
-      "index": 8,
+      "id": 457,
+      "index": 6,
+      "direction": "Backward",
+      "node_type": "Vertex",
+      "arity": {
+        "Exact": 1
+      },
+      "incoming": {
+        "inner": [
+          15
+        ]
+      },
+      "outgoing": {
+        "inner": [
+          1,
+          11
+        ]
+      }
+    },
+    {
+      "value": {
+        "type": "Fn",
+        "data": {
+          "name": "exp",
+          "arity": {
+            "Exact": 1
+          }
+        }
+      },
+      "id": 465,
+      "index": 7,
       "direction": "Forward",
       "node_type": "Vertex",
       "arity": {
@@ -250,13 +230,12 @@
       },
       "incoming": {
         "inner": [
-          13
+          5
         ]
       },
       "outgoing": {
         "inner": [
-          1,
-          16
+          4
         ]
       }
     },
@@ -269,25 +248,25 @@
             "Exact": 1
           },
           "value": {
-            "Scalar": -0.7081583
+            "Scalar": -1.4881674
           }
         }
       },
-      "id": 588,
-      "index": 9,
-      "direction": "Backward",
+      "id": 509,
+      "index": 8,
+      "direction": "Forward",
       "node_type": "Edge",
       "arity": {
         "Exact": 1
       },
       "incoming": {
         "inner": [
-          10
+          0
         ]
       },
       "outgoing": {
         "inner": [
-          12
+          1
         ]
       }
     },
@@ -295,28 +274,56 @@
       "value": {
         "type": "Fn",
         "data": {
-          "name": "sub",
+          "name": "linear",
+          "arity": "Any"
+        }
+      },
+      "id": 524,
+      "index": 9,
+      "direction": "Forward",
+      "node_type": "Vertex",
+      "arity": "Any",
+      "incoming": {
+        "inner": [
+          2,
+          10,
+          19
+        ]
+      },
+      "outgoing": {
+        "inner": [
+          1,
+          14
+        ]
+      }
+    },
+    {
+      "value": {
+        "type": "Value",
+        "data": {
+          "name": "w",
           "arity": {
-            "Exact": 2
+            "Exact": 1
+          },
+          "value": {
+            "Scalar": -1.7188437
           }
         }
       },
-      "id": 610,
+      "id": 558,
       "index": 10,
-      "direction": "Backward",
-      "node_type": "Vertex",
+      "direction": "Forward",
+      "node_type": "Edge",
       "arity": {
-        "Exact": 2
+        "Exact": 1
       },
       "incoming": {
         "inner": [
-          0,
           12
         ]
       },
       "outgoing": {
         "inner": [
-          6,
           9
         ]
       }
@@ -325,23 +332,24 @@
       "value": {
         "type": "Fn",
         "data": {
-          "name": "softplus",
+          "name": "linear",
           "arity": "Any"
         }
       },
-      "id": 687,
+      "id": 692,
       "index": 11,
-      "direction": "Forward",
+      "direction": "Backward",
       "node_type": "Vertex",
       "arity": "Any",
       "incoming": {
         "inner": [
-          2
+          6
         ]
       },
       "outgoing": {
         "inner": [
-          7
+          1,
+          23
         ]
       }
     },
@@ -355,7 +363,7 @@
           }
         }
       },
-      "id": 718,
+      "id": 733,
       "index": 12,
       "direction": "Backward",
       "node_type": "Vertex",
@@ -364,15 +372,15 @@
       },
       "incoming": {
         "inner": [
-          0,
-          9
+          5,
+          22
         ]
       },
       "outgoing": {
         "inner": [
-          1,
           10,
-          15
+          13,
+          20
         ]
       }
     },
@@ -380,47 +388,23 @@
       "value": {
         "type": "Fn",
         "data": {
-          "name": "ceil",
+          "name": "mul",
           "arity": {
-            "Exact": 1
+            "Exact": 2
           }
         }
       },
-      "id": 731,
+      "id": 740,
       "index": 13,
       "direction": "Forward",
       "node_type": "Vertex",
       "arity": {
-        "Exact": 1
+        "Exact": 2
       },
       "incoming": {
         "inner": [
-          17
-        ]
-      },
-      "outgoing": {
-        "inner": [
-          8,
-          18
-        ]
-      }
-    },
-    {
-      "value": {
-        "type": "Fn",
-        "data": {
-          "name": "diff",
-          "arity": "Any"
-        }
-      },
-      "id": 786,
-      "index": 14,
-      "direction": "Forward",
-      "node_type": "Vertex",
-      "arity": "Any",
-      "incoming": {
-        "inner": [
-          7
+          0,
+          12
         ]
       },
       "outgoing": {
@@ -438,13 +422,180 @@
             "Exact": 1
           },
           "value": {
-            "Scalar": 0.0057066455
+            "Scalar": 0.989888
           }
         }
       },
-      "id": 845,
-      "index": 15,
+      "id": 756,
+      "index": 14,
       "direction": "Forward",
+      "node_type": "Edge",
+      "arity": {
+        "Exact": 1
+      },
+      "incoming": {
+        "inner": [
+          9
+        ]
+      },
+      "outgoing": {
+        "inner": [
+          1
+        ]
+      }
+    },
+    {
+      "value": {
+        "type": "Fn",
+        "data": {
+          "name": "softplus",
+          "arity": "Any"
+        }
+      },
+      "id": 781,
+      "index": 15,
+      "direction": "Backward",
+      "node_type": "Vertex",
+      "arity": "Any",
+      "incoming": {
+        "inner": [
+          3,
+          18
+        ]
+      },
+      "outgoing": {
+        "inner": [
+          6
+        ]
+      }
+    },
+    {
+      "value": {
+        "type": "Fn",
+        "data": {
+          "name": "linear",
+          "arity": "Any"
+        }
+      },
+      "id": 804,
+      "index": 16,
+      "direction": "Forward",
+      "node_type": "Vertex",
+      "arity": "Any",
+      "incoming": {
+        "inner": [
+          0
+        ]
+      },
+      "outgoing": {
+        "inner": [
+          2
+        ]
+      }
+    },
+    {
+      "value": {
+        "type": "Value",
+        "data": {
+          "name": "w",
+          "arity": {
+            "Exact": 1
+          },
+          "value": {
+            "Scalar": -0.42796832
+          }
+        }
+      },
+      "id": 919,
+      "index": 17,
+      "direction": "Forward",
+      "node_type": "Edge",
+      "arity": {
+        "Exact": 1
+      },
+      "incoming": {
+        "inner": [
+          0
+        ]
+      },
+      "outgoing": {
+        "inner": [
+          1
+        ]
+      }
+    },
+    {
+      "value": {
+        "type": "Fn",
+        "data": {
+          "name": "identity",
+          "arity": {
+            "Exact": 1
+          }
+        }
+      },
+      "id": 1038,
+      "index": 18,
+      "direction": "Backward",
+      "node_type": "Edge",
+      "arity": {
+        "Exact": 1
+      },
+      "incoming": {
+        "inner": [
+          23
+        ]
+      },
+      "outgoing": {
+        "inner": [
+          15
+        ]
+      }
+    },
+    {
+      "value": {
+        "type": "Fn",
+        "data": {
+          "name": "log",
+          "arity": {
+            "Exact": 1
+          }
+        }
+      },
+      "id": 1371,
+      "index": 19,
+      "direction": "Forward",
+      "node_type": "Vertex",
+      "arity": {
+        "Exact": 1
+      },
+      "incoming": {
+        "inner": [
+          5
+        ]
+      },
+      "outgoing": {
+        "inner": [
+          9
+        ]
+      }
+    },
+    {
+      "value": {
+        "type": "Value",
+        "data": {
+          "name": "w",
+          "arity": {
+            "Exact": 1
+          },
+          "value": {
+            "Scalar": 0.42575842
+          }
+        }
+      },
+      "id": 1385,
+      "index": 20,
+      "direction": "Backward",
       "node_type": "Edge",
       "arity": {
         "Exact": 1
@@ -456,7 +607,69 @@
       },
       "outgoing": {
         "inner": [
+          22
+        ]
+      }
+    },
+    {
+      "value": {
+        "type": "Value",
+        "data": {
+          "name": "w",
+          "arity": {
+            "Exact": 1
+          },
+          "value": {
+            "Scalar": 0.8124137
+          }
+        }
+      },
+      "id": 1392,
+      "index": 21,
+      "direction": "Forward",
+      "node_type": "Edge",
+      "arity": {
+        "Exact": 1
+      },
+      "incoming": {
+        "inner": [
+          2
+        ]
+      },
+      "outgoing": {
+        "inner": [
           1
+        ]
+      }
+    },
+    {
+      "value": {
+        "type": "Value",
+        "data": {
+          "name": "w",
+          "arity": {
+            "Exact": 1
+          },
+          "value": {
+            "Scalar": 0.88071704
+          }
+        }
+      },
+      "id": 1447,
+      "index": 22,
+      "direction": "Backward",
+      "node_type": "Edge",
+      "arity": {
+        "Exact": 1
+      },
+      "incoming": {
+        "inner": [
+          20
+        ]
+      },
+      "outgoing": {
+        "inner": [
+          12
         ]
       }
     },
@@ -464,79 +677,27 @@
       "value": {
         "type": "Fn",
         "data": {
-          "name": "sum",
-          "arity": "Any"
+          "name": "cos",
+          "arity": {
+            "Exact": 1
+          }
         }
       },
-      "id": 967,
-      "index": 16,
-      "direction": "Forward",
+      "id": 1704,
+      "index": 23,
+      "direction": "Backward",
       "node_type": "Vertex",
-      "arity": "Any",
-      "incoming": {
-        "inner": [
-          8
-        ]
-      },
-      "outgoing": {
-        "inner": [
-          1
-        ]
-      }
-    },
-    {
-      "value": {
-        "type": "Fn",
-        "data": {
-          "name": "identity",
-          "arity": {
-            "Exact": 1
-          }
-        }
-      },
-      "id": 1059,
-      "index": 17,
-      "direction": "Forward",
-      "node_type": "Edge",
       "arity": {
         "Exact": 1
       },
       "incoming": {
         "inner": [
-          4
+          11
         ]
       },
       "outgoing": {
         "inner": [
-          13
-        ]
-      }
-    },
-    {
-      "value": {
-        "type": "Fn",
-        "data": {
-          "name": "identity",
-          "arity": {
-            "Exact": 1
-          }
-        }
-      },
-      "id": 1153,
-      "index": 18,
-      "direction": "Forward",
-      "node_type": "Edge",
-      "arity": {
-        "Exact": 1
-      },
-      "incoming": {
-        "inner": [
-          13
-        ]
-      },
-      "outgoing": {
-        "inner": [
-          1
+          18
         ]
       }
     }

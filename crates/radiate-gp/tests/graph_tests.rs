@@ -33,13 +33,13 @@ mod tests {
         ]);
 
         let expected = vec![
-            vec![0.218],
-            vec![0.0],
-            vec![0.945],
-            vec![0.0],
-            vec![0.0],
-            vec![0.0],
-            vec![0.945],
+            vec![0.028],
+            vec![0.045],
+            vec![0.983],
+            vec![0.005],
+            vec![0.000],
+            vec![0.089],
+            vec![0.932],
         ];
 
         for (res, exp) in results.iter().zip(expected.iter()) {

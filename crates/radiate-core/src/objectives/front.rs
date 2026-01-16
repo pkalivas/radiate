@@ -239,6 +239,7 @@ where
 
     fn ensure_score_matrix(&mut self) -> Option<()> {
         let (n, m) = self.score_dims()?;
+
         if m == 0 {
             return None;
         }

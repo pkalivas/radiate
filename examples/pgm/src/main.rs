@@ -1,8 +1,10 @@
 use radiate::*;
 
+///
+///
 /// This example is mostly for me and isn't fully supported right now.
-/// It shows how to use the PGM representation and genetic operators to evolve
-/// simple graphical models to fit data generated from a known model structure.
+///
+///
 
 pub fn sample_categorical(probs: &[f32]) -> usize {
     // probs must sum to 1
