@@ -64,11 +64,13 @@ impl OperationMutator {
         T: Clone + PartialEq + Default,
     {
         match node.value_mut() {
-            Op::Value(name, arity, value, operation) => {
+            Op::Value(name, arity, params, operation) => {
                 let new_value = if random_provider::random::<f32>() < self.replace_rate {
-                    value.new_instance(())
+                    params.new_instance(())
                 } else {
-                    value.new_instance(value.data().clone())
+                    let modifier = params.modifier();
+                    modifier(params.data_mut());
+                    params.clone()
                 };
 
                 Some(Op::Value(name, *arity, new_value, *operation))

@@ -23,7 +23,7 @@ enum OpVariant<T> {
     Value {
         name: String,
         arity: Arity,
-        value: radiate_utils::Value<T>,
+        value: T,
     },
 }
 
@@ -149,7 +149,7 @@ impl From<OpVariant<f32>> for Result<Op<f32>, serde::de::value::Error> {
                 value,
             } => match name.as_str() {
                 "w" => {
-                    let weight = Op::weight_with(value.as_scalar().cloned().unwrap_or(0.0));
+                    let weight = Op::weight_with(value);
                     Ok(weight)
                 }
                 _ => {

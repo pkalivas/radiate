@@ -1,5 +1,4 @@
 use crate::{Arity, Eval, Factory, NodeValue, TreeNode, ops::Param};
-use radiate_utils::Value;
 use std::{
     fmt::{Debug, Display},
     hash::Hash,
@@ -47,8 +46,8 @@ pub enum Op<T> {
     /// - `&'static str` name
     /// - `Arity` of how many inputs it might read
     /// - `Param<T>` the actual data/value associated with this operation
-    /// - An `fn(&[T], &Value<T>) -> T` for the function logic that uses the inputs and the value to produce an output.
-    Value(&'static str, Arity, Param<T>, fn(&[T], &Value<T>) -> T),
+    /// - An `fn(&[T], &T) -> T` for the function logic that uses the inputs and the value to produce an output.
+    Value(&'static str, Arity, Param<T>, fn(&[T], &T) -> T),
 }
 
 impl<T> Op<T> {
@@ -70,7 +69,7 @@ impl<T> Op<T> {
         }
     }
 
-    pub fn value(&self) -> Option<&Value<T>> {
+    pub fn value(&self) -> Option<&T> {
         match self {
             Op::Value(_, _, value, _) => Some(value.data()),
             _ => None,

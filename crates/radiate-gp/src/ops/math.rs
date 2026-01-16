@@ -4,11 +4,7 @@ use crate::{
     ops::{Param, op_names},
 };
 use radiate_core::{chromosomes::NumericAllele, random_provider};
-use radiate_utils::Value;
-use std::{
-    ops::{Add, Div, Mul, Sub},
-    vec,
-};
+use std::vec;
 
 pub(super) const MAX_VALUE: f32 = 1e+10_f32;
 pub(super) const MIN_VALUE: f32 = -1e+10_f32;
@@ -233,23 +229,19 @@ impl Op<f32> {
     }
 
     pub fn weight_with(value: f32) -> Self {
-        let supplier = |_: &Value<f32>| Value::Scalar(random_provider::random::<f32>() * TWO - ONE);
+        let supplier = |_: &f32| random_provider::random::<f32>() * TWO - ONE;
 
-        let operation = |inputs: &[f32], weight: &Value<f32>| {
-            clamp(inputs[0] * weight.as_scalar().map_or(ZERO, |v| *v))
-        };
+        let operation = |inputs: &[f32], weight: &f32| clamp(inputs[0] * *weight);
 
-        let modifier = |current: &mut Value<f32>| {
+        let modifier = |current: &mut f32| {
             let diff = (random_provider::random::<f32>() * TWO - ONE) * TENTH;
-            if let Value::Scalar(v) = current {
-                *v = clamp(*v + diff);
-            }
+            *current = clamp(*current + diff);
         };
 
         Op::Value(
             op_names::WEIGHT,
             1.into(),
-            Param::new(Value::Scalar(clamp(value)), supplier, modifier),
+            Param::new(clamp(value), supplier, modifier),
             operation,
         )
     }
@@ -425,7 +417,7 @@ impl NumericAllele for Op<f32> {
     fn cast_as_f32(&self) -> Option<f32> {
         match self {
             Op::Const(_, value) => Some(*value),
-            Op::Value(_, _, value, _) => value.data().as_scalar().copied(),
+            Op::Value(_, _, value, _) => Some(*value.data()),
             _ => None,
         }
     }
@@ -433,172 +425,8 @@ impl NumericAllele for Op<f32> {
     fn cast_as_i32(&self) -> Option<i32> {
         match self {
             Op::Const(_, value) => Some(*value as i32),
-            Op::Value(_, _, value, _) => value.data().as_scalar().map(|v| *v as i32),
+            Op::Value(_, _, value, _) => Some(*value.data() as i32),
             _ => None,
-        }
-    }
-}
-
-impl Add for Op<f32> {
-    type Output = Self;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        match (&self, &rhs) {
-            (Op::Value(name, arity, value, op), Op::Value(_, _, other_value, _)) => {
-                match (value.data(), other_value.data()) {
-                    (Value::Scalar(a), Value::Scalar(b)) => Op::Value(
-                        radiate_utils::intern!(String::from(*name)),
-                        *arity,
-                        Param::new(
-                            Value::Scalar(clamp(a + b)),
-                            value.supplier(),
-                            value.modifier(),
-                        ),
-                        *op,
-                    ),
-                    (Value::Array { .. }, Value::Array { .. }) => Op::Value(
-                        radiate_utils::intern!(String::from(*name)),
-                        *arity,
-                        Param::new(
-                            Value::from((&value.shape().map(|s| s.clone()).unwrap(), |idx| {
-                                let a = value.data().as_array().unwrap()[idx];
-                                let b = other_value.data().as_array().unwrap()[idx];
-                                clamp(a + b)
-                            })),
-                            value.supplier(),
-                            value.modifier(),
-                        ),
-                        *op,
-                    ),
-                    _ => rhs.clone(),
-                }
-            }
-            _ => rhs.clone(),
-        }
-    }
-}
-
-impl Sub for Op<f32> {
-    type Output = Self;
-
-    fn sub(self, rhs: Self) -> Self::Output {
-        match (&self, &rhs) {
-            (Op::Value(name, arity, value, op), Op::Value(_, _, other_value, _)) => {
-                match (value.data(), other_value.data()) {
-                    (Value::Scalar(a), Value::Scalar(b)) => Op::Value(
-                        radiate_utils::intern!(String::from(*name)),
-                        *arity,
-                        Param::new(
-                            Value::Scalar(clamp(a - b)),
-                            value.supplier(),
-                            value.modifier(),
-                        ),
-                        *op,
-                    ),
-                    (Value::Array { .. }, Value::Array { .. }) => Op::Value(
-                        radiate_utils::intern!(String::from(*name)),
-                        *arity,
-                        Param::new(
-                            Value::from((&value.shape().map(|s| s.clone()).unwrap(), |idx| {
-                                let a = value.data().as_array().unwrap()[idx];
-                                let b = other_value.data().as_array().unwrap()[idx];
-                                clamp(a - b)
-                            })),
-                            value.supplier(),
-                            value.modifier(),
-                        ),
-                        *op,
-                    ),
-                    _ => rhs.clone(),
-                }
-            }
-            _ => rhs.clone(),
-        }
-    }
-}
-
-impl Div for Op<f32> {
-    type Output = Self;
-
-    fn div(self, rhs: Self) -> Self::Output {
-        match (&self, &rhs) {
-            (Op::Value(name, arity, value, op), Op::Value(_, _, other_value, _)) => {
-                match (value.data(), other_value.data()) {
-                    (Value::Scalar(a), Value::Scalar(b)) => Op::Value(
-                        radiate_utils::intern!(String::from(*name)),
-                        *arity,
-                        Param::new(
-                            Value::Scalar(if b.abs() < MIN_VALUE {
-                                clamp(a / ONE)
-                            } else {
-                                clamp(a / b)
-                            }),
-                            value.supplier(),
-                            value.modifier(),
-                        ),
-                        *op,
-                    ),
-                    (Value::Array { .. }, Value::Array { .. }) => Op::Value(
-                        radiate_utils::intern!(String::from(*name)),
-                        *arity,
-                        Param::new(
-                            Value::from((&value.shape().map(|s| s.clone()).unwrap(), |idx| {
-                                let a = value.data().as_array().unwrap()[idx];
-                                let b: f32 = other_value.data().as_array().unwrap()[idx];
-                                if b.abs() < MIN_VALUE {
-                                    clamp(a / ONE)
-                                } else {
-                                    clamp(a / b)
-                                }
-                            })),
-                            value.supplier(),
-                            value.modifier(),
-                        ),
-                        *op,
-                    ),
-                    _ => rhs.clone(),
-                }
-            }
-            _ => rhs.clone(),
-        }
-    }
-}
-
-impl Mul for Op<f32> {
-    type Output = Self;
-
-    fn mul(self, rhs: Self) -> Self::Output {
-        match (&self, &rhs) {
-            (Op::Value(name, arity, value, op), Op::Value(_, _, other_value, _)) => {
-                match (value.data(), other_value.data()) {
-                    (Value::Scalar(a), Value::Scalar(b)) => Op::Value(
-                        radiate_utils::intern!(String::from(*name)),
-                        *arity,
-                        Param::new(
-                            Value::Scalar(clamp(a * b)),
-                            value.supplier(),
-                            value.modifier(),
-                        ),
-                        *op,
-                    ),
-                    (Value::Array { .. }, Value::Array { .. }) => Op::Value(
-                        radiate_utils::intern!(String::from(*name)),
-                        *arity,
-                        Param::new(
-                            Value::from((&value.shape().map(|s| s.clone()).unwrap(), |idx| {
-                                let a = value.data().as_array().unwrap()[idx];
-                                let b = other_value.data().as_array().unwrap()[idx];
-                                clamp(a * b)
-                            })),
-                            value.supplier(),
-                            value.modifier(),
-                        ),
-                        *op,
-                    ),
-                    _ => rhs.clone(),
-                }
-            }
-            _ => rhs.clone(),
         }
     }
 }
@@ -780,19 +608,6 @@ mod tests {
         let sp = ActivationOperation::Softplus.apply(&[x]);
         let sp_ref = x.exp().ln_1p();
         assert!(approx(sp, sp_ref, 1e-6));
-    }
-
-    #[test]
-    fn op_weight_multiplication_behavior() {
-        let weight_op = Op::weight_with(2.0);
-        let xs = [3.0];
-        let y = weight_op.eval(&xs);
-        assert_eq!(y, 6.0, "weight op should multiply input by weight");
-
-        let other = Op::weight_with(-0.5);
-        let combined = weight_op * other;
-        let y2 = combined.eval(&xs);
-        assert_eq!(y2, -3.0, "combined weight ops should multiply inputs");
     }
 
     #[test]

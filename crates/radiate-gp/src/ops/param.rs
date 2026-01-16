@@ -1,52 +1,35 @@
 use crate::Factory;
-use radiate_utils::{Shape, Value};
 use std::fmt::Debug;
 
 #[derive(Hash, Clone)]
 pub struct Param<T> {
-    data: Value<T>,
-    supplier: fn(&Value<T>) -> Value<T>,
-    modifier: fn(&mut Value<T>),
+    data: T,
+    supplier: fn(&T) -> T,
+    modifier: fn(&mut T),
 }
 
 impl<T> Param<T> {
-    pub fn new(
-        data: impl Into<Value<T>>,
-        supplier: fn(&Value<T>) -> Value<T>,
-        modifier: fn(&mut Value<T>),
-    ) -> Self {
+    pub fn new(data: T, supplier: fn(&T) -> T, modifier: fn(&mut T)) -> Self {
         Param {
-            data: data.into(),
+            data,
             supplier,
             modifier,
         }
     }
 
-    pub fn is_scalar(&self) -> bool {
-        matches!(self.data, Value::Scalar(_))
-    }
-
-    pub fn is_array(&self) -> bool {
-        matches!(self.data, Value::Array { .. })
-    }
-
-    pub fn data(&self) -> &Value<T> {
+    pub fn data(&self) -> &T {
         &self.data
     }
 
-    pub fn data_mut(&mut self) -> &mut Value<T> {
+    pub fn data_mut(&mut self) -> &mut T {
         &mut self.data
     }
 
-    pub fn shape(&self) -> Option<&Shape> {
-        self.data.shape()
-    }
-
-    pub fn supplier(&self) -> fn(&Value<T>) -> Value<T> {
+    pub fn supplier(&self) -> fn(&T) -> T {
         self.supplier
     }
 
-    pub fn modifier(&self) -> fn(&mut Value<T>) {
+    pub fn modifier(&self) -> fn(&mut T) {
         self.modifier
     }
 }
@@ -62,25 +45,14 @@ impl<T> Factory<(), Param<T>> for Param<T> {
     }
 }
 
-impl<T> Factory<Value<T>, Param<T>> for Param<T> {
-    fn new_instance(&self, mut val: Value<T>) -> Param<T> {
-        (self.modifier)(&mut val);
-        Param {
-            data: val,
-            supplier: self.supplier,
-            modifier: self.modifier,
-        }
-    }
-}
-
 impl<T> Default for Param<T>
 where
     T: Default,
 {
     fn default() -> Self {
         Param {
-            data: Value::Scalar(T::default()),
-            supplier: |_| Value::Scalar(T::default()),
+            data: T::default(),
+            supplier: |_| T::default(),
             modifier: |_| {},
         }
     }
@@ -103,3 +75,14 @@ where
         self.data.fmt(f)
     }
 }
+
+// impl<T> Factory<T, Param<T>> for Param<T> {
+//     fn new_instance(&self, mut val: T) -> Param<T> {
+//         (self.modifier)(&mut val);
+//         Param {
+//             data: val,
+//             supplier: self.supplier,
+//             modifier: self.modifier,
+//         }
+//     }
+// }
