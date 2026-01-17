@@ -210,6 +210,8 @@ Radiate provides multiple ways to run the `GeneticEngine`.
 
     # just use the next() function to get the next epoch
     while True:
+        # the 'next' function calls the iterator internally & is very efficient, the only clones that happen 
+        # will be on the first call to a method that requires ownership of the epoch data.
         epoch = next(engine)
         if epoch.index() >= 100:
             break
@@ -333,7 +335,11 @@ The engine provides a control interface that allows for pausing, resuming, and s
     let control = engine.control();
 
     let handle = thread::spawn(move || {
+        // Run the engine for 1 second
         let result = engine.iter().until_seconds(1_f64).last().unwrap();
+        // because we are running for only a second and are pausing the engine,
+        // the engine's internal time tracking should be very close to 1 second even 
+        // though we paused it for +500ms
         assert_eq!((result.seconds() - 1_f64).abs().round(), 0.0);
     });
 
