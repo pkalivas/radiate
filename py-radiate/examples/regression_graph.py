@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 rd.random.seed(567123)
 
 
-class HeadPrinterSubscriber(rd.EventHandler):
+class ScorePlotterHandler(rd.EventHandler):
     """
     Subscriber class to handle events and track metrics.
     We will use this to plot score distributions over generations then
@@ -61,7 +61,7 @@ engine = rd.GeneticEngine(
         output=rd.Op.linear(),
     ),
     fitness_func=rd.Regression(inputs, answers, batch=True),
-    subscribe=HeadPrinterSubscriber(),
+    subscribe=ScorePlotterHandler(),
     objective="min",
     alters=[
         rd.GraphCrossover(rd.Rate.fixed(0.05), 0.5),
