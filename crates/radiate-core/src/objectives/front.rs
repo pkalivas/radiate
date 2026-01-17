@@ -1,9 +1,11 @@
 use crate::objectives::{Objective, Scored, pareto};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::{cmp::Ordering, hash::Hash, ops::Range, sync::Arc};
 
 const DEFAULT_ENTROPY_BINS: usize = 20;
+const EPSILON: f32 = 1e-10;
 
 #[derive(Clone, Default)]
 struct FrontScratch {
@@ -69,7 +71,7 @@ where
     pub fn crowding_distance(&mut self) -> Option<Vec<f32>> {
         self.ensure_score_matrix()?;
         let (n, _) = self.score_dims()?;
-        self.compute_crowding_distance_in_place(n);
+        self.crowding_distance_in_place(n);
 
         Some(self.scratch.dist[..n].to_vec())
     }
@@ -120,10 +122,7 @@ where
                         self.scratch.remove.push(idx);
                         comparisons += 1;
                     }
-                    Ordering::Equal => {
-                        // neither dominates
-                        comparisons += 1;
-                    }
+                    Ordering::Equal => comparisons += 1,
                 }
             }
 
@@ -148,11 +147,11 @@ where
 
             // Filter if we exceed max
             if self.values.len() > self.range.end {
-                self.filter_fast();
+                self.fast_filter();
                 filter_count += 1;
             }
 
-            // cached score matrix invalid now
+            // Invalidate the cached score matrix
             self.scratch.scores.clear();
         }
 
@@ -185,7 +184,7 @@ where
         }
     }
 
-    fn filter_fast(&mut self) {
+    fn fast_filter(&mut self) {
         let keep = self.range.start.min(self.values.len());
         if keep == 0 || self.values.len() <= keep {
             return;
@@ -201,7 +200,7 @@ where
             None => return,
         };
 
-        self.compute_crowding_distance_in_place(n);
+        self.crowding_distance_in_place(n);
 
         // Pick top `keep` by crowding distance without sorting all n.
         self.scratch.keep_idx.clear();
@@ -230,9 +229,11 @@ where
     #[inline]
     fn score_dims(&self) -> Option<(usize, usize)> {
         let n = self.values.len();
+
         if n == 0 {
             return None;
         }
+
         let first = self.values.iter().find_map(|v| v.score())?;
         Some((n, first.len()))
     }
@@ -263,16 +264,12 @@ where
         Some(())
     }
 
-    #[inline]
-    fn score_row<'a>(&'a self, i: usize, m: usize) -> &'a [f32] {
-        &self.scratch.scores[i * m..i * m + m]
-    }
-
-    fn compute_crowding_distance_in_place(&mut self, n: usize) {
+    fn crowding_distance_in_place(&mut self, n: usize) {
         let (_, m) = match self.score_dims() {
             Some(x) => x,
             None => return,
         };
+
         if n == 0 || m == 0 {
             return;
         }
@@ -282,6 +279,7 @@ where
 
         self.scratch.order.clear();
         self.scratch.order.extend(0..n);
+
         for dim in 0..m {
             let scores = &self.scratch.scores;
             self.scratch.order.sort_unstable_by(|&i, &j| {
@@ -290,22 +288,25 @@ where
                 a.partial_cmp(&b).unwrap_or(Ordering::Equal)
             });
 
-            let min = self.score_row(self.scratch.order[0], m)[dim];
-            let max = self.score_row(self.scratch.order[n - 1], m)[dim];
+            let first_idx = self.scratch.order[0];
+            let last_idx = self.scratch.order[n - 1];
+            let min = self.scratch.scores[first_idx * m..first_idx * m + m][dim];
+            let max = self.scratch.scores[last_idx * m..last_idx * m + m][dim];
             let range = max - min;
 
             if !range.is_finite() || range == 0.0 {
                 continue;
             }
 
-            // boundary
             self.scratch.dist[self.scratch.order[0]] = f32::INFINITY;
             self.scratch.dist[self.scratch.order[n - 1]] = f32::INFINITY;
 
-            // interior
             for k in 1..(n - 1) {
-                let prev = self.score_row(self.scratch.order[k - 1], m)[dim];
-                let next = self.score_row(self.scratch.order[k + 1], m)[dim];
+                let prev_idx = self.scratch.order[k - 1];
+                let next_idx = self.scratch.order[k + 1];
+                let prev = self.scratch.scores[prev_idx * m..prev_idx * m + m][dim];
+                let next = self.scratch.scores[next_idx * m..next_idx * m + m][dim];
+
                 let contrib = (next - prev).abs() / range;
                 self.scratch.dist[self.scratch.order[k]] += contrib;
             }
@@ -322,9 +323,22 @@ where
     }
 }
 
+/// Calculate the Shannon entropy of a set of scores in multi-dimensional space.
+/// The scores are discretized into a grid of bins, and the entropy is computed
+/// based on the distribution of scores across these bins. Higher entropy indicates
+/// a more diverse set of scores. This can be interpreted as a measure of how well
+/// the solutions are spread out in the objective space.
+///
+/// It works by:
+/// 1. Determining the min and max values for each objective dimension.
+/// 2. Mapping each score to a discrete bin index based on its normalized position
+///    within the min-max range for each dimension.
+/// 3. Counting the number of scores in each bin (cell).
+/// 4. Calculating the probabilities of each occupied bin and computing the
+///    Shannon entropy using these probabilities.
+/// 5. Optionally normalizing the entropy by the maximum possible entropy given
+///    the number of occupied bins and total scores.
 fn entropy_flat(scores: &[f32], n: usize, m: usize, bins_per_dim: usize) -> f32 {
-    use std::collections::HashMap;
-
     if n == 0 || m == 0 || bins_per_dim == 0 {
         return 0.0;
     }
@@ -347,7 +361,7 @@ fn entropy_flat(scores: &[f32], n: usize, m: usize, bins_per_dim: usize) -> f32 
     }
 
     for d in 0..m {
-        if (maxs[d] - mins[d]).abs() < 1e-12 {
+        if (maxs[d] - mins[d]).abs() < EPSILON {
             maxs[d] = mins[d] + 1.0;
         }
     }

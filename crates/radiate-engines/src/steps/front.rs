@@ -34,6 +34,8 @@ where
         metrics.upsert((metric_names::FRONT_SIZE, add_result.size));
 
         if add_result.added_count > 0 {
+            // Update entropy metric every 10 generations - this is an expensive operation so we
+            // don't want to do it every generation.
             if generation % 10 == 0 {
                 let mut reader = self.front.write().unwrap();
                 if let Some(entropy) = reader.entropy() {
