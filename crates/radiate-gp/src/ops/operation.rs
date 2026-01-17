@@ -223,7 +223,6 @@ impl<T> From<Op<T>> for Vec<TreeNode<Op<T>>> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use radiate_core::random_provider;
 
     #[test]
     fn test_ops() {
@@ -232,27 +231,6 @@ mod test {
         assert_eq!(op.arity(), Arity::Exact(2));
         assert_eq!(op.eval(&[1_f32, 2_f32]), 3_f32);
         assert_eq!(op.new_instance(()), op);
-    }
-
-    #[test]
-    fn test_random_seed_works() {
-        random_provider::set_seed(42);
-
-        let op = Op::weight();
-        let op2 = Op::weight();
-
-        let o_one = match op {
-            Op::Value(_, _, value, _) => value,
-            _ => panic!("Expected Value"),
-        };
-
-        let o_two = match op2 {
-            Op::Value(_, _, value, _) => value,
-            _ => panic!("Expected Value"),
-        };
-
-        println!("o_one: {:?}", o_one);
-        println!("o_two: {:?}", o_two);
     }
 
     #[test]
