@@ -1,0 +1,2744 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../installation/">
+      
+      
+        <link rel="next" href="codec/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/logo/radiate.ico">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+    
+    
+      
+        <title>Understanding the Genome System - Radiate</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+      <link rel="stylesheet" href="https://unpkg.com/katex@0/dist/katex.min.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#understanding-the-genome-system" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Radiate" class="md-header__button md-logo" aria-label="Radiate" data-md-component="logo">
+      
+  <img src="../../assets/logo/radiate.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Radiate
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Understanding the Genome System
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="blue"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="deep-orange" data-md-color-accent="light-green"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6m0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4M7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="http://github.com/pkalivas/radiate" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    radiate
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../.." class="md-tabs__link">
+          
+  
+  
+    
+  
+  Home
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="./" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Genome
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../selectors/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Parameters
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../engine/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Engine
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../gp/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  GP
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../misc/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Misc
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../examples/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Examples
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../releases/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Release Notes
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Radiate" class="md-nav__button md-logo" aria-label="Radiate" data-md-component="logo">
+      
+  <img src="../../assets/logo/radiate.png" alt="logo">
+
+    </a>
+    Radiate
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="http://github.com/pkalivas/radiate" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    radiate
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../.." class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_1" id="__nav_1_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Home
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="./" class="md-nav__link md-nav__link--active">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Genome
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link md-nav__link--active" for="__nav_2" id="__nav_2_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Genome
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="codec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Codec
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="any/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Any
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="example/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Example
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Parameters
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Parameters
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../selectors/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Selectors
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3_1" id="__nav_3_1_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Selectors
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../selectors/example/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Example
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../alters/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Alterers
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Alterers
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../alters/rate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rate
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../alters/mutators/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Mutators
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../alters/crossovers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Crossovers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../alters/example/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Example
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../diversity/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diversity
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Diversity
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../diversity/distance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Distance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../diversity/example/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Example
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../executors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Executor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../objectives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Objectives
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fitness/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fitness
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../events/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Events
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../engine/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Engine
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Engine
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../engine/metrics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Metrics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../gp/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GP
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5" id="__nav_5_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    GP
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gp/op/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ops
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gp/node/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Node
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gp/trees/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tree
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gp/graph/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Graph
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gp/regression/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Regression
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gp/pgm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PGM
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../misc/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Misc
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Misc
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../misc/random/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Randomness
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../misc/problem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Problem API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../misc/checkpoint/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Checkpointing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../misc/ui/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../releases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release Notes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#introduction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Introduction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ecosystem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ecosystem
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Ecosystem">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#allele" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Allele
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gene" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gene
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#chromosome" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Chromosome
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#genotype" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Genotype
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phenotype" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phenotype
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#population" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Population
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#species" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Species
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ecosystem_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ecosystem
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#best-practices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Best Practices
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-pitfalls-to-avoid" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common Pitfalls to Avoid
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Summary
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="understanding-the-genome-system">Understanding the Genome System</h1>
+<h2 id="introduction">Introduction</h2>
+<p>In genetic algorithms, we need a way to represent and manipulate potential solutions to our problems. Radiate uses a genome system that breaks down genetic information into several key components. Think of it like a blueprint for building solutions, where each component has a specific role in creating and evolving individuals.</p>
+<h2 id="ecosystem">Ecosystem</h2>
+<hr />
+<h3 id="allele">Allele</h3>
+<blockquote>
+<p>The basic unit.</p>
+</blockquote>
+<p>The <code>allele</code> is the smallest unit of genetic information in Radiate. It is a single value that can be used to represent a trait or characteristic of an individual. For example, an <code>allele</code> could represent a single bit in a binary string, a single character in a string, or a single number in a list of numbers. At its most basic level, an <code>allele</code> is the "atom" of genetic information that is used to express the genetic makeup of an individual - think of it as the "letter" in a genetic "word". For example, it could be:</p>
+<ul>
+<li>A number (like <code>42</code> or <code>3.14</code>)</li>
+<li>A character (like <code>A</code> or <code>?</code>)</li>
+<li>A boolean value (<code>true</code>/<code>false</code>)</li>
+<li>Any other basic value type</li>
+</ul>
+<hr />
+<h3 id="gene">Gene</h3>
+<blockquote>
+<p>The container.</p>
+</blockquote>
+<p>A <code>Gene</code> is a wrapper around an <code>allele</code> that adds functionality which is compatible with the genetic algorithm. It's like a container that not only holds the value, or <code>allele</code>, but also knows how to:</p>
+<ul>
+<li>Create new instances of itself</li>
+<li>Validate itself and its <code>allele</code></li>
+<li>Perform operations on its <code>allele</code> like addition, subtraction, or mutation</li>
+<li>Maintain constraints (like value ranges)</li>
+</ul>
+<p>Certain <code>Genes</code> have additional functionality that allows them to be manipulated in specific ways, such as the <code>FloatGene</code> and <code>IntGene&lt;I&gt;</code> which implement the <code>ArithmeticGene</code>. The <code>ArithmeticGene</code> trait provides methods for performing arithmetic operations on the <code>Gene</code>. Radiate provides several built-in gene types, however, you can also create custom genes to suit your specific needs. The core built-in genes include:</p>
+<details class="info">
+<summary>FloatGene</summary>
+<p>For evolving floating-point numbers. If the <code>allele</code> is not specified, it will be randomly initialized within the <code>value_range</code>. If the <code>value_range</code> is not specified, it will default to (<code>-1e10</code>, <code>1e10</code>). If the <code>bound_range</code> is not specified, it will default to <code>value_range</code>.</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.8 200.5c-7.7-30.9-22.3-54.2-53.4-54.2h-40.1v47.4c0 36.8-31.2 67.8-66.8 67.8H172.7c-29.2 0-53.4 25-53.4 54.3v101.8c0 29 25.2 46 53.4 54.3 33.8 9.9 66.3 11.7 106.8 0 26.9-7.8 53.4-23.5 53.4-54.3v-40.7H226.2v-13.6h160.2c31.1 0 42.6-21.7 53.4-54.2 11.2-33.5 10.7-65.7 0-108.6M286.2 444.7a20.4 20.4 0 1 1 0-40.7 20.4 20.4 0 1 1 0 40.7M167.8 248.1h106.8c29.7 0 53.4-24.5 53.4-54.3V91.9c0-29-24.4-50.7-53.4-55.6-35.8-5.9-74.7-5.6-106.8.1-45.2 8-53.4 24.7-53.4 55.6v40.7h106.9v13.6h-147c-31.1 0-58.3 18.7-66.8 54.2-9.8 40.7-10.2 66.1 0 108.6 7.6 31.6 25.7 54.2 56.8 54.2H101v-48.8c0-35.3 30.5-66.4 66.8-66.4m-6.6-183.4a20.4 20.4 0 1 1 0 40.8 20.4 20.4 0 1 1 0-40.8"/></svg></span> Python</label><label for="__tabbed_1_2"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="m508.5 249.8-21.8-13.5c-.2-2-.3-3.9-.5-5.9l18.7-17.5c.9-.9 1.6-1.9 2-3.1s.5-2.5.2-3.7-.8-2.4-1.6-3.3-1.8-1.7-3-2.1l-24-9c-.5-1.9-1.1-3.8-1.7-5.6l15-20.8c.7-1 1.2-2.2 1.3-3.4s0-2.5-.5-3.7-1.2-2.2-2.2-2.9-2.1-1.3-3.4-1.5l-25.4-4.2c-.9-1.7-1.8-3.4-2.7-5.2l10.7-23.4c.5-1.1.7-2.4.6-3.6s-.5-2.4-1.2-3.5-1.6-1.9-2.8-2.5-2.4-.8-3.6-.8l-25.8.9c-1.2-1.5-2.4-2.9-3.6-4.4l5.8-25.3c.3-1.2.3-2.5-.1-3.7s-1-2.3-1.9-3.2-2-1.5-3.2-1.9-2.5-.4-3.7-.1l-25.1 6c-1.4-1.2-2.9-2.4-4.4-3.6l.9-25.8c.1-1.3-.2-2.5-.8-3.6s-1.4-2.1-2.5-2.8-2.2-1.1-3.5-1.2-2.5.1-3.7.6l-23.3 10.7-5.1-2.7-4.2-25.4c-.2-1.2-.7-2.4-1.5-3.4s-1.8-1.7-2.9-2.2-2.4-.7-3.7-.5-2.4.6-3.4 1.3l-20.9 15c-1.9-.6-3.8-1.1-5.6-1.7l-9-24c-.4-1.2-1.2-2.2-2.1-3S307.2 5.2 306 5s-2.5-.2-3.7.2-2.3 1.1-3.1 2l-17.6 18.7c-2-.2-3.9-.4-5.9-.5L262.3 3.5c-.7-1.1-1.6-1.9-2.7-2.6S257.3 0 256 0s-2.5.3-3.6.9-2 1.5-2.7 2.6l-13.5 21.8c-2 .2-3.9.3-5.9.6L212.9 7.1c-.9-.9-1.9-1.6-3.1-2s-2.5-.5-3.7-.2-2.4.8-3.3 1.6-1.7 1.8-2.1 3l-9 24c-1.9.6-3.8 1.1-5.7 1.7l-20.8-15c-1-.7-2.2-1.2-3.4-1.3s-2.5 0-3.7.5-2.2 1.2-2.9 2.2-1.3 2.1-1.5 3.4l-4.2 25.4c-1.7.9-3.4 1.8-5.2 2.7l-23.4-10.5c-1.1-.5-2.4-.7-3.7-.6s-2.5.5-3.5 1.2-1.9 1.7-2.5 2.8-.8 2.4-.8 3.6l.9 25.8c-1.5 1.2-3 2.4-4.4 3.6l-25.1-6c-1.2-.3-2.5-.3-3.7.1s-2.3 1-3.2 1.9-1.5 2-1.9 3.2-.4 2.5-.1 3.7l6 25.1c-1.2 1.4-2.4 2.9-3.6 4.4l-25.8-.9c-1.3 0-2.5.2-3.6.8s-2.1 1.4-2.8 2.4-1.1 2.2-1.2 3.5.1 2.5.6 3.6l10.7 23.4c-.9 1.7-1.8 3.4-2.7 5.2l-25.4 4.1c-1.2.2-2.4.7-3.4 1.5s-1.7 1.8-2.2 2.9-.7 2.4-.5 3.7.6 2.4 1.3 3.4l15 20.8c-.6 1.9-1.1 3.8-1.7 5.7l-24 9c-1.2.4-2.2 1.2-3 2.1s-1.4 2.1-1.6 3.3-.2 2.5.2 3.7 1.1 2.3 2 3.1l18.7 17.5c-.2 2-.4 3.9-.6 5.9L3.5 249.8c-1.1.7-1.9 1.6-2.6 2.7s-.9 2.3-.9 3.6.3 2.5.9 3.6 1.5 2 2.6 2.7l21.8 13.5c.2 2 .3 3.9.6 5.9L7.1 299.1c-.9.9-1.6 1.9-2 3.1s-.5 2.5-.2 3.7.8 2.4 1.6 3.3 1.8 1.7 3 2.1l24 9c.6 1.9 1.1 3.8 1.7 5.6l-15 20.8c-.7 1-1.2 2.2-1.3 3.4s0 2.5.5 3.7 1.2 2.2 2.2 2.9 2.1 1.3 3.4 1.5l25.4 4.2 2.7 5.1-10.5 23.6c-.5 1.1-.7 2.4-.6 3.6s.5 2.5 1.2 3.5c.7 1.1 1.6 1.9 2.7 2.5s2.4.8 3.6.8l25.8-.9c1.2 1.5 2.4 2.9 3.6 4.4L73 430.2c-.3 1.2-.3 2.5.1 3.7s1 2.3 1.9 3.2 2 1.5 3.2 1.9 2.5.4 3.7.1l25.2-5.9c1.5 1.2 2.9 2.4 4.4 3.6l-.9 25.8c0 1.3.2 2.5.8 3.6s1.4 2.1 2.5 2.8 2.2 1.1 3.5 1.2 2.5-.1 3.6-.6l23.4-10.7 5.1 2.7 4.2 25.4c.2 1.2.7 2.4 1.5 3.4s1.8 1.8 2.9 2.2 2.4.7 3.7.5 2.4-.6 3.4-1.3l20.8-15c1.9.6 3.8 1.1 5.6 1.7l9 24c.4 1.2 1.2 2.2 2.1 3s2.1 1.4 3.3 1.6 2.5.2 3.7-.2 2.3-1.1 3.1-2l17.5-18.7c2 .2 3.9.4 5.9.6l13.5 21.8c.7 1.1 1.6 1.9 2.7 2.6s2.3.9 3.6.9 2.5-.3 3.6-.9 2-1.5 2.7-2.6l13.5-21.8c2-.2 3.9-.3 5.9-.6l17.5 18.7c.9.9 1.9 1.6 3.1 2s2.5.5 3.7.2 2.4-.8 3.3-1.6 1.7-1.8 2.1-3l9-24c1.9-.6 3.8-1.1 5.6-1.7l20.8 15c1 .7 2.2 1.2 3.4 1.3s2.5 0 3.7-.5 2.2-1.2 2.9-2.2 1.3-2.1 1.5-3.4l4.2-25.4 5.1-2.7 23.4 10.7c1.1.5 2.4.7 3.6.6s2.4-.5 3.5-1.2 1.9-1.6 2.5-2.8.8-2.4.8-3.6l-.9-25.8c1.5-1.2 2.9-2.4 4.4-3.6l25.2 5.9c1.2.3 2.5.3 3.7-.1s2.3-1 3.2-1.9 1.5-2 1.9-3.2.4-2.5.1-3.7l-5.9-25.2c1.2-1.4 2.4-2.9 3.6-4.4l25.8.9c1.3.1 2.5-.2 3.6-.8s2.1-1.4 2.8-2.5c.7-1 1.1-2.2 1.2-3.5s-.1-2.5-.6-3.6l-10.7-23.4 2.7-5.1 25.4-4.2c1.2-.2 2.4-.7 3.4-1.5s1.8-1.8 2.2-2.9.7-2.4.5-3.7-.6-2.4-1.3-3.4l-15-20.8c.6-1.9 1.1-3.8 1.7-5.6l24-9c1.2-.4 2.2-1.2 3-2.1s1.4-2.1 1.6-3.3.2-2.5-.2-3.7-1.1-2.3-2-3.1l-18.7-17.5c.2-1.9.4-3.9.6-5.9l21.8-13.5c1.1-.7 1.9-1.6 2.6-2.7s.9-2.3.9-3.6-.3-2.5-.9-3.6-1.5-2-2.6-2.7m-151 129.1c-3.6-.8-7.4-.1-10.5 1.9s-5.3 5.2-6 8.8l-7.6 35.7c-24.6 11.1-51.3 16.8-78.3 16.7s-53.6-6.1-78.1-17.4l-7.6-35.7c-.4-1.8-1.1-3.5-2.1-5s-2.4-2.8-3.9-3.8-3.2-1.7-5-2-3.6-.3-5.4.1l-31.5 6.8c-5.8-6-11.3-12.5-16.3-19.2h153.2c1.7 0 2.9-.3 2.9-1.9v-54.2c0-1.6-1.2-1.9-2.9-1.9h-44.8v-34.4h48.5c4.4 0 23.7 1.3 29.8 25.9 1.9 7.5 6.2 32.1 9.1 40 2.9 8.8 14.6 26.5 27.1 26.5h79c-5.3 7.1-11.1 13.8-17.3 20.1l-32.1-6.9zm25.8 34.5c0 3-.9 6-2.6 8.5s-4 4.5-6.8 5.6-5.8 1.5-8.8.9-5.7-2-7.8-4.2-3.6-4.8-4.2-7.8-.3-6 .8-8.8 3.1-5.2 5.6-6.9 5.4-2.6 8.5-2.6h.4c4 .1 7.7 1.8 10.5 4.6s4.3 6.7 4.3 10.6h.1zm-225.6-.7c0 3-.9 6-2.6 8.5s-4.1 4.5-6.8 5.6-5.8 1.5-8.8.9-5.7-2-7.8-4.2-3.6-4.8-4.2-7.8-.3-6 .9-8.8 3.1-5.2 5.6-6.8 5.4-2.6 8.5-2.6h.5c4 .1 7.7 1.8 10.5 4.6s4.3 6.7 4.3 10.6h.1zM69.6 234.2l32.8-14.6c1.7-.7 3.2-1.8 4.4-3.1s2.2-2.9 2.9-4.6 1-3.5.9-5.3-.5-3.6-1.2-5.3l-6.8-15.2h26.6v119.7H75.6c-6.6-23.2-8.7-47.6-6.1-71.6zm-11.3-36.1c0-2 .4-4 1.2-5.8s1.9-3.5 3.3-4.9 3.1-2.5 4.9-3.3 3.8-1.2 5.8-1.2h.5c3 .1 5.9 1 8.3 2.8s4.3 4.1 5.4 6.9 1.3 5.8.7 8.8-2.1 5.6-4.3 7.7-4.9 3.5-7.8 4.1-6 .2-8.7-.9-5.1-3.1-6.8-5.6-2.5-5.4-2.5-8.4zm155.2 24.5v-35.3h63.3c3.3 0 23.1 3.8 23.1 18.6 0 12.3-15.2 16.7-27.7 16.7zM399 306.7c-9.8 1.1-20.6-4.1-22-10.1-5.8-32.5-15.4-39.4-30.6-51.4 18.9-12 38.5-29.6 38.5-53.3 0-25.5-17.5-41.6-29.4-49.5-16.8-11-35.3-13.2-40.3-13.2H116.3c27.5-30.7 64.4-51.5 104.9-59.2l23.5 24.6c1.3 1.3 2.8 2.4 4.4 3.1s3.5 1.1 5.3 1.2 3.6-.3 5.3-.9 3.2-1.7 4.6-2.9l26.3-25c26.8 5 52.1 15.8 74.3 31.6s40.6 36.2 54.1 59.9l-18 40.6c-1.5 3.4-1.5 7.2-.2 10.6s3.9 6.2 7.3 7.7l34.6 15.3c1.1 10.8 1.2 21.7.4 32.5h-19.3c-1.9 0-2.7 1.3-2.7 3.1v8.8c0 20.8-11.7 25.3-22 26.5zM240 60.2c0-4 1.6-7.9 4.5-10.7s6.7-4.5 10.7-4.5h.4c3 .1 5.9 1 8.4 2.8s4.3 4.1 5.4 6.9 1.3 5.8.7 8.8-2.1 5.6-4.3 7.7-4.9 3.5-7.8 4-6 .2-8.7-.9-5.1-3.1-6.8-5.6-2.5-5.4-2.5-8.4zM436.8 214c-2 0-4-.4-5.8-1.2s-3.5-1.9-4.9-3.3-2.5-3.1-3.3-4.9-1.2-3.8-1.2-5.8.4-4 1.2-5.8 1.9-3.5 3.3-4.9 3.1-2.5 4.9-3.3 3.8-1.2 5.8-1.2h.4c4 .1 7.9 1.7 10.7 4.6s4.4 6.8 4.3 10.8-1.7 7.9-4.6 10.7-6.8 4.4-10.8 4.3"/></svg></span> Rust</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">radiate</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">rd</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="c1"># Create a float gene that can evolve between -1.0 and 1.0 but </span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># must stay within -10.0 to 10.0 during evolution</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">gene</span> <span class="o">=</span> <span class="n">rd</span><span class="o">.</span><span class="n">gene</span><span class="o">.</span><span class="n">float</span><span class="p">(</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">allele</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>                   <span class="c1"># Current value</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">init_range</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>      <span class="c1"># Initial range</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">bounds</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">10.0</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">)</span>     <span class="c1"># Evolution bounds</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="p">)</span>
+</span></code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">use</span><span class="w"> </span><span class="n">radiate</span><span class="p">::</span><span class="o">*</span><span class="p">;</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="c1">// Create a float gene that can evolve between -1.0 and 1.0 but </span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1">// must stay within -10.0 to 10.0 during evolution</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="kd">let</span><span class="w"> </span><span class="n">gene</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">FloatGene</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mf">1.</span><span class="mi">0</span><span class="o">..</span><span class="mf">1.0</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mf">10.</span><span class="mi">0</span><span class="o">..</span><span class="mf">10.0</span><span class="p">);</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1">// Create a float gene with a randomly generated allele between -1.0 and 1.0</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="c1">// and bounds between -1.0 and 1.0</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="kd">let</span><span class="w"> </span><span class="n">gene</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">FloatGene</span><span class="p">::</span><span class="n">from</span><span class="p">(</span><span class="o">-</span><span class="mf">1.</span><span class="mi">0</span><span class="o">..</span><span class="mf">1.0</span><span class="p">)</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="c1">// Create a float gene with a randomly generated allele between -1.0 and 1.0 with bounds between -10.0 and 10.0</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="kd">let</span><span class="w"> </span><span class="n">gene</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">FloatGene</span><span class="p">::</span><span class="n">from</span><span class="p">(</span><span class="o">-</span><span class="mf">1.</span><span class="mi">0</span><span class="o">..</span><span class="mf">1.0</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mf">10.</span><span class="mi">0</span><span class="o">..</span><span class="mf">10.0</span><span class="p">);</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="c1">// Create a float gene with an allele of 0.5 allele between -1.0 and 1.0 with bounds between -10.0 and 10.0</span>
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="kd">let</span><span class="w"> </span><span class="n">gene</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">FloatGene</span><span class="p">::</span><span class="n">from</span><span class="p">((</span><span class="mf">0.5</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mf">1.</span><span class="mi">0</span><span class="o">..</span><span class="mf">1.0</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mf">10.</span><span class="mi">0</span><span class="o">..</span><span class="mf">10.0</span><span class="p">));</span>
+</span></code></pre></div>
+</div>
+</div>
+</div>
+</details>
+<details class="info">
+<summary>IntGene</summary>
+<p>For evolving integer values. If the <code>allele</code> is not specified, it will be randomly initialized within the <code>value_range</code>. If the <code>value_range</code> is not specified, it will default to (<code>-1e10</code>, <code>1e10</code>). If the <code>bound_range</code> is not specified, it will default to <code>value_range</code>. The <code>IntGene</code> holds a generic type <code>I</code> that implements the <code>Integer&lt;I&gt;</code> trait, which allows it to work with various integer types such as <code>i8</code>, <code>i16</code>, <code>i32</code>, <code>i64</code>, <code>i128</code>, <code>u8</code>, <code>u16</code>, <code>u32</code>, <code>u64</code>, and <code>u128</code>.</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.8 200.5c-7.7-30.9-22.3-54.2-53.4-54.2h-40.1v47.4c0 36.8-31.2 67.8-66.8 67.8H172.7c-29.2 0-53.4 25-53.4 54.3v101.8c0 29 25.2 46 53.4 54.3 33.8 9.9 66.3 11.7 106.8 0 26.9-7.8 53.4-23.5 53.4-54.3v-40.7H226.2v-13.6h160.2c31.1 0 42.6-21.7 53.4-54.2 11.2-33.5 10.7-65.7 0-108.6M286.2 444.7a20.4 20.4 0 1 1 0-40.7 20.4 20.4 0 1 1 0 40.7M167.8 248.1h106.8c29.7 0 53.4-24.5 53.4-54.3V91.9c0-29-24.4-50.7-53.4-55.6-35.8-5.9-74.7-5.6-106.8.1-45.2 8-53.4 24.7-53.4 55.6v40.7h106.9v13.6h-147c-31.1 0-58.3 18.7-66.8 54.2-9.8 40.7-10.2 66.1 0 108.6 7.6 31.6 25.7 54.2 56.8 54.2H101v-48.8c0-35.3 30.5-66.4 66.8-66.4m-6.6-183.4a20.4 20.4 0 1 1 0 40.8 20.4 20.4 0 1 1 0-40.8"/></svg></span> Python</label><label for="__tabbed_2_2"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="m508.5 249.8-21.8-13.5c-.2-2-.3-3.9-.5-5.9l18.7-17.5c.9-.9 1.6-1.9 2-3.1s.5-2.5.2-3.7-.8-2.4-1.6-3.3-1.8-1.7-3-2.1l-24-9c-.5-1.9-1.1-3.8-1.7-5.6l15-20.8c.7-1 1.2-2.2 1.3-3.4s0-2.5-.5-3.7-1.2-2.2-2.2-2.9-2.1-1.3-3.4-1.5l-25.4-4.2c-.9-1.7-1.8-3.4-2.7-5.2l10.7-23.4c.5-1.1.7-2.4.6-3.6s-.5-2.4-1.2-3.5-1.6-1.9-2.8-2.5-2.4-.8-3.6-.8l-25.8.9c-1.2-1.5-2.4-2.9-3.6-4.4l5.8-25.3c.3-1.2.3-2.5-.1-3.7s-1-2.3-1.9-3.2-2-1.5-3.2-1.9-2.5-.4-3.7-.1l-25.1 6c-1.4-1.2-2.9-2.4-4.4-3.6l.9-25.8c.1-1.3-.2-2.5-.8-3.6s-1.4-2.1-2.5-2.8-2.2-1.1-3.5-1.2-2.5.1-3.7.6l-23.3 10.7-5.1-2.7-4.2-25.4c-.2-1.2-.7-2.4-1.5-3.4s-1.8-1.7-2.9-2.2-2.4-.7-3.7-.5-2.4.6-3.4 1.3l-20.9 15c-1.9-.6-3.8-1.1-5.6-1.7l-9-24c-.4-1.2-1.2-2.2-2.1-3S307.2 5.2 306 5s-2.5-.2-3.7.2-2.3 1.1-3.1 2l-17.6 18.7c-2-.2-3.9-.4-5.9-.5L262.3 3.5c-.7-1.1-1.6-1.9-2.7-2.6S257.3 0 256 0s-2.5.3-3.6.9-2 1.5-2.7 2.6l-13.5 21.8c-2 .2-3.9.3-5.9.6L212.9 7.1c-.9-.9-1.9-1.6-3.1-2s-2.5-.5-3.7-.2-2.4.8-3.3 1.6-1.7 1.8-2.1 3l-9 24c-1.9.6-3.8 1.1-5.7 1.7l-20.8-15c-1-.7-2.2-1.2-3.4-1.3s-2.5 0-3.7.5-2.2 1.2-2.9 2.2-1.3 2.1-1.5 3.4l-4.2 25.4c-1.7.9-3.4 1.8-5.2 2.7l-23.4-10.5c-1.1-.5-2.4-.7-3.7-.6s-2.5.5-3.5 1.2-1.9 1.7-2.5 2.8-.8 2.4-.8 3.6l.9 25.8c-1.5 1.2-3 2.4-4.4 3.6l-25.1-6c-1.2-.3-2.5-.3-3.7.1s-2.3 1-3.2 1.9-1.5 2-1.9 3.2-.4 2.5-.1 3.7l6 25.1c-1.2 1.4-2.4 2.9-3.6 4.4l-25.8-.9c-1.3 0-2.5.2-3.6.8s-2.1 1.4-2.8 2.4-1.1 2.2-1.2 3.5.1 2.5.6 3.6l10.7 23.4c-.9 1.7-1.8 3.4-2.7 5.2l-25.4 4.1c-1.2.2-2.4.7-3.4 1.5s-1.7 1.8-2.2 2.9-.7 2.4-.5 3.7.6 2.4 1.3 3.4l15 20.8c-.6 1.9-1.1 3.8-1.7 5.7l-24 9c-1.2.4-2.2 1.2-3 2.1s-1.4 2.1-1.6 3.3-.2 2.5.2 3.7 1.1 2.3 2 3.1l18.7 17.5c-.2 2-.4 3.9-.6 5.9L3.5 249.8c-1.1.7-1.9 1.6-2.6 2.7s-.9 2.3-.9 3.6.3 2.5.9 3.6 1.5 2 2.6 2.7l21.8 13.5c.2 2 .3 3.9.6 5.9L7.1 299.1c-.9.9-1.6 1.9-2 3.1s-.5 2.5-.2 3.7.8 2.4 1.6 3.3 1.8 1.7 3 2.1l24 9c.6 1.9 1.1 3.8 1.7 5.6l-15 20.8c-.7 1-1.2 2.2-1.3 3.4s0 2.5.5 3.7 1.2 2.2 2.2 2.9 2.1 1.3 3.4 1.5l25.4 4.2 2.7 5.1-10.5 23.6c-.5 1.1-.7 2.4-.6 3.6s.5 2.5 1.2 3.5c.7 1.1 1.6 1.9 2.7 2.5s2.4.8 3.6.8l25.8-.9c1.2 1.5 2.4 2.9 3.6 4.4L73 430.2c-.3 1.2-.3 2.5.1 3.7s1 2.3 1.9 3.2 2 1.5 3.2 1.9 2.5.4 3.7.1l25.2-5.9c1.5 1.2 2.9 2.4 4.4 3.6l-.9 25.8c0 1.3.2 2.5.8 3.6s1.4 2.1 2.5 2.8 2.2 1.1 3.5 1.2 2.5-.1 3.6-.6l23.4-10.7 5.1 2.7 4.2 25.4c.2 1.2.7 2.4 1.5 3.4s1.8 1.8 2.9 2.2 2.4.7 3.7.5 2.4-.6 3.4-1.3l20.8-15c1.9.6 3.8 1.1 5.6 1.7l9 24c.4 1.2 1.2 2.2 2.1 3s2.1 1.4 3.3 1.6 2.5.2 3.7-.2 2.3-1.1 3.1-2l17.5-18.7c2 .2 3.9.4 5.9.6l13.5 21.8c.7 1.1 1.6 1.9 2.7 2.6s2.3.9 3.6.9 2.5-.3 3.6-.9 2-1.5 2.7-2.6l13.5-21.8c2-.2 3.9-.3 5.9-.6l17.5 18.7c.9.9 1.9 1.6 3.1 2s2.5.5 3.7.2 2.4-.8 3.3-1.6 1.7-1.8 2.1-3l9-24c1.9-.6 3.8-1.1 5.6-1.7l20.8 15c1 .7 2.2 1.2 3.4 1.3s2.5 0 3.7-.5 2.2-1.2 2.9-2.2 1.3-2.1 1.5-3.4l4.2-25.4 5.1-2.7 23.4 10.7c1.1.5 2.4.7 3.6.6s2.4-.5 3.5-1.2 1.9-1.6 2.5-2.8.8-2.4.8-3.6l-.9-25.8c1.5-1.2 2.9-2.4 4.4-3.6l25.2 5.9c1.2.3 2.5.3 3.7-.1s2.3-1 3.2-1.9 1.5-2 1.9-3.2.4-2.5.1-3.7l-5.9-25.2c1.2-1.4 2.4-2.9 3.6-4.4l25.8.9c1.3.1 2.5-.2 3.6-.8s2.1-1.4 2.8-2.5c.7-1 1.1-2.2 1.2-3.5s-.1-2.5-.6-3.6l-10.7-23.4 2.7-5.1 25.4-4.2c1.2-.2 2.4-.7 3.4-1.5s1.8-1.8 2.2-2.9.7-2.4.5-3.7-.6-2.4-1.3-3.4l-15-20.8c.6-1.9 1.1-3.8 1.7-5.6l24-9c1.2-.4 2.2-1.2 3-2.1s1.4-2.1 1.6-3.3.2-2.5-.2-3.7-1.1-2.3-2-3.1l-18.7-17.5c.2-1.9.4-3.9.6-5.9l21.8-13.5c1.1-.7 1.9-1.6 2.6-2.7s.9-2.3.9-3.6-.3-2.5-.9-3.6-1.5-2-2.6-2.7m-151 129.1c-3.6-.8-7.4-.1-10.5 1.9s-5.3 5.2-6 8.8l-7.6 35.7c-24.6 11.1-51.3 16.8-78.3 16.7s-53.6-6.1-78.1-17.4l-7.6-35.7c-.4-1.8-1.1-3.5-2.1-5s-2.4-2.8-3.9-3.8-3.2-1.7-5-2-3.6-.3-5.4.1l-31.5 6.8c-5.8-6-11.3-12.5-16.3-19.2h153.2c1.7 0 2.9-.3 2.9-1.9v-54.2c0-1.6-1.2-1.9-2.9-1.9h-44.8v-34.4h48.5c4.4 0 23.7 1.3 29.8 25.9 1.9 7.5 6.2 32.1 9.1 40 2.9 8.8 14.6 26.5 27.1 26.5h79c-5.3 7.1-11.1 13.8-17.3 20.1l-32.1-6.9zm25.8 34.5c0 3-.9 6-2.6 8.5s-4 4.5-6.8 5.6-5.8 1.5-8.8.9-5.7-2-7.8-4.2-3.6-4.8-4.2-7.8-.3-6 .8-8.8 3.1-5.2 5.6-6.9 5.4-2.6 8.5-2.6h.4c4 .1 7.7 1.8 10.5 4.6s4.3 6.7 4.3 10.6h.1zm-225.6-.7c0 3-.9 6-2.6 8.5s-4.1 4.5-6.8 5.6-5.8 1.5-8.8.9-5.7-2-7.8-4.2-3.6-4.8-4.2-7.8-.3-6 .9-8.8 3.1-5.2 5.6-6.8 5.4-2.6 8.5-2.6h.5c4 .1 7.7 1.8 10.5 4.6s4.3 6.7 4.3 10.6h.1zM69.6 234.2l32.8-14.6c1.7-.7 3.2-1.8 4.4-3.1s2.2-2.9 2.9-4.6 1-3.5.9-5.3-.5-3.6-1.2-5.3l-6.8-15.2h26.6v119.7H75.6c-6.6-23.2-8.7-47.6-6.1-71.6zm-11.3-36.1c0-2 .4-4 1.2-5.8s1.9-3.5 3.3-4.9 3.1-2.5 4.9-3.3 3.8-1.2 5.8-1.2h.5c3 .1 5.9 1 8.3 2.8s4.3 4.1 5.4 6.9 1.3 5.8.7 8.8-2.1 5.6-4.3 7.7-4.9 3.5-7.8 4.1-6 .2-8.7-.9-5.1-3.1-6.8-5.6-2.5-5.4-2.5-8.4zm155.2 24.5v-35.3h63.3c3.3 0 23.1 3.8 23.1 18.6 0 12.3-15.2 16.7-27.7 16.7zM399 306.7c-9.8 1.1-20.6-4.1-22-10.1-5.8-32.5-15.4-39.4-30.6-51.4 18.9-12 38.5-29.6 38.5-53.3 0-25.5-17.5-41.6-29.4-49.5-16.8-11-35.3-13.2-40.3-13.2H116.3c27.5-30.7 64.4-51.5 104.9-59.2l23.5 24.6c1.3 1.3 2.8 2.4 4.4 3.1s3.5 1.1 5.3 1.2 3.6-.3 5.3-.9 3.2-1.7 4.6-2.9l26.3-25c26.8 5 52.1 15.8 74.3 31.6s40.6 36.2 54.1 59.9l-18 40.6c-1.5 3.4-1.5 7.2-.2 10.6s3.9 6.2 7.3 7.7l34.6 15.3c1.1 10.8 1.2 21.7.4 32.5h-19.3c-1.9 0-2.7 1.3-2.7 3.1v8.8c0 20.8-11.7 25.3-22 26.5zM240 60.2c0-4 1.6-7.9 4.5-10.7s6.7-4.5 10.7-4.5h.4c3 .1 5.9 1 8.4 2.8s4.3 4.1 5.4 6.9 1.3 5.8.7 8.8-2.1 5.6-4.3 7.7-4.9 3.5-7.8 4-6 .2-8.7-.9-5.1-3.1-6.8-5.6-2.5-5.4-2.5-8.4zM436.8 214c-2 0-4-.4-5.8-1.2s-3.5-1.9-4.9-3.3-2.5-3.1-3.3-4.9-1.2-3.8-1.2-5.8.4-4 1.2-5.8 1.9-3.5 3.3-4.9 3.1-2.5 4.9-3.3 3.8-1.2 5.8-1.2h.4c4 .1 7.9 1.7 10.7 4.6s4.4 6.8 4.3 10.8-1.7 7.9-4.6 10.7-6.8 4.4-10.8 4.3"/></svg></span> Rust</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">radiate</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">rd</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="c1"># Create an integer gene that can evolve between -100 and 100</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">gene</span> <span class="o">=</span> <span class="n">rd</span><span class="o">.</span><span class="n">gene</span><span class="o">.</span><span class="n">int</span><span class="p">(</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">allele</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>                     <span class="c1"># Current value</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">init_range</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span>        <span class="c1"># Initial range</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="n">bounds</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>       <span class="c1"># Evolution bounds</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="p">)</span>
+</span></code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">use</span><span class="w"> </span><span class="n">radiate</span><span class="p">::</span><span class="o">*</span><span class="p">;</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="c1">// Create an integer gene that can evolve between -100 and 100</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="kd">let</span><span class="w"> </span><span class="n">gene</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">IntGene</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="mi">42</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mi">10</span><span class="o">..</span><span class="mi">10</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mi">100</span><span class="o">..</span><span class="mi">100</span><span class="p">);</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="c1">// Create an integer gene with a randomly generated allele between -10 and 10 - specify the int type</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="kd">let</span><span class="w"> </span><span class="n">gene</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">IntGene</span><span class="p">::</span><span class="o">&lt;</span><span class="kt">i8</span><span class="o">&gt;</span><span class="p">::</span><span class="n">from</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="o">..</span><span class="mi">10</span><span class="p">);</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="c1">// Create an integer gene with a randomly generated allele between -10 and 10 with bounds between -100 and 100</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="kd">let</span><span class="w"> </span><span class="n">gene</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">IntGene</span><span class="p">::</span><span class="n">from</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="o">..</span><span class="mi">10</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mi">100</span><span class="o">..</span><span class="mi">100</span><span class="p">);</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="c1">// Create an integer gene with an allele of 42 between -10 and 10 with bounds between -100 and 100</span>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="kd">let</span><span class="w"> </span><span class="n">gene</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">IntGene</span><span class="p">::</span><span class="n">from</span><span class="p">((</span><span class="mi">42</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mi">10</span><span class="o">..</span><span class="mi">10</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mi">100</span><span class="o">..</span><span class="mi">100</span><span class="p">));</span>
+</span></code></pre></div>
+</div>
+</div>
+</div>
+</details>
+<details class="info">
+<summary>BitGene</summary>
+<p>For evolving binary values. Radiate uses a <code>bool</code> as the allele for <code>BitGene</code>, which can be either <code>True</code> or <code>False</code>. </p>
+<div class="tabbed-set tabbed-alternate" data-tabs="3:2"><input checked="checked" id="__tabbed_3_1" name="__tabbed_3" type="radio" /><input id="__tabbed_3_2" name="__tabbed_3" type="radio" /><div class="tabbed-labels"><label for="__tabbed_3_1"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.8 200.5c-7.7-30.9-22.3-54.2-53.4-54.2h-40.1v47.4c0 36.8-31.2 67.8-66.8 67.8H172.7c-29.2 0-53.4 25-53.4 54.3v101.8c0 29 25.2 46 53.4 54.3 33.8 9.9 66.3 11.7 106.8 0 26.9-7.8 53.4-23.5 53.4-54.3v-40.7H226.2v-13.6h160.2c31.1 0 42.6-21.7 53.4-54.2 11.2-33.5 10.7-65.7 0-108.6M286.2 444.7a20.4 20.4 0 1 1 0-40.7 20.4 20.4 0 1 1 0 40.7M167.8 248.1h106.8c29.7 0 53.4-24.5 53.4-54.3V91.9c0-29-24.4-50.7-53.4-55.6-35.8-5.9-74.7-5.6-106.8.1-45.2 8-53.4 24.7-53.4 55.6v40.7h106.9v13.6h-147c-31.1 0-58.3 18.7-66.8 54.2-9.8 40.7-10.2 66.1 0 108.6 7.6 31.6 25.7 54.2 56.8 54.2H101v-48.8c0-35.3 30.5-66.4 66.8-66.4m-6.6-183.4a20.4 20.4 0 1 1 0 40.8 20.4 20.4 0 1 1 0-40.8"/></svg></span> Python</label><label for="__tabbed_3_2"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="m508.5 249.8-21.8-13.5c-.2-2-.3-3.9-.5-5.9l18.7-17.5c.9-.9 1.6-1.9 2-3.1s.5-2.5.2-3.7-.8-2.4-1.6-3.3-1.8-1.7-3-2.1l-24-9c-.5-1.9-1.1-3.8-1.7-5.6l15-20.8c.7-1 1.2-2.2 1.3-3.4s0-2.5-.5-3.7-1.2-2.2-2.2-2.9-2.1-1.3-3.4-1.5l-25.4-4.2c-.9-1.7-1.8-3.4-2.7-5.2l10.7-23.4c.5-1.1.7-2.4.6-3.6s-.5-2.4-1.2-3.5-1.6-1.9-2.8-2.5-2.4-.8-3.6-.8l-25.8.9c-1.2-1.5-2.4-2.9-3.6-4.4l5.8-25.3c.3-1.2.3-2.5-.1-3.7s-1-2.3-1.9-3.2-2-1.5-3.2-1.9-2.5-.4-3.7-.1l-25.1 6c-1.4-1.2-2.9-2.4-4.4-3.6l.9-25.8c.1-1.3-.2-2.5-.8-3.6s-1.4-2.1-2.5-2.8-2.2-1.1-3.5-1.2-2.5.1-3.7.6l-23.3 10.7-5.1-2.7-4.2-25.4c-.2-1.2-.7-2.4-1.5-3.4s-1.8-1.7-2.9-2.2-2.4-.7-3.7-.5-2.4.6-3.4 1.3l-20.9 15c-1.9-.6-3.8-1.1-5.6-1.7l-9-24c-.4-1.2-1.2-2.2-2.1-3S307.2 5.2 306 5s-2.5-.2-3.7.2-2.3 1.1-3.1 2l-17.6 18.7c-2-.2-3.9-.4-5.9-.5L262.3 3.5c-.7-1.1-1.6-1.9-2.7-2.6S257.3 0 256 0s-2.5.3-3.6.9-2 1.5-2.7 2.6l-13.5 21.8c-2 .2-3.9.3-5.9.6L212.9 7.1c-.9-.9-1.9-1.6-3.1-2s-2.5-.5-3.7-.2-2.4.8-3.3 1.6-1.7 1.8-2.1 3l-9 24c-1.9.6-3.8 1.1-5.7 1.7l-20.8-15c-1-.7-2.2-1.2-3.4-1.3s-2.5 0-3.7.5-2.2 1.2-2.9 2.2-1.3 2.1-1.5 3.4l-4.2 25.4c-1.7.9-3.4 1.8-5.2 2.7l-23.4-10.5c-1.1-.5-2.4-.7-3.7-.6s-2.5.5-3.5 1.2-1.9 1.7-2.5 2.8-.8 2.4-.8 3.6l.9 25.8c-1.5 1.2-3 2.4-4.4 3.6l-25.1-6c-1.2-.3-2.5-.3-3.7.1s-2.3 1-3.2 1.9-1.5 2-1.9 3.2-.4 2.5-.1 3.7l6 25.1c-1.2 1.4-2.4 2.9-3.6 4.4l-25.8-.9c-1.3 0-2.5.2-3.6.8s-2.1 1.4-2.8 2.4-1.1 2.2-1.2 3.5.1 2.5.6 3.6l10.7 23.4c-.9 1.7-1.8 3.4-2.7 5.2l-25.4 4.1c-1.2.2-2.4.7-3.4 1.5s-1.7 1.8-2.2 2.9-.7 2.4-.5 3.7.6 2.4 1.3 3.4l15 20.8c-.6 1.9-1.1 3.8-1.7 5.7l-24 9c-1.2.4-2.2 1.2-3 2.1s-1.4 2.1-1.6 3.3-.2 2.5.2 3.7 1.1 2.3 2 3.1l18.7 17.5c-.2 2-.4 3.9-.6 5.9L3.5 249.8c-1.1.7-1.9 1.6-2.6 2.7s-.9 2.3-.9 3.6.3 2.5.9 3.6 1.5 2 2.6 2.7l21.8 13.5c.2 2 .3 3.9.6 5.9L7.1 299.1c-.9.9-1.6 1.9-2 3.1s-.5 2.5-.2 3.7.8 2.4 1.6 3.3 1.8 1.7 3 2.1l24 9c.6 1.9 1.1 3.8 1.7 5.6l-15 20.8c-.7 1-1.2 2.2-1.3 3.4s0 2.5.5 3.7 1.2 2.2 2.2 2.9 2.1 1.3 3.4 1.5l25.4 4.2 2.7 5.1-10.5 23.6c-.5 1.1-.7 2.4-.6 3.6s.5 2.5 1.2 3.5c.7 1.1 1.6 1.9 2.7 2.5s2.4.8 3.6.8l25.8-.9c1.2 1.5 2.4 2.9 3.6 4.4L73 430.2c-.3 1.2-.3 2.5.1 3.7s1 2.3 1.9 3.2 2 1.5 3.2 1.9 2.5.4 3.7.1l25.2-5.9c1.5 1.2 2.9 2.4 4.4 3.6l-.9 25.8c0 1.3.2 2.5.8 3.6s1.4 2.1 2.5 2.8 2.2 1.1 3.5 1.2 2.5-.1 3.6-.6l23.4-10.7 5.1 2.7 4.2 25.4c.2 1.2.7 2.4 1.5 3.4s1.8 1.8 2.9 2.2 2.4.7 3.7.5 2.4-.6 3.4-1.3l20.8-15c1.9.6 3.8 1.1 5.6 1.7l9 24c.4 1.2 1.2 2.2 2.1 3s2.1 1.4 3.3 1.6 2.5.2 3.7-.2 2.3-1.1 3.1-2l17.5-18.7c2 .2 3.9.4 5.9.6l13.5 21.8c.7 1.1 1.6 1.9 2.7 2.6s2.3.9 3.6.9 2.5-.3 3.6-.9 2-1.5 2.7-2.6l13.5-21.8c2-.2 3.9-.3 5.9-.6l17.5 18.7c.9.9 1.9 1.6 3.1 2s2.5.5 3.7.2 2.4-.8 3.3-1.6 1.7-1.8 2.1-3l9-24c1.9-.6 3.8-1.1 5.6-1.7l20.8 15c1 .7 2.2 1.2 3.4 1.3s2.5 0 3.7-.5 2.2-1.2 2.9-2.2 1.3-2.1 1.5-3.4l4.2-25.4 5.1-2.7 23.4 10.7c1.1.5 2.4.7 3.6.6s2.4-.5 3.5-1.2 1.9-1.6 2.5-2.8.8-2.4.8-3.6l-.9-25.8c1.5-1.2 2.9-2.4 4.4-3.6l25.2 5.9c1.2.3 2.5.3 3.7-.1s2.3-1 3.2-1.9 1.5-2 1.9-3.2.4-2.5.1-3.7l-5.9-25.2c1.2-1.4 2.4-2.9 3.6-4.4l25.8.9c1.3.1 2.5-.2 3.6-.8s2.1-1.4 2.8-2.5c.7-1 1.1-2.2 1.2-3.5s-.1-2.5-.6-3.6l-10.7-23.4 2.7-5.1 25.4-4.2c1.2-.2 2.4-.7 3.4-1.5s1.8-1.8 2.2-2.9.7-2.4.5-3.7-.6-2.4-1.3-3.4l-15-20.8c.6-1.9 1.1-3.8 1.7-5.6l24-9c1.2-.4 2.2-1.2 3-2.1s1.4-2.1 1.6-3.3.2-2.5-.2-3.7-1.1-2.3-2-3.1l-18.7-17.5c.2-1.9.4-3.9.6-5.9l21.8-13.5c1.1-.7 1.9-1.6 2.6-2.7s.9-2.3.9-3.6-.3-2.5-.9-3.6-1.5-2-2.6-2.7m-151 129.1c-3.6-.8-7.4-.1-10.5 1.9s-5.3 5.2-6 8.8l-7.6 35.7c-24.6 11.1-51.3 16.8-78.3 16.7s-53.6-6.1-78.1-17.4l-7.6-35.7c-.4-1.8-1.1-3.5-2.1-5s-2.4-2.8-3.9-3.8-3.2-1.7-5-2-3.6-.3-5.4.1l-31.5 6.8c-5.8-6-11.3-12.5-16.3-19.2h153.2c1.7 0 2.9-.3 2.9-1.9v-54.2c0-1.6-1.2-1.9-2.9-1.9h-44.8v-34.4h48.5c4.4 0 23.7 1.3 29.8 25.9 1.9 7.5 6.2 32.1 9.1 40 2.9 8.8 14.6 26.5 27.1 26.5h79c-5.3 7.1-11.1 13.8-17.3 20.1l-32.1-6.9zm25.8 34.5c0 3-.9 6-2.6 8.5s-4 4.5-6.8 5.6-5.8 1.5-8.8.9-5.7-2-7.8-4.2-3.6-4.8-4.2-7.8-.3-6 .8-8.8 3.1-5.2 5.6-6.9 5.4-2.6 8.5-2.6h.4c4 .1 7.7 1.8 10.5 4.6s4.3 6.7 4.3 10.6h.1zm-225.6-.7c0 3-.9 6-2.6 8.5s-4.1 4.5-6.8 5.6-5.8 1.5-8.8.9-5.7-2-7.8-4.2-3.6-4.8-4.2-7.8-.3-6 .9-8.8 3.1-5.2 5.6-6.8 5.4-2.6 8.5-2.6h.5c4 .1 7.7 1.8 10.5 4.6s4.3 6.7 4.3 10.6h.1zM69.6 234.2l32.8-14.6c1.7-.7 3.2-1.8 4.4-3.1s2.2-2.9 2.9-4.6 1-3.5.9-5.3-.5-3.6-1.2-5.3l-6.8-15.2h26.6v119.7H75.6c-6.6-23.2-8.7-47.6-6.1-71.6zm-11.3-36.1c0-2 .4-4 1.2-5.8s1.9-3.5 3.3-4.9 3.1-2.5 4.9-3.3 3.8-1.2 5.8-1.2h.5c3 .1 5.9 1 8.3 2.8s4.3 4.1 5.4 6.9 1.3 5.8.7 8.8-2.1 5.6-4.3 7.7-4.9 3.5-7.8 4.1-6 .2-8.7-.9-5.1-3.1-6.8-5.6-2.5-5.4-2.5-8.4zm155.2 24.5v-35.3h63.3c3.3 0 23.1 3.8 23.1 18.6 0 12.3-15.2 16.7-27.7 16.7zM399 306.7c-9.8 1.1-20.6-4.1-22-10.1-5.8-32.5-15.4-39.4-30.6-51.4 18.9-12 38.5-29.6 38.5-53.3 0-25.5-17.5-41.6-29.4-49.5-16.8-11-35.3-13.2-40.3-13.2H116.3c27.5-30.7 64.4-51.5 104.9-59.2l23.5 24.6c1.3 1.3 2.8 2.4 4.4 3.1s3.5 1.1 5.3 1.2 3.6-.3 5.3-.9 3.2-1.7 4.6-2.9l26.3-25c26.8 5 52.1 15.8 74.3 31.6s40.6 36.2 54.1 59.9l-18 40.6c-1.5 3.4-1.5 7.2-.2 10.6s3.9 6.2 7.3 7.7l34.6 15.3c1.1 10.8 1.2 21.7.4 32.5h-19.3c-1.9 0-2.7 1.3-2.7 3.1v8.8c0 20.8-11.7 25.3-22 26.5zM240 60.2c0-4 1.6-7.9 4.5-10.7s6.7-4.5 10.7-4.5h.4c3 .1 5.9 1 8.4 2.8s4.3 4.1 5.4 6.9 1.3 5.8.7 8.8-2.1 5.6-4.3 7.7-4.9 3.5-7.8 4-6 .2-8.7-.9-5.1-3.1-6.8-5.6-2.5-5.4-2.5-8.4zM436.8 214c-2 0-4-.4-5.8-1.2s-3.5-1.9-4.9-3.3-2.5-3.1-3.3-4.9-1.2-3.8-1.2-5.8.4-4 1.2-5.8 1.9-3.5 3.3-4.9 3.1-2.5 4.9-3.3 3.8-1.2 5.8-1.2h.4c4 .1 7.9 1.7 10.7 4.6s4.4 6.8 4.3 10.8-1.7 7.9-4.6 10.7-6.8 4.4-10.8 4.3"/></svg></span> Rust</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">radiate</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">rd</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="c1"># Create an bit gene with an allele of True - if the allele isn&#39;t specified, it will </span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="c1"># be randomly initialized to True or False</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="n">gene</span> <span class="o">=</span> <span class="n">rd</span><span class="o">.</span><span class="n">gene</span><span class="o">.</span><span class="n">bit</span><span class="p">(</span><span class="n">allele</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span></code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">use</span><span class="w"> </span><span class="n">radiate</span><span class="p">::</span><span class="o">*</span><span class="p">;</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="c1">// Create an bit gene with a randomly generated allele of true or false.</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="kd">let</span><span class="w"> </span><span class="n">gene</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">BitGene</span><span class="p">::</span><span class="n">new</span><span class="p">();</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="c1">// Create a bit gene with an allele of true</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="kd">let</span><span class="w"> </span><span class="n">gene</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">BitGene</span><span class="p">::</span><span class="n">from</span><span class="p">(</span><span class="kc">true</span><span class="p">);</span><span class="w"> </span>
+</span></code></pre></div>
+</div>
+</div>
+</div>
+</details>
+<details class="info">
+<summary>CharGene</summary>
+<p>For evolving character values. The <code>CharGene</code> uses a <code>char</code> as its allele, which can represent any single Unicode character. If the <code>allele</code> is not specified, it will be randomly initialized to a character within the specified <code>char_set</code>. If the <code>char_set</code> is not specified, it will default to the ASCII printable characters.</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="4:2"><input checked="checked" id="__tabbed_4_1" name="__tabbed_4" type="radio" /><input id="__tabbed_4_2" name="__tabbed_4" type="radio" /><div class="tabbed-labels"><label for="__tabbed_4_1"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.8 200.5c-7.7-30.9-22.3-54.2-53.4-54.2h-40.1v47.4c0 36.8-31.2 67.8-66.8 67.8H172.7c-29.2 0-53.4 25-53.4 54.3v101.8c0 29 25.2 46 53.4 54.3 33.8 9.9 66.3 11.7 106.8 0 26.9-7.8 53.4-23.5 53.4-54.3v-40.7H226.2v-13.6h160.2c31.1 0 42.6-21.7 53.4-54.2 11.2-33.5 10.7-65.7 0-108.6M286.2 444.7a20.4 20.4 0 1 1 0-40.7 20.4 20.4 0 1 1 0 40.7M167.8 248.1h106.8c29.7 0 53.4-24.5 53.4-54.3V91.9c0-29-24.4-50.7-53.4-55.6-35.8-5.9-74.7-5.6-106.8.1-45.2 8-53.4 24.7-53.4 55.6v40.7h106.9v13.6h-147c-31.1 0-58.3 18.7-66.8 54.2-9.8 40.7-10.2 66.1 0 108.6 7.6 31.6 25.7 54.2 56.8 54.2H101v-48.8c0-35.3 30.5-66.4 66.8-66.4m-6.6-183.4a20.4 20.4 0 1 1 0 40.8 20.4 20.4 0 1 1 0-40.8"/></svg></span> Python</label><label for="__tabbed_4_2"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="m508.5 249.8-21.8-13.5c-.2-2-.3-3.9-.5-5.9l18.7-17.5c.9-.9 1.6-1.9 2-3.1s.5-2.5.2-3.7-.8-2.4-1.6-3.3-1.8-1.7-3-2.1l-24-9c-.5-1.9-1.1-3.8-1.7-5.6l15-20.8c.7-1 1.2-2.2 1.3-3.4s0-2.5-.5-3.7-1.2-2.2-2.2-2.9-2.1-1.3-3.4-1.5l-25.4-4.2c-.9-1.7-1.8-3.4-2.7-5.2l10.7-23.4c.5-1.1.7-2.4.6-3.6s-.5-2.4-1.2-3.5-1.6-1.9-2.8-2.5-2.4-.8-3.6-.8l-25.8.9c-1.2-1.5-2.4-2.9-3.6-4.4l5.8-25.3c.3-1.2.3-2.5-.1-3.7s-1-2.3-1.9-3.2-2-1.5-3.2-1.9-2.5-.4-3.7-.1l-25.1 6c-1.4-1.2-2.9-2.4-4.4-3.6l.9-25.8c.1-1.3-.2-2.5-.8-3.6s-1.4-2.1-2.5-2.8-2.2-1.1-3.5-1.2-2.5.1-3.7.6l-23.3 10.7-5.1-2.7-4.2-25.4c-.2-1.2-.7-2.4-1.5-3.4s-1.8-1.7-2.9-2.2-2.4-.7-3.7-.5-2.4.6-3.4 1.3l-20.9 15c-1.9-.6-3.8-1.1-5.6-1.7l-9-24c-.4-1.2-1.2-2.2-2.1-3S307.2 5.2 306 5s-2.5-.2-3.7.2-2.3 1.1-3.1 2l-17.6 18.7c-2-.2-3.9-.4-5.9-.5L262.3 3.5c-.7-1.1-1.6-1.9-2.7-2.6S257.3 0 256 0s-2.5.3-3.6.9-2 1.5-2.7 2.6l-13.5 21.8c-2 .2-3.9.3-5.9.6L212.9 7.1c-.9-.9-1.9-1.6-3.1-2s-2.5-.5-3.7-.2-2.4.8-3.3 1.6-1.7 1.8-2.1 3l-9 24c-1.9.6-3.8 1.1-5.7 1.7l-20.8-15c-1-.7-2.2-1.2-3.4-1.3s-2.5 0-3.7.5-2.2 1.2-2.9 2.2-1.3 2.1-1.5 3.4l-4.2 25.4c-1.7.9-3.4 1.8-5.2 2.7l-23.4-10.5c-1.1-.5-2.4-.7-3.7-.6s-2.5.5-3.5 1.2-1.9 1.7-2.5 2.8-.8 2.4-.8 3.6l.9 25.8c-1.5 1.2-3 2.4-4.4 3.6l-25.1-6c-1.2-.3-2.5-.3-3.7.1s-2.3 1-3.2 1.9-1.5 2-1.9 3.2-.4 2.5-.1 3.7l6 25.1c-1.2 1.4-2.4 2.9-3.6 4.4l-25.8-.9c-1.3 0-2.5.2-3.6.8s-2.1 1.4-2.8 2.4-1.1 2.2-1.2 3.5.1 2.5.6 3.6l10.7 23.4c-.9 1.7-1.8 3.4-2.7 5.2l-25.4 4.1c-1.2.2-2.4.7-3.4 1.5s-1.7 1.8-2.2 2.9-.7 2.4-.5 3.7.6 2.4 1.3 3.4l15 20.8c-.6 1.9-1.1 3.8-1.7 5.7l-24 9c-1.2.4-2.2 1.2-3 2.1s-1.4 2.1-1.6 3.3-.2 2.5.2 3.7 1.1 2.3 2 3.1l18.7 17.5c-.2 2-.4 3.9-.6 5.9L3.5 249.8c-1.1.7-1.9 1.6-2.6 2.7s-.9 2.3-.9 3.6.3 2.5.9 3.6 1.5 2 2.6 2.7l21.8 13.5c.2 2 .3 3.9.6 5.9L7.1 299.1c-.9.9-1.6 1.9-2 3.1s-.5 2.5-.2 3.7.8 2.4 1.6 3.3 1.8 1.7 3 2.1l24 9c.6 1.9 1.1 3.8 1.7 5.6l-15 20.8c-.7 1-1.2 2.2-1.3 3.4s0 2.5.5 3.7 1.2 2.2 2.2 2.9 2.1 1.3 3.4 1.5l25.4 4.2 2.7 5.1-10.5 23.6c-.5 1.1-.7 2.4-.6 3.6s.5 2.5 1.2 3.5c.7 1.1 1.6 1.9 2.7 2.5s2.4.8 3.6.8l25.8-.9c1.2 1.5 2.4 2.9 3.6 4.4L73 430.2c-.3 1.2-.3 2.5.1 3.7s1 2.3 1.9 3.2 2 1.5 3.2 1.9 2.5.4 3.7.1l25.2-5.9c1.5 1.2 2.9 2.4 4.4 3.6l-.9 25.8c0 1.3.2 2.5.8 3.6s1.4 2.1 2.5 2.8 2.2 1.1 3.5 1.2 2.5-.1 3.6-.6l23.4-10.7 5.1 2.7 4.2 25.4c.2 1.2.7 2.4 1.5 3.4s1.8 1.8 2.9 2.2 2.4.7 3.7.5 2.4-.6 3.4-1.3l20.8-15c1.9.6 3.8 1.1 5.6 1.7l9 24c.4 1.2 1.2 2.2 2.1 3s2.1 1.4 3.3 1.6 2.5.2 3.7-.2 2.3-1.1 3.1-2l17.5-18.7c2 .2 3.9.4 5.9.6l13.5 21.8c.7 1.1 1.6 1.9 2.7 2.6s2.3.9 3.6.9 2.5-.3 3.6-.9 2-1.5 2.7-2.6l13.5-21.8c2-.2 3.9-.3 5.9-.6l17.5 18.7c.9.9 1.9 1.6 3.1 2s2.5.5 3.7.2 2.4-.8 3.3-1.6 1.7-1.8 2.1-3l9-24c1.9-.6 3.8-1.1 5.6-1.7l20.8 15c1 .7 2.2 1.2 3.4 1.3s2.5 0 3.7-.5 2.2-1.2 2.9-2.2 1.3-2.1 1.5-3.4l4.2-25.4 5.1-2.7 23.4 10.7c1.1.5 2.4.7 3.6.6s2.4-.5 3.5-1.2 1.9-1.6 2.5-2.8.8-2.4.8-3.6l-.9-25.8c1.5-1.2 2.9-2.4 4.4-3.6l25.2 5.9c1.2.3 2.5.3 3.7-.1s2.3-1 3.2-1.9 1.5-2 1.9-3.2.4-2.5.1-3.7l-5.9-25.2c1.2-1.4 2.4-2.9 3.6-4.4l25.8.9c1.3.1 2.5-.2 3.6-.8s2.1-1.4 2.8-2.5c.7-1 1.1-2.2 1.2-3.5s-.1-2.5-.6-3.6l-10.7-23.4 2.7-5.1 25.4-4.2c1.2-.2 2.4-.7 3.4-1.5s1.8-1.8 2.2-2.9.7-2.4.5-3.7-.6-2.4-1.3-3.4l-15-20.8c.6-1.9 1.1-3.8 1.7-5.6l24-9c1.2-.4 2.2-1.2 3-2.1s1.4-2.1 1.6-3.3.2-2.5-.2-3.7-1.1-2.3-2-3.1l-18.7-17.5c.2-1.9.4-3.9.6-5.9l21.8-13.5c1.1-.7 1.9-1.6 2.6-2.7s.9-2.3.9-3.6-.3-2.5-.9-3.6-1.5-2-2.6-2.7m-151 129.1c-3.6-.8-7.4-.1-10.5 1.9s-5.3 5.2-6 8.8l-7.6 35.7c-24.6 11.1-51.3 16.8-78.3 16.7s-53.6-6.1-78.1-17.4l-7.6-35.7c-.4-1.8-1.1-3.5-2.1-5s-2.4-2.8-3.9-3.8-3.2-1.7-5-2-3.6-.3-5.4.1l-31.5 6.8c-5.8-6-11.3-12.5-16.3-19.2h153.2c1.7 0 2.9-.3 2.9-1.9v-54.2c0-1.6-1.2-1.9-2.9-1.9h-44.8v-34.4h48.5c4.4 0 23.7 1.3 29.8 25.9 1.9 7.5 6.2 32.1 9.1 40 2.9 8.8 14.6 26.5 27.1 26.5h79c-5.3 7.1-11.1 13.8-17.3 20.1l-32.1-6.9zm25.8 34.5c0 3-.9 6-2.6 8.5s-4 4.5-6.8 5.6-5.8 1.5-8.8.9-5.7-2-7.8-4.2-3.6-4.8-4.2-7.8-.3-6 .8-8.8 3.1-5.2 5.6-6.9 5.4-2.6 8.5-2.6h.4c4 .1 7.7 1.8 10.5 4.6s4.3 6.7 4.3 10.6h.1zm-225.6-.7c0 3-.9 6-2.6 8.5s-4.1 4.5-6.8 5.6-5.8 1.5-8.8.9-5.7-2-7.8-4.2-3.6-4.8-4.2-7.8-.3-6 .9-8.8 3.1-5.2 5.6-6.8 5.4-2.6 8.5-2.6h.5c4 .1 7.7 1.8 10.5 4.6s4.3 6.7 4.3 10.6h.1zM69.6 234.2l32.8-14.6c1.7-.7 3.2-1.8 4.4-3.1s2.2-2.9 2.9-4.6 1-3.5.9-5.3-.5-3.6-1.2-5.3l-6.8-15.2h26.6v119.7H75.6c-6.6-23.2-8.7-47.6-6.1-71.6zm-11.3-36.1c0-2 .4-4 1.2-5.8s1.9-3.5 3.3-4.9 3.1-2.5 4.9-3.3 3.8-1.2 5.8-1.2h.5c3 .1 5.9 1 8.3 2.8s4.3 4.1 5.4 6.9 1.3 5.8.7 8.8-2.1 5.6-4.3 7.7-4.9 3.5-7.8 4.1-6 .2-8.7-.9-5.1-3.1-6.8-5.6-2.5-5.4-2.5-8.4zm155.2 24.5v-35.3h63.3c3.3 0 23.1 3.8 23.1 18.6 0 12.3-15.2 16.7-27.7 16.7zM399 306.7c-9.8 1.1-20.6-4.1-22-10.1-5.8-32.5-15.4-39.4-30.6-51.4 18.9-12 38.5-29.6 38.5-53.3 0-25.5-17.5-41.6-29.4-49.5-16.8-11-35.3-13.2-40.3-13.2H116.3c27.5-30.7 64.4-51.5 104.9-59.2l23.5 24.6c1.3 1.3 2.8 2.4 4.4 3.1s3.5 1.1 5.3 1.2 3.6-.3 5.3-.9 3.2-1.7 4.6-2.9l26.3-25c26.8 5 52.1 15.8 74.3 31.6s40.6 36.2 54.1 59.9l-18 40.6c-1.5 3.4-1.5 7.2-.2 10.6s3.9 6.2 7.3 7.7l34.6 15.3c1.1 10.8 1.2 21.7.4 32.5h-19.3c-1.9 0-2.7 1.3-2.7 3.1v8.8c0 20.8-11.7 25.3-22 26.5zM240 60.2c0-4 1.6-7.9 4.5-10.7s6.7-4.5 10.7-4.5h.4c3 .1 5.9 1 8.4 2.8s4.3 4.1 5.4 6.9 1.3 5.8.7 8.8-2.1 5.6-4.3 7.7-4.9 3.5-7.8 4-6 .2-8.7-.9-5.1-3.1-6.8-5.6-2.5-5.4-2.5-8.4zM436.8 214c-2 0-4-.4-5.8-1.2s-3.5-1.9-4.9-3.3-2.5-3.1-3.3-4.9-1.2-3.8-1.2-5.8.4-4 1.2-5.8 1.9-3.5 3.3-4.9 3.1-2.5 4.9-3.3 3.8-1.2 5.8-1.2h.4c4 .1 7.9 1.7 10.7 4.6s4.4 6.8 4.3 10.8-1.7 7.9-4.6 10.7-6.8 4.4-10.8 4.3"/></svg></span> Rust</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">radiate</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">rd</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="c1"># Create a character gene with an allele of &#39;A&#39;</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">gene</span> <span class="o">=</span> <span class="n">rd</span><span class="o">.</span><span class="n">gene</span><span class="o">.</span><span class="n">char</span><span class="p">(</span><span class="n">allele</span><span class="o">=</span><span class="s1">&#39;A&#39;</span><span class="p">)</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="c1"># Create a character gene with a randomly generated allele from the set &#39;abc&#39;</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="n">gene</span> <span class="o">=</span> <span class="n">rd</span><span class="o">.</span><span class="n">gene</span><span class="o">.</span><span class="n">char</span><span class="p">(</span><span class="n">char_set</span><span class="o">=</span><span class="s1">&#39;abc&#39;</span><span class="p">)</span>  
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="c1"># Create a character gene from a set of chars </span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="n">gene</span> <span class="o">=</span> <span class="n">rd</span><span class="o">.</span><span class="n">gene</span><span class="o">.</span><span class="n">char</span><span class="p">(</span><span class="n">char_set</span><span class="o">=</span><span class="s1">&#39;abc&#39;</span><span class="p">)</span>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="n">gene</span> <span class="o">=</span> <span class="n">rd</span><span class="o">.</span><span class="n">gene</span><span class="o">.</span><span class="n">char</span><span class="p">(</span><span class="n">char_set</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">])</span>
+</span></code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">use</span><span class="w"> </span><span class="n">radiate</span><span class="p">::</span><span class="o">*</span><span class="p">;</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="c1">// Create an char gene with a randomly generated allele from the ASCII printable characters</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="kd">let</span><span class="w"> </span><span class="n">gene</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CharGene</span><span class="p">::</span><span class="n">default</span><span class="p">();</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="c1">// Create a char gene with a char_set of &#39;abc&#39; of which the allele will be randomly chosen from</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="kd">let</span><span class="w"> </span><span class="n">gene</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CharGene</span><span class="p">::</span><span class="n">from</span><span class="p">(</span><span class="s">&quot;abc&quot;</span><span class="p">);</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="c1">// Create a char gene with an allele of &#39;A&#39; from the char_set &#39;abc&#39;</span>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="kd">let</span><span class="w"> </span><span class="n">gene</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CharGene</span><span class="p">::</span><span class="n">from</span><span class="p">((</span><span class="sc">&#39;A&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">Arc</span><span class="p">::</span><span class="n">new</span><span class="p">([</span><span class="sc">&#39;a&#39;</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;b&#39;</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;c&#39;</span><span class="p">])));</span>
+</span></code></pre></div>
+</div>
+</div>
+</div>
+</details>
+<details class="info">
+<summary>PermutationGene</summary>
+<p>For evolving permutations of a set of values. The <code>PermutationGene</code> allows you to represent a single value from a list of unique values. It is useful for problems where the order of elements matters, such as the Traveling Salesman Problem.</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="5:2"><input checked="checked" id="__tabbed_5_1" name="__tabbed_5" type="radio" /><input id="__tabbed_5_2" name="__tabbed_5" type="radio" /><div class="tabbed-labels"><label for="__tabbed_5_1"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.8 200.5c-7.7-30.9-22.3-54.2-53.4-54.2h-40.1v47.4c0 36.8-31.2 67.8-66.8 67.8H172.7c-29.2 0-53.4 25-53.4 54.3v101.8c0 29 25.2 46 53.4 54.3 33.8 9.9 66.3 11.7 106.8 0 26.9-7.8 53.4-23.5 53.4-54.3v-40.7H226.2v-13.6h160.2c31.1 0 42.6-21.7 53.4-54.2 11.2-33.5 10.7-65.7 0-108.6M286.2 444.7a20.4 20.4 0 1 1 0-40.7 20.4 20.4 0 1 1 0 40.7M167.8 248.1h106.8c29.7 0 53.4-24.5 53.4-54.3V91.9c0-29-24.4-50.7-53.4-55.6-35.8-5.9-74.7-5.6-106.8.1-45.2 8-53.4 24.7-53.4 55.6v40.7h106.9v13.6h-147c-31.1 0-58.3 18.7-66.8 54.2-9.8 40.7-10.2 66.1 0 108.6 7.6 31.6 25.7 54.2 56.8 54.2H101v-48.8c0-35.3 30.5-66.4 66.8-66.4m-6.6-183.4a20.4 20.4 0 1 1 0 40.8 20.4 20.4 0 1 1 0-40.8"/></svg></span> Python</label><label for="__tabbed_5_2"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="m508.5 249.8-21.8-13.5c-.2-2-.3-3.9-.5-5.9l18.7-17.5c.9-.9 1.6-1.9 2-3.1s.5-2.5.2-3.7-.8-2.4-1.6-3.3-1.8-1.7-3-2.1l-24-9c-.5-1.9-1.1-3.8-1.7-5.6l15-20.8c.7-1 1.2-2.2 1.3-3.4s0-2.5-.5-3.7-1.2-2.2-2.2-2.9-2.1-1.3-3.4-1.5l-25.4-4.2c-.9-1.7-1.8-3.4-2.7-5.2l10.7-23.4c.5-1.1.7-2.4.6-3.6s-.5-2.4-1.2-3.5-1.6-1.9-2.8-2.5-2.4-.8-3.6-.8l-25.8.9c-1.2-1.5-2.4-2.9-3.6-4.4l5.8-25.3c.3-1.2.3-2.5-.1-3.7s-1-2.3-1.9-3.2-2-1.5-3.2-1.9-2.5-.4-3.7-.1l-25.1 6c-1.4-1.2-2.9-2.4-4.4-3.6l.9-25.8c.1-1.3-.2-2.5-.8-3.6s-1.4-2.1-2.5-2.8-2.2-1.1-3.5-1.2-2.5.1-3.7.6l-23.3 10.7-5.1-2.7-4.2-25.4c-.2-1.2-.7-2.4-1.5-3.4s-1.8-1.7-2.9-2.2-2.4-.7-3.7-.5-2.4.6-3.4 1.3l-20.9 15c-1.9-.6-3.8-1.1-5.6-1.7l-9-24c-.4-1.2-1.2-2.2-2.1-3S307.2 5.2 306 5s-2.5-.2-3.7.2-2.3 1.1-3.1 2l-17.6 18.7c-2-.2-3.9-.4-5.9-.5L262.3 3.5c-.7-1.1-1.6-1.9-2.7-2.6S257.3 0 256 0s-2.5.3-3.6.9-2 1.5-2.7 2.6l-13.5 21.8c-2 .2-3.9.3-5.9.6L212.9 7.1c-.9-.9-1.9-1.6-3.1-2s-2.5-.5-3.7-.2-2.4.8-3.3 1.6-1.7 1.8-2.1 3l-9 24c-1.9.6-3.8 1.1-5.7 1.7l-20.8-15c-1-.7-2.2-1.2-3.4-1.3s-2.5 0-3.7.5-2.2 1.2-2.9 2.2-1.3 2.1-1.5 3.4l-4.2 25.4c-1.7.9-3.4 1.8-5.2 2.7l-23.4-10.5c-1.1-.5-2.4-.7-3.7-.6s-2.5.5-3.5 1.2-1.9 1.7-2.5 2.8-.8 2.4-.8 3.6l.9 25.8c-1.5 1.2-3 2.4-4.4 3.6l-25.1-6c-1.2-.3-2.5-.3-3.7.1s-2.3 1-3.2 1.9-1.5 2-1.9 3.2-.4 2.5-.1 3.7l6 25.1c-1.2 1.4-2.4 2.9-3.6 4.4l-25.8-.9c-1.3 0-2.5.2-3.6.8s-2.1 1.4-2.8 2.4-1.1 2.2-1.2 3.5.1 2.5.6 3.6l10.7 23.4c-.9 1.7-1.8 3.4-2.7 5.2l-25.4 4.1c-1.2.2-2.4.7-3.4 1.5s-1.7 1.8-2.2 2.9-.7 2.4-.5 3.7.6 2.4 1.3 3.4l15 20.8c-.6 1.9-1.1 3.8-1.7 5.7l-24 9c-1.2.4-2.2 1.2-3 2.1s-1.4 2.1-1.6 3.3-.2 2.5.2 3.7 1.1 2.3 2 3.1l18.7 17.5c-.2 2-.4 3.9-.6 5.9L3.5 249.8c-1.1.7-1.9 1.6-2.6 2.7s-.9 2.3-.9 3.6.3 2.5.9 3.6 1.5 2 2.6 2.7l21.8 13.5c.2 2 .3 3.9.6 5.9L7.1 299.1c-.9.9-1.6 1.9-2 3.1s-.5 2.5-.2 3.7.8 2.4 1.6 3.3 1.8 1.7 3 2.1l24 9c.6 1.9 1.1 3.8 1.7 5.6l-15 20.8c-.7 1-1.2 2.2-1.3 3.4s0 2.5.5 3.7 1.2 2.2 2.2 2.9 2.1 1.3 3.4 1.5l25.4 4.2 2.7 5.1-10.5 23.6c-.5 1.1-.7 2.4-.6 3.6s.5 2.5 1.2 3.5c.7 1.1 1.6 1.9 2.7 2.5s2.4.8 3.6.8l25.8-.9c1.2 1.5 2.4 2.9 3.6 4.4L73 430.2c-.3 1.2-.3 2.5.1 3.7s1 2.3 1.9 3.2 2 1.5 3.2 1.9 2.5.4 3.7.1l25.2-5.9c1.5 1.2 2.9 2.4 4.4 3.6l-.9 25.8c0 1.3.2 2.5.8 3.6s1.4 2.1 2.5 2.8 2.2 1.1 3.5 1.2 2.5-.1 3.6-.6l23.4-10.7 5.1 2.7 4.2 25.4c.2 1.2.7 2.4 1.5 3.4s1.8 1.8 2.9 2.2 2.4.7 3.7.5 2.4-.6 3.4-1.3l20.8-15c1.9.6 3.8 1.1 5.6 1.7l9 24c.4 1.2 1.2 2.2 2.1 3s2.1 1.4 3.3 1.6 2.5.2 3.7-.2 2.3-1.1 3.1-2l17.5-18.7c2 .2 3.9.4 5.9.6l13.5 21.8c.7 1.1 1.6 1.9 2.7 2.6s2.3.9 3.6.9 2.5-.3 3.6-.9 2-1.5 2.7-2.6l13.5-21.8c2-.2 3.9-.3 5.9-.6l17.5 18.7c.9.9 1.9 1.6 3.1 2s2.5.5 3.7.2 2.4-.8 3.3-1.6 1.7-1.8 2.1-3l9-24c1.9-.6 3.8-1.1 5.6-1.7l20.8 15c1 .7 2.2 1.2 3.4 1.3s2.5 0 3.7-.5 2.2-1.2 2.9-2.2 1.3-2.1 1.5-3.4l4.2-25.4 5.1-2.7 23.4 10.7c1.1.5 2.4.7 3.6.6s2.4-.5 3.5-1.2 1.9-1.6 2.5-2.8.8-2.4.8-3.6l-.9-25.8c1.5-1.2 2.9-2.4 4.4-3.6l25.2 5.9c1.2.3 2.5.3 3.7-.1s2.3-1 3.2-1.9 1.5-2 1.9-3.2.4-2.5.1-3.7l-5.9-25.2c1.2-1.4 2.4-2.9 3.6-4.4l25.8.9c1.3.1 2.5-.2 3.6-.8s2.1-1.4 2.8-2.5c.7-1 1.1-2.2 1.2-3.5s-.1-2.5-.6-3.6l-10.7-23.4 2.7-5.1 25.4-4.2c1.2-.2 2.4-.7 3.4-1.5s1.8-1.8 2.2-2.9.7-2.4.5-3.7-.6-2.4-1.3-3.4l-15-20.8c.6-1.9 1.1-3.8 1.7-5.6l24-9c1.2-.4 2.2-1.2 3-2.1s1.4-2.1 1.6-3.3.2-2.5-.2-3.7-1.1-2.3-2-3.1l-18.7-17.5c.2-1.9.4-3.9.6-5.9l21.8-13.5c1.1-.7 1.9-1.6 2.6-2.7s.9-2.3.9-3.6-.3-2.5-.9-3.6-1.5-2-2.6-2.7m-151 129.1c-3.6-.8-7.4-.1-10.5 1.9s-5.3 5.2-6 8.8l-7.6 35.7c-24.6 11.1-51.3 16.8-78.3 16.7s-53.6-6.1-78.1-17.4l-7.6-35.7c-.4-1.8-1.1-3.5-2.1-5s-2.4-2.8-3.9-3.8-3.2-1.7-5-2-3.6-.3-5.4.1l-31.5 6.8c-5.8-6-11.3-12.5-16.3-19.2h153.2c1.7 0 2.9-.3 2.9-1.9v-54.2c0-1.6-1.2-1.9-2.9-1.9h-44.8v-34.4h48.5c4.4 0 23.7 1.3 29.8 25.9 1.9 7.5 6.2 32.1 9.1 40 2.9 8.8 14.6 26.5 27.1 26.5h79c-5.3 7.1-11.1 13.8-17.3 20.1l-32.1-6.9zm25.8 34.5c0 3-.9 6-2.6 8.5s-4 4.5-6.8 5.6-5.8 1.5-8.8.9-5.7-2-7.8-4.2-3.6-4.8-4.2-7.8-.3-6 .8-8.8 3.1-5.2 5.6-6.9 5.4-2.6 8.5-2.6h.4c4 .1 7.7 1.8 10.5 4.6s4.3 6.7 4.3 10.6h.1zm-225.6-.7c0 3-.9 6-2.6 8.5s-4.1 4.5-6.8 5.6-5.8 1.5-8.8.9-5.7-2-7.8-4.2-3.6-4.8-4.2-7.8-.3-6 .9-8.8 3.1-5.2 5.6-6.8 5.4-2.6 8.5-2.6h.5c4 .1 7.7 1.8 10.5 4.6s4.3 6.7 4.3 10.6h.1zM69.6 234.2l32.8-14.6c1.7-.7 3.2-1.8 4.4-3.1s2.2-2.9 2.9-4.6 1-3.5.9-5.3-.5-3.6-1.2-5.3l-6.8-15.2h26.6v119.7H75.6c-6.6-23.2-8.7-47.6-6.1-71.6zm-11.3-36.1c0-2 .4-4 1.2-5.8s1.9-3.5 3.3-4.9 3.1-2.5 4.9-3.3 3.8-1.2 5.8-1.2h.5c3 .1 5.9 1 8.3 2.8s4.3 4.1 5.4 6.9 1.3 5.8.7 8.8-2.1 5.6-4.3 7.7-4.9 3.5-7.8 4.1-6 .2-8.7-.9-5.1-3.1-6.8-5.6-2.5-5.4-2.5-8.4zm155.2 24.5v-35.3h63.3c3.3 0 23.1 3.8 23.1 18.6 0 12.3-15.2 16.7-27.7 16.7zM399 306.7c-9.8 1.1-20.6-4.1-22-10.1-5.8-32.5-15.4-39.4-30.6-51.4 18.9-12 38.5-29.6 38.5-53.3 0-25.5-17.5-41.6-29.4-49.5-16.8-11-35.3-13.2-40.3-13.2H116.3c27.5-30.7 64.4-51.5 104.9-59.2l23.5 24.6c1.3 1.3 2.8 2.4 4.4 3.1s3.5 1.1 5.3 1.2 3.6-.3 5.3-.9 3.2-1.7 4.6-2.9l26.3-25c26.8 5 52.1 15.8 74.3 31.6s40.6 36.2 54.1 59.9l-18 40.6c-1.5 3.4-1.5 7.2-.2 10.6s3.9 6.2 7.3 7.7l34.6 15.3c1.1 10.8 1.2 21.7.4 32.5h-19.3c-1.9 0-2.7 1.3-2.7 3.1v8.8c0 20.8-11.7 25.3-22 26.5zM240 60.2c0-4 1.6-7.9 4.5-10.7s6.7-4.5 10.7-4.5h.4c3 .1 5.9 1 8.4 2.8s4.3 4.1 5.4 6.9 1.3 5.8.7 8.8-2.1 5.6-4.3 7.7-4.9 3.5-7.8 4-6 .2-8.7-.9-5.1-3.1-6.8-5.6-2.5-5.4-2.5-8.4zM436.8 214c-2 0-4-.4-5.8-1.2s-3.5-1.9-4.9-3.3-2.5-3.1-3.3-4.9-1.2-3.8-1.2-5.8.4-4 1.2-5.8 1.9-3.5 3.3-4.9 3.1-2.5 4.9-3.3 3.8-1.2 5.8-1.2h.4c4 .1 7.9 1.7 10.7 4.6s4.4 6.8 4.3 10.8-1.7 7.9-4.6 10.7-6.8 4.4-10.8 4.3"/></svg></span> Rust</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="admonition warning">
+<p class="admonition-title"><img alt="🚧" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/1f6a7.svg" title=":construction:" /> Under Construction <img alt="🚧" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/1f6a7.svg" title=":construction:" /></p>
+<p>This Gene is currently under construction and not yet available in the Python API.</p>
+</div>
+</div>
+<div class="tabbed-block">
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="k">use</span><span class="w"> </span><span class="n">radiate</span><span class="p">::</span><span class="o">*</span><span class="p">;</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="c1">// Define a list of alleles the associated genes</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="kd">let</span><span class="w"> </span><span class="n">alleles</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Arc</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="fm">vec!</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="p">]);</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="kd">let</span><span class="w"> </span><span class="n">genes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="fm">vec!</span><span class="p">[</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">    </span><span class="n">PermutationGene</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">Arc</span><span class="p">::</span><span class="n">clone</span><span class="p">(</span><span class="o">&amp;</span><span class="n">alleles</span><span class="p">)),</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="w">    </span><span class="n">PermutationGene</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">Arc</span><span class="p">::</span><span class="n">clone</span><span class="p">(</span><span class="o">&amp;</span><span class="n">alleles</span><span class="p">)),</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="w">    </span><span class="n">PermutationGene</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="n">Arc</span><span class="p">::</span><span class="n">clone</span><span class="p">(</span><span class="o">&amp;</span><span class="n">alleles</span><span class="p">)),</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="w">    </span><span class="n">PermutationGene</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="n">Arc</span><span class="p">::</span><span class="n">clone</span><span class="p">(</span><span class="o">&amp;</span><span class="n">alleles</span><span class="p">)),</span>
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="p">];</span>
+</span></code></pre></div>
+</div>
+</div>
+</div>
+</details>
+<hr />
+<h3 id="chromosome">Chromosome</h3>
+<blockquote>
+<p>The Collection.</p>
+</blockquote>
+<p>Each <code>Gene</code> is contained within a <code>Chromosome</code> and as such, each <code>Gene</code> has its own <code>Chromosome</code>.
+The <code>Chromosome</code> is a collection of <code>Genes</code> that represent a part or the whole of the genetic information of an individual. A <code>Chromosome</code> can be thought of as a "chunk" or vector of genetic information. For example, a <code>Chromosome</code> could represent a sequence of numbers, a string of characters, or a set of binary values among other things. The decision to define a <code>Chromosome</code> for each <code>Gene</code> was made to allow for more flexibility in the genetic information that can be represented. Think of it as a "sentence" made up of multiple "words" (genes). Each chromosome represents a specific part of your solution.</p>
+<p>For example, if you're evolving a neural network, you might have:</p>
+<ul>
+<li>One chromosome for the weights of the first layer</li>
+<li>Another chromosome for the weights of the second layer</li>
+<li>Each chromosome contains multiple genes (the individual weights)</li>
+</ul>
+<p>Because each <code>Chromosome</code> has an associated <code>Gene</code>, the built int chromosomes are defined as follows:</p>
+<details class="info">
+<summary>FloatChromosome</summary>
+<p>For evolving a sequence of floating-point numbers. It contains a vector of <code>FloatGene</code> instances.</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="6:2"><input checked="checked" id="__tabbed_6_1" name="__tabbed_6" type="radio" /><input id="__tabbed_6_2" name="__tabbed_6" type="radio" /><div class="tabbed-labels"><label for="__tabbed_6_1"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.8 200.5c-7.7-30.9-22.3-54.2-53.4-54.2h-40.1v47.4c0 36.8-31.2 67.8-66.8 67.8H172.7c-29.2 0-53.4 25-53.4 54.3v101.8c0 29 25.2 46 53.4 54.3 33.8 9.9 66.3 11.7 106.8 0 26.9-7.8 53.4-23.5 53.4-54.3v-40.7H226.2v-13.6h160.2c31.1 0 42.6-21.7 53.4-54.2 11.2-33.5 10.7-65.7 0-108.6M286.2 444.7a20.4 20.4 0 1 1 0-40.7 20.4 20.4 0 1 1 0 40.7M167.8 248.1h106.8c29.7 0 53.4-24.5 53.4-54.3V91.9c0-29-24.4-50.7-53.4-55.6-35.8-5.9-74.7-5.6-106.8.1-45.2 8-53.4 24.7-53.4 55.6v40.7h106.9v13.6h-147c-31.1 0-58.3 18.7-66.8 54.2-9.8 40.7-10.2 66.1 0 108.6 7.6 31.6 25.7 54.2 56.8 54.2H101v-48.8c0-35.3 30.5-66.4 66.8-66.4m-6.6-183.4a20.4 20.4 0 1 1 0 40.8 20.4 20.4 0 1 1 0-40.8"/></svg></span> Python</label><label for="__tabbed_6_2"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="m508.5 249.8-21.8-13.5c-.2-2-.3-3.9-.5-5.9l18.7-17.5c.9-.9 1.6-1.9 2-3.1s.5-2.5.2-3.7-.8-2.4-1.6-3.3-1.8-1.7-3-2.1l-24-9c-.5-1.9-1.1-3.8-1.7-5.6l15-20.8c.7-1 1.2-2.2 1.3-3.4s0-2.5-.5-3.7-1.2-2.2-2.2-2.9-2.1-1.3-3.4-1.5l-25.4-4.2c-.9-1.7-1.8-3.4-2.7-5.2l10.7-23.4c.5-1.1.7-2.4.6-3.6s-.5-2.4-1.2-3.5-1.6-1.9-2.8-2.5-2.4-.8-3.6-.8l-25.8.9c-1.2-1.5-2.4-2.9-3.6-4.4l5.8-25.3c.3-1.2.3-2.5-.1-3.7s-1-2.3-1.9-3.2-2-1.5-3.2-1.9-2.5-.4-3.7-.1l-25.1 6c-1.4-1.2-2.9-2.4-4.4-3.6l.9-25.8c.1-1.3-.2-2.5-.8-3.6s-1.4-2.1-2.5-2.8-2.2-1.1-3.5-1.2-2.5.1-3.7.6l-23.3 10.7-5.1-2.7-4.2-25.4c-.2-1.2-.7-2.4-1.5-3.4s-1.8-1.7-2.9-2.2-2.4-.7-3.7-.5-2.4.6-3.4 1.3l-20.9 15c-1.9-.6-3.8-1.1-5.6-1.7l-9-24c-.4-1.2-1.2-2.2-2.1-3S307.2 5.2 306 5s-2.5-.2-3.7.2-2.3 1.1-3.1 2l-17.6 18.7c-2-.2-3.9-.4-5.9-.5L262.3 3.5c-.7-1.1-1.6-1.9-2.7-2.6S257.3 0 256 0s-2.5.3-3.6.9-2 1.5-2.7 2.6l-13.5 21.8c-2 .2-3.9.3-5.9.6L212.9 7.1c-.9-.9-1.9-1.6-3.1-2s-2.5-.5-3.7-.2-2.4.8-3.3 1.6-1.7 1.8-2.1 3l-9 24c-1.9.6-3.8 1.1-5.7 1.7l-20.8-15c-1-.7-2.2-1.2-3.4-1.3s-2.5 0-3.7.5-2.2 1.2-2.9 2.2-1.3 2.1-1.5 3.4l-4.2 25.4c-1.7.9-3.4 1.8-5.2 2.7l-23.4-10.5c-1.1-.5-2.4-.7-3.7-.6s-2.5.5-3.5 1.2-1.9 1.7-2.5 2.8-.8 2.4-.8 3.6l.9 25.8c-1.5 1.2-3 2.4-4.4 3.6l-25.1-6c-1.2-.3-2.5-.3-3.7.1s-2.3 1-3.2 1.9-1.5 2-1.9 3.2-.4 2.5-.1 3.7l6 25.1c-1.2 1.4-2.4 2.9-3.6 4.4l-25.8-.9c-1.3 0-2.5.2-3.6.8s-2.1 1.4-2.8 2.4-1.1 2.2-1.2 3.5.1 2.5.6 3.6l10.7 23.4c-.9 1.7-1.8 3.4-2.7 5.2l-25.4 4.1c-1.2.2-2.4.7-3.4 1.5s-1.7 1.8-2.2 2.9-.7 2.4-.5 3.7.6 2.4 1.3 3.4l15 20.8c-.6 1.9-1.1 3.8-1.7 5.7l-24 9c-1.2.4-2.2 1.2-3 2.1s-1.4 2.1-1.6 3.3-.2 2.5.2 3.7 1.1 2.3 2 3.1l18.7 17.5c-.2 2-.4 3.9-.6 5.9L3.5 249.8c-1.1.7-1.9 1.6-2.6 2.7s-.9 2.3-.9 3.6.3 2.5.9 3.6 1.5 2 2.6 2.7l21.8 13.5c.2 2 .3 3.9.6 5.9L7.1 299.1c-.9.9-1.6 1.9-2 3.1s-.5 2.5-.2 3.7.8 2.4 1.6 3.3 1.8 1.7 3 2.1l24 9c.6 1.9 1.1 3.8 1.7 5.6l-15 20.8c-.7 1-1.2 2.2-1.3 3.4s0 2.5.5 3.7 1.2 2.2 2.2 2.9 2.1 1.3 3.4 1.5l25.4 4.2 2.7 5.1-10.5 23.6c-.5 1.1-.7 2.4-.6 3.6s.5 2.5 1.2 3.5c.7 1.1 1.6 1.9 2.7 2.5s2.4.8 3.6.8l25.8-.9c1.2 1.5 2.4 2.9 3.6 4.4L73 430.2c-.3 1.2-.3 2.5.1 3.7s1 2.3 1.9 3.2 2 1.5 3.2 1.9 2.5.4 3.7.1l25.2-5.9c1.5 1.2 2.9 2.4 4.4 3.6l-.9 25.8c0 1.3.2 2.5.8 3.6s1.4 2.1 2.5 2.8 2.2 1.1 3.5 1.2 2.5-.1 3.6-.6l23.4-10.7 5.1 2.7 4.2 25.4c.2 1.2.7 2.4 1.5 3.4s1.8 1.8 2.9 2.2 2.4.7 3.7.5 2.4-.6 3.4-1.3l20.8-15c1.9.6 3.8 1.1 5.6 1.7l9 24c.4 1.2 1.2 2.2 2.1 3s2.1 1.4 3.3 1.6 2.5.2 3.7-.2 2.3-1.1 3.1-2l17.5-18.7c2 .2 3.9.4 5.9.6l13.5 21.8c.7 1.1 1.6 1.9 2.7 2.6s2.3.9 3.6.9 2.5-.3 3.6-.9 2-1.5 2.7-2.6l13.5-21.8c2-.2 3.9-.3 5.9-.6l17.5 18.7c.9.9 1.9 1.6 3.1 2s2.5.5 3.7.2 2.4-.8 3.3-1.6 1.7-1.8 2.1-3l9-24c1.9-.6 3.8-1.1 5.6-1.7l20.8 15c1 .7 2.2 1.2 3.4 1.3s2.5 0 3.7-.5 2.2-1.2 2.9-2.2 1.3-2.1 1.5-3.4l4.2-25.4 5.1-2.7 23.4 10.7c1.1.5 2.4.7 3.6.6s2.4-.5 3.5-1.2 1.9-1.6 2.5-2.8.8-2.4.8-3.6l-.9-25.8c1.5-1.2 2.9-2.4 4.4-3.6l25.2 5.9c1.2.3 2.5.3 3.7-.1s2.3-1 3.2-1.9 1.5-2 1.9-3.2.4-2.5.1-3.7l-5.9-25.2c1.2-1.4 2.4-2.9 3.6-4.4l25.8.9c1.3.1 2.5-.2 3.6-.8s2.1-1.4 2.8-2.5c.7-1 1.1-2.2 1.2-3.5s-.1-2.5-.6-3.6l-10.7-23.4 2.7-5.1 25.4-4.2c1.2-.2 2.4-.7 3.4-1.5s1.8-1.8 2.2-2.9.7-2.4.5-3.7-.6-2.4-1.3-3.4l-15-20.8c.6-1.9 1.1-3.8 1.7-5.6l24-9c1.2-.4 2.2-1.2 3-2.1s1.4-2.1 1.6-3.3.2-2.5-.2-3.7-1.1-2.3-2-3.1l-18.7-17.5c.2-1.9.4-3.9.6-5.9l21.8-13.5c1.1-.7 1.9-1.6 2.6-2.7s.9-2.3.9-3.6-.3-2.5-.9-3.6-1.5-2-2.6-2.7m-151 129.1c-3.6-.8-7.4-.1-10.5 1.9s-5.3 5.2-6 8.8l-7.6 35.7c-24.6 11.1-51.3 16.8-78.3 16.7s-53.6-6.1-78.1-17.4l-7.6-35.7c-.4-1.8-1.1-3.5-2.1-5s-2.4-2.8-3.9-3.8-3.2-1.7-5-2-3.6-.3-5.4.1l-31.5 6.8c-5.8-6-11.3-12.5-16.3-19.2h153.2c1.7 0 2.9-.3 2.9-1.9v-54.2c0-1.6-1.2-1.9-2.9-1.9h-44.8v-34.4h48.5c4.4 0 23.7 1.3 29.8 25.9 1.9 7.5 6.2 32.1 9.1 40 2.9 8.8 14.6 26.5 27.1 26.5h79c-5.3 7.1-11.1 13.8-17.3 20.1l-32.1-6.9zm25.8 34.5c0 3-.9 6-2.6 8.5s-4 4.5-6.8 5.6-5.8 1.5-8.8.9-5.7-2-7.8-4.2-3.6-4.8-4.2-7.8-.3-6 .8-8.8 3.1-5.2 5.6-6.9 5.4-2.6 8.5-2.6h.4c4 .1 7.7 1.8 10.5 4.6s4.3 6.7 4.3 10.6h.1zm-225.6-.7c0 3-.9 6-2.6 8.5s-4.1 4.5-6.8 5.6-5.8 1.5-8.8.9-5.7-2-7.8-4.2-3.6-4.8-4.2-7.8-.3-6 .9-8.8 3.1-5.2 5.6-6.8 5.4-2.6 8.5-2.6h.5c4 .1 7.7 1.8 10.5 4.6s4.3 6.7 4.3 10.6h.1zM69.6 234.2l32.8-14.6c1.7-.7 3.2-1.8 4.4-3.1s2.2-2.9 2.9-4.6 1-3.5.9-5.3-.5-3.6-1.2-5.3l-6.8-15.2h26.6v119.7H75.6c-6.6-23.2-8.7-47.6-6.1-71.6zm-11.3-36.1c0-2 .4-4 1.2-5.8s1.9-3.5 3.3-4.9 3.1-2.5 4.9-3.3 3.8-1.2 5.8-1.2h.5c3 .1 5.9 1 8.3 2.8s4.3 4.1 5.4 6.9 1.3 5.8.7 8.8-2.1 5.6-4.3 7.7-4.9 3.5-7.8 4.1-6 .2-8.7-.9-5.1-3.1-6.8-5.6-2.5-5.4-2.5-8.4zm155.2 24.5v-35.3h63.3c3.3 0 23.1 3.8 23.1 18.6 0 12.3-15.2 16.7-27.7 16.7zM399 306.7c-9.8 1.1-20.6-4.1-22-10.1-5.8-32.5-15.4-39.4-30.6-51.4 18.9-12 38.5-29.6 38.5-53.3 0-25.5-17.5-41.6-29.4-49.5-16.8-11-35.3-13.2-40.3-13.2H116.3c27.5-30.7 64.4-51.5 104.9-59.2l23.5 24.6c1.3 1.3 2.8 2.4 4.4 3.1s3.5 1.1 5.3 1.2 3.6-.3 5.3-.9 3.2-1.7 4.6-2.9l26.3-25c26.8 5 52.1 15.8 74.3 31.6s40.6 36.2 54.1 59.9l-18 40.6c-1.5 3.4-1.5 7.2-.2 10.6s3.9 6.2 7.3 7.7l34.6 15.3c1.1 10.8 1.2 21.7.4 32.5h-19.3c-1.9 0-2.7 1.3-2.7 3.1v8.8c0 20.8-11.7 25.3-22 26.5zM240 60.2c0-4 1.6-7.9 4.5-10.7s6.7-4.5 10.7-4.5h.4c3 .1 5.9 1 8.4 2.8s4.3 4.1 5.4 6.9 1.3 5.8.7 8.8-2.1 5.6-4.3 7.7-4.9 3.5-7.8 4-6 .2-8.7-.9-5.1-3.1-6.8-5.6-2.5-5.4-2.5-8.4zM436.8 214c-2 0-4-.4-5.8-1.2s-3.5-1.9-4.9-3.3-2.5-3.1-3.3-4.9-1.2-3.8-1.2-5.8.4-4 1.2-5.8 1.9-3.5 3.3-4.9 3.1-2.5 4.9-3.3 3.8-1.2 5.8-1.2h.4c4 .1 7.9 1.7 10.7 4.6s4.4 6.8 4.3 10.8-1.7 7.9-4.6 10.7-6.8 4.4-10.8 4.3"/></svg></span> Rust</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">radiate</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">rd</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="c1"># Create a float chromosome with 5 genes, each initialized to a random value between -1.0 and 1.0</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="n">chromosome</span> <span class="o">=</span> <span class="n">rd</span><span class="o">.</span><span class="n">chromosome</span><span class="o">.</span><span class="n">float</span><span class="p">(</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>    <span class="n">length</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> 
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>    <span class="n">init_range</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span> 
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>    <span class="n">bounds</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">10.0</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">)</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="p">)</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="c1"># Create a float chromosome with specific genes</span>
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="n">genes</span> <span class="o">=</span> <span class="p">[</span><span class="n">rd</span><span class="o">.</span><span class="n">gene</span><span class="o">.</span><span class="n">float</span><span class="p">(</span><span class="n">allele</span><span class="o">=</span><span class="mf">0.1</span><span class="p">),</span> <span class="n">rd</span><span class="o">.</span><span class="n">gene</span><span class="o">.</span><span class="n">float</span><span class="p">(</span><span class="n">allele</span><span class="o">=</span><span class="mf">0.2</span><span class="p">),</span> <span class="n">rd</span><span class="o">.</span><span class="n">gene</span><span class="o">.</span><span class="n">float</span><span class="p">(</span><span class="n">allele</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)]</span>
+</span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a><span class="n">chromosome_with_genes</span> <span class="o">=</span> <span class="n">rd</span><span class="o">.</span><span class="n">chromosome</span><span class="o">.</span><span class="n">float</span><span class="p">(</span><span class="n">genes</span><span class="o">=</span><span class="n">genes</span><span class="p">)</span>
+</span></code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">use</span><span class="w"> </span><span class="n">radiate</span><span class="p">::</span><span class="o">*</span><span class="p">;</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="c1">// Create a float chromosome with 5 genes, each initialized to a random value between -1.0 and 1.0</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="kd">let</span><span class="w"> </span><span class="n">chromosome</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">FloatChromosome</span><span class="p">::</span><span class="n">from</span><span class="p">((</span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mf">1.</span><span class="mi">0</span><span class="o">..</span><span class="mf">1.0</span><span class="p">));</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="kd">let</span><span class="w"> </span><span class="n">bounded_chromosome</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">FloatChromosome</span><span class="p">::</span><span class="n">from</span><span class="p">((</span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mf">1.</span><span class="mi">0</span><span class="o">..</span><span class="mf">1.0</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mf">10.</span><span class="mi">0</span><span class="o">..</span><span class="mf">10.0</span><span class="p">));</span>
+</span></code></pre></div>
+</div>
+</div>
+</div>
+</details>
+<details class="info">
+<summary>IntChromosome</summary>
+<p>For evolving a sequence of integer values. It contains a vector of <code>IntGene&lt;I&gt;</code> instances, where <code>I</code> is a generic type that implements the <code>Integer&lt;I&gt;</code> trait.</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="7:2"><input checked="checked" id="__tabbed_7_1" name="__tabbed_7" type="radio" /><input id="__tabbed_7_2" name="__tabbed_7" type="radio" /><div class="tabbed-labels"><label for="__tabbed_7_1"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.8 200.5c-7.7-30.9-22.3-54.2-53.4-54.2h-40.1v47.4c0 36.8-31.2 67.8-66.8 67.8H172.7c-29.2 0-53.4 25-53.4 54.3v101.8c0 29 25.2 46 53.4 54.3 33.8 9.9 66.3 11.7 106.8 0 26.9-7.8 53.4-23.5 53.4-54.3v-40.7H226.2v-13.6h160.2c31.1 0 42.6-21.7 53.4-54.2 11.2-33.5 10.7-65.7 0-108.6M286.2 444.7a20.4 20.4 0 1 1 0-40.7 20.4 20.4 0 1 1 0 40.7M167.8 248.1h106.8c29.7 0 53.4-24.5 53.4-54.3V91.9c0-29-24.4-50.7-53.4-55.6-35.8-5.9-74.7-5.6-106.8.1-45.2 8-53.4 24.7-53.4 55.6v40.7h106.9v13.6h-147c-31.1 0-58.3 18.7-66.8 54.2-9.8 40.7-10.2 66.1 0 108.6 7.6 31.6 25.7 54.2 56.8 54.2H101v-48.8c0-35.3 30.5-66.4 66.8-66.4m-6.6-183.4a20.4 20.4 0 1 1 0 40.8 20.4 20.4 0 1 1 0-40.8"/></svg></span> Python</label><label for="__tabbed_7_2"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="m508.5 249.8-21.8-13.5c-.2-2-.3-3.9-.5-5.9l18.7-17.5c.9-.9 1.6-1.9 2-3.1s.5-2.5.2-3.7-.8-2.4-1.6-3.3-1.8-1.7-3-2.1l-24-9c-.5-1.9-1.1-3.8-1.7-5.6l15-20.8c.7-1 1.2-2.2 1.3-3.4s0-2.5-.5-3.7-1.2-2.2-2.2-2.9-2.1-1.3-3.4-1.5l-25.4-4.2c-.9-1.7-1.8-3.4-2.7-5.2l10.7-23.4c.5-1.1.7-2.4.6-3.6s-.5-2.4-1.2-3.5-1.6-1.9-2.8-2.5-2.4-.8-3.6-.8l-25.8.9c-1.2-1.5-2.4-2.9-3.6-4.4l5.8-25.3c.3-1.2.3-2.5-.1-3.7s-1-2.3-1.9-3.2-2-1.5-3.2-1.9-2.5-.4-3.7-.1l-25.1 6c-1.4-1.2-2.9-2.4-4.4-3.6l.9-25.8c.1-1.3-.2-2.5-.8-3.6s-1.4-2.1-2.5-2.8-2.2-1.1-3.5-1.2-2.5.1-3.7.6l-23.3 10.7-5.1-2.7-4.2-25.4c-.2-1.2-.7-2.4-1.5-3.4s-1.8-1.7-2.9-2.2-2.4-.7-3.7-.5-2.4.6-3.4 1.3l-20.9 15c-1.9-.6-3.8-1.1-5.6-1.7l-9-24c-.4-1.2-1.2-2.2-2.1-3S307.2 5.2 306 5s-2.5-.2-3.7.2-2.3 1.1-3.1 2l-17.6 18.7c-2-.2-3.9-.4-5.9-.5L262.3 3.5c-.7-1.1-1.6-1.9-2.7-2.6S257.3 0 256 0s-2.5.3-3.6.9-2 1.5-2.7 2.6l-13.5 21.8c-2 .2-3.9.3-5.9.6L212.9 7.1c-.9-.9-1.9-1.6-3.1-2s-2.5-.5-3.7-.2-2.4.8-3.3 1.6-1.7 1.8-2.1 3l-9 24c-1.9.6-3.8 1.1-5.7 1.7l-20.8-15c-1-.7-2.2-1.2-3.4-1.3s-2.5 0-3.7.5-2.2 1.2-2.9 2.2-1.3 2.1-1.5 3.4l-4.2 25.4c-1.7.9-3.4 1.8-5.2 2.7l-23.4-10.5c-1.1-.5-2.4-.7-3.7-.6s-2.5.5-3.5 1.2-1.9 1.7-2.5 2.8-.8 2.4-.8 3.6l.9 25.8c-1.5 1.2-3 2.4-4.4 3.6l-25.1-6c-1.2-.3-2.5-.3-3.7.1s-2.3 1-3.2 1.9-1.5 2-1.9 3.2-.4 2.5-.1 3.7l6 25.1c-1.2 1.4-2.4 2.9-3.6 4.4l-25.8-.9c-1.3 0-2.5.2-3.6.8s-2.1 1.4-2.8 2.4-1.1 2.2-1.2 3.5.1 2.5.6 3.6l10.7 23.4c-.9 1.7-1.8 3.4-2.7 5.2l-25.4 4.1c-1.2.2-2.4.7-3.4 1.5s-1.7 1.8-2.2 2.9-.7 2.4-.5 3.7.6 2.4 1.3 3.4l15 20.8c-.6 1.9-1.1 3.8-1.7 5.7l-24 9c-1.2.4-2.2 1.2-3 2.1s-1.4 2.1-1.6 3.3-.2 2.5.2 3.7 1.1 2.3 2 3.1l18.7 17.5c-.2 2-.4 3.9-.6 5.9L3.5 249.8c-1.1.7-1.9 1.6-2.6 2.7s-.9 2.3-.9 3.6.3 2.5.9 3.6 1.5 2 2.6 2.7l21.8 13.5c.2 2 .3 3.9.6 5.9L7.1 299.1c-.9.9-1.6 1.9-2 3.1s-.5 2.5-.2 3.7.8 2.4 1.6 3.3 1.8 1.7 3 2.1l24 9c.6 1.9 1.1 3.8 1.7 5.6l-15 20.8c-.7 1-1.2 2.2-1.3 3.4s0 2.5.5 3.7 1.2 2.2 2.2 2.9 2.1 1.3 3.4 1.5l25.4 4.2 2.7 5.1-10.5 23.6c-.5 1.1-.7 2.4-.6 3.6s.5 2.5 1.2 3.5c.7 1.1 1.6 1.9 2.7 2.5s2.4.8 3.6.8l25.8-.9c1.2 1.5 2.4 2.9 3.6 4.4L73 430.2c-.3 1.2-.3 2.5.1 3.7s1 2.3 1.9 3.2 2 1.5 3.2 1.9 2.5.4 3.7.1l25.2-5.9c1.5 1.2 2.9 2.4 4.4 3.6l-.9 25.8c0 1.3.2 2.5.8 3.6s1.4 2.1 2.5 2.8 2.2 1.1 3.5 1.2 2.5-.1 3.6-.6l23.4-10.7 5.1 2.7 4.2 25.4c.2 1.2.7 2.4 1.5 3.4s1.8 1.8 2.9 2.2 2.4.7 3.7.5 2.4-.6 3.4-1.3l20.8-15c1.9.6 3.8 1.1 5.6 1.7l9 24c.4 1.2 1.2 2.2 2.1 3s2.1 1.4 3.3 1.6 2.5.2 3.7-.2 2.3-1.1 3.1-2l17.5-18.7c2 .2 3.9.4 5.9.6l13.5 21.8c.7 1.1 1.6 1.9 2.7 2.6s2.3.9 3.6.9 2.5-.3 3.6-.9 2-1.5 2.7-2.6l13.5-21.8c2-.2 3.9-.3 5.9-.6l17.5 18.7c.9.9 1.9 1.6 3.1 2s2.5.5 3.7.2 2.4-.8 3.3-1.6 1.7-1.8 2.1-3l9-24c1.9-.6 3.8-1.1 5.6-1.7l20.8 15c1 .7 2.2 1.2 3.4 1.3s2.5 0 3.7-.5 2.2-1.2 2.9-2.2 1.3-2.1 1.5-3.4l4.2-25.4 5.1-2.7 23.4 10.7c1.1.5 2.4.7 3.6.6s2.4-.5 3.5-1.2 1.9-1.6 2.5-2.8.8-2.4.8-3.6l-.9-25.8c1.5-1.2 2.9-2.4 4.4-3.6l25.2 5.9c1.2.3 2.5.3 3.7-.1s2.3-1 3.2-1.9 1.5-2 1.9-3.2.4-2.5.1-3.7l-5.9-25.2c1.2-1.4 2.4-2.9 3.6-4.4l25.8.9c1.3.1 2.5-.2 3.6-.8s2.1-1.4 2.8-2.5c.7-1 1.1-2.2 1.2-3.5s-.1-2.5-.6-3.6l-10.7-23.4 2.7-5.1 25.4-4.2c1.2-.2 2.4-.7 3.4-1.5s1.8-1.8 2.2-2.9.7-2.4.5-3.7-.6-2.4-1.3-3.4l-15-20.8c.6-1.9 1.1-3.8 1.7-5.6l24-9c1.2-.4 2.2-1.2 3-2.1s1.4-2.1 1.6-3.3.2-2.5-.2-3.7-1.1-2.3-2-3.1l-18.7-17.5c.2-1.9.4-3.9.6-5.9l21.8-13.5c1.1-.7 1.9-1.6 2.6-2.7s.9-2.3.9-3.6-.3-2.5-.9-3.6-1.5-2-2.6-2.7m-151 129.1c-3.6-.8-7.4-.1-10.5 1.9s-5.3 5.2-6 8.8l-7.6 35.7c-24.6 11.1-51.3 16.8-78.3 16.7s-53.6-6.1-78.1-17.4l-7.6-35.7c-.4-1.8-1.1-3.5-2.1-5s-2.4-2.8-3.9-3.8-3.2-1.7-5-2-3.6-.3-5.4.1l-31.5 6.8c-5.8-6-11.3-12.5-16.3-19.2h153.2c1.7 0 2.9-.3 2.9-1.9v-54.2c0-1.6-1.2-1.9-2.9-1.9h-44.8v-34.4h48.5c4.4 0 23.7 1.3 29.8 25.9 1.9 7.5 6.2 32.1 9.1 40 2.9 8.8 14.6 26.5 27.1 26.5h79c-5.3 7.1-11.1 13.8-17.3 20.1l-32.1-6.9zm25.8 34.5c0 3-.9 6-2.6 8.5s-4 4.5-6.8 5.6-5.8 1.5-8.8.9-5.7-2-7.8-4.2-3.6-4.8-4.2-7.8-.3-6 .8-8.8 3.1-5.2 5.6-6.9 5.4-2.6 8.5-2.6h.4c4 .1 7.7 1.8 10.5 4.6s4.3 6.7 4.3 10.6h.1zm-225.6-.7c0 3-.9 6-2.6 8.5s-4.1 4.5-6.8 5.6-5.8 1.5-8.8.9-5.7-2-7.8-4.2-3.6-4.8-4.2-7.8-.3-6 .9-8.8 3.1-5.2 5.6-6.8 5.4-2.6 8.5-2.6h.5c4 .1 7.7 1.8 10.5 4.6s4.3 6.7 4.3 10.6h.1zM69.6 234.2l32.8-14.6c1.7-.7 3.2-1.8 4.4-3.1s2.2-2.9 2.9-4.6 1-3.5.9-5.3-.5-3.6-1.2-5.3l-6.8-15.2h26.6v119.7H75.6c-6.6-23.2-8.7-47.6-6.1-71.6zm-11.3-36.1c0-2 .4-4 1.2-5.8s1.9-3.5 3.3-4.9 3.1-2.5 4.9-3.3 3.8-1.2 5.8-1.2h.5c3 .1 5.9 1 8.3 2.8s4.3 4.1 5.4 6.9 1.3 5.8.7 8.8-2.1 5.6-4.3 7.7-4.9 3.5-7.8 4.1-6 .2-8.7-.9-5.1-3.1-6.8-5.6-2.5-5.4-2.5-8.4zm155.2 24.5v-35.3h63.3c3.3 0 23.1 3.8 23.1 18.6 0 12.3-15.2 16.7-27.7 16.7zM399 306.7c-9.8 1.1-20.6-4.1-22-10.1-5.8-32.5-15.4-39.4-30.6-51.4 18.9-12 38.5-29.6 38.5-53.3 0-25.5-17.5-41.6-29.4-49.5-16.8-11-35.3-13.2-40.3-13.2H116.3c27.5-30.7 64.4-51.5 104.9-59.2l23.5 24.6c1.3 1.3 2.8 2.4 4.4 3.1s3.5 1.1 5.3 1.2 3.6-.3 5.3-.9 3.2-1.7 4.6-2.9l26.3-25c26.8 5 52.1 15.8 74.3 31.6s40.6 36.2 54.1 59.9l-18 40.6c-1.5 3.4-1.5 7.2-.2 10.6s3.9 6.2 7.3 7.7l34.6 15.3c1.1 10.8 1.2 21.7.4 32.5h-19.3c-1.9 0-2.7 1.3-2.7 3.1v8.8c0 20.8-11.7 25.3-22 26.5zM240 60.2c0-4 1.6-7.9 4.5-10.7s6.7-4.5 10.7-4.5h.4c3 .1 5.9 1 8.4 2.8s4.3 4.1 5.4 6.9 1.3 5.8.7 8.8-2.1 5.6-4.3 7.7-4.9 3.5-7.8 4-6 .2-8.7-.9-5.1-3.1-6.8-5.6-2.5-5.4-2.5-8.4zM436.8 214c-2 0-4-.4-5.8-1.2s-3.5-1.9-4.9-3.3-2.5-3.1-3.3-4.9-1.2-3.8-1.2-5.8.4-4 1.2-5.8 1.9-3.5 3.3-4.9 3.1-2.5 4.9-3.3 3.8-1.2 5.8-1.2h.4c4 .1 7.9 1.7 10.7 4.6s4.4 6.8 4.3 10.8-1.7 7.9-4.6 10.7-6.8 4.4-10.8 4.3"/></svg></span> Rust</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">radiate</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">rd</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="c1"># Create an integer chromosome with 5 genes, each initialized to a random value between -10 and 10</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="n">chromosome</span> <span class="o">=</span> <span class="n">rd</span><span class="o">.</span><span class="n">chromosome</span><span class="o">.</span><span class="n">int</span><span class="p">(</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>    <span class="n">length</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>    <span class="n">init_range</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>    <span class="n">bounds</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="p">)</span>
+</span></code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="k">use</span><span class="w"> </span><span class="n">radiate</span><span class="p">::</span><span class="o">*</span><span class="p">;</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="c1">// Create an integer chromosome with 5 genes, each initialized to a random value between -10 and 10</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="kd">let</span><span class="w"> </span><span class="n">chromosome</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">IntChromosome</span><span class="p">::</span><span class="o">&lt;</span><span class="kt">i32</span><span class="o">&gt;</span><span class="p">::</span><span class="n">from</span><span class="p">((</span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mi">10</span><span class="o">..</span><span class="mi">10</span><span class="p">));</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="kd">let</span><span class="w"> </span><span class="n">bounded_chromosome</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">IntChromosome</span><span class="p">::</span><span class="o">&lt;</span><span class="kt">i32</span><span class="o">&gt;</span><span class="p">::</span><span class="n">from</span><span class="p">((</span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mi">10</span><span class="o">..</span><span class="mi">10</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mi">100</span><span class="o">..</span><span class="mi">100</span><span class="p">));</span>
+</span></code></pre></div>
+</div>
+</div>
+</div>
+</details>
+<details class="info">
+<summary>BitChromosome</summary>
+<p>For evolving a sequence of binary values. It contains a vector of <code>BitGene</code> instances.</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="8:2"><input checked="checked" id="__tabbed_8_1" name="__tabbed_8" type="radio" /><input id="__tabbed_8_2" name="__tabbed_8" type="radio" /><div class="tabbed-labels"><label for="__tabbed_8_1"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.8 200.5c-7.7-30.9-22.3-54.2-53.4-54.2h-40.1v47.4c0 36.8-31.2 67.8-66.8 67.8H172.7c-29.2 0-53.4 25-53.4 54.3v101.8c0 29 25.2 46 53.4 54.3 33.8 9.9 66.3 11.7 106.8 0 26.9-7.8 53.4-23.5 53.4-54.3v-40.7H226.2v-13.6h160.2c31.1 0 42.6-21.7 53.4-54.2 11.2-33.5 10.7-65.7 0-108.6M286.2 444.7a20.4 20.4 0 1 1 0-40.7 20.4 20.4 0 1 1 0 40.7M167.8 248.1h106.8c29.7 0 53.4-24.5 53.4-54.3V91.9c0-29-24.4-50.7-53.4-55.6-35.8-5.9-74.7-5.6-106.8.1-45.2 8-53.4 24.7-53.4 55.6v40.7h106.9v13.6h-147c-31.1 0-58.3 18.7-66.8 54.2-9.8 40.7-10.2 66.1 0 108.6 7.6 31.6 25.7 54.2 56.8 54.2H101v-48.8c0-35.3 30.5-66.4 66.8-66.4m-6.6-183.4a20.4 20.4 0 1 1 0 40.8 20.4 20.4 0 1 1 0-40.8"/></svg></span> Python</label><label for="__tabbed_8_2"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="m508.5 249.8-21.8-13.5c-.2-2-.3-3.9-.5-5.9l18.7-17.5c.9-.9 1.6-1.9 2-3.1s.5-2.5.2-3.7-.8-2.4-1.6-3.3-1.8-1.7-3-2.1l-24-9c-.5-1.9-1.1-3.8-1.7-5.6l15-20.8c.7-1 1.2-2.2 1.3-3.4s0-2.5-.5-3.7-1.2-2.2-2.2-2.9-2.1-1.3-3.4-1.5l-25.4-4.2c-.9-1.7-1.8-3.4-2.7-5.2l10.7-23.4c.5-1.1.7-2.4.6-3.6s-.5-2.4-1.2-3.5-1.6-1.9-2.8-2.5-2.4-.8-3.6-.8l-25.8.9c-1.2-1.5-2.4-2.9-3.6-4.4l5.8-25.3c.3-1.2.3-2.5-.1-3.7s-1-2.3-1.9-3.2-2-1.5-3.2-1.9-2.5-.4-3.7-.1l-25.1 6c-1.4-1.2-2.9-2.4-4.4-3.6l.9-25.8c.1-1.3-.2-2.5-.8-3.6s-1.4-2.1-2.5-2.8-2.2-1.1-3.5-1.2-2.5.1-3.7.6l-23.3 10.7-5.1-2.7-4.2-25.4c-.2-1.2-.7-2.4-1.5-3.4s-1.8-1.7-2.9-2.2-2.4-.7-3.7-.5-2.4.6-3.4 1.3l-20.9 15c-1.9-.6-3.8-1.1-5.6-1.7l-9-24c-.4-1.2-1.2-2.2-2.1-3S307.2 5.2 306 5s-2.5-.2-3.7.2-2.3 1.1-3.1 2l-17.6 18.7c-2-.2-3.9-.4-5.9-.5L262.3 3.5c-.7-1.1-1.6-1.9-2.7-2.6S257.3 0 256 0s-2.5.3-3.6.9-2 1.5-2.7 2.6l-13.5 21.8c-2 .2-3.9.3-5.9.6L212.9 7.1c-.9-.9-1.9-1.6-3.1-2s-2.5-.5-3.7-.2-2.4.8-3.3 1.6-1.7 1.8-2.1 3l-9 24c-1.9.6-3.8 1.1-5.7 1.7l-20.8-15c-1-.7-2.2-1.2-3.4-1.3s-2.5 0-3.7.5-2.2 1.2-2.9 2.2-1.3 2.1-1.5 3.4l-4.2 25.4c-1.7.9-3.4 1.8-5.2 2.7l-23.4-10.5c-1.1-.5-2.4-.7-3.7-.6s-2.5.5-3.5 1.2-1.9 1.7-2.5 2.8-.8 2.4-.8 3.6l.9 25.8c-1.5 1.2-3 2.4-4.4 3.6l-25.1-6c-1.2-.3-2.5-.3-3.7.1s-2.3 1-3.2 1.9-1.5 2-1.9 3.2-.4 2.5-.1 3.7l6 25.1c-1.2 1.4-2.4 2.9-3.6 4.4l-25.8-.9c-1.3 0-2.5.2-3.6.8s-2.1 1.4-2.8 2.4-1.1 2.2-1.2 3.5.1 2.5.6 3.6l10.7 23.4c-.9 1.7-1.8 3.4-2.7 5.2l-25.4 4.1c-1.2.2-2.4.7-3.4 1.5s-1.7 1.8-2.2 2.9-.7 2.4-.5 3.7.6 2.4 1.3 3.4l15 20.8c-.6 1.9-1.1 3.8-1.7 5.7l-24 9c-1.2.4-2.2 1.2-3 2.1s-1.4 2.1-1.6 3.3-.2 2.5.2 3.7 1.1 2.3 2 3.1l18.7 17.5c-.2 2-.4 3.9-.6 5.9L3.5 249.8c-1.1.7-1.9 1.6-2.6 2.7s-.9 2.3-.9 3.6.3 2.5.9 3.6 1.5 2 2.6 2.7l21.8 13.5c.2 2 .3 3.9.6 5.9L7.1 299.1c-.9.9-1.6 1.9-2 3.1s-.5 2.5-.2 3.7.8 2.4 1.6 3.3 1.8 1.7 3 2.1l24 9c.6 1.9 1.1 3.8 1.7 5.6l-15 20.8c-.7 1-1.2 2.2-1.3 3.4s0 2.5.5 3.7 1.2 2.2 2.2 2.9 2.1 1.3 3.4 1.5l25.4 4.2 2.7 5.1-10.5 23.6c-.5 1.1-.7 2.4-.6 3.6s.5 2.5 1.2 3.5c.7 1.1 1.6 1.9 2.7 2.5s2.4.8 3.6.8l25.8-.9c1.2 1.5 2.4 2.9 3.6 4.4L73 430.2c-.3 1.2-.3 2.5.1 3.7s1 2.3 1.9 3.2 2 1.5 3.2 1.9 2.5.4 3.7.1l25.2-5.9c1.5 1.2 2.9 2.4 4.4 3.6l-.9 25.8c0 1.3.2 2.5.8 3.6s1.4 2.1 2.5 2.8 2.2 1.1 3.5 1.2 2.5-.1 3.6-.6l23.4-10.7 5.1 2.7 4.2 25.4c.2 1.2.7 2.4 1.5 3.4s1.8 1.8 2.9 2.2 2.4.7 3.7.5 2.4-.6 3.4-1.3l20.8-15c1.9.6 3.8 1.1 5.6 1.7l9 24c.4 1.2 1.2 2.2 2.1 3s2.1 1.4 3.3 1.6 2.5.2 3.7-.2 2.3-1.1 3.1-2l17.5-18.7c2 .2 3.9.4 5.9.6l13.5 21.8c.7 1.1 1.6 1.9 2.7 2.6s2.3.9 3.6.9 2.5-.3 3.6-.9 2-1.5 2.7-2.6l13.5-21.8c2-.2 3.9-.3 5.9-.6l17.5 18.7c.9.9 1.9 1.6 3.1 2s2.5.5 3.7.2 2.4-.8 3.3-1.6 1.7-1.8 2.1-3l9-24c1.9-.6 3.8-1.1 5.6-1.7l20.8 15c1 .7 2.2 1.2 3.4 1.3s2.5 0 3.7-.5 2.2-1.2 2.9-2.2 1.3-2.1 1.5-3.4l4.2-25.4 5.1-2.7 23.4 10.7c1.1.5 2.4.7 3.6.6s2.4-.5 3.5-1.2 1.9-1.6 2.5-2.8.8-2.4.8-3.6l-.9-25.8c1.5-1.2 2.9-2.4 4.4-3.6l25.2 5.9c1.2.3 2.5.3 3.7-.1s2.3-1 3.2-1.9 1.5-2 1.9-3.2.4-2.5.1-3.7l-5.9-25.2c1.2-1.4 2.4-2.9 3.6-4.4l25.8.9c1.3.1 2.5-.2 3.6-.8s2.1-1.4 2.8-2.5c.7-1 1.1-2.2 1.2-3.5s-.1-2.5-.6-3.6l-10.7-23.4 2.7-5.1 25.4-4.2c1.2-.2 2.4-.7 3.4-1.5s1.8-1.8 2.2-2.9.7-2.4.5-3.7-.6-2.4-1.3-3.4l-15-20.8c.6-1.9 1.1-3.8 1.7-5.6l24-9c1.2-.4 2.2-1.2 3-2.1s1.4-2.1 1.6-3.3.2-2.5-.2-3.7-1.1-2.3-2-3.1l-18.7-17.5c.2-1.9.4-3.9.6-5.9l21.8-13.5c1.1-.7 1.9-1.6 2.6-2.7s.9-2.3.9-3.6-.3-2.5-.9-3.6-1.5-2-2.6-2.7m-151 129.1c-3.6-.8-7.4-.1-10.5 1.9s-5.3 5.2-6 8.8l-7.6 35.7c-24.6 11.1-51.3 16.8-78.3 16.7s-53.6-6.1-78.1-17.4l-7.6-35.7c-.4-1.8-1.1-3.5-2.1-5s-2.4-2.8-3.9-3.8-3.2-1.7-5-2-3.6-.3-5.4.1l-31.5 6.8c-5.8-6-11.3-12.5-16.3-19.2h153.2c1.7 0 2.9-.3 2.9-1.9v-54.2c0-1.6-1.2-1.9-2.9-1.9h-44.8v-34.4h48.5c4.4 0 23.7 1.3 29.8 25.9 1.9 7.5 6.2 32.1 9.1 40 2.9 8.8 14.6 26.5 27.1 26.5h79c-5.3 7.1-11.1 13.8-17.3 20.1l-32.1-6.9zm25.8 34.5c0 3-.9 6-2.6 8.5s-4 4.5-6.8 5.6-5.8 1.5-8.8.9-5.7-2-7.8-4.2-3.6-4.8-4.2-7.8-.3-6 .8-8.8 3.1-5.2 5.6-6.9 5.4-2.6 8.5-2.6h.4c4 .1 7.7 1.8 10.5 4.6s4.3 6.7 4.3 10.6h.1zm-225.6-.7c0 3-.9 6-2.6 8.5s-4.1 4.5-6.8 5.6-5.8 1.5-8.8.9-5.7-2-7.8-4.2-3.6-4.8-4.2-7.8-.3-6 .9-8.8 3.1-5.2 5.6-6.8 5.4-2.6 8.5-2.6h.5c4 .1 7.7 1.8 10.5 4.6s4.3 6.7 4.3 10.6h.1zM69.6 234.2l32.8-14.6c1.7-.7 3.2-1.8 4.4-3.1s2.2-2.9 2.9-4.6 1-3.5.9-5.3-.5-3.6-1.2-5.3l-6.8-15.2h26.6v119.7H75.6c-6.6-23.2-8.7-47.6-6.1-71.6zm-11.3-36.1c0-2 .4-4 1.2-5.8s1.9-3.5 3.3-4.9 3.1-2.5 4.9-3.3 3.8-1.2 5.8-1.2h.5c3 .1 5.9 1 8.3 2.8s4.3 4.1 5.4 6.9 1.3 5.8.7 8.8-2.1 5.6-4.3 7.7-4.9 3.5-7.8 4.1-6 .2-8.7-.9-5.1-3.1-6.8-5.6-2.5-5.4-2.5-8.4zm155.2 24.5v-35.3h63.3c3.3 0 23.1 3.8 23.1 18.6 0 12.3-15.2 16.7-27.7 16.7zM399 306.7c-9.8 1.1-20.6-4.1-22-10.1-5.8-32.5-15.4-39.4-30.6-51.4 18.9-12 38.5-29.6 38.5-53.3 0-25.5-17.5-41.6-29.4-49.5-16.8-11-35.3-13.2-40.3-13.2H116.3c27.5-30.7 64.4-51.5 104.9-59.2l23.5 24.6c1.3 1.3 2.8 2.4 4.4 3.1s3.5 1.1 5.3 1.2 3.6-.3 5.3-.9 3.2-1.7 4.6-2.9l26.3-25c26.8 5 52.1 15.8 74.3 31.6s40.6 36.2 54.1 59.9l-18 40.6c-1.5 3.4-1.5 7.2-.2 10.6s3.9 6.2 7.3 7.7l34.6 15.3c1.1 10.8 1.2 21.7.4 32.5h-19.3c-1.9 0-2.7 1.3-2.7 3.1v8.8c0 20.8-11.7 25.3-22 26.5zM240 60.2c0-4 1.6-7.9 4.5-10.7s6.7-4.5 10.7-4.5h.4c3 .1 5.9 1 8.4 2.8s4.3 4.1 5.4 6.9 1.3 5.8.7 8.8-2.1 5.6-4.3 7.7-4.9 3.5-7.8 4-6 .2-8.7-.9-5.1-3.1-6.8-5.6-2.5-5.4-2.5-8.4zM436.8 214c-2 0-4-.4-5.8-1.2s-3.5-1.9-4.9-3.3-2.5-3.1-3.3-4.9-1.2-3.8-1.2-5.8.4-4 1.2-5.8 1.9-3.5 3.3-4.9 3.1-2.5 4.9-3.3 3.8-1.2 5.8-1.2h.4c4 .1 7.9 1.7 10.7 4.6s4.4 6.8 4.3 10.8-1.7 7.9-4.6 10.7-6.8 4.4-10.8 4.3"/></svg></span> Rust</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">radiate</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">rd</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="c1"># Create a bit chromosome with 5 genes, each initialized to a random value of True or False</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="n">chromosome</span> <span class="o">=</span> <span class="n">rd</span><span class="o">.</span><span class="n">chromosome</span><span class="o">.</span><span class="n">bit</span><span class="p">(</span><span class="n">length</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+</span></code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="k">use</span><span class="w"> </span><span class="n">radiate</span><span class="p">::</span><span class="o">*</span><span class="p">;</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="c1">// Create a bit chromosome with 5 genes, each initialized to a random value of true or false</span>
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="kd">let</span><span class="w"> </span><span class="n">chromosome</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">BitChromosome</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="mi">5</span><span class="p">);</span>
+</span></code></pre></div>
+</div>
+</div>
+</div>
+</details>
+<details class="info">
+<summary>CharChromosome</summary>
+<p>For evolving a sequence of character values. It contains a vector of <code>CharGene</code> instances.</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="9:2"><input checked="checked" id="__tabbed_9_1" name="__tabbed_9" type="radio" /><input id="__tabbed_9_2" name="__tabbed_9" type="radio" /><div class="tabbed-labels"><label for="__tabbed_9_1"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.8 200.5c-7.7-30.9-22.3-54.2-53.4-54.2h-40.1v47.4c0 36.8-31.2 67.8-66.8 67.8H172.7c-29.2 0-53.4 25-53.4 54.3v101.8c0 29 25.2 46 53.4 54.3 33.8 9.9 66.3 11.7 106.8 0 26.9-7.8 53.4-23.5 53.4-54.3v-40.7H226.2v-13.6h160.2c31.1 0 42.6-21.7 53.4-54.2 11.2-33.5 10.7-65.7 0-108.6M286.2 444.7a20.4 20.4 0 1 1 0-40.7 20.4 20.4 0 1 1 0 40.7M167.8 248.1h106.8c29.7 0 53.4-24.5 53.4-54.3V91.9c0-29-24.4-50.7-53.4-55.6-35.8-5.9-74.7-5.6-106.8.1-45.2 8-53.4 24.7-53.4 55.6v40.7h106.9v13.6h-147c-31.1 0-58.3 18.7-66.8 54.2-9.8 40.7-10.2 66.1 0 108.6 7.6 31.6 25.7 54.2 56.8 54.2H101v-48.8c0-35.3 30.5-66.4 66.8-66.4m-6.6-183.4a20.4 20.4 0 1 1 0 40.8 20.4 20.4 0 1 1 0-40.8"/></svg></span> Python</label><label for="__tabbed_9_2"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="m508.5 249.8-21.8-13.5c-.2-2-.3-3.9-.5-5.9l18.7-17.5c.9-.9 1.6-1.9 2-3.1s.5-2.5.2-3.7-.8-2.4-1.6-3.3-1.8-1.7-3-2.1l-24-9c-.5-1.9-1.1-3.8-1.7-5.6l15-20.8c.7-1 1.2-2.2 1.3-3.4s0-2.5-.5-3.7-1.2-2.2-2.2-2.9-2.1-1.3-3.4-1.5l-25.4-4.2c-.9-1.7-1.8-3.4-2.7-5.2l10.7-23.4c.5-1.1.7-2.4.6-3.6s-.5-2.4-1.2-3.5-1.6-1.9-2.8-2.5-2.4-.8-3.6-.8l-25.8.9c-1.2-1.5-2.4-2.9-3.6-4.4l5.8-25.3c.3-1.2.3-2.5-.1-3.7s-1-2.3-1.9-3.2-2-1.5-3.2-1.9-2.5-.4-3.7-.1l-25.1 6c-1.4-1.2-2.9-2.4-4.4-3.6l.9-25.8c.1-1.3-.2-2.5-.8-3.6s-1.4-2.1-2.5-2.8-2.2-1.1-3.5-1.2-2.5.1-3.7.6l-23.3 10.7-5.1-2.7-4.2-25.4c-.2-1.2-.7-2.4-1.5-3.4s-1.8-1.7-2.9-2.2-2.4-.7-3.7-.5-2.4.6-3.4 1.3l-20.9 15c-1.9-.6-3.8-1.1-5.6-1.7l-9-24c-.4-1.2-1.2-2.2-2.1-3S307.2 5.2 306 5s-2.5-.2-3.7.2-2.3 1.1-3.1 2l-17.6 18.7c-2-.2-3.9-.4-5.9-.5L262.3 3.5c-.7-1.1-1.6-1.9-2.7-2.6S257.3 0 256 0s-2.5.3-3.6.9-2 1.5-2.7 2.6l-13.5 21.8c-2 .2-3.9.3-5.9.6L212.9 7.1c-.9-.9-1.9-1.6-3.1-2s-2.5-.5-3.7-.2-2.4.8-3.3 1.6-1.7 1.8-2.1 3l-9 24c-1.9.6-3.8 1.1-5.7 1.7l-20.8-15c-1-.7-2.2-1.2-3.4-1.3s-2.5 0-3.7.5-2.2 1.2-2.9 2.2-1.3 2.1-1.5 3.4l-4.2 25.4c-1.7.9-3.4 1.8-5.2 2.7l-23.4-10.5c-1.1-.5-2.4-.7-3.7-.6s-2.5.5-3.5 1.2-1.9 1.7-2.5 2.8-.8 2.4-.8 3.6l.9 25.8c-1.5 1.2-3 2.4-4.4 3.6l-25.1-6c-1.2-.3-2.5-.3-3.7.1s-2.3 1-3.2 1.9-1.5 2-1.9 3.2-.4 2.5-.1 3.7l6 25.1c-1.2 1.4-2.4 2.9-3.6 4.4l-25.8-.9c-1.3 0-2.5.2-3.6.8s-2.1 1.4-2.8 2.4-1.1 2.2-1.2 3.5.1 2.5.6 3.6l10.7 23.4c-.9 1.7-1.8 3.4-2.7 5.2l-25.4 4.1c-1.2.2-2.4.7-3.4 1.5s-1.7 1.8-2.2 2.9-.7 2.4-.5 3.7.6 2.4 1.3 3.4l15 20.8c-.6 1.9-1.1 3.8-1.7 5.7l-24 9c-1.2.4-2.2 1.2-3 2.1s-1.4 2.1-1.6 3.3-.2 2.5.2 3.7 1.1 2.3 2 3.1l18.7 17.5c-.2 2-.4 3.9-.6 5.9L3.5 249.8c-1.1.7-1.9 1.6-2.6 2.7s-.9 2.3-.9 3.6.3 2.5.9 3.6 1.5 2 2.6 2.7l21.8 13.5c.2 2 .3 3.9.6 5.9L7.1 299.1c-.9.9-1.6 1.9-2 3.1s-.5 2.5-.2 3.7.8 2.4 1.6 3.3 1.8 1.7 3 2.1l24 9c.6 1.9 1.1 3.8 1.7 5.6l-15 20.8c-.7 1-1.2 2.2-1.3 3.4s0 2.5.5 3.7 1.2 2.2 2.2 2.9 2.1 1.3 3.4 1.5l25.4 4.2 2.7 5.1-10.5 23.6c-.5 1.1-.7 2.4-.6 3.6s.5 2.5 1.2 3.5c.7 1.1 1.6 1.9 2.7 2.5s2.4.8 3.6.8l25.8-.9c1.2 1.5 2.4 2.9 3.6 4.4L73 430.2c-.3 1.2-.3 2.5.1 3.7s1 2.3 1.9 3.2 2 1.5 3.2 1.9 2.5.4 3.7.1l25.2-5.9c1.5 1.2 2.9 2.4 4.4 3.6l-.9 25.8c0 1.3.2 2.5.8 3.6s1.4 2.1 2.5 2.8 2.2 1.1 3.5 1.2 2.5-.1 3.6-.6l23.4-10.7 5.1 2.7 4.2 25.4c.2 1.2.7 2.4 1.5 3.4s1.8 1.8 2.9 2.2 2.4.7 3.7.5 2.4-.6 3.4-1.3l20.8-15c1.9.6 3.8 1.1 5.6 1.7l9 24c.4 1.2 1.2 2.2 2.1 3s2.1 1.4 3.3 1.6 2.5.2 3.7-.2 2.3-1.1 3.1-2l17.5-18.7c2 .2 3.9.4 5.9.6l13.5 21.8c.7 1.1 1.6 1.9 2.7 2.6s2.3.9 3.6.9 2.5-.3 3.6-.9 2-1.5 2.7-2.6l13.5-21.8c2-.2 3.9-.3 5.9-.6l17.5 18.7c.9.9 1.9 1.6 3.1 2s2.5.5 3.7.2 2.4-.8 3.3-1.6 1.7-1.8 2.1-3l9-24c1.9-.6 3.8-1.1 5.6-1.7l20.8 15c1 .7 2.2 1.2 3.4 1.3s2.5 0 3.7-.5 2.2-1.2 2.9-2.2 1.3-2.1 1.5-3.4l4.2-25.4 5.1-2.7 23.4 10.7c1.1.5 2.4.7 3.6.6s2.4-.5 3.5-1.2 1.9-1.6 2.5-2.8.8-2.4.8-3.6l-.9-25.8c1.5-1.2 2.9-2.4 4.4-3.6l25.2 5.9c1.2.3 2.5.3 3.7-.1s2.3-1 3.2-1.9 1.5-2 1.9-3.2.4-2.5.1-3.7l-5.9-25.2c1.2-1.4 2.4-2.9 3.6-4.4l25.8.9c1.3.1 2.5-.2 3.6-.8s2.1-1.4 2.8-2.5c.7-1 1.1-2.2 1.2-3.5s-.1-2.5-.6-3.6l-10.7-23.4 2.7-5.1 25.4-4.2c1.2-.2 2.4-.7 3.4-1.5s1.8-1.8 2.2-2.9.7-2.4.5-3.7-.6-2.4-1.3-3.4l-15-20.8c.6-1.9 1.1-3.8 1.7-5.6l24-9c1.2-.4 2.2-1.2 3-2.1s1.4-2.1 1.6-3.3.2-2.5-.2-3.7-1.1-2.3-2-3.1l-18.7-17.5c.2-1.9.4-3.9.6-5.9l21.8-13.5c1.1-.7 1.9-1.6 2.6-2.7s.9-2.3.9-3.6-.3-2.5-.9-3.6-1.5-2-2.6-2.7m-151 129.1c-3.6-.8-7.4-.1-10.5 1.9s-5.3 5.2-6 8.8l-7.6 35.7c-24.6 11.1-51.3 16.8-78.3 16.7s-53.6-6.1-78.1-17.4l-7.6-35.7c-.4-1.8-1.1-3.5-2.1-5s-2.4-2.8-3.9-3.8-3.2-1.7-5-2-3.6-.3-5.4.1l-31.5 6.8c-5.8-6-11.3-12.5-16.3-19.2h153.2c1.7 0 2.9-.3 2.9-1.9v-54.2c0-1.6-1.2-1.9-2.9-1.9h-44.8v-34.4h48.5c4.4 0 23.7 1.3 29.8 25.9 1.9 7.5 6.2 32.1 9.1 40 2.9 8.8 14.6 26.5 27.1 26.5h79c-5.3 7.1-11.1 13.8-17.3 20.1l-32.1-6.9zm25.8 34.5c0 3-.9 6-2.6 8.5s-4 4.5-6.8 5.6-5.8 1.5-8.8.9-5.7-2-7.8-4.2-3.6-4.8-4.2-7.8-.3-6 .8-8.8 3.1-5.2 5.6-6.9 5.4-2.6 8.5-2.6h.4c4 .1 7.7 1.8 10.5 4.6s4.3 6.7 4.3 10.6h.1zm-225.6-.7c0 3-.9 6-2.6 8.5s-4.1 4.5-6.8 5.6-5.8 1.5-8.8.9-5.7-2-7.8-4.2-3.6-4.8-4.2-7.8-.3-6 .9-8.8 3.1-5.2 5.6-6.8 5.4-2.6 8.5-2.6h.5c4 .1 7.7 1.8 10.5 4.6s4.3 6.7 4.3 10.6h.1zM69.6 234.2l32.8-14.6c1.7-.7 3.2-1.8 4.4-3.1s2.2-2.9 2.9-4.6 1-3.5.9-5.3-.5-3.6-1.2-5.3l-6.8-15.2h26.6v119.7H75.6c-6.6-23.2-8.7-47.6-6.1-71.6zm-11.3-36.1c0-2 .4-4 1.2-5.8s1.9-3.5 3.3-4.9 3.1-2.5 4.9-3.3 3.8-1.2 5.8-1.2h.5c3 .1 5.9 1 8.3 2.8s4.3 4.1 5.4 6.9 1.3 5.8.7 8.8-2.1 5.6-4.3 7.7-4.9 3.5-7.8 4.1-6 .2-8.7-.9-5.1-3.1-6.8-5.6-2.5-5.4-2.5-8.4zm155.2 24.5v-35.3h63.3c3.3 0 23.1 3.8 23.1 18.6 0 12.3-15.2 16.7-27.7 16.7zM399 306.7c-9.8 1.1-20.6-4.1-22-10.1-5.8-32.5-15.4-39.4-30.6-51.4 18.9-12 38.5-29.6 38.5-53.3 0-25.5-17.5-41.6-29.4-49.5-16.8-11-35.3-13.2-40.3-13.2H116.3c27.5-30.7 64.4-51.5 104.9-59.2l23.5 24.6c1.3 1.3 2.8 2.4 4.4 3.1s3.5 1.1 5.3 1.2 3.6-.3 5.3-.9 3.2-1.7 4.6-2.9l26.3-25c26.8 5 52.1 15.8 74.3 31.6s40.6 36.2 54.1 59.9l-18 40.6c-1.5 3.4-1.5 7.2-.2 10.6s3.9 6.2 7.3 7.7l34.6 15.3c1.1 10.8 1.2 21.7.4 32.5h-19.3c-1.9 0-2.7 1.3-2.7 3.1v8.8c0 20.8-11.7 25.3-22 26.5zM240 60.2c0-4 1.6-7.9 4.5-10.7s6.7-4.5 10.7-4.5h.4c3 .1 5.9 1 8.4 2.8s4.3 4.1 5.4 6.9 1.3 5.8.7 8.8-2.1 5.6-4.3 7.7-4.9 3.5-7.8 4-6 .2-8.7-.9-5.1-3.1-6.8-5.6-2.5-5.4-2.5-8.4zM436.8 214c-2 0-4-.4-5.8-1.2s-3.5-1.9-4.9-3.3-2.5-3.1-3.3-4.9-1.2-3.8-1.2-5.8.4-4 1.2-5.8 1.9-3.5 3.3-4.9 3.1-2.5 4.9-3.3 3.8-1.2 5.8-1.2h.4c4 .1 7.9 1.7 10.7 4.6s4.4 6.8 4.3 10.8-1.7 7.9-4.6 10.7-6.8 4.4-10.8 4.3"/></svg></span> Rust</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="language-python highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">radiate</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">rd</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="c1"># Create a character chromosome with 5 genes, each initialized to a random character from the ASCII printable characters</span>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="n">chromosome</span> <span class="o">=</span> <span class="n">rd</span><span class="o">.</span><span class="n">chromosome</span><span class="o">.</span><span class="n">char</span><span class="p">(</span><span class="n">length</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="n">chromosome_with_set</span> <span class="o">=</span> <span class="n">rd</span><span class="o">.</span><span class="n">chromosome</span><span class="o">.</span><span class="n">char</span><span class="p">(</span><span class="n">length</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">char_set</span><span class="o">=</span><span class="s1">&#39;abc&#39;</span><span class="p">)</span>
+</span></code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="k">use</span><span class="w"> </span><span class="n">radiate</span><span class="p">::</span><span class="o">*</span><span class="p">;</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="c1">// Create a character chromosome with 5 genes, each initialized to</span>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="c1">// a random character from the provided char_set</span>
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="kd">let</span><span class="w"> </span><span class="n">chromosome</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CharChromosome</span><span class="p">::</span><span class="n">new</span><span class="p">((</span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="fm">vec!</span><span class="p">[</span><span class="sc">&#39;a&#39;</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;b&#39;</span><span class="p">,</span><span class="w"> </span><span class="sc">&#39;c&#39;</span><span class="p">]));</span>
+</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="kd">let</span><span class="w"> </span><span class="n">chromosome_with_set</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CharChromosome</span><span class="p">::</span><span class="n">from</span><span class="p">((</span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;abc&quot;</span><span class="p">));</span>
+</span></code></pre></div>
+</div>
+</div>
+</div>
+</details>
+<details class="info">
+<summary>PermutationChromosome<T></summary>
+<p>For evolving a sequence of unique values. It contains a vector of <code>PermutationGene&lt;T&gt;</code> instances, where <code>T</code> is the type of the values in the permutation.</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="10:2"><input checked="checked" id="__tabbed_10_1" name="__tabbed_10" type="radio" /><input id="__tabbed_10_2" name="__tabbed_10" type="radio" /><div class="tabbed-labels"><label for="__tabbed_10_1"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.8 200.5c-7.7-30.9-22.3-54.2-53.4-54.2h-40.1v47.4c0 36.8-31.2 67.8-66.8 67.8H172.7c-29.2 0-53.4 25-53.4 54.3v101.8c0 29 25.2 46 53.4 54.3 33.8 9.9 66.3 11.7 106.8 0 26.9-7.8 53.4-23.5 53.4-54.3v-40.7H226.2v-13.6h160.2c31.1 0 42.6-21.7 53.4-54.2 11.2-33.5 10.7-65.7 0-108.6M286.2 444.7a20.4 20.4 0 1 1 0-40.7 20.4 20.4 0 1 1 0 40.7M167.8 248.1h106.8c29.7 0 53.4-24.5 53.4-54.3V91.9c0-29-24.4-50.7-53.4-55.6-35.8-5.9-74.7-5.6-106.8.1-45.2 8-53.4 24.7-53.4 55.6v40.7h106.9v13.6h-147c-31.1 0-58.3 18.7-66.8 54.2-9.8 40.7-10.2 66.1 0 108.6 7.6 31.6 25.7 54.2 56.8 54.2H101v-48.8c0-35.3 30.5-66.4 66.8-66.4m-6.6-183.4a20.4 20.4 0 1 1 0 40.8 20.4 20.4 0 1 1 0-40.8"/></svg></span> Python</label><label for="__tabbed_10_2"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="m508.5 249.8-21.8-13.5c-.2-2-.3-3.9-.5-5.9l18.7-17.5c.9-.9 1.6-1.9 2-3.1s.5-2.5.2-3.7-.8-2.4-1.6-3.3-1.8-1.7-3-2.1l-24-9c-.5-1.9-1.1-3.8-1.7-5.6l15-20.8c.7-1 1.2-2.2 1.3-3.4s0-2.5-.5-3.7-1.2-2.2-2.2-2.9-2.1-1.3-3.4-1.5l-25.4-4.2c-.9-1.7-1.8-3.4-2.7-5.2l10.7-23.4c.5-1.1.7-2.4.6-3.6s-.5-2.4-1.2-3.5-1.6-1.9-2.8-2.5-2.4-.8-3.6-.8l-25.8.9c-1.2-1.5-2.4-2.9-3.6-4.4l5.8-25.3c.3-1.2.3-2.5-.1-3.7s-1-2.3-1.9-3.2-2-1.5-3.2-1.9-2.5-.4-3.7-.1l-25.1 6c-1.4-1.2-2.9-2.4-4.4-3.6l.9-25.8c.1-1.3-.2-2.5-.8-3.6s-1.4-2.1-2.5-2.8-2.2-1.1-3.5-1.2-2.5.1-3.7.6l-23.3 10.7-5.1-2.7-4.2-25.4c-.2-1.2-.7-2.4-1.5-3.4s-1.8-1.7-2.9-2.2-2.4-.7-3.7-.5-2.4.6-3.4 1.3l-20.9 15c-1.9-.6-3.8-1.1-5.6-1.7l-9-24c-.4-1.2-1.2-2.2-2.1-3S307.2 5.2 306 5s-2.5-.2-3.7.2-2.3 1.1-3.1 2l-17.6 18.7c-2-.2-3.9-.4-5.9-.5L262.3 3.5c-.7-1.1-1.6-1.9-2.7-2.6S257.3 0 256 0s-2.5.3-3.6.9-2 1.5-2.7 2.6l-13.5 21.8c-2 .2-3.9.3-5.9.6L212.9 7.1c-.9-.9-1.9-1.6-3.1-2s-2.5-.5-3.7-.2-2.4.8-3.3 1.6-1.7 1.8-2.1 3l-9 24c-1.9.6-3.8 1.1-5.7 1.7l-20.8-15c-1-.7-2.2-1.2-3.4-1.3s-2.5 0-3.7.5-2.2 1.2-2.9 2.2-1.3 2.1-1.5 3.4l-4.2 25.4c-1.7.9-3.4 1.8-5.2 2.7l-23.4-10.5c-1.1-.5-2.4-.7-3.7-.6s-2.5.5-3.5 1.2-1.9 1.7-2.5 2.8-.8 2.4-.8 3.6l.9 25.8c-1.5 1.2-3 2.4-4.4 3.6l-25.1-6c-1.2-.3-2.5-.3-3.7.1s-2.3 1-3.2 1.9-1.5 2-1.9 3.2-.4 2.5-.1 3.7l6 25.1c-1.2 1.4-2.4 2.9-3.6 4.4l-25.8-.9c-1.3 0-2.5.2-3.6.8s-2.1 1.4-2.8 2.4-1.1 2.2-1.2 3.5.1 2.5.6 3.6l10.7 23.4c-.9 1.7-1.8 3.4-2.7 5.2l-25.4 4.1c-1.2.2-2.4.7-3.4 1.5s-1.7 1.8-2.2 2.9-.7 2.4-.5 3.7.6 2.4 1.3 3.4l15 20.8c-.6 1.9-1.1 3.8-1.7 5.7l-24 9c-1.2.4-2.2 1.2-3 2.1s-1.4 2.1-1.6 3.3-.2 2.5.2 3.7 1.1 2.3 2 3.1l18.7 17.5c-.2 2-.4 3.9-.6 5.9L3.5 249.8c-1.1.7-1.9 1.6-2.6 2.7s-.9 2.3-.9 3.6.3 2.5.9 3.6 1.5 2 2.6 2.7l21.8 13.5c.2 2 .3 3.9.6 5.9L7.1 299.1c-.9.9-1.6 1.9-2 3.1s-.5 2.5-.2 3.7.8 2.4 1.6 3.3 1.8 1.7 3 2.1l24 9c.6 1.9 1.1 3.8 1.7 5.6l-15 20.8c-.7 1-1.2 2.2-1.3 3.4s0 2.5.5 3.7 1.2 2.2 2.2 2.9 2.1 1.3 3.4 1.5l25.4 4.2 2.7 5.1-10.5 23.6c-.5 1.1-.7 2.4-.6 3.6s.5 2.5 1.2 3.5c.7 1.1 1.6 1.9 2.7 2.5s2.4.8 3.6.8l25.8-.9c1.2 1.5 2.4 2.9 3.6 4.4L73 430.2c-.3 1.2-.3 2.5.1 3.7s1 2.3 1.9 3.2 2 1.5 3.2 1.9 2.5.4 3.7.1l25.2-5.9c1.5 1.2 2.9 2.4 4.4 3.6l-.9 25.8c0 1.3.2 2.5.8 3.6s1.4 2.1 2.5 2.8 2.2 1.1 3.5 1.2 2.5-.1 3.6-.6l23.4-10.7 5.1 2.7 4.2 25.4c.2 1.2.7 2.4 1.5 3.4s1.8 1.8 2.9 2.2 2.4.7 3.7.5 2.4-.6 3.4-1.3l20.8-15c1.9.6 3.8 1.1 5.6 1.7l9 24c.4 1.2 1.2 2.2 2.1 3s2.1 1.4 3.3 1.6 2.5.2 3.7-.2 2.3-1.1 3.1-2l17.5-18.7c2 .2 3.9.4 5.9.6l13.5 21.8c.7 1.1 1.6 1.9 2.7 2.6s2.3.9 3.6.9 2.5-.3 3.6-.9 2-1.5 2.7-2.6l13.5-21.8c2-.2 3.9-.3 5.9-.6l17.5 18.7c.9.9 1.9 1.6 3.1 2s2.5.5 3.7.2 2.4-.8 3.3-1.6 1.7-1.8 2.1-3l9-24c1.9-.6 3.8-1.1 5.6-1.7l20.8 15c1 .7 2.2 1.2 3.4 1.3s2.5 0 3.7-.5 2.2-1.2 2.9-2.2 1.3-2.1 1.5-3.4l4.2-25.4 5.1-2.7 23.4 10.7c1.1.5 2.4.7 3.6.6s2.4-.5 3.5-1.2 1.9-1.6 2.5-2.8.8-2.4.8-3.6l-.9-25.8c1.5-1.2 2.9-2.4 4.4-3.6l25.2 5.9c1.2.3 2.5.3 3.7-.1s2.3-1 3.2-1.9 1.5-2 1.9-3.2.4-2.5.1-3.7l-5.9-25.2c1.2-1.4 2.4-2.9 3.6-4.4l25.8.9c1.3.1 2.5-.2 3.6-.8s2.1-1.4 2.8-2.5c.7-1 1.1-2.2 1.2-3.5s-.1-2.5-.6-3.6l-10.7-23.4 2.7-5.1 25.4-4.2c1.2-.2 2.4-.7 3.4-1.5s1.8-1.8 2.2-2.9.7-2.4.5-3.7-.6-2.4-1.3-3.4l-15-20.8c.6-1.9 1.1-3.8 1.7-5.6l24-9c1.2-.4 2.2-1.2 3-2.1s1.4-2.1 1.6-3.3.2-2.5-.2-3.7-1.1-2.3-2-3.1l-18.7-17.5c.2-1.9.4-3.9.6-5.9l21.8-13.5c1.1-.7 1.9-1.6 2.6-2.7s.9-2.3.9-3.6-.3-2.5-.9-3.6-1.5-2-2.6-2.7m-151 129.1c-3.6-.8-7.4-.1-10.5 1.9s-5.3 5.2-6 8.8l-7.6 35.7c-24.6 11.1-51.3 16.8-78.3 16.7s-53.6-6.1-78.1-17.4l-7.6-35.7c-.4-1.8-1.1-3.5-2.1-5s-2.4-2.8-3.9-3.8-3.2-1.7-5-2-3.6-.3-5.4.1l-31.5 6.8c-5.8-6-11.3-12.5-16.3-19.2h153.2c1.7 0 2.9-.3 2.9-1.9v-54.2c0-1.6-1.2-1.9-2.9-1.9h-44.8v-34.4h48.5c4.4 0 23.7 1.3 29.8 25.9 1.9 7.5 6.2 32.1 9.1 40 2.9 8.8 14.6 26.5 27.1 26.5h79c-5.3 7.1-11.1 13.8-17.3 20.1l-32.1-6.9zm25.8 34.5c0 3-.9 6-2.6 8.5s-4 4.5-6.8 5.6-5.8 1.5-8.8.9-5.7-2-7.8-4.2-3.6-4.8-4.2-7.8-.3-6 .8-8.8 3.1-5.2 5.6-6.9 5.4-2.6 8.5-2.6h.4c4 .1 7.7 1.8 10.5 4.6s4.3 6.7 4.3 10.6h.1zm-225.6-.7c0 3-.9 6-2.6 8.5s-4.1 4.5-6.8 5.6-5.8 1.5-8.8.9-5.7-2-7.8-4.2-3.6-4.8-4.2-7.8-.3-6 .9-8.8 3.1-5.2 5.6-6.8 5.4-2.6 8.5-2.6h.5c4 .1 7.7 1.8 10.5 4.6s4.3 6.7 4.3 10.6h.1zM69.6 234.2l32.8-14.6c1.7-.7 3.2-1.8 4.4-3.1s2.2-2.9 2.9-4.6 1-3.5.9-5.3-.5-3.6-1.2-5.3l-6.8-15.2h26.6v119.7H75.6c-6.6-23.2-8.7-47.6-6.1-71.6zm-11.3-36.1c0-2 .4-4 1.2-5.8s1.9-3.5 3.3-4.9 3.1-2.5 4.9-3.3 3.8-1.2 5.8-1.2h.5c3 .1 5.9 1 8.3 2.8s4.3 4.1 5.4 6.9 1.3 5.8.7 8.8-2.1 5.6-4.3 7.7-4.9 3.5-7.8 4.1-6 .2-8.7-.9-5.1-3.1-6.8-5.6-2.5-5.4-2.5-8.4zm155.2 24.5v-35.3h63.3c3.3 0 23.1 3.8 23.1 18.6 0 12.3-15.2 16.7-27.7 16.7zM399 306.7c-9.8 1.1-20.6-4.1-22-10.1-5.8-32.5-15.4-39.4-30.6-51.4 18.9-12 38.5-29.6 38.5-53.3 0-25.5-17.5-41.6-29.4-49.5-16.8-11-35.3-13.2-40.3-13.2H116.3c27.5-30.7 64.4-51.5 104.9-59.2l23.5 24.6c1.3 1.3 2.8 2.4 4.4 3.1s3.5 1.1 5.3 1.2 3.6-.3 5.3-.9 3.2-1.7 4.6-2.9l26.3-25c26.8 5 52.1 15.8 74.3 31.6s40.6 36.2 54.1 59.9l-18 40.6c-1.5 3.4-1.5 7.2-.2 10.6s3.9 6.2 7.3 7.7l34.6 15.3c1.1 10.8 1.2 21.7.4 32.5h-19.3c-1.9 0-2.7 1.3-2.7 3.1v8.8c0 20.8-11.7 25.3-22 26.5zM240 60.2c0-4 1.6-7.9 4.5-10.7s6.7-4.5 10.7-4.5h.4c3 .1 5.9 1 8.4 2.8s4.3 4.1 5.4 6.9 1.3 5.8.7 8.8-2.1 5.6-4.3 7.7-4.9 3.5-7.8 4-6 .2-8.7-.9-5.1-3.1-6.8-5.6-2.5-5.4-2.5-8.4zM436.8 214c-2 0-4-.4-5.8-1.2s-3.5-1.9-4.9-3.3-2.5-3.1-3.3-4.9-1.2-3.8-1.2-5.8.4-4 1.2-5.8 1.9-3.5 3.3-4.9 3.1-2.5 4.9-3.3 3.8-1.2 5.8-1.2h.4c4 .1 7.9 1.7 10.7 4.6s4.4 6.8 4.3 10.8-1.7 7.9-4.6 10.7-6.8 4.4-10.8 4.3"/></svg></span> Rust</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="admonition warning">
+<p class="admonition-title"><img alt="🚧" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/1f6a7.svg" title=":construction:" /> Under Construction <img alt="🚧" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/1f6a7.svg" title=":construction:" /></p>
+<p>This Chromosome is currently under construction and not yet available in the Python API.</p>
+</div>
+</div>
+<div class="tabbed-block">
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="k">use</span><span class="w"> </span><span class="n">radiate</span><span class="p">::</span><span class="o">*</span><span class="p">;</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="c1">// Define a list of alleles the associated genes</span>
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="kd">let</span><span class="w"> </span><span class="n">alleles</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Arc</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="fm">vec!</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="p">]);</span>
+</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a><span class="kd">let</span><span class="w"> </span><span class="n">chromosome</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">PermutationChromosome</span><span class="p">::</span><span class="n">from</span><span class="p">((</span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="n">Arc</span><span class="p">::</span><span class="n">clone</span><span class="p">(</span><span class="o">&amp;</span><span class="n">alleles</span><span class="p">)));</span>
+</span></code></pre></div>
+</div>
+</div>
+</div>
+</details>
+<hr />
+<h3 id="genotype">Genotype</h3>
+<blockquote>
+<p>The Complete Blueprint</p>
+</blockquote>
+<p>The <code>Genotype</code> is a collection of <code>Chromosomes</code> that represent the complete genetic makeup of an individual. A <code>Genotype</code> can be thought of as a "blueprint" for an individual that contains all of the genetic information necessary to fully express the traits and characteristics of that individual.  In essance, the <code>Genotype</code> is the "sentence" made up of multiple "words" (chromosomes). Each <code>Genotype</code> contains one or more <code>Chromosomes</code>, and each <code>Chromosome</code> contains one or more <code>Genes</code>. It is the "DNA" of the individual that the <code>GeneticEngine</code> is evolving.</p>
+<p>Because of the typed nature of the <code>Genotype</code>, it can only hold a collection of the same type of <code>Chromosome</code>. This means that you can have a <code>Genotype</code> that contains only <code>FloatChromosome</code>s, or only <code>IntChromosome</code>s. You cannot have a <code>Genotype</code> that contains both <code>FloatChromosome</code>s and <code>IntChromosome</code>s at the same time - this is by design.</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="11:2"><input checked="checked" id="__tabbed_11_1" name="__tabbed_11" type="radio" /><input id="__tabbed_11_2" name="__tabbed_11" type="radio" /><div class="tabbed-labels"><label for="__tabbed_11_1"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.8 200.5c-7.7-30.9-22.3-54.2-53.4-54.2h-40.1v47.4c0 36.8-31.2 67.8-66.8 67.8H172.7c-29.2 0-53.4 25-53.4 54.3v101.8c0 29 25.2 46 53.4 54.3 33.8 9.9 66.3 11.7 106.8 0 26.9-7.8 53.4-23.5 53.4-54.3v-40.7H226.2v-13.6h160.2c31.1 0 42.6-21.7 53.4-54.2 11.2-33.5 10.7-65.7 0-108.6M286.2 444.7a20.4 20.4 0 1 1 0-40.7 20.4 20.4 0 1 1 0 40.7M167.8 248.1h106.8c29.7 0 53.4-24.5 53.4-54.3V91.9c0-29-24.4-50.7-53.4-55.6-35.8-5.9-74.7-5.6-106.8.1-45.2 8-53.4 24.7-53.4 55.6v40.7h106.9v13.6h-147c-31.1 0-58.3 18.7-66.8 54.2-9.8 40.7-10.2 66.1 0 108.6 7.6 31.6 25.7 54.2 56.8 54.2H101v-48.8c0-35.3 30.5-66.4 66.8-66.4m-6.6-183.4a20.4 20.4 0 1 1 0 40.8 20.4 20.4 0 1 1 0-40.8"/></svg></span> Python</label><label for="__tabbed_11_2"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="m508.5 249.8-21.8-13.5c-.2-2-.3-3.9-.5-5.9l18.7-17.5c.9-.9 1.6-1.9 2-3.1s.5-2.5.2-3.7-.8-2.4-1.6-3.3-1.8-1.7-3-2.1l-24-9c-.5-1.9-1.1-3.8-1.7-5.6l15-20.8c.7-1 1.2-2.2 1.3-3.4s0-2.5-.5-3.7-1.2-2.2-2.2-2.9-2.1-1.3-3.4-1.5l-25.4-4.2c-.9-1.7-1.8-3.4-2.7-5.2l10.7-23.4c.5-1.1.7-2.4.6-3.6s-.5-2.4-1.2-3.5-1.6-1.9-2.8-2.5-2.4-.8-3.6-.8l-25.8.9c-1.2-1.5-2.4-2.9-3.6-4.4l5.8-25.3c.3-1.2.3-2.5-.1-3.7s-1-2.3-1.9-3.2-2-1.5-3.2-1.9-2.5-.4-3.7-.1l-25.1 6c-1.4-1.2-2.9-2.4-4.4-3.6l.9-25.8c.1-1.3-.2-2.5-.8-3.6s-1.4-2.1-2.5-2.8-2.2-1.1-3.5-1.2-2.5.1-3.7.6l-23.3 10.7-5.1-2.7-4.2-25.4c-.2-1.2-.7-2.4-1.5-3.4s-1.8-1.7-2.9-2.2-2.4-.7-3.7-.5-2.4.6-3.4 1.3l-20.9 15c-1.9-.6-3.8-1.1-5.6-1.7l-9-24c-.4-1.2-1.2-2.2-2.1-3S307.2 5.2 306 5s-2.5-.2-3.7.2-2.3 1.1-3.1 2l-17.6 18.7c-2-.2-3.9-.4-5.9-.5L262.3 3.5c-.7-1.1-1.6-1.9-2.7-2.6S257.3 0 256 0s-2.5.3-3.6.9-2 1.5-2.7 2.6l-13.5 21.8c-2 .2-3.9.3-5.9.6L212.9 7.1c-.9-.9-1.9-1.6-3.1-2s-2.5-.5-3.7-.2-2.4.8-3.3 1.6-1.7 1.8-2.1 3l-9 24c-1.9.6-3.8 1.1-5.7 1.7l-20.8-15c-1-.7-2.2-1.2-3.4-1.3s-2.5 0-3.7.5-2.2 1.2-2.9 2.2-1.3 2.1-1.5 3.4l-4.2 25.4c-1.7.9-3.4 1.8-5.2 2.7l-23.4-10.5c-1.1-.5-2.4-.7-3.7-.6s-2.5.5-3.5 1.2-1.9 1.7-2.5 2.8-.8 2.4-.8 3.6l.9 25.8c-1.5 1.2-3 2.4-4.4 3.6l-25.1-6c-1.2-.3-2.5-.3-3.7.1s-2.3 1-3.2 1.9-1.5 2-1.9 3.2-.4 2.5-.1 3.7l6 25.1c-1.2 1.4-2.4 2.9-3.6 4.4l-25.8-.9c-1.3 0-2.5.2-3.6.8s-2.1 1.4-2.8 2.4-1.1 2.2-1.2 3.5.1 2.5.6 3.6l10.7 23.4c-.9 1.7-1.8 3.4-2.7 5.2l-25.4 4.1c-1.2.2-2.4.7-3.4 1.5s-1.7 1.8-2.2 2.9-.7 2.4-.5 3.7.6 2.4 1.3 3.4l15 20.8c-.6 1.9-1.1 3.8-1.7 5.7l-24 9c-1.2.4-2.2 1.2-3 2.1s-1.4 2.1-1.6 3.3-.2 2.5.2 3.7 1.1 2.3 2 3.1l18.7 17.5c-.2 2-.4 3.9-.6 5.9L3.5 249.8c-1.1.7-1.9 1.6-2.6 2.7s-.9 2.3-.9 3.6.3 2.5.9 3.6 1.5 2 2.6 2.7l21.8 13.5c.2 2 .3 3.9.6 5.9L7.1 299.1c-.9.9-1.6 1.9-2 3.1s-.5 2.5-.2 3.7.8 2.4 1.6 3.3 1.8 1.7 3 2.1l24 9c.6 1.9 1.1 3.8 1.7 5.6l-15 20.8c-.7 1-1.2 2.2-1.3 3.4s0 2.5.5 3.7 1.2 2.2 2.2 2.9 2.1 1.3 3.4 1.5l25.4 4.2 2.7 5.1-10.5 23.6c-.5 1.1-.7 2.4-.6 3.6s.5 2.5 1.2 3.5c.7 1.1 1.6 1.9 2.7 2.5s2.4.8 3.6.8l25.8-.9c1.2 1.5 2.4 2.9 3.6 4.4L73 430.2c-.3 1.2-.3 2.5.1 3.7s1 2.3 1.9 3.2 2 1.5 3.2 1.9 2.5.4 3.7.1l25.2-5.9c1.5 1.2 2.9 2.4 4.4 3.6l-.9 25.8c0 1.3.2 2.5.8 3.6s1.4 2.1 2.5 2.8 2.2 1.1 3.5 1.2 2.5-.1 3.6-.6l23.4-10.7 5.1 2.7 4.2 25.4c.2 1.2.7 2.4 1.5 3.4s1.8 1.8 2.9 2.2 2.4.7 3.7.5 2.4-.6 3.4-1.3l20.8-15c1.9.6 3.8 1.1 5.6 1.7l9 24c.4 1.2 1.2 2.2 2.1 3s2.1 1.4 3.3 1.6 2.5.2 3.7-.2 2.3-1.1 3.1-2l17.5-18.7c2 .2 3.9.4 5.9.6l13.5 21.8c.7 1.1 1.6 1.9 2.7 2.6s2.3.9 3.6.9 2.5-.3 3.6-.9 2-1.5 2.7-2.6l13.5-21.8c2-.2 3.9-.3 5.9-.6l17.5 18.7c.9.9 1.9 1.6 3.1 2s2.5.5 3.7.2 2.4-.8 3.3-1.6 1.7-1.8 2.1-3l9-24c1.9-.6 3.8-1.1 5.6-1.7l20.8 15c1 .7 2.2 1.2 3.4 1.3s2.5 0 3.7-.5 2.2-1.2 2.9-2.2 1.3-2.1 1.5-3.4l4.2-25.4 5.1-2.7 23.4 10.7c1.1.5 2.4.7 3.6.6s2.4-.5 3.5-1.2 1.9-1.6 2.5-2.8.8-2.4.8-3.6l-.9-25.8c1.5-1.2 2.9-2.4 4.4-3.6l25.2 5.9c1.2.3 2.5.3 3.7-.1s2.3-1 3.2-1.9 1.5-2 1.9-3.2.4-2.5.1-3.7l-5.9-25.2c1.2-1.4 2.4-2.9 3.6-4.4l25.8.9c1.3.1 2.5-.2 3.6-.8s2.1-1.4 2.8-2.5c.7-1 1.1-2.2 1.2-3.5s-.1-2.5-.6-3.6l-10.7-23.4 2.7-5.1 25.4-4.2c1.2-.2 2.4-.7 3.4-1.5s1.8-1.8 2.2-2.9.7-2.4.5-3.7-.6-2.4-1.3-3.4l-15-20.8c.6-1.9 1.1-3.8 1.7-5.6l24-9c1.2-.4 2.2-1.2 3-2.1s1.4-2.1 1.6-3.3.2-2.5-.2-3.7-1.1-2.3-2-3.1l-18.7-17.5c.2-1.9.4-3.9.6-5.9l21.8-13.5c1.1-.7 1.9-1.6 2.6-2.7s.9-2.3.9-3.6-.3-2.5-.9-3.6-1.5-2-2.6-2.7m-151 129.1c-3.6-.8-7.4-.1-10.5 1.9s-5.3 5.2-6 8.8l-7.6 35.7c-24.6 11.1-51.3 16.8-78.3 16.7s-53.6-6.1-78.1-17.4l-7.6-35.7c-.4-1.8-1.1-3.5-2.1-5s-2.4-2.8-3.9-3.8-3.2-1.7-5-2-3.6-.3-5.4.1l-31.5 6.8c-5.8-6-11.3-12.5-16.3-19.2h153.2c1.7 0 2.9-.3 2.9-1.9v-54.2c0-1.6-1.2-1.9-2.9-1.9h-44.8v-34.4h48.5c4.4 0 23.7 1.3 29.8 25.9 1.9 7.5 6.2 32.1 9.1 40 2.9 8.8 14.6 26.5 27.1 26.5h79c-5.3 7.1-11.1 13.8-17.3 20.1l-32.1-6.9zm25.8 34.5c0 3-.9 6-2.6 8.5s-4 4.5-6.8 5.6-5.8 1.5-8.8.9-5.7-2-7.8-4.2-3.6-4.8-4.2-7.8-.3-6 .8-8.8 3.1-5.2 5.6-6.9 5.4-2.6 8.5-2.6h.4c4 .1 7.7 1.8 10.5 4.6s4.3 6.7 4.3 10.6h.1zm-225.6-.7c0 3-.9 6-2.6 8.5s-4.1 4.5-6.8 5.6-5.8 1.5-8.8.9-5.7-2-7.8-4.2-3.6-4.8-4.2-7.8-.3-6 .9-8.8 3.1-5.2 5.6-6.8 5.4-2.6 8.5-2.6h.5c4 .1 7.7 1.8 10.5 4.6s4.3 6.7 4.3 10.6h.1zM69.6 234.2l32.8-14.6c1.7-.7 3.2-1.8 4.4-3.1s2.2-2.9 2.9-4.6 1-3.5.9-5.3-.5-3.6-1.2-5.3l-6.8-15.2h26.6v119.7H75.6c-6.6-23.2-8.7-47.6-6.1-71.6zm-11.3-36.1c0-2 .4-4 1.2-5.8s1.9-3.5 3.3-4.9 3.1-2.5 4.9-3.3 3.8-1.2 5.8-1.2h.5c3 .1 5.9 1 8.3 2.8s4.3 4.1 5.4 6.9 1.3 5.8.7 8.8-2.1 5.6-4.3 7.7-4.9 3.5-7.8 4.1-6 .2-8.7-.9-5.1-3.1-6.8-5.6-2.5-5.4-2.5-8.4zm155.2 24.5v-35.3h63.3c3.3 0 23.1 3.8 23.1 18.6 0 12.3-15.2 16.7-27.7 16.7zM399 306.7c-9.8 1.1-20.6-4.1-22-10.1-5.8-32.5-15.4-39.4-30.6-51.4 18.9-12 38.5-29.6 38.5-53.3 0-25.5-17.5-41.6-29.4-49.5-16.8-11-35.3-13.2-40.3-13.2H116.3c27.5-30.7 64.4-51.5 104.9-59.2l23.5 24.6c1.3 1.3 2.8 2.4 4.4 3.1s3.5 1.1 5.3 1.2 3.6-.3 5.3-.9 3.2-1.7 4.6-2.9l26.3-25c26.8 5 52.1 15.8 74.3 31.6s40.6 36.2 54.1 59.9l-18 40.6c-1.5 3.4-1.5 7.2-.2 10.6s3.9 6.2 7.3 7.7l34.6 15.3c1.1 10.8 1.2 21.7.4 32.5h-19.3c-1.9 0-2.7 1.3-2.7 3.1v8.8c0 20.8-11.7 25.3-22 26.5zM240 60.2c0-4 1.6-7.9 4.5-10.7s6.7-4.5 10.7-4.5h.4c3 .1 5.9 1 8.4 2.8s4.3 4.1 5.4 6.9 1.3 5.8.7 8.8-2.1 5.6-4.3 7.7-4.9 3.5-7.8 4-6 .2-8.7-.9-5.1-3.1-6.8-5.6-2.5-5.4-2.5-8.4zM436.8 214c-2 0-4-.4-5.8-1.2s-3.5-1.9-4.9-3.3-2.5-3.1-3.3-4.9-1.2-3.8-1.2-5.8.4-4 1.2-5.8 1.9-3.5 3.3-4.9 3.1-2.5 4.9-3.3 3.8-1.2 5.8-1.2h.4c4 .1 7.9 1.7 10.7 4.6s4.4 6.8 4.3 10.8-1.7 7.9-4.6 10.7-6.8 4.4-10.8 4.3"/></svg></span> Rust</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="language-python highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">radiate</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">rd</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="c1"># Create a genotype with a single FloatChromosome and a 5 FloatGenes</span>
+</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="n">genotype</span> <span class="o">=</span> <span class="n">rd</span><span class="o">.</span><span class="n">Genotype</span><span class="p">(</span>
+</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>    <span class="n">rd</span><span class="o">.</span><span class="n">chromosome</span><span class="o">.</span><span class="n">float</span><span class="p">(</span><span class="n">length</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">init_range</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">))</span>
+</span><span id="__span-18-6"><a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a><span class="p">)</span>
+</span><span id="__span-18-7"><a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a>
+</span><span id="__span-18-8"><a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a><span class="c1"># Create a genotype with a single FloatChromosome and a single FloatGene with a </span>
+</span><span id="__span-18-9"><a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a><span class="c1"># randomly generated allele between -1.0 and 1.0</span>
+</span><span id="__span-18-10"><a id="__codelineno-18-10" name="__codelineno-18-10" href="#__codelineno-18-10"></a><span class="n">genotype</span> <span class="o">=</span> <span class="n">rd</span><span class="o">.</span><span class="n">Genotype</span><span class="p">(</span>
+</span><span id="__span-18-11"><a id="__codelineno-18-11" name="__codelineno-18-11" href="#__codelineno-18-11"></a>    <span class="n">rd</span><span class="o">.</span><span class="n">Chromosome</span><span class="p">([</span><span class="n">rd</span><span class="o">.</span><span class="n">gene</span><span class="o">.</span><span class="n">float</span><span class="p">(</span><span class="n">init_range</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">))])</span>
+</span><span id="__span-18-12"><a id="__codelineno-18-12" name="__codelineno-18-12" href="#__codelineno-18-12"></a><span class="p">)</span>
+</span><span id="__span-18-13"><a id="__codelineno-18-13" name="__codelineno-18-13" href="#__codelineno-18-13"></a>
+</span><span id="__span-18-14"><a id="__codelineno-18-14" name="__codelineno-18-14" href="#__codelineno-18-14"></a><span class="c1"># Create a genotype with multiple chromosomes of lengths 5, 15, and 3</span>
+</span><span id="__span-18-15"><a id="__codelineno-18-15" name="__codelineno-18-15" href="#__codelineno-18-15"></a><span class="n">three_chromosome_genotype</span> <span class="o">=</span> <span class="n">rd</span><span class="o">.</span><span class="n">Genotype</span><span class="p">([</span>
+</span><span id="__span-18-16"><a id="__codelineno-18-16" name="__codelineno-18-16" href="#__codelineno-18-16"></a>    <span class="n">rd</span><span class="o">.</span><span class="n">chromosome</span><span class="o">.</span><span class="n">float</span><span class="p">(</span><span class="n">length</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">init_range</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)),</span>
+</span><span id="__span-18-17"><a id="__codelineno-18-17" name="__codelineno-18-17" href="#__codelineno-18-17"></a>    <span class="n">rd</span><span class="o">.</span><span class="n">chromosome</span><span class="o">.</span><span class="n">float</span><span class="p">(</span><span class="n">length</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">init_range</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)),</span>
+</span><span id="__span-18-18"><a id="__codelineno-18-18" name="__codelineno-18-18" href="#__codelineno-18-18"></a>    <span class="n">rd</span><span class="o">.</span><span class="n">chromosome</span><span class="o">.</span><span class="n">float</span><span class="p">(</span><span class="n">length</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">init_range</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">))</span>
+</span><span id="__span-18-19"><a id="__codelineno-18-19" name="__codelineno-18-19" href="#__codelineno-18-19"></a><span class="p">])</span>
+</span></code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="k">use</span><span class="w"> </span><span class="n">radiate</span><span class="p">::</span><span class="o">*</span><span class="p">;</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="c1">// Create a genotype with a single FloatChromosome and a 5 FloatGenes </span>
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="kd">let</span><span class="w"> </span><span class="n">genotype</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Genotype</span><span class="p">::</span><span class="n">from</span><span class="p">(</span><span class="n">FloatChromosome</span><span class="p">::</span><span class="n">from</span><span class="p">((</span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mf">1.</span><span class="mi">0</span><span class="o">..</span><span class="mf">1.0</span><span class="p">)));</span>
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="c1">// -- or --</span>
+</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a><span class="kd">let</span><span class="w"> </span><span class="n">genotype</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Genotype</span><span class="p">::</span><span class="n">from</span><span class="p">(</span><span class="fm">vec!</span><span class="p">[</span><span class="n">FloatChromosome</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="fm">vec!</span><span class="p">[</span><span class="n">FloatGene</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="mf">0.1</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mf">1.</span><span class="mi">0</span><span class="o">..</span><span class="mf">1.0</span><span class="p">)])]);</span>
+</span><span id="__span-19-7"><a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a>
+</span><span id="__span-19-8"><a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a><span class="c1">// Create a genotype with multiple chromosomes of lengths 5, 15, and 3</span>
+</span><span id="__span-19-9"><a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a><span class="kd">let</span><span class="w"> </span><span class="n">three_chromosome_genotype</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Genotype</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="fm">vec!</span><span class="p">[</span>
+</span><span id="__span-19-10"><a id="__codelineno-19-10" name="__codelineno-19-10" href="#__codelineno-19-10"></a><span class="w">    </span><span class="n">FloatChromosome</span><span class="p">::</span><span class="n">from</span><span class="p">((</span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mf">1.</span><span class="mi">0</span><span class="o">..</span><span class="mf">1.0</span><span class="p">)),</span>
+</span><span id="__span-19-11"><a id="__codelineno-19-11" name="__codelineno-19-11" href="#__codelineno-19-11"></a><span class="w">    </span><span class="n">FloatChromosome</span><span class="p">::</span><span class="n">from</span><span class="p">((</span><span class="mi">15</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mf">1.</span><span class="mi">0</span><span class="o">..</span><span class="mf">1.0</span><span class="p">)),</span>
+</span><span id="__span-19-12"><a id="__codelineno-19-12" name="__codelineno-19-12" href="#__codelineno-19-12"></a><span class="w">    </span><span class="n">FloatChromosome</span><span class="p">::</span><span class="n">from</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mf">1.</span><span class="mi">0</span><span class="o">..</span><span class="mf">1.0</span><span class="p">))</span>
+</span><span id="__span-19-13"><a id="__codelineno-19-13" name="__codelineno-19-13" href="#__codelineno-19-13"></a><span class="p">])</span>
+</span><span id="__span-19-14"><a id="__codelineno-19-14" name="__codelineno-19-14" href="#__codelineno-19-14"></a>
+</span><span id="__span-19-15"><a id="__codelineno-19-15" name="__codelineno-19-15" href="#__codelineno-19-15"></a><span class="kd">let</span><span class="w"> </span><span class="n">genotype_length</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">three_chromosome_genotype</span><span class="p">.</span><span class="n">len</span><span class="p">();</span><span class="w"> </span><span class="c1">// 3</span>
+</span><span id="__span-19-16"><a id="__codelineno-19-16" name="__codelineno-19-16" href="#__codelineno-19-16"></a>
+</span><span id="__span-19-17"><a id="__codelineno-19-17" name="__codelineno-19-17" href="#__codelineno-19-17"></a><span class="c1">// Get the second chromosome from the genotype</span>
+</span><span id="__span-19-18"><a id="__codelineno-19-18" name="__codelineno-19-18" href="#__codelineno-19-18"></a><span class="kd">let</span><span class="w"> </span><span class="n">second_chromosome</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">three_chromosome_genotype</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="mi">1</span><span class="p">).</span><span class="n">unwrap</span><span class="p">();</span><span class="w"> </span><span class="c1">// or use `three_chromosome_genotype[1]`</span>
+</span><span id="__span-19-19"><a id="__codelineno-19-19" name="__codelineno-19-19" href="#__codelineno-19-19"></a><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">second_chromosome_mut</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">three_chromosome_genotype</span><span class="p">.</span><span class="n">get_mut</span><span class="p">(</span><span class="mi">1</span><span class="p">).</span><span class="n">unwrap</span><span class="p">();</span>
+</span><span id="__span-19-20"><a id="__codelineno-19-20" name="__codelineno-19-20" href="#__codelineno-19-20"></a>
+</span><span id="__span-19-21"><a id="__codelineno-19-21" name="__codelineno-19-21" href="#__codelineno-19-21"></a><span class="k">for</span><span class="w"> </span><span class="n">chromosome</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="n">three_chromosome_genotype</span><span class="p">.</span><span class="n">iter</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="c1">// or iter_mut()</span>
+</span><span id="__span-19-22"><a id="__codelineno-19-22" name="__codelineno-19-22" href="#__codelineno-19-22"></a><span class="w">    </span><span class="c1">// Do something with each chromosome</span>
+</span><span id="__span-19-23"><a id="__codelineno-19-23" name="__codelineno-19-23" href="#__codelineno-19-23"></a><span class="p">}</span>
+</span></code></pre></div>
+</div>
+</div>
+</div>
+<hr />
+<h3 id="phenotype">Phenotype</h3>
+<blockquote>
+<p>The Living Solution</p>
+</blockquote>
+<p>The <code>Phenotype</code> is the representation of an individual in the population that is being evolved by the <code>GeneticEngine</code>. It is a concrete implementation of a <code>Genotype</code> that includes additional functionality for the individual, such as calculating its fitness score. The <code>Phenotype</code> is the "living" version of the <code>Genotype</code>, and it is what the <code>GeneticEngine</code> interacts with during the evolution process.</p>
+<p>The <code>Phenotype</code> is responsible for:</p>
+<ul>
+<li>Providing a way for the <code>GeneticEngine</code> to interact with the individual</li>
+<li>Holding the genetic information of the individual, including its <code>Genotype</code> and fitness or <code>score</code></li>
+<li>Managing the individual's state during the evolution process</li>
+</ul>
+<p>You shouldn't need to create a <code>Phenotype</code> directly, as the <code>GeneticEngine</code> will handle this for you.</p>
+<hr />
+<h3 id="population">Population</h3>
+<blockquote>
+<p>The Community</p>
+</blockquote>
+<p>The <code>Population</code> is a collection of <code>Phenotype</code>s that represent the current state of the genetic algorithm. It is the "community" of solutions that the <code>GeneticEngine</code> is evolving. Its really just a vector of <code>Phenotype</code>s. The <code>Population</code> is responsible for:</p>
+<ul>
+<li>Sorting individuals based on their fitness scores</li>
+<li>Holding the current individuals that are being evolved</li>
+<li>Providing a way for the <code>GeneticEngine</code> to interact with the individuals being evolved</li>
+</ul>
+<p>The <code>Population</code> is created and managed by the <code>GeneticEngine</code>, and you shouldn't need to create a <code>Population</code> directly. Instead, you will interact with the <code>GeneticEngine</code> to manage the population and evolve the individuals.</p>
+<hr />
+<h3 id="species">Species</h3>
+<blockquote>
+<p>The Diverse Groups</p>
+</blockquote>
+<p>The <code>Species</code> is an optional component of the genome system that contains a <code>Population</code> of <code>Phenotype</code>s that are similar to each other. It is used to group individuals that are similar in some way, such as having similar <code>Genotype</code> structures or fitness scores. The <code>Species</code> is responsible for:</p>
+<ul>
+<li>Grouping individuals that are similar to each other</li>
+<li>Allowing the <code>GeneticEngine</code> to evolve individuals within a specific group</li>
+<li>Providing a way to manage diversity within the population</li>
+<li>Sharing fitness information between individuals in the same species</li>
+</ul>
+<p>The <code>Species</code> is not required for the genome system to function, but it can be useful for certain types of problems where grouping similar individuals can help improve the evolution process. For different <code>Species</code> to be created, your <code>GeneticEngine</code> must contain a struct which implements the <code>Diversity</code> trait - this will allow the <code>GeneticEngine</code> to create and manage <code>Species</code> based on the diversity of the individuals in the population. More on this later.</p>
+<hr />
+<h3 id="ecosystem_1">Ecosystem</h3>
+<blockquote>
+<p>The Environment</p>
+</blockquote>
+<p>The <code>Ecosystem</code> is the highest level of the genome system and represents the entire environment in which the genetic algorithm operates. It contains zero to many <code>Species</code>, each with its own <code>Population</code> of <code>Phenotype</code>s, and a single <code>Population</code> containing all <code>Phenotype</code>s. The <code>Ecosystem</code> is responsible for:</p>
+<ul>
+<li>Wrapping the entire genetic algorithm environment</li>
+<li>Managing the overall population of individuals</li>
+<li>Optionally Coordinating the interactions between different <code>Species</code> and managing their diversity</li>
+</ul>
+<p>The <code>Ecosystem</code> is created and managed by the <code>GeneticEngine</code>, and you shouldn't need to create an <code>Ecosystem</code> directly. Instead, you will interact with the <code>GeneticEngine</code> to manage the ecosystem and evolve the individuals within it.</p>
+<h2 id="best-practices">Best Practices</h2>
+<ol>
+<li>
+<p><strong>Choose the Right Gene Type</strong>:</p>
+<ul>
+<li>Use <code>FloatGene</code> for continuous values</li>
+<li>Use <code>IntGene</code> for discrete values</li>
+<li>Use <code>BitGene</code> for binary choices</li>
+<li>Use <code>CharGene</code> for character-based problems</li>
+<li>Use <code>PermutationGene</code> for ordered sets</li>
+</ul>
+</li>
+<li>
+<p><strong>Structure Your Chromosomes</strong>:</p>
+<ul>
+<li>Keep chromosomes focused on specific aspects of your solution</li>
+<li>Consider using multiple chromosomes for complex problems</li>
+</ul>
+</li>
+<li>
+<p><strong>Design Your Genotype</strong>:</p>
+<ul>
+<li>Make sure it can represent all possible solutions</li>
+<li>Keep it as simple as possible</li>
+</ul>
+</li>
+</ol>
+<h2 id="common-pitfalls-to-avoid">Common Pitfalls to Avoid</h2>
+<ol>
+<li>
+<p><strong>Overly Complex Genotypes</strong>:</p>
+<ul>
+<li>Don't make your genotype more complex than necessary</li>
+<li>Start simple and add complexity only when needed</li>
+</ul>
+</li>
+<li>
+<p><strong>Poor Gene Constraints</strong>:</p>
+<ul>
+<li>Always set appropriate value ranges and bounds
+<!-- - Consider the impact of constraints on evolution --></li>
+</ul>
+</li>
+</ol>
+<h2 id="summary">Summary</h2>
+<p>The genome system in Radiate provides a structured way to represent and manipulate genetic information. By understanding the components of the genome system, you can effectively design and evolve solutions to complex problems using genetic algorithms. The key components include:</p>
+<ul>
+<li><strong><a href="#allele">Allele</a></strong>: The basic unit of genetic information.</li>
+<li><strong><a href="#gene">Gene</a></strong>: A container for an allele with additional functionality.</li>
+<li><strong><a href="#chromosome">Chromosome</a></strong>: A collection of genes that represent a part or the whole of the genetic information of an individual.</li>
+<li><strong><a href="#genotype">Genotype</a></strong>: A collection of chromosomes that represent the complete genetic makeup of an individual.</li>
+<li><strong><a href="#phenotype">Phenotype</a></strong>: The representation of an individual in the population that holds additional information like fitness scores.</li>
+<li><strong><a href="#population">Population</a></strong>: A collection of phenotypes that represent the current group being evolved</li>
+<li><strong><a href="#species">Species</a></strong>: An optional grouping of similar phenotypes to manage diversity.</li>
+<li><strong><a href="#ecosystem">Ecosystem</a></strong>: The highest level that wraps the entire genetic algorithm environment.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../installation/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Getting Started">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Getting Started
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="codec/" class="md-footer__link md-footer__link--next" aria-label="Next: Codec">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Codec
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/pkalivas/radiate" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tracking", "navigation.instant", "navigation.tabs", "navigation.tabs.sticky", "navigation.footer", "navigation.indexes", "content.tabs.link", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../javascripts/katex.js"></script>
+      
+        <script src="https://unpkg.com/katex@0/dist/katex.min.js"></script>
+      
+        <script src="https://unpkg.com/katex@0/dist/contrib/auto-render.min.js"></script>
+      
+    
+  </body>
+</html>
