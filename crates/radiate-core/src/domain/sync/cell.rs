@@ -85,6 +85,7 @@ impl<T> MutCell<T> {
 
 impl<T> Clone for MutCell<T> {
     fn clone(&self) -> Self {
+        // SAFETY: We are only incrementing the ref_count here - no mutable access is done.
         unsafe {
             (*self.inner).ref_count.fetch_add(1, Ordering::Relaxed);
         }
@@ -101,6 +102,8 @@ impl<T> Drop for MutCell<T> {
             return;
         }
 
+        // SAFETY: We are decrementing the ref_count here - no mutable access is done.
+        // If the ref_count reaches zero, we can safely drop the inner value.
         unsafe {
             if (*self.inner).ref_count.fetch_sub(1, Ordering::Release) == 1 {
                 std::sync::atomic::fence(Ordering::Acquire);

@@ -148,10 +148,7 @@ impl From<OpVariant<f32>> for Result<Op<f32>, serde::de::value::Error> {
                 arity: _,
                 value,
             } => match name.as_str() {
-                "w" => {
-                    let weight = Op::weight_with(value);
-                    Ok(weight)
-                }
+                "w" => Ok(Op::weight_with(value)),
                 _ => {
                     return Err(serde::de::Error::custom(format!(
                         "Unknown mutable constant name: {}",

@@ -11,12 +11,6 @@ use std::time::Duration;
 /// It contains the ecosystem, best solution, index, metrics, score, objective,
 /// and optionally the Pareto front for multi-objective problems.
 ///
-/// The [Generation] struct is designed to be efficient in terms of memory usage
-/// by utilizing reference counting for the ecosystem data when possible. This allows for
-/// multiple generations to share the same ecosystem data without unnecessary duplication. However,
-/// because of this, the generation's ecosystem is treated as 'copy on read' if it is shared. So,
-/// the first time you access the ecosystem, it will be cloned if it is shared.
-///
 /// This is the main structure returned by the engine after each epoch, and it provides
 /// access to all relevant information about that generation.
 ///

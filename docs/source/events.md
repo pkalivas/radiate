@@ -218,7 +218,7 @@ For more complex event handling, you can create a custom event handler class:
     Its also completely possible to create more advanced forms of visualization or logging through this method. For example, below we will collect the score distrubution from each epoch using polars then plot it with matplotlib.
 
     ```python
-    class HeadPrinterSubscriber(rd.EventHandler):
+    class ScorePlotterHandler(rd.EventHandler):
         """
         An event handler that collects best scores over epochs and plots them at the end.
         1. On EPOCH_COMPLETE, it appends the best score to a list.
@@ -245,7 +245,7 @@ For more complex event handling, you can create a custom event handler class:
                 plt.show()
 
     # Create an instance of your event handler
-    handler = HeadPrinterSubscriber()
+    handler = ScorePlotterHandler()
 
     engine = rd.GeneticEngine(
         codec=your_codec,

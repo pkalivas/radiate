@@ -280,14 +280,20 @@ $$
     Again here we are using the numba crate to compile the fitness function down to native C - once again, this allows us to match the same speed as rust.
 
     ```python
+    import matplotlib.pyplot as plt
     import radiate as rd
+    import numpy as np
     from numba import jit, float32
+
+    rd.random.seed(501)
 
     variables = 4
     objectives = 3
     k = variables - objectives + 1
 
-    @jit(float32[:](float32[:]), nopython=True) # Here we are compiling the fitness function.
+    # Because we are using numpy arrays, we can use numba to compile this function to native code for speed.
+    # This allows us to match the speed of the rust implementation.
+    @jit(float32[:](float32[:]), nopython=True)
     def dtlz_1(val: np.ndarray) -> np.ndarray:
         g_vals = val[variables - k :] - 0.5
         g = 100.0 * (k + np.sum(g_vals**2 - np.cos(20.0 * np.pi * g_vals)))
@@ -308,7 +314,7 @@ $$
 
 
     engine = rd.GeneticEngine(
-        codec=rd.FloatCodec.vector(variables, (0.0, 1.0), (-2.0, 2.0), use_numpy=True),
+        codec=rd.FloatCodec.vector(variables, (0.0, 1.0), use_numpy=True),
         fitness_func=dtlz_1,
         offspring_selector=rd.TournamentSelector(k=8),
         survivor_selector=rd.NSGA2Selector(),
@@ -319,17 +325,24 @@ $$
         ],
     )
 
-    result = engine.run(rd.GenerationsLimit(1000))
+    result = engine.run(rd.GenerationsLimit(2000), ui=True)
 
     # When running an MO problem, we can get the resulting pareto from from the 
-    # engine's epoch result. This is stored in the 'value()' field of the result here:
-    front = result.value()
+    # engine's epoch result. This is stored in the 'front()' field of the result here:
+    front = result.front()
 
-    # The front is a list of individuals, each with a 'fitness' attribute
-    # which is a list of fitness values for each objective.
-    x = [member["fitness"][0] for member in front]
-    y = [member["fitness"][1] for member in front]
-    z = [member["fitness"][2] for member in front]
+    fig = plt.figure()
+    ax = plt.axes(projection="3d")
+
+    x = [member.score()[0] for member in front]
+    y = [member.score()[1] for member in front]
+    z = [member.score()[2] for member in front]
+
+    ax.scatter(x, y, z)
+    ax.set_xlim([0, 0.5])
+    ax.set_ylim([0, 0.5])
+    ax.set_zlim([0, 0.5])
+    plt.show()
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -384,7 +397,7 @@ $$
     });
 
     // When running an MO problem, we can get the resulting pareto from from the 
-    // engine's epoch result. This is stored in the 'value()' field of the result here:
+    // engine's epoch result. This is stored in the 'front()' field of the result here:
     let front = result.front();
     ```
 

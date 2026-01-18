@@ -139,6 +139,7 @@ pub enum AggregateOperations {
     Tan,
     Max,
     Min,
+    LogSumExp,
 }
 
 /// Implementations of the enum. These are the basic math operations.
@@ -162,6 +163,7 @@ impl AggregateOperations {
             AggregateOperations::Tan => clamp(inputs[0].tan()),
             AggregateOperations::Max => clamp(inputs.iter().cloned().fold(MIN_VALUE, f32::max)),
             AggregateOperations::Min => clamp(inputs.iter().cloned().fold(MAX_VALUE, f32::min)),
+            AggregateOperations::LogSumExp => clamp(logsumexp(inputs)),
         }
     }
 }
@@ -405,11 +407,9 @@ impl Op<f32> {
     }
 
     pub fn logsumexp() -> Self {
-        Op::Fn(
-            op_names::LOGSUMEXP,
-            Arity::Exact(2),
-            |inputs: &[f32]| -> f32 { logsumexp(&inputs[..]) },
-        )
+        Op::Fn(op_names::LOGSUMEXP, Arity::Exact(2), |inputs: &[f32]| {
+            AggregateOperations::LogSumExp.apply(inputs)
+        })
     }
 }
 

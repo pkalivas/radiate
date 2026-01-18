@@ -133,6 +133,10 @@ impl<'a, T> GraphTransaction<'a, T> {
         self.commit_internal(Some(validator))
     }
 
+    /// Attempt to commit the transaction, repairing invalid nodes if possible.
+    /// - Calls `repair_invalid_nodes()` up to `MAX_REPAIR_ATTEMPTS` times.
+    ///
+    /// Note: This may produce different graphs on each call due to possible random repairs.
     pub fn try_commit(mut self) -> TransactionResult<T> {
         let mut repaired = false;
         let mut attempts = 0;

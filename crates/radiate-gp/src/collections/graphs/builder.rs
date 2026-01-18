@@ -335,14 +335,6 @@ impl<T: Clone + Default> NodeBuilder<T> {
         self.new_nodes(NodeType::Input, size, Arity::Zero)
     }
 
-    pub fn all_input(&self) -> Vec<GraphNode<T>> {
-        self.new_nodes(
-            NodeType::Input,
-            self.store.count_type(NodeType::Input),
-            Arity::Zero,
-        )
-    }
-
     pub fn output(&self, size: usize) -> Vec<GraphNode<T>> {
         self.new_nodes(NodeType::Output, size, Arity::Any)
     }
