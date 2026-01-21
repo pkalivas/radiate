@@ -1,16 +1,16 @@
-<!-- <h1 align="center">Radiate</h1>
+<h1 align="center">Radiate</h1>
 <p align="center">
   <img src="/docs/assets/logo/radiate.png" height="100" width="60" alt="Radiate Logo" />
-</p> -->
+</p>
 
 
-<p align="center">
+<!-- <p align="center">
   <img
     src="docs/assets/logo/banner_light.jpeg"
     alt="Radiate"
     style="width:900px; border-radius:20px;"
   />
-</p>
+</p> -->
 
 <div align="center">
   <img src="https://img.shields.io/github/check-runs/pkalivas/radiate/master" alt="master branch checks" />
