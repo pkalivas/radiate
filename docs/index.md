@@ -1,10 +1,15 @@
 #  
 
-<center>
-    <h1>Radiate</h1>
-</center>
-<figure markdown="span">
+<!-- <figure markdown="span">
   ![Radiate](assets/logo/radiate.png){ width="100" }
+</figure> -->
+
+<figure>
+  <img
+    src="assets/logo/banner_light.jpeg"
+    alt="Radiate"
+    style="width:900px; border-radius:20px;"
+  />
 </figure>
 
 <div align="center">
