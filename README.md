@@ -4,13 +4,13 @@
 </p> -->
 
 
-<figure>
+<p align="center">
   <img
-    src="assets/logo/banner_light.jpeg"
+    src="docs/assets/logo/banner_light.jpeg"
     alt="Radiate"
     style="width:900px; border-radius:20px;"
   />
-</figure>
+</p>
 
 <div align="center">
   <img src="https://img.shields.io/github/check-runs/pkalivas/radiate/master" alt="master branch checks" />
