@@ -12,30 +12,6 @@ pub enum AggregateInsertValue<'a, T> {
     Many(&'a [GraphNode<T>]),
 }
 
-impl<'a, T> AggregateInsertValue<'a, T> {
-    pub fn len(&self) -> usize {
-        match self {
-            AggregateInsertValue::Single(_) => 1,
-            AggregateInsertValue::Many(nodes) => nodes.len(),
-        }
-    }
-
-    pub fn is_empty(&self) -> bool {
-        match self {
-            AggregateInsertValue::Single(_) => false,
-            AggregateInsertValue::Many(nodes) => nodes.is_empty(),
-        }
-    }
-
-    pub fn is_single(&self) -> bool {
-        matches!(self, AggregateInsertValue::Single(_))
-    }
-
-    pub fn is_many(&self) -> bool {
-        matches!(self, AggregateInsertValue::Many(_))
-    }
-}
-
 impl<'a, T> From<&'a GraphNode<T>> for AggregateInsertValue<'a, T> {
     fn from(value: &'a GraphNode<T>) -> Self {
         AggregateInsertValue::Single(value)
