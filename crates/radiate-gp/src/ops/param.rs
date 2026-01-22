@@ -75,14 +75,3 @@ where
         self.data.fmt(f)
     }
 }
-
-// impl<T> Factory<T, Param<T>> for Param<T> {
-//     fn new_instance(&self, mut val: T) -> Param<T> {
-//         (self.modifier)(&mut val);
-//         Param {
-//             data: val,
-//             supplier: self.supplier,
-//             modifier: self.modifier,
-//         }
-//     }
-// }

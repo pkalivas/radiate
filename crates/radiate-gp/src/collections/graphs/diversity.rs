@@ -28,19 +28,6 @@ impl NeatDistance {
     }
 }
 
-impl Diversity<GraphChromosome<Op<f32>>> for NeatDistance {
-    fn measure(
-        &self,
-        one: &Genotype<GraphChromosome<Op<f32>>>,
-        two: &Genotype<GraphChromosome<Op<f32>>>,
-    ) -> f32 {
-        one.iter()
-            .zip(two.iter())
-            .map(|(a, b)| self.graph_distance_iter(a, b))
-            .sum()
-    }
-}
-
 impl NeatDistance {
     #[inline]
     fn graph_distance_iter(
@@ -124,5 +111,18 @@ impl NeatDistance {
             + (self.disjoint * disjoint * inv_max)
             + (self.weight_diff * avg_weight_diff)
             + (self.op_mismatch_penalty * op_mismatch_penalty)
+    }
+}
+
+impl Diversity<GraphChromosome<Op<f32>>> for NeatDistance {
+    fn measure(
+        &self,
+        one: &Genotype<GraphChromosome<Op<f32>>>,
+        two: &Genotype<GraphChromosome<Op<f32>>>,
+    ) -> f32 {
+        one.iter()
+            .zip(two.iter())
+            .map(|(a, b)| self.graph_distance_iter(a, b))
+            .sum()
     }
 }

@@ -110,12 +110,6 @@ mod tests {
         let mut buffer = WindowBuffer::with_window(5);
         for i in 0..20 {
             buffer.push(i);
-            println!(
-                "Added value {}, buffer len: {:?} -> {:?} ",
-                i,
-                buffer.len(),
-                buffer.values(),
-            );
         }
     }
 }
