@@ -30,26 +30,14 @@ pub(super) const fn clamp(value: f32) -> f32 {
 /// common cases - vals with a len <= 5.
 #[inline]
 pub(super) fn aggregate(vals: &[f32]) -> f32 {
-    let len = vals.len();
-    if len == 0 {
-        return ZERO;
-    } else if len == 1 {
-        return vals[0];
-    } else if len == 2 {
-        return vals[0] + vals[1];
-    } else if len == 3 {
-        return vals[0] + vals[1] + vals[2];
-    } else if len == 4 {
-        return vals[0] + vals[1] + vals[2] + vals[3];
-    } else if len == 5 {
-        return vals[0] + vals[1] + vals[2] + vals[3] + vals[4];
-    } else if len == 6 {
-        return vals[0] + vals[1] + vals[2] + vals[3] + vals[4] + vals[5];
-    } else if len == 7 {
-        return vals[0] + vals[1] + vals[2] + vals[3] + vals[4] + vals[5] + vals[6];
+    match vals {
+        [] => ZERO,
+        [a] => *a,
+        [a, b] => a + b,
+        [a, b, c] => a + b + c,
+        [a, b, c, d] => a + b + c + d,
+        _ => vals.iter().copied().sum(),
     }
-
-    vals.iter().cloned().sum::<f32>()
 }
 
 #[inline]

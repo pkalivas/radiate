@@ -136,12 +136,12 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
                 let node = self.nodes[node_id];
 
                 trans.push((index, node.node_type(), node.value().clone(), node.arity()));
-                id_index_map.insert(node_id, index);
+                id_index_map.insert(*node_id, index);
             }
 
             for rel in self.relationships.iter() {
-                let source_idx = id_index_map[&rel.source_id];
-                let target_idx = id_index_map[&rel.target_id];
+                let source_idx = id_index_map[rel.source_id];
+                let target_idx = id_index_map[rel.target_id];
 
                 trans.attach(source_idx, target_idx);
             }
@@ -256,50 +256,42 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
 
     fn attach(&mut self, group: &AggregateInsertValue<'a, T>) -> Vec<&'a GraphNodeId> {
         match group {
-            AggregateInsertValue::Single(node) => self.attach_single(node),
-            AggregateInsertValue::Many(nodes) => self.attach_many(nodes),
-        }
-    }
+            AggregateInsertValue::Single(node) => {
+                if !self.nodes.contains_key(node.id()) {
+                    let ordinal = self.node_order.len();
+                    self.nodes.insert(node.id(), node);
+                    self.node_order.insert(ordinal, node.id());
+                }
 
-    fn attach_single(&mut self, node: &'a GraphNode<T>) -> Vec<&'a GraphNodeId> {
-        if !self.nodes.contains_key(node.id()) {
-            let ordinal = self.node_order.len();
-            self.nodes.insert(node.id(), node);
-            self.node_order.insert(ordinal, node.id());
+                vec![node.id()]
+            }
+            AggregateInsertValue::Many(nodes) => {
+                let mut indexes = Vec::with_capacity(nodes.len());
+                for node in nodes.iter() {
+                    let node_id = node.id();
+                    indexes.push(node_id);
 
-            return vec![node.id()];
-        }
+                    if !self.nodes.contains_key(node_id) {
+                        let ordinal = self.node_order.len();
 
-        vec![node.id()]
-    }
+                        self.nodes.insert(node_id, node);
+                        self.node_order.insert(ordinal, node_id);
 
-    fn attach_many(&mut self, nodes: &'a [GraphNode<T>]) -> Vec<&'a GraphNodeId> {
-        let mut indexes = Vec::with_capacity(nodes.len());
-        for node in nodes.iter() {
-            let node_id = node.id();
+                        nodes
+                            .iter()
+                            .filter(|item| node.outgoing().contains(&item.index()))
+                            .for_each(|item| {
+                                self.relationships.push(Relationship {
+                                    source_id: node.id(),
+                                    target_id: item.id(),
+                                });
+                            });
+                    }
+                }
 
-            if !self.nodes.contains_key(node_id) {
-                let ordinal = self.node_order.len();
-
-                self.nodes.insert(node_id, node);
-                self.node_order.insert(ordinal, node_id);
-                indexes.push(node_id);
-
-                nodes
-                    .iter()
-                    .filter(|item| node.outgoing().contains(&item.index()))
-                    .for_each(|item| {
-                        self.relationships.push(Relationship {
-                            source_id: node.id(),
-                            target_id: item.id(),
-                        });
-                    });
-            } else {
-                indexes.push(node_id);
+                indexes
             }
         }
-
-        indexes
     }
 
     fn one_to_one_connect(&mut self, one: &[&'a GraphNodeId], two: &[&'a GraphNodeId]) {
@@ -856,10 +848,12 @@ mod tests {
         for i in 0..ins.len() {
             assert_eq!(g[i].outgoing().len(), outs.len());
         }
+
         // Each output receives from all inputs
         for j in 0..outs.len() {
             assert_eq!(g[ins.len() + j].incoming().len(), ins.len());
         }
+
         assert!(g.is_valid());
     }
 

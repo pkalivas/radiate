@@ -27,7 +27,7 @@ Simple fitness functions are the most common type - they take a phenotype and re
 
 !!! note ":fontawesome-brands-python: Python `numba`"
 
-    For python, In come cases (primarily if you are decoding to a `np.array`) it is possible to compile your fitness function down to native C using [numba](https://numba.pydata.org). 
+    For python, In some cases it is possible to compile your fitness function down to machine code using [numba](https://numba.pydata.org). 
     In most cases with this, this will result in your engine running as fast or almost as fast as rust. Check the examples page for an example using this method.
 
 === ":fontawesome-brands-python: Python"

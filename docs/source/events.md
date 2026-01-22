@@ -1,14 +1,10 @@
 # Events and Subscriptions
 
-!!! warning ":construction: Under Construction :construction:"
-
-    As of `12/15/2025`: These docs are a work in progress and may not be complete or fully accurate. Please check back later for updates.
-
 Radiate provides an event system that allows you to monitor and react to the evolution process in real-time. This is great for:
 
 - Tracking the progress of evolution
 - Collecting metrics and statistics
-- Implementing custom logging
+- Implementing custom logging or logic based on the state of evolution
 - Visualizing the evolution process
 
 ## Overview
@@ -19,7 +15,7 @@ The `GeneticEngine` trys it's best to off-load almost the entire compute workloa
 
 !!! note "Threading Behavior"
     
-    Currently, the rust implementation is multi-threaded, meaning if you have multiple subscribers, there is no guarantee of the order in which they will be called. For python, regardless of if you are using a free-threaded interpreter (3.13t/3.14t, ect) or not, the events will be dispatched on a single thread in the order they were added.
+    Currently, the rust implementation is multi-threaded (if multi-threaded executors are used), meaning if you have multiple subscribers, there is no guarantee of the order in which they will be called. For python, regardless of if you are using a free-threaded interpreter (3.13t/3.14t, ect) or not, the events will be dispatched on a single thread in the order they were added.
 
 --- 
 ## Event Types
@@ -66,7 +62,7 @@ Below there is a brief description of each event type with its representative da
     {
         'event_type': 'stop_event',
         'index': 0, // Current generation number
-        // This will be a dictionary of metrics collected, see Engine's metrics docs for more info
+        // This will be a MetricSet (or dictionary in python) of metrics collected, see Engine's metrics docs for more info
         'metrics': ..., 
         // This will be the decoded best individual found so far. So, if you are 
         // evolving a vector of FloatGenes, this will be a list of floats
@@ -164,7 +160,7 @@ The simplest way to subscribe to events is by providing a callback function:
     use radiate::*;
 
     let mut engine = GeneticEngine::builder()
-        .codec(your_codec)
+        .codec(FloatCodec::vector(6, -5.0..5.0))
         .fitness_fn(your_fitness_fn)
         .subscribe(|event: &EngineEvent<Vec<f32>>| {
             if let EngineEvent::EpochComplete(index, best, metrics, score, objective) = event {
@@ -215,7 +211,7 @@ For more complex event handling, you can create a custom event handler class:
     engine.run(rd.GenerationsLimit(100))
     ```
 
-    Its also completely possible to create more advanced forms of visualization or logging through this method. For example, below we will collect the score distrubution from each epoch using polars then plot it with matplotlib.
+    Its also completely possible to create more advanced forms of visualization or logging through this method. For example, below we will collect the scores from each epoch then use polars to create a DataFrame and finally plot it with matplotlib.
 
     ```python
     class ScorePlotterHandler(rd.EventHandler):
@@ -278,7 +274,7 @@ For more complex event handling, you can create a custom event handler class:
 
     // Create and configure the engine
     let mut engine = GeneticEngine::builder()
-        .codec(your_codec)
+        .codec(FloatCodec::vector(6, -5.0..5.0))
         .subscribe(MyHandler)   // Add your handler here
         .fitness_fn(your_fitness_fn)
         // ... other parameters ...
