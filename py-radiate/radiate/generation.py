@@ -53,7 +53,22 @@ class Generation[T](PyObject[PyGeneration]):
         Get the value of the generation.
         :return: The value of the generation.
         """
-        return self.try_get_cache("value_cache", lambda: self.__backend__().value())
+
+        def _get_value():
+            from radiate.radiate import PyGraph, PyTree
+            from .gp.tree import Tree
+            from .gp.graph import Graph
+
+            val = self.__backend__().value()
+
+            if isinstance(val, PyGraph):
+                return Graph.from_rust(val)
+            elif isinstance(val, PyTree):
+                return Tree.from_rust(val)
+            else:
+                return val
+
+        return self.try_get_cache("value_cache", _get_value)
 
     def front(self) -> Front:
         """
@@ -89,7 +104,8 @@ class Generation[T](PyObject[PyGeneration]):
         :return: The population of the generation.
         """
         return self.try_get_cache(
-            "population_cache", lambda: Population.from_rust(self.__backend__().population())
+            "population_cache",
+            lambda: Population.from_rust(self.__backend__().population()),
         )
 
     def species(self) -> list[Species] | None:
@@ -112,7 +128,8 @@ class Generation[T](PyObject[PyGeneration]):
         :return: The ecosystem of the generation.
         """
         return self.try_get_cache(
-            "ecosystem_cache", lambda: Ecosystem.from_rust(self.__backend__().ecosystem())
+            "ecosystem_cache",
+            lambda: Ecosystem.from_rust(self.__backend__().ecosystem()),
         )
 
     def duration(self) -> timedelta:
@@ -120,4 +137,6 @@ class Generation[T](PyObject[PyGeneration]):
         Get the duration of the generation.
         :return: The duration of the generation.
         """
-        return self.try_get_cache("duration_cache", lambda: self.__backend__().duration())
+        return self.try_get_cache(
+            "duration_cache", lambda: self.__backend__().duration()
+        )

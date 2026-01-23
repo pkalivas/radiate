@@ -16,7 +16,7 @@ class TreeCodec(CodecBase[Op, Tree]):
     def decode(self, genotype: Genotype) -> Tree:
         if not isinstance(genotype, Genotype):
             raise TypeError("genotype must be an instance of Genotype.")
-        return Tree(self.codec.decode_py(genotype=genotype.__backend__()))
+        return Tree.from_rust(self.codec.decode_py(genotype=genotype.__backend__()))
 
     def __init__(
         self,

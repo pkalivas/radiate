@@ -31,4 +31,4 @@ engine = rd.GeneticEngine(
 result = engine.run(rd.ScoreLimit(0), ui=True)
 
 for obj_gene in result.value():
-    print(obj_gene)
+    print(type(obj_gene.allele()))

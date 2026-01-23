@@ -127,4 +127,6 @@ class EngineEvent(PyObject[PyEngineEvent]):
         Get the objective of the event.
         :return: The objective of the event.
         """
-        return self.try_get_cache("objective_cache", lambda: self.__backend__().objective())
+        return self.try_get_cache(
+            "objective_cache", lambda: self.__backend__().objective()
+        )

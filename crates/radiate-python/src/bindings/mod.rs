@@ -25,7 +25,7 @@ pub use fitness::{PyFitnessFn, PyFitnessInner, PyNoveltySearch};
 pub use front::{PyFront, PyFrontValue};
 pub use functions::*;
 pub use genome::*;
-pub use gp::{PyGraph, PyTree};
+pub use gp::{PyAccuracy, PyGraph, PyTree, py_accuracy};
 pub use inputs::{PyEngineInput, PyEngineInputType};
 pub use metric::{PyMetric, PyMetricSet};
 pub use rate::PyRate;

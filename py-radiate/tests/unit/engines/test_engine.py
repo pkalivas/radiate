@@ -207,6 +207,7 @@ class TestEngineBasicIntegration:
 
         result = engine.run([rd.ScoreLimit(0.1), rd.GenerationsLimit(300)])
 
+        assert isinstance(result.value(), rd.Tree)
         assert result.score()[0] < 0.1
         assert result.index() <= 300
 
@@ -244,6 +245,7 @@ class TestEngineBasicIntegration:
         # relax the assertion a bit by allowing a few # of species
         assert len(result.species()) in [2, 3, 4], "Should maintain multiple species"
         assert result.index() <= 500
+        assert isinstance(result.value(), rd.Graph)
 
     @pytest.mark.integration
     def test_engine_permutation_tsp(self, random_seed):

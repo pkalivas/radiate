@@ -8,7 +8,6 @@ We have a simple polynomial function and we want to evolve a graph that approxim
 
 import radiate as rd
 import polars as pl  # type: ignore
-import numpy as np
 import matplotlib.pyplot as plt
 
 rd.random.seed(567123)
@@ -77,10 +76,10 @@ result = engine.run(
 )
 
 eval_results = result.value().eval(inputs)
-accuracy = np.mean(
-    np.abs(np.array(eval_results).flatten() - np.array(answers).flatten()) < 0.1
+accuracy = rd.calc_accuracy(
+    result.value(), inputs, answers, loss="mse", name="Regression Graph Accuracy Result"
 )
 
 print(result)
 print(result.metrics().dashboard())
-print(f"Accuracy within 0.1: {accuracy * 100:.2f}%")
+print(accuracy)

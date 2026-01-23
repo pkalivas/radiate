@@ -183,6 +183,48 @@ pub struct AccuracyResult {
     is_regression: bool,
 }
 
+impl AccuracyResult {
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn accuracy(&self) -> f32 {
+        self.accuracy
+    }
+
+    pub fn precision(&self) -> f32 {
+        self.precision
+    }
+
+    pub fn recall(&self) -> f32 {
+        self.recall
+    }
+
+    pub fn f1_score(&self) -> f32 {
+        self.f1_score
+    }
+
+    pub fn rmse(&self) -> f32 {
+        self.rmse
+    }
+
+    pub fn r_squared(&self) -> f32 {
+        self.r_squared
+    }
+
+    pub fn sample_count(&self) -> usize {
+        self.sample_count
+    }
+
+    pub fn loss(&self) -> f32 {
+        self.loss
+    }
+
+    pub fn loss_fn(&self) -> Loss {
+        self.loss_fn
+    }
+}
+
 impl Debug for AccuracyResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         if self.is_regression {

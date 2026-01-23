@@ -20,7 +20,7 @@ class GraphCodec(CodecBase[Op, Graph]):
             raise ValueError(f"genotype must be of type {genotype.gene_type()}.")
         if not isinstance(genotype, Genotype):
             raise TypeError("genotype must be an instance of Genotype.")
-        return Graph(self.codec.decode_py(genotype.__backend__()))
+        return Graph.from_rust(self.codec.decode_py(genotype.__backend__()))
 
     @staticmethod
     def weighted_directed(

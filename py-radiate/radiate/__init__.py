@@ -31,7 +31,7 @@ from .genome import (
     AnyGene,
 )
 from .handlers import EventHandler, EventType, EngineEvent
-from .gp import Op, Graph, Tree
+from .gp import Op, Graph, Tree, calc_accuracy
 from .metrics import MetricSet, Metric, Tag
 
 from .inputs.executor import Executor
@@ -131,6 +131,7 @@ __all__ = [
     "Tree",
     "Graph",
     "Op",
+    "calc_accuracy",
     # Handlers
     "EventHandler",
     "EventType",

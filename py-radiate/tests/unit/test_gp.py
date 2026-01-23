@@ -82,6 +82,7 @@ class TestGP:
         graph = codec.decode(codec.encode())
 
         assert graph is not None
+        assert isinstance(graph, rd.Graph)
         assert graph.eval([[1.0, 2.0]]) is not None
 
     @pytest.mark.unit

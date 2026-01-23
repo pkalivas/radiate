@@ -99,3 +99,12 @@ impl From<Graph<Op<f32>>> for PyGraph {
         }
     }
 }
+
+impl Clone for PyGraph {
+    fn clone(&self) -> Self {
+        PyGraph {
+            inner: self.inner.clone(),
+            eval_cache: self.eval_cache.clone(),
+        }
+    }
+}

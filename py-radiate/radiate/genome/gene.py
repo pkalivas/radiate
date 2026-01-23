@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from radiate.radiate import PyGene
 from radiate.wrapper import PyObject
@@ -36,7 +36,7 @@ class Gene[T](PyObject[PyGene]):
         return self.try_get_cache("allele_value", lambda: self.__backend__().allele())
 
 
-class AnyGene(Gene):
+class AnyGene(Gene[dict[str, Any]]):
     def __backend__(self) -> PyGene:
         if "_pyobj" not in self.__dict__:
             properties = self.__dict__
@@ -52,7 +52,7 @@ class AnyGene(Gene):
 
         return self._pyobj
 
-    def allele(self) -> AnyGene:
+    def allele(self) -> dict[str, Any]:
         return self.__dict__
 
 

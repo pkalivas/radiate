@@ -69,11 +69,22 @@ engine = rd.GeneticEngine(
     ],
 )
 
-result = engine.run([rd.ScoreLimit(0.01), rd.SecondsLimit(5)], log=True)
+result = engine.run([rd.ScoreLimit(0.01), rd.SecondsLimit(3)], log=True)
 
 eval_result = result.value().eval(testing_features.values.tolist())
 
-accuracy = np.mean(
+np_acc = np.mean(
     np.argmax(eval_result, axis=1) == np.argmax(testing_target.values, axis=1)
 )
-print(f"Accuracy: {accuracy:.2f}")
+
+rd_acc = rd.calc_accuracy(
+    result.value(),
+    testing_features.values.tolist(),
+    testing_target.values.tolist(),
+    loss="mse",
+    name="Iris Classification Accuracy Result",
+)
+
+print(f"Accuracy: {np_acc:.2f}")
+print(rd_acc)
+print(result.metrics().dashboard())
