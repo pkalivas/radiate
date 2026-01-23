@@ -23,8 +23,8 @@ import numpy as np
 import matplotlib.pyplot as plt  # type: ignore
 import math
 
-rd.random.seed(79)
-np.random.seed(87)
+rd.random.seed(88888)
+np.random.seed(88888)
 
 
 class RobotBehavior:

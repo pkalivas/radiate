@@ -11,7 +11,7 @@ import numpy as np
 import radiate as rd
 from numba import jit, int32
 
-rd.random.seed(500)
+rd.random.seed(514)
 
 N_QUEENS = 32
 
@@ -40,7 +40,7 @@ engine.minimizing()
 engine.offspring_selector(rd.BoltzmannSelector(4.0))
 engine.alters([rd.MultiPointCrossover(0.75, 2), rd.UniformMutator(0.05)])
 
-result = engine.run([rd.ScoreLimit(0), rd.GenerationsLimit(1000)], log=True)
+result = engine.run(rd.ScoreLimit(0), ui=True)
 print(result)
 
 

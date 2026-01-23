@@ -11,8 +11,8 @@ pub struct PyFloatCodec {
 
 #[pymethods]
 impl PyFloatCodec {
-    pub fn encode_py(&self) -> PyGenotype {
-        PyGenotype::from(self.codec.encode())
+    pub fn encode_py(&self) -> PyResult<PyGenotype> {
+        Ok(PyGenotype::from(self.codec.encode()))
     }
 
     pub fn decode_py<'py>(

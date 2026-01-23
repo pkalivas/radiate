@@ -49,7 +49,7 @@ print(
 )
 
 codec = rd.GraphCodec.directed(
-    shape=(4, 4),
+    shape=(4, 3),
     vertex=rd.Op.all_ops(),
     edge=rd.Op.weight(),
     output=rd.Op.sigmoid(),

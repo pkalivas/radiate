@@ -7,6 +7,7 @@ We have a simple polynomial function and we want to evolve a graph that approxim
 """
 
 import radiate as rd
+import numpy as np
 
 rd.random.seed(500)
 
@@ -40,4 +41,10 @@ engine = rd.GeneticEngine(
 
 
 result = engine.run([rd.ScoreLimit(0.01), rd.GenerationsLimit(1000)], log=True)
+eval_results = result.value().eval(inputs)
+accuracy = np.mean(
+    np.abs(np.array(eval_results).flatten() - np.array(answers).flatten()) < 0.1
+)
+
 print(result)
+print(f"Accuracy within 0.1: {accuracy * 100:.2f}%")

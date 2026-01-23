@@ -294,7 +294,7 @@ The `GraphCodec` is a codec that encodes a `GraphChromosome` and decodes it back
     // Create a store for graph operations
     let store = vec![
         (NodeType::Input, vec![Op::var(0), Op::var(1)]),
-        (NodeType::Edge, vec![Op::add(), Op::mul()]),
+        (NodeType::Edge, vec![Op::weight(), Op::identity()]), // both of these ops have an arity of 1
         (NodeType::Vertex, vec![Op::sub(), Op::div()]),
         (NodeType::Output, vec![Op::sigmoid(), Op::tanh()]),
     ];

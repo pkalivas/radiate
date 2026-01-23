@@ -575,6 +575,38 @@ mod test {
     }
 
     #[test]
+    fn test_graph_set_cycles() {
+        let mut graph = Graph::<i32>::default();
+
+        let idx_one = graph.insert(NodeType::Input, 0);
+        let idx_two = graph.insert(NodeType::Vertex, 1);
+        let idx_three = graph.insert(NodeType::Vertex, 2);
+        let idx_four = graph.insert(NodeType::Output, 3);
+
+        graph
+            .attach(idx_one, idx_two)
+            .attach(idx_two, idx_three)
+            .attach(idx_three, idx_two)
+            .attach(idx_two, idx_four);
+
+        for node in graph.iter() {
+            assert!(node.is_valid());
+            assert_eq!(node.direction(), Direction::Forward);
+        }
+
+        graph.set_cycles(vec![]);
+
+        for node in graph.iter() {
+            assert!(node.is_valid());
+            if node.node_type() == NodeType::Vertex {
+                assert_eq!(node.direction(), Direction::Backward);
+            } else {
+                assert_eq!(node.direction(), Direction::Forward);
+            }
+        }
+    }
+
+    #[test]
     fn test_graph_clone_and_partial_eq() {
         let mut graph1 = Graph::default();
         let input_idx = graph1.insert(NodeType::Input, 42);
