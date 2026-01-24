@@ -29,6 +29,7 @@ def test_engine_int_vector_nparray(random_seed):
     def fitness_func(x: np.ndarray) -> float:
         assert isinstance(x, np.ndarray)
         assert np.all(x >= -10) and np.all(x <= 50)
+        assert x.dtype == np.int64
         return np.sum(x)
 
     codec = rd.IntCodec.vector(
@@ -59,6 +60,7 @@ def test_engine_int_matrix_nparray(random_seed):
         assert isinstance(x, np.ndarray)
         assert x.shape == (rows, cols)
         assert np.all(x >= -5) and np.all(x <= 20)
+        assert x.dtype == np.int64
         return float(np.sum(x))
 
     codec = rd.IntCodec.matrix(
@@ -73,7 +75,7 @@ def test_engine_int_matrix_nparray(random_seed):
 
     result = engine.run([rd.ScoreLimit(0), rd.GenerationsLimit(500)])
 
-    assert np.array_equal(result.value(), np.zeros((rows, cols), dtype=int))
+    assert np.array_equal(result.value(), np.zeros((rows, cols), dtype=np.int64))
     assert result.score() == [0]
     assert result.index() <= 500
     assert len(result.population()) == len(result.ecosystem().population())
