@@ -42,11 +42,13 @@ fn display(
 ) {
     let mut best = result.value().clone();
 
-    let train_acc = Accuracy::new("train")
+    let train_acc = Accuracy::default()
+        .named("train")
         .on(train)
         .loss(Loss::MSE)
         .calc(&mut best);
-    let test_acc = Accuracy::new("test")
+    let test_acc = Accuracy::default()
+        .named("test")
         .on(test)
         .loss(Loss::MSE)
         .calc(&mut best);

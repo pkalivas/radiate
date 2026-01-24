@@ -76,9 +76,7 @@ result = engine.run(
 )
 
 eval_results = result.value().eval(inputs)
-accuracy = rd.calc_accuracy(
-    result.value(), inputs, answers, loss="mse", name="Regression Graph Accuracy Result"
-)
+accuracy = rd.calc_accuracy(result.value(), inputs, answers, loss="mse")
 
 print(result)
 print(result.metrics().dashboard())

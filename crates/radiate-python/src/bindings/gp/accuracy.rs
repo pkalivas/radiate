@@ -85,9 +85,13 @@ pub fn py_accuracy<'py>(
         None => Loss::MSE,
     };
 
-    let accuracy = Accuracy::new(name.unwrap_or_default())
-        .loss(loss)
-        .on(&data_set);
+    let accuracy = match name {
+        Some(named_acc) => Accuracy::default()
+            .named(named_acc)
+            .loss(loss)
+            .on(&data_set),
+        None => Accuracy::default().loss(loss).on(&data_set),
+    };
 
     if let Ok(graph) = predictor.extract::<PyGraph>(py) {
         match accuracy.eval(&graph.inner) {

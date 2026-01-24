@@ -10,14 +10,6 @@ pub struct Accuracy<'a> {
 }
 
 impl<'a> Accuracy<'a> {
-    pub fn new(name: impl Into<String>) -> Self {
-        Accuracy {
-            name: Some(name.into()),
-            data_set: None,
-            loss_fn: None,
-        }
-    }
-
     pub fn named(mut self, name: impl Into<String>) -> Self {
         self.name = Some(name.into());
         self
@@ -154,7 +146,16 @@ impl<'a> Accuracy<'a> {
         };
 
         AccuracyResult {
-            name: self.name.clone().unwrap_or_else(|| "".to_string()),
+            name: match &self.name {
+                Some(name) => name.clone(),
+                None => {
+                    if is_regression {
+                        "Regression Accuracy".to_string()
+                    } else {
+                        "Classification Accuracy".to_string()
+                    }
+                }
+            },
             accuracy,
             precision,
             recall,
@@ -230,7 +231,7 @@ impl Debug for AccuracyResult {
         if self.is_regression {
             write!(
                 f,
-                "Regression Accuracy - {:?} {{\n\tN: {:?} \n\tAccuracy: {:.2}%\n\tR² Score: {:.5}\n\tRMSE: {:.5}\n\tLoss ({:?}): {:.5}\n}}",
+                "{:?} {{\n\tN: {:?} \n\tAccuracy: {:.2}%\n\tR² Score: {:.5}\n\tRMSE: {:.5}\n\tLoss ({:?}): {:.5}\n}}",
                 self.name,
                 self.sample_count,
                 self.accuracy * 100.0,
@@ -242,7 +243,7 @@ impl Debug for AccuracyResult {
         } else {
             write!(
                 f,
-                "Classification Accuracy - {:?} {{\n\tN: {:?} \n\tAccuracy: {:.2}%\n\tPrecision: {:.2}%\n\tRecall: {:.2}%\n\tF1 Score: {:.2}%\n\tLoss ({:?}): {:.5}\n}}",
+                "{:?} {{\n\tN: {:?} \n\tAccuracy: {:.2}%\n\tPrecision: {:.2}%\n\tRecall: {:.2}%\n\tF1 Score: {:.2}%\n\tLoss ({:?}): {:.5}\n}}",
                 self.name,
                 self.sample_count,
                 self.accuracy * 100.0,

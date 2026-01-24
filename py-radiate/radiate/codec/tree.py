@@ -28,6 +28,25 @@ class TreeCodec(CodecBase[Op, Tree]):
         root: NodeValues | None = None,
         values: dict[str, list[Op]] | list[tuple[str, list[Op]]] | None = None,
     ) -> TreeCodec:
+        """
+        Initialize a TreeCodec for genetic programming trees. The codec supports building trees with
+        specified operations for vertices, leaves, and roots. The trees can be constrained by minimum depth and maximum size.
+
+        Args:
+            shape (tuple[int, int], optional): The input and output size of the tree. Defaults to (1, 1).
+            min_depth (int, optional): The minimum depth of the tree (ie: the starting height of a tree). Defaults to 3.
+            max_size (int, optional): The maximum size of the tree (ie: the maximum number of nodes). Defaults to 30.
+            vertex (NodeValues | None, optional): Operations to use for internal nodes. Can be a single Op or a list of Ops. Defaults to None.
+            leaf (NodeValues | None, optional): Operations to use for leaf nodes. Can be a single Op or a list of Ops. Defaults to None.
+            root (NodeValues | None, optional): Operations to use for the root node. Can be a single Op or a list of Ops. Defaults to None.
+            values (dict[str, list[Op]] | list[tuple[str, list[Op]]] | None, optional): A mapping of node types to their corresponding operations.
+                If provided, this overrides the individual vertex, leaf, and root parameters. Defaults to None.
+
+        Raises:
+            ValueError: If input_size or output_size is less than 1.
+            ValueError: If min_depth is less than 1.
+            ValueError: If max_size is less than 1.
+        """
         input_size, output_size = shape
 
         if input_size < 1 or output_size < 1:

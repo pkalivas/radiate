@@ -54,7 +54,7 @@ def simple_regression_dataset():
 
 
 @pytest.fixture
-def graph_codec_simple():
+def graph_codec_simple_2x1():
     """Create a simple graph codec for testing."""
     return rd.GraphCodec.directed(
         shape=(2, 1),
@@ -65,7 +65,7 @@ def graph_codec_simple():
 
 
 @pytest.fixture
-def graph_simple():
+def graph_simple_2x1():
     """Create a simple graph structure for testing."""
     codec = rd.GraphCodec.directed(
         shape=(2, 1),
@@ -77,7 +77,7 @@ def graph_simple():
 
 
 @pytest.fixture
-def tree_codec_simple():
+def tree_codec_simple_2x1():
     """Create a simple tree codec for testing."""
     return rd.TreeCodec(
         shape=(2, 1),
@@ -88,7 +88,7 @@ def tree_codec_simple():
 
 
 @pytest.fixture
-def tree_simple():
+def tree_simple_2x1():
     """Create a simple tree structure for testing."""
     codec = rd.TreeCodec(
         shape=(2, 1),

@@ -76,9 +76,7 @@ def int(
     return Gene.from_rust(int_gene)
 
 
-def bit(
-    allele: bool | None = None,
-):
+def bit(allele: bool | None = None):
     bit_gene = PyGene.bit(allele=allele)
     return Gene.from_rust(bit_gene)
 
