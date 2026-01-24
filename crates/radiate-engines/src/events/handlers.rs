@@ -10,6 +10,6 @@ where
     F: Fn(&EngineEvent<T>) + Send + Sync,
 {
     fn handle(&mut self, event: Arc<EngineEvent<T>>) {
-        (self)(&event)
+        self(&event)
     }
 }

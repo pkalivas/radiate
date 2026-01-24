@@ -174,8 +174,8 @@ impl<C: Chromosome> From<(Genotype<C>, usize)> for Phenotype<C> {
 }
 
 /// This is a convenience method that allows you to create a [Phenotype] from a list of [Chromosome]s.
-/// Without it, we end up neededing to create a list of [Gene](super::chromosomes::Gene)s
-/// then a list of [Chromosome]s then a [Genotype], its just a lot.
+/// Without it, we end up needing to create a list of [Gene](super::chromosomes::Gene)'s
+/// then a list of [Chromosome]s then a [Genotype], it's just a lot.
 /// This method allows you to create a [Phenotype] from a list of chromosomes directly.
 impl<C: Chromosome> From<(Vec<C>, usize)> for Phenotype<C> {
     fn from((chromosomes, generation): (Vec<C>, usize)) -> Self {

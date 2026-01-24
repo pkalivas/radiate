@@ -23,7 +23,7 @@ impl<T> EventBus<T> {
         self.handlers.push(Arc::new(Mutex::new(handler)));
     }
 
-    pub fn publish<'a, C>(&self, message: EngineMessage<'a, C, T>)
+    pub fn publish<C>(&self, message: EngineMessage<C, T>)
     where
         C: Chromosome,
         T: Clone + Send + Sync + 'static,

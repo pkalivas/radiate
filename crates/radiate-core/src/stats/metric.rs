@@ -100,7 +100,7 @@ impl Metric {
         if let Some(stat) = other.inner.value_statistic {
             // Kinda a hack to take advantage of the fact that if count == sum,
             // we can just apply the sum directly instead of merging statistics - keeps things honest
-            // & avoids merging statistics when we don't have to (even though thats a fast operation).
+            // & avoids merging statistics when we don't have to (even though that's a fast operation).
             if stat.count() as f32 == stat.sum() && !other.tags.has(TagKind::Distribution) {
                 self.apply_update(stat.sum());
             } else {

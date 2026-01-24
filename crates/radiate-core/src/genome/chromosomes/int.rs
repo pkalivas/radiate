@@ -93,7 +93,7 @@ impl_integer!(i8, i16, i32, i64, i128, u8, u16, u32, u64, u128);
 /// functionality for it to be used in a genetic algorithm. In this [`Gene`] implementation, the
 /// `allele` is the integer value itself, the min and max values are the minimum and maximum values
 /// that the integer can be generated from, and the upper and lower bounds are the upper and lower bounds the gene will
-/// be subject to during crossover and mutation. If the `allele` exceedes the bounds, the [`Gene`] will be considered invalid.
+/// be subject to during crossover and mutation. If the `allele` exceeds the bounds, the [`Gene`] will be considered invalid.
 ///
 /// [`IntGene`] is generic over `T` - the type of integer. The `Integer` trait is implemented
 /// for `i8`, `i16`, `i32`, `i64`, `i128`, `u8`, `u16`, `u32`, `u64`, and `u128`.
@@ -319,7 +319,7 @@ impl<T: Integer<T>> std::fmt::Display for IntGene<T> {
 ///
 /// # Fields
 ///
-/// * `genes` - A vector of [`IntGene<T>`] representing the individual's genetic informationn.
+/// * `genes` - A vector of [`IntGene<T>`] representing the individual's genetic information.
 ///
 /// # Example
 /// ``` rust

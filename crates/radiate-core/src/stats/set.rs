@@ -93,11 +93,11 @@ impl MetricSet {
             .filter_map(move |(k, m)| if m.tags.has(tag) { Some((*k, m)) } else { None })
     }
 
-    pub fn iter_stats<'a>(&'a self) -> impl Iterator<Item = &'a Metric> {
+    pub fn iter_stats(&self) -> impl Iterator<Item = &Metric> {
         self.metrics.values().filter(|m| m.statistic().is_some())
     }
 
-    pub fn iter_times<'a>(&'a self) -> impl Iterator<Item = &'a Metric> {
+    pub fn iter_times(&self) -> impl Iterator<Item = &Metric> {
         self.metrics
             .values()
             .filter(|m| m.time_statistic().is_some())

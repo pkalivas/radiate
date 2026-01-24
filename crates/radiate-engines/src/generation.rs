@@ -8,7 +8,7 @@ use std::fmt::Debug;
 use std::time::Duration;
 
 /// A [Generation] represents a single generation in the evolutionary process.
-/// It contains the ecosystem, best solution, index, metrics, score, objective,
+/// It contains the ecosystem, the best solution, index, metrics, score, objective,
 /// and optionally the Pareto front for multi-objective problems.
 ///
 /// This is the main structure returned by the engine after each epoch, and it provides

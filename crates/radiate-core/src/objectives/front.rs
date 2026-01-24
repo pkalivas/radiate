@@ -323,7 +323,7 @@ where
     }
 }
 
-/// Calculate the Shannon entropy of a set of scores in multi-dimensional space.
+/// Calculate the Shannon entropy of a set of scores in multidimensional space.
 /// The scores are discretized into a grid of bins, and the entropy is computed
 /// based on the distribution of scores across these bins. Higher entropy indicates
 /// a more diverse set of scores. This can be interpreted as a measure of how well

@@ -39,7 +39,7 @@ where
     F: Fn(&Genotype<C>, &Genotype<C>) -> f32 + Send + Sync,
 {
     fn measure(&self, geno_one: &Genotype<C>, geno_two: &Genotype<C>) -> f32 {
-        (self)(geno_one, geno_two)
+        self(geno_one, geno_two)
     }
 }
 

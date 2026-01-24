@@ -184,7 +184,7 @@ mod tests {
         let cyclical_sine = Rate::Cyclical(0.0, 1.0, 10, CycleShape::Sine);
         assert!((cyclical_sine.value(0) - 0.0).abs() < 1e-6);
         assert!((cyclical_sine.value(2) - (std::f32::consts::TAU * 0.2).sin().abs()).abs() < 1e-6);
-        assert!((cyclical_sine.value(5)).abs() < 1e-6);
+        assert!(cyclical_sine.value(5).abs() < 1e-6);
         assert!((cyclical_sine.value(7) - (std::f32::consts::TAU * 0.7).sin().abs()).abs() < 1e-6);
         assert!((cyclical_sine.value(10) - 0.0).abs() < 1e-6);
 
