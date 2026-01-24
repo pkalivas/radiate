@@ -70,3 +70,15 @@ def test_gp_tree_eval_with_invalid_input():
 
     with pytest.raises(TypeError):
         tree.eval([[1.0, "invalid", 3.0]])
+
+
+@pytest.mark.unit
+def test_tree_from_json(tree_simple_2x1):
+    """Test GP Tree creation from JSON."""
+    json_data = tree_simple_2x1.to_json()
+    new_tree = rd.Tree.from_json(json_data)
+
+    assert new_tree is not None
+    assert isinstance(new_tree, rd.Tree)
+    assert new_tree.eval([[1.0, 2.0]]) is not None
+    assert len(new_tree) == len(tree_simple_2x1)

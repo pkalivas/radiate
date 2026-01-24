@@ -20,9 +20,9 @@ macro_rules! metric {
 
 #[derive(Clone, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct MetricInner {
-    pub(crate) value_statistic: Option<Statistic>,
-    pub(crate) time_statistic: Option<TimeStatistic>,
+pub(super) struct MetricInner {
+    pub(super) value_statistic: Option<Statistic>,
+    pub(super) time_statistic: Option<TimeStatistic>,
 }
 
 #[derive(Clone, PartialEq, Default)]

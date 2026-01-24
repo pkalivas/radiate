@@ -94,9 +94,9 @@ def test_engine_int_jagged_matrix(random_seed):
             for gene in row:
                 assert isinstance(gene, int)
                 assert -5 <= gene <= 20
-        return float(sum(sum(row) for row in x))
+        return sum(sum(row) for row in x)
 
-    # Create a jagged matrix codec - right now (1/23/26) this doesn't support non-square shapes
+    # Create a jagged matrix codec - right now (1/23/26) using numpy this doesn't support non-square shapes
     codec = rd.IntCodec.matrix(shape=shape, init_range=(0, 10), bounds=(-5, 20))
 
     engine = rd.GeneticEngine(

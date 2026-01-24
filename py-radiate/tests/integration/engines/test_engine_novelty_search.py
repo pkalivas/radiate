@@ -35,7 +35,7 @@ def test_engine_is_novel(random_seed):
         alters=[rd.UniformCrossover(0.5), rd.GaussianMutator(0.1)],
     )
 
-    result = engine.run([rd.GenerationsLimit(100)])
+    result = engine.run(rd.GenerationsLimit(100))
 
     assert calc_population_diversity(result.population()) > 0.85, (
         "Population should have diversity"
@@ -59,7 +59,7 @@ def test_int_engine_novelty_creates(random_seed):
         alters=[rd.UniformCrossover(0.5), rd.ArithmeticMutator(0.1)],
     )
 
-    result = engine.run([rd.GenerationsLimit(100)])
+    result = engine.run(rd.GenerationsLimit(100))
 
     assert calc_population_diversity(result.population()) > 0.85, (
         "Population should have diversity"
