@@ -36,7 +36,7 @@ pub fn py_alter(
             )))
         }
         PyGeneType::Int => {
-            let alterer: Vec<Alterer<IntChromosome<i32>>> = alterer.transform();
+            let alterer: Vec<Alterer<IntChromosome<i64>>> = alterer.transform();
 
             Ok(PyPopulation::from(&alter(
                 alterer,

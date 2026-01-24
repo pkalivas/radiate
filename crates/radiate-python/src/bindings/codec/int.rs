@@ -6,7 +6,7 @@ use radiate::{Chromosome, Codec, Gene, Genotype, IntChromosome, IntGene};
 #[pyclass]
 #[derive(Clone)]
 pub struct PyIntCodec {
-    pub codec: PyCodec<IntChromosome<i32>, PyAnyObject>,
+    pub codec: PyCodec<IntChromosome<i64>, PyAnyObject>,
 }
 
 #[pymethods]
@@ -35,7 +35,7 @@ impl PyIntCodec {
                         chromosomes
                             .iter()
                             .map(|chrom| IntChromosome::from(chrom.clone()))
-                            .collect::<Vec<IntChromosome<i32>>>(),
+                            .collect::<Vec<IntChromosome<i64>>>(),
                     )
                 })
                 .with_decoder(move |py, geno| PyAnyObject {
@@ -57,7 +57,7 @@ impl PyIntCodec {
                         genes
                             .iter()
                             .map(|gene| IntGene::from(gene.clone()))
-                            .collect::<Vec<IntGene<i32>>>(),
+                            .collect::<Vec<IntGene<i64>>>(),
                     )
                     .into()
                 })
@@ -74,8 +74,8 @@ impl PyIntCodec {
     #[pyo3(signature = (chromosome_lengths=None, value_range=None, bound_range=None, use_numpy=false))]
     pub fn matrix(
         chromosome_lengths: Option<Vec<usize>>,
-        value_range: Option<(i32, i32)>,
-        bound_range: Option<(i32, i32)>,
+        value_range: Option<(i64, i64)>,
+        bound_range: Option<(i64, i64)>,
         use_numpy: bool,
     ) -> Self {
         let lengths = chromosome_lengths.unwrap_or(vec![1]);
@@ -92,7 +92,7 @@ impl PyIntCodec {
                         .map(|len| {
                             IntChromosome::from((*len, val_range.clone(), bound_range.clone()))
                         })
-                        .collect::<Vec<IntChromosome<i32>>>()
+                        .collect::<Vec<IntChromosome<i64>>>()
                         .into()
                 })
                 .with_decoder(move |py, geno| PyAnyObject {
@@ -108,8 +108,8 @@ impl PyIntCodec {
     #[pyo3(signature = (length=1, value_range=None, bound_range=None, use_numpy=false))]
     pub fn vector(
         length: usize,
-        value_range: Option<(i32, i32)>,
-        bound_range: Option<(i32, i32)>,
+        value_range: Option<(i64, i64)>,
+        bound_range: Option<(i64, i64)>,
         use_numpy: bool,
     ) -> Self {
         let val_range = value_range.map(|rng| rng.0..rng.1).unwrap_or(0..1);
@@ -138,7 +138,7 @@ impl PyIntCodec {
 
     #[staticmethod]
     #[pyo3(signature = (value_range=None, bound_range=None))]
-    pub fn scalar(value_range: Option<(i32, i32)>, bound_range: Option<(i32, i32)>) -> Self {
+    pub fn scalar(value_range: Option<(i64, i64)>, bound_range: Option<(i64, i64)>) -> Self {
         let val_range = value_range.map(|rng| rng.0..rng.1).unwrap_or(0..1);
         let bound_range = bound_range
             .map(|rng| rng.0..rng.1)

@@ -68,3 +68,6 @@ impl PyTreeCodec {
         }
     }
 }
+
+unsafe impl Send for PyTreeCodec {}
+unsafe impl Sync for PyTreeCodec {}

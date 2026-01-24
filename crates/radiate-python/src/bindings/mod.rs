@@ -47,7 +47,7 @@ type RegressionEngine<C, T> = GeneticEngine<C, T>;
 
 pub enum EngineBuilderHandle {
     Empty,
-    Int(CustomBuilder<IntChromosome<i32>, PyAnyObject>),
+    Int(CustomBuilder<IntChromosome<i64>, PyAnyObject>),
     Float(CustomBuilder<FloatChromosome, PyAnyObject>),
     Char(CustomBuilder<CharChromosome, PyAnyObject>),
     Bit(CustomBuilder<BitChromosome, PyAnyObject>),
@@ -58,7 +58,7 @@ pub enum EngineBuilderHandle {
 }
 
 pub enum EngineHandle {
-    Int(CustomEngine<IntChromosome<i32>>),
+    Int(CustomEngine<IntChromosome<i64>>),
     Float(CustomEngine<FloatChromosome>),
     Char(CustomEngine<CharChromosome>),
     Bit(CustomEngine<BitChromosome>),
@@ -70,7 +70,7 @@ pub enum EngineHandle {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub enum EpochHandle {
-    Int(Generation<IntChromosome<i32>, PyAnyObject>),
+    Int(Generation<IntChromosome<i64>, PyAnyObject>),
     Float(Generation<FloatChromosome, PyAnyObject>),
     Char(Generation<CharChromosome, PyAnyObject>),
     Bit(Generation<BitChromosome, PyAnyObject>),

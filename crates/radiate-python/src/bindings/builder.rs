@@ -553,7 +553,7 @@ impl PyEngineBuilder {
 
     fn wrapped_codec<C, T, PC>(original: PC) -> PyCodec<C, T>
     where
-        PC: Codec<C, T> + Clone + 'static,
+        PC: Codec<C, T> + Clone + Send + Sync + 'static,
         C: Chromosome + 'static,
         T: Send + Sync + Clone + IntoPyAnyObject + 'static,
     {
