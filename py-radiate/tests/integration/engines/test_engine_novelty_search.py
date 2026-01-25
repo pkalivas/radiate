@@ -44,16 +44,16 @@ def test_engine_is_novel(random_seed):
 
 
 @pytest.mark.integration
-def test_int_engine_novelty_creates(random_seed):
+def test_int_engine_novelty_with_decorator_creates(random_seed):
     """Test engine with novelty search."""
+
+    @rd.novelty(distance=rd.HammingDistance(), k=15, threshold=0.03)
+    def descriptor(genome: list[int]) -> list[int]:
+        return genome
+
     engine = rd.GeneticEngine(
         codec=rd.IntCodec.vector(6, init_range=(-100, 100)),
-        fitness_func=rd.NoveltySearch(
-            descriptor=lambda x: x,
-            distance=rd.HammingDistance(),
-            k=15,
-            threshold=0.03,
-        ),
+        fitness_func=descriptor,
         population_size=100,
         offspring_selector=rd.TournamentSelector(3),
         alters=[rd.UniformCrossover(0.5), rd.ArithmeticMutator(0.1)],
