@@ -179,7 +179,7 @@ def run_novelty_search_evolution(generations: int = 200) -> rd.Generation:
     # as show below:
     #
     # fitness_func = rd.NoveltySearch(
-    #     descriptor=fitness_func,
+    #     descriptor=fitness_func,  # remove the decorator from the function above if using this approach
     #     distance=rd.CosineDistance(),
     #     k=15,  # Number of nearest neighbors
     #     threshold=0.6,  # Novelty threshold
