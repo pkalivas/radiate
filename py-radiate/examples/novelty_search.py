@@ -167,9 +167,25 @@ class RobotBehavior:
 def run_novelty_search_evolution(generations: int = 200) -> rd.Generation:
     """Run novelty search to evolve diverse robot behaviors."""
 
-    def behavior_descriptor(genome: list[float]) -> list[float]:
+    # The decision to use the decorator here is simply to demonstrate the alternative approach.
+    @rd.novelty(distance=rd.CosineDistance(), k=15, threshold=0.6, archive=1000)
+    def fitness_func(genome: list[float]) -> list[float]:
         behavior = RobotBehavior(genome)
         return behavior.get_behavior_descriptor()
+
+    # The below is equivalent to using the @rd.novelty decorator as seen above.
+    # We use the the fitness function (novelty search descriptor) decorator above in this example, but
+    # the exact same funcitonality can be achieved by supplying the engine with a NoveltySearch fitness function
+    # as show below:
+    #
+    # fitness_func = rd.NoveltySearch(
+    #     descriptor=fitness_func,
+    #     distance=rd.CosineDistance(),
+    #     k=15,  # Number of nearest neighbors
+    #     threshold=0.6,  # Novelty threshold
+    #     archive_size=1000,  # Maximum archive size
+    # )
+    # There is no difference in behavior between these two approaches.
 
     codec = rd.FloatCodec.vector(6, init_range=(-5.0, 5.0))
 
@@ -179,13 +195,7 @@ def run_novelty_search_evolution(generations: int = 200) -> rd.Generation:
         # Here we use a novelty search fitness function
         # This will not optimize for a single score,
         # but rather for diverse behaviors
-        fitness_func=rd.NoveltySearch(
-            descriptor=behavior_descriptor,
-            distance=rd.CosineDistance(),
-            k=15,  # Number of nearest neighbors
-            threshold=0.6,  # Novelty threshold
-            archive_size=1000,  # Maximum archive size
-        ),
+        fitness_func=fitness_func,
         survivor_selector=rd.TournamentSelector(3),
         offspring_selector=rd.BoltzmannSelector(4),
         alters=[

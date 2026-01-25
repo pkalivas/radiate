@@ -35,7 +35,7 @@ from .gp import Op, Graph, Tree, calc_accuracy
 from .metrics import MetricSet, Metric, Tag
 
 from .inputs.executor import Executor
-from .fitness import Regression, NoveltySearch, BatchFitness
+from .fitness import Regression, NoveltySearch, BatchFitness, fitness, novelty
 from .inputs.selector import (
     TournamentSelector,
     RouletteSelector,
@@ -173,6 +173,8 @@ __all__ = [
     "Regression",
     "NoveltySearch",
     "BatchFitness",
+    "fitness",
+    "novelty",
     # Selectors
     "TournamentSelector",
     "RouletteSelector",
