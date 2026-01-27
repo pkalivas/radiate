@@ -48,8 +48,8 @@ def test_int_engine_novelty_with_decorator_creates(random_seed):
     """Test engine with novelty search."""
 
     @rd.novelty(distance=rd.HammingDistance(), k=15, threshold=0.03)
-    def descriptor(genome: list[int]) -> list[int]:
-        return genome
+    def descriptor(phenotype: list[int]) -> list[int]:
+        return phenotype
 
     engine = rd.GeneticEngine(
         codec=rd.IntCodec.vector(6, init_range=(-100, 100)),
