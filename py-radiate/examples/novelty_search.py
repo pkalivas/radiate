@@ -167,6 +167,9 @@ class RobotBehavior:
 def run_novelty_search_evolution(generations: int = 200) -> rd.Generation:
     """Run novelty search to evolve diverse robot behaviors."""
 
+    # Here we use a novelty search fitness function This will not optimize for a single score,
+    # but rather for diverse behaviors
+
     # The decision to use the decorator here is simply to demonstrate the alternative approach.
     @rd.novelty(distance=rd.CosineDistance(), k=15, threshold=0.6, archive=1000)
     def fitness_func(genome: list[float]) -> list[float]:
@@ -192,9 +195,6 @@ def run_novelty_search_evolution(generations: int = 200) -> rd.Generation:
     # Create novelty search engine
     engine = rd.GeneticEngine(
         codec=codec,
-        # Here we use a novelty search fitness function
-        # This will not optimize for a single score,
-        # but rather for diverse behaviors
         fitness_func=fitness_func,
         survivor_selector=rd.TournamentSelector(3),
         offspring_selector=rd.BoltzmannSelector(4),
