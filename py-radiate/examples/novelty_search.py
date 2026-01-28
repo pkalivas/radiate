@@ -196,7 +196,6 @@ def run_novelty_search_evolution(generations: int = 200) -> rd.Generation:
     engine = rd.GeneticEngine(
         codec=codec,
         fitness_func=fitness_func,
-        survivor_selector=rd.TournamentSelector(3),
         offspring_selector=rd.BoltzmannSelector(4),
         alters=[
             rd.BlendCrossover(),
