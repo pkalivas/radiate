@@ -6,6 +6,9 @@ pub enum CycleShape {
     Sine,
 }
 
+/// Rate enum representing different types of rate schedules where each variant defines a
+/// method to compute the rate value at a given step.
+/// These are designed to produce values within the range [0.0, 1.0] - ie: a rate.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Rate {
     /// A fixed rate that does not change over time.

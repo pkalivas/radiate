@@ -20,17 +20,17 @@ macro_rules! metric {
 
 #[derive(Clone, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub(super) struct MetricInner {
-    pub(super) value_statistic: Option<Statistic>,
-    pub(super) time_statistic: Option<TimeStatistic>,
+struct MetricInner {
+    value_statistic: Option<Statistic>,
+    time_statistic: Option<TimeStatistic>,
 }
 
 #[derive(Clone, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Metric {
-    pub(super) name: Arc<String>,
-    pub(super) inner: MetricInner,
-    pub(super) tags: Tag,
+    name: Arc<String>,
+    inner: MetricInner,
+    tags: Tag,
 }
 
 impl Metric {

@@ -1,7 +1,6 @@
+use crate::stats::metric_tags;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-
-use crate::stats::metric_tags;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
