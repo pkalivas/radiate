@@ -3,7 +3,7 @@ use super::{
     gene::{ArithmeticGene, BoundedGene, Gene, Valid},
 };
 use crate::random_provider;
-// use rand::distr::uniform::SampleUniform;
+use rand::distr::uniform::SampleUniform;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::{
@@ -11,76 +11,77 @@ use std::{
     ops::{Add, Div, Mul, Range, Sub},
 };
 
-// pub trait Float<T>:
-//     Copy
-//     + Clone
-//     + PartialOrd
-//     + Debug
-//     + PartialEq
-//     + Add<Output = T>
-//     + Sub<Output = T>
-//     + Mul<Output = T>
-//     + Div<Output = T>
-//     + SampleUniform
-//     + Display
-//     + Default
-// where
-//     T: PartialEq + PartialOrd + Copy + Clone + Debug + Display + Default,
-// {
-//     const MIN: T;
-//     const MAX: T;
-//     const ZERO: T;
-//     const ONE: T;
-//     const TWO: T;
+pub trait Float:
+    Copy + Clone + PartialOrd + Debug + PartialEq + SampleUniform + Display + Default
+{
+    type Value: Copy
+        + Clone
+        + PartialOrd
+        + Debug
+        + PartialEq
+        + Add<Output = Self::Value>
+        + Sub<Output = Self::Value>
+        + Mul<Output = Self::Value>
+        + Div<Output = Self::Value>
+        + SampleUniform
+        + Display
+        + Default;
 
-//     fn clamp_add(self, rhs: T) -> T;
-//     fn clamp_sub(self, rhs: T) -> T;
-//     fn clamp_mul(self, rhs: T) -> T;
-//     fn clamp_div(self, rhs: T) -> T;
-// }
+    const MIN: Self::Value;
+    const MAX: Self::Value;
+    const ZERO: Self::Value;
+    const ONE: Self::Value;
+    const TWO: Self::Value;
 
-// #[macro_export]
-// macro_rules! impl_float {
-//     ($($t:ty),*) => {
-//         $(
-//             impl Float<$t> for $t {
-//                 const MIN: $t = <$t>::MIN;
-//                 const MAX: $t = <$t>::MAX;
-//                 const ZERO: $t = 0.0;
-//                 const ONE: $t = 1.0;
-//                 const TWO: $t = 2.0;
+    fn clamp_add(self, rhs: Self::Value) -> Self::Value;
+    fn clamp_sub(self, rhs: Self::Value) -> Self::Value;
+    fn clamp_mul(self, rhs: Self::Value) -> Self::Value;
+    fn clamp_div(self, rhs: Self::Value) -> Self::Value;
+}
 
-//                 fn clamp_add(self, rhs: $t) -> $t {
-//                     let result = self + rhs;
-//                     result.clamp(Self::MIN, Self::MAX)
-//                 }
+#[macro_export]
+macro_rules! impl_float {
+    ($($t:ty),*) => {
+        $(
+            impl Float for $t {
+                type Value = $t;
 
-//                 fn clamp_sub(self, rhs: $t) -> $t {
-//                     let result = self - rhs;
-//                     result.clamp(Self::MIN, Self::MAX)
-//                 }
+                const MIN: $t = <$t>::MIN;
+                const MAX: $t = <$t>::MAX;
+                const ZERO: $t = 0.0;
+                const ONE: $t = 1.0;
+                const TWO: $t = 2.0;
 
-//                 fn clamp_mul(self, rhs: $t) -> $t {
-//                     let result = self * rhs;
-//                     result.clamp(Self::MIN, Self::MAX)
-//                 }
+                fn clamp_add(self, rhs: $t) -> $t {
+                    let result = self + rhs;
+                    result.clamp(Self::MIN, Self::MAX)
+                }
 
-//                 fn clamp_div(self, rhs: $t) -> $t {
-//                     if rhs == Self::ZERO {
-//                         // TODO: Decide on better behavior for division by zero
-//                         Self::ZERO
-//                     } else {
-//                         let result = self / rhs;
-//                         result.clamp(Self::MIN, Self::MAX)
-//                     }
-//                 }
+                fn clamp_sub(self, rhs: $t) -> $t {
+                    let result = self - rhs;
+                    result.clamp(Self::MIN, Self::MAX)
+                }
 
-//             }
-//         )*
-//     };
-// }
+                fn clamp_mul(self, rhs: $t) -> $t {
+                    let result = self * rhs;
+                    result.clamp(Self::MIN, Self::MAX)
+                }
 
-// impl_float!(f32, f64);
+                fn clamp_div(self, rhs: $t) -> $t {
+                    if rhs == Self::ZERO {
+                        Self::ONE
+                    } else {
+                        let result = self / rhs;
+                        result.clamp(Self::MIN, Self::MAX)
+                    }
+                }
+
+            }
+        )*
+    };
+}
+
+impl_float!(f32, f64);
 
 /// Minimum and maximum values for the `FloatGene` allele.
 /// This should be large enough to cover most practical use cases
