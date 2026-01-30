@@ -26,15 +26,15 @@ class Tree(PyObject[PyTree]):
         """
         return len(self.__backend__())
 
-    def eval(self, inputs: list[list[float]]) -> list[list[float]]:
+    def eval(self, inputs: list[list[float]] | list[float]) -> list[list[float]] | list[float]:
         """
         Evaluate the tree with the given inputs. The inputs needs to be a list of
-        lists (for multiple samples).
+        lists (for multiple samples) or a single list (for a single sample).
 
         Args:
-            inputs (list[list[float]]): The input data to evaluate the tree on.
+            inputs (list[list[float]] | list[float]): The input data to evaluate the tree on.
         Returns:
-            list[list[float]]: The output of the tree after evaluation.
+            list[list[float]] | list[float]: The output of the tree after evaluation.
         """
         return self.__backend__().eval(inputs)
 

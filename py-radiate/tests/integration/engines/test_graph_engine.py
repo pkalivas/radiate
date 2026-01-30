@@ -104,7 +104,7 @@ def test_engine_graph_with_recurrent_connections(memory_dataset, random_seed):
 
     for _ in range(25):
         for inp, out in zip(inputs, outputs):
-            pred = graph.eval([inp])[0][0]
+            pred = graph.eval(inp)[0]
             expected = out[0]
             assert abs(pred - expected) < 0.1
 
