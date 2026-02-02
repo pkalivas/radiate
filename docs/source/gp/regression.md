@@ -111,7 +111,7 @@ Lets take a quick look at how we would put together a regression problem using a
             });
     }
 
-    fn dataset() -> impl Into<DataSet> {
+    fn dataset() -> impl Into<DataSet<f32>> {
         let mut inputs = Vec::new();
         let mut answers = Vec::new();
 

@@ -109,9 +109,6 @@ mod tests {
         assert_eq!(t[[0, 0, 0, 0, 0, 0, 3]], 3);
     }
 
-    // This one only works if you use `debug_assert_eq!(tensor.rank(), N)`
-    // inside flat_index. cargo test runs with debug assertions by default,
-    // but we gate it anyway for clarity.
     #[cfg(debug_assertions)]
     #[test]
     #[should_panic]

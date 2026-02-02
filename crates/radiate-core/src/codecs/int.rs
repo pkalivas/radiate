@@ -12,7 +12,7 @@ use std::ops::Range;
 /// The lower and upper bounds of the `IntGenes` can be set with the `with_bounds` function.
 /// The default bounds are equal to `min` and `max`.
 #[derive(Clone)]
-pub struct IntCodec<T: Integer<T>, D = T> {
+pub struct IntCodec<T: Integer, D = T> {
     num_chromosomes: usize,
     num_genes: usize,
     value_range: Range<T>,
@@ -20,7 +20,7 @@ pub struct IntCodec<T: Integer<T>, D = T> {
     _marker: std::marker::PhantomData<D>,
 }
 
-impl<T: Integer<T>, D> IntCodec<T, D> {
+impl<T: Integer, D> IntCodec<T, D> {
     pub fn with_bounds(mut self, bounds: Range<T>) -> Self {
         self.bounds = bounds;
         self
@@ -44,7 +44,7 @@ impl<T: Integer<T>, D> IntCodec<T, D> {
     }
 }
 
-impl<T: Integer<T>> IntCodec<T, Vec<Vec<T>>> {
+impl<T: Integer> IntCodec<T, Vec<Vec<T>>> {
     /// Create a new `IntCodec` with the given number of chromosomes, genes, min, and max values.
     /// The f_32 values for each `IntGene` will be randomly generated between the min and max values.
     pub fn matrix(rows: usize, cols: usize, range: Range<T>) -> Self {
@@ -58,7 +58,7 @@ impl<T: Integer<T>> IntCodec<T, Vec<Vec<T>>> {
     }
 }
 
-impl<T: Integer<T>> IntCodec<T, Vec<T>> {
+impl<T: Integer> IntCodec<T, Vec<T>> {
     /// Create a new `IntCodec` with the given number of chromosomes, genes, min, and max values.
     /// The f_32 values for each `IntGene` will be randomly generated between the min and max values.
     pub fn vector(count: usize, range: Range<T>) -> Self {
@@ -72,7 +72,7 @@ impl<T: Integer<T>> IntCodec<T, Vec<T>> {
     }
 }
 
-impl<T: Integer<T>> IntCodec<T, T> {
+impl<T: Integer> IntCodec<T, T> {
     /// Create a new `IntCodec` with the given number of chromosomes, genes, min, and max values.
     /// The f_32 values for each `IntGene` will be randomly generated between the min and max values.
     pub fn scalar(range: Range<T>) -> Self {
@@ -99,7 +99,7 @@ impl<T: Integer<T>> IntCodec<T, T> {
 /// let genotype: Genotype<IntChromosome<i32>> = codec.encode();
 /// let decoded: Vec<Vec<i32>> = codec.decode(&genotype);
 /// ```
-impl<T: Integer<T>> Codec<IntChromosome<T>, Vec<Vec<T>>> for IntCodec<T, Vec<Vec<T>>> {
+impl<T: Integer> Codec<IntChromosome<T>, Vec<Vec<T>>> for IntCodec<T, Vec<Vec<T>>> {
     fn encode(&self) -> Genotype<IntChromosome<T>> {
         self.encode_common()
     }
@@ -130,7 +130,7 @@ impl<T: Integer<T>> Codec<IntChromosome<T>, Vec<Vec<T>>> for IntCodec<T, Vec<Vec
 /// let genotype: Genotype<IntChromosome<i32>> = codec.encode();
 /// let decoded: Vec<i32> = codec.decode(&genotype);
 /// ```
-impl<T: Integer<T>> Codec<IntChromosome<T>, Vec<T>> for IntCodec<T, Vec<T>> {
+impl<T: Integer> Codec<IntChromosome<T>, Vec<T>> for IntCodec<T, Vec<T>> {
     fn encode(&self) -> Genotype<IntChromosome<T>> {
         self.encode_common()
     }
@@ -163,7 +163,7 @@ impl<T: Integer<T>> Codec<IntChromosome<T>, Vec<T>> for IntCodec<T, Vec<T>> {
 /// let genotype: Genotype<IntChromosome<i32>> = codec.encode();
 /// let decoded: i32 = codec.decode(&genotype);
 /// ```
-impl<T: Integer<T>> Codec<IntChromosome<T>, T> for IntCodec<T, T> {
+impl<T: Integer> Codec<IntChromosome<T>, T> for IntCodec<T, T> {
     fn encode(&self) -> Genotype<IntChromosome<T>> {
         self.encode_common()
     }
@@ -182,7 +182,7 @@ impl<T: Integer<T>> Codec<IntChromosome<T>, T> for IntCodec<T, T> {
     }
 }
 
-impl<T: Integer<T>> Codec<IntChromosome<T>, Vec<Vec<T>>> for Vec<IntChromosome<T>> {
+impl<T: Integer> Codec<IntChromosome<T>, Vec<Vec<T>>> for Vec<IntChromosome<T>> {
     fn encode(&self) -> Genotype<IntChromosome<T>> {
         Genotype::from(
             self.iter()
@@ -209,7 +209,7 @@ impl<T: Integer<T>> Codec<IntChromosome<T>, Vec<Vec<T>>> for Vec<IntChromosome<T
     }
 }
 
-impl<T: Integer<T>> Codec<IntChromosome<T>, Vec<T>> for IntChromosome<T> {
+impl<T: Integer> Codec<IntChromosome<T>, Vec<T>> for IntChromosome<T> {
     fn encode(&self) -> Genotype<IntChromosome<T>> {
         Genotype::from(
             self.iter()

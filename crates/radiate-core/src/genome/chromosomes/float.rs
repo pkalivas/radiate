@@ -41,53 +41,52 @@ pub trait Float:
 
 #[macro_export]
 macro_rules! impl_float {
-    ($($t:ty),*) => {
-        $(
-            impl Float for $t {
-                type Value = $t;
+    ($t:ty, $min:expr, $max:expr) => {
+        impl Float for $t {
+            type Value = $t;
 
-                const MIN: $t = <$t>::MIN;
-                const MAX: $t = <$t>::MAX;
-                const ZERO: $t = 0.0;
-                const ONE: $t = 1.0;
-                const TWO: $t = 2.0;
+            const MIN: $t = $min;
+            const MAX: $t = $max;
+            const ZERO: $t = 0.0;
+            const ONE: $t = 1.0;
+            const TWO: $t = 2.0;
 
-                fn clamp_add(self, rhs: $t) -> $t {
-                    let result = self + rhs;
-                    result.clamp(Self::MIN, Self::MAX)
-                }
-
-                fn clamp_sub(self, rhs: $t) -> $t {
-                    let result = self - rhs;
-                    result.clamp(Self::MIN, Self::MAX)
-                }
-
-                fn clamp_mul(self, rhs: $t) -> $t {
-                    let result = self * rhs;
-                    result.clamp(Self::MIN, Self::MAX)
-                }
-
-                fn clamp_div(self, rhs: $t) -> $t {
-                    if rhs == Self::ZERO {
-                        Self::ONE
-                    } else {
-                        let result = self / rhs;
-                        result.clamp(Self::MIN, Self::MAX)
-                    }
-                }
-
+            fn clamp_add(self, rhs: $t) -> $t {
+                let result = self + rhs;
+                result.clamp(Self::MIN, Self::MAX)
             }
-        )*
+
+            fn clamp_sub(self, rhs: $t) -> $t {
+                let result = self - rhs;
+                result.clamp(Self::MIN, Self::MAX)
+            }
+
+            fn clamp_mul(self, rhs: $t) -> $t {
+                let result = self * rhs;
+                result.clamp(Self::MIN, Self::MAX)
+            }
+
+            fn clamp_div(self, rhs: $t) -> $t {
+                if rhs == Self::ZERO {
+                    Self::ONE
+                } else {
+                    let result = self / rhs;
+                    result.clamp(Self::MIN, Self::MAX)
+                }
+            }
+        }
     };
 }
 
-impl_float!(f32, f64);
+impl_float!(f32, -1e18, 1e18);
+impl_float!(f64, -1e100, 1e100);
 
-/// Minimum and maximum values for the `FloatGene` allele.
+/// Minimum and maximum values for the [FloatGene] allele.
 /// This should be large enough to cover most practical use cases
 /// but small enough to avoid overflow or underflow issues in calculations.
-const MIN: f32 = -1e10;
-const MAX: f32 = 1e10;
+/// 1e18 = 1 quintillion
+const MIN: f32 = -1e18;
+const MAX: f32 = 1e18;
 
 /// A [`Gene`] that represents a floating point number.
 /// The `allele` is the in the case of the [`FloatGene`] a f32. The `min` and `max` values

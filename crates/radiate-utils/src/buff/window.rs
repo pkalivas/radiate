@@ -95,8 +95,8 @@ impl<T: PartialEq> PartialEq for WindowBuffer<T> {
 impl<T: Debug> Debug for WindowBuffer<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("WindowBuffer")
-            .field("values", &self.values())
             .field("capacity", &self.cap)
+            .field("values", &self.values())
             .finish()
     }
 }
