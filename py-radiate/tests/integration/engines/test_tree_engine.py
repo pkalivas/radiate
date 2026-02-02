@@ -27,3 +27,7 @@ def test_engine_tree_regression(simple_regression_dataset, random_seed):
     assert isinstance(result.value(), rd.Tree)
     assert result.score()[0] < 0.1
     assert result.index() <= 300
+
+    # Validate the tree approximates the function f(x) = 2x
+    for i in range(5, 10):
+        assert abs(result.value().eval([i])[0] - (2 * i)) < 0.001

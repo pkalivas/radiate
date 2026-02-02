@@ -1,5 +1,5 @@
 use crate::{IntoPyAnyObject, PyAnyObject};
-use pyo3::{IntoPyObjectExt, PyResult, Python, pyclass, pymethods};
+use pyo3::{Bound, IntoPyObject, IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{Eval, Format, Op, ToDot, Tree};
 use serde::{Deserialize, Serialize};
 
@@ -37,11 +37,21 @@ impl PyTree {
             .join("\n")
     }
 
-    pub fn eval(&mut self, inputs: Vec<Vec<f32>>) -> PyResult<Vec<Vec<f32>>> {
-        Ok(inputs
-            .into_iter()
-            .map(|input| self.inner.eval(&input))
-            .collect::<Vec<Vec<f32>>>())
+    pub fn eval<'py>(&mut self, py: Python<'py>, inputs: Py<PyAny>) -> PyResult<Bound<'py, PyAny>> {
+        if let Ok(input_mat) = inputs.extract::<Vec<Vec<f32>>>(py) {
+            let outputs = input_mat
+                .into_iter()
+                .map(|input| self.inner.eval(&input))
+                .collect::<Vec<Vec<f32>>>();
+            return outputs.into_pyobject(py);
+        } else if let Ok(input_vec) = inputs.extract::<Vec<f32>>(py) {
+            let output = self.inner.eval(&input_vec);
+            return output.into_pyobject(py);
+        } else {
+            return Err(pyo3::exceptions::PyTypeError::new_err(
+                "Input must be Vec[Vec[float]] or Vec[float].",
+            ));
+        }
     }
 
     pub fn __repr__(&self) -> String {

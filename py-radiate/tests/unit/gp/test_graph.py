@@ -32,10 +32,11 @@ def test_gp_graph_eval():
 
     graph = codec.decode(codec.encode())
 
-    result = graph.eval([[1.0, 2.0, 3.0]])
+    single_result = graph.eval([1.0, 2.0, 3.0])
 
-    assert isinstance(result, list)
-    assert len(result) == 1
+    assert isinstance(single_result, list)
+    assert len(single_result) == 1
+    assert isinstance(single_result[0], float)
 
     multi_result = graph.eval(
         [
@@ -47,6 +48,9 @@ def test_gp_graph_eval():
 
     assert isinstance(multi_result, list)
     assert len(multi_result) == 3
+    assert all(isinstance(r, list) for r in multi_result)
+    assert all(len(r) == 1 for r in multi_result)
+    assert all(isinstance(r[0], float) for r in multi_result)
 
 
 @pytest.mark.integration

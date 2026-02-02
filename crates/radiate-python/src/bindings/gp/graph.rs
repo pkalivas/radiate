@@ -1,5 +1,5 @@
 use crate::{IntoPyAnyObject, PyAnyObject};
-use pyo3::{IntoPyObjectExt, PyResult, Python, pyclass, pymethods};
+use pyo3::{Bound, IntoPyObject, IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{EvalMut, Graph, GraphEvaluator, Op, ToDot, graphs::GraphEvalCache};
 use serde::{Deserialize, Serialize};
 
@@ -43,7 +43,7 @@ impl PyGraph {
         self.eval_cache = None;
     }
 
-    pub fn eval(&mut self, inputs: Vec<Vec<f32>>) -> PyResult<Vec<Vec<f32>>> {
+    pub fn eval<'py>(&mut self, py: Python<'py>, inputs: Py<PyAny>) -> PyResult<Bound<'py, PyAny>> {
         let mut evaluator = if self.eval_cache.is_some() {
             let cache = self.eval_cache.take().unwrap();
             GraphEvaluator::from((&self.inner, cache))
@@ -51,14 +51,22 @@ impl PyGraph {
             GraphEvaluator::new(&self.inner)
         };
 
-        let outputs = inputs
-            .into_iter()
-            .map(|input| evaluator.eval_mut(&input))
-            .collect::<Vec<Vec<f32>>>();
-
-        self.eval_cache = Some(evaluator.take_cache());
-
-        Ok(outputs)
+        if let Ok(input_vec) = inputs.extract::<Vec<f32>>(py) {
+            let output = evaluator.eval_mut(&input_vec);
+            self.eval_cache = Some(evaluator.take_cache());
+            return output.into_pyobject(py);
+        } else if let Ok(input_vecvec) = inputs.extract::<Vec<Vec<f32>>>(py) {
+            let outputs = input_vecvec
+                .into_iter()
+                .map(|input| evaluator.eval_mut(&input))
+                .collect::<Vec<Vec<f32>>>();
+            self.eval_cache = Some(evaluator.take_cache());
+            return outputs.into_pyobject(py);
+        } else {
+            return Err(pyo3::exceptions::PyTypeError::new_err(
+                "Input must be either Vec[float] or Vec[Vec[float]]",
+            ));
+        }
     }
 
     pub fn __repr__(&self) -> String {

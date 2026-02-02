@@ -38,7 +38,7 @@ def test_engine_float_matrix_minimization(random_seed):
     # Simple fitness function: minimize sum of squares
     def fitness_func(x: np.ndarray) -> float:
         assert isinstance(x, np.ndarray)
-        return float(np.sum(x**2))
+        return np.sum(x**2)
 
     engine = rd.GeneticEngine(
         codec=rd.FloatCodec.matrix((2, 2), init_range=(-5.0, 5.0), use_numpy=True),

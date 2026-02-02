@@ -9,14 +9,14 @@ This means that no two queens can be in the same row, column, or diagonal.
 
 import numpy as np
 import radiate as rd
-from numba import jit, int32
+from numba import jit, int64
 
 rd.random.seed(514)
 
 N_QUEENS = 32
 
 
-@jit(int32(int32[:]), nopython=True)
+@jit(int64(int64[:]), nopython=True)
 def fitness_fn(queens: np.ndarray) -> int:
     """Calculate the fitness score for the N-Queens problem."""
 

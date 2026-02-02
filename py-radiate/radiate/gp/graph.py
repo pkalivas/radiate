@@ -16,15 +16,15 @@ class Graph(PyObject[PyGraph]):
             return False
         return self.__backend__() == other.__backend__()
 
-    def eval(self, inputs: list[list[float]]) -> list[list[float]]:
+    def eval(self, inputs: list[list[float]] | list[float]) -> list[list[float]] | list[float]:
         """
         Evaluate the graph with the given inputs. The inputs needs to be a list of
         lists (for multiple samples).
 
         Args:
-            inputs (list[list[float]]): The input data to evaluate the graph on.
+            inputs (list[list[float]] | list[float]): The input data to evaluate the graph on.
         Returns:
-            list[list[float]]: The output of the graph after evaluation.
+            list[list[float]] | list[float]: The output of the graph after evaluation.
         """
         return self.__backend__().eval(inputs)
 

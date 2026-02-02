@@ -13,59 +13,61 @@ use crate::{chromosomes::BoundedGene, random_provider};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-pub trait Integer<T>:
-    Copy
-    + Clone
-    + PartialOrd
-    + Debug
-    + PartialEq
-    + Add<Output = T>
-    + Sub<Output = T>
-    + Mul<Output = T>
-    + Div<Output = T>
-    + SampleUniform
-    + Display
-    + Default
-where
-    T: PartialEq + PartialOrd + Copy + Clone + Debug + Display + Default,
+pub trait Integer:
+    Copy + Clone + PartialOrd + Debug + PartialEq + SampleUniform + Display + Default
 {
-    const MIN: T;
-    const MAX: T;
-    const ZERO: T;
-    const ONE: T;
-    const TWO: T;
+    type Value: Copy
+        + Clone
+        + PartialOrd
+        + Debug
+        + PartialEq
+        + Add<Output = Self::Value>
+        + Sub<Output = Self::Value>
+        + Mul<Output = Self::Value>
+        + Div<Output = Self::Value>
+        + SampleUniform
+        + Display
+        + Default;
 
-    fn sat_add(self, rhs: T) -> T;
-    fn sat_sub(self, rhs: T) -> T;
-    fn sat_mul(self, rhs: T) -> T;
-    fn sat_div(self, rhs: T) -> T;
-    fn clamp(self, min: T, max: T) -> T;
+    const MIN: Self;
+    const MAX: Self;
+    const ZERO: Self;
+    const ONE: Self;
+    const TWO: Self;
+
+    fn sat_add(self, rhs: Self) -> Self;
+    fn sat_sub(self, rhs: Self) -> Self;
+    fn sat_mul(self, rhs: Self) -> Self;
+    fn sat_div(self, rhs: Self) -> Self;
+    fn clamp(self, min: Self, max: Self) -> Self;
 }
 
 #[macro_export]
 macro_rules! impl_integer {
     ($($t:ty),*) => {
         $(
-            impl Integer<$t> for $t {
-                const MIN: $t = <$t>::MIN;
-                const MAX: $t = <$t>::MAX;
-                const ZERO: $t = 0;
-                const ONE: $t = 1;
-                const TWO: $t = 2;
+            impl Integer for $t {
+                type Value = $t;
 
-                fn sat_add(self, rhs: $t) -> $t {
+                const MIN: Self::Value = <$t>::MIN;
+                const MAX: Self::Value = <$t>::MAX;
+                const ZERO: Self::Value = 0;
+                const ONE: Self::Value = 1;
+                const TWO: Self::Value = 2;
+
+                fn sat_add(self, rhs: Self) -> Self {
                     self.saturating_add(rhs)
                 }
 
-                fn sat_sub(self, rhs: $t) -> $t {
+                fn sat_sub(self, rhs: Self) -> Self {
                     self.saturating_sub(rhs)
                 }
 
-                fn sat_mul(self, rhs: $t) -> $t {
+                fn sat_mul(self, rhs: Self) -> Self {
                     self.saturating_mul(rhs)
                 }
 
-                fn sat_div(self, rhs: $t) -> $t {
+                fn sat_div(self, rhs: Self) -> Self {
                     if rhs == Self::ZERO {
                         self.saturating_div(Self::ONE)
                     } else {
@@ -73,7 +75,7 @@ macro_rules! impl_integer {
                     }
                 }
 
-                fn clamp(self, min: $t, max: $t) -> $t {
+                fn clamp(self, min: Self, max: Self) -> Self {
                     if self < min {
                         min
                     } else if self > max {
@@ -123,13 +125,13 @@ impl_integer!(i8, i16, i32, i64, i128, u8, u16, u32, u64, u128);
 /// - `T`: The type of integer used in the gene.
 #[derive(Clone, PartialEq, Default, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct IntGene<T: Integer<T>> {
+pub struct IntGene<T: Integer> {
     allele: T,
     value_range: Range<T>,
     bounds: Range<T>,
 }
 
-impl<T: Integer<T>> IntGene<T> {
+impl<T: Integer> IntGene<T> {
     /// Create a new [`IntGene`] with the given allele, value range and bounds.
     pub fn new(allele: T, value_range: Range<T>, bounds: Range<T>) -> Self {
         IntGene {
@@ -141,7 +143,7 @@ impl<T: Integer<T>> IntGene<T> {
 }
 
 /// Implement the [`Gene`] trait for [`IntGene`]. This allows the [`IntGene`] to be used in a genetic algorithm.
-impl<T: Integer<T>> Gene for IntGene<T> {
+impl<T: Integer> Gene for IntGene<T> {
     type Allele = T;
 
     fn allele(&self) -> &T {
@@ -174,7 +176,7 @@ impl<T: Integer<T>> Gene for IntGene<T> {
 /// An [`IntGene`] is valid if the `allele` is between the `min` and `max` values.
 ///
 /// Note: the bounds are used for crossover and mutation.
-impl<T: Integer<T>> Valid for IntGene<T> {
+impl<T: Integer> Valid for IntGene<T> {
     fn is_valid(&self) -> bool {
         self.allele >= self.bounds.start && self.allele <= self.bounds.end
     }
@@ -182,7 +184,7 @@ impl<T: Integer<T>> Valid for IntGene<T> {
 
 /// Implement the `BoundedGene` trait for [`IntGene`]. This allows parts of radiate to
 /// access the 'min', 'max', and bounds values of the [`IntGene`].
-impl<T: Integer<T>> BoundedGene for IntGene<T> {
+impl<T: Integer> BoundedGene for IntGene<T> {
     fn min(&self) -> &Self::Allele {
         &self.value_range.start
     }
@@ -199,7 +201,7 @@ impl<T: Integer<T>> BoundedGene for IntGene<T> {
 /// Implement the `ArithmeticGene` trait for [`IntGene`]. This allows the [`IntGene`] to be used in numeric
 /// operations. The `ArithmeticGene` trait is a superset of the [`Gene`] trait, and adds functionality
 /// for numeric operations such as addition, subtraction, multiplication, division and mean.
-impl<T: Integer<T>> ArithmeticGene for IntGene<T> {
+impl<T: Integer> ArithmeticGene for IntGene<T> {
     fn mean(&self, other: &IntGene<T>) -> IntGene<T> {
         IntGene {
             allele: (self.allele.sat_add(other.allele)).sat_div(T::TWO),
@@ -209,7 +211,7 @@ impl<T: Integer<T>> ArithmeticGene for IntGene<T> {
     }
 }
 
-impl<T: Integer<T>> Add for IntGene<T> {
+impl<T: Integer> Add for IntGene<T> {
     type Output = IntGene<T>;
 
     fn add(self, other: IntGene<T>) -> IntGene<T> {
@@ -224,7 +226,7 @@ impl<T: Integer<T>> Add for IntGene<T> {
     }
 }
 
-impl<T: Integer<T>> Sub for IntGene<T> {
+impl<T: Integer> Sub for IntGene<T> {
     type Output = IntGene<T>;
 
     fn sub(self, other: IntGene<T>) -> IntGene<T> {
@@ -239,7 +241,7 @@ impl<T: Integer<T>> Sub for IntGene<T> {
     }
 }
 
-impl<T: Integer<T>> Mul for IntGene<T> {
+impl<T: Integer> Mul for IntGene<T> {
     type Output = IntGene<T>;
 
     fn mul(self, other: IntGene<T>) -> IntGene<T> {
@@ -254,7 +256,7 @@ impl<T: Integer<T>> Mul for IntGene<T> {
     }
 }
 
-impl<T: Integer<T>> Div for IntGene<T> {
+impl<T: Integer> Div for IntGene<T> {
     type Output = IntGene<T>;
 
     fn div(self, other: IntGene<T>) -> IntGene<T> {
@@ -269,7 +271,7 @@ impl<T: Integer<T>> Div for IntGene<T> {
     }
 }
 
-impl<T: Integer<T>> From<T> for IntGene<T> {
+impl<T: Integer> From<T> for IntGene<T> {
     fn from(allele: T) -> Self {
         IntGene {
             allele,
@@ -279,7 +281,7 @@ impl<T: Integer<T>> From<T> for IntGene<T> {
     }
 }
 
-impl<T: Integer<T>> From<Range<T>> for IntGene<T> {
+impl<T: Integer> From<Range<T>> for IntGene<T> {
     fn from(range: Range<T>) -> Self {
         let (min, max) = (range.start, range.end);
 
@@ -291,7 +293,7 @@ impl<T: Integer<T>> From<Range<T>> for IntGene<T> {
     }
 }
 
-impl<T: Integer<T>> From<(Range<T>, Range<T>)> for IntGene<T> {
+impl<T: Integer> From<(Range<T>, Range<T>)> for IntGene<T> {
     fn from((range, bounds): (Range<T>, Range<T>)) -> Self {
         IntGene {
             allele: random_provider::range(range.clone()),
@@ -301,7 +303,7 @@ impl<T: Integer<T>> From<(Range<T>, Range<T>)> for IntGene<T> {
     }
 }
 
-impl<T: Integer<T>> std::fmt::Display for IntGene<T> {
+impl<T: Integer> std::fmt::Display for IntGene<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.allele)
     }
@@ -334,18 +336,18 @@ impl<T: Integer<T>> std::fmt::Display for IntGene<T> {
 ///
 #[derive(Clone, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct IntChromosome<I: Integer<I>> {
+pub struct IntChromosome<I: Integer> {
     genes: Vec<IntGene<I>>,
 }
 
-impl<I: Integer<I>> IntChromosome<I> {
+impl<I: Integer> IntChromosome<I> {
     /// Given a vec of [IntGene]'s, create a new [IntChromosome].
     pub fn new(genes: Vec<IntGene<I>>) -> Self {
         IntChromosome { genes }
     }
 }
 
-impl<I: Integer<I>> Chromosome for IntChromosome<I> {
+impl<I: Integer> Chromosome for IntChromosome<I> {
     type Gene = IntGene<I>;
 
     fn genes(&self) -> &[Self::Gene] {
@@ -357,25 +359,25 @@ impl<I: Integer<I>> Chromosome for IntChromosome<I> {
     }
 }
 
-impl<T: Integer<T>> Valid for IntChromosome<T> {
+impl<T: Integer> Valid for IntChromosome<T> {
     fn is_valid(&self) -> bool {
         self.genes.iter().all(|gene| gene.is_valid())
     }
 }
 
-impl<T: Integer<T>> From<IntGene<T>> for IntChromosome<T> {
+impl<T: Integer> From<IntGene<T>> for IntChromosome<T> {
     fn from(gene: IntGene<T>) -> Self {
         IntChromosome { genes: vec![gene] }
     }
 }
 
-impl<T: Integer<T>> From<Vec<IntGene<T>>> for IntChromosome<T> {
+impl<T: Integer> From<Vec<IntGene<T>>> for IntChromosome<T> {
     fn from(genes: Vec<IntGene<T>>) -> Self {
         IntChromosome { genes }
     }
 }
 
-impl<T: Integer<T>> From<(usize, Range<T>)> for IntChromosome<T> {
+impl<T: Integer> From<(usize, Range<T>)> for IntChromosome<T> {
     fn from((size, range): (usize, Range<T>)) -> Self {
         IntChromosome {
             genes: (0..size).map(|_| IntGene::from(range.clone())).collect(),
@@ -383,7 +385,7 @@ impl<T: Integer<T>> From<(usize, Range<T>)> for IntChromosome<T> {
     }
 }
 
-impl<T: Integer<T>> From<(usize, Range<T>, Range<T>)> for IntChromosome<T> {
+impl<T: Integer> From<(usize, Range<T>, Range<T>)> for IntChromosome<T> {
     fn from((size, range, bounds): (usize, Range<T>, Range<T>)) -> Self {
         IntChromosome {
             genes: (0..size)
@@ -393,7 +395,7 @@ impl<T: Integer<T>> From<(usize, Range<T>, Range<T>)> for IntChromosome<T> {
     }
 }
 
-impl<T: Integer<T>> From<Vec<T>> for IntChromosome<T> {
+impl<T: Integer> From<Vec<T>> for IntChromosome<T> {
     fn from(alleles: Vec<T>) -> Self {
         IntChromosome {
             genes: alleles.into_iter().map(IntGene::from).collect(),
@@ -401,7 +403,7 @@ impl<T: Integer<T>> From<Vec<T>> for IntChromosome<T> {
     }
 }
 
-impl<T: Integer<T>> FromIterator<IntGene<T>> for IntChromosome<T> {
+impl<T: Integer> FromIterator<IntGene<T>> for IntChromosome<T> {
     fn from_iter<I: IntoIterator<Item = IntGene<T>>>(iter: I) -> Self {
         IntChromosome {
             genes: iter.into_iter().collect(),
@@ -409,7 +411,7 @@ impl<T: Integer<T>> FromIterator<IntGene<T>> for IntChromosome<T> {
     }
 }
 
-impl<T: Integer<T>> IntoIterator for IntChromosome<T> {
+impl<T: Integer> IntoIterator for IntChromosome<T> {
     type Item = IntGene<T>;
     type IntoIter = std::vec::IntoIter<IntGene<T>>;
 
@@ -418,7 +420,7 @@ impl<T: Integer<T>> IntoIterator for IntChromosome<T> {
     }
 }
 
-impl<T: Integer<T>> Debug for IntChromosome<T> {
+impl<T: Integer> Debug for IntChromosome<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self.genes)
     }

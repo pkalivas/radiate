@@ -33,9 +33,8 @@ pub struct DisplayState {
     pub modal_panel: Option<PanelId>,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum MetricsTab {
-    #[default]
     Time,
     Stats,
 }

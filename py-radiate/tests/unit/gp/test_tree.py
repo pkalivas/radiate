@@ -28,9 +28,16 @@ def test_gp_tree_eval_with_single_input():
 
     tree = codec.decode(codec.encode())
 
-    result = tree.eval([[1.0, 2.0]])
+    result = tree.eval([1.0, 2.0])
     assert isinstance(result, list)
-    assert len(result) > 0
+    assert len(result) == 1
+    assert all(isinstance(val, float) for val in result)
+
+    result_matrix = tree.eval([[1.0, 2.0], [3.0, 4.0]])
+    assert isinstance(result_matrix, list)
+    assert len(result_matrix) == 2
+    assert all(isinstance(row, list) for row in result_matrix)
+    assert all(isinstance(val, float) for row in result_matrix for val in row)
 
 
 @pytest.mark.unit

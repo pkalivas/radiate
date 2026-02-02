@@ -6,6 +6,12 @@ use crate::{
 };
 use std::collections::BTreeMap;
 
+/// An enum representing either a single [GraphNode] or a collection of [GraphNode]'s
+/// to be inserted into a [GraphAggregate].
+///
+/// We have this to ease the process of inserting nodes into the aggregate. Everything is tied
+/// to a lifetime so we don't have to worry about cloning/owning nodes until the final graph is built -
+/// that makes this super cheap to use.
 #[derive(Clone, Copy)]
 pub enum AggregateInsertValue<'a, T> {
     Single(&'a GraphNode<T>),
