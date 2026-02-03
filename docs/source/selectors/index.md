@@ -26,7 +26,6 @@ Radiate provides a number of built-in selectors that can be used to customize th
 | [Rank](#rank) | Erratic fitness | Medium | High |
 | [Linear Rank](#linear-rank) | Linear scaling | Adjustable (via pressure) | Medium-High |
 | [Random](#random) | Testing | Low | High |
-| [Steady State](#steady-state) | Maintaining population stability | Low | Medium |
 | [Tournament NSGA-II](#tournament-nsga-ii) | Multi-objective problems | Balanced | High |
 
 ___
