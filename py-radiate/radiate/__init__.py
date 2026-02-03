@@ -46,7 +46,6 @@ from .inputs.selector import (
     LinearRankSelector,
     NSGA2Selector,
     TournamentNSGA2Selector,
-    SteadyStateSelector,
 )
 
 from .inputs.alterer import (
@@ -185,7 +184,6 @@ __all__ = [
     "LinearRankSelector",
     "NSGA2Selector",
     "TournamentNSGA2Selector",
-    "SteadyStateSelector",
     # Diversity Measures
     "NeatDistance",
     "CosineDistance",

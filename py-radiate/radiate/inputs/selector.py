@@ -192,9 +192,9 @@ class NSGA2Selector(SelectorBase):
     def __init__(self):
         """
         The `NSGA2Selector` is a selection strategy used in multi-objective optimization problems.
-         
+
         It is based on the Non-Dominated Sorting Genetic Algorithm II (NSGA-II) and selects
-        individuals based on their Pareto dominance rank and crowding distance. The NSGA-II algorithm 
+        individuals based on their Pareto dominance rank and crowding distance. The NSGA-II algorithm
         is designed to maintain a diverse set of solutions that represent the trade-offs between multiple conflicting objectives.
 
         * Individuals are first sorted into Pareto fronts based on their dominance relationships.
@@ -208,30 +208,13 @@ class TournamentNSGA2Selector(SelectorBase):
     def __init__(self, k: int = 3):
         """
         The `TournamentNSGA2Selector` is a selection strategy that combines the principles of tournament
-        selection with the NSGA-II algorithm. It selects individuals based on their Pareto dominance 
+        selection with the NSGA-II algorithm. It selects individuals based on their Pareto dominance
         rank and crowding distance, but uses a tournament-style approach to select individuals from each Pareto front.
 
         * Individuals are first sorted into Pareto fronts based on their dominance relationships.
         * A tournament is held within each Pareto front, where a random subset of individuals is selected.
         * The winner of the tournament is selected based on their crowding distance, which measures the density of solutions around them.
-    
+
         :param k: Tournament size.
         """
         super().__init__(component="TournamentNSGA2Selector", args={"k": k})
-
-
-class SteadyStateSelector(SelectorBase):
-    def __init__(self, replacement_count: int = 10):
-        """
-        The `SteadyStateSelector` is a selection strategy that selects individuals
-        from the `population` based on their fitness values, but with a focus on maintaining a steady state
-        in the `population`. This means that the selection process is designed to prevent drastic 
-        changes in the `population` from one generation to the next, and to ensure that the best individuals 
-        are preserved while still allowing for some degree of exploration and diversity. We do this by 
-        copying the original `population`, then taking `replacement_count` random individuals from 
-        the current `population` and inserting them at a random index into the resulting `population`. 
-        """
-        super().__init__(
-            component="SteadyStateSelector",
-            args={"replacement_count": replacement_count},
-        )

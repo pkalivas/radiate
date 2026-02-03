@@ -5,7 +5,6 @@ pub mod nsga2;
 pub mod random_selector;
 pub mod rank;
 pub mod roulette;
-pub mod steady_state;
 pub mod stochastic_sampling;
 pub mod tournament;
 
@@ -18,7 +17,6 @@ pub use nsga2::{NSGA2Selector, TournamentNSGA2Selector};
 pub use random_selector::RandomSelector;
 pub use rank::RankSelector;
 pub use roulette::RouletteSelector;
-pub use steady_state::SteadyStateSelector;
 pub use stochastic_sampling::StochasticUniversalSamplingSelector;
 pub use tournament::TournamentSelector;
 

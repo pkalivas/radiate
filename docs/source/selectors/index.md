@@ -314,28 +314,3 @@ The `RandomSelector` is a selection strategy that selects individuals from the `
     ```
 
 ---
-
-## Steady State
-
-> Inputs
->
-> * `replacement_count`: usize - The number of individuals to replace in the population.
-
-The `SteadyStateSelector` is a selection strategy that selects individuals from the `population` based on their fitness values, but with a focus on maintaining a steady state in the `population`. This means that the selection process is designed to prevent drastic changes in the `population` from one generation to the next, and to ensure that the best individuals are preserved while still allowing for some degree of exploration and diversity. We do this by coping the original `population`, then taking `replacement_count` random individuals from the current `population` and inserting them at a random index into the resulting `population`. This helps to maintain a balance between exploration and exploitation in the selection process.
-
-=== ":fontawesome-brands-python: Python"
-
-    ```python
-    import radiate as rd
-
-    selector = rd.SteadyStateSelector(replacements=10)
-    ```
-
-=== ":fontawesome-brands-rust: Rust"
-
-    ```rust
-    use radiate::*;
-
-    let selector = SteadyStateSelector::new(10);
-    ```
-

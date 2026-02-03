@@ -24,6 +24,37 @@ impl<T> Index<usize> for Tensor<T> {
     }
 }
 
+impl<T> Index<(usize, usize)> for Tensor<T> {
+    type Output = T;
+
+    fn index(&self, index: (usize, usize)) -> &Self::Output {
+        &self.data[index.0 * self.strides().stride_at(0) + index.1 * self.strides().stride_at(1)]
+    }
+}
+
+impl<T> Index<(usize, usize, usize)> for Tensor<T> {
+    type Output = T;
+
+    fn index(&self, index: (usize, usize, usize)) -> &Self::Output {
+        let flat_index = index.0 * self.strides().stride_at(0)
+            + index.1 * self.strides().stride_at(1)
+            + index.2 * self.strides().stride_at(2);
+        &self.data[flat_index]
+    }
+}
+
+impl<T> Index<(usize, usize, usize, usize)> for Tensor<T> {
+    type Output = T;
+
+    fn index(&self, index: (usize, usize, usize, usize)) -> &Self::Output {
+        let flat_index = index.0 * self.strides().stride_at(0)
+            + index.1 * self.strides().stride_at(1)
+            + index.2 * self.strides().stride_at(2)
+            + index.3 * self.strides().stride_at(3);
+        &self.data[flat_index]
+    }
+}
+
 impl<T, const N: usize> Index<[usize; N]> for Tensor<T> {
     type Output = T;
 
@@ -115,5 +146,15 @@ mod tests {
     fn test_index_rank_mismatch_panics_in_debug() {
         let t = Tensor::new(vec![0; 6], (2, 3)); // rank 2
         let _ = t[[0, 0, 0]]; // rank 3 index => should trip debug_assert
+    }
+
+    #[test]
+    fn test_index_tuples() {
+        let t = Tensor::new((0..(2 * 3 * 4)).collect::<Vec<i32>>(), (2, 3, 4));
+
+        assert_eq!(t[(0, 0, 0)], 0);
+        assert_eq!(t[(0, 1, 2)], 6);
+        assert_eq!(t[(1, 0, 0)], 12);
+        assert_eq!(t[(1, 2, 3)], 23);
     }
 }

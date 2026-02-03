@@ -33,7 +33,6 @@ from .selector import (
     LinearRankSelector,
     NSGA2Selector,
     TournamentNSGA2Selector,
-    SteadyStateSelector,
 )
 
 from .distance import (
@@ -80,7 +79,6 @@ __all__ = [
     "LinearRankSelector",
     "NSGA2Selector",
     "TournamentNSGA2Selector",
-    "SteadyStateSelector",
     "HammingDistance",
     "EuclideanDistance",
     "NeatDistance",
