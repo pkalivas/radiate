@@ -40,7 +40,7 @@ def dtlz_1(val: np.ndarray) -> np.ndarray:
 
 
 engine = rd.GeneticEngine(
-    codec=rd.FloatCodec.vector(variables, (0.0, 1.0), use_numpy=True),
+    codec=rd.FloatCodec(variables, (0.0, 1.0), use_numpy=True),
     fitness_func=dtlz_1,
     offspring_selector=rd.TournamentSelector(k=8),
     survivor_selector=rd.NSGA2Selector(),
