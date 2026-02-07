@@ -10,10 +10,11 @@
 //! - Cycle marking: nodes in detected cycles are marked `Direction::Backward`
 //! - Validation integration via `Valid`
 //! - Deterministic tests via `random_provider::set_seed(...)`
+//! - Repair of invalid nodes (e.g., missing connections) before final validation in `try_commit()`
 //!
 //! Typical flow:
-//! 1) Build with `add_node`/`attach`/`detach`/`change_direction`
-//! 2) `commit()` or `commit_with(...)`
+//! 1) Build with `push(...)`, `attach(...)`, `detach(...)`, `change_direction(...)`
+//! 2) `commit()`, `commit_with(...)`, or `try_commit()` to finalize
 //! 3) On invalid commit, use returned `replay` to re-apply later with `replay(...)`
 
 use super::{Direction, Graph, GraphNode};
@@ -98,8 +99,8 @@ pub enum InsertStep {
 /// Tracks reversible changes to a `Graph<T>` and provides commit/rollback.
 ///
 /// Usage:
-/// - Mutate via `add_node`, `attach`, `detach`, `change_direction`.
-/// - Call `commit()` or `commit_with(...)`.
+/// - Mutate via `push(...)`, `attach(...)`, `detach(...)`, `change_direction(...)`.
+/// - Call `commit()`, `commit_with(...)`, or `try_commit()` to finalize.
 /// - On invalid commit, the graph is rolled back and you receive `replay` steps you can pass to
 ///   `replay(...)` in a fresh transaction.
 pub struct GraphTransaction<'a, T> {
@@ -347,6 +348,7 @@ impl<'a, T> GraphTransaction<'a, T> {
     pub fn random_source_node(&self, rand: &mut RdRand) -> Option<&GraphNode<T>> {
         self.random_node_of_type(SOURCE_NODE_TYPES, rand)
     }
+
     /// Get a random node that can be used as a target node for a connection.
     /// A target node can be either an output or a vertex node.
     #[inline]
@@ -354,6 +356,8 @@ impl<'a, T> GraphTransaction<'a, T> {
         self.random_node_of_type(TARGET_NODE_TYPES, rand)
     }
 
+    /// Get a random target node that satisfies the provided filter function.
+    /// This is essentially a filtered version of the above function `random_target_node`.
     #[inline]
     pub fn random_target_node_where<F>(&self, rand: &mut RdRand, filter: F) -> Option<&GraphNode<T>>
     where
@@ -371,6 +375,8 @@ impl<'a, T> GraphTransaction<'a, T> {
         Some(*rand.choose(&candidates))
     }
 
+    /// Get a random source node that satisfies the provided filter function.
+    /// This is essentially a filtered version of the above function `random_source_node`.
     #[inline]
     fn random_source_node_where<F>(&self, rand: &mut RdRand, filter: F) -> Option<&GraphNode<T>>
     where

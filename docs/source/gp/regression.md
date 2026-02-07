@@ -9,6 +9,8 @@ Lets take a quick look at how we would put together a regression problem using a
 
 === ":fontawesome-brands-python: Python"
 
+    The regression fitness function runs purely in rust, as such any executor can be used (including multi-threaded executors) without any issues with the GIL regardless of the python version being used.
+
     ```python
     import radiate as rd
 
@@ -42,7 +44,8 @@ Lets take a quick look at how we would put together a regression problem using a
     # All we have to do to create a regression problem is provide the features & targets for our 
     # dataset. Optionally, we can provide a loss function as well - the default is mean squared error (MSE).
     # The last argument is whether to use batch evaluation or not - the default is False. This has minimal impact on performance.
-    fitness_func = rd.Regression(inputs, answers, loss="mse", batch=False)   
+    loss = "mse"  # Options are: "mse", "mae", "cross_entropy", "diff"
+    fitness_func = rd.Regression(inputs, answers, loss=loss, batch=False)   
 
     engine = rd.GeneticEngine(
         codec=codec,
@@ -111,7 +114,7 @@ Lets take a quick look at how we would put together a regression problem using a
             });
     }
 
-    fn dataset() -> impl Into<DataSet> {
+    fn dataset() -> impl Into<DataSet<f32>> {
         let mut inputs = Vec::new();
         let mut answers = Vec::new();
 

@@ -7,7 +7,7 @@ We have a simple polynomial function and we want to evolve a graph that approxim
 """
 
 import radiate as rd
-import polars as pl
+import polars as pl  # type: ignore
 import matplotlib.pyplot as plt
 
 rd.random.seed(567123)
@@ -73,7 +73,11 @@ engine = rd.GeneticEngine(
 result = engine.run(
     [rd.ScoreLimit(0.001), rd.GenerationsLimit(1000)],
     log=True,
-    # ui=True,
 )
+
+eval_results = result.value().eval(inputs)
+accuracy = rd.calc_accuracy(result.value(), inputs, answers, loss="mse")
+
 print(result)
 print(result.metrics().dashboard())
+print(accuracy)

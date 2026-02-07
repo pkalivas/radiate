@@ -10,7 +10,7 @@ use std::ops::{Index, IndexMut};
 /// The [Genotype] is the 'genetic' part of the individual that is being evolved by the genetic algorithm.
 ///
 /// We can think of a [Genotype]  as a matrix of strucs which implement the `Gene` trait where each row is a [Chromosome].
-/// For example, if we have a [Genotype] with 2 [Chromosome]s, each with 3 `Gene`s, it is represented as follows:
+/// For example, if we have a [Genotype] with 2 [Chromosome]s, each with 3 `Gene`'s, it is represented as follows:
 /// ```text
 /// Genotype:
 /// [

@@ -110,7 +110,7 @@ macro_rules! impl_into_py_genotype {
 }
 
 impl_into_py_genotype!(FloatChromosome);
-impl_into_py_genotype!(IntChromosome<i32>);
+impl_into_py_genotype!(IntChromosome<i64>);
 impl_into_py_genotype!(BitChromosome);
 impl_into_py_genotype!(CharChromosome);
 impl_into_py_genotype!(GraphChromosome<Op<f32>>);

@@ -714,7 +714,7 @@ where
     ///
     /// **Note**: This method requires the `serde` feature to be enabled.
     ///
-    /// The saved json object is simply the serialized [Generation] object. Thus, it can be
+    /// The saved JSON object is simply the serialized [Generation] object. Thus, it can be
     /// loaded back into memory using `serde_json::from_str` or similar methods then added back
     /// to the engine using the `.generation(...)` method on the engine builder to resume evolution.
     ///

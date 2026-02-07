@@ -53,7 +53,7 @@ class HammingDistance(DistanceBase):
 
     def __init__(self):
         """
-        Initialize the Hamming Distance diversity parameter. This is a pretty simiple distance metric 
+        Initialize the Hamming Distance diversity parameter. This is a pretty simiple distance metric
         that counts the number of differing genes between two chromosomes.
         """
         super().__init__(component="HammingDistance")

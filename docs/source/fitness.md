@@ -50,6 +50,21 @@ Simple fitness functions are the most common type - they take a phenotype and re
     engine = rd.GeneticEngine(codec, fitness_fn, objective="min")
     ```
 
+    Python also exposes a `@rd.fitness` decorator which can be used to annotate your fitness functions. As of `1/25/26` using the decorator for a simple fitness function like this doesn't provide any real benifit, the engine will handle wrapping the fitness function into it's DSL internally either way. This would be considered the "more explicit" way of defining your fitness function however and may provide benifits in the future as the python API matures.
+
+    ```python
+    import radiate as rd
+
+    @rd.fitness # <- this decorator
+    def fitness_fn(x: list[float]) -> float:
+        value = A * N_GENES
+        for i in range(N_GENES):
+            value += x[i]**2 - A * math.cos((2.0 * 3.141592653589793 * x[i]))
+        return value
+
+    # ... fill in the rest of your engine setup as normal (check first example above)...
+    ```
+
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
@@ -109,6 +124,37 @@ Its important to note that other types of fitness functions like `NoveltySearch`
     # Create the genetic engine with batch fitness function.
     # Just wrap your fitness function in 'rd.BatchFitness'
     engine = rd.GeneticEngine(codec, rd.BatchFitness(fitness_fn), objective="min")
+    ```
+
+    Just like simple fitness functions, python lets you opt out of wrapping your fitness function in `rd.BatchFitness` by using the `@rd.fitness` decorator.
+
+    ```python
+    import radiate as rd
+    import math
+
+    A = 10.0
+    RANGE = 5.12
+    N_GENES = 2
+
+    # NOTE this function expects a batch of inputs and returns a batch of outputs
+    # the order in which the inputs are given is the order in which the outputs are returned
+    @rd.fitness(batch=True)  # <- this decorator with batch=True
+    def fitness_fn(x: list[list[float]]) -> list[float]:
+        assert len(x) > 1
+
+        results = []
+        for member in x:
+            value = A * N_GENES
+            for i in range(N_GENES):
+                value += member[i]**2 - A * math.cos((2.0 * 3.141592653589793 * member[i]))
+            results.append(value)
+        return results
+
+    codec = rd.FloatCodec.vector(N_GENES, init_range=(-RANGE, RANGE))
+
+    # Create the genetic engine with batch fitness function.
+    # NOTE: We no longer need to wrap 'fitness_fn' in 'rd.BatchFitness'
+    engine = rd.GeneticEngine(codec, fitness_fn, objective="min")
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -292,31 +338,23 @@ You can implement your own behavioral descriptors by implementing the `Novelty` 
     ```python
     import radiate as rd
 
-    class MyModelBehaviorDescriptor:
-        def __init__(self, individual: List[float]):
-            self.individual = individual
-
-        def get_behavior_vector(self) -> List[float]:
-            # some code that describes the behavior of a vector
-            ... 
-
     # Define a behavioral descriptor
-    def description(self, individual: List[float]) -> List[float]:
+    def behavior(self, individual: list[float]) -> list[float]:
         # Return behavioral characteristics 
-        descriptor = MyModelBehaviorDesciptor(individual)
-        return descriptor.get_behavior_vector()
+        # Some code that describes the behavior of a vector
+        # The individual here is a list[float] because we are using a FloatCodec vector below
+        ... 
         
     # Create novelty search fitness function
     novelty_fitness = rd.NoveltySearch(
-        behavior=description,
+        descriptor=behavior,
         # can use any of the distance inputs. The engine will use this to 
         # determine how 'novel' an individual is compared to the other's in the 
         # archinve or population, ultimently resulting in the individuals fitness score.
-        distance=rd.CosineDistance() 
+        distance=rd.CosineDistance(),  # Distance metric to use,
         k=10,           # Number of nearest neighbors to consider
         threshold=0.1,   # Novelty threshold for archive addition
         archive_size=1000, # defaults to 1000
-        batch=False # Whether to use batch evaluation - the default is false
     )
 
     engine = rd.GeneticEngine(
@@ -328,6 +366,22 @@ You can implement your own behavioral descriptors by implementing the `Novelty` 
         # so its not necessary to define
         objective='max' 
     )
+    ```
+
+    Just like the other fitness functions, radiate also exposes a `@rd.novelty` decorator which can be used to annotate your novelty search descriptor (fitness functions). The below code snippet is functionally identical to the one above, just using the decorator instead of passing the function into `rd.NoveltySearch`.
+
+    ```python
+    import radiate as rd
+
+    # Define a behavioral descriptor
+    @rd.novelty(distance=rd.CosineDistance(), k=10, threshold=0.1, archive=1000)
+    def behavior(self, individual: list[float]) -> list[float]:
+        # Return behavioral characteristics 
+        # Some code that describes the behavior of a vector
+        # The individual here is a list[float] because we are using a FloatCodec vector below
+        ... 
+        
+    engine = rd.GeneticEngine(rd.FloatCodec.vector(10, (0, 10)), behavior)
     ```
 
 === ":fontawesome-brands-rust: Rust"

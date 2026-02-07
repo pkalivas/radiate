@@ -61,6 +61,7 @@ _POLARS_AVAILABLE = False
 if TYPE_CHECKING:
     try:
         import numpy as np
+
         _NUMPY_AVAILABLE = True
     except ModuleNotFoundError:
         _NUMPY_AVAILABLE = False

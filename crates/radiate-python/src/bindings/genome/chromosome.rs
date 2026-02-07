@@ -84,7 +84,7 @@ macro_rules! impl_into_py_chromosome {
 }
 
 impl_into_py_chromosome!(FloatChromosome, FloatGene);
-impl_into_py_chromosome!(IntChromosome<i32>, IntGene<i32>);
+impl_into_py_chromosome!(IntChromosome<i64>, IntGene<i64>);
 impl_into_py_chromosome!(BitChromosome, BitGene);
 impl_into_py_chromosome!(CharChromosome, CharGene);
 impl_into_py_chromosome!(GraphChromosome<Op<f32>>, GraphNode<Op<f32>>);

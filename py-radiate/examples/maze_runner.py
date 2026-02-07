@@ -118,7 +118,7 @@ class MazeSolver:
 
 def run_maze_evolution(
     maze_solver: MazeSolver, generations: int = 100
-) -> rd.Generation:
+) -> rd.Generation[list[MazeWaypoint]]:
     engine = rd.GeneticEngine(
         codec=maze_solver.codec,
         fitness_func=maze_solver.calculate_path_length,
@@ -132,7 +132,7 @@ def run_maze_evolution(
             # change their order around during crossover/mutation. There are a few other operators
             # that would also fit this type of problem, such as InversionMutator,
             # etc. See the For a little more color, check out the docs:
-            # https://pkalivas.github.io/radiate/source/alterers/
+            # https://pkalivas.github.io/radiate/source/alters/
             rd.PartiallyMappedCrossover(),
             rd.SwapMutator(),
         ],

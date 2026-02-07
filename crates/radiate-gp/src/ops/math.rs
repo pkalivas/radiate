@@ -4,7 +4,6 @@ use crate::{
     ops::{Param, op_names},
 };
 use radiate_core::{chromosomes::NumericAllele, random_provider};
-use std::vec;
 
 pub(super) const MAX_VALUE: f32 = 1e+10_f32;
 pub(super) const MIN_VALUE: f32 = -1e+10_f32;
@@ -36,6 +35,7 @@ pub(super) fn aggregate(vals: &[f32]) -> f32 {
         [a, b] => a + b,
         [a, b, c] => a + b + c,
         [a, b, c, d] => a + b + c + d,
+        [a, b, c, d, e] => a + b + c + d + e,
         _ => vals.iter().copied().sum(),
     }
 }
@@ -219,9 +219,9 @@ impl Op<f32> {
     }
 
     pub fn weight_with(value: f32) -> Self {
-        let supplier = |_: &f32| random_provider::random::<f32>() * TWO - ONE;
+        let supplier = || random_provider::random::<f32>() * TWO - ONE;
 
-        let operation = |inputs: &[f32], weight: &f32| clamp(inputs[0] * *weight);
+        let operation = |inputs: &[f32], weight: &f32| clamp(inputs[0] * weight);
 
         let modifier = |current: &mut f32| {
             let diff = (random_provider::random::<f32>() * TWO - ONE) * TENTH;

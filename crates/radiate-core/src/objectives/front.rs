@@ -47,7 +47,6 @@ where
             values: Vec::new(),
             range,
             objective,
-
             scratch: FrontScratch::default(),
         }
     }
@@ -68,12 +67,12 @@ where
         &self.values
     }
 
-    pub fn crowding_distance(&mut self) -> Option<Vec<f32>> {
+    pub fn crowding_distance(&mut self) -> Option<&[f32]> {
         self.ensure_score_matrix()?;
         let (n, _) = self.score_dims()?;
         self.crowding_distance_in_place(n);
 
-        Some(self.scratch.dist[..n].to_vec())
+        Some(&self.scratch.dist[..n])
     }
 
     pub fn entropy(&mut self) -> Option<f32> {
@@ -323,7 +322,7 @@ where
     }
 }
 
-/// Calculate the Shannon entropy of a set of scores in multi-dimensional space.
+/// Calculate the Shannon entropy of a set of scores in multidimensional space.
 /// The scores are discretized into a grid of bins, and the entropy is computed
 /// based on the distribution of scores across these bins. Higher entropy indicates
 /// a more diverse set of scores. This can be interpreted as a measure of how well

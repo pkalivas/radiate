@@ -20,10 +20,6 @@ where
             }
             crate::names::ROULETTE_WHEEL_SELECTOR => Box::new(RouletteSelector::new()),
             crate::names::RANK_SELECTOR => Box::new(RankSelector::new()),
-            crate::names::STEADY_STATE_SELECTOR => {
-                let steady_state_size = self.get_usize("replacement_count").unwrap_or(1);
-                Box::new(SteadyStateSelector::new(steady_state_size))
-            }
             crate::names::STOCHASTIC_UNIVERSAL_SELECTOR => {
                 Box::new(StochasticUniversalSamplingSelector::new())
             }

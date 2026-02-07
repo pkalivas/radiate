@@ -119,6 +119,9 @@ where
     }
 }
 
+unsafe impl<T: Send + Clone> Send for TreeCodec<T> {}
+unsafe impl<T: Sync + Clone> Sync for TreeCodec<T> {}
+
 #[cfg(test)]
 mod tests {
     use super::*;

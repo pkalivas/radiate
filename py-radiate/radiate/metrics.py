@@ -96,7 +96,8 @@ class MetricSet(PyObject[PyMetricSet]):
 
     def values_by_tag(self, tag: Tag) -> list[Metric]:
         return [
-            Metric.from_rust(m) for m in self.__backend__().values_by_tag(tag_map["rs"][tag])
+            Metric.from_rust(m)
+            for m in self.__backend__().values_by_tag(tag_map["rs"][tag])
         ]
 
     def to_polars(self):

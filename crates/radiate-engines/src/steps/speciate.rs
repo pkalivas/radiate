@@ -10,7 +10,7 @@ pub struct SpeciateStep<C>
 where
     C: Chromosome,
 {
-    pub(crate) threashold: f32,
+    pub(crate) threshold: f32,
     pub(crate) objective: Objective,
     pub(crate) distance: Arc<dyn Distance<Genotype<C>>>,
     pub(crate) executor: Arc<Executor>,
@@ -57,7 +57,7 @@ where
                     })?,
             ));
 
-            let threshold = self.threashold;
+            let threshold = self.threshold;
             let distance = Arc::clone(&self.distance);
             let assignments = Arc::clone(&assignments);
             let distances = Arc::clone(&distances);
@@ -133,7 +133,7 @@ where
                             .distance
                             .distance(genotype, species.mascot().genotype());
 
-                        if dist < self.threashold {
+                        if dist < self.threshold {
                             return Some(species_idx);
                         }
                     }

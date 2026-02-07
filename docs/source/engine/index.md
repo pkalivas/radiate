@@ -71,7 +71,7 @@ This is the default epoch for the engine - `Generation`. It contains:
         .build();
 
     // Run the engine for 100 generations - the result will be a `Generation<FloatChromosome, f32>`
-    let result = engine.run(|generation: Generation<FloatChromosome, f32>| {
+    let result = engine.run(|generation: &Generation<FloatChromosome, f32>| {
         generation.index() >= 100
     });
 
@@ -153,7 +153,7 @@ When the engine is configured for multi-objective optimization, the engine `Gene
         .build();
 
     // Run the engine for 100 generations - the result will be a `MultiObjectiveGeneration<FloatChromosome>`
-    let result = engine.run(|generation: Generation<FloatChromosome, 32>| {
+    let result = engine.run(|generation: &Generation<FloatChromosome, f32>| {
         generation.index() >= 100
     });
 

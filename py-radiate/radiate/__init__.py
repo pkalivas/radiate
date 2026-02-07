@@ -31,11 +31,11 @@ from .genome import (
     AnyGene,
 )
 from .handlers import EventHandler, EventType, EngineEvent
-from .gp import Op, Graph, Tree
+from .gp import Op, Graph, Tree, calc_accuracy
 from .metrics import MetricSet, Metric, Tag
 
 from .inputs.executor import Executor
-from .fitness import Regression, NoveltySearch, BatchFitness
+from .fitness import Regression, NoveltySearch, BatchFitness, fitness, novelty
 from .inputs.selector import (
     TournamentSelector,
     RouletteSelector,
@@ -46,7 +46,6 @@ from .inputs.selector import (
     LinearRankSelector,
     NSGA2Selector,
     TournamentNSGA2Selector,
-    SteadyStateSelector,
 )
 
 from .inputs.alterer import (
@@ -131,6 +130,7 @@ __all__ = [
     "Tree",
     "Graph",
     "Op",
+    "calc_accuracy",
     # Handlers
     "EventHandler",
     "EventType",
@@ -172,6 +172,8 @@ __all__ = [
     "Regression",
     "NoveltySearch",
     "BatchFitness",
+    "fitness",
+    "novelty",
     # Selectors
     "TournamentSelector",
     "RouletteSelector",
@@ -182,7 +184,6 @@ __all__ = [
     "LinearRankSelector",
     "NSGA2Selector",
     "TournamentNSGA2Selector",
-    "SteadyStateSelector",
     # Diversity Measures
     "NeatDistance",
     "CosineDistance",

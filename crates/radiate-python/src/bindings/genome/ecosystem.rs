@@ -94,7 +94,7 @@ macro_rules! impl_into_py_ecosystem {
 }
 
 impl_into_py_ecosystem!(FloatChromosome);
-impl_into_py_ecosystem!(IntChromosome<i32>);
+impl_into_py_ecosystem!(IntChromosome<i64>);
 impl_into_py_ecosystem!(BitChromosome);
 impl_into_py_ecosystem!(CharChromosome);
 impl_into_py_ecosystem!(GraphChromosome<Op<f32>>);

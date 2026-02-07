@@ -179,10 +179,10 @@ impl<C: Chromosome, T> Problem<C, T> for EngineProblem<C, T> {
 
     fn eval(&self, individual: &Genotype<C>) -> RadiateResult<Score> {
         let score = if let Some(raw_fn) = &self.raw_fitness_fn {
-            (raw_fn)(individual)
+            raw_fn(individual)
         } else if let Some(fitness_fn) = &self.fitness_fn {
             let phenotype = self.decode(individual);
-            (fitness_fn)(phenotype)
+            fitness_fn(phenotype)
         } else {
             return Err(radiate_err!(
                 Evaluation: "No fitness function defined for EngineProblem"
@@ -282,30 +282,30 @@ impl<C: Chromosome, T> Problem<C, T> for BatchEngineProblem<C, T> {
 
     fn eval(&self, individual: &Genotype<C>) -> RadiateResult<Score> {
         let scores = if let Some(raw_batch_fn) = &self.raw_batch_fitness_fn {
-            (raw_batch_fn)(vec![individual])
+            raw_batch_fn(vec![individual])
         } else if let Some(batch_fn) = &self.batch_fitness_fn {
             let phenotypes = vec![self.decode(individual)];
-            (batch_fn)(phenotypes)
+            batch_fn(phenotypes)
         } else {
             return Err(radiate_err!(
                 Evaluation: "No batch fitness function defined for BatchEngineProblem"
             ));
         };
 
-        // Cloning a score is a lightweight operation - the internal of a score is a Arc<[f32]>
+        // Cloning a score is a lightweight operation - the internal of a score is an Arc<[f32]>
         // This function will likely never be called anyways as we expect `eval_batch` to be used.
         Ok(scores[0].clone())
     }
 
     fn eval_batch(&self, individuals: &[Genotype<C>]) -> RadiateResult<Vec<Score>> {
         let scores = if let Some(raw_batch_fn) = &self.raw_batch_fitness_fn {
-            (raw_batch_fn)(individuals.iter().collect())
+            raw_batch_fn(individuals.iter().collect())
         } else if let Some(batch_fn) = &self.batch_fitness_fn {
             let phenotypes = individuals
                 .iter()
                 .map(|genotype| self.decode(genotype))
                 .collect::<Vec<T>>();
-            (batch_fn)(phenotypes)
+            batch_fn(phenotypes)
         } else {
             return Err(radiate_err!(
                 Evaluation: "No batch fitness function defined for BatchEngineProblem"

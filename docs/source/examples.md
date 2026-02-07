@@ -501,7 +501,7 @@ Evolve a `Graph<Op<f32>>` to solve the XOR problem (NeuroEvolution).
         println!("{result:?}");
     }
 
-    fn get_dataset() -> DataSet {
+    fn get_dataset() -> DataSet<f32> {
         let inputs = vec![
             vec![0.0, 0.0],
             vec![1.0, 1.0],
@@ -603,7 +603,7 @@ Evolve a `Tree<Op<f32>>` to solve the a regression problem (Genetic Programming)
             });
     }
 
-    fn get_dataset() -> DataSet {
+    fn get_dataset() -> DataSet<f32> {
         let mut inputs = Vec::new();
         let mut answers = Vec::new();
 

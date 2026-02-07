@@ -2,7 +2,6 @@
 pub(crate) const TOURNAMENT_SELECTOR: &str = "TournamentSelector";
 pub(crate) const ROULETTE_WHEEL_SELECTOR: &str = "RouletteSelector";
 pub(crate) const RANK_SELECTOR: &str = "RankSelector";
-pub(crate) const STEADY_STATE_SELECTOR: &str = "SteadyStateSelector";
 pub(crate) const STOCHASTIC_UNIVERSAL_SELECTOR: &str = "StochasticUniversalSamplingSelector";
 pub(crate) const BOLTZMANN_SELECTOR: &str = "BoltzmannSelector";
 pub(crate) const ELITE_SELECTOR: &str = "EliteSelector";

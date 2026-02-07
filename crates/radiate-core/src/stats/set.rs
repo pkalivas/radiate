@@ -88,16 +88,20 @@ impl MetricSet {
         &'a self,
         tag: TagKind,
     ) -> impl Iterator<Item = (&'static str, &'a Metric)> {
-        self.metrics
-            .iter()
-            .filter_map(move |(k, m)| if m.tags.has(tag) { Some((*k, m)) } else { None })
+        self.metrics.iter().filter_map(move |(k, m)| {
+            if m.tags().has(tag) {
+                Some((*k, m))
+            } else {
+                None
+            }
+        })
     }
 
-    pub fn iter_stats<'a>(&'a self) -> impl Iterator<Item = &'a Metric> {
+    pub fn iter_stats(&self) -> impl Iterator<Item = &Metric> {
         self.metrics.values().filter(|m| m.statistic().is_some())
     }
 
-    pub fn iter_times<'a>(&'a self) -> impl Iterator<Item = &'a Metric> {
+    pub fn iter_times(&self) -> impl Iterator<Item = &Metric> {
         self.metrics
             .values()
             .filter(|m| m.time_statistic().is_some())
@@ -106,7 +110,7 @@ impl MetricSet {
     pub fn tags(&self) -> impl Iterator<Item = TagKind> {
         self.metrics
             .values()
-            .fold(Tag::empty(), |acc, m| acc.union(m.tags))
+            .fold(Tag::empty(), |acc, m| acc.union(m.tags()))
             .into_iter()
     }
 

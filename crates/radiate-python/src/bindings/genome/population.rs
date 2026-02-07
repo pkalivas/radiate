@@ -100,7 +100,7 @@ macro_rules! impl_into_py_population {
 }
 
 impl_into_py_population!(FloatChromosome);
-impl_into_py_population!(IntChromosome<i32>);
+impl_into_py_population!(IntChromosome<i64>);
 impl_into_py_population!(BitChromosome);
 impl_into_py_population!(CharChromosome);
 impl_into_py_population!(GraphChromosome<Op<f32>>);

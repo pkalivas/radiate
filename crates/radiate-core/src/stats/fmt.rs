@@ -169,7 +169,7 @@ pub fn render_full(metrics: &MetricSet) -> io::Result<String> {
     let dash = render_dashboard(metrics)?;
     writeln!(out, "[metrics]{}", dash).unwrap();
 
-    let generation = render_tagged(metrics, TagKind::Statistic, "Stataistics")?;
+    let generation = render_tagged(metrics, TagKind::Statistic, "Statistics")?;
     writeln!(out, "\n{}", generation).unwrap();
 
     let life = render_tagged(metrics, TagKind::Time, "Times")?;

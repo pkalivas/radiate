@@ -56,13 +56,12 @@ print(result)
 
 front = result.front()
 
-fig = plt.figure()
-ax = plt.axes(projection="3d")
-
 x = [member.score()[0] for member in front]
 y = [member.score()[1] for member in front]
 z = [member.score()[2] for member in front]
 
+fig = plt.figure()
+ax = plt.axes(projection="3d")
 ax.scatter(x, y, z)
 ax.set_xlim([0, 0.5])
 ax.set_ylim([0, 0.5])

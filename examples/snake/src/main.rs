@@ -87,7 +87,6 @@ fn run_graph_engine() {
         .fitness_fn(|g: Graph<Op<f32>>| snake_fitness(SnakeAI::Graph(&g)))
         .build();
 
-    // radiate::ui(engine)
     engine
         .iter()
         .logging()

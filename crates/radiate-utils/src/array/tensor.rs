@@ -1,10 +1,13 @@
 use crate::array::TensorError;
 use crate::{Shape, Strides};
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
 /// Row-major tensor structure. The data is stored in a contiguous vector,
 /// and the shape and strides are used to interpret the data.
 #[derive(Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Tensor<T> {
     pub(super) data: Vec<T>,
     pub(super) shape: Shape,

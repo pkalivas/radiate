@@ -5,8 +5,8 @@ use radiate::{
     TreeChromosome,
 };
 
-impl InputTransform<Option<Box<dyn Diversity<IntChromosome<i32>>>>> for PyEngineInput {
-    fn transform(&self) -> Option<Box<dyn Diversity<IntChromosome<i32>>>> {
+impl InputTransform<Option<Box<dyn Diversity<IntChromosome<i64>>>>> for PyEngineInput {
+    fn transform(&self) -> Option<Box<dyn Diversity<IntChromosome<i64>>>> {
         match self.component.as_str() {
             crate::names::HAMMING_DISTANCE => Some(Box::new(HammingDistance)),
             crate::names::EUCLIDEAN_DISTANCE => Some(Box::new(EuclideanDistance)),

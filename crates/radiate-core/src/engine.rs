@@ -17,7 +17,7 @@ use radiate_error::Result;
 /// Implementors define how the algorithm progresses from one generation/epoch to the
 /// next, encapsulating the core evolutionary logic.
 ///
-/// It is intentially esentially an iterator.
+/// It is intentionally essentially an iterator.
 ///
 /// # Generic Parameters
 ///
@@ -77,7 +77,7 @@ pub trait Engine {
     /// - Population statistics
     /// - Best fitness values
     /// - Convergence metrics
-    /// - Any other state information needed for monitoring or decision making
+    /// - Any other state information needed for monitoring or decision-making
     type Epoch;
 
     /// Advances the engine to the next epoch or generation.

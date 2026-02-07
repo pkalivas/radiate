@@ -2,7 +2,7 @@ use radiate::*;
 
 ///
 ///
-/// This example is mostly for me and isn't fully supported right now.
+/// This example is mostly for me to play with/test and isn't fully supported right now.
 ///
 ///
 

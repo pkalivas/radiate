@@ -10,14 +10,6 @@ pub struct Accuracy<'a> {
 }
 
 impl<'a> Accuracy<'a> {
-    pub fn new(name: impl Into<String>) -> Self {
-        Accuracy {
-            name: Some(name.into()),
-            data_set: None,
-            loss_fn: None,
-        }
-    }
-
     pub fn named(mut self, name: impl Into<String>) -> Self {
         self.name = Some(name.into());
         self
@@ -154,7 +146,16 @@ impl<'a> Accuracy<'a> {
         };
 
         AccuracyResult {
-            name: self.name.clone().unwrap_or_else(|| "".to_string()),
+            name: match &self.name {
+                Some(name) => name.clone(),
+                None => {
+                    if is_regression {
+                        "Regression Accuracy".to_string()
+                    } else {
+                        "Classification Accuracy".to_string()
+                    }
+                }
+            },
             accuracy,
             precision,
             recall,
@@ -183,12 +184,54 @@ pub struct AccuracyResult {
     is_regression: bool,
 }
 
+impl AccuracyResult {
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn accuracy(&self) -> f32 {
+        self.accuracy
+    }
+
+    pub fn precision(&self) -> f32 {
+        self.precision
+    }
+
+    pub fn recall(&self) -> f32 {
+        self.recall
+    }
+
+    pub fn f1_score(&self) -> f32 {
+        self.f1_score
+    }
+
+    pub fn rmse(&self) -> f32 {
+        self.rmse
+    }
+
+    pub fn r_squared(&self) -> f32 {
+        self.r_squared
+    }
+
+    pub fn sample_count(&self) -> usize {
+        self.sample_count
+    }
+
+    pub fn loss(&self) -> f32 {
+        self.loss
+    }
+
+    pub fn loss_fn(&self) -> Loss {
+        self.loss_fn
+    }
+}
+
 impl Debug for AccuracyResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         if self.is_regression {
             write!(
                 f,
-                "Regression Accuracy - {:?} {{\n\tN: {:?} \n\tAccuracy: {:.2}%\n\tR² Score: {:.5}\n\tRMSE: {:.5}\n\tLoss ({:?}): {:.5}\n}}",
+                "{:?} {{\n\tN: {:?} \n\tAccuracy: {:.2}%\n\tR² Score: {:.5}\n\tRMSE: {:.5}\n\tLoss ({:?}): {:.5}\n}}",
                 self.name,
                 self.sample_count,
                 self.accuracy * 100.0,
@@ -200,7 +243,7 @@ impl Debug for AccuracyResult {
         } else {
             write!(
                 f,
-                "Classification Accuracy - {:?} {{\n\tN: {:?} \n\tAccuracy: {:.2}%\n\tPrecision: {:.2}%\n\tRecall: {:.2}%\n\tF1 Score: {:.2}%\n\tLoss ({:?}): {:.5}\n}}",
+                "{:?} {{\n\tN: {:?} \n\tAccuracy: {:.2}%\n\tPrecision: {:.2}%\n\tRecall: {:.2}%\n\tF1 Score: {:.2}%\n\tLoss ({:?}): {:.5}\n}}",
                 self.name,
                 self.sample_count,
                 self.accuracy * 100.0,

@@ -10,11 +10,14 @@ use std::{
     ops::{Add, Div, Mul, Range, Sub},
 };
 
-/// Minimum and maximum values for the `FloatGene` allele.
+/// Minimum and maximum values for the [FloatGene] allele.
 /// This should be large enough to cover most practical use cases
 /// but small enough to avoid overflow or underflow issues in calculations.
-const MIN: f32 = -1e10;
-const MAX: f32 = 1e10;
+/// 1e18 = 1 quintillion
+const MIN: f32 = -1e18;
+const MAX: f32 = 1e18;
+const ZERO: f32 = 0.0;
+const ONE: f32 = 1.0;
 
 /// A [`Gene`] that represents a floating point number.
 /// The `allele` is the in the case of the [`FloatGene`] a f32. The `min` and `max` values
@@ -159,8 +162,8 @@ impl Div for FloatGene {
     type Output = FloatGene;
 
     fn div(self, other: FloatGene) -> FloatGene {
-        let denominator = if other.allele == 0.0 {
-            1.0
+        let denominator = if other.allele == ZERO {
+            ONE
         } else {
             other.allele
         };
@@ -176,7 +179,7 @@ impl Div for FloatGene {
 impl Default for FloatGene {
     fn default() -> Self {
         FloatGene {
-            allele: 0.0,
+            allele: ZERO,
             value_range: MIN..MAX,
             bounds: MIN..MAX,
         }
@@ -247,14 +250,14 @@ impl Display for FloatGene {
 ///
 /// // Create a chromosome with 3 genes with alleles 0.0, 1.0, and 2.0 respectively
 /// let chromosome = FloatChromosome::from(vec![0.0, 1.0, 2.0]);
-/// let chromosome_allels = chromosome
+/// let chromosome_alleles = chromosome
 ///     .iter()
 ///     .map(|gene| *gene.allele())
 ///     .collect::<Vec<f32>>();
 ///
 /// assert!(chromosome.is_valid());
-/// assert_eq!(chromosome_allels.len(), 3);
-/// assert_eq!(chromosome_allels, vec![0.0, 1.0, 2.0]);
+/// assert_eq!(chromosome_alleles.len(), 3);
+/// assert_eq!(chromosome_alleles, vec![0.0, 1.0, 2.0]);
 ///
 /// // Create a chromosome with 3 genes all with alleles in the range 0.0 to 10.0
 /// let ranged_chromo = FloatChromosome::from((3, 0.0..10.0));
@@ -518,3 +521,78 @@ mod tests {
         assert_eq!(chromosome, deserialized_chromosome);
     }
 }
+
+//
+// TODO: Figure out if it is worth it to make FloatGene generic over float types
+//
+// use rand::distr::uniform::SampleUniform;
+//
+// pub trait Float:
+//     Copy + Clone + PartialOrd + Debug + PartialEq + SampleUniform + Display + Default
+// {
+//     type Value: Copy
+//         + Clone
+//         + PartialOrd
+//         + Debug
+//         + PartialEq
+//         + Add<Output = Self::Value>
+//         + Sub<Output = Self::Value>
+//         + Mul<Output = Self::Value>
+//         + Div<Output = Self::Value>
+//         + SampleUniform
+//         + Display
+//         + Default;
+
+//     const MIN: Self::Value;
+//     const MAX: Self::Value;
+//     const ZERO: Self::Value;
+//     const ONE: Self::Value;
+//     const TWO: Self::Value;
+
+//     fn clamp_add(self, rhs: Self::Value) -> Self::Value;
+//     fn clamp_sub(self, rhs: Self::Value) -> Self::Value;
+//     fn clamp_mul(self, rhs: Self::Value) -> Self::Value;
+//     fn clamp_div(self, rhs: Self::Value) -> Self::Value;
+// }
+
+// #[macro_export]
+// macro_rules! impl_float {
+//     ($t:ty, $min:expr, $max:expr) => {
+//         impl Float for $t {
+//             type Value = $t;
+
+//             const MIN: $t = $min;
+//             const MAX: $t = $max;
+//             const ZERO: $t = 0.0;
+//             const ONE: $t = 1.0;
+//             const TWO: $t = 2.0;
+
+//             fn clamp_add(self, rhs: $t) -> $t {
+//                 let result = self + rhs;
+//                 result.clamp(Self::MIN, Self::MAX)
+//             }
+
+//             fn clamp_sub(self, rhs: $t) -> $t {
+//                 let result = self - rhs;
+//                 result.clamp(Self::MIN, Self::MAX)
+//             }
+
+//             fn clamp_mul(self, rhs: $t) -> $t {
+//                 let result = self * rhs;
+//                 result.clamp(Self::MIN, Self::MAX)
+//             }
+
+//             fn clamp_div(self, rhs: $t) -> $t {
+//                 if rhs == Self::ZERO {
+//                     Self::ONE
+//                 } else {
+//                     let result = self / rhs;
+//                     result.clamp(Self::MIN, Self::MAX)
+//                 }
+//             }
+//         }
+//     };
+// }
+
+// impl_float!(f32, -1e18, 1e18);
+// impl_float!(f64, -1e100, 1e100);

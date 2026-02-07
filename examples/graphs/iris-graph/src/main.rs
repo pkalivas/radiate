@@ -53,12 +53,14 @@ fn display(
 ) {
     let mut reducer = GraphEvaluator::new(result.value());
 
-    let train_acc = Accuracy::new("train")
+    let train_acc = Accuracy::default()
+        .named("train")
         .on(train)
         .loss(Loss::MSE)
         .calc(&mut reducer);
 
-    let test_acc = Accuracy::new("test")
+    let test_acc = Accuracy::default()
+        .named("test")
         .on(test)
         .loss(Loss::MSE)
         .calc(&mut reducer);

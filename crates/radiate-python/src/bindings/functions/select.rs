@@ -60,8 +60,8 @@ pub fn py_select(
             Ok(selector.select(&population, &obj, count)).map(|pop| PyPopulation::from(&pop))
         }
         PyGeneType::Int => {
-            let selector: Box<dyn Select<IntChromosome<i32>>> = selector.transform();
-            let population: Population<IntChromosome<i32>> = population.into();
+            let selector: Box<dyn Select<IntChromosome<i64>>> = selector.transform();
+            let population: Population<IntChromosome<i64>> = population.into();
 
             Ok(selector.select(&population, &obj, count)).map(|pop| PyPopulation::from(&pop))
         }

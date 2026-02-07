@@ -20,17 +20,17 @@ macro_rules! metric {
 
 #[derive(Clone, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct MetricInner {
-    pub(crate) value_statistic: Option<Statistic>,
-    pub(crate) time_statistic: Option<TimeStatistic>,
+struct MetricInner {
+    value_statistic: Option<Statistic>,
+    time_statistic: Option<TimeStatistic>,
 }
 
 #[derive(Clone, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Metric {
-    pub(super) name: Arc<String>,
-    pub(super) inner: MetricInner,
-    pub(super) tags: Tag,
+    name: Arc<String>,
+    inner: MetricInner,
+    tags: Tag,
 }
 
 impl Metric {
@@ -100,7 +100,7 @@ impl Metric {
         if let Some(stat) = other.inner.value_statistic {
             // Kinda a hack to take advantage of the fact that if count == sum,
             // we can just apply the sum directly instead of merging statistics - keeps things honest
-            // & avoids merging statistics when we don't have to (even though thats a fast operation).
+            // & avoids merging statistics when we don't have to (even though that's a fast operation).
             if stat.count() as f32 == stat.sum() && !other.tags.has(TagKind::Distribution) {
                 self.apply_update(stat.sum());
             } else {

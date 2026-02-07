@@ -16,9 +16,6 @@ class Rate(PyObject[PyRate]):
         end: float = 1.0,
         duration: int = 1,
         shape: str = "sine",
-        warmup_duration: int = 0,
-        half_life: int = 1,
-        peak: float = 1.0,
         steps: list[tuple[int, float]] | None = None,
     ):
         if rate_type == self.FIXED:
@@ -50,7 +47,7 @@ class Rate(PyObject[PyRate]):
 
     def linear(start: float, end: float, duration: int):
         return Rate(Rate.LINEAR, start, end, duration)
-    
+
     def sine(min: float, max: float, periods: int):
         return Rate(Rate.CYCLICAL, min, max, periods, "sine")
 

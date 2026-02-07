@@ -1,7 +1,6 @@
-from .base import FitnessBase
-
 from typing import Any, Callable
 
+from .base import FitnessBase
 from radiate.radiate import PyFitnessFn
 
 

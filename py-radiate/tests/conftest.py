@@ -37,6 +37,11 @@ def random_seed():
     return seed
 
 
+"""
+Data sets
+"""
+
+
 @pytest.fixture
 def xor_dataset():
     """Create XOR dataset for testing."""
@@ -54,7 +59,45 @@ def simple_regression_dataset():
 
 
 @pytest.fixture
-def graph_codec_simple():
+def complex_regression_dataset():
+    """Create a more complex regression dataset for testing."""
+    inputs = [[i] for i in range(-10, 11)]
+    outputs = [[3 * i**2 + 2 * i + 1] for i in range(-10, 11)]
+    return inputs, outputs
+
+
+@pytest.fixture
+def memory_dataset():
+    """Create a dataset for testing memory-based fitness functions."""
+    inputs = [
+        [0.0],
+        [0.0],
+        [0.0],
+        [1.0],
+        [0.0],
+        [0.0],
+        [0.0],
+    ]
+    outputs = [
+        [0.0],
+        [0.0],
+        [1.0],
+        [0.0],
+        [0.0],
+        [0.0],
+        [1.0],
+    ]
+
+    return inputs, outputs
+
+
+"""
+Graph Fixtures
+"""
+
+
+@pytest.fixture
+def graph_codec_simple_2x1():
     """Create a simple graph codec for testing."""
     return rd.GraphCodec.directed(
         shape=(2, 1),
@@ -65,7 +108,7 @@ def graph_codec_simple():
 
 
 @pytest.fixture
-def graph_simple():
+def graph_simple_2x1():
     """Create a simple graph structure for testing."""
     codec = rd.GraphCodec.directed(
         shape=(2, 1),
@@ -76,8 +119,13 @@ def graph_simple():
     return codec.decode(codec.encode())
 
 
+"""
+Tree Fixtures
+"""
+
+
 @pytest.fixture
-def tree_codec_simple():
+def tree_codec_simple_2x1():
     """Create a simple tree codec for testing."""
     return rd.TreeCodec(
         shape=(2, 1),
@@ -88,7 +136,7 @@ def tree_codec_simple():
 
 
 @pytest.fixture
-def tree_simple():
+def tree_simple_2x1():
     """Create a simple tree structure for testing."""
     codec = rd.TreeCodec(
         shape=(2, 1),
@@ -97,6 +145,11 @@ def tree_simple():
         root=rd.Op.linear(),
     )
     return codec.decode(codec.encode())
+
+
+"""
+Engine Fixtures
+"""
 
 
 @pytest.fixture
@@ -135,6 +188,11 @@ def simple_multi_objective_engine():
             rd.ArithmeticMutator(0.1),
         ],
     )
+
+
+"""
+Performance Benchmarking Utilities
+"""
 
 
 class PerformanceBenchmark:

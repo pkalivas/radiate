@@ -1,10 +1,11 @@
 use pyo3::prelude::*;
 use radiate_python::{
-    PyAnyCodec, PyBitCodec, PyCharCodec, PyChromosome, PyEcosystem, PyEngine, PyEngineBuilder,
-    PyEngineEvent, PyEngineInput, PyEngineInputType, PyEngineRunOption, PyFitnessFn, PyFloatCodec,
-    PyFront, PyFrontValue, PyGene, PyGeneType, PyGeneration, PyGenotype, PyGraph, PyGraphCodec,
-    PyIntCodec, PyMetric, PyMetricSet, PyPermutationCodec, PyPhenotype, PyPopulation,
-    PyRandomProvider, PyRate, PySpecies, PySubscriber, PyTree, PyTreeCodec, py_alter, py_select,
+    PyAccuracy, PyAnyCodec, PyBitCodec, PyCharCodec, PyChromosome, PyEcosystem, PyEngine,
+    PyEngineBuilder, PyEngineEvent, PyEngineInput, PyEngineInputType, PyEngineRunOption,
+    PyFitnessFn, PyFloatCodec, PyFront, PyFrontValue, PyGene, PyGeneType, PyGeneration, PyGenotype,
+    PyGraph, PyGraphCodec, PyIntCodec, PyMetric, PyMetricSet, PyPermutationCodec, PyPhenotype,
+    PyPopulation, PyRandomProvider, PyRate, PySpecies, PySubscriber, PyTree, PyTreeCodec,
+    py_accuracy, py_alter, py_select,
 };
 
 #[pymodule(gil_used = false)]
@@ -13,6 +14,7 @@ fn radiate(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     m.add_function(wrap_pyfunction!(py_select, m)?)?;
     m.add_function(wrap_pyfunction!(py_alter, m)?)?;
+    m.add_function(wrap_pyfunction!(py_accuracy, m)?)?;
 
     m.add_class::<PyRandomProvider>()?;
     m.add_class::<PyFitnessFn>()?;
@@ -43,6 +45,7 @@ fn radiate(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     m.add_class::<PyGraph>()?;
     m.add_class::<PyTree>()?;
+    m.add_class::<PyAccuracy>()?;
 
     m.add_class::<PyEngineInputType>()?;
     m.add_class::<PyEngineInput>()?;

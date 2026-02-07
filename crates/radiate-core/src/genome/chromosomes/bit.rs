@@ -11,7 +11,7 @@ use std::fmt::{Debug, Display};
 /// ``` rust
 /// use radiate_core::*;
 ///
-/// // Craete a new BitGene from the allele `true`.
+/// // Create a new BitGene from the allele `true`.
 /// let gene: BitGene = true.into();
 ///
 /// // Create a new BitGene with a random allele.

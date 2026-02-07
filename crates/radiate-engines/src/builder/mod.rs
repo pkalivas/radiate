@@ -393,7 +393,7 @@ where
         }
 
         let species_step = SpeciateStep {
-            threashold: config.species_threshold(),
+            threshold: config.species_threshold(),
             distance: Arc::new(DistanceDiversityAdapter::new(config.diversity().unwrap())),
             executor: config.species_executor(),
             objective: config.objective(),

@@ -150,7 +150,7 @@ impl std::fmt::Debug for CharGene {
     }
 }
 
-/// Manual implementation of seralize and deserialzie for the [CharGene]
+/// Manual implementation of serialize and deserialize for the [CharGene]
 /// needed because of the [Arc] type in the char_set field.
 #[cfg(feature = "serde")]
 impl Serialize for CharGene {

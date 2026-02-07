@@ -110,8 +110,8 @@ impl AuditStep {
             metrics.upsert(churn_metric);
         } else {
             let population_unique_rc_count = ecosystem.population().shared_count();
-            assert!(
-                population_unique_rc_count == 0,
+            assert_eq!(
+                population_unique_rc_count, 0,
                 "Ecosystem has no species, but population has {} non-unique ptrs",
                 population_unique_rc_count
             );
