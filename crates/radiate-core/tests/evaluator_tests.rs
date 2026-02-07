@@ -40,7 +40,7 @@ mod tests {
 
     #[test]
     fn test_evaluator_trait_object() {
-        let evaluator: Box<dyn Evaluator<FloatChromosome, f32>> =
+        let evaluator: Box<dyn Evaluator<FloatChromosome<f32>, f32>> =
             Box::new(FitnessEvaluator::new(Arc::new(Executor::Serial)));
 
         let mut ecosystem = float_ecosystem();
@@ -53,7 +53,7 @@ mod tests {
     #[test]
     fn test_empty_population() {
         let evaluator = FitnessEvaluator::new(Arc::new(Executor::Serial));
-        let mut ecosystem = Ecosystem::<FloatChromosome>::default();
+        let mut ecosystem = Ecosystem::<FloatChromosome<f32>>::default();
         let problem = Arc::new(FloatEvalProblem);
 
         let count = evaluator.eval(&mut ecosystem, problem).unwrap();

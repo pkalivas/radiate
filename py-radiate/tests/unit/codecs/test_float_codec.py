@@ -49,7 +49,7 @@ def test_float_codec_decode():
     decoded = codec.decode(genotype)
 
     assert len(decoded) == 3
-    assert all(isinstance(x, np.float32) for x in decoded)
+    assert all(isinstance(x, np.float64) for x in decoded)
     assert all(0.0 <= x <= 1.0 for x in decoded)
 
     codec = FloatCodec(3, init_range=(-1.0, 1.0), use_numpy=True)
@@ -57,7 +57,7 @@ def test_float_codec_decode():
     decoded = codec.decode(genotype)
 
     assert len(decoded) == 3
-    assert all(isinstance(x, np.float32) for x in decoded)
+    assert all(isinstance(x, np.float64) for x in decoded)
     assert all(-1.0 <= x <= 1.0 for x in decoded)
 
 

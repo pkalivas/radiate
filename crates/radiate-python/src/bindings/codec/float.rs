@@ -6,7 +6,7 @@ use radiate::{Chromosome, Codec, FloatChromosome, FloatGene, Gene, Genotype};
 #[pyclass]
 #[derive(Clone)]
 pub struct PyFloatCodec {
-    pub codec: PyCodec<FloatChromosome, PyAnyObject>,
+    pub codec: PyCodec<FloatChromosome<f64>, PyAnyObject>,
 }
 
 #[pymethods]
@@ -40,10 +40,10 @@ impl PyFloatCodec {
                                         .genes
                                         .iter()
                                         .map(|gene| FloatGene::from(gene.clone()))
-                                        .collect::<Vec<FloatGene>>(),
+                                        .collect::<Vec<FloatGene<f64>>>(),
                                 )
                             })
-                            .collect::<Vec<FloatChromosome>>(),
+                            .collect::<Vec<FloatChromosome<f64>>>(),
                     )
                 })
                 .with_decoder(move |py, geno| PyAnyObject {
@@ -61,7 +61,7 @@ impl PyFloatCodec {
         let genes = genes
             .into_iter()
             .map(|gene| FloatGene::from(gene))
-            .collect::<Vec<FloatGene>>();
+            .collect::<Vec<FloatGene<f64>>>();
         PyFloatCodec {
             codec: PyCodec::new()
                 .with_encoder(move || {
@@ -69,7 +69,7 @@ impl PyFloatCodec {
                         genes
                             .iter()
                             .map(|gene| FloatGene::from(gene.clone()))
-                            .collect::<Vec<FloatGene>>(),
+                            .collect::<Vec<FloatGene<f64>>>(),
                     )
                     .into()
                 })
@@ -86,8 +86,8 @@ impl PyFloatCodec {
     #[pyo3(signature = (chromosome_lengths=None, value_range=None, bound_range=None, use_numpy=false))]
     pub fn matrix(
         chromosome_lengths: Option<Vec<usize>>,
-        value_range: Option<(f32, f32)>,
-        bound_range: Option<(f32, f32)>,
+        value_range: Option<(f64, f64)>,
+        bound_range: Option<(f64, f64)>,
         use_numpy: bool,
     ) -> Self {
         let lengths = chromosome_lengths.unwrap_or(vec![1]);
@@ -104,7 +104,7 @@ impl PyFloatCodec {
                         .map(|len| {
                             FloatChromosome::from((*len, val_range.clone(), bound_range.clone()))
                         })
-                        .collect::<Vec<FloatChromosome>>()
+                        .collect::<Vec<FloatChromosome<f64>>>()
                         .into()
                 })
                 .with_decoder(move |py, geno| PyAnyObject {
@@ -120,8 +120,8 @@ impl PyFloatCodec {
     #[pyo3(signature = (length=1, value_range=None, bound_range=None, use_numpy=false))]
     pub fn vector(
         length: usize,
-        value_range: Option<(f32, f32)>,
-        bound_range: Option<(f32, f32)>,
+        value_range: Option<(f64, f64)>,
+        bound_range: Option<(f64, f64)>,
         use_numpy: bool,
     ) -> Self {
         let val_range = value_range.map(|rng| rng.0..rng.1).unwrap_or(0.0..1.0);
@@ -149,7 +149,7 @@ impl PyFloatCodec {
 
     #[staticmethod]
     #[pyo3(signature = (value_range=None, bound_range=None))]
-    pub fn scalar(value_range: Option<(f32, f32)>, bound_range: Option<(f32, f32)>) -> Self {
+    pub fn scalar(value_range: Option<(f64, f64)>, bound_range: Option<(f64, f64)>) -> Self {
         let val_range = value_range.map(|rng| rng.0..rng.1).unwrap_or(0.0..1.0);
         let bound_range = bound_range
             .map(|rng| rng.0..rng.1)

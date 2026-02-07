@@ -1,5 +1,6 @@
 use radiate_core::{
-    AlterResult, BoundedGene, Chromosome, Crossover, FloatGene, Gene, Rate, Valid, random_provider,
+    AlterResult, BoundedGene, Chromosome, Crossover, Float, FloatGene, Gene, Rate, Valid,
+    random_provider,
 };
 
 pub struct SimulatedBinaryCrossover {
@@ -20,7 +21,11 @@ impl SimulatedBinaryCrossover {
     }
 }
 
-impl<C: Chromosome<Gene = FloatGene>> Crossover<C> for SimulatedBinaryCrossover {
+impl<F, C> Crossover<C> for SimulatedBinaryCrossover
+where
+    F: Float,
+    C: Chromosome<Gene = FloatGene<F>>,
+{
     fn rate(&self) -> Rate {
         self.crossover_rate.clone()
     }
@@ -39,19 +44,19 @@ impl<C: Chromosome<Gene = FloatGene>> Crossover<C> for SimulatedBinaryCrossover 
             for i in 0..length {
                 if rand.bool(0.5) {
                     let u = rand.random::<f32>();
-                    let beta = if u <= 0.5 {
+                    let beta = F::from_f32(if u <= 0.5 {
                         (2.0 * u).powf(1.0 / (self.contiguty + 1.0))
                     } else {
                         (0.5 / (1.0 - u)).powf(1.0 / (self.contiguty + 1.0))
-                    };
+                    });
 
-                    let v1 = chrom_one.get(i).allele();
-                    let v2 = chrom_two.get(i).allele();
+                    let v1 = chrom_one.get(i).allele().clone();
+                    let v2 = chrom_two.get(i).allele().clone();
 
                     let v = if rand.bool(0.5) {
-                        (v1 - v2) * 0.5 - (beta * 0.5 * (v1 - v2).abs())
+                        (v1 - v2) * F::HALF - (beta * F::HALF * (v1 - v2).abs())
                     } else {
-                        (v1 - v2) * 0.5 + (beta * 0.5 * (v1 - v2).abs())
+                        (v1 - v2) * F::HALF + (beta * F::HALF * (v1 - v2).abs())
                     };
 
                     let new_gene = v.clamp(*chrom_one.get(i).min(), *chrom_one.get(i).max());

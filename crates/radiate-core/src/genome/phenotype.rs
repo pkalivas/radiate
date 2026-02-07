@@ -223,7 +223,7 @@ mod test {
         let phenotype = Phenotype::from((genotype, 0));
 
         let serialized = serde_json::to_string(&phenotype).expect("Failed to serialize Phenotype");
-        let deserialized: Phenotype<FloatChromosome> =
+        let deserialized: Phenotype<FloatChromosome<f64>> =
             serde_json::from_str(&serialized).expect("Failed to deserialize Phenotype");
 
         assert_eq!(phenotype, deserialized);

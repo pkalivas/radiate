@@ -1,5 +1,5 @@
 use radiate_core::{
-    AlterResult, Chromosome, Crossover, FloatGene, Gene, Rate, Valid, random_provider,
+    AlterResult, Chromosome, Crossover, Float, FloatGene, Gene, Rate, Valid, random_provider,
 };
 
 /// The [BlendCrossover] is a crossover operator that blends [FloatGene] alleles from two parent chromosomes to create offspring.
@@ -33,9 +33,10 @@ impl BlendCrossover {
     }
 }
 
-impl<C> Crossover<C> for BlendCrossover
+impl<F, C> Crossover<C> for BlendCrossover
 where
-    C: Chromosome<Gene = FloatGene>,
+    F: Float,
+    C: Chromosome<Gene = FloatGene<F>>,
 {
     fn rate(&self) -> Rate {
         self.rate.clone()
@@ -44,6 +45,7 @@ where
     #[inline]
     fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C, rate: f32) -> AlterResult {
         let mut cross_count = 0;
+        let alpha = F::from_f32(self.alpha);
 
         random_provider::with_rng(|rand| {
             for i in 0..std::cmp::min(chrom_one.len(), chrom_two.len()) {
@@ -51,11 +53,11 @@ where
                     let gene_one = chrom_one.get(i);
                     let gene_two = chrom_two.get(i);
 
-                    let allele_one: f32 = gene_one.allele().clone();
-                    let allele_two: f32 = gene_two.allele().clone();
+                    let allele_one = gene_one.allele().clone();
+                    let allele_two = gene_two.allele().clone();
 
-                    let new_allele_one = allele_one - (self.alpha * (allele_two - allele_one));
-                    let new_allele_two = allele_two - (self.alpha * (allele_one - allele_two));
+                    let new_allele_one = allele_one - (alpha * (allele_two - allele_one));
+                    let new_allele_two = allele_two - (alpha * (allele_one - allele_two));
 
                     chrom_one.set(i, gene_one.with_allele(&new_allele_one));
                     chrom_two.set(i, gene_two.with_allele(&new_allele_two));
@@ -72,7 +74,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use radiate_core::{FloatChromosome, FloatGene};
+    use radiate_core::{FloatChromosome, FloatGene, chromosomes::NumericAllele};
 
     #[test]
     fn test_cross_chromosomes_basic() {
@@ -170,10 +172,10 @@ mod tests {
         let expected_one_1 = 2.0 - (alpha * (5.0 - 2.0));
         let expected_two_1 = 5.0 - (alpha * (2.0 - 5.0));
 
-        assert!((chrom_one.get(0).allele() - expected_one_0).abs() < 1e-6);
-        assert!((chrom_two.get(0).allele() - expected_two_0).abs() < 1e-6);
-        assert!((chrom_one.get(1).allele() - expected_one_1).abs() < 1e-6);
-        assert!((chrom_two.get(1).allele() - expected_two_1).abs() < 1e-6);
+        assert!((chrom_one.get(0).allele().as_f32().unwrap() - expected_one_0).abs() < 1e-6);
+        assert!((chrom_two.get(0).allele().as_f32().unwrap() - expected_two_0).abs() < 1e-6);
+        assert!((chrom_one.get(1).allele().as_f32().unwrap() - expected_one_1).abs() < 1e-6);
+        assert!((chrom_two.get(1).allele().as_f32().unwrap() - expected_two_1).abs() < 1e-6);
 
         assert_eq!(*chrom_one.get(2).allele(), 3.0);
     }
@@ -262,7 +264,7 @@ mod tests {
         let crossover = BlendCrossover::new(1.0, 0.5);
 
         for _ in 0..50 {
-            let genes1: Vec<FloatGene> = (0..5)
+            let genes1: Vec<FloatGene<f32>> = (0..5)
                 .map(|_| {
                     FloatGene::new(
                         random_provider::random::<f32>() * 10.0,
@@ -271,7 +273,7 @@ mod tests {
                     )
                 })
                 .collect();
-            let genes2: Vec<FloatGene> = (0..5)
+            let genes2: Vec<FloatGene<f32>> = (0..5)
                 .map(|_| {
                     FloatGene::new(
                         random_provider::random::<f32>() * 10.0,
@@ -318,8 +320,8 @@ mod tests {
         assert_eq!(result.count(), 1);
 
         // Test with empty chromosomes (should not panic)
-        let mut empty_one = FloatChromosome::new(vec![]);
-        let mut empty_two = FloatChromosome::new(vec![]);
+        let mut empty_one = FloatChromosome::<f32>::new(vec![]);
+        let mut empty_two = FloatChromosome::<f32>::new(vec![]);
 
         let result = crossover.cross_chromosomes(&mut empty_one, &mut empty_two, 1.0);
         assert_eq!(result.count(), 0);
@@ -334,8 +336,8 @@ mod tests {
         let genes1 = vec![FloatGene::new(2.0, 0.0..10.0, 0.0..10.0)];
         let genes2 = vec![FloatGene::new(8.0, 0.0..10.0, 0.0..10.0)];
 
-        let mut chrom_one = FloatChromosome::new(genes1);
-        let mut chrom_two = FloatChromosome::new(genes2);
+        let mut chrom_one = FloatChromosome::<f32>::new(genes1);
+        let mut chrom_two = FloatChromosome::<f32>::new(genes2);
 
         crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, 1.0);
 

@@ -31,7 +31,7 @@ macro_rules! impl_input_transform_for {
 }
 
 impl_input_transform_for!(IntChromosome<i64>, int_alterers);
-impl_input_transform_for!(FloatChromosome, float_alterers);
+impl_input_transform_for!(FloatChromosome<f64>, float_alterers);
 impl_input_transform_for!(CharChromosome, char_alterers);
 impl_input_transform_for!(BitChromosome, bit_alterers);
 impl_input_transform_for!(PermutationChromosome<usize>, perm_alterers);
@@ -105,9 +105,9 @@ fn int_alterers() -> &'static HashMap<&'static str, AlterConv<IntChromosome<i64>
 }
 
 // FLOAT
-fn float_alterers() -> &'static HashMap<&'static str, AlterConv<FloatChromosome>> {
+fn float_alterers() -> &'static HashMap<&'static str, AlterConv<FloatChromosome<f64>>> {
     use std::sync::OnceLock;
-    static MAP: OnceLock<HashMap<&'static str, AlterConv<FloatChromosome>>> = OnceLock::new();
+    static MAP: OnceLock<HashMap<&'static str, AlterConv<FloatChromosome<f64>>>> = OnceLock::new();
     MAP.get_or_init(|| {
         table! {
             crate::names::MULTI_POINT_CROSSOVER        => convert_multi_point_crossover,

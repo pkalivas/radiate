@@ -16,8 +16,8 @@ impl InputTransform<Option<Box<dyn Diversity<IntChromosome<i64>>>>> for PyEngine
     }
 }
 
-impl InputTransform<Option<Box<dyn Diversity<FloatChromosome>>>> for PyEngineInput {
-    fn transform(&self) -> Option<Box<dyn Diversity<FloatChromosome>>> {
+impl InputTransform<Option<Box<dyn Diversity<FloatChromosome<f64>>>>> for PyEngineInput {
+    fn transform(&self) -> Option<Box<dyn Diversity<FloatChromosome<f64>>>> {
         match self.component.as_str() {
             crate::names::EUCLIDEAN_DISTANCE => Some(Box::new(EuclideanDistance)),
             crate::names::HAMMING_DISTANCE => Some(Box::new(HammingDistance)),

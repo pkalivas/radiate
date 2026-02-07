@@ -1,5 +1,6 @@
 use radiate_core::{
-    AlterResult, BoundedGene, Chromosome, Crossover, FloatGene, Gene, Rate, Valid, random_provider,
+    AlterResult, BoundedGene, Chromosome, Crossover, Float, FloatGene, Gene, Rate, Valid,
+    random_provider,
 };
 
 /// Intermediate Crossover. This crossover method takes two chromosomes and crosses them
@@ -34,7 +35,11 @@ impl IntermediateCrossover {
     }
 }
 
-impl<C: Chromosome<Gene = FloatGene>> Crossover<C> for IntermediateCrossover {
+impl<F, C> Crossover<C> for IntermediateCrossover
+where
+    F: Float,
+    C: Chromosome<Gene = FloatGene<F>>,
+{
     fn rate(&self) -> Rate {
         self.rate.clone()
     }
@@ -42,6 +47,7 @@ impl<C: Chromosome<Gene = FloatGene>> Crossover<C> for IntermediateCrossover {
     #[inline]
     fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C, rate: f32) -> AlterResult {
         let mut cross_count = 0;
+        let alpha = F::from_f32(self.alpha);
 
         random_provider::with_rng(|rand| {
             for i in 0..std::cmp::min(chrom_one.len(), chrom_two.len()) {
@@ -49,12 +55,12 @@ impl<C: Chromosome<Gene = FloatGene>> Crossover<C> for IntermediateCrossover {
                     let gene_one = chrom_one.get_mut(i);
                     let gene_two = chrom_two.get_mut(i);
 
-                    let allele_one = gene_one.allele();
-                    let allele_two = gene_two.allele();
+                    let allele_one = gene_one.allele().clone();
+                    let allele_two = gene_two.allele().clone();
 
-                    let alpha = rand.range(0.0..self.alpha);
-                    let new_allele_one = allele_one * alpha + allele_two * (1.0 - alpha);
-                    let new_allele_two = allele_two * alpha + allele_one * (1.0 - alpha);
+                    let alpha = rand.range(F::ZERO..alpha);
+                    let new_allele_one = allele_one * alpha + allele_two * (F::ONE - alpha);
+                    let new_allele_two = allele_two * alpha + allele_one * (F::ONE - alpha);
 
                     let (one_min, one_max) = gene_one.bounds();
                     let (two_min, two_max) = gene_two.bounds();

@@ -97,7 +97,7 @@ macro_rules! impl_from_py_phenotype {
     };
 }
 
-impl_from_py_phenotype!(FloatChromosome);
+impl_from_py_phenotype!(FloatChromosome<f64>);
 impl_from_py_phenotype!(IntChromosome<i64>);
 impl_from_py_phenotype!(BitChromosome);
 impl_from_py_phenotype!(CharChromosome);

@@ -8,7 +8,7 @@ use std::collections::HashMap;
 
 #[derive(Clone, Debug, PartialEq)]
 enum GeneInner {
-    Float(FloatGene),
+    Float(FloatGene<f64>),
     Int(IntGene<i64>),
     Bit(BitGene),
     Char(CharGene),
@@ -76,11 +76,11 @@ impl PyGene {
     #[staticmethod]
     #[pyo3(signature = (allele=None, range=None, bounds=None))]
     pub fn float(
-        allele: Option<f32>,
-        range: Option<(f32, f32)>,
-        bounds: Option<(f32, f32)>,
+        allele: Option<f64>,
+        range: Option<(f64, f64)>,
+        bounds: Option<(f64, f64)>,
     ) -> PyGene {
-        let range = range.unwrap_or((std::f32::MIN, std::f32::MAX));
+        let range = range.unwrap_or((std::f64::MIN, std::f64::MAX));
         let bounds = bounds.unwrap_or(range.clone());
 
         PyGene {
@@ -179,7 +179,7 @@ macro_rules! impl_into_py_gene {
     };
 }
 
-impl_into_py_gene!(FloatGene, Float);
+impl_into_py_gene!(FloatGene<f64>, Float);
 impl_into_py_gene!(IntGene<i64>, Int);
 impl_into_py_gene!(BitGene, Bit);
 impl_into_py_gene!(CharGene, Char);

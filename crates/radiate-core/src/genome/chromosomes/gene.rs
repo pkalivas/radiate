@@ -95,12 +95,16 @@ pub trait NumericGene: Gene
 where
     Self::Allele: NumericAllele,
 {
-    fn allele_as_f32(&self) -> Option<f32> {
-        self.allele().cast_as_f32()
+    fn set_allele_from_f64(&mut self, value: f64) {
+        *self.allele_mut() = Self::Allele::from_f64(value);
     }
 
-    fn allele_as_i32(&self) -> Option<i32> {
-        self.allele().cast_as_i32()
+    fn set_allele_from_f32(&mut self, value: f32) {
+        *self.allele_mut() = Self::Allele::from_f32(value);
+    }
+
+    fn set_allele_from_i32(&mut self, value: i32) {
+        *self.allele_mut() = Self::Allele::from_i32(value);
     }
 }
 

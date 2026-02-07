@@ -30,7 +30,7 @@ fn main() {
     plot_front(front);
 }
 
-fn plot_front(front: &Front<Phenotype<FloatChromosome>>) {
+fn plot_front(front: &Front<Phenotype<FloatChromosome<f32>>>) {
     let mut x = vec![];
     let mut y = vec![];
     let mut z = vec![];

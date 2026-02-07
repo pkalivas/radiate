@@ -1,7 +1,7 @@
 use radiate_core::*;
 
 #[allow(dead_code)]
-pub fn float_population(num: usize) -> Population<FloatChromosome> {
+pub fn float_population(num: usize) -> Population<FloatChromosome<f32>> {
     let mut population = Vec::with_capacity(num);
 
     for i in 0..num {
@@ -17,7 +17,7 @@ pub fn float_population(num: usize) -> Population<FloatChromosome> {
 }
 
 #[allow(dead_code)]
-pub fn random_float_population(num: usize) -> Population<FloatChromosome> {
+pub fn random_float_population(num: usize) -> Population<FloatChromosome<f32>> {
     let mut population = Vec::with_capacity(num);
 
     for _ in 0..num {

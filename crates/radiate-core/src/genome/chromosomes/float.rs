@@ -3,21 +3,128 @@ use super::{
     gene::{ArithmeticGene, BoundedGene, Gene, Valid},
 };
 use crate::random_provider;
+use rand::distr::uniform::SampleUniform;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::{Debug, Display},
-    ops::{Add, Div, Mul, Range, Sub},
+    ops::{Add, Div, Mul, Neg, Range, Sub},
 };
+
+pub trait Float:
+    Copy
+    + Clone
+    + PartialOrd
+    + Debug
+    + PartialEq
+    + SampleUniform
+    + Display
+    + Default
+    + Add<Output = Self>
+    + Sub<Output = Self>
+    + Mul<Output = Self>
+    + Div<Output = Self>
+    + Neg<Output = Self>
+{
+    const MIN: Self;
+    const MAX: Self;
+    const ZERO: Self;
+    const ONE: Self;
+    const TWO: Self;
+    const EPS: Self;
+    const HALF: Self;
+
+    fn is_finite(self) -> bool;
+    fn sanitize(self) -> Self;
+    fn from_f64(value: f64) -> Self;
+    fn from_f32(value: f32) -> Self;
+
+    fn abs(self) -> Self {
+        if self < Self::ZERO { -self } else { self }
+    }
+
+    fn clamp(self, min: Self, max: Self) -> Self {
+        if self < min {
+            min
+        } else if self > max {
+            max
+        } else {
+            self
+        }
+    }
+
+    fn min(self, other: Self) -> Self {
+        if self < other { self } else { other }
+    }
+    fn max(self, other: Self) -> Self {
+        if self > other { self } else { other }
+    }
+}
+
+#[macro_export]
+macro_rules! impl_float_scalar {
+    ($t:ty, $min:expr, $max:expr, $eps:expr) => {
+        impl Float for $t {
+            const MIN: Self = $min;
+            const MAX: Self = $max;
+            const ZERO: Self = 0.0;
+            const ONE: Self = 1.0;
+            const TWO: Self = 2.0;
+            const HALF: Self = 0.5;
+            const EPS: Self = $eps;
+
+            fn from_f64(value: f64) -> Self {
+                value as Self
+            }
+
+            fn from_f32(value: f32) -> Self {
+                value as Self
+            }
+
+            fn is_finite(self) -> bool {
+                <$t>::is_finite(self)
+            }
+
+            fn sanitize(self) -> Self {
+                if self.is_finite() { self } else { Self::EPS }
+            }
+        }
+    };
+}
+
+impl_float_scalar!(f32, -1e18_f32, 1e18_f32, 1e-6_f32);
+impl_float_scalar!(f64, -1e100_f64, 1e100_f64, 1e-12_f64);
+
+#[inline]
+pub fn safe_div<T: Float>(num: T, den: T) -> T {
+    let den = if den.sanitize() == T::ZERO {
+        return num.sanitize();
+    } else {
+        den.sanitize()
+    };
+
+    (num.sanitize() / den).sanitize()
+}
+
+#[inline]
+pub fn safe_add<T: Float>(a: T, b: T) -> T {
+    (a.sanitize() + b.sanitize()).sanitize()
+}
+
+#[inline]
+pub fn safe_sub<T: Float>(a: T, b: T) -> T {
+    (a.sanitize() - b.sanitize()).sanitize()
+}
+
+#[inline]
+pub fn safe_mul<T: Float>(a: T, b: T) -> T {
+    (a.sanitize() * b.sanitize()).sanitize()
+}
 
 /// Minimum and maximum values for the [FloatGene] allele.
 /// This should be large enough to cover most practical use cases
 /// but small enough to avoid overflow or underflow issues in calculations.
 /// 1e18 = 1 quintillion
-const MIN: f32 = -1e18;
-const MAX: f32 = 1e18;
-const ZERO: f32 = 0.0;
-const ONE: f32 = 1.0;
 
 /// A [`Gene`] that represents a floating point number.
 /// The `allele` is the in the case of the [`FloatGene`] a f32. The `min` and `max` values
@@ -42,19 +149,19 @@ const ONE: f32 = 1.0;
 /// ```
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct FloatGene {
-    allele: f32,
-    value_range: Range<f32>,
-    bounds: Range<f32>,
+pub struct FloatGene<F: Float> {
+    allele: F,
+    value_range: Range<F>,
+    bounds: Range<F>,
 }
 
-impl FloatGene {
+impl<F: Float> FloatGene<F> {
     /// Creates a new [`FloatGene`] with the given `allele`, `value_range`, and `bounds`.
-    pub fn new(allele: f32, value_range: Range<f32>, bounds: Range<f32>) -> Self {
+    pub fn new(allele: F, value_range: Range<F>, bounds: Range<F>) -> Self {
         FloatGene {
             allele,
-            value_range: MIN.max(value_range.start)..MAX.min(value_range.end),
-            bounds: MIN.max(bounds.start)..MAX.min(bounds.end),
+            value_range: value_range.start.max(F::MIN)..value_range.end.min(F::MAX),
+            bounds: bounds.start.max(F::MIN)..bounds.end.min(F::MAX),
         }
     }
 }
@@ -64,24 +171,24 @@ impl FloatGene {
 /// The `is_valid` method checks if the `allele` of the [`FloatGene`] is between the `min` and `max` values.
 /// The `GeneticEngine` will check the validity of the [`Chromosome`] and `Phenotype` and remove any
 /// invalid individuals from the population, replacing them with new individuals at the given generation.
-impl Valid for FloatGene {
+impl<F: Float> Valid for FloatGene<F> {
     fn is_valid(&self) -> bool {
         self.allele >= self.bounds.start && self.allele <= self.bounds.end
     }
 }
 
-impl Gene for FloatGene {
-    type Allele = f32;
+impl<F: Float> Gene for FloatGene<F> {
+    type Allele = F;
 
-    fn allele(&self) -> &f32 {
+    fn allele(&self) -> &F {
         &self.allele
     }
 
-    fn allele_mut(&mut self) -> &mut f32 {
+    fn allele_mut(&mut self) -> &mut F {
         &mut self.allele
     }
 
-    fn new_instance(&self) -> FloatGene {
+    fn new_instance(&self) -> FloatGene<F> {
         FloatGene {
             allele: random_provider::range(self.value_range.clone()),
             value_range: self.value_range.clone(),
@@ -89,7 +196,7 @@ impl Gene for FloatGene {
         }
     }
 
-    fn with_allele(&self, allele: &f32) -> FloatGene {
+    fn with_allele(&self, allele: &F) -> FloatGene<F> {
         FloatGene {
             allele: *allele,
             value_range: self.value_range.clone(),
@@ -98,7 +205,7 @@ impl Gene for FloatGene {
     }
 }
 
-impl BoundedGene for FloatGene {
+impl<F: Float> BoundedGene for FloatGene<F> {
     fn min(&self) -> &Self::Allele {
         &self.value_range.start
     }
@@ -112,99 +219,88 @@ impl BoundedGene for FloatGene {
     }
 }
 
-impl ArithmeticGene for FloatGene {
-    fn mean(&self, other: &FloatGene) -> FloatGene {
+impl<F: Float> ArithmeticGene for FloatGene<F> {
+    fn mean(&self, other: &FloatGene<F>) -> FloatGene<F> {
         FloatGene {
-            allele: ((self.allele + other.allele) * 0.5).clamp(self.bounds.start, self.bounds.end),
+            allele: safe_mul(safe_add(self.allele, other.allele), F::ONE / F::TWO)
+                .clamp(self.bounds.start, self.bounds.end),
             value_range: self.value_range.clone(),
             bounds: self.bounds.clone(),
         }
     }
 }
 
-impl Add for FloatGene {
-    type Output = FloatGene;
+impl<F: Float> Add for FloatGene<F> {
+    type Output = FloatGene<F>;
 
-    fn add(self, other: FloatGene) -> FloatGene {
+    fn add(self, other: FloatGene<F>) -> FloatGene<F> {
         FloatGene {
-            allele: (self.allele + other.allele).clamp(self.bounds.start, self.bounds.end),
+            allele: safe_add(self.allele, other.allele).clamp(self.bounds.start, self.bounds.end),
             value_range: self.value_range.clone(),
             bounds: self.bounds.clone(),
         }
     }
 }
 
-impl Sub for FloatGene {
-    type Output = FloatGene;
+impl<F: Float> Sub for FloatGene<F> {
+    type Output = FloatGene<F>;
 
-    fn sub(self, other: FloatGene) -> FloatGene {
+    fn sub(self, other: FloatGene<F>) -> FloatGene<F> {
         FloatGene {
-            allele: (self.allele - other.allele).clamp(self.bounds.start, self.bounds.end),
+            allele: safe_sub(self.allele, other.allele).clamp(self.bounds.start, self.bounds.end),
             value_range: self.value_range.clone(),
             bounds: self.bounds.clone(),
         }
     }
 }
 
-impl Mul for FloatGene {
-    type Output = FloatGene;
+impl<F: Float> Mul for FloatGene<F> {
+    type Output = FloatGene<F>;
 
-    fn mul(self, other: FloatGene) -> FloatGene {
+    fn mul(self, other: FloatGene<F>) -> FloatGene<F> {
         FloatGene {
-            allele: (self.allele * other.allele).clamp(self.bounds.start, self.bounds.end),
+            allele: safe_mul(self.allele, other.allele).clamp(self.bounds.start, self.bounds.end),
             value_range: self.value_range.clone(),
             bounds: self.bounds.clone(),
         }
     }
 }
 
-impl Div for FloatGene {
-    type Output = FloatGene;
+impl<F: Float> Div for FloatGene<F> {
+    type Output = FloatGene<F>;
 
-    fn div(self, other: FloatGene) -> FloatGene {
-        let denominator = if other.allele == ZERO {
-            ONE
-        } else {
-            other.allele
-        };
-
+    fn div(self, other: FloatGene<F>) -> FloatGene<F> {
         FloatGene {
-            allele: (self.allele / denominator).clamp(self.bounds.start, self.bounds.end),
+            allele: safe_div(self.allele, other.allele).clamp(self.bounds.start, self.bounds.end),
             value_range: self.value_range.clone(),
             bounds: self.bounds.clone(),
         }
     }
 }
 
-impl Default for FloatGene {
+impl<F: Float> Default for FloatGene<F> {
     fn default() -> Self {
         FloatGene {
-            allele: ZERO,
-            value_range: MIN..MAX,
-            bounds: MIN..MAX,
+            allele: F::ZERO,
+            value_range: F::MIN..F::MAX,
+            bounds: F::MIN..F::MAX,
         }
     }
 }
 
-impl From<FloatGene> for f32 {
-    fn from(gene: FloatGene) -> f32 {
-        gene.allele
-    }
-}
-
-impl From<f32> for FloatGene {
-    fn from(allele: f32) -> Self {
+impl<F: Float> From<F> for FloatGene<F> {
+    fn from(allele: F) -> Self {
         FloatGene {
             allele,
-            value_range: MIN..MAX,
-            bounds: MIN..MAX,
+            value_range: F::MIN..F::MAX,
+            bounds: F::MIN..F::MAX,
         }
     }
 }
 
-impl From<Range<f32>> for FloatGene {
-    fn from(range: Range<f32>) -> Self {
-        let (min, max) = (range.start.max(MIN), range.end.min(MAX));
+impl<F: Float> From<Range<F>> for FloatGene<F> {
+    fn from(range: Range<F>) -> Self {
+        let (min, max) = (range.start.max(F::MIN), range.end.min(F::MAX));
 
         FloatGene {
             allele: random_provider::range(range),
@@ -214,10 +310,10 @@ impl From<Range<f32>> for FloatGene {
     }
 }
 
-impl From<(Range<f32>, Range<f32>)> for FloatGene {
-    fn from((value_range, bounds): (Range<f32>, Range<f32>)) -> Self {
-        let value_range = value_range.start.max(MIN)..value_range.end.min(MAX);
-        let bounds = bounds.start.max(MIN)..bounds.end.min(MAX);
+impl<F: Float> From<(Range<F>, Range<F>)> for FloatGene<F> {
+    fn from((value_range, bounds): (Range<F>, Range<F>)) -> Self {
+        let value_range = value_range.start.max(F::MIN)..value_range.end.min(F::MAX);
+        let bounds = bounds.start.max(F::MIN)..bounds.end.min(F::MAX);
         let allele = random_provider::range(value_range.clone());
 
         FloatGene {
@@ -228,7 +324,7 @@ impl From<(Range<f32>, Range<f32>)> for FloatGene {
     }
 }
 
-impl Display for FloatGene {
+impl<F: Float> Display for FloatGene<F> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.allele)
     }
@@ -274,18 +370,18 @@ impl Display for FloatGene {
 ///```
 #[derive(Clone, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct FloatChromosome {
-    genes: Vec<FloatGene>,
+pub struct FloatChromosome<F: Float> {
+    genes: Vec<FloatGene<F>>,
 }
 
-impl FloatChromosome {
-    pub fn new(genes: Vec<FloatGene>) -> Self {
+impl<F: Float> FloatChromosome<F> {
+    pub fn new(genes: Vec<FloatGene<F>>) -> Self {
         FloatChromosome { genes }
     }
 }
 
-impl Chromosome for FloatChromosome {
-    type Gene = FloatGene;
+impl<F: Float> Chromosome for FloatChromosome<F> {
+    type Gene = FloatGene<F>;
 
     fn genes(&self) -> &[Self::Gene] {
         &self.genes
@@ -296,42 +392,42 @@ impl Chromosome for FloatChromosome {
     }
 }
 
-impl Valid for FloatChromosome {
+impl<F: Float> Valid for FloatChromosome<F> {
     fn is_valid(&self) -> bool {
         self.genes.iter().all(|gene| gene.is_valid())
     }
 }
 
-impl From<FloatGene> for FloatChromosome {
-    fn from(gene: FloatGene) -> Self {
+impl<F: Float> From<FloatGene<F>> for FloatChromosome<F> {
+    fn from(gene: FloatGene<F>) -> Self {
         FloatChromosome { genes: vec![gene] }
     }
 }
 
-impl From<Vec<FloatGene>> for FloatChromosome {
-    fn from(genes: Vec<FloatGene>) -> Self {
+impl<F: Float> From<Vec<FloatGene<F>>> for FloatChromosome<F> {
+    fn from(genes: Vec<FloatGene<F>>) -> Self {
         FloatChromosome { genes }
     }
 }
 
-impl From<Vec<f32>> for FloatChromosome {
-    fn from(alleles: Vec<f32>) -> Self {
+impl<F: Float> From<Vec<F>> for FloatChromosome<F> {
+    fn from(alleles: Vec<F>) -> Self {
         FloatChromosome {
             genes: alleles.into_iter().map(FloatGene::from).collect(),
         }
     }
 }
 
-impl From<(usize, Range<f32>)> for FloatChromosome {
-    fn from((size, range): (usize, Range<f32>)) -> Self {
+impl<F: Float> From<(usize, Range<F>)> for FloatChromosome<F> {
+    fn from((size, range): (usize, Range<F>)) -> Self {
         FloatChromosome {
             genes: (0..size).map(|_| FloatGene::from(range.clone())).collect(),
         }
     }
 }
 
-impl From<(usize, Range<f32>, Range<f32>)> for FloatChromosome {
-    fn from((size, range, bounds): (usize, Range<f32>, Range<f32>)) -> Self {
+impl<F: Float> From<(usize, Range<F>, Range<F>)> for FloatChromosome<F> {
+    fn from((size, range, bounds): (usize, Range<F>, Range<F>)) -> Self {
         FloatChromosome {
             genes: (0..size)
                 .map(|_| FloatGene::from((range.clone(), bounds.clone())))
@@ -340,24 +436,24 @@ impl From<(usize, Range<f32>, Range<f32>)> for FloatChromosome {
     }
 }
 
-impl FromIterator<FloatGene> for FloatChromosome {
-    fn from_iter<I: IntoIterator<Item = FloatGene>>(iter: I) -> Self {
+impl<F: Float> FromIterator<FloatGene<F>> for FloatChromosome<F> {
+    fn from_iter<I: IntoIterator<Item = FloatGene<F>>>(iter: I) -> Self {
         FloatChromosome {
             genes: iter.into_iter().collect(),
         }
     }
 }
 
-impl IntoIterator for FloatChromosome {
-    type Item = FloatGene;
-    type IntoIter = std::vec::IntoIter<FloatGene>;
+impl<F: Float> IntoIterator for FloatChromosome<F> {
+    type Item = FloatGene<F>;
+    type IntoIter = std::vec::IntoIter<FloatGene<F>>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.genes.into_iter()
     }
 }
 
-impl Debug for FloatChromosome {
+impl<F: Float> Debug for FloatChromosome<F> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self.genes)
     }
@@ -367,6 +463,9 @@ impl Debug for FloatChromosome {
 mod tests {
 
     use super::*;
+
+    const MIN: f32 = -1e18;
+    const MAX: f32 = 1e18;
 
     #[test]
     fn test_new() {
@@ -391,14 +490,6 @@ mod tests {
         assert_eq!(*gene_three.max(), MAX);
         assert_eq!(gene_three.bounds().0, &-1000.0);
         assert_eq!(gene_three.bounds().1, &1000.0);
-    }
-
-    #[test]
-    fn test_into() {
-        let gene = FloatGene::from(0_f32..1_f32);
-        let copy = gene.clone();
-        let allele: f32 = gene.into();
-        assert_eq!(allele, copy.allele);
     }
 
     #[test]
@@ -508,14 +599,15 @@ mod tests {
         assert!(gene.is_valid());
 
         let serialized = serde_json::to_string(&gene).expect("Failed to serialize FloatGene");
-        let deserialized: FloatGene =
+        let deserialized: FloatGene<f32> =
             serde_json::from_str(&serialized).expect("Failed to deserialize FloatGene");
 
         let chromosome = FloatChromosome::from((10, 0.0..1.0, -1.0..1.0));
         let serialized_chromosome =
             serde_json::to_string(&chromosome).expect("Failed to serialize FloatChromosome");
-        let deserialized_chromosome: FloatChromosome = serde_json::from_str(&serialized_chromosome)
-            .expect("Failed to deserialize FloatChromosome");
+        let deserialized_chromosome: FloatChromosome<f32> =
+            serde_json::from_str(&serialized_chromosome)
+                .expect("Failed to deserialize FloatChromosome");
 
         assert_eq!(gene, deserialized);
         assert_eq!(chromosome, deserialized_chromosome);
@@ -524,7 +616,7 @@ mod tests {
 
 //
 // TODO: Figure out if it is worth it to make FloatGene generic over float types
-//
+
 // use rand::distr::uniform::SampleUniform;
 //
 // pub trait Float:
