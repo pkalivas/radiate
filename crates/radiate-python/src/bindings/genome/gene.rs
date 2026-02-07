@@ -8,8 +8,9 @@ use std::collections::HashMap;
 
 #[derive(Clone, Debug, PartialEq)]
 enum GeneInner {
-    Float(FloatGene<f64>),
     Int(IntGene<i64>),
+
+    Float(FloatGene<f64>),
     Bit(BitGene),
     Char(CharGene),
     Permutation(PermutationGene<usize>),

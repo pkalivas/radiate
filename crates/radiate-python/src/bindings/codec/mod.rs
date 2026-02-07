@@ -16,6 +16,7 @@ pub use float::PyFloatCodec;
 pub use graph::PyGraphCodec;
 pub use int::PyIntCodec;
 pub use permutation::PyPermutationCodec;
+use pyo3::exceptions::PyValueError;
 pub use tree::PyTreeCodec;
 
 use numpy::{Element, PyArray, PyArray1, PyArrayMethods};
@@ -88,7 +89,7 @@ pub(super) fn decode_genotype_to_array<'py, C, G, A>(
 where
     C: Chromosome<Gene = G>,
     G: Gene<Allele = A>,
-    A: Element + IntoPyObject<'py> + Copy,
+    A: Element + IntoPyObject<'py> + Copy + Default,
 {
     let lengths = genotype
         .iter()
@@ -99,14 +100,19 @@ where
         let values = genotype
             .iter()
             .next()
-            .map(|chrom| chrom.iter().map(|gene| *gene.allele()).collect::<Vec<A>>())
-            .unwrap_or_default();
+            .map(|chrom| chrom.iter().map(|gene| *gene.allele()));
+
+        let Some(values) = values else {
+            return Err(PyValueError::new_err(
+                "Genotype has one chromosome, but it is empty. Cannot decode to array.",
+            ));
+        };
 
         let is_square = lengths.iter().all(|&len| len == lengths[0]);
 
         if is_square && use_numpy {
             return match lengths.len() {
-                1 => Ok(PyArray1::from_vec(py, values).into_any()),
+                1 => Ok(PyArray1::from_iter(py, values).into_any()),
                 _ => Ok(PyArray::from_iter(py, values)
                     .reshape([lengths.len(), lengths[0]])?
                     .into_any()),
@@ -121,11 +127,10 @@ where
     if use_numpy && is_square {
         let values = genotype
             .iter()
-            .flat_map(|chrom| chrom.iter().map(|gene| *gene.allele()))
-            .collect::<Vec<A>>();
+            .flat_map(|chrom| chrom.iter().map(|gene| *gene.allele()));
 
         return match lengths.len() {
-            1 => Ok(PyArray1::from_vec(py, values).into_any()),
+            1 => Ok(PyArray1::from_iter(py, values).into_any()),
             _ => Ok(PyArray::from_iter(py, values)
                 .reshape([lengths.len(), lengths[0]])?
                 .into_any()),
