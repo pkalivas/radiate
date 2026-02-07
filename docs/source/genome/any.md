@@ -5,7 +5,7 @@ Although radiate provides a variety of built-in gene types, you can create your 
 
 `AnyGene` follows how [polars](https://docs.pola.rs) handles custom data types by using a generic `Any` type. This means that you can create genes that hold any type of data you want, as long as its a valid python object.
 
-Simply inherit from `rd.AnyGene` and implement the necessary methods such as `__init__`, `__repr__`, and any other methods you may need for your specific use case.
+Simply inherit from `rd.AnyGene` and implement the `__init__` function, then any other methods you may need for your specific use case.
 
 === ":fontawesome-brands-python: Python"
 
@@ -22,6 +22,9 @@ Simply inherit from `rd.AnyGene` and implement the necessary methods such as `__
             self.date = datetime(2020, 1, 1, tzinfo=timezone.utc)
 
         def __repr__(self):
+            """
+            Not required, but useful for debugging
+            """
             return f"ObjectGene(number={self.number}, date={self.date})"
 
     def fitness_function(phenotypes: list[list[ObjectGene]]) -> list[float]:

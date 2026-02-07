@@ -75,7 +75,7 @@ pub fn py_accuracy<'py>(
 
     let data_set = DataSet::new(features, targets);
     let loss = match loss {
-        Some(loss_name) => match loss_name.as_str() {
+        Some(loss_name) => match loss_name.to_lowercase().trim() {
             crate::names::MSE_LOSS => Loss::MSE,
             crate::names::MAE_LOSS => Loss::MAE,
             crate::names::CROSS_ENTROPY_LOSS => Loss::CrossEntropy,

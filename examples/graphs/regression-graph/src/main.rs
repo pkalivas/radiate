@@ -16,8 +16,6 @@ fn main() {
         .codec(GraphCodec::directed(1, 1, store))
         .raw_fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
-        // .diversity(NeatDistance::new(0.1, 0.1, 0.3))
-        .species_threshold(0.4)
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
@@ -27,7 +25,6 @@ fn main() {
 
     radiate::ui(engine)
         .iter()
-        // .logging()
         .until_score(MIN_SCORE)
         .last()
         .inspect(display);
@@ -61,3 +58,6 @@ fn dataset() -> impl Into<DataSet<f32>> {
 fn compute(x: f32) -> f32 {
     4.0 * x.powf(3.0) - 3.0 * x.powf(2.0) + x
 }
+
+// .diversity(NeatDistance::new(0.1, 0.1, 0.3))
+// .species_threshold(0.4)

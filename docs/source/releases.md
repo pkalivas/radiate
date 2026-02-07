@@ -13,6 +13,8 @@ I split up some functionality into a new crate radiate-utils and have added a ne
 
 **[Full Changelog](https://github.com/pkalivas/radiate/compare/v1.2.19...v1.2.20)**
 
+---
+
 ## v1.2.19 - py 0.0.9
 
 - 2025-11-11
@@ -30,6 +32,8 @@ Brining metrics to the forefront in python.
 
 **[Full Changelog](https://github.com/pkalivas/radiate/compare/v1.2.18...v1.2.19)**
 
+---
+
 ## v1.2.18 - py 0.0.8
 
 - 2025-09-27
@@ -43,6 +47,8 @@ Added three new types of graphs:
 - **GRU** (Gated Recurrent Unit) Graphs: Similar to LSTMs, GRUs are a type of RNN that are simpler and often more efficient.
 - **Mesh** Graphs: Graphs structured in a mesh topology.
 
+---
+
 ## v1.2.17 - py 0.0.7
 
 - 2025-09-04
@@ -54,6 +60,8 @@ Ensuring that FloatGenes/IntGene<T>'s respect their bounds during mutation and c
 
 Also adding new mutator: `JitterMutator` for FloatGenes. This mutator adds a small random value (jitter) to each gene, controlled by a `magnitude` parameter.
 
+---
+
 ## v1.2.16
 
 - 2025-08-19
@@ -62,6 +70,8 @@ Also adding new mutator: `JitterMutator` for FloatGenes. This mutator adds a sma
 In response to github issue [#22](https://github.com/pkalivas/radiate/issues/22).
 
 Adding support for batch fitness functions and batch engine problems through a new trait (BatchFitnessFn). Some small cleanup on other fitness functions and some chromosome operators.
+
+---
 
 ## v1.2.15 - py 0.0.6
 
@@ -77,6 +87,7 @@ New alters:
 
 Added code path in alters for dynamic mutation/crossover rates. This is in early dev, but an be seen in PolynomialMutator.
 
+---
 
 ## v1.2.14 - py 0.0.4
 

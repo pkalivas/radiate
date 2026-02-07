@@ -69,7 +69,7 @@ macro_rules! impl_integer {
 
                 fn sat_div(self, rhs: Self) -> Self {
                     if rhs == Self::ZERO {
-                        self.saturating_div(Self::ONE)
+                        self
                     } else {
                         self.saturating_div(rhs)
                     }

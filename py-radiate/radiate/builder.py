@@ -11,8 +11,9 @@ from .inputs.selector import SelectorBase
 from .inputs.alterer import AlterBase
 from .inputs.distance import DistanceBase
 from .inputs.executor import Executor
-from .fitness import CallableFitness
+from .fitness import CallableFitness, Regression
 from .genome import GeneType
+from .dependancies import _GIL_ENABLED
 
 
 class EngineBuilder:
@@ -20,16 +21,16 @@ class EngineBuilder:
         self,
         gene_type: GeneType,
         codec: CodecBase,
-        problem: FitnessBase,
+        fitness: FitnessBase,
     ):
         self._inputs = []
         self._gene_type = gene_type
         self._codec = codec
 
-        if isinstance(problem, Callable):
-            self.fitness = CallableFitness(problem)
+        if isinstance(fitness, Callable):
+            self.fitness = CallableFitness(fitness)
         else:
-            self.fitness = problem
+            self.fitness = fitness
 
     def __repr__(self):
         input_strs = ", \n".join(repr(inp) for inp in self._inputs)
@@ -267,6 +268,8 @@ class EngineBuilder:
 
     def set_executor(self, executor: Executor):
         if executor is None:
+            executor = Executor.Serial()
+        elif not isinstance(self.fitness, Regression) and _GIL_ENABLED:
             executor = Executor.Serial()
 
         self._inputs.append(

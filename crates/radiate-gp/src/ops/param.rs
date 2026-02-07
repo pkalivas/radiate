@@ -4,12 +4,12 @@ use std::fmt::Debug;
 #[derive(Hash, Clone)]
 pub struct Param<T> {
     data: T,
-    supplier: fn(&T) -> T,
+    supplier: fn() -> T,
     modifier: fn(&mut T),
 }
 
 impl<T> Param<T> {
-    pub fn new(data: T, supplier: fn(&T) -> T, modifier: fn(&mut T)) -> Self {
+    pub fn new(data: T, supplier: fn() -> T, modifier: fn(&mut T)) -> Self {
         Param {
             data,
             supplier,
@@ -25,7 +25,7 @@ impl<T> Param<T> {
         &mut self.data
     }
 
-    pub fn supplier(&self) -> fn(&T) -> T {
+    pub fn supplier(&self) -> fn() -> T {
         self.supplier
     }
 
@@ -36,7 +36,7 @@ impl<T> Param<T> {
 
 impl<T> Factory<(), Param<T>> for Param<T> {
     fn new_instance(&self, _: ()) -> Param<T> {
-        let data = (self.supplier)(&self.data);
+        let data = (self.supplier)();
         Param {
             data,
             supplier: self.supplier,
@@ -52,7 +52,7 @@ where
     fn default() -> Self {
         Param {
             data: T::default(),
-            supplier: |_| T::default(),
+            supplier: || T::default(),
             modifier: |_| {},
         }
     }

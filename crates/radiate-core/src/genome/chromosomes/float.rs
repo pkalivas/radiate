@@ -16,6 +16,8 @@ use std::{
 /// 1e18 = 1 quintillion
 const MIN: f32 = -1e18;
 const MAX: f32 = 1e18;
+const ZERO: f32 = 0.0;
+const ONE: f32 = 1.0;
 
 /// A [`Gene`] that represents a floating point number.
 /// The `allele` is the in the case of the [`FloatGene`] a f32. The `min` and `max` values
@@ -160,8 +162,8 @@ impl Div for FloatGene {
     type Output = FloatGene;
 
     fn div(self, other: FloatGene) -> FloatGene {
-        let denominator = if other.allele == 0.0 {
-            1.0
+        let denominator = if other.allele == ZERO {
+            ONE
         } else {
             other.allele
         };
@@ -177,7 +179,7 @@ impl Div for FloatGene {
 impl Default for FloatGene {
     fn default() -> Self {
         FloatGene {
-            allele: 0.0,
+            allele: ZERO,
             value_range: MIN..MAX,
             bounds: MIN..MAX,
         }

@@ -20,22 +20,22 @@ pub enum Op<T> {
     /// 1) A stateless function operation:
     ///
     /// # Arguments
-    ///    - A `&'static str` name (e.g., "Add", "Sigmoid")
-    ///    - Arity (how many inputs it takes)
-    ///    - Arc<dyn Fn(&`\[`T`\]`) -> T> for the actual function logic
+    /// - A `&'static str` name (e.g., "Add", "Sigmoid")
+    /// - Arity (how many inputs it takes)
+    /// - Arc<dyn Fn(&`\[`T`\]`) -> T> for the actual function logic
     Fn(&'static str, Arity, fn(&[T]) -> T),
     /// 2) A variable-like operation:
     ///
     /// # Arguments
-    ///    - `String` = a name or identifier
-    ///    - `usize` = an index to retrieve from some external context
-    ///   - `Option<usize>` = an optional domain size for categorical variables
+    /// - `String` = a name or identifier
+    /// - `usize` = an index to retrieve from some external context
+    /// - `Option<usize>` = an optional domain size for categorical variables
     Var(&'static str, usize, Option<usize>),
     /// 3) A compile-time constant: e.g., 1, 2, 3, etc.
     ///
     /// # Arguments
-    ///    - `&'static str` name
-    ///    - `T` the actual constant value
+    /// - `&'static str` name
+    /// - `T` the actual constant value
     Const(&'static str, T),
     /// 4) A value-based operation that encapsulates data and an operation to process it.
     ///
