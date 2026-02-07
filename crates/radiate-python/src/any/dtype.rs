@@ -52,7 +52,6 @@ pub enum DataType {
     Int32,
     Int64,
     Int128,
-    Float16,
     Float32,
     Float64,
     Binary,
@@ -107,7 +106,6 @@ impl DataType {
                 | D::UInt16
                 | D::UInt32
                 | D::UInt64
-                | D::Float16
                 | D::Float32
                 | D::Float64
                 | D::Binary
@@ -133,7 +131,6 @@ impl From<String> for DataType {
             "uint16" => DataType::UInt16,
             "uint32" => DataType::UInt32,
             "uint64" => DataType::UInt64,
-            "float16" => DataType::Float16,
             "float32" => DataType::Float32,
             "float64" => DataType::Float64,
             "binary" => DataType::Binary,
