@@ -17,25 +17,33 @@ use std::{fmt::Debug, sync::Arc};
 pub enum AnyValue<'a> {
     #[default]
     Null,
+
     Bool(bool),
+
     UInt8(u8),
     UInt16(u16),
     UInt32(u32),
     UInt64(u64),
-    Uint128(u128),
+    UInt128(u128),
+
     Int8(i8),
     Int16(i16),
     Int32(i32),
     Int64(i64),
     Int128(i128),
+
     Float32(f32),
     Float64(f64),
-    Binary(Vec<u8>),
+
+    Binary(&'a [u8]),
+    BinaryOwned(Vec<u8>),
     Char(char),
     Str(&'a str),
     StrOwned(String),
+
     Date(i32),
     DateTime(i64, TimeUnit, Option<Arc<TimeZone>>),
+
     Vector(Box<Vec<AnyValue<'a>>>),
     Struct(Vec<(Field, AnyValue<'a>)>),
 }
@@ -83,7 +91,7 @@ impl<'a> AnyValue<'a> {
             Self::UInt16(_) => "u16",
             Self::UInt32(_) => "u32",
             Self::UInt64(_) => "u64",
-            Self::Uint128(_) => "u128",
+            Self::UInt128(_) => "u128",
             Self::Int8(_) => "i8",
             Self::Int16(_) => "i16",
             Self::Int32(_) => "i32",
@@ -98,6 +106,7 @@ impl<'a> AnyValue<'a> {
             Self::Date(_) => "date",
             Self::DateTime(_, _, _) => "datetime",
             Self::Binary(_) => "binary",
+            Self::BinaryOwned(_) => "binary",
             Self::Struct(_) => "struct",
         }
     }
@@ -106,25 +115,32 @@ impl<'a> AnyValue<'a> {
     pub fn dtype(&self) -> DataType {
         match self {
             Self::Null => DataType::Null,
+
             Self::Bool(_) => DataType::Boolean,
+
             Self::UInt8(_) => DataType::UInt8,
             Self::UInt16(_) => DataType::UInt16,
             Self::UInt32(_) => DataType::UInt32,
             Self::UInt64(_) => DataType::UInt64,
-            Self::Uint128(_) => DataType::UInt128,
+            Self::UInt128(_) => DataType::UInt128,
+
             Self::Int8(_) => DataType::Int8,
             Self::Int16(_) => DataType::Int16,
             Self::Int32(_) => DataType::Int32,
             Self::Int64(_) => DataType::Int64,
             Self::Int128(_) => DataType::Int128,
+
             Self::Float32(_) => DataType::Float32,
             Self::Float64(_) => DataType::Float64,
+
             Self::Char(_) => DataType::Char,
             Self::Str(_) => DataType::Str,
             Self::StrOwned(_) => DataType::String,
+
             Self::Date(_) => DataType::Date,
             Self::DateTime(_, _, _) => DataType::Datetime,
-            Self::Binary(_) => DataType::Binary,
+
+            Self::Binary(_) | Self::BinaryOwned(_) => DataType::Binary,
             Self::Vector(_) => DataType::Vec,
             Self::Struct(vals) => DataType::Struct(vals.iter().map(|(f, _)| f.clone()).collect()),
         }
@@ -146,7 +162,7 @@ impl<'a> AnyValue<'a> {
             UInt16(v) => UInt16(v),
             UInt32(v) => UInt32(v),
             UInt64(v) => UInt64(v),
-            Uint128(v) => Uint128(v),
+            UInt128(v) => UInt128(v),
             Bool(v) => Bool(v),
             Float32(v) => Float32(v),
             Float64(v) => Float64(v),
@@ -156,7 +172,8 @@ impl<'a> AnyValue<'a> {
             Date(v) => Date(v),
             DateTime(v, tu, tz) => DateTime(v, tu, tz),
             Vector(v) => Vector(Box::new(v.into_iter().map(AnyValue::into_static).collect())),
-            Binary(v) => Binary(v),
+            Binary(v) => BinaryOwned(v.to_vec()),
+            BinaryOwned(v) => BinaryOwned(v),
             Struct(v) => Struct(
                 v.into_iter()
                     .map(|(field, val)| (field, val.into_static()))
@@ -187,7 +204,7 @@ impl<'a> PartialEq for AnyValue<'a> {
             (Char(a), Char(b)) => a == b,
             (Str(a), Str(b)) => a == b,
             (StrOwned(a), StrOwned(b)) => a == b,
-            (Binary(a), Binary(b)) => a == b,
+            (BinaryOwned(a), BinaryOwned(b)) => a == b,
             (Date(a), Date(b)) => a == b,
             (Vector(a), Vector(b)) if a.len() == b.len() => {
                 a.iter().zip(b.iter()).all(|(x, y)| x == y)

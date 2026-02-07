@@ -230,7 +230,7 @@ pub fn mean_anyvalue(one: &AnyValue<'_>, two: &AnyValue<'_>) -> Option<AnyValue<
 
     match (one, two) {
         (Bool(x), Bool(y)) => Some(Bool(*x && *y)),
-        (Binary(x), Binary(y)) => {
+        (BinaryOwned(x), BinaryOwned(y)) => {
             let m = x.len().min(y.len());
             let mut out = Vec::with_capacity(m);
 
@@ -238,7 +238,7 @@ pub fn mean_anyvalue(one: &AnyValue<'_>, two: &AnyValue<'_>) -> Option<AnyValue<
                 out.push(((x[i] as u16 + y[i] as u16) / 2) as u8);
             }
 
-            Some(Binary(out))
+            Some(BinaryOwned(out))
         }
         (Vector(xs), Vector(ys)) => crate::value::apply_zipped_slice(xs, ys, mean_anyvalue),
         (Struct(xs), Struct(ys)) => crate::value::apply_zipped_struct_slice(xs, ys, mean_anyvalue),

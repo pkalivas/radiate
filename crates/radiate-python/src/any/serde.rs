@@ -48,7 +48,7 @@ impl AnyValueSerializable {
             AnyValueSerializable::Int128(i) => AnyValue::Int128(i),
             AnyValueSerializable::Float32(f) => AnyValue::Float32(f),
             AnyValueSerializable::Float64(f) => AnyValue::Float64(f),
-            AnyValueSerializable::Binary(b) => AnyValue::Binary(b),
+            AnyValueSerializable::Binary(b) => AnyValue::BinaryOwned(b),
             AnyValueSerializable::Char(c) => AnyValue::Char(c),
             AnyValueSerializable::Str(s) => AnyValue::StrOwned(s),
             AnyValueSerializable::StrOwned(s) => AnyValue::StrOwned(s),

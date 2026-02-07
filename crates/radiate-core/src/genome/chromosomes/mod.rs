@@ -6,24 +6,26 @@ pub mod gene;
 pub mod int;
 pub mod permutation;
 
+use std::ops::{Add, Div, Mul, Sub};
+
 pub use bit::{BitChromosome, BitGene};
 pub use char::{CharChromosome, CharGene};
 pub use chromosome::*;
 pub use float::{Float, FloatChromosome, FloatGene};
-pub use gene::{ArithmeticGene, BoundedGene, Gene, Valid};
+pub use gene::{ArithmeticGene, BoundedGene, Gene, NumericGene, Valid};
 pub use int::{IntChromosome, IntGene, Integer};
 pub use permutation::{PermutationChromosome, PermutationGene};
 
-pub trait NumericAllele {
+pub trait NumericAllele:
+    Add<Output = Self> + Sub<Output = Self> + Mul<Output = Self> + Div<Output = Self> + Clone
+{
     fn as_f32(&self) -> Option<f32>;
     fn as_f64(&self) -> Option<f64>;
-
-    fn from_f32(value: f32) -> Self;
-    fn from_f64(value: f64) -> Self;
-
     fn as_i32(&self) -> Option<i32>;
     fn as_i64(&self) -> Option<i64>;
 
+    fn from_f32(value: f32) -> Self;
+    fn from_f64(value: f64) -> Self;
     fn from_i32(value: i32) -> Self;
     fn from_i64(value: i64) -> Self;
 }
@@ -71,6 +73,7 @@ macro_rules! impl_numeric_allele {
                 fn from_i64(value: i64) -> Self {
                     value as Self
                 }
+
             }
         )*
     };

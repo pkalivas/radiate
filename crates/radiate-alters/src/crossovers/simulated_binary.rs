@@ -59,7 +59,8 @@ where
                         (v1 - v2) * F::HALF + (beta * F::HALF * (v1 - v2).abs())
                     };
 
-                    let new_gene = v.clamp(*chrom_one.get(i).min(), *chrom_one.get(i).max());
+                    let (one_min, one_max) = chrom_one.get(i).bounds();
+                    let new_gene = v.clamp(*one_min, *one_max);
 
                     count += 1;
 

@@ -40,12 +40,14 @@ where
     fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C, rate: f32) -> AlterResult {
         let mut count = 0;
 
-        for (gene_one, gene_two) in chrom_one.iter_mut().zip(chrom_two.iter()) {
-            if random_provider::bool(rate) {
-                *gene_one = gene_one.mean(gene_two);
-                count += 1;
+        random_provider::with_rng(|rand| {
+            for (gene_one, gene_two) in chrom_one.iter_mut().zip(chrom_two.iter()) {
+                if rand.bool(rate) {
+                    *gene_one = gene_one.mean(gene_two);
+                    count += 1;
+                }
             }
-        }
+        });
 
         count.into()
     }

@@ -1,5 +1,6 @@
 use radiate_core::{
-    AlterResult, Chromosome, Crossover, Float, FloatGene, Gene, Rate, Valid, random_provider,
+    AlterResult, BoundedGene, Chromosome, Crossover, Float, FloatGene, Gene, Rate, Valid,
+    random_provider,
 };
 
 /// The [BlendCrossover] is a crossover operator that blends [FloatGene] alleles from two parent chromosomes to create offspring.
@@ -50,8 +51,8 @@ where
         random_provider::with_rng(|rand| {
             for i in 0..std::cmp::min(chrom_one.len(), chrom_two.len()) {
                 if rand.bool(rate) {
-                    let gene_one = chrom_one.get(i);
-                    let gene_two = chrom_two.get(i);
+                    let gene_one = chrom_one.get_mut(i);
+                    let gene_two = chrom_two.get_mut(i);
 
                     let allele_one = gene_one.allele().clone();
                     let allele_two = gene_two.allele().clone();
@@ -59,8 +60,11 @@ where
                     let new_allele_one = allele_one - (alpha * (allele_two - allele_one));
                     let new_allele_two = allele_two - (alpha * (allele_one - allele_two));
 
-                    chrom_one.set(i, gene_one.with_allele(&new_allele_one));
-                    chrom_two.set(i, gene_two.with_allele(&new_allele_two));
+                    let (one_min, one_max) = gene_one.bounds();
+                    let (two_min, two_max) = gene_two.bounds();
+
+                    *gene_one.allele_mut() = new_allele_one.clamp(*one_min, *one_max);
+                    *gene_two.allele_mut() = new_allele_two.clamp(*two_min, *two_max);
 
                     cross_count += 1;
                 }
@@ -81,14 +85,14 @@ mod tests {
         let crossover = BlendCrossover::new(1.0, 0.5);
 
         let genes1 = vec![
-            FloatGene::new(1.0, 0.0..10.0, 0.0..10.0),
-            FloatGene::new(2.0, 0.0..10.0, 0.0..10.0),
-            FloatGene::new(3.0, 0.0..10.0, 0.0..10.0),
+            FloatGene::new(1.0, 0.0..10.0, -10.0..10.0),
+            FloatGene::new(2.0, 0.0..10.0, -10.0..10.0),
+            FloatGene::new(3.0, 0.0..10.0, -10.0..10.0),
         ];
         let genes2 = vec![
-            FloatGene::new(4.0, 0.0..10.0, 0.0..10.0),
-            FloatGene::new(5.0, 0.0..10.0, 0.0..10.0),
-            FloatGene::new(6.0, 0.0..10.0, 0.0..10.0),
+            FloatGene::new(4.0, 0.0..10.0, -10.0..10.0),
+            FloatGene::new(5.0, 0.0..10.0, -10.0..10.0),
+            FloatGene::new(6.0, 0.0..10.0, -10.0..10.0),
         ];
 
         let mut chrom_one = FloatChromosome::new(genes1);
@@ -215,12 +219,12 @@ mod tests {
         let crossover = BlendCrossover::new(1.0, 1.0);
 
         let genes1 = vec![
-            FloatGene::new(1.0, 0.0..10.0, 0.0..10.0),
-            FloatGene::new(2.0, 0.0..10.0, 0.0..10.0),
+            FloatGene::new(1.0, 0.0..10.0, -10.0..10.0),
+            FloatGene::new(2.0, 0.0..10.0, -10.0..10.0),
         ];
         let genes2 = vec![
-            FloatGene::new(4.0, 0.0..10.0, 0.0..10.0),
-            FloatGene::new(5.0, 0.0..10.0, 0.0..10.0),
+            FloatGene::new(4.0, 0.0..10.0, -10.0..10.0),
+            FloatGene::new(5.0, 0.0..10.0, -10.0..10.0),
         ];
 
         let mut chrom_one = FloatChromosome::new(genes1);
@@ -269,7 +273,7 @@ mod tests {
                     FloatGene::new(
                         random_provider::random::<f32>() * 10.0,
                         0.0..10.0,
-                        0.0..10.0,
+                        -10.0..10.0,
                     )
                 })
                 .collect();
@@ -278,7 +282,7 @@ mod tests {
                     FloatGene::new(
                         random_provider::random::<f32>() * 10.0,
                         0.0..10.0,
-                        0.0..10.0,
+                        -10.0..10.0,
                     )
                 })
                 .collect();
@@ -298,8 +302,22 @@ mod tests {
                 let expected_one = original_one[i] - (alpha * (original_two[i] - original_one[i]));
                 let expected_two = original_two[i] - (alpha * (original_one[i] - original_two[i]));
 
-                assert!((chrom_one.get(i).allele() - expected_one).abs() < 1e-6);
-                assert!((chrom_two.get(i).allele() - expected_two).abs() < 1e-6);
+                let gene_one = chrom_one.get(i);
+                let gene_two = chrom_two.get(i);
+
+                if expected_one < *gene_one.bounds().0 || expected_one > *gene_one.bounds().1 {
+                    assert!(*gene_one.allele() >= *gene_one.bounds().0);
+                    assert!(*gene_one.allele() <= *gene_one.bounds().1);
+                } else {
+                    assert!((gene_one.allele() - expected_one).abs() < 1e-6);
+                }
+
+                if expected_two < *gene_two.bounds().0 || expected_two > *gene_two.bounds().1 {
+                    assert!(*gene_two.allele() >= *gene_two.bounds().0);
+                    assert!(*gene_two.allele() <= *gene_two.bounds().1);
+                } else {
+                    assert!((gene_two.allele() - expected_two).abs() < 1e-6);
+                }
             }
         }
     }
