@@ -40,7 +40,7 @@ class EngineBuilder:
         """Build the PyEngine instance."""
 
         builder = PyEngineBuilder(
-            codec=self._codec.codec,
+            codec=self._codec.__backend__(),
             problem=self.fitness.problem,
             inputs=[self_input.__backend__() for self_input in self._inputs],
         )

@@ -4,20 +4,12 @@ from radiate._typing import NodeValues
 
 from .base import CodecBase
 from radiate.gp import Op, Tree
-
+from radiate.wrapper import PyObject
 from radiate.genome import Genotype
 from radiate.radiate import PyTreeCodec
 
 
-class TreeCodec(CodecBase[Op, Tree]):
-    def encode(self) -> Genotype[Op]:
-        return Genotype.from_rust(self.codec.encode_py())
-
-    def decode(self, genotype: Genotype) -> Tree:
-        if not isinstance(genotype, Genotype):
-            raise TypeError("genotype must be an instance of Genotype.")
-        return Tree.from_rust(self.codec.decode_py(genotype=genotype.__backend__()))
-
+class TreeCodec(CodecBase[Op, Tree], PyObject[PyTreeCodec]):
     def __init__(
         self,
         shape: tuple[int, int] = (1, 1),
@@ -71,4 +63,14 @@ class TreeCodec(CodecBase[Op, Tree]):
             if leaf is not None:
                 ops_map["leaf"] = [leaf] if isinstance(leaf, Op) else leaf
 
-        self.codec = PyTreeCodec(output_size, min_depth, max_size, ops_map)
+        self._pyobj = PyTreeCodec(output_size, min_depth, max_size, ops_map)
+
+    def encode(self) -> Genotype[Op]:
+        return Genotype.from_rust(self.__backend__().encode_py())
+
+    def decode(self, genotype: Genotype) -> Tree:
+        if not isinstance(genotype, Genotype):
+            raise TypeError("genotype must be an instance of Genotype.")
+        return Tree.from_rust(
+            self.__backend__().decode_py(genotype=genotype.__backend__())
+        )

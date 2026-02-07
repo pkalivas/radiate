@@ -13,7 +13,7 @@ class CodecBase[T, D](ABC):
         pass
 
     @abstractmethod
-    def decode(self, genotype: Genotype) -> D:
+    def decode(self, genotype: Genotype[T]) -> D:
         """
         Decodes a Genotype into its representation.
         :param genotype: A Genotype instance to decode.

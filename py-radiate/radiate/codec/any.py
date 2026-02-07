@@ -2,12 +2,13 @@ from typing import Iterable
 
 from radiate.genome.genotype import Genotype
 from radiate.genome.gene import AnyGene
+from radiate.wrapper import PyObject
 from radiate.radiate import PyAnyCodec
 
 from . import CodecBase
 
 
-class AnyCodec[T: AnyGene](CodecBase[T, list[T]]):
+class AnyCodec[T: AnyGene](CodecBase[T, list[T]], PyObject[PyAnyCodec]):
     def __init__(self, genes: list[T] | Iterable[T]):
         """
         Initialize the AnyCodec with encoder and decoder functions.
@@ -31,7 +32,7 @@ class AnyCodec[T: AnyGene](CodecBase[T, list[T]]):
                 raise ValueError(f"Unknown class '{cls_name}'")
             return fn(gene_dict)
 
-        self.codec = PyAnyCodec(
+        self._pyobj = PyAnyCodec(
             list(map(lambda g: g.__backend__(), values)),
             creator,
         )
@@ -41,7 +42,7 @@ class AnyCodec[T: AnyGene](CodecBase[T, list[T]]):
         Encodes the codec into a PyAnyCodec.
         :return: A PyAnyCodec instance.
         """
-        return Genotype.from_rust(self.codec.encode_py())
+        return Genotype.from_rust(self.__backend__().encode_py())
 
     def decode(self, genotype: Genotype) -> list[T]:
         """
@@ -49,4 +50,4 @@ class AnyCodec[T: AnyGene](CodecBase[T, list[T]]):
         :param genotype: A PyAnyCodec instance to decode.
         :return: The decoded representation of the PyAnyCodec.
         """
-        return self.codec.decode_py(genotype.__backend__())
+        return self.__backend__().decode_py(genotype.__backend__())

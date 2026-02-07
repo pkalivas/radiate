@@ -20,10 +20,7 @@ pub use tree::PyTreeCodec;
 
 use numpy::{Element, PyArray, PyArray1, PyArrayMethods};
 use pyo3::Python;
-use pyo3::{
-    Bound, IntoPyObject, PyAny, PyResult,
-    types::{PyList, PyListMethods},
-};
+use pyo3::{Bound, IntoPyObject, PyAny, PyResult, types::PyList};
 use radiate::{Chromosome, Codec, Gene, Genotype};
 
 #[derive(Clone)]
@@ -135,21 +132,14 @@ where
         };
     }
 
-    let values = genotype
-        .iter()
-        .map(|chrom| chrom.iter().map(|gene| *gene.allele()).collect::<Vec<A>>())
-        .collect::<Vec<Vec<A>>>();
+    let result = PyList::new(
+        py,
+        genotype
+            .iter()
+            .map(|chrom| PyList::new(py, chrom.iter().map(|gene| *gene.allele())).unwrap()),
+    )?;
 
-    let outer = PyList::empty(py);
-    for chromo in values.iter() {
-        let inner = PyList::empty(py);
-        for gene in chromo.iter() {
-            inner.append(*gene).unwrap();
-        }
-        outer.append(inner).unwrap();
-    }
-
-    Ok(outer.into_any())
+    Ok(result.into_any())
 }
 
 // use numpy::{Element, PyArray, PyArray1, PyArrayMethods};

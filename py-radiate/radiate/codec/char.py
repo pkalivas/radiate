@@ -7,18 +7,48 @@ from .base import CodecBase
 
 from radiate.radiate import PyCharCodec
 from radiate.genome import Genotype
+from radiate.wrapper import PyObject
 
 
-class CharCodec[T](CodecBase[str, T]):
-    def __init__(self, codec: CharEncoding | PyCharCodec):
-        self.codec = self._create_encoding(codec)
+class CharCodec[T](CodecBase[str, T], PyObject[PyCharCodec]):
+    def __init__(
+        self,
+        shape: int | tuple[int, int] | list[int] | None = None,
+        char_set: str | list[str] = None,
+        genes: Gene[str] | list[Gene[str]] | tuple[Gene[str], ...] | None = None,
+        chromosomes: Chromosome[str]
+        | list[Chromosome[str]]
+        | tuple[Chromosome[str], ...]
+        | None = None,
+    ):
+        """
+        Initialize the char codec with number of chromosomes and value bounds.
+        :param shape: Number of chromosomes with the number of genes in each chromosome.
+        :param init_range: Range for initializing gene values.
+        :param bounds: Bounds for gene values.
+        """
+        if shape is not None:
+            if isinstance(shape, int):
+                self._pyobj = self.__vector(length=shape, char_set=char_set)
+            elif isinstance(shape, (tuple, list)):
+                self._pyobj = self.__matrix(chromosomes=shape, char_set=char_set)
+            else:
+                raise ValueError(
+                    "Shape must be an int, tuple of ints, or list of ints."
+                )
+        elif genes is not None:
+            self._pyobj = self.__from_genes(genes=genes)
+        elif chromosomes is not None:
+            self._pyobj = self.__from_chromosomes(chromosomes=chromosomes)
+        else:
+            raise ValueError("Shape must be provided.")
 
     def encode(self) -> Genotype[str]:
         """
         Encode the codec into a Genotype.
         :return: A Genotype instance.
         """
-        return Genotype.from_rust(self.codec.encode_py())
+        return Genotype.from_rust(self.__backend__().encode_py())
 
     def decode(self, genotype: Genotype[str]) -> T:
         """
@@ -28,29 +58,7 @@ class CharCodec[T](CodecBase[str, T]):
         """
         if not isinstance(genotype, Genotype):
             raise TypeError("genotype must be an instance of Genotype.")
-        return self.codec.decode_py(genotype=genotype.__backend__())
-
-    def _create_encoding(self, encoding: CharEncoding) -> PyCharCodec:
-        """
-        Create a PyFloatCodec from the provided encoding.
-        :param encoding: The input encoding to create the codec from.
-        :return: A PyFloatCodec instance.
-        """
-        if isinstance(encoding, PyCharCodec):
-            return encoding
-        elif isinstance(encoding, Gene):
-            return PyCharCodec.from_genes([encoding.__backend__()])
-        elif isinstance(encoding, Chromosome):
-            return PyCharCodec.from_chromosomes([encoding.__backend__()])
-        elif isinstance(encoding, list):
-            if all(isinstance(g, Gene) for g in encoding):
-                return PyCharCodec.from_genes([g.__backend__() for g in encoding])
-            elif all(isinstance(c, Chromosome) for c in encoding):
-                return PyCharCodec.from_chromosomes([c.__backend__() for c in encoding])
-            else:
-                raise TypeError("Invalid list type for IntCodec encoding.")
-        else:
-            raise TypeError(f"Invalid encoding type for IntCodec - {type(encoding)}.")
+        return self.__backend__().decode_py(genotype=genotype.__backend__())
 
     @staticmethod
     def from_genes(genes: list[Gene[str]] | tuple[Gene[str], ...]) -> CharCodec[str]:
@@ -59,18 +67,9 @@ class CharCodec[T](CodecBase[str, T]):
         Args:
             genes: A list or tuple of Gene instances.
         Returns:
-            A new FloatCodec instance with the specified genes.
+            A new CharCodec instance with the specified genes.
         """
-        from radiate.genome import GeneType
-
-        if not isinstance(genes, (list, tuple)):
-            raise TypeError("genes must be a list or tuple of Gene instances.")
-        if not all(g.gene_type() == GeneType.CHAR for g in genes):
-            raise TypeError("All genes must be of type 'char'.")
-
-        return CharCodec(
-            PyCharCodec.from_genes(list(map(lambda g: g.__backend__(), genes)))
-        )
+        return CharCodec(genes=genes)
 
     @staticmethod
     def from_chromosomes(
@@ -81,24 +80,9 @@ class CharCodec[T](CodecBase[str, T]):
         Args:
             chromosomes: A list or tuple of Chromosome instances.
         Returns:
-            A new FloatCodec instance with the specified chromosomes.
+            A new CharCodec instance with the specified chromosomes.
         """
-        from radiate.genome import GeneType
-
-        if not isinstance(chromosomes, (list, tuple)):
-            raise TypeError(
-                "chromosomes must be a list or tuple of Chromosome instances."
-            )
-        if not all(
-            g.gene_type() == GeneType.CHAR for c in chromosomes for g in c.genes()
-        ):
-            raise TypeError("All chromosomes must be of type 'char'.")
-
-        return CharCodec(
-            PyCharCodec.from_chromosomes(
-                list(map(lambda c: c.py_chromosome(), chromosomes))
-            )
-        )
+        return CharCodec(chromosomes=chromosomes)
 
     @staticmethod
     def matrix(
@@ -112,6 +96,104 @@ class CharCodec[T](CodecBase[str, T]):
             char_set: A string or list of strings representing the character set.
         Returns:
             A new CharCodec instance with matrix configuration.
+
+        Example
+        --------
+        >>> rd.CharCodec.matrix(chromosomes=[5, 5], char_set="01")
+        CharCodec(...)
+        """
+        return CharCodec(shape=chromosomes, char_set=char_set)
+
+    @staticmethod
+    def vector(length: int, char_set: str | list[str] = None) -> CharCodec[list[str]]:
+        """
+        Initialize the char codec with a single chromosome of specified length.
+        Args:
+            length: Length of the chromosome.
+            char_set: Character set to use for encoding.
+        Returns:
+            A new CharCodec instance with vector configuration.
+
+        Example
+        --------
+        >>> rd.CharCodec.vector(length=5, char_set="01")
+        CharCodec(...)
+        """
+        return CharCodec(shape=length, char_set=char_set)
+
+    @staticmethod
+    def __from_genes(genes: list[Gene[str]] | tuple[Gene[str], ...]) -> CharCodec[str]:
+        """
+        Create a codec for a single chromosome with specified genes.
+        Args:
+            genes: A list or tuple of Gene instances.
+        Returns:
+            A new CharCodec instance with the specified genes.
+        """
+        from radiate.genome import GeneType
+
+        if not isinstance(genes, (list, tuple)):
+            raise TypeError("genes must be a list or tuple of Gene instances.")
+        if not all(g.gene_type() == GeneType.CHAR for g in genes):
+            raise TypeError("All genes must be of type 'char'.")
+
+        return PyCharCodec.from_genes(list(map(lambda g: g.__backend__(), genes)))
+
+    @staticmethod
+    def __from_chromosomes(
+        chromosomes: list[Chromosome[str]] | tuple[Chromosome[str], ...],
+    ) -> PyCharCodec:
+        """
+        Create a codec for multiple chromosomes.
+        Args:
+            chromosomes: A list or tuple of Chromosome instances.
+        Returns:
+            A new PyCharCodec instance with the specified chromosomes.
+        """
+        from radiate.genome import GeneType
+
+        if not isinstance(chromosomes, (list, tuple)):
+            raise TypeError(
+                "chromosomes must be a list or tuple of Chromosome instances."
+            )
+        if not all(
+            g.gene_type() == GeneType.CHAR for c in chromosomes for g in c.genes()
+        ):
+            raise TypeError("All chromosomes must be of type 'char'.")
+
+        return PyCharCodec.from_chromosomes(
+            list(map(lambda c: c.py_chromosome(), chromosomes))
+        )
+
+    @staticmethod
+    def __vector(length: int, char_set: str | list[str] = None) -> PyCharCodec:
+        """
+        Initialize the char codec with a single chromosome of specified length.
+        Args:
+            length: Length of the chromosome.
+            char_set: Character set to use for encoding.
+        Returns:
+            A new PyCharCodec instance with vector configuration.
+
+        Example
+        --------
+        >>> rd.CharCodec.vector(length=5, char_set="01")
+        CharCodec(...)
+        """
+        return PyCharCodec.vector(length, char_set)
+
+    @staticmethod
+    def __matrix(
+        chromosomes: list[int] | tuple[int, int],
+        char_set: str | list[str] = None,
+    ) -> PyCharCodec:
+        """
+        Initialize the char codec with number of chromosomes and value bounds.
+        Args:
+            chromosomes: A list of integers specifying the lengths of each chromosome.
+            char_set: A string or list of strings representing the character set.
+        Returns:
+            A new PyCharCodec instance with matrix configuration.
 
         Example
         --------
@@ -137,21 +219,4 @@ class CharCodec[T](CodecBase[str, T]):
                         "Character set must be a string or list of single-character strings."
                     )
 
-        return CharCodec(PyCharCodec.matrix(chromosomes, char_set))
-
-    @staticmethod
-    def vector(length: int, char_set: str | list[str] = None) -> CharCodec[list[str]]:
-        """
-        Initialize the char codec with a single chromosome of specified length.
-        Args:
-            length: Length of the chromosome.
-            char_set: Character set to use for encoding.
-        Returns:
-            A new CharCodec instance with vector configuration.
-
-        Example
-        --------
-        >>> rd.CharCodec.vector(length=5, char_set="01")
-        CharCodec(...)
-        """
-        return CharCodec(PyCharCodec.vector(length, char_set))
+        return PyCharCodec.matrix(chromosomes, char_set)

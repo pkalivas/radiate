@@ -25,7 +25,7 @@ def fitness(solution: np.ndarray) -> float:
 
 
 engine = rd.GeneticEngine(
-    codec=rd.FloatCodec.vector(len(function_inputs), (-4.0, 4.0), use_numpy=True),
+    codec=rd.FloatCodec(len(function_inputs), (-4.0, 4.0), use_numpy=True),
     fitness_func=fitness,
     objective="min",
 )
