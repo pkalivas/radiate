@@ -40,6 +40,8 @@ pub trait Integer:
     fn sat_mul(self, rhs: Self) -> Self;
     fn sat_div(self, rhs: Self) -> Self;
     fn clamp(self, min: Self, max: Self) -> Self;
+    fn from_i64(value: i64) -> Self;
+    fn as_i64(self) -> i64;
 }
 
 #[macro_export]
@@ -83,6 +85,20 @@ macro_rules! impl_integer {
                     } else {
                         self
                     }
+                }
+
+                fn from_i64(value: i64) -> Self {
+                    if value < Self::MIN as i64 {
+                        Self::MIN
+                    } else if value > Self::MAX as i64 {
+                        Self::MAX
+                    } else {
+                        value as Self
+                    }
+                }
+
+                fn as_i64(self) -> i64 {
+                    self as i64
                 }
             }
         )*

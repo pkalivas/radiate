@@ -132,11 +132,11 @@ impl PyFloatCodec {
         PyFloatCodec {
             codec: PyCodec::new()
                 .with_encoder(move || {
-                    Genotype::from(vec![FloatChromosome::from((
+                    Genotype::from(FloatChromosome::from((
                         length,
                         val_range.clone(),
                         bound_range.clone(),
-                    ))])
+                    )))
                 })
                 .with_decoder(move |py, geno| PyAnyObject {
                     inner: super::decode_genotype_to_array(py, geno, use_numpy)
@@ -158,11 +158,11 @@ impl PyFloatCodec {
         PyFloatCodec {
             codec: PyCodec::new()
                 .with_encoder(move || {
-                    Genotype::from(vec![FloatChromosome::from((
+                    Genotype::from(FloatChromosome::from((
                         1,
                         val_range.clone(),
                         bound_range.clone(),
-                    ))])
+                    )))
                 })
                 .with_decoder(|py, geno| {
                     let val = geno

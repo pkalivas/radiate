@@ -10,7 +10,7 @@ pub(crate) mod value;
 use cell::GILOnceCell;
 use chrono::{DateTime, Datelike, FixedOffset, NaiveDate, NaiveDateTime, TimeDelta, TimeZone};
 use chrono_tz::Tz;
-pub use dtype::Field;
+pub use dtype::*;
 pub use gene::{AnyChromosome, AnyGene};
 use radiate::RadiateError;
 pub use value::AnyValue;
