@@ -18,7 +18,7 @@ class Gene[T](PyObject[PyGene]):
         return instance
 
     def __repr__(self):
-        return f"{self.gene_type().value}({self.allele()})"
+        return f"{self.gene_type().value}({self.allele()}, dtype={self.dtype()})"
 
     def gene_type(self) -> "GeneType":
         """

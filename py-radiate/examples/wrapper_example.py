@@ -41,5 +41,7 @@ print(f"UInt8 min: {rd.UInt8.min()}")
 print(f"UInt8 type: {rd.UInt8}")
 print(f"numpy uint8: {np.uint8()}")
 
-temp = rd.gene.float(init_range=(-1.0, 1.0), dtype=rd.Float32)
+temp = rd.gene.float(init_range=(-1.0, 1.0), dtype=rd.Float64)
 np_temp = rd.gene.float(init_range=(-1.0, 1.0), dtype=np.float32)
+
+print(temp)

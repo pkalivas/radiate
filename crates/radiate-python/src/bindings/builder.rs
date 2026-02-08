@@ -1,4 +1,4 @@
-use crate::bindings::codec::PyTreeCodec;
+use crate::bindings::codec::{PyTreeCodec, TypedNumericCodec};
 use crate::bindings::{EngineBuilderHandle, EngineHandle};
 use crate::events::PyEventHandler;
 use crate::{
@@ -28,8 +28,16 @@ macro_rules! dispatch_builder_typed {
     (@do $builder:expr, $call:expr) => {{
         use EngineBuilderHandle::*;
         match $builder {
-            Int(b) => $call(b).map(Int),
-            Float(b) => $call(b).map(Float),
+            UInt8(b) => $call(b).map(UInt8),
+            UInt16(b) => $call(b).map(UInt16),
+            UInt32(b) => $call(b).map(UInt32),
+            UInt64(b) => $call(b).map(UInt64),
+            Int8(b) => $call(b).map(Int8),
+            Int16(b) => $call(b).map(Int16),
+            Int32(b) => $call(b).map(Int32),
+            Int64(b) => $call(b).map(Int64),
+            Float32(b) => $call(b).map(Float32),
+            Float64(b) => $call(b).map(Float64),
             Char(b) => $call(b).map(Char),
             Bit(b) => $call(b).map(Bit),
             Permutation(b) => $call(b).map(Permutation),
@@ -76,8 +84,16 @@ impl PyEngineBuilder {
         }
 
         Ok(PyEngine::new(match inner {
-            Int(builder) => EngineHandle::Int(builder.try_build()?),
-            Float(builder) => EngineHandle::Float(builder.try_build()?),
+            UInt8(builder) => EngineHandle::UInt8(builder.try_build()?),
+            UInt16(builder) => EngineHandle::UInt16(builder.try_build()?),
+            UInt32(builder) => EngineHandle::UInt32(builder.try_build()?),
+            UInt64(builder) => EngineHandle::UInt64(builder.try_build()?),
+            Int8(builder) => EngineHandle::Int8(builder.try_build()?),
+            Int16(builder) => EngineHandle::Int16(builder.try_build()?),
+            Int32(builder) => EngineHandle::Int32(builder.try_build()?),
+            Int64(builder) => EngineHandle::Int64(builder.try_build()?),
+            Float32(builder) => EngineHandle::Float32(builder.try_build()?),
+            Float64(builder) => EngineHandle::Float64(builder.try_build()?),
             Char(builder) => EngineHandle::Char(builder.try_build()?),
             Bit(builder) => EngineHandle::Bit(builder.try_build()?),
             Any(builder) => EngineHandle::Any(builder.try_build()?),
@@ -422,9 +438,28 @@ impl PyEngineBuilder {
         }
 
         let builder = if let Ok(float_codec) = codec.extract::<PyFloatCodec>() {
-            Float(Self::new_builder(fitness, float_codec.codec, executor))
+            match float_codec.codec {
+                TypedNumericCodec::F32(c) => Float32(Self::new_builder(fitness, c, executor)),
+                TypedNumericCodec::F64(c) => Float64(Self::new_builder(fitness, c, executor)),
+                _ => {
+                    radiate_py_bail!("Unsupported float codec type for custom fitness function");
+                }
+            }
         } else if let Ok(int_codec) = codec.extract::<PyIntCodec>() {
-            Int(Self::new_builder(fitness, int_codec.codec, executor))
+            match int_codec.codec {
+                TypedNumericCodec::U8(c) => UInt8(Self::new_builder(fitness, c, executor)),
+                TypedNumericCodec::U16(c) => UInt16(Self::new_builder(fitness, c, executor)),
+                TypedNumericCodec::U32(c) => UInt32(Self::new_builder(fitness, c, executor)),
+                TypedNumericCodec::U64(c) => UInt64(Self::new_builder(fitness, c, executor)),
+                TypedNumericCodec::I8(c) => Int8(Self::new_builder(fitness, c, executor)),
+                TypedNumericCodec::I16(c) => Int16(Self::new_builder(fitness, c, executor)),
+                TypedNumericCodec::I32(c) => Int32(Self::new_builder(fitness, c, executor)),
+                TypedNumericCodec::I64(c) => Int64(Self::new_builder(fitness, c, executor)),
+                _ => {
+                    radiate_py_bail!("Unsupported integer codec type for custom fitness function");
+                }
+            }
+            // Int64(Self::new_builder(fitness, int_codec.codec, executor))
         } else if let Ok(char_codec) = codec.extract::<PyCharCodec>() {
             Char(Self::new_builder(fitness, char_codec.codec, executor))
         } else if let Ok(bit_codec) = codec.extract::<PyBitCodec>() {
@@ -505,9 +540,27 @@ impl PyEngineBuilder {
         }
 
         let builder = if let Ok(float_codec) = codec.extract::<PyFloatCodec>() {
-            Float(Self::new_builder(fitness, float_codec.codec, executor))
+            match float_codec.codec {
+                TypedNumericCodec::F32(c) => Float32(Self::new_builder(fitness, c, executor)),
+                TypedNumericCodec::F64(c) => Float64(Self::new_builder(fitness, c, executor)),
+                _ => {
+                    radiate_py_bail!("Unsupported float codec type for novelty search problem");
+                }
+            }
         } else if let Ok(int_codec) = codec.extract::<PyIntCodec>() {
-            Int(Self::new_builder(fitness, int_codec.codec, executor))
+            match int_codec.codec {
+                TypedNumericCodec::U8(c) => UInt8(Self::new_builder(fitness, c, executor)),
+                TypedNumericCodec::U16(c) => UInt16(Self::new_builder(fitness, c, executor)),
+                TypedNumericCodec::U32(c) => UInt32(Self::new_builder(fitness, c, executor)),
+                TypedNumericCodec::U64(c) => UInt64(Self::new_builder(fitness, c, executor)),
+                TypedNumericCodec::I8(c) => Int8(Self::new_builder(fitness, c, executor)),
+                TypedNumericCodec::I16(c) => Int16(Self::new_builder(fitness, c, executor)),
+                TypedNumericCodec::I32(c) => Int32(Self::new_builder(fitness, c, executor)),
+                TypedNumericCodec::I64(c) => Int64(Self::new_builder(fitness, c, executor)),
+                _ => {
+                    radiate_py_bail!("Unsupported integer codec type for novelty search problem");
+                }
+            }
         } else if let Ok(char_codec) = codec.extract::<PyCharCodec>() {
             Char(Self::new_builder(fitness, char_codec.codec, executor))
         } else if let Ok(bit_codec) = codec.extract::<PyBitCodec>() {

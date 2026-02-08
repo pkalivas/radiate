@@ -1,4 +1,5 @@
 use crate::{DataType, Field, time_unit::TimeUnit, time_zone::TimeZone};
+use num_traits::NumCast;
 use serde::{Deserialize, Serialize};
 use std::{fmt::Debug, sync::Arc};
 
@@ -168,6 +169,24 @@ impl<'a> AnyValue<'a> {
                     .map(|(field, val)| (field, val.into_static()))
                     .collect(),
             ),
+        }
+    }
+
+    pub fn extract<T: NumCast>(self) -> Option<T> {
+        match self {
+            AnyValue::UInt8(v) => NumCast::from(v),
+            AnyValue::UInt16(v) => NumCast::from(v),
+            AnyValue::UInt32(v) => NumCast::from(v),
+            AnyValue::UInt64(v) => NumCast::from(v),
+            AnyValue::UInt128(v) => NumCast::from(v),
+            AnyValue::Int8(v) => NumCast::from(v),
+            AnyValue::Int16(v) => NumCast::from(v),
+            AnyValue::Int32(v) => NumCast::from(v),
+            AnyValue::Int64(v) => NumCast::from(v),
+            AnyValue::Int128(v) => NumCast::from(v),
+            AnyValue::Float32(v) => NumCast::from(v),
+            AnyValue::Float64(v) => NumCast::from(v),
+            _ => None,
         }
     }
 }

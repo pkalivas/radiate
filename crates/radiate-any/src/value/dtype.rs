@@ -193,39 +193,46 @@ impl From<String> for DataType {
 
 impl Display for DataType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let s = match self {
-            DataType::Null => dtype_names::NULL,
+        match self {
+            DataType::Null => write!(f, "{}", dtype_names::NULL)?,
 
-            DataType::UInt8 => dtype_names::UINT8,
-            DataType::UInt16 => dtype_names::UINT16,
-            DataType::UInt32 => dtype_names::UINT32,
-            DataType::UInt64 => dtype_names::UINT64,
-            DataType::UInt128 => dtype_names::UINT128,
+            DataType::UInt8 => write!(f, "{}", dtype_names::UINT8)?,
+            DataType::UInt16 => write!(f, "{}", dtype_names::UINT16)?,
+            DataType::UInt32 => write!(f, "{}", dtype_names::UINT32)?,
+            DataType::UInt64 => write!(f, "{}", dtype_names::UINT64)?,
+            DataType::UInt128 => write!(f, "{}", dtype_names::UINT128)?,
 
-            DataType::Int8 => dtype_names::INT8,
-            DataType::Int16 => dtype_names::INT16,
-            DataType::Int32 => dtype_names::INT32,
-            DataType::Int64 => dtype_names::INT64,
-            DataType::Int128 => dtype_names::INT128,
+            DataType::Int8 => write!(f, "{}", dtype_names::INT8)?,
+            DataType::Int16 => write!(f, "{}", dtype_names::INT16)?,
+            DataType::Int32 => write!(f, "{}", dtype_names::INT32)?,
+            DataType::Int64 => write!(f, "{}", dtype_names::INT64)?,
+            DataType::Int128 => write!(f, "{}", dtype_names::INT128)?,
 
-            DataType::Float32 => dtype_names::FLOAT32,
-            DataType::Float64 => dtype_names::FLOAT64,
+            DataType::Float32 => write!(f, "{}", dtype_names::FLOAT32)?,
+            DataType::Float64 => write!(f, "{}", dtype_names::FLOAT64)?,
 
-            DataType::Usize => dtype_names::USIZE,
+            DataType::Usize => write!(f, "{}", dtype_names::USIZE)?,
 
-            DataType::Boolean => dtype_names::BOOLEAN,
-            DataType::Binary => dtype_names::BINARY,
+            DataType::Boolean => write!(f, "{}", dtype_names::BOOLEAN)?,
+            DataType::Binary => write!(f, "{}", dtype_names::BINARY)?,
 
-            DataType::Char => dtype_names::CHAR,
-            DataType::Str | DataType::String => dtype_names::STRING,
+            DataType::Char => write!(f, "{}", dtype_names::CHAR)?,
+            DataType::Str | DataType::String => write!(f, "{}", dtype_names::STRING)?,
 
-            DataType::Date | DataType::Datetime | DataType::DatetimeOwned => "datetime",
+            DataType::Date | DataType::Datetime | DataType::DatetimeOwned => write!(f, "datetime")?,
 
-            DataType::Vec => dtype_names::VEC,
-            DataType::Struct(_) => "struct",
-
-            DataType::Unknown => "unknown",
+            DataType::Vec => write!(f, "{}", dtype_names::VEC)?,
+            DataType::Struct(vals) => write!(
+                f,
+                "struct({})",
+                vals.iter()
+                    .map(|f| format!("{}", f.name.clone()))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )?,
+            DataType::Unknown => write!(f, "unknown")?,
         };
-        write!(f, "{}", s)
+
+        Ok(())
     }
 }

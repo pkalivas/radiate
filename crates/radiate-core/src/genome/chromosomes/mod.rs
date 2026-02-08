@@ -73,8 +73,8 @@ macro_rules! impl_numeric_allele {
                 fn from_i64(value: i64) -> Self {
                     value as Self
                 }
-
             }
+
         )*
     };
 }

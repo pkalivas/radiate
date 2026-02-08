@@ -30,8 +30,19 @@ macro_rules! impl_input_transform_for {
     };
 }
 
+impl_input_transform_for!(IntChromosome<u8>, int_alterers);
+impl_input_transform_for!(IntChromosome<u16>, int_alterers);
+impl_input_transform_for!(IntChromosome<u32>, int_alterers);
+impl_input_transform_for!(IntChromosome<u64>, int_alterers);
+
+impl_input_transform_for!(IntChromosome<i8>, int_alterers);
+impl_input_transform_for!(IntChromosome<i16>, int_alterers);
+impl_input_transform_for!(IntChromosome<i32>, int_alterers);
 impl_input_transform_for!(IntChromosome<i64>, int_alterers);
+
+impl_input_transform_for!(FloatChromosome<f32>, float_alterers);
 impl_input_transform_for!(FloatChromosome<f64>, float_alterers);
+
 impl_input_transform_for!(CharChromosome, char_alterers);
 impl_input_transform_for!(BitChromosome, bit_alterers);
 impl_input_transform_for!(PermutationChromosome<usize>, perm_alterers);
