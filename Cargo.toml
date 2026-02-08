@@ -85,6 +85,7 @@ crossterm = "0.29"
 ratatui = { version = "0.29", default-features = false, features = ["crossterm"] }
 tui-piechart = "0.2.8"
 color-eyre = "0.6.3"
+num-traits = "0.2.19"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.22", features = ["env-filter", "fmt"] }
 radiate = { version = "1.2.20", path = "crates/radiate", default-features = false }
@@ -98,4 +99,5 @@ radiate-python = { version = "1.2.20", path = "crates/radiate-python", default-f
 radiate-utils = { version = "1.2.20", path = "crates/radiate-utils", default-features = false }
 radiate-ui = { version = "1.2.20", path = "crates/radiate-ui", default-features = false }
 radiate-pgm = { version = "1.2.20", path = "crates/radiate-pgm", default-features = false }
+radiate-any = { version = "1.2.20", path = "crates/radiate-any", default-features = false }
 

@@ -10,27 +10,23 @@ pub use bit::{BitChromosome, BitGene};
 pub use char::{CharChromosome, CharGene};
 pub use chromosome::*;
 pub use float::{FloatChromosome, FloatGene};
-pub use gene::{ArithmeticGene, BoundedGene, Gene, Valid};
-pub use int::{IntChromosome, IntGene, Integer};
+pub use gene::{ArithmeticGene, BoundedGene, Gene, NumericGene, Valid};
+pub use int::{IntChromosome, IntGene};
+use num_traits::NumCast;
 pub use permutation::{PermutationChromosome, PermutationGene};
+use radiate_utils::Primitive;
 
-pub trait NumericAllele {
-    fn cast_as_f32(&self) -> Option<f32>;
-    fn cast_as_i32(&self) -> Option<i32>;
+pub trait NumericAllele: Primitive {
+    fn extract<T: NumCast>(self) -> Option<T> {
+        T::from(self)
+    }
 }
 
 macro_rules! impl_numeric_allele {
     ($($t:ty),*) => {
         $(
-            impl NumericAllele for $t {
-                fn cast_as_f32(&self) -> Option<f32> {
-                    Some(*self as f32)
-                }
+            impl NumericAllele for $t {}
 
-                fn cast_as_i32(&self) -> Option<i32> {
-                    Some(*self as i32)
-                }
-            }
         )*
     };
 }
@@ -41,6 +37,7 @@ macro_rules! impl_valid {
     ($($t:ty),*) => {
         $(
             impl Valid for $t {
+                #[inline]
                 fn is_valid(&self) -> bool {
                     true
                 }

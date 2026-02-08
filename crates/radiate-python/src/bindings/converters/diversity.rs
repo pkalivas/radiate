@@ -2,11 +2,14 @@ use crate::{AnyChromosome, InputTransform, PyEngineInput};
 use radiate::{
     BitChromosome, CharChromosome, CosineDistance, Diversity, EuclideanDistance, FloatChromosome,
     GraphChromosome, HammingDistance, IntChromosome, NeatDistance, Op, PermutationChromosome,
-    TreeChromosome,
+    TreeChromosome, chromosomes::NumericAllele,
 };
+use radiate_utils::{Float, Integer};
 
-impl InputTransform<Option<Box<dyn Diversity<IntChromosome<i64>>>>> for PyEngineInput {
-    fn transform(&self) -> Option<Box<dyn Diversity<IntChromosome<i64>>>> {
+impl<I: Integer + NumericAllele> InputTransform<Option<Box<dyn Diversity<IntChromosome<I>>>>>
+    for PyEngineInput
+{
+    fn transform(&self) -> Option<Box<dyn Diversity<IntChromosome<I>>>> {
         match self.component.as_str() {
             crate::names::HAMMING_DISTANCE => Some(Box::new(HammingDistance)),
             crate::names::EUCLIDEAN_DISTANCE => Some(Box::new(EuclideanDistance)),
@@ -16,8 +19,10 @@ impl InputTransform<Option<Box<dyn Diversity<IntChromosome<i64>>>>> for PyEngine
     }
 }
 
-impl InputTransform<Option<Box<dyn Diversity<FloatChromosome>>>> for PyEngineInput {
-    fn transform(&self) -> Option<Box<dyn Diversity<FloatChromosome>>> {
+impl<F: Float + NumericAllele> InputTransform<Option<Box<dyn Diversity<FloatChromosome<F>>>>>
+    for PyEngineInput
+{
+    fn transform(&self) -> Option<Box<dyn Diversity<FloatChromosome<F>>>> {
         match self.component.as_str() {
             crate::names::EUCLIDEAN_DISTANCE => Some(Box::new(EuclideanDistance)),
             crate::names::HAMMING_DISTANCE => Some(Box::new(HammingDistance)),

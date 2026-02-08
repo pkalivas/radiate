@@ -63,17 +63,24 @@ Radiate provides several codec types out of the box that should be able to cover
         ```python
         import radiate as rd
 
-        # For a single parameter
+
+        # scalar codec that decodes to a single float
+        codec = rd.FloatCodec(init_range=(-1.0, 1.0), bounds=(-10.0, 10.0)) 
+        # -- or --
         codec = rd.FloatCodec.scalar(init_range=(0.0, 1.0), bounds=(-10.0, 10.0))
 
-        # For a list of parameters
+        # vector codec that decodes to a np.ndarray
+        codec = rd.FloatCodec(shape=5, init_range=(-1.0, 1.0), bounds=(-10.0, 10.0), use_numpy=True)  
+        # -- or --
         codec = rd.FloatCodec.vector(length=5, init_range=(-1.0, 1.0), bounds=(-10.0, 10.0))
 
         # For a matrix of parameters (like neural network weights)
-        codec = rd.FloatCodec.matrix(shape=(3, 2), init_range=(-0.1, 0.1), bounds=(-1.0, 1.0))
+        codec = rd.FloatCodec.matrix(shape=(3, 2), init_range=(-0.1, 0.1), bounds=(-1.0, 1.0), use_numpy=True)
+        codec = rd.FloatCodec(shape=(3, 2), init_range=(-0.1, 0.1), bounds=(-1.0, 1.0))
         # -- or --
         # supply a list of shapes for jagged matrices e.g. matrix with three rows (chromosomes) and two columns (genes)
         codec = rd.FloatCodec.matrix([2, 2, 2], init_range=(-0.1, 0.1), bounds=(-1.0, 1.0))
+        codec = rd.FloatCodec([2, 2, 2], init_range=(-0.1, 0.1), bounds=(-1.0, 1.0), use_numpy=True)
         ```
 
     === ":fontawesome-brands-rust: Rust"
@@ -84,18 +91,18 @@ Radiate provides several codec types out of the box that should be able to cover
         use radiate::*;
 
         // single float parameter
-        let codec_scalar = FloatCodec::scalar(-1.0..1.0).with_bounds(-10.0..10.0); 
-        let encoded_scalar: Genotype<FloatChromosome> = codec_scalar.encode();
+        let codec_scalar: FloatCodec<f32> = FloatCodec::scalar(-1.0..1.0).with_bounds(-10.0..10.0); 
+        let encoded_scalar: Genotype<FloatChromosome<f32>> = codec_scalar.encode();
         let decoded_scalar: f32 = codec_scalar.decode(&encoded_scalar);     
 
         // vector of 5 floats
-        let codec_vector = FloatCodec::vector(5, -1.0..1.0).with_bounds(-10.0..10.0);   
-        let encoded_vector: Genotype<FloatChromosome> = codec_vector.encode();
-        let decoded_vector: Vec<f32> = codec_vector.decode(&encoded_vector);
+        let codec_vector: FloatCodec<f64> = FloatCodec::vector(5, -1.0..1.0).with_bounds(-10.0..10.0);   
+        let encoded_vector: Genotype<FloatChromosome<f64>> = codec_vector.encode();
+        let decoded_vector: Vec<f64> = codec_vector.decode(&encoded_vector);
 
         // 3x2 matrix of floats
-        let codec_matrix = FloatCodec::matrix(3, 2, -0.1..0.1).with_bounds(-1.0..1.0);  
-        let encoded_matrix: Genotype<FloatChromosome> = codec_matrix.encode();
+        let codec_matrix: FloatCodec<f32> = FloatCodec::matrix(3, 2, -0.1..0.1).with_bounds(-1.0..1.0);  
+        let encoded_matrix: Genotype<FloatChromosome<f32>> = codec_matrix.encode();
         let decoded_matrix: Vec<Vec<f32>> = codec_matrix.decode(&encoded_matrix);
         ```
 
@@ -134,18 +141,18 @@ Radiate provides several codec types out of the box that should be able to cover
         ```rust
         use radiate::*;
 
-        // single float parameter
-        let codec_scalar = IntCodec::scalar(-1..1).with_bounds(-10..10);
+        // single int parameter
+        let codec_scalar: IntCodec<i32> = IntCodec::scalar(-1..1).with_bounds(-10..10);
         let encoded_scalar: Genotype<IntChromosome<i32>> = codec_scalar.encode();
         let decoded_scalar: i32 = codec_scalar.decode(&encoded_scalar);
 
-        // vector of 5 floats - specify the int type
-        let codec_vector = IntCodec::<i128>::vector(5, -1..1).with_bounds(-10..10);
+        // vector of 5 ints - specify the int type
+        let codec_vector: IntCodec<i128> = IntCodec::<i128>::vector(5, -1..1).with_bounds(-10..10);
         let encoded_vector: Genotype<IntChromosome<i128>> = codec_vector.encode();
         let decoded_vector: Vec<i128> = codec_vector.decode(&encoded_vector);
 
-        // 3x2 matrix of floats
-        let codec_matrix = IntCodec::matrix(3, 2, -1..1).with_bounds(-10..10);
+        // 3x2 matrix of ints
+        let codec_matrix: IntCodec<i32> = IntCodec::matrix(3, 2, -1..1).with_bounds(-10..10);
         let encoded_matrix: Genotype<IntChromosome<i32>> = codec_matrix.encode();
         let decoded_matrix: Vec<Vec<i32>> = codec_matrix.decode(&encoded_matrix);
         ```

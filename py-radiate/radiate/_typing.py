@@ -23,17 +23,3 @@ type Subscriber = (
 )
 
 type NodeValues = list[Op] | Op | list[str] | str
-
-# Encodings
-type FloatEncoding = (
-    "FloatCodec" | list[Gene[float]] | Chromosome[float] | list[Chromosome[float]]
-)
-type IntEncoding = (
-    "IntCodec" | list[Gene[int]] | Chromosome[int] | list[Chromosome[int]]
-)
-type CharEncoding = (
-    "CharCodec" | list[Gene[str]] | Chromosome[str] | list[Chromosome[str]]
-)
-type BitEncoding = (
-    "BitCodec" | list[Gene[bool]] | Chromosome[bool] | list[Chromosome[bool]]
-)

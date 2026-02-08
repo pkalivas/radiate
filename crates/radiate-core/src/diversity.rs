@@ -103,10 +103,10 @@ where
         let mut total_genes = 0.0;
         for (chrom_one, chrom_two) in geno_one.iter().zip(geno_two.iter()) {
             for (gene_one, gene_two) in chrom_one.iter().zip(chrom_two.iter()) {
-                let one_as_f32 = gene_one.allele_as_f32();
-                let two_as_f32 = gene_two.allele_as_f32();
+                let one_as_f64 = gene_one.allele().extract::<f64>();
+                let two_as_f64 = gene_two.allele().extract::<f64>();
 
-                if let Some((one, two)) = one_as_f32.zip(two_as_f32) {
+                if let Some((one, two)) = one_as_f64.zip(two_as_f64) {
                     if one.is_nan() || two.is_nan() {
                         continue;
                     }
@@ -122,7 +122,7 @@ where
             return 0.0;
         }
 
-        (distance / total_genes).sqrt()
+        (distance / total_genes).sqrt() as f32
     }
 }
 
@@ -157,10 +157,10 @@ where
 
         for (chrom_one, chrom_two) in geno_one.iter().zip(geno_two.iter()) {
             for (gene_one, gene_two) in chrom_one.iter().zip(chrom_two.iter()) {
-                let one_as_f32 = gene_one.allele_as_f32();
-                let two_as_f32 = gene_two.allele_as_f32();
+                let one_as_f64 = gene_one.allele().extract::<f64>();
+                let two_as_f64 = gene_two.allele().extract::<f64>();
 
-                if let Some((one, two)) = one_as_f32.zip(two_as_f32) {
+                if let Some((one, two)) = one_as_f64.zip(two_as_f64) {
                     if one.is_nan() || two.is_nan() {
                         continue;
                     }
@@ -176,7 +176,7 @@ where
             return 1.0;
         }
 
-        1.0 - (dot_product / (norm_one.sqrt() * norm_two.sqrt()))
+        1.0 - (dot_product / (norm_one.sqrt() * norm_two.sqrt())) as f32
     }
 }
 

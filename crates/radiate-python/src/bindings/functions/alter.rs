@@ -27,7 +27,7 @@ pub fn py_alter(
 
     match gene_type {
         PyGeneType::Float => {
-            let alterer: Vec<Alterer<FloatChromosome>> = alterer.transform();
+            let alterer: Vec<Alterer<FloatChromosome<f64>>> = alterer.transform();
 
             Ok(PyPopulation::from(&alter(
                 alterer,

@@ -55,28 +55,24 @@ impl From<&Shape> for Strides {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[repr(transparent)]
-pub struct Shape {
-    dims: Arc<[usize]>,
-}
+pub struct Shape(Arc<[usize]>);
 
 impl Shape {
     pub fn new(dims: impl Into<Arc<[usize]>>) -> Self {
         let dims = dims.into();
-        Self { dims }
+        Shape(dims)
     }
 
     /// Total number of elements implied by this shape.
     /// Uses saturating multiplication to avoid overflow in release builds.
     pub fn size(&self) -> usize {
-        self.dims
-            .iter()
-            .fold(1usize, |acc, &d| acc.saturating_mul(d))
+        self.0.iter().fold(1usize, |acc, &d| acc.saturating_mul(d))
     }
 
     /// Checked total element count. Returns None on overflow.
     pub fn try_size(&self) -> Option<usize> {
         let mut acc = 1usize;
-        for &d in self.dims.iter() {
+        for &d in self.0.iter() {
             acc = acc.checked_mul(d)?;
         }
 
@@ -84,51 +80,51 @@ impl Shape {
     }
 
     pub fn dimensions(&self) -> usize {
-        self.dims.len()
+        self.0.len()
     }
 
     pub fn contains_dim(&self, dim: usize) -> bool {
-        self.dims.contains(&dim)
+        self.0.contains(&dim)
     }
 
     pub fn dim_at(&self, index: usize) -> usize {
-        self.dims[index]
+        self.0[index]
     }
 
     pub fn rank(&self) -> usize {
-        self.dims.len()
+        self.0.len()
     }
 
     pub fn is_empty(&self) -> bool {
-        self.dims.is_empty()
+        self.0.is_empty()
     }
 
     pub fn is_scalar(&self) -> bool {
-        self.dims.len() == 1 && self.dims[0] == 1
+        self.0.len() == 1 && self.0[0] == 1
     }
 
     pub fn is_vector(&self) -> bool {
-        self.dims.len() == 1
+        self.0.len() == 1
     }
 
     pub fn is_matrix(&self) -> bool {
-        self.dims.len() == 2
+        self.0.len() == 2
     }
 
     pub fn is_tensor(&self) -> bool {
-        self.dims.len() > 2
+        self.0.len() > 2
     }
 
     pub fn is_square(&self) -> bool {
-        self.dims.len() == 2 && self.dims[0] == self.dims[1]
+        self.0.len() == 2 && self.0[0] == self.0[1]
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &usize> {
-        self.dims.iter()
+        self.0.iter()
     }
 
     pub fn as_slice(&self) -> &[usize] {
-        &self.dims
+        &self.0
     }
 }
 
@@ -146,7 +142,7 @@ impl AsRef<[usize]> for Strides {
 
 impl From<&Shape> for Shape {
     fn from(shape: &Shape) -> Self {
-        Shape::new(Arc::clone(&shape.dims))
+        Shape::new(Arc::clone(&shape.0))
     }
 }
 

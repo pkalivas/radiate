@@ -118,8 +118,21 @@ macro_rules! impl_into_py_species {
     };
 }
 
-impl_into_py_species!(FloatChromosome);
+impl_into_py_species!(IntChromosome<u8>);
+impl_into_py_species!(IntChromosome<u16>);
+impl_into_py_species!(IntChromosome<u32>);
+impl_into_py_species!(IntChromosome<u64>);
+impl_into_py_species!(IntChromosome<u128>);
+
+impl_into_py_species!(IntChromosome<i8>);
+impl_into_py_species!(IntChromosome<i16>);
+impl_into_py_species!(IntChromosome<i32>);
 impl_into_py_species!(IntChromosome<i64>);
+impl_into_py_species!(IntChromosome<i128>);
+
+impl_into_py_species!(FloatChromosome<f32>);
+impl_into_py_species!(FloatChromosome<f64>);
+
 impl_into_py_species!(BitChromosome);
 impl_into_py_species!(CharChromosome);
 impl_into_py_species!(GraphChromosome<Op<f32>>);

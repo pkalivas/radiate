@@ -1,10 +1,10 @@
-use compact_str::CompactString;
-use radiate::RadiateResult;
+use radiate_core::error::RadiateResult;
+use radiate_utils::SmallStr;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TimeZone {
-    inner: CompactString,
+    inner: SmallStr,
 }
 
 impl TimeZone {
@@ -18,7 +18,7 @@ impl TimeZone {
     #[inline(always)]
     pub const unsafe fn from_static(tz: &'static str) -> Self {
         Self {
-            inner: CompactString::const_new(tz),
+            inner: SmallStr::from_static(tz),
         }
     }
 
@@ -27,7 +27,7 @@ impl TimeZone {
     /// ensuring they pass a valid timezone.
     pub unsafe fn new_unchecked(zone_str: impl Into<String>) -> Self {
         Self {
-            inner: CompactString::from(zone_str.into()),
+            inner: SmallStr::from(zone_str.into()),
         }
     }
 
@@ -36,14 +36,14 @@ impl TimeZone {
     /// If the "timezones" feature is enabled, additionally performs validation and converts to
     /// Etc/GMT form where applicable.
     #[inline]
-    pub fn opt_try_new(zone_str: Option<impl Into<CompactString>>) -> RadiateResult<Option<Self>> {
+    pub fn opt_try_new(zone_str: Option<impl Into<SmallStr>>) -> RadiateResult<Option<Self>> {
         Self::new_impl(zone_str.map(|x| x.into()))
     }
 
-    fn new_impl(zone_str: Option<CompactString>) -> RadiateResult<Option<Self>> {
+    fn new_impl(zone_str: Option<SmallStr>) -> RadiateResult<Option<Self>> {
         if zone_str.as_deref() == Some("*") {
             return Ok(Some(Self {
-                inner: CompactString::const_new("*"),
+                inner: SmallStr::from_static("*"),
             }));
         }
 
@@ -70,17 +70,17 @@ impl TimeZone {
         this.unwrap_or(&Self::UTC) == other.unwrap_or(&Self::UTC)
     }
 
-    pub fn _canonical_timezone_impl(tz: Option<CompactString>) -> Option<CompactString> {
+    pub fn _canonical_timezone_impl(tz: Option<SmallStr>) -> Option<SmallStr> {
         match tz.as_deref() {
             Some("") | None => None,
-            Some("+00:00") | Some("00:00") | Some("utc") => Some(CompactString::const_new("UTC")),
+            Some("+00:00") | Some("00:00") | Some("utc") => Some(SmallStr::from_static("UTC")),
             Some(_) => tz,
         }
     }
 
     pub fn from_chrono(tz: &chrono_tz::Tz) -> Self {
         Self {
-            inner: CompactString::from(tz.name()),
+            inner: SmallStr::from_static(tz.name()),
         }
     }
 
@@ -94,7 +94,7 @@ impl TimeZone {
 }
 
 impl std::ops::Deref for TimeZone {
-    type Target = CompactString;
+    type Target = SmallStr;
 
     fn deref(&self) -> &Self::Target {
         &self.inner

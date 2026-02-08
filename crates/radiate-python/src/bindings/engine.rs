@@ -66,8 +66,16 @@ impl PyEngine {
         }
 
         Ok(PyGeneration::new(match engine {
-            Int(eng) => EpochHandle::Int(run_engine(eng, limits, options)?),
-            Float(eng) => EpochHandle::Float(run_engine(eng, limits, options)?),
+            UInt8(eng) => EpochHandle::UInt8(run_engine(eng, limits, options)?),
+            UInt16(eng) => EpochHandle::UInt16(run_engine(eng, limits, options)?),
+            UInt32(eng) => EpochHandle::UInt32(run_engine(eng, limits, options)?),
+            UInt64(eng) => EpochHandle::UInt64(run_engine(eng, limits, options)?),
+            Int8(eng) => EpochHandle::Int8(run_engine(eng, limits, options)?),
+            Int16(eng) => EpochHandle::Int16(run_engine(eng, limits, options)?),
+            Int32(eng) => EpochHandle::Int32(run_engine(eng, limits, options)?),
+            Int64(eng) => EpochHandle::Int64(run_engine(eng, limits, options)?),
+            Float32(eng) => EpochHandle::Float32(run_engine(eng, limits, options)?),
+            Float64(eng) => EpochHandle::Float64(run_engine(eng, limits, options)?),
             Char(eng) => EpochHandle::Char(run_engine(eng, limits, options)?),
             Bit(eng) => EpochHandle::Bit(run_engine(eng, limits, options)?),
             Any(eng) => EpochHandle::Any(run_engine(eng, limits, options)?),
@@ -85,8 +93,16 @@ impl PyEngine {
             .ok_or_else(|| radiate_py_err!("Engine has already been run"))?;
 
         Ok(PyGeneration::new(match engine {
-            Int(eng) => EpochHandle::Int(eng.next()?),
-            Float(eng) => EpochHandle::Float(eng.next()?),
+            UInt8(eng) => EpochHandle::UInt8(eng.next()?),
+            UInt16(eng) => EpochHandle::UInt16(eng.next()?),
+            UInt32(eng) => EpochHandle::UInt32(eng.next()?),
+            UInt64(eng) => EpochHandle::UInt64(eng.next()?),
+            Int8(eng) => EpochHandle::Int8(eng.next()?),
+            Int16(eng) => EpochHandle::Int16(eng.next()?),
+            Int32(eng) => EpochHandle::Int32(eng.next()?),
+            Int64(eng) => EpochHandle::Int64(eng.next()?),
+            Float32(eng) => EpochHandle::Float32(eng.next()?),
+            Float64(eng) => EpochHandle::Float64(eng.next()?),
             Char(eng) => EpochHandle::Char(eng.next()?),
             Bit(eng) => EpochHandle::Bit(eng.next()?),
             Any(eng) => EpochHandle::Any(eng.next()?),

@@ -3,12 +3,12 @@ use radiate_error::Result;
 
 #[derive(Clone)]
 pub struct FunctionDiversityProblem {
-    pub codec: FloatCodec<Vec<f32>>,
+    pub codec: FloatCodec<f32, Vec<f32>>,
     pub test_inputs: Vec<f32>,
 }
 
 impl FunctionDiversityProblem {
-    pub fn new(codec: FloatCodec<Vec<f32>>, test_inputs: Vec<f32>) -> Self {
+    pub fn new(codec: FloatCodec<f32, Vec<f32>>, test_inputs: Vec<f32>) -> Self {
         Self { codec, test_inputs }
     }
 
@@ -24,22 +24,22 @@ impl FunctionDiversityProblem {
     }
 }
 
-impl Problem<FloatChromosome, Vec<f32>> for FunctionDiversityProblem {
-    fn encode(&self) -> Genotype<FloatChromosome> {
+impl Problem<FloatChromosome<f32>, Vec<f32>> for FunctionDiversityProblem {
+    fn encode(&self) -> Genotype<FloatChromosome<f32>> {
         self.codec.encode()
     }
 
-    fn decode(&self, genotype: &Genotype<FloatChromosome>) -> Vec<f32> {
+    fn decode(&self, genotype: &Genotype<FloatChromosome<f32>>) -> Vec<f32> {
         self.codec.decode(genotype)
     }
 
-    fn eval(&self, individual: &Genotype<FloatChromosome>) -> Result<Score> {
+    fn eval(&self, individual: &Genotype<FloatChromosome<f32>>) -> Result<Score> {
         let weights = self.decode(individual);
         Ok(Score::from(self.eval_raw(&weights)))
     }
 }
 
-fn calculate_diversity(population: &Population<FloatChromosome>) -> f32 {
+fn calculate_diversity(population: &Population<FloatChromosome<f32>>) -> f32 {
     let descriptors: Vec<Vec<f32>> = population
         .iter()
         .map(|individual| {
@@ -89,7 +89,7 @@ mod fitness_fn_tests {
 
         let base_population = (0..100)
             .map(|_| Phenotype::from(base_problem.encode()))
-            .collect::<Population<FloatChromosome>>();
+            .collect::<Population<FloatChromosome<f32>>>();
 
         let regular_engine = GeneticEngine::builder()
             .problem(base_problem.clone())

@@ -1,4 +1,5 @@
 use radiate_core::{BoundedGene, Chromosome, FloatGene, Gene, Mutate, Rate, random_provider};
+use radiate_utils::{Float, Primitive};
 
 // Use it when:
 // 	- You’re evolving floating-point representations (like real-valued neural nets, control parameters, orbital mechanics).
@@ -28,10 +29,10 @@ impl PolynomialMutator {
         PolynomialMutator { rate, eta }
     }
 
-    fn polynomial_mutation(&self, value: f32, min: f32, max: f32, eta: f32) -> f32 {
-        let u = random_provider::random::<f32>();
+    fn polynomial_mutation(&self, value: f64, min: f64, max: f64, eta: f64) -> f64 {
+        let u = random_provider::random::<f64>();
 
-        if (max - min).abs() < f32::EPSILON {
+        if (max - min).abs() < f64::EPSILON {
             return value;
         }
 
@@ -54,7 +55,11 @@ impl PolynomialMutator {
     }
 }
 
-impl<C: Chromosome<Gene = FloatGene>> Mutate<C> for PolynomialMutator {
+impl<F, C> Mutate<C> for PolynomialMutator
+where
+    F: Float + Primitive,
+    C: Chromosome<Gene = FloatGene<F>>,
+{
     fn rate(&self) -> Rate {
         self.rate.clone()
     }
@@ -62,15 +67,15 @@ impl<C: Chromosome<Gene = FloatGene>> Mutate<C> for PolynomialMutator {
     #[inline]
     fn mutate_gene(&self, gene: &C::Gene) -> C::Gene {
         // TODO: Should these be from the bounds?
-        let min = *gene.min();
-        let max = *gene.max();
-        let value = *gene.allele();
-        let eta = self.eta;
+        let min = gene.min().extract::<f64>().unwrap();
+        let max = gene.max().extract::<f64>().unwrap();
+        let value = gene.allele().extract::<f64>().unwrap();
+        let eta = self.eta as f64;
 
         let new_value = self.polynomial_mutation(value, min, max, eta);
 
         let clamped_value = new_value.clamp(min, max);
 
-        gene.with_allele(&clamped_value)
+        gene.with_allele(&clamped_value.extract::<F>().unwrap())
     }
 }

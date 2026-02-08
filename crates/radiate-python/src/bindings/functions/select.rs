@@ -54,8 +54,8 @@ pub fn py_select(
 
     match gene_type {
         PyGeneType::Float => {
-            let selector: Box<dyn Select<FloatChromosome>> = selector.transform();
-            let population: Population<FloatChromosome> = population.into();
+            let selector: Box<dyn Select<FloatChromosome<f64>>> = selector.transform();
+            let population: Population<FloatChromosome<f64>> = population.into();
 
             Ok(selector.select(&population, &obj, count)).map(|pop| PyPopulation::from(&pop))
         }

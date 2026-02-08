@@ -10,7 +10,7 @@ evolve solutions. The results are visualized in a 3D scatter plot.
 import matplotlib.pyplot as plt
 import radiate as rd
 import numpy as np
-from numba import jit, float32
+from numba import jit, float64, float32
 
 rd.random.seed(501)
 
@@ -19,14 +19,14 @@ objectives = 3
 k = variables - objectives + 1
 
 
-@jit(float32[:](float32[:]), nopython=True)
+@jit(float64[:](float64[:]), nopython=True)
 def dtlz_1(val: np.ndarray) -> np.ndarray:
     g_vals = val[variables - k :] - 0.5
     g = 100.0 * (k + np.sum(g_vals**2 - np.cos(20.0 * np.pi * g_vals)))
 
     base = 0.5 * (1.0 + g)
 
-    f = np.full(objectives, base, dtype=np.float32)
+    f = np.full(objectives, base, dtype=np.float64)
 
     for i in range(objectives):
         prod_end = objectives - 1 - i

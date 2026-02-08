@@ -73,7 +73,7 @@ class PyTorchNeuralNetwork:
         # Input to hidden weights
         end_idx = start_idx + self.num_weights_1
         self.weights_1 = torch.tensor(
-            weight_vector[start_idx:end_idx], dtype=torch.float32
+            weight_vector[start_idx:end_idx], dtype=torch.float64
         )
         self.weights_1 = self.weights_1.view(self.input_size, self.hidden_size)
         start_idx = end_idx
@@ -81,14 +81,14 @@ class PyTorchNeuralNetwork:
         # Hidden layer biases
         end_idx = start_idx + self.num_biases_1
         self.biases_1 = torch.tensor(
-            weight_vector[start_idx:end_idx], dtype=torch.float32
+            weight_vector[start_idx:end_idx], dtype=torch.float64
         )
         start_idx = end_idx
 
         # Hidden to output weights
         end_idx = start_idx + self.num_weights_2
         self.weights_2 = torch.tensor(
-            weight_vector[start_idx:end_idx], dtype=torch.float32
+            weight_vector[start_idx:end_idx], dtype=torch.float64
         )
         self.weights_2 = self.weights_2.view(self.hidden_size, self.output_size)
         start_idx = end_idx
@@ -96,7 +96,7 @@ class PyTorchNeuralNetwork:
         # Output layer biases
         end_idx = start_idx + self.num_biases_2
         self.biases_2 = torch.tensor(
-            weight_vector[start_idx:end_idx], dtype=torch.float32
+            weight_vector[start_idx:end_idx], dtype=torch.float64
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -138,10 +138,10 @@ class NeuralNetworkEvolver:
         """
         self.network = PyTorchNeuralNetwork(input_size, hidden_size, output_size)
         self.X = torch.tensor(
-            [[0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0]], dtype=torch.float32
+            [[0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0]], dtype=torch.float64
         )
 
-        self.y = torch.tensor([[0.0], [1.0], [1.0], [0.0]], dtype=torch.float32)
+        self.y = torch.tensor([[0.0], [1.0], [1.0], [0.0]], dtype=torch.float64)
 
     def create_fitness_function(self):
         """Create fitness function that evaluates neural network performance"""

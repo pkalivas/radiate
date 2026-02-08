@@ -4,6 +4,7 @@ from .base import CodecBase
 
 from radiate.genome import Genotype, Gene, Chromosome
 from radiate.wrapper import PyObject
+from radiate.dtype import DataType, DataTypeClass, Float64, FloatType
 
 from radiate.radiate import PyFloatCodec
 
@@ -20,6 +21,7 @@ class FloatCodec[T](CodecBase[float, T], PyObject[PyFloatCodec]):
         | tuple[Chromosome[float], ...]
         | None = None,
         use_numpy: bool = False,
+        dtype: DataTypeClass | DataType | None = None,
     ):
         """
         Initialize the float codec with number of chromosomes and value bounds.
@@ -34,6 +36,7 @@ class FloatCodec[T](CodecBase[float, T], PyObject[PyFloatCodec]):
                     init_range=init_range,
                     bounds=bounds,
                     use_numpy=use_numpy,
+                    dtype=dtype,
                 )
             elif isinstance(shape, (tuple, list)):
                 self._pyobj = self.__matrix(
@@ -41,6 +44,7 @@ class FloatCodec[T](CodecBase[float, T], PyObject[PyFloatCodec]):
                     init_range=init_range,
                     bounds=bounds,
                     use_numpy=use_numpy,
+                    dtype=dtype,
                 )
         elif genes is not None:
             self._pyobj = self.__from_genes(genes=genes, use_numpy=use_numpy)
@@ -50,7 +54,7 @@ class FloatCodec[T](CodecBase[float, T], PyObject[PyFloatCodec]):
             )
         elif shape is None and genes is None and chromosomes is None:
             self._pyobj = self.__scalar(
-                init_range=init_range, bounds=bounds, use_numpy=use_numpy
+                init_range=init_range, bounds=bounds, use_numpy=use_numpy, dtype=dtype
             )
         else:
             raise ValueError("Shape must be provided.")
@@ -108,6 +112,7 @@ class FloatCodec[T](CodecBase[float, T], PyObject[PyFloatCodec]):
         init_range: tuple[float, float] | None = None,
         bounds: tuple[float, float] | None = None,
         use_numpy: bool = False,
+        dtype: DataTypeClass | DataType | None = None,
     ) -> FloatCodec[list[list[float]]]:
         """
         Create a matrix codec with specified rows and columns.
@@ -135,6 +140,7 @@ class FloatCodec[T](CodecBase[float, T], PyObject[PyFloatCodec]):
             init_range=init_range,
             bounds=bounds,
             use_numpy=use_numpy,
+            dtype=dtype,
         )
 
     @staticmethod
@@ -143,6 +149,7 @@ class FloatCodec[T](CodecBase[float, T], PyObject[PyFloatCodec]):
         init_range: tuple[float, float] | None = None,
         bounds: tuple[float, float] | None = None,
         use_numpy: bool = False,
+        dtype: DataTypeClass | DataType | None = None,
     ) -> FloatCodec[list[float]]:
         """
         Create a vector codec with specified length.
@@ -165,12 +172,14 @@ class FloatCodec[T](CodecBase[float, T], PyObject[PyFloatCodec]):
             init_range=init_range,
             bounds=bounds,
             use_numpy=use_numpy,
+            dtype=dtype,
         )
 
     @staticmethod
     def scalar(
         init_range: tuple[float, float] | None = None,
         bounds: tuple[float, float] | None = None,
+        dtype: DataTypeClass | DataType | None = None,
     ) -> FloatCodec[float]:
         """
         Create a scalar codec.
@@ -190,6 +199,7 @@ class FloatCodec[T](CodecBase[float, T], PyObject[PyFloatCodec]):
         return FloatCodec(
             init_range=init_range,
             bounds=bounds,
+            dtype=dtype,
         )
 
     @staticmethod
@@ -197,6 +207,7 @@ class FloatCodec[T](CodecBase[float, T], PyObject[PyFloatCodec]):
         init_range: tuple[float, float] | None = None,
         bounds: tuple[float, float] | None = None,
         use_numpy: bool = False,
+        dtype: DataTypeClass | DataType | None = None,
     ) -> PyFloatCodec:
         if init_range is not None:
             if len(init_range) != 2:
@@ -209,10 +220,21 @@ class FloatCodec[T](CodecBase[float, T], PyObject[PyFloatCodec]):
             if bounds[0] >= bounds[1]:
                 raise ValueError("Minimum bound must be less than maximum bound.")
 
+        if dtype is not None:
+            if not isinstance(dtype, (DataType, DataTypeClass)):
+                raise ValueError(
+                    "dtype must be an instance of DataType or DataTypeClass."
+                )
+            if not issubclass(dtype, FloatType):
+                raise ValueError("dtype must be a float data type.")
+        else:
+            dtype = Float64  # Default to float64 if no dtype is provided
+
         return PyFloatCodec.scalar(
             value_range=init_range,
             bound_range=bounds,
             use_numpy=use_numpy,
+            dtype=str(dtype),
         )
 
     @staticmethod
@@ -221,6 +243,7 @@ class FloatCodec[T](CodecBase[float, T], PyObject[PyFloatCodec]):
         init_range: tuple[float, float] | None = None,
         bounds: tuple[float, float] | None = None,
         use_numpy: bool = False,
+        dtype: DataTypeClass | DataType | None = None,
     ) -> PyFloatCodec:
         if length <= 0:
             raise ValueError("Length must be a positive integer.")
@@ -236,11 +259,22 @@ class FloatCodec[T](CodecBase[float, T], PyObject[PyFloatCodec]):
             if bounds[0] >= bounds[1]:
                 raise ValueError("Minimum bound must be less than maximum bound.")
 
+        if dtype is not None:
+            if not isinstance(dtype, (DataType, DataTypeClass)):
+                raise ValueError(
+                    "dtype must be an instance of DataType or DataTypeClass."
+                )
+            if not issubclass(dtype, FloatType):
+                raise ValueError("dtype must be a float data type.")
+        else:
+            dtype = Float64  # Default to float64 if no dtype is provided
+
         return PyFloatCodec.vector(
             length=length,
             value_range=init_range,
             bound_range=bounds,
             use_numpy=use_numpy,
+            dtype=str(dtype),
         )
 
     @staticmethod
@@ -249,6 +283,7 @@ class FloatCodec[T](CodecBase[float, T], PyObject[PyFloatCodec]):
         init_range: tuple[float, float] | None = None,
         bounds: tuple[float, float] | None = None,
         use_numpy: bool = False,
+        dtype: DataTypeClass | DataType | None = None,
     ) -> PyFloatCodec:
         shapes = None
         if isinstance(shape, tuple):
@@ -270,11 +305,22 @@ class FloatCodec[T](CodecBase[float, T], PyObject[PyFloatCodec]):
             if bounds[0] >= bounds[1]:
                 raise ValueError("Minimum bound must be less than maximum bound.")
 
+        if dtype is not None:
+            if not isinstance(dtype, (DataType, DataTypeClass)):
+                raise ValueError(
+                    "dtype must be an instance of DataType or DataTypeClass."
+                )
+            if not issubclass(dtype, FloatType):
+                raise ValueError("dtype must be a float data type.")
+        else:
+            dtype = Float64  # Default to float64 if no dtype is provided
+
         return PyFloatCodec.matrix(
             chromosome_lengths=shapes,
             value_range=init_range,
             bound_range=bounds,
             use_numpy=use_numpy,
+            dtype=str(dtype),
         )
 
     @staticmethod

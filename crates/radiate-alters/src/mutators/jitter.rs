@@ -1,6 +1,7 @@
 use radiate_core::{
     AlterResult, BoundedGene, Chromosome, FloatGene, Gene, Mutate, Rate, Valid, random_provider,
 };
+use radiate_utils::Float;
 
 /// The `JitterMutator` is a simple mutator that adds a small random value to [FloatGene]s.
 ///
@@ -30,9 +31,10 @@ impl JitterMutator {
     }
 }
 
-impl<C> Mutate<C> for JitterMutator
+impl<F, C> Mutate<C> for JitterMutator
 where
-    C: Chromosome<Gene = FloatGene>,
+    F: Float,
+    C: Chromosome<Gene = FloatGene<F>>,
 {
     fn rate(&self) -> Rate {
         self.rate.clone()
@@ -41,12 +43,13 @@ where
     #[inline]
     fn mutate_chromosome(&self, chromosome: &mut C, rate: f32) -> AlterResult {
         let mut count = 0;
+        let mag = F::from(self.magnitude).unwrap();
 
         random_provider::with_rng(|rand| {
             for gene in chromosome.genes_mut() {
                 if rand.bool(rate) {
-                    let change = rand.range(-1.0..1.0) * self.magnitude;
-                    let new_allele = gene.allele() + change;
+                    let change = rand.range(-F::ONE..F::ONE) * mag;
+                    let new_allele = *gene.allele() + change;
                     let (min, max) = gene.bounds();
 
                     (*gene.allele_mut()) = new_allele.clamp(*min, *max);

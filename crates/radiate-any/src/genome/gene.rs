@@ -1,5 +1,5 @@
 use crate::AnyValue;
-use radiate::{ArithmeticGene, Chromosome, Gene, Valid};
+use radiate_core::{ArithmeticGene, Chromosome, Gene, Valid};
 use std::{
     collections::HashMap,
     fmt::Debug,
@@ -84,7 +84,7 @@ impl<'a> Gene for AnyGene<'a> {
 
 impl<'a> ArithmeticGene for AnyGene<'a> {
     fn mean(&self, other: &Self) -> Self {
-        if let Some(avg) = super::arithmatic::mean_anyvalue(self.allele(), other.allele()) {
+        if let Some(avg) = crate::mean_anyvalue(self.allele(), other.allele()) {
             AnyGene {
                 allele: avg,
                 factory: self.factory.clone(),

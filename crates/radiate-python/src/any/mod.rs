@@ -1,19 +1,13 @@
-mod arithmatic;
 mod cell;
-mod dtype;
-mod gene;
-mod serde;
-mod time_unit;
-mod time_zone;
 pub(crate) mod value;
 
 use cell::GILOnceCell;
 use chrono::{DateTime, Datelike, FixedOffset, NaiveDate, NaiveDateTime, TimeDelta, TimeZone};
 use chrono_tz::Tz;
-pub use dtype::Field;
-pub use gene::{AnyChromosome, AnyGene};
+pub use radiate::AnyValue;
+pub use radiate::Field;
 use radiate::RadiateError;
-pub use value::AnyValue;
+pub use radiate::{AnyChromosome, AnyGene, time_unit, time_zone};
 
 use pyo3::{
     Borrowed, Bound, IntoPyObjectExt, Py, PyAny, PyResult, PyTypeCheck, Python,
@@ -48,7 +42,7 @@ pub fn any_value_into_py_object_ref<'py, 'a>(
         UInt16(v) => v.into_bound_py_any(py),
         UInt32(v) => v.into_bound_py_any(py),
         UInt64(v) => v.into_bound_py_any(py),
-        Uint128(v) => v.into_bound_py_any(py),
+        UInt128(v) => v.into_bound_py_any(py),
         Int8(v) => v.into_bound_py_any(py),
         Int16(v) => v.into_bound_py_any(py),
         Int32(v) => v.into_bound_py_any(py),
@@ -60,7 +54,8 @@ pub fn any_value_into_py_object_ref<'py, 'a>(
         StrOwned(s) => s.into_bound_py_any(py),
         Date(v) => v.into_bound_py_any(py),
         DateTime(v, tu, tz) => datetime_to_py_object(py, *v, *tu, tz.as_deref()),
-        Binary(b) => pyo3::types::PyBytes::new(py, b).into_bound_py_any(py),
+        Binary(b) => PyBytes::new(py, b).into_bound_py_any(py),
+        BinaryOwned(b) => PyBytes::new(py, b).into_bound_py_any(py),
         Vector(v) => Ok(PyList::new(
             py,
             v.iter()
@@ -86,7 +81,7 @@ pub fn any_value_into_py_object<'py>(av: AnyValue, py: Python<'py>) -> PyResult<
         AnyValue::UInt16(v) => v.into_bound_py_any(py),
         AnyValue::UInt32(v) => v.into_bound_py_any(py),
         AnyValue::UInt64(v) => v.into_bound_py_any(py),
-        AnyValue::Uint128(v) => v.into_bound_py_any(py),
+        AnyValue::UInt128(v) => v.into_bound_py_any(py),
         AnyValue::Int8(v) => v.into_bound_py_any(py),
         AnyValue::Int16(v) => v.into_bound_py_any(py),
         AnyValue::Int32(v) => v.into_bound_py_any(py),
@@ -108,7 +103,8 @@ pub fn any_value_into_py_object<'py>(av: AnyValue, py: Python<'py>) -> PyResult<
         AnyValue::Bool(v) => v.into_bound_py_any(py),
         AnyValue::Str(v) => v.into_bound_py_any(py),
         AnyValue::StrOwned(v) => v.into_bound_py_any(py),
-        AnyValue::Binary(v) => PyBytes::new(py, &v).into_bound_py_any(py),
+        AnyValue::Binary(b) => PyBytes::new(py, b).into_bound_py_any(py),
+        AnyValue::BinaryOwned(v) => PyBytes::new(py, &v).into_bound_py_any(py),
         AnyValue::Struct(v) => {
             let dict = struct_dict(py, v.into_iter())?;
             dict.into_bound_py_any(py)
@@ -207,7 +203,7 @@ pub fn py_object_to_any_value<'a, 'py>(
 
     fn get_bytes<'py>(ob: &Bound<'py, PyAny>, _strict: bool) -> PyResult<AnyValue<'py>> {
         let value = ob.extract::<Vec<u8>>()?;
-        Ok(AnyValue::Binary(value))
+        Ok(AnyValue::BinaryOwned(value))
     }
 
     fn get_date(ob: &Bound<'_, PyAny>, _strict: bool) -> PyResult<AnyValue<'static>> {

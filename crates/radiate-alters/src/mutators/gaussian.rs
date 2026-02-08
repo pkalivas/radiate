@@ -1,6 +1,7 @@
 use radiate_core::{
     AlterResult, BoundedGene, Chromosome, FloatGene, Gene, Mutate, Rate, Valid, random_provider,
 };
+use radiate_utils::{Float, Primitive};
 
 /// The `GaussianMutator` is a simple mutator that adds a small amount of Gaussian noise to the gene.
 ///
@@ -24,7 +25,11 @@ impl GaussianMutator {
     }
 }
 
-impl<C: Chromosome<Gene = FloatGene>> Mutate<C> for GaussianMutator {
+impl<F, C> Mutate<C> for GaussianMutator
+where
+    F: Float + Primitive,
+    C: Chromosome<Gene = FloatGene<F>>,
+{
     fn rate(&self) -> Rate {
         self.rate.clone()
     }
@@ -36,16 +41,16 @@ impl<C: Chromosome<Gene = FloatGene>> Mutate<C> for GaussianMutator {
         random_provider::with_rng(|rand| {
             for gene in chromosome.genes_mut() {
                 if rand.bool(rate) {
-                    let min = *gene.min() as f64;
-                    let max = *gene.max() as f64;
+                    let min = gene.min().extract::<f64>().unwrap();
+                    let max = gene.max().extract::<f64>().unwrap();
 
                     let std_dev = (max - min) * 0.25;
-                    let value = *gene.allele() as f64;
+                    let value = gene.allele().extract::<f64>().unwrap();
 
                     let gaussian = rand.gaussian(value, std_dev);
-                    let allele = gaussian.clamp(min, max) as f32;
+                    let allele = gaussian.clamp(min, max);
 
-                    *gene.allele_mut() = allele;
+                    *gene.allele_mut() = allele.extract::<F>().unwrap();
 
                     count += 1;
                 }

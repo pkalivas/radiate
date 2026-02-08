@@ -1,7 +1,9 @@
+use radiate_utils::Integer;
+
 use super::Codec;
 use crate::genome::Gene;
 use crate::genome::genotype::Genotype;
-use crate::{Chromosome, IntChromosome, Integer};
+use crate::{Chromosome, IntChromosome};
 use std::ops::Range;
 
 /// A [Codec] for a [Genotype] of `IntGenes`. The `encode` function creates a [Genotype] with `num_chromosomes` chromosomes

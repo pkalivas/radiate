@@ -1,6 +1,6 @@
-use crate::any::{time_unit, time_zone};
+use crate::temporal::{time_unit::TimeUnit, time_zone::TimeZone};
 use crate::{AnyChromosome, AnyGene, AnyValue, Field};
-use radiate::{Chromosome, Gene};
+use radiate_core::{Chromosome, Gene};
 use serde::ser::Serializer;
 use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashMap;
@@ -27,7 +27,7 @@ enum AnyValueSerializable {
     Str(String),
     StrOwned(String),
     Date(i32),
-    DateTime(i64, time_unit::TimeUnit, Option<time_zone::TimeZone>),
+    DateTime(i64, TimeUnit, Option<TimeZone>),
     Vector(Box<Vec<AnyValueSerializable>>),
     Struct(Vec<(Field, AnyValueSerializable)>),
 }
@@ -48,7 +48,7 @@ impl AnyValueSerializable {
             AnyValueSerializable::Int128(i) => AnyValue::Int128(i),
             AnyValueSerializable::Float32(f) => AnyValue::Float32(f),
             AnyValueSerializable::Float64(f) => AnyValue::Float64(f),
-            AnyValueSerializable::Binary(b) => AnyValue::Binary(b),
+            AnyValueSerializable::Binary(b) => AnyValue::BinaryOwned(b),
             AnyValueSerializable::Char(c) => AnyValue::Char(c),
             AnyValueSerializable::Str(s) => AnyValue::StrOwned(s),
             AnyValueSerializable::StrOwned(s) => AnyValue::StrOwned(s),

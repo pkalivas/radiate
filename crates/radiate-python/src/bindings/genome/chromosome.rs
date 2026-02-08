@@ -83,8 +83,21 @@ macro_rules! impl_into_py_chromosome {
     };
 }
 
-impl_into_py_chromosome!(FloatChromosome, FloatGene);
+impl_into_py_chromosome!(IntChromosome<u8>, IntGene<u8>);
+impl_into_py_chromosome!(IntChromosome<u16>, IntGene<u16>);
+impl_into_py_chromosome!(IntChromosome<u32>, IntGene<u32>);
+impl_into_py_chromosome!(IntChromosome<u64>, IntGene<u64>);
+impl_into_py_chromosome!(IntChromosome<u128>, IntGene<u128>);
+
+impl_into_py_chromosome!(IntChromosome<i8>, IntGene<i8>);
+impl_into_py_chromosome!(IntChromosome<i16>, IntGene<i16>);
+impl_into_py_chromosome!(IntChromosome<i32>, IntGene<i32>);
 impl_into_py_chromosome!(IntChromosome<i64>, IntGene<i64>);
+impl_into_py_chromosome!(IntChromosome<i128>, IntGene<i128>);
+
+impl_into_py_chromosome!(FloatChromosome<f32>, FloatGene<f32>);
+impl_into_py_chromosome!(FloatChromosome<f64>, FloatGene<f64>);
+
 impl_into_py_chromosome!(BitChromosome, BitGene);
 impl_into_py_chromosome!(CharChromosome, CharGene);
 impl_into_py_chromosome!(GraphChromosome<Op<f32>>, GraphNode<Op<f32>>);

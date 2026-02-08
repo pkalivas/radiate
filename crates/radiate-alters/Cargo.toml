@@ -13,3 +13,4 @@ homepage = { workspace = true }
 
 [dependencies]
 radiate-core = { workspace = true }
+radiate-utils = { workspace = true }

@@ -8,7 +8,7 @@ const K: usize = VARIABLES - OBJECTIVES + 1;
 fn main() {
     random_provider::set_seed(500);
 
-    let codec = FloatCodec::vector(VARIABLES, 0_f32..1_f32).with_bounds(-100.0..100.0);
+    let codec = FloatCodec::vector(VARIABLES, 0_f32..1_f32);
 
     let engine = GeneticEngine::builder()
         .codec(codec)
@@ -30,7 +30,7 @@ fn main() {
     plot_front(front);
 }
 
-fn plot_front(front: &Front<Phenotype<FloatChromosome>>) {
+fn plot_front(front: &Front<Phenotype<FloatChromosome<f32>>>) {
     let mut x = vec![];
     let mut y = vec![];
     let mut z = vec![];
@@ -80,6 +80,8 @@ pub fn dtlz_1(values: &[f32]) -> Vec<f32> {
         }
     }
 
+    println!("Values: {:?}, Scores: {:?}", values, f);
+
     f
 }
 
@@ -119,6 +121,7 @@ pub fn dtlz_6(values: &[f32]) -> Vec<f32> {
             f[i] *= (values[aux] * theta).sin();
         }
     }
+
     f
 }
 

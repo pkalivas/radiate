@@ -33,11 +33,13 @@ A `Gene` is a wrapper around an `allele` that adds functionality which is compat
 - Perform operations on its `allele` like addition, subtraction, or mutation
 - Maintain constraints (like value ranges)
 
-Certain `Genes` have additional functionality that allows them to be manipulated in specific ways, such as the `FloatGene` and `IntGene<I>` which implement the `ArithmeticGene`. The `ArithmeticGene` trait provides methods for performing arithmetic operations on the `Gene`. Radiate provides several built-in gene types, however, you can also create custom genes to suit your specific needs. The core built-in genes include:
+Certain `Genes` have additional functionality that allows them to be manipulated in specific ways, such as the `FloatGene<F>` and `IntGene<I>` which implement the `ArithmeticGene`. The `ArithmeticGene` trait provides methods for performing arithmetic operations on the `Gene`. Radiate provides several built-in gene types, however, you can also create custom genes to suit your specific needs. The core built-in genes include:
 
 ??? info "FloatGene"
 
     For evolving floating-point numbers. If the `allele` is not specified, it will be randomly initialized within the `value_range`. If the `value_range` is not specified, it will default to (`-1e10`, `1e10`). If the `bound_range` is not specified, it will default to `value_range`.
+
+    The `FloatGene` is generic over the floating-point type `F`, which can be either `f32` or `f64`. Python's `float` type corresponds to Rust's `f64`.
 
     === ":fontawesome-brands-python: Python"
 
@@ -60,7 +62,8 @@ Certain `Genes` have additional functionality that allows them to be manipulated
 
         // Create a float gene that can evolve between -1.0 and 1.0 but 
         // must stay within -10.0 to 10.0 during evolution
-        let gene = FloatGene::new(0.5, -1.0..1.0, -10.0..10.0);
+        let gene: FloatGene<f32> = FloatGene::new(0.5, -1.0..1.0, -10.0..10.0);
+        let gene_f64: FloatGene<f64> = FloatGene::new(0.5, -1_f64..1_f64, -10_f64..10_f64);
 
         // Create a float gene with a randomly generated allele between -1.0 and 1.0
         // and bounds between -1.0 and 1.0
@@ -240,6 +243,7 @@ Because each `Chromosome` has an associated `Gene`, the built int chromosomes ar
 
         // Create a float chromosome with 5 genes, each initialized to a random value between -1.0 and 1.0
         let chromosome = FloatChromosome::from((5, -1.0..1.0));
+        let f64_chromosome: FloatChromosome<f64> = FloatChromosome::from((5, -1_f64..1_f64));
 
         let bounded_chromosome = FloatChromosome::from((5, -1.0..1.0, -10.0..10.0));
         ```

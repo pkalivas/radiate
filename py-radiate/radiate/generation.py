@@ -140,3 +140,10 @@ class Generation[T](PyObject[PyGeneration]):
         return self.try_get_cache(
             "duration_cache", lambda: self.__backend__().duration()
         )
+    
+    def dtype(self) -> str:
+        """
+        Get the data type of the generation's value.
+        :return: The data type of the generation's value.
+        """
+        return self.__backend__().dtype()

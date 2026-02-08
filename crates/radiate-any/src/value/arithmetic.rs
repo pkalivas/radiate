@@ -230,7 +230,7 @@ pub fn mean_anyvalue(one: &AnyValue<'_>, two: &AnyValue<'_>) -> Option<AnyValue<
 
     match (one, two) {
         (Bool(x), Bool(y)) => Some(Bool(*x && *y)),
-        (Binary(x), Binary(y)) => {
+        (BinaryOwned(x), BinaryOwned(y)) => {
             let m = x.len().min(y.len());
             let mut out = Vec::with_capacity(m);
 
@@ -238,7 +238,7 @@ pub fn mean_anyvalue(one: &AnyValue<'_>, two: &AnyValue<'_>) -> Option<AnyValue<
                 out.push(((x[i] as u16 + y[i] as u16) / 2) as u8);
             }
 
-            Some(Binary(out))
+            Some(BinaryOwned(out))
         }
         (Vector(xs), Vector(ys)) => crate::value::apply_zipped_slice(xs, ys, mean_anyvalue),
         (Struct(xs), Struct(ys)) => crate::value::apply_zipped_struct_slice(xs, ys, mean_anyvalue),
@@ -254,6 +254,7 @@ fn mean_numeric(a: &AnyValue<'_>, b: &AnyValue<'_>) -> Option<AnyValue<'static>>
         (UInt16(x), UInt16(y)) => UInt16(((u32::from(*x) + u32::from(*y)) / 2) as u16),
         (UInt32(x), UInt32(y)) => UInt32(((u64::from(*x) + u64::from(*y)) / 2) as u32),
         (UInt64(x), UInt64(y)) => UInt64(((u128::from(*x) + u128::from(*y)) / 2) as u64),
+        (UInt128(x), UInt128(y)) => UInt128(x.saturating_add(*y).saturating_div(2)),
 
         (Int8(x), Int8(y)) => Int8(*x + ((*y as i16 - *x as i16) / 2) as i8),
         (Int16(x), Int16(y)) => Int16(*x + ((*y as i32 - *x as i32) / 2) as i16),
@@ -262,7 +263,7 @@ fn mean_numeric(a: &AnyValue<'_>, b: &AnyValue<'_>) -> Option<AnyValue<'static>>
             let dx = (*y as i128) - (*x as i128);
             Int64(*x + (dx / 2) as i64)
         }
-        (Int128(x), Int128(y)) => Int128(*x + ((*y - *x) / 2)),
+        (Int128(x), Int128(y)) => Int128(x.saturating_add(*y).saturating_div(2)),
 
         (Float32(x), Float32(y)) => Float32((*x + *y) / 2.0),
         (Float64(x), Float64(y)) => Float64((*x + *y) / 2.0),

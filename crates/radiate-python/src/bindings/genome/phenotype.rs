@@ -97,8 +97,21 @@ macro_rules! impl_from_py_phenotype {
     };
 }
 
-impl_from_py_phenotype!(FloatChromosome);
+impl_from_py_phenotype!(IntChromosome<u8>);
+impl_from_py_phenotype!(IntChromosome<u16>);
+impl_from_py_phenotype!(IntChromosome<u32>);
+impl_from_py_phenotype!(IntChromosome<u64>);
+impl_from_py_phenotype!(IntChromosome<u128>);
+
+impl_from_py_phenotype!(IntChromosome<i8>);
+impl_from_py_phenotype!(IntChromosome<i16>);
+impl_from_py_phenotype!(IntChromosome<i32>);
 impl_from_py_phenotype!(IntChromosome<i64>);
+impl_from_py_phenotype!(IntChromosome<i128>);
+
+impl_from_py_phenotype!(FloatChromosome<f32>);
+impl_from_py_phenotype!(FloatChromosome<f64>);
+
 impl_from_py_phenotype!(BitChromosome);
 impl_from_py_phenotype!(CharChromosome);
 impl_from_py_phenotype!(GraphChromosome<Op<f32>>);
