@@ -1,6 +1,6 @@
 use crate::{AnyChromosome, InputTransform, PyEngineInput, PyEngineInputType};
 use pyo3::{PyResult, exceptions::PyTypeError};
-use radiate::*;
+use radiate::{chromosomes::NumericAllele, *};
 use std::collections::HashMap;
 
 type AlterConv<C> = fn(&PyEngineInput) -> Alterer<C>;
@@ -62,7 +62,7 @@ where
 
 fn alters_from_table<C>(
     input: &PyEngineInput,
-    table: &HashMap<&'static str, AlterConv<C>>,
+    table: HashMap<&'static str, AlterConv<C>>,
 ) -> PyResult<Vec<Alterer<C>>>
 where
     C: Chromosome + Clone + 'static,
@@ -85,153 +85,118 @@ where
 }
 
 // INT
-fn int_alterers() -> &'static HashMap<&'static str, AlterConv<IntChromosome<i64>>> {
-    use std::sync::OnceLock;
-    static MAP: OnceLock<HashMap<&'static str, AlterConv<IntChromosome<i64>>>> = OnceLock::new();
-    MAP.get_or_init(|| {
-        table! {
-            crate::names::MULTI_POINT_CROSSOVER   => convert_multi_point_crossover,
-            crate::names::UNIFORM_CROSSOVER       => convert_uniform_crossover,
-            crate::names::MEAN_CROSSOVER          => convert_mean_crossover,
-            crate::names::SHUFFLE_CROSSOVER       => convert_shuffle_crossover,
+fn int_alterers<I: Integer>() -> HashMap<&'static str, AlterConv<IntChromosome<I>>> {
+    table! {
+        crate::names::MULTI_POINT_CROSSOVER   => convert_multi_point_crossover,
+        crate::names::UNIFORM_CROSSOVER       => convert_uniform_crossover,
+        crate::names::MEAN_CROSSOVER          => convert_mean_crossover,
+        crate::names::SHUFFLE_CROSSOVER       => convert_shuffle_crossover,
 
-            crate::names::ARITHMETIC_MUTATOR      => convert_arithmetic_mutator,
-            crate::names::SWAP_MUTATOR            => convert_swap_mutator,
-            crate::names::SCRAMBLE_MUTATOR        => convert_scramble_mutator,
-            crate::names::UNIFORM_MUTATOR         => convert_uniform_mutator,
-            crate::names::INVERSION_MUTATOR       => convert_inversion_mutator,
-        }
-    })
+        crate::names::ARITHMETIC_MUTATOR      => convert_arithmetic_mutator,
+        crate::names::SWAP_MUTATOR            => convert_swap_mutator,
+        crate::names::SCRAMBLE_MUTATOR        => convert_scramble_mutator,
+        crate::names::UNIFORM_MUTATOR         => convert_uniform_mutator,
+        crate::names::INVERSION_MUTATOR       => convert_inversion_mutator,
+    }
 }
 
 // FLOAT
-fn float_alterers() -> &'static HashMap<&'static str, AlterConv<FloatChromosome<f64>>> {
-    use std::sync::OnceLock;
-    static MAP: OnceLock<HashMap<&'static str, AlterConv<FloatChromosome<f64>>>> = OnceLock::new();
-    MAP.get_or_init(|| {
-        table! {
-            crate::names::MULTI_POINT_CROSSOVER        => convert_multi_point_crossover,
-            crate::names::UNIFORM_CROSSOVER            => convert_uniform_crossover,
-            crate::names::MEAN_CROSSOVER               => convert_mean_crossover,
-            crate::names::INTERMEDIATE_CROSSOVER       => convert_intermediate_crossover,
-            crate::names::BLEND_CROSSOVER              => convert_blend_crossover,
-            crate::names::SIMULATED_BINARY_CROSSOVER   => convert_simulated_binary_crossover,
+fn float_alterers<F: Float + NumericAllele>() -> HashMap<&'static str, AlterConv<FloatChromosome<F>>>
+{
+    table! {
+        crate::names::MULTI_POINT_CROSSOVER        => convert_multi_point_crossover,
+        crate::names::UNIFORM_CROSSOVER            => convert_uniform_crossover,
+        crate::names::MEAN_CROSSOVER               => convert_mean_crossover,
+        crate::names::INTERMEDIATE_CROSSOVER       => convert_intermediate_crossover,
+        crate::names::BLEND_CROSSOVER              => convert_blend_crossover,
+        crate::names::SIMULATED_BINARY_CROSSOVER   => convert_simulated_binary_crossover,
 
-            crate::names::GAUSSIAN_MUTATOR             => convert_gaussian_mutator,
-            crate::names::ARITHMETIC_MUTATOR           => convert_arithmetic_mutator,
-            crate::names::SWAP_MUTATOR                 => convert_swap_mutator,
-            crate::names::SCRAMBLE_MUTATOR             => convert_scramble_mutator,
-            crate::names::UNIFORM_MUTATOR              => convert_uniform_mutator,
-            crate::names::INVERSION_MUTATOR            => convert_inversion_mutator,
-            crate::names::POLYNOMIAL_MUTATOR           => convert_polynomial_mutator,
-            crate::names::JITTER_MUTATOR               => convert_jitter_mutator,
-        }
-    })
+        crate::names::GAUSSIAN_MUTATOR             => convert_gaussian_mutator,
+        crate::names::ARITHMETIC_MUTATOR           => convert_arithmetic_mutator,
+        crate::names::SWAP_MUTATOR                 => convert_swap_mutator,
+        crate::names::SCRAMBLE_MUTATOR             => convert_scramble_mutator,
+        crate::names::UNIFORM_MUTATOR              => convert_uniform_mutator,
+        crate::names::INVERSION_MUTATOR            => convert_inversion_mutator,
+        crate::names::POLYNOMIAL_MUTATOR           => convert_polynomial_mutator,
+        crate::names::JITTER_MUTATOR               => convert_jitter_mutator,
+    }
 }
 
 // CHAR
-fn char_alterers() -> &'static HashMap<&'static str, AlterConv<CharChromosome>> {
-    use std::sync::OnceLock;
-    static MAP: OnceLock<HashMap<&'static str, AlterConv<CharChromosome>>> = OnceLock::new();
-    MAP.get_or_init(|| {
-        table! {
-            crate::names::MULTI_POINT_CROSSOVER   => convert_multi_point_crossover,
-            crate::names::UNIFORM_CROSSOVER       => convert_uniform_crossover,
-            crate::names::SHUFFLE_CROSSOVER       => convert_shuffle_crossover,
+fn char_alterers() -> HashMap<&'static str, AlterConv<CharChromosome>> {
+    table! {
+        crate::names::MULTI_POINT_CROSSOVER   => convert_multi_point_crossover,
+        crate::names::UNIFORM_CROSSOVER       => convert_uniform_crossover,
+        crate::names::SHUFFLE_CROSSOVER       => convert_shuffle_crossover,
 
-            crate::names::SWAP_MUTATOR            => convert_swap_mutator,
-            crate::names::SCRAMBLE_MUTATOR        => convert_scramble_mutator,
-            crate::names::UNIFORM_MUTATOR         => convert_uniform_mutator,
-            crate::names::INVERSION_MUTATOR       => convert_inversion_mutator,
-        }
-    })
+        crate::names::SWAP_MUTATOR            => convert_swap_mutator,
+        crate::names::SCRAMBLE_MUTATOR        => convert_scramble_mutator,
+        crate::names::UNIFORM_MUTATOR         => convert_uniform_mutator,
+        crate::names::INVERSION_MUTATOR       => convert_inversion_mutator,
+    }
 }
 
 // BIT
-fn bit_alterers() -> &'static HashMap<&'static str, AlterConv<BitChromosome>> {
-    use std::sync::OnceLock;
-    static MAP: OnceLock<HashMap<&'static str, AlterConv<BitChromosome>>> = OnceLock::new();
-    MAP.get_or_init(|| {
-        table! {
-            crate::names::MULTI_POINT_CROSSOVER   => convert_multi_point_crossover,
-            crate::names::UNIFORM_CROSSOVER       => convert_uniform_crossover,
-            crate::names::SHUFFLE_CROSSOVER       => convert_shuffle_crossover,
+fn bit_alterers() -> HashMap<&'static str, AlterConv<BitChromosome>> {
+    table! {
+        crate::names::MULTI_POINT_CROSSOVER   => convert_multi_point_crossover,
+        crate::names::UNIFORM_CROSSOVER       => convert_uniform_crossover,
+        crate::names::SHUFFLE_CROSSOVER       => convert_shuffle_crossover,
 
-            crate::names::SWAP_MUTATOR            => convert_swap_mutator,
-            crate::names::SCRAMBLE_MUTATOR        => convert_scramble_mutator,
-            crate::names::UNIFORM_MUTATOR         => convert_uniform_mutator,
-            crate::names::INVERSION_MUTATOR       => convert_inversion_mutator,
-        }
-    })
+        crate::names::SWAP_MUTATOR            => convert_swap_mutator,
+        crate::names::SCRAMBLE_MUTATOR        => convert_scramble_mutator,
+        crate::names::UNIFORM_MUTATOR         => convert_uniform_mutator,
+        crate::names::INVERSION_MUTATOR       => convert_inversion_mutator,
+    }
 }
 
 // PERMUTATION<usize>
-fn perm_alterers() -> &'static HashMap<&'static str, AlterConv<PermutationChromosome<usize>>> {
-    use std::sync::OnceLock;
-    static MAP: OnceLock<HashMap<&'static str, AlterConv<PermutationChromosome<usize>>>> =
-        OnceLock::new();
-    MAP.get_or_init(|| {
-        table! {
-            crate::names::PARTIALLY_MAPPED_CROSSOVER  => convert_partially_mapped_crossover,
-            crate::names::EDGE_RECOMBINE_CROSSOVER    => convert_edge_recombine_crossover,
+fn perm_alterers() -> HashMap<&'static str, AlterConv<PermutationChromosome<usize>>> {
+    table! {
+        crate::names::PARTIALLY_MAPPED_CROSSOVER  => convert_partially_mapped_crossover,
+        crate::names::EDGE_RECOMBINE_CROSSOVER    => convert_edge_recombine_crossover,
 
-            crate::names::SWAP_MUTATOR                => convert_swap_mutator,
-            crate::names::SCRAMBLE_MUTATOR            => convert_scramble_mutator,
-            crate::names::UNIFORM_MUTATOR             => convert_uniform_mutator,
-            crate::names::INVERSION_MUTATOR           => convert_inversion_mutator,
-        }
-    })
+        crate::names::SWAP_MUTATOR                => convert_swap_mutator,
+        crate::names::SCRAMBLE_MUTATOR            => convert_scramble_mutator,
+        crate::names::UNIFORM_MUTATOR             => convert_uniform_mutator,
+        crate::names::INVERSION_MUTATOR           => convert_inversion_mutator,
+    }
 }
 
 // GRAPH<Op<f32>>
-fn graph_alterers() -> &'static HashMap<&'static str, AlterConv<GraphChromosome<Op<f32>>>> {
-    use std::sync::OnceLock;
-    static MAP: OnceLock<HashMap<&'static str, AlterConv<GraphChromosome<Op<f32>>>>> =
-        OnceLock::new();
-    MAP.get_or_init(|| {
-        table! {
-            crate::names::GRAPH_CROSSOVER       => convert_graph_crossover,
+fn graph_alterers() -> HashMap<&'static str, AlterConv<GraphChromosome<Op<f32>>>> {
+    table! {
+        crate::names::GRAPH_CROSSOVER       => convert_graph_crossover,
 
-            crate::names::GRAPH_MUTATOR         => convert_graph_mutator,
-            crate::names::OPERATION_MUTATOR     => convert_operation_mutator,
-        }
-    })
+        crate::names::GRAPH_MUTATOR         => convert_graph_mutator,
+        crate::names::OPERATION_MUTATOR     => convert_operation_mutator,
+    }
 }
 
 // TREE<Op<f32>>
-fn tree_alterers() -> &'static HashMap<&'static str, AlterConv<TreeChromosome<Op<f32>>>> {
-    use std::sync::OnceLock;
-    static MAP: OnceLock<HashMap<&'static str, AlterConv<TreeChromosome<Op<f32>>>>> =
-        OnceLock::new();
-    MAP.get_or_init(|| {
-        table! {
-            crate::names::TREE_CROSSOVER        => convert_tree_crossover,
+fn tree_alterers() -> HashMap<&'static str, AlterConv<TreeChromosome<Op<f32>>>> {
+    table! {
+        crate::names::TREE_CROSSOVER        => convert_tree_crossover,
 
-            crate::names::HOIST_MUTATOR         => convert_hoist_mutator,
-            crate::names::OPERATION_MUTATOR     => convert_operation_mutator,
-        }
-    })
+        crate::names::HOIST_MUTATOR         => convert_hoist_mutator,
+        crate::names::OPERATION_MUTATOR     => convert_operation_mutator,
+    }
 }
 
 // ANY (generic bag of common alterers exposed for AnyChromosome)
-fn any_alterers() -> &'static HashMap<&'static str, AlterConv<AnyChromosome<'static>>> {
-    use std::sync::OnceLock;
-    static MAP: OnceLock<HashMap<&'static str, AlterConv<AnyChromosome<'static>>>> =
-        OnceLock::new();
-    MAP.get_or_init(|| {
-        table! {
-            crate::names::MULTI_POINT_CROSSOVER   => convert_multi_point_crossover,
-            crate::names::UNIFORM_CROSSOVER       => convert_uniform_crossover,
-            crate::names::SHUFFLE_CROSSOVER       => convert_shuffle_crossover,
-            crate::names::MEAN_CROSSOVER          => convert_mean_crossover,
+fn any_alterers() -> HashMap<&'static str, AlterConv<AnyChromosome<'static>>> {
+    table! {
+        crate::names::MULTI_POINT_CROSSOVER   => convert_multi_point_crossover,
+        crate::names::UNIFORM_CROSSOVER       => convert_uniform_crossover,
+        crate::names::SHUFFLE_CROSSOVER       => convert_shuffle_crossover,
+        crate::names::MEAN_CROSSOVER          => convert_mean_crossover,
 
-            crate::names::SWAP_MUTATOR            => convert_swap_mutator,
-            crate::names::SCRAMBLE_MUTATOR        => convert_scramble_mutator,
-            crate::names::UNIFORM_MUTATOR         => convert_uniform_mutator,
-            crate::names::INVERSION_MUTATOR       => convert_inversion_mutator,
-            crate::names::ARITHMETIC_MUTATOR      => convert_arithmetic_mutator,
-        }
-    })
+        crate::names::SWAP_MUTATOR            => convert_swap_mutator,
+        crate::names::SCRAMBLE_MUTATOR        => convert_scramble_mutator,
+        crate::names::UNIFORM_MUTATOR         => convert_uniform_mutator,
+        crate::names::INVERSION_MUTATOR       => convert_inversion_mutator,
+        crate::names::ARITHMETIC_MUTATOR      => convert_arithmetic_mutator,
+    }
 }
 
 /// Concrete alterer conversion functions

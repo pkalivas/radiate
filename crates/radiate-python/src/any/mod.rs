@@ -1,6 +1,6 @@
 mod arithmatic;
 mod cell;
-mod dtype;
+mod field;
 mod gene;
 mod serde;
 mod time_unit;
@@ -10,7 +10,7 @@ pub(crate) mod value;
 use cell::GILOnceCell;
 use chrono::{DateTime, Datelike, FixedOffset, NaiveDate, NaiveDateTime, TimeDelta, TimeZone};
 use chrono_tz::Tz;
-pub use dtype::*;
+pub use field::Field;
 pub use gene::{AnyChromosome, AnyGene};
 use radiate::RadiateError;
 pub use value::AnyValue;

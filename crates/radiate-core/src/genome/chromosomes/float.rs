@@ -222,7 +222,7 @@ impl<F: Float> BoundedGene for FloatGene<F> {
 impl<F: Float> ArithmeticGene for FloatGene<F> {
     fn mean(&self, other: &FloatGene<F>) -> FloatGene<F> {
         FloatGene {
-            allele: safe_mul(safe_add(self.allele, other.allele), F::ONE / F::TWO)
+            allele: safe_mul(safe_add(self.allele, other.allele), F::HALF)
                 .clamp(self.bounds.start, self.bounds.end),
             value_range: self.value_range.clone(),
             bounds: self.bounds.clone(),
