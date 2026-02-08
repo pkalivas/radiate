@@ -1,7 +1,14 @@
 use super::PyCodec;
 use crate::{PyAnyObject, PyChromosome, PyGene, PyGenotype};
 use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, pyclass, pymethods, types::PyInt};
-use radiate::{Chromosome, Codec, Gene, Genotype, IntChromosome, IntGene};
+use radiate::{Chromosome, Codec, DataType, Gene, Genotype, IntChromosome, IntGene};
+
+pub trait PyCodecBuilder {
+    fn dtype(&self) -> DataType;
+    fn build<C, T>(&self) -> PyCodec<C, T>
+    where
+        C: Chromosome;
+}
 
 #[pyclass]
 #[derive(Clone)]

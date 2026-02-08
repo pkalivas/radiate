@@ -99,8 +99,21 @@ macro_rules! impl_into_py_population {
     };
 }
 
-impl_into_py_population!(FloatChromosome<f64>);
+impl_into_py_population!(IntChromosome<u8>);
+impl_into_py_population!(IntChromosome<u16>);
+impl_into_py_population!(IntChromosome<u32>);
+impl_into_py_population!(IntChromosome<u64>);
+impl_into_py_population!(IntChromosome<u128>);
+
+impl_into_py_population!(IntChromosome<i8>);
+impl_into_py_population!(IntChromosome<i16>);
+impl_into_py_population!(IntChromosome<i32>);
 impl_into_py_population!(IntChromosome<i64>);
+impl_into_py_population!(IntChromosome<i128>);
+
+impl_into_py_population!(FloatChromosome<f32>);
+impl_into_py_population!(FloatChromosome<f64>);
+
 impl_into_py_population!(BitChromosome);
 impl_into_py_population!(CharChromosome);
 impl_into_py_population!(GraphChromosome<Op<f32>>);

@@ -4,7 +4,9 @@ from radiate.radiate import _get_dtype_max, _get_dtype_min
 class DataTypeClass(type):
     def __getitem__(cls, item):
         return cls(item)
-    
+
+    def __str__(cls):
+        return cls.__name__
 
 
 class DataType(metaclass=DataTypeClass):
@@ -13,7 +15,10 @@ class DataType(metaclass=DataTypeClass):
 
     def __repr__(self) -> str:
         return self.name
-    
+
+    def __str__(self) -> str:
+        return self.name
+
     def __eq__(self, value):
         if issubclass(type(value), DataType):
             return self.name == value.name
@@ -31,6 +36,14 @@ class NumericType(DataType):
     @classmethod
     def min(cls) -> int | float:
         return _get_dtype_min(cls.__name__)
+
+    @classmethod
+    def is_int(cls) -> bool:
+        return issubclass(cls, IntegerType)
+
+    @classmethod
+    def is_float(cls) -> bool:
+        return issubclass(cls, FloatType)
 
 
 class IntegerType(NumericType):

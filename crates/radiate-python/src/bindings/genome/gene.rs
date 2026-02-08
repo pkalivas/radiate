@@ -1,4 +1,4 @@
-use crate::{AnyGene, AnyValue, PyGeneType, Wrap};
+use crate::{AnyGene, AnyValue, PyGeneType, Wrap, bindings::dtype};
 use pyo3::{Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
     BitGene, CharGene, DataType, Float, FloatGene, Gene, GraphNode, IntGene, Integer, Op,
@@ -158,7 +158,7 @@ impl PyGene {
         bounds: Option<(f64, f64)>,
         dtype: Option<String>,
     ) -> PyGene {
-        let dtype = DataType::from(dtype.unwrap_or_else(|| dtype_names::FLOAT64.into()));
+        let dtype = dtype::dtype_from_str(&dtype.unwrap_or_else(|| dtype_names::FLOAT64.into()));
         let range = range.unwrap_or((std::f64::MIN, std::f64::MAX));
         let bounds = bounds.unwrap_or(range.clone());
 
@@ -197,7 +197,7 @@ impl PyGene {
         bounds: Option<(i64, i64)>,
         dtype: Option<String>,
     ) -> PyGene {
-        let dtype = DataType::from(dtype.unwrap_or_else(|| dtype_names::INT64.into()));
+        let dtype = dtype::dtype_from_str(&dtype.unwrap_or_else(|| dtype_names::INT64.into()));
         let range = range.unwrap_or((i64::MIN, i64::MAX));
         let bounds = bounds.unwrap_or(range.clone());
 

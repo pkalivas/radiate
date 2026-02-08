@@ -20,7 +20,7 @@ pub use codec::{
     PyPermutationCodec, PyTreeCodec,
 };
 pub use converters::InputTransform;
-pub use dtype::{_get_dtype_max, _get_dtype_min};
+pub use dtype::{_get_dtype_max, _get_dtype_min, dtype_from_str};
 pub use engine::{PyEngine, PyEngineRunOption};
 pub use epoch::PyGeneration;
 pub use fitness::{PyFitnessFn, PyFitnessInner, PyNoveltySearch};

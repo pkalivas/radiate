@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from radiate._typing import IntEncoding
 from radiate.genome.chromosome import Chromosome
 from radiate.genome.gene import Gene
 
