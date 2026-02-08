@@ -5,6 +5,7 @@ this is more of a quick testing file for me
 
 import radiate as rd
 from datetime import datetime, timezone
+import numpy as np
 
 rd.random.seed(42)
 
@@ -32,3 +33,13 @@ result = engine.run(rd.ScoreLimit(0), ui=True)
 
 for obj_gene in result.value():
     print(type(obj_gene.allele()))
+    print(obj_gene.dtype())
+
+temp = rd.UInt8
+print(f"UInt8 max: {rd.UInt8.max()}")
+print(f"UInt8 min: {rd.UInt8.min()}")
+print(f"UInt8 type: {rd.UInt8}")
+print(f"numpy uint8: {np.uint8()}")
+
+temp = rd.gene.float(init_range=(-1.0, 1.0), dtype=rd.Float32)
+np_temp = rd.gene.float(init_range=(-1.0, 1.0), dtype=np.float32)

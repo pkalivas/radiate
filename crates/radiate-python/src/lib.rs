@@ -1,6 +1,5 @@
 mod any;
 mod bindings;
-mod dtype;
 mod evaluator;
 mod events;
 mod names;
@@ -10,7 +9,6 @@ mod random;
 
 pub use any::*;
 pub use bindings::*;
-pub use dtype::DataType;
 pub use evaluator::FreeThreadPyEvaluator;
 pub use object::*;
 pub use problem::PyProblem;

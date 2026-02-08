@@ -87,6 +87,24 @@ from .inputs import rate
 
 from .option import EngineLog, EngineCheckpoint, EngineUi
 
+from .dtype import (
+    UInt8,
+    UInt16,
+    UInt32,
+    UInt64,
+    UInt128,
+    Int8,
+    Int16,
+    Int32,
+    Int64,
+    Int128,
+    Float32,
+    Float64,
+    Bool,
+    Usize,
+    Struct,
+)
+
 from .dependancies import (
     _GIL_ENABLED,
     _NUMPY_AVAILABLE,
@@ -202,4 +220,20 @@ __all__ = [
     "EngineLog",
     "EngineCheckpoint",
     "EngineUi",
+    # Dtype
+    "UInt8",
+    "UInt16",
+    "UInt32",
+    "UInt64",
+    "UInt128",
+    "Int8",
+    "Int16",
+    "Int32",
+    "Int64",
+    "Int128",
+    "Float32",
+    "Float64",
+    "Bool",
+    "Usize",
+    "Struct",
 ]

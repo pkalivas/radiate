@@ -84,7 +84,7 @@ impl<'a> Gene for AnyGene<'a> {
 
 impl<'a> ArithmeticGene for AnyGene<'a> {
     fn mean(&self, other: &Self) -> Self {
-        if let Some(avg) = crate::arithmetic::mean_anyvalue(self.allele(), other.allele()) {
+        if let Some(avg) = crate::mean_anyvalue(self.allele(), other.allele()) {
             AnyGene {
                 allele: avg,
                 factory: self.factory.clone(),

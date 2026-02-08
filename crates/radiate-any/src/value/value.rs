@@ -1,4 +1,4 @@
-use crate::{DataType, Field, TimeUnit, TimeZone};
+use crate::{DataType, Field, time_unit::TimeUnit, time_zone::TimeZone};
 use serde::{Deserialize, Serialize};
 use std::{fmt::Debug, sync::Arc};
 
@@ -214,7 +214,7 @@ impl<'a> PartialEq for AnyValue<'a> {
 }
 
 #[inline]
-pub(crate) fn apply_zipped_slice(
+pub fn apply_zipped_slice(
     one: &[AnyValue<'_>],
     two: &[AnyValue<'_>],
     f: impl Fn(&AnyValue<'_>, &AnyValue<'_>) -> Option<AnyValue<'static>>,
@@ -235,7 +235,7 @@ pub(crate) fn apply_zipped_slice(
 }
 
 #[inline]
-pub(crate) fn apply_zipped_struct_slice(
+pub fn apply_zipped_struct_slice(
     one: &[(Field, AnyValue<'_>)],
     two: &[(Field, AnyValue<'_>)],
     f: impl Fn(&AnyValue<'_>, &AnyValue<'_>) -> Option<AnyValue<'static>>,

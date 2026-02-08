@@ -158,11 +158,12 @@ class TestChromosomes:
 class TestGenes:
     @pytest.mark.unit
     def test_float_gene_creation(self):
-        gene = rd.gene.float(init_range=(-10.0, 10.0))
+        gene = rd.gene.float(init_range=(-10.0, 10.0), dtype=rd.Float32)
 
         assert isinstance(gene.allele(), float)
         assert gene.allele() is not None
         assert gene.allele() >= -10.0 and gene.allele() <= 10.0
+        assert gene.dtype() == rd.Float32()
 
     @pytest.mark.unit
     def test_int_gene_creation(self):

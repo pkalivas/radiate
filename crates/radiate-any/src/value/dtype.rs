@@ -1,4 +1,7 @@
-use crate::Field;
+use std::fmt::Display;
+
+use crate::{Field, Scalar};
+use radiate_core::{Float, Integer};
 use serde::{Deserialize, Serialize};
 
 pub mod dtype_names {
@@ -114,11 +117,49 @@ impl DataType {
                 | D::Vec
         )
     }
+
+    pub fn max(&self) -> Option<Scalar> {
+        use DataType as D;
+        match self {
+            D::Int8 => Some(Scalar::from(<i8 as Integer>::MAX)),
+            D::Int16 => Some(Scalar::from(<i16 as Integer>::MAX)),
+            D::Int32 => Some(Scalar::from(<i32 as Integer>::MAX)),
+            D::Int64 => Some(Scalar::from(<i64 as Integer>::MAX)),
+            D::Int128 => Some(Scalar::from(<i128 as Integer>::MAX)),
+            D::UInt8 => Some(Scalar::from(<u8 as Integer>::MAX)),
+            D::UInt16 => Some(Scalar::from(<u16 as Integer>::MAX)),
+            D::UInt32 => Some(Scalar::from(<u32 as Integer>::MAX)),
+            D::UInt64 => Some(Scalar::from(<u64 as Integer>::MAX)),
+            D::UInt128 => Some(Scalar::from(<u128 as Integer>::MAX)),
+            D::Float32 => Some(Scalar::from(<f32 as Float>::MAX)),
+            D::Float64 => Some(Scalar::from(<f64 as Float>::MAX)),
+            _ => None,
+        }
+    }
+
+    pub fn min(&self) -> Option<Scalar> {
+        use DataType as D;
+        match self {
+            D::Int8 => Some(Scalar::from(<i8 as Integer>::MIN)),
+            D::Int16 => Some(Scalar::from(<i16 as Integer>::MIN)),
+            D::Int32 => Some(Scalar::from(<i32 as Integer>::MIN)),
+            D::Int64 => Some(Scalar::from(<i64 as Integer>::MIN)),
+            D::Int128 => Some(Scalar::from(<i128 as Integer>::MIN)),
+            D::UInt8 => Some(Scalar::from(<u8 as Integer>::MIN)),
+            D::UInt16 => Some(Scalar::from(<u16 as Integer>::MIN)),
+            D::UInt32 => Some(Scalar::from(<u32 as Integer>::MIN)),
+            D::UInt64 => Some(Scalar::from(<u64 as Integer>::MIN)),
+            D::UInt128 => Some(Scalar::from(<u128 as Integer>::MIN)),
+            D::Float32 => Some(Scalar::from(<f32 as Float>::MIN)),
+            D::Float64 => Some(Scalar::from(<f64 as Float>::MIN)),
+            _ => None,
+        }
+    }
 }
 
 impl From<String> for DataType {
     fn from(value: String) -> Self {
-        match value.as_str() {
+        match value.trim().to_lowercase().as_str() {
             dtype_names::NULL => DataType::Null,
 
             dtype_names::UINT8 => DataType::UInt8,
@@ -147,5 +188,44 @@ impl From<String> for DataType {
 
             _ => DataType::Unknown,
         }
+    }
+}
+
+impl Display for DataType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            DataType::Null => dtype_names::NULL,
+
+            DataType::UInt8 => dtype_names::UINT8,
+            DataType::UInt16 => dtype_names::UINT16,
+            DataType::UInt32 => dtype_names::UINT32,
+            DataType::UInt64 => dtype_names::UINT64,
+            DataType::UInt128 => dtype_names::UINT128,
+
+            DataType::Int8 => dtype_names::INT8,
+            DataType::Int16 => dtype_names::INT16,
+            DataType::Int32 => dtype_names::INT32,
+            DataType::Int64 => dtype_names::INT64,
+            DataType::Int128 => dtype_names::INT128,
+
+            DataType::Float32 => dtype_names::FLOAT32,
+            DataType::Float64 => dtype_names::FLOAT64,
+
+            DataType::Usize => dtype_names::USIZE,
+
+            DataType::Boolean => dtype_names::BOOLEAN,
+            DataType::Binary => dtype_names::BINARY,
+
+            DataType::Char => dtype_names::CHAR,
+            DataType::Str | DataType::String => dtype_names::STRING,
+
+            DataType::Date | DataType::Datetime | DataType::DatetimeOwned => "datetime",
+
+            DataType::Vec => dtype_names::VEC,
+            DataType::Struct(_) => "struct",
+
+            DataType::Unknown => "unknown",
+        };
+        write!(f, "{}", s)
     }
 }

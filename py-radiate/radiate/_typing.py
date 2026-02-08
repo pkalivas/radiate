@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, Callable
 from radiate.genome.chromosome import Chromosome
 from radiate.genome.gene import Gene
 from radiate.gp.op import Op
+from radiate.dependancies import _NUMPY_AVAILABLE
 
 from .handlers import EventHandler
 
@@ -37,3 +38,5 @@ type CharEncoding = (
 type BitEncoding = (
     "BitCodec" | list[Gene[bool]] | Chromosome[bool] | list[Chromosome[bool]]
 )
+
+# Data Types

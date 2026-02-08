@@ -1,4 +1,4 @@
-use crate::temporal::{TimeUnit, TimeZone};
+use crate::temporal::{time_unit::TimeUnit, time_zone::TimeZone};
 use crate::{AnyChromosome, AnyGene, AnyValue, Field};
 use radiate_core::{Chromosome, Gene};
 use serde::ser::Serializer;

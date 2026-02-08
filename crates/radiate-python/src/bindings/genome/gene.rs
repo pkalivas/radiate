@@ -1,8 +1,8 @@
-use crate::{AnyGene, AnyValue, DataType, PyGeneType, Wrap};
+use crate::{AnyGene, AnyValue, PyGeneType, Wrap};
 use pyo3::{Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
-    BitGene, CharGene, Float, FloatGene, Gene, GraphNode, IntGene, Integer, Op, PermutationGene,
-    TreeNode, random_provider,
+    BitGene, CharGene, DataType, Float, FloatGene, Gene, GraphNode, IntGene, Integer, Op,
+    PermutationGene, TreeNode, dtype_names, random_provider,
 };
 use std::collections::HashMap;
 
@@ -100,27 +100,27 @@ impl PyGene {
 
     pub fn dtype(&self) -> String {
         match &self.inner {
-            GeneInner::UInt8(_) => crate::dtype::UINT8.into(),
-            GeneInner::UInt16(_) => crate::dtype::UINT16.into(),
-            GeneInner::UInt32(_) => crate::dtype::UINT32.into(),
-            GeneInner::UInt64(_) => crate::dtype::UINT64.into(),
-            GeneInner::UInt128(_) => crate::dtype::UINT128.into(),
+            GeneInner::UInt8(_) => dtype_names::UINT8.into(),
+            GeneInner::UInt16(_) => dtype_names::UINT16.into(),
+            GeneInner::UInt32(_) => dtype_names::UINT32.into(),
+            GeneInner::UInt64(_) => dtype_names::UINT64.into(),
+            GeneInner::UInt128(_) => dtype_names::UINT128.into(),
 
-            GeneInner::Int8(_) => crate::dtype::INT8.into(),
-            GeneInner::Int16(_) => crate::dtype::INT16.into(),
-            GeneInner::Int32(_) => crate::dtype::INT32.into(),
-            GeneInner::Int64(_) => crate::dtype::INT64.into(),
-            GeneInner::Int128(_) => crate::dtype::INT128.into(),
+            GeneInner::Int8(_) => dtype_names::INT8.into(),
+            GeneInner::Int16(_) => dtype_names::INT16.into(),
+            GeneInner::Int32(_) => dtype_names::INT32.into(),
+            GeneInner::Int64(_) => dtype_names::INT64.into(),
+            GeneInner::Int128(_) => dtype_names::INT128.into(),
 
-            GeneInner::Float32(_) => crate::dtype::FLOAT32.into(),
-            GeneInner::Float64(_) => crate::dtype::FLOAT64.into(),
+            GeneInner::Float32(_) => dtype_names::FLOAT32.into(),
+            GeneInner::Float64(_) => dtype_names::FLOAT64.into(),
 
-            GeneInner::Bit(_) => crate::dtype::BOOLEAN.into(),
-            GeneInner::Char(_) => crate::dtype::CHAR.into(),
-            GeneInner::GraphNode(_) => crate::dtype::STRUCT.into(),
-            GeneInner::TreeNode(_) => crate::dtype::STRUCT.into(),
-            GeneInner::Permutation(_) => crate::dtype::USIZE.into(),
-            GeneInner::AnyGene(_) => crate::dtype::STRUCT.into(),
+            GeneInner::Bit(_) => dtype_names::BOOLEAN.into(),
+            GeneInner::Char(_) => dtype_names::CHAR.into(),
+            GeneInner::GraphNode(_) => dtype_names::STRUCT.into(),
+            GeneInner::TreeNode(_) => dtype_names::STRUCT.into(),
+            GeneInner::Permutation(_) => dtype_names::USIZE.into(),
+            GeneInner::AnyGene(_) => dtype_names::STRUCT.into(),
         }
     }
 
@@ -158,7 +158,7 @@ impl PyGene {
         bounds: Option<(f64, f64)>,
         dtype: Option<String>,
     ) -> PyGene {
-        let dtype = DataType::from(dtype.unwrap_or_else(|| crate::dtype::FLOAT64.into()));
+        let dtype = DataType::from(dtype.unwrap_or_else(|| dtype_names::FLOAT64.into()));
         let range = range.unwrap_or((std::f64::MIN, std::f64::MAX));
         let bounds = bounds.unwrap_or(range.clone());
 
@@ -197,7 +197,7 @@ impl PyGene {
         bounds: Option<(i64, i64)>,
         dtype: Option<String>,
     ) -> PyGene {
-        let dtype = DataType::from(dtype.unwrap_or_else(|| crate::dtype::INT64.into()));
+        let dtype = DataType::from(dtype.unwrap_or_else(|| dtype_names::INT64.into()));
         let range = range.unwrap_or((i64::MIN, i64::MAX));
         let bounds = bounds.unwrap_or(range.clone());
 

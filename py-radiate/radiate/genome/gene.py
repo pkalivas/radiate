@@ -4,6 +4,8 @@ from typing import TYPE_CHECKING, Any
 
 from radiate.radiate import PyGene
 from radiate.wrapper import PyObject
+from radiate.dtype import dtype_from_str, DataType, Float64, Int64
+from radiate.dependancies import _NUMPY_AVAILABLE
 
 if TYPE_CHECKING:
     from . import GeneType
@@ -27,6 +29,14 @@ class Gene[T](PyObject[PyGene]):
         from . import GeneType
 
         return GeneType.from_str(self.__backend__().gene_type().name())
+
+    def dtype(self) -> DataType | None:
+        """
+        Get the data type of the gene, if applicable.
+        :return: The data type of the gene as a string, or None if not applicable.
+        """
+        dtype_str = self.__backend__().dtype()
+        return dtype_from_str(dtype_str) if dtype_str else None
 
     def allele(self) -> T:
         """
@@ -61,8 +71,20 @@ def float(
     *,
     init_range: tuple[float, float] | None = None,
     bounds: tuple[float, float] | None = None,
+    dtype: Any = Float64,
 ):
-    float_gene = PyGene.float(allele=allele, range=init_range, bounds=bounds)
+    if isinstance(dtype, type) and issubclass(dtype, DataType):
+        dtype = dtype.__name__
+    elif _NUMPY_AVAILABLE:
+        import numpy as np
+        if isinstance(dtype, type) and issubclass(dtype, np.floating):
+            dtype = dtype.__name__
+    elif isinstance(dtype, type) and issubclass(dtype, DataType):
+        dtype = dtype.__name__
+
+    print(f"Creating float gene with dtype: {dtype}")
+
+    float_gene = PyGene.float(allele=allele, range=init_range, bounds=bounds, dtype=dtype)
     return Gene.from_rust(float_gene)
 
 
@@ -71,8 +93,9 @@ def int(
     *,
     init_range: tuple[int, int] | None = None,
     bounds: tuple[int, int] | None = None,
+    dtype: DataType | None = Int64,
 ):
-    int_gene = PyGene.int(allele=allele, range=init_range, bounds=bounds)
+    int_gene = PyGene.int(allele=allele, range=init_range, bounds=bounds, dtype=dtype)
     return Gene.from_rust(int_gene)
 
 

@@ -63,10 +63,10 @@ pub trait Float:
 
 #[macro_export]
 macro_rules! impl_float_scalar {
-    ($t:ty, $min:expr, $max:expr, $eps:expr) => {
+    ($t:ty, $eps:expr) => {
         impl Float for $t {
-            const MIN: Self = $min;
-            const MAX: Self = $max;
+            const MIN: Self = <$t>::MIN;
+            const MAX: Self = <$t>::MAX;
             const ZERO: Self = 0.0;
             const ONE: Self = 1.0;
             const TWO: Self = 2.0;
@@ -92,8 +92,8 @@ macro_rules! impl_float_scalar {
     };
 }
 
-impl_float_scalar!(f32, -1e18_f32, 1e18_f32, 1e-6_f32);
-impl_float_scalar!(f64, -1e100_f64, 1e100_f64, 1e-12_f64);
+impl_float_scalar!(f32, 1e-6_f32);
+impl_float_scalar!(f64, 1e-12_f64);
 
 #[inline]
 pub fn safe_div<T: Float>(num: T, den: T) -> T {
