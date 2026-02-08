@@ -2,110 +2,14 @@ use super::{
     Chromosome,
     gene::{ArithmeticGene, Gene, Valid},
 };
-use rand::distr::uniform::SampleUniform;
-use std::{
-    fmt::Debug,
-    fmt::Display,
-    ops::{Add, Div, Mul, Range, Sub},
-};
-
 use crate::{chromosomes::BoundedGene, random_provider};
+use radiate_utils::Integer;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-
-pub trait Integer:
-    Copy + Clone + PartialOrd + Debug + PartialEq + SampleUniform + Display + Default
-{
-    type Value: Copy
-        + Clone
-        + PartialOrd
-        + Debug
-        + PartialEq
-        + Add<Output = Self::Value>
-        + Sub<Output = Self::Value>
-        + Mul<Output = Self::Value>
-        + Div<Output = Self::Value>
-        + SampleUniform
-        + Display
-        + Default;
-
-    const MIN: Self;
-    const MAX: Self;
-    const ZERO: Self;
-    const ONE: Self;
-    const TWO: Self;
-
-    fn sat_add(self, rhs: Self) -> Self;
-    fn sat_sub(self, rhs: Self) -> Self;
-    fn sat_mul(self, rhs: Self) -> Self;
-    fn sat_div(self, rhs: Self) -> Self;
-    fn clamp(self, min: Self, max: Self) -> Self;
-    fn from_i64(value: i64) -> Self;
-    fn as_i64(self) -> i64;
-}
-
-#[macro_export]
-macro_rules! impl_integer {
-    ($($t:ty),*) => {
-        $(
-            impl Integer for $t {
-                type Value = $t;
-
-                const MIN: Self::Value = <$t>::MIN;
-                const MAX: Self::Value = <$t>::MAX;
-                const ZERO: Self::Value = 0;
-                const ONE: Self::Value = 1;
-                const TWO: Self::Value = 2;
-
-                fn sat_add(self, rhs: Self) -> Self {
-                    self.saturating_add(rhs)
-                }
-
-                fn sat_sub(self, rhs: Self) -> Self {
-                    self.saturating_sub(rhs)
-                }
-
-                fn sat_mul(self, rhs: Self) -> Self {
-                    self.saturating_mul(rhs)
-                }
-
-                fn sat_div(self, rhs: Self) -> Self {
-                    if rhs == Self::ZERO {
-                        self
-                    } else {
-                        self.saturating_div(rhs)
-                    }
-                }
-
-                fn clamp(self, min: Self, max: Self) -> Self {
-                    if self < min {
-                        min
-                    } else if self > max {
-                        max
-                    } else {
-                        self
-                    }
-                }
-
-                fn from_i64(value: i64) -> Self {
-                    if value < Self::MIN as i64 {
-                        Self::MIN
-                    } else if value > Self::MAX as i64 {
-                        Self::MAX
-                    } else {
-                        value as Self
-                    }
-                }
-
-                fn as_i64(self) -> i64 {
-                    self as i64
-                }
-            }
-        )*
-    };
-}
-
-impl_integer!(i8, i16, i32, i64, i128, u8, u16, u32, u64, u128);
+use std::{
+    fmt::Debug,
+    ops::{Add, Div, Mul, Range, Sub},
+};
 
 /// A [`Gene`] that represents an integer value. This gene just wraps an integer value and provides
 /// functionality for it to be used in a genetic algorithm. In this [`Gene`] implementation, the
@@ -220,7 +124,7 @@ impl<T: Integer> BoundedGene for IntGene<T> {
 impl<T: Integer> ArithmeticGene for IntGene<T> {
     fn mean(&self, other: &IntGene<T>) -> IntGene<T> {
         IntGene {
-            allele: (self.allele.sat_add(other.allele)).sat_div(T::TWO),
+            allele: (self.allele.safe_add(other.allele)).safe_div(T::TWO),
             value_range: self.value_range.clone(),
             bounds: self.bounds.clone(),
         }
@@ -234,8 +138,8 @@ impl<T: Integer> Add for IntGene<T> {
         IntGene {
             allele: self
                 .allele
-                .sat_add(other.allele)
-                .clamp(self.bounds.start, self.bounds.end),
+                .safe_add(other.allele)
+                .safe_clamp(self.bounds.start, self.bounds.end),
             value_range: self.value_range.clone(),
             bounds: self.bounds.clone(),
         }
@@ -249,8 +153,8 @@ impl<T: Integer> Sub for IntGene<T> {
         IntGene {
             allele: self
                 .allele
-                .sat_sub(other.allele)
-                .clamp(self.bounds.start, self.bounds.end),
+                .safe_sub(other.allele)
+                .safe_clamp(self.bounds.start, self.bounds.end),
             value_range: self.value_range.clone(),
             bounds: self.bounds.clone(),
         }
@@ -264,8 +168,8 @@ impl<T: Integer> Mul for IntGene<T> {
         IntGene {
             allele: self
                 .allele
-                .sat_mul(other.allele)
-                .clamp(self.bounds.start, self.bounds.end),
+                .safe_mul(other.allele)
+                .safe_clamp(self.bounds.start, self.bounds.end),
             value_range: self.value_range.clone(),
             bounds: self.bounds.clone(),
         }
@@ -279,8 +183,8 @@ impl<T: Integer> Div for IntGene<T> {
         IntGene {
             allele: self
                 .allele
-                .sat_div(other.allele)
-                .clamp(self.bounds.start, self.bounds.end),
+                .safe_div(other.allele)
+                .safe_clamp(self.bounds.start, self.bounds.end),
             value_range: self.value_range.clone(),
             bounds: self.bounds.clone(),
         }

@@ -95,9 +95,6 @@ pub trait NumericGene: Gene
 where
     Self::Allele: NumericAllele,
 {
-    fn set_allele_from_f64(&mut self, value: f64) {
-        *self.allele_mut() = Self::Allele::from_f64(value);
-    }
 }
 
 impl<G, T> NumericGene for G

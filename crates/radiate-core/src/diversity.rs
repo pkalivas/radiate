@@ -103,8 +103,8 @@ where
         let mut total_genes = 0.0;
         for (chrom_one, chrom_two) in geno_one.iter().zip(geno_two.iter()) {
             for (gene_one, gene_two) in chrom_one.iter().zip(chrom_two.iter()) {
-                let one_as_f64 = gene_one.allele().as_f64();
-                let two_as_f64 = gene_two.allele().as_f64();
+                let one_as_f64 = gene_one.allele().extract::<f64>();
+                let two_as_f64 = gene_two.allele().extract::<f64>();
 
                 if let Some((one, two)) = one_as_f64.zip(two_as_f64) {
                     if one.is_nan() || two.is_nan() {
@@ -157,8 +157,8 @@ where
 
         for (chrom_one, chrom_two) in geno_one.iter().zip(geno_two.iter()) {
             for (gene_one, gene_two) in chrom_one.iter().zip(chrom_two.iter()) {
-                let one_as_f64 = gene_one.allele().as_f64();
-                let two_as_f64 = gene_two.allele().as_f64();
+                let one_as_f64 = gene_one.allele().extract::<f64>();
+                let two_as_f64 = gene_two.allele().extract::<f64>();
 
                 if let Some((one, two)) = one_as_f64.zip(two_as_f64) {
                     if one.is_nan() || two.is_nan() {

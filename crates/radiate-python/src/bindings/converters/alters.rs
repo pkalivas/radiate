@@ -1,6 +1,7 @@
 use crate::{AnyChromosome, InputTransform, PyEngineInput, PyEngineInputType};
 use pyo3::{PyResult, exceptions::PyTypeError};
 use radiate::{chromosomes::NumericAllele, *};
+use radiate_utils::{Float, Integer};
 use std::collections::HashMap;
 
 type AlterConv<C> = fn(&PyEngineInput) -> Alterer<C>;

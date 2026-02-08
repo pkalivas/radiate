@@ -1,9 +1,11 @@
 use crate::{AnyGene, AnyValue, PyGeneType, Wrap, bindings::dtype};
 use pyo3::{Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
-    BitGene, CharGene, DataType, Float, FloatGene, Gene, GraphNode, IntGene, Integer, Op,
-    PermutationGene, TreeNode, dtype_names, random_provider,
+    BitGene, CharGene, DataType, FloatGene, Gene, GraphNode, IntGene, Op, PermutationGene,
+    TreeNode, dtype_names, random_provider,
 };
+use radiate_error::radiate_py_bail;
+use radiate_utils::{Float, Integer};
 use std::collections::HashMap;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -157,7 +159,7 @@ impl PyGene {
         range: Option<(f64, f64)>,
         bounds: Option<(f64, f64)>,
         dtype: Option<String>,
-    ) -> PyGene {
+    ) -> PyResult<Self> {
         let dtype = dtype::dtype_from_str(&dtype.unwrap_or_else(|| dtype_names::FLOAT64.into()));
         let range = range.unwrap_or((std::f64::MIN, std::f64::MAX));
         let bounds = bounds.unwrap_or(range.clone());
@@ -166,27 +168,33 @@ impl PyGene {
             allele: Option<f64>,
             range: (f64, f64),
             bounds: (f64, f64),
-        ) -> FloatGene<F> {
-            match allele {
-                Some(a) => FloatGene::new(
-                    F::from_f64(a),
-                    F::from_f64(range.0)..F::from_f64(range.1),
-                    F::from_f64(bounds.0)..F::from_f64(bounds.1),
-                ),
-                None => FloatGene::from((
-                    F::from_f64(range.0)..F::from_f64(range.1),
-                    F::from_f64(bounds.0)..F::from_f64(bounds.1),
-                )),
+        ) -> PyResult<FloatGene<F>> {
+            let maybe_range = F::from(range.0).zip(F::from(range.1));
+            let maybe_bounds = F::from(bounds.0).zip(F::from(bounds.1));
+            let maybe_allele = allele.and_then(|a| F::from(a));
+
+            if let Some(init) = maybe_range
+                && let Some(bounds) = maybe_bounds
+            {
+                Ok(match maybe_allele {
+                    Some(al) => FloatGene::new(al, init.0..init.1, bounds.0..bounds.1),
+                    None => FloatGene::from((init.0..init.1, bounds.0..bounds.1)),
+                })
+            } else {
+                radiate_py_bail!(format!(
+                    "Invalid range or bounds: range={:?}, bounds={:?}",
+                    maybe_range, maybe_bounds
+                ))
             }
         }
 
-        PyGene {
+        Ok(PyGene {
             inner: match dtype {
-                DataType::Float32 => GeneInner::Float32(to_gene::<f32>(allele, range, bounds)),
-                DataType::Float64 => GeneInner::Float64(to_gene::<f64>(allele, range, bounds)),
-                _ => panic!("Unsupported float dtype: {:?}", dtype),
+                DataType::Float32 => GeneInner::Float32(to_gene::<f32>(allele, range, bounds)?),
+                DataType::Float64 => GeneInner::Float64(to_gene::<f64>(allele, range, bounds)?),
+                _ => radiate_py_bail!(format!("Unsupported float dtype: {:?}", dtype)),
             },
-        }
+        })
     }
 
     #[staticmethod]
@@ -196,7 +204,7 @@ impl PyGene {
         range: Option<(i64, i64)>,
         bounds: Option<(i64, i64)>,
         dtype: Option<String>,
-    ) -> PyGene {
+    ) -> PyResult<Self> {
         let dtype = dtype::dtype_from_str(&dtype.unwrap_or_else(|| dtype_names::INT64.into()));
         let range = range.unwrap_or((i64::MIN, i64::MAX));
         let bounds = bounds.unwrap_or(range.clone());
@@ -205,35 +213,41 @@ impl PyGene {
             allele: Option<i64>,
             range: (i64, i64),
             bounds: (i64, i64),
-        ) -> IntGene<I> {
-            match allele {
-                Some(a) => IntGene::new(
-                    I::from_i64(a),
-                    I::from_i64(range.0)..I::from_i64(range.1),
-                    I::from_i64(bounds.0)..I::from_i64(bounds.1),
-                ),
-                None => IntGene::from((
-                    I::from_i64(range.0)..I::from_i64(range.1),
-                    I::from_i64(bounds.0)..I::from_i64(bounds.1),
-                )),
+        ) -> PyResult<IntGene<I>> {
+            let maybe_range = I::from(range.0).zip(I::from(range.1));
+            let maybe_bounds = I::from(bounds.0).zip(I::from(bounds.1));
+            let maybe_allele = allele.and_then(|a| I::from(a));
+
+            if let Some(init) = maybe_range
+                && let Some(bounds) = maybe_bounds
+            {
+                Ok(match maybe_allele {
+                    Some(al) => IntGene::new(al, init.0..init.1, bounds.0..bounds.1),
+                    None => IntGene::from((init.0..init.1, bounds.0..bounds.1)),
+                })
+            } else {
+                radiate_py_bail!(format!(
+                    "Invalid range or bounds: range={:?}, bounds={:?}",
+                    maybe_range, maybe_bounds
+                ))
             }
         }
 
-        PyGene {
+        Ok(PyGene {
             inner: match dtype {
-                DataType::UInt8 => GeneInner::UInt8(to_gene::<u8>(allele, range, bounds)),
-                DataType::UInt16 => GeneInner::UInt16(to_gene::<u16>(allele, range, bounds)),
-                DataType::UInt32 => GeneInner::UInt32(to_gene::<u32>(allele, range, bounds)),
-                DataType::UInt64 => GeneInner::UInt64(to_gene::<u64>(allele, range, bounds)),
-                DataType::UInt128 => GeneInner::UInt128(to_gene::<u128>(allele, range, bounds)),
-                DataType::Int8 => GeneInner::Int8(to_gene::<i8>(allele, range, bounds)),
-                DataType::Int16 => GeneInner::Int16(to_gene::<i16>(allele, range, bounds)),
-                DataType::Int32 => GeneInner::Int32(to_gene::<i32>(allele, range, bounds)),
-                DataType::Int64 => GeneInner::Int64(to_gene::<i64>(allele, range, bounds)),
-                DataType::Int128 => GeneInner::Int128(to_gene::<i128>(allele, range, bounds)),
-                _ => panic!("Unsupported integer dtype: {:?}", dtype),
+                DataType::UInt8 => GeneInner::UInt8(to_gene::<u8>(allele, range, bounds)?),
+                DataType::UInt16 => GeneInner::UInt16(to_gene::<u16>(allele, range, bounds)?),
+                DataType::UInt32 => GeneInner::UInt32(to_gene::<u32>(allele, range, bounds)?),
+                DataType::UInt64 => GeneInner::UInt64(to_gene::<u64>(allele, range, bounds)?),
+                DataType::UInt128 => GeneInner::UInt128(to_gene::<u128>(allele, range, bounds)?),
+                DataType::Int8 => GeneInner::Int8(to_gene::<i8>(allele, range, bounds)?),
+                DataType::Int16 => GeneInner::Int16(to_gene::<i16>(allele, range, bounds)?),
+                DataType::Int32 => GeneInner::Int32(to_gene::<i32>(allele, range, bounds)?),
+                DataType::Int64 => GeneInner::Int64(to_gene::<i64>(allele, range, bounds)?),
+                DataType::Int128 => GeneInner::Int128(to_gene::<i128>(allele, range, bounds)?),
+                _ => radiate_py_bail!(format!("Unsupported integer dtype: {:?}", dtype)),
             },
-        }
+        })
     }
 
     #[staticmethod]

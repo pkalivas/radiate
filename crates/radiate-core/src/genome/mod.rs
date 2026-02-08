@@ -7,8 +7,8 @@ pub mod species;
 
 pub use chromosomes::{
     ArithmeticGene, BitChromosome, BitGene, BoundedGene, CharChromosome, CharGene, Chromosome,
-    Float, FloatChromosome, FloatGene, Gene, IntChromosome, IntGene, Integer,
-    PermutationChromosome, PermutationGene, Valid,
+    FloatChromosome, FloatGene, Gene, IntChromosome, IntGene, PermutationChromosome,
+    PermutationGene, Valid,
 };
 pub use ecosystem::Ecosystem;
 pub use genotype::Genotype;

@@ -1,9 +1,10 @@
 use crate::{AnyChromosome, InputTransform, PyEngineInput};
 use radiate::{
-    BitChromosome, CharChromosome, CosineDistance, Diversity, EuclideanDistance, Float,
-    FloatChromosome, GraphChromosome, HammingDistance, IntChromosome, Integer, NeatDistance, Op,
-    PermutationChromosome, TreeChromosome, chromosomes::NumericAllele,
+    BitChromosome, CharChromosome, CosineDistance, Diversity, EuclideanDistance, FloatChromosome,
+    GraphChromosome, HammingDistance, IntChromosome, NeatDistance, Op, PermutationChromosome,
+    TreeChromosome, chromosomes::NumericAllele,
 };
+use radiate_utils::{Float, Integer};
 
 impl<I: Integer + NumericAllele> InputTransform<Option<Box<dyn Diversity<IntChromosome<I>>>>>
     for PyEngineInput

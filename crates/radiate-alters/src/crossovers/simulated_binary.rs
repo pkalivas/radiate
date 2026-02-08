@@ -1,7 +1,7 @@
 use radiate_core::{
-    AlterResult, BoundedGene, Chromosome, Crossover, Float, FloatGene, Gene, Rate, Valid,
-    random_provider,
+    AlterResult, BoundedGene, Chromosome, Crossover, FloatGene, Gene, Rate, Valid, random_provider,
 };
+use radiate_utils::Float;
 
 pub struct SimulatedBinaryCrossover {
     crossover_rate: Rate,
@@ -44,11 +44,12 @@ where
             for i in 0..length {
                 if rand.bool(0.5) {
                     let u = rand.random::<f32>();
-                    let beta = F::from_f32(if u <= 0.5 {
+                    let beta = F::from(if u <= 0.5 {
                         (2.0 * u).powf(1.0 / (self.contiguty + 1.0))
                     } else {
                         (0.5 / (1.0 - u)).powf(1.0 / (self.contiguty + 1.0))
-                    });
+                    })
+                    .unwrap();
 
                     let v1 = chrom_one.get(i).allele().clone();
                     let v2 = chrom_two.get(i).allele().clone();
@@ -64,7 +65,7 @@ where
 
                     count += 1;
 
-                    chrom_one.set(i, chrom_one.get(i).with_allele(&new_gene));
+                    *chrom_one.get_mut(i).allele_mut() = new_gene;
                 }
             }
         });

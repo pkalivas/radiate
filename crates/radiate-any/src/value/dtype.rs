@@ -1,8 +1,7 @@
-use std::fmt::Display;
-
 use crate::{Field, Scalar};
-use radiate_core::{Float, Integer};
+use radiate_utils::{Float, Integer};
 use serde::{Deserialize, Serialize};
+use std::fmt::Display;
 
 pub mod dtype_names {
     pub const NULL: &str = "null";

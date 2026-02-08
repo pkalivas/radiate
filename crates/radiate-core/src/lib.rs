@@ -55,7 +55,7 @@ pub mod prelude {
     };
     pub use super::genome::{
         ArithmeticGene, BitChromosome, BitGene, BoundedGene, CharChromosome, CharGene, Chromosome,
-        FloatChromosome, FloatGene, Gene, IntChromosome, IntGene, Integer, Valid,
+        FloatChromosome, FloatGene, Gene, IntChromosome, IntGene, Valid,
     };
     pub use super::objectives::{Front, Objective, Optimize, Score, pareto};
     pub use super::problem::{BatchEngineProblem, EngineProblem, Problem};

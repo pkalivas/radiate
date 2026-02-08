@@ -1,7 +1,7 @@
 use radiate_core::{
-    AlterResult, BoundedGene, Chromosome, Crossover, Float, FloatGene, Gene, Rate, Valid,
-    random_provider,
+    AlterResult, BoundedGene, Chromosome, Crossover, FloatGene, Gene, Rate, Valid, random_provider,
 };
+use radiate_utils::Float;
 
 /// Intermediate Crossover. This crossover method takes two chromosomes and crosses them
 /// by taking a weighted average of the two alleles. The weight is determined by the `alpha`
@@ -47,7 +47,7 @@ where
     #[inline]
     fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C, rate: f32) -> AlterResult {
         let mut cross_count = 0;
-        let alpha = F::from_f32(self.alpha);
+        let alpha = F::from(self.alpha).unwrap();
 
         random_provider::with_rng(|rand| {
             for i in 0..std::cmp::min(chrom_one.len(), chrom_two.len()) {

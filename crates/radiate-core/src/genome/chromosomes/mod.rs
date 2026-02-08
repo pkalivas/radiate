@@ -6,74 +6,26 @@ pub mod gene;
 pub mod int;
 pub mod permutation;
 
-use std::ops::{Add, Div, Mul, Sub};
-
 pub use bit::{BitChromosome, BitGene};
 pub use char::{CharChromosome, CharGene};
 pub use chromosome::*;
-pub use float::{Float, FloatChromosome, FloatGene};
+pub use float::{FloatChromosome, FloatGene};
 pub use gene::{ArithmeticGene, BoundedGene, Gene, NumericGene, Valid};
-pub use int::{IntChromosome, IntGene, Integer};
+pub use int::{IntChromosome, IntGene};
+use num_traits::NumCast;
 pub use permutation::{PermutationChromosome, PermutationGene};
+use radiate_utils::Primitive;
 
-pub trait NumericAllele:
-    Add<Output = Self> + Sub<Output = Self> + Mul<Output = Self> + Div<Output = Self> + Clone
-{
-    fn as_f32(&self) -> Option<f32>;
-    fn as_f64(&self) -> Option<f64>;
-    fn as_i32(&self) -> Option<i32>;
-    fn as_i64(&self) -> Option<i64>;
-
-    fn from_f32(value: f32) -> Self;
-    fn from_f64(value: f64) -> Self;
-    fn from_i32(value: i32) -> Self;
-    fn from_i64(value: i64) -> Self;
+pub trait NumericAllele: Primitive {
+    fn extract<T: NumCast>(self) -> Option<T> {
+        T::from(self)
+    }
 }
 
 macro_rules! impl_numeric_allele {
     ($($t:ty),*) => {
         $(
-            impl NumericAllele for $t {
-                #[inline]
-                fn as_f32(&self) -> Option<f32> {
-                    Some(*self as f32)
-                }
-
-                #[inline]
-                fn as_f64(&self) -> Option<f64> {
-                    Some(*self as f64)
-                }
-
-                #[inline]
-                fn from_f32(value: f32) -> Self {
-                    value as Self
-                }
-
-                #[inline]
-                fn from_f64(value: f64) -> Self {
-                    value as Self
-                }
-
-                #[inline]
-                fn as_i32(&self) -> Option<i32> {
-                    Some(*self as i32)
-                }
-
-                #[inline]
-                fn as_i64(&self) -> Option<i64> {
-                    Some(*self as i64)
-                }
-
-                #[inline]
-                fn from_i32(value: i32) -> Self {
-                    value as Self
-                }
-
-                #[inline]
-                fn from_i64(value: i64) -> Self {
-                    value as Self
-                }
-            }
+            impl NumericAllele for $t {}
 
         )*
     };

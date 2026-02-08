@@ -1,7 +1,7 @@
 use radiate_core::{
-    AlterResult, BoundedGene, Chromosome, Crossover, Float, FloatGene, Gene, Rate, Valid,
-    random_provider,
+    AlterResult, BoundedGene, Chromosome, Crossover, FloatGene, Gene, Rate, Valid, random_provider,
 };
+use radiate_utils::{Float, Primitive};
 
 /// The [BlendCrossover] is a crossover operator that blends [FloatGene] alleles from two parent chromosomes to create offspring.
 /// The blending is controlled by the `alpha` parameter, which determines the extent of blending between the two alleles.
@@ -36,7 +36,7 @@ impl BlendCrossover {
 
 impl<F, C> Crossover<C> for BlendCrossover
 where
-    F: Float,
+    F: Primitive + Float,
     C: Chromosome<Gene = FloatGene<F>>,
 {
     fn rate(&self) -> Rate {
@@ -46,7 +46,7 @@ where
     #[inline]
     fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C, rate: f32) -> AlterResult {
         let mut cross_count = 0;
-        let alpha = F::from_f32(self.alpha);
+        let alpha = F::from(self.alpha).unwrap();
 
         random_provider::with_rng(|rand| {
             for i in 0..std::cmp::min(chrom_one.len(), chrom_two.len()) {
@@ -78,7 +78,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use radiate_core::{FloatChromosome, FloatGene, chromosomes::NumericAllele};
+    use radiate_core::{FloatChromosome, FloatGene};
 
     #[test]
     fn test_cross_chromosomes_basic() {
@@ -176,10 +176,18 @@ mod tests {
         let expected_one_1 = 2.0 - (alpha * (5.0 - 2.0));
         let expected_two_1 = 5.0 - (alpha * (2.0 - 5.0));
 
-        assert!((chrom_one.get(0).allele().as_f32().unwrap() - expected_one_0).abs() < 1e-6);
-        assert!((chrom_two.get(0).allele().as_f32().unwrap() - expected_two_0).abs() < 1e-6);
-        assert!((chrom_one.get(1).allele().as_f32().unwrap() - expected_one_1).abs() < 1e-6);
-        assert!((chrom_two.get(1).allele().as_f32().unwrap() - expected_two_1).abs() < 1e-6);
+        assert!(
+            (chrom_one.get(0).allele().extract::<f32>().unwrap() - expected_one_0).abs() < 1e-6
+        );
+        assert!(
+            (chrom_two.get(0).allele().extract::<f32>().unwrap() - expected_two_0).abs() < 1e-6
+        );
+        assert!(
+            (chrom_one.get(1).allele().extract::<f32>().unwrap() - expected_one_1).abs() < 1e-6
+        );
+        assert!(
+            (chrom_two.get(1).allele().extract::<f32>().unwrap() - expected_two_1).abs() < 1e-6
+        );
 
         assert_eq!(*chrom_one.get(2).allele(), 3.0);
     }

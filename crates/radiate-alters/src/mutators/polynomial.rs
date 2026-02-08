@@ -1,7 +1,5 @@
-use radiate_core::{
-    BoundedGene, Chromosome, Float, FloatGene, Gene, Mutate, Rate, chromosomes::NumericAllele,
-    random_provider,
-};
+use radiate_core::{BoundedGene, Chromosome, FloatGene, Gene, Mutate, Rate, random_provider};
+use radiate_utils::{Float, Primitive};
 
 // Use it when:
 // 	- You’re evolving floating-point representations (like real-valued neural nets, control parameters, orbital mechanics).
@@ -59,7 +57,7 @@ impl PolynomialMutator {
 
 impl<F, C> Mutate<C> for PolynomialMutator
 where
-    F: Float + NumericAllele,
+    F: Float + Primitive,
     C: Chromosome<Gene = FloatGene<F>>,
 {
     fn rate(&self) -> Rate {
@@ -69,15 +67,15 @@ where
     #[inline]
     fn mutate_gene(&self, gene: &C::Gene) -> C::Gene {
         // TODO: Should these be from the bounds?
-        let min = gene.min().as_f64().unwrap();
-        let max = gene.max().as_f64().unwrap();
-        let value = gene.allele().as_f64().unwrap();
+        let min = gene.min().extract::<f64>().unwrap();
+        let max = gene.max().extract::<f64>().unwrap();
+        let value = gene.allele().extract::<f64>().unwrap();
         let eta = self.eta as f64;
 
         let new_value = self.polynomial_mutation(value, min, max, eta);
 
         let clamped_value = new_value.clamp(min, max);
 
-        gene.with_allele(&<F as Float>::from_f64(clamped_value))
+        gene.with_allele(&clamped_value.extract::<F>().unwrap())
     }
 }
