@@ -18,7 +18,7 @@ pub use float::PyFloatCodec;
 pub use graph::PyGraphCodec;
 pub use int::PyIntCodec;
 pub use permutation::PyPermutationCodec;
-use pyo3::exceptions::PyValueError;
+use radiate_error::radiate_py_bail;
 pub use tree::PyTreeCodec;
 
 use numpy::{Element, PyArray, PyArray1, PyArrayMethods};
@@ -110,9 +110,9 @@ where
             .map(|chrom| chrom.iter().map(|gene| *gene.allele()));
 
         let Some(values) = values else {
-            return Err(PyValueError::new_err(
+            radiate_py_bail!(
                 "Genotype has one chromosome, but it is empty. Cannot decode to array.",
-            ));
+            );
         };
 
         let is_square = lengths.iter().all(|&len| len == lengths[0]);

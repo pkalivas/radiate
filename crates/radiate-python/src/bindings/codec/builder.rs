@@ -215,8 +215,8 @@ where
         let val_range: Range<A> = self
             .init_range
             .map(|rng| {
-                NumCast::from(rng.0)
-                    .zip(NumCast::from(rng.1))
+                A::from(rng.0)
+                    .zip(A::from(rng.1))
                     .map(|(min, max)| min..max)
                     .unwrap_or({
                         self.dtype
@@ -228,9 +228,7 @@ where
                                     .extract::<A>()
                                     .zip(max.value().clone().extract::<A>())
                                     .map(|(min, max)| {
-                                        NumCast::from(min)
-                                            .zip(NumCast::from(max))
-                                            .map(|(min, max)| min..max)
+                                        A::from(min).zip(A::from(max)).map(|(min, max)| min..max)
                                     })
                                     .unwrap()
                             })
@@ -242,8 +240,8 @@ where
         let bound_range: Range<A> = self
             .bound_range
             .map(|rng| {
-                NumCast::from(rng.0)
-                    .zip(NumCast::from(rng.1))
+                A::from(rng.0)
+                    .zip(A::from(rng.1))
                     .map(|(min, max)| min..max)
             })
             .flatten()
