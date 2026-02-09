@@ -5,11 +5,13 @@ from radiate.genome.gene import Gene
 from .base import CodecBase
 
 from radiate.radiate import PyCharCodec
-from radiate.genome import Genotype
-from radiate.wrapper import PyObject
+from radiate.genome import Genotype, GeneType
+from radiate.wrapper import RsObject
 
 
-class CharCodec[T](CodecBase[str, T], PyObject[PyCharCodec]):
+class CharCodec[T](CodecBase[str, T], RsObject[PyCharCodec]):
+    gene_type = GeneType.CHAR
+
     def __init__(
         self,
         shape: int | tuple[int, int] | list[int] | None = None,

@@ -46,6 +46,7 @@ def test_add_to_front():
     front = rd.Front(objectives=["min"], range=(0, 100))
     result = front.add([phenotype])
 
+    assert front.dtype() == rd.Int64
     assert isinstance(result, dict) or result is None
     assert "added" in result
     assert result["added"] == 1
@@ -91,5 +92,3 @@ def test_front_can_min():
     assert len(first_front) == add_result["added"]
     assert len(first_front) == len(rank0)
     assert first_front_scores == rank0_scores
-
-

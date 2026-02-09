@@ -11,14 +11,14 @@ type MetaData = Option<Arc<HashMap<String, String>>>;
 type Factory = Option<Arc<dyn Fn() -> AnyValue<'static> + Send + Sync>>;
 
 #[derive(Clone)]
-pub struct AnyGene<'a> {
-    allele: AnyValue<'a>,
+pub struct AnyGene {
+    allele: AnyValue<'static>,
     metadata: MetaData,
     factory: Factory,
 }
 
-impl<'a> AnyGene<'a> {
-    pub fn new(allele: AnyValue<'a>) -> Self {
+impl AnyGene {
+    pub fn new(allele: AnyValue<'static>) -> Self {
         AnyGene {
             allele,
             factory: None,
@@ -44,20 +44,20 @@ impl<'a> AnyGene<'a> {
     }
 }
 
-impl Valid for AnyGene<'_> {
+impl Valid for AnyGene {
     fn is_valid(&self) -> bool {
         true
     }
 }
 
-impl<'a> Gene for AnyGene<'a> {
-    type Allele = AnyValue<'a>;
+impl Gene for AnyGene {
+    type Allele = AnyValue<'static>;
 
     fn allele(&self) -> &Self::Allele {
         &self.allele
     }
 
-    fn allele_mut(&mut self) -> &mut AnyValue<'a> {
+    fn allele_mut(&mut self) -> &mut AnyValue<'static> {
         &mut self.allele
     }
 
@@ -82,7 +82,7 @@ impl<'a> Gene for AnyGene<'a> {
     }
 }
 
-impl<'a> ArithmeticGene for AnyGene<'a> {
+impl ArithmeticGene for AnyGene {
     fn mean(&self, other: &Self) -> Self {
         if let Some(avg) = crate::mean_anyvalue(self.allele(), other.allele()) {
             AnyGene {
@@ -96,7 +96,7 @@ impl<'a> ArithmeticGene for AnyGene<'a> {
     }
 }
 
-impl Add for AnyGene<'_> {
+impl Add for AnyGene {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
@@ -108,7 +108,7 @@ impl Add for AnyGene<'_> {
     }
 }
 
-impl Sub for AnyGene<'_> {
+impl Sub for AnyGene {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
@@ -120,7 +120,7 @@ impl Sub for AnyGene<'_> {
     }
 }
 
-impl Mul for AnyGene<'_> {
+impl Mul for AnyGene {
     type Output = Self;
 
     fn mul(self, rhs: Self) -> Self::Output {
@@ -132,7 +132,7 @@ impl Mul for AnyGene<'_> {
     }
 }
 
-impl Div for AnyGene<'_> {
+impl Div for AnyGene {
     type Output = Self;
 
     fn div(self, rhs: Self) -> Self::Output {
@@ -144,13 +144,13 @@ impl Div for AnyGene<'_> {
     }
 }
 
-impl PartialEq for AnyGene<'_> {
+impl PartialEq for AnyGene {
     fn eq(&self, other: &Self) -> bool {
         self.allele == other.allele
     }
 }
 
-impl Debug for AnyGene<'_> {
+impl Debug for AnyGene {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "AnyGene {{ ")?;
         write!(f, "allele: {:?}, ", self.allele)?;
@@ -164,24 +164,24 @@ impl Debug for AnyGene<'_> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct AnyChromosome<'a> {
-    genes: Vec<AnyGene<'a>>,
+pub struct AnyChromosome {
+    genes: Vec<AnyGene>,
 }
 
-impl<'a> AnyChromosome<'a> {
-    pub fn new(genes: Vec<AnyGene<'a>>) -> Self {
+impl AnyChromosome {
+    pub fn new(genes: Vec<AnyGene>) -> Self {
         AnyChromosome { genes }
     }
 }
 
-impl Valid for AnyChromosome<'_> {
+impl Valid for AnyChromosome {
     fn is_valid(&self) -> bool {
         self.genes.iter().all(|g| g.is_valid())
     }
 }
 
-impl<'a> Chromosome for AnyChromosome<'a> {
-    type Gene = AnyGene<'a>;
+impl Chromosome for AnyChromosome {
+    type Gene = AnyGene;
 
     fn as_slice(&self) -> &[Self::Gene] {
         &self.genes
@@ -192,26 +192,26 @@ impl<'a> Chromosome for AnyChromosome<'a> {
     }
 }
 
-impl<'a> From<AnyGene<'a>> for AnyChromosome<'a> {
-    fn from(gene: AnyGene<'a>) -> Self {
+impl From<AnyGene> for AnyChromosome {
+    fn from(gene: AnyGene) -> Self {
         AnyChromosome::new(vec![gene])
     }
 }
 
-impl<'a> From<Vec<AnyGene<'a>>> for AnyChromosome<'a> {
-    fn from(genes: Vec<AnyGene<'a>>) -> Self {
+impl From<Vec<AnyGene>> for AnyChromosome {
+    fn from(genes: Vec<AnyGene>) -> Self {
         AnyChromosome::new(genes)
     }
 }
 
-impl<'a> FromIterator<AnyGene<'a>> for AnyChromosome<'a> {
-    fn from_iter<T: IntoIterator<Item = AnyGene<'a>>>(iter: T) -> Self {
+impl FromIterator<AnyGene> for AnyChromosome {
+    fn from_iter<T: IntoIterator<Item = AnyGene>>(iter: T) -> Self {
         AnyChromosome::new(iter.into_iter().collect())
     }
 }
 
-impl<'a> IntoIterator for AnyChromosome<'a> {
-    type Item = AnyGene<'a>;
+impl IntoIterator for AnyChromosome {
+    type Item = AnyGene;
     type IntoIter = std::vec::IntoIter<Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {

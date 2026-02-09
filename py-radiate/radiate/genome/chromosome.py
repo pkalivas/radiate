@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import Iterable, TYPE_CHECKING
-from radiate.wrapper import PyObject
+from radiate.wrapper import RsObject
 from radiate.radiate import PyChromosome
 from .gene import Gene
 from radiate.genome import gene
@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from radiate.genome import GeneType
 
 
-class Chromosome[T](PyObject[PyChromosome]):
+class Chromosome[T](RsObject[PyChromosome]):
     """
     Represents a chromosome in a genome.
     """
@@ -155,5 +155,7 @@ def float(
         if isinstance(genes, Gene):
             return Chromosome(genes=[genes])
     else:
-        genes = [gene.float(init_range=init_range, bounds=bounds) for _ in range(length)]
+        genes = [
+            gene.float(init_range=init_range, bounds=bounds) for _ in range(length)
+        ]
         return Chromosome(genes=genes)

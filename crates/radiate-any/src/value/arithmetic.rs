@@ -230,16 +230,6 @@ pub fn mean_anyvalue(one: &AnyValue<'_>, two: &AnyValue<'_>) -> Option<AnyValue<
 
     match (one, two) {
         (Bool(x), Bool(y)) => Some(Bool(*x && *y)),
-        (BinaryOwned(x), BinaryOwned(y)) => {
-            let m = x.len().min(y.len());
-            let mut out = Vec::with_capacity(m);
-
-            for i in 0..m {
-                out.push(((x[i] as u16 + y[i] as u16) / 2) as u8);
-            }
-
-            Some(BinaryOwned(out))
-        }
         (Vector(xs), Vector(ys)) => crate::value::apply_zipped_slice(xs, ys, mean_anyvalue),
         (Struct(xs), Struct(ys)) => crate::value::apply_zipped_struct_slice(xs, ys, mean_anyvalue),
         _ => None,
@@ -286,7 +276,7 @@ mod tests {
     fn make_struct(pairs: Vec<(&'static str, AnyValue<'static>)>) -> AnyValue<'static> {
         let fields = pairs
             .into_iter()
-            .map(|(name, val)| (crate::Field::new(name.into()), val))
+            .map(|(name, val)| (crate::Field::new(name.into(), val.dtype()), val))
             .collect();
         AnyValue::Struct(fields)
     }

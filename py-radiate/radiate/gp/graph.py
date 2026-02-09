@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from radiate.radiate import PyGraph
-from radiate.wrapper import PyObject
+from radiate.wrapper import RsObject
 
 
-class Graph(PyObject[PyGraph]):
+class Graph(RsObject[PyGraph]):
     def __repr__(self):
         return self.__backend__().__repr__()
 

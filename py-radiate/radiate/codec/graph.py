@@ -5,11 +5,13 @@ from radiate._typing import NodeValues
 from .base import CodecBase
 from ..gp import Op, Graph
 from radiate.genome import Genotype, GeneType
-from radiate.wrapper import PyObject
+from radiate.wrapper import RsObject
 from radiate.radiate import PyGraphCodec
 
 
-class GraphCodec(CodecBase[Op, Graph], PyObject[PyGraphCodec]):
+class GraphCodec(CodecBase[Op, Graph], RsObject[PyGraphCodec]):
+    gene_type = GeneType.GRAPH
+
     def __init__(self, codec: PyGraphCodec):
         self._pyobj = codec
 

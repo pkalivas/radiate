@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from radiate.wrapper import PyObject
+from radiate.wrapper import RsObject
 from .genotype import Genotype
 from radiate.radiate import PyPhenotype
 
@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from radiate.genome import GeneType
 
 
-class Phenotype[T](PyObject[PyPhenotype]):
+class Phenotype[T](RsObject[PyPhenotype]):
     """
     Represents a phenotype in a genome.
     """
@@ -40,7 +40,7 @@ class Phenotype[T](PyObject[PyPhenotype]):
         :return: Length of the phenotype.
         """
         return len(self._pyobj.genotype)
-    
+
     def __hash__(self):
         res = hash(self.id())
         for score in self.score():
@@ -55,7 +55,7 @@ class Phenotype[T](PyObject[PyPhenotype]):
         from . import GeneType
 
         return GeneType.from_str(self._pyobj.genotype.gene_type())
-    
+
     def id(self) -> int:
         """
         Returns the unique identifier of the phenotype.
@@ -75,4 +75,6 @@ class Phenotype[T](PyObject[PyPhenotype]):
         Returns the genotype of the phenotype.
         :return: The genotype of the phenotype.
         """
-        return self.try_get_cache("genotype_cache", lambda: Genotype.from_rust(self._pyobj.genotype))
+        return self.try_get_cache(
+            "genotype_cache", lambda: Genotype.from_rust(self._pyobj.genotype)
+        )

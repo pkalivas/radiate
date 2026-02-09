@@ -72,7 +72,7 @@ pub fn py_alter(
             )))
         }
         PyGeneType::AnyGene => {
-            let alterer: Vec<Alterer<AnyChromosome<'static>>> = alterer.transform();
+            let alterer: Vec<Alterer<AnyChromosome>> = alterer.transform();
 
             Ok(PyPopulation::from(&alter(
                 alterer,

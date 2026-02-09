@@ -1,22 +1,26 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, TYPE_CHECKING
 from abc import ABC
 
+if TYPE_CHECKING:
+    from ._typing import RdDataType
 
-class PyObject[T](ABC):
+
+class RsObject[T](ABC):
     """
     Abstract base class for Python wrapper objects that wrap Rust objects.
     Provides common functionality for conversion between Python and Rust objects.
     """
 
-    __slots__ = ["_pyobj", "_cache"]
+    __slots__ = ["_pyobj", "_cache", "_dtype"]
     _pyobj: T
     _cache: dict[str, Any]
 
     def __init__(self, pyobj: T | None = None):
         self._pyobj = pyobj
         self._cache = {}
+        self._dtype = None
 
     @classmethod
     def from_rust(cls, py_obj: T | dict):
@@ -26,7 +30,27 @@ class PyObject[T](ABC):
         else:
             instance._pyobj = py_obj
         instance._cache = {}
+        instance._dtype = None
         return instance
+
+    def dtype(self) -> "RdDataType":
+        """
+        Get the data type of the underlying Rust object, if applicable.
+        :return: The data type as a RdDataType.
+        """
+        from .dtype import Null
+
+        if self._dtype is not None:
+            return self._dtype
+        elif self.__backend__() is not None:
+            self._dtype = (
+                self.__backend__().dtype()
+                if hasattr(self.__backend__(), "dtype")
+                else Null()
+            )
+            return self._dtype
+        else:
+            return Null()
 
     def __backend__(self) -> T:
         return self._pyobj
@@ -46,7 +70,7 @@ class PyObject[T](ABC):
     def __hash__(self) -> int:
         """Hash based on the inner object."""
         return hash(self.__backend__())
-    
+
     def try_invalidate_cache(self, key: str) -> None:
         """
         Invalidate a cached value by key.

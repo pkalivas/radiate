@@ -5,6 +5,7 @@ from typing import Any, Callable
 from radiate.gp.op import Op
 
 from .handlers import EventHandler
+from .dtype import DataType, DataTypeClass
 
 
 type Subscriber = (
@@ -15,3 +16,5 @@ type Subscriber = (
 )
 
 type NodeValues = list[Op] | Op | list[str] | str
+
+type RdDataType = DataType | DataTypeClass

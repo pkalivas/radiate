@@ -1,19 +1,11 @@
+from __future__ import annotations
+
 from typing import Any, Callable
 
 from ._typing import Subscriber
 from .builder import EngineBuilder
 from .generation import Generation
-from .codec import (
-    FloatCodec,
-    IntCodec,
-    CharCodec,
-    BitCodec,
-    GraphCodec,
-    CodecBase,
-    PermutationCodec,
-    TreeCodec,
-    AnyCodec,
-)
+from .codec import CodecBase
 
 from .inputs.input import EngineInput, EngineInputType
 from .inputs.selector import SelectorBase, TournamentSelector, RouletteSelector
@@ -24,7 +16,6 @@ from .fitness import FitnessBase
 from .inputs.limit import LimitBase
 from .option import EngineCheckpoint, EngineLog, EngineUi
 
-from .genome import GeneType
 from .genome.population import Population
 
 
@@ -56,28 +47,15 @@ class GeneticEngine[G, T]:
         generation: Generation[T] | None = None,
         checkpoint_path: str | None = None,
     ):
-        self.gene_type = None
-        if isinstance(codec, IntCodec):
-            self.gene_type = GeneType.INT
-        elif isinstance(codec, FloatCodec):
-            self.gene_type = GeneType.FLOAT
-        elif isinstance(codec, CharCodec):
-            self.gene_type = GeneType.CHAR
-        elif isinstance(codec, BitCodec):
-            self.gene_type = GeneType.BIT
-        elif isinstance(codec, GraphCodec):
-            self.gene_type = GeneType.GRAPH
-        elif isinstance(codec, TreeCodec):
-            self.gene_type = GeneType.TREE
-        elif isinstance(codec, PermutationCodec):
-            self.gene_type = GeneType.PERMUTATION
-        elif isinstance(codec, AnyCodec):
-            self.gene_type = GeneType.ANY
-        else:
-            raise TypeError(f"Codec type {type(codec)} is not supported.")
+        self.gene_type = getattr(codec, "gene_type", None)
+        if self.gene_type is None:
+            raise TypeError(
+                f"Codec {type(codec).__name__} must define gene_type. "
+                "Use a built-in codec (IntCodec, FloatCodec, etc.) or add gene_type to your codec."
+            )
 
         if fitness_func is None:
-            raise ValueError("Fitness function must be provided.")
+            raise ValueError("A fitness function must be provided.")
 
         self.builder = EngineBuilder(self.gene_type, codec, fitness_func)
 
@@ -100,10 +78,6 @@ class GeneticEngine[G, T]:
         if self.engine is None:
             return f"{self.builder.__repr__()}"
         return f"{self.engine.__repr__()}"
-
-    def __dict__(self):
-        """Return the internal state of the engine builder for debugging."""
-        return self.builder.__dict__
 
     def __iter__(self):
         """Return an iterator over the engine's generations."""
@@ -196,7 +170,7 @@ class GeneticEngine[G, T]:
 
         return Generation.from_rust(engine.run(limit_inputs, options))
 
-    def population_size(self, size: int):
+    def population_size(self, size: int) -> GeneticEngine[G, T]:
         """Set the population size.
         Args:
             size (int): The size of the population.
@@ -210,23 +184,14 @@ class GeneticEngine[G, T]:
         if size <= 0:
             raise ValueError("Population size must be greater than 0.")
         self.builder.set_population_size(size)
+        return self
 
-    def survivor_selector(self, selector: SelectorBase):
-        """Set the survivor selector.
-        Args:
-            selector (SelectorBase): The selector to use for survivors.
-        Raises:
-            ValueError: If selector is None or invalid.
-
-        Example:
-        ---------
-        >>> engine.survivor_selector(rd.TournamentSelector(k=5))
-        """
-        if selector is None:
-            raise ValueError("Selector must be provided.")
-        self.builder.set_survivor_selector(selector)
-
-    def offspring_selector(self, selector: SelectorBase):
+    def select(
+        self,
+        offspring: SelectorBase | None = None,
+        survivor: SelectorBase | None = None,
+        fraction: float | None = None,
+    ) -> GeneticEngine[G, T]:
         """Set the offspring selector.
         Args:
             selector (SelectorBase): The selector to use for offspring.
@@ -237,14 +202,21 @@ class GeneticEngine[G, T]:
         ---------
         >>> engine.offspring_selector(rd.RouletteSelector())
         """
-        if selector is None:
-            raise ValueError("Selector must be provided.")
-        self.builder.set_offspring_selector(selector)
+        if offspring is not None:
+            self.builder.set_offspring_selector(offspring)
+        if survivor is not None:
+            self.builder.set_survivor_selector(survivor)
+        if fraction is not None:
+            if not (0 < fraction <= 1):
+                raise ValueError("Offspring fraction must be between 0 and 1.")
+            self.builder.set_offspring_fraction(fraction)
 
-    def alters(self, alters: AlterBase | list[AlterBase]):
+        return self
+
+    def alters(self, *alters) -> GeneticEngine[G, T]:
         """Set the alters.
         Args:
-            alters (AlterBase | list[AlterBase]): The alterers to use in the engine.
+            alters (AlterBase | list[AlterBase]): The alter(s) to use for the engine.
         Raises:
             ValueError: If alters is None or invalid.
 
@@ -252,11 +224,14 @@ class GeneticEngine[G, T]:
         ---------
         >>> engine.alters([rd.SimulatedBinaryCrossover(1.0, 1.0), rd.UniformMutator(0.1)])
         """
-        if alters is None:
+        if not alters:
             raise ValueError("Alters must be provided.")
         self.builder.set_alters(alters)
+        return self
 
-    def diversity(self, diversity: DistanceBase, species_threshold: float = 1.5):
+    def diversity(
+        self, diversity: DistanceBase, species_threshold: float = 1.5
+    ) -> GeneticEngine[G, T]:
         """Set the diversity.
         Args:
             diversity (DiversityBase): The diversity strategy to use.
@@ -273,40 +248,27 @@ class GeneticEngine[G, T]:
         if species_threshold <= 0:
             raise ValueError("Species threshold must be greater than 0.")
         self.builder.set_diversity(diversity, species_threshold)
+        return self
 
-    def offspring_fraction(self, fraction: float):
-        """Set the offspring fraction.
-        Args:
-            fraction (float): The fraction of offspring to create.
-        Raises:
-            ValueError: If fraction is not between 0 and 1.
-
-        Example:
-        ---------
-        >>> engine.offspring_fraction(0.8)
-        """
-        if not (0 < fraction <= 1):
-            raise ValueError("Offspring fraction must be between 0 and 1.")
-        self.builder.set_offspring_fraction(fraction)
-
-    def max_age(self, max_phenotype_age: int = 20, max_species_age: int = 20):
+    def age(self, phenotype: int = 20, species: int = 20) -> GeneticEngine[G, T]:
         """Set the maximum age for phenotypes and species.
         Args:
-            max_phenotype_age (int): The maximum age for phenotypes.
-            max_species_age (int): The maximum age for species.
+            phenotype (int): The maximum age for phenotypes.
+            species (int): The maximum age for species.
         Raises:
-            ValueError: If max_phenotype_age or max_species_age is less than or equal to 0.
+            ValueError: If phenotype or species is less than or equal to 0.
 
         Example:
         ---------
-        >>> engine.max_age(max_phenotype_age=30, max_species_age=25)
+        >>> engine.max_age(phenotype=30, species=25)
         """
-        if max_phenotype_age <= 0 or max_species_age <= 0:
+        if phenotype <= 0 or species <= 0:
             raise ValueError("Maximum age must be greater than 0.")
-        self.builder.set_max_age(max_phenotype_age)
-        self.builder.set_max_species_age(max_species_age)
+        self.builder.set_max_age(phenotype)
+        self.builder.set_max_species_age(species)
+        return self
 
-    def minimizing(self):
+    def minimizing(self) -> GeneticEngine[G, T]:
         """Set the objectives to minimize.
 
         Example:
@@ -314,8 +276,9 @@ class GeneticEngine[G, T]:
         >>> engine.minimizing()
         """
         self.builder.set_objective(["min"], None)
+        return self
 
-    def maximizing(self):
+    def maximizing(self) -> GeneticEngine[G, T]:
         """Set the objectives to maximize.
 
         Example:
@@ -323,10 +286,11 @@ class GeneticEngine[G, T]:
         >>> engine.maximizing()
         """
         self.builder.set_objective(["max"], None)
+        return self
 
     def multi_objective(
         self, objectives: list[str], front_range: tuple[int, int] | None = None
-    ):
+    ) -> GeneticEngine[G, T]:
         """Set the objectives for a multiobjective problem.
         Args:
             objectives (list[str]): A list of objectives, each being 'min' or 'max'.
@@ -343,8 +307,9 @@ class GeneticEngine[G, T]:
         ):
             raise ValueError("Objectives must be a list of 'min' or 'max'.")
         self.builder.set_objective(objectives, front_range)
+        return self
 
-    def executor(self, executor: Executor):
+    def parallel(self, num_workers: int | None = None) -> GeneticEngine[G, T]:
         """Set the executor.
         Args:
             executor (Executor): The executor to use.
@@ -352,11 +317,16 @@ class GeneticEngine[G, T]:
         ---------
         >>> engine.executor(Executor.worker_pool())
         """
-        if not isinstance(executor, Executor):
-            raise TypeError("Executor must be an instance of Executor.")
-        self.builder.set_executor(executor)
+        executor = (
+            Executor.WorkerPool()
+            if num_workers is None
+            else Executor.FixedSizedWorkerPool(num_workers)
+        )
 
-    def subscribe(self, event_handler: Subscriber | None = None):
+        self.builder.set_executor(executor)
+        return self
+
+    def subscribe(self, event_handler: Subscriber | None = None) -> GeneticEngine[G, T]:
         """Register an event handler.
         Args:
             event_handler: Union[
@@ -371,8 +341,9 @@ class GeneticEngine[G, T]:
         >>> engine.subscribe([handler1, handler2])
         """
         self.builder.set_subscribers(event_handler)
+        return self
 
-    def generation(self, generation: Generation[T] | None):
+    def generation(self, generation: Generation[T] | None) -> GeneticEngine[G, T]:
         """Set the initial generation.
         Args:
             generation (Generation[T] | None): The initial generation to set.
@@ -381,3 +352,4 @@ class GeneticEngine[G, T]:
         >>> engine.generation(initial_generation)
         """
         self.builder.set_generation(generation)
+        return self

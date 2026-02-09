@@ -1,5 +1,5 @@
 use crate::{AnyChromosome, PyPhenotype, PyPopulation};
-use pyo3::{pyclass, pymethods};
+use pyo3::{Bound, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
     BitChromosome, CharChromosome, Chromosome, FloatChromosome, GraphChromosome, IntChromosome, Op,
     PermutationChromosome, Phenotype, Population, Species, TreeChromosome,
@@ -78,6 +78,10 @@ impl PySpecies {
     pub fn score(&self) -> Option<Vec<f32>> {
         self.score.clone()
     }
+
+    pub fn dtype<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        self.population.dtype(py)
+    }
 }
 
 macro_rules! impl_into_py_species {
@@ -138,4 +142,4 @@ impl_into_py_species!(CharChromosome);
 impl_into_py_species!(GraphChromosome<Op<f32>>);
 impl_into_py_species!(TreeChromosome<Op<f32>>);
 impl_into_py_species!(PermutationChromosome<usize>);
-impl_into_py_species!(AnyChromosome<'static>);
+impl_into_py_species!(AnyChromosome);

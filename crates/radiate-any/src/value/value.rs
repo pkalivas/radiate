@@ -1,7 +1,7 @@
-use crate::{DataType, Field, time_unit::TimeUnit, time_zone::TimeZone};
+use crate::{DataType, Field};
 use num_traits::NumCast;
 use serde::{Deserialize, Serialize};
-use std::{fmt::Debug, sync::Arc};
+use std::fmt::Debug;
 
 #[derive(Clone, Default, Debug, Serialize, Deserialize)]
 pub enum AnyValue<'a> {
@@ -25,14 +25,9 @@ pub enum AnyValue<'a> {
     Float32(f32),
     Float64(f64),
 
-    Binary(&'a [u8]),
-    BinaryOwned(Vec<u8>),
     Char(char),
     Str(&'a str),
     StrOwned(String),
-
-    Date(i32),
-    DateTime(i64, TimeUnit, Option<Arc<TimeZone>>),
 
     Vector(Box<Vec<AnyValue<'a>>>),
     Struct(Vec<(Field, AnyValue<'a>)>),
@@ -90,13 +85,9 @@ impl<'a> AnyValue<'a> {
             Self::Float32(_) => "f32",
             Self::Float64(_) => "f64",
             Self::Char(_) => "char",
-            Self::Vector(_) => "list",
             Self::Str(_) => "string",
             Self::StrOwned(_) => "string",
-            Self::Date(_) => "date",
-            Self::DateTime(_, _, _) => "datetime",
-            Self::Binary(_) => "binary",
-            Self::BinaryOwned(_) => "binary",
+            Self::Vector(_) => "list",
             Self::Struct(_) => "struct",
         }
     }
@@ -124,14 +115,16 @@ impl<'a> AnyValue<'a> {
             Self::Float64(_) => DataType::Float64,
 
             Self::Char(_) => DataType::Char,
-            Self::Str(_) => DataType::Str,
+            Self::Str(_) => DataType::String,
             Self::StrOwned(_) => DataType::String,
 
-            Self::Date(_) => DataType::Date,
-            Self::DateTime(_, _, _) => DataType::Datetime,
-
-            Self::Binary(_) | Self::BinaryOwned(_) => DataType::Binary,
-            Self::Vector(_) => DataType::Vec,
+            Self::Vector(vals) => DataType::List(
+                vals.iter()
+                    .map(|v| v.dtype())
+                    .next()
+                    .unwrap_or(DataType::Null)
+                    .into(),
+            ),
             Self::Struct(vals) => DataType::Struct(vals.iter().map(|(f, _)| f.clone()).collect()),
         }
     }
@@ -159,11 +152,7 @@ impl<'a> AnyValue<'a> {
             Char(v) => Char(v),
             Str(v) => StrOwned(v.to_string()),
             StrOwned(v) => StrOwned(v),
-            Date(v) => Date(v),
-            DateTime(v, tu, tz) => DateTime(v, tu, tz),
             Vector(v) => Vector(Box::new(v.into_iter().map(AnyValue::into_static).collect())),
-            Binary(v) => BinaryOwned(v.to_vec()),
-            BinaryOwned(v) => BinaryOwned(v),
             Struct(v) => Struct(
                 v.into_iter()
                     .map(|(field, val)| (field, val.into_static()))
@@ -212,8 +201,6 @@ impl<'a> PartialEq for AnyValue<'a> {
             (Char(a), Char(b)) => a == b,
             (Str(a), Str(b)) => a == b,
             (StrOwned(a), StrOwned(b)) => a == b,
-            (BinaryOwned(a), BinaryOwned(b)) => a == b,
-            (Date(a), Date(b)) => a == b,
             (Vector(a), Vector(b)) if a.len() == b.len() => {
                 a.iter().zip(b.iter()).all(|(x, y)| x == y)
             }
@@ -286,23 +273,43 @@ pub fn apply_zipped_struct_slice(
 
 #[cfg(test)]
 mod tests {
+    use crate::{DataType, Field};
+
     use super::AnyValue;
 
     #[test]
     fn test_anyvalue_equality() {
         let v1 = AnyValue::Struct(vec![
-            ("field1".into(), AnyValue::Int32(42)),
-            ("field2".into(), AnyValue::Str("hello")),
+            (
+                Field::from(("field1", DataType::Int32)),
+                AnyValue::Int32(42),
+            ),
+            (
+                Field::from(("field2", DataType::String)),
+                AnyValue::Str("hello"),
+            ),
         ]);
 
         let v2 = AnyValue::Struct(vec![
-            ("field1".into(), AnyValue::Int32(42)),
-            ("field2".into(), AnyValue::Str("hello")),
+            (
+                Field::from(("field1", DataType::Int32)),
+                AnyValue::Int32(42),
+            ),
+            (
+                Field::from(("field2", DataType::String)),
+                AnyValue::Str("hello"),
+            ),
         ]);
 
         let v3 = AnyValue::Struct(vec![
-            ("field1".into(), AnyValue::Int32(43)),
-            ("field2".into(), AnyValue::Str("hello")),
+            (
+                Field::from(("field1", DataType::Int32)),
+                AnyValue::Int32(43),
+            ),
+            (
+                Field::from(("field2", DataType::String)),
+                AnyValue::Str("hello"),
+            ),
         ]);
 
         assert_eq!(v1, v2);

@@ -1,5 +1,5 @@
 use radiate_core::{
-    AlterResult, BoundedGene, Chromosome, Crossover, FloatGene, Gene, Rate, Valid, random_provider,
+    AlterResult, BoundedGene, Chromosome, Crossover, Gene, Rate, Valid, random_provider,
 };
 use radiate_utils::Float;
 
@@ -23,10 +23,11 @@ impl SimulatedBinaryCrossover {
     }
 }
 
-impl<F, C> Crossover<C> for SimulatedBinaryCrossover
+impl<A, G, C> Crossover<C> for SimulatedBinaryCrossover
 where
-    F: Float,
-    C: Chromosome<Gene = FloatGene<F>>,
+    A: Float,
+    G: Gene<Allele = A> + BoundedGene,
+    C: Chromosome<Gene = G>,
 {
     fn name(&self) -> String {
         NAME.to_string()
@@ -52,7 +53,7 @@ where
             for i in 0..length {
                 if rand.bool(0.5) {
                     let u = rand.random::<f32>();
-                    let beta = F::from(if u <= 0.5 {
+                    let beta = A::from(if u <= 0.5 {
                         (2.0 * u).powf(1.0 / (self.contiguty + 1.0))
                     } else {
                         (0.5 / (1.0 - u)).powf(1.0 / (self.contiguty + 1.0))
@@ -63,9 +64,9 @@ where
                     let v2 = two_slice[i].allele().clone();
 
                     let v = if rand.bool(0.5) {
-                        ((v1 - v2) * F::HALF) - (beta * F::HALF * (v1 - v2).abs())
+                        ((v1 - v2) * A::HALF) - (beta * A::HALF * (v1 - v2).abs())
                     } else {
-                        ((v1 - v2) * F::HALF) + (beta * F::HALF * (v1 - v2).abs())
+                        ((v1 - v2) * A::HALF) + (beta * A::HALF * (v1 - v2).abs())
                     };
 
                     let (one_min, one_max) = one_slice[i].bounds();

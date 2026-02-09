@@ -4,13 +4,15 @@ from radiate.genome.chromosome import Chromosome
 from radiate.genome.gene import Gene
 
 from .base import CodecBase
-from radiate.genome import Genotype
-from radiate.wrapper import PyObject
+from radiate.genome import Genotype, GeneType
+from radiate.wrapper import RsObject
 from radiate.radiate import PyIntCodec
 from radiate.dtype import DataType, DataTypeClass, Int64, IntegerType
 
 
-class IntCodec[D](CodecBase[int, D], PyObject[PyIntCodec]):
+class IntCodec[D](CodecBase[int, D], RsObject[PyIntCodec]):
+    gene_type = GeneType.INT
+
     def __init__(
         self,
         shape: int | tuple[int, int] | list[int] | None = None,

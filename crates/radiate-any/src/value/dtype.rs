@@ -48,30 +48,20 @@ pub enum DataType {
     Float32,
     Float64,
 
-    Usize,
-
     Boolean,
-    Binary,
 
     Char,
-    Str,
     String,
 
-    Date,
-    Datetime,
-    DatetimeOwned,
-
-    Vec,
+    List(Box<DataType>),
     Struct(Vec<Field>),
-
-    Unknown,
 }
 
 impl DataType {
     pub fn is_nested(&self) -> bool {
         use DataType as D;
 
-        matches!(self, D::Vec | D::Struct(_))
+        matches!(self, D::List(_) | D::Struct(_))
     }
 
     pub fn is_numeric(&self) -> bool {
@@ -109,11 +99,6 @@ impl DataType {
                 | D::UInt64
                 | D::Float32
                 | D::Float64
-                | D::Binary
-                | D::Char
-                | D::Str
-                | D::String
-                | D::Vec
         )
     }
 
@@ -154,6 +139,13 @@ impl DataType {
             _ => None,
         }
     }
+
+    pub fn primitive_bounds(&self) -> Option<(Scalar, Scalar)> {
+        match (self.min(), self.max()) {
+            (Some(min), Some(max)) => Some((min, max)),
+            _ => None,
+        }
+    }
 }
 
 impl From<String> for DataType {
@@ -177,15 +169,13 @@ impl From<String> for DataType {
             dtype_names::FLOAT64 => DataType::Float64,
 
             dtype_names::BOOLEAN => DataType::Boolean,
-            dtype_names::BINARY => DataType::Binary,
 
             dtype_names::CHAR => DataType::Char,
             dtype_names::STRING => DataType::String,
 
-            dtype_names::VEC => DataType::Vec,
-            dtype_names::DATE => DataType::Date,
-
-            _ => DataType::Unknown,
+            dtype_names::VEC => DataType::List(Box::new(DataType::Null)),
+            dtype_names::STRUCT => DataType::Struct(vec![]),
+            _ => panic!("Unknown data type: {}", value),
         }
     }
 }
@@ -210,17 +200,12 @@ impl Display for DataType {
             DataType::Float32 => write!(f, "{}", dtype_names::FLOAT32)?,
             DataType::Float64 => write!(f, "{}", dtype_names::FLOAT64)?,
 
-            DataType::Usize => write!(f, "{}", dtype_names::USIZE)?,
-
             DataType::Boolean => write!(f, "{}", dtype_names::BOOLEAN)?,
-            DataType::Binary => write!(f, "{}", dtype_names::BINARY)?,
 
             DataType::Char => write!(f, "{}", dtype_names::CHAR)?,
-            DataType::Str | DataType::String => write!(f, "{}", dtype_names::STRING)?,
+            DataType::String => write!(f, "{}", dtype_names::STRING)?,
 
-            DataType::Date | DataType::Datetime | DataType::DatetimeOwned => write!(f, "datetime")?,
-
-            DataType::Vec => write!(f, "{}", dtype_names::VEC)?,
+            DataType::List(inner) => write!(f, "{}({})", dtype_names::VEC, inner)?,
             DataType::Struct(vals) => write!(
                 f,
                 "struct({})",
@@ -229,7 +214,6 @@ impl Display for DataType {
                     .collect::<Vec<_>>()
                     .join(", ")
             )?,
-            DataType::Unknown => write!(f, "unknown")?,
         };
 
         Ok(())

@@ -121,7 +121,7 @@ where
     T: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "SV {:?}", self.inner.as_slice())?;
+        write!(f, "{:?}", self.inner.as_slice())?;
         return Ok(());
     }
 }

@@ -1,9 +1,15 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 
-from radiate.genome import Genotype
+from radiate.genome import Genotype, GeneType
 
 
 class CodecBase[T, D](ABC):
+    """Base for codecs. Subclasses must set gene_type and implement encode/decode."""
+
+    gene_type: GeneType
+
     @abstractmethod
     def encode(self) -> Genotype[T]:
         """

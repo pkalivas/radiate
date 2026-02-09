@@ -243,9 +243,9 @@ impl PyGeneration {
         }
     }
 
-    pub fn population(&mut self) -> PyPopulation {
+    pub fn population(&self) -> PyPopulation {
         use EpochHandle::*;
-        match &mut self.inner {
+        match &self.inner {
             UInt8(epoch) => PyPopulation::from(epoch.population()),
             UInt16(epoch) => PyPopulation::from(epoch.population()),
             UInt32(epoch) => PyPopulation::from(epoch.population()),
@@ -309,29 +309,13 @@ impl PyGeneration {
         })
     }
 
-    pub fn dtype(&self) -> String {
-        use EpochHandle::*;
-        match &self.inner {
-            UInt8(_) => DataType::UInt8.to_string(),
-            UInt16(_) => DataType::UInt16.to_string(),
-            UInt32(_) => DataType::UInt32.to_string(),
-            UInt64(_) => DataType::UInt64.to_string(),
-            Int8(_) => DataType::Int8.to_string(),
-            Int16(_) => DataType::Int16.to_string(),
-            Int32(_) => DataType::Int32.to_string(),
-            Int64(_) => DataType::Int64.to_string(),
-            Float32(_) => DataType::Float32.to_string(),
-            Float64(_) => DataType::Float64.to_string(),
-            Char(_) => DataType::Char.to_string(),
-            Bit(_) => DataType::Boolean.to_string(),
-            Any(epoch) => epoch.population().get(0).map_or_else(
-                || DataType::Null.to_string(),
-                |phenotype| phenotype.genotype()[0].get(0).allele().dtype().to_string(),
-            ),
-            Permutation(_) => DataType::Usize.to_string(),
-            Graph(_) => DataType::Float32.to_string(),
-            Tree(_) => DataType::Float32.to_string(),
-        }
+    pub fn dtype<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let population = self.population();
+        let first = population.phenotypes.first().ok_or_else(|| {
+            pyo3::exceptions::PyValueError::new_err("Population is empty, cannot determine dtype")
+        })?;
+
+        first.genotype.dtype(py)
     }
 
     pub fn __repr__(&self, py: Python) -> PyResult<String> {
@@ -339,7 +323,7 @@ impl PyGeneration {
         let score = self.score(py);
         let value = self.value(py)?;
         let metrics = self.metrics()?;
-        let dtype = self.dtype();
+        let dtype = self.dtype(py)?;
 
         let (objective, index) = match &self.inner {
             UInt8(epoch) => (epoch.objective(), epoch.index()),

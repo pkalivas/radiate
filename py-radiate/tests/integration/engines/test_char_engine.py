@@ -10,7 +10,7 @@ def test_engine_char_vector():
         return sum(1 for i in range(len(target)) if x[i] == target[i])
 
     engine = rd.GeneticEngine(
-        codec=rd.CharCodec.vector(len(target)),
+        codec=rd.CharCodec(len(target)),
         fitness_func=fitness_func,
         offspring_selector=rd.BoltzmannSelector(4),
     )
@@ -36,7 +36,7 @@ def test_engine_char_matrix(random_seed):
         return score
 
     engine = rd.GeneticEngine(
-        codec=rd.CharCodec.matrix(shape),
+        codec=rd.CharCodec(shape),
         fitness_func=fitness_func,
         survivor_selector=rd.EliteSelector(),
         alters=[rd.UniformCrossover(0.7), rd.UniformMutator(0.1)],

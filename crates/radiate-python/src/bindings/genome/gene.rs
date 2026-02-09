@@ -1,7 +1,7 @@
 use crate::{AnyGene, AnyValue, PyGeneType, Wrap, bindings::dtype};
-use pyo3::{Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
+use pyo3::{Bound, IntoPyObject, IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
-    BitGene, CharGene, DataType, FloatGene, Gene, GraphNode, IntGene, Op, PermutationGene,
+    BitGene, CharGene, DataType, Field, FloatGene, Gene, GraphNode, IntGene, Op, PermutationGene,
     TreeNode, dtype_names, random_provider,
 };
 use radiate_error::radiate_py_bail;
@@ -27,10 +27,13 @@ enum GeneInner {
 
     Bit(BitGene),
     Char(CharGene),
+
     Permutation(PermutationGene<usize>),
+
     GraphNode(GraphNode<Op<f32>>),
     TreeNode(TreeNode<Op<f32>>),
-    AnyGene(AnyGene<'static>),
+
+    AnyGene(AnyGene),
 }
 
 #[pyclass(from_py_object)]
@@ -101,29 +104,33 @@ impl PyGene {
         }
     }
 
-    pub fn dtype(&self) -> String {
+    pub fn dtype<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         match &self.inner {
-            GeneInner::UInt8(_) => dtype_names::UINT8.into(),
-            GeneInner::UInt16(_) => dtype_names::UINT16.into(),
-            GeneInner::UInt32(_) => dtype_names::UINT32.into(),
-            GeneInner::UInt64(_) => dtype_names::UINT64.into(),
-            GeneInner::UInt128(_) => dtype_names::UINT128.into(),
+            GeneInner::UInt8(_) => Wrap(DataType::UInt8).into_pyobject(py),
+            GeneInner::UInt16(_) => Wrap(DataType::UInt16).into_pyobject(py),
+            GeneInner::UInt32(_) => Wrap(DataType::UInt32).into_pyobject(py),
+            GeneInner::UInt64(_) => Wrap(DataType::UInt64).into_pyobject(py),
+            GeneInner::UInt128(_) => Wrap(DataType::UInt128).into_pyobject(py),
 
-            GeneInner::Int8(_) => dtype_names::INT8.into(),
-            GeneInner::Int16(_) => dtype_names::INT16.into(),
-            GeneInner::Int32(_) => dtype_names::INT32.into(),
-            GeneInner::Int64(_) => dtype_names::INT64.into(),
-            GeneInner::Int128(_) => dtype_names::INT128.into(),
+            GeneInner::Int8(_) => Wrap(DataType::Int8).into_pyobject(py),
+            GeneInner::Int16(_) => Wrap(DataType::Int16).into_pyobject(py),
+            GeneInner::Int32(_) => Wrap(DataType::Int32).into_pyobject(py),
+            GeneInner::Int64(_) => Wrap(DataType::Int64).into_pyobject(py),
+            GeneInner::Int128(_) => Wrap(DataType::Int128).into_pyobject(py),
 
-            GeneInner::Float32(_) => dtype_names::FLOAT32.into(),
-            GeneInner::Float64(_) => dtype_names::FLOAT64.into(),
+            GeneInner::Float32(_) => Wrap(DataType::Float32).into_pyobject(py),
+            GeneInner::Float64(_) => Wrap(DataType::Float64).into_pyobject(py),
 
-            GeneInner::Bit(_) => dtype_names::BOOLEAN.into(),
-            GeneInner::Char(_) => dtype_names::CHAR.into(),
-            GeneInner::GraphNode(_) => dtype_names::STRUCT.into(),
-            GeneInner::TreeNode(_) => dtype_names::STRUCT.into(),
-            GeneInner::Permutation(_) => dtype_names::USIZE.into(),
-            GeneInner::AnyGene(_) => dtype_names::STRUCT.into(),
+            GeneInner::Bit(_) => Wrap(DataType::Boolean).into_pyobject(py),
+            GeneInner::Char(_) => Wrap(DataType::Char).into_pyobject(py),
+            GeneInner::GraphNode(_) => Wrap(DataType::Struct(vec![Field::from((
+                "Op",
+                DataType::Float32,
+            ))]))
+            .into_pyobject(py),
+            GeneInner::TreeNode(_) => Wrap(DataType::Float32).into_pyobject(py),
+            GeneInner::Permutation(_) => Wrap(DataType::UInt64).into_pyobject(py),
+            GeneInner::AnyGene(gene) => Wrap(gene.allele().dtype()).into_pyobject(py),
         }
     }
 
@@ -341,4 +348,4 @@ impl_into_py_gene!(CharGene, Char);
 impl_into_py_gene!(GraphNode<Op<f32>>, GraphNode);
 impl_into_py_gene!(TreeNode<Op<f32>>, TreeNode);
 impl_into_py_gene!(PermutationGene<usize>, Permutation);
-impl_into_py_gene!(AnyGene<'static>, AnyGene);
+impl_into_py_gene!(AnyGene, AnyGene);

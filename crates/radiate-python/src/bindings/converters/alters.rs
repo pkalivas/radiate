@@ -49,7 +49,7 @@ impl_input_transform_for!(BitChromosome, bit_alterers);
 impl_input_transform_for!(PermutationChromosome<usize>, perm_alterers);
 impl_input_transform_for!(GraphChromosome<Op<f32>>, graph_alterers);
 impl_input_transform_for!(TreeChromosome<Op<f32>>, tree_alterers);
-impl_input_transform_for!(AnyChromosome<'static>, any_alterers);
+impl_input_transform_for!(AnyChromosome, any_alterers);
 
 impl<C> InputTransform<Vec<Alterer<C>>> for &[PyEngineInput]
 where
@@ -196,7 +196,7 @@ fn tree_alterers() -> HashMap<&'static str, AlterConv<TreeChromosome<Op<f32>>>> 
 }
 
 // ANY (generic bag of common alterers exposed for AnyChromosome)
-fn any_alterers() -> HashMap<&'static str, AlterConv<AnyChromosome<'static>>> {
+fn any_alterers() -> HashMap<&'static str, AlterConv<AnyChromosome>> {
     table! {
         crate::names::MULTI_POINT_CROSSOVER   => convert_multi_point_crossover,
         crate::names::UNIFORM_CROSSOVER       => convert_uniform_crossover,

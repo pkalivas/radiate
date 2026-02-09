@@ -1,4 +1,6 @@
 from radiate.radiate import _get_dtype_max, _get_dtype_min
+from inspect import isclass
+from typing import Iterator
 
 
 class DataTypeClass(type):
@@ -126,7 +128,7 @@ Boolean Type
 """
 
 
-class Bool(DataType):
+class Boolean(DataType):
     """Boolean data type."""
 
 
@@ -136,8 +138,12 @@ Usize Type
 """
 
 
-class Usize(IntegerType):
-    """Unsigned integer type with the same number of bits as the platform's pointer type."""
+class String(DataType):
+    """UTF-8 encoded string type."""
+
+
+class Null(DataType):
+    """Null type, representing the absence of a value."""
 
 
 """
@@ -146,52 +152,126 @@ Struct Type
 """
 
 
-class Struct(DataType):
-    """Struct data type."""
+class NestedType(DataType):
+    """Base class for nested data types."""
 
 
-"""
-Utility functions
-"""
-
-
-def dtype_from_str(dtype_str: str) -> DataType | None:
+class Field:
     """
-    Convert a string representation of a data type to a DataType instance.
+    Definition of a single field within a `Struct` DataType.
 
-    :param dtype_str: The string representation of the data type.
-    :return: A DataType instance corresponding to the string, or None if the string is not recognized.
+    Parameters
+    ----------
+    name
+        The name of the field within its parent `Struct`.
+    dtype
+        The `DataType` of the field's values.
     """
-    match dtype_str.lower():
-        case "uint8":
-            return UInt8()
-        case "uint16":
-            return UInt16()
-        case "uint32":
-            return UInt32()
-        case "uint64":
-            return UInt64()
-        case "uint128":
-            return UInt128()
-        case "int8":
-            return Int8()
-        case "int16":
-            return Int16()
-        case "int32":
-            return Int32()
-        case "int64":
-            return Int64()
-        case "int128":
-            return Int128()
-        case "float32":
-            return Float32()
-        case "float64":
-            return Float64()
-        case "bool":
-            return Bool()
-        case "usize":
-            return Usize()
-        case "struct":
-            return Struct()
-        case _:
-            return None
+
+    name: str
+    dtype: DataType | DataTypeClass
+
+    def __init__(self, name: str, dtype: DataType | DataTypeClass) -> None:
+        self.name = name
+        self.dtype = dtype
+
+    def __eq__(self, other) -> bool:  # type: ignore[override]
+        return (self.name == other.name) & (self.dtype == other.dtype)
+
+    def __hash__(self) -> int:
+        return hash((self.name, self.dtype))
+
+    def __repr__(self) -> str:
+        class_name = self.__class__.__name__
+        return f"{class_name}({self.name!r}, {self.dtype})"
+
+
+class Struct(NestedType):
+    """
+        Struct data type, representing a collection of named fields.
+        Parameters
+    ----------
+    fields    A list of `Field` instances defining the structure of the `Struct`.
+    Examples
+    --------
+    >>> person_dtype = Struct([
+    ...     Field("name", String),
+    ...     Field("age", Int32),
+    ...     Field("is_student", Bool),
+    ... ])
+    >>> person_dtype
+    Struct({'name': String, 'age': Int32, 'is_student': Bool})
+    """
+
+    fields: list[Field]
+
+    def __init__(self, fields: list[Field]) -> None:
+        self.fields = list(fields)
+
+    def __eq__(self, other) -> bool:  # type: ignore[override]
+        if isclass(other) and issubclass(other, Struct):
+            return True
+        elif isinstance(other, Struct):
+            return self.fields == other.fields
+        else:
+            return False
+
+    def __hash__(self) -> int:
+        return hash((self.__class__, tuple(self.fields)))
+
+    def __iter__(self) -> Iterator[tuple[str, DataType | DataTypeClass]]:
+        for fld in self.fields:
+            yield fld.name, fld.dtype
+
+    def __repr__(self) -> str:
+        class_name = self.__class__.__name__
+        return f"{class_name}({dict(self)})"
+
+    def __str__(self) -> str:
+        class_name = self.__class__.__name__
+        return f"{class_name}({dict(self)})"
+
+
+class List(NestedType):
+    """
+        List data type, representing a homogeneous collection of values.
+        Parameters
+    ----------
+    inner    The `DataType` of the values contained within the list. If not specified, the list is considered to be of
+      an unspecified inner type, and will compare as equal to any other List type (eg: List[Int32] == List == List[Float64]).
+    Examples
+    --------
+    >>> int_list_dtype = List(Int32)
+    >>> int_list_dtype
+    List(Int32)
+    >>> int_list_dtype == List(Int32)
+    True
+    >>> int_list_dtype == List(Float64)
+    False
+    >>> int_list_dtype == List
+    True
+    >>> List == List(Int32)
+    True
+    """
+
+    inner: DataTypeClass | DataType
+
+    def __init__(self, inner: DataTypeClass | DataType) -> None:
+        # self.inner = polars.datatypes.parse_into_dtype(inner)
+        self.inner = inner
+
+    def __eq__(self, other: DataTypeClass | DataType) -> bool:  # type: ignore[override]
+        # allow comparing object instances to class
+        if type(other) is DataTypeClass and issubclass(other, List):
+            return True
+        elif isinstance(other, List):
+            return self.inner == other.inner
+        else:
+            return False
+
+    def __hash__(self) -> int:
+        return hash((self.__class__, self.inner))
+
+    def __repr__(self) -> str:
+        class_name = self.__class__.__name__
+        return f"{class_name}({self.inner!r})"

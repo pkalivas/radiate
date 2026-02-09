@@ -2,7 +2,7 @@ from __future__ import annotations
 from enum import Enum
 
 from radiate.radiate import PyEngineInput, PyEngineInputType, PyRate
-from radiate.wrapper import PyObject
+from radiate.wrapper import RsObject
 from radiate.inputs.rate import Rate
 
 from ..genome import (
@@ -52,7 +52,7 @@ input_type_mapping = {
 }
 
 
-class EngineInput(PyObject[PyEngineInput]):
+class EngineInput(RsObject[PyEngineInput]):
     def __init__(
         self,
         input_type: EngineInputType,

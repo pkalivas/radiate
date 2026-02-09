@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from radiate.radiate import PyTree
-from radiate.wrapper import PyObject
+from radiate.wrapper import RsObject
 
 
-class Tree(PyObject[PyTree]):
+class Tree(RsObject[PyTree]):
     def __repr__(self):
         return self.__backend__().__repr__()
 

@@ -23,7 +23,7 @@ def calc_population_diversity(population: rd.Population) -> float:
 def test_engine_is_novel(random_seed):
     """Test engine with novelty search."""
     engine = rd.GeneticEngine(
-        codec=rd.FloatCodec.vector(6, init_range=(-100.0, 100.0)),
+        codec=rd.FloatCodec(6, (-100.0, 100.0)),
         fitness_func=rd.NoveltySearch(
             descriptor=lambda x: x,
             distance=rd.CosineDistance(),
@@ -51,12 +51,11 @@ def test_int_engine_novelty_with_decorator_creates(random_seed):
     def descriptor(phenotype: list[int]) -> list[int]:
         return phenotype
 
-    engine = rd.GeneticEngine(
-        codec=rd.IntCodec.vector(6, init_range=(-100, 100)),
-        fitness_func=descriptor,
-        population_size=100,
-        offspring_selector=rd.TournamentSelector(3),
-        alters=[rd.UniformCrossover(0.5), rd.ArithmeticMutator(0.1)],
+    engine = (
+        rd.GeneticEngine(rd.IntCodec(6, (-100, 100)), descriptor)
+        .population_size(100)
+        .select(offspring=rd.TournamentSelector(3))
+        .alters(rd.UniformCrossover(0.5), rd.ArithmeticMutator(0.1))
     )
 
     result = engine.run(rd.GenerationsLimit(100))

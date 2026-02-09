@@ -4,12 +4,14 @@ from radiate._typing import NodeValues
 
 from .base import CodecBase
 from radiate.gp import Op, Tree
-from radiate.wrapper import PyObject
-from radiate.genome import Genotype
+from radiate.wrapper import RsObject
+from radiate.genome import Genotype, GeneType
 from radiate.radiate import PyTreeCodec
 
 
-class TreeCodec(CodecBase[Op, Tree], PyObject[PyTreeCodec]):
+class TreeCodec(CodecBase[Op, Tree], RsObject[PyTreeCodec]):
+    gene_type = GeneType.TREE
+
     def __init__(
         self,
         shape: tuple[int, int] = (1, 1),

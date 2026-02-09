@@ -1,8 +1,8 @@
-from radiate.wrapper import PyObject
+from radiate.wrapper import RsObject
 from radiate.radiate import PyRate
 
 
-class Rate(PyObject[PyRate]):
+class Rate(RsObject[PyRate]):
     CYCLICAL = "cyclical"
     FIXED = "fixed"
     LINEAR = "linear"

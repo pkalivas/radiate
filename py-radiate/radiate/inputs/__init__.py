@@ -33,7 +33,7 @@ from .selector import (
     LinearRankSelector,
     NSGA2Selector,
     TournamentNSGA2Selector,
-    NSGA3Selector
+    NSGA3Selector,
 )
 
 from .distance import (
@@ -43,11 +43,18 @@ from .distance import (
     CosineDistance,
 )
 
-from .limit import SecondsLimit, GenerationsLimit, ScoreLimit, ConvergenceLimit, MetricLimit
+from .limit import (
+    SecondsLimit,
+    GenerationsLimit,
+    ScoreLimit,
+    ConvergenceLimit,
+    MetricLimit,
+)
 
 from .rate import Rate
 
 from .descriptor import CustomDescriptor
+
 
 __all__ = [
     "BlendCrossover",

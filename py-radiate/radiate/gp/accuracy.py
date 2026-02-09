@@ -1,10 +1,10 @@
 from .graph import Graph
 from .tree import Tree
-from radiate.wrapper import PyObject
+from radiate.wrapper import RsObject
 from radiate.radiate import py_accuracy, PyAccuracy
 
 
-class AccuracyResult(PyObject[PyAccuracy]):
+class AccuracyResult(RsObject[PyAccuracy]):
     def __repr__(self) -> str:
         return self.__backend__().__repr__()
 

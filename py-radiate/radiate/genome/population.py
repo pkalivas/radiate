@@ -5,13 +5,13 @@ from typing import TYPE_CHECKING
 from typing import Iterable
 from radiate.radiate import PyPopulation
 from .phenotype import Phenotype
-from ..wrapper import PyObject
+from ..wrapper import RsObject
 
 if TYPE_CHECKING:
     from radiate.genome.gene import GeneType
 
 
-class Population[T](PyObject[PyPopulation]):
+class Population[T](RsObject[PyPopulation]):
     """
     Represents a population in a genetic algorithm.
     """

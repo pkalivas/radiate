@@ -1,33 +1,34 @@
-use crate::temporal::{time_unit::TimeUnit, time_zone::TimeZone};
 use crate::{AnyChromosome, AnyGene, AnyValue, Field};
 use radiate_core::{Chromosome, Gene};
 use serde::ser::Serializer;
 use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashMap;
-use std::sync::Arc;
 
 #[derive(Clone, Default, Debug, Serialize, Deserialize)]
 enum AnyValueSerializable {
     #[default]
     Null,
-    Bool(bool),
+
     UInt8(u8),
     UInt16(u16),
     UInt32(u32),
     UInt64(u64),
+
     Int8(i8),
     Int16(i16),
     Int32(i32),
     Int64(i64),
     Int128(i128),
+
     Float32(f32),
     Float64(f64),
-    Binary(Vec<u8>),
+
     Char(char),
     Str(String),
     StrOwned(String),
-    Date(i32),
-    DateTime(i64, TimeUnit, Option<TimeZone>),
+
+    Bool(bool),
+
     Vector(Box<Vec<AnyValueSerializable>>),
     Struct(Vec<(Field, AnyValueSerializable)>),
 }
@@ -48,14 +49,10 @@ impl AnyValueSerializable {
             AnyValueSerializable::Int128(i) => AnyValue::Int128(i),
             AnyValueSerializable::Float32(f) => AnyValue::Float32(f),
             AnyValueSerializable::Float64(f) => AnyValue::Float64(f),
-            AnyValueSerializable::Binary(b) => AnyValue::BinaryOwned(b),
             AnyValueSerializable::Char(c) => AnyValue::Char(c),
             AnyValueSerializable::Str(s) => AnyValue::StrOwned(s),
             AnyValueSerializable::StrOwned(s) => AnyValue::StrOwned(s),
-            AnyValueSerializable::Date(d) => AnyValue::Date(d),
-            AnyValueSerializable::DateTime(v, tu, tz) => {
-                AnyValue::DateTime(v, tu, tz.map(|t| Arc::new(t)))
-            }
+
             AnyValueSerializable::Vector(v) => {
                 let vec = v.into_iter().map(|av| av.into_static()).collect();
                 AnyValue::Vector(Box::new(vec))
@@ -72,7 +69,7 @@ impl AnyValueSerializable {
 }
 
 // This stays basically as you intended, but using the helper struct is nicer:
-impl Serialize for AnyGene<'_> {
+impl Serialize for AnyGene {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -92,10 +89,7 @@ impl Serialize for AnyGene<'_> {
     }
 }
 
-impl<'de, 'a> Deserialize<'de> for AnyGene<'static>
-where
-    'de: 'a,
-{
+impl<'de> Deserialize<'de> for AnyGene {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -115,7 +109,7 @@ where
     }
 }
 
-impl Serialize for AnyChromosome<'_> {
+impl Serialize for AnyChromosome {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -124,12 +118,12 @@ impl Serialize for AnyChromosome<'_> {
     }
 }
 
-impl<'de> Deserialize<'de> for AnyChromosome<'static> {
+impl<'de> Deserialize<'de> for AnyChromosome {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
-        let genes: Vec<AnyGene<'static>> = Deserialize::deserialize(deserializer)?;
+        let genes: Vec<AnyGene> = Deserialize::deserialize(deserializer)?;
         Ok(AnyChromosome::new(genes))
     }
 }
@@ -146,7 +140,7 @@ mod tests {
         ]));
 
         let serialized = serde_json::to_string(&gene).unwrap();
-        let deserialized: AnyGene<'static> = serde_json::from_str(&serialized).unwrap();
+        let deserialized: AnyGene = serde_json::from_str(&serialized).unwrap();
 
         assert_eq!(gene.allele(), deserialized.allele());
         assert_eq!(gene.metadata(), deserialized.metadata());
@@ -159,7 +153,7 @@ mod tests {
         let chromosome = AnyChromosome::new(vec![gene1, gene2]);
 
         let serialized = serde_json::to_string(&chromosome).unwrap();
-        let deserialized: AnyChromosome<'static> = serde_json::from_str(&serialized).unwrap();
+        let deserialized: AnyChromosome = serde_json::from_str(&serialized).unwrap();
 
         assert_eq!(chromosome.as_slice().len(), deserialized.as_slice().len());
     }

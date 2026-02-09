@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from collections.abc import Iterable
-from radiate.wrapper import PyObject
+from radiate.wrapper import RsObject
 from radiate.radiate import PyGenotype
 from .chromosome import Chromosome
 
@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from radiate.genome import GeneType
 
 
-class Genotype[T](PyObject[PyGenotype]):
+class Genotype[T](RsObject[PyGenotype]):
     """
     Represents a genotype in a genome.
     """
@@ -61,7 +61,8 @@ class Genotype[T](PyObject[PyGenotype]):
         from . import GeneType
 
         return GeneType.from_str(self._pyobj.gene_type())
-    
+
+
     def chromosomes(self) -> list[Chromosome[T]]:
         """
         Get the chromosomes of the genotype.

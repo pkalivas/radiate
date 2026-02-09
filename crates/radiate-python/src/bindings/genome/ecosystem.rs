@@ -1,5 +1,5 @@
 use crate::{AnyChromosome, PyPopulation, PySpecies};
-use pyo3::{pyclass, pymethods};
+use pyo3::{Bound, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
     BitChromosome, CharChromosome, Chromosome, Ecosystem, FloatChromosome, GraphChromosome,
     IntChromosome, Op, PermutationChromosome, Population, Species, TreeChromosome,
@@ -41,6 +41,10 @@ impl PyEcosystem {
         }
         result.push_str(")\n");
         result
+    }
+
+    pub fn dtype<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        self.population.dtype(py)
     }
 }
 
@@ -112,4 +116,4 @@ impl_into_py_ecosystem!(CharChromosome);
 impl_into_py_ecosystem!(GraphChromosome<Op<f32>>);
 impl_into_py_ecosystem!(TreeChromosome<Op<f32>>);
 impl_into_py_ecosystem!(PermutationChromosome<usize>);
-impl_into_py_ecosystem!(AnyChromosome<'static>);
+impl_into_py_ecosystem!(AnyChromosome);

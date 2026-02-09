@@ -12,79 +12,111 @@ use std::{ops::Range, sync::Arc};
 
 #[pyclass(from_py_object)]
 #[derive(Clone)]
-pub struct PyAnyCodec {
-    pub codec: PyCodec<AnyChromosome, PyAnyObject>,
+pub struct PyFieldCodec {
+    pub codec: PyCodec<FloatChromosome<f64>, PyAnyObject>,
 }
 
 #[pymethods]
-impl PyAnyCodec {
+impl PyFieldCodec {
     #[new]
-    pub fn new(genes: Vec<PyGene>, creator: Py<PyAny>) -> PyResult<Self> {
-        let call_creator = move |py: Python<'_>, allele: &AnyGene| -> PyResult<PyAnyObject> {
-            let obj = creator.call1(
-                py,
-                (Wrap(allele.allele()).into_py_any(py)?, allele.metadata()),
-            )?;
+    // pub fn new(genes: Vec<PyGene>, creator: Py<PyAny>) -> PyResult<Self> {
+    pub fn new(count: usize, specs: PyFieldSpec) -> PyResult<Self> {
+        let cloned_specs = specs.clone();
 
-            Ok(PyAnyObject {
-                inner: obj.into_any(),
-            })
-        };
-
-        let temp = genes
-            .iter()
-            .map(|v| AnyGene::from(v.clone()))
-            .collect::<AnyChromosome>();
-
-        Ok(PyAnyCodec {
+        Ok(PyFieldCodec {
             codec: PyCodec::new()
                 .with_encoder(move || {
-                    Genotype::from(
-                        genes
-                            .iter()
-                            .map(|v| AnyGene::from(v.clone()))
-                            .collect::<AnyChromosome>(),
-                    )
+                    (0..count)
+                        .map(|_| encode_mixed(&cloned_specs.spec))
+                        .collect::<Genotype<FloatChromosome<f64>>>()
                 })
                 .with_decoder(move |py, genotype| {
-                    if genotype.len() == 1 {
-                        return PyAnyObject {
-                            inner: PyList::new(
-                                py,
-                                genotype
-                                    .iter()
-                                    .flat_map(|chromo| {
-                                        chromo
-                                            .iter()
-                                            .map(|gene| call_creator(py, gene).unwrap().inner)
-                                    })
-                                    .collect::<Vec<_>>(),
-                            )
-                            .unwrap()
-                            .unbind()
-                            .into_any(),
-                        };
-                    }
-
-                    return PyAnyObject {
+                    let any_values = genotype
+                        .iter()
+                        .map(|chromo| {
+                            let mut offset = 0;
+                            decode_plan(&specs.spec, chromo.as_slice(), &mut offset)
+                        })
+                        .collect::<Vec<AnyValue<'static>>>();
+                    PyAnyObject {
                         inner: PyList::new(
                             py,
-                            genotype
-                                .iter()
-                                .map(|chromo| {
-                                    chromo
-                                        .iter()
-                                        .map(|gene| call_creator(py, gene).unwrap().inner)
-                                        .collect::<Vec<_>>()
-                                })
-                                .collect::<Vec<_>>(),
+                            any_values.into_iter().map(Wrap).collect::<Vec<_>>(),
                         )
                         .unwrap()
                         .unbind()
                         .into_any(),
-                    };
+                    }
                 }),
         })
+
+        // todo!()
+
+        // let call_creator = move |py: Python<'_>, allele: &AnyGene| -> PyResult<PyAnyObject> {
+        //     let obj = creator.call1(
+        //         py,
+        //         (Wrap(allele.allele()).into_py_any(py)?, allele.metadata()),
+        //     )?;
+
+        //     Ok(PyAnyObject {
+        //         inner: obj.into_any(),
+        //     })
+        // };
+
+        // let temp = genes
+        //     .iter()
+        //     .map(|v| AnyGene::from(v.clone()))
+        //     .collect::<AnyChromosome>();
+
+        // Ok(PyAnyCodec {
+        //     codec: PyCodec::new()
+        //         .with_encoder(move || {
+        //             Genotype::from(
+        //                 genes
+        //                     .iter()
+        //                     .map(|v| AnyGene::from(v.clone()))
+        //                     .collect::<AnyChromosome>(),
+        //             )
+        //         })
+        //         .with_decoder(move |py, genotype| {
+        //             if genotype.len() == 1 {
+        //                 return PyAnyObject {
+        //                     inner: PyList::new(
+        //                         py,
+        //                         genotype
+        //                             .iter()
+        //                             .flat_map(|chromo| {
+        //                                 chromo
+        //                                     .iter()
+        //                                     .map(|gene| call_creator(py, gene).unwrap().inner)
+        //                             })
+        //                             .collect::<Vec<_>>(),
+        //                     )
+        //                     .unwrap()
+        //                     .unbind()
+        //                     .into_any(),
+        //                 };
+        //             }
+
+        //             return PyAnyObject {
+        //                 inner: PyList::new(
+        //                     py,
+        //                     genotype
+        //                         .iter()
+        //                         .map(|chromo| {
+        //                             chromo
+        //                                 .iter()
+        //                                 .map(|gene| call_creator(py, gene).unwrap().inner)
+        //                                 .collect::<Vec<_>>()
+        //                         })
+        //                         .collect::<Vec<_>>(),
+        //                 )
+        //                 .unwrap()
+        //                 .unbind()
+        //                 .into_any(),
+        //             };
+        //         }),
+        // })
     }
 
     pub fn encode_py(&self) -> PyResult<PyGenotype> {
@@ -96,13 +128,15 @@ impl PyAnyCodec {
     }
 }
 
-#[pyclass]
+#[pyclass(from_py_object)]
+#[derive(Clone)]
 pub struct PyFieldSpec {
-    pub field: Field,
-    pub init_range: Option<(f64, f64)>,
-    pub bounds: Option<(f64, f64)>,
-    pub chars: Option<Vec<char>>,
-    pub choices: Option<Vec<AnyValue<'static>>>,
+    // pub field: Field,
+    // pub init_range: Option<(f64, f64)>,
+    // pub bounds: Option<(f64, f64)>,
+    // pub chars: Option<Vec<char>>,
+    // pub choices: Option<Vec<AnyValue<'static>>>,
+    pub spec: FieldSpec,
 }
 
 #[pymethods]
@@ -116,11 +150,34 @@ impl PyFieldSpec {
         choices: Option<Vec<Wrap<AnyValue<'_>>>>,
     ) -> Self {
         PyFieldSpec {
-            field: field.0,
-            init_range,
-            bounds,
-            chars,
-            choices: choices.map(|v| v.into_iter().map(|w| w.0.into_static()).collect()),
+            spec: FieldSpec::Scalar {
+                field: field.0,
+                init_range: init_range.map(|(s, e)| s..e),
+                bounds: bounds.map(|(s, e)| s..e),
+                chars: chars.map(Arc::from),
+                choices: choices.map(|c| c.into_iter().map(|w| w.0.into_static()).collect()),
+            },
+        }
+    }
+
+    /// Fixed-length list
+    #[staticmethod]
+    pub fn list(len: usize, inner: PyFieldSpec) -> Self {
+        PyFieldSpec {
+            spec: FieldSpec::List {
+                len,
+                inner: Box::new(inner.spec),
+            },
+        }
+    }
+
+    /// Struct made of fields
+    #[staticmethod]
+    pub fn struct_(fields: Vec<PyFieldSpec>) -> Self {
+        PyFieldSpec {
+            spec: FieldSpec::Struct {
+                fields: fields.into_iter().map(|f| f.spec).collect(),
+            },
         }
     }
 }
@@ -154,6 +211,7 @@ pub struct MixedPlan {
     pub total_genes: usize,
 }
 
+#[derive(Clone, Debug)]
 pub enum FieldSpec {
     Scalar {
         field: Field,
@@ -293,7 +351,7 @@ fn gene_for_scalar(spec: &FieldSpec) -> FloatGene<f64> {
     }
 }
 
-fn encode_mixed(spec: &FieldSpec) -> Genotype<FloatChromosome<f64>> {
+fn encode_mixed(spec: &FieldSpec) -> FloatChromosome<f64> {
     fn emit(spec: &FieldSpec, out: &mut Vec<FloatGene<f64>>) {
         match spec {
             FieldSpec::Struct { fields } => fields.iter().for_each(|f| emit(f, out)),
@@ -308,7 +366,7 @@ fn encode_mixed(spec: &FieldSpec) -> Genotype<FloatChromosome<f64>> {
 
     let mut genes = vec![];
     emit(spec, &mut genes);
-    Genotype::from(FloatChromosome::new(genes))
+    FloatChromosome::new(genes)
 }
 
 fn decode_plan(
@@ -404,13 +462,18 @@ impl FlatSchemaCodec {
     }
 }
 
-impl Codec<FloatChromosome<f64>, AnyValue<'static>> for FlatSchemaCodec {
+impl Codec<FloatChromosome<f64>, Vec<AnyValue<'static>>> for FlatSchemaCodec {
     fn encode(&self) -> Genotype<FloatChromosome<f64>> {
-        encode_mixed(&self.spec)
+        Genotype::from(encode_mixed(&self.spec))
     }
 
-    fn decode(&self, genotype: &Genotype<FloatChromosome<f64>>) -> AnyValue<'static> {
-        return decode_plan(&self.spec, genotype[0].as_slice(), &mut 0);
+    fn decode(&self, genotype: &Genotype<FloatChromosome<f64>>) -> Vec<AnyValue<'static>> {
+        let mut result = Vec::new();
+        for leaf in &self.plan.leaves {
+            let value = decode_plan(&self.spec, &genotype[0].as_slice(), &mut 0);
+            result.push(value);
+        }
+        result
     }
 }
 
@@ -506,7 +569,7 @@ mod tests {
 
         let codec = FlatSchemaCodec::new(spec);
         let gt = codec.encode();
-        let decoded = codec.decode(&gt);
+        let decoded = codec.decode(&gt)[0].clone();
 
         match decoded {
             AnyValue::Struct(fields) => {

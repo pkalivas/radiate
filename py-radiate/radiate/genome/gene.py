@@ -3,14 +3,15 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from radiate.radiate import PyGene
-from radiate.wrapper import PyObject
-from radiate.dtype import DataType, dtype_from_str, Float64, Int64, DataTypeClass
+from radiate.wrapper import RsObject
+from radiate.dtype import Float64, Int64
+from radiate._typing import RdDataType
 
 if TYPE_CHECKING:
     from . import GeneType
 
 
-class Gene[T](PyObject[PyGene]):
+class Gene[T](RsObject[PyGene]):
     @classmethod
     def __factory__(cls):
         instance = cls.__new__(cls)
@@ -28,14 +29,6 @@ class Gene[T](PyObject[PyGene]):
         from . import GeneType
 
         return GeneType.from_str(self.__backend__().gene_type().name())
-
-    def dtype(self) -> DataType | None:
-        """
-        Get the data type of the gene, if applicable.
-        :return: The data type of the gene as a string, or None if not applicable.
-        """
-        dtype_str = self.__backend__().dtype()
-        return dtype_from_str(dtype_str) if dtype_str else None
 
     def allele(self) -> T:
         """
@@ -63,7 +56,7 @@ class AnyGene(Gene[dict[str, Any]]):
             module = __import__(module_name, fromlist=[class_name])
             cls = getattr(module, class_name)
             re_initializing = cls.__factory__()  # type: ignore
-            re_initializing.__dict__.update(json.loads(json_str) )
+            re_initializing.__dict__.update(json.loads(json_str))
             return re_initializing
         else:
             raise ValueError(
@@ -110,7 +103,7 @@ def float(
     *,
     init_range: tuple[float, float] | None = None,
     bounds: tuple[float, float] | None = None,
-    dtype: DataType | DataTypeClass | None = Float64,
+    dtype: RdDataType | None = Float64,
 ):
     float_gene = PyGene.float(
         allele=allele, range=init_range, bounds=bounds, dtype=str(dtype)
@@ -123,7 +116,7 @@ def int(
     *,
     init_range: tuple[int, int] | None = None,
     bounds: tuple[int, int] | None = None,
-    dtype: DataType | DataTypeClass | None = Int64,
+    dtype: RdDataType | None = Int64,
 ):
     int_gene = PyGene.int(
         allele=allele, range=init_range, bounds=bounds, dtype=str(dtype)

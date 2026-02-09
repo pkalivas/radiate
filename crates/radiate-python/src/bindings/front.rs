@@ -97,6 +97,20 @@ impl PyFront {
         }
     }
 
+    pub fn dtype<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        match &self.inner {
+            PyFrontInner::Front(front) => front
+                .values()
+                .get(0)
+                .map(|v| v.genotype.dtype(py))
+                .unwrap_or_else(|| Ok(py.None().into_bound(py))),
+            PyFrontInner::Values(values) => values
+                .get(0)
+                .map(|v| v.genotype.dtype(py))
+                .unwrap_or_else(|| Ok(py.None().into_bound(py))),
+        }
+    }
+
     pub fn add<'py>(
         &mut self,
         py: Python<'py>,

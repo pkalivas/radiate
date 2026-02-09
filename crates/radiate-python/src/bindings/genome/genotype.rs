@@ -1,5 +1,6 @@
-use crate::{AnyChromosome, PyChromosome, PyGeneType};
-use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
+use crate::{AnyChromosome, PyChromosome, PyGeneType, Wrap};
+
+use pyo3::{Bound, IntoPyObject, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
     BitChromosome, CharChromosome, Chromosome, DataType, FloatChromosome, Genotype,
     GraphChromosome, IntChromosome, Op, PermutationChromosome, TreeChromosome,
@@ -67,11 +68,11 @@ impl PyGenotype {
         }
     }
 
-    pub fn dtype(&self) -> String {
+    pub fn dtype<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         if self.chromosomes.is_empty() {
-            DataType::Null.to_string()
+            Wrap(DataType::Null).into_pyobject(py)
         } else {
-            self.chromosomes[0].dtype()
+            self.chromosomes[0].dtype(py)
         }
     }
 }
@@ -137,4 +138,4 @@ impl_into_py_genotype!(CharChromosome);
 impl_into_py_genotype!(GraphChromosome<Op<f32>>);
 impl_into_py_genotype!(TreeChromosome<Op<f32>>);
 impl_into_py_genotype!(PermutationChromosome<usize>);
-impl_into_py_genotype!(AnyChromosome<'static>);
+impl_into_py_genotype!(AnyChromosome);

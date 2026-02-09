@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Any, Callable
 
 from radiate.radiate import PySubscriber, PyEngineEvent
-from radiate.wrapper import PyObject
+from radiate.wrapper import RsObject
 from radiate.metrics import MetricSet
 
 
@@ -56,7 +56,7 @@ class CallableEventHandler(EventHandler):
         self.func(event)
 
 
-class EngineEvent(PyObject[PyEngineEvent]):
+class EngineEvent(RsObject[PyEngineEvent]):
     """
     EngineEvent class that wraps around the PyEngineEvent class.
     This class provides a simple interface to access the value of the event.

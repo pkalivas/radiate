@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from radiate.genome.population import Population
 from radiate.genome.species import Species
-from radiate.wrapper import PyObject
+from radiate.wrapper import RsObject
 from radiate.radiate import PyEcosystem
+from radiate._typing import RdDataType
 
 
-class Ecosystem[T](PyObject[PyEcosystem]):
+class Ecosystem[T](RsObject[PyEcosystem]):
     def __init__(self, inner: PyEcosystem):
         super().__init__()
 

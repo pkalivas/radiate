@@ -96,8 +96,8 @@ pub fn py_select(
             Ok(selector.select(&population, &obj, count)).map(|pop| PyPopulation::from(&pop))
         }
         PyGeneType::AnyGene => {
-            let selector: Box<dyn Select<AnyChromosome<'static>>> = selector.transform();
-            let population: Population<AnyChromosome<'static>> = population.into();
+            let selector: Box<dyn Select<AnyChromosome>> = selector.transform();
+            let population: Population<AnyChromosome> = population.into();
 
             Ok(selector.select(&population, &obj, count)).map(|pop| PyPopulation::from(&pop))
         }

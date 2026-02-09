@@ -1,5 +1,5 @@
 use radiate_core::{
-    AlterResult, BoundedGene, Chromosome, Crossover, FloatGene, Gene, Rate, Valid, random_provider,
+    AlterResult, BoundedGene, Chromosome, Crossover, Gene, Rate, Valid, random_provider,
 };
 use radiate_utils::{Float, Primitive};
 
@@ -34,10 +34,11 @@ impl BlendCrossover {
     }
 }
 
-impl<F, C> Crossover<C> for BlendCrossover
+impl<A, G, C> Crossover<C> for BlendCrossover
 where
-    F: Primitive + Float,
-    C: Chromosome<Gene = FloatGene<F>>,
+    A: Primitive + Float,
+    G: Gene<Allele = A> + BoundedGene,
+    C: Chromosome<Gene = G>,
 {
     fn rate(&self) -> Rate {
         self.rate.clone()
@@ -46,7 +47,7 @@ where
     #[inline]
     fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C, rate: f32) -> AlterResult {
         let mut cross_count = 0;
-        let alpha = F::from(self.alpha).unwrap();
+        let alpha = A::from(self.alpha).unwrap();
 
         random_provider::with_rng(|rand| {
             for (one, two) in chrom_one.zip_mut(chrom_two) {
@@ -66,26 +67,6 @@ where
                     cross_count += 1;
                 }
             }
-            // for i in 0..std::cmp::min(chrom_one.len(), chrom_two.len()) {
-            //     if rand.bool(rate) {
-            //         let gene_one = chrom_one.get_mut(i);
-            //         let gene_two = chrom_two.get_mut(i);
-
-            //         let allele_one = gene_one.allele().clone();
-            //         let allele_two = gene_two.allele().clone();
-
-            //         let new_allele_one = allele_one - (alpha * (allele_two - allele_one));
-            //         let new_allele_two = allele_two - (alpha * (allele_one - allele_two));
-
-            //         let (one_min, one_max) = gene_one.bounds();
-            //         let (two_min, two_max) = gene_two.bounds();
-
-            //         *gene_one.allele_mut() = new_allele_one.clamp(*one_min, *one_max);
-            //         *gene_two.allele_mut() = new_allele_two.clamp(*two_min, *two_max);
-
-            //         cross_count += 1;
-            //     }
-            // }
         });
 
         cross_count.into()

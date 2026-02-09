@@ -2,14 +2,14 @@ from datetime import timedelta
 
 from radiate.genome.ecosystem import Ecosystem
 from radiate.genome.species import Species
-from radiate.wrapper import PyObject
+from radiate.wrapper import RsObject
 from radiate.metrics import MetricSet
 from radiate.front import Front
 from .genome import Population
 from radiate.radiate import PyGeneration
 
 
-class Generation[T](PyObject[PyGeneration]):
+class Generation[T](RsObject[PyGeneration]):
     """
     Generation class that wraps around the PyGeneration class.
     This class provides a simple interface to access the value of the generation.
@@ -140,10 +140,3 @@ class Generation[T](PyObject[PyGeneration]):
         return self.try_get_cache(
             "duration_cache", lambda: self.__backend__().duration()
         )
-    
-    def dtype(self) -> str:
-        """
-        Get the data type of the generation's value.
-        :return: The data type of the generation's value.
-        """
-        return self.__backend__().dtype()

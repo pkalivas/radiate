@@ -22,6 +22,13 @@ impl Scalar {
     pub fn into_value(self) -> AnyValue<'static> {
         self.value
     }
+
+    pub fn extract<T>(self) -> Option<T>
+    where
+        T: num_traits::NumCast,
+    {
+        self.value.extract()
+    }
 }
 
 macro_rules! impl_from {
@@ -52,5 +59,4 @@ impl_from! {
     (f32, Float32, Float32)
     (f64, Float64, Float64)
     (String, StrOwned, String)
-    (Vec<u8>, BinaryOwned, Binary)
 }

@@ -38,7 +38,6 @@ class EngineBuilder:
 
     def build(self) -> PyEngine:
         """Build the PyEngine instance."""
-
         builder = PyEngineBuilder(
             codec=self._codec.__backend__(),
             problem=self.fitness.problem,

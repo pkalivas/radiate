@@ -2,7 +2,7 @@ mod cell;
 pub(crate) mod value;
 
 use cell::GILOnceCell;
-use chrono::{DateTime, Datelike, FixedOffset, NaiveDate, NaiveDateTime, TimeDelta, TimeZone};
+use chrono::{DateTime, Datelike, FixedOffset, NaiveDateTime, TimeDelta, TimeZone};
 use chrono_tz::Tz;
 pub use radiate::AnyValue;
 pub use radiate::Field;
@@ -10,19 +10,17 @@ use radiate::RadiateError;
 pub use radiate::{AnyChromosome, AnyGene, time_unit, time_zone};
 
 use pyo3::{
-    Borrowed, Bound, IntoPyObjectExt, Py, PyAny, PyResult, PyTypeCheck, Python,
+    Borrowed, Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python,
     exceptions::{PyOverflowError, PyValueError},
-    intern,
     types::{
-        PyAnyMethods, PyBool, PyBytes, PyDate, PyDateTime, PyDict, PyDictMethods, PyFloat, PyInt,
-        PyList, PySequence, PyString, PyTuple, PyType, PyTypeMethods, PyTzInfo,
+        PyAnyMethods, PyBool, PyDict, PyDictMethods, PyFloat, PyInt, PyList, PySequence, PyString,
+        PyTuple, PyType, PyTypeMethods,
     },
 };
 use std::{
     borrow::{Borrow, Cow},
     collections::HashMap,
     str::FromStr,
-    sync::Arc,
 };
 
 type InitFn = for<'py> fn(&Bound<'py, PyAny>, bool) -> PyResult<AnyValue<'py>>;
@@ -52,10 +50,6 @@ pub fn any_value_into_py_object_ref<'py, 'a>(
         Float64(v) => v.into_bound_py_any(py),
         Str(s) => s.into_bound_py_any(py),
         StrOwned(s) => s.into_bound_py_any(py),
-        Date(v) => v.into_bound_py_any(py),
-        DateTime(v, tu, tz) => datetime_to_py_object(py, *v, *tu, tz.as_deref()),
-        Binary(b) => PyBytes::new(py, b).into_bound_py_any(py),
-        BinaryOwned(b) => PyBytes::new(py, b).into_bound_py_any(py),
         Vector(v) => Ok(PyList::new(
             py,
             v.iter()
@@ -90,8 +84,6 @@ pub fn any_value_into_py_object<'py>(av: AnyValue, py: Python<'py>) -> PyResult<
         AnyValue::Float32(v) => v.into_bound_py_any(py),
         AnyValue::Float64(v) => v.into_bound_py_any(py),
         AnyValue::Char(v) => v.into_bound_py_any(py),
-        AnyValue::Date(v) => v.into_bound_py_any(py),
-        AnyValue::DateTime(v, tu, tz) => datetime_to_py_object(py, v, tu, tz.as_deref()),
         AnyValue::Vector(v) => Ok(PyList::new(
             py,
             v.into_iter()
@@ -103,8 +95,6 @@ pub fn any_value_into_py_object<'py>(av: AnyValue, py: Python<'py>) -> PyResult<
         AnyValue::Bool(v) => v.into_bound_py_any(py),
         AnyValue::Str(v) => v.into_bound_py_any(py),
         AnyValue::StrOwned(v) => v.into_bound_py_any(py),
-        AnyValue::Binary(b) => PyBytes::new(py, b).into_bound_py_any(py),
-        AnyValue::BinaryOwned(v) => PyBytes::new(py, &v).into_bound_py_any(py),
         AnyValue::Struct(v) => {
             let dict = struct_dict(py, v.into_iter())?;
             dict.into_bound_py_any(py)
@@ -201,73 +191,6 @@ pub fn py_object_to_any_value<'a, 'py>(
         Ok(AnyValue::StrOwned(ob.extract::<String>()?.into()))
     }
 
-    fn get_bytes<'py>(ob: &Bound<'py, PyAny>, _strict: bool) -> PyResult<AnyValue<'py>> {
-        let value = ob.extract::<Vec<u8>>()?;
-        Ok(AnyValue::BinaryOwned(value))
-    }
-
-    fn get_date(ob: &Bound<'_, PyAny>, _strict: bool) -> PyResult<AnyValue<'static>> {
-        const UNIX_EPOCH: NaiveDate = DateTime::UNIX_EPOCH.naive_utc().date();
-        let date = ob.extract::<NaiveDate>()?;
-        let elapsed = date.signed_duration_since(UNIX_EPOCH);
-        Ok(AnyValue::Date(elapsed.num_days() as i32))
-    }
-
-    fn get_datetime(ob: &Bound<'_, PyAny>, _strict: bool) -> PyResult<AnyValue<'static>> {
-        let py = ob.py();
-        let tzinfo = ob.getattr(intern!(py, "tzinfo"))?;
-
-        if tzinfo.is_none() {
-            let datetime = ob.extract::<NaiveDateTime>()?;
-            let delta = datetime - DateTime::UNIX_EPOCH.naive_utc();
-            let timestamp = delta.num_microseconds().unwrap();
-            return Ok(AnyValue::DateTime(
-                timestamp,
-                time_unit::TimeUnit::Microseconds,
-                None,
-            ));
-        }
-
-        // Try converting `pytz` timezone to `zoneinfo` timezone
-        let (ob, tzinfo) = if let Some(tz) = tzinfo
-            .getattr(intern!(py, "zone"))
-            .ok()
-            .and_then(|tz| (!tz.is_none()).then_some(tz))
-        {
-            let tzinfo = PyTzInfo::timezone(py, tz.cast::<PyString>()?)?;
-            (
-                &ob.call_method(intern!(py, "astimezone"), (&tzinfo,), None)?,
-                tzinfo,
-            )
-        } else {
-            (ob, tzinfo.cast_into()?)
-        };
-
-        let (timestamp, tz) = if tzinfo.hasattr(intern!(py, "key"))? {
-            let datetime = ob.extract::<DateTime<Tz>>()?;
-            let tz = unsafe { time_zone::TimeZone::from_static(datetime.timezone().name()) };
-            if datetime.year() >= 2100 {
-                // chrono-tz does not support dates after 2100
-                // https://github.com/chronotope/chrono-tz/issues/135
-                let delta = datetime.to_utc() - DateTime::UNIX_EPOCH;
-                (delta.num_microseconds().unwrap(), tz)
-            } else {
-                let delta = datetime.to_utc() - DateTime::UNIX_EPOCH;
-                (delta.num_microseconds().unwrap(), tz)
-            }
-        } else {
-            let datetime = ob.extract::<DateTime<FixedOffset>>()?;
-            let delta = datetime.to_utc() - DateTime::UNIX_EPOCH;
-            (delta.num_microseconds().unwrap(), time_zone::TimeZone::UTC)
-        };
-
-        Ok(AnyValue::DateTime(
-            timestamp,
-            time_unit::TimeUnit::Microseconds,
-            Some(Arc::new(tz)),
-        ))
-    }
-
     fn get_list(ob: &Bound<'_, PyAny>, strict: bool) -> PyResult<AnyValue<'static>> {
         let seq = ob.cast::<PySequence>()?;
         let mut out: Vec<AnyValue<'static>> = Vec::with_capacity(seq.len().unwrap_or(0).max(0));
@@ -289,14 +212,8 @@ pub fn py_object_to_any_value<'a, 'py>(
             Ok(get_float)
         } else if ob.is_instance_of::<PyString>() {
             Ok(get_str)
-        } else if ob.is_instance_of::<PyBytes>() {
-            Ok(get_bytes)
         } else if ob.is_instance_of::<PyList>() || ob.is_instance_of::<PyTuple>() {
             Ok(get_list)
-        } else if PyDateTime::type_check(ob) {
-            Ok(get_datetime as InitFn)
-        } else if PyDate::type_check(ob) {
-            Ok(get_date as InitFn)
         } else if ob.is_instance_of::<PyDict>() {
             Ok(|ob, strict| {
                 let dict = ob.cast::<PyDict>().unwrap();
@@ -305,7 +222,7 @@ pub fn py_object_to_any_value<'a, 'py>(
                 for (k, v) in dict.into_iter() {
                     let key = k.extract::<Cow<str>>()?;
                     let val = py_object_to_any_value(v.as_borrowed(), strict)?;
-                    key_value_pairs.push((Field::new(key.as_ref().into()), val));
+                    key_value_pairs.push((Field::from((key.into_owned(), val.dtype())), val));
                 }
 
                 Ok(AnyValue::Struct(key_value_pairs))

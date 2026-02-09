@@ -4,15 +4,14 @@ from __future__ import annotations
 from .base import CodecBase
 
 from radiate.radiate import PyBitCodec
-from radiate.genome import Genotype, Gene, Chromosome
-from radiate.wrapper import PyObject
+from radiate.genome import Genotype, Gene, Chromosome, GeneType
+from radiate.wrapper import RsObject
 
 
-class BitCodec[T](CodecBase[bool, T], PyObject[PyBitCodec]):
-    """
-    BitCodec is a class that represents a codec for bit-based chromosomes.
-    It is used to encode and decode chromosomes into bit strings.
-    """
+class BitCodec[T](CodecBase[bool, T], RsObject[PyBitCodec]):
+    """BitCodec for bit-based chromosomes. Encodes/decodes to bit strings."""
+
+    gene_type = GeneType.BIT
 
     def __init__(
         self,

@@ -59,8 +59,8 @@ impl InputTransform<Option<Box<dyn Diversity<PermutationChromosome<usize>>>>> fo
     }
 }
 
-impl InputTransform<Option<Box<dyn Diversity<AnyChromosome<'static>>>>> for PyEngineInput {
-    fn transform(&self) -> Option<Box<dyn Diversity<AnyChromosome<'static>>>> {
+impl InputTransform<Option<Box<dyn Diversity<AnyChromosome>>>> for PyEngineInput {
+    fn transform(&self) -> Option<Box<dyn Diversity<AnyChromosome>>> {
         match self.component.as_str() {
             crate::names::HAMMING_DISTANCE => Some(Box::new(HammingDistance)),
             _ => None,

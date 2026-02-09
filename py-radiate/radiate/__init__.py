@@ -14,6 +14,8 @@ from .codec import (
     TreeCodec,
     PermutationCodec,
     AnyCodec,
+    FieldCodec,
+    FieldSpec,
 )
 from .random import RandomProvider as random
 from .front import Front
@@ -46,7 +48,7 @@ from .inputs.selector import (
     LinearRankSelector,
     NSGA2Selector,
     TournamentNSGA2Selector,
-    NSGA3Selector
+    NSGA3Selector,
 )
 
 from .inputs.alterer import (
@@ -107,9 +109,12 @@ from .dtype import (
     Int128,
     Float32,
     Float64,
-    Bool,
-    Usize,
+    Boolean,
     Struct,
+    List,
+    Field,
+    String,
+    Null
 )
 
 from .dependancies import (
@@ -132,6 +137,8 @@ __all__ = [
     # Random
     "random",
     # Codecs
+    "FieldCodec",
+    "FieldSpec",
     "PermutationCodec",
     "FloatCodec",
     "IntCodec",
@@ -242,7 +249,10 @@ __all__ = [
     "Int128",
     "Float32",
     "Float64",
-    "Bool",
-    "Usize",
+    "Boolean",
     "Struct",
+    "Field",
+    "String",
+    "Null",
+    "List",
 ]

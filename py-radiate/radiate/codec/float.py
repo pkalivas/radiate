@@ -2,14 +2,16 @@ from __future__ import annotations
 
 from .base import CodecBase
 
-from radiate.genome import Genotype, Gene, Chromosome
-from radiate.wrapper import PyObject
+from radiate.genome import Genotype, Gene, Chromosome, GeneType
+from radiate.wrapper import RsObject
 from radiate.dtype import DataType, DataTypeClass, Float64, FloatType
 
 from radiate.radiate import PyFloatCodec
 
 
-class FloatCodec[T](CodecBase[float, T], PyObject[PyFloatCodec]):
+class FloatCodec[T](CodecBase[float, T], RsObject[PyFloatCodec]):
+    gene_type = GeneType.FLOAT
+
     def __init__(
         self,
         shape: int | tuple[int, int] | list[int] | None = None,
