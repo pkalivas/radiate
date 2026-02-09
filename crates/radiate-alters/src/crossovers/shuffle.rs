@@ -32,8 +32,8 @@ impl<C: Chromosome + Clone> Crossover<C> for ShuffleCrossover {
             let mut indices = (0..length).collect::<Vec<usize>>();
             rand.shuffle(&mut indices);
 
-            let temp_chrom_one = chrom_one.genes_mut();
-            let temp_chrom_two = chrom_two.genes_mut();
+            let temp_chrom_one = chrom_one.as_mut_slice();
+            let temp_chrom_two = chrom_two.as_mut_slice();
 
             for (i, &index) in indices.iter().enumerate() {
                 if i % 2 == 0 {

@@ -39,7 +39,7 @@ where
         let mut count = 0;
 
         random_provider::with_rng(|rand| {
-            for gene in chromosome.genes_mut() {
+            for gene in chromosome.as_mut_slice() {
                 if rand.bool(rate) {
                     let min = gene.min().extract::<f64>().unwrap();
                     let max = gene.max().extract::<f64>().unwrap();

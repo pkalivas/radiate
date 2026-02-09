@@ -49,26 +49,43 @@ where
         let alpha = F::from(self.alpha).unwrap();
 
         random_provider::with_rng(|rand| {
-            for i in 0..std::cmp::min(chrom_one.len(), chrom_two.len()) {
+            for (one, two) in chrom_one.zip_mut(chrom_two) {
                 if rand.bool(rate) {
-                    let gene_one = chrom_one.get_mut(i);
-                    let gene_two = chrom_two.get_mut(i);
-
-                    let allele_one = gene_one.allele().clone();
-                    let allele_two = gene_two.allele().clone();
+                    let allele_one = one.allele().clone();
+                    let allele_two = two.allele().clone();
 
                     let new_allele_one = allele_one - (alpha * (allele_two - allele_one));
                     let new_allele_two = allele_two - (alpha * (allele_one - allele_two));
 
-                    let (one_min, one_max) = gene_one.bounds();
-                    let (two_min, two_max) = gene_two.bounds();
+                    let (one_min, one_max) = one.bounds();
+                    let (two_min, two_max) = two.bounds();
 
-                    *gene_one.allele_mut() = new_allele_one.clamp(*one_min, *one_max);
-                    *gene_two.allele_mut() = new_allele_two.clamp(*two_min, *two_max);
+                    *one.allele_mut() = new_allele_one.clamp(*one_min, *one_max);
+                    *two.allele_mut() = new_allele_two.clamp(*two_min, *two_max);
 
                     cross_count += 1;
                 }
             }
+            // for i in 0..std::cmp::min(chrom_one.len(), chrom_two.len()) {
+            //     if rand.bool(rate) {
+            //         let gene_one = chrom_one.get_mut(i);
+            //         let gene_two = chrom_two.get_mut(i);
+
+            //         let allele_one = gene_one.allele().clone();
+            //         let allele_two = gene_two.allele().clone();
+
+            //         let new_allele_one = allele_one - (alpha * (allele_two - allele_one));
+            //         let new_allele_two = allele_two - (alpha * (allele_one - allele_two));
+
+            //         let (one_min, one_max) = gene_one.bounds();
+            //         let (two_min, two_max) = gene_two.bounds();
+
+            //         *gene_one.allele_mut() = new_allele_one.clamp(*one_min, *one_max);
+            //         *gene_two.allele_mut() = new_allele_two.clamp(*two_min, *two_max);
+
+            //         cross_count += 1;
+            //     }
+            // }
         });
 
         cross_count.into()

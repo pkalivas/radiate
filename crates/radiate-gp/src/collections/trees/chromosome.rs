@@ -45,11 +45,11 @@ where
 {
     type Gene = TreeNode<T>;
 
-    fn genes(&self) -> &[Self::Gene] {
+    fn as_slice(&self) -> &[Self::Gene] {
         &self.nodes
     }
 
-    fn genes_mut(&mut self) -> &mut [Self::Gene] {
+    fn as_mut_slice(&mut self) -> &mut [Self::Gene] {
         &mut self.nodes
     }
 }

@@ -155,7 +155,6 @@ impl<F: Float> Codec<FloatChromosome<F>, Vec<Vec<Vec<F>>>> for FloatCodec<F, Vec
             for (i, chromosome) in genotype.iter().enumerate() {
                 layers.push(
                     chromosome
-                        .iter()
                         .as_slice()
                         .chunks(shapes[i].1)
                         .map(|chunk| chunk.iter().map(|gene| *gene.allele()).collect::<Vec<F>>())

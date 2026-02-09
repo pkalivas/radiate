@@ -54,7 +54,7 @@ impl PyPermutationCodec {
                     let values = geno
                         .iter()
                         .flat_map(|chromosome| {
-                            chromosome.genes().iter().map(|gene| {
+                            chromosome.as_slice().iter().map(|gene| {
                                 let index = gene.allele();
                                 arc_alleles[*index].clone_ref(py)
                             })

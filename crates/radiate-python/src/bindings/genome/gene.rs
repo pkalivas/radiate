@@ -6,9 +6,10 @@ use radiate::{
 };
 use radiate_error::radiate_py_bail;
 use radiate_utils::{Float, Integer};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 enum GeneInner {
     UInt8(IntGene<u8>),
     UInt16(IntGene<u16>),
@@ -33,7 +34,7 @@ enum GeneInner {
 }
 
 #[pyclass(from_py_object)]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PyGene {
     inner: GeneInner,
 }

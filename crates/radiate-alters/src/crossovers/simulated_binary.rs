@@ -41,6 +41,8 @@ where
         let mut count = 0;
 
         random_provider::with_rng(|rand| {
+            let one_slice = chrom_one.as_mut_slice();
+            let two_slice = chrom_two.as_slice();
             for i in 0..length {
                 if rand.bool(0.5) {
                     let u = rand.random::<f32>();
@@ -51,8 +53,8 @@ where
                     })
                     .unwrap();
 
-                    let v1 = chrom_one.get(i).allele().clone();
-                    let v2 = chrom_two.get(i).allele().clone();
+                    let v1 = one_slice[i].allele().clone();
+                    let v2 = two_slice[i].allele().clone();
 
                     let v = if rand.bool(0.5) {
                         (v1 - v2) * F::HALF - (beta * F::HALF * (v1 - v2).abs())
@@ -60,12 +62,12 @@ where
                         (v1 - v2) * F::HALF + (beta * F::HALF * (v1 - v2).abs())
                     };
 
-                    let (one_min, one_max) = chrom_one.get(i).bounds();
+                    let (one_min, one_max) = one_slice[i].bounds();
                     let new_gene = v.clamp(*one_min, *one_max);
 
                     count += 1;
 
-                    *chrom_one.get_mut(i).allele_mut() = new_gene;
+                    *one_slice[i].allele_mut() = new_gene;
                 }
             }
         });

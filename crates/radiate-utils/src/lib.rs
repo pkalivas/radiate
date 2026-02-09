@@ -9,7 +9,7 @@ mod registry;
 mod str;
 
 pub use array::{Shape, Strides, Tensor};
-pub use buff::{SortedBuffer, Value, WindowBuffer};
+pub use buff::{Buffer, BufferIntoIter, InlineBuffer, SortedBuffer, Value, WindowBuffer};
 pub use fmt::{ToSnakeCase, intern_name_as_snake_case};
 pub use intern::{
     ARC_STRING_INTERN_CACHE, SNAKE_CASE_INTERN_CACHE, STR_INTERN_CACHE, is_arc_string_interned,

@@ -10,7 +10,7 @@ evolve solutions. The results are visualized in a 3D scatter plot.
 import matplotlib.pyplot as plt
 import radiate as rd
 import numpy as np
-from numba import jit, float64, float32
+from numba import jit, float64
 
 rd.random.seed(501)
 

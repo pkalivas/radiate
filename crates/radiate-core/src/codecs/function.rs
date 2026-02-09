@@ -23,7 +23,7 @@ use std::sync::Arc;
 ///         })
 ///         .with_decoder(|genotype| {
 ///             genotype[0]
-///                 .genes()
+///                 .as_slice()
 ///                 .iter()
 ///                 .map(|g| *g.allele())
 ///                 .collect::<Vec<i8>>()

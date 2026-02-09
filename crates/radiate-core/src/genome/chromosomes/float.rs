@@ -277,11 +277,11 @@ impl<F: Float> FloatChromosome<F> {
 impl<F: Float> Chromosome for FloatChromosome<F> {
     type Gene = FloatGene<F>;
 
-    fn genes(&self) -> &[Self::Gene] {
+    fn as_slice(&self) -> &[Self::Gene] {
         &self.genes
     }
 
-    fn genes_mut(&mut self) -> &mut [Self::Gene] {
+    fn as_mut_slice(&mut self) -> &mut [Self::Gene] {
         &mut self.genes
     }
 }

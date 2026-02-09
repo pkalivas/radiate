@@ -17,8 +17,8 @@ use super::{Valid, gene::Gene};
 pub trait Chromosome: Valid {
     type Gene: Gene;
 
-    fn genes(&self) -> &[Self::Gene];
-    fn genes_mut(&mut self) -> &mut [Self::Gene];
+    fn as_slice(&self) -> &[Self::Gene];
+    fn as_mut_slice(&mut self) -> &mut [Self::Gene];
 
     /// Retrieves the gene at the specified index.
     ///
@@ -27,11 +27,11 @@ pub trait Chromosome: Valid {
     /// * `index` - The position of the gene to retrieve.
     ///
     fn get(&self, index: usize) -> &Self::Gene {
-        &self.genes()[index]
+        &self.as_slice()[index]
     }
 
     fn get_mut(&mut self, index: usize) -> &mut Self::Gene {
-        &mut self.genes_mut()[index]
+        &mut self.as_mut_slice()[index]
     }
 
     /// Sets the gene at the specified index.
@@ -42,18 +42,25 @@ pub trait Chromosome: Valid {
     /// * [`Gene`] - The gene to replace at the specified index.
     ///
     fn set(&mut self, index: usize, gene: Self::Gene) {
-        self.genes_mut()[index] = gene;
+        self.as_mut_slice()[index] = gene;
     }
 
     fn len(&self) -> usize {
-        self.genes().len()
+        self.as_slice().len()
     }
 
-    fn iter(&self) -> std::slice::Iter<'_, Self::Gene> {
-        self.genes().iter()
+    fn iter(&self) -> impl Iterator<Item = &Self::Gene> {
+        self.as_slice().iter()
     }
 
-    fn iter_mut(&mut self) -> std::slice::IterMut<'_, Self::Gene> {
-        self.genes_mut().iter_mut()
+    fn iter_mut(&mut self) -> impl Iterator<Item = &mut Self::Gene> {
+        self.as_mut_slice().iter_mut()
+    }
+
+    fn zip_mut<'a>(
+        &'a mut self,
+        other: &'a mut Self,
+    ) -> impl Iterator<Item = (&'a mut Self::Gene, &'a mut Self::Gene)> {
+        self.iter_mut().zip(other.iter_mut())
     }
 }

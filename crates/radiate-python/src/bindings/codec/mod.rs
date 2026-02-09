@@ -107,7 +107,7 @@ where
         let values = genotype
             .iter()
             .next()
-            .map(|chrom| chrom.iter().map(|gene| *gene.allele()));
+            .map(|chrom| chrom.as_slice().iter().map(|gene| *gene.allele()));
 
         let Some(values) = values else {
             radiate_py_bail!(
@@ -146,9 +146,9 @@ where
 
     let result = PyList::new(
         py,
-        genotype
-            .iter()
-            .map(|chrom| PyList::new(py, chrom.iter().map(|gene| *gene.allele())).unwrap()),
+        genotype.iter().map(|chrom| {
+            PyList::new(py, chrom.as_slice().iter().map(|gene| *gene.allele())).unwrap()
+        }),
     )?;
 
     Ok(result.into_any())

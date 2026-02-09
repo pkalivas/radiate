@@ -46,7 +46,7 @@ where
         let mag = F::from(self.magnitude).unwrap();
 
         random_provider::with_rng(|rand| {
-            for gene in chromosome.genes_mut() {
+            for gene in chromosome.as_mut_slice() {
                 if rand.bool(rate) {
                     let change = rand.range(-F::ONE..F::ONE) * mag;
                     let new_allele = *gene.allele() + change;

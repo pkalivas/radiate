@@ -35,8 +35,8 @@ impl<C: Chromosome> Crossover<C> for MultiPointCrossover {
 
     #[inline]
     fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C, _: f32) -> AlterResult {
-        let one = chrom_one.genes_mut();
-        let two = chrom_two.genes_mut();
+        let one = chrom_one.as_mut_slice();
+        let two = chrom_two.as_mut_slice();
 
         let num_crosses = if self.num_points == 1 {
             crossover_single_point(one, two)

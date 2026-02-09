@@ -30,7 +30,12 @@ impl<A: PartialEq + Clone> Codec<PermutationChromosome<A>, Vec<A>> for Permutati
     fn decode(&self, genotype: &Genotype<PermutationChromosome<A>>) -> Vec<A> {
         genotype
             .iter()
-            .flat_map(|chromosome| chromosome.genes().iter().map(|gene| gene.allele().clone()))
+            .flat_map(|chromosome| {
+                chromosome
+                    .as_slice()
+                    .iter()
+                    .map(|gene| gene.allele().clone())
+            })
             .collect()
     }
 }
@@ -44,7 +49,7 @@ impl<A: PartialEq + Clone> Codec<PermutationChromosome<A>, Vec<Vec<A>>>
                 .map(|chromosome| {
                     PermutationChromosome::new(
                         chromosome
-                            .genes()
+                            .as_slice()
                             .iter()
                             .map(|gene| gene.new_instance())
                             .collect(),
@@ -60,7 +65,7 @@ impl<A: PartialEq + Clone> Codec<PermutationChromosome<A>, Vec<Vec<A>>>
             .iter()
             .map(|chromosome| {
                 chromosome
-                    .genes()
+                    .as_slice()
                     .iter()
                     .map(|gene| gene.allele().clone())
                     .collect::<Vec<A>>()
@@ -72,7 +77,7 @@ impl<A: PartialEq + Clone> Codec<PermutationChromosome<A>, Vec<Vec<A>>>
 impl<A: PartialEq + Clone> Codec<PermutationChromosome<A>, Vec<A>> for PermutationChromosome<A> {
     fn encode(&self) -> Genotype<PermutationChromosome<A>> {
         Genotype::from(PermutationChromosome::new(
-            self.genes()
+            self.as_slice()
                 .iter()
                 .map(|gene| gene.new_instance())
                 .collect(),
@@ -83,7 +88,12 @@ impl<A: PartialEq + Clone> Codec<PermutationChromosome<A>, Vec<A>> for Permutati
     fn decode(&self, genotype: &Genotype<PermutationChromosome<A>>) -> Vec<A> {
         genotype
             .iter()
-            .flat_map(|chromosome| chromosome.genes().iter().map(|gene| gene.allele().clone()))
+            .flat_map(|chromosome| {
+                chromosome
+                    .as_slice()
+                    .iter()
+                    .map(|gene| gene.allele().clone())
+            })
             .collect()
     }
 }

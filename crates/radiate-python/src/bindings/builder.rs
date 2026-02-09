@@ -459,7 +459,6 @@ impl PyEngineBuilder {
                     radiate_py_bail!("Unsupported integer codec type for custom fitness function");
                 }
             }
-            // Int64(Self::new_builder(fitness, int_codec.codec, executor))
         } else if let Ok(char_codec) = codec.extract::<PyCharCodec>() {
             Char(Self::new_builder(fitness, char_codec.codec, executor))
         } else if let Ok(bit_codec) = codec.extract::<PyBitCodec>() {

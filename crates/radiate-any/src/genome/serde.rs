@@ -120,7 +120,7 @@ impl Serialize for AnyChromosome<'_> {
     where
         S: Serializer,
     {
-        self.genes().serialize(serializer)
+        self.as_slice().serialize(serializer)
     }
 }
 
@@ -161,6 +161,6 @@ mod tests {
         let serialized = serde_json::to_string(&chromosome).unwrap();
         let deserialized: AnyChromosome<'static> = serde_json::from_str(&serialized).unwrap();
 
-        assert_eq!(chromosome.genes().len(), deserialized.genes().len());
+        assert_eq!(chromosome.as_slice().len(), deserialized.as_slice().len());
     }
 }
