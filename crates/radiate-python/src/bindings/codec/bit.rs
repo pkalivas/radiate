@@ -3,7 +3,7 @@ use crate::{PyAnyObject, PyGenotype};
 use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, pyclass, pymethods};
 use radiate::{BitChromosome, Codec, Genotype};
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct PyBitCodec {
     pub codec: PyCodec<BitChromosome, PyAnyObject>,

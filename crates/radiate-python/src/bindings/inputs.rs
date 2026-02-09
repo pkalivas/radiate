@@ -9,7 +9,7 @@ use std::{
     fmt::Debug,
 };
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Copy)]
 pub enum PyEngineInputType {
     Alterer,
@@ -32,7 +32,7 @@ pub enum PyEngineInputType {
     Checkpoint,
 }
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct PyEngineInput {
     pub component: String,

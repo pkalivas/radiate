@@ -32,7 +32,7 @@ enum GeneInner {
     AnyGene(AnyGene<'static>),
 }
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone, Debug, PartialEq)]
 pub struct PyGene {
     inner: GeneInner,

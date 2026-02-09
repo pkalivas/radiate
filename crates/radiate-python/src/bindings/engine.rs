@@ -7,7 +7,7 @@ use radiate_error::{radiate_py_bail, radiate_py_err};
 use serde::Serialize;
 use std::time::Duration;
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub enum PyEngineRunOption {
     Log(bool),

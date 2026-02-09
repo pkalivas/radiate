@@ -29,7 +29,7 @@ impl PyFitnessInner {
     }
 }
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct PyFitnessFn {
     pub inner: PyFitnessInner,

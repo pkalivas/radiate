@@ -5,7 +5,7 @@ use radiate::{
     IntChromosome, Op, PermutationChromosome, Phenotype, TreeChromosome,
 };
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone, Debug, PartialEq)]
 pub struct PyPhenotype {
     #[pyo3(get)]

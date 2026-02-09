@@ -16,7 +16,7 @@ impl IntoPyAnyObject for Graph<Op<f32>> {
     }
 }
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Serialize, Deserialize)]
 pub struct PyGraph {
     pub inner: Graph<Op<f32>>,

@@ -25,7 +25,7 @@ pub const TREE_GENE_TYPE: &'static str = "TreeNode";
 pub const PERMUTATION_GENE_TYPE: &'static str = "PermutationGene";
 pub const ANY_GENE_TYPE: &'static str = "AnyGene";
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
 pub enum PyGeneType {
     Empty,

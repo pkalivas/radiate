@@ -2,7 +2,7 @@ use crate::{AnyChromosome, AnyGene, PyGene, PyGeneType};
 use pyo3::{PyResult, exceptions::PyIndexError, pyclass, pymethods};
 use radiate::prelude::*;
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone, Debug, PartialEq)]
 pub struct PyChromosome {
     pub(crate) genes: Vec<PyGene>,

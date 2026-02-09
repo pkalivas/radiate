@@ -14,7 +14,7 @@ use radiate::Generation;
 use radiate::prelude::*;
 use std::time::Duration;
 
-#[pyclass(unsendable)]
+#[pyclass(from_py_object)]
 pub struct PyGeneration {
     pub(crate) inner: EpochHandle,
 }

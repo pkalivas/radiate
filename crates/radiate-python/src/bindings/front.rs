@@ -1,7 +1,7 @@
 use super::PyGenotype;
 use pyo3::{PyResult, pyclass, pymethods};
 
-#[pyclass(unsendable)]
+#[pyclass(skip_from_py_object)]
 #[derive(Clone)]
 pub struct PyFrontValue {
     pub(crate) genotype: PyGenotype,
@@ -19,7 +19,7 @@ impl PyFrontValue {
     }
 }
 
-#[pyclass(unsendable)]
+#[pyclass(skip_from_py_object)]
 pub struct PyFront {
     pub(crate) inner: Vec<PyFrontValue>,
 }

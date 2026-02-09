@@ -2,7 +2,7 @@ use pyo3::{pyclass, pymethods};
 use radiate::{Rate, rate::CycleShape};
 use std::fmt::Debug;
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct PyRate {
     pub rate: Rate,

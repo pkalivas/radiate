@@ -6,7 +6,7 @@ use pyo3::{
 };
 use radiate::{CharChromosome, CharGene, Chromosome, Codec, Gene, Genotype};
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct PyCharCodec {
     pub codec: PyCodec<CharChromosome, PyAnyObject>,

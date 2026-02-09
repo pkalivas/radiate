@@ -4,7 +4,7 @@ use pyo3::{Borrowed, PyErr};
 use pyo3::{FromPyObject, PyAny, PyResult, pyclass, types::PyAnyMethods};
 use radiate::Op;
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct PyOp {
     _inner: Op<f32>,

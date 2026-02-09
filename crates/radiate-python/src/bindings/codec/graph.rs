@@ -9,7 +9,7 @@ const OUTPUT_NODE_TYPE: &str = "output";
 const VERTEX_NODE_TYPE: &str = "vertex";
 const EDGE_NODE_TYPE: &str = "edge";
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct PyGraphCodec {
     pub codec: GraphCodec<Op<f32>>,

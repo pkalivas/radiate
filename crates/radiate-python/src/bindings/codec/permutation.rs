@@ -4,7 +4,7 @@ use pyo3::{Bound, IntoPyObjectExt, Py, PyAny, PyResult, pyclass, pymethods, type
 use radiate::{Chromosome, Codec, Gene, PermutationChromosome, PermutationGene, random_provider};
 use std::sync::Arc;
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct PyPermutationCodec {
     pub codec: PyCodec<PermutationChromosome<usize>, PyAnyObject>,

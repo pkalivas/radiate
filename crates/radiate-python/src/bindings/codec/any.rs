@@ -2,7 +2,7 @@ use crate::{AnyChromosome, AnyGene, PyAnyObject, PyCodec, PyGene, PyGenotype, pr
 use pyo3::{IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods, types::PyList};
 use radiate::{Chromosome, Codec, Gene, Genotype};
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct PyAnyCodec {
     pub codec: PyCodec<AnyChromosome<'static>, PyAnyObject>,

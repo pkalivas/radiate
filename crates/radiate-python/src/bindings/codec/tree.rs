@@ -7,7 +7,7 @@ const LEAF_NODE_TYPE: &str = "leaf";
 const ROOT_NODE_TYPE: &str = "root";
 const VERTEX_NODE_TYPE: &str = "vertex";
 
-#[pyclass(unsendable)]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct PyTreeCodec {
     pub codec: TreeCodec<Op<f32>, Vec<Tree<Op<f32>>>>,
