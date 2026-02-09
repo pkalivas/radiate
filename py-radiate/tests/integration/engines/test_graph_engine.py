@@ -149,7 +149,7 @@ def test_engine_graph_recurrent_class_acc(memory_dataset, random_seed):
     assert result.index() <= 500
     assert isinstance(result.value(), rd.Graph)
 
-    acc = rd.calc_accuracy(result.value(), inputs, outputs, loss="cross_entropy")
+    acc = rd.accuracy(result.value(), inputs, outputs, loss="cross_entropy")
 
     assert acc.sample_count() == len(inputs)
     assert acc.recall() > 0.99

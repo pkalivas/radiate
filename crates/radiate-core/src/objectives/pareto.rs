@@ -310,6 +310,36 @@ pub fn pareto_front<K: PartialOrd, T: AsRef<[K]> + Clone>(
     front
 }
 
+/// Das-Dennis reference directions on the simplex.
+/// Returns Vec of length H = C(p+m-1, m-1), each dir length m and sums to 1.0.
+pub fn das_dennis(m: usize, p: usize) -> Vec<Vec<f32>> {
+    let mut out = Vec::new();
+    let mut current = vec![0usize; m];
+
+    fn rec(
+        i: usize,
+        m: usize,
+        remaining: usize,
+        p: usize,
+        current: &mut [usize],
+        out: &mut Vec<Vec<f32>>,
+    ) {
+        if i == m - 1 {
+            current[i] = remaining;
+            let dir = current.iter().map(|&x| x as f32 / p as f32).collect();
+            out.push(dir);
+            return;
+        }
+        for x in 0..=remaining {
+            current[i] = x;
+            rec(i + 1, m, remaining - x, p, current, out);
+        }
+    }
+
+    rec(0, m, p, p, &mut current, &mut out);
+    out
+}
+
 #[cfg(test)]
 mod tests {
 

@@ -30,6 +30,12 @@ where
             crate::names::ELITE_SELECTOR => Box::new(EliteSelector::new()),
             crate::names::RANDOM_SELECTOR => Box::new(RandomSelector::new()),
             crate::names::NSGA2_SELECTOR => Box::new(NSGA2Selector::new()),
+            crate::names::NSGA3_SELECTOR => {
+                let ref_points = self
+                    .get_usize("points")
+                    .expect("NSGA3Selector requires 'ref_points' argument");
+                Box::new(NSGA3Selector::new(ref_points))
+            }
             crate::names::TOURNAMENT_NSGA2_SELECTOR => Box::new(TournamentNSGA2Selector::new()),
             _ => {
                 panic!("Selector type {} not yet implemented", self.component);

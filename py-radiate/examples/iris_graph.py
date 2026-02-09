@@ -77,7 +77,7 @@ np_acc = np.mean(
     np.argmax(eval_result, axis=1) == np.argmax(testing_target.values, axis=1)
 )
 
-rd_acc = rd.calc_accuracy(
+rd_acc = rd.accuracy(
     result.value(),
     testing_features.values.tolist(),
     testing_target.values.tolist(),

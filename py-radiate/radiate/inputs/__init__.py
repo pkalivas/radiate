@@ -33,6 +33,7 @@ from .selector import (
     LinearRankSelector,
     NSGA2Selector,
     TournamentNSGA2Selector,
+    NSGA3Selector
 )
 
 from .distance import (
@@ -42,7 +43,7 @@ from .distance import (
     CosineDistance,
 )
 
-from .limit import SecondsLimit, GenerationsLimit, ScoreLimit, ConvergenceLimit
+from .limit import SecondsLimit, GenerationsLimit, ScoreLimit, ConvergenceLimit, MetricLimit
 
 from .rate import Rate
 
@@ -79,6 +80,7 @@ __all__ = [
     "LinearRankSelector",
     "NSGA2Selector",
     "TournamentNSGA2Selector",
+    "NSGA3Selector",
     "HammingDistance",
     "EuclideanDistance",
     "NeatDistance",
@@ -86,6 +88,7 @@ __all__ = [
     "SecondsLimit",
     "GenerationsLimit",
     "ScoreLimit",
+    "MetricLimit",
     "Regression",
     "ConvergenceLimit",
     "CustomDescriptor",

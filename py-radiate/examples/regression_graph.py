@@ -60,7 +60,7 @@ engine = rd.GeneticEngine(
         edge=rd.Op.weight(),
         output=rd.Op.linear(),
     ),
-    fitness_func=rd.Regression(inputs, answers, batch=True),
+    fitness_func=rd.Regression(inputs, answers),
     subscribe=ScorePlotterHandler(),
     objective="min",
     alters=[
@@ -76,7 +76,7 @@ result = engine.run(
 )
 
 eval_results = result.value().eval(inputs)
-accuracy = rd.calc_accuracy(result.value(), inputs, answers, loss="mse")
+accuracy = rd.accuracy(result.value(), inputs, answers, loss="mse")
 
 print(result)
 print(result.metrics().dashboard())

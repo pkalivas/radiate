@@ -37,5 +37,6 @@ print(f"Fitness: {result.score()}")
 print(f"Generations completed: {result.index()}")
 print(f"Function output: {np.sum(result.value() * function_inputs)}")
 print(f"Duration: {result.duration()}")
+print(f'dtype: {result.dtype()}')
 
 print(result.metrics().dashboard())

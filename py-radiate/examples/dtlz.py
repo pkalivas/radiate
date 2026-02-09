@@ -40,11 +40,12 @@ def dtlz_1(val: np.ndarray) -> np.ndarray:
 
 
 engine = rd.GeneticEngine(
-    codec=rd.FloatCodec(variables, (0.0, 1.0), use_numpy=True),
+    codec=rd.FloatCodec(variables, use_numpy=True),
     fitness_func=dtlz_1,
-    offspring_selector=rd.TournamentSelector(k=8),
-    survivor_selector=rd.NSGA2Selector(),
+    offspring_selector=rd.TournamentSelector(k=5),
+    survivor_selector=rd.NSGA3Selector(points=12),
     objective=["min" for _ in range(objectives)],
+    front_range=(100, 150),
     alters=[
         rd.SimulatedBinaryCrossover(1.0, 2.0),
         rd.UniformMutator(0.1),
@@ -52,7 +53,7 @@ engine = rd.GeneticEngine(
 )
 
 result = engine.run(rd.GenerationsLimit(2000), ui=True)
-print(result)
+print(result.metrics().dashboard())
 
 front = result.front()
 

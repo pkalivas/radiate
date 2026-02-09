@@ -1,8 +1,8 @@
 use crate::{AnyChromosome, PyChromosome, PyGeneType};
 use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
-    BitChromosome, CharChromosome, Chromosome, FloatChromosome, Genotype, GraphChromosome,
-    IntChromosome, Op, PermutationChromosome, TreeChromosome,
+    BitChromosome, CharChromosome, Chromosome, DataType, FloatChromosome, Genotype,
+    GraphChromosome, IntChromosome, Op, PermutationChromosome, TreeChromosome,
 };
 
 #[pyclass(from_py_object)]
@@ -64,6 +64,14 @@ impl PyGenotype {
             PyGeneType::Empty
         } else {
             self.chromosomes[0].gene_type()
+        }
+    }
+
+    pub fn dtype(&self) -> String {
+        if self.chromosomes.is_empty() {
+            DataType::Null.to_string()
+        } else {
+            self.chromosomes[0].dtype()
         }
     }
 }

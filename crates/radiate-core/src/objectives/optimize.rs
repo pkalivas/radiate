@@ -135,6 +135,16 @@ impl Default for Objective {
     }
 }
 
+impl From<Vec<Optimize>> for Objective {
+    fn from(opts: Vec<Optimize>) -> Self {
+        if opts.len() == 1 {
+            Objective::Single(opts[0])
+        } else {
+            Objective::Multi(opts)
+        }
+    }
+}
+
 impl From<Vec<&str>> for Objective {
     fn from(values: Vec<&str>) -> Self {
         let opts: Vec<Optimize> = values.into_iter().map(|s| Optimize::from(s)).collect();

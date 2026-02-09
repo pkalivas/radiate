@@ -361,7 +361,7 @@ impl PyGeneration {
         };
 
         Ok(format!(
-            "(\n\tindex={},\n\tscore={},\n\t{},\n\t{},\n\tvalue={})",
+            "(\n\tindex={},\n\tscore={},\n\tdtype={},\n\t{},\n\tvalue={})",
             index,
             score,
             dtype,
@@ -414,18 +414,14 @@ where
         for member in front.values().iter() {
             let temp = PyGenotype::from(member.genotype().clone());
 
-            let fitness = member
-                .score()
-                .map(|inner| inner.iter().cloned().collect::<Vec<_>>());
-
             front_objs.push(super::front::PyFrontValue {
                 genotype: temp,
-                score: fitness,
+                score: member.score().cloned(),
             });
         }
     }
 
-    Ok(PyFront::new(front_objs))
+    Ok(PyFront::new(front_objs, generation.objective().clone()))
 }
 
 fn get_value<'py, C>(

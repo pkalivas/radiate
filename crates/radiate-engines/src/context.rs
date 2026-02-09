@@ -1,7 +1,8 @@
 use crate::builder::EngineConfig;
 use crate::{Chromosome, EngineControl};
+use radiate_core::error::RadiateResult;
 use radiate_core::{
-    Ecosystem, Front, MetricSet, Objective, Phenotype, Problem, Score, metric_names,
+    Ecosystem, Front, MetricSet, Objective, Phenotype, Problem, RadiateError, Score, metric_names,
 };
 use std::sync::{Arc, RwLock};
 
@@ -18,26 +19,33 @@ pub struct Context<C: Chromosome, T> {
 }
 
 impl<C: Chromosome, T> Context<C, T> {
-    pub fn try_advance_one(&mut self) -> bool {
+    pub fn try_advance_one(&mut self) -> RadiateResult<bool> {
         self.index += 1;
         let best = self.ecosystem.get_phenotype(0);
         if let Some(best) = best {
             if let (Some(score), Some(current)) = (best.score(), &self.score) {
+                if !self.objective.validate(score) {
+                    return Err(RadiateError::Fitness(format!(
+                        "Score {:?} has invalid dimensions for the objective {:?}.",
+                        score, self.objective
+                    )));
+                }
+
                 if self.objective.is_better(score, current) {
                     self.metrics
                         .upsert((metric_names::BEST_SCORE_IMPROVEMENT, 1));
                     self.score = Some(score.clone());
                     self.best = self.problem.decode(best.genotype());
-                    return true;
+                    return Ok(true);
                 }
             } else {
                 self.score = best.score().cloned();
                 self.best = self.problem.decode(best.genotype());
-                return true;
+                return Ok(true);
             }
         }
 
-        false
+        Ok(false)
     }
 
     pub fn get_or_create_control(&mut self) -> EngineControl {

@@ -168,7 +168,7 @@ where
 
         self.bus.publish(EngineMessage::EpochStart(&self.context));
         self.pipeline.run(&mut self.context)?;
-        if self.context.try_advance_one() {
+        if self.context.try_advance_one()? {
             self.bus.publish(EngineMessage::Improvement(&self.context));
         }
 

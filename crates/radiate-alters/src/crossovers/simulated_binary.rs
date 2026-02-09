@@ -3,6 +3,8 @@ use radiate_core::{
 };
 use radiate_utils::Float;
 
+const NAME: &str = "sbx_crossover";
+
 pub struct SimulatedBinaryCrossover {
     crossover_rate: Rate,
     contiguty: f32,
@@ -26,6 +28,10 @@ where
     F: Float,
     C: Chromosome<Gene = FloatGene<F>>,
 {
+    fn name(&self) -> String {
+        NAME.to_string()
+    }
+
     fn rate(&self) -> Rate {
         self.crossover_rate.clone()
     }
@@ -57,9 +63,9 @@ where
                     let v2 = two_slice[i].allele().clone();
 
                     let v = if rand.bool(0.5) {
-                        (v1 - v2) * F::HALF - (beta * F::HALF * (v1 - v2).abs())
+                        ((v1 - v2) * F::HALF) - (beta * F::HALF * (v1 - v2).abs())
                     } else {
-                        (v1 - v2) * F::HALF + (beta * F::HALF * (v1 - v2).abs())
+                        ((v1 - v2) * F::HALF) + (beta * F::HALF * (v1 - v2).abs())
                     };
 
                     let (one_min, one_max) = one_slice[i].bounds();

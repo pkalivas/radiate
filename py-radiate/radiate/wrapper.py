@@ -46,6 +46,14 @@ class PyObject[T](ABC):
     def __hash__(self) -> int:
         """Hash based on the inner object."""
         return hash(self.__backend__())
+    
+    def try_invalidate_cache(self, key: str) -> None:
+        """
+        Invalidate a cached value by key.
+        :param key: The cache key to invalidate.
+        """
+        if key in self._cache:
+            del self._cache[key]
 
     def try_get_cache(self, key: str, acquire_fn: callable) -> Any:
         """

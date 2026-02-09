@@ -4,8 +4,32 @@ use crate::{Factory, GraphChromosome, NodeStore, NodeType, TreeChromosome};
 use radiate_core::{AlterResult, Metric, Mutate, Rate, Valid, metric};
 use radiate_core::{Chromosome, random_provider};
 
-const MUT_CONST_OP_MUTATED: &str = "op_mut_const";
-const FALLBACK_OP_MUTATED: &str = "op_new_inst";
+const OP_MUTATED: &str = "op_mutate";
+const OP_NEW_INSTANCE: &str = "op_new";
+
+#[derive(Default)]
+struct OpMutateMetrics {
+    op_mutate: usize,
+    op_new_instance: usize,
+}
+
+impl OpMutateMetrics {
+    fn entries(&self) -> Vec<Metric> {
+        let mut result = Vec::with_capacity(2);
+        if self.op_mutate > 0 {
+            result.push(metric!(OP_MUTATED.into(), self.op_mutate));
+        }
+        if self.op_new_instance > 0 {
+            result.push(metric!(OP_NEW_INSTANCE.into(), self.op_new_instance));
+        }
+
+        result
+    }
+
+    fn len(&self) -> usize {
+        self.op_mutate + self.op_new_instance
+    }
+}
 
 pub struct OperationMutator {
     rate: Rate,
@@ -31,17 +55,15 @@ impl OperationMutator {
         &self,
         node: &mut impl Node<Value = Op<T>>,
         store: &NodeStore<Op<T>>,
-        _rate: f32,
-    ) -> Vec<Metric>
-    where
+        metrics: &mut OpMutateMetrics,
+    ) where
         T: Clone + PartialEq + Default,
     {
-        let mut result = Vec::new();
         match node.value() {
             Op::Value { .. } => {
                 if let Some(new_op) = self.mutate_value_op(node) {
                     node.set_value(new_op);
-                    result.push(metric!(MUT_CONST_OP_MUTATED, 1));
+                    metrics.op_mutate += 1;
                 }
             }
             _ => {
@@ -50,12 +72,10 @@ impl OperationMutator {
                     .then_some(new_op)
                     .map(|op| {
                         node.set_value(op);
-                        result.push(metric!(FALLBACK_OP_MUTATED, 1));
+                        metrics.op_new_instance += 1;
                     });
             }
         }
-
-        result
     }
 
     #[inline]
@@ -97,7 +117,10 @@ where
         let mutation_indexes = random_provider::cond_indices(0..chromosome.len(), rate);
         let store = chromosome.store().map(|store| store.clone());
 
-        let mut metrics = Vec::new();
+        let mut metrics = OpMutateMetrics {
+            op_mutate: 0,
+            op_new_instance: 0,
+        };
         for i in mutation_indexes.iter() {
             let node = chromosome.get_mut(*i);
 
@@ -106,11 +129,11 @@ where
             }
 
             if let Some(store) = store.as_ref() {
-                metrics.extend(self.mutate_node(node, store, rate));
+                self.mutate_node(node, store, &mut metrics);
             }
         }
 
-        AlterResult::from((mutation_indexes.len(), metrics))
+        AlterResult::from((mutation_indexes.len(), metrics.entries()))
     }
 }
 
@@ -125,17 +148,17 @@ where
     #[inline]
     fn mutate_chromosome(&self, chromosome: &mut TreeChromosome<Op<T>>, rate: f32) -> AlterResult {
         let store = chromosome.get_store().map(|store| store.clone());
-        let mut metrics = Vec::new();
+        let mut metrics = OpMutateMetrics::default();
         if let Some(store) = store {
             let root = chromosome.root_mut();
 
             for idx in random_provider::cond_indices(0..root.size(), rate) {
                 if let Some(node) = root.get_mut(idx) {
-                    metrics.extend(self.mutate_node(node, &store, rate));
+                    self.mutate_node(node, &store, &mut metrics);
                 }
             }
 
-            return AlterResult::from((metrics.len(), metrics));
+            return AlterResult::from((metrics.len(), metrics.entries()));
         }
 
         AlterResult::empty()

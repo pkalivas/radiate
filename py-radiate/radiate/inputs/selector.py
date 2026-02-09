@@ -218,3 +218,17 @@ class TournamentNSGA2Selector(SelectorBase):
         :param k: Tournament size.
         """
         super().__init__(component="TournamentNSGA2Selector", args={"k": k})
+
+    
+class NSGA3Selector(SelectorBase):
+    def __init__(self, points: int = 12):
+        """
+        The `NSGA3Selector` is a selection strategy used in multi-objective optimization problems, based on the NSGA-III algorithm. It extends the NSGA-II algorithm by introducing reference points to guide the selection process towards a well-distributed set of solutions across the Pareto front.
+
+        * Individuals are first sorted into Pareto fronts based on their dominance relationships.
+        * Reference points are generated in the objective space to represent desired trade-offs between objectives.
+        * Individuals are selected based on their proximity to these reference points, ensuring a diverse set of solutions across the Pareto front.
+
+        :param points: The number of reference points to use for guiding the selection process.
+        """
+        super().__init__(component="NSGA3Selector", args={"points": points})

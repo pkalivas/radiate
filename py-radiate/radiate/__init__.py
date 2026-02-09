@@ -31,7 +31,7 @@ from .genome import (
     AnyGene,
 )
 from .handlers import EventHandler, EventType, EngineEvent
-from .gp import Op, Graph, Tree, calc_accuracy
+from .gp import Op, Graph, Tree, accuracy
 from .metrics import MetricSet, Metric, Tag
 
 from .inputs.executor import Executor
@@ -46,6 +46,7 @@ from .inputs.selector import (
     LinearRankSelector,
     NSGA2Selector,
     TournamentNSGA2Selector,
+    NSGA3Selector
 )
 
 from .inputs.alterer import (
@@ -80,7 +81,13 @@ from .inputs.distance import (
     CosineDistance,
 )
 
-from .inputs.limit import SecondsLimit, GenerationsLimit, ScoreLimit, ConvergenceLimit
+from .inputs.limit import (
+    SecondsLimit,
+    GenerationsLimit,
+    ScoreLimit,
+    ConvergenceLimit,
+    MetricLimit,
+)
 
 from .inputs.rate import Rate
 from .inputs import rate
@@ -148,7 +155,7 @@ __all__ = [
     "Tree",
     "Graph",
     "Op",
-    "calc_accuracy",
+    "accuracy",
     # Handlers
     "EventHandler",
     "EventType",
@@ -186,6 +193,7 @@ __all__ = [
     "GenerationsLimit",
     "ScoreLimit",
     "ConvergenceLimit",
+    "MetricLimit",
     # Problem
     "Regression",
     "NoveltySearch",
@@ -202,6 +210,7 @@ __all__ = [
     "LinearRankSelector",
     "NSGA2Selector",
     "TournamentNSGA2Selector",
+    "NSGA3Selector",
     # Diversity Measures
     "NeatDistance",
     "CosineDistance",

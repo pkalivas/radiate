@@ -131,7 +131,7 @@ def char(length: int, char_set: set[str] | None = None) -> Chromosome[str]:
 
 
 def float(
-    length: int,
+    length: int = 1,
     init_range: tuple[float, float] | None = None,
     bounds: tuple[float, float] | None = None,
     genes: Iterable[Gene[float]] | Gene[float] | None = None,

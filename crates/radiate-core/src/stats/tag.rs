@@ -102,10 +102,11 @@ pub enum TagKind {
     Distribution,
     Score,
     Rate,
+    Step,
 }
 
 impl TagKind {
-    pub const COUNT: usize = 14;
+    pub const COUNT: usize = 16;
     #[inline]
     pub fn from_index(idx: u8) -> Option<Self> {
         use TagKind::*;
@@ -125,6 +126,7 @@ impl TagKind {
             12 => Distribution,
             13 => Score,
             14 => Rate,
+            15 => Step,
             _ => return None,
         })
     }
@@ -153,6 +155,7 @@ impl TagKind {
             Distribution => "Distribution",
             Score => "Score",
             Rate => "Rate",
+            Step => "Step",
         }
     }
 }
@@ -188,6 +191,7 @@ impl From<String> for TagKind {
             metric_tags::DISTRIBUTION => Distribution,
             metric_tags::SCORE => Score,
             metric_tags::RATE => Rate,
+            metric_tags::STEP => Step,
             _ => Other,
         }
     }

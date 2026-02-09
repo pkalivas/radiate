@@ -4,7 +4,7 @@ from radiate.wrapper import PyObject
 from radiate.radiate import py_accuracy, PyAccuracy
 
 
-class Accuracy(PyObject[PyAccuracy]):
+class AccuracyResult(PyObject[PyAccuracy]):
     def __repr__(self) -> str:
         return self.__backend__().__repr__()
 
@@ -42,13 +42,13 @@ class Accuracy(PyObject[PyAccuracy]):
         return self.__backend__().loss_fn()
 
 
-def calc_accuracy(
+def accuracy(
     predictor: Graph | Tree,
     features: list[list[float]],
     targets: list[list[float]],
     loss: str | None = None,
     name: str | None = None,
-) -> Accuracy:
+) -> AccuracyResult:
     """
     Calculate the accuracy of a predictor (Graph or Tree) against given features and targets.
 
@@ -60,7 +60,7 @@ def calc_accuracy(
         name (str | None): An optional name for the accuracy metric. Defaults to None.
 
     Returns:
-        Accuracy: The calculated accuracy result.
+        AccuracyResult: The calculated accuracy result.
     """
     if not isinstance(predictor, (Graph, Tree)):
         raise TypeError(
@@ -75,4 +75,4 @@ def calc_accuracy(
         name=name,
     )
 
-    return Accuracy.from_rust(accuracy_result)
+    return AccuracyResult.from_rust(accuracy_result)

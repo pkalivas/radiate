@@ -91,6 +91,10 @@ impl PyEngineInput {
         })
     }
 
+    pub fn get(&self, key: &str) -> Option<&PyAnyObject> {
+        self.args.get(key)
+    }
+
     pub fn get_rate(&self) -> Option<Rate> {
         self.rate.clone().map(|r| r.rate)
     }

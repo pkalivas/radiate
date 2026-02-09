@@ -69,6 +69,8 @@ pub mod metric_tags {
     pub const SCORE: &str = "score";
 
     pub const RATE: &str = "rate";
+
+    pub const STEP: &str = "step";
 }
 
 const RULES: &[(&str, &[TagKind])] = &[
@@ -87,6 +89,7 @@ const RULES: &[(&str, &[TagKind])] = &[
     (metric_tags::OTHER, &[TagKind::Other]),
     (metric_tags::SCORE, &[TagKind::Score]),
     (metric_tags::RATE, &[TagKind::Rate]),
+    (metric_tags::STEP, &[TagKind::Step]),
 ];
 
 pub fn default_tags(name: &str) -> Tag {
@@ -132,6 +135,10 @@ pub fn default_tags(name: &str) -> Tag {
 
         metric_names::SCORES => {
             mask.insert(TagKind::Score);
+        }
+
+        x if x.contains(metric_tags::STEP) => {
+            mask.insert(TagKind::Step);
         }
 
         _ => {}

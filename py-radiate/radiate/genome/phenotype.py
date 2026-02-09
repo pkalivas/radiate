@@ -40,6 +40,12 @@ class Phenotype[T](PyObject[PyPhenotype]):
         :return: Length of the phenotype.
         """
         return len(self._pyobj.genotype)
+    
+    def __hash__(self):
+        res = hash(self.id())
+        for score in self.score():
+            res ^= hash(score)
+        return res
 
     def gene_type(self) -> "GeneType":
         """
@@ -49,6 +55,13 @@ class Phenotype[T](PyObject[PyPhenotype]):
         from . import GeneType
 
         return GeneType.from_str(self._pyobj.genotype.gene_type())
+    
+    def id(self) -> int:
+        """
+        Returns the unique identifier of the phenotype.
+        :return: The unique identifier of the phenotype.
+        """
+        return self.__backend__().id
 
     def score(self) -> list[float]:
         """

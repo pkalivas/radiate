@@ -55,6 +55,14 @@ impl PyChromosome {
             self.genes[0].gene_type()
         }
     }
+
+    pub fn dtype(&self) -> String {
+        if self.genes.is_empty() {
+            DataType::Null.to_string()
+        } else {
+            self.genes[0].dtype()
+        }
+    }
 }
 
 macro_rules! impl_into_py_chromosome {

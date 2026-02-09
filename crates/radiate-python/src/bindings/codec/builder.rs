@@ -111,12 +111,18 @@ impl<T> NumericCodecBuilder<T> {
     }
 
     pub fn init_range(mut self, range: Option<(T, T)>) -> Self {
-        self.init_range = range;
+        if !range.is_none() {
+            self.init_range = range;
+        }
+
         self
     }
 
     pub fn bound_range(mut self, range: Option<(T, T)>) -> Self {
-        self.bound_range = range;
+        if !range.is_none() {
+            self.bound_range = range;
+        }
+
         self
     }
 
@@ -218,25 +224,26 @@ where
                 A::from(rng.0)
                     .zip(A::from(rng.1))
                     .map(|(min, max)| min..max)
-                    .unwrap_or({
-                        self.dtype
-                            .min()
-                            .zip(self.dtype.max())
+            })
+            .flatten()
+            .unwrap_or({
+                self.dtype
+                    .min()
+                    .zip(self.dtype.max())
+                    .map(|(min, max)| {
+                        min.value()
+                            .clone()
+                            .extract::<A>()
+                            .zip(max.value().clone().extract::<A>())
                             .map(|(min, max)| {
-                                min.value()
-                                    .clone()
-                                    .extract::<A>()
-                                    .zip(max.value().clone().extract::<A>())
-                                    .map(|(min, max)| {
-                                        A::from(min).zip(A::from(max)).map(|(min, max)| min..max)
-                                    })
-                                    .unwrap()
+                                A::from(min).zip(A::from(max)).map(|(min, max)| min..max)
                             })
-                            .flatten()
                             .unwrap()
                     })
-            })
-            .unwrap();
+                    .flatten()
+                    .unwrap()
+            });
+
         let bound_range: Range<A> = self
             .bound_range
             .map(|rng| {
