@@ -27,7 +27,7 @@ use radiate_core::diversity::DistanceDiversityAdapter;
 use radiate_core::evaluator::BatchFitnessEvaluator;
 use radiate_core::problem::BatchEngineProblem;
 use radiate_core::{
-    Alterer, Diversity, Ecosystem, Evaluator, Executor, FitnessEvaluator, Genotype, Valid,
+    Alterer, Diversity, Ecosystem, Evaluator, Executor, FitnessEvaluator, Genotype, Lineage, Valid,
 };
 use radiate_core::{RadiateError, ensure, radiate_err};
 #[cfg(feature = "serde")]
@@ -354,6 +354,7 @@ where
                 objective: config.objective(),
                 selector: config.offspring_selector(),
                 alters: config.alters().to_vec(),
+                lineage: config.lineage(),
             },
         };
 
@@ -372,7 +373,10 @@ where
     }
 
     fn build_audit_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
-        Some(Box::new(AuditStep::new(config.objective().clone())))
+        Some(Box::new(AuditStep::new(
+            config.objective().clone(),
+            config.lineage(),
+        )))
     }
 
     fn build_front_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
@@ -473,6 +477,7 @@ pub(crate) struct EngineConfig<C: Chromosome, T: Clone> {
     max_age: usize,
     max_species_age: usize,
     front: Arc<RwLock<Front<Phenotype<C>>>>,
+    lineage: Arc<RwLock<Lineage>>,
     offspring_fraction: f32,
     executor: EvaluationParams<C, T>,
     handlers: Vec<Arc<Mutex<dyn EventHandler<T>>>>,
@@ -522,6 +527,10 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
 
     pub fn front(&self) -> Arc<RwLock<Front<Phenotype<C>>>> {
         Arc::clone(&self.front)
+    }
+
+    pub fn lineage(&self) -> Arc<RwLock<Lineage>> {
+        Arc::clone(&self.lineage)
     }
 
     pub fn evaluator(&self) -> Arc<dyn Evaluator<C, T>> {
@@ -591,6 +600,7 @@ where
             front: Arc::new(RwLock::new(
                 params.optimization_params.front.clone().unwrap(),
             )),
+            lineage: Arc::new(RwLock::new(Lineage::default())),
             offspring_fraction: params.selection_params.offspring_fraction,
             evaluator: params.evaluation_params.evaluator.clone(),
             executor: params.evaluation_params.clone(),

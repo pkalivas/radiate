@@ -16,8 +16,8 @@ mod subscriber;
 
 pub use builder::*;
 pub use codec::{
-    PyAnyCodec, PyBitCodec, PyCharCodec, PyCodec, PyFloatCodec, PyGraphCodec, PyIntCodec,
-    PyPermutationCodec, PyTreeCodec,
+    PyBitCodec, PyCharCodec, PyCodec, PyFloatCodec, PyGraphCodec, PyIntCodec, PyPermutationCodec,
+    PyTreeCodec,
 };
 pub use converters::InputTransform;
 pub use dtype::{_get_dtype_max, _get_dtype_min, dtype_from_str};
@@ -34,7 +34,7 @@ use pyo3::{Py, Python, sync::PyOnceLock, types::PyModule};
 pub use rate::PyRate;
 pub use subscriber::{PyEngineEvent, PySubscriber};
 
-use crate::{AnyChromosome, PyAnyObject};
+use crate::PyAnyObject;
 use radiate::{
     BitChromosome, CharChromosome, FloatChromosome, Generation, GeneticEngine,
     GeneticEngineBuilder, Graph, GraphChromosome, IntChromosome, Op, PermutationChromosome, Tree,
@@ -67,7 +67,6 @@ pub enum EngineBuilderHandle {
     Char(CustomBuilder<CharChromosome, PyAnyObject>),
     Bit(CustomBuilder<BitChromosome, PyAnyObject>),
     Permutation(CustomBuilder<PermutationChromosome<usize>, PyAnyObject>),
-    Any(CustomBuilder<AnyChromosome, PyAnyObject>),
     Graph(RegressionBuilder<GraphChromosome<Op<f32>>, Graph<Op<f32>>>),
     Tree(RegressionBuilder<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>),
 }
@@ -88,7 +87,6 @@ pub enum EngineHandle {
 
     Char(CustomEngine<CharChromosome>),
     Bit(CustomEngine<BitChromosome>),
-    Any(CustomEngine<AnyChromosome>),
     Permutation(CustomEngine<PermutationChromosome<usize>>),
     Graph(RegressionEngine<GraphChromosome<Op<f32>>, Graph<Op<f32>>>),
     Tree(RegressionEngine<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>),
@@ -111,7 +109,6 @@ pub enum EpochHandle {
 
     Char(Generation<CharChromosome, PyAnyObject>),
     Bit(Generation<BitChromosome, PyAnyObject>),
-    Any(Generation<AnyChromosome, PyAnyObject>),
     Permutation(Generation<PermutationChromosome<usize>, PyAnyObject>),
     Graph(Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>),
     Tree(Generation<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>),

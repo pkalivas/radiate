@@ -13,7 +13,7 @@ from .codec import (
     GraphCodec,
     TreeCodec,
     PermutationCodec,
-    AnyCodec,
+
 )
 from .random import RandomProvider as random
 from .front import Front
@@ -28,7 +28,6 @@ from .genome import (
     Ecosystem,
     Phenotype,
     Gene,
-    AnyGene,
 )
 from .handlers import EventHandler, EventType, EngineEvent
 from .gp import Op, Graph, Tree, accuracy
@@ -142,12 +141,10 @@ __all__ = [
     "BitCodec",
     "GraphCodec",
     "TreeCodec",
-    "AnyCodec",
     # Genome and Population
     "gene",
     "chromosome",
     "Gene",
-    "AnyGene",
     "Chromosome",
     "Genotype",
     "Phenotype",

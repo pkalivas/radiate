@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from .gene import (
     Gene,
-    AnyGene,
 )
 
 from .chromosome import Chromosome
@@ -25,7 +24,6 @@ class GeneType(Enum):
     PERMUTATION = "PermutationGene"
     GRAPH = "GraphNode"
     TREE = "TreeNode"
-    ANY = "AnyGene"
 
     @staticmethod
     def all() -> set[GeneType]:
@@ -37,7 +35,7 @@ class GeneType(Enum):
             GeneType.PERMUTATION,
             GeneType.GRAPH,
             GeneType.TREE,
-            GeneType.ANY,
+         
         }
 
     @staticmethod
@@ -68,8 +66,6 @@ class GeneType(Enum):
                 return GeneType.GRAPH
             case "treenode":
                 return GeneType.TREE
-            case "anygene":
-                return GeneType.ANY
             case _:
                 raise ValueError(f"Invalid gene type: {gene_type}")
 
@@ -83,7 +79,6 @@ GENE_TYPE_MAPPING = {
         gt.GraphNode: GeneType.GRAPH,
         gt.TreeNode: GeneType.TREE,
         gt.Permutation: GeneType.PERMUTATION,
-        gt.AnyGene: GeneType.ANY,
     },
     "rs": {
         GeneType.FLOAT: gt.Float,
@@ -93,7 +88,6 @@ GENE_TYPE_MAPPING = {
         GeneType.GRAPH: gt.GraphNode,
         GeneType.TREE: gt.TreeNode,
         GeneType.PERMUTATION: gt.Permutation,
-        GeneType.ANY: gt.AnyGene,
     },
 }
 
@@ -106,7 +100,6 @@ __all__ = [
     "Phenotype",
     "Population",
     "Species",
-    "AnyGene",
     "Ecosystem",
     "GENE_TYPE_MAPPING",
 ]

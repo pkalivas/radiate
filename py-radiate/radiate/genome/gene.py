@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from radiate.radiate import PyGene
 from radiate.wrapper import RsObject
@@ -36,66 +36,6 @@ class Gene[T](RsObject[PyGene]):
         :return: The allele of the gene, which can be a float, int, bool, str, or None.
         """
         return self.try_get_cache("allele_value", lambda: self.__backend__().allele())
-
-
-class AnyGene(Gene[dict[str, Any]]):
-    @staticmethod
-    def from_json(json_str: str) -> "AnyGene":
-        """
-        Deserialize a JSON string to an AnyGene object.
-        :param json_str: The JSON string representation of the AnyGene.
-        :return: An AnyGene object.
-        """
-
-        import json
-
-        re_initializing = json.loads(json_str)
-        class_name = re_initializing.get("__class__")
-        if class_name:
-            module_name, _, class_name = class_name.rpartition(".")
-            module = __import__(module_name, fromlist=[class_name])
-            cls = getattr(module, class_name)
-            re_initializing = cls.__factory__()  # type: ignore
-            re_initializing.__dict__.update(json.loads(json_str))
-            return re_initializing
-        else:
-            raise ValueError(
-                "JSON string does not contain '__class__' information for deserialization."
-            )
-
-    def __backend__(self) -> PyGene:
-        if "_pyobj" not in self.__dict__:
-            properties = self.__dict__
-            metadata = {
-                "__class__": f"{self.__class__.__module__}.{self.__class__.__qualname__}"
-            }
-
-            self._pyobj = PyGene.any(
-                allele=properties,
-                metadata=metadata,
-                factory=lambda: self.__class__.__factory__().__dict__,
-            )
-
-        return self._pyobj
-
-    def allele(self) -> dict[str, Any]:
-        return self.__dict__
-
-    def to_json(self) -> str:
-        """
-        Serialize the gene to a JSON string.
-        :return: A JSON string representation of the gene.
-        """
-        import json
-
-        temp = json.dumps(
-            self.allele()
-            | {
-                "__class__": f"{self.__class__.__module__}.{self.__class__.__qualname__}"
-            }
-        )
-
-        return temp
 
 
 def float(

@@ -1,6 +1,4 @@
-use crate::{
-    AnyChromosome, InputTransform, PyEngineInput, PyEngineInputType, PyGeneType, PyPopulation,
-};
+use crate::{InputTransform, PyEngineInput, PyEngineInputType, PyGeneType, PyPopulation};
 use pyo3::{PyResult, pyfunction};
 use radiate::prelude::*;
 
@@ -95,12 +93,7 @@ pub fn py_select(
 
             Ok(selector.select(&population, &obj, count)).map(|pop| PyPopulation::from(&pop))
         }
-        PyGeneType::AnyGene => {
-            let selector: Box<dyn Select<AnyChromosome>> = selector.transform();
-            let population: Population<AnyChromosome> = population.into();
 
-            Ok(selector.select(&population, &obj, count)).map(|pop| PyPopulation::from(&pop))
-        }
         _ => Err(pyo3::exceptions::PyValueError::new_err(format!(
             "Gene type {:?} not supported for selection",
             gene_type

@@ -9,7 +9,13 @@ use crate::PyPopulation;
 use crate::PySpecies;
 use crate::bindings::gp::{PyGraph, PyTree};
 use numpy::PyArray1;
-use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
+use pyo3::Bound;
+use pyo3::IntoPyObjectExt;
+use pyo3::PyAny;
+use pyo3::PyResult;
+use pyo3::Python;
+use pyo3::pyclass;
+use pyo3::pymethods;
 use radiate::Generation;
 use radiate::prelude::*;
 use std::time::Duration;
@@ -56,7 +62,6 @@ impl PyGeneration {
             Float64(epoch) => epoch.index(),
             Char(epoch) => epoch.index(),
             Bit(epoch) => epoch.index(),
-            Any(epoch) => epoch.index(),
             Graph(epoch) => epoch.index(),
             Tree(epoch) => epoch.index(),
             Permutation(epoch) => epoch.index(),
@@ -78,7 +83,6 @@ impl PyGeneration {
             Float64(epoch) => Some(epoch.score()),
             Char(epoch) => Some(epoch.score()),
             Bit(epoch) => Some(epoch.score()),
-            Any(epoch) => Some(epoch.score()),
             Graph(epoch) => Some(epoch.score()),
             Tree(epoch) => Some(epoch.score()),
             Permutation(epoch) => Some(epoch.score()),
@@ -107,7 +111,6 @@ impl PyGeneration {
             Float64(epoch) => get_value(py, epoch),
             Char(epoch) => get_value(py, epoch),
             Bit(epoch) => get_value(py, epoch),
-            Any(epoch) => get_value(py, epoch),
             Permutation(epoch) => get_value(py, epoch),
             Graph(epoch) => PyGraph {
                 inner: epoch.value().clone(),
@@ -136,7 +139,6 @@ impl PyGeneration {
             Float64(epoch) => get_front(epoch),
             Char(epoch) => get_front(epoch),
             Bit(epoch) => get_front(epoch),
-            Any(epoch) => get_front(epoch),
             Permutation(epoch) => get_front(epoch),
             Graph(epoch) => get_front(epoch),
             Tree(epoch) => get_front(epoch),
@@ -158,7 +160,6 @@ impl PyGeneration {
             Float64(epoch) => epoch.metrics(),
             Char(epoch) => epoch.metrics(),
             Bit(epoch) => epoch.metrics(),
-            Any(epoch) => epoch.metrics(),
             Permutation(epoch) => epoch.metrics(),
             Graph(epoch) => epoch.metrics(),
             Tree(epoch) => epoch.metrics(),
@@ -182,7 +183,6 @@ impl PyGeneration {
             Float64(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
             Char(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
             Bit(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
-            Any(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
             Permutation(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
             Graph(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
             Tree(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
@@ -228,9 +228,6 @@ impl PyGeneration {
             Bit(epoch) => epoch
                 .species()
                 .map(|s| s.iter().cloned().map(PySpecies::from).collect()),
-            Any(epoch) => epoch
-                .species()
-                .map(|s| s.iter().cloned().map(PySpecies::from).collect()),
             Permutation(epoch) => epoch
                 .species()
                 .map(|s| s.iter().cloned().map(PySpecies::from).collect()),
@@ -258,7 +255,6 @@ impl PyGeneration {
             Float64(epoch) => PyPopulation::from(epoch.population()),
             Char(epoch) => PyPopulation::from(epoch.population()),
             Bit(epoch) => PyPopulation::from(epoch.population()),
-            Any(epoch) => PyPopulation::from(epoch.population()),
             Permutation(epoch) => PyPopulation::from(epoch.population()),
             Graph(epoch) => PyPopulation::from(epoch.population()),
             Tree(epoch) => PyPopulation::from(epoch.population()),
@@ -280,7 +276,6 @@ impl PyGeneration {
             Float64(epoch) => epoch.time(),
             Char(epoch) => epoch.time(),
             Bit(epoch) => epoch.time(),
-            Any(epoch) => epoch.time(),
             Permutation(epoch) => epoch.time(),
             Graph(epoch) => epoch.time(),
             Tree(epoch) => epoch.time(),
@@ -302,7 +297,6 @@ impl PyGeneration {
             Float64(epoch) => epoch.objective(),
             Char(epoch) => epoch.objective(),
             Bit(epoch) => epoch.objective(),
-            Any(epoch) => epoch.objective(),
             Permutation(epoch) => epoch.objective(),
             Graph(epoch) => epoch.objective(),
             Tree(epoch) => epoch.objective(),
@@ -338,7 +332,6 @@ impl PyGeneration {
             Float64(epoch) => (epoch.objective(), epoch.index()),
             Char(epoch) => (epoch.objective(), epoch.index()),
             Bit(epoch) => (epoch.objective(), epoch.index()),
-            Any(epoch) => (epoch.objective(), epoch.index()),
             Permutation(epoch) => (epoch.objective(), epoch.index()),
             Graph(epoch) => (epoch.objective(), epoch.index()),
             Tree(epoch) => (epoch.objective(), epoch.index()),

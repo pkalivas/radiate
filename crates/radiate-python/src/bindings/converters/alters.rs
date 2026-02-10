@@ -1,4 +1,4 @@
-use crate::{AnyChromosome, InputTransform, PyEngineInput, PyEngineInputType};
+use crate::{InputTransform, PyEngineInput, PyEngineInputType};
 use pyo3::{PyResult, exceptions::PyTypeError};
 use radiate::{chromosomes::NumericAllele, *};
 use radiate_utils::{Float, Integer};
@@ -49,7 +49,6 @@ impl_input_transform_for!(BitChromosome, bit_alterers);
 impl_input_transform_for!(PermutationChromosome<usize>, perm_alterers);
 impl_input_transform_for!(GraphChromosome<Op<f32>>, graph_alterers);
 impl_input_transform_for!(TreeChromosome<Op<f32>>, tree_alterers);
-impl_input_transform_for!(AnyChromosome, any_alterers);
 
 impl<C> InputTransform<Vec<Alterer<C>>> for &[PyEngineInput]
 where
@@ -192,22 +191,6 @@ fn tree_alterers() -> HashMap<&'static str, AlterConv<TreeChromosome<Op<f32>>>> 
 
         crate::names::HOIST_MUTATOR         => convert_hoist_mutator,
         crate::names::OPERATION_MUTATOR     => convert_operation_mutator,
-    }
-}
-
-// ANY (generic bag of common alterers exposed for AnyChromosome)
-fn any_alterers() -> HashMap<&'static str, AlterConv<AnyChromosome>> {
-    table! {
-        crate::names::MULTI_POINT_CROSSOVER   => convert_multi_point_crossover,
-        crate::names::UNIFORM_CROSSOVER       => convert_uniform_crossover,
-        crate::names::SHUFFLE_CROSSOVER       => convert_shuffle_crossover,
-        crate::names::MEAN_CROSSOVER          => convert_mean_crossover,
-
-        crate::names::SWAP_MUTATOR            => convert_swap_mutator,
-        crate::names::SCRAMBLE_MUTATOR        => convert_scramble_mutator,
-        crate::names::UNIFORM_MUTATOR         => convert_uniform_mutator,
-        crate::names::INVERSION_MUTATOR       => convert_inversion_mutator,
-        crate::names::ARITHMETIC_MUTATOR      => convert_arithmetic_mutator,
     }
 }
 

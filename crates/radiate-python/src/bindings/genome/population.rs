@@ -1,4 +1,4 @@
-use crate::{AnyChromosome, PyGeneType, PyGenotype, PyPhenotype, Wrap};
+use crate::{PyGeneType, PyGenotype, PyPhenotype, Wrap};
 use pyo3::{Bound, IntoPyObject, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
     BitChromosome, CharChromosome, Chromosome, DataType, FloatChromosome, GraphChromosome,
@@ -127,4 +127,3 @@ impl_into_py_population!(CharChromosome);
 impl_into_py_population!(GraphChromosome<Op<f32>>);
 impl_into_py_population!(TreeChromosome<Op<f32>>);
 impl_into_py_population!(PermutationChromosome<usize>);
-impl_into_py_population!(AnyChromosome);

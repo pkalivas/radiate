@@ -1,13 +1,12 @@
-use crate::{AnyGene, AnyValue, PyGeneType, Wrap, bindings::dtype};
-use pyo3::{Bound, IntoPyObject, IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
+use crate::{PyGeneType, Wrap, bindings::dtype};
+use pyo3::{Bound, IntoPyObject, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
-    BitGene, CharGene, DataType, Field, FloatGene, Gene, GraphNode, IntGene, Op, PermutationGene,
+    BitGene, CharGene, DataType, FloatGene, Gene, GraphNode, IntGene, Op, PermutationGene,
     TreeNode, dtype_names, random_provider,
 };
 use radiate_error::radiate_py_bail;
 use radiate_utils::{Float, Integer};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 enum GeneInner {
@@ -32,8 +31,6 @@ enum GeneInner {
 
     GraphNode(GraphNode<Op<f32>>),
     TreeNode(TreeNode<Op<f32>>),
-
-    AnyGene(AnyGene),
 }
 
 #[pyclass(from_py_object)]
@@ -65,7 +62,6 @@ impl PyGene {
             GeneInner::Char(gene) => format!("{:?}", gene),
             GeneInner::GraphNode(gene) => format!("{:?}", gene),
             GeneInner::TreeNode(gene) => format!("{:?}", gene),
-            GeneInner::AnyGene(gene) => format!("{:?}", gene),
             GeneInner::Permutation(gene) => format!("{:?}", gene),
         }
     }
@@ -100,7 +96,6 @@ impl PyGene {
             GeneInner::GraphNode(_) => PyGeneType::GraphNode,
             GeneInner::TreeNode(_) => PyGeneType::TreeNode,
             GeneInner::Permutation(_) => PyGeneType::Permutation,
-            GeneInner::AnyGene(_) => PyGeneType::AnyGene,
         }
     }
 
@@ -123,14 +118,9 @@ impl PyGene {
 
             GeneInner::Bit(_) => Wrap(DataType::Boolean).into_pyobject(py),
             GeneInner::Char(_) => Wrap(DataType::Char).into_pyobject(py),
-            GeneInner::GraphNode(_) => Wrap(DataType::Struct(vec![Field::from((
-                "Op",
-                DataType::Float32,
-            ))]))
-            .into_pyobject(py),
-            GeneInner::TreeNode(_) => Wrap(DataType::Float32).into_pyobject(py),
+            GeneInner::GraphNode(_) => Wrap(DataType::Struct(vec![])).into_pyobject(py),
+            GeneInner::TreeNode(_) => Wrap(DataType::Struct(vec![])).into_pyobject(py),
             GeneInner::Permutation(_) => Wrap(DataType::UInt64).into_pyobject(py),
-            GeneInner::AnyGene(gene) => Wrap(gene.allele().dtype()).into_pyobject(py),
         }
     }
 
@@ -156,7 +146,6 @@ impl PyGene {
             GeneInner::GraphNode(gene) => gene.allele().name().into_bound_py_any(py),
             GeneInner::TreeNode(gene) => gene.allele().name().into_bound_py_any(py),
             GeneInner::Permutation(gene) => gene.allele().into_bound_py_any(py),
-            GeneInner::AnyGene(gene) => Wrap(gene.allele()).into_bound_py_any(py),
         }
     }
 
@@ -281,30 +270,6 @@ impl PyGene {
             }),
         }
     }
-
-    #[staticmethod]
-    #[pyo3(signature = (allele, metadata, factory))]
-    pub fn any(
-        allele: Wrap<AnyValue<'_>>,
-        metadata: HashMap<String, String>,
-        factory: Py<PyAny>,
-    ) -> PyGene {
-        let fact = move || {
-            Python::attach(|py| {
-                let obj = factory.call0(py).unwrap();
-                let gene = obj.extract::<Wrap<AnyValue<'_>>>(py).unwrap();
-                gene.0.into_static()
-            })
-        };
-
-        PyGene {
-            inner: GeneInner::AnyGene(
-                AnyGene::new(allele.0.into_static())
-                    .with_metadata(metadata)
-                    .with_factory(fact),
-            ),
-        }
-    }
 }
 
 macro_rules! impl_into_py_gene {
@@ -348,4 +313,3 @@ impl_into_py_gene!(CharGene, Char);
 impl_into_py_gene!(GraphNode<Op<f32>>, GraphNode);
 impl_into_py_gene!(TreeNode<Op<f32>>, TreeNode);
 impl_into_py_gene!(PermutationGene<usize>, Permutation);
-impl_into_py_gene!(AnyGene, AnyGene);

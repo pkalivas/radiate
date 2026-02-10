@@ -41,7 +41,6 @@ macro_rules! dispatch_builder_typed {
             Char(b) => $call(b).map(Char),
             Bit(b) => $call(b).map(Bit),
             Permutation(b) => $call(b).map(Permutation),
-            Any(b) => $call(b).map(Any),
             Graph(b) => $call(b).map(Graph),
             Tree(b) => $call(b).map(Tree),
             Empty => Err(radiate_py_err!("Cannot apply method to Empty builder"))
@@ -96,7 +95,6 @@ impl PyEngineBuilder {
             Float64(builder) => EngineHandle::Float64(builder.try_build()?),
             Char(builder) => EngineHandle::Char(builder.try_build()?),
             Bit(builder) => EngineHandle::Bit(builder.try_build()?),
-            Any(builder) => EngineHandle::Any(builder.try_build()?),
             Permutation(builder) => EngineHandle::Permutation(builder.try_build()?),
             Graph(builder) => EngineHandle::Graph(builder.try_build()?),
             Tree(builder) => EngineHandle::Tree(builder.try_build()?),
@@ -463,8 +461,6 @@ impl PyEngineBuilder {
             Char(Self::new_builder(fitness, char_codec.codec, executor))
         } else if let Ok(bit_codec) = codec.extract::<PyBitCodec>() {
             Bit(Self::new_builder(fitness, bit_codec.codec, executor))
-        } else if let Ok(any_codec) = codec.extract::<PyAnyCodec>() {
-            Any(Self::new_builder(fitness, any_codec.codec, executor))
         } else if let Ok(perm_codec) = codec.extract::<PyPermutationCodec>() {
             Permutation(Self::new_builder(fitness, perm_codec.codec, executor))
         } else if let Ok(graph_codec) = codec.extract::<PyGraphCodec>() {
@@ -564,8 +560,6 @@ impl PyEngineBuilder {
             Char(Self::new_builder(fitness, char_codec.codec, executor))
         } else if let Ok(bit_codec) = codec.extract::<PyBitCodec>() {
             Bit(Self::new_builder(fitness, bit_codec.codec, executor))
-        } else if let Ok(any_codec) = codec.extract::<PyAnyCodec>() {
-            Any(Self::new_builder(fitness, any_codec.codec, executor))
         } else if let Ok(permutation_codec) = codec.extract::<PyPermutationCodec>() {
             Permutation(Self::new_builder(
                 fitness,

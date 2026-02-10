@@ -72,6 +72,10 @@ impl<T> WindowBuffer<T> {
     pub fn iter(&self) -> impl Iterator<Item = &T> {
         self.values().iter()
     }
+
+    pub fn as_slice(&self) -> &[T] {
+        self.values()
+    }
 }
 
 impl<T: Clone> Clone for WindowBuffer<T> {

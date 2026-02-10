@@ -1,11 +1,11 @@
 use pyo3::prelude::*;
 use radiate_python::{
-    _get_dtype_max, _get_dtype_min, PyAccuracy, PyAnyCodec, PyBitCodec, PyCharCodec, PyChromosome,
-    PyEcosystem, PyEngine, PyEngineBuilder, PyEngineEvent, PyEngineInput, PyEngineInputType,
-    PyEngineRunOption, PyFitnessFn, PyFloatCodec, PyFront, PyFrontValue, PyGene, PyGeneType,
-    PyGeneration, PyGenotype, PyGraph, PyGraphCodec, PyIntCodec, PyMetric, PyMetricSet,
-    PyPermutationCodec, PyPhenotype, PyPopulation, PyRandomProvider, PyRate, PySpecies,
-    PySubscriber, PyTree, PyTreeCodec, py_accuracy, py_alter, py_select,
+    _get_dtype_max, _get_dtype_min, PyAccuracy, PyBitCodec, PyCharCodec, PyChromosome, PyEcosystem,
+    PyEngine, PyEngineBuilder, PyEngineEvent, PyEngineInput, PyEngineInputType, PyEngineRunOption,
+    PyFitnessFn, PyFloatCodec, PyFront, PyFrontValue, PyGene, PyGeneType, PyGeneration, PyGenotype,
+    PyGraph, PyGraphCodec, PyIntCodec, PyMetric, PyMetricSet, PyPermutationCodec, PyPhenotype,
+    PyPopulation, PyRandomProvider, PyRate, PySpecies, PySubscriber, PyTree, PyTreeCodec,
+    py_accuracy, py_alter, py_select,
 };
 
 #[pymodule(gil_used = false)]
@@ -40,7 +40,6 @@ fn radiate(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyGraphCodec>()?;
     m.add_class::<PyTreeCodec>()?;
     m.add_class::<PyPermutationCodec>()?;
-    m.add_class::<PyAnyCodec>()?;
 
     m.add_class::<PySubscriber>()?;
     m.add_class::<PyEngineEvent>()?;

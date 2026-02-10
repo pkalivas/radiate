@@ -2,7 +2,8 @@ use crate::builder::EngineConfig;
 use crate::{Chromosome, EngineControl};
 use radiate_core::error::RadiateResult;
 use radiate_core::{
-    Ecosystem, Front, MetricSet, Objective, Phenotype, Problem, RadiateError, Score, metric_names,
+    Ecosystem, Front, Lineage, MetricSet, Objective, Phenotype, Problem, RadiateError, Score,
+    metric_names,
 };
 use std::sync::{Arc, RwLock};
 
@@ -13,6 +14,7 @@ pub struct Context<C: Chromosome, T> {
     pub(crate) metrics: MetricSet,
     pub(crate) score: Option<Score>,
     pub(crate) front: Arc<RwLock<Front<Phenotype<C>>>>,
+    pub(crate) lineage: Arc<RwLock<Lineage>>,
     pub(crate) objective: Objective,
     pub(crate) problem: Arc<dyn Problem<C, T>>,
     pub(crate) control: Option<EngineControl>,
@@ -21,6 +23,8 @@ pub struct Context<C: Chromosome, T> {
 impl<C: Chromosome, T> Context<C, T> {
     pub fn try_advance_one(&mut self) -> RadiateResult<bool> {
         self.index += 1;
+        self.lineage.write().unwrap().rollover();
+
         let best = self.ecosystem.get_phenotype(0);
         if let Some(best) = best {
             if let (Some(score), Some(current)) = (best.score(), &self.score) {
@@ -73,6 +77,7 @@ where
                 metrics: generation.metrics().clone(),
                 score: Some(generation.score().clone()),
                 front: config.front(),
+                lineage: config.lineage(),
                 objective: config.objective().clone(),
                 problem: config.problem().clone(),
                 control: None,
@@ -91,6 +96,7 @@ where
             metrics: MetricSet::default(),
             score: None,
             front: config.front(),
+            lineage: config.lineage(),
             objective: config.objective().clone(),
             problem: config.problem().clone(),
             control: None,

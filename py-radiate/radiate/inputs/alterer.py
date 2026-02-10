@@ -127,7 +127,7 @@ class MeanCrossover(AlterBase):
         super().__init__(
             component="MeanCrossover",
             rate=rate,
-            allowed_genes={GeneType.FLOAT, GeneType.INT, GeneType.ANY},
+            allowed_genes={GeneType.FLOAT, GeneType.INT},
         )
 
 
@@ -255,7 +255,7 @@ class ArithmeticMutator(AlterBase):
         super().__init__(
             component="ArithmeticMutator",
             rate=rate,
-            allowed_genes={GeneType.FLOAT, GeneType.INT, GeneType.ANY},
+            allowed_genes={GeneType.FLOAT, GeneType.INT},
         )
 
 

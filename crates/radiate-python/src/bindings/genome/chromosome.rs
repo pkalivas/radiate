@@ -1,4 +1,4 @@
-use crate::{AnyChromosome, AnyGene, PyGene, PyGeneType, Wrap};
+use crate::{PyGene, PyGeneType, Wrap};
 use pyo3::{
     Bound, IntoPyObject, PyAny, PyResult, Python, exceptions::PyIndexError, pyclass, pymethods,
 };
@@ -113,4 +113,3 @@ impl_into_py_chromosome!(CharChromosome, CharGene);
 impl_into_py_chromosome!(GraphChromosome<Op<f32>>, GraphNode<Op<f32>>);
 impl_into_py_chromosome!(TreeChromosome<Op<f32>>, TreeNode<Op<f32>>);
 impl_into_py_chromosome!(PermutationChromosome<usize>, PermutationGene<usize>);
-impl_into_py_chromosome!(AnyChromosome, AnyGene);

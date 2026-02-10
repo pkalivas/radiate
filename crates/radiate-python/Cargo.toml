@@ -5,14 +5,11 @@ edition = { workspace = true }
 authors = { workspace = true }
 
 [dependencies]
-pyo3 = { workspace = true, features = ["multiple-pymethods", "abi3-py39", "chrono", "chrono-tz"] }
+pyo3 = { workspace = true, features = ["multiple-pymethods", "abi3-py39"] }
 serde = { workspace = true, features = ["derive"] }
 numpy = { workspace = true }
-chrono = { workspace = true }
-chrono-tz = { workspace = true }
 compact_str = { workspace = true }
 serde_json = { workspace = true }
-regex = { workspace = true }
 num-traits = { workspace = true }
 radiate-error = { workspace = true, features = ["python"] }
 radiate-utils = { workspace = true, features = ["serde"] }

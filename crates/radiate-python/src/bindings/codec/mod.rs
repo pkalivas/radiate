@@ -1,4 +1,3 @@
-mod any;
 mod bit;
 mod builder;
 mod char;
@@ -10,7 +9,6 @@ mod tree;
 
 use std::sync::Arc;
 
-pub use any::PyAnyCodec;
 pub use bit::PyBitCodec;
 pub use builder::{NumericCodecBuilder, TypedNumericCodec};
 pub use char::PyCharCodec;
