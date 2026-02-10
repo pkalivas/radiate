@@ -1,4 +1,4 @@
-use crate::{Integer, primitives::Primitive};
+use crate::primitives::Primitive;
 
 pub trait Float: Primitive + num_traits::Float {
     const MIN: Self;

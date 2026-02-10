@@ -14,8 +14,6 @@ from .codec import (
     TreeCodec,
     PermutationCodec,
     AnyCodec,
-    FieldCodec,
-    FieldSpec,
 )
 from .random import RandomProvider as random
 from .front import Front
@@ -114,7 +112,7 @@ from .dtype import (
     List,
     Field,
     String,
-    Null
+    Null,
 )
 
 from .dependancies import (
@@ -137,8 +135,6 @@ __all__ = [
     # Random
     "random",
     # Codecs
-    "FieldCodec",
-    "FieldSpec",
     "PermutationCodec",
     "FloatCodec",
     "IntCodec",

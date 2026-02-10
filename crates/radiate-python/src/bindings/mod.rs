@@ -16,8 +16,8 @@ mod subscriber;
 
 pub use builder::*;
 pub use codec::{
-    PyAnyCodec, PyBitCodec, PyCharCodec, PyCodec, PyFieldCodec, PyFieldSpec, PyFloatCodec,
-    PyGraphCodec, PyIntCodec, PyPermutationCodec, PyTreeCodec,
+    PyAnyCodec, PyBitCodec, PyCharCodec, PyCodec, PyFloatCodec, PyGraphCodec, PyIntCodec,
+    PyPermutationCodec, PyTreeCodec,
 };
 pub use converters::InputTransform;
 pub use dtype::{_get_dtype_max, _get_dtype_min, dtype_from_str};

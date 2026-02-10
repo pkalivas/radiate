@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from radiate.radiate import _get_dtype_max, _get_dtype_min
 from inspect import isclass
 from typing import Iterator

@@ -6,7 +6,6 @@ mod float;
 mod graph;
 mod int;
 mod permutation;
-mod temp;
 mod tree;
 
 use std::sync::Arc;
@@ -20,7 +19,6 @@ pub use graph::PyGraphCodec;
 pub use int::PyIntCodec;
 pub use permutation::PyPermutationCodec;
 use radiate_error::radiate_py_bail;
-pub use temp::{PyFieldCodec, PyFieldSpec};
 pub use tree::PyTreeCodec;
 
 use numpy::{Element, PyArray, PyArray1, PyArrayMethods};

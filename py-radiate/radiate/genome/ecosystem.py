@@ -4,7 +4,6 @@ from radiate.genome.population import Population
 from radiate.genome.species import Species
 from radiate.wrapper import RsObject
 from radiate.radiate import PyEcosystem
-from radiate._typing import RdDataType
 
 
 class Ecosystem[T](RsObject[PyEcosystem]):

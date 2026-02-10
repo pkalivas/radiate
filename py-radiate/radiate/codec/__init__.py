@@ -6,7 +6,7 @@ from .base import CodecBase
 from .graph import GraphCodec
 from .tree import TreeCodec
 from .permutation import PermutationCodec
-from .any import AnyCodec, FieldCodec, FieldSpec
+from .any import AnyCodec
 
 __all__ = [
     "FloatCodec",
@@ -18,6 +18,4 @@ __all__ = [
     "CodecBase",
     "PermutationCodec",
     "AnyCodec",
-    "FieldCodec",
-    "FieldSpec",
 ]
