@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, overload
-from dataclasses import dataclass, field
+from typing import Any, Callable
 
 from ._typing import (
     Subscriber,
@@ -12,6 +11,7 @@ from ._typing import (
     StringDecoding,
     NodeValues,
 )
+
 from .builder import EngineBuilder, EngineConfig
 from .generation import Generation
 from .codec import (
@@ -30,16 +30,15 @@ from .inputs.selector import SelectorBase, TournamentSelector, RouletteSelector
 from .inputs.alterer import AlterBase
 from .inputs.distance import DistanceBase
 from .inputs.executor import Executor
-from .fitness import FitnessBase
+from .fitness import FitnessBase, Regression
 from .inputs.limit import LimitBase
 from .option import EngineCheckpoint, EngineLog, EngineUi
 from .gp import Graph, Tree, Op
-
 from .genome.population import Population
 from .genome import GeneType
 from .genome.gene import Gene
 
-from .dtype import Float64, Int64, String, Boolean
+from .dtype import Float64, Int64
 
 
 class Engine[G, T]:
@@ -64,40 +63,6 @@ class Engine[G, T]:
     ):
         cfg = EngineConfig(codec=codec, fitness_func=fitness_func, **kwargs)
         self._builder = EngineBuilder.from_config(cfg)
-
-    @classmethod
-    def from_config(cls, cfg: EngineConfig[G, T]) -> "Engine[G, T]":
-        cfg = cfg.normalize()
-
-        gene_type = getattr(cfg.codec, "gene_type", None)
-        if gene_type is None:
-            raise TypeError(f"Codec {type(cfg.codec).__name__} must define gene_type.")
-
-        inst = cls.__new__(cls)
-        inst.gene_type = gene_type
-        inst._builder = (
-            EngineBuilder._default(gene_type)
-            .set_codec(cfg.codec)
-            .set_fitness(cfg.fitness_func)
-        )
-
-        # “apply” section stays short and predictable
-        inst._builder.set_population(cfg.population)
-        inst._builder.set_survivor_selector(cfg.survivor_selector)
-        inst._builder.set_offspring_selector(cfg.offspring_selector)
-        inst._builder.set_alters(cfg.alters)
-        inst._builder.set_diversity(cfg.diversity, cfg.species_threshold)
-        inst._builder.set_population_size(cfg.population_size)
-        inst._builder.set_offspring_fraction(cfg.offspring_fraction)
-        inst._builder.set_max_age(cfg.max_phenotype_age)
-        inst._builder.set_max_species_age(cfg.max_species_age)
-        inst._builder.set_objective(cfg.objective)
-        inst._builder.set_front_range(*cfg.front_range)
-        inst._builder.set_executor(cfg.executor)
-        inst._builder.set_subscribers(cfg.subscribe)
-        inst._builder.set_generation(cfg.generation)
-        inst._builder.set_checkpoint_path(cfg.checkpoint_path)
-        return inst
 
     @classmethod
     def float(
@@ -316,6 +281,35 @@ class Engine[G, T]:
         self._builder.set_fitness(fitness_func)
         return self
 
+    def regression(
+        self,
+        features: Any,
+        targets: Any | None = None,
+        *,
+        target: str | None = None,
+        feature_cols: list[str] | None = None,
+        loss: str = "mse",
+    ) -> Engine[G, T]:
+        """
+        Configure regression fitness.
+
+        Accepts:
+        - (features, targets)
+        - a DataFrame (polars / pandas)
+        """
+        from ._normalize import _normalize_regression_data
+
+        X, y = _normalize_regression_data(
+            features,
+            targets,
+            feature_cols=feature_cols,
+            target_col=target,
+        )
+
+        self._builder.set_fitness(Regression(X, y, loss))
+        self._builder.set_objective("min")
+        return self
+
     def select(
         self,
         offspring: SelectorBase | None = None,
@@ -346,8 +340,13 @@ class Engine[G, T]:
         """Set the diversity strategy for the engine."""
         self._builder.set_diversity(diversity, species_threshold)
         return self
+    
+    def limit(self, *limits: LimitBase) -> Engine[G, T]:
+        """Set the limits for the engine."""
+        self._builder.set_limits(limits)
+        return self
 
-    def population_size(self, size: int) -> Engine[G, T]:
+    def size(self, size: int) -> Engine[G, T]:
         """Set the population size.
         Args:
             size (int): The size of the population.
@@ -356,11 +355,16 @@ class Engine[G, T]:
 
         Example:
         ---------
-        >>> engine.population_size(200)
+        >>> engine.size(200)
         """
         if size <= 0:
             raise ValueError("Population size must be greater than 0.")
         self._builder.set_population_size(size)
+        return self
+
+    def population(self, population: Population[G]) -> Engine[G, T]:
+        """Set the initial population for the engine."""
+        self._builder.set_population(population)
         return self
 
     def minimizing(self) -> Engine[G, T]:
@@ -441,4 +445,3 @@ class Engine[G, T]:
         """
         self._builder.set_generation(generation)
         return self
-

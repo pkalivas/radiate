@@ -1,5 +1,4 @@
 from .base import FitnessBase
-
 from radiate.radiate import PyFitnessFn
 
 

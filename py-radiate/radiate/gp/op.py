@@ -14,38 +14,65 @@ class OpsConfig:
     vertex: NodeValues | None = None
     edge: NodeValues | None = None
     output: NodeValues | None = None
+    leaf: NodeValues | None = None
+    root: NodeValues | None = None
     values: Mapping[str, Sequence[Op]] | None = None
 
-    def build_ops_map(self, input_size: int) -> dict[str, list[Op]]:
-        base = {"input": [Op.var(i) for i in range(input_size)]}
-
-        if self.values is not None:
-            # if it's mapping, just merge
-            merged = dict(self.values)
-            result = merged | base
-            {
-                node_type: [op.__backend__() for op in ops]
-                for node_type, ops in result.items()
+    def build_ops_map(
+        self, input_size: int, fill_invalid: bool = False
+    ) -> dict[str, list[Op]]:
+        def inner():
+            base = {"input": [Op.var(i) for i in range(input_size)]} | {
+                "leaf": [Op.var(i) for i in range(input_size)]
             }
 
-        ops_map = dict(base)
-        if self.vertex is not None:
-            ops_map["vertex"] = (
-                [self.vertex] if isinstance(self.vertex, Op) else list(self.vertex)
-            )
-        if self.edge is not None:
-            ops_map["edge"] = (
-                [self.edge] if isinstance(self.edge, Op) else list(self.edge)
-            )
-        if self.output is not None:
-            ops_map["output"] = (
-                [self.output] if isinstance(self.output, Op) else list(self.output)
-            )
+            if self.values is not None:
+                # if it's mapping, just merge
+                merged = dict(self.values)
+                result = merged | base
+                {
+                    node_type: [op.__backend__() for op in ops]
+                    for node_type, ops in result.items()
+                }
 
-        return {
-            node_type: [op.__backend__() for op in ops]
-            for node_type, ops in ops_map.items()
-        }
+            ops_map = dict(base)
+            if self.vertex is not None:
+                ops_map["vertex"] = (
+                    [self.vertex] if isinstance(self.vertex, Op) else list(self.vertex)
+                )
+            if self.edge is not None:
+                ops_map["edge"] = (
+                    [self.edge] if isinstance(self.edge, Op) else list(self.edge)
+                )
+            if self.output is not None:
+                ops_map["output"] = (
+                    [self.output] if isinstance(self.output, Op) else list(self.output)
+                )
+            if self.leaf is not None:
+                ops_map["leaf"] = (
+                    [self.leaf] if isinstance(self.leaf, Op) else list(self.leaf)
+                )
+            if self.root is not None:
+                ops_map["root"] = (
+                    [self.root] if isinstance(self.root, Op) else list(self.root)
+                )
+
+            return {
+                node_type: [op.__backend__() for op in ops]
+                for node_type, ops in ops_map.items()
+            }
+
+        ops_map = inner()
+
+        if fill_invalid:
+            if "vertex" not in ops_map:
+                ops_map["vertex"] = [op.__backend__() for op in Op.default_vertex_ops()]
+            if "edge" not in ops_map:
+                ops_map["edge"] = [op.__backend__() for op in Op.default_edge_ops()]
+            if "output" not in ops_map:
+                ops_map["output"] = [Op.linear().__backend__()]
+
+        return ops_map
 
 
 class Op(RsObject[PyOp]):
@@ -180,6 +207,24 @@ class Op(RsObject[PyOp]):
     @classmethod
     def softplus(cls) -> Op:
         return cls.from_rust(_create_op("softplus"))
+
+    @staticmethod
+    def default_vertex_ops() -> list[Op]:
+        return [
+            Op.add(),
+            Op.sub(),
+            Op.mul(),
+            Op.div(),
+            Op.sin(),
+            Op.cos(),
+            Op.tanh(),
+            Op.relu(),
+            Op.linear(),
+        ]
+
+    @staticmethod
+    def default_edge_ops() -> list[Op]:
+        return [Op.weight()]
 
     @staticmethod
     def all_ops() -> list[Op]:

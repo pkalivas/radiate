@@ -1,7 +1,6 @@
-use crate::{PyGenotype, PyOp, bindings::gp::PyGraph, object::Wrap};
-use pyo3::{Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
+use crate::{PyGenotype, PyOp, bindings::gp::PyGraph};
+use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{Codec, Genotype, GraphChromosome, GraphCodec, NodeType, Op};
-use radiate_error::radiate_py_bail;
 use std::collections::HashMap;
 
 const INPUT_NODE_TYPE: &str = "input";
@@ -39,7 +38,6 @@ impl PyGraphCodec {
     #[new]
     #[pyo3(signature = (graph_type=None, input_size=1, output_size=1, ops=None, max_nodes=None))]
     pub fn new<'py>(
-        py: Python<'py>,
         graph_type: Option<&'py str>,
         input_size: usize,
         output_size: usize,
@@ -49,14 +47,6 @@ impl PyGraphCodec {
         let mut values = Vec::new();
         if let Some(ops) = &ops {
             for (key, value) in ops.iter() {
-                // let ops_converted = value
-                //     .iter()
-                //     .map(|op| {
-                //         let wrap: Wrap<Op<f32>> = op.extract(py).unwrap();
-                //         wrap.0
-                //     })
-                //     .collect::<Vec<Op<f32>>>();
-
                 if key == INPUT_NODE_TYPE {
                     values.push((
                         NodeType::Input,
@@ -77,10 +67,6 @@ impl PyGraphCodec {
                         NodeType::Edge,
                         value.iter().map(|op| op.0.clone()).collect(),
                     ));
-                } else {
-                    radiate_py_bail!(
-                        "Invalid node type key: {} - valid keys are: input, output, vertex, edge",
-                    );
                 }
             }
         }

@@ -279,7 +279,7 @@ class List(NestedType):
     def __repr__(self) -> str:
         class_name = self.__class__.__name__
         return f"{class_name}({self.inner!r})"
-    
+
     def __str__(self) -> str:
         class_name = self.__class__.__name__
         return f"{class_name}({self.inner})"
@@ -313,9 +313,9 @@ class Node(NestedType):
 
     def __eq__(self, other: DataTypeClass | DataType) -> bool:  # type: ignore[override]
         # allow comparing object instances to class
-        if type(other) is DataTypeClass and issubclass(other, List):
+        if type(other) is DataTypeClass and issubclass(other, Node):
             return True
-        elif isinstance(other, List):
+        elif isinstance(other, Node):
             return self.inner == other.inner
         else:
             return False
@@ -323,10 +323,10 @@ class Node(NestedType):
     def __hash__(self) -> int:
         return hash((self.__class__, self.inner))
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> str:  
         class_name = self.__class__.__name__
         return f"{class_name}({self.inner!r})"
-    
+
     def __str__(self) -> str:
         class_name = self.__class__.__name__
         return f"{class_name}({self.inner})"

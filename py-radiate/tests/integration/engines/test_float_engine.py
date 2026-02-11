@@ -11,14 +11,13 @@ def test_engine_float_vector_maximization(random_seed):
     def fitness_func(x: list[float]) -> float:
         return sum(xi**2 for xi in x)
 
-    engine = rd.Engine(
-        codec=rd.FloatCodec.vector(length=3, init_range=(-1.0, 1.0)),
-        fitness_func=fitness_func,
-        objective="max",
-        population_size=50,
-        offspring_selector=rd.BoltzmannSelector(4.0),
-        survivor_selector=rd.EliteSelector(),
-        alters=[rd.MeanCrossover(0.7), rd.GaussianMutator(0.1)],
+    engine = (
+        rd.Engine.float(3, (-1.0, 1.0))
+        .fitness(fitness_func)
+        .maximizing()
+        .size(50)
+        .select(rd.Select.boltzmann(4.0), rd.Select.elite())
+        .alters(rd.Cross.uniform(0.7), rd.Mutate.arithmetic(0.01))
     )
 
     result = engine.run([rd.ScoreLimit(2.9), rd.GenerationsLimit(100)])

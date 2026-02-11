@@ -36,12 +36,14 @@ impl PyEngineRunOption {
 #[pyclass(unsendable)]
 pub struct PyEngine {
     engine: Option<EngineHandle>,
+    limits: Vec<Limit>,
 }
 
 impl PyEngine {
-    pub fn new(engine: EngineHandle) -> Self {
+    pub fn new(limits: Vec<Limit>, engine: EngineHandle) -> Self {
         Self {
             engine: Some(engine),
+            limits,
         }
     }
 }
@@ -59,7 +61,12 @@ impl PyEngine {
             .take()
             .ok_or_else(|| radiate_py_err!("Engine has already been run"))?;
 
-        let limits = limits.transform();
+        let limits = self
+            .limits
+            .clone()
+            .into_iter()
+            .chain(limits.into_iter().filter_map(|input| input.transform()))
+            .collect::<Vec<_>>();
 
         if limits.is_empty() {
             radiate_py_bail!("At least one limit must be provided");

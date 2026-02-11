@@ -4,22 +4,21 @@ from collections import defaultdict
 
 from radiate.codec.base import CodecBase
 from radiate.genome.population import Population
-from radiate.genome.gene import Gene
 from radiate.fitness import FitnessBase
 from radiate.handlers import CallableEventHandler, EventHandler
 from radiate.radiate import PyEngine, PyEngineBuilder
 from radiate.generation import Generation
 
+from .inputs.limit import LimitBase
 from .inputs.input import EngineInput, EngineInputType
 from .inputs.selector import SelectorBase, TournamentSelector, RouletteSelector
 from .inputs.alterer import AlterBase
 from .inputs.distance import DistanceBase
 from .inputs.executor import Executor
-from .fitness import CallableFitness, Regression
+from .fitness import CallableFitness
 from .genome import GeneType
 
 from ._typing import Subscriber
-from ._dependancies import _GIL_ENABLED
 
 
 @dataclass(slots=True)
@@ -47,7 +46,6 @@ class EngineConfig[G, T]:
     checkpoint_path: str | None = None
 
     def normalize(self) -> "EngineConfig[G, T]":
-        # defaults / coercions / validation in one place
         if self.fitness_func is None:
             raise ValueError("A fitness function must be provided.")
         if not (0 < self.offspring_fraction <= 1):
@@ -64,8 +62,6 @@ class EngineConfig[G, T]:
 
 
 class EngineBuilder:
-    _inputs_by_type: defaultdict[list[EngineInput]] = defaultdict(list)
-
     @classmethod
     def _default(cls, gene_type: GeneType) -> "EngineBuilder":
         instance = cls.__new__(cls)
@@ -130,21 +126,6 @@ class EngineBuilder:
 
     def build(self) -> PyEngine:
         """Build the PyEngine instance."""
-        # fitness_input = filter(
-        #     lambda inp: inp.input_type == EngineInputType.FitnessFunction, self._inputs
-        # )
-        # executor_input = filter(
-        #     lambda inp: inp.input_type == EngineInputType.Executor, self._inputs
-        # )
-
-        # if not any(fitness_input):
-        #     raise ValueError("Fitness function must be set before building the engine.")
-        # else:
-        #     if isinstance(self.fitness, Regression) and _GIL_ENABLED:
-        #         # Force serial executor for regression tasks to avoid GIL issues
-        #         self.set_executor(Executor.Serial())
-        for inp in self._inputs:
-            print(inp)
         builder = PyEngineBuilder(
             inputs=[self_input.__backend__() for self_input in self._inputs],
         )
@@ -324,6 +305,16 @@ class EngineBuilder:
                 threshold=species_threshold,
             )
         )
+
+    def set_limits(self, limits: list[LimitBase]):
+        for limit in limits:
+            self._inputs.append(
+                EngineInput(
+                    input_type=EngineInputType.Limit,
+                    component=limit.component,
+                    **limit.args,
+                )
+            )
 
     def set_population_size(self, size: int):
         if size <= 0:

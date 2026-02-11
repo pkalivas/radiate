@@ -13,7 +13,6 @@ from .codec import (
     GraphCodec,
     TreeCodec,
     PermutationCodec,
-
 )
 from .random import RandomProvider as random
 from .front import Front
@@ -116,12 +115,17 @@ from .dtype import (
     Node,
 )
 
+from .dsl import Select, Dist, Mutate, Cross, Dist, Limit as lim
+
 from ._dependancies import (
     _GIL_ENABLED,
     _NUMPY_AVAILABLE,
     _PANDAS_AVAILABLE,
     _POLARS_AVAILABLE,
 )
+
+MIN = "min"
+MAX = "max"
 
 
 __all__ = [
@@ -254,4 +258,15 @@ __all__ = [
     "List",
     "Op32",
     "Node",
+    # dsl
+    "Select",
+    "Dist",
+    "Mutate",
+    "Cross",
+    "lim",
+    
+    # constants
+    "MIN",
+    "MAX",
+    # "Limit",
 ]

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import Mapping, Sequence
-from radiate._typing import NodeValues, GraphNodeTypes
+from radiate._typing import NodeValues
 
 from .base import CodecBase
 from ..gp import Op, Graph, OpsConfig
@@ -23,16 +23,13 @@ class GraphCodec(CodecBase[Op, Graph], RsObject[PyGraphCodec]):
         max_nodes: int | None = None,
         graph_type: str = "directed",
     ):
+        input_size, output_size = shape
+        if input_size < 1 or output_size < 1:
+            raise ValueError("Input and output size must be at least 1")
+        
         config = OpsConfig(
             vertex=vertex, edge=edge, output=output, values=values
-        ).build_ops_map(input_size=shape[0])
-
-        for node_type in config.keys():
-            if node_type not in ["input", "vertex", "edge", "output"]:
-                raise ValueError(f"Unknown node type: {node_type}")
-
-        has_vertex = "vertex" in config
-        has_edge = "edge" in config
+        ).build_ops_map(input_size, fill_invalid=True)
 
         if graph_type not in [
             "weighted_directed",
@@ -71,7 +68,15 @@ class GraphCodec(CodecBase[Op, Graph], RsObject[PyGraphCodec]):
         values: dict[str, list[Op]] | list[tuple[str, list[Op]]] | None = None,
         max_nodes: int | None = None,
     ) -> GraphCodec:
-        return GraphCodec()
+        return GraphCodec(
+            shape,
+            vertex,
+            edge,
+            output,
+            values,
+            max_nodes,
+            graph_type="weighted_directed",
+        )
 
     @staticmethod
     def weighted_recurrent(
@@ -82,14 +87,14 @@ class GraphCodec(CodecBase[Op, Graph], RsObject[PyGraphCodec]):
         values: dict[str, list[Op]] | list[tuple[str, list[Op]]] | None = None,
         max_nodes: int | None = None,
     ) -> GraphCodec:
-        return GraphCodec.__build_common(
-            name="weighted_recurrent",
-            shape=shape,
-            vertex=vertex,
-            edge=edge,
-            output=output,
-            values=values,
-            max_nodes=max_nodes,
+        return GraphCodec(
+            shape,
+            vertex,
+            edge,
+            output,
+            values,
+            max_nodes,
+            graph_type="weighted_recurrent",
         )
 
     @staticmethod
@@ -101,14 +106,8 @@ class GraphCodec(CodecBase[Op, Graph], RsObject[PyGraphCodec]):
         values: dict[str, list[Op]] | list[tuple[str, list[Op]]] | None = None,
         max_nodes: int | None = None,
     ) -> GraphCodec:
-        return GraphCodec.__build_common(
-            name="directed",
-            shape=shape,
-            vertex=vertex,
-            edge=edge,
-            output=output,
-            values=values,
-            max_nodes=max_nodes,
+        return GraphCodec(
+            shape, vertex, edge, output, values, max_nodes, graph_type="directed"
         )
 
     @staticmethod
@@ -120,14 +119,8 @@ class GraphCodec(CodecBase[Op, Graph], RsObject[PyGraphCodec]):
         values: dict[str, list[Op]] | list[tuple[str, list[Op]]] | None = None,
         max_nodes: int | None = None,
     ) -> GraphCodec:
-        return GraphCodec.__build_common(
-            name="recurrent",
-            shape=shape,
-            vertex=vertex,
-            edge=edge,
-            output=output,
-            values=values,
-            max_nodes=max_nodes,
+        return GraphCodec(
+            shape, vertex, edge, output, values, max_nodes, graph_type="recurrent"
         )
 
     @staticmethod
@@ -139,14 +132,8 @@ class GraphCodec(CodecBase[Op, Graph], RsObject[PyGraphCodec]):
         values: dict[str, list[Op]] | list[tuple[str, list[Op]]] | None = None,
         max_nodes: int | None = None,
     ) -> GraphCodec:
-        return GraphCodec.__build_common(
-            name="gru",
-            shape=shape,
-            vertex=vertex,
-            edge=edge,
-            output=output,
-            values=values,
-            max_nodes=max_nodes,
+        return GraphCodec(
+            shape, vertex, edge, output, values, max_nodes, graph_type="gru"
         )
 
     @staticmethod
@@ -158,14 +145,8 @@ class GraphCodec(CodecBase[Op, Graph], RsObject[PyGraphCodec]):
         values: dict[str, list[Op]] | list[tuple[str, list[Op]]] | None = None,
         max_nodes: int | None = None,
     ) -> GraphCodec:
-        return GraphCodec.__build_common(
-            name="lstm",
-            shape=shape,
-            vertex=vertex,
-            edge=edge,
-            output=output,
-            values=values,
-            max_nodes=max_nodes,
+        return GraphCodec(
+            shape, vertex, edge, output, values, max_nodes, graph_type="lstm"
         )
 
     @staticmethod

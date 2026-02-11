@@ -1,5 +1,5 @@
 use crate::{
-    PyGeneType, Wrap,
+    PyGeneType, PyOp, Wrap,
     bindings::datatype::{self, DataType, dtype_names},
     dtype,
 };
@@ -151,8 +151,8 @@ impl PyGene {
 
             GeneInner::Bit(gene) => gene.allele().into_bound_py_any(py),
             GeneInner::Char(gene) => gene.allele().into_bound_py_any(py),
-            GeneInner::GraphNode(gene) => gene.allele().name().into_bound_py_any(py),
-            GeneInner::TreeNode(gene) => gene.allele().name().into_bound_py_any(py),
+            GeneInner::GraphNode(gene) => PyOp(gene.allele().clone()).into_bound_py_any(py),
+            GeneInner::TreeNode(gene) => PyOp(gene.allele().clone()).into_bound_py_any(py),
             GeneInner::Permutation(gene) => gene.allele().into_bound_py_any(py),
         }
     }

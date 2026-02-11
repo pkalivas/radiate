@@ -5,11 +5,18 @@ import pytest
 @pytest.mark.integration
 def test_engine_bit_optimization(random_seed):
     """Test engine with bit codec for binary optimization."""
-    engine = rd.Engine(
-        codec=rd.BitCodec(shape=10),
-        fitness_func=lambda x: sum(1 for bit in x if bit),
-        survivor_selector=rd.EliteSelector(),
-        alters=[rd.UniformCrossover(0.7), rd.UniformMutator(0.1)],
+    # engine = rd.Engine(
+    #     codec=rd.BitCodec(shape=10),
+    #     fitness_func=lambda x: sum(1 for bit in x if bit),
+    #     survivor_selector=rd.EliteSelector(),
+    #     alters=[rd.UniformCrossover(0.7), rd.UniformMutator(0.1)],
+    # )
+
+    engine = (
+        rd.Engine.bit(10)
+        .fitness(lambda x: sum(1 for bit in x if bit))  # Maximize number of ones
+        .select(rd.Select.elite())
+        .alters(rd.Cross.uniform(0.7), rd.Mutate.uniform(0.1))
     )
 
     result = engine.run([rd.ScoreLimit(10), rd.GenerationsLimit(100)])
@@ -28,11 +35,11 @@ def test_engine_bit_matrix_optimization(random_seed):
         assert all(len(row) == cols for row in x)
         return sum(1 for row in x for bit in row if bit)
 
-    engine = rd.Engine(
-        codec=rd.BitCodec(shape=(rows, cols)),
-        fitness_func=fitness_func,
-        survivor_selector=rd.EliteSelector(),
-        alters=[rd.UniformCrossover(0.7), rd.UniformMutator(0.1)],
+    engine = (
+        rd.Engine.bit((rows, cols))
+        .fitness(fitness_func)
+        .select(rd.Select.elite())
+        .alters(rd.Cross.uniform(0.7), rd.Mutate.uniform(0.1))
     )
 
     result = engine.run([rd.ScoreLimit(rows * cols), rd.GenerationsLimit(200)])

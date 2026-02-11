@@ -22,17 +22,19 @@ def calc_population_diversity(population: rd.Population) -> float:
 @pytest.mark.integration
 def test_engine_is_novel(random_seed):
     """Test engine with novelty search."""
-    engine = rd.Engine(
-        codec=rd.FloatCodec(6, (-100.0, 100.0)),
-        fitness_func=rd.NoveltySearch(
-            descriptor=lambda x: x,
-            distance=rd.CosineDistance(),
-            k=15,
-            threshold=0.03,
-        ),
-        population_size=100,
-        offspring_selector=rd.TournamentSelector(3),
-        alters=[rd.UniformCrossover(0.5), rd.GaussianMutator(0.1)],
+    engine = (
+        rd.Engine.float(6, (-100.0, 100.0))
+        .fitness(
+            rd.NoveltySearch(
+                descriptor=lambda x: x,
+                distance=rd.CosineDistance(),
+                k=15,
+                threshold=0.03,
+            )
+        )
+        .size(100)
+        .select(rd.Select.tournament(3))
+        .alters(rd.Cross.uniform(0.5), rd.Mutate.gaussian(0.1))
     )
 
     result = engine.run(rd.GenerationsLimit(100))
@@ -53,7 +55,7 @@ def test_int_engine_novelty_with_decorator_creates(random_seed):
 
     engine = (
         rd.Engine(rd.IntCodec(6, (-100, 100)), descriptor)
-        .population_size(100)
+        .size(100)
         .select(offspring=rd.TournamentSelector(3))
         .alters(rd.UniformCrossover(0.5), rd.ArithmeticMutator(0.1))
     )

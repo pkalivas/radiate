@@ -76,26 +76,34 @@ impl PyEngineBuilder {
             inner = Self::process_inputs(inner, *input_type, inputs)?;
         }
 
-        Ok(PyEngine::new(match inner {
-            UInt8(builder) => EngineHandle::UInt8(builder.try_build()?),
-            UInt16(builder) => EngineHandle::UInt16(builder.try_build()?),
-            UInt32(builder) => EngineHandle::UInt32(builder.try_build()?),
-            UInt64(builder) => EngineHandle::UInt64(builder.try_build()?),
-            Int8(builder) => EngineHandle::Int8(builder.try_build()?),
-            Int16(builder) => EngineHandle::Int16(builder.try_build()?),
-            Int32(builder) => EngineHandle::Int32(builder.try_build()?),
-            Int64(builder) => EngineHandle::Int64(builder.try_build()?),
-            Float32(builder) => EngineHandle::Float32(builder.try_build()?),
-            Float64(builder) => EngineHandle::Float64(builder.try_build()?),
-            Char(builder) => EngineHandle::Char(builder.try_build()?),
-            Bit(builder) => EngineHandle::Bit(builder.try_build()?),
-            Permutation(builder) => EngineHandle::Permutation(builder.try_build()?),
-            Graph(builder) => EngineHandle::Graph(builder.try_build()?),
-            Tree(builder) => EngineHandle::Tree(builder.try_build()?),
-            _ => {
-                radiate_py_bail!("Unsupported builder type for engine creation");
-            }
-        }))
+        let limits = input_groups
+            .get(&PyEngineInputType::Limit)
+            .map(|inputs| inputs.transform())
+            .unwrap_or_default();
+
+        Ok(PyEngine::new(
+            limits,
+            match inner {
+                UInt8(builder) => EngineHandle::UInt8(builder.try_build()?),
+                UInt16(builder) => EngineHandle::UInt16(builder.try_build()?),
+                UInt32(builder) => EngineHandle::UInt32(builder.try_build()?),
+                UInt64(builder) => EngineHandle::UInt64(builder.try_build()?),
+                Int8(builder) => EngineHandle::Int8(builder.try_build()?),
+                Int16(builder) => EngineHandle::Int16(builder.try_build()?),
+                Int32(builder) => EngineHandle::Int32(builder.try_build()?),
+                Int64(builder) => EngineHandle::Int64(builder.try_build()?),
+                Float32(builder) => EngineHandle::Float32(builder.try_build()?),
+                Float64(builder) => EngineHandle::Float64(builder.try_build()?),
+                Char(builder) => EngineHandle::Char(builder.try_build()?),
+                Bit(builder) => EngineHandle::Bit(builder.try_build()?),
+                Permutation(builder) => EngineHandle::Permutation(builder.try_build()?),
+                Graph(builder) => EngineHandle::Graph(builder.try_build()?),
+                Tree(builder) => EngineHandle::Tree(builder.try_build()?),
+                _ => {
+                    radiate_py_bail!("Unsupported builder type for engine creation");
+                }
+            },
+        ))
     }
 }
 

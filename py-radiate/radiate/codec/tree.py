@@ -3,7 +3,7 @@ from __future__ import annotations
 from radiate._typing import NodeValues
 
 from .base import CodecBase
-from radiate.gp import Op, Tree
+from radiate.gp import Op, Tree, OpsConfig
 from radiate.wrapper import RsObject
 from radiate.genome import Genotype, GeneType
 from radiate.radiate import PyTreeCodec
@@ -50,22 +50,11 @@ class TreeCodec(CodecBase[Op, Tree], RsObject[PyTreeCodec]):
         if max_size < 1:
             raise ValueError("Maximum size must be at least 1")
 
-        ops_map: dict[str, list[Op]] = {}
-        if leaf is None and values is None:
-            ops_map = {"leaf": [Op.var(i) for i in range(input_size)]}
-        if values is not None:
-            if isinstance(values, list):
-                values = dict(values)
-            ops_map = values | ops_map
-        else:
-            if vertex is not None:
-                ops_map["vertex"] = [vertex] if isinstance(vertex, Op) else vertex
-            if root is not None:
-                ops_map["root"] = [root] if isinstance(root, Op) else root
-            if leaf is not None:
-                ops_map["leaf"] = [leaf] if isinstance(leaf, Op) else leaf
+        ops_config = OpsConfig(
+            vertex=vertex, leaf=leaf, root=root, values=values
+        ).build_ops_map(input_size=input_size, fill_invalid=True)
 
-        self._pyobj = PyTreeCodec(output_size, min_depth, max_size, ops_map)
+        self._pyobj = PyTreeCodec(output_size, min_depth, max_size, ops=ops_config)
 
     def encode(self) -> Genotype[Op]:
         return Genotype.from_rust(self.__backend__().encode_py())

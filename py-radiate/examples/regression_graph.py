@@ -53,6 +53,10 @@ for _ in range(-10, 10):
     inputs.append([input])
     answers.append([compute(input)])
 
+# df = pl.DataFrame({"dd": inputs, "x": answers, "other": [0.42222] * len(inputs)})
+# print("Training Data:")
+# print(df)
+
 engine = (
     rd.Engine.graph(
         shape=(1, 1),
@@ -60,14 +64,14 @@ engine = (
         edge=rd.Op.weight(),
         output=rd.Op.linear(),
     )
-    .fitness(rd.Regression(inputs, answers))
+    .regression(inputs, answers, loss="mse")
     .subscribe(ScorePlotterHandler())
-    .minimizing()
     .alters(
-        rd.GraphCrossover(rd.Rate.fixed(0.05), 0.5),
-        rd.OperationMutator(0.07, 0.05),
-        rd.GraphMutator(0.1, 0.1, False),
+        rd.Cross.graph(rd.Rate.fixed(0.05), 0.5),
+        rd.Mutate.operation(0.07, 0.05),
+        rd.Mutate.graph(0.1, 0.1, False),
     )
+    .limit(rd.lim.score(0.001), rd.lim.generations(1000))
 )
 
 result = engine.run(
@@ -81,3 +85,6 @@ accuracy = rd.accuracy(result.value(), inputs, answers, loss="mse")
 print(result)
 print(result.metrics().dashboard())
 print(accuracy)
+
+
+# .regression(df, target="x", feature_cols=["dd"], loss="mse")
