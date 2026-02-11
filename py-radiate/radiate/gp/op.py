@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Mapping, Sequence, TYPE_CHECKING
-from radiate.wrapper import RsObject
+from radiate._bridge.wrapper import RsObject
 from radiate.radiate import PyOp, _create_op
 
 if TYPE_CHECKING:

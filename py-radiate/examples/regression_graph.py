@@ -67,15 +67,14 @@ engine = (
     .regression(inputs, answers, loss="mse")
     .subscribe(ScorePlotterHandler())
     .alters(
-        rd.Cross.graph(rd.Rate.fixed(0.05), 0.5),
+        rd.Cross.graph(0.05, 0.5),
         rd.Mutate.operation(0.07, 0.05),
         rd.Mutate.graph(0.1, 0.1, False),
     )
-    .limit(rd.lim.score(0.001), rd.lim.generations(1000))
 )
 
 result = engine.run(
-    [rd.ScoreLimit(0.001), rd.GenerationsLimit(1000)],
+    [rd.Limit.score(0.001), rd.Limit.generations(1000)],
     log=True,
 )
 

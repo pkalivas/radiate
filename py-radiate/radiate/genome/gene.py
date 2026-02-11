@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from radiate.radiate import PyGene
-from radiate.wrapper import RsObject
+from radiate._bridge.wrapper import RsObject
 from radiate.dtype import Float64, Int64
 from radiate._typing import RdDataType
 

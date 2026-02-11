@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from radiate.wrapper import RsObject
+from radiate._bridge.wrapper import RsObject
 from .genotype import Genotype
 from radiate.radiate import PyPhenotype
 

@@ -4,7 +4,7 @@ import enum
 from datetime import timedelta
 
 from radiate.radiate import PyMetricSet, PyMetric
-from radiate.wrapper import RsObject
+from radiate._bridge.wrapper import RsObject
 from radiate._dependancies import _PANDAS_AVAILABLE, _POLARS_AVAILABLE
 
 
@@ -26,6 +26,8 @@ class Tag(enum.Enum):
     DISTRIBUTION = "distribution"
     SCORE = "score"
     RATE = "rate"
+    STEP = "step"
+    LINEAGE = "lineage"
 
     def __repr__(self) -> str:
         return f"Tag.{self.name}"
@@ -48,6 +50,8 @@ tag_map = {
         "distribution": Tag.DISTRIBUTION,
         "score": Tag.SCORE,
         "rate": Tag.RATE,
+        "step": Tag.STEP,
+        "lineage": Tag.LINEAGE,
     },
     "rs": {
         Tag.SELECTOR: "selector",
@@ -65,6 +69,8 @@ tag_map = {
         Tag.DISTRIBUTION: "distribution",
         Tag.SCORE: "score",
         Tag.RATE: "rate",
+        Tag.STEP: "step",
+        Tag.LINEAGE: "lineage",
     },
 }
 

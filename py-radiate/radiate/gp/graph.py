@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from radiate.radiate import PyGraph
-from radiate.wrapper import RsObject
+from radiate._bridge.wrapper import RsObject
 
 
 class Graph(RsObject[PyGraph]):

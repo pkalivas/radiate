@@ -5,7 +5,7 @@ from .base import CodecBase
 
 from radiate.radiate import PyBitCodec
 from radiate.genome import Genotype, Gene, Chromosome, GeneType
-from radiate.wrapper import RsObject
+from radiate._bridge.wrapper import RsObject
 
 
 class BitCodec[T](CodecBase[bool, T], RsObject[PyBitCodec]):

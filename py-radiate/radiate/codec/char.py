@@ -6,7 +6,7 @@ from .base import CodecBase
 
 from radiate.radiate import PyCharCodec
 from radiate.genome import Genotype, GeneType
-from radiate.wrapper import RsObject
+from radiate._bridge.wrapper import RsObject
 
 
 class CharCodec[T](CodecBase[str, T], RsObject[PyCharCodec]):

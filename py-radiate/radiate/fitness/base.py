@@ -1,5 +1,5 @@
 from radiate.radiate import PyFitnessFn
-from radiate.wrapper import RsObject
+from radiate._bridge.wrapper import RsObject
 
 
 class FitnessBase[T](RsObject[PyFitnessFn]):

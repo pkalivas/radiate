@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from radiate.genome.population import Population
 from radiate.genome.species import Species
-from radiate.wrapper import RsObject
+from radiate._bridge.wrapper import RsObject
 from radiate.radiate import PyEcosystem
 
 

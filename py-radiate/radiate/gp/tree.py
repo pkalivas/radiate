@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from radiate.radiate import PyTree
-from radiate.wrapper import RsObject
+from radiate._bridge.wrapper import RsObject
 
 
 class Tree(RsObject[PyTree]):

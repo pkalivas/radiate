@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from collections.abc import Iterable
-from radiate.wrapper import RsObject
+from radiate._bridge.wrapper import RsObject
 from radiate.radiate import PyGenotype
 from .chromosome import Chromosome
 

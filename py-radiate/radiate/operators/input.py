@@ -2,8 +2,8 @@ from __future__ import annotations
 from enum import Enum
 
 from radiate.radiate import PyEngineInput, PyEngineInputType, PyRate
-from radiate.wrapper import RsObject
-from radiate.inputs.rate import Rate
+from radiate._bridge.wrapper import RsObject
+from radiate.operators.rate import Rate
 
 from ..genome import (
     GENE_TYPE_MAPPING,

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any, Callable, Literal, TYPE_CHECKING
+from typing import Any, Callable, TYPE_CHECKING
 
 from radiate.gp.op import Op
 
-from .handlers import EventHandler
+from .engine.handlers import EventHandler
 from .dtype import DataType, DataTypeClass
 
 if TYPE_CHECKING:
@@ -21,16 +21,12 @@ type Subscriber = (
     | list[EventHandler]
 )
 
-type IntDecoding = int | list[int] | list[list[int]]
-type FloatDecoding = float | list[float] | list[list[float]]
-type BoolDecoding = bool | list[bool] | list[list[bool]]
+type IntDecoding = int | list[int] | list[list[int]] | "np.ndarray"
+type FloatDecoding = float | list[float] | list[list[float]] | "np.ndarray"
+type BoolDecoding = bool | list[bool] | list[list[bool]] | "np.ndarray"
 type StringDecoding = str | list[str] | list[list[str]]
 
-
 type NodeValues = list[Op] | Op
-type GraphNodeTypes = Literal["input", "vertex", "edge", "output"]
-type TreeNodeTypes = Literal["root", "function", "terminal"]
-
 
 type NodeValues = Op | Sequence[Op]
 type OpsMap = Mapping[str, Sequence[Op]]  # external view

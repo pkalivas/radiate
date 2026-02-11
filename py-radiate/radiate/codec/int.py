@@ -5,7 +5,7 @@ from radiate.genome.gene import Gene
 
 from .base import CodecBase
 from radiate.genome import Genotype, GeneType
-from radiate.wrapper import RsObject
+from radiate._bridge.wrapper import RsObject
 from radiate.radiate import PyIntCodec
 from radiate.dtype import DataType, DataTypeClass, Int64, IntegerType
 

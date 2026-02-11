@@ -4,7 +4,19 @@ except ImportError:
     __version__ = "unknown"
     __version_tuple__ = (0, 0, 0)
 
-from .engine import Engine
+from .engine import (
+    Engine,
+    Generation,
+    Front,
+    FrontValue,
+    EventHandler,
+    EventType,
+    EngineEvent,
+    MetricSet,
+    Metric,
+    Tag,
+)
+
 from .codec import (
     FloatCodec,
     IntCodec,
@@ -14,9 +26,9 @@ from .codec import (
     TreeCodec,
     PermutationCodec,
 )
+
 from .random import RandomProvider as random
-from .front import Front
-from .generation import Generation
+
 from .genome import (
     gene,
     chromosome,
@@ -28,13 +40,12 @@ from .genome import (
     Phenotype,
     Gene,
 )
-from .handlers import EventHandler, EventType, EngineEvent
-from .gp import Op, Graph, Tree, accuracy, OpsConfig, AccuracyResult
-from .metrics import MetricSet, Metric, Tag
 
-from .inputs.executor import Executor
+from .gp import Op, Graph, Tree, accuracy, OpsConfig, AccuracyResult
+
+from .operators.executor import Executor
 from .fitness import Regression, NoveltySearch, BatchFitness, fitness, novelty
-from .inputs.selector import (
+from .operators.selector import (
     TournamentSelector,
     RouletteSelector,
     RankSelector,
@@ -47,7 +58,7 @@ from .inputs.selector import (
     NSGA3Selector,
 )
 
-from .inputs.alterer import (
+from .operators.alterer import (
     BlendCrossover,
     IntermediateCrossover,
     ArithmeticMutator,
@@ -72,14 +83,14 @@ from .inputs.alterer import (
     JitterMutator,
 )
 
-from .inputs.distance import (
+from .operators.distance import (
     HammingDistance,
     EuclideanDistance,
     NeatDistance,
     CosineDistance,
 )
 
-from .inputs.limit import (
+from .operators.limit import (
     SecondsLimit,
     GenerationsLimit,
     ScoreLimit,
@@ -87,10 +98,8 @@ from .inputs.limit import (
     MetricLimit,
 )
 
-from .inputs.rate import Rate
-from .inputs import rate
-
-from .option import EngineLog, EngineCheckpoint, EngineUi
+from .operators.rate import Rate
+from .operators import rate
 
 from .dtype import (
     UInt8,
@@ -115,7 +124,7 @@ from .dtype import (
     Node,
 )
 
-from .dsl import Select, Mutate, Cross, Dist, Limit as lim
+from .dsl import Select, Mutate, Cross, Dist, Limit
 
 from ._dependancies import (
     _GIL_ENABLED,
@@ -263,12 +272,8 @@ __all__ = [
     "Dist",
     "Mutate",
     "Cross",
-    "lim",
-    
+    "Limit",
     # constants
     "MIN",
     "MAX",
-    # "Limit",
 ]
-
-

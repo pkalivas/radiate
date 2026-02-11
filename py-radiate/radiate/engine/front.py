@@ -1,6 +1,6 @@
 from typing import Any
 
-from radiate.wrapper import RsObject
+from radiate._bridge.wrapper import RsObject
 from radiate.radiate import PyFront, PyFrontValue
 from radiate.genome.genotype import Genotype
 from radiate.genome.phenotype import Phenotype

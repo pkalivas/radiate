@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from radiate.wrapper import RsObject
+from radiate._bridge.wrapper import RsObject
 from radiate.radiate import PyEngineRunOption
 
 

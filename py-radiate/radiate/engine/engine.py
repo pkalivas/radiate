@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-from ._typing import (
+from .._typing import (
     Subscriber,
     RdDataType,
     IntDecoding,
@@ -14,7 +14,7 @@ from ._typing import (
 
 from .builder import EngineBuilder, EngineConfig
 from .generation import Generation
-from .codec import (
+from ..codec import (
     CodecBase,
     FloatCodec,
     IntCodec,
@@ -25,20 +25,20 @@ from .codec import (
     PermutationCodec,
 )
 
-from .inputs.input import EngineInput, EngineInputType
-from .inputs.selector import SelectorBase, TournamentSelector, RouletteSelector
-from .inputs.alterer import AlterBase
-from .inputs.distance import DistanceBase
-from .inputs.executor import Executor
-from .fitness import FitnessBase, Regression
-from .inputs.limit import LimitBase
+from ..operators.input import EngineInput, EngineInputType
+from ..operators.selector import SelectorBase
+from ..operators.alterer import AlterBase
+from ..operators.distance import DistanceBase
+from ..operators.executor import Executor
+from ..fitness import FitnessBase, Regression
+from ..operators.limit import LimitBase
 from .option import EngineCheckpoint, EngineLog, EngineUi
-from .gp import Graph, Tree, Op
-from .genome.population import Population
-from .genome import GeneType
-from .genome.gene import Gene
+from ..gp import Graph, Tree, Op
+from ..genome.population import Population
+from ..genome import GeneType
+from ..genome.gene import Gene
 
-from .dtype import Float64, Int64
+from ..dtype import Float64, Int64
 
 
 class Engine[G, T]:
@@ -297,7 +297,7 @@ class Engine[G, T]:
         - (features, targets)
         - a DataFrame (polars / pandas)
         """
-        from ._normalize import _normalize_regression_data
+        from ..utils._normalize import _normalize_regression_data
 
         X, y = _normalize_regression_data(
             features,
@@ -340,7 +340,7 @@ class Engine[G, T]:
         """Set the diversity strategy for the engine."""
         self._builder.set_diversity(diversity, species_threshold)
         return self
-    
+
     def limit(self, *limits: LimitBase) -> Engine[G, T]:
         """Set the limits for the engine."""
         self._builder.set_limits(limits)

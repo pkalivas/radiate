@@ -38,7 +38,7 @@ class RsObject[T](ABC):
         Get the data type of the underlying Rust object, if applicable.
         :return: The data type as a RdDataType.
         """
-        from .dtype import Null
+        from ..dtype import Null
 
         if self._dtype is not None:
             return self._dtype

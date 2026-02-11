@@ -6,7 +6,7 @@ from radiate._typing import NodeValues
 from .base import CodecBase
 from ..gp import Op, Graph, OpsConfig
 from radiate.genome import Genotype, GeneType
-from radiate.wrapper import RsObject
+from radiate._bridge.wrapper import RsObject
 from radiate.radiate import PyGraphCodec
 
 

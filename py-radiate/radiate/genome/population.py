@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from typing import Iterable
 from radiate.radiate import PyPopulation
 from .phenotype import Phenotype
-from ..wrapper import RsObject
+from .._bridge.wrapper import RsObject
 
 if TYPE_CHECKING:
     from radiate.genome.gene import GeneType

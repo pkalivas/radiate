@@ -1,4 +1,4 @@
-from radiate.wrapper import RsObject
+from radiate._bridge.wrapper import RsObject
 from radiate.radiate import PyRate
 
 

@@ -1,24 +1,23 @@
 from typing import Callable, Any
 from dataclasses import dataclass
-from collections import defaultdict
 
 from radiate.codec.base import CodecBase
 from radiate.genome.population import Population
 from radiate.fitness import FitnessBase
-from radiate.handlers import CallableEventHandler, EventHandler
+from radiate.engine.handlers import CallableEventHandler, EventHandler
 from radiate.radiate import PyEngine, PyEngineBuilder
-from radiate.generation import Generation
+from radiate.engine.generation import Generation
 
-from .inputs.limit import LimitBase
-from .inputs.input import EngineInput, EngineInputType
-from .inputs.selector import SelectorBase, TournamentSelector, RouletteSelector
-from .inputs.alterer import AlterBase
-from .inputs.distance import DistanceBase
-from .inputs.executor import Executor
-from .fitness import CallableFitness
-from .genome import GeneType
+from ..operators.limit import LimitBase
+from ..operators.input import EngineInput, EngineInputType
+from ..operators.selector import SelectorBase, TournamentSelector, RouletteSelector
+from ..operators.alterer import AlterBase
+from ..operators.distance import DistanceBase
+from ..operators.executor import Executor
+from ..fitness import CallableFitness
+from ..genome import GeneType
 
-from ._typing import Subscriber
+from .._typing import Subscriber
 
 
 @dataclass(slots=True)

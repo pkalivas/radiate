@@ -3,8 +3,8 @@ from enum import Enum
 from typing import Any, Callable
 
 from radiate.radiate import PySubscriber, PyEngineEvent
-from radiate.wrapper import RsObject
-from radiate.metrics import MetricSet
+from radiate._bridge.wrapper import RsObject
+from radiate.engine.metrics import MetricSet
 
 
 class EventType(Enum):

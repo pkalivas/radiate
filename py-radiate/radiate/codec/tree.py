@@ -4,7 +4,7 @@ from radiate._typing import NodeValues
 
 from .base import CodecBase
 from radiate.gp import Op, Tree, OpsConfig
-from radiate.wrapper import RsObject
+from radiate._bridge.wrapper import RsObject
 from radiate.genome import Genotype, GeneType
 from radiate.radiate import PyTreeCodec
 

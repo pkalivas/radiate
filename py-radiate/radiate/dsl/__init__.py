@@ -1,6 +1,6 @@
 # radiate/api.py (or radiate/dsl.py)
 
-from .inputs.selector import (
+from radiate.operators.selector import (
     TournamentSelector,
     RouletteSelector,
     NSGA2Selector,
@@ -12,7 +12,7 @@ from .inputs.selector import (
     StochasticSamplingSelector,
     TournamentNSGA2Selector,
 )
-from .inputs.alterer import (
+from radiate.operators.alterer import (
     BlendCrossover,
     IntermediateCrossover,
     ArithmeticMutator,
@@ -36,21 +36,21 @@ from .inputs.alterer import (
     JitterMutator,
     ScrambleMutator,
 )
-from .inputs.limit import (
+from radiate.operators.limit import (
     ScoreLimit,
     GenerationsLimit,
     SecondsLimit,
     ConvergenceLimit,
     MetricLimit,
 )
-from .inputs.distance import (
+from radiate.operators.distance import (
     EuclideanDistance,
     CosineDistance,
     NeatDistance,
     HammingDistance,
 )
 
-from .inputs.rate import Rate
+from radiate.operators.rate import Rate
 
 
 class Select:
@@ -136,3 +136,6 @@ class Dist:
         )
     )
     hamming = staticmethod(lambda: HammingDistance())
+
+
+__all__ = ["Select", "Mutate", "Cross", "Dist", "Limit"]

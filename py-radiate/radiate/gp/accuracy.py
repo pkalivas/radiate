@@ -1,6 +1,6 @@
 from .graph import Graph
 from .tree import Tree
-from radiate.wrapper import RsObject
+from radiate._bridge.wrapper import RsObject
 from radiate.radiate import py_accuracy, PyAccuracy
 
 

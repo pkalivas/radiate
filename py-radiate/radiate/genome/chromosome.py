@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import Iterable, TYPE_CHECKING
-from radiate.wrapper import RsObject
+from radiate._bridge.wrapper import RsObject
 from radiate.radiate import PyChromosome
 from .gene import Gene
 from radiate.genome import gene

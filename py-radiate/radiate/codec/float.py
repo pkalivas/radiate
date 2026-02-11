@@ -3,7 +3,7 @@ from __future__ import annotations
 from .base import CodecBase
 
 from radiate.genome import Genotype, Gene, Chromosome, GeneType
-from radiate.wrapper import RsObject
+from radiate._bridge.wrapper import RsObject
 from radiate.dtype import DataType, DataTypeClass, Float64, FloatType
 
 from radiate.radiate import PyFloatCodec
