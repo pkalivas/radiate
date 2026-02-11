@@ -170,7 +170,7 @@ class NeuralNetworkEvolver:
                 use_numpy=True,
             ),
             fitness_func=fitness_function,
-            objective="min",
+            objective=rd.MIN,
             survivor_selector=rd.BoltzmannSelector(temp=2.3),
             alters=[
                 rd.BlendCrossover(0.7, 0.5),

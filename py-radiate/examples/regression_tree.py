@@ -32,7 +32,7 @@ engine = rd.Engine(
         root=rd.Op.linear(),
     ),
     fitness_func=rd.Regression(inputs, answers),
-    objective="min",
+    objective=rd.MIN,
     alters=[
         rd.TreeCrossover(0.7),
         rd.HoistMutator(0.01),

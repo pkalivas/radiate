@@ -42,7 +42,7 @@ def test_engine_float_matrix_minimization(random_seed):
     engine = rd.Engine(
         codec=rd.FloatCodec.matrix((2, 2), init_range=(-5.0, 5.0), use_numpy=True),
         fitness_func=fitness_func,
-        objective="min",
+        objective=rd.MIN,
         population_size=50,
         offspring_selector=rd.TournamentSelector(3),
         survivor_selector=rd.EliteSelector(),

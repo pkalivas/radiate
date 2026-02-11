@@ -43,13 +43,6 @@ from ..dtype import Float64, Int64
 
 class Engine[G, T]:
     """
-    Base class for genetic engines. This class serves as the main interface for running genetic algorithms, allowing
-    the customization of various parameters of the engine.
-    """
-
-    _builder: EngineBuilder = None
-
-    """
     Genetic Engine for optimization problems.
     This class serves as the main interface for running genetic algorithms, allowing
     the customization of various parameters of the engine.
@@ -83,6 +76,7 @@ class Engine[G, T]:
             use_numpy=use_numpy,
         )
 
+        instance._engine = None
         instance._builder = EngineBuilder._default(GeneType.FLOAT).set_codec(codec)
         return instance
 
@@ -106,6 +100,7 @@ class Engine[G, T]:
         )
 
         instance._builder = EngineBuilder._default(GeneType.INT).set_codec(codec)
+        instance._engine = None
         return instance
 
     @classmethod
@@ -119,6 +114,7 @@ class Engine[G, T]:
         codec = CharCodec(shape, char_set=char_set)
 
         instance._builder = EngineBuilder._default(GeneType.CHAR).set_codec(codec)
+        instance._engine = None
         return instance
 
     @classmethod
@@ -130,6 +126,7 @@ class Engine[G, T]:
         codec = BitCodec(shape, use_numpy=use_numpy)
 
         instance._builder = EngineBuilder._default(GeneType.BIT).set_codec(codec)
+        instance._engine = None
         return instance
 
     @classmethod
@@ -141,6 +138,7 @@ class Engine[G, T]:
         instance._builder = EngineBuilder._default(GeneType.PERMUTATION).set_codec(
             codec
         )
+        instance._engine = None
         return instance
 
     @classmethod
@@ -166,6 +164,7 @@ class Engine[G, T]:
         )
 
         instance._builder = EngineBuilder._default(GeneType.GRAPH).set_codec(codec)
+        instance._engine = None
         return instance
 
     @classmethod
@@ -192,11 +191,29 @@ class Engine[G, T]:
         )
 
         instance._builder = EngineBuilder._default(GeneType.TREE).set_codec(codec)
+        instance._engine = None
         return instance
+
+    def __iter__(self):
+        """Allow unpacking the engine into its components."""
+        while True:
+            yield self.__next__()
+
+    def __next__(self) -> Generation[T]:
+        """Get the next generation from the engine."""
+        if self._engine is None:
+            self._engine = self._builder.build()
+
+        try:
+            generation = self._engine.next()
+            return Generation.from_rust(generation)
+        except StopIteration:
+            self._engine = None
+            raise
 
     def run(
         self,
-        limits: LimitBase | list[LimitBase],
+        limits: LimitBase | list[LimitBase] = [],
         log: bool | EngineLog = False,
         checkpoint: tuple[int, str] | EngineCheckpoint | None = None,
         ui: bool | EngineUi = False,
@@ -221,17 +238,6 @@ class Engine[G, T]:
         if limits is not None:
             if isinstance(limits, LimitBase):
                 limits = [limits]
-            elif isinstance(limits, list):
-                if len(limits) == 0:
-                    raise ValueError(
-                        "At least one limit must be provided to run the engine."
-                    )
-            else:
-                raise TypeError(
-                    "Limits must be a LimitBase or a list of LimitBase instances."
-                )
-        else:
-            raise ValueError("At least one limit must be provided to run the engine.")
 
         engine = self._builder.build()
 

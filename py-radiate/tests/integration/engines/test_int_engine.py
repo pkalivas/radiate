@@ -9,7 +9,7 @@ def test_engine_int_minimization(random_seed):
     engine = rd.Engine(
         codec=rd.IntCodec.vector(num_genes, init_range=(0, 10)),
         fitness_func=lambda x: sum(x),
-        objective="min",
+        objective=rd.MIN,
     )
 
     result = engine.run([rd.ScoreLimit(0), rd.GenerationsLimit(500)])
@@ -39,7 +39,7 @@ def test_engine_int_vector_nparray(random_seed):
     engine = rd.Engine(
         codec=codec,
         fitness_func=fitness_func,
-        objective="min",
+        objective=rd.MIN,
     )
 
     result = engine.run([rd.ScoreLimit(0), rd.GenerationsLimit(500)])
@@ -70,7 +70,7 @@ def test_engine_int_matrix_nparray(random_seed):
     engine = rd.Engine(
         codec=codec,
         fitness_func=fitness_func,
-        objective="min",
+        objective=rd.MIN,
     )
 
     result = engine.run([rd.ScoreLimit(0), rd.GenerationsLimit(500)])
@@ -104,7 +104,7 @@ def test_engine_int_jagged_matrix(random_seed):
     engine = rd.Engine(
         codec=codec,
         fitness_func=fitness_func,
-        objective="min",
+        objective=rd.MIN,
     )
 
     result = engine.run([rd.ScoreLimit(0), rd.GenerationsLimit(500)])

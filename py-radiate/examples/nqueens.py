@@ -31,9 +31,9 @@ def fitness_fn(queens: np.ndarray) -> int:
     return np.sum(same_row) + np.sum(same_diagonal)
 
 
-codec = rd.IntCodec(N_QUEENS, (0, N_QUEENS), use_numpy=True, dtype=rd.UInt8)
 engine = (
-    rd.Engine(codec, fitness_fn)
+    rd.Engine.int(N_QUEENS, (0, N_QUEENS), use_numpy=True, dtype=rd.UInt8)
+    .fitness(fitness_fn)
     .minimizing()
     .select(offspring=rd.TournamentSelector(k=3))
     .alters(

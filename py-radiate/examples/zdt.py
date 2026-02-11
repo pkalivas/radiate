@@ -31,12 +31,13 @@ engine = (
     rd.Engine.float(variables, use_numpy=True)
     .fitness(zdt3)
     .select(rd.Select.tournament(5), rd.Select.nsga3(12))
-    .objective("min", "min")
+    .objective(rd.MIN, rd.MIN)
     .front_range(200, 250)
     .alters(rd.Cross.sbx(1.0, 2.0), rd.Mutate.uniform(0.1))
+    .limit(rd.Limit.generations(2000))
 )
 
-result = engine.run(rd.GenerationsLimit(2000), ui=True)
+result = engine.run(ui=True)
 print(result.metrics().dashboard())
 
 front = result.front()

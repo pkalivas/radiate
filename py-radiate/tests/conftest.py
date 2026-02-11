@@ -155,38 +155,30 @@ Engine Fixtures
 @pytest.fixture
 def simple_float_engine():
     """Create a simple float codec engine for testing."""
-    codec = rd.FloatCodec.vector(length=10, init_range=(-1.0, 1.0))
-    return rd.Engine(
-        codec=codec,
-        fitness_func=lambda x: sum(xi**2 for xi in x),
-        objective="min",
-        population_size=100,
-        alters=[
-            rd.UniformCrossover(0.5),
-            rd.ArithmeticMutator(0.1),
-        ],
+    return (
+        rd.Engine.float(10, (-1.0, 1.0))
+        .fitness(lambda x: sum(xi**2 for xi in x))
+        .minimizing()
+        .size(100)
+        .alters(rd.Cross.uniform(0.5), rd.Mutate.arithmetic(0.1))
     )
 
 
 @pytest.fixture
 def simple_multi_objective_engine():
     """Create a simple multi-objective float codec engine for testing."""
-    codec = rd.FloatCodec.vector(length=10, init_range=(-1.0, 1.0))
-
-    return rd.Engine(
-        codec=codec,
-        fitness_func=lambda x: [
-            sum(xi**2 for xi in x),
-            sum((xi - 0.5) ** 2 for xi in x),
-        ],
-        objective=["min", "min"],
-        population_size=100,
-        offspring_selector=rd.TournamentSelector(3),
-        survivor_selector=rd.NSGA2Selector(),
-        alters=[
-            rd.UniformCrossover(0.5),
-            rd.ArithmeticMutator(0.1),
-        ],
+    return (
+        rd.Engine.float(10, (-1.0, 1.0))
+        .fitness(
+            lambda x: [
+                sum(xi**2 for xi in x),
+                sum((xi - 0.5) ** 2 for xi in x),
+            ]
+        )
+        .objective(rd.MIN, rd.MIN)
+        .size(100)
+        .select(rd.Select.tournament(3), rd.Select.nsga2())
+        .alters(rd.Cross.uniform(0.5), rd.Mutate.arithmetic(0.1))
     )
 
 

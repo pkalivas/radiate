@@ -15,7 +15,7 @@ def test_engine_graph_xor(xor_dataset, random_seed):
             output=rd.Op.sigmoid(),
         ),
         fitness_func=rd.Regression(inputs, outputs),
-        objective="min",
+        objective=rd.MIN,
         population_size=100,
         offspring_selector=rd.BoltzmannSelector(4.0),
         alters=[
@@ -49,7 +49,7 @@ def test_engine_graph_regression_with_speciation(
     engine = rd.Engine(
         codec=codec,
         fitness_func=rd.Regression(inputs, outputs),
-        objective="min",
+        objective=rd.MIN,
         population_size=100,
         species_threshold=0.1,
         diversity=rd.NeatDistance(excess=0.1, disjoint=0.1, weight_diff=0.5),
@@ -84,7 +84,7 @@ def test_engine_graph_with_recurrent_connections(memory_dataset, random_seed):
     engine = rd.Engine(
         codec=codec,
         fitness_func=rd.Regression(inputs, outputs),
-        objective="min",
+        objective=rd.MIN,
         population_size=250,
         alters=[
             rd.GraphCrossover(0.5, 0.5),
@@ -135,7 +135,7 @@ def test_engine_graph_recurrent_class_acc(memory_dataset, random_seed):
     engine = rd.Engine(
         codec=codec,
         fitness_func=rd.Regression(inputs, outputs, loss="cross_entropy"),
-        objective="min",
+        objective=rd.MIN,
         alters=[
             rd.GraphCrossover(0.5, 0.5),
             rd.OperationMutator(0.1, 0.05),

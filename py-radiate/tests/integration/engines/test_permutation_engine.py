@@ -13,7 +13,7 @@ def test_engine_permutation_tsp(random_seed):
     engine = rd.Engine(
         codec=rd.PermutationCodec([0, 1, 2, 3, 4]),
         fitness_func=fitness_func,
-        objective="min",
+        objective=rd.MIN,
         population_size=50,
         offspring_selector=rd.TournamentSelector(3),
         survivor_selector=rd.EliteSelector(),

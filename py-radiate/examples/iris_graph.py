@@ -61,7 +61,7 @@ engine = rd.Engine(
         training_features.values.tolist(), training_target.values.tolist()
     ),
     offspring_selector=rd.BoltzmannSelector(4),
-    objective="min",
+    objective=rd.MIN,
     alters=[
         rd.GraphCrossover(0.5, 0.5),
         rd.OperationMutator(0.02, 0.05),

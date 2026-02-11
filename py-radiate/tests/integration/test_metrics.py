@@ -8,7 +8,7 @@ def test_generation_metrics(random_seed):
     engine = rd.Engine(
         codec=rd.IntCodec.vector(num_genes, init_range=(0, 10)),
         fitness_func=lambda x: sum(x),
-        objective="min",
+        objective=rd.MIN,
     )
 
     result = engine.run([rd.ScoreLimit(0), rd.GenerationsLimit(500)])
@@ -83,11 +83,11 @@ def test_metrics_from_events(random_seed):
                     assert metrics[key].max() is not None
                     assert metrics[key].count() is not None
 
-    engine = rd.Engine(
-        codec=rd.IntCodec.vector(5, (0, 10)),
-        fitness_func=lambda x: sum(x),
-        objective="min",
-        subscribe=[MetricSetAssertHandler()],
+    engine = (
+        rd.Engine.int(5, (0, 10))
+        .fitness(lambda x: sum(x))
+        .minimizing()
+        .subscribe(MetricSetAssertHandler())
     )
 
     engine.run([rd.ScoreLimit(0), rd.GenerationsLimit(500)])
@@ -98,7 +98,7 @@ def test_metric_tags(random_seed):
     engine = rd.Engine(
         codec=rd.IntCodec.vector(5, (0, 10)),
         fitness_func=lambda x: sum(x),
-        objective="min",
+        objective=rd.MIN,
     )
 
     result = engine.run([rd.ScoreLimit(0), rd.GenerationsLimit(100)])

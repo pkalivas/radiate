@@ -33,7 +33,7 @@ Simply inherit from `rd.AnyGene` and implement the `__init__` function, then any
     engine = rd.Engine(
         rd.AnyCodec(ObjectGene() for _ in range(10)),
         fitness_func=rd.BatchFitness(fitness_function),
-        objective="min",
+        objective=rd.MIN,
     )
 
     result = engine.run(rd.ScoreLimit(0), ui=True)

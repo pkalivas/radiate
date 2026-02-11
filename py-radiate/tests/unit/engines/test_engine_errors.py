@@ -13,7 +13,7 @@ def test_engine_empty_population():
         engine = rd.Engine(
             codec=rd.IntCodec.vector(length=3, init_range=(0, 10)),
             fitness_func=fitness_func,
-            objective="min",
+            objective=rd.MIN,
             population_size=0,  # Invalid
         )
         engine.run([rd.GenerationsLimit(10)])
@@ -29,7 +29,7 @@ def test_engine_invalid_limits():
     engine = rd.Engine(
         codec=rd.IntCodec.vector(length=3, init_range=(0, 10)),
         fitness_func=fitness_func,
-        objective="min",
+        objective=rd.MIN,
     )
 
     with pytest.raises(ValueError):

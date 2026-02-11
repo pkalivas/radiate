@@ -23,7 +23,7 @@ For example, a solution could be:
         codec=rd.IntCodec.vector(10, (0, 100)),
         fitness_func=lambda x: sum(x),
         offspring_selector=rd.EliteSelector(),
-        objective="min",
+        objective=rd.MIN,
         alters=[
             rd.SwapMutator(0.05),
             rd.UniformCrossover(0.5),
@@ -99,7 +99,7 @@ For example, a solution for `n=8` would be:
     engine = rd.Engine(
         codec=rd.IntCodec.vector(N_QUEENS, (0, N_QUEENS), use_numpy=True),
         fitness_func=fitness_fn,
-        objective="min",
+        objective=rd.MIN,
         offspring_selector=rd.BoltzmannSelector(4.0),
         alters=[
             rd.MultiPointCrossover(0.75, 2),
@@ -429,7 +429,7 @@ Evolve a `Graph<Op<f32>>` to solve the XOR problem (NeuroEvolution).
     engine = rd.Engine(
         codec=codec,
         fitness_fn=rd.Regression(inputs, answers, loss='mse'),
-        objective="min",
+        objective=rd.MIN,
         alters=[
             rd.GraphCrossover(0.5, 0.5),
             rd.OperationMutator(0.07, 0.05),
@@ -538,7 +538,7 @@ Evolve a `Tree<Op<f32>>` to solve the a regression problem (Genetic Programming)
     engine = rd.Engine(
         codec=codec,
         fitness_func=rd.Regression(inputs, answers),
-        objective="min",
+        objective=rd.MIN,
         alters=[
             rd.TreeCrossover(0.7),
             rd.HoistMutator(0.01),

@@ -15,7 +15,7 @@ def test_engine_tree_regression(simple_regression_dataset, random_seed):
             root=rd.Op.linear(),
         ),
         fitness_func=rd.Regression(inputs, outputs),
-        objective="min",
+        objective=rd.MIN,
         population_size=100,
         offspring_selector=rd.TournamentSelector(3),
         survivor_selector=rd.EliteSelector(),

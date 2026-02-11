@@ -42,7 +42,7 @@ The `minimizing()` method configures the genetic algorithm to find the minimum v
     engine = rd.Engine(
         codec=codec,
         fitness_func=lambda x: sum(x),  # value to minimize
-        objective="min" # Configure for minimization
+        objective=rd.MIN # Configure for minimization
         # ... other parameters ...
     )
     
@@ -92,7 +92,7 @@ This is the default option for the `GeneticEngine`, so you don't really need to 
     engine = rd.Engine(
         codec=codec,
         fitness_func=lambda x: sum(x),  # return a value to maximize
-        objective="max"
+        objective=rd.MAX
         # ... other parameters ...
     )
     
