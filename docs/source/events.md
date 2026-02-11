@@ -139,7 +139,7 @@ The simplest way to subscribe to events is by providing a callback function:
     ```python
     import radiate as rd
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=your_codec,
         fitness_func=your_fitness_func,
         # Subscribe to all events using a lambda function
@@ -197,7 +197,7 @@ For more complex event handling, you can create a custom event handler class:
     # Create an instance of your event handler
     handler = Subscriber()
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=your_codec,
         fitness_func=your_fitness_func,
         subscribe=handler,
@@ -243,7 +243,7 @@ For more complex event handling, you can create a custom event handler class:
     # Create an instance of your event handler
     handler = ScorePlotterHandler()
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=your_codec,
         fitness_func=your_fitness_func,
         subscribe=handler,

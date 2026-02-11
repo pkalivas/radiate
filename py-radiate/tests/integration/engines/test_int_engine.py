@@ -6,7 +6,7 @@ import pytest
 @pytest.mark.integration
 def test_engine_int_minimization(random_seed):
     num_genes = 5
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=rd.IntCodec.vector(num_genes, init_range=(0, 10)),
         fitness_func=lambda x: sum(x),
         objective="min",
@@ -36,7 +36,7 @@ def test_engine_int_vector_nparray(random_seed):
         num_genes, init_range=(0, 10), bounds=(-10, 50), use_numpy=True
     )
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=codec,
         fitness_func=fitness_func,
         objective="min",
@@ -67,7 +67,7 @@ def test_engine_int_matrix_nparray(random_seed):
         shape=(rows, cols), init_range=(0, 10), bounds=(-5, 20), use_numpy=True
     )
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=codec,
         fitness_func=fitness_func,
         objective="min",
@@ -101,7 +101,7 @@ def test_engine_int_jagged_matrix(random_seed):
     # Create a jagged matrix codec - right now (1/23/26) using numpy this doesn't support non-square shapes
     codec = rd.IntCodec.matrix(shape=shape, init_range=(0, 10), bounds=(-5, 20))
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=codec,
         fitness_func=fitness_func,
         objective="min",

@@ -1,9 +1,8 @@
-use crate::{PyChromosome, PyGeneType, Wrap};
-
+use crate::{DataType, PyChromosome, PyGeneType, Wrap};
 use pyo3::{Bound, IntoPyObject, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
-    BitChromosome, CharChromosome, Chromosome, DataType, FloatChromosome, Genotype,
-    GraphChromosome, IntChromosome, Op, PermutationChromosome, TreeChromosome,
+    BitChromosome, CharChromosome, Chromosome, FloatChromosome, Genotype, GraphChromosome,
+    IntChromosome, Op, PermutationChromosome, TreeChromosome,
 };
 
 #[pyclass(from_py_object)]

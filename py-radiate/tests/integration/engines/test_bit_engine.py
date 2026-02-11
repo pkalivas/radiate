@@ -5,7 +5,7 @@ import pytest
 @pytest.mark.integration
 def test_engine_bit_optimization(random_seed):
     """Test engine with bit codec for binary optimization."""
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=rd.BitCodec(shape=10),
         fitness_func=lambda x: sum(1 for bit in x if bit),
         survivor_selector=rd.EliteSelector(),
@@ -28,7 +28,7 @@ def test_engine_bit_matrix_optimization(random_seed):
         assert all(len(row) == cols for row in x)
         return sum(1 for row in x for bit in row if bit)
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=rd.BitCodec(shape=(rows, cols)),
         fitness_func=fitness_func,
         survivor_selector=rd.EliteSelector(),

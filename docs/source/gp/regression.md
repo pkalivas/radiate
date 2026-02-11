@@ -47,7 +47,7 @@ Lets take a quick look at how we would put together a regression problem using a
     loss = "mse"  # Options are: "mse", "mae", "cross_entropy", "diff"
     fitness_func = rd.Regression(inputs, answers, loss=loss, batch=False)   
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=codec,
         fitness_func=fitness_func,
         objective="min",   # Minimize the loss

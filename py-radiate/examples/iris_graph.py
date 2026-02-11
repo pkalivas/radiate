@@ -55,7 +55,7 @@ codec = rd.GraphCodec.directed(
     output=rd.Op.sigmoid(),
 )
 
-engine = rd.GeneticEngine(
+engine = rd.Engine(
     codec=codec,
     fitness_func=rd.Regression(
         training_features.values.tolist(), training_target.values.tolist()

@@ -144,7 +144,7 @@ class NeuralNetworkEvolver:
 
         self.y = torch.tensor([[0.0], [1.0], [1.0], [0.0]], dtype=torch.float64)
 
-    def create_engine(self) -> rd.GeneticEngine:
+    def create_engine(self) -> rd.Engine:
         """Create the genetic engine for evolving neural network weights"""
 
         def fitness_function(weight_vector: np.ndarray) -> float:
@@ -162,7 +162,7 @@ class NeuralNetworkEvolver:
             mse = F.mse_loss(predictions, self.y)
             return mse.item()
 
-        engine = rd.GeneticEngine(
+        engine = rd.Engine(
             codec=rd.FloatCodec.vector(
                 length=self.network.total_params,
                 init_range=(-2.0, 2.0),

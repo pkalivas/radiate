@@ -10,7 +10,7 @@ import radiate as rd
 import polars as pl  # type: ignore
 import matplotlib.pyplot as plt
 
-rd.random.seed(567123)
+rd.random.seed(67123)
 
 
 class ScorePlotterHandler(rd.EventHandler):
@@ -53,21 +53,21 @@ for _ in range(-10, 10):
     inputs.append([input])
     answers.append([compute(input)])
 
-engine = rd.GeneticEngine(
-    codec=rd.GraphCodec.directed(
+engine = (
+    rd.Engine.graph(
         shape=(1, 1),
         vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
         edge=rd.Op.weight(),
         output=rd.Op.linear(),
-    ),
-    fitness_func=rd.Regression(inputs, answers),
-    subscribe=ScorePlotterHandler(),
-    objective="min",
-    alters=[
+    )
+    .fitness(rd.Regression(inputs, answers))
+    .subscribe(ScorePlotterHandler())
+    .minimizing()
+    .alters(
         rd.GraphCrossover(rd.Rate.fixed(0.05), 0.5),
         rd.OperationMutator(0.07, 0.05),
         rd.GraphMutator(0.1, 0.1, False),
-    ],
+    )
 )
 
 result = engine.run(

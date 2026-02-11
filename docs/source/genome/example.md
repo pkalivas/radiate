@@ -27,7 +27,7 @@ Let's look at a basic example of how to use the `Codec` for evolving a simple fu
     )
 
     # Create the evolution engine
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=codec,
         fitness_func=fitness_function,
         # ... other parameters ...

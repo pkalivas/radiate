@@ -51,7 +51,7 @@ class TestEnginePerformance:
         def fitness_func(x: list[float]) -> float:
             return sum(xi**2 for xi in x)
 
-        engine = rd.GeneticEngine(
+        engine = rd.Engine(
             codec=rd.FloatCodec.vector(length=10, init_range=(-1.0, 1.0)),
             fitness_func=fitness_func,
             objective="min",
@@ -76,7 +76,7 @@ class TestEnginePerformance:
         def fitness_func(x: list[float]) -> float:
             return sum(xi**2 for xi in x)
 
-        engine = rd.GeneticEngine(
+        engine = rd.Engine(
             codec=rd.FloatCodec.vector(length=20, init_range=(-1.0, 1.0)),
             fitness_func=fitness_func,
             objective="min",
@@ -107,7 +107,7 @@ class TestMemoryPerformance:
 
         initial_memory = performance_benchmark.memory_usage()
 
-        engine = rd.GeneticEngine(
+        engine = rd.Engine(
             codec=rd.FloatCodec.vector(length=10, init_range=(-1.0, 1.0)),
             fitness_func=fitness_func,
             objective="min",
@@ -136,7 +136,7 @@ class TestMemoryPerformance:
 
         # Run multiple engines
         for _ in range(5):
-            engine = rd.GeneticEngine(
+            engine = rd.Engine(
                 codec=rd.FloatCodec.vector(length=50, init_range=(-1.0, 1.0)),
                 fitness_func=fitness_func,
                 objective="min",
@@ -172,7 +172,7 @@ class TestScalabilityPerformance:
             return sum(xi**2 for xi in x)
 
         for length in lengths:
-            engine = rd.GeneticEngine(
+            engine = rd.Engine(
                 codec=rd.FloatCodec.vector(length=length, init_range=(-1.0, 1.0)),
                 fitness_func=fitness_func,
                 objective="min",

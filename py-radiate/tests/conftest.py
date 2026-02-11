@@ -156,7 +156,7 @@ Engine Fixtures
 def simple_float_engine():
     """Create a simple float codec engine for testing."""
     codec = rd.FloatCodec.vector(length=10, init_range=(-1.0, 1.0))
-    return rd.GeneticEngine(
+    return rd.Engine(
         codec=codec,
         fitness_func=lambda x: sum(xi**2 for xi in x),
         objective="min",
@@ -173,7 +173,7 @@ def simple_multi_objective_engine():
     """Create a simple multi-objective float codec engine for testing."""
     codec = rd.FloatCodec.vector(length=10, init_range=(-1.0, 1.0))
 
-    return rd.GeneticEngine(
+    return rd.Engine(
         codec=codec,
         fitness_func=lambda x: [
             sum(xi**2 for xi in x),

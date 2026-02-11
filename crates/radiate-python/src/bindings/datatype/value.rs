@@ -1,4 +1,10 @@
-use crate::{DataType, Field};
+use crate::Wrap;
+use pyo3::{
+    Borrowed, Bound, FromPyObject, IntoPyObject, PyAny, PyErr, PyResult, Python,
+    exceptions::PyValueError,
+};
+
+use super::{DataType, Field};
 use num_traits::NumCast;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
@@ -219,61 +225,52 @@ impl<'a> PartialEq for AnyValue<'a> {
     }
 }
 
-#[inline]
-pub fn apply_zipped_slice(
-    one: &[AnyValue<'_>],
-    two: &[AnyValue<'_>],
-    f: impl Fn(&AnyValue<'_>, &AnyValue<'_>) -> Option<AnyValue<'static>>,
-) -> Option<AnyValue<'static>> {
-    if one.len() != two.len() {
-        return None;
-    }
+impl<'py> FromPyObject<'_, 'py> for Wrap<AnyValue<'py>> {
+    type Error = PyErr;
 
-    Some(AnyValue::Vector(Box::new(
-        one.iter()
-            .zip(two.iter())
-            .map(|pair| match f(pair.0, pair.1) {
-                Some(v) => v,
-                None => AnyValue::Null,
-            })
-            .collect::<Vec<AnyValue>>(),
-    )))
+    fn extract(ob: Borrowed<'_, 'py, PyAny>) -> PyResult<Self> {
+        super::py_object_to_any_value(ob, true).map_err(|e| {
+            PyValueError::new_err(format!(
+                "{e}\n\nHint: Try setting `strict=False` to allow passing data with mixed types."
+            ))
+        })
+        .map(Wrap)
+    }
 }
 
-#[inline]
-pub fn apply_zipped_struct_slice(
-    one: &[(Field, AnyValue<'_>)],
-    two: &[(Field, AnyValue<'_>)],
-    f: impl Fn(&AnyValue<'_>, &AnyValue<'_>) -> Option<AnyValue<'static>>,
-) -> Option<AnyValue<'static>> {
-    if one.len() != two.len() {
-        return None;
+impl<'py> IntoPyObject<'py> for Wrap<AnyValue<'_>> {
+    type Target = PyAny;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        super::any_value_into_py_object(self.0, py)
     }
+}
 
-    if !one
-        .iter()
-        .map(|(f, _)| f.name())
-        .eq(two.iter().map(|(f, _)| f.name()))
-    {
-        return None;
+impl<'py> IntoPyObject<'py> for &Wrap<AnyValue<'_>> {
+    type Target = PyAny;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        Wrap(&self.0).into_pyobject(py)
     }
+}
 
-    let mut out = Vec::with_capacity(one.len());
-    for ((fa, va), (_, vb)) in one.iter().zip(two.iter()) {
-        if va.is_null() || vb.is_null() {
-            out.push((fa.clone(), AnyValue::Null));
-            continue;
-        }
+impl<'py> IntoPyObject<'py> for Wrap<&AnyValue<'_>> {
+    type Target = PyAny;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
 
-        out.push((fa.clone(), f(va, vb)?));
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        super::any_value_into_py_object_ref(self.0, py)
     }
-
-    Some(AnyValue::Struct(out))
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{DataType, Field};
+    use super::{DataType, Field};
 
     use super::AnyValue;
 

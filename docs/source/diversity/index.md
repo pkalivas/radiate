@@ -27,7 +27,7 @@ The species threshold determines how similar individuals need to be to be consid
 	```python
 	import radiate as rd
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=your_codec,
         fitness_func=your_fitness_func,
         diversity=diversity,
@@ -69,7 +69,7 @@ The `ecosystem` tracks the age of `species` to prevent stagnation, if a `species
 	```python
 	import radiate as rd
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=your_codec,
         fitness_func=your_fitness_func,
         diversity=diversity,

@@ -4,15 +4,18 @@ from radiate.genome.population import Population
 from radiate.inputs.input import EngineInput, EngineInputType
 from .component import ComponentBase
 from ..genome import GENE_TYPE_MAPPING, GeneType
+from dataclasses import dataclass
 
 
 class SelectorBase(ComponentBase):
     def __init__(
         self,
-        component: str,
+        component: str | None = None,
         args: dict[str, Any] = {},
         allowed_genes: set[GeneType] | GeneType = {},
     ):
+        if component is None:
+            component = self.__class__.__name__
         super().__init__(component=component, args=args)
         self.allowed_genes = allowed_genes if allowed_genes else GeneType.all()
 
@@ -219,7 +222,7 @@ class TournamentNSGA2Selector(SelectorBase):
         """
         super().__init__(component="TournamentNSGA2Selector", args={"k": k})
 
-    
+
 class NSGA3Selector(SelectorBase):
     def __init__(self, points: int = 12):
         """

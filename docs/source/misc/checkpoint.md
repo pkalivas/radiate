@@ -13,7 +13,7 @@ Radiate provides built-in support for checkpointing, allowing you to save the st
     def fitness_func(x: list[str]) -> int:
         return sum(1 for i in range(len(target)) if x[i] == target[i])
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=rd.CharCodec.vector(len(target)),
         fitness_func=fitness_func,
         offspring_selector=rd.BoltzmannSelector(4),
@@ -22,7 +22,7 @@ Radiate provides built-in support for checkpointing, allowing you to save the st
     result = engine.run(rd.ScoreLimit(len(target)), checkpoint=(10, "checkpoint.json"))
 
     # load from checkpoint from generation 10
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=rd.CharCodec.vector(len(target)),
         fitness_func=fitness_func,
         offspring_selector=rd.BoltzmannSelector(4),

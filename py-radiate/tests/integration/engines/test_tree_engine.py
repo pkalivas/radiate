@@ -7,7 +7,7 @@ def test_engine_tree_regression(simple_regression_dataset, random_seed):
     """Test engine with tree codec for regression."""
     inputs, outputs = simple_regression_dataset
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=rd.TreeCodec(
             shape=(1, 1),
             vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.sub()],

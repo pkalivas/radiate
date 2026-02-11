@@ -22,7 +22,7 @@ def calc_population_diversity(population: rd.Population) -> float:
 @pytest.mark.integration
 def test_engine_is_novel(random_seed):
     """Test engine with novelty search."""
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=rd.FloatCodec(6, (-100.0, 100.0)),
         fitness_func=rd.NoveltySearch(
             descriptor=lambda x: x,
@@ -52,7 +52,7 @@ def test_int_engine_novelty_with_decorator_creates(random_seed):
         return phenotype
 
     engine = (
-        rd.GeneticEngine(rd.IntCodec(6, (-100, 100)), descriptor)
+        rd.Engine(rd.IntCodec(6, (-100, 100)), descriptor)
         .population_size(100)
         .select(offspring=rd.TournamentSelector(3))
         .alters(rd.UniformCrossover(0.5), rd.ArithmeticMutator(0.1))

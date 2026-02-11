@@ -13,6 +13,15 @@ pub enum Executor {
 }
 
 impl Executor {
+    pub fn is_parallel(&self) -> bool {
+        match self {
+            Executor::Serial => false,
+            #[cfg(feature = "rayon")]
+            Executor::WorkerPool => true,
+            Executor::FixedSizedWorkerPool(_) => true,
+        }
+    }
+
     pub fn num_workers(&self) -> usize {
         match self {
             Executor::Serial => 1,

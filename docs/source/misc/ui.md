@@ -69,7 +69,7 @@ The TUI is completely opt-in and can be configured as shown below
     ```python
     import radiate as rd
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         # ... configure your engine as normal ...
     )
 

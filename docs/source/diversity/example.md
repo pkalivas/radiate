@@ -40,7 +40,7 @@ Lets add on to our example - evolving a simple function: finding the best values
     diversity = rd.HammingDistance()  # or rd.EuclideanDistance() for continuous problems
 
     # Create the evolution engine
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=codec,
         fitness_func=fitness_function,
         offspring_selector=offspring_selector,

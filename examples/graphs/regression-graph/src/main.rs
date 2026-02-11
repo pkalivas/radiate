@@ -16,7 +16,7 @@ fn main() {
         .codec(GraphCodec::directed(1, 1, store))
         .raw_fitness_fn(Regression::new(dataset(), Loss::MSE))
         // .diversity(NeatDistance::new(0.1, 0.1, 0.3))
-        // .species_threshold(0.4)
+        // .species_threshold(0.3)
         .minimizing()
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
@@ -25,7 +25,7 @@ fn main() {
         ))
         .build();
 
-    engine
+    radiate::ui(engine)
         // engine
         .iter()
         // .take(6)
@@ -35,9 +35,6 @@ fn main() {
 }
 
 fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
-    // for m in result.metrics().iter_tagged(stats::TagKind::Lineage) {
-    //     println!("Lineage: {:?}", m);
-    // }
     Accuracy::default()
         .named("Regression Graph")
         .on(&dataset().into())

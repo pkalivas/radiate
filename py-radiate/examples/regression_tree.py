@@ -25,7 +25,7 @@ for _ in range(-10, 10):
     inputs.append([input])
     answers.append([compute(input)])
 
-engine = rd.GeneticEngine(
+engine = rd.Engine(
     codec=rd.TreeCodec(
         shape=(1, 1),
         vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.add()],

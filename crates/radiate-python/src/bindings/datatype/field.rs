@@ -1,4 +1,4 @@
-use crate::DataType;
+use super::DataType;
 use radiate_utils::SmallStr;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;

@@ -24,7 +24,7 @@ def fitness(solution: np.ndarray) -> float:
     return np.abs(output - desired_output)
 
 
-engine = rd.GeneticEngine(
+engine = rd.Engine(
     codec=rd.FloatCodec(len(function_inputs), (-4.0, 4.0), use_numpy=True),
     fitness_func=fitness,
     objective="min",

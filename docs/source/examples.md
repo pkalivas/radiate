@@ -19,7 +19,7 @@ For example, a solution could be:
     ```python
     import radiate as rd
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=rd.IntCodec.vector(10, (0, 100)),
         fitness_func=lambda x: sum(x),
         offspring_selector=rd.EliteSelector(),
@@ -96,7 +96,7 @@ For example, a solution for `n=8` would be:
 
         return np.sum(same_row) + np.sum(same_diagonal)
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=rd.IntCodec.vector(N_QUEENS, (0, N_QUEENS), use_numpy=True),
         fitness_func=fitness_fn,
         objective="min",
@@ -210,7 +210,7 @@ where:
         return value
 
     codec = rd.FloatCodec.vector(2, (-5.12, 5.12))
-    engine = rd.GeneticEngine(codec, fitness_fn)
+    engine = rd.Engine(codec, fitness_fn)
 
     engine.minimizing()
     engine.alters([
@@ -313,7 +313,7 @@ $$
         return f
 
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=rd.FloatCodec.vector(variables, (0.0, 1.0), use_numpy=True),
         fitness_func=dtlz_1,
         offspring_selector=rd.TournamentSelector(k=8),
@@ -426,7 +426,7 @@ Evolve a `Graph<Op<f32>>` to solve the XOR problem (NeuroEvolution).
         output=rd.Op.linear(),
     )
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=codec,
         fitness_fn=rd.Regression(inputs, answers, loss='mse'),
         objective="min",
@@ -535,7 +535,7 @@ Evolve a `Tree<Op<f32>>` to solve the a regression problem (Genetic Programming)
         root=rd.Op.linear(),
     )
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=codec,
         fitness_func=rd.Regression(inputs, answers),
         objective="min",

@@ -1,7 +1,7 @@
 mod builder;
 mod codec;
 mod converters;
-mod dtype;
+mod datatype;
 mod engine;
 mod epoch;
 mod fitness;
@@ -20,14 +20,19 @@ pub use codec::{
     PyTreeCodec,
 };
 pub use converters::InputTransform;
-pub use dtype::{_get_dtype_max, _get_dtype_min, dtype_from_str};
+pub use datatype::{
+    _get_dtype_max, _get_dtype_min, DataType, Field, dtype, dtype_from_str, dtype_names,
+};
 pub use engine::{PyEngine, PyEngineRunOption};
 pub use epoch::PyGeneration;
 pub use fitness::{PyFitnessFn, PyFitnessInner, PyNoveltySearch};
 pub use front::{PyFront, PyFrontValue};
 pub use functions::*;
 pub use genome::*;
-pub use gp::{PyAccuracy, PyGraph, PyTree, py_accuracy};
+pub use gp::{
+    _activation_ops, _all_ops, _create_op, _edge_ops, PyAccuracy, PyGraph, PyOp, PyTree,
+    py_accuracy,
+};
 pub use inputs::{PyEngineInput, PyEngineInputType};
 pub use metric::{PyMetric, PyMetricSet};
 use pyo3::{Py, Python, sync::PyOnceLock, types::PyModule};
@@ -41,6 +46,12 @@ use radiate::{
     TreeChromosome,
 };
 use serde::{Deserialize, Serialize};
+
+static RADIATE: PyOnceLock<Py<PyModule>> = PyOnceLock::new();
+
+pub fn radiate(py: Python<'_>) -> &Py<PyModule> {
+    RADIATE.get_or_init(py, || py.import("radiate").unwrap().unbind())
+}
 
 type CustomBuilder<C, T> = GeneticEngineBuilder<C, T>;
 type RegressionBuilder<C, T> = GeneticEngineBuilder<C, T>;
@@ -112,10 +123,4 @@ pub enum EpochHandle {
     Permutation(Generation<PermutationChromosome<usize>, PyAnyObject>),
     Graph(Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>),
     Tree(Generation<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>),
-}
-
-static RADIATE: PyOnceLock<Py<PyModule>> = PyOnceLock::new();
-
-pub fn radiate(py: Python<'_>) -> &Py<PyModule> {
-    RADIATE.get_or_init(py, || py.import("radiate").unwrap().unbind())
 }

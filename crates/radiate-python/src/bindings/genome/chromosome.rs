@@ -1,4 +1,4 @@
-use crate::{PyGene, PyGeneType, Wrap};
+use crate::{PyGene, PyGeneType, Wrap, bindings::datatype::DataType};
 use pyo3::{
     Bound, IntoPyObject, PyAny, PyResult, Python, exceptions::PyIndexError, pyclass, pymethods,
 };

@@ -30,7 +30,7 @@ Let's continue with our example from the previous section - evolving a simple fu
     survivor_selector = rd.TournamentSelector(k=3)
 
     # Create the evolution engine
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=codec,
         fitness_func=fitness_function,
         offspring_selector=offspring_selector,

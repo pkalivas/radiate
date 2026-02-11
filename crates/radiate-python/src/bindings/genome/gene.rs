@@ -1,8 +1,12 @@
-use crate::{PyGeneType, Wrap, bindings::dtype};
+use crate::{
+    PyGeneType, Wrap,
+    bindings::datatype::{self, DataType, dtype_names},
+    dtype,
+};
 use pyo3::{Bound, IntoPyObject, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
-    BitGene, CharGene, DataType, FloatGene, Gene, GraphNode, IntGene, Op, PermutationGene,
-    TreeNode, dtype_names, random_provider,
+    BitGene, CharGene, FloatGene, Gene, GraphNode, IntGene, Op, PermutationGene, TreeNode,
+    random_provider,
 };
 use radiate_error::radiate_py_bail;
 use radiate_utils::{Float, Integer};
@@ -118,8 +122,12 @@ impl PyGene {
 
             GeneInner::Bit(_) => Wrap(DataType::Boolean).into_pyobject(py),
             GeneInner::Char(_) => Wrap(DataType::Char).into_pyobject(py),
-            GeneInner::GraphNode(_) => Wrap(DataType::Struct(vec![])).into_pyobject(py),
-            GeneInner::TreeNode(_) => Wrap(DataType::Struct(vec![])).into_pyobject(py),
+            GeneInner::GraphNode(_) => {
+                Wrap(DataType::Node(Box::new(DataType::Op32))).into_pyobject(py)
+            }
+            GeneInner::TreeNode(_) => {
+                Wrap(DataType::Node(Box::new(DataType::Op32))).into_pyobject(py)
+            }
             GeneInner::Permutation(_) => Wrap(DataType::UInt64).into_pyobject(py),
         }
     }
@@ -157,7 +165,7 @@ impl PyGene {
         bounds: Option<(f64, f64)>,
         dtype: Option<String>,
     ) -> PyResult<Self> {
-        let dtype = dtype::dtype_from_str(&dtype.unwrap_or_else(|| dtype_names::FLOAT64.into()));
+        let dtype = datatype::dtype_from_str(&dtype.unwrap_or_else(|| dtype_names::FLOAT64.into()));
         let range = range.unwrap_or((std::f64::MIN, std::f64::MAX));
         let bounds = bounds.unwrap_or(range.clone());
 

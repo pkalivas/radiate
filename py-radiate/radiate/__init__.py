@@ -4,7 +4,7 @@ except ImportError:
     __version__ = "unknown"
     __version_tuple__ = (0, 0, 0)
 
-from .engine import GeneticEngine
+from .engine import Engine
 from .codec import (
     FloatCodec,
     IntCodec,
@@ -30,7 +30,7 @@ from .genome import (
     Gene,
 )
 from .handlers import EventHandler, EventType, EngineEvent
-from .gp import Op, Graph, Tree, accuracy
+from .gp import Op, Graph, Tree, accuracy, OpsConfig, AccuracyResult
 from .metrics import MetricSet, Metric, Tag
 
 from .inputs.executor import Executor
@@ -112,9 +112,11 @@ from .dtype import (
     Field,
     String,
     Null,
+    Op32,
+    Node,
 )
 
-from .dependancies import (
+from ._dependancies import (
     _GIL_ENABLED,
     _NUMPY_AVAILABLE,
     _PANDAS_AVAILABLE,
@@ -156,6 +158,8 @@ __all__ = [
     "Graph",
     "Op",
     "accuracy",
+    "OpsConfig",
+    "AccuracyResult",
     # Handlers
     "EventHandler",
     "EventType",
@@ -217,7 +221,7 @@ __all__ = [
     "HammingDistance",
     "EuclideanDistance",
     # Engine
-    "GeneticEngine",
+    "Engine",
     "Generation",
     # Front,
     "Front",
@@ -248,4 +252,6 @@ __all__ = [
     "String",
     "Null",
     "List",
+    "Op32",
+    "Node",
 ]

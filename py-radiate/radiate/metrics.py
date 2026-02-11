@@ -5,7 +5,7 @@ from datetime import timedelta
 
 from radiate.radiate import PyMetricSet, PyMetric
 from radiate.wrapper import RsObject
-from radiate.dependancies import _PANDAS_AVAILABLE, _POLARS_AVAILABLE
+from radiate._dependancies import _PANDAS_AVAILABLE, _POLARS_AVAILABLE
 
 
 class Tag(enum.Enum):

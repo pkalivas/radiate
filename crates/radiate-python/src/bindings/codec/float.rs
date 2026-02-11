@@ -1,12 +1,9 @@
 use crate::{
-    PyChromosome, PyGene, PyGenotype,
-    bindings::{
-        codec::{NumericCodecBuilder, TypedNumericCodec, builder::CodecBuilder},
-        dtype,
-    },
+    DataType, PyChromosome, PyGene, PyGenotype,
+    bindings::codec::{NumericCodecBuilder, TypedNumericCodec, builder::CodecBuilder},
+    dtype, dtype_names,
 };
 use pyo3::{Bound, PyAny, PyResult, pyclass, pymethods};
-use radiate::{DataType, dtype_names};
 
 #[pyclass(from_py_object)]
 #[derive(Clone)]

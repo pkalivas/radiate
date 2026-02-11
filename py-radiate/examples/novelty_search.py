@@ -193,7 +193,7 @@ def run_novelty_search_evolution(generations: int = 200) -> rd.Generation:
     codec = rd.FloatCodec.vector(6, init_range=(-5.0, 5.0))
 
     # Create novelty search engine
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=codec,
         fitness_func=fitness_func,
         offspring_selector=rd.BoltzmannSelector(4),

@@ -1,7 +1,7 @@
 use crate::steps::EngineStep;
 use radiate_core::{
-    Chromosome, Ecosystem, Executor, Genotype, MetricSet, Objective, Score, Species,
-    diversity::Distance, metric_names, random_provider,
+    Chromosome, Ecosystem, Executor, MetricSet, Objective, Phenotype, Population, Score, Species,
+    diversity::Diversity, metric_names, random_provider,
 };
 use radiate_error::Result;
 use std::sync::{Arc, Mutex, RwLock};
@@ -12,7 +12,7 @@ where
 {
     pub(crate) threshold: f32,
     pub(crate) objective: Objective,
-    pub(crate) distance: Arc<dyn Distance<Genotype<C>>>,
+    pub(crate) distance: Arc<dyn Diversity<C>>,
     pub(crate) executor: Arc<Executor>,
     pub(crate) distances: Arc<Mutex<Vec<f32>>>,
     pub(crate) assignments: Arc<Mutex<Vec<Option<usize>>>>,
@@ -26,7 +26,7 @@ where
         &self,
         generation: usize,
         ecosystem: &mut Ecosystem<C>,
-        mascots: Arc<Vec<Genotype<C>>>,
+        mascots: Arc<Vec<Phenotype<C>>>,
         assignments: Arc<Mutex<Vec<Option<usize>>>>,
         distances: Arc<Mutex<Vec<f32>>>,
     ) -> Result<()>
@@ -37,31 +37,20 @@ where
         let num_threads = self.executor.num_workers().max(1);
         let chunk_size = (pop_len as f32 / num_threads as f32).ceil() as usize;
 
-        let mut chunked_members = Vec::new();
         let mut batches = Vec::new();
+
+        let mut empty_population = Population::empty();
+        std::mem::swap(ecosystem.population_mut(), &mut empty_population);
+        let population = Arc::new(RwLock::new(empty_population));
 
         for chunk_start in (0..pop_len).step_by(chunk_size) {
             let chunk_end = (chunk_start + chunk_size).min(pop_len);
-
-            let chunk_population = Arc::new(RwLock::new(
-                ecosystem
-                    .population_mut()
-                    .iter_mut()
-                    .enumerate()
-                    .skip(chunk_start)
-                    .take(chunk_end - chunk_start)
-                    .try_fold(Vec::new(), |mut acc, (idx, pheno)| {
-                        let genotype = pheno.take_genotype()?;
-                        acc.push((idx, genotype));
-                        Ok::<_, radiate_core::RadiateError>(acc)
-                    })?,
-            ));
 
             let threshold = self.threshold;
             let distance = Arc::clone(&self.distance);
             let assignments = Arc::clone(&assignments);
             let distances = Arc::clone(&distances);
-            let population = Arc::clone(&chunk_population);
+            let population = Arc::clone(&population);
             let species_snapshot = Arc::clone(&mascots);
 
             batches.push(move || {
@@ -72,35 +61,17 @@ where
                     distance,
                     assignments,
                     distances,
+                    chunk_start..chunk_end,
                 );
             });
-
-            chunked_members.push(chunk_population);
         }
 
         self.executor.submit_blocking(batches);
 
-        self.restore_genotypes(ecosystem, chunked_members);
+        std::mem::swap(ecosystem.population_mut(), &mut population.write().unwrap());
         self.assign_unassigned(generation, ecosystem, &assignments.lock().unwrap());
 
         Ok(())
-    }
-
-    #[inline]
-    fn restore_genotypes(
-        &self,
-        ecosystem: &mut Ecosystem<C>,
-        chunked_members: Vec<Arc<RwLock<Vec<(usize, Genotype<C>)>>>>,
-    ) {
-        for chunks in chunked_members {
-            let mut chunks = chunks.write().unwrap();
-            let mut taken_genotypes = Vec::with_capacity(chunks.len());
-            std::mem::swap(&mut *chunks, &mut taken_genotypes);
-
-            for (idx, geno) in taken_genotypes {
-                ecosystem.get_phenotype_mut(idx).unwrap().set_genotype(geno);
-            }
-        }
     }
 
     #[inline]
@@ -120,7 +91,7 @@ where
                 continue;
             }
 
-            let genotype = ecosystem.get_genotype(i).unwrap();
+            let phenotype = ecosystem.get_phenotype(i).unwrap();
             let maybe_idx = ecosystem
                 .species()
                 .map(|specs| {
@@ -129,9 +100,7 @@ where
                             continue;
                         }
 
-                        let dist = self
-                            .distance
-                            .distance(genotype, species.mascot().genotype());
+                        let dist = self.distance.measure(phenotype, species.mascot());
 
                         if dist < self.threshold {
                             return Some(species_idx);
@@ -189,20 +158,23 @@ where
 
     #[inline]
     fn process_chunk(
-        population: Arc<RwLock<Vec<(usize, Genotype<C>)>>>,
-        species_mascots: Arc<Vec<Genotype<C>>>,
+        population: Arc<RwLock<Population<C>>>,
+        species_mascots: Arc<Vec<Phenotype<C>>>,
         threshold: f32,
-        distance: Arc<dyn Distance<Genotype<C>>>,
+        distance: Arc<dyn Diversity<C>>,
         assignments: Arc<Mutex<Vec<Option<usize>>>>,
         distances: Arc<Mutex<Vec<f32>>>,
+        range: std::ops::Range<usize>,
     ) {
         let mut inner_distances = Vec::new();
         let mut inner_assignments = Vec::new();
 
-        for (idx, individual) in population.read().unwrap().iter() {
+        let start = range.start;
+        let reader = population.read().unwrap();
+        for (idx, individual) in reader[range].iter().enumerate() {
             let mut assigned = None;
             for (idx, sp) in species_mascots.iter().enumerate() {
-                let dist = distance.distance(&individual, &sp);
+                let dist = distance.measure(individual.borrow(), &sp);
                 inner_distances.push(dist);
 
                 if dist < threshold {
@@ -212,7 +184,7 @@ where
             }
 
             if assigned.is_some() {
-                inner_assignments.push((*idx, assigned));
+                inner_assignments.push((start + idx, assigned));
             }
         }
 
@@ -229,7 +201,7 @@ where
     }
 
     #[inline]
-    fn generate_mascots(ecosystem: &mut Ecosystem<C>) -> Arc<Vec<Genotype<C>>>
+    fn generate_mascots(ecosystem: &mut Ecosystem<C>) -> Arc<Vec<Phenotype<C>>>
     where
         C: Clone,
     {
@@ -248,8 +220,8 @@ where
             ecosystem
                 .species_mascots()
                 .into_iter()
-                .map(|spec| spec.genotype().clone())
-                .collect::<Vec<Genotype<C>>>(),
+                .map(|spec| spec.clone())
+                .collect::<Vec<Phenotype<C>>>(),
         )
     }
 }

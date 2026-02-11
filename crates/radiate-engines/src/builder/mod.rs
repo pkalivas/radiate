@@ -23,7 +23,6 @@ use crate::{
 };
 use crate::{Generation, Result};
 use radiate_alters::{UniformCrossover, UniformMutator};
-use radiate_core::diversity::DistanceDiversityAdapter;
 use radiate_core::evaluator::BatchFitnessEvaluator;
 use radiate_core::problem::BatchEngineProblem;
 use radiate_core::{
@@ -396,9 +395,18 @@ where
             return None;
         }
 
+        // let lineage = config.lineage();
         let species_step = SpeciateStep {
             threshold: config.species_threshold(),
-            distance: Arc::new(DistanceDiversityAdapter::new(config.diversity().unwrap())),
+            distance: config.diversity().unwrap(),
+            // distance: Arc::new(move |one: &Phenotype<C>, two: &Phenotype<C>| {
+            //     // if one.family() == two.family() {
+            //     //     0.0
+            //     // } else {
+            //     //     1.0
+            //     // }
+            //     ((*one.family()).saturating_sub((*two.family())) as f32).abs()
+            // }),
             executor: config.species_executor(),
             objective: config.objective(),
             distances: Arc::new(Mutex::new(Vec::new())),

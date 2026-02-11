@@ -25,7 +25,7 @@
 #     return [sum(gene.number for gene in individual) for individual in phenotypes]
 
 
-# engine = rd.GeneticEngine(
+# engine = rd.Engine(
 #     rd.AnyCodec(ObjectGene() for _ in range(10)),
 #     fitness_func=fitness_function,
 #     objective="min",

@@ -27,17 +27,13 @@ def zdt3(val: np.ndarray) -> np.ndarray:
     return np.array([f1, f2], dtype=np.float64)
 
 
-engine = rd.GeneticEngine(
-    codec=rd.FloatCodec(variables, use_numpy=True),
-    fitness_func=zdt3,
-    offspring_selector=rd.TournamentSelector(k=5),
-    survivor_selector=rd.NSGA3Selector(points=12),
-    objective=["min" for _ in range(objectives)],
-    front_range=(200, 250),
-    alters=[
-        rd.SimulatedBinaryCrossover(1.0, 2.0),
-        rd.UniformMutator(0.1),
-    ],
+engine = (
+    rd.Engine.float(variables, use_numpy=True)
+    .fitness(zdt3)
+    .select(rd.TournamentSelector(k=5), rd.NSGA3Selector(points=12))
+    .objective("min", "min")
+    .front_range(200, 250)
+    .alters(rd.SimulatedBinaryCrossover(1.0, 2.0), rd.UniformMutator(0.1))
 )
 
 result = engine.run(rd.GenerationsLimit(2000), ui=True)

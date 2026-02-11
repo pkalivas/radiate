@@ -1,4 +1,4 @@
-use crate::{AnyValue, DataType};
+use super::{AnyValue, DataType};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Scalar {

@@ -1,10 +1,15 @@
 mod cell;
-pub(crate) mod value;
+pub mod dtype;
+mod field;
+mod scalar;
+mod value;
 
 use cell::GILOnceCell;
 
-pub use radiate::AnyValue;
-pub use radiate::Field;
+pub use dtype::*;
+pub use field::Field;
+pub use scalar::Scalar;
+pub use value::AnyValue;
 
 use pyo3::{
     Borrowed, Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python,

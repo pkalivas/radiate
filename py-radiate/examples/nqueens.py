@@ -33,7 +33,7 @@ def fitness_fn(queens: np.ndarray) -> int:
 
 codec = rd.IntCodec(N_QUEENS, (0, N_QUEENS), use_numpy=True, dtype=rd.UInt8)
 engine = (
-    rd.GeneticEngine(codec, fitness_fn)
+    rd.Engine(codec, fitness_fn)
     .minimizing()
     .select(offspring=rd.TournamentSelector(k=3))
     .alters(

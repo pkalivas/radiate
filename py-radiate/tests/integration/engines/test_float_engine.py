@@ -11,7 +11,7 @@ def test_engine_float_vector_maximization(random_seed):
     def fitness_func(x: list[float]) -> float:
         return sum(xi**2 for xi in x)
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=rd.FloatCodec.vector(length=3, init_range=(-1.0, 1.0)),
         fitness_func=fitness_func,
         objective="max",
@@ -40,7 +40,7 @@ def test_engine_float_matrix_minimization(random_seed):
         assert isinstance(x, np.ndarray)
         return np.sum(x**2)
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=rd.FloatCodec.matrix((2, 2), init_range=(-5.0, 5.0), use_numpy=True),
         fitness_func=fitness_func,
         objective="min",

@@ -7,7 +7,7 @@ def test_engine_graph_xor(xor_dataset, random_seed):
     """Test engine with graph codec for XOR problem."""
     inputs, outputs = xor_dataset
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=rd.GraphCodec.directed(
             shape=(2, 1),
             vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.linear()],
@@ -46,7 +46,7 @@ def test_engine_graph_regression_with_speciation(
         output=rd.Op.linear(),
     )
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=codec,
         fitness_func=rd.Regression(inputs, outputs),
         objective="min",
@@ -81,7 +81,7 @@ def test_engine_graph_with_recurrent_connections(memory_dataset, random_seed):
         output=rd.Op.sigmoid(),
     )
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=codec,
         fitness_func=rd.Regression(inputs, outputs),
         objective="min",
@@ -132,7 +132,7 @@ def test_engine_graph_recurrent_class_acc(memory_dataset, random_seed):
         output=rd.Op.sigmoid(),
     )
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=codec,
         fitness_func=rd.Regression(inputs, outputs, loss="cross_entropy"),
         objective="min",

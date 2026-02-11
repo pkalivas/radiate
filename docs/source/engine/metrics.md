@@ -89,7 +89,7 @@ These can be accessed through the `metrics()` method of the epoch, which returns
     import radiate as rd
 
     # Create an engine
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=rd.FloatCodec.scalar(0.0, 1.0), 
         fitness_fn=my_fitness_fn,  # Single objective fitness function
         # ... other parameters ...
@@ -162,7 +162,7 @@ All metrics have a sort of metadata which identifies them based on their charact
     import radiate as rd
 
     # Create the evolution engine
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=codec,
         fitness_func=fitness_function,
         # ... other parameters ...

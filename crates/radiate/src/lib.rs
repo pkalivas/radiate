@@ -1,8 +1,6 @@
 pub use radiate_core::{RadiateError, error::RadiateResult};
 pub use radiate_engines::*;
 
-#[cfg(feature = "any")]
-pub use radiate_any::*;
 #[cfg(feature = "gp")]
 pub use radiate_gp::*;
 #[cfg(feature = "pgm")]
@@ -14,8 +12,6 @@ pub mod prelude {
     pub use radiate_core::{RadiateError, error::RadiateResult};
     pub use radiate_engines::*;
 
-    #[cfg(feature = "any")]
-    pub use radiate_any::*;
     #[cfg(feature = "gp")]
     pub use radiate_gp::*;
     #[cfg(feature = "pgm")]

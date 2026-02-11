@@ -39,7 +39,7 @@ def dtlz_1(val: np.ndarray) -> np.ndarray:
     return f
 
 
-engine = rd.GeneticEngine(
+engine = rd.Engine(
     codec=rd.FloatCodec(variables, use_numpy=True),
     fitness_func=dtlz_1,
     offspring_selector=rd.TournamentSelector(k=5),

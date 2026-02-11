@@ -25,7 +25,7 @@ This is the default epoch for the engine - `Generation`. It contains:
     import radiate as rd
 
     # Create an engine
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=rd.FloatCodec.scalar(0.0, 1.0), 
         fitness_fn=my_fitness_fn,  # Single objective fitness function
         # ... other parameters ...
@@ -114,7 +114,7 @@ When the engine is configured for multi-objective optimization, the engine `Gene
     import radiate as rd
 
     # Create an engine
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=rd.FloatCodec.scalar(0.0, 1.0), 
         fitness_fn=my_fitness_fn,  # Multi-objective fitness function
         objective=['min', 'max', ...],  # Specify multi-objective optimization
@@ -196,7 +196,7 @@ Radiate provides multiple ways to run the `GeneticEngine`.
     import radiate as rd
 
     # Create an engine
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=rd.FloatCodec.scalar(0.0, 1.0), 
         fitness_func=my_fitness_fn,  # Some fitness function
         # ... other parameters ...
@@ -371,7 +371,7 @@ import threading
 import time
 
 # Create an engine
-engine = rd.GeneticEngine(
+engine = rd.Engine(
     codec=rd.FloatCodec.scalar(0.0, 1.0), 
     fitness_fn=my_fitness_fn,  # Some fitness function
     # ... other parameters ...

@@ -65,7 +65,7 @@ Continuing with our example from the preious sections - evolving a simple functi
     executor = rd.Executor.Serial()
 
     # Create the evolution engine
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=codec,
         fitness_func=fitness_function,
         offspring_selector=offspring_selector,

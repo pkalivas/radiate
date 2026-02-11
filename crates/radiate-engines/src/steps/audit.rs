@@ -258,6 +258,7 @@ impl<C: Chromosome> EngineStep<C> for AuditStep {
 
         {
             let lineage = self.lineage.read().unwrap();
+            Self::calc_lineage_metrics(generation, metrics, ecosystem, &lineage);
         }
 
         let pop = ecosystem.population();

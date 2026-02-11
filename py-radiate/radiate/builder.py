@@ -1,36 +1,128 @@
 from typing import Callable, Any
+from dataclasses import dataclass
+from collections import defaultdict
+
 from radiate.codec.base import CodecBase
 from radiate.genome.population import Population
+from radiate.genome.gene import Gene
 from radiate.fitness import FitnessBase
 from radiate.handlers import CallableEventHandler, EventHandler
 from radiate.radiate import PyEngine, PyEngineBuilder
 from radiate.generation import Generation
-from ._typing import Subscriber
+
 from .inputs.input import EngineInput, EngineInputType
-from .inputs.selector import SelectorBase
+from .inputs.selector import SelectorBase, TournamentSelector, RouletteSelector
 from .inputs.alterer import AlterBase
 from .inputs.distance import DistanceBase
 from .inputs.executor import Executor
 from .fitness import CallableFitness, Regression
 from .genome import GeneType
-from .dependancies import _GIL_ENABLED
+
+from ._typing import Subscriber
+from ._dependancies import _GIL_ENABLED
+
+
+@dataclass(slots=True)
+class EngineConfig[G, T]:
+    codec: CodecBase[G, T] | None = None
+    fitness_func: Callable[[T], Any] | FitnessBase[T] | None = None
+
+    population: Population[G] | None = None
+    offspring_selector: SelectorBase | None = None
+    survivor_selector: SelectorBase | None = None
+    alters: AlterBase | list[AlterBase] | None = None
+    diversity: DistanceBase | None = None
+
+    population_size: int = 100
+    offspring_fraction: float = 0.8
+    max_phenotype_age: int = 20
+    max_species_age: int = 20
+    species_threshold: float = 0.5
+
+    objective: str | list[str] = "max"
+    front_range: tuple[int, int] | None = (800, 900)
+    executor: Executor | None = None
+    subscribe: Subscriber | None = None
+    generation: Generation[T] | None = None
+    checkpoint_path: str | None = None
+
+    def normalize(self) -> "EngineConfig[G, T]":
+        # defaults / coercions / validation in one place
+        if self.fitness_func is None:
+            raise ValueError("A fitness function must be provided.")
+        if not (0 < self.offspring_fraction <= 1):
+            raise ValueError("offspring_fraction must be in (0, 1].")
+        if self.population_size <= 0:
+            raise ValueError("population_size must be > 0.")
+        if self.max_phenotype_age <= 0 or self.max_species_age <= 0:
+            raise ValueError("max ages must be > 0.")
+        if self.survivor_selector is None:
+            self.survivor_selector = TournamentSelector(k=3)
+        if self.offspring_selector is None:
+            self.offspring_selector = RouletteSelector()
+        return self
 
 
 class EngineBuilder:
-    def __init__(
-        self,
-        gene_type: GeneType,
-        codec: CodecBase,
-        fitness: FitnessBase,
-    ):
+    _inputs_by_type: defaultdict[list[EngineInput]] = defaultdict(list)
+
+    @classmethod
+    def _default(cls, gene_type: GeneType) -> "EngineBuilder":
+        instance = cls.__new__(cls)
+        instance._gene_type = gene_type
+        instance._inputs = []
+
+        default_inputs = EngineConfig()
+        instance.set_population(default_inputs.population)
+        instance.set_offspring_selector(
+            default_inputs.offspring_selector or TournamentSelector(3)
+        )
+        instance.set_survivor_selector(
+            default_inputs.survivor_selector or RouletteSelector()
+        )
+        instance.set_alters(default_inputs.alters)
+        instance.set_diversity(
+            default_inputs.diversity, default_inputs.species_threshold
+        )
+        instance.set_population_size(default_inputs.population_size)
+        instance.set_offspring_fraction(default_inputs.offspring_fraction)
+        instance.set_max_age(default_inputs.max_phenotype_age)
+        instance.set_max_species_age(default_inputs.max_species_age)
+        instance.set_objective(default_inputs.objective)
+        instance.set_front_range(*default_inputs.front_range)
+        instance.set_executor(default_inputs.executor)
+        instance.set_subscribers(default_inputs.subscribe)
+        instance.set_generation(default_inputs.generation)
+        instance.set_checkpoint_path(default_inputs.checkpoint_path)
+        return instance
+
+    @classmethod
+    def from_config(cls, config: EngineConfig) -> "EngineBuilder":
+        config = config.normalize()
+        instance = cls._default(config.codec.gene_type)
+        instance.set_codec(config.codec)
+        instance.set_fitness(config.fitness_func)
+        instance.set_population(config.population)
+        instance.set_offspring_selector(config.offspring_selector)
+        instance.set_survivor_selector(config.survivor_selector)
+        instance.set_alters(config.alters)
+        instance.set_diversity(config.diversity, config.species_threshold)
+        instance.set_population_size(config.population_size)
+        instance.set_offspring_fraction(config.offspring_fraction)
+        instance.set_max_age(config.max_phenotype_age)
+        instance.set_max_species_age(config.max_species_age)
+        instance.set_objective(config.objective)
+        if config.front_range is not None:
+            instance.set_front_range(*config.front_range)
+        instance.set_executor(config.executor)
+        instance.set_subscribers(config.subscribe)
+        instance.set_generation(config.generation)
+        instance.set_checkpoint_path(config.checkpoint_path)
+        return instance
+
+    def __init__(self, gene_type: GeneType):
         self._inputs = []
         self._gene_type = gene_type
-        self._codec = codec
-
-        if isinstance(fitness, Callable):
-            self.fitness = CallableFitness(fitness)
-        else:
-            self.fitness = fitness
 
     def __repr__(self):
         input_strs = ", \n".join(repr(inp) for inp in self._inputs)
@@ -38,15 +130,58 @@ class EngineBuilder:
 
     def build(self) -> PyEngine:
         """Build the PyEngine instance."""
+        # fitness_input = filter(
+        #     lambda inp: inp.input_type == EngineInputType.FitnessFunction, self._inputs
+        # )
+        # executor_input = filter(
+        #     lambda inp: inp.input_type == EngineInputType.Executor, self._inputs
+        # )
+
+        # if not any(fitness_input):
+        #     raise ValueError("Fitness function must be set before building the engine.")
+        # else:
+        #     if isinstance(self.fitness, Regression) and _GIL_ENABLED:
+        #         # Force serial executor for regression tasks to avoid GIL issues
+        #         self.set_executor(Executor.Serial())
+        for inp in self._inputs:
+            print(inp)
         builder = PyEngineBuilder(
-            codec=self._codec.__backend__(),
-            problem=self.fitness.problem,
             inputs=[self_input.__backend__() for self_input in self._inputs],
         )
         return builder.build()
 
     def inputs(self) -> list[EngineInput]:
         return self._inputs
+
+    def set_codec(self, codec: CodecBase):
+        if self._gene_type != codec.gene_type:
+            raise ValueError(
+                f"Codec {codec.component} does not support gene type {self._gene_type}"
+            )
+
+        self._inputs.append(
+            EngineInput(
+                input_type=EngineInputType.Codec,
+                component="codec",
+                codec=codec.__backend__(),
+            )
+        )
+
+        return self
+
+    def set_fitness(self, fitness: FitnessBase | Callable[[Any], Any]):
+        if isinstance(fitness, Callable):
+            fitness = CallableFitness(fitness)
+
+        self._inputs.append(
+            EngineInput(
+                input_type=EngineInputType.FitnessFunction,
+                component="fitnessfunction",
+                fitness=fitness.__backend__(),
+            )
+        )
+
+        return self
 
     def set_subscribers(self, subscriber: Subscriber | None):
         if subscriber is None:
@@ -240,7 +375,8 @@ class EngineBuilder:
             )
 
     def set_objective(
-        self, objective: list[str] | str, front_range: tuple[int, int] | None = None
+        self,
+        objective: list[str] | str,
     ):
         if isinstance(objective, str):
             objective = [objective]
@@ -255,20 +391,23 @@ class EngineBuilder:
             )
         )
 
-        if front_range is not None and len(objective) > 1:
-            self._inputs.append(
-                EngineInput(
-                    input_type=EngineInputType.FrontRange,
-                    component="FrontRange",
-                    min=front_range[0],
-                    max=front_range[1],
-                )
+    def set_front_range(self, min: int, max: int):
+        if min < 0 or max < 0:
+            raise ValueError("Front range values must be non-negative.")
+        if min >= max:
+            raise ValueError("Front range min must be less than max.")
+
+        self._inputs.append(
+            EngineInput(
+                input_type=EngineInputType.FrontRange,
+                component="FrontRange",
+                min=min,
+                max=max,
             )
+        )
 
     def set_executor(self, executor: Executor):
         if executor is None:
-            executor = Executor.Serial()
-        elif not isinstance(self.fitness, Regression) and _GIL_ENABLED:
             executor = Executor.Serial()
 
         self._inputs.append(

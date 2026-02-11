@@ -30,6 +30,8 @@ pub enum PyEngineInputType {
     Subscriber,
     Generation,
     Checkpoint,
+    Codec,
+    FitnessFunction,
 }
 
 #[pyclass(from_py_object)]

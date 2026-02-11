@@ -91,7 +91,7 @@ This simple maximizing problem demonstrates how to use Radiate to solve a string
         def fitness_func(x: list[str]) -> int:
             return sum(1 for i in range(len(target)) if x[i] == target[i])
 
-        engine = rd.GeneticEngine(
+        engine = rd.Engine(
             codec=rd.CharCodec.vector(len(target)),
             fitness_func=fitness_func,
             offspring_selector=rd.BoltzmannSelector(4),

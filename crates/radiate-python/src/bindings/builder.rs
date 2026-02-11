@@ -3,7 +3,7 @@ use crate::bindings::{EngineBuilderHandle, EngineHandle};
 use crate::events::PyEventHandler;
 use crate::{
     FreeThreadPyEvaluator, InputTransform, PyCodec, PyEngine, PyEngineInput, PyEngineInputType,
-    PyFitnessFn, PyFitnessInner, PyPermutationCodec, PyPopulation, prelude::*,
+    PyFitnessFn, PyFitnessInner, PyPermutationCodec, PyPopulation, prelude::*, radiate,
 };
 use crate::{PyGeneration, PySubscriber};
 use pyo3::{Py, PyAny, pyclass, pymethods, types::PyAnyMethods};
@@ -50,20 +50,14 @@ macro_rules! dispatch_builder_typed {
 
 #[pyclass]
 pub struct PyEngineBuilder {
-    pub codec: Py<PyAny>,
-    pub problem: Py<PyAny>,
     pub inputs: Vec<PyEngineInput>,
 }
 
 #[pymethods]
 impl PyEngineBuilder {
     #[new]
-    pub fn new(codec: Py<PyAny>, problem: Py<PyAny>, inputs: Vec<PyEngineInput>) -> Self {
-        PyEngineBuilder {
-            codec,
-            problem,
-            inputs,
-        }
+    pub fn new(inputs: Vec<PyEngineInput>) -> PyResult<Self> {
+        Ok(PyEngineBuilder { inputs })
     }
 
     pub fn build<'py>(&mut self, py: Python<'py>) -> PyResult<PyEngine> {
@@ -109,19 +103,11 @@ impl PyEngineBuilder {
     fn create_builder<'py>(&self, py: Python<'py>) -> PyResult<EngineBuilderHandle> {
         use PyFitnessInner::*;
 
-        let problem = self.problem.bind(py).extract::<PyFitnessFn>()?;
-        let codec = self.codec.bind(py);
+        let (fitness, codec, executor) = Self::get_and_check_base_inputs(py, &self.inputs)?;
 
-        let executor = self
-            .inputs
-            .iter()
-            .filter(|i| i.input_type == PyEngineInputType::Executor)
-            .filter_map(|input| input.transform())
-            .next()
-            .unwrap_or(Executor::Serial);
-
-        match problem.inner {
-            custom @ Custom(..) => Self::init_custom_builder(codec, custom, executor),
+        let codec = codec.bind(py);
+        match fitness {
+            custom @ Custom(..) => Self::init_custom_builder(custom, codec, executor),
             reg @ Regression(..) => Self::init_regression_builder(reg, codec, executor),
             novelty @ NoveltySearch(..) => Self::init_novelty_builder(novelty, codec, executor),
         }
@@ -424,8 +410,8 @@ impl PyEngineBuilder {
     }
 
     fn init_custom_builder<'py>(
-        codec: &Bound<'py, PyAny>,
         fitness: PyFitnessInner,
+        codec: &Bound<'py, PyAny>,
         executor: Executor,
     ) -> PyResult<EngineBuilderHandle> {
         use EngineBuilderHandle::*;
@@ -635,5 +621,51 @@ impl PyEngineBuilder {
         move |builder: GeneticEngineBuilder<C, T>,
               inputs: &[PyEngineInput]|
               -> PyResult<GeneticEngineBuilder<C, T>> { processor(builder, inputs) }
+    }
+
+    fn get_and_check_base_inputs<'py>(
+        py: Python<'py>,
+        inputs: &[PyEngineInput],
+    ) -> PyResult<(PyFitnessInner, Py<PyAny>, Executor)> {
+        use PyFitnessInner::*;
+
+        let gil_enabled = radiate(py)
+            .getattr(py, "_GIL_ENABLED")?
+            .extract::<bool>(py)?;
+
+        let codec = Self::get_input_of_type(&inputs, PyEngineInputType::Codec)
+            .map(|codec| codec.extract::<Py<PyAny>>("codec"))
+            .unwrap_or(Err(radiate_py_err!(
+                "EngineBuilder requires a Codec input."
+            )))?;
+
+        let problem = Self::get_input_of_type(&inputs, PyEngineInputType::FitnessFunction)
+            .map(|fitness| fitness.extract::<PyFitnessFn>("fitness"))
+            .unwrap_or(Err(radiate_py_err!(
+                "EngineBuilder requires a FitnessFunction input."
+            )))?;
+
+        let executor = Self::get_input_of_type(&inputs, PyEngineInputType::Executor)
+            .and_then(|input| InputTransform::<Option<Executor>>::transform(input))
+            .unwrap_or(Executor::Serial);
+
+        if executor.is_parallel() && gil_enabled && !matches!(problem.inner, Regression(_, _)) {
+            radiate_py_bail!(
+                "Parallel execution is not supported for non-regression fitness functions
+                 when the GIL is enabled. Please disable the GIL or use the 'Executor.Serial()' executor."
+            );
+        }
+
+        Ok((problem.inner, codec, executor))
+    }
+
+    fn get_input_of_type<'a>(
+        inputs: &'a [PyEngineInput],
+        input_type: PyEngineInputType,
+    ) -> Option<&'a PyEngineInput> {
+        inputs
+            .iter()
+            .rev()
+            .find(|inp| inp.input_type() == input_type)
     }
 }

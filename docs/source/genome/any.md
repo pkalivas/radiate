@@ -30,7 +30,7 @@ Simply inherit from `rd.AnyGene` and implement the `__init__` function, then any
     def fitness_function(phenotypes: list[list[ObjectGene]]) -> list[float]:
         return [sum(gene.number for gene in individual) for individual in phenotypes]
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         rd.AnyCodec(ObjectGene() for _ in range(10)),
         fitness_func=rd.BatchFitness(fitness_function),
         objective="min",

@@ -304,12 +304,7 @@ impl PyGeneration {
     }
 
     pub fn dtype<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-        let population = self.population();
-        let first = population.phenotypes.first().ok_or_else(|| {
-            pyo3::exceptions::PyValueError::new_err("Population is empty, cannot determine dtype")
-        })?;
-
-        first.genotype.dtype(py)
+        self.population().dtype(py)
     }
 
     pub fn __repr__(&self, py: Python) -> PyResult<String> {

@@ -119,7 +119,7 @@ class MazeSolver:
 def run_maze_evolution(
     maze_solver: MazeSolver, generations: int = 100
 ) -> rd.Generation[list[MazeWaypoint]]:
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=maze_solver.codec,
         fitness_func=maze_solver.calculate_path_length,
         survivor_selector=rd.TournamentSelector(3),

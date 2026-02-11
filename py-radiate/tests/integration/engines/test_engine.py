@@ -20,7 +20,7 @@ def test_engine_maintains_population_size(random_seed):
     codec = rd.FloatCodec.vector(N_GENES, init_range=(-RANGE, RANGE))
     population = rd.Population(rd.Phenotype(codec.encode()) for _ in range(107))
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec,
         fitness_fn,
         population,
@@ -60,7 +60,7 @@ def test_engine_batch_fitness():
     codec = rd.FloatCodec.vector(N_GENES, init_range=(-RANGE, RANGE))
     population = rd.Population(rd.Phenotype(codec.encode()) for _ in range(107))
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec,
         fitness_func=rd.BatchFitness(fitness_fn),
         population=population,
@@ -84,7 +84,7 @@ def test_engine_multi_objective(random_seed):
         # Two objectives: minimize sum, maximize product
         return [sum(x), np.prod(x)]
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=rd.FloatCodec.vector(length=3, init_range=(-1.0, 1.0)),
         fitness_func=fitness_func,
         objective=["min", "max"],

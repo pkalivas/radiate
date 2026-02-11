@@ -5,7 +5,7 @@ import pytest
 @pytest.mark.integration
 def test_generation_metrics(random_seed):
     num_genes = 5
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=rd.IntCodec.vector(num_genes, init_range=(0, 10)),
         fitness_func=lambda x: sum(x),
         objective="min",
@@ -15,8 +15,8 @@ def test_generation_metrics(random_seed):
 
     metrics = result.metrics()
 
-    assert len(metrics) == 23
-    assert len(metrics.keys()) == 23
+    assert len(metrics) == 32
+    assert len(metrics.keys()) == 32
     for key in metrics.keys():
         assert key in metrics
 
@@ -83,7 +83,7 @@ def test_metrics_from_events(random_seed):
                     assert metrics[key].max() is not None
                     assert metrics[key].count() is not None
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=rd.IntCodec.vector(5, (0, 10)),
         fitness_func=lambda x: sum(x),
         objective="min",
@@ -95,7 +95,7 @@ def test_metrics_from_events(random_seed):
 
 @pytest.mark.integration
 def test_metric_tags(random_seed):
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=rd.IntCodec.vector(5, (0, 10)),
         fitness_func=lambda x: sum(x),
         objective="min",

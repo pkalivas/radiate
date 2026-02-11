@@ -10,7 +10,7 @@ def test_engine_permutation_tsp(random_seed):
     def fitness_func(x: list[int]) -> float:
         return sum(abs(x[i] - x[i - 1]) for i in range(1, len(x)))
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=rd.PermutationCodec([0, 1, 2, 3, 4]),
         fitness_func=fitness_func,
         objective="min",

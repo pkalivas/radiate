@@ -5,6 +5,36 @@ from inspect import isclass
 from typing import Iterator
 
 
+class Field:
+    """
+    Definition of a single field within a `Struct` DataType.
+
+    Parameters
+    ----------
+    name
+        The name of the field within its parent `Struct`.
+    dtype
+        The `DataType` of the field's values.
+    """
+
+    name: str
+    dtype: DataType | DataTypeClass
+
+    def __init__(self, name: str, dtype: DataType | DataTypeClass) -> None:
+        self.name = name
+        self.dtype = dtype
+
+    def __eq__(self, other) -> bool:  # type: ignore[override]
+        return (self.name == other.name) & (self.dtype == other.dtype)
+
+    def __hash__(self) -> int:
+        return hash((self.name, self.dtype))
+
+    def __repr__(self) -> str:
+        class_name = self.__class__.__name__
+        return f"{class_name}({self.name!r}, {self.dtype})"
+
+
 class DataTypeClass(type):
     def __getitem__(cls, item):
         return cls(item)
@@ -144,48 +174,20 @@ class String(DataType):
     """UTF-8 encoded string type."""
 
 
+class Char(DataType):
+    """Single character string type."""
+
+
 class Null(DataType):
     """Null type, representing the absence of a value."""
 
 
-"""
-Struct Type
------------------------
-"""
+class Op32(DataType):
+    """Data type representing a 32-bit operation, used for graph and tree nodes."""
 
 
 class NestedType(DataType):
     """Base class for nested data types."""
-
-
-class Field:
-    """
-    Definition of a single field within a `Struct` DataType.
-
-    Parameters
-    ----------
-    name
-        The name of the field within its parent `Struct`.
-    dtype
-        The `DataType` of the field's values.
-    """
-
-    name: str
-    dtype: DataType | DataTypeClass
-
-    def __init__(self, name: str, dtype: DataType | DataTypeClass) -> None:
-        self.name = name
-        self.dtype = dtype
-
-    def __eq__(self, other) -> bool:  # type: ignore[override]
-        return (self.name == other.name) & (self.dtype == other.dtype)
-
-    def __hash__(self) -> int:
-        return hash((self.name, self.dtype))
-
-    def __repr__(self) -> str:
-        class_name = self.__class__.__name__
-        return f"{class_name}({self.name!r}, {self.dtype})"
 
 
 class Struct(NestedType):
@@ -277,3 +279,54 @@ class List(NestedType):
     def __repr__(self) -> str:
         class_name = self.__class__.__name__
         return f"{class_name}({self.inner!r})"
+    
+    def __str__(self) -> str:
+        class_name = self.__class__.__name__
+        return f"{class_name}({self.inner})"
+
+
+class Node(NestedType):
+    """
+    Node data type, representing a graph or tree node with an associated operation.
+    Parameters
+    ----------
+    inner    The `DataType` of the operation associated with the node. Typically this will be `Op32`, which represents a 32-bit operation.
+    Examples
+    --------
+    >>> node_dtype = Node(Op32)
+    >>> node_dtype
+    Node(Op32)
+    >>> node_dtype == Node(Op32)
+    True
+    >>> node_dtype == Node(String)
+    False
+    >>> node_dtype == Node
+    True
+    >>> Node == node_dtype
+    True
+    """
+
+    inner: DataTypeClass | DataType
+
+    def __init__(self, inner: DataTypeClass | DataType) -> None:
+        self.inner = inner
+
+    def __eq__(self, other: DataTypeClass | DataType) -> bool:  # type: ignore[override]
+        # allow comparing object instances to class
+        if type(other) is DataTypeClass and issubclass(other, List):
+            return True
+        elif isinstance(other, List):
+            return self.inner == other.inner
+        else:
+            return False
+
+    def __hash__(self) -> int:
+        return hash((self.__class__, self.inner))
+
+    def __repr__(self) -> str:
+        class_name = self.__class__.__name__
+        return f"{class_name}({self.inner!r})"
+    
+    def __str__(self) -> str:
+        class_name = self.__class__.__name__
+        return f"{class_name}({self.inner})"

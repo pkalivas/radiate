@@ -360,7 +360,7 @@ class SnakeEvolver:
             output=rd.Op.sigmoid(),
         )
 
-        engine = rd.GeneticEngine(
+        engine = rd.Engine(
             codec,
             SnakeEvolver.fitness_function,
             offspring_selector=rd.TournamentSelector(4),

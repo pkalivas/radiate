@@ -39,7 +39,7 @@ The `minimizing()` method configures the genetic algorithm to find the minimum v
 
     codec = rd.FloatCodec.vector(10, init_range=(0.0, 1.0))  # Example codec
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=codec,
         fitness_func=lambda x: sum(x),  # value to minimize
         objective="min" # Configure for minimization
@@ -47,7 +47,7 @@ The `minimizing()` method configures the genetic algorithm to find the minimum v
     )
     
     # Or using builder pattern
-    engine = rd.GeneticEngine(codec=codec, fitness_func=lambda x: sum(x))
+    engine = rd.Engine(codec=codec, fitness_func=lambda x: sum(x))
     engine.minimizing()
     ```
 
@@ -89,7 +89,7 @@ This is the default option for the `GeneticEngine`, so you don't really need to 
 
     codec = rd.FloatCodec.vector(10, (0.0, 1.0))  # Example codec
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=codec,
         fitness_func=lambda x: sum(x),  # return a value to maximize
         objective="max"
@@ -97,7 +97,7 @@ This is the default option for the `GeneticEngine`, so you don't really need to 
     )
     
     # Or using builder pattern
-    engine = rd.GeneticEngine(codec=codec, fitness_func=lambda x: sum(x))
+    engine = rd.Engine(codec=codec, fitness_func=lambda x: sum(x))
     engine.maximizing()
     ```
 
@@ -145,7 +145,7 @@ Use `multi_objective()` with a list of optimization directions to configure mult
     
     codec = rd.FloatCodec.vector(10, (0.0, 1.0))  # Example codec
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=codec,
         fitness_func=lambda x: [obj1_fitness_func(x), obj2_fitness_func(x)],  # Return list of objectives
         objective=["min", "max"]  # Minimize obj1, maximize obj2
@@ -154,7 +154,7 @@ Use `multi_objective()` with a list of optimization directions to configure mult
     )
     
     # Or using builder pattern
-    engine = rd.GeneticEngine(codec=codec, fitness_func=lambda x: [obj1_fitness_func(x), obj2_fitness_func(x)])
+    engine = rd.Engine(codec=codec, fitness_func=lambda x: [obj1_fitness_func(x), obj2_fitness_func(x)])
     engine.multi_objective(["min", "max"], front_range=(800, 900))
     ```
 
@@ -200,7 +200,7 @@ Although, any selector can be used, these are optimized for multi-objective prob
     ```python
     import radiate as rd
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=rd.FloatCodec.vector(10, (0.0, 1.0)),  # Example codec
         fitness_func=lambda x: [obj1(x), obj2(x)],
         front_range=(800, 900),  # Pareto front size range

@@ -29,6 +29,8 @@ class EngineInputType(Enum):
     Subscriber = "Subscriber"
     Generation = "Generation"
     Checkpoint = "Checkpoint"
+    Codec = "Codec"
+    FitnessFunction = "FitnessFunction"
 
 
 input_type_mapping = {
@@ -49,6 +51,8 @@ input_type_mapping = {
     EngineInputType.Subscriber: PyEngineInputType.Subscriber,
     EngineInputType.Generation: PyEngineInputType.Generation,
     EngineInputType.Checkpoint: PyEngineInputType.Checkpoint,
+    EngineInputType.Codec: PyEngineInputType.Codec,
+    EngineInputType.FitnessFunction: PyEngineInputType.FitnessFunction,
 }
 
 
@@ -79,3 +83,6 @@ class EngineInput(RsObject[PyEngineInput]):
             args={k: v for k, v in kwargs.items()},
             rate=rate.__backend__() if rate else None,
         )
+
+    def __str__(self) -> str:
+        return self.__backend__().__str__()

@@ -13,4 +13,4 @@ serde_json = { workspace = true }
 num-traits = { workspace = true }
 radiate-error = { workspace = true, features = ["python"] }
 radiate-utils = { workspace = true, features = ["serde"] }
-radiate = { workspace = true, features = ["gp", "rayon", "serde", "ui", "any"] }
+radiate = { workspace = true, features = ["gp", "rayon", "serde", "ui"] }
