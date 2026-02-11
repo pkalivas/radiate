@@ -1,5 +1,5 @@
 from typing import Dict, Any, List, Callable
-from .component import ComponentBase
+from .base import ComponentBase
 from ..metrics import Metric
 
 class LimitBase(ComponentBase):

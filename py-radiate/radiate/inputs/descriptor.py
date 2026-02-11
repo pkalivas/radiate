@@ -1,5 +1,5 @@
 from radiate.genome import GeneType
-from .component import ComponentBase
+from .base import ComponentBase
 from typing import Callable, Dict, Any, List
 
 

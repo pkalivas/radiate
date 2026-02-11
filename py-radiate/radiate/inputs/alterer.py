@@ -3,7 +3,7 @@ from typing import Any
 from radiate.genome.population import Population
 from radiate.inputs.input import EngineInput, EngineInputType
 from radiate.inputs.rate import Rate
-from .component import ComponentBase
+from .base import ComponentBase
 from ..genome import GeneType
 
 

@@ -2,9 +2,8 @@ from typing import Any
 
 from radiate.genome.population import Population
 from radiate.inputs.input import EngineInput, EngineInputType
-from .component import ComponentBase
+from .base import ComponentBase
 from ..genome import GENE_TYPE_MAPPING, GeneType
-from dataclasses import dataclass
 
 
 class SelectorBase(ComponentBase):

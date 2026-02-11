@@ -115,7 +115,7 @@ from .dtype import (
     Node,
 )
 
-from .dsl import Select, Dist, Mutate, Cross, Dist, Limit as lim
+from .dsl import Select, Mutate, Cross, Dist, Limit as lim
 
 from ._dependancies import (
     _GIL_ENABLED,
@@ -270,3 +270,5 @@ __all__ = [
     "MAX",
     # "Limit",
 ]
+
+
