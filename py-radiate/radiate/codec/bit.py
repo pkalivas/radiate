@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Any
 
 
 from .base import CodecBase
@@ -34,12 +35,12 @@ class BitCodec[T](CodecBase[bool, T], RsObject):
                 raise ValueError(
                     "Shape must be an int, tuple of ints, or list of ints."
                 )
-        elif genes is not None:
-            self._pyobj = self.__from_genes(genes=genes, use_numpy=use_numpy)
-        elif chromosomes is not None:
-            self._pyobj = self.__from_chromosomes(
-                chromosomes=chromosomes, use_numpy=use_numpy
-            )
+        # elif genes is not None:
+        #     self._pyobj = self.__from_genes(genes=genes, use_numpy=use_numpy)
+        # elif chromosomes is not None:
+        #     self._pyobj = self.__from_chromosomes(
+        #         chromosomes=chromosomes, use_numpy=use_numpy
+        #     )
         else:
             raise ValueError("Shape must be provided.")
 
@@ -59,6 +60,9 @@ class BitCodec[T](CodecBase[bool, T], RsObject):
         if not isinstance(genotype, Genotype):
             raise TypeError("genotype must be an instance of Genotype.")
         return self.__backend__().decode_py(genotype.__backend__())
+
+    def __build__backend__(self) -> Any:
+        return super().__build__backend__()
 
     @staticmethod
     def from_genes(

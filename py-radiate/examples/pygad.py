@@ -41,7 +41,10 @@ print(f"dtype: {result.dtype()}")
 
 print(result.metrics().dashboard())
 
-codec = [rd.Gene.float(init_range=(-4.0, 4.0)) for _ in range(len(function_inputs))]
-e = rd.Engine(codec=codec, fitness_func=fitness, objective=rd.MIN)
+codec = rd.FloatCodec(len(function_inputs), (-4.0, 4.0), use_numpy=True)
+print(codec.encode())
 
-t = e.run(rd.ScoreLimit(0.01), log=True)
+# codec = [rd.Gene.float(init_range=(-4.0, 4.0)) for _ in range(len(function_inputs))]
+# e = rd.Engine(codec=codec, fitness_func=fitness, objective=rd.MIN)
+
+# t = e.run(rd.ScoreLimit(0.01), log=True)

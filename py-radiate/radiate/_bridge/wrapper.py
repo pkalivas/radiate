@@ -15,7 +15,7 @@ class RsObject(ABC):
     """
 
     __slots__ = ["_pyobj", "_cache", "_dtype"]
-    _pyobj: Any 
+    _pyobj: Any
     _cache: dict[str, Any]
 
     def __init__(self, pyobj: Any = None):

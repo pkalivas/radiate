@@ -1,69 +1,69 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Self
 from abc import ABC, abstractmethod
 
-from radiate.genome import Gene
+from radiate._bridge import RsObject
+from radiate.genome import Genotype, GeneType
 
 if TYPE_CHECKING:
     from radiate.genome import Genotype, GeneType
-    # from radiate._typing import Encoding
 
 
-class CodecBase[T, D](ABC):
+class CodecBase[A, T](RsObject, ABC):
     gene_type: "GeneType"
 
-    @abstractmethod
-    def encode(self) -> "Genotype[T]":
-        raise NotImplementedError("encode method must be implemented by subclasses.")
+    def __init__(self, shape: int | Sequence[int]):
+        super().__init__()
+        self._shape = self._validate_shape(shape)
+
+    def __backend__(self) -> Any:
+        if self._pyobj is None:
+            self._pyobj = self.__build__backend__()
+        return self._pyobj
 
     @abstractmethod
-    def decode(self, genotype: "Genotype[T]") -> D:
-        raise NotImplementedError("decode method must be implemented by subclasses.")
+    def __build__backend__(self) -> Any:
+        """Build the backend object. Must be implemented by subclasses."""
+        raise NotImplementedError("Subclasses must implement __build__backend__()")
 
-    @abstractmethod
-    def from_genes(
-        genes: Gene[T] | Sequence[Gene[T]] | Sequence[Sequence[Gene[T]]],
-        use_numpy: bool = False,
-    ) -> "CodecBase[T, D] | None":
-        return None
+    def encode(self) -> Genotype[A]:
+        return Genotype.from_rust(self.__backend__().encode_py())
+
+    def decode(self, genotype: Genotype[A]) -> T:
+        if not isinstance(genotype, Genotype):
+            raise TypeError("genotype must be an instance of Genotype.")
+        return self.__backend__().decode_py(genotype.__backend__())
+
+    def _validate_shape(self, shape: int | Sequence[int]) -> list[int]:
+        if isinstance(shape, int):
+            if shape <= 0:
+                raise ValueError("Shape must be a positive integer.")
+            return [shape]
+        elif isinstance(shape, Sequence):
+            if not all(isinstance(dim, int) and dim > 0 for dim in shape):
+                raise ValueError("All dimensions in shape must be positive integers.")
+            return list(shape)
+        else:
+            return [1]
 
 
-# type Temp = "Gene" | Sequence["Gene"] | Sequence[Sequence["Gene"]] | "CodecBase"
+class ShapedCodec[A, T](CodecBase[A, T], ABC):
+    def __init__(
+        self,
+        shape: int | Sequence[int],
+    ):
+        super().__init__(shape)
 
+    @classmethod
+    def scalar(cls, **kwargs) -> Self:
+        return cls(shape=[1], **kwargs)
 
-# def extract_codec[A, T](encoding: Temp) -> CodecBase[A, T]:
-#     from radiate.genome import Gene
-#     from .bit import BitCodec
-#     from .char import CharCodec
-#     from .float import FloatCodec
-#     from .int import IntCodec
+    @classmethod
+    def vector(cls, length: int, **kwargs) -> Self:
+        return cls(shape=length, **kwargs)
 
-#     if isinstance(encoding, CodecBase):
-#         return encoding
-#     elif isinstance(encoding, Gene):
-#         match encoding.gene_type():
-#             case GeneType.FLOAT:
-#                 return FloatCodec.from_gene(encoding)
-#             case GeneType.INT:
-#                 return IntCodec.from_gene(encoding)
-#             case GeneType.BIT:
-#                 return BitCodec.from_gene(encoding)
-#             case GeneType.CHAR:
-#                 return CharCodec.from_gene(encoding)
-#             case _:
-#                 raise TypeError(f"Unsupported gene type: {encoding.gene_type()}")
-#     #     return encoding.codec()
-#     # elif isinstance(encoding, Sequence) and all(isinstance(g, Gene) for g in encoding):
-#     #     return encoding[0].codec()
-#     # elif (
-#     #     isinstance(encoding, Sequence)
-#     #     and all(isinstance(seq, Sequence) for seq in encoding)
-#     #     and all(isinstance(g, Gene) for seq in encoding for g in seq)
-#     # ):
-#     #     return encoding[0][0].codec()
-#     # else:
-#     #     raise TypeError(
-#     #         "Encoding must be a CodecBase instance, a Gene, a sequence of Genes, or a sequence of sequences of Genes."
-#     #     )
+    @classmethod
+    def matrix(cls, shape: Sequence[int], **kwargs) -> Self:
+        return cls(shape=shape, **kwargs)

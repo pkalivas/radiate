@@ -91,6 +91,23 @@ impl TypedNumericCodec {
                 .into_bound_py_any(py),
         }
     }
+
+    pub fn dtype(&self) -> DataType {
+        match self {
+            TypedNumericCodec::U8(_) => DataType::UInt8,
+            TypedNumericCodec::U16(_) => DataType::UInt16,
+            TypedNumericCodec::U32(_) => DataType::UInt32,
+            TypedNumericCodec::U64(_) => DataType::UInt64,
+            TypedNumericCodec::U128(_) => DataType::UInt128,
+            TypedNumericCodec::I8(_) => DataType::Int8,
+            TypedNumericCodec::I16(_) => DataType::Int16,
+            TypedNumericCodec::I32(_) => DataType::Int32,
+            TypedNumericCodec::I64(_) => DataType::Int64,
+            TypedNumericCodec::I128(_) => DataType::Int128,
+            TypedNumericCodec::F32(_) => DataType::Float32,
+            TypedNumericCodec::F64(_) => DataType::Float64,
+        }
+    }
 }
 
 pub struct NumericCodecBuilder<T> {
