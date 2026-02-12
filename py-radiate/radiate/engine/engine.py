@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Callable
+from typing import Any
+from collections.abc import Callable, Sequence
 
 from radiate.codec import (
     FloatCodec,
@@ -17,6 +18,7 @@ from radiate.fitness import FitnessBase, Regression
 from radiate.genome import Population, GeneType, Gene
 from radiate.gp import Graph, Tree, Op
 from radiate.dtype import Float64, Int64
+from radiate.codec.base import CodecBase
 
 from radiate._bridge.input import EngineInput, EngineInputType
 from radiate._typing import (
@@ -32,7 +34,7 @@ from .generation import Generation
 from .option import EngineCheckpoint, EngineLog, EngineUi
 
 
-class Engine[G: Gene, T]:
+class Engine[G, T]:
     """
     Genetic Engine for optimization problems.
     This class serves as the main interface for running genetic algorithms, allowing
@@ -41,16 +43,23 @@ class Engine[G: Gene, T]:
 
     def __init__(
         self,
-        codec: Encoding[T] | None = None,
+        codec: Encoding[G],
         **kwargs: Any,
     ):
-        self._engine = None
-        if codec is not None:
-            self._builder = EngineBuilder._default(
-                codec.gene_type, codec=codec, **kwargs
-            )
+        encoding = None
+        if not isinstance(codec, CodecBase):
+            encoding = CodecBase.from_genes(codec)
         else:
-            self._builder = EngineBuilder._default(GeneType.Float, **kwargs)
+            encoding = codec
+
+        print(f"Initialized engine with encoding: {encoding}")
+        self._engine = None
+        if encoding is not None:
+            self._builder = EngineBuilder._default(
+                encoding.gene_type, codec=encoding, **kwargs
+            )
+
+            # self._builder = EngineBuilder()
 
     @classmethod
     def float(

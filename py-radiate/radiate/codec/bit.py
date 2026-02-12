@@ -186,10 +186,13 @@ class BitCodec[T](CodecBase[bool, T], RsObject):
         use_numpy: bool,
     ) -> PyBitCodec:
         from radiate.genome import GeneType
+
         if isinstance(chromosomes, Chromosome):
             chromosomes = [chromosomes]
         if not all(isinstance(c, Chromosome) for c in chromosomes):
-            raise TypeError("chromosomes must be a list or tuple of Chromosome instances.")
+            raise TypeError(
+                "chromosomes must be a list or tuple of Chromosome instances."
+            )
         if not all(g.gene_type() == GeneType.BIT for c in chromosomes for g in c):
             raise TypeError("All chromosomes must be of type 'bool'.")
 

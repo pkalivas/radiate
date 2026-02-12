@@ -103,7 +103,7 @@ class EngineBuilder:
 
         if self._gene_type != codec.gene_type:
             raise ValueError(
-                f"Codec {codec.component} does not support gene type {self._gene_type}"
+                f"Codec {codec} does not support gene type {self._gene_type}"
             )
 
         self._inputs.append(

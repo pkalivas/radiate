@@ -48,7 +48,7 @@ class Gene[T](RsObject):
     def __repr__(self):
         return f"{self.gene_type().value}({self.allele()}, dtype={self.dtype()})"
 
-    def gene_type(self) -> "GeneType":
+    def gene_type(self) -> GeneType:
         """
         Get the type of the gene.
         :return: The type of the gene as a string.

@@ -25,7 +25,7 @@ class GraphCodec(CodecBase[Op, Graph], RsObject):
         input_size, output_size = shape
         if input_size < 1 or output_size < 1:
             raise ValueError("Input and output size must be at least 1")
-        
+
         config = OpsConfig(
             vertex=vertex, edge=edge, output=output, values=values
         ).build_ops_map(input_size, fill_invalid=True)

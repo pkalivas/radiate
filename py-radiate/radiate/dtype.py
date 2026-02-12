@@ -42,12 +42,6 @@ class DataTypeClass(type):
     def __str__(cls):
         return cls.__name__
 
-    @classmethod
-    def is_integer(cls) -> bool: ...
-
-    @classmethod
-    def is_float(cls) -> bool: ...
-
 
 class DataType(metaclass=DataTypeClass):
     def __init__(self):

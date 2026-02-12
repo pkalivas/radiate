@@ -9,17 +9,10 @@ if TYPE_CHECKING:
     from .engine.handlers import EventHandler
     from .dtype import DataType, DataTypeClass
     from radiate.codec import CodecBase
-    from radiate.genome import Gene, Chromosome
-else:
-    DataType = DataTypeClass = str
-    EventHandler = Callable[[Any], None]
-    CodecBase = Gene = Chromosome = object
+    from radiate.genome import Gene
 
-type Vec[T] = Sequence[T]
-type Mat[T] = Sequence[Sequence[T]]
-type Layout[T] = T | Vec[T] | Mat[T]
 
-type AtLeastOne[T] = T | Vec[T]
+type AtLeastOne[T] = T | Sequence[T]
 
 type Primitive = int | float | bool | str
 
@@ -27,5 +20,10 @@ type RdDataType = DataType | DataTypeClass
 
 type Subscriber = AtLeastOne[Callable[[Any], None]] | AtLeastOne[EventHandler]
 
-type Decoding[T] = T | Vec[T] | Mat[T] | "np.ndarray"
-type Encoding[T] = Layout[Primitive] | Layout[T] | CodecBase[Gene[T], T]
+type Decoding[T] = T | Sequence[T] | Sequence[Sequence[T]] | "np.ndarray"
+type Encoding[T] = (
+    "Gene[T]"
+    | Sequence["Gene[T]"]
+    | Sequence[Sequence["Gene[T]"]]
+    | "CodecBase[T, Decoding[T]]"
+)

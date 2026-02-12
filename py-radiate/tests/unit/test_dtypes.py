@@ -1,6 +1,7 @@
 import pytest
 import radiate as rd
 
+
 @pytest.mark.unit
 def test_dtype_max_min():
     """Test that the max and min values for UInt8 are correct."""
@@ -34,8 +35,8 @@ def test_dtype_max_min():
     assert rd.Int128.max() == 170141183460469231731687303715884105727
     assert rd.Int128.min() == -170141183460469231731687303715884105728
 
-    assert rd.Float32.max() == 3.4028234663852886e+38
-    assert rd.Float32.min() == -3.4028234663852886e+38
+    assert rd.Float32.max() == 3.4028234663852886e38
+    assert rd.Float32.min() == -3.4028234663852886e38
 
-    assert rd.Float64.max() == 1.7976931348623157e+308
-    assert rd.Float64.min() == -1.7976931348623157e+308
+    assert rd.Float64.max() == 1.7976931348623157e308
+    assert rd.Float64.min() == -1.7976931348623157e308

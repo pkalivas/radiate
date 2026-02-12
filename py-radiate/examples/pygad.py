@@ -37,6 +37,11 @@ print(f"Fitness: {result.score()}")
 print(f"Generations completed: {result.index()}")
 print(f"Function output: {np.sum(result.value() * function_inputs)}")
 print(f"Duration: {result.duration()}")
-print(f'dtype: {result.dtype()}')
+print(f"dtype: {result.dtype()}")
 
 print(result.metrics().dashboard())
+
+codec = [rd.Gene.float(init_range=(-4.0, 4.0)) for _ in range(len(function_inputs))]
+e = rd.Engine(codec=codec, fitness_func=fitness, objective=rd.MIN)
+
+t = e.run(rd.ScoreLimit(0.01), log=True)

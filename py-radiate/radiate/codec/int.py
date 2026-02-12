@@ -7,8 +7,8 @@ from .base import CodecBase
 from radiate.genome import Genotype, GeneType
 from radiate._bridge.wrapper import RsObject
 from radiate.radiate import PyIntCodec
-from radiate._typing import AtLeastOne, RdDataType
-from radiate.dtype import IntegerType, Int64
+from radiate._typing import AtLeastOne
+from radiate.dtype import DataTypeClass, DataType, Int64
 
 
 class IntCodec[D](CodecBase[int, D], RsObject):
@@ -22,7 +22,7 @@ class IntCodec[D](CodecBase[int, D], RsObject):
         genes: AtLeastOne[Gene[int]] | None = None,
         chromosomes: AtLeastOne[Chromosome[int]] | None = None,
         use_numpy: bool = False,
-        dtype: RdDataType | None = None,
+        dtype: DataTypeClass | DataType | None = None,
     ):
         """
         Initialize the int codec with a PyIntCodec instance.
@@ -115,7 +115,7 @@ class IntCodec[D](CodecBase[int, D], RsObject):
         init_range: tuple[int, int] | None = None,
         bounds: tuple[int, int] | None = None,
         use_numpy: bool = False,
-        dtype: RdDataType | None = None,
+        dtype: DataTypeClass | DataType | None = None,
     ) -> IntCodec[list[list[int]]]:
         """
         Initialize the int codec with number of chromosomes and value bounds.
@@ -140,7 +140,7 @@ class IntCodec[D](CodecBase[int, D], RsObject):
         init_range: tuple[int, int] | None = None,
         bounds: tuple[int, int] | None = None,
         use_numpy: bool = False,
-        dtype: RdDataType | None = None,
+        dtype: DataTypeClass | DataType | None = None,
     ) -> IntCodec[list[int]]:
         """
         Create a vector codec with specified length.
@@ -161,7 +161,7 @@ class IntCodec[D](CodecBase[int, D], RsObject):
     def scalar(
         init_range: tuple[int, int] | None = None,
         bounds: tuple[int, int] | None = None,
-        dtype: RdDataType | None = None,
+        dtype: DataTypeClass | DataType | None = None,
     ) -> IntCodec[int]:
         """
         Create a scalar codec with specified value and bound ranges.
@@ -194,7 +194,7 @@ class IntCodec[D](CodecBase[int, D], RsObject):
             raise TypeError("All genes must be of type 'int'.")
 
         return PyIntCodec.from_genes(
-            list(map(lambda g: g.py_gene(), genes)), use_numpy=use_numpy
+            list(map(lambda g: g.__backend__(), genes)), use_numpy=use_numpy
         )
 
     @staticmethod
@@ -229,7 +229,7 @@ class IntCodec[D](CodecBase[int, D], RsObject):
         init_range: tuple[int, int] | None = None,
         bounds: tuple[int, int] | None = None,
         use_numpy: bool = False,
-        dtype: RdDataType | None = None,
+        dtype: DataTypeClass | DataType | None = None,
     ) -> PyIntCodec:
         shapes = None
         if isinstance(shape, tuple):
@@ -250,12 +250,10 @@ class IntCodec[D](CodecBase[int, D], RsObject):
             if bounds[0] >= bounds[1]:
                 raise ValueError("Minimum bound must be less than maximum bound.")
         if dtype is not None:
-            if not isinstance(dtype, RdDataType):
+            if not isinstance(dtype, (DataTypeClass, DataType)):
                 raise ValueError(
                     "dtype must be an instance of DataType or DataTypeClass."
                 )
-            if not dtype.is_integer():
-                raise ValueError("dtype must be an integer data type.")
         else:
             dtype = Int64  # Default to int64 if no dtype is provided
 
@@ -273,7 +271,7 @@ class IntCodec[D](CodecBase[int, D], RsObject):
         init_range: tuple[int, int] | None = None,
         bounds: tuple[int, int] | None = None,
         use_numpy: bool = False,
-        dtype: RdDataType | None = None,
+        dtype: DataTypeClass | DataType | None = None,
     ) -> PyIntCodec:
         if length <= 0:
             raise ValueError("Length must be a positive integer.")
@@ -292,12 +290,10 @@ class IntCodec[D](CodecBase[int, D], RsObject):
             if bounds[1] < init_range[0]:
                 raise ValueError("Maximum bound must be non-negative.")
         if dtype is not None:
-            if not isinstance(dtype, RdDataType):
+            if not isinstance(dtype, (DataTypeClass, DataType)):
                 raise ValueError(
                     "dtype must be an instance of DataType or DataTypeClass."
                 )
-            if not dtype.is_integer():
-                raise ValueError("dtype must be an integer data type.")
         else:
             dtype = Int64  # Default to int64 if no dtype is provided
 
@@ -313,7 +309,7 @@ class IntCodec[D](CodecBase[int, D], RsObject):
     def __scalar(
         init_range: tuple[int, int] | None = None,
         bounds: tuple[int, int] | None = None,
-        dtype: RdDataType | None = None,
+        dtype: DataTypeClass | DataType | None = None,
     ) -> PyIntCodec:
         if init_range is not None:
             if len(init_range) != 2:
@@ -328,16 +324,14 @@ class IntCodec[D](CodecBase[int, D], RsObject):
                 raise ValueError("Bound range must be a tuple of (min, max).")
             if bounds[0] >= bounds[1]:
                 raise ValueError("Minimum bound must be less than maximum bound.")
-            if bounds[1] < init_range[0]:
+            if bounds[1] < bounds[0]:
                 raise ValueError("Maximum bound must be non-negative.")
 
         if dtype is not None:
-            if not isinstance(dtype, RdDataType):
+            if not isinstance(dtype, (DataTypeClass, DataType)):
                 raise ValueError(
                     "dtype must be an instance of DataType or DataTypeClass."
                 )
-            if not dtype.is_integer():
-                raise ValueError("dtype must be an integer data type.")
         else:
             dtype = Int64  # Default to int64 if no dtype is provided
 

@@ -1,28 +1,28 @@
 [build-system]
-requires = ["maturin>=1.8.4,<2.0"]
 build-backend = "maturin"
+requires = ["maturin>=1.8.4,<2.0"]
 
 [project]
-name = "radiate"
-description = "A fast and flexible evolution engine for implementing artificial evolution and genetic programming techniques."
-requires-python = ">=3.12"
-classifiers = [
-    "Programming Language :: Rust",
-    "Programming Language :: Python :: Implementation :: CPython",
-    "Programming Language :: Python :: Implementation :: PyPy",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
-    "Programming Language :: Python :: 3.14",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-    "Development Status :: 4 - Beta",
-    "Intended Audience :: Science/Research",
-    "Topic :: Scientific/Engineering :: Physics",
-]
-dynamic = ["version"]
 authors = [
-  { name = "Peter Kalivas", email = "peterkalivas@gmail.com" },
+  {name = "Peter Kalivas", email = "peterkalivas@gmail.com"},
 ]
+classifiers = [
+  "Programming Language :: Rust",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering :: Physics",
+]
+description = "A fast and flexible evolution engine for implementing artificial evolution and genetic programming techniques."
+dynamic = ["version"]
+name = "radiate"
+requires-python = ">=3.12"
 
 [tool.pytest.ini_options]
 addopts = "--import-mode=importlib"
@@ -30,13 +30,16 @@ addopts = "--import-mode=importlib"
 [tool.maturin]
 features = ["pyo3/extension-module"]
 
-[[tool.mypy.overrides]]
-module = ["radiate.*"]
-warn_return_any = false
+[tool.pyright]
+include = ["py-radiate/radiate", "py-radiate/tests"]
+
+# [[tool.mypy.overrides]]
+# module = ["radiate.*"]
+# warn_return_any = false
 
 [tool.ruff]
-line-length = 88
 fix = true
+line-length = 88
 
 [tool.ruff.lint.per-file-ignores]
 "radiate/__init__.py" = ["F401"]

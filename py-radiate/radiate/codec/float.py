@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import overload, Sequence
 
 from .base import CodecBase
 
@@ -77,7 +78,8 @@ class FloatCodec[T](CodecBase[float, T], RsObject):
 
     @staticmethod
     def from_genes(
-        genes: list[Gene[float]] | tuple[Gene[float], ...], use_numpy: bool = False
+        genes: AtLeastOne[Gene[float]],
+        use_numpy: bool = False,
     ) -> FloatCodec[list[float]]:
         """
         Create a codec for a single chromosome with specified genes.
@@ -208,7 +210,6 @@ class FloatCodec[T](CodecBase[float, T], RsObject):
         use_numpy: bool = False,
         dtype: DataTypeClass | DataType | None = None,
     ) -> PyFloatCodec:
-        
         if init_range is not None:
             if len(init_range) != 2:
                 raise ValueError("Value range must be a tuple of (min, max).")
