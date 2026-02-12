@@ -1,15 +1,18 @@
 from datetime import timedelta
 
-from radiate.genome.ecosystem import Ecosystem
-from radiate.genome.species import Species
-from radiate._bridge.wrapper import RsObject
-from radiate.engine.metrics import MetricSet
-from radiate.engine.front import Front
-from ..genome import Population
 from radiate.radiate import PyGeneration
 
+from radiate.genome.ecosystem import Ecosystem
+from radiate.genome.species import Species
+from radiate.genome.population import Population
 
-class Generation[T](RsObject[PyGeneration]):
+from radiate._bridge.wrapper import RsObject
+
+from .metrics import MetricSet
+from .front import Front
+
+
+class Generation[T](RsObject):
     """
     Generation class that wraps around the PyGeneration class.
     This class provides a simple interface to access the value of the generation.

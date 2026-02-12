@@ -1,29 +1,30 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any, TYPE_CHECKING
 from abc import ABC
 
 if TYPE_CHECKING:
-    from ._typing import RdDataType
+    from radiate._typing import RdDataType
 
 
-class RsObject[T](ABC):
+class RsObject(ABC):
     """
     Abstract base class for Python wrapper objects that wrap Rust objects.
     Provides common functionality for conversion between Python and Rust objects.
     """
 
     __slots__ = ["_pyobj", "_cache", "_dtype"]
-    _pyobj: T
+    _pyobj: Any 
     _cache: dict[str, Any]
 
-    def __init__(self, pyobj: T | None = None):
+    def __init__(self, pyobj: Any = None):
         self._pyobj = pyobj
         self._cache = {}
         self._dtype = None
 
     @classmethod
-    def from_rust(cls, py_obj: T | dict):
+    def from_rust(cls, py_obj: Any | dict):
         instance = cls.__new__(cls)
         if isinstance(py_obj, dict):
             instance.__dict__.update(py_obj)
@@ -42,17 +43,15 @@ class RsObject[T](ABC):
 
         if self._dtype is not None:
             return self._dtype
-        elif self.__backend__() is not None:
-            self._dtype = (
-                self.__backend__().dtype()
-                if hasattr(self.__backend__(), "dtype")
-                else Null()
-            )
-            return self._dtype
         else:
-            return Null()
+            backend = self.__backend__()
+            if backend is not None:
+                self._dtype = backend.dtype() if hasattr(backend, "dtype") else Null()
+                return self._dtype
+            else:
+                return Null()
 
-    def __backend__(self) -> T:
+    def __backend__(self) -> Any:
         return self._pyobj
 
     def __repr__(self) -> str:
@@ -79,7 +78,7 @@ class RsObject[T](ABC):
         if key in self._cache:
             del self._cache[key]
 
-    def try_get_cache(self, key: str, acquire_fn: callable) -> Any:
+    def try_get_cache(self, key: str, acquire_fn: Callable[[], Any]) -> Any:
         """
         Try to get a cached value by key, if not present, acquire it using the provided function.
         :param key: The cache key.

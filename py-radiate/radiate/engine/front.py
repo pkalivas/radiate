@@ -1,12 +1,12 @@
 from typing import Any
 
-from radiate._bridge.wrapper import RsObject
-from radiate.radiate import PyFront, PyFrontValue
+from radiate.radiate import PyFront
 from radiate.genome.genotype import Genotype
 from radiate.genome.phenotype import Phenotype
+from radiate._bridge.wrapper import RsObject
 
 
-class FrontValue(RsObject[PyFrontValue]):
+class FrontValue(RsObject):
     """
     FrontValue class that wraps around the PyFrontValue class.
     This class provides a simple interface to access the value of the front value.
@@ -27,7 +27,7 @@ class FrontValue(RsObject[PyFrontValue]):
         return self.try_get_cache("score_cache", self.__backend__().score)
 
 
-class Front(RsObject[PyFront]):
+class Front(RsObject):
     """
     Front class that wraps around the PyFront class.
     This class provides a simple interface to access the value of the front.

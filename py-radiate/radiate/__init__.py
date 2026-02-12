@@ -30,15 +30,14 @@ from .codec import (
 from .random import RandomProvider as random
 
 from .genome import (
-    gene,
     chromosome,
+    Gene,
     Chromosome,
     Genotype,
+    Phenotype,
     Population,
     Species,
     Ecosystem,
-    Phenotype,
-    Gene,
 )
 
 from .gp import Op, Graph, Tree, accuracy, OpsConfig, AccuracyResult
@@ -119,6 +118,7 @@ from .dtype import (
     List,
     Field,
     String,
+    Char,
     Null,
     Op32,
     Node,
@@ -131,6 +131,7 @@ from ._dependancies import (
     _NUMPY_AVAILABLE,
     _PANDAS_AVAILABLE,
     _POLARS_AVAILABLE,
+    _TORCH_AVAILABLE,
 )
 
 MIN = "min"
@@ -157,7 +158,6 @@ __all__ = [
     "GraphCodec",
     "TreeCodec",
     # Genome and Population
-    "gene",
     "chromosome",
     "Gene",
     "Chromosome",
@@ -263,6 +263,7 @@ __all__ = [
     "Struct",
     "Field",
     "String",
+    "Char",
     "Null",
     "List",
     "Op32",

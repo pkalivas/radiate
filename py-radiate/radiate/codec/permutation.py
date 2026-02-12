@@ -7,7 +7,7 @@ from radiate.genome import Genotype, GeneType
 from radiate._bridge.wrapper import RsObject
 
 
-class PermutationCodec[T](CodecBase[T, list[T]], RsObject[PyPermutationCodec]):
+class PermutationCodec[T](CodecBase[T, list[T]], RsObject):
     gene_type = GeneType.PERMUTATION
 
     def __init__(self, alleles: list[T]):
@@ -15,8 +15,6 @@ class PermutationCodec[T](CodecBase[T, list[T]], RsObject[PyPermutationCodec]):
         Initialize the permutation codec with a PyPermutationCodec instance.
         :param codec: An instance of PyPermutationCodec.
         """
-        if not isinstance(alleles, list):
-            raise TypeError("alleles must be a list of elements.")
         self.alleles = alleles
         self._pyobj = PyPermutationCodec(alleles)
 
@@ -33,6 +31,4 @@ class PermutationCodec[T](CodecBase[T, list[T]], RsObject[PyPermutationCodec]):
         :param genotype: A Genotype instance to decode.
         :return: The decoded permutation representation of the Genotype.
         """
-        if not isinstance(genotype, Genotype):
-            raise TypeError("genotype must be an instance of Genotype.")
         return self._pyobj.decode_py(genotype=genotype.__backend__())

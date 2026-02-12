@@ -7,20 +7,18 @@ from .base import CodecBase
 from radiate.radiate import PyCharCodec
 from radiate.genome import Genotype, GeneType
 from radiate._bridge.wrapper import RsObject
+from radiate._typing import AtLeastOne
 
 
-class CharCodec[T](CodecBase[str, T], RsObject[PyCharCodec]):
+class CharCodec[T](CodecBase[str, T], RsObject):
     gene_type = GeneType.CHAR
 
     def __init__(
         self,
-        shape: int | tuple[int, int] | list[int] | None = None,
-        char_set: str | list[str] = None,
-        genes: Gene[str] | list[Gene[str]] | tuple[Gene[str], ...] | None = None,
-        chromosomes: Chromosome[str]
-        | list[Chromosome[str]]
-        | tuple[Chromosome[str], ...]
-        | None = None,
+        shape: AtLeastOne[int] | None = None,
+        char_set: AtLeastOne[str] | None = None,
+        genes: AtLeastOne[Gene[str]] | None = None,
+        chromosomes: AtLeastOne[Chromosome[str]] | None = None,
     ):
         """
         Initialize the char codec with number of chromosomes and value bounds.
@@ -32,7 +30,7 @@ class CharCodec[T](CodecBase[str, T], RsObject[PyCharCodec]):
             if isinstance(shape, int):
                 self._pyobj = self.__vector(length=shape, char_set=char_set)
             elif isinstance(shape, (tuple, list)):
-                self._pyobj = self.__matrix(chromosomes=shape, char_set=char_set)
+                self._pyobj = self.__matrix(shape=shape, char_set=char_set)
             else:
                 raise ValueError(
                     "Shape must be an int, tuple of ints, or list of ints."
@@ -88,7 +86,7 @@ class CharCodec[T](CodecBase[str, T], RsObject[PyCharCodec]):
     @staticmethod
     def matrix(
         chromosomes: list[int] | tuple[int, int],
-        char_set: str | list[str] = None,
+        char_set: AtLeastOne[str] | None = None,
     ) -> CharCodec[list[list[str]]]:
         """
         Initialize the char codec with number of chromosomes and value bounds.
@@ -106,7 +104,9 @@ class CharCodec[T](CodecBase[str, T], RsObject[PyCharCodec]):
         return CharCodec(shape=chromosomes, char_set=char_set)
 
     @staticmethod
-    def vector(length: int, char_set: str | list[str] = None) -> CharCodec[list[str]]:
+    def vector(
+        length: int, char_set: AtLeastOne[str] | None = None
+    ) -> CharCodec[list[str]]:
         """
         Initialize the char codec with a single chromosome of specified length.
         Args:
@@ -123,7 +123,7 @@ class CharCodec[T](CodecBase[str, T], RsObject[PyCharCodec]):
         return CharCodec(shape=length, char_set=char_set)
 
     @staticmethod
-    def __from_genes(genes: list[Gene[str]] | tuple[Gene[str], ...]) -> CharCodec[str]:
+    def __from_genes(genes: AtLeastOne[Gene[str]]) -> CharCodec[str]:
         """
         Create a codec for a single chromosome with specified genes.
         Args:
@@ -142,7 +142,7 @@ class CharCodec[T](CodecBase[str, T], RsObject[PyCharCodec]):
 
     @staticmethod
     def __from_chromosomes(
-        chromosomes: list[Chromosome[str]] | tuple[Chromosome[str], ...],
+        chromosomes: AtLeastOne[Chromosome[str]],
     ) -> PyCharCodec:
         """
         Create a codec for multiple chromosomes.
@@ -163,11 +163,13 @@ class CharCodec[T](CodecBase[str, T], RsObject[PyCharCodec]):
             raise TypeError("All chromosomes must be of type 'char'.")
 
         return PyCharCodec.from_chromosomes(
-            list(map(lambda c: c.py_chromosome(), chromosomes))
+            list(map(lambda c: c.__backend__(), chromosomes))
         )
 
     @staticmethod
-    def __vector(length: int, char_set: str | list[str] = None) -> PyCharCodec:
+    def __vector(
+        length: AtLeastOne[int], char_set: AtLeastOne[str] | None = None
+    ) -> PyCharCodec:
         """
         Initialize the char codec with a single chromosome of specified length.
         Args:
@@ -185,33 +187,33 @@ class CharCodec[T](CodecBase[str, T], RsObject[PyCharCodec]):
 
     @staticmethod
     def __matrix(
-        chromosomes: list[int] | tuple[int, int],
-        char_set: str | list[str] = None,
+        shape: AtLeastOne[int],
+        char_set: AtLeastOne[str] | None = None,
     ) -> PyCharCodec:
         """
         Initialize the char codec with number of chromosomes and value bounds.
         Args:
-            chromosomes: A list of integers specifying the lengths of each chromosome.
+            shape: A list of integers specifying the lengths of each chromosome.
             char_set: A string or list of strings representing the character set.
         Returns:
             A new PyCharCodec instance with matrix configuration.
 
         Example
         --------
-        >>> rd.CharCodec.matrix(chromosomes=[5, 5], char_set="01")
+        >>> rd.CharCodec.matrix(shape=[5, 5], char_set="01")
         CharCodec(...)
         """
 
-        if isinstance(chromosomes, tuple):
-            if len(chromosomes) != 2:
-                raise ValueError("Chromosomes must be a tuple of (rows, cols).")
-            rows, cols = chromosomes
+        if isinstance(shape, tuple):
+            if len(shape) != 2:
+                raise ValueError("Shape must be a tuple of (rows, cols).")
+            rows, cols = shape
             if rows < 1 or cols < 1:
                 raise ValueError("Rows and columns must be at least 1.")
-            chromosomes = [cols for _ in range(rows)]
-        if isinstance(chromosomes, list):
-            if not all(isinstance(x, int) and x > 0 for x in chromosomes):
-                raise ValueError("Chromosomes must be a list of positive integers.")
+            shape = [cols for _ in range(rows)]
+        if isinstance(shape, list):
+            if not all(isinstance(x, int) and x > 0 for x in shape):
+                raise ValueError("Shape must be a list of positive integers.")
 
         if char_set is not None:
             for char in char_set:
@@ -220,4 +222,4 @@ class CharCodec[T](CodecBase[str, T], RsObject[PyCharCodec]):
                         "Character set must be a string or list of single-character strings."
                     )
 
-        return PyCharCodec.matrix(chromosomes, char_set)
+        return PyCharCodec.matrix(shape, char_set)

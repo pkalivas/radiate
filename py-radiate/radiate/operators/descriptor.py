@@ -1,6 +1,8 @@
-from radiate.genome import GeneType
-from .base import ComponentBase
 from typing import Callable, Dict, Any, List
+
+from radiate.genome import GeneType
+
+from .base import ComponentBase
 
 
 class DescriptorBase(ComponentBase):

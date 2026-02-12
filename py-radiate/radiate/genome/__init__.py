@@ -1,16 +1,6 @@
 from __future__ import annotations
 
-from .gene import (
-    Gene,
-)
-
-from .chromosome import Chromosome
-from .genotype import Genotype
-from .phenotype import Phenotype
-from .population import Population
-from .species import Species
-from .ecosystem import Ecosystem
-
+from typing import TYPE_CHECKING, Any
 from enum import Enum
 
 from radiate.radiate import PyGeneType as gt
@@ -35,7 +25,6 @@ class GeneType(Enum):
             GeneType.PERMUTATION,
             GeneType.GRAPH,
             GeneType.TREE,
-         
         }
 
     @staticmethod
@@ -94,12 +83,46 @@ GENE_TYPE_MAPPING = {
 
 __all__ = [
     "GeneType",
-    "Genotype",
-    "Chromosome",
     "Gene",
+    "Chromosome",
+    "Genotype",
     "Phenotype",
     "Population",
     "Species",
     "Ecosystem",
-    "GENE_TYPE_MAPPING",
 ]
+
+if TYPE_CHECKING:
+    # These are for IDE/type-checker only; no runtime import cycles.
+    from .gene import Gene
+    from .chromosome import Chromosome
+    from .genotype import Genotype
+    from .phenotype import Phenotype
+    from .population import Population
+    from .species import Species
+    from .ecosystem import Ecosystem
+
+
+_LAZY = {
+    "Gene": (".gene", "Gene"),
+    "Chromosome": (".chromosome", "Chromosome"),
+    "Genotype": (".genotype", "Genotype"),
+    "Phenotype": (".phenotype", "Phenotype"),
+    "Population": (".population", "Population"),
+    "Species": (".species", "Species"),
+    "Ecosystem": (".ecosystem", "Ecosystem"),
+}
+
+
+def __getattr__(name: str) -> Any:
+    if name in _LAZY:
+        from importlib import import_module
+
+        mod_name, sym = _LAZY[name]
+        mod = import_module(mod_name, __name__)
+        val = getattr(mod, sym)
+        globals()[name] = val  # cache
+        return val
+
+    msg = f"module {__name__!r} has no attribute {name!r}"
+    raise AttributeError(msg)

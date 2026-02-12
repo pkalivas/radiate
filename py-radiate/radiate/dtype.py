@@ -42,6 +42,12 @@ class DataTypeClass(type):
     def __str__(cls):
         return cls.__name__
 
+    @classmethod
+    def is_integer(cls) -> bool: ...
+
+    @classmethod
+    def is_float(cls) -> bool: ...
+
 
 class DataType(metaclass=DataTypeClass):
     def __init__(self):
@@ -88,12 +94,6 @@ class FloatType(NumericType):
     """Floating-point data type."""
 
 
-"""
-Unsigned Integer Types
------------------------
-"""
-
-
 class UInt8(IntegerType):
     """Unsigned 8-bit integer."""
 
@@ -112,12 +112,6 @@ class UInt64(IntegerType):
 
 class UInt128(IntegerType):
     """Unsigned 128-bit integer."""
-
-
-"""
-Signed Integer Types
------------------------
-"""
 
 
 class Int8(IntegerType):
@@ -140,12 +134,6 @@ class Int128(IntegerType):
     """Signed 128-bit integer."""
 
 
-"""
-Floating-Point Types
------------------------
-"""
-
-
 class Float32(FloatType):
     """32-bit floating-point number."""
 
@@ -154,20 +142,8 @@ class Float64(FloatType):
     """64-bit floating-point number."""
 
 
-"""
-Boolean Type
------------------------
-"""
-
-
 class Boolean(DataType):
     """Boolean data type."""
-
-
-"""
-Usize Type
------------------------
-"""
 
 
 class String(DataType):
@@ -209,8 +185,17 @@ class Struct(NestedType):
 
     fields: list[Field]
 
-    def __init__(self, fields: list[Field]) -> None:
-        self.fields = list(fields)
+    def __init__(
+        self, fields: list[Field] | list[tuple[str, DataType | DataTypeClass]]
+    ) -> None:
+        if all(isinstance(fld, Field) for fld in fields):
+            self.fields = fields  # type: ignore[assignment]
+        elif all(isinstance(fld, tuple) and len(fld) == 2 for fld in fields):
+            self.fields = [Field(name, dtype) for name, dtype in fields]  # type: ignore[assignment]
+        else:
+            raise ValueError(
+                "Fields must be a list of Field instances or a list of (name, dtype) tuples."
+            )
 
     def __eq__(self, other) -> bool:  # type: ignore[override]
         if isclass(other) and issubclass(other, Struct):
@@ -261,11 +246,9 @@ class List(NestedType):
     inner: DataTypeClass | DataType
 
     def __init__(self, inner: DataTypeClass | DataType) -> None:
-        # self.inner = polars.datatypes.parse_into_dtype(inner)
         self.inner = inner
 
     def __eq__(self, other: DataTypeClass | DataType) -> bool:  # type: ignore[override]
-        # allow comparing object instances to class
         if type(other) is DataTypeClass and issubclass(other, List):
             return True
         elif isinstance(other, List):
@@ -312,7 +295,6 @@ class Node(NestedType):
         self.inner = inner
 
     def __eq__(self, other: DataTypeClass | DataType) -> bool:  # type: ignore[override]
-        # allow comparing object instances to class
         if type(other) is DataTypeClass and issubclass(other, Node):
             return True
         elif isinstance(other, Node):
@@ -323,7 +305,7 @@ class Node(NestedType):
     def __hash__(self) -> int:
         return hash((self.__class__, self.inner))
 
-    def __repr__(self) -> str:  
+    def __repr__(self) -> str:
         class_name = self.__class__.__name__
         return f"{class_name}({self.inner!r})"
 

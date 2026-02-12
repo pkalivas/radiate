@@ -197,7 +197,7 @@ def test_negative_length_codec():
 @pytest.mark.unit
 def test_codec_from_genes():
     """Test codec creation from genes."""
-    genes = [rd.gene.float(0.5), rd.gene.float(0.8)]
+    genes = [rd.Gene.float(0.5), rd.Gene.float(0.8)]
     codec = FloatCodec(genes=genes)
     assert isinstance(codec, FloatCodec)
     assert codec.decode(codec.encode()) == [genes[0].allele(), genes[1].allele()]

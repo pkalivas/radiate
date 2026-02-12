@@ -150,6 +150,7 @@ if TYPE_CHECKING:
     import numpy
     import pandas
     import torch
+    import polars
 
 else:
     # infrequently-used builtins
@@ -209,6 +210,7 @@ __all__ = [
     # lazy-load third party libs
     "numpy",
     "pandas",
+    "polars",
     "torch",
     # lazy utilities
     "_check_for_numpy",

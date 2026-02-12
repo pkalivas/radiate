@@ -1,5 +1,7 @@
 from .base import FitnessBase
+from typing import Any
 from radiate.radiate import PyFitnessFn
+from radiate.utils._normalize import _normalize_regression_data
 
 
 class Regression[T](FitnessBase[T]):
@@ -7,19 +9,21 @@ class Regression[T](FitnessBase[T]):
 
     def __init__(
         self,
-        features: list[list[float]],
-        targets: list[list[float]],
+        features: Any,
+        targets: Any | None = None,
+        *,
+        target: str | None = None,
+        feature_cols: list[str] | None = None,
         loss: str = "mse",
         batch: bool = False,
     ):
-        """Initialize regression fitness with features, targets, and loss function."""
-        if not isinstance(features, list):
-            raise TypeError("features must be a list of lists.")
-        if not isinstance(targets, list):
-            raise TypeError("targets must be a list of lists.")
+        x, y = _normalize_regression_data(
+            features,
+            targets,
+            feature_cols=feature_cols,
+            target_col=target,
+        )
 
         super().__init__(
-            PyFitnessFn.regression(
-                features=features, targets=targets, loss=loss, is_batch=batch
-            )
+            PyFitnessFn.regression(features=x, targets=y, loss=loss, is_batch=batch)
         )

@@ -4,7 +4,7 @@ from radiate.radiate import PyTree
 from radiate._bridge.wrapper import RsObject
 
 
-class Tree(RsObject[PyTree]):
+class Tree(RsObject):
     def __repr__(self):
         return self.__backend__().__repr__()
 
@@ -26,7 +26,9 @@ class Tree(RsObject[PyTree]):
         """
         return len(self.__backend__())
 
-    def eval(self, inputs: list[list[float]] | list[float]) -> list[list[float]] | list[float]:
+    def eval(
+        self, inputs: list[list[float]] | list[float]
+    ) -> list[list[float]] | list[float]:
         """
         Evaluate the tree with the given inputs. The inputs needs to be a list of
         lists (for multiple samples) or a single list (for a single sample).

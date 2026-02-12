@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from radiate._typing import NodeValues
-
 from .base import CodecBase
 from radiate.gp import Op, Tree, OpsConfig
 from radiate._bridge.wrapper import RsObject
@@ -9,7 +7,7 @@ from radiate.genome import Genotype, GeneType
 from radiate.radiate import PyTreeCodec
 
 
-class TreeCodec(CodecBase[Op, Tree], RsObject[PyTreeCodec]):
+class TreeCodec(CodecBase[Op, Tree], RsObject):
     gene_type = GeneType.TREE
 
     def __init__(
@@ -17,9 +15,9 @@ class TreeCodec(CodecBase[Op, Tree], RsObject[PyTreeCodec]):
         shape: tuple[int, int] = (1, 1),
         min_depth: int = 3,
         max_size: int = 30,
-        vertex: NodeValues | None = None,
-        leaf: NodeValues | None = None,
-        root: NodeValues | None = None,
+        vertex: Op | list[Op] | None = None,
+        leaf: Op | list[Op] | None = None,
+        root: Op | list[Op] | None = None,
         values: dict[str, list[Op]] | list[tuple[str, list[Op]]] | None = None,
     ) -> TreeCodec:
         """
@@ -30,9 +28,9 @@ class TreeCodec(CodecBase[Op, Tree], RsObject[PyTreeCodec]):
             shape (tuple[int, int], optional): The input and output size of the tree. Defaults to (1, 1).
             min_depth (int, optional): The minimum depth of the tree (ie: the starting height of a tree). Defaults to 3.
             max_size (int, optional): The maximum size of the tree (ie: the maximum number of nodes). Defaults to 30.
-            vertex (NodeValues | None, optional): Operations to use for internal nodes. Can be a single Op or a list of Ops. Defaults to None.
-            leaf (NodeValues | None, optional): Operations to use for leaf nodes. Can be a single Op or a list of Ops. Defaults to None.
-            root (NodeValues | None, optional): Operations to use for the root node. Can be a single Op or a list of Ops. Defaults to None.
+            vertex (Op | list[Op] | None, optional): Operations to use for internal nodes. Can be a single Op or a list of Ops. Defaults to None.
+            leaf (Op | list[Op] | None, optional): Operations to use for leaf nodes. Can be a single Op or a list of Ops. Defaults to None.
+            root (Op | list[Op] | None, optional): Operations to use for the root node. Can be a single Op or a list of Ops. Defaults to None.
             values (dict[str, list[Op]] | list[tuple[str, list[Op]]] | None, optional): A mapping of node types to their corresponding operations.
                 If provided, this overrides the individual vertex, leaf, and root parameters. Defaults to None.
 

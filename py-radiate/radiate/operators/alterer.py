@@ -1,11 +1,11 @@
 from typing import Any
 
-from radiate.genome.population import Population
-from radiate.operators.input import EngineInput, EngineInputType
+from radiate.genome.gene import GeneType
 from radiate.operators.rate import Rate
-from .base import ComponentBase
-from ..genome import GeneType
 
+from .base import ComponentBase
+
+from radiate.genome.population import Population
 
 class AlterBase(ComponentBase):
     def __init__(
@@ -44,6 +44,7 @@ class AlterBase(ComponentBase):
         :return: The altered population.
         """
         from radiate.radiate import py_alter
+        from radiate._bridge.input import EngineInput, EngineInputType
 
         alterer_input = EngineInput(
             component=self.component,

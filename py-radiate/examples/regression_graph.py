@@ -53,9 +53,9 @@ for _ in range(-10, 10):
     inputs.append([input])
     answers.append([compute(input)])
 
-# df = pl.DataFrame({"dd": inputs, "x": answers, "other": [0.42222] * len(inputs)})
-# print("Training Data:")
-# print(df)
+df = pl.DataFrame({"dd": inputs, "x": answers, "other": [0.42222] * len(inputs)})
+print("Training Data:")
+print(df)
 
 engine = (
     rd.Engine.graph(
@@ -64,7 +64,7 @@ engine = (
         edge=rd.Op.weight(),
         output=rd.Op.linear(),
     )
-    .regression(inputs, answers, loss="mse")
+    .regression(df, target="x", feature_cols=["dd"], loss="mse")
     .subscribe(ScorePlotterHandler())
     .alters(
         rd.Cross.graph(0.05, 0.5),

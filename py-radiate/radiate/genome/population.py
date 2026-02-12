@@ -1,17 +1,14 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from typing import Iterable
 from radiate.radiate import PyPopulation
+from radiate._bridge.wrapper import RsObject
+
 from .phenotype import Phenotype
-from .._bridge.wrapper import RsObject
-
-if TYPE_CHECKING:
-    from radiate.genome.gene import GeneType
+from .gene import GeneType
 
 
-class Population[T](RsObject[PyPopulation]):
+class Population[T](RsObject):
     """
     Represents a population in a genetic algorithm.
     """

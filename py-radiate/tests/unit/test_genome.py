@@ -158,32 +158,95 @@ class TestChromosomes:
 class TestGenes:
     @pytest.mark.unit
     def test_float_gene_creation(self):
-        gene = rd.gene.float(init_range=(-10.0, 10.0), dtype=rd.Float32)
+        gene = rd.Gene.float(init_range=(-10.0, 10.0), dtype=rd.Float32)
 
         assert isinstance(gene.allele(), float)
         assert gene.allele() is not None
         assert gene.allele() >= -10.0 and gene.allele() <= 10.0
         assert gene.dtype() == rd.Float32()
 
+        gene = rd.Gene.float(allele=3.14, dtype=rd.Float64)
+        init_range = gene.init_range()
+
+        assert gene.allele() == 3.14
+        assert gene.dtype() == rd.Float64
+        assert gene.min() == rd.Float64.min()
+        assert gene.max() == rd.Float64.max()
+        assert (
+            init_range is not None
+            and init_range[0] == rd.Float64.min()
+            and init_range[1] == rd.Float64.max()
+        )
+
+        bounded_gene = rd.Gene.float(allele=3.14, bounds=(0.0, 5.0), dtype=rd.Float64)
+        init_range = bounded_gene.init_range()
+
+        assert bounded_gene.allele() == 3.14
+        assert bounded_gene.dtype() == rd.Float64
+        assert bounded_gene.min() == 0.0
+        assert bounded_gene.max() == 5.0
+        assert (
+            init_range is not None
+            and init_range[0] == 0.0
+            and init_range[1] == 5.0
+        )
+
+
     @pytest.mark.unit
     def test_int_gene_creation(self):
-        gene = rd.gene.int(init_range=(0, 10))
+        gene = rd.Gene.int(init_range=(0, 10))
 
         assert isinstance(gene.allele(), int)
         assert gene.allele() is not None
         assert gene.allele() >= 0 and gene.allele() <= 10
 
+        gene = rd.Gene.int(allele=5, dtype=rd.Int32)
+        init_range = gene.init_range()
+
+        assert gene.allele() == 5
+        assert gene.dtype() == rd.Int32
+        assert gene.min() == rd.Int32.min()
+        assert gene.max() == rd.Int32.max()
+        assert (
+            init_range is not None
+            and init_range[0] == rd.Int32.min()
+            and init_range[1] == rd.Int32.max()
+        )
+
+        bounded_gene = rd.Gene.int(allele=5, bounds=(0, 10), dtype=rd.Int32)
+        init_range = bounded_gene.init_range()
+
+        assert bounded_gene.allele() == 5
+        assert bounded_gene.dtype() == rd.Int32
+        assert bounded_gene.min() == 0
+        assert bounded_gene.max() == 10
+        assert (
+            init_range is not None
+            and init_range[0] == 0
+            and init_range[1] == 10
+        )
+
     @pytest.mark.unit
     def test_char_gene_creation(self):
-        gene = rd.gene.char(char_set={"a", "b", "c"})
+        gene = rd.Gene.char(char_set={"a", "b", "c"})
 
         assert isinstance(gene.allele(), str)
         assert gene.allele() is not None
         assert gene.allele() in {"a", "b", "c"}
 
+        gene = rd.Gene.char(allele="b", char_set={"a", "b", "c"})
+        init_range = gene.init_range()
+
+        assert gene.allele() == "b"
+        assert gene.dtype() == rd.Char()
+        assert gene.char_set() == {"a", "b", "c"}
+        assert gene.min() is None
+        assert gene.max() is None
+        assert init_range is None
+
     @pytest.mark.unit
     def test_bit_gene_creation(self):
-        gene = rd.gene.bit()
+        gene = rd.Gene.bit()
 
         assert isinstance(gene.allele(), bool)
         assert gene.allele() is not None

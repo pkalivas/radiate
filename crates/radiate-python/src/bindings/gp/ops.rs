@@ -97,9 +97,10 @@ impl PyOp {
             let output = self.0.eval(&input_vec);
             Ok(output)
         } else {
-            return Err(pyo3::exceptions::PyTypeError::new_err(
-                "Input must be either Vec[float] or Vec[Vec[float]]",
-            ));
+            return Err(pyo3::exceptions::PyTypeError::new_err(format!(
+                "Input must be either Vec[numeric] or a single numeric value but found: {:?}",
+                inputs,
+            )));
         }
     }
 

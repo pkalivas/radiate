@@ -1,8 +1,8 @@
 from __future__ import annotations
 from enum import Enum
 
-from radiate.radiate import PyEngineInput, PyEngineInputType, PyRate
-from radiate._bridge.wrapper import RsObject
+from radiate.radiate import PyEngineInput, PyEngineInputType
+from .wrapper import RsObject
 from radiate.operators.rate import Rate
 
 from ..genome import (
@@ -56,7 +56,7 @@ input_type_mapping = {
 }
 
 
-class EngineInput(RsObject[PyEngineInput]):
+class EngineInput(RsObject):
     def __init__(
         self,
         input_type: EngineInputType,

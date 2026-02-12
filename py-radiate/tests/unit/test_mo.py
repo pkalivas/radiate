@@ -8,7 +8,7 @@ def points_to_phenotypes(points: list[list[float]]) -> list[rd.Phenotype]:
     for point in points:
         min_point = min(point)
         max_point = max(point)
-        genes = [rd.gene.float(g, init_range=(min_point, max_point)) for g in point]
+        genes = [rd.Gene.float(g, init_range=(min_point, max_point)) for g in point]
         chromosome = rd.chromosome.float(genes=genes)
         genotype = rd.Genotype(chromosome)
         phenotype = rd.Phenotype(genotype, score=point)

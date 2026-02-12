@@ -54,7 +54,8 @@ def test_int_engine_novelty_with_decorator_creates(random_seed):
         return phenotype
 
     engine = (
-        rd.Engine(rd.IntCodec(6, (-100, 100)), descriptor)
+        rd.Engine(rd.IntCodec(6, (-100, 100)))
+        .fitness(descriptor)    
         .size(100)
         .select(offspring=rd.TournamentSelector(3))
         .alters(rd.UniformCrossover(0.5), rd.ArithmeticMutator(0.1))

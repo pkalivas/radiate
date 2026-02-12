@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from .base import CodecBase
 
-from radiate.genome import Genotype, Gene, Chromosome, GeneType
-from radiate._bridge.wrapper import RsObject
-from radiate.dtype import DataType, DataTypeClass, Float64, FloatType
-
 from radiate.radiate import PyFloatCodec
+from radiate.genome import Genotype, Gene, Chromosome, GeneType
+from radiate.dtype import DataType, DataTypeClass, Float64
+from radiate._bridge.wrapper import RsObject
+from radiate._typing import AtLeastOne
 
 
-class FloatCodec[T](CodecBase[float, T], RsObject[PyFloatCodec]):
+class FloatCodec[T](CodecBase[float, T], RsObject):
     gene_type = GeneType.FLOAT
 
     def __init__(
@@ -17,11 +17,8 @@ class FloatCodec[T](CodecBase[float, T], RsObject[PyFloatCodec]):
         shape: int | tuple[int, int] | list[int] | None = None,
         init_range: tuple[float, float] | None = None,
         bounds: tuple[float, float] | None = None,
-        genes: Gene[float] | list[Gene[float]] | tuple[Gene[float], ...] | None = None,
-        chromosomes: Chromosome[float]
-        | list[Chromosome[float]]
-        | tuple[Chromosome[float], ...]
-        | None = None,
+        genes: AtLeastOne[Gene[float]] | None = None,
+        chromosomes: AtLeastOne[Chromosome[float]] | None = None,
         use_numpy: bool = False,
         dtype: DataTypeClass | DataType | None = None,
     ):
@@ -211,6 +208,7 @@ class FloatCodec[T](CodecBase[float, T], RsObject[PyFloatCodec]):
         use_numpy: bool = False,
         dtype: DataTypeClass | DataType | None = None,
     ) -> PyFloatCodec:
+        
         if init_range is not None:
             if len(init_range) != 2:
                 raise ValueError("Value range must be a tuple of (min, max).")
@@ -227,8 +225,6 @@ class FloatCodec[T](CodecBase[float, T], RsObject[PyFloatCodec]):
                 raise ValueError(
                     "dtype must be an instance of DataType or DataTypeClass."
                 )
-            if not issubclass(dtype, FloatType):
-                raise ValueError("dtype must be a float data type.")
         else:
             dtype = Float64  # Default to float64 if no dtype is provided
 
@@ -266,8 +262,6 @@ class FloatCodec[T](CodecBase[float, T], RsObject[PyFloatCodec]):
                 raise ValueError(
                     "dtype must be an instance of DataType or DataTypeClass."
                 )
-            if not issubclass(dtype, FloatType):
-                raise ValueError("dtype must be a float data type.")
         else:
             dtype = Float64  # Default to float64 if no dtype is provided
 
@@ -312,8 +306,6 @@ class FloatCodec[T](CodecBase[float, T], RsObject[PyFloatCodec]):
                 raise ValueError(
                     "dtype must be an instance of DataType or DataTypeClass."
                 )
-            if not issubclass(dtype, FloatType):
-                raise ValueError("dtype must be a float data type.")
         else:
             dtype = Float64  # Default to float64 if no dtype is provided
 
@@ -327,7 +319,7 @@ class FloatCodec[T](CodecBase[float, T], RsObject[PyFloatCodec]):
 
     @staticmethod
     def __from_genes(
-        genes: list[Gene[float]] | tuple[Gene[float], ...], use_numpy: bool = False
+        genes: AtLeastOne[Gene[float]], use_numpy: bool = False
     ) -> PyFloatCodec:
         if not isinstance(genes, (list, tuple)):
             raise TypeError("genes must be a list or tuple of Gene instances.")
@@ -338,7 +330,7 @@ class FloatCodec[T](CodecBase[float, T], RsObject[PyFloatCodec]):
 
     @staticmethod
     def __from_chromosomes(
-        chromosomes: list[Chromosome[float]] | tuple[Chromosome[float], ...],
+        chromosomes: AtLeastOne[Chromosome[float]],
         use_numpy: bool = False,
     ) -> PyFloatCodec:
         from radiate.genome import GeneType

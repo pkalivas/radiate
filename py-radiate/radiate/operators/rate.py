@@ -2,7 +2,7 @@ from radiate._bridge.wrapper import RsObject
 from radiate.radiate import PyRate
 
 
-class Rate(RsObject[PyRate]):
+class Rate(RsObject):
     CYCLICAL = "cyclical"
     FIXED = "fixed"
     LINEAR = "linear"
@@ -42,21 +42,27 @@ class Rate(RsObject[PyRate]):
         """
         return self._pyobj.value(index)
 
+    @staticmethod
     def fixed(rate: float):
         return Rate(Rate.FIXED, rate)
 
+    @staticmethod
     def linear(start: float, end: float, duration: int):
         return Rate(Rate.LINEAR, start, end, duration)
 
+    @staticmethod
     def sine(min: float, max: float, periods: int):
         return Rate(Rate.CYCLICAL, min, max, periods, "sine")
 
+    @staticmethod
     def triangular(min: float, max: float, periods: int):
         return Rate(Rate.CYCLICAL, min, max, periods, "triangular")
 
+    @staticmethod
     def stepwise(steps: list[tuple[int, float]]):
         return Rate(Rate.STEPWISE, steps=steps)
 
+    @staticmethod
     def exp(start: float, end: float, half_life: int):
         return Rate(Rate.EXPONENTIAL, start, end, half_life)
 

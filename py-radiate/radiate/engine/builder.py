@@ -1,27 +1,30 @@
 from typing import Callable, Any
 from dataclasses import dataclass
 
-from radiate.codec.base import CodecBase
-from radiate.genome.population import Population
-from radiate.fitness import FitnessBase
-from radiate.engine.handlers import CallableEventHandler, EventHandler
 from radiate.radiate import PyEngine, PyEngineBuilder
-from radiate.engine.generation import Generation
+from radiate.codec import CodecBase
+from radiate.genome import Population, GeneType
+from radiate.fitness import FitnessBase, CallableFitness
+from radiate.operators import (
+    AlterBase,
+    DistanceBase,
+    SelectorBase,
+    TournamentSelector,
+    RouletteSelector,
+    LimitBase,
+    Executor,
+)
 
-from ..operators.limit import LimitBase
-from ..operators.input import EngineInput, EngineInputType
-from ..operators.selector import SelectorBase, TournamentSelector, RouletteSelector
-from ..operators.alterer import AlterBase
-from ..operators.distance import DistanceBase
-from ..operators.executor import Executor
-from ..fitness import CallableFitness
-from ..genome import GeneType
+from .handlers import CallableEventHandler, EventHandler
+from .generation import Generation
 
-from .._typing import Subscriber
+from radiate._bridge.input import EngineInput, EngineInputType
+from radiate._typing import Subscriber
 
 
 @dataclass(slots=True)
 class EngineConfig[G, T]:
+    gene_type: GeneType | None = None
     codec: CodecBase[G, T] | None = None
     fitness_func: Callable[[T], Any] | FitnessBase[T] | None = None
 
@@ -44,76 +47,37 @@ class EngineConfig[G, T]:
     generation: Generation[T] | None = None
     checkpoint_path: str | None = None
 
-    def normalize(self) -> "EngineConfig[G, T]":
-        if self.fitness_func is None:
-            raise ValueError("A fitness function must be provided.")
-        if not (0 < self.offspring_fraction <= 1):
-            raise ValueError("offspring_fraction must be in (0, 1].")
-        if self.population_size <= 0:
-            raise ValueError("population_size must be > 0.")
-        if self.max_phenotype_age <= 0 or self.max_species_age <= 0:
-            raise ValueError("max ages must be > 0.")
-        if self.survivor_selector is None:
-            self.survivor_selector = TournamentSelector(k=3)
-        if self.offspring_selector is None:
-            self.offspring_selector = RouletteSelector()
-        return self
-
 
 class EngineBuilder:
     @classmethod
-    def _default(cls, gene_type: GeneType) -> "EngineBuilder":
-        instance = cls.__new__(cls)
-        instance._gene_type = gene_type
-        instance._inputs = []
+    def _default(cls, gene_type: GeneType, **kwargs) -> "EngineBuilder":
+        defaults = EngineConfig(**kwargs)
+        inst = cls.__new__(cls)
 
-        default_inputs = EngineConfig()
-        instance.set_population(default_inputs.population)
-        instance.set_offspring_selector(
-            default_inputs.offspring_selector or TournamentSelector(3)
-        )
-        instance.set_survivor_selector(
-            default_inputs.survivor_selector or RouletteSelector()
-        )
-        instance.set_alters(default_inputs.alters)
-        instance.set_diversity(
-            default_inputs.diversity, default_inputs.species_threshold
-        )
-        instance.set_population_size(default_inputs.population_size)
-        instance.set_offspring_fraction(default_inputs.offspring_fraction)
-        instance.set_max_age(default_inputs.max_phenotype_age)
-        instance.set_max_species_age(default_inputs.max_species_age)
-        instance.set_objective(default_inputs.objective)
-        instance.set_front_range(*default_inputs.front_range)
-        instance.set_executor(default_inputs.executor)
-        instance.set_subscribers(default_inputs.subscribe)
-        instance.set_generation(default_inputs.generation)
-        instance.set_checkpoint_path(default_inputs.checkpoint_path)
-        return instance
+        inst._inputs = []
+        inst._gene_type = gene_type
 
-    @classmethod
-    def from_config(cls, config: EngineConfig) -> "EngineBuilder":
-        config = config.normalize()
-        instance = cls._default(config.codec.gene_type)
-        instance.set_codec(config.codec)
-        instance.set_fitness(config.fitness_func)
-        instance.set_population(config.population)
-        instance.set_offspring_selector(config.offspring_selector)
-        instance.set_survivor_selector(config.survivor_selector)
-        instance.set_alters(config.alters)
-        instance.set_diversity(config.diversity, config.species_threshold)
-        instance.set_population_size(config.population_size)
-        instance.set_offspring_fraction(config.offspring_fraction)
-        instance.set_max_age(config.max_phenotype_age)
-        instance.set_max_species_age(config.max_species_age)
-        instance.set_objective(config.objective)
-        if config.front_range is not None:
-            instance.set_front_range(*config.front_range)
-        instance.set_executor(config.executor)
-        instance.set_subscribers(config.subscribe)
-        instance.set_generation(config.generation)
-        instance.set_checkpoint_path(config.checkpoint_path)
-        return instance
+        inst.set_population(defaults.population)
+        inst.set_offspring_selector(
+            defaults.offspring_selector or TournamentSelector(3)
+        )
+        inst.set_survivor_selector(defaults.survivor_selector or RouletteSelector())
+        inst.set_alters(defaults.alters)
+        inst.set_diversity(defaults.diversity, defaults.species_threshold)
+        inst.set_population_size(defaults.population_size)
+        inst.set_offspring_fraction(defaults.offspring_fraction)
+        inst.set_max_age(defaults.max_phenotype_age)
+        inst.set_max_species_age(defaults.max_species_age)
+        inst.set_objective(defaults.objective)
+        inst.set_front_range(*defaults.front_range)
+        inst.set_executor(defaults.executor)
+        inst.set_subscribers(defaults.subscribe)
+        inst.set_generation(defaults.generation)
+        inst.set_checkpoint_path(defaults.checkpoint_path)
+        inst.set_fitness(defaults.fitness_func)
+        inst.set_codec(defaults.codec)
+
+        return inst
 
     def __init__(self, gene_type: GeneType):
         self._inputs = []
@@ -133,7 +97,10 @@ class EngineBuilder:
     def inputs(self) -> list[EngineInput]:
         return self._inputs
 
-    def set_codec(self, codec: CodecBase):
+    def set_codec(self, codec: CodecBase | None = None):
+        if codec is None:
+            return
+
         if self._gene_type != codec.gene_type:
             raise ValueError(
                 f"Codec {codec.component} does not support gene type {self._gene_type}"
@@ -149,7 +116,10 @@ class EngineBuilder:
 
         return self
 
-    def set_fitness(self, fitness: FitnessBase | Callable[[Any], Any]):
+    def set_fitness(self, fitness: FitnessBase | Callable[[Any], Any] | None = None):
+        if fitness is None:
+            return
+
         if isinstance(fitness, Callable):
             fitness = CallableFitness(fitness)
 

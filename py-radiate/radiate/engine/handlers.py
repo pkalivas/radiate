@@ -2,9 +2,11 @@ import abc
 from enum import Enum
 from typing import Any, Callable
 
-from radiate.radiate import PySubscriber, PyEngineEvent
+from radiate.radiate import PySubscriber
+
 from radiate._bridge.wrapper import RsObject
-from radiate.engine.metrics import MetricSet
+
+from .metrics import MetricSet
 
 
 class EventType(Enum):
@@ -56,7 +58,7 @@ class CallableEventHandler(EventHandler):
         self.func(event)
 
 
-class EngineEvent(RsObject[PyEngineEvent]):
+class EngineEvent(RsObject):
     """
     EngineEvent class that wraps around the PyEngineEvent class.
     This class provides a simple interface to access the value of the event.
@@ -92,7 +94,7 @@ class EngineEvent(RsObject[PyEngineEvent]):
         elif event_type_str == "engine_improvement_event":
             return EventType.ENGINE_IMPROVEMENT
         else:
-            return "<EventType: unknown>"
+            raise ValueError(f"Unknown event type: {event_type_str}")
 
     def score(self) -> float | list[float] | None:
         """

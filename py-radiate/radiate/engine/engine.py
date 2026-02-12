@@ -2,20 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-from .._typing import (
-    Subscriber,
-    RdDataType,
-    IntDecoding,
-    FloatDecoding,
-    BoolDecoding,
-    StringDecoding,
-    NodeValues,
-)
-
-from .builder import EngineBuilder, EngineConfig
-from .generation import Generation
-from ..codec import (
-    CodecBase,
+from radiate.codec import (
     FloatCodec,
     IntCodec,
     CharCodec,
@@ -25,23 +12,27 @@ from ..codec import (
     PermutationCodec,
 )
 
-from ..operators.input import EngineInput, EngineInputType
-from ..operators.selector import SelectorBase
-from ..operators.alterer import AlterBase
-from ..operators.distance import DistanceBase
-from ..operators.executor import Executor
-from ..fitness import FitnessBase, Regression
-from ..operators.limit import LimitBase
+from radiate.operators import SelectorBase, AlterBase, DistanceBase, Executor, LimitBase
+from radiate.fitness import FitnessBase, Regression
+from radiate.genome import Population, GeneType, Gene
+from radiate.gp import Graph, Tree, Op
+from radiate.dtype import Float64, Int64
+
+from radiate._bridge.input import EngineInput, EngineInputType
+from radiate._typing import (
+    AtLeastOne,
+    Subscriber,
+    RdDataType,
+    Encoding,
+    Decoding,
+)
+
+from .builder import EngineBuilder
+from .generation import Generation
 from .option import EngineCheckpoint, EngineLog, EngineUi
-from ..gp import Graph, Tree, Op
-from ..genome.population import Population
-from ..genome import GeneType
-from ..genome.gene import Gene
-
-from ..dtype import Float64, Int64
 
 
-class Engine[G, T]:
+class Engine[G: Gene, T]:
     """
     Genetic Engine for optimization problems.
     This class serves as the main interface for running genetic algorithms, allowing
@@ -50,22 +41,26 @@ class Engine[G, T]:
 
     def __init__(
         self,
-        codec: CodecBase[G, T],
-        fitness_func: Callable[[T], Any] | FitnessBase[T],
+        codec: Encoding[T] | None = None,
         **kwargs: Any,
     ):
-        cfg = EngineConfig(codec=codec, fitness_func=fitness_func, **kwargs)
-        self._builder = EngineBuilder.from_config(cfg)
+        self._engine = None
+        if codec is not None:
+            self._builder = EngineBuilder._default(
+                codec.gene_type, codec=codec, **kwargs
+            )
+        else:
+            self._builder = EngineBuilder._default(GeneType.Float, **kwargs)
 
     @classmethod
     def float(
         cls,
-        shape: int | tuple[int, ...] | list[int] = 1,
+        shape: AtLeastOne[int] = 1,
         init_range: tuple[float, float] | None = (0, 1.0),
         bounds: tuple[float, float] | None = None,
         dtype: RdDataType = Float64,
         use_numpy: bool = False,
-    ) -> Engine[Gene[float], FloatDecoding]:
+    ) -> Engine[Gene[float], Decoding[float]]:
         """Create a genetic engine for optimizing floating-point values."""
         instance = cls.__new__(cls)
         codec = FloatCodec(
@@ -83,12 +78,12 @@ class Engine[G, T]:
     @classmethod
     def int(
         cls,
-        shape: int | tuple[int, ...] | list[int] = 1,
+        shape: AtLeastOne[int] = 1,
         init_range: tuple[int, int] | None = (0, 100),
         bounds: tuple[int, int] | None = None,
         dtype: RdDataType = Int64,
         use_numpy: bool = False,
-    ) -> Engine[Gene[int], IntDecoding]:
+    ) -> Engine[Gene[int], Decoding[int]]:
         """Create a genetic engine for optimizing integer values."""
         instance = cls.__new__(cls)
         codec = IntCodec(
@@ -106,9 +101,9 @@ class Engine[G, T]:
     @classmethod
     def char(
         cls,
-        shape: int | tuple[int, ...] | list[int] = 1,
+        shape: AtLeastOne[int] = 1,
         char_set: set[str] | None = None,
-    ) -> Engine[Gene[str], StringDecoding]:
+    ) -> Engine[Gene[str], Decoding[str]]:
         """Create a genetic engine for optimizing character values."""
         instance = cls.__new__(cls)
         codec = CharCodec(shape, char_set=char_set)
@@ -120,7 +115,7 @@ class Engine[G, T]:
     @classmethod
     def bit(
         cls, shape: int | tuple[int, ...] | list[int] = 1, use_numpy: bool = False
-    ) -> Engine[Gene[bool], BoolDecoding]:
+    ) -> Engine[Gene[bool], Decoding[bool]]:
         """Create a genetic engine for optimizing boolean values."""
         instance = cls.__new__(cls)
         codec = BitCodec(shape, use_numpy=use_numpy)
@@ -145,9 +140,9 @@ class Engine[G, T]:
     def graph(
         cls,
         shape: tuple[int, int],
-        vertex: NodeValues | None = None,
-        edge: NodeValues | None = None,
-        output: NodeValues | None = None,
+        vertex: Op | list[Op] | None = None,
+        edge: Op | list[Op] | None = None,
+        output: Op | list[Op] | None = None,
         values: dict[str, list[Op]] | list[tuple[str, list[Op]]] | None = None,
         max_nodes: int | None = None,
     ) -> Engine[Gene[Op], Graph]:
@@ -173,9 +168,9 @@ class Engine[G, T]:
         shape: tuple[int, int] = (1, 1),
         min_depth: int = 3,
         max_size: int = 30,
-        vertex: NodeValues | None = None,
-        leaf: NodeValues | None = None,
-        root: NodeValues | None = None,
+        vertex: Op | list[Op] | None = None,
+        leaf: Op | list[Op] | None = None,
+        root: Op | list[Op] | None = None,
         values: dict[str, list[Op]] | list[tuple[str, list[Op]]] | None = None,
     ) -> Engine[Gene[Op], Tree]:
         """Create a genetic engine for optimizing tree structures."""
@@ -295,6 +290,7 @@ class Engine[G, T]:
         target: str | None = None,
         feature_cols: list[str] | None = None,
         loss: str = "mse",
+        batch: bool = False,
     ) -> Engine[G, T]:
         """
         Configure regression fitness.
@@ -303,16 +299,16 @@ class Engine[G, T]:
         - (features, targets)
         - a DataFrame (polars / pandas)
         """
-        from ..utils._normalize import _normalize_regression_data
-
-        X, y = _normalize_regression_data(
-            features,
-            targets,
-            feature_cols=feature_cols,
-            target_col=target,
+        self._builder.set_fitness(
+            Regression(
+                features,
+                targets,
+                target=target,
+                feature_cols=feature_cols,
+                loss=loss,
+                batch=batch,
+            )
         )
-
-        self._builder.set_fitness(Regression(X, y, loss))
         self._builder.set_objective("min")
         return self
 
@@ -322,7 +318,6 @@ class Engine[G, T]:
         survivor: SelectorBase | None = None,
         frac: float | None = None,
     ) -> Engine[G, T]:
-
         if offspring is not None:
             self._builder.set_offspring_selector(offspring)
         if survivor is not None:

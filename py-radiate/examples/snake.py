@@ -218,7 +218,7 @@ class SnakeAI:
 
     def predict(self, state: list[float]) -> int:
         """Predict the best action given current state."""
-        output = self.graph.eval([state])
+        output = self.graph.eval([state])[0]
         return np.argmax(output[0])
 
 

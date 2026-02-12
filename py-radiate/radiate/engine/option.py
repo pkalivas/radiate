@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from radiate._bridge.wrapper import RsObject
 from radiate.radiate import PyEngineRunOption
+from radiate._bridge.wrapper import RsObject
 
 
-class RunOption(RsObject[PyEngineRunOption]):
+class RunOption(RsObject):
     def __init__(self, option: PyEngineRunOption):
         super().__init__(option)
 

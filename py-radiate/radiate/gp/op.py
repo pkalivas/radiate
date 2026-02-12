@@ -1,38 +1,42 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Mapping, Sequence, TYPE_CHECKING
 from radiate._bridge.wrapper import RsObject
-from radiate.radiate import PyOp, _create_op
-
-if TYPE_CHECKING:
-    from radiate._typing import NodeValues
+from radiate._typing import AtLeastOne
+from radiate.radiate import _create_op
 
 
 @dataclass(frozen=True, slots=True)
 class OpsConfig:
-    vertex: NodeValues | None = None
-    edge: NodeValues | None = None
-    output: NodeValues | None = None
-    leaf: NodeValues | None = None
-    root: NodeValues | None = None
-    values: Mapping[str, Sequence[Op]] | None = None
+    vertex: AtLeastOne[Op] | None = None
+    edge: AtLeastOne[Op] | None = None
+    output: AtLeastOne[Op] | None = None
+    leaf: AtLeastOne[Op] | None = None
+    root: AtLeastOne[Op] | None = None
+    values: dict[str, AtLeastOne[Op]] | None = None
 
     def build_ops_map(
         self, input_size: int, fill_invalid: bool = False
     ) -> dict[str, list[Op]]:
         def inner():
-            base = {"input": [Op.var(i) for i in range(input_size)]} | {
-                "leaf": [Op.var(i) for i in range(input_size)]
-            }
+            base = {}
+            for i in range(input_size):
+                base.setdefault("input", []).append(Op.var(i))
+                base.setdefault("leaf", []).append(Op.var(i))
 
             if self.values is not None:
-                # if it's mapping, just merge
-                merged = dict(self.values)
+                merged = dict(self.values) | base
+
                 result = merged | base
                 {
                     node_type: [op.__backend__() for op in ops]
-                    for node_type, ops in result.items()
+                    for node_type, ops in map(
+                        lambda pair: (
+                            pair[0],
+                            [pair[1]] if isinstance(pair[1], Op) else list(pair[1]),
+                        ),
+                        result.items(),
+                    )
                 }
 
             ops_map = dict(base)
@@ -75,7 +79,10 @@ class OpsConfig:
         return ops_map
 
 
-class Op(RsObject[PyOp]):
+class Op(RsObject):
+    def eval(self, *args):
+        return self.__backend__().eval(list(args))
+
     @classmethod
     def var(cls, idx: int = 0) -> Op:
         return cls.from_rust(_create_op("var", {"index": idx}))

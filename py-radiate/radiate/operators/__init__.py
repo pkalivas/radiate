@@ -1,6 +1,7 @@
 from .executor import Executor
 
 from .alterer import (
+    AlterBase,
     BlendCrossover,
     IntermediateCrossover,
     ArithmeticMutator,
@@ -24,6 +25,7 @@ from .alterer import (
 )
 
 from .selector import (
+    SelectorBase,
     TournamentSelector,
     RouletteSelector,
     RankSelector,
@@ -37,6 +39,7 @@ from .selector import (
 )
 
 from .distance import (
+    DistanceBase,
     HammingDistance,
     EuclideanDistance,
     NeatDistance,
@@ -44,6 +47,7 @@ from .distance import (
 )
 
 from .limit import (
+    LimitBase,
     SecondsLimit,
     GenerationsLimit,
     ScoreLimit,
@@ -57,27 +61,8 @@ from .descriptor import CustomDescriptor
 
 
 __all__ = [
-    "BlendCrossover",
-    "CosineDistance",
-    "IntermediateCrossover",
-    "ArithmeticMutator",
-    "UniformCrossover",
-    "UniformMutator",
-    "MultiPointCrossover",
-    "MeanCrossover",
-    "ShuffleCrossover",
-    "SimulatedBinaryCrossover",
-    "PartiallyMappedCrossover",
-    "EdgeRecombinationCrossover",
-    "PolynomialMutator",
-    "GaussianMutator",
-    "ScrambleMutator",
-    "InversionMutator",
-    "JitterMutator",
-    "SwapMutator",
-    "GraphMutator",
-    "OperationMutator",
-    "GraphCrossover",
+    # Selectors
+    "SelectorBase",
     "TournamentSelector",
     "RouletteSelector",
     "RankSelector",
@@ -88,15 +73,43 @@ __all__ = [
     "NSGA2Selector",
     "TournamentNSGA2Selector",
     "NSGA3Selector",
+    # Alterers
+    "AlterBase",
+    "BlendCrossover",
+    "IntermediateCrossover",
+    "MultiPointCrossover",
+    "MeanCrossover",
+    "ShuffleCrossover",
+    "SimulatedBinaryCrossover",
+    "PartiallyMappedCrossover",
+    "EdgeRecombinationCrossover",
+    "GraphCrossover",
+    "UniformCrossover",
+    "ArithmeticMutator",
+    "UniformMutator",
+    "PolynomialMutator",
+    "GaussianMutator",
+    "ScrambleMutator",
+    "InversionMutator",
+    "JitterMutator",
+    "SwapMutator",
+    "GraphMutator",
+    "OperationMutator",
+    # Distances
+    "DistanceBase",
+    "CosineDistance",
     "HammingDistance",
     "EuclideanDistance",
     "NeatDistance",
+    # Executor
     "Executor",
+    # Limits
+    "LimitBase",
     "SecondsLimit",
     "GenerationsLimit",
     "ScoreLimit",
     "MetricLimit",
-    "Regression",
+    # Descriptors
     "ConvergenceLimit",
     "CustomDescriptor",
     "Rate",

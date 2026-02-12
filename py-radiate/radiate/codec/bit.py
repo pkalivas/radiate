@@ -6,21 +6,19 @@ from .base import CodecBase
 from radiate.radiate import PyBitCodec
 from radiate.genome import Genotype, Gene, Chromosome, GeneType
 from radiate._bridge.wrapper import RsObject
+from radiate._typing import AtLeastOne
 
 
-class BitCodec[T](CodecBase[bool, T], RsObject[PyBitCodec]):
+class BitCodec[T](CodecBase[bool, T], RsObject):
     """BitCodec for bit-based chromosomes. Encodes/decodes to bit strings."""
 
     gene_type = GeneType.BIT
 
     def __init__(
         self,
-        shape: int | tuple[int, int] | list[int] | None = None,
-        genes: Gene[bool] | list[Gene[bool]] | tuple[Gene[bool], ...] | None = None,
-        chromosomes: Chromosome[bool]
-        | list[Chromosome[bool]]
-        | tuple[Chromosome[bool], ...]
-        | None = None,
+        shape: AtLeastOne[int] | None = None,
+        genes: AtLeastOne[Gene[bool]] | None = None,
+        chromosomes: AtLeastOne[Chromosome[bool]] | None = None,
         use_numpy: bool = False,
     ):
         """
@@ -33,7 +31,9 @@ class BitCodec[T](CodecBase[bool, T], RsObject[PyBitCodec]):
             elif isinstance(shape, (tuple, list)):
                 self._pyobj = self.__matrix(shape=shape, use_numpy=use_numpy)
             else:
-                raise ValueError("Shape must be an int, tuple of ints, or list of ints.")
+                raise ValueError(
+                    "Shape must be an int, tuple of ints, or list of ints."
+                )
         elif genes is not None:
             self._pyobj = self.__from_genes(genes=genes, use_numpy=use_numpy)
         elif chromosomes is not None:
@@ -59,7 +59,7 @@ class BitCodec[T](CodecBase[bool, T], RsObject[PyBitCodec]):
         if not isinstance(genotype, Genotype):
             raise TypeError("genotype must be an instance of Genotype.")
         return self.__backend__().decode_py(genotype.__backend__())
-    
+
     @staticmethod
     def from_genes(
         genes: list[Gene[bool]] | tuple[Gene[bool], ...], use_numpy: bool = False
@@ -126,7 +126,7 @@ class BitCodec[T](CodecBase[bool, T], RsObject[PyBitCodec]):
 
     @staticmethod
     def __matrix(
-        shape: list[int] | tuple[int, int], use_numpy: bool = False
+        shape: AtLeastOne[int], use_numpy: bool = False
     ) -> BitCodec[list[list[bool]]]:
         """
         Initialize the bit codec with a matrix of chromosomes.
@@ -171,7 +171,7 @@ class BitCodec[T](CodecBase[bool, T], RsObject[PyBitCodec]):
 
     @staticmethod
     def __from_genes(
-        genes: list[Gene[bool]] | tuple[Gene[bool], ...], use_numpy: bool = False
+        genes: AtLeastOne[Gene[bool]], use_numpy: bool = False
     ) -> PyBitCodec:
         if not isinstance(genes, (list, tuple)):
             raise TypeError("genes must be a list or tuple of Gene instances.")
@@ -182,16 +182,15 @@ class BitCodec[T](CodecBase[bool, T], RsObject[PyBitCodec]):
 
     @staticmethod
     def __from_chromosomes(
-        chromosomes: list[Chromosome[bool]] | tuple[Chromosome[bool], ...],
-        use_numpy: bool = False,
+        chromosomes: AtLeastOne[Chromosome[bool]],
+        use_numpy: bool,
     ) -> PyBitCodec:
         from radiate.genome import GeneType
-
-        if not isinstance(chromosomes, (list, tuple)):
-            raise TypeError(
-                "chromosomes must be a list or tuple of Chromosome instances."
-            )
-        if not all(g.gene_type() == GeneType.BOOL for c in chromosomes for g in c):
+        if isinstance(chromosomes, Chromosome):
+            chromosomes = [chromosomes]
+        if not all(isinstance(c, Chromosome) for c in chromosomes):
+            raise TypeError("chromosomes must be a list or tuple of Chromosome instances.")
+        if not all(g.gene_type() == GeneType.BIT for c in chromosomes for g in c):
             raise TypeError("All chromosomes must be of type 'bool'.")
 
         return PyBitCodec.from_chromosomes(

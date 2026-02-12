@@ -87,34 +87,42 @@ def _normalize_regression_data(
     feature_cols=None,
     target_col=None,
 ):
-    # --- CASE 1: DataFrame passed ---
     if targets is None:
         if _check_for_polars(features):
             df = features
             if target_col is None:
-                X = df.select(df.columns[:-1]).to_numpy()
-                y = df.select(df.columns[-1]).to_numpy()
+                X = df.select(df.columns[:-1])
+                y = df.select([df.columns[-1]])  # force 1-col DF
             else:
-                X = df.select(
-                    feature_cols or [c for c in df.columns if c != target_col]
-                ).to_numpy()
-                y = df.select(target_col).to_numpy()
+                cols = feature_cols or [c for c in df.columns if c != target_col]
+                X = df.select(cols)
+                y = df.select([target_col])  # force 1-col DF
+
+            # convert after selection
+            X = X.to_numpy()
+            y = y.to_numpy()
 
         elif _check_for_pandas(features):
             df = features
             if target_col is None:
                 X = df.iloc[:, :-1].to_numpy()
-                y = df.iloc[:, -1:].to_numpy()
+                y = df.iloc[:, -1:].to_numpy()  # already 2D
             else:
-                X = df.drop(columns=[target_col]).to_numpy()
-                y = df[[target_col]].to_numpy()
+                cols = feature_cols or [c for c in df.columns if c != target_col]
+                X = df[cols].to_numpy()
+                y = df[[target_col]].to_numpy()  # force 2D
         else:
             raise TypeError("Unsupported dataframe type for regression")
     else:
         X = features
         y = targets
 
-    X = X.tolist() if _check_for_numpy(X) else X
-    y = y.tolist() if _check_for_numpy(y) else y
+    X = _to_2d_f32(X, name="features")
+    y = _to_2d_f32(y, name="targets")
+
+    if _check_for_numpy(X):
+        X = X.tolist()
+    if _check_for_numpy(y):
+        y = y.tolist()
 
     return X, y

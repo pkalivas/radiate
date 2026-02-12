@@ -61,14 +61,12 @@ pub enum DataType {
     Struct(Vec<Field>),
 
     Op32,
-
     Node(Box<DataType>),
 }
 
 impl DataType {
     pub fn is_nested(&self) -> bool {
         use DataType as D;
-
         matches!(self, D::List(_) | D::Struct(_))
     }
 

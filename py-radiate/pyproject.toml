@@ -40,3 +40,4 @@ fix = true
 
 [tool.ruff.lint.per-file-ignores]
 "radiate/__init__.py" = ["F401"]
+"radiate/utils/_normalize.py" = ["F401"]

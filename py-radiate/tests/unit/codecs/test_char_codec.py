@@ -1,5 +1,5 @@
 import pytest
-from radiate import CharCodec, gene
+from radiate import CharCodec, Gene
 
 
 @pytest.mark.unit
@@ -41,7 +41,7 @@ def test_char_codec_matrix_creation():
 @pytest.mark.unit
 def test_char_codec_from_genes():
     """Test creating a character codec from existing genes."""
-    initial_genes = [gene.char("x"), gene.char("y"), gene.char("z")]
+    initial_genes = [Gene.char("x"), Gene.char("y"), Gene.char("z")]
     codec = CharCodec.from_genes(initial_genes)
     genotype = codec.encode()
 

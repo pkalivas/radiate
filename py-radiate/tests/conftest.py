@@ -153,6 +153,21 @@ Engine Fixtures
 
 
 @pytest.fixture
+def graph_1x1_engine():
+    """Create a simple 1x1 graph engine for testing."""
+    return rd.Engine.graph(
+        shape=(1, 1),
+        vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.linear()],
+        edge=rd.Op.weight(),
+        output=rd.Op.linear(),
+    ).alters(
+        rd.Cross.graph(0.05, 0.5),
+        rd.Mutate.op(0.07, 0.05),
+        rd.Mutate.graph(0.1, 0.1, False),
+    )
+
+
+@pytest.fixture
 def simple_float_engine():
     """Create a simple float codec engine for testing."""
     return (

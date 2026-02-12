@@ -3,7 +3,6 @@ from __future__ import annotations
 import enum
 from datetime import timedelta
 
-from radiate.radiate import PyMetricSet, PyMetric
 from radiate._bridge.wrapper import RsObject
 from radiate._dependancies import _PANDAS_AVAILABLE, _POLARS_AVAILABLE
 
@@ -75,7 +74,7 @@ tag_map = {
 }
 
 
-class MetricSet(RsObject[PyMetricSet]):
+class MetricSet(RsObject):
     def __repr__(self):
         return self.__backend__().__repr__()
 
@@ -121,7 +120,7 @@ class MetricSet(RsObject[PyMetricSet]):
         return self.__backend__().to_pandas()
 
 
-class Metric(RsObject[PyMetric]):
+class Metric(RsObject):
     def __repr__(self) -> str:
         return self.__backend__().__repr__()
 

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from typing import Mapping, Sequence
-from radiate._typing import NodeValues
+from radiate._typing import AtLeastOne
 
 from .base import CodecBase
 from ..gp import Op, Graph, OpsConfig
@@ -10,16 +9,16 @@ from radiate._bridge.wrapper import RsObject
 from radiate.radiate import PyGraphCodec
 
 
-class GraphCodec(CodecBase[Op, Graph], RsObject[PyGraphCodec]):
+class GraphCodec(CodecBase[Op, Graph], RsObject):
     gene_type = GeneType.GRAPH
 
     def __init__(
         self,
         shape: tuple[int, int],
-        vertex: NodeValues | None = None,
-        edge: NodeValues | None = None,
-        output: NodeValues | None = None,
-        values: Mapping[str, Sequence[Op]] | None = None,
+        vertex: AtLeastOne[Op] | None = None,
+        edge: AtLeastOne[Op] | None = None,
+        output: AtLeastOne[Op] | None = None,
+        values: dict[str, AtLeastOne[Op]] | None = None,
         max_nodes: int | None = None,
         graph_type: str = "directed",
     ):
@@ -62,10 +61,10 @@ class GraphCodec(CodecBase[Op, Graph], RsObject[PyGraphCodec]):
     @staticmethod
     def weighted_directed(
         shape: tuple[int, int],
-        vertex: NodeValues | None = None,
-        edge: NodeValues | None = None,
-        output: NodeValues | None = None,
-        values: dict[str, list[Op]] | list[tuple[str, list[Op]]] | None = None,
+        vertex: AtLeastOne[Op] | None = None,
+        edge: AtLeastOne[Op] | None = None,
+        output: AtLeastOne[Op] | None = None,
+        values: dict[str, AtLeastOne[Op]] | None = None,
         max_nodes: int | None = None,
     ) -> GraphCodec:
         return GraphCodec(
@@ -81,10 +80,10 @@ class GraphCodec(CodecBase[Op, Graph], RsObject[PyGraphCodec]):
     @staticmethod
     def weighted_recurrent(
         shape: tuple[int, int],
-        vertex: NodeValues | None = None,
-        edge: NodeValues | None = None,
-        output: NodeValues | None = None,
-        values: dict[str, list[Op]] | list[tuple[str, list[Op]]] | None = None,
+        vertex: AtLeastOne[Op] | None = None,
+        edge: AtLeastOne[Op] | None = None,
+        output: AtLeastOne[Op] | None = None,
+        values: dict[str, AtLeastOne[Op]] | None = None,
         max_nodes: int | None = None,
     ) -> GraphCodec:
         return GraphCodec(
@@ -100,10 +99,10 @@ class GraphCodec(CodecBase[Op, Graph], RsObject[PyGraphCodec]):
     @staticmethod
     def directed(
         shape: tuple[int, int],
-        vertex: NodeValues | None = None,
-        edge: NodeValues | None = None,
-        output: NodeValues | None = None,
-        values: dict[str, list[Op]] | list[tuple[str, list[Op]]] | None = None,
+        vertex: AtLeastOne[Op] | None = None,
+        edge: AtLeastOne[Op] | None = None,
+        output: AtLeastOne[Op] | None = None,
+        values: dict[str, AtLeastOne[Op]] | None = None,
         max_nodes: int | None = None,
     ) -> GraphCodec:
         return GraphCodec(
@@ -113,10 +112,10 @@ class GraphCodec(CodecBase[Op, Graph], RsObject[PyGraphCodec]):
     @staticmethod
     def recurrent(
         shape: tuple[int, int],
-        vertex: NodeValues | None = None,
-        edge: NodeValues | None = None,
-        output: NodeValues | None = None,
-        values: dict[str, list[Op]] | list[tuple[str, list[Op]]] | None = None,
+        vertex: AtLeastOne[Op] | None = None,
+        edge: AtLeastOne[Op] | None = None,
+        output: AtLeastOne[Op] | None = None,
+        values: dict[str, AtLeastOne[Op]] | None = None,
         max_nodes: int | None = None,
     ) -> GraphCodec:
         return GraphCodec(
@@ -126,10 +125,10 @@ class GraphCodec(CodecBase[Op, Graph], RsObject[PyGraphCodec]):
     @staticmethod
     def gru(
         shape: tuple[int, int],
-        vertex: NodeValues | None = None,
-        edge: NodeValues | None = None,
-        output: NodeValues | None = None,
-        values: dict[str, list[Op]] | list[tuple[str, list[Op]]] | None = None,
+        vertex: AtLeastOne[Op] | None = None,
+        edge: AtLeastOne[Op] | None = None,
+        output: AtLeastOne[Op] | None = None,
+        values: dict[str, AtLeastOne[Op]] | None = None,
         max_nodes: int | None = None,
     ) -> GraphCodec:
         return GraphCodec(
@@ -139,10 +138,10 @@ class GraphCodec(CodecBase[Op, Graph], RsObject[PyGraphCodec]):
     @staticmethod
     def lstm(
         shape: tuple[int, int],
-        vertex: NodeValues | None = None,
-        edge: NodeValues | None = None,
-        output: NodeValues | None = None,
-        values: dict[str, list[Op]] | list[tuple[str, list[Op]]] | None = None,
+        vertex: AtLeastOne[Op] | None = None,
+        edge: AtLeastOne[Op] | None = None,
+        output: AtLeastOne[Op] | None = None,
+        values: dict[str, AtLeastOne[Op]] | None = None,
         max_nodes: int | None = None,
     ) -> GraphCodec:
         return GraphCodec(
@@ -153,10 +152,10 @@ class GraphCodec(CodecBase[Op, Graph], RsObject[PyGraphCodec]):
     def __build_common(
         name: str = "directed",
         shape: tuple[int, int] = (1, 1),
-        vertex: NodeValues | None = None,
-        edge: NodeValues | None = None,
-        output: NodeValues | None = None,
-        values: dict[str, list[Op]] | list[tuple[str, list[Op]]] | None = None,
+        vertex: AtLeastOne[Op] | None = None,
+        edge: AtLeastOne[Op] | None = None,
+        output: AtLeastOne[Op] | None = None,
+        values: dict[str, AtLeastOne[Op]] | None = None,
         max_nodes: int | None = None,
     ) -> PyGraphCodec:
         input_size, output_size = shape
@@ -171,11 +170,11 @@ class GraphCodec(CodecBase[Op, Graph], RsObject[PyGraphCodec]):
             ops_map = values | ops_map
         else:
             if vertex is not None:
-                ops_map["vertex"] = [vertex] if isinstance(vertex, Op) else vertex
+                ops_map["vertex"] = [vertex] if isinstance(vertex, Op) else list(vertex)
             if edge is not None:
-                ops_map["edge"] = [edge] if isinstance(edge, Op) else edge
+                ops_map["edge"] = [edge] if isinstance(edge, Op) else list(edge)
             if output is not None:
-                ops_map["output"] = [output] if isinstance(output, Op) else output
+                ops_map["output"] = [output] if isinstance(output, Op) else list(output)
 
         if name not in [
             "weighted_directed",

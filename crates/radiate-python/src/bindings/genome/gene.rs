@@ -5,8 +5,8 @@ use crate::{
 };
 use pyo3::{Bound, IntoPyObject, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
-    BitGene, CharGene, FloatGene, Gene, GraphNode, IntGene, Op, PermutationGene, TreeNode,
-    random_provider,
+    BitGene, BoundedGene, CharGene, FloatGene, Gene, GraphNode, IntGene, Op, PermutationGene,
+    TreeNode, random_provider,
 };
 use radiate_error::radiate_py_bail;
 use radiate_utils::{Float, Integer};
@@ -157,6 +157,55 @@ impl PyGene {
         }
     }
 
+    pub fn init_range<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        match &self.inner {
+            GeneInner::UInt8(gene) => (gene.min(), gene.max()).into_bound_py_any(py),
+            GeneInner::UInt16(gene) => (gene.min(), gene.max()).into_bound_py_any(py),
+            GeneInner::UInt32(gene) => (gene.min(), gene.max()).into_bound_py_any(py),
+            GeneInner::UInt64(gene) => (gene.min(), gene.max()).into_bound_py_any(py),
+            GeneInner::UInt128(gene) => (gene.min(), gene.max()).into_bound_py_any(py),
+
+            GeneInner::Int8(gene) => (gene.min(), gene.max()).into_bound_py_any(py),
+            GeneInner::Int16(gene) => (gene.min(), gene.max()).into_bound_py_any(py),
+            GeneInner::Int32(gene) => (gene.min(), gene.max()).into_bound_py_any(py),
+            GeneInner::Int64(gene) => (gene.min(), gene.max()).into_bound_py_any(py),
+            GeneInner::Int128(gene) => (gene.min(), gene.max()).into_bound_py_any(py),
+
+            GeneInner::Float32(gene) => (gene.min(), gene.max()).into_bound_py_any(py),
+            GeneInner::Float64(gene) => (gene.min(), gene.max()).into_bound_py_any(py),
+
+            _ => py.None().into_bound_py_any(py),
+        }
+    }
+
+    pub fn bounds<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        match &self.inner {
+            GeneInner::UInt8(gene) => gene.bounds().into_bound_py_any(py),
+            GeneInner::UInt16(gene) => gene.bounds().into_bound_py_any(py),
+            GeneInner::UInt32(gene) => gene.bounds().into_bound_py_any(py),
+            GeneInner::UInt64(gene) => gene.bounds().into_bound_py_any(py),
+            GeneInner::UInt128(gene) => gene.bounds().into_bound_py_any(py),
+
+            GeneInner::Int8(gene) => gene.bounds().into_bound_py_any(py),
+            GeneInner::Int16(gene) => gene.bounds().into_bound_py_any(py),
+            GeneInner::Int32(gene) => gene.bounds().into_bound_py_any(py),
+            GeneInner::Int64(gene) => gene.bounds().into_bound_py_any(py),
+            GeneInner::Int128(gene) => gene.bounds().into_bound_py_any(py),
+
+            GeneInner::Float32(gene) => gene.bounds().into_bound_py_any(py),
+            GeneInner::Float64(gene) => gene.bounds().into_bound_py_any(py),
+
+            _ => py.None().into_bound_py_any(py),
+        }
+    }
+
+    pub fn char_set<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        match &self.inner {
+            GeneInner::Char(gene) => gene.char_set().into_bound_py_any(py),
+            _ => py.None().into_bound_py_any(py),
+        }
+    }
+
     #[staticmethod]
     #[pyo3(signature = (allele=None, range=None, bounds=None, dtype=None))]
     pub fn float(
@@ -181,9 +230,13 @@ impl PyGene {
             if let Some(init) = maybe_range
                 && let Some(bounds) = maybe_bounds
             {
+                let init_min = if bounds.0 > init.0 { bounds.0 } else { init.0 };
+                let init_max = if bounds.1 < init.1 { bounds.1 } else { init.1 };
+                let init_range = init_min..init_max;
+
                 Ok(match maybe_allele {
-                    Some(al) => FloatGene::new(al, init.0..init.1, bounds.0..bounds.1),
-                    None => FloatGene::from((init.0..init.1, bounds.0..bounds.1)),
+                    Some(al) => FloatGene::new(al, init_range.clone(), bounds.0..bounds.1),
+                    None => FloatGene::from((init_range.clone(), bounds.0..bounds.1)),
                 })
             } else {
                 radiate_py_bail!(format!(
@@ -211,7 +264,8 @@ impl PyGene {
         dtype: Option<String>,
     ) -> PyResult<Self> {
         let dtype = dtype::dtype_from_str(&dtype.unwrap_or_else(|| dtype_names::INT64.into()));
-        let range = range.unwrap_or((i64::MIN, i64::MAX));
+        let default_range = default_int_range(&dtype);
+        let range = range.unwrap_or(default_range);
         let bounds = bounds.unwrap_or(range.clone());
 
         fn to_gene<I: Integer>(
@@ -226,9 +280,13 @@ impl PyGene {
             if let Some(init) = maybe_range
                 && let Some(bounds) = maybe_bounds
             {
+                let init_min = if bounds.0 > init.0 { bounds.0 } else { init.0 };
+                let init_max = if bounds.1 < init.1 { bounds.1 } else { init.1 };
+                let init_range = init_min..init_max;
+
                 Ok(match maybe_allele {
-                    Some(al) => IntGene::new(al, init.0..init.1, bounds.0..bounds.1),
-                    None => IntGene::from((init.0..init.1, bounds.0..bounds.1)),
+                    Some(al) => IntGene::new(al, init_range.clone(), bounds.0..bounds.1),
+                    None => IntGene::from((init_range.clone(), bounds.0..bounds.1)),
                 })
             } else {
                 radiate_py_bail!(format!(
@@ -277,6 +335,23 @@ impl PyGene {
                 },
             }),
         }
+    }
+}
+
+fn default_int_range(dtype: &DataType) -> (i64, i64) {
+    match dtype {
+        DataType::Int8 => (i8::MIN as i64, i8::MAX as i64),
+        DataType::Int16 => (i16::MIN as i64, i16::MAX as i64),
+        DataType::Int32 => (i32::MIN as i64, i32::MAX as i64),
+        DataType::Int64 => (i64::MIN, i64::MAX),
+        DataType::Int128 => (i64::MIN, i64::MAX),
+
+        DataType::UInt8 => (u8::MIN as i64, u8::MAX as i64),
+        DataType::UInt16 => (u16::MIN as i64, u16::MAX as i64),
+        DataType::UInt32 => (u32::MIN as i64, u32::MAX as i64),
+        DataType::UInt64 => (0, i64::MAX),
+        DataType::UInt128 => (0, i64::MAX),
+        _ => (i64::MIN, i64::MAX),
     }
 }
 

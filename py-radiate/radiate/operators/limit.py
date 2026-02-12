@@ -1,6 +1,6 @@
 from typing import Dict, Any, List, Callable
+from radiate.engine.metrics import Metric
 from .base import ComponentBase
-from ..engine.metrics import Metric
 
 class LimitBase(ComponentBase):
     def __init__(self, component: str, args: Dict[str, Any] = {}):

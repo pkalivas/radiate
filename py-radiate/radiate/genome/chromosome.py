@@ -1,16 +1,14 @@
 from __future__ import annotations
 
-from typing import Iterable, TYPE_CHECKING
-from radiate._bridge.wrapper import RsObject
+from collections.abc import Iterable, Sequence
+
 from radiate.radiate import PyChromosome
-from .gene import Gene
-from radiate.genome import gene
+from radiate._bridge.wrapper import RsObject
 
-if TYPE_CHECKING:
-    from radiate.genome import GeneType
+from .gene import Gene, GeneType
 
 
-class Chromosome[T](RsObject[PyChromosome]):
+class Chromosome[T](RsObject):
     """
     Represents a chromosome in a genome.
     """
@@ -94,7 +92,7 @@ def int(
     >>> rd.Chromosome.int(length=3, init_range=(0, 10), bounds=(-5, 15))
     Chromosome(genes=[0, 5, 10])
     """
-    genes = [gene.int(init_range=init_range, bounds=bounds) for _ in range(length)]
+    genes = [Gene.int(init_range=init_range, bounds=bounds) for _ in range(length)]
     return Chromosome(genes=genes)
 
 
@@ -110,7 +108,7 @@ def bit(length: int) -> Chromosome[bool]:
     >>> rd.chromosome.bit(length=4)
     Chromosome(genes=[True, False, True, False])
     """
-    genes = [gene.bit() for _ in range(length)]
+    genes = [Gene.bit() for _ in range(length)]
     return Chromosome(genes=genes)
 
 
@@ -126,7 +124,7 @@ def char(length: int, char_set: set[str] | None = None) -> Chromosome[str]:
     >>> rd.chromosome.char(length=5, char_set={'a', 'b', 'c'})
     Chromosome(genes=[a, b, c, a, b])
     """
-    genes = [gene.char(char_set=char_set) for _ in range(length)]
+    genes = [Gene.char(char_set=char_set) for _ in range(length)]
     return Chromosome(genes=genes)
 
 
@@ -134,7 +132,7 @@ def float(
     length: int = 1,
     init_range: tuple[float, float] | None = None,
     bounds: tuple[float, float] | None = None,
-    genes: Iterable[Gene[float]] | Gene[float] | None = None,
+    genes: Iterable[Gene[float]] | Sequence[Gene[float]] | Gene[float] | None = None,
 ) -> Chromosome[float]:
     """
     Create a float chromosome with specified length and optional parameters.
@@ -150,12 +148,12 @@ def float(
     Chromosome(genes=[0.0, 2.5, 5.0, 7.5, 10.0])
     """
     if genes is not None:
-        if isinstance(genes, Iterable):
+        if isinstance(genes, (Iterable, Sequence)):
             return Chromosome(genes=list(genes))
         if isinstance(genes, Gene):
             return Chromosome(genes=[genes])
     else:
         genes = [
-            gene.float(init_range=init_range, bounds=bounds) for _ in range(length)
+            Gene.float(init_range=init_range, bounds=bounds) for _ in range(length)
         ]
         return Chromosome(genes=genes)

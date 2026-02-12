@@ -1,33 +1,31 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
-from typing import Any, Callable, TYPE_CHECKING
+from collections.abc import Sequence, Callable
+from typing import Any, TYPE_CHECKING
 
-from radiate.gp.op import Op
-
-from .engine.handlers import EventHandler
-from .dtype import DataType, DataTypeClass
 
 if TYPE_CHECKING:
-    from radiate._dependencies import numpy as np  # type: ignore[import]
+    from ._dependancies import numpy as np
+    from .engine.handlers import EventHandler
+    from .dtype import DataType, DataTypeClass
+    from radiate.codec import CodecBase
+    from radiate.genome import Gene, Chromosome
+else:
+    DataType = DataTypeClass = str
+    EventHandler = Callable[[Any], None]
+    CodecBase = Gene = Chromosome = object
 
+type Vec[T] = Sequence[T]
+type Mat[T] = Sequence[Sequence[T]]
+type Layout[T] = T | Vec[T] | Mat[T]
+
+type AtLeastOne[T] = T | Vec[T]
+
+type Primitive = int | float | bool | str
 
 type RdDataType = DataType | DataTypeClass
 
-type Subscriber = (
-    Callable[[Any], None]
-    | list[Callable[[Any], None]]
-    | EventHandler
-    | list[EventHandler]
-)
+type Subscriber = AtLeastOne[Callable[[Any], None]] | AtLeastOne[EventHandler]
 
-type IntDecoding = int | list[int] | list[list[int]] | "np.ndarray"
-type FloatDecoding = float | list[float] | list[list[float]] | "np.ndarray"
-type BoolDecoding = bool | list[bool] | list[list[bool]] | "np.ndarray"
-type StringDecoding = str | list[str] | list[list[str]]
-
-type NodeValues = list[Op] | Op
-
-type NodeValues = Op | Sequence[Op]
-type OpsMap = Mapping[str, Sequence[Op]]  # external view
-type OpsDict = dict[str, list[Op]]  # internal canonical form
+type Decoding[T] = T | Vec[T] | Mat[T] | "np.ndarray"
+type Encoding[T] = Layout[Primitive] | Layout[T] | CodecBase[Gene[T], T]
