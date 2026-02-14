@@ -7,7 +7,7 @@ from radiate.operators.distance import DistanceBase, EuclideanDistance, HammingD
 from radiate.radiate import PyFitnessFn
 
 
-class NoveltySearch[T](FitnessBase[T]):
+class NoveltySearch[T](FitnessBase):
     """Fitness function for novelty search algorithms."""
 
     def __init__(

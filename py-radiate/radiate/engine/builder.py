@@ -19,14 +19,14 @@ from .handlers import CallableEventHandler, EventHandler
 from .generation import Generation
 
 from radiate._bridge.input import EngineInput, EngineInputType
-from radiate._typing import Subscriber, Decoding
+from radiate._typing import Subscriber
 
 
 @dataclass(slots=True)
 class EngineConfig[G, T]:
     gene_type: GeneType | None = None
     codec: CodecBase[G, T] | None = None
-    fitness_func: Callable[[T], Any] | FitnessBase[T] | None = None
+    fitness_func: Callable[[T], Any] | FitnessBase | None = None
 
     population: Population[G] | None = None
     offspring_selector: SelectorBase | None = None
@@ -116,9 +116,7 @@ class EngineBuilder[G, T]:
 
         return self
 
-    def set_fitness(
-        self, fitness: FitnessBase | Callable[[Decoding[T]], Any] | None = None
-    ):
+    def set_fitness(self, fitness: FitnessBase | Callable[[T], Any] | None = None):
         if fitness is None:
             return
 

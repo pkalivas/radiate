@@ -4,7 +4,7 @@ from radiate.radiate import PyFitnessFn
 from radiate.utils._normalize import _normalize_regression_data
 
 
-class Regression[T](FitnessBase[T]):
+class Regression[T](FitnessBase):
     """Fitness function for regression problems."""
 
     def __init__(

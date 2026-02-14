@@ -246,9 +246,7 @@ class Engine[G, T]:
 
         return Generation.from_rust(engine.run(limit_inputs, options))
 
-    def fitness(
-        self, fitness_func: Callable[[Decoding[T]], Any] | FitnessBase[T]
-    ) -> Engine[G, T]:
+    def fitness(self, fitness_func: Callable[[Any], Any] | FitnessBase) -> Engine[G, T]:
         """Set the fitness function for the engine."""
         self._builder.set_fitness(fitness_func)
         return self

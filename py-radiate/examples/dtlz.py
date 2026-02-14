@@ -64,7 +64,7 @@ z = [member.score()[2] for member in front]
 fig = plt.figure()
 ax = plt.axes(projection="3d")
 ax.scatter(x, y, z)
-ax.set_xlim([0.0, 0.5])
-ax.set_ylim([0.0, 0.5])
-ax.set_zlim([0.0, 0.5])
+ax.set_xlim([0.0, 0.5])  # type: ignore
+ax.set_ylim([0.0, 0.5])  # type: ignore
+ax.set_zlim([0.0, 0.5])  # type: ignore
 plt.show()
