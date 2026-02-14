@@ -1,5 +1,3 @@
-# radiate/api.py (or radiate/dsl.py)
-
 from radiate.operators.selector import (
     TournamentSelector,
     RouletteSelector,

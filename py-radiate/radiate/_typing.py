@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from .dtype import DataType, DataTypeClass
     from radiate.codec import CodecBase
     from radiate.genome import Gene
+    from radiate.gp import Graph, Tree
 
 
 type AtLeastOne[T] = T | Sequence[T]
@@ -20,7 +21,9 @@ type RdDataType = DataType | DataTypeClass
 
 type Subscriber = AtLeastOne[Callable[[Any], None]] | AtLeastOne[EventHandler]
 
-type Decoding[T] = T | Sequence[T] | Sequence[Sequence[T]] | "np.ndarray"
+type Decoding[T] = (
+    T | Sequence[T] | Sequence[Sequence[T]] | "np.ndarray" | "Graph" | "Tree"
+)
 type Encoding[T] = (
     "Gene[T]"
     | Sequence["Gene[T]"]

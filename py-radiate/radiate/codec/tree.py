@@ -3,6 +3,7 @@ from __future__ import annotations
 from .base import CodecBase
 from radiate.gp import Op, Tree, OpsConfig
 from radiate._bridge.wrapper import RsObject
+from radiate._typing import AtLeastOne
 from radiate.genome import Genotype, GeneType
 from radiate.radiate import PyTreeCodec
 
@@ -18,8 +19,8 @@ class TreeCodec(CodecBase[Op, Tree], RsObject):
         vertex: Op | list[Op] | None = None,
         leaf: Op | list[Op] | None = None,
         root: Op | list[Op] | None = None,
-        values: dict[str, list[Op]] | list[tuple[str, list[Op]]] | None = None,
-    ) -> TreeCodec:
+        values: dict[str, AtLeastOne[Op]] | None = None,
+    ):
         """
         Initialize a TreeCodec for genetic programming trees. The codec supports building trees with
         specified operations for vertices, leaves, and roots. The trees can be constrained by minimum depth and maximum size.
@@ -31,7 +32,7 @@ class TreeCodec(CodecBase[Op, Tree], RsObject):
             vertex (Op | list[Op] | None, optional): Operations to use for internal nodes. Can be a single Op or a list of Ops. Defaults to None.
             leaf (Op | list[Op] | None, optional): Operations to use for leaf nodes. Can be a single Op or a list of Ops. Defaults to None.
             root (Op | list[Op] | None, optional): Operations to use for the root node. Can be a single Op or a list of Ops. Defaults to None.
-            values (dict[str, list[Op]] | list[tuple[str, list[Op]]] | None, optional): A mapping of node types to their corresponding operations.
+            values (dict[str, AtLeastOne[Op]] | None, optional): A mapping of node types to their corresponding operations.
                 If provided, this overrides the individual vertex, leaf, and root parameters. Defaults to None.
 
         Raises:

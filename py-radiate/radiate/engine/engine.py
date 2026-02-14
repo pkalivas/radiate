@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 
 from radiate.codec import (
     FloatCodec,
@@ -15,7 +15,7 @@ from radiate.codec import (
 
 from radiate.operators import SelectorBase, AlterBase, DistanceBase, Executor, LimitBase
 from radiate.fitness import FitnessBase, Regression
-from radiate.genome import Population, GeneType, Gene
+from radiate.genome import Population, GeneType
 from radiate.gp import Graph, Tree, Op
 from radiate.dtype import Float64, Int64
 from radiate.codec.base import CodecBase
@@ -48,115 +48,85 @@ class Engine[G, T]:
     ):
         encoding = None
         if not isinstance(codec, CodecBase):
-            encoding = CodecBase.from_genes(codec)
+            # encoding = CodecBase.from_genes(codec)
+            pass
         else:
             encoding = codec
 
-        print(f"Initialized engine with encoding: {encoding}")
         self._engine = None
         if encoding is not None:
             self._builder = EngineBuilder._default(
                 encoding.gene_type, codec=encoding, **kwargs
             )
 
-            # self._builder = EngineBuilder()
-
-    @classmethod
+    @staticmethod
     def float(
-        cls,
         shape: AtLeastOne[int] = 1,
         init_range: tuple[float, float] | None = (0, 1.0),
         bounds: tuple[float, float] | None = None,
         dtype: RdDataType = Float64,
         use_numpy: bool = False,
-    ) -> Engine[Gene[float], Decoding[float]]:
+    ) -> Engine[float, Decoding[float]]:
         """Create a genetic engine for optimizing floating-point values."""
-        instance = cls.__new__(cls)
-        codec = FloatCodec(
-            shape,
-            init_range=init_range,
-            bounds=bounds,
-            dtype=dtype,
-            use_numpy=use_numpy,
+        return Engine(
+            codec=FloatCodec(
+                shape,
+                init_range=init_range,
+                bounds=bounds,
+                dtype=dtype,
+                use_numpy=use_numpy,
+            )
         )
 
-        instance._engine = None
-        instance._builder = EngineBuilder._default(GeneType.FLOAT).set_codec(codec)
-        return instance
-
-    @classmethod
+    @staticmethod
     def int(
-        cls,
         shape: AtLeastOne[int] = 1,
         init_range: tuple[int, int] | None = (0, 100),
         bounds: tuple[int, int] | None = None,
         dtype: RdDataType = Int64,
         use_numpy: bool = False,
-    ) -> Engine[Gene[int], Decoding[int]]:
+    ) -> Engine[int, Decoding[int]]:
         """Create a genetic engine for optimizing integer values."""
-        instance = cls.__new__(cls)
-        codec = IntCodec(
-            shape,
-            init_range=init_range,
-            bounds=bounds,
-            dtype=dtype,
-            use_numpy=use_numpy,
+        return Engine(
+            codec=IntCodec(
+                shape,
+                init_range=init_range,
+                bounds=bounds,
+                dtype=dtype,
+                use_numpy=use_numpy,
+            )
         )
 
-        instance._builder = EngineBuilder._default(GeneType.INT).set_codec(codec)
-        instance._engine = None
-        return instance
-
-    @classmethod
+    @staticmethod
     def char(
-        cls,
         shape: AtLeastOne[int] = 1,
-        char_set: set[str] | None = None,
-    ) -> Engine[Gene[str], Decoding[str]]:
+        char_set: str | list[str] | set[str] | None = None,
+    ) -> Engine[str, Decoding[str]]:
         """Create a genetic engine for optimizing character values."""
-        instance = cls.__new__(cls)
-        codec = CharCodec(shape, char_set=char_set)
+        return Engine(codec=CharCodec(shape, char_set=char_set))
 
-        instance._builder = EngineBuilder._default(GeneType.CHAR).set_codec(codec)
-        instance._engine = None
-        return instance
-
-    @classmethod
+    @staticmethod
     def bit(
-        cls, shape: int | tuple[int, ...] | list[int] = 1, use_numpy: bool = False
-    ) -> Engine[Gene[bool], Decoding[bool]]:
+        shape: int | tuple[int, ...] | list[int] = 1, use_numpy: bool = False
+    ) -> Engine[bool, Decoding[bool]]:
         """Create a genetic engine for optimizing boolean values."""
-        instance = cls.__new__(cls)
-        codec = BitCodec(shape, use_numpy=use_numpy)
+        return Engine(codec=BitCodec(shape, use_numpy=use_numpy))
 
-        instance._builder = EngineBuilder._default(GeneType.BIT).set_codec(codec)
-        instance._engine = None
-        return instance
-
-    @classmethod
-    def permutation(cls, items: list[T]) -> Engine[Gene[T], list[T]]:
+    @staticmethod
+    def permutation(items: list[T]) -> Engine[T, list[T]]:
         """Create a genetic engine for optimizing permutations of a list of items."""
-        instance = cls.__new__(cls)
-        codec = PermutationCodec(items)
+        return Engine(codec=PermutationCodec(items))
 
-        instance._builder = EngineBuilder._default(GeneType.PERMUTATION).set_codec(
-            codec
-        )
-        instance._engine = None
-        return instance
-
-    @classmethod
+    @staticmethod
     def graph(
-        cls,
         shape: tuple[int, int],
         vertex: Op | list[Op] | None = None,
         edge: Op | list[Op] | None = None,
         output: Op | list[Op] | None = None,
-        values: dict[str, list[Op]] | list[tuple[str, list[Op]]] | None = None,
+        values: dict[str, AtLeastOne[Op]] | None = None,
         max_nodes: int | None = None,
-    ) -> Engine[Gene[Op], Graph]:
+    ) -> Engine[Op, Graph]:
         """Create a genetic engine for optimizing graph structures."""
-        instance = cls.__new__(cls)
         codec = GraphCodec(
             graph_type="directed",
             shape=shape,
@@ -167,36 +137,30 @@ class Engine[G, T]:
             max_nodes=max_nodes,
         )
 
-        instance._builder = EngineBuilder._default(GeneType.GRAPH).set_codec(codec)
-        instance._engine = None
-        return instance
+        return Engine(codec=codec)
 
-    @classmethod
+    @staticmethod
     def tree(
-        cls,
         shape: tuple[int, int] = (1, 1),
         min_depth: int = 3,
         max_size: int = 30,
         vertex: Op | list[Op] | None = None,
         leaf: Op | list[Op] | None = None,
         root: Op | list[Op] | None = None,
-        values: dict[str, list[Op]] | list[tuple[str, list[Op]]] | None = None,
-    ) -> Engine[Gene[Op], Tree]:
+        values: dict[str, AtLeastOne[Op]] | None = None,
+    ) -> Engine[Op, Tree]:
         """Create a genetic engine for optimizing tree structures."""
-        instance = cls.__new__(cls)
-        codec = TreeCodec(
-            shape,
-            min_depth=min_depth,
-            max_size=max_size,
-            vertex=vertex,
-            leaf=leaf,
-            root=root,
-            values=values,
+        return Engine(
+            codec=TreeCodec(
+                shape,
+                min_depth=min_depth,
+                max_size=max_size,
+                vertex=vertex,
+                leaf=leaf,
+                root=root,
+                values=values,
+            )
         )
-
-        instance._builder = EngineBuilder._default(GeneType.TREE).set_codec(codec)
-        instance._engine = None
-        return instance
 
     def __iter__(self):
         """Allow unpacking the engine into its components."""
@@ -341,7 +305,7 @@ class Engine[G, T]:
 
     def alters(self, *alters: AlterBase) -> Engine[G, T]:
         """Set the alters for the engine."""
-        self._builder.set_alters(alters)
+        self._builder.set_alters(list(alters))
         return self
 
     def diversity(
@@ -353,7 +317,7 @@ class Engine[G, T]:
 
     def limit(self, *limits: LimitBase) -> Engine[G, T]:
         """Set the limits for the engine."""
-        self._builder.set_limits(limits)
+        self._builder.set_limits(list(limits))
         return self
 
     def size(self, size: int) -> Engine[G, T]:
