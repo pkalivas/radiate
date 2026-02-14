@@ -8,17 +8,22 @@ from radiate.genome import GENE_TYPE_MAPPING
 
 from .base import ComponentBase
 
+
 class SelectorBase(ComponentBase):
     def __init__(
         self,
         component: str | None = None,
         args: dict[str, Any] = {},
-        allowed_genes: set[GeneType] | GeneType = {},
+        allowed_genes: set[GeneType] | GeneType = set(GeneType),
     ):
         if component is None:
             component = self.__class__.__name__
         super().__init__(component=component, args=args)
-        self.allowed_genes = allowed_genes if allowed_genes else GeneType.all()
+        if isinstance(allowed_genes, GeneType):
+            allowed_genes = {allowed_genes}
+        else:
+            allowed_genes = allowed_genes if allowed_genes else GeneType.all()
+        self.allowed_genes = allowed_genes
 
     def __str__(self):
         """

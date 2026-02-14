@@ -14,14 +14,18 @@ class DistanceBase(ComponentBase):
         self,
         component: str,
         args: Dict[str, Any] = {},
-        allowed_genes: set[str] | str = {},
+        allowed_genes: set[GeneType] | GeneType = set(GeneType),
     ):
         """
         Initialize the diversity parameter with a PyDiversity instance.
         :param diversity: An instance of PyDiversity.
         """
         super().__init__(component=component, args=args)
-        self.allowed_genes = allowed_genes if allowed_genes else GeneType.all()
+        if isinstance(allowed_genes, GeneType):
+            allowed_genes = {allowed_genes}
+        else:
+            allowed_genes = allowed_genes if allowed_genes else GeneType.all()
+        self.allowed_genes = allowed_genes
 
     def __str__(self):
         """

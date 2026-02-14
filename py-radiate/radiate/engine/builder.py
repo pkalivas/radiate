@@ -19,7 +19,7 @@ from .handlers import CallableEventHandler, EventHandler
 from .generation import Generation
 
 from radiate._bridge.input import EngineInput, EngineInputType
-from radiate._typing import Subscriber
+from radiate._typing import Subscriber, Decoding
 
 
 @dataclass(slots=True)
@@ -41,16 +41,16 @@ class EngineConfig[G, T]:
     species_threshold: float = 0.5
 
     objective: str | list[str] = "max"
-    front_range: tuple[int, int] | None = (800, 900)
+    front_range: tuple[int, int] = (800, 900)
     executor: Executor | None = None
     subscribe: Subscriber | None = None
     generation: Generation[T] | None = None
     checkpoint_path: str | None = None
 
 
-class EngineBuilder:
+class EngineBuilder[G, T]:
     @classmethod
-    def _default(cls, gene_type: GeneType, **kwargs) -> "EngineBuilder":
+    def _default(cls, gene_type: GeneType, **kwargs) -> "EngineBuilder[G, T]":
         defaults = EngineConfig(**kwargs)
         inst = cls.__new__(cls)
 
@@ -97,7 +97,7 @@ class EngineBuilder:
     def inputs(self) -> list[EngineInput]:
         return self._inputs
 
-    def set_codec(self, codec: CodecBase | None = None):
+    def set_codec(self, codec: CodecBase[G, T] | None = None):
         if codec is None:
             return
 
@@ -116,7 +116,9 @@ class EngineBuilder:
 
         return self
 
-    def set_fitness(self, fitness: FitnessBase | Callable[[Any], Any] | None = None):
+    def set_fitness(
+        self, fitness: FitnessBase | Callable[[Decoding[T]], Any] | None = None
+    ):
         if fitness is None:
             return
 
@@ -137,7 +139,7 @@ class EngineBuilder:
         if subscriber is None:
             return
 
-        def add_subscriber(sub: EventHandler | Callable[[Any], None]):
+        def add_subscriber(sub: Subscriber):
             if isinstance(sub, EventHandler):
                 self._inputs.append(
                     EngineInput(
@@ -189,7 +191,7 @@ class EngineBuilder:
             )
         )
 
-    def set_population(self, population: Population):
+    def set_population(self, population: Population[G] | None):
         if population is None:
             return
 
@@ -233,9 +235,12 @@ class EngineBuilder:
             )
         )
 
-    def set_alters(self, alters: list[AlterBase] | None):
+    def set_alters(self, alters: AlterBase | list[AlterBase] | None):
         if alters is None:
             return
+
+        if isinstance(alters, AlterBase):
+            alters = [alters]
 
         for alter in alters:
             self._inputs.append(
@@ -248,7 +253,7 @@ class EngineBuilder:
                 )
             )
 
-    def set_diversity(self, diversity: DistanceBase, species_threshold: float):
+    def set_diversity(self, diversity: DistanceBase | None, species_threshold: float):
         if diversity is None:
             return
 
@@ -275,7 +280,10 @@ class EngineBuilder:
             )
         )
 
-    def set_limits(self, limits: list[LimitBase]):
+    def set_limits(self, limits: list[LimitBase] | None):
+        if limits is None:
+            return
+
         for limit in limits:
             self._inputs.append(
                 EngineInput(
@@ -366,7 +374,7 @@ class EngineBuilder:
             )
         )
 
-    def set_executor(self, executor: Executor):
+    def set_executor(self, executor: Executor | None = None):
         if executor is None:
             executor = Executor.Serial()
 

@@ -4,6 +4,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from abc import ABC, abstractmethod
 
+from radiate._bridge.wrapper import RsObject
+
 # from radiate.genome import Gene
 
 if TYPE_CHECKING:
@@ -11,7 +13,7 @@ if TYPE_CHECKING:
     # from radiate._typing import Encoding
 
 
-class CodecBase[T, D](ABC):
+class CodecBase[T, D](RsObject, ABC):
     gene_type: "GeneType"
 
     @abstractmethod

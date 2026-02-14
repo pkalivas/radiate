@@ -237,19 +237,17 @@ class Engine[G, T]:
             ui_option = EngineUi()
 
         options = list(
-            map(
-                lambda opt: opt.__backend__(),
-                filter(
-                    lambda opt: opt is not None,
-                    [log_option, checkpoint_option, ui_option],
-                ),
-            )
+            [
+                opt.__backend__()
+                for opt in [log_option, checkpoint_option, ui_option]
+                if opt is not None
+            ]
         )
 
         return Generation.from_rust(engine.run(limit_inputs, options))
 
     def fitness(
-        self, fitness_func: Callable[[T], Any] | FitnessBase[T]
+        self, fitness_func: Callable[[Decoding[T]], Any] | FitnessBase[T]
     ) -> Engine[G, T]:
         """Set the fitness function for the engine."""
         self._builder.set_fitness(fitness_func)
@@ -365,7 +363,7 @@ class Engine[G, T]:
         self, *obj: str, front_range: tuple[int, int] | None = None
     ) -> Engine[G, T]:
         """Set the optimization objective(s) for the engine."""
-        self._builder.set_objective(obj)
+        self._builder.set_objective(obj if isinstance(obj, str) else list(obj))
         if front_range is not None:
             self._builder.set_front_range(*front_range)
         return self
