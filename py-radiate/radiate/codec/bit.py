@@ -1,17 +1,46 @@
 from __future__ import annotations
 
+from typing import overload, Sequence, Any
+
 from .base import CodecBase
 
 from radiate.radiate import PyBitCodec
 from radiate.genome import Genotype, Gene, Chromosome, GeneType
 from radiate._bridge.wrapper import RsObject
-from radiate._typing import AtLeastOne, Decoding
+from radiate._typing import (
+    AtLeastOne,
+    MatrixDecoding,
+    VectorDecoding,
+)
 
 
-class BitCodec(CodecBase[bool, Decoding[bool]], RsObject):
+class BitCodec[D](CodecBase[bool, D], RsObject):
     """BitCodec for bit-based chromosomes. Encodes/decodes to bit strings."""
 
     gene_type = GeneType.BIT
+
+    @overload
+    def __new__(
+        cls,
+        shape: int,
+        *,
+        genes: None = ...,
+        chromosomes: None = ...,
+        use_numpy: bool = ...,
+    ) -> "BitCodec[VectorDecoding[bool]]": ...
+
+    @overload
+    def __new__(
+        cls,
+        shape: Sequence[int],
+        *,
+        genes: None = ...,
+        chromosomes: None = ...,
+        use_numpy: bool = ...,
+    ) -> "BitCodec[MatrixDecoding[bool]]": ...
+
+    def __new__(cls, *args: Any, **kwargs: Any) -> "BitCodec[Any]":
+        return super().__new__(cls)
 
     def __init__(
         self,
@@ -49,7 +78,7 @@ class BitCodec(CodecBase[bool, Decoding[bool]], RsObject):
         """
         return Genotype.from_rust(self.__backend__().encode_py())
 
-    def decode(self, genotype: Genotype[bool]) -> Decoding[bool]:
+    def decode(self, genotype: Genotype[bool]) -> D:
         """
         Decode a Genotype into its bit representation.
         :param genotype: A Genotype instance to decode.
@@ -59,38 +88,40 @@ class BitCodec(CodecBase[bool, Decoding[bool]], RsObject):
             raise TypeError("genotype must be an instance of Genotype.")
         return self.__backend__().decode_py(genotype.__backend__())
 
-    @staticmethod
-    def from_genes(
-        genes: list[Gene[bool]] | tuple[Gene[bool], ...], use_numpy: bool = False
-    ) -> BitCodec:
-        """
-        Create a codec for a single chromosome with specified genes.
-        Args:
-            genes: A list or tuple of Gene instances.
-        Returns:
-            A new BitCodec instance with the specified genes.
-        """
-        return BitCodec(
-            genes=genes,
-            use_numpy=use_numpy,
-        )
+    # @staticmethod
+    # def from_genes(
+    #     genes: list[Gene[bool]] | tuple[Gene[bool], ...], use_numpy: bool = False
+    # ) -> BitCodec[VectorDecoding[bool]]:
+    #     """
+    #     Create a codec for a single chromosome with specified genes.
+    #     Args:
+    #         genes: A list or tuple of Gene instances.
+    #     Returns:
+    #         A new BitCodec instance with the specified genes.
+    #     """
+    #     return BitCodec(
+    #         genes=genes,
+    #         use_numpy=use_numpy,
+    #     )
+
+    # @staticmethod
+    # def from_chromosomes(
+    #     chromosomes: list[Chromosome[bool]] | tuple[Chromosome[bool], ...],
+    #     use_numpy: bool = False,
+    # ) -> BitCodec[MatrixDecoding[bool]]:
+    #     """
+    #     Create a codec for multiple chromosomes.
+    #     Args:
+    #         chromosomes: A list or tuple of Chromosome instances.
+    #     Returns:
+    #         A new BitCodec instance with the specified chromosomes.
+    #     """
+    #     return BitCodec(chromosomes=chromosomes, use_numpy=use_numpy)
 
     @staticmethod
-    def from_chromosomes(
-        chromosomes: list[Chromosome[bool]] | tuple[Chromosome[bool], ...],
-        use_numpy: bool = False,
-    ) -> BitCodec:
-        """
-        Create a codec for multiple chromosomes.
-        Args:
-            chromosomes: A list or tuple of Chromosome instances.
-        Returns:
-            A new BitCodec instance with the specified chromosomes.
-        """
-        return BitCodec(chromosomes=chromosomes, use_numpy=use_numpy)
-
-    @staticmethod
-    def matrix(shape: list[int] | tuple[int, int], use_numpy: bool = False) -> BitCodec:
+    def matrix(
+        shape: list[int] | tuple[int, int], use_numpy: bool = False
+    ) -> BitCodec[MatrixDecoding[bool]]:
         """
         Initialize the bit codec with a matrix of chromosomes.
         Args:
@@ -106,7 +137,9 @@ class BitCodec(CodecBase[bool, Decoding[bool]], RsObject):
         return BitCodec(shape=shape, use_numpy=use_numpy)
 
     @staticmethod
-    def vector(length: int = 8, use_numpy: bool = False) -> BitCodec:
+    def vector(
+        length: int = 8, use_numpy: bool = False
+    ) -> BitCodec[VectorDecoding[bool]]:
         """
         Initialize the bit codec with a single chromosome of specified length.
         Args:
@@ -122,7 +155,9 @@ class BitCodec(CodecBase[bool, Decoding[bool]], RsObject):
         return BitCodec(shape=length, use_numpy=use_numpy)
 
     @staticmethod
-    def __matrix(shape: AtLeastOne[int], use_numpy: bool = False) -> BitCodec:
+    def __matrix(
+        shape: AtLeastOne[int], use_numpy: bool = False
+    ) -> BitCodec[MatrixDecoding[bool]]:
         """
         Initialize the bit codec with a matrix of chromosomes.
         Args:
@@ -149,7 +184,9 @@ class BitCodec(CodecBase[bool, Decoding[bool]], RsObject):
         return PyBitCodec.matrix(chromosome_lengths=shape, use_numpy=use_numpy)
 
     @staticmethod
-    def __vector(length: int = 8, use_numpy: bool = False) -> BitCodec:
+    def __vector(
+        length: int = 8, use_numpy: bool = False
+    ) -> BitCodec[VectorDecoding[bool]]:
         """
         Initialize the bit codec with a single chromosome of specified length.
         Args:

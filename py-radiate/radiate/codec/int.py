@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Sequence
+from typing import Sequence, overload, Any
 
 from radiate.genome.chromosome import Chromosome
 from radiate.genome.gene import Gene
@@ -8,12 +8,59 @@ from .base import CodecBase
 from radiate.genome import Genotype, GeneType
 from radiate._bridge.wrapper import RsObject
 from radiate.radiate import PyIntCodec
-from radiate._typing import AtLeastOne, Decoding
+from radiate._typing import (
+    AtLeastOne,
+    ScalarDecoding,
+    VectorDecoding,
+    MatrixDecoding,
+)
 from radiate.dtype import DataTypeClass, DataType, Int64
 
 
-class IntCodec(CodecBase[int, Decoding[int]], RsObject):
+class IntCodec[D](CodecBase[int, D], RsObject):
     gene_type = GeneType.INT
+
+    @overload
+    def __new__(
+        cls,
+        *,
+        shape: None = None,
+        init_range: tuple[int, int] | None = None,
+        bounds: tuple[int, int] | None = None,
+        use_numpy: bool = ...,
+        dtype: DataTypeClass | DataType | None = ...,
+        genes: None = ...,
+        chromosomes: None = ...,
+    ) -> "IntCodec[ScalarDecoding[int]]": ...
+
+    @overload
+    def __new__(
+        cls,
+        shape: int,
+        *,
+        init_range: tuple[int, int] | None = None,
+        bounds: tuple[int, int] | None = None,
+        use_numpy: bool = ...,
+        dtype: DataTypeClass | DataType | None = ...,
+        genes: None = ...,
+        chromosomes: None = ...,
+    ) -> "IntCodec[VectorDecoding[int]]": ...
+
+    @overload
+    def __new__(
+        cls,
+        shape: Sequence[int],
+        *,
+        init_range: tuple[int, int] | None = None,
+        bounds: tuple[int, int] | None = None,
+        use_numpy: bool = ...,
+        dtype: DataTypeClass | DataType | None = ...,
+        genes: None = ...,
+        chromosomes: None = ...,
+    ) -> "IntCodec[MatrixDecoding[int]]": ...
+
+    def __new__(cls, *args: Any, **kwargs: Any) -> "IntCodec[Any]":
+        return super().__new__(cls)
 
     def __init__(
         self,
@@ -50,12 +97,12 @@ class IntCodec(CodecBase[int, Decoding[int]], RsObject):
                 raise ValueError(
                     "Shape must be an int, tuple of ints, or list of ints."
                 )
-        elif genes is not None:
-            self._pyobj = self.__from_genes(genes=genes, use_numpy=use_numpy)
-        elif chromosomes is not None:
-            self._pyobj = self.__from_chromosomes(
-                chromosomes=chromosomes, use_numpy=use_numpy
-            )
+        # elif genes is not None:
+        #     self._pyobj = self.__from_genes(genes=genes, use_numpy=use_numpy)
+        # elif chromosomes is not None:
+        #     self._pyobj = self.__from_chromosomes(
+        #         chromosomes=chromosomes, use_numpy=use_numpy
+        #     )
         elif shape is None and genes is None and chromosomes is None:
             self._pyobj = self.__scalar(
                 init_range=init_range, bounds=bounds, dtype=dtype
@@ -70,7 +117,7 @@ class IntCodec(CodecBase[int, Decoding[int]], RsObject):
         """
         return Genotype.from_rust(self.__backend__().encode_py())
 
-    def decode(self, genotype: Genotype[int]) -> Decoding[int]:
+    def decode(self, genotype: Genotype[int]) -> D:
         """
         Decode a Genotype into its integer representation.
         :param genotype: A Genotype instance to decode.
@@ -80,35 +127,35 @@ class IntCodec(CodecBase[int, Decoding[int]], RsObject):
             raise TypeError("genotype must be an instance of Genotype.")
         return self.__backend__().decode_py(genotype=genotype.__backend__())
 
-    @staticmethod
-    def from_genes(
-        genes: Gene[int] | Sequence[Gene[int]], use_numpy: bool = False
-    ) -> IntCodec:
-        """
-        Create a codec for a single chromosome with specified genes.
-        Args:
-            genes: A list or tuple of Gene instances.
-        Returns:
-            A new IntCodec instance with the specified genes.
-        """
-        return IntCodec(
-            genes=genes,
-            use_numpy=use_numpy,
-        )
+    # @staticmethod
+    # def from_genes(
+    #     genes: Gene[int] | Sequence[Gene[int]], use_numpy: bool = False
+    # ) -> IntCodec[]:
+    #     """
+    #     Create a codec for a single chromosome with specified genes.
+    #     Args:
+    #         genes: A list or tuple of Gene instances.
+    #     Returns:
+    #         A new IntCodec instance with the specified genes.
+    #     """
+    #     return IntCodec(
+    #         genes=genes,
+    #         use_numpy=use_numpy,
+    #     )
 
-    @staticmethod
-    def from_chromosomes(
-        chromosomes: Chromosome[int] | Sequence[Chromosome[int]],
-        use_numpy: bool = False,
-    ) -> IntCodec:
-        """
-        Create a codec for multiple chromosomes.
-        Args:
-            chromosomes: A list or tuple of Chromosome instances.
-        Returns:
-            A new IntCodec instance with the specified chromosomes.
-        """
-        return IntCodec(chromosomes=chromosomes, use_numpy=use_numpy)
+    # @staticmethod
+    # def from_chromosomes(
+    #     chromosomes: Chromosome[int] | Sequence[Chromosome[int]],
+    #     use_numpy: bool = False,
+    # ) -> IntCodec:
+    #     """
+    #     Create a codec for multiple chromosomes.
+    #     Args:
+    #         chromosomes: A list or tuple of Chromosome instances.
+    #     Returns:
+    #         A new IntCodec instance with the specified chromosomes.
+    #     """
+    #     return IntCodec(chromosomes=chromosomes, use_numpy=use_numpy)
 
     @staticmethod
     def matrix(
@@ -117,7 +164,7 @@ class IntCodec(CodecBase[int, Decoding[int]], RsObject):
         bounds: tuple[int, int] | None = None,
         use_numpy: bool = False,
         dtype: DataTypeClass | DataType | None = None,
-    ) -> IntCodec:
+    ) -> IntCodec[MatrixDecoding[int]]:
         """
         Initialize the int codec with number of chromosomes and value bounds.
         :param chromosomes: Number of chromosomes with the number of genes in each chromosome.
@@ -142,7 +189,7 @@ class IntCodec(CodecBase[int, Decoding[int]], RsObject):
         bounds: tuple[int, int] | None = None,
         use_numpy: bool = False,
         dtype: DataTypeClass | DataType | None = None,
-    ) -> IntCodec:
+    ) -> IntCodec[VectorDecoding[int]]:
         """
         Create a vector codec with specified length.
         :param length: Length of the vector.
@@ -163,7 +210,7 @@ class IntCodec(CodecBase[int, Decoding[int]], RsObject):
         init_range: tuple[int, int] | None = None,
         bounds: tuple[int, int] | None = None,
         dtype: DataTypeClass | DataType | None = None,
-    ) -> IntCodec:
+    ) -> IntCodec[ScalarDecoding[int]]:
         """
         Create a scalar codec with specified value and bound ranges.
         :param value_range: Minimum and maximum value for the gene.
@@ -176,52 +223,52 @@ class IntCodec(CodecBase[int, Decoding[int]], RsObject):
             dtype=dtype,
         )
 
-    @staticmethod
-    def __from_genes(
-        genes: Gene[int] | Sequence[Gene[int]], use_numpy: bool = False
-    ) -> PyIntCodec:
-        """
-        Create a codec for a single chromosome with specified genes.
-        Args:
-            genes: A list or tuple of Gene instances.
-        Returns:
-            A new IntCodec instance with the specified genes.
-        """
-        from radiate.genome import GeneType
+    # @staticmethod
+    # def __from_genes(
+    #     genes: Gene[int] | Sequence[Gene[int]], use_numpy: bool = False
+    # ) -> PyIntCodec:
+    #     """
+    #     Create a codec for a single chromosome with specified genes.
+    #     Args:
+    #         genes: A list or tuple of Gene instances.
+    #     Returns:
+    #         A new IntCodec instance with the specified genes.
+    #     """
+    #     from radiate.genome import GeneType
 
-        if not isinstance(genes, (list, tuple)):
-            raise TypeError("genes must be a list or tuple of Gene instances.")
-        if not all(g.gene_type() == GeneType.INT for g in genes):
-            raise TypeError("All genes must be of type 'int'.")
+    #     if not isinstance(genes, (list, tuple)):
+    #         raise TypeError("genes must be a list or tuple of Gene instances.")
+    #     if not all(g.gene_type() == GeneType.INT for g in genes):
+    #         raise TypeError("All genes must be of type 'int'.")
 
-        return PyIntCodec.from_genes(
-            list(map(lambda g: g.__backend__(), genes)), use_numpy=use_numpy
-        )
+    #     return PyIntCodec.from_genes(
+    #         list(map(lambda g: g.__backend__(), genes)), use_numpy=use_numpy
+    #     )
 
-    @staticmethod
-    def __from_chromosomes(
-        chromosomes: Chromosome[int] | Sequence[Chromosome[int]],
-        use_numpy: bool = False,
-    ) -> PyIntCodec:
-        """
-        Create a codec for multiple chromosomes.
-        Args:
-            chromosomes: A single Chromosome instance or a sequence of Chromosome instances.
-        Returns:
-            A new PyIntCodec instance with the specified chromosomes.
-        """
-        from radiate.genome import GeneType
+    # @staticmethod
+    # def __from_chromosomes(
+    #     chromosomes: Chromosome[int] | Sequence[Chromosome[int]],
+    #     use_numpy: bool = False,
+    # ) -> PyIntCodec:
+    #     """
+    #     Create a codec for multiple chromosomes.
+    #     Args:
+    #         chromosomes: A single Chromosome instance or a sequence of Chromosome instances.
+    #     Returns:
+    #         A new PyIntCodec instance with the specified chromosomes.
+    #     """
+    #     from radiate.genome import GeneType
 
-        if isinstance(chromosomes, Chromosome):
-            chromosomes = [chromosomes]
-        if not all(
-            g.gene_type() == GeneType.INT for c in chromosomes for g in c.genes()
-        ):
-            raise TypeError("All chromosomes must be of type 'int'.")
+    #     if isinstance(chromosomes, Chromosome):
+    #         chromosomes = [chromosomes]
+    #     if not all(
+    #         g.gene_type() == GeneType.INT for c in chromosomes for g in c.genes()
+    #     ):
+    #         raise TypeError("All chromosomes must be of type 'int'.")
 
-        return PyIntCodec.from_chromosomes(
-            list(map(lambda c: c.__backend__(), chromosomes))
-        )
+    #     return PyIntCodec.from_chromosomes(
+    #         list(map(lambda c: c.__backend__(), chromosomes))
+    #     )
 
     @staticmethod
     def __matrix(

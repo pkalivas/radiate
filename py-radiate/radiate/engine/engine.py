@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, overload, Sequence
 from collections.abc import Callable
 
 from radiate.codec import (
@@ -27,6 +27,9 @@ from radiate._typing import (
     RdDataType,
     Encoding,
     Decoding,
+    ScalarDecoding,
+    VectorDecoding,
+    MatrixDecoding,
 )
 
 from .builder import EngineBuilder
@@ -59,6 +62,42 @@ class Engine[G, T]:
                 encoding.gene_type, codec=encoding, **kwargs
             )
 
+    # --- Float Engine Overloads ---
+    @overload
+    @staticmethod
+    def float(
+        *,
+        shape: int = 1,
+        init_range: tuple[float, float] | None = (0, 1.0),
+        bounds: tuple[float, float] | None = None,
+        dtype: RdDataType = Float64,
+        use_numpy: bool = False,
+    ) -> "Engine[float, ScalarDecoding[float]]": ...
+
+    @overload
+    @staticmethod
+    def float(
+        shape: int,
+        init_range: tuple[float, float] | None = (0, 1.0),
+        *,
+        bounds: tuple[float, float] | None = None,
+        dtype: RdDataType = Float64,
+        use_numpy: bool = False,
+    ) -> "Engine[float, VectorDecoding[float]]": ...
+
+    @overload
+    @staticmethod
+    def float(
+        shape: Sequence[int],
+        init_range: tuple[float, float] | None = (0, 1.0),
+        *,
+        bounds: tuple[float, float] | None = None,
+        dtype: RdDataType = Float64,
+        use_numpy: bool = False,
+    ) -> "Engine[float, MatrixDecoding[float]]": ...
+
+    # --- End of Float Engine Overloads ---
+
     @staticmethod
     def float(
         shape: AtLeastOne[int] = 1,
@@ -66,7 +105,7 @@ class Engine[G, T]:
         bounds: tuple[float, float] | None = None,
         dtype: RdDataType = Float64,
         use_numpy: bool = False,
-    ) -> Engine[float, Decoding[float]]:
+    ) -> "Engine[float, Any]":
         """Create a genetic engine for optimizing floating-point values."""
         return Engine(
             codec=FloatCodec(
@@ -78,14 +117,51 @@ class Engine[G, T]:
             )
         )
 
+    # --- Integer Engine Overloads ---
+    @overload
     @staticmethod
     def int(
-        shape: AtLeastOne[int] = 1,
+        *,
+        shape: int = 1,
         init_range: tuple[int, int] | None = (0, 100),
         bounds: tuple[int, int] | None = None,
         dtype: RdDataType = Int64,
         use_numpy: bool = False,
-    ) -> Engine[int, Decoding[int]]:
+    ) -> "Engine[int, ScalarDecoding[int]]": ...
+
+    @overload
+    @staticmethod
+    def int(
+        shape: int,
+        init_range: tuple[int, int] | None = (0, 100),
+        *,
+        bounds: tuple[int, int] | None = None,
+        dtype: RdDataType = Int64,
+        use_numpy: bool = False,
+    ) -> "Engine[int, VectorDecoding[int]]": ...
+
+    @overload
+    @staticmethod
+    def int(
+        shape: Sequence[int],
+        init_range: tuple[int, int] | None = (0, 100),
+        *,
+        bounds: tuple[int, int] | None = None,
+        dtype: RdDataType = Int64,
+        use_numpy: bool = False,
+    ) -> "Engine[int, MatrixDecoding[int]]": ...
+
+    # --- End of Integer Engine Overloads ---
+
+    @staticmethod
+    def int(
+        shape: AtLeastOne[int] = 1,
+        init_range: tuple[int, int] | None = (0, 100),
+        *,
+        bounds: tuple[int, int] | None = None,
+        dtype: RdDataType = Int64,
+        use_numpy: bool = False,
+    ) -> "Engine[int, Any]":
         """Create a genetic engine for optimizing integer values."""
         return Engine(
             codec=IntCodec(

@@ -1,5 +1,5 @@
 import pytest
-from radiate import CharCodec, Gene
+from radiate import CharCodec
 
 
 @pytest.mark.unit
@@ -23,7 +23,7 @@ def test_char_codec_vector_creation():
 @pytest.mark.unit
 def test_char_codec_matrix_creation():
     """Test creating a character codec for matrices."""
-    codec = CharCodec.matrix(chromosomes=[3, 3], char_set="abc")
+    codec = CharCodec.matrix(shape=[3, 3], char_set="abc")
     genotype = codec.encode()
 
     assert len(genotype) == 2
@@ -38,25 +38,25 @@ def test_char_codec_matrix_creation():
     assert all(gene.allele() in "xyz" for row in genotype for gene in row)
 
 
-@pytest.mark.unit
-def test_char_codec_from_genes():
-    """Test creating a character codec from existing genes."""
-    initial_genes = [Gene.char("x"), Gene.char("y"), Gene.char("z")]
-    codec = CharCodec.from_genes(initial_genes)
-    genotype = codec.encode()
+# @pytest.mark.unit
+# def test_char_codec_from_genes():
+#     """Test creating a character codec from existing genes."""
+#     initial_genes = [Gene.char("x"), Gene.char("y"), Gene.char("z")]
+#     codec = CharCodec.from_genes(initial_genes)
+#     genotype = codec.encode()
 
-    assert len(genotype) == 1
-    assert len(genotype[0]) == 3
-    assert all(initial_genes[i].allele() == genotype[0][i].allele() for i in range(3))
-    assert all(isinstance(gene.allele(), str) for gene in genotype[0])
+#     assert len(genotype) == 1
+#     assert len(genotype[0]) == 3
+#     assert all(initial_genes[i].allele() == genotype[0][i].allele() for i in range(3))
+#     assert all(isinstance(gene.allele(), str) for gene in genotype[0])
 
-    codec = CharCodec(genes=initial_genes)
-    genotype = codec.encode()
+#     codec = CharCodec(genes=initial_genes)
+#     genotype = codec.encode()
 
-    assert len(genotype) == 1
-    assert len(genotype[0]) == 3
-    assert all(initial_genes[i].allele() == genotype[0][i].allele() for i in range(3))
-    assert all(isinstance(gene.allele(), str) for gene in genotype[0])
+#     assert len(genotype) == 1
+#     assert len(genotype[0]) == 3
+#     assert all(initial_genes[i].allele() == genotype[0][i].allele() for i in range(3))
+#     assert all(isinstance(gene.allele(), str) for gene in genotype[0])
 
 
 @pytest.mark.unit

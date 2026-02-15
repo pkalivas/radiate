@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from typing import overload, Sequence, Any
 
 from radiate.genome.chromosome import Chromosome
 from radiate.genome.gene import Gene
@@ -9,7 +9,7 @@ from .base import CodecBase
 from radiate.radiate import PyCharCodec
 from radiate.genome import Genotype, GeneType
 from radiate._bridge.wrapper import RsObject
-from radiate._typing import AtLeastOne, Decoding
+from radiate._typing import AtLeastOne, VectorDecoding, MatrixDecoding
 
 
 def _normalize_char_set(char_set: str | list[str] | set[str] | None) -> str | None:
@@ -25,8 +25,31 @@ def _normalize_char_set(char_set: str | list[str] | set[str] | None) -> str | No
         )
 
 
-class CharCodec(CodecBase[str, Decoding[str]], RsObject):
+class CharCodec[D](CodecBase[str, D], RsObject):
     gene_type = GeneType.CHAR
+
+    @overload
+    def __new__(
+        cls,
+        shape: int,
+        *,
+        char_set: str | list[str] | set[str] | None = None,
+        genes: None = ...,
+        chromosomes: None = ...,
+    ) -> "CharCodec[VectorDecoding[str]]": ...
+
+    @overload
+    def __new__(
+        cls,
+        shape: Sequence[int],
+        *,
+        char_set: str | list[str] | set[str] | None = None,
+        genes: None = ...,
+        chromosomes: None = ...,
+    ) -> "CharCodec[MatrixDecoding[str]]": ...
+
+    def __new__(cls, *args: Any, **kwargs: Any) -> "CharCodec[Any]":
+        return super().__new__(cls)
 
     def __init__(
         self,
@@ -68,7 +91,7 @@ class CharCodec(CodecBase[str, Decoding[str]], RsObject):
         """
         return Genotype.from_rust(self.__backend__().encode_py())
 
-    def decode(self, genotype: Genotype[str]) -> Decoding[str]:
+    def decode(self, genotype: Genotype[str]) -> D:
         """
         Decode a Genotype into its character representation.
         :param genotype: A Genotype instance to decode.
@@ -78,54 +101,54 @@ class CharCodec(CodecBase[str, Decoding[str]], RsObject):
             raise TypeError("genotype must be an instance of Genotype.")
         return self.__backend__().decode_py(genotype=genotype.__backend__())
 
-    @staticmethod
-    def from_genes(genes: Gene[str] | Sequence[Gene[str]]) -> CharCodec:
-        """
-        Create a codec for a single chromosome with specified genes.
-        Args:
-            genes: A list or tuple of Gene instances.
-        Returns:
-            A new CharCodec instance with the specified genes.
-        """
-        return CharCodec(genes=genes)
+    # @staticmethod
+    # def from_genes(genes: Gene[str] | Sequence[Gene[str]]) -> CharCodec:
+    #     """
+    #     Create a codec for a single chromosome with specified genes.
+    #     Args:
+    #         genes: A list or tuple of Gene instances.
+    #     Returns:
+    #         A new CharCodec instance with the specified genes.
+    #     """
+    #     return CharCodec(genes=genes)
 
-    @staticmethod
-    def from_chromosomes(
-        chromosomes: Chromosome[str] | Sequence[Chromosome[str]],
-    ) -> CharCodec:
-        """
-        Create a codec for multiple chromosomes.
-        Args:
-            chromosomes: A list or tuple of Chromosome instances.
-        Returns:
-            A new CharCodec instance with the specified chromosomes.
-        """
-        return CharCodec(chromosomes=chromosomes)
+    # @staticmethod
+    # def from_chromosomes(
+    #     chromosomes: Chromosome[str] | Sequence[Chromosome[str]],
+    # ) -> CharCodec:
+    #     """
+    #     Create a codec for multiple chromosomes.
+    #     Args:
+    #         chromosomes: A list or tuple of Chromosome instances.
+    #     Returns:
+    #         A new CharCodec instance with the specified chromosomes.
+    #     """
+    #     return CharCodec(chromosomes=chromosomes)
 
     @staticmethod
     def matrix(
-        chromosomes: list[int] | tuple[int, int],
+        shape: list[int] | tuple[int, int],
         char_set: str | list[str] | set[str] | None = None,
-    ) -> CharCodec:
+    ) -> CharCodec[MatrixDecoding[str]]:
         """
         Initialize the char codec with number of chromosomes and value bounds.
         Args:
-            chromosomes: A list of integers specifying the lengths of each chromosome.
+            shape: A list of integers specifying the lengths of each chromosome.
             char_set: A set of characters to use for the genes.
         Returns:
             A new CharCodec instance with matrix configuration.
 
         Example
         --------
-        >>> rd.CharCodec.matrix(chromosomes=[5, 5], char_set={"0", "1"})
+        >>> rd.CharCodec.matrix(shape=[5, 5], char_set={"0", "1"})
         CharCodec(...)
         """
-        return CharCodec(shape=chromosomes, char_set=char_set)
+        return CharCodec(shape=shape, char_set=char_set)
 
     @staticmethod
     def vector(
         length: int, char_set: str | list[str] | set[str] | None = None
-    ) -> CharCodec:
+    ) -> CharCodec[VectorDecoding[str]]:
         """
         Initialize the char codec with a single chromosome of specified length.
         Args:
@@ -142,7 +165,7 @@ class CharCodec(CodecBase[str, Decoding[str]], RsObject):
         return CharCodec(shape=length, char_set=char_set)
 
     @staticmethod
-    def __from_genes(genes: AtLeastOne[Gene[str]]) -> CharCodec:
+    def __from_genes(genes: AtLeastOne[Gene[str]]) -> CharCodec[VectorDecoding[str]]:
         """
         Create a codec for a single chromosome with specified genes.
         Args:
@@ -162,7 +185,7 @@ class CharCodec(CodecBase[str, Decoding[str]], RsObject):
     @staticmethod
     def __from_chromosomes(
         chromosomes: AtLeastOne[Chromosome[str]],
-    ) -> PyCharCodec:
+    ) -> CharCodec[MatrixDecoding[str]]:
         """
         Create a codec for multiple chromosomes.
         Args:

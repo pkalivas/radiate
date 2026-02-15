@@ -21,9 +21,15 @@ type RdDataType = DataType | DataTypeClass
 
 type Subscriber = AtLeastOne[Callable[[Any], None]] | AtLeastOne[EventHandler]
 
+type ScalarDecoding[T] = T
+type VectorDecoding[T] = Sequence[T] | "np.ndarray"
+type MatrixDecoding[T] = Sequence[Sequence[T]] | "np.ndarray"
+type GpDecoding = Graph | Tree
 type Decoding[T] = (
-    T | Sequence[T] | Sequence[Sequence[T]] | "np.ndarray" | "Graph" | "Tree"
+    ScalarDecoding[T] | VectorDecoding[T] | MatrixDecoding[T] | GpDecoding
 )
+
+
 type Encoding[T] = (
     "Gene[T]"
     | Sequence["Gene[T]"]
