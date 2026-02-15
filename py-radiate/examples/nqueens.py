@@ -32,7 +32,7 @@ def fitness_fn(queens: np.ndarray) -> int:
 
 
 engine = (
-    rd.Engine.int(N_QUEENS, (0, N_QUEENS), use_numpy=True, dtype=rd.UInt8)
+    rd.Engine.int(N_QUEENS, init_range=(0, N_QUEENS), use_numpy=True, dtype=rd.UInt8)
     .fitness(fitness_fn)
     .minimizing()
     .select(offspring=rd.TournamentSelector(k=3))

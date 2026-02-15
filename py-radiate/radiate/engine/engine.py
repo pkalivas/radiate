@@ -78,8 +78,8 @@ class Engine[G, T]:
     @staticmethod
     def float(
         shape: int,
-        init_range: tuple[float, float] | None = (0, 1.0),
         *,
+        init_range: tuple[float, float] | None = (0, 1.0),
         bounds: tuple[float, float] | None = None,
         dtype: RdDataType = Float64,
         use_numpy: bool = False,
@@ -89,8 +89,8 @@ class Engine[G, T]:
     @staticmethod
     def float(
         shape: Sequence[int],
-        init_range: tuple[float, float] | None = (0, 1.0),
         *,
+        init_range: tuple[float, float] | None = (0, 1.0),
         bounds: tuple[float, float] | None = None,
         dtype: RdDataType = Float64,
         use_numpy: bool = False,
@@ -133,8 +133,8 @@ class Engine[G, T]:
     @staticmethod
     def int(
         shape: int,
-        init_range: tuple[int, int] | None = (0, 100),
         *,
+        init_range: tuple[int, int] | None = (0, 100),
         bounds: tuple[int, int] | None = None,
         dtype: RdDataType = Int64,
         use_numpy: bool = False,
@@ -144,8 +144,8 @@ class Engine[G, T]:
     @staticmethod
     def int(
         shape: Sequence[int],
-        init_range: tuple[int, int] | None = (0, 100),
         *,
+        init_range: tuple[int, int] | None = (0, 100),
         bounds: tuple[int, int] | None = None,
         dtype: RdDataType = Int64,
         use_numpy: bool = False,
@@ -156,8 +156,8 @@ class Engine[G, T]:
     @staticmethod
     def int(
         shape: AtLeastOne[int] = 1,
-        init_range: tuple[int, int] | None = (0, 100),
         *,
+        init_range: tuple[int, int] | None = (0, 100),
         bounds: tuple[int, int] | None = None,
         dtype: RdDataType = Int64,
         use_numpy: bool = False,
@@ -173,11 +173,27 @@ class Engine[G, T]:
             )
         )
 
+    @overload
+    @staticmethod
+    def char(
+        shape: int,
+        *,
+        char_set: str | list[str] | set[str] | None = None,
+    ) -> "Engine[str, VectorDecoding[str]]": ...
+
+    @overload
+    @staticmethod
+    def char(
+        shape: Sequence[int],
+        *,
+        char_set: str | list[str] | set[str] | None = None,
+    ) -> "Engine[str, MatrixDecoding[str]]": ...
+
     @staticmethod
     def char(
         shape: AtLeastOne[int] = 1,
         char_set: str | list[str] | set[str] | None = None,
-    ) -> Engine[str, Decoding[str]]:
+    ) -> "Engine[str, Any]":
         """Create a genetic engine for optimizing character values."""
         return Engine(codec=CharCodec(shape, char_set=char_set))
 

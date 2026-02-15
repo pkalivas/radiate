@@ -44,7 +44,7 @@ engine = rd.Engine(
     fitness_func=dtlz_1,
     offspring_selector=rd.TournamentSelector(k=5),
     survivor_selector=rd.NSGA3Selector(points=12),
-    objective=["min" for _ in range(objectives)],
+    objective=[rd.MIN for _ in range(objectives)],
     front_range=(100, 150),
     alters=[
         rd.SimulatedBinaryCrossover(1.0, 2.0),
