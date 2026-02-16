@@ -9,7 +9,7 @@ def points_to_phenotypes(points: list[list[float]]) -> list[rd.Phenotype]:
         min_point = min(point)
         max_point = max(point)
         genes = [rd.Gene.float(g, init_range=(min_point, max_point)) for g in point]
-        chromosome = rd.chromosome.float(genes=genes)
+        chromosome = rd.Chromosome.float(genes=genes)
         genotype = rd.Genotype(chromosome)
         phenotype = rd.Phenotype(genotype, score=point)
         phenotypes.append(phenotype)
@@ -22,7 +22,7 @@ def front_max(r: float, count: int) -> list[rd.Phenotype]:
 
     return points_to_phenotypes(
         [r * math.sin(a), r * math.cos(a)]
-        for a in (rd.random.float() * math.pi * 0.5 for _ in range(count))
+        for a in (rd.random.float() * math.pi * 0.5 for _ in range(count))  # type: ignore
     )
 
 
@@ -32,14 +32,14 @@ def front_min(r: float, count: int) -> list[rd.Phenotype]:
 
     return points_to_phenotypes(
         [r * math.sin(a), r * math.cos(a)]
-        for a in (rd.random.float() * math.pi * 0.5 + math.pi for _ in range(count))
+        for a in (rd.random.float() * math.pi * 0.5 + math.pi for _ in range(count))  # type: ignore
     )
 
 
 @pytest.mark.unit
 def test_add_to_front():
     """Test adding items to the front."""
-    chromosome = rd.chromosome.int(length=3, init_range=(0, 10))
+    chromosome = rd.Chromosome.int(length=3, init_range=(0, 10))
     genotype = rd.Genotype(chromosome)
     phenotype = rd.Phenotype(genotype)
 

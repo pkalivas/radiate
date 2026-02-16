@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Iterable
+from typing import Iterable, Iterator
 from radiate.radiate import PyPopulation
 from radiate._bridge.wrapper import RsObject
 
@@ -31,7 +31,7 @@ class Population[T](RsObject):
         """
         return len(self._pyobj)
 
-    def __iter__(self) -> Iterable[Phenotype[T]]:
+    def __iter__(self) -> Iterator[Phenotype[T]]:
         """
         Returns an iterator over the individuals in the population.
         :return: An iterator over the individuals in the population.

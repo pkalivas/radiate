@@ -20,7 +20,7 @@ For example, a solution could be:
     import radiate as rd
 
     engine = rd.Engine(
-        codec=rd.IntCodec.vector(10, (0, 100)),
+        codec=rd.IntCodec.vector(10, init_range=(0, 100)),
         fitness_func=lambda x: sum(x),
         offspring_selector=rd.EliteSelector(),
         objective=rd.MIN,
@@ -97,7 +97,7 @@ For example, a solution for `n=8` would be:
         return np.sum(same_row) + np.sum(same_diagonal)
 
     engine = rd.Engine(
-        codec=rd.IntCodec.vector(N_QUEENS, (0, N_QUEENS), use_numpy=True),
+        codec=rd.IntCodec.vector(N_QUEENS, init_range=(0, N_QUEENS), use_numpy=True),
         fitness_func=fitness_fn,
         objective=rd.MIN,
         offspring_selector=rd.BoltzmannSelector(4.0),
@@ -209,14 +209,15 @@ where:
             value += x[i]**2 - A * math.cos((2.0 * 3.141592653589793 * x[i]))
         return value
 
-    codec = rd.FloatCodec.vector(2, (-5.12, 5.12))
-    engine = rd.Engine(codec, fitness_fn)
-
-    engine.minimizing()
-    engine.alters([
-        rd.UniformCrossover(0.5),
-        rd.ArithmeticMutator(0.01)
-    ])
+    engine = (
+        rd.Engine.float(2, init_range=(-RANGE, RANGE), bounds=(-10.0, 10.0))
+        .fitness(fitness_fn)
+        .minimizing()
+        .alter([
+            rd.UniformCrossover(0.5),
+            rd.ArithmeticMutator(0.01)
+        ])
+    )
 
     print(engine.run(rd.ScoreLimit(0.0001)))
     ```
@@ -318,7 +319,7 @@ $$
         fitness_func=dtlz_1,
         offspring_selector=rd.TournamentSelector(k=8),
         survivor_selector=rd.NSGA2Selector(),
-        objective=["min" for _ in range(objectives)],
+        objective=[rd.MIN for _ in range(objectives)],
         alters=[
             rd.SimulatedBinaryCrossover(1.0, 2.0),
             rd.UniformMutator(0.1),

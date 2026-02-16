@@ -33,6 +33,17 @@ Let's look at a basic example of how to use the `Codec` for evolving a simple fu
         # ... other parameters ...
     )
 
+    # note the same engine can be built using a fluent builder pattern as such:
+    engine = (
+        rd.Engine.float(2, init_range=(-1.0, 1.0), bounds=(-10.0, 10.0))
+        .fitness(fitness_function)
+    )
+
+    # Theres no real difference between the two, but 
+    # radiate as a whole is moving towards the builder pattern.
+    # It allows for much better type hinting and is more intuitive to use. 
+    # Both methods will be supported for the foreseeable future however, so feel free to use either one.
+
     # Run the engine
     result = engine.run([rd.ScoreLimit(0.01), rd.GenerationsLimit(1000)])
     ```

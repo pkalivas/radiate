@@ -9,7 +9,7 @@ class TestPopulation:
     @pytest.mark.unit
     def test_population_creation_with_py_population(self):
         """Test Population creation with PyPopulation instance (line 19-26)."""
-        chromosome = rd.chromosome.int(length=3, init_range=(0, 10))
+        chromosome = rd.Chromosome.int(length=3, init_range=(0, 10))
         genotype = rd.Genotype([chromosome])
         phenotype = rd.Phenotype(genotype)
         population = rd.Population([phenotype])
@@ -20,7 +20,7 @@ class TestPopulation:
     @pytest.mark.unit
     def test_population_iteration(self):
         """Test Population iteration."""
-        chromosome = rd.chromosome.int(length=3, init_range=(0, 10))
+        chromosome = rd.Chromosome.int(length=3, init_range=(0, 10))
         genotype = rd.Genotype(chromosome)
         phenotype = rd.Phenotype(genotype)
 
@@ -34,7 +34,7 @@ class TestPopulation:
     @pytest.mark.unit
     def test_population_phenotypes_method(self):
         """Test Population phenotypes method"""
-        chromosome = rd.chromosome.int(length=3, init_range=(0, 10))
+        chromosome = rd.Chromosome.int(length=3, init_range=(0, 10))
         genotype = rd.Genotype(chromosomes=[chromosome])
         phenotype = rd.Phenotype(genotype=genotype)
 
@@ -55,7 +55,7 @@ class TestPopulation:
         population = Population(
             Phenotype(
                 Genotype(
-                    rd.chromosome.int(num_genes, (0, 10))
+                    rd.Chromosome.int(num_genes, (0, 10))
                     for _ in range(num_chromosomes)
                 )
             )
@@ -86,7 +86,7 @@ class TestPhenotypes:
     @pytest.mark.unit
     def test_phenotype_score_method(self):
         """Test Phenotype score method."""
-        chromosome = rd.chromosome.int(length=3, init_range=(0, 10))
+        chromosome = rd.Chromosome.int(length=3, init_range=(0, 10))
         genotype = rd.Genotype([chromosome])
         phenotype = rd.Phenotype(genotype)
 
@@ -96,7 +96,7 @@ class TestPhenotypes:
     @pytest.mark.unit
     def test_phenotype_genotype_method(self):
         """Test Phenotype genotype method."""
-        chromosome = rd.chromosome.int(length=3, init_range=(0, 10))
+        chromosome = rd.Chromosome.int(length=3, init_range=(0, 10))
         genotype = rd.Genotype(chromosomes=[chromosome])
         phenotype = rd.Phenotype(genotype)
 
@@ -109,7 +109,7 @@ class TestPhenotypes:
 class TestChromosomes:
     @pytest.mark.unit
     def test_float_chromosome_creation(self):
-        chromosome = rd.chromosome.float(length=5, init_range=(-10.0, 10.0))
+        chromosome = rd.Chromosome.float(length=5, init_range=(-10.0, 10.0))
 
         assert len(chromosome) == 5
         for gene in chromosome:
@@ -118,7 +118,7 @@ class TestChromosomes:
 
     @pytest.mark.unit
     def test_int_chromosome_creation(self):
-        chromosome = rd.chromosome.int(length=5, init_range=(0, 10))
+        chromosome = rd.Chromosome.int(length=5, init_range=(0, 10))
 
         assert len(chromosome) == 5
         for gene in chromosome:
@@ -127,7 +127,7 @@ class TestChromosomes:
 
     @pytest.mark.unit
     def test_char_chromosome_creation(self):
-        chromosome = rd.chromosome.char(length=5, char_set={"a", "b", "c"})
+        chromosome = rd.Chromosome.char(length=5, char_set={"a", "b", "c"})
 
         assert len(chromosome) == 5
         for gene in chromosome:
@@ -136,7 +136,7 @@ class TestChromosomes:
 
     @pytest.mark.unit
     def test_bit_chromosome_creation(self):
-        chromosome = rd.chromosome.bit(length=5)
+        chromosome = rd.Chromosome.bit(length=5)
 
         assert len(chromosome) == 5
         for gene in chromosome:
@@ -145,8 +145,8 @@ class TestChromosomes:
 
     @pytest.mark.unit
     def test_genotype_creation_from_chromosomes(self):
-        chromosome1 = rd.chromosome.int(length=3, init_range=(0, 10))
-        chromosome2 = rd.chromosome.int(length=4, init_range=(0, 5))
+        chromosome1 = rd.Chromosome.int(length=3, init_range=(0, 10))
+        chromosome2 = rd.Chromosome.int(length=4, init_range=(0, 5))
 
         genotype = rd.Genotype([chromosome1, chromosome2])
 
@@ -185,12 +185,7 @@ class TestGenes:
         assert bounded_gene.dtype() == rd.Float64
         assert bounded_gene.min() == 0.0
         assert bounded_gene.max() == 5.0
-        assert (
-            init_range is not None
-            and init_range[0] == 0.0
-            and init_range[1] == 5.0
-        )
-
+        assert init_range is not None and init_range[0] == 0.0 and init_range[1] == 5.0
 
     @pytest.mark.unit
     def test_int_gene_creation(self):
@@ -220,11 +215,7 @@ class TestGenes:
         assert bounded_gene.dtype() == rd.Int32
         assert bounded_gene.min() == 0
         assert bounded_gene.max() == 10
-        assert (
-            init_range is not None
-            and init_range[0] == 0
-            and init_range[1] == 10
-        )
+        assert init_range is not None and init_range[0] == 0 and init_range[1] == 10
 
     @pytest.mark.unit
     def test_char_gene_creation(self):

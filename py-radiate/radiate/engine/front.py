@@ -100,13 +100,13 @@ class Front(RsObject):
 
     def add(
         self, items: list[Phenotype] | list[tuple[Genotype, list[float]]]
-    ) -> dict[str, Any] | None:
+    ) -> dict[str, Any]:
         """
         Add items to the front.
         :param items: A list of Phenotypes or a list of tuples containing Genotypes and their scores.
         """
         if not items:
-            return None
+            return {}
 
         to_add = []
         if isinstance(items, list):
