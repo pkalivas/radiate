@@ -12,7 +12,7 @@ def test_engine_float_vector_maximization(random_seed):
         return sum(xi**2 for xi in x)
 
     engine = (
-        rd.Engine.float(3, (-1.0, 1.0))
+        rd.Engine.float(3, init_range=(-1.0, 1.0))
         .fitness(fitness_func)
         .maximizing()
         .size(50)

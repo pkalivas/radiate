@@ -75,6 +75,9 @@ tag_map = {
 
 
 class MetricSet(RsObject):
+    def __init__(self, *args, **kwargs):
+        pass
+
     def __repr__(self):
         return self.__backend__().__repr__()
 

@@ -26,7 +26,6 @@ from radiate._typing import (
     Subscriber,
     RdDataType,
     Encoding,
-    Decoding,
     ScalarDecoding,
     VectorDecoding,
     MatrixDecoding,
@@ -173,6 +172,7 @@ class Engine[G, T]:
             )
         )
 
+    # --- Character Engine Overloads ---
     @overload
     @staticmethod
     def char(
@@ -189,6 +189,8 @@ class Engine[G, T]:
         char_set: str | list[str] | set[str] | None = None,
     ) -> "Engine[str, MatrixDecoding[str]]": ...
 
+    # --- End of Character Engine Overloads ---
+
     @staticmethod
     def char(
         shape: AtLeastOne[int] = 1,
@@ -197,10 +199,25 @@ class Engine[G, T]:
         """Create a genetic engine for optimizing character values."""
         return Engine(codec=CharCodec(shape, char_set=char_set))
 
+    # --- Bit Engine Overloads ---
+    @overload
     @staticmethod
     def bit(
-        shape: int | tuple[int, ...] | list[int] = 1, use_numpy: bool = False
-    ) -> Engine[bool, Decoding[bool]]:
+        shape: int,
+        use_numpy: bool = False,
+    ) -> "Engine[bool, VectorDecoding[bool]]": ...
+
+    @overload
+    @staticmethod
+    def bit(
+        shape: Sequence[int],
+        use_numpy: bool = False,
+    ) -> "Engine[bool, MatrixDecoding[bool]]": ...
+
+    # --- End of Bit Engine Overloads ---
+
+    @staticmethod
+    def bit(shape: AtLeastOne[int] = 1, use_numpy: bool = False) -> "Engine[bool, Any]":
         """Create a genetic engine for optimizing boolean values."""
         return Engine(codec=BitCodec(shape, use_numpy=use_numpy))
 

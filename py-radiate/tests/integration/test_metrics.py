@@ -84,7 +84,7 @@ def test_metrics_from_events(random_seed):
                     assert metrics[key].count() is not None
 
     engine = (
-        rd.Engine.int(5, (0, 10))
+        rd.Engine.int(5, init_range=(0, 10))
         .fitness(lambda x: sum(x))
         .minimizing()
         .subscribe(MetricSetAssertHandler())
@@ -96,7 +96,7 @@ def test_metrics_from_events(random_seed):
 @pytest.mark.integration
 def test_metric_tags(random_seed):
     engine = rd.Engine(
-        codec=rd.IntCodec.vector(5, (0, 10)),
+        codec=rd.IntCodec.vector(5, init_range=(0, 10)),
         fitness_func=lambda x: sum(x),
         objective=rd.MIN,
     )

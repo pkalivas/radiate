@@ -2,11 +2,11 @@ import radiate as rd
 import pytest
 
 
-def calc_population_diversity(population: rd.Population) -> float:
+def calc_population_diversity(population: rd.Population[float]) -> float:
     """Calculate diversity of the population."""
     descriptors = [
         [g.allele() for chrom in individual.genotype() for g in chrom]
-        for individual in population
+        for individual in population  # type: ignore
     ]
     if not descriptors:
         return 0.0
@@ -23,7 +23,7 @@ def calc_population_diversity(population: rd.Population) -> float:
 def test_engine_is_novel(random_seed):
     """Test engine with novelty search."""
     engine = (
-        rd.Engine.float(6, (-100.0, 100.0))
+        rd.Engine.float(6, init_range=(-100.0, 100.0))
         .fitness(
             rd.NoveltySearch(
                 descriptor=lambda x: x,
@@ -50,12 +50,12 @@ def test_int_engine_novelty_with_decorator_creates(random_seed):
     """Test engine with novelty search."""
 
     @rd.novelty(distance=rd.HammingDistance(), k=15, threshold=0.03)
-    def descriptor(phenotype: list[int]) -> list[int]:
+    def novelty(phenotype: list[int]) -> list[int]:
         return phenotype
 
     engine = (
-        rd.Engine(rd.IntCodec(6, (-100, 100)))
-        .fitness(descriptor)    
+        rd.Engine(rd.IntCodec(6, init_range=(-100, 100)))
+        .fitness(novelty)
         .size(100)
         .select(offspring=rd.TournamentSelector(3))
         .alters(rd.UniformCrossover(0.5), rd.ArithmeticMutator(0.1))

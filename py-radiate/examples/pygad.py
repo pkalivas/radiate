@@ -24,6 +24,8 @@ def fitness(solution: np.ndarray) -> float:
     return np.abs(output - desired_output)
 
 
+temp = rd.FloatCodec(len(function_inputs), init_range=(-4.0, 4.0), use_numpy=True)
+
 engine = rd.Engine(
     codec=rd.FloatCodec(len(function_inputs), init_range=(-4.0, 4.0), use_numpy=True),
     fitness_func=fitness,

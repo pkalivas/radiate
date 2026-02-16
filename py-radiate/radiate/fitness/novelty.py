@@ -1,6 +1,6 @@
 from .base import FitnessBase
 
-from typing import Callable
+from typing import Any, Callable
 
 from radiate.operators.descriptor import CustomDescriptor, DescriptorBase
 from radiate.operators.distance import DistanceBase, EuclideanDistance, HammingDistance
@@ -13,7 +13,7 @@ class NoveltySearch[T](FitnessBase):
     def __init__(
         self,
         distance: DistanceBase | None,
-        descriptor: Callable[[T], float | list[float]] | DescriptorBase,
+        descriptor: Callable[[Any], float | list[float]] | DescriptorBase,
         k: int = 15,
         threshold: float = 0.03,
         archive_size: int = 1000,

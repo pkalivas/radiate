@@ -14,15 +14,15 @@ class DescriptorBase(ComponentBase):
         self,
         component: str,
         args: Dict[str, Any] = {},
-        allowed_genes: set[GeneType] | GeneType = {},
+        allowed_genes: set[GeneType] | GeneType = set(),
     ):
         super().__init__(component=component, args=args)
-        if isinstance(allowed_genes, str):
+        if isinstance(allowed_genes, GeneType):
             allowed_genes = {allowed_genes}
         self.allowed_genes = allowed_genes if allowed_genes else GeneType.all()
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(component={self.component}, input_type={self.input_type}, allowed_genes={self.allowed_genes})"
+        return f"{self.__class__.__name__}(component={self.component}, allowed_genes={self.allowed_genes})"
 
 
 class CustomDescriptor(DescriptorBase):

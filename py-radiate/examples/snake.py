@@ -218,8 +218,8 @@ class SnakeAI:
 
     def predict(self, state: list[float]) -> int:
         """Predict the best action given current state."""
-        output = self.graph.eval([state])[0]
-        return np.argmax(output[0])
+        output = self.graph.eval(state)
+        return np.argmax(output)  # type: ignore
 
 
 class SnakeEvolver:
@@ -362,9 +362,9 @@ class SnakeEvolver:
 
         engine = rd.Engine(
             codec,
-            SnakeEvolver.fitness_function,
+            fitness_func=SnakeEvolver.fitness_function,
             offspring_selector=rd.TournamentSelector(4),
-            executor=rd.Executor.WorkerPool(),
+            executor=rd.Executor.Serial(),
             alters=[
                 rd.GraphCrossover(0.5, 0.5),
                 rd.OperationMutator(0.04, 0.05),

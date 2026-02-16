@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import overload
+
 from radiate.radiate import PyGraph
 from radiate._bridge.wrapper import RsObject
 
@@ -15,6 +17,12 @@ class Graph(RsObject):
         if not isinstance(other, Graph):
             return False
         return self.__backend__() == other.__backend__()
+
+    @overload
+    def eval(self, inputs: list[list[float]]) -> list[list[float]]: ...
+
+    @overload
+    def eval(self, inputs: list[float]) -> list[float]: ...
 
     def eval(
         self, inputs: list[list[float]] | list[float]

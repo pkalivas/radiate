@@ -110,7 +110,7 @@ class EngineEvent(RsObject):
         """
         return self.try_get_cache("value_cache", lambda: self.__backend__().value())
 
-    def metrics(self) -> MetricSet | None:
+    def metrics(self) -> MetricSet:
         """
         Get the metrics of the event.
         :return: The metrics of the event.
@@ -119,7 +119,7 @@ class EngineEvent(RsObject):
         def _acquire_metrics():
             metrics = self.__backend__().metrics()
             if metrics is None:
-                return None
+                return MetricSet()
             return MetricSet.from_rust(metrics)
 
         return self.try_get_cache("metrics_cache", _acquire_metrics)
