@@ -24,8 +24,6 @@ def fitness(solution: np.ndarray) -> float:
     return np.abs(output - desired_output)
 
 
-temp = rd.FloatCodec(len(function_inputs), init_range=(-4.0, 4.0), use_numpy=True)
-
 engine = rd.Engine(
     codec=rd.FloatCodec(len(function_inputs), init_range=(-4.0, 4.0), use_numpy=True),
     fitness_func=fitness,
@@ -43,8 +41,10 @@ print(f"dtype: {result.dtype()}")
 
 print(result.metrics().dashboard())
 
-codec = rd.FloatCodec(len(function_inputs), init_range=(-4.0, 4.0), use_numpy=True)
-print(codec.encode())
+# temp = rd.FloatCodec(len(function_inputs), init_range=(-4.0, 4.0), use_numpy=True)
+# codec = rd.FloatCodec(len(function_inputs), init_range=(-4.0, 4.0), use_numpy=True)
+# print(codec.encode())
+# print(type(codec.decode(codec.encode())))
 
 # codec = [rd.Gene.float(init_range=(-4.0, 4.0)) for _ in range(len(function_inputs))]
 # e = rd.Engine(codec=codec, fitness_func=fitness, objective=rd.MIN)

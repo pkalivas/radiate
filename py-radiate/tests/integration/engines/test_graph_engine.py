@@ -132,15 +132,14 @@ def test_engine_graph_recurrent_class_acc(memory_dataset, random_seed):
         output=rd.Op.sigmoid(),
     )
 
-    engine = rd.Engine(
-        codec=codec,
-        fitness_func=rd.Regression(inputs, outputs, loss="cross_entropy"),
-        objective=rd.MIN,
-        alters=[
+    engine = (
+        rd.Engine(codec)
+        .regression(inputs, outputs, loss="cross_entropy")
+        .alters(
             rd.GraphCrossover(0.5, 0.5),
             rd.OperationMutator(0.1, 0.05),
             rd.GraphMutator(0.05, 0.05),
-        ],
+        )
     )
 
     result = engine.run([rd.ScoreLimit(0.01), rd.GenerationsLimit(500)])
@@ -170,8 +169,6 @@ def test_graph_engine_with_fluent_builder(random_seed, xor_dataset):
             graph_type="directed",
         )
         .regression(inputs, outputs)
-        .objective(rd.MIN)
-        .size(100)
         .alters(
             rd.GraphCrossover(0.5, 0.5),
             rd.OperationMutator(0.07, 0.05),

@@ -15,6 +15,9 @@ from .engine import (
     MetricSet,
     Metric,
     Tag,
+    EngineLog,
+    EngineCheckpoint,
+    EngineUi,
 )
 
 from .codec import (
@@ -143,8 +146,8 @@ __all__ = [
     "__version__",
     "__version_tuple__",
     # Dependencies
-    "_NUMPY_AVAILABLE",
     "_GIL_ENABLED",
+    "_NUMPY_AVAILABLE",
     "_PANDAS_AVAILABLE",
     "_POLARS_AVAILABLE",
     "_TORCH_AVAILABLE",

@@ -5,15 +5,17 @@ import pytest
 @pytest.mark.integration
 def test_generation_metrics(random_seed):
     num_genes = 5
-    engine = rd.Engine(
-        codec=rd.IntCodec.vector(num_genes, init_range=(0, 10)),
-        fitness_func=lambda x: sum(x),
-        objective=rd.MIN,
+
+    metrics = (
+        (
+            rd.Engine.int(num_genes, init_range=(0, 10))
+            .fitness(lambda x: sum(x))
+            .minimizing()
+            .limit(rd.Limit.score(0), rd.Limit.generations(500))
+        )
+        .run()
+        .metrics()
     )
-
-    result = engine.run([rd.ScoreLimit(0), rd.GenerationsLimit(500)])
-
-    metrics = result.metrics()
 
     assert len(metrics) == 32
     assert len(metrics.keys()) == 32

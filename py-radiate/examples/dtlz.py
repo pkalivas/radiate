@@ -39,17 +39,16 @@ def dtlz_1(val: np.ndarray) -> np.ndarray:
     return f
 
 
-engine = rd.Engine(
-    codec=rd.FloatCodec(variables, use_numpy=True),
-    fitness_func=dtlz_1,
-    offspring_selector=rd.TournamentSelector(k=5),
-    survivor_selector=rd.NSGA3Selector(points=12),
-    objective=[rd.MIN for _ in range(objectives)],
-    front_range=(100, 150),
-    alters=[
+engine = (
+    rd.Engine.float(variables, use_numpy=True)
+    .fitness(dtlz_1)
+    .objective(rd.MIN, rd.MIN, rd.MIN)
+    .front_range(100, 150)
+    .select(rd.TournamentSelector(k=5), rd.NSGA3Selector(points=12))
+    .alters(
         rd.SimulatedBinaryCrossover(1.0, 2.0),
         rd.UniformMutator(0.1),
-    ],
+    )
 )
 
 result = engine.run(rd.GenerationsLimit(2000), ui=True)

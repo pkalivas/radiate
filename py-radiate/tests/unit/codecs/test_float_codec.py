@@ -102,19 +102,6 @@ def test_float_codec_matrix_invalid_value_range_order():
         FloatCodec(shape=(2, 3), init_range=(10.0, 5.0))
 
 
-# @pytest.mark.unit
-# def test_float_codec_matrix_invalid_bound_range():
-#     """Test FloatCodec matrix with invalid bound range (lines 82, 84-87)."""
-#     with pytest.raises(
-#         ValueError, match="Bound range must be a tuple of \\(min, max\\)"
-#     ):
-#         FloatCodec.matrix(shape=(2, 3), bounds=(1.0,))
-#     with pytest.raises(
-#         ValueError, match="Bound range must be a tuple of \\(min, max\\)"
-#     ):
-#         FloatCodec(shape=(2, 3), bounds=(1.0,))
-
-
 @pytest.mark.unit
 def test_float_codec_matrix_invalid_bound_range_order():
     """Test FloatCodec matrix with invalid bound range order."""
@@ -135,42 +122,6 @@ def test_float_codec_vector_invalid_length():
         FloatCodec.vector(length=0)
     with pytest.raises(ValueError, match="Length must be a positive integer"):
         FloatCodec(-5)
-
-
-# @pytest.mark.unit
-# def test_float_codec_vector_invalid_value_range():
-#     """Test FloatCodec vector with invalid value range."""
-#     with pytest.raises(
-#         ValueError, match="Value range must be a tuple of \\(min, max\\)"
-#     ):
-#         FloatCodec.vector(length=5, init_range=(1.0,))
-
-
-# @pytest.mark.unit
-# def test_float_codec_vector_invalid_bound_range():
-#     """Test FloatCodec vector with invalid bound range."""
-#     with pytest.raises(
-#         ValueError, match="Bound range must be a tuple of \\(min, max\\)"
-#     ):
-#         FloatCodec.vector(length=5, bounds=(1.0,))
-
-
-# @pytest.mark.unit
-# def test_float_codec_scalar_invalid_value_range():
-#     """Test FloatCodec scalar with invalid value range."""
-#     with pytest.raises(
-#         ValueError, match="Value range must be a tuple of \\(min, max\\)"
-#     ):
-#         FloatCodec.scalar(init_range=(1.0,))
-
-
-# @pytest.mark.unit
-# def test_float_codec_scalar_invalid_bound_range():
-#     """Test FloatCodec scalar with invalid bound range."""
-#     with pytest.raises(
-#         ValueError, match="Bound range must be a tuple of \\(min, max\\)"
-#     ):
-#         FloatCodec.scalar(bounds=(1.0,))
 
 
 @pytest.mark.unit

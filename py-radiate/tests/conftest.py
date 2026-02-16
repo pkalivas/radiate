@@ -2,7 +2,6 @@
 This module provides common fixtures and utilities used across all test modules.
 """
 
-import os
 import pytest
 import random
 import radiate as rd
@@ -14,16 +13,6 @@ try:
 except ImportError:
     HAS_NUMPY = False
     np = None
-
-# Enable test-only imports
-os.environ["RADIATE_TESTING"] = "1"
-
-
-@pytest.fixture(autouse=True)
-def enable_test_imports():
-    """Automatically enable test-only imports for all tests."""
-    os.environ["RADIATE_TESTING"] = "1"
-    yield
 
 
 @pytest.fixture(scope="session")
