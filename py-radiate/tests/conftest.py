@@ -32,7 +32,7 @@ def random_seed():
     seed = 42
     random.seed(seed)
     if HAS_NUMPY:
-        np.random.seed(seed)
+        np.random.seed(seed)  # type: ignore
     rd.random.seed(seed)
     return seed
 
@@ -171,7 +171,7 @@ def graph_1x1_engine():
 def simple_float_engine():
     """Create a simple float codec engine for testing."""
     return (
-        rd.Engine.float(10, (-1.0, 1.0))
+        rd.Engine.float(10, init_range=(-1.0, 1.0))
         .fitness(lambda x: sum(xi**2 for xi in x))
         .minimizing()
         .size(100)
@@ -183,7 +183,7 @@ def simple_float_engine():
 def simple_multi_objective_engine():
     """Create a simple multi-objective float codec engine for testing."""
     return (
-        rd.Engine.float(10, (-1.0, 1.0))
+        rd.Engine.float(10, init_range=(-1.0, 1.0))
         .fitness(
             lambda x: [
                 sum(xi**2 for xi in x),
@@ -194,6 +194,16 @@ def simple_multi_objective_engine():
         .size(100)
         .select(rd.Select.tournament(3), rd.Select.nsga2())
         .alters(rd.Cross.uniform(0.5), rd.Mutate.arithmetic(0.1))
+    )
+
+
+@pytest.fixture
+def simple_bit_20_bit_engine():
+    """Create a simple bit codec engine for testing."""
+    return (
+        rd.Engine.bit(20)
+        .size(150)
+        .alters(rd.Cross.uniform(0.5), rd.Mutate.uniform(0.1))
     )
 
 
@@ -219,7 +229,7 @@ class PerformanceBenchmark:
     def memory_usage():
         """Get current memory usage (if psutil is available)."""
         try:
-            import psutil
+            import psutil  # type: ignore
 
             process = psutil.Process()
             return process.memory_info().rss / 1024 / 1024  # MB

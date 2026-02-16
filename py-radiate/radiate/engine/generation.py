@@ -111,7 +111,7 @@ class Generation[T](RsObject):
             lambda: Population.from_rust(self.__backend__().population()),
         )
 
-    def species(self) -> list[Species] | None:
+    def species(self) -> list[Species]:
         """
         Get the species of the generation.
         :return: The species of the generation.
@@ -120,7 +120,7 @@ class Generation[T](RsObject):
         def _get_species():
             species = self.__backend__().species()
             if species is None:
-                return None
+                return []
             return [Species.from_rust(s) for s in species]
 
         return self.try_get_cache("species_cache", _get_species)

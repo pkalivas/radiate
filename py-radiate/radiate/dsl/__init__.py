@@ -103,8 +103,8 @@ class Cross:
         return PartiallyMappedCrossover(rate)
 
     @staticmethod
-    def multipoint(rate=0.1):
-        return MultiPointCrossover(rate)
+    def multipoint(rate=0.1, num_points=2):
+        return MultiPointCrossover(rate, num_points)
 
     @staticmethod
     def mean(rate=0.1):

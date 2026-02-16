@@ -111,7 +111,7 @@ class Front(RsObject):
         to_add = []
         if isinstance(items, list):
             if all(isinstance(item, Phenotype) for item in items):
-                to_add = [item.__backend__() for item in items]
+                to_add = [item.__backend__() for item in items]  # type: ignore - we know that these are Phenotypes
             elif all(
                 isinstance(item, tuple)
                 and len(item) == 2
@@ -120,7 +120,7 @@ class Front(RsObject):
                 for item in items
             ):
                 for item in items:
-                    genotype, score = item
+                    genotype, score = item  # type: ignore - we know that these are tuples of (Genotype, list[float] | float)
                     if isinstance(score, float):
                         score = [score]
                     to_add.append(

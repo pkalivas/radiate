@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import overload
 
 from radiate.radiate import PyTree
 from radiate._bridge.wrapper import RsObject
@@ -25,6 +26,12 @@ class Tree(RsObject):
             int: The number of trees in the forest.
         """
         return len(self.__backend__())
+
+    @overload
+    def eval(self, inputs: list[list[float]]) -> list[list[float]]: ...
+
+    @overload
+    def eval(self, inputs: list[float]) -> list[float]: ...
 
     def eval(
         self, inputs: list[list[float]] | list[float]

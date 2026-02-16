@@ -21,7 +21,7 @@ def test_engine_maintains_population_size(random_seed):
     population = rd.Population(rd.Phenotype(codec.encode()) for _ in range(107))
 
     engine = (
-        rd.Engine.float(N_GENES, (-RANGE, RANGE))
+        rd.Engine.float(N_GENES, init_range=(-RANGE, RANGE))
         .fitness(fitness_fn)
         .minimizing()
         .population(population)
@@ -62,7 +62,7 @@ def test_engine_batch_fitness():
     population = rd.Population(rd.Phenotype(codec.encode()) for _ in range(107))
 
     engine = (
-        rd.Engine.float(N_GENES, (-RANGE, RANGE))
+        rd.Engine.float(N_GENES, init_range=(-RANGE, RANGE))
         .fitness(fitness_fn)
         .minimizing()
         .population(population)
@@ -83,10 +83,10 @@ def test_engine_multi_objective(random_seed):
 
     def fitness_func(x: list[float]) -> list[float]:
         # Two objectives: minimize sum, maximize product
-        return [sum(x), np.prod(x)]
+        return [sum(x), np.prod(x)]  # type: ignore
 
     engine = (
-        rd.Engine.float(3, (-10.0, 10.0))
+        rd.Engine.float(3, init_range=(-10.0, 10.0))
         .fitness(fitness_func)
         .objective(rd.MIN, rd.MAX)
         .alters(rd.Cross.uniform(0.7), rd.Mutate.arithmetic(0.1))

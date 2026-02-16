@@ -9,12 +9,6 @@ def test_engine_char_vector():
     def fitness_func(x: list[str]) -> int:
         return sum(1 for i in range(len(target)) if x[i] == target[i])
 
-        # engine = rd.Engine(
-        #     codec=rd.CharCodec(len(target)),
-        #     fitness_func=fitness_func,
-        #     offspring_selector=rd.BoltzmannSelector(4),
-        # )
-
     engine = (
         rd.Engine.char(len(target))
         .fitness(fitness_func)
@@ -34,7 +28,7 @@ def test_engine_char_matrix(random_seed):
     shape = [5, 7, 5]
     target = ["Hello", "Radiate", "World"]
 
-    def fitness_func(x: list[list[str]]) -> int:
+    def fit(x: list[list[str]]) -> int:
         score = 0
         for i, row in enumerate(x):
             for j, char in enumerate(row):
@@ -44,7 +38,7 @@ def test_engine_char_matrix(random_seed):
 
     engine = (
         rd.Engine.char(shape)
-        .fitness(fitness_func)
+        .fitness(fit)
         .select(survivor=rd.Select.elite())
         .alters(rd.Cross.uniform(0.7), rd.Mutate.uniform(0.1))
     )

@@ -179,7 +179,7 @@ class Engine[G, T]:
         shape: int,
         *,
         char_set: str | list[str] | set[str] | None = None,
-    ) -> "Engine[str, VectorDecoding[str]]": ...
+    ) -> "Engine[str, list[str]]": ...
 
     @overload
     @staticmethod
@@ -187,7 +187,7 @@ class Engine[G, T]:
         shape: Sequence[int],
         *,
         char_set: str | list[str] | set[str] | None = None,
-    ) -> "Engine[str, MatrixDecoding[str]]": ...
+    ) -> "Engine[str, list[list[str]]]": ...
 
     # --- End of Character Engine Overloads ---
 
@@ -234,6 +234,7 @@ class Engine[G, T]:
         output: Op | list[Op] | None = None,
         values: dict[str, AtLeastOne[Op]] | None = None,
         max_nodes: int | None = None,
+        graph_type: str = "directed",
     ) -> Engine[Op, Graph]:
         """Create a genetic engine for optimizing graph structures."""
         codec = GraphCodec(
