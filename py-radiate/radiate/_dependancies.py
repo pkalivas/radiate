@@ -194,6 +194,7 @@ def _check_for_torch(obj: Any, *, check_type: bool = True) -> bool:
         cast(Hashable, type(obj) if check_type else obj), "torch"
     )
 
+
 def _check_for_polars(obj: Any, *, check_type: bool = True) -> bool:
     return _POLARS_AVAILABLE and _might_be(
         cast(Hashable, type(obj) if check_type else obj), "polars"
@@ -216,6 +217,7 @@ __all__ = [
     "_check_for_numpy",
     "_check_for_pandas",
     "_check_for_torch",
+    "_check_for_polars",
     # exported flags/guards
     "_GIL_ENABLED",
     "_NUMPY_AVAILABLE",
@@ -223,22 +225,3 @@ __all__ = [
     "_POLARS_AVAILABLE",
     "_TORCH_AVAILABLE",
 ]
-
-
-# from polars._dependencies import (
-#     _ALTAIR_AVAILABLE,
-#     _GREAT_TABLES_AVAILABLE,
-#     _PANDAS_AVAILABLE,
-#     _PYARROW_AVAILABLE,
-#     _check_for_numpy,
-#     _check_for_pandas,
-#     _check_for_pyarrow,
-#     _check_for_torch,
-#     altair,
-#     great_tables,
-#     import_optional,
-#     torch,
-# )
-# from polars._dependencies import numpy as np
-# from polars._dependencies import pandas as pd
-# from polars._dependencies import pyarrow as pa

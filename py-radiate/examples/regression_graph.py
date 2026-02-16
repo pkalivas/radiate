@@ -64,7 +64,8 @@ engine = (
         edge=rd.Op.weight(),
         output=rd.Op.linear(),
     )
-    .regression(df, target="x", feature_cols=["dd"], loss="mse")
+    # .regression(df, target="x", feature_cols=["dd"], loss="mse")
+    .regression(inputs, answers, loss="mse")
     .subscribe(ScorePlotterHandler())
     .alters(
         rd.Cross.graph(0.05, 0.5),

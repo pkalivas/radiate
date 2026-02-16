@@ -147,6 +147,7 @@ __all__ = [
     "_GIL_ENABLED",
     "_PANDAS_AVAILABLE",
     "_POLARS_AVAILABLE",
+    "_TORCH_AVAILABLE",
     # Random
     "random",
     # Codecs
@@ -238,6 +239,7 @@ __all__ = [
     "Generation",
     # Front,
     "Front",
+    "FrontValue",
     # Metrics
     "MetricSet",
     "Metric",
