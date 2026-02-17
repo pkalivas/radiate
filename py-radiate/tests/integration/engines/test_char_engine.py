@@ -16,7 +16,7 @@ def test_engine_char_vector():
         .alters(rd.Cross.uniform(0.5), rd.Mutate.uniform(0.1))
     )
 
-    result = engine.run([rd.ScoreLimit(len(target)), rd.GenerationsLimit(1000)])
+    result = engine.run(rd.ScoreLimit(len(target)), rd.GenerationsLimit(1000))
 
     assert result.value() == list(target)
     assert result.score() == [len(target)]
@@ -44,7 +44,7 @@ def test_engine_char_matrix(random_seed):
     )
 
     result = engine.run(
-        [rd.ScoreLimit(sum(len(t) for t in target)), rd.GenerationsLimit(2000)]
+        rd.ScoreLimit(sum(len(t) for t in target)), rd.GenerationsLimit(2000)
     )
 
     assert result.value() == [list(t) for t in target]

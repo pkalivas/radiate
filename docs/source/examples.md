@@ -19,15 +19,12 @@ For example, a solution could be:
     ```python
     import radiate as rd
 
-    engine = rd.Engine(
-        codec=rd.IntCodec.vector(10, init_range=(0, 100)),
-        fitness_func=lambda x: sum(x),
-        offspring_selector=rd.EliteSelector(),
-        objective=rd.MIN,
-        alters=[
-            rd.SwapMutator(0.05),
-            rd.UniformCrossover(0.5),
-        ],
+    engine = (
+        rd.Engine.int(10, init_range=(0, 100))
+        .fitness(lambda x: sum(x))
+        .minimizing()
+        .select(offspring=rd.Select.elite())
+        .alters(rd.Mutate.swap(0.05), rd.Cross.uniform(0.5))
     )
 
     result = engine.run(rd.ScoreLimit(0))
@@ -78,11 +75,11 @@ For example, a solution for `n=8` would be:
     ```python
     import numpy as np
     import radiate as rd
-    from numba import jit, i32
+    from numba import jit, uint8
 
     N_QUEENS = 32
 
-    @jit(int32(int32[:]), nopython=True) # add this decorator from numba to compile the fitness function to native C code.
+    @jit(uint8(uint8[:]), nopython=True) # add this decorator from numba to compile the fitness function to native C code.
     def fitness_fn(queens: np.ndarray) -> int:
         """Calculate the fitness score for the N-Queens problem."""
 
@@ -96,15 +93,15 @@ For example, a solution for `n=8` would be:
 
         return np.sum(same_row) + np.sum(same_diagonal)
 
-    engine = rd.Engine(
-        codec=rd.IntCodec.vector(N_QUEENS, init_range=(0, N_QUEENS), use_numpy=True),
-        fitness_func=fitness_fn,
-        objective=rd.MIN,
-        offspring_selector=rd.BoltzmannSelector(4.0),
-        alters=[
+    engine = (
+        rd.Engine.int(N_QUEENS, init_range=(0, N_QUEENS), use_numpy=True, dtype=rd.UInt8)
+        .fitness(fitness_fn)
+        .minimizing()
+        .select(offspring=rd.TournamentSelector(k=3))
+        .alters(
             rd.MultiPointCrossover(0.75, 2),
-            rd.UniformMutator(0.05)
-        ]
+            rd.UniformMutator(0.05),
+        )
     )
 
     result = engine.run(rd.ScoreLimit(0), log=False)
@@ -203,7 +200,7 @@ where:
     RANGE = 5.12
     N_GENES = 2
 
-    def fitness_fn(x):
+    def fitness_fn(x: list[float]) -> float:
         value = A * N_GENES
         for i in range(N_GENES):
             value += x[i]**2 - A * math.cos((2.0 * 3.141592653589793 * x[i]))
@@ -213,10 +210,10 @@ where:
         rd.Engine.float(2, init_range=(-RANGE, RANGE), bounds=(-10.0, 10.0))
         .fitness(fitness_fn)
         .minimizing()
-        .alter([
+        .alters(
             rd.UniformCrossover(0.5),
             rd.ArithmeticMutator(0.01)
-        ])
+        )
     )
 
     print(engine.run(rd.ScoreLimit(0.0001)))
@@ -314,18 +311,17 @@ $$
         return f
 
 
-    engine = rd.Engine(
-        codec=rd.FloatCodec.vector(variables, (0.0, 1.0), use_numpy=True),
-        fitness_func=dtlz_1,
-        offspring_selector=rd.TournamentSelector(k=8),
-        survivor_selector=rd.NSGA2Selector(),
-        objective=[rd.MIN for _ in range(objectives)],
-        alters=[
+    engine = (
+        rd.Engine.float(variables, use_numpy=True, dtype=rd.Float32)
+        .fitness(dtlz_1)
+        .objective(rd.MIN, rd.MIN, rd.MIN)
+        .front_range(100, 150)
+        .select(rd.TournamentSelector(k=5), rd.NSGA3Selector(points=12))
+        .alters(
             rd.SimulatedBinaryCrossover(1.0, 2.0),
             rd.UniformMutator(0.1),
-        ],
+        )
     )
-
     result = engine.run(rd.GenerationsLimit(2000), ui=True)
 
     # When running an MO problem, we can get the resulting pareto from from the 
@@ -427,15 +423,14 @@ Evolve a `Graph<Op<f32>>` to solve the XOR problem (NeuroEvolution).
         output=rd.Op.linear(),
     )
 
-    engine = rd.Engine(
-        codec=codec,
-        fitness_fn=rd.Regression(inputs, answers, loss='mse'),
-        objective=rd.MIN,
-        alters=[
+    engine = (
+        rd.Engine(codec)
+        .regression(inputs, answers, loss='mse')
+        .alters(
             rd.GraphCrossover(0.5, 0.5),
             rd.OperationMutator(0.07, 0.05),
             rd.GraphMutator(0.1, 0.1),
-        ],
+        )
     )
 
     result = engine.run([rd.ScoreLimit(0.001), rd.GenerationsLimit(1000)], log=True)
@@ -536,17 +531,14 @@ Evolve a `Tree<Op<f32>>` to solve the a regression problem (Genetic Programming)
         root=rd.Op.linear(),
     )
 
-    engine = rd.Engine(
-        codec=codec,
-        fitness_func=rd.Regression(inputs, answers),
-        objective=rd.MIN,
-        alters=[
-            rd.TreeCrossover(0.7),
-            rd.HoistMutator(0.01),
-        ],
+    engine = (
+        rd.Engine(codec)
+        .regression(inputs, answers, loss='mse')
+        .alters(rd.TreeCrossover(0.7), rd.HoistMutator(0.01))
     )
 
-    result = engine.run([rd.ScoreLimit(0.01), rd.TimeLimit(1.0)], log=True)
+
+    result = engine.run(rd.ScoreLimit(0.01), rd.TimeLimit(1.0), log=True)
     print(result)
 
     for input, target in zip(inputs, answers):

@@ -18,7 +18,8 @@ Let's continue with our example from the previous section - evolving a simple fu
     codec = rd.FloatCodec.vector(
         length=2,                  # We need two parameters: a and b
         init_range=(-1.0, 1.0),    # Start with values between -1 and 1
-        bounds=(-10.0, 10.0)       # Allow evolution to modify the values between -10 and 10
+        bounds=(-10.0, 10.0),      # Allow evolution to modify the values between -10 and 10
+        dtype=rd.Float32,          # Optional - default is Float64
     )
 
     # Use Boltzmann selection for offspring - individuals which
@@ -29,17 +30,25 @@ Let's continue with our example from the previous section - evolving a simple fu
     # be passed down unchanged to the next generation
     survivor_selector = rd.TournamentSelector(k=3)
 
-    # Create the evolution engine
-    engine = rd.Engine(
-        codec=codec,
-        fitness_func=fitness_function,
-        offspring_selector=offspring_selector,
-        survivor_selector=survivor_selector,
+    # Create the engine with the codec, fitness function, and selectors
+    engine = (
+        rd.Engine.float(2, init_range=(-1.0, 1.0), bounds=(-10.0, 10.0), dtype=rd.Float32)
+        .fitness(fitness_function)
+        .select(offspring_selector, survivor_selector)
         # ... other parameters ...
     )
 
+    # note the same engine can be built using a more traditional constructor pattern as such:
+    # engine = rd.Engine(
+    #     codec=codec,
+    #     fitness_func=fitness_function,
+    #     offspring_selector=offspring_selector,
+    #     survivor_selector=survivor_selector,
+    #     # ... other parameters ...
+    # )
+
     # Run the engine
-    result = engine.run([rd.ScoreLimit(0.01), rd.GenerationsLimit(1000)])
+    result = engine.run(rd.ScoreLimit(0.01), rd.GenerationsLimit(1000))
     ```
 
 === ":fontawesome-brands-rust: Rust"

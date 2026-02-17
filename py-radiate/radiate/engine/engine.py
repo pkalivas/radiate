@@ -291,7 +291,7 @@ class Engine[G, T]:
 
     def run(
         self,
-        limits: LimitBase | list[LimitBase] = [],
+        *limits: LimitBase,
         log: bool | EngineLog = False,
         checkpoint: tuple[int, str] | EngineCheckpoint | None = None,
         ui: bool | EngineUi = False,
@@ -312,10 +312,6 @@ class Engine[G, T]:
         ---------
         >>> engine.run(rd.ScoreLimit(0.0001), log=True)
         """
-
-        if limits is not None:
-            if isinstance(limits, LimitBase):
-                limits = [limits]
 
         engine = self._builder.build()
 
@@ -440,6 +436,22 @@ class Engine[G, T]:
         if size <= 0:
             raise ValueError("Population size must be greater than 0.")
         self._builder.set_population_size(size)
+        return self
+
+    def age(
+        self, max_phenotype_age: int | None = None, max_species_age: int | None = None
+    ) -> Engine[G, T]:
+        """Set the aging parameters for the engine."""
+        if max_phenotype_age is not None:
+            if max_phenotype_age <= 0:
+                raise ValueError("Max phenotype age must be greater than 0.")
+            self._builder.set_max_age(max_phenotype_age)
+
+        if max_species_age is not None:
+            if max_species_age <= 0:
+                raise ValueError("Max species age must be greater than 0.")
+            self._builder.set_max_species_age(max_species_age)
+
         return self
 
     def population(self, population: Population[G]) -> Engine[G, T]:

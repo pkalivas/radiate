@@ -12,7 +12,7 @@ def test_engine_bit_optimization(random_seed):
         .alters(rd.Cross.uniform(0.7), rd.Mutate.uniform(0.1))
     )
 
-    result = engine.run([rd.ScoreLimit(10), rd.GenerationsLimit(100)])
+    result = engine.run(rd.ScoreLimit(10), rd.GenerationsLimit(100))
 
     assert result.value() == [True] * 10  # All ones
     assert result.score()[0] == 10.0
@@ -35,7 +35,7 @@ def test_engine_bit_matrix_optimization(random_seed):
         .alters(rd.Cross.uniform(0.7), rd.Mutate.uniform(0.1))
     )
 
-    result = engine.run([rd.ScoreLimit(rows * cols), rd.GenerationsLimit(200)])
+    result = engine.run(rd.ScoreLimit(rows * cols), rd.GenerationsLimit(200))
 
     assert result.value() == [[True] * cols for _ in range(rows)]  # All ones
     assert result.score()[0] == rows * cols
@@ -49,7 +49,7 @@ def test_engine_bit_can_maximize(simple_bit_20_bit_engine, random_seed):
         lambda x: sum(1 for bit in x if bit)
     ).maximizing()
 
-    result = engine.run([rd.ScoreLimit(20), rd.GenerationsLimit(100)])
+    result = engine.run(rd.ScoreLimit(20), rd.GenerationsLimit(100))
 
     assert result.value() == [True] * 20  # All ones
     assert result.score()[0] == 20.0
@@ -60,8 +60,9 @@ def test_engine_bit_can_maximize(simple_bit_20_bit_engine, random_seed):
 def test_engine_bit_can_co_evolve_two_chromosomes(random_seed):
     """Test engine with bit codec for co-evolving two chromosomes."""
 
-    def fitness_func(x: list[list[bool]]) -> int:
+    def fit(x: list[list[bool]]) -> int:
         assert len(x) == 2
+        assert all(len(row) == 20 for row in x)
         sum_one = sum(1 for bit in x[0] if bit)
         sum_two = sum(1 for bit in x[1] if not bit)
         return sum_one + sum_two
@@ -69,13 +70,13 @@ def test_engine_bit_can_co_evolve_two_chromosomes(random_seed):
     # Two chromosomes both with 20 genes in it.
     # We want the first chromosome to be all ones and the second chromosome to be all zeros.
     engine = (
-        rd.Engine.bit(shape=[20, 20])
-        .fitness(fitness_func)
+        rd.Engine.bit([20, 20])
+        .fitness(fit)
         .minimizing()
         .alters(rd.Cross.uniform(0.5), rd.Mutate.uniform(0.1))
     )
 
-    result = engine.run([rd.ScoreLimit(0), rd.GenerationsLimit(200)])
+    result = engine.run(rd.ScoreLimit(0), rd.GenerationsLimit(200))
 
     assert result.value()[0] == [False] * 20  # First chromosome all zeros
     assert result.value()[1] == [True] * 20  # Second chromosome all ones

@@ -1,6 +1,6 @@
 import pytest
-
-from radiate import IntCodec
+import numpy as np
+from radiate import IntCodec, Int16, Int32
 
 
 @pytest.mark.unit
@@ -62,6 +62,30 @@ def test_int_codec_decode():
     assert all(len(row) == 2 for row in decoded)
     assert all(isinstance(x, int) for row in decoded for x in row)
     assert all(-5 <= x <= 5 for row in decoded for x in row)
+
+
+@pytest.mark.unit
+def test_int_codec_with_numpy():
+    """Test creating an integer codec that uses NumPy."""
+    codec = IntCodec(10, init_range=(-5, 5), use_numpy=True, dtype=Int16)
+    genotype = codec.encode()
+    decoded = codec.decode(genotype)
+
+    assert isinstance(decoded, np.ndarray)
+    assert decoded.shape == (10,)
+    assert all(-5 <= x <= 5 for x in decoded)
+    assert decoded.dtype == np.int16
+
+    codec = IntCodec(
+        shape=[5, 5, 5, 5], init_range=(0, 100), use_numpy=True, dtype=Int32
+    )
+    genotype = codec.encode()
+    decoded = codec.decode(genotype)
+
+    assert isinstance(decoded, np.ndarray)
+    assert decoded.shape == (4, 5)
+    assert all(0 <= x <= 100 for x in decoded.flatten())
+    assert decoded.dtype == np.int32
 
 
 @pytest.mark.unit

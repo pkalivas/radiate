@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from radiate import FloatCodec
+from radiate import FloatCodec, Float32
 
 
 @pytest.mark.unit
@@ -79,12 +79,22 @@ def test_float_codec_with_numpy():
     assert decoded.shape == (10,)
     assert all(-5.0 <= x <= 5.0 for x in decoded)
 
+    codec = FloatCodec.matrix(
+        shape=[5, 5, 5, 5], init_range=(-10.0, 10.0), use_numpy=True, dtype=Float32
+    )
+
+    genotype = codec.encode()
+    decoded = codec.decode(genotype)
+
+    assert isinstance(decoded, np.ndarray)
+    assert decoded.shape == (4, 5)
+    assert all(-10.0 <= x <= 10.0 for x in decoded.flatten())
+    assert decoded.dtype == np.float32
+
 
 @pytest.mark.unit
 def test_float_codec_matrix_invalid_shape():
     """Test FloatCodec matrix with invalid shape."""
-    # with pytest.raises(ValueError, match="Shape must be a tuple of \\(rows, cols\\)"):
-    #     FloatCodec.matrix(shape=[1, 2, 3])
     with pytest.raises(ValueError, match="Shape must be a tuple of \\(rows, cols\\)"):
         FloatCodec(shape=(2,))
 

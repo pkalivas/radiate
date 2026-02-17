@@ -88,13 +88,13 @@ This simple maximizing problem demonstrates how to use Radiate to solve a string
         
         target = "Hello, Radiate!"
 
-        def fitness_func(x: list[str]) -> int:
+        def fit(x: list[str]) -> int:
             return sum(1 for i in range(len(target)) if x[i] == target[i])
 
-        engine = rd.Engine(
-            codec=rd.CharCodec.vector(len(target)),
-            fitness_func=fitness_func,
-            offspring_selector=rd.BoltzmannSelector(4),
+        engine = (
+            rd.Engine.char(len(target))
+            .fitness(fit)
+            .select(offspring=rd.Select.boltzmann(4))
         )
 
         result = engine.run(rd.ScoreLimit(len(target)))

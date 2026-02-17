@@ -47,10 +47,10 @@ Simple fitness functions are the most common type - they take a phenotype and re
         return value
 
     codec = rd.FloatCodec.vector(N_GENES, init_range=(-RANGE, RANGE))
-    engine = rd.Engine(codec, fitness_fn, objective=rd.MIN)
+    engine = rd.Engine(codec).fitness(fitness_fn).minimizing()
     ```
 
-    Python also exposes a `@rd.fitness` decorator which can be used to annotate your fitness functions. As of `1/25/26` using the decorator for a simple fitness function like this doesn't provide any real benifit, the engine will handle wrapping the fitness function into it's DSL internally either way. This would be considered the "more explicit" way of defining your fitness function however and may provide benifits in the future as the python API matures.
+    Python also exposes a `@rd.fitness` decorator which can be used to annotate your fitness functions. As of `1/25/26` using the decorator for a simple fitness function like this doesn't provide any real benefit, the engine will handle wrapping the fitness function into it's DSL internally either way. This would be considered the "more explicit" way of defining your fitness function however and may provide benefits in the future as the python API matures.
 
     ```python
     import radiate as rd
@@ -123,7 +123,7 @@ Its important to note that other types of fitness functions like `NoveltySearch`
 
     # Create the genetic engine with batch fitness function.
     # Just wrap your fitness function in 'rd.BatchFitness'
-    engine = rd.Engine(codec, rd.BatchFitness(fitness_fn), objective=rd.MIN)
+    engine = rd.Engine(codec).fitness(rd.BatchFitness(fitness_fn)).minimizing()
     ```
 
     Just like simple fitness functions, python lets you opt out of wrapping your fitness function in `rd.BatchFitness` by using the `@rd.fitness` decorator.
@@ -154,7 +154,7 @@ Its important to note that other types of fitness functions like `NoveltySearch`
 
     # Create the genetic engine with batch fitness function.
     # NOTE: We no longer need to wrap 'fitness_fn' in 'rd.BatchFitness'
-    engine = rd.Engine(codec, fitness_fn, objective=rd.MIN)
+    engine = rd.Engine(codec).fitness(fitness_fn).minimizing()
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -357,14 +357,11 @@ You can implement your own behavioral descriptors by implementing the `Novelty` 
         archive_size=1000, # defaults to 1000
     )
 
-    engine = rd.Engine(
-        # whatever codec you specify - the decoded value of your codec will be fed 
-        # into the `behavior` function of your NoveltySearch fitness_func
-        codec=rd.FloatCodec.vector(10, (0, 10)), 
-        fitness_func=novelty_fitness,
-        # we always want to maximize novelty - however this is the default 
-        # so its not necessary to define
-        objective='max' 
+    engine = (
+        # The decoded value of your codec (a list[float] in this case) will be fed into the `behavior` function of your NoveltySearch fitness_func
+        rd.Engine.float(10, init_range=(0, 10), bounds=(0, 10))  
+        .fitness(novelty_fitness)
+        .maximizing()  # We want to maximize novelty - however this is the default so its not necessary to define
     )
     ```
 
@@ -381,7 +378,7 @@ You can implement your own behavioral descriptors by implementing the `Novelty` 
         # The individual here is a list[float] because we are using a FloatCodec vector below
         ... 
         
-    engine = rd.Engine(rd.FloatCodec.vector(10, (0, 10)), behavior)
+    engine = rd.Engine.float(10, init_range=(0, 10)).fitness(behavior)
     ```
 
 === ":fontawesome-brands-rust: Rust"

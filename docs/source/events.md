@@ -243,16 +243,13 @@ For more complex event handling, you can create a custom event handler class:
     # Create an instance of your event handler
     handler = ScorePlotterHandler()
 
-    engine = rd.Engine(
-        codec=your_codec,
-        fitness_func=your_fitness_func,
-        subscribe=handler,
+    engine = (
+        rd.Engine(codec=your_codec)
+        .fitness(your_fitness_func)
+        .subscribe(handler)   # Add your handler here
         # ... other parameters ...
     )
-
-    # or add it later
-    engine.subscribe(handler)
-
+    
     # Run the engine for 100 generations
     engine.run(rd.GenerationsLimit(100))
     ```

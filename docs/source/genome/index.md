@@ -39,7 +39,7 @@ Certain `Genes` have additional functionality that allows them to be manipulated
 
     For evolving floating-point numbers. If the `allele` is not specified, it will be randomly initialized within the `value_range`. If the `value_range` is not specified, it will default to (`-1e10`, `1e10`). If the `bound_range` is not specified, it will default to `value_range`.
 
-    The `FloatGene` is generic over the floating-point type `F`, which can be either `f32` or `f64`. Python's `float` type corresponds to Rust's `f64`.
+    The `FloatGene` is generic over the floating-point type `F`, which can be either `f32` or `f64`.
 
     === ":fontawesome-brands-python: Python"
 
@@ -49,9 +49,10 @@ Certain `Genes` have additional functionality that allows them to be manipulated
         # Create a float gene that can evolve between -1.0 and 1.0 but 
         # must stay within -10.0 to 10.0 during evolution
         gene = rd.Gene.float(
-            allele=0.5,                   # Current value
-            init_range=(-1.0, 1.0),      # Initial range
-            bounds=(-10.0, 10.0)     # Evolution bounds
+            allele=0.5,              # Current value
+            init_range=(-1.0, 1.0),  # Initial range - if no allele, the allele will be randomly initialized within this range
+            bounds=(-10.0, 10.0),    # Evolution bounds
+            dtype=rd.Float32         # Optional, defaults to rd.Float64
         )
         ```
 
@@ -88,9 +89,10 @@ Certain `Genes` have additional functionality that allows them to be manipulated
 
         # Create an integer gene that can evolve between -100 and 100
         gene = rd.Gene.int(
-            allele=42,                     # Current value
-            init_range=(-10, 10),        # Initial range
-            bounds=(-100, 100)       # Evolution bounds
+            allele=42,             # Current value
+            init_range=(-10, 10),  # Initial range - if no allele, the allele will be randomly initialized within this range
+            bounds=(-100, 100),    # Evolution bounds - optional, defaults to init_range
+            dtype=rd.UInt8         # Optional, defaults to rd.Int64
         )
         ```
 
@@ -226,9 +228,10 @@ Because each `Chromosome` has an associated `Gene`, the built int chromosomes ar
 
         # Create a float chromosome with 5 genes, each initialized to a random value between -1.0 and 1.0
         chromosome = rd.Chromosome.float(
-            length=5, 
-            init_range=(-1.0, 1.0), 
-            bounds=(-10.0, 10.0)
+            length=5,               # Number of genes in the chromosome
+            init_range=(-1.0, 1.0), # Initial range for gene alleles
+            bounds=(-10.0, 10.0),   # Optional, bounds for gene alleles during evolution - defaults to init_range
+            dtype=rd.Float32        # Optional, defaults to rd.Float64
         )
 
         # Create a float chromosome with specific genes
@@ -259,9 +262,10 @@ Because each `Chromosome` has an associated `Gene`, the built int chromosomes ar
 
         # Create an integer chromosome with 5 genes, each initialized to a random value between -10 and 10
         chromosome = rd.Chromosome.int(
-            length=5,
-            init_range=(-10, 10),
-            bounds=(-100, 100)
+            length=5,               # Number of genes in the chromosome
+            init_range=(-10, 10),   # Initial range for gene alleles
+            bounds=(-100, 100),     # Optional, bounds for gene alleles during evolution - defaults to init_range
+            dtype=rd.Int16          # Optional, defaults to rd.Int64
         )
         ```
 

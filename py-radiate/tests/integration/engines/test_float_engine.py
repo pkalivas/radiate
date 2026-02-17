@@ -20,7 +20,7 @@ def test_engine_float_vector_maximization(random_seed):
         .alters(rd.Cross.uniform(0.7), rd.Mutate.arithmetic(0.01))
     )
 
-    result = engine.run([rd.ScoreLimit(2.9), rd.GenerationsLimit(100)])
+    result = engine.run(rd.ScoreLimit(2.9), rd.GenerationsLimit(100))
 
     # Should find values close to ±1.0
     assert result.score()[0] > 2.5
@@ -40,6 +40,7 @@ def test_engine_float_matrix_minimization(random_seed):
         assert x.dtype == np.float32
         return np.sum(x**2)
 
+    # Create an engine that evolves 2x2 matrices of float32 values, minimizing the sum of squares
     engine = (
         rd.Engine.float(
             [2, 2], init_range=(-5.0, 5.0), use_numpy=True, dtype=rd.Float32
@@ -51,7 +52,7 @@ def test_engine_float_matrix_minimization(random_seed):
         .alters(rd.Cross.mean(0.7), rd.Mutate.gaussian(0.1))
     )
 
-    result = engine.run([rd.ScoreLimit(0.1), rd.GenerationsLimit(200)])
+    result = engine.run(rd.ScoreLimit(0.1), rd.GenerationsLimit(200))
 
     # Should find values close to 0.0
     assert result.score()[0] < 0.5

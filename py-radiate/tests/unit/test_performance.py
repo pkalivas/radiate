@@ -62,7 +62,7 @@ class TestEnginePerformance:
         )
 
         def engine_run():
-            return engine.run([rd.GenerationsLimit(50)])
+            return engine.run(rd.GenerationsLimit(50))
 
         result, execution_time = performance_benchmark.time_function(engine_run)
 
@@ -87,7 +87,7 @@ class TestEnginePerformance:
         )
 
         def engine_run():
-            return engine.run([rd.GenerationsLimit(10)])
+            return engine.run(rd.GenerationsLimit(10))
 
         result, execution_time = performance_benchmark.time_function(engine_run)
 
@@ -116,7 +116,7 @@ class TestMemoryPerformance:
             .alters(rd.UniformCrossover(0.7), rd.ArithmeticMutator(0.1))
         )
 
-        engine.run([rd.GenerationsLimit(50)])
+        engine.run(rd.GenerationsLimit(50))
 
         final_memory = performance_benchmark.memory_usage()
 
@@ -144,7 +144,7 @@ class TestMemoryPerformance:
                 .alters(rd.UniformCrossover(0.7), rd.ArithmeticMutator(0.1))
             )
 
-            engine.run([rd.GenerationsLimit(10)])
+            engine.run(rd.GenerationsLimit(10))
             del engine  # Explicitly delete engine
 
         # Force garbage collection
@@ -181,7 +181,7 @@ class TestScalabilityPerformance:
             )
 
             _, execution_time = performance_benchmark.time_function(
-                engine.run, [rd.GenerationsLimit(20)]
+                engine.run, rd.GenerationsLimit(20)
             )
             execution_times.append(execution_time)
 

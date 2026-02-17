@@ -20,7 +20,7 @@ def test_engine_permutation_tsp(random_seed):
         alters=[rd.PartiallyMappedCrossover(0.7), rd.InversionMutator(0.1)],
     )
 
-    result = engine.run([rd.GenerationsLimit(100)])
+    result = engine.run(rd.GenerationsLimit(100))
 
     assert result.index() <= 100
     assert len(set(result.value())) == 5

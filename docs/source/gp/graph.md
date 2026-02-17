@@ -333,6 +333,7 @@ This mutator is used to add new nodes and connections to the graph. It can be us
 
     # Create a mutator that adds vertices and edges with a 10% chance for either
     mutator = rd.GraphMutator(vertex_rate=0.1, edge_rate=0.1, allow_recurrent=False)
+    mutator = rd.Mutate.graph(vertex_rate=0.1, edge_rate=0.1, allow_recurrent=False) # Using the dsl syntax for mutators
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -363,6 +364,7 @@ This crossover operator is used to combine two parent graphs by swapping the val
     import radiate as rd
 
     crossover = rd.GraphCrossover(0.1, 0.5)
+    crossover = rd.Cross.graph(0.1, 0.5) # Using the dsl syntax for crossover operators
     ```
 
 === ":fontawesome-brands-rust: Rust"

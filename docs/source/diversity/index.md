@@ -33,6 +33,14 @@ The species threshold determines how similar individuals need to be to be consid
         diversity=diversity,
         species_threshold=.5  # Default value
     )
+
+    # or using the fluent builder pattern:
+    engine = (
+        rd.Engine(your_codec)
+        .fitness(your_fitness_func)
+        .diversity(diversity, species_threshold=0.5) # Default value
+        # ... other parameters ...
+    )
 	```
 
 === ":fontawesome-brands-rust: Rust"

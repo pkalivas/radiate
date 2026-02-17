@@ -25,7 +25,7 @@ def test_engine_graph_xor(xor_dataset, random_seed):
         ],
     )
 
-    result = engine.run([rd.ScoreLimit(0.1), rd.GenerationsLimit(1000)])
+    result = engine.run(rd.ScoreLimit(0.1), rd.GenerationsLimit(1000))
 
     assert result.score()[0] < 0.1
     assert result.index() <= 1000
@@ -60,7 +60,7 @@ def test_engine_graph_regression_with_speciation(
         ],
     )
 
-    result = engine.run([rd.ScoreLimit(0.1), rd.GenerationsLimit(500)])
+    result = engine.run(rd.ScoreLimit(0.1), rd.GenerationsLimit(500))
 
     # Testing in multithreaded mode can lead to slightly different results so we
     # relax the assertion a bit by allowing a few # of species
@@ -93,7 +93,7 @@ def test_engine_graph_with_recurrent_connections(memory_dataset, random_seed):
         ],
     )
 
-    result = engine.run([rd.ScoreLimit(0.001), rd.GenerationsLimit(500)])
+    result = engine.run(rd.ScoreLimit(0.001), rd.GenerationsLimit(500))
 
     assert result.score()[0] < 0.001
     assert result.index() <= 500
@@ -142,7 +142,7 @@ def test_engine_graph_recurrent_class_acc(memory_dataset, random_seed):
         )
     )
 
-    result = engine.run([rd.ScoreLimit(0.01), rd.GenerationsLimit(500)])
+    result = engine.run(rd.ScoreLimit(0.01), rd.GenerationsLimit(500))
 
     assert result.score()[0] < 0.01
     assert result.index() <= 500
@@ -176,7 +176,7 @@ def test_graph_engine_with_fluent_builder(random_seed, xor_dataset):
         )
     )
 
-    result = engine.run([rd.ScoreLimit(0.1), rd.GenerationsLimit(1000)])
+    result = engine.run(rd.ScoreLimit(0.1), rd.GenerationsLimit(1000))
 
     assert result.score()[0] < 0.1
     assert result.index() <= 1000

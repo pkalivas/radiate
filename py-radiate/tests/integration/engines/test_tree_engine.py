@@ -22,7 +22,7 @@ def test_engine_tree_regression(simple_regression_dataset, random_seed):
         alters=[rd.TreeCrossover(0.5), rd.HoistMutator(0.1)],
     )
 
-    result = engine.run([rd.ScoreLimit(0.1), rd.GenerationsLimit(300)])
+    result = engine.run(rd.ScoreLimit(0.1), rd.GenerationsLimit(300))
 
     assert isinstance(result.value(), rd.Tree)
     assert result.score()[0] < 0.1

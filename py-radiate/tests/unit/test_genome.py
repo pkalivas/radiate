@@ -93,7 +93,7 @@ class TestPhenotypes:
     def test_phenotype_score_method(self):
         """Test Phenotype score method."""
         chromosome = rd.Chromosome.int(length=3, init_range=(0, 10))
-        genotype = rd.Genotype([chromosome])
+        genotype = rd.Genotype(chromosome)
         phenotype = rd.Phenotype(genotype)
 
         score = phenotype.score()
@@ -239,7 +239,7 @@ class TestGenes:
         init_range = gene.init_range()
 
         assert gene.allele() == "b"
-        assert gene.dtype() == rd.Char()
+        assert gene.dtype() == rd.Char
         assert gene.char_set() == {"a", "b", "c"}
         assert gene.min() is None
         assert gene.max() is None

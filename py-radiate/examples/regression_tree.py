@@ -40,7 +40,7 @@ engine = rd.Engine(
 )
 
 
-result = engine.run([rd.ScoreLimit(0.01), rd.GenerationsLimit(1000)], log=True)
+result = engine.run(rd.ScoreLimit(0.01), rd.GenerationsLimit(1000), log=True)
 eval_results = result.value().eval(inputs)
 accuracy = np.mean(
     np.abs(np.array(eval_results).flatten() - np.array(answers).flatten()) < 0.1

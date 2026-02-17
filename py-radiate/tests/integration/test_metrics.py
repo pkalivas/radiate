@@ -92,7 +92,7 @@ def test_metrics_from_events(random_seed):
         .subscribe(MetricSetAssertHandler())
     )
 
-    engine.run([rd.ScoreLimit(0), rd.GenerationsLimit(500)])
+    engine.run(rd.ScoreLimit(0), rd.GenerationsLimit(500))
 
 
 @pytest.mark.integration

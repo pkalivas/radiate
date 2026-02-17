@@ -13,7 +13,7 @@ def test_engine_int_minimization(random_seed):
         .minimizing()
     )
 
-    result = engine.run([rd.ScoreLimit(0), rd.GenerationsLimit(500)])
+    result = engine.run(rd.ScoreLimit(0), rd.GenerationsLimit(500))
 
     assert result.value() == [0 for _ in range(num_genes)]
     assert result.score() == [0]
@@ -71,7 +71,7 @@ def test_engine_int_matrix_nparray(random_seed):
         .minimizing()
     )
 
-    result = engine.run([rd.ScoreLimit(0), rd.GenerationsLimit(500)])
+    result = engine.run(rd.ScoreLimit(0), rd.GenerationsLimit(500))
 
     assert np.array_equal(result.value(), np.zeros((rows, cols), dtype=np.int64))
     assert result.score() == [0]
@@ -99,8 +99,7 @@ def test_engine_int_jagged_matrix(random_seed):
     # Create a jagged matrix codec - right now (1/23/26) using numpy this doesn't support non-square shapes
     codec = rd.IntCodec(shape=shape, init_range=(0, 10), bounds=(-5, 20))
     engine = rd.Engine(codec).fitness(fit).minimizing()
-
-    result = engine.run([rd.ScoreLimit(0), rd.GenerationsLimit(500)])
+    result = engine.run(rd.ScoreLimit(0), rd.GenerationsLimit(500))
 
     assert result.value() == [[0 for _ in range(n)] for n in shape]
     assert result.score() == [0]

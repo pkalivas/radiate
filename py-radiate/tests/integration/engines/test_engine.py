@@ -28,7 +28,7 @@ def test_engine_maintains_population_size(random_seed):
         .alters(rd.Cross.uniform(0.5), rd.Mutate.arithmetic(0.01))
     )
 
-    result = engine.run([rd.ScoreLimit(0.0001), rd.GenerationsLimit(1000)])
+    result = engine.run(rd.ScoreLimit(0.0001), rd.GenerationsLimit(1000))
 
     assert all(i < 0.001 for i in result.value())
     assert len(result.value()) == N_GENES
@@ -69,7 +69,7 @@ def test_engine_batch_fitness():
         .alters(rd.Cross.uniform(0.5), rd.Mutate.arithmetic(0.01))
     )
 
-    result = engine.run([rd.ScoreLimit(0.0001), rd.GenerationsLimit(1000)])
+    result = engine.run(rd.ScoreLimit(0.0001), rd.GenerationsLimit(1000))
 
     assert all(i < 0.001 for i in result.value())
     assert len(result.value()) == N_GENES

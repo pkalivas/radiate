@@ -35,6 +35,7 @@ engine = (
     .select(rd.Select.tournament(5), rd.Select.nsga3(12))
     .alters(rd.Cross.sbx(1.0, 2.0), rd.Mutate.uniform(0.1))
     .limit(rd.Limit.generations(2000))
+    # .diversity(rd.Diversity.crowding(),
 )
 
 result = engine.run(ui=True)

@@ -37,18 +37,17 @@ The `minimizing()` method configures the genetic algorithm to find the minimum v
     ```python
     import radiate as rd
 
+    # Create an engine that has a genome of 1 chromosome with 10 float genes, initialized & bound between 0.0 and 1.0
     codec = rd.FloatCodec.vector(10, init_range=(0.0, 1.0))  # Example codec
+    engine = rd.Engine(codec).fitness(lambda x: sum(x)).minimizing()
 
-    engine = rd.Engine(
-        codec=codec,
-        fitness_func=lambda x: sum(x),  # value to minimize
-        objective=rd.MIN # Configure for minimization
+    # or create the same engine with the builder codec:
+    engine = (
+        rd.Engine.float(10, init_range=(0.0, 1.0))  # Example codec
+        .fitness(lambda x: sum(x))  # return a value to minimize
+        .minimizing()  # Configure for minimization
         # ... other parameters ...
     )
-    
-    # Or using builder pattern
-    engine = rd.Engine(codec=codec, fitness_func=lambda x: sum(x))
-    engine.minimizing()
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -87,18 +86,18 @@ This is the default option for the `GeneticEngine`, so you don't really need to 
     ```python
     import radiate as rd
 
+    # Create an engine that has a genome of 1 chromosome with 10 float genes, initialized & bound between 0.0 and 1.0
+    # Note that maximization is the default, so you could omit the '.maximizing()' call and it would still maximize
     codec = rd.FloatCodec.vector(10, (0.0, 1.0))  # Example codec
+    engine = rd.Engine(codec).fitness(lambda x: sum(x)).maximizing()
 
-    engine = rd.Engine(
-        codec=codec,
-        fitness_func=lambda x: sum(x),  # return a value to maximize
-        objective=rd.MAX
+    # or using builder pattern
+    engine = (
+        rd.Engine.float(10, init_range=(0.0, 1.0))  # Example codec
+        .fitness(lambda x: sum(x))  # return a value to maximize
+        .maximizing()  # Configure for maximization
         # ... other parameters ...
     )
-    
-    # Or using builder pattern
-    engine = rd.Engine(codec=codec, fitness_func=lambda x: sum(x))
-    engine.maximizing()
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -144,18 +143,22 @@ Use `multi_objective()` with a list of optimization directions to configure mult
     import radiate as rd
     
     codec = rd.FloatCodec.vector(10, (0.0, 1.0))  # Example codec
-
-    engine = rd.Engine(
-        codec=codec,
-        fitness_func=lambda x: [obj1_fitness_func(x), obj2_fitness_func(x)],  # Return list of objectives
-        objective=["min", "max"]  # Minimize obj1, maximize obj2
-        front_range=(800, 900)  # Pareto front size range
+    engine = (
+        rd.Engine(codec)
+        .fitness(lambda x: [obj1_fitness_func(x), obj2_fitness_func(x)])  # Return list of objectives
+        .objective(rd.MIN, rd.MAX)  # Minimize obj1, maximize obj2
+        .front_range(800, 900)  # Pareto front size range
         # ... other parameters ...
     )
-    
+
     # Or using builder pattern
-    engine = rd.Engine(codec=codec, fitness_func=lambda x: [obj1_fitness_func(x), obj2_fitness_func(x)])
-    engine.multi_objective(["min", "max"], front_range=(800, 900))
+    engine = (
+        rd.Engine.float(10, init_range=(0.0, 1.0))  # Example codec
+        .fitness(lambda x: [obj1_fitness_func(x), obj2_fitness_func(x)])  # Return list of objectives
+        .objective(rd.MIN, rd.MAX)  # Minimize obj1, maximize obj2
+        .front_range(800, 900)  # Pareto front size range
+        # ... other parameters ...
+    )
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -191,6 +194,7 @@ The `front_size()` parameter controls the size of the Pareto front. When the par
 Because of the complexity of multi-objective problems, specialized selectors are available which are optimized for handling Pareto dominance and diversity:
 
 - `NSGA2Selector`: Implements the NSGA-II algorithm for non-dominated sorting and crowding distance
+- `NSGA3Selector`: Implements the NSGA-III algorithm for many-objective optimization
 - `TournamentNSGA2Selector`: Uses tournament selection with Pareto dominance
 
 Although, any selector can be used, these are optimized for multi-objective problems. The other selectors will work by computing a 'weight' based off of the pareto dominance and crowding distance, but they are not backed by any specific multi-objective algorithm.
@@ -200,15 +204,17 @@ Although, any selector can be used, these are optimized for multi-objective prob
     ```python
     import radiate as rd
 
-    engine = rd.Engine(
-        codec=rd.FloatCodec.vector(10, (0.0, 1.0)),  # Example codec
-        fitness_func=lambda x: [obj1(x), obj2(x)],
-        front_range=(800, 900),  # Pareto front size range
-        objective=["min", "max"]
+    engine = (
+        rd.Engine.float(10, init_range=(0.0, 1.0))  # Example codec
+        .fitness(lambda x: [obj1_fitness_func(x), obj2_fitness_func(x)])  # Return list of objectives
+        .objective(rd.MIN, rd.MAX)  # Minimize obj1, maximize obj2
+        .front_range(800, 900)  # Pareto front size range
+        .select(
+            offspring=rd.TournamentNSGA2Selector(k=3),
+            survivor=rd.NSGA2Selector()
+        )  # Set MO selectors
+        # ... other parameters ...
     )
-
-    engine.survivor_selector(rd.NSGA2Selector())                # NSGA-II for Pareto ranking
-    engine.offspring_selector(rd.TournamentNSGA2Selector(k=3))  # Tournament selection with Pareto dominance
     ```
 
 === ":fontawesome-brands-rust: Rust"

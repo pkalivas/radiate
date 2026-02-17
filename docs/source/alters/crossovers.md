@@ -30,6 +30,7 @@ $$
 	import radiate as rd
 
 	crossover = rd.BlendCrossover(rate=0.1, alpha=0.5)
+	crossover = rd.Cross.blend(rate=0.1, alpha=0.5) # Using the Cross dsl syntax
 	```
 
 === ":fontawesome-brands-rust: Rust"
@@ -82,6 +83,7 @@ of the two parent `genes`, where the weight is determined by the `alpha` paramet
 	import radiate as rd
 	
 	crossover = rd.IntermediateCrossover(rate=0.1, alpha=0.5)
+	crossover = rd.Cross.intermediate(rate=0.1, alpha=0.5) # Using the Cross dsl syntax
 	```
 === ":fontawesome-brands-rust: Rust"
 
@@ -116,6 +118,7 @@ as it promotes a balanced combination of parent traits.
 	import radiate as rd
 
 	crossover = rd.MeanCrossover(rate=0.1)
+	crossvoer = rd.Cross.mean(rate=0.1) # Using the Cross dsl syntax
 	```
 === ":fontawesome-brands-rust: Rust"
 
@@ -148,6 +151,7 @@ classic crossover operator.
 	import radiate as rd
 
 	crossover = rd.MultiPointCrossover(rate=0.1, num_points=2)
+	crossover = rd.Cross.multipoint(rate=0.1, num_points=2) # Using the Cross dsl syntax
 	```
 === ":fontawesome-brands-rust: Rust"
 
@@ -190,6 +194,7 @@ where the order of elements in a solution is significant.
 	import radiate as rd
 
 	crossover = rd.PartiallyMappedCrossover(rate=0.1)
+	crossover = rd.Cross.pmx(rate=0.1) # Using the Cross dsl syntax
 	```
 === ":fontawesome-brands-rust: Rust"
 
@@ -229,6 +234,7 @@ The `EdgeRecombinationCrossover` is a specialized crossover operator for permuta
 	import radiate as rd
 
 	crossover = rd.EdgeRecombinationCrossover(rate=0.1)
+	crossover = rd.Cross.edge_recombination(rate=0.1) # Using the Cross dsl syntax
 	```
 === ":fontawesome-brands-rust: Rust"
 
@@ -271,6 +277,7 @@ to introduce randomness while preserving valid gene configurations.
 	import radiate as rd
 
 	crossover = rd.ShuffleCrossover(rate=0.1)
+	crossover = rd.Cross.shuffle(rate=0.1) # Using the Cross dsl syntax
 	```
 === ":fontawesome-brands-rust: Rust"
 
@@ -302,6 +309,7 @@ The `SimulatedBinaryCrossover` is a crossover operator designed for `FloatGene`s
 	import radiate as rd
 
 	crossover = rd.SimulatedBinaryCrossover(rate=0.1, contiguity=0.5)
+	crossover = rd.Cross.sbx(rate=0.1, contiguity=0.5) # Using the Cross dsl syntax
 	```
 
 === ":fontawesome-brands-rust: Rust"
@@ -333,6 +341,7 @@ The `UniformCrossover` is a crossover operator creates new individuals by select
 	import radiate as rd
 
 	crossover = rd.UniformCrossover(rate=0.1)
+	crossover = rd.Cross.uniform(rate=0.1) # Using the Cross dsl syntax
 	```
 === ":fontawesome-brands-rust: Rust"
 
