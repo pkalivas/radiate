@@ -199,7 +199,7 @@ class NeuralNetworkEvolver:
         ]
 
         # Run evolution with logging
-        result = engine.run(limits, log=True)
+        result = engine.run(*limits, log=True)
 
         return result
 

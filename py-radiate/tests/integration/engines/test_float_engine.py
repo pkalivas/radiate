@@ -27,7 +27,7 @@ def test_engine_float_vector_maximization(random_seed):
     assert result.index() <= 100
     assert len(result.population()) == len(result.ecosystem().population())
     assert len(result.ecosystem().species()) == 0
-    assert result.objective() == "max"
+    assert result.objective() == rd.MAX
 
 
 @pytest.mark.integration
@@ -59,4 +59,4 @@ def test_engine_float_matrix_minimization(random_seed):
     assert result.index() <= 200
     assert len(result.population()) == len(result.ecosystem().population())
     assert len(result.ecosystem().species()) == 0
-    assert result.objective() == "min"
+    assert result.objective() == rd.MIN

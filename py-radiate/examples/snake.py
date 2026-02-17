@@ -373,7 +373,7 @@ class SnakeEvolver:
         )
 
         return engine.run(
-            [rd.GenerationsLimit(generations), rd.SecondsLimit(60 * 2)], log=True
+            rd.GenerationsLimit(generations), rd.SecondsLimit(60 * 2), log=True
         )
 
     def visualize_best_snake(self, graph: rd.Graph, title: str = "Best Snake AI"):

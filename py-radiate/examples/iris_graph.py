@@ -69,7 +69,7 @@ engine = rd.Engine(
     ],
 )
 
-result = engine.run([rd.ScoreLimit(0.01), rd.SecondsLimit(3)], log=True)
+result = engine.run(rd.ScoreLimit(0.01), rd.SecondsLimit(3), log=True)
 
 eval_result = result.value().eval(testing_features.values.tolist())
 

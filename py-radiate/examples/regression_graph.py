@@ -75,7 +75,8 @@ engine = (
 )
 
 result = engine.run(
-    [rd.Limit.score(0.001), rd.Limit.generations(1000)],
+    rd.Limit.score(0.001),
+    rd.Limit.generations(1000),
     log=True,
 )
 

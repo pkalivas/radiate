@@ -2,9 +2,9 @@
 """
 ZDT Multi-Objective Optimization Example
 
-This example demonstrates using the ZDT3 problem for multi-objective optimization.
-We define a fitness function based on the ZDT3 problem and use a genetic algorithm to
-evolve solutions. The results are visualized in a 2D scatter plot.
+This example demonstrates how to use the Radiate library to solve a multi-objective optimization
+problem using the ZDT3 benchmark function. The ZDT3 function is a commonly used test
+problem in multi-objective optimization, which has two objectives and a non-convex Pareto front.
 """
 
 import matplotlib.pyplot as plt
@@ -35,7 +35,6 @@ engine = (
     .select(rd.Select.tournament(5), rd.Select.nsga3(12))
     .alters(rd.Cross.sbx(1.0, 2.0), rd.Mutate.uniform(0.1))
     .limit(rd.Limit.generations(2000))
-    # .diversity(rd.Diversity.crowding(),
 )
 
 result = engine.run(ui=True)
