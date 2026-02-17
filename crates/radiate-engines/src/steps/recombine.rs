@@ -71,7 +71,7 @@ where
     C: Chromosome + PartialEq + Clone,
 {
     #[inline]
-    pub fn create<'a>(
+    pub fn create(
         &self,
         generation: usize,
         ecosystem: &Ecosystem<C>,

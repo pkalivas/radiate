@@ -123,7 +123,6 @@ pub struct LineageStats {
 #[derive(Clone, Debug, Default)]
 pub struct Lineage {
     stats: LineageStats,
-    // ancestory: VecDeque<HashMap<PhenotypeId, AncestorNode>>,
 }
 
 impl Lineage {
@@ -202,16 +201,3 @@ impl Lineage {
         self.stats.updates += 1;
     }
 }
-
-// #[derive(Clone, Debug)]
-// struct AncestorNode {
-//     family: FamilyId,
-//     parents: Parents,
-// }
-
-// #[derive(Clone, Debug)]
-// enum Parents {
-//     None,
-//     One(PhenotypeId),
-//     Two(PhenotypeId, PhenotypeId),
-// }

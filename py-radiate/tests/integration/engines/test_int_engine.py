@@ -6,10 +6,11 @@ import pytest
 @pytest.mark.integration
 def test_engine_int_minimization(random_seed):
     num_genes = 5
-    engine = rd.Engine(
-        codec=rd.IntCodec.vector(num_genes, init_range=(0, 10)),
-        fitness_func=lambda x: sum(x),
-        objective=rd.MIN,
+
+    engine = (
+        rd.Engine.int(num_genes, init_range=(0, 10))
+        .fitness(lambda x: sum(x))
+        .minimizing()
     )
 
     result = engine.run([rd.ScoreLimit(0), rd.GenerationsLimit(500)])
@@ -26,23 +27,24 @@ def test_engine_int_minimization(random_seed):
 def test_engine_int_vector_nparray(random_seed):
     num_genes = 5
 
-    def fitness_func(x: np.ndarray) -> float:
+    def fit(x: np.ndarray) -> float:
         assert isinstance(x, np.ndarray)
         assert np.all(x >= -10) and np.all(x <= 50)
-        assert x.dtype == np.int64
+        assert x.dtype == np.int16
         return np.sum(x)
 
-    codec = rd.IntCodec.vector(
-        num_genes, init_range=(0, 10), bounds=(-10, 50), use_numpy=True
-    )
-
-    engine = rd.Engine(
-        codec=codec,
-        fitness_func=fitness_func,
-        objective=rd.MIN,
-    )
-
-    result = engine.run([rd.ScoreLimit(0), rd.GenerationsLimit(500)])
+    result = (
+        rd.Engine.int(
+            num_genes,
+            init_range=(0, 10),
+            bounds=(-10, 50),
+            use_numpy=True,
+            dtype=rd.Int16,
+        )
+        .fitness(fit)
+        .minimizing()
+        .limit(rd.Limit.score(0), rd.Limit.generations(500))
+    ).run()
 
     assert np.array_equal(result.value(), np.array([0 for _ in range(num_genes)]))
     assert result.score() == [0]
@@ -63,14 +65,10 @@ def test_engine_int_matrix_nparray(random_seed):
         assert x.dtype == np.int64
         return float(np.sum(x))
 
-    codec = rd.IntCodec.matrix(
-        shape=(rows, cols), init_range=(0, 10), bounds=(-5, 20), use_numpy=True
-    )
-
-    engine = rd.Engine(
-        codec=codec,
-        fitness_func=fitness_func,
-        objective=rd.MIN,
+    engine = (
+        rd.Engine.int((rows, cols), init_range=(0, 10), bounds=(-5, 20), use_numpy=True)
+        .fitness(fitness_func)
+        .minimizing()
     )
 
     result = engine.run([rd.ScoreLimit(0), rd.GenerationsLimit(500)])
@@ -87,10 +85,10 @@ def test_engine_int_matrix_nparray(random_seed):
 def test_engine_int_jagged_matrix(random_seed):
     shape = [2, 3, 4]
 
-    def fitness_func(x: list[list[int]]) -> float:
+    def fit(x: list[list[int]]) -> float:
         assert isinstance(x, list)
         assert all(isinstance(row, list) for row in x)
-        assert len(x) == 3
+        assert len(x) == len(shape)
         for i, row in enumerate(x):
             assert len(row) == shape[i]
             for gene in row:
@@ -99,13 +97,8 @@ def test_engine_int_jagged_matrix(random_seed):
         return sum(sum(row) for row in x)
 
     # Create a jagged matrix codec - right now (1/23/26) using numpy this doesn't support non-square shapes
-    codec = rd.IntCodec.matrix(shape=shape, init_range=(0, 10), bounds=(-5, 20))
-
-    engine = rd.Engine(
-        codec=codec,
-        fitness_func=fitness_func,
-        objective=rd.MIN,
-    )
+    codec = rd.IntCodec(shape=shape, init_range=(0, 10), bounds=(-5, 20))
+    engine = rd.Engine(codec).fitness(fit).minimizing()
 
     result = engine.run([rd.ScoreLimit(0), rd.GenerationsLimit(500)])
 

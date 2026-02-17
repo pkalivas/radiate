@@ -62,10 +62,8 @@ class MazeSolver:
 
         return total_distance
 
-    def visualize_path(self, permutation: list[int], title: str = "Maze Path"):
+    def visualize_path(self, permutation: list[MazeWaypoint], title: str = "Maze Path"):
         """Visualize the path through the maze."""
-        if hasattr(permutation, "tolist"):
-            permutation = permutation.tolist()
 
         path_length = self.calculate_path_length(permutation)
 
@@ -163,14 +161,14 @@ if __name__ == "__main__":
     maze_solver = MazeSolver(waypoints, start_point=(0, 0))
     result = run_maze_evolution(maze_solver, generations=250)
 
-    permutation = result.value()
+    waypoints = result.value()
 
     print("\nBest solution found:")
     print(f"  Generations completed: {result.index()}")
     print(f"  Path length: {result.score()}")
-    print(f"  Path: Start → {' → '.join([wp.name for wp in permutation])} → End")
-    print(f"  Permutation: {permutation}")
+    print(f"  Path: Start → {' → '.join([wp.name for wp in waypoints])} → End")
+    print(f"  Permutation: {waypoints}")
 
     maze_solver.visualize_path(
-        permutation, title=f"Best Maze Path (Length: {result.score()})"
+        waypoints, title=f"Best Maze Path (Length: {result.score()})"
     )

@@ -9,13 +9,15 @@ class TestPopulation:
     @pytest.mark.unit
     def test_population_creation_with_py_population(self):
         """Test Population creation with PyPopulation instance (line 19-26)."""
-        chromosome = rd.Chromosome.int(length=3, init_range=(0, 10))
+        chromosome = rd.Chromosome.int(length=3, init_range=(0, 10), dtype=rd.Int16)
         genotype = rd.Genotype([chromosome])
         phenotype = rd.Phenotype(genotype)
         population = rd.Population([phenotype])
 
         assert len(population) == 1
         assert isinstance(population, Population)
+        assert population.gene_type() == GeneType.INT
+        assert population.dtype() == rd.Int16
 
     @pytest.mark.unit
     def test_population_iteration(self):
@@ -55,7 +57,7 @@ class TestPopulation:
         population = Population(
             Phenotype(
                 Genotype(
-                    rd.Chromosome.int(num_genes, (0, 10))
+                    rd.Chromosome.int(num_genes, (0, 10), dtype=rd.Int32)
                     for _ in range(num_chromosomes)
                 )
             )
@@ -65,19 +67,23 @@ class TestPopulation:
         assert len(population) == num_phenotypes
         assert isinstance(population, Population)
         assert population.gene_type() == GeneType.INT
+        assert population.dtype() == rd.Int32
 
         for individual in population:
             assert individual.gene_type() == GeneType.INT
             assert isinstance(individual, Phenotype)
             assert isinstance(individual.genotype(), Genotype)
             assert individual.genotype().gene_type() == GeneType.INT
+            assert individual.genotype().dtype() == rd.Int32
 
             for chromosome in individual.genotype():
                 assert isinstance(chromosome, rd.Chromosome)
                 assert chromosome.gene_type() == GeneType.INT
+                assert chromosome.dtype() == rd.Int32
                 for gene in chromosome:
                     assert isinstance(gene, rd.Gene)
                     assert gene.allele() >= 0 and gene.allele() <= 10
+                    assert gene.dtype() == rd.Int32
 
 
 class TestPhenotypes:
@@ -109,21 +115,25 @@ class TestPhenotypes:
 class TestChromosomes:
     @pytest.mark.unit
     def test_float_chromosome_creation(self):
-        chromosome = rd.Chromosome.float(length=5, init_range=(-10.0, 10.0))
+        chromosome = rd.Chromosome.float(
+            length=5, init_range=(-10.0, 10.0), dtype=rd.Float32
+        )
 
         assert len(chromosome) == 5
         for gene in chromosome:
             assert isinstance(gene.allele(), float)
             assert gene.allele() >= -10.0 and gene.allele() <= 10.0
+            assert gene.dtype() == rd.Float32
 
     @pytest.mark.unit
     def test_int_chromosome_creation(self):
-        chromosome = rd.Chromosome.int(length=5, init_range=(0, 10))
+        chromosome = rd.Chromosome.int(length=5, init_range=(0, 10), dtype=rd.UInt8)
 
         assert len(chromosome) == 5
         for gene in chromosome:
             assert isinstance(gene.allele(), int)
             assert gene.allele() >= 0 and gene.allele() <= 10
+            assert gene.dtype() == rd.UInt8
 
     @pytest.mark.unit
     def test_char_chromosome_creation(self):

@@ -4,6 +4,8 @@ from collections.abc import Iterable, Sequence
 
 from radiate.radiate import PyChromosome
 from radiate._bridge.wrapper import RsObject
+from radiate._typing import RdDataType
+from radiate.dtype import Int64, Float64
 
 from .gene import Gene, GeneType
 
@@ -18,6 +20,7 @@ class Chromosome[T](RsObject):
         length: int,
         init_range: tuple[int, int] | None = None,
         bounds: tuple[int, int] | None = None,
+        dtype: RdDataType | None = None,
     ) -> Chromosome[int]:
         """
         Create an integer chromosome with specified length and optional parameters.
@@ -32,7 +35,11 @@ class Chromosome[T](RsObject):
         >>> rd.Chromosome.int(length=3, init_range=(0, 10), bounds=(-5, 15))
         Chromosome(genes=[0, 5, 10])
         """
-        genes = [Gene.int(init_range=init_range, bounds=bounds) for _ in range(length)]
+        dtype = dtype or Int64
+        genes = [
+            Gene.int(init_range=init_range, bounds=bounds, dtype=dtype)
+            for _ in range(length)
+        ]
         return Chromosome(genes=genes)
 
     @staticmethod
@@ -76,6 +83,7 @@ class Chromosome[T](RsObject):
         | Sequence[Gene[float]]
         | Gene[float]
         | None = None,
+        dtype: RdDataType | None = None,
     ) -> Chromosome[float]:
         """
         Create a float chromosome with specified length and optional parameters.
@@ -97,7 +105,8 @@ class Chromosome[T](RsObject):
                 return Chromosome(genes=[genes])
         else:
             genes = [
-                Gene.float(init_range=init_range, bounds=bounds) for _ in range(length)
+                Gene.float(init_range=init_range, bounds=bounds, dtype=dtype or Float64)
+                for _ in range(length)
             ]
             return Chromosome(genes=genes)
 

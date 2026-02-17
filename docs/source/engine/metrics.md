@@ -88,10 +88,10 @@ These can be accessed through the `metrics()` method of the epoch, which returns
     ```python
     import radiate as rd
 
-    # Create an engine
-    engine = rd.Engine(
-        codec=rd.FloatCodec.scalar(0.0, 1.0), 
-        fitness_fn=my_fitness_fn,  # Single objective fitness function
+    # Create an engine with 3 chromosomes each with 2 genes (i.e. a 3x2 matrix)
+    engine = (
+        rd.Engine.float([2, 2, 2], init_range=(0.0, 1.0))
+        .fitness(my_fitness_fn)  # Single objective fitness function
         # ... other parameters ...
     )
 

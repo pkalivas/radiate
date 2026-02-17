@@ -107,14 +107,13 @@ class TestMemoryPerformance:
 
         initial_memory = performance_benchmark.memory_usage()
 
-        engine = rd.Engine(
-            codec=rd.FloatCodec.vector(length=10, init_range=(-1.0, 1.0)),
-            fitness_func=fitness_func,
-            objective=rd.MIN,
-            population_size=100,
-            offspring_selector=rd.TournamentSelector(3),
-            survivor_selector=rd.EliteSelector(),
-            alters=[rd.UniformCrossover(0.7), rd.ArithmeticMutator(0.1)],
+        engine = (
+            rd.Engine.float(10, init_range=(-1.0, 1.0))
+            .fitness(fitness_func)
+            .minimizing()
+            .size(100)
+            .select(rd.TournamentSelector(3), rd.EliteSelector())
+            .alters(rd.UniformCrossover(0.7), rd.ArithmeticMutator(0.1))
         )
 
         engine.run([rd.GenerationsLimit(50)])
@@ -136,14 +135,13 @@ class TestMemoryPerformance:
 
         # Run multiple engines
         for _ in range(5):
-            engine = rd.Engine(
-                codec=rd.FloatCodec.vector(length=50, init_range=(-1.0, 1.0)),
-                fitness_func=fitness_func,
-                objective=rd.MIN,
-                population_size=200,
-                offspring_selector=rd.TournamentSelector(3),
-                survivor_selector=rd.EliteSelector(),
-                alters=[rd.UniformCrossover(0.7), rd.ArithmeticMutator(0.1)],
+            engine = (
+                rd.Engine.float(50, init_range=(-1.0, 1.0))
+                .fitness(fitness_func)
+                .minimizing()
+                .size(200)
+                .select(rd.TournamentSelector(3), rd.EliteSelector())
+                .alters(rd.UniformCrossover(0.7), rd.ArithmeticMutator(0.1))
             )
 
             engine.run([rd.GenerationsLimit(10)])

@@ -66,6 +66,8 @@ def test_engine_bit_can_co_evolve_two_chromosomes(random_seed):
         sum_two = sum(1 for bit in x[1] if not bit)
         return sum_one + sum_two
 
+    # Two chromosomes both with 20 genes in it.
+    # We want the first chromosome to be all ones and the second chromosome to be all zeros.
     engine = (
         rd.Engine.bit(shape=[20, 20])
         .fitness(fitness_func)
