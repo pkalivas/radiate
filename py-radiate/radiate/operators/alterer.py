@@ -7,6 +7,7 @@ from .base import ComponentBase
 
 from radiate.genome.population import Population
 
+
 class AlterBase(ComponentBase):
     def __init__(
         self,
