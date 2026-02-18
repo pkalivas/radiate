@@ -140,7 +140,7 @@ The simplest way to subscribe to events is by providing a callback function:
     import radiate as rd
 
     engine = (
-        rd.Emgine(your_codec)
+        rd.Engine(your_codec)
         .fitness(your_fitness_func)
         .subscribe(lambda event: print(event))  # Subscribe to all events using a lambda function
         # ... other parameters ...

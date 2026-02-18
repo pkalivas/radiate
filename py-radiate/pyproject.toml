@@ -33,10 +33,6 @@ features = ["pyo3/extension-module"]
 [tool.pyright]
 include = ["py-radiate/radiate", "py-radiate/tests"]
 
-# [[tool.mypy.overrides]]
-# module = ["radiate.*"]
-# warn_return_any = false
-
 [tool.ruff]
 fix = true
 line-length = 88

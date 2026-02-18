@@ -353,7 +353,22 @@ class Engine[G, T]:
         return Generation.from_rust(engine.run(limit_inputs, options))
 
     def fitness(self, fitness_func: Callable[[Any], Any] | FitnessBase) -> Engine[G, T]:
-        """Set the fitness function for the engine."""
+        """
+        Set the fitness function for the engine.
+
+        Args:
+            fitness_func: A callable that takes a decoded genome and returns a fitness score, or an instance of FitnessBase.
+
+        Returns:
+            Engine: The engine instance with the fitness function set.
+
+        Example:
+        ---------
+        >>> def my_fitness_func(genome: list[float]) -> float:
+        ...     return sum(genome)  # Example fitness function that sums the genome values
+        ...
+        >>> engine.fitness(my_fitness_func)
+        """
         self._builder.set_fitness(fitness_func)
         return self
 
@@ -368,11 +383,40 @@ class Engine[G, T]:
         batch: bool = False,
     ) -> Engine[G, T]:
         """
-        Configure regression fitness.
+        Set the fitness function for regression problems.
+        This is a convenience method that configures the engine with a regression fitness function based on the
+        provided features and targets. This method is fully compatible with the polars, pandas, and numpy libraries for data handling.
+
+        Using this method will automatically set the engine's objective to minimization, as regression problems typically involve minimizing a loss function.
 
         Accepts:
         - (features, targets)
-        - a DataFrame (polars / pandas)
+        - a DataFrame (polars / pandas) with optional target and feature column specifications.
+        Args:
+            features: The input features for the regression problem. Can be a tuple of (features, targets) or a DataFrame.
+            targets: The target values for the regression problem. Required if features is not a tuple.
+            *,
+            target: The name of the target column if features is a DataFrame.
+            feature_cols: The names of the feature columns if features is a DataFrame.
+            loss: The loss function to use for regression (e.g., "mse", "mae").
+            batch: Whether to compute fitness in batches (useful for large datasets).
+        Returns:
+            Engine: The engine instance with the regression fitness function set.
+
+        Example:
+        ---------
+        >>> import polars as pl
+        >>> df = pl.DataFrame({
+        ...     "feature1": [1.0, 2.0, 3.0],
+        ...     "feature2": [4.0, 5.0, 6.0],
+        ...     "target": [7.0, 8.0, 9.0]
+        ... })
+        >>> engine.regression(df, target="target", feature_cols=["feature1", "feature2"], loss="mse")
+
+        --- or simply ---
+        >>> features = [[1.0, 4.0], [2.0, 5.0], [3.0, 6.0]]
+        >>> targets = [7.0, 8.0, 9.0]
+        >>> engine.regression(features, targets, loss="mse")
         """
         self._builder.set_fitness(
             Regression(
@@ -393,6 +437,31 @@ class Engine[G, T]:
         survivor: SelectorBase | None = None,
         frac: float | None = None,
     ) -> Engine[G, T]:
+        """
+        Set the selection strategies for the engine.
+        This method allows you to specify the selection strategies for both offspring and survivors, as well as
+        the fraction of offspring to survivors in the next generation. If no parameters are
+        provided, the engine will use its default selection strategies and offspring fraction.
+
+        Defaults:
+        - Offspring Selector: rd.Select.tournament(k=3)
+        - Survivor Selector: rd.Select.roulette()
+        - Offspring Fraction: 0.8 (80% offspring, 20% survivors)
+
+        Args:
+            offspring: The selection strategy to use for selecting offspring. If None, the default will be used.
+            survivor: The selection strategy to use for selecting survivors. If None, the default will be used.
+            frac: The fraction of offspring to survivors in the next generation. Must be between 0 and 1. If None, the default will be used.
+
+        Returns:
+            Engine: The engine instance with the selection strategies set.
+
+        Example:
+        ---------
+        >>> offspring_selector = rd.Select.tournament(k=5)
+        >>> survivor_selector = rd.Select.boltzmann(temp=4.0)
+        >>> engine.select(offspring=offspring_selector, survivor=survivor_selector, frac=0.7)  # 70% offspring, 30% survivors
+        """
         if offspring is not None:
             self._builder.set_offspring_selector(offspring)
         if survivor is not None:
@@ -406,7 +475,26 @@ class Engine[G, T]:
         return self
 
     def alters(self, *alters: AlterBase) -> Engine[G, T]:
-        """Set the alters for the engine."""
+        """
+        Set the alteration operators for the engine.
+
+        This method allows you to specify one or more alteration operators
+        (e.g., mutation, crossover) to be applied during the evolution process.
+        If no operators are provided, the engine will use its default alteration strategies.
+
+        Defaults:
+        - Crossover: rd.Cross.uniform(rate=0.5)
+        - Mutation: rd.Mutate.uniform(rate=0.1)
+
+        Args:
+            *alters: One or more alteration operators to apply during evolution.
+        Returns:
+            Engine: The engine instance with the alteration operators set.
+
+        Example:
+        ---------
+        >>> engine.alters(rd.Cross.multipoint(0.5, 2), rd.Mutate.uniform(0.1))
+        """
         self._builder.set_alters(list(alters))
         return self
 

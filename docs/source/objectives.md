@@ -88,7 +88,7 @@ This is the default option for the `GeneticEngine`, so you don't really need to 
 
     # Create an engine that has a genome of 1 chromosome with 10 float genes, initialized & bound between 0.0 and 1.0
     # Note that maximization is the default, so you could omit the '.maximizing()' call and it would still maximize
-    codec = rd.FloatCodec.vector(10, (0.0, 1.0))  # Example codec
+    codec = rd.FloatCodec.vector(10, init_range=(0.0, 1.0))  # Example codec
     engine = rd.Engine(codec).fitness(lambda x: sum(x)).maximizing()
 
     # or using builder pattern
@@ -142,7 +142,7 @@ Use `multi_objective()` with a list of optimization directions to configure mult
     ```python
     import radiate as rd
     
-    codec = rd.FloatCodec.vector(10, (0.0, 1.0))  # Example codec
+    codec = rd.FloatCodec.vector(10, init_range=(0.0, 1.0))  # Example codec
     engine = (
         rd.Engine(codec)
         .fitness(lambda x: [obj1_fitness_func(x), obj2_fitness_func(x)])  # Return list of objectives
@@ -210,8 +210,8 @@ Although, any selector can be used, these are optimized for multi-objective prob
         .objective(rd.MIN, rd.MAX)  # Minimize obj1, maximize obj2
         .front_range(800, 900)  # Pareto front size range
         .select(
-            offspring=rd.TournamentNSGA2Selector(k=3),
-            survivor=rd.NSGA2Selector()
+            offspring=rd.Select.tournament_nsga2(k=3),
+            survivor=rd.Select.nsga3(12)
         )  # Set MO selectors
         # ... other parameters ...
     )

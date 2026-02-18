@@ -169,7 +169,7 @@ All metrics have a sort of metadata which identifies them based on their charact
     )
 
     # Run the engine
-    result = engine.run(.ScoreLimit(0.01), rd.GenerationsLimit(1000))
+    result = engine.run(rd.ScoreLimit(0.01), rd.GenerationsLimit(1000))
 
     # Access the metrics from the result
     metrics = result.metrics()

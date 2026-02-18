@@ -43,8 +43,14 @@ Radiate provides a few basic graph architectures, but it is also possible to con
 
     graph = codec.decode(codec.encode())
 
-    inputs = [[1.0, 2.0]]
-    outputs = graph.eval(inputs)
+    inputs = [1.0, 2.0]
+    outputs = graph.eval(inputs) # list[float]
+
+    multi_inputs = [
+        [1.0, 2.0],  
+        [3.0, 4.0],
+    ]
+    multi_outputs = graph.eval(multi_inputs) # list[list[float]]
     ```
 
 === ":fontawesome-brands-rust: Rust"

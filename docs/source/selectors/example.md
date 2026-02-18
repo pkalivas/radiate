@@ -30,11 +30,19 @@ Let's continue with our example from the previous section - evolving a simple fu
     # be passed down unchanged to the next generation
     survivor_selector = rd.TournamentSelector(k=3)
 
-    # Create the engine with the codec, fitness function, and selectors
+    # Define the offspring fraction. This is the % of the population that 
+    # will be created through mutation and crossover (offspring) vs passed down unchanged (survivors).
+    # The default is 80% offspring and 20% survivors, but here we'll use 50% for both.
+    fraction = 0.5
+
+    # Create the engine, fitness function, and selectors
+    # Note that the genome configuration below (rd.Engine.float(..)) is a 
+    # shorthand for creating a codec and passing it to the engine constructor. The below is 
+    # the same as the codec we created above, but built directly into the engine constructor for convenience.
     engine = (
         rd.Engine.float(2, init_range=(-1.0, 1.0), bounds=(-10.0, 10.0), dtype=rd.Float32)
         .fitness(fitness_function)
-        .select(offspring_selector, survivor_selector)
+        .select(offspring_selector, survivor_selector, frac=fraction)
         # ... other parameters ...
     )
 
@@ -44,6 +52,7 @@ Let's continue with our example from the previous section - evolving a simple fu
     #     fitness_func=fitness_function,
     #     offspring_selector=offspring_selector,
     #     survivor_selector=survivor_selector,
+    #     offspring_fraction=0.5,
     #     # ... other parameters ...
     # )
 
