@@ -413,7 +413,7 @@ class Engine[G, T]:
         ... })
         >>> engine.regression(df, target="target", feature_cols=["feature1", "feature2"], loss="mse")
 
-        --- or simply ---
+        # --- or simply ---
         >>> features = [[1.0, 4.0], [2.0, 5.0], [3.0, 6.0]]
         >>> targets = [7.0, 8.0, 9.0]
         >>> engine.regression(features, targets, loss="mse")

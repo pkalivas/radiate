@@ -20,7 +20,7 @@ def test_engine_int_minimization(random_seed):
     assert result.index() <= 500
     assert len(result.population()) == len(result.ecosystem().population())
     assert len(result.ecosystem().species()) == 0
-    assert result.objective() == "min"
+    assert result.objective() == rd.MIN
 
 
 @pytest.mark.integration
@@ -51,7 +51,7 @@ def test_engine_int_vector_nparray(random_seed):
     assert result.index() <= 500
     assert len(result.population()) == len(result.ecosystem().population())
     assert len(result.ecosystem().species()) == 0
-    assert result.objective() == "min"
+    assert result.objective() == rd.MIN
 
 
 @pytest.mark.integration
@@ -78,7 +78,7 @@ def test_engine_int_matrix_nparray(random_seed):
     assert result.index() <= 500
     assert len(result.population()) == len(result.ecosystem().population())
     assert len(result.ecosystem().species()) == 0
-    assert result.objective() == "min"
+    assert result.objective() == rd.MIN
 
 
 @pytest.mark.integration
@@ -106,4 +106,4 @@ def test_engine_int_jagged_matrix(random_seed):
     assert result.index() <= 500
     assert len(result.population()) == len(result.ecosystem().population())
     assert len(result.ecosystem().species()) == 0
-    assert result.objective() == "min"
+    assert result.objective() == rd.MIN
