@@ -1,13 +1,12 @@
 use std::ops::Range;
 
 use super::PyCodec;
-use crate::{PyAnyObject, PyChromosome, PyGene, PyGenotype};
+use crate::{DataType, PyAnyObject, PyChromosome, PyGene, PyGenotype};
 use num_traits::NumCast;
 use numpy::Element;
 use pyo3::{Bound, IntoPyObject, IntoPyObjectExt, PyAny, PyResult};
 use radiate::{
-    Chromosome, Codec, DataType, FloatChromosome, Gene, Genotype, IntChromosome,
-    chromosomes::NumericAllele,
+    Chromosome, Codec, FloatChromosome, Gene, Genotype, IntChromosome, chromosomes::NumericAllele,
 };
 
 pub trait CodecBuilder<C: Chromosome, T> {
@@ -92,6 +91,23 @@ impl TypedNumericCodec {
                 .into_bound_py_any(py),
         }
     }
+
+    pub fn dtype(&self) -> DataType {
+        match self {
+            TypedNumericCodec::U8(_) => DataType::UInt8,
+            TypedNumericCodec::U16(_) => DataType::UInt16,
+            TypedNumericCodec::U32(_) => DataType::UInt32,
+            TypedNumericCodec::U64(_) => DataType::UInt64,
+            TypedNumericCodec::U128(_) => DataType::UInt128,
+            TypedNumericCodec::I8(_) => DataType::Int8,
+            TypedNumericCodec::I16(_) => DataType::Int16,
+            TypedNumericCodec::I32(_) => DataType::Int32,
+            TypedNumericCodec::I64(_) => DataType::Int64,
+            TypedNumericCodec::I128(_) => DataType::Int128,
+            TypedNumericCodec::F32(_) => DataType::Float32,
+            TypedNumericCodec::F64(_) => DataType::Float64,
+        }
+    }
 }
 
 pub struct NumericCodecBuilder<T> {
@@ -111,12 +127,18 @@ impl<T> NumericCodecBuilder<T> {
     }
 
     pub fn init_range(mut self, range: Option<(T, T)>) -> Self {
-        self.init_range = range;
+        if !range.is_none() {
+            self.init_range = range;
+        }
+
         self
     }
 
     pub fn bound_range(mut self, range: Option<(T, T)>) -> Self {
-        self.bound_range = range;
+        if !range.is_none() {
+            self.bound_range = range;
+        }
+
         self
     }
 
@@ -218,25 +240,26 @@ where
                 A::from(rng.0)
                     .zip(A::from(rng.1))
                     .map(|(min, max)| min..max)
-                    .unwrap_or({
-                        self.dtype
-                            .min()
-                            .zip(self.dtype.max())
+            })
+            .flatten()
+            .unwrap_or({
+                self.dtype
+                    .min()
+                    .zip(self.dtype.max())
+                    .map(|(min, max)| {
+                        min.value()
+                            .clone()
+                            .extract::<A>()
+                            .zip(max.value().clone().extract::<A>())
                             .map(|(min, max)| {
-                                min.value()
-                                    .clone()
-                                    .extract::<A>()
-                                    .zip(max.value().clone().extract::<A>())
-                                    .map(|(min, max)| {
-                                        A::from(min).zip(A::from(max)).map(|(min, max)| min..max)
-                                    })
-                                    .unwrap()
+                                A::from(min).zip(A::from(max)).map(|(min, max)| min..max)
                             })
-                            .flatten()
                             .unwrap()
                     })
-            })
-            .unwrap();
+                    .flatten()
+                    .unwrap()
+            });
+
         let bound_range: Range<A> = self
             .bound_range
             .map(|rng| {

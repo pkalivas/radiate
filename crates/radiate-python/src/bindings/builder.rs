@@ -3,7 +3,7 @@ use crate::bindings::{EngineBuilderHandle, EngineHandle};
 use crate::events::PyEventHandler;
 use crate::{
     FreeThreadPyEvaluator, InputTransform, PyCodec, PyEngine, PyEngineInput, PyEngineInputType,
-    PyFitnessFn, PyFitnessInner, PyPermutationCodec, PyPopulation, prelude::*,
+    PyFitnessFn, PyFitnessInner, PyPermutationCodec, PyPopulation, prelude::*, radiate,
 };
 use crate::{PyGeneration, PySubscriber};
 use pyo3::{Py, PyAny, pyclass, pymethods, types::PyAnyMethods};
@@ -41,7 +41,6 @@ macro_rules! dispatch_builder_typed {
             Char(b) => $call(b).map(Char),
             Bit(b) => $call(b).map(Bit),
             Permutation(b) => $call(b).map(Permutation),
-            Any(b) => $call(b).map(Any),
             Graph(b) => $call(b).map(Graph),
             Tree(b) => $call(b).map(Tree),
             Empty => Err(radiate_py_err!("Cannot apply method to Empty builder"))
@@ -51,20 +50,14 @@ macro_rules! dispatch_builder_typed {
 
 #[pyclass]
 pub struct PyEngineBuilder {
-    pub codec: Py<PyAny>,
-    pub problem: Py<PyAny>,
     pub inputs: Vec<PyEngineInput>,
 }
 
 #[pymethods]
 impl PyEngineBuilder {
     #[new]
-    pub fn new(codec: Py<PyAny>, problem: Py<PyAny>, inputs: Vec<PyEngineInput>) -> Self {
-        PyEngineBuilder {
-            codec,
-            problem,
-            inputs,
-        }
+    pub fn new(inputs: Vec<PyEngineInput>) -> PyResult<Self> {
+        Ok(PyEngineBuilder { inputs })
     }
 
     pub fn build<'py>(&mut self, py: Python<'py>) -> PyResult<PyEngine> {
@@ -83,27 +76,34 @@ impl PyEngineBuilder {
             inner = Self::process_inputs(inner, *input_type, inputs)?;
         }
 
-        Ok(PyEngine::new(match inner {
-            UInt8(builder) => EngineHandle::UInt8(builder.try_build()?),
-            UInt16(builder) => EngineHandle::UInt16(builder.try_build()?),
-            UInt32(builder) => EngineHandle::UInt32(builder.try_build()?),
-            UInt64(builder) => EngineHandle::UInt64(builder.try_build()?),
-            Int8(builder) => EngineHandle::Int8(builder.try_build()?),
-            Int16(builder) => EngineHandle::Int16(builder.try_build()?),
-            Int32(builder) => EngineHandle::Int32(builder.try_build()?),
-            Int64(builder) => EngineHandle::Int64(builder.try_build()?),
-            Float32(builder) => EngineHandle::Float32(builder.try_build()?),
-            Float64(builder) => EngineHandle::Float64(builder.try_build()?),
-            Char(builder) => EngineHandle::Char(builder.try_build()?),
-            Bit(builder) => EngineHandle::Bit(builder.try_build()?),
-            Any(builder) => EngineHandle::Any(builder.try_build()?),
-            Permutation(builder) => EngineHandle::Permutation(builder.try_build()?),
-            Graph(builder) => EngineHandle::Graph(builder.try_build()?),
-            Tree(builder) => EngineHandle::Tree(builder.try_build()?),
-            _ => {
-                radiate_py_bail!("Unsupported builder type for engine creation");
-            }
-        }))
+        let limits = input_groups
+            .get(&PyEngineInputType::Limit)
+            .map(|inputs| inputs.transform())
+            .unwrap_or_default();
+
+        Ok(PyEngine::new(
+            limits,
+            match inner {
+                UInt8(builder) => EngineHandle::UInt8(builder.try_build()?),
+                UInt16(builder) => EngineHandle::UInt16(builder.try_build()?),
+                UInt32(builder) => EngineHandle::UInt32(builder.try_build()?),
+                UInt64(builder) => EngineHandle::UInt64(builder.try_build()?),
+                Int8(builder) => EngineHandle::Int8(builder.try_build()?),
+                Int16(builder) => EngineHandle::Int16(builder.try_build()?),
+                Int32(builder) => EngineHandle::Int32(builder.try_build()?),
+                Int64(builder) => EngineHandle::Int64(builder.try_build()?),
+                Float32(builder) => EngineHandle::Float32(builder.try_build()?),
+                Float64(builder) => EngineHandle::Float64(builder.try_build()?),
+                Char(builder) => EngineHandle::Char(builder.try_build()?),
+                Bit(builder) => EngineHandle::Bit(builder.try_build()?),
+                Permutation(builder) => EngineHandle::Permutation(builder.try_build()?),
+                Graph(builder) => EngineHandle::Graph(builder.try_build()?),
+                Tree(builder) => EngineHandle::Tree(builder.try_build()?),
+                _ => {
+                    radiate_py_bail!("Unsupported builder type for engine creation");
+                }
+            },
+        ))
     }
 }
 
@@ -111,19 +111,11 @@ impl PyEngineBuilder {
     fn create_builder<'py>(&self, py: Python<'py>) -> PyResult<EngineBuilderHandle> {
         use PyFitnessInner::*;
 
-        let problem = self.problem.bind(py).extract::<PyFitnessFn>()?;
-        let codec = self.codec.bind(py);
+        let (fitness, codec, executor) = Self::get_and_check_base_inputs(py, &self.inputs)?;
 
-        let executor = self
-            .inputs
-            .iter()
-            .filter(|i| i.input_type == PyEngineInputType::Executor)
-            .filter_map(|input| input.transform())
-            .next()
-            .unwrap_or(Executor::Serial);
-
-        match problem.inner {
-            custom @ Custom(..) => Self::init_custom_builder(codec, custom, executor),
+        let codec = codec.bind(py);
+        match fitness {
+            custom @ Custom(..) => Self::init_custom_builder(custom, codec, executor),
             reg @ Regression(..) => Self::init_regression_builder(reg, codec, executor),
             novelty @ NoveltySearch(..) => Self::init_novelty_builder(novelty, codec, executor),
         }
@@ -426,8 +418,8 @@ impl PyEngineBuilder {
     }
 
     fn init_custom_builder<'py>(
-        codec: &Bound<'py, PyAny>,
         fitness: PyFitnessInner,
+        codec: &Bound<'py, PyAny>,
         executor: Executor,
     ) -> PyResult<EngineBuilderHandle> {
         use EngineBuilderHandle::*;
@@ -459,13 +451,10 @@ impl PyEngineBuilder {
                     radiate_py_bail!("Unsupported integer codec type for custom fitness function");
                 }
             }
-            // Int64(Self::new_builder(fitness, int_codec.codec, executor))
         } else if let Ok(char_codec) = codec.extract::<PyCharCodec>() {
             Char(Self::new_builder(fitness, char_codec.codec, executor))
         } else if let Ok(bit_codec) = codec.extract::<PyBitCodec>() {
             Bit(Self::new_builder(fitness, bit_codec.codec, executor))
-        } else if let Ok(any_codec) = codec.extract::<PyAnyCodec>() {
-            Any(Self::new_builder(fitness, any_codec.codec, executor))
         } else if let Ok(perm_codec) = codec.extract::<PyPermutationCodec>() {
             Permutation(Self::new_builder(fitness, perm_codec.codec, executor))
         } else if let Ok(graph_codec) = codec.extract::<PyGraphCodec>() {
@@ -565,8 +554,6 @@ impl PyEngineBuilder {
             Char(Self::new_builder(fitness, char_codec.codec, executor))
         } else if let Ok(bit_codec) = codec.extract::<PyBitCodec>() {
             Bit(Self::new_builder(fitness, bit_codec.codec, executor))
-        } else if let Ok(any_codec) = codec.extract::<PyAnyCodec>() {
-            Any(Self::new_builder(fitness, any_codec.codec, executor))
         } else if let Ok(permutation_codec) = codec.extract::<PyPermutationCodec>() {
             Permutation(Self::new_builder(
                 fitness,
@@ -642,5 +629,51 @@ impl PyEngineBuilder {
         move |builder: GeneticEngineBuilder<C, T>,
               inputs: &[PyEngineInput]|
               -> PyResult<GeneticEngineBuilder<C, T>> { processor(builder, inputs) }
+    }
+
+    fn get_and_check_base_inputs<'py>(
+        py: Python<'py>,
+        inputs: &[PyEngineInput],
+    ) -> PyResult<(PyFitnessInner, Py<PyAny>, Executor)> {
+        use PyFitnessInner::*;
+
+        let gil_enabled = radiate(py)
+            .getattr(py, "_GIL_ENABLED")?
+            .extract::<bool>(py)?;
+
+        let codec = Self::get_input_of_type(&inputs, PyEngineInputType::Codec)
+            .map(|codec| codec.extract::<Py<PyAny>>("codec"))
+            .unwrap_or(Err(radiate_py_err!(
+                "EngineBuilder requires a Codec input."
+            )))?;
+
+        let problem = Self::get_input_of_type(&inputs, PyEngineInputType::FitnessFunction)
+            .map(|fitness| fitness.extract::<PyFitnessFn>("fitness"))
+            .unwrap_or(Err(radiate_py_err!(
+                "EngineBuilder requires a FitnessFunction input."
+            )))?;
+
+        let executor = Self::get_input_of_type(&inputs, PyEngineInputType::Executor)
+            .and_then(|input| InputTransform::<Option<Executor>>::transform(input))
+            .unwrap_or(Executor::Serial);
+
+        if executor.is_parallel() && gil_enabled && !matches!(problem.inner, Regression(_, _)) {
+            radiate_py_bail!(
+                "Parallel execution is not supported for non-regression fitness functions
+                 when the GIL is enabled. Please disable the GIL or use the 'Executor.Serial()' executor."
+            );
+        }
+
+        Ok((problem.inner, codec, executor))
+    }
+
+    fn get_input_of_type<'a>(
+        inputs: &'a [PyEngineInput],
+        input_type: PyEngineInputType,
+    ) -> Option<&'a PyEngineInput> {
+        inputs
+            .iter()
+            .rev()
+            .find(|inp| inp.input_type() == input_type)
     }
 }

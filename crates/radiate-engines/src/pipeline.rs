@@ -19,6 +19,7 @@ impl<C: Chromosome> Pipeline<C> {
 
     #[inline]
     pub fn run<T>(&mut self, context: &mut Context<C, T>) -> Result<()> {
+        
         let timer = std::time::Instant::now();
 
         for step in self.steps.iter_mut() {

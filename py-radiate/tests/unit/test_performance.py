@@ -51,10 +51,10 @@ class TestEnginePerformance:
         def fitness_func(x: list[float]) -> float:
             return sum(xi**2 for xi in x)
 
-        engine = rd.GeneticEngine(
+        engine = rd.Engine(
             codec=rd.FloatCodec.vector(length=10, init_range=(-1.0, 1.0)),
             fitness_func=fitness_func,
-            objective="min",
+            objective=rd.MIN,
             population_size=100,
             offspring_selector=rd.TournamentSelector(3),
             survivor_selector=rd.EliteSelector(),
@@ -62,7 +62,7 @@ class TestEnginePerformance:
         )
 
         def engine_run():
-            return engine.run([rd.GenerationsLimit(50)])
+            return engine.run(rd.GenerationsLimit(50))
 
         result, execution_time = performance_benchmark.time_function(engine_run)
 
@@ -76,10 +76,10 @@ class TestEnginePerformance:
         def fitness_func(x: list[float]) -> float:
             return sum(xi**2 for xi in x)
 
-        engine = rd.GeneticEngine(
+        engine = rd.Engine(
             codec=rd.FloatCodec.vector(length=20, init_range=(-1.0, 1.0)),
             fitness_func=fitness_func,
-            objective="min",
+            objective=rd.MIN,
             population_size=1000,
             offspring_selector=rd.TournamentSelector(3),
             survivor_selector=rd.EliteSelector(),
@@ -87,7 +87,7 @@ class TestEnginePerformance:
         )
 
         def engine_run():
-            return engine.run([rd.GenerationsLimit(10)])
+            return engine.run(rd.GenerationsLimit(10))
 
         result, execution_time = performance_benchmark.time_function(engine_run)
 
@@ -107,17 +107,16 @@ class TestMemoryPerformance:
 
         initial_memory = performance_benchmark.memory_usage()
 
-        engine = rd.GeneticEngine(
-            codec=rd.FloatCodec.vector(length=10, init_range=(-1.0, 1.0)),
-            fitness_func=fitness_func,
-            objective="min",
-            population_size=100,
-            offspring_selector=rd.TournamentSelector(3),
-            survivor_selector=rd.EliteSelector(),
-            alters=[rd.UniformCrossover(0.7), rd.ArithmeticMutator(0.1)],
+        engine = (
+            rd.Engine.float(10, init_range=(-1.0, 1.0))
+            .fitness(fitness_func)
+            .minimizing()
+            .size(100)
+            .select(rd.TournamentSelector(3), rd.EliteSelector())
+            .alters(rd.UniformCrossover(0.7), rd.ArithmeticMutator(0.1))
         )
 
-        engine.run([rd.GenerationsLimit(50)])
+        engine.run(rd.GenerationsLimit(50))
 
         final_memory = performance_benchmark.memory_usage()
 
@@ -136,17 +135,16 @@ class TestMemoryPerformance:
 
         # Run multiple engines
         for _ in range(5):
-            engine = rd.GeneticEngine(
-                codec=rd.FloatCodec.vector(length=50, init_range=(-1.0, 1.0)),
-                fitness_func=fitness_func,
-                objective="min",
-                population_size=200,
-                offspring_selector=rd.TournamentSelector(3),
-                survivor_selector=rd.EliteSelector(),
-                alters=[rd.UniformCrossover(0.7), rd.ArithmeticMutator(0.1)],
+            engine = (
+                rd.Engine.float(50, init_range=(-1.0, 1.0))
+                .fitness(fitness_func)
+                .minimizing()
+                .size(200)
+                .select(rd.TournamentSelector(3), rd.EliteSelector())
+                .alters(rd.UniformCrossover(0.7), rd.ArithmeticMutator(0.1))
             )
 
-            engine.run([rd.GenerationsLimit(10)])
+            engine.run(rd.GenerationsLimit(10))
             del engine  # Explicitly delete engine
 
         # Force garbage collection
@@ -172,10 +170,10 @@ class TestScalabilityPerformance:
             return sum(xi**2 for xi in x)
 
         for length in lengths:
-            engine = rd.GeneticEngine(
+            engine = rd.Engine(
                 codec=rd.FloatCodec.vector(length=length, init_range=(-1.0, 1.0)),
                 fitness_func=fitness_func,
-                objective="min",
+                objective=rd.MIN,
                 population_size=100,
                 offspring_selector=rd.TournamentSelector(3),
                 survivor_selector=rd.EliteSelector(),
@@ -183,7 +181,7 @@ class TestScalabilityPerformance:
             )
 
             _, execution_time = performance_benchmark.time_function(
-                engine.run, [rd.GenerationsLimit(20)]
+                engine.run, rd.GenerationsLimit(20)
             )
             execution_times.append(execution_time)
 

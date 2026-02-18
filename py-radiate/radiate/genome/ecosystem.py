@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from radiate.genome.population import Population
-from radiate.genome.species import Species
-from radiate.wrapper import PyObject
 from radiate.radiate import PyEcosystem
+from radiate._bridge.wrapper import RsObject
+
+from .species import Species
+from .population import Population
 
 
-class Ecosystem[T](PyObject[PyEcosystem]):
+class Ecosystem[T](RsObject):
     def __init__(self, inner: PyEcosystem):
         super().__init__()
 

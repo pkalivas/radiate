@@ -45,21 +45,21 @@ Lets take a quick look at how we would put together a regression problem using a
     # dataset. Optionally, we can provide a loss function as well - the default is mean squared error (MSE).
     # The last argument is whether to use batch evaluation or not - the default is False. This has minimal impact on performance.
     loss = "mse"  # Options are: "mse", "mae", "cross_entropy", "diff"
-    fitness_func = rd.Regression(inputs, answers, loss=loss, batch=False)   
+    fitness_func = rd.Regression(inputs, answers, loss=loss, batch=False)
 
-    engine = rd.GeneticEngine(
-        codec=codec,
-        fitness_func=fitness_func,
-        objective="min",   # Minimize the loss
-        alters=[
+    engine = (
+        rd.Engine(codec)
+        .fitness(fitness_func)
+        .minimizing()  # We want to minimize the loss
+        .alters(
             rd.GraphCrossover(0.5, 0.5),
             rd.OperationMutator(0.07, 0.05),
             rd.GraphMutator(0.1, 0.1, allow_recurrent=False), # True if evolving recurrent graphs is allowed
-        ],
+        )
     )
 
     # Run the genetic engine with a score (error) limit of 0.001 or a maximum of 1000 generations
-    result = engine.run([rd.ScoreLimit(0.001), rd.GenerationsLimit(1000)], log=True)
+    result = engine.run(rd.ScoreLimit(0.001), rd.GenerationsLimit(1000), log=True)
     ```
 
 === ":fontawesome-brands-rust: Rust"

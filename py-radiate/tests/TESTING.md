@@ -69,10 +69,10 @@ def test_engine_int_minimization(random_seed):
     engine = GeneticEngine(
         codec=IntCodec.vector(length=5, value_range=(0, 10)),
         fitness_func=fitness_func,
-        objective="min"
+        objective=rd.MIN
     )
     
-    result = engine.run([ScoreLimit(0), GenerationsLimit(100)])
+    result = engine.run(rd.ScoreLimit(0), rd.GenerationsLimit(100))
     
     assert result.value() == [0] * 5
     assert result.score()[0] == 0.0
@@ -98,7 +98,7 @@ def test_engine_small_problem_performance(benchmark):
     engine = GeneticEngine(
         codec=FloatCodec.vector(length=10, value_range=(-1.0, 1.0)),
         fitness_func=fitness_func,
-        objective="min"
+        objective=rd.MIN
     )
     
     result, execution_time = benchmark.time_function(

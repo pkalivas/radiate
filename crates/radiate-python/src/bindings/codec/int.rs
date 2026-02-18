@@ -1,3 +1,4 @@
+use crate::{DataType, Wrap, dtype_names};
 use crate::{
     PyChromosome, PyGene, PyGenotype,
     bindings::{
@@ -5,10 +6,9 @@ use crate::{
         dtype,
     },
 };
-use pyo3::{Bound, PyAny, PyResult, pyclass, pymethods};
-use radiate::{DataType, dtype_names};
+use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct PyIntCodec {
     pub codec: TypedNumericCodec,
@@ -26,6 +26,10 @@ impl PyIntCodec {
         genotype: &PyGenotype,
     ) -> PyResult<Bound<'py, PyAny>> {
         self.codec.decode_with_py(py, genotype)
+    }
+
+    pub fn dtype<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        Wrap(self.codec.dtype()).into_bound_py_any(py)
     }
 
     #[staticmethod]

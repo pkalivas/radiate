@@ -143,11 +143,11 @@ where
 {
     type Gene = GraphNode<T>;
 
-    fn genes(&self) -> &[GraphNode<T>] {
+    fn as_slice(&self) -> &[GraphNode<T>] {
         &self.nodes
     }
 
-    fn genes_mut(&mut self) -> &mut [GraphNode<T>] {
+    fn as_mut_slice(&mut self) -> &mut [GraphNode<T>] {
         &mut self.nodes
     }
 }

@@ -31,14 +31,17 @@ def fitness_fn(queens: np.ndarray) -> int:
     return np.sum(same_row) + np.sum(same_diagonal)
 
 
-engine = rd.GeneticEngine(
-    rd.IntCodec(N_QUEENS, (0, N_QUEENS), use_numpy=True, dtype=rd.UInt8),
-    fitness_fn,
+engine = (
+    rd.Engine.int(N_QUEENS, init_range=(0, N_QUEENS), use_numpy=True, dtype=rd.UInt8)
+    .fitness(fitness_fn)
+    .minimizing()
+    .select(offspring=rd.TournamentSelector(k=3))
+    .alters(
+        rd.MultiPointCrossover(0.75, 2),
+        rd.UniformMutator(0.05),
+    )
 )
 
-engine.minimizing()
-engine.offspring_selector(rd.BoltzmannSelector(4.0))
-engine.alters([rd.MultiPointCrossover(0.75, 2), rd.UniformMutator(0.05)])
 
 result = engine.run(rd.ScoreLimit(0), ui=True)
 print(result)

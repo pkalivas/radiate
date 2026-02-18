@@ -4,8 +4,6 @@ mod fmt;
 mod intern;
 mod lru;
 mod primitives;
-mod regex;
-mod registry;
 mod str;
 
 pub use array::{Shape, Strides, Tensor};
@@ -17,6 +15,4 @@ pub use intern::{
 };
 pub use lru::LruCache;
 pub use primitives::{Float, Integer, Primitive};
-pub use regex::{RegexCache, compile_regex, with_regex_cache};
-pub use registry::Registry;
 pub use str::SmallStr;

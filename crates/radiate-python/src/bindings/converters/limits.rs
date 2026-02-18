@@ -1,6 +1,7 @@
-use crate::{InputTransform, PyEngineInput, PyEngineInputType};
+use crate::{InputTransform, PyEngineInput, PyEngineInputType, PyMetric};
+use pyo3::Python;
 use radiate::Limit;
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
 impl InputTransform<Vec<Limit>> for Vec<PyEngineInput> {
     fn transform(&self) -> Vec<Limit> {
@@ -34,6 +35,27 @@ impl InputTransform<Option<Limit>> for PyEngineInput {
         let epsilon = self.get_f32("epsilon");
         if let (Some(window), Some(epsilon)) = (window, epsilon) {
             return Some(Limit::Convergence(window, epsilon));
+        }
+
+        let name = self.get_string("name");
+        let limit = self.get("limit");
+        if let Some(name) = name
+            && let Some(limit) = limit
+        {
+            let limit = limit.clone();
+            return Some(Limit::Metric(
+                name.clone(),
+                Arc::new(move |metric| {
+                    Python::attach(|py| {
+                        limit
+                            .inner
+                            .call1(py, (PyMetric::from(metric.clone()),))
+                            .ok()
+                            .and_then(|result| result.extract::<bool>(py).ok())
+                            .unwrap_or(false)
+                    })
+                }),
+            ));
         }
 
         None

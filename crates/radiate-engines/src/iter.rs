@@ -661,6 +661,12 @@ where
                         Limit::Convergence(window, epsilon) => {
                             Box::new(iter.until_converged(window, epsilon))
                         }
+                        Limit::Metric(name, predicate) => Box::new(MetricLimitIterator {
+                            iter,
+                            metric_name: name,
+                            limit: predicate,
+                            done: false,
+                        }),
                         _ => iter,
                     };
                 }

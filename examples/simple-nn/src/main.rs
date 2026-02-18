@@ -121,7 +121,6 @@ impl Codec<FloatChromosome<f64>, NeuralNet> for NeuralNetCodec {
         for (i, chromosome) in genotype.iter().enumerate() {
             layers.push(
                 chromosome
-                    .iter()
                     .as_slice()
                     .chunks(self.shapes[i].1 as usize)
                     .map(|chunk| {

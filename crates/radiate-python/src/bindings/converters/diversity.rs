@@ -1,4 +1,4 @@
-use crate::{AnyChromosome, InputTransform, PyEngineInput};
+use crate::{InputTransform, PyEngineInput};
 use radiate::{
     BitChromosome, CharChromosome, CosineDistance, Diversity, EuclideanDistance, FloatChromosome,
     GraphChromosome, HammingDistance, IntChromosome, NeatDistance, Op, PermutationChromosome,
@@ -52,15 +52,6 @@ impl InputTransform<Option<Box<dyn Diversity<CharChromosome>>>> for PyEngineInpu
 
 impl InputTransform<Option<Box<dyn Diversity<PermutationChromosome<usize>>>>> for PyEngineInput {
     fn transform(&self) -> Option<Box<dyn Diversity<PermutationChromosome<usize>>>> {
-        match self.component.as_str() {
-            crate::names::HAMMING_DISTANCE => Some(Box::new(HammingDistance)),
-            _ => None,
-        }
-    }
-}
-
-impl InputTransform<Option<Box<dyn Diversity<AnyChromosome<'static>>>>> for PyEngineInput {
-    fn transform(&self) -> Option<Box<dyn Diversity<AnyChromosome<'static>>>> {
         match self.component.as_str() {
             crate::names::HAMMING_DISTANCE => Some(Box::new(HammingDistance)),
             _ => None,

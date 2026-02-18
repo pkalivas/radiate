@@ -2,7 +2,6 @@
 This module provides common fixtures and utilities used across all test modules.
 """
 
-import os
 import pytest
 import random
 import radiate as rd
@@ -15,16 +14,6 @@ except ImportError:
     HAS_NUMPY = False
     np = None
 
-# Enable test-only imports
-os.environ["RADIATE_TESTING"] = "1"
-
-
-@pytest.fixture(autouse=True)
-def enable_test_imports():
-    """Automatically enable test-only imports for all tests."""
-    os.environ["RADIATE_TESTING"] = "1"
-    yield
-
 
 @pytest.fixture(scope="session")
 def random_seed():
@@ -32,7 +21,7 @@ def random_seed():
     seed = 42
     random.seed(seed)
     if HAS_NUMPY:
-        np.random.seed(seed)
+        np.random.seed(seed)  # type: ignore
     rd.random.seed(seed)
     return seed
 
@@ -153,40 +142,57 @@ Engine Fixtures
 
 
 @pytest.fixture
+def graph_1x1_engine():
+    """Create a simple 1x1 graph engine for testing."""
+    return rd.Engine.graph(
+        shape=(1, 1),
+        vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.linear()],
+        edge=rd.Op.weight(),
+        output=rd.Op.linear(),
+    ).alters(
+        rd.Cross.graph(0.05, 0.5),
+        rd.Mutate.op(0.07, 0.05),
+        rd.Mutate.graph(0.1, 0.1, False),
+    )
+
+
+@pytest.fixture
 def simple_float_engine():
     """Create a simple float codec engine for testing."""
-    codec = rd.FloatCodec.vector(length=10, init_range=(-1.0, 1.0))
-    return rd.GeneticEngine(
-        codec=codec,
-        fitness_func=lambda x: sum(xi**2 for xi in x),
-        objective="min",
-        population_size=100,
-        alters=[
-            rd.UniformCrossover(0.5),
-            rd.ArithmeticMutator(0.1),
-        ],
+    return (
+        rd.Engine.float(10, init_range=(-1.0, 1.0))
+        .fitness(lambda x: sum(xi**2 for xi in x))
+        .minimizing()
+        .size(100)
+        .alters(rd.Cross.uniform(0.5), rd.Mutate.arithmetic(0.1))
     )
 
 
 @pytest.fixture
 def simple_multi_objective_engine():
     """Create a simple multi-objective float codec engine for testing."""
-    codec = rd.FloatCodec.vector(length=10, init_range=(-1.0, 1.0))
+    return (
+        rd.Engine.float(10, init_range=(-1.0, 1.0))
+        .fitness(
+            lambda x: [
+                sum(xi**2 for xi in x),
+                sum((xi - 0.5) ** 2 for xi in x),
+            ]
+        )
+        .objective(rd.MIN, rd.MIN)
+        .size(100)
+        .select(rd.Select.tournament(3), rd.Select.nsga2())
+        .alters(rd.Cross.uniform(0.5), rd.Mutate.arithmetic(0.1))
+    )
 
-    return rd.GeneticEngine(
-        codec=codec,
-        fitness_func=lambda x: [
-            sum(xi**2 for xi in x),
-            sum((xi - 0.5) ** 2 for xi in x),
-        ],
-        objective=["min", "min"],
-        population_size=100,
-        offspring_selector=rd.TournamentSelector(3),
-        survivor_selector=rd.NSGA2Selector(),
-        alters=[
-            rd.UniformCrossover(0.5),
-            rd.ArithmeticMutator(0.1),
-        ],
+
+@pytest.fixture
+def simple_bit_20_bit_engine():
+    """Create a simple bit codec engine for testing."""
+    return (
+        rd.Engine.bit(20)
+        .size(150)
+        .alters(rd.Cross.uniform(0.5), rd.Mutate.uniform(0.1))
     )
 
 
@@ -212,7 +218,7 @@ class PerformanceBenchmark:
     def memory_usage():
         """Get current memory usage (if psutil is available)."""
         try:
-            import psutil
+            import psutil  # type: ignore
 
             process = psutil.Process()
             return process.memory_info().rss / 1024 / 1024  # MB

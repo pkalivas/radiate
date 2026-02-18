@@ -4,7 +4,7 @@ from .custom import CallableFitness, BatchFitness
 from .novelty import NoveltySearch
 from functools import wraps
 from typing import Any, Callable
-from radiate.inputs.distance import DistanceBase, HammingDistance
+from radiate.operators.distance import DistanceBase, HammingDistance
 
 
 def fitness(

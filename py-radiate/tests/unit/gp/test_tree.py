@@ -73,10 +73,10 @@ def test_gp_tree_eval_with_invalid_input():
     tree = codec.decode(codec.encode())
 
     with pytest.raises(TypeError):
-        tree.eval("invalid")
+        tree.eval("invalid")  # type: ignore
 
     with pytest.raises(TypeError):
-        tree.eval([[1.0, "invalid", 3.0]])
+        tree.eval([[1.0, "invalid", 3.0]])  # type: ignore
 
 
 @pytest.mark.unit

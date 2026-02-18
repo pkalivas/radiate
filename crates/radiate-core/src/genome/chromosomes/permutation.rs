@@ -114,11 +114,11 @@ impl<A: PartialEq + Clone> PermutationChromosome<A> {
 impl<A: PartialEq + Clone> Chromosome for PermutationChromosome<A> {
     type Gene = PermutationGene<A>;
 
-    fn genes(&self) -> &[Self::Gene] {
+    fn as_slice(&self) -> &[Self::Gene] {
         &self.genes
     }
 
-    fn genes_mut(&mut self) -> &mut [Self::Gene] {
+    fn as_mut_slice(&mut self) -> &mut [Self::Gene] {
         &mut self.genes
     }
 }

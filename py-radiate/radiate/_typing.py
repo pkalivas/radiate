@@ -1,25 +1,38 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Callable
+from collections.abc import Sequence, Callable
+from typing import Any, TYPE_CHECKING
 
-from radiate.genome.chromosome import Chromosome
-from radiate.genome.gene import Gene
-from radiate.gp.op import Op
-
-from .handlers import EventHandler
 
 if TYPE_CHECKING:
-    from radiate.codec.float import FloatCodec
-    from radiate.codec.int import IntCodec
-    from radiate.codec.char import CharCodec
-    from radiate.codec.bit import BitCodec
+    from ._dependancies import numpy as np
+    from .engine.handlers import EventHandler
+    from .dtype import DataType, DataTypeClass
+    from radiate.codec import CodecBase
+    from radiate.genome import Gene
+    from radiate.gp import Graph, Tree
 
 
-type Subscriber = (
-    Callable[[Any], None]
-    | list[Callable[[Any], None]]
-    | EventHandler
-    | list[EventHandler]
+type AtLeastOne[T] = T | Sequence[T]
+
+type Primitive = int | float | bool | str
+
+type RdDataType = DataType | DataTypeClass
+
+type Subscriber = AtLeastOne[Callable[[Any], None]] | AtLeastOne[EventHandler]
+
+type ScalarDecoding[T] = T
+type VectorDecoding[T] = Sequence[T] | "np.ndarray"
+type MatrixDecoding[T] = Sequence[Sequence[T]] | "np.ndarray"
+type GpDecoding = Graph | Tree
+type Decoding[T] = (
+    ScalarDecoding[T] | VectorDecoding[T] | MatrixDecoding[T] | GpDecoding
 )
 
-type NodeValues = list[Op] | Op | list[str] | str
+
+type Encoding[T] = (
+    "Gene[T]"
+    | Sequence["Gene[T]"]
+    | Sequence[Sequence["Gene[T]"]]
+    | "CodecBase[T, Decoding[T]]"
+)

@@ -1,14 +1,9 @@
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-#[cfg(feature = "smallvec")]
 use smallvec::SmallVec;
 use std::{fmt::Debug, ops::Deref};
 
-#[cfg(feature = "smallvec")]
 pub type InnerBuff<T> = SmallVec<[T; 8]>;
-
-#[cfg(not(feature = "smallvec"))]
-pub type InnerBuff<T> = Vec<T>;
 
 #[derive(Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -20,7 +15,7 @@ pub struct SortedBuffer<T> {
 impl<T> SortedBuffer<T> {
     pub fn new() -> Self {
         SortedBuffer {
-            inner: InnerBuff::new(),
+            inner: InnerBuff::<T>::new(),
         }
     }
 
@@ -37,18 +32,6 @@ impl<T> SortedBuffer<T> {
     #[inline]
     pub fn as_slice(&self) -> &[T] {
         &self.inner
-    }
-
-    #[inline]
-    pub fn into_vec(self) -> Vec<T> {
-        #[cfg(feature = "smallvec")]
-        {
-            self.inner.into_vec()
-        }
-        #[cfg(not(feature = "smallvec"))]
-        {
-            self.inner
-        }
     }
 
     #[inline]
@@ -115,7 +98,7 @@ where
     T: Ord,
 {
     fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
-        let mut buffer = SortedBuffer::new();
+        let mut buffer = SortedBuffer::<T>::new();
         SortedBuffer::set_sorted_unique(&mut buffer, iter);
         buffer
     }
@@ -127,7 +110,7 @@ where
     T: Ord,
 {
     fn from(iter: I) -> Self {
-        let mut buffer = SortedBuffer::new();
+        let mut buffer = SortedBuffer::<T>::new();
         SortedBuffer::set_sorted_unique(&mut buffer, iter);
         buffer
     }
@@ -138,16 +121,8 @@ where
     T: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        #[cfg(feature = "smallvec")]
-        {
-            write!(f, "SV {:?}", self.inner.as_slice())?;
-            return Ok(());
-        }
-        #[cfg(not(feature = "smallvec"))]
-        {
-            write!(f, "V {:?}", self.inner.as_slice())?;
-            return Ok(());
-        }
+        write!(f, "{:?}", self.inner.as_slice())?;
+        return Ok(());
     }
 }
 

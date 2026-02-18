@@ -66,18 +66,15 @@ license = "MIT"
 homepage = "https://pkalivas.github.io/radiate/"
 
 [workspace.dependencies]
-rand = "0.9.2"
-pyo3 = "0.27.2"
-numpy ="0.27.1"
+rand = "0.10.0"
+pyo3 = "0.28.1"
+numpy ="0.28.0"
 rayon = "1.11.0"
 smallvec = { version = "1.13", features = ["serde"] }
 thiserror = "2.0.18"
 serde = { version = "1.0.228", features = ["derive", "rc"] }
 serde_json = { version = "1.0.149" }
-chrono = { version = "0.4.43", default-features = false, features = ["std"] }
-chrono-tz = "0.10"
 compact_str = { version = "0.9.0" }
-regex = "1.12.3"
 foldhash = "0.2.0"
 slotmap = "1.0"
 hashbrown = { version = "0.16.1" }
@@ -99,5 +96,4 @@ radiate-python = { version = "1.2.20", path = "crates/radiate-python", default-f
 radiate-utils = { version = "1.2.20", path = "crates/radiate-utils", default-features = false }
 radiate-ui = { version = "1.2.20", path = "crates/radiate-ui", default-features = false }
 radiate-pgm = { version = "1.2.20", path = "crates/radiate-pgm", default-features = false }
-radiate-any = { version = "1.2.20", path = "crates/radiate-any", default-features = false }
 

@@ -14,10 +14,11 @@ numpy
 pillow    >= 11.3.0
 matplotlib >= 3.10.6
 numba     >= 0.54    ; python_version < '3.14'
-polars    >= 1.35.1  ; python_version < '3.14'
+polars    >= 1.35.1  #; python_version < '3.14'
 pandas    >= 2.1.0   ; python_version < '3.14'
 pyarrow   >= 12.0.0  ; python_version < '3.14'
 requests  >= 2.31.0
+torch     >= 2.7.1   ; python_version < '3.14'
 
 # -------
 # TOOLING

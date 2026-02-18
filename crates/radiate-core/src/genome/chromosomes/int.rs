@@ -270,11 +270,11 @@ impl<I: Integer> IntChromosome<I> {
 impl<I: Integer> Chromosome for IntChromosome<I> {
     type Gene = IntGene<I>;
 
-    fn genes(&self) -> &[Self::Gene] {
+    fn as_slice(&self) -> &[Self::Gene] {
         &self.genes
     }
 
-    fn genes_mut(&mut self) -> &mut [Self::Gene] {
+    fn as_mut_slice(&mut self) -> &mut [Self::Gene] {
         &mut self.genes
     }
 }

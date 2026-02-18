@@ -55,13 +55,13 @@ codec = rd.GraphCodec.directed(
     output=rd.Op.sigmoid(),
 )
 
-engine = rd.GeneticEngine(
+engine = rd.Engine(
     codec=codec,
     fitness_func=rd.Regression(
         training_features.values.tolist(), training_target.values.tolist()
     ),
     offspring_selector=rd.BoltzmannSelector(4),
-    objective="min",
+    objective=rd.MIN,
     alters=[
         rd.GraphCrossover(0.5, 0.5),
         rd.OperationMutator(0.02, 0.05),
@@ -69,7 +69,7 @@ engine = rd.GeneticEngine(
     ],
 )
 
-result = engine.run([rd.ScoreLimit(0.01), rd.SecondsLimit(3)], log=True)
+result = engine.run(rd.ScoreLimit(0.01), rd.SecondsLimit(3), log=True)
 
 eval_result = result.value().eval(testing_features.values.tolist())
 
@@ -77,7 +77,7 @@ np_acc = np.mean(
     np.argmax(eval_result, axis=1) == np.argmax(testing_target.values, axis=1)
 )
 
-rd_acc = rd.calc_accuracy(
+rd_acc = rd.accuracy(
     result.value(),
     testing_features.values.tolist(),
     testing_target.values.tolist(),

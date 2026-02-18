@@ -104,11 +104,11 @@ impl BitChromosome {
 impl Chromosome for BitChromosome {
     type Gene = BitGene;
 
-    fn genes(&self) -> &[Self::Gene] {
+    fn as_slice(&self) -> &[Self::Gene] {
         &self.genes
     }
 
-    fn genes_mut(&mut self) -> &mut [Self::Gene] {
+    fn as_mut_slice(&mut self) -> &mut [Self::Gene] {
         &mut self.genes
     }
 }

@@ -193,7 +193,7 @@ def run_novelty_search_evolution(generations: int = 200) -> rd.Generation:
     codec = rd.FloatCodec.vector(6, init_range=(-5.0, 5.0))
 
     # Create novelty search engine
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=codec,
         fitness_func=fitness_func,
         offspring_selector=rd.BoltzmannSelector(4),
@@ -210,7 +210,7 @@ def analyze_diverse_behaviors(result: rd.Generation, num_behaviors: int = 6):
     """Analyze and visualize diverse behaviors found by novelty search."""
     population = result.population()
 
-    sorted_population = sorted(population, key=lambda x: x.score(), reverse=True)
+    sorted_population = sorted(population, key=lambda x: x.score(), reverse=True)  # type: ignore
 
     print("\n=== Novelty Search Results ===")
     print(f"Generations completed: {result.index()}")
@@ -270,7 +270,7 @@ if __name__ == "__main__":
     # Show individual behaviors in detail
     print("\n=== Detailed Behavior Analysis ===")
     population = result.population()
-    top_individuals = sorted(population, key=lambda x: x.score(), reverse=True)[:3]
+    top_individuals = sorted(population, key=lambda x: x.score(), reverse=True)[:3]  # type: ignore
 
     for i, individual in enumerate(top_individuals):
         genes = [g.allele() for c in individual.genotype() for g in c]

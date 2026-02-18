@@ -84,11 +84,11 @@ pub struct PgmChromosome {
 impl Chromosome for PgmChromosome {
     type Gene = FactorGene;
 
-    fn genes(&self) -> &[FactorGene] {
+    fn as_slice(&self) -> &[FactorGene] {
         &self.factors
     }
 
-    fn genes_mut(&mut self) -> &mut [FactorGene] {
+    fn as_mut_slice(&mut self) -> &mut [FactorGene] {
         &mut self.factors
     }
 }

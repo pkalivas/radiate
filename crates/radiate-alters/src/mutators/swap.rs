@@ -30,7 +30,7 @@ impl<C: Chromosome> Mutate<C> for SwapMutator {
                         continue;
                     }
 
-                    chromosome.genes_mut().swap(i, swap_index);
+                    chromosome.as_mut_slice().swap(i, swap_index);
                     mutations += 1;
                 }
             }

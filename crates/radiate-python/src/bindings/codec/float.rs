@@ -1,14 +1,11 @@
 use crate::{
-    PyChromosome, PyGene, PyGenotype,
-    bindings::{
-        codec::{NumericCodecBuilder, TypedNumericCodec, builder::CodecBuilder},
-        dtype,
-    },
+    DataType, PyChromosome, PyGene, PyGenotype, Wrap,
+    bindings::codec::{NumericCodecBuilder, TypedNumericCodec, builder::CodecBuilder},
+    dtype, dtype_names,
 };
-use pyo3::{Bound, PyAny, PyResult, pyclass, pymethods};
-use radiate::{DataType, dtype_names};
+use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct PyFloatCodec {
     pub codec: TypedNumericCodec,
@@ -26,6 +23,10 @@ impl PyFloatCodec {
         genotype: &PyGenotype,
     ) -> PyResult<Bound<'py, PyAny>> {
         self.codec.decode_with_py(py, genotype)
+    }
+
+    pub fn dtype<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        Wrap(self.codec.dtype()).into_bound_py_any(py)
     }
 
     #[staticmethod]

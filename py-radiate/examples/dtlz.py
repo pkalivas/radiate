@@ -10,7 +10,7 @@ evolve solutions. The results are visualized in a 3D scatter plot.
 import matplotlib.pyplot as plt
 import radiate as rd
 import numpy as np
-from numba import jit, float64, float32
+from numba import jit, float64
 
 rd.random.seed(501)
 
@@ -39,20 +39,20 @@ def dtlz_1(val: np.ndarray) -> np.ndarray:
     return f
 
 
-engine = rd.GeneticEngine(
-    codec=rd.FloatCodec(variables, (0.0, 1.0), use_numpy=True),
-    fitness_func=dtlz_1,
-    offspring_selector=rd.TournamentSelector(k=8),
-    survivor_selector=rd.NSGA2Selector(),
-    objective=["min" for _ in range(objectives)],
-    alters=[
+engine = (
+    rd.Engine.float(variables, use_numpy=True)
+    .fitness(dtlz_1)
+    .objective(rd.MIN, rd.MIN, rd.MIN)
+    .front_range(100, 150)
+    .select(rd.TournamentSelector(k=5), rd.NSGA3Selector(points=12))
+    .alters(
         rd.SimulatedBinaryCrossover(1.0, 2.0),
         rd.UniformMutator(0.1),
-    ],
+    )
 )
 
 result = engine.run(rd.GenerationsLimit(2000), ui=True)
-print(result)
+print(result.metrics().dashboard())
 
 front = result.front()
 
@@ -63,7 +63,7 @@ z = [member.score()[2] for member in front]
 fig = plt.figure()
 ax = plt.axes(projection="3d")
 ax.scatter(x, y, z)
-ax.set_xlim([0, 0.5])
-ax.set_ylim([0, 0.5])
-ax.set_zlim([0, 0.5])
+ax.set_xlim([0.0, 0.5])  # type: ignore
+ax.set_ylim([0.0, 0.5])  # type: ignore
+ax.set_zlim([0.0, 0.5])  # type: ignore
 plt.show()

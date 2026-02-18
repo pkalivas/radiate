@@ -11,7 +11,7 @@ impl IntoPyAnyObject for Vec<Tree<Op<f32>>> {
     }
 }
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone, Serialize, Deserialize)]
 pub struct PyTree {
     pub inner: Vec<Tree<Op<f32>>>,

@@ -80,7 +80,13 @@ Radiate provides several codec types out of the box that should be able to cover
         # -- or --
         # supply a list of shapes for jagged matrices e.g. matrix with three rows (chromosomes) and two columns (genes)
         codec = rd.FloatCodec.matrix([2, 2, 2], init_range=(-0.1, 0.1), bounds=(-1.0, 1.0))
-        codec = rd.FloatCodec([2, 2, 2], init_range=(-0.1, 0.1), bounds=(-1.0, 1.0), use_numpy=True)
+        codec = rd.FloatCodec(
+            shape=[2, 2, 2],
+            init_range=(-0.1, 0.1), 
+            bounds=(-1.0, 1.0), 
+            use_numpy=True,
+            dtype=rd.Float32 # also adding dtype here - default is Float64
+        )
         ```
 
     === ":fontawesome-brands-rust: Rust"
@@ -127,11 +133,21 @@ Radiate provides several codec types out of the box that should be able to cover
         # For a list of parameters
         codec = rd.IntCodec.vector(length=5, init_range=(-1, 1), bounds=(-10, 10))
 
-        # For a matrix of ints
+        # For a 3x2 matrix of parameters
         codec = rd.IntCodec.matrix(shape=(3, 2), init_range=(-1, 1), bounds=(-10, 10))
         # -- or --
         # supply a list of shapes for jagged matrices e.g. matrix with three rows (chromosomes) and two columns (genes)
         codec = rd.IntCodec.matrix([2, 2, 2], init_range=(-1, 1), bounds=(-10, 10))
+
+        # The codec can also be created by directly:
+        # The chromosome will be a dense 4x5 matrix (4 rows with 5 colummns) of IntGenes that decodes to a 4x5 numpy array of np.int16 values.
+        codec = rd.IntCodec(
+            shape=[5, 5, 5, 5],
+            init_range=(0, 100), 
+            bounds=(-100, 200), 
+            use_numpy=True,
+            dtype=rd.Int16
+        )
         ```
 
     === ":fontawesome-brands-rust: Rust"
@@ -151,7 +167,7 @@ Radiate provides several codec types out of the box that should be able to cover
         let encoded_vector: Genotype<IntChromosome<i128>> = codec_vector.encode();
         let decoded_vector: Vec<i128> = codec_vector.decode(&encoded_vector);
 
-        // 3x2 matrix of ints
+        // 3x2 matrix of parameters - specify the int type
         let codec_matrix: IntCodec<i32> = IntCodec::matrix(3, 2, -1..1).with_bounds(-10..10);
         let encoded_matrix: Genotype<IntChromosome<i32>> = codec_matrix.encode();
         let decoded_matrix: Vec<Vec<i32>> = codec_matrix.decode(&encoded_matrix);

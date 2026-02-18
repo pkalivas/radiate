@@ -4,7 +4,7 @@ use pyo3::{Bound, IntoPyObjectExt, Py, PyAny, PyResult, pyclass, pymethods, type
 use radiate::{Chromosome, Codec, Gene, PermutationChromosome, PermutationGene, random_provider};
 use std::sync::Arc;
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct PyPermutationCodec {
     pub codec: PyCodec<PermutationChromosome<usize>, PyAnyObject>,
@@ -54,7 +54,7 @@ impl PyPermutationCodec {
                     let values = geno
                         .iter()
                         .flat_map(|chromosome| {
-                            chromosome.genes().iter().map(|gene| {
+                            chromosome.as_slice().iter().map(|gene| {
                                 let index = gene.allele();
                                 arc_alleles[*index].clone_ref(py)
                             })

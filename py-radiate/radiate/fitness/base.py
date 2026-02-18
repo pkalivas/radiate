@@ -1,9 +1,9 @@
-import abc
 from radiate.radiate import PyFitnessFn
+from radiate._bridge.wrapper import RsObject
 
 
-class FitnessBase[T](abc.ABC):
+class FitnessBase(RsObject):
     """Base class for fitness functions in evolutionary algorithms."""
 
     def __init__(self, problem: PyFitnessFn):
-        self.problem = problem
+        self._pyobj = problem

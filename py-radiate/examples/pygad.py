@@ -24,10 +24,10 @@ def fitness(solution: np.ndarray) -> float:
     return np.abs(output - desired_output)
 
 
-engine = rd.GeneticEngine(
-    codec=rd.FloatCodec(len(function_inputs), (-4.0, 4.0), use_numpy=True),
+engine = rd.Engine(
+    codec=rd.FloatCodec(len(function_inputs), init_range=(-4.0, 4.0), use_numpy=True),
     fitness_func=fitness,
-    objective="min",
+    objective=rd.MIN,
 )
 
 result = engine.run(rd.ScoreLimit(0.01), log=True)
@@ -37,5 +37,16 @@ print(f"Fitness: {result.score()}")
 print(f"Generations completed: {result.index()}")
 print(f"Function output: {np.sum(result.value() * function_inputs)}")
 print(f"Duration: {result.duration()}")
+print(f"dtype: {result.dtype()}")
 
 print(result.metrics().dashboard())
+
+# temp = rd.FloatCodec(len(function_inputs), init_range=(-4.0, 4.0), use_numpy=True)
+# codec = rd.FloatCodec(len(function_inputs), init_range=(-4.0, 4.0), use_numpy=True)
+# print(codec.encode())
+# print(type(codec.decode(codec.encode())))
+
+# codec = [rd.Gene.float(init_range=(-4.0, 4.0)) for _ in range(len(function_inputs))]
+# e = rd.Engine(codec=codec, fitness_func=fitness, objective=rd.MIN)
+
+# t = e.run(rd.ScoreLimit(0.01), log=True)

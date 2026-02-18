@@ -9,7 +9,7 @@ use std::{
     fmt::Debug,
 };
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Copy)]
 pub enum PyEngineInputType {
     Alterer,
@@ -30,9 +30,11 @@ pub enum PyEngineInputType {
     Subscriber,
     Generation,
     Checkpoint,
+    Codec,
+    FitnessFunction,
 }
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct PyEngineInput {
     pub component: String,
@@ -89,6 +91,10 @@ impl PyEngineInput {
                 key
             ))),
         })
+    }
+
+    pub fn get(&self, key: &str) -> Option<&PyAnyObject> {
+        self.args.get(key)
     }
 
     pub fn get_rate(&self) -> Option<Rate> {

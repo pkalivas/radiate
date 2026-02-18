@@ -1,6 +1,6 @@
 use crate::collections::GraphChromosome;
 use crate::node::{Node, NodeExt};
-use radiate_core::{AlterResult, Crossover, random_provider};
+use radiate_core::{AlterResult, Crossover, LineageUpdate, random_provider};
 use radiate_core::{Rate, genome::*};
 use std::fmt::Debug;
 
@@ -51,31 +51,42 @@ where
                     let chromo_one = geno_one.get_mut(chromo_index).unwrap();
                     let chromo_two = geno_two.get(chromo_index).unwrap();
 
-                    let node_indices = (0..std::cmp::min(chromo_one.len(), chromo_two.len()))
-                        .filter(|i| {
-                            let node_one = chromo_one.get(*i);
-                            let node_two = chromo_two.get(*i);
+                    let mut crosses = 0;
+                    let min_len = std::cmp::min(chromo_one.len(), chromo_two.len());
 
-                            node_one.arity() == node_two.arity() && rand.bool(self.parent_node_rate)
-                        })
-                        .collect::<Vec<usize>>();
-
-                    for &i in node_indices.iter() {
+                    for i in 0..min_len {
+                        let node_one = chromo_one.get_mut(i);
                         let node_two = chromo_two.get(i);
-                        chromo_one.get_mut(i).set_value(node_two.value().clone());
+
+                        if node_one.arity() != node_two.arity() {
+                            continue;
+                        }
+
+                        if !rand.bool(self.parent_node_rate) {
+                            continue;
+                        }
+
+                        if node_one.value() != node_two.value() {
+                            node_one.set_value(node_two.value().clone());
+                            crosses += 1;
+                        }
                     }
 
-                    node_indices.len()
+                    crosses
                 })
             };
 
             if num_crosses > 0 {
+                let parent_lineage = (parent_one.family(), parent_two.family());
+                let parent_ids = (parent_one.id(), parent_two.id());
                 parent_one.invalidate(generation);
+                return AlterResult::from((
+                    num_crosses,
+                    LineageUpdate::from((parent_lineage, parent_ids, parent_one.id())),
+                ));
             }
-
-            AlterResult::from(num_crosses)
-        } else {
-            AlterResult::empty()
         }
+
+        AlterResult::empty()
     }
 }

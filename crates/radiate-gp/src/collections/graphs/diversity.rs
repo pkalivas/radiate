@@ -1,6 +1,6 @@
 use super::{GraphChromosome, GraphIterator};
 use crate::{Node, Op};
-use radiate_core::{Chromosome, Diversity, Genotype};
+use radiate_core::{Chromosome, Diversity, Phenotype};
 use std::cmp::Ordering;
 
 const OP_MISMATCH_PENALTY: f32 = 0.3;
@@ -117,11 +117,12 @@ impl NeatDistance {
 impl Diversity<GraphChromosome<Op<f32>>> for NeatDistance {
     fn measure(
         &self,
-        one: &Genotype<GraphChromosome<Op<f32>>>,
-        two: &Genotype<GraphChromosome<Op<f32>>>,
+        one: &Phenotype<GraphChromosome<Op<f32>>>,
+        two: &Phenotype<GraphChromosome<Op<f32>>>,
     ) -> f32 {
-        one.iter()
-            .zip(two.iter())
+        one.genotype()
+            .iter()
+            .zip(two.genotype().iter())
             .map(|(a, b)| self.graph_distance_iter(a, b))
             .sum()
     }

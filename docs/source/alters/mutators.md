@@ -24,6 +24,7 @@ The most basic mutation operator. It randomly replaces a gene with a new instanc
 
     mutator = rd.UniformMutator(rate=0.1)
 	mutator = rd.UniformMutator(rate=rd.Rate.fixed(0.1))
+	mutator = rd.Mutate.uniform(rate=0.1) # Using the Mutate dsl syntax
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -56,6 +57,7 @@ The `GaussianMutator` operator is a mutation mechanism designed for `ArithmeticG
     import radiate as rd
 
     mutator = rd.GaussianMutator(rate=0.1)
+	mutator = rd.Mutate.gaussian(rate=0.1) # Using the Mutate dsl syntax
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -91,6 +93,7 @@ The `ArithmeticMutator` introduces diversity into genetic algorithms by mutating
     import radiate as rd
 
     mutator = rd.ArithmeticMutator(rate=0.1)
+	mutator = rd.Mutate.arithmetic(rate=0.1) # Using the Mutate dsl syntax
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -122,6 +125,7 @@ The `SwapMutator` is a mutation operator designed for genetic algorithms to swap
     import radiate as rd
 
     mutator = rd.SwapMutator(rate=0.1)
+	mutator = rd.Mutate.swap(rate=0.1) # Using the Mutate dsl syntax
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -153,6 +157,7 @@ The `ScrambleMutator` randomly reorders a segment of `genes` within a `chromosom
 	import radiate as rd
 
 	mutator = rd.ScrambleMutator(rate=0.1)
+	mutator = rd.Mutate.scramble(rate=0.1) # Using the Mutate dsl syntax
 	```
 
 === ":fontawesome-brands-rust: Rust"
@@ -184,6 +189,7 @@ The `ScrambleMutator` randomly reorders a segment of `genes` within a `chromosom
 	import radiate as rd
 
 	mutator = rd.InvertMutator(rate=0.1)
+	mutator = rd.Mutate.invert(rate=0.1) # Using the Mutate dsl syntax
 	```
 === ":fontawesome-brands-rust: Rust"
 
@@ -215,6 +221,7 @@ The `eta` parameter controls the shape of the mutation distribution. A higher `e
 	import radiate as rd
 
 	mutator = rd.PolynomialMutator(rate=0.1, eta=20.0)
+	mutator = rd.Mutate.polynomial(rate=0.1, eta=20.0) # Using the Mutate dsl syntax
 	```
 === ":fontawesome-brands-rust: Rust"
 
@@ -245,6 +252,7 @@ The `JitterMutator` adds small random perturbations to the values of a `gene` wi
 	import radiate as rd
 
 	mutator = rd.JitterMutator(rate=0.1, magnitude=0.5)
+	mutator = rd.Mutate.jitter(rate=0.1, magnitude=0.5) # Using the Mutate dsl syntax
 	```
 === ":fontawesome-brands-rust: Rust"
 

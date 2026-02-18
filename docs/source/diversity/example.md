@@ -40,7 +40,7 @@ Lets add on to our example - evolving a simple function: finding the best values
     diversity = rd.HammingDistance()  # or rd.EuclideanDistance() for continuous problems
 
     # Create the evolution engine
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=codec,
         fitness_func=fitness_function,
         offspring_selector=offspring_selector,
@@ -52,8 +52,19 @@ Lets add on to our example - evolving a simple function: finding the best values
         # ... other parameters ...
     )
 
+    # or using the fluent builder pattern - both these engines are functionally equivalent:
+    engine = (
+        rd.Engine.float(2, init_range=(-1.0, 1.0), bounds=(-10.0, 10.0))
+        .fitness(fitness_function)
+        .select(offspring_selector, survivor_selector)
+        .alters(*alters)
+        .diversity(diversity, species_threshold=0.5) # Add the diversity measure and species threshold
+        .age(max_species_age=20) # Add the max species age
+        # ... other parameters ...
+    )
+
     # Run the engine
-    result = engine.run([rd.ScoreLimit(0.01), rd.GenerationsLimit(1000)])
+    result = engine.run(rd.ScoreLimit(0.01), rd.GenerationsLimit(1000))
     ```
 
 === ":fontawesome-brands-rust: Rust"

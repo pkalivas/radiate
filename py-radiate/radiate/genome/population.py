@@ -1,17 +1,14 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
-from typing import Iterable
+from typing import Iterable, Iterator
 from radiate.radiate import PyPopulation
+from radiate._bridge.wrapper import RsObject
+
 from .phenotype import Phenotype
-from ..wrapper import PyObject
-
-if TYPE_CHECKING:
-    from radiate.genome.gene import GeneType
+from .gene import GeneType
 
 
-class Population[T](PyObject[PyPopulation]):
+class Population[T](RsObject):
     """
     Represents a population in a genetic algorithm.
     """
@@ -34,7 +31,7 @@ class Population[T](PyObject[PyPopulation]):
         """
         return len(self._pyobj)
 
-    def __iter__(self) -> Iterable[Phenotype[T]]:
+    def __iter__(self) -> Iterator[Phenotype[T]]:
         """
         Returns an iterator over the individuals in the population.
         :return: An iterator over the individuals in the population.

@@ -25,14 +25,14 @@ for _ in range(-10, 10):
     inputs.append([input])
     answers.append([compute(input)])
 
-engine = rd.GeneticEngine(
+engine = rd.Engine(
     codec=rd.TreeCodec(
         shape=(1, 1),
         vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.add()],
         root=rd.Op.linear(),
     ),
     fitness_func=rd.Regression(inputs, answers),
-    objective="min",
+    objective=rd.MIN,
     alters=[
         rd.TreeCrossover(0.7),
         rd.HoistMutator(0.01),
@@ -40,7 +40,7 @@ engine = rd.GeneticEngine(
 )
 
 
-result = engine.run([rd.ScoreLimit(0.01), rd.GenerationsLimit(1000)], log=True)
+result = engine.run(rd.ScoreLimit(0.01), rd.GenerationsLimit(1000), log=True)
 eval_results = result.value().eval(inputs)
 accuracy = np.mean(
     np.abs(np.array(eval_results).flatten() - np.array(answers).flatten()) < 0.1

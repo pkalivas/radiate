@@ -7,7 +7,7 @@ use pyo3::{pyclass, pymethods};
 use radiate::{Metric, MetricSet};
 use serde::{Deserialize, Serialize};
 
-#[pyclass]
+#[pyclass(skip_from_py_object)]
 #[derive(Clone, Deserialize, Serialize)]
 #[repr(transparent)]
 pub struct PyMetricSet {
@@ -162,7 +162,7 @@ impl<'py> IntoPyObject<'py> for Wrap<MetricSet> {
     }
 }
 
-#[pyclass]
+#[pyclass(skip_from_py_object)]
 #[derive(Clone)]
 #[repr(transparent)]
 pub struct PyMetric {

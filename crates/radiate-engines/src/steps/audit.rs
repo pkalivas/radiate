@@ -1,16 +1,22 @@
 use crate::steps::EngineStep;
 use radiate_core::{
-    Chromosome, Ecosystem, Metric, MetricSet, Objective, metric_names, phenotype::PhenotypeId,
+    Chromosome, Ecosystem, Lineage, Metric, MetricSet, Objective, metric_names,
+    phenotype::PhenotypeId,
 };
 use radiate_error::Result;
 use radiate_utils::intern;
-use std::{cmp::Ordering, collections::HashSet};
+use std::{
+    cmp::Ordering,
+    collections::HashSet,
+    sync::{Arc, RwLock},
+};
 
 const EPS: f32 = 1e-9;
 
 #[derive(Default)]
 pub struct AuditStep {
     objective: Objective,
+    lineage: Arc<RwLock<Lineage>>,
     score_distribution: Vec<Vec<f32>>,
     unique_score_work: Vec<Vec<f32>>,
     age_distribution: Vec<usize>,
@@ -19,9 +25,10 @@ pub struct AuditStep {
 }
 
 impl AuditStep {
-    pub fn new(objective: Objective) -> Self {
+    pub fn new(objective: Objective, lineage: Arc<RwLock<Lineage>>) -> Self {
         Self {
             objective,
+            lineage,
             ..Default::default()
         }
     }
@@ -178,23 +185,64 @@ impl AuditStep {
     }
 
     fn clear_state(&mut self) {
-        self.unique_score_work.clear();
         self.age_distribution.clear();
-        if self.score_distribution.len() < self.objective.dims() {
-            self.score_distribution
-                .resize(self.objective.dims(), Vec::new());
+
+        let dims = self.objective.dims();
+        if self.score_distribution.len() < dims {
+            self.score_distribution.resize_with(dims, Vec::new);
         }
-        if self.unique_score_work.len() < self.objective.dims() {
-            self.unique_score_work
-                .resize(self.objective.dims(), Vec::new());
+        if self.unique_score_work.len() < dims {
+            self.unique_score_work.resize_with(dims, Vec::new);
         }
 
-        for vec in &mut self.score_distribution {
-            vec.clear();
+        for v in &mut self.score_distribution {
+            v.clear();
         }
-        for vec in &mut self.unique_score_work {
-            vec.clear();
+
+        for v in &mut self.unique_score_work {
+            v.clear();
         }
+    }
+
+    fn calc_lineage_metrics<C: Chromosome>(
+        _: usize,
+        metrics: &mut MetricSet,
+        ecosystem: &Ecosystem<C>,
+        lineage: &Lineage,
+    ) {
+        let stats = lineage.stats();
+        let parent_usage = &stats.parent_usage;
+        let family_usage = &stats.family_usage;
+        let family_pairs = &stats.family_pairs;
+
+        let family_pair_dist = family_pairs.values().copied().collect::<Vec<usize>>();
+        let parent_usage_dist = parent_usage.values().cloned().collect::<Vec<usize>>();
+        let family_usage_dist = family_usage.values().cloned().collect::<Vec<usize>>();
+
+        let pair_entropy = normalized_shannon_entropy(&family_pair_dist);
+        let pair_unique = family_pair_dist.iter().filter(|&&c| c > 0).count();
+        let top1_pair_share = topk_share(family_pair_dist.clone(), 1);
+
+        metrics.upsert((
+            metric_names::LINEAGE_PARENTS_USED_UNIQUE,
+            parent_usage.len(),
+        ));
+        metrics.upsert((
+            metric_names::LINEAGE_PARENTS_USED_RATIO,
+            if parent_usage.len() > 0 {
+                parent_usage.len() as f32 / ecosystem.population().len() as f32
+            } else {
+                0.0
+            },
+        ));
+
+        metrics.upsert((metric_names::ALTER_PARENT_REUSE, &parent_usage_dist));
+        metrics.upsert((metric_names::ALTER_WITHIN_FAMILY, &family_usage_dist));
+        metrics.upsert((metric_names::ALTER_CROSS_FAMILY, &family_pair_dist));
+        metrics.upsert((metric_names::LINEAGE_EVENTS, stats.updates));
+        metrics.upsert((metric_names::LINEAGE_FAMILY_PAIR_ENTROPY, pair_entropy));
+        metrics.upsert((metric_names::LINEAGE_TOP1_PAIR_SHARE, top1_pair_share));
+        metrics.upsert((metric_names::LINEAGE_FAMILY_PAIR_UNIQUE, pair_unique));
     }
 }
 
@@ -208,11 +256,23 @@ impl<C: Chromosome> EngineStep<C> for AuditStep {
     ) -> Result<()> {
         self.clear_state();
 
+        {
+            let lineage = self.lineage.read().unwrap();
+            Self::calc_lineage_metrics(generation, metrics, ecosystem, &lineage);
+        }
+
         let pop = ecosystem.population();
         let n = pop.len();
+        let dims = self.objective.dims();
 
-        self.unique_score_work.reserve_exact(n);
-        self.age_distribution.reserve_exact(n);
+        for i in 0..dims {
+            self.score_distribution
+                .get_mut(i)
+                .map(|v| v.reserve_exact(n));
+            self.unique_score_work
+                .get_mut(i)
+                .map(|v| v.reserve_exact(n));
+        }
 
         let mut size_metric = Vec::with_capacity(n);
         let mut unique_members = HashSet::with_capacity(n);
@@ -280,4 +340,43 @@ impl<C: Chromosome> EngineStep<C> for AuditStep {
 
         Ok(())
     }
+}
+
+fn topk_share(mut counts: Vec<usize>, k: usize) -> f32 {
+    if counts.is_empty() {
+        return 0.0;
+    }
+    counts.sort_unstable_by(|a, b| b.cmp(a));
+    let total: usize = counts.iter().sum();
+    if total == 0 {
+        return 0.0;
+    }
+    let take = counts.into_iter().take(k).sum::<usize>();
+    take as f32 / total as f32
+}
+
+fn normalized_shannon_entropy(counts: &[usize]) -> f32 {
+    let total: usize = counts.iter().sum();
+    if total == 0 {
+        return 0.0;
+    }
+
+    let total_f = total as f32;
+    let mut h = 0.0f32;
+    let mut k = 0usize;
+
+    for &c in counts {
+        if c == 0 {
+            continue;
+        }
+        k += 1;
+        let p = c as f32 / total_f;
+        h -= p * p.ln();
+    }
+
+    if k <= 1 {
+        return 0.0;
+    }
+    let h_max = (k as f32).ln();
+    if h_max <= 0.0 { 0.0 } else { h / h_max }
 }

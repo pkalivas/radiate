@@ -218,8 +218,8 @@ class SnakeAI:
 
     def predict(self, state: list[float]) -> int:
         """Predict the best action given current state."""
-        output = self.graph.eval([state])
-        return np.argmax(output[0])
+        output = self.graph.eval(state)
+        return np.argmax(output)  # type: ignore
 
 
 class SnakeEvolver:
@@ -360,11 +360,11 @@ class SnakeEvolver:
             output=rd.Op.sigmoid(),
         )
 
-        engine = rd.GeneticEngine(
+        engine = rd.Engine(
             codec,
-            SnakeEvolver.fitness_function,
+            fitness_func=SnakeEvolver.fitness_function,
             offspring_selector=rd.TournamentSelector(4),
-            executor=rd.Executor.WorkerPool(),
+            executor=rd.Executor.Serial(),
             alters=[
                 rd.GraphCrossover(0.5, 0.5),
                 rd.OperationMutator(0.04, 0.05),
@@ -373,7 +373,7 @@ class SnakeEvolver:
         )
 
         return engine.run(
-            [rd.GenerationsLimit(generations), rd.SecondsLimit(60 * 2)], log=True
+            rd.GenerationsLimit(generations), rd.SecondsLimit(60 * 2), log=True
         )
 
     def visualize_best_snake(self, graph: rd.Graph, title: str = "Best Snake AI"):

@@ -23,9 +23,8 @@ pub const CHAR_GENE_TYPE: &'static str = "CharGene";
 pub const GRAPH_GENE_TYPE: &'static str = "GraphNode";
 pub const TREE_GENE_TYPE: &'static str = "TreeNode";
 pub const PERMUTATION_GENE_TYPE: &'static str = "PermutationGene";
-pub const ANY_GENE_TYPE: &'static str = "AnyGene";
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
 pub enum PyGeneType {
     Empty,
@@ -36,7 +35,6 @@ pub enum PyGeneType {
     GraphNode,
     TreeNode,
     Permutation,
-    AnyGene,
 }
 
 #[pymethods]
@@ -51,7 +49,6 @@ impl PyGeneType {
             PyGeneType::GraphNode => GRAPH_GENE_TYPE.into(),
             PyGeneType::TreeNode => TREE_GENE_TYPE.into(),
             PyGeneType::Permutation => PERMUTATION_GENE_TYPE.into(),
-            PyGeneType::AnyGene => ANY_GENE_TYPE.into(),
         }
     }
 
@@ -65,7 +62,6 @@ impl PyGeneType {
             PyGeneType::GraphNode => GRAPH_GENE_TYPE.into(),
             PyGeneType::TreeNode => TREE_GENE_TYPE.into(),
             PyGeneType::Permutation => PERMUTATION_GENE_TYPE.into(),
-            PyGeneType::AnyGene => ANY_GENE_TYPE.into(),
         }
     }
 
@@ -83,7 +79,6 @@ impl PyGeneType {
             PyGeneType::GraphNode => 5,
             PyGeneType::TreeNode => 6,
             PyGeneType::Permutation => 7,
-            PyGeneType::AnyGene => 8,
         }
     }
 

@@ -1,5 +1,5 @@
 use crate::{Chromosome, Gene, Genotype, Metric, Population, math::indexes, random_provider};
-use crate::{Rate, metric};
+use crate::{Lineage, LineageUpdate, Rate, metric};
 use radiate_utils::{ToSnakeCase, intern};
 use std::iter::once;
 use std::sync::Arc;
@@ -21,7 +21,11 @@ macro_rules! alters {
 /// alteration operation. It contains the number of operations
 /// performed and a vector of metrics that were collected
 /// during the alteration process.
-pub struct AlterResult(pub usize, pub Option<Vec<Metric>>);
+pub struct AlterResult(
+    pub usize,
+    pub Option<Vec<Metric>>,
+    pub Option<Vec<LineageUpdate>>,
+);
 
 impl AlterResult {
     pub fn empty() -> Self {
@@ -32,8 +36,17 @@ impl AlterResult {
         self.0
     }
 
+    pub fn update_lineage(&mut self, lineage: impl Into<LineageUpdate>) {
+        let lineage = lineage.into();
+        if let Some(self_lineage) = &mut self.2 {
+            self_lineage.push(lineage);
+        } else {
+            self.2 = Some(vec![lineage]);
+        }
+    }
+
     pub fn merge(&mut self, other: AlterResult) {
-        let AlterResult(other_count, other_metrics) = other;
+        let AlterResult(other_count, other_metrics, other_lineage) = other;
 
         self.0 += other_count;
         if let Some(metrics) = other_metrics {
@@ -43,36 +56,62 @@ impl AlterResult {
                 self.1 = Some(metrics);
             }
         }
+
+        if let Some(lineage) = other_lineage {
+            if let Some(self_lineage) = &mut self.2 {
+                self_lineage.extend(lineage);
+            } else {
+                self.2 = Some(lineage);
+            }
+        }
     }
 }
 
 impl Default for AlterResult {
     fn default() -> Self {
-        AlterResult(0, None)
+        AlterResult(0, None, None)
     }
 }
 
 impl From<usize> for AlterResult {
     fn from(value: usize) -> Self {
-        AlterResult(value, None)
+        AlterResult(value, None, None)
     }
 }
 
 impl From<(usize, Vec<Metric>)> for AlterResult {
     fn from((count, metrics): (usize, Vec<Metric>)) -> Self {
-        AlterResult(count, Some(metrics))
+        AlterResult(count, Some(metrics), None)
     }
 }
 
 impl From<(usize, Metric)> for AlterResult {
     fn from((count, metric): (usize, Metric)) -> Self {
-        AlterResult(count, Some(vec![metric]))
+        AlterResult(count, Some(vec![metric]), None)
     }
 }
 
 impl From<Metric> for AlterResult {
     fn from(value: Metric) -> Self {
-        AlterResult(1, Some(vec![value]))
+        AlterResult(1, Some(vec![value]), None)
+    }
+}
+
+impl From<(usize, LineageUpdate)> for AlterResult {
+    fn from((count, lineage): (usize, LineageUpdate)) -> Self {
+        AlterResult(count, None, Some(vec![lineage]))
+    }
+}
+
+impl From<(usize, Vec<Metric>, Vec<LineageUpdate>)> for AlterResult {
+    fn from((count, metrics, lineage): (usize, Vec<Metric>, Vec<LineageUpdate>)) -> Self {
+        AlterResult(count, Some(metrics), Some(lineage))
+    }
+}
+
+impl From<(Vec<Metric>, Vec<LineageUpdate>)> for AlterResult {
+    fn from((metrics, lineage): (Vec<Metric>, Vec<LineageUpdate>)) -> Self {
+        AlterResult(metrics.len(), Some(metrics), Some(lineage))
     }
 }
 
@@ -102,13 +141,24 @@ impl<C: Chromosome> Alterer<C> {
     }
 
     #[inline]
-    pub fn alter(&self, population: &mut Population<C>, generation: usize) -> Vec<Metric> {
+    pub fn alter(
+        &self,
+        population: &mut Population<C>,
+        lineage: &mut Lineage,
+        generation: usize,
+    ) -> Vec<Metric> {
         match &self {
             Alterer::Mutate(name, rate, m) => {
                 let (rate_value, rate_metric) = Self::rate_metric(generation, rate, name);
 
                 let timer = std::time::Instant::now();
-                let AlterResult(count, metrics) = m.mutate(population, generation, rate_value);
+                let AlterResult(count, metrics, lineage_events) =
+                    m.mutate(population, generation, rate_value);
+
+                if let Some(lineage_events) = lineage_events {
+                    lineage.extend(name, lineage_events);
+                }
+
                 let metric = metric!(name, (count, timer.elapsed()));
 
                 match metrics {
@@ -124,7 +174,13 @@ impl<C: Chromosome> Alterer<C> {
                 let (rate_value, rate_metric) = Self::rate_metric(generation, rate, name);
 
                 let timer = std::time::Instant::now();
-                let AlterResult(count, metrics) = c.crossover(population, generation, rate_value);
+                let AlterResult(count, metrics, lineage_events) =
+                    c.crossover(population, generation, rate_value);
+
+                if let Some(lineage_events) = lineage_events {
+                    lineage.extend(name, lineage_events);
+                }
+
                 let metric = metric!(name, (count, timer.elapsed()));
 
                 match metrics {
@@ -219,7 +275,7 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
         let mut result = AlterResult::default();
 
         if let Some((one, two)) = population.get_pair_mut(parent_indexes[0], parent_indexes[1]) {
-            let cross_result = {
+            let mut cross_result = {
                 let geno_one = one.genotype_mut();
                 let geno_two = two.genotype_mut();
 
@@ -233,8 +289,13 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
             };
 
             if cross_result.count() > 0 {
+                let parent_lineage = (one.family(), two.family());
+                let parent_ids = (one.id(), two.id());
                 one.invalidate(generation);
                 two.invalidate(generation);
+
+                cross_result.update_lineage((parent_lineage, parent_ids, one.id()));
+                cross_result.update_lineage((parent_lineage, parent_ids, two.id()));
                 result.merge(cross_result);
             }
         }
@@ -293,7 +354,9 @@ pub trait Mutate<C: Chromosome>: Send + Sync {
             let mutate_result = self.mutate_genotype(phenotype.genotype_mut(), rate);
 
             if mutate_result.count() > 0 {
+                let parent = (phenotype.family(), phenotype.id());
                 phenotype.invalidate(generation);
+                result.update_lineage((parent, phenotype.id()));
             }
 
             result.merge(mutate_result);

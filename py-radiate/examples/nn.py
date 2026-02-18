@@ -7,6 +7,7 @@ import radiate as rd
 import torch  # type: ignore
 import torch.nn.functional as F  # type: ignore
 import numpy as np
+
 # import matplotlib.pyplot as plt # type: ignore
 
 rd.random.seed(42)
@@ -55,7 +56,7 @@ class PyTorchNeuralNetwork:
         print(f"  Total parameters: {self.total_params}")
         print()
 
-    def set_weights(self, weight_vector: list[float]) -> None:
+    def set_weights(self, weight_vector: np.ndarray) -> None:
         """
         Set the network weights from a flat vector.
 
@@ -143,10 +144,10 @@ class NeuralNetworkEvolver:
 
         self.y = torch.tensor([[0.0], [1.0], [1.0], [0.0]], dtype=torch.float64)
 
-    def create_fitness_function(self):
-        """Create fitness function that evaluates neural network performance"""
+    def create_engine(self) -> rd.Engine:
+        """Create the genetic engine for evolving neural network weights"""
 
-        def fitness_function(weight_vector: list[float]) -> float:
+        def fitness_function(weight_vector: np.ndarray) -> float:
             """
             Evaluate the fitness of a weight vector.
 
@@ -161,26 +162,20 @@ class NeuralNetworkEvolver:
             mse = F.mse_loss(predictions, self.y)
             return mse.item()
 
-        return fitness_function
-
-    def create_engine(self) -> rd.GeneticEngine:
-        """Create the genetic engine for evolving neural network weights"""
-        engine = rd.GeneticEngine(
+        engine = rd.Engine(
             codec=rd.FloatCodec.vector(
                 length=self.network.total_params,
                 init_range=(-2.0, 2.0),
                 bounds=(-5.0, 5.0),
+                use_numpy=True,
             ),
-            fitness_func=self.create_fitness_function(),
-        )
-
-        engine.minimizing()
-        engine.survivor_selector(rd.BoltzmannSelector(temp=2.3))
-        engine.alters(
-            [
+            fitness_func=fitness_function,
+            objective=rd.MIN,
+            survivor_selector=rd.BoltzmannSelector(temp=2.3),
+            alters=[
                 rd.BlendCrossover(0.7, 0.5),
                 rd.IntermediateCrossover(0.6, 0.5),
-            ]
+            ],
         )
 
         return engine
@@ -204,7 +199,7 @@ class NeuralNetworkEvolver:
         ]
 
         # Run evolution with logging
-        result = engine.run(limits, log=True)
+        result = engine.run(*limits, log=True)
 
         return result
 

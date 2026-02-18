@@ -22,6 +22,7 @@ Radiate provides a number of built-in selectors that can be used to customize th
 | [Boltzmann](#boltzmann) | Most problems | Adjustable (via temp) | Medium-High |
 | [Elite](#elite) | Preserving best solutions | Very High | Low |
 | [NSGA-II](#nsga-ii) | Multi-objective problems | Balanced | High |
+| [NSGA-III](#nsga-iii) | Multi-objective problems with many objectives | Balanced | High |
 | [Stochastic](#stochastic-universal-sampling) | Reducing bias | Medium | High |
 | [Rank](#rank) | Erratic fitness | Medium | High |
 | [Linear Rank](#linear-rank) | Linear scaling | Adjustable (via pressure) | Medium-High |
@@ -44,6 +45,7 @@ The `EliteSelector` is a selection strategy that selects the top `n` individuals
     import radiate as rd
 
     selector = rd.EliteSelector()
+    selector = rd.Select.elite() # Using the Select dsl syntax
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -72,6 +74,7 @@ Create a new `TournamentSelector` with a tournament size of 3
     import radiate as rd
 
     selector = rd.TournamentSelector(k=3)
+    selector = rd.Select.tournament(k=3) # Using the Select dsl syntax
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -106,6 +109,7 @@ This is an extremely popular selection strategy due to its simplicity and effect
     import radiate as rd
 
     selector = rd.RouletteSelector()
+    selector = rd.Select.roulette() # Using the Select dsl syntax
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -136,6 +140,7 @@ As the temperature decreases, the selection process becomes more deterministic, 
     import radiate as rd
 
     selector = rd.BoltzmannSelector(temp=4.0)
+    selector = rd.Select.boltzmann(4.0) # Using the Select dsl syntax
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -161,6 +166,7 @@ The `NSGA2Selector` is a selection strategy used in multi-objective optimization
     import radiate as rd
 
     selector = rd.NSGA2Selector()
+    selector = rd.Select.nsga2() # Using the Select dsl syntax
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -170,6 +176,32 @@ The `NSGA2Selector` is a selection strategy used in multi-objective optimization
 
     let selector = NSGA2Selector::new();
     ```
+
+---
+
+## NSGA-III
+
+The `NSGA3Selector` is a selection strategy used in multi-objective optimization problems, particularly those with more than two objectives. It is based on the Non-Dominated Sorting Genetic Algorithm III (NSGA-III) and selects individuals based on their Pareto dominance rank and reference point-based niching. The NSGA-III algorithm is designed to maintain a diverse set of solutions that represent the trade-offs between multiple conflicting objectives, even in high-dimensional objective spaces. The inputs for the `NSGA3Selector` are:
+
+* `points`: usize - The number of reference points to use for niching. The reference points are evenly distributed in the objective space and are used to maintain diversity among the selected individuals.
+
+=== ":fontawesome-brands-python: Python"
+
+    ```python
+    import radiate as rd
+
+    selector = rd.NSGA3Selector(points=12)
+    selector = rd.Select.nsga3(12) # Using the Select dsl syntax
+    ```
+
+=== ":fontawesome-brands-rust: Rust"
+
+    ```rust
+    use radiate::*;
+
+    let selector = NSGA3Selector::new(12);
+    ```
+
 ---
 
 ## Tournament NSGA-II
@@ -186,6 +218,7 @@ The `TournamentNSGA2Selector` is a selection strategy that combines the principl
     import radiate as rd
 
     selector = rd.TournamentNSGA2Selector()
+    selector = rd.Select.tournament_nsga2() # Using the Select dsl syntax
     ```
 === ":fontawesome-brands-rust: Rust"
 
@@ -217,6 +250,7 @@ Stochastic Universal Sampling (SUS) is a probabilistic selection technique used 
     import radiate as rd
 
     selector = rd.StochasticSamplingSelector()
+    selector = rd.Select.stochastic_universal_sampling() # Using the Select dsl syntax
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -238,7 +272,8 @@ The `RankSelector` is a selection strategy that selects individuals from the `po
     ```python
     import radiate as rd
 
-    selector = rd.RandkSelector()
+    selector = rd.RankSelector()
+    selector = rd.Select.rank() # Using the Select dsl syntax
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -280,6 +315,7 @@ A higher `pressure` will result in a stronger bias towards fitter individuals, w
     import radiate as rd
 
     selector = rd.LinearRankSelector(pressure=0.1)
+    selector = rd.Select.linear_rank(0.1) # Using the Select dsl syntax
     ```
 
 === ":fontawesome-brands-rust: Rust"

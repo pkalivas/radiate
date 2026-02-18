@@ -1,11 +1,11 @@
 use pyo3::prelude::*;
 use radiate_python::{
-    _get_dtype_max, _get_dtype_min, PyAccuracy, PyAnyCodec, PyBitCodec, PyCharCodec, PyChromosome,
-    PyEcosystem, PyEngine, PyEngineBuilder, PyEngineEvent, PyEngineInput, PyEngineInputType,
-    PyEngineRunOption, PyFitnessFn, PyFloatCodec, PyFront, PyFrontValue, PyGene, PyGeneType,
-    PyGeneration, PyGenotype, PyGraph, PyGraphCodec, PyIntCodec, PyMetric, PyMetricSet,
-    PyPermutationCodec, PyPhenotype, PyPopulation, PyRandomProvider, PyRate, PySpecies,
-    PySubscriber, PyTree, PyTreeCodec, py_accuracy, py_alter, py_select,
+    _activation_ops, _all_ops, _create_op, _edge_ops, _get_dtype_max, _get_dtype_min, PyAccuracy,
+    PyBitCodec, PyCharCodec, PyChromosome, PyEcosystem, PyEngine, PyEngineBuilder, PyEngineEvent,
+    PyEngineInput, PyEngineInputType, PyEngineRunOption, PyFitnessFn, PyFloatCodec, PyFront,
+    PyFrontValue, PyGene, PyGeneType, PyGeneration, PyGenotype, PyGraph, PyGraphCodec, PyIntCodec,
+    PyMetric, PyMetricSet, PyOp, PyPermutationCodec, PyPhenotype, PyPopulation, PyRandomProvider,
+    PyRate, PySpecies, PySubscriber, PyTree, PyTreeCodec, py_accuracy, py_alter, py_select,
 };
 
 #[pymodule(gil_used = false)]
@@ -17,6 +17,10 @@ fn radiate(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(py_accuracy, m)?)?;
     m.add_function(wrap_pyfunction!(_get_dtype_max, m)?)?;
     m.add_function(wrap_pyfunction!(_get_dtype_min, m)?)?;
+    m.add_function(wrap_pyfunction!(_all_ops, m)?)?;
+    m.add_function(wrap_pyfunction!(_activation_ops, m)?)?;
+    m.add_function(wrap_pyfunction!(_edge_ops, m)?)?;
+    m.add_function(wrap_pyfunction!(_create_op, m)?)?;
 
     m.add_class::<PyRandomProvider>()?;
     m.add_class::<PyFitnessFn>()?;
@@ -40,7 +44,6 @@ fn radiate(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyGraphCodec>()?;
     m.add_class::<PyTreeCodec>()?;
     m.add_class::<PyPermutationCodec>()?;
-    m.add_class::<PyAnyCodec>()?;
 
     m.add_class::<PySubscriber>()?;
     m.add_class::<PyEngineEvent>()?;
@@ -48,6 +51,7 @@ fn radiate(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyGraph>()?;
     m.add_class::<PyTree>()?;
     m.add_class::<PyAccuracy>()?;
+    m.add_class::<PyOp>()?;
 
     m.add_class::<PyEngineInputType>()?;
     m.add_class::<PyEngineInput>()?;

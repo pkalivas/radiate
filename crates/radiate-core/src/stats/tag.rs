@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[repr(transparent)]
-pub struct Tag(u16);
+pub struct Tag(u32);
 
 impl Tag {
     #[inline]
@@ -67,18 +67,18 @@ impl From<&[TagKind]> for Tag {
 impl From<u8> for Tag {
     #[inline]
     fn from(bits: u8) -> Self {
-        Tag(bits as u16)
+        Tag(bits as u32)
     }
 }
 
 impl From<u16> for Tag {
     #[inline]
     fn from(bits: u16) -> Self {
-        Tag(bits)
+        Tag(bits as u32)
     }
 }
 
-impl From<Tag> for u16 {
+impl From<Tag> for u32 {
     #[inline]
     fn from(mask: Tag) -> Self {
         mask.0
@@ -102,12 +102,14 @@ pub enum TagKind {
     Distribution,
     Score,
     Rate,
+    Step,
+    Lineage,
 }
 
 impl TagKind {
-    pub const COUNT: usize = 14;
+    pub const COUNT: usize = 17;
     #[inline]
-    pub fn from_index(idx: u8) -> Option<Self> {
+    pub fn from_index(idx: u32) -> Option<Self> {
         use TagKind::*;
         Some(match idx {
             0 => Selector,
@@ -125,13 +127,15 @@ impl TagKind {
             12 => Distribution,
             13 => Score,
             14 => Rate,
+            15 => Step,
+            16 => Lineage,
             _ => return None,
         })
     }
 
     #[inline]
-    pub fn bit(self) -> u16 {
-        1 << (self as u8)
+    pub fn bit(self) -> u32 {
+        1u32 << (self as u32)
     }
 
     #[inline]
@@ -153,19 +157,21 @@ impl TagKind {
             Distribution => "Distribution",
             Score => "Score",
             Rate => "Rate",
+            Step => "Step",
+            Lineage => "Lineage",
         }
     }
 }
 
 impl PartialOrd for TagKind {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some((*self as u8).cmp(&(*other as u8)))
+        Some((*self as u16).cmp(&(*other as u16)))
     }
 }
 
 impl Ord for TagKind {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        (*self as u8).cmp(&(*other as u8))
+        (*self as u16).cmp(&(*other as u16))
     }
 }
 
@@ -188,13 +194,15 @@ impl From<String> for TagKind {
             metric_tags::DISTRIBUTION => Distribution,
             metric_tags::SCORE => Score,
             metric_tags::RATE => Rate,
+            metric_tags::STEP => Step,
+            metric_tags::LINEAGE => Lineage,
             _ => Other,
         }
     }
 }
 
 pub struct TagMaskIter {
-    bits: u16,
+    bits: u32,
 }
 
 impl Iterator for TagMaskIter {
@@ -205,8 +213,8 @@ impl Iterator for TagMaskIter {
             return None;
         }
 
-        let tz = self.bits.trailing_zeros() as u8;
-        self.bits &= self.bits - 1; // clear lowest set bit
+        let tz = self.bits.trailing_zeros() as u32;
+        self.bits &= self.bits - 1;
         TagKind::from_index(tz)
     }
 }

@@ -191,6 +191,9 @@ where
     pub fn handle_engine_start(&mut self, objective: Objective) {
         self.state.running.engine = true;
         self.state.objective_state.objective = objective.clone();
+        if objective.dims() == 2 {
+            self.state.objective_state.charts_visible = 1;
+        }
     }
 }
 

@@ -7,7 +7,7 @@ use radiate_error::{radiate_py_bail, radiate_py_err};
 use serde::Serialize;
 use std::time::Duration;
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub enum PyEngineRunOption {
     Log(bool),
@@ -36,12 +36,14 @@ impl PyEngineRunOption {
 #[pyclass(unsendable)]
 pub struct PyEngine {
     engine: Option<EngineHandle>,
+    limits: Vec<Limit>,
 }
 
 impl PyEngine {
-    pub fn new(engine: EngineHandle) -> Self {
+    pub fn new(limits: Vec<Limit>, engine: EngineHandle) -> Self {
         Self {
             engine: Some(engine),
+            limits,
         }
     }
 }
@@ -59,7 +61,12 @@ impl PyEngine {
             .take()
             .ok_or_else(|| radiate_py_err!("Engine has already been run"))?;
 
-        let limits = limits.transform();
+        let limits = self
+            .limits
+            .clone()
+            .into_iter()
+            .chain(limits.into_iter().filter_map(|input| input.transform()))
+            .collect::<Vec<_>>();
 
         if limits.is_empty() {
             radiate_py_bail!("At least one limit must be provided");
@@ -78,7 +85,6 @@ impl PyEngine {
             Float64(eng) => EpochHandle::Float64(run_engine(eng, limits, options)?),
             Char(eng) => EpochHandle::Char(run_engine(eng, limits, options)?),
             Bit(eng) => EpochHandle::Bit(run_engine(eng, limits, options)?),
-            Any(eng) => EpochHandle::Any(run_engine(eng, limits, options)?),
             Permutation(eng) => EpochHandle::Permutation(run_engine(eng, limits, options)?),
             Graph(eng) => EpochHandle::Graph(run_engine(eng, limits, options)?),
             Tree(eng) => EpochHandle::Tree(run_engine(eng, limits, options)?),
@@ -105,7 +111,6 @@ impl PyEngine {
             Float64(eng) => EpochHandle::Float64(eng.next()?),
             Char(eng) => EpochHandle::Char(eng.next()?),
             Bit(eng) => EpochHandle::Bit(eng.next()?),
-            Any(eng) => EpochHandle::Any(eng.next()?),
             Permutation(eng) => EpochHandle::Permutation(eng.next()?),
             Graph(eng) => EpochHandle::Graph(eng.next()?),
             Tree(eng) => EpochHandle::Tree(eng.next()?),
