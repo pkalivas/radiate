@@ -59,7 +59,7 @@ Lets take a quick look at how we would put together a regression problem using a
     )
 
     # Run the genetic engine with a score (error) limit of 0.001 or a maximum of 1000 generations
-    result = engine.run([rd.ScoreLimit(0.001), rd.GenerationsLimit(1000)], log=True)
+    result = engine.run(rd.ScoreLimit(0.001), rd.GenerationsLimit(1000), log=True)
     ```
 
 === ":fontawesome-brands-rust: Rust"

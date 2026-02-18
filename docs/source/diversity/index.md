@@ -84,6 +84,15 @@ The `ecosystem` tracks the age of `species` to prevent stagnation, if a `species
         species_threshold=.5  # Default value
         max_species_age=20  # Default value
     )
+
+    # or using the fluent builder pattern:
+    engine = (
+        rd.Engine(your_codec)
+        .fitness(your_fitness_func)
+        .diversity(diversity, species_threshold=0.5)
+        .age(max_species_age=20) # Default value
+        # ... other parameters ...
+    )
 	```
 
 === ":fontawesome-brands-rust: Rust"

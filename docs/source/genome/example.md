@@ -46,7 +46,7 @@ Let's look at a basic example of how to use the `Codec` for evolving a simple fu
     # Both methods will be supported for the foreseeable future however, so feel free to use either one.
 
     # Run the engine
-    result = engine.run([rd.ScoreLimit(0.01), rd.GenerationsLimit(1000)])
+    result = engine.run(rd.ScoreLimit(0.01), rd.GenerationsLimit(1000))
     ```
 
 === ":fontawesome-brands-rust: Rust"

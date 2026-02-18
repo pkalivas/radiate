@@ -52,7 +52,7 @@ Lets add on to our example - evolving a simple function: finding the best values
         # ... other parameters ...
     )
 
-    # or using the fluent builder pattern:
+    # or using the fluent builder pattern - both these engines are functionally equivalent:
     engine = (
         rd.Engine.float(2, init_range=(-1.0, 1.0), bounds=(-10.0, 10.0))
         .fitness(fitness_function)

@@ -433,7 +433,7 @@ Evolve a `Graph<Op<f32>>` to solve the XOR problem (NeuroEvolution).
         )
     )
 
-    result = engine.run([rd.ScoreLimit(0.001), rd.GenerationsLimit(1000)], log=True)
+    result = engine.run(rd.ScoreLimit(0.001), rd.GenerationsLimit(1000), log=True)
 
     for input, target in zip(inputs, answers):
         print(f"Input: {input}, Target: {target}, Output: {result.value().eval([input])}")

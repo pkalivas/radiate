@@ -139,19 +139,15 @@ The simplest way to subscribe to events is by providing a callback function:
     ```python
     import radiate as rd
 
-    engine = rd.Engine(
-        codec=your_codec,
-        fitness_func=your_fitness_func,
-        # Subscribe to all events using a lambda function
-        subscribe=lambda event: print(event),  
+    engine = (
+        rd.Emgine(your_codec)
+        .fitness(your_fitness_func)
+        .subscribe(lambda event: print(event))  # Subscribe to all events using a lambda function
         # ... other parameters ...
     )
 
-    # or add it later
-    engine.subscribe(lambda event: print(event))
-
-    # Run the engine
-    engine.run(rd.GenerationsLimit(100))
+    # Run the engine for 100 generations
+    engine.run(rd.Limit.generations(100))
     ```
 
 === ":fontawesome-brands-rust: Rust"

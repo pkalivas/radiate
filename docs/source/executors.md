@@ -78,7 +78,7 @@ Continuing with our example from the preious sections - evolving a simple functi
         # ... other parameters ...
     )
 
-    # Or create the engine using the fluent builder pattern:
+    # Or create the engine using the fluent builder pattern & dsl syntax - both these engines are functionally equivalent:
     # The big difference here is that we can use the convenient
     # .parallel(num_workers: int | None = None) method.
     # If num_workers is None, it will use rayon's global thread pool, otherwise
@@ -99,7 +99,7 @@ Continuing with our example from the preious sections - evolving a simple functi
     )
 
     # Run the engine
-    result = engine.run(rd.ScoreLimit(0.01), rd.GenerationsLimit(1000))
+    result = engine.run(rd.Limit.score(0.01), rd.Limit.generations(1000))
     ```
 
 === ":fontawesome-brands-rust: Rust"

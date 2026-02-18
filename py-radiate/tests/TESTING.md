@@ -72,7 +72,7 @@ def test_engine_int_minimization(random_seed):
         objective=rd.MIN
     )
     
-    result = engine.run([ScoreLimit(0), GenerationsLimit(100)])
+    result = engine.run(rd.ScoreLimit(0), rd.GenerationsLimit(100))
     
     assert result.value() == [0] * 5
     assert result.score()[0] == 0.0

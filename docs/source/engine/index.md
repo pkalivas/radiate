@@ -228,12 +228,11 @@ Radiate provides multiple ways to run the `GeneticEngine`.
     convergence_limit = rd.ConvergenceLimit(window=50, epsilon=0.01) 
 
     # Log the progress of the engine to the console
-    result = engine.run([
+    result = engine.run(
             score_limit,
             generations_limit,
             seconds_limit,
-            convergence_limit
-        ],
+            convergence_limit,
         log=True,
         ui=True, # Enable terminal UI - if enabled, log is ignored
         checkpoint=(10, "checkpoint.json") # checkpoint every 10 generations to 'checkpoint.json'

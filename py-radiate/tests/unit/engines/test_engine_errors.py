@@ -16,7 +16,7 @@ def test_engine_empty_population():
             objective=rd.MIN,
             population_size=0,  # Invalid
         )
-        engine.run([rd.GenerationsLimit(10)])
+        engine.run(rd.GenerationsLimit(10))
 
 
 @pytest.mark.unit
@@ -33,4 +33,4 @@ def test_engine_invalid_limits():
     )
 
     with pytest.raises(ValueError):
-        engine.run([rd.GenerationsLimit(-1)])  # Invalid limit
+        engine.run(rd.GenerationsLimit(-1))  # Invalid limit

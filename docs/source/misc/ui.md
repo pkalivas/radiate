@@ -75,7 +75,7 @@ The TUI is completely opt-in and can be configured as shown below
 
     # Enable the UI by passing ui=True to run() Note that this will disable logging if log=True
     result = engine.run(
-        [rd.ScoreLimit(0.001), rd.GenerationsLimit(1000)],
+        *[rd.Limit.score(0.001), rd.Limit.generations(1000)],
         ui=True,
     )
     print(result)

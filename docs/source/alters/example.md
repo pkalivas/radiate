@@ -57,7 +57,7 @@ Continuing with our example from the previous two sections - evolving a simple f
     # )
 
     # Run the engine
-    result = engine.run([rd.ScoreLimit(0.01), rd.GenerationsLimit(1000)])
+    result = engine.run(rd.ScoreLimit(0.01), rd.GenerationsLimit(1000))
     ```
 
 === ":fontawesome-brands-rust: Rust"
