@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Any
 import enum
 from datetime import timedelta
 
@@ -84,8 +85,10 @@ class MetricSet(RsObject):
     def __getitem__(self, key: str) -> "Metric":
         return Metric.from_rust(self.__backend__().__getitem__(key))
 
-    def __dict__(self) -> dict:
-        return self.__backend__().__dict__()
+    def __dict__(self) -> dict[str, Metric]:  # type: ignore
+        return {
+            key: Metric.from_rust(m) for key, m in self.__backend__().__dict__().items()
+        }
 
     def __len__(self) -> int:
         return self.__backend__().__len__()
@@ -127,7 +130,7 @@ class Metric(RsObject):
     def __repr__(self) -> str:
         return self.__backend__().__repr__()
 
-    def __dict__(self) -> dict:
+    def __dict__(self) -> dict[str, Any]:  # type: ignore
         return self.__backend__().__dict__()
 
     def name(self) -> str:

@@ -467,7 +467,6 @@ class Engine[G, T]:
         ...     "target": [7.0, 8.0, 9.0]
         ... })
         >>> base_engine.regression(df, target="target", feature_cols=["feature1", "feature2"], loss="mae")
-
         """
         self._builder.set_fitness(
             Regression(

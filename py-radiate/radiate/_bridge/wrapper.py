@@ -27,7 +27,7 @@ class RsObject(ABC):
     def from_rust(cls, py_obj: Any | dict):
         instance = cls.__new__(cls)
         if isinstance(py_obj, dict):
-            instance.__dict__.update(py_obj)
+            instance.__dict__.update(py_obj)  # type: ignore
         else:
             instance._pyobj = py_obj
         instance._cache = {}

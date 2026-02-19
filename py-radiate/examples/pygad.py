@@ -12,7 +12,7 @@ import numpy as np
 import radiate as rd
 from numba import float64, jit
 
-rd.random.seed(100)
+rd.random.seed(123)
 
 function_inputs = np.array([4.0, -2.0, 3.5, 5.0, -11.0, -4.7])
 desired_output = 44.0
@@ -24,10 +24,10 @@ def fitness(solution: np.ndarray) -> float:
     return np.abs(output - desired_output)
 
 
-engine = rd.Engine(
-    codec=rd.FloatCodec(len(function_inputs), init_range=(-4.0, 4.0), use_numpy=True),
-    fitness_func=fitness,
-    objective=rd.MIN,
+engine = (
+    rd.Engine.float(len(function_inputs), init_range=(-4.0, 4.0), use_numpy=True)
+    .fitness(fitness)
+    .minimizing()
 )
 
 result = engine.run(rd.ScoreLimit(0.01), log=True)
@@ -38,15 +38,4 @@ print(f"Generations completed: {result.index()}")
 print(f"Function output: {np.sum(result.value() * function_inputs)}")
 print(f"Duration: {result.duration()}")
 print(f"dtype: {result.dtype()}")
-
 print(result.metrics().dashboard())
-
-# temp = rd.FloatCodec(len(function_inputs), init_range=(-4.0, 4.0), use_numpy=True)
-# codec = rd.FloatCodec(len(function_inputs), init_range=(-4.0, 4.0), use_numpy=True)
-# print(codec.encode())
-# print(type(codec.decode(codec.encode())))
-
-# codec = [rd.Gene.float(init_range=(-4.0, 4.0)) for _ in range(len(function_inputs))]
-# e = rd.Engine(codec=codec, fitness_func=fitness, objective=rd.MIN)
-
-# t = e.run(rd.ScoreLimit(0.01), log=True)

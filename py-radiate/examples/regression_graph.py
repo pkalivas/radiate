@@ -53,10 +53,6 @@ for _ in range(-10, 10):
     inputs.append([input])
     answers.append([compute(input)])
 
-df = pl.DataFrame({"dd": inputs, "x": answers, "other": [0.42222] * len(inputs)})
-print("Training Data:")
-print(df)
-
 engine = (
     rd.Engine.graph(
         shape=(1, 1),
@@ -64,7 +60,6 @@ engine = (
         edge=rd.Op.weight(),
         output=rd.Op.linear(),
     )
-    # .regression(df, target="x", feature_cols=["dd"], loss="mse")
     .regression(inputs, answers, loss="mse")
     .subscribe(ScorePlotterHandler())
     .alters(
@@ -72,13 +67,10 @@ engine = (
         rd.Mutate.op(0.07, 0.05),
         rd.Mutate.graph(0.1, 0.1, False),
     )
+    .limit(rd.Limit.generations(1000), rd.Limit.score(0.001))
 )
 
-result = engine.run(
-    rd.Limit.score(0.001),
-    rd.Limit.generations(1000),
-    log=True,
-)
+result = engine.run(log=True)
 
 eval_results = result.value().eval(inputs)
 accuracy = rd.accuracy(result.value(), inputs, answers, loss="mse")
@@ -88,4 +80,8 @@ print(result.metrics().dashboard())
 print(accuracy)
 
 
+# .regression(df, target="x", feature_cols=["dd"], loss="mse")
+# df = pl.DataFrame({"dd": inputs, "x": answers, "other": [0.42222] * len(inputs)})
+# print("Training Data:")
+# print(df)
 # .regression(df, target="x", feature_cols=["dd"], loss="mse")
