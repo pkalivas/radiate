@@ -552,7 +552,7 @@ class Engine[G, T]:
 
         Example:
         ---------
-        # Create an engine that evolves a 1D np.array of UInt8 values and uses multi-point crossover and uniform mutation
+        Create an engine that evolves a 1D np.array of UInt8 values and uses multi-point crossover and uniform mutation
         >>> import radiate as rd
         >>> n_queens = 32
         >>> engine = (
