@@ -44,14 +44,15 @@ engine = (
     .fitness(dtlz_1)
     .objective(rd.MIN, rd.MIN, rd.MIN)
     .front_range(100, 150)
-    .select(rd.TournamentSelector(k=5), rd.NSGA3Selector(points=12))
+    .select(rd.Select.tournament(k=5), rd.Select.nsga3(points=12))
     .alters(
-        rd.SimulatedBinaryCrossover(1.0, 2.0),
-        rd.UniformMutator(0.1),
+        rd.Cross.sbx(1.0, 2.0),
+        rd.Mutate.uniform(0.1),
     )
+    .limit(rd.Limit.generations(2000))
 )
 
-result = engine.run(rd.GenerationsLimit(2000), ui=True)
+result = engine.run(ui=True)
 print(result.metrics().dashboard())
 
 front = result.front()

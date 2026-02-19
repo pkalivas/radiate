@@ -33,7 +33,7 @@ where
             crate::names::NSGA3_SELECTOR => {
                 let ref_points = self
                     .get_usize("points")
-                    .expect("NSGA3Selector requires 'ref_points' argument");
+                    .expect("NSGA3Selector requires 'points' argument");
                 Box::new(NSGA3Selector::new(ref_points))
             }
             crate::names::TOURNAMENT_NSGA2_SELECTOR => Box::new(TournamentNSGA2Selector::new()),

@@ -35,7 +35,7 @@ def test_engine_float_matrix_minimization(random_seed):
     """Test engine with float codec for minimization."""
 
     # Simple fitness function: minimize sum of squares
-    def fitness_func(x: np.ndarray) -> float:
+    def fit(x: np.ndarray) -> float:
         assert isinstance(x, np.ndarray)
         assert x.dtype == np.float32
         return np.sum(x**2)
@@ -43,9 +43,13 @@ def test_engine_float_matrix_minimization(random_seed):
     # Create an engine that evolves 2x2 matrices of float32 values, minimizing the sum of squares
     engine = (
         rd.Engine.float(
-            [2, 2], init_range=(-5.0, 5.0), use_numpy=True, dtype=rd.Float32
+            shape=[2, 2],
+            init_range=(-5.0, 5.0),
+            bounds=(-5.0, 5.0),
+            use_numpy=True,
+            dtype=rd.Float32,
         )
-        .fitness(fitness_func)
+        .fitness(fit)
         .minimizing()
         .size(50)
         .select(rd.Select.tournament(3), rd.Select.elite())

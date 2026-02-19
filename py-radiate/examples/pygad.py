@@ -30,7 +30,7 @@ engine = (
     .minimizing()
 )
 
-result = engine.run(rd.ScoreLimit(0.01), log=True)
+result = engine.run(rd.Limit.score(0.01), log=True)
 
 print(f"\nBest solution found: {result.value()}")
 print(f"Fitness: {result.score()}")

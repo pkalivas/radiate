@@ -171,7 +171,7 @@ def run_novelty_search_evolution(generations: int = 200) -> rd.Generation:
     # but rather for diverse behaviors
 
     # The decision to use the decorator here is simply to demonstrate the alternative approach.
-    @rd.novelty(distance=rd.CosineDistance(), k=15, threshold=0.6, archive=1000)
+    @rd.novelty(distance=rd.Dist.cosine(), k=15, threshold=0.6, archive=1000)
     def fitness_func(genome: list[float]) -> list[float]:
         behavior = RobotBehavior(genome)
         return behavior.get_behavior_descriptor()
@@ -190,17 +190,15 @@ def run_novelty_search_evolution(generations: int = 200) -> rd.Generation:
     # )
     # There is no difference in behavior between these two approaches.
 
-    codec = rd.FloatCodec.vector(6, init_range=(-5.0, 5.0))
-
     # Create novelty search engine
-    engine = rd.Engine(
-        codec=codec,
-        fitness_func=fitness_func,
-        offspring_selector=rd.BoltzmannSelector(4),
-        alters=[
-            rd.BlendCrossover(),
-            rd.GaussianMutator(0.1),
-        ],
+    engine = (
+        rd.Engine.float(6, init_range=(-5.0, 5.0))
+        .fitness(fitness_func)
+        .select(rd.Select.boltzmann(4.0))
+        .alters(
+            rd.Cross.blend(),
+            rd.Mutate.gaussian(),
+        )
     )
 
     return engine.run(rd.GenerationsLimit(generations), log=True)

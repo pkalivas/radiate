@@ -514,8 +514,8 @@ class Engine[G, T]:
         ...     rd.Engine.char(len(target_str))
         ...     .fitness(lambda genome: sum(1 for g, t in zip(genome, target_str) if g == t))
         ...     .select(
-        ...         offspring=rd.Select.tournament(k=5), # <- tournament selection with k=5 for offspring
-        ...         survivor=rd.Select.boltzmann(temp=4.0), # <- boltzmann selection with temperature 4.0 for survivors
+        ...         offspring=rd.Select.tournament(k=5), # <- tournament selection with k=5 for offspring (parents)
+        ...         survivor=rd.Select.boltzmann(temp=4.0), # <- boltzmann selection with temperature 4.0 for survivors (unchanged)
         ...         frac=0.7 # <- 70% offspring, 30% survivors in the next generation
         ...     )
         ... )
@@ -659,6 +659,9 @@ class Engine[G, T]:
         it also increases the computational cost of each generation. Conversely, a smaller population size can
         reduce computational cost but may lead to premature convergence on suboptimal solutions.
         The optimal population size can depend on the specific problem being solved, so it may require some experimentation to find the best value.
+
+        Defaults:
+        - **size**: 100 individuals per generation
 
         Args:
             size: The number of individuals in the population for each generation. Must be greater than 0.
@@ -999,6 +1002,8 @@ class Engine[G, T]:
         >>> ...
         >>> class MyEventHandler(rd.EventHandler):
         ...     def __init__(self):
+        ...         # leave the super init empty to subscribe to all events,
+        ...         # or specify a specific event type to subscribe to only that event type
         ...         super().__init__(rd.EventType.ENGINE_IMPROVEMENT) # <- we only want to listen to engine improvement events
         ... ...
         ...     def on_event(self, event: rd.EngineEvent) -> None:
@@ -1040,4 +1045,55 @@ class Engine[G, T]:
         ... )
         """
         self._builder.set_generation(generation)
+        return self
+
+    def load_checkpoint(self, path: str) -> Engine[G, T]:
+        """
+        Load a checkpoint from a previous engine run.
+
+        This method allows you to load a checkpoint that was saved during a previous engine run.
+        Checkpoints are typically saved at regular intervals during the engine's execution (e.g., every N generations)
+        and contain the state of the engine at that point in time, including the current generation, population,
+        best solution, and other relevant information.
+
+        By loading a checkpoint, you can resume evolution from the point where the checkpoint was saved,
+        which is greawt for long-running processes or if you want to continue evolving after stopping the engine.
+
+        Args:
+            path: The file path to the checkpoint file to load.
+        Returns:
+            Engine: The engine instance with the checkpoint loaded and ready to resume evolution.
+
+        Example:
+        ---------
+        Lets first configure an engine to create checkpoints every 50 generations to a directory called "checking".
+        Then, after the engine has run for a while and created some checkpoints, we can load a checkpoint from generation 200 and continue evolving from there.
+        >>> import radiate as rd
+        >>> ...
+        >>> engine = (
+        ...     rd.Engine.graph(
+        ...         shape=(1, 1),
+        ...         vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
+        ...         edge=rd.Op.weight(),
+        ...         output=rd.Op.linear(),
+        ...     )
+        ...     .regression(..., ...)
+        ...     .alters(
+        ...         rd.Cross.graph(0.05, 0.5),
+        ...         rd.Mutate.op(0.07, 0.05),
+        ...         rd.Mutate.graph(0.1, 0.1, False),
+        ...     )
+        ...     .limit(rd.Limit.generations(300), rd.Limit.score(0.001))
+        ... )
+        >>> ...
+        >>> result = engine.run(log=True, checkpoint=(50, "checking")) # <- run the engine with logging enabled and checkpoints every 50 generations to the "checking" directory.
+
+        Now that we have created some checkpoints, we can load them in to a new engine instance and continue evolving from there.
+        >>> engine = (
+        ... # ... configure your engine as before ...
+        ...     .load_checkpoint("checking/generation_200.json") # <- load the checkpoint from generation 200 to resume evolution from that point
+        )
+        >>> result_from_checkpoint = engine.run(rd.Limit.generations(10), log=True)
+        """
+        self._builder.set_checkpoint_path(path)
         return self
