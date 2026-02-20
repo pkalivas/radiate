@@ -227,11 +227,7 @@ where
         + for<'py> IntoPyObjectExt<'py>
         + 'static,
     G: Gene<Allele = A> + From<PyGene>,
-    C: Chromosome<Gene = G>
-        + Clone
-        + From<Vec<G>>
-        + From<(usize, std::ops::Range<A>, std::ops::Range<A>)>
-        + 'static,
+    C: Chromosome<Gene = G> + Clone + From<Vec<G>> + From<(usize, Range<A>, Range<A>)> + 'static,
 {
     fn build(self) -> PyCodec<C, PyAnyObject> {
         let val_range: Range<A> = self

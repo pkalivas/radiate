@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+"""
+This example shows how to use Radiate with NumPy arrays.
+
+It implements a simple feedforward neural network with 3 layers (input, hidden, output) to fit a regression problem.
+The network weights are evolved using a float codec.
+"""
+
 import radiate as rd
 import numpy as np
 
@@ -55,9 +62,9 @@ engine = (
     )
     .fitness(fit)
     .minimizing()
-    .select(offspring=rd.Select.boltzmann(temp=4.0))
+    .select(rd.Select.boltzmann(temp=4.0))
     .alters(rd.Cross.blend(0.7, 0.4), rd.Mutate.gaussian(0.1))
     .limit(rd.Limit.score(0.01), rd.Limit.generations(500))
 )
 
-print(engine.run())
+print(engine.run(log=True))
