@@ -558,10 +558,10 @@ class Engine[G, T]:
         ...    rd.Engine.int(n_queens, init_range=(0, n_queens), use_numpy=True, dtype=rd.UInt8)
         ...    .fitness(my_fitness_fn)
         ...    .minimizing()
-        ...    .select(offspring=rd.TournamentSelector(k=3))
+        ...    .select(offspring=rd.Select.tournament(k=3))
         ...    .alters(
-        ...        rd.MultiPointCrossover(0.75, 2), # <- multi-point crossover with 75% rate and 2 crossover points
-        ...        rd.UniformMutator(0.05), # <- uniform mutation with 5% mutation rate
+        ...        rd.Cross.multipoint(0.75, 2), # <- multi-point crossover with 75% rate and 2 crossover points
+        ...        rd.Mutate.uniform(0.05), # <- uniform mutation with 5% mutation rate
         ...    )
         ... )
         """
@@ -1093,7 +1093,7 @@ class Engine[G, T]:
         ... # ... configure your engine as before ...
         ...     .load_checkpoint("checking/generation_200.json") # <- load the checkpoint from generation 200 to resume evolution from that point
         )
-        >>> result_from_checkpoint = engine.run(rd.Limit.generations(10), log=True)
+        >>> result_from_checkpoint = engine.run(rd.Limit.score(0.001), log=True)
         """
         self._builder.set_checkpoint_path(path)
         return self

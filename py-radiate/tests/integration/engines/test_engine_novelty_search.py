@@ -6,7 +6,7 @@ def calc_population_diversity(population: rd.Population[float]) -> float:
     """Calculate diversity of the population."""
     descriptors = [
         [g.allele() for chrom in individual.genotype() for g in chrom]
-        for individual in population  # type: ignore
+        for individual in population
     ]
     if not descriptors:
         return 0.0
@@ -27,7 +27,7 @@ def test_engine_is_novel(random_seed):
         .fitness(
             rd.NoveltySearch(
                 descriptor=lambda x: x,
-                distance=rd.CosineDistance(),
+                distance=rd.Dist.cosine(),
                 k=15,
                 threshold=0.03,
             )
@@ -49,16 +49,16 @@ def test_engine_is_novel(random_seed):
 def test_int_engine_novelty_with_decorator_creates(random_seed):
     """Test engine with novelty search."""
 
-    @rd.novelty(distance=rd.HammingDistance(), k=15, threshold=0.03)
+    @rd.novelty(distance=rd.Dist.hamming(), k=15, threshold=0.03)
     def novelty(phenotype: list[int]) -> list[int]:
         return phenotype
 
     engine = (
-        rd.Engine(rd.IntCodec(6, init_range=(-100, 100)))
+        rd.Engine.int(6, init_range=(-100, 100))
         .fitness(novelty)
         .size(100)
-        .select(offspring=rd.TournamentSelector(3))
-        .alters(rd.UniformCrossover(0.5), rd.ArithmeticMutator(0.1))
+        .select(offspring=rd.Select.tournament(3))
+        .alters(rd.Cross.uniform(0.5), rd.Mutate.arithmetic(0.1))
     )
 
     result = engine.run(rd.GenerationsLimit(100))
