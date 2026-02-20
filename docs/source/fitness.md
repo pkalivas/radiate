@@ -371,7 +371,7 @@ You can implement your own behavioral descriptors by implementing the `Novelty` 
     import radiate as rd
 
     # Define a behavioral descriptor
-    @rd.novelty(distance=rd.CosineDistance(), k=10, threshold=0.1, archive=1000)
+    @rd.novelty(distance=rd.Dist.cosine(), k=10, threshold=0.1, archive=1000)
     def behavior(self, individual: list[float]) -> list[float]:
         # Return behavioral characteristics 
         # Some code that describes the behavior of a vector

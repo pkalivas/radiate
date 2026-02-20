@@ -19,7 +19,7 @@ pub use permutation::PyPermutationCodec;
 use radiate_error::radiate_py_bail;
 pub use tree::PyTreeCodec;
 
-use numpy::{Element, PyArray, PyArray1, PyArrayMethods};
+use numpy::{Element, PyArray1};
 use pyo3::{Bound, IntoPyObject, PyAny, PyResult, types::PyList};
 use pyo3::{IntoPyObjectExt, Python};
 use radiate::{Chromosome, Codec, Gene, Genotype};
@@ -113,33 +113,26 @@ where
             );
         };
 
-        let is_square = lengths.iter().all(|&len| len == lengths[0]);
-
-        if is_square && use_numpy {
-            return match lengths.len() {
-                1 => Ok(PyArray1::from_iter(py, values).into_any()),
-                _ => Ok(PyArray::from_iter(py, values)
-                    .reshape([lengths.len(), lengths[0]])?
-                    .into_any()),
-            };
+        if use_numpy {
+            return Ok(PyArray1::from_iter(py, values).into_any());
         }
 
         return Ok(PyList::new(py, values)?.into_any());
     }
 
-    let is_square = lengths.iter().all(|&len| len == lengths[0]);
-
-    if use_numpy && is_square {
+    if use_numpy {
         let values = genotype
             .iter()
-            .flat_map(|chrom| chrom.iter().map(|gene| *gene.allele()));
-
-        return match lengths.len() {
-            1 => Ok(PyArray1::from_iter(py, values).into_any()),
-            _ => Ok(PyArray::from_iter(py, values)
-                .reshape([lengths.len(), lengths[0]])?
-                .into_any()),
-        };
+            .map(|chrom| chrom.as_slice().iter().map(|gene| *gene.allele()));
+        if lengths.len() == 1 {
+            return Ok(PyArray1::from_iter(py, values.flatten()).into_any());
+        } else {
+            return Ok(PyList::new(
+                py,
+                values.map(|val| PyArray1::from_iter(py, val).into_any()),
+            )?
+            .into_any());
+        }
     }
 
     let result = PyList::new(

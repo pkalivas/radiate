@@ -82,10 +82,14 @@ def test_int_codec_with_numpy():
     genotype = codec.encode()
     decoded = codec.decode(genotype)
 
-    assert isinstance(decoded, np.ndarray)
-    assert decoded.shape == (4, 5)
-    assert all(0 <= x <= 100 for x in decoded.flatten())
-    assert decoded.dtype == np.int32
+    assert isinstance(decoded, list)
+    assert len(decoded) == 4
+
+    for row in decoded:
+        assert isinstance(row, np.ndarray)
+        assert row.shape == (5,)
+        assert all(0 <= x <= 100 for x in row.flatten())
+        assert row.dtype == np.int32  # type: ignore
 
 
 @pytest.mark.unit

@@ -86,10 +86,14 @@ def test_float_codec_with_numpy():
     genotype = codec.encode()
     decoded = codec.decode(genotype)
 
-    assert isinstance(decoded, np.ndarray)
-    assert decoded.shape == (4, 5)
-    assert all(-10.0 <= x <= 10.0 for x in decoded.flatten())
-    assert decoded.dtype == np.float32
+    assert isinstance(decoded, list)
+    assert len(decoded) == 4
+
+    for row in decoded:
+        assert isinstance(row, np.ndarray)
+        assert row.shape == (5,)
+        assert all(-10.0 <= x <= 10.0 for x in row)
+        assert row.dtype == np.float32  # type: ignore
 
 
 @pytest.mark.unit

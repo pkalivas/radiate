@@ -23,7 +23,7 @@ type Subscriber = AtLeastOne[Callable[[Any], None]] | AtLeastOne[EventHandler]
 
 type ScalarDecoding[T] = T
 type VectorDecoding[T] = Sequence[T] | "np.ndarray"
-type MatrixDecoding[T] = Sequence[Sequence[T]] | "np.ndarray"
+type MatrixDecoding[T] = Sequence[Sequence[T]] | Sequence["np.ndarray"]
 type GpDecoding = Graph | Tree
 type Decoding[T] = (
     ScalarDecoding[T] | VectorDecoding[T] | MatrixDecoding[T] | GpDecoding

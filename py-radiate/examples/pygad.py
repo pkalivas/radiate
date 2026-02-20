@@ -39,3 +39,26 @@ print(f"Function output: {np.sum(result.value() * function_inputs)}")
 print(f"Duration: {result.duration()}")
 print(f"dtype: {result.dtype()}")
 print(result.metrics().dashboard())
+
+
+# def fit(val: np.ndarray) -> int:
+#     # print(val)
+#     # print()
+
+#     # one = val[0].reshape((3, 3))
+#     # two = val[1].reshape((3, 3))
+#     # three = val[2].reshape((3, 3))
+
+#     print(val)
+#     return int(np.sum(val))
+
+#     # return int(np.sum(val[0]) + np.sum(val[1]) + np.sum(val[2]))
+
+
+# engine = (
+#     rd.Engine.float(9, init_range=(-4.0, 4.0), use_numpy=True, dtype=rd.Float32)
+#     .fitness(fit)
+#     .minimizing()
+# )
+
+# engine.run(rd.Limit.generations(1), log=True)

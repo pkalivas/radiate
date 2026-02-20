@@ -80,6 +80,23 @@ def memory_dataset():
     return inputs, outputs
 
 
+@pytest.fixture
+def example_1x1_regression_dataset():
+    def compute(x: float) -> float:
+        return 4.0 * x**3 - 3.0 * x**2 + x
+
+    inputs = []
+    answers = []
+
+    x = -1.0
+    for _ in range(20):
+        x += 0.1
+        inputs.append([x])
+        answers.append([compute(x)])
+
+    return inputs, answers
+
+
 """
 Graph Fixtures
 """

@@ -60,20 +60,21 @@ def test_engine_int_matrix_nparray(random_seed):
 
     def fitness_func(x: np.ndarray) -> float:
         assert isinstance(x, np.ndarray)
+        x = x.reshape((rows, cols))
         assert x.shape == (rows, cols)
         assert np.all(x >= -5) and np.all(x <= 20)
         assert x.dtype == np.int64
         return float(np.sum(x))
 
     engine = (
-        rd.Engine.int((rows, cols), init_range=(0, 10), bounds=(-5, 20), use_numpy=True)
+        rd.Engine.int(rows * cols, init_range=(0, 10), bounds=(-5, 20), use_numpy=True)
         .fitness(fitness_func)
         .minimizing()
     )
 
     result = engine.run(rd.ScoreLimit(0), rd.GenerationsLimit(500))
 
-    assert np.array_equal(result.value(), np.zeros((rows, cols), dtype=np.int64))
+    assert np.array_equal(result.value(), np.zeros(rows * cols, dtype=np.int64))
     assert result.score() == [0]
     assert result.index() <= 500
     assert len(result.population()) == len(result.ecosystem().population())

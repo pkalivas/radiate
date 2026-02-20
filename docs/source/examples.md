@@ -99,8 +99,8 @@ For example, a solution for `n=8` would be:
         .minimizing()
         .select(offspring=rd.TournamentSelector(k=3))
         .alters(
-            rd.MultiPointCrossover(0.75, 2),
-            rd.UniformMutator(0.05),
+            rd.Cross.multipoint(0.75, 2),
+            rd.Mutate.uniform(0.05),
         )
     )
 
@@ -211,8 +211,8 @@ where:
         .fitness(fitness_fn)
         .minimizing()
         .alters(
-            rd.UniformCrossover(0.5),
-            rd.ArithmeticMutator(0.01)
+            rd.Cross.uniform(0.5),
+            rd.Mutate.arithmetic(0.01)
         )
     )
 
@@ -316,10 +316,10 @@ $$
         .fitness(dtlz_1)
         .objective(rd.MIN, rd.MIN, rd.MIN)
         .front_range(100, 150)
-        .select(rd.TournamentSelector(k=5), rd.NSGA3Selector(points=12))
+        .select(rd.Select.tournament(k=5), rd.Select.nsga3(points=12))
         .alters(
-            rd.SimulatedBinaryCrossover(1.0, 2.0),
-            rd.UniformMutator(0.1),
+            rd.Cross.sbx(1.0, 2.0), # <- Simulated Binary Crossover
+            rd.Mutate.uniform(0.1),
         )
     )
     result = engine.run(rd.GenerationsLimit(2000), ui=True)
