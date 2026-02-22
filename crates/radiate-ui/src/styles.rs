@@ -1,4 +1,4 @@
-use ratatui::style::{Color, Stylize, palette::material};
+use ratatui::style::{Color, palette::material};
 
 pub const BG_COLOR: Color = material::GRAY.c800;
 pub const ALT_BG_COLOR: Color = material::GRAY.c900;
