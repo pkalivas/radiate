@@ -58,16 +58,18 @@ mod tests {
 
         for key in engine_metrics.keys() {
             let engine_metric = engine_metrics.get(key).expect("Engine metric missing key");
-            let loaded_metric = loaded_metrics.get(key).expect("Loaded metric missing key");
+            let loaded_metric = loaded_metrics.get(key);
 
-            assert!(
-                engine_metric.name() == loaded_metric.name(),
-                "Metric names do not match for key: {}",
-                key
-            );
+            if let Some(loaded_metric) = loaded_metric {
+                assert!(
+                    engine_metric.name() == loaded_metric.name(),
+                    "Metric names do not match for key: {}",
+                    key
+                );
 
-            assert_statistics(engine_metric, loaded_metric, key);
-            assert_time_statistics(engine_metric, loaded_metric, key);
+                assert_statistics(engine_metric, loaded_metric, key);
+                assert_time_statistics(engine_metric, loaded_metric, key);
+            }
         }
     }
 

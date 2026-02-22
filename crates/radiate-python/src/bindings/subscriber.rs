@@ -4,7 +4,7 @@ use pyo3::{IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::Objective;
 use std::fmt::Debug;
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct PySubscriber {
     event_name: Option<String>,

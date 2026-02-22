@@ -47,7 +47,7 @@ impl<'a, T> GraphTopologicalIterator<'a, T> {
         GraphTopologicalIterator {
             graph,
             completed: vec![false; graph.len()],
-            index_queue: VecDeque::new(),
+            index_queue: VecDeque::with_capacity(graph.len()),
             pending_index: if is_valid { 0 } else { graph.len() },
         }
     }

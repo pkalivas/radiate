@@ -1,6 +1,6 @@
 import pytest
-
-from radiate import IntCodec
+import numpy as np
+from radiate import IntCodec, Int16, Int32
 
 
 @pytest.mark.unit
@@ -12,6 +12,13 @@ def test_int_codec_vector_creation():
     assert len(genotype) == 1
     assert len(genotype[0]) == 5
     assert all(0 <= gene.allele() <= 10 for gene in genotype[0])
+
+    codec = IntCodec(shape=8, init_range=(-5, 5))
+    genotype = codec.encode()
+
+    assert len(genotype) == 1
+    assert len(genotype[0]) == 8
+    assert all(-5 <= gene.allele() <= 5 for gene in genotype[0])
 
 
 @pytest.mark.unit
@@ -26,6 +33,15 @@ def test_int_codec_matrix_creation():
         assert all(isinstance(gene.allele(), int) for gene in row)
     assert all(0 <= gene.allele() <= 100 for row in genotype for gene in row)
 
+    codec = IntCodec(shape=(2, 3), init_range=(-10, 10))
+    genotype = codec.encode()
+
+    assert len(genotype) == 2
+    assert all(len(row) == 3 for row in genotype)
+    for row in genotype:
+        assert all(isinstance(gene.allele(), int) for gene in row)
+    assert all(-10 <= gene.allele() <= 10 for row in genotype for gene in row)
+
 
 @pytest.mark.unit
 def test_int_codec_decode():
@@ -38,6 +54,43 @@ def test_int_codec_decode():
     assert all(isinstance(x, int) for x in decoded)
     assert all(0 <= x <= 5 for x in decoded)
 
+    codec = IntCodec(shape=(2, 2), init_range=(-5, 5))
+    genotype = codec.encode()
+    decoded = codec.decode(genotype)
+
+    assert len(decoded) == 2
+    assert all(len(row) == 2 for row in decoded)
+    assert all(isinstance(x, int) for row in decoded for x in row)
+    assert all(-5 <= x <= 5 for row in decoded for x in row)
+
+
+@pytest.mark.unit
+def test_int_codec_with_numpy():
+    """Test creating an integer codec that uses NumPy."""
+    codec = IntCodec(10, init_range=(-5, 5), use_numpy=True, dtype=Int16)
+    genotype = codec.encode()
+    decoded = codec.decode(genotype)
+
+    assert isinstance(decoded, np.ndarray)
+    assert decoded.shape == (10,)
+    assert all(-5 <= x <= 5 for x in decoded)
+    assert decoded.dtype == np.int16
+
+    codec = IntCodec(
+        shape=[5, 5, 5, 5], init_range=(0, 100), use_numpy=True, dtype=Int32
+    )
+    genotype = codec.encode()
+    decoded = codec.decode(genotype)
+
+    assert isinstance(decoded, list)
+    assert len(decoded) == 4
+
+    for row in decoded:
+        assert isinstance(row, np.ndarray)
+        assert row.shape == (5,)
+        assert all(0 <= x <= 100 for x in row.flatten())
+        assert row.dtype == np.int32  # type: ignore
+
 
 @pytest.mark.unit
 def test_int_codec_bounds():
@@ -47,6 +100,13 @@ def test_int_codec_bounds():
 
     for gene in genotype[0]:
         assert -5 <= gene.allele() <= 5
+
+    codec = IntCodec.matrix((3, 3), init_range=(0, 100))
+    genotype = codec.encode()
+
+    for row in genotype:
+        for gene in row:
+            assert 0 <= gene.allele() <= 100
 
 
 @pytest.mark.unit

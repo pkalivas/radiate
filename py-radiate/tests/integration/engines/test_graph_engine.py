@@ -7,7 +7,7 @@ def test_engine_graph_xor(xor_dataset, random_seed):
     """Test engine with graph codec for XOR problem."""
     inputs, outputs = xor_dataset
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=rd.GraphCodec.directed(
             shape=(2, 1),
             vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.linear()],
@@ -15,7 +15,7 @@ def test_engine_graph_xor(xor_dataset, random_seed):
             output=rd.Op.sigmoid(),
         ),
         fitness_func=rd.Regression(inputs, outputs),
-        objective="min",
+        objective=rd.MIN,
         population_size=100,
         offspring_selector=rd.BoltzmannSelector(4.0),
         alters=[
@@ -25,7 +25,7 @@ def test_engine_graph_xor(xor_dataset, random_seed):
         ],
     )
 
-    result = engine.run([rd.ScoreLimit(0.1), rd.GenerationsLimit(1000)])
+    result = engine.run(rd.ScoreLimit(0.1), rd.GenerationsLimit(1000))
 
     assert result.score()[0] < 0.1
     assert result.index() <= 1000
@@ -46,10 +46,10 @@ def test_engine_graph_regression_with_speciation(
         output=rd.Op.linear(),
     )
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=codec,
         fitness_func=rd.Regression(inputs, outputs),
-        objective="min",
+        objective=rd.MIN,
         population_size=100,
         species_threshold=0.1,
         diversity=rd.NeatDistance(excess=0.1, disjoint=0.1, weight_diff=0.5),
@@ -60,7 +60,7 @@ def test_engine_graph_regression_with_speciation(
         ],
     )
 
-    result = engine.run([rd.ScoreLimit(0.1), rd.GenerationsLimit(500)])
+    result = engine.run(rd.ScoreLimit(0.1), rd.GenerationsLimit(500))
 
     # Testing in multithreaded mode can lead to slightly different results so we
     # relax the assertion a bit by allowing a few # of species
@@ -81,10 +81,10 @@ def test_engine_graph_with_recurrent_connections(memory_dataset, random_seed):
         output=rd.Op.sigmoid(),
     )
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=codec,
         fitness_func=rd.Regression(inputs, outputs),
-        objective="min",
+        objective=rd.MIN,
         population_size=250,
         alters=[
             rd.GraphCrossover(0.5, 0.5),
@@ -93,7 +93,7 @@ def test_engine_graph_with_recurrent_connections(memory_dataset, random_seed):
         ],
     )
 
-    result = engine.run([rd.ScoreLimit(0.001), rd.GenerationsLimit(500)])
+    result = engine.run(rd.ScoreLimit(0.001), rd.GenerationsLimit(500))
 
     assert result.score()[0] < 0.001
     assert result.index() <= 500
@@ -132,25 +132,52 @@ def test_engine_graph_recurrent_class_acc(memory_dataset, random_seed):
         output=rd.Op.sigmoid(),
     )
 
-    engine = rd.GeneticEngine(
-        codec=codec,
-        fitness_func=rd.Regression(inputs, outputs, loss="cross_entropy"),
-        objective="min",
-        alters=[
+    engine = (
+        rd.Engine(codec)
+        .regression(inputs, outputs, loss="cross_entropy")
+        .alters(
             rd.GraphCrossover(0.5, 0.5),
             rd.OperationMutator(0.1, 0.05),
             rd.GraphMutator(0.05, 0.05),
-        ],
+        )
     )
 
-    result = engine.run([rd.ScoreLimit(0.01), rd.GenerationsLimit(500)])
+    result = engine.run(rd.ScoreLimit(0.01), rd.GenerationsLimit(500))
 
     assert result.score()[0] < 0.01
     assert result.index() <= 500
     assert isinstance(result.value(), rd.Graph)
 
-    acc = rd.calc_accuracy(result.value(), inputs, outputs, loss="cross_entropy")
+    acc = rd.accuracy(result.value(), inputs, outputs, loss="cross_entropy")
 
     assert acc.sample_count() == len(inputs)
-    assert acc.recall() > 0.99
-    assert acc.loss() < 0.01
+    assert acc.recall() is not None and acc.recall() > 0.99  # type: ignore
+    assert acc.loss() is not None and acc.loss() < 0.01  # type: ignore
+
+
+@pytest.mark.integration
+def test_graph_engine_with_fluent_builder(random_seed, xor_dataset):
+    """Test graph engine with fluent builder."""
+    inputs, outputs = xor_dataset
+
+    engine = (
+        rd.Engine.graph(
+            shape=(2, 1),
+            vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.linear()],
+            edge=rd.Op.weight(),
+            output=rd.Op.linear(),
+            graph_type="directed",
+        )
+        .regression(inputs, outputs)
+        .alters(
+            rd.GraphCrossover(0.5, 0.5),
+            rd.OperationMutator(0.07, 0.05),
+            rd.GraphMutator(0.1, 0.1),
+        )
+    )
+
+    result = engine.run(rd.ScoreLimit(0.1), rd.GenerationsLimit(1000))
+
+    assert result.score()[0] < 0.1
+    assert result.index() <= 1000
+    assert isinstance(result.value(), rd.Graph)

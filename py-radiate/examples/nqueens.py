@@ -9,14 +9,14 @@ This means that no two queens can be in the same row, column, or diagonal.
 
 import numpy as np
 import radiate as rd
-from numba import jit, int64
+from numba import jit, uint8
 
 rd.random.seed(514)
 
 N_QUEENS = 32
 
 
-@jit(int64(int64[:]), nopython=True)
+@jit(uint8(uint8[:]), nopython=True)
 def fitness_fn(queens: np.ndarray) -> int:
     """Calculate the fitness score for the N-Queens problem."""
 
@@ -31,14 +31,17 @@ def fitness_fn(queens: np.ndarray) -> int:
     return np.sum(same_row) + np.sum(same_diagonal)
 
 
-engine = rd.GeneticEngine(
-    rd.IntCodec.vector(N_QUEENS, (0, N_QUEENS), use_numpy=True),
-    fitness_fn,
+engine = (
+    rd.Engine.int(N_QUEENS, init_range=(0, N_QUEENS), use_numpy=True, dtype=rd.UInt8)
+    .fitness(fitness_fn)
+    .minimizing()
+    .select(offspring=rd.TournamentSelector(k=3))
+    .alters(
+        rd.MultiPointCrossover(0.75, 2),
+        rd.UniformMutator(0.05),
+    )
 )
 
-engine.minimizing()
-engine.offspring_selector(rd.BoltzmannSelector(4.0))
-engine.alters([rd.MultiPointCrossover(0.75, 2), rd.UniformMutator(0.05)])
 
 result = engine.run(rd.ScoreLimit(0), ui=True)
 print(result)

@@ -1,11 +1,11 @@
-use crate::{AnyChromosome, PyGeneType, PyGenotype, PyPhenotype};
-use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
+use crate::{DataType, PyGeneType, PyGenotype, PyPhenotype, Wrap};
+use pyo3::{Bound, IntoPyObject, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
     BitChromosome, CharChromosome, Chromosome, FloatChromosome, GraphChromosome, IntChromosome, Op,
     PermutationChromosome, Phenotype, Population, TreeChromosome,
 };
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone, Debug)]
 pub struct PyPopulation {
     #[pyo3(get)]
@@ -58,6 +58,14 @@ impl PyPopulation {
             self.phenotypes[0].gene_type()
         }
     }
+
+    pub fn dtype<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        if self.phenotypes.is_empty() {
+            Wrap(DataType::Null).into_pyobject(py)
+        } else {
+            self.phenotypes[0].dtype(py)
+        }
+    }
 }
 
 macro_rules! impl_into_py_population {
@@ -99,11 +107,23 @@ macro_rules! impl_into_py_population {
     };
 }
 
-impl_into_py_population!(FloatChromosome);
+impl_into_py_population!(IntChromosome<u8>);
+impl_into_py_population!(IntChromosome<u16>);
+impl_into_py_population!(IntChromosome<u32>);
+impl_into_py_population!(IntChromosome<u64>);
+impl_into_py_population!(IntChromosome<u128>);
+
+impl_into_py_population!(IntChromosome<i8>);
+impl_into_py_population!(IntChromosome<i16>);
+impl_into_py_population!(IntChromosome<i32>);
 impl_into_py_population!(IntChromosome<i64>);
+impl_into_py_population!(IntChromosome<i128>);
+
+impl_into_py_population!(FloatChromosome<f32>);
+impl_into_py_population!(FloatChromosome<f64>);
+
 impl_into_py_population!(BitChromosome);
 impl_into_py_population!(CharChromosome);
 impl_into_py_population!(GraphChromosome<Op<f32>>);
 impl_into_py_population!(TreeChromosome<Op<f32>>);
 impl_into_py_population!(PermutationChromosome<usize>);
-impl_into_py_population!(AnyChromosome<'static>);

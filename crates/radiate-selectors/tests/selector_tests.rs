@@ -45,7 +45,7 @@ mod selector_tests {
     #[case(StochasticUniversalSamplingSelector::new(), Optimize::Minimize, 80)]
     #[case(StochasticUniversalSamplingSelector::new(), Optimize::Maximize, 80)]
     fn test_probability_selectors_better_than_random(
-        #[case] selector: impl Select<FloatChromosome>,
+        #[case] selector: impl Select<FloatChromosome<f32>>,
         #[case] optimize: Optimize,
         #[case] count: usize,
     ) {
@@ -81,19 +81,19 @@ mod selector_tests {
     }
 
     fn fitness_improvement_metric(
-        population: &Population<FloatChromosome>,
-        selected: &Population<FloatChromosome>,
+        population: &Population<FloatChromosome<f32>>,
+        selected: &Population<FloatChromosome<f32>>,
         objectives: &Objective,
     ) -> f32 {
         let population_avg: f32 = population
             .iter()
-            .map(|ind| ind.genotype()[0].genes()[0].allele())
+            .map(|ind| ind.genotype()[0].as_slice()[0].allele())
             .sum::<f32>()
             / population.len() as f32;
 
         let selected_avg: f32 = selected
             .iter()
-            .map(|ind| ind.genotype()[0].genes()[0].allele())
+            .map(|ind| ind.genotype()[0].as_slice()[0].allele())
             .sum::<f32>()
             / selected.len() as f32;
 

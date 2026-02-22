@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from typing import overload
+
 from radiate.radiate import PyGraph
-from radiate.wrapper import PyObject
+from radiate._bridge.wrapper import RsObject
 
 
-class Graph(PyObject[PyGraph]):
+class Graph(RsObject):
     def __repr__(self):
         return self.__backend__().__repr__()
 
@@ -16,7 +18,15 @@ class Graph(PyObject[PyGraph]):
             return False
         return self.__backend__() == other.__backend__()
 
-    def eval(self, inputs: list[list[float]] | list[float]) -> list[list[float]] | list[float]:
+    @overload
+    def eval(self, inputs: list[list[float]]) -> list[list[float]]: ...
+
+    @overload
+    def eval(self, inputs: list[float]) -> list[float]: ...
+
+    def eval(
+        self, inputs: list[list[float]] | list[float]
+    ) -> list[list[float]] | list[float]:
         """
         Evaluate the graph with the given inputs. The inputs needs to be a list of
         lists (for multiple samples).

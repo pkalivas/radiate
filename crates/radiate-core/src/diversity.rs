@@ -1,5 +1,5 @@
 use crate::{
-    Chromosome, Gene, Genotype,
+    Chromosome, Gene, Phenotype,
     chromosomes::{NumericAllele, gene::NumericGene},
     fitness::Novelty,
     math::distance,
@@ -20,8 +20,8 @@ impl<C: Chromosome> DistanceDiversityAdapter<C> {
     }
 }
 
-impl<C: Chromosome> Distance<Genotype<C>> for DistanceDiversityAdapter<C> {
-    fn distance(&self, one: &Genotype<C>, two: &Genotype<C>) -> f32 {
+impl<C: Chromosome> Distance<Phenotype<C>> for DistanceDiversityAdapter<C> {
+    fn distance(&self, one: &Phenotype<C>, two: &Phenotype<C>) -> f32 {
         self.diversity.measure(one, two)
     }
 }
@@ -31,14 +31,14 @@ impl<C: Chromosome> Distance<Genotype<C>> for DistanceDiversityAdapter<C> {
 /// similar two individuals are. Through this, the engine can determine
 /// whether two individuals belong to the same [Species](super::genome::species::Species) or not.
 pub trait Diversity<C: Chromosome>: Send + Sync {
-    fn measure(&self, geno_one: &Genotype<C>, geno_two: &Genotype<C>) -> f32;
+    fn measure(&self, geno_one: &Phenotype<C>, geno_two: &Phenotype<C>) -> f32;
 }
 
 impl<C: Chromosome, F> Diversity<C> for F
 where
-    F: Fn(&Genotype<C>, &Genotype<C>) -> f32 + Send + Sync,
+    F: Fn(&Phenotype<C>, &Phenotype<C>) -> f32 + Send + Sync,
 {
-    fn measure(&self, geno_one: &Genotype<C>, geno_two: &Genotype<C>) -> f32 {
+    fn measure(&self, geno_one: &Phenotype<C>, geno_two: &Phenotype<C>) -> f32 {
         self(geno_one, geno_two)
     }
 }
@@ -55,7 +55,10 @@ where
     G: Gene,
     G::Allele: PartialEq,
 {
-    fn measure(&self, geno_one: &Genotype<C>, geno_two: &Genotype<C>) -> f32 {
+    fn measure(&self, geno_one: &Phenotype<C>, geno_two: &Phenotype<C>) -> f32 {
+        let geno_one = geno_one.genotype();
+        let geno_two = geno_two.genotype();
+
         let mut distance = 0.0;
         let mut total_genes = 0.0;
         for (chrom_one, chrom_two) in geno_one.iter().zip(geno_two.iter()) {
@@ -98,15 +101,18 @@ where
     G: NumericGene,
     G::Allele: NumericAllele,
 {
-    fn measure(&self, geno_one: &Genotype<C>, geno_two: &Genotype<C>) -> f32 {
+    fn measure(&self, geno_one: &Phenotype<C>, geno_two: &Phenotype<C>) -> f32 {
+        let geno_one = geno_one.genotype();
+        let geno_two = geno_two.genotype();
+
         let mut distance = 0.0;
         let mut total_genes = 0.0;
         for (chrom_one, chrom_two) in geno_one.iter().zip(geno_two.iter()) {
             for (gene_one, gene_two) in chrom_one.iter().zip(chrom_two.iter()) {
-                let one_as_f32 = gene_one.allele_as_f32();
-                let two_as_f32 = gene_two.allele_as_f32();
+                let one_as_f64 = gene_one.allele().extract::<f64>();
+                let two_as_f64 = gene_two.allele().extract::<f64>();
 
-                if let Some((one, two)) = one_as_f32.zip(two_as_f32) {
+                if let Some((one, two)) = one_as_f64.zip(two_as_f64) {
                     if one.is_nan() || two.is_nan() {
                         continue;
                     }
@@ -122,7 +128,7 @@ where
             return 0.0;
         }
 
-        (distance / total_genes).sqrt()
+        (distance / total_genes).sqrt() as f32
     }
 }
 
@@ -150,17 +156,20 @@ where
     G: NumericGene,
     G::Allele: NumericAllele,
 {
-    fn measure(&self, geno_one: &Genotype<C>, geno_two: &Genotype<C>) -> f32 {
+    fn measure(&self, geno_one: &Phenotype<C>, geno_two: &Phenotype<C>) -> f32 {
+        let geno_one = geno_one.genotype();
+        let geno_two = geno_two.genotype();
+
         let mut dot_product = 0.0;
         let mut norm_one = 0.0;
         let mut norm_two = 0.0;
 
         for (chrom_one, chrom_two) in geno_one.iter().zip(geno_two.iter()) {
             for (gene_one, gene_two) in chrom_one.iter().zip(chrom_two.iter()) {
-                let one_as_f32 = gene_one.allele_as_f32();
-                let two_as_f32 = gene_two.allele_as_f32();
+                let one_as_f64 = gene_one.allele().extract::<f64>();
+                let two_as_f64 = gene_two.allele().extract::<f64>();
 
-                if let Some((one, two)) = one_as_f32.zip(two_as_f32) {
+                if let Some((one, two)) = one_as_f64.zip(two_as_f64) {
                     if one.is_nan() || two.is_nan() {
                         continue;
                     }
@@ -176,7 +185,7 @@ where
             return 1.0;
         }
 
-        1.0 - (dot_product / (norm_one.sqrt() * norm_two.sqrt()))
+        1.0 - (dot_product / (norm_one.sqrt() * norm_two.sqrt())) as f32
     }
 }
 

@@ -13,23 +13,18 @@ Radiate provides built-in support for checkpointing, allowing you to save the st
     def fitness_func(x: list[str]) -> int:
         return sum(1 for i in range(len(target)) if x[i] == target[i])
 
-    engine = rd.GeneticEngine(
-        codec=rd.CharCodec.vector(len(target)),
-        fitness_func=fitness_func,
-        offspring_selector=rd.BoltzmannSelector(4),
-    )
+    engine = rd.Engine.char(len(target)).fitness(fitness_func)
 
-    result = engine.run(rd.ScoreLimit(len(target)), checkpoint=(10, "checkpoint.json"))
+    result = engine.run(rd.Limit.score(len(target)), checkpoint=(10, "checks"))
 
     # load from checkpoint from generation 10
-    engine = rd.GeneticEngine(
-        codec=rd.CharCodec.vector(len(target)),
-        fitness_func=fitness_func,
-        offspring_selector=rd.BoltzmannSelector(4),
-        checkpoint_path="checkpoint_10.json",
+    engine = (
+        rd.Engine.char(len(target))
+        .fitness(fitness_func)
+        .load_checkpoint("checks/checkpoint_10.json")
     )
-
-    result = engine.run(rd.ScoreLimit(len(target)))
+    
+    result_from_checkpoint = engine.run(rd.Limit.score(len(target)))
     ```
 
 === ":fontawesome-brands-rust: Rust"

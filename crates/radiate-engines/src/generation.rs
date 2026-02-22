@@ -21,15 +21,15 @@ use std::time::Duration;
 /// use std::time::Duration;
 ///
 /// let engine = GeneticEngine::builder()
-///     .codec(FloatChromosome::from((10, 0.0..1.0)))
+///     .codec(FloatChromosome::from((10, 0.0_f32..1.0_f32)))
 ///     .fitness_fn(|vec: Vec<f32>| -vec.iter().map(|x| x * x).sum::<f32>())
 ///     .build();
 ///
 /// let generation = engine.iter().take(10).last().unwrap();
 ///
-/// let ecosystem: &Ecosystem<FloatChromosome> = generation.ecosystem();
+/// let ecosystem: &Ecosystem<FloatChromosome<f32>> = generation.ecosystem();
 ///
-/// let population: &Population<FloatChromosome> = generation.population();
+/// let population: &Population<FloatChromosome<f32>> = generation.population();
 /// assert!(population.len() == 100);
 ///
 /// let solution: &Vec<f32> = generation.value();

@@ -24,12 +24,13 @@ This is the default epoch for the engine - `Generation`. It contains:
     ```python
     import radiate as rd
 
-    # Create an engine
-    engine = rd.GeneticEngine(
-        codec=rd.FloatCodec.scalar(0.0, 1.0), 
-        fitness_fn=my_fitness_fn,  # Single objective fitness function
+    # Create an engine. Float Scalar engine (one chromosome, with one gene)
+    engine = (
+        rd.Engine.float(init_range=(0.0, 1.0))
+        .fitness(my_fitness_fn)
         # ... other parameters ...
     )
+
 
     # Run the engine for 100 generations
     result = engine.run(rd.GenerationsLimit(100))
@@ -114,10 +115,10 @@ When the engine is configured for multi-objective optimization, the engine `Gene
     import radiate as rd
 
     # Create an engine
-    engine = rd.GeneticEngine(
-        codec=rd.FloatCodec.scalar(0.0, 1.0), 
-        fitness_fn=my_fitness_fn,  # Multi-objective fitness function
-        objective=['min', 'max', ...],  # Specify multi-objective optimization
+    engine = (
+        rd.Engine.float(init_range=(0.0, 1.0))
+        .fitness(my_fitness_fn)  # Multi-objective fitness function
+        .objective(rd.MIN, rd.MAX, ...)  # Specify multi-objective optimization
         # ... other parameters ...
     )
 
@@ -196,9 +197,9 @@ Radiate provides multiple ways to run the `GeneticEngine`.
     import radiate as rd
 
     # Create an engine
-    engine = rd.GeneticEngine(
-        codec=rd.FloatCodec.scalar(0.0, 1.0), 
-        fitness_func=my_fitness_fn,  # Some fitness function
+    engine = (
+        rd.Engine.float(init_range=(0.0, 1.0))
+        .fitness(my_fitness_fn)
         # ... other parameters ...
     )
 
@@ -227,12 +228,11 @@ Radiate provides multiple ways to run the `GeneticEngine`.
     convergence_limit = rd.ConvergenceLimit(window=50, epsilon=0.01) 
 
     # Log the progress of the engine to the console
-    result = engine.run([
+    result = engine.run(
             score_limit,
             generations_limit,
             seconds_limit,
-            convergence_limit
-        ],
+            convergence_limit,
         log=True,
         ui=True, # Enable terminal UI - if enabled, log is ignored
         checkpoint=(10, "checkpoint.json") # checkpoint every 10 generations to 'checkpoint.json'
@@ -371,7 +371,7 @@ import threading
 import time
 
 # Create an engine
-engine = rd.GeneticEngine(
+engine = rd.Engine(
     codec=rd.FloatCodec.scalar(0.0, 1.0), 
     fitness_fn=my_fitness_fn,  # Some fitness function
     # ... other parameters ...

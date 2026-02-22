@@ -218,8 +218,8 @@ class SnakeAI:
 
     def predict(self, state: list[float]) -> int:
         """Predict the best action given current state."""
-        output = self.graph.eval([state])
-        return np.argmax(output[0])
+        output = self.graph.eval(state)
+        return np.argmax(output)  # type: ignore
 
 
 class SnakeEvolver:
@@ -360,21 +360,38 @@ class SnakeEvolver:
             output=rd.Op.sigmoid(),
         )
 
-        engine = rd.GeneticEngine(
-            codec,
-            SnakeEvolver.fitness_function,
-            offspring_selector=rd.TournamentSelector(4),
-            executor=rd.Executor.WorkerPool(),
-            alters=[
-                rd.GraphCrossover(0.5, 0.5),
-                rd.OperationMutator(0.04, 0.05),
-                rd.GraphMutator(0.08, 0.04, True),
-            ],
-        )
+        if rd._GIL_ENABLED:
+            engine = rd.Engine(
+                codec,
+                fitness_func=SnakeEvolver.fitness_function,
+                offspring_selector=rd.TournamentSelector(4),
+                executor=rd.Executor.Serial(),
+                alters=[
+                    rd.GraphCrossover(0.5, 0.5),
+                    rd.OperationMutator(0.04, 0.05),
+                    rd.GraphMutator(0.08, 0.04, True),
+                ],
+            )
 
-        return engine.run(
-            [rd.GenerationsLimit(generations), rd.SecondsLimit(60 * 2)], log=True
-        )
+            return engine.run(
+                rd.GenerationsLimit(generations), rd.SecondsLimit(60 * 2), log=True
+            )
+        else:
+            engine = (
+                rd.Engine(codec)
+                .fitness(SnakeEvolver.fitness_function)
+                .select(rd.Select.tournament(4))
+                .parallel()  # <- Use parallel execution if GIL is not enabled
+                .alters(
+                    rd.Cross.graph(0.5, 0.5),
+                    rd.Mutate.op(0.04, 0.05),
+                    rd.Mutate.graph(0.08, 0.04, True),
+                )
+            )
+
+            return engine.run(
+                rd.Limit.generations(generations), rd.Limit.seconds(60 * 2), log=True
+            )
 
     def visualize_best_snake(self, graph: rd.Graph, title: str = "Best Snake AI"):
         """Visualize the best evolved snake playing."""

@@ -1,6 +1,4 @@
-use crate::{
-    AnyChromosome, InputTransform, PyEngineInput, PyEngineInputType, PyGeneType, PyPopulation,
-};
+use crate::{InputTransform, PyEngineInput, PyEngineInputType, PyGeneType, PyPopulation};
 use pyo3::{PyResult, exceptions::PyValueError, pyfunction};
 use radiate::prelude::*;
 
@@ -27,7 +25,7 @@ pub fn py_alter(
 
     match gene_type {
         PyGeneType::Float => {
-            let alterer: Vec<Alterer<FloatChromosome>> = alterer.transform();
+            let alterer: Vec<Alterer<FloatChromosome<f64>>> = alterer.transform();
 
             Ok(PyPopulation::from(&alter(
                 alterer,
@@ -71,15 +69,6 @@ pub fn py_alter(
                 generation,
             )))
         }
-        PyGeneType::AnyGene => {
-            let alterer: Vec<Alterer<AnyChromosome<'static>>> = alterer.transform();
-
-            Ok(PyPopulation::from(&alter(
-                alterer,
-                population.into(),
-                generation,
-            )))
-        }
         PyGeneType::GraphNode => {
             let alterer: Vec<Alterer<GraphChromosome<Op<f32>>>> = alterer.transform();
 
@@ -110,8 +99,9 @@ fn alter<C: Chromosome>(
     mut population: Population<C>,
     generation: usize,
 ) -> Population<C> {
+    let mut lineage = Lineage::default();
     for alterer in alterers {
-        alterer.alter(&mut population, generation);
+        alterer.alter(&mut population, &mut lineage, generation);
     }
 
     population

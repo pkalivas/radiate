@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from radiate.genome.population import Population
-from radiate.wrapper import PyObject
-from radiate.radiate import PySpecies
+from radiate._bridge.wrapper import RsObject
+
+from .population import Population
 
 
-class Species[T](PyObject[PySpecies]):
+class Species[T](RsObject):
     """
     Represents a species in a population.
     """

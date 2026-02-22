@@ -26,8 +26,8 @@ def test_gp_graph_eval():
     codec = rd.GraphCodec.directed(
         shape=(3, 1),
         vertex=[rd.Op.add(), rd.Op.sub(), rd.Op.mul(), rd.Op.div()],
-        edge=[rd.Op.weight()],
-        output=[rd.Op.linear()],
+        edge=rd.Op.weight(),
+        output=rd.Op.linear(),
     )
 
     graph = codec.decode(codec.encode())

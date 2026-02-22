@@ -10,13 +10,13 @@ def test_engine_empty_population():
         return sum(x)
 
     with pytest.raises(ValueError):
-        engine = rd.GeneticEngine(
+        engine = rd.Engine(
             codec=rd.IntCodec.vector(length=3, init_range=(0, 10)),
             fitness_func=fitness_func,
-            objective="min",
+            objective=rd.MIN,
             population_size=0,  # Invalid
         )
-        engine.run([rd.GenerationsLimit(10)])
+        engine.run(rd.GenerationsLimit(10))
 
 
 @pytest.mark.unit
@@ -26,11 +26,11 @@ def test_engine_invalid_limits():
     def fitness_func(x: list[int]) -> float:
         return sum(x)
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=rd.IntCodec.vector(length=3, init_range=(0, 10)),
         fitness_func=fitness_func,
-        objective="min",
+        objective=rd.MIN,
     )
 
     with pytest.raises(ValueError):
-        engine.run([rd.GenerationsLimit(-1)])  # Invalid limit
+        engine.run(rd.GenerationsLimit(-1))  # Invalid limit

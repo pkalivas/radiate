@@ -1,9 +1,10 @@
 mod wrap;
 
+use radiate_error::radiate_py_bail;
 pub use wrap::*;
 
 use pyo3::prelude::FromPyObjectOwned;
-use pyo3::types::{PyFloat, PyInt};
+use pyo3::types::{PyFloat, PyInt, PyList};
 use pyo3::{Borrowed, IntoPyObject, PyAny, Python, types::PyAnyMethods};
 use pyo3::{Py, PyResult};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -36,10 +37,36 @@ impl PyAnyObject {
     }
 
     pub fn to_json<'py>(&self, py: Python<'py>) -> PyResult<String> {
-        let json_module = py.import("json")?;
-        let dumps = json_module.getattr("dumps")?;
-        let json_str = dumps.call1((self.inner.bind_borrowed(py),))?;
-        json_str.extract::<String>()
+        let bound = self.inner.bind_borrowed(py);
+
+        if bound.is_instance_of::<PyList>() {
+            let mut items = Vec::new();
+            for item in bound.cast::<PyList>()?.try_iter()? {
+                let item = item?;
+                if item.hasattr("to_json")? {
+                    let to_json = item.getattr("to_json")?;
+                    let json_str = to_json.call0()?;
+                    items.push(json_str.extract::<String>()?);
+                } else {
+                    radiate_py_bail!(
+                        "Failed to serialize PyAnyObject: item does not have to_json method"
+                    );
+                }
+            }
+
+            return Ok(format!("[{}]", items.join(",")));
+        } else if bound.hasattr("to_json")? {
+            let to_json = bound.getattr("to_json")?;
+            let json_str = to_json.call0()?;
+            return json_str.extract::<String>();
+        } else {
+            let json_module = py.import("json")?;
+            let dumps = json_module.getattr("dumps")?;
+
+            let json_str = dumps.call1((self.inner.bind_borrowed(py),))?;
+
+            json_str.extract::<String>()
+        }
     }
 
     pub fn extract<'py, T: FromPyObjectOwned<'py>>(&self, py: Python<'py>) -> PyResult<T> {

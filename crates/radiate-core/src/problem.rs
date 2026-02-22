@@ -349,15 +349,15 @@ mod tests {
 
     struct MockCodec;
 
-    impl Codec<FloatChromosome, MockPhenotype> for MockCodec {
-        fn encode(&self) -> Genotype<FloatChromosome> {
+    impl Codec<FloatChromosome<f32>, MockPhenotype> for MockCodec {
+        fn encode(&self) -> Genotype<FloatChromosome<f32>> {
             Genotype::new(vec![
                 FloatChromosome::from(FloatGene::from(1.0)),
                 FloatChromosome::from(FloatGene::from(2.0)),
             ])
         }
 
-        fn decode(&self, genotype: &Genotype<FloatChromosome>) -> MockPhenotype {
+        fn decode(&self, genotype: &Genotype<FloatChromosome<f32>>) -> MockPhenotype {
             MockPhenotype {
                 x: *genotype[0].get(0).allele(),
                 y: *genotype[1].get(0).allele(),

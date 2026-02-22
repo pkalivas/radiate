@@ -4,7 +4,7 @@ from .base import FitnessBase
 from radiate.radiate import PyFitnessFn
 
 
-class CallableFitness[T](FitnessBase[T]):
+class CallableFitness[T](FitnessBase):
     """Wrapper for user-defined callable fitness functions."""
 
     def __init__(self, problem: Callable[[T], Any]):
@@ -12,7 +12,7 @@ class CallableFitness[T](FitnessBase[T]):
         super().__init__(PyFitnessFn.custom(problem, is_batch=False))
 
 
-class BatchFitness[T](FitnessBase[T]):
+class BatchFitness[T](FitnessBase):
     """Wrapper for user-defined batch callable fitness functions."""
 
     def __init__(self, problem: Callable[[list[T]], Any]):

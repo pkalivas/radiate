@@ -9,12 +9,18 @@ use crate::PyPopulation;
 use crate::PySpecies;
 use crate::bindings::gp::{PyGraph, PyTree};
 use numpy::PyArray1;
-use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
+use pyo3::Bound;
+use pyo3::IntoPyObjectExt;
+use pyo3::PyAny;
+use pyo3::PyResult;
+use pyo3::Python;
+use pyo3::pyclass;
+use pyo3::pymethods;
 use radiate::Generation;
 use radiate::prelude::*;
 use std::time::Duration;
 
-#[pyclass(unsendable)]
+#[pyclass(from_py_object)]
 pub struct PyGeneration {
     pub(crate) inner: EpochHandle,
 }
@@ -42,28 +48,44 @@ impl PyGeneration {
     }
 
     pub fn index(&self) -> usize {
+        use EpochHandle::*;
         match &self.inner {
-            EpochHandle::Int(epoch) => epoch.index(),
-            EpochHandle::Float(epoch) => epoch.index(),
-            EpochHandle::Char(epoch) => epoch.index(),
-            EpochHandle::Bit(epoch) => epoch.index(),
-            EpochHandle::Any(epoch) => epoch.index(),
-            EpochHandle::Graph(epoch) => epoch.index(),
-            EpochHandle::Tree(epoch) => epoch.index(),
-            EpochHandle::Permutation(epoch) => epoch.index(),
+            UInt8(epoch) => epoch.index(),
+            UInt16(epoch) => epoch.index(),
+            UInt32(epoch) => epoch.index(),
+            UInt64(epoch) => epoch.index(),
+            Int8(epoch) => epoch.index(),
+            Int16(epoch) => epoch.index(),
+            Int32(epoch) => epoch.index(),
+            Int64(epoch) => epoch.index(),
+            Float32(epoch) => epoch.index(),
+            Float64(epoch) => epoch.index(),
+            Char(epoch) => epoch.index(),
+            Bit(epoch) => epoch.index(),
+            Graph(epoch) => epoch.index(),
+            Tree(epoch) => epoch.index(),
+            Permutation(epoch) => epoch.index(),
         }
     }
 
     pub fn score<'py>(&self, py: Python<'py>) -> Bound<'py, PyArray1<f32>> {
+        use EpochHandle::*;
         let inner_score = match &self.inner {
-            EpochHandle::Int(epoch) => Some(epoch.score()),
-            EpochHandle::Float(epoch) => Some(epoch.score()),
-            EpochHandle::Char(epoch) => Some(epoch.score()),
-            EpochHandle::Bit(epoch) => Some(epoch.score()),
-            EpochHandle::Any(epoch) => Some(epoch.score()),
-            EpochHandle::Graph(epoch) => Some(epoch.score()),
-            EpochHandle::Tree(epoch) => Some(epoch.score()),
-            EpochHandle::Permutation(epoch) => Some(epoch.score()),
+            UInt8(epoch) => Some(epoch.score()),
+            UInt16(epoch) => Some(epoch.score()),
+            UInt32(epoch) => Some(epoch.score()),
+            UInt64(epoch) => Some(epoch.score()),
+            Int8(epoch) => Some(epoch.score()),
+            Int16(epoch) => Some(epoch.score()),
+            Int32(epoch) => Some(epoch.score()),
+            Int64(epoch) => Some(epoch.score()),
+            Float32(epoch) => Some(epoch.score()),
+            Float64(epoch) => Some(epoch.score()),
+            Char(epoch) => Some(epoch.score()),
+            Bit(epoch) => Some(epoch.score()),
+            Graph(epoch) => Some(epoch.score()),
+            Tree(epoch) => Some(epoch.score()),
+            Permutation(epoch) => Some(epoch.score()),
         };
 
         let score = inner_score
@@ -74,19 +96,28 @@ impl PyGeneration {
     }
 
     pub fn value<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        use EpochHandle::*;
+
         match &self.inner {
-            EpochHandle::Int(epoch) => get_value(py, epoch),
-            EpochHandle::Float(epoch) => get_value(py, epoch),
-            EpochHandle::Char(epoch) => get_value(py, epoch),
-            EpochHandle::Bit(epoch) => get_value(py, epoch),
-            EpochHandle::Any(epoch) => get_value(py, epoch),
-            EpochHandle::Permutation(epoch) => get_value(py, epoch),
-            EpochHandle::Graph(epoch) => PyGraph {
+            UInt8(epoch) => get_value(py, epoch),
+            UInt16(epoch) => get_value(py, epoch),
+            UInt32(epoch) => get_value(py, epoch),
+            UInt64(epoch) => get_value(py, epoch),
+            Int8(epoch) => get_value(py, epoch),
+            Int16(epoch) => get_value(py, epoch),
+            Int32(epoch) => get_value(py, epoch),
+            Int64(epoch) => get_value(py, epoch),
+            Float32(epoch) => get_value(py, epoch),
+            Float64(epoch) => get_value(py, epoch),
+            Char(epoch) => get_value(py, epoch),
+            Bit(epoch) => get_value(py, epoch),
+            Permutation(epoch) => get_value(py, epoch),
+            Graph(epoch) => PyGraph {
                 inner: epoch.value().clone(),
                 eval_cache: None,
             }
             .into_bound_py_any(py),
-            EpochHandle::Tree(epoch) => PyTree {
+            Tree(epoch) => PyTree {
                 inner: epoch.value().clone(),
             }
             .into_bound_py_any(py),
@@ -94,134 +125,218 @@ impl PyGeneration {
     }
 
     pub fn front(&self) -> PyResult<PyFront> {
+        use EpochHandle::*;
         match &self.inner {
-            EpochHandle::Int(epoch) => get_front(epoch),
-            EpochHandle::Float(epoch) => get_front(epoch),
-            EpochHandle::Char(epoch) => get_front(epoch),
-            EpochHandle::Bit(epoch) => get_front(epoch),
-            EpochHandle::Any(epoch) => get_front(epoch),
-            EpochHandle::Permutation(epoch) => get_front(epoch),
-            EpochHandle::Graph(epoch) => get_front(epoch),
-            EpochHandle::Tree(epoch) => get_front(epoch),
+            UInt8(epoch) => get_front(epoch),
+            UInt16(epoch) => get_front(epoch),
+            UInt32(epoch) => get_front(epoch),
+            UInt64(epoch) => get_front(epoch),
+            Int8(epoch) => get_front(epoch),
+            Int16(epoch) => get_front(epoch),
+            Int32(epoch) => get_front(epoch),
+            Int64(epoch) => get_front(epoch),
+            Float32(epoch) => get_front(epoch),
+            Float64(epoch) => get_front(epoch),
+            Char(epoch) => get_front(epoch),
+            Bit(epoch) => get_front(epoch),
+            Permutation(epoch) => get_front(epoch),
+            Graph(epoch) => get_front(epoch),
+            Tree(epoch) => get_front(epoch),
         }
     }
 
     pub fn metrics(&self) -> PyResult<PyMetricSet> {
+        use EpochHandle::*;
         let metrics = match &self.inner {
-            EpochHandle::Int(epoch) => epoch.metrics(),
-            EpochHandle::Float(epoch) => epoch.metrics(),
-            EpochHandle::Char(epoch) => epoch.metrics(),
-            EpochHandle::Bit(epoch) => epoch.metrics(),
-            EpochHandle::Any(epoch) => epoch.metrics(),
-            EpochHandle::Permutation(epoch) => epoch.metrics(),
-            EpochHandle::Graph(epoch) => epoch.metrics(),
-            EpochHandle::Tree(epoch) => epoch.metrics(),
+            UInt8(epoch) => epoch.metrics(),
+            UInt16(epoch) => epoch.metrics(),
+            UInt32(epoch) => epoch.metrics(),
+            UInt64(epoch) => epoch.metrics(),
+            Int8(epoch) => epoch.metrics(),
+            Int16(epoch) => epoch.metrics(),
+            Int32(epoch) => epoch.metrics(),
+            Int64(epoch) => epoch.metrics(),
+            Float32(epoch) => epoch.metrics(),
+            Float64(epoch) => epoch.metrics(),
+            Char(epoch) => epoch.metrics(),
+            Bit(epoch) => epoch.metrics(),
+            Permutation(epoch) => epoch.metrics(),
+            Graph(epoch) => epoch.metrics(),
+            Tree(epoch) => epoch.metrics(),
         };
 
         Ok(PyMetricSet::from(metrics.clone()))
     }
 
     pub fn ecosystem(&mut self) -> PyEcosystem {
+        use EpochHandle::*;
         match &mut self.inner {
-            EpochHandle::Int(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
-            EpochHandle::Float(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
-            EpochHandle::Char(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
-            EpochHandle::Bit(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
-            EpochHandle::Any(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
-            EpochHandle::Permutation(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
-            EpochHandle::Graph(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
-            EpochHandle::Tree(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
+            UInt8(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
+            UInt16(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
+            UInt32(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
+            UInt64(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
+            Int8(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
+            Int16(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
+            Int32(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
+            Int64(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
+            Float32(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
+            Float64(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
+            Char(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
+            Bit(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
+            Permutation(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
+            Graph(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
+            Tree(epoch) => PyEcosystem::from(epoch.ecosystem().clone()),
         }
     }
 
     pub fn species(&mut self) -> Option<Vec<PySpecies>> {
+        use EpochHandle::*;
         match &mut self.inner {
-            EpochHandle::Int(epoch) => epoch
+            UInt8(epoch) => epoch
                 .species()
                 .map(|s| s.iter().cloned().map(PySpecies::from).collect()),
-            EpochHandle::Float(epoch) => epoch
+            UInt16(epoch) => epoch
                 .species()
                 .map(|s| s.iter().cloned().map(PySpecies::from).collect()),
-            EpochHandle::Char(epoch) => epoch
+            UInt32(epoch) => epoch
                 .species()
                 .map(|s| s.iter().cloned().map(PySpecies::from).collect()),
-            EpochHandle::Bit(epoch) => epoch
+            UInt64(epoch) => epoch
                 .species()
                 .map(|s| s.iter().cloned().map(PySpecies::from).collect()),
-            EpochHandle::Any(epoch) => epoch
+            Int8(epoch) => epoch
                 .species()
                 .map(|s| s.iter().cloned().map(PySpecies::from).collect()),
-            EpochHandle::Permutation(epoch) => epoch
+            Int16(epoch) => epoch
                 .species()
                 .map(|s| s.iter().cloned().map(PySpecies::from).collect()),
-            EpochHandle::Graph(epoch) => epoch
+            Int32(epoch) => epoch
                 .species()
                 .map(|s| s.iter().cloned().map(PySpecies::from).collect()),
-            EpochHandle::Tree(epoch) => epoch
+            Int64(epoch) => epoch
+                .species()
+                .map(|s| s.iter().cloned().map(PySpecies::from).collect()),
+            Float32(epoch) => epoch
+                .species()
+                .map(|s| s.iter().cloned().map(PySpecies::from).collect()),
+            Float64(epoch) => epoch
+                .species()
+                .map(|s| s.iter().cloned().map(PySpecies::from).collect()),
+            Char(epoch) => epoch
+                .species()
+                .map(|s| s.iter().cloned().map(PySpecies::from).collect()),
+            Bit(epoch) => epoch
+                .species()
+                .map(|s| s.iter().cloned().map(PySpecies::from).collect()),
+            Permutation(epoch) => epoch
+                .species()
+                .map(|s| s.iter().cloned().map(PySpecies::from).collect()),
+            Graph(epoch) => epoch
+                .species()
+                .map(|s| s.iter().cloned().map(PySpecies::from).collect()),
+            Tree(epoch) => epoch
                 .species()
                 .map(|s| s.iter().cloned().map(PySpecies::from).collect()),
         }
     }
 
-    pub fn population(&mut self) -> PyPopulation {
-        match &mut self.inner {
-            EpochHandle::Int(epoch) => PyPopulation::from(epoch.population()),
-            EpochHandle::Float(epoch) => PyPopulation::from(epoch.population()),
-            EpochHandle::Char(epoch) => PyPopulation::from(epoch.population()),
-            EpochHandle::Bit(epoch) => PyPopulation::from(epoch.population()),
-            EpochHandle::Any(epoch) => PyPopulation::from(epoch.population()),
-            EpochHandle::Permutation(epoch) => PyPopulation::from(epoch.population()),
-            EpochHandle::Graph(epoch) => PyPopulation::from(epoch.population()),
-            EpochHandle::Tree(epoch) => PyPopulation::from(epoch.population()),
+    pub fn population(&self) -> PyPopulation {
+        use EpochHandle::*;
+        match &self.inner {
+            UInt8(epoch) => PyPopulation::from(epoch.population()),
+            UInt16(epoch) => PyPopulation::from(epoch.population()),
+            UInt32(epoch) => PyPopulation::from(epoch.population()),
+            UInt64(epoch) => PyPopulation::from(epoch.population()),
+            Int8(epoch) => PyPopulation::from(epoch.population()),
+            Int16(epoch) => PyPopulation::from(epoch.population()),
+            Int32(epoch) => PyPopulation::from(epoch.population()),
+            Int64(epoch) => PyPopulation::from(epoch.population()),
+            Float32(epoch) => PyPopulation::from(epoch.population()),
+            Float64(epoch) => PyPopulation::from(epoch.population()),
+            Char(epoch) => PyPopulation::from(epoch.population()),
+            Bit(epoch) => PyPopulation::from(epoch.population()),
+            Permutation(epoch) => PyPopulation::from(epoch.population()),
+            Graph(epoch) => PyPopulation::from(epoch.population()),
+            Tree(epoch) => PyPopulation::from(epoch.population()),
         }
     }
 
     pub fn duration(&self) -> Duration {
+        use EpochHandle::*;
         match &self.inner {
-            EpochHandle::Int(epoch) => epoch.time(),
-            EpochHandle::Float(epoch) => epoch.time(),
-            EpochHandle::Char(epoch) => epoch.time(),
-            EpochHandle::Bit(epoch) => epoch.time(),
-            EpochHandle::Any(epoch) => epoch.time(),
-            EpochHandle::Permutation(epoch) => epoch.time(),
-            EpochHandle::Graph(epoch) => epoch.time(),
-            EpochHandle::Tree(epoch) => epoch.time(),
+            UInt8(epoch) => epoch.time(),
+            UInt16(epoch) => epoch.time(),
+            UInt32(epoch) => epoch.time(),
+            UInt64(epoch) => epoch.time(),
+            Int8(epoch) => epoch.time(),
+            Int16(epoch) => epoch.time(),
+            Int32(epoch) => epoch.time(),
+            Int64(epoch) => epoch.time(),
+            Float32(epoch) => epoch.time(),
+            Float64(epoch) => epoch.time(),
+            Char(epoch) => epoch.time(),
+            Bit(epoch) => epoch.time(),
+            Permutation(epoch) => epoch.time(),
+            Graph(epoch) => epoch.time(),
+            Tree(epoch) => epoch.time(),
         }
     }
 
     pub fn objective(&self) -> Vec<String> {
+        use EpochHandle::*;
         get_objective_names(match &self.inner {
-            EpochHandle::Int(epoch) => epoch.objective(),
-            EpochHandle::Float(epoch) => epoch.objective(),
-            EpochHandle::Char(epoch) => epoch.objective(),
-            EpochHandle::Bit(epoch) => epoch.objective(),
-            EpochHandle::Any(epoch) => epoch.objective(),
-            EpochHandle::Permutation(epoch) => epoch.objective(),
-            EpochHandle::Graph(epoch) => epoch.objective(),
-            EpochHandle::Tree(epoch) => epoch.objective(),
+            UInt8(epoch) => epoch.objective(),
+            UInt16(epoch) => epoch.objective(),
+            UInt32(epoch) => epoch.objective(),
+            UInt64(epoch) => epoch.objective(),
+            Int8(epoch) => epoch.objective(),
+            Int16(epoch) => epoch.objective(),
+            Int32(epoch) => epoch.objective(),
+            Int64(epoch) => epoch.objective(),
+            Float32(epoch) => epoch.objective(),
+            Float64(epoch) => epoch.objective(),
+            Char(epoch) => epoch.objective(),
+            Bit(epoch) => epoch.objective(),
+            Permutation(epoch) => epoch.objective(),
+            Graph(epoch) => epoch.objective(),
+            Tree(epoch) => epoch.objective(),
         })
     }
 
+    pub fn dtype<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        self.population().dtype(py)
+    }
+
     pub fn __repr__(&self, py: Python) -> PyResult<String> {
+        use EpochHandle::*;
         let score = self.score(py);
         let value = self.value(py)?;
         let metrics = self.metrics()?;
+        let dtype = self.dtype(py)?;
 
         let (objective, index) = match &self.inner {
-            EpochHandle::Int(epoch) => (epoch.objective(), epoch.index()),
-            EpochHandle::Float(epoch) => (epoch.objective(), epoch.index()),
-            EpochHandle::Char(epoch) => (epoch.objective(), epoch.index()),
-            EpochHandle::Bit(epoch) => (epoch.objective(), epoch.index()),
-            EpochHandle::Any(epoch) => (epoch.objective(), epoch.index()),
-            EpochHandle::Permutation(epoch) => (epoch.objective(), epoch.index()),
-            EpochHandle::Graph(epoch) => (epoch.objective(), epoch.index()),
-            EpochHandle::Tree(epoch) => (epoch.objective(), epoch.index()),
+            UInt8(epoch) => (epoch.objective(), epoch.index()),
+            UInt16(epoch) => (epoch.objective(), epoch.index()),
+            UInt32(epoch) => (epoch.objective(), epoch.index()),
+            UInt64(epoch) => (epoch.objective(), epoch.index()),
+            Int8(epoch) => (epoch.objective(), epoch.index()),
+            Int16(epoch) => (epoch.objective(), epoch.index()),
+            Int32(epoch) => (epoch.objective(), epoch.index()),
+            Int64(epoch) => (epoch.objective(), epoch.index()),
+            Float32(epoch) => (epoch.objective(), epoch.index()),
+            Float64(epoch) => (epoch.objective(), epoch.index()),
+            Char(epoch) => (epoch.objective(), epoch.index()),
+            Bit(epoch) => (epoch.objective(), epoch.index()),
+            Permutation(epoch) => (epoch.objective(), epoch.index()),
+            Graph(epoch) => (epoch.objective(), epoch.index()),
+            Tree(epoch) => (epoch.objective(), epoch.index()),
         };
 
         Ok(format!(
-            "(\n\tindex={},\n\tscore={},\n\t{},\n\tvalue={})",
+            "(\n\tindex={},\n\tscore={},\n\tdtype={},\n\t{},\n\tvalue={})",
             index,
             score,
+            dtype,
             metrics.__repr__(),
             if objective.is_multi() {
                 "ParetoFront".to_string()
@@ -271,18 +386,14 @@ where
         for member in front.values().iter() {
             let temp = PyGenotype::from(member.genotype().clone());
 
-            let fitness = member
-                .score()
-                .map(|inner| inner.iter().cloned().collect::<Vec<_>>());
-
             front_objs.push(super::front::PyFrontValue {
                 genotype: temp,
-                score: fitness,
+                score: member.score().cloned(),
             });
         }
     }
 
-    Ok(PyFront::new(front_objs))
+    Ok(PyFront::new(front_objs, generation.objective().clone()))
 }
 
 fn get_value<'py, C>(

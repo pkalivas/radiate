@@ -12,16 +12,16 @@ license.workspace = true
 homepage.workspace = true
 
 [dependencies]
-regex = { workspace = true }
 compact_str = { workspace = true, features = ["serde"] }
 slotmap = { workspace = true }
 foldhash = { workspace = true }
 hashbrown = { workspace = true }
-smallvec = { workspace = true, optional = true }
+num-traits = { workspace = true }
+rand = { workspace = true }
+smallvec = { workspace = true }
 serde = { workspace = true, optional = true }
 
 
 [features]
 default = []
 serde = ["dep:serde"]
-smallvec = ["dep:smallvec"]

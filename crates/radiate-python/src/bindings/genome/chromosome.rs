@@ -1,8 +1,10 @@
-use crate::{AnyChromosome, AnyGene, PyGene, PyGeneType};
-use pyo3::{PyResult, exceptions::PyIndexError, pyclass, pymethods};
+use crate::{PyGene, PyGeneType, Wrap, bindings::datatype::DataType};
+use pyo3::{
+    Bound, IntoPyObject, PyAny, PyResult, Python, exceptions::PyIndexError, pyclass, pymethods,
+};
 use radiate::prelude::*;
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone, Debug, PartialEq)]
 pub struct PyChromosome {
     pub(crate) genes: Vec<PyGene>,
@@ -55,6 +57,14 @@ impl PyChromosome {
             self.genes[0].gene_type()
         }
     }
+
+    pub fn dtype<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        if self.genes.is_empty() {
+            Wrap(DataType::Null).into_pyobject(py)
+        } else {
+            self.genes[0].dtype(py)
+        }
+    }
 }
 
 macro_rules! impl_into_py_chromosome {
@@ -83,11 +93,23 @@ macro_rules! impl_into_py_chromosome {
     };
 }
 
-impl_into_py_chromosome!(FloatChromosome, FloatGene);
+impl_into_py_chromosome!(IntChromosome<u8>, IntGene<u8>);
+impl_into_py_chromosome!(IntChromosome<u16>, IntGene<u16>);
+impl_into_py_chromosome!(IntChromosome<u32>, IntGene<u32>);
+impl_into_py_chromosome!(IntChromosome<u64>, IntGene<u64>);
+impl_into_py_chromosome!(IntChromosome<u128>, IntGene<u128>);
+
+impl_into_py_chromosome!(IntChromosome<i8>, IntGene<i8>);
+impl_into_py_chromosome!(IntChromosome<i16>, IntGene<i16>);
+impl_into_py_chromosome!(IntChromosome<i32>, IntGene<i32>);
 impl_into_py_chromosome!(IntChromosome<i64>, IntGene<i64>);
+impl_into_py_chromosome!(IntChromosome<i128>, IntGene<i128>);
+
+impl_into_py_chromosome!(FloatChromosome<f32>, FloatGene<f32>);
+impl_into_py_chromosome!(FloatChromosome<f64>, FloatGene<f64>);
+
 impl_into_py_chromosome!(BitChromosome, BitGene);
 impl_into_py_chromosome!(CharChromosome, CharGene);
 impl_into_py_chromosome!(GraphChromosome<Op<f32>>, GraphNode<Op<f32>>);
 impl_into_py_chromosome!(TreeChromosome<Op<f32>>, TreeNode<Op<f32>>);
 impl_into_py_chromosome!(PermutationChromosome<usize>, PermutationGene<usize>);
-impl_into_py_chromosome!(AnyChromosome<'static>, AnyGene<'static>);

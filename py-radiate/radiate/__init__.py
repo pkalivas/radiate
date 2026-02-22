@@ -4,7 +4,22 @@ except ImportError:
     __version__ = "unknown"
     __version_tuple__ = (0, 0, 0)
 
-from .engine import GeneticEngine
+from .engine import (
+    Engine,
+    Generation,
+    Front,
+    FrontValue,
+    EventHandler,
+    EventType,
+    EngineEvent,
+    MetricSet,
+    Metric,
+    Tag,
+    EngineLog,
+    EngineCheckpoint,
+    EngineUi,
+)
+
 from .codec import (
     FloatCodec,
     IntCodec,
@@ -13,30 +28,26 @@ from .codec import (
     GraphCodec,
     TreeCodec,
     PermutationCodec,
-    AnyCodec,
 )
+
 from .random import RandomProvider as random
-from .front import Front
-from .generation import Generation
+
 from .genome import (
-    gene,
     chromosome,
+    Gene,
     Chromosome,
     Genotype,
+    Phenotype,
     Population,
     Species,
     Ecosystem,
-    Phenotype,
-    Gene,
-    AnyGene,
 )
-from .handlers import EventHandler, EventType, EngineEvent
-from .gp import Op, Graph, Tree, calc_accuracy
-from .metrics import MetricSet, Metric, Tag
 
-from .inputs.executor import Executor
+from .gp import Op, Graph, Tree, accuracy, OpsConfig, AccuracyResult
+
+from .operators.executor import Executor
 from .fitness import Regression, NoveltySearch, BatchFitness, fitness, novelty
-from .inputs.selector import (
+from .operators.selector import (
     TournamentSelector,
     RouletteSelector,
     RankSelector,
@@ -46,9 +57,10 @@ from .inputs.selector import (
     LinearRankSelector,
     NSGA2Selector,
     TournamentNSGA2Selector,
+    NSGA3Selector,
 )
 
-from .inputs.alterer import (
+from .operators.alterer import (
     BlendCrossover,
     IntermediateCrossover,
     ArithmeticMutator,
@@ -73,26 +85,60 @@ from .inputs.alterer import (
     JitterMutator,
 )
 
-from .inputs.distance import (
+from .operators.distance import (
     HammingDistance,
     EuclideanDistance,
     NeatDistance,
     CosineDistance,
 )
 
-from .inputs.limit import SecondsLimit, GenerationsLimit, ScoreLimit, ConvergenceLimit
+from .operators.limit import (
+    SecondsLimit,
+    GenerationsLimit,
+    ScoreLimit,
+    ConvergenceLimit,
+    MetricLimit,
+)
 
-from .inputs.rate import Rate
-from .inputs import rate
+from .operators.rate import Rate
+from .operators import rate
 
-from .option import EngineLog, EngineCheckpoint, EngineUi
+from .dtype import (
+    UInt8,
+    UInt16,
+    UInt32,
+    UInt64,
+    UInt128,
+    Int8,
+    Int16,
+    Int32,
+    Int64,
+    Int128,
+    Float32,
+    Float64,
+    Boolean,
+    Struct,
+    List,
+    Field,
+    String,
+    Char,
+    Null,
+    Op32,
+    Node,
+)
 
-from .dependancies import (
+from .dsl import Select, Mutate, Cross, Dist, Limit
+
+from ._dependancies import (
     _GIL_ENABLED,
     _NUMPY_AVAILABLE,
     _PANDAS_AVAILABLE,
     _POLARS_AVAILABLE,
+    _TORCH_AVAILABLE,
 )
+
+MIN = "min"
+MAX = "max"
 
 
 __all__ = [
@@ -100,10 +146,11 @@ __all__ = [
     "__version__",
     "__version_tuple__",
     # Dependencies
-    "_NUMPY_AVAILABLE",
     "_GIL_ENABLED",
+    "_NUMPY_AVAILABLE",
     "_PANDAS_AVAILABLE",
     "_POLARS_AVAILABLE",
+    "_TORCH_AVAILABLE",
     # Random
     "random",
     # Codecs
@@ -114,12 +161,9 @@ __all__ = [
     "BitCodec",
     "GraphCodec",
     "TreeCodec",
-    "AnyCodec",
     # Genome and Population
-    "gene",
     "chromosome",
     "Gene",
-    "AnyGene",
     "Chromosome",
     "Genotype",
     "Phenotype",
@@ -130,7 +174,9 @@ __all__ = [
     "Tree",
     "Graph",
     "Op",
-    "calc_accuracy",
+    "accuracy",
+    "OpsConfig",
+    "AccuracyResult",
     # Handlers
     "EventHandler",
     "EventType",
@@ -168,6 +214,7 @@ __all__ = [
     "GenerationsLimit",
     "ScoreLimit",
     "ConvergenceLimit",
+    "MetricLimit",
     # Problem
     "Regression",
     "NoveltySearch",
@@ -184,16 +231,18 @@ __all__ = [
     "LinearRankSelector",
     "NSGA2Selector",
     "TournamentNSGA2Selector",
+    "NSGA3Selector",
     # Diversity Measures
     "NeatDistance",
     "CosineDistance",
     "HammingDistance",
     "EuclideanDistance",
     # Engine
-    "GeneticEngine",
+    "Engine",
     "Generation",
     # Front,
     "Front",
+    "FrontValue",
     # Metrics
     "MetricSet",
     "Metric",
@@ -202,4 +251,35 @@ __all__ = [
     "EngineLog",
     "EngineCheckpoint",
     "EngineUi",
+    # Dtype
+    "UInt8",
+    "UInt16",
+    "UInt32",
+    "UInt64",
+    "UInt128",
+    "Int8",
+    "Int16",
+    "Int32",
+    "Int64",
+    "Int128",
+    "Float32",
+    "Float64",
+    "Boolean",
+    "Struct",
+    "Field",
+    "String",
+    "Char",
+    "Null",
+    "List",
+    "Op32",
+    "Node",
+    # dsl
+    "Select",
+    "Dist",
+    "Mutate",
+    "Cross",
+    "Limit",
+    # constants
+    "MIN",
+    "MAX",
 ]

@@ -8,15 +8,15 @@ const K: usize = VARIABLES - OBJECTIVES + 1;
 fn main() {
     random_provider::set_seed(500);
 
-    let codec = FloatCodec::vector(VARIABLES, 0_f32..1_f32).with_bounds(-100.0..100.0);
+    let codec = FloatCodec::vector(VARIABLES, 0_f32..1_f32);
 
     let engine = GeneticEngine::builder()
         .codec(codec)
-        .fitness_fn(|geno: Vec<f32>| dtlz_6(&geno))
+        .fitness_fn(|geno: Vec<f32>| dtlz_1(&geno))
         .multi_objective(vec![Optimize::Minimize; OBJECTIVES])
         .offspring_selector(TournamentSelector::new(5))
-        .survivor_selector(NSGA2Selector::new())
-        .front_size(700..900)
+        .survivor_selector(NSGA3Selector::new(12))
+        .front_size(200..250)
         .alter(alters!(
             SimulatedBinaryCrossover::new(1_f32, 2.0),
             UniformMutator::new(0.1),
@@ -30,7 +30,9 @@ fn main() {
     plot_front(front);
 }
 
-fn plot_front(front: &Front<Phenotype<FloatChromosome>>) {
+fn plot_front(front: &Front<Phenotype<FloatChromosome<f32>>>) {
+    let mut front = front.clone();
+    front.remove_outliers(0.05);
     let mut x = vec![];
     let mut y = vec![];
     let mut z = vec![];
@@ -119,6 +121,7 @@ pub fn dtlz_6(values: &[f32]) -> Vec<f32> {
             f[i] *= (values[aux] * theta).sin();
         }
     }
+
     f
 }
 

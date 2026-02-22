@@ -10,7 +10,7 @@ evolve solutions. The results are visualized in a 3D scatter plot.
 import matplotlib.pyplot as plt
 import radiate as rd
 import numpy as np
-from numba import jit, float32
+from numba import jit, float64
 
 rd.random.seed(501)
 
@@ -19,14 +19,14 @@ objectives = 3
 k = variables - objectives + 1
 
 
-@jit(float32[:](float32[:]), nopython=True)
+@jit(float64[:](float64[:]), nopython=True)
 def dtlz_1(val: np.ndarray) -> np.ndarray:
     g_vals = val[variables - k :] - 0.5
     g = 100.0 * (k + np.sum(g_vals**2 - np.cos(20.0 * np.pi * g_vals)))
 
     base = 0.5 * (1.0 + g)
 
-    f = np.full(objectives, base, dtype=np.float32)
+    f = np.full(objectives, base, dtype=np.float64)
 
     for i in range(objectives):
         prod_end = objectives - 1 - i
@@ -39,20 +39,21 @@ def dtlz_1(val: np.ndarray) -> np.ndarray:
     return f
 
 
-engine = rd.GeneticEngine(
-    codec=rd.FloatCodec.vector(variables, (0.0, 1.0), use_numpy=True),
-    fitness_func=dtlz_1,
-    offspring_selector=rd.TournamentSelector(k=8),
-    survivor_selector=rd.NSGA2Selector(),
-    objective=["min" for _ in range(objectives)],
-    alters=[
-        rd.SimulatedBinaryCrossover(1.0, 2.0),
-        rd.UniformMutator(0.1),
-    ],
+engine = (
+    rd.Engine.float(variables, use_numpy=True)
+    .fitness(dtlz_1)
+    .objective(rd.MIN, rd.MIN, rd.MIN)
+    .front_range(100, 150)
+    .select(rd.Select.tournament(k=5), rd.Select.nsga3(points=12))
+    .alters(
+        rd.Cross.sbx(1.0, 2.0),
+        rd.Mutate.uniform(0.1),
+    )
+    .limit(rd.Limit.generations(2000))
 )
 
-result = engine.run(rd.GenerationsLimit(2000), ui=True)
-print(result)
+result = engine.run(ui=True)
+print(result.metrics().dashboard())
 
 front = result.front()
 
@@ -63,7 +64,7 @@ z = [member.score()[2] for member in front]
 fig = plt.figure()
 ax = plt.axes(projection="3d")
 ax.scatter(x, y, z)
-ax.set_xlim([0, 0.5])
-ax.set_ylim([0, 0.5])
-ax.set_zlim([0, 0.5])
+ax.set_xlim([0.0, 0.5])  # type: ignore
+ax.set_ylim([0.0, 0.5])  # type: ignore
+ax.set_zlim([0.0, 0.5])  # type: ignore
 plt.show()

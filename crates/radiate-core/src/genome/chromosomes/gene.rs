@@ -95,13 +95,6 @@ pub trait NumericGene: Gene
 where
     Self::Allele: NumericAllele,
 {
-    fn allele_as_f32(&self) -> Option<f32> {
-        self.allele().cast_as_f32()
-    }
-
-    fn allele_as_i32(&self) -> Option<i32> {
-        self.allele().cast_as_i32()
-    }
 }
 
 impl<G, T> NumericGene for G

@@ -9,7 +9,6 @@ nav:
   - Genome:
     - source/genome/index.md
     - Codec: source/genome/codec.md
-    - Any: source/genome/any.md
     - Example: source/genome/example.md
   - Parameters:
       - Selectors: 
@@ -44,6 +43,7 @@ nav:
     - source/misc/index.md
     - Randomness: source/misc/random.md
     - Problem API: source/misc/problem.md
+    - DataTypes: source/misc/dtype.md
     - Checkpointing: source/misc/checkpoint.md
     - UI: source/misc/ui.md
   - Examples: source/examples.md

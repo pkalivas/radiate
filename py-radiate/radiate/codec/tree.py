@@ -1,33 +1,26 @@
 from __future__ import annotations
 
-from radiate._typing import NodeValues
-
 from .base import CodecBase
-from radiate.gp import Op, Tree
-
-from radiate.genome import Genotype
+from radiate.gp import Op, Tree, OpsConfig
+from radiate._bridge.wrapper import RsObject
+from radiate._typing import AtLeastOne
+from radiate.genome import Genotype, GeneType
 from radiate.radiate import PyTreeCodec
 
 
-class TreeCodec(CodecBase[Op, Tree]):
-    def encode(self) -> Genotype[Op]:
-        return Genotype.from_rust(self.codec.encode_py())
-
-    def decode(self, genotype: Genotype) -> Tree:
-        if not isinstance(genotype, Genotype):
-            raise TypeError("genotype must be an instance of Genotype.")
-        return Tree.from_rust(self.codec.decode_py(genotype=genotype.__backend__()))
+class TreeCodec(CodecBase[Op, Tree], RsObject):
+    gene_type = GeneType.TREE
 
     def __init__(
         self,
         shape: tuple[int, int] = (1, 1),
         min_depth: int = 3,
         max_size: int = 30,
-        vertex: NodeValues | None = None,
-        leaf: NodeValues | None = None,
-        root: NodeValues | None = None,
-        values: dict[str, list[Op]] | list[tuple[str, list[Op]]] | None = None,
-    ) -> TreeCodec:
+        vertex: Op | list[Op] | None = None,
+        leaf: Op | list[Op] | None = None,
+        root: Op | list[Op] | None = None,
+        values: dict[str, AtLeastOne[Op]] | None = None,
+    ):
         """
         Initialize a TreeCodec for genetic programming trees. The codec supports building trees with
         specified operations for vertices, leaves, and roots. The trees can be constrained by minimum depth and maximum size.
@@ -36,10 +29,10 @@ class TreeCodec(CodecBase[Op, Tree]):
             shape (tuple[int, int], optional): The input and output size of the tree. Defaults to (1, 1).
             min_depth (int, optional): The minimum depth of the tree (ie: the starting height of a tree). Defaults to 3.
             max_size (int, optional): The maximum size of the tree (ie: the maximum number of nodes). Defaults to 30.
-            vertex (NodeValues | None, optional): Operations to use for internal nodes. Can be a single Op or a list of Ops. Defaults to None.
-            leaf (NodeValues | None, optional): Operations to use for leaf nodes. Can be a single Op or a list of Ops. Defaults to None.
-            root (NodeValues | None, optional): Operations to use for the root node. Can be a single Op or a list of Ops. Defaults to None.
-            values (dict[str, list[Op]] | list[tuple[str, list[Op]]] | None, optional): A mapping of node types to their corresponding operations.
+            vertex (Op | list[Op] | None, optional): Operations to use for internal nodes. Can be a single Op or a list of Ops. Defaults to None.
+            leaf (Op | list[Op] | None, optional): Operations to use for leaf nodes. Can be a single Op or a list of Ops. Defaults to None.
+            root (Op | list[Op] | None, optional): Operations to use for the root node. Can be a single Op or a list of Ops. Defaults to None.
+            values (dict[str, AtLeastOne[Op]] | None, optional): A mapping of node types to their corresponding operations.
                 If provided, this overrides the individual vertex, leaf, and root parameters. Defaults to None.
 
         Raises:
@@ -56,19 +49,18 @@ class TreeCodec(CodecBase[Op, Tree]):
         if max_size < 1:
             raise ValueError("Maximum size must be at least 1")
 
-        ops_map: dict[str, list[Op]] = {}
-        if leaf is None and values is None:
-            ops_map = {"leaf": [Op.var(i) for i in range(input_size)]}
-        if values is not None:
-            if isinstance(values, list):
-                values = dict(values)
-            ops_map = values | ops_map
-        else:
-            if vertex is not None:
-                ops_map["vertex"] = [vertex] if isinstance(vertex, Op) else vertex
-            if root is not None:
-                ops_map["root"] = [root] if isinstance(root, Op) else root
-            if leaf is not None:
-                ops_map["leaf"] = [leaf] if isinstance(leaf, Op) else leaf
+        ops_config = OpsConfig(
+            vertex=vertex, leaf=leaf, root=root, values=values
+        ).build_ops_map(input_size=input_size, fill_invalid=True)
 
-        self.codec = PyTreeCodec(output_size, min_depth, max_size, ops_map)
+        self._pyobj = PyTreeCodec(output_size, min_depth, max_size, ops=ops_config)
+
+    def encode(self) -> Genotype[Op]:
+        return Genotype.from_rust(self.__backend__().encode_py())
+
+    def decode(self, genotype: Genotype) -> Tree:
+        if not isinstance(genotype, Genotype):
+            raise TypeError("genotype must be an instance of Genotype.")
+        return Tree.from_rust(
+            self.__backend__().decode_py(genotype=genotype.__backend__())
+        )

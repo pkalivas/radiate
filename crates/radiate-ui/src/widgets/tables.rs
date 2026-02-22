@@ -10,7 +10,7 @@ use ratatui::widgets::{Scrollbar, ScrollbarOrientation, ScrollbarState};
 use ratatui::widgets::{StatefulWidget, Widget};
 use ratatui::{
     layout::{Constraint, Layout, Rect},
-    style::{Color, Style, Stylize},
+    style::{Color, Style},
     widgets::{Block, Cell, Row, Table},
 };
 use std::iter::{once, repeat};

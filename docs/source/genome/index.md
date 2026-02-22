@@ -33,11 +33,13 @@ A `Gene` is a wrapper around an `allele` that adds functionality which is compat
 - Perform operations on its `allele` like addition, subtraction, or mutation
 - Maintain constraints (like value ranges)
 
-Certain `Genes` have additional functionality that allows them to be manipulated in specific ways, such as the `FloatGene` and `IntGene<I>` which implement the `ArithmeticGene`. The `ArithmeticGene` trait provides methods for performing arithmetic operations on the `Gene`. Radiate provides several built-in gene types, however, you can also create custom genes to suit your specific needs. The core built-in genes include:
+Certain `Genes` have additional functionality that allows them to be manipulated in specific ways, such as the `FloatGene<F>` and `IntGene<I>` which implement the `ArithmeticGene`. The `ArithmeticGene` trait provides methods for performing arithmetic operations on the `Gene`. Radiate provides several built-in gene types, however, you can also create custom genes to suit your specific needs. The core built-in genes include:
 
 ??? info "FloatGene"
 
     For evolving floating-point numbers. If the `allele` is not specified, it will be randomly initialized within the `value_range`. If the `value_range` is not specified, it will default to (`-1e10`, `1e10`). If the `bound_range` is not specified, it will default to `value_range`.
+
+    The `FloatGene` is generic over the floating-point type `F`, which can be either `f32` or `f64`.
 
     === ":fontawesome-brands-python: Python"
 
@@ -46,10 +48,11 @@ Certain `Genes` have additional functionality that allows them to be manipulated
 
         # Create a float gene that can evolve between -1.0 and 1.0 but 
         # must stay within -10.0 to 10.0 during evolution
-        gene = rd.gene.float(
-            allele=0.5,                   # Current value
-            init_range=(-1.0, 1.0),      # Initial range
-            bounds=(-10.0, 10.0)     # Evolution bounds
+        gene = rd.Gene.float(
+            allele=0.5,              # Current value
+            init_range=(-1.0, 1.0),  # Initial range - if no allele, the allele will be randomly initialized within this range
+            bounds=(-10.0, 10.0),    # Evolution bounds
+            dtype=rd.Float32         # Optional, defaults to rd.Float64
         )
         ```
 
@@ -60,7 +63,8 @@ Certain `Genes` have additional functionality that allows them to be manipulated
 
         // Create a float gene that can evolve between -1.0 and 1.0 but 
         // must stay within -10.0 to 10.0 during evolution
-        let gene = FloatGene::new(0.5, -1.0..1.0, -10.0..10.0);
+        let gene: FloatGene<f32> = FloatGene::new(0.5, -1.0..1.0, -10.0..10.0);
+        let gene_f64: FloatGene<f64> = FloatGene::new(0.5, -1_f64..1_f64, -10_f64..10_f64);
 
         // Create a float gene with a randomly generated allele between -1.0 and 1.0
         // and bounds between -1.0 and 1.0
@@ -84,10 +88,11 @@ Certain `Genes` have additional functionality that allows them to be manipulated
         import radiate as rd
 
         # Create an integer gene that can evolve between -100 and 100
-        gene = rd.gene.int(
-            allele=42,                     # Current value
-            init_range=(-10, 10),        # Initial range
-            bounds=(-100, 100)       # Evolution bounds
+        gene = rd.Gene.int(
+            allele=42,             # Current value
+            init_range=(-10, 10),  # Initial range - if no allele, the allele will be randomly initialized within this range
+            bounds=(-100, 100),    # Evolution bounds - optional, defaults to init_range
+            dtype=rd.UInt8         # Optional, defaults to rd.Int64
         )
         ```
 
@@ -120,7 +125,7 @@ Certain `Genes` have additional functionality that allows them to be manipulated
 
         # Create an bit gene with an allele of True - if the allele isn't specified, it will 
         # be randomly initialized to True or False
-        gene = rd.gene.bit(allele=True)
+        gene = rd.Gene.bit(allele=True)
         ```
 
     === ":fontawesome-brands-rust: Rust"
@@ -145,14 +150,14 @@ Certain `Genes` have additional functionality that allows them to be manipulated
         import radiate as rd
 
         # Create a character gene with an allele of 'A'
-        gene = rd.gene.char(allele='A')
+        gene = rd.Gene.char(allele='A')
 
         # Create a character gene with a randomly generated allele from the set 'abc'
-        gene = rd.gene.char(char_set='abc')  
+        gene = rd.Gene.char(char_set='abc')  
 
         # Create a character gene from a set of chars 
-        gene = rd.gene.char(char_set='abc')
-        gene = rd.gene.char(char_set=['a', 'b', 'c'])
+        gene = rd.Gene.char(char_set='abc')
+        gene = rd.Gene.char(char_set=['a', 'b', 'c'])
         ```
 
     === ":fontawesome-brands-rust: Rust"
@@ -222,15 +227,16 @@ Because each `Chromosome` has an associated `Gene`, the built int chromosomes ar
         import radiate as rd
 
         # Create a float chromosome with 5 genes, each initialized to a random value between -1.0 and 1.0
-        chromosome = rd.chromosome.float(
-            length=5, 
-            init_range=(-1.0, 1.0), 
-            bounds=(-10.0, 10.0)
+        chromosome = rd.Chromosome.float(
+            length=5,               # Number of genes in the chromosome
+            init_range=(-1.0, 1.0), # Initial range for gene alleles
+            bounds=(-10.0, 10.0),   # Optional, bounds for gene alleles during evolution - defaults to init_range
+            dtype=rd.Float32        # Optional, defaults to rd.Float64
         )
 
         # Create a float chromosome with specific genes
-        genes = [rd.gene.float(allele=0.1), rd.gene.float(allele=0.2), rd.gene.float(allele=0.3)]
-        chromosome_with_genes = rd.chromosome.float(genes=genes)
+        genes = [rd.Gene.float(allele=0.1), rd.Gene.float(allele=0.2), rd.Gene.float(allele=0.3)]
+        chromosome_with_genes = rd.Chromosome.float(genes=genes)
         ```
 
     === ":fontawesome-brands-rust: Rust"
@@ -240,6 +246,7 @@ Because each `Chromosome` has an associated `Gene`, the built int chromosomes ar
 
         // Create a float chromosome with 5 genes, each initialized to a random value between -1.0 and 1.0
         let chromosome = FloatChromosome::from((5, -1.0..1.0));
+        let f64_chromosome: FloatChromosome<f64> = FloatChromosome::from((5, -1_f64..1_f64));
 
         let bounded_chromosome = FloatChromosome::from((5, -1.0..1.0, -10.0..10.0));
         ```
@@ -254,10 +261,11 @@ Because each `Chromosome` has an associated `Gene`, the built int chromosomes ar
         import radiate as rd
 
         # Create an integer chromosome with 5 genes, each initialized to a random value between -10 and 10
-        chromosome = rd.chromosome.int(
-            length=5,
-            init_range=(-10, 10),
-            bounds=(-100, 100)
+        chromosome = rd.Chromosome.int(
+            length=5,               # Number of genes in the chromosome
+            init_range=(-10, 10),   # Initial range for gene alleles
+            bounds=(-100, 100),     # Optional, bounds for gene alleles during evolution - defaults to init_range
+            dtype=rd.Int16          # Optional, defaults to rd.Int64
         )
         ```
 
@@ -282,7 +290,7 @@ Because each `Chromosome` has an associated `Gene`, the built int chromosomes ar
         import radiate as rd
 
         # Create a bit chromosome with 5 genes, each initialized to a random value of True or False
-        chromosome = rd.chromosome.bit(length=5)
+        chromosome = rd.Chromosome.bit(length=5)
         ```
 
     === ":fontawesome-brands-rust: Rust"
@@ -304,9 +312,9 @@ Because each `Chromosome` has an associated `Gene`, the built int chromosomes ar
         import radiate as rd
 
         # Create a character chromosome with 5 genes, each initialized to a random character from the ASCII printable characters
-        chromosome = rd.chromosome.char(length=5)
+        chromosome = rd.Chromosome.char(length=5)
 
-        chromosome_with_set = rd.chromosome.char(length=5, char_set='abc')
+        chromosome_with_set = rd.Chromosome.char(length=5, char_set='abc')
         ```
 
     === ":fontawesome-brands-rust: Rust"
@@ -357,20 +365,20 @@ Because of the typed nature of the `Genotype`, it can only hold a collection of 
 
     # Create a genotype with a single FloatChromosome and a 5 FloatGenes
     genotype = rd.Genotype(
-        rd.chromosome.float(length=5, init_range=(-1.0, 1.0))
+        rd.Chromosome.float(length=5, init_range=(-1.0, 1.0))
     )
 
     # Create a genotype with a single FloatChromosome and a single FloatGene with a 
     # randomly generated allele between -1.0 and 1.0
     genotype = rd.Genotype(
-        rd.Chromosome([rd.gene.float(init_range=(-1.0, 1.0))])
+        rd.Chromosome([rd.Gene.float(init_range=(-1.0, 1.0))])
     )
 
     # Create a genotype with multiple chromosomes of lengths 5, 15, and 3
     three_chromosome_genotype = rd.Genotype([
-        rd.chromosome.float(length=5, init_range=(-1.0, 1.0)),
-        rd.chromosome.float(length=15, init_range=(-1.0, 1.0)),
-        rd.chromosome.float(length=3, init_range=(-1.0, 1.0))
+        rd.Chromosome.float(length=5, init_range=(-1.0, 1.0)),
+        rd.Chromosome.float(length=15, init_range=(-1.0, 1.0)),
+        rd.Chromosome.float(length=3, init_range=(-1.0, 1.0))
     ])
     ```
 

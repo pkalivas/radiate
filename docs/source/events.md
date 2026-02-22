@@ -139,19 +139,15 @@ The simplest way to subscribe to events is by providing a callback function:
     ```python
     import radiate as rd
 
-    engine = rd.GeneticEngine(
-        codec=your_codec,
-        fitness_func=your_fitness_func,
-        # Subscribe to all events using a lambda function
-        subscribe=lambda event: print(event),  
+    engine = (
+        rd.Engine(your_codec)
+        .fitness(your_fitness_func)
+        .subscribe(lambda event: print(event))  # Subscribe to all events using a lambda function
         # ... other parameters ...
     )
 
-    # or add it later
-    engine.subscribe(lambda event: print(event))
-
-    # Run the engine
-    engine.run(rd.GenerationsLimit(100))
+    # Run the engine for 100 generations
+    engine.run(rd.Limit.generations(100))
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -197,7 +193,7 @@ For more complex event handling, you can create a custom event handler class:
     # Create an instance of your event handler
     handler = Subscriber()
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=your_codec,
         fitness_func=your_fitness_func,
         subscribe=handler,
@@ -243,16 +239,13 @@ For more complex event handling, you can create a custom event handler class:
     # Create an instance of your event handler
     handler = ScorePlotterHandler()
 
-    engine = rd.GeneticEngine(
-        codec=your_codec,
-        fitness_func=your_fitness_func,
-        subscribe=handler,
+    engine = (
+        rd.Engine(codec=your_codec)
+        .fitness(your_fitness_func)
+        .subscribe(handler)   # Add your handler here
         # ... other parameters ...
     )
-
-    # or add it later
-    engine.subscribe(handler)
-
+    
     # Run the engine for 100 generations
     engine.run(rd.GenerationsLimit(100))
     ```

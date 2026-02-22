@@ -16,10 +16,10 @@ use serde::{Deserialize, Serialize};
 /// use radiate_core::*;
 ///
 /// // Create a simple ecosystem
-/// let codec = FloatCodec::vector(10, 0.0..1.0);
+/// let codec = FloatCodec::vector(10, 0.0_f64..1.0_f64);
 /// let population = (0..100)
 ///    .map(|_| Phenotype::from((codec.encode(), 0)))
-///    .collect::<Population<FloatChromosome>>();
+///    .collect::<Population<FloatChromosome<f64>>>();
 ///
 /// let ecosystem = Ecosystem::new(population);
 /// ```

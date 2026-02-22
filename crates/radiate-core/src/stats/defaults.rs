@@ -42,6 +42,20 @@ pub mod metric_names {
     pub const SPECIES_EVENNESS: &str = "species_evenness";
     pub const LARGEST_SPECIES_SHARE: &str = "largest_species_share";
     pub const SPECIES_NEW_RATIO: &str = "species_new_ratio";
+
+    pub const ALTER_PARENT_REUSE: &str = "alter_parent_reuse";
+    pub const ALTER_WITHIN_FAMILY: &str = "alter_within_family";
+    pub const ALTER_CROSS_FAMILY: &str = "alter_cross_family";
+
+    pub const LINEAGE_EVENTS: &str = "lineage_events";
+    pub const LINEAGE_PARENTS_USED_UNIQUE: &str = "lineage_parents_unique";
+    pub const LINEAGE_PARENTS_USED_RATIO: &str = "lineage_parents_ratio";
+    // •	FAMILY_PAIR_ENTROPY in [0, 1]
+    // •	0.0 = basically always the same pair (pairing collapse)
+    // •	1.0 = pairings evenly distributed across the pairs that occurred
+    pub const LINEAGE_FAMILY_PAIR_ENTROPY: &str = "lineage_family_pair";
+    pub const LINEAGE_FAMILY_PAIR_UNIQUE: &str = "lineage_family_pair_unique";
+    pub const LINEAGE_TOP1_PAIR_SHARE: &str = "lineage_top1_pair_share";
 }
 
 pub mod metric_tags {
@@ -69,6 +83,10 @@ pub mod metric_tags {
     pub const SCORE: &str = "score";
 
     pub const RATE: &str = "rate";
+
+    pub const STEP: &str = "step";
+
+    pub const LINEAGE: &str = "lineage";
 }
 
 const RULES: &[(&str, &[TagKind])] = &[
@@ -87,6 +105,8 @@ const RULES: &[(&str, &[TagKind])] = &[
     (metric_tags::OTHER, &[TagKind::Other]),
     (metric_tags::SCORE, &[TagKind::Score]),
     (metric_tags::RATE, &[TagKind::Rate]),
+    (metric_tags::STEP, &[TagKind::Step]),
+    (metric_tags::LINEAGE, &[TagKind::Lineage]),
 ];
 
 pub fn default_tags(name: &str) -> Tag {
@@ -132,6 +152,25 @@ pub fn default_tags(name: &str) -> Tag {
 
         metric_names::SCORES => {
             mask.insert(TagKind::Score);
+        }
+
+        metric_names::ALTER_CROSS_FAMILY
+        | metric_names::ALTER_WITHIN_FAMILY
+        | metric_names::ALTER_PARENT_REUSE => {
+            mask.insert(TagKind::Alterer);
+            mask.insert(TagKind::Lineage);
+        }
+
+        metric_names::LINEAGE_EVENTS
+        | metric_names::LINEAGE_PARENTS_USED_UNIQUE
+        | metric_names::LINEAGE_PARENTS_USED_RATIO
+        | metric_names::LINEAGE_FAMILY_PAIR_ENTROPY
+        | metric_names::LINEAGE_TOP1_PAIR_SHARE => {
+            mask.insert(TagKind::Lineage);
+        }
+
+        x if x.contains(metric_tags::STEP) => {
+            mask.insert(TagKind::Step);
         }
 
         _ => {}

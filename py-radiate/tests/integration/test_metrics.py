@@ -5,18 +5,20 @@ import pytest
 @pytest.mark.integration
 def test_generation_metrics(random_seed):
     num_genes = 5
-    engine = rd.GeneticEngine(
-        codec=rd.IntCodec.vector(num_genes, init_range=(0, 10)),
-        fitness_func=lambda x: sum(x),
-        objective="min",
+
+    metrics = (
+        (
+            rd.Engine.int(num_genes, init_range=(0, 10))
+            .fitness(lambda x: sum(x))
+            .minimizing()
+            .limit(rd.Limit.score(0), rd.Limit.generations(500))
+        )
+        .run()
+        .metrics()
     )
 
-    result = engine.run([rd.ScoreLimit(0), rd.GenerationsLimit(500)])
-
-    metrics = result.metrics()
-
-    assert len(metrics) == 23
-    assert len(metrics.keys()) == 23
+    assert len(metrics) == 32
+    assert len(metrics.keys()) == 32
     for key in metrics.keys():
         assert key in metrics
 
@@ -83,25 +85,26 @@ def test_metrics_from_events(random_seed):
                     assert metrics[key].max() is not None
                     assert metrics[key].count() is not None
 
-    engine = rd.GeneticEngine(
-        codec=rd.IntCodec.vector(5, (0, 10)),
-        fitness_func=lambda x: sum(x),
-        objective="min",
-        subscribe=[MetricSetAssertHandler()],
+    engine = (
+        rd.Engine.int(5, init_range=(0, 10))
+        .fitness(lambda x: sum(x))
+        .minimizing()
+        .subscribe(MetricSetAssertHandler())
     )
 
-    engine.run([rd.ScoreLimit(0), rd.GenerationsLimit(500)])
+    engine.run(rd.ScoreLimit(0), rd.GenerationsLimit(500))
 
 
 @pytest.mark.integration
 def test_metric_tags(random_seed):
-    engine = rd.GeneticEngine(
-        codec=rd.IntCodec.vector(5, (0, 10)),
-        fitness_func=lambda x: sum(x),
-        objective="min",
+    engine = (
+        rd.Engine.int(5, init_range=(0, 10))
+        .fitness(lambda x: sum(x))
+        .minimizing()
+        .limit(rd.Limit.score(0), rd.Limit.generations(500))
     )
 
-    result = engine.run([rd.ScoreLimit(0), rd.GenerationsLimit(100)])
+    result = engine.run()
 
     metrics = result.metrics()
 

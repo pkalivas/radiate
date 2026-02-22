@@ -7,6 +7,7 @@ pub(crate) const BOLTZMANN_SELECTOR: &str = "BoltzmannSelector";
 pub(crate) const ELITE_SELECTOR: &str = "EliteSelector";
 pub(crate) const RANDOM_SELECTOR: &str = "RandomSelector";
 pub(crate) const NSGA2_SELECTOR: &str = "NSGA2Selector";
+pub(crate) const NSGA3_SELECTOR: &str = "NSGA3Selector";
 pub(crate) const TOURNAMENT_NSGA2_SELECTOR: &str = "TournamentNSGA2Selector";
 
 // Executors

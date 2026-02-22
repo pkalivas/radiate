@@ -45,21 +45,59 @@ Lets take a quick look at how we would put together a regression problem using a
     # dataset. Optionally, we can provide a loss function as well - the default is mean squared error (MSE).
     # The last argument is whether to use batch evaluation or not - the default is False. This has minimal impact on performance.
     loss = "mse"  # Options are: "mse", "mae", "cross_entropy", "diff"
-    fitness_func = rd.Regression(inputs, answers, loss=loss, batch=False)   
+    fitness_func = rd.Regression(inputs, answers, loss=loss, batch=False)
 
-    engine = rd.GeneticEngine(
-        codec=codec,
-        fitness_func=fitness_func,
-        objective="min",   # Minimize the loss
-        alters=[
+    engine = (
+        rd.Engine(codec)
+        .fitness(fitness_func)
+        .minimizing()  # We want to minimize the loss
+        .alters(
             rd.GraphCrossover(0.5, 0.5),
             rd.OperationMutator(0.07, 0.05),
             rd.GraphMutator(0.1, 0.1, allow_recurrent=False), # True if evolving recurrent graphs is allowed
-        ],
+        )
     )
 
     # Run the genetic engine with a score (error) limit of 0.001 or a maximum of 1000 generations
-    result = engine.run([rd.ScoreLimit(0.001), rd.GenerationsLimit(1000)], log=True)
+    result = engine.run(rd.ScoreLimit(0.001), rd.GenerationsLimit(1000), log=True)
+    ```
+
+    Radiate is also fully compatible with DataFrame libraries like Pandas and Polars, so wiring DataFrames into regression problems is straightforward. For an example we'll use [polars](https://pola.rs) as its quickly becoming the go-to DataFrame library in python. Using the `.regression(..)` method below is an attempt to simplify the configuration of regression problems. It also automatically switches the engine's optimization target to minimization as most regression losses are minimized.
+
+    The call to this method is flexible and allows you to specify the target column, feature columns, and loss function. But it also handles the simple case we saw above where we just want to provide a list of inputs and outputs.
+
+    ```python
+    import radiate as rd
+    import polars as pl
+
+    rd.random.seed(518)
+
+    # Just a simple dataset with 2 features and a target that is a function of those features.
+    df = pl.DataFrame({
+        "feature_one": [i for i in range(20)],
+        "feature_two": [i**2 for i in range(20)],
+        "target": [4.0 * i**3 - 3.0 * i**2 + i for i in range(20)],
+    })
+
+    # Build a regression that evolves Graphs with two input features and one output
+    # (notice that the shape of the Graphs is equal to the number of features and targets in the DataFrame).
+    # The loss function is mean average error (MAE) in this case, but thats only to show flexibility.
+    engine = (
+        rd.Engine.graph(
+            shape=(2, 1), # <- notice how we have two features now, so the input shape is (2, 1)
+            vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
+            edge=rd.Op.weight(),
+            output=rd.Op.linear(),
+        )
+        .regression(df, target="target", feature_cols=["feature_one", "feature_two"], loss="mae")
+        .alters(
+            rd.GraphCrossover(0.5, 0.5),
+            rd.OperationMutator(0.07, 0.05),
+            rd.GraphMutator(0.1, 0.1)
+        )
+    )
+
+    result = engine.run(rd.Limit.score(0.001), rd.Limit.generations(1000), log=True)
     ```
 
 === ":fontawesome-brands-rust: Rust"

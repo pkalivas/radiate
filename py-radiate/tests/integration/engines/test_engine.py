@@ -20,15 +20,15 @@ def test_engine_maintains_population_size(random_seed):
     codec = rd.FloatCodec.vector(N_GENES, init_range=(-RANGE, RANGE))
     population = rd.Population(rd.Phenotype(codec.encode()) for _ in range(107))
 
-    engine = rd.GeneticEngine(
-        codec,
-        fitness_fn,
-        population,
-        objective="min",
-        alters=[rd.UniformCrossover(0.5), rd.ArithmeticMutator(0.01)],
+    engine = (
+        rd.Engine.float(N_GENES, init_range=(-RANGE, RANGE))
+        .fitness(fitness_fn)
+        .minimizing()
+        .population(population)
+        .alters(rd.Cross.uniform(0.5), rd.Mutate.arithmetic(0.01))
     )
 
-    result = engine.run([rd.ScoreLimit(0.0001), rd.GenerationsLimit(1000)])
+    result = engine.run(rd.Limit.score(0.0001), rd.Limit.generations(1000))
 
     assert all(i < 0.001 for i in result.value())
     assert len(result.value()) == N_GENES
@@ -44,6 +44,7 @@ def test_engine_batch_fitness():
     RANGE = 5.12
     N_GENES = 2
 
+    @rd.fitness(batch=True)
     def fitness_fn(x: list[list[float]]) -> list[float]:
         assert len(x) > 1
 
@@ -60,15 +61,15 @@ def test_engine_batch_fitness():
     codec = rd.FloatCodec.vector(N_GENES, init_range=(-RANGE, RANGE))
     population = rd.Population(rd.Phenotype(codec.encode()) for _ in range(107))
 
-    engine = rd.GeneticEngine(
-        codec,
-        fitness_func=rd.BatchFitness(fitness_fn),
-        population=population,
-        objective="min",
-        alters=[rd.UniformCrossover(0.5), rd.ArithmeticMutator(0.01)],
+    engine = (
+        rd.Engine.float(N_GENES, init_range=(-RANGE, RANGE))
+        .fitness(fitness_fn)
+        .minimizing()
+        .population(population)
+        .alters(rd.Cross.uniform(0.5), rd.Mutate.arithmetic(0.01))
     )
 
-    result = engine.run([rd.ScoreLimit(0.0001), rd.GenerationsLimit(1000)])
+    result = engine.run(rd.Limit.score(0.0001), rd.Limit.generations(1000))
 
     assert all(i < 0.001 for i in result.value())
     assert len(result.value()) == N_GENES
@@ -82,19 +83,17 @@ def test_engine_multi_objective(random_seed):
 
     def fitness_func(x: list[float]) -> list[float]:
         # Two objectives: minimize sum, maximize product
-        return [sum(x), np.prod(x)]
+        return [sum(x), np.prod(x)]  # type: ignore
 
-    engine = rd.GeneticEngine(
-        codec=rd.FloatCodec.vector(length=3, init_range=(-1.0, 1.0)),
-        fitness_func=fitness_func,
-        objective=["min", "max"],
-        population_size=100,
-        offspring_selector=rd.TournamentSelector(3),
-        survivor_selector=rd.NSGA2Selector(),
-        alters=[rd.ArithmeticMutator(0.7), rd.GaussianMutator(0.1)],
+    engine = (
+        rd.Engine.float(3, init_range=(-10.0, 10.0))
+        .fitness(fitness_func)
+        .objective(rd.MIN, rd.MAX)
+        .alters(rd.Cross.uniform(0.7), rd.Mutate.arithmetic(0.1))
+        .select(rd.Select.tournament(3), rd.Select.nsga2())
     )
 
-    result = engine.run(rd.GenerationsLimit(50))
+    result = engine.run(rd.Limit.generations(50))
 
     assert len(result.score()) == 2, "Should return two objectives"
     assert result.index() == 50, "Should complete within 50 generations"
@@ -104,11 +103,13 @@ def test_engine_multi_objective(random_seed):
 @pytest.mark.integration
 def test_engine_multi_objective_front(simple_multi_objective_engine, random_seed):
     """Test multi-objective engine with Pareto front."""
-    result = simple_multi_objective_engine.run(rd.GenerationsLimit(100))
+    result = simple_multi_objective_engine.run(rd.Limit.generations(100))
 
     fitness_values = list(set(map(lambda x: tuple(x.score()), result.front())))
 
-    assert result.objective() == ["min", "min"]
+    assert result.objective() == [rd.MIN, rd.MIN], (
+        "Should be minimizing both objectives"
+    )
     # Check if the Pareto front is non-dominated
     for i, f1 in enumerate(fitness_values):
         for j, f2 in enumerate(fitness_values):

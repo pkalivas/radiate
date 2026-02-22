@@ -2,7 +2,7 @@ import radiate as rd
 import pytest
 
 
-def calc_population_diversity(population: rd.Population) -> float:
+def calc_population_diversity(population: rd.Population[float]) -> float:
     """Calculate diversity of the population."""
     descriptors = [
         [g.allele() for chrom in individual.genotype() for g in chrom]
@@ -22,17 +22,19 @@ def calc_population_diversity(population: rd.Population) -> float:
 @pytest.mark.integration
 def test_engine_is_novel(random_seed):
     """Test engine with novelty search."""
-    engine = rd.GeneticEngine(
-        codec=rd.FloatCodec.vector(6, init_range=(-100.0, 100.0)),
-        fitness_func=rd.NoveltySearch(
-            descriptor=lambda x: x,
-            distance=rd.CosineDistance(),
-            k=15,
-            threshold=0.03,
-        ),
-        population_size=100,
-        offspring_selector=rd.TournamentSelector(3),
-        alters=[rd.UniformCrossover(0.5), rd.GaussianMutator(0.1)],
+    engine = (
+        rd.Engine.float(6, init_range=(-100.0, 100.0))
+        .fitness(
+            rd.NoveltySearch(
+                descriptor=lambda x: x,
+                distance=rd.Dist.cosine(),
+                k=15,
+                threshold=0.03,
+            )
+        )
+        .size(100)
+        .select(rd.Select.tournament(3))
+        .alters(rd.Cross.uniform(0.5), rd.Mutate.gaussian(0.1))
     )
 
     result = engine.run(rd.GenerationsLimit(100))
@@ -47,16 +49,16 @@ def test_engine_is_novel(random_seed):
 def test_int_engine_novelty_with_decorator_creates(random_seed):
     """Test engine with novelty search."""
 
-    @rd.novelty(distance=rd.HammingDistance(), k=15, threshold=0.03)
-    def descriptor(phenotype: list[int]) -> list[int]:
+    @rd.novelty(distance=rd.Dist.hamming(), k=15, threshold=0.03)
+    def novelty(phenotype: list[int]) -> list[int]:
         return phenotype
 
-    engine = rd.GeneticEngine(
-        codec=rd.IntCodec.vector(6, init_range=(-100, 100)),
-        fitness_func=descriptor,
-        population_size=100,
-        offspring_selector=rd.TournamentSelector(3),
-        alters=[rd.UniformCrossover(0.5), rd.ArithmeticMutator(0.1)],
+    engine = (
+        rd.Engine.int(6, init_range=(-100, 100))
+        .fitness(novelty)
+        .size(100)
+        .select(offspring=rd.Select.tournament(3))
+        .alters(rd.Cross.uniform(0.5), rd.Mutate.arithmetic(0.1))
     )
 
     result = engine.run(rd.GenerationsLimit(100))

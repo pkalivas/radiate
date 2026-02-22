@@ -1,9 +1,10 @@
 use crate::steps::EngineStep;
 use radiate_core::{
-    Alterer, Chromosome, Ecosystem, MetricSet, Objective, Optimize, Population, Score, Select,
+    Alterer, Chromosome, Ecosystem, Lineage, MetricSet, Objective, Optimize, Population, Score,
+    Select,
 };
 use radiate_error::Result;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 pub struct RecombineStep<C: Chromosome> {
     pub(crate) survivor_handle: SurvivorRecombineHandle<C>,
@@ -62,6 +63,7 @@ pub struct OffspringRecombineHandle<C: Chromosome> {
     pub(crate) objective: Objective,
     pub(crate) selector: Arc<dyn Select<C>>,
     pub(crate) alters: Vec<Alterer<C>>,
+    pub(crate) lineage: Arc<RwLock<Lineage>>,
 }
 
 impl<C> OffspringRecombineHandle<C>
@@ -69,12 +71,14 @@ where
     C: Chromosome + PartialEq + Clone,
 {
     #[inline]
-    pub fn create<'a>(
+    pub fn create(
         &self,
         generation: usize,
         ecosystem: &Ecosystem<C>,
         metrics: &mut MetricSet,
     ) -> Population<C> {
+        let mut lineage = self.lineage.write().unwrap();
+
         if let Some(species) = ecosystem.species() {
             let mut species_scores = species
                 .iter()
@@ -99,7 +103,7 @@ where
                 self.objective.sort(&mut offspring);
 
                 self.alters.iter().for_each(|alt| {
-                    metrics.upsert(alt.alter(&mut offspring, generation));
+                    metrics.upsert(alt.alter(&mut offspring, &mut lineage, generation));
                 });
 
                 next_population.extend(offspring);
@@ -117,7 +121,7 @@ where
             self.objective.sort(&mut offspring);
 
             self.alters.iter().for_each(|alt| {
-                metrics.upsert(alt.alter(&mut offspring, generation));
+                metrics.upsert(alt.alter(&mut offspring, &mut lineage, generation));
             });
 
             offspring

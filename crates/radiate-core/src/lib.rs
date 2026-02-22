@@ -7,6 +7,7 @@ pub mod error;
 pub mod evaluator;
 pub mod fitness;
 pub mod genome;
+pub mod lineage;
 pub mod objectives;
 pub mod problem;
 pub mod rate;
@@ -28,6 +29,7 @@ pub use evaluator::{BatchFitnessEvaluator, Evaluator, FitnessEvaluator};
 pub use executor::Executor;
 pub use fitness::{BatchFitnessFunction, CompositeFitnessFn, FitnessFunction, NoveltySearch};
 pub use genome::*;
+pub use lineage::{Lineage, LineageEvent, LineageUpdate};
 pub use objectives::{Front, Objective, Optimize, Score, pareto};
 pub use problem::{BatchEngineProblem, EngineProblem, Problem};
 pub use rate::Rate;
@@ -55,7 +57,7 @@ pub mod prelude {
     };
     pub use super::genome::{
         ArithmeticGene, BitChromosome, BitGene, BoundedGene, CharChromosome, CharGene, Chromosome,
-        FloatChromosome, FloatGene, Gene, IntChromosome, IntGene, Integer, Valid,
+        FloatChromosome, FloatGene, Gene, IntChromosome, IntGene, Valid,
     };
     pub use super::objectives::{Front, Objective, Optimize, Score, pareto};
     pub use super::problem::{BatchEngineProblem, EngineProblem, Problem};

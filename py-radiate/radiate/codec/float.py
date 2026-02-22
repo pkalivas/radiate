@@ -1,31 +1,120 @@
 from __future__ import annotations
 
+from typing import Sequence, overload, Any
+
 from .base import CodecBase
 
-from radiate._typing import FloatEncoding
-from radiate.genome import Genotype, Gene, Chromosome
-
 from radiate.radiate import PyFloatCodec
+from radiate.genome import Genotype, Gene, Chromosome, GeneType
+from radiate.dtype import DataType, DataTypeClass, Float64
+from radiate._bridge.wrapper import RsObject
+from radiate._typing import (
+    AtLeastOne,
+    ScalarDecoding,
+    VectorDecoding,
+    MatrixDecoding,
+)
 
 
-class FloatCodec[T](CodecBase[float, T]):
+class FloatCodec[D](CodecBase[float, D], RsObject):
+    gene_type = GeneType.FLOAT
+
+    @overload
+    def __new__(
+        cls,
+        *,
+        shape: None = ...,
+        init_range: tuple[float, float] | None = None,
+        bounds: tuple[float, float] | None = None,
+        genes: None = ...,
+        chromosomes: None = ...,
+        use_numpy: bool = ...,
+        dtype: DataTypeClass | DataType | None = ...,
+    ) -> "FloatCodec[ScalarDecoding[float]]": ...
+
+    @overload
+    def __new__(
+        cls,
+        shape: int,
+        *,
+        init_range: tuple[float, float] | None = None,
+        bounds: tuple[float, float] | None = None,
+        genes: None = ...,
+        chromosomes: None = ...,
+        use_numpy: bool = ...,
+        dtype: DataTypeClass | DataType | None = ...,
+    ) -> "FloatCodec[VectorDecoding[float]]": ...
+
+    @overload
+    def __new__(
+        cls,
+        shape: Sequence[int],
+        *,
+        init_range: tuple[float, float] | None = None,
+        bounds: tuple[float, float] | None = None,
+        genes: None = ...,
+        chromosomes: None = ...,
+        use_numpy: bool = ...,
+        dtype: DataTypeClass | DataType | None = ...,
+    ) -> "FloatCodec[MatrixDecoding[float]]": ...
+
+    def __new__(cls, *args: Any, **kwargs: Any) -> "FloatCodec[Any]":
+        return super().__new__(cls)
+
     def __init__(
-        self, encoding: FloatEncoding | PyFloatCodec, *, use_numpy: bool = False
+        self,
+        shape: AtLeastOne[int] | None = 1,
+        init_range: tuple[float, float] | None = None,
+        bounds: tuple[float, float] | None = None,
+        genes: Gene[float] | Sequence[Gene[float]] | None = None,
+        chromosomes: AtLeastOne[Chromosome[float]] | None = None,
+        use_numpy: bool = False,
+        dtype: DataTypeClass | DataType | None = None,
     ):
         """
-        Initialize the float codec with a PyFloatCodec instance.
-        :param codec: An instance of PyFloatCodec.
+        Initialize the float codec with number of chromosomes and value bounds.
+        :param shape: Number of chromosomes with the number of genes in each chromosome.
+        :param init_range: Range for initializing gene values.
+        :param bounds: Bounds for gene values.
         """
-        self.codec = self.__create_encoding(encoding, use_numpy)
+        if shape is not None:
+            if isinstance(shape, int):
+                self._pyobj = self.__vector(
+                    length=shape,
+                    init_range=init_range,
+                    bounds=bounds,
+                    use_numpy=use_numpy,
+                    dtype=dtype,
+                )
+            elif isinstance(shape, (tuple, list)):
+                self._pyobj = self.__matrix(
+                    shape=shape,
+                    init_range=init_range,
+                    bounds=bounds,
+                    use_numpy=use_numpy,
+                    dtype=dtype,
+                )
+        elif genes is not None:
+            self._pyobj = self.__from_genes(genes=genes, use_numpy=use_numpy)
+        elif chromosomes is not None:
+            self._pyobj = self.__from_chromosomes(
+                chromosomes=chromosomes, use_numpy=use_numpy
+            )
+        elif shape is None and genes is None and chromosomes is None:
+            self._pyobj = self.__scalar(
+                init_range=init_range, bounds=bounds, use_numpy=use_numpy, dtype=dtype
+            )
+        else:
+            raise ValueError("Shape must be provided.")
 
     def encode(self) -> Genotype[float]:
         """
         Encode the codec into a Genotype.
         :return: A Genotype instance.
         """
-        return Genotype.from_rust(self.codec.encode_py())
+        return Genotype.from_rust(self.__backend__().encode_py())
 
-    def decode(self, genotype: Genotype[float]) -> T:
+    def decode(self, genotype: Genotype[float]) -> D:
         """
         Decode a Genotype into its float representation.
         :param genotype: A Genotype instance to decode.
@@ -33,85 +122,38 @@ class FloatCodec[T](CodecBase[float, T]):
         """
         if not isinstance(genotype, Genotype):
             raise TypeError("genotype must be an instance of Genotype.")
-        return self.codec.decode_py(genotype=genotype.__backend__())
+        return self.__backend__().decode_py(genotype=genotype.__backend__())
 
-    def __create_encoding(
-        self, encoding: FloatEncoding, use_numpy: bool
-    ) -> PyFloatCodec:
-        """
-        Create a PyFloatCodec from the provided encoding.
-        :param encoding: The input encoding to create the codec from.
-        :return: A PyFloatCodec instance.
-        """
-        if isinstance(encoding, PyFloatCodec):
-            return encoding
-        elif isinstance(encoding, Gene):
-            return PyFloatCodec.from_genes(
-                [encoding.__backend__()], use_numpy=use_numpy
-            )
-        elif isinstance(encoding, Chromosome):
-            return PyFloatCodec.from_chromosomes(
-                [encoding.__backend__()], use_numpy=use_numpy
-            )
-        elif isinstance(encoding, list):
-            if all(isinstance(g, Gene) for g in encoding):
-                return PyFloatCodec.from_genes(
-                    [g.__backend__() for g in encoding], use_numpy=use_numpy
-                )
-            elif all(isinstance(c, Chromosome) for c in encoding):
-                return PyFloatCodec.from_chromosomes(
-                    [c.__backend__() for c in encoding], use_numpy=use_numpy
-                )
-            else:
-                raise TypeError("Invalid list type for FloatCodec encoding.")
-        else:
-            raise TypeError(f"Invalid encoding type for FloatCodec - {type(encoding)}.")
+    # @staticmethod
+    # def from_genes(
+    #     genes: Gene[float] | Sequence[Gene[float]] | None = None,
+    #     use_numpy: bool = False,
+    # ) -> FloatCodec[ScalarDecoding[float]]:
+    #     """
+    #     Create a codec for a single chromosome with specified genes.
+    #     Args:
+    #         genes: A list or tuple of Gene instances.
+    #     Returns:
+    #         A new FloatCodec instance with the specified genes.
+    #     """
+    #     return FloatCodec(
+    #         genes=genes,
+    #         use_numpy=use_numpy,
+    #     )
 
-    @staticmethod
-    def from_genes(
-        genes: list[Gene[float]] | tuple[Gene[float], ...], use_numpy: bool = False
-    ) -> FloatCodec[list[float]]:
-        """
-        Create a codec for a single chromosome with specified genes.
-        Args:
-            genes: A list or tuple of Gene instances.
-        Returns:
-            A new FloatCodec instance with the specified genes.
-        """
-        if not isinstance(genes, (list, tuple)):
-            raise TypeError("genes must be a list or tuple of Gene instances.")
-
-        return FloatCodec(
-            PyFloatCodec.from_genes(
-                list(map(lambda g: g.__backend__(), genes)), use_numpy=use_numpy
-            )
-        )
-
-    @staticmethod
-    def from_chromosomes(
-        chromosomes: list[Chromosome[float]] | tuple[Chromosome[float], ...],
-    ) -> FloatCodec[list[list[float]]]:
-        """
-        Create a codec for multiple chromosomes.
-        Args:
-            chromosomes: A list or tuple of Chromosome instances.
-        Returns:
-            A new FloatCodec instance with the specified chromosomes.
-        """
-        from radiate.genome import GeneType
-
-        if not isinstance(chromosomes, (list, tuple)):
-            raise TypeError(
-                "chromosomes must be a list or tuple of Chromosome instances."
-            )
-        if not all(g.gene_type() == GeneType.FLOAT for c in chromosomes for g in c):
-            raise TypeError("All chromosomes must be of type 'float'.")
-
-        return FloatCodec(
-            PyFloatCodec.from_chromosomes(
-                list(map(lambda c: c.__backend__(), chromosomes))
-            )
-        )
+    # @staticmethod
+    # def from_chromosomes(
+    #     chromosomes: list[Chromosome[float]] | tuple[Chromosome[float], ...],
+    #     use_numpy: bool = False,
+    # ) -> FloatCodec[MatrixDecoding[float]]:
+    #     """
+    #     Create a codec for multiple chromosomes.
+    #     Args:
+    #         chromosomes: A list or tuple of Chromosome instances.
+    #     Returns:
+    #         A new FloatCodec instance with the specified chromosomes.
+    #     """
+    #     return FloatCodec(chromosomes=chromosomes, use_numpy=use_numpy)
 
     @staticmethod
     def matrix(
@@ -119,7 +161,8 @@ class FloatCodec[T](CodecBase[float, T]):
         init_range: tuple[float, float] | None = None,
         bounds: tuple[float, float] | None = None,
         use_numpy: bool = False,
-    ) -> FloatCodec[list[list[float]]]:
+        dtype: DataTypeClass | DataType | None = None,
+    ) -> FloatCodec[MatrixDecoding[float]]:
         """
         Create a matrix codec with specified rows and columns.
         Args:
@@ -141,6 +184,152 @@ class FloatCodec[T](CodecBase[float, T]):
         >>> rd.FloatCodec.matrix(shape=[3, 3], init_range=(0.0, 1.0), bounds=(-1.0, 2.0))
         FloatCodec(...)
         """
+        return FloatCodec(
+            shape=shape,
+            init_range=init_range,
+            bounds=bounds,
+            use_numpy=use_numpy,
+            dtype=dtype,
+        )
+
+    @staticmethod
+    def vector(
+        length: int,
+        init_range: tuple[float, float] | None = None,
+        bounds: tuple[float, float] | None = None,
+        use_numpy: bool = False,
+        dtype: DataTypeClass | DataType | None = None,
+    ) -> FloatCodec[VectorDecoding[float]]:
+        """
+        Create a vector codec with specified length.
+        Args:
+            length: Length of the vector.
+            init_range: Minimum and maximum value for the Gene's Allele to be init with.
+            bounds: Minimum and maximum values the allele is allowed to be within during evolution.
+            use_numpy: Whether or not to decode the Genotype into a numpy array.
+        Returns:
+            A new FloatCodec instance with vector configuration.
+
+        Example
+        --------
+        Create a FloatCodec that will encode a Genotype with a single Chromosome containing 5 FloatGenes
+        >>> rd.FloatCodec.vector(length=5, init_range=(0.0, 1.0), bounds=(-1.0, 2.0), use_numpy=False)
+        FloatCodec(...)
+        """
+        return FloatCodec(
+            shape=length,
+            init_range=init_range,
+            bounds=bounds,
+            use_numpy=use_numpy,
+            dtype=dtype,
+        )
+
+    @staticmethod
+    def scalar(
+        init_range: tuple[float, float] | None = None,
+        bounds: tuple[float, float] | None = None,
+        dtype: DataTypeClass | DataType | None = None,
+    ) -> FloatCodec[ScalarDecoding[float]]:
+        """
+        Create a scalar codec.
+        Args:
+            init_range: Minimum and maximum value for the Gene's Allele to be init with.
+            bounds: Minimum and maximum values the allele is allowed to be within during evolution.
+        Returns:
+            A new FloatCodec instance with scalar configuration.
+
+        Example:
+        --------
+        Create a FloatCodec that will encode a Genotype with a single Chromosome containing a single FloatGene
+        with Alleles between 0.0 and 1.0, and bounds between -1.0 and 2.0:
+        >>> rd.FloatCodec.scalar(init_range=(0.0, 1.0), bounds=(-1.0, 2.0))
+        FloatCodec(...)
+        """
+        return FloatCodec(
+            init_range=init_range,
+            bounds=bounds,
+            dtype=dtype,
+        )
+
+    @staticmethod
+    def __scalar(
+        init_range: tuple[float, float] | None = None,
+        bounds: tuple[float, float] | None = None,
+        use_numpy: bool = False,
+        dtype: DataTypeClass | DataType | None = None,
+    ) -> PyFloatCodec:
+        if init_range is not None:
+            if len(init_range) != 2:
+                raise ValueError("Value range must be a tuple of (min, max).")
+            if init_range[0] >= init_range[1]:
+                raise ValueError("Minimum value must be less than maximum value.")
+        if bounds is not None:
+            if len(bounds) != 2:
+                raise ValueError("Bound range must be a tuple of (min, max).")
+            if bounds[0] >= bounds[1]:
+                raise ValueError("Minimum bound must be less than maximum bound.")
+
+        if dtype is not None:
+            if not isinstance(dtype, (DataType, DataTypeClass)):
+                raise ValueError(
+                    "dtype must be an instance of DataType or DataTypeClass."
+                )
+        else:
+            dtype = Float64  # Default to float64 if no dtype is provided
+
+        return PyFloatCodec.scalar(
+            value_range=init_range,
+            bound_range=bounds,
+            use_numpy=use_numpy,
+            dtype=str(dtype),
+        )
+
+    @staticmethod
+    def __vector(
+        length: int,
+        init_range: tuple[float, float] | None = None,
+        bounds: tuple[float, float] | None = None,
+        use_numpy: bool = False,
+        dtype: DataTypeClass | DataType | None = None,
+    ) -> PyFloatCodec:
+        if length <= 0:
+            raise ValueError("Length must be a positive integer.")
+
+        if init_range is not None:
+            if len(init_range) != 2:
+                raise ValueError("Value range must be a tuple of (min, max).")
+            if init_range[0] >= init_range[1]:
+                raise ValueError("Minimum value must be less than maximum value.")
+        if bounds is not None:
+            if len(bounds) != 2:
+                raise ValueError("Bound range must be a tuple of (min, max).")
+            if bounds[0] >= bounds[1]:
+                raise ValueError("Minimum bound must be less than maximum bound.")
+
+        if dtype is not None:
+            if not isinstance(dtype, (DataType, DataTypeClass)):
+                raise ValueError(
+                    "dtype must be an instance of DataType or DataTypeClass."
+                )
+        else:
+            dtype = Float64  # Default to float64 if no dtype is provided
+
+        return PyFloatCodec.vector(
+            length=length,
+            value_range=init_range,
+            bound_range=bounds,
+            use_numpy=use_numpy,
+            dtype=str(dtype),
+        )
+
+    @staticmethod
+    def __matrix(
+        shape: Sequence[int],
+        init_range: tuple[float, float] | None = None,
+        bounds: tuple[float, float] | None = None,
+        use_numpy: bool = False,
+        dtype: DataTypeClass | DataType | None = None,
+    ) -> PyFloatCodec:
         shapes = None
         if isinstance(shape, tuple):
             if len(shape) != 2:
@@ -161,95 +350,49 @@ class FloatCodec[T](CodecBase[float, T]):
             if bounds[0] >= bounds[1]:
                 raise ValueError("Minimum bound must be less than maximum bound.")
 
-        return FloatCodec(
-            PyFloatCodec.matrix(
-                chromosome_lengths=shapes,
-                value_range=init_range,
-                bound_range=bounds,
-                use_numpy=use_numpy,
-            )
+        if dtype is not None:
+            if not isinstance(dtype, (DataType, DataTypeClass)):
+                raise ValueError(
+                    "dtype must be an instance of DataType or DataTypeClass."
+                )
+        else:
+            dtype = Float64  # Default to float64 if no dtype is provided
+
+        return PyFloatCodec.matrix(
+            chromosome_lengths=shapes,
+            value_range=init_range,
+            bound_range=bounds,
+            use_numpy=use_numpy,
+            dtype=str(dtype),
         )
 
     @staticmethod
-    def vector(
-        length: int,
-        init_range: tuple[float, float] | None = None,
-        bounds: tuple[float, float] | None = None,
+    def __from_genes(
+        genes: Gene[float] | Sequence[Gene[float]] | None = None,
         use_numpy: bool = False,
-    ) -> FloatCodec[list[float]]:
-        """
-        Create a vector codec with specified length.
-        Args:
-            length: Length of the vector.
-            init_range: Minimum and maximum value for the Gene's Allele to be init with.
-            bounds: Minimum and maximum values the allele is allowed to be within during evolution.
-            use_numpy: Whether or not to decode the Genotype into a numpy array.
-        Returns:
-            A new FloatCodec instance with vector configuration.
-
-        Example
-        --------
-        Create a FloatCodec that will encode a Genotype with a single Chromosome containing 5 FloatGenes
-        >>> rd.FloatCodec.vector(length=5, init_range=(0.0, 1.0), bounds=(-1.0, 2.0), use_numpy=False)
-        FloatCodec(...)
-        """
-        if length <= 0:
-            raise ValueError("Length must be a positive integer.")
-
-        if init_range is not None:
-            if len(init_range) != 2:
-                raise ValueError("Value range must be a tuple of (min, max).")
-            if init_range[0] >= init_range[1]:
-                raise ValueError("Minimum value must be less than maximum value.")
-        if bounds is not None:
-            if len(bounds) != 2:
-                raise ValueError("Bound range must be a tuple of (min, max).")
-            if bounds[0] >= bounds[1]:
-                raise ValueError("Minimum bound must be less than maximum bound.")
-
-        return FloatCodec(
-            PyFloatCodec.vector(
-                length=length,
-                value_range=init_range,
-                bound_range=bounds,
-                use_numpy=use_numpy,
-            )
+    ) -> PyFloatCodec:
+        if not isinstance(genes, (list, tuple)):
+            raise TypeError("genes must be a list or tuple of Gene instances.")
+        if isinstance(genes, Gene):
+            genes = [genes]
+        return PyFloatCodec.from_genes(
+            list(map(lambda g: g.__backend__(), genes)), use_numpy=use_numpy
         )
 
     @staticmethod
-    def scalar(
-        init_range: tuple[float, float] | None = None,
-        bounds: tuple[float, float] | None = None,
-    ) -> FloatCodec[float]:
-        """
-        Create a scalar codec.
-        Args:
-            init_range: Minimum and maximum value for the Gene's Allele to be init with.
-            bounds: Minimum and maximum values the allele is allowed to be within during evolution.
-        Returns:
-            A new FloatCodec instance with scalar configuration.
+    def __from_chromosomes(
+        chromosomes: AtLeastOne[Chromosome[float]],
+        use_numpy: bool = False,
+    ) -> PyFloatCodec:
+        from radiate.genome import GeneType
 
-        Example:
-        --------
-        Create a FloatCodec that will encode a Genotype with a single Chromosome containing a single FloatGene
-        with Alleles between 0.0 and 1.0, and bounds between -1.0 and 2.0:
-        >>> rd.FloatCodec.scalar(init_range=(0.0, 1.0), bounds=(-1.0, 2.0))
-        FloatCodec(...)
-        """
-        if init_range is not None:
-            if len(init_range) != 2:
-                raise ValueError("Value range must be a tuple of (min, max).")
-            if init_range[0] >= init_range[1]:
-                raise ValueError("Minimum value must be less than maximum value.")
-        if bounds is not None:
-            if len(bounds) != 2:
-                raise ValueError("Bound range must be a tuple of (min, max).")
-            if bounds[0] >= bounds[1]:
-                raise ValueError("Minimum bound must be less than maximum bound.")
-
-        return FloatCodec(
-            PyFloatCodec.scalar(
-                value_range=init_range,
-                bound_range=bounds,
+        if not isinstance(chromosomes, (list, tuple)):
+            raise TypeError(
+                "chromosomes must be a list or tuple of Chromosome instances."
             )
+        if not all(g.gene_type() == GeneType.FLOAT for c in chromosomes for g in c):
+            raise TypeError("All chromosomes must be of type 'float'.")
+
+        return PyFloatCodec.from_chromosomes(
+            list(map(lambda c: c.__backend__(), chromosomes)), use_numpy=use_numpy
         )

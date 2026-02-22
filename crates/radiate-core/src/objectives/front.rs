@@ -2,7 +2,7 @@ use crate::objectives::{Objective, Scored, pareto};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::{cmp::Ordering, hash::Hash, ops::Range, sync::Arc};
+use std::{cmp::Ordering, ops::Range, sync::Arc};
 
 const DEFAULT_ENTROPY_BINS: usize = 20;
 const EPSILON: f32 = 1e-10;
@@ -16,6 +16,7 @@ struct FrontScratch {
     order: Vec<usize>,
 }
 
+#[derive(Debug)]
 pub struct FrontAddResult {
     pub added_count: usize,
     pub removed_count: usize,
@@ -49,6 +50,10 @@ where
             objective,
             scratch: FrontScratch::default(),
         }
+    }
+
+    pub fn len(&self) -> usize {
+        self.values.len()
     }
 
     pub fn range(&self) -> Range<usize> {
@@ -89,7 +94,7 @@ where
 
     pub fn add_all(&mut self, items: Vec<T>) -> FrontAddResult
     where
-        T: Eq + Hash + Clone + Send + Sync + 'static,
+        T: Eq + Clone + Send + Sync + 'static,
     {
         let mut added_count = 0;
         let mut removed_count = 0;
@@ -163,6 +168,68 @@ where
         }
     }
 
+    /// Remove points with crowding distance in the top `trim` fraction.
+    /// Example: trim=0.02 removes the top 2% most isolated points.
+    #[inline]
+    pub fn remove_outliers(&mut self, trim: f32) -> Option<usize> {
+        if self.values.len() < 4 {
+            return None;
+        }
+
+        let trim = trim.clamp(0.0, 0.5);
+        if trim == 0.0 {
+            return None;
+        }
+
+        if self.ensure_score_matrix().is_none() {
+            return None;
+        }
+
+        let (n, _m) = match self.score_dims() {
+            Some(x) => x,
+            None => return None,
+        };
+
+        self.crowding_distance_in_place(n);
+
+        let drop = ((n as f32) * trim).floor() as usize;
+        if drop == 0 {
+            return None;
+        }
+
+        // We want to drop the *largest* distances (most isolated).
+        self.scratch.order.clear();
+        self.scratch.order.extend(0..n);
+
+        let dist = &self.scratch.dist;
+        self.scratch.order.sort_unstable_by(|&i, &j| {
+            let a = dist[i];
+            let b = dist[j];
+
+            match (a.is_infinite(), b.is_infinite()) {
+                (true, true) => Ordering::Equal,
+                (true, false) => Ordering::Less,
+                (false, true) => Ordering::Greater,
+                _ => b.partial_cmp(&a).unwrap_or(Ordering::Equal),
+            }
+        });
+
+        self.scratch.remove.clear();
+        self.scratch
+            .remove
+            .extend(self.scratch.order.iter().take(drop).copied());
+
+        self.scratch.remove.sort_unstable();
+        self.scratch.remove.dedup();
+        let removed = self.scratch.remove.len();
+        for &idx in self.scratch.remove.iter().rev() {
+            self.values.swap_remove(idx);
+        }
+
+        self.scratch.scores.clear();
+        Some(removed)
+    }
+
     #[inline]
     fn dom_cmp(&self, one: &T, two: &T) -> Ordering {
         let one_score = one.score();
@@ -181,6 +248,35 @@ where
         } else {
             Ordering::Equal
         }
+    }
+
+    pub fn fronts(&mut self) -> Vec<Front<T>>
+    where
+        T: Clone + Eq + Send + Sync + 'static,
+    {
+        let mut fronts: Vec<Front<T>> = Vec::new();
+        for member in self.values.iter() {
+            let mut updated = false;
+
+            for front in fronts.iter_mut() {
+                let to_insert = (*(*member)).clone();
+                let result = front.add_all(vec![to_insert]);
+
+                if result.added_count > 0 {
+                    updated = true;
+                    break;
+                }
+            }
+
+            if !updated {
+                let mut new_front = Front::new(self.range.clone(), self.objective.clone());
+                let to_insert = (*(*member)).clone();
+                new_front.add_all(vec![to_insert]);
+                fronts.push(new_front);
+            }
+        }
+
+        fronts
     }
 
     fn fast_filter(&mut self) {

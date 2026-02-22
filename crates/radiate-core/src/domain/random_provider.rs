@@ -1,13 +1,14 @@
 use rand::distr::{Distribution, StandardUniform, uniform::SampleUniform};
 use rand::rngs::SmallRng;
+use rand::rngs::SysRng;
 use rand::seq::SliceRandom;
-use rand::{Rng, RngCore, SeedableRng};
+use rand::{Rng, RngExt, SeedableRng};
 use std::cell::RefCell;
 use std::ops::Range;
 use std::sync::{Arc, LazyLock, Mutex};
 
 static GLOBAL_RNG: LazyLock<Arc<Mutex<SmallRng>>> =
-    LazyLock::new(|| Arc::new(Mutex::new(SmallRng::from_os_rng())));
+    LazyLock::new(|| Arc::new(Mutex::new(SmallRng::try_from_rng(&mut SysRng).unwrap())));
 
 thread_local! {
     static TLS_RNG: RefCell<SmallRng> = RefCell::new({

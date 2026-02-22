@@ -18,7 +18,7 @@ Continuing with our example from the preious sections - evolving a simple functi
 
 === ":fontawesome-brands-python: Python"
 
-    Its important to note that the `WorkerPool` and `FixedSizedWorkerPool` executors use multiple threads to run the fitness function concurrently. If you are not using a free-threaded interpreter (ie: `python3.13t/3.14t`) or the GIL is enabled, these options will be replaced with the `Serial` executor. There are a few caveats to this with genetic programming problems - see the [GP regression](gp/regression.md) section for more details. 
+    Its important to note that the `WorkerPool` and `FixedSizedWorkerPool` executors use multiple threads to run the fitness function concurrently. If you are not using a free-threaded interpreter (ie: `python3.13t/3.14t`) or the GIL is enabled, the engine will raise an exception. There are a few caveats to this with genetic programming problems - see the [GP regression](gp/regression.md) section for more details. 
 
     If you are in fact using a free-threaded interpreter, your engine can take advantage of multiple threads to evaluate fitness concurrently. This can **significantly** speed up evolution, especially if your fitness function is computationally expensive. However, your fitness function **must** be thread-safe.
 
@@ -65,7 +65,7 @@ Continuing with our example from the preious sections - evolving a simple functi
     executor = rd.Executor.Serial()
 
     # Create the evolution engine
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=codec,
         fitness_func=fitness_function,
         offspring_selector=offspring_selector,
@@ -78,8 +78,28 @@ Continuing with our example from the preious sections - evolving a simple functi
         # ... other parameters ...
     )
 
+    # Or create the engine using the fluent builder pattern & dsl syntax - both these engines are functionally equivalent:
+    # The big difference here is that we can use the convenient
+    # .parallel(num_workers: int | None = None) method.
+    # If num_workers is None, it will use rayon's global thread pool, otherwise
+    # it will use a fixed sized worker pool with the specified number of workers.
+    engine = (
+        rd.Engine.float(2, init_range=(-1.0, 1.0), bounds=(-10.0, 10.0))
+        .fitness(fitness_function)
+        .select(rd.Select.boltzmann(temp=4), rd.Select.tournament(k=3))
+        .alters(
+            rd.Mutate.gaussian(rate=0.1),
+            rd.Cross.blend(rate=0.8, alpha=0.5)
+        )
+        .diversity(rd.Dist.hamming(), 0.5)
+        .age(max_species_age=20)
+        .parallel(num_workers=4)  # Use a fixed sized worker pool with 4 workers
+        # .parallel()  # Use a worker pool with rayon's global thread pool
+        # ... other builder methods ...
+    )
+
     # Run the engine
-    result = engine.run([rd.ScoreLimit(0.01), rd.GenerationsLimit(1000)])
+    result = engine.run(rd.Limit.score(0.01), rd.Limit.generations(1000))
     ```
 
 === ":fontawesome-brands-rust: Rust"

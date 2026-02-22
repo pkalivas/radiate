@@ -62,7 +62,7 @@ def test_convergence_limit(simple_float_engine, random_seed):
 def test_multiple_limits(simple_float_engine):
     """Test running with multiple limits."""
     limits = [rd.GenerationsLimit(5), rd.ScoreLimit(0.1), rd.SecondsLimit(2)]
-    result = simple_float_engine.run(limits)
+    result = simple_float_engine.run(*limits)
 
     if result.index() < 5 and result.score()[0] > 0.1:
         assert result.duration().total_seconds() < 2, "Should respect time limit"

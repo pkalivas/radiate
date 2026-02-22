@@ -1,7 +1,6 @@
-use crate::{PyGenotype, bindings::gp::PyGraph, object::Wrap};
-use pyo3::{Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
+use crate::{PyGenotype, PyOp, bindings::gp::PyGraph};
+use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{Codec, Genotype, GraphChromosome, GraphCodec, NodeType, Op};
-use radiate_error::radiate_py_bail;
 use std::collections::HashMap;
 
 const INPUT_NODE_TYPE: &str = "input";
@@ -9,7 +8,7 @@ const OUTPUT_NODE_TYPE: &str = "output";
 const VERTEX_NODE_TYPE: &str = "vertex";
 const EDGE_NODE_TYPE: &str = "edge";
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct PyGraphCodec {
     pub codec: GraphCodec<Op<f32>>,
@@ -39,36 +38,35 @@ impl PyGraphCodec {
     #[new]
     #[pyo3(signature = (graph_type=None, input_size=1, output_size=1, ops=None, max_nodes=None))]
     pub fn new<'py>(
-        py: Python<'py>,
         graph_type: Option<&'py str>,
         input_size: usize,
         output_size: usize,
-        ops: Option<HashMap<String, Vec<Py<PyAny>>>>,
+        ops: Option<HashMap<String, Vec<PyOp>>>,
         max_nodes: Option<usize>,
     ) -> PyResult<Self> {
         let mut values = Vec::new();
         if let Some(ops) = &ops {
             for (key, value) in ops.iter() {
-                let ops_converted = value
-                    .iter()
-                    .map(|op| {
-                        let wrap: Wrap<Op<f32>> = op.extract(py).unwrap();
-                        wrap.0
-                    })
-                    .collect::<Vec<Op<f32>>>();
-
                 if key == INPUT_NODE_TYPE {
-                    values.push((NodeType::Input, ops_converted));
+                    values.push((
+                        NodeType::Input,
+                        value.iter().map(|op| op.0.clone()).collect(),
+                    ));
                 } else if key == OUTPUT_NODE_TYPE {
-                    values.push((NodeType::Output, ops_converted));
+                    values.push((
+                        NodeType::Output,
+                        value.iter().map(|op| op.0.clone()).collect(),
+                    ));
                 } else if key == VERTEX_NODE_TYPE {
-                    values.push((NodeType::Vertex, ops_converted));
+                    values.push((
+                        NodeType::Vertex,
+                        value.iter().map(|op| op.0.clone()).collect(),
+                    ));
                 } else if key == EDGE_NODE_TYPE {
-                    values.push((NodeType::Edge, ops_converted));
-                } else {
-                    radiate_py_bail!(
-                        "Invalid node type key: {} - valid keys are: input, output, vertex, edge",
-                    );
+                    values.push((
+                        NodeType::Edge,
+                        value.iter().map(|op| op.0.clone()).collect(),
+                    ));
                 }
             }
         }

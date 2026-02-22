@@ -1,25 +1,44 @@
-use crate::{AnyGene, AnyValue, PyGeneType, Wrap};
-use pyo3::{Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
-use radiate::{
-    BitGene, CharGene, FloatGene, Gene, GraphNode, IntGene, Op, PermutationGene, TreeNode,
-    random_provider,
+use crate::{
+    PyGeneType, PyOp, Wrap,
+    bindings::datatype::{self, DataType, dtype_names},
+    dtype,
 };
-use std::collections::HashMap;
+use pyo3::{Bound, IntoPyObject, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
+use radiate::{
+    BitGene, BoundedGene, CharGene, FloatGene, Gene, GraphNode, IntGene, Op, PermutationGene,
+    TreeNode, random_provider,
+};
+use radiate_error::radiate_py_bail;
+use radiate_utils::{Float, Integer};
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 enum GeneInner {
-    Float(FloatGene),
-    Int(IntGene<i64>),
+    UInt8(IntGene<u8>),
+    UInt16(IntGene<u16>),
+    UInt32(IntGene<u32>),
+    UInt64(IntGene<u64>),
+    UInt128(IntGene<u128>),
+    Int8(IntGene<i8>),
+    Int16(IntGene<i16>),
+    Int32(IntGene<i32>),
+    Int64(IntGene<i64>),
+    Int128(IntGene<i128>),
+
+    Float32(FloatGene<f32>),
+    Float64(FloatGene<f64>),
+
     Bit(BitGene),
     Char(CharGene),
+
     Permutation(PermutationGene<usize>),
+
     GraphNode(GraphNode<Op<f32>>),
     TreeNode(TreeNode<Op<f32>>),
-    AnyGene(AnyGene<'static>),
 }
 
-#[pyclass]
-#[derive(Clone, Debug, PartialEq)]
+#[pyclass(from_py_object)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PyGene {
     inner: GeneInner,
 }
@@ -28,13 +47,25 @@ pub struct PyGene {
 impl PyGene {
     pub fn __str__(&self) -> String {
         match &self.inner {
-            GeneInner::Float(gene) => format!("{}", gene),
-            GeneInner::Int(gene) => format!("{}", gene),
+            GeneInner::UInt8(gene) => format!("{}", gene),
+            GeneInner::UInt16(gene) => format!("{}", gene),
+            GeneInner::UInt32(gene) => format!("{}", gene),
+            GeneInner::UInt64(gene) => format!("{}", gene),
+            GeneInner::UInt128(gene) => format!("{}", gene),
+
+            GeneInner::Int8(gene) => format!("{}", gene),
+            GeneInner::Int16(gene) => format!("{}", gene),
+            GeneInner::Int32(gene) => format!("{}", gene),
+            GeneInner::Int64(gene) => format!("{}", gene),
+            GeneInner::Int128(gene) => format!("{}", gene),
+
+            GeneInner::Float32(gene) => format!("{}", gene),
+            GeneInner::Float64(gene) => format!("{}", gene),
+
             GeneInner::Bit(gene) => format!("{}", gene),
             GeneInner::Char(gene) => format!("{:?}", gene),
             GeneInner::GraphNode(gene) => format!("{:?}", gene),
             GeneInner::TreeNode(gene) => format!("{:?}", gene),
-            GeneInner::AnyGene(gene) => format!("{:?}", gene),
             GeneInner::Permutation(gene) => format!("{:?}", gene),
         }
     }
@@ -49,64 +80,237 @@ impl PyGene {
 
     pub fn gene_type(&self) -> PyGeneType {
         match &self.inner {
-            GeneInner::Float(_) => PyGeneType::Float,
-            GeneInner::Int(_) => PyGeneType::Int,
+            GeneInner::UInt8(_) => PyGeneType::Int,
+            GeneInner::UInt16(_) => PyGeneType::Int,
+            GeneInner::UInt32(_) => PyGeneType::Int,
+            GeneInner::UInt64(_) => PyGeneType::Int,
+            GeneInner::UInt128(_) => PyGeneType::Int,
+
+            GeneInner::Int8(_) => PyGeneType::Int,
+            GeneInner::Int16(_) => PyGeneType::Int,
+            GeneInner::Int32(_) => PyGeneType::Int,
+            GeneInner::Int64(_) => PyGeneType::Int,
+            GeneInner::Int128(_) => PyGeneType::Int,
+
+            GeneInner::Float32(_) => PyGeneType::Float,
+            GeneInner::Float64(_) => PyGeneType::Float,
+
             GeneInner::Bit(_) => PyGeneType::Bit,
             GeneInner::Char(_) => PyGeneType::Char,
             GeneInner::GraphNode(_) => PyGeneType::GraphNode,
             GeneInner::TreeNode(_) => PyGeneType::TreeNode,
             GeneInner::Permutation(_) => PyGeneType::Permutation,
-            GeneInner::AnyGene(_) => PyGeneType::AnyGene,
+        }
+    }
+
+    pub fn dtype<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        match &self.inner {
+            GeneInner::UInt8(_) => Wrap(DataType::UInt8).into_pyobject(py),
+            GeneInner::UInt16(_) => Wrap(DataType::UInt16).into_pyobject(py),
+            GeneInner::UInt32(_) => Wrap(DataType::UInt32).into_pyobject(py),
+            GeneInner::UInt64(_) => Wrap(DataType::UInt64).into_pyobject(py),
+            GeneInner::UInt128(_) => Wrap(DataType::UInt128).into_pyobject(py),
+
+            GeneInner::Int8(_) => Wrap(DataType::Int8).into_pyobject(py),
+            GeneInner::Int16(_) => Wrap(DataType::Int16).into_pyobject(py),
+            GeneInner::Int32(_) => Wrap(DataType::Int32).into_pyobject(py),
+            GeneInner::Int64(_) => Wrap(DataType::Int64).into_pyobject(py),
+            GeneInner::Int128(_) => Wrap(DataType::Int128).into_pyobject(py),
+
+            GeneInner::Float32(_) => Wrap(DataType::Float32).into_pyobject(py),
+            GeneInner::Float64(_) => Wrap(DataType::Float64).into_pyobject(py),
+
+            GeneInner::Bit(_) => Wrap(DataType::Boolean).into_pyobject(py),
+            GeneInner::Char(_) => Wrap(DataType::Char).into_pyobject(py),
+            GeneInner::GraphNode(_) => {
+                Wrap(DataType::Node(Box::new(DataType::Op32))).into_pyobject(py)
+            }
+            GeneInner::TreeNode(_) => {
+                Wrap(DataType::Node(Box::new(DataType::Op32))).into_pyobject(py)
+            }
+            GeneInner::Permutation(_) => Wrap(DataType::UInt64).into_pyobject(py),
         }
     }
 
     pub fn allele<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         match &self.inner {
-            GeneInner::Float(gene) => gene.allele().into_bound_py_any(py),
-            GeneInner::Int(gene) => gene.allele().into_bound_py_any(py),
+            GeneInner::UInt8(gene) => gene.allele().into_bound_py_any(py),
+            GeneInner::UInt16(gene) => gene.allele().into_bound_py_any(py),
+            GeneInner::UInt32(gene) => gene.allele().into_bound_py_any(py),
+            GeneInner::UInt64(gene) => gene.allele().into_bound_py_any(py),
+            GeneInner::UInt128(gene) => gene.allele().into_bound_py_any(py),
+
+            GeneInner::Int8(gene) => gene.allele().into_bound_py_any(py),
+            GeneInner::Int16(gene) => gene.allele().into_bound_py_any(py),
+            GeneInner::Int32(gene) => gene.allele().into_bound_py_any(py),
+            GeneInner::Int64(gene) => gene.allele().into_bound_py_any(py),
+            GeneInner::Int128(gene) => gene.allele().into_bound_py_any(py),
+
+            GeneInner::Float32(gene) => gene.allele().into_bound_py_any(py),
+            GeneInner::Float64(gene) => gene.allele().into_bound_py_any(py),
+
             GeneInner::Bit(gene) => gene.allele().into_bound_py_any(py),
             GeneInner::Char(gene) => gene.allele().into_bound_py_any(py),
-            GeneInner::GraphNode(gene) => gene.allele().name().into_bound_py_any(py),
-            GeneInner::TreeNode(gene) => gene.allele().name().into_bound_py_any(py),
+            GeneInner::GraphNode(gene) => PyOp(gene.allele().clone()).into_bound_py_any(py),
+            GeneInner::TreeNode(gene) => PyOp(gene.allele().clone()).into_bound_py_any(py),
             GeneInner::Permutation(gene) => gene.allele().into_bound_py_any(py),
-            GeneInner::AnyGene(gene) => Wrap(gene.allele()).into_bound_py_any(py),
+        }
+    }
+
+    pub fn init_range<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        match &self.inner {
+            GeneInner::UInt8(gene) => (gene.min(), gene.max()).into_bound_py_any(py),
+            GeneInner::UInt16(gene) => (gene.min(), gene.max()).into_bound_py_any(py),
+            GeneInner::UInt32(gene) => (gene.min(), gene.max()).into_bound_py_any(py),
+            GeneInner::UInt64(gene) => (gene.min(), gene.max()).into_bound_py_any(py),
+            GeneInner::UInt128(gene) => (gene.min(), gene.max()).into_bound_py_any(py),
+
+            GeneInner::Int8(gene) => (gene.min(), gene.max()).into_bound_py_any(py),
+            GeneInner::Int16(gene) => (gene.min(), gene.max()).into_bound_py_any(py),
+            GeneInner::Int32(gene) => (gene.min(), gene.max()).into_bound_py_any(py),
+            GeneInner::Int64(gene) => (gene.min(), gene.max()).into_bound_py_any(py),
+            GeneInner::Int128(gene) => (gene.min(), gene.max()).into_bound_py_any(py),
+
+            GeneInner::Float32(gene) => (gene.min(), gene.max()).into_bound_py_any(py),
+            GeneInner::Float64(gene) => (gene.min(), gene.max()).into_bound_py_any(py),
+
+            _ => py.None().into_bound_py_any(py),
+        }
+    }
+
+    pub fn bounds<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        match &self.inner {
+            GeneInner::UInt8(gene) => gene.bounds().into_bound_py_any(py),
+            GeneInner::UInt16(gene) => gene.bounds().into_bound_py_any(py),
+            GeneInner::UInt32(gene) => gene.bounds().into_bound_py_any(py),
+            GeneInner::UInt64(gene) => gene.bounds().into_bound_py_any(py),
+            GeneInner::UInt128(gene) => gene.bounds().into_bound_py_any(py),
+
+            GeneInner::Int8(gene) => gene.bounds().into_bound_py_any(py),
+            GeneInner::Int16(gene) => gene.bounds().into_bound_py_any(py),
+            GeneInner::Int32(gene) => gene.bounds().into_bound_py_any(py),
+            GeneInner::Int64(gene) => gene.bounds().into_bound_py_any(py),
+            GeneInner::Int128(gene) => gene.bounds().into_bound_py_any(py),
+
+            GeneInner::Float32(gene) => gene.bounds().into_bound_py_any(py),
+            GeneInner::Float64(gene) => gene.bounds().into_bound_py_any(py),
+
+            _ => py.None().into_bound_py_any(py),
+        }
+    }
+
+    pub fn char_set<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        match &self.inner {
+            GeneInner::Char(gene) => gene.char_set().into_bound_py_any(py),
+            _ => py.None().into_bound_py_any(py),
         }
     }
 
     #[staticmethod]
-    #[pyo3(signature = (allele=None, range=None, bounds=None))]
+    #[pyo3(signature = (allele=None, range=None, bounds=None, dtype=None))]
     pub fn float(
-        allele: Option<f32>,
-        range: Option<(f32, f32)>,
-        bounds: Option<(f32, f32)>,
-    ) -> PyGene {
-        let range = range.unwrap_or((std::f32::MIN, std::f32::MAX));
+        allele: Option<f64>,
+        range: Option<(f64, f64)>,
+        bounds: Option<(f64, f64)>,
+        dtype: Option<String>,
+    ) -> PyResult<Self> {
+        let dtype = datatype::dtype_from_str(&dtype.unwrap_or_else(|| dtype_names::FLOAT64.into()));
+        let range = range.unwrap_or((std::f64::MIN, std::f64::MAX));
         let bounds = bounds.unwrap_or(range.clone());
 
-        PyGene {
-            inner: GeneInner::Float(match allele {
-                Some(a) => FloatGene::new(a, range.0..range.1, bounds.0..bounds.1),
-                None => FloatGene::from((range.0..range.1, bounds.0..bounds.1)),
-            }),
+        fn to_gene<F: Float>(
+            allele: Option<f64>,
+            range: (f64, f64),
+            bounds: (f64, f64),
+        ) -> PyResult<FloatGene<F>> {
+            let maybe_range = F::from(range.0).zip(F::from(range.1));
+            let maybe_bounds = F::from(bounds.0).zip(F::from(bounds.1));
+            let maybe_allele = allele.and_then(|a| F::from(a));
+
+            if let Some(init) = maybe_range
+                && let Some(bounds) = maybe_bounds
+            {
+                let init_min = if bounds.0 > init.0 { bounds.0 } else { init.0 };
+                let init_max = if bounds.1 < init.1 { bounds.1 } else { init.1 };
+                let init_range = init_min..init_max;
+
+                Ok(match maybe_allele {
+                    Some(al) => FloatGene::new(al, init_range.clone(), bounds.0..bounds.1),
+                    None => FloatGene::from((init_range.clone(), bounds.0..bounds.1)),
+                })
+            } else {
+                radiate_py_bail!(format!(
+                    "Invalid range or bounds: range={:?}, bounds={:?}",
+                    maybe_range, maybe_bounds
+                ))
+            }
         }
+
+        Ok(PyGene {
+            inner: match dtype {
+                DataType::Float32 => GeneInner::Float32(to_gene::<f32>(allele, range, bounds)?),
+                DataType::Float64 => GeneInner::Float64(to_gene::<f64>(allele, range, bounds)?),
+                _ => radiate_py_bail!(format!("Unsupported float dtype: {:?}", dtype)),
+            },
+        })
     }
 
     #[staticmethod]
-    #[pyo3(signature = (allele=None, range=None, bounds=None))]
+    #[pyo3(signature = (allele=None, range=None, bounds=None, dtype=None))]
     pub fn int(
         allele: Option<i64>,
         range: Option<(i64, i64)>,
         bounds: Option<(i64, i64)>,
-    ) -> PyGene {
-        let range = range.unwrap_or((i64::MIN, i64::MAX));
+        dtype: Option<String>,
+    ) -> PyResult<Self> {
+        let dtype = dtype::dtype_from_str(&dtype.unwrap_or_else(|| dtype_names::INT64.into()));
+        let default_range = default_int_range(&dtype);
+        let range = range.unwrap_or(default_range);
         let bounds = bounds.unwrap_or(range.clone());
 
-        PyGene {
-            inner: GeneInner::Int(match allele {
-                Some(a) => IntGene::new(a, range.0..range.1, bounds.0..bounds.1),
-                None => IntGene::from((range.0..range.1, bounds.0..bounds.1)),
-            }),
+        fn to_gene<I: Integer>(
+            allele: Option<i64>,
+            range: (i64, i64),
+            bounds: (i64, i64),
+        ) -> PyResult<IntGene<I>> {
+            let maybe_range = I::from(range.0).zip(I::from(range.1));
+            let maybe_bounds = I::from(bounds.0).zip(I::from(bounds.1));
+            let maybe_allele = allele.and_then(|a| I::from(a));
+
+            if let Some(init) = maybe_range
+                && let Some(bounds) = maybe_bounds
+            {
+                let init_min = if bounds.0 > init.0 { bounds.0 } else { init.0 };
+                let init_max = if bounds.1 < init.1 { bounds.1 } else { init.1 };
+                let init_range = init_min..init_max;
+
+                Ok(match maybe_allele {
+                    Some(al) => IntGene::new(al, init_range.clone(), bounds.0..bounds.1),
+                    None => IntGene::from((init_range.clone(), bounds.0..bounds.1)),
+                })
+            } else {
+                radiate_py_bail!(format!(
+                    "Invalid range or bounds: range={:?}, bounds={:?}",
+                    maybe_range, maybe_bounds
+                ))
+            }
         }
+
+        Ok(PyGene {
+            inner: match dtype {
+                DataType::UInt8 => GeneInner::UInt8(to_gene::<u8>(allele, range, bounds)?),
+                DataType::UInt16 => GeneInner::UInt16(to_gene::<u16>(allele, range, bounds)?),
+                DataType::UInt32 => GeneInner::UInt32(to_gene::<u32>(allele, range, bounds)?),
+                DataType::UInt64 => GeneInner::UInt64(to_gene::<u64>(allele, range, bounds)?),
+                DataType::UInt128 => GeneInner::UInt128(to_gene::<u128>(allele, range, bounds)?),
+                DataType::Int8 => GeneInner::Int8(to_gene::<i8>(allele, range, bounds)?),
+                DataType::Int16 => GeneInner::Int16(to_gene::<i16>(allele, range, bounds)?),
+                DataType::Int32 => GeneInner::Int32(to_gene::<i32>(allele, range, bounds)?),
+                DataType::Int64 => GeneInner::Int64(to_gene::<i64>(allele, range, bounds)?),
+                DataType::Int128 => GeneInner::Int128(to_gene::<i128>(allele, range, bounds)?),
+                _ => radiate_py_bail!(format!("Unsupported integer dtype: {:?}", dtype)),
+            },
+        })
     }
 
     #[staticmethod]
@@ -132,29 +336,22 @@ impl PyGene {
             }),
         }
     }
+}
 
-    #[staticmethod]
-    #[pyo3(signature = (allele, metadata, factory))]
-    pub fn any(
-        allele: Wrap<AnyValue<'_>>,
-        metadata: HashMap<String, String>,
-        factory: Py<PyAny>,
-    ) -> PyGene {
-        let fact = move || {
-            Python::attach(|py| {
-                let obj = factory.call0(py).unwrap();
-                let gene = obj.extract::<Wrap<AnyValue<'_>>>(py).unwrap();
-                gene.0.into_static()
-            })
-        };
+fn default_int_range(dtype: &DataType) -> (i64, i64) {
+    match dtype {
+        DataType::Int8 => (i8::MIN as i64, i8::MAX as i64),
+        DataType::Int16 => (i16::MIN as i64, i16::MAX as i64),
+        DataType::Int32 => (i32::MIN as i64, i32::MAX as i64),
+        DataType::Int64 => (i64::MIN, i64::MAX),
+        DataType::Int128 => (i64::MIN, i64::MAX),
 
-        PyGene {
-            inner: GeneInner::AnyGene(
-                AnyGene::new(allele.0.into_static())
-                    .with_metadata(metadata)
-                    .with_factory(fact),
-            ),
-        }
+        DataType::UInt8 => (u8::MIN as i64, u8::MAX as i64),
+        DataType::UInt16 => (u16::MIN as i64, u16::MAX as i64),
+        DataType::UInt32 => (u32::MIN as i64, u32::MAX as i64),
+        DataType::UInt64 => (0, i64::MAX),
+        DataType::UInt128 => (0, i64::MAX),
+        _ => (i64::MIN, i64::MAX),
     }
 }
 
@@ -179,11 +376,23 @@ macro_rules! impl_into_py_gene {
     };
 }
 
-impl_into_py_gene!(FloatGene, Float);
-impl_into_py_gene!(IntGene<i64>, Int);
+impl_into_py_gene!(IntGene<u8>, UInt8);
+impl_into_py_gene!(IntGene<u16>, UInt16);
+impl_into_py_gene!(IntGene<u32>, UInt32);
+impl_into_py_gene!(IntGene<u64>, UInt64);
+impl_into_py_gene!(IntGene<u128>, UInt128);
+
+impl_into_py_gene!(IntGene<i8>, Int8);
+impl_into_py_gene!(IntGene<i16>, Int16);
+impl_into_py_gene!(IntGene<i32>, Int32);
+impl_into_py_gene!(IntGene<i64>, Int64);
+impl_into_py_gene!(IntGene<i128>, Int128);
+
+impl_into_py_gene!(FloatGene<f32>, Float32);
+impl_into_py_gene!(FloatGene<f64>, Float64);
+
 impl_into_py_gene!(BitGene, Bit);
 impl_into_py_gene!(CharGene, Char);
 impl_into_py_gene!(GraphNode<Op<f32>>, GraphNode);
 impl_into_py_gene!(TreeNode<Op<f32>>, TreeNode);
 impl_into_py_gene!(PermutationGene<usize>, Permutation);
-impl_into_py_gene!(AnyGene<'static>, AnyGene);

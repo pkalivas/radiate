@@ -4,15 +4,14 @@ use std::{
     ops::Deref,
     sync::atomic::{AtomicUsize, Ordering},
 };
+struct ArcInner<T> {
+    value: UnsafeCell<T>,
+    ref_count: AtomicUsize,
+}
 
 pub struct MutCell<T> {
     inner: *const ArcInner<T>,
     consumed: bool,
-}
-
-struct ArcInner<T> {
-    value: UnsafeCell<T>,
-    ref_count: AtomicUsize,
 }
 
 // Ensure MutCell<T> is safe to send/sync if T is

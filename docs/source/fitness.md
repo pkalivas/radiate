@@ -47,10 +47,10 @@ Simple fitness functions are the most common type - they take a phenotype and re
         return value
 
     codec = rd.FloatCodec.vector(N_GENES, init_range=(-RANGE, RANGE))
-    engine = rd.GeneticEngine(codec, fitness_fn, objective="min")
+    engine = rd.Engine(codec).fitness(fitness_fn).minimizing()
     ```
 
-    Python also exposes a `@rd.fitness` decorator which can be used to annotate your fitness functions. As of `1/25/26` using the decorator for a simple fitness function like this doesn't provide any real benifit, the engine will handle wrapping the fitness function into it's DSL internally either way. This would be considered the "more explicit" way of defining your fitness function however and may provide benifits in the future as the python API matures.
+    Python also exposes a `@rd.fitness` decorator which can be used to annotate your fitness functions. As of `1/25/26` using the decorator for a simple fitness function like this doesn't provide any real benefit, the engine will handle wrapping the fitness function into it's DSL internally either way. This would be considered the "more explicit" way of defining your fitness function however and may provide benefits in the future as the python API matures.
 
     ```python
     import radiate as rd
@@ -123,7 +123,7 @@ Its important to note that other types of fitness functions like `NoveltySearch`
 
     # Create the genetic engine with batch fitness function.
     # Just wrap your fitness function in 'rd.BatchFitness'
-    engine = rd.GeneticEngine(codec, rd.BatchFitness(fitness_fn), objective="min")
+    engine = rd.Engine(codec).fitness(rd.BatchFitness(fitness_fn)).minimizing()
     ```
 
     Just like simple fitness functions, python lets you opt out of wrapping your fitness function in `rd.BatchFitness` by using the `@rd.fitness` decorator.
@@ -154,7 +154,7 @@ Its important to note that other types of fitness functions like `NoveltySearch`
 
     # Create the genetic engine with batch fitness function.
     # NOTE: We no longer need to wrap 'fitness_fn' in 'rd.BatchFitness'
-    engine = rd.GeneticEngine(codec, fitness_fn, objective="min")
+    engine = rd.Engine(codec).fitness(fitness_fn).minimizing()
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -255,10 +255,10 @@ Composite fitness functions allow you to combine multiple objectives into a sing
         .add_weighted_fn(complexity_objective, 0.25)   # 25% weight on complexity
         .add_weighted_fn(efficiency_objective, 0.15)   # 15% weight on efficiency
 
-    engine = rd.GeneticEngine(
+    engine = rd.Engine(
         codec=rd.ModelCodec(),
         fitness_func=composite_fitness,
-        objective="max"  # We want to maximize the composite score
+        objective=rd.MAX  # We want to maximize the composite score
     )
     ```
 -->
@@ -357,14 +357,11 @@ You can implement your own behavioral descriptors by implementing the `Novelty` 
         archive_size=1000, # defaults to 1000
     )
 
-    engine = rd.GeneticEngine(
-        # whatever codec you specify - the decoded value of your codec will be fed 
-        # into the `behavior` function of your NoveltySearch fitness_func
-        codec=rd.FloatCodec.vector(10, (0, 10)), 
-        fitness_func=novelty_fitness,
-        # we always want to maximize novelty - however this is the default 
-        # so its not necessary to define
-        objective='max' 
+    engine = (
+        # The decoded value of your codec (a list[float] in this case) will be fed into the `behavior` function of your NoveltySearch fitness_func
+        rd.Engine.float(10, init_range=(0, 10), bounds=(0, 10))  
+        .fitness(novelty_fitness)
+        .maximizing()  # We want to maximize novelty - however this is the default so its not necessary to define
     )
     ```
 
@@ -374,14 +371,14 @@ You can implement your own behavioral descriptors by implementing the `Novelty` 
     import radiate as rd
 
     # Define a behavioral descriptor
-    @rd.novelty(distance=rd.CosineDistance(), k=10, threshold=0.1, archive=1000)
+    @rd.novelty(distance=rd.Dist.cosine(), k=10, threshold=0.1, archive=1000)
     def behavior(self, individual: list[float]) -> list[float]:
         # Return behavioral characteristics 
         # Some code that describes the behavior of a vector
         # The individual here is a list[float] because we are using a FloatCodec vector below
         ... 
         
-    engine = rd.GeneticEngine(rd.FloatCodec.vector(10, (0, 10)), behavior)
+    engine = rd.Engine.float(10, init_range=(0, 10)).fitness(behavior)
     ```
 
 === ":fontawesome-brands-rust: Rust"

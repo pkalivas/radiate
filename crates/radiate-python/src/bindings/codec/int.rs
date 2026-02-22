@@ -1,18 +1,23 @@
-use super::PyCodec;
-use crate::{PyAnyObject, PyChromosome, PyGene, PyGenotype};
-use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, pyclass, pymethods, types::PyInt};
-use radiate::{Chromosome, Codec, Gene, Genotype, IntChromosome, IntGene};
+use crate::{DataType, Wrap, dtype_names};
+use crate::{
+    PyChromosome, PyGene, PyGenotype,
+    bindings::{
+        codec::{NumericCodecBuilder, TypedNumericCodec, builder::CodecBuilder},
+        dtype,
+    },
+};
+use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct PyIntCodec {
-    pub codec: PyCodec<IntChromosome<i64>, PyAnyObject>,
+    pub codec: TypedNumericCodec,
 }
 
 #[pymethods]
 impl PyIntCodec {
     pub fn encode_py(&self) -> PyResult<PyGenotype> {
-        Ok(PyGenotype::from(self.codec.encode()))
+        Ok(self.codec.encode())
     }
 
     pub fn decode_py<'py>(
@@ -20,155 +25,121 @@ impl PyIntCodec {
         py: pyo3::Python<'py>,
         genotype: &PyGenotype,
     ) -> PyResult<Bound<'py, PyAny>> {
-        self.codec
-            .decode_with_py(py, &genotype.clone().into())
-            .into_bound_py_any(py)
+        self.codec.decode_with_py(py, genotype)
+    }
+
+    pub fn dtype<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        Wrap(self.codec.dtype()).into_bound_py_any(py)
     }
 
     #[staticmethod]
     #[pyo3(signature = (chromosomes, use_numpy=false))]
     pub fn from_chromosomes(chromosomes: Vec<PyChromosome>, use_numpy: bool) -> Self {
-        PyIntCodec {
-            codec: PyCodec::new()
-                .with_encoder(move || {
-                    Genotype::from(
-                        chromosomes
-                            .iter()
-                            .map(|chrom| IntChromosome::from(chrom.clone()))
-                            .collect::<Vec<IntChromosome<i64>>>(),
-                    )
-                })
-                .with_decoder(move |py, geno| PyAnyObject {
-                    inner: super::decode_genotype_to_array(py, geno, use_numpy)
-                        .unwrap()
-                        .unbind()
-                        .into_any(),
-                }),
-        }
+        NumericCodecBuilder::default()
+            .chromosomes(chromosomes)
+            .use_numpy(use_numpy)
+            .into()
     }
 
     #[staticmethod]
     #[pyo3(signature = (genes, use_numpy=false))]
     pub fn from_genes(genes: Vec<PyGene>, use_numpy: bool) -> Self {
-        PyIntCodec {
-            codec: PyCodec::new()
-                .with_encoder(move || {
-                    IntChromosome::from(
-                        genes
-                            .iter()
-                            .map(|gene| IntGene::from(gene.clone()))
-                            .collect::<Vec<IntGene<i64>>>(),
-                    )
-                    .into()
-                })
-                .with_decoder(move |py, geno| PyAnyObject {
-                    inner: super::decode_genotype_to_array(py, geno, use_numpy)
-                        .unwrap()
-                        .unbind()
-                        .into_any(),
-                }),
-        }
+        NumericCodecBuilder::default()
+            .genes(genes)
+            .use_numpy(use_numpy)
+            .into()
     }
 
     #[staticmethod]
-    #[pyo3(signature = (chromosome_lengths=None, value_range=None, bound_range=None, use_numpy=false))]
+    #[pyo3(signature = (chromosome_lengths=None, value_range=None, bound_range=None, use_numpy=false, dtype=None))]
     pub fn matrix(
         chromosome_lengths: Option<Vec<usize>>,
         value_range: Option<(i64, i64)>,
         bound_range: Option<(i64, i64)>,
         use_numpy: bool,
+        dtype: Option<String>,
     ) -> Self {
-        let lengths = chromosome_lengths.unwrap_or(vec![1]);
-        let val_range = value_range.map(|rng| rng.0..rng.1).unwrap_or(0..1);
-        let bound_range = bound_range
-            .map(|rng| rng.0..rng.1)
-            .unwrap_or(val_range.clone());
+        let dtype = dtype::dtype_from_str(&dtype.unwrap_or_else(|| dtype_names::INT64.into()));
 
-        PyIntCodec {
-            codec: PyCodec::new()
-                .with_encoder(move || {
-                    lengths
-                        .iter()
-                        .map(|len| {
-                            IntChromosome::from((*len, val_range.clone(), bound_range.clone()))
-                        })
-                        .collect::<Vec<IntChromosome<i64>>>()
-                        .into()
-                })
-                .with_decoder(move |py, geno| PyAnyObject {
-                    inner: super::decode_genotype_to_array(py, geno, use_numpy)
-                        .unwrap()
-                        .unbind()
-                        .into_any(),
-                }),
-        }
+        NumericCodecBuilder::default()
+            .shape(chromosome_lengths.unwrap_or(vec![1]))
+            .init_range(value_range)
+            .bound_range(bound_range)
+            .use_numpy(use_numpy)
+            .dtype(dtype)
+            .into()
     }
 
     #[staticmethod]
-    #[pyo3(signature = (length=1, value_range=None, bound_range=None, use_numpy=false))]
+    #[pyo3(signature = (length=1, value_range=None, bound_range=None, use_numpy=false, dtype=None))]
     pub fn vector(
         length: usize,
         value_range: Option<(i64, i64)>,
         bound_range: Option<(i64, i64)>,
         use_numpy: bool,
+        dtype: Option<String>,
     ) -> Self {
-        let val_range = value_range.map(|rng| rng.0..rng.1).unwrap_or(0..1);
-        let bound_range = bound_range
-            .map(|rng| rng.0..rng.1)
-            .unwrap_or(val_range.clone());
+        let dtype = dtype::dtype_from_str(&dtype.unwrap_or_else(|| dtype_names::INT64.into()));
 
-        PyIntCodec {
-            codec: PyCodec::new()
-                .with_encoder(move || {
-                    vec![IntChromosome::from((
-                        length,
-                        val_range.clone(),
-                        bound_range.clone(),
-                    ))]
-                    .into()
-                })
-                .with_decoder(move |py, geno| PyAnyObject {
-                    inner: super::decode_genotype_to_array(py, geno, use_numpy)
-                        .unwrap()
-                        .unbind()
-                        .into_any(),
-                }),
-        }
+        NumericCodecBuilder::default()
+            .shape(vec![length])
+            .init_range(value_range)
+            .bound_range(bound_range)
+            .use_numpy(use_numpy)
+            .dtype(dtype)
+            .into()
     }
 
     #[staticmethod]
-    #[pyo3(signature = (value_range=None, bound_range=None))]
-    pub fn scalar(value_range: Option<(i64, i64)>, bound_range: Option<(i64, i64)>) -> Self {
-        let val_range = value_range.map(|rng| rng.0..rng.1).unwrap_or(0..1);
-        let bound_range = bound_range
-            .map(|rng| rng.0..rng.1)
-            .unwrap_or(val_range.clone());
+    #[pyo3(signature = (value_range=None, bound_range=None, dtype=None))]
+    pub fn scalar(
+        value_range: Option<(i64, i64)>,
+        bound_range: Option<(i64, i64)>,
+        dtype: Option<String>,
+    ) -> Self {
+        let dtype = dtype::dtype_from_str(&dtype.unwrap_or_else(|| dtype_names::INT64.into()));
 
-        PyIntCodec {
-            codec: PyCodec::new()
-                .with_encoder(move || {
-                    vec![IntChromosome::from((
-                        1,
-                        val_range.clone(),
-                        bound_range.clone(),
-                    ))]
-                    .into()
-                })
-                .with_decoder(|py, geno| {
-                    let val = geno
-                        .iter()
-                        .next()
-                        .and_then(|chrom| chrom.iter().next())
-                        .map_or(0, |gene| *gene.allele());
-                    let outer = PyInt::new(py, val as i64);
-
-                    PyAnyObject {
-                        inner: outer.unbind().into_any(),
-                    }
-                }),
-        }
+        NumericCodecBuilder::default()
+            .shape(vec![1])
+            .init_range(value_range)
+            .bound_range(bound_range)
+            .dtype(dtype)
+            .into()
     }
 }
 
 unsafe impl Send for PyIntCodec {}
 unsafe impl Sync for PyIntCodec {}
+
+impl From<NumericCodecBuilder<i64>> for PyIntCodec {
+    fn from(codec: NumericCodecBuilder<i64>) -> Self {
+        match codec.dtype {
+            DataType::UInt8 => PyIntCodec {
+                codec: TypedNumericCodec::U8(codec.build()),
+            },
+            DataType::UInt16 => PyIntCodec {
+                codec: TypedNumericCodec::U16(codec.build()),
+            },
+            DataType::UInt32 => PyIntCodec {
+                codec: TypedNumericCodec::U32(codec.build()),
+            },
+            DataType::UInt64 => PyIntCodec {
+                codec: TypedNumericCodec::U64(codec.build()),
+            },
+            DataType::Int8 => PyIntCodec {
+                codec: TypedNumericCodec::I8(codec.build()),
+            },
+            DataType::Int16 => PyIntCodec {
+                codec: TypedNumericCodec::I16(codec.build()),
+            },
+            DataType::Int32 => PyIntCodec {
+                codec: TypedNumericCodec::I32(codec.build()),
+            },
+            DataType::Int64 => PyIntCodec {
+                codec: TypedNumericCodec::I64(codec.build()),
+            },
+
+            _ => panic!("Unsupported dtype for IntCodec"),
+        }
+    }
+}

@@ -53,11 +53,11 @@ fn main() {
 
 #[derive(Clone)]
 pub struct NeuralNet {
-    pub layers: Vec<Vec<Vec<f32>>>,
+    pub layers: Vec<Vec<Vec<f64>>>,
 }
 
 impl NeuralNet {
-    pub fn feed_forward(&self, input: Vec<f32>) -> Vec<f32> {
+    pub fn feed_forward(&self, input: Vec<f64>) -> Vec<f64> {
         let mut output = input;
         for layer in self.layers.iter() {
             let layer_height = layer.len();
@@ -73,7 +73,7 @@ impl NeuralNet {
 
             let mut new_output = Vec::new();
             for i in 0..layer_width {
-                let mut sum = 0_f32;
+                let mut sum = 0_f64;
                 for j in 0..layer_height {
                     sum += layer[j][i] * output[j];
                 }
@@ -88,49 +88,48 @@ impl NeuralNet {
         output
     }
 
-    pub fn error(&self, data: &[Vec<f32>], target: &[f32]) -> f32 {
-        let mut score = 0_f32;
+    pub fn error(&self, data: &[Vec<f64>], target: &[f64]) -> f64 {
+        let mut score = 0_f64;
         for (input, target) in data.iter().zip(target.iter()) {
             let output = self.feed_forward(input.clone());
             score += (target - output[0]).powi(2);
         }
 
-        score / data.len() as f32
+        score / data.len() as f64
     }
 }
 
 #[derive(Clone)]
 pub struct NeuralNetCodec {
     pub shapes: Vec<(usize, usize)>,
-    pub inputs: Vec<Vec<f32>>,
-    pub target: Vec<f32>,
+    pub inputs: Vec<Vec<f64>>,
+    pub target: Vec<f64>,
 }
 
-impl Codec<FloatChromosome, NeuralNet> for NeuralNetCodec {
-    fn encode(&self) -> Genotype<FloatChromosome> {
+impl Codec<FloatChromosome<f64>, NeuralNet> for NeuralNetCodec {
+    fn encode(&self) -> Genotype<FloatChromosome<f64>> {
         Genotype::from(
             self.shapes
                 .iter()
                 .map(|shape| FloatChromosome::from((shape.0 * shape.1, -1.0..1.0, -100.0..100.0)))
-                .collect::<Vec<FloatChromosome>>(),
+                .collect::<Vec<FloatChromosome<f64>>>(),
         )
     }
 
-    fn decode(&self, genotype: &Genotype<FloatChromosome>) -> NeuralNet {
+    fn decode(&self, genotype: &Genotype<FloatChromosome<f64>>) -> NeuralNet {
         let mut layers = Vec::new();
         for (i, chromosome) in genotype.iter().enumerate() {
             layers.push(
                 chromosome
-                    .iter()
                     .as_slice()
                     .chunks(self.shapes[i].1 as usize)
                     .map(|chunk| {
                         chunk
                             .iter()
                             .map(|gene| *gene.allele())
-                            .collect::<Vec<f32>>()
+                            .collect::<Vec<f64>>()
                     })
-                    .collect::<Vec<Vec<f32>>>(),
+                    .collect::<Vec<Vec<f64>>>(),
             );
         }
 

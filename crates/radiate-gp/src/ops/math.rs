@@ -3,7 +3,7 @@ use crate::{
     Arity,
     ops::{Param, op_names},
 };
-use radiate_core::{chromosomes::NumericAllele, random_provider};
+use radiate_core::random_provider;
 
 pub(super) const MAX_VALUE: f32 = 1e+10_f32;
 pub(super) const MIN_VALUE: f32 = -1e+10_f32;
@@ -398,24 +398,6 @@ impl Op<f32> {
         Op::Fn(op_names::LOGSUMEXP, Arity::Exact(2), |inputs: &[f32]| {
             AggregateOperations::LogSumExp.apply(inputs)
         })
-    }
-}
-
-impl NumericAllele for Op<f32> {
-    fn cast_as_f32(&self) -> Option<f32> {
-        match self {
-            Op::Const(_, value) => Some(*value),
-            Op::Value(_, _, value, _) => Some(*value.data()),
-            _ => None,
-        }
-    }
-
-    fn cast_as_i32(&self) -> Option<i32> {
-        match self {
-            Op::Const(_, value) => Some(*value as i32),
-            Op::Value(_, _, value, _) => Some(*value.data() as i32),
-            _ => None,
-        }
     }
 }
 

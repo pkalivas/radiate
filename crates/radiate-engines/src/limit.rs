@@ -14,7 +14,7 @@
 //! - **Combined Limits**: Apply multiple limits simultaneously
 
 use radiate_core::{Metric, Score};
-use std::{sync::Arc, time::Duration};
+use std::{fmt::Debug, sync::Arc, time::Duration};
 
 /// Defines various types of limits for controlling genetic algorithm execution.
 ///
@@ -167,6 +167,21 @@ impl Into<Limit> for (Limit, Limit, Limit) {
 impl Into<Limit> for (Limit, Limit, Limit, Limit) {
     fn into(self) -> Limit {
         Limit::Combined(vec![self.0, self.1, self.2, self.3])
+    }
+}
+
+impl Debug for Limit {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Limit::Generation(gens) => write!(f, "Generation({gens})"),
+            Limit::Seconds(secs) => write!(f, "Seconds({secs:?})"),
+            Limit::Score(score) => write!(f, "Score({:?})", score.as_f32()),
+            Limit::Convergence(window, epsilon) => {
+                write!(f, "Convergence(window: {window}, epsilon: {epsilon})")
+            }
+            Limit::Combined(limits) => write!(f, "Combined({limits:?})"),
+            Limit::Metric(name, _) => write!(f, "MetricLimit({name})"),
+        }
     }
 }
 

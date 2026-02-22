@@ -87,8 +87,6 @@ Provided `Ops` include:
 
 === ":fontawesome-brands-python: Python"
 
-    Ops in python can't be directly evaluated like in rust. However, they can still be constructed and used in a similar way.
-
     ```python
     import radiate as rd
 
@@ -103,6 +101,10 @@ Provided `Ops` include:
     sigmoid = rd.Op.sigmoid()
     relu = rd.Op.relu()
     tanh = rd.Op.tanh()
+
+    add_result = rd.Op.add().eval(1.0, 2.0)  # result is 3.0
+    const_result = rd.Op.constant(42.0).eval()  # result is 42.0
+    var_result = rd.Op.var(0).eval(5.0, 10.0)  # result is 5.0 when evaluated with inputs
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -159,6 +161,7 @@ This mutator randomly changes or alters the `op` of a node within a `TreeChromos
 
     # Create a mutator that has a 10% chance to mutate an op and a 50% chance to replace it with a new one
     mutator = rd.OperationMutator(0.1, 0.5)
+    mutator = rd.Mutate.op(0.1, 0.5) # Using the dsl syntax for mutators
     ```
 
 === ":fontawesome-brands-rust: Rust"
