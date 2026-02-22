@@ -28,7 +28,7 @@ def test_engine_maintains_population_size(random_seed):
         .alters(rd.Cross.uniform(0.5), rd.Mutate.arithmetic(0.01))
     )
 
-    result = engine.run(rd.ScoreLimit(0.0001), rd.GenerationsLimit(1000))
+    result = engine.run(rd.Limit.score(0.0001), rd.Limit.generations(1000))
 
     assert all(i < 0.001 for i in result.value())
     assert len(result.value()) == N_GENES
@@ -69,7 +69,7 @@ def test_engine_batch_fitness():
         .alters(rd.Cross.uniform(0.5), rd.Mutate.arithmetic(0.01))
     )
 
-    result = engine.run(rd.ScoreLimit(0.0001), rd.GenerationsLimit(1000))
+    result = engine.run(rd.Limit.score(0.0001), rd.Limit.generations(1000))
 
     assert all(i < 0.001 for i in result.value())
     assert len(result.value()) == N_GENES
@@ -93,7 +93,7 @@ def test_engine_multi_objective(random_seed):
         .select(rd.Select.tournament(3), rd.Select.nsga2())
     )
 
-    result = engine.run(rd.GenerationsLimit(50))
+    result = engine.run(rd.Limit.generations(50))
 
     assert len(result.score()) == 2, "Should return two objectives"
     assert result.index() == 50, "Should complete within 50 generations"
@@ -103,7 +103,7 @@ def test_engine_multi_objective(random_seed):
 @pytest.mark.integration
 def test_engine_multi_objective_front(simple_multi_objective_engine, random_seed):
     """Test multi-objective engine with Pareto front."""
-    result = simple_multi_objective_engine.run(rd.GenerationsLimit(100))
+    result = simple_multi_objective_engine.run(rd.Limit.generations(100))
 
     fitness_values = list(set(map(lambda x: tuple(x.score()), result.front())))
 
