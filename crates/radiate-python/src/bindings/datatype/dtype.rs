@@ -501,6 +501,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Wrap<DataType> {
                 )));
             }
         };
+
         Ok(Wrap(dtype))
     }
 }

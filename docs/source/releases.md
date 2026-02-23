@@ -7,9 +7,12 @@
 - 2026-02-22
 - [Release](https://github.com/pkalivas/radiate/releases/tag/v1.2.21)
 
+
+### Breaking changes:
+
 Changed the `FloatGene<T>` to take a generic <F> parameter to take either an `f32` or `f64` value. 
 
-* The above is a breaking change. Just add the generic type to your `FloatGene`, `FloatChromosome`, or `FloatCodec` if needed. 
+* The above is a breaking change. Just add the generic type to your `FloatGene`, `FloatChromosome`, or `FloatCodec` if needed.
 
 Massive expansion of python's api - check the [docs](https://pkalivas.github.io/radiate/) for usage. We moved towards a builder pattern for the engine and added better type hinting.
 

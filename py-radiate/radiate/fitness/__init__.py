@@ -13,12 +13,12 @@ def fitness(
     *,
     batch: bool = False,
 ):
-    def decorator(f: Callable[..., Any]) -> Callable[..., Any] | FitnessBase:
+    def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(f)
         def wrapper(*args, **kwargs):
             return f(*args, **kwargs)
 
-        return BatchFitness(wrapper) if batch else CallableFitness(wrapper)
+        return BatchFitness(wrapper) if batch else CallableFitness(wrapper)  # type: ignore
 
     return decorator if func is None else decorator(func)
 
@@ -32,7 +32,7 @@ def novelty(
     threshold: float = 0.03,
     distance: DistanceBase = HammingDistance(),
 ):
-    def decorator(f: Callable[..., Any]) -> Callable[..., Any] | NoveltySearch:
+    def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(f)
         def wrapper(*args, **kwargs):
             return f(*args, **kwargs)
@@ -43,7 +43,7 @@ def novelty(
             k=k,
             distance=distance,
             threshold=threshold,
-        )
+        )  # type: ignore
 
     return decorator if behavior_func is None else decorator(behavior_func)
 

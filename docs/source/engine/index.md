@@ -221,11 +221,16 @@ Radiate provides multiple ways to run the `GeneticEngine`.
     # --- or using the engine's Run method with limits ---
 
     # Limits - run until a score target is reached
-    score_limit = rd.ScoreLimit(0.01)
-    generations_limit = rd.GenerationsLimit(100)
-    seconds_limit = rd.SecondsLimit(60)
+    score_limit = rd.Limit.score(0.01)
+    generations_limit = rd.Limit.generations(100)
+    seconds_limit = rd.Limit.seconds(60)
     # window and epsilon for convergence - how close the scores must be over the window to consider convergence
-    convergence_limit = rd.ConvergenceLimit(window=50, epsilon=0.01) 
+    convergence_limit = rd.Limit.convergence(window=50, epsilon=0.01) 
+    # metric based limit - by metric name:
+    # stop after the evaluation count metric reaches 1000. Note that the metric function is 
+    # a predicate that takes the metric value and returns a boolean indicating whether 
+    # to stop or not, this allows for more complex stopping conditions based on metrics.
+    metric_limit = rd.Limit.metric("evaluation_count", lambda metric: metric.sum() >= 1000)
 
     # Log the progress of the engine to the console
     result = engine.run(
@@ -233,6 +238,7 @@ Radiate provides multiple ways to run the `GeneticEngine`.
             generations_limit,
             seconds_limit,
             convergence_limit,
+            metric_limit,
         log=True,
         ui=True, # Enable terminal UI - if enabled, log is ignored
         checkpoint=(10, "checkpoint.json") # checkpoint every 10 generations to 'checkpoint.json'

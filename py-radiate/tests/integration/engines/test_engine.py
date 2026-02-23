@@ -117,3 +117,22 @@ def test_engine_multi_objective_front(simple_multi_objective_engine, random_seed
                 assert not (f1[0] <= f2[0] and f1[1] <= f2[1]), (
                     "Pareto front should be non-dominated"
                 )
+
+
+@pytest.mark.integration
+def test_engine_with_iter(random_seed):
+    """Test that engine can be iterated over and yields results."""
+
+    def fit(val: list[float]) -> float:
+        return sum(i**2 for i in val)
+
+    engine = rd.Engine.float(2, init_range=(-5.0, 5.0)).fitness(fit)
+
+    results = []
+    while len(results) < 5:
+        results.append(next(engine))
+
+    assert all(isinstance(r, rd.Generation) for r in results), (
+        "Should yield Generation objects"
+    )
+    assert results[-1].index() == 5, "Last generation index should be 5"
