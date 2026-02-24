@@ -4,9 +4,9 @@ Distance measurements are used to quantify the distance between individuals in a
 
 ## Hamming Distance
 
-**Compatible with**: `FloatGene`, `IntGene<I>`, `BitGene`, `CharGene`, `PermuationGene<A>`
+**Compatible with**: `FloatGene<F>`, `IntGene<I>`, `BitGene`, `CharGene`, `PermuationGene<A>`
 
-The Hamming Distance measures diversity by counting the number of positions at which corresponding genes are different, normalized by the total number of genes. This is particularly useful for:
+Hamming distance is the most straightforward distance measure, defined as the number of positions at which the corresponding genes are different.
 
 - Binary or discrete genetic representations
 - Problems where exact matches are important
@@ -33,13 +33,20 @@ The Hamming Distance measures diversity by counting the number of positions at w
 
 ## Euclidean Distance
 
-**Compatible with**: `FloatGene`, `IntGene<I>`
+**Compatible with**: `FloatGene<F>`, `IntGene<I>`
 
-The Euclidean Distance calculates the square root of the sum of squared differences between corresponding `genes`' `alleles`, normalized by the number of genes. This is ideal for:
+We define the Euclidean Distance as follows:
+
+$$
+D(x, y) = \sqrt{\sum_{i=1}^{n} (x_i - y_i)^2}
+$$
+
+or, the square root of sum of squared differences between corresponding `genes`' `alleles`. This is ideal for:
 
 - Continuous genetic representations
 - Problems where the magnitude of differences matters
 - Cases where you want to measure diversity based on numerical distances
+
 
 === ":fontawesome-brands-python: Python"
 
@@ -62,9 +69,16 @@ The Euclidean Distance calculates the square root of the sum of squared differen
 
 ## Cosine Distance
 
-**Compatible with**: `FloatGene`, `IntGene<I>`
+**Compatible with**: `FloatGene<F>`, `IntGene<I>`
 
-The Cosine Distance measures diversity by calculating the cosine similarity between the vectors representing individuals. This is particularly useful for:
+We define the Cosine Distance as follows:
+
+$$
+D(x, y) = 1 - \frac{\sum_{i=1}^{n
+} x_i y_i}{\sqrt{\sum_{i=1}^{n} x_i^2} \sqrt{\sum_{i=1}^{n} y_i^2}}
+$$
+
+The Cosine Distance measures diversity by calculating the cosine of the angle between two vectors of gene values, which is particularly useful for:
 
 - High-dimensional spaces
 - Problems where the direction of the vector matters more than its magnitude
@@ -93,7 +107,7 @@ The Cosine Distance measures diversity by calculating the cosine similarity betw
 
 **Compatible with**: `GraphNode<Op<f32>>`
 
-The Neat Distance measures diversity by using the NEAT (NeuroEvolution of Augmenting Topologies) distance metric, which considers both structural and weight differences between neural network representations. This is particularly useful for:
+The Neat Distance measures diversity by using the [NEAT](https://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf) (NeuroEvolution of Augmenting Topologies) distance metric, which considers both structural and weight differences between neural network representations. This is particularly useful for:
 
 - Neural network evolution
 - Problems where both topology and weight differences matter
