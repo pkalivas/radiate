@@ -1,6 +1,7 @@
 use crate::{InputTransform, PyEngineInput, PyEngineInputType, PyGeneType, PyPopulation};
-use pyo3::{PyResult, exceptions::PyValueError, pyfunction};
+use pyo3::{PyResult, pyfunction};
 use radiate::prelude::*;
+use radiate_error::radiate_py_err;
 
 #[pyfunction]
 pub fn py_alter(
@@ -10,14 +11,14 @@ pub fn py_alter(
     generation: usize,
 ) -> PyResult<PyPopulation> {
     if !matches!(alterer.input_type, PyEngineInputType::Alterer) {
-        return Err(PyValueError::new_err(format!(
-            "Input type {:?} not a Alterer",
+        return Err(radiate_py_err!(format!(
+            "Input type {:?} not an Alterer",
             alterer.input_type
         )));
     }
 
     if !alterer.allowed_genes.contains(&gene_type) {
-        return Err(PyValueError::new_err(format!(
+        return Err(radiate_py_err!(format!(
             "Alterer {} does not allow gene type {:?}",
             alterer.component, gene_type
         )));
@@ -87,8 +88,8 @@ pub fn py_alter(
                 generation,
             )))
         }
-        _ => Err(PyValueError::new_err(format!(
-            "Gene type {:?} not supported for selection",
+        _ => Err(radiate_py_err!(format!(
+            "Gene type {:?} not supported for alteration",
             gene_type
         ))),
     }

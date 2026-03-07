@@ -60,7 +60,7 @@ engine = (
         init_range=(-1.0, 1.0),
         # Genes aren't allowed to go outside the range [-3, 3] during evolution
         bounds=(-3.0, 3.0),
-        # Decode radiate's chromosomes into numpy arrays for the fitness function
+        # Decode radiate's backend (rust) chromosomes into numpy arrays for the fitness function
         use_numpy=True,
         # Use 32-bit floats in radiate's backend (rust side) - note the numpy arrays will also be float32, so we avoid unnecessary up/down casting
         dtype=rd.Float32,

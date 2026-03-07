@@ -80,7 +80,7 @@ slotmap = "1.0"
 hashbrown = { version = "0.16.1" }
 crossterm = "0.29"
 ratatui = { version = "0.30", default-features = false, features = ["crossterm"] }
-tui-piechart = "0.3.0"
+tui-piechart = "0.3.1"
 color-eyre = "0.6.3"
 num-traits = "0.2.19"
 tracing = "0.1.44"
