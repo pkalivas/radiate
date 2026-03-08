@@ -27,7 +27,7 @@ class TestCodecPerformance:
     @pytest.mark.performance
     def test_large_matrix_codec_performance(self, performance_benchmark):
         """Benchmark large matrix codec operations."""
-        codec = rd.IntCodec.matrix((100, 100), init_range=(0, 1000))
+        codec = rd.IntCodec((100, 100), init_range=(0, 1000))
 
         def matrix_operations():
             genotype = codec.encode()

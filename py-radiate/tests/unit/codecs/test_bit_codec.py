@@ -23,7 +23,7 @@ def test_bit_codec_vector_creation():
 @pytest.mark.unit
 def test_bit_codec_matrix_creation():
     """Test creating a bit codec for matrices."""
-    codec = BitCodec.matrix((3, 4))
+    codec = BitCodec((3, 4))
     genotype = codec.encode()
 
     assert len(genotype) == 3
@@ -72,7 +72,7 @@ def test_bit_codec_decode():
 def test_empty_matrix_codec():
     """Test matrix codecs handle zero dimensions gracefully."""
     with pytest.raises(ValueError):
-        BitCodec.matrix((3, 0))
+        BitCodec((3, 0))
 
     with pytest.raises(ValueError):
-        BitCodec.matrix((0, 4))
+        BitCodec((0, 4))

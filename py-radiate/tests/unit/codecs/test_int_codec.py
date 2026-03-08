@@ -24,7 +24,7 @@ def test_int_codec_vector_creation():
 @pytest.mark.unit
 def test_int_codec_matrix_creation():
     """Test creating an integer codec for matrices."""
-    codec = IntCodec.matrix((3, 4), init_range=(0, 100))
+    codec = IntCodec((3, 4), init_range=(0, 100))
     genotype = codec.encode()
 
     assert len(genotype) == 3
@@ -101,7 +101,7 @@ def test_int_codec_bounds():
     for gene in genotype[0]:
         assert -5 <= gene.allele() <= 5
 
-    codec = IntCodec.matrix((3, 3), init_range=(0, 100))
+    codec = IntCodec((3, 3), init_range=(0, 100))
     genotype = codec.encode()
 
     for row in genotype:

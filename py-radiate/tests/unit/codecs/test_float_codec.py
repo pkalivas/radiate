@@ -25,7 +25,7 @@ def test_float_codec_vector_creation():
 @pytest.mark.unit
 def test_float_codec_matrix_creation():
     """Test creating a float codec for matrices."""
-    codec = FloatCodec.matrix((2, 3), init_range=(-10.0, 10.0))
+    codec = FloatCodec((2, 3), init_range=(-10.0, 10.0))
     genotype = codec.encode()
 
     assert len(genotype) == 2
@@ -79,7 +79,7 @@ def test_float_codec_with_numpy():
     assert decoded.shape == (10,)
     assert all(-5.0 <= x <= 5.0 for x in decoded)
 
-    codec = FloatCodec.matrix(
+    codec = FloatCodec(
         shape=[5, 5, 5, 5], init_range=(-10.0, 10.0), use_numpy=True, dtype=Float32
     )
 
@@ -109,7 +109,7 @@ def test_float_codec_matrix_invalid_value_range_order():
     with pytest.raises(
         ValueError, match="Minimum value must be less than maximum value"
     ):
-        FloatCodec.matrix(shape=(2, 3), init_range=(10.0, 5.0))
+        FloatCodec(shape=(2, 3), init_range=(10.0, 5.0))
     with pytest.raises(
         ValueError, match="Minimum value must be less than maximum value"
     ):
@@ -122,7 +122,7 @@ def test_float_codec_matrix_invalid_bound_range_order():
     with pytest.raises(
         ValueError, match="Minimum bound must be less than maximum bound"
     ):
-        FloatCodec.matrix(shape=(2, 3), bounds=(10.0, 5.0))
+        FloatCodec(shape=(2, 3), bounds=(10.0, 5.0))
     with pytest.raises(
         ValueError, match="Minimum bound must be less than maximum bound"
     ):

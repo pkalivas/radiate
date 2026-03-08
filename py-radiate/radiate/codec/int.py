@@ -10,7 +10,6 @@ from radiate._bridge.wrapper import RsObject
 from radiate.radiate import PyIntCodec
 from radiate._typing import (
     AtLeastOne,
-    MatrixDecoding,
 )
 from radiate.dtype import DataTypeClass, DataType, Int64
 
@@ -244,31 +243,6 @@ class IntCodec[D](CodecBase[int, D], RsObject):
         if not isinstance(genotype, Genotype):
             raise TypeError("genotype must be an instance of Genotype.")
         return self.__backend__().decode_py(genotype=genotype.__backend__())
-
-    @staticmethod
-    def matrix(
-        shape: tuple[int, int] | list[int],
-        init_range: tuple[int, int] | None = None,
-        bounds: tuple[int, int] | None = None,
-        use_numpy: bool = False,
-        dtype: DataTypeClass | DataType | None = None,
-    ) -> IntCodec[MatrixDecoding[int]]:
-        """
-        Initialize the int codec with number of chromosomes and value bounds.
-        :param chromosomes: Number of chromosomes with the number of genes in each chromosome.
-        :param value_range: Minimum and maximum value for the genes.
-        :param bound_range: Minimum and maximum bound for the genes.
-        :param use_numpy: Whether to use NumPy for the underlying data representation.
-        :param dtype: The integer data type to use (e.g., int8, int16, int32, int64).
-        :return: A new IntCodec instance with the specified configuration.
-        """
-        return IntCodec(
-            shape=shape,
-            init_range=init_range,
-            bounds=bounds,
-            use_numpy=use_numpy,
-            dtype=dtype,
-        )
 
     @staticmethod
     def scalar(
