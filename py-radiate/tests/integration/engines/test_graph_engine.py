@@ -46,23 +46,21 @@ def test_engine_graph_regression_with_speciation(
         output=rd.Op.linear(),
     )
 
-    engine = rd.Engine(
-        codec=codec,
-        fitness_func=rd.Regression(inputs, outputs),
-        objective=rd.MIN,
-        population_size=100,
-        species_threshold=0.1,
-        diversity=rd.NeatDistance(excess=0.1, disjoint=0.1, weight_diff=0.5),
-        alters=[
+    engine = (
+        rd.Engine(codec)
+        .regression(inputs, outputs)
+        .minimizing()
+        .diversity(rd.NeatDistance(0.1, 0.1, 0.5), 0.1)
+        .alters(
             rd.GraphCrossover(0.5, 0.5),
             rd.OperationMutator(0.07, 0.05),
             rd.GraphMutator(0.1, 0.1),
-        ],
+        )
     )
 
-    result = engine.run(rd.ScoreLimit(0.1), rd.GenerationsLimit(500))
-
-    # Testing in multithreaded mode can lead to slightly different results so we
+    result = engine.run(
+        rd.ScoreLimit(0.1), rd.GenerationsLimit(500)
+    )  # Testing in multithreaded mode can lead to slightly different results so we
     # relax the assertion a bit by allowing a few # of species
     assert len(result.species()) in [2, 3, 4], "Should maintain multiple species"
     assert result.index() <= 500

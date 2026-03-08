@@ -58,12 +58,38 @@ class FloatCodec[D](CodecBase[float, D], RsObject):
         dtype: DataTypeClass | DataType | None = ...,
     ) -> "FloatCodec[MatrixDecoding[float]]": ...
 
+    @overload
+    def __new__(
+        cls,
+        *,
+        shape: None = ...,
+        init_range: tuple[float, float] | None = None,
+        bounds: tuple[float, float] | None = None,
+        genes: Gene[float] | Sequence[Gene[float]],
+        chromosomes: None = ...,
+        use_numpy: bool = ...,
+        dtype: DataTypeClass | DataType | None = ...,
+    ) -> "FloatCodec[VectorDecoding[float]]": ...
+
+    @overload
+    def __new__(
+        cls,
+        *,
+        shape: None = ...,
+        init_range: tuple[float, float] | None = None,
+        bounds: tuple[float, float] | None = None,
+        genes: None = ...,
+        chromosomes: AtLeastOne[Chromosome[float]],
+        use_numpy: bool = ...,
+        dtype: DataTypeClass | DataType | None = ...,
+    ) -> "FloatCodec[MatrixDecoding[float]]": ...
+
     def __new__(cls, *args: Any, **kwargs: Any) -> "FloatCodec[Any]":
         return super().__new__(cls)
 
     def __init__(
         self,
-        shape: AtLeastOne[int] | None = 1,
+        shape: AtLeastOne[int] | None = None,
         init_range: tuple[float, float] | None = None,
         bounds: tuple[float, float] | None = None,
         genes: Gene[float] | Sequence[Gene[float]] | None = None,
@@ -77,6 +103,13 @@ class FloatCodec[D](CodecBase[float, D], RsObject):
         :param init_range: Range for initializing gene values.
         :param bounds: Bounds for gene values.
         """
+        provided = sum(x is not None for x in [shape, genes, chromosomes])
+
+        if provided > 1:
+            raise ValueError(
+                "Only one of shape, genes, or chromosomes should be provided."
+            )
+
         if shape is not None:
             if isinstance(shape, int):
                 self._pyobj = self.__vector(
@@ -94,18 +127,21 @@ class FloatCodec[D](CodecBase[float, D], RsObject):
                     use_numpy=use_numpy,
                     dtype=dtype,
                 )
+            else:
+                raise TypeError("shape must be an int, tuple[int, int], or list[int].")
         elif genes is not None:
             self._pyobj = self.__from_genes(genes=genes, use_numpy=use_numpy)
         elif chromosomes is not None:
             self._pyobj = self.__from_chromosomes(
                 chromosomes=chromosomes, use_numpy=use_numpy
             )
-        elif shape is None and genes is None and chromosomes is None:
-            self._pyobj = self.__scalar(
-                init_range=init_range, bounds=bounds, use_numpy=use_numpy, dtype=dtype
-            )
         else:
-            raise ValueError("Shape must be provided.")
+            self._pyobj = self.__scalar(
+                init_range=init_range,
+                bounds=bounds,
+                use_numpy=use_numpy,
+                dtype=dtype,
+            )
 
     def encode(self) -> Genotype[float]:
         """
@@ -128,7 +164,7 @@ class FloatCodec[D](CodecBase[float, D], RsObject):
     # def from_genes(
     #     genes: Gene[float] | Sequence[Gene[float]] | None = None,
     #     use_numpy: bool = False,
-    # ) -> FloatCodec[ScalarDecoding[float]]:
+    # ) -> FloatCodec[ScalarDecoding[float]] | FloatCodec[VectorDecoding[float]]:
     #     """
     #     Create a codec for a single chromosome with specified genes.
     #     Args:
@@ -145,7 +181,7 @@ class FloatCodec[D](CodecBase[float, D], RsObject):
     # def from_chromosomes(
     #     chromosomes: list[Chromosome[float]] | tuple[Chromosome[float], ...],
     #     use_numpy: bool = False,
-    # ) -> FloatCodec[MatrixDecoding[float]]:
+    # ) -> FloatCodec[MatrixDecoding[float]] | FloatCodec[VectorDecoding[float]]:
     #     """
     #     Create a codec for multiple chromosomes.
     #     Args:
@@ -371,6 +407,8 @@ class FloatCodec[D](CodecBase[float, D], RsObject):
         genes: Gene[float] | Sequence[Gene[float]] | None = None,
         use_numpy: bool = False,
     ) -> PyFloatCodec:
+        if isinstance(genes, Gene):
+            genes = [genes]
         if not isinstance(genes, (list, tuple)):
             raise TypeError("genes must be a list or tuple of Gene instances.")
         if isinstance(genes, Gene):
@@ -386,6 +424,8 @@ class FloatCodec[D](CodecBase[float, D], RsObject):
     ) -> PyFloatCodec:
         from radiate.genome import GeneType
 
+        if isinstance(chromosomes, Chromosome):
+            chromosomes = [chromosomes]
         if not isinstance(chromosomes, (list, tuple)):
             raise TypeError(
                 "chromosomes must be a list or tuple of Chromosome instances."
