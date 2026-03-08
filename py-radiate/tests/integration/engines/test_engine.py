@@ -17,11 +17,11 @@ def test_engine_maintains_population_size(random_seed):
             value += x[i] ** 2 - A * math.cos((2.0 * 3.141592653589793 * x[i]))
         return value
 
-    codec = rd.FloatCodec.vector(N_GENES, init_range=(-RANGE, RANGE))
+    codec = rd.FloatCodec(shape=N_GENES, init_range=(-RANGE, RANGE))
     population = rd.Population(rd.Phenotype(codec.encode()) for _ in range(107))
 
     engine = (
-        rd.Engine.float(N_GENES, init_range=(-RANGE, RANGE))
+        rd.Engine.float(shape=N_GENES, init_range=(-RANGE, RANGE))
         .fitness(fitness_fn)
         .minimizing()
         .population(population)
@@ -58,11 +58,11 @@ def test_engine_batch_fitness():
             results.append(value)
         return results
 
-    codec = rd.FloatCodec.vector(N_GENES, init_range=(-RANGE, RANGE))
+    codec = rd.FloatCodec(shape=N_GENES, init_range=(-RANGE, RANGE))
     population = rd.Population(rd.Phenotype(codec.encode()) for _ in range(107))
 
     engine = (
-        rd.Engine.float(N_GENES, init_range=(-RANGE, RANGE))
+        rd.Engine.float(shape=N_GENES, init_range=(-RANGE, RANGE))
         .fitness(fitness_fn)
         .minimizing()
         .population(population)

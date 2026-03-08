@@ -38,7 +38,7 @@ The `minimizing()` method configures the genetic algorithm to find the minimum v
     import radiate as rd
 
     # Create an engine that has a genome of 1 chromosome with 10 float genes, initialized & bound between 0.0 and 1.0
-    codec = rd.FloatCodec.vector(10, init_range=(0.0, 1.0))  # Example codec
+    codec = rd.FloatCodec(10, init_range=(0.0, 1.0))  # Example codec
     engine = rd.Engine(codec).fitness(lambda x: sum(x)).minimizing()
 
     # or create the same engine with the builder codec:
@@ -88,7 +88,7 @@ This is the default option for the `GeneticEngine`, so you don't really need to 
 
     # Create an engine that has a genome of 1 chromosome with 10 float genes, initialized & bound between 0.0 and 1.0
     # Note that maximization is the default, so you could omit the '.maximizing()' call and it would still maximize
-    codec = rd.FloatCodec.vector(10, init_range=(0.0, 1.0))  # Example codec
+    codec = rd.FloatCodec(10, init_range=(0.0, 1.0))  # Example codec
     engine = rd.Engine(codec).fitness(lambda x: sum(x)).maximizing()
 
     # or using builder pattern
@@ -142,7 +142,7 @@ Use `multi_objective()` with a list of optimization directions to configure mult
     ```python
     import radiate as rd
     
-    codec = rd.FloatCodec.vector(10, init_range=(0.0, 1.0))  # Example codec
+    codec = rd.FloatCodec(10, init_range=(0.0, 1.0))  # Example codec
     engine = (
         rd.Engine(codec)
         .fitness(lambda x: [obj1_fitness_func(x), obj2_fitness_func(x)])  # Return list of objectives

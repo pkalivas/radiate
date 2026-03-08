@@ -7,7 +7,7 @@ from radiate import FloatCodec, Float32
 @pytest.mark.unit
 def test_float_codec_vector_creation():
     """Test creating a float codec for vectors."""
-    codec = FloatCodec.vector(length=4, init_range=(-1.0, 1.0))
+    codec = FloatCodec(shape=4, init_range=(-1.0, 1.0))
     genotype = codec.encode()
 
     assert len(genotype) == 1
@@ -43,7 +43,7 @@ def test_float_codec_matrix_creation():
 @pytest.mark.unit
 def test_float_codec_decode():
     """Test decoding float genotypes."""
-    codec = FloatCodec.vector(length=3, init_range=(0.0, 1.0), use_numpy=True)
+    codec = FloatCodec(shape=3, init_range=(0.0, 1.0), use_numpy=True)
     genotype = codec.encode()
     decoded = codec.decode(genotype)
 
@@ -63,7 +63,7 @@ def test_float_codec_decode():
 @pytest.mark.unit
 def test_float_codec_with_numpy():
     """Test float codec with numpy arrays."""
-    codec = FloatCodec.vector(length=3, init_range=(-1.0, 1.0), use_numpy=True)
+    codec = FloatCodec(shape=3, init_range=(-1.0, 1.0), use_numpy=True)
     genotype = codec.encode()
     decoded = codec.decode(genotype)
 
@@ -133,7 +133,7 @@ def test_float_codec_matrix_invalid_bound_range_order():
 def test_float_codec_vector_invalid_length():
     """Test FloatCodec vector with invalid length."""
     with pytest.raises(ValueError, match="Length must be a positive integer"):
-        FloatCodec.vector(length=0)
+        FloatCodec(shape=0)
     with pytest.raises(ValueError, match="Length must be a positive integer"):
         FloatCodec(-5)
 
@@ -142,7 +142,7 @@ def test_float_codec_vector_invalid_length():
 def test_negative_length_codec():
     """Test codecs handle negative length gracefully."""
     with pytest.raises(ValueError):
-        FloatCodec.vector(length=-1, init_range=(-1.0, 1.0))
+        FloatCodec(shape=-1, init_range=(-1.0, 1.0))
 
 
 # @pytest.mark.unit

@@ -9,7 +9,7 @@ from .base import CodecBase
 from radiate.radiate import PyCharCodec
 from radiate.genome import Genotype, GeneType
 from radiate._bridge.wrapper import RsObject
-from radiate._typing import AtLeastOne, VectorDecoding, MatrixDecoding
+from radiate._typing import AtLeastOne, MatrixDecoding
 
 
 def _normalize_char_set(char_set: str | list[str] | set[str] | None) -> str | None:
@@ -36,7 +36,7 @@ class CharCodec[D](CodecBase[str, D], RsObject):
         char_set: str | list[str] | set[str] | None = None,
         genes: None = ...,
         chromosomes: None = ...,
-    ) -> "CharCodec[VectorDecoding[str]]": ...
+    ) -> "CharCodec[list[str]]": ...
 
     @overload
     def __new__(
@@ -148,7 +148,7 @@ class CharCodec[D](CodecBase[str, D], RsObject):
     @staticmethod
     def vector(
         length: int, char_set: str | list[str] | set[str] | None = None
-    ) -> CharCodec[VectorDecoding[str]]:
+    ) -> CharCodec[list[str]]:
         """
         Initialize the char codec with a single chromosome of specified length.
         Args:
@@ -165,7 +165,7 @@ class CharCodec[D](CodecBase[str, D], RsObject):
         return CharCodec(shape=length, char_set=char_set)
 
     @staticmethod
-    def __from_genes(genes: AtLeastOne[Gene[str]]) -> CharCodec[VectorDecoding[str]]:
+    def __from_genes(genes: AtLeastOne[Gene[str]]) -> CharCodec[list[str]]:
         """
         Create a codec for a single chromosome with specified genes.
         Args:

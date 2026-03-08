@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, overload, Sequence
+from typing import Any, Sequence
 from collections.abc import Callable
 
 from radiate.codec import (
@@ -25,9 +25,6 @@ from radiate._typing import (
     AtLeastOne,
     Subscriber,
     RdDataType,
-    ScalarDecoding,
-    VectorDecoding,
-    MatrixDecoding,
 )
 
 from .builder import EngineBuilder
@@ -55,100 +52,6 @@ class Engine[G, T]:
         self._engine = None
         self._builder = EngineBuilder._default(codec.gene_type, codec=codec, **kwargs)
 
-    # --- Float Engine Overloads ---
-    @overload
-    @staticmethod
-    def float(
-        *,
-        shape: int = 1,
-        init_range: tuple[float, float] | None = (0, 1.0),
-        bounds: tuple[float, float] | None = None,
-        dtype: RdDataType = Float64,
-        use_numpy: bool = False,
-        genes: None = ...,
-        chromosomes: None = ...,
-    ) -> "Engine[float, ScalarDecoding[float]]": ...
-
-    @overload
-    @staticmethod
-    def float(
-        shape: int,
-        *,
-        init_range: tuple[float, float] | None = (0, 1.0),
-        bounds: tuple[float, float] | None = None,
-        dtype: RdDataType = Float64,
-        use_numpy: bool = False,
-        genes: None = ...,
-        chromosomes: None = ...,
-    ) -> "Engine[float, VectorDecoding[float]]": ...
-
-    @overload
-    @staticmethod
-    def float(
-        shape: Sequence[int],
-        *,
-        init_range: tuple[float, float] | None = (0, 1.0),
-        bounds: tuple[float, float] | None = None,
-        dtype: RdDataType = Float64,
-        use_numpy: bool = False,
-        genes: None = ...,
-        chromosomes: None = ...,
-    ) -> "Engine[float, MatrixDecoding[float]]": ...
-
-    @overload
-    @staticmethod
-    def float(
-        *,
-        shape: None = ...,
-        init_range: tuple[float, float] | None = (0, 1.0),
-        bounds: tuple[float, float] | None = None,
-        dtype: RdDataType = Float64,
-        use_numpy: bool = False,
-        genes: Gene[float] | None = None,
-        chromosomes: None = ...,
-    ) -> "Engine[float, ScalarDecoding[float]]": ...
-
-    @overload
-    @staticmethod
-    def float(
-        *,
-        shape: None = ...,
-        init_range: tuple[float, float] | None = (0, 1.0),
-        bounds: tuple[float, float] | None = None,
-        dtype: RdDataType = Float64,
-        use_numpy: bool = False,
-        genes: Sequence[Gene[float]] | None = None,
-        chromosomes: None = ...,
-    ) -> "Engine[float, VectorDecoding[float]]": ...
-
-    @overload
-    @staticmethod
-    def float(
-        *,
-        shape: None = ...,
-        init_range: tuple[float, float] | None = (0, 1.0),
-        bounds: tuple[float, float] | None = None,
-        dtype: RdDataType = Float64,
-        use_numpy: bool = False,
-        genes: None = ...,
-        chromosomes: Chromosome[float] | None = None,
-    ) -> "Engine[float, VectorDecoding[float]]": ...
-
-    @overload
-    @staticmethod
-    def float(
-        *,
-        shape: None = ...,
-        init_range: tuple[float, float] | None = (0, 1.0),
-        bounds: tuple[float, float] | None = None,
-        dtype: RdDataType = Float64,
-        use_numpy: bool = False,
-        genes: None = ...,
-        chromosomes: Sequence[Chromosome[float]] | None = None,
-    ) -> "Engine[float, MatrixDecoding[float]]": ...
-
-    # --- End of Float Engine Overloads ---
-
     @staticmethod
     def float(
         shape: AtLeastOne[int] | None = None,
@@ -157,7 +60,7 @@ class Engine[G, T]:
         bounds: tuple[float, float] | None = None,
         dtype: RdDataType = Float64,
         use_numpy: bool = False,
-        genes: AtLeastOne[Gene[float]] | None = None,
+        genes: Gene[float] | Sequence[Gene[float]] | None = None,
         chromosomes: AtLeastOne[Chromosome[float]] | None = None,
     ) -> "Engine[float, Any]":
         """Create a genetic engine for optimizing floating-point values."""
@@ -168,6 +71,7 @@ class Engine[G, T]:
                 "Only one of shape, genes, or chromosomes may be provided."
             )
 
+        codec = None
         if genes is not None:
             codec = FloatCodec(
                 shape=None,
@@ -205,80 +109,61 @@ class Engine[G, T]:
 
         return Engine(codec=codec)
 
-    # --- Integer Engine Overloads ---
-    @overload
     @staticmethod
     def int(
-        *,
-        shape: int = 1,
-        init_range: tuple[int, int] | None = (0, 100),
-        bounds: tuple[int, int] | None = None,
-        dtype: RdDataType = Int64,
-        use_numpy: bool = False,
-    ) -> "Engine[int, ScalarDecoding[int]]": ...
-
-    @overload
-    @staticmethod
-    def int(
-        shape: int,
+        shape: AtLeastOne[int] | None = None,
         *,
         init_range: tuple[int, int] | None = (0, 100),
         bounds: tuple[int, int] | None = None,
         dtype: RdDataType = Int64,
         use_numpy: bool = False,
-    ) -> "Engine[int, VectorDecoding[int]]": ...
-
-    @overload
-    @staticmethod
-    def int(
-        shape: Sequence[int],
-        *,
-        init_range: tuple[int, int] | None = (0, 100),
-        bounds: tuple[int, int] | None = None,
-        dtype: RdDataType = Int64,
-        use_numpy: bool = False,
-    ) -> "Engine[int, MatrixDecoding[int]]": ...
-
-    # --- End of Integer Engine Overloads ---
-
-    @staticmethod
-    def int(
-        shape: AtLeastOne[int] = 1,
-        *,
-        init_range: tuple[int, int] | None = (0, 100),
-        bounds: tuple[int, int] | None = None,
-        dtype: RdDataType = Int64,
-        use_numpy: bool = False,
+        genes: AtLeastOne[Gene[int]] | None = None,
+        chromosomes: AtLeastOne[Chromosome[int]] | None = None,
     ) -> "Engine[int, Any]":
         """Create a genetic engine for optimizing integer values."""
-        return Engine(
-            codec=IntCodec(
-                shape,
+        provided = sum(x is not None for x in (shape, genes, chromosomes))
+        if provided > 1:
+            raise ValueError(
+                "Only one of shape, genes, or chromosomes may be provided."
+            )
+
+        codec = None
+        if genes is not None:
+            codec = IntCodec(
+                shape=None,
+                init_range=init_range,
+                bounds=bounds,
+                dtype=dtype,
+                use_numpy=use_numpy,
+                genes=genes,
+            )
+        elif chromosomes is not None:
+            codec = IntCodec(
+                shape=None,
+                init_range=init_range,
+                bounds=bounds,
+                dtype=dtype,
+                use_numpy=use_numpy,
+                chromosomes=chromosomes,
+            )
+        elif shape is not None:
+            codec = IntCodec(
+                shape=shape,
                 init_range=init_range,
                 bounds=bounds,
                 dtype=dtype,
                 use_numpy=use_numpy,
             )
-        )
+        else:
+            codec = IntCodec(
+                shape=None,
+                init_range=init_range,
+                bounds=bounds,
+                dtype=dtype,
+                use_numpy=use_numpy,
+            )
 
-    # --- Character Engine Overloads ---
-    @overload
-    @staticmethod
-    def char(
-        shape: int,
-        *,
-        char_set: str | list[str] | set[str] | None = None,
-    ) -> "Engine[str, list[str]]": ...
-
-    @overload
-    @staticmethod
-    def char(
-        shape: Sequence[int],
-        *,
-        char_set: str | list[str] | set[str] | None = None,
-    ) -> "Engine[str, list[list[str]]]": ...
-
-    # --- End of Character Engine Overloads ---
+        return Engine(codec=codec)
 
     @staticmethod
     def char(
@@ -287,21 +172,6 @@ class Engine[G, T]:
     ) -> "Engine[str, Any]":
         """Create a genetic engine for optimizing character values."""
         return Engine(codec=CharCodec(shape, char_set=char_set))
-
-    # --- Bit Engine Overloads ---
-    @overload
-    @staticmethod
-    def bit(
-        shape: int,
-        use_numpy: bool = False,
-    ) -> "Engine[bool, VectorDecoding[bool]]": ...
-
-    @overload
-    @staticmethod
-    def bit(
-        shape: Sequence[int],
-        use_numpy: bool = False,
-    ) -> "Engine[bool, MatrixDecoding[bool]]": ...
 
     # --- End of Bit Engine Overloads ---
 
@@ -837,11 +707,11 @@ class Engine[G, T]:
         ---------
         >>> import radiate as rd
         >>> ...
-        >>> codec = rd.FloatCodec.vector(5, init_range=(-5.12, 5.12))
+        >>> codec = rd.FloatCodec(shape=5, init_range=(-5.12, 5.12))
         >>> population = rd.Population(rd.Phenotype(codec.encode()) for _ in range(107))
         >>> ...
         >>> engine = (
-        ...     rd.Engine.float(5, init_range=(-5.12, 5.12))
+        ...     rd.Engine.float(shape=5, init_range=(-5.12, 5.12))
         ...     .fitness(fitness_fn)
         ...     .minimizing()
         ...     .population(population)

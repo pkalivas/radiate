@@ -6,7 +6,7 @@ from radiate import IntCodec, Int16, Int32
 @pytest.mark.unit
 def test_int_codec_vector_creation():
     """Test creating an integer codec for vectors."""
-    codec = IntCodec.vector(length=5, init_range=(0, 10))
+    codec = IntCodec(shape=5, init_range=(0, 10))
     genotype = codec.encode()
 
     assert len(genotype) == 1
@@ -46,7 +46,7 @@ def test_int_codec_matrix_creation():
 @pytest.mark.unit
 def test_int_codec_decode():
     """Test decoding integer genotypes."""
-    codec = IntCodec.vector(length=3, init_range=(0, 5))
+    codec = IntCodec(shape=3, init_range=(0, 5))
     genotype = codec.encode()
     decoded = codec.decode(genotype)
 
@@ -95,7 +95,7 @@ def test_int_codec_with_numpy():
 @pytest.mark.unit
 def test_int_codec_bounds():
     """Test integer codec respects bounds."""
-    codec = IntCodec.vector(length=10, init_range=(-5, 5))
+    codec = IntCodec(shape=10, init_range=(-5, 5))
     genotype = codec.encode()
 
     for gene in genotype[0]:
@@ -113,11 +113,11 @@ def test_int_codec_bounds():
 def test_int_codec_invalid_bounds():
     """Test integer codec handles invalid bounds."""
     with pytest.raises(ValueError):
-        IntCodec.vector(length=5, init_range=(10, 5))  # min > max
+        IntCodec(shape=5, init_range=(10, 5))  # min > max
 
 
 @pytest.mark.unit
 def test_zero_length_codec():
     """Test codecs handle zero length gracefully."""
     with pytest.raises(ValueError):
-        IntCodec.vector(length=0, init_range=(0, 10))
+        IntCodec(shape=0, init_range=(0, 10))

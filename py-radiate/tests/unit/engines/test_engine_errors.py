@@ -11,7 +11,7 @@ def test_engine_empty_population():
 
     with pytest.raises(ValueError):
         engine = rd.Engine(
-            codec=rd.IntCodec.vector(length=3, init_range=(0, 10)),
+            codec=rd.IntCodec(shape=3, init_range=(0, 10)),
             fitness_func=fitness_func,
             objective=rd.MIN,
             population_size=0,  # Invalid
@@ -27,7 +27,7 @@ def test_engine_invalid_limits():
         return sum(x)
 
     engine = rd.Engine(
-        codec=rd.IntCodec.vector(length=3, init_range=(0, 10)),
+        codec=rd.IntCodec(shape=3, init_range=(0, 10)),
         fitness_func=fitness_func,
         objective=rd.MIN,
     )

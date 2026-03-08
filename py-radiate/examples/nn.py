@@ -111,10 +111,10 @@ class PyTorchNeuralNetwork:
             Output tensor of shape (batch_size, output_size)
         """
         # Hidden layer with ReLU activation
-        hidden = F.relu(torch.mm(x, self.weights_1) + self.biases_1)
+        hidden = F.relu(torch.mm(x, self.weights_1) + self.biases_1)  # type: ignore
 
         # Output layer (linear)
-        output = torch.mm(hidden, self.weights_2) + self.biases_2
+        output = torch.mm(hidden, self.weights_2) + self.biases_2  # type: ignore
 
         return output
 
@@ -162,23 +162,21 @@ class NeuralNetworkEvolver:
             mse = F.mse_loss(predictions, self.y)
             return mse.item()
 
-        engine = rd.Engine(
-            codec=rd.FloatCodec.vector(
-                length=self.network.total_params,
+        return (
+            rd.Engine.float(
+                shape=self.network.total_params,
                 init_range=(-2.0, 2.0),
                 bounds=(-5.0, 5.0),
                 use_numpy=True,
-            ),
-            fitness_func=fitness_function,
-            objective=rd.MIN,
-            survivor_selector=rd.BoltzmannSelector(temp=2.3),
-            alters=[
+            )
+            .fitness(fitness_function)
+            .minimizing()
+            .select(survivor=rd.BoltzmannSelector(temp=3))
+            .alters(
                 rd.BlendCrossover(0.7, 0.5),
-                rd.IntermediateCrossover(0.6, 0.5),
-            ],
+                rd.GaussianMutator(0.05),
+            )
         )
-
-        return engine
 
     def run_evolution(self, max_generations: int = 500, target_error: float = 0.01):
         """Run the neural network weight evolution"""
@@ -203,7 +201,7 @@ class NeuralNetworkEvolver:
 
         return result
 
-    def evaluate_best_network(self, best_weights: list[float]):
+    def evaluate_best_network(self, best_weights: np.ndarray) -> PyTorchNeuralNetwork:
         """Evaluate and display the best evolved network"""
 
         print("\n" + "=" * 50)
@@ -245,19 +243,19 @@ class NeuralNetworkEvolver:
         print("=" * 30)
 
         print("Input to Hidden Weights:")
-        print(network.weights_1.numpy())
+        print(network.weights_1.numpy())  # type: ignore
         print()
 
         print("Hidden Biases:")
-        print(network.biases_1.numpy())
+        print(network.biases_1.numpy())  # type: ignore
         print()
 
         print("Hidden to Output Weights:")
-        print(network.weights_2.numpy())
+        print(network.weights_2.numpy())  # type: ignore
         print()
 
         print("Output Biases:")
-        print(network.biases_2.numpy())
+        print(network.biases_2.numpy())  # type: ignore
         print()
 
 
@@ -268,7 +266,7 @@ def main():
     evolver = NeuralNetworkEvolver(input_size=2, hidden_size=4, output_size=1)
 
     # Run evolution
-    result = evolver.run_evolution(max_generations=300, target_error=0.01)
+    result = evolver.run_evolution(max_generations=400, target_error=0.01)
 
     # Get the best individual (weight vector)
     best_weights = result.value()

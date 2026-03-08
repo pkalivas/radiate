@@ -69,6 +69,10 @@ impl PyGraph {
         }
     }
 
+    pub fn copy(&self) -> Self {
+        self.clone()
+    }
+
     pub fn __repr__(&self) -> String {
         let mut result = String::new();
         result.push_str("Graph(\n");

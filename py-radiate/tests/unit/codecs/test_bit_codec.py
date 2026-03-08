@@ -5,7 +5,7 @@ from radiate import BitCodec
 @pytest.mark.unit
 def test_bit_codec_vector_creation():
     """Test creating a bit codec for vectors."""
-    codec = BitCodec.vector(8)
+    codec = BitCodec(8)
     genotype = codec.encode()
 
     assert len(genotype) == 1
@@ -52,7 +52,7 @@ def test_bit_codec_matrix_creation():
 @pytest.mark.unit
 def test_bit_codec_decode():
     """Test decoding bit genotypes."""
-    codec = BitCodec.vector(5)
+    codec = BitCodec(5)
     genotype = codec.encode()
     decoded = codec.decode(genotype)
 

@@ -46,7 +46,7 @@ Simple fitness functions are the most common type - they take a phenotype and re
             value += x[i]**2 - A * math.cos((2.0 * 3.141592653589793 * x[i]))
         return value
 
-    codec = rd.FloatCodec.vector(N_GENES, init_range=(-RANGE, RANGE))
+    codec = rd.FloatCodec(N_GENES, init_range=(-RANGE, RANGE))
     engine = rd.Engine(codec).fitness(fitness_fn).minimizing()
     ```
 
@@ -119,7 +119,7 @@ Its important to note that other types of fitness functions like `NoveltySearch`
             results.append(value)
         return results
 
-    codec = rd.FloatCodec.vector(N_GENES, init_range=(-RANGE, RANGE))
+    codec = rd.FloatCodec(N_GENES, init_range=(-RANGE, RANGE))
 
     # Create the genetic engine with batch fitness function.
     # Just wrap your fitness function in 'rd.BatchFitness'
@@ -150,7 +150,7 @@ Its important to note that other types of fitness functions like `NoveltySearch`
             results.append(value)
         return results
 
-    codec = rd.FloatCodec.vector(N_GENES, init_range=(-RANGE, RANGE))
+    codec = rd.FloatCodec(N_GENES, init_range=(-RANGE, RANGE))
 
     # Create the genetic engine with batch fitness function.
     # NOTE: We no longer need to wrap 'fitness_fn' in 'rd.BatchFitness'

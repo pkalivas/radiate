@@ -151,31 +151,3 @@ def test_engine_graph_recurrent_class_acc(memory_dataset, random_seed):
     assert acc.sample_count() == len(inputs)
     assert acc.recall() is not None and acc.recall() > 0.99  # type: ignore
     assert acc.loss() is not None and acc.loss() < 0.01  # type: ignore
-
-
-@pytest.mark.integration
-def test_graph_engine_with_fluent_builder(random_seed, xor_dataset):
-    """Test graph engine with fluent builder."""
-    inputs, outputs = xor_dataset
-
-    engine = (
-        rd.Engine.graph(
-            shape=(2, 1),
-            vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.linear()],
-            edge=rd.Op.weight(),
-            output=rd.Op.linear(),
-            graph_type="directed",
-        )
-        .regression(inputs, outputs)
-        .alters(
-            rd.GraphCrossover(0.5, 0.5),
-            rd.OperationMutator(0.07, 0.05),
-            rd.GraphMutator(0.1, 0.1),
-        )
-    )
-
-    result = engine.run(rd.ScoreLimit(0.1), rd.GenerationsLimit(1000))
-
-    assert result.score()[0] < 0.1
-    assert result.index() <= 1000
-    assert isinstance(result.value(), rd.Graph)

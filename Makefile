@@ -43,6 +43,10 @@ wheel: .venv  ## Build a wheel for Python radiate
 test-py:  ## Run Python unittests
 	@$(MAKE) -s -C py-radiate test
 
+.PHONY: py-cov
+py-cov:  ## Run Python tests with coverage report
+	@$(MAKE) -s -C py-radiate coverage
+
 .PHONY: test-rs
 test-rs:  ## Run Rust unittests
 	@cargo test --all-features

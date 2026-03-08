@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Sequence, overload, Any
+from typing import Sequence, overload, Any, Literal, TYPE_CHECKING
 
 from .base import CodecBase
 
@@ -10,10 +10,11 @@ from radiate.dtype import DataType, DataTypeClass, Float64
 from radiate._bridge.wrapper import RsObject
 from radiate._typing import (
     AtLeastOne,
-    ScalarDecoding,
-    VectorDecoding,
     MatrixDecoding,
 )
+
+if TYPE_CHECKING:
+    from radiate._dependancies import numpy as np
 
 
 class FloatCodec[D](CodecBase[float, D], RsObject):
@@ -30,7 +31,20 @@ class FloatCodec[D](CodecBase[float, D], RsObject):
         chromosomes: None = ...,
         use_numpy: bool = ...,
         dtype: DataTypeClass | DataType | None = ...,
-    ) -> "FloatCodec[ScalarDecoding[float]]": ...
+    ) -> "FloatCodec[float]": ...
+
+    @overload
+    def __new__(
+        cls,
+        *,
+        shape: None = ...,
+        init_range: tuple[float, float] | None = None,
+        bounds: tuple[float, float] | None = None,
+        genes: Gene[float] = ...,
+        chromosomes: None = ...,
+        use_numpy: bool = ...,
+        dtype: DataTypeClass | DataType | None = ...,
+    ) -> "FloatCodec[float]": ...
 
     @overload
     def __new__(
@@ -41,9 +55,74 @@ class FloatCodec[D](CodecBase[float, D], RsObject):
         bounds: tuple[float, float] | None = None,
         genes: None = ...,
         chromosomes: None = ...,
-        use_numpy: bool = ...,
+        use_numpy: Literal[False] = False,
         dtype: DataTypeClass | DataType | None = ...,
-    ) -> "FloatCodec[VectorDecoding[float]]": ...
+    ) -> "FloatCodec[list[float]]": ...
+
+    @overload
+    def __new__(
+        cls,
+        *,
+        shape: None = ...,
+        init_range: tuple[float, float] | None = None,
+        bounds: tuple[float, float] | None = None,
+        genes: Sequence[Gene[float]] = ...,
+        chromosomes: None = ...,
+        use_numpy: Literal[False] = False,
+        dtype: DataTypeClass | DataType | None = ...,
+    ) -> "FloatCodec[list[float]]": ...
+
+    @overload
+    def __new__(
+        cls,
+        *,
+        shape: None = ...,
+        init_range: tuple[float, float] | None = None,
+        bounds: tuple[float, float] | None = None,
+        genes: Sequence[Gene[float]] = ...,
+        chromosomes: None = ...,
+        use_numpy: Literal[True] = True,
+        dtype: DataTypeClass | DataType | None = ...,
+    ) -> "FloatCodec[np.ndarray]": ...
+
+    @overload
+    def __new__(
+        cls,
+        *,
+        shape: None = ...,
+        init_range: tuple[float, float] | None = None,
+        bounds: tuple[float, float] | None = None,
+        genes: None = ...,
+        chromosomes: Chromosome[float] = ...,
+        use_numpy: Literal[True] = True,
+        dtype: DataTypeClass | DataType | None = ...,
+    ) -> "FloatCodec[np.ndarray]": ...
+
+    @overload
+    def __new__(
+        cls,
+        *,
+        shape: None = ...,
+        init_range: tuple[float, float] | None = None,
+        bounds: tuple[float, float] | None = None,
+        genes: None = ...,
+        chromosomes: Chromosome[float] = ...,
+        use_numpy: Literal[False] = False,
+        dtype: DataTypeClass | DataType | None = ...,
+    ) -> "FloatCodec[list[float]]": ...
+
+    @overload
+    def __new__(
+        cls,
+        shape: int,
+        *,
+        init_range: tuple[float, float] | None = None,
+        bounds: tuple[float, float] | None = None,
+        genes: None = ...,
+        chromosomes: None = ...,
+        use_numpy: Literal[True] = True,
+        dtype: DataTypeClass | DataType | None = ...,
+    ) -> "FloatCodec[np.ndarray]": ...
 
     @overload
     def __new__(
@@ -57,19 +136,6 @@ class FloatCodec[D](CodecBase[float, D], RsObject):
         use_numpy: bool = ...,
         dtype: DataTypeClass | DataType | None = ...,
     ) -> "FloatCodec[MatrixDecoding[float]]": ...
-
-    @overload
-    def __new__(
-        cls,
-        *,
-        shape: None = ...,
-        init_range: tuple[float, float] | None = None,
-        bounds: tuple[float, float] | None = None,
-        genes: Gene[float] | Sequence[Gene[float]],
-        chromosomes: None = ...,
-        use_numpy: bool = ...,
-        dtype: DataTypeClass | DataType | None = ...,
-    ) -> "FloatCodec[VectorDecoding[float]]": ...
 
     @overload
     def __new__(
@@ -160,37 +226,6 @@ class FloatCodec[D](CodecBase[float, D], RsObject):
             raise TypeError("genotype must be an instance of Genotype.")
         return self.__backend__().decode_py(genotype=genotype.__backend__())
 
-    # @staticmethod
-    # def from_genes(
-    #     genes: Gene[float] | Sequence[Gene[float]] | None = None,
-    #     use_numpy: bool = False,
-    # ) -> FloatCodec[ScalarDecoding[float]] | FloatCodec[VectorDecoding[float]]:
-    #     """
-    #     Create a codec for a single chromosome with specified genes.
-    #     Args:
-    #         genes: A list or tuple of Gene instances.
-    #     Returns:
-    #         A new FloatCodec instance with the specified genes.
-    #     """
-    #     return FloatCodec(
-    #         genes=genes,
-    #         use_numpy=use_numpy,
-    #     )
-
-    # @staticmethod
-    # def from_chromosomes(
-    #     chromosomes: list[Chromosome[float]] | tuple[Chromosome[float], ...],
-    #     use_numpy: bool = False,
-    # ) -> FloatCodec[MatrixDecoding[float]] | FloatCodec[VectorDecoding[float]]:
-    #     """
-    #     Create a codec for multiple chromosomes.
-    #     Args:
-    #         chromosomes: A list or tuple of Chromosome instances.
-    #     Returns:
-    #         A new FloatCodec instance with the specified chromosomes.
-    #     """
-    #     return FloatCodec(chromosomes=chromosomes, use_numpy=use_numpy)
-
     @staticmethod
     def matrix(
         shape: tuple[int, int] | list[int],
@@ -228,44 +263,44 @@ class FloatCodec[D](CodecBase[float, D], RsObject):
             dtype=dtype,
         )
 
-    @staticmethod
-    def vector(
-        length: int,
-        init_range: tuple[float, float] | None = None,
-        bounds: tuple[float, float] | None = None,
-        use_numpy: bool = False,
-        dtype: DataTypeClass | DataType | None = None,
-    ) -> FloatCodec[VectorDecoding[float]]:
-        """
-        Create a vector codec with specified length.
-        Args:
-            length: Length of the vector.
-            init_range: Minimum and maximum value for the Gene's Allele to be init with.
-            bounds: Minimum and maximum values the allele is allowed to be within during evolution.
-            use_numpy: Whether or not to decode the Genotype into a numpy array.
-        Returns:
-            A new FloatCodec instance with vector configuration.
+    # @staticmethod
+    # def vector(
+    #     length: int,
+    #     init_range: tuple[float, float] | None = None,
+    #     bounds: tuple[float, float] | None = None,
+    #     use_numpy: bool = False,
+    #     dtype: DataTypeClass | DataType | None = None,
+    # ) -> FloatCodec[VectorDecoding[float]]:
+    #     """
+    #     Create a vector codec with specified length.
+    #     Args:
+    #         length: Length of the vector.
+    #         init_range: Minimum and maximum value for the Gene's Allele to be init with.
+    #         bounds: Minimum and maximum values the allele is allowed to be within during evolution.
+    #         use_numpy: Whether or not to decode the Genotype into a numpy array.
+    #     Returns:
+    #         A new FloatCodec instance with vector configuration.
 
-        Example
-        --------
-        Create a FloatCodec that will encode a Genotype with a single Chromosome containing 5 FloatGenes
-        >>> rd.FloatCodec.vector(length=5, init_range=(0.0, 1.0), bounds=(-1.0, 2.0), use_numpy=False)
-        FloatCodec(...)
-        """
-        return FloatCodec(
-            shape=length,
-            init_range=init_range,
-            bounds=bounds,
-            use_numpy=use_numpy,
-            dtype=dtype,
-        )
+    #     Example
+    #     --------
+    #     Create a FloatCodec that will encode a Genotype with a single Chromosome containing 5 FloatGenes
+    #     >>> rd.FloatCodec.vector(length=5, init_range=(0.0, 1.0), bounds=(-1.0, 2.0), use_numpy=False)
+    #     FloatCodec(...)
+    #     """
+    #     return FloatCodec(
+    #         shape=length,
+    #         init_range=init_range,
+    #         bounds=bounds,
+    #         use_numpy=use_numpy,
+    #         dtype=dtype,
+    #     )
 
     @staticmethod
     def scalar(
         init_range: tuple[float, float] | None = None,
         bounds: tuple[float, float] | None = None,
         dtype: DataTypeClass | DataType | None = None,
-    ) -> FloatCodec[ScalarDecoding[float]]:
+    ) -> FloatCodec[float]:
         """
         Create a scalar codec.
         Args:

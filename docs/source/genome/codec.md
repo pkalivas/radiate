@@ -70,9 +70,7 @@ Radiate provides several codec types out of the box that should be able to cover
         codec = rd.FloatCodec.scalar(init_range=(0.0, 1.0), bounds=(-10.0, 10.0))
 
         # vector codec that decodes to a np.ndarray
-        codec = rd.FloatCodec(shape=5, init_range=(-1.0, 1.0), bounds=(-10.0, 10.0), use_numpy=True)  
-        # -- or --
-        codec = rd.FloatCodec.vector(length=5, init_range=(-1.0, 1.0), bounds=(-10.0, 10.0))
+        codec = rd.FloatCodec(shape=5, init_range=(-1.0, 1.0), bounds=(-10.0, 10.0), use_numpy=True)
 
         # For a matrix of parameters (like neural network weights)
         codec = rd.FloatCodec.matrix(shape=(3, 2), init_range=(-0.1, 0.1), bounds=(-1.0, 1.0), use_numpy=True)
@@ -232,7 +230,7 @@ Radiate provides several codec types out of the box that should be able to cover
         import radiate as rd
 
         # For a list of parameters
-        codec = rd.BitCodec.vector(5)
+        codec = rd.BitCodec(5)
 
         # For a matrix of bools
         codec = rd.BitCodec.matrix(shape=(3, 2))
