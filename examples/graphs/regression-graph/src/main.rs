@@ -14,7 +14,7 @@ fn main() {
 
     let engine = GeneticEngine::builder()
         .codec(GraphCodec::directed(1, 1, store))
-        .raw_fitness_fn(Regression::new(dataset(), Loss::MSE))
+        .raw_batch_fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
@@ -23,11 +23,7 @@ fn main() {
         ))
         .build();
 
-    radiate::ui(engine)
-        .iter()
-        .until_score(MIN_SCORE)
-        .last()
-        .inspect(display);
+    engine.iter().until_score(MIN_SCORE).last().inspect(display);
 }
 
 fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {

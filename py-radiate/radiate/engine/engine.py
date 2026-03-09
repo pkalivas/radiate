@@ -14,7 +14,7 @@ from radiate.codec import (
 )
 
 from radiate.operators import SelectorBase, AlterBase, DistanceBase, Executor, LimitBase
-from radiate.fitness import FitnessBase, Regression
+from radiate.fitness import FitnessBase, Regression, MSE
 from radiate.genome import Population, GeneType, Gene, Chromosome
 from radiate.gp import Graph, Tree, Op
 from radiate.dtype import Float64, Int64
@@ -25,6 +25,7 @@ from radiate._typing import (
     AtLeastOne,
     Subscriber,
     RdDataType,
+    RdLossType,
 )
 
 from .builder import EngineBuilder
@@ -41,7 +42,7 @@ class Engine[G, T]:
 
     def __init__(
         self,
-        codec: CodecBase,
+        codec: CodecBase[G, T],
         **kwargs: Any,
     ):
         if not isinstance(codec, CodecBase) or codec is None:
@@ -356,7 +357,7 @@ class Engine[G, T]:
         *,
         target_cols: str | list[str] | None = None,
         feature_cols: list[str] | None = None,
-        loss: str = "mse",
+        loss: RdLossType = MSE,
         batch: bool = False,
     ) -> Engine[G, T]:
         """
@@ -367,10 +368,10 @@ class Engine[G, T]:
         Using this method will automatically set the engine's objective to minimization, as regression problems typically involve minimizing a loss function.
 
         The loss parameter accepts four common loss functions for regression:
-        - **mse**: Mean Squared Error
-        - **mae**: Mean Absolute Error
-        - **cross_entropy**: Cross-Entropy Loss (for classification problems, but can be used in regression with appropriate encoding)
-        - **diff**: A simple difference loss that calculates the absolute difference between predicted and target values.
+        - **MSE**: Mean Squared Error
+        - **MAE**: Mean Absolute Error
+        - **XEnt**: Cross-Entropy Loss (for classification problems, but can be used in regression with appropriate encoding)
+        - **Diff**: A simple difference loss that calculates the absolute difference between predicted and target values.
 
         Accepts:
         - (features, targets)
@@ -382,7 +383,7 @@ class Engine[G, T]:
             *,
             target_cols: The name(s) of the target column(s) if features is a DataFrame.
             feature_cols: The names of the feature columns if features is a DataFrame.
-            loss: The loss function to use for regression (e.g., "mse", "mae").
+            loss: The loss function to use for regression (e.g., MSE, MAE, Cross-Entropy, Diff). Defaults to MSE.
             batch: Whether to compute fitness in batches (useful for large datasets).
 
         Returns:
@@ -404,7 +405,7 @@ class Engine[G, T]:
         ...         edge=rd.Op.weight(),
         ...         output=rd.Op.linear(),
         ...     )
-        ...     .regression(features, targets, loss="mse") # <- we directly pass our features/targets to the regression method. The engine is now also configured to minimize the mean squared error between the graph's output and our targets.
+        ...     .regression(features, targets, loss=rd.MSE) # <- we directly pass our features/targets to the regression method. The engine is now also configured to minimize the mean squared error between the graph's output and our targets.
         ...     .alters(
         ...         rd.Cross.graph(0.05, 0.5),
         ...         rd.Mutate.op(0.07, 0.05),
@@ -423,7 +424,7 @@ class Engine[G, T]:
         ...     "feature2": [4.0, 5.0, 6.0],
         ...     "target": [7.0, 8.0, 9.0]
         ... })
-        >>> base_engine.regression(df, target_cols="target", feature_cols=["feature1", "feature2"], loss="mae")
+        >>> base_engine.regression(df, target_cols="target", feature_cols=["feature1", "feature2"], loss=rd.MAE)
         """
         self._builder.set_fitness(
             Regression(

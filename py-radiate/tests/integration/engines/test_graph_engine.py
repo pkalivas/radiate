@@ -58,9 +58,9 @@ def test_engine_graph_regression_with_speciation(
         )
     )
 
-    result = engine.run(
-        rd.Limit.score(0.1), rd.Limit.generations(500)
-    )  # Testing in multithreaded mode can lead to slightly different results so we
+    result = engine.run(rd.Limit.score(0.1), rd.Limit.generations(500))
+
+    # Testing in multithreaded mode can lead to slightly different results so we
     # relax the assertion a bit by allowing a few # of species
     assert len(result.species()) in [2, 3, 4], "Should maintain multiple species"
     assert result.index() <= 500
@@ -79,19 +79,19 @@ def test_engine_graph_with_recurrent_connections(memory_dataset, random_seed):
         output=rd.Op.sigmoid(),
     )
 
-    engine = rd.Engine(
-        codec=codec,
-        fitness_func=rd.Regression(inputs, outputs),
-        objective=rd.MIN,
-        population_size=250,
-        alters=[
+    engine = (
+        rd.Engine(codec)
+        .size(250)
+        .regression(inputs, outputs)
+        .limit(rd.Limit.score(0.01), rd.Limit.generations(500))
+        .alters(
             rd.Cross.graph(0.5, 0.5),
             rd.Mutate.op(0.1, 0.05),
             rd.Mutate.graph(0.05, 0.05),
-        ],
+        )
     )
 
-    result = engine.run(rd.Limit.score(0.001), rd.Limit.generations(500))
+    result = engine.run()
 
     assert result.score()[0] < 0.001
     assert result.index() <= 500
@@ -132,7 +132,7 @@ def test_engine_graph_recurrent_class_acc(memory_dataset, random_seed):
 
     engine = (
         rd.Engine(codec)
-        .regression(inputs, outputs, loss="cross_entropy")
+        .regression(inputs, outputs, loss=rd.XEnt)
         .alters(
             rd.Cross.graph(0.5, 0.5),
             rd.Mutate.op(0.1, 0.05),
@@ -146,8 +146,9 @@ def test_engine_graph_recurrent_class_acc(memory_dataset, random_seed):
     assert result.index() <= 500
     assert isinstance(result.value(), rd.Graph)
 
-    acc = rd.accuracy(result.value(), inputs, outputs, loss="cross_entropy")
+    acc = rd.accuracy(result.value(), inputs, outputs, loss=rd.XEnt)
 
     assert acc.sample_count() == len(inputs)
     assert acc.recall() is not None and acc.recall() > 0.99  # type: ignore
     assert acc.loss() is not None and acc.loss() < 0.01  # type: ignore
+    assert acc.loss_fn() == rd.XEnt

@@ -69,7 +69,7 @@ engine = (
         edge=rd.Op.weight(),
         output=rd.Op.linear(),
     )
-    .regression(inputs, answers, loss="mse")
+    .regression(inputs, answers, loss=rd.MSE, batch=True)
     .subscribe(ScorePlotterHandler())
     .alters(
         rd.Cross.graph(0.05, 0.5),
@@ -82,7 +82,7 @@ engine = (
 result = engine.run(log=True)
 
 eval_results = result.value().eval(inputs)
-accuracy = rd.accuracy(result.value(), inputs, answers, loss="mse")
+accuracy = rd.accuracy(result.value(), inputs, answers, loss=rd.MSE)
 
 print(result)
 print(result.metrics().dashboard())

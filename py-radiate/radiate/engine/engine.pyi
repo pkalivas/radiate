@@ -4,16 +4,12 @@ from typing import Any, Literal, Sequence, overload, Self, TYPE_CHECKING
 from collections.abc import Callable
 
 from radiate.codec.base import CodecBase
-from radiate.fitness import FitnessBase
+from radiate.fitness import FitnessBase, MSE
 from radiate.genome import Population, Gene, Chromosome
 from radiate.gp import Graph, Tree, Op
 from radiate.operators import SelectorBase, AlterBase, DistanceBase, LimitBase
 
-from radiate._typing import (
-    AtLeastOne,
-    Subscriber,
-    RdDataType,
-)
+from radiate._typing import AtLeastOne, Subscriber, RdDataType, RdLossType
 
 from .generation import Generation
 from .option import EngineCheckpoint, EngineLog, EngineUi
@@ -22,7 +18,7 @@ if TYPE_CHECKING:
     from radiate._dependancies import numpy as np
 
 class Engine[G, T]:
-    def __init__(self, codec: CodecBase, **kwargs: Any) -> None: ...
+    def __init__(self, codec: CodecBase[G, T], **kwargs: Any) -> None: ...
 
     # ----------------------------
     # Float engine constructors
@@ -466,7 +462,7 @@ class Engine[G, T]:
         *,
         target_cols: str | list[str] | None = None,
         feature_cols: list[str] | None = None,
-        loss: str = "mse",
+        loss: RdLossType | None = MSE,
         batch: bool = False,
     ) -> Self: ...
     def select(

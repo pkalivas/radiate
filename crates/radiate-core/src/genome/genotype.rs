@@ -1,7 +1,10 @@
 use crate::{Chromosome, Valid};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use std::ops::{Index, IndexMut};
+use std::{
+    hash::Hash,
+    ops::{Index, IndexMut},
+};
 
 /// The [Genotype] struct represents the genetic makeup of an individual. It is a collection of [Chromosome] instances, it is
 /// essentially a light wrapper around a Vec of [Chromosome]s. The [Genotype] struct, however, has some additional functionality
@@ -84,6 +87,14 @@ impl<C: Chromosome> Index<usize> for Genotype<C> {
 impl<C: Chromosome> IndexMut<usize> for Genotype<C> {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         &mut self.chromosomes[index]
+    }
+}
+
+impl<C: Chromosome + Hash> Hash for Genotype<C> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        for chromosome in self.chromosomes.iter() {
+            chromosome.hash(state);
+        }
     }
 }
 

@@ -2,7 +2,7 @@ use crate::{NodeStore, TreeNode};
 use radiate_core::{Chromosome, Valid};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std::{fmt::Debug, sync::Arc};
+use std::{fmt::Debug, hash::Hash, sync::Arc};
 
 type Constraint<N> = Arc<dyn Fn(&N) -> bool>;
 
@@ -115,6 +115,14 @@ impl<T> IntoIterator for TreeChromosome<T> {
 
     fn into_iter(self) -> Self::IntoIter {
         self.nodes.into_iter()
+    }
+}
+
+impl<T: Hash> Hash for TreeChromosome<T> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        for node in self.as_ref() {
+            node.hash(state);
+        }
     }
 }
 

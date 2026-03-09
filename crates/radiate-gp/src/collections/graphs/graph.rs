@@ -7,6 +7,7 @@ use radiate_core::Valid;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::fmt::Debug;
+use std::hash::Hash;
 use std::ops::{Index, IndexMut};
 
 /// A graph structure that represents a collection of interconnected nodes.
@@ -402,6 +403,14 @@ impl<T> FromIterator<GraphNode<T>> for Graph<T> {
 impl<T> Default for Graph<T> {
     fn default() -> Self {
         Graph { nodes: Vec::new() }
+    }
+}
+
+impl<T: Hash> Hash for Graph<T> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        for node in self.as_ref() {
+            node.hash(state);
+        }
     }
 }
 

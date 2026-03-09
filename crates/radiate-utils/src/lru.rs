@@ -194,6 +194,10 @@ impl<K: Hash + Eq, V, S: BuildHasher> LruCache<K, V, S> {
             }
         }
     }
+
+    pub fn len(&self) -> usize {
+        self.elements.len()
+    }
 }
 
 #[cfg(test)]
@@ -223,5 +227,19 @@ mod tests {
         assert_eq!(lru.pop_lru(), Some((1, "one"))); // Evicts key 1
         assert_eq!(lru.get(&1), None); // Key 1 should be gone
         assert_eq!(lru.get(&2), Some(&"two")); // Key 2 should still be present
+    }
+
+    #[test]
+    fn test_update_refreshes_recency() {
+        let mut lru: LruCache<u32, &str> = LruCache::with_capacity(2);
+
+        lru.insert(1, "one");
+        lru.insert(2, "two");
+        lru.insert(1, "uno"); // 1 becomes MRU
+        lru.insert(3, "three");
+
+        assert_eq!(lru.get(&1), Some(&"uno"));
+        assert_eq!(lru.get(&2), None);
+        assert_eq!(lru.get(&3), Some(&"three"));
     }
 }

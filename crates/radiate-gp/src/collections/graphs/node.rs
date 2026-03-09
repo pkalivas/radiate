@@ -484,6 +484,28 @@ impl<T: Default> Default for GraphNode<T> {
     }
 }
 
+impl<T: Hash> Hash for GraphNode<T> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+        self.index.hash(state);
+        self.direction.hash(state);
+        self.node_type.hash(state);
+        self.arity.hash(state);
+        self.incoming.hash(state);
+        self.outgoing.hash(state);
+        self.value.hash(state);
+    }
+
+    fn hash_slice<H: std::hash::Hasher>(data: &[Self], state: &mut H)
+    where
+        Self: Sized,
+    {
+        for item in data {
+            item.hash(state);
+        }
+    }
+}
+
 impl<T: Debug> Debug for GraphNode<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let incoming = self

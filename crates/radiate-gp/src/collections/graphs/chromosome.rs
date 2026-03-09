@@ -2,7 +2,7 @@ use crate::{Factory, GraphNode, NodeStore, node::Node};
 use radiate_core::{Chromosome, Gene, Valid};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use std::fmt::Debug;
+use std::{fmt::Debug, hash::Hash};
 
 /// A chromosome type that represents a directed graph structure for genetic programming.
 /// This chromosome is essentially just a graph, the only difference is the name of the struct.
@@ -174,6 +174,14 @@ impl<T> AsMut<[GraphNode<T>]> for GraphChromosome<T> {
 impl<T: PartialEq> PartialEq for GraphChromosome<T> {
     fn eq(&self, other: &Self) -> bool {
         self.nodes == other.nodes
+    }
+}
+
+impl<T: Hash> Hash for GraphChromosome<T> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        for node in self.as_ref() {
+            node.hash(state);
+        }
     }
 }
 

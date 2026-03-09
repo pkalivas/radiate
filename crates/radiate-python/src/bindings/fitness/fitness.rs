@@ -51,10 +51,10 @@ impl PyFitnessFn {
         loss: String,
         is_batch: bool,
     ) -> Self {
-        let loss = match loss.as_str() {
+        let loss = match loss.to_lowercase().as_str() {
             crate::names::MSE_LOSS => Loss::MSE,
             crate::names::MAE_LOSS => Loss::MAE,
-            crate::names::CROSS_ENTROPY_LOSS => Loss::CrossEntropy,
+            crate::names::CROSS_ENTROPY_LOSS => Loss::XEnt,
             crate::names::DIFF_LOSS => Loss::Diff,
             _ => panic!("Unsupported loss function: {}", loss),
         };

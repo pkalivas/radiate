@@ -31,7 +31,7 @@ def test_engine_regression_polars_df_target_and_feature_cols_smoke(graph_1x1_eng
     df = pl.DataFrame({"dd": inputs, "x": answers, "other": [0.42222] * len(inputs)})
 
     engine = graph_1x1_engine.regression(
-        df, target="x", feature_cols=["dd"], loss="mse"
+        df, target_cols="x", feature_cols=["dd"], loss=rd.MSE
     )
 
     res = next(engine)
@@ -44,7 +44,7 @@ def test_engine_regression_polars_df_default_target_last_col_smoke(graph_1x1_eng
 
     df = pl.DataFrame({"a": [1.0, 2.0, 3.0], "x": [10.0, 20.0, 30.0]})
 
-    engine = graph_1x1_engine.regression(df, loss="mse")
+    engine = graph_1x1_engine.regression(df, loss=rd.MSE)
 
     assert next(engine).index() == 1
 
@@ -59,7 +59,7 @@ def test_engine_regression_pandas_df_target_and_feature_cols_smoke(graph_1x1_eng
     df = pd.DataFrame({"dd": inputs, "x": answers, "other": [0.42222] * len(inputs)})
 
     engine = graph_1x1_engine.regression(
-        df, target="x", feature_cols=["dd"], loss="mse"
+        df, target_cols="x", feature_cols=["dd"], loss=rd.MSE
     )
 
     assert next(engine).index() == 1
@@ -72,18 +72,17 @@ def test_engine_regression_numpy_arrays_smoke(graph_1x1_engine):
     X = np.array([[0.0], [1.0], [2.0], [3.0]], dtype=np.float64)
     y = np.array([0.0, 2.0, 4.0, 6.0], dtype=np.float64)
 
-    engine = graph_1x1_engine.regression(X, y, loss="mse")
+    engine = graph_1x1_engine.regression(X, y, loss=rd.MSE)
 
     assert next(engine).index() == 1
 
 
 @pytest.mark.unit
 def test_engine_regression_python_lists_smoke(graph_1x1_engine):
-
     X = [[0.0], [1.0], [2.0], [3.0]]
     y = [0.0, 2.0, 4.0, 6.0]
 
-    engine = graph_1x1_engine.regression(X, y, loss="mse")
+    engine = graph_1x1_engine.regression(X, y, loss=rd.MSE)
 
     assert next(engine).index() == 1
 
@@ -96,7 +95,7 @@ def test_engine_regression_invalid_feature_col_raises(graph_1x1_engine):
 
     with pytest.raises(Exception):
         graph_1x1_engine.regression(
-            df, target="x", feature_cols=["does_not_exist"], loss="mse"
+            df, target="x", feature_cols=["does_not_exist"], loss=rd.MSE
         )
 
 
@@ -107,7 +106,7 @@ def test_engine_regression_invalid_target_col_raises(graph_1x1_engine):
     df = pl.DataFrame({"dd": [1.0, 2.0], "x": [3.0, 4.0]})
 
     with pytest.raises(Exception):
-        graph_1x1_engine.regression(df, target="nope", feature_cols=["dd"], loss="mse")
+        graph_1x1_engine.regression(df, target="nope", feature_cols=["dd"], loss=rd.MSE)
 
 
 @pytest.mark.unit
@@ -227,7 +226,7 @@ def test_normalize_regression_pandas_dataframe_target_col_and_feature_cols():
         }
     )
 
-    X, y = _normalize_regression_data(df, target_col="y", feature_cols=["b"])
+    X, y = _normalize_regression_data(df, target_cols="y", feature_cols=["b"])
 
     _assert_2d_float_lists(X, "features")
     _assert_2d_float_lists(y, "targets")
@@ -269,7 +268,7 @@ def test_normalize_regression_polars_dataframe_target_col_and_feature_cols():
         }
     )
 
-    X, y = _normalize_regression_data(df, target_col="y", feature_cols=["b"])
+    X, y = _normalize_regression_data(df, target_cols="y", feature_cols=["b"])
 
     _assert_2d_float_lists(X, "features")
     _assert_2d_float_lists(y, "targets")

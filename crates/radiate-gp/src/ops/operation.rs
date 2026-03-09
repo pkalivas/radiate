@@ -14,6 +14,7 @@ use std::{
 /// and that the structures built using these operations are built in ways that respect
 /// these input requirements. For example, an addition operation would typically have an arity of 2,
 /// while a constant operation would have an arity of 0. This is the _base_ level of the GP system, meaning
+
 /// that everything built on top of it (trees, graphs, etc.) will relies *heavily* on how these
 /// operations are defined and used.
 pub enum Op<T> {
@@ -158,9 +159,29 @@ where
     }
 }
 
-impl<T> Hash for Op<T> {
+impl Hash for Op<f32> {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.name().hash(state);
+        self.arity().hash(state);
+        match self {
+            Op::Fn(_, _, op) => {
+                // Note: Function pointers can be hashed by their address
+                let op_ptr = *op as usize;
+                op_ptr.hash(state);
+            }
+            Op::Var(_, index, domain) => {
+                index.hash(state);
+                domain.hash(state);
+            }
+            Op::Const(_, value) => {
+                value.to_bits().hash(state); // Hash the bit representation of the float
+            }
+            Op::Value(_, _, value, operation) => {
+                (*value).data().to_bits().hash(state); // Hash the bit representation of the float
+                let op_ptr = *operation as usize;
+                op_ptr.hash(state);
+            }
+        }
     }
 }
 
@@ -235,9 +256,14 @@ mod test {
 
     #[test]
     fn test_op_clone() {
+        use std::hash::Hash;
+
         let op = Op::add();
         let op2 = op.clone();
 
+        let t = op.hash(&mut std::collections::hash_map::DefaultHasher::new());
+
+        println!("Op: {:?}, Hash: {:?}", op, t);
         let result = op.eval(&[1_f32, 2_f32]);
         let result2 = op2.eval(&[1_f32, 2_f32]);
 

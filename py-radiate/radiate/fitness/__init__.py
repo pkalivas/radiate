@@ -2,6 +2,7 @@ from .base import FitnessBase
 from .regression import Regression
 from .custom import CallableFitness, BatchFitness
 from .novelty import NoveltySearch
+from .loss import MSE, MAE, XEnt, Diff
 from functools import wraps
 from typing import Any, Callable
 from radiate.operators.distance import DistanceBase, HammingDistance
@@ -56,4 +57,8 @@ __all__ = [
     "NoveltySearch",
     "fitness",
     "novelty",
+    "MSE",
+    "MAE",
+    "XEnt",
+    "Diff",
 ]
