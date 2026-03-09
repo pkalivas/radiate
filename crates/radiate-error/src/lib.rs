@@ -58,16 +58,6 @@ pub enum RadiateError {
 }
 
 impl RadiateError {
-    pub fn new_builder(msg: impl Into<String>) -> Self {
-        RadiateError::Builder(msg.into())
-    }
-
-    pub fn new_fitness(msg: impl Into<String>) -> Self {
-        RadiateError::Fitness(msg.into())
-    }
-}
-
-impl RadiateError {
     pub fn code(&self) -> Code {
         match self {
             RadiateError::Builder { .. } => Code::InvalidConfig,

@@ -74,10 +74,7 @@ engine = (
         edge=rd.Op.weight(),
         output=rd.Op.sigmoid(),
     )
-    .regression(
-        features=train_features,
-        targets=train_targets,
-    )
+    .regression(features=train_features, targets=train_targets, loss=rd.MSE)
     .alters(
         rd.Cross.graph(0.5, 0.5),
         rd.Mutate.op(0.02, 0.05),
@@ -97,6 +94,7 @@ print(
         features=train_features,
         targets=train_targets,
         name="TRAIN_ACCURACY",
+        loss=rd.MSE,
     )
 )
 print(
@@ -105,5 +103,18 @@ print(
         features=test_features,
         targets=test_targets,
         name="TEST_ACCURACY",
+        loss=rd.MSE,
     )
 )
+
+
+outputs = []
+targs = test_targets.to_numpy().tolist()
+evaled = result.value().eval(test_features.to_numpy().tolist())
+for i, row in enumerate(test_features.to_numpy().tolist()):
+    output = evaled[i]
+    outputs.append(output)
+    max_idx = output.index(max(output))
+    target_max_idx = targs[i].index(max(targs[i]))
+
+    print(f"Predicted Class: {max_idx}, Target Class: {target_max_idx}")

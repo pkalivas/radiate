@@ -165,7 +165,6 @@ impl Hash for Op<f32> {
         self.arity().hash(state);
         match self {
             Op::Fn(_, _, op) => {
-                // Note: Function pointers can be hashed by their address
                 let op_ptr = *op as usize;
                 op_ptr.hash(state);
             }
@@ -174,10 +173,10 @@ impl Hash for Op<f32> {
                 domain.hash(state);
             }
             Op::Const(_, value) => {
-                value.to_bits().hash(state); // Hash the bit representation of the float
+                value.to_bits().hash(state);
             }
             Op::Value(_, _, value, operation) => {
-                (*value).data().to_bits().hash(state); // Hash the bit representation of the float
+                (*value).data().to_bits().hash(state);
                 let op_ptr = *operation as usize;
                 op_ptr.hash(state);
             }
@@ -256,14 +255,9 @@ mod test {
 
     #[test]
     fn test_op_clone() {
-        use std::hash::Hash;
-
         let op = Op::add();
         let op2 = op.clone();
 
-        let t = op.hash(&mut std::collections::hash_map::DefaultHasher::new());
-
-        println!("Op: {:?}, Hash: {:?}", op, t);
         let result = op.eval(&[1_f32, 2_f32]);
         let result2 = op2.eval(&[1_f32, 2_f32]);
 

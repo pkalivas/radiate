@@ -69,7 +69,7 @@ engine = (
         edge=rd.Op.weight(),
         output=rd.Op.linear(),
     )
-    .regression(inputs, answers, loss=rd.MSE, batch=True)
+    .regression(inputs, answers, loss=rd.MSE)
     .subscribe(ScorePlotterHandler())
     .alters(
         rd.Cross.graph(0.05, 0.5),

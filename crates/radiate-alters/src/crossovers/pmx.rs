@@ -35,7 +35,13 @@ impl<A: PartialEq + Clone> Crossover<PermutationChromosome<A>> for PMXCrossover 
             return AlterResult::empty();
         }
 
-        let subset = indexes::subset(chrom_one.genes.len(), 2, SubsetMode::StratifiedCorrect);
+        let mut subset = vec![0; 2];
+        indexes::subset(
+            chrom_one.genes.len(),
+            2,
+            &mut subset,
+            SubsetMode::StratifiedCorrect,
+        );
 
         // start will always be less than end due to StratifiedCorrect
         let start = subset[0];
