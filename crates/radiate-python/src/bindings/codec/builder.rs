@@ -232,27 +232,18 @@ where
     fn build(self) -> PyCodec<C, PyAnyObject> {
         let val_range: Range<A> = self
             .init_range
-            .map(|rng| {
-                A::from(rng.0)
-                    .zip(A::from(rng.1))
-                    .map(|(min, max)| min..max)
-            })
-            .flatten()
-            .unwrap_or({
+            .and_then(|(min, max)| A::from(min).zip(A::from(max)).map(|(min, max)| min..max))
+            .unwrap_or_else(|| {
                 self.dtype
                     .min()
                     .zip(self.dtype.max())
-                    .map(|(min, max)| {
+                    .and_then(|(min, max)| {
                         min.value()
                             .clone()
                             .extract::<A>()
                             .zip(max.value().clone().extract::<A>())
-                            .map(|(min, max)| {
-                                A::from(min).zip(A::from(max)).map(|(min, max)| min..max)
-                            })
-                            .unwrap()
+                            .map(|(min, max)| min..max)
                     })
-                    .flatten()
                     .unwrap()
             });
 

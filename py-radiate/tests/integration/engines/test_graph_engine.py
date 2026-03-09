@@ -19,13 +19,13 @@ def test_engine_graph_xor(xor_dataset, random_seed):
         population_size=100,
         offspring_selector=rd.BoltzmannSelector(4.0),
         alters=[
-            rd.GraphCrossover(0.5, 0.5),
-            rd.OperationMutator(0.07, 0.05),
-            rd.GraphMutator(0.1, 0.1, False),
+            rd.Cross.graph(0.5, 0.5),
+            rd.Mutate.op(0.07, 0.05),
+            rd.Mutate.graph(0.1, 0.1, False),
         ],
     )
 
-    result = engine.run(rd.ScoreLimit(0.1), rd.GenerationsLimit(1000))
+    result = engine.run(rd.Limit.score(0.1), rd.Limit.generations(1000))
 
     assert result.score()[0] < 0.1
     assert result.index() <= 1000
@@ -50,16 +50,16 @@ def test_engine_graph_regression_with_speciation(
         rd.Engine(codec)
         .regression(inputs, outputs)
         .minimizing()
-        .diversity(rd.NeatDistance(0.1, 0.1, 0.5), 0.1)
+        .diversity(rd.Dist.neat(0.1, 0.1, 0.5), 0.1)
         .alters(
-            rd.GraphCrossover(0.5, 0.5),
-            rd.OperationMutator(0.07, 0.05),
-            rd.GraphMutator(0.1, 0.1),
+            rd.Cross.graph(0.5, 0.5),
+            rd.Mutate.op(0.07, 0.05),
+            rd.Mutate.graph(0.1, 0.1),
         )
     )
 
     result = engine.run(
-        rd.ScoreLimit(0.1), rd.GenerationsLimit(500)
+        rd.Limit.score(0.1), rd.Limit.generations(500)
     )  # Testing in multithreaded mode can lead to slightly different results so we
     # relax the assertion a bit by allowing a few # of species
     assert len(result.species()) in [2, 3, 4], "Should maintain multiple species"
@@ -85,13 +85,13 @@ def test_engine_graph_with_recurrent_connections(memory_dataset, random_seed):
         objective=rd.MIN,
         population_size=250,
         alters=[
-            rd.GraphCrossover(0.5, 0.5),
-            rd.OperationMutator(0.1, 0.05),
-            rd.GraphMutator(0.05, 0.05),
+            rd.Cross.graph(0.5, 0.5),
+            rd.Mutate.op(0.1, 0.05),
+            rd.Mutate.graph(0.05, 0.05),
         ],
     )
 
-    result = engine.run(rd.ScoreLimit(0.001), rd.GenerationsLimit(500))
+    result = engine.run(rd.Limit.score(0.001), rd.Limit.generations(500))
 
     assert result.score()[0] < 0.001
     assert result.index() <= 500
@@ -134,13 +134,13 @@ def test_engine_graph_recurrent_class_acc(memory_dataset, random_seed):
         rd.Engine(codec)
         .regression(inputs, outputs, loss="cross_entropy")
         .alters(
-            rd.GraphCrossover(0.5, 0.5),
-            rd.OperationMutator(0.1, 0.05),
-            rd.GraphMutator(0.05, 0.05),
+            rd.Cross.graph(0.5, 0.5),
+            rd.Mutate.op(0.1, 0.05),
+            rd.Mutate.graph(0.05, 0.05),
         )
     )
 
-    result = engine.run(rd.ScoreLimit(0.01), rd.GenerationsLimit(500))
+    result = engine.run(rd.Limit.score(0.01), rd.Limit.generations(500))
 
     assert result.score()[0] < 0.01
     assert result.index() <= 500

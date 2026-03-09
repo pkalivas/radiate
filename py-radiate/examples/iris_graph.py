@@ -1,90 +1,109 @@
-import numpy as np  # type: ignore
-import pandas as pd  # type: ignore
+#!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.13"
+# dependencies = [
+#   "polars",
+#   "requests",
+# ]
+# ///
+
+import os
+import sys
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+import polars as pl
 import radiate as rd
-import requests  # type: ignore
-from io import StringIO
 
 rd.random.seed(500)
 
 url = "https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data"
-response = requests.get(url, verify=False)
-data = StringIO(response.text)
 
-columns = ["sepal_length", "sepal_width", "petal_length", "petal_width", "species"]
-table = pd.read_csv(data, header=None, names=columns)
-
-# Normalize the data (only numeric columns)
-numeric_columns = ["sepal_length", "sepal_width", "petal_length", "petal_width"]
-species_column = [
-    "species_Iris-setosa",
-    "species_Iris-versicolor",
-    "species_Iris-virginica",
+numeric_cols = [
+    "sl",
+    "sw",
+    "pl",
+    "pw",
 ]
-for column in numeric_columns:
-    table[column] = (table[column] - table[column].mean()) / table[column].std()
 
-
-# One-hot encode the species column
-table = pd.get_dummies(table, columns=["species"])
-
-# Shuffle the dataframe
-table = table.sample(frac=1, random_state=42).reset_index(drop=True)
-
-# Split into training and testing data
-cutoff = int(len(table) * 0.8)
-training = table.iloc[:cutoff].copy()
-testing = table.iloc[cutoff:].copy()
-
-# Split features and targets
-training_features = training[numeric_columns].copy()
-training_target = training[species_column].copy()
-testing_features = testing[numeric_columns].copy()
-testing_target = testing[species_column].copy()
-
-print(
-    f"Training data shape: {training_features.shape}, Testing data shape: {testing_features.shape}"
-)
-print(
-    f"Training target shape: {training_target.shape}, Testing target shape: {testing_target.shape}"
-)
-
-codec = rd.GraphCodec.directed(
-    shape=(4, 3),
-    vertex=rd.Op.all_ops(),
-    edge=rd.Op.weight(),
-    output=rd.Op.sigmoid(),
-)
-
-engine = rd.Engine(
-    codec=codec,
-    fitness_func=rd.Regression(
-        training_features.values.tolist(), training_target.values.tolist()
-    ),
-    offspring_selector=rd.BoltzmannSelector(4),
-    objective=rd.MIN,
-    alters=[
-        rd.GraphCrossover(0.5, 0.5),
-        rd.OperationMutator(0.02, 0.05),
-        rd.GraphMutator(0.008, 0.002, False),
+df = pl.read_csv(
+    url,
+    has_header=False,
+    new_columns=[
+        "sl",
+        "sw",
+        "pl",
+        "pw",
+        "species",
     ],
 )
 
-result = engine.run(rd.ScoreLimit(0.01), rd.SecondsLimit(3), log=True)
+# Filter out rows with missing or empty species values.
+df = df.filter(pl.col("species").is_not_null() & (pl.col("species") != ""))
 
-eval_result = result.value().eval(testing_features.values.tolist())
-
-np_acc = np.mean(
-    np.argmax(eval_result, axis=1) == np.argmax(testing_target.values, axis=1)
+# Standardize numeric columns.
+df = df.with_columns(
+    [
+        ((pl.col(col) - pl.col(col).mean()) / pl.col(col).std()).alias(col)
+        for col in numeric_cols
+    ]
 )
 
-rd_acc = rd.accuracy(
-    result.value(),
-    testing_features.values.tolist(),
-    testing_target.values.tolist(),
-    loss="mse",
-    name="Iris Classification Accuracy Result",
+# One-hot encode species.
+df = df.to_dummies(columns=["species"])
+species_cols = df[[c for c in df.columns if c.startswith("species_")]].columns
+
+# Shuffle rows.
+df = df.sample(fraction=1.0, shuffle=True, seed=42)
+
+# Split into training and testing sets.
+training = df.head(int(len(df) * 0.8))
+testing = df.tail(int(len(df) * 0.2))
+
+# Separate features and targets.
+train_features = training[numeric_cols]
+train_targets = training[species_cols]
+test_features = testing[numeric_cols]
+test_targets = testing[species_cols]
+
+
+engine = (
+    rd.Engine.graph(
+        shape=(4, 3),
+        vertex=rd.Op.all_ops(),
+        edge=rd.Op.weight(),
+        output=rd.Op.sigmoid(),
+    )
+    .regression(
+        features=train_features,
+        targets=train_targets,
+    )
+    .alters(
+        rd.Cross.graph(0.5, 0.5),
+        rd.Mutate.op(0.02, 0.05),
+        rd.Mutate.graph(0.008, 0.002, False),
+    )
+    .limit(rd.Limit.score(0.01), rd.Limit.seconds(1))
 )
 
-print(f"Accuracy: {np_acc:.2f}")
-print(rd_acc)
+result = engine.run(log=True)
+
+
 print(result.metrics().dashboard())
+print(result.value())
+print(
+    rd.accuracy(
+        result.value(),
+        features=train_features,
+        targets=train_targets,
+        name="TRAIN_ACCURACY",
+    )
+)
+print(
+    rd.accuracy(
+        result.value(),
+        features=test_features,
+        targets=test_targets,
+        name="TEST_ACCURACY",
+    )
+)

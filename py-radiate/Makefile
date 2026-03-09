@@ -37,4 +37,6 @@ clean:  ## Clean up caches and build artifacts
 	@rm -f .coverage
 	@rm -f radiate/*.so
 	@rm -rf .ruff_cache/
+	@rm -rf .venv
+	@rm -rf examples/data
 	@find . -type f -name '*.py[co]' -delete -or -type d -name __pycache__ -exec rm -r {} +

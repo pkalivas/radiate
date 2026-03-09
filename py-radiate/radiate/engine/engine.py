@@ -173,8 +173,6 @@ class Engine[G, T]:
         """Create a genetic engine for optimizing character values."""
         return Engine(codec=CharCodec(shape, char_set=char_set))
 
-    # --- End of Bit Engine Overloads ---
-
     @staticmethod
     def bit(shape: AtLeastOne[int] = 1, use_numpy: bool = False) -> "Engine[bool, Any]":
         """Create a genetic engine for optimizing boolean values."""
@@ -197,7 +195,7 @@ class Engine[G, T]:
     ) -> Engine[Op, Graph]:
         """Create a genetic engine for optimizing graph structures."""
         codec = GraphCodec(
-            graph_type="directed",
+            graph_type=graph_type,
             shape=shape,
             vertex=vertex,
             edge=edge,
@@ -356,7 +354,7 @@ class Engine[G, T]:
         features: Any,
         targets: Any | None = None,
         *,
-        target: str | None = None,
+        target_cols: str | list[str] | None = None,
         feature_cols: list[str] | None = None,
         loss: str = "mse",
         batch: bool = False,
@@ -382,7 +380,7 @@ class Engine[G, T]:
             features: The input features for the regression problem. Can be a tuple of (features, targets) or a DataFrame.
             targets: The target values for the regression problem. Required if features is not a tuple.
             *,
-            target: The name of the target column if features is a DataFrame.
+            target_cols: The name(s) of the target column(s) if features is a DataFrame.
             feature_cols: The names of the feature columns if features is a DataFrame.
             loss: The loss function to use for regression (e.g., "mse", "mae").
             batch: Whether to compute fitness in batches (useful for large datasets).
@@ -425,13 +423,13 @@ class Engine[G, T]:
         ...     "feature2": [4.0, 5.0, 6.0],
         ...     "target": [7.0, 8.0, 9.0]
         ... })
-        >>> base_engine.regression(df, target="target", feature_cols=["feature1", "feature2"], loss="mae")
+        >>> base_engine.regression(df, target_cols="target", feature_cols=["feature1", "feature2"], loss="mae")
         """
         self._builder.set_fitness(
             Regression(
                 features,
                 targets,
-                target=target,
+                target_cols=target_cols,
                 feature_cols=feature_cols,
                 loss=loss,
                 batch=batch,

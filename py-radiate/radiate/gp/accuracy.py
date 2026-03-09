@@ -1,5 +1,8 @@
+from typing import Any
+
 from .graph import Graph
 from .tree import Tree
+from radiate.utils._normalize import _normalize_regression_data
 from radiate._bridge.wrapper import RsObject
 from radiate.radiate import py_accuracy
 
@@ -44,8 +47,8 @@ class AccuracyResult(RsObject):
 
 def accuracy(
     predictor: Graph | Tree,
-    features: list[list[float]],
-    targets: list[list[float]],
+    features: Any,
+    targets: Any,
     loss: str | None = None,
     name: str | None = None,
 ) -> AccuracyResult:
@@ -67,10 +70,12 @@ def accuracy(
             f"predictor must be an instance of Graph or Tree but found {type(predictor)}."
         )
 
+    x, y = _normalize_regression_data(features, targets)
+
     accuracy_result = py_accuracy(
         predictor.__backend__(),
-        features,
-        targets,
+        x,
+        y,
         loss=loss,
         name=name,
     )

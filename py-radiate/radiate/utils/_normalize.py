@@ -85,18 +85,18 @@ def _normalize_regression_data(
     targets: Any | None = None,
     *,
     feature_cols=None,
-    target_col=None,
+    target_cols=None,
 ):
     if targets is None:
         if _check_for_polars(features):
             df = features
-            if target_col is None:
+            if target_cols is None:
                 X = df.select(df.columns[:-1])
                 y = df.select([df.columns[-1]])  # force 1-col DF
             else:
-                cols = feature_cols or [c for c in df.columns if c != target_col]
+                cols = feature_cols or [c for c in df.columns if c not in target_cols]
                 X = df.select(cols)
-                y = df.select([target_col])  # force 1-col DF
+                y = df.select(target_cols)  # force 1-col DF
 
             # convert after selection
             X = X.to_numpy()
@@ -104,13 +104,13 @@ def _normalize_regression_data(
 
         elif _check_for_pandas(features):
             df = features
-            if target_col is None:
+            if target_cols is None:
                 X = df.iloc[:, :-1].to_numpy()
                 y = df.iloc[:, -1:].to_numpy()  # already 2D
             else:
-                cols = feature_cols or [c for c in df.columns if c != target_col]
+                cols = feature_cols or [c for c in df.columns if c not in target_cols]
                 X = df[cols].to_numpy()
-                y = df[[target_col]].to_numpy()  # force 2D
+                y = df[target_cols].to_numpy()  # force 2D
         else:
             raise TypeError("Unsupported dataframe type for regression")
     else:

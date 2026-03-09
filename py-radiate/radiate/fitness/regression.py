@@ -4,7 +4,7 @@ from radiate.radiate import PyFitnessFn
 from radiate.utils._normalize import _normalize_regression_data
 
 
-class Regression[T](FitnessBase):
+class Regression(FitnessBase):
     """Fitness function for regression problems."""
 
     def __init__(
@@ -12,7 +12,7 @@ class Regression[T](FitnessBase):
         features: Any,
         targets: Any | None = None,
         *,
-        target: str | None = None,
+        target_cols: str | list[str] | None = None,
         feature_cols: list[str] | None = None,
         loss: str = "mse",
         batch: bool = False,
@@ -21,7 +21,7 @@ class Regression[T](FitnessBase):
             features,
             targets,
             feature_cols=feature_cols,
-            target_col=target,
+            target_cols=target_cols,
         )
 
         super().__init__(

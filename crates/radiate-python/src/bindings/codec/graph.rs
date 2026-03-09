@@ -1,6 +1,6 @@
 use crate::{PyGenotype, PyOp, bindings::gp::PyGraph};
 use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
-use radiate::{Codec, Genotype, GraphChromosome, GraphCodec, NodeType, Op};
+use radiate::{Codec, GraphCodec, NodeType, Op};
 use std::collections::HashMap;
 
 const INPUT_NODE_TYPE: &str = "input";
@@ -25,7 +25,7 @@ impl PyGraphCodec {
         py: Python<'py>,
         genotype: &PyGenotype,
     ) -> PyResult<Bound<'py, PyAny>> {
-        let genotype: Genotype<GraphChromosome<Op<f32>>> = genotype.clone().into();
+        let genotype = genotype.clone().into();
         let obj_value = self.codec.decode(&genotype);
 
         PyGraph {

@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.13"
+# dependencies = [
+#   "numpy",
+#   "matplotlib",
+# ]
+# ///
+
 """
 Maze Solving with Permutation Codec
 
@@ -8,6 +16,13 @@ We have a set of waypoints in a maze and need to find the optimal order to visit
 This is pretty much a TSP (Traveling Salesman Problem) variant, where the start point is fixed
 and we need to find the shortest path through a set of waypoints.
 """
+
+import os
+import sys
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from matplotlib.markers import MarkerStyle  # type: ignore
 
 import radiate as rd
 import matplotlib.pyplot as plt  # type: ignore
@@ -74,7 +89,12 @@ class MazeSolver:
         ax.scatter(x_coords, y_coords, c="blue", s=100, alpha=0.6, label="Waypoints")
 
         ax.scatter(
-            self.start_x, self.start_y, c="green", s=150, marker="s", label="Start"
+            self.start_x,
+            self.start_y,
+            c="green",
+            s=150,
+            marker=MarkerStyle("o"),
+            label="Start",
         )
 
         path_x = [self.start_x] + [wp.x for wp in permutation]

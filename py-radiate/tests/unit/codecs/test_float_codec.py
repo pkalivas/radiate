@@ -143,15 +143,3 @@ def test_negative_length_codec():
     """Test codecs handle negative length gracefully."""
     with pytest.raises(ValueError):
         FloatCodec(shape=-1, init_range=(-1.0, 1.0))
-
-
-# @pytest.mark.unit
-# def test_codec_from_genes():
-#     """Test codec creation from genes."""
-#     genes = [rd.Gene.float(0.5), rd.Gene.float(0.8)]
-#     # codec = FloatCodec(genes=genes)
-#     # decoded = codec.decode(codec.encode())
-
-#     # assert isinstance(codec, FloatCodec)
-#     # assert len(decoded) == 2
-#     # assert all(isinstance(x, float) for x in decoded)

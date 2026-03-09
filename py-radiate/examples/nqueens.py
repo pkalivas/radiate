@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.13"
+# dependencies = [
+#   "numpy",
+#   "numba",
+# ]
+# ///
 """
 N-Queens Problem with Radiate
 This example demonstrates solving the N-Queens problem using Radiate's genetic algorithm capabilities.
@@ -6,6 +13,13 @@ The N-Queens problem is a classic combinatorial problem where the goal is to pla
 on an N x N chessboard such that no two queens threaten each other.
 This means that no two queens can be in the same row, column, or diagonal.
 """
+
+# pyright: reportMissingImports=false
+
+import os
+import sys
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import numpy as np
 import radiate as rd

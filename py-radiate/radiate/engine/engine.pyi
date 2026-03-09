@@ -464,7 +464,7 @@ class Engine[G, T]:
         features: Any,
         targets: Any | None = None,
         *,
-        target: str | None = None,
+        target_cols: str | list[str] | None = None,
         feature_cols: list[str] | None = None,
         loss: str = "mse",
         batch: bool = False,

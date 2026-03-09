@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.13"
+# dependencies = [
+#   "numpy",
+#   "numba",
+# ]
+# ///
 """
 Example of using radiate to solve the PyGAD example problem found on their homepage.
 
@@ -7,6 +14,13 @@ https://pygad.readthedocs.io/en/latest/
 This example should resolve within ~5-10 generations, or a little less than 1ms
 depending on your random seed & your machine.
 """
+
+# pyright: reportMissingImports=false
+
+import os
+import sys
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import numpy as np
 import radiate as rd
@@ -28,9 +42,10 @@ engine = (
     rd.Engine.float(len(function_inputs), init_range=(-4.0, 4.0), use_numpy=True)
     .fitness(fitness)
     .minimizing()
+    .limit(rd.Limit.score(0.01))
 )
 
-result = engine.run(rd.Limit.score(0.01), log=True)
+result = engine.run(log=True)
 
 print(f"\nBest solution found: {result.value()}")
 print(f"Fitness: {result.score()}")
