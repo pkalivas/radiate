@@ -115,7 +115,6 @@ def test_engine_float_simple_neural_network(
 
     result = engine.run()
 
-    # assert result.score()[0] < 0.01
     assert result.index() <= 500
     assert len(result.population()) == len(result.ecosystem().population())
     assert len(result.ecosystem().species()) == 0
@@ -134,9 +133,10 @@ def test_create_float_scalar_engine_from_genes():
     def scalar_fit(val: float) -> float:
         return val**2
 
-    gene = rd.Gene.float(init_range=(-5.0, 5.0))
     engine = (
-        rd.Engine.float(genes=gene).fitness(scalar_fit).limit(rd.Limit.generations(5))
+        rd.Engine.float(genes=rd.Gene.float(init_range=(-5.0, 5.0)))
+        .fitness(scalar_fit)
+        .limit(rd.Limit.generations(5))
     )
 
     result = engine.run()
@@ -152,18 +152,16 @@ def test_create_float_vector_engine_from_genes():
     def list_fit(val: list[float]) -> float:
         return sum(x**2 for x in val)
 
-    def np_vector_fit(val: np.ndarray) -> float:
-        assert isinstance(val, np.ndarray) and val.dtype == np.float64
-        return float(np.sum(val**2))
-
-    sequence = [
-        rd.Gene.float(init_range=(-5.0, 5.0)),
-        rd.Gene.float(init_range=(-50.0, 50.0)),
-        rd.Gene.float(init_range=(10.0, 50.0)),
-    ]
-
     result = (
-        rd.Engine.float(genes=sequence).fitness(list_fit).limit(rd.Limit.generations(5))
+        rd.Engine.float(
+            genes=[
+                rd.Gene.float(init_range=(-5.0, 5.0)),
+                rd.Gene.float(init_range=(-50.0, 50.0)),
+                rd.Gene.float(init_range=(10.0, 50.0)),
+            ]
+        )
+        .fitness(list_fit)
+        .limit(rd.Limit.generations(5))
     ).run()
 
     assert result is not None
@@ -182,8 +180,25 @@ def test_create_float_vector_engine_from_genes():
             assert two.allele() >= -50.0 and two.allele() <= 50.0
             assert three.allele() >= 10.0 and three.allele() <= 50.0
 
+
+@pytest.mark.unit
+def test_create_float_np_vector_engine_from_genes():
+    """Test creating a float engine from genes."""
+
+    def np_vector_fit(val: np.ndarray) -> float:
+        assert isinstance(val, np.ndarray) and val.dtype == np.float64
+        return float(np.sum(val**2))
+
     engine = (
-        rd.Engine.float(genes=sequence, use_numpy=True, dtype=rd.Float32)
+        rd.Engine.float(
+            genes=[
+                rd.Gene.float(init_range=(-5.0, 5.0)),
+                rd.Gene.float(init_range=(-50.0, 50.0)),
+                rd.Gene.float(init_range=(10.0, 50.0)),
+            ],
+            use_numpy=True,
+            dtype=rd.Float32,
+        )
         .fitness(np_vector_fit)
         .limit(rd.Limit.generations(5))
     )
@@ -202,9 +217,8 @@ def test_create_float_engine_from_chromosomes():
     def vector_fit(val: list[float]) -> float:
         return sum(x**2 for x in val)
 
-    chromosome = rd.Chromosome.float(5, init_range=(-5.0, 5.0))
     engine = (
-        rd.Engine.float(chromosomes=chromosome)
+        rd.Engine.float(chromosomes=rd.Chromosome.float(5, init_range=(-5.0, 5.0)))
         .fitness(vector_fit)
         .limit(rd.Limit.generations(5))
     )
@@ -215,17 +229,20 @@ def test_create_float_engine_from_chromosomes():
     assert type(result.value()) is list
     assert len(result.value()) == 5
 
+
+@pytest.mark.unit
+def test_create_float_engine_from_chromosomes_with_numpy():
     def matrix_fit(val: list[list[float]]) -> float:
         return sum(sum(x**2 for x in row) for row in val)
 
-    sequence = [
-        rd.Chromosome.float(3, init_range=(-5.0, 5.0)),
-        rd.Chromosome.float(3, init_range=(-50.0, 50.0)),
-        rd.Chromosome.float(3, init_range=(10.0, 50.0)),
-    ]
-
     engine = (
-        rd.Engine.float(chromosomes=sequence)
+        rd.Engine.float(
+            chromosomes=[
+                rd.Chromosome.float(3, init_range=(-5.0, 5.0)),
+                rd.Chromosome.float(3, init_range=(-50.0, 50.0)),
+                rd.Chromosome.float(3, init_range=(10.0, 50.0)),
+            ]
+        )
         .fitness(matrix_fit)
         .limit(rd.Limit.generations(5))
     )

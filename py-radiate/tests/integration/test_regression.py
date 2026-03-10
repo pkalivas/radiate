@@ -1,4 +1,3 @@
-# tests/test_normalize_regression.py
 from __future__ import annotations
 
 import math
@@ -74,6 +73,9 @@ def test_engine_regression_numpy_arrays_smoke(graph_1x1_engine):
 
     engine = graph_1x1_engine.regression(X, y, loss=rd.MSE)
 
+    assert X.shape == (4, 1)
+    assert y.shape == (4,)
+
     assert next(engine).index() == 1
 
 
@@ -137,7 +139,7 @@ def test_to_2d_f32_python_2d_list_is_cast_to_float():
 def test_normalize_regression_with_python_lists_1d_targets():
     X, y = _normalize_regression_data(
         features=[[1, 2], [3, 4]],
-        targets=[10, 20],
+        targets=[[10], [20]],
     )
     # Expect canonical: list[list[float]]
     _assert_2d_float_lists(X, "features")
@@ -282,7 +284,7 @@ def test_normalize_regression_torch_tensor_inputs():
     import torch
 
     X_t = torch.tensor([[1, 2], [3, 4]], dtype=torch.int64)
-    y_t = torch.tensor([10, 20], dtype=torch.int64)
+    y_t = torch.tensor([[10], [20]], dtype=torch.int64)
 
     X, y = _normalize_regression_data(X_t, y_t)
 

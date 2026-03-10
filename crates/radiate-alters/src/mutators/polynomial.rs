@@ -65,7 +65,7 @@ where
     }
 
     #[inline]
-    fn mutate_gene(&self, gene: &C::Gene) -> C::Gene {
+    fn mutate_gene(&self, gene: &mut C::Gene) -> usize {
         // TODO: Should these be from the bounds?
         let min = gene.min().extract::<f64>().unwrap();
         let max = gene.max().extract::<f64>().unwrap();
@@ -75,7 +75,7 @@ where
         let new_value = self.polynomial_mutation(value, min, max, eta);
 
         let clamped_value = new_value.clamp(min, max);
-
-        gene.with_allele(&clamped_value.extract::<F>().unwrap())
+        *gene.allele_mut() = clamped_value.extract::<F>().unwrap();
+        1
     }
 }

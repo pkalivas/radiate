@@ -1,6 +1,8 @@
 use crate::{IntoPyAnyObject, PyAnyObject};
 use pyo3::{Bound, IntoPyObject, IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
-use radiate::{EvalMut, Graph, GraphEvaluator, Op, ToDot, graphs::GraphEvalCache};
+use radiate::{
+    EvalMut, Graph, GraphEvaluator, GraphIterator, NodeType, Op, ToDot, graphs::GraphEvalCache,
+};
 use serde::{Deserialize, Serialize};
 
 impl IntoPyAnyObject for Graph<Op<f32>> {
@@ -41,6 +43,19 @@ impl PyGraph {
 
     pub fn reset(&mut self) {
         self.eval_cache = None;
+    }
+
+    pub fn shape(&self) -> (usize, usize) {
+        (
+            self.inner
+                .get_nodes_of_type(NodeType::Input)
+                .collect::<Vec<_>>()
+                .len(),
+            self.inner
+                .get_nodes_of_type(NodeType::Output)
+                .collect::<Vec<_>>()
+                .len(),
+        )
     }
 
     pub fn eval<'py>(&mut self, py: Python<'py>, inputs: Py<PyAny>) -> PyResult<Bound<'py, PyAny>> {

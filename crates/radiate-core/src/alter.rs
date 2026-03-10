@@ -1,7 +1,6 @@
 use crate::{Chromosome, Gene, Genotype, Metric, Population, math::indexes, random_provider};
 use crate::{Lineage, LineageUpdate, Rate, metric};
 use radiate_utils::{ToSnakeCase, intern};
-use std::cell::{LazyCell, RefCell};
 use std::iter::once;
 use std::sync::Arc;
 
@@ -213,10 +212,6 @@ const MIN_POPULATION_SIZE: usize = 3;
 /// two, as crossover usually involves two parents to produce offspring.
 const MIN_NUM_PARENTS: usize = 2;
 
-thread_local! {
-    static PARENT_SCRATCH_BUFFER: LazyCell<RefCell<Vec<usize>>> =LazyCell::new(|| RefCell::new(vec![0; MIN_NUM_PARENTS]));
-}
-
 /// The [Crossover] trait is used to define the crossover operation for a genetic algorithm.
 ///
 /// In a genetic algorithm, crossover is a genetic operator used to vary the
@@ -255,19 +250,18 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
         generation: usize,
         rate: f32,
     ) -> AlterResult {
-        PARENT_SCRATCH_BUFFER.with(|buffer_cell| {
-            let mut result = AlterResult::default();
-            let mut buffer = buffer_cell.borrow_mut();
-            for i in 0..population.len() {
-                if random_provider::bool(rate) && population.len() > MIN_POPULATION_SIZE {
-                    indexes::individual_indexes(i, population.len(), MIN_NUM_PARENTS, &mut buffer);
-                    let cross_result = self.cross(population, &buffer, generation, rate);
-                    result.merge(cross_result);
-                }
-            }
+        let mut result = AlterResult::default();
+        let mut parents = [0usize; MIN_NUM_PARENTS];
 
-            result
-        })
+        for i in 0..population.len() {
+            if random_provider::bool(rate) && population.len() > MIN_POPULATION_SIZE {
+                indexes::individual_indexes(i, population.len(), MIN_NUM_PARENTS, &mut parents);
+                let cross_result = self.cross(population, &parents, generation, rate);
+                result.merge(cross_result);
+            }
+        }
+
+        result
     }
 
     #[inline]
@@ -388,8 +382,7 @@ pub trait Mutate<C: Chromosome>: Send + Sync {
         let mut count = 0;
         for gene in chromosome.iter_mut() {
             if random_provider::bool(rate) {
-                *gene = self.mutate_gene(gene);
-                count += 1;
+                count += self.mutate_gene(gene);
             }
         }
 
@@ -397,7 +390,8 @@ pub trait Mutate<C: Chromosome>: Send + Sync {
     }
 
     #[inline]
-    fn mutate_gene(&self, gene: &C::Gene) -> C::Gene {
-        gene.new_instance()
+    fn mutate_gene(&self, gene: &mut C::Gene) -> usize {
+        *gene = gene.new_instance();
+        1
     }
 }

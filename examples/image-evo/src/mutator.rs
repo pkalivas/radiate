@@ -16,16 +16,16 @@ impl ImageMutator {
 }
 
 impl Mutate<ImageChromosome> for ImageMutator {
-    fn mutate_gene(&self, gene: &ImageGene) -> ImageGene {
-        let mut new_polygon = gene.allele().clone();
-
-        for i in 0..new_polygon.len() {
+    fn mutate_gene(&self, gene: &mut ImageGene) -> usize {
+        let mut count = 0;
+        for i in 0..gene.allele().len() {
             if random_provider::random::<f32>() < self.rate {
                 let change = (random_provider::random::<f32>() * 2.0 - 1.0) * self.magnitude;
-                new_polygon[i] = (new_polygon[i] + change).clamp(0.0, 1.0);
+                gene.allele_mut()[i] = (gene.allele()[i] + change).clamp(0.0, 1.0);
+                count += 1;
             }
         }
 
-        ImageGene::from(new_polygon)
+        count
     }
 }

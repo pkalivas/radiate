@@ -7,6 +7,8 @@
 # ]
 # ///
 
+# pyright: reportMissingImports=false
+
 import os
 import sys
 
@@ -110,7 +112,7 @@ print(
 
 outputs = []
 targs = test_targets.to_numpy().tolist()
-evaled = result.value().eval(test_features.to_numpy().tolist())
+evaled = result.value().eval(test_features)
 for i, row in enumerate(test_features.to_numpy().tolist()):
     output = evaled[i]
     outputs.append(output)
