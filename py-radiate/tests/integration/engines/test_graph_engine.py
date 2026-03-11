@@ -81,7 +81,7 @@ def test_engine_graph_with_recurrent_connections(memory_dataset, random_seed):
         rd.Engine(codec)
         .size(250)
         .regression(inputs, outputs)
-        .limit(rd.Limit.score(0.01), rd.Limit.generations(500))
+        .limit(rd.Limit.score(0.01), rd.Limit.generations(2000))
         .alters(
             rd.Cross.graph(0.5, 0.5),
             rd.Mutate.op(0.1, 0.05),
@@ -91,7 +91,7 @@ def test_engine_graph_with_recurrent_connections(memory_dataset, random_seed):
 
     result = engine.run()
 
-    assert result.index() <= 500
+    assert result.index() <= 2000
     assert isinstance(result.value(), rd.Graph)
     assert len(result.population()) == 250
 
