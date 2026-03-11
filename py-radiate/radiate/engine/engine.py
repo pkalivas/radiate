@@ -235,7 +235,7 @@ class Engine[G, T]:
         while True:
             yield self.__next__()
 
-    def __next__(self) -> Generation[T]:
+    def __next__(self) -> Generation[G, T]:
         """Get the next generation from the engine."""
         if self._engine is None:
             self._engine = self._builder.build()
@@ -253,7 +253,7 @@ class Engine[G, T]:
         log: bool | EngineLog = False,
         checkpoint: tuple[int, str] | EngineCheckpoint | None = None,
         ui: bool | EngineUi = False,
-    ) -> Generation[T]:
+    ) -> Generation[G, T]:
         """Run the engine with the given limits.
         Args:
             limits: A single Limit or a list of Limits to apply to the engine.
@@ -976,7 +976,7 @@ class Engine[G, T]:
         self._builder.set_subscribers(event_handler)
         return self
 
-    def generation(self, generation: Generation[T] | None) -> Engine[G, T]:
+    def generation(self, generation: Generation[G, T] | None) -> Engine[G, T]:
         """
         Set the initial Generation for the engine.
 

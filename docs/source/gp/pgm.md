@@ -4,8 +4,6 @@
 
     Probabilistic Graphical Models (PGMs) are currently being developed and integrated into radiate. This documentation will be updated to reflect the latest features and capabilities as they become available.
 
-    As of the next release of radiate (1.2.21) the current (1.2.20) state of PGMs will be deprecated and removed. ie: the current PGM implementation will be replaced with a more robust and feature-complete version in the upcoming release.
-
 
 Probabilistic Graphical Models (PGMs) in radiate allow for the representation and manipulation of probabilistic relationships between variables. They are a way to represent, reason about, and compute with uncertainty by combining probability theory and graph theory. They provide a structured framework for modeling complex systems where variables are interdependent and uncertainty is inherent.
 

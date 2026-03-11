@@ -51,20 +51,21 @@ Lets take a quick look at how we would put together a regression problem using a
         rd.Engine(codec)
         .fitness(fitness_func)
         .minimizing()  # We want to minimize the loss
+        .limit(rd.Limit.score(0.001), rd.Limit.generations(1000))  # Stop when we reach a loss of 0.001 or after 1000 generations
         .alters(
-            rd.GraphCrossover(0.5, 0.5),
-            rd.OperationMutator(0.07, 0.05),
-            rd.GraphMutator(0.1, 0.1, allow_recurrent=False), # True if evolving recurrent graphs is allowed
+            rd.Cross.graph(0.5, 0.5),
+            rd.Mutate.op(0.07, 0.05),
+            rd.Mutate.graph(0.1, 0.1, allow_recurrent=False), # True if evolving recurrent graphs is allowed
         )
     )
 
     # Run the genetic engine with a score (error) limit of 0.001 or a maximum of 1000 generations
-    result = engine.run(rd.ScoreLimit(0.001), rd.GenerationsLimit(1000), log=True)
+    result = engine.run(log=True)
     ```
 
     Radiate is also fully compatible with DataFrame libraries like Pandas and Polars, so wiring DataFrames into regression problems is straightforward. For an example we'll use [polars](https://pola.rs) as its quickly becoming the go-to DataFrame library in python. Using the `.regression(..)` method below is an attempt to simplify the configuration of regression problems. It also automatically switches the engine's optimization target to minimization as most regression losses are minimized.
 
-    The call to this method is flexible and allows you to specify the target column, feature columns, and loss function. But it also handles the simple case we saw above where we just want to provide a list of inputs and outputs.
+    The call to this method is flexible and allows you to specify the target columns, feature columns, and loss function. But it also handles the simple case we saw above where we just want to provide a list of inputs and outputs.
 
     ```python
     import radiate as rd
@@ -89,15 +90,16 @@ Lets take a quick look at how we would put together a regression problem using a
             edge=rd.Op.weight(),
             output=rd.Op.linear(),
         )
-        .regression(df, target="target", feature_cols=["feature_one", "feature_two"], loss="mae")
+        .regression(df, target_cols=["target"], feature_cols=["feature_one", "feature_two"], loss=rd.MAE)
+        .limit(rd.Limit.score(0.001), rd.Limit.generations(1000))
         .alters(
-            rd.GraphCrossover(0.5, 0.5),
-            rd.OperationMutator(0.07, 0.05),
-            rd.GraphMutator(0.1, 0.1)
+            rd.Cross.graph(0.5, 0.5),
+            rd.Mutate.op(0.07, 0.05),
+            rd.Mutate.graph(0.1, 0.1)
         )
     )
 
-    result = engine.run(rd.Limit.score(0.001), rd.Limit.generations(1000), log=True)
+    result = engine.run(log=True)
     ```
 
 === ":fontawesome-brands-rust: Rust"

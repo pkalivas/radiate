@@ -61,6 +61,7 @@ engine = (
     .fitness(fitness_fn)
     .minimizing()
     .select(offspring=rd.Select.tournament(k=3))
+    .limit(rd.Limit.score(0))
     .alters(
         rd.Cross.multipoint(0.75, 2),
         rd.Mutate.uniform(0.05),
@@ -68,7 +69,7 @@ engine = (
 )
 
 
-result = engine.run(rd.Limit.score(0), ui=True)
+result = engine.run(ui=True)
 print(result)
 
 
