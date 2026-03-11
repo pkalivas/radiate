@@ -27,7 +27,7 @@ from numba import jit, uint8
 
 rd.random.seed(514)
 
-N_QUEENS = 32
+N_QUEENS = 40
 
 
 @jit(uint8(uint8[:]), nopython=True)

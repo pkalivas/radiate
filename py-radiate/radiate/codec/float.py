@@ -252,33 +252,6 @@ class FloatCodec[D](CodecBase[float, D], RsObject):
         return self.__backend__().decode_py(genotype=genotype.__backend__())
 
     @staticmethod
-    def scalar(
-        init_range: tuple[float, float] | None = None,
-        bounds: tuple[float, float] | None = None,
-        dtype: DataTypeClass | DataType | None = None,
-    ) -> FloatCodec[float]:
-        """
-        Create a scalar codec.
-        Args:
-            init_range: Minimum and maximum value for the Gene's Allele to be init with.
-            bounds: Minimum and maximum values the allele is allowed to be within during evolution.
-        Returns:
-            A new FloatCodec instance with scalar configuration.
-
-        Example:
-        --------
-        Create a FloatCodec that will encode a Genotype with a single Chromosome containing a single FloatGene
-        with Alleles between 0.0 and 1.0, and bounds between -1.0 and 2.0:
-        >>> rd.FloatCodec.scalar(init_range=(0.0, 1.0), bounds=(-1.0, 2.0))
-        FloatCodec(...)
-        """
-        return FloatCodec(
-            init_range=init_range,
-            bounds=bounds,
-            dtype=dtype,
-        )
-
-    @staticmethod
     def __scalar(
         init_range: tuple[float, float] | None = None,
         bounds: tuple[float, float] | None = None,

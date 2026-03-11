@@ -66,13 +66,11 @@ Radiate provides several codec types out of the box that should be able to cover
 
         # scalar codec that decodes to a single float
         codec = rd.FloatCodec(init_range=(-1.0, 1.0), bounds=(-10.0, 10.0)) 
-        # -- or --
-        codec = rd.FloatCodec.scalar(init_range=(0.0, 1.0), bounds=(-10.0, 10.0))
 
         # vector codec that decodes to a np.ndarray
         codec = rd.FloatCodec(shape=5, init_range=(-1.0, 1.0), bounds=(-10.0, 10.0), use_numpy=True)
 
-        # For a matrix of parameters (like neural network weights)
+        # For a 3x2 matrix of parameters (like neural network weights)
         codec = rd.FloatCodec(shape=(3, 2), init_range=(-0.1, 0.1), bounds=(-1.0, 1.0))
         # -- or --
         # supply a list of shapes for jagged matrices e.g. matrix with three rows (chromosomes) and two columns (genes)
@@ -124,7 +122,7 @@ Radiate provides several codec types out of the box that should be able to cover
         import radiate as rd
 
         # For a single parameter
-        codec = rd.IntCodec.scalar(init_range=(0, 1), bounds=(-10, 10))
+        codec = rd.IntCodec(init_range=(0, 1), bounds=(-10, 10))
 
         # For a list of parameters
         codec = rd.IntCodec(shape=5, init_range=(-1, 1), bounds=(-10, 10))
@@ -184,7 +182,7 @@ Radiate provides several codec types out of the box that should be able to cover
         import radiate as rd
 
         # For a list of parameters
-        codec = rd.CharCodec.vector(length=5, char_set='abcdefghijklmnopqrstuvwxyz')
+        codec = rd.CharCodec(length=5, char_set='abcdefghijklmnopqrstuvwxyz')
 
         # For a matrix of chars
         codec = rd.CharCodec((3, 2), char_set={'a', 'b', 'c', 'd'})

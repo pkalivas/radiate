@@ -98,12 +98,31 @@ Each node in a tree contains a value and optional children & arity. The `TreeNod
 
 ## Codec
 
-The `TreeCodec` is simply a `codec` that encodes a `TreeChromosome` and decodes it back into a `Tree`. The `TreeCodec` can be configured to create a single `tree` or a multi-root `tree` structure. 
+The `TreeCodec` is simply a `codec` that encodes a `TreeChromosome` and decodes it back into a `Tree`. The `TreeCodec` can be configured to create a single `tree` or a multi-root `tree` structure. Upon creation the codec will produce a 'perfect arity tree' of a specified min depth. This means that the initial tree will contain nodes each with children equal to their value's (op) `arity`. The `max_size` parameter can be used to limit the size of the tree, preventing it from growing too large (bloat) during evolution.
 
-**Codec Types:**
+Radiate supports both single-rooted and multi-rooted tree structures to be evolved. The choice between these two structures essentially comes down to how many outputs you want to produce. For example, if you just want to evolve a single mathematical expression like such:
 
-- **Single Root**: Creates one tree per `genotype`
-- **Multi-Root**: Creates multiple trees per `genotype`
+```
+f(x) = (2 * 3) + (2 + x)
+```
+
+Then a single rooted tree would be sufficient. However, if you wanted to evolve a system of equations like such:
+
+```
+f(x) = (2 * 3) + (2 + x)
+g(x) = (2 / 3) - (2 - x)
+```
+
+Then a multi-rooted tree would be necessary, with one root for `f(x)` and another for `g(x)`.
+
+### Default Ops
+
+Most of the params for the `TreeCodec` have sensible defaults in an attempt to make it as easy as possible to get started. So technically,
+you don't need to specify the ops, but in all likelihood you'll want to specify the ops to your specific use case. The defaults are as follows: 
+
+* Root: `Op.add()` `Op.sub()`, `Op.mul()`, `Op.div()`, `Op.sin()`, `Op.cos()`, `Op.tanh()`, `Op.relu()`, `Op.linear()`
+* Vertex: `Op.add()`, `Op.sub()`, `Op.mul()`, `Op.div()`, `Op.sin()`, `Op.cos()`, `Op.tanh()`, `Op.relu()`, `Op.linear()`
+* Leaf: `Op.var(0)` - (first variable)
 
 === ":fontawesome-brands-python: Python"
 
@@ -112,9 +131,25 @@ The `TreeCodec` is simply a `codec` that encodes a `TreeChromosome` and decodes 
 
     # Create a tree codec with a starting (minimum) depth of 3
     codec = rd.TreeCodec(
+        # Shape is only necessary for multi-rooted trees,
+        # it specifies the number of trees and the 
+        # number of inputs to each tree.
+        # For single rooted trees this will be ignored.
+        # 
+        # Default: shape=(1, 1) - single rooted tree with 1 input variable
         shape=(2, 1),
+        # The minimum depth of the tree. This is the depth
+        # of the initial tree that will be produced by
+        # the codec - evolution will be able 
+        # to increase the total size of the tree (without regards to depth) up to max_size.
+        # 
+        # Default: min_depth=3
         min_depth=3,
+        # The maximum size of the tree. This is the maximum number of nodes that the tree can have.
         max_size=30,
+        # The options for the root node of the tree. The root is the last node in the tree
+        # to be evaluated and is the node that produces the final output of the tree. 
+        # This is optional and defaults to a single add operator.
         root=rd.Op.add(),
         vertex=[rd.Op.add(), rd.Op.sub(), rd.Op.mul()],
         leaf=[rd.Op.var(0), rd.Op.var(1)],

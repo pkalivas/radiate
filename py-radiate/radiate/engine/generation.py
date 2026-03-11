@@ -12,7 +12,7 @@ from .metrics import MetricSet
 from .front import Front
 
 
-class Generation[T](RsObject):
+class Generation[G, T](RsObject):
     """
     Generation class that wraps around the PyGeneration class.
     This class provides a simple interface to access the value of the generation.
@@ -29,7 +29,7 @@ class Generation[T](RsObject):
         return self.__backend__().to_json()
 
     @staticmethod
-    def from_json(json_str: str) -> "Generation":
+    def from_json(json_str: str) -> "Generation[G, T]":
         """
         Deserialize a JSON string to a Generation object.
         :param json_str: The JSON string representation of the generation.
@@ -101,7 +101,7 @@ class Generation[T](RsObject):
             return obj[0]
         return obj
 
-    def population(self) -> Population:
+    def population(self) -> Population[G]:
         """
         Get the population of the generation.
         :return: The population of the generation.
@@ -111,7 +111,7 @@ class Generation[T](RsObject):
             lambda: Population.from_rust(self.__backend__().population()),
         )
 
-    def species(self) -> list[Species]:
+    def species(self) -> list[Species[G]]:
         """
         Get the species of the generation.
         :return: The species of the generation.
@@ -125,7 +125,7 @@ class Generation[T](RsObject):
 
         return self.try_get_cache("species_cache", _get_species)
 
-    def ecosystem(self) -> Ecosystem:
+    def ecosystem(self) -> Ecosystem[G]:
         """
         Get the ecosystem of the generation.
         :return: The ecosystem of the generation.

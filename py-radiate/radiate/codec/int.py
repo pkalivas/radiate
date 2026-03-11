@@ -245,24 +245,6 @@ class IntCodec[D](CodecBase[int, D], RsObject):
         return self.__backend__().decode_py(genotype=genotype.__backend__())
 
     @staticmethod
-    def scalar(
-        init_range: tuple[int, int] | None = None,
-        bounds: tuple[int, int] | None = None,
-        dtype: DataTypeClass | DataType | None = None,
-    ) -> IntCodec[int]:
-        """
-        Create a scalar codec with specified value and bound ranges.
-        :param value_range: Minimum and maximum value for the gene.
-        :param bound_range: Minimum and maximum bound for the gene.
-        :return: A new IntCodec instance with scalar configuration.
-        """
-        return IntCodec(
-            init_range=init_range,
-            bounds=bounds,
-            dtype=dtype,
-        )
-
-    @staticmethod
     def __from_genes(
         genes: Gene[int] | Sequence[Gene[int]], use_numpy: bool = False
     ) -> PyIntCodec:

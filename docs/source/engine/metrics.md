@@ -229,3 +229,5 @@ Tags available:
 | `Distribution`     | Metrics that describe distributions (e.g., scores, ages).                        |
 | `Score`             | Metrics specifically related to fitness scores.                             |
 | `Rate`              | Metrics that represent rates (e.g., carryover rate).                                |
+| `Step`              | Metrics related to the different steps or phases of the evolutionary process (evaluation, recombination, filtering, etc.).    |
+| `Lineage`           | Metrics related to the lineage or ancestry of individuals.                    |
