@@ -108,3 +108,134 @@ def test_engine_int_jagged_matrix(random_seed):
     assert len(result.population()) == len(result.ecosystem().population())
     assert len(result.ecosystem().species()) == 0
     assert result.objective() == rd.MIN
+
+
+@pytest.mark.unit
+def test_create_int_scalar_engine_from_genes():
+    """Test creating a float engine from genes."""
+
+    def scalar_fit(val: int) -> int:
+        return val**2
+
+    gene = rd.Gene.int(init_range=(-5, 5))
+    engine = (
+        rd.Engine.int(genes=gene).fitness(scalar_fit).limit(rd.Limit.generations(5))
+    )
+
+    result = engine.run()
+
+    assert result is not None
+    assert type(result.value()) is int
+
+
+@pytest.mark.unit
+def test_create_int_vector_engine_from_genes():
+    """Test creating a float engine from genes."""
+
+    def list_fit(val: list[int]) -> int:
+        return sum(x**2 for x in val)
+
+    def np_vector_fit(val: np.ndarray) -> float:
+        assert isinstance(val, np.ndarray) and val.dtype == np.int64
+        return float(np.sum(val**2))
+
+    sequence = [
+        rd.Gene.int(init_range=(-5, 5)),
+        rd.Gene.int(init_range=(-50, 50)),
+        rd.Gene.int(init_range=(10, 50)),
+    ]
+
+    result = (
+        rd.Engine.int(genes=sequence).fitness(list_fit).limit(rd.Limit.generations(5))
+    ).run()
+
+    assert result is not None
+    assert type(result.value()) is list
+    assert len(result.value()) == 3
+
+    for phenotype in result.population():
+        for chromosome in phenotype.genotype():
+            assert len(chromosome) == 3
+
+            one = chromosome[0]
+            two = chromosome[1]
+            three = chromosome[2]
+
+            assert one.allele() >= -5 and one.allele() <= 5
+            assert two.allele() >= -50 and two.allele() <= 50
+            assert three.allele() >= 10 and three.allele() <= 50
+
+    engine = (
+        rd.Engine.int(genes=sequence, use_numpy=True, dtype=rd.Int64)
+        .fitness(np_vector_fit)
+        .limit(rd.Limit.generations(5))
+    )
+
+    result = engine.run()
+
+    assert result is not None
+    assert type(result.value()) is np.ndarray
+    assert result.value().shape == (3,)
+
+
+@pytest.mark.unit
+def test_create_int_engine_from_chromosomes():
+    """Test creating a int engine from chromosomes."""
+
+    def vector_fit(val: list[int]) -> float:
+        return sum(x**2 for x in val)
+
+    chromosome = rd.Chromosome.int(5, init_range=(-5, 5))
+    engine = (
+        rd.Engine.int(chromosomes=chromosome)
+        .fitness(vector_fit)
+        .limit(rd.Limit.generations(5))
+    )
+
+    result = engine.run()
+
+    assert result is not None
+    assert type(result.value()) is list
+    assert len(result.value()) == 5
+
+    def matrix_fit(val: list[list[int]]) -> int:
+        return sum(sum(x**2 for x in row) for row in val)
+
+    sequence = [
+        rd.Chromosome.int(3, init_range=(-5, 5)),
+        rd.Chromosome.int(3, init_range=(-50, 50)),
+        rd.Chromosome.int(3, init_range=(10, 50)),
+    ]
+
+    engine = (
+        rd.Engine.int(chromosomes=sequence)
+        .fitness(matrix_fit)
+        .limit(rd.Limit.generations(5))
+    )
+
+    result = engine.run()
+    population = result.population()
+
+    assert result is not None
+    assert type(result.value()) is list
+    assert len(result.value()) == 3
+
+    for phenotype in population:
+        genotype = phenotype.genotype()
+
+        assert len(genotype) == 3
+
+        one = genotype[0]
+        two = genotype[1]
+        three = genotype[2]
+
+        assert len(one) == 3
+        assert len(two) == 3
+        assert len(three) == 3
+
+        for gene in one:
+            assert gene.allele() >= -5 and gene.allele() <= 5
+        for gene in two:
+            assert gene.allele() >= -50 and gene.allele() <= 50
+        for gene in three:
+            assert gene.allele() >= 10 and gene.allele() <= 50

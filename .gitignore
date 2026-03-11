@@ -18,3 +18,4 @@ radiate/.vs
 *uv.lock
 *ruff_cache
 pyrightconfig.json
+py-radiate/examples/data

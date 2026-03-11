@@ -14,6 +14,7 @@ use std::{
 /// and that the structures built using these operations are built in ways that respect
 /// these input requirements. For example, an addition operation would typically have an arity of 2,
 /// while a constant operation would have an arity of 0. This is the _base_ level of the GP system, meaning
+
 /// that everything built on top of it (trees, graphs, etc.) will relies *heavily* on how these
 /// operations are defined and used.
 pub enum Op<T> {
@@ -158,9 +159,28 @@ where
     }
 }
 
-impl<T> Hash for Op<T> {
+impl Hash for Op<f32> {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.name().hash(state);
+        self.arity().hash(state);
+        match self {
+            Op::Fn(_, _, op) => {
+                let op_ptr = *op as usize;
+                op_ptr.hash(state);
+            }
+            Op::Var(_, index, domain) => {
+                index.hash(state);
+                domain.hash(state);
+            }
+            Op::Const(_, value) => {
+                value.to_bits().hash(state);
+            }
+            Op::Value(_, _, value, operation) => {
+                (*value).data().to_bits().hash(state);
+                let op_ptr = *operation as usize;
+                op_ptr.hash(state);
+            }
+        }
     }
 }
 

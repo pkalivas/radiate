@@ -58,5 +58,5 @@ pub(crate) const ENGINE_IMPROVEMENT_EVENT: &str = "engine_improvement_event";
 // Loss Functions
 pub(crate) const MSE_LOSS: &str = "mse";
 pub(crate) const MAE_LOSS: &str = "mae";
-pub(crate) const CROSS_ENTROPY_LOSS: &str = "cross_entropy";
+pub(crate) const CROSS_ENTROPY_LOSS: &str = "xent";
 pub(crate) const DIFF_LOSS: &str = "diff";

@@ -11,60 +11,70 @@ pub enum SubsetMode<'a> {
 /// * Calls the subset function to get a subset of indices.
 /// * Replaces an index in the subset with the specified index if it fits the criteria.
 /// * Sorts and returns the result.
-pub fn individual_indexes(index: usize, max_index: usize, num_indices: usize) -> Vec<usize> {
-    let mut sub_set = subset(max_index, num_indices, SubsetMode::StratifiedCorrect);
+pub fn create_individual_indexes(index: usize, max_index: usize, num_indices: usize) -> Vec<usize> {
+    let mut scratch = vec![0; num_indices];
+    subset(
+        max_index,
+        num_indices,
+        &mut scratch,
+        SubsetMode::StratifiedCorrect,
+    );
     let mut i = 0;
-    while i < sub_set.len() && sub_set[i] < index {
+    while i < scratch.len() && scratch[i] < index {
         i += 1;
     }
-    if i < sub_set.len() {
-        sub_set[i] = index;
+    if i < scratch.len() {
+        scratch[i] = index;
     }
-    let mut result = sub_set.iter().map(|&x| x).collect::<Vec<usize>>();
-    result.sort_unstable();
-    result
+
+    scratch.sort_unstable();
+    scratch
 }
 
+pub fn individual_indexes(index: usize, max_index: usize, num_indices: usize, buff: &mut [usize]) {
+    subset(max_index, num_indices, buff, SubsetMode::StratifiedCorrect);
+    let mut i = 0;
+    while i < buff.len() && buff[i] < index {
+        i += 1;
+    }
+    if i < buff.len() {
+        buff[i] = index;
+    }
+
+    buff.sort_unstable();
+}
 /// * Generates a subset of indices of size k from a total of n elements.
 /// * Calls the next function to fill the subset.
-pub fn subset(max_index: usize, num_indicies: usize, mode: SubsetMode) -> Vec<usize> {
+pub fn subset(max_index: usize, num_indicies: usize, buffer: &mut [usize], mode: SubsetMode) {
     if max_index < num_indicies {
         panic!("n smaller than k: {} < {}.", max_index, num_indicies);
     }
 
     random_provider::with_rng(|rand| match mode {
         SubsetMode::StratifiedCorrect => {
-            let mut sub = vec![0; num_indicies];
-            next(max_index, &mut sub, rand);
-            sub
+            next(max_index, buffer, rand);
         }
         SubsetMode::FastRandom => {
-            let mut sub = vec![0; num_indicies];
             for i in 0..num_indicies {
-                sub[i] = rand.range(0..max_index);
+                buffer[i] = rand.range(0..max_index);
             }
-            sub
         }
         SubsetMode::Exclude(exclude) => {
-            let mut sub = vec![0; num_indicies];
             for i in 0..num_indicies {
                 loop {
                     let index = rand.range(0..max_index);
                     if !exclude.contains(&index) {
-                        sub[i] = index;
+                        buffer[i] = index;
                         break;
                     }
                 }
             }
-            sub
         }
         SubsetMode::RangeList(range_list) => {
-            let mut sub = vec![0; num_indicies];
             for i in 0..num_indicies {
                 let (start, end) = range_list[i % range_list.len()];
-                sub[i] = rand.range(start..end);
+                buffer[i] = rand.range(start..end);
             }
-            sub
         }
     })
 }
@@ -195,7 +205,8 @@ mod tests {
     fn test_fast_random_subset() {
         let n = 50;
         let k = 20;
-        let result = subset(n, k, SubsetMode::FastRandom);
+        let mut result = vec![0; k];
+        subset(n, k, &mut result, SubsetMode::FastRandom);
         assert_eq!(result.len(), k);
         assert!(result.iter().all(|&x| x < n));
     }
@@ -205,7 +216,8 @@ mod tests {
         let n = 10;
         let k = 5;
         let blacklist = vec![2, 3, 4];
-        let result = subset(n, k, SubsetMode::Exclude(&blacklist));
+        let mut result = vec![0; k];
+        subset(n, k, &mut result, SubsetMode::Exclude(&blacklist));
         assert_eq!(result.len(), k);
         assert!(result.iter().all(|&x| !blacklist.contains(&x)));
     }
@@ -213,7 +225,8 @@ mod tests {
     #[test]
     fn test_range_list_subset() {
         let ranges = vec![(0, 5), (10, 15)];
-        let result = subset(20, 6, SubsetMode::RangeList(&ranges));
+        let mut result = vec![0; 6];
+        subset(20, 6, &mut result, SubsetMode::RangeList(&ranges));
         assert_eq!(result.len(), 6);
         assert!(
             result
@@ -224,7 +237,7 @@ mod tests {
 
     #[test]
     fn test_individual_indexes_includes_index() {
-        let result = individual_indexes(7, 20, 5);
+        let result = create_individual_indexes(7, 20, 5);
         assert_eq!(result.len(), 5);
         assert!(result.contains(&7));
         let mut sorted = result.clone();

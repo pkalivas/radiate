@@ -1,7 +1,7 @@
 use crate::{TreeIterator, collections::TreeNode};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use std::fmt::Debug;
+use std::{fmt::Debug, hash::Hash};
 
 /// A tree structure that represents a hierarchical collection of nodes.
 ///
@@ -154,6 +154,12 @@ impl<T> AsRef<TreeNode<T>> for Tree<T> {
 impl<T> AsMut<TreeNode<T>> for Tree<T> {
     fn as_mut(&mut self) -> &mut TreeNode<T> {
         self.root.as_mut().unwrap()
+    }
+}
+
+impl<T: Hash> Hash for Tree<T> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.root.hash(state);
     }
 }
 

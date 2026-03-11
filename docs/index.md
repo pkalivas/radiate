@@ -95,9 +95,10 @@ This simple maximizing problem demonstrates how to use Radiate to solve a string
             rd.Engine.char(len(target))
             .fitness(fit)
             .select(offspring=rd.Select.boltzmann(4))
+            .limit(rd.Limit.score(len(target)))
         )
 
-        result = engine.run(rd.ScoreLimit(len(target)))
+        result = engine.run()
 
         print(result)
         ```

@@ -1,10 +1,23 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.13"
+# dependencies = [
+#   "numpy",
+# ]
+# ///
 """
 Regression with Tree Codec
 
 This example demonstrates using the TreeCodec to solve a regression problem.
 We have a simple polynomial function and we want to evolve a graph that approximates it.
 """
+
+# pyright: reportMissingImports=false
+
+import os
+import sys
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import radiate as rd
 import numpy as np

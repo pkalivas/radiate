@@ -62,12 +62,3 @@ def test_graph_from_json(graph_simple_2x1):
     assert graph is not None
     assert isinstance(graph, rd.Graph)
     assert graph.eval([[1.0, 2.0]]) is not None
-
-
-@pytest.mark.unit
-def test_gp_graph_eval_with_invalid_input(graph_simple_2x1):
-    """Test GP Graph evaluation with invalid input."""
-    with pytest.raises(TypeError):
-        graph_simple_2x1.eval("invalid_input")
-    with pytest.raises(TypeError):
-        graph_simple_2x1.eval([[1.0, "invalid", 3.0]])

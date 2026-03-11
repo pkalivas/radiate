@@ -361,8 +361,8 @@ impl<C: Chromosome> Default for AppState<C> {
             },
             display: DisplayState {
                 show_tag_filters: false,
-                show_mini_chart: true,
-                show_mini_chart_mean: false,
+                show_mini_chart: false,
+                show_mini_chart_mean: true,
                 show_help: false,
                 focus_panel: PanelId::Metrics,
                 modal_panel: None,

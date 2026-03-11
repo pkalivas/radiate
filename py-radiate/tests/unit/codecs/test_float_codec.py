@@ -7,7 +7,7 @@ from radiate import FloatCodec, Float32
 @pytest.mark.unit
 def test_float_codec_vector_creation():
     """Test creating a float codec for vectors."""
-    codec = FloatCodec.vector(length=4, init_range=(-1.0, 1.0))
+    codec = FloatCodec(shape=4, init_range=(-1.0, 1.0))
     genotype = codec.encode()
 
     assert len(genotype) == 1
@@ -25,7 +25,7 @@ def test_float_codec_vector_creation():
 @pytest.mark.unit
 def test_float_codec_matrix_creation():
     """Test creating a float codec for matrices."""
-    codec = FloatCodec.matrix((2, 3), init_range=(-10.0, 10.0))
+    codec = FloatCodec((2, 3), init_range=(-10.0, 10.0))
     genotype = codec.encode()
 
     assert len(genotype) == 2
@@ -43,7 +43,7 @@ def test_float_codec_matrix_creation():
 @pytest.mark.unit
 def test_float_codec_decode():
     """Test decoding float genotypes."""
-    codec = FloatCodec.vector(length=3, init_range=(0.0, 1.0), use_numpy=True)
+    codec = FloatCodec(shape=3, init_range=(0.0, 1.0), use_numpy=True)
     genotype = codec.encode()
     decoded = codec.decode(genotype)
 
@@ -63,7 +63,7 @@ def test_float_codec_decode():
 @pytest.mark.unit
 def test_float_codec_with_numpy():
     """Test float codec with numpy arrays."""
-    codec = FloatCodec.vector(length=3, init_range=(-1.0, 1.0), use_numpy=True)
+    codec = FloatCodec(shape=3, init_range=(-1.0, 1.0), use_numpy=True)
     genotype = codec.encode()
     decoded = codec.decode(genotype)
 
@@ -79,7 +79,7 @@ def test_float_codec_with_numpy():
     assert decoded.shape == (10,)
     assert all(-5.0 <= x <= 5.0 for x in decoded)
 
-    codec = FloatCodec.matrix(
+    codec = FloatCodec(
         shape=[5, 5, 5, 5], init_range=(-10.0, 10.0), use_numpy=True, dtype=Float32
     )
 
@@ -109,7 +109,7 @@ def test_float_codec_matrix_invalid_value_range_order():
     with pytest.raises(
         ValueError, match="Minimum value must be less than maximum value"
     ):
-        FloatCodec.matrix(shape=(2, 3), init_range=(10.0, 5.0))
+        FloatCodec(shape=(2, 3), init_range=(10.0, 5.0))
     with pytest.raises(
         ValueError, match="Minimum value must be less than maximum value"
     ):
@@ -122,7 +122,7 @@ def test_float_codec_matrix_invalid_bound_range_order():
     with pytest.raises(
         ValueError, match="Minimum bound must be less than maximum bound"
     ):
-        FloatCodec.matrix(shape=(2, 3), bounds=(10.0, 5.0))
+        FloatCodec(shape=(2, 3), bounds=(10.0, 5.0))
     with pytest.raises(
         ValueError, match="Minimum bound must be less than maximum bound"
     ):
@@ -133,7 +133,7 @@ def test_float_codec_matrix_invalid_bound_range_order():
 def test_float_codec_vector_invalid_length():
     """Test FloatCodec vector with invalid length."""
     with pytest.raises(ValueError, match="Length must be a positive integer"):
-        FloatCodec.vector(length=0)
+        FloatCodec(shape=0)
     with pytest.raises(ValueError, match="Length must be a positive integer"):
         FloatCodec(-5)
 
@@ -142,16 +142,4 @@ def test_float_codec_vector_invalid_length():
 def test_negative_length_codec():
     """Test codecs handle negative length gracefully."""
     with pytest.raises(ValueError):
-        FloatCodec.vector(length=-1, init_range=(-1.0, 1.0))
-
-
-# @pytest.mark.unit
-# def test_codec_from_genes():
-#     """Test codec creation from genes."""
-#     genes = [rd.Gene.float(0.5), rd.Gene.float(0.8)]
-#     # codec = FloatCodec(genes=genes)
-#     # decoded = codec.decode(codec.encode())
-
-#     # assert isinstance(codec, FloatCodec)
-#     # assert len(decoded) == 2
-#     # assert all(isinstance(x, float) for x in decoded)
+        FloatCodec(shape=-1, init_range=(-1.0, 1.0))

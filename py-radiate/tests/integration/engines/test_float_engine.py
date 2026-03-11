@@ -115,7 +115,6 @@ def test_engine_float_simple_neural_network(
 
     result = engine.run()
 
-    # assert result.score()[0] < 0.01
     assert result.index() <= 500
     assert len(result.population()) == len(result.ecosystem().population())
     assert len(result.ecosystem().species()) == 0
@@ -125,3 +124,152 @@ def test_engine_float_simple_neural_network(
     assert all(
         isinstance(w, np.ndarray) and w.dtype == np.float32 for w in result.value()
     )
+
+
+@pytest.mark.unit
+def test_create_float_scalar_engine_from_genes():
+    """Test creating a float engine from genes."""
+
+    def scalar_fit(val: float) -> float:
+        return val**2
+
+    engine = (
+        rd.Engine.float(genes=rd.Gene.float(init_range=(-5.0, 5.0)))
+        .fitness(scalar_fit)
+        .limit(rd.Limit.generations(5))
+    )
+
+    result = engine.run()
+
+    assert result is not None
+    assert type(result.value()) is float
+
+
+@pytest.mark.unit
+def test_create_float_vector_engine_from_genes():
+    """Test creating a float engine from genes."""
+
+    def list_fit(val: list[float]) -> float:
+        return sum(x**2 for x in val)
+
+    result = (
+        rd.Engine.float(
+            genes=[
+                rd.Gene.float(init_range=(-5.0, 5.0)),
+                rd.Gene.float(init_range=(-50.0, 50.0)),
+                rd.Gene.float(init_range=(10.0, 50.0)),
+            ]
+        )
+        .fitness(list_fit)
+        .limit(rd.Limit.generations(5))
+    ).run()
+
+    assert result is not None
+    assert type(result.value()) is list
+    assert len(result.value()) == 3
+
+    for phenotype in result.population():
+        for chromosome in phenotype.genotype():
+            assert len(chromosome) == 3
+
+            one = chromosome[0]
+            two = chromosome[1]
+            three = chromosome[2]
+
+            assert one.allele() >= -5.0 and one.allele() <= 5.0
+            assert two.allele() >= -50.0 and two.allele() <= 50.0
+            assert three.allele() >= 10.0 and three.allele() <= 50.0
+
+
+@pytest.mark.unit
+def test_create_float_np_vector_engine_from_genes():
+    """Test creating a float engine from genes."""
+
+    def np_vector_fit(val: np.ndarray) -> float:
+        assert isinstance(val, np.ndarray) and val.dtype == np.float64
+        return float(np.sum(val**2))
+
+    engine = (
+        rd.Engine.float(
+            genes=[
+                rd.Gene.float(init_range=(-5.0, 5.0)),
+                rd.Gene.float(init_range=(-50.0, 50.0)),
+                rd.Gene.float(init_range=(10.0, 50.0)),
+            ],
+            use_numpy=True,
+            dtype=rd.Float32,
+        )
+        .fitness(np_vector_fit)
+        .limit(rd.Limit.generations(5))
+    )
+
+    result = engine.run()
+
+    assert result is not None
+    assert type(result.value()) is np.ndarray
+    assert result.value().shape == (3,)
+
+
+@pytest.mark.unit
+def test_create_float_engine_from_chromosomes():
+    """Test creating a float engine from chromosomes."""
+
+    def vector_fit(val: list[float]) -> float:
+        return sum(x**2 for x in val)
+
+    engine = (
+        rd.Engine.float(chromosomes=rd.Chromosome.float(5, init_range=(-5.0, 5.0)))
+        .fitness(vector_fit)
+        .limit(rd.Limit.generations(5))
+    )
+
+    result = engine.run()
+
+    assert result is not None
+    assert type(result.value()) is list
+    assert len(result.value()) == 5
+
+
+@pytest.mark.unit
+def test_create_float_engine_from_chromosomes_with_numpy():
+    def matrix_fit(val: list[list[float]]) -> float:
+        return sum(sum(x**2 for x in row) for row in val)
+
+    engine = (
+        rd.Engine.float(
+            chromosomes=[
+                rd.Chromosome.float(3, init_range=(-5.0, 5.0)),
+                rd.Chromosome.float(3, init_range=(-50.0, 50.0)),
+                rd.Chromosome.float(3, init_range=(10.0, 50.0)),
+            ]
+        )
+        .fitness(matrix_fit)
+        .limit(rd.Limit.generations(5))
+    )
+
+    result = engine.run()
+    population = result.population()
+
+    assert result is not None
+    assert type(result.value()) is list
+    assert len(result.value()) == 3
+
+    for phenotype in population:
+        genotype = phenotype.genotype()
+
+        assert len(genotype) == 3
+
+        one = genotype[0]
+        two = genotype[1]
+        three = genotype[2]
+
+        assert len(one) == 3
+        assert len(two) == 3
+        assert len(three) == 3
+
+        for gene in one:
+            assert gene.allele() >= -5.0 and gene.allele() <= 5.0
+        for gene in two:
+            assert gene.allele() >= -50.0 and gene.allele() <= 50.0
+        for gene in three:
+            assert gene.allele() >= 10.0 and gene.allele() <= 50.0

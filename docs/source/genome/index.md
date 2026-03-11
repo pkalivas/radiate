@@ -267,6 +267,10 @@ Because each `Chromosome` has an associated `Gene`, the built int chromosomes ar
             bounds=(-100, 100),     # Optional, bounds for gene alleles during evolution - defaults to init_range
             dtype=rd.Int16          # Optional, defaults to rd.Int64
         )
+
+        # Create an integer chromosome with specific genes
+        genes = [rd.Gene.int(allele=1), rd.Gene.int(allele=2), rd.Gene.int(allele=3)]
+        chromosome_with_genes = rd.Chromosome.int(genes=genes)
         ```
 
     === ":fontawesome-brands-rust: Rust"

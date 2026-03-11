@@ -118,11 +118,9 @@ def _lazy_import(module_name: str) -> tuple[ModuleType, bool]:
         A lazy-loading module and a boolean indicating if the requested/underlying
         module exists (if not, the returned module is a proxy).
     """
-    # check if module is LOADED
     if module_name in sys.modules:
         return sys.modules[module_name], True
 
-    # check if module is AVAILABLE
     try:
         module_spec = find_spec(module_name)
         module_available = not (module_spec is None or module_spec.loader is None)

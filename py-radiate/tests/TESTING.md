@@ -96,7 +96,7 @@ def test_engine_small_problem_performance(benchmark):
         return sum(xi**2 for xi in x)
     
     engine = GeneticEngine(
-        codec=FloatCodec.vector(length=10, value_range=(-1.0, 1.0)),
+        codec=FloatCodec(shape=10, value_range=(-1.0, 1.0)),
         fitness_func=fitness_func,
         objective=rd.MIN
     )
@@ -239,7 +239,7 @@ GitHub Actions automatically runs tests on:
 def test_float_codec_bounds():
     """Test float codec respects bounds."""
     # Arrange
-    codec = FloatCodec.vector(length=10, value_range=(-5, 5))
+    codec = FloatCodec(shape=10, value_range=(-5, 5))
     
     # Act
     genotype = codec.encode()

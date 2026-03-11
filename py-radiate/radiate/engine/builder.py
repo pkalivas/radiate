@@ -44,7 +44,7 @@ class EngineConfig[G, T]:
     front_range: tuple[int, int] = (800, 900)
     executor: Executor | None = None
     subscribe: Subscriber | None = None
-    generation: Generation[T] | None = None
+    generation: Generation[G, T] | None = None
     checkpoint_path: str | None = None
 
 

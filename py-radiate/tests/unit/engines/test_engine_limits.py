@@ -70,3 +70,8 @@ def test_multiple_limits(simple_float_engine):
         assert result.score()[0] > 0.1, "Should respect score limit"
     else:
         assert result.index() == 5, "Should respect generations limit"
+
+    other_result = simple_float_engine.limit(
+        rd.Limit.metric("evaluation_count", lambda metric: metric.sum() > 1000)
+    ).run()
+    assert other_result.metrics()["evaluation_count"].sum() > 1000

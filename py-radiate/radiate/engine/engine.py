@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, overload, Sequence
+from typing import Any, Sequence
 from collections.abc import Callable
 
 from radiate.codec import (
@@ -14,8 +14,8 @@ from radiate.codec import (
 )
 
 from radiate.operators import SelectorBase, AlterBase, DistanceBase, Executor, LimitBase
-from radiate.fitness import FitnessBase, Regression
-from radiate.genome import Population, GeneType
+from radiate.fitness import FitnessBase, Regression, MSE
+from radiate.genome import Population, GeneType, Gene, Chromosome
 from radiate.gp import Graph, Tree, Op
 from radiate.dtype import Float64, Int64
 from radiate.codec.base import CodecBase
@@ -25,10 +25,7 @@ from radiate._typing import (
     AtLeastOne,
     Subscriber,
     RdDataType,
-    Encoding,
-    ScalarDecoding,
-    VectorDecoding,
-    MatrixDecoding,
+    RdLossType,
 )
 
 from .builder import EngineBuilder
@@ -45,151 +42,129 @@ class Engine[G, T]:
 
     def __init__(
         self,
-        codec: Encoding[G],
+        codec: CodecBase[G, T],
         **kwargs: Any,
     ):
-        encoding = None
-        if not isinstance(codec, CodecBase):
-            # encoding = CodecBase.from_genes(codec)
-            pass
-        else:
-            encoding = codec
+        if not isinstance(codec, CodecBase) or codec is None:
+            raise ValueError(
+                "Input to engine must have an instance of CodecBase to be constructed"
+            )
 
         self._engine = None
-        if encoding is not None:
-            self._builder = EngineBuilder._default(
-                encoding.gene_type, codec=encoding, **kwargs
-            )
+        self._builder = EngineBuilder._default(codec.gene_type, codec=codec, **kwargs)
 
-    # --- Float Engine Overloads ---
-    @overload
     @staticmethod
     def float(
-        *,
-        shape: int = 1,
-        init_range: tuple[float, float] | None = (0, 1.0),
-        bounds: tuple[float, float] | None = None,
-        dtype: RdDataType = Float64,
-        use_numpy: bool = False,
-    ) -> "Engine[float, ScalarDecoding[float]]": ...
-
-    @overload
-    @staticmethod
-    def float(
-        shape: int,
+        shape: AtLeastOne[int] | None = None,
         *,
         init_range: tuple[float, float] | None = (0, 1.0),
         bounds: tuple[float, float] | None = None,
         dtype: RdDataType = Float64,
         use_numpy: bool = False,
-    ) -> "Engine[float, VectorDecoding[float]]": ...
-
-    @overload
-    @staticmethod
-    def float(
-        shape: Sequence[int],
-        *,
-        init_range: tuple[float, float] | None = (0, 1.0),
-        bounds: tuple[float, float] | None = None,
-        dtype: RdDataType = Float64,
-        use_numpy: bool = False,
-    ) -> "Engine[float, MatrixDecoding[float]]": ...
-
-    # --- End of Float Engine Overloads ---
-
-    @staticmethod
-    def float(
-        shape: AtLeastOne[int] = 1,
-        init_range: tuple[float, float] | None = (0, 1.0),
-        bounds: tuple[float, float] | None = None,
-        dtype: RdDataType = Float64,
-        use_numpy: bool = False,
+        genes: Gene[float] | Sequence[Gene[float]] | None = None,
+        chromosomes: AtLeastOne[Chromosome[float]] | None = None,
     ) -> "Engine[float, Any]":
         """Create a genetic engine for optimizing floating-point values."""
-        return Engine(
-            codec=FloatCodec(
-                shape,
+
+        provided = sum(x is not None for x in (shape, genes, chromosomes))
+        if provided > 1:
+            raise ValueError(
+                "Only one of shape, genes, or chromosomes may be provided."
+            )
+
+        codec = None
+        if genes is not None:
+            codec = FloatCodec(
+                shape=None,
+                init_range=init_range,
+                bounds=bounds,
+                dtype=dtype,
+                use_numpy=use_numpy,
+                genes=genes,
+            )
+        elif chromosomes is not None:
+            codec = FloatCodec(
+                shape=None,
+                init_range=init_range,
+                bounds=bounds,
+                dtype=dtype,
+                use_numpy=use_numpy,
+                chromosomes=chromosomes,
+            )
+        elif shape is not None:
+            codec = FloatCodec(
+                shape=shape,
                 init_range=init_range,
                 bounds=bounds,
                 dtype=dtype,
                 use_numpy=use_numpy,
             )
-        )
+        else:
+            codec = FloatCodec(
+                shape=None,
+                init_range=init_range,
+                bounds=bounds,
+                dtype=dtype,
+                use_numpy=use_numpy,
+            )
 
-    # --- Integer Engine Overloads ---
-    @overload
+        return Engine(codec=codec)
+
     @staticmethod
     def int(
-        *,
-        shape: int = 1,
-        init_range: tuple[int, int] | None = (0, 100),
-        bounds: tuple[int, int] | None = None,
-        dtype: RdDataType = Int64,
-        use_numpy: bool = False,
-    ) -> "Engine[int, ScalarDecoding[int]]": ...
-
-    @overload
-    @staticmethod
-    def int(
-        shape: int,
+        shape: AtLeastOne[int] | None = None,
         *,
         init_range: tuple[int, int] | None = (0, 100),
         bounds: tuple[int, int] | None = None,
         dtype: RdDataType = Int64,
         use_numpy: bool = False,
-    ) -> "Engine[int, VectorDecoding[int]]": ...
-
-    @overload
-    @staticmethod
-    def int(
-        shape: Sequence[int],
-        *,
-        init_range: tuple[int, int] | None = (0, 100),
-        bounds: tuple[int, int] | None = None,
-        dtype: RdDataType = Int64,
-        use_numpy: bool = False,
-    ) -> "Engine[int, MatrixDecoding[int]]": ...
-
-    # --- End of Integer Engine Overloads ---
-
-    @staticmethod
-    def int(
-        shape: AtLeastOne[int] = 1,
-        *,
-        init_range: tuple[int, int] | None = (0, 100),
-        bounds: tuple[int, int] | None = None,
-        dtype: RdDataType = Int64,
-        use_numpy: bool = False,
+        genes: AtLeastOne[Gene[int]] | None = None,
+        chromosomes: AtLeastOne[Chromosome[int]] | None = None,
     ) -> "Engine[int, Any]":
         """Create a genetic engine for optimizing integer values."""
-        return Engine(
-            codec=IntCodec(
-                shape,
+        provided = sum(x is not None for x in (shape, genes, chromosomes))
+        if provided > 1:
+            raise ValueError(
+                "Only one of shape, genes, or chromosomes may be provided."
+            )
+
+        codec = None
+        if genes is not None:
+            codec = IntCodec(
+                shape=None,
+                init_range=init_range,
+                bounds=bounds,
+                dtype=dtype,
+                use_numpy=use_numpy,
+                genes=genes,
+            )
+        elif chromosomes is not None:
+            codec = IntCodec(
+                shape=None,
+                init_range=init_range,
+                bounds=bounds,
+                dtype=dtype,
+                use_numpy=use_numpy,
+                chromosomes=chromosomes,
+            )
+        elif shape is not None:
+            codec = IntCodec(
+                shape=shape,
                 init_range=init_range,
                 bounds=bounds,
                 dtype=dtype,
                 use_numpy=use_numpy,
             )
-        )
+        else:
+            codec = IntCodec(
+                shape=None,
+                init_range=init_range,
+                bounds=bounds,
+                dtype=dtype,
+                use_numpy=use_numpy,
+            )
 
-    # --- Character Engine Overloads ---
-    @overload
-    @staticmethod
-    def char(
-        shape: int,
-        *,
-        char_set: str | list[str] | set[str] | None = None,
-    ) -> "Engine[str, list[str]]": ...
-
-    @overload
-    @staticmethod
-    def char(
-        shape: Sequence[int],
-        *,
-        char_set: str | list[str] | set[str] | None = None,
-    ) -> "Engine[str, list[list[str]]]": ...
-
-    # --- End of Character Engine Overloads ---
+        return Engine(codec=codec)
 
     @staticmethod
     def char(
@@ -198,23 +173,6 @@ class Engine[G, T]:
     ) -> "Engine[str, Any]":
         """Create a genetic engine for optimizing character values."""
         return Engine(codec=CharCodec(shape, char_set=char_set))
-
-    # --- Bit Engine Overloads ---
-    @overload
-    @staticmethod
-    def bit(
-        shape: int,
-        use_numpy: bool = False,
-    ) -> "Engine[bool, VectorDecoding[bool]]": ...
-
-    @overload
-    @staticmethod
-    def bit(
-        shape: Sequence[int],
-        use_numpy: bool = False,
-    ) -> "Engine[bool, MatrixDecoding[bool]]": ...
-
-    # --- End of Bit Engine Overloads ---
 
     @staticmethod
     def bit(shape: AtLeastOne[int] = 1, use_numpy: bool = False) -> "Engine[bool, Any]":
@@ -238,7 +196,7 @@ class Engine[G, T]:
     ) -> Engine[Op, Graph]:
         """Create a genetic engine for optimizing graph structures."""
         codec = GraphCodec(
-            graph_type="directed",
+            graph_type=graph_type,
             shape=shape,
             vertex=vertex,
             edge=edge,
@@ -397,9 +355,9 @@ class Engine[G, T]:
         features: Any,
         targets: Any | None = None,
         *,
-        target: str | None = None,
+        target_cols: str | list[str] | None = None,
         feature_cols: list[str] | None = None,
-        loss: str = "mse",
+        loss: RdLossType = MSE,
         batch: bool = False,
     ) -> Engine[G, T]:
         """
@@ -410,10 +368,10 @@ class Engine[G, T]:
         Using this method will automatically set the engine's objective to minimization, as regression problems typically involve minimizing a loss function.
 
         The loss parameter accepts four common loss functions for regression:
-        - **mse**: Mean Squared Error
-        - **mae**: Mean Absolute Error
-        - **cross_entropy**: Cross-Entropy Loss (for classification problems, but can be used in regression with appropriate encoding)
-        - **diff**: A simple difference loss that calculates the absolute difference between predicted and target values.
+        - **MSE**: Mean Squared Error
+        - **MAE**: Mean Absolute Error
+        - **XEnt**: Cross-Entropy Loss (for classification problems, but can be used in regression with appropriate encoding)
+        - **Diff**: A simple difference loss that calculates the absolute difference between predicted and target values.
 
         Accepts:
         - (features, targets)
@@ -423,9 +381,9 @@ class Engine[G, T]:
             features: The input features for the regression problem. Can be a tuple of (features, targets) or a DataFrame.
             targets: The target values for the regression problem. Required if features is not a tuple.
             *,
-            target: The name of the target column if features is a DataFrame.
+            target_cols: The name(s) of the target column(s) if features is a DataFrame.
             feature_cols: The names of the feature columns if features is a DataFrame.
-            loss: The loss function to use for regression (e.g., "mse", "mae").
+            loss: The loss function to use for regression (e.g., MSE, MAE, Cross-Entropy, Diff). Defaults to MSE.
             batch: Whether to compute fitness in batches (useful for large datasets).
 
         Returns:
@@ -447,7 +405,7 @@ class Engine[G, T]:
         ...         edge=rd.Op.weight(),
         ...         output=rd.Op.linear(),
         ...     )
-        ...     .regression(features, targets, loss="mse") # <- we directly pass our features/targets to the regression method. The engine is now also configured to minimize the mean squared error between the graph's output and our targets.
+        ...     .regression(features, targets, loss=rd.MSE) # <- we directly pass our features/targets to the regression method. The engine is now also configured to minimize the mean squared error between the graph's output and our targets.
         ...     .alters(
         ...         rd.Cross.graph(0.05, 0.5),
         ...         rd.Mutate.op(0.07, 0.05),
@@ -466,13 +424,13 @@ class Engine[G, T]:
         ...     "feature2": [4.0, 5.0, 6.0],
         ...     "target": [7.0, 8.0, 9.0]
         ... })
-        >>> base_engine.regression(df, target="target", feature_cols=["feature1", "feature2"], loss="mae")
+        >>> base_engine.regression(df, target_cols="target", feature_cols=["feature1", "feature2"], loss=rd.MAE)
         """
         self._builder.set_fitness(
             Regression(
                 features,
                 targets,
-                target=target,
+                target_cols=target_cols,
                 feature_cols=feature_cols,
                 loss=loss,
                 batch=batch,
@@ -748,11 +706,11 @@ class Engine[G, T]:
         ---------
         >>> import radiate as rd
         >>> ...
-        >>> codec = rd.FloatCodec.vector(5, init_range=(-5.12, 5.12))
+        >>> codec = rd.FloatCodec(shape=5, init_range=(-5.12, 5.12))
         >>> population = rd.Population(rd.Phenotype(codec.encode()) for _ in range(107))
         >>> ...
         >>> engine = (
-        ...     rd.Engine.float(5, init_range=(-5.12, 5.12))
+        ...     rd.Engine.float(shape=5, init_range=(-5.12, 5.12))
         ...     .fitness(fitness_fn)
         ...     .minimizing()
         ...     .population(population)

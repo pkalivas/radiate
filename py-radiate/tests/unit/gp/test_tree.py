@@ -75,7 +75,7 @@ def test_gp_tree_eval_with_invalid_input():
     with pytest.raises(TypeError):
         tree.eval("invalid")  # type: ignore
 
-    with pytest.raises(TypeError):
+    with pytest.raises(ValueError):
         tree.eval([[1.0, "invalid", 3.0]])  # type: ignore
 
 

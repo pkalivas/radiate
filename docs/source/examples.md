@@ -27,7 +27,7 @@ For example, a solution could be:
         .alters(rd.Mutate.swap(0.05), rd.Cross.uniform(0.5))
     )
 
-    result = engine.run(rd.ScoreLimit(0))
+    result = engine.run(rd.Limit.score(0))
 
     print(result)
     ```
@@ -97,14 +97,13 @@ For example, a solution for `n=8` would be:
         rd.Engine.int(N_QUEENS, init_range=(0, N_QUEENS), use_numpy=True, dtype=rd.UInt8)
         .fitness(fitness_fn)
         .minimizing()
-        .select(offspring=rd.TournamentSelector(k=3))
         .alters(
             rd.Cross.multipoint(0.75, 2),
             rd.Mutate.uniform(0.05),
         )
     )
 
-    result = engine.run(rd.ScoreLimit(0), log=False)
+    result = engine.run(rd.Limit.score(0), log=False)
     print(result)
 
     board = result.value()

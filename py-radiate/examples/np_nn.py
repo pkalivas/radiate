@@ -1,10 +1,23 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.13"
+# dependencies = [
+#   "numpy",
+# ]
+# ///
 """
 This example shows how to use Radiate with NumPy arrays.
 
 It implements a simple feedforward neural network with 3 layers (input, hidden, output) to fit a regression problem.
 The network weights are evolved using a float codec.
 """
+
+# pyright: reportMissingImports=false
+
+import os
+import sys
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import radiate as rd
 import numpy as np
@@ -54,13 +67,13 @@ def fit(weights: list[np.ndarray]) -> float:
 
 engine = (
     rd.Engine.float(
-        # Create an engine that evolves genoms with 3 chromosomes, one for each layer's weights, 1 with 16 genes, 1 with 64 genes, and 1 with 8 genes
+        # Create an engine that evolves genomes with 3 chromosomes, one for each layer's weights, 1 with 16 genes, 1 with 64 genes, and 1 with 8 genes
         shape=[16, 64, 8],
         # Each gene is initialized randomly in the range [-1, 1]
         init_range=(-1.0, 1.0),
         # Genes aren't allowed to go outside the range [-3, 3] during evolution
         bounds=(-3.0, 3.0),
-        # Decode radiate's chromosomes into numpy arrays for the fitness function
+        # Decode radiate's backend (rust) chromosomes into numpy arrays for the fitness function
         use_numpy=True,
         # Use 32-bit floats in radiate's backend (rust side) - note the numpy arrays will also be float32, so we avoid unnecessary up/down casting
         dtype=rd.Float32,

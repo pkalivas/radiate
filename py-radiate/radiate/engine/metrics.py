@@ -139,6 +139,9 @@ class Metric(RsObject):
     def tags(self) -> list[Tag]:
         return [tag_map["py"][t] for t in self.__backend__().tags]
 
+    def to_dict(self) -> dict[str, Any]:
+        return self.__backend__().to_dict()
+
     # --- value stats ---
     def value_last(self) -> float:
         return self.__backend__().value_last

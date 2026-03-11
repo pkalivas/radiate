@@ -3,7 +3,7 @@ use crate::{Arity, Factory, NodeStore, NodeType, Tree, node::Node};
 use radiate_core::genome::{Gene, Valid};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use std::fmt::Debug;
+use std::{fmt::Debug, hash::Hash};
 
 /// A node in a tree structure that represents a single element with optional children.
 ///
@@ -341,6 +341,18 @@ impl<T: Default> Default for TreeNode<T> {
             value: T::default(),
             arity: None,
             children: None,
+        }
+    }
+}
+
+impl<T: Hash> Hash for TreeNode<T> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.value.hash(state);
+        self.arity.hash(state);
+        if let Some(children) = self.children.as_ref() {
+            for child in children {
+                child.hash(state);
+            }
         }
     }
 }

@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.13"
+# dependencies = [
+#   "numpy",
+#   "matplotlib",
+#   "numba",
+# ]
+# ///
 """
 DTLZ Multi-Objective Optimization Example
 
@@ -7,7 +15,14 @@ We define a fitness function based on the DTLZ1 problem and use a genetic algori
 evolve solutions. The results are visualized in a 3D scatter plot.
 """
 
-import matplotlib.pyplot as plt
+# pyright: reportMissingImports=false
+
+import os
+import sys
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+import matplotlib.pyplot as plt  # type: ignore
 import radiate as rd
 import numpy as np
 from numba import jit, float64

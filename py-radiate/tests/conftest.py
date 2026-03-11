@@ -103,6 +103,19 @@ Graph Fixtures
 
 
 @pytest.fixture
+def graph_simple_1x1():
+    """Create a simple graph codec for testing."""
+    codec = rd.GraphCodec.directed(
+        shape=(1, 1),
+        vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.linear()],
+        edge=rd.Op.weight(),
+        output=rd.Op.linear(),
+    )
+
+    return codec.decode(codec.encode())
+
+
+@pytest.fixture
 def graph_codec_simple_2x1():
     """Create a simple graph codec for testing."""
     return rd.GraphCodec.directed(

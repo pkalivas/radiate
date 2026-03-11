@@ -251,12 +251,12 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
         rate: f32,
     ) -> AlterResult {
         let mut result = AlterResult::default();
+        let mut parents = [0usize; MIN_NUM_PARENTS];
 
         for i in 0..population.len() {
             if random_provider::bool(rate) && population.len() > MIN_POPULATION_SIZE {
-                let parent_indexes =
-                    indexes::individual_indexes(i, population.len(), MIN_NUM_PARENTS);
-                let cross_result = self.cross(population, &parent_indexes, generation, rate);
+                indexes::individual_indexes(i, population.len(), MIN_NUM_PARENTS, &mut parents);
+                let cross_result = self.cross(population, &parents, generation, rate);
                 result.merge(cross_result);
             }
         }
@@ -382,8 +382,7 @@ pub trait Mutate<C: Chromosome>: Send + Sync {
         let mut count = 0;
         for gene in chromosome.iter_mut() {
             if random_provider::bool(rate) {
-                *gene = self.mutate_gene(gene);
-                count += 1;
+                count += self.mutate_gene(gene);
             }
         }
 
@@ -391,7 +390,8 @@ pub trait Mutate<C: Chromosome>: Send + Sync {
     }
 
     #[inline]
-    fn mutate_gene(&self, gene: &C::Gene) -> C::Gene {
-        gene.new_instance()
+    fn mutate_gene(&self, gene: &mut C::Gene) -> usize {
+        *gene = gene.new_instance();
+        1
     }
 }

@@ -128,6 +128,7 @@ where
         }
     }
 
+    #[inline]
     fn quotas_from_scores(&self, scores: &[&Score]) -> Vec<usize> {
         let n = scores.len();
         if n == 0 || self.count == 0 {
@@ -157,6 +158,7 @@ where
                 remaining -= 1;
                 i += 1;
             }
+
             return quotas;
         }
 

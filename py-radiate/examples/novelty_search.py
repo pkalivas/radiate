@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.13"
+# dependencies = [
+#   "numpy",
+#   "matplotlib",
+# ]
+# ///
 """
 Robot Behavior Evolution with Novelty Search
 
@@ -18,13 +25,20 @@ This is a great example of how novelty search can find diverse solutions
 that traditional fitness-based evolution might miss.
 """
 
+# pyright: reportMissingImports=false
+
+import os
+import sys
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import radiate as rd
 import numpy as np
 import matplotlib.pyplot as plt  # type: ignore
 import math
 
-rd.random.seed(88888)
-np.random.seed(88888)
+rd.random.seed(34)
+np.random.seed(23)
 
 
 class RobotBehavior:

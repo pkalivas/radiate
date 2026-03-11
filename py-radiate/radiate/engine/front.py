@@ -6,18 +6,21 @@ from radiate.genome.phenotype import Phenotype
 from radiate._bridge.wrapper import RsObject
 
 
-class FrontValue(RsObject):
+class FrontValue[T](RsObject):
     """
     FrontValue class that wraps around the PyFrontValue class.
     This class provides a simple interface to access the value of the front value.
     """
 
-    def genotype(self) -> Any:
+    def genotype(self) -> Genotype[T]:
         """
         Get the genotype of the front value.
         :return: The genotype of the front value.
         """
-        return self.try_get_cache("genotype_cache", self.__backend__().genotype)
+        return self.try_get_cache(
+            "genotype_cache",
+            lambda: Genotype.from_rust(self.__backend__().genotype()),
+        )
 
     def score(self) -> list[float]:
         """
@@ -27,7 +30,7 @@ class FrontValue(RsObject):
         return self.try_get_cache("score_cache", self.__backend__().score)
 
 
-class Front(RsObject):
+class Front[T](RsObject):
     """
     Front class that wraps around the PyFront class.
     This class provides a simple interface to access the value of the front.
@@ -52,7 +55,7 @@ class Front(RsObject):
         """
         return len(self.__backend__())
 
-    def __getitem__(self, index: int | slice) -> FrontValue | list[FrontValue]:
+    def __getitem__(self, index: int | slice) -> FrontValue[T] | list[FrontValue[T]]:
         """
         Get a member of the front by index.
         :param index: The index of the member.
@@ -60,7 +63,7 @@ class Front(RsObject):
         """
         return self.values()[index]
 
-    def values(self) -> list[FrontValue]:
+    def values(self) -> list[FrontValue[T]]:
         """
         Get the values of the front.
         :return: The values of the front.
@@ -99,7 +102,7 @@ class Front(RsObject):
         )
 
     def add(
-        self, items: list[Phenotype] | list[tuple[Genotype, list[float]]]
+        self, items: list[Phenotype[T]] | list[tuple[Genotype[T], list[float]]]
     ) -> dict[str, Any]:
         """
         Add items to the front.
@@ -140,7 +143,7 @@ class Front(RsObject):
 
         return self.__backend__().add(to_add)
 
-    def fronts(self) -> list["Front"]:
+    def fronts(self) -> list["Front[T]"]:
         """
         Get the fronts of the front.
         :return: The fronts of the front.

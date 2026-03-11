@@ -44,7 +44,7 @@ Lets take a quick look at how we would put together a regression problem using a
     # All we have to do to create a regression problem is provide the features & targets for our 
     # dataset. Optionally, we can provide a loss function as well - the default is mean squared error (MSE).
     # The last argument is whether to use batch evaluation or not - the default is False. This has minimal impact on performance.
-    loss = "mse"  # Options are: "mse", "mae", "cross_entropy", "diff"
+    loss = rd.MSE  # Options are: rd.MSE, rd.MAE, rd.XEnt (CrossEntropy), rd.Diff.
     fitness_func = rd.Regression(inputs, answers, loss=loss, batch=False)
 
     engine = (

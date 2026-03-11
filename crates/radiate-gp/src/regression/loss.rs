@@ -1,11 +1,13 @@
 use super::DataSet;
 use crate::EvalMut;
 
+const EPS: f32 = 1e-7;
+
 #[derive(Debug, Clone, Copy)]
 pub enum Loss {
     MSE,
     MAE,
-    CrossEntropy,
+    XEnt,
     Diff,
 }
 
@@ -32,61 +34,48 @@ impl Loss {
         F: FnMut(&[f32], &mut [f32]),
     {
         let n = data_set.len() as f32;
+        let mut sum = 0.0;
 
         match self {
             Loss::MSE => {
-                let mut sum = 0.0;
                 for sample in data_set.iter() {
                     eval_into_buf(sample.input(), buffer);
-                    let target = sample.output();
-                    for i in 0..target.len() {
-                        let d = target[i] - buffer[i];
+                    for (&target, &pred) in sample.output().iter().zip(buffer.iter()) {
+                        let d = target - pred;
                         sum += d * d;
                     }
                 }
-
-                sum / n
             }
             Loss::MAE => {
-                let mut sum = 0.0;
                 for sample in data_set.iter() {
                     eval_into_buf(sample.input(), buffer);
                     let target = sample.output();
-                    for i in 0..target.len() {
-                        let d = target[i] - buffer[i];
+                    for (&t, &p) in target.iter().zip(buffer.iter()) {
+                        let d = t - p;
                         sum += d.abs();
                     }
                 }
-
-                sum / n
             }
-            Loss::CrossEntropy => {
-                const EPS: f32 = 1e-7;
-                let mut sum = 0.0;
+            Loss::XEnt => {
                 for sample in data_set.iter() {
                     eval_into_buf(sample.input(), buffer);
-                    let target = sample.output();
-                    for i in 0..target.len() {
-                        let p = target[i];
-                        let q = buffer[i].clamp(EPS, 1.0);
-                        sum += -p * q.ln();
+                    for (&target, &pred) in sample.output().iter().zip(buffer.iter()) {
+                        let q = pred.clamp(EPS, 1.0);
+                        sum += -target * q.ln();
                     }
                 }
-
-                sum / n
             }
             Loss::Diff => {
-                let mut sum = 0.0;
                 for sample in data_set.iter() {
                     eval_into_buf(sample.input(), buffer);
                     let target = sample.output();
-                    for i in 0..target.len() {
-                        sum += (target[i] - buffer[i]).abs();
+                    for (&t, &p) in target.iter().zip(buffer.iter()) {
+                        sum += t - p;
                     }
                 }
-
-                sum / n
             }
         }
+
+        sum / n
     }
 }

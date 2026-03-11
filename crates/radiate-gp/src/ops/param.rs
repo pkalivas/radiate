@@ -1,5 +1,5 @@
 use crate::Factory;
-use std::fmt::Debug;
+use std::{fmt::Debug, hash::Hash};
 
 #[derive(Hash, Clone)]
 pub struct Param<T> {

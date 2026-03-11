@@ -1,6 +1,14 @@
+from typing import Any
+
 from .graph import Graph
 from .tree import Tree
+
+from radiate.utils._normalize import _normalize_regression_data
+
+from radiate.fitness.loss import MSE
+from radiate._typing import RdLossType
 from radiate._bridge.wrapper import RsObject
+
 from radiate.radiate import py_accuracy
 
 
@@ -38,15 +46,15 @@ class AccuracyResult(RsObject):
     def loss(self) -> float | None:
         return self.__backend__().loss()
 
-    def loss_name(self) -> str | None:
+    def loss_fn(self) -> RdLossType:
         return self.__backend__().loss_fn()
 
 
 def accuracy(
     predictor: Graph | Tree,
-    features: list[list[float]],
-    targets: list[list[float]],
-    loss: str | None = None,
+    features: Any,
+    targets: Any,
+    loss: RdLossType | None = MSE,
     name: str | None = None,
 ) -> AccuracyResult:
     """
@@ -56,7 +64,7 @@ def accuracy(
         predictor (Graph | Tree): The predictor to evaluate.
         features (list[list[float]]): The input features.
         targets (list[list[float]]): The expected target outputs.
-        loss (str | None): The loss function to use. Defaults to None.
+        loss (RdLossType | None): The loss function to use. Defaults to MSE.
         name (str | None): An optional name for the accuracy metric. Defaults to None.
 
     Returns:
@@ -67,11 +75,13 @@ def accuracy(
             f"predictor must be an instance of Graph or Tree but found {type(predictor)}."
         )
 
+    x, y = _normalize_regression_data(features, targets)
+
     accuracy_result = py_accuracy(
         predictor.__backend__(),
-        features,
-        targets,
-        loss=loss,
+        x,
+        y,
+        loss=str(loss) if loss is not None else None,
         name=name,
     )
 

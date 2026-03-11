@@ -69,12 +69,7 @@ def test_engine_bit_can_co_evolve_two_chromosomes(random_seed):
 
     # Two chromosomes both with 20 genes in them.
     # We want the first chromosome to be all ones and the second chromosome to be all zeros.
-    engine = (
-        rd.Engine.bit([20, 20])
-        .fitness(fit)
-        .minimizing()
-        .alters(rd.Cross.uniform(0.5), rd.Mutate.uniform(0.1))
-    )
+    engine = rd.Engine.bit([20, 20]).fitness(fit).minimizing()
 
     result = engine.run(rd.ScoreLimit(0), rd.GenerationsLimit(200))
 

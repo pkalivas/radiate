@@ -46,7 +46,20 @@ from .genome import (
 from .gp import Op, Graph, Tree, accuracy, OpsConfig, AccuracyResult
 
 from .operators.executor import Executor
-from .fitness import Regression, NoveltySearch, BatchFitness, fitness, novelty
+from .fitness import (
+    # Base fitness classes,
+    Regression,
+    NoveltySearch,
+    BatchFitness,
+    # Decorators
+    fitness,
+    novelty,
+    # Loss functions
+    MSE,
+    MAE,
+    XEnt,
+    Diff,
+)
 from .operators.selector import (
     TournamentSelector,
     RouletteSelector,
@@ -221,6 +234,11 @@ __all__ = [
     "BatchFitness",
     "fitness",
     "novelty",
+    # Loss functions
+    "MSE",
+    "MAE",
+    "XEnt",
+    "Diff",
     # Selectors
     "TournamentSelector",
     "RouletteSelector",

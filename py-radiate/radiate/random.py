@@ -32,7 +32,7 @@ class RandomProvider:
         return PyRandomProvider.random_float(min, max)
 
     @staticmethod
-    def bool(prob: float = 0.5) -> bool:
+    def bool(prob=0.5) -> bool:
         """
         Generate a random boolean value with a given probability of being True.
         :param prob: Probability of returning True (between 0.0 and 1.0).
@@ -41,7 +41,7 @@ class RandomProvider:
         return PyRandomProvider.random_bool(prob)
 
     @staticmethod
-    def sample(data: list[Any], count: int) -> list[Any]:
+    def sample(data: list[Any], count) -> list[Any]:
         """
         Randomly sample elements from a list.
         :param data: List of elements to sample from.

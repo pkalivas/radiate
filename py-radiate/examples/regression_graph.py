@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.13"
+# dependencies = [
+#   "matplotlib",
+# ]
+# ///
 """
 Regression with Graph Codec
 
@@ -6,9 +12,15 @@ This example demonstrates using the GraphCodec to solve a regression problem.
 We have a simple polynomial function and we want to evolve a graph that approximates it.
 """
 
+# pyright: reportMissingImports=false
+
+import os
+import sys
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import radiate as rd
-import polars as pl  # type: ignore
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt  # type: ignore
 
 rd.random.seed(67123)
 
@@ -29,10 +41,7 @@ class ScorePlotterHandler(rd.EventHandler):
             best_score = event.score()
             self.scores.append(best_score)
         elif event.event_type() == rd.EventType.STOP:
-            df = pl.DataFrame(
-                {"Generation": list(range(len(self.scores))), "Score": self.scores}
-            )
-            plt.plot(df["Generation"], df["Score"])
+            plt.plot(list(range(len(self.scores))), self.scores)
             plt.xlabel("Generation")
             plt.ylabel("Best Score")
             plt.title("Best Score over Generations")
@@ -60,7 +69,7 @@ engine = (
         edge=rd.Op.weight(),
         output=rd.Op.linear(),
     )
-    .regression(inputs, answers, loss="mse")
+    .regression(inputs, answers, loss=rd.MSE)
     .subscribe(ScorePlotterHandler())
     .alters(
         rd.Cross.graph(0.05, 0.5),
@@ -73,15 +82,8 @@ engine = (
 result = engine.run(log=True)
 
 eval_results = result.value().eval(inputs)
-accuracy = rd.accuracy(result.value(), inputs, answers, loss="mse")
+accuracy = rd.accuracy(result.value(), inputs, answers, loss=rd.MSE)
 
 print(result)
 print(result.metrics().dashboard())
 print(accuracy)
-
-
-# .regression(df, target="x", feature_cols=["dd"], loss="mse")
-# df = pl.DataFrame({"dd": inputs, "x": answers, "other": [0.42222] * len(inputs)})
-# print("Training Data:")
-# print(df)
-# .regression(df, target="x", feature_cols=["dd"], loss="mse")

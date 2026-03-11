@@ -25,7 +25,7 @@ This is the default epoch for the engine - `Generation`. It contains:
     import radiate as rd
 
     # Create an engine. Float Scalar engine (one chromosome, with one gene)
-    engine = (
+    engine: rd.Engine[float, float] = (
         rd.Engine.float(init_range=(0.0, 1.0))
         .fitness(my_fitness_fn)
         # ... other parameters ...
@@ -33,27 +33,27 @@ This is the default epoch for the engine - `Generation`. It contains:
 
 
     # Run the engine for 100 generations
-    result = engine.run(rd.GenerationsLimit(100))
+    result: rd.Generation[float, float] = engine.run(rd.Limit.generations(100))
 
     # Get the best individual's decoded value 
-    value = result.value() # float 
+    value: float = result.value() 
 
     # Get the score (fitness) of the best individual or epoch score
-    score = result.score()  # List[float] - note that this is a list. 
+    score: list[float] = result.score()  # note that this is a list. 
     # In this scenario, the engine is configured for single-objective optimization,
     # so the list will contain a single value.
 
     # Get the population of the engine's ecosystem
-    population = result.population()  # Population object
+    population: rd.Population[float] = result.population()  # Population object
 
     # Get the index of the epoch (number of generations)
-    index = result.index()  # int
+    index: int = result.index()  # int
 
     # Get the metrics of the engine
-    metrics = result.metrics()  # MetricSet object
+    metrics: rd.MetricSet = result.metrics()  # MetricSet object
 
     # Get the objective of the engine
-    objective = result.objective()  # list[str] | str (list[str] if multi-objective) - "min" or "max"
+    objective: list[str] | str = result.objective()  # list[str] | str (list[str] if multi-objective) - "min" or "max"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -113,28 +113,29 @@ When the engine is configured for multi-objective optimization, the engine `Gene
 
     ```python
     import radiate as rd
+    import numpy as np
 
     # Create an engine
-    engine = (
-        rd.Engine.float(init_range=(0.0, 1.0))
+    engine: rd.Engine[float, list[np.ndarray]] = (
+        rd.Engine.float(shape=[2, 2, 2], init_range=(0.0, 1.0), use_numpy=True)
         .fitness(my_fitness_fn)  # Multi-objective fitness function
         .objective(rd.MIN, rd.MAX, ...)  # Specify multi-objective optimization
         # ... other parameters ...
     )
 
     # Run the engine for 100 generations
-    result = engine.run(rd.GenerationsLimit(100))
+    result: rd.Generation[float, list[np.ndarray]] = engine.run(rd.Limit.generations(100))
 
     # Everything in the multi-objective epoch is the same as the single-objective epoch, except for the value. 
     # The function call to `front()` will return a `ParetoFront` object while `value()` will return None.:
-    front = result.front()  # ParetoFront object
+    front: rd.Front[float] = result.front()  # ParetoFront object
     # This is of type `Front` with `FrontValue` members.
-    value_at_index_0 = front[0]  # FrontValue object
-    all_values = front.values()  # list[FrontValue]
+    value_at_index_0: rd.FrontValue[float] = front[0]  # FrontValue object
+    all_values: list[rd.FrontValue[float]] = front.values()  # list[FrontValue]
 
     # Get the members of the Pareto front:
-    score = all_values[0].score() # list[float] - multi-objective score
-    genotype = all_values[0].genotype()  # Genotype object
+    score: list[float] = all_values[0].score() # list[float] - multi-objective score
+    genotype: rd.Genotype[float] = all_values[0].genotype()  # Genotype object
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -221,18 +222,40 @@ Radiate provides multiple ways to run the `GeneticEngine`.
     # --- or using the engine's Run method with limits ---
 
     # Limits - run until a score target is reached
-    score_limit = rd.ScoreLimit(0.01)
-    generations_limit = rd.GenerationsLimit(100)
-    seconds_limit = rd.SecondsLimit(60)
+    score_limit = rd.Limit.score(0.01)
+    generations_limit = rd.Limit.generations(100)
+    seconds_limit = rd.Limit.seconds(60)
     # window and epsilon for convergence - how close the scores must be over the window to consider convergence
-    convergence_limit = rd.ConvergenceLimit(window=50, epsilon=0.01) 
+    convergence_limit = rd.Limit.convergence(window=50, epsilon=0.01) 
+    # metric based limit - by metric name:
+    # stop after the evaluation count metric reaches 1000. Note that the metric function is 
+    # a predicate that takes the metric value and returns a boolean indicating whether 
+    # to stop or not, this allows for more complex stopping conditions based on metrics.
+    metric_limit = rd.Limit.metric("evaluation_count", lambda metric: metric.sum() >= 1000)
 
+    # Add the limits directly to the engine
+    # Create an engine
+    engine = (
+        rd.Engine.float(init_range=(0.0, 1.0))
+        .fitness(my_fitness_fn)
+        .limit(
+            score_limit,
+            generations_limit,
+            seconds_limit,
+            convergence_limit,
+            metric_limit
+        )
+        # ... other parameters ...
+    )
+
+    # Or pass the limits to the run method. 
     # Log the progress of the engine to the console
     result = engine.run(
             score_limit,
             generations_limit,
             seconds_limit,
             convergence_limit,
+            metric_limit,
         log=True,
         ui=True, # Enable terminal UI - if enabled, log is ignored
         checkpoint=(10, "checkpoint.json") # checkpoint every 10 generations to 'checkpoint.json'

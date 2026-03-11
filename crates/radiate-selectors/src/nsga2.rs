@@ -104,7 +104,13 @@ impl<C: Chromosome + Clone> Select<C> for TournamentNSGA2Selector {
 
         while result.len() < count {
             let k = std::cmp::min(2 * count - result.len(), population.len());
-            let g = indexes::subset(population.len(), k, indexes::SubsetMode::StratifiedCorrect);
+            let mut g = vec![0; k];
+            indexes::subset(
+                population.len(),
+                k,
+                &mut g,
+                indexes::SubsetMode::StratifiedCorrect,
+            );
 
             for i in 0..g.len() {
                 if result.len() >= count {

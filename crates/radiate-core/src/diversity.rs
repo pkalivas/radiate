@@ -203,3 +203,35 @@ impl Novelty<Vec<f32>> for CosineDistance {
         phenotype.clone()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_hamming_distance() {
+        let distance = HammingDistance;
+        let vec_one = vec![1.0, 2.0, 3.0];
+        let vec_two = vec![1.0, 2.0, 4.0];
+
+        assert_eq!(distance.distance(&vec_one, &vec_two), 1.0 / 3.0);
+    }
+
+    #[test]
+    fn test_euclidean_distance() {
+        let distance = EuclideanDistance;
+        let vec_one = vec![1.0, 2.0, 3.0];
+        let vec_two = vec![1.0, 2.0, 4.0];
+
+        assert_eq!(distance.distance(&vec_one, &vec_two), 1.0);
+    }
+
+    #[test]
+    fn test_cosine_distance() {
+        let distance = CosineDistance;
+        let vec_one = vec![1.0, 2.0, 3.0];
+        let vec_two = vec![1.0, 2.0, 4.0];
+
+        assert_eq!(distance.distance(&vec_one, &vec_two), 0.008539915);
+    }
+}

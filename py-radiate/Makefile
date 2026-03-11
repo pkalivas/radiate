@@ -23,6 +23,13 @@ build: .venv  ## Compile and install Python Radiate for development
 test: .venv build  ## Run fast unittests
 	@$(VENV_BIN)/pytest -n auto $(PYTEST_ARGS)
 
+.PHONY: coverage
+coverage: .venv build  ## Run tests with coverage report
+	@$(VENV_BIN)/pytest -n auto \
+		--cov=radiate \
+		--cov-report=term-missing \
+		$(PYTEST_ARGS)
+
 .PHONY: clean
 clean:  ## Clean up caches and build artifacts
 	@rm -rf .benchmarks/
@@ -30,4 +37,6 @@ clean:  ## Clean up caches and build artifacts
 	@rm -f .coverage
 	@rm -f radiate/*.so
 	@rm -rf .ruff_cache/
+	@rm -rf .venv
+	@rm -rf examples/data
 	@find . -type f -name '*.py[co]' -delete -or -type d -name __pycache__ -exec rm -r {} +

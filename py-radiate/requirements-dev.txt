@@ -3,27 +3,21 @@
 # -----
 
 maturin == 1.9.4
-patchelf ; platform_system == 'Linux'
-# pip is normally managed by CI / environment, not here
 
 # -------
 # EXAMPLES
 # -------
 
 numpy
-pillow    >= 11.3.0
-matplotlib >= 3.10.6
-numba     >= 0.54    ; python_version < '3.14'
-polars    >= 1.35.1  #; python_version < '3.14'
+polars    >= 1.35.1  ; python_version < '3.14'
 pandas    >= 2.1.0   ; python_version < '3.14'
 pyarrow   >= 12.0.0  ; python_version < '3.14'
-requests  >= 2.31.0
 torch     >= 2.7.1   ; python_version < '3.14'
 
 # -------
 # TOOLING
 # -------
 
-pytest      == 8.3.2
+pytest      == 9.0.2
 pytest-cov  == 7.0.0
 pytest-xdist== 3.6.1

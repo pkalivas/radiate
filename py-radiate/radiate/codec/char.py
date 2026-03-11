@@ -9,7 +9,7 @@ from .base import CodecBase
 from radiate.radiate import PyCharCodec
 from radiate.genome import Genotype, GeneType
 from radiate._bridge.wrapper import RsObject
-from radiate._typing import AtLeastOne, VectorDecoding, MatrixDecoding
+from radiate._typing import AtLeastOne
 
 
 def _normalize_char_set(char_set: str | list[str] | set[str] | None) -> str | None:
@@ -36,7 +36,7 @@ class CharCodec[D](CodecBase[str, D], RsObject):
         char_set: str | list[str] | set[str] | None = None,
         genes: None = ...,
         chromosomes: None = ...,
-    ) -> "CharCodec[VectorDecoding[str]]": ...
+    ) -> "CharCodec[list[str]]": ...
 
     @overload
     def __new__(
@@ -46,7 +46,7 @@ class CharCodec[D](CodecBase[str, D], RsObject):
         char_set: str | list[str] | set[str] | None = None,
         genes: None = ...,
         chromosomes: None = ...,
-    ) -> "CharCodec[MatrixDecoding[str]]": ...
+    ) -> "CharCodec[list[list[str]]]": ...
 
     def __new__(cls, *args: Any, **kwargs: Any) -> "CharCodec[Any]":
         return super().__new__(cls)
@@ -101,71 +101,8 @@ class CharCodec[D](CodecBase[str, D], RsObject):
             raise TypeError("genotype must be an instance of Genotype.")
         return self.__backend__().decode_py(genotype=genotype.__backend__())
 
-    # @staticmethod
-    # def from_genes(genes: Gene[str] | Sequence[Gene[str]]) -> CharCodec:
-    #     """
-    #     Create a codec for a single chromosome with specified genes.
-    #     Args:
-    #         genes: A list or tuple of Gene instances.
-    #     Returns:
-    #         A new CharCodec instance with the specified genes.
-    #     """
-    #     return CharCodec(genes=genes)
-
-    # @staticmethod
-    # def from_chromosomes(
-    #     chromosomes: Chromosome[str] | Sequence[Chromosome[str]],
-    # ) -> CharCodec:
-    #     """
-    #     Create a codec for multiple chromosomes.
-    #     Args:
-    #         chromosomes: A list or tuple of Chromosome instances.
-    #     Returns:
-    #         A new CharCodec instance with the specified chromosomes.
-    #     """
-    #     return CharCodec(chromosomes=chromosomes)
-
     @staticmethod
-    def matrix(
-        shape: list[int] | tuple[int, int],
-        char_set: str | list[str] | set[str] | None = None,
-    ) -> CharCodec[MatrixDecoding[str]]:
-        """
-        Initialize the char codec with number of chromosomes and value bounds.
-        Args:
-            shape: A list of integers specifying the lengths of each chromosome.
-            char_set: A set of characters to use for the genes.
-        Returns:
-            A new CharCodec instance with matrix configuration.
-
-        Example
-        --------
-        >>> rd.CharCodec.matrix(shape=[5, 5], char_set={"0", "1"})
-        CharCodec(...)
-        """
-        return CharCodec(shape=shape, char_set=char_set)
-
-    @staticmethod
-    def vector(
-        length: int, char_set: str | list[str] | set[str] | None = None
-    ) -> CharCodec[VectorDecoding[str]]:
-        """
-        Initialize the char codec with a single chromosome of specified length.
-        Args:
-            length: Length of the chromosome.
-            char_set: Character set to use for encoding.
-        Returns:
-            A new CharCodec instance with vector configuration.
-
-        Example
-        --------
-        >>> rd.CharCodec.vector(length=5, char_set="01")
-        CharCodec(...)
-        """
-        return CharCodec(shape=length, char_set=char_set)
-
-    @staticmethod
-    def __from_genes(genes: AtLeastOne[Gene[str]]) -> CharCodec[VectorDecoding[str]]:
+    def __from_genes(genes: AtLeastOne[Gene[str]]) -> CharCodec[list[str]]:
         """
         Create a codec for a single chromosome with specified genes.
         Args:
@@ -185,7 +122,7 @@ class CharCodec[D](CodecBase[str, D], RsObject):
     @staticmethod
     def __from_chromosomes(
         chromosomes: AtLeastOne[Chromosome[str]],
-    ) -> CharCodec[MatrixDecoding[str]]:
+    ) -> CharCodec[list[list[str]]]:
         """
         Create a codec for multiple chromosomes.
         Args:
@@ -207,25 +144,6 @@ class CharCodec[D](CodecBase[str, D], RsObject):
         return PyCharCodec.from_chromosomes(
             list(map(lambda c: c.__backend__(), chromosomes))
         )
-
-    @staticmethod
-    def __vector(
-        length: AtLeastOne[int], char_set: str | list[str] | set[str] | None = None
-    ) -> PyCharCodec:
-        """
-        Initialize the char codec with a single chromosome of specified length.
-        Args:
-            length: Length of the chromosome.
-            char_set: Character set to use for encoding.
-        Returns:
-            A new PyCharCodec instance with vector configuration.
-
-        Example
-        --------
-        >>> rd.CharCodec.vector(length=5, char_set="01")
-        CharCodec(...)
-        """
-        return PyCharCodec.vector(length, _normalize_char_set(char_set))
 
     @staticmethod
     def __matrix(

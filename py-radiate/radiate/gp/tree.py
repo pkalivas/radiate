@@ -1,8 +1,14 @@
 from __future__ import annotations
-from typing import overload
+from typing import TYPE_CHECKING, overload, Any
 
 from radiate.radiate import PyTree
 from radiate._bridge.wrapper import RsObject
+from radiate.utils import _normalize_single_chunk
+
+if TYPE_CHECKING:
+    from radiate._dependancies import numpy as np
+    from radiate._dependancies import polars as pl
+    from radiate._dependancies import pandas as pd
 
 
 class Tree(RsObject):
@@ -28,24 +34,49 @@ class Tree(RsObject):
         return len(self.__backend__())
 
     @overload
-    def eval(self, inputs: list[list[float]]) -> list[list[float]]: ...
+    def eval(
+        self, inputs: list[list[float]], *, columns: list[str] | None = None
+    ) -> list[list[float]]: ...
 
     @overload
-    def eval(self, inputs: list[float]) -> list[float]: ...
+    def eval(
+        self, inputs: list[float], *, columns: list[str] | None = None
+    ) -> list[float]: ...
+
+    @overload
+    def eval(
+        self, inputs: "np.ndarray", *, columns: list[str] | None = None
+    ) -> list[float]: ...
+
+    @overload
+    def eval(
+        self, inputs: "pl.DataFrame | pl.Series", *, columns: list[str] | None = None
+    ) -> list[list[float]]: ...
+
+    @overload
+    def eval(
+        self, inputs: "pd.DataFrame | pd.Series", *, columns: list[str] | None = None
+    ) -> list[list[float]]: ...
 
     def eval(
-        self, inputs: list[list[float]] | list[float]
+        self, inputs: Any, *, columns: list[str] | None = None
     ) -> list[list[float]] | list[float]:
         """
-        Evaluate the tree with the given inputs. The inputs needs to be a list of
-        lists (for multiple samples) or a single list (for a single sample).
+        Evaluate the graph with the given inputs. The inputs needs to be a list of
+        lists (for multiple samples).
 
         Args:
-            inputs (list[list[float]] | list[float]): The input data to evaluate the tree on.
+            inputs (list[list[float]] | list[float]): The input data to evaluate the graph on.
         Returns:
-            list[list[float]] | list[float]: The output of the tree after evaluation.
+            list[list[float]] | list[float]: The output of the graph after evaluation.
         """
-        return self.__backend__().eval(inputs)
+        if isinstance(inputs, list) and all(
+            isinstance(row, (int, float)) for row in inputs
+        ):
+            return self.__backend__().eval(inputs)
+
+        eval_inputs = _normalize_single_chunk(inputs, cols=columns)
+        return self.__backend__().eval(eval_inputs)
 
     def to_dot(self) -> str:
         """

@@ -41,9 +41,8 @@ impl<A: PartialEq + Clone> Gene for PermutationGene<A> {
     }
 
     fn allele_mut(&mut self) -> &mut Self::Allele {
-        panic!(
-            "Cannot mutate allele of PermutationGene directly. Create a new gene with `with_allele` or `with_index`."
-        );
+        let alleles = Arc::make_mut(&mut self.alleles);
+        &mut alleles[self.index]
     }
 
     fn new_instance(&self) -> Self {

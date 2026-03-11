@@ -1,6 +1,7 @@
 use crate::{InputTransform, PyEngineInput, PyEngineInputType, PyGeneType, PyPopulation};
 use pyo3::{PyResult, pyfunction};
 use radiate::prelude::*;
+use radiate_error::radiate_py_err;
 
 #[pyfunction]
 pub fn py_select(
@@ -14,14 +15,14 @@ pub fn py_select(
         selector.input_type,
         PyEngineInputType::SurvivorSelector | PyEngineInputType::OffspringSelector
     ) {
-        return Err(pyo3::exceptions::PyValueError::new_err(format!(
+        return Err(radiate_py_err!(format!(
             "Input type {:?} not a selector",
             selector.input_type
         )));
     }
 
     if !selector.allowed_genes.contains(&gene_type) {
-        return Err(pyo3::exceptions::PyValueError::new_err(format!(
+        return Err(radiate_py_err!(format!(
             "Selector {} does not allow gene type {:?}",
             selector.component, gene_type
         )));
@@ -94,7 +95,7 @@ pub fn py_select(
             Ok(selector.select(&population, &obj, count)).map(|pop| PyPopulation::from(&pop))
         }
 
-        _ => Err(pyo3::exceptions::PyValueError::new_err(format!(
+        _ => Err(radiate_py_err!(format!(
             "Gene type {:?} not supported for selection",
             gene_type
         ))),

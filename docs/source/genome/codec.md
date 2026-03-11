@@ -66,20 +66,14 @@ Radiate provides several codec types out of the box that should be able to cover
 
         # scalar codec that decodes to a single float
         codec = rd.FloatCodec(init_range=(-1.0, 1.0), bounds=(-10.0, 10.0)) 
-        # -- or --
-        codec = rd.FloatCodec.scalar(init_range=(0.0, 1.0), bounds=(-10.0, 10.0))
 
         # vector codec that decodes to a np.ndarray
-        codec = rd.FloatCodec(shape=5, init_range=(-1.0, 1.0), bounds=(-10.0, 10.0), use_numpy=True)  
-        # -- or --
-        codec = rd.FloatCodec.vector(length=5, init_range=(-1.0, 1.0), bounds=(-10.0, 10.0))
+        codec = rd.FloatCodec(shape=5, init_range=(-1.0, 1.0), bounds=(-10.0, 10.0), use_numpy=True)
 
-        # For a matrix of parameters (like neural network weights)
-        codec = rd.FloatCodec.matrix(shape=(3, 2), init_range=(-0.1, 0.1), bounds=(-1.0, 1.0), use_numpy=True)
+        # For a 3x2 matrix of parameters (like neural network weights)
         codec = rd.FloatCodec(shape=(3, 2), init_range=(-0.1, 0.1), bounds=(-1.0, 1.0))
         # -- or --
         # supply a list of shapes for jagged matrices e.g. matrix with three rows (chromosomes) and two columns (genes)
-        codec = rd.FloatCodec.matrix([2, 2, 2], init_range=(-0.1, 0.1), bounds=(-1.0, 1.0))
         codec = rd.FloatCodec(
             shape=[2, 2, 2],
             init_range=(-0.1, 0.1), 
@@ -128,16 +122,16 @@ Radiate provides several codec types out of the box that should be able to cover
         import radiate as rd
 
         # For a single parameter
-        codec = rd.IntCodec.scalar(init_range=(0, 1), bounds=(-10, 10))
+        codec = rd.IntCodec(init_range=(0, 1), bounds=(-10, 10))
 
         # For a list of parameters
-        codec = rd.IntCodec.vector(length=5, init_range=(-1, 1), bounds=(-10, 10))
+        codec = rd.IntCodec(shape=5, init_range=(-1, 1), bounds=(-10, 10))
 
         # For a 3x2 matrix of parameters
-        codec = rd.IntCodec.matrix(shape=(3, 2), init_range=(-1, 1), bounds=(-10, 10))
+        codec = rd.IntCodec((3, 2), init_range=(-1, 1), bounds=(-10, 10))
         # -- or --
         # supply a list of shapes for jagged matrices e.g. matrix with three rows (chromosomes) and two columns (genes)
-        codec = rd.IntCodec.matrix([2, 2, 2], init_range=(-1, 1), bounds=(-10, 10))
+        codec = rd.IntCodec([2, 2, 2], init_range=(-1, 1), bounds=(-10, 10))
 
         # The codec can also be created by directly:
         # The chromosome will be a dense 4x5 matrix (4 rows with 5 colummns) of IntGenes that decodes to a 4x5 numpy array of np.int16 values.
@@ -188,13 +182,13 @@ Radiate provides several codec types out of the box that should be able to cover
         import radiate as rd
 
         # For a list of parameters
-        codec = rd.CharCodec.vector(length=5, char_set='abcdefghijklmnopqrstuvwxyz')
+        codec = rd.CharCodec(length=5, char_set='abcdefghijklmnopqrstuvwxyz')
 
         # For a matrix of chars
-        codec = rd.CharCodec.matrix(shape=(3, 2), char_set={'a', 'b', 'c', 'd'})
+        codec = rd.CharCodec((3, 2), char_set={'a', 'b', 'c', 'd'})
         # -- or --
         # supply a list of shapes for jagged matrices e.g. matrix with three rows (chromosomes) and two columns (genes) - use the default char_set
-        codec = rd.CharCodec.matrix([2, 2, 2])
+        codec = rd.CharCodec([2, 2, 2])
         ```
 
     === ":fontawesome-brands-rust: Rust"
@@ -232,13 +226,13 @@ Radiate provides several codec types out of the box that should be able to cover
         import radiate as rd
 
         # For a list of parameters
-        codec = rd.BitCodec.vector(5)
+        codec = rd.BitCodec(5)
 
         # For a matrix of bools
-        codec = rd.BitCodec.matrix(shape=(3, 2))
+        codec = rd.BitCodec((3, 2))
         # -- or --
         # supply a list of shapes for jagged matrices e.g. matrix with three rows (chromosomes) and two columns (genes)
-        codec = rd.BitCodec.matrix([2, 2, 2])
+        codec = rd.BitCodec([2, 2, 2])
         ```
 
     === ":fontawesome-brands-rust: Rust"
