@@ -7,7 +7,7 @@ $(REQUIRE_UV):
 	@exit 1
 
 ARGS ?=
-PY ?= 3.13
+PY ?= 3.12
 
 find_python = $(shell uv python find "$(1)" 2>/dev/null || true)
 require_python = $(or $(call find_python,$(1)),$(error Could not find Python interpreter '$(1)'))
