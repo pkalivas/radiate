@@ -1,24 +1,10 @@
-#!/usr/bin/env python3
-# /// script
-# requires-python = ">=3.13"
-# dependencies = [
-#   "numpy",
-#   "matplotlib",
-# ]
-# ///
+#!/usr/bin/python3
 """
 Snake AI Evolution - Debug Version
 
 This version includes extensive logging to understand why
 the best solution behaves differently after evolution.
 """
-
-# pyright: reportMissingImports=false
-
-import os
-import sys
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import radiate as rd
 import numpy as np

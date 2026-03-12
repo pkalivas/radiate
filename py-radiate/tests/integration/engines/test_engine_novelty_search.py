@@ -63,7 +63,7 @@ def test_int_engine_novelty_with_decorator_creates(random_seed):
 
     result = engine.run(rd.GenerationsLimit(100))
 
-    assert calc_population_diversity(result.population()) > 0.85, (
+    assert calc_population_diversity(result.population()) > 0.85, (  # type: ignore
         "Population should have diversity"
     )
     assert result.index() == 100

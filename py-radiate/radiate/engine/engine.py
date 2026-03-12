@@ -325,9 +325,13 @@ class Engine[G, T]:
         >>> import radiate as rd
         >>> ...
         >>> def my_fitness_func(genome: list[float]) -> float:
-        ...     return sum(genome)  # Example fitness function that sums the genome values
+        ...     return sum(
+        ...         genome
+        ...     )  # Example fitness function that sums the genome values
         >>> ...
-        >>> engine = rd.Engine.float(shape=3, init_range=(-10, 10)).fitness(my_fitness_func)
+        >>> engine = rd.Engine.float(shape=3, init_range=(-10, 10)).fitness(
+        ...     my_fitness_func
+        ... )
 
         The fitness function `my_fitness_func` should be defined to accept a list of 3 floats (or a numpy array if use_numpy=True):
         On the otherhand, if we configure the engine as such:
@@ -335,9 +339,13 @@ class Engine[G, T]:
         >>> import radiate as rd
         >>> ...
         >>> def my_fitness_func(genome: list[list[int]]) -> int:
-        ...     return sum(sum(g) for g in genome)  # Example fitness function that sums all values in a 2D genome
+        ...     return sum(
+        ...         sum(g) for g in genome
+        ...     )  # Example fitness function that sums all values in a 2D genome
         >>> ...
-        >>> engine = rd.Engine.int(shape=[5, 5, 5, 5, 5], init_range=(-10, 10)).fitness(my_fitness_func)
+        >>> engine = rd.Engine.int(shape=[5, 5, 5, 5, 5], init_range=(-10, 10)).fitness(
+        ...     my_fitness_func
+        ... )
 
         The fitness function `my_fitness_func` should be defined to accept a list of 5 lists of 5 integers (or a numpy array if use_numpy=True):
 
@@ -400,12 +408,17 @@ class Engine[G, T]:
         >>> ...
         >>> base_engine = (
         ...     rd.Engine.graph(
-        ...         shape=(2, 1), # <- notice how the shape of the graph is (2, 1) to accommodate our 2 features and 1 output
+        ...         shape=(
+        ...             2,
+        ...             1,
+        ...         ),  # <- notice how the shape of the graph is (2, 1) to accommodate our 2 features and 1 output
         ...         vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
         ...         edge=rd.Op.weight(),
         ...         output=rd.Op.linear(),
         ...     )
-        ...     .regression(features, targets, loss=rd.MSE) # <- we directly pass our features/targets to the regression method. The engine is now also configured to minimize the mean squared error between the graph's output and our targets.
+        ...     .regression(
+        ...         features, targets, loss=rd.MSE
+        ...     )  # <- we directly pass our features/targets to the regression method. The engine is now also configured to minimize the mean squared error between the graph's output and our targets.
         ...     .alters(
         ...         rd.Cross.graph(0.05, 0.5),
         ...         rd.Mutate.op(0.07, 0.05),
@@ -419,12 +432,19 @@ class Engine[G, T]:
         We'll also switch up the error function below to use mean average error instead of mean squared error just to show flexibility.
 
         >>> import polars as pl
-        >>> df = pl.DataFrame({
-        ...     "feature1": [1.0, 2.0, 3.0],
-        ...     "feature2": [4.0, 5.0, 6.0],
-        ...     "target": [7.0, 8.0, 9.0]
-        ... })
-        >>> base_engine.regression(df, target_cols="target", feature_cols=["feature1", "feature2"], loss=rd.MAE)
+        >>> df = pl.DataFrame(
+        ...     {
+        ...         "feature1": [1.0, 2.0, 3.0],
+        ...         "feature2": [4.0, 5.0, 6.0],
+        ...         "target": [7.0, 8.0, 9.0],
+        ...     }
+        ... )
+        >>> base_engine.regression(
+        ...     df,
+        ...     target_cols="target",
+        ...     feature_cols=["feature1", "feature2"],
+        ...     loss=rd.MAE,
+        ... )
         """
         self._builder.set_fitness(
             Regression(
@@ -470,11 +490,17 @@ class Engine[G, T]:
         >>> target_str = "some target string"
         >>> engine = (
         ...     rd.Engine.char(len(target_str))
-        ...     .fitness(lambda genome: sum(1 for g, t in zip(genome, target_str) if g == t))
+        ...     .fitness(
+        ...         lambda genome: sum(1 for g, t in zip(genome, target_str) if g == t)
+        ...     )
         ...     .select(
-        ...         offspring=rd.Select.tournament(k=5), # <- tournament selection with k=5 for offspring (parents)
-        ...         survivor=rd.Select.boltzmann(temp=4.0), # <- boltzmann selection with temperature 4.0 for survivors (unchanged)
-        ...         frac=0.7 # <- 70% offspring, 30% survivors in the next generation
+        ...         offspring=rd.Select.tournament(
+        ...             k=5
+        ...         ),  # <- tournament selection with k=5 for offspring (parents)
+        ...         survivor=rd.Select.boltzmann(
+        ...             temp=4.0
+        ...         ),  # <- boltzmann selection with temperature 4.0 for survivors (unchanged)
+        ...         frac=0.7,  # <- 70% offspring, 30% survivors in the next generation
         ...     )
         ... )
         """
@@ -513,14 +539,20 @@ class Engine[G, T]:
         >>> import radiate as rd
         >>> n_queens = 32
         >>> engine = (
-        ...    rd.Engine.int(n_queens, init_range=(0, n_queens), use_numpy=True, dtype=rd.UInt8)
-        ...    .fitness(my_fitness_fn)
-        ...    .minimizing()
-        ...    .select(offspring=rd.Select.tournament(k=3))
-        ...    .alters(
-        ...        rd.Cross.multipoint(0.75, 2), # <- multi-point crossover with 75% rate and 2 crossover points
-        ...        rd.Mutate.uniform(0.05), # <- uniform mutation with 5% mutation rate
-        ...    )
+        ...     rd.Engine.int(
+        ...         n_queens, init_range=(0, n_queens), use_numpy=True, dtype=rd.UInt8
+        ...     )
+        ...     .fitness(my_fitness_fn)
+        ...     .minimizing()
+        ...     .select(offspring=rd.Select.tournament(k=3))
+        ...     .alters(
+        ...         rd.Cross.multipoint(
+        ...             0.75, 2
+        ...         ),  # <- multi-point crossover with 75% rate and 2 crossover points
+        ...         rd.Mutate.uniform(
+        ...             0.05
+        ...         ),  # <- uniform mutation with 5% mutation rate
+        ...     )
         ... )
         """
         self._builder.set_alters(list(alters))
@@ -555,7 +587,9 @@ class Engine[G, T]:
         >>> engine = (
         ...     rd.Engine.float(shape=[2, 2], init_range=(0.0, 10.0))
         ...     .fitness(my_fitness_function)
-        ...     .diversity(rd.Dist.euclidean(), species_threshold=0.7) # <- use Euclidean distance for speciation with a threshold of 0.7
+        ...     .diversity(
+        ...         rd.Dist.euclidean(), species_threshold=0.7
+        ...     )  # <- use Euclidean distance for speciation with a threshold of 0.7
         ... )
         """
         self._builder.set_diversity(diversity, species_threshold)
@@ -595,15 +629,21 @@ class Engine[G, T]:
         ...     .fitness(my_fitness_function)
         ...     .minimizing()
         ...     .limit(
-        ...         rd.Limit.score(0.001), # <- stop when a solution reaches a fitness score of 0.001 or better
-        ...         rd.Limit.generation(1000), # <- stop after 1000 generations
-        ...         rd.Limit.seconds(60), # <- stop after 60 seconds
-        ...         rd.Limit.convergence(window=50, epsilon=0.0001), # <- stop when the population has converged with a window of 50 generations and a convergence threshold of 0.0001
-        ...         rd.Limit.metric("evaluation_count", lambda metric: metric.sum() >= 1000) # <- stop when the engine has evaluated at least 1000 solutions
+        ...         rd.Limit.score(
+        ...             0.001
+        ...         ),  # <- stop when a solution reaches a fitness score of 0.001 or better
+        ...         rd.Limit.generation(1000),  # <- stop after 1000 generations
+        ...         rd.Limit.seconds(60),  # <- stop after 60 seconds
+        ...         rd.Limit.convergence(
+        ...             window=50, epsilon=0.0001
+        ...         ),  # <- stop when the population has converged with a window of 50 generations and a convergence threshold of 0.0001
+        ...         rd.Limit.metric(
+        ...             "evaluation_count", lambda metric: metric.sum() >= 1000
+        ...         ),  # <- stop when the engine has evaluated at least 1000 solutions
         ...     )
         ... )
         >>> ...
-        >>> result = engine.run() # <- run the engine with the specified limits. The engine will stop when any of the limits are reached.
+        >>> result = engine.run()  # <- run the engine with the specified limits. The engine will stop when any of the limits are reached.
         """
         self._builder.set_limits(list(limits))
         return self
@@ -633,7 +673,9 @@ class Engine[G, T]:
         >>> engine = (
         ...     rd.Engine.float(shape=5, init_range=(0.0, 1.0))
         ...     .fitness(my_fitness_function)
-        ...     .size(200) # <- set the population size to 200 individuals per generation
+        ...     .size(
+        ...         200
+        ...     )  # <- set the population size to 200 individuals per generation
         ... )
         """
         if size <= 0:
@@ -673,7 +715,9 @@ class Engine[G, T]:
         >>> engine = (
         ...     rd.Engine.float(shape=5, init_range=(0.0, 1.0))
         ...     .fitness(my_fitness_function)
-        ...     .age(max_phenotype_age=30, max_species_age=50) # <- set the maximum phenotype age to 30 generations and the maximum species age to 50 generations
+        ...     .age(
+        ...         max_phenotype_age=30, max_species_age=50
+        ...     )  # <- set the maximum phenotype age to 30 generations and the maximum species age to 50 generations
         ... )
         """
         if max_phenotype_age is not None:
@@ -736,10 +780,7 @@ class Engine[G, T]:
         chromosome we want to be all False, so the optimal solution would be:
 
         ```
-        [
-            [True, True, True, True, True],
-            [False, False, False, False, False]
-        ]
+        [[True, True, True, True, True], [False, False, False, False, False]]
         ```
 
         with a fitness score of 0 (the minimum possible score for this problem).
@@ -755,9 +796,11 @@ class Engine[G, T]:
         >>> engine = (
         ...     rd.Engine.bit([5, 5])
         ...     .fitness(fit)
-        ...     .minimizing() # <- we want to minimize the fitness score
+        ...     .minimizing()  # <- we want to minimize the fitness score
         ... )
-        >>> engine.run(rd.Limit.score(0)) # <- run the engine with a score limit of 0, which is the optimal solution for this problem. The engine will evolve until it finds the optimal solution with a fitness score of 0.
+        >>> engine.run(
+        ...     rd.Limit.score(0)
+        ... )  # <- run the engine with a score limit of 0, which is the optimal solution for this problem. The engine will evolve until it finds the optimal solution with a fitness score of 0.
         """
         self._builder.set_objective("min")
         return self
@@ -786,9 +829,11 @@ class Engine[G, T]:
         >>> engine = (
         ...     rd.Engine.bit(10)
         ...     .fitness(fit)
-        ...     .maximizing() # <- we want to maximize the fitness score (again, we don't need to do this since maximizing is the default)
+        ...     .maximizing()  # <- we want to maximize the fitness score (again, we don't need to do this since maximizing is the default)
         ... )
-        >>> engine.run(rd.Limit.score(10)) # <- run the engine with a score limit of 10, which is the optimal solution for this problem. The engine will evolve until it finds the optimal solution with a fitness score of 10.
+        >>> engine.run(
+        ...     rd.Limit.score(10)
+        ... )  # <- run the engine with a score limit of 10, which is the optimal solution for this problem. The engine will evolve until it finds the optimal solution with a fitness score of 10.
         """
         self._builder.set_objective("max")
         return self
@@ -834,7 +879,9 @@ class Engine[G, T]:
         >>> engine = (
         ...     rd.Engine.bit([5, 5])
         ...     .fitness(fit)
-        ...     .objective(rd.MIN, rd.MAX, front_range=(100, 150)) # <- we want to minimize the number of ones in the first chromosome and maximize the number of ones
+        ...     .objective(
+        ...         rd.MIN, rd.MAX, front_range=(100, 150)
+        ...     )  # <- we want to minimize the number of ones in the first chromosome and maximize the number of ones
         ...     # in the second chromosome, and we want to keep between 100 and 150 solutions in the Pareto front at each generation
         ... )
         """
@@ -877,8 +924,12 @@ class Engine[G, T]:
         >>> engine = (
         ...     rd.Engine.bit([5, 5])
         ...     .fitness(fit)
-        ...     .objective(rd.MIN, rd.MAX) # <- we want to minimize the number of ones in the first chromosome and maximize the number of ones in the second chromosome
-        ...     .front_range(100, 150) # <- we want to keep between 100 and 150 solutions in the Pareto front at each generation
+        ...     .objective(
+        ...         rd.MIN, rd.MAX
+        ...     )  # <- we want to minimize the number of ones in the first chromosome and maximize the number of ones in the second chromosome
+        ...     .front_range(
+        ...         100, 150
+        ...     )  # <- we want to keep between 100 and 150 solutions in the Pareto front at each generation
         ... )
         """
         self._builder.set_front_range(min, max)
@@ -916,7 +967,9 @@ class Engine[G, T]:
         >>> engine = (
         ...     rd.Engine.float(shape=10, init_range=(0.0, 1.0))
         ...     .fitness(my_expensive_fitness_function)
-        ...     .parallel(num_workers=8) # <- configure the engine to use a fixed size thread pool with 8 worker threads for parallel execution
+        ...     .parallel(
+        ...         num_workers=8
+        ...     )  # <- configure the engine to use a fixed size thread pool with 8 worker threads for parallel execution
         ... )
         """
         executor = (
@@ -970,7 +1023,9 @@ class Engine[G, T]:
         >>> engine = (
         ...     rd.Engine.float(shape=5, init_range=(0.0, 1.0))
         ...     .fitness(my_fitness_function)
-        ...     .subscribe(MyEventHandler()) # <- subscribe to engine events with our custom event handler that listens to engine improvement events and prints them out
+        ...     .subscribe(
+        ...         MyEventHandler()
+        ...     )  # <- subscribe to engine events with our custom event handler that listens to engine improvement events and prints them out
         ... )
         """
         self._builder.set_subscribers(event_handler)
@@ -994,12 +1049,16 @@ class Engine[G, T]:
         >>> import radiate as rd
         >>> ...
         >>> # Let's say we have an existing generation that we want to continue evolving from.
-        >>> existing_generation = rd.Generation(...) # <- create or load an existing generation
+        >>> existing_generation = rd.Generation(
+        ...     ...
+        ... )  # <- create or load an existing generation
         >>> ...
         >>> engine = (
         ...     rd.Engine.float(shape=5, init_range=(0.0, 1.0))
         ...     .fitness(my_fitness_function)
-        ...     .generation(existing_generation) # <- set the initial generation for the engine to our existing generation
+        ...     .generation(
+        ...         existing_generation
+        ...     )  # <- set the initial generation for the engine to our existing generation
         ... )
         """
         self._builder.set_generation(generation)
@@ -1044,7 +1103,9 @@ class Engine[G, T]:
         ...     .limit(rd.Limit.generations(300), rd.Limit.score(0.001))
         ... )
         >>> ...
-        >>> result = engine.run(log=True, checkpoint=(50, "checking")) # <- run the engine with logging enabled and checkpoints every 50 generations to the "checking" directory.
+        >>> result = engine.run(
+        ...     log=True, checkpoint=(50, "checking")
+        ... )  # <- run the engine with logging enabled and checkpoints every 50 generations to the "checking" directory.
 
         Now that we have created some checkpoints, we can load them in to a new engine instance and continue evolving from there.
         >>> engine = (

@@ -2,6 +2,7 @@ from typing import Dict, Any, List, Callable
 from radiate.engine.metrics import Metric
 from .base import ComponentBase
 
+
 class LimitBase(ComponentBase):
     def __init__(self, component: str, args: Dict[str, Any] = {}):
         super().__init__(component=component, args=args)
@@ -118,8 +119,14 @@ class MetricLimit(LimitBase):
         if not isinstance(name, str):
             raise TypeError("Metric name must be a string.")
         if not callable(limit):
-            raise TypeError("Metric limit must be a callable that takes a Metric and returns a bool.")
-        
+            raise TypeError(
+                "Metric limit must be a callable that takes a Metric and returns a bool."
+            )
+
         super().__init__(
-            component="metric", args={"name": name, "limit": lambda metric: limit(Metric.from_rust(metric))}
+            component="metric",
+            args={
+                "name": name,
+                "limit": lambda metric: limit(Metric.from_rust(metric)),
+            },
         )

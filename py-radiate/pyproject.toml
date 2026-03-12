@@ -24,14 +24,74 @@ dynamic = ["version"]
 name = "radiate"
 requires-python = ">=3.12"
 
-[tool.pytest.ini_options]
-addopts = "--import-mode=importlib"
+[project.urls]
+homepage = "https://pkalivas.github.io/radiate/"
+documentation = "readthedocs.org"
+repository = "https://github.com/pkalivas/radiate"
+
+[project.optional-dependencies]
+polars = ["polars>=1.38.1 ; python_version >= '3.12' and python_version < '3.14'"]
+pandas = ["pandas>=2.1.0 ; python_version >= '3.12' and python_version < '3.14'"]
+torch = ["torch>=2.7.1 ; python_version >= '3.12' and python_version < '3.14'"]
+numba = ["numba>=0.55.1 ; python_version >= '3.12' and python_version < '3.14'"]
+numpy = ["numpy>=2.4.3"]
+matplotlib = ["matplotlib>=3.8.0"]
+data =  ["polars","pandas","torch","numba"]
+all = ["data", "numpy", "matplotlib"]
+
+[dependency-groups]
+common = [
+    # "radiate[numpy,matplotlib]",
+    "maturin>=1.8.4,<2.0",
+    "numpy>=2.4.3",
+    "matplotlib>=3.8.0",
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+    "pytest-xdist== 3.8.0",
+]
+data = [
+    "polars>=1.38.1 ; python_version >= '3.12' and python_version < '3.14'",
+    "pandas>=2.1.0 ; python_version >= '3.12' and python_version < '3.14'",
+    "torch>=2.7.1 ; python_version >= '3.12' and python_version < '3.14'",
+    "numba>=0.55.1 ; python_version >= '3.12' and python_version < '3.14'",
+]
+dev = [
+  {include-group = "common"},
+  {include-group = "data"},
+]
+
+[tool.uv]
+package = false
 
 [tool.maturin]
 features = ["pyo3/extension-module"]
 
 [tool.pyright]
-include = ["py-radiate/radiate", "py-radiate/tests"]
+include = ["py-radiate/radiate", "py-radiate/tests", "py-radiate/examples"]
+
+[tool.pytest.ini_options]
+testpaths = ['tests']
+python_files = ['test_*.py', '*_test.py']
+python_classes = ['Test*']
+python_functions = ['test_*']
+addopts = [
+    "--tb=short",
+    "--strict-config",
+    "--strict-markers",
+    "--import-mode=importlib",
+    "--cov=radiate",
+    "--cov-report=term-missing",
+]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "performance: Performance tests",
+    "smoke: Smoke tests",
+    "regression: Regression tests",
+    "slow: Slow running tests",
+    "benchmark: Benchmark tests",
+    "skipif: Skip tests if condition is true"
+]
 
 [tool.ruff]
 fix = true
@@ -40,3 +100,6 @@ line-length = 88
 [tool.ruff.lint.per-file-ignores]
 "radiate/__init__.py" = ["F401"]
 "radiate/utils/_normalize.py" = ["F401"]
+
+[tool.ruff.format]
+docstring-code-format = true

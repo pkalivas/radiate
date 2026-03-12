@@ -1,12 +1,4 @@
 #!/usr/bin/env python3
-# /// script
-# requires-python = ">=3.13"
-# dependencies = [
-#   "numpy",
-#   "matplotlib",
-#   "numba",
-# ]
-# ///
 """
 ZDT Multi-Objective Optimization Example
 
@@ -14,13 +6,6 @@ This example demonstrates how to use the Radiate library to solve a multi-object
 problem using the ZDT3 benchmark function. The ZDT3 function is a commonly used test
 problem in multi-objective optimization, which has two objectives and a non-convex Pareto front.
 """
-
-# pyright: reportMissingImports=false
-
-import os
-import sys
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import matplotlib.pyplot as plt  # type: ignore
 import radiate as rd

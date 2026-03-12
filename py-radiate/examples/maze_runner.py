@@ -1,12 +1,4 @@
 #!/usr/bin/env python3
-# /// script
-# requires-python = ">=3.13"
-# dependencies = [
-#   "numpy",
-#   "matplotlib",
-# ]
-# ///
-
 """
 Maze Solving with Permutation Codec
 
@@ -16,11 +8,6 @@ We have a set of waypoints in a maze and need to find the optimal order to visit
 This is pretty much a TSP (Traveling Salesman Problem) variant, where the start point is fixed
 and we need to find the shortest path through a set of waypoints.
 """
-
-import os
-import sys
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from matplotlib.markers import MarkerStyle  # type: ignore
 
@@ -136,7 +123,7 @@ class MazeSolver:
 
 def run_maze_evolution(
     maze_solver: MazeSolver, generations: int = 100
-) -> rd.Generation[list[MazeWaypoint]]:
+) -> rd.Generation[MazeWaypoint, list[MazeWaypoint]]:
     engine = rd.Engine(
         codec=maze_solver.codec,
         fitness_func=maze_solver.calculate_path_length,

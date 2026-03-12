@@ -1,20 +1,5 @@
 #!/usr/bin/env python3
-# /// script
-# requires-python = ">=3.13"
-# dependencies = [
-#   "polars",
-#   "requests",
-# ]
-# ///
-
-# pyright: reportMissingImports=false
-
-import os
-import sys
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
-import polars as pl
+import polars as pl  # type: ignore
 import radiate as rd
 
 rd.random.seed(500)
