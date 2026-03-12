@@ -42,7 +42,7 @@ By installing the above, you will get the core library. However, Radiate has a f
 
 ```text
 # requirements.txt
-radiate=0.0.11
+radiate=0.0.12
 ```
 
 Python's radiate package does not have any optional features - it is a single package that includes all functionality.
