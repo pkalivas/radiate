@@ -28,9 +28,7 @@ jobs:
           toolchain: stable
 
       - name: Run Python in development mode
-        run: pip install --upgrade pip
-        run: pip install uv
-        run: make develop
+        run: pip install --upgrade pip && pip install uv && make develop
         
       - name: Run Python unit tests
         run: make test-py
