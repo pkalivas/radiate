@@ -4,14 +4,6 @@
 </p>
 
 
-<!-- <p align="center">
-  <img
-    src="docs/assets/logo/banner_light.jpeg"
-    alt="Radiate"
-    style="width:900px; border-radius:20px;"
-  />
-</p> -->
-
 <div align="center">
   <img src="https://img.shields.io/github/check-runs/pkalivas/radiate/master" alt="master branch checks" />
   <img src="https://img.shields.io/crates/v/radiate" alt="Crates.io" />
@@ -59,10 +51,13 @@ cd radiate
 ```
 The core build options are below, there are a few others that can be found through the `make help` command.
 
-* `make build` to build both Rust and Python packages in develop mode
-  * add `ARGS="--release"` to build both packages in release mode
-  * add `PY=3.x` to build python package for specific python version (e.g. `PY=3.12`, `PY=3.13t` for free-threading interpreter)
-  
+* `make develop` faster build time for development with debug symbols and minimal optimizations.
+* `make release` slower build time for optimized runtime performance.
+
+Both the above have an optional `PY=3.x` argument to build the python package for a specific python version (e.g. `PY=3.12`, `PY=3.13t` for free-threading interpreter).
+
 * `make test-rs` to run tests for rust
 * `make test-py` to run tests for python package
+* `make test` to run all tests
+* `make clean` to nuke the build artifacts
 

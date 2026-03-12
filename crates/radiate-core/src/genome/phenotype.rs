@@ -239,11 +239,13 @@ mod test {
     #[test]
     #[cfg(feature = "serde")]
     fn test_phenotype_can_serialize() {
-        let genotype = Genotype::from(FloatChromosome::new(vec![FloatGene::from(0.0..5.0)]));
+        let genotype = Genotype::from(FloatChromosome::new(vec![FloatGene::from(
+            0.0_f32..5.0_f32,
+        )]));
         let phenotype = Phenotype::from((genotype, 0));
 
         let serialized = serde_json::to_string(&phenotype).expect("Failed to serialize Phenotype");
-        let deserialized: Phenotype<FloatChromosome<f64>> =
+        let deserialized: Phenotype<FloatChromosome<f32>> =
             serde_json::from_str(&serialized).expect("Failed to deserialize Phenotype");
 
         assert_eq!(phenotype, deserialized);
