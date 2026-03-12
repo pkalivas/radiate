@@ -27,8 +27,10 @@ jobs:
         with:
           toolchain: stable
 
-      - name: Run Python tests
-        run: make develop PY=3.12
+      - name: Run Python in development mode
+        run: pip install --upgrade pip
+        run: pip install uv
+        run: make develop
         
       - name: Run Python unit tests
         run: make test-py
