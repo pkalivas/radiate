@@ -21,3 +21,4 @@ pyrightconfig.json
 py-radiate/examples/data
 *.python-version
 **libradiate.dylib.dSYM**
+.github/makefile
