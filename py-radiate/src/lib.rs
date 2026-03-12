@@ -8,10 +8,16 @@ use radiate_python::{
     PyRate, PySpecies, PySubscriber, PyTree, PyTreeCodec, py_accuracy, py_alter, py_select,
 };
 
+#[pyfunction]
+pub fn py_version() -> &'static str {
+    env!("CARGO_PKG_VERSION")
+}
+
 #[pymodule(gil_used = false)]
 fn radiate(m: &Bound<'_, PyModule>) -> PyResult<()> {
     radiate_python::init_logging();
 
+    m.add_function(wrap_pyfunction!(py_version, m)?)?;
     m.add_function(wrap_pyfunction!(py_select, m)?)?;
     m.add_function(wrap_pyfunction!(py_alter, m)?)?;
     m.add_function(wrap_pyfunction!(py_accuracy, m)?)?;
