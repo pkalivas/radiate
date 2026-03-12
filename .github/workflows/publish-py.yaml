@@ -10,7 +10,7 @@ on:
       ref:
         description: Git ref to build
         required: true
-        default: main
+        default: master
         type: string
       target_group:
         description: Which build set to run
