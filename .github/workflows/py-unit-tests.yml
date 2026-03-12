@@ -28,7 +28,7 @@ jobs:
           toolchain: stable
 
       - name: Run Python tests
-        run: make develop
+        run: make develop PY=3.12
         
       - name: Run Python unit tests
         run: make test-py
