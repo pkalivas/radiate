@@ -424,15 +424,15 @@ Evolve a `Graph<Op<f32>>` to solve the XOR problem (NeuroEvolution).
 
     engine = (
         rd.Engine(codec)
-        .regression(inputs, answers, loss='mse')
+        .regression(inputs, answers, loss=rd.MSE)
         .alters(
-            rd.GraphCrossover(0.5, 0.5),
-            rd.OperationMutator(0.07, 0.05),
-            rd.GraphMutator(0.1, 0.1),
+            rd.Cross.graph(0.5, 0.5),
+            rd.Mutate.op(0.07, 0.05),
+            rd.Mutate.graph(0.1, 0.1),
         )
     )
 
-    result = engine.run(rd.ScoreLimit(0.001), rd.GenerationsLimit(1000), log=True)
+    result = engine.run(rd.Limit.score(0.001), rd.Limit.generations(1000), log=True)
 
     for input, target in zip(inputs, answers):
         print(f"Input: {input}, Target: {target}, Output: {result.value().eval([input])}")
@@ -532,12 +532,12 @@ Evolve a `Tree<Op<f32>>` to solve the a regression problem (Genetic Programming)
 
     engine = (
         rd.Engine(codec)
-        .regression(inputs, answers, loss='mse')
-        .alters(rd.TreeCrossover(0.7), rd.HoistMutator(0.01))
+        .regression(inputs, answers, loss=rd.MSE)
+        .alters(rd.Cross.tree(0.7), rd.Mutate.hoist(0.01))
     )
 
 
-    result = engine.run(rd.ScoreLimit(0.01), rd.TimeLimit(1.0), log=True)
+    result = engine.run(rd.Limit.score(0.01), rd.Limit.time(1.0), log=True)
     print(result)
 
     for input, target in zip(inputs, answers):

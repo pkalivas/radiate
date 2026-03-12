@@ -5,7 +5,6 @@ import enum
 from datetime import timedelta
 
 from radiate._bridge.wrapper import RsObject
-from radiate._dependancies import _PANDAS_AVAILABLE, _POLARS_AVAILABLE
 
 
 class Tag(enum.Enum):
@@ -112,6 +111,8 @@ class MetricSet(RsObject):
         ]
 
     def to_polars(self):
+        from radiate._dependancies import _POLARS_AVAILABLE
+
         if not _POLARS_AVAILABLE:
             raise ImportError(
                 "Polars is not available. Please install it to use this feature."
@@ -119,6 +120,8 @@ class MetricSet(RsObject):
         return self.__backend__().to_polars()
 
     def to_pandas(self):
+        from radiate._dependancies import _PANDAS_AVAILABLE
+
         if not _PANDAS_AVAILABLE:
             raise ImportError(
                 "Pandas is not available. Please install it to use this feature."

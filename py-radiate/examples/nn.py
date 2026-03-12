@@ -1,26 +1,12 @@
-#!/usr/bin/env -S uv run --script
-# /// script
-# requires-python = ">=3.13"
-# dependencies = [
-#   "torch",
-#   "numpy",
-# ]
-# ///
+#!/usr/bin/env python3
 """
 PyTorch Neural Network Weight Evolution with Radiate FloatCode
 """
 
-# pyright: reportMissingImports=false
-
-import os
-import sys
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
 import radiate as rd
-import torch
-from torch import nn
-import torch.nn.functional as F
+import torch  # type: ignore
+from torch import nn  # type: ignore
+import torch.nn.functional as F  # type: ignore
 import numpy as np
 
 

@@ -118,7 +118,6 @@ impl From<(Vec<Metric>, Vec<LineageUpdate>)> for AlterResult {
 /// The [Alterer] enum is used to represent the different
 /// types of alterations that can be performed on a
 /// population - It can be either a mutation or a crossover operation.
-
 #[derive(Clone)]
 pub enum Alterer<C: Chromosome> {
     Mutate(&'static str, Rate, Arc<dyn Mutate<C>>),

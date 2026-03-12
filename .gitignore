@@ -19,4 +19,5 @@ radiate/.vs
 *ruff_cache
 pyrightconfig.json
 py-radiate/examples/data
-**.python-version
+*.python-version
+**libradiate.dylib.dSYM**

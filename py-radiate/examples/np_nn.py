@@ -1,23 +1,9 @@
-#!/usr/bin/env python3
-# /// script
-# requires-python = ">=3.13"
-# dependencies = [
-#   "numpy",
-# ]
-# ///
 """
 This example shows how to use Radiate with NumPy arrays.
 
 It implements a simple feedforward neural network with 3 layers (input, hidden, output) to fit a regression problem.
 The network weights are evolved using a float codec.
 """
-
-# pyright: reportMissingImports=false
-
-import os
-import sys
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import radiate as rd
 import numpy as np

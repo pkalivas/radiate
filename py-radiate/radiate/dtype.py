@@ -168,11 +168,13 @@ class Struct(NestedType):
     fields    A list of `Field` instances defining the structure of the `Struct`.
     Examples
     --------
-    >>> person_dtype = Struct([
-    ...     Field("name", String),
-    ...     Field("age", Int32),
-    ...     Field("is_student", Bool),
-    ... ])
+    >>> person_dtype = Struct(
+    ...     [
+    ...         Field("name", String),
+    ...         Field("age", Int32),
+    ...         Field("is_student", Bool),
+    ...     ]
+    ... )
     >>> person_dtype
     Struct({'name': String, 'age': Int32, 'is_student': Bool})
     """

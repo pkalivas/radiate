@@ -68,7 +68,7 @@ class Chromosome[T](RsObject):
 
         Example
         --------
-        >>> rd.chromosome.char(length=5, char_set={'a', 'b', 'c'})
+        >>> rd.chromosome.char(length=5, char_set={"a", "b", "c"})
         Chromosome(genes=[a, b, c, a, b])
         """
         genes = [Gene.char(char_set=char_set) for _ in range(length)]

@@ -280,7 +280,6 @@ class FloatCodec[D](CodecBase[float, D], RsObject):
         return PyFloatCodec.scalar(
             value_range=init_range,
             bound_range=bounds,
-            use_numpy=use_numpy,
             dtype=str(dtype),
         )
 

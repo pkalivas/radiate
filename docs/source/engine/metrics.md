@@ -81,7 +81,7 @@ Additional metrics collected when using species-based diversity:
 
 ## Accessing Metrics
 
-These can be accessed through the `metrics()` method of the epoch, which returns a `MetricSet`. 
+These can be accessed through the `metrics()` method of the `Generation` object, which returns a `MetricSet`. Each individual `Metric` can be accessed by its name, and the various statistical measures can be accessed through the methods of the `Metric` object. Additionally, the `MetricSet` provides a `dashboard()` method that pretty-prints all the metrics in a user-friendly format.
 
 === ":fontawesome-brands-python: Python"
 

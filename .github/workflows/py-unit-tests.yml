@@ -28,4 +28,7 @@ jobs:
           toolchain: stable
 
       - name: Run Python tests
+        run: make develop
+        
+      - name: Run Python unit tests
         run: make test-py
