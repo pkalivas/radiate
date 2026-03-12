@@ -1,6 +1,6 @@
 GH ?= gh
-WORKFLOW ?= publish.yml
-REF ?= main
+WORKFLOW ?= publish
+REF ?= master
 TARGET_GROUP ?= all
 FREE_THREADED ?= true
 PUBLISH_TO_PYPI ?= false
