@@ -15,6 +15,18 @@ TARGET_GROUP ?= all
 FREE_THREADED ?= true
 PUBLISH_TO_PYPI ?= false
 
+ifeq ($(VENV),)
+VENV := .venv
+endif
+
+RUNTIME_CARGO_TOML=py-polars/runtime/polars-runtime-32/Cargo.toml
+
+ifeq ($(OS),Windows_NT)
+	VENV_BIN=$(VENV)/Scripts
+else
+	VENV_BIN=$(VENV)/bin
+endif
+
 
 find_python = $(shell uv python find "$(1)" 2>/dev/null || true)
 require_python = $(or $(call find_python,$(1)),$(error Could not find Python interpreter '$(1)'))
@@ -36,8 +48,11 @@ python-info:  ## Display Python interpreter information
 
 .PHONY: sync
 sync: python-info  ## Sync Python dependencies with uv
+	@rm -rf ../.env
+	@echo "UV_PYTHON=$(python)\nUV_ENV_FILE=../.env\nUV_PROJECT_ENVIRONMENT=$(abspath ..)" > ../.env 
+
 	@uv python install $(PY)
-	@uv python pin $(PY)
+# 	@uv python pin $(PY)
 	@uv sync $(SYNC_ARGS) 
 
 .PHONY: test
