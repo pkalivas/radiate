@@ -22,6 +22,7 @@ pub struct MetricSetSummary {
 pub struct MetricSet {
     metrics: HashMap<&'static str, Metric>,
     set_stats: Metric,
+    version: u64,
 }
 
 impl MetricSet {
@@ -29,7 +30,18 @@ impl MetricSet {
         MetricSet {
             metrics: HashMap::new(),
             set_stats: Metric::new(METRIC_SET),
+            version: 0,
         }
+    }
+
+    pub fn next_version(&mut self) -> u64 {
+        let result = self.version;
+        self.version += 1;
+        result
+    }
+
+    pub fn version(&self) -> u64 {
+        self.version
     }
 
     #[inline(always)]
@@ -39,7 +51,9 @@ impl MetricSet {
 
     #[inline(always)]
     pub fn flush_all_into(&mut self, target: &mut MetricSet) {
+        let version = target.next_version();
         for (key, mut m) in self.metrics.drain() {
+            m.set_version(version);
             if let Some(target_metric) = target.metrics.get_mut(key) {
                 target_metric.update_from(m);
             } else {
@@ -53,30 +67,41 @@ impl MetricSet {
     }
 
     #[inline(always)]
+    pub fn replace(&mut self, metric: impl Into<Metric>) {
+        let mut metric = metric.into();
+        try_add_tag_from_str(&mut metric);
+        self.metrics.insert(intern!(metric.name()), metric);
+    }
+
+    #[inline(always)]
     pub fn upsert<'a>(&mut self, metric: impl Into<MetricSetUpdate<'a>>) {
         let update = metric.into();
+        let version = self.version();
         match update {
             MetricSetUpdate::Many(metrics) => {
                 for metric in metrics {
-                    self.add_or_update_internal(metric);
+                    self.add_or_update_internal(version, metric);
                 }
             }
             MetricSetUpdate::Single(metric) => {
-                self.add_or_update_internal(metric);
+                self.add_or_update_internal(version, metric);
             }
             MetricSetUpdate::NamedSingle(name, metric_update) => {
                 self.set_stats.apply_update(1);
                 if let Some(m) = self.metrics.get_mut(name) {
+                    m.set_version(version);
                     m.apply_update(metric_update);
                     return;
                 }
 
                 let new_name = radiate_utils::intern_name_as_snake_case(name);
                 if let Some(m) = self.metrics.get_mut(&new_name) {
+                    m.set_version(version);
                     m.apply_update(metric_update);
                 } else {
                     let mut metric = Metric::new(new_name);
                     try_add_tag_from_str(&mut metric);
+                    metric.set_version(version);
                     metric.apply_update(metric_update);
                     self.add(metric);
                 }
@@ -282,12 +307,14 @@ impl MetricSet {
         self.get(super::metric_names::LARGEST_SPECIES_SHARE)
     }
 
-    fn add_or_update_internal(&mut self, mut metric: Metric) {
+    fn add_or_update_internal(&mut self, version: u64, mut metric: Metric) {
         self.set_stats.apply_update(1);
         if let Some(existing) = self.metrics.get_mut(metric.name()) {
+            existing.set_version(version);
             existing.update_from(metric);
         } else {
             try_add_tag_from_str(&mut metric);
+            metric.set_version(version);
             self.metrics.insert(intern!(metric.name()), metric);
         }
     }

@@ -106,6 +106,14 @@ markdown_extensions:
   - pymdownx.arithmatex:
       generic: true
 
+plugins:
+    - search:
+          lang: en
+    - markdown-exec
+    - material-plausible
+    - macros:
+          module_name: docs/source/_build/scripts/macro
+
 extra:
   social:
     - icon: fontawesome/brands/github

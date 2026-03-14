@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use crate::object::Wrap;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
@@ -199,6 +201,16 @@ impl PyMetric {
             .collect()
     }
 
+    #[getter]
+    pub fn version(&self) -> u64 {
+        self.inner.version()
+    }
+
+    #[getter]
+    pub fn update_count(&self) -> usize {
+        self.inner.update_count()
+    }
+
     // --- value stats ---
     #[getter]
     pub fn value_last(&self) -> f32 {
@@ -247,38 +259,38 @@ impl PyMetric {
 
     // --- time stats (seconds as float) ---
     #[getter]
-    pub fn time_last(&self) -> f64 {
-        self.inner.last_time().as_secs_f64()
+    pub fn time_last(&self) -> Duration {
+        self.inner.last_time()
     }
 
     #[getter]
-    pub fn time_sum(&self) -> Option<f64> {
-        self.inner.time_sum().map(|d| d.as_secs_f64())
+    pub fn time_sum(&self) -> Option<Duration> {
+        self.inner.time_sum()
     }
 
     #[getter]
-    pub fn time_mean(&self) -> Option<f64> {
-        self.inner.time_mean().map(|d| d.as_secs_f64())
+    pub fn time_mean(&self) -> Option<Duration> {
+        self.inner.time_mean()
     }
 
     #[getter]
-    pub fn time_stddev(&self) -> Option<f64> {
-        self.inner.time_std_dev().map(|d| d.as_secs_f64())
+    pub fn time_stddev(&self) -> Option<Duration> {
+        self.inner.time_std_dev()
     }
 
     #[getter]
-    pub fn time_min(&self) -> Option<f64> {
-        self.inner.time_min().map(|d| d.as_secs_f64())
+    pub fn time_min(&self) -> Option<Duration> {
+        self.inner.time_min()
     }
 
     #[getter]
-    pub fn time_max(&self) -> Option<f64> {
-        self.inner.time_max().map(|d| d.as_secs_f64())
+    pub fn time_max(&self) -> Option<Duration> {
+        self.inner.time_max()
     }
 
     #[getter]
-    pub fn time_variance(&self) -> Option<f64> {
-        self.inner.time_variance().map(|d| d.as_secs_f64())
+    pub fn time_variance(&self) -> Option<Duration> {
+        self.inner.time_variance()
     }
 
     /// Convert to a dict (nice for DataFrame construction / JSON dumps).
@@ -302,6 +314,9 @@ impl PyMetric {
         d.set_item("time_min", self.time_min())?;
         d.set_item("time_max", self.time_max())?;
         d.set_item("time_var", self.time_variance())?;
+
+        d.set_item("version", self.version())?;
+        d.set_item("update_count", self.update_count())?;
 
         Ok(d)
     }

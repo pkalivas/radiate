@@ -178,40 +178,40 @@ class Metric(RsObject):
         last_time = self.__backend__().time_last
         if last_time is None:
             return None
-        return timedelta(seconds=last_time)
+        return last_time
 
     def time_sum(self) -> timedelta | None:
         sum_time = self.__backend__().time_sum
         if sum_time is None:
             return None
-        return timedelta(seconds=sum_time)
+        return sum_time
 
     def time_mean(self) -> timedelta | None:
         mean_time = self.__backend__().time_mean
         if mean_time is None:
             return None
-        return timedelta(seconds=mean_time)
+        return mean_time
 
     def time_stddev(self) -> timedelta | None:
         stddev_time = self.__backend__().time_stddev
         if stddev_time is None:
             return None
-        return timedelta(seconds=stddev_time)
+        return stddev_time
 
     def time_variance(self) -> timedelta | None:
         variance_time = self.__backend__().time_variance
         if variance_time is None:
             return None
-        return timedelta(seconds=variance_time)
+        return variance_time
 
     def time_min(self) -> timedelta | None:
         time_min = self.__backend__().time_min
         if time_min is None:
             return None
-        return timedelta(seconds=time_min)
+        return time_min
 
     def time_max(self) -> timedelta | None:
         time_max = self.__backend__().time_max
         if time_max is None:
             return None
-        return timedelta(seconds=time_max)
+        return time_max

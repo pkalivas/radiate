@@ -43,4 +43,3 @@ help:  ## Display this help screen
 	@grep -E '^[a-z.A-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}' | sort
 	@echo
 	@echo 'For example to build without default features use: make build ARGS="--no-default-features".'
-

@@ -20,6 +20,13 @@ macro_rules! metric {
 
 #[derive(Clone, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+struct Meta {
+    update_count: usize,
+    set_version: u64,
+}
+
+#[derive(Clone, PartialEq, Default)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 struct MetricInner {
     value_statistic: Option<Statistic>,
     time_statistic: Option<TimeStatistic>,
@@ -29,6 +36,7 @@ struct MetricInner {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Metric {
     name: Arc<String>,
+    meta: Option<Meta>,
     inner: MetricInner,
     tags: Tag,
 }
@@ -40,11 +48,38 @@ impl Metric {
 
         Self {
             name,
+            meta: None,
             inner: MetricInner {
                 value_statistic: None,
                 time_statistic: None,
             },
             tags,
+        }
+    }
+
+    #[inline(always)]
+    pub fn update_count(&self) -> usize {
+        self.meta.as_ref().map_or(0, |meta| meta.update_count)
+    }
+
+    #[inline(always)]
+    pub fn version(&self) -> u64 {
+        self.meta.as_ref().map_or(0, |meta| meta.set_version)
+    }
+
+    #[inline(always)]
+    pub fn set_version(&mut self, version: u64) {
+        if let Some(meta) = &mut self.meta {
+            if version != meta.set_version {
+                meta.update_count = 0;
+            }
+
+            meta.set_version = version;
+        } else {
+            self.meta = Some(Meta {
+                update_count: 0,
+                set_version: version,
+            });
         }
     }
 
@@ -152,6 +187,8 @@ impl Metric {
                 } else {
                     self.new_statistic(stat);
                 }
+
+                self.meta.as_mut().map(|meta| meta.update_count += 1);
             }
             MetricUpdate::TimeStatistic(time_stat) => {
                 if let Some(existing_time_stat) = &mut self.inner.time_statistic {
@@ -159,6 +196,8 @@ impl Metric {
                 } else {
                     self.new_time_statistic(time_stat);
                 }
+
+                self.meta.as_mut().map(|meta| meta.update_count += 1);
             }
         }
     }
@@ -179,6 +218,8 @@ impl Metric {
         } else {
             self.new_statistic(value);
         }
+
+        self.meta.as_mut().map(|meta| meta.update_count += 1);
     }
 
     fn update_time_statistic(&mut self, value: Duration) {
@@ -187,6 +228,8 @@ impl Metric {
         } else {
             self.new_time_statistic(value);
         }
+
+        self.meta.as_mut().map(|meta| meta.update_count += 1);
     }
 
     fn update_statistic_from_iter<I>(&mut self, values: I)
@@ -196,6 +239,7 @@ impl Metric {
         if let Some(stat) = &mut self.inner.value_statistic {
             for value in values {
                 stat.add(value);
+                self.meta.as_mut().map(|meta| meta.update_count += 1);
             }
 
             self.add_tag(TagKind::Distribution);
@@ -203,6 +247,7 @@ impl Metric {
             let mut new_stat = Statistic::default();
             for value in values {
                 new_stat.add(value);
+                self.meta.as_mut().map(|meta| meta.update_count += 1);
             }
 
             self.new_statistic(new_stat);
