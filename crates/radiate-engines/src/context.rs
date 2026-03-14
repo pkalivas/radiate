@@ -25,6 +25,8 @@ impl<C: Chromosome, T> Context<C, T> {
         self.index += 1;
         self.lineage.write().unwrap().rollover();
 
+        self.metrics.upsert((metric_names::INDEX, self.index));
+
         let best = self.ecosystem.get_phenotype(0);
         if let Some(best) = best {
             if let (Some(score), Some(current)) = (best.score(), &self.score) {

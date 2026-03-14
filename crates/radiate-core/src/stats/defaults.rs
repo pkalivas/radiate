@@ -32,6 +32,8 @@ pub mod metric_names {
 
     pub const BEST_SCORE_IMPROVEMENT: &str = "best_score_improvement";
 
+    pub const INDEX: &str = "index";
+
     pub const SPECIES_COUNT: &str = "species_count";
     pub const SPECIES_AGE_FAIL: &str = "species_age_fail";
     pub const SPECIES_DISTANCE_DIST: &str = "species_distance_dist";
