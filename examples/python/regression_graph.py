@@ -7,7 +7,8 @@ We have a simple polynomial function and we want to evolve a graph that approxim
 """
 
 import radiate as rd
-import polars as pl  # type: ignore
+
+# import polars as pl  # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
 
 rd.random.seed(67123)
@@ -81,22 +82,22 @@ print(result.metrics().dashboard())
 print(accuracy)
 
 
-df = pl.DataFrame(subscriber.metrics)
-print(
-    df.filter(pl.col("time_mean").is_not_null() & (pl.col("name") != "time"))
-    .group_by("name")
-    .agg(pl.col("time_mean").mean())
-    .sort("time_mean", descending=True)
-)
+# df = pl.DataFrame(subscriber.metrics)
+# print(
+#     df.filter(pl.col("time_mean").is_not_null() & (pl.col("name") != "time"))
+#     .group_by("name")
+#     .agg(pl.col("time_mean").mean())
+#     .sort("time_mean", descending=True)
+# )
 
-grouped_updates = (
-    df.group_by("name")
-    .agg(pl.col("update_count").sum().alias("total_updates"))
-    .sort("total_updates", descending=True)
-)
+# grouped_updates = (
+#     df.group_by("name")
+#     .agg(pl.col("update_count").sum().alias("total_updates"))
+#     .sort("total_updates", descending=True)
+# )
 
 
-print(grouped_updates)
-print(df.columns)
+# print(grouped_updates)
+# print(df.columns)
 
-print(grouped_updates.sum())
+# print(grouped_updates.sum())

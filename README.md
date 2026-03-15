@@ -63,3 +63,5 @@ Both the above have an optional argument `py` to build the python package for a 
 * `just test` to run tests for both.
 * `just clean` to nuke the build artifacts
 
+Run examples with `just example <language> <example_id>` (args being language and example id, see `examples/examples.yaml` for available examples).
+For example to run the python's numpy neural network example: `just example py nn`.

@@ -37,6 +37,10 @@ where
                 Box::new(NSGA3Selector::new(ref_points))
             }
             crate::names::TOURNAMENT_NSGA2_SELECTOR => Box::new(TournamentNSGA2Selector::new()),
+            crate::names::LINEAR_RANK_SELECTOR => {
+                let selection_pressure = self.get_f32("pressure").unwrap_or(1.0).max(1.0); // Ensure selection pressure is at least 1.0
+                Box::new(LinearRankSelector::new(selection_pressure))
+            }
             _ => {
                 panic!("Selector type {} not yet implemented", self.component);
             }

@@ -145,6 +145,12 @@ class Metric(RsObject):
     def to_dict(self) -> dict[str, Any]:
         return self.__backend__().to_dict()
 
+    def version(self) -> int:
+        return self.__backend__().version
+
+    def update_count(self) -> int:
+        return self.__backend__().update_count
+
     # --- value stats ---
     def value_last(self) -> float:
         return self.__backend__().value_last

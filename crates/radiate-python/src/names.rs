@@ -9,6 +9,7 @@ pub(crate) const RANDOM_SELECTOR: &str = "RandomSelector";
 pub(crate) const NSGA2_SELECTOR: &str = "NSGA2Selector";
 pub(crate) const NSGA3_SELECTOR: &str = "NSGA3Selector";
 pub(crate) const TOURNAMENT_NSGA2_SELECTOR: &str = "TournamentNSGA2Selector";
+pub(crate) const LINEAR_RANK_SELECTOR: &str = "LinearRankSelector";
 
 // Executors
 pub(crate) const SERIAL_EXECUTOR: &str = "Serial";
