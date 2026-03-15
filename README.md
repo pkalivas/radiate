@@ -49,15 +49,17 @@ pip install radiate # --or-- uv add radiate
 git clone https://github.com/pkalivas/radiate.git
 cd radiate
 ```
-The core build options are below, there are a few others that can be found through the `make help` command.
 
-* `make develop` faster build time for development with debug symbols and minimal optimizations.
-* `make release` slower build time for optimized runtime performance.
+Radiate uses [Just](https://github.com/casey/just) as a build tool, you can install it from [here](https://github.com/casey/just#installation).
+The core build options are below, there are a few others that can be found through the `just help` command.
 
-Both the above have an optional `PY=3.x` argument to build the python package for a specific python version (e.g. `PY=3.12`, `PY=3.13t` for free-threading interpreter).
+* `just develop` faster build time for development with debug symbols and minimal optimizations.
+* `just release` slower build time for optimized runtime performance.
 
-* `make test-rs` to run tests for rust
-* `make test-py` to run tests for python package
-* `make test` to run all tests
-* `make clean` to nuke the build artifacts
+Both the above have an optional argument `py` to build the python package for a specific python version (e.g. `just develop 3.12`, `just develop 3.13t` for free-threading interpreter).
+
+* `just test-rs` to run tests for rust
+* `just test-py` to run tests for python package
+* `just test` to run tests for both.
+* `just clean` to nuke the build artifacts
 
