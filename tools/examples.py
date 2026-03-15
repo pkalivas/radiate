@@ -1,12 +1,19 @@
 #!/usr/bin/env python3
+"""
+Simple tool to manage and run examples for Radiate. Examples are defined in a
+manifest file (examples/examples.yaml) and can be run with the `just example` command.
+
+Ex: `just example --id nn --lang py` will run the Python version of the "nn" example, while
+"""
+
 from __future__ import annotations
 
 import argparse
 import subprocess
-from dataclasses import dataclass, field
-from pathlib import Path
+import yaml  # type: ignore
 
-import yaml
+from dataclasses import dataclass
+from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -19,11 +26,8 @@ class Example:
     id: str
     manifest: dict[str, str]
 
-    tags: list[str] = field(default_factory=list)
-    skip_on_ci: bool = False
-
     def command(self, language: str) -> list[str]:
-        if language == "python":
+        if language == "py":
             py_path = self.manifest.get("py")
             if not py_path:
                 raise ValueError(f"{self.id}: no Python manifest entry")
@@ -33,7 +37,7 @@ class Example:
                 py_path,
             ]
 
-        if language == "rust":
+        if language == "rs":
             rs_manifest = self.manifest.get("rs")
             if not rs_manifest:
                 raise ValueError(f"{self.id}: no Rust manifest entry")
@@ -56,15 +60,11 @@ def load_manifest() -> list[Example]:
     examples: list[Example] = []
     for entry in data.get("examples", []):
         manifest = dict(entry.get("manifest", {}))
-        tags = list(entry.get("tags", []))
-        skip_on_ci = bool(entry.get("skip_on_ci", False))
 
         examples.append(
             Example(
                 id=entry["id"],
                 manifest=manifest,
-                tags=tags,
-                skip_on_ci=skip_on_ci,
             )
         )
 
@@ -93,24 +93,18 @@ def select_examples(
     *,
     ex_id: str | None = None,
     language: str | None = None,
-    tag: str | None = None,
-    ci_only: bool = False,
 ) -> list[tuple[Example, str]]:
     selected: list[tuple[Example, str]] = []
 
     for ex in examples:
         if ex_id and ex.id != ex_id:
             continue
-        if tag and tag not in ex.tags:
-            continue
-        if ci_only and ex.skip_on_ci:
-            continue
 
         available_languages: list[str] = []
         if "py" in ex.manifest:
-            available_languages.append("python")
+            available_languages.append("py")
         if "rs" in ex.manifest:
-            available_languages.append("rust")
+            available_languages.append("rs")
 
         if language:
             if language in available_languages:
@@ -135,9 +129,6 @@ def run_example(example: Example, language: str) -> bool:
             cwd=ROOT,
             check=False,
         )
-    except subprocess.TimeoutExpired:
-        print(f"FAILED: {example.id} [{language}] timed out")
-        return False
     except FileNotFoundError as e:
         print(f"FAILED: {example.id} [{language}] could not start: {e}")
         return False
@@ -158,9 +149,7 @@ def main() -> int:
 
     run_parser = sub.add_parser("run")
     run_parser.add_argument("--id")
-    run_parser.add_argument("--language", choices=["python", "rust"])
-    run_parser.add_argument("--tag")
-    run_parser.add_argument("--ci", action="store_true")
+    run_parser.add_argument("--lang", choices=["py", "rs"])
 
     args = parser.parse_args()
     examples = load_manifest()
@@ -173,9 +162,7 @@ def main() -> int:
         selected = select_examples(
             examples,
             ex_id=args.id,
-            language=args.language,
-            tag=args.tag,
-            ci_only=args.ci,
+            language=args.lang,
         )
 
         if not selected:

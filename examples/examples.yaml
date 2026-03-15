@@ -17,7 +17,7 @@ examples:
   - id: nn
     manifest:
       rs: examples/rust/simple-nn/Cargo.toml
-      py: examples/python/simple-nn.py
+      py: examples/python/np_nn.py
 
   - id: novelty_search
     manifest:

@@ -1,0 +1,14 @@
+set shell := ["bash", "-cu"]
+
+default:
+    @just --list
+
+clean:
+    @rm -rf .pytest_cache/
+    @rm -rf tests/.pytest_cache/
+    @rm -f .coverage
+    @rm -rf tests/.coverage
+    @rm -rf radiate/*.so
+    @rm -rf .ruff_cache/
+    @rm -rf .benchmarks/
+    @find . -type f -name '*.py[co]' -delete -o -type d -name __pycache__ -exec rm -r {} +

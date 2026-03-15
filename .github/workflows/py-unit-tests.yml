@@ -2,9 +2,9 @@ name: py-unit-tests
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: ["main", "master"]
   pull_request:
-    branches: [ "main", "master" ]
+    branches: ["main", "master"]
   workflow_dispatch: {}
 
 permissions:
@@ -13,6 +13,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -20,15 +21,18 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: "3.12"
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
 
+      - name: Install just
+        uses: extractions/setup-just@v2
+
       - name: Run Python in development mode
-        run: pip install --upgrade pip && pip install uv && make develop
-        
+        run: just develop 3.12
+
       - name: Run Python unit tests
-        run: make test-py
+        run: just test py
