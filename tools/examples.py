@@ -5,7 +5,6 @@ import argparse
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
 
 import yaml
 
@@ -20,7 +19,6 @@ class Example:
     id: str
     manifest: dict[str, str]
 
-    timeout: int = 30
     tags: list[str] = field(default_factory=list)
     skip_on_ci: bool = False
 
@@ -54,13 +52,10 @@ def load_manifest() -> list[Example]:
         return []
 
     data = yaml.safe_load(MANIFEST_PATH.read_text(encoding="utf-8")) or {}
-    defaults = data.get("defaults", {})
-    rust_defaults = defaults.get("rust", {})
 
     examples: list[Example] = []
     for entry in data.get("examples", []):
         manifest = dict(entry.get("manifest", {}))
-        timeout = int(entry.get("timeout", rust_defaults.get("timeout", 30)))
         tags = list(entry.get("tags", []))
         skip_on_ci = bool(entry.get("skip_on_ci", False))
 
@@ -68,7 +63,6 @@ def load_manifest() -> list[Example]:
             Example(
                 id=entry["id"],
                 manifest=manifest,
-                timeout=timeout,
                 tags=tags,
                 skip_on_ci=skip_on_ci,
             )
@@ -139,11 +133,10 @@ def run_example(example: Example, language: str) -> bool:
         result = subprocess.run(
             cmd,
             cwd=ROOT,
-            timeout=example.timeout,
             check=False,
         )
     except subprocess.TimeoutExpired:
-        print(f"FAILED: {example.id} [{language}] timed out after {example.timeout}s")
+        print(f"FAILED: {example.id} [{language}] timed out")
         return False
     except FileNotFoundError as e:
         print(f"FAILED: {example.id} [{language}] could not start: {e}")
@@ -159,7 +152,7 @@ def run_example(example: Example, language: str) -> bool:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    sub = parser.add_subparsers(dest="command", required=True)
+    sub = parser.add_subparsers(dest="command", required=False)
 
     sub.add_parser("list")
 

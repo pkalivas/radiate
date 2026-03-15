@@ -8,12 +8,6 @@ $(REQUIRE_UV):
 
 ARGS ?=
 PY ?= 3.12
-GH ?= gh
-WORKFLOW ?= publish
-REF ?= master
-TARGET_GROUP ?= all
-FREE_THREADED ?= true
-PUBLISH_TO_PYPI ?= false
 
 .PHONY: python-info
 python-info:  ## Display Python interpreter information
@@ -26,9 +20,7 @@ sync: python-info  ## Sync Python dependencies with uv
 	@uv python pin $(PY)
 	@uv venv .venv --clear
 	@uv pip install --upgrade --compile-bytecode --no-build \
-		-r py-radiate/requirements.txt \
-		-r docs/requirements.txt
-	@uv pip install --no-deps -e py-radiate
+		-r py-radiate/requirements.txt 
 
 .PHONY: test
 test: ## Run fast unittests
@@ -64,45 +56,6 @@ develop: sync  ## Install Python radiate for development
 release: sync  ## Build radiate in release mode for development
 	@uv run maturin develop -m py-radiate/Cargo.toml --release --uv
 
-# PHONY targets for GitHub Actions workflows
-.PHONY: gha-build
-gha-build:  ## Trigger GitHub Actions workflow
-
-	@$(GH) workflow run $(WORKFLOW) \
-		--ref $(REF) \
-		-f ref=$(REF) \
-		-f target_group=$(TARGET_GROUP) \
-		-f free_threaded=$(FREE_THREADED) \
-		-f publish_to_pypi=$(PUBLISH_TO_PYPI)
-
-.PHONY: gha-build-linux
-gha-build-linux:  ## Trigger GitHub Actions workflow for Linux targets
-	@$(MAKE) gha-build TARGET_GROUP=linux
-
-.PHONY: gha-build-musllinux
-gha-build-musllinux: ## Trigger GitHub Actions workflow for musllinux targets
-	@$(MAKE) gha-build TARGET_GROUP=musllinux
-
-.PHONY: gha-build-windows
-gha-build-windows: ## Trigger GitHub Actions workflow for Windows targets
-	@$(MAKE) gha-build TARGET_GROUP=windows
-
-.PHONY: gha-build-macos
-gha-build-macos: ## Trigger GitHub Actions workflow for macOS targets
-	@$(MAKE) gha-build TARGET_GROUP=macos
-
-.PHONY: gha-build-sdist
-gha-build-sdist: ## Trigger GitHub Actions workflow for source distribution
-	@$(MAKE) gha-build TARGET_GROUP=sdist FREE_THREADED=false
-
-.PHONY: gha-publish
-gha-publish: ## Trigger GitHub Actions workflow for publishing to PyPI
-	@$(MAKE) gha-build TARGET_GROUP=all FREE_THREADED=true PUBLISH_TO_PYPI=true
-
-.PHONY: gha-watch
-gha-watch: ## Watch the latest GitHub Actions workflow run
-	@RUN_ID=`$(GH) run list --workflow $(WORKFLOW) --limit 1 --json databaseId --jq '.[0].databaseId'`; \
-	$(GH) run watch $$RUN_ID --compact --exit-status
 
 .PHONY: clean
 clean:  ## Clean up caches and build artifacts

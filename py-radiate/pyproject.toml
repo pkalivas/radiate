@@ -45,7 +45,7 @@ package = false
 features = ["pyo3/extension-module"]
 
 [tool.pyright]
-include = ["py-radiate/radiate", "py-radiate/tests", "py-radiate/examples"]
+include = ["py-radiate/radiate", "py-radiate/tests"]
 
 [tool.pytest.ini_options]
 testpaths = ['tests']

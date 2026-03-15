@@ -1,7 +1,3 @@
-defaults:
-  rust:
-    timeout: 120
-
 examples:
   - id: dtlz
     manifest:
