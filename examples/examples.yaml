@@ -1,0 +1,110 @@
+defaults:
+  rust:
+    timeout: 120
+
+examples:
+  - id: dtlz
+    manifest:
+      rs: examples/rust/DTLZ/Cargo.toml
+      py: examples/python/dtlz.py
+
+  - id: iris_graph
+    manifest:
+      rs: examples/rust/graphs/iris-graph/Cargo.toml
+      py: examples/python/iris_graph.py
+
+  - id: maze_runner
+    manifest:
+      rs: examples/rust/TSP/Cargo.toml
+      py: examples/python/maze_runner.py
+
+  - id: nn
+    manifest:
+      rs: examples/rust/simple-nn/Cargo.toml
+      py: examples/python/simple-nn.py
+
+  - id: novelty_search
+    manifest:
+      rs: examples/rust/novelty_search/Cargo.toml
+      py: examples/python/novelty_search.py
+
+  - id: np_nn
+    manifest:
+      py: examples/python/np_nn.py
+
+  - id: nqueens
+    manifest:
+      rs: examples/rust/nqueens/Cargo.toml
+      py: examples/python/nqueens.py
+
+  - id: pygad
+    manifest:
+      py: examples/python/pygad.py
+
+  - id: regression_graph
+    manifest:
+      rs: examples/rust/graphs/regression-graph/Cargo.toml
+      py: examples/python/regression_graph.py
+
+  - id: regression_tree
+    manifest:
+      rs: examples/rust/trees/regression-tree/Cargo.toml
+      py: examples/python/regression_tree.py
+
+  - id: snake
+    manifest:
+      rs: examples/rust/snake/Cargo.toml
+      py: examples/python/snake.py
+
+  - id: zdt
+    manifest:
+      py: examples/python/zdt.py
+
+  - id: hello-world
+    manifest:
+      rs: examples/rust/hello-world/Cargo.toml
+
+  - id: rastrigin
+    manifest:
+      rs: examples/rust/rastrigin/Cargo.toml
+
+  - id: rosenbrock
+    manifest:
+      rs: examples/rust/rosenbrock/Cargo.toml
+
+  - id: knapsack
+    manifest:
+      rs: examples/rust/knapsack/Cargo.toml
+
+  - id: min-sum
+    manifest:
+      rs: examples/rust/min-sum/Cargo.toml
+
+  - id: pgm
+    manifest:
+      rs: examples/rust/pgm/Cargo.toml
+
+  - id: graph-xor
+    manifest:
+      rs: examples/rust/graphs/xor-graph/Cargo.toml
+
+  - id: graph-iris
+    manifest:
+      rs: examples/rust/graphs/iris-graph/Cargo.toml
+
+  - id: graph-memory
+    manifest:
+      rs: examples/rust/graphs/simple-memory-graph/Cargo.toml
+
+  - id: tree-iris
+    manifest:
+      rs: examples/rust/trees/iris-tree/Cargo.toml
+
+  - id: tree-regression
+    manifest:
+      rs: examples/rust/trees/regression-tree/Cargo.toml
+      py: examples/python/trees/regression_tree.py
+
+  - id: image-evo
+    manifest:
+      rs: examples/rust/image-evo/Cargo.toml
