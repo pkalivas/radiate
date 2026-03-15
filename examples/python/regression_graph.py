@@ -7,6 +7,7 @@ We have a simple polynomial function and we want to evolve a graph that approxim
 """
 
 import radiate as rd
+import polars as pl  # type: ignore
 import matplotlib.pyplot as plt  # type: ignore
 
 rd.random.seed(67123)
@@ -22,11 +23,13 @@ class ScorePlotterHandler(rd.EventHandler):
     def __init__(self):
         super().__init__()
         self.scores = []
+        self.metrics = []
 
     def on_event(self, event: rd.EngineEvent) -> None:
         if event.event_type() == rd.EventType.EPOCH_COMPLETE:
             best_score = event.score()
             self.scores.append(best_score)
+            self.metrics += [val.to_dict() for val in event.metrics().values()]
         elif event.event_type() == rd.EventType.STOP:
             plt.plot(list(range(len(self.scores))), self.scores)
             plt.xlabel("Generation")
@@ -49,6 +52,8 @@ for _ in range(-10, 10):
     inputs.append([input])
     answers.append([compute(input)])
 
+subscriber = ScorePlotterHandler()
+
 engine = (
     rd.Engine.graph(
         shape=(1, 1),
@@ -57,7 +62,7 @@ engine = (
         output=rd.Op.linear(),
     )
     .regression(inputs, answers, loss=rd.MSE)
-    .subscribe(ScorePlotterHandler())
+    .subscribe(subscriber)
     .alters(
         rd.Cross.graph(0.05, 0.5),
         rd.Mutate.op(0.07, 0.05),
@@ -74,3 +79,24 @@ accuracy = rd.accuracy(result.value(), inputs, answers, loss=rd.MSE)
 print(result)
 print(result.metrics().dashboard())
 print(accuracy)
+
+
+df = pl.DataFrame(subscriber.metrics)
+print(
+    df.filter(pl.col("time_mean").is_not_null() & (pl.col("name") != "time"))
+    .group_by("name")
+    .agg(pl.col("time_mean").mean())
+    .sort("time_mean", descending=True)
+)
+
+grouped_updates = (
+    df.group_by("name")
+    .agg(pl.col("update_count").sum().alias("total_updates"))
+    .sort("total_updates", descending=True)
+)
+
+
+print(grouped_updates)
+print(df.columns)
+
+print(grouped_updates.sum())

@@ -1,0 +1,42 @@
+set shell := ["bash", "-cu"]
+
+gh := "gh"
+workflow := "publish"
+ref := "master"
+free_threaded := "true"
+publish_to_pypi := "false"
+
+gha-build \
+    group="all" \
+    workflow_name=workflow \
+    git_ref=ref \
+    ft=free_threaded \
+    publish=publish_to_pypi:
+    {{gh}} workflow run {{workflow_name}} \
+        --ref {{git_ref}} \
+        -f ref={{git_ref}} \
+        -f target_group={{group}} \
+        -f free_threaded={{ft}} \
+        -f publish_to_pypi={{publish}}
+
+gha-build-linux:
+    just gha-build linux
+
+gha-build-musllinux:
+    just gha-build musllinux
+
+gha-build-windows:
+    just gha-build windows
+
+gha-build-macos:
+    just gha-build macos
+
+gha-build-sdist:
+    just gha-build sdist {{workflow}} {{ref}} false {{publish_to_pypi}}
+
+gha-publish:
+    just gha-build all {{workflow}} {{ref}} true true
+
+gha-watch workflow_name=workflow:
+    RUN_ID=$({{gh}} run list --workflow {{workflow_name}} --limit 1 --json databaseId --jq '.[0].databaseId'); \
+    {{gh}} run watch "$RUN_ID" --compact --exit-status

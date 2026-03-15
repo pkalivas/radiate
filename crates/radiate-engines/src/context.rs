@@ -3,7 +3,7 @@ use crate::{Chromosome, EngineControl};
 use radiate_core::error::RadiateResult;
 use radiate_core::{
     Ecosystem, Front, Lineage, MetricSet, Objective, Phenotype, Problem, RadiateError, Score,
-    metric_names,
+    metric, metric_names,
 };
 use std::sync::{Arc, RwLock};
 
@@ -24,6 +24,9 @@ impl<C: Chromosome, T> Context<C, T> {
     pub fn try_advance_one(&mut self) -> RadiateResult<bool> {
         self.index += 1;
         self.lineage.write().unwrap().rollover();
+
+        self.metrics
+            .replace(metric!(metric_names::INDEX, self.index));
 
         let best = self.ecosystem.get_phenotype(0);
         if let Some(best) = best {

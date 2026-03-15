@@ -1,0 +1,12 @@
+maturin>=1.8.4,<2.0
+numpy>=2.4.3
+matplotlib>=3.8.0
+pytest>=9.0.2
+pytest-cov>=7.0.0
+pytest-xdist== 3.8.0
+PyYaml>=6.0.0
+
+polars>=1.38.1 ; python_version >= '3.12' and python_version < '3.14'
+pandas>=2.1.0 ; python_version >= '3.12' and python_version < '3.14'
+torch>=2.7.1 ; python_version >= '3.12' and python_version < '3.14'
+numba>=0.55.1 ; python_version >= '3.12' and python_version < '3.14'

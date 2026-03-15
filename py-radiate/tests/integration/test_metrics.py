@@ -17,8 +17,8 @@ def test_generation_metrics(random_seed):
         .metrics()
     )
 
-    assert len(metrics) == 32
-    assert len(metrics.keys()) == 32
+    assert len(metrics) == 33
+    assert len(metrics.keys()) == 33
     for key in metrics.keys():
         assert key in metrics
 
