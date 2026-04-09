@@ -6,7 +6,7 @@ use crate::{
 use radiate_utils::{ToSnakeCase, cache_arc_string, intern, intern_snake_case};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use std::{sync::Arc, time::Duration};
+use std::{hash::Hash, sync::Arc, time::Duration};
 
 #[macro_export]
 macro_rules! metric {
@@ -353,6 +353,21 @@ impl Metric {
 
     pub fn time_sum(&self) -> Option<Duration> {
         self.time_statistic().map(|stat| stat.sum())
+    }
+}
+
+impl Hash for Metric {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.name.hash(state);
+        if let Some(stat) = &self.inner.value_statistic {
+            stat.hash(state);
+        }
+
+        if let Some(stat) = &self.inner.time_statistic {
+            stat.hash(state);
+        }
+
+        self.tags.hash(state);
     }
 }
 

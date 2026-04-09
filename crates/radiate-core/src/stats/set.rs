@@ -1,5 +1,5 @@
 use crate::{
-    ExprEval, ExprNode, Metric, MetricUpdate, Value,
+    Metric, MetricUpdate,
     stats::{Tag, TagKind, defaults::try_add_tag_from_str, fmt},
 };
 use radiate_utils::intern;
@@ -42,11 +42,6 @@ impl MetricSet {
 
     pub fn version(&self) -> u64 {
         self.version
-    }
-
-    pub fn query(&self, expr: impl Into<ExprNode<'static>>) -> Value<'static> {
-        let mut expr = expr.into();
-        expr.eval(self).into_static()
     }
 
     #[inline(always)]

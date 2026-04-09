@@ -289,7 +289,7 @@ where
     /// with a 0.5 crossover rate and a 0.1 mutation rate.
     fn build_alterer(&mut self) -> Result<()> {
         if !self.params.alterers.is_empty() {
-            for alter in self.params.alterers.iter() {
+            for alter in self.params.alterers.iter_mut() {
                 if !alter.rate().is_valid() {
                     return Err(radiate_err!(
                         Builder: "Alterer {} is not valid. Ensure rate {:?} is valid.", alter.name(), alter.rate()

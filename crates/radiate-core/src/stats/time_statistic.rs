@@ -1,7 +1,7 @@
 use crate::Statistic;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use std::time::Duration;
+use std::{hash::Hash, time::Duration};
 
 #[derive(Clone, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -66,5 +66,12 @@ impl TimeStatistic {
 impl From<Duration> for TimeStatistic {
     fn from(value: Duration) -> Self {
         TimeStatistic::new(value)
+    }
+}
+
+impl Hash for TimeStatistic {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.statistic.hash(state);
+        self.last_time.hash(state);
     }
 }

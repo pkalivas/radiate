@@ -1,6 +1,7 @@
 use core::f32;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+use std::hash::Hash;
 
 #[derive(PartialEq, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -304,6 +305,20 @@ impl From<i32> for Statistic {
 impl From<usize> for Statistic {
     fn from(value: usize) -> Self {
         Statistic::new(value as f32)
+    }
+}
+
+impl Hash for Statistic {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.count.hash(state);
+        self.last_value.to_bits().hash(state);
+        self.max.to_bits().hash(state);
+        self.min.to_bits().hash(state);
+        self.sum.value().to_bits().hash(state);
+        self.m1.value().to_bits().hash(state);
+        self.m2.value().to_bits().hash(state);
+        self.m3.value().to_bits().hash(state);
+        self.m4.value().to_bits().hash(state);
     }
 }
 

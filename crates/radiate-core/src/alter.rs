@@ -108,8 +108,8 @@ impl<C: Chromosome> Alterer<C> {
         }
     }
 
-    pub fn rate(&self) -> &Rate {
-        match &self {
+    pub fn rate(&mut self) -> &mut Rate {
+        match self {
             Alterer::Mutate(_, rate, _) => rate,
             Alterer::Crossover(_, rate, _) => rate,
         }
@@ -117,7 +117,7 @@ impl<C: Chromosome> Alterer<C> {
 
     #[inline]
     pub fn alter(
-        &self,
+        &mut self,
         population: &mut Population<C>,
         lineage: &mut Lineage,
         metrics: &mut MetricSet,

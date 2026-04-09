@@ -1,551 +1,1140 @@
-mod agg;
-mod compare;
-mod condition;
-mod logic;
-mod metric;
 mod scalar;
 
-use crate::{MetricSet, Valid};
+use crate::{MetricSet, Statistic};
+use radiate_utils::{SmallStr, WindowBuffer};
+use std::collections::HashSet;
 use std::fmt::Debug;
+use std::sync::Arc;
+use std::time::Duration;
 
-pub use agg::{AggregateExprNode, Rollup};
-pub use compare::{CompareExprNode, CompareOp};
-pub use condition::{Then, When};
-pub use logic::{LogicExprNode, LogicOp};
-pub use metric::MetricExprNode;
-pub use scalar::Value;
+pub use scalar::ExprValue;
 
-pub trait ExprEval<I> {
-    fn eval<'a>(&'a mut self, input: &'a I) -> Value<'a>;
+pub trait ExprQuery<I> {
+    fn dispatch<'a>(&'a mut self, input: &I) -> ExprValue<'a>;
 }
 
-#[derive(Clone)]
-pub enum ExprNode<'a> {
-    Value(Value<'a>),
-    Select(MetricExprNode),
-    Aggregate(AggregateExprNode<'a>),
-    Compare(CompareExprNode<'a>),
-    Logic(LogicExprNode<'a>),
-
-    If {
-        cond: Box<ExprNode<'a>>,
-        then_expr: Box<ExprNode<'a>>,
-        else_expr: Box<ExprNode<'a>>,
-    },
+pub trait ExprProjection {
+    fn project(&self, expr: &SelectExpr) -> Option<ExprValue<'static>>;
 }
 
-impl<'a> ExprNode<'a> {
-    pub fn rolling(self, window_size: usize) -> Self {
-        ExprNode::Aggregate(AggregateExprNode::new(self, Rollup::Mean, window_size))
-    }
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Rollup {
+    Mean,
+    StdDev,
+    Min,
+    Max,
+    Sum,
+    Count,
+    Unique,
+}
 
-    pub fn n_unique(self, len: usize) -> Self {
-        ExprNode::Aggregate(AggregateExprNode::new(self, Rollup::NUnique, len))
-    }
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum ComparisonOp {
+    Lt,
+    Lte,
+    Gt,
+    Gte,
+    Eq,
+    Ne,
+}
 
-    pub fn mean(self) -> Self {
-        match self {
-            ExprNode::Select(node) => ExprNode::Select(node.mean()),
-            ExprNode::Aggregate(node) => node.mean(),
-            other => other,
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum MetricProperty {
+    LastValue,
+    Mean,
+    StdDev,
+    Min,
+    Max,
+    Sum,
+    Count,
+    Version,
+    UpdateCount,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum ArithmeticOp {
+    Add,
+    Sub,
+    Mul,
+    Div,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum UnaryOp {
+    Not,
+    Neg,
+    Abs,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum TrinaryOp {
+    If,
+    Clamp,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum MetricFlavor {
+    Value,
+    Time,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum SelectExpr {
+    Metric(SmallStr, MetricProperty, MetricFlavor),
+    Nth(usize),
+}
+
+impl<T> ExprQuery<T> for SelectExpr
+where
+    T: ExprProjection,
+{
+    fn dispatch<'a>(&'a mut self, input: &T) -> ExprValue<'a> {
+        input.project(self).unwrap_or(ExprValue::Null)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct AggExpr {
+    child: Arc<Expr>,
+    rollup: Rollup,
+}
+
+impl AggExpr {
+    pub fn new(child: Expr, rollup: Rollup) -> Self {
+        Self {
+            child: Arc::new(child),
+            rollup,
         }
     }
 
-    pub fn stddev(self) -> Self {
-        match self {
-            ExprNode::Select(node) => ExprNode::Select(node.stddev()),
-            ExprNode::Aggregate(node) => node.stddev(),
-            other => other,
+    fn compute_rollup<'a>(values: &[ExprValue], rollup: Rollup) -> ExprValue<'a> {
+        let mut stats = Statistic::default();
+        for value in values.iter() {
+            if let Some(v) = value.clone().extract::<f32>() {
+                stats.add(v);
+            }
+        }
+
+        match rollup {
+            Rollup::Mean => ExprValue::Float32(stats.mean()),
+            Rollup::StdDev => ExprValue::Float32(stats.std_dev()),
+            Rollup::Min => ExprValue::Float32(stats.min()),
+            Rollup::Max => ExprValue::Float32(stats.max()),
+            Rollup::Sum => ExprValue::Float32(stats.sum()),
+            Rollup::Count => ExprValue::UInt64(stats.count() as u64),
+            Rollup::Unique => ExprValue::Null,
         }
     }
+}
 
-    pub fn min(self) -> Self {
-        match self {
-            ExprNode::Select(node) => ExprNode::Select(node.min()),
-            ExprNode::Aggregate(node) => node.min(),
-            other => other,
+impl<T> ExprQuery<T> for AggExpr
+where
+    T: ExprProjection,
+{
+    fn dispatch<'a>(&'a mut self, input: &T) -> ExprValue<'a> {
+        if let Rollup::Unique = self.rollup {
+            let child_output = Arc::make_mut(&mut self.child).dispatch(input);
+            return match child_output {
+                ExprValue::Slice(values) => {
+                    let deduped = values.iter().fold(HashSet::new(), |mut acc, v| {
+                        acc.insert(v.clone());
+                        acc
+                    });
+
+                    return ExprValue::Vector(deduped.into_iter().collect());
+                }
+                ExprValue::Vector(values) => {
+                    let deduped = values.into_iter().fold(HashSet::new(), |mut acc, v| {
+                        acc.insert(v);
+                        acc
+                    });
+
+                    ExprValue::Vector(deduped.into_iter().collect())
+                }
+                _ => ExprValue::Null,
+            };
+        }
+        let child_output = Arc::make_mut(&mut self.child).dispatch(input);
+
+        match child_output {
+            ExprValue::Slice(values) => Self::compute_rollup(values, self.rollup),
+            ExprValue::Vector(values) => Self::compute_rollup(&values, self.rollup),
+            _ => child_output,
         }
     }
+}
 
-    pub fn max(self) -> Self {
-        match self {
-            ExprNode::Select(node) => ExprNode::Select(node.max()),
-            ExprNode::Aggregate(node) => node.max(),
-            other => other,
+#[derive(Clone, Debug, PartialEq)]
+pub struct BufferExpr {
+    buffer: WindowBuffer<ExprValue<'static>>,
+    child: Arc<Expr>,
+}
+
+impl BufferExpr {
+    pub fn new(child: Expr, window_size: usize) -> Self {
+        Self {
+            buffer: WindowBuffer::with_window(window_size),
+            child: Arc::new(child),
         }
     }
+}
 
-    pub fn sum(self) -> Self {
-        match self {
-            ExprNode::Select(node) => ExprNode::Select(node.sum()),
-            ExprNode::Aggregate(node) => node.sum(),
-            other => other,
+impl<T> ExprQuery<T> for BufferExpr
+where
+    T: ExprProjection,
+{
+    fn dispatch<'a>(&'a mut self, input: &T) -> ExprValue<'a> {
+        let child_output = Arc::make_mut(&mut self.child).dispatch(input).into_static();
+        self.buffer.push(child_output);
+        ExprValue::Slice(&self.buffer.values())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct CompareExpr {
+    lhs: Arc<Expr>,
+    rhs: Arc<Expr>,
+    op: ComparisonOp,
+}
+
+impl CompareExpr {
+    pub fn new(lhs: Expr, rhs: Expr, op: ComparisonOp) -> Self {
+        Self {
+            lhs: Arc::new(lhs),
+            rhs: Arc::new(rhs),
+            op,
         }
     }
+}
 
-    pub fn count(self) -> Self {
-        match self {
-            ExprNode::Select(node) => ExprNode::Select(node.count()),
-            ExprNode::Aggregate(node) => node.count(),
-            other => other,
+impl<T> ExprQuery<T> for CompareExpr
+where
+    T: ExprProjection,
+{
+    fn dispatch<'a>(&'a mut self, metrics: &T) -> ExprValue<'a> {
+        let lhs = Arc::make_mut(&mut self.lhs)
+            .dispatch(metrics)
+            .extract::<f32>();
+        let rhs = Arc::make_mut(&mut self.rhs)
+            .dispatch(metrics)
+            .extract::<f32>();
+
+        match (lhs, rhs) {
+            (Some(lhs), Some(rhs)) => {
+                let result = match self.op {
+                    ComparisonOp::Lt => lhs < rhs,
+                    ComparisonOp::Lte => lhs <= rhs,
+                    ComparisonOp::Gt => lhs > rhs,
+                    ComparisonOp::Gte => lhs >= rhs,
+                    ComparisonOp::Eq => (lhs - rhs).abs() <= f32::EPSILON,
+                    ComparisonOp::Ne => (lhs - rhs).abs() > f32::EPSILON,
+                };
+
+                ExprValue::Bool(result)
+            }
+            _ => ExprValue::Null,
         }
     }
+}
 
-    pub fn lt(self, rhs: impl Into<ExprNode<'a>>) -> Self {
-        ExprNode::Compare(CompareExprNode::new(self, rhs.into(), CompareOp::Lt))
-    }
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum LogicOp {
+    And,
+    Or,
+}
 
-    pub fn lte(self, rhs: impl Into<ExprNode<'a>>) -> Self {
-        ExprNode::Compare(CompareExprNode::new(self, rhs.into(), CompareOp::Lte))
-    }
+#[derive(Clone, Debug, PartialEq)]
+pub struct LogicExpr {
+    lhs: Arc<Expr>,
+    rhs: Arc<Expr>,
+    op: LogicOp,
+}
 
-    pub fn gt(self, rhs: impl Into<ExprNode<'a>>) -> Self {
-        ExprNode::Compare(CompareExprNode::new(self, rhs.into(), CompareOp::Gt))
-    }
-
-    pub fn gte(self, rhs: impl Into<ExprNode<'a>>) -> Self {
-        ExprNode::Compare(CompareExprNode::new(self, rhs.into(), CompareOp::Gte))
-    }
-
-    pub fn eq(self, rhs: impl Into<ExprNode<'a>>) -> Self {
-        ExprNode::Compare(CompareExprNode::new(self, rhs.into(), CompareOp::Eq))
-    }
-
-    pub fn and(self, rhs: impl Into<ExprNode<'a>>) -> Self {
-        ExprNode::Logic(LogicExprNode::new(self, rhs.into(), LogicOp::And))
-    }
-
-    pub fn or(self, rhs: impl Into<ExprNode<'a>>) -> Self {
-        ExprNode::Logic(LogicExprNode::new(self, rhs.into(), LogicOp::Or))
+impl LogicExpr {
+    pub fn new(lhs: Expr, rhs: Expr, op: LogicOp) -> Self {
+        Self {
+            lhs: Arc::new(lhs),
+            rhs: Arc::new(rhs),
+            op,
+        }
     }
 }
 
-impl From<MetricExprNode> for ExprNode<'_> {
-    fn from(node: MetricExprNode) -> Self {
-        ExprNode::Select(node)
+impl<T> ExprQuery<T> for LogicExpr
+where
+    T: ExprProjection,
+{
+    fn dispatch<'a>(&'a mut self, metrics: &T) -> ExprValue<'a> {
+        match self.op {
+            LogicOp::And => {
+                let lhs = Arc::make_mut(&mut self.lhs).dispatch(metrics).as_bool();
+
+                if !lhs {
+                    return ExprValue::Bool(false);
+                }
+                ExprValue::Bool(Arc::make_mut(&mut self.rhs).dispatch(metrics).as_bool())
+            }
+            LogicOp::Or => {
+                let lhs = Arc::make_mut(&mut self.lhs).dispatch(metrics).as_bool();
+                if lhs {
+                    return ExprValue::Bool(true);
+                }
+                ExprValue::Bool(Arc::make_mut(&mut self.rhs).dispatch(metrics).as_bool())
+            }
+        }
     }
 }
 
-impl<'a> From<Value<'a>> for ExprNode<'a> {
-    fn from(value: Value<'a>) -> Self {
-        ExprNode::Value(value)
+#[derive(Clone, Debug, PartialEq)]
+pub struct TrinaryExpr {
+    first: Arc<Expr>,
+    second: Arc<Expr>,
+    third: Arc<Expr>,
+    operation: TrinaryOp,
+}
+
+impl TrinaryExpr {
+    pub fn new(first: Expr, second: Expr, third: Expr, operation: TrinaryOp) -> Self {
+        Self {
+            first: Arc::new(first),
+            second: Arc::new(second),
+            third: Arc::new(third),
+            operation,
+        }
     }
 }
 
-impl<'a> From<f32> for ExprNode<'a> {
-    fn from(value: f32) -> Self {
-        ExprNode::Value(Value::Float32(value))
-    }
-}
-
-impl<'a> From<i32> for ExprNode<'a> {
-    fn from(value: i32) -> Self {
-        ExprNode::Value(Value::Int32(value))
-    }
-}
-
-impl<'a> From<bool> for ExprNode<'a> {
-    fn from(value: bool) -> Self {
-        ExprNode::Value(Value::Bool(value))
-    }
-}
-
-impl ExprEval<MetricSet> for ExprNode<'_> {
-    fn eval<'a>(&'a mut self, metrics: &'a MetricSet) -> Value<'a> {
-        match self {
-            ExprNode::Value(s) => s.clone(),
-            ExprNode::Select(m) => m.eval(metrics),
-            ExprNode::Aggregate(a) => a.eval(metrics),
-            ExprNode::Compare(c) => c.eval(metrics),
-            ExprNode::Logic(l) => l.eval(metrics),
-
-            ExprNode::If {
-                cond,
-                then_expr,
-                else_expr,
-            } => {
-                if cond.eval(metrics).as_bool() {
-                    then_expr.eval(metrics)
+impl<T> ExprQuery<T> for TrinaryExpr
+where
+    T: ExprProjection,
+{
+    fn dispatch<'a>(&'a mut self, input: &T) -> ExprValue<'a> {
+        match self.operation {
+            TrinaryOp::If => {
+                let condition = Arc::make_mut(&mut self.first).dispatch(input).as_bool();
+                if condition {
+                    Arc::make_mut(&mut self.second).dispatch(input)
                 } else {
-                    else_expr.eval(metrics)
+                    Arc::make_mut(&mut self.third).dispatch(input)
+                }
+            }
+            TrinaryOp::Clamp => {
+                let value = Arc::make_mut(&mut self.first)
+                    .dispatch(input)
+                    .extract::<f32>();
+                let min = Arc::make_mut(&mut self.second)
+                    .dispatch(input)
+                    .extract::<f32>();
+                let max = Arc::make_mut(&mut self.third)
+                    .dispatch(input)
+                    .extract::<f32>();
+
+                match (value, min, max) {
+                    (Some(value), Some(min), Some(max)) => {
+                        ExprValue::Float32(value.clamp(min, max))
+                    }
+                    _ => ExprValue::Null,
                 }
             }
         }
     }
 }
 
-impl Valid for ExprNode<'_> {
-    fn is_valid(&self) -> bool {
-        true
-    }
+#[derive(Clone, Debug, PartialEq)]
+pub struct BinaryExpr {
+    lhs: Arc<Expr>,
+    rhs: Arc<Expr>,
+    op: ArithmeticOp,
 }
 
-impl<'a> Debug for ExprNode<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ExprNode::Value(v) => write!(f, "{v:?}"),
-            ExprNode::Select(_) => write!(f, "Metric)"),
-            ExprNode::Aggregate(_) => write!(f, "Aggregate"),
-            ExprNode::Compare(_) => write!(f, "Compare"),
-            ExprNode::Logic(_) => write!(f, "Logic"),
-
-            ExprNode::If {
-                cond,
-                then_expr,
-                else_expr,
-            } => write!(f, "if {cond:?} then {then_expr:?} else {else_expr:?}"),
+impl BinaryExpr {
+    pub fn new(lhs: Expr, rhs: Expr, op: ArithmeticOp) -> Self {
+        Self {
+            lhs: Arc::new(lhs),
+            rhs: Arc::new(rhs),
+            op,
         }
     }
 }
 
-impl<'a> PartialEq for ExprNode<'a> {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (ExprNode::Value(a), ExprNode::Value(b)) => a == b,
+impl<T> ExprQuery<T> for BinaryExpr
+where
+    T: ExprProjection,
+{
+    fn dispatch<'a>(&'a mut self, input: &T) -> ExprValue<'a> {
+        let lhs = Arc::make_mut(&mut self.lhs)
+            .dispatch(input)
+            .extract::<f32>();
+        let rhs = Arc::make_mut(&mut self.rhs)
+            .dispatch(input)
+            .extract::<f32>();
+
+        match (lhs, rhs) {
+            (Some(lhs), Some(rhs)) => {
+                let value = match self.op {
+                    ArithmeticOp::Add => lhs + rhs,
+                    ArithmeticOp::Sub => lhs - rhs,
+                    ArithmeticOp::Mul => lhs * rhs,
+                    ArithmeticOp::Div => {
+                        if rhs.abs() <= f32::EPSILON {
+                            return ExprValue::Null;
+                        }
+                        lhs / rhs
+                    }
+                };
+
+                ExprValue::Float32(value)
+            }
+            _ => ExprValue::Null,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct UnaryExpr {
+    child: Arc<Expr>,
+    op: UnaryOp,
+}
+
+impl UnaryExpr {
+    pub fn new(child: Expr, op: UnaryOp) -> Self {
+        Self {
+            child: Arc::new(child),
+            op,
+        }
+    }
+}
+
+impl<T> ExprQuery<T> for UnaryExpr
+where
+    T: ExprProjection,
+{
+    fn dispatch<'a>(&'a mut self, input: &T) -> ExprValue<'a> {
+        let value = Arc::make_mut(&mut self.child).dispatch(input);
+
+        match self.op {
+            UnaryOp::Not => ExprValue::Bool(!value.as_bool()),
+            UnaryOp::Neg => match value.extract::<f32>() {
+                Some(v) => ExprValue::Float32(-v),
+                None => ExprValue::Null,
+            },
+            UnaryOp::Abs => match value.extract::<f32>() {
+                Some(v) => ExprValue::Float32(v.abs()),
+                None => ExprValue::Null,
+            },
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ClampExpr {
+    value: Arc<Expr>,
+    min: Arc<Expr>,
+    max: Arc<Expr>,
+}
+
+impl ClampExpr {
+    pub fn new(value: Expr, min: Expr, max: Expr) -> Self {
+        Self {
+            value: Arc::new(value),
+            min: Arc::new(min),
+            max: Arc::new(max),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct When {
+    cond: Arc<Expr>,
+}
+
+impl When {
+    pub fn new(cond: impl Into<Expr>) -> Self {
+        Self {
+            cond: Arc::new(cond.into()),
+        }
+    }
+
+    pub fn then(self, then_expr: impl Into<Expr>) -> Then {
+        Then {
+            cond: self.cond,
+            then_expr: Arc::new(then_expr.into()),
+        }
+    }
+}
+
+pub struct Then {
+    cond: Arc<Expr>,
+    then_expr: Arc<Expr>,
+}
+
+impl Then {
+    pub fn otherwise(self, else_expr: impl Into<Expr>) -> Expr {
+        let cond = Arc::try_unwrap(self.cond).unwrap_or_else(|val| (*val).clone());
+        let then_expr = Arc::try_unwrap(self.then_expr).unwrap_or_else(|val| (*val).clone());
+
+        Expr::Trinary(TrinaryExpr::new(
+            cond,
+            then_expr,
+            else_expr.into(),
+            TrinaryOp::If,
+        ))
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum Expr {
+    Empty,
+    Literal(ExprValue<'static>),
+    Selector(SelectExpr),
+    Aggregate(AggExpr),
+    Buffer(BufferExpr),
+    Compare(CompareExpr),
+    Logic(LogicExpr),
+    Binary(BinaryExpr),
+    Unary(UnaryExpr),
+    Trinary(TrinaryExpr),
+}
+
+impl Expr {
+    fn try_swap_metric_flavor(&mut self, to: MetricFlavor) -> bool {
+        match self {
+            Expr::Selector(SelectExpr::Metric(name, property, _)) => {
+                *self = Expr::Selector(SelectExpr::Metric(name.clone(), property.clone(), to));
+                true
+            }
             _ => false,
         }
+    }
+
+    fn try_swap_metric_property(&mut self, to: MetricProperty) -> bool {
+        match self {
+            Expr::Selector(SelectExpr::Metric(name, _, flavor)) => {
+                *self = Expr::Selector(SelectExpr::Metric(name.clone(), to, *flavor));
+                true
+            }
+            _ => false,
+        }
+    }
+
+    pub fn time(mut self) -> Expr {
+        if !self.try_swap_metric_flavor(MetricFlavor::Time) {
+            self
+        } else {
+            self
+        }
+    }
+
+    pub fn value(mut self) -> Expr {
+        if !self.try_swap_metric_flavor(MetricFlavor::Value) {
+            self
+        } else {
+            self
+        }
+    }
+
+    fn try_swap_metric_property_or(
+        mut self,
+        to: MetricProperty,
+        func: impl FnOnce(Self) -> Expr,
+    ) -> Expr {
+        if self.try_swap_metric_property(to) {
+            return self;
+        }
+
+        func(self)
+    }
+
+    pub fn rolling(self, window_size: usize) -> Expr {
+        Expr::Buffer(BufferExpr::new(self, window_size))
+    }
+
+    /// Aggregates
+    pub fn sum(self) -> Expr {
+        self.try_swap_metric_property_or(MetricProperty::Sum, |s| {
+            Expr::Aggregate(AggExpr::new(s, Rollup::Sum))
+        })
+    }
+
+    pub fn mean(self) -> Expr {
+        self.try_swap_metric_property_or(MetricProperty::Mean, |s| {
+            Expr::Aggregate(AggExpr::new(s, Rollup::Mean))
+        })
+    }
+
+    pub fn stddev(self) -> Expr {
+        self.try_swap_metric_property_or(MetricProperty::StdDev, |s| {
+            Expr::Aggregate(AggExpr::new(s, Rollup::StdDev))
+        })
+    }
+
+    pub fn min(self) -> Expr {
+        self.try_swap_metric_property_or(MetricProperty::Min, |s| {
+            Expr::Aggregate(AggExpr::new(s, Rollup::Min))
+        })
+    }
+
+    pub fn max(self) -> Expr {
+        self.try_swap_metric_property_or(MetricProperty::Max, |s| {
+            Expr::Aggregate(AggExpr::new(s, Rollup::Max))
+        })
+    }
+
+    pub fn count(self) -> Expr {
+        self.try_swap_metric_property_or(MetricProperty::Count, |s| {
+            Expr::Aggregate(AggExpr::new(s, Rollup::Count))
+        })
+    }
+
+    pub fn unique(self) -> Expr {
+        Expr::Aggregate(AggExpr::new(self, Rollup::Unique))
+    }
+
+    /// Comparisons
+    pub fn lt(self, rhs: impl Into<Expr>) -> Expr {
+        Expr::Compare(CompareExpr::new(self, rhs.into(), ComparisonOp::Lt))
+    }
+
+    pub fn lte(self, rhs: impl Into<Expr>) -> Expr {
+        Expr::Compare(CompareExpr::new(self, rhs.into(), ComparisonOp::Lte))
+    }
+
+    pub fn gt(self, rhs: impl Into<Expr>) -> Expr {
+        Expr::Compare(CompareExpr::new(self, rhs.into(), ComparisonOp::Gt))
+    }
+
+    pub fn gte(self, rhs: impl Into<Expr>) -> Expr {
+        Expr::Compare(CompareExpr::new(self, rhs.into(), ComparisonOp::Gte))
+    }
+
+    pub fn eq(self, rhs: impl Into<Expr>) -> Expr {
+        Expr::Compare(CompareExpr::new(self, rhs.into(), ComparisonOp::Eq))
+    }
+
+    pub fn ne(self, rhs: impl Into<Expr>) -> Expr {
+        Expr::Compare(CompareExpr::new(self, rhs.into(), ComparisonOp::Ne))
+    }
+
+    pub fn between(self, low: impl Into<Expr>, high: impl Into<Expr>) -> Expr {
+        let low = low.into();
+        let high = high.into();
+
+        self.clone().gte(low).and(self.lte(high))
+    }
+
+    /// Logic
+    pub fn and(self, rhs: impl Into<Expr>) -> Expr {
+        Expr::Logic(LogicExpr::new(self, rhs.into(), LogicOp::And))
+    }
+
+    pub fn or(self, rhs: impl Into<Expr>) -> Expr {
+        Expr::Logic(LogicExpr::new(self, rhs.into(), LogicOp::Or))
+    }
+
+    pub fn not(self) -> Expr {
+        Expr::Unary(UnaryExpr::new(self, UnaryOp::Not))
+    }
+
+    /// Arithmetic
+    pub fn neg(self) -> Expr {
+        Expr::Unary(UnaryExpr::new(self, UnaryOp::Neg))
+    }
+
+    pub fn abs(self) -> Expr {
+        Expr::Unary(UnaryExpr::new(self, UnaryOp::Abs))
+    }
+
+    pub fn add(self, rhs: impl Into<Expr>) -> Expr {
+        Expr::Binary(BinaryExpr::new(self, rhs.into(), ArithmeticOp::Add))
+    }
+
+    pub fn sub(self, rhs: impl Into<Expr>) -> Expr {
+        Expr::Binary(BinaryExpr::new(self, rhs.into(), ArithmeticOp::Sub))
+    }
+
+    pub fn mul(self, rhs: impl Into<Expr>) -> Expr {
+        Expr::Binary(BinaryExpr::new(self, rhs.into(), ArithmeticOp::Mul))
+    }
+
+    pub fn div(self, rhs: impl Into<Expr>) -> Expr {
+        Expr::Binary(BinaryExpr::new(self, rhs.into(), ArithmeticOp::Div))
+    }
+
+    pub fn clamp(self, min: impl Into<Expr>, max: impl Into<Expr>) -> Expr {
+        Expr::Trinary(TrinaryExpr::new(
+            self,
+            min.into(),
+            max.into(),
+            TrinaryOp::Clamp,
+        ))
     }
 }
 
 pub mod expr {
-    use crate::{ExprNode, MetricExprNode, Value, When};
+    use super::*;
 
-    pub fn val<'a>(scalar: impl Into<Value<'a>>) -> ExprNode<'a> {
-        ExprNode::Value(scalar.into())
+    /// Selectors
+    pub fn metric(name: impl Into<SmallStr>) -> Expr {
+        Expr::Selector(SelectExpr::Metric(
+            name.into(),
+            MetricProperty::LastValue,
+            MetricFlavor::Value,
+        ))
     }
 
-    pub fn metric(name: &'static str) -> MetricExprNode {
-        MetricExprNode::new(name)
+    /// Conditionals
+    pub fn when(cond: impl Into<Expr>) -> When {
+        When::new(cond.into())
     }
+}
 
-    pub fn rolling<'a>(child: impl Into<ExprNode<'a>>, window_size: usize) -> ExprNode<'a> {
-        child.into().rolling(window_size)
+impl<I> ExprQuery<I> for Expr
+where
+    I: ExprProjection,
+{
+    fn dispatch<'a>(&'a mut self, input: &I) -> ExprValue<'a> {
+        match self {
+            Expr::Literal(value) => value.clone(),
+            Expr::Selector(selector) => selector.dispatch(input),
+            Expr::Aggregate(child) => child.dispatch(input),
+            Expr::Buffer(child) => child.dispatch(input),
+            Expr::Compare(child) => child.dispatch(input),
+            Expr::Logic(child) => child.dispatch(input),
+            Expr::Trinary(child) => child.dispatch(input),
+            Expr::Binary(child) => child.dispatch(input),
+            Expr::Unary(child) => child.dispatch(input),
+            Expr::Empty => ExprValue::Null,
+        }
     }
+}
 
-    pub fn stagnant<'a>(child: impl Into<ExprNode<'a>>, len: usize) -> ExprNode<'a> {
-        child.into().n_unique(len).lte(1.0)
+impl ExprProjection for MetricSet {
+    fn project(&self, expr: &SelectExpr) -> Option<ExprValue<'static>> {
+        let value_to_float32 =
+            |value: Option<f32>| value.map(ExprValue::Float32).unwrap_or(ExprValue::Null);
+
+        let value_to_duration =
+            |value: Option<Duration>| value.map(ExprValue::Duration).unwrap_or(ExprValue::Null);
+
+        match expr {
+            SelectExpr::Metric(name, property, flavor) => {
+                self.get(name).map(|metric| match flavor {
+                    MetricFlavor::Value => match property {
+                        MetricProperty::LastValue => ExprValue::Float32(metric.last_value()),
+                        MetricProperty::Mean => value_to_float32(metric.value_mean()),
+                        MetricProperty::StdDev => value_to_float32(metric.value_std_dev()),
+                        MetricProperty::Min => value_to_float32(metric.value_min()),
+                        MetricProperty::Max => value_to_float32(metric.value_max()),
+                        MetricProperty::Sum => value_to_float32(metric.value_sum()),
+                        MetricProperty::Count => ExprValue::UInt64(metric.count() as u64),
+                        MetricProperty::Version => ExprValue::UInt64(metric.version()),
+                        _ => ExprValue::Null,
+                    },
+                    MetricFlavor::Time => match property {
+                        MetricProperty::LastValue => ExprValue::Duration(metric.last_time()),
+                        MetricProperty::Mean => value_to_duration(metric.time_mean()),
+                        MetricProperty::StdDev => value_to_duration(metric.time_std_dev()),
+                        MetricProperty::Min => value_to_duration(metric.time_min()),
+                        MetricProperty::Max => value_to_duration(metric.time_max()),
+                        MetricProperty::Sum => value_to_duration(metric.time_sum()),
+                        MetricProperty::Count => ExprValue::UInt64(metric.count() as u64),
+                        MetricProperty::Version => ExprValue::UInt64(metric.version()),
+                        _ => ExprValue::Null,
+                    },
+                })
+            }
+            _ => None,
+        }
     }
+}
 
-    pub fn when<'a>(cond: impl Into<ExprNode<'a>>) -> When<'a> {
-        When::new(cond)
+impl From<f32> for ExprValue<'_> {
+    fn from(value: f32) -> Self {
+        ExprValue::Float32(value)
+    }
+}
+
+impl From<Duration> for ExprValue<'_> {
+    fn from(value: Duration) -> Self {
+        ExprValue::Duration(value)
+    }
+}
+
+impl From<f32> for Expr {
+    fn from(value: f32) -> Self {
+        Expr::Literal(ExprValue::Float32(value))
     }
 }
 
 #[cfg(test)]
-mod tests {
+mod test {
     use super::*;
-    use crate::{ExprEval, Rate, Value};
 
-    fn metrics_with_values(name: &'static str, values: &[f32]) -> MetricSet {
-        let mut metrics = MetricSet::new();
-        for &value in values {
-            metrics.upsert((name, value));
+    fn f32_of(value: ExprValue<'_>) -> f32 {
+        value.extract::<f32>().unwrap()
+    }
+
+    fn bool_of(value: ExprValue<'_>) -> bool {
+        if let ExprValue::Bool(b) = value {
+            b
+        } else {
+            false
+        }
+    }
+
+    fn u64_of(value: ExprValue<'_>) -> u64 {
+        value.extract::<u64>().unwrap()
+    }
+
+    #[test]
+    fn test_metric_selector_returns_last_value() {
+        let mut expr = expr::metric("accuracy");
+        let mut metrics = MetricSet::default();
+
+        metrics.upsert(("accuracy", 42.0));
+        let result = expr.dispatch(&metrics);
+
+        assert_eq!(f32_of(result), 42.0);
+    }
+
+    #[test]
+    fn test_missing_metric_returns_null() {
+        let mut expr = expr::metric("does_not_exist");
+        let metrics = MetricSet::default();
+
+        let result = expr.dispatch(&metrics);
+
+        assert_eq!(result, ExprValue::Null);
+    }
+
+    #[test]
+    fn test_rolling_returns_slice_with_expected_window_contents() {
+        let mut expr = expr::metric("accuracy").rolling(3);
+        let mut metrics = MetricSet::default();
+
+        metrics.upsert(("accuracy", 1.0));
+        let result = expr.dispatch(&metrics);
+        assert!(result.is_nested());
+        if let ExprValue::Slice(values) = result {
+            assert_eq!(values.len(), 1);
+            assert_eq!(values[0].clone().extract::<f32>().unwrap(), 1.0);
         }
 
-        metrics
-    }
-
-    fn metrics_with_two(
-        a_name: &'static str,
-        a_values: &[f32],
-        b_name: &'static str,
-        b_values: &[f32],
-    ) -> MetricSet {
-        let mut metrics = MetricSet::new();
-        for &value in a_values {
-            metrics.upsert((a_name, value));
-        }
-        for &value in b_values {
-            metrics.upsert((b_name, value));
+        metrics.upsert(("accuracy", 2.0));
+        let result = expr.dispatch(&metrics);
+        assert!(result.is_nested());
+        if let ExprValue::Slice(values) = result {
+            assert_eq!(values.len(), 2);
+            assert_eq!(values[0].clone().extract::<f32>().unwrap(), 1.0);
+            assert_eq!(values[1].clone().extract::<f32>().unwrap(), 2.0);
         }
 
-        metrics
+        metrics.upsert(("accuracy", 3.0));
+        let result = expr.dispatch(&metrics);
+
+        assert!(result.is_nested());
+
+        if let ExprValue::Slice(values) = result {
+            assert_eq!(values.len(), 3);
+            assert_eq!(values[0].clone().extract::<f32>().unwrap(), 1.0);
+            assert_eq!(values[1].clone().extract::<f32>().unwrap(), 2.0);
+            assert_eq!(values[2].clone().extract::<f32>().unwrap(), 3.0);
+        }
+
+        metrics.upsert(("accuracy", 4.0));
+        let result = expr.dispatch(&metrics);
+        assert!(result.is_nested());
+
+        if let ExprValue::Slice(values) = result {
+            assert_eq!(values.len(), 3);
+            assert_eq!(values[0].clone().extract::<f32>().unwrap(), 2.0);
+            assert_eq!(values[1].clone().extract::<f32>().unwrap(), 3.0);
+            assert_eq!(values[2].clone().extract::<f32>().unwrap(), 4.0);
+        }
     }
 
     #[test]
-    fn and_works() {
-        let mut metrics = MetricSet::new();
-        metrics.upsert(("NAME", 1.0));
-        metrics.upsert(("NAME", 2.0));
-        metrics.upsert(("NAME", 3.0));
-        metrics.upsert(("NAME", 4.0));
+    fn test_rolling_mean() {
+        let mut expr = expr::metric("accuracy").rolling(3).mean();
+        let mut metrics = MetricSet::default();
 
-        metrics.upsert(("OTHER", 0.0));
-        metrics.upsert(("OTHER", 0.5));
+        metrics.upsert(("accuracy", 1.0));
+        assert!((f32_of(expr.dispatch(&metrics)) - 1.0).abs() < 1e-6);
 
-        let mut expr = expr::metric("NAME")
-            .mean()
-            .lt(3.0)
-            .and(expr::metric("OTHER").sum().lt(0.6));
+        metrics.upsert(("accuracy", 2.0));
+        assert!((f32_of(expr.dispatch(&metrics)) - 1.5).abs() < 1e-6);
 
-        assert_eq!(expr.eval(&metrics), Value::Bool(true));
+        metrics.upsert(("accuracy", 3.0));
+        assert!((f32_of(expr.dispatch(&metrics)) - 2.0).abs() < 1e-6);
+
+        metrics.upsert(("accuracy", 4.0));
+        assert!((f32_of(expr.dispatch(&metrics)) - 3.0).abs() < 1e-6);
     }
 
     #[test]
-    fn and_false_when_rhs_false() {
-        let mut metrics = MetricSet::new();
-        metrics.upsert(("NAME", 1.0));
-        metrics.upsert(("NAME", 2.0));
-        metrics.upsert(("NAME", 3.0));
-        metrics.upsert(("NAME", 4.0));
+    fn test_rolling_sum() {
+        let mut expr = expr::metric("accuracy").rolling(3).sum();
+        let mut metrics = MetricSet::default();
 
-        metrics.upsert(("OTHER", 0.2));
-        metrics.upsert(("OTHER", 0.2));
+        metrics.upsert(("accuracy", 1.0));
+        assert!((f32_of(expr.dispatch(&metrics)) - 1.0).abs() < 1e-6);
 
-        let mut expr = expr::metric("NAME")
-            .mean()
-            .lt(3.0)
-            .and(expr::metric("OTHER").stddev().gt(0.1));
+        metrics.upsert(("accuracy", 2.0));
+        assert!((f32_of(expr.dispatch(&metrics)) - 3.0).abs() < 1e-6);
 
-        assert_eq!(expr.eval(&metrics), Value::Bool(false));
+        metrics.upsert(("accuracy", 3.0));
+        assert!((f32_of(expr.dispatch(&metrics)) - 6.0).abs() < 1e-6);
+
+        metrics.upsert(("accuracy", 4.0));
+        assert!((f32_of(expr.dispatch(&metrics)) - 9.0).abs() < 1e-6);
     }
 
     #[test]
-    fn reads_like_polars() {
-        let mut metrics = MetricSet::new();
-        metrics.upsert(("NAME", 1.0));
-        metrics.upsert(("NAME", 2.0));
-        metrics.upsert(("NAME", 3.0));
-        metrics.upsert(("NAME", 4.0));
+    fn test_rolling_min_and_max() {
+        let mut min_expr = expr::metric("accuracy").rolling(4).min();
+        let mut max_expr = expr::metric("accuracy").rolling(4).max();
+        let mut metrics = MetricSet::default();
 
-        metrics.upsert(("OTHER", 0.0));
-        metrics.upsert(("OTHER", 0.5));
+        for value in [3.0, 1.0, 4.0, 2.0] {
+            metrics.upsert(("accuracy", value));
+            min_expr.dispatch(&metrics);
+            max_expr.dispatch(&metrics);
+        }
 
-        let mut expr = expr::metric("NAME")
-            .mean()
-            .rolling(3)
-            .lt(3.0)
-            .and(expr::metric("OTHER").stddev().gt(0.1));
-
-        let _ = expr.eval(&metrics);
+        assert!((f32_of(min_expr.dispatch(&metrics)) - 1.0).abs() < 1e-6);
+        assert!((f32_of(max_expr.dispatch(&metrics)) - 4.0).abs() < 1e-6);
     }
 
     #[test]
-    fn metric_mean_lt_scalar_true() {
-        let metrics = metrics_with_values("NAME", &[1.0, 2.0, 3.0, 4.0]);
+    fn test_rolling_count() {
+        let mut expr = expr::metric("accuracy").rolling(3).count();
+        let mut metrics = MetricSet::default();
 
-        let mut expr = expr::metric("NAME").mean().lt(3.0);
+        metrics.upsert(("accuracy", 10.0));
+        assert_eq!(u64_of(expr.dispatch(&metrics)), 1);
 
-        assert_eq!(expr.eval(&metrics), Value::Bool(true));
+        metrics.upsert(("accuracy", 11.0));
+        assert_eq!(u64_of(expr.dispatch(&metrics)), 2);
+
+        metrics.upsert(("accuracy", 12.0));
+        assert_eq!(u64_of(expr.dispatch(&metrics)), 3);
+
+        metrics.upsert(("accuracy", 13.0));
+        assert_eq!(u64_of(expr.dispatch(&metrics)), 3);
     }
 
     #[test]
-    fn metric_mean_lt_scalar_false() {
-        let metrics = metrics_with_values("NAME", &[2.0, 3.0, 4.0, 5.0]);
+    fn test_rolling_n_unique() {
+        let mut expr = expr::metric("accuracy").rolling(5).unique().count();
+        let mut metrics = MetricSet::default();
 
-        let mut expr = expr::metric("NAME").mean().lt(3.0);
+        metrics.upsert(("accuracy", 1.0));
+        assert_eq!(u64_of(expr.dispatch(&metrics)), 1);
 
-        assert_eq!(expr.eval(&metrics), Value::Bool(false));
+        metrics.upsert(("accuracy", 2.0));
+        assert_eq!(u64_of(expr.dispatch(&metrics)), 2);
+
+        metrics.upsert(("accuracy", 2.0));
+        assert_eq!(u64_of(expr.dispatch(&metrics)), 2);
+
+        metrics.upsert(("accuracy", 3.0));
+        assert_eq!(u64_of(expr.dispatch(&metrics)), 3);
+
+        metrics.upsert(("accuracy", 1.0));
+        assert_eq!(u64_of(expr.dispatch(&metrics)), 3);
     }
 
     #[test]
-    fn metric_mean_gt_scalar_true() {
-        let metrics = metrics_with_values("NAME", &[2.0, 3.0, 4.0, 5.0]);
+    fn test_lt_comparison_true_and_false() {
+        let mut expr = expr::metric("accuracy").lt(expr::metric("loss"));
+        let mut metrics = MetricSet::default();
 
-        let mut expr = expr::metric("NAME").mean().gt(3.0);
+        metrics.upsert(("accuracy", 0.8));
+        metrics.upsert(("loss", 1.2));
+        assert_eq!(bool_of(expr.dispatch(&metrics)), true);
 
-        assert_eq!(expr.eval(&metrics), Value::Bool(true));
+        metrics.upsert(("accuracy", 2.0));
+        metrics.upsert(("loss", 1.2));
+        assert_eq!(bool_of(expr.dispatch(&metrics)), false);
     }
 
     #[test]
-    fn metric_mean_gt_scalar_false() {
-        let metrics = metrics_with_values("NAME", &[1.0, 2.0, 3.0, 4.0]);
+    fn test_gte_comparison() {
+        let mut expr = expr::metric("accuracy").gte(expr::metric("target"));
+        let mut metrics = MetricSet::default();
 
-        let mut expr = expr::metric("NAME").mean().gt(3.0);
+        metrics.upsert(("accuracy", 0.95));
+        metrics.upsert(("target", 0.90));
+        assert!(bool_of(expr.dispatch(&metrics)));
 
-        assert_eq!(expr.eval(&metrics), Value::Bool(false));
+        metrics.upsert(("accuracy", 0.85));
+        metrics.upsert(("target", 0.90));
+        assert!(!bool_of(expr.dispatch(&metrics)));
     }
 
     #[test]
-    fn metric_eq_scalar_true() {
-        let metrics = metrics_with_values("NAME", &[1.0, 2.0, 3.0, 4.0]);
+    fn test_eq_comparison_uses_epsilon() {
+        let mut expr = expr::metric("a").eq(expr::metric("b"));
+        let mut metrics = MetricSet::default();
 
-        let mut expr = expr::metric("NAME").mean().eq(2.5);
-
-        assert_eq!(expr.eval(&metrics), Value::Bool(true));
+        metrics.upsert(("a", 1.0f32));
+        metrics.upsert(("b", 1.0f32));
+        assert!(bool_of(expr.dispatch(&metrics)));
     }
 
     #[test]
-    fn and_true_when_both_sides_true() {
-        let metrics = metrics_with_two("NAME", &[1.0, 2.0, 3.0, 4.0], "OTHER", &[0.0, 0.5]);
+    fn test_ne_comparison() {
+        let mut expr = expr::metric("a").ne(expr::metric("b"));
+        let mut metrics = MetricSet::default();
 
-        let mut expr = expr::metric("NAME")
-            .mean()
-            .lt(3.0)
-            .and(expr::metric("OTHER").stddev().gt(0.1));
+        metrics.upsert(("a", 1.0f32));
+        metrics.upsert(("b", 2.0f32));
+        assert!(bool_of(expr.dispatch(&metrics)));
 
-        assert_eq!(expr.eval(&metrics), Value::Bool(true));
+        metrics.upsert(("a", 5.0f32));
+        metrics.upsert(("b", 5.0f32));
+        assert!(!bool_of(expr.dispatch(&metrics)));
     }
 
     #[test]
-    fn and_false_when_left_false() {
-        let metrics = metrics_with_two("NAME", &[5.0, 6.0, 7.0, 8.0], "OTHER", &[0.0, 0.5]);
+    fn test_metric_projection_uses_metricset_property_mean() {
+        let expr = SelectExpr::Metric("accuracy".into(), MetricProperty::Mean, MetricFlavor::Value);
+        let mut metrics = MetricSet::default();
 
-        let mut expr = expr::metric("NAME")
-            .mean()
-            .lt(3.0)
-            .and(expr::metric("OTHER").stddev().gt(0.1));
+        metrics.upsert(("accuracy", 1.0));
+        metrics.upsert(("accuracy", 2.0));
+        metrics.upsert(("accuracy", 3.0));
 
-        assert_eq!(expr.eval(&metrics), Value::Bool(false));
+        let result = metrics.project(&expr).unwrap();
+        assert!((f32_of(result) - 2.0).abs() < 1e-6);
     }
 
     #[test]
-    fn and_false_when_right_false() {
-        let metrics = metrics_with_two("NAME", &[1.0, 2.0, 3.0, 4.0], "OTHER", &[0.2, 0.2]);
-
-        let mut expr = expr::metric("NAME")
-            .mean()
-            .lt(3.0)
-            .and(expr::metric("OTHER").stddev().gt(0.1));
-
-        assert_eq!(expr.eval(&metrics), Value::Bool(false));
-    }
-
-    #[test]
-    fn or_true_when_left_true() {
-        let metrics = metrics_with_two("NAME", &[1.0, 2.0, 3.0, 4.0], "OTHER", &[0.2, 0.2]);
-
-        let mut expr = expr::metric("NAME")
-            .mean()
-            .lt(3.0)
-            .or(expr::metric("OTHER").stddev().gt(0.1));
-
-        assert_eq!(expr.eval(&metrics), Value::Bool(true));
-    }
-
-    #[test]
-    fn or_true_when_right_true() {
-        let metrics = metrics_with_two("NAME", &[5.0, 6.0, 7.0, 8.0], "OTHER", &[0.0, 0.5]);
-
-        let mut expr = expr::metric("NAME")
-            .mean()
-            .lt(3.0)
-            .or(expr::metric("OTHER").stddev().gt(0.1));
-
-        assert_eq!(expr.eval(&metrics), Value::Bool(true));
-    }
-
-    #[test]
-    fn or_false_when_both_false() {
-        let metrics = metrics_with_two("NAME", &[5.0, 6.0, 7.0, 8.0], "OTHER", &[0.2, 0.2]);
-
-        let mut expr = expr::metric("NAME")
-            .mean()
-            .lt(3.0)
-            .or(expr::metric("OTHER").stddev().gt(0.1));
-
-        assert_eq!(expr.eval(&metrics), Value::Bool(false));
-    }
-
-    #[test]
-    fn when_then_otherwise_takes_then_branch() {
-        let metrics = metrics_with_values("NAME", &[1.0, 2.0, 3.0, 4.0]);
-
-        let mut expr = expr::when(expr::metric("NAME").mean().lt(3.0))
-            .then(0.25)
-            .otherwise(0.10);
-
-        assert_eq!(expr.eval(&metrics), Value::Float32(0.25));
-    }
-
-    #[test]
-    fn when_then_otherwise_takes_else_branch() {
-        let metrics = metrics_with_values("NAME", &[5.0, 6.0, 7.0, 8.0]);
-
-        let mut expr = expr::when(expr::metric("NAME").mean().lt(3.0))
-            .then(0.25)
-            .otherwise(0.10);
-
-        assert_eq!(expr.eval(&metrics), Value::Float32(0.10));
-    }
-
-    #[test]
-    fn when_then_otherwise_with_compound_condition() {
-        let metrics = metrics_with_two("NAME", &[1.0, 2.0, 3.0, 4.0], "OTHER", &[0.0, 0.5]);
-
-        let mut expr = expr::when(
-            expr::metric("NAME")
-                .mean()
-                .lt(3.0)
-                .and(expr::metric("OTHER").stddev().gt(0.1)),
-        )
-        .then(0.8)
-        .otherwise(0.2);
-
-        assert_eq!(expr.eval(&metrics), Value::Float32(0.8));
-    }
-
-    #[test]
-    fn rolling_mean_lt_updates_over_multiple_evals() {
-        let m1 = metrics_with_values("NAME", &[0.9]);
-        let m2 = metrics_with_values("NAME", &[0.6]);
-        let m3 = metrics_with_values("NAME", &[0.3]);
-        let m4 = metrics_with_values("NAME", &[0.0]);
-
-        let mut expr = expr::metric("NAME").rolling(3).mean().lt(0.5);
-
-        assert_eq!(expr.eval(&m1), Value::Bool(false)); // 0.9
-        assert_eq!(expr.eval(&m2), Value::Bool(false)); // (0.9 + 0.6)/2 = 0.75
-        assert_eq!(expr.eval(&m3), Value::Bool(false)); // (0.9 + 0.6 + 0.3)/3 = 0.6
-        assert_eq!(expr.eval(&m4), Value::Bool(true)); // (0.6 + 0.3 + 0.0)/3 = 0.3
-    }
-
-    #[test]
-    fn rolling_compound_condition_reads_nicely() {
-        let m1 = metrics_with_two("NAME", &[0.9], "OTHER", &[0.0, 0.5]);
-        let m2 = metrics_with_two("NAME", &[0.6], "OTHER", &[0.0, 0.5]);
-        let m3 = metrics_with_two("NAME", &[0.3], "OTHER", &[0.0, 0.5]);
-        let m4 = metrics_with_two("NAME", &[0.0], "OTHER", &[0.0, 0.5]);
-
-        let mut expr = expr::metric("NAME")
-            .mean()
-            .rolling(3)
-            .lt(0.5)
-            .and(expr::metric("OTHER").stddev().gt(0.1));
-
-        assert_eq!(expr.eval(&m1), Value::Bool(false));
-        assert_eq!(expr.eval(&m2), Value::Bool(false));
-        assert_eq!(expr.eval(&m3), Value::Bool(false));
-        assert_eq!(expr.eval(&m4), Value::Bool(true));
-    }
-
-    #[test]
-    fn stagnant_expr_clamps_to_one_unique_value() {
-        let mut metrics = metrics_with_values("NAME", &[1.0, 3.0, 3.3333, 33.0]);
-        let mut expr = expr::metric("NAME").stagnant(3);
-
-        metrics.upsert(("NAME", 1.0));
-        assert_eq!(expr.eval(&metrics), Value::Bool(true));
-
-        metrics.upsert(("NAME", 3.0));
-        assert_eq!(expr.eval(&metrics), Value::Bool(false));
-
-        metrics.upsert(("NAME", 3.3333));
-        assert_eq!(expr.eval(&metrics), Value::Bool(false));
-
-        metrics.upsert(("NAME", 33.0));
-        assert_eq!(expr.eval(&metrics), Value::Bool(false));
-
-        metrics.upsert(("NAME", 1.0));
-        assert_eq!(expr.eval(&metrics), Value::Bool(false));
-
-        metrics.upsert(("NAME", 1.0));
-        assert_eq!(expr.eval(&metrics), Value::Bool(false));
-
-        metrics.upsert(("NAME", 1.0));
-        assert_eq!(expr.eval(&metrics), Value::Bool(true));
-    }
-
-    #[test]
-    fn rate_expr_clamps_bool_to_numeric() {
-        let metrics = metrics_with_values("NAME", &[1.0, 2.0, 3.0, 4.0]);
-
-        let rate = Rate::Expr(
-            expr::when(expr::metric("NAME").mean().lt(3.0))
-                .then(0.8)
-                .otherwise(0.1),
+    fn test_metric_projection_uses_metricset_property_count() {
+        let expr = SelectExpr::Metric(
+            "accuracy".into(),
+            MetricProperty::Count,
+            MetricFlavor::Value,
         );
+        let mut metrics = MetricSet::default();
 
-        assert_eq!(rate.value_from_metrics(&metrics), 0.8);
+        metrics.upsert(("accuracy", 1.0));
+        metrics.upsert(("accuracy", 2.0));
+        metrics.upsert(("accuracy", 3.0));
+
+        let result = metrics.project(&expr).unwrap();
+        assert_eq!(u64_of(result), 3);
+    }
+
+    #[test]
+    fn test_between_inclusive() {
+        let mut expr = expr::metric("x").between(1.0, 3.0);
+        let mut metrics = MetricSet::default();
+
+        metrics.upsert(("x", 1.0));
+        assert!(bool_of(expr.dispatch(&metrics)));
+
+        metrics.upsert(("x", 2.0));
+        assert!(bool_of(expr.dispatch(&metrics)));
+
+        metrics.upsert(("x", 3.0));
+        assert!(bool_of(expr.dispatch(&metrics)));
+
+        metrics.upsert(("x", 0.99));
+        assert!(!bool_of(expr.dispatch(&metrics)));
+
+        metrics.upsert(("x", 3.01));
+        assert!(!bool_of(expr.dispatch(&metrics)));
+    }
+
+    #[test]
+    fn test_add_expr() {
+        let mut expr = expr::metric("a").add(expr::metric("b"));
+        let mut metrics = MetricSet::default();
+
+        metrics.upsert(("a", 2.0));
+        metrics.upsert(("b", 3.5));
+
+        assert!((f32_of(expr.dispatch(&metrics)) - 5.5).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_sub_expr() {
+        let mut expr = expr::metric("a").sub(expr::metric("b"));
+        let mut metrics = MetricSet::default();
+
+        metrics.upsert(("a", 5.0));
+        metrics.upsert(("b", 1.5));
+
+        assert!((f32_of(expr.dispatch(&metrics)) - 3.5).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_mul_expr() {
+        let mut expr = expr::metric("a").mul(2.5);
+        let mut metrics = MetricSet::default();
+
+        metrics.upsert(("a", 4.0));
+
+        assert!((f32_of(expr.dispatch(&metrics)) - 10.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_div_expr() {
+        let mut expr = expr::metric("a").div(expr::metric("b"));
+        let mut metrics = MetricSet::default();
+
+        metrics.upsert(("a", 9.0));
+        metrics.upsert(("b", 3.0));
+
+        assert!((f32_of(expr.dispatch(&metrics)) - 3.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_div_by_zero_returns_null() {
+        let mut expr = expr::metric("a").div(expr::metric("b"));
+        let mut metrics = MetricSet::default();
+
+        metrics.upsert(("a", 9.0));
+        metrics.upsert(("b", 0.0));
+
+        assert_eq!(expr.dispatch(&metrics), ExprValue::Null);
+    }
+
+    #[test]
+    fn test_neg_expr() {
+        let mut expr = expr::metric("a").neg();
+        let mut metrics = MetricSet::default();
+
+        metrics.upsert(("a", 4.0));
+
+        assert!((f32_of(expr.dispatch(&metrics)) + 4.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_abs_expr() {
+        let mut expr = expr::metric("a").sub(10.0).abs();
+        let mut metrics = MetricSet::default();
+
+        metrics.upsert(("a", 4.0));
+        assert!((f32_of(expr.dispatch(&metrics)) - 6.0).abs() < 1e-6);
+
+        metrics.upsert(("a", 14.0));
+        assert!((f32_of(expr.dispatch(&metrics)) - 4.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_clamp_expr() {
+        let mut expr = expr::metric("a").clamp(0.1, 0.5);
+        let mut metrics = MetricSet::default();
+
+        metrics.upsert(("a", 0.05));
+        assert!((f32_of(expr.dispatch(&metrics)) - 0.1).abs() < 1e-6);
+
+        metrics.upsert(("a", 0.25));
+        assert!((f32_of(expr.dispatch(&metrics)) - 0.25).abs() < 1e-6);
+
+        metrics.upsert(("a", 0.9));
+        assert!((f32_of(expr.dispatch(&metrics)) - 0.5).abs() < 1e-6);
     }
 }

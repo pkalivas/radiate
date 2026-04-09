@@ -1,9 +1,9 @@
 use num_traits::NumCast;
 use radiate_utils::intern;
-use std::{fmt::Debug, hash::Hash};
+use std::{fmt::Debug, hash::Hash, time::Duration};
 
 #[derive(Clone, Default, Debug)]
-pub enum Value<'a> {
+pub enum ExprValue<'a> {
     #[default]
     Null,
 
@@ -28,13 +28,15 @@ pub enum Value<'a> {
     Str(&'a str),
     StrOwned(String),
 
-    Vector(Box<Vec<Value<'a>>>),
-    Slice(&'a [Value<'a>]),
+    Duration(Duration),
 
-    Struct(Vec<(&'a str, Value<'a>)>),
+    Vector(Vec<ExprValue<'a>>),
+    Slice(&'a [ExprValue<'a>]),
+
+    Struct(Vec<(&'a str, ExprValue<'a>)>),
 }
 
-impl<'a> Value<'a> {
+impl<'a> ExprValue<'a> {
     #[inline]
     pub fn is_null(&self) -> bool {
         matches!(self, Self::Null)
@@ -47,7 +49,7 @@ impl<'a> Value<'a> {
 
     #[inline]
     pub fn is_nested(&self) -> bool {
-        matches!(self, Self::Vector(_))
+        matches!(self, Self::Vector(_) | Self::Slice(_))
     }
 
     #[inline]
@@ -88,6 +90,9 @@ impl<'a> Value<'a> {
             Self::Char(_) => "char",
             Self::Str(_) => "string",
             Self::StrOwned(_) => "string",
+
+            Self::Duration(_) => "duration",
+
             Self::Vector(_) => "list",
             Self::Slice(_) => "list",
             Self::Struct(_) => "struct",
@@ -98,8 +103,8 @@ impl<'a> Value<'a> {
     ///  with static lifetime.
     /// This can be done if it does not borrow any values.
     #[inline]
-    pub fn into_static(self) -> Value<'static> {
-        use Value::*;
+    pub fn into_static(self) -> ExprValue<'static> {
+        use ExprValue::*;
         match self {
             Null => Null,
             Int8(v) => Int8(v),
@@ -118,10 +123,9 @@ impl<'a> Value<'a> {
             Char(v) => Char(v),
             Str(v) => StrOwned(v.to_string()),
             StrOwned(v) => StrOwned(v),
-            Vector(v) => Vector(Box::new(v.into_iter().map(Value::into_static).collect())),
-            Slice(v) => Vector(Box::new(
-                v.iter().map(|v| v.clone().into_static()).collect(),
-            )),
+            Duration(v) => Duration(v),
+            Vector(v) => Vector(v.into_iter().map(ExprValue::into_static).collect()),
+            Slice(v) => Vector(v.iter().map(|v| v.clone().into_static()).collect()),
             Struct(v) => Struct(
                 v.iter()
                     .map(|(k, v)| (intern!(*k), v.clone().into_static()))
@@ -132,46 +136,46 @@ impl<'a> Value<'a> {
 
     pub fn as_bool(&self) -> bool {
         match self {
-            Value::Bool(v) => *v,
-            Value::Null => false,
-            Value::UInt8(v) => *v != 0,
-            Value::UInt16(v) => *v != 0,
-            Value::UInt32(v) => *v != 0,
-            Value::UInt64(v) => *v != 0,
-            Value::Int8(v) => *v != 0,
-            Value::Int16(v) => *v != 0,
-            Value::Int32(v) => *v != 0,
-            Value::Int64(v) => *v != 0,
-            Value::Int128(v) => *v != 0,
-            Value::Float32(v) => *v != 0.0,
-            Value::Float64(v) => *v != 0.0,
+            ExprValue::Bool(v) => *v,
+            ExprValue::Null => false,
+            ExprValue::UInt8(v) => *v != 0,
+            ExprValue::UInt16(v) => *v != 0,
+            ExprValue::UInt32(v) => *v != 0,
+            ExprValue::UInt64(v) => *v != 0,
+            ExprValue::Int8(v) => *v != 0,
+            ExprValue::Int16(v) => *v != 0,
+            ExprValue::Int32(v) => *v != 0,
+            ExprValue::Int64(v) => *v != 0,
+            ExprValue::Int128(v) => *v != 0,
+            ExprValue::Float32(v) => *v != 0.0,
+            ExprValue::Float64(v) => *v != 0.0,
             _ => true, // Non-null non-boolean values are considered true
         }
     }
 
     pub fn extract<T: NumCast>(self) -> Option<T> {
         match self {
-            Value::UInt8(v) => NumCast::from(v),
-            Value::UInt16(v) => NumCast::from(v),
-            Value::UInt32(v) => NumCast::from(v),
-            Value::UInt64(v) => NumCast::from(v),
-            Value::UInt128(v) => NumCast::from(v),
-            Value::Int8(v) => NumCast::from(v),
-            Value::Int16(v) => NumCast::from(v),
-            Value::Int32(v) => NumCast::from(v),
-            Value::Int64(v) => NumCast::from(v),
-            Value::Int128(v) => NumCast::from(v),
-            Value::Float32(v) => NumCast::from(v),
-            Value::Float64(v) => NumCast::from(v),
+            ExprValue::UInt8(v) => NumCast::from(v),
+            ExprValue::UInt16(v) => NumCast::from(v),
+            ExprValue::UInt32(v) => NumCast::from(v),
+            ExprValue::UInt64(v) => NumCast::from(v),
+            ExprValue::UInt128(v) => NumCast::from(v),
+            ExprValue::Int8(v) => NumCast::from(v),
+            ExprValue::Int16(v) => NumCast::from(v),
+            ExprValue::Int32(v) => NumCast::from(v),
+            ExprValue::Int64(v) => NumCast::from(v),
+            ExprValue::Int128(v) => NumCast::from(v),
+            ExprValue::Float32(v) => NumCast::from(v),
+            ExprValue::Float64(v) => NumCast::from(v),
             _ => None,
         }
     }
 }
 
-impl<'a> PartialEq for Value<'a> {
+impl<'a> PartialEq for ExprValue<'a> {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
-        use Value::*;
+        use ExprValue::*;
         match (self, other) {
             (Null, Null) => true,
             (Bool(a), Bool(b)) => a == b,
@@ -192,17 +196,24 @@ impl<'a> PartialEq for Value<'a> {
             (Vector(a), Vector(b)) if a.len() == b.len() => {
                 a.iter().zip(b.iter()).all(|(x, y)| x == y)
             }
+            (Slice(a), Slice(b)) if a.len() == b.len() => {
+                a.iter().zip(b.iter()).all(|(x, y)| x == y)
+            }
+            (Struct(a), Struct(b)) if a.len() == b.len() => a
+                .iter()
+                .zip(b.iter())
+                .all(|((ka, va), (kb, vb))| ka == kb && va == vb),
 
             _ => false,
         }
     }
 }
 
-impl<'a> Eq for Value<'a> {}
+impl<'a> Eq for ExprValue<'a> {}
 
-impl<'a> Hash for Value<'a> {
+impl<'a> Hash for ExprValue<'a> {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        use Value::*;
+        use ExprValue::*;
         match self {
             Null => 0.hash(state),
             Bool(v) => v.hash(state),
@@ -212,13 +223,17 @@ impl<'a> Hash for Value<'a> {
             Int32(v) => v.hash(state),
             Int64(v) => v.hash(state),
             Int128(v) => v.hash(state),
+
             UInt8(v) => v.hash(state),
             UInt16(v) => v.hash(state),
             UInt32(v) => v.hash(state),
             UInt64(v) => v.hash(state),
             UInt128(v) => v.hash(state),
+
             Float32(v) => v.to_ne_bytes().hash(state),
             Float64(v) => v.to_ne_bytes().hash(state),
+
+            Duration(v) => v.hash(state),
 
             Char(v) => v.hash(state),
             Str(v) => v.hash(state),
@@ -235,8 +250,8 @@ impl<'a> Hash for Value<'a> {
     }
 }
 
-impl<'a> From<&'a str> for Value<'a> {
+impl<'a> From<&'a str> for ExprValue<'a> {
     fn from(s: &'a str) -> Self {
-        Value::Str(s)
+        ExprValue::Str(s)
     }
 }

@@ -96,13 +96,13 @@ pub fn py_alter(
 }
 
 fn alter<C: Chromosome>(
-    alterers: Vec<Alterer<C>>,
+    mut alterers: Vec<Alterer<C>>,
     mut population: Population<C>,
     generation: usize,
 ) -> Population<C> {
     let mut lineage = Lineage::default();
     let mut metrics = MetricSet::default();
-    for alterer in alterers {
+    for alterer in alterers.iter_mut() {
         alterer.alter(&mut population, &mut lineage, &mut metrics, generation);
     }
 

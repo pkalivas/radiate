@@ -1,3 +1,5 @@
+use std::hash::Hash;
+
 use crate::stats::metric_tags;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -82,6 +84,12 @@ impl From<Tag> for u32 {
     #[inline]
     fn from(mask: Tag) -> Self {
         mask.0
+    }
+}
+
+impl Hash for Tag {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0.hash(state);
     }
 }
 

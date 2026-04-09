@@ -1,4 +1,4 @@
-use crate::{ExprNode, MetricSet, Valid, metric_names};
+use crate::{Expr, ExprQuery, MetricSet, Valid, metric_names};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum CycleShape {
@@ -49,16 +49,21 @@ pub enum Rate {
 
     /// An expression-based rate that is computed from a given expression node.
     /// The expression can reference metrics and other variables to compute the rate dynamically.
-    Expr(ExprNode<'static>),
+    Expr(Expr),
 }
 
 impl Rate {
-    pub fn value_from_metrics(&self, metrics: &MetricSet) -> f32 {
-        let step = metrics
-            .get(metric_names::INDEX)
-            .map(|v| v.last_value())
-            .unwrap_or(1.0) as usize;
-        self.value(step)
+    pub fn value_from_metrics(&mut self, metrics: &MetricSet) -> f32 {
+        match self {
+            Rate::Expr(expr) => expr.dispatch(metrics).extract::<f32>().unwrap_or(0.0),
+            _ => {
+                let step = metrics
+                    .get(metric_names::INDEX)
+                    .map(|v| v.last_value())
+                    .unwrap_or(1.0) as usize;
+                self.value(step)
+            }
+        }
     }
 
     pub fn value(&self, step: usize) -> f32 {
@@ -167,6 +172,12 @@ impl From<f32> for Rate {
 impl From<Vec<(usize, f32)>> for Rate {
     fn from(steps: Vec<(usize, f32)>) -> Self {
         Rate::Stepwise(steps)
+    }
+}
+
+impl From<Expr> for Rate {
+    fn from(expr: Expr) -> Self {
+        Rate::Expr(expr)
     }
 }
 
