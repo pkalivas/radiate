@@ -1,6 +1,6 @@
 use crate::PgmChromosome;
 use radiate_core::alter::{AlterResult, Mutate};
-use radiate_core::random_provider;
+use radiate_core::{AlterContext, random_provider};
 use radiate_utils::Value;
 
 #[derive(Clone, Debug)]
@@ -25,7 +25,11 @@ impl PgmParamMutator {
 
 impl Mutate<PgmChromosome> for PgmParamMutator {
     #[inline]
-    fn mutate_chromosome(&self, chromosome: &mut PgmChromosome, _: f32) -> AlterResult {
+    fn mutate_chromosome(
+        &self,
+        chromosome: &mut PgmChromosome,
+        _: &mut AlterContext,
+    ) -> AlterResult {
         let mut count = 0;
         for f in chromosome.factors.iter_mut() {
             if random_provider::bool(self.factor_rate) {
@@ -74,7 +78,11 @@ impl PgmScopeMutator {
 
 impl Mutate<PgmChromosome> for PgmScopeMutator {
     #[inline]
-    fn mutate_chromosome(&self, chromosome: &mut PgmChromosome, _rate: f32) -> AlterResult {
+    fn mutate_chromosome(
+        &self,
+        chromosome: &mut PgmChromosome,
+        _: &mut AlterContext,
+    ) -> AlterResult {
         let mut count = 0;
 
         let vars = chromosome.vars.clone();

@@ -38,14 +38,14 @@ sync py=py-version: python-info
 
 coverage: _require-uv
     @uv run -m pytest -n auto \
-        --cov=radiate \
+        --cov=py-radiate \
         --cov-report=term-missing
 
 lint: _require-uv
-    @uv run ruff check radiate tests examples
+    @uv run ruff check py-radiate tests examples
 
 format: _require-uv
-    @uv run ruff format radiate tests examples
+    @uv run ruff format py-radiate tests examples
 
 wheel py=py-version args=extra-args:
     @uv run maturin build -i {{py}} -m py-radiate/Cargo.toml --release {{args}}

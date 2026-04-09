@@ -7,7 +7,7 @@ import radiate as rd
 import torch  # type: ignore
 from torch import nn  # type: ignore
 import torch.nn.functional as F  # type: ignore
-import numpy as np
+import numpy as np  # type: ignore
 
 
 rd.random.seed(42)

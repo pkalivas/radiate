@@ -1,5 +1,6 @@
 use radiate_core::{
-    AlterResult, BoundedGene, Chromosome, Crossover, Gene, Rate, Valid, random_provider,
+    AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, Gene, Rate, Valid,
+    random_provider,
 };
 use radiate_utils::Float;
 
@@ -38,7 +39,12 @@ where
     }
 
     #[inline]
-    fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C, _: f32) -> AlterResult {
+    fn cross_chromosomes(
+        &self,
+        chrom_one: &mut C,
+        chrom_two: &mut C,
+        _: &mut AlterContext,
+    ) -> AlterResult {
         let length = std::cmp::min(chrom_one.len(), chrom_two.len());
 
         if length < 2 {

@@ -1,5 +1,5 @@
 use radiate_core::{
-    AlterResult, ArithmeticGene, Chromosome, Crossover, Rate, Valid, random_provider,
+    AlterContext, AlterResult, ArithmeticGene, Chromosome, Crossover, Rate, Valid, random_provider,
 };
 
 /// The [MeanCrossover] is a simple crossover method that replaces the genes of the first chromosome
@@ -37,12 +37,17 @@ where
     }
 
     #[inline]
-    fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C, rate: f32) -> AlterResult {
+    fn cross_chromosomes(
+        &self,
+        chrom_one: &mut C,
+        chrom_two: &mut C,
+        ctx: &mut AlterContext,
+    ) -> AlterResult {
         let mut count = 0;
 
         random_provider::with_rng(|rand| {
             for (gene_one, gene_two) in chrom_one.iter_mut().zip(chrom_two.iter()) {
-                if rand.bool(rate) {
+                if rand.bool(ctx.rate()) {
                     *gene_one = gene_one.mean(gene_two);
                     count += 1;
                 }

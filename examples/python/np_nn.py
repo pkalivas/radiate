@@ -5,6 +5,7 @@ It implements a simple feedforward neural network with 3 layers (input, hidden, 
 The network weights are evolved using a float codec.
 """
 
+import pprint
 import radiate as rd
 import numpy as np
 
@@ -71,4 +72,14 @@ engine = (
     .limit(rd.Limit.score(0.01), rd.Limit.generations(500))
 )
 
-print(engine.run(log=True))
+result = engine.run(log=True)
+metrics = result.metrics()
+
+print(result.metrics().dashboard())
+# pprint.pprint(metrics["carryover_rate"].tags())
+
+for metric in metrics.values_by_tag(rd.Tag.DERIVED):
+    print(metric)
+
+print()
+pprint.pprint(metrics["carryover_rate"].to_dict())

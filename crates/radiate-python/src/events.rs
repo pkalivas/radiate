@@ -1,9 +1,7 @@
-use std::sync::Arc;
-
 use crate::PySubscriber;
 use crate::{PyEngineEvent, PyMetricSet, prelude::*};
 use pyo3::Python;
-use radiate::{EngineEvent, EventHandler};
+use radiate::{EngineEvent, EngineEventInner, EventHandler};
 
 pub struct PyEventHandler {
     handlers: Vec<PySubscriber>,
@@ -23,15 +21,15 @@ impl PyEventHandler {
                     .map(|name| {
                         if name == crate::names::ALL_EVENTS {
                             true
-                        } else if matches!(event, EngineEvent::Start) {
+                        } else if event.is_start() {
                             name == crate::names::START_EVENT
-                        } else if matches!(event, EngineEvent::Stop(..)) {
+                        } else if event.is_stop() {
                             name == crate::names::STOP_EVENT
-                        } else if matches!(event, EngineEvent::EpochStart(_)) {
+                        } else if event.is_epoch_start() {
                             name == crate::names::EPOCH_START_EVENT
-                        } else if matches!(event, EngineEvent::EpochComplete(..)) {
+                        } else if event.is_epoch_complete() {
                             name == crate::names::EPOCH_COMPLETE_EVENT
-                        } else if matches!(event, EngineEvent::Improvement(..)) {
+                        } else if event.is_improvement() {
                             name == crate::names::ENGINE_IMPROVEMENT_EVENT
                         } else {
                             false
@@ -46,15 +44,15 @@ impl PyEventHandler {
     where
         T: IntoPyAnyObject + Clone,
     {
-        match event {
-            EngineEvent::Start => PyEngineEvent::start(),
-            EngineEvent::Stop(index, best, metrics, score) => {
+        match event.inner() {
+            EngineEventInner::Start => PyEngineEvent::start(),
+            EngineEventInner::Stop(index, best, metrics, score) => {
                 let best = best.clone().into_py(py);
                 let metrics = PyMetricSet::from(metrics.clone());
                 PyEngineEvent::stop(*index, best, metrics, score.as_ref().to_vec())
             }
-            EngineEvent::EpochStart(index) => PyEngineEvent::epoch_start(*index),
-            EngineEvent::EpochComplete(index, best, metrics, score, objective) => {
+            EngineEventInner::EpochStart(index) => PyEngineEvent::epoch_start(*index),
+            EngineEventInner::EpochComplete(index, best, metrics, score, objective) => {
                 let best = best.clone().into_py(py);
                 let metrics = PyMetricSet::from(metrics.clone());
                 PyEngineEvent::epoch_complete(
@@ -65,7 +63,7 @@ impl PyEventHandler {
                     objective.clone(),
                 )
             }
-            EngineEvent::Improvement(index, best, score) => {
+            EngineEventInner::Improvement(index, best, score) => {
                 let best = best.clone().into_py(py);
                 PyEngineEvent::improvement(*index, best, score.as_ref().to_vec())
             }
@@ -77,8 +75,8 @@ impl<T> EventHandler<T> for PyEventHandler
 where
     T: IntoPyAnyObject + Clone,
 {
-    fn handle(&mut self, event: Arc<EngineEvent<T>>) {
-        let subscribers = self.get_valid_handlers(event.as_ref());
+    fn handle(&mut self, event: EngineEvent<T>) {
+        let subscribers = self.get_valid_handlers(&event);
 
         if subscribers.is_empty() {
             return;

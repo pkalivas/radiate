@@ -128,10 +128,14 @@ impl PyMetricSet {
         Ok(df)
     }
 
-    pub fn to_polars<'py>(&self, py: Python<'py>) -> PyResult<pyo3::Bound<'py, PyAny>> {
+    pub fn to_polars<'py>(&self, py: Python<'py>, lazy: bool) -> PyResult<pyo3::Bound<'py, PyAny>> {
         let rows = self.to_rows(py)?;
         let pl = py.import("polars")?;
-        let df = pl.getattr("DataFrame")?.call1((rows,))?;
+        let df = if lazy {
+            pl.getattr("LazyFrame")?.call1((rows,))?
+        } else {
+            pl.getattr("DataFrame")?.call1((rows,))?
+        };
         Ok(df)
     }
 }
@@ -181,10 +185,6 @@ impl From<Metric> for PyMetric {
 impl PyMetric {
     pub fn __repr__(&self) -> String {
         format!("PyMetric(name='{}')", self.inner.name())
-    }
-
-    pub fn __dict__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
-        self.to_dict(py)
     }
 
     #[getter]
@@ -317,6 +317,8 @@ impl PyMetric {
 
         d.set_item("version", self.version())?;
         d.set_item("update_count", self.update_count())?;
+
+        d.set_item("tags", self.tags())?;
 
         Ok(d)
     }

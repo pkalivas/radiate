@@ -1,5 +1,5 @@
 use crate::{context::Context, steps::EngineStep};
-use radiate_core::{Chromosome, metric, metric_names};
+use radiate_core::{Chromosome, metric_names};
 use radiate_error::Result;
 
 /// A [Pipeline] is a sequence of steps that are executed in order during each epoch of the engine.
@@ -28,7 +28,7 @@ impl<C: Chromosome> Pipeline<C> {
             step.execute(context.index, &mut context.ecosystem, &mut context.metrics)?;
             let elapsed = timer.elapsed();
 
-            context.metrics.upsert(metric!(step.name(), elapsed));
+            context.metrics.upsert((step.name(), elapsed));
         }
 
         let elapsed = timer.elapsed();

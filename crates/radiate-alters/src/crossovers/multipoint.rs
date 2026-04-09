@@ -1,4 +1,6 @@
-use radiate_core::{AlterResult, Chromosome, Crossover, Rate, Valid, random_provider};
+use radiate_core::{
+    AlterContext, AlterResult, Chromosome, Crossover, Rate, Valid, random_provider,
+};
 
 /// The [MultiPointCrossover] is a crossover method that takes two chromosomes and crosses them
 /// by selecting multiple points in the chromosome and swapping the genes between the two chromosomes.
@@ -34,7 +36,12 @@ impl<C: Chromosome> Crossover<C> for MultiPointCrossover {
     }
 
     #[inline]
-    fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C, _: f32) -> AlterResult {
+    fn cross_chromosomes(
+        &self,
+        chrom_one: &mut C,
+        chrom_two: &mut C,
+        _: &mut AlterContext,
+    ) -> AlterResult {
         let one = chrom_one.as_mut_slice();
         let two = chrom_two.as_mut_slice();
 

@@ -84,7 +84,7 @@ tui-piechart = "0.3.1"
 color-eyre = "0.6.3"
 num-traits = "0.2.19"
 tracing = "0.1.44"
-tracing-subscriber = { version = "0.3.22", features = ["env-filter", "fmt"] }
+tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt"] }
 radiate = { version = "1.2.21", path = "crates/radiate", default-features = false }
 radiate-core = { version = "1.2.21", path = "crates/radiate-core", default-features = false }
 radiate-alters = { version = "1.2.21", path = "crates/radiate-alters", default-features = false }

@@ -110,14 +110,14 @@ class MetricSet(RsObject):
             for m in self.__backend__().values_by_tag(tag_map["rs"][tag])
         ]
 
-    def to_polars(self):
+    def to_polars(self, lazy: bool = False):
         from radiate._dependancies import _POLARS_AVAILABLE
 
         if not _POLARS_AVAILABLE:
             raise ImportError(
                 "Polars is not available. Please install it to use this feature."
             )
-        return self.__backend__().to_polars()
+        return self.__backend__().to_polars(lazy=lazy)
 
     def to_pandas(self):
         from radiate._dependancies import _PANDAS_AVAILABLE
@@ -133,8 +133,8 @@ class Metric(RsObject):
     def __repr__(self) -> str:
         return self.__backend__().__repr__()
 
-    def __dict__(self) -> dict[str, Any]:  # type: ignore
-        return self.__backend__().__dict__()
+    def __str__(self) -> str:
+        return self.__backend__().__repr__()
 
     def name(self) -> str:
         return self.__backend__().name

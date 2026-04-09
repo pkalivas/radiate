@@ -1,5 +1,5 @@
 use super::TreeChromosome;
-use radiate_core::{AlterResult, Mutate, Rate, Valid, random_provider};
+use radiate_core::{AlterContext, AlterResult, Mutate, Rate, Valid, random_provider};
 
 #[derive(Clone, Debug)]
 pub struct HoistMutator {
@@ -25,7 +25,11 @@ where
         self.rate.clone()
     }
 
-    fn mutate_chromosome(&self, chromosome: &mut TreeChromosome<T>, _: f32) -> AlterResult {
+    fn mutate_chromosome(
+        &self,
+        chromosome: &mut TreeChromosome<T>,
+        _: &mut AlterContext,
+    ) -> AlterResult {
         let root = chromosome.root_mut();
         let root_size = root.size();
         let rand_index = random_provider::range(0..root_size);

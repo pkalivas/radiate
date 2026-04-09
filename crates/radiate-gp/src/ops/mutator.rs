@@ -1,7 +1,7 @@
 use crate::node::{Node, NodeExt};
 use crate::ops::operation::Op;
 use crate::{Factory, GraphChromosome, NodeStore, NodeType, TreeChromosome};
-use radiate_core::{AlterResult, Metric, Mutate, Rate, Valid, metric};
+use radiate_core::{AlterContext, AlterResult, Mutate, Rate, Valid};
 use radiate_core::{Chromosome, random_provider};
 
 const OP_MUTATED: &str = "op_mutate";
@@ -14,18 +14,6 @@ struct OpMutateMetrics {
 }
 
 impl OpMutateMetrics {
-    fn entries(&self) -> Vec<Metric> {
-        let mut result = Vec::with_capacity(2);
-        if self.op_mutate > 0 {
-            result.push(metric!(OP_MUTATED.into(), self.op_mutate));
-        }
-        if self.op_new_instance > 0 {
-            result.push(metric!(OP_NEW_INSTANCE.into(), self.op_new_instance));
-        }
-
-        result
-    }
-
     fn len(&self) -> usize {
         self.op_mutate + self.op_new_instance
     }
@@ -113,8 +101,12 @@ where
     }
 
     #[inline]
-    fn mutate_chromosome(&self, chromosome: &mut GraphChromosome<Op<T>>, rate: f32) -> AlterResult {
-        let mutation_indexes = random_provider::cond_indices(0..chromosome.len(), rate);
+    fn mutate_chromosome(
+        &self,
+        chromosome: &mut GraphChromosome<Op<T>>,
+        ctx: &mut AlterContext,
+    ) -> AlterResult {
+        let mutation_indexes = random_provider::cond_indices(0..chromosome.len(), ctx.rate());
         let store = chromosome.store().map(|store| store.clone());
 
         let mut metrics = OpMutateMetrics {
@@ -133,7 +125,12 @@ where
             }
         }
 
-        AlterResult::from((mutation_indexes.len(), metrics.entries()))
+        ctx.metric(OP_MUTATED, metrics.op_mutate);
+        ctx.metric(OP_NEW_INSTANCE, metrics.op_new_instance);
+
+        AlterResult::from(metrics.len())
+
+        // AlterResult::from((mutation_indexes.len(), metrics.entries()))
     }
 }
 
@@ -146,19 +143,26 @@ where
     }
 
     #[inline]
-    fn mutate_chromosome(&self, chromosome: &mut TreeChromosome<Op<T>>, rate: f32) -> AlterResult {
+    fn mutate_chromosome(
+        &self,
+        chromosome: &mut TreeChromosome<Op<T>>,
+        ctx: &mut AlterContext,
+    ) -> AlterResult {
         let store = chromosome.get_store().map(|store| store.clone());
         let mut metrics = OpMutateMetrics::default();
         if let Some(store) = store {
             let root = chromosome.root_mut();
 
-            for idx in random_provider::cond_indices(0..root.size(), rate) {
+            for idx in random_provider::cond_indices(0..root.size(), ctx.rate()) {
                 if let Some(node) = root.get_mut(idx) {
                     self.mutate_node(node, &store, &mut metrics);
                 }
             }
 
-            return AlterResult::from((metrics.len(), metrics.entries()));
+            ctx.metric(OP_MUTATED, metrics.op_mutate);
+            ctx.metric(OP_NEW_INSTANCE, metrics.op_new_instance);
+
+            return AlterResult::from(metrics.len());
         }
 
         AlterResult::empty()

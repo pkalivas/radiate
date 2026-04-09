@@ -1,4 +1,6 @@
-use radiate_core::{AlterResult, ArithmeticGene, Chromosome, Mutate, Rate, Valid, random_provider};
+use radiate_core::{
+    AlterContext, AlterResult, ArithmeticGene, Chromosome, Mutate, Rate, Valid, random_provider,
+};
 
 /// Arithmetic Mutator. Mutates genes by performing arithmetic operations on them.
 /// The [ArithmeticMutator] takes a rate parameter that determines the likelihood that
@@ -38,11 +40,11 @@ where
     /// Randomly select a number between 0 and 3, and perform the corresponding
     /// arithmetic operation on the gene.
     #[inline]
-    fn mutate_chromosome(&self, chromosome: &mut C, rate: f32) -> AlterResult {
+    fn mutate_chromosome(&self, chromosome: &mut C, ctx: &mut AlterContext) -> AlterResult {
         let mut mutations = 0;
 
         for gene in chromosome.iter_mut() {
-            if random_provider::bool(rate) {
+            if random_provider::bool(ctx.rate()) {
                 let operator = random_provider::range(0..4);
 
                 let new_gene = match operator {

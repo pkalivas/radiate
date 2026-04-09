@@ -103,7 +103,7 @@ where
                 self.objective.sort(&mut offspring);
 
                 self.alters.iter().for_each(|alt| {
-                    metrics.upsert(alt.alter(&mut offspring, &mut lineage, generation));
+                    alt.alter(&mut offspring, &mut lineage, metrics, generation);
                 });
 
                 next_population.extend(offspring);
@@ -121,7 +121,7 @@ where
             self.objective.sort(&mut offspring);
 
             self.alters.iter().for_each(|alt| {
-                metrics.upsert(alt.alter(&mut offspring, &mut lineage, generation));
+                alt.alter(&mut offspring, &mut lineage, metrics, generation);
             });
 
             offspring

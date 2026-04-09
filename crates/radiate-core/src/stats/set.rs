@@ -77,6 +77,7 @@ impl MetricSet {
     pub fn upsert<'a>(&mut self, metric: impl Into<MetricSetUpdate<'a>>) {
         let update = metric.into();
         let version = self.version();
+
         match update {
             MetricSetUpdate::Many(metrics) => {
                 for metric in metrics {
@@ -85,6 +86,11 @@ impl MetricSet {
             }
             MetricSetUpdate::Single(metric) => {
                 self.add_or_update_internal(version, metric);
+            }
+            MetricSetUpdate::ManyUpdate(updates) => {
+                for metric in updates {
+                    self.upsert(metric);
+                }
             }
             MetricSetUpdate::NamedSingle(name, metric_update) => {
                 self.set_stats.apply_update(1);
@@ -376,6 +382,7 @@ pub enum MetricSetUpdate<'a> {
     Many(Vec<Metric>),
     Single(Metric),
     NamedSingle(&'static str, MetricUpdate<'a>),
+    ManyUpdate(Vec<(&'static str, MetricUpdate<'a>)>),
 }
 
 impl From<Vec<Metric>> for MetricSetUpdate<'_> {

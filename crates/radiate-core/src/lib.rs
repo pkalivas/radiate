@@ -18,7 +18,7 @@ pub mod stats;
 use radiate_error::Result;
 pub use radiate_error::{RadiateError, ensure, radiate_err};
 
-pub use alter::{AlterResult, Alterer, Crossover, Mutate};
+pub use alter::{AlterContext, AlterResult, Alterer, Crossover, Mutate};
 pub use codecs::{
     BitCodec, CharCodec, Codec, FloatCodec, FnCodec, IntCodec, PermutationCodec, SubSetCodec,
 };
@@ -43,7 +43,7 @@ pub use stats::{
 pub mod prelude {
     pub use radiate_error::*;
 
-    pub use super::alter::{Alterer, Crossover, Mutate};
+    pub use super::alter::{AlterContext, Alterer, Crossover, Mutate};
     pub use super::codecs::{
         BitCodec, CharCodec, Codec, FloatCodec, FnCodec, IntCodec, PermutationCodec, SubSetCodec,
     };

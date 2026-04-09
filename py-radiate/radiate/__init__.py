@@ -12,6 +12,7 @@ from .engine import (
     EventHandler,
     EventType,
     EngineEvent,
+    MetricCollector,
     MetricSet,
     Metric,
     Tag,
@@ -194,6 +195,7 @@ __all__ = [
     "EventHandler",
     "EventType",
     "EngineEvent",
+    "MetricCollector",
     # Rate
     "Rate",
     "rate",

@@ -1,7 +1,6 @@
-use crate::{Chromosome, Gene, Genotype, Metric, Population, math::indexes, random_provider};
-use crate::{Lineage, LineageUpdate, Rate, metric};
+use crate::{Chromosome, Gene, Genotype, Population, math::indexes, random_provider};
+use crate::{Lineage, LineageUpdate, MetricSet, MetricUpdate, Rate, metric};
 use radiate_utils::{ToSnakeCase, intern};
-use std::iter::once;
 use std::sync::Arc;
 
 #[macro_export]
@@ -21,11 +20,7 @@ macro_rules! alters {
 /// alteration operation. It contains the number of operations
 /// performed and a vector of metrics that were collected
 /// during the alteration process.
-pub struct AlterResult(
-    pub usize,
-    pub Option<Vec<Metric>>,
-    pub Option<Vec<LineageUpdate>>,
-);
+pub struct AlterResult(pub usize);
 
 impl AlterResult {
     pub fn empty() -> Self {
@@ -36,82 +31,63 @@ impl AlterResult {
         self.0
     }
 
-    pub fn update_lineage(&mut self, lineage: impl Into<LineageUpdate>) {
-        let lineage = lineage.into();
-        if let Some(self_lineage) = &mut self.2 {
-            self_lineage.push(lineage);
-        } else {
-            self.2 = Some(vec![lineage]);
-        }
-    }
-
     pub fn merge(&mut self, other: AlterResult) {
-        let AlterResult(other_count, other_metrics, other_lineage) = other;
-
+        let AlterResult(other_count) = other;
         self.0 += other_count;
-        if let Some(metrics) = other_metrics {
-            if let Some(self_metrics) = &mut self.1 {
-                self_metrics.extend(metrics);
-            } else {
-                self.1 = Some(metrics);
-            }
-        }
-
-        if let Some(lineage) = other_lineage {
-            if let Some(self_lineage) = &mut self.2 {
-                self_lineage.extend(lineage);
-            } else {
-                self.2 = Some(lineage);
-            }
-        }
     }
 }
 
 impl Default for AlterResult {
     fn default() -> Self {
-        AlterResult(0, None, None)
+        AlterResult(0)
     }
 }
 
 impl From<usize> for AlterResult {
     fn from(value: usize) -> Self {
-        AlterResult(value, None, None)
+        AlterResult(value)
     }
 }
 
-impl From<(usize, Vec<Metric>)> for AlterResult {
-    fn from((count, metrics): (usize, Vec<Metric>)) -> Self {
-        AlterResult(count, Some(metrics), None)
-    }
+pub struct AlterContext<'a> {
+    metrics: &'a mut MetricSet,
+    lineage: &'a mut Lineage,
+    operation: &'static str,
+    generation: usize,
+    rate: f32,
 }
 
-impl From<(usize, Metric)> for AlterResult {
-    fn from((count, metric): (usize, Metric)) -> Self {
-        AlterResult(count, Some(vec![metric]), None)
+impl<'a> AlterContext<'a> {
+    pub fn new(
+        operation: &'static str,
+        metrics: &'a mut MetricSet,
+        lineage: &'a mut Lineage,
+        generation: usize,
+        rate: f32,
+    ) -> Self {
+        Self {
+            metrics,
+            lineage,
+            operation,
+            generation,
+            rate,
+        }
     }
-}
 
-impl From<Metric> for AlterResult {
-    fn from(value: Metric) -> Self {
-        AlterResult(1, Some(vec![value]), None)
+    pub fn rate(&self) -> f32 {
+        self.rate
     }
-}
 
-impl From<(usize, LineageUpdate)> for AlterResult {
-    fn from((count, lineage): (usize, LineageUpdate)) -> Self {
-        AlterResult(count, None, Some(vec![lineage]))
+    pub fn generation(&self) -> usize {
+        self.generation
     }
-}
 
-impl From<(usize, Vec<Metric>, Vec<LineageUpdate>)> for AlterResult {
-    fn from((count, metrics, lineage): (usize, Vec<Metric>, Vec<LineageUpdate>)) -> Self {
-        AlterResult(count, Some(metrics), Some(lineage))
+    pub fn metric(&mut self, name: &'static str, value: impl Into<MetricUpdate<'a>>) {
+        self.metrics.upsert((name, value.into()));
     }
-}
 
-impl From<(Vec<Metric>, Vec<LineageUpdate>)> for AlterResult {
-    fn from((metrics, lineage): (Vec<Metric>, Vec<LineageUpdate>)) -> Self {
-        AlterResult(metrics.len(), Some(metrics), Some(lineage))
+    pub fn update_lineage(&mut self, update: impl Into<LineageUpdate>) {
+        self.lineage.push(self.operation, update.into());
     }
 }
 
@@ -125,7 +101,7 @@ pub enum Alterer<C: Chromosome> {
 }
 
 impl<C: Chromosome> Alterer<C> {
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> &'static str {
         match &self {
             Alterer::Mutate(name, _, _) => name,
             Alterer::Crossover(name, _, _) => name,
@@ -144,62 +120,37 @@ impl<C: Chromosome> Alterer<C> {
         &self,
         population: &mut Population<C>,
         lineage: &mut Lineage,
+        metrics: &mut MetricSet,
         generation: usize,
-    ) -> Vec<Metric> {
+    ) {
+        let rate = self.rate().value(generation);
+        let operation = self.name();
+
+        metrics.upsert(metric!(
+            radiate_utils::intern!(format!("{}_rate", operation)),
+            rate
+        ));
+
+        let mut ctx = AlterContext {
+            metrics,
+            lineage,
+            operation,
+            generation,
+            rate,
+        };
+
         match &self {
-            Alterer::Mutate(name, rate, m) => {
-                let (rate_value, rate_metric) = Self::rate_metric(generation, rate, name);
-
+            Alterer::Mutate(name, _, m) => {
                 let timer = std::time::Instant::now();
-                let AlterResult(count, metrics, lineage_events) =
-                    m.mutate(population, generation, rate_value);
-
-                if let Some(lineage_events) = lineage_events {
-                    lineage.extend(name, lineage_events);
-                }
-
-                let metric = metric!(name, (count, timer.elapsed()));
-
-                match metrics {
-                    Some(metrics) => metrics
-                        .into_iter()
-                        .chain(once(metric))
-                        .chain(once(rate_metric))
-                        .collect(),
-                    None => vec![metric, rate_metric],
-                }
+                let AlterResult(count) = m.mutate(population, &mut ctx);
+                metrics.upsert(metric!(name, (count, timer.elapsed())));
             }
-            Alterer::Crossover(name, rate, c) => {
-                let (rate_value, rate_metric) = Self::rate_metric(generation, rate, name);
-
+            Alterer::Crossover(name, _, c) => {
                 let timer = std::time::Instant::now();
-                let AlterResult(count, metrics, lineage_events) =
-                    c.crossover(population, generation, rate_value);
-
-                if let Some(lineage_events) = lineage_events {
-                    lineage.extend(name, lineage_events);
-                }
-
-                let metric = metric!(name, (count, timer.elapsed()));
-
-                match metrics {
-                    Some(metrics) => metrics
-                        .into_iter()
-                        .chain(once(metric))
-                        .chain(once(rate_metric))
-                        .collect(),
-                    None => vec![metric, rate_metric],
-                }
+                let AlterResult(count) = c.crossover(population, &mut ctx);
+                metrics.upsert(metric!(name, (count, timer.elapsed())));
             }
         }
-    }
-
-    #[inline]
-    fn rate_metric(generation: usize, rate: &Rate, name: &str) -> (f32, Metric) {
-        let rate_value = rate.value(generation);
-        let metric = metric!(radiate_utils::intern!(format!("{}_rate", name)), rate_value);
-
-        (rate_value, metric)
     }
 }
 
@@ -243,19 +194,14 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
     }
 
     #[inline]
-    fn crossover(
-        &self,
-        population: &mut Population<C>,
-        generation: usize,
-        rate: f32,
-    ) -> AlterResult {
+    fn crossover(&self, population: &mut Population<C>, ctx: &mut AlterContext) -> AlterResult {
         let mut result = AlterResult::default();
         let mut parents = [0usize; MIN_NUM_PARENTS];
 
         for i in 0..population.len() {
-            if random_provider::bool(rate) && population.len() > MIN_POPULATION_SIZE {
+            if random_provider::bool(ctx.rate()) && population.len() > MIN_POPULATION_SIZE {
                 indexes::individual_indexes(i, population.len(), MIN_NUM_PARENTS, &mut parents);
-                let cross_result = self.cross(population, &parents, generation, rate);
+                let cross_result = self.cross(population, &parents, ctx);
                 result.merge(cross_result);
             }
         }
@@ -268,13 +214,12 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
         &self,
         population: &mut Population<C>,
         parent_indexes: &[usize],
-        generation: usize,
-        rate: f32,
+        ctx: &mut AlterContext,
     ) -> AlterResult {
         let mut result = AlterResult::default();
 
         if let Some((one, two)) = population.get_pair_mut(parent_indexes[0], parent_indexes[1]) {
-            let mut cross_result = {
+            let cross_result = {
                 let geno_one = one.genotype_mut();
                 let geno_two = two.genotype_mut();
 
@@ -284,17 +229,17 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
                 let chrom_one = &mut geno_one[chromosome_index];
                 let chrom_two = &mut geno_two[chromosome_index];
 
-                self.cross_chromosomes(chrom_one, chrom_two, rate)
+                self.cross_chromosomes(chrom_one, chrom_two, ctx)
             };
 
             if cross_result.count() > 0 {
                 let parent_lineage = (one.family(), two.family());
                 let parent_ids = (one.id(), two.id());
-                one.invalidate(generation);
-                two.invalidate(generation);
+                one.invalidate(ctx.generation());
+                two.invalidate(ctx.generation());
 
-                cross_result.update_lineage((parent_lineage, parent_ids, one.id()));
-                cross_result.update_lineage((parent_lineage, parent_ids, two.id()));
+                ctx.update_lineage((parent_lineage, parent_ids, one.id()));
+                ctx.update_lineage((parent_lineage, parent_ids, two.id()));
                 result.merge(cross_result);
             }
         }
@@ -303,11 +248,16 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
     }
 
     #[inline]
-    fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C, rate: f32) -> AlterResult {
+    fn cross_chromosomes(
+        &self,
+        chrom_one: &mut C,
+        chrom_two: &mut C,
+        ctx: &mut AlterContext,
+    ) -> AlterResult {
         let mut cross_count = 0;
 
         for i in 0..std::cmp::min(chrom_one.len(), chrom_two.len()) {
-            if random_provider::bool(rate) {
+            if random_provider::bool(ctx.rate()) {
                 let gene_one = chrom_one.get(i);
                 let gene_two = chrom_two.get(i);
 
@@ -346,16 +296,16 @@ pub trait Mutate<C: Chromosome>: Send + Sync {
     }
 
     #[inline]
-    fn mutate(&self, population: &mut Population<C>, generation: usize, rate: f32) -> AlterResult {
+    fn mutate(&self, population: &mut Population<C>, ctx: &mut AlterContext) -> AlterResult {
         let mut result = AlterResult::default();
 
         for phenotype in population.iter_mut() {
-            let mutate_result = self.mutate_genotype(phenotype.genotype_mut(), rate);
+            let mutate_result = self.mutate_genotype(phenotype.genotype_mut(), ctx);
 
             if mutate_result.count() > 0 {
                 let parent = (phenotype.family(), phenotype.id());
-                phenotype.invalidate(generation);
-                result.update_lineage((parent, phenotype.id()));
+                phenotype.invalidate(ctx.generation());
+                ctx.update_lineage((parent, phenotype.id()));
             }
 
             result.merge(mutate_result);
@@ -365,11 +315,11 @@ pub trait Mutate<C: Chromosome>: Send + Sync {
     }
 
     #[inline]
-    fn mutate_genotype(&self, genotype: &mut Genotype<C>, rate: f32) -> AlterResult {
+    fn mutate_genotype(&self, genotype: &mut Genotype<C>, ctx: &mut AlterContext) -> AlterResult {
         let mut result = AlterResult::default();
 
         for chromosome in genotype.iter_mut() {
-            let mutate_result = self.mutate_chromosome(chromosome, rate);
+            let mutate_result = self.mutate_chromosome(chromosome, ctx);
             result.merge(mutate_result);
         }
 
@@ -377,10 +327,10 @@ pub trait Mutate<C: Chromosome>: Send + Sync {
     }
 
     #[inline]
-    fn mutate_chromosome(&self, chromosome: &mut C, rate: f32) -> AlterResult {
+    fn mutate_chromosome(&self, chromosome: &mut C, ctx: &mut AlterContext) -> AlterResult {
         let mut count = 0;
         for gene in chromosome.iter_mut() {
-            if random_provider::bool(rate) {
+            if random_provider::bool(ctx.rate()) {
                 count += self.mutate_gene(gene);
             }
         }

@@ -1,4 +1,6 @@
-use radiate_core::{AlterResult, Chromosome, Crossover, Rate, Valid, random_provider};
+use radiate_core::{
+    AlterContext, AlterResult, Chromosome, Crossover, Rate, Valid, random_provider,
+};
 
 pub struct ShuffleCrossover {
     rate: Rate,
@@ -20,7 +22,12 @@ impl<C: Chromosome + Clone> Crossover<C> for ShuffleCrossover {
     }
 
     #[inline]
-    fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C, rate: f32) -> AlterResult {
+    fn cross_chromosomes(
+        &self,
+        chrom_one: &mut C,
+        chrom_two: &mut C,
+        ctx: &mut AlterContext,
+    ) -> AlterResult {
         let length = std::cmp::min(chrom_one.len(), chrom_two.len());
         if length < 2 {
             return AlterResult::empty();
@@ -37,7 +44,7 @@ impl<C: Chromosome + Clone> Crossover<C> for ShuffleCrossover {
 
             for (i, &index) in indices.iter().enumerate() {
                 if i % 2 == 0 {
-                    if !rand.bool(rate) {
+                    if !rand.bool(ctx.rate()) {
                         continue;
                     }
 
@@ -55,15 +62,19 @@ impl<C: Chromosome + Clone> Crossover<C> for ShuffleCrossover {
 mod tests {
 
     use super::ShuffleCrossover;
-    use radiate_core::{Chromosome, Crossover, Gene, IntChromosome};
+    use radiate_core::{AlterContext, Chromosome, Crossover, Gene, IntChromosome, MetricSet};
 
     #[test]
     fn test_shuffle_crossover() {
         let mut chrom_one = IntChromosome::from(vec![1, 2, 3, 4, 5]);
         let mut chrom_two = IntChromosome::from(vec![6, 7, 8, 9, 10]);
 
+        let mut metrics = MetricSet::default();
+        let mut lineage = radiate_core::lineage::Lineage::default();
+        let mut ctx = AlterContext::new("TestOperation", &mut metrics, &mut lineage, 0, 1.0);
+
         let crossover = ShuffleCrossover::new(1.0);
-        let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, 1.0);
+        let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
         let one_alleles = chrom_one.iter().map(|g| *g.allele()).collect::<Vec<i32>>();
         let two_alleles = chrom_two.iter().map(|g| *g.allele()).collect::<Vec<i32>>();
@@ -78,8 +89,12 @@ mod tests {
         let mut chrom_one = IntChromosome::from(vec![1, 2, 3, 4, 5]);
         let mut chrom_two = IntChromosome::from(vec![6, 7, 8, 9, 10]);
 
+        let mut metrics = MetricSet::default();
+        let mut lineage = radiate_core::lineage::Lineage::default();
+        let mut ctx = AlterContext::new("TestOperation", &mut metrics, &mut lineage, 0, 0.0);
+
         let crossover = ShuffleCrossover::new(0.0);
-        let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, 0.0);
+        let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
         let one_alleles = chrom_one.iter().map(|g| *g.allele()).collect::<Vec<i32>>();
         let two_alleles = chrom_two.iter().map(|g| *g.allele()).collect::<Vec<i32>>();

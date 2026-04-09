@@ -230,7 +230,7 @@ where
     C: Chromosome<Gene = G> + Clone + From<Vec<G>> + From<(usize, Range<A>, Range<A>)> + 'static,
 {
     fn build(self) -> PyCodec<C, PyAnyObject> {
-        let val_range: Range<A> = self
+        let val_range = self
             .init_range
             .and_then(|(min, max)| A::from(min).zip(A::from(max)).map(|(min, max)| min..max))
             .unwrap_or_else(|| {
@@ -247,7 +247,7 @@ where
                     .unwrap()
             });
 
-        let bound_range: Range<A> = self
+        let bound_range = self
             .bound_range
             .map(|rng| {
                 A::from(rng.0)

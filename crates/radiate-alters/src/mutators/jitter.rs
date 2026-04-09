@@ -1,5 +1,6 @@
 use radiate_core::{
-    AlterResult, BoundedGene, Chromosome, FloatGene, Gene, Mutate, Rate, Valid, random_provider,
+    AlterContext, AlterResult, BoundedGene, Chromosome, FloatGene, Gene, Mutate, Rate, Valid,
+    random_provider,
 };
 use radiate_utils::Float;
 
@@ -41,13 +42,13 @@ where
     }
 
     #[inline]
-    fn mutate_chromosome(&self, chromosome: &mut C, rate: f32) -> AlterResult {
+    fn mutate_chromosome(&self, chromosome: &mut C, ctx: &mut AlterContext) -> AlterResult {
         let mut count = 0;
         let mag = F::from(self.magnitude).unwrap();
 
         random_provider::with_rng(|rand| {
             for gene in chromosome.as_mut_slice() {
-                if rand.bool(rate) {
+                if rand.bool(ctx.rate()) {
                     let change = rand.range(-F::ONE..F::ONE) * mag;
                     let new_allele = *gene.allele() + change;
                     let (min, max) = gene.bounds();

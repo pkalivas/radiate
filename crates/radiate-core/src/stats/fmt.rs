@@ -87,10 +87,7 @@ pub fn render_metric_rows_full(
     name: &str,
     m: &Metric,
     tag: TagKind,
-    // include_spark: bool,
 ) -> io::Result<()> {
-    // let inner = m.inner();
-
     if name == super::set::METRIC_SET {
         if let Some(s) = m.statistic() {
             writeln!(
@@ -167,7 +164,7 @@ pub fn render_full(metrics: &MetricSet) -> io::Result<String> {
     let mut out = String::new();
 
     let dash = render_dashboard(metrics)?;
-    writeln!(out, "[metrics]{}", dash).unwrap();
+    writeln!(out, "----- Metrics -----\n{}", dash).unwrap();
 
     let generation = render_tagged(metrics, TagKind::Statistic, "Statistics")?;
     writeln!(out, "\n{}", generation).unwrap();

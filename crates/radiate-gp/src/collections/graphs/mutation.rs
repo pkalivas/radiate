@@ -2,8 +2,8 @@ use super::transaction::{InsertStep, TransactionResult};
 use super::{Graph, GraphChromosome};
 use crate::node::Node;
 use crate::{Arity, Factory, NodeType};
-use radiate_core::Chromosome;
-use radiate_core::{AlterResult, Mutate, metric, random_provider};
+use radiate_core::{AlterContext, Chromosome};
+use radiate_core::{AlterResult, Mutate, random_provider};
 
 const INVALID_MUTATION: &str = "graph_mut_failure";
 
@@ -72,7 +72,11 @@ where
     T: Clone + PartialEq + Default,
 {
     #[inline]
-    fn mutate_chromosome(&self, chromosome: &mut GraphChromosome<T>, _: f32) -> AlterResult {
+    fn mutate_chromosome(
+        &self,
+        chromosome: &mut GraphChromosome<T>,
+        ctx: &mut AlterContext,
+    ) -> AlterResult {
         // If the chromosome has a maximum number of nodes then just return 0.
         // If we have reached this point, this graph is simply optimizing the
         // node's values and not the structure.
@@ -88,7 +92,8 @@ where
             && let Some(store) = chromosome.store()
         {
             let Some(new_node) = store.new_instance((chromosome.len(), node_type)) else {
-                return AlterResult::from(metric!(INVALID_MUTATION));
+                ctx.metric(INVALID_MUTATION, 1);
+                return AlterResult::empty();
             };
 
             let mut graph = Graph::new(chromosome.take_nodes());
@@ -135,7 +140,10 @@ where
             chromosome.set_nodes(graph.take_nodes());
 
             return match result {
-                TransactionResult::Invalid(_, _) => AlterResult::from(metric!(INVALID_MUTATION)),
+                TransactionResult::Invalid(_, _) => {
+                    ctx.metric(INVALID_MUTATION, 1);
+                    AlterResult::empty()
+                }
                 TransactionResult::Valid(steps) => AlterResult::from(steps.len()),
             };
         }

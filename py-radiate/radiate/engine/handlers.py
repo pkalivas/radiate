@@ -18,46 +18,6 @@ class EventType(Enum):
     ENGINE_IMPROVEMENT = "engine_improvement_event"
 
 
-class EventHandler(abc.ABC):
-    """
-    Base class for event handlers.
-    """
-
-    def __init__(self, event_type: EventType = EventType.ALL):
-        """
-        Initialize the event handler.
-        :param event_type: Type of the event to handle.
-        """
-        self._py_handler = PySubscriber(
-            lambda event: self.on_event(EngineEvent.from_rust(event)), event_type.value
-        )
-
-    def __call__(self, event: Any) -> None:
-        """
-        Call the event handler.
-        :param event: The event to handle.
-        """
-        self.on_event(event)
-
-    @abc.abstractmethod
-    def on_event(self, event: Any) -> None:
-        """
-        Handle the event.
-        """
-        pass
-
-
-class CallableEventHandler(EventHandler):
-    def __init__(
-        self, func: Callable[[Any], None], event_type: EventType = EventType.ALL
-    ):
-        super().__init__(event_type)
-        self.func = func
-
-    def on_event(self, event: Any) -> None:
-        self.func(event)
-
-
 class EngineEvent(RsObject):
     """
     EngineEvent class that wraps around the PyEngineEvent class.
@@ -131,4 +91,82 @@ class EngineEvent(RsObject):
         """
         return self.try_get_cache(
             "objective_cache", lambda: self.__backend__().objective()
+        )
+
+
+class EventHandler(abc.ABC):
+    """
+    Base class for event handlers.
+    """
+
+    def __init__(self, event_type: EventType = EventType.ALL):
+        """
+        Initialize the event handler.
+        :param event_type: Type of the event to handle.
+        """
+        self._py_handler = PySubscriber(
+            lambda event: self.on_event(EngineEvent.from_rust(event)), event_type.value
+        )
+
+    def __call__(self, event: "EngineEvent") -> None:
+        """
+        Call the event handler.
+        :param event: The event to handle.
+        """
+        self.on_event(event)
+
+    @abc.abstractmethod
+    def on_event(self, event: "EngineEvent") -> None:
+        """
+        Handle the event.
+        """
+        pass
+
+
+class CallableEventHandler(EventHandler):
+    def __init__(
+        self,
+        func: Callable[["EngineEvent"], None],
+        event_type: EventType = EventType.ALL,
+    ):
+        super().__init__(event_type)
+        self.func = func
+
+    def on_event(self, event: "EngineEvent") -> None:
+        self.func(event)
+
+
+class MetricCollector(EventHandler):
+    def __init__(self):
+        super().__init__(EventType.EPOCH_COMPLETE)
+        self.metric_history: list[MetricSet] = []
+
+    def on_event(self, event: "EngineEvent") -> None:
+        metrics = event.metrics()
+        self.metric_history.append(metrics)
+
+    def to_polars(self, lazy: bool = False):
+        from radiate._dependancies import _POLARS_AVAILABLE
+
+        if not _POLARS_AVAILABLE:
+            raise ImportError(
+                "Polars is not available. Please install it to use this feature."
+            )
+        from radiate._dependancies import polars as pl
+
+        if lazy:
+            return pl.LazyFrame(
+                [
+                    m.to_dict()
+                    for metric_set in self.metric_history
+                    for m in metric_set.values()
+                ]
+            )
+
+        return pl.DataFrame(
+            [
+                m.to_dict()
+                for metric_set in self.metric_history
+                for m in metric_set.values()
+            ]
         )
