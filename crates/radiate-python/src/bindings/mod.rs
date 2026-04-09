@@ -4,6 +4,7 @@ mod converters;
 mod datatype;
 mod engine;
 mod epoch;
+mod expr;
 mod fitness;
 mod front;
 mod functions;

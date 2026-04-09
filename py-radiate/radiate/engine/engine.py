@@ -983,7 +983,7 @@ class Engine[G, T]:
         self._builder.set_executor(executor)
         return self
 
-    def subscribe(self, event_handler: Subscriber | None = None) -> Engine[G, T]:
+    def subscribe(self, *event_handler: Subscriber) -> Engine[G, T]:
         """
         Subscribe to engine events with a custom event handler.
 
@@ -1030,7 +1030,7 @@ class Engine[G, T]:
         ...     )  # <- subscribe to engine events with our custom event handler that listens to engine improvement events and prints them out
         ... )
         """
-        self._builder.set_subscribers(event_handler)
+        self._builder.set_subscribers(list(event_handler))
         return self
 
     def generation(self, generation: Generation[G, T] | None) -> Engine[G, T]:

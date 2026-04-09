@@ -129,8 +129,6 @@ where
         ctx.metric(OP_NEW_INSTANCE, metrics.op_new_instance);
 
         AlterResult::from(metrics.len())
-
-        // AlterResult::from((mutation_indexes.len(), metrics.entries()))
     }
 }
 

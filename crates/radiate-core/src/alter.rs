@@ -123,7 +123,7 @@ impl<C: Chromosome> Alterer<C> {
         metrics: &mut MetricSet,
         generation: usize,
     ) {
-        let rate = self.rate().value(generation);
+        let rate = self.rate().value_from_metrics(metrics);
         let operation = self.name();
 
         metrics.upsert(metric!(

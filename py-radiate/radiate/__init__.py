@@ -141,6 +141,8 @@ from .dtype import (
     Node,
 )
 
+from .expr import Expr
+
 from .dsl import Select, Mutate, Cross, Dist, Limit
 
 from ._dependancies import (

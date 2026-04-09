@@ -133,7 +133,7 @@ class EngineBuilder[G, T]:
 
         return self
 
-    def set_subscribers(self, subscriber: Subscriber | None):
+    def set_subscribers(self, subscriber: Subscriber | list[Subscriber] | None):
         if subscriber is None:
             return
 

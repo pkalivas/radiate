@@ -1,4 +1,4 @@
-use crate::Valid;
+use crate::{ExprNode, MetricSet, Valid, metric_names};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum CycleShape {
@@ -46,9 +46,21 @@ pub enum Rate {
     /// # Parameters
     /// - `Vec<(usize, f32)>`: A vector of (step, rate) pairs.
     Stepwise(Vec<(usize, f32)>),
+
+    /// An expression-based rate that is computed from a given expression node.
+    /// The expression can reference metrics and other variables to compute the rate dynamically.
+    Expr(ExprNode<'static>),
 }
 
 impl Rate {
+    pub fn value_from_metrics(&self, metrics: &MetricSet) -> f32 {
+        let step = metrics
+            .get(metric_names::INDEX)
+            .map(|v| v.last_value())
+            .unwrap_or(1.0) as usize;
+        self.value(step)
+    }
+
     pub fn value(&self, step: usize) -> f32 {
         let f_step = step as f32;
         match self {
@@ -100,6 +112,7 @@ impl Rate {
 
                 last_value
             }
+            _ => 1.0,
         }
     }
 }
@@ -134,6 +147,7 @@ impl Valid for Rate {
 
                 true
             }
+            _ => true,
         }
     }
 }

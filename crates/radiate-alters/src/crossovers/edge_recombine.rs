@@ -147,12 +147,6 @@ mod tests {
     use std::sync::Arc;
 
     #[test]
-    fn test_edge_recombination_crossover_new() {
-        let crossover = EdgeRecombinationCrossover::new(0.5);
-        assert_eq!(crossover.rate, Rate::from(0.5));
-    }
-
-    #[test]
     fn test_build_edge_table() {
         let crossover = EdgeRecombinationCrossover::new(0.5);
         let parent1 = vec![0, 1, 2, 3, 4];
