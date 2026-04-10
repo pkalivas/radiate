@@ -12,33 +12,18 @@ fn main() {
         (NodeType::Output, vec![Op::linear()]),
     ];
 
-    let rate = expr::when(
-        expr::metric(metric_names::SCORES)
-            .rolling(10)
-            .unique()
-            .count()
-            .lte(1.0),
-    )
-    .then(0.75)
-    .otherwise(0.03);
-
     let engine = GeneticEngine::builder()
         .codec(GraphCodec::directed(1, 1, store))
         .raw_batch_fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
         .alter(alters!(
-            GraphCrossover::new(rate, 0.5),
+            GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
-            // OperationMutator::new(rate, 0.05),
             GraphMutator::new(0.1, 0.1).allow_recurrent(false)
         ))
         .build();
 
-    radiate::ui(engine)
-        .iter()
-        .until_score(MIN_SCORE)
-        .last()
-        .inspect(display);
+    engine.iter().until_score(MIN_SCORE).last().inspect(display);
 }
 
 fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {

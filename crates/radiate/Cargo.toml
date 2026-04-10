@@ -18,6 +18,7 @@ radiate-alters = { workspace = true }
 radiate-selectors = { workspace = true }
 radiate-engines = { workspace = true }
 radiate-error = { workspace = true }
+radiate-expr = { workspace = true }
 radiate-gp = { workspace = true, optional = true }
 radiate-ui = { workspace = true, optional = true }
 radiate-pgm = { workspace = true, optional = true }
@@ -25,7 +26,7 @@ radiate-pgm = { workspace = true, optional = true }
 [features]
 default = []
 gp = ["radiate-gp"]
-serde = ["radiate-core/serde", "radiate-gp/serde", "radiate-engines/serde"]
+serde = ["radiate-core/serde", "radiate-gp/serde", "radiate-engines/serde", "radiate-expr/serde"]
 rayon = ["radiate-core/rayon", "radiate-engines/rayon"]
 pgm = ["radiate-pgm"]
 ui = ["radiate-ui"]

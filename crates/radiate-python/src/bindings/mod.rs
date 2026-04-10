@@ -21,9 +21,7 @@ pub use codec::{
     PyTreeCodec,
 };
 pub use converters::InputTransform;
-pub use datatype::{
-    _get_dtype_max, _get_dtype_min, DataType, Field, dtype, dtype_from_str, dtype_names,
-};
+pub use datatype::{_get_dtype_max, _get_dtype_min, dtype, dtype_from_str};
 pub use engine::{PyEngine, PyEngineRunOption};
 pub use epoch::PyGeneration;
 pub use fitness::{PyFitnessFn, PyFitnessInner, PyNoveltySearch};

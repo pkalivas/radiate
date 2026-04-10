@@ -1,4 +1,12 @@
-use crate::{Expr, ExprQuery, MetricSet, Valid, metric_names};
+use crate::{MetricSet, Valid, metric_names};
+use std::{
+    fmt::Debug,
+    sync::{Arc, Mutex},
+};
+
+pub trait RateCalculator {
+    fn rate(&mut self, generation: usize, metrics: &MetricSet) -> f32;
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum CycleShape {
@@ -9,7 +17,7 @@ pub enum CycleShape {
 /// Rate enum representing different types of rate schedules where each variant defines a
 /// method to compute the rate value at a given step.
 /// These are designed to produce values within the range [0.0, 1.0] - ie: a rate.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone)]
 pub enum Rate {
     /// A fixed rate that does not change over time.
     ///
@@ -47,15 +55,28 @@ pub enum Rate {
     /// - `Vec<(usize, f32)>`: A vector of (step, rate) pairs.
     Stepwise(Vec<(usize, f32)>),
 
-    /// An expression-based rate that is computed from a given expression node.
-    /// The expression can reference metrics and other variables to compute the rate dynamically.
-    Expr(Expr),
+    Metric(Arc<Mutex<dyn FnMut(&MetricSet) -> f32 + Send + Sync>>),
+}
+
+impl RateCalculator for Rate {
+    fn rate(&mut self, generation: usize, metrics: &MetricSet) -> f32 {
+        match self {
+            Rate::Metric(f) => {
+                let mut func = f.lock().unwrap();
+                func(metrics)
+            }
+            _ => self.value(generation),
+        }
+    }
 }
 
 impl Rate {
     pub fn value_from_metrics(&mut self, metrics: &MetricSet) -> f32 {
         match self {
-            Rate::Expr(expr) => expr.dispatch(metrics).extract::<f32>().unwrap_or(0.0),
+            Rate::Metric(f) => {
+                let mut func = f.lock().unwrap();
+                func(metrics)
+            }
             _ => {
                 let step = metrics
                     .get(metric_names::INDEX)
@@ -175,9 +196,54 @@ impl From<Vec<(usize, f32)>> for Rate {
     }
 }
 
-impl From<Expr> for Rate {
-    fn from(expr: Expr) -> Self {
-        Rate::Expr(expr)
+impl Debug for Rate {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Rate::Fixed(v) => write!(f, "Rate::Fixed({})", v),
+            Rate::Linear(start, end, steps) => {
+                write!(
+                    f,
+                    "Rate::Linear(start: {}, end: {}, steps: {})",
+                    start, end, steps
+                )
+            }
+            Rate::Exponential(start, end, half_life) => write!(
+                f,
+                "Rate::Exponential(start: {}, end: {}, half_life: {})",
+                start, end, half_life
+            ),
+            Rate::Cyclical(min, max, period, shape) => write!(
+                f,
+                "Rate::Cyclical(min: {}, max: {}, period: {}, shape: {:?})",
+                min, max, period, shape
+            ),
+            Rate::Stepwise(steps) => write!(f, "Rate::Stepwise(steps: {:?})", steps),
+            Rate::Metric(_) => write!(f, "Rate::Metric(<function>)"),
+        }
+    }
+}
+
+impl PartialEq for Rate {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Rate::Fixed(a), Rate::Fixed(b)) => a == b,
+            (Rate::Linear(a_start, a_end, a_steps), Rate::Linear(b_start, b_end, b_steps)) => {
+                a_start == b_start && a_end == b_end && a_steps == b_steps
+            }
+            (
+                Rate::Exponential(a_start, a_end, a_half_life),
+                Rate::Exponential(b_start, b_end, b_half_life),
+            ) => a_start == b_start && a_end == b_end && a_half_life == b_half_life,
+            (
+                Rate::Cyclical(a_min, a_max, a_period, a_shape),
+                Rate::Cyclical(b_min, b_max, b_period, b_shape),
+            ) => a_min == b_min && a_max == b_max && a_period == b_period && a_shape == b_shape,
+            (Rate::Stepwise(a_steps), Rate::Stepwise(b_steps)) => a_steps == b_steps,
+            // For Metric variants, we consider them equal if they are the same variant,
+            // since we cannot compare the inner function for equality.
+            (Rate::Metric(_), Rate::Metric(_)) => true,
+            _ => false,
+        }
     }
 }
 

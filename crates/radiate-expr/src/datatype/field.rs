@@ -3,7 +3,8 @@ use radiate_utils::SmallStr;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Default)]
 pub struct Field {
     pub name: SmallStr,
     dtype: DataType,

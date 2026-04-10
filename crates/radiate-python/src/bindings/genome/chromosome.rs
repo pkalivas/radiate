@@ -1,8 +1,9 @@
-use crate::{PyGene, PyGeneType, Wrap, bindings::datatype::DataType};
+use crate::{PyGene, PyGeneType, Wrap};
 use pyo3::{
     Bound, IntoPyObject, PyAny, PyResult, Python, exceptions::PyIndexError, pyclass, pymethods,
 };
 use radiate::prelude::*;
+use radiate_expr::DataType;
 
 #[pyclass(from_py_object)]
 #[derive(Clone, Debug, PartialEq)]

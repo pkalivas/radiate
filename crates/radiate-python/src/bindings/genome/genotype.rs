@@ -1,9 +1,10 @@
-use crate::{DataType, PyChromosome, PyGeneType, Wrap};
+use crate::{PyChromosome, PyGeneType, Wrap};
 use pyo3::{Bound, IntoPyObject, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
     BitChromosome, CharChromosome, Chromosome, FloatChromosome, Genotype, GraphChromosome,
     IntChromosome, Op, PermutationChromosome, TreeChromosome,
 };
+use radiate_expr::DataType;
 
 #[pyclass(from_py_object)]
 #[derive(Clone, Debug, PartialEq)]

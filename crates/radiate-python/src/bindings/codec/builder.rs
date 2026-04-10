@@ -1,13 +1,14 @@
 use std::ops::Range;
 
 use super::PyCodec;
-use crate::{DataType, PyAnyObject, PyChromosome, PyGene, PyGenotype};
+use crate::{PyAnyObject, PyChromosome, PyGene, PyGenotype};
 use num_traits::NumCast;
 use numpy::Element;
 use pyo3::{Bound, IntoPyObject, IntoPyObjectExt, PyAny, PyResult};
 use radiate::{
     Chromosome, Codec, FloatChromosome, Gene, Genotype, IntChromosome, chromosomes::NumericAllele,
 };
+use radiate_expr::DataType;
 
 pub trait CodecBuilder<C: Chromosome, T> {
     fn build(self) -> PyCodec<C, T>;

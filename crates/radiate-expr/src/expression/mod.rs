@@ -1,496 +1,33 @@
-mod scalar;
+mod aggregate;
+mod logical;
+mod ops;
+mod select;
 
-use crate::{MetricSet, Statistic};
-use radiate_utils::{SmallStr, WindowBuffer};
-use std::collections::HashSet;
+use crate::AnyValue;
+
+use aggregate::{AggExpr, BufferExpr, Rollup};
+use logical::When;
+use ops::{BinaryExpr, BinaryOp, TrinaryExpr, TrinaryOp, UnaryExpr, UnaryOp};
+use radiate_core::MetricSet;
+use radiate_utils::SmallStr;
+use select::{MetricFlavor, MetricProperty, SelectExpr};
 use std::fmt::Debug;
-use std::sync::Arc;
 use std::time::Duration;
 
-pub use scalar::ExprValue;
-
 pub trait ExprQuery<I> {
-    fn dispatch<'a>(&'a mut self, input: &I) -> ExprValue<'a>;
+    fn dispatch<'a>(&'a mut self, input: &I) -> AnyValue<'a>;
 }
 
 pub trait ExprProjection {
-    fn project(&self, expr: &SelectExpr) -> Option<ExprValue<'static>>;
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum Rollup {
-    Mean,
-    StdDev,
-    Min,
-    Max,
-    Sum,
-    Count,
-    Unique,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum ComparisonOp {
-    Lt,
-    Lte,
-    Gt,
-    Gte,
-    Eq,
-    Ne,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum MetricProperty {
-    LastValue,
-    Mean,
-    StdDev,
-    Min,
-    Max,
-    Sum,
-    Count,
-    Version,
-    UpdateCount,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum ArithmeticOp {
-    Add,
-    Sub,
-    Mul,
-    Div,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum UnaryOp {
-    Not,
-    Neg,
-    Abs,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum TrinaryOp {
-    If,
-    Clamp,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum MetricFlavor {
-    Value,
-    Time,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum SelectExpr {
-    Metric(SmallStr, MetricProperty, MetricFlavor),
-    Nth(usize),
-}
-
-impl<T> ExprQuery<T> for SelectExpr
-where
-    T: ExprProjection,
-{
-    fn dispatch<'a>(&'a mut self, input: &T) -> ExprValue<'a> {
-        input.project(self).unwrap_or(ExprValue::Null)
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct AggExpr {
-    child: Arc<Expr>,
-    rollup: Rollup,
-}
-
-impl AggExpr {
-    pub fn new(child: Expr, rollup: Rollup) -> Self {
-        Self {
-            child: Arc::new(child),
-            rollup,
-        }
-    }
-
-    fn compute_rollup<'a>(values: &[ExprValue], rollup: Rollup) -> ExprValue<'a> {
-        let mut stats = Statistic::default();
-        for value in values.iter() {
-            if let Some(v) = value.clone().extract::<f32>() {
-                stats.add(v);
-            }
-        }
-
-        match rollup {
-            Rollup::Mean => ExprValue::Float32(stats.mean()),
-            Rollup::StdDev => ExprValue::Float32(stats.std_dev()),
-            Rollup::Min => ExprValue::Float32(stats.min()),
-            Rollup::Max => ExprValue::Float32(stats.max()),
-            Rollup::Sum => ExprValue::Float32(stats.sum()),
-            Rollup::Count => ExprValue::UInt64(stats.count() as u64),
-            Rollup::Unique => ExprValue::Null,
-        }
-    }
-}
-
-impl<T> ExprQuery<T> for AggExpr
-where
-    T: ExprProjection,
-{
-    fn dispatch<'a>(&'a mut self, input: &T) -> ExprValue<'a> {
-        if let Rollup::Unique = self.rollup {
-            let child_output = Arc::make_mut(&mut self.child).dispatch(input);
-            return match child_output {
-                ExprValue::Slice(values) => {
-                    let deduped = values.iter().fold(HashSet::new(), |mut acc, v| {
-                        acc.insert(v.clone());
-                        acc
-                    });
-
-                    return ExprValue::Vector(deduped.into_iter().collect());
-                }
-                ExprValue::Vector(values) => {
-                    let deduped = values.into_iter().fold(HashSet::new(), |mut acc, v| {
-                        acc.insert(v);
-                        acc
-                    });
-
-                    ExprValue::Vector(deduped.into_iter().collect())
-                }
-                _ => ExprValue::Null,
-            };
-        }
-        let child_output = Arc::make_mut(&mut self.child).dispatch(input);
-
-        match child_output {
-            ExprValue::Slice(values) => Self::compute_rollup(values, self.rollup),
-            ExprValue::Vector(values) => Self::compute_rollup(&values, self.rollup),
-            _ => child_output,
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct BufferExpr {
-    buffer: WindowBuffer<ExprValue<'static>>,
-    child: Arc<Expr>,
-}
-
-impl BufferExpr {
-    pub fn new(child: Expr, window_size: usize) -> Self {
-        Self {
-            buffer: WindowBuffer::with_window(window_size),
-            child: Arc::new(child),
-        }
-    }
-}
-
-impl<T> ExprQuery<T> for BufferExpr
-where
-    T: ExprProjection,
-{
-    fn dispatch<'a>(&'a mut self, input: &T) -> ExprValue<'a> {
-        let child_output = Arc::make_mut(&mut self.child).dispatch(input).into_static();
-        self.buffer.push(child_output);
-        ExprValue::Slice(&self.buffer.values())
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct CompareExpr {
-    lhs: Arc<Expr>,
-    rhs: Arc<Expr>,
-    op: ComparisonOp,
-}
-
-impl CompareExpr {
-    pub fn new(lhs: Expr, rhs: Expr, op: ComparisonOp) -> Self {
-        Self {
-            lhs: Arc::new(lhs),
-            rhs: Arc::new(rhs),
-            op,
-        }
-    }
-}
-
-impl<T> ExprQuery<T> for CompareExpr
-where
-    T: ExprProjection,
-{
-    fn dispatch<'a>(&'a mut self, metrics: &T) -> ExprValue<'a> {
-        let lhs = Arc::make_mut(&mut self.lhs)
-            .dispatch(metrics)
-            .extract::<f32>();
-        let rhs = Arc::make_mut(&mut self.rhs)
-            .dispatch(metrics)
-            .extract::<f32>();
-
-        match (lhs, rhs) {
-            (Some(lhs), Some(rhs)) => {
-                let result = match self.op {
-                    ComparisonOp::Lt => lhs < rhs,
-                    ComparisonOp::Lte => lhs <= rhs,
-                    ComparisonOp::Gt => lhs > rhs,
-                    ComparisonOp::Gte => lhs >= rhs,
-                    ComparisonOp::Eq => (lhs - rhs).abs() <= f32::EPSILON,
-                    ComparisonOp::Ne => (lhs - rhs).abs() > f32::EPSILON,
-                };
-
-                ExprValue::Bool(result)
-            }
-            _ => ExprValue::Null,
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum LogicOp {
-    And,
-    Or,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct LogicExpr {
-    lhs: Arc<Expr>,
-    rhs: Arc<Expr>,
-    op: LogicOp,
-}
-
-impl LogicExpr {
-    pub fn new(lhs: Expr, rhs: Expr, op: LogicOp) -> Self {
-        Self {
-            lhs: Arc::new(lhs),
-            rhs: Arc::new(rhs),
-            op,
-        }
-    }
-}
-
-impl<T> ExprQuery<T> for LogicExpr
-where
-    T: ExprProjection,
-{
-    fn dispatch<'a>(&'a mut self, metrics: &T) -> ExprValue<'a> {
-        match self.op {
-            LogicOp::And => {
-                let lhs = Arc::make_mut(&mut self.lhs).dispatch(metrics).as_bool();
-
-                if !lhs {
-                    return ExprValue::Bool(false);
-                }
-                ExprValue::Bool(Arc::make_mut(&mut self.rhs).dispatch(metrics).as_bool())
-            }
-            LogicOp::Or => {
-                let lhs = Arc::make_mut(&mut self.lhs).dispatch(metrics).as_bool();
-                if lhs {
-                    return ExprValue::Bool(true);
-                }
-                ExprValue::Bool(Arc::make_mut(&mut self.rhs).dispatch(metrics).as_bool())
-            }
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct TrinaryExpr {
-    first: Arc<Expr>,
-    second: Arc<Expr>,
-    third: Arc<Expr>,
-    operation: TrinaryOp,
-}
-
-impl TrinaryExpr {
-    pub fn new(first: Expr, second: Expr, third: Expr, operation: TrinaryOp) -> Self {
-        Self {
-            first: Arc::new(first),
-            second: Arc::new(second),
-            third: Arc::new(third),
-            operation,
-        }
-    }
-}
-
-impl<T> ExprQuery<T> for TrinaryExpr
-where
-    T: ExprProjection,
-{
-    fn dispatch<'a>(&'a mut self, input: &T) -> ExprValue<'a> {
-        match self.operation {
-            TrinaryOp::If => {
-                let condition = Arc::make_mut(&mut self.first).dispatch(input).as_bool();
-                if condition {
-                    Arc::make_mut(&mut self.second).dispatch(input)
-                } else {
-                    Arc::make_mut(&mut self.third).dispatch(input)
-                }
-            }
-            TrinaryOp::Clamp => {
-                let value = Arc::make_mut(&mut self.first)
-                    .dispatch(input)
-                    .extract::<f32>();
-                let min = Arc::make_mut(&mut self.second)
-                    .dispatch(input)
-                    .extract::<f32>();
-                let max = Arc::make_mut(&mut self.third)
-                    .dispatch(input)
-                    .extract::<f32>();
-
-                match (value, min, max) {
-                    (Some(value), Some(min), Some(max)) => {
-                        ExprValue::Float32(value.clamp(min, max))
-                    }
-                    _ => ExprValue::Null,
-                }
-            }
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct BinaryExpr {
-    lhs: Arc<Expr>,
-    rhs: Arc<Expr>,
-    op: ArithmeticOp,
-}
-
-impl BinaryExpr {
-    pub fn new(lhs: Expr, rhs: Expr, op: ArithmeticOp) -> Self {
-        Self {
-            lhs: Arc::new(lhs),
-            rhs: Arc::new(rhs),
-            op,
-        }
-    }
-}
-
-impl<T> ExprQuery<T> for BinaryExpr
-where
-    T: ExprProjection,
-{
-    fn dispatch<'a>(&'a mut self, input: &T) -> ExprValue<'a> {
-        let lhs = Arc::make_mut(&mut self.lhs)
-            .dispatch(input)
-            .extract::<f32>();
-        let rhs = Arc::make_mut(&mut self.rhs)
-            .dispatch(input)
-            .extract::<f32>();
-
-        match (lhs, rhs) {
-            (Some(lhs), Some(rhs)) => {
-                let value = match self.op {
-                    ArithmeticOp::Add => lhs + rhs,
-                    ArithmeticOp::Sub => lhs - rhs,
-                    ArithmeticOp::Mul => lhs * rhs,
-                    ArithmeticOp::Div => {
-                        if rhs.abs() <= f32::EPSILON {
-                            return ExprValue::Null;
-                        }
-                        lhs / rhs
-                    }
-                };
-
-                ExprValue::Float32(value)
-            }
-            _ => ExprValue::Null,
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct UnaryExpr {
-    child: Arc<Expr>,
-    op: UnaryOp,
-}
-
-impl UnaryExpr {
-    pub fn new(child: Expr, op: UnaryOp) -> Self {
-        Self {
-            child: Arc::new(child),
-            op,
-        }
-    }
-}
-
-impl<T> ExprQuery<T> for UnaryExpr
-where
-    T: ExprProjection,
-{
-    fn dispatch<'a>(&'a mut self, input: &T) -> ExprValue<'a> {
-        let value = Arc::make_mut(&mut self.child).dispatch(input);
-
-        match self.op {
-            UnaryOp::Not => ExprValue::Bool(!value.as_bool()),
-            UnaryOp::Neg => match value.extract::<f32>() {
-                Some(v) => ExprValue::Float32(-v),
-                None => ExprValue::Null,
-            },
-            UnaryOp::Abs => match value.extract::<f32>() {
-                Some(v) => ExprValue::Float32(v.abs()),
-                None => ExprValue::Null,
-            },
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct ClampExpr {
-    value: Arc<Expr>,
-    min: Arc<Expr>,
-    max: Arc<Expr>,
-}
-
-impl ClampExpr {
-    pub fn new(value: Expr, min: Expr, max: Expr) -> Self {
-        Self {
-            value: Arc::new(value),
-            min: Arc::new(min),
-            max: Arc::new(max),
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct When {
-    cond: Arc<Expr>,
-}
-
-impl When {
-    pub fn new(cond: impl Into<Expr>) -> Self {
-        Self {
-            cond: Arc::new(cond.into()),
-        }
-    }
-
-    pub fn then(self, then_expr: impl Into<Expr>) -> Then {
-        Then {
-            cond: self.cond,
-            then_expr: Arc::new(then_expr.into()),
-        }
-    }
-}
-
-pub struct Then {
-    cond: Arc<Expr>,
-    then_expr: Arc<Expr>,
-}
-
-impl Then {
-    pub fn otherwise(self, else_expr: impl Into<Expr>) -> Expr {
-        let cond = Arc::try_unwrap(self.cond).unwrap_or_else(|val| (*val).clone());
-        let then_expr = Arc::try_unwrap(self.then_expr).unwrap_or_else(|val| (*val).clone());
-
-        Expr::Trinary(TrinaryExpr::new(
-            cond,
-            then_expr,
-            else_expr.into(),
-            TrinaryOp::If,
-        ))
-    }
+    fn project(&self, expr: &SelectExpr) -> Option<AnyValue<'static>>;
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Expr {
-    Empty,
-    Literal(ExprValue<'static>),
+    Literal(AnyValue<'static>),
     Selector(SelectExpr),
     Aggregate(AggExpr),
     Buffer(BufferExpr),
-    Compare(CompareExpr),
-    Logic(LogicExpr),
     Binary(BinaryExpr),
     Unary(UnaryExpr),
     Trinary(TrinaryExpr),
@@ -517,22 +54,6 @@ impl Expr {
         }
     }
 
-    pub fn time(mut self) -> Expr {
-        if !self.try_swap_metric_flavor(MetricFlavor::Time) {
-            self
-        } else {
-            self
-        }
-    }
-
-    pub fn value(mut self) -> Expr {
-        if !self.try_swap_metric_flavor(MetricFlavor::Value) {
-            self
-        } else {
-            self
-        }
-    }
-
     fn try_swap_metric_property_or(
         mut self,
         to: MetricProperty,
@@ -543,6 +64,16 @@ impl Expr {
         }
 
         func(self)
+    }
+
+    pub fn time(mut self) -> Expr {
+        self.try_swap_metric_flavor(MetricFlavor::Time);
+        self
+    }
+
+    pub fn value(mut self) -> Expr {
+        self.try_swap_metric_flavor(MetricFlavor::Value);
+        self
     }
 
     pub fn rolling(self, window_size: usize) -> Expr {
@@ -592,27 +123,27 @@ impl Expr {
 
     /// Comparisons
     pub fn lt(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::Compare(CompareExpr::new(self, rhs.into(), ComparisonOp::Lt))
+        Expr::Binary(BinaryExpr::new(self, rhs.into(), BinaryOp::Lt))
     }
 
     pub fn lte(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::Compare(CompareExpr::new(self, rhs.into(), ComparisonOp::Lte))
+        Expr::Binary(BinaryExpr::new(self, rhs.into(), BinaryOp::Lte))
     }
 
     pub fn gt(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::Compare(CompareExpr::new(self, rhs.into(), ComparisonOp::Gt))
+        Expr::Binary(BinaryExpr::new(self, rhs.into(), BinaryOp::Gt))
     }
 
     pub fn gte(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::Compare(CompareExpr::new(self, rhs.into(), ComparisonOp::Gte))
+        Expr::Binary(BinaryExpr::new(self, rhs.into(), BinaryOp::Gte))
     }
 
     pub fn eq(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::Compare(CompareExpr::new(self, rhs.into(), ComparisonOp::Eq))
+        Expr::Binary(BinaryExpr::new(self, rhs.into(), BinaryOp::Eq))
     }
 
     pub fn ne(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::Compare(CompareExpr::new(self, rhs.into(), ComparisonOp::Ne))
+        Expr::Binary(BinaryExpr::new(self, rhs.into(), BinaryOp::Ne))
     }
 
     pub fn between(self, low: impl Into<Expr>, high: impl Into<Expr>) -> Expr {
@@ -624,11 +155,11 @@ impl Expr {
 
     /// Logic
     pub fn and(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::Logic(LogicExpr::new(self, rhs.into(), LogicOp::And))
+        Expr::Binary(BinaryExpr::new(self, rhs.into(), BinaryOp::And))
     }
 
     pub fn or(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::Logic(LogicExpr::new(self, rhs.into(), LogicOp::Or))
+        Expr::Binary(BinaryExpr::new(self, rhs.into(), BinaryOp::Or))
     }
 
     pub fn not(self) -> Expr {
@@ -645,19 +176,19 @@ impl Expr {
     }
 
     pub fn add(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::Binary(BinaryExpr::new(self, rhs.into(), ArithmeticOp::Add))
+        Expr::Binary(BinaryExpr::new(self, rhs.into(), BinaryOp::Add))
     }
 
     pub fn sub(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::Binary(BinaryExpr::new(self, rhs.into(), ArithmeticOp::Sub))
+        Expr::Binary(BinaryExpr::new(self, rhs.into(), BinaryOp::Sub))
     }
 
     pub fn mul(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::Binary(BinaryExpr::new(self, rhs.into(), ArithmeticOp::Mul))
+        Expr::Binary(BinaryExpr::new(self, rhs.into(), BinaryOp::Mul))
     }
 
     pub fn div(self, rhs: impl Into<Expr>) -> Expr {
-        Expr::Binary(BinaryExpr::new(self, rhs.into(), ArithmeticOp::Div))
+        Expr::Binary(BinaryExpr::new(self, rhs.into(), BinaryOp::Div))
     }
 
     pub fn clamp(self, min: impl Into<Expr>, max: impl Into<Expr>) -> Expr {
@@ -692,54 +223,55 @@ impl<I> ExprQuery<I> for Expr
 where
     I: ExprProjection,
 {
-    fn dispatch<'a>(&'a mut self, input: &I) -> ExprValue<'a> {
+    fn dispatch<'a>(&'a mut self, input: &I) -> AnyValue<'a> {
         match self {
             Expr::Literal(value) => value.clone(),
             Expr::Selector(selector) => selector.dispatch(input),
             Expr::Aggregate(child) => child.dispatch(input),
             Expr::Buffer(child) => child.dispatch(input),
-            Expr::Compare(child) => child.dispatch(input),
-            Expr::Logic(child) => child.dispatch(input),
             Expr::Trinary(child) => child.dispatch(input),
             Expr::Binary(child) => child.dispatch(input),
             Expr::Unary(child) => child.dispatch(input),
-            Expr::Empty => ExprValue::Null,
         }
     }
 }
 
 impl ExprProjection for MetricSet {
-    fn project(&self, expr: &SelectExpr) -> Option<ExprValue<'static>> {
+    fn project(&self, expr: &SelectExpr) -> Option<AnyValue<'static>> {
         let value_to_float32 =
-            |value: Option<f32>| value.map(ExprValue::Float32).unwrap_or(ExprValue::Null);
+            |value: Option<f32>| value.map(AnyValue::Float32).unwrap_or(AnyValue::Null);
 
         let value_to_duration =
-            |value: Option<Duration>| value.map(ExprValue::Duration).unwrap_or(ExprValue::Null);
+            |value: Option<Duration>| value.map(AnyValue::Duration).unwrap_or(AnyValue::Null);
 
         match expr {
             SelectExpr::Metric(name, property, flavor) => {
                 self.get(name).map(|metric| match flavor {
                     MetricFlavor::Value => match property {
-                        MetricProperty::LastValue => ExprValue::Float32(metric.last_value()),
+                        MetricProperty::LastValue => AnyValue::Float32(metric.last_value()),
                         MetricProperty::Mean => value_to_float32(metric.value_mean()),
                         MetricProperty::StdDev => value_to_float32(metric.value_std_dev()),
                         MetricProperty::Min => value_to_float32(metric.value_min()),
                         MetricProperty::Max => value_to_float32(metric.value_max()),
                         MetricProperty::Sum => value_to_float32(metric.value_sum()),
-                        MetricProperty::Count => ExprValue::UInt64(metric.count() as u64),
-                        MetricProperty::Version => ExprValue::UInt64(metric.version()),
-                        _ => ExprValue::Null,
+                        MetricProperty::Count => AnyValue::UInt64(metric.count() as u64),
+                        MetricProperty::Version => AnyValue::UInt64(metric.version()),
+                        MetricProperty::UpdateCount => {
+                            AnyValue::UInt64(metric.update_count() as u64)
+                        }
                     },
                     MetricFlavor::Time => match property {
-                        MetricProperty::LastValue => ExprValue::Duration(metric.last_time()),
+                        MetricProperty::LastValue => AnyValue::Duration(metric.last_time()),
                         MetricProperty::Mean => value_to_duration(metric.time_mean()),
                         MetricProperty::StdDev => value_to_duration(metric.time_std_dev()),
                         MetricProperty::Min => value_to_duration(metric.time_min()),
                         MetricProperty::Max => value_to_duration(metric.time_max()),
                         MetricProperty::Sum => value_to_duration(metric.time_sum()),
-                        MetricProperty::Count => ExprValue::UInt64(metric.count() as u64),
-                        MetricProperty::Version => ExprValue::UInt64(metric.version()),
-                        _ => ExprValue::Null,
+                        MetricProperty::Count => AnyValue::UInt64(metric.count() as u64),
+                        MetricProperty::Version => AnyValue::UInt64(metric.version()),
+                        MetricProperty::UpdateCount => {
+                            AnyValue::UInt64(metric.update_count() as u64)
+                        }
                     },
                 })
             }
@@ -748,21 +280,21 @@ impl ExprProjection for MetricSet {
     }
 }
 
-impl From<f32> for ExprValue<'_> {
+impl From<f32> for AnyValue<'_> {
     fn from(value: f32) -> Self {
-        ExprValue::Float32(value)
+        AnyValue::Float32(value)
     }
 }
 
-impl From<Duration> for ExprValue<'_> {
+impl From<Duration> for AnyValue<'_> {
     fn from(value: Duration) -> Self {
-        ExprValue::Duration(value)
+        AnyValue::Duration(value)
     }
 }
 
 impl From<f32> for Expr {
     fn from(value: f32) -> Self {
-        Expr::Literal(ExprValue::Float32(value))
+        Expr::Literal(AnyValue::Float32(value))
     }
 }
 
@@ -770,19 +302,19 @@ impl From<f32> for Expr {
 mod test {
     use super::*;
 
-    fn f32_of(value: ExprValue<'_>) -> f32 {
+    fn f32_of(value: AnyValue<'_>) -> f32 {
         value.extract::<f32>().unwrap()
     }
 
-    fn bool_of(value: ExprValue<'_>) -> bool {
-        if let ExprValue::Bool(b) = value {
+    fn bool_of(value: AnyValue<'_>) -> bool {
+        if let AnyValue::Bool(b) = value {
             b
         } else {
             false
         }
     }
 
-    fn u64_of(value: ExprValue<'_>) -> u64 {
+    fn u64_of(value: AnyValue<'_>) -> u64 {
         value.extract::<u64>().unwrap()
     }
 
@@ -804,7 +336,7 @@ mod test {
 
         let result = expr.dispatch(&metrics);
 
-        assert_eq!(result, ExprValue::Null);
+        assert_eq!(result, AnyValue::Null);
     }
 
     #[test]
@@ -815,7 +347,7 @@ mod test {
         metrics.upsert(("accuracy", 1.0));
         let result = expr.dispatch(&metrics);
         assert!(result.is_nested());
-        if let ExprValue::Slice(values) = result {
+        if let AnyValue::Slice(values) = result {
             assert_eq!(values.len(), 1);
             assert_eq!(values[0].clone().extract::<f32>().unwrap(), 1.0);
         }
@@ -823,7 +355,7 @@ mod test {
         metrics.upsert(("accuracy", 2.0));
         let result = expr.dispatch(&metrics);
         assert!(result.is_nested());
-        if let ExprValue::Slice(values) = result {
+        if let AnyValue::Slice(values) = result {
             assert_eq!(values.len(), 2);
             assert_eq!(values[0].clone().extract::<f32>().unwrap(), 1.0);
             assert_eq!(values[1].clone().extract::<f32>().unwrap(), 2.0);
@@ -834,7 +366,7 @@ mod test {
 
         assert!(result.is_nested());
 
-        if let ExprValue::Slice(values) = result {
+        if let AnyValue::Slice(values) = result {
             assert_eq!(values.len(), 3);
             assert_eq!(values[0].clone().extract::<f32>().unwrap(), 1.0);
             assert_eq!(values[1].clone().extract::<f32>().unwrap(), 2.0);
@@ -845,7 +377,7 @@ mod test {
         let result = expr.dispatch(&metrics);
         assert!(result.is_nested());
 
-        if let ExprValue::Slice(values) = result {
+        if let AnyValue::Slice(values) = result {
             assert_eq!(values.len(), 3);
             assert_eq!(values[0].clone().extract::<f32>().unwrap(), 2.0);
             assert_eq!(values[1].clone().extract::<f32>().unwrap(), 3.0);
@@ -1098,7 +630,7 @@ mod test {
         metrics.upsert(("a", 9.0));
         metrics.upsert(("b", 0.0));
 
-        assert_eq!(expr.dispatch(&metrics), ExprValue::Null);
+        assert_eq!(expr.dispatch(&metrics), AnyValue::Null);
     }
 
     #[test]
@@ -1136,5 +668,20 @@ mod test {
 
         metrics.upsert(("a", 0.9));
         assert!((f32_of(expr.dispatch(&metrics)) - 0.5).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_duration_expr() {
+        let mut expr = expr::metric("time").time().rolling(10).min();
+        let mut metrics = MetricSet::default();
+
+        metrics.upsert(("time", Duration::from_secs(5)));
+        expr.dispatch(&metrics);
+        metrics.upsert(("time", Duration::from_secs(3)));
+        expr.dispatch(&metrics);
+        metrics.upsert(("time", Duration::from_secs(8)));
+        let result = expr.dispatch(&metrics);
+
+        assert_eq!(result, AnyValue::Duration(Duration::from_secs(3)));
     }
 }
