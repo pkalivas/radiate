@@ -1,5 +1,6 @@
 use crate::AnyValue;
-use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{Add, Div, Mul, Rem, Sub};
+use std::ops::{BitAnd, BitOr, Not};
 
 /// Internal helper: perform `lhs <op> rhs` for all numeric AnyValue variants.
 /// On type mismatch, returns `AnyValue::Null`.
@@ -229,6 +230,82 @@ impl Div for AnyValue<'_> {
                 )
             }
             (lhs, rhs) => bin_numeric_div!(lhs, rhs),
+        }
+    }
+}
+
+impl Rem for AnyValue<'_> {
+    type Output = Self;
+
+    #[inline(always)]
+    fn rem(self, other: Self) -> Self {
+        use AnyValue::*;
+
+        let is_numeric = self.dtype().is_numeric() && other.dtype().is_numeric();
+
+        if !is_numeric {
+            return self;
+        }
+
+        match (self, other) {
+            (Vector(a), Vector(b)) => Vector(
+                a.into_iter()
+                    .zip(b.into_iter())
+                    .map(|(x, y)| x % y)
+                    .collect(),
+            ),
+            (Struct(a), Struct(b)) => {
+                if a.len() != b.len() {
+                    return Null;
+                }
+
+                Struct(
+                    a.into_iter()
+                        .zip(b.into_iter())
+                        .map(|(one, two)| {
+                            if one.0.name() != two.0.name() {
+                                return (one.0, Null);
+                            }
+
+                            (one.0, one.1 % two.1)
+                        })
+                        .collect(),
+                )
+            }
+            (lhs, rhs) => bin_numeric_op!(lhs, rhs, %),
+        }
+    }
+}
+
+impl<'a> BitAnd for AnyValue<'a> {
+    type Output = AnyValue<'static>;
+
+    fn bitand(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (AnyValue::Bool(a), AnyValue::Bool(b)) => AnyValue::Bool(a & b),
+            _ => AnyValue::Null,
+        }
+    }
+}
+
+impl<'a> BitOr for AnyValue<'a> {
+    type Output = AnyValue<'static>;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        match (self, rhs) {
+            (AnyValue::Bool(a), AnyValue::Bool(b)) => AnyValue::Bool(a | b),
+            _ => AnyValue::Null,
+        }
+    }
+}
+
+impl<'a> Not for AnyValue<'a> {
+    type Output = AnyValue<'static>;
+
+    fn not(self) -> Self::Output {
+        match self {
+            AnyValue::Bool(v) => AnyValue::Bool(!v),
+            _ => AnyValue::Null,
         }
     }
 }

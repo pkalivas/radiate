@@ -3,7 +3,7 @@ mod compare;
 pub mod dtype;
 mod field;
 mod scalar;
-mod value;
+pub mod value;
 
 pub use dtype::*;
 pub use field::Field;

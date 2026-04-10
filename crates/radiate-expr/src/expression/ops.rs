@@ -60,6 +60,7 @@ pub enum BinaryOp {
     Gte,
     Eq,
     Ne,
+    Mod,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -100,6 +101,7 @@ where
             BinaryOp::Ne => AnyValue::Bool(lhs != rhs),
             BinaryOp::And => lhs & rhs,
             BinaryOp::Or => lhs | rhs,
+            BinaryOp::Mod => lhs % rhs,
         }
     }
 }

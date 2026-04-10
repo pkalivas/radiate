@@ -1,15 +1,21 @@
 mod aggregate;
 mod logical;
 mod ops;
+mod projection;
+mod schedule;
 mod select;
 
-use crate::{AnyValue, DataType, Field};
+use crate::{
+    AnyValue, DataType, Field,
+    expression::schedule::{EveryState, ScheduleExpr},
+};
 
 use aggregate::{AggExpr, BufferExpr, Rollup};
 use logical::When;
 use ops::{BinaryExpr, BinaryOp, TrinaryExpr, TrinaryOp, UnaryExpr, UnaryOp};
+pub use projection::*;
 use radiate_utils::SmallStr;
-use select::SelectExpr;
+pub use select::SelectExpr;
 use std::fmt::Debug;
 
 mod expr_fields {
@@ -27,12 +33,12 @@ mod expr_fields {
     // pub static UPDATE_COUNT: Field = Field::new_const("update_count", DataType::UInt64);
 }
 
-pub trait ExprQuery<I> {
-    fn dispatch<'a>(&'a mut self, input: &I) -> AnyValue<'a>;
+pub trait ApplyExpr<'a> {
+    fn apply(&self, expr: &'a mut Expr) -> AnyValue<'a>;
 }
 
-pub trait ExprProjection {
-    fn project(&self, key: &AnyValue<'static>, field: &Field) -> Option<AnyValue<'static>>;
+pub trait ExprQuery<I> {
+    fn dispatch<'a>(&'a mut self, input: &I) -> AnyValue<'a>;
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -41,6 +47,7 @@ pub enum Expr {
     Selector(SelectExpr),
     Aggregate(AggExpr),
     Buffer(BufferExpr),
+    Schedule(ScheduleExpr),
     Binary(BinaryExpr),
     Unary(UnaryExpr),
     Trinary(TrinaryExpr),
@@ -210,25 +217,12 @@ impl Expr {
             TrinaryOp::Clamp,
         ))
     }
-}
 
-pub mod expr {
-    use crate::expression::expr_fields::LAST_VALUE;
-
-    use super::*;
-
-    /// Selectors
-    pub fn select(name: impl Into<SmallStr>) -> Expr {
-        let small_name = name.into();
-        Expr::Selector(SelectExpr::Field(
-            AnyValue::StrOwned(small_name.clone().into_string()),
-            LAST_VALUE.clone(),
-        ))
-    }
-
-    /// Conditionals
-    pub fn when(cond: impl Into<Expr>) -> When {
-        When::new(cond.into())
+    // scheduling
+    pub fn every(self, interval: usize) -> When {
+        When::new(Expr::Schedule(ScheduleExpr::Every(EveryState::new(
+            interval,
+        ))))
     }
 }
 
@@ -245,6 +239,7 @@ where
             Expr::Trinary(child) => child.dispatch(input),
             Expr::Binary(child) => child.dispatch(input),
             Expr::Unary(child) => child.dispatch(input),
+            Expr::Schedule(child) => child.dispatch(input),
         }
     }
 }
@@ -255,387 +250,37 @@ impl From<f32> for Expr {
     }
 }
 
-impl<T> ExprProjection for T
-where
-    T: Into<AnyValue<'static>> + Clone,
-{
-    fn project(&self, _: &AnyValue<'static>, _: &Field) -> Option<AnyValue<'static>> {
-        Some(self.clone().into())
-    }
-}
-
-#[cfg(test)]
-mod test {
+pub mod expr {
     use super::*;
+    use crate::expression::{expr_fields::LAST_VALUE, select::PathBuilder};
 
-    fn f32_of(value: AnyValue<'_>) -> f32 {
-        value.extract::<f32>().unwrap()
+    pub fn lit(value: impl Into<AnyValue<'static>>) -> Expr {
+        Expr::Literal(value.into())
     }
 
-    // fn bool_of(value: AnyValue<'_>) -> bool {
-    //     if let AnyValue::Bool(b) = value {
-    //         b
-    //     } else {
-    //         false
-    //     }
-    // }
-
-    // fn u64_of(value: AnyValue<'_>) -> u64 {
-    //     value.extract::<u64>().unwrap()
-    // }
-
-    #[test]
-    fn test_metric_selector_returns_last_value() {
-        let mut expr = expr::select("accuracy");
-
-        let result = expr.dispatch(&42.0f32);
-
-        assert_eq!(f32_of(result), 42.0);
+    pub fn select(name: impl Into<SmallStr>) -> Expr {
+        let small_name = name.into();
+        Expr::Selector(SelectExpr::Field(
+            AnyValue::StrOwned(small_name.clone().into_string()),
+            LAST_VALUE.clone(),
+        ))
     }
 
-    #[test]
-    fn test_rolling_returns_slice_with_expected_window_contents() {
-        let mut expr = expr::select("accuracy").rolling(3);
+    pub fn when(cond: impl Into<Expr>) -> When {
+        When::new(cond.into())
+    }
 
-        let result = expr.dispatch(&1.0f32);
-        assert!(result.is_nested());
-        if let AnyValue::Slice(values) = result {
-            assert_eq!(values.len(), 1);
-            assert_eq!(values[0].clone().extract::<f32>().unwrap(), 1.0);
-        }
+    pub fn path(name: impl Into<AnyValue<'static>>) -> PathBuilder {
+        PathBuilder::default().key(name.into())
+    }
+
+    pub fn nth(n: usize) -> Expr {
+        Expr::Selector(SelectExpr::Nth(n))
+    }
+
+    pub fn every(interval: usize) -> When {
+        When::new(Expr::Schedule(ScheduleExpr::Every(EveryState::new(
+            interval,
+        ))))
     }
 }
-
-//         metrics.upsert(("accuracy", 2.0));
-//         let result = expr.dispatch(&metrics);
-//         assert!(result.is_nested());
-//         if let AnyValue::Slice(values) = result {
-//             assert_eq!(values.len(), 2);
-//             assert_eq!(values[0].clone().extract::<f32>().unwrap(), 1.0);
-//             assert_eq!(values[1].clone().extract::<f32>().unwrap(), 2.0);
-//         }
-
-//         metrics.upsert(("accuracy", 3.0));
-//         let result = expr.dispatch(&metrics);
-
-//         assert!(result.is_nested());
-
-//         if let AnyValue::Slice(values) = result {
-//             assert_eq!(values.len(), 3);
-//             assert_eq!(values[0].clone().extract::<f32>().unwrap(), 1.0);
-//             assert_eq!(values[1].clone().extract::<f32>().unwrap(), 2.0);
-//             assert_eq!(values[2].clone().extract::<f32>().unwrap(), 3.0);
-//         }
-
-//         metrics.upsert(("accuracy", 4.0));
-//         let result = expr.dispatch(&metrics);
-//         assert!(result.is_nested());
-
-//         if let AnyValue::Slice(values) = result {
-//             assert_eq!(values.len(), 3);
-//             assert_eq!(values[0].clone().extract::<f32>().unwrap(), 2.0);
-//             assert_eq!(values[1].clone().extract::<f32>().unwrap(), 3.0);
-//             assert_eq!(values[2].clone().extract::<f32>().unwrap(), 4.0);
-//         }
-//     }
-
-//     #[test]
-//     fn test_rolling_mean() {
-//         let mut expr = expr::select("accuracy").rolling(3).mean();
-//         let mut metrics = MetricSet::default();
-
-//         metrics.upsert(("accuracy", 1.0));
-//         assert!((f32_of(expr.dispatch(&metrics)) - 1.0).abs() < 1e-6);
-
-//         metrics.upsert(("accuracy", 2.0));
-//         assert!((f32_of(expr.dispatch(&metrics)) - 1.5).abs() < 1e-6);
-
-//         metrics.upsert(("accuracy", 3.0));
-//         assert!((f32_of(expr.dispatch(&metrics)) - 2.0).abs() < 1e-6);
-
-//         metrics.upsert(("accuracy", 4.0));
-//         assert!((f32_of(expr.dispatch(&metrics)) - 3.0).abs() < 1e-6);
-//     }
-
-//     #[test]
-//     fn test_rolling_sum() {
-//         let mut expr = expr::metric("accuracy").rolling(3).sum();
-//         let mut metrics = MetricSet::default();
-
-//         metrics.upsert(("accuracy", 1.0));
-//         assert!((f32_of(expr.dispatch(&metrics)) - 1.0).abs() < 1e-6);
-
-//         metrics.upsert(("accuracy", 2.0));
-//         assert!((f32_of(expr.dispatch(&metrics)) - 3.0).abs() < 1e-6);
-
-//         metrics.upsert(("accuracy", 3.0));
-//         assert!((f32_of(expr.dispatch(&metrics)) - 6.0).abs() < 1e-6);
-
-//         metrics.upsert(("accuracy", 4.0));
-//         assert!((f32_of(expr.dispatch(&metrics)) - 9.0).abs() < 1e-6);
-//     }
-
-//     #[test]
-//     fn test_rolling_min_and_max() {
-//         let mut min_expr = expr::metric("accuracy").rolling(4).min();
-//         let mut max_expr = expr::metric("accuracy").rolling(4).max();
-//         let mut metrics = MetricSet::default();
-
-//         for value in [3.0, 1.0, 4.0, 2.0] {
-//             metrics.upsert(("accuracy", value));
-//             min_expr.dispatch(&metrics);
-//             max_expr.dispatch(&metrics);
-//         }
-
-//         assert!((f32_of(min_expr.dispatch(&metrics)) - 1.0).abs() < 1e-6);
-//         assert!((f32_of(max_expr.dispatch(&metrics)) - 4.0).abs() < 1e-6);
-//     }
-
-//     #[test]
-//     fn test_rolling_count() {
-//         let mut expr = expr::metric("accuracy").rolling(3).count();
-//         let mut metrics = MetricSet::default();
-
-//         metrics.upsert(("accuracy", 10.0));
-//         assert_eq!(u64_of(expr.dispatch(&metrics)), 1);
-
-//         metrics.upsert(("accuracy", 11.0));
-//         assert_eq!(u64_of(expr.dispatch(&metrics)), 2);
-
-//         metrics.upsert(("accuracy", 12.0));
-//         assert_eq!(u64_of(expr.dispatch(&metrics)), 3);
-
-//         metrics.upsert(("accuracy", 13.0));
-//         assert_eq!(u64_of(expr.dispatch(&metrics)), 3);
-//     }
-
-//     #[test]
-//     fn test_rolling_n_unique() {
-//         let mut expr = expr::metric("accuracy").rolling(5).unique().count();
-//         let mut metrics = MetricSet::default();
-
-//         metrics.upsert(("accuracy", 1.0));
-//         assert_eq!(u64_of(expr.dispatch(&metrics)), 1);
-
-//         metrics.upsert(("accuracy", 2.0));
-//         assert_eq!(u64_of(expr.dispatch(&metrics)), 2);
-
-//         metrics.upsert(("accuracy", 2.0));
-//         assert_eq!(u64_of(expr.dispatch(&metrics)), 2);
-
-//         metrics.upsert(("accuracy", 3.0));
-//         assert_eq!(u64_of(expr.dispatch(&metrics)), 3);
-
-//         metrics.upsert(("accuracy", 1.0));
-//         assert_eq!(u64_of(expr.dispatch(&metrics)), 3);
-//     }
-
-//     #[test]
-//     fn test_lt_comparison_true_and_false() {
-//         let mut expr = expr::metric("accuracy").lt(expr::metric("loss"));
-//         let mut metrics = MetricSet::default();
-
-//         metrics.upsert(("accuracy", 0.8));
-//         metrics.upsert(("loss", 1.2));
-//         assert_eq!(bool_of(expr.dispatch(&metrics)), true);
-
-//         metrics.upsert(("accuracy", 2.0));
-//         metrics.upsert(("loss", 1.2));
-//         assert_eq!(bool_of(expr.dispatch(&metrics)), false);
-//     }
-
-//     #[test]
-//     fn test_gte_comparison() {
-//         let mut expr = expr::metric("accuracy").gte(expr::metric("target"));
-//         let mut metrics = MetricSet::default();
-
-//         metrics.upsert(("accuracy", 0.95));
-//         metrics.upsert(("target", 0.90));
-//         assert!(bool_of(expr.dispatch(&metrics)));
-
-//         metrics.upsert(("accuracy", 0.85));
-//         metrics.upsert(("target", 0.90));
-//         assert!(!bool_of(expr.dispatch(&metrics)));
-//     }
-
-//     #[test]
-//     fn test_eq_comparison_uses_epsilon() {
-//         let mut expr = expr::metric("a").eq(expr::metric("b"));
-//         let mut metrics = MetricSet::default();
-
-//         metrics.upsert(("a", 1.0f32));
-//         metrics.upsert(("b", 1.0f32));
-//         assert!(bool_of(expr.dispatch(&metrics)));
-//     }
-
-//     #[test]
-//     fn test_ne_comparison() {
-//         let mut expr = expr::metric("a").ne(expr::metric("b"));
-//         let mut metrics = MetricSet::default();
-
-//         metrics.upsert(("a", 1.0f32));
-//         metrics.upsert(("b", 2.0f32));
-//         assert!(bool_of(expr.dispatch(&metrics)));
-
-//         metrics.upsert(("a", 5.0f32));
-//         metrics.upsert(("b", 5.0f32));
-//         assert!(!bool_of(expr.dispatch(&metrics)));
-//     }
-
-//     #[test]
-//     fn test_metric_projection_uses_metricset_property_mean() {
-//         let expr = SelectExpr::Metric("accuracy".into(), MetricProperty::Mean, MetricFlavor::Value);
-//         let mut metrics = MetricSet::default();
-
-//         metrics.upsert(("accuracy", 1.0));
-//         metrics.upsert(("accuracy", 2.0));
-//         metrics.upsert(("accuracy", 3.0));
-
-//         let result = metrics.project(&expr).unwrap();
-//         assert!((f32_of(result) - 2.0).abs() < 1e-6);
-//     }
-
-//     #[test]
-//     fn test_metric_projection_uses_metricset_property_count() {
-//         let expr = SelectExpr::Metric(
-//             "accuracy".into(),
-//             MetricProperty::Count,
-//             MetricFlavor::Value,
-//         );
-//         let mut metrics = MetricSet::default();
-
-//         metrics.upsert(("accuracy", 1.0));
-//         metrics.upsert(("accuracy", 2.0));
-//         metrics.upsert(("accuracy", 3.0));
-
-//         let result = metrics.project(&expr).unwrap();
-//         assert_eq!(u64_of(result), 3);
-//     }
-
-//     #[test]
-//     fn test_between_inclusive() {
-//         let mut expr = expr::metric("x").between(1.0, 3.0);
-//         let mut metrics = MetricSet::default();
-
-//         metrics.upsert(("x", 1.0));
-//         assert!(bool_of(expr.dispatch(&metrics)));
-
-//         metrics.upsert(("x", 2.0));
-//         assert!(bool_of(expr.dispatch(&metrics)));
-
-//         metrics.upsert(("x", 3.0));
-//         assert!(bool_of(expr.dispatch(&metrics)));
-
-//         metrics.upsert(("x", 0.99));
-//         assert!(!bool_of(expr.dispatch(&metrics)));
-
-//         metrics.upsert(("x", 3.01));
-//         assert!(!bool_of(expr.dispatch(&metrics)));
-//     }
-
-//     #[test]
-//     fn test_add_expr() {
-//         let mut expr = expr::metric("a").add(expr::metric("b"));
-//         let mut metrics = MetricSet::default();
-
-//         metrics.upsert(("a", 2.0));
-//         metrics.upsert(("b", 3.5));
-
-//         assert!((f32_of(expr.dispatch(&metrics)) - 5.5).abs() < 1e-6);
-//     }
-
-//     #[test]
-//     fn test_sub_expr() {
-//         let mut expr = expr::metric("a").sub(expr::metric("b"));
-//         let mut metrics = MetricSet::default();
-
-//         metrics.upsert(("a", 5.0));
-//         metrics.upsert(("b", 1.5));
-
-//         assert!((f32_of(expr.dispatch(&metrics)) - 3.5).abs() < 1e-6);
-//     }
-
-//     #[test]
-//     fn test_mul_expr() {
-//         let mut expr = expr::metric("a").mul(2.5);
-//         let mut metrics = MetricSet::default();
-
-//         metrics.upsert(("a", 4.0));
-
-//         assert!((f32_of(expr.dispatch(&metrics)) - 10.0).abs() < 1e-6);
-//     }
-
-//     #[test]
-//     fn test_div_expr() {
-//         let mut expr = expr::metric("a").div(expr::metric("b"));
-//         let mut metrics = MetricSet::default();
-
-//         metrics.upsert(("a", 9.0));
-//         metrics.upsert(("b", 3.0));
-
-//         assert!((f32_of(expr.dispatch(&metrics)) - 3.0).abs() < 1e-6);
-//     }
-
-//     #[test]
-//     fn test_div_by_zero_returns_null() {
-//         let mut expr = expr::metric("a").div(expr::metric("b"));
-//         let mut metrics = MetricSet::default();
-
-//         metrics.upsert(("a", 9.0));
-//         metrics.upsert(("b", 0.0));
-
-//         assert_eq!(expr.dispatch(&metrics), AnyValue::Null);
-//     }
-
-//     #[test]
-//     fn test_neg_expr() {
-//         let mut expr = expr::metric("a").neg();
-//         let mut metrics = MetricSet::default();
-
-//         metrics.upsert(("a", 4.0));
-
-//         assert!((f32_of(expr.dispatch(&metrics)) + 4.0).abs() < 1e-6);
-//     }
-
-//     #[test]
-//     fn test_abs_expr() {
-//         let mut expr = expr::metric("a").sub(10.0).abs();
-//         let mut metrics = MetricSet::default();
-
-//         metrics.upsert(("a", 4.0));
-//         assert!((f32_of(expr.dispatch(&metrics)) - 6.0).abs() < 1e-6);
-
-//         metrics.upsert(("a", 14.0));
-//         assert!((f32_of(expr.dispatch(&metrics)) - 4.0).abs() < 1e-6);
-//     }
-
-//     #[test]
-//     fn test_clamp_expr() {
-//         let mut expr = expr::metric("a").clamp(0.1, 0.5);
-//         let mut metrics = MetricSet::default();
-
-//         metrics.upsert(("a", 0.05));
-//         assert!((f32_of(expr.dispatch(&metrics)) - 0.1).abs() < 1e-6);
-
-//         metrics.upsert(("a", 0.25));
-//         assert!((f32_of(expr.dispatch(&metrics)) - 0.25).abs() < 1e-6);
-
-//         metrics.upsert(("a", 0.9));
-//         assert!((f32_of(expr.dispatch(&metrics)) - 0.5).abs() < 1e-6);
-//     }
-
-//     #[test]
-//     fn test_duration_expr() {
-//         let mut expr = expr::metric("time").time().rolling(10).min();
-//         let mut metrics = MetricSet::default();
-
-//         metrics.upsert(("time", Duration::from_secs(5)));
-//         expr.dispatch(&metrics);
-//         metrics.upsert(("time", Duration::from_secs(3)));
-//         expr.dispatch(&metrics);
-//         metrics.upsert(("time", Duration::from_secs(8)));
-//         let result = expr.dispatch(&metrics);
-
-//         assert_eq!(result, AnyValue::Duration(Duration::from_secs(3)));
-//     }
-// }

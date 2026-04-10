@@ -1,5 +1,6 @@
 use super::{Field, Scalar};
 use radiate_utils::{Float, Integer};
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 

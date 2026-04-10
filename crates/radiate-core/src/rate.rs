@@ -1,5 +1,5 @@
 use crate::{MetricSet, Valid};
-use radiate_expr::{Expr, ExprQuery};
+use radiate_expr::{ApplyExpr, Expr};
 use std::fmt::Debug;
 
 pub trait RateCalculator {
@@ -53,14 +53,17 @@ pub enum Rate {
     /// - `Vec<(usize, f32)>`: A vector of (step, rate) pairs.
     Stepwise(Vec<(usize, f32)>),
 
-    // Metric(Arc<Mutex<dyn FnMut(&MetricSet) -> f32 + Send + Sync>>),
+    /// A rate defined by an expression that can query metrics.
+    /// The expression should evaluate to a float value representing the rate.
+    /// The expression can use the provided metrics to compute a dynamic rate based on the current state of the ecosystem.
+    /// The expression is expected to return a value in the range [0.0, 1.0], but this is not enforced at compile time.
     Expr(Expr),
 }
 
 impl Rate {
     pub fn get(&mut self, generation: usize, metrics: &MetricSet) -> f32 {
         match self {
-            Rate::Expr(expr) => expr.dispatch(metrics).extract().unwrap_or(0.0),
+            Rate::Expr(expr) => metrics.apply(expr).extract().unwrap_or(0.0),
             _ => self.get_by_index(generation),
         }
     }

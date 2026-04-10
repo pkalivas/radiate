@@ -1,5 +1,6 @@
 use super::DataType;
 use radiate_utils::SmallStr;
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 

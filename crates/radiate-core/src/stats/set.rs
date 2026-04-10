@@ -2,7 +2,7 @@ use crate::{
     Metric, MetricUpdate,
     stats::{Tag, TagKind, defaults::try_add_tag_from_str, fmt},
 };
-use radiate_expr::{AnyValue, DataType, ExprProjection, Field};
+use radiate_expr::{AnyValue, ApplyExpr, DataType, Expr, ExprProjection, ExprQuery, SelectExpr};
 use radiate_utils::intern;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -328,13 +328,23 @@ impl MetricSet {
     }
 }
 
+impl<'a> ApplyExpr<'a> for MetricSet {
+    fn apply(&self, expr: &'a mut Expr) -> AnyValue<'a> {
+        expr.dispatch(self)
+    }
+}
+
 impl ExprProjection for MetricSet {
-    fn project(&self, key: &AnyValue<'static>, field: &Field) -> Option<AnyValue<'static>> {
+    fn project(&self, path: &SelectExpr) -> Option<AnyValue<'static>> {
         let value_to_float32 =
             |value: Option<f32>| value.map(AnyValue::Float32).unwrap_or(AnyValue::Null);
 
         let value_to_duration =
             |value: Option<Duration>| value.map(AnyValue::Duration).unwrap_or(AnyValue::Null);
+
+        let SelectExpr::Field(key, field) = path else {
+            return None;
+        };
 
         let str_key = key.clone().into_string()?;
 

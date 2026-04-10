@@ -1,7 +1,8 @@
 use super::{DataType, Field};
 use num_traits::NumCast;
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use std::{fmt::Debug, hash::Hash, time::Duration};
+use std::{collections::HashMap, fmt::Debug, hash::Hash, time::Duration};
 
 #[derive(Clone, Default, Debug)]
 pub enum AnyValue<'a> {
@@ -51,6 +52,16 @@ impl<'a> AnyValue<'a> {
     #[inline]
     pub fn is_nested(&self) -> bool {
         matches!(self, Self::Struct(_) | Self::Vector(_) | Self::Slice(_))
+    }
+
+    #[inline]
+    pub fn len(&self) -> Option<usize> {
+        match self {
+            Self::Slice(vals) => Some(vals.len()),
+            Self::Vector(vals) => Some(vals.len()),
+            Self::Struct(vals) => Some(vals.len()),
+            _ => None,
+        }
     }
 
     #[inline]
@@ -178,14 +189,6 @@ impl<'a> AnyValue<'a> {
         }
     }
 
-    pub fn into_string(self) -> Option<String> {
-        match self {
-            AnyValue::Str(s) => Some(s.to_string()),
-            AnyValue::StrOwned(s) => Some(s),
-            _ => None,
-        }
-    }
-
     /// Try to coerce to an AnyValue with static lifetime.
     /// This can be done if it does not borrow any values.
     #[inline]
@@ -238,6 +241,52 @@ impl<'a> AnyValue<'a> {
             _ => None,
         }
     }
+
+    pub fn into_string(self) -> Option<String> {
+        match self {
+            AnyValue::Str(s) => Some(s.to_string()),
+            AnyValue::StrOwned(s) => Some(s),
+            _ => None,
+        }
+    }
+}
+
+impl<'a> AnyValue<'a> {
+    pub fn get_index(&self, index: usize) -> Option<AnyValue<'a>> {
+        match self {
+            AnyValue::Vector(values) => values.get(index).cloned(),
+            AnyValue::Slice(values) => values.get(index).cloned(),
+            _ => None,
+        }
+    }
+
+    pub fn get_key(&self, key: &AnyValue<'a>) -> Option<AnyValue<'a>> {
+        match self {
+            AnyValue::Struct(fields) => {
+                let key_str = match key {
+                    AnyValue::Str(s) => *s,
+                    AnyValue::StrOwned(s) => s.as_str(),
+                    _ => return None,
+                };
+
+                fields
+                    .iter()
+                    .find(|(field, _)| field.name() == key_str)
+                    .map(|(_, value)| value.clone())
+            }
+            _ => None,
+        }
+    }
+
+    pub fn get_field(&self, field: &Field) -> Option<AnyValue<'a>> {
+        match self {
+            AnyValue::Struct(fields) => fields
+                .iter()
+                .find(|(f, _)| f.name() == field.name())
+                .map(|(_, value)| value.clone()),
+            _ => None,
+        }
+    }
 }
 
 impl<'a> PartialEq for AnyValue<'a> {
@@ -261,6 +310,8 @@ impl<'a> PartialEq for AnyValue<'a> {
             (Duration(a), Duration(b)) => a == b,
             (Char(a), Char(b)) => a == b,
             (Str(a), Str(b)) => a == b,
+            (Str(a), StrOwned(b)) => *a == b.as_str(),
+            (StrOwned(a), Str(b)) => a.as_str() == *b,
             (StrOwned(a), StrOwned(b)) => a == b,
             (Vector(a), Vector(b)) if a.len() == b.len() => {
                 a.iter().zip(b.iter()).all(|(x, y)| x == y)
@@ -339,6 +390,62 @@ impl From<f32> for AnyValue<'_> {
     }
 }
 
+impl From<f64> for AnyValue<'_> {
+    fn from(f: f64) -> Self {
+        AnyValue::Float64(f)
+    }
+}
+
+impl From<bool> for AnyValue<'_> {
+    fn from(b: bool) -> Self {
+        AnyValue::Bool(b)
+    }
+}
+
+impl From<char> for AnyValue<'_> {
+    fn from(c: char) -> Self {
+        AnyValue::Char(c)
+    }
+}
+
+impl<'a> From<Duration> for AnyValue<'a> {
+    fn from(d: Duration) -> Self {
+        AnyValue::Duration(d)
+    }
+}
+
+impl<'a> From<Vec<AnyValue<'a>>> for AnyValue<'a> {
+    fn from(v: Vec<AnyValue<'a>>) -> Self {
+        AnyValue::Vector(v)
+    }
+}
+
+impl From<i32> for AnyValue<'_> {
+    fn from(i: i32) -> Self {
+        AnyValue::Int32(i)
+    }
+}
+
+impl<T, K> From<HashMap<T, K>> for AnyValue<'_>
+where
+    T: Into<String> + Clone,
+    K: Into<AnyValue<'static>> + Clone,
+{
+    fn from(map: HashMap<T, K>) -> Self {
+        AnyValue::Struct(
+            map.into_iter()
+                .map(|(k, v)| {
+                    let cloned_value = v.clone().into();
+                    (
+                        Field::new(k.into().into(), cloned_value.dtype()),
+                        cloned_value,
+                    )
+                })
+                .collect(),
+        )
+    }
+}
+
 #[inline]
 pub(crate) fn apply_zipped_slice(
     one: &[AnyValue<'_>],
@@ -389,6 +496,25 @@ pub(crate) fn apply_zipped_struct_slice(
     }
 
     Some(AnyValue::Struct(out))
+}
+
+#[inline]
+pub(crate) fn dedup<'a>(value: AnyValue<'a>) -> Option<AnyValue<'a>> {
+    let values = match value {
+        AnyValue::Slice(vals) => vals,
+        AnyValue::Vector(ref vals) => vals,
+        _ => return None,
+    };
+
+    let mut sorted_buff = Vec::with_capacity(values.len());
+    for v in values.iter() {
+        match sorted_buff.binary_search(v) {
+            Ok(_) => {}
+            Err(pos) => sorted_buff.insert(pos, v.clone()),
+        }
+    }
+
+    return Some(AnyValue::Vector(sorted_buff));
 }
 
 #[cfg(feature = "serde")]

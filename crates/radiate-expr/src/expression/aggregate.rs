@@ -1,6 +1,5 @@
-use crate::{AnyValue, DataType, Expr, ExprProjection, ExprQuery};
+use crate::{AnyValue, DataType, Expr, ExprProjection, ExprQuery, value};
 use radiate_utils::{Statistic, WindowBuffer};
-use std::collections::HashSet;
 use std::fmt::Debug;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -64,8 +63,9 @@ impl AggExpr {
             Rollup::Min => AnyValue::Float32(stats.min()),
             Rollup::Max => AnyValue::Float32(stats.max()),
             Rollup::Sum => AnyValue::Float32(stats.sum()),
-            Rollup::Count => AnyValue::UInt64(stats.count() as u64),
-            Rollup::Unique => AnyValue::Null,
+            _ => unreachable!(
+                "This function should only be called for mean, stddev, min, max, and sum rollups"
+            ),
         };
 
         return result.cast(&dtype).unwrap_or(AnyValue::Null);
@@ -77,29 +77,16 @@ where
     T: ExprProjection,
 {
     fn dispatch<'a>(&'a mut self, input: &T) -> AnyValue<'a> {
+        let child_output = self.child.dispatch(input);
+
         if let Rollup::Unique = self.rollup {
-            let child_output = self.child.dispatch(input);
-            return match child_output {
-                AnyValue::Slice(values) => {
-                    let deduped = values.iter().fold(HashSet::new(), |mut acc, v| {
-                        acc.insert(v.clone());
-                        acc
-                    });
-
-                    return AnyValue::Vector(deduped.into_iter().collect());
-                }
-                AnyValue::Vector(values) => {
-                    let deduped = values.into_iter().fold(HashSet::new(), |mut acc, v| {
-                        acc.insert(v);
-                        acc
-                    });
-
-                    AnyValue::Vector(deduped.into_iter().collect())
-                }
-                _ => AnyValue::Null,
+            return value::dedup(child_output).unwrap_or(AnyValue::Null);
+        } else if let Rollup::Count = self.rollup {
+            return match child_output.len() {
+                Some(len) => AnyValue::UInt64(len as u64),
+                None => AnyValue::Null,
             };
         }
-        let child_output = self.child.dispatch(input);
 
         match child_output {
             AnyValue::Slice(values) => Self::compute_rollup(values, self.rollup),
