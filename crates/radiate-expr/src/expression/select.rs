@@ -1,28 +1,8 @@
-use crate::{AnyValue, ExprProjection, ExprQuery};
-use radiate_utils::SmallStr;
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum MetricProperty {
-    LastValue,
-    Mean,
-    StdDev,
-    Min,
-    Max,
-    Sum,
-    Count,
-    Version,
-    UpdateCount,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum MetricFlavor {
-    Value,
-    Time,
-}
+use crate::{AnyValue, ExprProjection, ExprQuery, Field};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum SelectExpr {
-    Metric(SmallStr, MetricProperty, MetricFlavor),
+    Field(AnyValue<'static>, Field),
     Nth(usize),
 }
 
@@ -31,6 +11,11 @@ where
     T: ExprProjection,
 {
     fn dispatch<'a>(&'a mut self, input: &T) -> AnyValue<'a> {
-        input.project(self).unwrap_or(AnyValue::Null)
+        match self {
+            SelectExpr::Field(value, field) => {
+                input.project(value, field).unwrap_or(AnyValue::Null)
+            }
+            _ => AnyValue::Null, // TODO: implement Nth
+        }
     }
 }

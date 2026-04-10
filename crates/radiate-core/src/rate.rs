@@ -1,8 +1,6 @@
-use crate::{MetricSet, Valid, metric_names};
-use std::{
-    fmt::Debug,
-    sync::{Arc, Mutex},
-};
+use crate::{MetricSet, Valid};
+use radiate_expr::{Expr, ExprQuery};
+use std::fmt::Debug;
 
 pub trait RateCalculator {
     fn rate(&mut self, generation: usize, metrics: &MetricSet) -> f32;
@@ -55,39 +53,19 @@ pub enum Rate {
     /// - `Vec<(usize, f32)>`: A vector of (step, rate) pairs.
     Stepwise(Vec<(usize, f32)>),
 
-    Metric(Arc<Mutex<dyn FnMut(&MetricSet) -> f32 + Send + Sync>>),
-}
-
-impl RateCalculator for Rate {
-    fn rate(&mut self, generation: usize, metrics: &MetricSet) -> f32 {
-        match self {
-            Rate::Metric(f) => {
-                let mut func = f.lock().unwrap();
-                func(metrics)
-            }
-            _ => self.value(generation),
-        }
-    }
+    // Metric(Arc<Mutex<dyn FnMut(&MetricSet) -> f32 + Send + Sync>>),
+    Expr(Expr),
 }
 
 impl Rate {
-    pub fn value_from_metrics(&mut self, metrics: &MetricSet) -> f32 {
+    pub fn get(&mut self, generation: usize, metrics: &MetricSet) -> f32 {
         match self {
-            Rate::Metric(f) => {
-                let mut func = f.lock().unwrap();
-                func(metrics)
-            }
-            _ => {
-                let step = metrics
-                    .get(metric_names::INDEX)
-                    .map(|v| v.last_value())
-                    .unwrap_or(1.0) as usize;
-                self.value(step)
-            }
+            Rate::Expr(expr) => expr.dispatch(metrics).extract().unwrap_or(0.0),
+            _ => self.get_by_index(generation),
         }
     }
 
-    pub fn value(&self, step: usize) -> f32 {
+    pub fn get_by_index(&self, step: usize) -> f32 {
         let f_step = step as f32;
         match self {
             Rate::Fixed(v) => *v,
@@ -218,7 +196,7 @@ impl Debug for Rate {
                 min, max, period, shape
             ),
             Rate::Stepwise(steps) => write!(f, "Rate::Stepwise(steps: {:?})", steps),
-            Rate::Metric(_) => write!(f, "Rate::Metric(<function>)"),
+            Rate::Expr(_) => write!(f, "Rate::Expr(<function>)"),
         }
     }
 }
@@ -239,9 +217,9 @@ impl PartialEq for Rate {
                 Rate::Cyclical(b_min, b_max, b_period, b_shape),
             ) => a_min == b_min && a_max == b_max && a_period == b_period && a_shape == b_shape,
             (Rate::Stepwise(a_steps), Rate::Stepwise(b_steps)) => a_steps == b_steps,
-            // For Metric variants, we consider them equal if they are the same variant,
+            // For Expr variants, we consider them equal if they are the same variant,
             // since we cannot compare the inner function for equality.
-            (Rate::Metric(_), Rate::Metric(_)) => true,
+            (Rate::Expr(_), Rate::Expr(_)) => true,
             _ => false,
         }
     }
@@ -254,41 +232,47 @@ mod tests {
     #[test]
     fn test_rate_values() {
         let fixed = Rate::Fixed(0.5);
-        assert_eq!(fixed.value(0), 0.5);
-        assert_eq!(fixed.value(10), 0.5);
+        assert_eq!(fixed.get_by_index(0), 0.5);
+        assert_eq!(fixed.get_by_index(10), 0.5);
 
         let linear = Rate::Linear(0.0, 1.0, 10);
-        assert_eq!(linear.value(0), 0.0);
-        assert_eq!(linear.value(5), 0.5);
-        assert_eq!(linear.value(10), 1.0);
-        assert_eq!(linear.value(15), 1.0);
+        assert_eq!(linear.get_by_index(0), 0.0);
+        assert_eq!(linear.get_by_index(5), 0.5);
+        assert_eq!(linear.get_by_index(10), 1.0);
+        assert_eq!(linear.get_by_index(15), 1.0);
 
         let exponential = Rate::Exponential(1.0, 0.1, 5);
-        assert!((exponential.value(0) - 1.0).abs() < 1e-6);
-        assert!((exponential.value(5) - 0.55).abs() < 1e-2);
-        assert!((exponential.value(10) - 0.325).abs() < 1e-2);
+        assert!((exponential.get_by_index(0) - 1.0).abs() < 1e-6);
+        assert!((exponential.get_by_index(5) - 0.55).abs() < 1e-2);
+        assert!((exponential.get_by_index(10) - 0.325).abs() < 1e-2);
 
         let cyclical = Rate::Cyclical(0.0, 1.0, 10, CycleShape::Triangle);
-        assert!((cyclical.value(0) - 0.0).abs() < 1e-6);
-        assert!((cyclical.value(2) - 0.4).abs() < 1e-6);
-        assert!((cyclical.value(5) - 1.0).abs() < 1e-6);
-        assert!((cyclical.value(7) - 0.6).abs() < 1e-6);
-        assert!((cyclical.value(10) - 0.0).abs() < 1e-6);
+        assert!((cyclical.get_by_index(0) - 0.0).abs() < 1e-6);
+        assert!((cyclical.get_by_index(2) - 0.4).abs() < 1e-6);
+        assert!((cyclical.get_by_index(5) - 1.0).abs() < 1e-6);
+        assert!((cyclical.get_by_index(7) - 0.6).abs() < 1e-6);
+        assert!((cyclical.get_by_index(10) - 0.0).abs() < 1e-6);
 
         let cyclical_sine = Rate::Cyclical(0.0, 1.0, 10, CycleShape::Sine);
-        assert!((cyclical_sine.value(0) - 0.0).abs() < 1e-6);
-        assert!((cyclical_sine.value(2) - (std::f32::consts::TAU * 0.2).sin().abs()).abs() < 1e-6);
-        assert!(cyclical_sine.value(5).abs() < 1e-6);
-        assert!((cyclical_sine.value(7) - (std::f32::consts::TAU * 0.7).sin().abs()).abs() < 1e-6);
-        assert!((cyclical_sine.value(10) - 0.0).abs() < 1e-6);
+        assert!((cyclical_sine.get_by_index(0) - 0.0).abs() < 1e-6);
+        assert!(
+            (cyclical_sine.get_by_index(2) - (std::f32::consts::TAU * 0.2).sin().abs()).abs()
+                < 1e-6
+        );
+        assert!(cyclical_sine.get_by_index(5).abs() < 1e-6);
+        assert!(
+            (cyclical_sine.get_by_index(7) - (std::f32::consts::TAU * 0.7).sin().abs()).abs()
+                < 1e-6
+        );
+        assert!((cyclical_sine.get_by_index(10) - 0.0).abs() < 1e-6);
 
         let stepwise = Rate::Stepwise(vec![(0, 0.0), (5, 0.5), (10, 1.0)]);
-        assert_eq!(stepwise.value(0), 0.0);
-        assert_eq!(stepwise.value(3), 0.0);
-        assert_eq!(stepwise.value(5), 0.5);
-        assert_eq!(stepwise.value(7), 0.5);
-        assert_eq!(stepwise.value(10), 1.0);
-        assert_eq!(stepwise.value(15), 1.0);
+        assert_eq!(stepwise.get_by_index(0), 0.0);
+        assert_eq!(stepwise.get_by_index(3), 0.0);
+        assert_eq!(stepwise.get_by_index(5), 0.5);
+        assert_eq!(stepwise.get_by_index(7), 0.5);
+        assert_eq!(stepwise.get_by_index(10), 1.0);
+        assert_eq!(stepwise.get_by_index(15), 1.0);
     }
 
     #[test]
@@ -301,12 +285,12 @@ mod tests {
         let stepwise = Rate::Stepwise(vec![(0, 0.0), (10, 0.5), (20, 1.0)]);
 
         for i in 0..100_000 {
-            let fixed_value = fixed.value(i);
-            let linear_value = linear.value(i);
-            let exp_value = exponential.value(i);
-            let cycle_value = cyclical.value(i);
-            let cycle_sine_value = cyclical_sine.value(i);
-            let stepwise_value = stepwise.value(i);
+            let fixed_value = fixed.get_by_index(i);
+            let linear_value = linear.get_by_index(i);
+            let exp_value = exponential.get_by_index(i);
+            let cycle_value = cyclical.get_by_index(i);
+            let cycle_sine_value = cyclical_sine.get_by_index(i);
+            let stepwise_value = stepwise.get_by_index(i);
 
             assert!(fixed_value >= 0.0 && fixed_value <= 1.0);
             assert!(linear_value >= 0.0 && linear_value <= 1.0);
@@ -320,14 +304,14 @@ mod tests {
     #[test]
     fn test_rate_clamping() {
         let linear = Rate::Linear(0.0, 1.0, 10);
-        assert_eq!(linear.value(15), 1.0);
+        assert_eq!(linear.get_by_index(15), 1.0);
     }
 
     #[test]
     fn test_default_rate() {
         let default_rate = Rate::default();
-        assert_eq!(default_rate.value(0), 1.0);
-        assert_eq!(default_rate.value(100), 1.0);
+        assert_eq!(default_rate.get_by_index(0), 1.0);
+        assert_eq!(default_rate.get_by_index(100), 1.0);
     }
 
     #[test]

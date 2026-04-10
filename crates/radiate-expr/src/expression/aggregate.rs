@@ -1,10 +1,7 @@
-use radiate_core::Statistic;
-use radiate_utils::WindowBuffer;
+use crate::{AnyValue, DataType, Expr, ExprProjection, ExprQuery};
+use radiate_utils::{Statistic, WindowBuffer};
 use std::collections::HashSet;
 use std::fmt::Debug;
-use std::sync::Arc;
-
-use crate::{AnyValue, DataType, Expr, ExprProjection, ExprQuery};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Rollup {
@@ -19,14 +16,14 @@ pub enum Rollup {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct AggExpr {
-    pub(super) child: Arc<Expr>,
+    pub(super) child: Box<Expr>,
     pub(super) rollup: Rollup,
 }
 
 impl AggExpr {
     pub fn new(child: Expr, rollup: Rollup) -> Self {
         Self {
-            child: Arc::new(child),
+            child: Box::new(child),
             rollup,
         }
     }
@@ -81,7 +78,7 @@ where
 {
     fn dispatch<'a>(&'a mut self, input: &T) -> AnyValue<'a> {
         if let Rollup::Unique = self.rollup {
-            let child_output = Arc::make_mut(&mut self.child).dispatch(input);
+            let child_output = self.child.dispatch(input);
             return match child_output {
                 AnyValue::Slice(values) => {
                     let deduped = values.iter().fold(HashSet::new(), |mut acc, v| {
@@ -102,7 +99,7 @@ where
                 _ => AnyValue::Null,
             };
         }
-        let child_output = Arc::make_mut(&mut self.child).dispatch(input);
+        let child_output = self.child.dispatch(input);
 
         match child_output {
             AnyValue::Slice(values) => Self::compute_rollup(values, self.rollup),
@@ -115,14 +112,14 @@ where
 #[derive(Clone, Debug, PartialEq)]
 pub struct BufferExpr {
     pub(super) buffer: WindowBuffer<AnyValue<'static>>,
-    pub(super) child: Arc<Expr>,
+    pub(super) child: Box<Expr>,
 }
 
 impl BufferExpr {
     pub fn new(child: Expr, window_size: usize) -> Self {
         Self {
             buffer: WindowBuffer::with_window(window_size),
-            child: Arc::new(child),
+            child: Box::new(child),
         }
     }
 }
@@ -132,7 +129,7 @@ where
     T: ExprProjection,
 {
     fn dispatch<'a>(&'a mut self, input: &T) -> AnyValue<'a> {
-        let child_output = Arc::make_mut(&mut self.child).dispatch(input).into_static();
+        let child_output = self.child.dispatch(input).into_static();
         self.buffer.push(child_output);
         AnyValue::Slice(&self.buffer.values())
     }

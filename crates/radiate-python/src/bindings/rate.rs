@@ -11,7 +11,7 @@ pub struct PyRate {
 #[pymethods]
 impl PyRate {
     pub fn value(&self, index: usize) -> f32 {
-        self.rate.value(index)
+        self.rate.get_by_index(index)
     }
 
     #[staticmethod]

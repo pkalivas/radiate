@@ -2,12 +2,14 @@ use crate::{
     Metric, MetricUpdate,
     stats::{Tag, TagKind, defaults::try_add_tag_from_str, fmt},
 };
+use radiate_expr::{AnyValue, DataType, ExprProjection, Field};
 use radiate_utils::intern;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     fmt::{Debug, Display},
+    time::Duration,
 };
 
 pub(super) const METRIC_SET: &str = "metric_set";
@@ -323,6 +325,47 @@ impl MetricSet {
             metric.set_version(version);
             self.metrics.insert(intern!(metric.name()), metric);
         }
+    }
+}
+
+impl ExprProjection for MetricSet {
+    fn project(&self, key: &AnyValue<'static>, field: &Field) -> Option<AnyValue<'static>> {
+        let value_to_float32 =
+            |value: Option<f32>| value.map(AnyValue::Float32).unwrap_or(AnyValue::Null);
+
+        let value_to_duration =
+            |value: Option<Duration>| value.map(AnyValue::Duration).unwrap_or(AnyValue::Null);
+
+        let str_key = key.clone().into_string()?;
+
+        self.get(str_key.as_str())
+            .map(|metric| match field.dtype() {
+                DataType::Float32 => match field.name().to_lowercase().as_str() {
+                    "last_value" => AnyValue::Float32(metric.last_value()),
+                    "mean" => value_to_float32(metric.value_mean()),
+                    "std_dev" => value_to_float32(metric.value_std_dev()),
+                    "min" => value_to_float32(metric.value_min()),
+                    "max" => value_to_float32(metric.value_max()),
+                    "sum" => value_to_float32(metric.value_sum()),
+                    "count" => AnyValue::UInt64(metric.count() as u64),
+                    "version" => AnyValue::UInt64(metric.version()),
+                    "update_count" => AnyValue::UInt64(metric.update_count() as u64),
+                    _ => AnyValue::Null,
+                },
+                DataType::Duration => match field.name().to_lowercase().as_str() {
+                    "last_value" => AnyValue::Duration(metric.last_time()),
+                    "mean" => value_to_duration(metric.time_mean()),
+                    "std_dev" => value_to_duration(metric.time_std_dev()),
+                    "min" => value_to_duration(metric.time_min()),
+                    "max" => value_to_duration(metric.time_max()),
+                    "sum" => value_to_duration(metric.time_sum()),
+                    "count" => AnyValue::UInt64(metric.count() as u64),
+                    "version" => AnyValue::UInt64(metric.version()),
+                    "update_count" => AnyValue::UInt64(metric.update_count() as u64),
+                    _ => AnyValue::Null,
+                },
+                _ => AnyValue::Null,
+            })
     }
 }
 

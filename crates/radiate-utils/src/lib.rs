@@ -4,6 +4,7 @@ mod fmt;
 mod intern;
 mod lru;
 mod primitives;
+mod stats;
 mod str;
 
 pub use array::{Shape, Strides, Tensor};
@@ -15,4 +16,5 @@ pub use intern::{
 };
 pub use lru::LruCache;
 pub use primitives::{Float, Integer, Primitive};
+pub use stats::{Distribution, Statistic, TimeStatistic};
 pub use str::SmallStr;

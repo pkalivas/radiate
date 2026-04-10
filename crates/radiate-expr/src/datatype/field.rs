@@ -11,8 +11,29 @@ pub struct Field {
 }
 
 impl Field {
+    pub const fn new_const(name: &'static str, dtype: DataType) -> Self {
+        Field {
+            name: SmallStr::from_static(name),
+            dtype,
+        }
+    }
+
     pub fn new(name: SmallStr, dtype: DataType) -> Self {
         Field { name, dtype }
+    }
+
+    pub fn with_dtype(&self, dtype: DataType) -> Self {
+        Field {
+            name: self.name.clone(),
+            dtype,
+        }
+    }
+
+    pub fn with_name(&self, name: SmallStr) -> Self {
+        Field {
+            name,
+            dtype: self.dtype.clone(),
+        }
     }
 
     #[inline]

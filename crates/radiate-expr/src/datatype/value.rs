@@ -178,6 +178,14 @@ impl<'a> AnyValue<'a> {
         }
     }
 
+    pub fn into_string(self) -> Option<String> {
+        match self {
+            AnyValue::Str(s) => Some(s.to_string()),
+            AnyValue::StrOwned(s) => Some(s),
+            _ => None,
+        }
+    }
+
     /// Try to coerce to an AnyValue with static lifetime.
     /// This can be done if it does not borrow any values.
     #[inline]
@@ -316,6 +324,18 @@ impl<'a> Hash for AnyValue<'a> {
 impl<'a> From<&'a str> for AnyValue<'a> {
     fn from(s: &'a str) -> Self {
         AnyValue::Str(s)
+    }
+}
+
+impl<'a> From<String> for AnyValue<'a> {
+    fn from(s: String) -> Self {
+        AnyValue::StrOwned(s)
+    }
+}
+
+impl From<f32> for AnyValue<'_> {
+    fn from(f: f32) -> Self {
+        AnyValue::Float32(f)
     }
 }
 

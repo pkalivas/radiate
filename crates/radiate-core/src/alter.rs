@@ -1,4 +1,3 @@
-use crate::rate::RateCalculator;
 use crate::{Chromosome, Gene, Genotype, Population, math::indexes, random_provider};
 use crate::{Lineage, LineageUpdate, MetricSet, MetricUpdate, Rate, metric};
 use radiate_utils::{ToSnakeCase, intern};
@@ -124,7 +123,7 @@ impl<C: Chromosome> Alterer<C> {
         metrics: &mut MetricSet,
         generation: usize,
     ) {
-        let rate = self.rate().rate(generation, metrics);
+        let rate = self.rate().get(generation, metrics);
         let operation = self.name();
 
         metrics.upsert(metric!(

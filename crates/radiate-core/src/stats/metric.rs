@@ -1,9 +1,7 @@
-use super::Statistic;
-use crate::{
-    TimeStatistic,
-    stats::{Tag, TagKind, defaults},
+use crate::stats::{Tag, TagKind, defaults};
+use radiate_utils::{
+    Statistic, TimeStatistic, ToSnakeCase, cache_arc_string, intern, intern_snake_case,
 };
-use radiate_utils::{ToSnakeCase, cache_arc_string, intern, intern_snake_case};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::{hash::Hash, sync::Arc, time::Duration};
