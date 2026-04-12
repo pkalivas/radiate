@@ -3,6 +3,8 @@ use core::f32;
 use serde::{Deserialize, Serialize};
 use std::hash::Hash;
 
+use crate::Primitive;
+
 #[derive(PartialEq, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Adder {
@@ -319,6 +321,18 @@ impl Hash for Statistic {
         self.m2.value().to_bits().hash(state);
         self.m3.value().to_bits().hash(state);
         self.m4.value().to_bits().hash(state);
+    }
+}
+
+impl<T: Primitive> FromIterator<T> for Statistic {
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        let mut statistic = Statistic::default();
+        for item in iter {
+            if let Some(value) = item.extract::<f32>() {
+                statistic.add(value);
+            }
+        }
+        statistic
     }
 }
 

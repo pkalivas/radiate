@@ -91,6 +91,115 @@ impl<'a> AnyValue<'a> {
             _ => unreachable!("cmp_same_variant called with different variants"),
         }
     }
+
+    fn fuzzy_cmp(&self, other: &Self) -> Option<Ordering> {
+        use AnyValue::*;
+
+        if self.is_float() && other.is_float() {
+            return self.cmp_float(other);
+        } else if self.is_int() && other.is_int() {
+            return self.cmp_int(other);
+        } else if self.is_string() && other.is_string() {
+            return self.cmp_str(other);
+        } else {
+            let res = match (self, other) {
+                (Null, Null) => Ordering::Equal,
+                (Bool(a), Bool(b)) => a.cmp(b),
+
+                (Vector(a), Vector(b)) => a.iter().cmp(b.iter()),
+                (Slice(a), Slice(b)) => a.iter().cmp(b.iter()),
+
+                _ => return None,
+            };
+
+            Some(res)
+        }
+    }
+
+    fn cmp_float(&self, other: &Self) -> Option<Ordering> {
+        use AnyValue::*;
+
+        match (self, other) {
+            (Float32(a), Float32(b)) => Some(a.total_cmp(b)),
+            (Float64(a), Float64(b)) => Some(a.total_cmp(b)),
+            (Float32(a), Float64(b)) => Some((*a as f64).total_cmp(b)),
+            (Float64(a), Float32(b)) => Some(a.total_cmp(&(*b as f64))),
+            _ => None,
+        }
+    }
+
+    fn cmp_str(&self, other: &Self) -> Option<Ordering> {
+        use AnyValue::*;
+
+        match (self, other) {
+            (Str(a), Str(b)) => Some(a.cmp(b)),
+            (StrOwned(a), StrOwned(b)) => Some(a.cmp(b)),
+            (Char(a), Char(b)) => Some(a.cmp(b)),
+
+            (Str(a), StrOwned(b)) => Some(a.cmp(&b.as_str())),
+            (StrOwned(a), Str(b)) => Some(a.as_str().cmp(b)),
+            _ => None,
+        }
+    }
+
+    fn cmp_int(&self, other: &Self) -> Option<Ordering> {
+        use AnyValue::*;
+
+        match (self, other) {
+            (Int8(a), Int8(b)) => Some(a.cmp(b)),
+            (Int16(a), Int16(b)) => Some(a.cmp(b)),
+            (Int32(a), Int32(b)) => Some(a.cmp(b)),
+            (Int64(a), Int64(b)) => Some(a.cmp(b)),
+            (Int128(a), Int128(b)) => Some(a.cmp(b)),
+
+            (UInt8(a), UInt8(b)) => Some(a.cmp(b)),
+            (UInt16(a), UInt16(b)) => Some(a.cmp(b)),
+            (UInt32(a), UInt32(b)) => Some(a.cmp(b)),
+            (UInt64(a), UInt64(b)) => Some(a.cmp(b)),
+            (UInt128(a), UInt128(b)) => Some(a.cmp(b)),
+
+            (Int8(a), Int16(b)) => Some((*a as i16).cmp(b)),
+            (Int8(a), Int32(b)) => Some((*a as i32).cmp(b)),
+            (Int8(a), Int64(b)) => Some((*a as i64).cmp(b)),
+            (Int8(a), Int128(b)) => Some((*a as i128).cmp(b)),
+
+            (Int16(a), Int8(b)) => Some(a.cmp(&(*b as i16))),
+            (Int16(a), Int32(b)) => Some((*a as i32).cmp(b)),
+            (Int16(a), Int64(b)) => Some((*a as i64).cmp(b)),
+            (Int16(a), Int128(b)) => Some((*a as i128).cmp(b)),
+
+            (Int32(a), Int8(b)) => Some(a.cmp(&(*b as i32))),
+            (Int32(a), Int16(b)) => Some(a.cmp(&(*b as i32))),
+            (Int32(a), Int64(b)) => Some((*a as i64).cmp(b)),
+            (Int32(a), Int128(b)) => Some((*a as i128).cmp(b)),
+
+            (Int64(a), Int8(b)) => Some(a.cmp(&(*b as i64))),
+            (Int64(a), Int16(b)) => Some(a.cmp(&(*b as i64))),
+            (Int64(a), Int32(b)) => Some(a.cmp(&(*b as i64))),
+            (Int64(a), Int128(b)) => Some((*a as i128).cmp(b)),
+
+            (UInt8(a), UInt16(b)) => Some((*a as u16).cmp(b)),
+            (UInt8(a), UInt32(b)) => Some((*a as u32).cmp(b)),
+            (UInt8(a), UInt64(b)) => Some((*a as u64).cmp(b)),
+            (UInt8(a), UInt128(b)) => Some((*a as u128).cmp(b)),
+
+            (UInt16(a), UInt8(b)) => Some(a.cmp(&(*b as u16))),
+            (UInt16(a), UInt32(b)) => Some((*a as u32).cmp(b)),
+            (UInt16(a), UInt64(b)) => Some((*a as u64).cmp(b)),
+            (UInt16(a), UInt128(b)) => Some((*a as u128).cmp(b)),
+
+            (UInt32(a), UInt8(b)) => Some(a.cmp(&(*b as u32))),
+            (UInt32(a), UInt16(b)) => Some(a.cmp(&(*b as u32))),
+            (UInt32(a), UInt64(b)) => Some((*a as u64).cmp(b)),
+            (UInt32(a), UInt128(b)) => Some((*a as u128).cmp(b)),
+
+            (UInt64(a), UInt8(b)) => Some(a.cmp(&(*b as u64))),
+            (UInt64(a), UInt16(b)) => Some(a.cmp(&(*b as u64))),
+            (UInt64(a), UInt32(b)) => Some(a.cmp(&(*b as u64))),
+            (UInt64(a), UInt128(b)) => Some((*a as u128).cmp(b)),
+            _ => None,
+        }
+    }
 }
 
 impl<'a> PartialOrd for AnyValue<'a> {
@@ -101,9 +210,13 @@ impl<'a> PartialOrd for AnyValue<'a> {
 
 impl<'a> Ord for AnyValue<'a> {
     fn cmp(&self, other: &Self) -> Ordering {
-        match self.variant_rank().cmp(&other.variant_rank()) {
-            Ordering::Equal => self.cmp_same_variant(other),
-            non_eq => non_eq,
+        if let Some(like_cmp) = self.fuzzy_cmp(other) {
+            like_cmp
+        } else {
+            match self.variant_rank().cmp(&other.variant_rank()) {
+                Ordering::Equal => self.cmp_same_variant(other),
+                non_eq => non_eq,
+            }
         }
     }
 }

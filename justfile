@@ -77,8 +77,8 @@ test lang="":
         exit 1; \
     fi
 
-test-py: _require-uv
-    @uv run -m pytest -n auto
+test-py *args: _require-uv
+    @uv run -m pytest -n auto {{args}}
 
 test-rs:
     @cargo test

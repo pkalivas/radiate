@@ -9,6 +9,8 @@ pub enum Rollup {
     Min,
     Max,
     Sum,
+    Var,
+    Skew,
     Count,
     Unique,
 }
@@ -33,11 +35,9 @@ impl AggExpr {
 
         if values.is_empty() {
             return match rollup {
-                Rollup::Mean | Rollup::StdDev | Rollup::Min | Rollup::Max | Rollup::Sum => {
-                    AnyValue::Float32(0.0)
-                }
                 Rollup::Count => AnyValue::UInt64(0),
                 Rollup::Unique => AnyValue::Vector(vec![]),
+                _ => AnyValue::Float32(0.0),
             };
         }
 
@@ -100,6 +100,7 @@ where
 pub struct BufferExpr {
     pub(super) buffer: WindowBuffer<AnyValue<'static>>,
     pub(super) child: Box<Expr>,
+    pub(super) dtype: DataType,
 }
 
 impl BufferExpr {
@@ -107,6 +108,7 @@ impl BufferExpr {
         Self {
             buffer: WindowBuffer::with_window(window_size),
             child: Box::new(child),
+            dtype: DataType::Null,
         }
     }
 }
@@ -117,6 +119,17 @@ where
 {
     fn dispatch<'a>(&'a mut self, input: &T) -> AnyValue<'a> {
         let child_output = self.child.dispatch(input).into_static();
+
+        if self.dtype == DataType::Null {
+            self.dtype = child_output.dtype();
+        } else if self.dtype != child_output.dtype() {
+            panic!(
+                "BufferExpr received value of type {:?} but expected {:?}",
+                child_output.dtype(),
+                self.dtype
+            );
+        }
+
         self.buffer.push(child_output);
         AnyValue::Slice(&self.buffer.values())
     }

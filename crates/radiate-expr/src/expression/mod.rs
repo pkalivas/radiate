@@ -27,6 +27,8 @@ mod expr_fields {
     pub static MIN: Field = Field::new_const("min", DataType::Float32);
     pub static MAX: Field = Field::new_const("max", DataType::Float32);
     pub static SUM: Field = Field::new_const("sum", DataType::Float32);
+    pub static VAR: Field = Field::new_const("var", DataType::Float32);
+    pub static SKEW: Field = Field::new_const("skew", DataType::Float32);
     pub static COUNT: Field = Field::new_const("count", DataType::UInt64);
     pub static LAST_VALUE: Field = Field::new_const("last_value", DataType::Float32);
     // pub static VERSION: Field = Field::new_const("version", DataType::UInt64);
@@ -126,6 +128,18 @@ impl Expr {
     pub fn max(self) -> Expr {
         self.try_swap_select_field_or(&expr_fields::MAX, |s| {
             Expr::Aggregate(AggExpr::new(s, Rollup::Max))
+        })
+    }
+
+    pub fn var(self) -> Expr {
+        self.try_swap_select_field_or(&expr_fields::VAR, |s| {
+            Expr::Aggregate(AggExpr::new(s, Rollup::Var))
+        })
+    }
+
+    pub fn skew(self) -> Expr {
+        self.try_swap_select_field_or(&expr_fields::SKEW, |s| {
+            Expr::Aggregate(AggExpr::new(s, Rollup::Skew))
         })
     }
 

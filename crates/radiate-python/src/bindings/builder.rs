@@ -81,6 +81,8 @@ impl PyEngineBuilder {
             .map(|inputs| inputs.transform())
             .unwrap_or_default();
 
+        println!("Limits: {:?}", limits);
+
         Ok(PyEngine::new(
             limits,
             match inner {

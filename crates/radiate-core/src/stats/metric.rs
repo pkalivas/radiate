@@ -1,4 +1,6 @@
 use crate::stats::{Tag, TagKind, defaults};
+use radiate_error::{RadiateError, radiate_err};
+use radiate_expr::AnyValue;
 use radiate_utils::{
     Statistic, TimeStatistic, ToSnakeCase, cache_arc_string, intern, intern_snake_case,
 };
@@ -442,11 +444,73 @@ impl From<TimeStatistic> for MetricUpdate<'_> {
     }
 }
 
+
+impl<'a> TryFrom<AnyValue<'a>> for MetricUpdate<'a> {
+    type Error = RadiateError;
+
+    fn try_from(value: AnyValue<'a>) -> Result<Self, Self::Error> {
+        match value {
+            AnyValue::UInt8(v) => Ok(MetricUpdate::Float(v as f32)),
+            AnyValue::UInt16(v) => Ok(MetricUpdate::Float(v as f32)),
+            AnyValue::UInt32(v) => Ok(MetricUpdate::Float(v as f32)),
+            AnyValue::UInt64(v) => Ok(MetricUpdate::Float(v as f32)),
+            AnyValue::UInt128(v) => Ok(MetricUpdate::Float(v as f32)),
+
+            AnyValue::Int8(v) => Ok(MetricUpdate::Float(v as f32)),
+            AnyValue::Int16(v) => Ok(MetricUpdate::Float(v as f32)),
+            AnyValue::Int32(v) => Ok(MetricUpdate::Float(v as f32)),
+            AnyValue::Int64(v) => Ok(MetricUpdate::Float(v as f32)),
+            AnyValue::Int128(v) => Ok(MetricUpdate::Float(v as f32)),
+
+            AnyValue::Float32(v) => Ok(MetricUpdate::Float(v)),
+            AnyValue::Float64(v) => Ok(MetricUpdate::Float(v as f32)),
+
+            AnyValue::Duration(v) => Ok(MetricUpdate::Duration(v)),
+
+            AnyValue::Slice(values) => {
+                let out = values
+                    .iter()
+                    .enumerate()
+                    .map(|(index, v)| {
+                        v.clone().extract::<f32>().ok_or(
+                            radiate_err!(
+                                Metric: 
+                                "cannot convert AnyValue sequence into MetricUpdate::Statistic: element at index {index} has non-numeric type `{}`", v.type_name()))
+                            
+                    })
+                    .collect::<Result<Statistic, _>>()?;
+
+                Ok(MetricUpdate::Statistic(out))
+            }
+
+            AnyValue::Vector(values) => {
+                let out = values
+                    .into_iter()
+                    .enumerate()
+                    .map(|(index, v)| {
+                        let ty = v.type_name();
+                        v.extract::<f32>()
+                            .ok_or(radiate_err!(
+                                Metric: 
+                                "cannot convert AnyValue sequence into MetricUpdate::Distribution: element at index {index} has non-numeric type `{ty}`"
+                            ))
+                    })
+                    .collect::<Result<Statistic, _>>()?;
+
+                Ok(MetricUpdate::Statistic(out))
+            }
+
+            other => Err(radiate_err!(Metric: "cannot convert AnyValue of type `{}` into MetricUpdate", other.type_name())),
+        }
+    }
+}
+
 impl std::fmt::Debug for Metric {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Metric {{ name: {}, }}", self.name)
     }
 }
+
 
 #[cfg(test)]
 mod tests {

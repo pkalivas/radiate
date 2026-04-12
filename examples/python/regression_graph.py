@@ -37,7 +37,7 @@ class ScorePlotterHandler(rd.EventHandler):
             plt.ylabel("Best Score")
             plt.title("Best Score over Generations")
             plt.grid(True)
-            plt.show()
+            # plt.show()
 
 
 def compute(x: float) -> float:
@@ -55,6 +55,13 @@ for _ in range(-10, 10):
 
 subscriber = ScorePlotterHandler()
 
+expr = rd.metric("scores").min().rolling(10).mean() <= 0.01
+print(expr.__repr__())
+import sys
+
+sys.exit(0)
+limit = rd.Limit.expr(rd.metric("scores").min().rolling(10).mean() <= 0.01)
+
 engine = (
     rd.Engine.graph(
         shape=(1, 1),
@@ -69,7 +76,7 @@ engine = (
         rd.Mutate.op(0.07, 0.05),
         rd.Mutate.graph(0.1, 0.1, False),
     )
-    .limit(rd.Limit.generations(1000), rd.Limit.score(0.001))
+    .limit(limit)
 )
 
 result = engine.run(log=True)

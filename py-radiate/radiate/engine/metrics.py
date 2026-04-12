@@ -5,6 +5,9 @@ import enum
 from datetime import timedelta
 
 from radiate._bridge.wrapper import RsObject
+from radiate.expr import Expr
+
+from radiate.radiate import PyMetricSet
 
 
 class Tag(enum.Enum):
@@ -75,8 +78,10 @@ tag_map = {
 
 
 class MetricSet(RsObject):
-    def __init__(self, *args, **kwargs):
-        pass
+    def __init__(self, values: dict[str, Any] | None = None, **kwargs):
+        update = values.copy() if values else {}
+        update.update(kwargs)
+        super().__init__(PyMetricSet(update))
 
     def __repr__(self):
         return self.__backend__().__repr__()
@@ -127,6 +132,13 @@ class MetricSet(RsObject):
                 "Pandas is not available. Please install it to use this feature."
             )
         return self.__backend__().to_pandas()
+
+    def project(self, expr: Expr) -> Any:
+        return self.__backend__().project(expr.__backend__())
+
+    def upsert(self, name: str, value: Any) -> None:
+        """Upsert new metrics into the MetricSet."""
+        self.__backend__().upsert(name, value)
 
 
 class Metric(RsObject):

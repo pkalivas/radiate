@@ -12,6 +12,7 @@ pub enum Code {
     Evaluation,
     Genome,
     Fitness,
+    Metric,
     Other,
     Io,
     Python,
@@ -39,6 +40,9 @@ pub enum RadiateError {
     #[error("Invalid fitness: {0}")]
     Fitness(String),
 
+    #[error("Metric error: {0}")]
+    Metric(String),
+
     #[cfg(feature = "python")]
     #[error("Python error: {0}")]
     Python(#[from] pyo3::PyErr),
@@ -65,6 +69,7 @@ impl RadiateError {
             RadiateError::Genome { .. } => Code::Genome,
             RadiateError::Codec { .. } => Code::Codec,
             RadiateError::Fitness { .. } => Code::Fitness,
+            RadiateError::Metric { .. } => Code::Metric,
             RadiateError::Evaluation { .. } => Code::Evaluation,
             RadiateError::Other(_) => Code::Other,
             #[cfg(feature = "python")]
@@ -127,6 +132,9 @@ macro_rules! radiate_err {
     (Python: $fmt:literal $(, $arg:expr)* $(,)?) => {
         $crate::__private::must_use(pyo3::PyErr::new::<pyo3::exceptions::PyException, _>(format!($fmt, $($arg),*)))
     };
+    (Metric: $fmt:literal $(, $arg:expr)* $(,)?) => {
+        $crate::__private::must_use($crate::RadiateError::Metric(format!($fmt, $($arg),*)))
+    };
 
     // Raw string-like message (any expr -> String)
     (Builder: $msg:expr $(,)?) => {
@@ -145,7 +153,7 @@ macro_rules! radiate_err {
         $crate::__private::must_use($crate::RadiateError::Evaluation($msg.to_string()))
     };
 
-    // Fallback -> Engine
+    // Fallback -> Engine (for now, could be Metric or other)
     ($msg:expr $(,)?) => {
         $crate::__private::must_use($crate::RadiateError::Engine($msg.to_string()))
     };

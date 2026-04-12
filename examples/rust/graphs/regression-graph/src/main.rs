@@ -12,6 +12,10 @@ fn main() {
         (NodeType::Output, vec![Op::linear()]),
     ];
 
+    let expr = expr::select("scores").min().rolling(10).mean().lte(0.01);
+
+    println!("{:#?}", expr);
+
     let engine = GeneticEngine::builder()
         .codec(GraphCodec::directed(1, 1, store))
         .raw_batch_fitness_fn(Regression::new(dataset(), Loss::MSE))

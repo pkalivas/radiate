@@ -137,10 +137,9 @@ from .dtype import (
     String,
     Char,
     Null,
-    Op32,
-    Node,
 )
 
+from .expr import Expr, metric, when
 
 from .dsl import Select, Mutate, Cross, Dist, Limit
 
@@ -168,6 +167,10 @@ __all__ = [
     "_TORCH_AVAILABLE",
     # Random
     "random",
+    # Expressions
+    "Expr",
+    "metric",
+    "when",
     # Codecs
     "PermutationCodec",
     "FloatCodec",

@@ -615,6 +615,7 @@ class Engine[G, T]:
         - rd.Limit.seconds(time): Stop after a certain amount of time has elapsed.
         - rd.Limit.convergence(window, epsilon): Stop when the population has converged based on a specified window of generations and convergence threshold.
         - rd.Limit.metric(metric_name, lambda metric: bool): Stop when a custom metric function returns True.
+        - rd.Limit.expr(Expr): Stop when a custom expression evaluates to True.
 
         Args:
             *limits: One or more limits to apply during evolution.

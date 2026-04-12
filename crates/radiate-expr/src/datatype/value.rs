@@ -50,6 +50,33 @@ impl<'a> AnyValue<'a> {
     }
 
     #[inline]
+    pub fn is_float(&self) -> bool {
+        matches!(self, Self::Float32(_) | Self::Float64(_))
+    }
+
+    #[inline]
+    pub fn is_int(&self) -> bool {
+        matches!(
+            self,
+            Self::Int8(_)
+                | Self::Int16(_)
+                | Self::Int32(_)
+                | Self::Int64(_)
+                | Self::Int128(_)
+                | Self::UInt8(_)
+                | Self::UInt16(_)
+                | Self::UInt32(_)
+                | Self::UInt64(_)
+                | Self::UInt128(_)
+        )
+    }
+
+    #[inline]
+    pub fn is_string(&self) -> bool {
+        matches!(self, Self::Str(_) | Self::StrOwned(_))
+    }
+
+    #[inline]
     pub fn is_nested(&self) -> bool {
         matches!(self, Self::Struct(_) | Self::Vector(_) | Self::Slice(_))
     }

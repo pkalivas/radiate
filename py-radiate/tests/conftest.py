@@ -227,6 +227,32 @@ def simple_bit_20_bit_engine():
 
 
 """
+Metric Fixtures
+"""
+
+
+@pytest.fixture
+def simple_metric_set():
+    """Create a simple MetricSet for testing."""
+    return rd.MetricSet(
+        one=list(range(10)),
+        two=list(range(10, 20)),
+    )
+
+
+@pytest.fixture
+def large_metric_set():
+    """Create a larger MetricSet for testing."""
+    return rd.MetricSet(
+        one=list(range(100)),
+        two=list(range(100, 200)),
+        three=list(range(200, 300)),
+        four=list(range(300, 400)),
+        five=list(range(400, 500)),
+    )
+
+
+"""
 Performance Benchmarking Utilities
 """
 

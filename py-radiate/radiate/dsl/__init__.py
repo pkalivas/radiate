@@ -1,3 +1,4 @@
+from radiate.expr import Expr
 from radiate.operators.selector import (
     TournamentSelector,
     RouletteSelector,
@@ -35,6 +36,7 @@ from radiate.operators.alterer import (
     ScrambleMutator,
 )
 from radiate.operators.limit import (
+    ExprLimit,
     ScoreLimit,
     GenerationsLimit,
     SecondsLimit,
@@ -534,8 +536,12 @@ class Limit:
     @staticmethod
     def metric(
         name: str = "evaluation_count", limit=lambda metric: metric.sum() > 1000
-    ):
+    ) -> MetricLimit:
         return MetricLimit(name, limit)
+
+    @staticmethod
+    def expr(expr: Expr) -> ExprLimit:
+        return ExprLimit(expr)
 
 
 class Dist:

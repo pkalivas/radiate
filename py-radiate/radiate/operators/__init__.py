@@ -53,6 +53,7 @@ from .limit import (
     ScoreLimit,
     ConvergenceLimit,
     MetricLimit,
+    ExprLimit,
 )
 
 from .rate import Rate
@@ -109,6 +110,7 @@ __all__ = [
     "GenerationsLimit",
     "ScoreLimit",
     "MetricLimit",
+    "ExprLimit",
     # Descriptors
     "ConvergenceLimit",
     "CustomDescriptor",

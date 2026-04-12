@@ -19,6 +19,7 @@
 
 use crate::{Generation, Limit, control::EngineControl, init_logging};
 use radiate_core::{Chromosome, Engine, Metric, Objective, Optimize, Score};
+use radiate_expr::{AnyValue, ApplyExpr, Expr};
 #[cfg(feature = "serde")]
 use serde::Serialize;
 #[cfg(feature = "serde")]
@@ -639,6 +640,11 @@ where
                 limit: predicate,
                 done: false,
             }),
+            Limit::Expr(expr) => Box::new(ExprLimitIterator {
+                iter: self,
+                expr,
+                done: false,
+            }),
             Limit::Combined(limits) => {
                 let mut iter: Box<dyn Iterator<Item = Generation<C, T>>> = Box::new(self);
                 for limit in limits {
@@ -665,6 +671,11 @@ where
                             iter,
                             metric_name: name,
                             limit: predicate,
+                            done: false,
+                        }),
+                        Limit::Expr(expr) => Box::new(ExprLimitIterator {
+                            iter,
+                            expr,
                             done: false,
                         }),
                         _ => iter,
@@ -951,6 +962,43 @@ where
             if (self.limit)(metric) {
                 self.done = true;
             }
+        }
+
+        Some(next)
+    }
+}
+
+struct ExprLimitIterator<C, T, I>
+where
+    I: Iterator<Item = Generation<C, T>>,
+    C: Chromosome,
+{
+    iter: I,
+    expr: Expr,
+    done: bool,
+}
+
+impl<I, C, T> Iterator for ExprLimitIterator<C, T, I>
+where
+    I: Iterator<Item = Generation<C, T>>,
+    C: Chromosome,
+{
+    type Item = Generation<C, T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.done {
+            return None;
+        }
+
+        let next = self.iter.next()?;
+        let expr_output = next.metrics().apply(&mut self.expr);
+        if let AnyValue::Bool(val) = expr_output {
+            self.done = val;
+        } else {
+            panic!(
+                "Expression should evaluate to a boolean value, got: {:?}",
+                expr_output
+            );
         }
 
         Some(next)
