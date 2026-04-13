@@ -24,6 +24,9 @@ where
                 Some(current)
             }
             SelectExpr::Nth(n) => self.get(*n).cloned().map(Into::into),
+            SelectExpr::Element => Some(AnyValue::Vector(
+                self.iter().cloned().map(Into::into).collect(),
+            )),
             _ => None,
         }
     }
@@ -142,7 +145,7 @@ mod tests {
         let mut selector =
             SelectExpr::Path(vec![PathSegment::Key(AnyValue::from("nope").into_static())]);
 
-        let result = selector.dispatch(&values).unwrap();
+        let result = selector.dispatch(&values).unwrap_or(AnyValue::Null);
 
         assert!(matches!(result, AnyValue::Null));
     }
@@ -182,7 +185,7 @@ mod tests {
             AnyValue::from("missing").into_static(),
         )]);
 
-        let result = selector.dispatch(&map).unwrap();
+        let result = selector.dispatch(&map).unwrap_or(AnyValue::Null);
 
         assert!(matches!(result, AnyValue::Null));
     }

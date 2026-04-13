@@ -2,6 +2,8 @@ use pyo3::{pyclass, pymethods};
 use radiate::{Rate, rate::CycleShape};
 use std::fmt::Debug;
 
+use crate::PyExpr;
+
 #[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct PyRate {
@@ -52,6 +54,13 @@ impl PyRate {
     pub fn stepwise(steps: Vec<(usize, f32)>) -> Self {
         PyRate {
             rate: Rate::Stepwise(steps),
+        }
+    }
+
+    #[staticmethod]
+    pub fn expression(expr: PyExpr) -> Self {
+        PyRate {
+            rate: Rate::Expr(expr.into()),
         }
     }
 }

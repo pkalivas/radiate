@@ -72,6 +72,6 @@ def test_multiple_limits(simple_float_engine):
         assert result.index() == 5, "Should respect generations limit"
 
     other_result = simple_float_engine.limit(
-        rd.Limit.metric("evaluation_count", lambda metric: metric.sum() > 1000)
+        rd.Limit.metric("count.evaluation", lambda metric: metric.sum() > 1000)
     ).run()
-    assert other_result.metrics()["evaluation_count"].sum() > 1000
+    assert other_result.metrics()["count.evaluation"].sum() > 1000

@@ -3,18 +3,18 @@ use core::f32;
 use serde::{Deserialize, Serialize};
 use std::hash::Hash;
 
-use crate::Primitive;
+use crate::{Float, Primitive};
 
-#[derive(PartialEq, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct Adder {
-    compensation: f32,
-    simple_sum: f32,
-    sum: f32,
+#[derive(PartialEq, Clone)]
+pub struct Adder<F: Float = f32> {
+    compensation: F,
+    simple_sum: F,
+    sum: F,
 }
 
-impl Adder {
-    pub fn value(&self) -> f32 {
+impl<F: Float> Adder<F> {
+    pub fn value(&self) -> F {
         let result = self.sum + self.compensation;
         if result.is_nan() {
             self.simple_sum
@@ -23,48 +23,48 @@ impl Adder {
         }
     }
 
-    pub fn add(&mut self, value: f32) {
+    pub fn add(&mut self, value: F) {
         let y = value - self.compensation;
         let t = self.sum + y;
 
         self.compensation = (t - self.sum) - y;
         self.sum = t;
-        self.simple_sum += value;
+        self.simple_sum = self.simple_sum + value;
     }
 }
 
-impl Default for Adder {
+impl<F: Float> Default for Adder<F> {
     fn default() -> Self {
         Adder {
-            compensation: 0_f32,
-            simple_sum: 0_f32,
-            sum: 0_f32,
+            compensation: F::ZERO,
+            simple_sum: F::ZERO,
+            sum: F::ZERO,
         }
     }
 }
 
 #[derive(PartialEq, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct Statistic {
-    m1: Adder,
-    m2: Adder,
-    m3: Adder,
-    m4: Adder,
-    sum: Adder,
+pub struct Statistic<F: Float = f32> {
+    m1: Adder<F>,
+    m2: Adder<F>,
+    m3: Adder<F>,
+    m4: Adder<F>,
+    sum: Adder<F>,
     count: i32,
-    last_value: f32,
-    max: f32,
-    min: f32,
+    last_value: F,
+    max: F,
+    min: F,
 }
 
-impl Statistic {
-    pub fn new(initial_val: f32) -> Self {
+impl<F: Float> Statistic<F> {
+    pub fn new(initial_val: F) -> Self {
         let mut result = Statistic::default();
         result.add(initial_val);
         result
     }
 
-    pub fn last_value(&self) -> f32 {
+    pub fn last_value(&self) -> F {
         self.last_value
     }
 
@@ -72,106 +72,104 @@ impl Statistic {
         self.count
     }
 
-    pub fn min(&self) -> f32 {
+    pub fn min(&self) -> F {
         self.min
     }
 
-    pub fn max(&self) -> f32 {
+    pub fn max(&self) -> F {
         self.max
     }
 
-    pub fn mean(&self) -> f32 {
+    pub fn mean(&self) -> F {
         if self.count == 0 {
-            0_f32
+            F::ZERO
         } else {
             self.m1.value()
         }
     }
 
-    pub fn sum(&self) -> f32 {
+    pub fn sum(&self) -> F {
         self.sum.value()
     }
 
     #[inline(always)]
-    pub fn variance(&self) -> f32 {
-        let mut value = f32::NAN;
+    pub fn variance(&self) -> Option<F> {
+        let mut value = F::MIN;
         if self.count == 1 {
             value = self.m2.value();
         } else if self.count > 1 {
-            value = self.m2.value() / (self.count - 1) as f32;
+            value = self.m2.value() / (F::from(self.count)? - F::ONE);
         }
 
-        value
+        Some(value)
     }
 
     #[inline(always)]
-    pub fn std_dev(&self) -> f32 {
-        self.variance().sqrt()
+    pub fn std_dev(&self) -> Option<F> {
+        Some(self.variance()?.sqrt())
     }
 
     #[inline(always)]
-    pub fn skewness(&self) -> f32 {
-        let mut value = f32::NAN;
+    pub fn skewness(&self) -> Option<F> {
+        let mut value = F::NAN;
+        let count = F::from(self.count)?;
         if self.count >= 3 {
-            let temp = self.m2.value() / self.count as f32 - 1_f32;
-            if temp < 10e-10_f32 {
-                value = 0_f32;
+            let temp = self.m2.value() / count - F::ONE;
+            if temp < F::EPS {
+                value = F::ZERO;
             } else {
-                value = self.count as f32 * self.m3.value()
-                    / ((self.count as f32 - 1_f32)
-                        * (self.count as f32 - 2_f32)
-                        * temp.sqrt()
-                        * temp)
+                value = count * self.m3.value()
+                    / ((count - F::ONE) * (count - F::TWO) * temp.sqrt() * temp)
             }
         }
 
-        value
+        Some(value)
     }
 
     #[inline(always)]
-    pub fn kurtosis(&self) -> f32 {
-        let mut value = f32::NAN;
+    pub fn kurtosis(&self) -> Option<F> {
+        let mut value = F::NAN;
+        let count = F::from(self.count)?;
+
         if self.count >= 4 {
-            let temp = self.m2.value() / self.count as f32 - 1_f32;
-            if temp < 10e-10_f32 {
-                value = 0_f32;
+            let temp = self.m2.value() / count - F::ONE;
+            if temp < F::EPS {
+                value = F::ZERO;
             } else {
-                value = self.count as f32 * (self.count as f32 + 1_f32) * self.m4.value()
-                    / ((self.count as f32 - 1_f32)
-                        * (self.count as f32 - 2_f32)
-                        * (self.count as f32 - 3_f32)
-                        * temp
-                        * temp)
+                value = count * (count + F::ONE) * self.m4.value()
+                    / ((count - F::ONE) * (count - F::TWO) * (count - F::THREE) * temp * temp)
             }
         }
 
-        value
+        Some(value)
     }
 
     #[inline(always)]
-    pub fn add(&mut self, value: f32) {
+    pub fn add(&mut self, value: F) -> Option<()> {
         self.count += 1;
 
-        let n = self.count as f32;
+        let n = F::from(self.count)?;
         let d = value - self.m1.value();
         let dn = d / n;
         let dn2 = dn * dn;
-        let t1 = d * dn * (n - 1_f32);
+        let t1 = d * dn * (n - F::ONE);
 
         self.m1.add(dn);
 
-        self.m4.add(t1 * dn2 * (n * n - 3_f32 * n + 3_f32));
+        self.m4.add(t1 * dn2 * (n * n - F::THREE * n + F::THREE));
         self.m4
-            .add(6_f32 * dn2 * self.m2.value() - 4_f32 * dn * self.m3.value());
+            .add(F::SIX * dn2 * self.m2.value() - F::FOUR * dn * self.m3.value());
 
         self.m3
-            .add(t1 * dn * (n - 2_f32) - 3_f32 * dn * self.m2.value());
+            .add(t1 * dn * (n - F::TWO) - F::THREE * dn * self.m2.value());
         self.m2.add(t1);
 
         self.last_value = value;
         self.max = if value > self.max { value } else { self.max };
         self.min = if value < self.min { value } else { self.min };
         self.sum.add(value);
+
+        Some(())
     }
 
     pub fn clear(&mut self) {
@@ -181,12 +179,12 @@ impl Statistic {
         self.m4 = Adder::default();
         self.sum = Adder::default();
         self.count = 0;
-        self.last_value = 0_f32;
-        self.max = f32::MIN;
-        self.min = f32::MAX;
+        self.last_value = F::ZERO;
+        self.max = F::MIN;
+        self.min = F::MAX;
     }
 
-    pub fn merge(&mut self, other: &Statistic) {
+    pub fn merge(&mut self, other: &Statistic<F>) {
         if other.count == 0 {
             return;
         }
@@ -209,18 +207,18 @@ impl Statistic {
         }
 
         // Use f64 for more accurate intermediate math
-        let n1 = self.count as f64;
-        let n2 = other.count as f64;
+        let n1 = F::from(self.count).unwrap_or(F::ZERO);
+        let n2 = F::from(other.count).unwrap_or(F::ZERO);
 
-        let mean1 = self.m1.value() as f64;
-        let mean2 = other.m1.value() as f64;
+        let mean1 = self.m1.value();
+        let mean2 = other.m1.value();
 
-        let m21 = self.m2.value() as f64;
-        let m22 = other.m2.value() as f64;
-        let m31 = self.m3.value() as f64;
-        let m32 = other.m3.value() as f64;
-        let m41 = self.m4.value() as f64;
-        let m42 = other.m4.value() as f64;
+        let m21 = self.m2.value();
+        let m22 = other.m2.value();
+        let m31 = self.m3.value();
+        let m32 = other.m3.value();
+        let m41 = self.m4.value();
+        let m42 = other.m4.value();
 
         let n = n1 + n2;
         let delta = mean2 - mean1;
@@ -237,27 +235,27 @@ impl Statistic {
         let m3 = m31
             + m32
             + delta3 * n1n2 * (n1 - n2) / (n * n)
-            + 3.0 * delta * (n1 * m22 - n2 * m21) / n;
+            + F::THREE * delta * (n1 * m22 - n2 * m21) / n;
 
         let m4 = m41
             + m42
             + delta4 * n1n2 * (n1 * n1 - n1 * n2 + n2 * n2) / (n * n * n)
-            + 6.0 * delta2 * (n1 * n1 * m22 + n2 * n2 * m21) / (n * n)
-            + 4.0 * delta * (n1 * m32 - n2 * m31) / n;
+            + F::SIX * delta2 * (n1 * n1 * m22 + n2 * n2 * m21) / (n * n)
+            + F::FOUR * delta * (n1 * m32 - n2 * m31) / n;
 
         // Write back into Kahan adders.
         // Using `Adder::default()` + single `add` is fine:
         self.m1 = Adder::default();
-        self.m1.add(mean as f32);
+        self.m1.add(mean);
 
         self.m2 = Adder::default();
-        self.m2.add(m2 as f32);
+        self.m2.add(m2);
 
         self.m3 = Adder::default();
-        self.m3.add(m3 as f32);
+        self.m3.add(m3);
 
         self.m4 = Adder::default();
-        self.m4.add(m4 as f32);
+        self.m4.add(m4);
 
         // Merge auxiliary stats
         self.sum.add(other.sum()); // preserves Kahan accuracy for the total sum
@@ -270,25 +268,21 @@ impl Statistic {
     }
 
     /// Convenience: return a merged copy instead of mutating in-place
-    pub fn merged(mut self, other: &Statistic) -> Statistic {
+    pub fn merged(mut self, other: &Statistic<F>) -> Statistic<F> {
         self.merge(other);
         self
     }
 }
 
-impl Default for Statistic {
-    fn default() -> Self {
-        Statistic {
-            m1: Adder::default(),
-            m2: Adder::default(),
-            m3: Adder::default(),
-            m4: Adder::default(),
-            sum: Adder::default(),
-            count: 0,
-            last_value: 0_f32,
-            max: f32::MIN,
-            min: f32::MAX,
+impl<T: Primitive, F: Float> FromIterator<T> for Statistic<F> {
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        let mut statistic = Statistic::<F>::default();
+        for item in iter {
+            if let Some(value) = item.extract::<F>() {
+                statistic.add(value);
+            }
         }
+        statistic
     }
 }
 
@@ -310,6 +304,22 @@ impl From<usize> for Statistic {
     }
 }
 
+impl<F: Float> Default for Statistic<F> {
+    fn default() -> Self {
+        Statistic {
+            m1: Adder::default(),
+            m2: Adder::default(),
+            m3: Adder::default(),
+            m4: Adder::default(),
+            sum: Adder::default(),
+            count: 0,
+            last_value: F::ZERO,
+            max: F::MIN,
+            min: F::MAX,
+        }
+    }
+}
+
 impl Hash for Statistic {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.count.hash(state);
@@ -321,18 +331,6 @@ impl Hash for Statistic {
         self.m2.value().to_bits().hash(state);
         self.m3.value().to_bits().hash(state);
         self.m4.value().to_bits().hash(state);
-    }
-}
-
-impl<T: Primitive> FromIterator<T> for Statistic {
-    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
-        let mut statistic = Statistic::default();
-        for item in iter {
-            if let Some(value) = item.extract::<f32>() {
-                statistic.add(value);
-            }
-        }
-        statistic
     }
 }
 
@@ -354,7 +352,7 @@ mod tests {
 
     #[test]
     fn test_statistic() {
-        let mut statistic = Statistic::default();
+        let mut statistic = Statistic::<f32>::default();
         statistic.add(1_f32);
         statistic.add(2_f32);
         statistic.add(3_f32);
@@ -362,9 +360,9 @@ mod tests {
         statistic.add(5_f32);
 
         assert_eq!(statistic.mean(), 3_f32);
-        assert_eq!(statistic.variance(), 2.5_f32);
-        assert_eq!(statistic.std_dev(), 1.5811388_f32);
-        assert_eq!(statistic.skewness(), 0_f32);
+        assert_eq!(statistic.variance().unwrap(), 2.5_f32);
+        assert_eq!(statistic.std_dev().unwrap(), 1.5811388_f32);
+        assert_eq!(statistic.skewness().unwrap(), 0_f32);
     }
 
     #[test]
@@ -381,9 +379,9 @@ mod tests {
 
         let merged = stat1.merged(&stat2);
         assert_eq!(merged.mean(), 3.5_f32);
-        assert_eq!(merged.variance(), 3.5_f32);
-        assert_eq!(merged.std_dev(), 1.8708287_f32);
-        assert_eq!(merged.skewness(), 0_f32);
+        assert_eq!(merged.variance().unwrap(), 3.5_f32);
+        assert_eq!(merged.std_dev().unwrap(), 1.8708287_f32);
+        assert_eq!(merged.skewness().unwrap(), 0_f32);
         assert_eq!(merged.count(), 6);
         assert_eq!(merged.min(), 1_f32);
         assert_eq!(merged.max(), 6_f32);

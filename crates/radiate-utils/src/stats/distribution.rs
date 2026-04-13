@@ -33,19 +33,19 @@ impl Distribution {
     }
 
     pub fn variance(&self) -> f32 {
-        self.statistic.variance()
+        self.statistic.variance().unwrap()
     }
 
     pub fn standard_deviation(&self) -> f32 {
-        self.statistic.std_dev()
+        self.statistic.std_dev().unwrap()
     }
 
     pub fn skewness(&self) -> f32 {
-        self.statistic.skewness()
+        self.statistic.skewness().unwrap()
     }
 
     pub fn kurtosis(&self) -> f32 {
-        self.statistic.kurtosis()
+        self.statistic.kurtosis().unwrap()
     }
 
     pub fn min(&self) -> f32 {

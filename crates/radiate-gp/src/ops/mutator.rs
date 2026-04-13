@@ -4,8 +4,8 @@ use crate::{Factory, GraphChromosome, NodeStore, NodeType, TreeChromosome};
 use radiate_core::{AlterContext, AlterResult, Mutate, Rate, Valid};
 use radiate_core::{Chromosome, random_provider};
 
-const OP_MUTATED: &str = "op_mutate";
-const OP_NEW_INSTANCE: &str = "op_new";
+const OP_MUTATED: &str = "mutate.operation.mutated";
+const OP_NEW_INSTANCE: &str = "mutate.operation.new";
 
 #[derive(Default)]
 struct OpMutateMetrics {

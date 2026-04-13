@@ -1,3 +1,5 @@
+use radiate_error::radiate_bail;
+
 use crate::AnyValue;
 use std::ops::{Add, Div, Mul, Rem, Sub};
 use std::ops::{BitAnd, BitOr, Not};
@@ -397,6 +399,57 @@ impl<'a> Not for AnyValue<'a> {
         match self {
             AnyValue::Bool(v) => AnyValue::Bool(!v),
             _ => AnyValue::Null,
+        }
+    }
+}
+
+#[inline]
+pub(crate) fn pow_anyvalue(
+    base: &AnyValue<'_>,
+    exp: &AnyValue<'_>,
+) -> Result<AnyValue<'static>, radiate_error::RadiateError> {
+    use AnyValue::*;
+    match (base, exp) {
+        (Int8(a), Int8(b)) => Ok(Int8(a.pow(*b as u32))),
+        (Int16(a), Int8(b)) => Ok(Int16(a.pow(*b as u32))),
+        (Int32(a), Int8(b)) => Ok(Int32(a.pow(*b as u32))),
+        (Int64(a), Int8(b)) => Ok(Int64(a.pow(*b as u32))),
+        (Int128(a), Int8(b)) => Ok(Int128(a.pow(*b as u32))),
+
+        (Int16(a), Int16(b)) => Ok(Int16(a.pow(*b as u32))),
+        (Int32(a), Int16(b)) => Ok(Int32(a.pow(*b as u32))),
+        (Int64(a), Int16(b)) => Ok(Int64(a.pow(*b as u32))),
+        (Int128(a), Int16(b)) => Ok(Int128(a.pow(*b as u32))),
+
+        (Int32(a), Int32(b)) => Ok(Int32(a.pow(*b as u32))),
+        (Int64(a), Int32(b)) => Ok(Int64(a.pow(*b as u32))),
+        (Int128(a), Int32(b)) => Ok(Int128(a.pow(*b as u32))),
+
+        (Int64(a), Int64(b)) => Ok(Int64(a.pow(*b as u32))),
+        (Int128(a), Int64(b)) => Ok(Int128(a.pow(*b as u32))),
+
+        (Int128(a), Int128(b)) => Ok(Int128(a.pow(*b as u32))),
+
+        (UInt8(a), UInt8(b)) => Ok(UInt8(a.pow(*b as u32))),
+        (UInt8(a), UInt16(b)) => Ok(UInt16((u16::from(*a)).pow(u32::from(*b)))),
+        (UInt8(a), UInt32(b)) => Ok(UInt32((u32::from(*a)).pow(u32::from(*b)))),
+
+        (UInt16(a), UInt16(b)) => Ok(UInt16(a.pow(*b as u32))),
+        (UInt16(a), UInt32(b)) => Ok(UInt32((u32::from(*a)).pow(u32::from(*b)))),
+
+        (UInt32(a), UInt32(b)) => Ok(UInt32(a.pow(*b as u32))),
+
+        (UInt64(a), UInt64(b)) => Ok(UInt64(a.pow(*b as u32))),
+
+        (UInt128(a), UInt128(b)) => Ok(UInt128(a.pow(*b as u32))),
+
+        (Float32(a), Float32(b)) => Ok(Float32(a.powf(*b))),
+        (Float32(a), Float64(b)) => Ok(Float64((*a as f64).powf(*b))),
+
+        (Float64(a), Float32(b)) => Ok(Float64(a.powf(*b as f64))),
+        (Float64(a), Float64(b)) => Ok(Float64(a.powf(*b))),
+        _ => {
+            radiate_bail!(Expr: "Exponentiation is only supported for numeric types, got base {:?} and exponent {:?}", base, exp)
         }
     }
 }

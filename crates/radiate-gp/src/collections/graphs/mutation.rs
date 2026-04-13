@@ -5,7 +5,7 @@ use crate::{Arity, Factory, NodeType};
 use radiate_core::{AlterContext, Chromosome};
 use radiate_core::{AlterResult, Mutate, random_provider};
 
-const INVALID_MUTATION: &str = "graph_mut_failure";
+const INVALID_MUTATION: &str = "mutate.graph.invalid";
 
 /// A graph mutator that can be used to alter the graph structure within a [`GraphChromosome<T>`].
 /// By adding new vertices and edges to the graph, it can be used to explore the search space of a graph.

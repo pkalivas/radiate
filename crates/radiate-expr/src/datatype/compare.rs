@@ -101,6 +101,16 @@ impl<'a> AnyValue<'a> {
             return self.cmp_int(other);
         } else if self.is_string() && other.is_string() {
             return self.cmp_str(other);
+        } else if self.is_int() && other.is_float() {
+            return self
+                .clone()
+                .cast(&other.dtype())
+                .and_then(|v| v.fuzzy_cmp(other));
+        } else if self.is_float() && other.is_int() {
+            return self
+                .clone()
+                .cast(&other.dtype())
+                .and_then(|v| v.fuzzy_cmp(other));
         } else {
             let res = match (self, other) {
                 (Null, Null) => Ordering::Equal,
@@ -162,41 +172,73 @@ impl<'a> AnyValue<'a> {
             (Int8(a), Int32(b)) => Some((*a as i32).cmp(b)),
             (Int8(a), Int64(b)) => Some((*a as i64).cmp(b)),
             (Int8(a), Int128(b)) => Some((*a as i128).cmp(b)),
+            (Int8(a), UInt8(b)) => Some((*a as i16).cmp(&(*b as i16))),
+            (Int8(a), UInt16(b)) => Some((*a as i32).cmp(&(*b as i32))),
+            (Int8(a), UInt32(b)) => Some((*a as i64).cmp(&(*b as i64))),
+            (Int8(a), UInt64(b)) => Some((*a as i128).cmp(&(*b as i128))),
 
             (Int16(a), Int8(b)) => Some(a.cmp(&(*b as i16))),
             (Int16(a), Int32(b)) => Some((*a as i32).cmp(b)),
             (Int16(a), Int64(b)) => Some((*a as i64).cmp(b)),
             (Int16(a), Int128(b)) => Some((*a as i128).cmp(b)),
+            (Int16(a), UInt8(b)) => Some((*a as i32).cmp(&(*b as i32))),
+            (Int16(a), UInt16(b)) => Some((*a as i32).cmp(&(*b as i32))),
+            (Int16(a), UInt32(b)) => Some((*a as i64).cmp(&(*b as i64))),
+            (Int16(a), UInt64(b)) => Some((*a as i128).cmp(&(*b as i128))),
 
             (Int32(a), Int8(b)) => Some(a.cmp(&(*b as i32))),
             (Int32(a), Int16(b)) => Some(a.cmp(&(*b as i32))),
             (Int32(a), Int64(b)) => Some((*a as i64).cmp(b)),
             (Int32(a), Int128(b)) => Some((*a as i128).cmp(b)),
+            (Int32(a), UInt8(b)) => Some((*a as i64).cmp(&(*b as i64))),
+            (Int32(a), UInt16(b)) => Some((*a as i64).cmp(&(*b as i64))),
+            (Int32(a), UInt32(b)) => Some((*a as i64).cmp(&(*b as i64))),
+            (Int32(a), UInt64(b)) => Some((*a as i128).cmp(&(*b as i128))),
 
             (Int64(a), Int8(b)) => Some(a.cmp(&(*b as i64))),
             (Int64(a), Int16(b)) => Some(a.cmp(&(*b as i64))),
             (Int64(a), Int32(b)) => Some(a.cmp(&(*b as i64))),
             (Int64(a), Int128(b)) => Some((*a as i128).cmp(b)),
+            (Int64(a), UInt8(b)) => Some((*a as i128).cmp(&(*b as i128))),
+            (Int64(a), UInt16(b)) => Some((*a as i128).cmp(&(*b as i128))),
+            (Int64(a), UInt32(b)) => Some((*a as i128).cmp(&(*b as i128))),
+            (Int64(a), UInt64(b)) => Some((*a as i128).cmp(&(*b as i128))),
 
             (UInt8(a), UInt16(b)) => Some((*a as u16).cmp(b)),
             (UInt8(a), UInt32(b)) => Some((*a as u32).cmp(b)),
             (UInt8(a), UInt64(b)) => Some((*a as u64).cmp(b)),
             (UInt8(a), UInt128(b)) => Some((*a as u128).cmp(b)),
+            (UInt8(a), Int8(b)) => Some((*a as i16).cmp(&(*b as i16))),
+            (UInt8(a), Int16(b)) => Some((*a as i32).cmp(&(*b as i32))),
+            (UInt8(a), Int32(b)) => Some((*a as i64).cmp(&(*b as i64))),
+            (UInt8(a), Int64(b)) => Some((*a as i128).cmp(&(*b as i128))),
 
             (UInt16(a), UInt8(b)) => Some(a.cmp(&(*b as u16))),
             (UInt16(a), UInt32(b)) => Some((*a as u32).cmp(b)),
             (UInt16(a), UInt64(b)) => Some((*a as u64).cmp(b)),
             (UInt16(a), UInt128(b)) => Some((*a as u128).cmp(b)),
+            (UInt16(a), Int8(b)) => Some((*a as i32).cmp(&(*b as i32))),
+            (UInt16(a), Int16(b)) => Some((*a as i32).cmp(&(*b as i32))),
+            (UInt16(a), Int32(b)) => Some((*a as i64).cmp(&(*b as i64))),
+            (UInt16(a), Int64(b)) => Some((*a as i128).cmp(&(*b as i128))),
 
             (UInt32(a), UInt8(b)) => Some(a.cmp(&(*b as u32))),
             (UInt32(a), UInt16(b)) => Some(a.cmp(&(*b as u32))),
             (UInt32(a), UInt64(b)) => Some((*a as u64).cmp(b)),
             (UInt32(a), UInt128(b)) => Some((*a as u128).cmp(b)),
+            (UInt32(a), Int8(b)) => Some((*a as i64).cmp(&(*b as i64))),
+            (UInt32(a), Int16(b)) => Some((*a as i64).cmp(&(*b as i64))),
+            (UInt32(a), Int32(b)) => Some((*a as i64).cmp(&(*b as i64))),
+            (UInt32(a), Int64(b)) => Some((*a as i128).cmp(&(*b as i128))),
 
             (UInt64(a), UInt8(b)) => Some(a.cmp(&(*b as u64))),
             (UInt64(a), UInt16(b)) => Some(a.cmp(&(*b as u64))),
             (UInt64(a), UInt32(b)) => Some(a.cmp(&(*b as u64))),
             (UInt64(a), UInt128(b)) => Some((*a as u128).cmp(b)),
+            (UInt64(a), Int8(b)) => Some((*a as i128).cmp(&(*b as i128))),
+            (UInt64(a), Int16(b)) => Some((*a as i128).cmp(&(*b as i128))),
+            (UInt64(a), Int32(b)) => Some((*a as i128).cmp(&(*b as i128))),
+            (UInt64(a), Int64(b)) => Some((*a as i128).cmp(&(*b as i128))),
             _ => None,
         }
     }

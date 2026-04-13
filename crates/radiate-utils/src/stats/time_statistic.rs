@@ -35,11 +35,11 @@ impl TimeStatistic {
     }
 
     pub fn variance(&self) -> Duration {
-        Duration::from_secs_f32(self.statistic.variance())
+        Duration::from_secs_f32(self.statistic.variance().unwrap())
     }
 
     pub fn standard_deviation(&self) -> Duration {
-        Duration::from_secs_f32(self.statistic.std_dev())
+        Duration::from_secs_f32(self.statistic.std_dev().unwrap())
     }
 
     pub fn min(&self) -> Duration {

@@ -1,6 +1,6 @@
 use crate::{AnyValue, DataType, Expr, ExprProjection, ExprQuery, ExprResult, value};
 use radiate_error::{radiate_bail, radiate_err};
-use radiate_utils::{Statistic, WindowBuffer};
+use radiate_utils::{Slope, Statistic, WindowBuffer};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
@@ -19,6 +19,7 @@ pub enum Rollup {
     Skew,
     Count,
     Unique,
+    Slope,
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -52,6 +53,17 @@ impl AggExpr {
             return Ok(values[0].clone());
         } else if let Rollup::Last = rollup {
             return Ok(values[values.len() - 1].clone());
+        } else if let Rollup::Slope = rollup {
+            if values.len() < 2 {
+                return Ok(AnyValue::Float32(0.0));
+            }
+
+            let slope = values
+                .iter()
+                .filter_map(|v| v.clone().extract::<f32>())
+                .collect::<Slope<f32>>();
+
+            return Ok(AnyValue::Float32(slope.value().unwrap_or(0.0)));
         }
 
         for value in values.iter() {
@@ -77,7 +89,7 @@ impl AggExpr {
 
         let result = match rollup {
             Rollup::Mean => AnyValue::Float32(stats.mean()),
-            Rollup::StdDev => AnyValue::Float32(stats.std_dev()),
+            Rollup::StdDev => AnyValue::Float32(stats.std_dev().unwrap()),
             Rollup::Min => AnyValue::Float32(stats.min()),
             Rollup::Max => AnyValue::Float32(stats.max()),
             Rollup::Sum => AnyValue::Float32(stats.sum()),

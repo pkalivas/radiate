@@ -18,7 +18,7 @@ use radiate_error::RadiateError;
 use radiate_utils::SmallStr;
 pub use select::SelectExpr;
 #[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, ser::SerializeStruct};
 use std::fmt::Debug;
 
 mod expr_fields {
@@ -48,7 +48,6 @@ pub trait ExprQuery<I> {
     fn dispatch<'a>(&'a mut self, input: &I) -> ExprResult<'a>;
 }
 
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct NamedExpr {
     pub name: &'static str,
@@ -80,6 +79,36 @@ impl NamedExpr {
 impl From<(&'static str, Expr)> for NamedExpr {
     fn from((name, expr): (&'static str, Expr)) -> Self {
         Self::new(name, expr)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl Serialize for NamedExpr {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut state = serializer.serialize_struct("NamedExpr", 2)?;
+        state.serialize_field("name", &self.name)?;
+        state.serialize_field("expr", &self.expr)?;
+        state.end()
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> Deserialize<'de> for NamedExpr {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct NamedExprData {
+            name: String,
+            expr: Expr,
+        }
+
+        let data = NamedExprData::deserialize(deserializer)?;
+        Ok(NamedExpr::new(radiate_utils::intern!(data.name), data.expr))
     }
 }
 
@@ -135,6 +164,10 @@ impl Expr {
     pub fn value(mut self) -> Expr {
         self.try_swap_select_dtype(DataType::Float32);
         self
+    }
+
+    pub fn debug(self) -> Expr {
+        Expr::Unary(UnaryExpr::new(self, UnaryOp::Debug))
     }
 
     pub fn rolling(self, window_size: usize) -> Expr {
@@ -202,8 +235,16 @@ impl Expr {
         })
     }
 
+    pub fn slope(self) -> Expr {
+        Expr::Aggregate(AggExpr::new(self, Rollup::Slope))
+    }
+
     pub fn unique(self) -> Expr {
         Expr::Aggregate(AggExpr::new(self, Rollup::Unique))
+    }
+
+    pub fn pow(self, exp: impl Into<Expr>) -> Expr {
+        Expr::Binary(BinaryExpr::new(self, exp.into(), BinaryOp::Pow))
     }
 
     /// Comparisons
@@ -291,6 +332,10 @@ impl Expr {
             interval,
         ))))
     }
+
+    pub fn cast(self, to: DataType) -> Expr {
+        Expr::Unary(UnaryExpr::new(self, UnaryOp::Cast(to)))
+    }
 }
 
 impl<I> ExprQuery<I> for Expr
@@ -330,6 +375,14 @@ pub mod expr {
         Expr::Selector(SelectExpr::Field(
             AnyValue::StrOwned(small_name.clone().into_string()),
             LAST_VALUE.clone(),
+        ))
+    }
+
+    pub fn select_with_dtype(name: impl Into<SmallStr>, dtype: DataType) -> Expr {
+        let small_name = name.into();
+        Expr::Selector(SelectExpr::Field(
+            AnyValue::StrOwned(small_name.clone().into_string()),
+            LAST_VALUE.clone().with_dtype(dtype),
         ))
     }
 

@@ -62,6 +62,16 @@ impl<C: Chromosome, T> Context<C, T> {
                 .upsert((metric_names::BEST_SCORE_IMPROVEMENT, 1));
         }
 
+        if let Some(score) = &self.score {
+            if score.len() == 1 {
+                self.metrics.upsert((metric_names::BEST_SCORES, score[0]));
+            } else {
+                for (i, score) in score.as_slice().iter().enumerate() {
+                    self.metrics.upsert((metric_names::BEST_SCORES, *score, i));
+                }
+            }
+        }
+
         if let Some(exprs) = &self.exprs {
             let mut exprs = exprs.lock().unwrap();
             for expr in exprs.iter_mut() {
@@ -109,7 +119,7 @@ where
                 objective: config.objective().clone(),
                 problem: config.problem().clone(),
                 control: None,
-                exprs: None,
+                exprs: generation.exprs(),
             };
         }
 

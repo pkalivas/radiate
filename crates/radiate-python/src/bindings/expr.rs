@@ -1,7 +1,7 @@
 use pyo3::prelude::*;
 use radiate::{AnyValue, Expr, ExprQuery, expr};
 
-use crate::Wrap;
+use crate::{Wrap, dtype_from_str};
 
 #[pyclass(from_py_object)]
 #[repr(transparent)]
@@ -23,9 +23,13 @@ impl PyExpr {
 #[pymethods]
 impl PyExpr {
     #[staticmethod]
-    pub fn metric(name: &str) -> Self {
+    #[pyo3(signature = (name, dtype=None))]
+    pub fn metric(name: &str, dtype: Option<&str>) -> Self {
         PyExpr {
-            inner: expr::select(name),
+            inner: match dtype {
+                Some(dtype_str) => expr::select_with_dtype(name, dtype_from_str(dtype_str)),
+                None => expr::select(name),
+            },
         }
     }
 
@@ -80,6 +84,19 @@ impl PyExpr {
         format!("{:?}", self.inner)
     }
 
+    pub fn cast(&self, to: String) -> Self {
+        let dtype = dtype_from_str(&to);
+        self.inner.clone().cast(dtype).into()
+    }
+
+    pub fn debug(&self) -> Self {
+        self.inner.clone().debug().into()
+    }
+
+    pub fn slope(&self) -> Self {
+        self.inner.clone().slope().into()
+    }
+
     pub fn time(&self) -> Self {
         self.inner.clone().time().into()
     }
@@ -130,6 +147,10 @@ impl PyExpr {
 
     pub fn unique(&self) -> Self {
         self.inner.clone().unique().into()
+    }
+
+    pub fn pow(&self, exp: &PyExpr) -> Self {
+        self.inner.clone().pow(exp.inner.clone()).into()
     }
 
     pub fn lt(&self, rhs: &PyExpr) -> Self {

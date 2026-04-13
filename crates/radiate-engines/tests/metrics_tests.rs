@@ -117,8 +117,8 @@ mod tests {
                 );
 
                 assert!(
-                    round_value(engine_statistics.std_dev())
-                        == round_value(loaded_statistics.std_dev()),
+                    round_value(engine_statistics.std_dev().unwrap_or(0.0))
+                        == round_value(loaded_statistics.std_dev().unwrap_or(0.0)),
                     "Std Dev values do not match for metric: {}",
                     key
                 );
@@ -136,22 +136,22 @@ mod tests {
                 );
 
                 assert!(
-                    round_value(engine_statistics.variance())
-                        == round_value(loaded_statistics.variance()),
+                    round_value(engine_statistics.variance().unwrap_or(0.0))
+                        == round_value(loaded_statistics.variance().unwrap_or(0.0)),
                     "Variance values do not match for metric: {}",
                     key
                 );
 
                 assert!(
-                    round_value(engine_statistics.kurtosis())
-                        == round_value(loaded_statistics.kurtosis()),
+                    round_value(engine_statistics.kurtosis().unwrap_or(0.0))
+                        == round_value(loaded_statistics.kurtosis().unwrap_or(0.0)),
                     "Kurtosis values do not match for metric: {}",
                     key
                 );
 
                 assert!(
-                    round_value(engine_statistics.skewness())
-                        == round_value(loaded_statistics.skewness()),
+                    round_value(engine_statistics.skewness().unwrap_or(0.0))
+                        == round_value(loaded_statistics.skewness().unwrap_or(0.0)),
                     "Skewness values do not match for metric: {}",
                     key
                 );

@@ -1,4 +1,5 @@
 use crate::{AnyValue, Expr, ExprProjection, ExprQuery, ExprResult, Field};
+use radiate_error::radiate_bail;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
@@ -52,6 +53,10 @@ where
     T: ExprProjection,
 {
     fn dispatch<'a>(&'a mut self, input: &T) -> ExprResult<'a> {
-        Ok(input.project(self).unwrap_or(AnyValue::Null))
+        if let Some(result) = input.project(self) {
+            Ok(result)
+        } else {
+            radiate_bail!(Expr: "Failed to project value using selector {:?}", self)
+        }
     }
 }

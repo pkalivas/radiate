@@ -127,7 +127,7 @@ impl<C: Chromosome> Alterer<C> {
         let operation = self.name();
 
         metrics.upsert(metric!(
-            radiate_utils::intern!(format!("{}_rate", operation)),
+            radiate_utils::intern!(format!("{}.rate", operation)),
             rate
         ));
 
@@ -175,11 +175,21 @@ const MIN_NUM_PARENTS: usize = 2;
 /// entire population.
 pub trait Crossover<C: Chromosome>: Send + Sync {
     fn name(&self) -> String {
-        std::any::type_name::<Self>()
+        let name = std::any::type_name::<Self>()
             .split("::")
             .last()
             .map(|s| s.to_snake_case())
-            .unwrap()
+            .unwrap();
+
+        let path = name.split('_').collect::<Vec<&str>>();
+        let mut new_name = vec!["crossover"];
+        for part in path {
+            if !part.contains("crossov") {
+                new_name.push(part);
+            }
+        }
+
+        new_name.join(".")
     }
 
     fn rate(&self) -> Rate {
@@ -277,11 +287,21 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
 
 pub trait Mutate<C: Chromosome>: Send + Sync {
     fn name(&self) -> String {
-        std::any::type_name::<Self>()
+        let name = std::any::type_name::<Self>()
             .split("::")
             .last()
             .map(|s| s.to_snake_case())
-            .unwrap()
+            .unwrap();
+
+        let path = name.split('_').collect::<Vec<&str>>();
+        let mut new_name = vec!["mutate"];
+        for part in path {
+            if !part.contains("mutat") {
+                new_name.push(part);
+            }
+        }
+
+        new_name.join(".")
     }
 
     fn rate(&self) -> Rate {

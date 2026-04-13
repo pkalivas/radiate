@@ -21,6 +21,7 @@ from radiate.operators import (
     Executor,
     LimitBase,
     Rate,
+    ExprLimit,
 )
 from radiate.fitness import FitnessBase, Regression, MSE
 from radiate.genome import Population, GeneType, Gene, Chromosome
@@ -609,7 +610,7 @@ class Engine[G, T]:
         self._builder.set_diversity(diversity, species_threshold)
         return self
 
-    def limit(self, *limits: LimitBase) -> Engine[G, T]:
+    def limit(self, *limits: LimitBase | Expr) -> Engine[G, T]:
         """
         Set the limits for the engine.
 
@@ -660,7 +661,15 @@ class Engine[G, T]:
         >>> ...
         >>> result = engine.run()  # <- run the engine with the specified limits. The engine will stop when any of the limits are reached.
         """
-        self._builder.set_limits(list(limits))
+        processed_limits = []
+        for lim in limits:
+            if isinstance(lim, LimitBase):
+                processed_limits.append(lim)
+            elif isinstance(lim, Expr):
+                processed_limits.append(ExprLimit(lim))
+            else:
+                raise ValueError("Limits must be instances of LimitBase or Expr.")
+        self._builder.set_limits(list(processed_limits))
         return self
 
     def size(self, size: int) -> Engine[G, T]:

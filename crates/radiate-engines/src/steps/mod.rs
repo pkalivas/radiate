@@ -21,13 +21,28 @@ where
     C: Chromosome,
 {
     fn name(&self) -> &'static str {
-        std::any::type_name::<Self>()
+        let name = std::any::type_name::<Self>()
             .split("<")
             .next()
             .unwrap_or(std::any::type_name::<Self>())
             .split("::")
             .last()
-            .unwrap_or("Unknown Step")
+            .unwrap_or("Unknown Step");
+
+        if let Some(interned) = radiate_utils::try_get_interned_str(name) {
+            return interned;
+        }
+
+        let snake_case_name = radiate_utils::intern_name_as_snake_case(name);
+
+        let mut parts = snake_case_name
+            .split('_')
+            .filter(|part| !part.is_empty() && !part.contains("step"))
+            .collect::<Vec<_>>();
+
+        parts.insert(0, "step");
+
+        radiate_utils::intern_kv_pair(name, radiate_utils::intern!(parts.join(".")))
     }
 
     fn execute(

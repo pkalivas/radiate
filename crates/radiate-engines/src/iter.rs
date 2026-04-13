@@ -962,6 +962,11 @@ where
             if (self.limit)(metric) {
                 self.done = true;
             }
+        } else {
+            panic!(
+                "Metric '{}' not found in generation metrics",
+                self.metric_name,
+            );
         }
 
         Some(next)

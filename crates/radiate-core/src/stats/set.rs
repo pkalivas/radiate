@@ -384,6 +384,7 @@ impl ExprProjection for MetricSet {
                 },
                 _ => AnyValue::Null,
             })
+            .or_else(|| Some(AnyValue::Null))
     }
 }
 
@@ -442,8 +443,8 @@ impl<'de> Deserialize<'de> for MetricSet {
 pub enum MetricSetUpdate<'a> {
     Many(Vec<Metric>),
     Single(Metric),
-    NamedSingle(&'static str, MetricUpdate<'a>, Option<TagKind>),
     ManyUpdate(Vec<(&'static str, MetricUpdate<'a>)>),
+    NamedSingle(&'static str, MetricUpdate<'a>, Option<TagKind>),
 }
 
 impl From<Vec<Metric>> for MetricSetUpdate<'_> {
@@ -473,6 +474,16 @@ where
 {
     fn from((tag, name, update): (TagKind, &'static str, U)) -> Self {
         MetricSetUpdate::NamedSingle(name, update.into(), Some(tag))
+    }
+}
+
+impl<'a, U> From<(&'static str, U, usize)> for MetricSetUpdate<'a>
+where
+    U: Into<MetricUpdate<'a>>,
+{
+    fn from((name, update, count): (&'static str, U, usize)) -> Self {
+        let name = radiate_utils::intern!(format!("{name}.{count}"));
+        MetricSetUpdate::NamedSingle(name, update.into(), None)
     }
 }
 

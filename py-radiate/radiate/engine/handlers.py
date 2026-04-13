@@ -170,3 +170,30 @@ class MetricCollector(EventHandler):
                 for m in metric_set.values()
             ]
         )
+
+    def plot(self, *names: str):
+        from radiate._dependancies import _MATPLOTLIB_AVAILABLE
+
+        if not _MATPLOTLIB_AVAILABLE:
+            raise ImportError(
+                "Matplotlib is not available. Please install it to use this feature."
+            )
+
+        from radiate._dependancies import matplotlib as plt
+
+        vals = {name: [] for name in names}
+        for metric_set in self.metric_history:
+            for name in names:
+                metric = metric_set[name]
+                vals[name].append(metric.value_last())
+
+        x = list(range(max(len(v) for v in vals.values())))
+        for name, scores in vals.items():
+            plt.plot(x, scores, label=name)
+
+        plt.xlabel("Epoch")
+        plt.ylabel("Value")
+        plt.title("Metrics over Epochs")
+        plt.grid(True)
+        plt.legend()
+        plt.show()

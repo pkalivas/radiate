@@ -301,15 +301,15 @@ impl Metric {
     }
 
     pub fn value_variance(&self) -> Option<f32> {
-        self.statistic().map(|stat| stat.variance())
+        self.statistic().and_then(|stat| stat.variance())
     }
 
     pub fn value_std_dev(&self) -> Option<f32> {
-        self.statistic().map(|stat| stat.std_dev())
+        self.statistic().and_then(|stat| stat.std_dev())
     }
 
     pub fn value_skewness(&self) -> Option<f32> {
-        self.statistic().map(|stat| stat.skewness())
+        self.statistic().and_then(|stat| stat.skewness())
     }
 
     pub fn value_min(&self) -> Option<f32> {
@@ -402,11 +402,6 @@ impl From<Duration> for MetricUpdate<'_> {
     }
 }
 
-impl<'a> From<&'a [f32]> for MetricUpdate<'a> {
-    fn from(value: &'a [f32]) -> Self {
-        MetricUpdate::Distribution(value)
-    }
-}
 
 impl From<(f32, Duration)> for MetricUpdate<'_> {
     fn from(value: (f32, Duration)) -> Self {
@@ -417,6 +412,12 @@ impl From<(f32, Duration)> for MetricUpdate<'_> {
 impl From<(usize, Duration)> for MetricUpdate<'_> {
     fn from(value: (usize, Duration)) -> Self {
         MetricUpdate::UsizeOperation(value.0, value.1)
+    }
+}
+
+impl<'a> From<&'a [f32]> for MetricUpdate<'a> {
+    fn from(value: &'a [f32]) -> Self {
+        MetricUpdate::Distribution(value)
     }
 }
 

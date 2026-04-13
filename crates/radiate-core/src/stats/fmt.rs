@@ -102,9 +102,9 @@ pub fn render_metric_rows_full(
             stat.max(),
             stat.count(),
             "-",
-            stat.std_dev(),
-            stat.skewness(),
-            stat.kurtosis(),
+            stat.std_dev().unwrap_or(0.0),
+            stat.skewness().unwrap_or(0.0),
+            stat.kurtosis().unwrap_or(0.0),
             "-",
         ).unwrap();
     }

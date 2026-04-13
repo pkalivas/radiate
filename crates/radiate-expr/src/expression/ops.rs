@@ -1,14 +1,16 @@
-use crate::{AnyValue, Expr, ExprProjection, ExprQuery, ExprResult};
+use crate::{AnyValue, DataType, Expr, ExprProjection, ExprQuery, ExprResult};
 use radiate_error::radiate_bail;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum UnaryOp {
     Not,
     Neg,
     Abs,
+    Cast(DataType),
+    Debug,
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -47,6 +49,14 @@ where
                 Some(v) => Ok(AnyValue::Float32(v.abs())),
                 None => radiate_bail!(Expr: "Absolute value is only supported for numeric types"),
             },
+            UnaryOp::Cast(ref to) => match value.clone().cast(&to) {
+                Some(v) => Ok(v),
+                None => radiate_bail!(Expr: "Failed to cast value {:?} to type {:?}", value, to),
+            },
+            UnaryOp::Debug => {
+                println!("{:?}", value);
+                Ok(value)
+            }
         }
     }
 }
@@ -67,6 +77,7 @@ pub enum BinaryOp {
     Eq,
     Ne,
     Mod,
+    Pow,
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -95,6 +106,8 @@ where
         let lhs = self.lhs.dispatch(input)?;
         let rhs = self.rhs.dispatch(input)?;
 
+        // println!("LHS: {:?}, RHS: {:?}, LHS < RHS: {:?}", lhs, rhs, lhs < rhs);
+
         let result = match self.op {
             BinaryOp::Add => lhs + rhs,
             BinaryOp::Sub => lhs - rhs,
@@ -109,6 +122,7 @@ where
             BinaryOp::And => lhs & rhs,
             BinaryOp::Or => lhs | rhs,
             BinaryOp::Mod => lhs % rhs,
+            BinaryOp::Pow => crate::datatype::pow_anyvalue(&lhs, &rhs)?,
         };
 
         Ok(result)

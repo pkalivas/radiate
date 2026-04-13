@@ -229,8 +229,8 @@ fn metrics_into_stat_rows<'a>(
                 Cell::from(format!("{:.2}", stat.max())),
                 Cell::from(format!("{:.2}", stat.mean())),
                 Cell::from(format!("{:.2}", stat.sum())),
-                Cell::from(format!("{:.2}", stat.std_dev())),
-                Cell::from(format!("{:.2}", stat.variance())),
+                Cell::from(format!("{:.2}", stat.std_dev().unwrap_or(0.0))),
+                Cell::from(format!("{:.2}", stat.variance().unwrap_or(0.0))),
                 Cell::from(format!("{}", stat.count())),
             ]))
         } else {

@@ -237,6 +237,7 @@ def simple_metric_set():
     return rd.MetricSet(
         one=list(range(10)),
         two=list(range(10, 20)),
+        const=[5.0] * 10,
     )
 
 

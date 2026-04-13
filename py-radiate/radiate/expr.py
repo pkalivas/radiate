@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import Any
 
 from radiate._bridge.input import RsObject
+from radiate._typing import RdDataType
 from radiate.radiate import PyExpr
 
 
@@ -191,6 +192,12 @@ class Expr(RsObject):
     def literal(self, value: float | int | str) -> Expr:
         return Expr.from_rust(PyExpr.literal(value))
 
+    def debug(self) -> Expr:
+        return Expr.from_rust(self.__backend__().debug())
+
+    def slope(self) -> Expr:
+        return Expr.from_rust(self.__backend__().slope())
+
     def lt(self, rhs: Expr | float | int) -> Expr:
         if isinstance(rhs, (float, int)):
             rhs_expr = PyExpr.literal(rhs)
@@ -299,9 +306,9 @@ class Expr(RsObject):
     def pow(self, rhs: Expr | float | int) -> Expr:
         if isinstance(rhs, (float, int)):
             rhs_expr = PyExpr.literal(rhs)
-            return Expr.from_rust(self.__backend__().pow_(rhs_expr))
+            return Expr.from_rust(self.__backend__().pow(rhs_expr))
         elif isinstance(rhs, Expr):
-            return Expr.from_rust(self.__backend__().pow_(rhs.__backend__()))
+            return Expr.from_rust(self.__backend__().pow(rhs.__backend__()))
         else:
             raise TypeError("Unsupported type for exponentiation")
 
@@ -330,6 +337,9 @@ class Expr(RsObject):
 
     def every(self, interval: int) -> When:
         return When(condition=PyExpr.every(interval))
+
+    def cast(self, to: RdDataType) -> Expr:
+        return Expr.from_rust(self.__backend__().cast(str(to)))
 
 
 def mean(metric_name: str) -> Expr:
@@ -366,3 +376,7 @@ def element() -> Expr:
 
 def every(interval: int) -> Every:
     return Every(interval=interval)
+
+
+def generation() -> Expr:
+    return Expr.from_rust(PyExpr.metric("index"))
