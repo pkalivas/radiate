@@ -352,18 +352,31 @@ where
     }
 
     fn build_recombine_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
+        let offspring_selector = config.offspring_selector();
+        let survivor_selector = config.survivor_selector();
+
+        let off_name = offspring_selector.name();
+        let offspring_base_name = radiate_utils::intern!(off_name);
+        let offspring_time_name = radiate_utils::intern!(format!("{}.time", offspring_base_name));
+
+        let surv_name = survivor_selector.name();
+        let survivor_base_name = radiate_utils::intern!(surv_name);
+        let survivor_time_name = radiate_utils::intern!(format!("{}.time", survivor_base_name));
+
         let recombine_step = RecombineStep {
             survivor_handle: crate::steps::SurvivorRecombineHandle {
                 count: config.survivor_count(),
                 objective: config.objective(),
-                selector: config.survivor_selector(),
+                selector: survivor_selector,
+                names: (survivor_base_name, survivor_time_name),
             },
             offspring_handle: crate::steps::OffspringRecombineHandle {
                 count: config.offspring_count(),
                 objective: config.objective(),
-                selector: config.offspring_selector(),
+                selector: offspring_selector,
                 alters: config.alters().to_vec(),
                 lineage: config.lineage(),
+                names: (offspring_base_name, offspring_time_name),
             },
         };
 

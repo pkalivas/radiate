@@ -40,6 +40,7 @@ pub struct SurvivorRecombineHandle<C: Chromosome> {
     pub(crate) count: usize,
     pub(crate) objective: Objective,
     pub(crate) selector: Arc<dyn Select<C>>,
+    pub(crate) names: (&'static str, &'static str),
 }
 
 impl<C> SurvivorRecombineHandle<C>
@@ -52,7 +53,8 @@ where
         let survivors = self
             .selector
             .select(&ecosystem.population(), &self.objective, self.count);
-        metrics.upsert((self.selector.name(), (survivors.len(), time.elapsed())));
+        metrics.upsert((self.names.0, survivors.len()));
+        metrics.upsert((self.names.1, time.elapsed()));
         survivors
     }
 }
@@ -64,6 +66,7 @@ pub struct OffspringRecombineHandle<C: Chromosome> {
     pub(crate) selector: Arc<dyn Select<C>>,
     pub(crate) alters: Vec<Alterer<C>>,
     pub(crate) lineage: Arc<RwLock<Lineage>>,
+    pub(crate) names: (&'static str, &'static str),
 }
 
 impl<C> OffspringRecombineHandle<C>
@@ -98,7 +101,8 @@ where
                     self.selector
                         .select(species.population(), &self.objective, *count);
 
-                metrics.upsert((self.selector.name(), (offspring.len(), time.elapsed())));
+                metrics.upsert((self.names.0, offspring.len()));
+                metrics.upsert((self.names.1, time.elapsed()));
 
                 self.objective.sort(&mut offspring);
 
@@ -116,7 +120,8 @@ where
                 self.selector
                     .select(ecosystem.population(), &self.objective, self.count);
 
-            metrics.upsert((self.selector.name(), (offspring.len(), timer.elapsed())));
+            metrics.upsert((self.names.0, offspring.len()));
+            metrics.upsert((self.names.1, timer.elapsed()));
 
             self.objective.sort(&mut offspring);
 

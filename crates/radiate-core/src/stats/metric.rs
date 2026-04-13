@@ -37,7 +37,7 @@ struct MetricInner {
 pub struct Metric {
     name: Arc<String>,
     meta: Option<Meta>,
-    inner: MetricInner,
+    inner: Statistic,
     tags: Tag,
 }
 
@@ -49,10 +49,7 @@ impl Metric {
         Self {
             name,
             meta: None,
-            inner: MetricInner {
-                value_statistic: None,
-                time_statistic: None,
-            },
+            inner: Statistic::default(),
             tags,
         }
     }
@@ -121,7 +118,7 @@ impl Metric {
     }
 
     pub fn clear_values(&mut self) {
-        self.inner = MetricInner::default();
+        self.inner = Statistic::default();
     }
 
     #[inline(always)]
@@ -167,10 +164,6 @@ impl Metric {
             MetricUpdate::Duration(value) => {
                 self.update_time_statistic(value);
             }
-            MetricUpdate::FloatOperation(value, time) => {
-                self.update_statistic(value);
-                self.update_time_statistic(time);
-            }
             MetricUpdate::UsizeOperation(value, time) => {
                 self.update_statistic(value as f32);
                 self.update_time_statistic(time);
@@ -199,6 +192,10 @@ impl Metric {
 
                 self.meta.as_mut().map(|meta| meta.update_count += 1);
             }
+        }
+
+        if self.inner.value_statistic.is_some() && self.inner.time_statistic.is_some() {
+            panic!("Metric cannot have both value_statistic and time_statistic set at the same time");
         }
     }
 
@@ -376,7 +373,6 @@ pub enum MetricUpdate<'a> {
     Float(f32),
     Usize(usize),
     Duration(Duration),
-    FloatOperation(f32, Duration),
     UsizeOperation(usize, Duration),
     Distribution(&'a [f32]),
     UsizeDistribution(&'a [usize]),
@@ -399,13 +395,6 @@ impl From<usize> for MetricUpdate<'_> {
 impl From<Duration> for MetricUpdate<'_> {
     fn from(value: Duration) -> Self {
         MetricUpdate::Duration(value)
-    }
-}
-
-
-impl From<(f32, Duration)> for MetricUpdate<'_> {
-    fn from(value: (f32, Duration)) -> Self {
-        MetricUpdate::FloatOperation(value.0, value.1)
     }
 }
 

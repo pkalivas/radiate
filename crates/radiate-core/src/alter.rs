@@ -143,12 +143,25 @@ impl<C: Chromosome> Alterer<C> {
             Alterer::Mutate(name, _, m) => {
                 let timer = std::time::Instant::now();
                 let AlterResult(count) = m.mutate(population, &mut ctx);
-                metrics.upsert(metric!(name, (count, timer.elapsed())));
+                metrics.upsert(vec![
+                    metric!(name, count),
+                    metric!(
+                        radiate_utils::intern!(format!("{}.time", name)),
+                        timer.elapsed()
+                    ),
+                ]);
+                // metrics.upsert(metric!(name, (count, timer.elapsed())));
             }
             Alterer::Crossover(name, _, c) => {
                 let timer = std::time::Instant::now();
                 let AlterResult(count) = c.crossover(population, &mut ctx);
-                metrics.upsert(metric!(name, (count, timer.elapsed())));
+                metrics.upsert(vec![
+                    metric!(name, count),
+                    metric!(
+                        radiate_utils::intern!(format!("{}.time", name)),
+                        timer.elapsed()
+                    ),
+                ]);
             }
         }
     }
