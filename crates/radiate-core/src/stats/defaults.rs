@@ -90,6 +90,8 @@ pub mod metric_tags {
     pub const STEP: &str = "step";
 
     pub const LINEAGE: &str = "lineage";
+
+    pub const EXPR: &str = "expr";
 }
 
 const RULES: &[(&str, &[TagKind])] = &[
@@ -110,6 +112,7 @@ const RULES: &[(&str, &[TagKind])] = &[
     (metric_tags::RATE, &[TagKind::Rate]),
     (metric_tags::STEP, &[TagKind::Step]),
     (metric_tags::LINEAGE, &[TagKind::Lineage]),
+    (metric_tags::EXPR, &[TagKind::Expr]),
 ];
 
 pub fn default_tags(name: &str) -> Tag {

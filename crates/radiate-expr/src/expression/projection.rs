@@ -64,6 +64,44 @@ where
     }
 }
 
+impl<'a> ExprProjection for AnyValue<'a> {
+    fn project(&self, selector: &SelectExpr) -> Option<AnyValue<'static>> {
+        match selector {
+            SelectExpr::Path(path) => {
+                let mut current = self.clone();
+
+                for segment in path {
+                    current = match segment {
+                        PathSegment::Key(key) => current.get_key(key)?,
+                        PathSegment::Index(i) => current.get_index(*i)?,
+                        PathSegment::StructField(field) => current.get_field(field)?,
+                    };
+                }
+
+                Some(current.into_static())
+            }
+            SelectExpr::Field(key, field) => {
+                let value = self.get_key(key)?.into_static();
+                value.get_field(field)
+            }
+            SelectExpr::Nth(n) => self.get_index(*n).map(|v| v.into_static()),
+            SelectExpr::Element => Some(self.clone().into_static()),
+        }
+    }
+}
+
+impl ExprProjection for f32 {
+    fn project(&self, _: &SelectExpr) -> Option<AnyValue<'static>> {
+        Some(AnyValue::Float32(*self))
+    }
+}
+
+impl ExprProjection for i32 {
+    fn project(&self, _: &SelectExpr) -> Option<AnyValue<'static>> {
+        Some(AnyValue::Int32(*self))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -112,10 +112,11 @@ pub enum TagKind {
     Rate,
     Step,
     Lineage,
+    Expr,
 }
 
 impl TagKind {
-    pub const COUNT: usize = 17;
+    pub const COUNT: usize = 18;
     #[inline]
     pub fn from_index(idx: u32) -> Option<Self> {
         use TagKind::*;
@@ -137,6 +138,7 @@ impl TagKind {
             14 => Rate,
             15 => Step,
             16 => Lineage,
+            17 => Expr,
             _ => return None,
         })
     }
@@ -167,6 +169,7 @@ impl TagKind {
             Rate => "Rate",
             Step => "Step",
             Lineage => "Lineage",
+            Expr => "Expr",
         }
     }
 }
@@ -204,6 +207,7 @@ impl From<String> for TagKind {
             metric_tags::RATE => Rate,
             metric_tags::STEP => Step,
             metric_tags::LINEAGE => Lineage,
+            metric_tags::EXPR => Expr,
             _ => Other,
         }
     }

@@ -81,7 +81,7 @@ for _ in range(-10, 10):
 
 subscriber = ScorePlotterHandler()
 
-limit = rd.Limit.expr(rd.metric("scores").rolling(10).mean() <= 0.01)
+limit = rd.Limit.expr(rd.metric("scores").min().rolling(10).mean() <= 0.01)
 
 target_species = 4.0
 rolling = int(target_species)
@@ -126,7 +126,7 @@ engine = (
     .limit(limit)
 )
 
-result = engine.run(log=True)
+result = engine.run(log=True, ui=True)
 
 eval_results = result.value().eval(inputs)
 accuracy = rd.accuracy(result.value(), inputs, answers, loss=rd.MSE)
@@ -137,8 +137,8 @@ print(accuracy)
 
 metrics = result.metrics()
 
-# print(metrics["mvg_avg_5"].tags())
-# print(metrics["mvg_avg_10"].tags())
+for metric in metrics.values():
+    print(metric.name(), metric.tags())
 
 # df = pl.DataFrame(subscriber.metrics)
 # print(

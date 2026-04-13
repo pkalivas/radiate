@@ -44,6 +44,7 @@ pub enum SelectExpr {
     Field(AnyValue<'static>, Field),
     Nth(usize),
     Path(Vec<PathSegment>),
+    Element,
 }
 
 impl<T> ExprQuery<T> for SelectExpr

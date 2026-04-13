@@ -56,6 +56,11 @@ other = (
     .otherwise(123123)
 )
 
+t = rd.every(2).then(rd.element().rolling(10).mean()).otherwise(rd.lit(-1.0))
+
+for i in range(10):
+    print(t.apply(float(i)))
+
 # print(metrics.project(other))
 # print(metrics.project(expr))
 # metrics.upsert("one", -10.0)

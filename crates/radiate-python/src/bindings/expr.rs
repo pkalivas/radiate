@@ -1,5 +1,5 @@
 use pyo3::prelude::*;
-use radiate::{AnyValue, Expr, expr};
+use radiate::{AnyValue, Expr, ExprQuery, expr};
 
 use crate::Wrap;
 
@@ -37,11 +37,38 @@ impl PyExpr {
     }
 
     #[staticmethod]
-    pub fn when_then_othewise(condition: &PyExpr, then_expr: &PyExpr, else_expr: &PyExpr) -> Self {
+    pub fn when_then_otherwise(condition: &PyExpr, then_expr: &PyExpr, else_expr: &PyExpr) -> Self {
         PyExpr {
             inner: expr::when(condition.inner().clone())
                 .then(then_expr.inner().clone())
                 .otherwise(else_expr.inner().clone()),
+        }
+    }
+
+    #[staticmethod]
+    pub fn every(interval: usize, then_expr: &PyExpr, else_expr: &PyExpr) -> Self {
+        PyExpr {
+            inner: expr::every(interval)
+                .then(then_expr.inner().clone())
+                .otherwise(else_expr.inner().clone()),
+        }
+    }
+
+    #[staticmethod]
+    pub fn element() -> Self {
+        PyExpr {
+            inner: expr::element(),
+        }
+    }
+
+    pub fn evaluate<'py>(&mut self, input: Wrap<AnyValue<'_>>) -> PyResult<Wrap<AnyValue<'_>>> {
+        let result = input.0.into_static();
+        match self.inner.dispatch(&result) {
+            Ok(value) => return Ok(Wrap(value)),
+            Err(e) => {
+                let msg = format!("Error evaluating expression: {}", e);
+                return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(msg));
+            }
         }
     }
 

@@ -2,9 +2,7 @@ use crate::{
     Metric, MetricUpdate,
     stats::{Meta, Tag, TagKind, defaults::try_add_tag_from_str, fmt},
 };
-use radiate_expr::{
-    AnyValue, ApplyExpr, DataType, Expr, ExprProjection, ExprQuery, NamedExpr, SelectExpr,
-};
+use radiate_expr::{AnyValue, ApplyExpr, DataType, Expr, ExprProjection, ExprQuery, SelectExpr};
 use radiate_utils::intern;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -23,7 +21,6 @@ pub struct MetricSetSummary {
 #[derive(Clone, Default, PartialEq)]
 pub struct MetricSet {
     metrics: HashMap<&'static str, Metric>,
-    exprs: Option<Vec<NamedExpr>>,
     meta: Meta,
 }
 
@@ -31,33 +28,11 @@ impl MetricSet {
     pub fn new() -> Self {
         MetricSet {
             metrics: HashMap::new(),
-            exprs: None,
-            meta: Meta::default(),
-        }
-    }
-
-    pub fn with_exprs(exprs: Vec<NamedExpr>) -> Self {
-        MetricSet {
-            metrics: HashMap::new(),
-            exprs: Some(exprs),
             meta: Meta::default(),
         }
     }
 
     pub fn next_version(&mut self) -> u64 {
-        // if let Some(exprs) = self.exprs.as_mut() {
-        //     for expr in exprs.iter_mut() {
-        //         let output = self.apply(&mut expr.expr);
-        //     }
-        // }
-
-        // let exprs = self.exprs.as_mut().unwrap_or(&mut vec![]);
-        // for expr in exprs.iter_mut() {
-        //     let output = self.apply(&mut expr.expr);
-        //     let update = MetricUpdate::from(output);
-        //     self.upsert((expr.name.clone(), update));
-        // }
-
         let result = self.meta.version;
         self.meta.version += 1;
         result
@@ -85,7 +60,6 @@ impl MetricSet {
             }
         }
 
-        // target.set_stats.update_from(self.set_stats.clone());
         self.clear();
     }
 
@@ -115,11 +89,15 @@ impl MetricSet {
                     self.upsert(metric);
                 }
             }
-            MetricSetUpdate::NamedSingle(name, metric_update) => {
+
+            MetricSetUpdate::NamedSingle(name, metric_update, tag) => {
                 self.meta.update_count += 1;
                 if let Some(m) = self.metrics.get_mut(name) {
                     m.set_version(version);
                     m.apply_update(metric_update);
+                    if let Some(tag) = tag {
+                        m.add_tag(tag);
+                    }
                     return;
                 }
 
@@ -127,11 +105,17 @@ impl MetricSet {
                 if let Some(m) = self.metrics.get_mut(&new_name) {
                     m.set_version(version);
                     m.apply_update(metric_update);
+                    if let Some(tag) = tag {
+                        m.add_tag(tag);
+                    }
                 } else {
                     let mut metric = Metric::new(new_name);
                     try_add_tag_from_str(&mut metric);
                     metric.set_version(version);
                     metric.apply_update(metric_update);
+                    if let Some(tag) = tag {
+                        metric.add_tag(tag);
+                    }
                     self.add(metric);
                 }
             }
@@ -458,7 +442,7 @@ impl<'de> Deserialize<'de> for MetricSet {
 pub enum MetricSetUpdate<'a> {
     Many(Vec<Metric>),
     Single(Metric),
-    NamedSingle(&'static str, MetricUpdate<'a>),
+    NamedSingle(&'static str, MetricUpdate<'a>, Option<TagKind>),
     ManyUpdate(Vec<(&'static str, MetricUpdate<'a>)>),
 }
 
@@ -479,7 +463,16 @@ where
     U: Into<MetricUpdate<'a>>,
 {
     fn from((name, update): (&'static str, U)) -> Self {
-        MetricSetUpdate::NamedSingle(name, update.into())
+        MetricSetUpdate::NamedSingle(name, update.into(), None)
+    }
+}
+
+impl<'a, U> From<(TagKind, &'static str, U)> for MetricSetUpdate<'a>
+where
+    U: Into<MetricUpdate<'a>>,
+{
+    fn from((tag, name, update): (TagKind, &'static str, U)) -> Self {
+        MetricSetUpdate::NamedSingle(name, update.into(), Some(tag))
     }
 }
 

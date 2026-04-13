@@ -1,11 +1,12 @@
 from __future__ import annotations
+from typing import Any
 
 from radiate._bridge.input import RsObject
 from radiate.radiate import PyExpr
 
 
 class Then(RsObject):
-    def __init__(self, condition: Expr, then_expr: Expr):
+    def __init__(self, condition: Expr | int, then_expr: Expr):
         self.condition = condition
         self.then_expr = then_expr
 
@@ -19,13 +20,22 @@ class Then(RsObject):
             else Expr.from_rust(PyExpr.literal(else_expr))
         )
 
-        return Expr.from_rust(
-            PyExpr.when_then_othewise(
-                condition=self.condition.__backend__(),
-                then_expr=self.then_expr.__backend__(),
-                else_expr=else_expr.__backend__(),
+        if isinstance(self.condition, int):
+            return Expr.from_rust(
+                PyExpr.every(
+                    self.condition,
+                    self.then_expr.__backend__(),
+                    else_expr.__backend__(),
+                )
             )
-        )
+        else:
+            return Expr.from_rust(
+                PyExpr.when_then_otherwise(
+                    condition=self.condition.__backend__(),
+                    then_expr=self.then_expr.__backend__(),
+                    else_expr=else_expr.__backend__(),
+                )
+            )
 
 
 class When(RsObject):
@@ -43,6 +53,23 @@ class When(RsObject):
         )
 
         return Then(condition=self.condition, then_expr=then_expr)
+
+
+class Every(RsObject):
+    def __init__(self, interval: int):
+        self.interval = interval
+
+    def __repr__(self) -> str:
+        return f"Every(interval={self.interval})"
+
+    def then(self, then_expr: Expr | float | int | str) -> Then:
+        then_expr = (
+            then_expr
+            if isinstance(then_expr, Expr)
+            else Expr.from_rust(PyExpr.literal(then_expr))
+        )
+
+        return Then(condition=self.interval, then_expr=then_expr)
 
 
 class Expr(RsObject):
@@ -105,6 +132,22 @@ class Expr(RsObject):
 
     def __truediv__(self, other):
         return self.div(other)
+
+    def apply(self, value: Any) -> Any:
+        """
+        Apply the expression to a given value. This is useful for evaluating the expression with specific inputs.
+
+        Parameters
+        ----------
+        value
+            The value to apply the expression to.
+
+        Returns
+        -------
+        Any
+            The result of applying the expression to the input value.
+        """
+        return self.__backend__().evaluate(value)
 
     def time(self) -> Expr:
         return Expr.from_rust(self.__backend__().time())
@@ -282,6 +325,12 @@ class Expr(RsObject):
     def when(self, condition: Expr) -> When:
         return When(condition=condition)
 
+    def element(self) -> Expr:
+        return Expr.from_rust(PyExpr.element())
+
+    def every(self, interval: int) -> When:
+        return When(condition=PyExpr.every(interval))
+
 
 def mean(metric_name: str) -> Expr:
     return metric(metric_name)
@@ -309,3 +358,11 @@ def when(condition: Expr) -> When:
 
 def lit(value: float | int | str) -> Expr:
     return Expr.from_rust(PyExpr.literal(value))
+
+
+def element() -> Expr:
+    return Expr.from_rust(PyExpr.element())
+
+
+def every(interval: int) -> Every:
+    return Every(interval=interval)

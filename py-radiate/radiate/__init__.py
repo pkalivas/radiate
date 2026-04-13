@@ -139,7 +139,7 @@ from .dtype import (
     Null,
 )
 
-from .expr import Expr, metric, when, lit
+from .expr import Expr, metric, when, lit, element, every
 
 from .dsl import Select, Mutate, Cross, Dist, Limit
 
@@ -172,6 +172,8 @@ __all__ = [
     "metric",
     "when",
     "lit",
+    "element",
+    "every",
     # Codecs
     "PermutationCodec",
     "FloatCodec",

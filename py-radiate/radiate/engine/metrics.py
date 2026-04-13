@@ -30,6 +30,7 @@ class Tag(enum.Enum):
     RATE = "rate"
     STEP = "step"
     LINEAGE = "lineage"
+    EXPR = "expr"
 
     def __repr__(self) -> str:
         return f"Tag.{self.name}"
@@ -54,6 +55,7 @@ tag_map = {
         "rate": Tag.RATE,
         "step": Tag.STEP,
         "lineage": Tag.LINEAGE,
+        "expr": Tag.EXPR,
     },
     "rs": {
         Tag.SELECTOR: "selector",
@@ -73,6 +75,7 @@ tag_map = {
         Tag.RATE: "rate",
         Tag.STEP: "step",
         Tag.LINEAGE: "lineage",
+        Tag.EXPR: "expr",
     },
 }
 

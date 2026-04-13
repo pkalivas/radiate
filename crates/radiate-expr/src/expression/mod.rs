@@ -350,4 +350,8 @@ pub mod expr {
             interval,
         ))))
     }
+
+    pub fn element() -> Expr {
+        Expr::Selector(SelectExpr::Element)
+    }
 }
