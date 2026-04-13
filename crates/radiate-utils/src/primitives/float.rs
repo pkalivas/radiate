@@ -1,6 +1,7 @@
 use crate::primitives::Primitive;
+use num_order::{NumHash, NumOrd};
 
-pub trait Float: Primitive + num_traits::Float {
+pub trait Float: Primitive + num_traits::Float + NumHash + NumOrd<Self> {
     const MIN: Self;
     const MAX: Self;
     const ZERO: Self;

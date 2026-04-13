@@ -1,0 +1,1889 @@
+[
+    {
+        "name": "crossover.graph",
+        "meta": {
+            "update_count": 2,
+            "version": 154
+        },
+        "inner": {
+            "value_statistic": {
+                "m1": {
+                    "compensation": 3.6507845e-7,
+                    "simple_sum": 14.541938,
+                    "sum": 14.541936
+                },
+                "m2": {
+                    "compensation": -0.0006866455,
+                    "simple_sum": 25432.484,
+                    "sum": 25432.477
+                },
+                "m3": {
+                    "compensation": -0.005859375,
+                    "simple_sum": 247635.03,
+                    "sum": 247635.03
+                },
+                "m4": {
+                    "compensation": 0.453125,
+                    "simple_sum": 12659535.0,
+                    "sum": 12659536.0
+                },
+                "sum": {
+                    "compensation": 0.0,
+                    "simple_sum": 2254.0,
+                    "sum": 2254.0
+                },
+                "count": 155,
+                "last_value": 26.0,
+                "max": 54.0,
+                "min": 0.0
+            },
+            "time_statistic": {
+                "statistic": {
+                    "m1": {
+                        "compensation": -1.10134124e-13,
+                        "simple_sum": 0.000013827127,
+                        "sum": 0.000013827129
+                    },
+                    "m2": {
+                        "compensation": 1.02348685e-16,
+                        "simple_sum": 1.8919573e-9,
+                        "sum": 1.8919568e-9
+                    },
+                    "m3": {
+                        "compensation": 2.3161057e-22,
+                        "simple_sum": -8.398405e-15,
+                        "sum": -8.398402e-15
+                    },
+                    "m4": {
+                        "compensation": 1.1612033e-27,
+                        "simple_sum": 1.1569938e-19,
+                        "sum": 1.1569938e-19
+                    },
+                    "sum": {
+                        "compensation": -9.458745e-11,
+                        "simple_sum": 0.002143205,
+                        "sum": 0.002143205
+                    },
+                    "count": 155,
+                    "last_value": 0.000016959,
+                    "max": 0.000021916,
+                    "min": 0.000003375
+                },
+                "last_time": {
+                    "secs": 0,
+                    "nanos": 5583
+                }
+            }
+        },
+        "tags": 3082
+    },
+    {
+        "name": "rate.diversity",
+        "meta": {
+            "update_count": 1,
+            "version": 154
+        },
+        "inner": {
+            "value_statistic": {
+                "m1": {
+                    "compensation": -9.502401e-9,
+                    "simple_sum": 0.5230322,
+                    "sum": 0.52303225
+                },
+                "m2": {
+                    "compensation": -8.757797e-8,
+                    "simple_sum": 2.1086748,
+                    "sum": 2.1086748
+                },
+                "m3": {
+                    "compensation": 5.4278644e-9,
+                    "simple_sum": -0.19031948,
+                    "sum": -0.19031945
+                },
+                "m4": {
+                    "compensation": 3.2232492e-9,
+                    "simple_sum": 0.090717785,
+                    "sum": 0.09071778
+                },
+                "sum": {
+                    "compensation": -2.9802322e-7,
+                    "simple_sum": 81.07002,
+                    "sum": 81.07
+                },
+                "count": 155,
+                "last_value": 0.52,
+                "max": 0.73,
+                "min": 0.19
+            },
+            "time_statistic": null
+        },
+        "tags": 17664
+    },
+    {
+        "name": "step.filter",
+        "meta": {
+            "update_count": 1,
+            "version": 154
+        },
+        "inner": {
+            "value_statistic": null,
+            "time_statistic": {
+                "statistic": {
+                    "m1": {
+                        "compensation": 2.1760371e-13,
+                        "simple_sum": 0.0000071362965,
+                        "sum": 0.000007136297
+                    },
+                    "m2": {
+                        "compensation": -2.1467203e-17,
+                        "simple_sum": 7.7819184e-10,
+                        "sum": 7.7819173e-10
+                    },
+                    "m3": {
+                        "compensation": -3.1432863e-23,
+                        "simple_sum": 1.1563982e-15,
+                        "sum": 1.1563982e-15
+                    },
+                    "m4": {
+                        "compensation": 1.3410635e-27,
+                        "simple_sum": 4.9492148e-20,
+                        "sum": 4.9492145e-20
+                    },
+                    "sum": {
+                        "compensation": 4.5474735e-12,
+                        "simple_sum": 0.0011061253,
+                        "sum": 0.001106126
+                    },
+                    "count": 155,
+                    "last_value": 0.000008125,
+                    "max": 0.000020333,
+                    "min": 0.000001334
+                },
+                "last_time": {
+                    "secs": 0,
+                    "nanos": 8125
+                }
+            }
+        },
+        "tags": 34816
+    },
+    {
+        "name": "lineage.top1_pair_share",
+        "meta": {
+            "update_count": 1,
+            "version": 154
+        },
+        "inner": {
+            "value_statistic": {
+                "m1": {
+                    "compensation": 1.7462298e-9,
+                    "simple_sum": 0.8129033,
+                    "sum": 0.8129032
+                },
+                "m2": {
+                    "compensation": 5.066395e-7,
+                    "simple_sum": 23.574196,
+                    "sum": 23.574194
+                },
+                "m3": {
+                    "compensation": -3.3527613e-7,
+                    "simple_sum": -14.752885,
+                    "sum": -14.752883
+                },
+                "m4": {
+                    "compensation": -2.0861626e-7,
+                    "simple_sum": 12.817885,
+                    "sum": 12.817885
+                },
+                "sum": {
+                    "compensation": 0.0,
+                    "simple_sum": 126.0,
+                    "sum": 126.0
+                },
+                "count": 155,
+                "last_value": 1.0,
+                "max": 1.0,
+                "min": 0.0
+            },
+            "time_statistic": null
+        },
+        "tags": 66624
+    },
+    {
+        "name": "mutate.graph.rate",
+        "meta": {
+            "update_count": 1,
+            "version": 154
+        },
+        "inner": {
+            "value_statistic": {
+                "m1": {
+                    "compensation": 0.0,
+                    "simple_sum": 1.0,
+                    "sum": 1.0
+                },
+                "m2": {
+                    "compensation": 0.0,
+                    "simple_sum": 0.0,
+                    "sum": 0.0
+                },
+                "m3": {
+                    "compensation": 0.0,
+                    "simple_sum": 0.0,
+                    "sum": 0.0
+                },
+                "m4": {
+                    "compensation": 0.0,
+                    "simple_sum": 0.0,
+                    "sum": 0.0
+                },
+                "sum": {
+                    "compensation": 0.0,
+                    "simple_sum": 155.0,
+                    "sum": 155.0
+                },
+                "count": 155,
+                "last_value": 1.0,
+                "max": 1.0,
+                "min": 1.0
+            },
+            "time_statistic": null
+        },
+        "tags": 17408
+    },
+    {
+        "name": "alter.parent_reuse",
+        "meta": {
+            "update_count": 7,
+            "version": 154
+        },
+        "inner": {
+            "value_statistic": {
+                "m1": {
+                    "compensation": -8.800998e-8,
+                    "simple_sum": 3.051198,
+                    "sum": 3.0512
+                },
+                "m2": {
+                    "compensation": 0.0011024475,
+                    "simple_sum": 40865.074,
+                    "sum": 40865.086
+                },
+                "m3": {
+                    "compensation": -0.0011138916,
+                    "simple_sum": 685511.06,
+                    "sum": 685510.9
+                },
+                "m4": {
+                    "compensation": -0.46289062,
+                    "simple_sum": 15980450.0,
+                    "sum": 15980458.0
+                },
+                "sum": {
+                    "compensation": 0.0,
+                    "simple_sum": 5721.0,
+                    "sum": 5721.0
+                },
+                "count": 1875,
+                "last_value": 9.0,
+                "max": 39.0,
+                "min": 1.0
+            },
+            "time_statistic": null
+        },
+        "tags": 70658
+    },
+    {
+        "name": "lineage.events",
+        "meta": {
+            "update_count": 1,
+            "version": 154
+        },
+        "inner": {
+            "value_statistic": {
+                "m1": {
+                    "compensation": -8.121133e-7,
+                    "simple_sum": 29.8129,
+                    "sum": 29.812902
+                },
+                "m2": {
+                    "compensation": -0.000076293945,
+                    "simple_sum": 28353.582,
+                    "sum": 28353.574
+                },
+                "m3": {
+                    "compensation": 0.00390625,
+                    "simple_sum": -113275.38,
+                    "sum": -113275.39
+                },
+                "m4": {
+                    "compensation": 0.09375,
+                    "simple_sum": 10938138.0,
+                    "sum": 10938138.0
+                },
+                "sum": {
+                    "compensation": 0.0,
+                    "simple_sum": 4621.0,
+                    "sum": 4621.0
+                },
+                "count": 155,
+                "last_value": 45.0,
+                "max": 55.0,
+                "min": 3.0
+            },
+            "time_statistic": null
+        },
+        "tags": 66624
+    },
+    {
+        "name": "selector.tournament",
+        "meta": {
+            "update_count": 2,
+            "version": 154
+        },
+        "inner": {
+            "value_statistic": {
+                "m1": {
+                    "compensation": 0.0,
+                    "simple_sum": 20.0,
+                    "sum": 20.0
+                },
+                "m2": {
+                    "compensation": 0.0,
+                    "simple_sum": 0.0,
+                    "sum": 0.0
+                },
+                "m3": {
+                    "compensation": 0.0,
+                    "simple_sum": 0.0,
+                    "sum": 0.0
+                },
+                "m4": {
+                    "compensation": 0.0,
+                    "simple_sum": 0.0,
+                    "sum": 0.0
+                },
+                "sum": {
+                    "compensation": 0.0,
+                    "simple_sum": 3100.0,
+                    "sum": 3100.0
+                },
+                "count": 155,
+                "last_value": 20.0,
+                "max": 20.0,
+                "min": 20.0
+            },
+            "time_statistic": {
+                "statistic": {
+                    "m1": {
+                        "compensation": -3.8458126e-13,
+                        "simple_sum": 0.000009554642,
+                        "sum": 0.000009554645
+                    },
+                    "m2": {
+                        "compensation": 2.5885327e-17,
+                        "simple_sum": 1.0566729e-9,
+                        "sum": 1.0566725e-9
+                    },
+                    "m3": {
+                        "compensation": 2.4815418e-24,
+                        "simple_sum": 1.1475523e-15,
+                        "sum": 1.1475524e-15
+                    },
+                    "m4": {
+                        "compensation": -3.0497363e-27,
+                        "simple_sum": 9.0283093e-20,
+                        "sum": 9.02831e-20
+                    },
+                    "sum": {
+                        "compensation": -4.9112714e-11,
+                        "simple_sum": 0.0014809702,
+                        "sum": 0.00148097
+                    },
+                    "count": 155,
+                    "last_value": 0.000010209,
+                    "max": 0.000025292,
+                    "min": 0.0000025
+                },
+                "last_time": {
+                    "secs": 0,
+                    "nanos": 10209
+                }
+            }
+        },
+        "tags": 3073
+    },
+    {
+        "name": "lineage.family_pair_unique",
+        "meta": {
+            "update_count": 1,
+            "version": 154
+        },
+        "inner": {
+            "value_statistic": {
+                "m1": {
+                    "compensation": 1.7462298e-9,
+                    "simple_sum": 0.8129033,
+                    "sum": 0.8129032
+                },
+                "m2": {
+                    "compensation": 5.066395e-7,
+                    "simple_sum": 23.574196,
+                    "sum": 23.574194
+                },
+                "m3": {
+                    "compensation": -3.3527613e-7,
+                    "simple_sum": -14.752885,
+                    "sum": -14.752883
+                },
+                "m4": {
+                    "compensation": -2.0861626e-7,
+                    "simple_sum": 12.817885,
+                    "sum": 12.817885
+                },
+                "sum": {
+                    "compensation": 0.0,
+                    "simple_sum": 126.0,
+                    "sum": 126.0
+                },
+                "count": 155,
+                "last_value": 1.0,
+                "max": 1.0,
+                "min": 0.0
+            },
+            "time_statistic": null
+        },
+        "tags": 66624
+    },
+    {
+        "name": "unique.members",
+        "meta": {
+            "update_count": 1,
+            "version": 154
+        },
+        "inner": {
+            "value_statistic": {
+                "m1": {
+                    "compensation": 6.451737e-7,
+                    "simple_sum": 52.303223,
+                    "sum": 52.303226
+                },
+                "m2": {
+                    "compensation": -0.00045618415,
+                    "simple_sum": 21086.748,
+                    "sum": 21086.748
+                },
+                "m3": {
+                    "compensation": 0.0068969727,
+                    "simple_sum": -190319.52,
+                    "sum": -190319.47
+                },
+                "m4": {
+                    "compensation": -0.07824707,
+                    "simple_sum": 9071775.0,
+                    "sum": 9071778.0
+                },
+                "sum": {
+                    "compensation": 0.0,
+                    "simple_sum": 8107.0,
+                    "sum": 8107.0
+                },
+                "count": 155,
+                "last_value": 52.0,
+                "max": 73.0,
+                "min": 19.0
+            },
+            "time_statistic": null
+        },
+        "tags": 1280
+    },
+    {
+        "name": "lineage.family_pair",
+        "meta": {
+            "update_count": 1,
+            "version": 154
+        },
+        "inner": {
+            "value_statistic": {
+                "m1": {
+                    "compensation": 0.0,
+                    "simple_sum": 0.0,
+                    "sum": 0.0
+                },
+                "m2": {
+                    "compensation": 0.0,
+                    "simple_sum": 0.0,
+                    "sum": 0.0
+                },
+                "m3": {
+                    "compensation": 0.0,
+                    "simple_sum": 0.0,
+                    "sum": 0.0
+                },
+                "m4": {
+                    "compensation": 0.0,
+                    "simple_sum": 0.0,
+                    "sum": 0.0
+                },
+                "sum": {
+                    "compensation": 0.0,
+                    "simple_sum": 0.0,
+                    "sum": 0.0
+                },
+                "count": 155,
+                "last_value": 0.0,
+                "max": 0.0,
+                "min": 0.0
+            },
+            "time_statistic": null
+        },
+        "tags": 66624
+    },
+    {
+        "name": "alter.cross_family",
+        "meta": {
+            "update_count": 1,
+            "version": 154
+        },
+        "inner": {
+            "value_statistic": {
+                "m1": {
+                    "compensation": 5.029142e-8,
+                    "simple_sum": 8.730161,
+                    "sum": 8.730159
+                },
+                "m2": {
+                    "compensation": -0.000008516014,
+                    "simple_sum": 2318.8254,
+                    "sum": 2318.8254
+                },
+                "m3": {
+                    "compensation": -0.0000038146973,
+                    "simple_sum": -206.37968,
+                    "sum": -206.37978
+                },
+                "m4": {
+                    "compensation": 0.0022683144,
+                    "simple_sum": 106211.5,
+                    "sum": 106211.516
+                },
+                "sum": {
+                    "compensation": 0.0,
+                    "simple_sum": 1100.0,
+                    "sum": 1100.0
+                },
+                "count": 126,
+                "last_value": 9.0,
+                "max": 21.0,
+                "min": 1.0
+            },
+            "time_statistic": null
+        },
+        "tags": 70658
+    },
+    {
+        "name": "selector.roulette",
+        "meta": {
+            "update_count": 2,
+            "version": 154
+        },
+        "inner": {
+            "value_statistic": {
+                "m1": {
+                    "compensation": 0.0,
+                    "simple_sum": 80.0,
+                    "sum": 80.0
+                },
+                "m2": {
+                    "compensation": 0.0,
+                    "simple_sum": 0.0,
+                    "sum": 0.0
+                },
+                "m3": {
+                    "compensation": 0.0,
+                    "simple_sum": 0.0,
+                    "sum": 0.0
+                },
+                "m4": {
+                    "compensation": 0.0,
+                    "simple_sum": 0.0,
+                    "sum": 0.0
+                },
+                "sum": {
+                    "compensation": 0.0,
+                    "simple_sum": 12400.0,
+                    "sum": 12400.0
+                },
+                "count": 155,
+                "last_value": 80.0,
+                "max": 80.0,
+                "min": 80.0
+            },
+            "time_statistic": {
+                "statistic": {
+                    "m1": {
+                        "compensation": 8.553158e-13,
+                        "simple_sum": 0.00004313439,
+                        "sum": 0.00004313437
+                    },
+                    "m2": {
+                        "compensation": 6.3295723e-16,
+                        "simple_sum": 1.8408803e-8,
+                        "sum": 1.8408805e-8
+                    },
+                    "m3": {
+                        "compensation": -7.940934e-22,
+                        "simple_sum": -1.1984866e-13,
+                        "sum": -1.1984867e-13
+                    },
+                    "m4": {
+                        "compensation": 1.0824434e-25,
+                        "simple_sum": 1.15521406e-17,
+                        "sum": 1.1552134e-17
+                    },
+                    "sum": {
+                        "compensation": -9.094947e-11,
+                        "simple_sum": 0.0066858274,
+                        "sum": 0.006685827
+                    },
+                    "count": 155,
+                    "last_value": 0.000042125,
+                    "max": 0.000075458,
+                    "min": 0.00001225
+                },
+                "last_time": {
+                    "secs": 0,
+                    "nanos": 42125
+                }
+            }
+        },
+        "tags": 3073
+    },
+    {
+        "name": "step.evaluate",
+        "meta": {
+            "update_count": 2,
+            "version": 154
+        },
+        "inner": {
+            "value_statistic": null,
+            "time_statistic": {
+                "statistic": {
+                    "m1": {
+                        "compensation": -6.82121e-13,
+                        "simple_sum": 0.000046064648,
+                        "sum": 0.000046064648
+                    },
+                    "m2": {
+                        "compensation": 4.3520743e-14,
+                        "simple_sum": 9.768835e-7,
+                        "sum": 9.768836e-7
+                    },
+                    "m3": {
+                        "compensation": 1.2468325e-18,
+                        "simple_sum": 4.6999446e-11,
+                        "sum": 4.699946e-11
+                    },
+                    "m4": {
+                        "compensation": -1.5881868e-22,
+                        "simple_sum": 7.53145e-15,
+                        "sum": 7.531451e-15
+                    },
+                    "sum": {
+                        "compensation": -1.7462298e-10,
+                        "simple_sum": 0.0142800305,
+                        "sum": 0.014280041
+                    },
+                    "count": 310,
+                    "last_value": 0.000143166,
+                    "max": 0.00021725,
+                    "min": 1.25e-7
+                },
+                "last_time": {
+                    "secs": 0,
+                    "nanos": 143166
+                }
+            }
+        },
+        "tags": 34816
+    },
+    {
+        "name": "mutate.graph.invalid",
+        "meta": {
+            "update_count": 2,
+            "version": 154
+        },
+        "inner": {
+            "value_statistic": {
+                "m1": {
+                    "compensation": 0.0,
+                    "simple_sum": 1.0,
+                    "sum": 1.0
+                },
+                "m2": {
+                    "compensation": 0.0,
+                    "simple_sum": 0.0,
+                    "sum": 0.0
+                },
+                "m3": {
+                    "compensation": 0.0,
+                    "simple_sum": 0.0,
+                    "sum": 0.0
+                },
+                "m4": {
+                    "compensation": 0.0,
+                    "simple_sum": 0.0,
+                    "sum": 0.0
+                },
+                "sum": {
+                    "compensation": 0.0,
+                    "simple_sum": 304.0,
+                    "sum": 304.0
+                },
+                "count": 304,
+                "last_value": 1.0,
+                "max": 1.0,
+                "min": 1.0
+            },
+            "time_statistic": null
+        },
+        "tags": 1024
+    },
+    {
+        "name": "rate.carryover",
+        "meta": {
+            "update_count": 1,
+            "version": 154
+        },
+        "inner": {
+            "value_statistic": {
+                "m1": {
+                    "compensation": 1.3038516e-8,
+                    "simple_sum": 0.44628653,
+                    "sum": 0.44628635
+                },
+                "m2": {
+                    "compensation": 2.2351742e-8,
+                    "simple_sum": 5.8110056,
+                    "sum": 5.8110046
+                },
+                "m3": {
+                    "compensation": 1.21071935e-8,
+                    "simple_sum": 0.4442172,
+                    "sum": 0.4442172
+                },
+                "m4": {
+                    "compensation": -1.3969839e-8,
+                    "simple_sum": 0.48415697,
+                    "sum": 0.4841567
+                },
+                "sum": {
+                    "compensation": 0.0000027567148,
+                    "simple_sum": 69.174355,
+                    "sum": 69.174385
+                },
+                "count": 155,
+                "last_value": 0.13461539,
+                "max": 0.90909094,
+                "min": 0.0
+            },
+            "time_statistic": null
+        },
+        "tags": 17664
+    },
+    {
+        "name": "size.genome",
+        "meta": {
+            "update_count": 100,
+            "version": 154
+        },
+        "inner": {
+            "value_statistic": {
+                "m1": {
+                    "compensation": 4.4112676e-7,
+                    "simple_sum": 9.286772,
+                    "sum": 9.286775
+                },
+                "m2": {
+                    "compensation": -0.007534027,
+                    "simple_sum": 254566.36,
+                    "sum": 254566.28
+                },
+                "m3": {
+                    "compensation": -0.0008544922,
+                    "simple_sum": -40167.555,
+                    "sum": -40167.68
+                },
+                "m4": {
+                    "compensation": 0.08065796,
+                    "simple_sum": 7822110.0,
+                    "sum": 7822132.0
+                },
+                "sum": {
+                    "compensation": 0.0,
+                    "simple_sum": 143945.0,
+                    "sum": 143945.0
+                },
+                "count": 15500,
+                "last_value": 15.0,
+                "max": 17.0,
+                "min": 2.0
+            },
+            "time_statistic": null
+        },
+        "tags": 5120
+    },
+    {
+        "name": "new.children",
+        "meta": {
+            "update_count": 1,
+            "version": 154
+        },
+        "inner": {
+            "value_statistic": {
+                "m1": {
+                    "compensation": -1.8626451e-7,
+                    "simple_sum": 30.258072,
+                    "sum": 30.258064
+                },
+                "m2": {
+                    "compensation": 0.00048828125,
+                    "simple_sum": 29183.678,
+                    "sum": 29183.678
+                },
+                "m3": {
+                    "compensation": -0.00390625,
+                    "simple_sum": -68048.43,
+                    "sum": -68048.484
+                },
+                "m4": {
+                    "compensation": -0.2265625,
+                    "simple_sum": 13141215.0,
+                    "sum": 13141207.0
+                },
+                "sum": {
+                    "compensation": 0.0,
+                    "simple_sum": 4690.0,
+                    "sum": 4690.0
+                },
+                "count": 155,
+                "last_value": 45.0,
+                "max": 70.0,
+                "min": 3.0
+            },
+            "time_statistic": null
+        },
+        "tags": 1280
+    },
+    {
+        "name": "mutate.operation.mutated",
+        "meta": {
+            "update_count": 80,
+            "version": 154
+        },
+        "inner": {
+            "value_statistic": {
+                "m1": {
+                    "compensation": 7.197741e-9,
+                    "simple_sum": 0.19540352,
+                    "sum": 0.19540323
+                },
+                "m2": {
+                    "compensation": 0.000097848475,
+                    "simple_sum": 2525.5342,
+                    "sum": 2525.538
+                },
+                "m3": {
+                    "compensation": 0.00007303804,
+                    "simple_sum": 2703.9856,
+                    "sum": 2703.9893
+                },
+                "m4": {
+                    "compensation": 0.00023679435,
+                    "simple_sum": 4524.889,
+                    "sum": 4524.8623
+                },
+                "sum": {
+                    "compensation": 0.0,
+                    "simple_sum": 2423.0,
+                    "sum": 2423.0
+                },
+                "count": 12400,
+                "last_value": 0.0,
+                "max": 4.0,
+                "min": 0.0
+            },
+            "time_statistic": null
+        },
+        "tags": 1024
+    },
+    {
+        "name": "score.improvement",
+        "meta": {
+            "update_count": 1,
+            "version": 154
+        },
+        "inner": {
+            "value_statistic": {
+                "m1": {
+                    "compensation": 0.0,
+                    "simple_sum": 1.0,
+                    "sum": 1.0
+                },
+                "m2": {
+                    "compensation": 0.0,
+                    "simple_sum": 0.0,
+                    "sum": 0.0
+                },
+                "m3": {
+                    "compensation": 0.0,
+                    "simple_sum": 0.0,
+                    "sum": 0.0
+                },
+                "m4": {
+                    "compensation": 0.0,
+                    "simple_sum": 0.0,
+                    "sum": 0.0
+                },
+                "sum": {
+                    "compensation": 0.0,
+                    "simple_sum": 88.0,
+                    "sum": 88.0
+                },
+                "count": 88,
+                "last_value": 1.0,
+                "max": 1.0,
+                "min": 1.0
+            },
+            "time_statistic": null
+        },
+        "tags": 9216
+    },
+    {
+        "name": "scores",
+        "meta": {
+            "update_count": 100,
+            "version": 154
+        },
+        "inner": {
+            "value_statistic": {
+                "m1": {
+                    "compensation": -3.464811e-8,
+                    "simple_sum": 1.2428486,
+                    "sum": 1.2428521
+                },
+                "m2": {
+                    "compensation": 0.0022192001,
+                    "simple_sum": 99784.91,
+                    "sum": 99785.1
+                },
+                "m3": {
+                    "compensation": -0.0110321045,
+                    "simple_sum": 2300322.2,
+                    "sum": 2300328.2
+                },
+                "m4": {
+                    "compensation": 0.5998535,
+                    "simple_sum": 82416760.0,
+                    "sum": 82425080.0
+                },
+                "sum": {
+                    "compensation": -0.00094747543,
+                    "simple_sum": 19264.287,
+                    "sum": 19264.207
+                },
+                "count": 15500,
+                "last_value": 3.9323258,
+                "max": 65.58987,
+                "min": 0.0008704043
+            },
+            "time_statistic": null
+        },
+        "tags": 13312
+    },
+    {
+        "name": "scores.best",
+        "meta": {
+            "update_count": 1,
+            "version": 154
+        },
+        "inner": {
+            "value_statistic": {
+                "m1": {
+                    "compensation": -3.259629e-9,
+                    "simple_sum": 0.73142225,
+                    "sum": 0.7314219
+                },
+                "m2": {
+                    "compensation": -4.7683716e-7,
+                    "simple_sum": 62.57535,
+                    "sum": 62.575333
+                },
+                "m3": {
+                    "compensation": 5.662441e-7,
+                    "simple_sum": 20.003653,
+                    "sum": 20.003653
+                },
+                "m4": {
+                    "compensation": 0.00000166893,
+                    "simple_sum": 42.37477,
+                    "sum": 42.37477
+                },
+                "sum": {
+                    "compensation": -0.0000015121186,
+                    "simple_sum": 113.370415,
+                    "sum": 113.37039
+                },
+                "count": 155,
+                "last_value": 0.0008704043,
+                "max": 2.0037777,
+                "min": 0.0008704043
+            },
+            "time_statistic": null
+        },
+        "tags": 9216
+    },
+    {
+        "name": "age",
+        "meta": {
+            "update_count": 100,
+            "version": 154
+        },
+        "inner": {
+            "value_statistic": {
+                "m1": {
+                    "compensation": 5.4351403e-8,
+                    "simple_sum": 2.594122,
+                    "sum": 2.594129
+                },
+                "m2": {
+                    "compensation": 0.0061273575,
+                    "simple_sum": 173269.61,
+                    "sum": 173269.67
+                },
+                "m3": {
+                    "compensation": 0.043945312,
+                    "simple_sum": 1100798.8,
+                    "sum": 1100800.8
+                },
+                "m4": {
+                    "compensation": 0.018249512,
+                    "simple_sum": 12820972.0,
+                    "sum": 12821077.0
+                },
+                "sum": {
+                    "compensation": 0.0,
+                    "simple_sum": 40209.0,
+                    "sum": 40209.0
+                },
+                "count": 15500,
+                "last_value": 0.0,
+                "max": 20.0,
+                "min": 0.0
+            },
+            "time_statistic": null
+        },
+        "tags": 5184
+    },
+    {
+        "name": "step.recombine",
+        "meta": {
+            "update_count": 1,
+            "version": 154
+        },
+        "inner": {
+            "value_statistic": null,
+            "time_statistic": {
+                "statistic": {
+                    "m1": {
+                        "compensation": -4.98801e-12,
+                        "simple_sum": 0.00012397172,
+                        "sum": 0.00012397172
+                    },
+                    "m2": {
+                        "compensation": -1.3183898e-15,
+                        "simple_sum": 1.416238e-7,
+                        "sum": 1.4162381e-7
+                    },
+                    "m3": {
+                        "compensation": 5.421011e-20,
+                        "simple_sum": -1.6075249e-12,
+                        "sum": -1.6075242e-12
+                    },
+                    "m4": {
+                        "compensation": 1.5509636e-25,
+                        "simple_sum": 5.749964e-16,
+                        "sum": 5.7499667e-16
+                    },
+                    "sum": {
+                        "compensation": -6.2573235e-10,
+                        "simple_sum": 0.019215614,
+                        "sum": 0.019215617
+                    },
+                    "count": 155,
+                    "last_value": 0.000114208,
+                    "max": 0.000228416,
+                    "min": 0.000043667
+                },
+                "last_time": {
+                    "secs": 0,
+                    "nanos": 114208
+                }
+            }
+        },
+        "tags": 34816
+    },
+    {
+        "name": "mutate.graph",
+        "meta": {
+            "update_count": 2,
+            "version": 154
+        },
+        "inner": {
+            "value_statistic": {
+                "m1": {
+                    "compensation": 6.4074993e-7,
+                    "simple_sum": 23.238714,
+                    "sum": 23.23871
+                },
+                "m2": {
+                    "compensation": 0.0002746582,
+                    "simple_sum": 15664.166,
+                    "sum": 15664.168
+                },
+                "m3": {
+                    "compensation": -0.0034179688,
+                    "simple_sum": 73327.32,
+                    "sum": 73327.33
+                },
+                "m4": {
+                    "compensation": 0.16796875,
+                    "simple_sum": 5211628.0,
+                    "sum": 5211626.0
+                },
+                "sum": {
+                    "compensation": 0.0,
+                    "simple_sum": 3602.0,
+                    "sum": 3602.0
+                },
+                "count": 155,
+                "last_value": 12.0,
+                "max": 60.0,
+                "min": 3.0
+            },
+            "time_statistic": {
+                "statistic": {
+                    "m1": {
+                        "compensation": 3.5527137e-15,
+                        "simple_sum": 0.000022126605,
+                        "sum": 0.0000221266
+                    },
+                    "m2": {
+                        "compensation": -1.0408341e-16,
+                        "simple_sum": 1.9559701e-8,
+                        "sum": 1.9559701e-8
+                    },
+                    "m3": {
+                        "compensation": -1.2493736e-20,
+                        "simple_sum": 2.3110536e-13,
+                        "sum": 2.311053e-13
+                    },
+                    "m4": {
+                        "compensation": -1.4540284e-25,
+                        "simple_sum": 8.811962e-18,
+                        "sum": 8.811964e-18
+                    },
+                    "sum": {
+                        "compensation": 7.548806e-11,
+                        "simple_sum": 0.0034296233,
+                        "sum": 0.003429623
+                    },
+                    "count": 155,
+                    "last_value": 0.0000145,
+                    "max": 0.000056542,
+                    "min": 0.000006209
+                },
+                "last_time": {
+                    "secs": 0,
+                    "nanos": 35250
+                }
+            }
+        },
+        "tags": 3072
+    },
+    {
+        "name": "index",
+        "meta": null,
+        "inner": {
+            "value_statistic": {
+                "m1": {
+                    "compensation": 0.0,
+                    "simple_sum": 155.0,
+                    "sum": 155.0
+                },
+                "m2": {
+                    "compensation": 0.0,
+                    "simple_sum": 0.0,
+                    "sum": 0.0
+                },
+                "m3": {
+                    "compensation": 0.0,
+                    "simple_sum": 0.0,
+                    "sum": 0.0
+                },
+                "m4": {
+                    "compensation": 0.0,
+                    "simple_sum": 0.0,
+                    "sum": 0.0
+                },
+                "sum": {
+                    "compensation": 0.0,
+                    "simple_sum": 155.0,
+                    "sum": 155.0
+                },
+                "count": 1,
+                "last_value": 155.0,
+                "max": 155.0,
+                "min": 155.0
+            },
+            "time_statistic": null
+        },
+        "tags": 1024
+    },
+    {
+        "name": "rate.lineage.parents_used",
+        "meta": {
+            "update_count": 1,
+            "version": 154
+        },
+        "inner": {
+            "value_statistic": {
+                "m1": {
+                    "compensation": -3.4051482e-9,
+                    "simple_sum": 0.12096774,
+                    "sum": 0.12096774
+                },
+                "m2": {
+                    "compensation": -6.2864274e-9,
+                    "simple_sum": 0.47395486,
+                    "sum": 0.47395483
+                },
+                "m3": {
+                    "compensation": -5.820766e-11,
+                    "simple_sum": 0.0069488594,
+                    "sum": 0.00694886
+                },
+                "m4": {
+                    "compensation": 6.548362e-11,
+                    "simple_sum": 0.0032339687,
+                    "sum": 0.0032339676
+                },
+                "sum": {
+                    "compensation": 2.9802322e-8,
+                    "simple_sum": 18.749994,
+                    "sum": 18.75
+                },
+                "count": 155,
+                "last_value": 0.07,
+                "max": 0.25,
+                "min": 0.02
+            },
+            "time_statistic": null
+        },
+        "tags": 83008
+    },
+    {
+        "name": "time",
+        "meta": {
+            "update_count": 1,
+            "version": 154
+        },
+        "inner": {
+            "value_statistic": null,
+            "time_statistic": {
+                "statistic": {
+                    "m1": {
+                        "compensation": -4.220624e-12,
+                        "simple_sum": 0.00024780058,
+                        "sum": 0.00024780058
+                    },
+                    "m2": {
+                        "compensation": -2.5646152e-14,
+                        "simple_sum": 7.0517183e-7,
+                        "sum": 7.05172e-7
+                    },
+                    "m3": {
+                        "compensation": 1.517883e-18,
+                        "simple_sum": -3.471005e-11,
+                        "sum": -3.471005e-11
+                    },
+                    "m4": {
+                        "compensation": -6.7167066e-22,
+                        "simple_sum": 1.5285077e-14,
+                        "sum": 1.528507e-14
+                    },
+                    "sum": {
+                        "compensation": 1.3969839e-9,
+                        "simple_sum": 0.03840909,
+                        "sum": 0.03840909
+                    },
+                    "count": 155,
+                    "last_value": 0.000280292,
+                    "max": 0.000436833,
+                    "min": 0.000063375
+                },
+                "last_time": {
+                    "secs": 0,
+                    "nanos": 280292
+                }
+            }
+        },
+        "tags": 2048
+    },
+    {
+        "name": "lineage.parents_unique",
+        "meta": {
+            "update_count": 1,
+            "version": 154
+        },
+        "inner": {
+            "value_statistic": {
+                "m1": {
+                    "compensation": -7.0780516e-8,
+                    "simple_sum": 12.096778,
+                    "sum": 12.096774
+                },
+                "m2": {
+                    "compensation": -0.00008583069,
+                    "simple_sum": 4739.5483,
+                    "sum": 4739.5483
+                },
+                "m3": {
+                    "compensation": 0.000030517578,
+                    "simple_sum": 6948.861,
+                    "sum": 6948.862
+                },
+                "m4": {
+                    "compensation": -0.00048828125,
+                    "simple_sum": 323396.75,
+                    "sum": 323396.78
+                },
+                "sum": {
+                    "compensation": 0.0,
+                    "simple_sum": 1875.0,
+                    "sum": 1875.0
+                },
+                "count": 155,
+                "last_value": 7.0,
+                "max": 25.0,
+                "min": 2.0
+            },
+            "time_statistic": null
+        },
+        "tags": 66624
+    },
+    {
+        "name": "mutate.operation.rate",
+        "meta": {
+            "update_count": 1,
+            "version": 154
+        },
+        "inner": {
+            "value_statistic": {
+                "m1": {
+                    "compensation": 0.0,
+                    "simple_sum": 0.07,
+                    "sum": 0.07
+                },
+                "m2": {
+                    "compensation": 0.0,
+                    "simple_sum": 0.0,
+                    "sum": 0.0
+                },
+                "m3": {
+                    "compensation": 0.0,
+                    "simple_sum": 0.0,
+                    "sum": 0.0
+                },
+                "m4": {
+                    "compensation": 0.0,
+                    "simple_sum": 0.0,
+                    "sum": 0.0
+                },
+                "sum": {
+                    "compensation": 3.3527613e-7,
+                    "simple_sum": 10.849997,
+                    "sum": 10.85
+                },
+                "count": 155,
+                "last_value": 0.07,
+                "max": 0.07,
+                "min": 0.07
+            },
+            "time_statistic": null
+        },
+        "tags": 17408
+    },
+    {
+        "name": "mutate.operation",
+        "meta": {
+            "update_count": 2,
+            "version": 154
+        },
+        "inner": {
+            "value_statistic": {
+                "m1": {
+                    "compensation": 8.940697e-8,
+                    "simple_sum": 25.92258,
+                    "sum": 25.92258
+                },
+                "m2": {
+                    "compensation": -0.0010375977,
+                    "simple_sum": 45545.082,
+                    "sum": 45545.07
+                },
+                "m3": {
+                    "compensation": 0.0048828125,
+                    "simple_sum": 192924.19,
+                    "sum": 192924.27
+                },
+                "m4": {
+                    "compensation": -0.890625,
+                    "simple_sum": 26015774.0,
+                    "sum": 26015768.0
+                },
+                "sum": {
+                    "compensation": 0.0,
+                    "simple_sum": 4018.0,
+                    "sum": 4018.0
+                },
+                "count": 155,
+                "last_value": 49.0,
+                "max": 67.0,
+                "min": 0.0
+            },
+            "time_statistic": {
+                "statistic": {
+                    "m1": {
+                        "compensation": -1.4033219e-13,
+                        "simple_sum": 0.000017929273,
+                        "sum": 0.000017929284
+                    },
+                    "m2": {
+                        "compensation": -9.86624e-17,
+                        "simple_sum": 4.8807403e-9,
+                        "sum": 4.880743e-9
+                    },
+                    "m3": {
+                        "compensation": 1.2506971e-21,
+                        "simple_sum": 1.1135227e-13,
+                        "sum": 1.1135227e-13
+                    },
+                    "m4": {
+                        "compensation": -1.6842496e-25,
+                        "simple_sum": 6.0193784e-18,
+                        "sum": 6.0193776e-18
+                    },
+                    "sum": {
+                        "compensation": 8.367351e-11,
+                        "simple_sum": 0.00277904,
+                        "sum": 0.002779039
+                    },
+                    "count": 155,
+                    "last_value": 0.000016917,
+                    "max": 0.000067041,
+                    "min": 0.000006958
+                },
+                "last_time": {
+                    "secs": 0,
+                    "nanos": 30375
+                }
+            }
+        },
+        "tags": 3072
+    },
+    {
+        "name": "score.volatility",
+        "meta": {
+            "update_count": 1,
+            "version": 154
+        },
+        "inner": {
+            "value_statistic": {
+                "m1": {
+                    "compensation": -2.514571e-8,
+                    "simple_sum": 0.98310834,
+                    "sum": 0.9831083
+                },
+                "m2": {
+                    "compensation": -0.0000030994415,
+                    "simple_sum": 76.34859,
+                    "sum": 76.34859
+                },
+                "m3": {
+                    "compensation": 1.1920929e-7,
+                    "simple_sum": 7.4452066,
+                    "sum": 7.4452043
+                },
+                "m4": {
+                    "compensation": 9.834766e-7,
+                    "simple_sum": 50.55737,
+                    "sum": 50.557377
+                },
+                "sum": {
+                    "compensation": 0.0000021457672,
+                    "simple_sum": 152.3818,
+                    "sum": 152.38179
+                },
+                "count": 155,
+                "last_value": 2.0415573,
+                "max": 2.0415573,
+                "min": 0.033288438
+            },
+            "time_statistic": null
+        },
+        "tags": 9472
+    },
+    {
+        "name": "count.survivor",
+        "meta": {
+            "update_count": 1,
+            "version": 154
+        },
+        "inner": {
+            "value_statistic": {
+                "m1": {
+                    "compensation": 9.3877316e-7,
+                    "simple_sum": 22.045155,
+                    "sum": 22.045162
+                },
+                "m2": {
+                    "compensation": -0.000015258789,
+                    "simple_sum": 10464.687,
+                    "sum": 10464.684
+                },
+                "m3": {
+                    "compensation": 0.0,
+                    "simple_sum": 24023.188,
+                    "sum": 24023.191
+                },
+                "m4": {
+                    "compensation": -0.01171875,
+                    "simple_sum": 1852809.2,
+                    "sum": 1852809.2
+                },
+                "sum": {
+                    "compensation": 0.0,
+                    "simple_sum": 3417.0,
+                    "sum": 3417.0
+                },
+                "count": 155,
+                "last_value": 7.0,
+                "max": 46.0,
+                "min": 0.0
+            },
+            "time_statistic": null
+        },
+        "tags": 1280
+    },
+    {
+        "name": "unique.scores",
+        "meta": {
+            "update_count": 1,
+            "version": 154
+        },
+        "inner": {
+            "value_statistic": {
+                "m1": {
+                    "compensation": -7.1525574e-7,
+                    "simple_sum": 33.645164,
+                    "sum": 33.64516
+                },
+                "m2": {
+                    "compensation": 0.00032043457,
+                    "simple_sum": 36119.48,
+                    "sum": 36119.484
+                },
+                "m3": {
+                    "compensation": 0.0029296875,
+                    "simple_sum": -151234.31,
+                    "sum": -151234.3
+                },
+                "m4": {
+                    "compensation": -0.4296875,
+                    "simple_sum": 19553754.0,
+                    "sum": 19553754.0
+                },
+                "sum": {
+                    "compensation": 0.0,
+                    "simple_sum": 5215.0,
+                    "sum": 5215.0
+                },
+                "count": 155,
+                "last_value": 44.0,
+                "max": 63.0,
+                "min": 3.0
+            },
+            "time_statistic": null
+        },
+        "tags": 9472
+    },
+    {
+        "name": "age.replace",
+        "meta": {
+            "update_count": 1,
+            "version": 37
+        },
+        "inner": {
+            "value_statistic": {
+                "m1": {
+                    "compensation": 0.0,
+                    "simple_sum": 1.5,
+                    "sum": 1.5
+                },
+                "m2": {
+                    "compensation": 0.0,
+                    "simple_sum": 0.5,
+                    "sum": 0.5
+                },
+                "m3": {
+                    "compensation": 0.0,
+                    "simple_sum": 0.0,
+                    "sum": 0.0
+                },
+                "m4": {
+                    "compensation": 0.0,
+                    "simple_sum": 0.125,
+                    "sum": 0.125
+                },
+                "sum": {
+                    "compensation": 0.0,
+                    "simple_sum": 3.0,
+                    "sum": 3.0
+                },
+                "count": 2,
+                "last_value": 1.0,
+                "max": 2.0,
+                "min": 1.0
+            },
+            "time_statistic": null
+        },
+        "tags": 1120
+    },
+    {
+        "name": "count.evaluation",
+        "meta": {
+            "update_count": 1,
+            "version": 154
+        },
+        "inner": {
+            "value_statistic": {
+                "m1": {
+                    "compensation": -2.30968e-7,
+                    "simple_sum": 30.282053,
+                    "sum": 30.282051
+                },
+                "m2": {
+                    "compensation": 0.0001373291,
+                    "simple_sum": 33157.594,
+                    "sum": 33157.59
+                },
+                "m3": {
+                    "compensation": 0.0009765625,
+                    "simple_sum": 187912.25,
+                    "sum": 187912.08
+                },
+                "m4": {
+                    "compensation": 0.3671875,
+                    "simple_sum": 34761764.0,
+                    "sum": 34761772.0
+                },
+                "sum": {
+                    "compensation": 0.0,
+                    "simple_sum": 4724.0,
+                    "sum": 4724.0
+                },
+                "count": 156,
+                "last_value": 45.0,
+                "max": 100.0,
+                "min": 3.0
+            },
+            "time_statistic": null
+        },
+        "tags": 1024
+    },
+    {
+        "name": "step.audit",
+        "meta": {
+            "update_count": 1,
+            "version": 154
+        },
+        "inner": {
+            "value_statistic": null,
+            "time_statistic": {
+                "statistic": {
+                    "m1": {
+                        "compensation": -2.629008e-13,
+                        "simple_sum": 0.000022558357,
+                        "sum": 0.000022558348
+                    },
+                    "m2": {
+                        "compensation": 2.6367797e-16,
+                        "simple_sum": 1.2959166e-8,
+                        "sum": 1.2959168e-8
+                    },
+                    "m3": {
+                        "compensation": 1.1646703e-21,
+                        "simple_sum": 2.1848475e-13,
+                        "sum": 2.1848475e-13
+                    },
+                    "m4": {
+                        "compensation": 2.8111216e-25,
+                        "simple_sum": 1.0422211e-17,
+                        "sum": 1.04222085e-17
+                    },
+                    "sum": {
+                        "compensation": -2.1827873e-11,
+                        "simple_sum": 0.003496544,
+                        "sum": 0.003496544
+                    },
+                    "count": 155,
+                    "last_value": 0.000013292,
+                    "max": 0.000073209,
+                    "min": 0.00000925
+                },
+                "last_time": {
+                    "secs": 0,
+                    "nanos": 13292
+                }
+            }
+        },
+        "tags": 34816
+    },
+    {
+        "name": "crossover.graph.rate",
+        "meta": {
+            "update_count": 1,
+            "version": 154
+        },
+        "inner": {
+            "value_statistic": {
+                "m1": {
+                    "compensation": 0.0,
+                    "simple_sum": 0.5,
+                    "sum": 0.5
+                },
+                "m2": {
+                    "compensation": 0.0,
+                    "simple_sum": 0.0,
+                    "sum": 0.0
+                },
+                "m3": {
+                    "compensation": 0.0,
+                    "simple_sum": 0.0,
+                    "sum": 0.0
+                },
+                "m4": {
+                    "compensation": 0.0,
+                    "simple_sum": 0.0,
+                    "sum": 0.0
+                },
+                "sum": {
+                    "compensation": 0.0,
+                    "simple_sum": 77.5,
+                    "sum": 77.5
+                },
+                "count": 155,
+                "last_value": 0.5,
+                "max": 0.5,
+                "min": 0.5
+            },
+            "time_statistic": null
+        },
+        "tags": 17418
+    },
+    {
+        "name": "alter.within_family",
+        "meta": {
+            "update_count": 1,
+            "version": 154
+        },
+        "inner": {
+            "value_statistic": {
+                "m1": {
+                    "compensation": -4.7683716e-7,
+                    "simple_sum": 28.605,
+                    "sum": 28.605
+                },
+                "m2": {
+                    "compensation": 0.0012817383,
+                    "simple_sum": 94701.805,
+                    "sum": 94701.8
+                },
+                "m3": {
+                    "compensation": 0.0,
+                    "simple_sum": -22442.934,
+                    "sum": -22443.047
+                },
+                "m4": {
+                    "compensation": -2.421875,
+                    "simple_sum": 70616450.0,
+                    "sum": 70616450.0
+                },
+                "sum": {
+                    "compensation": 0.0,
+                    "simple_sum": 5721.0,
+                    "sum": 5721.0
+                },
+                "count": 200,
+                "last_value": 54.0,
+                "max": 66.0,
+                "min": 1.0
+            },
+            "time_statistic": null
+        },
+        "tags": 70658
+    },
+    {
+        "name": "mutate.operation.new",
+        "meta": {
+            "update_count": 80,
+            "version": 154
+        },
+        "inner": {
+            "value_statistic": {
+                "m1": {
+                    "compensation": -3.4915502e-9,
+                    "simple_sum": 0.12862915,
+                    "sum": 0.12862903
+                },
+                "m2": {
+                    "compensation": -0.00002092868,
+                    "simple_sum": 1601.8352,
+                    "sum": 1601.8367
+                },
+                "m3": {
+                    "compensation": 0.0000042282045,
+                    "simple_sum": 1586.4797,
+                    "sum": 1586.4819
+                },
+                "m4": {
+                    "compensation": -0.000026129186,
+                    "simple_sum": 2100.3218,
+                    "sum": 2100.3164
+                },
+                "sum": {
+                    "compensation": 0.0,
+                    "simple_sum": 1595.0,
+                    "sum": 1595.0
+                },
+                "count": 12400,
+                "last_value": 0.0,
+                "max": 2.0,
+                "min": 0.0
+            },
+            "time_statistic": null
+        },
+        "tags": 1024
+    }
+]

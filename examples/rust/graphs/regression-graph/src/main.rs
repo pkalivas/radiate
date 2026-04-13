@@ -20,7 +20,7 @@ fn main() {
         .codec(GraphCodec::directed(1, 1, store))
         .raw_batch_fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
-        .register_metrics(vec![("idk", expr)])
+        // .register_metrics(vec![("idk", expr)])
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
@@ -36,6 +36,10 @@ fn main() {
 }
 
 fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
+    // save the mettrics to a file
+    // let metrics = result.metrics();
+    // let json = serde_json::to_string(metrics).unwrap();
+    // std::fs::write("metrics.json", json).unwrap();
     Accuracy::default()
         .named("Regression Graph")
         .on(&dataset().into())

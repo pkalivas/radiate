@@ -71,7 +71,7 @@ impl From<Duration> for TimeStatistic {
 
 impl Hash for TimeStatistic {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.statistic.hash(state);
+        // self.statistic.hash(state);
         self.last_time.hash(state);
     }
 }

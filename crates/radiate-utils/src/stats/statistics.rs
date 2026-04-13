@@ -320,17 +320,17 @@ impl<F: Float> Default for Statistic<F> {
     }
 }
 
-impl Hash for Statistic {
+impl<F: Float> Hash for Statistic<F> {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.count.hash(state);
-        self.last_value.to_bits().hash(state);
-        self.max.to_bits().hash(state);
-        self.min.to_bits().hash(state);
-        self.sum.value().to_bits().hash(state);
-        self.m1.value().to_bits().hash(state);
-        self.m2.value().to_bits().hash(state);
-        self.m3.value().to_bits().hash(state);
-        self.m4.value().to_bits().hash(state);
+        self.last_value.num_hash(state);
+        self.max.num_hash(state);
+        self.min.num_hash(state);
+        self.sum.value().num_hash(state);
+        self.m1.value().num_hash(state);
+        self.m2.value().num_hash(state);
+        self.m3.value().num_hash(state);
+        self.m4.value().num_hash(state);
     }
 }
 
