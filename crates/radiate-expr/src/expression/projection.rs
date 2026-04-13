@@ -83,7 +83,7 @@ mod tests {
         let values = vec![10i32, 20, 30];
         let mut selector = SelectExpr::Nth(1);
 
-        let result = selector.dispatch(&values);
+        let result = selector.dispatch(&values).unwrap();
 
         assert_eq!(i32_of(result), 20);
     }
@@ -93,7 +93,7 @@ mod tests {
         let values = vec![10i32, 20, 30];
         let mut selector = SelectExpr::Path(vec![PathSegment::Index(2)]);
 
-        let result = selector.dispatch(&values);
+        let result = selector.dispatch(&values).unwrap();
 
         assert_eq!(i32_of(result), 30);
     }
@@ -104,7 +104,7 @@ mod tests {
         let mut selector =
             SelectExpr::Path(vec![PathSegment::Key(AnyValue::from("nope").into_static())]);
 
-        let result = selector.dispatch(&values);
+        let result = selector.dispatch(&values).unwrap();
 
         assert!(matches!(result, AnyValue::Null));
     }
@@ -116,7 +116,7 @@ mod tests {
 
         let mut selector: Expr = expr::path("mean").into();
 
-        let result = selector.dispatch(&inner);
+        let result = selector.dispatch(&inner).unwrap();
 
         assert_eq!(f32_of(result), 12.5);
     }
@@ -130,7 +130,7 @@ mod tests {
             AnyValue::from("accuracy").into_static(),
         )]);
 
-        let result = selector.dispatch(&map);
+        let result = selector.dispatch(&map).unwrap();
 
         assert_eq!(f32_of(result), 0.91);
     }
@@ -144,7 +144,7 @@ mod tests {
             AnyValue::from("missing").into_static(),
         )]);
 
-        let result = selector.dispatch(&map);
+        let result = selector.dispatch(&map).unwrap();
 
         assert!(matches!(result, AnyValue::Null));
     }
@@ -183,7 +183,7 @@ mod tests {
             PathSegment::Key(AnyValue::from("name").into_static()),
         ]);
 
-        let result = selector.dispatch(&root);
+        let result = selector.dispatch(&root).unwrap();
 
         match result {
             AnyValue::Str(s) => assert_eq!(s, "bob"),
@@ -222,7 +222,7 @@ mod tests {
         let mut expr: Expr = PathBuilder::default().key("metric").key("value").into();
         expr = expr.gt(5.0);
 
-        let result = expr.dispatch(&root);
+        let result = expr.dispatch(&root).unwrap();
 
         match result {
             AnyValue::Bool(v) => assert!(v),

@@ -1,8 +1,10 @@
 use crate::{
     Metric, MetricUpdate,
-    stats::{Tag, TagKind, defaults::try_add_tag_from_str, fmt},
+    stats::{Meta, Tag, TagKind, defaults::try_add_tag_from_str, fmt},
 };
-use radiate_expr::{AnyValue, ApplyExpr, DataType, Expr, ExprProjection, ExprQuery, SelectExpr};
+use radiate_expr::{
+    AnyValue, ApplyExpr, DataType, Expr, ExprProjection, ExprQuery, NamedExpr, SelectExpr,
+};
 use radiate_utils::intern;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -11,8 +13,6 @@ use std::{
     fmt::{Debug, Display},
     time::Duration,
 };
-
-pub(super) const METRIC_SET: &str = "metric_set";
 
 #[derive(PartialEq)]
 pub struct MetricSetSummary {
@@ -23,27 +23,48 @@ pub struct MetricSetSummary {
 #[derive(Clone, Default, PartialEq)]
 pub struct MetricSet {
     metrics: HashMap<&'static str, Metric>,
-    set_stats: Metric,
-    version: u64,
+    exprs: Option<Vec<NamedExpr>>,
+    meta: Meta,
 }
 
 impl MetricSet {
     pub fn new() -> Self {
         MetricSet {
             metrics: HashMap::new(),
-            set_stats: Metric::new(METRIC_SET),
-            version: 0,
+            exprs: None,
+            meta: Meta::default(),
+        }
+    }
+
+    pub fn with_exprs(exprs: Vec<NamedExpr>) -> Self {
+        MetricSet {
+            metrics: HashMap::new(),
+            exprs: Some(exprs),
+            meta: Meta::default(),
         }
     }
 
     pub fn next_version(&mut self) -> u64 {
-        let result = self.version;
-        self.version += 1;
+        // if let Some(exprs) = self.exprs.as_mut() {
+        //     for expr in exprs.iter_mut() {
+        //         let output = self.apply(&mut expr.expr);
+        //     }
+        // }
+
+        // let exprs = self.exprs.as_mut().unwrap_or(&mut vec![]);
+        // for expr in exprs.iter_mut() {
+        //     let output = self.apply(&mut expr.expr);
+        //     let update = MetricUpdate::from(output);
+        //     self.upsert((expr.name.clone(), update));
+        // }
+
+        let result = self.meta.version;
+        self.meta.version += 1;
         result
     }
 
     pub fn version(&self) -> u64 {
-        self.version
+        self.meta.version
     }
 
     #[inline(always)]
@@ -64,7 +85,7 @@ impl MetricSet {
             }
         }
 
-        target.set_stats.update_from(self.set_stats.clone());
+        // target.set_stats.update_from(self.set_stats.clone());
         self.clear();
     }
 
@@ -95,7 +116,7 @@ impl MetricSet {
                 }
             }
             MetricSetUpdate::NamedSingle(name, metric_update) => {
-                self.set_stats.apply_update(1);
+                self.meta.update_count += 1;
                 if let Some(m) = self.metrics.get_mut(name) {
                     m.set_version(version);
                     m.apply_update(metric_update);
@@ -173,7 +194,7 @@ impl MetricSet {
             m.clear_values();
         }
 
-        self.set_stats.clear_values();
+        self.meta.update_count = 0;
     }
 
     #[inline(always)]
@@ -190,7 +211,7 @@ impl MetricSet {
     pub fn summary(&self) -> MetricSetSummary {
         MetricSetSummary {
             metrics: self.metrics.len(),
-            updates: self.set_stats.statistic().map(|s| s.sum()).unwrap_or(0.0),
+            updates: self.meta.update_count as f32,
         }
     }
 
@@ -316,7 +337,7 @@ impl MetricSet {
     }
 
     fn add_or_update_internal(&mut self, version: u64, mut metric: Metric) {
-        self.set_stats.apply_update(1);
+        self.meta.update_count += 1;
         if let Some(existing) = self.metrics.get_mut(metric.name()) {
             existing.set_version(version);
             existing.update_from(metric);
@@ -330,7 +351,7 @@ impl MetricSet {
 
 impl<'a> ApplyExpr<'a> for MetricSet {
     fn apply(&self, expr: &'a mut Expr) -> AnyValue<'a> {
-        expr.dispatch(self)
+        expr.dispatch(self).unwrap()
     }
 }
 

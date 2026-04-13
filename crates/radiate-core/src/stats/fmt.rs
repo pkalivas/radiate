@@ -88,18 +88,6 @@ pub fn render_metric_rows_full(
     m: &Metric,
     tag: TagKind,
 ) -> io::Result<()> {
-    if name == super::set::METRIC_SET {
-        if let Some(s) = m.statistic() {
-            writeln!(
-                out,
-                "Metric Set [metrics: {}, updates: {:.0}]",
-                s.sum(),
-                s.sum()
-            )
-            .unwrap();
-        }
-    }
-
     // Value row
     if let Some(stat) = m.statistic()
         && tag == TagKind::Statistic

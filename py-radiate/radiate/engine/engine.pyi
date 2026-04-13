@@ -4,10 +4,11 @@ from typing import Any, Literal, Sequence, overload, Self, TYPE_CHECKING
 from collections.abc import Callable
 
 from radiate.codec.base import CodecBase
+from radiate.expr import Expr
 from radiate.fitness import FitnessBase, MSE
 from radiate.genome import Population, Gene, Chromosome
 from radiate.gp import Graph, Tree, Op
-from radiate.operators import SelectorBase, AlterBase, DistanceBase, LimitBase
+from radiate.operators import SelectorBase, AlterBase, DistanceBase, LimitBase, Rate
 
 from radiate._typing import AtLeastOne, Subscriber, RdDataType, RdLossType
 
@@ -475,7 +476,7 @@ class Engine[G, T]:
     def diversity(
         self,
         diversity: DistanceBase,
-        species_threshold: float = 1.5,
+        species_threshold: Rate | Expr | float = 1.5,
     ) -> Self: ...
     def limit(self, *limits: LimitBase) -> Self: ...
     def size(self, size: int) -> Self: ...
@@ -497,3 +498,6 @@ class Engine[G, T]:
     def subscribe(self, event_handler: Subscriber | None = None) -> Self: ...
     def generation(self, generation: Generation[G, T] | None) -> Self: ...
     def load_checkpoint(self, path: str) -> Self: ...
+    def metrics(
+        self, named_metrics: dict[str, Expr] | None = None, **kwargs
+    ) -> Self: ...

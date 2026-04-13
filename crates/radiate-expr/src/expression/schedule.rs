@@ -1,5 +1,8 @@
-use crate::{AnyValue, ExprProjection, ExprQuery};
+use crate::{AnyValue, ExprProjection, ExprQuery, ExprResult};
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct EveryState {
     max: usize,
@@ -15,6 +18,7 @@ impl EveryState {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub enum ScheduleExpr {
     Every(EveryState),
@@ -24,15 +28,15 @@ impl<T> ExprQuery<T> for ScheduleExpr
 where
     T: ExprProjection,
 {
-    fn dispatch<'a>(&'a mut self, _input: &T) -> AnyValue<'a> {
+    fn dispatch<'a>(&'a mut self, _input: &T) -> ExprResult<'a> {
         match self {
             ScheduleExpr::Every(state) => {
                 state.count += 1;
                 if state.count >= state.max {
                     state.count = 0;
-                    AnyValue::Bool(true)
+                    Ok(AnyValue::Bool(true))
                 } else {
-                    AnyValue::Bool(false)
+                    Ok(AnyValue::Bool(false))
                 }
             }
         }

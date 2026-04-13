@@ -1,9 +1,15 @@
-use crate::{AnyValue, DataType, Expr, ExprProjection, ExprQuery, value};
+use crate::{AnyValue, DataType, Expr, ExprProjection, ExprQuery, ExprResult, value};
+use radiate_error::{radiate_bail, radiate_err};
 use radiate_utils::{Statistic, WindowBuffer};
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Rollup {
+    First,
+    Last,
     Mean,
     StdDev,
     Min,
@@ -15,6 +21,7 @@ pub enum Rollup {
     Unique,
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct AggExpr {
     pub(super) child: Box<Expr>,
@@ -29,27 +36,38 @@ impl AggExpr {
         }
     }
 
-    fn compute_rollup<'a>(values: &[AnyValue<'a>], rollup: Rollup) -> AnyValue<'a> {
+    fn compute_rollup<'a>(values: &[AnyValue<'a>], rollup: Rollup) -> ExprResult<'a> {
         let mut stats = Statistic::default();
         let mut dtype = DataType::Null;
 
         if values.is_empty() {
             return match rollup {
-                Rollup::Count => AnyValue::UInt64(0),
-                Rollup::Unique => AnyValue::Vector(vec![]),
-                _ => AnyValue::Float32(0.0),
+                Rollup::Count => Ok(AnyValue::UInt64(0)),
+                Rollup::Unique => Ok(AnyValue::Vector(vec![])),
+                _ => Ok(AnyValue::Float32(0.0)),
             };
+        }
+
+        if let Rollup::First = rollup {
+            return Ok(values[0].clone());
+        } else if let Rollup::Last = rollup {
+            return Ok(values[values.len() - 1].clone());
         }
 
         for value in values.iter() {
             if value.is_nested() {
-                return AnyValue::Null;
+                return Ok(AnyValue::Null);
             }
 
             if dtype == DataType::Null {
                 dtype = value.dtype();
             } else if dtype != value.dtype() {
-                return AnyValue::Null;
+                radiate_bail!(Expr:
+                    "Cannot compute {:?} rollup for values of different types: {:?} and {:?}",
+                    rollup,
+                    dtype,
+                    value.dtype()
+                );
             }
 
             if let Some(v) = value.clone().extract::<f32>() {
@@ -63,12 +81,10 @@ impl AggExpr {
             Rollup::Min => AnyValue::Float32(stats.min()),
             Rollup::Max => AnyValue::Float32(stats.max()),
             Rollup::Sum => AnyValue::Float32(stats.sum()),
-            _ => unreachable!(
-                "This function should only be called for mean, stddev, min, max, and sum rollups"
-            ),
+            _ => AnyValue::Null,
         };
 
-        return result.cast(&dtype).unwrap_or(AnyValue::Null);
+        return Ok(result.cast(&dtype).unwrap_or(AnyValue::Null));
     }
 }
 
@@ -76,26 +92,32 @@ impl<T> ExprQuery<T> for AggExpr
 where
     T: ExprProjection,
 {
-    fn dispatch<'a>(&'a mut self, input: &T) -> AnyValue<'a> {
-        let child_output = self.child.dispatch(input);
+    fn dispatch<'a>(&'a mut self, input: &T) -> ExprResult<'a> {
+        let child_output = self.child.dispatch(input)?;
 
         if let Rollup::Unique = self.rollup {
-            return value::dedup(child_output).unwrap_or(AnyValue::Null);
+            return match value::dedup(child_output) {
+                Some(deduped) => Ok(deduped),
+                None => Err(radiate_err!(
+                    "Unique rollup is only supported for slices and vectors"
+                )),
+            };
         } else if let Rollup::Count = self.rollup {
             return match child_output.len() {
-                Some(len) => AnyValue::UInt64(len as u64),
-                None => AnyValue::Null,
+                Some(len) => Ok(AnyValue::UInt64(len as u64)),
+                None => Ok(AnyValue::Null),
             };
         }
 
         match child_output {
             AnyValue::Slice(values) => Self::compute_rollup(values, self.rollup),
             AnyValue::Vector(values) => Self::compute_rollup(&values, self.rollup),
-            _ => child_output,
+            _ => Ok(child_output),
         }
     }
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct BufferExpr {
     pub(super) buffer: WindowBuffer<AnyValue<'static>>,
@@ -117,13 +139,17 @@ impl<T> ExprQuery<T> for BufferExpr
 where
     T: ExprProjection,
 {
-    fn dispatch<'a>(&'a mut self, input: &T) -> AnyValue<'a> {
-        let child_output = self.child.dispatch(input).into_static();
+    fn dispatch<'a>(&'a mut self, input: &T) -> ExprResult<'a> {
+        let child_output = self.child.dispatch(input)?.into_static();
+
+        if child_output.is_nested() {
+            radiate_bail!(Expr: "BufferExpr does not support nested values");
+        }
 
         if self.dtype == DataType::Null {
             self.dtype = child_output.dtype();
         } else if self.dtype != child_output.dtype() {
-            panic!(
+            radiate_bail!(Expr:
                 "BufferExpr received value of type {:?} but expected {:?}",
                 child_output.dtype(),
                 self.dtype
@@ -131,6 +157,6 @@ where
         }
 
         self.buffer.push(child_output);
-        AnyValue::Slice(&self.buffer.values())
+        Ok(AnyValue::Slice(&self.buffer.values()))
     }
 }

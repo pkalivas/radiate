@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, Sequence
 from collections.abc import Callable
 
+from radiate.expr import Expr
 from radiate.codec import (
     FloatCodec,
     IntCodec,
@@ -13,7 +14,14 @@ from radiate.codec import (
     PermutationCodec,
 )
 
-from radiate.operators import SelectorBase, AlterBase, DistanceBase, Executor, LimitBase
+from radiate.operators import (
+    SelectorBase,
+    AlterBase,
+    DistanceBase,
+    Executor,
+    LimitBase,
+    Rate,
+)
 from radiate.fitness import FitnessBase, Regression, MSE
 from radiate.genome import Population, GeneType, Gene, Chromosome
 from radiate.gp import Graph, Tree, Op
@@ -561,7 +569,7 @@ class Engine[G, T]:
         return self
 
     def diversity(
-        self, diversity: DistanceBase, species_threshold: float = 1.5
+        self, diversity: DistanceBase, species_threshold: Rate | Expr | float = 1.5
     ) -> Engine[G, T]:
         """
         Set the diversity measure and species threshold for speciation in the engine.
@@ -594,6 +602,10 @@ class Engine[G, T]:
         ...     )  # <- use Euclidean distance for speciation with a threshold of 0.7
         ... )
         """
+        if isinstance(species_threshold, (int, float)):
+            if species_threshold <= 0:
+                raise ValueError("Species threshold must be greater than 0.")
+            species_threshold = Rate.fixed(species_threshold)
         self._builder.set_diversity(diversity, species_threshold)
         return self
 
@@ -1118,4 +1130,14 @@ class Engine[G, T]:
         >>> result_from_checkpoint = engine.run(rd.Limit.score(0.001), log=True)
         """
         self._builder.set_checkpoint_path(path)
+        return self
+
+    def metrics(
+        self, named_metrics: dict[str, Expr] | None = None, **kwargs
+    ) -> Engine[G, T]:
+        evals = {}
+        if named_metrics is not None:
+            evals.update(named_metrics)
+        evals.update(kwargs)
+        self._builder.set_metrics(evals)
         return self

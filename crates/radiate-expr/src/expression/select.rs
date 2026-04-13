@@ -1,27 +1,8 @@
-use crate::{AnyValue, Expr, ExprProjection, ExprQuery, Field};
+use crate::{AnyValue, Expr, ExprProjection, ExprQuery, ExprResult, Field};
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
-/// Examples of SelectExpr:
-///
-/// // accuracy.last_value
-/// SelectExpr::Path(vec![
-///     PathSegment::Key(AnyValue::from("accuracy").into_static()),
-///     PathSegment::StructField(expr_fields::LAST_VALUE.clone()),
-/// ])
-///
-/// // users[0].name
-/// SelectExpr::Path(vec![
-///     PathSegment::Key(AnyValue::from("users").into_static()),
-///     PathSegment::Index(0),
-///     PathSegment::Key(AnyValue::from("name").into_static()),
-/// ])
-///
-/// // portfolio.positions[3].delta
-/// SelectExpr::Path(vec![
-///     PathSegment::Key(AnyValue::from("portfolio").into_static()),
-///     PathSegment::Key(AnyValue::from("positions").into_static()),
-///     PathSegment::Index(3),
-///     PathSegment::Key(AnyValue::from("delta").into_static()),
-/// ])
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub enum PathSegment {
     Key(AnyValue<'static>),
@@ -58,6 +39,7 @@ impl Into<Expr> for PathBuilder {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum SelectExpr {
     Field(AnyValue<'static>, Field),
     Nth(usize),
@@ -68,7 +50,7 @@ impl<T> ExprQuery<T> for SelectExpr
 where
     T: ExprProjection,
 {
-    fn dispatch<'a>(&'a mut self, input: &T) -> AnyValue<'a> {
-        input.project(self).unwrap_or(AnyValue::Null)
+    fn dispatch<'a>(&'a mut self, input: &T) -> ExprResult<'a> {
+        Ok(input.project(self).unwrap_or(AnyValue::Null))
     }
 }

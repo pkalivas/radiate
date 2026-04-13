@@ -44,6 +44,7 @@ pub mod metric_names {
     pub const SPECIES_EVENNESS: &str = "species_evenness";
     pub const LARGEST_SPECIES_SHARE: &str = "largest_species_share";
     pub const SPECIES_NEW_RATIO: &str = "species_new_ratio";
+    pub const SPECIES_THRESHOLD: &str = "species_threshold";
 
     pub const ALTER_PARENT_REUSE: &str = "alter_parent_reuse";
     pub const ALTER_WITHIN_FAMILY: &str = "alter_within_family";

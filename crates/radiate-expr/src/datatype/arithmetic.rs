@@ -9,16 +9,64 @@ macro_rules! bin_numeric_op {
         use AnyValue::*;
         match ($lhs, $rhs) {
             (Int8(a),    Int8(b))    => Int8(a $op b),
+            (Int8(a),   Int16(b))   => Int16(i16::from(a) $op b),
+            (Int8(a),   Int32(b))   => Int32(i32::from(a) $op b),
+            (Int8(a),   Int64(b))   => Int64(i64::from(a) $op b),
+            (Int8(a),   Int128(b))  => Int128(i128::from(a) $op b),
+
+            (Int16(a),   Int8(b))   => Int16(i16::from(a) $op i16::from(b)),
             (Int16(a),   Int16(b))   => Int16(a $op b),
+            (Int16(a),   Int32(b))   => Int32(i32::from(a) $op b),
+            (Int16(a),   Int64(b))   => Int64(i64::from(a) $op b),
+            (Int16(a),   Int128(b))  => Int128(i128::from(a) $op b),
+
+            (Int32(a),   Int8(b))   => Int32(a $op i32::from(b)),
+            (Int32(a),   Int16(b))   => Int32(a $op i32::from(b)),
             (Int32(a),   Int32(b))   => Int32(a $op b),
+            (Int32(a),   Int64(b))   => Int64(i64::from(a) $op b),
+            (Int32(a),   Int128(b))  => Int128(i128::from(a) $op b),
+
+            (Int64(a),   Int8(b))   => Int64(a $op i64::from(b)),
+            (Int64(a),   Int16(b))   => Int64(a $op i64::from(b)),
+            (Int64(a),   Int32(b))   => Int64(a $op i64::from(b)),
             (Int64(a),   Int64(b))   => Int64(a $op b),
+            (Int64(a),   Int128(b))  => Int128(i128::from(a) $op b),
+
+            (Int128(a),   Int8(b))   => Int128(a $op i128::from(b)),
+            (Int128(a),   Int16(b))   => Int128(a $op i128::from(b)),
+            (Int128(a),   Int32(b))   => Int128(a $op i128::from(b)),
+            (Int128(a),   Int64(b))   => Int128(a $op i128::from(b)),
             (Int128(a),  Int128(b))  => Int128(a $op b),
+
             (UInt8(a),   UInt8(b))   => UInt8(a $op b),
+            (UInt8(a),  UInt16(b))  => UInt16(u16::from(a) $op b),
+            (UInt8(a),  UInt32(b))  => UInt32(u32::from(a) $op b),
+            (UInt8(a),  UInt64(b))  => UInt64(u64::from(a) $op b),
+            (UInt8(a),  UInt128(b)) => UInt128(u128::from(a) $op b),
+
+            (UInt16(a),  UInt8(b))  => UInt16(a $op u16::from(b)),
             (UInt16(a),  UInt16(b))  => UInt16(a $op b),
+            (UInt16(a),  UInt32(b))  => UInt32(u32::from(a) $op b),
+            (UInt16(a),  UInt64(b))  => UInt64(u64::from(a) $op b),
+            (UInt16(a),  UInt128(b)) => UInt128(u128::from(a) $op b),
+
+            (UInt32(a),  UInt8(b))  => UInt32(a $op u32::from(b)),
+            (UInt32(a),  UInt16(b))  => UInt32(a $op u32::from(b)),
             (UInt32(a),  UInt32(b))  => UInt32(a $op b),
+            (UInt32(a),  UInt64(b))  => UInt64(u64::from(a) $op b),
+            (UInt32(a),  UInt128(b)) => UInt128(u128::from(a) $op b),
+
+            (UInt64(a),  UInt8(b))  => UInt64(a $op u64::from(b)),
+            (UInt64(a),  UInt16(b))  => UInt64(a $op u64::from(b)),
+            (UInt64(a),  UInt32(b))  => UInt64(a $op u64::from(b)),
             (UInt64(a),  UInt64(b))  => UInt64(a $op b),
+            (UInt64(a),  UInt128(b)) => UInt128(u128::from(a) $op b),
+
             (Float32(a), Float32(b)) => Float32(a $op b),
+            (Float64(a), Float32(b)) => Float64(a $op b as f64),
+
             (Float64(a), Float64(b)) => Float64(a $op b),
+            (Float32(a), Float64(b)) => Float64(a as f64 $op b),
             _ => Null,
         }
     }};
@@ -29,14 +77,43 @@ macro_rules! bin_numeric_div {
         use AnyValue::*;
         match ($lhs, $rhs) {
             (Int8(a), Int8(b)) => Int8(if b == 0 { a } else { a / b }),
+            (Int16(a), Int8(b)) => Int16(if b == 0 { a } else { a / i16::from(b) }),
+            (Int32(a), Int8(b)) => Int32(if b == 0 { a } else { a / i32::from(b) }),
+            (Int64(a), Int8(b)) => Int64(if b == 0 { a } else { a / i64::from(b) }),
+            (Int128(a), Int8(b)) => Int128(if b == 0 { a } else { a / i128::from(b) }),
+
             (Int16(a), Int16(b)) => Int16(if b == 0 { a } else { a / b }),
+            (Int32(a), Int16(b)) => Int32(if b == 0 { a } else { a / i32::from(b) }),
+            (Int64(a), Int16(b)) => Int64(if b == 0 { a } else { a / i64::from(b) }),
+            (Int128(a), Int16(b)) => Int128(if b == 0 { a } else { a / i128::from(b) }),
+
             (Int32(a), Int32(b)) => Int32(if b == 0 { a } else { a / b }),
+            (Int64(a), Int32(b)) => Int64(if b == 0 { a } else { a / i64::from(b) }),
+            (Int128(a), Int32(b)) => Int128(if b == 0 { a } else { a / i128::from(b) }),
+
             (Int64(a), Int64(b)) => Int64(if b == 0 { a } else { a / b }),
+            (Int128(a), Int64(b)) => Int128(if b == 0 { a } else { a / i128::from(b) }),
+
             (Int128(a), Int128(b)) => Int128(if b == 0 { a } else { a / b }),
+
             (UInt8(a), UInt8(b)) => UInt8(if b == 0 { a } else { a / b }),
+            (UInt8(a), UInt16(b)) => UInt16(if b == 0 { a as u16 } else { (a as u16) / b }),
+            (UInt8(a), UInt32(b)) => UInt32(if b == 0 { a as u32 } else { (a as u32) / b }),
+            (UInt8(a), UInt64(b)) => UInt64(if b == 0 { a as u64 } else { (a as u64) / b }),
+            (UInt8(a), UInt128(b)) => UInt128(if b == 0 { a as u128 } else { (a as u128) / b }),
+
             (UInt16(a), UInt16(b)) => UInt16(if b == 0 { a } else { a / b }),
+            (UInt16(a), UInt32(b)) => UInt32(if b == 0 { a as u32 } else { (a as u32) / b }),
+            (UInt16(a), UInt64(b)) => UInt64(if b == 0 { a as u64 } else { (a as u64) / b }),
+            (UInt16(a), UInt128(b)) => UInt128(if b == 0 { a as u128 } else { (a as u128) / b }),
+
             (UInt32(a), UInt32(b)) => UInt32(if b == 0 { a } else { a / b }),
+            (UInt32(a), UInt64(b)) => UInt64(if b == 0 { a as u64 } else { (a as u64) / b }),
+            (UInt32(a), UInt128(b)) => UInt128(if b == 0 { a as u128 } else { (a as u128) / b }),
+
             (UInt64(a), UInt64(b)) => UInt64(if b == 0 { a } else { a / b }),
+            (UInt64(a), UInt128(b)) => UInt128(if b == 0 { a as u128 } else { (a as u128) / b }),
+
             (Float32(a), Float32(b)) => {
                 if b == 0.0 {
                     Null
@@ -51,7 +128,21 @@ macro_rules! bin_numeric_div {
                     Float64(a / b)
                 }
             }
-            _ => Null,
+            (Float32(a), Float64(b)) => {
+                if b == 0.0 {
+                    Null
+                } else {
+                    Float64((a as f64) / b)
+                }
+            }
+            (Float64(a), Float32(b)) => {
+                if b == 0.0 {
+                    Null
+                } else {
+                    Float64(a / (b as f64))
+                }
+            }
+            _ => panic!("Division is only supported for numeric types"),
         }
     }};
 }

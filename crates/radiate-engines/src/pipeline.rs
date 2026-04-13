@@ -21,8 +21,6 @@ impl<C: Chromosome> Pipeline<C> {
     pub fn run<T>(&mut self, context: &mut Context<C, T>) -> Result<()> {
         let timer = std::time::Instant::now();
 
-        context.metrics.next_version();
-
         for step in self.steps.iter_mut() {
             let timer = std::time::Instant::now();
             step.execute(context.index, &mut context.ecosystem, &mut context.metrics)?;

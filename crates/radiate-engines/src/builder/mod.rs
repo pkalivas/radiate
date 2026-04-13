@@ -26,9 +26,11 @@ use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::evaluator::BatchFitnessEvaluator;
 use radiate_core::problem::BatchEngineProblem;
 use radiate_core::{
-    Alterer, Diversity, Ecosystem, Evaluator, Executor, FitnessEvaluator, Genotype, Lineage, Valid,
+    Alterer, Diversity, Ecosystem, Evaluator, Executor, FitnessEvaluator, Genotype, Lineage, Rate,
+    Valid,
 };
 use radiate_core::{RadiateError, ensure, radiate_err};
+use radiate_expr::NamedExpr;
 #[cfg(feature = "serde")]
 use serde::Deserialize;
 use std::sync::{Arc, Mutex, RwLock};
@@ -50,6 +52,7 @@ where
     pub replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
     pub handlers: Vec<Arc<Mutex<dyn EventHandler<T>>>>,
     pub generation: Option<Generation<C, T>>,
+    pub exprs: Option<Arc<Mutex<Vec<NamedExpr>>>>,
 }
 
 /// Parameters for the genetic engine.
@@ -113,6 +116,13 @@ where
     /// when resuming a previously paused or stopped engine.
     pub fn generation(mut self, generation: Generation<C, T>) -> Self {
         self.params.generation = Some(generation);
+        self
+    }
+
+    pub fn register_metrics(mut self, exprs: Vec<impl Into<NamedExpr>>) -> Self {
+        self.params.exprs = Some(Arc::new(Mutex::new(
+            exprs.into_iter().map(|e| e.into()).collect(),
+        )));
         self
     }
 
@@ -423,7 +433,7 @@ where
                 },
                 species_params: SpeciesParams {
                     diversity: None,
-                    species_threshold: 0.5,
+                    species_threshold: Rate::Fixed(0.5),
                     max_species_age: 25,
                 },
                 evaluation_params: EvaluationParams {
@@ -454,6 +464,7 @@ where
                 replacement_strategy: Arc::new(EncodeReplace),
                 alterers: Vec::new(),
                 handlers: Vec::new(),
+                exprs: None,
                 generation: None,
             },
             errors: Vec::new(),
@@ -469,7 +480,7 @@ pub(crate) struct EngineConfig<C: Chromosome, T: Clone> {
     offspring_selector: Arc<dyn Select<C>>,
     replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
     alterers: Vec<Alterer<C>>,
-    species_threshold: f32,
+    species_threshold: Rate,
     diversity: Option<Arc<dyn Diversity<C>>>,
     evaluator: Arc<dyn Evaluator<C, T>>,
     objective: Objective,
@@ -480,6 +491,7 @@ pub(crate) struct EngineConfig<C: Chromosome, T: Clone> {
     offspring_fraction: f32,
     executor: EvaluationParams<C, T>,
     handlers: Vec<Arc<Mutex<dyn EventHandler<T>>>>,
+    exprs: Option<Arc<Mutex<Vec<NamedExpr>>>>,
     generation: Option<Generation<C, T>>,
 }
 
@@ -516,8 +528,8 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
         self.max_species_age
     }
 
-    pub fn species_threshold(&self) -> f32 {
-        self.species_threshold
+    pub fn species_threshold(&self) -> Rate {
+        self.species_threshold.clone()
     }
 
     pub fn diversity(&self) -> Option<Arc<dyn Diversity<C>>> {
@@ -576,6 +588,10 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
         let problem = Arc::clone(&self.problem);
         Arc::new(move || problem.encode())
     }
+
+    pub fn exprs(&self) -> Option<Arc<Mutex<Vec<NamedExpr>>>> {
+        self.exprs.clone()
+    }
 }
 
 impl<C, T> From<&EngineParams<C, T>> for EngineConfig<C, T>
@@ -594,7 +610,7 @@ where
             objective: params.optimization_params.objectives.clone(),
             max_age: params.population_params.max_age,
             max_species_age: params.species_params.max_species_age,
-            species_threshold: params.species_params.species_threshold,
+            species_threshold: params.species_params.species_threshold.clone(),
             diversity: params.species_params.diversity.clone(),
             front: Arc::new(RwLock::new(
                 params.optimization_params.front.clone().unwrap(),
@@ -605,6 +621,7 @@ where
             executor: params.evaluation_params.clone(),
             handlers: params.handlers.clone(),
             generation: params.generation.clone(),
+            exprs: params.exprs.clone(),
         }
     }
 }
@@ -650,6 +667,7 @@ where
                 replacement_strategy: self.replacement_strategy,
                 alterers: self.alterers,
                 handlers: self.handlers,
+                exprs: self.exprs,
                 generation: self.generation,
             },
             errors: Vec::new(),

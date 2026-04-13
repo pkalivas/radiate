@@ -20,9 +20,9 @@ macro_rules! metric {
 
 #[derive(Clone, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-struct Meta {
-    update_count: usize,
-    set_version: u64,
+pub(super) struct Meta {
+    pub(super) update_count: usize,
+    pub(super) version: u64,
 }
 
 #[derive(Clone, PartialEq, Default)]
@@ -64,21 +64,21 @@ impl Metric {
 
     #[inline(always)]
     pub fn version(&self) -> u64 {
-        self.meta.as_ref().map_or(0, |meta| meta.set_version)
+        self.meta.as_ref().map_or(0, |meta| meta.version)
     }
 
     #[inline(always)]
     pub fn set_version(&mut self, version: u64) {
         if let Some(meta) = &mut self.meta {
-            if version != meta.set_version {
+            if version != meta.version {
                 meta.update_count = 0;
             }
 
-            meta.set_version = version;
+            meta.version = version;
         } else {
             self.meta = Some(Meta {
                 update_count: 0,
-                set_version: version,
+                version,
             });
         }
     }

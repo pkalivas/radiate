@@ -12,7 +12,7 @@ fn main() {
         (NodeType::Output, vec![Op::linear()]),
     ];
 
-    let expr = expr::select("scores").min().rolling(10).mean().lte(0.01);
+    let expr = expr::select("scores").min().rolling(10).mean();
 
     println!("{:#?}", expr);
 
@@ -20,6 +20,7 @@ fn main() {
         .codec(GraphCodec::directed(1, 1, store))
         .raw_batch_fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
+        .register_metrics(vec![("idk", expr)])
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
@@ -27,7 +28,11 @@ fn main() {
         ))
         .build();
 
-    engine.iter().until_score(MIN_SCORE).last().inspect(display);
+    radiate::ui(engine)
+        .iter()
+        .until_score(MIN_SCORE)
+        .last()
+        .inspect(display);
 }
 
 fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {

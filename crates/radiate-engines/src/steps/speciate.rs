@@ -1,7 +1,7 @@
 use crate::steps::EngineStep;
 use radiate_core::{
-    Chromosome, Ecosystem, Executor, MetricSet, Objective, Phenotype, Population, Score, Species,
-    diversity::Diversity, metric_names, random_provider,
+    Chromosome, Ecosystem, Executor, MetricSet, Objective, Phenotype, Population, Rate, Score,
+    Species, diversity::Diversity, metric_names, random_provider,
 };
 use radiate_error::Result;
 use std::sync::{Arc, Mutex, RwLock};
@@ -10,7 +10,7 @@ pub struct SpeciateStep<C>
 where
     C: Chromosome,
 {
-    pub(crate) threshold: f32,
+    pub(crate) threshold: Rate,
     pub(crate) objective: Objective,
     pub(crate) distance: Arc<dyn Diversity<C>>,
     pub(crate) executor: Arc<Executor>,
@@ -25,6 +25,7 @@ where
     fn assign_species(
         &self,
         generation: usize,
+        threshold: f32,
         ecosystem: &mut Ecosystem<C>,
         mascots: Arc<Vec<Phenotype<C>>>,
         assignments: Arc<Mutex<Vec<Option<usize>>>>,
@@ -46,7 +47,6 @@ where
         for chunk_start in (0..pop_len).step_by(chunk_size) {
             let chunk_end = (chunk_start + chunk_size).min(pop_len);
 
-            let threshold = self.threshold;
             let distance = Arc::clone(&self.distance);
             let assignments = Arc::clone(&assignments);
             let distances = Arc::clone(&distances);
@@ -69,7 +69,12 @@ where
         self.executor.submit_blocking(batches);
 
         std::mem::swap(ecosystem.population_mut(), &mut population.write().unwrap());
-        self.assign_unassigned(generation, ecosystem, &assignments.lock().unwrap());
+        self.assign_unassigned(
+            generation,
+            threshold,
+            ecosystem,
+            &assignments.lock().unwrap(),
+        );
 
         Ok(())
     }
@@ -78,6 +83,7 @@ where
     fn assign_unassigned(
         &self,
         generation: usize,
+        threshold: f32,
         ecosystem: &mut Ecosystem<C>,
         assignments: &[Option<usize>],
     ) where
@@ -102,7 +108,7 @@ where
 
                         let dist = self.distance.measure(phenotype, species.mascot());
 
-                        if dist < self.threshold {
+                        if dist < threshold {
                             return Some(species_idx);
                         }
                     }
@@ -242,6 +248,7 @@ where
             return Ok(());
         }
 
+        let threshold = self.threshold.get(generation, metrics);
         let mascots = Self::generate_mascots(ecosystem);
 
         let distances = {
@@ -261,6 +268,7 @@ where
 
         self.assign_species(
             generation,
+            threshold,
             ecosystem,
             Arc::clone(&mascots),
             Arc::clone(&assignments),
@@ -270,6 +278,9 @@ where
         let rm_species_count = ecosystem.remove_dead_species();
 
         metrics.upsert((metric_names::SPECIES_DIED, rm_species_count));
+        metrics.upsert((metric_names::SPECIES_THRESHOLD, threshold));
+        let distances = distances.lock().unwrap();
+        metrics.upsert((metric_names::SPECIES_DISTANCE_DIST, &*distances));
 
         self.fitness_share(ecosystem);
 

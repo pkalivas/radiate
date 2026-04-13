@@ -1,11 +1,11 @@
 use crate::GeneticEngineBuilder;
-use radiate_core::{Chromosome, Diversity};
+use radiate_core::{Chromosome, Diversity, Rate};
 use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct SpeciesParams<C: Chromosome> {
     pub diversity: Option<Arc<dyn Diversity<C>>>,
-    pub species_threshold: f32,
+    pub species_threshold: Rate,
     pub max_species_age: usize,
 }
 
@@ -24,13 +24,13 @@ where
         self
     }
 
-    pub fn species_threshold(mut self, threshold: f32) -> Self {
-        self.add_error_if(
-            || threshold < 0.0,
-            "species_threshold must be greater than 0",
-        );
+    pub fn species_threshold(mut self, threshold: impl Into<Rate>) -> Self {
+        // self.add_error_if(
+        //     || threshold < 0.0,
+        //     "species_threshold must be greater than 0",
+        // );
 
-        self.params.species_params.species_threshold = threshold;
+        self.params.species_params.species_threshold = threshold.into();
         self
     }
 

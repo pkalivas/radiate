@@ -8,6 +8,7 @@ thread_local! {
     pub static STR_INTERN_CACHE: RefCell<HashSet<&'static str>> = RefCell::new(HashSet::new());
     pub static ARC_STRING_INTERN_CACHE: RefCell<HashMap<&'static str, Arc<String>>> = RefCell::new(HashMap::new());
     pub static SNAKE_CASE_INTERN_CACHE: RefCell<HashMap<&'static str, &'static str>> = RefCell::new(HashMap::new());
+
 }
 
 pub fn is_str_interned(s: &str) -> bool {

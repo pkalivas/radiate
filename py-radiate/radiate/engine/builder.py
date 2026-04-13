@@ -13,7 +13,9 @@ from radiate.operators import (
     RouletteSelector,
     LimitBase,
     Executor,
+    Rate,
 )
+from radiate.expr import Expr
 
 from .handlers import CallableEventHandler, EventHandler
 from .generation import Generation
@@ -38,7 +40,7 @@ class EngineConfig[G, T]:
     offspring_fraction: float = 0.8
     max_phenotype_age: int = 20
     max_species_age: int = 20
-    species_threshold: float = 0.5
+    species_threshold: Rate = Rate.fixed(0.5)
 
     objective: str | list[str] = "max"
     front_range: tuple[int, int] = (800, 900)
@@ -203,6 +205,20 @@ class EngineBuilder[G, T]:
             )
         )
 
+    def set_metrics(self, metrics: dict[str, Expr] | None):
+        if metrics is None:
+            return
+
+        for name, expr in metrics.items():
+            self._inputs.append(
+                EngineInput(
+                    input_type=EngineInputType.Metric,
+                    component="metric",
+                    name=name,
+                    expr=expr.__backend__(),
+                )
+            )
+
     def set_survivor_selector(self, selector: SelectorBase):
         if self._gene_type not in selector.allowed_genes:
             raise ValueError(
@@ -251,7 +267,9 @@ class EngineBuilder[G, T]:
                 )
             )
 
-    def set_diversity(self, diversity: DistanceBase | None, species_threshold: float):
+    def set_diversity(
+        self, diversity: DistanceBase | None, species_threshold: Rate | Expr
+    ):
         if diversity is None:
             return
 
@@ -274,7 +292,7 @@ class EngineBuilder[G, T]:
                 input_type=EngineInputType.SpeciesThreshold,
                 component="SpeciesThreshold",
                 allowed_genes=diversity.allowed_genes,
-                threshold=species_threshold,
+                threshold=species_threshold.__backend__(),
             )
         )
 

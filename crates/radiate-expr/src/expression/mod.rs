@@ -14,8 +14,11 @@ use aggregate::{AggExpr, BufferExpr, Rollup};
 use logical::When;
 use ops::{BinaryExpr, BinaryOp, TrinaryExpr, TrinaryOp, UnaryExpr, UnaryOp};
 pub use projection::*;
+use radiate_error::RadiateError;
 use radiate_utils::SmallStr;
 pub use select::SelectExpr;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
 mod expr_fields {
@@ -35,14 +38,52 @@ mod expr_fields {
     // pub static UPDATE_COUNT: Field = Field::new_const("update_count", DataType::UInt64);
 }
 
+pub(crate) type ExprResult<'a> = Result<AnyValue<'a>, RadiateError>;
+
 pub trait ApplyExpr<'a> {
     fn apply(&self, expr: &'a mut Expr) -> AnyValue<'a>;
 }
 
 pub trait ExprQuery<I> {
-    fn dispatch<'a>(&'a mut self, input: &I) -> AnyValue<'a>;
+    fn dispatch<'a>(&'a mut self, input: &I) -> ExprResult<'a>;
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug, PartialEq)]
+pub struct NamedExpr {
+    pub name: &'static str,
+    pub expr: Expr,
+}
+
+impl NamedExpr {
+    pub fn new(name: &'static str, expr: Expr) -> Self {
+        Self { name, expr }
+    }
+
+    pub fn pair(&mut self) -> (&'static str, &mut Expr) {
+        (self.name, &mut self.expr)
+    }
+
+    pub fn expr(&self) -> &Expr {
+        &self.expr
+    }
+
+    pub fn expr_mut(&mut self) -> &mut Expr {
+        &mut self.expr
+    }
+
+    pub fn name(&self) -> &'static str {
+        self.name
+    }
+}
+
+impl From<(&'static str, Expr)> for NamedExpr {
+    fn from((name, expr): (&'static str, Expr)) -> Self {
+        Self::new(name, expr)
+    }
+}
+
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub enum Expr {
     Literal(AnyValue<'static>),
@@ -101,6 +142,18 @@ impl Expr {
     }
 
     /// Aggregates
+    pub fn first(self) -> Expr {
+        self.try_swap_select_field_or(&expr_fields::LAST_VALUE, |s| {
+            Expr::Aggregate(AggExpr::new(s, Rollup::First))
+        })
+    }
+
+    pub fn last(self) -> Expr {
+        self.try_swap_select_field_or(&expr_fields::LAST_VALUE, |s| {
+            Expr::Aggregate(AggExpr::new(s, Rollup::Last))
+        })
+    }
+
     pub fn sum(self) -> Expr {
         self.try_swap_select_field_or(&expr_fields::SUM, |s| {
             Expr::Aggregate(AggExpr::new(s, Rollup::Sum))
@@ -244,9 +297,9 @@ impl<I> ExprQuery<I> for Expr
 where
     I: ExprProjection,
 {
-    fn dispatch<'a>(&'a mut self, input: &I) -> AnyValue<'a> {
+    fn dispatch<'a>(&'a mut self, input: &I) -> ExprResult<'a> {
         match self {
-            Expr::Literal(value) => value.clone(),
+            Expr::Literal(value) => Ok(value.clone()),
             Expr::Selector(selector) => selector.dispatch(input),
             Expr::Aggregate(child) => child.dispatch(input),
             Expr::Buffer(child) => child.dispatch(input),

@@ -61,6 +61,14 @@ impl PyExpr {
         self.inner.clone().rolling(window).into()
     }
 
+    pub fn first(&self) -> Self {
+        self.inner.clone().first().into()
+    }
+
+    pub fn last(&self) -> Self {
+        self.inner.clone().last().into()
+    }
+
     pub fn sum(&self) -> Self {
         self.inner.clone().sum().into()
     }

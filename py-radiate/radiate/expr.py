@@ -100,6 +100,9 @@ class Expr(RsObject):
     def __mul__(self, other):
         return self.mul(other)
 
+    def __pow__(self, other):
+        return self.pow(other)
+
     def __truediv__(self, other):
         return self.div(other)
 
@@ -108,6 +111,12 @@ class Expr(RsObject):
 
     def rolling(self, window: int) -> Expr:
         return Expr.from_rust(self.__backend__().rolling(window))
+
+    def first(self) -> Expr:
+        return Expr.from_rust(self.__backend__().first())
+
+    def last(self) -> Expr:
+        return Expr.from_rust(self.__backend__().last())
 
     def sum(self) -> Expr:
         return Expr.from_rust(self.__backend__().sum())
@@ -135,6 +144,9 @@ class Expr(RsObject):
 
     def unique(self) -> Expr:
         return Expr.from_rust(self.__backend__().unique())
+
+    def literal(self, value: float | int | str) -> Expr:
+        return Expr.from_rust(PyExpr.literal(value))
 
     def lt(self, rhs: Expr | float | int) -> Expr:
         if isinstance(rhs, (float, int)):
@@ -241,6 +253,15 @@ class Expr(RsObject):
         else:
             raise TypeError("Unsupported type for division")
 
+    def pow(self, rhs: Expr | float | int) -> Expr:
+        if isinstance(rhs, (float, int)):
+            rhs_expr = PyExpr.literal(rhs)
+            return Expr.from_rust(self.__backend__().pow_(rhs_expr))
+        elif isinstance(rhs, Expr):
+            return Expr.from_rust(self.__backend__().pow_(rhs.__backend__()))
+        else:
+            raise TypeError("Unsupported type for exponentiation")
+
     def clamp(self, min: Expr | float | int, max: Expr | float | int) -> Expr:
         if isinstance(min, (float, int)):
             min_expr = PyExpr.literal(min)
@@ -256,7 +277,7 @@ class Expr(RsObject):
         else:
             raise TypeError("Unsupported type for clamp max")
 
-        return Expr.from_rust(self.__backend__().clamp(min_expr, max_expr))
+        return Expr.from_rust(self.__backend__().clamp_(min_expr, max_expr))
 
     def when(self, condition: Expr) -> When:
         return When(condition=condition)
@@ -284,3 +305,7 @@ def metric(metric: str) -> Expr:
 
 def when(condition: Expr) -> When:
     return When(condition=condition)
+
+
+def lit(value: float | int | str) -> Expr:
+    return Expr.from_rust(PyExpr.literal(value))

@@ -6,6 +6,11 @@ This example demonstrates using the GraphCodec to solve a regression problem.
 We have a simple polynomial function and we want to evolve a graph that approximates it.
 """
 
+from turtle import distance
+
+from numpy import test
+from polars import count
+
 import radiate as rd
 
 # import polars as pl  # type: ignore
@@ -25,19 +30,40 @@ class ScorePlotterHandler(rd.EventHandler):
         super().__init__()
         self.scores = []
         self.metrics = []
+        self.momentum = []
+        self.spec_count = []
+        self.test_metric = []
 
     def on_event(self, event: rd.EngineEvent) -> None:
         if event.event_type() == rd.EventType.EPOCH_COMPLETE:
             best_score = event.score()
+            metrics = event.metrics()
+            # five_gen_avg = metrics["mvg_avg_5"].value_last()
+            mom = metrics["species_threshold"].value_last()
+            count = metrics["spec_cnt"].value_last()
+            test = metrics["test_metric"].value_last()
+            self.spec_count.append(count)
+            self.test_metric.append(test)
             self.scores.append(best_score)
             self.metrics += [val.to_dict() for val in event.metrics().values()]
+            self.momentum.append(mom)
         elif event.event_type() == rd.EventType.STOP:
-            plt.plot(list(range(len(self.scores))), self.scores)
+            x = list(range(len(self.scores)))
+            y1 = self.scores
+            y2 = self.momentum
+            y3 = self.spec_count
+            y4 = self.test_metric
+            # plt.plot(x, y1, label="Best Score")
+            plt.plot(x, y2, label="Momentum")
+            plt.plot(x, y3, label="Species Count")
+            plt.plot(x, y4, label="Test Metric")
+            plt.legend()
+            # plt.plot(list(range(len(self.scores))), self.scores)
             plt.xlabel("Generation")
             plt.ylabel("Best Score")
             plt.title("Best Score over Generations")
             plt.grid(True)
-            # plt.show()
+            plt.show()
 
 
 def compute(x: float) -> float:
@@ -55,12 +81,27 @@ for _ in range(-10, 10):
 
 subscriber = ScorePlotterHandler()
 
-expr = rd.metric("scores").min().rolling(10).mean() <= 0.01
-print(expr.__repr__())
-import sys
+limit = rd.Limit.expr(rd.metric("scores").rolling(10).mean() <= 0.01)
 
-sys.exit(0)
-limit = rd.Limit.expr(rd.metric("scores").min().rolling(10).mean() <= 0.01)
+target_species = 4.0
+rolling = int(target_species)
+
+spec_count_signal = rd.metric("species_count").rolling(rolling).mean() / target_species
+spec_dist_signal = (
+    rd.metric("species_distance_dist").mean().rolling(rolling).mean() / target_species
+)
+spec_thresh_signal = rd.metric("species_threshold").rolling(rolling).mean()
+spec_evenness_signal = rd.metric("species_evenness").rolling(rolling).mean()
+
+distance_signal = (
+    (rd.lit(0.9) * spec_count_signal)
+    + (rd.lit(0.4) * spec_dist_signal)
+    + (rd.lit(0.2) * spec_thresh_signal)
+    + (rd.lit(0.1) * spec_evenness_signal)
+).clamp(0.01, 10.0)
+
+
+print(distance_signal.__repr__())
 
 engine = (
     rd.Engine.graph(
@@ -71,6 +112,12 @@ engine = (
     )
     .regression(inputs, answers, loss=rd.MSE)
     .subscribe(subscriber)
+    .metrics(
+        spec_cnt=rd.metric("species_count").rolling(rolling).mean(),
+        test_metric=spec_count_signal,
+    )
+    # .diversity(rd.NeatDistance(), 1.5)
+    .diversity(rd.NeatDistance(), distance_signal)
     .alters(
         rd.Cross.graph(0.05, 0.5),
         rd.Mutate.op(0.07, 0.05),
@@ -88,6 +135,10 @@ print(result)
 print(result.metrics().dashboard())
 print(accuracy)
 
+metrics = result.metrics()
+
+# print(metrics["mvg_avg_5"].tags())
+# print(metrics["mvg_avg_10"].tags())
 
 # df = pl.DataFrame(subscriber.metrics)
 # print(

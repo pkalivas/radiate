@@ -16,6 +16,7 @@ num-traits = { workspace = true }
 serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 radiate-utils = { workspace = true }
+radiate-error = { workspace = true }
 
 [features]
 default = []

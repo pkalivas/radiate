@@ -31,6 +31,7 @@ class EngineInputType(Enum):
     Checkpoint = "Checkpoint"
     Codec = "Codec"
     FitnessFunction = "FitnessFunction"
+    Metric = "Metric"
 
 
 input_type_mapping = {
@@ -53,6 +54,7 @@ input_type_mapping = {
     EngineInputType.Checkpoint: PyEngineInputType.Checkpoint,
     EngineInputType.Codec: PyEngineInputType.Codec,
     EngineInputType.FitnessFunction: PyEngineInputType.FitnessFunction,
+    EngineInputType.Metric: PyEngineInputType.Metric,
 }
 
 

@@ -3,7 +3,8 @@ use crate::bindings::{EngineBuilderHandle, EngineHandle};
 use crate::events::PyEventHandler;
 use crate::{
     FreeThreadPyEvaluator, InputTransform, PyCodec, PyEngine, PyEngineInput, PyEngineInputType,
-    PyFitnessFn, PyFitnessInner, PyPermutationCodec, PyPopulation, prelude::*, radiate,
+    PyExpr, PyFitnessFn, PyFitnessInner, PyPermutationCodec, PyPopulation, PyRate, prelude::*,
+    radiate,
 };
 use crate::{PyGeneration, PySubscriber};
 use pyo3::{Py, PyAny, pyclass, pymethods, types::PyAnyMethods};
@@ -144,8 +145,37 @@ impl PyEngineBuilder {
             Subscriber => Self::process_subscribers(builder, inputs),
             Generation => Self::process_generation(builder, inputs),
             Checkpoint => Self::process_checkpoint(builder, inputs),
+            Metric => Self::process_metrics(builder, inputs),
             _ => Ok(builder),
         }
+    }
+
+    fn process_metrics(
+        builder: EngineBuilderHandle,
+        inputs: &[PyEngineInput],
+    ) -> PyResult<EngineBuilderHandle> {
+        dispatch_builder_typed!(
+            builder,
+            inputs,
+            Self::process_many_typed(|typed_builder, metric_inputs| {
+                let mut metrics = Vec::with_capacity(metric_inputs.len());
+                for input in metric_inputs {
+                    let name = input.extract::<String>("name")?;
+                    let expr = input.extract::<PyExpr>("expr")?;
+
+                    metrics.push(NamedExpr::new(
+                        radiate_utils::intern!(name),
+                        expr.inner().clone(),
+                    ));
+                }
+
+                if metrics.is_empty() {
+                    return Ok(typed_builder);
+                }
+
+                Ok(typed_builder.register_metrics(metrics))
+            })
+        )
     }
 
     fn process_generation(
@@ -236,11 +266,18 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_single_typed(|typed_builder, input| {
-                let threshold = input.get_f32("threshold").unwrap_or(0.3);
+                let threshold = if let Ok(rate) = input.extract::<PyRate>("threshold") {
+                    rate.rate
+                } else if let Ok(expr) = input.extract::<PyExpr>("threshold") {
+                    Rate::Expr(expr.inner().clone())
+                } else {
+                    let val = input.get_f32("threshold").unwrap_or(0.5);
+                    if val <= 0.0 {
+                        return Err(radiate_py_err!("Species threshold must be greater than 0."));
+                    }
 
-                if threshold.is_sign_negative() {
-                    return Err(radiate_py_err!("species threshold must be >= 0"));
-                }
+                    Rate::Fixed(val)
+                };
 
                 Ok(typed_builder.species_threshold(threshold))
             })
