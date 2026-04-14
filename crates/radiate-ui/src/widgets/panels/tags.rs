@@ -8,17 +8,17 @@ use ratatui::{
     widgets::{List, ListItem, StatefulWidget, Widget},
 };
 
-pub struct FilterWidget<'a> {
+pub struct TagsPanelWidget<'a> {
     state: &'a mut AppFilterState,
 }
 
-impl<'a> FilterWidget<'a> {
+impl<'a> TagsPanelWidget<'a> {
     pub fn new(state: &'a mut AppFilterState) -> Self {
         Self { state }
     }
 }
 
-impl<'a> Widget for FilterWidget<'a> {
+impl<'a> Widget for TagsPanelWidget<'a> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let tags = self
             .state

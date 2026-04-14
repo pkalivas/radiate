@@ -1,4 +1,7 @@
-use crate::chart::RollingChart;
+pub mod chart;
+pub mod selector;
+
+use crate::chart::RollingLineChart;
 use crate::widgets::num_pairs;
 use radiate_engines::species::SpeciesId;
 use radiate_engines::stats::TagType;
@@ -9,18 +12,27 @@ use ratatui::widgets::{Block, ListState, ScrollbarState, TableState};
 use std::time::{Duration, Instant};
 use tui_piechart::border_style;
 
-pub mod chart;
-pub use chart::{ChartState, ChartType};
+pub use chart::{ChartState, LineChartType};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum PanelId {
-    Filters,
-    MetricSummary,
+    EngineStatus,
+    FitnessChart,
+
+    Tags,
+    MetricModal,
     Search,
-    TimeMetrics,
-    StatsMetrics,
-    DistMetrics,
-    SpeciesMetrics,
+
+    TimeTable,
+    StatsTable,
+    DistTable,
+    SpeciesTable,
+
+    TimePieChart,
+    SpeciesPieChart,
+
+    MetricDetail,
+
     Help,
 }
 
@@ -39,36 +51,42 @@ pub struct SearchState {
 pub struct DisplayState {
     pub show_tag_filters: bool,
     pub show_help: bool,
-    pub chart_id: ChartType,
+    pub chart_id: LineChartType,
+    pub tab_id: TabId,
     pub focus_panel: PanelId,
     pub prev_focus_panel: PanelId,
     pub modal_panel: Option<PanelId>,
 }
 
+pub enum TabId {
+    Dashboard,
+    MetricChart,
+}
+
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub enum MetricsTab {
-    Time,
+pub enum DashboardTab {
     Stats,
+    Time,
     Distribution,
     Species,
 }
 
-impl MetricsTab {
+impl DashboardTab {
     pub fn next(self) -> Self {
         match self {
-            MetricsTab::Stats => MetricsTab::Time,
-            MetricsTab::Time => MetricsTab::Distribution,
-            MetricsTab::Distribution => MetricsTab::Species,
-            MetricsTab::Species => MetricsTab::Stats,
+            DashboardTab::Stats => DashboardTab::Time,
+            DashboardTab::Time => DashboardTab::Distribution,
+            DashboardTab::Distribution => DashboardTab::Species,
+            DashboardTab::Species => DashboardTab::Stats,
         }
     }
 
     pub fn previous(self) -> Self {
         match self {
-            MetricsTab::Stats => MetricsTab::Species,
-            MetricsTab::Time => MetricsTab::Stats,
-            MetricsTab::Distribution => MetricsTab::Time,
-            MetricsTab::Species => MetricsTab::Distribution,
+            DashboardTab::Stats => DashboardTab::Species,
+            DashboardTab::Time => DashboardTab::Stats,
+            DashboardTab::Distribution => DashboardTab::Time,
+            DashboardTab::Species => DashboardTab::Distribution,
         }
     }
 }
@@ -85,7 +103,7 @@ pub struct AppState<C: Chromosome> {
     pub last_render: Option<Instant>,
     pub render_interval: Duration,
     pub chart_state: ChartState,
-    pub metrics_tab: MetricsTab,
+    pub dashboard_tab: DashboardTab,
 
     pub running: RunningState,
     pub display: DisplayState,
@@ -103,6 +121,7 @@ pub struct AppState<C: Chromosome> {
     pub stats_table: AppTableState<&'static str>,
     pub dist_table: AppTableState<&'static str>,
     pub species_table: AppTableState<SpeciesId>,
+    pub species_pie_chart: AppPieCharState<Score>,
 }
 
 impl<C: Chromosome> AppState<C> {
@@ -175,7 +194,7 @@ impl<C: Chromosome> AppState<C> {
             self.display.focus_panel = self.display.prev_focus_panel;
         } else {
             self.display.prev_focus_panel = self.display.focus_panel;
-            self.display.focus_panel = PanelId::Filters;
+            self.display.focus_panel = PanelId::Tags;
         }
     }
 
@@ -241,9 +260,9 @@ impl<C: Chromosome> AppState<C> {
     pub fn get_chart_by_key(
         &self,
         key: &'static str,
-        chart_type: ChartType,
-    ) -> Option<&RollingChart> {
-        self.chart_state.get_by_key(key, chart_type)
+        chart_type: LineChartType,
+    ) -> Option<&RollingLineChart> {
+        self.chart_state.get_line_chart(key, chart_type)
     }
 
     pub fn metrics(&self) -> &MetricSet {
@@ -270,37 +289,58 @@ impl<C: Chromosome> AppState<C> {
         &self.chart_state
     }
 
-    pub fn next_metrics_tab(&mut self) {
-        if let Some(PanelId::MetricSummary) = self.display.modal_panel {
-            self.display.chart_id = self.display.chart_id.next();
-            return;
-        }
-
-        self.display.prev_focus_panel = self.display.focus_panel;
-
-        self.metrics_tab = self.metrics_tab.next();
-
-        self.display.focus_panel = match self.metrics_tab {
-            MetricsTab::Time => PanelId::TimeMetrics,
-            MetricsTab::Stats => PanelId::StatsMetrics,
-            MetricsTab::Distribution => PanelId::DistMetrics,
-            MetricsTab::Species => PanelId::SpeciesMetrics,
+    pub fn active_tab_index(&self, tab: &TabId) -> usize {
+        match tab {
+            TabId::Dashboard => match self.dashboard_tab {
+                DashboardTab::Stats => 0,
+                DashboardTab::Time => 1,
+                DashboardTab::Distribution => 2,
+                DashboardTab::Species => 3,
+            },
+            TabId::MetricChart => match self.display.chart_id {
+                LineChartType::Value => 0,
+                LineChartType::Mean => 1,
+                LineChartType::Stddev => 2,
+                LineChartType::Variance => 3,
+            },
         }
     }
 
-    pub fn previous_metrics_tab(&mut self) {
-        if let Some(PanelId::MetricSummary) = self.display.modal_panel {
-            self.display.chart_id = self.display.chart_id.previous();
-            return;
-        }
+    pub fn next_tab(&mut self) {
+        match self.display.tab_id {
+            TabId::Dashboard => {
+                self.display.prev_focus_panel = self.display.focus_panel;
+                self.dashboard_tab = self.dashboard_tab.next();
 
-        self.display.focus_panel = self.display.prev_focus_panel;
-        self.metrics_tab = self.metrics_tab.previous();
-        self.display.focus_panel = match self.metrics_tab {
-            MetricsTab::Time => PanelId::TimeMetrics,
-            MetricsTab::Stats => PanelId::StatsMetrics,
-            MetricsTab::Distribution => PanelId::DistMetrics,
-            MetricsTab::Species => PanelId::SpeciesMetrics,
+                self.display.focus_panel = match self.dashboard_tab {
+                    DashboardTab::Time => PanelId::TimeTable,
+                    DashboardTab::Stats => PanelId::StatsTable,
+                    DashboardTab::Distribution => PanelId::DistTable,
+                    DashboardTab::Species => PanelId::SpeciesTable,
+                };
+            }
+            TabId::MetricChart => {
+                self.display.chart_id = self.display.chart_id.next();
+            }
+        }
+    }
+
+    pub fn previous_tab(&mut self) {
+        match self.display.tab_id {
+            TabId::Dashboard => {
+                self.display.prev_focus_panel = self.display.focus_panel;
+                self.dashboard_tab = self.dashboard_tab.previous();
+
+                self.display.focus_panel = match self.dashboard_tab {
+                    DashboardTab::Time => PanelId::TimeTable,
+                    DashboardTab::Stats => PanelId::StatsTable,
+                    DashboardTab::Distribution => PanelId::DistTable,
+                    DashboardTab::Species => PanelId::SpeciesTable,
+                };
+            }
+            TabId::MetricChart => {
+                self.display.chart_id = self.display.chart_id.previous();
+            }
         }
     }
 
@@ -321,7 +361,7 @@ impl<C: Chromosome> AppState<C> {
     }
 
     pub fn move_selection_down(&mut self) {
-        if self.display.focus_panel == PanelId::Filters {
+        if self.display.focus_panel == PanelId::Tags {
             if self.filter_state.all_tags.is_empty() {
                 return;
             }
@@ -333,32 +373,16 @@ impl<C: Chromosome> AppState<C> {
                 self.filter_state.selected_row += 1;
             }
             return;
-        } else if let Some(PanelId::MetricSummary) = self.display.modal_panel {
+        } else if let Some(PanelId::MetricModal) = self.display.modal_panel {
             return;
         }
 
-        match self.metrics_tab {
-            MetricsTab::Time => Self::update_selection_down(&mut self.time_table),
-            MetricsTab::Stats => Self::update_selection_down(&mut self.stats_table),
-            MetricsTab::Distribution => Self::update_selection_down(&mut self.dist_table),
-            MetricsTab::Species => Self::update_selection_down(&mut self.species_table),
+        match self.dashboard_tab {
+            DashboardTab::Time => Self::update_selection_down(&mut self.time_table),
+            DashboardTab::Stats => Self::update_selection_down(&mut self.stats_table),
+            DashboardTab::Distribution => Self::update_selection_down(&mut self.dist_table),
+            DashboardTab::Species => Self::update_selection_down(&mut self.species_table),
         };
-
-        // if state.row_count == 0 {
-        //     return;
-        // }
-
-        // if let Some(i) = state.state.selected() {
-        //     let next = if i + 1 >= state.row_count { 0 } else { i + 1 };
-
-        //     state.state.select(Some(next));
-        //     state.selected_row = next;
-        //     state.scroll_bar = state.scroll_bar.as_mut().map(|sb| sb.position(next));
-        // } else {
-        //     state.state.select(Some(0));
-        //     state.selected_row = 0;
-        //     state.scroll_bar = state.scroll_bar.as_mut().map(|sb| sb.position(0));
-        // }
     }
 
     fn update_selection_down<T>(table_state: &mut AppTableState<T>) {
@@ -384,7 +408,7 @@ impl<C: Chromosome> AppState<C> {
     }
 
     pub fn move_selection_up(&mut self) {
-        if self.display.focus_panel == PanelId::Filters {
+        if self.display.focus_panel == PanelId::Tags {
             if self.filter_state.all_tags.is_empty() {
                 return;
             }
@@ -399,15 +423,15 @@ impl<C: Chromosome> AppState<C> {
             return;
         }
 
-        if let Some(PanelId::MetricSummary) = self.display.modal_panel {
+        if let Some(PanelId::MetricModal) = self.display.modal_panel {
             return;
         }
 
-        match self.metrics_tab {
-            MetricsTab::Time => Self::update_selection_up(&mut self.time_table),
-            MetricsTab::Stats => Self::update_selection_up(&mut self.stats_table),
-            MetricsTab::Distribution => Self::update_selection_up(&mut self.dist_table),
-            MetricsTab::Species => Self::update_selection_up(&mut self.species_table),
+        match self.dashboard_tab {
+            DashboardTab::Time => Self::update_selection_up(&mut self.time_table),
+            DashboardTab::Stats => Self::update_selection_up(&mut self.stats_table),
+            DashboardTab::Distribution => Self::update_selection_up(&mut self.dist_table),
+            DashboardTab::Species => Self::update_selection_up(&mut self.species_table),
         }
     }
 
@@ -435,28 +459,37 @@ impl<C: Chromosome> AppState<C> {
     }
 
     pub fn get_selected_metric(&self) -> Option<&'static str> {
-        match self.metrics_tab {
-            MetricsTab::Time => self.time_table.selected_metric,
-            MetricsTab::Stats => self.stats_table.selected_metric,
-            MetricsTab::Distribution => self.dist_table.selected_metric,
-            MetricsTab::Species => None,
+        match self.dashboard_tab {
+            DashboardTab::Time => self.time_table.selected_value,
+            DashboardTab::Stats => self.stats_table.selected_value,
+            DashboardTab::Distribution => self.dist_table.selected_value,
+            DashboardTab::Species => None,
         }
     }
 
     pub fn toggle_tag_filter_selection(&mut self) {
         if matches!(
             self.display.focus_panel,
-            PanelId::TimeMetrics | PanelId::StatsMetrics | PanelId::DistMetrics
+            PanelId::TimeTable | PanelId::StatsTable | PanelId::DistTable | PanelId::MetricModal
         ) {
             self.display.modal_panel = match self.display.modal_panel {
-                Some(PanelId::MetricSummary) => None,
-                _ => Some(PanelId::MetricSummary),
+                Some(PanelId::MetricModal) => None,
+                _ => Some(PanelId::MetricModal),
             };
+
+            if self.display.modal_panel.is_some() {
+                self.display.prev_focus_panel = self.display.focus_panel;
+                self.display.focus_panel = PanelId::MetricModal;
+                self.display.tab_id = TabId::MetricChart;
+            } else {
+                self.display.focus_panel = self.display.prev_focus_panel;
+                self.display.tab_id = TabId::Dashboard;
+            }
 
             return;
         }
 
-        if self.display.focus_panel != PanelId::Filters {
+        if self.display.focus_panel != PanelId::Tags {
             return;
         }
 
@@ -471,6 +504,51 @@ impl<C: Chromosome> AppState<C> {
             }
         }
     }
+
+    pub fn update_metrics(&mut self, metrics: MetricSet) {
+        for metric in metrics.iter() {
+            self.chart_state.update_from_metric(metric.1);
+        }
+
+        self.metrics = metrics;
+
+        self.filter_state.all_tags = self
+            .metrics
+            .tags()
+            .filter(|tag| {
+                *tag != TagType::Statistic && *tag != TagType::Time && *tag != TagType::Distribution
+            })
+            .collect();
+
+        self.filter_state.all_tags.sort();
+    }
+
+    pub fn update_species(&mut self, species: Option<Vec<SpeciesSnapshot>>) {
+        self.species = species;
+
+        if let Some(species) = &mut self.species {
+            species.sort_unstable_by(|a, b| a.id.0.cmp(&b.id.0));
+        }
+
+        self.species_pie_chart.slices = self
+            .species
+            .as_ref()
+            .map(|s| {
+                s.iter()
+                    .map(|sp| {
+                        (
+                            radiate_utils::intern!(format!("{}", sp.id.0)),
+                            sp.score.clone().unwrap_or_default(),
+                        )
+                    })
+                    .collect::<Vec<(&'static str, Score)>>()
+            })
+            .unwrap_or_default();
+    }
+
+    pub fn get_pie_chart_slices(&self) -> Vec<(&'static str, Score)> {
+        self.species_pie_chart.slices.clone()
+    }
 }
 
 impl<C: Chromosome> Default for AppState<C> {
@@ -480,19 +558,21 @@ impl<C: Chromosome> Default for AppState<C> {
             last_render: None,
             render_interval: Duration::from_millis(500),
             chart_state: ChartState::new(),
-            metrics_tab: MetricsTab::Stats,
+            dashboard_tab: DashboardTab::Stats,
 
             running: RunningState {
                 engine: false,
                 ui: true,
                 paused: false,
             },
+
             display: DisplayState {
                 show_tag_filters: false,
                 show_help: false,
-                chart_id: ChartType::Mean,
-                focus_panel: PanelId::StatsMetrics,
-                prev_focus_panel: PanelId::StatsMetrics,
+                chart_id: LineChartType::Mean,
+                tab_id: TabId::Dashboard,
+                focus_panel: PanelId::StatsTable,
+                prev_focus_panel: PanelId::StatsTable,
                 modal_panel: None,
             },
 
@@ -519,6 +599,7 @@ impl<C: Chromosome> Default for AppState<C> {
             stats_table: AppTableState::new(),
             dist_table: AppTableState::new(),
             species_table: AppTableState::new(),
+            species_pie_chart: AppPieCharState { slices: Vec::new() },
             species: None,
             metrics: MetricSet::new(),
             index: 0,
@@ -537,7 +618,7 @@ pub struct AppFilterState {
 pub struct AppTableState<T> {
     pub state: TableState,
     pub scroll_bar: Option<ScrollbarState>,
-    pub selected_metric: Option<T>,
+    pub selected_value: Option<T>,
     pub selected_row: usize,
     pub row_count: usize,
     pub prev_row_count: usize,
@@ -551,7 +632,7 @@ impl<T> AppTableState<T> {
             selected_row: 0,
             row_count: 0,
             prev_row_count: 0,
-            selected_metric: None,
+            selected_value: None,
         }
     }
 
@@ -575,6 +656,10 @@ impl<T> AppTableState<T> {
             self.state.select(Some(self.selected_row));
         }
 
-        self.selected_metric = items.get(self.selected_row).map(&func);
+        self.selected_value = items.get(self.selected_row).map(&func);
     }
+}
+
+pub struct AppPieCharState<T> {
+    pub slices: Vec<(&'static str, T)>,
 }

@@ -1,4 +1,4 @@
-use crate::chart::RollingChart;
+use crate::chart::RollingLineChart;
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
@@ -7,14 +7,15 @@ use ratatui::{
     text::Line,
     widgets::{Axis, Block, Chart, Dataset, GraphType, Widget},
 };
-pub struct ChartWidget<'a> {
-    charts: Vec<&'a RollingChart>,
+
+pub struct LineChartWidget<'a> {
+    charts: Vec<&'a RollingLineChart>,
     bg_color: Color,
     show_x_axis: bool,
 }
 
-impl<'a> ChartWidget<'a> {
-    pub fn new(charts: Vec<&'a RollingChart>) -> Self {
+impl<'a> LineChartWidget<'a> {
+    pub fn new(charts: Vec<&'a RollingLineChart>) -> Self {
         Self {
             charts,
             bg_color: crate::styles::ALT_BG_COLOR,
@@ -28,20 +29,20 @@ impl<'a> ChartWidget<'a> {
     }
 }
 
-impl<'a> From<Vec<&'a RollingChart>> for ChartWidget<'a> {
-    fn from(value: Vec<&'a RollingChart>) -> Self {
+impl<'a> From<Vec<&'a RollingLineChart>> for LineChartWidget<'a> {
+    fn from(value: Vec<&'a RollingLineChart>) -> Self {
         Self::new(value)
     }
 }
 
-impl<'a> From<&'a RollingChart> for ChartWidget<'a> {
-    fn from(value: &'a RollingChart) -> Self {
+impl<'a> From<&'a RollingLineChart> for LineChartWidget<'a> {
+    fn from(value: &'a RollingLineChart) -> Self {
         Self::new(vec![value])
     }
 }
 
-impl<'a> From<Option<&'a RollingChart>> for ChartWidget<'a> {
-    fn from(value: Option<&'a RollingChart>) -> Self {
+impl<'a> From<Option<&'a RollingLineChart>> for LineChartWidget<'a> {
+    fn from(value: Option<&'a RollingLineChart>) -> Self {
         match value {
             Some(chart) => Self::new(vec![chart]),
             None => Self::new(vec![]),
@@ -49,14 +50,14 @@ impl<'a> From<Option<&'a RollingChart>> for ChartWidget<'a> {
     }
 }
 
-impl<'a> From<Vec<Option<&'a RollingChart>>> for ChartWidget<'a> {
-    fn from(value: Vec<Option<&'a RollingChart>>) -> Self {
+impl<'a> From<Vec<Option<&'a RollingLineChart>>> for LineChartWidget<'a> {
+    fn from(value: Vec<Option<&'a RollingLineChart>>) -> Self {
         let charts = value.into_iter().filter_map(|c| c).collect();
         Self::new(charts)
     }
 }
 
-impl<'a> Widget for ChartWidget<'a> {
+impl<'a> Widget for LineChartWidget<'a> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         if self.charts.is_empty() {
             let block = Block::bordered().title(Line::from(" No Data ").centered());
@@ -101,7 +102,7 @@ impl<'a> Widget for ChartWidget<'a> {
 fn chart_widget<'a>(
     x_bounds: (f64, f64),
     y_bounds: (f64, f64),
-    charts: Vec<&'a RollingChart>,
+    charts: Vec<&'a RollingLineChart>,
     bg_color: Color,
     show_x_axis: bool,
 ) -> ratatui::widgets::Chart<'a> {

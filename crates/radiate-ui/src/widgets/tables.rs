@@ -1,6 +1,7 @@
 use crate::state::{AppState, AppTableState, PanelId};
 use crate::styles::{self, COLOR_WHEEL_400};
-use crate::widgets::MetricValuesWidget;
+use crate::widgets::MetricDetailPanelWidget;
+use crate::widgets::components::PieChartWidget;
 use radiate_engines::stats::TagType;
 use radiate_engines::{Chromosome, MetricSet, SpeciesSnapshot, metric_names};
 use radiate_engines::{Metric, stats::fmt_duration};
@@ -33,61 +34,52 @@ pub const TIME_HEADER_CELLS: [&str; 5] = ["Metric", "Min", "Max", "μ (mean)", "
 
 pub const SPECIES_HEADER_CELLS: [&str; 6] = ["ID", "Gen", "Pop", "Stag", "Best", "Score"];
 
-pub struct TimeTableWidget<'a, C: Chromosome> {
-    state: &'a mut AppState<C>,
+pub struct TimeTableWidget<C: Chromosome> {
+    _phantom: std::marker::PhantomData<C>,
 }
 
-impl<'a, C: Chromosome> TimeTableWidget<'a, C> {
-    pub fn new(state: &'a mut AppState<C>) -> Self {
-        Self { state }
+impl<C: Chromosome> TimeTableWidget<C> {
+    pub fn new() -> Self {
+        Self {
+            _phantom: std::marker::PhantomData,
+        }
     }
 }
 
-impl<'a, C: Chromosome> Widget for TimeTableWidget<'a, C> {
-    fn render(self, area: Rect, buf: &mut Buffer) {
-        let [middle_left, middle_right] =
-            Layout::horizontal([Constraint::Fill(1), Constraint::Percentage(20)]).areas(area);
+impl<C: Chromosome> StatefulWidget for TimeTableWidget<C> {
+    type State = AppState<C>;
 
-        MetricValuesWidget::new().render(middle_right, buf, self.state);
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+        // let [middle_left, middle_right] =
+        //     Layout::horizontal([Constraint::Fill(1), Constraint::Percentage(20)]).areas(area);
 
-        let items = tagged_metrics(&self.state.metrics, self.state, TagType::Time)
+        // MetricDetailPanelWidget::new().render(middle_right, buf, state);
+
+        let items = tagged_metrics(&state.metrics, state, TagType::Time)
             .iter()
             .filter(|met| met.0 != metric_names::TIME)
             .map(|m| *m)
             .collect::<Vec<_>>();
-        self.state.time_table.update_rows(&items, |(name, _)| name);
-        let border_style = self
-            .state
-            .get_panel_block(crate::state::PanelId::TimeMetrics);
+        state.time_table.update_rows(&items, |(name, _)| name);
+        let border_style = state.get_panel_block(PanelId::TimeTable);
 
-        let slices = items
-            .iter()
-            .enumerate()
-            .filter_map(|(index, (name, m))| {
-                m.times().map(|time| {
-                    let total_ms = time.sum().map(|d| d.as_millis()).unwrap_or(0) as f64;
+        // let [left, right] = Layout::horizontal([Constraint::Percentage(30), Constraint::Fill(1)])
+        //     .areas(middle_left);
 
-                    let color = if let Some(selected_name) = self.state.time_table.selected_metric {
-                        if selected_name == *name {
-                            COLOR_WHEEL_400[index % COLOR_WHEEL_400.len()]
-                        } else {
-                            Color::DarkGray
-                        }
-                    } else {
-                        Color::DarkGray
-                    };
-
-                    PieSlice::new(name, total_ms, color)
-                })
-            })
-            .collect::<Vec<_>>();
-
-        let piechart = PieChart::new(slices)
-            .show_legend(false)
-            .show_percentages(true)
-            .block(Block::bordered())
-            .legend_layout(tui_piechart::LegendLayout::Horizontal)
-            .high_resolution(true);
+        // PieChartWidget::new(
+        //     &items,
+        //     |(name, _)| *name,
+        //     |(_, metric)| {
+        //         metric
+        //             .times()
+        //             .and_then(|t| t.sum())
+        //             .map(|d| d.as_millis() as f64)
+        //             .unwrap_or(0.0)
+        //     },
+        //     |(name, _)| *name,
+        // )
+        // .selected(state.time_table.selected_value)
+        // .render(left, buf);
 
         let table = Table::default()
             .block(border_style)
@@ -103,37 +95,34 @@ impl<'a, C: Chromosome> Widget for TimeTableWidget<'a, C> {
                 Constraint::Fill(1),
             ]);
 
-        let [left, right] = Layout::horizontal([Constraint::Percentage(30), Constraint::Fill(1)])
-            .areas(middle_left);
-
-        piechart.render(left, buf);
-
-        render_scrollable_table(buf, right, table, &mut self.state.time_table);
+        render_scrollable_table(buf, area, table, &mut state.time_table);
     }
 }
 
-pub struct StatsTableWidget<'a, C: Chromosome> {
-    state: &'a mut AppState<C>,
+pub struct StatsTableWidget<C: Chromosome> {
+    _phantom: std::marker::PhantomData<C>,
 }
 
-impl<'a, C: Chromosome> StatsTableWidget<'a, C> {
-    pub fn new(state: &'a mut AppState<C>) -> Self {
-        Self { state }
+impl<C: Chromosome> StatsTableWidget<C> {
+    pub fn new() -> Self {
+        Self {
+            _phantom: std::marker::PhantomData,
+        }
     }
 }
 
-impl<'a, C: Chromosome> Widget for StatsTableWidget<'a, C> {
-    fn render(self, area: Rect, buf: &mut Buffer) {
-        let [middle_left, middle_right] =
-            Layout::horizontal([Constraint::Fill(1), Constraint::Percentage(20)]).areas(area);
-        MetricValuesWidget::new().render(middle_right, buf, self.state);
+impl<C: Chromosome> StatefulWidget for StatsTableWidget<C> {
+    type State = AppState<C>;
 
-        let items = tagged_metrics(&self.state.metrics, self.state, TagType::Statistic);
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+        // let [middle_left, middle_right] =
+        //     Layout::horizontal([Constraint::Fill(1), Constraint::Percentage(20)]).areas(area);
+        // MetricDetailPanelWidget::new().render(middle_right, buf, state);
 
-        self.state.stats_table.update_rows(&items, |(name, _)| name);
-        let border_style = self
-            .state
-            .get_panel_block(crate::state::PanelId::StatsMetrics);
+        let items = tagged_metrics(&state.metrics, state, TagType::Statistic);
+
+        state.stats_table.update_rows(&items, |(name, _)| name);
+        let border_style = state.get_panel_block(crate::state::PanelId::StatsTable);
 
         let table = Table::default()
             .block(border_style)
@@ -143,32 +132,34 @@ impl<'a, C: Chromosome> Widget for StatsTableWidget<'a, C> {
             .highlight_spacing(ratatui::widgets::HighlightSpacing::Always)
             .widths(once(Constraint::Length(22)).chain(repeat(Constraint::Fill(1)).take(7)));
 
-        render_scrollable_table(buf, middle_left, table, &mut self.state.stats_table);
+        render_scrollable_table(buf, area, table, &mut state.stats_table);
     }
 }
 
-pub struct DistributionTableWidget<'a, C: Chromosome> {
-    state: &'a mut AppState<C>,
+pub struct DistributionTableWidget<C: Chromosome> {
+    _phantom: std::marker::PhantomData<C>,
 }
 
-impl<'a, C: Chromosome> DistributionTableWidget<'a, C> {
-    pub fn new(state: &'a mut AppState<C>) -> Self {
-        Self { state }
+impl<C: Chromosome> DistributionTableWidget<C> {
+    pub fn new() -> Self {
+        Self {
+            _phantom: std::marker::PhantomData,
+        }
     }
 }
 
-impl<'a, C: Chromosome> Widget for DistributionTableWidget<'a, C> {
-    fn render(self, area: Rect, buf: &mut Buffer) {
+impl<C: Chromosome> StatefulWidget for DistributionTableWidget<C> {
+    type State = AppState<C>;
+
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         let [middle_left, middle_right] =
             Layout::horizontal([Constraint::Fill(1), Constraint::Percentage(20)]).areas(area);
-        MetricValuesWidget::new().render(middle_right, buf, self.state);
+        MetricDetailPanelWidget::new().render(middle_right, buf, state);
 
-        let items = tagged_metrics(&self.state.metrics, self.state, TagType::Distribution);
+        let items = tagged_metrics(&state.metrics, state, TagType::Distribution);
 
-        self.state.dist_table.update_rows(&items, |(name, _)| name);
-        let border_style = self
-            .state
-            .get_panel_block(crate::state::PanelId::DistMetrics);
+        state.dist_table.update_rows(&items, |(name, _)| name);
+        let border_style = state.get_panel_block(crate::state::PanelId::DistTable);
 
         let table = Table::default()
             .block(border_style)
@@ -178,37 +169,41 @@ impl<'a, C: Chromosome> Widget for DistributionTableWidget<'a, C> {
             .highlight_spacing(ratatui::widgets::HighlightSpacing::Always)
             .widths(once(Constraint::Length(22)).chain(repeat(Constraint::Fill(1)).take(7)));
 
-        render_scrollable_table(buf, middle_left, table, &mut self.state.dist_table);
+        render_scrollable_table(buf, middle_left, table, &mut state.dist_table);
     }
 }
 
-pub struct SpeciesTableWidget<'a, C: Chromosome> {
-    state: &'a mut AppState<C>,
+pub struct SpeciesTableWidget<C: Chromosome> {
+    _phantom: std::marker::PhantomData<C>,
 }
 
-impl<'a, C: Chromosome> SpeciesTableWidget<'a, C> {
-    pub fn new(state: &'a mut AppState<C>) -> Self {
-        Self { state }
+impl<C: Chromosome> SpeciesTableWidget<C> {
+    pub fn new() -> Self {
+        Self {
+            _phantom: std::marker::PhantomData,
+        }
     }
 }
 
-impl<'a, C: Chromosome> Widget for SpeciesTableWidget<'a, C> {
-    fn render(self, area: Rect, buf: &mut Buffer) {
-        let items = match &self.state.species {
+impl<C: Chromosome> StatefulWidget for SpeciesTableWidget<C> {
+    type State = AppState<C>;
+
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+        let items = match &state.species {
             Some(species) => species,
             None => return,
         };
 
-        self.state.species_table.update_rows(&items, |s| s.id);
+        state.species_table.update_rows(&items, |s| s.id);
 
-        let obj_index = self.state.objective_state.objective_index;
-        let border_style = self.state.get_panel_block(PanelId::SpeciesMetrics);
+        let obj_index = state.objective_state.objective_index;
+        let border_style = state.get_panel_block(PanelId::SpeciesTable);
         let rows = species_into_rows(obj_index, items.iter());
 
         let bars = items
             .iter()
             .map(|species| {
-                let color = if let Some(selected_id) = self.state.species_table.selected_metric {
+                let color = if let Some(selected_id) = state.species_table.selected_value {
                     if selected_id == species.id {
                         crate::styles::SELECTED_GREEN
                     } else {
@@ -229,44 +224,39 @@ impl<'a, C: Chromosome> Widget for SpeciesTableWidget<'a, C> {
             .style(Style::default().fg(Color::LightGreen))
             .max(items.iter().map(|s| s.population_size).max().unwrap_or(1) as u64);
 
-        let slices = items
-            .iter()
-            .enumerate()
-            .filter_map(|(index, species)| {
-                species.best_score.as_ref().map(|score| {
-                    let color = if let Some(selected_id) = self.state.species_table.selected_metric
-                    {
-                        if selected_id == species.id {
-                            COLOR_WHEEL_400[index % COLOR_WHEEL_400.len()]
-                        } else {
-                            Color::DarkGray
-                        }
-                    } else {
-                        Color::DarkGray
-                    };
+        // let slices = items
+        //     .iter()
+        //     .enumerate()
+        //     .filter_map(|(index, species)| {
+        //         species.best_score.as_ref().map(|score| {
+        //             let color = selected_chart_color(
+        //                 index,
+        //                 state.species_table.selected_value.as_ref(),
+        //                 &species.id,
+        //             );
 
-                    let name = radiate_utils::intern!(format!("{}", species.id.0));
-                    PieSlice::new(name, score[0] as f64, color)
-                })
-            })
-            .collect::<Vec<_>>();
+        //             let name = radiate_utils::intern!(format!("{}", species.id.0));
+        //             PieSlice::new(name, score[0] as f64, color)
+        //         })
+        //     })
+        //     .collect::<Vec<_>>();
 
-        let piechart = PieChart::new(slices)
-            .show_legend(false)
-            .show_percentages(true)
-            .block(Block::bordered())
-            .legend_layout(tui_piechart::LegendLayout::Horizontal)
-            .high_resolution(true);
+        // let piechart = PieChart::new(slices)
+        //     .show_legend(false)
+        //     .show_percentages(true)
+        //     .block(Block::bordered())
+        //     .legend_layout(tui_piechart::LegendLayout::Horizontal)
+        //     .high_resolution(true);
 
-        let [left, middle, right] = Layout::horizontal([
-            Constraint::Fill(1),
-            Constraint::Percentage(25),
-            Constraint::Percentage(25),
-        ])
-        .areas(area);
+        // let [left, middle, right] = Layout::horizontal([
+        //     Constraint::Fill(1),
+        //     Constraint::Percentage(25),
+        //     Constraint::Percentage(25),
+        // ])
+        // .areas(area);
 
-        sparkline.render(middle, buf);
-        piechart.render(right, buf);
+        // sparkline.render(middle, buf);
+        // piechart.render(right, buf);
 
         let table = Table::default()
             .block(border_style)
@@ -276,7 +266,7 @@ impl<'a, C: Chromosome> Widget for SpeciesTableWidget<'a, C> {
             .highlight_spacing(ratatui::widgets::HighlightSpacing::Always)
             .widths(once(Constraint::Length(22)).chain(repeat(Constraint::Fill(1)).take(7)));
 
-        render_scrollable_table(buf, left, table, &mut self.state.species_table);
+        render_scrollable_table(buf, area, table, &mut state.species_table);
     }
 }
 
@@ -305,7 +295,14 @@ fn render_scrollable_table<T>(
     }
 }
 
-fn tagged_metrics<'a, C: Chromosome>(
+fn selected_chart_color<K: PartialEq>(index: usize, selected: Option<&K>, current: &K) -> Color {
+    match selected {
+        Some(sel) if sel == current => COLOR_WHEEL_400[index % COLOR_WHEEL_400.len()],
+        _ => Color::DarkGray,
+    }
+}
+
+pub fn tagged_metrics<'a, C: Chromosome>(
     metrics: &'a MetricSet,
     state: &AppState<C>,
     tag: TagType,
@@ -315,7 +312,7 @@ fn tagged_metrics<'a, C: Chromosome>(
         .filter(|(_, m)| state.metric_has_tags(m))
         .filter(|(_, m)| state.metric_matches_search(m))
         .collect::<Vec<_>>();
-    items.sort_by(|a, b| a.0.cmp(b.0));
+    items.sort_unstable_by(|a, b| a.0.cmp(b.0));
     items
 }
 
@@ -424,6 +421,35 @@ fn header_row<'a>(cols: &'a [&str]) -> Row<'a> {
         .height(1)
         .style(Style::default().bold().underlined().fg(Color::White))
 }
+
+// let slices = items
+//     .iter()
+//     .enumerate()
+//     .filter_map(|(index, (name, m))| {
+//         m.times().map(|time| {
+//             let total_ms = time.sum().map(|d| d.as_millis()).unwrap_or(0) as f64;
+
+//             let color = if let Some(selected_name) = state.time_table.selected_value {
+//                 if selected_name == *name {
+//                     COLOR_WHEEL_400[index % COLOR_WHEEL_400.len()]
+//                 } else {
+//                     Color::DarkGray
+//                 }
+//             } else {
+//                 Color::DarkGray
+//             };
+
+//             PieSlice::new(name, total_ms, color)
+//         })
+//     })
+//     .collect::<Vec<_>>();
+
+// let piechart = PieChart::new(slices)
+//     .show_legend(false)
+//     .show_percentages(true)
+//     .block(Block::bordered())
+//     .legend_layout(tui_piechart::LegendLayout::Horizontal)
+//     .high_resolution(true);
 
 // fn create_pie_chart<'a, T, K, F>(items: &[T], selected: Option<&K>, func: F) -> PieChart<'a>
 // where

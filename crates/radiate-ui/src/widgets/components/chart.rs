@@ -1,0 +1,195 @@
+use radiate_engines::{Chromosome, metric_names, stats::TagType};
+use ratatui::{
+    buffer::Buffer,
+    layout::Rect,
+    style::Color,
+    text::Line,
+    widgets::{Block, StatefulWidget, Widget},
+};
+use tui_piechart::{LegendLayout, PieChart, PieSlice};
+
+use crate::{
+    chart::GroupedChartItem, state::AppState, styles::COLOR_WHEEL_400,
+    widgets::tables::tagged_metrics,
+};
+
+pub struct PieChartWidget<'a, T, K, FLabel, FValue, FKey>
+where
+    FLabel: Fn(&T) -> &'a str,
+    FValue: Fn(&T) -> f64,
+    FKey: Fn(&T) -> K,
+{
+    items: &'a [T],
+    selected: Option<K>,
+    label: FLabel,
+    value: FValue,
+    key: FKey,
+}
+
+impl<'a, T, K, FLabel, FValue, FKey> PieChartWidget<'a, T, K, FLabel, FValue, FKey>
+where
+    K: PartialEq + Copy,
+    FLabel: Fn(&T) -> &'a str,
+    FValue: Fn(&T) -> f64,
+    FKey: Fn(&T) -> K,
+{
+    pub fn new(items: &'a [T], label: FLabel, value: FValue, key: FKey) -> Self {
+        Self {
+            items,
+            selected: None,
+            label,
+            value,
+            key,
+        }
+    }
+
+    pub fn selected(mut self, selected: Option<K>) -> Self {
+        self.selected = selected;
+        self
+    }
+
+    fn color_for(&self, index: usize, item: &T) -> Color {
+        match self.selected {
+            Some(selected) if (self.key)(item) == selected => {
+                COLOR_WHEEL_400[index % COLOR_WHEEL_400.len()]
+            }
+            _ => Color::DarkGray,
+        }
+    }
+}
+
+impl<'a, T, K, FLabel, FValue, FKey> Widget for PieChartWidget<'a, T, K, FLabel, FValue, FKey>
+where
+    K: PartialEq + Copy,
+    FLabel: Fn(&T) -> &'a str,
+    FValue: Fn(&T) -> f64,
+    FKey: Fn(&T) -> K,
+{
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        let slices = self
+            .items
+            .iter()
+            .enumerate()
+            .map(|(index, item)| {
+                PieSlice::new(
+                    (self.label)(item),
+                    (self.value)(item),
+                    self.color_for(index, item),
+                )
+            })
+            .collect::<Vec<_>>();
+
+        PieChart::new(slices)
+            .show_legend(false)
+            .show_percentages(true)
+            .block(Block::bordered())
+            .legend_layout(LegendLayout::Horizontal)
+            .high_resolution(true)
+            .render(area, buf);
+    }
+}
+
+pub struct SpeciesPieChartComponent<C: Chromosome> {
+    _marker: std::marker::PhantomData<C>,
+}
+
+impl<C: Chromosome> SpeciesPieChartComponent<C> {
+    pub fn new() -> Self {
+        Self {
+            _marker: std::marker::PhantomData,
+        }
+    }
+}
+
+impl<C: Chromosome> StatefulWidget for SpeciesPieChartComponent<C> {
+    type State = AppState<C>;
+
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+        let Some(species) = &state.species else {
+            let block = Block::bordered().title(Line::from(" No Data ").centered());
+            block.render(area, buf);
+            return;
+        };
+
+        let obj_idx = state.objective_state.objective_index;
+        let slices = species
+            .iter()
+            .enumerate()
+            .filter_map(|(index, species)| {
+                species.best_score.as_ref().map(|score| {
+                    let color = selected_chart_color(
+                        index,
+                        state.species_table.selected_value.as_ref(),
+                        &species.id,
+                    );
+
+                    let name = radiate_utils::intern!(format!("{}", species.id.0));
+                    PieSlice::new(name, score[obj_idx] as f64, color)
+                })
+            })
+            .collect::<Vec<_>>();
+
+        PieChart::new(slices)
+            .show_legend(false)
+            .show_percentages(true)
+            .block(Block::bordered())
+            .legend_layout(tui_piechart::LegendLayout::Horizontal)
+            .high_resolution(true)
+            .render(area, buf);
+    }
+}
+
+pub struct TimePieChartComponent<C> {
+    _marker: std::marker::PhantomData<C>,
+}
+
+impl<C> TimePieChartComponent<C> {
+    pub fn new() -> Self {
+        Self {
+            _marker: std::marker::PhantomData,
+        }
+    }
+}
+
+impl<C: Chromosome> StatefulWidget for TimePieChartComponent<C> {
+    type State = AppState<C>;
+
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+        let items = tagged_metrics(&state.metrics, state, TagType::Time)
+            .iter()
+            .filter(|met| met.0 != metric_names::TIME)
+            .map(|m| *m)
+            .collect::<Vec<_>>();
+
+        let slices = items
+            .iter()
+            .enumerate()
+            .map(|(index, (label, metric))| {
+                let color =
+                    selected_chart_color(index, state.time_table.selected_value.as_ref(), label);
+                let value = metric
+                    .times()
+                    .and_then(|t| t.sum())
+                    .map(|d| d.as_millis() as f64)
+                    .unwrap_or(0.0);
+
+                PieSlice::new(*label, value, color)
+            })
+            .collect::<Vec<_>>();
+
+        PieChart::new(slices)
+            .show_legend(false)
+            .show_percentages(true)
+            .block(Block::bordered())
+            .legend_layout(tui_piechart::LegendLayout::Horizontal)
+            .high_resolution(true)
+            .render(area, buf);
+    }
+}
+
+fn selected_chart_color<K: PartialEq>(index: usize, selected: Option<&K>, current: &K) -> Color {
+    match selected {
+        Some(sel) if sel == current => COLOR_WHEEL_400[index % COLOR_WHEEL_400.len()],
+        _ => Color::DarkGray,
+    }
+}

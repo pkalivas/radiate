@@ -1,4 +1,7 @@
-use ratatui::style::{Color, palette::material};
+use ratatui::{
+    style::{Color, Style, palette::material},
+    widgets::Row,
+};
 
 pub const BG_COLOR: Color = material::GRAY.c800;
 pub const ALT_BG_COLOR: Color = material::GRAY.c900;
@@ -34,4 +37,11 @@ pub fn selected_item_style() -> ratatui::style::Style {
         .fg(SELECTED_GREEN)
         .bg(material::BLACK)
         .reversed()
+}
+
+pub fn striped_rows<'a>(rows: impl IntoIterator<Item = Row<'a>>) -> impl Iterator<Item = Row<'a>> {
+    rows.into_iter().enumerate().map(|(i, row)| {
+        let bg = if i % 2 == 0 { BG_COLOR } else { ALT_BG_COLOR };
+        row.style(Style::default().bg(bg))
+    })
 }

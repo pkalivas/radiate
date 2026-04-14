@@ -1,6 +1,7 @@
 use crate::state::{AppState, PanelId};
 use crate::widgets::{
-    EngineSummaryWidget, FitnessWidget, HelpWidget, MetricSummaryWidget, MetricsWidget, ModalWidget,
+    EngineDashboardPanelWidget, EngineStatusPanelWidget, FitnessChartPanelWidget, HelpWidget,
+    LayoutNode, MetricModalWidget, ModalWidget,
 };
 use color_eyre::Result;
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
@@ -12,7 +13,7 @@ use radiate_engines::{
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::Style;
-use ratatui::widgets::{StatefulWidget, Widget};
+use ratatui::widgets::{Paragraph, StatefulWidget, Widget};
 use ratatui::{Terminal, backend::CrosstermBackend};
 use std::sync::{Arc, mpsc};
 use std::{
@@ -151,8 +152,8 @@ where
             KeyCode::Char('+') => self.state.expand_objective_pairs(),
             KeyCode::Char('-') => self.state.shrink_objective_pairs(),
 
-            KeyCode::Right | KeyCode::Char('l') => self.state.next_metrics_tab(),
-            KeyCode::Left | KeyCode::Char('h') => self.state.previous_metrics_tab(),
+            KeyCode::Right | KeyCode::Char('l') => self.state.next_tab(),
+            KeyCode::Left | KeyCode::Char('h') => self.state.previous_tab(),
 
             KeyCode::Char('p') => {
                 let paused = self.control.toggle_pause();
@@ -184,24 +185,27 @@ where
         front: Option<Front<Phenotype<C>>>,
         mut species_snapshots: Option<Vec<SpeciesSnapshot>>,
     ) {
-        for metric in metrics.iter() {
-            self.state.chart_state.update_from_metric(metric.1);
-        }
+        // for metric in metrics.iter() {
+        //     self.state.chart_state.update_from_metric(metric.1);
+        // }
 
-        self.state.metrics = metrics;
+        // self.state.metrics = metrics;
         self.state.score = score;
         self.state.index = index;
 
-        self.state.filter_state.all_tags = self
-            .state
-            .metrics
-            .tags()
-            .filter(|tag| {
-                *tag != TagType::Statistic && *tag != TagType::Time && *tag != TagType::Distribution
-            })
-            .collect();
+        self.state.update_metrics(metrics);
+        self.state.update_species(species_snapshots);
 
-        self.state.filter_state.all_tags.sort();
+        // self.state.filter_state.all_tags = self
+        //     .state
+        //     .metrics
+        //     .tags()
+        //     .filter(|tag| {
+        //         *tag != TagType::Statistic && *tag != TagType::Time && *tag != TagType::Distribution
+        //     })
+        //     .collect();
+
+        // self.state.filter_state.all_tags.sort();
 
         if let Some(front) = front {
             self.state.front = Some(front);
@@ -215,11 +219,11 @@ where
             }
         }
 
-        if let Some(species_snapshots) = &mut species_snapshots {
-            species_snapshots.sort_unstable_by(|a, b| a.id.0.cmp(&b.id.0));
-        }
+        // if let Some(species_snapshots) = &mut species_snapshots {
+        //     species_snapshots.sort_unstable_by(|a, b| a.id.0.cmp(&b.id.0));
+        // }
 
-        self.state.species = species_snapshots;
+        // self.state.species = species_snapshots;
     }
 
     pub fn handle_engine_start(&mut self, objective: Objective) {
@@ -244,20 +248,29 @@ where
         );
 
         let [top, bottom] =
-            Layout::vertical([Constraint::Percentage(30), Constraint::Fill(1)]).areas(area);
+            Layout::vertical([Constraint::Percentage(2), Constraint::Fill(1)]).areas(area);
 
-        let [summary, fitness] =
-            Layout::horizontal([Constraint::Percentage(25), Constraint::Fill(1)]).areas(top);
+        Paragraph::new(format!("{:?}", self.state.display.focus_panel)).render(top, buf);
 
-        EngineSummaryWidget::new().render(summary, buf, &mut self.state);
-        FitnessWidget::new().render(fitness, buf, &mut self.state);
-        MetricsWidget::new().render(bottom, buf, &mut self.state);
+        let template = LayoutNode::default();
+
+        template.draw(bottom, buf, &mut self.state);
+
+        // let [top, bottom] =
+        //     Layout::vertical([Constraint::Percentage(30), Constraint::Fill(1)]).areas(area);
+
+        // let [summary, fitness] =
+        //     Layout::horizontal([Constraint::Percentage(25), Constraint::Fill(1)]).areas(top);
+
+        // EngineStatusPanelWidget::new().render(summary, buf, &mut self.state);
+        // FitnessChartPanelWidget::new().render(fitness, buf, &mut self.state);
+        // EngineDashboardPanelWidget::new().render(bottom, buf, &mut self.state);
 
         if let Some(panel) = self.state.display.modal_panel {
             match panel {
-                PanelId::Help => ModalWidget::new(HelpWidget).render(area, buf),
-                PanelId::MetricSummary => {
-                    ModalWidget::new(MetricSummaryWidget::new()).render(area, buf, &mut self.state);
+                PanelId::Help => ModalWidget::new(HelpWidget).render(bottom, buf),
+                PanelId::MetricModal => {
+                    ModalWidget::new(MetricModalWidget::new()).render(bottom, buf, &mut self.state);
                 }
                 _ => {}
             }

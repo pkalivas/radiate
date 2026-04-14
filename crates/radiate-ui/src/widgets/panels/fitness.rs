@@ -1,15 +1,15 @@
 use crate::{
-    state::{AppState, ChartType},
-    widgets::{ChartWidget, ParetoPagingWidget},
+    state::{AppState, LineChartType},
+    widgets::{LineChartWidget, ParetoPagingWidget},
 };
 use radiate_engines::{Chromosome, metric_names};
 use ratatui::widgets::{StatefulWidget, Widget};
 
-pub struct FitnessWidget<C: Chromosome> {
+pub struct FitnessChartPanelWidget<C: Chromosome> {
     _phantom: std::marker::PhantomData<C>,
 }
 
-impl<C: Chromosome> FitnessWidget<C> {
+impl<C: Chromosome> FitnessChartPanelWidget<C> {
     pub fn new() -> Self {
         Self {
             _phantom: std::marker::PhantomData,
@@ -17,7 +17,7 @@ impl<C: Chromosome> FitnessWidget<C> {
     }
 }
 
-impl<C: Chromosome> StatefulWidget for FitnessWidget<C> {
+impl<C: Chromosome> StatefulWidget for FitnessChartPanelWidget<C> {
     type State = AppState<C>;
 
     fn render(
@@ -35,9 +35,10 @@ impl<C: Chromosome> StatefulWidget for FitnessWidget<C> {
             //     ]
             // } else {
             // };
-            let charts = vec![chart_state.get_by_key(metric_names::BEST_SCORES, ChartType::Value)];
+            let charts =
+                vec![chart_state.get_line_chart(metric_names::BEST_SCORES, LineChartType::Value)];
 
-            ChartWidget::from(charts).render(area, buf);
+            LineChartWidget::from(charts).render(area, buf);
         } else {
             ParetoPagingWidget::new(&state).render(area, buf);
         }

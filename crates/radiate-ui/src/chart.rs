@@ -1,7 +1,37 @@
+use radiate_engines::SpeciesSnapshot;
 use radiate_utils::WindowBuffer;
 use ratatui::style::Color;
 
-pub struct RollingChart {
+pub struct GroupedChartItem {
+    name: Option<&'static str>,
+    value: f64,
+}
+
+impl GroupedChartItem {
+    pub fn new(name: Option<&'static str>, value: f64) -> Self {
+        Self { name, value }
+    }
+
+    pub fn name(&self) -> Option<&'static str> {
+        self.name
+    }
+
+    pub fn value(&self) -> f64 {
+        self.value
+    }
+}
+
+impl From<SpeciesSnapshot> for GroupedChartItem {
+    fn from(value: SpeciesSnapshot) -> Self {
+        let name = radiate_utils::intern!(format!("{}", value.id.0));
+        Self {
+            name: Some(name),
+            value: 0_f64,
+        }
+    }
+}
+
+pub struct RollingLineChart {
     title: String,
     min_y: f64,
     max_y: f64,
@@ -10,7 +40,7 @@ pub struct RollingChart {
     point_count: usize,
 }
 
-impl RollingChart {
+impl RollingLineChart {
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
             title: "".to_string(),
@@ -105,11 +135,11 @@ impl RollingChart {
 
 #[cfg(test)]
 mod tests {
-    use crate::chart::RollingChart;
+    use crate::chart::RollingLineChart;
 
     #[test]
     fn it_works() {
-        let mut chart = RollingChart::with_capacity(5);
+        let mut chart = RollingLineChart::with_capacity(5);
         for i in 0..20 {
             chart.add_value((i as f64, i as f64 * i as f64));
             println!(

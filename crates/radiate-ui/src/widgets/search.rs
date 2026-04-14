@@ -1,3 +1,7 @@
+use crate::{
+    state::AppState,
+    widgets::{FnWidget, Panel},
+};
 use radiate_engines::Chromosome;
 use ratatui::{
     buffer::Buffer,
@@ -6,22 +10,17 @@ use ratatui::{
     widgets::{Borders, Paragraph, Widget},
 };
 
-use crate::{
-    state::AppState,
-    widgets::{FnWidget, Panel},
-};
-
-pub struct MetricSearchWidget<'a, C: Chromosome> {
+pub struct SearchBarWidget<'a, C: Chromosome> {
     pub state: &'a AppState<C>,
 }
 
-impl<'a, C: Chromosome> MetricSearchWidget<'a, C> {
+impl<'a, C: Chromosome> SearchBarWidget<'a, C> {
     pub fn new(state: &'a AppState<C>) -> Self {
         Self { state }
     }
 }
 
-impl<'a, C: Chromosome> Widget for MetricSearchWidget<'a, C> {
+impl<'a, C: Chromosome> Widget for SearchBarWidget<'a, C> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let title = if self.state.search_state.active {
             " Search (active) "
