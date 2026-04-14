@@ -80,24 +80,24 @@ impl<C: Chromosome> StatefulWidget for EngineSummaryWidget<C> {
     }
 }
 
-pub struct MetricSummaryWidget<'a, C: Chromosome> {
+pub struct MetricValuesWidget<C: Chromosome> {
     _phantom: std::marker::PhantomData<C>,
-    state: &'a AppState<C>,
 }
 
-impl<'a, C: Chromosome> MetricSummaryWidget<'a, C> {
-    pub fn new(state: &'a AppState<C>) -> Self {
+impl<C: Chromosome> MetricValuesWidget<C> {
+    pub fn new() -> Self {
         Self {
             _phantom: std::marker::PhantomData,
-            state,
         }
     }
 }
 
-impl<'a, C: Chromosome> Widget for MetricSummaryWidget<'a, C> {
-    fn render(self, area: Rect, buf: &mut Buffer) {
-        let current_metric_name = self.state.get_selected_metric().unwrap_or("");
-        let metrics = self.state.metrics();
+impl<C: Chromosome> StatefulWidget for MetricValuesWidget<C> {
+    type State = AppState<C>;
+
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+        let current_metric_name = state.get_selected_metric().unwrap_or("");
+        let metrics = state.metrics();
         let metric = metrics.get(current_metric_name);
 
         let Some(metric) = metric else {
@@ -105,21 +105,6 @@ impl<'a, C: Chromosome> Widget for MetricSummaryWidget<'a, C> {
             return;
         };
 
-        let titles = ChartType::chart_options()
-            .into_iter()
-            .map(|t| Span::styled(format!(" {t} "), Style::default().fg(Color::White)));
-
-        let index = match self.state.display.chart_id {
-            ChartType::Value => 0,
-            ChartType::Mean => 1,
-            ChartType::Stddev => 2,
-            ChartType::Variance => 3,
-        };
-
-        let [left, right] =
-            Layout::horizontal([Constraint::Percentage(25), Constraint::Fill(1)]).areas(area);
-
-        let chart_type = self.state.display.chart_id;
         let rows = if metric.tags().has(TagType::Statistic) {
             map_to_stat_metric_rows(metric)
         } else if metric.tags().has(TagType::Time) {
@@ -154,24 +139,57 @@ impl<'a, C: Chromosome> Widget for MetricSummaryWidget<'a, C> {
         Panel::new(FnWidget::new(|area, buf| {
             let left_layout = Layout::default()
                 .direction(Direction::Vertical)
-                .constraints([
-                    Constraint::Percentage(5),
-                    Constraint::Fill(1),
-                    Constraint::Percentage(10),
-                ])
+                .constraints([Constraint::Percentage(70), Constraint::Percentage(30)])
                 .split(area);
 
-            Widget::render(metric_table, left_layout[1], buf);
-            Widget::render(tag_table, left_layout[2], buf);
+            Widget::render(metric_table, left_layout[0], buf);
+            Widget::render(tag_table, left_layout[1], buf);
         }))
         .titled(
             format!(" {} ", current_metric_name)
                 .fg(crate::styles::SELECTED_GREEN)
                 .bold(),
         )
-        .render(left, buf);
+        .render(area, buf);
+    }
+}
 
-        let charts = self.state.get_chart_by_key(current_metric_name, chart_type);
+pub struct MetricSummaryWidget<C: Chromosome> {
+    _phantom: std::marker::PhantomData<C>,
+}
+
+impl<C: Chromosome> MetricSummaryWidget<C> {
+    pub fn new() -> Self {
+        Self {
+            _phantom: std::marker::PhantomData,
+        }
+    }
+}
+
+impl<C: Chromosome> StatefulWidget for MetricSummaryWidget<C> {
+    type State = AppState<C>;
+
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+        let current_metric_name = state.get_selected_metric().unwrap_or("");
+
+        let titles = ChartType::chart_options()
+            .into_iter()
+            .map(|t| Span::styled(format!(" {t} "), Style::default().fg(Color::White)));
+
+        let index = match state.display.chart_id {
+            ChartType::Value => 0,
+            ChartType::Mean => 1,
+            ChartType::Stddev => 2,
+            ChartType::Variance => 3,
+        };
+
+        let [left, right] =
+            Layout::horizontal([Constraint::Percentage(25), Constraint::Fill(1)]).areas(area);
+
+        MetricValuesWidget::new().render(left, buf, state);
+
+        let chart_type = state.display.chart_id;
+        let charts = state.get_chart_by_key(current_metric_name, chart_type);
 
         Panel::new(FnWidget::new(|area, buf| {
             let chunks = Layout::default()
@@ -188,7 +206,9 @@ impl<'a, C: Chromosome> Widget for MetricSummaryWidget<'a, C> {
                 .render(chunks[0], buf);
 
             Panel::new(FnWidget::new(|area, buf| {
-                ChartWidget::from(charts).render(area, buf);
+                ChartWidget::from(charts)
+                    .with_show_x_axis(true)
+                    .render(area, buf);
             }))
             .render(chunks[1], buf);
         }))
@@ -233,6 +253,14 @@ fn map_to_stat_metric_rows(metric: &Metric) -> Vec<Row<'_>> {
             Row::new(vec![
                 "Variance".bold(),
                 format!("{:.4}", view.var().unwrap_or_default()).into(),
+            ]),
+            Row::new(vec![
+                "Skew".bold(),
+                format!("{:.4}", view.skewness().unwrap_or_default()).into(),
+            ]),
+            Row::new(vec![
+                "Kurtosis".bold(),
+                format!("{:.4}", view.kurtosis().unwrap_or_default()).into(),
             ]),
         ];
 
@@ -279,6 +307,14 @@ fn map_to_time_metric_rows(metric: &Metric) -> Vec<Row<'_>> {
                 "Variance".bold(),
                 fmt_duration(view.var().unwrap_or_default()).into(),
             ]),
+            Row::new(vec![
+                "Skew".bold(),
+                fmt_duration(view.skewness().unwrap_or_default()).into(),
+            ]),
+            Row::new(vec![
+                "Kurtosis".bold(),
+                fmt_duration(view.kurtosis().unwrap_or_default()).into(),
+            ]),
         ];
 
         return rows;
@@ -320,6 +356,14 @@ fn map_to_distribution_metric_rows(metric: &Metric) -> Vec<Row<'_>> {
             Row::new(vec![
                 "Variance".bold(),
                 format!("{:.4}", view.var().unwrap_or_default()).into(),
+            ]),
+            Row::new(vec![
+                "Skew".bold(),
+                format!("{:.4}", view.skewness().unwrap_or_default()).into(),
+            ]),
+            Row::new(vec![
+                "Kurtosis".bold(),
+                format!("{:.4}", view.kurtosis().unwrap_or_default()).into(),
             ]),
         ];
 

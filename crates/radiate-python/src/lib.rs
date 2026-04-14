@@ -1,4 +1,5 @@
 mod bindings;
+mod checkpoint;
 mod evaluator;
 mod events;
 mod names;
@@ -7,6 +8,7 @@ mod problem;
 mod random;
 
 pub use bindings::*;
+pub use checkpoint::*;
 pub use evaluator::FreeThreadPyEvaluator;
 pub use object::*;
 pub use problem::PyProblem;

@@ -1,11 +1,14 @@
-use crate::state::{AppState, AppTableState};
+use crate::state::{AppState, AppTableState, PanelId};
 use crate::styles::{self, COLOR_WHEEL_400};
+use crate::widgets::MetricValuesWidget;
 use radiate_engines::stats::TagType;
-use radiate_engines::{Chromosome, MetricSet, metric_names};
+use radiate_engines::{Chromosome, MetricSet, SpeciesSnapshot, metric_names};
 use radiate_engines::{Metric, stats::fmt_duration};
 use ratatui::buffer::Buffer;
 use ratatui::text::Line;
-use ratatui::widgets::{Scrollbar, ScrollbarOrientation, ScrollbarState};
+use ratatui::widgets::{
+    RenderDirection, Scrollbar, ScrollbarOrientation, ScrollbarState, Sparkline, SparklineBar,
+};
 use ratatui::widgets::{StatefulWidget, Widget};
 use ratatui::{
     layout::{Constraint, Layout, Rect},
@@ -28,6 +31,8 @@ pub const STAT_HEADER_CELLS: [&str; 8] = [
 
 pub const TIME_HEADER_CELLS: [&str; 5] = ["Metric", "Min", "Max", "μ (mean)", "Total"];
 
+pub const SPECIES_HEADER_CELLS: [&str; 6] = ["ID", "Gen", "Pop", "Stag", "Best", "Score"];
+
 pub struct TimeTableWidget<'a, C: Chromosome> {
     state: &'a mut AppState<C>,
 }
@@ -40,12 +45,17 @@ impl<'a, C: Chromosome> TimeTableWidget<'a, C> {
 
 impl<'a, C: Chromosome> Widget for TimeTableWidget<'a, C> {
     fn render(self, area: Rect, buf: &mut Buffer) {
+        let [middle_left, middle_right] =
+            Layout::horizontal([Constraint::Fill(1), Constraint::Percentage(20)]).areas(area);
+
+        MetricValuesWidget::new().render(middle_right, buf, self.state);
+
         let items = tagged_metrics(&self.state.metrics, self.state, TagType::Time)
             .iter()
             .filter(|met| met.0 != metric_names::TIME)
             .map(|m| *m)
             .collect::<Vec<_>>();
-        self.state.time_table.update_rows(&items);
+        self.state.time_table.update_rows(&items, |(name, _)| name);
         let border_style = self
             .state
             .get_panel_block(crate::state::PanelId::TimeMetrics);
@@ -93,8 +103,8 @@ impl<'a, C: Chromosome> Widget for TimeTableWidget<'a, C> {
                 Constraint::Fill(1),
             ]);
 
-        let [left, right] =
-            Layout::horizontal([Constraint::Percentage(30), Constraint::Fill(1)]).areas(area);
+        let [left, right] = Layout::horizontal([Constraint::Percentage(30), Constraint::Fill(1)])
+            .areas(middle_left);
 
         piechart.render(left, buf);
 
@@ -114,9 +124,13 @@ impl<'a, C: Chromosome> StatsTableWidget<'a, C> {
 
 impl<'a, C: Chromosome> Widget for StatsTableWidget<'a, C> {
     fn render(self, area: Rect, buf: &mut Buffer) {
+        let [middle_left, middle_right] =
+            Layout::horizontal([Constraint::Fill(1), Constraint::Percentage(20)]).areas(area);
+        MetricValuesWidget::new().render(middle_right, buf, self.state);
+
         let items = tagged_metrics(&self.state.metrics, self.state, TagType::Statistic);
 
-        self.state.stats_table.update_rows(&items);
+        self.state.stats_table.update_rows(&items, |(name, _)| name);
         let border_style = self
             .state
             .get_panel_block(crate::state::PanelId::StatsMetrics);
@@ -129,7 +143,7 @@ impl<'a, C: Chromosome> Widget for StatsTableWidget<'a, C> {
             .highlight_spacing(ratatui::widgets::HighlightSpacing::Always)
             .widths(once(Constraint::Length(22)).chain(repeat(Constraint::Fill(1)).take(7)));
 
-        render_scrollable_table(buf, area, table, &mut self.state.stats_table);
+        render_scrollable_table(buf, middle_left, table, &mut self.state.stats_table);
     }
 }
 
@@ -145,9 +159,13 @@ impl<'a, C: Chromosome> DistributionTableWidget<'a, C> {
 
 impl<'a, C: Chromosome> Widget for DistributionTableWidget<'a, C> {
     fn render(self, area: Rect, buf: &mut Buffer) {
+        let [middle_left, middle_right] =
+            Layout::horizontal([Constraint::Fill(1), Constraint::Percentage(20)]).areas(area);
+        MetricValuesWidget::new().render(middle_right, buf, self.state);
+
         let items = tagged_metrics(&self.state.metrics, self.state, TagType::Distribution);
 
-        self.state.dist_table.update_rows(&items);
+        self.state.dist_table.update_rows(&items, |(name, _)| name);
         let border_style = self
             .state
             .get_panel_block(crate::state::PanelId::DistMetrics);
@@ -160,11 +178,114 @@ impl<'a, C: Chromosome> Widget for DistributionTableWidget<'a, C> {
             .highlight_spacing(ratatui::widgets::HighlightSpacing::Always)
             .widths(once(Constraint::Length(22)).chain(repeat(Constraint::Fill(1)).take(7)));
 
-        render_scrollable_table(buf, area, table, &mut self.state.dist_table);
+        render_scrollable_table(buf, middle_left, table, &mut self.state.dist_table);
     }
 }
 
-fn render_scrollable_table(buf: &mut Buffer, area: Rect, table: Table, state: &mut AppTableState) {
+pub struct SpeciesTableWidget<'a, C: Chromosome> {
+    state: &'a mut AppState<C>,
+}
+
+impl<'a, C: Chromosome> SpeciesTableWidget<'a, C> {
+    pub fn new(state: &'a mut AppState<C>) -> Self {
+        Self { state }
+    }
+}
+
+impl<'a, C: Chromosome> Widget for SpeciesTableWidget<'a, C> {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        let items = match &self.state.species {
+            Some(species) => species,
+            None => return,
+        };
+
+        self.state.species_table.update_rows(&items, |s| s.id);
+
+        let obj_index = self.state.objective_state.objective_index;
+        let border_style = self.state.get_panel_block(PanelId::SpeciesMetrics);
+        let rows = species_into_rows(obj_index, items.iter());
+
+        let bars = items
+            .iter()
+            .map(|species| {
+                let color = if let Some(selected_id) = self.state.species_table.selected_metric {
+                    if selected_id == species.id {
+                        crate::styles::SELECTED_GREEN
+                    } else {
+                        Color::DarkGray
+                    }
+                } else {
+                    Color::DarkGray
+                };
+
+                SparklineBar::from(species.population_size as u64).style(Style::default().fg(color))
+            })
+            .collect::<Vec<_>>();
+
+        let sparkline = Sparkline::default()
+            .block(Block::bordered())
+            .data(bars)
+            .direction(RenderDirection::LeftToRight)
+            .style(Style::default().fg(Color::LightGreen))
+            .max(items.iter().map(|s| s.population_size).max().unwrap_or(1) as u64);
+
+        let slices = items
+            .iter()
+            .enumerate()
+            .filter_map(|(index, species)| {
+                species.best_score.as_ref().map(|score| {
+                    let color = if let Some(selected_id) = self.state.species_table.selected_metric
+                    {
+                        if selected_id == species.id {
+                            COLOR_WHEEL_400[index % COLOR_WHEEL_400.len()]
+                        } else {
+                            Color::DarkGray
+                        }
+                    } else {
+                        Color::DarkGray
+                    };
+
+                    let name = radiate_utils::intern!(format!("{}", species.id.0));
+                    PieSlice::new(name, score[0] as f64, color)
+                })
+            })
+            .collect::<Vec<_>>();
+
+        let piechart = PieChart::new(slices)
+            .show_legend(false)
+            .show_percentages(true)
+            .block(Block::bordered())
+            .legend_layout(tui_piechart::LegendLayout::Horizontal)
+            .high_resolution(true);
+
+        let [left, middle, right] = Layout::horizontal([
+            Constraint::Fill(1),
+            Constraint::Percentage(25),
+            Constraint::Percentage(25),
+        ])
+        .areas(area);
+
+        sparkline.render(middle, buf);
+        piechart.render(right, buf);
+
+        let table = Table::default()
+            .block(border_style)
+            .header(header_row(&SPECIES_HEADER_CELLS))
+            .rows(striped_rows(rows))
+            .row_highlight_style(styles::selected_item_style())
+            .highlight_spacing(ratatui::widgets::HighlightSpacing::Always)
+            .widths(once(Constraint::Length(22)).chain(repeat(Constraint::Fill(1)).take(7)));
+
+        render_scrollable_table(buf, left, table, &mut self.state.species_table);
+    }
+}
+
+fn render_scrollable_table<T>(
+    buf: &mut Buffer,
+    area: Rect,
+    table: Table,
+    state: &mut AppTableState<T>,
+) {
     let [tbl, scroll] =
         Layout::horizontal([Constraint::Fill(1), Constraint::Length(1)]).areas(area);
 
@@ -264,6 +385,34 @@ fn metrics_into_dist_rows<'a>(
     })
 }
 
+fn species_into_rows<'a>(
+    obj_index: usize,
+    species: impl Iterator<Item = &'a SpeciesSnapshot>,
+) -> impl Iterator<Item = Row<'a>> {
+    species.map(move |s| {
+        Row::new(vec![
+            Cell::from(format!("{}", s.id.0)),
+            Cell::from(format!("{}", s.generation)),
+            Cell::from(format!("{}", s.population_size)),
+            Cell::from(format!("{}", s.stagnation)),
+            Cell::from(format!(
+                "{}",
+                s.best_score
+                    .as_ref()
+                    .map(|vals| vals[obj_index])
+                    .unwrap_or_default()
+            )),
+            Cell::from(format!(
+                "{}",
+                s.score
+                    .as_ref()
+                    .map(|vals| vals[obj_index])
+                    .unwrap_or_default()
+            )),
+        ])
+    })
+}
+
 fn striped_rows<'a>(rows: impl IntoIterator<Item = Row<'a>>) -> impl Iterator<Item = Row<'a>> {
     rows.into_iter()
         .enumerate()
@@ -275,3 +424,65 @@ fn header_row<'a>(cols: &'a [&str]) -> Row<'a> {
         .height(1)
         .style(Style::default().bold().underlined().fg(Color::White))
 }
+
+// fn create_pie_chart<'a, T, K, F>(items: &[T], selected: Option<&K>, func: F) -> PieChart<'a>
+// where
+//     F: Fn(&T) -> K,
+//     K: PartialEq + Debug,
+// {
+//     let slices = items
+//         .iter()
+//         .enumerate()
+//         .filter_map(|(index, value)| {
+//             let item_value = func(value);
+//             let name = format!("{:?}", item_value);
+//             let color = if let Some(selected) = selected {
+//                 if item_value == *selected {
+//                     COLOR_WHEEL_400[index % COLOR_WHEEL_400.len()]
+//                 } else {
+//                     Color::DarkGray
+//                 }
+//             } else {
+//                 Color::DarkGray
+//             };
+
+//             PieSlice::new(name, 1.0, color)
+//         })
+//         .collect::<Vec<_>>();
+
+//     PieChart::new(slices)
+//         .show_legend(false)
+//         .show_percentages(true)
+//         .block(Block::bordered())
+//         .legend_layout(tui_piechart::LegendLayout::Horizontal)
+//         .high_resolution(true)
+// }
+
+// // let slices = items
+// //     .iter()
+// //     .enumerate()
+// //     .filter_map(|(index, species)| {
+// //         species.best_score.as_ref().map(|score| {
+// //             let color = if let Some(selected_id) = self.state.species_table.selected_metric
+// //             {
+// //                 if selected_id == species.id {
+// //                     COLOR_WHEEL_400[index % COLOR_WHEEL_400.len()]
+// //                 } else {
+// //                     Color::DarkGray
+// //                 }
+// //             } else {
+// //                 Color::DarkGray
+// //             };
+
+// //             let name = radiate_utils::intern!(format!("{}", species.id.0));
+// //             PieSlice::new(name, score[0] as f64, color)
+// //         })
+// //     })
+// //     .collect::<Vec<_>>();
+
+// // let piechart = PieChart::new(slices)
+// //     .show_legend(false)
+// //     .show_percentages(true)
+// //     .block(Block::bordered())
+// //     .legend_layout(tui_piechart::LegendLayout::Horizontal)
+// //     .high_resolution(true);

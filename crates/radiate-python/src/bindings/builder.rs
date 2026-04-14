@@ -2,9 +2,9 @@ use crate::bindings::codec::{PyTreeCodec, TypedNumericCodec};
 use crate::bindings::{EngineBuilderHandle, EngineHandle};
 use crate::events::PyEventHandler;
 use crate::{
-    FreeThreadPyEvaluator, InputTransform, PyCodec, PyEngine, PyEngineInput, PyEngineInputType,
-    PyExpr, PyFitnessFn, PyFitnessInner, PyPermutationCodec, PyPopulation, PyRate, prelude::*,
-    radiate,
+    FreeThreadPyEvaluator, InputTransform, PickleCheckpointReader, PyCodec, PyEngine,
+    PyEngineInput, PyEngineInputType, PyExpr, PyFitnessFn, PyFitnessInner, PyPermutationCodec,
+    PyPopulation, PyRate, prelude::*, radiate,
 };
 use crate::{PyGeneration, PySubscriber};
 use pyo3::{Py, PyAny, pyclass, pymethods, types::PyAnyMethods};
@@ -200,7 +200,7 @@ impl PyEngineBuilder {
             inputs,
             Self::process_single_typed(|typed_builder, input| {
                 let path = input.extract::<String>("path")?;
-                Ok(typed_builder.load_checkpoint(path))
+                Ok(typed_builder.load_checkpoint(path, PickleCheckpointReader))
             })
         )
     }

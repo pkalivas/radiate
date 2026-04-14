@@ -74,6 +74,7 @@ smallvec = { version = "1.13", features = ["serde"] }
 thiserror = "2.0.18"
 serde = { version = "1.0.228", features = ["derive", "rc"] }
 serde_json = { version = "1.0.149" }
+serde-pickle = "1.1"
 compact_str = { version = "0.9.0" }
 foldhash = "0.2.0"
 slotmap = "1.0"

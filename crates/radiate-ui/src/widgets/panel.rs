@@ -13,6 +13,7 @@ pub struct Panel<W: Widget> {
     title_bottom: Option<Line<'static>>,
     top_right_title: Option<Line<'static>>,
     block: Block<'static>,
+    render_inside_block: bool,
 }
 
 impl<W: Widget> Panel<W> {
@@ -22,6 +23,7 @@ impl<W: Widget> Panel<W> {
             child: Some(child),
             title_bottom: None,
             top_right_title: None,
+            render_inside_block: true,
             block: Block::default()
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded),
@@ -48,6 +50,12 @@ impl<W: Widget> Panel<W> {
         self.top_right_title = Some(line);
         self
     }
+
+    #[allow(dead_code)]
+    pub fn render_inside_block(mut self, render_inside: bool) -> Self {
+        self.render_inside_block = render_inside;
+        self
+    }
 }
 
 impl Panel<Empty> {
@@ -57,6 +65,7 @@ impl Panel<Empty> {
             title: None,
             title_bottom: None,
             top_right_title: None,
+            render_inside_block: true,
             block: Block::default()
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded),
@@ -74,6 +83,7 @@ where
             title: None,
             title_bottom: None,
             top_right_title: None,
+            render_inside_block: true,
             block: Block::default()
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded),
@@ -117,11 +127,19 @@ where
                 block = block.title(top_right_title.right_aligned())
             }
 
-            let inner = block.inner(area);
-            block.render(area, buf);
+            if self.render_inside_block {
+                let inner = block.inner(area);
+                block.render(area, buf);
 
-            if let Some(child) = self.child {
-                child.render(inner, buf);
+                if let Some(child) = self.child {
+                    child.render(inner, buf);
+                }
+            } else {
+                block.render(area, buf);
+
+                if let Some(child) = self.child {
+                    child.render(area, buf);
+                }
             }
         }
     }

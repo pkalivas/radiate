@@ -19,6 +19,30 @@ impl SpeciesId {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct SpeciesSnapshot {
+    pub id: SpeciesId,
+    pub generation: usize,
+    pub score: Option<Score>,
+    pub best_score: Option<Score>,
+    pub stagnation: usize,
+    pub population_size: usize,
+}
+
+impl<C: Chromosome> From<&Species<C>> for SpeciesSnapshot {
+    fn from(species: &Species<C>) -> Self {
+        SpeciesSnapshot {
+            id: species.id(),
+            generation: species.generation(),
+            score: species.score().cloned(),
+            best_score: species.tracker.current().cloned(),
+            stagnation: species.stagnation(),
+            population_size: species.len(),
+        }
+    }
+}
+
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Species<C: Chromosome> {
     pub id: SpeciesId,

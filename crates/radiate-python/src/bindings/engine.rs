@@ -1,4 +1,6 @@
-use crate::{EngineHandle, EpochHandle, InputTransform, PyEngineInput, PyGeneration};
+use crate::{
+    EngineHandle, EpochHandle, InputTransform, PickleCheckpointWriter, PyEngineInput, PyGeneration,
+};
 use pyo3::{PyResult, pyclass, pymethods};
 use radiate::{
     Chromosome, Engine, EngineIteratorExt, Generation, GeneticEngine, Limit, radiate_err,
@@ -151,7 +153,7 @@ where
         .chain_if(log.unwrap_or(false), |eng| eng.logging())
         .chain_if(checkpoint.is_some(), |eng| {
             let (interval, path) = checkpoint.unwrap();
-            eng.checkpoint(interval, path)
+            eng.checkpoint_with(interval, path, Box::new(PickleCheckpointWriter))
         })
         .limit(limits)
         .last()

@@ -1,4 +1,5 @@
 use crate::state::PanelId;
+use crate::widgets::tables::SpeciesTableWidget;
 use crate::widgets::{DistributionTableWidget, FnWidget, MetricSearchWidget, Panel};
 use crate::{
     state::{AppState, MetricsTab},
@@ -46,6 +47,7 @@ impl<C: Chromosome> StatefulWidget for MetricsWidget<C> {
         let metrics_summary = state.metrics.summary();
 
         let line = Line::from(vec![
+            format!(" obj {} | ", state.objective_state.objective_index).into(),
             Span::raw(" "),
             metrics_summary.metrics.to_string().into(),
             Span::raw(" | "),
@@ -56,12 +58,17 @@ impl<C: Chromosome> StatefulWidget for MetricsWidget<C> {
         Panel::new(FnWidget::new(|area, buf| {
             let [top, middle, bottom] = Layout::vertical([
                 Constraint::Length(1),
-                Constraint::Percentage(80),
                 Constraint::Fill(1),
+                Constraint::Length(3),
             ])
             .areas(area);
 
-            let titles = ["Stats", "Time", "Distribution"]
+            let mut base_titles = vec!["Stats", "Time", "Distribution"];
+            if state.species.is_some() {
+                base_titles.push("Species");
+            }
+
+            let titles = base_titles
                 .into_iter()
                 .map(|t| Span::styled(format!(" {t} "), Style::default().fg(Color::White)));
 
@@ -69,9 +76,10 @@ impl<C: Chromosome> StatefulWidget for MetricsWidget<C> {
                 MetricsTab::Stats => 0,
                 MetricsTab::Time => 1,
                 MetricsTab::Distribution => 2,
+                MetricsTab::Species => 3,
             };
 
-            Tabs::new(titles)
+            Tabs::new(Line::from(titles.collect::<Vec<Span>>()).centered())
                 .select(index)
                 .padding(" ", " ")
                 .divider(" ")
@@ -83,6 +91,7 @@ impl<C: Chromosome> StatefulWidget for MetricsWidget<C> {
                 MetricsTab::Time => TimeTableWidget::new(state).render(middle, buf),
                 MetricsTab::Stats => StatsTableWidget::new(state).render(middle, buf),
                 MetricsTab::Distribution => DistributionTableWidget::new(state).render(middle, buf),
+                MetricsTab::Species => SpeciesTableWidget::new(state).render(middle, buf),
             }
 
             MetricSearchWidget::new(state).render(bottom, buf);

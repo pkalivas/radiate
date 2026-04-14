@@ -7,6 +7,7 @@ use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use radiate_engines::stats::TagType;
 use radiate_engines::{
     Chromosome, CommandChannel, EngineControl, Front, MetricSet, Objective, Phenotype, Score,
+    SpeciesSnapshot,
 };
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Layout, Rect};
@@ -26,7 +27,13 @@ where
     Crossterm(Event),
     EngineStart(Objective),
     EngineStop,
-    EpochComplete(usize, MetricSet, Score, Option<Front<Phenotype<C>>>),
+    EpochComplete(
+        usize,
+        MetricSet,
+        Score,
+        Option<Front<Phenotype<C>>>,
+        Option<Vec<SpeciesSnapshot>>,
+    ),
 }
 
 pub(crate) struct App<C>
@@ -62,7 +69,6 @@ where
             if self.throttle_next()? {
                 terminal.draw(|f| {
                     self.render(f.area(), f.buffer_mut());
-                    // self.draw(f);
                 })?;
             }
         }
@@ -86,8 +92,8 @@ where
                 self.handle_engine_start(objective);
             }
             InputEvent::EngineStop => self.state.running.engine = false,
-            InputEvent::EpochComplete(index, metrics, score, front) => {
-                self.handle_engine_epoch(index, metrics, score, front);
+            InputEvent::EpochComplete(index, metrics, score, front, species_snapshots) => {
+                self.handle_engine_epoch(index, metrics, score, front, species_snapshots);
                 let now = Instant::now();
                 if let Some(last) = self.state.last_render {
                     let elapsed = now.duration_since(last);
@@ -162,7 +168,7 @@ where
 
             KeyCode::Char(c) => {
                 if let Some(digit) = c.to_digit(10) {
-                    self.state.set_tag_filter_by_index(digit as usize);
+                    self.state.set_objective_index(digit as usize);
                 }
             }
 
@@ -176,6 +182,7 @@ where
         metrics: MetricSet,
         score: Score,
         front: Option<Front<Phenotype<C>>>,
+        mut species_snapshots: Option<Vec<SpeciesSnapshot>>,
     ) {
         for metric in metrics.iter() {
             self.state.chart_state.update_from_metric(metric.1);
@@ -207,6 +214,12 @@ where
                 self.state.objective_state.chart_start_index = 0;
             }
         }
+
+        if let Some(species_snapshots) = &mut species_snapshots {
+            species_snapshots.sort_unstable_by(|a, b| a.id.0.cmp(&b.id.0));
+        }
+
+        self.state.species = species_snapshots;
     }
 
     pub fn handle_engine_start(&mut self, objective: Objective) {
@@ -234,7 +247,7 @@ where
             Layout::vertical([Constraint::Percentage(30), Constraint::Fill(1)]).areas(area);
 
         let [summary, fitness] =
-            Layout::horizontal([Constraint::Percentage(30), Constraint::Fill(1)]).areas(top);
+            Layout::horizontal([Constraint::Percentage(25), Constraint::Fill(1)]).areas(top);
 
         EngineSummaryWidget::new().render(summary, buf, &mut self.state);
         FitnessWidget::new().render(fitness, buf, &mut self.state);
@@ -244,7 +257,7 @@ where
             match panel {
                 PanelId::Help => ModalWidget::new(HelpWidget).render(area, buf),
                 PanelId::MetricSummary => {
-                    ModalWidget::new(MetricSummaryWidget::new(&self.state)).render(area, buf)
+                    ModalWidget::new(MetricSummaryWidget::new()).render(area, buf, &mut self.state);
                 }
                 _ => {}
             }

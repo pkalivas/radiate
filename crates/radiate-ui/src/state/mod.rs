@@ -1,8 +1,9 @@
 use crate::chart::RollingChart;
 use crate::widgets::num_pairs;
+use radiate_engines::species::SpeciesId;
 use radiate_engines::stats::TagType;
 use radiate_engines::{
-    Chromosome, Front, Metric, MetricSet, Objective, Optimize, Phenotype, Score,
+    Chromosome, Front, Metric, MetricSet, Objective, Optimize, Phenotype, Score, SpeciesSnapshot,
 };
 use ratatui::widgets::{Block, ListState, ScrollbarState, TableState};
 use std::time::{Duration, Instant};
@@ -19,6 +20,7 @@ pub enum PanelId {
     TimeMetrics,
     StatsMetrics,
     DistMetrics,
+    SpeciesMetrics,
     Help,
 }
 
@@ -48,6 +50,7 @@ pub enum MetricsTab {
     Time,
     Stats,
     Distribution,
+    Species,
 }
 
 impl MetricsTab {
@@ -55,15 +58,17 @@ impl MetricsTab {
         match self {
             MetricsTab::Stats => MetricsTab::Time,
             MetricsTab::Time => MetricsTab::Distribution,
-            MetricsTab::Distribution => MetricsTab::Stats,
+            MetricsTab::Distribution => MetricsTab::Species,
+            MetricsTab::Species => MetricsTab::Stats,
         }
     }
 
     pub fn previous(self) -> Self {
         match self {
-            MetricsTab::Stats => MetricsTab::Distribution,
+            MetricsTab::Stats => MetricsTab::Species,
             MetricsTab::Time => MetricsTab::Stats,
             MetricsTab::Distribution => MetricsTab::Time,
+            MetricsTab::Species => MetricsTab::Distribution,
         }
     }
 }
@@ -72,6 +77,7 @@ pub struct ObjectiveState {
     pub objective: Objective,
     pub charts_visible: usize,
     pub chart_start_index: usize,
+    pub objective_index: usize,
 }
 
 pub struct AppState<C: Chromosome> {
@@ -89,12 +95,14 @@ pub struct AppState<C: Chromosome> {
 
     pub objective_state: ObjectiveState,
     pub metrics: MetricSet,
+    pub species: Option<Vec<SpeciesSnapshot>>,
     pub index: usize,
     pub score: Score,
 
-    pub time_table: AppTableState,
-    pub stats_table: AppTableState,
-    pub dist_table: AppTableState,
+    pub time_table: AppTableState<&'static str>,
+    pub stats_table: AppTableState<&'static str>,
+    pub dist_table: AppTableState<&'static str>,
+    pub species_table: AppTableState<SpeciesId>,
 }
 
 impl<C: Chromosome> AppState<C> {
@@ -145,19 +153,9 @@ impl<C: Chromosome> AppState<C> {
         self.render_interval
     }
 
-    pub fn set_tag_filter_by_index(&mut self, index: usize) {
-        if !self.display.show_tag_filters {
-            return;
-        }
-
-        if self.filter_state.tag_view.contains(&index) {
-            self.filter_state.tag_view.retain(|&i| i != index);
-        } else {
-            if index < self.filter_state.all_tags.len() {
-                self.filter_state.tag_view.push(index);
-            } else {
-                self.filter_state.tag_view.retain(|&i| i != index);
-            }
+    pub fn set_objective_index(&mut self, index: usize) {
+        if index < self.objective_state.objective.dims() {
+            self.objective_state.objective_index = index;
         }
     }
 
@@ -286,6 +284,7 @@ impl<C: Chromosome> AppState<C> {
             MetricsTab::Time => PanelId::TimeMetrics,
             MetricsTab::Stats => PanelId::StatsMetrics,
             MetricsTab::Distribution => PanelId::DistMetrics,
+            MetricsTab::Species => PanelId::SpeciesMetrics,
         }
     }
 
@@ -301,6 +300,7 @@ impl<C: Chromosome> AppState<C> {
             MetricsTab::Time => PanelId::TimeMetrics,
             MetricsTab::Stats => PanelId::StatsMetrics,
             MetricsTab::Distribution => PanelId::DistMetrics,
+            MetricsTab::Species => PanelId::SpeciesMetrics,
         }
     }
 
@@ -337,26 +337,49 @@ impl<C: Chromosome> AppState<C> {
             return;
         }
 
-        let state = match self.metrics_tab {
-            MetricsTab::Time => &mut self.time_table,
-            MetricsTab::Stats => &mut self.stats_table,
-            MetricsTab::Distribution => &mut self.dist_table,
+        match self.metrics_tab {
+            MetricsTab::Time => Self::update_selection_down(&mut self.time_table),
+            MetricsTab::Stats => Self::update_selection_down(&mut self.stats_table),
+            MetricsTab::Distribution => Self::update_selection_down(&mut self.dist_table),
+            MetricsTab::Species => Self::update_selection_down(&mut self.species_table),
         };
 
-        if state.row_count == 0 {
+        // if state.row_count == 0 {
+        //     return;
+        // }
+
+        // if let Some(i) = state.state.selected() {
+        //     let next = if i + 1 >= state.row_count { 0 } else { i + 1 };
+
+        //     state.state.select(Some(next));
+        //     state.selected_row = next;
+        //     state.scroll_bar = state.scroll_bar.as_mut().map(|sb| sb.position(next));
+        // } else {
+        //     state.state.select(Some(0));
+        //     state.selected_row = 0;
+        //     state.scroll_bar = state.scroll_bar.as_mut().map(|sb| sb.position(0));
+        // }
+    }
+
+    fn update_selection_down<T>(table_state: &mut AppTableState<T>) {
+        if table_state.row_count == 0 {
             return;
         }
 
-        if let Some(i) = state.state.selected() {
-            let next = if i + 1 >= state.row_count { 0 } else { i + 1 };
+        if let Some(i) = table_state.state.selected() {
+            let next = if i + 1 >= table_state.row_count {
+                0
+            } else {
+                i + 1
+            };
 
-            state.state.select(Some(next));
-            state.selected_row = next;
-            state.scroll_bar = state.scroll_bar.as_mut().map(|sb| sb.position(next));
+            table_state.state.select(Some(next));
+            table_state.selected_row = next;
+            table_state.scroll_bar = table_state.scroll_bar.as_mut().map(|sb| sb.position(next));
         } else {
-            state.state.select(Some(0));
-            state.selected_row = 0;
-            state.scroll_bar = state.scroll_bar.as_mut().map(|sb| sb.position(0));
+            table_state.state.select(Some(0));
+            table_state.selected_row = 0;
+            table_state.scroll_bar = table_state.scroll_bar.as_mut().map(|sb| sb.position(0));
         }
     }
 
@@ -380,31 +403,34 @@ impl<C: Chromosome> AppState<C> {
             return;
         }
 
-        let state = match self.metrics_tab {
-            MetricsTab::Time => &mut self.time_table,
-            MetricsTab::Stats => &mut self.stats_table,
-            MetricsTab::Distribution => &mut self.dist_table,
-        };
+        match self.metrics_tab {
+            MetricsTab::Time => Self::update_selection_up(&mut self.time_table),
+            MetricsTab::Stats => Self::update_selection_up(&mut self.stats_table),
+            MetricsTab::Distribution => Self::update_selection_up(&mut self.dist_table),
+            MetricsTab::Species => Self::update_selection_up(&mut self.species_table),
+        }
+    }
 
-        if state.row_count == 0 {
+    fn update_selection_up<T>(table_state: &mut AppTableState<T>) {
+        if table_state.row_count == 0 {
             return;
         }
 
-        if let Some(i) = state.state.selected() {
+        if let Some(i) = table_state.state.selected() {
             let next = if i == 0 {
-                state.row_count - 1 // wrap to last
+                table_state.row_count - 1 // wrap to last
             } else {
                 i - 1
             };
 
-            state.state.select(Some(next));
-            state.selected_row = next;
-            state.scroll_bar = state.scroll_bar.as_mut().map(|sb| sb.position(next));
+            table_state.state.select(Some(next));
+            table_state.selected_row = next;
+            table_state.scroll_bar = table_state.scroll_bar.as_mut().map(|sb| sb.position(next));
         } else {
-            let last = state.row_count - 1;
-            state.state.select(Some(last));
-            state.selected_row = last;
-            state.scroll_bar = state.scroll_bar.as_mut().map(|sb| sb.position(last));
+            let last = table_state.row_count - 1;
+            table_state.state.select(Some(last));
+            table_state.selected_row = last;
+            table_state.scroll_bar = table_state.scroll_bar.as_mut().map(|sb| sb.position(last));
         }
     }
 
@@ -413,6 +439,7 @@ impl<C: Chromosome> AppState<C> {
             MetricsTab::Time => self.time_table.selected_metric,
             MetricsTab::Stats => self.stats_table.selected_metric,
             MetricsTab::Distribution => self.dist_table.selected_metric,
+            MetricsTab::Species => None,
         }
     }
 
@@ -425,14 +452,6 @@ impl<C: Chromosome> AppState<C> {
                 Some(PanelId::MetricSummary) => None,
                 _ => Some(PanelId::MetricSummary),
             };
-
-            // let current_metric_name = match self.metrics_tab {
-            //     MetricsTab::Time => self.time_table.selected_metric.unwrap_or(""),
-            //     MetricsTab::Stats => self.stats_table.selected_metric.unwrap_or(""),
-            //     MetricsTab::Distribution => self.dist_table.selected_metric.unwrap_or(""),
-            // };
-
-            // self.display.metric_name = self.get_selected_metric();
 
             return;
         }
@@ -481,6 +500,7 @@ impl<C: Chromosome> Default for AppState<C> {
                 objective: Objective::Single(Optimize::Maximize),
                 charts_visible: 2,
                 chart_start_index: 0,
+                objective_index: 0,
             },
 
             filter_state: AppFilterState {
@@ -498,6 +518,8 @@ impl<C: Chromosome> Default for AppState<C> {
             time_table: AppTableState::new(),
             stats_table: AppTableState::new(),
             dist_table: AppTableState::new(),
+            species_table: AppTableState::new(),
+            species: None,
             metrics: MetricSet::new(),
             index: 0,
             score: Score::default(),
@@ -512,16 +534,16 @@ pub struct AppFilterState {
     pub selected_row: usize,
 }
 
-pub struct AppTableState {
+pub struct AppTableState<T> {
     pub state: TableState,
     pub scroll_bar: Option<ScrollbarState>,
-    pub selected_metric: Option<&'static str>,
+    pub selected_metric: Option<T>,
     pub selected_row: usize,
     pub row_count: usize,
     pub prev_row_count: usize,
 }
 
-impl AppTableState {
+impl<T> AppTableState<T> {
     pub fn new() -> Self {
         Self {
             state: TableState::default(),
@@ -533,7 +555,10 @@ impl AppTableState {
         }
     }
 
-    pub fn update_rows(&mut self, items: &[(&'static str, &Metric)]) {
+    pub fn update_rows<K, F>(&mut self, items: &[K], func: F)
+    where
+        F: Fn(&K) -> T,
+    {
         let current_len = items.len();
         self.prev_row_count = self.row_count;
         self.row_count = current_len;
@@ -550,6 +575,6 @@ impl AppTableState {
             self.state.select(Some(self.selected_row));
         }
 
-        self.selected_metric = items.get(self.selected_row).map(|(name, _)| *name);
+        self.selected_metric = items.get(self.selected_row).map(&func);
     }
 }

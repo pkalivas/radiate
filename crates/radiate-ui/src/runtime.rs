@@ -99,6 +99,7 @@ where
                 current.metrics().clone(),
                 current.score().clone(),
                 current.front().cloned(),
+                current.ecosystem().species_snapshots(),
             ))
             .unwrap();
 

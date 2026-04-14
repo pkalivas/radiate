@@ -240,11 +240,13 @@ impl Metric {
         I: IntoIterator<Item = f32>,
     {   
         let mut values_count = 0;
+        let mut new_stat = Statistic::default();
         for value in values {
-            self.inner.add(value);
+            new_stat.add(value);
             values_count += 1;
         }
         
+        self.inner = new_stat;
         self.meta.as_mut().map(|meta| meta.update_count += values_count);
         self.add_tag(TagType::Distribution);
 

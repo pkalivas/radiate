@@ -19,5 +19,5 @@ pub use modal::ModalWidget;
 pub use panel::{FnWidget, Panel};
 pub use pareto::{ParetoPagingWidget, num_pairs};
 pub use search::MetricSearchWidget;
-pub use summary::{EngineSummaryWidget, MetricSummaryWidget};
+pub use summary::{EngineSummaryWidget, MetricSummaryWidget, MetricValuesWidget};
 pub use tables::{DistributionTableWidget, StatsTableWidget, TimeTableWidget};

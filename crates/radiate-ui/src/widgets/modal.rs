@@ -2,7 +2,7 @@ use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Direction, Layout, Rect},
     style::Style,
-    widgets::{Block, Clear, Widget},
+    widgets::{Block, Clear, StatefulWidget, Widget},
 };
 
 pub struct ModalWidget<W> {
@@ -14,10 +14,7 @@ pub struct ModalWidget<W> {
     child: W,
 }
 
-impl<W> ModalWidget<W>
-where
-    W: Widget,
-{
+impl<W> ModalWidget<W> {
     pub fn new(child: W) -> Self {
         Self {
             title: None,
@@ -28,23 +25,25 @@ where
             child,
         }
     }
+}
 
-    fn centered_rect(&self, r: Rect) -> Rect {
+impl<W> ModalWidget<W> {
+    fn centered_rect(r: Rect, height: u16, width: u16) -> Rect {
         let popup_layout = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Percentage((100 - self.height_pct) / 2),
-                Constraint::Percentage(self.height_pct),
-                Constraint::Percentage((100 - self.height_pct) / 2),
+                Constraint::Percentage((100 - height) / 2),
+                Constraint::Percentage(height),
+                Constraint::Percentage((100 - height) / 2),
             ])
             .split(r);
 
         Layout::default()
             .direction(Direction::Horizontal)
             .constraints([
-                Constraint::Percentage((100 - self.width_pct) / 2),
-                Constraint::Percentage(self.width_pct),
-                Constraint::Percentage((100 - self.width_pct) / 2),
+                Constraint::Percentage((100 - width) / 2),
+                Constraint::Percentage(width),
+                Constraint::Percentage((100 - width) / 2),
             ])
             .split(popup_layout[1])[1]
     }
@@ -55,7 +54,7 @@ where
     W: Widget,
 {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let popup_area = self.centered_rect(area);
+        let popup_area = Self::centered_rect(area, self.height_pct, self.width_pct);
 
         Block::default().style(self.overlay_style).render(area, buf);
 
@@ -69,5 +68,29 @@ where
         let inner = block.inner(popup_area);
         block.render(popup_area, buf);
         self.child.render(inner, buf);
+    }
+}
+
+impl<W> StatefulWidget for ModalWidget<W>
+where
+    W: StatefulWidget,
+{
+    type State = W::State;
+
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+        let popup_area = Self::centered_rect(area, self.height_pct, self.width_pct);
+
+        Block::default().style(self.overlay_style).render(area, buf);
+
+        Clear.render(popup_area, buf);
+
+        let mut block = Block::default().style(self.block_style);
+        if let Some(title) = self.title {
+            block = block.title(title);
+        }
+
+        let inner = block.inner(popup_area);
+        block.render(popup_area, buf);
+        self.child.render(inner, buf, state);
     }
 }

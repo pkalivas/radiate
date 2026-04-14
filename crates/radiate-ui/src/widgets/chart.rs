@@ -10,6 +10,7 @@ use ratatui::{
 pub struct ChartWidget<'a> {
     charts: Vec<&'a RollingChart>,
     bg_color: Color,
+    show_x_axis: bool,
 }
 
 impl<'a> ChartWidget<'a> {
@@ -17,7 +18,13 @@ impl<'a> ChartWidget<'a> {
         Self {
             charts,
             bg_color: crate::styles::ALT_BG_COLOR,
+            show_x_axis: false,
         }
+    }
+
+    pub fn with_show_x_axis(mut self, show: bool) -> Self {
+        self.show_x_axis = show;
+        self
     }
 }
 
@@ -80,7 +87,13 @@ impl<'a> Widget for ChartWidget<'a> {
         let x_bounds = (min_x, max_x);
         let y_bounds = (min_y, max_y);
 
-        let chart = chart_widget(x_bounds, y_bounds, self.charts, self.bg_color);
+        let chart = chart_widget(
+            x_bounds,
+            y_bounds,
+            self.charts,
+            self.bg_color,
+            self.show_x_axis,
+        );
         chart.render(area, buf);
     }
 }
@@ -90,17 +103,18 @@ fn chart_widget<'a>(
     y_bounds: (f64, f64),
     charts: Vec<&'a RollingChart>,
     bg_color: Color,
+    show_x_axis: bool,
 ) -> ratatui::widgets::Chart<'a> {
     let (min_x, max_x) = x_bounds;
     let (min_y, max_y) = y_bounds;
 
     let mid_y = (min_y + max_y) / 2.0;
+    let mid_x = (min_x + max_x) / 2.0;
 
     let datasets = charts
         .iter()
         .map(|dim| {
             Dataset::default()
-                .name(dim.title())
                 .marker(symbols::Marker::Braille)
                 .style(Style::default().fg(dim.color()))
                 .graph_type(GraphType::Line)
@@ -108,14 +122,25 @@ fn chart_widget<'a>(
         })
         .collect::<Vec<_>>();
 
+    let x_axis = if show_x_axis {
+        Axis::default()
+            .style(Style::default().gray())
+            .bounds([min_x, max_x])
+            .labels(Line::from(vec![
+                format!("{:.2}", min_x).bold().into(),
+                format!("{:.2}", mid_x).into(),
+                format!("{:.2}", max_x).bold().into(),
+            ]))
+    } else {
+        Axis::default()
+            .style(Style::default().gray())
+            .bounds([min_x, max_x])
+    };
+
     Chart::new(datasets)
         .bg(bg_color)
         .block(Block::bordered().title(Line::from(format!(" {} ", charts[0].title())).centered()))
-        .x_axis(
-            Axis::default()
-                .style(Style::default().gray())
-                .bounds([min_x, max_x]),
-        )
+        .x_axis(x_axis)
         .y_axis(
             Axis::default()
                 .style(Style::default().gray())
