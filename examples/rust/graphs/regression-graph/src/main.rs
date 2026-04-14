@@ -14,6 +14,47 @@ fn main() {
 
     let expr = expr::select("scores").min().rolling(10).mean();
 
+    //     target_species = 4.0
+    // rolling = int(target_species)
+
+    // spec_count_signal = rd.metric("count.species").rolling(rolling).mean() / target_species
+    // spec_dist_signal = (
+    //     rd.metric("species.distance").mean().rolling(rolling).mean() / target_species
+    // )
+    // spec_thresh_signal = rd.metric("species.threshold").rolling(rolling).mean()
+    // spec_evenness_signal = rd.metric("species.evenness").rolling(rolling).mean()
+
+    // distance_signal = (
+    //     (rd.lit(0.9) * spec_count_signal)
+    //     + (rd.lit(0.4) * spec_dist_signal)
+    //     + (rd.lit(0.2) * spec_thresh_signal)
+    //     + (rd.lit(0.1) * spec_evenness_signal)
+    // ).clamp(0.01, 10.0)
+
+    let target_species = 6.0;
+    let rolling = target_species as usize;
+
+    let spec_count_signal = expr::select("count.species")
+        .rolling(rolling)
+        .mean()
+        .div(target_species);
+
+    let spec_dist_signal = expr::select("species.distance")
+        .mean()
+        .rolling(rolling)
+        .mean()
+        .div(target_species);
+
+    let spec_thresh_signal = expr::select("species.threshold").rolling(rolling).mean();
+    let spec_evenness_signal = expr::select("species.evenness").rolling(rolling).mean();
+
+    let distance_signal = spec_count_signal
+        .mul(0.9)
+        .add(spec_dist_signal.mul(0.4))
+        .add(spec_thresh_signal.mul(0.2))
+        .add(spec_evenness_signal.mul(0.1))
+        .clamp(0.01, 10.0);
+
     println!("{:#?}", expr);
 
     let engine = GeneticEngine::builder()
@@ -21,6 +62,8 @@ fn main() {
         .raw_batch_fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
         // .register_metrics(vec![("idk", expr)])
+        .diversity(NeatDistance::new(1.0, 1.0, 3.0))
+        .species_threshold(Rate::Expr(distance_signal))
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
@@ -40,6 +83,19 @@ fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
     // let metrics = result.metrics();
     // let json = serde_json::to_string(metrics).unwrap();
     // std::fs::write("metrics.json", json).unwrap();
+
+    for metric in result.metrics().iter() {
+        println!(
+            "{}: {}",
+            metric.0,
+            metric
+                .1
+                .tags_iter()
+                .map(|t| t.as_str())
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+    }
     Accuracy::default()
         .named("Regression Graph")
         .on(&dataset().into())

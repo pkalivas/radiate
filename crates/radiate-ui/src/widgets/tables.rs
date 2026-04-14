@@ -1,7 +1,6 @@
-use crate::state::{AppState, AppTableState, ChartType};
+use crate::state::{AppState, AppTableState};
 use crate::styles::{self, COLOR_WHEEL_400};
-use crate::widgets::ChartWidget;
-use radiate_engines::stats::TagKind;
+use radiate_engines::stats::TagType;
 use radiate_engines::{Chromosome, MetricSet, metric_names};
 use radiate_engines::{Metric, stats::fmt_duration};
 use ratatui::buffer::Buffer;
@@ -41,19 +40,22 @@ impl<'a, C: Chromosome> TimeTableWidget<'a, C> {
 
 impl<'a, C: Chromosome> Widget for TimeTableWidget<'a, C> {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let items = tagged_metrics(&self.state.metrics, self.state, TagKind::Time)
+        let items = tagged_metrics(&self.state.metrics, self.state, TagType::Time)
             .iter()
             .filter(|met| met.0 != metric_names::TIME)
             .map(|m| *m)
             .collect::<Vec<_>>();
         self.state.time_table.update_rows(&items);
+        let border_style = self
+            .state
+            .get_panel_block(crate::state::PanelId::TimeMetrics);
 
         let slices = items
             .iter()
             .enumerate()
             .filter_map(|(index, (name, m))| {
-                m.time_statistic().map(|time| {
-                    let total_ms = time.sum().as_millis() as f64;
+                m.times().map(|time| {
+                    let total_ms = time.sum().map(|d| d.as_millis()).unwrap_or(0) as f64;
 
                     let color = if let Some(selected_name) = self.state.time_table.selected_metric {
                         if selected_name == *name {
@@ -78,7 +80,7 @@ impl<'a, C: Chromosome> Widget for TimeTableWidget<'a, C> {
             .high_resolution(true);
 
         let table = Table::default()
-            .block(Block::bordered())
+            .block(border_style)
             .header(header_row(&TIME_HEADER_CELLS))
             .rows(striped_rows(metric_to_time_rows(items.into_iter())))
             .row_highlight_style(styles::selected_item_style())
@@ -112,52 +114,53 @@ impl<'a, C: Chromosome> StatsTableWidget<'a, C> {
 
 impl<'a, C: Chromosome> Widget for StatsTableWidget<'a, C> {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let items = tagged_metrics(&self.state.metrics, self.state, TagKind::Statistic);
+        let items = tagged_metrics(&self.state.metrics, self.state, TagType::Statistic);
 
         self.state.stats_table.update_rows(&items);
+        let border_style = self
+            .state
+            .get_panel_block(crate::state::PanelId::StatsMetrics);
 
         let table = Table::default()
-            .block(Block::bordered())
+            .block(border_style)
             .header(header_row(&STAT_HEADER_CELLS))
             .rows(striped_rows(metrics_into_stat_rows(items.into_iter())))
             .row_highlight_style(styles::selected_item_style())
             .highlight_spacing(ratatui::widgets::HighlightSpacing::Always)
             .widths(once(Constraint::Length(22)).chain(repeat(Constraint::Fill(1)).take(7)));
 
-        let display_any_chart = self.state.display_any_mini_chart();
+        render_scrollable_table(buf, area, table, &mut self.state.stats_table);
+    }
+}
 
-        if display_any_chart {
-            let [top, bottom] =
-                Layout::vertical([Constraint::Fill(3), Constraint::Length(7)]).areas(area);
+pub struct DistributionTableWidget<'a, C: Chromosome> {
+    state: &'a mut AppState<C>,
+}
 
-            render_scrollable_table(buf, top, table, &mut self.state.stats_table);
+impl<'a, C: Chromosome> DistributionTableWidget<'a, C> {
+    pub fn new(state: &'a mut AppState<C>) -> Self {
+        Self { state }
+    }
+}
 
-            if self.state.stats_table.row_count > 0 && bottom.height > 3 {
-                let selected_metric = self.state.stats_table.selected_metric.unwrap_or("");
-                if self.state.display_mini_chart() && self.state.display_mini_chart_mean() {
-                    let maybe_chart = self
-                        .state
-                        .get_chart_by_key(selected_metric, ChartType::Mean);
-                    let maybe_value_chart = self
-                        .state
-                        .get_chart_by_key(selected_metric, ChartType::Value);
+impl<'a, C: Chromosome> Widget for DistributionTableWidget<'a, C> {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        let items = tagged_metrics(&self.state.metrics, self.state, TagType::Distribution);
 
-                    ChartWidget::from(vec![maybe_value_chart, maybe_chart]).render(bottom, buf);
-                } else if self.state.display_mini_chart_mean() {
-                    let maybe_chart = self
-                        .state
-                        .get_chart_by_key(selected_metric, ChartType::Mean);
-                    ChartWidget::from(vec![maybe_chart]).render(bottom, buf);
-                } else {
-                    let maybe_chart = self
-                        .state
-                        .get_chart_by_key(selected_metric, ChartType::Value);
-                    ChartWidget::from(vec![maybe_chart]).render(bottom, buf);
-                }
-            }
-        } else {
-            render_scrollable_table(buf, area, table, &mut self.state.stats_table);
-        }
+        self.state.dist_table.update_rows(&items);
+        let border_style = self
+            .state
+            .get_panel_block(crate::state::PanelId::DistMetrics);
+
+        let table = Table::default()
+            .block(border_style)
+            .header(header_row(&STAT_HEADER_CELLS))
+            .rows(striped_rows(metrics_into_dist_rows(items.into_iter())))
+            .row_highlight_style(styles::selected_item_style())
+            .highlight_spacing(ratatui::widgets::HighlightSpacing::Always)
+            .widths(once(Constraint::Length(22)).chain(repeat(Constraint::Fill(1)).take(7)));
+
+        render_scrollable_table(buf, area, table, &mut self.state.dist_table);
     }
 }
 
@@ -184,11 +187,12 @@ fn render_scrollable_table(buf: &mut Buffer, area: Rect, table: Table, state: &m
 fn tagged_metrics<'a, C: Chromosome>(
     metrics: &'a MetricSet,
     state: &AppState<C>,
-    tag: TagKind,
+    tag: TagType,
 ) -> Vec<(&'static str, &'a Metric)> {
     let mut items = metrics
         .iter_tagged(tag)
         .filter(|(_, m)| state.metric_has_tags(m))
+        .filter(|(_, m)| state.metric_matches_search(m))
         .collect::<Vec<_>>();
     items.sort_by(|a, b| a.0.cmp(b.0));
     items
@@ -199,11 +203,11 @@ fn metric_to_time_rows<'a>(
     metrics: impl Iterator<Item = (&'static str, &'a Metric)>,
 ) -> impl Iterator<Item = Row<'a>> {
     metrics.filter_map(|(name, m)| {
-        if let Some(time) = m.time_statistic() {
-            let mean = fmt_duration(time.mean());
-            let min = fmt_duration(time.min());
-            let max = fmt_duration(time.max());
-            let total = fmt_duration(time.sum());
+        if let Some(time) = m.times() {
+            let mean = fmt_duration(time.mean().unwrap_or_default());
+            let min = fmt_duration(time.min().unwrap_or_default());
+            let max = fmt_duration(time.max().unwrap_or_default());
+            let total = fmt_duration(time.sum().unwrap_or_default());
 
             Some(Row::new(vec![
                 Cell::from(name.to_string()),
@@ -222,15 +226,36 @@ fn metrics_into_stat_rows<'a>(
     metrics: impl Iterator<Item = (&'static str, &'a Metric)>,
 ) -> impl Iterator<Item = Row<'a>> {
     metrics.filter_map(|(name, m)| {
-        if let Some(stat) = m.statistic() {
+        if let Some(stat) = m.stats() {
             Some(Row::new(vec![
                 Cell::from(Line::from(name.to_string())),
-                Cell::from(format!("{:.2}", stat.min())),
-                Cell::from(format!("{:.2}", stat.max())),
-                Cell::from(format!("{:.2}", stat.mean())),
-                Cell::from(format!("{:.2}", stat.sum())),
-                Cell::from(format!("{:.2}", stat.std_dev().unwrap_or(0.0))),
-                Cell::from(format!("{:.2}", stat.variance().unwrap_or(0.0))),
+                Cell::from(format!("{:.2}", stat.min().unwrap_or_default())),
+                Cell::from(format!("{:.2}", stat.max().unwrap_or_default())),
+                Cell::from(format!("{:.2}", stat.mean().unwrap_or_default())),
+                Cell::from(format!("{:.2}", stat.sum().unwrap_or_default())),
+                Cell::from(format!("{:.2}", stat.stddev().unwrap_or(0.0))),
+                Cell::from(format!("{:.2}", stat.var().unwrap_or(0.0))),
+                Cell::from(format!("{}", stat.count())),
+            ]))
+        } else {
+            None
+        }
+    })
+}
+
+fn metrics_into_dist_rows<'a>(
+    metrics: impl Iterator<Item = (&'static str, &'a Metric)>,
+) -> impl Iterator<Item = Row<'a>> {
+    metrics.filter_map(|(name, m)| {
+        if let Some(stat) = m.distributions() {
+            Some(Row::new(vec![
+                Cell::from(Line::from(name.to_string())),
+                Cell::from(format!("{:.2}", stat.min().unwrap_or_default())),
+                Cell::from(format!("{:.2}", stat.max().unwrap_or_default())),
+                Cell::from(format!("{:.2}", stat.mean().unwrap_or_default())),
+                Cell::from(format!("{:.2}", stat.sum().unwrap_or_default())),
+                Cell::from(format!("{:.2}", stat.stddev().unwrap_or(0.0))),
+                Cell::from(format!("{:.2}", stat.var().unwrap_or(0.0))),
                 Cell::from(format!("{}", stat.count())),
             ]))
         } else {

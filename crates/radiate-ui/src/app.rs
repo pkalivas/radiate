@@ -1,11 +1,12 @@
 use crate::state::{AppState, PanelId};
-use crate::widgets::{EngineSummaryWidget, FitnessWidget, HelpWidget, MetricsWidget, ModalWidget};
+use crate::widgets::{
+    EngineSummaryWidget, FitnessWidget, HelpWidget, MetricSummaryWidget, MetricsWidget, ModalWidget,
+};
 use color_eyre::Result;
-use crossterm::event::{Event, KeyCode};
-use radiate_engines::stats::TagKind;
+use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
+use radiate_engines::stats::TagType;
 use radiate_engines::{
     Chromosome, CommandChannel, EngineControl, Front, MetricSet, Objective, Phenotype, Score,
-    metric_names,
 };
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Layout, Rect};
@@ -61,6 +62,7 @@ where
             if self.throttle_next()? {
                 terminal.draw(|f| {
                     self.render(f.area(), f.buffer_mut());
+                    // self.draw(f);
                 })?;
             }
         }
@@ -72,7 +74,11 @@ where
         match self.channel.next()? {
             InputEvent::Crossterm(event) => match event {
                 Event::Key(key_event) => {
-                    self.handle_key_event(key_event.code);
+                    if self.state.search_state.active {
+                        self.handle_search_key_event(key_event);
+                    } else {
+                        self.handle_key_event(key_event.code);
+                    }
                 }
                 _ => {}
             },
@@ -97,8 +103,31 @@ where
         Ok(true)
     }
 
+    fn handle_search_key_event(&mut self, key: KeyEvent) {
+        match (key.code, key.modifiers) {
+            (KeyCode::Esc, _) => {
+                if self.state.search_state.query.is_empty() {
+                    self.state.clear_search();
+                } else {
+                    self.state.stop_search();
+                }
+            }
+            (KeyCode::Enter, _) => self.state.stop_search(),
+            (KeyCode::Backspace, _) => self.state.pop_search_char(),
+
+            (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
+                self.state.stop_search();
+                self.state.clear_search();
+            }
+            (KeyCode::Char(c), _) => self.state.push_search_char(c),
+            _ => {}
+        }
+    }
+
     fn handle_key_event(&mut self, key: KeyCode) {
         match key {
+            KeyCode::Char('/') => self.state.start_search(),
+
             KeyCode::Char('q') => {
                 self.control.stop();
                 self.state.running.ui = false
@@ -107,8 +136,6 @@ where
             KeyCode::Char('?') | KeyCode::Char('H') => self.state.toggle_help(),
 
             KeyCode::Char('f') => self.state.toggle_show_tag_filters(),
-            KeyCode::Char('c') => self.state.toggle_mini_chart(),
-            KeyCode::Char('m') => self.state.toggle_mini_chart_mean(),
 
             KeyCode::Down | KeyCode::Char('j') => self.state.move_selection_down(),
             KeyCode::Up | KeyCode::Char('k') => self.state.move_selection_up(),
@@ -150,16 +177,6 @@ where
         score: Score,
         front: Option<Front<Phenotype<C>>>,
     ) {
-        let charts = self.state.chart_state_mut();
-        charts.fitness_chart_mut().push(score.as_f64());
-
-        if let Some(dist) = metrics
-            .get(metric_names::SCORES)
-            .and_then(|m| m.statistic())
-        {
-            charts.fitness_mean_chart_mut().push(dist.mean() as f64);
-        }
-
         for metric in metrics.iter() {
             self.state.chart_state.update_from_metric(metric.1);
         }
@@ -172,9 +189,13 @@ where
             .state
             .metrics
             .tags()
-            .filter(|tag| *tag != TagKind::Statistic && *tag != TagKind::Time)
+            .filter(|tag| {
+                *tag != TagType::Statistic && *tag != TagType::Time && *tag != TagType::Distribution
+            })
             .collect();
+
         self.state.filter_state.all_tags.sort();
+
         if let Some(front) = front {
             self.state.front = Some(front);
 
@@ -211,6 +232,7 @@ where
 
         let [top, bottom] =
             Layout::vertical([Constraint::Percentage(30), Constraint::Fill(1)]).areas(area);
+
         let [summary, fitness] =
             Layout::horizontal([Constraint::Percentage(30), Constraint::Fill(1)]).areas(top);
 
@@ -219,11 +241,13 @@ where
         MetricsWidget::new().render(bottom, buf, &mut self.state);
 
         if let Some(panel) = self.state.display.modal_panel {
-            ModalWidget::new(match panel {
-                PanelId::Help => HelpWidget,
-                _ => HelpWidget,
-            })
-            .render(area, buf);
+            match panel {
+                PanelId::Help => ModalWidget::new(HelpWidget).render(area, buf),
+                PanelId::MetricSummary => {
+                    ModalWidget::new(MetricSummaryWidget::new(&self.state)).render(area, buf)
+                }
+                _ => {}
+            }
         }
     }
 }

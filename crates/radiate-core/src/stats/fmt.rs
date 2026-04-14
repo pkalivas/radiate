@@ -1,4 +1,4 @@
-use crate::stats::TagKind;
+use crate::stats::TagType;
 use crate::{Metric, MetricSet, metric_names};
 use std::time::Duration;
 use std::{fmt::Write as _, io};
@@ -35,11 +35,8 @@ pub fn render_dashboard(metrics: &MetricSet) -> io::Result<String> {
 
     let mut push_val = |name: &'static str, label: &str| {
         if let Some(m) = metrics.get(name) {
-            if let Some(mu) = m.value_mean() {
-                write!(out, "  {label}: {:.3}", mu).unwrap();
-            } else if m.count() > 0 {
-                write!(out, "  {label}: {:.3}", m.last_value()).unwrap();
-            }
+            let mu = m.mean();
+            write!(out, "  {label}: {:.3}", mu).unwrap();
         }
     };
 
@@ -60,7 +57,7 @@ pub fn render_dashboard(metrics: &MetricSet) -> io::Result<String> {
     }
 
     if let Some(m) = metrics.get(metric_names::TIME) {
-        if let Some(mu) = m.time_mean() {
+        if let Some(mu) = m.times().and_then(|t| t.mean()) {
             write!(out, "  iter_time(mean): {}", fmt_duration(mu)).unwrap();
         }
     }
@@ -75,7 +72,7 @@ pub fn render_dashboard(metrics: &MetricSet) -> io::Result<String> {
 fn render_table_header(mut out: String) -> io::Result<String> {
     writeln!(
         out,
-        "{:<24} | {:<6} | {:<10} | {:<10} | {:<10} | {:<6} | {:<12} | {:<10} | {:<10} | {:<10} | {:<10}",
+        "{:<26} | {:<6} | {:<10} | {:<10} | {:<10} | {:<6} | {:<12} | {:<10} | {:<10} | {:<10} | {:<10}",
         "Name", "Type", "Mean", "Min", "Max", "N", "Total", "StdDev", "Skew", "Kurt", "Entr"
     ).unwrap();
     writeln!(out, "{}", "-".repeat(145)).unwrap();
@@ -86,23 +83,45 @@ pub fn render_metric_rows_full(
     out: &mut String,
     name: &str,
     m: &Metric,
-    tag: TagKind,
+    tag: TagType,
 ) -> io::Result<()> {
     // Value row
-    if let Some(stat) = m.statistic()
-        && tag == TagKind::Statistic
+
+    if let Some(dist) = m.distributions()
+        && tag == TagType::Distribution
     {
         writeln!(
             out,
-            "{:<24} | {:<6} | {:<10.3} | {:<10.3} | {:<10.3} | {:<6} | {:<12} | {:<10.3} | {:<10.3} | {:<10.3} | {:<10}",
+            "{:<26} | {:<6} | {:<10.3} | {:<10.3} | {:<10.3} | {:<6} | {:<12.3} | {:<10.3} | {:<10.3} | {:<10.3} | {:<10.3}",
+            name,
+            "dist",
+            dist.mean().unwrap_or_default(),
+            dist.min().unwrap_or_default(),
+            dist.max().unwrap_or_default(),
+            dist.count(),
+            dist.sum().unwrap() / 1_000.0, // scale sum to avoid overflow
+            dist.stddev().unwrap_or(0.0),
+            dist.skewness().unwrap_or(0.0),
+            dist.kurtosis().unwrap_or(0.0),
+            // dist.entropy().unwrap_or(0.0),
+            "-",
+        ).unwrap();
+    }
+
+    if let Some(stat) = m.stats()
+        && tag == TagType::Statistic
+    {
+        writeln!(
+            out,
+            "{:<26} | {:<6} | {:<10.3} | {:<10.3} | {:<10.3} | {:<6} | {:<12.3} | {:<10.3} | {:<10.3} | {:<10.3} | {:<10}",
             name,
             "value",
-            stat.mean(),
-            stat.min(),
-            stat.max(),
+            stat.mean().unwrap_or_default(),
+            stat.min().unwrap_or_default(),
+            stat.max().unwrap_or_default(),
             stat.count(),
-            "-",
-            stat.std_dev().unwrap_or(0.0),
+            stat.sum().unwrap() / 1_000.0, // scale sum to avoid overflow
+            stat.stddev().unwrap_or(0.0),
             stat.skewness().unwrap_or(0.0),
             stat.kurtosis().unwrap_or(0.0),
             "-",
@@ -110,20 +129,20 @@ pub fn render_metric_rows_full(
     }
 
     // Time row
-    if let Some(t) = m.time_statistic()
-        && tag == TagKind::Time
+    if let Some(t) = m.times()
+        && tag == TagType::Time
     {
         writeln!(
             out,
-            "{:<24} | {:<6} | {:<10} | {:<10} | {:<10} | {:<6} | {:<12} | {:<10} | {:<10} | {:<10} | {:<10}",
+            "{:<26} | {:<6} | {:<10} | {:<10} | {:<10} | {:<6} | {:<12} | {:<10} | {:<10} | {:<10} | {:<10}",
             name,
             "time",
-            fmt_duration(t.mean()),
-            fmt_duration(t.min()),
-            fmt_duration(t.max()),
+            fmt_duration(t.mean().unwrap_or_default()),
+            fmt_duration(t.min().unwrap_or_default()),
+            fmt_duration(t.max().unwrap_or_default()),
             t.count(),
-            fmt_duration(t.sum()),
-            fmt_duration(t.standard_deviation()),
+            fmt_duration(t.sum().unwrap_or_default()),
+            fmt_duration(t.stddev().unwrap_or_default()),
             "-",
             "-",
             "-",
@@ -133,7 +152,7 @@ pub fn render_metric_rows_full(
     Ok(())
 }
 
-fn render_tagged(ms: &MetricSet, tag: TagKind, title: &str) -> io::Result<String> {
+fn render_tagged(ms: &MetricSet, tag: TagType, title: &str) -> io::Result<String> {
     let mut out = String::new();
     writeln!(out, "== {} ==", title).unwrap();
     out = render_table_header(out)?;
@@ -151,13 +170,22 @@ fn render_tagged(ms: &MetricSet, tag: TagKind, title: &str) -> io::Result<String
 pub fn render_full(metrics: &MetricSet) -> io::Result<String> {
     let mut out = String::new();
 
+    let summary = metrics.summary();
     let dash = render_dashboard(metrics)?;
-    writeln!(out, "----- Metrics -----\n{}", dash).unwrap();
+    writeln!(
+        out,
+        "----- Metrics ----- ({} :: {}) \n{}",
+        summary.metrics, summary.updates, dash
+    )
+    .unwrap();
 
-    let generation = render_tagged(metrics, TagKind::Statistic, "Statistics")?;
+    let dist = render_tagged(metrics, TagType::Distribution, "Distributions")?;
+    writeln!(out, "\n{}", dist).unwrap();
+
+    let generation = render_tagged(metrics, TagType::Statistic, "Statistics")?;
     writeln!(out, "\n{}", generation).unwrap();
 
-    let life = render_tagged(metrics, TagKind::Time, "Times")?;
+    let life = render_tagged(metrics, TagType::Time, "Times")?;
     writeln!(out, "\n{}", life).unwrap();
 
     Ok(out)

@@ -21,12 +21,12 @@ impl Tag {
     }
 
     #[inline]
-    pub fn has(self, kind: TagKind) -> bool {
+    pub fn has(self, kind: TagType) -> bool {
         self.0 & kind.bit() != 0
     }
 
     #[inline]
-    pub fn insert(&mut self, kind: TagKind) {
+    pub fn insert(&mut self, kind: TagType) {
         self.0 |= kind.bit();
     }
 
@@ -41,23 +41,23 @@ impl Tag {
     }
 }
 
-impl From<TagKind> for Tag {
+impl From<TagType> for Tag {
     #[inline]
-    fn from(kind: TagKind) -> Self {
+    fn from(kind: TagType) -> Self {
         Tag(kind.bit())
     }
 }
 
-impl From<&TagKind> for Tag {
+impl From<&TagType> for Tag {
     #[inline]
-    fn from(kind: &TagKind) -> Self {
+    fn from(kind: &TagType) -> Self {
         Tag(kind.bit())
     }
 }
 
-impl From<&[TagKind]> for Tag {
+impl From<&[TagType]> for Tag {
     #[inline]
-    fn from(kinds: &[TagKind]) -> Self {
+    fn from(kinds: &[TagType]) -> Self {
         let mut tag = Tag::empty();
         for kind in kinds {
             tag.insert(*kind);
@@ -94,7 +94,7 @@ impl Hash for Tag {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum TagKind {
+pub enum TagType {
     Selector,
     Alterer,
     Mutator,
@@ -115,11 +115,11 @@ pub enum TagKind {
     Expr,
 }
 
-impl TagKind {
+impl TagType {
     pub const COUNT: usize = 18;
     #[inline]
     pub fn from_index(idx: u32) -> Option<Self> {
-        use TagKind::*;
+        use TagType::*;
         Some(match idx {
             0 => Selector,
             1 => Alterer,
@@ -150,7 +150,7 @@ impl TagKind {
 
     #[inline]
     pub fn as_str(&self) -> &'static str {
-        use TagKind::*;
+        use TagType::*;
         match self {
             Selector => "Selector",
             Alterer => "Alterer",
@@ -174,21 +174,21 @@ impl TagKind {
     }
 }
 
-impl PartialOrd for TagKind {
+impl PartialOrd for TagType {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some((*self as u16).cmp(&(*other as u16)))
     }
 }
 
-impl Ord for TagKind {
+impl Ord for TagType {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         (*self as u16).cmp(&(*other as u16))
     }
 }
 
-impl From<String> for TagKind {
+impl From<String> for TagType {
     fn from(s: String) -> Self {
-        use TagKind::*;
+        use TagType::*;
         match s.as_str().to_lowercase().as_str() {
             metric_tags::SELECTOR => Selector,
             metric_tags::ALTERER => Alterer,
@@ -218,7 +218,7 @@ pub struct TagMaskIter {
 }
 
 impl Iterator for TagMaskIter {
-    type Item = TagKind;
+    type Item = TagType;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.bits == 0 {
@@ -227,12 +227,12 @@ impl Iterator for TagMaskIter {
 
         let tz = self.bits.trailing_zeros() as u32;
         self.bits &= self.bits - 1;
-        TagKind::from_index(tz)
+        TagType::from_index(tz)
     }
 }
 
 impl IntoIterator for Tag {
-    type Item = TagKind;
+    type Item = TagType;
     type IntoIter = TagMaskIter;
 
     fn into_iter(self) -> Self::IntoIter {

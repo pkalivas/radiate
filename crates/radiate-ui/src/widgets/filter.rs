@@ -1,5 +1,5 @@
 use crate::{state::AppFilterState, styles::SELECTED_GREEN};
-use radiate_engines::stats::TagKind;
+use radiate_engines::stats::TagType;
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
@@ -24,13 +24,13 @@ impl<'a> Widget for FilterWidget<'a> {
             .state
             .all_tags
             .iter()
-            .filter(|tag| *(*tag) != TagKind::Statistic && *(*tag) != TagKind::Time)
+            .filter(|tag| *(*tag) != TagType::Statistic && *(*tag) != TagType::Time)
             .enumerate()
             .map(|(i, tag)| {
                 if self.state.tag_view.contains(&i) {
                     if i == self.state.selected_row {
                         return ListItem::new(Span::styled(
-                            format!("> X {}", TagKind::as_str(tag)),
+                            format!("> X {}", TagType::as_str(tag)),
                             Style::default()
                                 .fg(SELECTED_GREEN)
                                 .add_modifier(Modifier::BOLD),
@@ -44,21 +44,21 @@ impl<'a> Widget for FilterWidget<'a> {
                                     .fg(SELECTED_GREEN)
                                     .add_modifier(Modifier::BOLD),
                             ),
-                            Span::raw(format!(" {}", TagKind::as_str(tag))),
+                            Span::raw(format!(" {}", TagType::as_str(tag))),
                         ];
                         return ListItem::new(Line::from(spans));
                     }
                 } else {
                     if i == self.state.selected_row {
                         return ListItem::new(Span::styled(
-                            format!("> - {}", TagKind::as_str(tag)),
+                            format!("> - {}", TagType::as_str(tag)),
                             Style::default()
                                 .fg(SELECTED_GREEN)
                                 .add_modifier(Modifier::BOLD),
                         ));
                     } else {
                         ListItem::new(Span::styled(
-                            format!("  - {}", TagKind::as_str(tag)),
+                            format!("  - {}", TagType::as_str(tag)),
                             Style::default().fg(Color::White),
                         ))
                     }

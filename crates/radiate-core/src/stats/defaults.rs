@@ -1,4 +1,4 @@
-use crate::stats::{Tag, TagKind};
+use crate::stats::{Tag, TagType};
 
 pub mod metric_names {
     pub const TIME: &str = "time";
@@ -95,25 +95,25 @@ pub mod metric_tags {
     pub const EXPR: &str = "expr";
 }
 
-const RULES: &[(&str, &[TagKind])] = &[
-    (metric_tags::SELECTOR, &[TagKind::Selector]),
-    (metric_tags::MUTATOR, &[TagKind::Alterer, TagKind::Mutator]),
+const RULES: &[(&str, &[TagType])] = &[
+    (metric_tags::SELECTOR, &[TagType::Selector]),
+    (metric_tags::MUTATOR, &[TagType::Alterer, TagType::Mutator]),
     (
         metric_tags::CROSSOVER,
-        &[TagKind::Alterer, TagKind::Crossover],
+        &[TagType::Alterer, TagType::Crossover],
     ),
-    (metric_tags::ALTERER, &[TagKind::Alterer]),
-    (metric_tags::SPECIES, &[TagKind::Species]),
-    (metric_tags::FAILURE, &[TagKind::Failure]),
-    (metric_tags::AGE, &[TagKind::Age]),
-    (metric_tags::FRONT, &[TagKind::Front]),
-    (metric_tags::DERIVED, &[TagKind::Derived]),
-    (metric_tags::OTHER, &[TagKind::Other]),
-    (metric_tags::SCORE, &[TagKind::Score]),
-    (metric_tags::RATE, &[TagKind::Rate]),
-    (metric_tags::STEP, &[TagKind::Step]),
-    (metric_tags::LINEAGE, &[TagKind::Lineage]),
-    (metric_tags::EXPR, &[TagKind::Expr]),
+    (metric_tags::ALTERER, &[TagType::Alterer]),
+    (metric_tags::SPECIES, &[TagType::Species]),
+    (metric_tags::FAILURE, &[TagType::Failure]),
+    (metric_tags::AGE, &[TagType::Age]),
+    (metric_tags::FRONT, &[TagType::Front]),
+    (metric_tags::DERIVED, &[TagType::Derived]),
+    (metric_tags::OTHER, &[TagType::Other]),
+    (metric_tags::SCORE, &[TagType::Score]),
+    (metric_tags::RATE, &[TagType::Rate]),
+    (metric_tags::STEP, &[TagType::Step]),
+    (metric_tags::LINEAGE, &[TagType::Lineage]),
+    (metric_tags::EXPR, &[TagType::Expr]),
 ];
 
 pub fn default_tags(name: &str) -> Tag {
@@ -122,11 +122,11 @@ pub fn default_tags(name: &str) -> Tag {
     // Exact-name mappings first
     match name {
         metric_names::REPLACE_AGE => {
-            mask.insert(TagKind::Age);
-            mask.insert(TagKind::Failure);
+            mask.insert(TagType::Age);
+            mask.insert(TagType::Failure);
         }
         metric_names::REPLACE_INVALID => {
-            mask.insert(TagKind::Failure);
+            mask.insert(TagType::Failure);
         }
         metric_names::FRONT_ADDITIONS
         | metric_names::FRONT_REMOVALS
@@ -134,16 +134,16 @@ pub fn default_tags(name: &str) -> Tag {
         | metric_names::FRONT_ENTROPY
         | metric_names::FRONT_FILTERS
         | metric_names::FRONT_SIZE => {
-            mask.insert(TagKind::Front);
+            mask.insert(TagType::Front);
         }
         metric_names::SPECIES_AGE_FAIL => {
-            mask.insert(TagKind::Species);
-            mask.insert(TagKind::Age);
-            mask.insert(TagKind::Failure);
+            mask.insert(TagType::Species);
+            mask.insert(TagType::Age);
+            mask.insert(TagType::Failure);
         }
         metric_names::SPECIES_AGE => {
-            mask.insert(TagKind::Species);
-            mask.insert(TagKind::Age);
+            mask.insert(TagType::Species);
+            mask.insert(TagType::Age);
         }
 
         // “Derived” metrics
@@ -154,18 +154,18 @@ pub fn default_tags(name: &str) -> Tag {
         | metric_names::CARRYOVER_RATE
         | metric_names::DIVERSITY_RATIO
         | metric_names::SCORE_VOLATILITY => {
-            mask.insert(TagKind::Derived);
+            mask.insert(TagType::Derived);
         }
 
         metric_names::SCORES => {
-            mask.insert(TagKind::Score);
+            mask.insert(TagType::Score);
         }
 
         metric_names::ALTER_CROSS_FAMILY
         | metric_names::ALTER_WITHIN_FAMILY
         | metric_names::ALTER_PARENT_REUSE => {
-            mask.insert(TagKind::Alterer);
-            mask.insert(TagKind::Lineage);
+            mask.insert(TagType::Alterer);
+            mask.insert(TagType::Lineage);
         }
 
         metric_names::LINEAGE_EVENTS
@@ -173,11 +173,11 @@ pub fn default_tags(name: &str) -> Tag {
         | metric_names::LINEAGE_PARENTS_USED_RATIO
         | metric_names::LINEAGE_FAMILY_PAIR_ENTROPY
         | metric_names::LINEAGE_TOP1_PAIR_SHARE => {
-            mask.insert(TagKind::Lineage);
+            mask.insert(TagType::Lineage);
         }
 
         x if x.contains(metric_tags::STEP) => {
-            mask.insert(TagKind::Step);
+            mask.insert(TagType::Step);
         }
 
         _ => {}

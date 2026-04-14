@@ -10,6 +10,7 @@ pub struct ModalWidget<W> {
     width_pct: u16,
     height_pct: u16,
     block_style: Style,
+    overlay_style: Style,
     child: W,
 }
 
@@ -22,7 +23,8 @@ where
             title: None,
             width_pct: 70,
             height_pct: 80,
-            block_style: Style::default(),
+            block_style: Style::default().bg(crate::styles::ALT_BG_COLOR),
+            overlay_style: Style::default().bg(crate::styles::OVERLAY_COLOR),
             child,
         }
     }
@@ -53,18 +55,19 @@ where
     W: Widget,
 {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let area = self.centered_rect(area);
+        let popup_area = self.centered_rect(area);
 
-        Clear.render(area, buf);
+        Block::default().style(self.overlay_style).render(area, buf);
+
+        Clear.render(popup_area, buf);
 
         let mut block = Block::default().style(self.block_style);
         if let Some(title) = self.title {
             block = block.title(title);
         }
 
-        let inner = block.inner(area);
-        block.render(area, buf);
-
+        let inner = block.inner(popup_area);
+        block.render(popup_area, buf);
         self.child.render(inner, buf);
     }
 }

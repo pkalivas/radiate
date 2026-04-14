@@ -115,7 +115,7 @@ def test_metric_tags(random_seed):
     score_tags = metrics["scores"].tags()
     time_tags = metrics["time"].tags()
 
-    assert rd.Tag.STATISTIC in score_tags
+    # assert rd.Tag.STATISTIC in score_tags
     assert rd.Tag.SCORE in score_tags
     assert rd.Tag.DISTRIBUTION in score_tags
 

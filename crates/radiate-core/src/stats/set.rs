@@ -1,6 +1,6 @@
 use crate::{
     Metric, MetricUpdate,
-    stats::{Meta, Tag, TagKind, defaults::try_add_tag_from_str, fmt},
+    stats::{Meta, Tag, TagType, defaults::try_add_tag_from_str, fmt},
 };
 use radiate_expr::{AnyValue, ApplyExpr, DataType, Expr, ExprProjection, ExprQuery, SelectExpr};
 use radiate_utils::intern;
@@ -89,7 +89,6 @@ impl MetricSet {
                     self.upsert(metric);
                 }
             }
-
             MetricSetUpdate::NamedSingle(name, metric_update, tag) => {
                 self.meta.update_count += 1;
                 if let Some(m) = self.metrics.get_mut(name) {
@@ -113,18 +112,21 @@ impl MetricSet {
                     try_add_tag_from_str(&mut metric);
                     metric.set_version(version);
                     metric.apply_update(metric_update);
+
                     if let Some(tag) = tag {
                         metric.add_tag(tag);
                     }
+
                     self.add(metric);
                 }
             }
         }
     }
 
+    #[inline(always)]
     pub fn iter_tagged<'a>(
         &'a self,
-        tag: TagKind,
+        tag: TagType,
     ) -> impl Iterator<Item = (&'static str, &'a Metric)> {
         self.metrics.iter().filter_map(move |(k, m)| {
             if m.tags().has(tag) {
@@ -135,17 +137,8 @@ impl MetricSet {
         })
     }
 
-    pub fn iter_stats(&self) -> impl Iterator<Item = &Metric> {
-        self.metrics.values().filter(|m| m.statistic().is_some())
-    }
-
-    pub fn iter_times(&self) -> impl Iterator<Item = &Metric> {
-        self.metrics
-            .values()
-            .filter(|m| m.time_statistic().is_some())
-    }
-
-    pub fn tags(&self) -> impl Iterator<Item = TagKind> {
+    #[inline(always)]
+    pub fn tags(&self) -> impl Iterator<Item = TagType> {
         self.metrics
             .values()
             .fold(Tag::empty(), |acc, m| acc.union(m.tags()))
@@ -203,123 +196,6 @@ impl MetricSet {
         fmt::render_full(self).unwrap_or_default()
     }
 
-    // --- Default accessors ---
-    pub fn time(&self) -> Option<&Metric> {
-        self.get(super::metric_names::TIME)
-    }
-
-    pub fn score(&self) -> Option<&Metric> {
-        self.get(super::metric_names::SCORES)
-    }
-
-    pub fn improvements(&self) -> Option<&Metric> {
-        self.get(super::metric_names::BEST_SCORE_IMPROVEMENT)
-    }
-
-    pub fn age(&self) -> Option<&Metric> {
-        self.get(super::metric_names::AGE)
-    }
-
-    pub fn replace_age(&self) -> Option<&Metric> {
-        self.get(super::metric_names::REPLACE_AGE)
-    }
-
-    pub fn replace_invalid(&self) -> Option<&Metric> {
-        self.get(super::metric_names::REPLACE_INVALID)
-    }
-
-    pub fn genome_size(&self) -> Option<&Metric> {
-        self.get(super::metric_names::GENOME_SIZE)
-    }
-
-    pub fn front_size(&self) -> Option<&Metric> {
-        self.get(super::metric_names::FRONT_SIZE)
-    }
-
-    pub fn front_comparisons(&self) -> Option<&Metric> {
-        self.get(super::metric_names::FRONT_COMPARISONS)
-    }
-
-    pub fn front_removals(&self) -> Option<&Metric> {
-        self.get(super::metric_names::FRONT_REMOVALS)
-    }
-
-    pub fn front_additions(&self) -> Option<&Metric> {
-        self.get(super::metric_names::FRONT_ADDITIONS)
-    }
-
-    pub fn front_entropy(&self) -> Option<&Metric> {
-        self.get(super::metric_names::FRONT_ENTROPY)
-    }
-
-    pub fn unique_members(&self) -> Option<&Metric> {
-        self.get(super::metric_names::UNIQUE_MEMBERS)
-    }
-
-    pub fn unique_scores(&self) -> Option<&Metric> {
-        self.get(super::metric_names::UNIQUE_SCORES)
-    }
-
-    pub fn new_children(&self) -> Option<&Metric> {
-        self.get(super::metric_names::NEW_CHILDREN)
-    }
-
-    pub fn survivor_count(&self) -> Option<&Metric> {
-        self.get(super::metric_names::SURVIVOR_COUNT)
-    }
-
-    pub fn carryover_rate(&self) -> Option<&Metric> {
-        self.get(super::metric_names::CARRYOVER_RATE)
-    }
-
-    pub fn evaluation_count(&self) -> Option<&Metric> {
-        self.get(super::metric_names::EVALUATION_COUNT)
-    }
-
-    pub fn diversity_ratio(&self) -> Option<&Metric> {
-        self.get(super::metric_names::DIVERSITY_RATIO)
-    }
-
-    pub fn score_volatility(&self) -> Option<&Metric> {
-        self.get(super::metric_names::SCORE_VOLATILITY)
-    }
-
-    pub fn species_count(&self) -> Option<&Metric> {
-        self.get(super::metric_names::SPECIES_COUNT)
-    }
-
-    pub fn species_age_fail(&self) -> Option<&Metric> {
-        self.get(super::metric_names::SPECIES_AGE_FAIL)
-    }
-
-    pub fn species_distance_dist(&self) -> Option<&Metric> {
-        self.get(super::metric_names::SPECIES_DISTANCE_DIST)
-    }
-
-    pub fn species_created(&self) -> Option<&Metric> {
-        self.get(super::metric_names::SPECIES_CREATED)
-    }
-
-    pub fn species_died(&self) -> Option<&Metric> {
-        self.get(super::metric_names::SPECIES_DIED)
-    }
-
-    pub fn species_age(&self) -> Option<&Metric> {
-        self.get(super::metric_names::SPECIES_AGE)
-    }
-
-    pub fn species_size(&self) -> Option<&Metric> {
-        self.get(super::metric_names::SPECIES_SIZE)
-    }
-
-    pub fn species_evenness(&self) -> Option<&Metric> {
-        self.get(super::metric_names::SPECIES_EVENNESS)
-    }
-
-    pub fn largest_species_share(&self) -> Option<&Metric> {
-        self.get(super::metric_names::LARGEST_SPECIES_SHARE)
-    }
-
     fn add_or_update_internal(&mut self, version: u64, mut metric: Metric) {
         self.meta.update_count += 1;
         if let Some(existing) = self.metrics.get_mut(metric.name()) {
@@ -341,11 +217,9 @@ impl<'a> ApplyExpr<'a> for MetricSet {
 
 impl ExprProjection for MetricSet {
     fn project(&self, path: &SelectExpr) -> Option<AnyValue<'static>> {
-        let value_to_float32 =
-            |value: Option<f32>| value.map(AnyValue::Float32).unwrap_or(AnyValue::Null);
+        let value_to_float32 = |value: f32| AnyValue::Float32(value);
 
-        let value_to_duration =
-            |value: Option<Duration>| value.map(AnyValue::Duration).unwrap_or(AnyValue::Null);
+        let value_to_duration = |value: f32| Duration::from_secs_f32(value).into();
 
         let SelectExpr::Field(key, field) = path else {
             return None;
@@ -357,26 +231,28 @@ impl ExprProjection for MetricSet {
             .map(|metric| match field.dtype() {
                 DataType::Float32 => match field.name().to_lowercase().as_str() {
                     "last_value" => AnyValue::Float32(metric.last_value()),
-                    "mean" => value_to_float32(metric.value_mean()),
-                    "std_dev" => value_to_float32(metric.value_std_dev()),
-                    "min" => value_to_float32(metric.value_min()),
-                    "max" => value_to_float32(metric.value_max()),
-                    "sum" => value_to_float32(metric.value_sum()),
-                    "skew" => value_to_float32(metric.value_skewness()),
-                    "var" => value_to_float32(metric.value_variance()),
+                    "mean" => value_to_float32(metric.mean()),
+                    "std_dev" => value_to_float32(metric.stddev()),
+                    "min" => value_to_float32(metric.min()),
+                    "max" => value_to_float32(metric.max()),
+                    "sum" => value_to_float32(metric.sum()),
+                    "skew" => value_to_float32(metric.skew()),
+                    "var" => value_to_float32(metric.var()),
                     "count" => AnyValue::UInt64(metric.count() as u64),
                     "version" => AnyValue::UInt64(metric.version()),
                     "update_count" => AnyValue::UInt64(metric.update_count() as u64),
                     _ => AnyValue::Null,
                 },
                 DataType::Duration => match field.name().to_lowercase().as_str() {
-                    "last_value" => AnyValue::Duration(metric.last_time()),
-                    "mean" => value_to_duration(metric.time_mean()),
-                    "std_dev" => value_to_duration(metric.time_std_dev()),
-                    "min" => value_to_duration(metric.time_min()),
-                    "max" => value_to_duration(metric.time_max()),
-                    "sum" => value_to_duration(metric.time_sum()),
-                    "var" => value_to_duration(metric.time_variance()),
+                    "last_value" => {
+                        AnyValue::Duration(Duration::from_secs_f32(metric.last_value()))
+                    }
+                    "mean" => value_to_duration(metric.mean()),
+                    "std_dev" => value_to_duration(metric.stddev()),
+                    "min" => value_to_duration(metric.min()),
+                    "max" => value_to_duration(metric.max()),
+                    "sum" => value_to_duration(metric.sum()),
+                    "var" => value_to_duration(metric.var()),
                     "count" => AnyValue::UInt64(metric.count() as u64),
                     "version" => AnyValue::UInt64(metric.version()),
                     "update_count" => AnyValue::UInt64(metric.update_count() as u64),
@@ -444,7 +320,7 @@ pub enum MetricSetUpdate<'a> {
     Many(Vec<Metric>),
     Single(Metric),
     ManyUpdate(Vec<(&'static str, MetricUpdate<'a>)>),
-    NamedSingle(&'static str, MetricUpdate<'a>, Option<TagKind>),
+    NamedSingle(&'static str, MetricUpdate<'a>, Option<TagType>),
 }
 
 impl From<Vec<Metric>> for MetricSetUpdate<'_> {
@@ -468,11 +344,11 @@ where
     }
 }
 
-impl<'a, U> From<(TagKind, &'static str, U)> for MetricSetUpdate<'a>
+impl<'a, U> From<(TagType, &'static str, U)> for MetricSetUpdate<'a>
 where
     U: Into<MetricUpdate<'a>>,
 {
-    fn from((tag, name, update): (TagKind, &'static str, U)) -> Self {
+    fn from((tag, name, update): (TagType, &'static str, U)) -> Self {
         MetricSetUpdate::NamedSingle(name, update.into(), Some(tag))
     }
 }
@@ -499,10 +375,10 @@ mod tests {
 
     fn assert_stat_eq(m: &Metric, count: i32, mean: f32, var: f32, min: f32, max: f32) {
         assert_eq!(m.count(), count);
-        assert!(approx_eq(m.value_mean().unwrap(), mean, EPSILON), "mean");
-        assert!(approx_eq(m.value_variance().unwrap(), var, EPSILON), "var");
-        assert!(approx_eq(m.value_min().unwrap(), min, EPSILON), "min");
-        assert!(approx_eq(m.value_max().unwrap(), max, EPSILON), "max");
+        assert!(approx_eq(m.mean(), mean, EPSILON), "mean");
+        assert!(approx_eq(m.var(), var, EPSILON), "var");
+        assert!(approx_eq(m.min(), min, EPSILON), "min");
+        assert!(approx_eq(m.max(), max, EPSILON), "max");
     }
 
     fn stats_of(values: &[f32]) -> (i32, f32, f32, f32, f32) {

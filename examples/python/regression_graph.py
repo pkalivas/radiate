@@ -56,6 +56,7 @@ engine = (
     )
     .regression(inputs, answers, loss=rd.MSE)
     .subscribe(collector)
+    .metrics(distance_signal=distance_signal)
     .diversity(rd.NeatDistance(), distance_signal)
     .alters(
         rd.Cross.graph(0.05, 0.5),

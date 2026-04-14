@@ -1,8 +1,8 @@
 use crate::{
-    state::AppState,
+    state::{AppState, ChartType},
     widgets::{ChartWidget, ParetoPagingWidget},
 };
-use radiate_engines::Chromosome;
+use radiate_engines::{Chromosome, metric_names};
 use ratatui::widgets::{StatefulWidget, Widget};
 
 pub struct FitnessWidget<C: Chromosome> {
@@ -28,14 +28,14 @@ impl<C: Chromosome> StatefulWidget for FitnessWidget<C> {
     ) {
         if state.objective_state.objective.is_single() {
             let chart_state = state.chart_state();
-            let charts = if state.display_mini_chart_mean() {
-                vec![
-                    chart_state.fitness_chart(),
-                    chart_state.fitness_mean_chart(),
-                ]
-            } else {
-                vec![chart_state.fitness_chart()]
-            };
+            // let charts = if state.display_mini_chart() {
+            //     vec![
+            //         chart_state.get_by_key(metric_names::BEST_SCORES, ChartType::Value),
+            //         chart_state.get_by_key(metric_names::BEST_SCORES, ChartType::Mean),
+            //     ]
+            // } else {
+            // };
+            let charts = vec![chart_state.get_by_key(metric_names::BEST_SCORES, ChartType::Value)];
 
             ChartWidget::from(charts).render(area, buf);
         } else {

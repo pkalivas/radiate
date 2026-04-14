@@ -1,4 +1,5 @@
-use crate::widgets::{FnWidget, Panel};
+use crate::state::PanelId;
+use crate::widgets::{DistributionTableWidget, FnWidget, MetricSearchWidget, Panel};
 use crate::{
     state::{AppState, MetricsTab},
     styles,
@@ -7,7 +8,7 @@ use crate::{
 use radiate_engines::Chromosome;
 use ratatui::{
     buffer::Buffer,
-    layout::{Constraint, Direction, Layout, Rect},
+    layout::{Constraint, Layout, Rect},
     style::{Color, Style, Stylize},
     text::{Line, Span},
     widgets::{StatefulWidget, Tabs, Widget},
@@ -32,27 +33,42 @@ impl<C: Chromosome> StatefulWidget for MetricsWidget<C> {
         let metric_table_area = if state.display.show_tag_filters {
             let [left, right] =
                 Layout::horizontal([Constraint::Length(20), Constraint::Fill(1)]).areas(area);
+            let block = state.get_panel_block(PanelId::Filters);
             Panel::new(FilterWidget::new(&mut state.filter_state))
                 .titled(" Filters ")
+                .bordered(block)
                 .render(left, buf);
             right
         } else {
             area
         };
 
-        Panel::new(FnWidget::new(|area, buf| {
-            let chunks = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([Constraint::Length(1), Constraint::Fill(1)])
-                .split(area);
+        let metrics_summary = state.metrics.summary();
 
-            let titles = ["Stats", "Time"]
+        let line = Line::from(vec![
+            Span::raw(" "),
+            metrics_summary.metrics.to_string().into(),
+            Span::raw(" | "),
+            metrics_summary.updates.to_string().into(),
+            Span::raw(" "),
+        ]);
+
+        Panel::new(FnWidget::new(|area, buf| {
+            let [top, middle, bottom] = Layout::vertical([
+                Constraint::Length(1),
+                Constraint::Percentage(80),
+                Constraint::Fill(1),
+            ])
+            .areas(area);
+
+            let titles = ["Stats", "Time", "Distribution"]
                 .into_iter()
                 .map(|t| Span::styled(format!(" {t} "), Style::default().fg(Color::White)));
 
             let index = match state.metrics_tab {
                 MetricsTab::Stats => 0,
                 MetricsTab::Time => 1,
+                MetricsTab::Distribution => 2,
             };
 
             Tabs::new(titles)
@@ -61,14 +77,18 @@ impl<C: Chromosome> StatefulWidget for MetricsWidget<C> {
                 .divider(" ")
                 .highlight_style(styles::selected_item_style())
                 .bold()
-                .render(chunks[0], buf);
+                .render(top, buf);
 
             match state.metrics_tab {
-                MetricsTab::Time => TimeTableWidget::new(state).render(chunks[1], buf),
-                MetricsTab::Stats => StatsTableWidget::new(state).render(chunks[1], buf),
+                MetricsTab::Time => TimeTableWidget::new(state).render(middle, buf),
+                MetricsTab::Stats => StatsTableWidget::new(state).render(middle, buf),
+                MetricsTab::Distribution => DistributionTableWidget::new(state).render(middle, buf),
             }
+
+            MetricSearchWidget::new(state).render(bottom, buf);
         }))
         .titled(" Metrics ")
+        .title_top_right(line)
         .titled_bottom(help_text_minimal())
         .render(metric_table_area, buf);
     }

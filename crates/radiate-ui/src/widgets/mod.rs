@@ -6,6 +6,7 @@ mod metrics;
 mod modal;
 mod panel;
 mod pareto;
+mod search;
 mod summary;
 mod tables;
 
@@ -17,5 +18,6 @@ pub use metrics::MetricsWidget;
 pub use modal::ModalWidget;
 pub use panel::{FnWidget, Panel};
 pub use pareto::{ParetoPagingWidget, num_pairs};
-pub use summary::EngineSummaryWidget;
-pub use tables::{StatsTableWidget, TimeTableWidget};
+pub use search::MetricSearchWidget;
+pub use summary::{EngineSummaryWidget, MetricSummaryWidget};
+pub use tables::{DistributionTableWidget, StatsTableWidget, TimeTableWidget};

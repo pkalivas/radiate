@@ -1,12 +1,17 @@
-use crate::stats::{Tag, TagKind, defaults};
+use crate::stats::{MetricView, Tag, TagType, defaults};
 use radiate_error::{RadiateError, radiate_err};
-use radiate_expr::AnyValue;
+use radiate_expr::{AnyValue, DataType};
 use radiate_utils::{
-    Statistic, TimeStatistic, ToSnakeCase, cache_arc_string, intern, intern_snake_case,
+    Statistic, ToSnakeCase, cache_arc_string, intern, intern_snake_case,
 };
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::{hash::Hash, sync::Arc, time::Duration};
+
+const DATA_TYPE_NULL: u8 = 0;
+const DATA_TYPE_FLOAT32: u8 = 1;
+const DATA_TYPE_DURATION: u8 = 2;
+const DATA_TYPE_LIST: u8 = 3;
 
 #[macro_export]
 macro_rules! metric {
@@ -18,6 +23,7 @@ macro_rules! metric {
     ($name:expr) => {{ $crate::Metric::new($name).upsert(1) }};
 }
 
+
 #[derive(Clone, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub(super) struct Meta {
@@ -27,18 +33,12 @@ pub(super) struct Meta {
 
 #[derive(Clone, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-struct MetricInner {
-    value_statistic: Option<Statistic>,
-    time_statistic: Option<TimeStatistic>,
-}
-
-#[derive(Clone, PartialEq, Default)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Metric {
     name: Arc<String>,
     meta: Option<Meta>,
     inner: Statistic,
     tags: Tag,
+    dtype: u8,
 }
 
 impl Metric {
@@ -51,6 +51,7 @@ impl Metric {
             meta: None,
             inner: Statistic::default(),
             tags,
+            dtype: DATA_TYPE_NULL,
         }
     }
 
@@ -80,13 +81,23 @@ impl Metric {
         }
     }
 
+    pub fn dtype(&self) -> DataType {
+        match self.dtype {
+            DATA_TYPE_NULL => DataType::Null,
+            DATA_TYPE_FLOAT32 => DataType::Float32,
+            DATA_TYPE_DURATION => DataType::Duration,
+            DATA_TYPE_LIST => DataType::List(Box::new(DataType::Float32)),
+            _ => DataType::Null,
+        }
+    }
+
     #[inline(always)]
     pub fn tags(&self) -> Tag {
         self.tags
     }
 
     #[inline(always)]
-    pub fn with_tag(mut self, tag: TagKind) -> Self {
+    pub fn with_tag(mut self, tag: TagType) -> Self {
         self.add_tag(tag);
         self
     }
@@ -105,20 +116,56 @@ impl Metric {
     }
 
     #[inline(always)]
-    pub fn add_tag(&mut self, tag: TagKind) {
+    pub fn add_tag(&mut self, tag: TagType) {
         self.tags.insert(tag);
     }
 
-    pub fn contains_tag(&self, tag: &TagKind) -> bool {
+    pub fn contains_tag(&self, tag: &TagType) -> bool {
         self.tags.has(*tag)
     }
 
-    pub fn tags_iter(&self) -> impl Iterator<Item = TagKind> {
+    pub fn tags_iter(&self) -> impl Iterator<Item = TagType> {
         self.tags.iter()
     }
 
     pub fn clear_values(&mut self) {
         self.inner = Statistic::default();
+    }
+
+    pub fn stats<'a>(&'a self) -> Option<MetricView<'a, f32>> {
+        if !self.tags.has(TagType::Statistic) {
+            return None;
+        }
+
+        Some(MetricView {
+            name: &self.name,
+            statistic: &self.inner,
+            mapper: |v| Some(v),
+        })
+    }
+
+    pub fn times<'a>(&'a self) -> Option<MetricView<'a, Duration>> {
+        if !self.tags.has(TagType::Time) {
+            return None;
+        }
+
+        Some(MetricView {
+            name: &self.name,
+            statistic: &self.inner,
+            mapper: |v| Some(Duration::from_secs_f32(v)),
+        } )
+    }
+
+    pub fn distributions<'a>(&'a self) -> Option<MetricView<'a, f32>> {
+        if !self.tags.has(TagType::Distribution) {
+            return None;
+        }
+
+        Some(MetricView {
+            name: &self.name,
+            statistic: &self.inner,
+            mapper: |v| Some(v),
+         })
     }
 
     #[inline(always)]
@@ -129,23 +176,13 @@ impl Metric {
 
     #[inline(always)]
     pub fn update_from(&mut self, other: Metric) {
-        if let Some(stat) = other.inner.value_statistic {
-            // Kinda a hack to take advantage of the fact that if count == sum,
-            // we can just apply the sum directly instead of merging statistics - keeps things honest
-            // & avoids merging statistics when we don't have to (even though that's a fast operation).
-            if stat.count() as f32 == stat.sum() && !other.tags.has(TagKind::Distribution) {
-                self.apply_update(stat.sum());
-            } else {
-                self.apply_update(stat);
-            }
-        }
-
-        if let Some(time) = other.inner.time_statistic {
-            if time.count() as u32 == time.sum().as_millis() as u32 {
-                self.apply_update(time.sum());
-            } else {
-                self.apply_update(time);
-            }
+        // Kinda a hack to take advantage of the fact that if count == sum,
+        // we can just apply the sum directly instead of merging statistics - keeps things honest
+        // & avoids merging statistics when we don't have to (even though that's a fast operation).
+        if other.count() as f32 == other.sum() && !other.tags.has(TagType::Distribution) {
+            self.apply_update(other.sum());
+        } else {
+            self.apply_update(other.inner);
         }
 
         self.tags = self.tags.union(other.tags);
@@ -164,10 +201,6 @@ impl Metric {
             MetricUpdate::Duration(value) => {
                 self.update_time_statistic(value);
             }
-            MetricUpdate::UsizeOperation(value, time) => {
-                self.update_statistic(value as f32);
-                self.update_time_statistic(time);
-            }
             MetricUpdate::UsizeDistribution(values) => {
                 self.update_statistic_from_iter(values.iter().map(|v| *v as f32));
             }
@@ -175,195 +208,100 @@ impl Metric {
                 self.update_statistic_from_iter(values.iter().cloned());
             }
             MetricUpdate::Statistic(stat) => {
-                if let Some(existing_stat) = &mut self.inner.value_statistic {
-                    existing_stat.merge(&stat);
-                } else {
-                    self.new_statistic(stat);
-                }
-
+                self.inner.merge(&stat);                
                 self.meta.as_mut().map(|meta| meta.update_count += 1);
-            }
-            MetricUpdate::TimeStatistic(time_stat) => {
-                if let Some(existing_time_stat) = &mut self.inner.time_statistic {
-                    existing_time_stat.merge(&time_stat);
-                } else {
-                    self.new_time_statistic(time_stat);
-                }
-
-                self.meta.as_mut().map(|meta| meta.update_count += 1);
+                self.dtype = DATA_TYPE_FLOAT32;
             }
         }
-
-        if self.inner.value_statistic.is_some() && self.inner.time_statistic.is_some() {
-            panic!("Metric cannot have both value_statistic and time_statistic set at the same time");
-        }
-    }
-
-    pub fn new_statistic(&mut self, value: impl Into<Statistic>) {
-        self.inner.value_statistic = Some(value.into());
-        self.add_tag(TagKind::Statistic);
-    }
-
-    pub fn new_time_statistic(&mut self, value: impl Into<TimeStatistic>) {
-        self.inner.time_statistic = Some(value.into());
-        self.add_tag(TagKind::Time);
     }
 
     fn update_statistic(&mut self, value: f32) {
-        if let Some(stat) = &mut self.inner.value_statistic {
-            stat.add(value);
-        } else {
-            self.new_statistic(value);
-        }
-
+        self.inner.add(value);
+        self.add_tag(TagType::Statistic);
         self.meta.as_mut().map(|meta| meta.update_count += 1);
+
+        if self.dtype == DATA_TYPE_NULL {
+            self.dtype = DATA_TYPE_FLOAT32;
+        }
     }
 
     fn update_time_statistic(&mut self, value: Duration) {
-        if let Some(stat) = &mut self.inner.time_statistic {
-            stat.add(value);
-        } else {
-            self.new_time_statistic(value);
-        }
-
+        self.inner.add(value.as_secs_f32());
+        self.add_tag(TagType::Time);
         self.meta.as_mut().map(|meta| meta.update_count += 1);
+
+        if self.dtype == DATA_TYPE_NULL {
+            self.dtype = DATA_TYPE_DURATION;
+        }
     }
 
     fn update_statistic_from_iter<I>(&mut self, values: I)
     where
         I: IntoIterator<Item = f32>,
-    {
-        if let Some(stat) = &mut self.inner.value_statistic {
-            for value in values {
-                stat.add(value);
-                self.meta.as_mut().map(|meta| meta.update_count += 1);
-            }
+    {   
+        let mut values_count = 0;
+        for value in values {
+            self.inner.add(value);
+            values_count += 1;
+        }
+        
+        self.meta.as_mut().map(|meta| meta.update_count += values_count);
+        self.add_tag(TagType::Distribution);
 
-            self.add_tag(TagKind::Distribution);
-        } else {
-            let mut new_stat = Statistic::default();
-            for value in values {
-                new_stat.add(value);
-                self.meta.as_mut().map(|meta| meta.update_count += 1);
-            }
-
-            self.new_statistic(new_stat);
-            self.add_tag(TagKind::Distribution);
+        if self.dtype == DATA_TYPE_NULL {
+            self.dtype = DATA_TYPE_LIST;
         }
     }
 
-    ///
-    /// --- Common statistic getters ---
-    ///
+    pub fn statistic(&self) -> &Statistic {
+        &self.inner
+    }
+
     pub fn name(&self) -> &str {
         &self.name
     }
 
     pub fn last_value(&self) -> f32 {
-        self.inner
-            .value_statistic
-            .as_ref()
-            .map_or(0.0, |stat| stat.last_value())
-    }
-
-    pub fn statistic(&self) -> Option<&Statistic> {
-        self.inner.value_statistic.as_ref()
-    }
-
-    pub fn time_statistic(&self) -> Option<&TimeStatistic> {
-        self.inner.time_statistic.as_ref()
-    }
-
-    pub fn last_time(&self) -> Duration {
-        self.time_statistic()
-            .map_or(Duration::ZERO, |stat| stat.last_time())
+        self.inner.last_value()
     }
 
     pub fn count(&self) -> i32 {
-        if let Some(stat) = &self.inner.value_statistic {
-            return stat.count();
-        } else if let Some(stat) = &self.inner.time_statistic {
-            return stat.count();
-        }
-
-        // No statistics recorded yet
-        0
+        self.inner.count()
     }
 
-    ///
-    /// --- Get the value statistics ---
-    ///
-    pub fn value_mean(&self) -> Option<f32> {
-        self.statistic().map(|stat| stat.mean())
+    pub fn mean(&self) -> f32 {
+        self.inner.mean()
     }
 
-    pub fn value_variance(&self) -> Option<f32> {
-        self.statistic().and_then(|stat| stat.variance())
+    pub fn var(&self) -> f32 {
+        self.inner.variance().unwrap_or(0.0)
     }
 
-    pub fn value_std_dev(&self) -> Option<f32> {
-        self.statistic().and_then(|stat| stat.std_dev())
+    pub fn stddev(&self) -> f32 {
+        self.inner.std_dev().unwrap_or(0.0)
     }
 
-    pub fn value_skewness(&self) -> Option<f32> {
-        self.statistic().and_then(|stat| stat.skewness())
+    pub fn skew(&self) -> f32 {
+        self.inner.skewness().unwrap_or(0.0)
     }
 
-    pub fn value_min(&self) -> Option<f32> {
-        self.statistic().map(|stat| stat.min())
+    pub fn min(&self) -> f32 {
+        self.inner.min()
     }
 
-    pub fn value_max(&self) -> Option<f32> {
-        self.statistic().map(|stat| stat.max())
+    pub fn max(&self) -> f32 {
+        self.inner.max()
     }
 
-    pub fn value_sum(&self) -> Option<f32> {
-        self.statistic().map(|stat| stat.sum())
-    }
-
-    pub fn value_count(&self) -> Option<i32> {
-        self.statistic().map(|stat| stat.count())
-    }
-
-    ///
-    /// --- Get the time statistics ---
-    ///
-    pub fn time_mean(&self) -> Option<Duration> {
-        self.time_statistic().map(|stat| stat.mean())
-    }
-
-    pub fn time_variance(&self) -> Option<Duration> {
-        self.time_statistic().map(|stat| stat.variance())
-    }
-
-    pub fn time_std_dev(&self) -> Option<Duration> {
-        self.time_statistic().map(|stat| stat.standard_deviation())
-    }
-
-    pub fn time_min(&self) -> Option<Duration> {
-        self.time_statistic().map(|stat| stat.min())
-    }
-
-    pub fn time_max(&self) -> Option<Duration> {
-        self.time_statistic().map(|stat| stat.max())
-    }
-
-    pub fn time_sum(&self) -> Option<Duration> {
-        self.time_statistic().map(|stat| stat.sum())
+    pub fn sum(&self) -> f32 {
+        self.inner.sum()
     }
 }
 
 impl Hash for Metric {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.name.hash(state);
-        if let Some(stat) = &self.inner.value_statistic {
-            stat.hash(state);
-        }
-
-        if let Some(stat) = &self.inner.time_statistic {
-            stat.hash(state);
-        }
-
+        self.inner.hash(state);
         self.tags.hash(state);
     }
 }
@@ -373,11 +311,9 @@ pub enum MetricUpdate<'a> {
     Float(f32),
     Usize(usize),
     Duration(Duration),
-    UsizeOperation(usize, Duration),
     Distribution(&'a [f32]),
     UsizeDistribution(&'a [usize]),
     Statistic(Statistic),
-    TimeStatistic(TimeStatistic),
 }
 
 impl From<f32> for MetricUpdate<'_> {
@@ -395,12 +331,6 @@ impl From<usize> for MetricUpdate<'_> {
 impl From<Duration> for MetricUpdate<'_> {
     fn from(value: Duration) -> Self {
         MetricUpdate::Duration(value)
-    }
-}
-
-impl From<(usize, Duration)> for MetricUpdate<'_> {
-    fn from(value: (usize, Duration)) -> Self {
-        MetricUpdate::UsizeOperation(value.0, value.1)
     }
 }
 
@@ -427,13 +357,6 @@ impl From<Statistic> for MetricUpdate<'_> {
         MetricUpdate::Statistic(value)
     }
 }
-
-impl From<TimeStatistic> for MetricUpdate<'_> {
-    fn from(value: TimeStatistic) -> Self {
-        MetricUpdate::TimeStatistic(value)
-    }
-}
-
 
 impl<'a> TryFrom<AnyValue<'a>> for MetricUpdate<'a> {
     type Error = RadiateError;
@@ -514,10 +437,10 @@ mod tests {
 
     fn assert_stat_eq(m: &Metric, count: i32, mean: f32, var: f32, min: f32, max: f32) {
         assert_eq!(m.count(), count);
-        assert!(approx_eq(m.value_mean().unwrap(), mean, EPSILON), "mean");
-        assert!(approx_eq(m.value_variance().unwrap(), var, EPSILON), "var");
-        assert!(approx_eq(m.value_min().unwrap(), min, EPSILON), "min");
-        assert!(approx_eq(m.value_max().unwrap(), max, EPSILON), "max");
+        assert!(approx_eq(m.mean(), mean, EPSILON), "mean");
+        assert!(approx_eq(m.var(), var, EPSILON), "var");
+        assert!(approx_eq(m.min(), min, EPSILON), "min");
+        assert!(approx_eq(m.max(), max, EPSILON), "max");
     }
 
     fn stats_of(values: &[f32]) -> (i32, f32, f32, f32, f32) {
@@ -553,11 +476,11 @@ mod tests {
 
         assert_eq!(metric.count(), 5);
         assert_eq!(metric.last_value(), 5.0);
-        assert_eq!(metric.value_mean().unwrap(), 3.0);
-        assert_eq!(metric.value_variance().unwrap(), 2.5);
-        assert_eq!(metric.value_std_dev().unwrap(), 1.5811388);
-        assert_eq!(metric.value_min().unwrap(), 1.0);
-        assert_eq!(metric.value_max().unwrap(), 5.0);
+        assert_eq!(metric.mean(), 3.0);
+        assert_eq!(metric.var(), 2.5);
+        assert_eq!(metric.stddev(), 1.5811388);
+        assert_eq!(metric.min(), 1.0);
+        assert_eq!(metric.max(), 5.0);
         assert_eq!(metric.name(), "test");
     }
 
@@ -573,11 +496,11 @@ mod tests {
 
         assert_eq!(metric.count(), 5);
         assert_eq!(metric.last_value(), 5.0);
-        assert_eq!(metric.value_mean().unwrap(), 3.0);
-        assert_eq!(metric.value_variance().unwrap(), 2.5);
-        assert_eq!(metric.value_std_dev().unwrap(), 1.5811388);
-        assert_eq!(metric.value_min().unwrap(), 1.0);
-        assert_eq!(metric.value_max().unwrap(), 5.0);
+        assert_eq!(metric.mean(), 3.0);
+        assert_eq!(metric.var(), 2.5);
+        assert_eq!(metric.stddev(), 1.5811388);
+        assert_eq!(metric.min(), 1.0);
+        assert_eq!(metric.max(), 5.0);
     }
 
     #[test]
@@ -606,14 +529,14 @@ mod tests {
         // seed with scalar samples first (creates Statistic but not Distribution tag)
         m.apply_update(1.0);
         m.apply_update(2.0);
-        assert!(m.tags().has(TagKind::Statistic));
-        assert!(!m.tags().has(TagKind::Distribution));
+        assert!(m.tags().has(TagType::Statistic));
+        assert!(!m.tags().has(TagType::Distribution));
 
         // now apply a slice update - we expect Distribution tag to appear
         m.apply_update(&[3.0, 4.0][..]);
 
         assert!(
-            m.tags().has(TagKind::Distribution),
+            m.tags().has(TagType::Distribution),
             "expected Distribution tag after slice update"
         );
     }

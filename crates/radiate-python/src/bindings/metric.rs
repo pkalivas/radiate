@@ -269,38 +269,38 @@ impl PyMetric {
     }
 
     #[getter]
-    pub fn value_sum(&self) -> Option<f32> {
-        self.inner.value_sum()
+    pub fn value_sum(&self) -> f32 {
+        self.inner.sum()
     }
 
     #[getter]
-    pub fn value_mean(&self) -> Option<f32> {
-        self.inner.value_mean()
+    pub fn value_mean(&self) -> f32 {
+        self.inner.mean()
     }
 
     #[getter]
-    pub fn value_stddev(&self) -> Option<f32> {
-        self.inner.value_std_dev()
+    pub fn value_stddev(&self) -> f32 {
+        self.inner.stddev()
     }
 
     #[getter]
-    pub fn value_variance(&self) -> Option<f32> {
-        self.inner.value_variance()
+    pub fn value_variance(&self) -> f32 {
+        self.inner.var()
     }
 
     #[getter]
-    pub fn value_skewness(&self) -> Option<f32> {
-        self.inner.value_skewness()
+    pub fn value_skewness(&self) -> f32 {
+        self.inner.skew()
     }
 
     #[getter]
-    pub fn value_min(&self) -> Option<f32> {
-        self.inner.value_min()
+    pub fn value_min(&self) -> f32 {
+        self.inner.min()
     }
 
     #[getter]
-    pub fn value_max(&self) -> Option<f32> {
-        self.inner.value_max()
+    pub fn value_max(&self) -> f32 {
+        self.inner.max()
     }
 
     #[getter]
@@ -311,37 +311,40 @@ impl PyMetric {
     // --- time stats (seconds as float) ---
     #[getter]
     pub fn time_last(&self) -> Duration {
-        self.inner.last_time()
+        self.inner
+            .times()
+            .and_then(|time| time.last())
+            .unwrap_or_default()
     }
 
     #[getter]
     pub fn time_sum(&self) -> Option<Duration> {
-        self.inner.time_sum()
+        self.inner.times().and_then(|time| time.sum())
     }
 
     #[getter]
     pub fn time_mean(&self) -> Option<Duration> {
-        self.inner.time_mean()
+        self.inner.times().and_then(|time| time.mean())
     }
 
     #[getter]
     pub fn time_stddev(&self) -> Option<Duration> {
-        self.inner.time_std_dev()
+        self.inner.times().and_then(|time| time.stddev())
     }
 
     #[getter]
     pub fn time_min(&self) -> Option<Duration> {
-        self.inner.time_min()
+        self.inner.times().and_then(|time| time.min())
     }
 
     #[getter]
     pub fn time_max(&self) -> Option<Duration> {
-        self.inner.time_max()
+        self.inner.times().and_then(|time| time.max())
     }
 
     #[getter]
     pub fn time_variance(&self) -> Option<Duration> {
-        self.inner.time_variance()
+        self.inner.times().and_then(|time| time.var())
     }
 
     /// Convert to a dict (nice for DataFrame construction / JSON dumps).

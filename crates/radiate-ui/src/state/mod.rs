@@ -1,11 +1,12 @@
 use crate::chart::RollingChart;
 use crate::widgets::num_pairs;
-use radiate_engines::stats::TagKind;
+use radiate_engines::stats::TagType;
 use radiate_engines::{
     Chromosome, Front, Metric, MetricSet, Objective, Optimize, Phenotype, Score,
 };
-use ratatui::widgets::{ListState, ScrollbarState, TableState};
+use ratatui::widgets::{Block, ListState, ScrollbarState, TableState};
 use std::time::{Duration, Instant};
+use tui_piechart::border_style;
 
 pub mod chart;
 pub use chart::{ChartState, ChartType};
@@ -13,7 +14,11 @@ pub use chart::{ChartState, ChartType};
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum PanelId {
     Filters,
-    Metrics,
+    MetricSummary,
+    Search,
+    TimeMetrics,
+    StatsMetrics,
+    DistMetrics,
     Help,
 }
 
@@ -24,12 +29,17 @@ pub struct RunningState {
     pub paused: bool,
 }
 
+pub struct SearchState {
+    pub query: String,
+    pub active: bool,
+}
+
 pub struct DisplayState {
     pub show_tag_filters: bool,
-    pub show_mini_chart: bool,
-    pub show_mini_chart_mean: bool,
     pub show_help: bool,
+    pub chart_id: ChartType,
     pub focus_panel: PanelId,
+    pub prev_focus_panel: PanelId,
     pub modal_panel: Option<PanelId>,
 }
 
@@ -37,20 +47,23 @@ pub struct DisplayState {
 pub enum MetricsTab {
     Time,
     Stats,
+    Distribution,
 }
 
 impl MetricsTab {
     pub fn next(self) -> Self {
         match self {
             MetricsTab::Stats => MetricsTab::Time,
-            MetricsTab::Time => MetricsTab::Stats,
+            MetricsTab::Time => MetricsTab::Distribution,
+            MetricsTab::Distribution => MetricsTab::Stats,
         }
     }
 
     pub fn previous(self) -> Self {
         match self {
-            MetricsTab::Stats => MetricsTab::Time,
+            MetricsTab::Stats => MetricsTab::Distribution,
             MetricsTab::Time => MetricsTab::Stats,
+            MetricsTab::Distribution => MetricsTab::Time,
         }
     }
 }
@@ -72,6 +85,7 @@ pub struct AppState<C: Chromosome> {
     pub display: DisplayState,
 
     pub filter_state: AppFilterState,
+    pub search_state: SearchState,
 
     pub objective_state: ObjectiveState,
     pub metrics: MetricSet,
@@ -80,6 +94,50 @@ pub struct AppState<C: Chromosome> {
 
     pub time_table: AppTableState,
     pub stats_table: AppTableState,
+    pub dist_table: AppTableState,
+}
+
+impl<C: Chromosome> AppState<C> {
+    pub fn start_search(&mut self) {
+        if self.display.modal_panel.is_some() {
+            return;
+        }
+
+        self.display.prev_focus_panel = self.display.focus_panel;
+        self.display.focus_panel = PanelId::Search;
+        self.search_state.active = true;
+    }
+
+    pub fn stop_search(&mut self) {
+        self.display.focus_panel = self.display.prev_focus_panel;
+        self.search_state.active = false;
+    }
+
+    pub fn clear_search(&mut self) {
+        self.search_state.query.clear();
+    }
+
+    pub fn push_search_char(&mut self, c: char) {
+        self.search_state.query.push(c);
+    }
+
+    pub fn pop_search_char(&mut self) {
+        self.search_state.query.pop();
+    }
+
+    pub fn metric_matches_search(&self, metric: &Metric) -> bool {
+        let query = self.search_state.query.trim();
+        if query.is_empty() {
+            return true;
+        }
+
+        let q = query.to_lowercase();
+
+        metric.name().to_lowercase().contains(&q)
+            || metric
+                .tags_iter()
+                .any(|tag| tag.as_str().to_lowercase().contains(&q))
+    }
 }
 
 impl<C: Chromosome> AppState<C> {
@@ -103,19 +161,22 @@ impl<C: Chromosome> AppState<C> {
         }
     }
 
-    pub fn toggle_mini_chart(&mut self) {
-        self.display.show_mini_chart = !self.display.show_mini_chart;
-    }
-
-    pub fn toggle_mini_chart_mean(&mut self) {
-        self.display.show_mini_chart_mean = !self.display.show_mini_chart_mean;
+    pub fn get_panel_block(&self, panel: PanelId) -> Block<'static> {
+        if self.display.focus_panel == panel {
+            border_style::BorderStyle::Rounded
+                .block()
+                .border_style(crate::styles::BORDER_GREEN)
+        } else {
+            border_style::BorderStyle::Rounded.block()
+        }
     }
 
     pub fn toggle_show_tag_filters(&mut self) {
         self.display.show_tag_filters = !self.display.show_tag_filters;
         if !self.display.show_tag_filters {
-            self.display.focus_panel = PanelId::Metrics;
+            self.display.focus_panel = self.display.prev_focus_panel;
         } else {
+            self.display.prev_focus_panel = self.display.focus_panel;
             self.display.focus_panel = PanelId::Filters;
         }
     }
@@ -147,6 +208,10 @@ impl<C: Chromosome> AppState<C> {
         if self.display.show_help {
             self.display.show_help = false;
             self.display.modal_panel = None;
+        }
+
+        if !self.search_state.active {
+            self.search_state.query.clear();
         }
 
         if !self.display.show_tag_filters {
@@ -203,32 +268,40 @@ impl<C: Chromosome> AppState<C> {
         self.running.paused
     }
 
-    pub fn display_any_mini_chart(&self) -> bool {
-        self.display.show_mini_chart || self.display.show_mini_chart_mean
-    }
-
-    pub fn display_mini_chart(&self) -> bool {
-        self.display.show_mini_chart
-    }
-
-    pub fn display_mini_chart_mean(&self) -> bool {
-        self.display.show_mini_chart_mean
-    }
-
     pub fn chart_state(&self) -> &ChartState {
         &self.chart_state
     }
 
-    pub fn chart_state_mut(&mut self) -> &mut ChartState {
-        &mut self.chart_state
-    }
-
     pub fn next_metrics_tab(&mut self) {
+        if let Some(PanelId::MetricSummary) = self.display.modal_panel {
+            self.display.chart_id = self.display.chart_id.next();
+            return;
+        }
+
+        self.display.prev_focus_panel = self.display.focus_panel;
+
         self.metrics_tab = self.metrics_tab.next();
+
+        self.display.focus_panel = match self.metrics_tab {
+            MetricsTab::Time => PanelId::TimeMetrics,
+            MetricsTab::Stats => PanelId::StatsMetrics,
+            MetricsTab::Distribution => PanelId::DistMetrics,
+        }
     }
 
     pub fn previous_metrics_tab(&mut self) {
+        if let Some(PanelId::MetricSummary) = self.display.modal_panel {
+            self.display.chart_id = self.display.chart_id.previous();
+            return;
+        }
+
+        self.display.focus_panel = self.display.prev_focus_panel;
         self.metrics_tab = self.metrics_tab.previous();
+        self.display.focus_panel = match self.metrics_tab {
+            MetricsTab::Time => PanelId::TimeMetrics,
+            MetricsTab::Stats => PanelId::StatsMetrics,
+            MetricsTab::Distribution => PanelId::DistMetrics,
+        }
     }
 
     pub fn metric_has_tags(&self, metric: &Metric) -> bool {
@@ -260,11 +333,14 @@ impl<C: Chromosome> AppState<C> {
                 self.filter_state.selected_row += 1;
             }
             return;
+        } else if let Some(PanelId::MetricSummary) = self.display.modal_panel {
+            return;
         }
 
         let state = match self.metrics_tab {
             MetricsTab::Time => &mut self.time_table,
             MetricsTab::Stats => &mut self.stats_table,
+            MetricsTab::Distribution => &mut self.dist_table,
         };
 
         if state.row_count == 0 {
@@ -300,9 +376,14 @@ impl<C: Chromosome> AppState<C> {
             return;
         }
 
+        if let Some(PanelId::MetricSummary) = self.display.modal_panel {
+            return;
+        }
+
         let state = match self.metrics_tab {
             MetricsTab::Time => &mut self.time_table,
             MetricsTab::Stats => &mut self.stats_table,
+            MetricsTab::Distribution => &mut self.dist_table,
         };
 
         if state.row_count == 0 {
@@ -327,7 +408,35 @@ impl<C: Chromosome> AppState<C> {
         }
     }
 
+    pub fn get_selected_metric(&self) -> Option<&'static str> {
+        match self.metrics_tab {
+            MetricsTab::Time => self.time_table.selected_metric,
+            MetricsTab::Stats => self.stats_table.selected_metric,
+            MetricsTab::Distribution => self.dist_table.selected_metric,
+        }
+    }
+
     pub fn toggle_tag_filter_selection(&mut self) {
+        if matches!(
+            self.display.focus_panel,
+            PanelId::TimeMetrics | PanelId::StatsMetrics | PanelId::DistMetrics
+        ) {
+            self.display.modal_panel = match self.display.modal_panel {
+                Some(PanelId::MetricSummary) => None,
+                _ => Some(PanelId::MetricSummary),
+            };
+
+            // let current_metric_name = match self.metrics_tab {
+            //     MetricsTab::Time => self.time_table.selected_metric.unwrap_or(""),
+            //     MetricsTab::Stats => self.stats_table.selected_metric.unwrap_or(""),
+            //     MetricsTab::Distribution => self.dist_table.selected_metric.unwrap_or(""),
+            // };
+
+            // self.display.metric_name = self.get_selected_metric();
+
+            return;
+        }
+
         if self.display.focus_panel != PanelId::Filters {
             return;
         }
@@ -361,10 +470,10 @@ impl<C: Chromosome> Default for AppState<C> {
             },
             display: DisplayState {
                 show_tag_filters: false,
-                show_mini_chart: false,
-                show_mini_chart_mean: true,
                 show_help: false,
-                focus_panel: PanelId::Metrics,
+                chart_id: ChartType::Mean,
+                focus_panel: PanelId::StatsMetrics,
+                prev_focus_panel: PanelId::StatsMetrics,
                 modal_panel: None,
             },
 
@@ -381,8 +490,14 @@ impl<C: Chromosome> Default for AppState<C> {
                 selected_row: 0,
             },
 
+            search_state: SearchState {
+                query: String::new(),
+                active: false,
+            },
+
             time_table: AppTableState::new(),
             stats_table: AppTableState::new(),
+            dist_table: AppTableState::new(),
             metrics: MetricSet::new(),
             index: 0,
             score: Score::default(),
@@ -393,7 +508,7 @@ impl<C: Chromosome> Default for AppState<C> {
 pub struct AppFilterState {
     pub tag_list_filter_state: ListState,
     pub tag_view: Vec<usize>,
-    pub all_tags: Vec<TagKind>,
+    pub all_tags: Vec<TagType>,
     pub selected_row: usize,
 }
 

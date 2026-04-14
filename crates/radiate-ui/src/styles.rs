@@ -3,6 +3,7 @@ use ratatui::style::{Color, palette::material};
 pub const BG_COLOR: Color = material::GRAY.c800;
 pub const ALT_BG_COLOR: Color = material::GRAY.c900;
 pub const TEXT_FG_COLOR: Color = material::GRAY.c300;
+pub const OVERLAY_COLOR: Color = material::GRAY.c700;
 
 pub(crate) const COLOR_WHEEL_400: [Color; 8] = [
     material::RED.c400,
@@ -16,6 +17,7 @@ pub(crate) const COLOR_WHEEL_400: [Color; 8] = [
 ];
 
 pub const SELECTED_GREEN: Color = material::GREEN.c300;
+pub const BORDER_GREEN: Color = material::GREEN.c200;
 
 pub fn alternating_row_style(index: usize) -> ratatui::style::Style {
     if index % 2 == 0 {

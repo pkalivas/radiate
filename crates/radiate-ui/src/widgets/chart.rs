@@ -2,18 +2,22 @@ use crate::chart::RollingChart;
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
-    style::{Style, Stylize},
+    style::{Color, Style, Stylize},
     symbols,
     text::Line,
     widgets::{Axis, Block, Chart, Dataset, GraphType, Widget},
 };
 pub struct ChartWidget<'a> {
     charts: Vec<&'a RollingChart>,
+    bg_color: Color,
 }
 
 impl<'a> ChartWidget<'a> {
     pub fn new(charts: Vec<&'a RollingChart>) -> Self {
-        Self { charts }
+        Self {
+            charts,
+            bg_color: crate::styles::ALT_BG_COLOR,
+        }
     }
 }
 
@@ -76,7 +80,7 @@ impl<'a> Widget for ChartWidget<'a> {
         let x_bounds = (min_x, max_x);
         let y_bounds = (min_y, max_y);
 
-        let chart = chart_widget(x_bounds, y_bounds, self.charts);
+        let chart = chart_widget(x_bounds, y_bounds, self.charts, self.bg_color);
         chart.render(area, buf);
     }
 }
@@ -85,6 +89,7 @@ fn chart_widget<'a>(
     x_bounds: (f64, f64),
     y_bounds: (f64, f64),
     charts: Vec<&'a RollingChart>,
+    bg_color: Color,
 ) -> ratatui::widgets::Chart<'a> {
     let (min_x, max_x) = x_bounds;
     let (min_y, max_y) = y_bounds;
@@ -104,7 +109,7 @@ fn chart_widget<'a>(
         .collect::<Vec<_>>();
 
     Chart::new(datasets)
-        .bg(crate::styles::ALT_BG_COLOR)
+        .bg(bg_color)
         .block(Block::bordered().title(Line::from(format!(" {} ", charts[0].title())).centered()))
         .x_axis(
             Axis::default()

@@ -1,7 +1,7 @@
 use crate::builder::EngineConfig;
 use crate::{Chromosome, EngineControl};
 use radiate_core::error::RadiateResult;
-use radiate_core::stats::TagKind;
+use radiate_core::stats::TagType;
 use radiate_core::{
     Ecosystem, Front, Lineage, MetricSet, MetricUpdate, Objective, Phenotype, Problem,
     RadiateError, Score, metric, metric_names,
@@ -81,7 +81,7 @@ impl<C: Chromosome, T> Context<C, T> {
                 let update = MetricUpdate::try_from(output)?;
                 let name = radiate_utils::intern!(name);
 
-                self.metrics.upsert((TagKind::Expr, name, update));
+                self.metrics.upsert((TagType::Expr, name, update));
             }
         }
 
