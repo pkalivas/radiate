@@ -1,13 +1,11 @@
-use std::fmt::format;
-
-use crate::state::{AppState, LineChartType};
-use crate::widgets::{FnWidget, LineChartWidget, Panel};
+use crate::state::AppState;
+use crate::widgets::{FnWidget, Panel};
 use radiate_engines::stats::{TagType, fmt_duration};
 use radiate_engines::{Chromosome, Metric};
 use ratatui::prelude::*;
 use ratatui::style::{Color, Stylize};
 use ratatui::text::ToSpan;
-use ratatui::widgets::{Paragraph, Row, Table, Tabs};
+use ratatui::widgets::{Paragraph, Row, Table};
 
 pub struct MetricDetailPanelWidget<C: Chromosome> {
     _phantom: std::marker::PhantomData<C>,
@@ -239,67 +237,67 @@ fn map_to_distribution_metric_rows(metric: &Metric) -> Vec<Row<'_>> {
     return vec![];
 }
 
-pub struct MetricChartPanelWidget<C: Chromosome> {
-    _phantom: std::marker::PhantomData<C>,
-}
+// pub struct MetricChartPanelWidget<C: Chromosome> {
+//     _phantom: std::marker::PhantomData<C>,
+// }
 
-impl<C: Chromosome> MetricChartPanelWidget<C> {
-    pub fn new() -> Self {
-        Self {
-            _phantom: std::marker::PhantomData,
-        }
-    }
-}
+// impl<C: Chromosome> MetricChartPanelWidget<C> {
+//     pub fn new() -> Self {
+//         Self {
+//             _phantom: std::marker::PhantomData,
+//         }
+//     }
+// }
 
-impl<C: Chromosome> StatefulWidget for MetricChartPanelWidget<C> {
-    type State = AppState<C>;
+// impl<C: Chromosome> StatefulWidget for MetricChartPanelWidget<C> {
+//     type State = AppState<C>;
 
-    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let Some(name) = state.get_selected_metric() else {
-            Paragraph::new(Line::from("No metric selected").centered()).render(area, buf);
-            return;
-        };
+//     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+//         let Some(name) = state.get_selected_metric() else {
+//             Paragraph::new(Line::from("No metric selected").centered()).render(area, buf);
+//             return;
+//         };
 
-        let titles = LineChartType::chart_options()
-            .into_iter()
-            .map(|t| Span::styled(format!(" {t} "), Style::default().fg(Color::White)));
+//         let titles = LineChartType::chart_options()
+//             .into_iter()
+//             .map(|t| Span::styled(format!(" {t} "), Style::default().fg(Color::White)));
 
-        let index = match state.display.chart_id {
-            LineChartType::Value => 0,
-            LineChartType::Mean => 1,
-            LineChartType::Stddev => 2,
-            LineChartType::Variance => 3,
-        };
+//         let index = match state.display.chart_id {
+//             LineChartType::Value => 0,
+//             LineChartType::Mean => 1,
+//             LineChartType::Stddev => 2,
+//             LineChartType::Variance => 3,
+//         };
 
-        let chart_type = state.display.chart_id;
-        let charts = state.get_chart_by_key(name, chart_type);
-        let chart_name = charts
-            .map(|c| format!(" {} ", c.title()))
-            .unwrap_or_default();
+//         let chart_type = state.display.chart_id;
+//         let charts = state.get_chart_by_key(name, chart_type);
+//         let chart_name = charts
+//             .map(|c| format!(" {} ", c.title()))
+//             .unwrap_or_default();
 
-        LineChartWidget::from(charts)
-            .with_show_x_axis(true)
-            .render(area, buf);
+//         LineChartWidget::from(charts)
+//             .with_show_x_axis(true)
+//             .render(area, buf);
 
-        // Panel::new(FnWidget::new(|area, buf| {
-        //     let chunks = Layout::default()
-        //         .direction(Direction::Vertical)
-        //         .constraints([Constraint::Length(1), Constraint::Fill(1)])
-        //         .split(area);
+//         Panel::new(FnWidget::new(|area, buf| {
+//             let chunks = Layout::default()
+//                 .direction(Direction::Vertical)
+//                 .constraints([Constraint::Length(1), Constraint::Fill(1)])
+//                 .split(area);
 
-        //     Tabs::new(titles)
-        //         .select(index)
-        //         .padding(" ", " ")
-        //         .divider(" ")
-        //         .highlight_style(crate::styles::selected_item_style())
-        //         .bold()
-        //         .render(chunks[0], buf);
+//             Tabs::new(titles)
+//                 .select(index)
+//                 .padding(" ", " ")
+//                 .divider(" ")
+//                 .highlight_style(crate::styles::selected_item_style())
+//                 .bold()
+//                 .render(chunks[0], buf);
 
-        //     LineChartWidget::from(charts)
-        //         .with_show_x_axis(true)
-        //         .render(chunks[1], buf);
-        // }))
-        // .titled(chart_name.fg(crate::styles::SELECTED_GREEN).bold())
-        // .render(area, buf);
-    }
-}
+//             LineChartWidget::from(charts)
+//                 .with_show_x_axis(true)
+//                 .render(chunks[1], buf);
+//         }))
+//         .titled(chart_name.fg(crate::styles::SELECTED_GREEN).bold())
+//         .render(area, buf);
+//     }
+// }

@@ -31,7 +31,6 @@ pub enum PanelId {
     SpeciesSparkline,
 
     MetricDetail,
-    MetricChart,
 
     Help,
     HelpMinimal,

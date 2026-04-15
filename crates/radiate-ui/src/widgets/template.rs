@@ -5,7 +5,7 @@ use crate::{
         MetricDetailPanelWidget, Panel, SearchBarWidget, StatsTableWidget, TabComponent,
         TimeTableWidget,
         components::{SpeciesPieChartComponent, SpeciesSparklineComponent, TimePieChartComponent},
-        panels::{HelpTextMinimal, MetricChartPanelWidget, tables::SpeciesTableWidget},
+        panels::{HelpTextMinimal, tables::SpeciesTableWidget},
     },
 };
 use radiate_engines::Chromosome;
@@ -99,7 +99,6 @@ impl LayoutNode {
                 }
                 PanelId::Search => SearchBarWidget::new(state).render(area, buf),
                 PanelId::HelpMinimal => HelpTextMinimal.render(area, buf),
-                PanelId::MetricChart => MetricChartPanelWidget::new().render(area, buf, state),
                 _ => {}
             },
         }
@@ -131,14 +130,12 @@ impl Default for LayoutNode {
                             children: vec![
                                 LayoutNode::Horizontal {
                                     constraints: vec![
-                                        Constraint::Percentage(15),
                                         Constraint::Fill(1),
-                                        Constraint::Percentage(40),
+                                        Constraint::Percentage(15),
                                     ],
                                     children: vec![
-                                        LayoutNode::Widget(PanelId::MetricDetail),
                                         LayoutNode::Widget(PanelId::StatsTable),
-                                        LayoutNode::Widget(PanelId::MetricChart),
+                                        LayoutNode::Widget(PanelId::MetricDetail),
                                     ],
                                 },
                                 LayoutNode::Horizontal {
