@@ -97,7 +97,7 @@ impl<C: Chromosome> StatefulWidget for StatsTableWidget<C> {
             .rows(striped_rows(metrics_into_stat_rows(items.into_iter())))
             .row_highlight_style(crate::styles::selected_item_style())
             .highlight_spacing(ratatui::widgets::HighlightSpacing::Always)
-            .widths(once(Constraint::Length(22)).chain(repeat(Constraint::Fill(1)).take(7)));
+            .widths(once(Constraint::Length(20)).chain(repeat(Constraint::Fill(1)).take(3)));
 
         render_scrollable_table(buf, area, table, &mut state.stats_table);
     }
@@ -207,7 +207,6 @@ pub fn tagged_metrics<'a, C: Chromosome>(
 ) -> Vec<(&'static str, &'a Metric)> {
     let mut items = metrics
         .iter_tagged(tag)
-        // .filter(|(_, m)| state.metric_has_tags(m))
         .filter(|(_, m)| state.metric_matches_search(m))
         .collect::<Vec<_>>();
     items.sort_unstable_by(|a, b| a.0.cmp(b.0));
@@ -248,10 +247,10 @@ fn metrics_into_stat_rows<'a>(
                 Cell::from(format!("{:.2}", stat.min().unwrap_or_default())),
                 Cell::from(format!("{:.2}", stat.max().unwrap_or_default())),
                 Cell::from(format!("{:.2}", stat.mean().unwrap_or_default())),
-                Cell::from(format!("{:.2}", stat.sum().unwrap_or_default())),
-                Cell::from(format!("{:.2}", stat.stddev().unwrap_or(0.0))),
-                Cell::from(format!("{:.2}", stat.var().unwrap_or(0.0))),
-                Cell::from(format!("{}", stat.count())),
+                // Cell::from(format!("{:.2}", stat.sum().unwrap_or_default())),
+                // Cell::from(format!("{:.2}", stat.stddev().unwrap_or(0.0))),
+                // Cell::from(format!("{:.2}", stat.var().unwrap_or(0.0))),
+                // Cell::from(format!("{}", stat.count())),
             ]))
         } else {
             None

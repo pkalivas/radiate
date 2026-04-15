@@ -3,11 +3,10 @@ pub mod chart;
 use crate::chart::RollingLineChart;
 use crate::widgets::num_pairs;
 use radiate_engines::species::SpeciesId;
-use radiate_engines::stats::TagType;
 use radiate_engines::{
     Chromosome, Front, Metric, MetricSet, Objective, Optimize, Phenotype, Score, SpeciesSnapshot,
 };
-use ratatui::widgets::{Block, ListState, ScrollbarState, TableState};
+use ratatui::widgets::{Block, ScrollbarState, TableState};
 use std::time::{Duration, Instant};
 use tui_piechart::border_style;
 
@@ -18,7 +17,6 @@ pub enum PanelId {
     EngineStatus,
     FitnessChart,
 
-    Tags,
     MetricModal,
     Search,
 
@@ -33,6 +31,7 @@ pub enum PanelId {
     SpeciesSparkline,
 
     MetricDetail,
+    MetricChart,
 
     Help,
     HelpMinimal,
@@ -54,15 +53,19 @@ pub struct DisplayState {
     pub show_tag_filters: bool,
     pub show_help: bool,
     pub chart_id: LineChartType,
+    pub previous_tab: TabId,
     pub tab_id: TabId,
     pub focus_panel: PanelId,
     pub prev_focus_panel: PanelId,
     pub modal_panel: Option<PanelId>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TabId {
     Dashboard,
     MetricChart,
+    SearchBar,
+    Help,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -110,7 +113,6 @@ pub struct AppState<C: Chromosome> {
     pub running: RunningState,
     pub display: DisplayState,
 
-    // pub filter_state: AppFilterState,
     pub search_state: SearchState,
 
     pub objective_state: ObjectiveState,
@@ -132,12 +134,17 @@ impl<C: Chromosome> AppState<C> {
         }
 
         self.display.prev_focus_panel = self.display.focus_panel;
+        self.display.previous_tab = self.display.tab_id;
+        self.display.tab_id = TabId::SearchBar;
         self.display.focus_panel = PanelId::Search;
         self.search_state.active = true;
     }
 
     pub fn stop_search(&mut self) {
         self.display.focus_panel = self.display.prev_focus_panel;
+        let prev_tab = self.display.previous_tab;
+        self.display.previous_tab = self.display.tab_id;
+        self.display.tab_id = prev_tab;
         self.search_state.active = false;
     }
 
@@ -189,21 +196,16 @@ impl<C: Chromosome> AppState<C> {
         }
     }
 
-    pub fn toggle_show_tag_filters(&mut self) {
-        self.display.show_tag_filters = !self.display.show_tag_filters;
-        if !self.display.show_tag_filters {
-            self.display.focus_panel = self.display.prev_focus_panel;
-        } else {
-            self.display.prev_focus_panel = self.display.focus_panel;
-            self.display.focus_panel = PanelId::Tags;
-        }
-    }
-
     pub fn toggle_help(&mut self) {
         self.display.show_help = !self.display.show_help;
         if self.display.show_help {
+            self.display.previous_tab = self.display.tab_id;
+            self.display.tab_id = TabId::Help;
             self.display.modal_panel = Some(PanelId::Help);
         } else {
+            let prev_tab = self.display.previous_tab;
+            self.display.previous_tab = self.display.tab_id;
+            self.display.tab_id = prev_tab;
             self.display.modal_panel = None;
         }
     }
@@ -235,8 +237,6 @@ impl<C: Chromosome> AppState<C> {
         if !self.display.show_tag_filters {
             return;
         }
-
-        // self.filter_state.tag_view.clear();
     }
 
     pub fn next_objective_pair_page(&mut self) {
@@ -304,6 +304,8 @@ impl<C: Chromosome> AppState<C> {
                 LineChartType::Stddev => 2,
                 LineChartType::Variance => 3,
             },
+            TabId::SearchBar => 0,
+            TabId::Help => 0,
         }
     }
 
@@ -323,6 +325,7 @@ impl<C: Chromosome> AppState<C> {
             TabId::MetricChart => {
                 self.display.chart_id = self.display.chart_id.next();
             }
+            _ => return,
         }
     }
 
@@ -342,39 +345,12 @@ impl<C: Chromosome> AppState<C> {
             TabId::MetricChart => {
                 self.display.chart_id = self.display.chart_id.previous();
             }
+            _ => return,
         }
     }
 
-    // pub fn metric_has_tags(&self, metric: &Metric) -> bool {
-    //     if self.filter_state.tag_view.is_empty() {
-    //         true
-    //     } else {
-    //         for &tag_index in &self.filter_state.tag_view {
-    //             if let Some(tag) = self.filter_state.all_tags.get(tag_index) {
-    //                 if metric.contains_tag(tag) {
-    //                     return true;
-    //                 }
-    //             }
-    //         }
-
-    //         false
-    //     }
-    // }
-
     pub fn move_selection_down(&mut self) {
-        if self.display.focus_panel == PanelId::Tags {
-            // if self.filter_state.all_tags.is_empty() {
-            //     return;
-            // }
-
-            // let last_index = self.filter_state.all_tags.len() - 1;
-            // if self.filter_state.selected_row >= last_index {
-            //     self.filter_state.selected_row = 0;
-            // } else {
-            //     self.filter_state.selected_row += 1;
-            // }
-            // return;
-        } else if let Some(PanelId::MetricModal) = self.display.modal_panel {
+        if let Some(PanelId::MetricModal) = self.display.modal_panel {
             return;
         }
 
@@ -409,21 +385,6 @@ impl<C: Chromosome> AppState<C> {
     }
 
     pub fn move_selection_up(&mut self) {
-        // if self.display.focus_panel == PanelId::Tags {
-        //     if self.filter_state.all_tags.is_empty() {
-        //         return;
-        //     }
-
-        //     let last_index = self.filter_state.all_tags.len() - 1;
-        //     if self.filter_state.selected_row == 0 {
-        //         self.filter_state.selected_row = last_index;
-        //     } else {
-        //         self.filter_state.selected_row -= 1;
-        //     }
-
-        //     return;
-        // }
-
         if let Some(PanelId::MetricModal) = self.display.modal_panel {
             return;
         }
@@ -468,7 +429,7 @@ impl<C: Chromosome> AppState<C> {
         }
     }
 
-    pub fn toggle_tag_filter_selection(&mut self) {
+    pub fn view_metric(&mut self) {
         if matches!(
             self.display.focus_panel,
             PanelId::TimeTable | PanelId::StatsTable | PanelId::DistTable | PanelId::MetricModal
@@ -489,21 +450,6 @@ impl<C: Chromosome> AppState<C> {
 
             return;
         }
-
-        if self.display.focus_panel != PanelId::Tags {
-            return;
-        }
-
-        // let selected_index = self.filter_state.selected_row;
-        // if self.filter_state.tag_view.contains(&selected_index) {
-        //     self.filter_state.tag_view.retain(|&i| i != selected_index);
-        // } else {
-        //     if selected_index < self.filter_state.all_tags.len() {
-        //         self.filter_state.tag_view.push(selected_index);
-        //     } else {
-        //         self.filter_state.tag_view.retain(|&i| i != selected_index);
-        //     }
-        // }
     }
 
     pub fn update_metrics(&mut self, metrics: MetricSet) {
@@ -512,16 +458,6 @@ impl<C: Chromosome> AppState<C> {
         }
 
         self.metrics = metrics;
-
-        // self.filter_state.all_tags = self
-        //     .metrics
-        //     .tags()
-        //     .filter(|tag| {
-        //         *tag != TagType::Statistic && *tag != TagType::Time && *tag != TagType::Distribution
-        //     })
-        //     .collect();
-
-        // self.filter_state.all_tags.sort();
     }
 
     pub fn update_species(&mut self, species: Option<Vec<SpeciesSnapshot>>) {
@@ -553,6 +489,7 @@ impl<C: Chromosome> Default for AppState<C> {
                 show_help: false,
                 chart_id: LineChartType::Mean,
                 tab_id: TabId::Dashboard,
+                previous_tab: TabId::Dashboard,
                 focus_panel: PanelId::StatsTable,
                 prev_focus_panel: PanelId::StatsTable,
                 modal_panel: None,
@@ -565,12 +502,6 @@ impl<C: Chromosome> Default for AppState<C> {
                 objective_index: 0,
             },
 
-            // filter_state: AppFilterState {
-            //     tag_list_filter_state: ListState::default(),
-            //     tag_view: Vec::new(),
-            //     all_tags: Vec::new(),
-            //     selected_row: 0,
-            // },
             search_state: SearchState {
                 query: String::new(),
                 active: false,
@@ -587,13 +518,6 @@ impl<C: Chromosome> Default for AppState<C> {
         }
     }
 }
-
-// pub struct AppFilterState {
-//     pub tag_list_filter_state: ListState,
-//     pub tag_view: Vec<usize>,
-//     pub all_tags: Vec<TagType>,
-//     pub selected_row: usize,
-// }
 
 pub struct AppTableState<T> {
     pub state: TableState,

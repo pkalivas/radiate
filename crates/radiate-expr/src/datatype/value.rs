@@ -250,21 +250,21 @@ impl<'a> AnyValue<'a> {
         }
     }
 
-    pub fn extract<T: NumCast>(self) -> Option<T> {
+    pub fn extract<T: NumCast>(&self) -> Option<T> {
         match self {
-            AnyValue::UInt8(v) => NumCast::from(v),
-            AnyValue::UInt16(v) => NumCast::from(v),
-            AnyValue::UInt32(v) => NumCast::from(v),
-            AnyValue::UInt64(v) => NumCast::from(v),
-            AnyValue::UInt128(v) => NumCast::from(v),
-            AnyValue::Int8(v) => NumCast::from(v),
-            AnyValue::Int16(v) => NumCast::from(v),
-            AnyValue::Int32(v) => NumCast::from(v),
-            AnyValue::Int64(v) => NumCast::from(v),
-            AnyValue::Int128(v) => NumCast::from(v),
-            AnyValue::Float32(v) => NumCast::from(v),
-            AnyValue::Float64(v) => NumCast::from(v),
-            AnyValue::Duration(d) => NumCast::from(d.as_millis() as u64),
+            AnyValue::UInt8(v) => NumCast::from(*v),
+            AnyValue::UInt16(v) => NumCast::from(*v),
+            AnyValue::UInt32(v) => NumCast::from(*v),
+            AnyValue::UInt64(v) => NumCast::from(*v),
+            AnyValue::UInt128(v) => NumCast::from(*v),
+            AnyValue::Int8(v) => NumCast::from(*v),
+            AnyValue::Int16(v) => NumCast::from(*v),
+            AnyValue::Int32(v) => NumCast::from(*v),
+            AnyValue::Int64(v) => NumCast::from(*v),
+            AnyValue::Int128(v) => NumCast::from(*v),
+            AnyValue::Float32(v) => NumCast::from(*v),
+            AnyValue::Float64(v) => NumCast::from(*v),
+            AnyValue::Duration(d) => NumCast::from(d.as_millis()),
             _ => None,
         }
     }
@@ -273,6 +273,14 @@ impl<'a> AnyValue<'a> {
         match self {
             AnyValue::Str(s) => Some(s.to_string()),
             AnyValue::StrOwned(s) => Some(s),
+            _ => None,
+        }
+    }
+
+    pub fn as_str(&self) -> Option<&str> {
+        match self {
+            AnyValue::Str(s) => Some(*s),
+            AnyValue::StrOwned(s) => Some(s.as_str()),
             _ => None,
         }
     }
@@ -526,22 +534,16 @@ pub(crate) fn apply_zipped_struct_slice(
 }
 
 #[inline]
-pub(crate) fn dedup<'a>(value: AnyValue<'a>) -> Option<AnyValue<'a>> {
-    let values = match value {
-        AnyValue::Slice(vals) => vals,
-        AnyValue::Vector(ref vals) => vals,
-        _ => return None,
-    };
-
-    let mut sorted_buff = Vec::with_capacity(values.len());
-    for v in values.iter() {
+pub(crate) fn dedup_slice<'a>(value: &[AnyValue<'a>]) -> AnyValue<'a> {
+    let mut sorted_buff = Vec::with_capacity(value.len());
+    for v in value.iter() {
         match sorted_buff.binary_search(v) {
             Ok(_) => {}
             Err(pos) => sorted_buff.insert(pos, v.clone()),
         }
     }
 
-    return Some(AnyValue::Vector(sorted_buff));
+    AnyValue::Vector(sorted_buff)
 }
 
 #[cfg(feature = "serde")]

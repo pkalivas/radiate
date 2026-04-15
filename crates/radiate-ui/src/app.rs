@@ -1,4 +1,4 @@
-use crate::state::{AppState, PanelId};
+use crate::state::{AppState, PanelId, TabId};
 use crate::widgets::{HelpPanelWidget, LayoutNode, MetricModalWidget, ModalWidget};
 use color_eyre::Result;
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
@@ -7,9 +7,9 @@ use radiate_engines::{
     SpeciesSnapshot,
 };
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Constraint, Layout, Rect};
+use ratatui::layout::Rect;
 use ratatui::style::Style;
-use ratatui::widgets::{Paragraph, StatefulWidget, Widget};
+use ratatui::widgets::{StatefulWidget, Widget};
 use ratatui::{Terminal, backend::CrosstermBackend};
 use std::sync::{Arc, mpsc};
 use std::{
@@ -78,13 +78,12 @@ where
     fn throttle_next(&mut self) -> Result<bool> {
         match self.channel.next()? {
             InputEvent::Crossterm(event) => match event {
-                Event::Key(key_event) => {
-                    if self.state.search_state.active {
-                        self.handle_search_key_event(key_event);
-                    } else {
-                        self.handle_key_event(key_event.code);
-                    }
-                }
+                Event::Key(key_event) => match self.state.display.tab_id {
+                    TabId::SearchBar => self.handle_search_tab_event(key_event),
+                    TabId::Help => self.handle_help_tab_event(key_event),
+                    TabId::MetricChart => self.handle_metric_tab_event(key_event),
+                    _ => self.handle_dashboard_event(key_event.code),
+                },
                 _ => {}
             },
             InputEvent::EngineStart(objective) => {
@@ -108,14 +107,40 @@ where
         Ok(true)
     }
 
-    fn handle_search_key_event(&mut self, key: KeyEvent) {
+    fn handle_metric_tab_event(&mut self, key: KeyEvent) {
+        match key.code {
+            KeyCode::Esc => self.state.view_metric(),
+
+            KeyCode::Right | KeyCode::Char('l') => self.state.next_tab(),
+            KeyCode::Left | KeyCode::Char('h') => self.state.previous_tab(),
+
+            KeyCode::Char('p') => {
+                let paused = self.control.toggle_pause();
+                self.state.running.paused = paused;
+            }
+            KeyCode::Char('n') => {
+                self.control.step_once();
+                self.state.running.paused = true;
+            }
+
+            KeyCode::Enter => self.state.view_metric(),
+            _ => {}
+        }
+    }
+
+    fn handle_help_tab_event(&mut self, key: KeyEvent) {
+        match (key.code, key.modifiers) {
+            (KeyCode::Esc, _) | (KeyCode::Char('H'), _) | (KeyCode::Char('?'), _) => {
+                self.state.toggle_help();
+            }
+            _ => {}
+        }
+    }
+
+    fn handle_search_tab_event(&mut self, key: KeyEvent) {
         match (key.code, key.modifiers) {
             (KeyCode::Esc, _) => {
-                if self.state.search_state.query.is_empty() {
-                    self.state.clear_search();
-                } else {
-                    self.state.stop_search();
-                }
+                self.state.stop_search();
             }
             (KeyCode::Enter, _) => self.state.stop_search(),
             (KeyCode::Backspace, _) => self.state.pop_search_char(),
@@ -129,7 +154,7 @@ where
         }
     }
 
-    fn handle_key_event(&mut self, key: KeyCode) {
+    fn handle_dashboard_event(&mut self, key: KeyCode) {
         match key {
             KeyCode::Char('/') => self.state.start_search(),
 
@@ -139,8 +164,6 @@ where
             }
 
             KeyCode::Char('?') | KeyCode::Char('H') => self.state.toggle_help(),
-
-            KeyCode::Char('f') => self.state.toggle_show_tag_filters(),
 
             KeyCode::Down | KeyCode::Char('j') => self.state.move_selection_down(),
             KeyCode::Up | KeyCode::Char('k') => self.state.move_selection_up(),
@@ -163,7 +186,7 @@ where
             }
 
             KeyCode::Esc => self.state.clear_filters(),
-            KeyCode::Enter => self.state.toggle_tag_filter_selection(),
+            KeyCode::Enter => self.state.view_metric(),
 
             KeyCode::Char(c) => {
                 if let Some(digit) = c.to_digit(10) {

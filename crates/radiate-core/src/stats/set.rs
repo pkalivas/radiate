@@ -225,9 +225,9 @@ impl ExprProjection for MetricSet {
             return None;
         };
 
-        let str_key = key.clone().into_string()?;
+        let str_key = key.as_str()?;
 
-        self.get(str_key.as_str())
+        self.get(str_key)
             .map(|metric| match field.dtype() {
                 DataType::Float32 => match field.name().to_lowercase().as_str() {
                     "last_value" => AnyValue::Float32(metric.last_value()),

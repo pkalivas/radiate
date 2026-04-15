@@ -310,6 +310,8 @@ mod test {
         let mut expr = expr::select("time").time().rolling(10).min();
         let mut metrics = MetricSet::default();
 
+        println!("{:#?}", expr);
+
         metrics.upsert(("time", Duration::from_secs(5)));
         expr.dispatch(&metrics).unwrap();
         metrics.upsert(("time", Duration::from_secs(3)));

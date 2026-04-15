@@ -1,5 +1,5 @@
 use crate::{AnyValue, DataType, Expr, ExprProjection, ExprQuery, ExprResult, value};
-use radiate_error::{radiate_bail, radiate_err};
+use radiate_error::radiate_bail;
 use radiate_utils::{Slope, Statistic, WindowBuffer};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -27,6 +27,7 @@ pub enum Rollup {
 pub struct AggExpr {
     pub(super) child: Box<Expr>,
     pub(super) rollup: Rollup,
+    pub(super) buffer: Option<WindowBuffer<AnyValue<'static>>>,
 }
 
 impl AggExpr {
@@ -34,22 +35,40 @@ impl AggExpr {
         Self {
             child: Box::new(child),
             rollup,
+            buffer: None,
         }
     }
 
-    fn compute_rollup<'a>(values: &[AnyValue<'a>], rollup: Rollup) -> ExprResult<'a> {
-        let mut stats = Statistic::default();
-        let mut dtype = DataType::Null;
+    pub fn rolling(mut self, window_size: usize) -> Self {
+        self.buffer = Some(WindowBuffer::with_window(window_size));
+        self
+    }
 
+    fn compute_rollup<'a>(
+        values: &[AnyValue<'a>],
+        rollup: Rollup,
+        dtype: DataType,
+    ) -> ExprResult<'a> {
         if values.is_empty() {
             return match rollup {
                 Rollup::Count => Ok(AnyValue::UInt64(0)),
-                Rollup::Unique => Ok(AnyValue::Vector(vec![])),
                 _ => Ok(AnyValue::Float32(0.0)),
             };
         }
 
-        if let Rollup::First = rollup {
+        if values.len() == 1 {
+            return match rollup {
+                Rollup::Count => Ok(AnyValue::UInt64(1)),
+                Rollup::Unique => Ok(values[0].clone()),
+                _ => Ok(values[0].clone()),
+            };
+        }
+
+        if let Rollup::Unique = rollup {
+            return Ok(value::dedup_slice(values));
+        } else if let Rollup::Count = rollup {
+            return Ok(AnyValue::UInt64(values.len() as u64));
+        } else if let Rollup::First = rollup {
             return Ok(values[0].clone());
         } else if let Rollup::Last = rollup {
             return Ok(values[values.len() - 1].clone());
@@ -60,32 +79,16 @@ impl AggExpr {
 
             let slope = values
                 .iter()
-                .filter_map(|v| v.clone().extract::<f32>())
+                .filter_map(|v| v.extract::<f32>())
                 .collect::<Slope<f32>>();
 
             return Ok(AnyValue::Float32(slope.value().unwrap_or(0.0)));
         }
 
-        for value in values.iter() {
-            if value.is_nested() {
-                return Ok(AnyValue::Null);
-            }
-
-            if dtype == DataType::Null {
-                dtype = value.dtype();
-            } else if dtype != value.dtype() {
-                radiate_bail!(Expr:
-                    "Cannot compute {:?} rollup for values of different types: {:?} and {:?}",
-                    rollup,
-                    dtype,
-                    value.dtype()
-                );
-            }
-
-            if let Some(v) = value.clone().extract::<f32>() {
-                stats.add(v);
-            }
-        }
+        let stats = values
+            .iter()
+            .filter_map(|val| val.extract::<f32>())
+            .collect::<Statistic>();
 
         let result = match rollup {
             Rollup::Mean => AnyValue::Float32(stats.mean()),
@@ -93,6 +96,7 @@ impl AggExpr {
             Rollup::Min => AnyValue::Float32(stats.min()),
             Rollup::Max => AnyValue::Float32(stats.max()),
             Rollup::Sum => AnyValue::Float32(stats.sum()),
+            Rollup::Count => AnyValue::UInt64(stats.count() as u64),
             _ => AnyValue::Null,
         };
 
@@ -106,25 +110,21 @@ where
 {
     fn dispatch<'a>(&'a mut self, input: &T) -> ExprResult<'a> {
         let child_output = self.child.dispatch(input)?;
+        let dtype = child_output.dtype();
 
-        if let Rollup::Unique = self.rollup {
-            return match value::dedup(child_output) {
-                Some(deduped) => Ok(deduped),
-                None => Err(radiate_err!(
-                    "Unique rollup is only supported for slices and vectors"
-                )),
-            };
-        } else if let Rollup::Count = self.rollup {
-            return match child_output.len() {
-                Some(len) => Ok(AnyValue::UInt64(len as u64)),
-                None => Ok(AnyValue::Null),
-            };
+        if let Some(buffer) = &mut self.buffer {
+            buffer.push(child_output.into_static());
+            return Self::compute_rollup(buffer.values(), self.rollup, dtype);
         }
 
         match child_output {
-            AnyValue::Slice(values) => Self::compute_rollup(values, self.rollup),
-            AnyValue::Vector(values) => Self::compute_rollup(&values, self.rollup),
-            _ => Ok(child_output),
+            AnyValue::Slice(values) => Self::compute_rollup(values, self.rollup, dtype),
+            AnyValue::Vector(values) => Self::compute_rollup(&values, self.rollup, dtype),
+            _ => match self.rollup {
+                Rollup::Count => Ok(AnyValue::UInt64(1)),
+                Rollup::Unique => Ok(AnyValue::Vector(vec![child_output])),
+                _ => Ok(child_output),
+            },
         }
     }
 }

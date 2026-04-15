@@ -5,7 +5,7 @@ use crate::{
         MetricDetailPanelWidget, Panel, SearchBarWidget, StatsTableWidget, TabComponent,
         TimeTableWidget,
         components::{SpeciesPieChartComponent, SpeciesSparklineComponent, TimePieChartComponent},
-        panels::{HelpTextMinimal, tables::SpeciesTableWidget},
+        panels::{HelpTextMinimal, MetricChartPanelWidget, tables::SpeciesTableWidget},
     },
 };
 use radiate_engines::Chromosome;
@@ -99,6 +99,7 @@ impl LayoutNode {
                 }
                 PanelId::Search => SearchBarWidget::new(state).render(area, buf),
                 PanelId::HelpMinimal => HelpTextMinimal.render(area, buf),
+                PanelId::MetricChart => MetricChartPanelWidget::new().render(area, buf, state),
                 _ => {}
             },
         }
@@ -130,23 +131,25 @@ impl Default for LayoutNode {
                             children: vec![
                                 LayoutNode::Horizontal {
                                     constraints: vec![
+                                        Constraint::Percentage(15),
                                         Constraint::Fill(1),
-                                        Constraint::Percentage(20),
+                                        Constraint::Percentage(40),
                                     ],
                                     children: vec![
-                                        LayoutNode::Widget(PanelId::StatsTable),
                                         LayoutNode::Widget(PanelId::MetricDetail),
+                                        LayoutNode::Widget(PanelId::StatsTable),
+                                        LayoutNode::Widget(PanelId::MetricChart),
                                     ],
                                 },
                                 LayoutNode::Horizontal {
                                     constraints: vec![
-                                        Constraint::Percentage(30),
                                         Constraint::Fill(1),
+                                        Constraint::Percentage(30),
                                         Constraint::Percentage(20),
                                     ],
                                     children: vec![
-                                        LayoutNode::Widget(PanelId::TimePieChart),
                                         LayoutNode::Widget(PanelId::TimeTable),
+                                        LayoutNode::Widget(PanelId::TimePieChart),
                                         LayoutNode::Widget(PanelId::MetricDetail),
                                     ],
                                 },

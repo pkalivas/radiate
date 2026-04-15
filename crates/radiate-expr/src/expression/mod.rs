@@ -1,5 +1,6 @@
 mod aggregate;
 mod logical;
+mod named;
 mod ops;
 mod projection;
 mod schedule;
@@ -12,13 +13,14 @@ use crate::{
 
 use aggregate::{AggExpr, BufferExpr, Rollup};
 use logical::When;
+pub use named::NamedExpr;
 use ops::{BinaryExpr, BinaryOp, TrinaryExpr, TrinaryOp, UnaryExpr, UnaryOp};
 pub use projection::*;
 use radiate_error::RadiateError;
-use radiate_utils::SmallStr;
+use radiate_utils::{SmallStr, WindowBuffer};
 pub use select::SelectExpr;
 #[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize, ser::SerializeStruct};
+use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
 mod expr_fields {
@@ -34,8 +36,6 @@ mod expr_fields {
     pub static SKEW: Field = Field::new_const("skew", DataType::Float32);
     pub static COUNT: Field = Field::new_const("count", DataType::UInt64);
     pub static LAST_VALUE: Field = Field::new_const("last_value", DataType::Float32);
-    // pub static VERSION: Field = Field::new_const("version", DataType::UInt64);
-    // pub static UPDATE_COUNT: Field = Field::new_const("update_count", DataType::UInt64);
 }
 
 pub(crate) type ExprResult<'a> = Result<AnyValue<'a>, RadiateError>;
@@ -46,70 +46,6 @@ pub trait ApplyExpr<'a> {
 
 pub trait ExprQuery<I> {
     fn dispatch<'a>(&'a mut self, input: &I) -> ExprResult<'a>;
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct NamedExpr {
-    pub name: &'static str,
-    pub expr: Expr,
-}
-
-impl NamedExpr {
-    pub fn new(name: &'static str, expr: Expr) -> Self {
-        Self { name, expr }
-    }
-
-    pub fn pair(&mut self) -> (&'static str, &mut Expr) {
-        (self.name, &mut self.expr)
-    }
-
-    pub fn expr(&self) -> &Expr {
-        &self.expr
-    }
-
-    pub fn expr_mut(&mut self) -> &mut Expr {
-        &mut self.expr
-    }
-
-    pub fn name(&self) -> &'static str {
-        self.name
-    }
-}
-
-impl From<(&'static str, Expr)> for NamedExpr {
-    fn from((name, expr): (&'static str, Expr)) -> Self {
-        Self::new(name, expr)
-    }
-}
-
-#[cfg(feature = "serde")]
-impl Serialize for NamedExpr {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let mut state = serializer.serialize_struct("NamedExpr", 2)?;
-        state.serialize_field("name", &self.name)?;
-        state.serialize_field("expr", &self.expr)?;
-        state.end()
-    }
-}
-
-#[cfg(feature = "serde")]
-impl<'de> Deserialize<'de> for NamedExpr {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        #[derive(Deserialize)]
-        struct NamedExprData {
-            name: String,
-            expr: Expr,
-        }
-
-        let data = NamedExprData::deserialize(deserializer)?;
-        Ok(NamedExpr::new(radiate_utils::intern!(data.name), data.expr))
-    }
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -156,6 +92,32 @@ impl Expr {
         func(self)
     }
 
+    fn try_swap_agg_rollup_or(mut self, to: Rollup, func: impl FnOnce(Self) -> Expr) -> Expr {
+        match self {
+            Expr::Aggregate(mut agg) => {
+                if agg.rollup != Rollup::Unique {
+                    agg.rollup = to;
+                    self = Expr::Aggregate(agg);
+                    return self;
+                }
+
+                func(Expr::Aggregate(agg))
+            }
+            _ => func(self),
+        }
+    }
+
+    fn try_reduce_select_agg_rollup_or(
+        self,
+        field: &Field,
+        to: Rollup,
+        func: impl FnOnce(Self) -> Expr,
+    ) -> Expr {
+        self.try_swap_select_field_or(field, |outer| {
+            outer.try_swap_agg_rollup_or(to, |inner| func(inner))
+        })
+    }
+
     pub fn time(mut self) -> Expr {
         self.try_swap_select_dtype(DataType::Duration);
         self
@@ -171,76 +133,92 @@ impl Expr {
     }
 
     pub fn rolling(self, window_size: usize) -> Expr {
-        Expr::Buffer(BufferExpr::new(self, window_size))
+        match self {
+            Expr::Aggregate(agg) => Expr::Aggregate(AggExpr {
+                child: agg.child,
+                rollup: agg.rollup,
+                buffer: Some(WindowBuffer::with_window(window_size)),
+            }),
+            Expr::Selector(select) => Expr::Aggregate(AggExpr {
+                child: Box::new(Expr::Selector(select)),
+                rollup: Rollup::Last,
+                buffer: Some(WindowBuffer::with_window(window_size)),
+            }),
+            _ => Expr::Buffer(BufferExpr::new(self, window_size)),
+        }
     }
 
     /// Aggregates
     pub fn first(self) -> Expr {
-        self.try_swap_select_field_or(&expr_fields::LAST_VALUE, |s| {
-            Expr::Aggregate(AggExpr::new(s, Rollup::First))
+        self.try_reduce_select_agg_rollup_or(&expr_fields::LAST_VALUE, Rollup::First, |expr| {
+            Expr::Aggregate(AggExpr::new(expr, Rollup::First))
         })
     }
 
     pub fn last(self) -> Expr {
-        self.try_swap_select_field_or(&expr_fields::LAST_VALUE, |s| {
-            Expr::Aggregate(AggExpr::new(s, Rollup::Last))
+        self.try_reduce_select_agg_rollup_or(&expr_fields::LAST_VALUE, Rollup::Last, |expr| {
+            Expr::Aggregate(AggExpr::new(expr, Rollup::Last))
         })
     }
 
     pub fn sum(self) -> Expr {
-        self.try_swap_select_field_or(&expr_fields::SUM, |s| {
-            Expr::Aggregate(AggExpr::new(s, Rollup::Sum))
+        self.try_reduce_select_agg_rollup_or(&expr_fields::SUM, Rollup::Sum, |expr| {
+            Expr::Aggregate(AggExpr::new(expr, Rollup::Sum))
         })
     }
 
     pub fn mean(self) -> Expr {
-        self.try_swap_select_field_or(&expr_fields::MEAN, |s| {
-            Expr::Aggregate(AggExpr::new(s, Rollup::Mean))
+        self.try_reduce_select_agg_rollup_or(&expr_fields::MEAN, Rollup::Mean, |expr| {
+            Expr::Aggregate(AggExpr::new(expr, Rollup::Mean))
         })
     }
 
     pub fn stddev(self) -> Expr {
-        self.try_swap_select_field_or(&expr_fields::STD_DEV, |s| {
-            Expr::Aggregate(AggExpr::new(s, Rollup::StdDev))
+        self.try_reduce_select_agg_rollup_or(&expr_fields::STD_DEV, Rollup::StdDev, |expr| {
+            Expr::Aggregate(AggExpr::new(expr, Rollup::StdDev))
         })
     }
 
     pub fn min(self) -> Expr {
-        self.try_swap_select_field_or(&expr_fields::MIN, |s| {
-            Expr::Aggregate(AggExpr::new(s, Rollup::Min))
+        self.try_reduce_select_agg_rollup_or(&expr_fields::MIN, Rollup::Min, |expr| {
+            Expr::Aggregate(AggExpr::new(expr, Rollup::Min))
         })
     }
 
     pub fn max(self) -> Expr {
-        self.try_swap_select_field_or(&expr_fields::MAX, |s| {
-            Expr::Aggregate(AggExpr::new(s, Rollup::Max))
+        self.try_reduce_select_agg_rollup_or(&expr_fields::MAX, Rollup::Max, |expr| {
+            Expr::Aggregate(AggExpr::new(expr, Rollup::Max))
         })
     }
 
     pub fn var(self) -> Expr {
-        self.try_swap_select_field_or(&expr_fields::VAR, |s| {
-            Expr::Aggregate(AggExpr::new(s, Rollup::Var))
+        self.try_reduce_select_agg_rollup_or(&expr_fields::VAR, Rollup::Var, |expr| {
+            Expr::Aggregate(AggExpr::new(expr, Rollup::Var))
         })
     }
 
     pub fn skew(self) -> Expr {
-        self.try_swap_select_field_or(&expr_fields::SKEW, |s| {
-            Expr::Aggregate(AggExpr::new(s, Rollup::Skew))
+        self.try_reduce_select_agg_rollup_or(&expr_fields::SKEW, Rollup::Skew, |expr| {
+            Expr::Aggregate(AggExpr::new(expr, Rollup::Skew))
         })
     }
 
     pub fn count(self) -> Expr {
-        self.try_swap_select_field_or(&expr_fields::COUNT, |s| {
-            Expr::Aggregate(AggExpr::new(s, Rollup::Count))
+        self.try_reduce_select_agg_rollup_or(&expr_fields::COUNT, Rollup::Count, |expr| {
+            Expr::Aggregate(AggExpr::new(expr, Rollup::Count))
         })
     }
 
     pub fn slope(self) -> Expr {
-        Expr::Aggregate(AggExpr::new(self, Rollup::Slope))
+        self.try_swap_agg_rollup_or(Rollup::Slope, |expr| {
+            Expr::Aggregate(AggExpr::new(expr, Rollup::Slope))
+        })
     }
 
     pub fn unique(self) -> Expr {
-        Expr::Aggregate(AggExpr::new(self, Rollup::Unique))
+        self.try_swap_agg_rollup_or(Rollup::Unique, |expr| {
+            Expr::Aggregate(AggExpr::new(expr, Rollup::Unique))
+        })
     }
 
     pub fn pow(self, exp: impl Into<Expr>) -> Expr {
