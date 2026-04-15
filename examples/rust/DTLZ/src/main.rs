@@ -26,7 +26,7 @@ fn main() {
 
     let result = radiate::ui(engine).iter().limit(1000).last().unwrap();
 
-    println!("{}", result.metrics());
+    println!("{:?}", result);
     let front = result.front().unwrap();
     plot_front(front);
 }

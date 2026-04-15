@@ -26,15 +26,6 @@ impl<'a> TabComponent<'a> {
         }
     }
 
-    pub fn options<Iter>(mut self, options: Iter) -> Self
-    where
-        Iter: IntoIterator,
-        Iter::Item: Into<Line<'a>>,
-    {
-        self.options = options.into_iter().map(Into::into).collect();
-        self
-    }
-
     pub fn select(mut self, index: usize) -> Self {
         if index < self.options.len() {
             self.selected = index;

@@ -1,6 +1,6 @@
 use crate::{
     state::{AppState, LineChartType},
-    widgets::{LineChartWidget, ParetoPagingWidget},
+    widgets::{components::LineChartWidget, components::ParetoPagingWidget},
 };
 use radiate_engines::{Chromosome, metric_names};
 use ratatui::widgets::{StatefulWidget, Widget};

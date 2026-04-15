@@ -1,7 +1,4 @@
-use crate::{
-    state::AppState,
-    widgets::{FnWidget, Panel},
-};
+use crate::state::AppState;
 use radiate_engines::Chromosome;
 use ratatui::{
     buffer::Buffer,
@@ -36,12 +33,9 @@ impl<'a, C: Chromosome> Widget for SearchBarWidget<'a, C> {
 
         let border_style = self.state.get_panel_block(crate::state::PanelId::Search);
 
-        Panel::new(FnWidget::new(|area, buf| {
-            Paragraph::new(self.state.search_state.query.as_str())
-                .block(border_style.title(title).style(style).borders(Borders::ALL))
-                .style(style)
-                .render(area, buf);
-        }))
-        .render(area, buf);
+        Paragraph::new(self.state.search_state.query.as_str())
+            .block(border_style.title(title).style(style).borders(Borders::ALL))
+            .style(style)
+            .render(area, buf);
     }
 }

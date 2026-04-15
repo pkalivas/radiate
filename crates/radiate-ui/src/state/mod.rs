@@ -1,5 +1,4 @@
 pub mod chart;
-pub mod selector;
 
 use crate::chart::RollingLineChart;
 use crate::widgets::num_pairs;
@@ -31,9 +30,12 @@ pub enum PanelId {
     TimePieChart,
     SpeciesPieChart,
 
+    SpeciesSparkline,
+
     MetricDetail,
 
     Help,
+    HelpMinimal,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -108,7 +110,7 @@ pub struct AppState<C: Chromosome> {
     pub running: RunningState,
     pub display: DisplayState,
 
-    pub filter_state: AppFilterState,
+    // pub filter_state: AppFilterState,
     pub search_state: SearchState,
 
     pub objective_state: ObjectiveState,
@@ -121,7 +123,6 @@ pub struct AppState<C: Chromosome> {
     pub stats_table: AppTableState<&'static str>,
     pub dist_table: AppTableState<&'static str>,
     pub species_table: AppTableState<SpeciesId>,
-    pub species_pie_chart: AppPieCharState<Score>,
 }
 
 impl<C: Chromosome> AppState<C> {
@@ -235,7 +236,7 @@ impl<C: Chromosome> AppState<C> {
             return;
         }
 
-        self.filter_state.tag_view.clear();
+        // self.filter_state.tag_view.clear();
     }
 
     pub fn next_objective_pair_page(&mut self) {
@@ -344,35 +345,35 @@ impl<C: Chromosome> AppState<C> {
         }
     }
 
-    pub fn metric_has_tags(&self, metric: &Metric) -> bool {
-        if self.filter_state.tag_view.is_empty() {
-            true
-        } else {
-            for &tag_index in &self.filter_state.tag_view {
-                if let Some(tag) = self.filter_state.all_tags.get(tag_index) {
-                    if metric.contains_tag(tag) {
-                        return true;
-                    }
-                }
-            }
+    // pub fn metric_has_tags(&self, metric: &Metric) -> bool {
+    //     if self.filter_state.tag_view.is_empty() {
+    //         true
+    //     } else {
+    //         for &tag_index in &self.filter_state.tag_view {
+    //             if let Some(tag) = self.filter_state.all_tags.get(tag_index) {
+    //                 if metric.contains_tag(tag) {
+    //                     return true;
+    //                 }
+    //             }
+    //         }
 
-            false
-        }
-    }
+    //         false
+    //     }
+    // }
 
     pub fn move_selection_down(&mut self) {
         if self.display.focus_panel == PanelId::Tags {
-            if self.filter_state.all_tags.is_empty() {
-                return;
-            }
+            // if self.filter_state.all_tags.is_empty() {
+            //     return;
+            // }
 
-            let last_index = self.filter_state.all_tags.len() - 1;
-            if self.filter_state.selected_row >= last_index {
-                self.filter_state.selected_row = 0;
-            } else {
-                self.filter_state.selected_row += 1;
-            }
-            return;
+            // let last_index = self.filter_state.all_tags.len() - 1;
+            // if self.filter_state.selected_row >= last_index {
+            //     self.filter_state.selected_row = 0;
+            // } else {
+            //     self.filter_state.selected_row += 1;
+            // }
+            // return;
         } else if let Some(PanelId::MetricModal) = self.display.modal_panel {
             return;
         }
@@ -408,20 +409,20 @@ impl<C: Chromosome> AppState<C> {
     }
 
     pub fn move_selection_up(&mut self) {
-        if self.display.focus_panel == PanelId::Tags {
-            if self.filter_state.all_tags.is_empty() {
-                return;
-            }
+        // if self.display.focus_panel == PanelId::Tags {
+        //     if self.filter_state.all_tags.is_empty() {
+        //         return;
+        //     }
 
-            let last_index = self.filter_state.all_tags.len() - 1;
-            if self.filter_state.selected_row == 0 {
-                self.filter_state.selected_row = last_index;
-            } else {
-                self.filter_state.selected_row -= 1;
-            }
+        //     let last_index = self.filter_state.all_tags.len() - 1;
+        //     if self.filter_state.selected_row == 0 {
+        //         self.filter_state.selected_row = last_index;
+        //     } else {
+        //         self.filter_state.selected_row -= 1;
+        //     }
 
-            return;
-        }
+        //     return;
+        // }
 
         if let Some(PanelId::MetricModal) = self.display.modal_panel {
             return;
@@ -493,16 +494,16 @@ impl<C: Chromosome> AppState<C> {
             return;
         }
 
-        let selected_index = self.filter_state.selected_row;
-        if self.filter_state.tag_view.contains(&selected_index) {
-            self.filter_state.tag_view.retain(|&i| i != selected_index);
-        } else {
-            if selected_index < self.filter_state.all_tags.len() {
-                self.filter_state.tag_view.push(selected_index);
-            } else {
-                self.filter_state.tag_view.retain(|&i| i != selected_index);
-            }
-        }
+        // let selected_index = self.filter_state.selected_row;
+        // if self.filter_state.tag_view.contains(&selected_index) {
+        //     self.filter_state.tag_view.retain(|&i| i != selected_index);
+        // } else {
+        //     if selected_index < self.filter_state.all_tags.len() {
+        //         self.filter_state.tag_view.push(selected_index);
+        //     } else {
+        //         self.filter_state.tag_view.retain(|&i| i != selected_index);
+        //     }
+        // }
     }
 
     pub fn update_metrics(&mut self, metrics: MetricSet) {
@@ -512,15 +513,15 @@ impl<C: Chromosome> AppState<C> {
 
         self.metrics = metrics;
 
-        self.filter_state.all_tags = self
-            .metrics
-            .tags()
-            .filter(|tag| {
-                *tag != TagType::Statistic && *tag != TagType::Time && *tag != TagType::Distribution
-            })
-            .collect();
+        // self.filter_state.all_tags = self
+        //     .metrics
+        //     .tags()
+        //     .filter(|tag| {
+        //         *tag != TagType::Statistic && *tag != TagType::Time && *tag != TagType::Distribution
+        //     })
+        //     .collect();
 
-        self.filter_state.all_tags.sort();
+        // self.filter_state.all_tags.sort();
     }
 
     pub fn update_species(&mut self, species: Option<Vec<SpeciesSnapshot>>) {
@@ -529,25 +530,6 @@ impl<C: Chromosome> AppState<C> {
         if let Some(species) = &mut self.species {
             species.sort_unstable_by(|a, b| a.id.0.cmp(&b.id.0));
         }
-
-        self.species_pie_chart.slices = self
-            .species
-            .as_ref()
-            .map(|s| {
-                s.iter()
-                    .map(|sp| {
-                        (
-                            radiate_utils::intern!(format!("{}", sp.id.0)),
-                            sp.score.clone().unwrap_or_default(),
-                        )
-                    })
-                    .collect::<Vec<(&'static str, Score)>>()
-            })
-            .unwrap_or_default();
-    }
-
-    pub fn get_pie_chart_slices(&self) -> Vec<(&'static str, Score)> {
-        self.species_pie_chart.slices.clone()
     }
 }
 
@@ -583,13 +565,12 @@ impl<C: Chromosome> Default for AppState<C> {
                 objective_index: 0,
             },
 
-            filter_state: AppFilterState {
-                tag_list_filter_state: ListState::default(),
-                tag_view: Vec::new(),
-                all_tags: Vec::new(),
-                selected_row: 0,
-            },
-
+            // filter_state: AppFilterState {
+            //     tag_list_filter_state: ListState::default(),
+            //     tag_view: Vec::new(),
+            //     all_tags: Vec::new(),
+            //     selected_row: 0,
+            // },
             search_state: SearchState {
                 query: String::new(),
                 active: false,
@@ -599,7 +580,6 @@ impl<C: Chromosome> Default for AppState<C> {
             stats_table: AppTableState::new(),
             dist_table: AppTableState::new(),
             species_table: AppTableState::new(),
-            species_pie_chart: AppPieCharState { slices: Vec::new() },
             species: None,
             metrics: MetricSet::new(),
             index: 0,
@@ -608,12 +588,12 @@ impl<C: Chromosome> Default for AppState<C> {
     }
 }
 
-pub struct AppFilterState {
-    pub tag_list_filter_state: ListState,
-    pub tag_view: Vec<usize>,
-    pub all_tags: Vec<TagType>,
-    pub selected_row: usize,
-}
+// pub struct AppFilterState {
+//     pub tag_list_filter_state: ListState,
+//     pub tag_view: Vec<usize>,
+//     pub all_tags: Vec<TagType>,
+//     pub selected_row: usize,
+// }
 
 pub struct AppTableState<T> {
     pub state: TableState,
@@ -658,8 +638,4 @@ impl<T> AppTableState<T> {
 
         self.selected_value = items.get(self.selected_row).map(&func);
     }
-}
-
-pub struct AppPieCharState<T> {
-    pub slices: Vec<(&'static str, T)>,
 }

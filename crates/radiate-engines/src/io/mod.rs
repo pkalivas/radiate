@@ -1,5 +1,6 @@
 use crate::Generation;
 use radiate_core::Chromosome;
+#[cfg(feature = "serde")]
 use serde::Deserialize;
 use std::path::PathBuf;
 
@@ -24,6 +25,7 @@ where
 
 pub struct JsonCheckpointWriter;
 
+#[cfg(feature = "serde")]
 impl<C, T> CheckpointWriter<C, T> for JsonCheckpointWriter
 where
     C: Chromosome + serde::Serialize,
@@ -51,6 +53,7 @@ where
 
 pub struct JsonCheckpointReader;
 
+#[cfg(feature = "serde")]
 impl<C, T> CheckpointReader<C, T> for JsonCheckpointReader
 where
     C: Chromosome + for<'de> Deserialize<'de>,

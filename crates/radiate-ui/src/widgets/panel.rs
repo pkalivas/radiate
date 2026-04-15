@@ -30,26 +30,26 @@ impl<W: Widget> Panel<W> {
         }
     }
 
-    pub fn bordered(mut self, block: Block<'static>) -> Self {
-        self.block = block;
-        self
-    }
-
     pub fn titled(mut self, title: impl Into<Line<'static>>) -> Self {
         self.title = Some(title.into());
         self
     }
 
-    pub fn titled_bottom(mut self, title: impl Into<Line<'static>>) -> Self {
-        self.title_bottom = Some(title.into());
-        self
-    }
+    // pub fn bordered(mut self, block: Block<'static>) -> Self {
+    //     self.block = block;
+    //     self
+    // }
 
-    pub fn title_top_right(mut self, title: impl Into<Line<'static>>) -> Self {
-        let line = title.into();
-        self.top_right_title = Some(line);
-        self
-    }
+    // pub fn titled_bottom(mut self, title: impl Into<Line<'static>>) -> Self {
+    //     self.title_bottom = Some(title.into());
+    //     self
+    // }
+
+    // pub fn title_top_right(mut self, title: impl Into<Line<'static>>) -> Self {
+    //     let line = title.into();
+    //     self.top_right_title = Some(line);
+    //     self
+    // }
 
     #[allow(dead_code)]
     pub fn render_inside_block(mut self, render_inside: bool) -> Self {
@@ -105,12 +105,12 @@ where
     W: Widget,
 {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        if self.title.is_none() && self.title_bottom.is_none() {
+        if self.title.is_none() && self.title_bottom.is_none() && !self.render_inside_block {
             if let Some(child) = self.child {
                 child.render(area, buf);
             }
             return;
-        } else if self.title.is_some() || self.title_bottom.is_some() {
+        } else if self.title.is_some() || self.title_bottom.is_some() || self.render_inside_block {
             let mut block = self.block;
 
             if let Some(title) = self.title {

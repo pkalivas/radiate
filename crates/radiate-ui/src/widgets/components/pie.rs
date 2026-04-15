@@ -1,3 +1,4 @@
+use crate::{state::AppState, styles::COLOR_WHEEL_400, widgets::panels::tables::tagged_metrics};
 use radiate_engines::{Chromosome, metric_names, stats::TagType};
 use ratatui::{
     buffer::Buffer,
@@ -6,88 +7,7 @@ use ratatui::{
     text::Line,
     widgets::{Block, StatefulWidget, Widget},
 };
-use tui_piechart::{LegendLayout, PieChart, PieSlice};
-
-use crate::{
-    chart::GroupedChartItem, state::AppState, styles::COLOR_WHEEL_400,
-    widgets::tables::tagged_metrics,
-};
-
-pub struct PieChartWidget<'a, T, K, FLabel, FValue, FKey>
-where
-    FLabel: Fn(&T) -> &'a str,
-    FValue: Fn(&T) -> f64,
-    FKey: Fn(&T) -> K,
-{
-    items: &'a [T],
-    selected: Option<K>,
-    label: FLabel,
-    value: FValue,
-    key: FKey,
-}
-
-impl<'a, T, K, FLabel, FValue, FKey> PieChartWidget<'a, T, K, FLabel, FValue, FKey>
-where
-    K: PartialEq + Copy,
-    FLabel: Fn(&T) -> &'a str,
-    FValue: Fn(&T) -> f64,
-    FKey: Fn(&T) -> K,
-{
-    pub fn new(items: &'a [T], label: FLabel, value: FValue, key: FKey) -> Self {
-        Self {
-            items,
-            selected: None,
-            label,
-            value,
-            key,
-        }
-    }
-
-    pub fn selected(mut self, selected: Option<K>) -> Self {
-        self.selected = selected;
-        self
-    }
-
-    fn color_for(&self, index: usize, item: &T) -> Color {
-        match self.selected {
-            Some(selected) if (self.key)(item) == selected => {
-                COLOR_WHEEL_400[index % COLOR_WHEEL_400.len()]
-            }
-            _ => Color::DarkGray,
-        }
-    }
-}
-
-impl<'a, T, K, FLabel, FValue, FKey> Widget for PieChartWidget<'a, T, K, FLabel, FValue, FKey>
-where
-    K: PartialEq + Copy,
-    FLabel: Fn(&T) -> &'a str,
-    FValue: Fn(&T) -> f64,
-    FKey: Fn(&T) -> K,
-{
-    fn render(self, area: Rect, buf: &mut Buffer) {
-        let slices = self
-            .items
-            .iter()
-            .enumerate()
-            .map(|(index, item)| {
-                PieSlice::new(
-                    (self.label)(item),
-                    (self.value)(item),
-                    self.color_for(index, item),
-                )
-            })
-            .collect::<Vec<_>>();
-
-        PieChart::new(slices)
-            .show_legend(false)
-            .show_percentages(true)
-            .block(Block::bordered())
-            .legend_layout(LegendLayout::Horizontal)
-            .high_resolution(true)
-            .render(area, buf);
-    }
-}
+use tui_piechart::{PieChart, PieSlice};
 
 pub struct SpeciesPieChartComponent<C: Chromosome> {
     _marker: std::marker::PhantomData<C>,
@@ -116,7 +36,7 @@ impl<C: Chromosome> StatefulWidget for SpeciesPieChartComponent<C> {
             .iter()
             .enumerate()
             .filter_map(|(index, species)| {
-                species.best_score.as_ref().map(|score| {
+                species.score.as_ref().map(|score| {
                     let color = selected_chart_color(
                         index,
                         state.species_table.selected_value.as_ref(),

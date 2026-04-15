@@ -1,5 +1,6 @@
 use crate::state::{AppState, LineChartType};
-use crate::widgets::{FnWidget, LineChartWidget, MetricDetailPanelWidget, Panel};
+use crate::widgets::components::LineChartWidget;
+use crate::widgets::{FnWidget, MetricDetailPanelWidget, Panel};
 use radiate_engines::stats::fmt_duration;
 use radiate_engines::{Chromosome, MetricSet};
 use ratatui::prelude::*;
@@ -129,12 +130,9 @@ impl<C: Chromosome> StatefulWidget for MetricModalWidget<C> {
                 .bold()
                 .render(chunks[0], buf);
 
-            Panel::new(FnWidget::new(|area, buf| {
-                LineChartWidget::from(charts)
-                    .with_show_x_axis(true)
-                    .render(area, buf);
-            }))
-            .render(chunks[1], buf);
+            LineChartWidget::from(charts)
+                .with_show_x_axis(true)
+                .render(chunks[1], buf);
         }))
         .titled(" Charts ")
         .render(right, buf);

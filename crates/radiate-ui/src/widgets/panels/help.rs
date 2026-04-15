@@ -1,15 +1,15 @@
-use super::Panel;
+use crate::widgets::Panel;
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
-    style::{Modifier, Style},
+    style::{Color, Modifier, Style, Stylize},
     text::{Line, Span, Text},
     widgets::Widget,
 };
 
-pub struct HelpWidget;
+pub struct HelpPanelWidget;
 
-impl Widget for HelpWidget {
+impl Widget for HelpPanelWidget {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let help_text = Text::from(vec![
             Line::from(vec![Span::styled(
@@ -49,4 +49,26 @@ impl Widget for HelpWidget {
 
         Panel::new(help_text).titled(" Help ").render(area, buf);
     }
+}
+
+pub struct HelpTextMinimal;
+
+impl Widget for HelpTextMinimal {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        Panel::new(super::help::help_text_minimal()).render(area, buf);
+    }
+}
+
+pub fn help_text_minimal<'a>() -> Line<'a> {
+    Line::from(vec![
+        " [j/k]".fg(Color::LightGreen).bold(),
+        Span::from(" navigate, "),
+        "[◄ ►/h/l]".fg(Color::LightGreen).bold(),
+        Span::from(" tabs, "),
+        // "[f]".fg(Color::LightGreen).bold(),
+        // Span::from(" toggle filters, "),
+        "[?/H]".fg(Color::LightGreen).bold(),
+        Span::from(" help "),
+    ])
+    .centered()
 }

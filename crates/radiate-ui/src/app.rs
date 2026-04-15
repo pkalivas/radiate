@@ -1,11 +1,7 @@
 use crate::state::{AppState, PanelId};
-use crate::widgets::{
-    EngineDashboardPanelWidget, EngineStatusPanelWidget, FitnessChartPanelWidget, HelpWidget,
-    LayoutNode, MetricModalWidget, ModalWidget,
-};
+use crate::widgets::{HelpPanelWidget, LayoutNode, MetricModalWidget, ModalWidget};
 use color_eyre::Result;
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
-use radiate_engines::stats::TagType;
 use radiate_engines::{
     Chromosome, CommandChannel, EngineControl, Front, MetricSet, Objective, Phenotype, Score,
     SpeciesSnapshot,
@@ -44,6 +40,7 @@ where
     control: EngineControl,
     channel: CommandChannel<InputEvent<C>>,
     state: AppState<C>,
+    layout: LayoutNode,
 }
 
 impl<C> App<C>
@@ -58,6 +55,7 @@ where
                 render_interval,
                 ..Default::default()
             },
+            layout: LayoutNode::default(),
         }
     }
 
@@ -183,29 +181,13 @@ where
         metrics: MetricSet,
         score: Score,
         front: Option<Front<Phenotype<C>>>,
-        mut species_snapshots: Option<Vec<SpeciesSnapshot>>,
+        species_snapshots: Option<Vec<SpeciesSnapshot>>,
     ) {
-        // for metric in metrics.iter() {
-        //     self.state.chart_state.update_from_metric(metric.1);
-        // }
-
-        // self.state.metrics = metrics;
         self.state.score = score;
         self.state.index = index;
 
         self.state.update_metrics(metrics);
         self.state.update_species(species_snapshots);
-
-        // self.state.filter_state.all_tags = self
-        //     .state
-        //     .metrics
-        //     .tags()
-        //     .filter(|tag| {
-        //         *tag != TagType::Statistic && *tag != TagType::Time && *tag != TagType::Distribution
-        //     })
-        //     .collect();
-
-        // self.state.filter_state.all_tags.sort();
 
         if let Some(front) = front {
             self.state.front = Some(front);
@@ -218,12 +200,6 @@ where
                 self.state.objective_state.chart_start_index = 0;
             }
         }
-
-        // if let Some(species_snapshots) = &mut species_snapshots {
-        //     species_snapshots.sort_unstable_by(|a, b| a.id.0.cmp(&b.id.0));
-        // }
-
-        // self.state.species = species_snapshots;
     }
 
     pub fn handle_engine_start(&mut self, objective: Objective) {
@@ -247,30 +223,13 @@ where
                 .fg(crate::styles::TEXT_FG_COLOR),
         );
 
-        let [top, bottom] =
-            Layout::vertical([Constraint::Percentage(2), Constraint::Fill(1)]).areas(area);
-
-        Paragraph::new(format!("{:?}", self.state.display.focus_panel)).render(top, buf);
-
-        let template = LayoutNode::default();
-
-        template.draw(bottom, buf, &mut self.state);
-
-        // let [top, bottom] =
-        //     Layout::vertical([Constraint::Percentage(30), Constraint::Fill(1)]).areas(area);
-
-        // let [summary, fitness] =
-        //     Layout::horizontal([Constraint::Percentage(25), Constraint::Fill(1)]).areas(top);
-
-        // EngineStatusPanelWidget::new().render(summary, buf, &mut self.state);
-        // FitnessChartPanelWidget::new().render(fitness, buf, &mut self.state);
-        // EngineDashboardPanelWidget::new().render(bottom, buf, &mut self.state);
+        self.layout.draw(area, buf, &mut self.state);
 
         if let Some(panel) = self.state.display.modal_panel {
             match panel {
-                PanelId::Help => ModalWidget::new(HelpWidget).render(bottom, buf),
+                PanelId::Help => ModalWidget::new(HelpPanelWidget).render(area, buf),
                 PanelId::MetricModal => {
-                    ModalWidget::new(MetricModalWidget::new()).render(bottom, buf, &mut self.state);
+                    ModalWidget::new(MetricModalWidget::new()).render(area, buf, &mut self.state);
                 }
                 _ => {}
             }

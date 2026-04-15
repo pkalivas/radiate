@@ -1,4 +1,4 @@
-use crate::chart::{GroupedChartItem, RollingLineChart};
+use crate::chart::RollingLineChart;
 use radiate_engines::{Metric, stats::TagType};
 use radiate_utils::intern;
 use std::collections::HashMap;
@@ -44,7 +44,6 @@ pub struct ChartState {
     mean_charts: HashMap<&'static str, RollingLineChart>,
     stddev_charts: HashMap<&'static str, RollingLineChart>,
     variance_charts: HashMap<&'static str, RollingLineChart>,
-    pie_charts: HashMap<&'static str, Vec<GroupedChartItem>>,
 }
 
 impl ChartState {
@@ -54,7 +53,6 @@ impl ChartState {
             mean_charts: HashMap::new(),
             stddev_charts: HashMap::new(),
             variance_charts: HashMap::new(),
-            pie_charts: HashMap::new(),
         }
     }
 
@@ -69,14 +67,6 @@ impl ChartState {
             LineChartType::Stddev => self.stddev_charts.get(key),
             LineChartType::Variance => self.variance_charts.get(key),
         }
-    }
-
-    pub fn get_pie_chart(&self, key: &'static str) -> Option<&Vec<GroupedChartItem>> {
-        self.pie_charts.get(key)
-    }
-
-    pub fn update_pie_chart(&mut self, key: &'static str, items: impl Into<Vec<GroupedChartItem>>) {
-        self.pie_charts.insert(key, items.into());
     }
 
     pub fn update_from_metric(&mut self, metric: &Metric) {
