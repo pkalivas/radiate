@@ -3,7 +3,8 @@ use radiate_engines::Chromosome;
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
-    style::Style,
+    style::{Color, Style, Stylize},
+    text::{Line, Span},
     widgets::{Borders, Paragraph, Widget},
 };
 
@@ -34,8 +35,28 @@ impl<'a, C: Chromosome> Widget for SearchBarWidget<'a, C> {
         let border_style = self.state.get_panel_block(crate::state::PanelId::Search);
 
         Paragraph::new(self.state.search_state.query.as_str())
-            .block(border_style.title(title).style(style).borders(Borders::ALL))
+            .block(
+                border_style
+                    .title(title)
+                    .title_bottom(help_text_minimal())
+                    .style(style)
+                    .borders(Borders::ALL),
+            )
             .style(style)
             .render(area, buf);
     }
+}
+
+pub fn help_text_minimal<'a>() -> Line<'a> {
+    Line::from(vec![
+        " [j/k]".fg(Color::LightGreen).bold(),
+        Span::from(" navigate, "),
+        "[◄ ►/h/l]".fg(Color::LightGreen).bold(),
+        Span::from(" tabs, "),
+        // "[f]".fg(Color::LightGreen).bold(),
+        // Span::from(" toggle filters, "),
+        "[?/H]".fg(Color::LightGreen).bold(),
+        Span::from(" help "),
+    ])
+    .centered()
 }

@@ -2,7 +2,7 @@ use crate::widgets::Panel;
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
-    style::{Color, Modifier, Style, Stylize},
+    style::{Modifier, Style},
     text::{Line, Span, Text},
     widgets::Widget,
 };
@@ -49,26 +49,4 @@ impl Widget for HelpPanelWidget {
 
         Panel::new(help_text).titled(" Help ").render(area, buf);
     }
-}
-
-pub struct HelpTextMinimal;
-
-impl Widget for HelpTextMinimal {
-    fn render(self, area: Rect, buf: &mut Buffer) {
-        Panel::new(super::help::help_text_minimal()).render(area, buf);
-    }
-}
-
-pub fn help_text_minimal<'a>() -> Line<'a> {
-    Line::from(vec![
-        " [j/k]".fg(Color::LightGreen).bold(),
-        Span::from(" navigate, "),
-        "[◄ ►/h/l]".fg(Color::LightGreen).bold(),
-        Span::from(" tabs, "),
-        // "[f]".fg(Color::LightGreen).bold(),
-        // Span::from(" toggle filters, "),
-        "[?/H]".fg(Color::LightGreen).bold(),
-        Span::from(" help "),
-    ])
-    .centered()
 }

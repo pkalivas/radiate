@@ -5,7 +5,7 @@ use crate::{
         MetricDetailPanelWidget, Panel, SearchBarWidget, StatsTableWidget, TabComponent,
         TimeTableWidget,
         components::{SpeciesPieChartComponent, SpeciesSparklineComponent, TimePieChartComponent},
-        panels::{HelpTextMinimal, tables::SpeciesTableWidget},
+        panels::tables::SpeciesTableWidget,
     },
 };
 use radiate_engines::Chromosome;
@@ -98,7 +98,6 @@ impl LayoutNode {
                     SpeciesSparklineComponent::new().render(area, buf, state)
                 }
                 PanelId::Search => SearchBarWidget::new(state).render(area, buf),
-                PanelId::HelpMinimal => HelpTextMinimal.render(area, buf),
                 _ => {}
             },
         }
@@ -107,79 +106,71 @@ impl LayoutNode {
 
 impl Default for LayoutNode {
     fn default() -> Self {
-        LayoutNode::Vertical {
+        use LayoutNode::*;
+
+        Vertical {
             constraints: vec![Constraint::Percentage(30), Constraint::Fill(1)],
             children: vec![
-                LayoutNode::Horizontal {
+                Horizontal {
                     constraints: vec![Constraint::Percentage(25), Constraint::Fill(1)],
-                    children: vec![
-                        LayoutNode::Widget(PanelId::EngineStatus),
-                        LayoutNode::Widget(PanelId::FitnessChart),
-                    ],
+                    children: vec![Widget(PanelId::EngineStatus), Widget(PanelId::FitnessChart)],
                 },
-                LayoutNode::Vertical {
-                    constraints: vec![
-                        // Constraint::Length(3),
-                        Constraint::Fill(1),
-                        Constraint::Length(3),
-                    ],
+                Vertical {
+                    constraints: vec![Constraint::Fill(1), Constraint::Length(3)],
                     children: vec![
-                        LayoutNode::Tabbed {
+                        Tabbed {
                             id: TabId::Dashboard,
                             tabs: vec!["Stats", "Time", "Distribution", "Species"],
                             children: vec![
-                                LayoutNode::Horizontal {
+                                Horizontal {
                                     constraints: vec![
                                         Constraint::Fill(1),
                                         Constraint::Percentage(15),
                                     ],
                                     children: vec![
-                                        LayoutNode::Widget(PanelId::StatsTable),
-                                        LayoutNode::Widget(PanelId::MetricDetail),
+                                        Widget(PanelId::StatsTable),
+                                        Widget(PanelId::MetricDetail),
                                     ],
                                 },
-                                LayoutNode::Horizontal {
+                                Horizontal {
                                     constraints: vec![
                                         Constraint::Fill(1),
                                         Constraint::Percentage(30),
                                         Constraint::Percentage(20),
                                     ],
                                     children: vec![
-                                        LayoutNode::Widget(PanelId::TimeTable),
-                                        LayoutNode::Widget(PanelId::TimePieChart),
-                                        LayoutNode::Widget(PanelId::MetricDetail),
+                                        Widget(PanelId::TimeTable),
+                                        Widget(PanelId::TimePieChart),
+                                        Widget(PanelId::MetricDetail),
                                     ],
                                 },
-                                LayoutNode::Horizontal {
+                                Horizontal {
                                     constraints: vec![
                                         Constraint::Fill(1),
                                         Constraint::Percentage(20),
                                     ],
                                     children: vec![
-                                        LayoutNode::Widget(PanelId::DistTable),
-                                        LayoutNode::Widget(PanelId::MetricDetail),
+                                        Widget(PanelId::DistTable),
+                                        Widget(PanelId::MetricDetail),
                                     ],
                                 },
-                                LayoutNode::Horizontal {
+                                Horizontal {
                                     constraints: vec![
                                         Constraint::Fill(1),
                                         Constraint::Percentage(25),
                                         Constraint::Percentage(25),
                                     ],
                                     children: vec![
-                                        LayoutNode::Widget(PanelId::SpeciesTable),
-                                        LayoutNode::Widget(PanelId::SpeciesSparkline),
-                                        LayoutNode::Widget(PanelId::SpeciesPieChart),
+                                        Widget(PanelId::SpeciesTable),
+                                        Widget(PanelId::SpeciesSparkline),
+                                        Widget(PanelId::SpeciesPieChart),
                                     ],
                                 },
                             ],
                         },
-                        LayoutNode::Horizontal {
-                            constraints: vec![Constraint::Fill(1), Constraint::Percentage(30)],
-                            children: vec![
-                                LayoutNode::Widget(PanelId::Search),
-                                LayoutNode::Widget(PanelId::HelpMinimal),
-                            ],
+                        Horizontal {
+                            constraints: vec![Constraint::Fill(1)],
+                            children: vec![Widget(PanelId::Search)],
                         },
                     ],
                 },

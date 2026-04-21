@@ -33,7 +33,6 @@ pub enum PanelId {
     MetricDetail,
 
     Help,
-    HelpMinimal,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]

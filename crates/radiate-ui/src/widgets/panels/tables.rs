@@ -169,7 +169,11 @@ impl<C: Chromosome> StatefulWidget for SpeciesTableWidget<C> {
             .rows(striped_rows(rows))
             .row_highlight_style(crate::styles::selected_item_style())
             .highlight_spacing(ratatui::widgets::HighlightSpacing::Always)
-            .widths(once(Constraint::Length(22)).chain(repeat(Constraint::Fill(1)).take(7)));
+            .widths(
+                (0..SPECIES_HEADER_CELLS.len())
+                    .map(|_| Constraint::Fill(1))
+                    .collect::<Vec<_>>(),
+            );
 
         render_scrollable_table(buf, area, table, &mut state.species_table);
     }
@@ -290,14 +294,14 @@ fn species_into_rows<'a>(
             Cell::from(format!("{}", s.population_size)),
             Cell::from(format!("{}", s.stagnation)),
             Cell::from(format!(
-                "{}",
+                "{:.4}",
                 s.best_score
                     .as_ref()
                     .map(|vals| vals[obj_index])
                     .unwrap_or_default()
             )),
             Cell::from(format!(
-                "{}",
+                "{:.4}",
                 s.score
                     .as_ref()
                     .map(|vals| vals[obj_index])

@@ -12,25 +12,6 @@ fn main() {
         (NodeType::Output, vec![Op::linear()]),
     ];
 
-    let expr = expr::select("scores").min().rolling(10).mean();
-
-    //     target_species = 4.0
-    // rolling = int(target_species)
-
-    // spec_count_signal = rd.metric("count.species").rolling(rolling).mean() / target_species
-    // spec_dist_signal = (
-    //     rd.metric("species.distance").mean().rolling(rolling).mean() / target_species
-    // )
-    // spec_thresh_signal = rd.metric("species.threshold").rolling(rolling).mean()
-    // spec_evenness_signal = rd.metric("species.evenness").rolling(rolling).mean()
-
-    // distance_signal = (
-    //     (rd.lit(0.9) * spec_count_signal)
-    //     + (rd.lit(0.4) * spec_dist_signal)
-    //     + (rd.lit(0.2) * spec_thresh_signal)
-    //     + (rd.lit(0.1) * spec_evenness_signal)
-    // ).clamp(0.01, 10.0)
-
     let target_species = 6.0;
     let rolling = target_species as usize;
 
@@ -54,8 +35,6 @@ fn main() {
         .add(spec_thresh_signal.mul(0.2))
         .add(spec_evenness_signal.mul(0.1))
         .clamp(0.01, 10.0);
-
-    println!("{:#?}", expr);
 
     let engine = GeneticEngine::builder()
         .codec(GraphCodec::directed(1, 1, store))
