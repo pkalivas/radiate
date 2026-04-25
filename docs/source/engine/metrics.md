@@ -36,18 +36,18 @@ Metrics collected by default (always included):
 | `time`              | The time taken for the evolution process.                                   |
 | `scores`            | The scores (fitness) of all the individuals evolved throughout the evolution process. |
 | `age`               | The age of all the individuals in the `Ecosystem` throughout the evolution process. |
-| `replace_age`      | The number of individuals replaced based on age. |
-| `replace_invalid`  | The number of individuals replaced based on invalid structure (e.g. Bounds) |
-| `genome_size`      | The size of each genome over the evolution process. This is usually static and doesn't change. |
-| `unique_members`   | The number of unique members in the `Ecosystem`. |
-| `unique_scores`    | The number of unique scores in the `Ecosystem`. |
-| `new_children`     | The number of new children created each generation through either mutation or crossover (or both). |
-| `survivor_count`   | The number of individuals that survived to the next generation - summation throughout the evolution process. |
-| `carryover_rate`   | The rate at which unique individuals are carried over to the next generation - `survivor_count` per generation / population size. |
-| `evaluation_count` | The total number of evaluations performed per generation. |
-| `diversity_ratio`  | The ratio of unique scores to the size of the `Ecosystem`. |
-| `score_volatility` | The volatility of the scores in the `Ecosystem`. This is calculated as the standard deviation of the scores / mean. |
-| `best_score_improvement` | The improvement of the best score from the previous generation to the current generation - either a 1 or 0 each generation. |
+| `age.replace`      | The number of individuals replaced based on age. |
+| `invalid.replace`  | The number of individuals replaced based on invalid structure (e.g. Bounds) |
+| `size.genome`      | The size of each genome over the evolution process. This is usually static and doesn't change. |
+| `unique.members`   | The number of unique members in the `Ecosystem`. |
+| `unique.scores`    | The number of unique scores in the `Ecosystem`. |
+| `new.children`     | The number of new children created each generation through either mutation or crossover (or both). |
+| `count.survivors`   | The number of individuals that survived to the next generation - summation throughout the evolution process. |
+| `rate.carryover`   | The rate at which unique individuals are carried over to the next generation - `survivor_count` per generation / population size. |
+| `count.evaluation` | The total number of evaluations performed per generation. |
+| `rate.diversity`  | The ratio of unique scores to the size of the `Ecosystem`. |
+| `score.volatility` | The volatility of the scores in the `Ecosystem`. This is calculated as the standard deviation of the scores / mean. |
+| `score.improvement` | The improvement of the best score from the previous generation to the current generation - either a 1 or 0 each generation. |
 | `index`             | The index of the generation. This is pretty much just for reference if you want to keep a log per generation. |
 
 ## Multi-objective Metrics
@@ -56,12 +56,12 @@ Additional metrics collected when using multi-objective optimization:
 
 | Name                | Description                                                                 |
 |---------------------|-----------------------------------------------------------------------------|
-| `front_additions`            | The number of members added to the Pareto front each generation. | 
-| `front_entropy`  | The entropy of the Pareto front throughout the evolution process - only calculated every 10 generations (its kinda an expensive calculation). |
-| `front_removals`  | The number of members removed from the Pareto front each generation. |
-| `front_comparisons`  | The number of comparisons made to update the Pareto front each generation. |
-| `front_size`  | The size of the Pareto front each generation. |   
-| `front_filters`  | The number of times the Pareto front was filtered each generation. |
+| `new.front`            | The number of members added to the Pareto front each generation. | 
+| `front.entropy`  | The entropy of the Pareto front throughout the evolution process - only calculated every 10 generations (its kinda an expensive calculation). |
+| `invalid.front`  | The number of members removed from the Pareto front each generation. |
+| `front.comparisons`  | The number of comparisons made to update the Pareto front each generation. |
+| `size.front`  | The size of the Pareto front each generation. |   
+| `front.filters`  | The number of times the Pareto front was filtered each generation. |
 
 ## Species-based Metrics
 
@@ -69,15 +69,15 @@ Additional metrics collected when using species-based diversity:
 
 | Name                | Description                                                                 |
 |---------------------|-----------------------------------------------------------------------------|
-| `species_count`    | The number of `species` in the 'Ecosystem`. |
-| `species_removed`  | The number of `species` removed based on stagnation. |
-| `species_created`  | The number of `species` created in the `Ecosystem`. |
-| `species_died`     | The number of `species` that have died in the `Ecosystem`. |
-| `species_age`      | The age of all the `species` in the `Ecosystem`. |
-| `species_age_fail` | The count of species that have failed based on age each generation. |
-| `species_eveness` | The evenness of the species distribution in the `Ecosystem`. |
-| `largest_species_share` | The share of the largest species in the `Ecosystem`. |
-| `species_new_ratio` | The ratio of new species created each generation. |
+| `count.species`    | The number of `species` in the 'Ecosystem`. |
+<!-- | `invalid.species`  | The number of `species` removed based on stagnation. | -->
+| `new.species`  | The number of `species` created in the `Ecosystem`. |
+| `invalid.species`     | The number of `species` that have died in the `Ecosystem`. |
+| `age.species`      | The age of all the `species` in the `Ecosystem`. |
+| `age.species.fail` | The count of species that have failed based on age each generation. |
+| `species.evenness` | The evenness of the species distribution in the `Ecosystem`. |
+| `species.largest_share` | The share of the largest species in the `Ecosystem`. |
+| `new.species.ratio` | The ratio of new species created each generation. |
 
 
 ## Accessing Metrics
