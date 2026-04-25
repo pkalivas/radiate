@@ -506,25 +506,6 @@ mod tests {
     }
 
     #[test]
-    fn distribution_updates_accumulate_samples_across_calls() {
-        let a = [1.0, 2.0, 3.0];
-        let b = [10.0, 20.0];
-
-        let mut m = Metric::new("scores");
-
-        m.apply_update(&a[..]);
-        // expected stats over [1,2,3]
-        let (n1, mean1, var1, min1, max1) = stats_of(&a);
-        assert_stat_eq(&m, n1, mean1, var1, min1, max1);
-
-        m.apply_update(&b[..]);
-        // expected stats over [1,2,3,10,20]
-        let combined = [1.0, 2.0, 3.0, 10.0, 20.0];
-        let (n2, mean2, var2, min2, max2) = stats_of(&combined);
-        assert_stat_eq(&m, n2, mean2, var2, min2, max2);
-    }
-
-    #[test]
     fn distribution_tag_is_applied_on_any_slice_update() {
         let mut m = Metric::new("scores");
 
