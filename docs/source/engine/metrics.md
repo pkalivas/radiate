@@ -48,6 +48,7 @@ Metrics collected by default (always included):
 | `diversity_ratio`  | The ratio of unique scores to the size of the `Ecosystem`. |
 | `score_volatility` | The volatility of the scores in the `Ecosystem`. This is calculated as the standard deviation of the scores / mean. |
 | `best_score_improvement` | The improvement of the best score from the previous generation to the current generation - either a 1 or 0 each generation. |
+| `index`             | The index of the generation. This is pretty much just for reference if you want to keep a log per generation. |
 
 ## Multi-objective Metrics
 

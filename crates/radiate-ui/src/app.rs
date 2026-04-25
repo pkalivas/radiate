@@ -1,14 +1,13 @@
-use crate::state::{AppState, PanelId};
-use crate::widgets::{EngineSummaryWidget, FitnessWidget, HelpWidget, MetricsWidget, ModalWidget};
+use crate::state::{AppState, PanelId, TabId};
+use crate::widgets::{HelpPanelWidget, LayoutNode, MetricModalWidget, ModalWidget};
 use color_eyre::Result;
-use crossterm::event::{Event, KeyCode};
-use radiate_engines::stats::TagKind;
+use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use radiate_engines::{
     Chromosome, CommandChannel, EngineControl, Front, MetricSet, Objective, Phenotype, Score,
-    metric_names,
+    SpeciesSnapshot,
 };
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Constraint, Layout, Rect};
+use ratatui::layout::Rect;
 use ratatui::style::Style;
 use ratatui::widgets::{StatefulWidget, Widget};
 use ratatui::{Terminal, backend::CrosstermBackend};
@@ -25,7 +24,13 @@ where
     Crossterm(Event),
     EngineStart(Objective),
     EngineStop,
-    EpochComplete(usize, MetricSet, Score, Option<Front<Phenotype<C>>>),
+    EpochComplete(
+        usize,
+        MetricSet,
+        Score,
+        Option<Front<Phenotype<C>>>,
+        Option<Vec<SpeciesSnapshot>>,
+    ),
 }
 
 pub(crate) struct App<C>
@@ -35,6 +40,7 @@ where
     control: EngineControl,
     channel: CommandChannel<InputEvent<C>>,
     state: AppState<C>,
+    layout: LayoutNode,
 }
 
 impl<C> App<C>
@@ -49,6 +55,7 @@ where
                 render_interval,
                 ..Default::default()
             },
+            layout: LayoutNode::default(),
         }
     }
 
@@ -71,17 +78,20 @@ where
     fn throttle_next(&mut self) -> Result<bool> {
         match self.channel.next()? {
             InputEvent::Crossterm(event) => match event {
-                Event::Key(key_event) => {
-                    self.handle_key_event(key_event.code);
-                }
+                Event::Key(key_event) => match self.state.display.tab_id {
+                    TabId::SearchBar => self.handle_search_tab_event(key_event),
+                    TabId::Help => self.handle_help_tab_event(key_event),
+                    TabId::MetricChart => self.handle_metric_tab_event(key_event),
+                    _ => self.handle_dashboard_event(key_event.code),
+                },
                 _ => {}
             },
             InputEvent::EngineStart(objective) => {
                 self.handle_engine_start(objective);
             }
             InputEvent::EngineStop => self.state.running.engine = false,
-            InputEvent::EpochComplete(index, metrics, score, front) => {
-                self.handle_engine_epoch(index, metrics, score, front);
+            InputEvent::EpochComplete(index, metrics, score, front, species_snapshots) => {
+                self.handle_engine_epoch(index, metrics, score, front, species_snapshots);
                 let now = Instant::now();
                 if let Some(last) = self.state.last_render {
                     let elapsed = now.duration_since(last);
@@ -97,18 +107,63 @@ where
         Ok(true)
     }
 
-    fn handle_key_event(&mut self, key: KeyCode) {
+    fn handle_metric_tab_event(&mut self, key: KeyEvent) {
+        match key.code {
+            KeyCode::Esc => self.state.view_metric(),
+
+            KeyCode::Right | KeyCode::Char('l') => self.state.next_tab(),
+            KeyCode::Left | KeyCode::Char('h') => self.state.previous_tab(),
+
+            KeyCode::Char('p') => {
+                let paused = self.control.toggle_pause();
+                self.state.running.paused = paused;
+            }
+            KeyCode::Char('n') => {
+                self.control.step_once();
+                self.state.running.paused = true;
+            }
+
+            KeyCode::Enter => self.state.view_metric(),
+            _ => {}
+        }
+    }
+
+    fn handle_help_tab_event(&mut self, key: KeyEvent) {
+        match (key.code, key.modifiers) {
+            (KeyCode::Esc, _) | (KeyCode::Char('H'), _) | (KeyCode::Char('?'), _) => {
+                self.state.toggle_help();
+            }
+            _ => {}
+        }
+    }
+
+    fn handle_search_tab_event(&mut self, key: KeyEvent) {
+        match (key.code, key.modifiers) {
+            (KeyCode::Esc, _) => {
+                self.state.stop_search();
+            }
+            (KeyCode::Enter, _) => self.state.stop_search(),
+            (KeyCode::Backspace, _) => self.state.pop_search_char(),
+
+            (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
+                self.state.stop_search();
+                self.state.clear_search();
+            }
+            (KeyCode::Char(c), _) => self.state.push_search_char(c),
+            _ => {}
+        }
+    }
+
+    fn handle_dashboard_event(&mut self, key: KeyCode) {
         match key {
+            KeyCode::Char('/') => self.state.start_search(),
+
             KeyCode::Char('q') => {
                 self.control.stop();
                 self.state.running.ui = false
             }
 
             KeyCode::Char('?') | KeyCode::Char('H') => self.state.toggle_help(),
-
-            KeyCode::Char('f') => self.state.toggle_show_tag_filters(),
-            KeyCode::Char('c') => self.state.toggle_mini_chart(),
-            KeyCode::Char('m') => self.state.toggle_mini_chart_mean(),
 
             KeyCode::Down | KeyCode::Char('j') => self.state.move_selection_down(),
             KeyCode::Up | KeyCode::Char('k') => self.state.move_selection_up(),
@@ -118,8 +173,8 @@ where
             KeyCode::Char('+') => self.state.expand_objective_pairs(),
             KeyCode::Char('-') => self.state.shrink_objective_pairs(),
 
-            KeyCode::Right | KeyCode::Char('l') => self.state.next_metrics_tab(),
-            KeyCode::Left | KeyCode::Char('h') => self.state.previous_metrics_tab(),
+            KeyCode::Right | KeyCode::Char('l') => self.state.next_tab(),
+            KeyCode::Left | KeyCode::Char('h') => self.state.previous_tab(),
 
             KeyCode::Char('p') => {
                 let paused = self.control.toggle_pause();
@@ -131,11 +186,11 @@ where
             }
 
             KeyCode::Esc => self.state.clear_filters(),
-            KeyCode::Enter => self.state.toggle_tag_filter_selection(),
+            KeyCode::Enter => self.state.view_metric(),
 
             KeyCode::Char(c) => {
                 if let Some(digit) = c.to_digit(10) {
-                    self.state.set_tag_filter_by_index(digit as usize);
+                    self.state.set_objective_index(digit as usize);
                 }
             }
 
@@ -149,32 +204,14 @@ where
         metrics: MetricSet,
         score: Score,
         front: Option<Front<Phenotype<C>>>,
+        species_snapshots: Option<Vec<SpeciesSnapshot>>,
     ) {
-        let charts = self.state.chart_state_mut();
-        charts.fitness_chart_mut().push(score.as_f64());
-
-        if let Some(dist) = metrics
-            .get(metric_names::SCORES)
-            .and_then(|m| m.statistic())
-        {
-            charts.fitness_mean_chart_mut().push(dist.mean() as f64);
-        }
-
-        for metric in metrics.iter() {
-            self.state.chart_state.update_from_metric(metric.1);
-        }
-
-        self.state.metrics = metrics;
         self.state.score = score;
         self.state.index = index;
 
-        self.state.filter_state.all_tags = self
-            .state
-            .metrics
-            .tags()
-            .filter(|tag| *tag != TagKind::Statistic && *tag != TagKind::Time)
-            .collect();
-        self.state.filter_state.all_tags.sort();
+        self.state.update_metrics(metrics);
+        self.state.update_species(species_snapshots);
+
         if let Some(front) = front {
             self.state.front = Some(front);
 
@@ -209,21 +246,16 @@ where
                 .fg(crate::styles::TEXT_FG_COLOR),
         );
 
-        let [top, bottom] =
-            Layout::vertical([Constraint::Percentage(30), Constraint::Fill(1)]).areas(area);
-        let [summary, fitness] =
-            Layout::horizontal([Constraint::Percentage(30), Constraint::Fill(1)]).areas(top);
-
-        EngineSummaryWidget::new().render(summary, buf, &mut self.state);
-        FitnessWidget::new().render(fitness, buf, &mut self.state);
-        MetricsWidget::new().render(bottom, buf, &mut self.state);
+        self.layout.draw(area, buf, &mut self.state);
 
         if let Some(panel) = self.state.display.modal_panel {
-            ModalWidget::new(match panel {
-                PanelId::Help => HelpWidget,
-                _ => HelpWidget,
-            })
-            .render(area, buf);
+            match panel {
+                PanelId::Help => ModalWidget::new(HelpPanelWidget).render(area, buf),
+                PanelId::MetricModal => {
+                    ModalWidget::new(MetricModalWidget::new()).render(area, buf, &mut self.state);
+                }
+                _ => {}
+            }
         }
     }
 }

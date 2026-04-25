@@ -164,9 +164,12 @@ impl AuditStep {
         let pop_len = ecosystem.population().len() as f32;
         // Will only compute for single-objective for now
         if let Some(scores) = metrics.get(metric_names::SCORES) {
-            let score_coeff = match (scores.value_std_dev(), scores.value_mean()) {
-                (Some(std_dev), Some(mean)) if mean != 0.0 => std_dev / mean,
-                _ => 0.0,
+            let stddev = scores.stddev();
+            let mean = scores.mean();
+            let score_coeff = if mean.abs() > EPS {
+                stddev / mean.abs()
+            } else {
+                0.0
             };
 
             metrics.upsert((metric_names::SCORE_VOLATILITY, score_coeff));
@@ -314,7 +317,7 @@ impl<C: Chromosome> EngineStep<C> for AuditStep {
             let metric_name = if self.objective.is_single() {
                 metric_names::UNIQUE_SCORES
             } else {
-                intern!(format!("{}_{}", metric_names::UNIQUE_SCORES, idx))
+                intern!(format!("{}.{}", metric_names::UNIQUE_SCORES, idx))
             };
             metrics.upsert((metric_name, unique_count));
         }
@@ -324,7 +327,7 @@ impl<C: Chromosome> EngineStep<C> for AuditStep {
                 metrics.upsert((metric_names::SCORES, &self.score_distribution[0]));
             } else {
                 for (idx, vec) in self.score_distribution.iter().enumerate() {
-                    let metric_name = intern!(format!("{}_{}", metric_names::SCORES, idx));
+                    let metric_name = intern!(format!("{}.{}", metric_names::SCORES, idx));
                     metrics.upsert((metric_name, vec));
                 }
             }

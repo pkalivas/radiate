@@ -1,13 +1,15 @@
-use std::time::Duration;
-
+use crate::PyExpr;
 use crate::object::Wrap;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use pyo3::{IntoPyObject, PyErr, PyResult, Python};
 use pyo3::{pyclass, pymethods};
-use radiate::{Metric, MetricSet};
+use radiate::{AnyValue, ApplyExpr, Metric, MetricSet, MetricUpdate};
+use radiate_error::radiate_py_bail;
+use radiate_utils::intern;
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 
 #[pyclass(skip_from_py_object)]
 #[derive(Clone, Deserialize, Serialize)]
@@ -18,6 +20,36 @@ pub struct PyMetricSet {
 
 #[pymethods]
 impl PyMetricSet {
+    #[new]
+    #[pyo3(signature = (metrics=None))]
+    pub fn new<'py>(metrics: Option<Wrap<AnyValue<'_>>>) -> PyResult<Self> {
+        if let Some(metrics) = metrics {
+            let mut metric_set = MetricSet::new();
+            if let AnyValue::Struct(pairs) = metrics.0.into_static() {
+                for (fld, val) in pairs.into_iter() {
+                    let name = fld.name().to_string();
+                    let metric_update = MetricUpdate::try_from(val)?;
+                    metric_set.upsert((intern!(name), metric_update));
+                }
+            } else {
+                radiate_py_bail!("Metric: Expected a struct of metrics, but got a different type.");
+            }
+
+            return Ok(PyMetricSet { inner: metric_set });
+        }
+
+        Ok(PyMetricSet {
+            inner: MetricSet::new(),
+        })
+    }
+
+    pub fn upsert(&mut self, name: &str, update: Wrap<AnyValue<'_>>) -> PyResult<()> {
+        let interned_name = intern!(name);
+        let metric_update = MetricUpdate::try_from(update.0)?;
+        self.inner.upsert((interned_name, metric_update));
+        Ok(())
+    }
+
     pub fn __repr__(&self) -> String {
         let summary = self.inner.summary();
         format!(
@@ -80,6 +112,11 @@ impl PyMetricSet {
         self.inner.keys()
     }
 
+    pub fn project<'py>(&self, py: Python<'py>, expr: &mut PyExpr) -> PyResult<Bound<'py, PyAny>> {
+        let result = self.inner.apply(expr.inner_mut());
+        Wrap(result).into_pyobject(py)
+    }
+
     pub fn values_by_tag<'py>(
         &self,
         py: Python<'py>,
@@ -128,10 +165,14 @@ impl PyMetricSet {
         Ok(df)
     }
 
-    pub fn to_polars<'py>(&self, py: Python<'py>) -> PyResult<pyo3::Bound<'py, PyAny>> {
+    pub fn to_polars<'py>(&self, py: Python<'py>, lazy: bool) -> PyResult<pyo3::Bound<'py, PyAny>> {
         let rows = self.to_rows(py)?;
         let pl = py.import("polars")?;
-        let df = pl.getattr("DataFrame")?.call1((rows,))?;
+        let df = if lazy {
+            pl.getattr("LazyFrame")?.call1((rows,))?
+        } else {
+            pl.getattr("DataFrame")?.call1((rows,))?
+        };
         Ok(df)
     }
 }
@@ -179,12 +220,22 @@ impl From<Metric> for PyMetric {
 
 #[pymethods]
 impl PyMetric {
-    pub fn __repr__(&self) -> String {
-        format!("PyMetric(name='{}')", self.inner.name())
+    #[staticmethod]
+    #[pyo3(signature = (name, values=None))]
+    pub fn new<'py>(name: String, values: Option<Wrap<AnyValue<'_>>>) -> PyResult<Self> {
+        let mut metric = Metric::new(intern!(name));
+        if let Some(values) = values {
+            let metric_values = values.0.into_static();
+            let metric_update = MetricUpdate::try_from(metric_values)?;
+
+            metric.apply_update(metric_update);
+        }
+
+        Ok(PyMetric { inner: metric })
     }
 
-    pub fn __dict__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
-        self.to_dict(py)
+    pub fn __repr__(&self) -> String {
+        format!("PyMetric(name='{}')", self.inner.name())
     }
 
     #[getter]
@@ -218,38 +269,38 @@ impl PyMetric {
     }
 
     #[getter]
-    pub fn value_sum(&self) -> Option<f32> {
-        self.inner.value_sum()
+    pub fn value_sum(&self) -> f32 {
+        self.inner.sum()
     }
 
     #[getter]
-    pub fn value_mean(&self) -> Option<f32> {
-        self.inner.value_mean()
+    pub fn value_mean(&self) -> f32 {
+        self.inner.mean()
     }
 
     #[getter]
-    pub fn value_stddev(&self) -> Option<f32> {
-        self.inner.value_std_dev()
+    pub fn value_stddev(&self) -> f32 {
+        self.inner.stddev()
     }
 
     #[getter]
-    pub fn value_variance(&self) -> Option<f32> {
-        self.inner.value_variance()
+    pub fn value_variance(&self) -> f32 {
+        self.inner.var()
     }
 
     #[getter]
-    pub fn value_skewness(&self) -> Option<f32> {
-        self.inner.value_skewness()
+    pub fn value_skewness(&self) -> f32 {
+        self.inner.skew()
     }
 
     #[getter]
-    pub fn value_min(&self) -> Option<f32> {
-        self.inner.value_min()
+    pub fn value_min(&self) -> f32 {
+        self.inner.min()
     }
 
     #[getter]
-    pub fn value_max(&self) -> Option<f32> {
-        self.inner.value_max()
+    pub fn value_max(&self) -> f32 {
+        self.inner.max()
     }
 
     #[getter]
@@ -260,37 +311,40 @@ impl PyMetric {
     // --- time stats (seconds as float) ---
     #[getter]
     pub fn time_last(&self) -> Duration {
-        self.inner.last_time()
+        self.inner
+            .times()
+            .and_then(|time| time.last())
+            .unwrap_or_default()
     }
 
     #[getter]
     pub fn time_sum(&self) -> Option<Duration> {
-        self.inner.time_sum()
+        self.inner.times().and_then(|time| time.sum())
     }
 
     #[getter]
     pub fn time_mean(&self) -> Option<Duration> {
-        self.inner.time_mean()
+        self.inner.times().and_then(|time| time.mean())
     }
 
     #[getter]
     pub fn time_stddev(&self) -> Option<Duration> {
-        self.inner.time_std_dev()
+        self.inner.times().and_then(|time| time.stddev())
     }
 
     #[getter]
     pub fn time_min(&self) -> Option<Duration> {
-        self.inner.time_min()
+        self.inner.times().and_then(|time| time.min())
     }
 
     #[getter]
     pub fn time_max(&self) -> Option<Duration> {
-        self.inner.time_max()
+        self.inner.times().and_then(|time| time.max())
     }
 
     #[getter]
     pub fn time_variance(&self) -> Option<Duration> {
-        self.inner.time_variance()
+        self.inner.times().and_then(|time| time.var())
     }
 
     /// Convert to a dict (nice for DataFrame construction / JSON dumps).
@@ -317,6 +371,8 @@ impl PyMetric {
 
         d.set_item("version", self.version())?;
         d.set_item("update_count", self.update_count())?;
+
+        d.set_item("tags", self.tags())?;
 
         Ok(d)
     }

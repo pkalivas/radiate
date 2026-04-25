@@ -1,5 +1,6 @@
 use radiate_core::{
-    AlterResult, BoundedGene, Chromosome, Crossover, Gene, Rate, Valid, random_provider,
+    AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, Gene, Rate, Valid,
+    random_provider,
 };
 use radiate_utils::{Float, Primitive};
 
@@ -45,13 +46,18 @@ where
     }
 
     #[inline]
-    fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C, rate: f32) -> AlterResult {
+    fn cross_chromosomes(
+        &self,
+        chrom_one: &mut C,
+        chrom_two: &mut C,
+        ctx: &mut AlterContext,
+    ) -> AlterResult {
         let mut cross_count = 0;
         let alpha = A::from(self.alpha).unwrap();
 
         random_provider::with_rng(|rand| {
             for (one, two) in chrom_one.zip_mut(chrom_two) {
-                if rand.bool(rate) {
+                if rand.bool(ctx.rate()) {
                     let allele_one = one.allele().clone();
                     let allele_two = two.allele().clone();
 
@@ -76,7 +82,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use radiate_core::{FloatChromosome, FloatGene};
+    use radiate_core::{FloatChromosome, FloatGene, MetricSet};
 
     #[test]
     fn test_cross_chromosomes_basic() {
@@ -99,7 +105,11 @@ mod tests {
         let original_one: Vec<f32> = chrom_one.iter().map(|g| *g.allele()).collect();
         let original_two: Vec<f32> = chrom_two.iter().map(|g| *g.allele()).collect();
 
-        let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, 1.0);
+        let mut metrics = MetricSet::default();
+        let mut lineage = radiate_core::lineage::Lineage::default();
+        let mut ctx = AlterContext::new("TestOperation", &mut metrics, &mut lineage, 0, 1.0);
+
+        let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
         assert_eq!(result.count(), 3);
 
@@ -136,7 +146,11 @@ mod tests {
         let original_one: Vec<f32> = chrom_one.iter().map(|g| *g.allele()).collect();
         let original_two: Vec<f32> = chrom_two.iter().map(|g| *g.allele()).collect();
 
-        let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, 0.0);
+        let mut metrics = MetricSet::default();
+        let mut lineage = radiate_core::lineage::Lineage::default();
+        let mut ctx = AlterContext::new("TestOperation", &mut metrics, &mut lineage, 0, 0.0);
+
+        let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
         assert_eq!(result.count(), 0);
 
@@ -164,7 +178,11 @@ mod tests {
         let mut chrom_one = FloatChromosome::new(genes1);
         let mut chrom_two = FloatChromosome::new(genes2);
 
-        let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, 1.0);
+        let mut metrics = MetricSet::default();
+        let mut lineage = radiate_core::lineage::Lineage::default();
+        let mut ctx = AlterContext::new("TestOperation", &mut metrics, &mut lineage, 0, 1.0);
+
+        let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
         assert_eq!(result.count(), 2);
 
@@ -209,7 +227,11 @@ mod tests {
         let original_one: Vec<f32> = chrom_one.iter().map(|g| *g.allele()).collect();
         let original_two: Vec<f32> = chrom_two.iter().map(|g| *g.allele()).collect();
 
-        let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, 1.0);
+        let mut metrics = MetricSet::default();
+        let mut lineage = radiate_core::lineage::Lineage::default();
+        let mut ctx = AlterContext::new("TestOperation", &mut metrics, &mut lineage, 0, 1.0);
+
+        let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
         assert_eq!(result.count(), 2);
 
@@ -236,7 +258,11 @@ mod tests {
         let mut chrom_one = FloatChromosome::new(genes1);
         let mut chrom_two = FloatChromosome::new(genes2);
 
-        let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, 1.0);
+        let mut metrics = MetricSet::default();
+        let mut lineage = radiate_core::lineage::Lineage::default();
+        let mut ctx = AlterContext::new("TestOperation", &mut metrics, &mut lineage, 0, 1.0);
+
+        let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
         assert_eq!(result.count(), 2);
 
@@ -259,7 +285,11 @@ mod tests {
         let mut chrom_one = FloatChromosome::new(genes.clone());
         let mut chrom_two = FloatChromosome::new(genes);
 
-        let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, 1.0);
+        let mut metrics = MetricSet::default();
+        let mut lineage = radiate_core::lineage::Lineage::default();
+        let mut ctx = AlterContext::new("TestOperation", &mut metrics, &mut lineage, 0, 1.0);
+
+        let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
         assert_eq!(result.count(), 2);
 
@@ -299,7 +329,11 @@ mod tests {
             let original_one: Vec<f32> = chrom_one.iter().map(|g| *g.allele()).collect();
             let original_two: Vec<f32> = chrom_two.iter().map(|g| *g.allele()).collect();
 
-            let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, 1.0);
+            let mut metrics = MetricSet::default();
+            let mut lineage = radiate_core::lineage::Lineage::default();
+            let mut ctx = AlterContext::new("TestOperation", &mut metrics, &mut lineage, 0, 1.0);
+
+            let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
             assert_eq!(result.count(), 5);
 
@@ -339,7 +373,11 @@ mod tests {
         let mut chrom_one = FloatChromosome::new(genes1);
         let mut chrom_two = FloatChromosome::new(genes2);
 
-        let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, 1.0);
+        let mut metrics = MetricSet::default();
+        let mut lineage = radiate_core::lineage::Lineage::default();
+        let mut ctx = AlterContext::new("TestOperation", &mut metrics, &mut lineage, 0, 1.0);
+
+        let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
         assert_eq!(result.count(), 1);
 
@@ -347,7 +385,7 @@ mod tests {
         let mut empty_one = FloatChromosome::<f32>::new(vec![]);
         let mut empty_two = FloatChromosome::<f32>::new(vec![]);
 
-        let result = crossover.cross_chromosomes(&mut empty_one, &mut empty_two, 1.0);
+        let result = crossover.cross_chromosomes(&mut empty_one, &mut empty_two, &mut ctx);
         assert_eq!(result.count(), 0);
     }
 
@@ -363,7 +401,11 @@ mod tests {
         let mut chrom_one = FloatChromosome::<f32>::new(genes1);
         let mut chrom_two = FloatChromosome::<f32>::new(genes2);
 
-        crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, 1.0);
+        let mut metrics = MetricSet::default();
+        let mut lineage = radiate_core::lineage::Lineage::default();
+        let mut ctx = AlterContext::new("TestOperation", &mut metrics, &mut lineage, 0, 1.0);
+
+        crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
         // Manual calculation: allele_one = 2.0, allele_two = 8.0, alpha = 0.3
         // new_allele_one = 2.0 - (0.3 * (8.0 - 2.0)) = 2.0 - (0.3 * 6.0) = 2.0 - 1.8 = 0.2

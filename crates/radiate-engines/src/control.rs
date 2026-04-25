@@ -3,13 +3,13 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
 };
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct State {
     paused: bool,
     permits: usize,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct EngineControl {
     stop_flag: Arc<AtomicBool>,
     inner: Arc<(Mutex<State>, Condvar)>,

@@ -12,6 +12,7 @@ from .engine import (
     EventHandler,
     EventType,
     EngineEvent,
+    MetricCollector,
     MetricSet,
     Metric,
     Tag,
@@ -136,9 +137,9 @@ from .dtype import (
     String,
     Char,
     Null,
-    Op32,
-    Node,
 )
+
+from .expr import Expr, metric, when, lit, element, every, generation
 
 from .dsl import Select, Mutate, Cross, Dist, Limit
 
@@ -166,6 +167,14 @@ __all__ = [
     "_TORCH_AVAILABLE",
     # Random
     "random",
+    # Expressions
+    "Expr",
+    "metric",
+    "when",
+    "lit",
+    "element",
+    "every",
+    "generation",
     # Codecs
     "PermutationCodec",
     "FloatCodec",
@@ -194,6 +203,7 @@ __all__ = [
     "EventHandler",
     "EventType",
     "EngineEvent",
+    "MetricCollector",
     # Rate
     "Rate",
     "rate",
@@ -289,8 +299,6 @@ __all__ = [
     "Char",
     "Null",
     "List",
-    "Op32",
-    "Node",
     # dsl
     "Select",
     "Dist",

@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, Sequence
 from collections.abc import Callable
 
+from radiate.expr import Expr
 from radiate.codec import (
     FloatCodec,
     IntCodec,
@@ -13,7 +14,15 @@ from radiate.codec import (
     PermutationCodec,
 )
 
-from radiate.operators import SelectorBase, AlterBase, DistanceBase, Executor, LimitBase
+from radiate.operators import (
+    SelectorBase,
+    AlterBase,
+    DistanceBase,
+    Executor,
+    LimitBase,
+    Rate,
+    ExprLimit,
+)
 from radiate.fitness import FitnessBase, Regression, MSE
 from radiate.genome import Population, GeneType, Gene, Chromosome
 from radiate.gp import Graph, Tree, Op
@@ -310,7 +319,9 @@ class Engine[G, T]:
 
         return Generation.from_rust(engine.run(limit_inputs, options))
 
-    def fitness(self, fitness_func: Callable[[Any], Any] | FitnessBase) -> Engine[G, T]:
+    def fitness(
+        self, fitness_func: Callable[[T], Any] | FitnessBase[T]
+    ) -> Engine[G, T]:
         """
         Set the fitness function for the engine.
 
@@ -559,7 +570,7 @@ class Engine[G, T]:
         return self
 
     def diversity(
-        self, diversity: DistanceBase, species_threshold: float = 1.5
+        self, diversity: DistanceBase, species_threshold: Rate | Expr | float = 1.5
     ) -> Engine[G, T]:
         """
         Set the diversity measure and species threshold for speciation in the engine.
@@ -592,10 +603,14 @@ class Engine[G, T]:
         ...     )  # <- use Euclidean distance for speciation with a threshold of 0.7
         ... )
         """
+        if isinstance(species_threshold, (int, float)):
+            if species_threshold <= 0:
+                raise ValueError("Species threshold must be greater than 0.")
+            species_threshold = Rate.fixed(species_threshold)
         self._builder.set_diversity(diversity, species_threshold)
         return self
 
-    def limit(self, *limits: LimitBase) -> Engine[G, T]:
+    def limit(self, *limits: LimitBase | Expr) -> Engine[G, T]:
         """
         Set the limits for the engine.
 
@@ -613,6 +628,7 @@ class Engine[G, T]:
         - rd.Limit.seconds(time): Stop after a certain amount of time has elapsed.
         - rd.Limit.convergence(window, epsilon): Stop when the population has converged based on a specified window of generations and convergence threshold.
         - rd.Limit.metric(metric_name, lambda metric: bool): Stop when a custom metric function returns True.
+        - rd.Limit.expr(Expr): Stop when a custom expression evaluates to True.
 
         Args:
             *limits: One or more limits to apply during evolution.
@@ -645,7 +661,15 @@ class Engine[G, T]:
         >>> ...
         >>> result = engine.run()  # <- run the engine with the specified limits. The engine will stop when any of the limits are reached.
         """
-        self._builder.set_limits(list(limits))
+        processed_limits = []
+        for lim in limits:
+            if isinstance(lim, LimitBase):
+                processed_limits.append(lim)
+            elif isinstance(lim, Expr):
+                processed_limits.append(ExprLimit(lim))
+            else:
+                raise ValueError("Limits must be instances of LimitBase or Expr.")
+        self._builder.set_limits(list(processed_limits))
         return self
 
     def size(self, size: int) -> Engine[G, T]:
@@ -981,7 +1005,7 @@ class Engine[G, T]:
         self._builder.set_executor(executor)
         return self
 
-    def subscribe(self, event_handler: Subscriber | None = None) -> Engine[G, T]:
+    def subscribe(self, *event_handler: Subscriber) -> Engine[G, T]:
         """
         Subscribe to engine events with a custom event handler.
 
@@ -1028,7 +1052,7 @@ class Engine[G, T]:
         ...     )  # <- subscribe to engine events with our custom event handler that listens to engine improvement events and prints them out
         ... )
         """
-        self._builder.set_subscribers(event_handler)
+        self._builder.set_subscribers(list(event_handler))
         return self
 
     def generation(self, generation: Generation[G, T] | None) -> Engine[G, T]:
@@ -1115,4 +1139,14 @@ class Engine[G, T]:
         >>> result_from_checkpoint = engine.run(rd.Limit.score(0.001), log=True)
         """
         self._builder.set_checkpoint_path(path)
+        return self
+
+    def metrics(
+        self, named_metrics: dict[str, Expr] | None = None, **kwargs
+    ) -> Engine[G, T]:
+        evals = {}
+        if named_metrics is not None:
+            evals.update(named_metrics)
+        evals.update(kwargs)
+        self._builder.set_metrics(evals)
         return self

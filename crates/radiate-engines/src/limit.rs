@@ -14,6 +14,7 @@
 //! - **Combined Limits**: Apply multiple limits simultaneously
 
 use radiate_core::{Metric, Score};
+use radiate_expr::Expr;
 use std::{fmt::Debug, sync::Arc, time::Duration};
 
 /// Defines various types of limits for controlling genetic algorithm execution.
@@ -91,11 +92,11 @@ use std::{fmt::Debug, sync::Arc, time::Duration};
 /// use std::time::Duration;
 ///
 /// // Automatic conversion from common types
-/// let gen_limit: Limit = 500.into();                    // Generation limit
-/// let time_limit: Limit = Duration::from_secs(120).into(); // Time limit
-/// let score_limit: Limit = 0.85f32.into();             // Score limit
-/// let multi_score: Limit = vec![0.9, 0.8, 0.7].into(); // Multi-objective
-/// let conv_limit: Limit = (25, 0.01f32).into();        // Convergence
+/// let gen_limit: Limit = 500.into();                          // Generation limit
+/// let time_limit: Limit = Duration::from_secs(120).into();    // Time limit
+/// let score_limit: Limit = 0.85f32.into();                    // Score limit
+/// let multi_score: Limit = vec![0.9, 0.8, 0.7].into();        // Multi-objective
+/// let conv_limit: Limit = (25, 0.01f32).into();               // Convergence
 /// ```
 #[derive(Clone)]
 pub enum Limit {
@@ -105,6 +106,7 @@ pub enum Limit {
     Convergence(usize, f32),
     Combined(Vec<Limit>),
     Metric(String, Arc<dyn Fn(&Metric) -> bool>),
+    Expr(Expr),
 }
 
 impl Into<Limit> for usize {
@@ -134,6 +136,12 @@ impl Into<Limit> for Vec<f32> {
 impl Into<Limit> for (usize, f32) {
     fn into(self) -> Limit {
         Limit::Convergence(self.0, self.1)
+    }
+}
+
+impl Into<Limit> for Expr {
+    fn into(self) -> Limit {
+        Limit::Expr(self)
     }
 }
 
@@ -181,6 +189,7 @@ impl Debug for Limit {
             }
             Limit::Combined(limits) => write!(f, "Combined({limits:?})"),
             Limit::Metric(name, _) => write!(f, "MetricLimit({name})"),
+            Limit::Expr(expr) => write!(f, "ExprLimit({expr:?})"),
         }
     }
 }

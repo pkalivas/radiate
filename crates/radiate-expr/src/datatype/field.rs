@@ -1,17 +1,40 @@
 use super::DataType;
 use radiate_utils::SmallStr;
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Default)]
 pub struct Field {
     pub name: SmallStr,
     dtype: DataType,
 }
 
 impl Field {
+    pub const fn new_const(name: &'static str, dtype: DataType) -> Self {
+        Field {
+            name: SmallStr::from_static(name),
+            dtype,
+        }
+    }
+
     pub fn new(name: SmallStr, dtype: DataType) -> Self {
         Field { name, dtype }
+    }
+
+    pub fn with_dtype(&self, dtype: DataType) -> Self {
+        Field {
+            name: self.name.clone(),
+            dtype,
+        }
+    }
+
+    pub fn with_name(&self, name: SmallStr) -> Self {
+        Field {
+            name,
+            dtype: self.dtype.clone(),
+        }
     }
 
     #[inline]

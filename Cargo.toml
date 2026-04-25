@@ -74,6 +74,7 @@ smallvec = { version = "1.13", features = ["serde"] }
 thiserror = "2.0.18"
 serde = { version = "1.0.228", features = ["derive", "rc"] }
 serde_json = { version = "1.0.149" }
+serde-pickle = "1.1"
 compact_str = { version = "0.9.0" }
 foldhash = "0.2.0"
 slotmap = "1.0"
@@ -83,8 +84,9 @@ ratatui = { version = "0.30", default-features = false, features = ["crossterm"]
 tui-piechart = "0.3.1"
 color-eyre = "0.6.3"
 num-traits = "0.2.19"
+num-order = "1.2.0"
 tracing = "0.1.44"
-tracing-subscriber = { version = "0.3.22", features = ["env-filter", "fmt"] }
+tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt"] }
 radiate = { version = "1.2.21", path = "crates/radiate", default-features = false }
 radiate-core = { version = "1.2.21", path = "crates/radiate-core", default-features = false }
 radiate-alters = { version = "1.2.21", path = "crates/radiate-alters", default-features = false }
@@ -96,4 +98,4 @@ radiate-python = { version = "1.2.21", path = "crates/radiate-python", default-f
 radiate-utils = { version = "1.2.21", path = "crates/radiate-utils", default-features = false }
 radiate-ui = { version = "1.2.21", path = "crates/radiate-ui", default-features = false }
 radiate-pgm = { version = "1.2.21", path = "crates/radiate-pgm", default-features = false }
-
+radiate-expr = { version = "1.2.21", path = "crates/radiate-expr", default-features = false }

@@ -1,5 +1,11 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+
 from radiate._bridge.wrapper import RsObject
 from radiate.radiate import PyRate
+
+if TYPE_CHECKING:
+    from radiate.expr import Expr
 
 
 class Rate(RsObject):
@@ -8,6 +14,7 @@ class Rate(RsObject):
     LINEAR = "linear"
     STEPWISE = "stepwise"
     EXPONENTIAL = "exponential"
+    EXPR = "expr"
 
     def __init__(
         self,
@@ -17,6 +24,7 @@ class Rate(RsObject):
         duration: int = 1,
         shape: str = "sine",
         steps: list[tuple[int, float]] | None = None,
+        expr: Expr | None = None,
     ):
         if rate_type == self.FIXED:
             self._pyobj = PyRate.fixed(start)
@@ -30,6 +38,8 @@ class Rate(RsObject):
             self._pyobj = PyRate.stepwise(steps)
         elif rate_type == self.EXPONENTIAL:
             self._pyobj = PyRate.exponential(start, end, duration)
+        elif rate_type == self.EXPR:
+            self._pyobj = PyRate.expression(expr)
         else:
             raise ValueError(f"Unknown rate type: {rate_type}")
 
@@ -65,6 +75,10 @@ class Rate(RsObject):
     @staticmethod
     def exp(start: float, end: float, half_life: int):
         return Rate(Rate.EXPONENTIAL, start, end, half_life)
+
+    @staticmethod
+    def expr(expr: Expr):
+        return Rate(Rate.EXPR, expr=expr.__backend__())
 
 
 def fixed(rate: float):

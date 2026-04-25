@@ -1,4 +1,4 @@
-use super::Panel;
+use crate::widgets::Panel;
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
@@ -7,9 +7,9 @@ use ratatui::{
     widgets::Widget,
 };
 
-pub struct HelpWidget;
+pub struct HelpPanelWidget;
 
-impl Widget for HelpWidget {
+impl Widget for HelpPanelWidget {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let help_text = Text::from(vec![
             Line::from(vec![Span::styled(

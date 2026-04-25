@@ -2,10 +2,11 @@ use pyo3::prelude::*;
 use radiate_python::{
     _activation_ops, _all_ops, _create_op, _edge_ops, _get_dtype_max, _get_dtype_min, PyAccuracy,
     PyBitCodec, PyCharCodec, PyChromosome, PyEcosystem, PyEngine, PyEngineBuilder, PyEngineEvent,
-    PyEngineInput, PyEngineInputType, PyEngineRunOption, PyFitnessFn, PyFloatCodec, PyFront,
-    PyFrontValue, PyGene, PyGeneType, PyGeneration, PyGenotype, PyGraph, PyGraphCodec, PyIntCodec,
-    PyMetric, PyMetricSet, PyOp, PyPermutationCodec, PyPhenotype, PyPopulation, PyRandomProvider,
-    PyRate, PySpecies, PySubscriber, PyTree, PyTreeCodec, py_accuracy, py_alter, py_select,
+    PyEngineInput, PyEngineInputType, PyEngineRunOption, PyExpr, PyFitnessFn, PyFloatCodec,
+    PyFront, PyFrontValue, PyGene, PyGeneType, PyGeneration, PyGenotype, PyGraph, PyGraphCodec,
+    PyIntCodec, PyMetric, PyMetricSet, PyOp, PyPermutationCodec, PyPhenotype, PyPopulation,
+    PyRandomProvider, PyRate, PySpecies, PySubscriber, PyTree, PyTreeCodec, py_accuracy, py_alter,
+    py_select,
 };
 
 #[pyfunction]
@@ -69,6 +70,8 @@ fn radiate(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     m.add_class::<PyMetricSet>()?;
     m.add_class::<PyMetric>()?;
+
+    m.add_class::<PyExpr>()?;
 
     Ok(())
 }

@@ -1,15 +1,11 @@
 mod cell;
 pub mod dtype;
-mod field;
-mod scalar;
 mod value;
 
 use cell::GILOnceCell;
 
 pub use dtype::*;
-pub use field::Field;
-pub use scalar::Scalar;
-pub use value::AnyValue;
+use radiate_expr::{AnyValue, Field};
 
 use pyo3::{
     Borrowed, Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python,
@@ -67,6 +63,7 @@ pub fn any_value_into_py_object_ref<'py, 'a>(
             }
             Ok(dict.into_any())
         }
+        _ => py.None().into_bound_py_any(py),
     }
 }
 
@@ -100,6 +97,7 @@ pub fn any_value_into_py_object<'py>(av: AnyValue, py: Python<'py>) -> PyResult<
             let dict = struct_dict(py, v.into_iter())?;
             dict.into_bound_py_any(py)
         }
+        _ => py.None().into_bound_py_any(py),
     }
 }
 
@@ -146,7 +144,7 @@ pub fn py_object_to_any_value<'a, 'py>(
             let av = py_object_to_any_value(item?.as_borrowed(), strict)?;
             out.push(av.into_static());
         }
-        Ok(AnyValue::Vector(Box::new(out)))
+        Ok(AnyValue::Vector(out))
     }
 
     fn get_conversion_function(ob: &Bound<'_, PyAny>, strict: bool) -> PyResult<InitFn> {

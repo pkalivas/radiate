@@ -1,5 +1,6 @@
 use radiate_core::{
-    AlterResult, BoundedGene, Chromosome, FloatGene, Gene, Mutate, Rate, Valid, random_provider,
+    AlterContext, AlterResult, BoundedGene, Chromosome, FloatGene, Gene, Mutate, Rate, Valid,
+    random_provider,
 };
 use radiate_utils::{Float, Primitive};
 
@@ -35,12 +36,12 @@ where
     }
 
     #[inline]
-    fn mutate_chromosome(&self, chromosome: &mut C, rate: f32) -> AlterResult {
+    fn mutate_chromosome(&self, chromosome: &mut C, ctx: &mut AlterContext) -> AlterResult {
         let mut count = 0;
 
         random_provider::with_rng(|rand| {
             for gene in chromosome.as_mut_slice() {
-                if rand.bool(rate) {
+                if rand.bool(ctx.rate()) {
                     let min = gene.min().extract::<f64>().unwrap();
                     let max = gene.max().extract::<f64>().unwrap();
 

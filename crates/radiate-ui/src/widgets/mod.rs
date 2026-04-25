@@ -1,21 +1,15 @@
-mod chart;
-mod filter;
-mod fitness;
-mod help;
-mod metrics;
+mod components;
 mod modal;
 mod panel;
-mod pareto;
-mod summary;
-mod tables;
+mod panels;
 
-pub use chart::ChartWidget;
-pub use filter::FilterWidget;
-pub use fitness::FitnessWidget;
-pub use help::HelpWidget;
-pub use metrics::MetricsWidget;
+pub use components::*;
 pub use modal::ModalWidget;
 pub use panel::{FnWidget, Panel};
-pub use pareto::{ParetoPagingWidget, num_pairs};
-pub use summary::EngineSummaryWidget;
-pub use tables::{StatsTableWidget, TimeTableWidget};
+pub use panels::{
+    DistributionTableWidget, EngineStatusPanelWidget, HelpPanelWidget, MetricDetailPanelWidget,
+    MetricModalWidget, SearchBarWidget, StatsTableWidget, TimeTableWidget,
+};
+
+mod template;
+pub use template::*;

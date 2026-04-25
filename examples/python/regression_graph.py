@@ -7,36 +7,8 @@ We have a simple polynomial function and we want to evolve a graph that approxim
 """
 
 import radiate as rd
-import polars as pl  # type: ignore
-import matplotlib.pyplot as plt  # type: ignore
 
 rd.random.seed(67123)
-
-
-class ScorePlotterHandler(rd.EventHandler):
-    """
-    Subscriber class to handle events and track metrics.
-    We will use this to plot score distributions over generations then
-    display the plot when the engine stops.
-    """
-
-    def __init__(self):
-        super().__init__()
-        self.scores = []
-        self.metrics = []
-
-    def on_event(self, event: rd.EngineEvent) -> None:
-        if event.event_type() == rd.EventType.EPOCH_COMPLETE:
-            best_score = event.score()
-            self.scores.append(best_score)
-            self.metrics += [val.to_dict() for val in event.metrics().values()]
-        elif event.event_type() == rd.EventType.STOP:
-            plt.plot(list(range(len(self.scores))), self.scores)
-            plt.xlabel("Generation")
-            plt.ylabel("Best Score")
-            plt.title("Best Score over Generations")
-            plt.grid(True)
-            plt.show()
 
 
 def compute(x: float) -> float:
@@ -52,7 +24,28 @@ for _ in range(-10, 10):
     inputs.append([input])
     answers.append([compute(input)])
 
-subscriber = ScorePlotterHandler()
+
+target_species = 4.0
+rolling = int(target_species)
+
+spec_count_signal = rd.metric("count.species").rolling(rolling).mean() / target_species
+spec_dist_signal = (
+    rd.metric("species.distance").mean().rolling(rolling).mean() / target_species
+)
+spec_thresh_signal = rd.metric("species.threshold").rolling(rolling).mean()
+spec_evenness_signal = rd.metric("species.evenness").rolling(rolling).mean()
+
+distance_signal = (
+    (rd.lit(0.9) * spec_count_signal)
+    + (rd.lit(0.4) * spec_dist_signal)
+    + (rd.lit(0.2) * spec_thresh_signal)
+    + (rd.lit(0.1) * spec_evenness_signal)
+).clamp(0.01, 10.0)
+
+
+print(distance_signal.__repr__())
+
+collector = rd.MetricCollector()
 
 engine = (
     rd.Engine.graph(
@@ -62,16 +55,18 @@ engine = (
         output=rd.Op.linear(),
     )
     .regression(inputs, answers, loss=rd.MSE)
-    .subscribe(subscriber)
+    .subscribe(collector)
+    .metrics(distance_signal=distance_signal)
+    .diversity(rd.NeatDistance(), distance_signal)
     .alters(
         rd.Cross.graph(0.05, 0.5),
         rd.Mutate.op(0.07, 0.05),
         rd.Mutate.graph(0.1, 0.1, False),
     )
-    .limit(rd.Limit.generations(1000), rd.Limit.score(0.001))
+    .limit(rd.Limit.score(0.001), rd.Limit.generations(1000))
 )
 
-result = engine.run(log=True)
+result = engine.run(log=True, ui=True)
 
 eval_results = result.value().eval(inputs)
 accuracy = rd.accuracy(result.value(), inputs, answers, loss=rd.MSE)
@@ -80,23 +75,6 @@ print(result)
 print(result.metrics().dashboard())
 print(accuracy)
 
-
-df = pl.DataFrame(subscriber.metrics)
-print(
-    df.filter(pl.col("time_mean").is_not_null() & (pl.col("name") != "time"))
-    .group_by("name")
-    .agg(pl.col("time_mean").mean())
-    .sort("time_mean", descending=True)
+collector.plot(
+    "species.threshold", "count.species", "rate.diversity", "species.evenness"
 )
-
-grouped_updates = (
-    df.group_by("name")
-    .agg(pl.col("update_count").sum().alias("total_updates"))
-    .sort("total_updates", descending=True)
-)
-
-
-print(grouped_updates)
-print(df.columns)
-
-print(grouped_updates.sum())

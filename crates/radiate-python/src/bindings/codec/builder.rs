@@ -1,13 +1,14 @@
 use std::ops::Range;
 
 use super::PyCodec;
-use crate::{DataType, PyAnyObject, PyChromosome, PyGene, PyGenotype};
+use crate::{PyAnyObject, PyChromosome, PyGene, PyGenotype};
 use num_traits::NumCast;
 use numpy::Element;
 use pyo3::{Bound, IntoPyObject, IntoPyObjectExt, PyAny, PyResult};
 use radiate::{
     Chromosome, Codec, FloatChromosome, Gene, Genotype, IntChromosome, chromosomes::NumericAllele,
 };
+use radiate_expr::DataType;
 
 pub trait CodecBuilder<C: Chromosome, T> {
     fn build(self) -> PyCodec<C, T>;
@@ -230,7 +231,7 @@ where
     C: Chromosome<Gene = G> + Clone + From<Vec<G>> + From<(usize, Range<A>, Range<A>)> + 'static,
 {
     fn build(self) -> PyCodec<C, PyAnyObject> {
-        let val_range: Range<A> = self
+        let val_range = self
             .init_range
             .and_then(|(min, max)| A::from(min).zip(A::from(max)).map(|(min, max)| min..max))
             .unwrap_or_else(|| {
@@ -247,7 +248,7 @@ where
                     .unwrap()
             });
 
-        let bound_range: Range<A> = self
+        let bound_range = self
             .bound_range
             .map(|rng| {
                 A::from(rng.0)

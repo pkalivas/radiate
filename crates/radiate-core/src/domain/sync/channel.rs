@@ -22,3 +22,9 @@ impl<T> CommandChannel<T> {
         self.receiver.recv()
     }
 }
+
+impl<T> Default for CommandChannel<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}

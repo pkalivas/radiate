@@ -1,7 +1,7 @@
 use radiate_utils::WindowBuffer;
 use ratatui::style::Color;
 
-pub struct RollingChart {
+pub struct RollingLineChart {
     title: String,
     min_y: f64,
     max_y: f64,
@@ -10,7 +10,7 @@ pub struct RollingChart {
     point_count: usize,
 }
 
-impl RollingChart {
+impl RollingLineChart {
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
             title: "".to_string(),
@@ -105,11 +105,11 @@ impl RollingChart {
 
 #[cfg(test)]
 mod tests {
-    use crate::chart::RollingChart;
+    use crate::chart::RollingLineChart;
 
     #[test]
     fn it_works() {
-        let mut chart = RollingChart::with_capacity(5);
+        let mut chart = RollingLineChart::with_capacity(5);
         for i in 0..20 {
             chart.add_value((i as f64, i as f64 * i as f64));
             println!(

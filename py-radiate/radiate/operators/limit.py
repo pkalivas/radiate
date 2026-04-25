@@ -1,5 +1,6 @@
 from typing import Dict, Any, List, Callable
 from radiate.engine.metrics import Metric
+from radiate.expr import Expr
 from .base import ComponentBase
 
 
@@ -130,3 +131,18 @@ class MetricLimit(LimitBase):
                 "limit": lambda metric: limit(Metric.from_rust(metric)),
             },
         )
+
+
+class ExprLimit(LimitBase):
+    """
+    Limit the engine based on a custom expression (Expr).
+    """
+
+    def __init__(self, expr: Expr):
+        """
+        Initialize the expression limit.
+        :param expr: An Expr that evaluates to a boolean value to determine if the limit is reached.
+        """
+        if not isinstance(expr, Expr):
+            raise TypeError("Expr limit must be an instance of Expr.")
+        super().__init__(component="expr", args={"expr": expr.__backend__()})

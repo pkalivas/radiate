@@ -1,88 +1,117 @@
-use crate::chart::RollingChart;
-use radiate_engines::{Metric, stats::TagKind};
+use crate::chart::RollingLineChart;
+use radiate_engines::{Metric, stats::TagType};
 use radiate_utils::intern;
 use std::collections::HashMap;
 
 const MAX_CHART_POINTS: usize = 1000;
 
+const CHART_NAMES: &[&'static str] = &["Value", "Mean", "Stddev", "Variance"];
+
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub enum ChartType {
+pub enum LineChartType {
     Value,
     Mean,
+    Stddev,
+    Variance,
+}
+
+impl LineChartType {
+    pub fn chart_options() -> &'static [&'static str] {
+        CHART_NAMES
+    }
+
+    pub fn next(self) -> Self {
+        match self {
+            LineChartType::Value => LineChartType::Mean,
+            LineChartType::Mean => LineChartType::Stddev,
+            LineChartType::Stddev => LineChartType::Variance,
+            LineChartType::Variance => LineChartType::Value,
+        }
+    }
+
+    pub fn previous(self) -> Self {
+        match self {
+            LineChartType::Value => LineChartType::Variance,
+            LineChartType::Mean => LineChartType::Value,
+            LineChartType::Stddev => LineChartType::Mean,
+            LineChartType::Variance => LineChartType::Stddev,
+        }
+    }
 }
 
 pub struct ChartState {
-    fitness_chart: RollingChart,
-    fitness_mean_chart: RollingChart,
-    value_charts: HashMap<&'static str, RollingChart>,
-    mean_charts: HashMap<&'static str, RollingChart>,
+    value_charts: HashMap<&'static str, RollingLineChart>,
+    mean_charts: HashMap<&'static str, RollingLineChart>,
+    stddev_charts: HashMap<&'static str, RollingLineChart>,
+    variance_charts: HashMap<&'static str, RollingLineChart>,
 }
 
 impl ChartState {
     pub fn new() -> Self {
         Self {
-            fitness_chart: RollingChart::with_capacity(MAX_CHART_POINTS)
-                .with_title("Score")
-                .with_color(ratatui::style::Color::LightCyan),
-            fitness_mean_chart: RollingChart::with_capacity(MAX_CHART_POINTS)
-                .with_title("μ (mean)")
-                .with_color(ratatui::style::Color::Yellow),
             value_charts: HashMap::new(),
             mean_charts: HashMap::new(),
+            stddev_charts: HashMap::new(),
+            variance_charts: HashMap::new(),
         }
     }
 
-    pub fn fitness_chart(&self) -> &RollingChart {
-        &self.fitness_chart
-    }
-
-    pub fn fitness_chart_mut(&mut self) -> &mut RollingChart {
-        &mut self.fitness_chart
-    }
-
-    pub fn fitness_mean_chart(&self) -> &RollingChart {
-        &self.fitness_mean_chart
-    }
-
-    pub fn fitness_mean_chart_mut(&mut self) -> &mut RollingChart {
-        &mut self.fitness_mean_chart
-    }
-
-    pub fn get_by_key(&self, key: &'static str, chart_type: ChartType) -> Option<&RollingChart> {
+    pub fn get_line_chart(
+        &self,
+        key: &'static str,
+        chart_type: LineChartType,
+    ) -> Option<&RollingLineChart> {
         match chart_type {
-            ChartType::Value => self.value_charts.get(key),
-            ChartType::Mean => self.mean_charts.get(key),
+            LineChartType::Value => self.value_charts.get(key),
+            LineChartType::Mean => self.mean_charts.get(key),
+            LineChartType::Stddev => self.stddev_charts.get(key),
+            LineChartType::Variance => self.variance_charts.get(key),
         }
     }
 
     pub fn update_from_metric(&mut self, metric: &Metric) {
-        if let Some(stat) = metric.statistic() {
-            let key = intern!(metric.name());
-            if !metric.contains_tag(&TagKind::Distribution) {
-                let value_chart = self.get_or_create_chart(key, ChartType::Value);
-                value_chart.push(stat.last_value() as f64);
-            }
-
-            let mean_chart = self.get_or_create_chart(key, ChartType::Mean);
-            mean_chart.push(stat.mean() as f64);
+        let stat = metric.statistic();
+        let key = intern!(metric.name());
+        if !metric.contains_tag(&TagType::Distribution) {
+            let value_chart = self.get_or_create_chart(key, LineChartType::Value);
+            value_chart.push(stat.last_value() as f64);
         }
+
+        let mean_chart = self.get_or_create_chart(key, LineChartType::Mean);
+        mean_chart.push(stat.mean() as f64);
+
+        let stddev_chart = self.get_or_create_chart(key, LineChartType::Stddev);
+        stddev_chart.push(stat.std_dev().unwrap_or(0.0) as f64);
+
+        let variance_chart = self.get_or_create_chart(key, LineChartType::Variance);
+        variance_chart.push(stat.variance().unwrap_or(0.0) as f64);
     }
 
     fn get_or_create_chart(
         &mut self,
         key: &'static str,
-        chart_type: ChartType,
-    ) -> &mut RollingChart {
+        chart_type: LineChartType,
+    ) -> &mut RollingLineChart {
         match chart_type {
-            ChartType::Value => self.value_charts.entry(key).or_insert_with(|| {
-                RollingChart::with_capacity(MAX_CHART_POINTS)
+            LineChartType::Value => self.value_charts.entry(key).or_insert_with(|| {
+                RollingLineChart::with_capacity(MAX_CHART_POINTS)
                     .with_title(key)
                     .with_color(ratatui::style::Color::LightCyan)
             }),
-            ChartType::Mean => self.mean_charts.entry(key).or_insert_with(|| {
-                RollingChart::with_capacity(MAX_CHART_POINTS)
+            LineChartType::Mean => self.mean_charts.entry(key).or_insert_with(|| {
+                RollingLineChart::with_capacity(MAX_CHART_POINTS)
                     .with_title(format!("{} μ (mean)", key))
                     .with_color(ratatui::style::Color::Yellow)
+            }),
+            LineChartType::Stddev => self.stddev_charts.entry(key).or_insert_with(|| {
+                RollingLineChart::with_capacity(MAX_CHART_POINTS)
+                    .with_title(format!("{} σ (stddev)", key))
+                    .with_color(ratatui::style::Color::LightGreen)
+            }),
+            LineChartType::Variance => self.variance_charts.entry(key).or_insert_with(|| {
+                RollingLineChart::with_capacity(MAX_CHART_POINTS)
+                    .with_title(format!("{} σ² (variance)", key))
+                    .with_color(ratatui::style::Color::LightBlue)
             }),
         }
     }

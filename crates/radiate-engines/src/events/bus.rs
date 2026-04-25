@@ -33,32 +33,33 @@ impl<T> EventBus<T> {
         }
 
         let event = match message {
-            EngineMessage::Start => EngineEvent::Start,
-            EngineMessage::Stop(ctx) => EngineEvent::Stop(
+            EngineMessage::Start => EngineEvent::new(EngineEventInner::Start),
+            EngineMessage::Stop(ctx) => EngineEvent::new(EngineEventInner::Stop(
                 ctx.index,
                 ctx.best.clone(),
                 ctx.metrics.clone(),
                 ctx.score.clone().unwrap_or_default(),
-            ),
-            EngineMessage::EpochStart(ctx) => EngineEvent::EpochStart(ctx.index),
-            EngineMessage::EpochEnd(ctx) => EngineEvent::EpochComplete(
+            )),
+            EngineMessage::EpochStart(ctx) => {
+                EngineEvent::new(EngineEventInner::EpochStart(ctx.index))
+            }
+            EngineMessage::EpochEnd(ctx) => EngineEvent::new(EngineEventInner::EpochComplete(
                 ctx.index,
                 ctx.best.clone(),
                 ctx.metrics.clone(),
                 ctx.score.clone().unwrap_or_default(),
                 ctx.objective.clone(),
-            ),
-            EngineMessage::Improvement(ctx) => EngineEvent::Improvement(
+            )),
+            EngineMessage::Improvement(ctx) => EngineEvent::new(EngineEventInner::Improvement(
                 ctx.index,
                 ctx.best.clone(),
                 ctx.score.clone().unwrap_or_default(),
-            ),
+            )),
         };
 
-        let wrapped_event = Arc::new(event);
         for handler in self.handlers.iter() {
             let clone_handler = Arc::clone(handler);
-            let clone_event = Arc::clone(&wrapped_event);
+            let clone_event = event.clone();
             self.executor.submit(move || {
                 clone_handler.lock().unwrap().handle(clone_event);
             });

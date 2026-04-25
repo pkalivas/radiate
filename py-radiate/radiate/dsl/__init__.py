@@ -1,3 +1,11 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .._typing import OperatorRate
+
+
 from radiate.operators.selector import (
     TournamentSelector,
     RouletteSelector,
@@ -35,6 +43,7 @@ from radiate.operators.alterer import (
     ScrambleMutator,
 )
 from radiate.operators.limit import (
+    ExprLimit,
     ScoreLimit,
     GenerationsLimit,
     SecondsLimit,
@@ -49,6 +58,16 @@ from radiate.operators.distance import (
 )
 
 from radiate.operators.rate import Rate
+from radiate.expr import Expr
+
+
+def _get_rate(rate: OperatorRate) -> Rate:
+    if isinstance(rate, Rate):
+        return rate
+    elif isinstance(rate, Expr):
+        return Rate.expr(rate)
+    else:
+        return Rate.fixed(rate)
 
 
 class Select:
@@ -200,7 +219,7 @@ class Select:
 
 class Cross:
     @staticmethod
-    def sbx(rate: Rate | float = 0.1, contiguity: float = 0.5):
+    def sbx(rate: OperatorRate = 0.1, contiguity: float = 0.5):
         """
         The `SimulatedBinaryCrossover` is a crossover operator designed for `FloatGene`s.
         It simulates binary crossover by creating offspring that are a linear combination of the parents, controlled
@@ -210,10 +229,10 @@ class Cross:
         :param rate: The probability of applying the crossover to a pair of parents.
         :param contiguity: The contiguity factor that influences the distribution of offspring `gene` values between the parents.
         """
-        return SimulatedBinaryCrossover(rate, contiguity)
+        return SimulatedBinaryCrossover(_get_rate(rate), contiguity)
 
     @staticmethod
-    def pmx(rate: Rate | float = 0.1):
+    def pmx(rate: OperatorRate = 0.1):
         """
         The `PMXCrossover` is a genetic algorithm crossover technique used for problems where solutions are represented as permutations.
         It is widely used in combinatorial optimization problems, such as the Traveling Salesman Problem (TSP),
@@ -232,10 +251,10 @@ class Cross:
 
         :param rate: The probability of applying the crossover to a pair of parents.
         """
-        return PartiallyMappedCrossover(rate)
+        return PartiallyMappedCrossover(_get_rate(rate))
 
     @staticmethod
-    def multipoint(rate: Rate | float = 0.1, num_points: int = 2):
+    def multipoint(rate: OperatorRate = 0.1, num_points: int = 2):
         """
         The `MultiPointCrossover` is a crossover operator that combines two parent individuals by selecting
         multiple crossover points and swapping the genetic material between the parents at those points. This is a
@@ -244,10 +263,10 @@ class Cross:
         :param rate: The probability of applying the crossover to a pair of parents.
         :param num_points: The number of crossover points to use.
         """
-        return MultiPointCrossover(rate, num_points)
+        return MultiPointCrossover(_get_rate(rate), num_points)
 
     @staticmethod
-    def mean(rate: Rate | float = 0.1):
+    def mean(rate: OperatorRate = 0.1):
         """
         The `MeanCrossover` operator is a crossover mechanism designed
         for `ArithmeticGene`s. It combines the corresponding `genes` of two parent chromosomes by
@@ -257,10 +276,10 @@ class Cross:
 
         :param rate: The probability of applying the crossover to a pair of parents.
         """
-        return MeanCrossover(rate)
+        return MeanCrossover(_get_rate(rate))
 
     @staticmethod
-    def uniform(rate: Rate | float = 0.1):
+    def uniform(rate: OperatorRate = 0.1):
         """
         The `UniformCrossover` is a crossover operator creates new individuals by selecting `genes`
         from the parents with equal probability and swapping them between the parents.
@@ -268,10 +287,10 @@ class Cross:
 
         :param rate: The probability of applying the crossover to a pair of parents.
         """
-        return UniformCrossover(rate)
+        return UniformCrossover(_get_rate(rate))
 
     @staticmethod
-    def blend(rate: Rate | float = 0.1, alpha: float = 0.5):
+    def blend(rate: OperatorRate = 0.1, alpha: float = 0.5):
         """
         The `BlendCrossover` is a crossover operator designed for `ArithmeticGene`s (IntGene & FloatGene).
         It introduces variability by blending the `gene` controlled by the `alpha` parameter.
@@ -281,10 +300,10 @@ class Cross:
         :param rate: The probability of applying the crossover to a pair of parents.
         :param alpha: The blending factor that determines the extent of blending between parent `gene` values.
         """
-        return BlendCrossover(rate, alpha)
+        return BlendCrossover(_get_rate(rate), alpha)
 
     @staticmethod
-    def intermediate(rate: Rate | float = 0.1, alpha: float = 0.5):
+    def intermediate(rate: OperatorRate = 0.1, alpha: float = 0.5):
         """
         The `IntermediateCrossover` operator is a crossover mechanism designed for `ArithmeticGene`s.
         It combines the corresponding `genes` of two parent chromosomes by replacing a gene in one chromosome
@@ -306,10 +325,10 @@ class Cross:
         :param rate: The probability of applying the crossover to a pair of parents.
         :param alpha: The interpolation factor that determines the weight of each parent's gene in the new gene value.
         """
-        return IntermediateCrossover(rate, alpha)
+        return IntermediateCrossover(_get_rate(rate), alpha)
 
     @staticmethod
-    def shuffle(rate: Rate | float = 0.1):
+    def shuffle(rate: OperatorRate = 0.1):
         """
         The `ShuffleCrossover` is a crossover operator used in genetic algorithms,
         particularly when working with permutations or chromosomes where order matters.
@@ -327,10 +346,10 @@ class Cross:
 
         :param rate: The probability of applying the crossover to a pair of parents.
         """
-        return ShuffleCrossover(rate)
+        return ShuffleCrossover(_get_rate(rate))
 
     @staticmethod
-    def edge_recombination(rate: Rate | float = 0.1):
+    def edge_recombination(rate: OperatorRate = 0.1):
         """
         The `EdgeRecombinationCrossover` is a specialized crossover operator for permutation problems.
         It focuses on preserving the connectivity between genes by combining edges from both parents.
@@ -348,10 +367,10 @@ class Cross:
 
         :param rate: The probability of applying the crossover to a pair of parents.
         """
-        return EdgeRecombinationCrossover(rate)
+        return EdgeRecombinationCrossover(_get_rate(rate))
 
     @staticmethod
-    def graph(vertex_rate: float = 0.1, edge_rate: float = 0.1):
+    def graph(rate: OperatorRate = 0.5, parent_node_rate: float = 0.5):
         """
         This crossover operator is used to combine two parent graphs by swapping the values of their nodes.
         It can be used to create new graphs that inherit the structure and values of their parents.
@@ -363,10 +382,10 @@ class Cross:
         :param rate: The probability of applying the crossover to a pair of parents.
         :param parent_node_rate: The probability of inheriting a node's value from the more fit parent.
         """
-        return GraphCrossover(vertex_rate, edge_rate)
+        return GraphCrossover(_get_rate(rate), parent_node_rate)
 
     @staticmethod
-    def tree(rate: Rate | float = 0.1):
+    def tree(rate: OperatorRate = 0.1):
         """
         The `TreeCrossover` is a crossover operator that randomly selects a subtree from one parent tree and
         swaps it with a subtree from another parent tree.
@@ -374,21 +393,21 @@ class Cross:
         :param rate: The probability of applying the crossover to a pair of parents.
         :param max_size: The maximum size of the resulting tree after crossover.
         """
-        return TreeCrossover(rate)
+        return TreeCrossover(_get_rate(rate))
 
 
 class Mutate:
     @staticmethod
-    def uniform(rate: Rate | float = 0.1):
+    def uniform(rate: OperatorRate = 0.1):
         """
         The most basic mutation operator. It randomly replaces a gene with a new instance of the gene type.
 
         :param rate: The probability of mutating each gene in an individual.
         """
-        return UniformMutator(rate)
+        return UniformMutator(_get_rate(rate))
 
     @staticmethod
-    def gaussian(rate: Rate | float = 0.1):
+    def gaussian(rate: OperatorRate = 0.1):
         """
         The `GaussianMutator` operator is a mutation mechanism designed for `ArithmeticGene`s.
         It introduces random noise to the gene values by adding a sample from a Gaussian distribution
@@ -397,10 +416,10 @@ class Mutate:
 
         :param rate: The probability of mutating each gene in an individual.
         """
-        return GaussianMutator(rate)
+        return GaussianMutator(_get_rate(rate))
 
     @staticmethod
-    def op(rate: Rate | float = 0.1, replace_rate: float = 0.1):
+    def op(rate: OperatorRate = 0.1, replace_rate: float = 0.1):
         """
         This mutator randomly changes or alters the `op` of a node within a `TreeChromosome` or `GraphChromosome`.
         It can replace the `op` with a new one from the store or modify its parameters.
@@ -408,7 +427,7 @@ class Mutate:
         :param rate: The probability of mutating each gene in an individual.
         :param replace_rate: The probability of replacing the operation entirely instead of just modifying it.
         """
-        return OperationMutator(rate, replace_rate)
+        return OperationMutator(_get_rate(rate), replace_rate)
 
     @staticmethod
     def graph(
@@ -425,16 +444,16 @@ class Mutate:
         return GraphMutator(vertex_rate, edge_rate, allow_recurrent)
 
     @staticmethod
-    def scramble(rate: Rate | float = 0.1):
+    def scramble(rate: OperatorRate = 0.1):
         """
         The `ScrambleMutator` randomly reorders a segment of `genes` within a `chromosome`.
 
         :param rate: The probability of mutating each gene in an individual.
         """
-        return ScrambleMutator(rate)
+        return ScrambleMutator(_get_rate(rate))
 
     @staticmethod
-    def swap(rate: Rate | float = 0.1):
+    def swap(rate: OperatorRate = 0.1):
         """
         The `SwapMutator` is a mutation operator designed for genetic algorithms
         to swap the positions of two `Gene`s in a `Chromosome`. This mutator swaps two `Gene`s
@@ -443,10 +462,10 @@ class Mutate:
 
         :param rate: The probability of mutating each gene in an individual.
         """
-        return SwapMutator(rate)
+        return SwapMutator(_get_rate(rate))
 
     @staticmethod
-    def hoist(rate: Rate | float = 0.1):
+    def hoist(rate: OperatorRate = 0.1):
         """
         The `HoistMutator` is a mutation operator that randomly selects a subtree
         from the tree and moves it to a different location in the tree. This can create new
@@ -454,20 +473,20 @@ class Mutate:
 
         :param rate: The probability of mutating each gene in an individual.
         """
-        return HoistMutator(rate)
+        return HoistMutator(_get_rate(rate))
 
     @staticmethod
-    def inversion(rate: Rate | float = 0.1):
+    def inversion(rate: OperatorRate = 0.1):
         """
         `InvertMutator` is a segment inversion mutator. It randomly selects a segment of the
         `chromosome` and inverts the order of the `genes` within that segment.
 
         :param rate: The probability of mutating each gene in an individual.
         """
-        return InversionMutator(rate)
+        return InversionMutator(_get_rate(rate))
 
     @staticmethod
-    def polynomial(rate: Rate | float = 0.1, eta: float = 20):
+    def polynomial(rate: OperatorRate = 0.1, eta: float = 20):
         """
         The `PolynomialMutator` applies a polynomial mutation to the genes of a chromosome.
         This provides a bounded and unbiased mutation to genes where you care about the distribution of the mutation.
@@ -481,10 +500,10 @@ class Mutate:
         :param rate: The probability of mutating each gene in an individual.
         :param eta: The distribution index that controls the shape of the mutation distribution.
         """
-        return PolynomialMutator(rate, eta)
+        return PolynomialMutator(_get_rate(rate), eta)
 
     @staticmethod
-    def jitter(rate: Rate | float = 0.1, magnitude: float = 0.01):
+    def jitter(rate: OperatorRate = 0.1, magnitude: float = 0.01):
         """
         The `JitterMutator` adds small random perturbations to the values of a `gene`
         within a `chromosome`. A random value is sampled from a uniform
@@ -495,10 +514,10 @@ class Mutate:
 
         :param rate: The probability of mutating each gene in an individual.
         """
-        return JitterMutator(rate, magnitude)
+        return JitterMutator(_get_rate(rate), magnitude)
 
     @staticmethod
-    def arithmetic(rate: Rate | float = 0.1):
+    def arithmetic(rate: OperatorRate = 0.1):
         """
         The `ArithmeticMutator` introduces diversity into genetic algorithms by mutating numerically
         based `genes` through basic arithmetic operations. It is designed to work on `genes` that
@@ -511,7 +530,7 @@ class Mutate:
 
         :param rate: The probability of mutating each gene in an individual.
         """
-        return ArithmeticMutator(rate)
+        return ArithmeticMutator(_get_rate(rate))
 
 
 class Limit:
@@ -534,8 +553,12 @@ class Limit:
     @staticmethod
     def metric(
         name: str = "evaluation_count", limit=lambda metric: metric.sum() > 1000
-    ):
+    ) -> MetricLimit:
         return MetricLimit(name, limit)
+
+    @staticmethod
+    def expr(expr: Expr) -> ExprLimit:
+        return ExprLimit(expr)
 
 
 class Dist:

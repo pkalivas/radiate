@@ -18,6 +18,7 @@ _NUMPY_AVAILABLE = True
 _PANDAS_AVAILABLE = True
 _POLARS_AVAILABLE = True
 _TORCH_AVAILABLE = True
+_MATPLOTLIB_AVAILABLE = True
 
 
 class _LazyModule(ModuleType):
@@ -149,6 +150,7 @@ if TYPE_CHECKING:
     import pandas
     import torch
     import polars
+    import matplotlib.pyplot as matplotlib
 
 else:
     # infrequently-used builtins
@@ -162,6 +164,7 @@ else:
     pandas, _PANDAS_AVAILABLE = _lazy_import("pandas")
     polars, _POLARS_AVAILABLE = _lazy_import("polars")
     torch, _TORCH_AVAILABLE = _lazy_import("torch")
+    matplotlib, _MATPLOTLIB_AVAILABLE = _lazy_import("matplotlib.pyplot")
 
 
 @cache
@@ -199,6 +202,12 @@ def _check_for_polars(obj: Any, *, check_type: bool = True) -> bool:
     )
 
 
+def _check_for_matplotlib(obj: Any, *, check_type: bool = True) -> bool:
+    return _MATPLOTLIB_AVAILABLE and _might_be(
+        cast(Hashable, type(obj) if check_type else obj), "matplotlib"
+    )
+
+
 __all__ = [
     # lazy-load rarely-used/heavy builtins (for fast startup)
     "dataclasses",
@@ -211,15 +220,18 @@ __all__ = [
     "pandas",
     "polars",
     "torch",
+    "matplotlib",
     # lazy utilities
     "_check_for_numpy",
     "_check_for_pandas",
     "_check_for_torch",
     "_check_for_polars",
+    "_check_for_matplotlib",
     # exported flags/guards
     "_GIL_ENABLED",
     "_NUMPY_AVAILABLE",
     "_PANDAS_AVAILABLE",
     "_POLARS_AVAILABLE",
     "_TORCH_AVAILABLE",
+    "_MATPLOTLIB_AVAILABLE",
 ]

@@ -17,8 +17,10 @@
 //! - **Specialized Iterators**: Various iterator types for different termination strategies
 //! - **Limit System**: Flexible limit specification and combination
 
+use crate::{CheckpointWriter, JsonCheckpointWriter};
 use crate::{Generation, Limit, control::EngineControl, init_logging};
 use radiate_core::{Chromosome, Engine, Metric, Objective, Optimize, Score};
+use radiate_expr::{AnyValue, ApplyExpr, Expr};
 #[cfg(feature = "serde")]
 use serde::Serialize;
 #[cfg(feature = "serde")]
@@ -639,6 +641,11 @@ where
                 limit: predicate,
                 done: false,
             }),
+            Limit::Expr(expr) => Box::new(ExprLimitIterator {
+                iter: self,
+                expr,
+                done: false,
+            }),
             Limit::Combined(limits) => {
                 let mut iter: Box<dyn Iterator<Item = Generation<C, T>>> = Box::new(self);
                 for limit in limits {
@@ -665,6 +672,11 @@ where
                             iter,
                             metric_name: name,
                             limit: predicate,
+                            done: false,
+                        }),
+                        Limit::Expr(expr) => Box::new(ExprLimitIterator {
+                            iter,
+                            expr,
                             done: false,
                         }),
                         _ => iter,
@@ -741,17 +753,50 @@ where
     fn checkpoint(
         self,
         interval: usize,
-        path: impl AsRef<Path>,
+        folder_path: impl AsRef<Path>,
     ) -> impl Iterator<Item = Generation<C, T>>
     where
         Self: Sized,
         C: Serialize,
         T: Serialize,
     {
+        let path_without_extension = folder_path
+            .as_ref()
+            .to_str()
+            .and_then(|s| s.rsplit('.').nth(1))
+            .unwrap_or(folder_path.as_ref().to_str().unwrap_or("checkpoints"));
+
         CheckpointIterator {
             iter: self,
             interval,
-            path: path.as_ref().to_path_buf(),
+            path: PathBuf::from(path_without_extension),
+            writer: Box::new(JsonCheckpointWriter),
+        }
+    }
+
+    #[cfg(feature = "serde")]
+    fn checkpoint_with(
+        self,
+        interval: usize,
+        folder_path: impl AsRef<Path>,
+        writer: Box<dyn CheckpointWriter<C, T>>,
+    ) -> impl Iterator<Item = Generation<C, T>>
+    where
+        Self: Sized,
+        C: Serialize,
+        T: Serialize,
+    {
+        let path_without_extension = folder_path
+            .as_ref()
+            .to_str()
+            .and_then(|s| s.rsplit('.').nth(1))
+            .unwrap_or(folder_path.as_ref().to_str().unwrap_or("checkpoints"));
+
+        CheckpointIterator {
+            iter: self,
+            interval,
+            path: PathBuf::from(path_without_extension),
+            writer,
         }
     }
 
@@ -831,6 +876,7 @@ where
     iter: I,
     interval: usize,
     path: PathBuf,
+    writer: Box<dyn CheckpointWriter<C, T>>,
 }
 
 /// Implementation of `Iterator` for [CheckpointIterator].
@@ -852,14 +898,17 @@ where
         let next = self.iter.next()?;
 
         if next.index() % self.interval == 0 {
-            let file_path = self.path.join(format!("generation_{}.json", next.index()));
-            let serialized = serde_json::to_string(&next).unwrap();
+            let file_path = self.path.join(format!(
+                "chckpnt_{}.{}",
+                next.index(),
+                self.writer.extension()
+            ));
 
             if !self.path.exists() {
-                std::fs::create_dir_all(&self.path).unwrap();
+                std::fs::create_dir_all(&self.path).expect("Failed to create checkpoint directory");
             }
 
-            std::fs::write(&file_path, serialized).unwrap();
+            self.writer.write_checkpoint(file_path, &next).ok();
         }
 
         Some(next)
@@ -951,6 +1000,48 @@ where
             if (self.limit)(metric) {
                 self.done = true;
             }
+        } else {
+            panic!(
+                "Metric '{}' not found in generation metrics",
+                self.metric_name,
+            );
+        }
+
+        Some(next)
+    }
+}
+
+struct ExprLimitIterator<C, T, I>
+where
+    I: Iterator<Item = Generation<C, T>>,
+    C: Chromosome,
+{
+    iter: I,
+    expr: Expr,
+    done: bool,
+}
+
+impl<I, C, T> Iterator for ExprLimitIterator<C, T, I>
+where
+    I: Iterator<Item = Generation<C, T>>,
+    C: Chromosome,
+{
+    type Item = Generation<C, T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.done {
+            return None;
+        }
+
+        let next = self.iter.next()?;
+        let expr_output = next.metrics().apply(&mut self.expr);
+        if let AnyValue::Bool(val) = expr_output {
+            self.done = val;
+        } else {
+            panic!(
+                "Expression should evaluate to a boolean value, got: {:?}",
+                expr_output
+            );
         }
 
         Some(next)

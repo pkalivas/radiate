@@ -1,3 +1,5 @@
+use crate::species::SpeciesSnapshot;
+
 use super::{Chromosome, Genotype, Phenotype, Population, Species};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -69,6 +71,12 @@ impl<C: Chromosome> Ecosystem<C> {
 
     pub fn species_mut(&mut self) -> Option<&mut Vec<Species<C>>> {
         self.species.as_mut()
+    }
+
+    pub fn species_snapshots(&self) -> Option<Vec<SpeciesSnapshot>> {
+        self.species
+            .as_ref()
+            .map(|s| s.iter().map(SpeciesSnapshot::from).collect())
     }
 
     pub fn get_phenotype(&self, index: usize) -> Option<&Phenotype<C>> {

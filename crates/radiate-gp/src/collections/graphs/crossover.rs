@@ -1,6 +1,6 @@
 use crate::collections::GraphChromosome;
 use crate::node::{Node, NodeExt};
-use radiate_core::{AlterResult, Crossover, LineageUpdate, random_provider};
+use radiate_core::{AlterContext, AlterResult, Crossover, random_provider};
 use radiate_core::{Rate, genome::*};
 use std::fmt::Debug;
 
@@ -33,8 +33,7 @@ where
         &self,
         population: &mut Population<GraphChromosome<T>>,
         indexes: &[usize],
-        generation: usize,
-        _: f32,
+        ctx: &mut AlterContext,
     ) -> AlterResult {
         if population.len() <= NUM_PARENTS {
             return AlterResult::empty();
@@ -79,11 +78,11 @@ where
             if num_crosses > 0 {
                 let parent_lineage = (parent_one.family(), parent_two.family());
                 let parent_ids = (parent_one.id(), parent_two.id());
-                parent_one.invalidate(generation);
-                return AlterResult::from((
-                    num_crosses,
-                    LineageUpdate::from((parent_lineage, parent_ids, parent_one.id())),
-                ));
+
+                parent_one.invalidate(ctx.generation());
+                ctx.update_lineage((parent_lineage, parent_ids, parent_one.id()));
+
+                return AlterResult::from(num_crosses);
             }
         }
 

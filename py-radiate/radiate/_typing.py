@@ -5,6 +5,8 @@ from typing import Any, TYPE_CHECKING
 
 
 if TYPE_CHECKING:
+    from radiate.expr import Expr
+    from radiate.operators.rate import Rate
     from .engine.handlers import EventHandler
     from .dtype import DataType, DataTypeClass
     from radiate.fitness.loss import LossType, LossTypeClass
@@ -17,3 +19,5 @@ type RdDataType = DataType | DataTypeClass
 type RdLossType = LossType | LossTypeClass
 
 type Subscriber = AtLeastOne[Callable[[Any], None]] | AtLeastOne[EventHandler]
+
+type OperatorRate = float | Rate | Expr

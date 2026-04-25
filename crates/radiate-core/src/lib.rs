@@ -18,7 +18,7 @@ pub mod stats;
 use radiate_error::Result;
 pub use radiate_error::{RadiateError, ensure, radiate_err};
 
-pub use alter::{AlterResult, Alterer, Crossover, Mutate};
+pub use alter::{AlterContext, AlterResult, Alterer, Crossover, Mutate};
 pub use codecs::{
     BitCodec, CharCodec, Codec, FloatCodec, FnCodec, IntCodec, PermutationCodec, SubSetCodec,
 };
@@ -35,15 +35,12 @@ pub use problem::{BatchEngineProblem, EngineProblem, Problem};
 pub use rate::Rate;
 pub use replacement::{EncodeReplace, PopulationSampleReplace, ReplacementStrategy};
 pub use selector::Select;
-pub use stats::{
-    Distribution, Metric, MetricSet, MetricUpdate, Statistic, TimeStatistic, metric_names,
-    render_dashboard, render_full,
-};
+pub use stats::{Metric, MetricSet, MetricUpdate, metric_names, render_dashboard, render_full};
 
 pub mod prelude {
     pub use radiate_error::*;
 
-    pub use super::alter::{Alterer, Crossover, Mutate};
+    pub use super::alter::{AlterContext, Alterer, Crossover, Mutate};
     pub use super::codecs::{
         BitCodec, CharCodec, Codec, FloatCodec, FnCodec, IntCodec, PermutationCodec, SubSetCodec,
     };
@@ -63,5 +60,5 @@ pub mod prelude {
     pub use super::problem::{BatchEngineProblem, EngineProblem, Problem};
     pub use super::replacement::{EncodeReplace, PopulationSampleReplace, ReplacementStrategy};
     pub use super::selector::Select;
-    pub use super::stats::{Distribution, Metric, MetricSet, Statistic, TimeStatistic};
+    pub use super::stats::{Metric, MetricSet};
 }

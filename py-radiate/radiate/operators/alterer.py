@@ -1,8 +1,8 @@
 from typing import Any
 
 from radiate.genome.gene import GeneType
-from radiate.operators.rate import Rate
 
+from .rate import Rate
 from .base import ComponentBase
 
 from radiate.genome.population import Population

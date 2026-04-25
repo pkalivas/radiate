@@ -33,7 +33,8 @@ polars = ["polars>=1.38.1 ; python_version >= '3.12' and python_version < '3.14'
 pandas = ["pandas>=2.1.0 ; python_version >= '3.12' and python_version < '3.14'"]
 torch = ["torch>=2.7.1 ; python_version >= '3.12' and python_version < '3.14'"]
 numpy = ["numpy>=2.4.3"]
-all = ["data", "numpy","polars", "pandas", "torch"]
+matplotlib = ["matplotlib>=3.8.0"]
+all = ["numpy", "polars", "pandas", "torch", "matplotlib"]
 
 [tool.uv]
 package = false
@@ -67,6 +68,7 @@ markers = [
     "benchmark: Benchmark tests",
     "skipif: Skip tests if condition is true"
 ]
+
 
 [tool.ruff]
 fix = true

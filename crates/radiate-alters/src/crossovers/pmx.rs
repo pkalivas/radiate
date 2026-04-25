@@ -1,6 +1,6 @@
 use radiate_core::{
-    AlterResult, Chromosome, Crossover, PermutationChromosome, Rate, SubsetMode, Valid,
-    math::indexes,
+    AlterContext, AlterResult, Chromosome, Crossover, PermutationChromosome, Rate, SubsetMode,
+    Valid, math::indexes,
 };
 
 pub struct PMXCrossover {
@@ -28,7 +28,7 @@ impl<A: PartialEq + Clone> Crossover<PermutationChromosome<A>> for PMXCrossover 
         &self,
         chrom_one: &mut PermutationChromosome<A>,
         chrom_two: &mut PermutationChromosome<A>,
-        _: f32,
+        _: &mut AlterContext,
     ) -> AlterResult {
         let length = std::cmp::min(chrom_one.as_slice().len(), chrom_two.as_slice().len());
         if length < 2 {

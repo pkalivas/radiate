@@ -12,6 +12,8 @@ pub enum Code {
     Evaluation,
     Genome,
     Fitness,
+    Metric,
+    Expr,
     Other,
     Io,
     Python,
@@ -39,6 +41,12 @@ pub enum RadiateError {
     #[error("Invalid fitness: {0}")]
     Fitness(String),
 
+    #[error("Metric error: {0}")]
+    Metric(String),
+
+    #[error("Expression error: {0}")]
+    Expr(String),
+
     #[cfg(feature = "python")]
     #[error("Python error: {0}")]
     Python(#[from] pyo3::PyErr),
@@ -65,6 +73,8 @@ impl RadiateError {
             RadiateError::Genome { .. } => Code::Genome,
             RadiateError::Codec { .. } => Code::Codec,
             RadiateError::Fitness { .. } => Code::Fitness,
+            RadiateError::Metric { .. } => Code::Metric,
+            RadiateError::Expr { .. } => Code::Expr,
             RadiateError::Evaluation { .. } => Code::Evaluation,
             RadiateError::Other(_) => Code::Other,
             #[cfg(feature = "python")]
@@ -127,6 +137,17 @@ macro_rules! radiate_err {
     (Python: $fmt:literal $(, $arg:expr)* $(,)?) => {
         $crate::__private::must_use(pyo3::PyErr::new::<pyo3::exceptions::PyException, _>(format!($fmt, $($arg),*)))
     };
+    (Metric: $fmt:literal $(, $arg:expr)* $(,)?) => {
+        $crate::__private::must_use($crate::RadiateError::Metric(format!($fmt, $($arg),*)))
+    };
+    (Expr: $fmt:literal $(, $arg:expr)* $(,)?) => {
+        $crate::__private::must_use($crate::RadiateError::Expr(format!($fmt, $($arg),*)))
+    };
+
+    // Contextual message
+    (Context: $msg:expr, $source:expr $(,)?) => {
+        $crate::__private::must_use($source.into().context($msg))
+    };
 
     // Raw string-like message (any expr -> String)
     (Builder: $msg:expr $(,)?) => {
@@ -144,8 +165,17 @@ macro_rules! radiate_err {
     (Evaluation: $msg:expr $(,)?) => {
         $crate::__private::must_use($crate::RadiateError::Evaluation($msg.to_string()))
     };
+    (Python: $msg:expr $(,)?) => {
+        $crate::__private::must_use(pyo3::PyErr::new::<pyo3::exceptions::PyException, _>($msg.to_string()))
+    };
+    (Metric: $msg:expr $(,)?) => {
+        $crate::__private::must_use($crate::RadiateError::Metric($msg.to_string()))
+    };
+    (Expr: $msg:expr $(,)?) => {
+        $crate::__private::must_use($crate::RadiateError::Expr($msg.to_string()))
+    };
 
-    // Fallback -> Engine
+    // Fallback -> Engine (for now, could be Metric or other)
     ($msg:expr $(,)?) => {
         $crate::__private::must_use($crate::RadiateError::Engine($msg.to_string()))
     };

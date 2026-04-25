@@ -1,3 +1,5 @@
+use std::hash::Hash;
+
 use crate::stats::metric_tags;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -19,12 +21,12 @@ impl Tag {
     }
 
     #[inline]
-    pub fn has(self, kind: TagKind) -> bool {
+    pub fn has(self, kind: TagType) -> bool {
         self.0 & kind.bit() != 0
     }
 
     #[inline]
-    pub fn insert(&mut self, kind: TagKind) {
+    pub fn insert(&mut self, kind: TagType) {
         self.0 |= kind.bit();
     }
 
@@ -39,23 +41,23 @@ impl Tag {
     }
 }
 
-impl From<TagKind> for Tag {
+impl From<TagType> for Tag {
     #[inline]
-    fn from(kind: TagKind) -> Self {
+    fn from(kind: TagType) -> Self {
         Tag(kind.bit())
     }
 }
 
-impl From<&TagKind> for Tag {
+impl From<&TagType> for Tag {
     #[inline]
-    fn from(kind: &TagKind) -> Self {
+    fn from(kind: &TagType) -> Self {
         Tag(kind.bit())
     }
 }
 
-impl From<&[TagKind]> for Tag {
+impl From<&[TagType]> for Tag {
     #[inline]
-    fn from(kinds: &[TagKind]) -> Self {
+    fn from(kinds: &[TagType]) -> Self {
         let mut tag = Tag::empty();
         for kind in kinds {
             tag.insert(*kind);
@@ -85,8 +87,14 @@ impl From<Tag> for u32 {
     }
 }
 
+impl Hash for Tag {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0.hash(state);
+    }
+}
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum TagKind {
+pub enum TagType {
     Selector,
     Alterer,
     Mutator,
@@ -104,13 +112,14 @@ pub enum TagKind {
     Rate,
     Step,
     Lineage,
+    Expr,
 }
 
-impl TagKind {
-    pub const COUNT: usize = 17;
+impl TagType {
+    pub const COUNT: usize = 18;
     #[inline]
     pub fn from_index(idx: u32) -> Option<Self> {
-        use TagKind::*;
+        use TagType::*;
         Some(match idx {
             0 => Selector,
             1 => Alterer,
@@ -129,6 +138,7 @@ impl TagKind {
             14 => Rate,
             15 => Step,
             16 => Lineage,
+            17 => Expr,
             _ => return None,
         })
     }
@@ -140,7 +150,7 @@ impl TagKind {
 
     #[inline]
     pub fn as_str(&self) -> &'static str {
-        use TagKind::*;
+        use TagType::*;
         match self {
             Selector => "Selector",
             Alterer => "Alterer",
@@ -159,25 +169,26 @@ impl TagKind {
             Rate => "Rate",
             Step => "Step",
             Lineage => "Lineage",
+            Expr => "Expr",
         }
     }
 }
 
-impl PartialOrd for TagKind {
+impl PartialOrd for TagType {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some((*self as u16).cmp(&(*other as u16)))
     }
 }
 
-impl Ord for TagKind {
+impl Ord for TagType {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         (*self as u16).cmp(&(*other as u16))
     }
 }
 
-impl From<String> for TagKind {
+impl From<String> for TagType {
     fn from(s: String) -> Self {
-        use TagKind::*;
+        use TagType::*;
         match s.as_str().to_lowercase().as_str() {
             metric_tags::SELECTOR => Selector,
             metric_tags::ALTERER => Alterer,
@@ -196,6 +207,7 @@ impl From<String> for TagKind {
             metric_tags::RATE => Rate,
             metric_tags::STEP => Step,
             metric_tags::LINEAGE => Lineage,
+            metric_tags::EXPR => Expr,
             _ => Other,
         }
     }
@@ -206,7 +218,7 @@ pub struct TagMaskIter {
 }
 
 impl Iterator for TagMaskIter {
-    type Item = TagKind;
+    type Item = TagType;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.bits == 0 {
@@ -215,12 +227,12 @@ impl Iterator for TagMaskIter {
 
         let tz = self.bits.trailing_zeros() as u32;
         self.bits &= self.bits - 1;
-        TagKind::from_index(tz)
+        TagType::from_index(tz)
     }
 }
 
 impl IntoIterator for Tag {
-    type Item = TagKind;
+    type Item = TagType;
     type IntoIter = TagMaskIter;
 
     fn into_iter(self) -> Self::IntoIter {

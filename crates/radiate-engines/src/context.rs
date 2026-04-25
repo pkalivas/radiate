@@ -1,11 +1,13 @@
 use crate::builder::EngineConfig;
 use crate::{Chromosome, EngineControl};
 use radiate_core::error::RadiateResult;
+use radiate_core::stats::TagType;
 use radiate_core::{
-    Ecosystem, Front, Lineage, MetricSet, Objective, Phenotype, Problem, RadiateError, Score,
-    metric, metric_names,
+    Ecosystem, Front, Lineage, MetricSet, MetricUpdate, Objective, Phenotype, Problem,
+    RadiateError, Score, metric, metric_names,
 };
-use std::sync::{Arc, RwLock};
+use radiate_expr::{ApplyExpr, NamedExpr};
+use std::sync::{Arc, Mutex, RwLock};
 
 pub struct Context<C: Chromosome, T> {
     pub(crate) ecosystem: Ecosystem<C>,
@@ -18,6 +20,7 @@ pub struct Context<C: Chromosome, T> {
     pub(crate) objective: Objective,
     pub(crate) problem: Arc<dyn Problem<C, T>>,
     pub(crate) control: Option<EngineControl>,
+    pub(crate) exprs: Option<Arc<Mutex<Vec<NamedExpr>>>>,
 }
 
 impl<C: Chromosome, T> Context<C, T> {
@@ -27,6 +30,8 @@ impl<C: Chromosome, T> Context<C, T> {
 
         self.metrics
             .replace(metric!(metric_names::INDEX, self.index));
+
+        let mut best_improved = false;
 
         let best = self.ecosystem.get_phenotype(0);
         if let Some(best) = best {
@@ -39,20 +44,50 @@ impl<C: Chromosome, T> Context<C, T> {
                 }
 
                 if self.objective.is_better(score, current) {
-                    self.metrics
-                        .upsert((metric_names::BEST_SCORE_IMPROVEMENT, 1));
                     self.score = Some(score.clone());
                     self.best = self.problem.decode(best.genotype());
-                    return Ok(true);
+
+                    best_improved = true;
                 }
             } else {
                 self.score = best.score().cloned();
                 self.best = self.problem.decode(best.genotype());
-                return Ok(true);
+
+                best_improved = true;
             }
         }
 
-        Ok(false)
+        if best_improved {
+            self.metrics
+                .upsert((metric_names::BEST_SCORE_IMPROVEMENT, 1));
+        }
+
+        if let Some(score) = &self.score {
+            if score.len() == 1 {
+                self.metrics.upsert((metric_names::BEST_SCORES, score[0]));
+            } else {
+                for (i, score) in score.as_slice().iter().enumerate() {
+                    self.metrics.upsert((metric_names::BEST_SCORES, *score, i));
+                }
+            }
+        }
+
+        if let Some(exprs) = &self.exprs {
+            let mut exprs = exprs.lock().unwrap();
+            for expr in exprs.iter_mut() {
+                let (name, exp) = expr.pair();
+
+                let output = self.metrics.apply(exp);
+                let update = MetricUpdate::try_from(output)?;
+                let name = radiate_utils::intern!(name);
+
+                self.metrics.upsert((TagType::Expr, name, update));
+            }
+        }
+
+        self.metrics.next_version();
+
+        Ok(best_improved)
     }
 
     pub fn get_or_create_control(&mut self) -> EngineControl {
@@ -84,6 +119,7 @@ where
                 objective: config.objective().clone(),
                 problem: config.problem().clone(),
                 control: None,
+                exprs: generation.exprs(),
             };
         }
 
@@ -103,6 +139,7 @@ where
             objective: config.objective().clone(),
             problem: config.problem().clone(),
             control: None,
+            exprs: config.exprs(),
         }
     }
 }

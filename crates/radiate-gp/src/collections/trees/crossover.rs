@@ -1,7 +1,7 @@
 use super::TreeChromosome;
 use crate::TreeNode;
-use radiate_core::{AlterResult, Crossover, Rate, random_provider};
-use radiate_core::{genome::*, metric};
+use radiate_core::genome::*;
+use radiate_core::{AlterContext, AlterResult, Crossover, Rate, random_provider};
 
 const DEFAULT_MAX_SIZE: usize = 30;
 const MAX_ATTEMPTS: usize = 3;
@@ -30,6 +30,7 @@ impl TreeCrossover {
         node_one: &mut TreeNode<T>,
         node_two: &mut TreeNode<T>,
         max_size: usize,
+        ctx: &mut AlterContext,
     ) -> AlterResult {
         let one_size = node_one.size();
         let two_size = node_two.size();
@@ -55,7 +56,8 @@ impl TreeCrossover {
 
                 if one_crossover_size <= max_size && two_crossover_size <= max_size {
                     std::mem::swap(one_sub_node, two_sub_node);
-                    return AlterResult::from((2, metric!(TN_X_ATTEMPTS, attempts + 1)));
+                    ctx.metric(TN_X_ATTEMPTS, attempts + 1);
+                    return AlterResult::from(2);
                 }
             }
 
@@ -79,7 +81,7 @@ where
         &self,
         chrom_one: &mut TreeChromosome<T>,
         chrom_two: &mut TreeChromosome<T>,
-        _: f32,
+        ctx: &mut AlterContext,
     ) -> AlterResult {
         let swap_one_index = random_provider::range(0..chrom_one.len());
         let swap_two_index = random_provider::range(0..chrom_two.len());
@@ -87,6 +89,6 @@ where
         let one_node = chrom_one.get_mut(swap_one_index);
         let two_node = chrom_two.get_mut(swap_two_index);
 
-        Self::cross_nodes(one_node, two_node, self.max_size)
+        Self::cross_nodes(one_node, two_node, self.max_size, ctx)
     }
 }

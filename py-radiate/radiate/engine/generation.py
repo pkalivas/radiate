@@ -28,6 +28,14 @@ class Generation[G, T](RsObject):
         """
         return self.__backend__().to_json()
 
+    def to_pickle(self) -> bytes:
+        """
+        Serialize the generation to a pickle byte string.
+        :param python: The Python interpreter to use for serialization.
+        :return: The pickle byte string representation of the generation.
+        """
+        return self.__backend__().to_pickle()
+
     @staticmethod
     def from_json(json_str: str) -> "Generation[G, T]":
         """
@@ -36,6 +44,16 @@ class Generation[G, T](RsObject):
         :return: A Generation object.
         """
         return Generation.from_rust(PyGeneration.from_json(json_str))
+
+    @staticmethod
+    def from_pickle(pickle_bytes: bytes) -> "Generation[G, T]":
+        """
+        Deserialize a pickle byte string to a Generation object.
+        :param pickle_bytes: The pickle byte string representation of the generation.
+        :return: A Generation object.
+        """
+
+        return Generation.from_rust(PyGeneration.from_pickle(pickle_bytes))
 
     def score(self) -> list[float]:
         """

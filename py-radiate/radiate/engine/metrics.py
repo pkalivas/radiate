@@ -5,6 +5,9 @@ import enum
 from datetime import timedelta
 
 from radiate._bridge.wrapper import RsObject
+from radiate.expr import Expr
+
+from radiate.radiate import PyMetricSet
 
 
 class Tag(enum.Enum):
@@ -27,6 +30,7 @@ class Tag(enum.Enum):
     RATE = "rate"
     STEP = "step"
     LINEAGE = "lineage"
+    EXPR = "expr"
 
     def __repr__(self) -> str:
         return f"Tag.{self.name}"
@@ -51,6 +55,7 @@ tag_map = {
         "rate": Tag.RATE,
         "step": Tag.STEP,
         "lineage": Tag.LINEAGE,
+        "expr": Tag.EXPR,
     },
     "rs": {
         Tag.SELECTOR: "selector",
@@ -70,13 +75,16 @@ tag_map = {
         Tag.RATE: "rate",
         Tag.STEP: "step",
         Tag.LINEAGE: "lineage",
+        Tag.EXPR: "expr",
     },
 }
 
 
 class MetricSet(RsObject):
-    def __init__(self, *args, **kwargs):
-        pass
+    def __init__(self, values: dict[str, Any] | None = None, **kwargs):
+        update = values.copy() if values else {}
+        update.update(kwargs)
+        super().__init__(PyMetricSet(update))
 
     def __repr__(self):
         return self.__backend__().__repr__()
@@ -110,14 +118,14 @@ class MetricSet(RsObject):
             for m in self.__backend__().values_by_tag(tag_map["rs"][tag])
         ]
 
-    def to_polars(self):
+    def to_polars(self, lazy: bool = False):
         from radiate._dependancies import _POLARS_AVAILABLE
 
         if not _POLARS_AVAILABLE:
             raise ImportError(
                 "Polars is not available. Please install it to use this feature."
             )
-        return self.__backend__().to_polars()
+        return self.__backend__().to_polars(lazy=lazy)
 
     def to_pandas(self):
         from radiate._dependancies import _PANDAS_AVAILABLE
@@ -128,13 +136,20 @@ class MetricSet(RsObject):
             )
         return self.__backend__().to_pandas()
 
+    def project(self, expr: Expr) -> Any:
+        return self.__backend__().project(expr.__backend__())
+
+    def upsert(self, name: str, value: Any) -> None:
+        """Upsert new metrics into the MetricSet."""
+        self.__backend__().upsert(name, value)
+
 
 class Metric(RsObject):
     def __repr__(self) -> str:
         return self.__backend__().__repr__()
 
-    def __dict__(self) -> dict[str, Any]:  # type: ignore
-        return self.__backend__().__dict__()
+    def __str__(self) -> str:
+        return self.__backend__().__repr__()
 
     def name(self) -> str:
         return self.__backend__().name
@@ -144,6 +159,12 @@ class Metric(RsObject):
 
     def to_dict(self) -> dict[str, Any]:
         return self.__backend__().to_dict()
+
+    def version(self) -> int:
+        return self.__backend__().version
+
+    def update_count(self) -> int:
+        return self.__backend__().update_count
 
     # --- value stats ---
     def value_last(self) -> float:

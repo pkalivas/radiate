@@ -10,12 +10,15 @@ use crate::PySpecies;
 use crate::bindings::gp::{PyGraph, PyTree};
 use numpy::PyArray1;
 use pyo3::Bound;
+use pyo3::BoundObject;
 use pyo3::IntoPyObjectExt;
 use pyo3::PyAny;
 use pyo3::PyResult;
 use pyo3::Python;
 use pyo3::pyclass;
 use pyo3::pymethods;
+use pyo3::types::PyBytes;
+use pyo3::types::PyBytesMethods;
 use radiate::Generation;
 use radiate::prelude::*;
 use std::time::Duration;
@@ -43,6 +46,33 @@ impl PyGeneration {
     pub fn from_json(json_str: &str) -> PyResult<Self> {
         let handle = serde_json::from_str::<EpochHandle>(json_str)
             .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("Invalid JSON: {}", e)))?;
+
+        Ok(PyGeneration::new(handle))
+    }
+
+    pub fn to_pickle<'py>(&self, python: Python<'py>) -> PyResult<Bound<'py, PyBytes>> {
+        let pickle = serde_pickle::to_vec(&self.inner, serde_pickle::SerOptions::default())
+            .map_err(|e| {
+                pyo3::exceptions::PyValueError::new_err(format!(
+                    "Failed to serialize to pickle: {}",
+                    e
+                ))
+            })?;
+
+        Ok(PyBytes::new(python, &pickle).into_bound())
+    }
+
+    #[staticmethod]
+    pub fn from_pickle<'py>(pickle_bytes: &Bound<'py, PyBytes>) -> PyResult<Self> {
+        let pickle = pickle_bytes.as_bytes();
+        let handle =
+            serde_pickle::from_slice::<EpochHandle>(pickle, serde_pickle::DeOptions::default())
+                .map_err(|e| {
+                    pyo3::exceptions::PyValueError::new_err(format!(
+                        "Failed to deserialize pickle: {}",
+                        e
+                    ))
+                })?;
 
         Ok(PyGeneration::new(handle))
     }

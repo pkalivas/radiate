@@ -1,5 +1,6 @@
 use radiate_core::{
-    AlterResult, BoundedGene, Chromosome, Crossover, FloatGene, Gene, Rate, Valid, random_provider,
+    AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, FloatGene, Gene, Rate, Valid,
+    random_provider,
 };
 use radiate_utils::Float;
 
@@ -45,13 +46,18 @@ where
     }
 
     #[inline]
-    fn cross_chromosomes(&self, chrom_one: &mut C, chrom_two: &mut C, rate: f32) -> AlterResult {
+    fn cross_chromosomes(
+        &self,
+        chrom_one: &mut C,
+        chrom_two: &mut C,
+        ctx: &mut AlterContext,
+    ) -> AlterResult {
         let mut cross_count = 0;
         let alpha = F::from(self.alpha).unwrap();
 
         random_provider::with_rng(|rand| {
             for i in 0..std::cmp::min(chrom_one.len(), chrom_two.len()) {
-                if rand.bool(rate) {
+                if rand.bool(ctx.rate()) {
                     let gene_one = chrom_one.get_mut(i);
                     let gene_two = chrom_two.get_mut(i);
 

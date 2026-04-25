@@ -2,9 +2,11 @@ use crate::Chromosome;
 use crate::context::Context;
 use radiate_core::objectives::Scored;
 use radiate_core::{Ecosystem, Front, MetricSet, Objective, Phenotype, Population, Score, Species};
+use radiate_expr::NamedExpr;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 /// A [Generation] represents a single generation in the evolutionary process.
@@ -52,6 +54,7 @@ where
     score: Score,
     objective: Objective,
     front: Option<Front<Phenotype<C>>>,
+    exprs: Option<Arc<Mutex<Vec<NamedExpr>>>>,
 }
 
 impl<C, T> Generation<C, T>
@@ -97,13 +100,17 @@ where
     pub fn time(&self) -> Duration {
         self.metrics()
             .time()
-            .map(|m| m.time_statistic().map(|t| t.sum()))
+            .map(|m| m.times().and_then(|t| t.sum()))
             .flatten()
             .unwrap_or_default()
     }
 
     pub fn seconds(&self) -> f64 {
         self.time().as_secs_f64()
+    }
+
+    pub fn exprs(&self) -> Option<Arc<Mutex<Vec<NamedExpr>>>> {
+        self.exprs.clone()
     }
 }
 
@@ -130,6 +137,7 @@ where
                 Objective::Multi(_) => Some(context.front.read().unwrap().clone()),
                 _ => None,
             },
+            exprs: context.exprs.clone(),
         }
     }
 }
@@ -148,6 +156,7 @@ where
             score: self.score.clone(),
             objective: self.objective.clone(),
             front: self.front.as_ref().map(|f| f.clone()),
+            exprs: self.exprs.clone(),
         }
     }
 }

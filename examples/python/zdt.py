@@ -9,8 +9,8 @@ problem in multi-objective optimization, which has two objectives and a non-conv
 
 import matplotlib.pyplot as plt  # type: ignore
 import radiate as rd
-import numpy as np
-from numba import jit, float64
+import numpy as np  # type: ignore
+from numba import jit, float64  # type: ignore
 
 rd.random.seed(501)
 

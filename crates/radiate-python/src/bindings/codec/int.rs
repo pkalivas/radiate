@@ -1,4 +1,4 @@
-use crate::{DataType, Wrap, dtype_names};
+use crate::Wrap;
 use crate::{
     PyChromosome, PyGene, PyGenotype,
     bindings::{
@@ -7,6 +7,7 @@ use crate::{
     },
 };
 use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
+use radiate_expr::{DataType, dtype_names};
 
 #[pyclass(from_py_object)]
 #[derive(Clone)]
