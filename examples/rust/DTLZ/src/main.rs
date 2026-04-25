@@ -28,7 +28,7 @@ fn main() {
 
     println!("{:?}", result);
     let front = result.front().unwrap();
-    // plot_front(front);
+    plot_front(front);
 }
 
 fn plot_front(front: &Front<Phenotype<FloatChromosome<f32>>>) {

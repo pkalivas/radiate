@@ -26,8 +26,6 @@ pub mod dtype_names {
     pub const DURATION: &str = "duration";
     pub const VEC: &str = "vec";
     pub const STRUCT: &str = "struct";
-    pub const OP32: &str = "op32";
-    pub const NODE: &str = "node";
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
