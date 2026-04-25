@@ -78,10 +78,10 @@ serde-pickle = "1.1"
 compact_str = { version = "0.9.0" }
 foldhash = "0.2.0"
 slotmap = "1.0"
-hashbrown = { version = "0.16.1" }
+hashbrown = { version = "0.17.0" }
 crossterm = "0.29"
 ratatui = { version = "0.30", default-features = false, features = ["crossterm"] }
-tui-piechart = "0.3.1"
+tui-piechart = "0.3.2"
 color-eyre = "0.6.3"
 num-traits = "0.2.19"
 num-order = "1.2.0"
