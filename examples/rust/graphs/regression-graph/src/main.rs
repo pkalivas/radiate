@@ -41,8 +41,8 @@ fn main() {
         .raw_batch_fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
         // .register_metrics(vec![("idk", expr)])
-        .diversity(NeatDistance::new(1.0, 1.0, 3.0))
-        .species_threshold(Rate::Expr(distance_signal))
+        // .diversity(NeatDistance::new(1.0, 1.0, 3.0))
+        // .species_threshold(Rate::Expr(distance_signal))
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
