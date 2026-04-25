@@ -31,6 +31,7 @@ nav:
   - Engine:
     - source/engine/index.md
     - Metrics: source/engine/metrics.md
+    - Exprs: source/engine/expressions.md
   - GP: 
     - source/gp/index.md
     - Ops: source/gp/op.md
