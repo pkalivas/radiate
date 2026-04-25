@@ -140,20 +140,18 @@ where
             return vec![0; n];
         }
 
-        let mut min_score = scores
-            .iter()
-            .map(|s| s.as_f32())
-            .filter(|v| v.is_finite())
-            .fold(f32::INFINITY, f32::min);
-
+        let raw_scores = scores.iter().map(|s| s.as_f32()).collect::<Vec<f32>>();
+        let mut min_score = raw_scores.iter().cloned().fold(f32::INFINITY, f32::min);
         if !min_score.is_finite() {
             min_score = 0.0;
         }
 
-        let sum = scores
+        let shifted = raw_scores
             .iter()
-            .map(|s| (s.as_f32() - min_score).max(0.0))
-            .sum::<f32>();
+            .map(|s| (s - min_score).max(0.0))
+            .collect::<Vec<f32>>();
+
+        let sum = shifted.iter().sum::<f32>();
 
         if sum <= f32::EPSILON {
             let base = self.count / n;
@@ -175,9 +173,9 @@ where
         let mut fracs = Vec::with_capacity(n);
         let mut assigned = 0;
 
-        for (idx, s) in scores.iter().enumerate() {
-            let shifted = (s.as_f32() - min_score).max(0.0);
-            let exact = (shifted / sum) * total;
+        for (idx, w) in shifted.iter().enumerate() {
+            let p = *w / sum;
+            let exact = p * total;
             let base = exact.floor() as usize;
             let frac = exact - base as f32;
 
