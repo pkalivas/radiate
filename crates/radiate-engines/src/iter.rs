@@ -16,7 +16,7 @@
 //! - **EngineIteratorExt**: Extension trait providing termination and monitoring methods
 //! - **Specialized Iterators**: Various iterator types for different termination strategies
 //! - **Limit System**: Flexible limit specification and combination
-
+#[cfg(feature = "serde")]
 use crate::{CheckpointWriter, JsonCheckpointWriter};
 use crate::{Generation, Limit, control::EngineControl, init_logging};
 use radiate_core::{Chromosome, Engine, Metric, Objective, Optimize, Score};

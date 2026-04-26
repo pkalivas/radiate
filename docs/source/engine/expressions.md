@@ -369,7 +369,7 @@ You can register named expressions that are evaluated against the `MetricSet` at
 
 === ":fontawesome-brands-python: Python"
 
-    Pass a `dict[str, Expr]` to `.metrics()` on the engine builder:
+    Pass kwargs to `.metrics()` on the engine builder:
 
     ```python
     import radiate as rd
@@ -381,10 +381,10 @@ You can register named expressions that are evaluated against the `MetricSet` at
         rd.Engine.float(10, init_range=(-5.0, 5.0))
         .fitness(my_fitness_fn)
         .minimizing()
-        .metrics({
-            "score_trend": score_trend,
-            "score_cv":    score_cv,
-        })
+        .metrics(
+            score_trend=score_trend,
+            score_cv=score_cv,
+        )
     )
 
     # These metrics are now available in every generation result
@@ -402,7 +402,7 @@ You can register named expressions that are evaluated against the `MetricSet` at
         rd.Engine.float(10, init_range=(-5.0, 5.0))
         .fitness(my_fitness_fn)
         .minimizing()
-        .metrics({"score_trend": rd.metric("scores.best").rolling(50).slope()})
+        .metrics(score_trend=rd.metric("scores.best").rolling(50).slope())
     )
 
     result = engine.run(
