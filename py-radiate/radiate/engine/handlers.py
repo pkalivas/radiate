@@ -171,6 +171,23 @@ class MetricCollector(EventHandler):
             ]
         )
 
+    def to_pandas(self):
+        from radiate._dependancies import _PANDAS_AVAILABLE
+
+        if not _PANDAS_AVAILABLE:
+            raise ImportError(
+                "Pandas is not available. Please install it to use this feature."
+            )
+        from radiate._dependancies import pandas as pd
+
+        return pd.DataFrame(
+            [
+                m.to_dict()
+                for metric_set in self.metric_history
+                for m in metric_set.values()
+            ]
+        )
+
     def plot(self, *names: str):
         from radiate._dependancies import _MATPLOTLIB_AVAILABLE
 
