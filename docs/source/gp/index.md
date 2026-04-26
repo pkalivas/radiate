@@ -1,9 +1,5 @@
 # Genetic Programming
 
-!!! warning ":construction: Under Construction :construction:"
-
-    As of `02/17/2026`: These docs are a work in progress and may not be complete or fully accurate. Please check back later for updates.
-
 ___
 
 Genetic Programming (GP) in Radiate enables the evolution of programs represented as **expression trees** and **computational graphs**. This powerful feature allows you to solve complex problems by evolving mathematical expressions, decision trees, neural network topologies, and more.

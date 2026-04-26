@@ -11,15 +11,13 @@ The `MetricSet` is an object (struct) provided to the user in two main forms:
 1. On the engine's `Generation` - given to the user after each epoch or each pass of the evolution process.
 2. Through the engine's eventing system. Various events emit metric data allowing the user to track metrics or derive their own in real-time.
 
-Each `metric` can include one or both of the following statistical types:
+A `metric` is essentially a statistic with a name and some extra metadata attached it. The `Statistic` exposes a number of different statistical measures that can be used to summarize the data, such as, `last_value`, `count`, `min`, `max`, `mean`, `sum`, `variance`, `std_dev`, `skewness`, and `kurtosis`.
 
-1. **Statistic** - for general numerical data
+There are a few differeny types of metrics that can be collected:
 
-    The `Statistic` exposes a number of different statistical measures that can be used to summarize the data, such as, `last_value`, `count`, `min`, `max`, `mean`, `sum`, `variance`, `std_dev`, `skewness`, and `kurtosis`. 
-
-2. **TimeStatistic** - for time-based data
-
-    Similarly, the `TimeStatistic` exposes the same measures, however the data is assumed to be time-based. As such, the results are expressed as a `Duration::from_secs_f32(value)`.
+1. **Numeric Metric**: A plain old metric that collects single point numeric data each generation and aggregates it over the _entire_ evolutionary run. For example, the `rate.diversity` metric collects the diversity rate each generation and adds it to the previous generation's metrics. 
+2. **Duration Metric**: A metric that collects timing information for various components of the engine. For example, the `time.evaluation` metric collects the time taken to perform evaluations each generation and adds it to the previous generation's metrics. When accessed, it should be noted that when calling `metric.time()` the underyling statistic will convert the numerical data to a `Duration` object, which provides methods for accessing the time in different units (e.g., seconds, milliseconds, etc.).
+3. **Distribution Metric**: A metric that collects a distribution of data each generation, replacing the previous generation's data. For example, the `scores` metric collects the scores of all individuals in the population each generation, replacing the previous generation's scores. This means that each generation, the metric reflects only the _current_ generation's state, nothing before it.
 
 ## Collection
 
@@ -70,7 +68,6 @@ Additional metrics collected when using species-based diversity:
 | Name                | Description                                                                 |
 |---------------------|-----------------------------------------------------------------------------|
 | `count.species`    | The number of `species` in the 'Ecosystem`. |
-<!-- | `invalid.species`  | The number of `species` removed based on stagnation. | -->
 | `new.species`  | The number of `species` created in the `Ecosystem`. |
 | `invalid.species`     | The number of `species` that have died in the `Ecosystem`. |
 | `age.species`      | The age of all the `species` in the `Ecosystem`. |

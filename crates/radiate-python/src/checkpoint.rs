@@ -24,7 +24,6 @@ where
                 format!("Failed to serialize checkpoint to pickle: {}", e),
             )
         })?;
-
         std::fs::write(path, pickle)
     }
 }
