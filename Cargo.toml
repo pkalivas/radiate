@@ -54,7 +54,7 @@ exclude = [
 ]
 
 [workspace.package]
-version = "1.2.21"
+version = "1.2.22"
 edition = "2024"
 authors = ["pkalivas <peterkalivas@gmail.com>"]
 description = "A Rust library for genetic algorithms and artificial evolution."
@@ -67,7 +67,7 @@ homepage = "https://pkalivas.github.io/radiate/"
 
 [workspace.dependencies]
 rand = "0.10.1"
-pyo3 = "0.28.2"
+pyo3 = "0.28.3"
 numpy ="0.28.0"
 rayon = "1.12.0"
 smallvec = { version = "1.13", features = ["serde"] }
@@ -81,21 +81,21 @@ slotmap = "1.0"
 hashbrown = { version = "0.17.0" }
 crossterm = "0.29"
 ratatui = { version = "0.30", default-features = false, features = ["crossterm"] }
-tui-piechart = "0.3.2"
+tui-piechart = "0.3.3"
 color-eyre = "0.6.3"
 num-traits = "0.2.19"
 num-order = "1.2.0"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt"] }
-radiate = { version = "1.2.21", path = "crates/radiate", default-features = false }
-radiate-core = { version = "1.2.21", path = "crates/radiate-core", default-features = false }
-radiate-alters = { version = "1.2.21", path = "crates/radiate-alters", default-features = false }
-radiate-selectors = { version = "1.2.21", path = "crates/radiate-selectors", default-features = false }
-radiate-engines = { version = "1.2.21", path = "crates/radiate-engines", default-features = false }
-radiate-gp = { version = "1.2.21", path = "crates/radiate-gp", default-features = false }
-radiate-error = { version = "1.2.21", path = "crates/radiate-error", default-features = false }
-radiate-python = { version = "1.2.21", path = "crates/radiate-python", default-features = false }
-radiate-utils = { version = "1.2.21", path = "crates/radiate-utils", default-features = false }
-radiate-ui = { version = "1.2.21", path = "crates/radiate-ui", default-features = false }
-radiate-pgm = { version = "1.2.21", path = "crates/radiate-pgm", default-features = false }
-radiate-expr = { version = "1.2.21", path = "crates/radiate-expr", default-features = false }
+radiate = { version = "1.2.22", path = "crates/radiate", default-features = false }
+radiate-core = { version = "1.2.22", path = "crates/radiate-core", default-features = false }
+radiate-alters = { version = "1.2.22", path = "crates/radiate-alters", default-features = false }
+radiate-selectors = { version = "1.2.22", path = "crates/radiate-selectors", default-features = false }
+radiate-engines = { version = "1.2.22", path = "crates/radiate-engines", default-features = false }
+radiate-gp = { version = "1.2.22", path = "crates/radiate-gp", default-features = false }
+radiate-error = { version = "1.2.22", path = "crates/radiate-error", default-features = false }
+radiate-python = { version = "1.2.22", path = "crates/radiate-python", default-features = false }
+radiate-utils = { version = "1.2.22", path = "crates/radiate-utils", default-features = false }
+radiate-ui = { version = "1.2.22", path = "crates/radiate-ui", default-features = false }
+radiate-pgm = { version = "1.2.22", path = "crates/radiate-pgm", default-features = false }
+radiate-expr = { version = "1.2.22", path = "crates/radiate-expr", default-features = false }
