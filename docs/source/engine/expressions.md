@@ -29,9 +29,6 @@ Expressions are used in three places within the engine:
     # A literal constant
     threshold = rd.lit(0.01)
 
-    # The current input value (useful when applying to raw data, not metrics)
-    elem = rd.element()
-
     # The current generation index
     gen = rd.generation()
     ```
@@ -51,9 +48,6 @@ Expressions are used in three places within the engine:
 
     // Select the nth element of a vector input
     let first = expr::nth(0);
-
-    // The element itself (identity over the input)
-    let elem = expr::element();
     ```
 
 ---
@@ -514,6 +508,131 @@ An expression can also drive an alterer's rate, a species threashold, or any oth
         ])
         .build();
     ```
+
+---
+
+## Example
+
+So, what does all this do in practice? Well, lets say you opt-in to using speciation and as you test, you discover that ideally, your problem gets solved best with ~4 species. Well, radiate doesn't offer a 'target species' option out of the box, but using expressions you can build a dyniamic rate (threshold in this case) that encourages the engine to maintain that number of species. Below we build a distance metric that acts as a feedback loop which combines several species-level metrics, then use it as the distance function for speciation. We also register two derived metrics to track the average distance and species count over time. 
+
+=== ":fontawesome-brands-python: Python"
+
+    Then, using radiate's built-in `MetricCollector` subscriber, we plot those metrics over time to see how our registered distance signal correlates with species count and overall diversity.
+
+    ```python
+    import radiate as rd
+
+    target_species = 4.0
+    rolling = int(target_species)
+
+    spec_count_signal = rd.metric("count.species").rolling(rolling).mean() / target_species
+    spec_dist_signal = (
+        rd.metric("species.distance").mean().rolling(rolling).mean() / target_species
+    )
+    spec_thresh_signal = rd.metric("species.threshold").rolling(rolling).mean()
+    spec_evenness_signal = rd.metric("species.evenness").rolling(rolling).mean()
+
+    distance_signal = (
+        (rd.lit(0.9) * spec_count_signal)
+        + (rd.lit(0.4) * spec_dist_signal)
+        + (rd.lit(0.2) * spec_thresh_signal)
+        + (rd.lit(0.1) * spec_evenness_signal)
+    ).clamp(0.01, 10.0)
+
+    distance_signal_mean = distance_signal.mean()
+    species_count_mean = rd.metric("count.species").mean().rolling(10).mean()
+
+    collector = rd.MetricCollector()
+
+    engine = (
+        rd.Engine.graph(
+            shape=(1, 1),
+            vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
+            edge=rd.Op.weight(),
+            output=rd.Op.linear(),
+        )
+        .regression(inputs, answers, loss=rd.MSE)
+        .subscribe(collector)
+        .diversity(rd.NeatDistance(), distance_signal)
+        .metrics(
+            distance_signal_mean=distance_signal_mean, species_count_mean=species_count_mean
+        )
+        .alters(
+            rd.Cross.graph(0.05, 0.5),
+            rd.Mutate.op(0.07, 0.05),
+            rd.Mutate.graph(0.1, 0.1, False),
+        )
+        .limit(rd.Limit.score(0.001), rd.Limit.generations(1000))
+    )
+
+    result = engine.run(log=True)
+
+    collector.plot(
+        "count.species",
+        "distance_signal_mean",
+        "species_count_mean",
+    )
+    ```
+
+=== ":fontawesome-brands-rust: Rust"
+
+    ```rust
+    use radiate::prelude::*;
+
+    random_provider::set_seed(90);
+
+    let store = vec![
+        (NodeType::Input, vec![Op::var(0)]),
+        (NodeType::Edge, vec![Op::weight()]),
+        (NodeType::Vertex, vec![Op::sub(), Op::mul(), Op::linear()]),
+        (NodeType::Output, vec![Op::linear()]),
+    ];
+
+    let target_species = 4.0;
+    let rolling = target_species as usize;
+
+    let spec_count_signal = expr::select("count.species")
+        .rolling(rolling)
+        .mean()
+        .div(target_species);
+
+    let spec_dist_signal = expr::select("species.distance")
+        .mean()
+        .rolling(rolling)
+        .mean()
+        .div(target_species);
+
+    let spec_thresh_signal = expr::select("species.threshold").rolling(rolling).mean();
+    let spec_evenness_signal = expr::select("species.evenness").rolling(rolling).mean();
+
+    let distance_signal = spec_count_signal
+        .mul(0.9)
+        .add(spec_dist_signal.mul(0.4))
+        .add(spec_thresh_signal.mul(0.2))
+        .add(spec_evenness_signal.mul(0.1))
+        .clamp(0.01, 10.0);
+
+    let engine = GeneticEngine::builder()
+        .codec(GraphCodec::directed(1, 1, store))
+        .raw_batch_fitness_fn(Regression::new(dataset(), Loss::MSE))
+        .minimizing()
+        .diversity(NeatDistance::new(1.0, 1.0, 3.0))
+        .species_threshold(Rate::Expr(distance_signal))
+        .alter(alters!(
+            GraphCrossover::new(0.5, 0.5),
+            OperationMutator::new(0.07, 0.05),
+            GraphMutator::new(0.1, 0.1).allow_recurrent(false)
+        ))
+        .build();
+    ```
+
+The above engine's will produce something (this was produced in python) like the following. We can see that the rolling 10 generation species threshold (orange) is adjusting dynamically according to the species count, resulting in an average of around 4 species (green) and a corresponding species count (blue).
+
+<figure markdown="span">
+    ![expr_spec_threshold](../../assets/rates/expr_spec_threshold.png){ width="600" }
+</figure>
+
+This same sort of logic (combining multiple signals into a single metric/rate/signal) can be applied to other aspects of the engine as well, like alterer rates. For example, you might want to start with a high mutation rate to encourage exploration, but then dial it back as the population converges. By building a dynamic rate that combines several metrics of convergence (e.g., score volatility, species count, etc.) you can get a more robust signal for when to dial back mutation than just using generation count or best score alone.
 
 ---
 

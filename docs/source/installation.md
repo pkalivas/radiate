@@ -45,7 +45,18 @@ By installing the above, you will get the core library. However, Radiate has a f
 radiate=0.0.12
 ```
 
-Python's radiate package does not have any optional features - it is a single package that includes all functionality.
+Python's radiate package includes all rust features by default, so you get all of rust's features (gp, serde, rayon, pgm, ui) without needing to do anything extra. That being said, radiate's python bindings do include their own set of features which futher integrate it into the python ecosystem at large. All of the following have internal checks within radiate and some specialized classes to work directly with these features. Radiate's python bindings include the following features:
+
+- `polars`: Enables integration with the [Polars](https://www.pola.rs/) DataFrame library, allowing you to easily convert and manipulate data collected from the engine in a tabular format. This is especially useful for analyzing and visualizing metrics collected during evolution.
+- `pandas`: Enables integration with the [Pandas](https://pandas.pydata.org/) DataFrame library, providing similar functionality to the `polars` feature but with support for Pandas' extensive data manipulation capabilities. This allows for seamless analysis and visualization of evolutionary metrics using the popular Pandas library.
+- `torch`: Enables integration with the [PyTorch](https://pytorch.org/) library, allowing you to easily convert input data and genome evalutation to/from PyTorch tensors.
+- `numpy`: Enables integration with the [NumPy](https://numpy.org/) library, allowing you to easily convert genoms, fitness evaluations, and collected metrics to/from NumPy arrays for efficient numerical computations and analysis.
+- `matplotlib`: Enables integration with the [Matplotlib](https://matplotlib.org/) library, allowing you to easily visualize metrics collected from the engine using Matplotlib's powerful plotting capabilities. 
+- `all`: Enables all of the above features.
+
+```bash
+uv add "radiate[all]" # to enable all features
+```
 
 ### Rust
 

@@ -54,7 +54,7 @@ Radiate provides built-in support for checkpointing, allowing you to save the st
             .build();
 
         let result = engine.iter()
-            .checkpoint(10, "checkpoint.json")
+            .checkpoint(10, "checks")
             .until_score(target_len)
             .last()
             .expect("No result from engine run");
@@ -64,7 +64,7 @@ Radiate provides built-in support for checkpointing, allowing you to save the st
             .codec(CharCodec::vector(target.len()))
             .offspring_selector(BoltzmannSelector::new(4_f32))
             .fitness_fn(fitness_fn)
-            .load_checkpoint("checkpoint_10.json")
+            .load_checkpoint("checks/chckpnt_10.json")
             .build();
 
         let resumed_result = resumed_engine.iter()

@@ -277,7 +277,46 @@ For more complex event handling, you can create a custom event handler class:
     let result = engine.run(|generation| {
         generation.index() >= 100
     });
-    ``` 
+    ```
+
+
+## Built in Handlers
+
+As of `4/25/2026`, the python implementation includes one built in event handler called the `MetricCollector`. This handler collects the metric set at the end of each epoch and stores it in a list for later use. Note to use this handler to it's fullest capacity, you should install radiate with the `polars` and `matplotlib` extras, as shown below:
+
+```bash
+uv add "radiate[polars,matplotlib]"
+```
+
+You can use this handler as follows (note - this is super useful when using radiate inside a `.ipynb` notebook):
+
+=== ":fontawesome-brands-python: Python"
+
+    ```python
+    import radiate as rd
+
+    # Create an instance of the MetricCollector
+    collector = rd.MetricCollector()
+
+    engine = (
+        rd.Engine ... # configure your engine as normal
+        .fitness(your_fitness_func)
+        .subscribe(collector)  # Subscribe the MetricCollector to the engine
+        # ... other parameters ...
+    )
+
+    # Run the engine for 100 generations
+    engine.run(rd.Limit.generations(100))
+
+    # After the run, you can access the collected metrics
+    # Convert collected metric sets to a df where each row is a single metric (includes all collected metrics).
+    df = collector.to_polars(lazy=False)
+
+    # Plot specific metrics to a matplotlib line plot
+    collector.plot("scores.best", "rate.diversity")
+    ```
+
+---
 
 ## Best Practices
 
