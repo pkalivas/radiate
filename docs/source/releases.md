@@ -1,5 +1,31 @@
 # Release Notes
 
+## v1.2.22 - py 0.0.13
+
+- 2026-04-25
+- [Release](https://github.com/pkalivas/radiate/releases/tag/v1.2.22)
+
+### Breaking changes:
+
+* Changed the checkpointing feature in python to use `.pkl` as a default extension instead of `.json`. It fits better within the python ecosystem. 
+* Changed the metric names to use `.` as a separator instead of `_`. This allows for better organization and grouping of metrics. For example, `scores.best` instead of `best_scores`.
+
+### Other
+
+Speed improvements centered around engine steps. 
+
+### Additions
+
+Added a new crate `radiate-expr` which includes expressions (think polars) to extend the metric and rating systems. This greatly improves the flexibility of of dynamic rates (mutation/crossover/species threasholds) and allows users to define their own rating systems. Along with the rate improvements, this extends into the engine itself by allowing users to define their own metrics and use them in the afforementioned dynamic rates - or simply just to track the engine. 
+
+Refactored `radiate-ui` to give much more insight into the engine and the metrics it produces. Included a new search bar and species panel to quickly find and visualize specific species and their members.
+
+In python, radiate now supports optional features (check the user guide installation section for specific info). This lets users opt in to specific integrations within the python ecosystem (e.g. pandas, polars, matplotlib, torch, numpy) without needing to install a bunch of dependencies they may not need.
+
+For checkpointing, new traits were added: `CheckpointWriter` & `CheckpointReader` to let users define their own ways of saving checkpoints.
+
+**[Full Changelog](https://github.com/pkalivas/radiate/compare/v1.2.21...v1.2.22)**
+
 ---
 
 ## v1.2.21 - py 0.0.11
