@@ -16,7 +16,7 @@
 //! - **EngineIteratorExt**: Extension trait providing termination and monitoring methods
 //! - **Specialized Iterators**: Various iterator types for different termination strategies
 //! - **Limit System**: Flexible limit specification and combination
-
+#[cfg(feature = "serde")]
 use crate::{CheckpointWriter, JsonCheckpointWriter};
 use crate::{Generation, Limit, control::EngineControl, init_logging};
 use radiate_core::{Chromosome, Engine, Metric, Objective, Optimize, Score};
@@ -908,7 +908,12 @@ where
                 std::fs::create_dir_all(&self.path).expect("Failed to create checkpoint directory");
             }
 
-            self.writer.write_checkpoint(file_path, &next).ok();
+            let write_result = self.writer.write_checkpoint(file_path, &next);
+
+            if let Err(e) = write_result {
+                eprintln!("Failed to write checkpoint: {e}");
+                return None;
+            }
         }
 
         Some(next)

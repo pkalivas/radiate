@@ -7,7 +7,7 @@ The network weights are evolved using a float codec.
 
 import pprint
 import radiate as rd
-import numpy as np
+import numpy as np  # type: ignore
 
 rd.random.seed(123)
 
@@ -82,4 +82,4 @@ for metric in metrics.values_by_tag(rd.Tag.DERIVED):
     print(metric)
 
 print()
-pprint.pprint(metrics["carryover_rate"].to_dict())
+pprint.pprint(metrics["rate.carryover"].to_dict())

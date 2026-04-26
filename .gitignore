@@ -21,3 +21,4 @@ pyrightconfig.json
 *.python-version
 **libradiate.dylib.dSYM**
 .github/makefile
+*.claude
