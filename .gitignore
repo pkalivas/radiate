@@ -22,3 +22,4 @@ pyrightconfig.json
 **libradiate.dylib.dSYM**
 .github/makefile
 *.claude
+reddit.md
