@@ -223,10 +223,10 @@ fn metric_to_time_rows<'a>(
 ) -> impl Iterator<Item = Row<'a>> {
     metrics.filter_map(|(name, m)| {
         if let Some(time) = m.times() {
-            let mean = fmt_duration(time.mean().unwrap_or_default());
-            let min = fmt_duration(time.min().unwrap_or_default());
-            let max = fmt_duration(time.max().unwrap_or_default());
-            let total = fmt_duration(time.sum().unwrap_or_default());
+            let mean = fmt_duration(time.mean());
+            let min = fmt_duration(time.min());
+            let max = fmt_duration(time.max());
+            let total = fmt_duration(time.sum());
 
             Some(Row::new(vec![
                 Cell::from(name.to_string()),
@@ -248,12 +248,12 @@ fn metrics_into_stat_rows<'a>(
         if let Some(stat) = m.stats() {
             Some(Row::new(vec![
                 Cell::from(Line::from(name.to_string())),
-                Cell::from(format!("{:.2}", stat.min().unwrap_or_default())),
-                Cell::from(format!("{:.2}", stat.max().unwrap_or_default())),
-                Cell::from(format!("{:.2}", stat.mean().unwrap_or_default())),
-                Cell::from(format!("{:.2}", stat.sum().unwrap_or_default())),
-                Cell::from(format!("{:.2}", stat.stddev().unwrap_or(0.0))),
-                Cell::from(format!("{:.2}", stat.var().unwrap_or(0.0))),
+                Cell::from(format!("{:.2}", stat.min())),
+                Cell::from(format!("{:.2}", stat.max())),
+                Cell::from(format!("{:.2}", stat.mean())),
+                Cell::from(format!("{:.2}", stat.sum())),
+                Cell::from(format!("{:.2}", stat.stddev())),
+                Cell::from(format!("{:.2}", stat.var())),
                 Cell::from(format!("{}", stat.count())),
             ]))
         } else {
@@ -269,12 +269,12 @@ fn metrics_into_dist_rows<'a>(
         if let Some(stat) = m.distributions() {
             Some(Row::new(vec![
                 Cell::from(Line::from(name.to_string())),
-                Cell::from(format!("{:.2}", stat.min().unwrap_or_default())),
-                Cell::from(format!("{:.2}", stat.max().unwrap_or_default())),
-                Cell::from(format!("{:.2}", stat.mean().unwrap_or_default())),
-                Cell::from(format!("{:.2}", stat.sum().unwrap_or_default())),
-                Cell::from(format!("{:.2}", stat.stddev().unwrap_or(0.0))),
-                Cell::from(format!("{:.2}", stat.var().unwrap_or(0.0))),
+                Cell::from(format!("{:.2}", stat.min())),
+                Cell::from(format!("{:.2}", stat.max())),
+                Cell::from(format!("{:.2}", stat.mean())),
+                Cell::from(format!("{:.2}", stat.sum())),
+                Cell::from(format!("{:.2}", stat.stddev())),
+                Cell::from(format!("{:.2}", stat.var())),
                 Cell::from(format!("{}", stat.count())),
             ]))
         } else {

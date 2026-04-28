@@ -100,7 +100,7 @@ where
     pub fn time(&self) -> Duration {
         self.metrics()
             .time()
-            .map(|m| m.times().and_then(|t| t.sum()))
+            .map(|m| m.times().map(|t| t.sum()))
             .flatten()
             .unwrap_or_default()
     }

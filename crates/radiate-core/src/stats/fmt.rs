@@ -57,7 +57,7 @@ pub fn render_dashboard(metrics: &MetricSet) -> io::Result<String> {
     }
 
     if let Some(m) = metrics.get(metric_names::TIME) {
-        if let Some(mu) = m.times().and_then(|t| t.mean()) {
+        if let Some(mu) = m.times().map(|t| t.mean()) {
             write!(out, "  iter_time(mean): {}", fmt_duration(mu)).unwrap();
         }
     }
@@ -95,14 +95,14 @@ pub fn render_metric_rows_full(
             "{:<26} | {:<6} | {:<10.3} | {:<10.3} | {:<10.3} | {:<6} | {:<12.3} | {:<10.3} | {:<10.3} | {:<10.3} | {:<10.3}",
             name,
             "dist",
-            dist.mean().unwrap_or_default(),
-            dist.min().unwrap_or_default(),
-            dist.max().unwrap_or_default(),
+            dist.mean(),
+            dist.min(),
+            dist.max(),
             dist.count(),
-            dist.sum().unwrap() / 1_000.0, // scale sum to avoid overflow
-            dist.stddev().unwrap_or(0.0),
-            dist.skewness().unwrap_or(0.0),
-            dist.kurtosis().unwrap_or(0.0),
+            dist.sum() / 1_000.0, // scale sum to avoid overflow
+            dist.stddev(),
+            dist.skewness(),
+            dist.kurtosis(),
             // dist.entropy().unwrap_or(0.0),
             "-",
         ).unwrap();
@@ -116,14 +116,14 @@ pub fn render_metric_rows_full(
             "{:<26} | {:<6} | {:<10.3} | {:<10.3} | {:<10.3} | {:<6} | {:<12.3} | {:<10.3} | {:<10.3} | {:<10.3} | {:<10}",
             name,
             "value",
-            stat.mean().unwrap_or_default(),
-            stat.min().unwrap_or_default(),
-            stat.max().unwrap_or_default(),
+            stat.mean(),
+            stat.min(),
+            stat.max(),
             stat.count(),
-            stat.sum().unwrap() / 1_000.0, // scale sum to avoid overflow
-            stat.stddev().unwrap_or(0.0),
-            stat.skewness().unwrap_or(0.0),
-            stat.kurtosis().unwrap_or(0.0),
+            stat.sum() / 1_000.0, // scale sum to avoid overflow
+            stat.stddev(),
+            stat.skewness(),
+            stat.kurtosis(),
             "-",
         ).unwrap();
     }
@@ -137,12 +137,12 @@ pub fn render_metric_rows_full(
             "{:<26} | {:<6} | {:<10} | {:<10} | {:<10} | {:<6} | {:<12} | {:<10} | {:<10} | {:<10} | {:<10}",
             name,
             "time",
-            fmt_duration(t.mean().unwrap_or_default()),
-            fmt_duration(t.min().unwrap_or_default()),
-            fmt_duration(t.max().unwrap_or_default()),
+            fmt_duration(t.mean()),
+            fmt_duration(t.min()),
+            fmt_duration(t.max()),
             t.count(),
-            fmt_duration(t.sum().unwrap_or_default()),
-            fmt_duration(t.stddev().unwrap_or_default()),
+            fmt_duration(t.sum()),
+            fmt_duration(t.stddev()),
             "-",
             "-",
             "-",

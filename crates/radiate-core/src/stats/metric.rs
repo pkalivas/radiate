@@ -140,7 +140,7 @@ impl Metric {
         Some(MetricView {
             name: &self.name,
             statistic: &self.inner,
-            mapper: |v| Some(v),
+            mapper: |v| v,
         })
     }
 
@@ -152,7 +152,7 @@ impl Metric {
         Some(MetricView {
             name: &self.name,
             statistic: &self.inner,
-            mapper: |v| Some(Duration::from_secs_f32(v)),
+            mapper: |v| Duration::from_secs_f32(v),
         } )
     }
 
@@ -164,7 +164,7 @@ impl Metric {
         Some(MetricView {
             name: &self.name,
             statistic: &self.inner,
-            mapper: |v| Some(v),
+            mapper: |v| v,
          })
     }
 

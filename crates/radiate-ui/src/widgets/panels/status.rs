@@ -26,7 +26,7 @@ impl<C: Chromosome> StatefulWidget for EngineStatusPanelWidget<C> {
         let metrics = state.metrics();
         let elapsed = metrics
             .time()
-            .and_then(|m| m.times().and_then(|t| t.sum()))
+            .and_then(|m| m.times().map(|t| t.sum()))
             .map(fmt_duration)
             .unwrap_or_else(|| "00:00:00.000".to_string());
 

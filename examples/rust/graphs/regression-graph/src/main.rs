@@ -32,18 +32,6 @@ fn main() {
 }
 
 fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
-    for metric in result.metrics().iter() {
-        println!(
-            "{}: {}",
-            metric.0,
-            metric
-                .1
-                .tags_iter()
-                .map(|t| t.as_str())
-                .collect::<Vec<_>>()
-                .join(", ")
-        );
-    }
     Accuracy::default()
         .named("Regression Graph")
         .on(&dataset().into())

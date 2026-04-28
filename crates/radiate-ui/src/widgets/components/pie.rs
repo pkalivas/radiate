@@ -89,7 +89,7 @@ impl<C: Chromosome> StatefulWidget for TimePieChartComponent<C> {
                     selected_chart_color(index, state.time_table.selected_value.as_ref(), label);
                 let value = metric
                     .times()
-                    .and_then(|t| t.sum())
+                    .map(|t| t.sum())
                     .map(|d| d.as_millis() as f64)
                     .unwrap_or(0.0);
 

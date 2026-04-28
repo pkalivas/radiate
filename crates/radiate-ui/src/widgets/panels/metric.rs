@@ -92,39 +92,24 @@ fn map_to_stat_metric_rows(metric: &Metric) -> Vec<Row<'_>> {
             ]),
             Row::new(vec![
                 "Last Value".bold(),
-                format!("{:.2}", view.last().unwrap_or_default()).into(),
+                format!("{:.2}", view.last()).into(),
             ]),
-            Row::new(vec![
-                "Sum".bold(),
-                format!("{:.4}", view.sum().unwrap_or_default()).into(),
-            ]),
-            Row::new(vec![
-                "Min.".bold(),
-                format!("{:.2}", view.min().unwrap_or_default()).into(),
-            ]),
-            Row::new(vec![
-                "Max.".bold(),
-                format!("{:.2}", view.max().unwrap_or_default()).into(),
-            ]),
-            Row::new(vec![
-                "Mean".bold(),
-                format!("{:.4}", view.mean().unwrap_or_default()).into(),
-            ]),
+            Row::new(vec!["Sum".bold(), format!("{:.4}", view.sum()).into()]),
+            Row::new(vec!["Min.".bold(), format!("{:.2}", view.min()).into()]),
+            Row::new(vec!["Max.".bold(), format!("{:.2}", view.max()).into()]),
+            Row::new(vec!["Mean".bold(), format!("{:.4}", view.mean()).into()]),
             Row::new(vec![
                 "Std Dev".bold(),
-                format!("{:.4}", view.stddev().unwrap_or_default()).into(),
+                format!("{:.4}", view.stddev()).into(),
             ]),
-            Row::new(vec![
-                "Variance".bold(),
-                format!("{:.4}", view.var().unwrap_or_default()).into(),
-            ]),
+            Row::new(vec!["Variance".bold(), format!("{:.4}", view.var()).into()]),
             Row::new(vec![
                 "Skew".bold(),
-                format!("{:.4}", view.skewness().unwrap_or_default()).into(),
+                format!("{:.4}", view.skewness()).into(),
             ]),
             Row::new(vec![
                 "Kurtosis".bold(),
-                format!("{:.4}", view.kurtosis().unwrap_or_default()).into(),
+                format!("{:.4}", view.kurtosis()).into(),
             ]),
         ];
 
@@ -143,41 +128,17 @@ fn map_to_time_metric_rows(metric: &Metric) -> Vec<Row<'_>> {
                 "Updates".bold(),
                 metric.update_count().to_string().into(),
             ]),
-            Row::new(vec![
-                "Last Value".bold(),
-                fmt_duration(view.last().unwrap_or_default()).into(),
-            ]),
-            Row::new(vec![
-                "Sum".bold(),
-                fmt_duration(view.sum().unwrap_or_default()).into(),
-            ]),
-            Row::new(vec![
-                "Min.".bold(),
-                fmt_duration(view.min().unwrap_or_default()).into(),
-            ]),
-            Row::new(vec![
-                "Max.".bold(),
-                fmt_duration(view.max().unwrap_or_default()).into(),
-            ]),
-            Row::new(vec![
-                "Mean".bold(),
-                fmt_duration(view.mean().unwrap_or_default()).into(),
-            ]),
-            Row::new(vec![
-                "Std Dev".bold(),
-                fmt_duration(view.stddev().unwrap_or_default()).into(),
-            ]),
-            Row::new(vec![
-                "Variance".bold(),
-                fmt_duration(view.var().unwrap_or_default()).into(),
-            ]),
-            Row::new(vec![
-                "Skew".bold(),
-                fmt_duration(view.skewness().unwrap_or_default()).into(),
-            ]),
+            Row::new(vec!["Last Value".bold(), fmt_duration(view.last()).into()]),
+            Row::new(vec!["Sum".bold(), fmt_duration(view.sum()).into()]),
+            Row::new(vec!["Min.".bold(), fmt_duration(view.min()).into()]),
+            Row::new(vec!["Max.".bold(), fmt_duration(view.max()).into()]),
+            Row::new(vec!["Mean".bold(), fmt_duration(view.mean()).into()]),
+            Row::new(vec!["Std Dev".bold(), fmt_duration(view.stddev()).into()]),
+            Row::new(vec!["Variance".bold(), fmt_duration(view.var()).into()]),
+            Row::new(vec!["Skew".bold(), fmt_duration(view.skewness()).into()]),
             Row::new(vec![
                 "Kurtosis".bold(),
-                fmt_duration(view.kurtosis().unwrap_or_default()).into(),
+                fmt_duration(view.kurtosis()).into(),
             ]),
         ];
 
@@ -197,37 +158,22 @@ fn map_to_distribution_metric_rows(metric: &Metric) -> Vec<Row<'_>> {
                 metric.update_count().to_string().into(),
             ]),
             Row::new(vec!["Count".bold(), view.count().to_string().into()]),
-            Row::new(vec![
-                "Sum".bold(),
-                format!("{:.4}", view.sum().unwrap_or_default()).into(),
-            ]),
-            Row::new(vec![
-                "Min.".bold(),
-                format!("{:.2}", view.min().unwrap_or_default()).into(),
-            ]),
-            Row::new(vec![
-                "Max.".bold(),
-                format!("{:.2}", view.max().unwrap_or_default()).into(),
-            ]),
-            Row::new(vec![
-                "Mean".bold(),
-                format!("{:.4}", view.mean().unwrap_or_default()).into(),
-            ]),
+            Row::new(vec!["Sum".bold(), format!("{:.4}", view.sum()).into()]),
+            Row::new(vec!["Min.".bold(), format!("{:.2}", view.min()).into()]),
+            Row::new(vec!["Max.".bold(), format!("{:.2}", view.max()).into()]),
+            Row::new(vec!["Mean".bold(), format!("{:.4}", view.mean()).into()]),
             Row::new(vec![
                 "Std Dev".bold(),
-                format!("{:.4}", view.stddev().unwrap_or_default()).into(),
+                format!("{:.4}", view.stddev()).into(),
             ]),
-            Row::new(vec![
-                "Variance".bold(),
-                format!("{:.4}", view.var().unwrap_or_default()).into(),
-            ]),
+            Row::new(vec!["Variance".bold(), format!("{:.4}", view.var()).into()]),
             Row::new(vec![
                 "Skew".bold(),
-                format!("{:.4}", view.skewness().unwrap_or_default()).into(),
+                format!("{:.4}", view.skewness()).into(),
             ]),
             Row::new(vec![
                 "Kurtosis".bold(),
-                format!("{:.4}", view.kurtosis().unwrap_or_default()).into(),
+                format!("{:.4}", view.kurtosis()).into(),
             ]),
         ];
 

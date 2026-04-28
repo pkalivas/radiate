@@ -313,41 +313,40 @@ impl PyMetric {
     pub fn time_last(&self) -> Duration {
         self.inner
             .times()
-            .and_then(|time| time.last())
+            .map(|time| time.last())
             .unwrap_or_default()
     }
 
     #[getter]
     pub fn time_sum(&self) -> Option<Duration> {
-        self.inner.times().and_then(|time| time.sum())
+        self.inner.times().map(|time| time.sum())
     }
 
     #[getter]
     pub fn time_mean(&self) -> Option<Duration> {
-        self.inner.times().and_then(|time| time.mean())
+        self.inner.times().map(|time| time.mean())
     }
 
     #[getter]
     pub fn time_stddev(&self) -> Option<Duration> {
-        self.inner.times().and_then(|time| time.stddev())
+        self.inner.times().map(|time| time.stddev())
     }
 
     #[getter]
     pub fn time_min(&self) -> Option<Duration> {
-        self.inner.times().and_then(|time| time.min())
+        self.inner.times().map(|time| time.min())
     }
 
     #[getter]
     pub fn time_max(&self) -> Option<Duration> {
-        self.inner.times().and_then(|time| time.max())
+        self.inner.times().map(|time| time.max())
     }
 
     #[getter]
     pub fn time_variance(&self) -> Option<Duration> {
-        self.inner.times().and_then(|time| time.var())
+        self.inner.times().map(|time| time.var())
     }
 
-    /// Convert to a dict (nice for DataFrame construction / JSON dumps).
     pub fn to_dict<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
         let d = PyDict::new(py);
         d.set_item("name", self.inner.name().to_string())?;
