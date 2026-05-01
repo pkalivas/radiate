@@ -17,7 +17,10 @@ def _coerce(value, *, allow_str: bool = False):
 
 def _binary_op(backend_name: str, *, allow_str: bool = False):
     def op(self, rhs):
-        return Expr.from_rust(getattr(self.__backend__(), backend_name)(_coerce(rhs, allow_str=allow_str)))
+        return Expr.from_rust(
+            getattr(self.__backend__(), backend_name)(_coerce(rhs, allow_str=allow_str))
+        )
+
     return op
 
 
@@ -56,7 +59,10 @@ class When(RsObject):
         return f"When(condition={self.condition})"
 
     def then(self, then_expr: Expr | float | int | str) -> Then:
-        return Then(condition=self.condition, then_expr=Expr.from_rust(_coerce(then_expr, allow_str=True)))
+        return Then(
+            condition=self.condition,
+            then_expr=Expr.from_rust(_coerce(then_expr, allow_str=True)),
+        )
 
 
 class Every(RsObject):
@@ -67,7 +73,10 @@ class Every(RsObject):
         return f"Every(interval={self.interval})"
 
     def then(self, then_expr: Expr | float | int | str) -> Then:
-        return Then(condition=self.interval, then_expr=Expr.from_rust(_coerce(then_expr, allow_str=True)))
+        return Then(
+            condition=self.interval,
+            then_expr=Expr.from_rust(_coerce(then_expr, allow_str=True)),
+        )
 
 
 class Expr(RsObject):
@@ -195,12 +204,12 @@ class Expr(RsObject):
     def slope(self) -> Expr:
         return Expr.from_rust(self.__backend__().slope())
 
-    lt  = _binary_op("lt")
+    lt = _binary_op("lt")
     lte = _binary_op("lte")
-    gt  = _binary_op("gt")
+    gt = _binary_op("gt")
     gte = _binary_op("gte")
-    eq  = _binary_op("eq",  allow_str=True)
-    ne  = _binary_op("ne",  allow_str=True)
+    eq = _binary_op("eq", allow_str=True)
+    ne = _binary_op("ne", allow_str=True)
 
     def and_(self, rhs: Expr) -> Expr:
         return Expr.from_rust(self.__backend__().and_(rhs.__backend__()))
