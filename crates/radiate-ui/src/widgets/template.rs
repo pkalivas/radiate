@@ -81,7 +81,6 @@ impl LayoutNode {
                     active_child.draw(areas[1], buf, state);
                 }
             }
-
             LayoutNode::Widget(panel_id) => match panel_id {
                 PanelId::EngineStatus => EngineStatusPanelWidget::new().render(area, buf, state),
                 PanelId::FitnessChart => FitnessChartPanelWidget::new().render(area, buf, state),
