@@ -23,27 +23,27 @@ impl<C: Chromosome> StatefulWidget for EngineStatusPanelWidget<C> {
     type State = AppState<C>;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let metrics = state.metrics();
+        let metrics = &state.evo.metrics;
         let elapsed = metrics
             .time()
             .and_then(|m| m.times().map(|t| t.sum()))
             .map(fmt_duration)
             .unwrap_or_else(|| "00:00:00.000".to_string());
 
-        let rows = if state.objective_state.objective.is_single() {
-            get_single_objective_summaries::<C>(&metrics)
+        let rows = if state.evo.pareto.objective.is_single() {
+            get_single_objective_summaries::<C>(metrics)
         } else {
-            get_multi_objective_summaries::<C>(&metrics)
+            get_multi_objective_summaries::<C>(metrics)
         };
 
         let mut title = vec![
             "Gen ".fg(Color::Gray).bold(),
-            format!("{}", state.index()).fg(Color::LightGreen),
+            format!("{}", state.evo.index).fg(Color::LightGreen),
         ];
 
-        if state.objective_state.objective.is_single() {
+        if state.evo.pareto.objective.is_single() {
             title.push(" | Score ".fg(Color::Gray).bold());
-            title.push(format!("{:.4} ", state.score().as_f32()).fg(Color::LightGreen));
+            title.push(format!("{:.4} ", state.evo.score.as_f32()).fg(Color::LightGreen));
         } else {
             title.push(" | MOGA ".fg(Color::Gray).bold());
         }
@@ -55,8 +55,8 @@ impl<C: Chromosome> StatefulWidget for EngineStatusPanelWidget<C> {
             .rows(crate::styles::striped_rows(rows))
             .widths(&[Constraint::Fill(1), Constraint::Fill(1)]);
 
-        let engine_state = if state.is_engine_running() {
-            if state.is_engine_paused() {
+        let engine_state = if state.run.engine {
+            if state.run.paused {
                 " Paused ".fg(Color::Yellow).bold()
             } else {
                 " Running ".fg(Color::LightGreen).bold()
@@ -101,7 +101,7 @@ impl<C: Chromosome> StatefulWidget for MetricModalWidget<C> {
             .into_iter()
             .map(|t| Span::styled(format!(" {t} "), Style::default().fg(Color::White)));
 
-        let index = match state.display.chart_id {
+        let index = match state.nav.display.chart_id {
             LineChartType::Value => 0,
             LineChartType::Mean => 1,
             LineChartType::Stddev => 2,
@@ -113,8 +113,8 @@ impl<C: Chromosome> StatefulWidget for MetricModalWidget<C> {
 
         MetricDetailPanelWidget::new().render(left, buf, state);
 
-        let chart_type = state.display.chart_id;
-        let charts = state.get_chart_by_key(current_metric_name, chart_type);
+        let chart_type = state.nav.display.chart_id;
+        let charts = state.evo.get_chart_by_key(current_metric_name, chart_type);
 
         Panel::new(FnWidget::new(|area, buf| {
             let chunks = Layout::default()

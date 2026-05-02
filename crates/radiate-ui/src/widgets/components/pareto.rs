@@ -46,7 +46,7 @@ where
     C: Chromosome,
 {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let d = self.state.objective_state.objective.dims();
+        let d = self.state.evo.pareto.objective.dims();
         if d < 2 {
             Panel::empty("need 2+ objectives").render(area, buf);
             return;
@@ -60,7 +60,7 @@ where
             return;
         }
 
-        let objective_state = &self.state.objective_state;
+        let objective_state = &self.state.evo.pareto;
         let start = objective_state
             .chart_start_index
             .min(total.saturating_sub(1));
@@ -133,7 +133,7 @@ where
     C: Chromosome,
 {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let front = match &self.state.front {
+        let front = match &self.state.evo.front {
             Some(f) if !f.is_empty() => f,
             _ => {
                 Block::default()

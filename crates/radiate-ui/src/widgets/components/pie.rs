@@ -25,13 +25,13 @@ impl<C: Chromosome> StatefulWidget for SpeciesPieChartComponent<C> {
     type State = AppState<C>;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let Some(species) = &state.species else {
+        let Some(species) = &state.evo.species else {
             let block = Block::bordered().title(Line::from(" No Data ").centered());
             block.render(area, buf);
             return;
         };
 
-        let obj_idx = state.objective_state.objective_index;
+        let obj_idx = state.evo.pareto.objective_index;
         let slices = species
             .iter()
             .enumerate()
@@ -39,7 +39,7 @@ impl<C: Chromosome> StatefulWidget for SpeciesPieChartComponent<C> {
                 species.score.as_ref().map(|score| {
                     let color = selected_chart_color(
                         index,
-                        state.species_table.selected_value.as_ref(),
+                        state.tables.species.selected_value.as_ref(),
                         &species.id,
                     );
 
@@ -75,7 +75,7 @@ impl<C: Chromosome> StatefulWidget for TimePieChartComponent<C> {
     type State = AppState<C>;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let items = tagged_metrics(&state.metrics, state, TagType::Time)
+        let items = tagged_metrics(&state.evo.metrics, state, TagType::Time)
             .iter()
             .filter(|met| met.0 != metric_names::TIME)
             .map(|m| *m)
@@ -86,7 +86,7 @@ impl<C: Chromosome> StatefulWidget for TimePieChartComponent<C> {
             .enumerate()
             .map(|(index, (label, metric))| {
                 let color =
-                    selected_chart_color(index, state.time_table.selected_value.as_ref(), label);
+                    selected_chart_color(index, state.tables.time.selected_value.as_ref(), label);
                 let value = metric
                     .times()
                     .map(|t| t.sum())

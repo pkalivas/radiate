@@ -26,8 +26,8 @@ impl<C: Chromosome> StatefulWidget for FitnessChartPanelWidget<C> {
         buf: &mut ratatui::buffer::Buffer,
         state: &mut Self::State,
     ) {
-        if state.objective_state.objective.is_single() {
-            let chart_state = state.chart_state();
+        if state.evo.pareto.objective.is_single() {
+            let chart_state = &state.evo.charts;
             // let charts = if state.display_mini_chart() {
             //     vec![
             //         chart_state.get_by_key(metric_names::BEST_SCORES, ChartType::Value),

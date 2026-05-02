@@ -23,9 +23,7 @@ pub const STAT_HEADER_CELLS: [&str; 8] = [
     "Var",
     "Count",
 ];
-
 pub const TIME_HEADER_CELLS: [&str; 5] = ["Metric", "Min", "Max", "μ (mean)", "Total"];
-
 pub const SPECIES_HEADER_CELLS: [&str; 6] = ["ID", "Gen", "Pop", "Stag", "Best", "Score"];
 
 pub struct TimeTableWidget<C: Chromosome> {
@@ -44,12 +42,12 @@ impl<C: Chromosome> StatefulWidget for TimeTableWidget<C> {
     type State = AppState<C>;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let items = tagged_metrics(&state.metrics, state, TagType::Time)
+        let items = tagged_metrics(&state.evo.metrics, state, TagType::Time)
             .iter()
             .filter(|met| met.0 != metric_names::TIME)
             .map(|m| *m)
             .collect::<Vec<_>>();
-        state.time_table.update_rows(&items, |(name, _)| name);
+        state.tables.time.update_rows(&items, |(name, _)| name);
         let border_style = state.get_panel_block(PanelId::TimeTable);
 
         let table = Table::default()
@@ -66,7 +64,7 @@ impl<C: Chromosome> StatefulWidget for TimeTableWidget<C> {
                 Constraint::Fill(1),
             ]);
 
-        render_scrollable_table(buf, area, table, &mut state.time_table);
+        render_scrollable_table(buf, area, table, &mut state.tables.time);
     }
 }
 
@@ -86,9 +84,9 @@ impl<C: Chromosome> StatefulWidget for StatsTableWidget<C> {
     type State = AppState<C>;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let items = tagged_metrics(&state.metrics, state, TagType::Statistic);
+        let items = tagged_metrics(&state.evo.metrics, state, TagType::Statistic);
 
-        state.stats_table.update_rows(&items, |(name, _)| name);
+        state.tables.stats.update_rows(&items, |(name, _)| name);
         let border_style = state.get_panel_block(crate::state::PanelId::StatsTable);
 
         let table = Table::default()
@@ -99,7 +97,7 @@ impl<C: Chromosome> StatefulWidget for StatsTableWidget<C> {
             .highlight_spacing(ratatui::widgets::HighlightSpacing::Always)
             .widths(once(Constraint::Length(20)).chain(repeat(Constraint::Fill(1)).take(7)));
 
-        render_scrollable_table(buf, area, table, &mut state.stats_table);
+        render_scrollable_table(buf, area, table, &mut state.tables.stats);
     }
 }
 
@@ -119,9 +117,9 @@ impl<C: Chromosome> StatefulWidget for DistributionTableWidget<C> {
     type State = AppState<C>;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let items = tagged_metrics(&state.metrics, state, TagType::Distribution);
+        let items = tagged_metrics(&state.evo.metrics, state, TagType::Distribution);
 
-        state.dist_table.update_rows(&items, |(name, _)| name);
+        state.tables.dist.update_rows(&items, |(name, _)| name);
         let border_style = state.get_panel_block(crate::state::PanelId::DistTable);
 
         let table = Table::default()
@@ -132,7 +130,7 @@ impl<C: Chromosome> StatefulWidget for DistributionTableWidget<C> {
             .highlight_spacing(ratatui::widgets::HighlightSpacing::Always)
             .widths(once(Constraint::Length(22)).chain(repeat(Constraint::Fill(1)).take(7)));
 
-        render_scrollable_table(buf, area, table, &mut state.dist_table);
+        render_scrollable_table(buf, area, table, &mut state.tables.dist);
     }
 }
 
@@ -152,14 +150,14 @@ impl<C: Chromosome> StatefulWidget for SpeciesTableWidget<C> {
     type State = AppState<C>;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let items = match &state.species {
+        let items = match &state.evo.species {
             Some(species) => species,
             None => return,
         };
 
-        state.species_table.update_rows(&items, |s| s.id);
+        state.tables.species.update_rows(items, |s| s.id);
 
-        let obj_index = state.objective_state.objective_index;
+        let obj_index = state.evo.pareto.objective_index;
         let border_style = state.get_panel_block(PanelId::SpeciesTable);
         let rows = species_into_rows(obj_index, items.iter());
 
@@ -175,7 +173,7 @@ impl<C: Chromosome> StatefulWidget for SpeciesTableWidget<C> {
                     .collect::<Vec<_>>(),
             );
 
-        render_scrollable_table(buf, area, table, &mut state.species_table);
+        render_scrollable_table(buf, area, table, &mut state.tables.species);
     }
 }
 

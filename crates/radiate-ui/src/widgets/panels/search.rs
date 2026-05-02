@@ -20,13 +20,13 @@ impl<'a, C: Chromosome> SearchBarWidget<'a, C> {
 
 impl<'a, C: Chromosome> Widget for SearchBarWidget<'a, C> {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let title = if self.state.search_state.active {
+        let title = if self.state.nav.search.active {
             " Search (active) "
         } else {
             " Search (/) "
         };
 
-        let style = if self.state.search_state.active {
+        let style = if self.state.nav.search.active {
             Style::default()
         } else {
             Style::default()
@@ -34,7 +34,7 @@ impl<'a, C: Chromosome> Widget for SearchBarWidget<'a, C> {
 
         let border_style = self.state.get_panel_block(crate::state::PanelId::Search);
 
-        Paragraph::new(self.state.search_state.query.as_str())
+        Paragraph::new(self.state.nav.search.query.as_str())
             .block(
                 border_style
                     .title(title)
