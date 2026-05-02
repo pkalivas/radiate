@@ -9,7 +9,7 @@ use ratatui::widgets::Block;
 
 pub use chart::LineChartType;
 pub use evo::EvoState;
-pub use nav::{NavState, TabId};
+pub use nav::{NavState, UiMode};
 pub use run::RunState;
 pub use tables::{AppTableState, TableStates};
 
@@ -32,8 +32,6 @@ pub enum PanelId {
     SpeciesSparkline,
 
     MetricDetail,
-
-    Help,
 }
 
 pub struct AppState<C: Chromosome> {
@@ -45,14 +43,14 @@ pub struct AppState<C: Chromosome> {
 
 impl<C: Chromosome> AppState<C> {
     pub fn move_selection_down(&mut self) {
-        if let Some(PanelId::MetricModal) = self.nav.display.modal_panel {
+        if matches!(self.nav.mode, UiMode::MetricModal) {
             return;
         }
         self.tables.move_down(self.nav.dashboard_tab);
     }
 
     pub fn move_selection_up(&mut self) {
-        if let Some(PanelId::MetricModal) = self.nav.display.modal_panel {
+        if matches!(self.nav.mode, UiMode::MetricModal) {
             return;
         }
         self.tables.move_up(self.nav.dashboard_tab);
@@ -68,10 +66,6 @@ impl<C: Chromosome> AppState<C> {
 
     pub fn metric_matches_search(&self, metric: &Metric) -> bool {
         self.nav.metric_matches_search(metric)
-    }
-
-    pub fn active_tab_index(&self, tab: &TabId) -> usize {
-        self.nav.active_tab_index(tab)
     }
 }
 

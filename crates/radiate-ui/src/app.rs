@@ -1,4 +1,4 @@
-use crate::state::{AppState, PanelId, RunState, TabId};
+use crate::state::{AppState, RunState, UiMode};
 use crate::widgets::{HelpPanelWidget, LayoutNode, MetricModalWidget, ModalWidget};
 use color_eyre::Result;
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
@@ -81,11 +81,11 @@ where
     fn throttle_next(&mut self) -> Result<bool> {
         match self.channel.next()? {
             InputEvent::Crossterm(event) => match event {
-                Event::Key(key_event) => match self.state.nav.display.tab_id {
-                    TabId::SearchBar => self.handle_search_tab_event(key_event),
-                    TabId::Help => self.handle_help_tab_event(key_event),
-                    TabId::MetricChart => self.handle_metric_tab_event(key_event),
-                    _ => self.handle_dashboard_event(key_event.code),
+                Event::Key(key_event) => match self.state.nav.mode {
+                    UiMode::Search => self.handle_search_event(key_event),
+                    UiMode::Help => self.handle_help_event(key_event),
+                    UiMode::MetricModal => self.handle_metric_modal_event(key_event),
+                    UiMode::Dashboard => self.handle_dashboard_event(key_event.code),
                 },
                 _ => {}
             },
@@ -110,9 +110,9 @@ where
         Ok(true)
     }
 
-    fn handle_metric_tab_event(&mut self, key: KeyEvent) {
+    fn handle_metric_modal_event(&mut self, key: KeyEvent) {
         match key.code {
-            KeyCode::Esc => self.state.nav.view_metric(),
+            KeyCode::Esc | KeyCode::Enter => self.state.nav.toggle_metric_modal(),
 
             KeyCode::Right | KeyCode::Char('l') => self.state.nav.next_tab(),
             KeyCode::Left | KeyCode::Char('h') => self.state.nav.previous_tab(),
@@ -126,12 +126,11 @@ where
                 self.state.run.paused = true;
             }
 
-            KeyCode::Enter => self.state.nav.view_metric(),
             _ => {}
         }
     }
 
-    fn handle_help_tab_event(&mut self, key: KeyEvent) {
+    fn handle_help_event(&mut self, key: KeyEvent) {
         match (key.code, key.modifiers) {
             (KeyCode::Esc, _) | (KeyCode::Char('H'), _) | (KeyCode::Char('?'), _) => {
                 self.state.nav.toggle_help();
@@ -140,16 +139,13 @@ where
         }
     }
 
-    fn handle_search_tab_event(&mut self, key: KeyEvent) {
+    fn handle_search_event(&mut self, key: KeyEvent) {
         match (key.code, key.modifiers) {
-            (KeyCode::Esc, _) => {
-                self.state.nav.stop_search();
-            }
-            (KeyCode::Enter, _) => self.state.nav.stop_search(),
+            (KeyCode::Esc, _) | (KeyCode::Enter, _) => self.state.nav.close_search(),
             (KeyCode::Backspace, _) => self.state.nav.pop_search_char(),
 
             (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
-                self.state.nav.stop_search();
+                self.state.nav.close_search();
                 self.state.nav.clear_search();
             }
             (KeyCode::Char(c), _) => self.state.nav.push_search_char(c),
@@ -159,7 +155,7 @@ where
 
     fn handle_dashboard_event(&mut self, key: KeyCode) {
         match key {
-            KeyCode::Char('/') => self.state.nav.start_search(),
+            KeyCode::Char('/') => self.state.nav.open_search(),
 
             KeyCode::Char('q') => {
                 self.control.stop();
@@ -188,8 +184,8 @@ where
                 self.state.run.paused = true;
             }
 
-            KeyCode::Esc => self.state.nav.clear_filters(),
-            KeyCode::Enter => self.state.nav.view_metric(),
+            KeyCode::Esc => self.state.nav.clear_search_query(),
+            KeyCode::Enter => self.state.nav.toggle_metric_modal(),
 
             KeyCode::Char(c) => {
                 if let Some(digit) = c.to_digit(10) {
@@ -251,14 +247,12 @@ where
 
         self.layout.draw(area, buf, &mut self.state);
 
-        if let Some(panel) = self.state.nav.display.modal_panel {
-            match panel {
-                PanelId::Help => ModalWidget::new(HelpPanelWidget).render(area, buf),
-                PanelId::MetricModal => {
-                    ModalWidget::new(MetricModalWidget::new()).render(area, buf, &mut self.state);
-                }
-                _ => {}
+        match self.state.nav.mode {
+            UiMode::Help => ModalWidget::new(HelpPanelWidget).render(area, buf),
+            UiMode::MetricModal => {
+                ModalWidget::new(MetricModalWidget::new()).render(area, buf, &mut self.state);
             }
+            _ => {}
         }
     }
 }

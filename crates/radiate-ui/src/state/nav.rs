@@ -5,10 +5,10 @@ use ratatui::widgets::Block;
 use tui_piechart::border_style;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum TabId {
+pub enum UiMode {
     Dashboard,
-    MetricChart,
-    SearchBar,
+    MetricModal,
+    Search,
     Help,
 }
 
@@ -40,45 +40,30 @@ impl DashboardTab {
     }
 }
 
-pub struct DisplayState {
-    pub show_tag_filters: bool,
-    pub show_help: bool,
-    pub chart_id: LineChartType,
-    pub previous_tab: TabId,
-    pub tab_id: TabId,
-    pub focus_panel: PanelId,
-    pub prev_focus_panel: PanelId,
-    pub modal_panel: Option<PanelId>,
-}
-
 pub struct SearchState {
     pub query: String,
     pub active: bool,
 }
 
 pub struct NavState {
-    pub display: DisplayState,
-    pub search: SearchState,
+    pub mode: UiMode,
     pub dashboard_tab: DashboardTab,
+    pub chart_tab: LineChartType,
+    pub focus_panel: PanelId,
+    pub search: SearchState,
 }
 
 impl NavState {
-    pub fn start_search(&mut self) {
-        if self.display.modal_panel.is_some() {
+    pub fn open_search(&mut self) {
+        if !matches!(self.mode, UiMode::Dashboard) {
             return;
         }
-        self.display.prev_focus_panel = self.display.focus_panel;
-        self.display.previous_tab = self.display.tab_id;
-        self.display.tab_id = TabId::SearchBar;
-        self.display.focus_panel = PanelId::Search;
+        self.mode = UiMode::Search;
         self.search.active = true;
     }
 
-    pub fn stop_search(&mut self) {
-        self.display.focus_panel = self.display.prev_focus_panel;
-        let prev_tab = self.display.previous_tab;
-        self.display.previous_tab = self.display.tab_id;
-        self.display.tab_id = prev_tab;
+    pub fn close_search(&mut self) {
+        self.mode = UiMode::Dashboard;
         self.search.active = false;
     }
 
@@ -95,99 +80,84 @@ impl NavState {
     }
 
     pub fn toggle_help(&mut self) {
-        self.display.show_help = !self.display.show_help;
-        if self.display.show_help {
-            self.display.previous_tab = self.display.tab_id;
-            self.display.tab_id = TabId::Help;
-            self.display.modal_panel = Some(PanelId::Help);
-        } else {
-            let prev_tab = self.display.previous_tab;
-            self.display.previous_tab = self.display.tab_id;
-            self.display.tab_id = prev_tab;
-            self.display.modal_panel = None;
+        match self.mode {
+            UiMode::Help => self.mode = UiMode::Dashboard,
+            _ => self.mode = UiMode::Help,
         }
     }
 
-    pub fn view_metric(&mut self) {
-        if matches!(
-            self.display.focus_panel,
-            PanelId::TimeTable | PanelId::StatsTable | PanelId::DistTable | PanelId::MetricModal
-        ) {
-            self.display.modal_panel = match self.display.modal_panel {
-                Some(PanelId::MetricModal) => None,
-                _ => Some(PanelId::MetricModal),
-            };
-
-            if self.display.modal_panel.is_some() {
-                self.display.prev_focus_panel = self.display.focus_panel;
-                self.display.focus_panel = PanelId::MetricModal;
-                self.display.tab_id = TabId::MetricChart;
-            } else {
-                self.display.focus_panel = self.display.prev_focus_panel;
-                self.display.tab_id = TabId::Dashboard;
+    pub fn toggle_metric_modal(&mut self) {
+        match self.mode {
+            UiMode::Dashboard
+                if matches!(
+                    self.focus_panel,
+                    PanelId::TimeTable | PanelId::StatsTable | PanelId::DistTable
+                ) =>
+            {
+                self.mode = UiMode::MetricModal;
             }
+            UiMode::MetricModal => self.mode = UiMode::Dashboard,
+            _ => {}
         }
     }
 
     pub fn next_tab(&mut self) {
-        match self.display.tab_id {
-            TabId::Dashboard => {
-                self.display.prev_focus_panel = self.display.focus_panel;
+        match self.mode {
+            UiMode::Dashboard => {
                 self.dashboard_tab = self.dashboard_tab.next();
-                self.display.focus_panel = match self.dashboard_tab {
+                self.focus_panel = match self.dashboard_tab {
                     DashboardTab::Time => PanelId::TimeTable,
                     DashboardTab::Stats => PanelId::StatsTable,
                     DashboardTab::Distribution => PanelId::DistTable,
                     DashboardTab::Species => PanelId::SpeciesTable,
                 };
             }
-            TabId::MetricChart => {
-                self.display.chart_id = self.display.chart_id.next();
-            }
+            UiMode::MetricModal => self.chart_tab = self.chart_tab.next(),
             _ => {}
         }
     }
 
     pub fn previous_tab(&mut self) {
-        match self.display.tab_id {
-            TabId::Dashboard => {
-                self.display.prev_focus_panel = self.display.focus_panel;
+        match self.mode {
+            UiMode::Dashboard => {
                 self.dashboard_tab = self.dashboard_tab.previous();
-                self.display.focus_panel = match self.dashboard_tab {
+                self.focus_panel = match self.dashboard_tab {
                     DashboardTab::Time => PanelId::TimeTable,
                     DashboardTab::Stats => PanelId::StatsTable,
                     DashboardTab::Distribution => PanelId::DistTable,
                     DashboardTab::Species => PanelId::SpeciesTable,
                 };
             }
-            TabId::MetricChart => {
-                self.display.chart_id = self.display.chart_id.previous();
-            }
+            UiMode::MetricModal => self.chart_tab = self.chart_tab.previous(),
             _ => {}
         }
     }
 
-    pub fn active_tab_index(&self, tab: &TabId) -> usize {
-        match tab {
-            TabId::Dashboard => match self.dashboard_tab {
-                DashboardTab::Stats => 0,
-                DashboardTab::Time => 1,
-                DashboardTab::Distribution => 2,
-                DashboardTab::Species => 3,
-            },
-            TabId::MetricChart => match self.display.chart_id {
-                LineChartType::Value => 0,
-                LineChartType::Mean => 1,
-                LineChartType::Stddev => 2,
-                LineChartType::Variance => 3,
-            },
-            TabId::SearchBar => 0,
-            TabId::Help => 0,
+    pub fn dashboard_tab_index(&self) -> usize {
+        match self.dashboard_tab {
+            DashboardTab::Stats => 0,
+            DashboardTab::Time => 1,
+            DashboardTab::Distribution => 2,
+            DashboardTab::Species => 3,
+        }
+    }
+
+    pub fn chart_tab_index(&self) -> usize {
+        match self.chart_tab {
+            LineChartType::Value => 0,
+            LineChartType::Mean => 1,
+            LineChartType::Stddev => 2,
+            LineChartType::Variance => 3,
         }
     }
 
     pub fn get_panel_block(&self, panel: PanelId) -> Block<'static> {
-        if self.display.focus_panel == panel {
+        let effective = match self.mode {
+            UiMode::MetricModal => PanelId::MetricModal,
+            UiMode::Search => PanelId::Search,
+            _ => self.focus_panel,
+        };
+        if effective == panel {
             border_style::BorderStyle::Rounded
                 .block()
                 .border_style(crate::styles::BORDER_GREEN)
@@ -196,18 +166,9 @@ impl NavState {
         }
     }
 
-    pub fn clear_filters(&mut self) {
-        if self.display.show_help {
-            self.display.show_help = false;
-            self.display.modal_panel = None;
-        }
-
+    pub fn clear_search_query(&mut self) {
         if !self.search.active {
             self.search.query.clear();
-        }
-
-        if !self.display.show_tag_filters {
-            return;
         }
     }
 
@@ -227,21 +188,14 @@ impl NavState {
 impl Default for NavState {
     fn default() -> Self {
         Self {
-            display: DisplayState {
-                show_tag_filters: false,
-                show_help: false,
-                chart_id: LineChartType::Mean,
-                tab_id: TabId::Dashboard,
-                previous_tab: TabId::Dashboard,
-                focus_panel: PanelId::StatsTable,
-                prev_focus_panel: PanelId::StatsTable,
-                modal_panel: None,
-            },
+            mode: UiMode::Dashboard,
+            dashboard_tab: DashboardTab::Stats,
+            chart_tab: LineChartType::Mean,
+            focus_panel: PanelId::StatsTable,
             search: SearchState {
                 query: String::new(),
                 active: false,
             },
-            dashboard_tab: DashboardTab::Stats,
         }
     }
 }

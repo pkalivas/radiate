@@ -101,19 +101,14 @@ impl<C: Chromosome> StatefulWidget for MetricModalWidget<C> {
             .into_iter()
             .map(|t| Span::styled(format!(" {t} "), Style::default().fg(Color::White)));
 
-        let index = match state.nav.display.chart_id {
-            LineChartType::Value => 0,
-            LineChartType::Mean => 1,
-            LineChartType::Stddev => 2,
-            LineChartType::Variance => 3,
-        };
+        let index = state.nav.chart_tab_index();
 
         let [left, right] =
             Layout::horizontal([Constraint::Percentage(25), Constraint::Fill(1)]).areas(area);
 
         MetricDetailPanelWidget::new().render(left, buf, state);
 
-        let chart_type = state.nav.display.chart_id;
+        let chart_type = state.nav.chart_tab;
         let charts = state.evo.get_chart_by_key(current_metric_name, chart_type);
 
         Panel::new(FnWidget::new(|area, buf| {

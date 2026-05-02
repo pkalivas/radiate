@@ -1,5 +1,5 @@
 use crate::{
-    state::{AppState, PanelId, TabId},
+    state::{AppState, PanelId},
     widgets::{
         DistributionTableWidget, EngineStatusPanelWidget, FitnessChartPanelWidget, FnWidget,
         MetricDetailPanelWidget, Panel, SearchBarWidget, StatsTableWidget, TabComponent,
@@ -25,7 +25,6 @@ pub enum LayoutNode {
         children: Vec<LayoutNode>,
     },
     Tabbed {
-        id: TabId,
         tabs: Vec<&'static str>,
         children: Vec<LayoutNode>,
     },
@@ -61,8 +60,8 @@ impl LayoutNode {
                     child.draw(child_area, buf, state);
                 }
             }
-            LayoutNode::Tabbed { id, tabs, children } => {
-                let active_tab_idx = state.active_tab_index(id);
+            LayoutNode::Tabbed { tabs, children } => {
+                let active_tab_idx = state.nav.dashboard_tab_index();
 
                 let areas = Layout::default()
                     .direction(Direction::Vertical)
@@ -118,7 +117,6 @@ impl Default for LayoutNode {
                     constraints: vec![Constraint::Fill(1), Constraint::Length(3)],
                     children: vec![
                         Tabbed {
-                            id: TabId::Dashboard,
                             tabs: vec!["Stats", "Time", "Distribution", "Species"],
                             children: vec![
                                 Horizontal {
