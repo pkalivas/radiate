@@ -12,6 +12,7 @@ use ratatui::{
     widgets::{Cell, Row, Table},
 };
 use std::iter::{once, repeat};
+use std::marker::PhantomData;
 
 pub const STAT_HEADER_CELLS: [&str; 8] = [
     "Metric",
@@ -26,122 +27,147 @@ pub const STAT_HEADER_CELLS: [&str; 8] = [
 pub const TIME_HEADER_CELLS: [&str; 5] = ["Metric", "Min", "Max", "μ (mean)", "Total"];
 pub const SPECIES_HEADER_CELLS: [&str; 6] = ["ID", "Gen", "Pop", "Stag", "Best", "Score"];
 
-pub struct TimeTableWidget<C: Chromosome> {
-    _phantom: std::marker::PhantomData<C>,
+// --- Metric table ---
+
+pub enum MetricTableKind {
+    Time,
+    Stats,
+    Distribution,
 }
 
-impl<C: Chromosome> TimeTableWidget<C> {
-    pub fn new() -> Self {
-        Self {
-            _phantom: std::marker::PhantomData,
+impl MetricTableKind {
+    fn tag(&self) -> TagType {
+        match self {
+            Self::Time => TagType::Time,
+            Self::Stats => TagType::Statistic,
+            Self::Distribution => TagType::Distribution,
+        }
+    }
+
+    fn panel_id(&self) -> PanelId {
+        match self {
+            Self::Time => PanelId::TimeTable,
+            Self::Stats => PanelId::StatsTable,
+            Self::Distribution => PanelId::DistTable,
+        }
+    }
+
+    fn headers(&self) -> &'static [&'static str] {
+        match self {
+            Self::Time => &TIME_HEADER_CELLS,
+            Self::Stats | Self::Distribution => &STAT_HEADER_CELLS,
+        }
+    }
+
+    fn widths(&self) -> Vec<Constraint> {
+        match self {
+            Self::Time => vec![Constraint::Fill(1); 5],
+            Self::Stats => once(Constraint::Length(20))
+                .chain(repeat(Constraint::Fill(1)).take(7))
+                .collect(),
+            Self::Distribution => once(Constraint::Length(22))
+                .chain(repeat(Constraint::Fill(1)).take(7))
+                .collect(),
+        }
+    }
+
+    fn filter_item(&self, name: &'static str) -> bool {
+        match self {
+            Self::Time => name != metric_names::TIME,
+            _ => true,
+        }
+    }
+
+    fn build_rows<'a>(
+        &self,
+        items: impl Iterator<Item = (&'static str, &'a Metric)>,
+    ) -> Vec<Row<'a>> {
+        match self {
+            Self::Time => metric_to_time_rows(items).collect(),
+            Self::Stats => metrics_into_stat_rows(items).collect(),
+            Self::Distribution => metrics_into_dist_rows(items).collect(),
         }
     }
 }
 
-impl<C: Chromosome> StatefulWidget for TimeTableWidget<C> {
-    type State = AppState<C>;
-
-    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let items = tagged_metrics(&state.evo.metrics, state, TagType::Time)
-            .iter()
-            .filter(|met| met.0 != metric_names::TIME)
-            .map(|m| *m)
-            .collect::<Vec<_>>();
-        state.tables.time.update_rows(&items, |(name, _)| name);
-        let border_style = state.get_panel_block(PanelId::TimeTable);
-
-        let table = Table::default()
-            .block(border_style)
-            .header(header_row(&TIME_HEADER_CELLS))
-            .rows(striped_rows(metric_to_time_rows(items.into_iter())))
-            .row_highlight_style(crate::styles::selected_item_style())
-            .highlight_spacing(ratatui::widgets::HighlightSpacing::Always)
-            .widths(&[
-                Constraint::Fill(1),
-                Constraint::Fill(1),
-                Constraint::Fill(1),
-                Constraint::Fill(1),
-                Constraint::Fill(1),
-            ]);
-
-        render_scrollable_table(buf, area, table, &mut state.tables.time);
-    }
+pub struct MetricTableWidget<C: Chromosome> {
+    kind: MetricTableKind,
+    _phantom: PhantomData<C>,
 }
 
-pub struct StatsTableWidget<C: Chromosome> {
-    _phantom: std::marker::PhantomData<C>,
-}
-
-impl<C: Chromosome> StatsTableWidget<C> {
-    pub fn new() -> Self {
+impl<C: Chromosome> MetricTableWidget<C> {
+    pub fn time() -> Self {
         Self {
-            _phantom: std::marker::PhantomData,
+            kind: MetricTableKind::Time,
+            _phantom: PhantomData,
+        }
+    }
+
+    pub fn stats() -> Self {
+        Self {
+            kind: MetricTableKind::Stats,
+            _phantom: PhantomData,
+        }
+    }
+
+    pub fn distribution() -> Self {
+        Self {
+            kind: MetricTableKind::Distribution,
+            _phantom: PhantomData,
         }
     }
 }
 
-impl<C: Chromosome> StatefulWidget for StatsTableWidget<C> {
+impl<C: Chromosome> StatefulWidget for MetricTableWidget<C> {
     type State = AppState<C>;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let items = tagged_metrics(&state.evo.metrics, state, TagType::Statistic);
+        let items: Vec<_> = tagged_metrics(&state.evo.metrics, state, self.kind.tag())
+            .into_iter()
+            .filter(|(name, _)| self.kind.filter_item(name))
+            .collect();
 
-        state.tables.stats.update_rows(&items, |(name, _)| name);
-        let border_style = state.get_panel_block(crate::state::PanelId::StatsTable);
-
-        let table = Table::default()
-            .block(border_style)
-            .header(header_row(&STAT_HEADER_CELLS))
-            .rows(striped_rows(metrics_into_stat_rows(items.into_iter())))
-            .row_highlight_style(crate::styles::selected_item_style())
-            .highlight_spacing(ratatui::widgets::HighlightSpacing::Always)
-            .widths(once(Constraint::Length(20)).chain(repeat(Constraint::Fill(1)).take(7)));
-
-        render_scrollable_table(buf, area, table, &mut state.tables.stats);
-    }
-}
-
-pub struct DistributionTableWidget<C: Chromosome> {
-    _phantom: std::marker::PhantomData<C>,
-}
-
-impl<C: Chromosome> DistributionTableWidget<C> {
-    pub fn new() -> Self {
-        Self {
-            _phantom: std::marker::PhantomData,
+        match self.kind {
+            MetricTableKind::Time => state.tables.time.update_rows(&items, |(name, _)| name),
+            MetricTableKind::Stats => state.tables.stats.update_rows(&items, |(name, _)| name),
+            MetricTableKind::Distribution => {
+                state.tables.dist.update_rows(&items, |(name, _)| name)
+            }
         }
-    }
-}
 
-impl<C: Chromosome> StatefulWidget for DistributionTableWidget<C> {
-    type State = AppState<C>;
-
-    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let items = tagged_metrics(&state.evo.metrics, state, TagType::Distribution);
-
-        state.tables.dist.update_rows(&items, |(name, _)| name);
-        let border_style = state.get_panel_block(crate::state::PanelId::DistTable);
+        let border_style = state.get_panel_block(self.kind.panel_id());
+        let rows = self.kind.build_rows(items.iter().copied());
 
         let table = Table::default()
             .block(border_style)
-            .header(header_row(&STAT_HEADER_CELLS))
-            .rows(striped_rows(metrics_into_dist_rows(items.into_iter())))
+            .header(header_row(self.kind.headers()))
+            .rows(striped_rows(rows.into_iter()))
             .row_highlight_style(crate::styles::selected_item_style())
             .highlight_spacing(ratatui::widgets::HighlightSpacing::Always)
-            .widths(once(Constraint::Length(22)).chain(repeat(Constraint::Fill(1)).take(7)));
+            .widths(self.kind.widths());
 
-        render_scrollable_table(buf, area, table, &mut state.tables.dist);
+        match self.kind {
+            MetricTableKind::Time => {
+                render_scrollable_table(buf, area, table, &mut state.tables.time)
+            }
+            MetricTableKind::Stats => {
+                render_scrollable_table(buf, area, table, &mut state.tables.stats)
+            }
+            MetricTableKind::Distribution => {
+                render_scrollable_table(buf, area, table, &mut state.tables.dist)
+            }
+        }
     }
 }
 
 pub struct SpeciesTableWidget<C: Chromosome> {
-    _phantom: std::marker::PhantomData<C>,
+    _phantom: PhantomData<C>,
 }
 
 impl<C: Chromosome> SpeciesTableWidget<C> {
     pub fn new() -> Self {
         Self {
-            _phantom: std::marker::PhantomData,
+            _phantom: PhantomData,
         }
     }
 }
@@ -176,6 +202,8 @@ impl<C: Chromosome> StatefulWidget for SpeciesTableWidget<C> {
         render_scrollable_table(buf, area, table, &mut state.tables.species);
     }
 }
+
+// --- Shared helpers ---
 
 fn render_scrollable_table<T>(
     buf: &mut Buffer,
@@ -215,27 +243,21 @@ pub fn tagged_metrics<'a, C: Chromosome>(
     items
 }
 
-/// --- Row Builders ---
+// --- Row builders ---
+
 fn metric_to_time_rows<'a>(
     metrics: impl Iterator<Item = (&'static str, &'a Metric)>,
 ) -> impl Iterator<Item = Row<'a>> {
     metrics.filter_map(|(name, m)| {
-        if let Some(time) = m.times() {
-            let mean = fmt_duration(time.mean());
-            let min = fmt_duration(time.min());
-            let max = fmt_duration(time.max());
-            let total = fmt_duration(time.sum());
-
-            Some(Row::new(vec![
+        m.times().map(|time| {
+            Row::new(vec![
                 Cell::from(name.to_string()),
-                Cell::from(min),
-                Cell::from(max),
-                Cell::from(mean),
-                Cell::from(total),
-            ]))
-        } else {
-            None
-        }
+                Cell::from(fmt_duration(time.min())),
+                Cell::from(fmt_duration(time.max())),
+                Cell::from(fmt_duration(time.mean())),
+                Cell::from(fmt_duration(time.sum())),
+            ])
+        })
     })
 }
 
@@ -243,8 +265,8 @@ fn metrics_into_stat_rows<'a>(
     metrics: impl Iterator<Item = (&'static str, &'a Metric)>,
 ) -> impl Iterator<Item = Row<'a>> {
     metrics.filter_map(|(name, m)| {
-        if let Some(stat) = m.stats() {
-            Some(Row::new(vec![
+        m.stats().map(|stat| {
+            Row::new(vec![
                 Cell::from(Line::from(name.to_string())),
                 Cell::from(format!("{:.2}", stat.min())),
                 Cell::from(format!("{:.2}", stat.max())),
@@ -253,10 +275,8 @@ fn metrics_into_stat_rows<'a>(
                 Cell::from(format!("{:.2}", stat.stddev())),
                 Cell::from(format!("{:.2}", stat.var())),
                 Cell::from(format!("{}", stat.count())),
-            ]))
-        } else {
-            None
-        }
+            ])
+        })
     })
 }
 
@@ -264,8 +284,8 @@ fn metrics_into_dist_rows<'a>(
     metrics: impl Iterator<Item = (&'static str, &'a Metric)>,
 ) -> impl Iterator<Item = Row<'a>> {
     metrics.filter_map(|(name, m)| {
-        if let Some(stat) = m.distributions() {
-            Some(Row::new(vec![
+        m.distributions().map(|stat| {
+            Row::new(vec![
                 Cell::from(Line::from(name.to_string())),
                 Cell::from(format!("{:.2}", stat.min())),
                 Cell::from(format!("{:.2}", stat.max())),
@@ -274,10 +294,8 @@ fn metrics_into_dist_rows<'a>(
                 Cell::from(format!("{:.2}", stat.stddev())),
                 Cell::from(format!("{:.2}", stat.var())),
                 Cell::from(format!("{}", stat.count())),
-            ]))
-        } else {
-            None
-        }
+            ])
+        })
     })
 }
 

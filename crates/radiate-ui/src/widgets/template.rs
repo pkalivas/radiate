@@ -1,9 +1,8 @@
 use crate::{
     state::{AppState, PanelId},
     widgets::{
-        DistributionTableWidget, EngineStatusPanelWidget, FitnessChartPanelWidget, FnWidget,
-        MetricDetailPanelWidget, Panel, SearchBarWidget, StatsTableWidget, TabComponent,
-        TimeTableWidget,
+        EngineStatusPanelWidget, FitnessChartPanelWidget, FnWidget, MetricDetailPanelWidget,
+        MetricTableWidget, Panel, SearchBarWidget, TabComponent,
         components::{SpeciesPieChartComponent, SpeciesSparklineComponent, TimePieChartComponent},
         panels::tables::SpeciesTableWidget,
     },
@@ -83,9 +82,9 @@ impl LayoutNode {
             LayoutNode::Widget(panel_id) => match panel_id {
                 PanelId::EngineStatus => EngineStatusPanelWidget::new().render(area, buf, state),
                 PanelId::FitnessChart => FitnessChartPanelWidget::new().render(area, buf, state),
-                PanelId::TimeTable => TimeTableWidget::new().render(area, buf, state),
-                PanelId::StatsTable => StatsTableWidget::new().render(area, buf, state),
-                PanelId::DistTable => DistributionTableWidget::new().render(area, buf, state),
+                PanelId::TimeTable => MetricTableWidget::time().render(area, buf, state),
+                PanelId::StatsTable => MetricTableWidget::stats().render(area, buf, state),
+                PanelId::DistTable => MetricTableWidget::distribution().render(area, buf, state),
                 PanelId::SpeciesTable => SpeciesTableWidget::new().render(area, buf, state),
                 PanelId::MetricDetail => MetricDetailPanelWidget::new().render(area, buf, state),
                 PanelId::SpeciesPieChart => {
