@@ -63,11 +63,8 @@ impl NeatDistance {
 
                                 match (na.value(), nb.value()) {
                                     (Op::Value(_, _, a_op, _), Op::Value(_, _, b_op, _)) => {
-                                        match (a_op.data(), b_op.data()) {
-                                            (a_val, b_val) => {
-                                                weight_diff += (a_val - b_val).abs();
-                                            }
-                                        }
+                                        let (a_val, b_val) = (a_op.data(), b_op.data());
+                                        weight_diff += (a_val - b_val).abs();
                                     }
                                     (a_op, b_op) => {
                                         if a_op.name() != b_op.name() {

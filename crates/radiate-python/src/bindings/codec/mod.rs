@@ -23,10 +23,12 @@ use pyo3::{Bound, IntoPyObject, PyAny, PyResult, types::PyList};
 use pyo3::{IntoPyObjectExt, Python};
 use radiate::{Chromosome, Codec, Gene, Genotype};
 
+type DecoderFn<C, T> = Arc<dyn for<'py> Fn(Python<'py>, &Genotype<C>) -> T + Send + Sync>;
+
 #[derive(Clone)]
 pub struct PyCodec<C: Chromosome, T> {
     encoder: Option<Arc<dyn Fn() -> Genotype<C>>>,
-    decoder: Option<Arc<dyn for<'py> Fn(Python<'py>, &Genotype<C>) -> T + Send + Sync>>,
+    decoder: Option<DecoderFn<C, T>>,
 }
 
 impl<C: Chromosome, T> PyCodec<C, T> {
@@ -74,6 +76,12 @@ impl<C: Chromosome, T> Codec<C, T> for PyCodec<C, T> {
             Some(decoder) => decoder(py, genotype),
             None => panic!("Decoder function is not set"),
         })
+    }
+}
+
+impl<C: Chromosome, T> Default for PyCodec<C, T> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

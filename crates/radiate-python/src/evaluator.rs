@@ -38,7 +38,7 @@ where
         }
 
         let num_workers = self.executor.num_workers();
-        let batch_size = (pairs.len() + num_workers - 1) / num_workers;
+        let batch_size = pairs.len().div_ceil(num_workers); // (pairs.len() + num_workers - 1) / num_workers;
 
         if pairs.is_empty() || batch_size == 0 {
             return Ok(0);
@@ -80,7 +80,7 @@ where
         let mut count = 0;
         for (indices, scores, genotypes) in results {
             count += indices.len();
-            let score_genotype_iter = scores?.into_iter().zip(genotypes.into_iter());
+            let score_genotype_iter = scores?.into_iter().zip(genotypes);
             for (i, (score, genotype)) in score_genotype_iter.enumerate() {
                 let idx = indices[i];
                 ecosystem.population[idx].set_score(Some(score));

@@ -93,8 +93,8 @@ pub fn non_dominated<T: AsRef<[f32]>>(population: &[T], objective: &Objective) -
     }
 
     let mut nd = Vec::new();
-    for i in 0..n {
-        if dominated_counts[i] == 0 {
+    for (i, counts) in dominated_counts.iter().enumerate() {
+        if *counts == 0 {
             nd.push(i);
         }
     }
@@ -105,8 +105,7 @@ pub fn non_dominated<T: AsRef<[f32]>>(population: &[T], objective: &Objective) -
 /// Rank the population based on the NSGA-II algorithm. This assigns a rank to each
 /// individual in the population based on their dominance relationships with other
 /// individuals in the population. The result is a vector of ranks, where the rank
-/// of the individual at index `i` is `ranks[i]`.
-
+///   of the individual at index `i` is `ranks[i]`.
 #[inline]
 pub fn rank<T: AsRef<[f32]>>(population: &[T], objective: &Objective) -> Vec<usize> {
     let n = population.len();
@@ -135,8 +134,8 @@ pub fn rank<T: AsRef<[f32]>>(population: &[T], objective: &Objective) -> Vec<usi
     }
 
     // First front
-    for i in 0..n {
-        if dominated_counts[i] == 0 {
+    for (i, count) in dominated_counts.iter().enumerate() {
+        if *count == 0 {
             current_front.push(i);
         }
     }
@@ -228,7 +227,7 @@ pub fn weights<T: AsRef<[f32]>>(scores: &[T], objective: &Objective) -> Vec<f32>
 
     rank_weight
         .into_iter()
-        .zip(crowd_weight.into_iter())
+        .zip(crowd_weight)
         .map(|(r, c)| (r + EPSILON).max(0.0) * (c + EPSILON).max(0.0))
         .collect()
 }
@@ -241,7 +240,6 @@ pub fn dominance<K: PartialOrd, T: AsRef<[K]>>(
     objective: &Objective,
 ) -> bool {
     let mut better_in_any = false;
-
     match objective {
         Objective::Single(opt) => {
             for (a, b) in score_a.as_ref().iter().zip(score_b.as_ref().iter()) {

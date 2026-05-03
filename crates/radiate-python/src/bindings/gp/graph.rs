@@ -69,18 +69,18 @@ impl PyGraph {
         if let Ok(input_vec) = inputs.extract::<Vec<f32>>(py) {
             let output = evaluator.eval_mut(&input_vec);
             self.eval_cache = Some(evaluator.take_cache());
-            return output.into_pyobject(py);
+            output.into_pyobject(py)
         } else if let Ok(input_vecvec) = inputs.extract::<Vec<Vec<f32>>>(py) {
             let outputs = input_vecvec
                 .into_iter()
                 .map(|input| evaluator.eval_mut(&input))
                 .collect::<Vec<Vec<f32>>>();
             self.eval_cache = Some(evaluator.take_cache());
-            return outputs.into_pyobject(py);
+            outputs.into_pyobject(py)
         } else {
-            return Err(pyo3::exceptions::PyTypeError::new_err(
+            Err(pyo3::exceptions::PyTypeError::new_err(
                 "Input must be either Vec[float] or Vec[Vec[float]]",
-            ));
+            ))
         }
     }
 

@@ -121,10 +121,8 @@ where
             }
         }
 
-        let mut count = 0;
-        for &idx in self.inner.output_indices.iter() {
+        for (count, &idx) in self.inner.output_indices.iter().enumerate() {
             buffer[count] = self.inner.outputs[idx];
-            count += 1;
         }
     }
 }

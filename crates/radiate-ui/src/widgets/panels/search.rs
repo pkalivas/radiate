@@ -26,12 +26,6 @@ impl<'a, C: Chromosome> Widget for SearchBarWidget<'a, C> {
             " Search (/) "
         };
 
-        let style = if self.state.nav.search.active {
-            Style::default()
-        } else {
-            Style::default()
-        };
-
         let border_style = crate::styles::panel_block(self.state.nav.is_search_focused());
 
         Paragraph::new(self.state.nav.search.query.as_str())
@@ -39,10 +33,10 @@ impl<'a, C: Chromosome> Widget for SearchBarWidget<'a, C> {
                 border_style
                     .title(title)
                     .title_bottom(help_text_minimal())
-                    .style(style)
+                    .style(Style::default())
                     .borders(Borders::ALL),
             )
-            .style(style)
+            .style(Style::default())
             .render(area, buf);
     }
 }

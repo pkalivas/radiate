@@ -164,12 +164,7 @@ impl Add for AnyValue<'_> {
 
         match (self, other) {
             (Bool(a), Bool(b)) => Bool(a || b),
-            (Vector(a), Vector(b)) => Vector(
-                a.into_iter()
-                    .zip(b.into_iter())
-                    .map(|(x, y)| x + y)
-                    .collect(),
-            ),
+            (Vector(a), Vector(b)) => Vector(a.into_iter().zip(b).map(|(x, y)| x + y).collect()),
             (Struct(a), Struct(b)) => {
                 if a.len() != b.len() {
                     return Null;
@@ -177,7 +172,7 @@ impl Add for AnyValue<'_> {
 
                 Struct(
                     a.into_iter()
-                        .zip(b.into_iter())
+                        .zip(b)
                         .map(|(one, two)| {
                             if one.0.name() != two.0.name() {
                                 return (one.0, Null);
@@ -209,12 +204,7 @@ impl Sub for AnyValue<'_> {
 
         match (self, other) {
             (Bool(a), Bool(b)) => Bool(a ^ b),
-            (Vector(a), Vector(b)) => Vector(
-                a.into_iter()
-                    .zip(b.into_iter())
-                    .map(|(x, y)| x - y)
-                    .collect(),
-            ),
+            (Vector(a), Vector(b)) => Vector(a.into_iter().zip(b).map(|(x, y)| x - y).collect()),
             (Struct(a), Struct(b)) => {
                 if a.len() != b.len() {
                     return Null;
@@ -222,7 +212,7 @@ impl Sub for AnyValue<'_> {
 
                 Struct(
                     a.into_iter()
-                        .zip(b.into_iter())
+                        .zip(b)
                         .map(|(one, two)| {
                             if one.0.name() != two.0.name() {
                                 return (one.0, Null);
@@ -254,12 +244,7 @@ impl Mul for AnyValue<'_> {
 
         match (self, other) {
             (Bool(a), Bool(b)) => Bool(a && b),
-            (Vector(a), Vector(b)) => Vector(
-                a.into_iter()
-                    .zip(b.into_iter())
-                    .map(|(x, y)| x * y)
-                    .collect(),
-            ),
+            (Vector(a), Vector(b)) => Vector(a.into_iter().zip(b).map(|(x, y)| x * y).collect()),
             (Struct(a), Struct(b)) => {
                 if a.len() != b.len() {
                     return Null;
@@ -267,7 +252,7 @@ impl Mul for AnyValue<'_> {
 
                 Struct(
                     a.into_iter()
-                        .zip(b.into_iter())
+                        .zip(b)
                         .map(|(one, two)| {
                             if one.0.name() != two.0.name() {
                                 return (one.0, Null);
@@ -298,12 +283,7 @@ impl Div for AnyValue<'_> {
         }
 
         match (self, other) {
-            (Vector(a), Vector(b)) => Vector(
-                a.into_iter()
-                    .zip(b.into_iter())
-                    .map(|(x, y)| x / y)
-                    .collect(),
-            ),
+            (Vector(a), Vector(b)) => Vector(a.into_iter().zip(b).map(|(x, y)| x / y).collect()),
             (Struct(a), Struct(b)) => {
                 if a.len() != b.len() {
                     return Null;
@@ -311,7 +291,7 @@ impl Div for AnyValue<'_> {
 
                 Struct(
                     a.into_iter()
-                        .zip(b.into_iter())
+                        .zip(b)
                         .map(|(one, two)| {
                             if one.0.name() != two.0.name() {
                                 return (one.0, Null);
@@ -341,12 +321,7 @@ impl Rem for AnyValue<'_> {
         }
 
         match (self, other) {
-            (Vector(a), Vector(b)) => Vector(
-                a.into_iter()
-                    .zip(b.into_iter())
-                    .map(|(x, y)| x % y)
-                    .collect(),
-            ),
+            (Vector(a), Vector(b)) => Vector(a.into_iter().zip(b).map(|(x, y)| x % y).collect()),
             (Struct(a), Struct(b)) => {
                 if a.len() != b.len() {
                     return Null;
@@ -354,7 +329,7 @@ impl Rem for AnyValue<'_> {
 
                 Struct(
                     a.into_iter()
-                        .zip(b.into_iter())
+                        .zip(b)
                         .map(|(one, two)| {
                             if one.0.name() != two.0.name() {
                                 return (one.0, Null);
@@ -432,12 +407,12 @@ pub(crate) fn pow_anyvalue(
 
         (UInt8(a), UInt8(b)) => Ok(UInt8(a.pow(*b as u32))),
         (UInt8(a), UInt16(b)) => Ok(UInt16((u16::from(*a)).pow(u32::from(*b)))),
-        (UInt8(a), UInt32(b)) => Ok(UInt32((u32::from(*a)).pow(u32::from(*b)))),
+        (UInt8(a), UInt32(b)) => Ok(UInt32((u32::from(*a)).pow(*b))),
 
         (UInt16(a), UInt16(b)) => Ok(UInt16(a.pow(*b as u32))),
-        (UInt16(a), UInt32(b)) => Ok(UInt32((u32::from(*a)).pow(u32::from(*b)))),
+        (UInt16(a), UInt32(b)) => Ok(UInt32((u32::from(*a)).pow(*b))),
 
-        (UInt32(a), UInt32(b)) => Ok(UInt32(a.pow(*b as u32))),
+        (UInt32(a), UInt32(b)) => Ok(UInt32(a.pow(*b))),
 
         (UInt64(a), UInt64(b)) => Ok(UInt64(a.pow(*b as u32))),
 

@@ -90,7 +90,7 @@ where
     }
 
     pub fn population(&self) -> &Population<C> {
-        &self.ecosystem().population()
+        self.ecosystem().population()
     }
 
     pub fn species(&self) -> Option<&[Species<C>]> {
@@ -100,8 +100,7 @@ where
     pub fn time(&self) -> Duration {
         self.metrics()
             .time()
-            .map(|m| m.times().map(|t| t.sum()))
-            .flatten()
+            .and_then(|m| m.times().map(|t| t.sum()))
             .unwrap_or_default()
     }
 
@@ -155,7 +154,7 @@ where
             metrics: self.metrics.clone(),
             score: self.score.clone(),
             objective: self.objective.clone(),
-            front: self.front.as_ref().map(|f| f.clone()),
+            front: self.front.clone(),
             exprs: self.exprs.clone(),
         }
     }
@@ -169,18 +168,18 @@ where
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let ecosystem = &self.ecosystem;
 
-        write!(f, "Generation {{\n")?;
-        write!(f, "  metrics: {:?},\n", self.metrics)?;
-        write!(f, "  value: {:?},\n", self.value)?;
-        write!(f, "  score: {:?},\n", self.score)?;
-        write!(f, "  index: {:?},\n", self.index)?;
-        write!(f, "  size: {:?},\n", ecosystem.population().len())?;
-        write!(f, "  duration: {:?},\n", self.time())?;
-        write!(f, "  objective: {:?},\n", self.objective)?;
+        writeln!(f, "Generation {{")?;
+        writeln!(f, "  metrics: {:?},", self.metrics)?;
+        writeln!(f, "  value: {:?},", self.value)?;
+        writeln!(f, "  score: {:?},", self.score)?;
+        writeln!(f, "  index: {:?},", self.index)?;
+        writeln!(f, "  size: {:?},", ecosystem.population().len())?;
+        writeln!(f, "  duration: {:?},", self.time())?;
+        writeln!(f, "  objective: {:?},", self.objective)?;
 
         if let Some(species) = &ecosystem.species {
             for s in species {
-                write!(f, "  species: {:?},\n", s)?;
+                writeln!(f, "  species: {:?},", s)?;
             }
         }
 
@@ -195,8 +194,7 @@ where
     fn from_iter<I: IntoIterator<Item = Generation<C, T>>>(iter: I) -> Self {
         iter.into_iter()
             .last()
-            .map(|generation| generation.front().map(|front| front.clone()))
-            .flatten()
+            .and_then(|generation| generation.front().cloned())
             .unwrap_or_default()
     }
 }

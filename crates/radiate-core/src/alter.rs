@@ -20,6 +20,7 @@ macro_rules! alters {
 /// alteration operation. It contains the number of operations
 /// performed and a vector of metrics that were collected
 /// during the alteration process.
+#[derive(Default)]
 pub struct AlterResult(pub usize);
 
 impl AlterResult {
@@ -37,11 +38,6 @@ impl AlterResult {
     }
 }
 
-impl Default for AlterResult {
-    fn default() -> Self {
-        AlterResult(0)
-    }
-}
 
 impl From<usize> for AlterResult {
     fn from(value: usize) -> Self {

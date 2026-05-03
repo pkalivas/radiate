@@ -43,6 +43,9 @@ impl<T> MutCell<T> {
         unsafe { (*self.inner).ref_count.load(Ordering::Acquire) }
     }
 
+    // There isn't much of a reason to implement the raw trait here. They would do the same thing.
+    // This code should be used very carefully anyways.
+    #[allow(clippy::should_implement_trait)]
     pub fn borrow(&self) -> &T {
         // SAFETY: This is inherently unsafe because we don't know if there exists a mutable
         // reference to the inner value elsewhere.
@@ -54,6 +57,9 @@ impl<T> MutCell<T> {
         unsafe { &*(*self.inner).value.get() }
     }
 
+    // There isn't much of a reason to implement the raw trait here. They would do the same thing.
+    // This code should be used very carefully anyways.
+    #[allow(clippy::should_implement_trait)]
     pub fn borrow_mut(&mut self) -> &mut T {
         assert!(self.is_unique(), "Cannot mutably borrow shared MutCell");
         unsafe { &mut *(*self.inner).value.get() }

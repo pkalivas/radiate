@@ -19,10 +19,7 @@ where
         generation: &Generation<C, T>,
     ) -> std::io::Result<()> {
         let pickle = serde_pickle::to_vec(generation, SerOptions::default()).map_err(|e| {
-            std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!("Failed to serialize checkpoint to pickle: {}", e),
-            )
+            std::io::Error::other(format!("Failed to serialize checkpoint to pickle: {}", e))
         })?;
         std::fs::write(path, pickle)
     }
@@ -38,10 +35,10 @@ where
     fn read_checkpoint(&self, path: PathBuf) -> std::io::Result<Generation<C, T>> {
         let pickle = std::fs::read(path)?;
         let generation = serde_pickle::from_slice(&pickle, DeOptions::default()).map_err(|e| {
-            std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!("Failed to deserialize checkpoint from pickle: {}", e),
-            )
+            std::io::Error::other(format!(
+                "Failed to deserialize checkpoint from pickle: {}",
+                e
+            ))
         })?;
 
         Ok(generation)

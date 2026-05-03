@@ -80,10 +80,11 @@ where
         // If the chromosome has a maximum number of nodes then just return 0.
         // If we have reached this point, this graph is simply optimizing the
         // node's values and not the structure.
-        if let Some(max_nodes) = chromosome.max_nodes() {
-            if chromosome.len() >= max_nodes {
-                return AlterResult::empty();
-            }
+        if let Some(max_nodes) = chromosome.max_nodes()
+            && chromosome.len() >= max_nodes
+        {
+            ctx.metric(INVALID_MUTATION, 1);
+            return AlterResult::empty();
         }
 
         // Else, if we are below the maximum number of nodes,

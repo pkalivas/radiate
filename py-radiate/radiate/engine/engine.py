@@ -250,7 +250,7 @@ class Engine[G, T]:
             self._engine = self._builder.build()
 
         try:
-            generation = self._engine.next()
+            generation = self._engine.step_next()
             return Generation.from_rust(generation)
         except StopIteration:
             self._engine = None

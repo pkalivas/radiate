@@ -119,18 +119,18 @@ where
 
         self.control.set_paused(false);
 
-        if let Some(event_listener) = self.app_thread.take() {
-            if let Err(e) = event_listener.join() {
-                eprintln!("Error joining app thread: {:?}", e);
-            }
+        if let Some(event_listener) = self.app_thread.take()
+            && let Err(e) = event_listener.join()
+        {
+            eprintln!("Error joining app thread: {:?}", e);
         }
 
         self.control.stop();
 
-        if let Some(key_listener) = self.key_thread.take() {
-            if let Err(e) = key_listener.join() {
-                eprintln!("Error joining key listener thread: {:?}", e);
-            }
+        if let Some(key_listener) = self.key_thread.take()
+            && let Err(e) = key_listener.join()
+        {
+            eprintln!("Error joining key listener thread: {:?}", e);
         }
     }
 }

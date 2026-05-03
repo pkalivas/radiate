@@ -134,12 +134,12 @@ pub fn py_object_to_any_value<'a, 'py>(
     }
 
     fn get_str(ob: &Bound<'_, PyAny>, _strict: bool) -> PyResult<AnyValue<'static>> {
-        Ok(AnyValue::StrOwned(ob.extract::<String>()?.into()))
+        Ok(AnyValue::StrOwned(ob.extract::<String>()?))
     }
 
     fn get_list(ob: &Bound<'_, PyAny>, strict: bool) -> PyResult<AnyValue<'static>> {
         let seq = ob.cast::<PySequence>()?;
-        let mut out: Vec<AnyValue<'static>> = Vec::with_capacity(seq.len().unwrap_or(0).max(0));
+        let mut out: Vec<AnyValue<'static>> = Vec::with_capacity(seq.len().unwrap_or(0));
         for item in seq.try_iter()? {
             let av = py_object_to_any_value(item?.as_borrowed(), strict)?;
             out.push(av.into_static());

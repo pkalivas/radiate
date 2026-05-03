@@ -12,11 +12,11 @@ use std::{fmt::Debug, hash::Hash};
 ///
 /// # Type Parameters
 /// * `T` - The type of value stored in each node. This type must implement `Clone`, `PartialEq`,
-///         and other traits required by the genetic programming operations.
+///   and other traits required by the genetic programming operations.
 ///
 /// # Fields
 /// * `root` - An optional `TreeNode<T>` that serves as the root of the tree. When `None`,
-///            the tree is considered empty.
+///   the tree is considered empty.
 ///
 /// # Examples
 /// ```
@@ -165,9 +165,9 @@ impl<T: Hash> Hash for Tree<T> {
 
 impl<T: Debug> Debug for Tree<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Tree {{\n")?;
+        writeln!(f, "Tree {{")?;
         for node in self.iter_breadth_first() {
-            write!(f, "  {:?}\n", node)?;
+            writeln!(f, "  {:?}", node)?;
         }
         write!(f, "}}")
     }

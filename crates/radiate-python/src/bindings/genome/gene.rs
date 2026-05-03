@@ -216,8 +216,8 @@ impl PyGene {
         dtype: Option<String>,
     ) -> PyResult<Self> {
         let dtype = datatype::dtype_from_str(&dtype.unwrap_or_else(|| dtype_names::FLOAT64.into()));
-        let range = range.unwrap_or((std::f64::MIN, std::f64::MAX));
-        let bounds = bounds.unwrap_or(range.clone());
+        let range = range.unwrap_or((f64::MIN, f64::MAX));
+        let bounds = bounds.unwrap_or(range);
 
         fn to_gene<F: Float>(
             allele: Option<f64>,
@@ -267,7 +267,7 @@ impl PyGene {
         let dtype = dtype::dtype_from_str(&dtype.unwrap_or_else(|| dtype_names::INT64.into()));
         let default_range = default_int_range(&dtype);
         let range = range.unwrap_or(default_range);
-        let bounds = bounds.unwrap_or(range.clone());
+        let bounds = bounds.unwrap_or(range);
 
         fn to_gene<I: Integer>(
             allele: Option<i64>,

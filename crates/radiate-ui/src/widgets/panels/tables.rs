@@ -11,7 +11,7 @@ use ratatui::{
     style::{Color, Style},
     widgets::{Cell, Row, Table},
 };
-use std::iter::{once, repeat};
+use std::iter::{once, repeat_n};
 use std::marker::PhantomData;
 
 pub const STAT_HEADER_CELLS: [&str; 8] = [
@@ -63,10 +63,10 @@ impl MetricTableKind {
         match self {
             Self::Time => vec![Constraint::Fill(1); 5],
             Self::Stats => once(Constraint::Length(20))
-                .chain(repeat(Constraint::Fill(1)).take(7))
+                .chain(repeat_n(Constraint::Fill(1), 7))
                 .collect(),
             Self::Distribution => once(Constraint::Length(22))
-                .chain(repeat(Constraint::Fill(1)).take(7))
+                .chain(repeat_n(Constraint::Fill(1), 7))
                 .collect(),
         }
     }
@@ -141,7 +141,7 @@ impl<C: Chromosome> StatefulWidget for MetricTableWidget<C> {
         let table = Table::default()
             .block(border_style)
             .header(header_row(self.kind.headers()))
-            .rows(striped_rows(rows.into_iter()))
+            .rows(striped_rows(rows))
             .row_highlight_style(crate::styles::selected_item_style())
             .highlight_spacing(ratatui::widgets::HighlightSpacing::Always)
             .widths(self.kind.widths());
@@ -218,7 +218,7 @@ fn render_scrollable_table<T>(
     StatefulWidget::render(&table, tbl, buf, &mut state.state);
 
     if state.row_count > tbl.height as usize {
-        let mut scrollbar_state = state
+        let scrollbar_state = state
             .scroll_bar
             .get_or_insert_with(|| ScrollbarState::new(state.row_count));
 
@@ -227,7 +227,7 @@ fn render_scrollable_table<T>(
             .track_style(Style::default().fg(Color::DarkGray))
             .thumb_style(Style::default().fg(Color::LightGreen));
 
-        scrollbar.render(scroll, buf, &mut scrollbar_state);
+        scrollbar.render(scroll, buf, scrollbar_state);
     }
 }
 

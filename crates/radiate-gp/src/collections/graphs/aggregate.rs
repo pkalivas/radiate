@@ -238,23 +238,23 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
 
     fn connect(&mut self, connection: ConnectionCommand<'a, T>) {
         if let ConnectionCommand::OneToOne(one, two) = &connection {
-            let one_ids = self.attach(&one);
-            let two_ids = self.attach(&two);
+            let one_ids = self.attach(one);
+            let two_ids = self.attach(two);
 
             self.one_to_one_connect(&one_ids, &two_ids);
         } else if let ConnectionCommand::OneToMany(one, two) = &connection {
-            let one_ids = self.attach(&one);
-            let two_ids = self.attach(&two);
+            let one_ids = self.attach(one);
+            let two_ids = self.attach(two);
 
             self.one_to_many_connect(&one_ids, &two_ids);
         } else if let ConnectionCommand::ManyToOne(one, two) = &connection {
-            let one_ids = self.attach(&one);
-            let two_ids = self.attach(&two);
+            let one_ids = self.attach(one);
+            let two_ids = self.attach(two);
 
             self.many_to_one_connect(&one_ids, &two_ids);
         } else if let ConnectionCommand::AllToAll(one, two) = &connection {
-            let one_ids = self.attach(&one);
-            let two_ids = self.attach(&two);
+            let one_ids = self.attach(one);
+            let two_ids = self.attach(two);
 
             self.all_to_all_connect(&one_ids, &two_ids);
         }
@@ -301,14 +301,14 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
     }
 
     fn one_to_one_connect(&mut self, one: &[&'a GraphNodeId], two: &[&'a GraphNodeId]) {
-        let one_outputs = self.get_outputs(&one);
-        let two_inputs = self.get_inputs(&two);
+        let one_outputs = self.get_outputs(one);
+        let two_inputs = self.get_inputs(two);
 
         if one_outputs.len() != two_inputs.len() {
             panic!("OneToOne - Both groups must be of the same size.");
         }
 
-        for (one, two) in one_outputs.into_iter().zip(two_inputs.into_iter()) {
+        for (one, two) in one_outputs.into_iter().zip(two_inputs) {
             self.relationships.push(Relationship {
                 source_id: one.id(),
                 target_id: two.id(),
@@ -320,7 +320,7 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
         let one_outputs = self.get_outputs(one);
         let two_inputs = self.get_inputs(two);
 
-        if two_inputs.len() % one_outputs.len() != 0 {
+        if !two_inputs.len().is_multiple_of(one_outputs.len()) {
             panic!("OneToMany - TwoGroup inputs must be a multiple of OneGroup outputs.");
         }
 
@@ -338,7 +338,7 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
         let one_outputs = self.get_outputs(one);
         let two_inputs = self.get_inputs(two);
 
-        if one_outputs.len() % two_inputs.len() != 0 {
+        if !one_outputs.len().is_multiple_of(two_inputs.len()) {
             panic!("ManyToOne - OneGroup outputs must be a multiple of TwoGroup inputs.");
         }
 

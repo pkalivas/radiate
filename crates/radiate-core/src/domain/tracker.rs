@@ -13,6 +13,15 @@ where
     pub stagnation: usize,
 }
 
+impl<T> Default for Tracker<T>
+where
+    T: Clone + PartialOrd,
+ {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T> Tracker<T>
 where
     T: Clone + PartialOrd,

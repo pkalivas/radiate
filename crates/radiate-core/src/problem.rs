@@ -312,11 +312,11 @@ impl<C: Chromosome, T> Problem<C, T> for BatchEngineProblem<C, T> {
             ));
         };
 
-        for i in 0..scores.len() {
-            if !self.objective.validate(&scores[i]) {
+        for value in scores.iter() {
+            if !self.objective.validate(value) {
                 return Err(radiate_err!(
                     Evaluation: "Invalid fitness score {:?} for objective {:?}",
-                    scores[i],
+                    value,
                     self.objective
                 ));
             }

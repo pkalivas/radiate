@@ -65,6 +65,11 @@ impl<T> WindowBuffer<T> {
     }
 
     #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    #[inline]
     pub fn values(&self) -> &[T] {
         &self.buffer[self.start..self.end]
     }

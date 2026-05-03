@@ -16,13 +16,13 @@ pub use species::PySpecies;
 
 use pyo3::{pyclass, pymethods};
 
-pub const FLOAT_GENE_TYPE: &'static str = "FloatGene";
-pub const INT_GENE_TYPE: &'static str = "IntGene";
-pub const BIT_GENE_TYPE: &'static str = "BitGene";
-pub const CHAR_GENE_TYPE: &'static str = "CharGene";
-pub const GRAPH_GENE_TYPE: &'static str = "GraphNode";
-pub const TREE_GENE_TYPE: &'static str = "TreeNode";
-pub const PERMUTATION_GENE_TYPE: &'static str = "PermutationGene";
+pub const FLOAT_GENE_TYPE: &str = "FloatGene";
+pub const INT_GENE_TYPE: &str = "IntGene";
+pub const BIT_GENE_TYPE: &str = "BitGene";
+pub const CHAR_GENE_TYPE: &str = "CharGene";
+pub const GRAPH_GENE_TYPE: &str = "GraphNode";
+pub const TREE_GENE_TYPE: &str = "TreeNode";
+pub const PERMUTATION_GENE_TYPE: &str = "PermutationGene";
 
 #[pyclass(from_py_object)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]

@@ -75,7 +75,7 @@ impl Executor {
                 let mut results = Vec::with_capacity(f.len());
 
                 for job in f {
-                    results.push(pool.submit_with_result(|| job()));
+                    results.push(pool.submit_with_result(job));
                 }
 
                 results.into_iter().map(|r| r.result()).collect()

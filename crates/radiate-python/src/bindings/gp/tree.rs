@@ -43,14 +43,14 @@ impl PyTree {
                 .into_iter()
                 .map(|input| self.inner.eval(&input))
                 .collect::<Vec<Vec<f32>>>();
-            return outputs.into_pyobject(py);
+            outputs.into_pyobject(py)
         } else if let Ok(input_vec) = inputs.extract::<Vec<f32>>(py) {
             let output = self.inner.eval(&input_vec);
-            return output.into_pyobject(py);
+            output.into_pyobject(py)
         } else {
-            return Err(pyo3::exceptions::PyTypeError::new_err(
+            Err(pyo3::exceptions::PyTypeError::new_err(
                 "Input must be Vec[Vec[float]] or Vec[float].",
-            ));
+            ))
         }
     }
 

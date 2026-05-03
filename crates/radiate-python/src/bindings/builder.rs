@@ -678,20 +678,20 @@ impl PyEngineBuilder {
             .getattr(py, "_GIL_ENABLED")?
             .extract::<bool>(py)?;
 
-        let codec = Self::get_input_of_type(&inputs, PyEngineInputType::Codec)
+        let codec = Self::get_input_of_type(inputs, PyEngineInputType::Codec)
             .map(|codec| codec.extract::<Py<PyAny>>("codec"))
             .unwrap_or(Err(radiate_py_err!(
                 "EngineBuilder requires a Codec input."
             )))?;
 
-        let problem = Self::get_input_of_type(&inputs, PyEngineInputType::FitnessFunction)
+        let problem = Self::get_input_of_type(inputs, PyEngineInputType::FitnessFunction)
             .map(|fitness| fitness.extract::<PyFitnessFn>("fitness"))
             .unwrap_or(Err(radiate_py_err!(
                 "EngineBuilder requires a FitnessFunction input."
             )))?;
 
-        let executor = Self::get_input_of_type(&inputs, PyEngineInputType::Executor)
-            .and_then(|input| InputTransform::<Option<Executor>>::transform(input))
+        let executor = Self::get_input_of_type(inputs, PyEngineInputType::Executor)
+            .and_then(InputTransform::<Option<Executor>>::transform)
             .unwrap_or(Executor::Serial);
 
         if executor.is_parallel() && gil_enabled && !matches!(problem.inner, Regression(_, _)) {
@@ -704,10 +704,10 @@ impl PyEngineBuilder {
         Ok((problem.inner, codec, executor))
     }
 
-    fn get_input_of_type<'a>(
-        inputs: &'a [PyEngineInput],
+    fn get_input_of_type(
+        inputs: &[PyEngineInput],
         input_type: PyEngineInputType,
-    ) -> Option<&'a PyEngineInput> {
+    ) -> Option<&PyEngineInput> {
         inputs
             .iter()
             .rev()

@@ -1,5 +1,5 @@
 use super::EventHandler;
-use crate::events::events::*;
+use crate::events::message::*;
 use radiate_core::{Chromosome, Executor};
 use std::sync::{Arc, Mutex};
 

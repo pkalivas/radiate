@@ -109,7 +109,6 @@ where
             if let Some(child) = self.child {
                 child.render(area, buf);
             }
-            return;
         } else if self.title.is_some() || self.title_bottom.is_some() || self.render_inside_block {
             let mut block = self.block;
 

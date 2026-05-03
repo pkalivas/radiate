@@ -85,9 +85,10 @@ pub fn fronts_from_ranks(ranks: &[usize]) -> Vec<Vec<usize>> {
         fronts[r].push(i);
     }
 
-    while fronts.last().map_or(false, |f| f.is_empty()) {
+    while fronts.last().is_some_and(|front| front.is_empty()) {
         fronts.pop();
     }
+
     fronts
 }
 
@@ -183,7 +184,7 @@ pub fn associate_with_dist(y: &[f32], ref_dirs: &[Vec<f32>]) -> (usize, f32) {
 /// Given:
 /// - already_selected: indices already chosen (from earlier fronts)
 /// - last_front: indices in the partial front
-/// returns additional indices from last_front to reach `remaining`.
+///   returns additional indices from last_front to reach `remaining`.
 pub fn nsga3_niching_fill(
     scores: &[Vec<f32>], // minimization-space scores
     ref_dirs: &[Vec<f32>],

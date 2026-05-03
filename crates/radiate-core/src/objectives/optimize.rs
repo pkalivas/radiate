@@ -147,7 +147,10 @@ impl From<Vec<Optimize>> for Objective {
 
 impl From<Vec<&str>> for Objective {
     fn from(values: Vec<&str>) -> Self {
-        let opts: Vec<Optimize> = values.into_iter().map(|s| Optimize::from(s)).collect();
+        let opts = values
+            .into_iter()
+            .map(Optimize::from)
+            .collect::<Vec<Optimize>>();
 
         if opts.len() == 1 {
             Objective::Single(opts[0])
@@ -157,9 +160,9 @@ impl From<Vec<&str>> for Objective {
     }
 }
 
-impl Into<Vec<&str>> for Objective {
-    fn into(self) -> Vec<&'static str> {
-        match self {
+impl From<Objective> for Vec<&str> {
+    fn from(objective: Objective) -> Self {
+        match objective {
             Objective::Single(opt) => vec![opt.into()],
             Objective::Multi(opts) => opts.into_iter().map(|opt| opt.into()).collect(),
         }
@@ -214,9 +217,9 @@ impl From<&str> for Optimize {
     }
 }
 
-impl Into<&str> for Optimize {
-    fn into(self) -> &'static str {
-        match self {
+impl From<Optimize> for &str {
+    fn from(opt: Optimize) -> Self {
+        match opt {
             Optimize::Minimize => MIN,
             Optimize::Maximize => MAX,
         }

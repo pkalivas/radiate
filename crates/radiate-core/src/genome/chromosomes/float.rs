@@ -15,7 +15,7 @@ use std::{
 /// This should be large enough to cover most practical use cases
 /// but small enough to avoid overflow or underflow issues in calculations.
 /// 1e18 = 1 quintillion
-
+///
 /// A [`Gene`] that represents a floating point number.
 /// The `allele` is the in the case of the [`FloatGene`] a f32. The `min` and `max` values
 /// default to [MIN] and [MAX] respectively. The `min` and `max` values are used to

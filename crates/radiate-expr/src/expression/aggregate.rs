@@ -100,7 +100,7 @@ impl AggExpr {
             _ => AnyValue::Null,
         };
 
-        return Ok(result.cast(&dtype).unwrap_or(AnyValue::Null));
+        Ok(result.cast(&dtype).unwrap_or(AnyValue::Null))
     }
 }
 
@@ -169,6 +169,6 @@ where
         }
 
         self.buffer.push(child_output);
-        Ok(AnyValue::Slice(&self.buffer.values()))
+        Ok(AnyValue::Slice(self.buffer.values()))
     }
 }

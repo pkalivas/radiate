@@ -43,9 +43,9 @@ impl<C: Chromosome> EngineStep<C> for FilterStep<C> {
                     .replacer
                     .replace(ecosystem.population(), Arc::clone(&self.encoder));
 
-                ecosystem
-                    .get_phenotype_mut(i)
-                    .map(|pheno| *pheno = Phenotype::from((new_genotype, generation)));
+                if let Some(phenotype) = ecosystem.get_phenotype_mut(i) {
+                    *phenotype = Phenotype::from((new_genotype, generation));
+                }
             }
         }
 

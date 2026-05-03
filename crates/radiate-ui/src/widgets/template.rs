@@ -42,7 +42,7 @@ impl<C: Chromosome> LayoutNode<C> {
                     .constraints(constraints)
                     .split(area);
 
-                for (child, &child_area) in children.iter().zip(areas.into_iter()) {
+                for (child, &child_area) in children.iter().zip(areas.iter()) {
                     child.draw(child_area, buf, state);
                 }
             }
@@ -55,7 +55,7 @@ impl<C: Chromosome> LayoutNode<C> {
                     .constraints(constraints)
                     .split(area);
 
-                for (child, &child_area) in children.iter().zip(areas.into_iter()) {
+                for (child, &child_area) in children.iter().zip(areas.iter()) {
                     child.draw(child_area, buf, state);
                 }
             }

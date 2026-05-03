@@ -1,4 +1,4 @@
-use crate::events::events::*;
+use crate::events::message::*;
 
 pub trait EventHandler<T>: Send + Sync {
     fn handle(&mut self, event: EngineEvent<T>);

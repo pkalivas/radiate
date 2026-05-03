@@ -4,7 +4,7 @@ use radiate_utils::intern;
 use std::collections::HashMap;
 
 const MAX_CHART_POINTS: usize = 1000;
-const CHART_NAMES: &[&'static str] = &["Value", "Mean", "Stddev", "Variance"];
+const CHART_NAMES: &[&str] = &["Value", "Mean", "Stddev", "Variance"];
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub enum LineChartType {

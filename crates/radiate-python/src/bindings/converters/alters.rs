@@ -203,7 +203,6 @@ fn tree_alterers() -> HashMap<&'static str, AlterConv<TreeChromosome<Op<f32>>>> 
 /// as much as possible on rust's type system, but we provide default values where appropriate.
 /// If a parameter is missing, we use a sensible default.
 /// -------------------------------------------------------------------
-
 fn convert_jitter_mutator(input: &PyEngineInput) -> JitterMutator {
     let rate = input.get_rate().unwrap();
     let magnitude = input.get_f32("magnitude").unwrap_or(0.5);

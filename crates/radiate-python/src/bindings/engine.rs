@@ -93,7 +93,7 @@ impl PyEngine {
         }))
     }
 
-    pub fn next(&mut self) -> PyResult<PyGeneration> {
+    pub fn step_next(&mut self) -> PyResult<PyGeneration> {
         use EngineHandle::*;
         let engine = self
             .engine

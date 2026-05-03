@@ -55,16 +55,16 @@ pub fn subset(max_index: usize, num_indicies: usize, buffer: &mut [usize], mode:
             next(max_index, buffer, rand);
         }
         SubsetMode::FastRandom => {
-            for i in 0..num_indicies {
-                buffer[i] = rand.range(0..max_index);
+            for item in buffer.iter_mut().take(num_indicies) {
+                *item = rand.range(0..max_index);
             }
         }
         SubsetMode::Exclude(exclude) => {
-            for i in 0..num_indicies {
+            for item in buffer.iter_mut().take(num_indicies) {
                 loop {
                     let index = rand.range(0..max_index);
                     if !exclude.contains(&index) {
-                        buffer[i] = index;
+                        *item = index;
                         break;
                     }
                 }
@@ -90,9 +90,10 @@ pub fn subset(max_index: usize, num_indicies: usize, buffer: &mut [usize], mode:
 fn next(max_index: usize, sub_set: &mut [usize], rand: &mut RdRand<'_>) {
     let k = sub_set.len();
     if k == max_index {
-        for i in 0..k {
-            sub_set[i] = i;
+        for (i, item) in sub_set.iter_mut().enumerate() {
+            *item = i;
         }
+
         return;
     }
     build_subset(max_index, sub_set, rand);
@@ -107,8 +108,8 @@ fn build_subset(max_index: usize, sub: &mut [usize], rand: &mut RdRand<'_>) {
     let k = sub.len();
     check_subset(max_index, k);
 
-    for i in 0..k {
-        sub[i] = i * max_index / k;
+    for (i, item) in sub.iter_mut().enumerate() {
+        *item = i * max_index / k;
     }
 
     for _ in 0..k {
@@ -173,7 +174,7 @@ fn invert(n: usize, a: &mut [usize]) {
     ac.copy_from_slice(a);
 
     for i in (0..k).rev() {
-        while let Some(_) = index_of(&ac, j, v) {
+        while index_of(&ac, j, v).is_some() {
             v -= 1;
         }
         a[i] = v;
@@ -182,13 +183,7 @@ fn invert(n: usize, a: &mut [usize]) {
 }
 
 fn index_of(a: &[usize], start: usize, value: usize) -> Option<usize> {
-    for i in (0..=start).rev() {
-        if a[i] == value {
-            return Some(i);
-        }
-    }
-
-    None
+    (0..=start).rev().find(|&i| a[i] == value)
 }
 
 fn check_subset(n: usize, k: usize) {

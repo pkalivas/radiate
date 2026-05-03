@@ -41,10 +41,7 @@ where
         generation: &Generation<C, T>,
     ) -> std::io::Result<()> {
         let json = serde_json::to_string(generation).map_err(|e| {
-            std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!("Failed to serialize checkpoint file: {}", e),
-            )
+            std::io::Error::other(format!("Failed to serialize checkpoint file: {}", e))
         })?;
 
         std::fs::write(path, json)
@@ -62,10 +59,7 @@ where
     fn read_checkpoint(&self, path: PathBuf) -> std::io::Result<Generation<C, T>> {
         let json = std::fs::read_to_string(path)?;
         let generation = serde_json::from_str(&json).map_err(|e| {
-            std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!("Failed to deserialize checkpoint file: {}", e),
-            )
+            std::io::Error::other(format!("Failed to deserialize checkpoint file: {}", e))
         })?;
 
         Ok(generation)

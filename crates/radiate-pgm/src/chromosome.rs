@@ -110,7 +110,7 @@ impl Valid for PgmChromosome {
 
             for (i, &vid) in factor.scope.iter().enumerate() {
                 let idx = vid.0 as usize;
-                let expected = self.vars[idx].card.max(1) as usize;
+                let expected = self.vars[idx].card.max(1);
                 if factor.shape[i].max(1) != expected {
                     return false;
                 }

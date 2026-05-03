@@ -51,11 +51,11 @@ impl Score {
     }
 
     pub fn as_f32(&self) -> f32 {
-        self.values.get(0).cloned().unwrap_or(f32::NAN)
+        self.values.first().cloned().unwrap_or(f32::NAN)
     }
 
     pub fn as_f64(&self) -> f64 {
-        self.values.get(0).cloned().unwrap_or(f32::NAN) as f64
+        self.values.first().cloned().unwrap_or(f32::NAN) as f64
     }
 
     pub fn as_i32(&self) -> i32 {
@@ -76,6 +76,10 @@ impl Score {
 
     pub fn len(&self) -> usize {
         self.values.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.values.is_empty()
     }
 }
 
@@ -117,9 +121,9 @@ impl Index<usize> for Score {
     }
 }
 
-impl Into<Vec<f32>> for Score {
-    fn into(self) -> Vec<f32> {
-        self.values.to_vec()
+impl From<Score> for Vec<f32> {
+    fn from(score: Score) -> Vec<f32> {
+        score.values.to_vec()
     }
 }
 
@@ -287,7 +291,7 @@ impl Add<f32> for Score {
         }
 
         Score {
-            values: Arc::from(self.values),
+            values: values.into(),
         }
     }
 }

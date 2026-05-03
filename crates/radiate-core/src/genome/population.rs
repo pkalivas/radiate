@@ -4,6 +4,7 @@ use crate::sync::MutCell;
 use crate::{Chromosome, Score};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+use std::borrow::{Borrow, BorrowMut};
 use std::fmt::Debug;
 use std::ops::{Index, IndexMut, Range};
 
@@ -60,7 +61,7 @@ impl<C: Chromosome> Population<C> {
     where
         C: Clone,
     {
-        self.individuals.get(index).map(|cell| cell.clone())
+        self.individuals.get(index).cloned()
     }
 
     pub fn push(&mut self, individual: impl Into<Member<C>>) {
@@ -72,7 +73,9 @@ impl<C: Chromosome> Population<C> {
     }
 
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Phenotype<C>> {
-        self.individuals.iter_mut().map(Member::borrow_mut)
+        self.individuals
+            .iter_mut()
+            .map(BorrowMut::<Phenotype<C>>::borrow_mut)
     }
 
     pub fn len(&self) -> usize {
@@ -90,7 +93,7 @@ impl<C: Chromosome> Population<C> {
     pub fn get_scores(&self) -> impl Iterator<Item = &Score> {
         self.individuals
             .iter()
-            .filter_map(|individual| individual.borrow().score())
+            .filter_map(|individual| Borrow::<Phenotype<C>>::borrow(individual).score())
     }
 
     pub fn extend(&mut self, other: Self) {
@@ -152,7 +155,7 @@ impl<C: Chromosome> Index<usize> for Population<C> {
     type Output = Phenotype<C>;
 
     fn index(&self, index: usize) -> &Self::Output {
-        &self.individuals[index].borrow()
+        self.individuals[index].borrow()
     }
 }
 
@@ -213,16 +216,16 @@ impl<C: Chromosome + Clone> Clone for Population<C> {
     fn clone(&self) -> Self {
         self.individuals
             .iter()
-            .map(|individual| individual.borrow().clone())
+            .map(|individual| Borrow::<Phenotype<C>>::borrow(individual).clone())
             .collect::<Population<C>>()
     }
 }
 
 impl<C: Chromosome + Debug> Debug for Population<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Population [\n")?;
+        writeln!(f, "Population [")?;
         for individual in &self.individuals {
-            write!(f, "{:?},\n ", individual.borrow())?;
+            writeln!(f, "{:?}, ", Borrow::<Phenotype<C>>::borrow(individual))?;
         }
         write!(f, "]")
     }
@@ -259,14 +262,6 @@ pub struct Member<C: Chromosome> {
 }
 
 impl<C: Chromosome> Member<C> {
-    pub fn borrow(&self) -> &Phenotype<C> {
-        self.cell.borrow()
-    }
-
-    pub fn borrow_mut(&mut self) -> &mut Phenotype<C> {
-        self.cell.borrow_mut()
-    }
-
     pub fn into_inner(self) -> Phenotype<C>
     where
         C: Clone,
@@ -283,15 +278,27 @@ impl<C: Chromosome> Member<C> {
     }
 }
 
+impl<C: Chromosome> Borrow<Phenotype<C>> for Member<C> {
+    fn borrow(&self) -> &Phenotype<C> {
+        self.cell.borrow()
+    }
+}
+
+impl<C: Chromosome> BorrowMut<Phenotype<C>> for Member<C> {
+    fn borrow_mut(&mut self) -> &mut Phenotype<C> {
+        self.cell.borrow_mut()
+    }
+}
+
 impl<C: Chromosome + Debug> Debug for Member<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self.borrow())
+        write!(f, "{:?}", Borrow::<Phenotype<C>>::borrow(self))
     }
 }
 
 impl<C: Chromosome + PartialEq> PartialOrd for Member<C> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.borrow().partial_cmp(other.borrow())
+        Borrow::<Phenotype<C>>::borrow(self).partial_cmp(Borrow::<Phenotype<C>>::borrow(other))
     }
 }
 
@@ -305,7 +312,7 @@ impl<C: Chromosome> From<Phenotype<C>> for Member<C> {
 
 impl<C: Chromosome> Scored for Member<C> {
     fn score(&self) -> Option<&Score> {
-        self.borrow().score()
+        Borrow::<Phenotype<C>>::borrow(self).score()
     }
 }
 

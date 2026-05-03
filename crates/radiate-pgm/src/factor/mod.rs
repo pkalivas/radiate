@@ -27,7 +27,7 @@ pub fn gene_to_discrete(chrom: &PgmChromosome, g: &FactorGene) -> Result<Discret
     let scope_specs: Vec<VarSpec> = g
         .scope
         .iter()
-        .map(|&vid| chrom.vars[vid.0 as usize].clone())
+        .map(|&vid| chrom.vars[vid.0 as usize])
         .collect();
 
     // Extract contiguous values from `Value`.
@@ -141,7 +141,7 @@ pub fn loglik_evidence(chrom: &PgmChromosome, row: &[Option<usize>]) -> Result<f
 
     // Sum out all remaining hidden vars using VE -> scalar.
     let out = variable_elimination(conditioned, &hidden, &card)?;
-    Ok(out.logp().get(0).copied().unwrap_or(0.0))
+    Ok(out.logp().first().copied().unwrap_or(0.0))
 }
 
 /// Compute logZ (log-partition) by eliminating all variables.
@@ -150,7 +150,7 @@ pub fn logz(chrom: &PgmChromosome) -> Result<f32, String> {
     let card = |v: VarId| chrom.vars[v.0 as usize].card;
     let order: Vec<VarId> = (0..chrom.vars.len()).map(|i| VarId(i as u32)).collect();
     let out = variable_elimination(factors, &order, &card)?;
-    Ok(out.logp().get(0).copied().unwrap_or(0.0))
+    Ok(out.logp().first().copied().unwrap_or(0.0))
 }
 
 /// Convenience: log P(evidence) under a normalized model.

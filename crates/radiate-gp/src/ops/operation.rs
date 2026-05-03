@@ -14,7 +14,7 @@ use std::{
 /// and that the structures built using these operations are built in ways that respect
 /// these input requirements. For example, an addition operation would typically have an arity of 2,
 /// while a constant operation would have an arity of 0. This is the _base_ level of the GP system, meaning
-
+///
 /// that everything built on top of it (trees, graphs, etc.) will relies *heavily* on how these
 /// operations are defined and used.
 pub enum Op<T> {
@@ -115,7 +115,7 @@ where
     fn new_instance(&self, _: ()) -> Op<T> {
         match self {
             Op::Fn(name, arity, op) => Op::Fn(name, *arity, *op),
-            Op::Var(name, index, domain) => Op::Var(name, *index, domain.clone()),
+            Op::Var(name, index, domain) => Op::Var(name, *index, *domain),
             Op::Const(name, value) => Op::Const(name, value.clone()),
             Op::Value(name, arity, value, operation) => {
                 Op::Value(name, *arity, value.new_instance(()), *operation)
@@ -131,7 +131,7 @@ where
     fn clone(&self) -> Self {
         match self {
             Op::Fn(name, arity, op) => Op::Fn(name, *arity, *op),
-            Op::Var(name, index, domain) => Op::Var(name, *index, domain.clone()),
+            Op::Var(name, index, domain) => Op::Var(name, *index, *domain),
             Op::Const(name, value) => Op::Const(name, value.clone()),
             Op::Value(name, arity, value, operation) => {
                 Op::Value(name, *arity, value.clone(), *operation)

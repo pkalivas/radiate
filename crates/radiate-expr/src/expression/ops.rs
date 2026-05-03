@@ -49,7 +49,7 @@ where
                 Some(v) => Ok(AnyValue::Float32(v.abs())),
                 None => radiate_bail!(Expr: "Absolute value is only supported for numeric types"),
             },
-            UnaryOp::Cast(ref to) => match value.clone().cast(&to) {
+            UnaryOp::Cast(ref to) => match value.clone().cast(to) {
                 Some(v) => Ok(v),
                 None => radiate_bail!(Expr: "Failed to cast value {:?} to type {:?}", value, to),
             },

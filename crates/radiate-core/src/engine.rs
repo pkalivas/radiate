@@ -135,7 +135,7 @@ pub trait EngineExt<E: Engine> {
     /// # Arguments
     ///
     /// * `limit` - A closure that takes the current epoch and returns `true` when
-    ///             the engine should stop, `false` to continue
+    ///   the engine should stop, `false` to continue
     ///
     /// # Returns
     ///
@@ -161,7 +161,6 @@ pub trait EngineExt<E: Engine> {
     /// Be careful to ensure that your termination condition will eventually be met,
     /// especially when using complex logic. An infinite loop will cause the program
     /// to hang indefinitely.
-
     fn run<F>(&mut self, limit: F) -> E::Epoch
     where
         F: Fn(&E::Epoch) -> bool;

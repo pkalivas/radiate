@@ -58,8 +58,8 @@ where
         random_provider::with_rng(|rand| {
             for (one, two) in chrom_one.zip_mut(chrom_two) {
                 if rand.bool(ctx.rate()) {
-                    let allele_one = one.allele().clone();
-                    let allele_two = two.allele().clone();
+                    let allele_one = *one.allele();
+                    let allele_two = *two.allele();
 
                     let new_allele_one = allele_one - (alpha * (allele_two - allele_one));
                     let new_allele_two = allele_two - (alpha * (allele_one - allele_two));

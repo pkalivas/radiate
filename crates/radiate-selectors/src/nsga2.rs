@@ -13,7 +13,7 @@ const NSGA2_SELECTOR_NAME: &str = "nsga2_selector";
 /// neighbors in the objective space. Individuals with a higher crowding distance
 /// are more desirable because they are more spread out. This is useful for selecting
 /// diverse solutions in a multi-objective optimization problem. It uses 'fast non-dominated sorting'
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct NSGA2Selector;
 
 impl NSGA2Selector {
@@ -63,7 +63,7 @@ impl<C: Chromosome + Clone> Select<C> for NSGA2Selector {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct TournamentNSGA2Selector;
 
 impl TournamentNSGA2Selector {

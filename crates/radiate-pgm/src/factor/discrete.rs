@@ -73,8 +73,9 @@ impl DiscreteFactor {
     pub fn index_of(&self, asg: &[usize]) -> usize {
         debug_assert_eq!(asg.len(), self.scope.len());
         let mut idx = 0usize;
-        for i in 0..asg.len() {
-            idx += (asg[i] as usize) * self.strides[i];
+        // for i in 0..asg.len() {
+        for (i, &v) in asg.iter().enumerate() {
+            idx += v * self.strides[i];
         }
         idx
     }
@@ -83,9 +84,9 @@ impl DiscreteFactor {
     pub fn unflatten(&self, idx: usize) -> Vec<usize> {
         let mut asg = vec![0usize; self.scope.len()];
         for i in (0..self.scope.len()).rev() {
-            let d = self.dims[i] as usize;
+            let d = self.dims[i];
             let v = (idx / self.strides[i]) % d;
-            asg[i] = v as usize;
+            asg[i] = v;
         }
         asg
     }
@@ -173,20 +174,22 @@ impl DiscreteFactor {
         let mut new_logp = vec![f32::NEG_INFINITY; new_len];
 
         // For each assignment in new space, map to old assignment and copy value.
-        for new_idx in 0..new_len {
+        // for new_idx in 0..new_len {
+        for (new_idx, item) in new_logp.iter_mut().enumerate().take(new_len) {
             // compute new assignment
             let mut new_asg = vec![0usize; new_scope.len()];
             for i in (0..new_scope.len()).rev() {
-                let d = new_dims[i] as usize;
+                let d = new_dims[i];
                 let v = (new_idx / new_strides[i]) % d;
-                new_asg[i] = v as usize;
+                new_asg[i] = v;
             }
             // old assignment in old axis order
             let mut old_asg = vec![0usize; self.scope.len()];
             for (new_axis, &old_axis) in perm.iter().enumerate() {
                 old_asg[old_axis] = new_asg[new_axis];
             }
-            new_logp[new_idx] = self.log_value_aligned(&old_asg);
+
+            *item = self.log_value_aligned(&old_asg);
         }
 
         Ok(Self {
@@ -203,7 +206,7 @@ impl DiscreteFactor {
         let axis = self
             .axis_of(child)
             .ok_or_else(|| "child not in scope".to_string())?;
-        let child_card = self.dims[axis] as usize;
+        let child_card = self.dims[axis];
 
         // We will iterate all "rows" where row = varying child with parents fixed.
         // For row-major strides: indices for a fixed parent assignment are spaced by stride[axis].
@@ -219,26 +222,26 @@ impl DiscreteFactor {
         for row_idx in 0..rows {
             // decode non-child assignment into base_asg
             for (k, &ax) in non_axes.iter().enumerate() {
-                let d = non_dims[k] as usize;
+                let d = non_dims[k];
                 let v = (row_idx / non_strides[k]) % d;
                 base_asg[ax] = v;
             }
 
             // collect row over child
             let mut row = vec![0.0f32; child_card];
-            for c in 0..child_card {
+            for (c, val) in row.iter_mut().enumerate().take(child_card) {
                 base_asg[axis] = c;
-                row[c] = self.log_value_aligned(&base_asg);
+                *val = self.log_value_aligned(&base_asg);
             }
 
             // normalize in log-space
             log_normalize_in_place(&mut row);
 
             // write back
-            for c in 0..child_card {
+            for (c, &val) in row.iter().enumerate().take(child_card) {
                 base_asg[axis] = c;
                 let idx = self.index_of(&base_asg);
-                self.logp[idx] = row[c];
+                self.logp[idx] = val;
             }
         }
         Ok(())

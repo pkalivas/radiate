@@ -1,7 +1,7 @@
 use crate::Factory;
-use std::{fmt::Debug, hash::Hash};
+use std::fmt::Debug;
 
-#[derive(Hash, Clone)]
+#[derive(Clone)]
 pub struct Param<T> {
     data: T,
     supplier: fn() -> T,

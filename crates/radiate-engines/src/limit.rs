@@ -109,72 +109,72 @@ pub enum Limit {
     Expr(Expr),
 }
 
-impl Into<Limit> for usize {
-    fn into(self) -> Limit {
-        Limit::Generation(self)
+impl From<usize> for Limit {
+    fn from(value: usize) -> Self {
+        Limit::Generation(value)
     }
 }
 
-impl Into<Limit> for Duration {
-    fn into(self) -> Limit {
-        Limit::Seconds(self)
+impl From<Duration> for Limit {
+    fn from(value: Duration) -> Self {
+        Limit::Seconds(value)
     }
 }
 
-impl Into<Limit> for f32 {
-    fn into(self) -> Limit {
-        Limit::Score(Score::from(self))
+impl From<f32> for Limit {
+    fn from(value: f32) -> Self {
+        Limit::Score(Score::from(value))
     }
 }
 
-impl Into<Limit> for Vec<f32> {
-    fn into(self) -> Limit {
-        Limit::Score(Score::from(self))
+impl From<Vec<f32>> for Limit {
+    fn from(value: Vec<f32>) -> Self {
+        Limit::Score(Score::from(value))
     }
 }
 
-impl Into<Limit> for (usize, f32) {
-    fn into(self) -> Limit {
-        Limit::Convergence(self.0, self.1)
+impl From<(usize, f32)> for Limit {
+    fn from(value: (usize, f32)) -> Self {
+        Limit::Convergence(value.0, value.1)
     }
 }
 
-impl Into<Limit> for Expr {
-    fn into(self) -> Limit {
-        Limit::Expr(self)
+impl From<Expr> for Limit {
+    fn from(value: Expr) -> Self {
+        Limit::Expr(value)
     }
 }
 
-impl<F> Into<Limit> for (&str, F)
+impl<F> From<(&str, F)> for Limit
 where
     F: Fn(&Metric) -> bool + 'static,
 {
-    fn into(self) -> Limit {
-        Limit::Metric(self.0.to_string(), Arc::new(self.1))
+    fn from(value: (&str, F)) -> Self {
+        Limit::Metric(value.0.to_string(), Arc::new(value.1))
     }
 }
 
-impl Into<Limit> for Vec<Limit> {
-    fn into(self) -> Limit {
-        Limit::Combined(self)
+impl From<Vec<Limit>> for Limit {
+    fn from(value: Vec<Limit>) -> Self {
+        Limit::Combined(value)
     }
 }
 
-impl Into<Limit> for (Limit, Limit) {
-    fn into(self) -> Limit {
-        Limit::Combined(vec![self.0, self.1])
+impl From<(Limit, Limit)> for Limit {
+    fn from(value: (Limit, Limit)) -> Self {
+        Limit::Combined(vec![value.0, value.1])
     }
 }
 
-impl Into<Limit> for (Limit, Limit, Limit) {
-    fn into(self) -> Limit {
-        Limit::Combined(vec![self.0, self.1, self.2])
+impl From<(Limit, Limit, Limit)> for Limit {
+    fn from(value: (Limit, Limit, Limit)) -> Self {
+        Limit::Combined(vec![value.0, value.1, value.2])
     }
 }
 
-impl Into<Limit> for (Limit, Limit, Limit, Limit) {
-    fn into(self) -> Limit {
-        Limit::Combined(vec![self.0, self.1, self.2, self.3])
+impl From<(Limit, Limit, Limit, Limit)> for Limit {
+    fn from(value: (Limit, Limit, Limit, Limit)) -> Self {
+        Limit::Combined(vec![value.0, value.1, value.2, value.3])
     }
 }
 

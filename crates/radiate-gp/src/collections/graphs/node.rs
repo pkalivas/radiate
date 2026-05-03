@@ -40,6 +40,12 @@ impl GraphNodeId {
     }
 }
 
+impl Default for GraphNodeId {
+    fn default() -> Self {
+        GraphNodeId::new()
+    }
+}
+
 /// Represents the direction of connections in a graph node.
 ///
 /// The [Direction] enum is used to specify whether a node's connections follow the
@@ -91,7 +97,7 @@ pub enum Direction {
 ///
 /// # Type Parameters
 /// * `T` - The type of value stored in the node. This type must implement `Clone`, `PartialEq`, and other traits
-///         required by the genetic programming operations.
+///   required by the genetic programming operations.
 ///
 /// # Fields
 /// * `value` - The actual value stored in the node
@@ -100,8 +106,7 @@ pub enum Direction {
 /// * `direction` - The direction of the node's connections (Forward or Backward)
 /// * `node_type` - Optional [NodeType] that specifies the role of the node (Input, Output, Vertex, Edge, etc.)
 /// * `arity` - Optional [Arity] that specifies how many incoming connections the node can have. If
-/// the arity is not supplied, the node will try it's best to determine it based on the node type and
-/// the number of connections.
+///   the arity is not supplied, the node will try it's best to determine it based on the node type and the number of connections.
 /// * `incoming` - Set of indices of nodes that have connections to this node
 /// * `outgoing` - Set of indices of nodes that this node has connections to
 ///
