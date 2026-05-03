@@ -37,8 +37,8 @@ impl PyGraphCodec {
 
     #[new]
     #[pyo3(signature = (graph_type=None, input_size=1, output_size=1, ops=None, max_nodes=None))]
-    pub fn new<'py>(
-        graph_type: Option<&'py str>,
+    pub fn new(
+        graph_type: Option<&str>,
         input_size: usize,
         output_size: usize,
         ops: Option<HashMap<String, Vec<PyOp>>>,

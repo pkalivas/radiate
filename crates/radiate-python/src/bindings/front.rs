@@ -61,7 +61,7 @@ impl PyFront {
 impl PyFront {
     #[new]
     #[pyo3(signature = (range, objective))]
-    pub fn py_new<'py>(range: (usize, usize), objective: Vec<String>) -> Self {
+    pub fn py_new(range: (usize, usize), objective: Vec<String>) -> Self {
         let objective: Objective = objective
             .into_iter()
             .map(|s| Optimize::from(s.as_str()))
@@ -101,11 +101,11 @@ impl PyFront {
         match &self.inner {
             PyFrontInner::Front(front) => front
                 .values()
-                .get(0)
+                .first()
                 .map(|v| v.genotype.dtype(py))
                 .unwrap_or_else(|| Ok(py.None().into_bound(py))),
             PyFrontInner::Values(values) => values
-                .get(0)
+                .first()
                 .map(|v| v.genotype.dtype(py))
                 .unwrap_or_else(|| Ok(py.None().into_bound(py))),
         }
@@ -116,7 +116,7 @@ impl PyFront {
         py: Python<'py>,
         phenotypes: Vec<PyPhenotype>,
     ) -> PyResult<Py<PyAny>> {
-        self.to_front();
+        self.make_front();
 
         let value = phenotypes
             .into_iter()
@@ -152,7 +152,7 @@ impl PyFront {
     }
 
     pub fn remove_outliers(&mut self, trim: f32) -> Option<usize> {
-        self.to_front();
+        self.make_front();
 
         if let PyFrontInner::Front(front) = &mut self.inner {
             Arc::make_mut(front).remove_outliers(trim)
@@ -162,7 +162,7 @@ impl PyFront {
     }
 
     pub fn entropy(&mut self) -> Option<f32> {
-        self.to_front();
+        self.make_front();
 
         if let PyFrontInner::Front(front) = &mut self.inner {
             Arc::make_mut(front).entropy()
@@ -172,7 +172,7 @@ impl PyFront {
     }
 
     pub fn crowding_distance(&mut self) -> Option<Vec<f32>> {
-        self.to_front();
+        self.make_front();
 
         if let PyFrontInner::Front(front) = &mut self.inner {
             Arc::make_mut(front)
@@ -184,7 +184,7 @@ impl PyFront {
     }
 
     pub fn fronts(&mut self) -> Vec<PyFront> {
-        self.to_front();
+        self.make_front();
 
         if let PyFrontInner::Front(front) = &mut self.inner {
             Arc::make_mut(front)
@@ -200,7 +200,7 @@ impl PyFront {
         }
     }
 
-    fn to_front(&mut self) {
+    fn make_front(&mut self) {
         if let PyFrontInner::Values(values) = &mut self.inner {
             let rng = values.len()..values.len();
             let mut front = Front::new(rng, self.objective.clone());
@@ -226,6 +226,6 @@ impl<'py> IntoPyObject<'py> for Wrap<FrontAddResult> {
         dict.set_item("comparisons", add.comparisons)?;
         dict.set_item("size", add.size)?;
 
-        Ok(dict.into())
+        Ok(dict)
     }
 }

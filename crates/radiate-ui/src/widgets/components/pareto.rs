@@ -97,7 +97,7 @@ where
 {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let areas =
-            Layout::horizontal(std::iter::repeat(Constraint::Fill(1)).take(self.count)).split(area);
+            Layout::horizontal(std::iter::repeat_n(Constraint::Fill(1), self.count)).split(area);
 
         for (pane_idx, rect) in areas.iter().enumerate() {
             let k = self.start + pane_idx;
@@ -219,9 +219,9 @@ where
                     .style(Style::default().gray())
                     .bounds([min_y, max_y])
                     .labels(Line::from(vec![
-                        format!("{:.2}", min_y).bold().into(),
+                        format!("{:.2}", min_y).bold(),
                         format!("{:.2}", mid_y).into(),
-                        format!("{:.2}", max_y).bold().into(),
+                        format!("{:.2}", max_y).bold(),
                     ])),
             );
 

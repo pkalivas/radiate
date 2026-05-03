@@ -4,7 +4,7 @@ use radiate_core::{BatchFitnessFunction, Genotype, fitness::FitnessFunction};
 use std::cell::RefCell;
 
 thread_local! {
-    static LOSS_BUFFER: RefCell<Vec<f32>> = RefCell::new(Vec::new());
+    static LOSS_BUFFER: RefCell<Vec<f32>> = const { RefCell::new(Vec::new()) };
 }
 
 #[derive(Clone)]

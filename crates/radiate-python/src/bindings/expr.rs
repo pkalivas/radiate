@@ -65,13 +65,13 @@ impl PyExpr {
         }
     }
 
-    pub fn evaluate<'py>(&mut self, input: Wrap<AnyValue<'_>>) -> PyResult<Wrap<AnyValue<'_>>> {
+    pub fn evaluate(&mut self, input: Wrap<AnyValue<'_>>) -> PyResult<Wrap<AnyValue<'_>>> {
         let result = input.0.into_static();
         match self.inner.dispatch(&result) {
-            Ok(value) => return Ok(Wrap(value)),
+            Ok(value) => Ok(Wrap(value)),
             Err(e) => {
                 let msg = format!("Error evaluating expression: {}", e);
-                return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(msg));
+                Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(msg))
             }
         }
     }
@@ -227,8 +227,8 @@ impl From<Expr> for PyExpr {
     }
 }
 
-impl Into<Expr> for PyExpr {
-    fn into(self) -> Expr {
-        self.inner
+impl From<PyExpr> for Expr {
+    fn from(py_expr: PyExpr) -> Self {
+        py_expr.inner
     }
 }

@@ -406,7 +406,7 @@ fn get_objective_names(objective: &Objective) -> Vec<String> {
     }
 }
 
-fn get_front<'py, C, T: IntoPyAnyObject>(generation: &Generation<C, T>) -> PyResult<PyFront>
+fn get_front<C, T: IntoPyAnyObject>(generation: &Generation<C, T>) -> PyResult<PyFront>
 where
     C: Chromosome + Clone,
     PyGenotype: From<Genotype<C>>,
@@ -438,5 +438,5 @@ where
         return generation.value().clone().inner.into_bound_py_any(py);
     }
 
-    return Ok(py.None().into_bound(py));
+    Ok(py.None().into_bound(py))
 }

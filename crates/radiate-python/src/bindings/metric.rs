@@ -22,7 +22,7 @@ pub struct PyMetricSet {
 impl PyMetricSet {
     #[new]
     #[pyo3(signature = (metrics=None))]
-    pub fn new<'py>(metrics: Option<Wrap<AnyValue<'_>>>) -> PyResult<Self> {
+    pub fn new(metrics: Option<Wrap<AnyValue<'_>>>) -> PyResult<Self> {
         if let Some(metrics) = metrics {
             let mut metric_set = MetricSet::new();
             if let AnyValue::Struct(pairs) = metrics.0.into_static() {
@@ -222,7 +222,7 @@ impl From<Metric> for PyMetric {
 impl PyMetric {
     #[staticmethod]
     #[pyo3(signature = (name, values=None))]
-    pub fn new<'py>(name: String, values: Option<Wrap<AnyValue<'_>>>) -> PyResult<Self> {
+    pub fn new(name: String, values: Option<Wrap<AnyValue<'_>>>) -> PyResult<Self> {
         let mut metric = Metric::new(intern!(name));
         if let Some(values) = values {
             let metric_values = values.0.into_static();

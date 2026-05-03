@@ -54,11 +54,12 @@ impl PyAnyObject {
                 }
             }
 
-            return Ok(format!("[{}]", items.join(",")));
+            Ok(format!("[{}]", items.join(",")))
         } else if bound.hasattr("to_json")? {
             let to_json = bound.getattr("to_json")?;
             let json_str = to_json.call0()?;
-            return json_str.extract::<String>();
+
+            json_str.extract::<String>()
         } else {
             let json_module = py.import("json")?;
             let dumps = json_module.getattr("dumps")?;

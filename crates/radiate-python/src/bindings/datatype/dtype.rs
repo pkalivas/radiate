@@ -6,31 +6,31 @@ use crate::Wrap;
 pub fn dtype_from_str(value: &str) -> DataType {
     // check to see if the value is a numpy dtype string like "numpy.float32"
     let value = value.trim().to_lowercase();
-    if let Some(stripped) = value.strip_prefix('<') {
-        if stripped.contains("numpy") {
-            let dtype_str = stripped.trim_start_matches("numpy").split('.');
-            let last_parsed = dtype_str
-                .clone()
-                .last()
-                .map(|s| s.trim_matches(|c: char| !c.is_alphanumeric()));
+    if let Some(stripped) = value.strip_prefix('<')
+        && stripped.contains("numpy")
+    {
+        let dtype_str = stripped.trim_start_matches("numpy").split('.');
+        let last_parsed = dtype_str
+            .clone()
+            .next_back()
+            .map(|s| s.trim_matches(|c: char| !c.is_alphanumeric()));
 
-            match last_parsed {
-                Some("float32") => return DataType::Float32,
-                Some("float64") => return DataType::Float64,
+        match last_parsed {
+            Some("float32") => return DataType::Float32,
+            Some("float64") => return DataType::Float64,
 
-                Some("int8") => return DataType::Int8,
-                Some("int16") => return DataType::Int16,
-                Some("int32") => return DataType::Int32,
-                Some("int64") => return DataType::Int64,
+            Some("int8") => return DataType::Int8,
+            Some("int16") => return DataType::Int16,
+            Some("int32") => return DataType::Int32,
+            Some("int64") => return DataType::Int64,
 
-                Some("uint8") => return DataType::UInt8,
-                Some("uint16") => return DataType::UInt16,
-                Some("uint32") => return DataType::UInt32,
-                Some("uint64") => return DataType::UInt64,
+            Some("uint8") => return DataType::UInt8,
+            Some("uint16") => return DataType::UInt16,
+            Some("uint32") => return DataType::UInt32,
+            Some("uint64") => return DataType::UInt64,
 
-                Some("bool") => return DataType::Boolean,
-                _ => return DataType::Null,
-            }
+            Some("bool") => return DataType::Boolean,
+            _ => return DataType::Null,
         }
     }
 

@@ -53,7 +53,7 @@ impl<C: Chromosome> StatefulWidget for EngineStatusPanelWidget<C> {
 
         let engine_table = Table::default()
             .rows(crate::styles::striped_rows(rows))
-            .widths(&[Constraint::Fill(1), Constraint::Fill(1)]);
+            .widths([Constraint::Fill(1), Constraint::Fill(1)]);
 
         let engine_state = if state.run.engine {
             if state.run.paused {

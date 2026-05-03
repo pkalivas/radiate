@@ -115,7 +115,7 @@ where
     fn new_instance(&self, _: ()) -> Op<T> {
         match self {
             Op::Fn(name, arity, op) => Op::Fn(name, *arity, *op),
-            Op::Var(name, index, domain) => Op::Var(name, *index, domain.clone()),
+            Op::Var(name, index, domain) => Op::Var(name, *index, *domain),
             Op::Const(name, value) => Op::Const(name, value.clone()),
             Op::Value(name, arity, value, operation) => {
                 Op::Value(name, *arity, value.new_instance(()), *operation)
@@ -131,7 +131,7 @@ where
     fn clone(&self) -> Self {
         match self {
             Op::Fn(name, arity, op) => Op::Fn(name, *arity, *op),
-            Op::Var(name, index, domain) => Op::Var(name, *index, domain.clone()),
+            Op::Var(name, index, domain) => Op::Var(name, *index, *domain),
             Op::Const(name, value) => Op::Const(name, value.clone()),
             Op::Value(name, arity, value, operation) => {
                 Op::Value(name, *arity, value.clone(), *operation)

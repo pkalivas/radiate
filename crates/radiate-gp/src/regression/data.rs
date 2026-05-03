@@ -34,7 +34,7 @@ pub struct DataSet<T> {
 impl<T> DataSet<T> {
     pub fn new(inputs: Vec<Vec<T>>, outputs: Vec<Vec<T>>) -> Self {
         let mut samples = Vec::new();
-        for (input, output) in inputs.into_iter().zip(outputs.into_iter()) {
+        for (input, output) in inputs.into_iter().zip(outputs) {
             samples.push(Row { input, output });
         }
 
@@ -52,6 +52,10 @@ impl<T> DataSet<T> {
 
     pub fn len(&self) -> usize {
         self.rows.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.rows.is_empty()
     }
 
     pub fn shuffle(mut self) -> Self {

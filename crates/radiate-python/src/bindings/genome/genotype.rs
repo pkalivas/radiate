@@ -56,10 +56,6 @@ impl PyGenotype {
         self.chromosomes.clone()
     }
 
-    pub fn len(&self) -> usize {
-        self.chromosomes.len()
-    }
-
     pub fn gene_type(&self) -> PyGeneType {
         if self.chromosomes.is_empty() {
             PyGeneType::Empty

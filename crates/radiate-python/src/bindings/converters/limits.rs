@@ -61,10 +61,10 @@ impl InputTransform<Option<Limit>> for PyEngineInput {
         let expr_limit = self.get("expr");
         if let Some(expr_limit) = expr_limit {
             return Python::attach(|py| {
-                return expr_limit
+                expr_limit
                     .extract::<PyExpr>(py)
                     .map(|expr| Limit::Expr(expr.into()))
-                    .ok();
+                    .ok()
             });
         }
 

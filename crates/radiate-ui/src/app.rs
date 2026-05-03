@@ -80,15 +80,16 @@ where
 
     fn throttle_next(&mut self) -> Result<bool> {
         match self.channel.next()? {
-            InputEvent::Crossterm(event) => match event {
-                Event::Key(key_event) => match self.state.nav.mode {
-                    UiMode::Search => self.handle_search_event(key_event),
-                    UiMode::Help => self.handle_help_event(key_event),
-                    UiMode::MetricModal => self.handle_metric_modal_event(key_event),
-                    UiMode::Dashboard => self.handle_dashboard_event(key_event.code),
-                },
-                _ => {}
-            },
+            InputEvent::Crossterm(event) => {
+                if let Event::Key(key_event) = event {
+                    match self.state.nav.mode {
+                        UiMode::Search => self.handle_search_event(key_event),
+                        UiMode::Help => self.handle_help_event(key_event),
+                        UiMode::MetricModal => self.handle_metric_modal_event(key_event),
+                        UiMode::Dashboard => self.handle_dashboard_event(key_event.code),
+                    }
+                }
+            }
             InputEvent::EngineStart(objective) => {
                 self.handle_engine_start(objective);
             }

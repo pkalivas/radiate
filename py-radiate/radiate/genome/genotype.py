@@ -34,7 +34,7 @@ class Genotype[T](RsObject):
         """
         return len(self._pyobj)
 
-    def __getitem__(self, index: int | slice) -> Chromosome[T]:
+    def __getitem__(self, index: int | slice) -> Chromosome[T] | list[Chromosome[T]]:
         """
         Returns the chromosome at the specified index.
         :param index: Index of the chromosome to retrieve.
