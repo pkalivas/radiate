@@ -175,7 +175,7 @@ impl AuditStep {
             metrics.upsert((metric_names::SCORE_VOLATILITY, score_coeff));
         }
 
-        let diversity_ratio = if ecosystem.population().len() > 0 {
+        let diversity_ratio = if !ecosystem.population().is_empty() {
             metrics
                 .get(metric_names::UNIQUE_MEMBERS)
                 .map(|m| m.last_value() / pop_len)
@@ -232,7 +232,7 @@ impl AuditStep {
         ));
         metrics.upsert((
             metric_names::LINEAGE_PARENTS_USED_RATIO,
-            if parent_usage.len() > 0 {
+            if !parent_usage.is_empty() {
                 parent_usage.len() as f32 / ecosystem.population().len() as f32
             } else {
                 0.0
@@ -269,12 +269,13 @@ impl<C: Chromosome> EngineStep<C> for AuditStep {
         let dims = self.objective.dims();
 
         for i in 0..dims {
-            self.score_distribution
-                .get_mut(i)
-                .map(|v| v.reserve_exact(n));
-            self.unique_score_work
-                .get_mut(i)
-                .map(|v| v.reserve_exact(n));
+            if let Some(vec) = self.score_distribution.get_mut(i) {
+                vec.reserve_exact(n);
+            }
+
+            if let Some(vec) = self.unique_score_work.get_mut(i) {
+                vec.reserve_exact(n);
+            }
         }
 
         let mut size_metric = Vec::with_capacity(n);

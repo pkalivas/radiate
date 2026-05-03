@@ -56,12 +56,10 @@ impl OperationMutator {
             }
             _ => {
                 let new_op: Op<T> = store.new_instance(node.node_type());
-                (new_op.arity() == node.value().arity())
-                    .then_some(new_op)
-                    .map(|op| {
-                        node.set_value(op);
-                        metrics.op_new_instance += 1;
-                    });
+                if let Some(op) = (new_op.arity() == node.value().arity()).then_some(new_op) {
+                    node.set_value(op);
+                    metrics.op_new_instance += 1;
+                }
             }
         }
     }
@@ -107,7 +105,7 @@ where
         ctx: &mut AlterContext,
     ) -> AlterResult {
         let mutation_indexes = random_provider::cond_indices(0..chromosome.len(), ctx.rate());
-        let store = chromosome.store().map(|store| store.clone());
+        let store = chromosome.store().cloned();
 
         let mut metrics = OpMutateMetrics {
             op_mutate: 0,
@@ -146,7 +144,7 @@ where
         chromosome: &mut TreeChromosome<Op<T>>,
         ctx: &mut AlterContext,
     ) -> AlterResult {
-        let store = chromosome.get_store().map(|store| store.clone());
+        let store = chromosome.get_store();
         let mut metrics = OpMutateMetrics::default();
         if let Some(store) = store {
             let root = chromosome.root_mut();

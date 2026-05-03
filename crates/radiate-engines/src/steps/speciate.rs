@@ -91,31 +91,28 @@ where
     {
         let pop_len = ecosystem.population().len();
 
-        for i in 0..pop_len {
-            if let Some(species_id) = assignments[i] {
-                ecosystem.add_species_member(species_id, i);
+        for (i, assignment) in assignments.iter().enumerate().take(pop_len) {
+            if let Some(species_id) = assignment {
+                ecosystem.add_species_member(*species_id, i);
                 continue;
             }
 
             let phenotype = ecosystem.get_phenotype(i).unwrap();
-            let maybe_idx = ecosystem
-                .species()
-                .map(|specs| {
-                    for (species_idx, species) in specs.iter().enumerate() {
-                        if species.age(generation) != 0 {
-                            continue;
-                        }
-
-                        let dist = self.distance.measure(phenotype, species.mascot());
-
-                        if dist < threshold {
-                            return Some(species_idx);
-                        }
+            let maybe_idx = ecosystem.species().and_then(|specs| {
+                for (species_idx, species) in specs.iter().enumerate() {
+                    if species.age(generation) != 0 {
+                        continue;
                     }
 
-                    None
-                })
-                .flatten();
+                    let dist = self.distance.measure(phenotype, species.mascot());
+
+                    if dist < threshold {
+                        return Some(species_idx);
+                    }
+                }
+
+                None
+            });
 
             match maybe_idx {
                 Some(idx) => ecosystem.add_species_member(idx, i),
@@ -180,7 +177,7 @@ where
         for (idx, individual) in reader[range].iter().enumerate() {
             let mut assigned = None;
             for (idx, sp) in species_mascots.iter().enumerate() {
-                let dist = distance.measure(individual.borrow(), &sp);
+                let dist = distance.measure(individual.borrow(), sp);
                 inner_distances.push(dist);
 
                 if dist < threshold {
@@ -216,9 +213,9 @@ where
         if let Some(species) = ecosystem.species_mut() {
             for spec in species {
                 let idx = random_provider::range(0..spec.population.len());
-                spec.population().get(idx).cloned().map(|phenotype| {
+                if let Some(phenotype) = spec.population().get(idx).cloned() {
                     spec.set_new_mascot(phenotype);
-                });
+                }
             }
         }
 
@@ -226,7 +223,7 @@ where
             ecosystem
                 .species_mascots()
                 .into_iter()
-                .map(|spec| spec.clone())
+                .cloned()
                 .collect::<Vec<Phenotype<C>>>(),
         )
     }

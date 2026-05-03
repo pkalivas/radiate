@@ -44,7 +44,7 @@ pub(crate) fn sample_scope(num_vars: usize, max_scope: usize) -> Vec<VarId> {
 pub(crate) fn logp_table_shape(vars: &[VarSpec], scope: &[VarId]) -> Vec<usize> {
     scope
         .iter()
-        .map(|&vid| vars[vid.0 as usize].card.max(1) as usize)
+        .map(|&vid| vars[vid.0 as usize].card.max(1))
         .collect()
 }
 

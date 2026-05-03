@@ -13,7 +13,7 @@ use std::{fmt::Debug, hash::Hash};
 ///
 /// # Type Parameters
 /// * `T` - The type of value stored in the node. This type must implement `Clone`, `PartialEq`, and other traits
-///         required by the genetic programming operations.
+///   required by the genetic programming operations.
 ///
 /// # Fields
 /// * `value` - The actual value stored in the node
@@ -153,17 +153,17 @@ impl<T> TreeNode<T> {
     }
 
     pub fn detach(&mut self, index: usize) -> Option<TreeNode<T>> {
-        if let Some(children) = self.children.as_mut() {
-            if index < children.len() {
-                return Some(children.remove(index));
-            }
+        if let Some(children) = self.children.as_mut()
+            && index < children.len()
+        {
+            return Some(children.remove(index));
         }
 
         None
     }
 
     pub fn children(&self) -> Option<&[TreeNode<T>]> {
-        self.children.as_ref().map(|children| children.as_slice())
+        self.children.as_deref()
     }
 
     pub fn children_mut(&mut self) -> Option<&mut Vec<TreeNode<T>>> {
@@ -319,9 +319,7 @@ where
     T: Clone + Default,
 {
     fn new_instance(&self, (index, store): (usize, Option<NodeStore<T>>)) -> Option<TreeNode<T>> {
-        store
-            .map(|store| Tree::with_depth(index, store).take_root())
-            .flatten()
+        store.and_then(|store| Tree::with_depth(index, store).take_root())
     }
 }
 

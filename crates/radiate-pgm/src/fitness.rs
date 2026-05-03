@@ -15,6 +15,10 @@ impl PgmDataSet {
     pub fn len(&self) -> usize {
         self.rows.len()
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.rows.is_empty()
+    }
 }
 
 #[derive(Clone)]
@@ -133,6 +137,7 @@ fn logprob_table_eval(val: &Value<f32>, idxs: &[usize]) -> f32 {
 
     // base offset with child fixed to 0
     let mut base = 0usize;
+    #[allow(clippy::needless_range_loop)]
     for i in 0..child_axis {
         let dim = shape.dim_at(i).max(1);
         let idx = idxs[i].min(dim - 1);

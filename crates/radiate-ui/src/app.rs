@@ -17,6 +17,11 @@ use std::{
     time::{Duration, Instant},
 };
 
+// Clippy assumes that the `CrossTerm(Event)` event is the high-frequency event and
+// `EpochComplete` is the low-frequency variant - but it is exactly the opposite. `EpochComplete` events can happen hundreds, if
+// not thousands, of times per second; boxing it would add a heap allocation on every generation tick,
+// which is far worse than the size overhead.
+#[allow(clippy::large_enum_variant)]
 pub(crate) enum InputEvent<C>
 where
     C: Chromosome,

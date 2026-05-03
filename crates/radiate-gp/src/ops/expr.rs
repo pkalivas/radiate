@@ -6,7 +6,7 @@ pub trait Expression<T> {
 
 impl Expression<Tree<Op<f32>>> for Tree<Op<f32>> {
     fn parse(expr: &str) -> Result<Tree<Op<f32>>, String> {
-        parse(expr).map(|node| Tree::new(node))
+        parse(expr).map(Tree::new)
     }
 }
 
@@ -27,7 +27,7 @@ enum Token {
     Power,
     LParen,
     RParen,
-    EOF,
+    Eof,
 }
 
 fn tokenize(expression: &str) -> Vec<Token> {
@@ -97,18 +97,14 @@ fn tokenize(expression: &str) -> Vec<Token> {
         }
     }
 
-    tokens.push(Token::EOF);
+    tokens.push(Token::Eof);
     vars.dedup();
     vars.sort();
 
-    for i in 0..tokens.len() {
-        if matches!(tokens[i], Token::Identifier(_, _)) {
-            let name = match &tokens[i] {
-                Token::Identifier(name, _) => name,
-                _ => unreachable!(),
-            };
+    for token in tokens.iter_mut() {
+        if let Token::Identifier(name, _) = token {
             let index = vars.iter().position(|v| v == name).unwrap();
-            tokens[i] = Token::Identifier(name.clone(), Some(index));
+            *token = Token::Identifier(name.clone(), Some(index));
         }
     }
 

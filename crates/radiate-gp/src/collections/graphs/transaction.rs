@@ -142,7 +142,7 @@ impl<'a, T> GraphTransaction<'a, T> {
         let mut attempts = 0;
 
         self.set_cycles();
-        while repaired == false && attempts < MAX_REPAIR_ATTEMPTS {
+        while !repaired && attempts < MAX_REPAIR_ATTEMPTS {
             repaired = self.repair_invalid_nodes();
             if repaired {
                 self.set_cycles();
@@ -409,15 +409,11 @@ impl<'a, T> GraphTransaction<'a, T> {
         for idx in invalid_nodes.iter() {
             let arity = self.graph[*idx].arity();
             match arity {
-                Arity::Zero => {
-                    if self.repair_zero_arity_node(*idx) {
-                        repaired = true;
-                    }
+                Arity::Zero if self.repair_zero_arity_node(*idx) => {
+                    repaired = true;
                 }
-                Arity::Exact(_) => {
-                    if self.repair_exact_arity_node(*idx) {
-                        repaired = true;
-                    }
+                Arity::Exact(_) if self.repair_exact_arity_node(*idx) => {
+                    repaired = true;
                 }
                 _ => {}
             }
@@ -441,7 +437,7 @@ impl<'a, T> GraphTransaction<'a, T> {
             if let Some(target) = random_target {
                 self.attach(node.index(), target);
 
-                if self.graph[node_idx].outgoing().len() > 0 {
+                if !self.graph[node_idx].outgoing().is_empty() {
                     return true;
                 }
             }
@@ -515,7 +511,7 @@ impl<'a, T> GraphTransaction<'a, T> {
             return None;
         }
 
-        let gene_node_type = rand.choose(&node_types);
+        let gene_node_type = rand.choose(node_types);
 
         let genes = match gene_node_type {
             NodeType::Input => self
