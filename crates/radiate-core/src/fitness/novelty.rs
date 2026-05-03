@@ -89,7 +89,7 @@ impl<T> NoveltySearch<T> {
         }
         let slice = archive.make_contiguous();
 
-        let mut knn = KNN::new(&slice, Arc::clone(&self.distance_fn));
+        let mut knn = KNN::new(slice, Arc::clone(&self.distance_fn));
         let query = knn.query_point(descriptor, self.k);
 
         let min_distance = query.min_distance;

@@ -292,7 +292,7 @@ where
         let mut count = 0;
         for (indices, scores, genotypes) in results {
             count += indices.len();
-            let score_genotype_iter = scores?.into_iter().zip(genotypes.into_iter());
+            let score_genotype_iter = scores?.into_iter().zip(genotypes);
             for (i, (score, genotype)) in score_genotype_iter.enumerate() {
                 let idx = indices[i];
                 ecosystem.population[idx].set_score(Some(score));

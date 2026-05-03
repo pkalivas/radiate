@@ -4,6 +4,7 @@ use radiate_core::{
     Species, diversity::Diversity, metric_names, random_provider,
 };
 use radiate_error::Result;
+use std::borrow::Borrow;
 use std::sync::{Arc, Mutex, RwLock};
 
 pub struct SpeciateStep<C>

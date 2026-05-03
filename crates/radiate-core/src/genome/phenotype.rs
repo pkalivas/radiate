@@ -20,6 +20,12 @@ impl FamilyId {
     }
 }
 
+impl Default for FamilyId {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// A unique identifier for a [Phenotype]. This is used to identify the [Phenotype] in the population.
 /// It is a simple wrapper around a `u64` value. Using this, we can uniquely identify each [Phenotype]
 /// and can track them by a sort of 'version'. Every time a [Phenotype] is created or invalidated, its ID is updated.
@@ -32,6 +38,12 @@ impl PhenotypeId {
     pub fn new() -> Self {
         static PHENOTYPE_ID: AtomicU64 = AtomicU64::new(0);
         PhenotypeId(PHENOTYPE_ID.fetch_add(1, Ordering::Relaxed))
+    }
+}
+
+impl Default for PhenotypeId {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -76,10 +88,9 @@ impl<C: Chromosome> Phenotype<C> {
     }
 
     pub fn take_genotype(&mut self) -> Result<Genotype<C>> {
-        self.genotype.take().map_or(
-            Err(radiate_err!(Genome: "Genotype is None - this shouldn't happen.")),
-            Ok,
-        )
+        self.genotype
+            .take()
+            .ok_or(radiate_err!(Genome: "Genotype is None - this shouldn't happen."))
     }
 
     pub fn set_genotype(&mut self, genotype: Genotype<C>) {

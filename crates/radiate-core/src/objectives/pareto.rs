@@ -93,8 +93,8 @@ pub fn non_dominated<T: AsRef<[f32]>>(population: &[T], objective: &Objective) -
     }
 
     let mut nd = Vec::new();
-    for i in 0..n {
-        if dominated_counts[i] == 0 {
+    for (i, counts) in dominated_counts.iter().enumerate() {
+        if *counts == 0 {
             nd.push(i);
         }
     }
@@ -135,8 +135,8 @@ pub fn rank<T: AsRef<[f32]>>(population: &[T], objective: &Objective) -> Vec<usi
     }
 
     // First front
-    for i in 0..n {
-        if dominated_counts[i] == 0 {
+    for (i, count) in dominated_counts.iter().enumerate() {
+        if *count == 0 {
             current_front.push(i);
         }
     }
@@ -241,7 +241,6 @@ pub fn dominance<K: PartialOrd, T: AsRef<[K]>>(
     objective: &Objective,
 ) -> bool {
     let mut better_in_any = false;
-
     match objective {
         Objective::Single(opt) => {
             for (a, b) in score_a.as_ref().iter().zip(score_b.as_ref().iter()) {

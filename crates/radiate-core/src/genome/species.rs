@@ -19,6 +19,12 @@ impl SpeciesId {
     }
 }
 
+impl Default for SpeciesId {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SpeciesSnapshot {
@@ -86,6 +92,10 @@ impl<C: Chromosome> Species<C> {
 
     pub fn len(&self) -> usize {
         self.population.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.population.is_empty()
     }
 
     pub fn set_new_mascot(&mut self, mascot: Phenotype<C>) {

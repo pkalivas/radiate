@@ -49,6 +49,10 @@ pub trait Chromosome: Valid {
         self.as_slice().len()
     }
 
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     fn iter(&self) -> impl Iterator<Item = &Self::Gene> {
         self.as_slice().iter()
     }

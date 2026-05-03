@@ -181,14 +181,8 @@ where
             return None;
         }
 
-        if self.ensure_score_matrix().is_none() {
-            return None;
-        }
-
-        let (n, _m) = match self.score_dims() {
-            Some(x) => x,
-            None => return None,
-        };
+        self.ensure_score_matrix()?;
+        let (n, _m) = self.score_dims()?;
 
         self.crowding_distance_in_place(n);
 

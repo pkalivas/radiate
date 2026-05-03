@@ -126,19 +126,18 @@ impl<C: Chromosome> Ecosystem<C> {
     where
         C: Clone,
     {
-        if let Some(species) = &mut self.species {
-            if let Some(spec) = species.get_mut(species_idx) {
-                if let Some(member) = self.population.ref_clone_member(member_idx) {
-                    spec.population.push(member);
-                }
-            }
+        if let Some(species) = &mut self.species
+            && let Some(spec) = species.get_mut(species_idx)
+            && let Some(member) = self.population.ref_clone_member(member_idx)
+        {
+            spec.population.push(member);
         }
     }
 
     pub fn remove_dead_species(&mut self) -> usize {
         if let Some(species) = &mut self.species {
             let initial_len = species.len();
-            species.retain(|spec| spec.len() > 0);
+            species.retain(|spec| !spec.is_empty());
             initial_len - species.len()
         } else {
             0
