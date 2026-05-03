@@ -28,12 +28,12 @@ for _ in range(-10, 10):
 target_species = 4.0
 rolling = int(target_species)
 
-spec_count_signal = rd.metric("count.species").rolling(rolling).mean() / target_species
+spec_count_signal = rd.select("count.species").rolling(rolling).mean() / target_species
 spec_dist_signal = (
-    rd.metric("species.distance").mean().rolling(rolling).mean() / target_species
+    rd.select("species.distance").mean().rolling(rolling).mean() / target_species
 )
-spec_thresh_signal = rd.metric("species.threshold").rolling(rolling).mean()
-spec_evenness_signal = rd.metric("species.evenness").rolling(rolling).mean()
+spec_thresh_signal = rd.select("species.threshold").rolling(rolling).mean()
+spec_evenness_signal = rd.select("species.evenness").rolling(rolling).mean()
 
 distance_signal = (
     (rd.lit(0.9) * spec_count_signal)
