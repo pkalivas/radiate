@@ -22,6 +22,7 @@ pub use select::SelectExpr;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
+use std::ops::{Add, Div, Mul, Neg, Not, Sub};
 
 mod expr_fields {
     use super::*;
@@ -113,9 +114,7 @@ impl Expr {
         to: Rollup,
         func: impl FnOnce(Self) -> Expr,
     ) -> Expr {
-        self.try_swap_select_field_or(field, |outer| {
-            outer.try_swap_agg_rollup_or(to, func)
-        })
+        self.try_swap_select_field_or(field, |outer| outer.try_swap_agg_rollup_or(to, func))
     }
 
     pub fn time(mut self) -> Expr {
@@ -266,11 +265,13 @@ impl Expr {
         Expr::Binary(BinaryExpr::new(self, rhs.into(), BinaryOp::Or))
     }
 
+    #[allow(clippy::should_implement_trait)]
     pub fn not(self) -> Expr {
         Expr::Unary(UnaryExpr::new(self, UnaryOp::Not))
     }
 
     /// Arithmetic
+    #[allow(clippy::should_implement_trait)]
     pub fn neg(self) -> Expr {
         Expr::Unary(UnaryExpr::new(self, UnaryOp::Neg))
     }
@@ -279,18 +280,22 @@ impl Expr {
         Expr::Unary(UnaryExpr::new(self, UnaryOp::Abs))
     }
 
+    #[allow(clippy::should_implement_trait)]
     pub fn add(self, rhs: impl Into<Expr>) -> Expr {
         Expr::Binary(BinaryExpr::new(self, rhs.into(), BinaryOp::Add))
     }
 
+    #[allow(clippy::should_implement_trait)]
     pub fn sub(self, rhs: impl Into<Expr>) -> Expr {
         Expr::Binary(BinaryExpr::new(self, rhs.into(), BinaryOp::Sub))
     }
 
+    #[allow(clippy::should_implement_trait)]
     pub fn mul(self, rhs: impl Into<Expr>) -> Expr {
         Expr::Binary(BinaryExpr::new(self, rhs.into(), BinaryOp::Mul))
     }
 
+    #[allow(clippy::should_implement_trait)]
     pub fn div(self, rhs: impl Into<Expr>) -> Expr {
         Expr::Binary(BinaryExpr::new(self, rhs.into(), BinaryOp::Div))
     }
@@ -384,5 +389,47 @@ pub mod expr {
 
     pub fn element() -> Expr {
         Expr::Selector(SelectExpr::Element)
+    }
+}
+
+impl Add for Expr {
+    type Output = Expr;
+    fn add(self, rhs: Expr) -> Expr {
+        Expr::Binary(BinaryExpr::new(self, rhs, BinaryOp::Add))
+    }
+}
+
+impl Sub for Expr {
+    type Output = Expr;
+    fn sub(self, rhs: Expr) -> Expr {
+        Expr::Binary(BinaryExpr::new(self, rhs, BinaryOp::Sub))
+    }
+}
+
+impl Mul for Expr {
+    type Output = Expr;
+    fn mul(self, rhs: Expr) -> Expr {
+        Expr::Binary(BinaryExpr::new(self, rhs, BinaryOp::Mul))
+    }
+}
+
+impl Div for Expr {
+    type Output = Expr;
+    fn div(self, rhs: Expr) -> Expr {
+        Expr::Binary(BinaryExpr::new(self, rhs, BinaryOp::Div))
+    }
+}
+
+impl Neg for Expr {
+    type Output = Expr;
+    fn neg(self) -> Expr {
+        Expr::Unary(UnaryExpr::new(self, UnaryOp::Neg))
+    }
+}
+
+impl Not for Expr {
+    type Output = Expr;
+    fn not(self) -> Expr {
+        Expr::Unary(UnaryExpr::new(self, UnaryOp::Not))
     }
 }

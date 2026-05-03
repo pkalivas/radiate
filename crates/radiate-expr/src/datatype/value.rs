@@ -92,6 +92,16 @@ impl<'a> AnyValue<'a> {
     }
 
     #[inline]
+    pub fn is_empty(&self) -> Option<bool> {
+        match self {
+            Self::Slice(vals) => Some(vals.is_empty()),
+            Self::Vector(vals) => Some(vals.is_empty()),
+            Self::Struct(vals) => Some(vals.is_empty()),
+            _ => None,
+        }
+    }
+
+    #[inline]
     pub fn is_numeric(&self) -> bool {
         matches!(
             self,

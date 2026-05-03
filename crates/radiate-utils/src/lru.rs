@@ -198,6 +198,10 @@ impl<K: Hash + Eq, V, S: BuildHasher> LruCache<K, V, S> {
     pub fn len(&self) -> usize {
         self.elements.len()
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.elements.is_empty()
+    }
 }
 
 #[cfg(test)]
