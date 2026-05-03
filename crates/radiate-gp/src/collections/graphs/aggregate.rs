@@ -320,7 +320,7 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
         let one_outputs = self.get_outputs(one);
         let two_inputs = self.get_inputs(two);
 
-        if two_inputs.len() % one_outputs.len() != 0 {
+        if !two_inputs.len().is_multiple_of(one_outputs.len()) {
             panic!("OneToMany - TwoGroup inputs must be a multiple of OneGroup outputs.");
         }
 
@@ -338,7 +338,7 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
         let one_outputs = self.get_outputs(one);
         let two_inputs = self.get_inputs(two);
 
-        if one_outputs.len() % two_inputs.len() != 0 {
+        if !one_outputs.len().is_multiple_of(two_inputs.len()) {
             panic!("ManyToOne - OneGroup outputs must be a multiple of TwoGroup inputs.");
         }
 

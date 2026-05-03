@@ -40,7 +40,7 @@ impl<C: Chromosome> StatefulWidget for FitnessChartPanelWidget<C> {
 
             LineChartWidget::from(charts).render(area, buf);
         } else {
-            ParetoPagingWidget::new(&state).render(area, buf);
+            ParetoPagingWidget::new(state).render(area, buf);
         }
     }
 }

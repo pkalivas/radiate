@@ -56,12 +56,12 @@ impl<C: Chromosome> StatefulWidget for MetricDetailPanelWidget<C> {
                 "Tags".to_span().bold().fg(crate::styles::SELECTED_GREEN),
             ]))
             .rows(crate::styles::striped_rows(metric_tags))
-            .widths(&[Constraint::Fill(1)]);
+            .widths([Constraint::Fill(1)]);
 
         let metric_table = Table::default()
             .rows(crate::styles::striped_rows(rows))
             .style(Style::default().fg(Color::White))
-            .widths(&[Constraint::Fill(1), Constraint::Fill(1)]);
+            .widths([Constraint::Fill(1), Constraint::Fill(1)]);
 
         Panel::new(FnWidget::new(|area, buf| {
             let left_layout = Layout::default()
@@ -116,7 +116,7 @@ fn map_to_stat_metric_rows(metric: &Metric) -> Vec<Row<'_>> {
         return rows;
     }
 
-    return vec![];
+    vec![]
 }
 
 fn map_to_time_metric_rows(metric: &Metric) -> Vec<Row<'_>> {
@@ -145,7 +145,7 @@ fn map_to_time_metric_rows(metric: &Metric) -> Vec<Row<'_>> {
         return rows;
     }
 
-    return vec![];
+    vec![]
 }
 
 fn map_to_distribution_metric_rows(metric: &Metric) -> Vec<Row<'_>> {
@@ -180,7 +180,7 @@ fn map_to_distribution_metric_rows(metric: &Metric) -> Vec<Row<'_>> {
         return rows;
     }
 
-    return vec![];
+    vec![]
 }
 
 // pub struct MetricChartPanelWidget<C: Chromosome> {

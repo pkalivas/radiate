@@ -33,7 +33,7 @@ impl<C: Chromosome> EvoState<C> {
     pub fn update_species(&mut self, species: Option<Vec<SpeciesSnapshot>>) {
         self.species = species;
         if let Some(species) = &mut self.species {
-            species.sort_unstable_by(|a, b| a.id.0.cmp(&b.id.0));
+            species.sort_unstable_by_key(|a| a.id.0);
         }
     }
 

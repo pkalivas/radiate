@@ -41,7 +41,7 @@ impl RollingLineChart {
     }
 
     pub fn values(&self) -> &[(f64, f64)] {
-        &self.values.values()
+        self.values.values()
     }
 
     pub fn min_x(&self) -> f64 {

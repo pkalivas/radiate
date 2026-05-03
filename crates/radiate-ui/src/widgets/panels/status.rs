@@ -31,9 +31,9 @@ impl<C: Chromosome> StatefulWidget for EngineStatusPanelWidget<C> {
             .unwrap_or_else(|| "00:00:00.000".to_string());
 
         let rows = if state.evo.pareto.objective.is_single() {
-            get_single_objective_summaries::<C>(metrics)
+            get_single_objective_summaries(metrics)
         } else {
-            get_multi_objective_summaries::<C>(metrics)
+            get_multi_objective_summaries(metrics)
         };
 
         let mut title = vec![
@@ -98,7 +98,7 @@ impl<C: Chromosome> StatefulWidget for MetricModalWidget<C> {
         let current_metric_name = state.get_selected_metric().unwrap_or("");
 
         let titles = LineChartType::chart_options()
-            .into_iter()
+            .iter()
             .map(|t| Span::styled(format!(" {t} "), Style::default().fg(Color::White)));
 
         let index = state.nav.chart_tab_index();
@@ -134,7 +134,7 @@ impl<C: Chromosome> StatefulWidget for MetricModalWidget<C> {
     }
 }
 
-fn get_multi_objective_summaries<C: Chromosome>(metrics: &MetricSet) -> Vec<Row<'static>> {
+fn get_multi_objective_summaries(metrics: &MetricSet) -> Vec<Row<'static>> {
     let diversity = metrics.diversity_ratio().map(|m| m.mean()).unwrap_or(0.0);
     let carryover = metrics.carryover_rate().map(|m| m.mean()).unwrap_or(0.0);
     let unique_members = metrics.unique_members().map(|m| m.mean()).unwrap_or(0.0);
@@ -179,7 +179,7 @@ fn get_multi_objective_summaries<C: Chromosome>(metrics: &MetricSet) -> Vec<Row<
     rows
 }
 
-fn get_single_objective_summaries<C: Chromosome>(metrics: &MetricSet) -> Vec<Row<'static>> {
+fn get_single_objective_summaries(metrics: &MetricSet) -> Vec<Row<'static>> {
     let diversity = metrics.diversity_ratio().map(|m| m.mean()).unwrap_or(0.0);
     let carryover = metrics.carryover_rate().map(|m| m.mean()).unwrap_or(0.0);
     let unique_members = metrics.unique_members().map(|m| m.mean()).unwrap_or(0.0);

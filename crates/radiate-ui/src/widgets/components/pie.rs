@@ -78,7 +78,7 @@ impl<C: Chromosome> StatefulWidget for TimePieChartComponent<C> {
         let items = tagged_metrics(&state.evo.metrics, state, TagType::Time)
             .iter()
             .filter(|met| met.0 != metric_names::TIME)
-            .map(|m| *m)
+            .copied()
             .collect::<Vec<_>>();
 
         let slices = items
@@ -93,7 +93,7 @@ impl<C: Chromosome> StatefulWidget for TimePieChartComponent<C> {
                     .map(|d| d.as_millis() as f64)
                     .unwrap_or(0.0);
 
-                PieSlice::new(*label, value, color)
+                PieSlice::new(label, value, color)
             })
             .collect::<Vec<_>>();
 

@@ -52,7 +52,7 @@ where
         let time = std::time::Instant::now();
         let survivors = self
             .selector
-            .select(&ecosystem.population(), &self.objective, self.count);
+            .select(ecosystem.population(), &self.objective, self.count);
         metrics.upsert((self.names.0, survivors.len()));
         metrics.upsert((self.names.1, time.elapsed()));
         survivors

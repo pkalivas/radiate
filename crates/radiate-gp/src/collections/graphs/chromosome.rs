@@ -21,7 +21,7 @@ use std::{fmt::Debug, hash::Hash};
 /// The chromosome consists of:
 /// * A vector of [`GraphNode<T>`] instances representing the graph structure
 /// * An optional [`NodeStore<T>`] for managing node creation and validation. This makes
-/// the creation of new nodes easier and more uniform across the genetic algorithm.
+///   the creation of new nodes easier and more uniform across the genetic algorithm.
 ///
 /// # Features
 /// * Maintains graph connectivity through node connections
@@ -229,9 +229,9 @@ impl<T> IntoIterator for GraphChromosome<T> {
 
 impl<T: Debug> Debug for GraphChromosome<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Graph {{\n")?;
+        writeln!(f, "Graph {{")?;
         for node in self.as_ref() {
-            write!(f, "  {:?},\n", node)?;
+            writeln!(f, "  {:?},", node)?;
         }
         write!(f, "}}")
     }

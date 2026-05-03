@@ -52,7 +52,7 @@ impl<'a> From<Option<&'a RollingLineChart>> for LineChartWidget<'a> {
 
 impl<'a> From<Vec<Option<&'a RollingLineChart>>> for LineChartWidget<'a> {
     fn from(value: Vec<Option<&'a RollingLineChart>>) -> Self {
-        let charts = value.into_iter().filter_map(|c| c).collect();
+        let charts = value.into_iter().flatten().collect();
         Self::new(charts)
     }
 }
@@ -128,9 +128,9 @@ fn chart_widget<'a>(
             .style(Style::default().gray())
             .bounds([min_x, max_x])
             .labels(Line::from(vec![
-                format!("{:.2}", min_x).bold().into(),
+                format!("{:.2}", min_x).bold(),
                 format!("{:.2}", mid_x).into(),
-                format!("{:.2}", max_x).bold().into(),
+                format!("{:.2}", max_x).bold(),
             ]))
     } else {
         Axis::default()
@@ -147,9 +147,9 @@ fn chart_widget<'a>(
                 .style(Style::default().gray())
                 .bounds([min_y, max_y])
                 .labels(Line::from(vec![
-                    format!("{:.2}", min_y).bold().into(),
+                    format!("{:.2}", min_y).bold(),
                     format!("{:.2}", mid_y).into(),
-                    format!("{:.2}", max_y).bold().into(),
+                    format!("{:.2}", max_y).bold(),
                 ])),
         )
 }
