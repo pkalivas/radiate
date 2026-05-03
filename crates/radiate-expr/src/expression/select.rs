@@ -33,9 +33,9 @@ impl PathBuilder {
     }
 }
 
-impl Into<Expr> for PathBuilder {
-    fn into(self) -> Expr {
-        Expr::Selector(SelectExpr::Path(self.path))
+impl From<PathBuilder> for Expr {
+    fn from(val: PathBuilder) -> Self {
+        Expr::Selector(SelectExpr::Path(val.path))
     }
 }
 

@@ -85,6 +85,12 @@ impl<T> SortedBuffer<T> {
     }
 }
 
+impl<T: Default> Default for SortedBuffer<T> {
+    fn default() -> Self {
+        SortedBuffer::new()
+    }
+}
+
 impl<T> Deref for SortedBuffer<T> {
     type Target = [T];
 
@@ -122,7 +128,7 @@ where
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self.inner.as_slice())?;
-        return Ok(());
+        Ok(())
     }
 }
 

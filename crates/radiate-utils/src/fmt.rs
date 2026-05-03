@@ -18,7 +18,7 @@ impl ToSnakeCase<String> for &'_ str {
     fn to_snake_case(&self) -> String {
         if self
             .chars()
-            .all(|c| c.is_uppercase() || c.is_digit(10) || c == '_')
+            .all(|c| c.is_uppercase() || c.is_ascii_digit() || c == '_')
         {
             return self.to_string();
         }
@@ -45,7 +45,7 @@ impl ToSnakeCase<String> for String {
     fn to_snake_case(&self) -> String {
         if self
             .chars()
-            .all(|c| c.is_uppercase() || c.is_digit(10) || c == '_')
+            .all(|c| c.is_uppercase() || c.is_ascii_digit() || c == '_')
         {
             return self.to_string();
         }

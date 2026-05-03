@@ -114,7 +114,7 @@ impl Expr {
         func: impl FnOnce(Self) -> Expr,
     ) -> Expr {
         self.try_swap_select_field_or(field, |outer| {
-            outer.try_swap_agg_rollup_or(to, |inner| func(inner))
+            outer.try_swap_agg_rollup_or(to, func)
         })
     }
 

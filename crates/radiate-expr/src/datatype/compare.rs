@@ -96,21 +96,21 @@ impl<'a> AnyValue<'a> {
         use AnyValue::*;
 
         if self.is_float() && other.is_float() {
-            return self.cmp_float(other);
+            self.cmp_float(other)
         } else if self.is_int() && other.is_int() {
-            return self.cmp_int(other);
+            self.cmp_int(other)
         } else if self.is_string() && other.is_string() {
-            return self.cmp_str(other);
+            self.cmp_str(other)
         } else if self.is_int() && other.is_float() {
-            return self
+            self
                 .clone()
                 .cast(&other.dtype())
-                .and_then(|v| v.fuzzy_cmp(other));
+                .and_then(|v| v.fuzzy_cmp(other))
         } else if self.is_float() && other.is_int() {
-            return self
+            self
                 .clone()
                 .cast(&other.dtype())
-                .and_then(|v| v.fuzzy_cmp(other));
+                .and_then(|v| v.fuzzy_cmp(other))
         } else {
             let res = match (self, other) {
                 (Null, Null) => Ordering::Equal,

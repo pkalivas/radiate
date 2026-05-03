@@ -26,7 +26,7 @@ impl<T> Value<T> {
     pub fn strides(&self) -> Option<&[usize]> {
         match self {
             Value::Scalar(_) => None,
-            Value::Array { strides, .. } => Some(&strides.as_slice()),
+            Value::Array { strides, .. } => Some(strides.as_slice()),
         }
     }
 

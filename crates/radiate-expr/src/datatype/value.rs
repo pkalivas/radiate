@@ -240,7 +240,7 @@ impl<'a> AnyValue<'a> {
             Char(v) => Char(v),
             Str(v) => StrOwned(v.to_string()),
             StrOwned(v) => StrOwned(v),
-            Slice(v) => Vector(v.into_iter().map(|v| v.clone().into_static()).collect()),
+            Slice(v) => Vector(v.iter().map(|v| v.clone().into_static()).collect()),
             Vector(v) => Vector(v.into_iter().map(AnyValue::into_static).collect()),
             Struct(v) => Struct(
                 v.into_iter()
