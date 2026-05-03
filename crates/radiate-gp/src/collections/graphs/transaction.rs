@@ -16,7 +16,6 @@
 //! 1) Build with `push(...)`, `attach(...)`, `detach(...)`, `change_direction(...)`
 //! 2) `commit()`, `commit_with(...)`, or `try_commit()` to finalize
 //! 3) On invalid commit, use returned `replay` to re-apply later with `replay(...)`
-
 use super::{Direction, Graph, GraphNode};
 use crate::{Arity, NodeType, node::Node};
 use radiate_core::{RdRand, Valid, random_provider};

@@ -1,4 +1,4 @@
-from pprint import pprint
+# from pprint import pprint
 
 import radiate as rd
 
@@ -56,10 +56,11 @@ other = (
     .otherwise(123123)
 )
 
-t = rd.every(2).then(rd.element().rolling(10).mean()).otherwise(rd.lit(-1.0))
+t = rd.every(2).then(rd.select("one").rolling(10).mean()).otherwise(rd.lit(-1.0))
 
 for i in range(10):
-    print(t.apply(i))
+    # print(t.apply(i))
+    print(metrics.project(t))
 
 print(metrics.dashboard())
 

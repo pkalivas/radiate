@@ -277,10 +277,10 @@ where
 
         let rm_species_count = ecosystem.remove_dead_species();
 
-        metrics.upsert((metric_names::SPECIES_DIED, rm_species_count));
-        metrics.upsert((metric_names::SPECIES_THRESHOLD, threshold));
         let distances = distances.lock().unwrap();
         metrics.upsert((metric_names::SPECIES_DISTANCE_DIST, &*distances));
+        metrics.upsert((metric_names::SPECIES_DIED, rm_species_count));
+        metrics.upsert((metric_names::SPECIES_THRESHOLD, threshold));
 
         self.fitness_share(ecosystem);
 

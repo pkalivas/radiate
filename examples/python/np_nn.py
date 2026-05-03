@@ -76,7 +76,6 @@ result = engine.run(log=True)
 metrics = result.metrics()
 
 print(result.metrics().dashboard())
-# pprint.pprint(metrics["carryover_rate"].tags())
 
 for metric in metrics.values_by_tag(rd.Tag.DERIVED):
     print(metric)
