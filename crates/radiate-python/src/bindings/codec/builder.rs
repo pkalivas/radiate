@@ -128,7 +128,7 @@ impl<T> NumericCodecBuilder<T> {
     }
 
     pub fn init_range(mut self, range: Option<(T, T)>) -> Self {
-        if !range.is_none() {
+        if range.is_some() {
             self.init_range = range;
         }
 
@@ -136,7 +136,7 @@ impl<T> NumericCodecBuilder<T> {
     }
 
     pub fn bound_range(mut self, range: Option<(T, T)>) -> Self {
-        if !range.is_none() {
+        if range.is_some() {
             self.bound_range = range;
         }
 
