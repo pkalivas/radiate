@@ -32,7 +32,7 @@ result = engine.run()
 print(result.metrics().dashboard())
 
 metrics = result.metrics()
-expr = rd.metric("scores").mean() == rd.metric("scores").min()
+expr = rd.select("scores").mean() == rd.select("scores").min()
 
 print(type(expr))
 print(metrics.project(expr))
@@ -49,10 +49,10 @@ metrics = rd.MetricSet(
 # for metric in metrics.values():
 #     pprint(metric.to_dict())
 
-expr = rd.metric("one").min() < -1.0
+expr = rd.select("one").min() < -1.0
 other = (
-    rd.when(rd.metric("one").min() < -1.0)
-    .then(rd.metric("two").mean())
+    rd.when(rd.select("one").min() < -1.0)
+    .then(rd.select("two").mean())
     .otherwise(123123)
 )
 

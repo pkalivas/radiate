@@ -26,7 +26,7 @@ impl<C: Chromosome> StatefulWidget for SpeciesSparklineComponent<C> {
         buf: &mut ratatui::buffer::Buffer,
         state: &mut Self::State,
     ) {
-        let items = match &state.species {
+        let items = match &state.evo.species {
             Some(species) => species,
             None => return,
         };
@@ -34,7 +34,7 @@ impl<C: Chromosome> StatefulWidget for SpeciesSparklineComponent<C> {
         let bars = items
             .iter()
             .map(|species| {
-                let color = if let Some(selected_id) = state.species_table.selected_value {
+                let color = if let Some(selected_id) = state.tables.species.selected_value {
                     if selected_id == species.id {
                         crate::styles::SELECTED_GREEN
                     } else {

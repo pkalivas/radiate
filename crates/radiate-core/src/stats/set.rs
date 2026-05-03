@@ -218,7 +218,6 @@ impl<'a> ApplyExpr<'a> for MetricSet {
 impl ExprProjection for MetricSet {
     fn project(&self, path: &SelectExpr) -> Option<AnyValue<'static>> {
         let value_to_float32 = |value: f32| AnyValue::Float32(value);
-
         let value_to_duration = |value: f32| Duration::from_secs_f32(value).into();
 
         let SelectExpr::Field(key, field) = path else {

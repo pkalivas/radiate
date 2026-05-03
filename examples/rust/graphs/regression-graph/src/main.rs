@@ -25,7 +25,6 @@ fn main() {
 
     radiate::ui(engine)
         .iter()
-        .checkpoint(25, "test_checkpoints")
         .until_score(MIN_SCORE)
         .last()
         .inspect(display);

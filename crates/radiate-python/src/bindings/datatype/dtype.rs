@@ -159,15 +159,6 @@ impl<'py> IntoPyObject<'py> for &Wrap<DataType> {
                 let struct_class = rd.getattr(intern!(py, "Struct"))?;
                 struct_class.call1((fields,))
             }
-            // DataType::Struct(fields) => {
-            //     let class = rd.getattr(intern!(py, "Op32"))?;
-            //     class.call0()
-            // }
-            // DataType::Node(inner) => {
-            //     let class = rd.getattr(intern!(py, "Node"))?;
-            //     let inner = Wrap(*inner.clone());
-            //     class.call1((&inner,))
-            // }
             DataType::Null => {
                 let class = rd.getattr(intern!(py, "Null"))?;
                 class.call0()

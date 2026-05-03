@@ -8,4 +8,4 @@ pub use help::HelpPanelWidget;
 pub use metric::MetricDetailPanelWidget;
 pub use search::SearchBarWidget;
 pub use status::{EngineStatusPanelWidget, MetricModalWidget};
-pub use tables::{DistributionTableWidget, StatsTableWidget, TimeTableWidget};
+pub use tables::MetricTableWidget;

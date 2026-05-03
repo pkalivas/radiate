@@ -1,6 +1,6 @@
 use ratatui::{
     style::{Color, Style, palette::material},
-    widgets::Row,
+    widgets::{Block, Row},
 };
 
 pub const BG_COLOR: Color = material::GRAY.c800;
@@ -37,6 +37,15 @@ pub fn selected_item_style() -> ratatui::style::Style {
         .fg(SELECTED_GREEN)
         .bg(material::BLACK)
         .reversed()
+}
+
+pub fn panel_block(focused: bool) -> Block<'static> {
+    let base = tui_piechart::border_style::BorderStyle::Rounded.block();
+    if focused {
+        base.border_style(Style::default().fg(BORDER_GREEN))
+    } else {
+        base
+    }
 }
 
 pub fn striped_rows<'a>(rows: impl IntoIterator<Item = Row<'a>>) -> impl Iterator<Item = Row<'a>> {

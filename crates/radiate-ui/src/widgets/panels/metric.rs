@@ -24,7 +24,7 @@ impl<C: Chromosome> StatefulWidget for MetricDetailPanelWidget<C> {
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         let current_metric_name = state.get_selected_metric().unwrap_or("");
-        let metrics = state.metrics();
+        let metrics = &state.evo.metrics;
         let metric = metrics.get(current_metric_name);
 
         let Some(metric) = metric else {

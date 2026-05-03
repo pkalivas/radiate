@@ -24,7 +24,7 @@ impl PyExpr {
 impl PyExpr {
     #[staticmethod]
     #[pyo3(signature = (name, dtype=None))]
-    pub fn metric(name: &str, dtype: Option<&str>) -> Self {
+    pub fn select(name: &str, dtype: Option<&str>) -> Self {
         PyExpr {
             inner: match dtype {
                 Some(dtype_str) => expr::select_with_dtype(name, dtype_from_str(dtype_str)),

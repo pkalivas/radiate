@@ -20,21 +20,21 @@ impl<'a, C: Chromosome> SearchBarWidget<'a, C> {
 
 impl<'a, C: Chromosome> Widget for SearchBarWidget<'a, C> {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let title = if self.state.search_state.active {
+        let title = if self.state.nav.search.active {
             " Search (active) "
         } else {
             " Search (/) "
         };
 
-        let style = if self.state.search_state.active {
+        let style = if self.state.nav.search.active {
             Style::default()
         } else {
             Style::default()
         };
 
-        let border_style = self.state.get_panel_block(crate::state::PanelId::Search);
+        let border_style = crate::styles::panel_block(self.state.nav.is_search_focused());
 
-        Paragraph::new(self.state.search_state.query.as_str())
+        Paragraph::new(self.state.nav.search.query.as_str())
             .block(
                 border_style
                     .title(title)
@@ -53,8 +53,6 @@ pub fn help_text_minimal<'a>() -> Line<'a> {
         Span::from(" navigate, "),
         "[◄ ►/h/l]".fg(Color::LightGreen).bold(),
         Span::from(" tabs, "),
-        // "[f]".fg(Color::LightGreen).bold(),
-        // Span::from(" toggle filters, "),
         "[?/H]".fg(Color::LightGreen).bold(),
         Span::from(" help "),
     ])
