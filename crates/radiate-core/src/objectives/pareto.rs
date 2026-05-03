@@ -105,8 +105,7 @@ pub fn non_dominated<T: AsRef<[f32]>>(population: &[T], objective: &Objective) -
 /// Rank the population based on the NSGA-II algorithm. This assigns a rank to each
 /// individual in the population based on their dominance relationships with other
 /// individuals in the population. The result is a vector of ranks, where the rank
-/// of the individual at index `i` is `ranks[i]`.
-
+///   of the individual at index `i` is `ranks[i]`.
 #[inline]
 pub fn rank<T: AsRef<[f32]>>(population: &[T], objective: &Objective) -> Vec<usize> {
     let n = population.len();

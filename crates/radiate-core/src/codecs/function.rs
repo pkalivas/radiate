@@ -1,6 +1,8 @@
 use crate::{Chromosome, Codec, Genotype};
 use std::sync::Arc;
 
+type DecoderFn<C, T> = Arc<dyn Fn(&Genotype<C>) -> T>;
+
 /// A `Codec` that uses functions to encode and decode a `Genotype` to and from a type `T`.
 /// Most of the other codecs in this module are more specialized and are used to create `Genotypes` of specific types of `Chromosomes`.
 /// This one, however, is more general and can be used to create `Genotypes` of any type of `Chromosome`.
@@ -40,7 +42,7 @@ use std::sync::Arc;
 #[derive(Default, Clone)]
 pub struct FnCodec<C: Chromosome, T> {
     encoder: Option<Arc<dyn Fn() -> Genotype<C>>>,
-    decoder: Option<Arc<dyn Fn(&Genotype<C>) -> T>>,
+    decoder: Option<DecoderFn<C, T>>,
 }
 
 impl<C: Chromosome, T> FnCodec<C, T> {

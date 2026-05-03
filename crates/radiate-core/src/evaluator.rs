@@ -25,9 +25,9 @@ use std::sync::Arc;
 /// The two main implementations provided are:
 /// - [FitnessEvaluator]: Evaluates individuals one at a time
 /// - [BatchFitnessEvaluator]: Evaluates individuals in batches
-/// Custom evaluators can be created and used, however, take special note on how the
-/// members of the ecosystem are accessed and modified, (taken out of the phenotype then restored).
-/// This is important to ensure memory safety and avoid unnecessary cloning of genotypes.
+///   Custom evaluators can be created and used, however, take special note on how the
+///   members of the ecosystem are accessed and modified, (taken out of the phenotype then restored).
+///   This is important to ensure memory safety and avoid unnecessary cloning of genotypes.
 ///
 /// # Generic Parameters
 /// - `C`: The chromosome type that represents the genetic material
