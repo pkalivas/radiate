@@ -95,11 +95,10 @@ impl<'a, P> KNN<'a, P> {
         let mut min_distance = f32::INFINITY;
         let mut max_distance = f32::NEG_INFINITY;
         for (idx, p) in self.points.iter().enumerate() {
-            if let Some(qi) = query_index {
-                if qi == idx {
+            if let Some(qi) = query_index
+                && qi == idx {
                     continue;
                 }
-            }
 
             let dist = self.metric.distance(query, p).max(1e-12);
             min_distance = min_distance.min(dist);

@@ -173,7 +173,7 @@ fn invert(n: usize, a: &mut [usize]) {
     ac.copy_from_slice(a);
 
     for i in (0..k).rev() {
-        while let Some(_) = index_of(&ac, j, v) {
+        while index_of(&ac, j, v).is_some() {
             v -= 1;
         }
         a[i] = v;
@@ -182,13 +182,7 @@ fn invert(n: usize, a: &mut [usize]) {
 }
 
 fn index_of(a: &[usize], start: usize, value: usize) -> Option<usize> {
-    for i in (0..=start).rev() {
-        if a[i] == value {
-            return Some(i);
-        }
-    }
-
-    None
+    (0..=start).rev().find(|&i| a[i] == value)
 }
 
 fn check_subset(n: usize, k: usize) {

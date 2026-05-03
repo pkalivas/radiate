@@ -15,6 +15,12 @@ struct Inner {
     cvar: Condvar,
 }
 
+impl Default for WaitGroup {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl WaitGroup {
     pub fn new() -> Self {
         Self {

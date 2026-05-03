@@ -253,7 +253,7 @@ where
         }
 
         let num_workers = self.executor.num_workers();
-        let batch_size = (pairs.len() + num_workers - 1) / num_workers;
+        let batch_size = pairs.len().div_ceil(num_workers);
 
         if pairs.is_empty() || batch_size == 0 {
             return Ok(0);
