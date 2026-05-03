@@ -112,10 +112,10 @@ where
     type Item = E::Epoch;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(control) = &self.control {
-            if control.is_stopped() {
-                return None;
-            }
+        if let Some(control) = &self.control
+            && control.is_stopped()
+        {
+            return None;
         }
 
         match self.engine.next() {
@@ -521,7 +521,7 @@ where
     ///
     /// * `name` - The name of the metric to monitor
     /// * `predicate` - A function that takes a [Metric] and returns true to
-    ///                 stop iteration
+    ///   stop iteration
     /// # Returns
     ///
     ///  An iterator that stops when the metric predicate is satisfied

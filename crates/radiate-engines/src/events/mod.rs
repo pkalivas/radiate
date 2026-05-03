@@ -1,7 +1,7 @@
 mod bus;
-mod events;
 mod handlers;
+mod message;
 
 pub use bus::EventBus;
-pub use events::{EngineEvent, EngineEventInner, EngineMessage};
 pub use handlers::EventHandler;
+pub use message::{EngineEvent, EngineEventInner, EngineMessage};

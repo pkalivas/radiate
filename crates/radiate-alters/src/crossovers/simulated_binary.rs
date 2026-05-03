@@ -66,8 +66,8 @@ where
                     })
                     .unwrap();
 
-                    let v1 = one_slice[i].allele().clone();
-                    let v2 = two_slice[i].allele().clone();
+                    let v1 = *one_slice[i].allele();
+                    let v2 = *two_slice[i].allele();
 
                     let v = if rand.bool(0.5) {
                         ((v1 - v2) * A::HALF) - (beta * A::HALF * (v1 - v2).abs())

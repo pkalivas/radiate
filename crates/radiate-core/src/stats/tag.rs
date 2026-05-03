@@ -176,7 +176,7 @@ impl TagType {
 
 impl PartialOrd for TagType {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some((*self as u16).cmp(&(*other as u16)))
+        Some(self.cmp(other))
     }
 }
 
@@ -225,7 +225,7 @@ impl Iterator for TagMaskIter {
             return None;
         }
 
-        let tz = self.bits.trailing_zeros() as u32;
+        let tz = self.bits.trailing_zeros();
         self.bits &= self.bits - 1;
         TagType::from_index(tz)
     }

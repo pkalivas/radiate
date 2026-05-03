@@ -314,11 +314,11 @@ where
     fn build_front(&mut self) -> Result<()> {
         if self.params.optimization_params.front.is_some() {
             return Ok(());
-        } else if let Some(generation) = &self.params.generation {
-            if let Some(front) = generation.front() {
-                self.params.optimization_params.front = Some(front.clone());
-                return Ok(());
-            }
+        } else if let Some(generation) = &self.params.generation
+            && let Some(front) = generation.front()
+        {
+            self.params.optimization_params.front = Some(front.clone());
+            return Ok(());
         }
 
         let front_obj = self.params.optimization_params.objectives.clone();
@@ -403,13 +403,11 @@ where
     }
 
     fn build_species_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
-        if config.diversity().is_none() {
-            return None;
-        }
+        let diversity = config.diversity()?;
 
         let species_step = SpeciateStep {
             threshold: config.species_threshold(),
-            distance: config.diversity().unwrap(),
+            distance: diversity,
             executor: config.species_executor(),
             objective: config.objective(),
             distances: Arc::new(Mutex::new(Vec::new())),
@@ -628,49 +626,49 @@ where
     }
 }
 
-impl<C, T> Into<GeneticEngineBuilder<C, T>> for EngineConfig<C, T>
+impl<C, T> From<EngineConfig<C, T>> for GeneticEngineBuilder<C, T>
 where
     C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync + 'static,
 {
-    fn into(self) -> GeneticEngineBuilder<C, T> {
+    fn from(config: EngineConfig<C, T>) -> Self {
         GeneticEngineBuilder {
             params: EngineParams {
                 population_params: PopulationParams {
-                    population_size: self.ecosystem.population().len(),
-                    max_age: self.max_age,
-                    ecosystem: Some(self.ecosystem),
+                    population_size: config.ecosystem.population().len(),
+                    max_age: config.max_age,
+                    ecosystem: Some(config.ecosystem),
                 },
                 species_params: SpeciesParams {
-                    diversity: self.diversity,
-                    species_threshold: self.species_threshold,
-                    max_species_age: self.max_species_age,
+                    diversity: config.diversity,
+                    species_threshold: config.species_threshold,
+                    max_species_age: config.max_species_age,
                 },
-                evaluation_params: self.executor,
+                evaluation_params: config.executor,
                 selection_params: SelectionParams {
-                    offspring_fraction: self.offspring_fraction,
-                    survivor_selector: self.survivor_selector,
-                    offspring_selector: self.offspring_selector,
+                    offspring_fraction: config.offspring_fraction,
+                    survivor_selector: config.survivor_selector,
+                    offspring_selector: config.offspring_selector,
                 },
                 optimization_params: OptimizeParams {
-                    objectives: self.objective,
-                    front_range: self.front.read().unwrap().range().clone(),
-                    front: Some(self.front.read().unwrap().clone()),
+                    objectives: config.objective,
+                    front_range: config.front.read().unwrap().range().clone(),
+                    front: Some(config.front.read().unwrap().clone()),
                 },
                 problem_params: ProblemParams {
                     codec: None,
-                    problem: Some(self.problem),
+                    problem: Some(config.problem),
                     fitness_fn: None,
                     batch_fitness_fn: None,
                     raw_fitness_fn: None,
                     raw_batch_fitness_fn: None,
                 },
 
-                replacement_strategy: self.replacement_strategy,
-                alterers: self.alterers,
-                handlers: self.handlers,
-                exprs: self.exprs,
-                generation: self.generation,
+                replacement_strategy: config.replacement_strategy,
+                alterers: config.alterers,
+                handlers: config.handlers,
+                exprs: config.exprs,
+                generation: config.generation,
             },
             errors: Vec::new(),
         }

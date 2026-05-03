@@ -56,10 +56,10 @@ pub fn render_dashboard(metrics: &MetricSet) -> io::Result<String> {
         write!(out, "  improvements: {}", m.count() as i64).unwrap();
     }
 
-    if let Some(m) = metrics.get(metric_names::TIME) {
-        if let Some(mu) = m.times().map(|t| t.mean()) {
-            write!(out, "  iter_time(mean): {}", fmt_duration(mu)).unwrap();
-        }
+    if let Some(m) = metrics.get(metric_names::TIME)
+        && let Some(mu) = m.times().map(|t| t.mean())
+    {
+        write!(out, "  iter_time(mean): {}", fmt_duration(mu)).unwrap();
     }
 
     Ok(if out.is_empty() {

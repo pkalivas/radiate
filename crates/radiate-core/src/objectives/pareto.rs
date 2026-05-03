@@ -228,7 +228,7 @@ pub fn weights<T: AsRef<[f32]>>(scores: &[T], objective: &Objective) -> Vec<f32>
 
     rank_weight
         .into_iter()
-        .zip(crowd_weight.into_iter())
+        .zip(crowd_weight)
         .map(|(r, c)| (r + EPSILON).max(0.0) * (c + EPSILON).max(0.0))
         .collect()
 }

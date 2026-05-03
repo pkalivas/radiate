@@ -13,7 +13,7 @@ where
     /// generation of the population. **Note**: the order of the alterers is important - the
     /// alterers will be applied in the order they are provided.
     pub fn alter(mut self, alterers: Vec<Alterer<C>>) -> Self {
-        self.params.alterers = alterers.into_iter().map(|alt| alt.into()).collect();
+        self.params.alterers = alterers.into_iter().collect();
         self
     }
 

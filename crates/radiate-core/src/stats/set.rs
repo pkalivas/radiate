@@ -124,10 +124,7 @@ impl MetricSet {
     }
 
     #[inline(always)]
-    pub fn iter_tagged<'a>(
-        &'a self,
-        tag: TagType,
-    ) -> impl Iterator<Item = (&'static str, &'a Metric)> {
+    pub fn iter_tagged(&self, tag: TagType) -> impl Iterator<Item = (&'static str, &Metric)> {
         self.metrics.iter().filter_map(move |(k, m)| {
             if m.tags().has(tag) {
                 Some((*k, m))
@@ -182,6 +179,11 @@ impl MetricSet {
     #[inline(always)]
     pub fn len(&self) -> usize {
         self.metrics.len()
+    }
+
+    #[inline(always)]
+    pub fn is_empty(&self) -> bool {
+        self.metrics.is_empty()
     }
 
     #[inline(always)]
@@ -277,8 +279,8 @@ impl Display for MetricSet {
 
 impl Debug for MetricSet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "MetricSet {{\n")?;
-        write!(f, "{}\n", fmt::render_dashboard(&self).unwrap_or_default())?;
+        writeln!(f, "MetricSet {{")?;
+        writeln!(f, "{}", fmt::render_dashboard(self).unwrap_or_default())?;
         write!(f, "}}")
     }
 }
@@ -289,11 +291,7 @@ impl Serialize for MetricSet {
     where
         S: serde::Serializer,
     {
-        let metrics = self
-            .metrics
-            .iter()
-            .map(|(_, metric)| metric.clone())
-            .collect::<Vec<Metric>>();
+        let metrics = self.metrics.values().cloned().collect::<Vec<Metric>>();
         metrics.serialize(serializer)
     }
 }

@@ -61,8 +61,8 @@ where
                     let gene_one = chrom_one.get_mut(i);
                     let gene_two = chrom_two.get_mut(i);
 
-                    let allele_one = gene_one.allele().clone();
-                    let allele_two = gene_two.allele().clone();
+                    let allele_one = *gene_one.allele();
+                    let allele_two = *gene_two.allele();
 
                     let alpha = rand.range(F::ZERO..alpha);
                     let new_allele_one = allele_one * alpha + allele_two * (F::ONE - alpha);
