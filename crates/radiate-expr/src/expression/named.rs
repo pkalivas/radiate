@@ -1,7 +1,6 @@
+use crate::Expr;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize, ser::SerializeStruct};
-
-use crate::Expr;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct NamedExpr {

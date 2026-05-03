@@ -81,7 +81,8 @@ class Every(RsObject):
 
 class Expr(RsObject):
     """
-    Base class for all expressions in the Radiate DSL. This class serves as a wrapper around Rust expressions, allowing them to be used seamlessly in Python.
+    Base class for all expressions in the Radiate DSL. This class serves as a wrapper around Rust
+    expressions, allowing them to be used seamlessly in Python.
 
     Parameters
     ----------
@@ -249,23 +250,23 @@ class Expr(RsObject):
 
 
 def mean(metric_name: str) -> Expr:
-    return metric(metric_name)
+    return select(metric_name)
 
 
 def min(metric_name: str) -> Expr:
-    return metric(metric_name)
+    return select(metric_name)
 
 
 def max(metric_name: str) -> Expr:
-    return metric(metric_name)
+    return select(metric_name)
 
 
 def stddev(metric_name: str) -> Expr:
-    return metric(metric_name)
+    return select(metric_name)
 
 
-def metric(metric: str) -> Expr:
-    return Expr.from_rust(PyExpr.metric(metric))
+def select(metric: str) -> Expr:
+    return Expr.from_rust(PyExpr.select(metric))
 
 
 def when(condition: Expr) -> When:

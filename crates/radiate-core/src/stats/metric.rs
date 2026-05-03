@@ -208,9 +208,11 @@ impl Metric {
                 self.update_statistic_from_iter(values.iter().cloned());
             }
             MetricUpdate::Statistic(stat) => {
-                self.inner.merge(&stat);                
-                self.meta.as_mut().map(|meta| meta.update_count += 1);
+                self.inner.merge(&stat);
                 self.dtype = DATA_TYPE_FLOAT32;
+                if let Some(meta) = &mut self.meta {
+                    meta.update_count += 1;
+                }
             }
         }
     }
@@ -218,7 +220,10 @@ impl Metric {
     fn update_statistic(&mut self, value: f32) {
         self.inner.add(value);
         self.add_tag(TagType::Statistic);
-        self.meta.as_mut().map(|meta| meta.update_count += 1);
+
+        if let Some(meta) = &mut self.meta {
+            meta.update_count += 1;
+        }
 
         if self.dtype == DATA_TYPE_NULL {
             self.dtype = DATA_TYPE_FLOAT32;
@@ -228,7 +233,11 @@ impl Metric {
     fn update_time_statistic(&mut self, value: Duration) {
         self.inner.add(value.as_secs_f32());
         self.add_tag(TagType::Time);
-        self.meta.as_mut().map(|meta| meta.update_count += 1);
+        
+        if let Some(meta) = &mut self.meta {
+            meta.update_count += 1;
+
+        }
 
         if self.dtype == DATA_TYPE_NULL {
             self.dtype = DATA_TYPE_DURATION;
@@ -247,7 +256,11 @@ impl Metric {
         }
         
         self.inner = new_stat;
-        self.meta.as_mut().map(|meta| meta.update_count += values_count);
+
+        if let Some(meta) = &mut self.meta {
+            meta.update_count += values_count;
+        }
+        
         self.add_tag(TagType::Distribution);
 
         if self.dtype == DATA_TYPE_NULL {

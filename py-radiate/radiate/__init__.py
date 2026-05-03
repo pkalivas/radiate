@@ -139,7 +139,7 @@ from .dtype import (
     Null,
 )
 
-from .expr import Expr, metric, when, lit, element, every, generation
+from .expr import Expr, select, when, lit, element, every, generation
 
 from .dsl import Select, Mutate, Cross, Dist, Limit
 
@@ -169,7 +169,7 @@ __all__ = [
     "random",
     # Expressions
     "Expr",
-    "metric",
+    "select",
     "when",
     "lit",
     "element",

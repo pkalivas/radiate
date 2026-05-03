@@ -24,7 +24,7 @@ Expressions are used in three places within the engine:
     import radiate as rd
 
     # Select a metric by name. By default this reads the last recorded value.
-    score = rd.metric("scores.best")
+    score = rd.select("scores.best")
 
     # A literal constant
     threshold = rd.lit(0.01)
@@ -61,7 +61,7 @@ Expressions can aggregate over accumulated history using a rolling window or dir
     ```python
     import radiate as rd
 
-    score = rd.metric("scores.best")
+    score = rd.select("scores.best")
 
     score.last()          # last recorded value (default)
     score.mean()          # running mean of all values seen
@@ -118,7 +118,7 @@ Expressions support standard comparison and boolean operators. These always prod
     ```python
     import radiate as rd
 
-    score = rd.metric("scores.best")
+    score = rd.select("scores.best")
 
     # Comparisons — Python operators work directly
     score < 0.01
@@ -129,8 +129,8 @@ Expressions support standard comparison and boolean operators. These always prod
     score != 0.5
 
     # Boolean logic
-    (score < 0.01) & (rd.metric("index") > 50)   # and
-    (score < 0.01) | (rd.metric("time") > 10.0)  # or
+    (score < 0.01) & (rd.select("index") > 50)   # and
+    (score < 0.01) | (rd.select("time") > 10.0)  # or
     ~(score < 0.01)                      # not
 
     # Convenience: between (inclusive)
@@ -173,8 +173,8 @@ Expressions support standard comparison and boolean operators. These always prod
     ```python
     import radiate as rd
 
-    a = rd.metric("scores.best")
-    b = rd.metric("score.volatility")
+    a = rd.select("scores.best")
+    b = rd.select("score.volatility")
 
     a + b
     a - b
@@ -217,8 +217,8 @@ Expressions support standard comparison and boolean operators. These always prod
 
     # If the best score is below 0.01, use its mean; otherwise use a fallback literal
     expr = (
-        rd.when(rd.metric("scores.best") < 0.01)
-        .then(rd.metric("scores.best").mean())
+        rd.when(rd.select("scores.best") < 0.01)
+        .then(rd.select("scores.best").mean())
         .otherwise(rd.lit(1.0))
     )
     ```
@@ -248,8 +248,8 @@ Expressions support standard comparison and boolean operators. These always prod
     # otherwise return the last value.
     expr = (
         rd.every(10)
-        .then(rd.metric("scores.best").rolling(10).stddev())
-        .otherwise(rd.metric("scores.best"))
+        .then(rd.select("scores.best").rolling(10).stddev())
+        .otherwise(rd.select("scores.best"))
     )
     ```
 
@@ -279,10 +279,10 @@ By default `expr::select("metric_name")` reads `last_value`. To explicitly selec
     import radiate as rd
 
     # Mean of the time metric, interpreted as a duration
-    rd.metric("time").time().mean()
+    rd.select("time").time().mean()
 
     # Count of evaluations as a number
-    rd.metric("count.evaluation").count()
+    rd.select("count.evaluation").count()
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -317,7 +317,7 @@ An `Expr` that returns a `bool` can be used as a termination condition. The engi
     )
 
     # Stop when the best score has been below 0.01 on average over the last 50 generations
-    stop_expr = rd.metric("scores.best").rolling(50).mean() < 0.01
+    stop_expr = rd.select("scores.best").rolling(50).mean() < 0.01
 
     result = engine.run(rd.Limit.expr(stop_expr))
     ```
@@ -368,8 +368,8 @@ You can register named expressions that are evaluated against the `MetricSet` at
     ```python
     import radiate as rd
 
-    score_trend = rd.metric("scores.best").rolling(20).slope()
-    score_cv    = rd.metric("scores.best").rolling(20).stddev() / rd.metric("scores.best").rolling(20).mean()
+    score_trend = rd.select("scores.best").rolling(20).slope()
+    score_cv    = rd.select("scores.best").rolling(20).stddev() / rd.select("scores.best").rolling(20).mean()
 
     engine = (
         rd.Engine.float(10, init_range=(-5.0, 5.0))
@@ -396,11 +396,11 @@ You can register named expressions that are evaluated against the `MetricSet` at
         rd.Engine.float(10, init_range=(-5.0, 5.0))
         .fitness(my_fitness_fn)
         .minimizing()
-        .metrics(score_trend=rd.metric("scores.best").rolling(50).slope())
+        .metrics(score_trend=rd.select("scores.best").rolling(50).slope())
     )
 
     result = engine.run(
-        rd.Limit.expr(abs(rd.metric("score_trend")) < 0.0001),
+        rd.Limit.expr(abs(rd.select("score_trend")) < 0.0001),
         rd.Limit.generations(5000),
     )
     ```
@@ -473,7 +473,7 @@ An expression can also drive an alterer's rate, a species threashold, or any oth
     import radiate as rd
 
     # Start aggressive, decay as volatility drops
-    dynamic_rate = rd.metric("score.volatility").rolling(20).mean().clamp(0.01, 0.5)
+    dynamic_rate = rd.select("score.volatility").rolling(20).mean().clamp(0.01, 0.5)
 
     engine = (
         rd.Engine.float(10, init_range=(-5.0, 5.0))
@@ -525,12 +525,12 @@ So, what does all this do in practice? Well, lets say you opt-in to using specia
     target_species = 4.0
     rolling = int(target_species)
 
-    spec_count_signal = rd.metric("count.species").rolling(rolling).mean() / target_species
+    spec_count_signal = rd.select("count.species").rolling(rolling).mean() / target_species
     spec_dist_signal = (
-        rd.metric("species.distance").mean().rolling(rolling).mean() / target_species
+        rd.select("species.distance").mean().rolling(rolling).mean() / target_species
     )
-    spec_thresh_signal = rd.metric("species.threshold").rolling(rolling).mean()
-    spec_evenness_signal = rd.metric("species.evenness").rolling(rolling).mean()
+    spec_thresh_signal = rd.select("species.threshold").rolling(rolling).mean()
+    spec_evenness_signal = rd.select("species.evenness").rolling(rolling).mean()
 
     distance_signal = (
         (rd.lit(0.9) * spec_count_signal)
@@ -540,7 +540,7 @@ So, what does all this do in practice? Well, lets say you opt-in to using specia
     ).clamp(0.01, 10.0)
 
     distance_signal_mean = distance_signal.mean()
-    species_count_mean = rd.metric("count.species").mean().rolling(10).mean()
+    species_count_mean = rd.select("count.species").mean().rolling(10).mean()
 
     collector = rd.MetricCollector()
 
