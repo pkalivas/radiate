@@ -1,5 +1,5 @@
 use crate::{
-    state::{AppState, PanelId},
+    state::AppState,
     widgets::{
         EngineStatusPanelWidget, FitnessChartPanelWidget, FnWidget, MetricDetailPanelWidget,
         MetricTableWidget, Panel, SearchBarWidget, TabComponent,
@@ -14,24 +14,24 @@ use ratatui::{
     widgets::{StatefulWidget, Widget},
 };
 
-pub enum LayoutNode {
+pub enum LayoutNode<C: Chromosome> {
     Horizontal {
         constraints: Vec<Constraint>,
-        children: Vec<LayoutNode>,
+        children: Vec<LayoutNode<C>>,
     },
     Vertical {
         constraints: Vec<Constraint>,
-        children: Vec<LayoutNode>,
+        children: Vec<LayoutNode<C>>,
     },
     Tabbed {
         tabs: Vec<&'static str>,
-        children: Vec<LayoutNode>,
+        children: Vec<LayoutNode<C>>,
     },
-    Widget(PanelId),
+    Widget(fn(Rect, &mut Buffer, &mut AppState<C>)),
 }
 
-impl LayoutNode {
-    pub fn draw<C: Chromosome>(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
+impl<C: Chromosome> LayoutNode<C> {
+    pub fn draw(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
         match self {
             LayoutNode::Horizontal {
                 constraints,
@@ -79,29 +79,12 @@ impl LayoutNode {
                     active_child.draw(areas[1], buf, state);
                 }
             }
-            LayoutNode::Widget(panel_id) => match panel_id {
-                PanelId::EngineStatus => EngineStatusPanelWidget::new().render(area, buf, state),
-                PanelId::FitnessChart => FitnessChartPanelWidget::new().render(area, buf, state),
-                PanelId::TimeTable => MetricTableWidget::time().render(area, buf, state),
-                PanelId::StatsTable => MetricTableWidget::stats().render(area, buf, state),
-                PanelId::DistTable => MetricTableWidget::distribution().render(area, buf, state),
-                PanelId::SpeciesTable => SpeciesTableWidget::new().render(area, buf, state),
-                PanelId::MetricDetail => MetricDetailPanelWidget::new().render(area, buf, state),
-                PanelId::SpeciesPieChart => {
-                    SpeciesPieChartComponent::new().render(area, buf, state)
-                }
-                PanelId::TimePieChart => TimePieChartComponent::new().render(area, buf, state),
-                PanelId::SpeciesSparkline => {
-                    SpeciesSparklineComponent::new().render(area, buf, state)
-                }
-                PanelId::Search => SearchBarWidget::new(state).render(area, buf),
-                _ => {}
-            },
+            LayoutNode::Widget(render) => render(area, buf, state),
         }
     }
 }
 
-impl Default for LayoutNode {
+impl<C: Chromosome> Default for LayoutNode<C> {
     fn default() -> Self {
         use LayoutNode::*;
 
@@ -110,7 +93,10 @@ impl Default for LayoutNode {
             children: vec![
                 Horizontal {
                     constraints: vec![Constraint::Percentage(25), Constraint::Fill(1)],
-                    children: vec![Widget(PanelId::EngineStatus), Widget(PanelId::FitnessChart)],
+                    children: vec![
+                        Widget(|a, b, s| EngineStatusPanelWidget::new().render(a, b, s)),
+                        Widget(|a, b, s| FitnessChartPanelWidget::new().render(a, b, s)),
+                    ],
                 },
                 Vertical {
                     constraints: vec![Constraint::Fill(1), Constraint::Length(3)],
@@ -124,8 +110,12 @@ impl Default for LayoutNode {
                                         Constraint::Percentage(15),
                                     ],
                                     children: vec![
-                                        Widget(PanelId::StatsTable),
-                                        Widget(PanelId::MetricDetail),
+                                        Widget(|a, b, s| {
+                                            MetricTableWidget::stats().render(a, b, s)
+                                        }),
+                                        Widget(|a, b, s| {
+                                            MetricDetailPanelWidget::new().render(a, b, s)
+                                        }),
                                     ],
                                 },
                                 Horizontal {
@@ -135,9 +125,13 @@ impl Default for LayoutNode {
                                         Constraint::Percentage(20),
                                     ],
                                     children: vec![
-                                        Widget(PanelId::TimeTable),
-                                        Widget(PanelId::TimePieChart),
-                                        Widget(PanelId::MetricDetail),
+                                        Widget(|a, b, s| MetricTableWidget::time().render(a, b, s)),
+                                        Widget(|a, b, s| {
+                                            TimePieChartComponent::new().render(a, b, s)
+                                        }),
+                                        Widget(|a, b, s| {
+                                            MetricDetailPanelWidget::new().render(a, b, s)
+                                        }),
                                     ],
                                 },
                                 Horizontal {
@@ -146,8 +140,12 @@ impl Default for LayoutNode {
                                         Constraint::Percentage(20),
                                     ],
                                     children: vec![
-                                        Widget(PanelId::DistTable),
-                                        Widget(PanelId::MetricDetail),
+                                        Widget(|a, b, s| {
+                                            MetricTableWidget::distribution().render(a, b, s)
+                                        }),
+                                        Widget(|a, b, s| {
+                                            MetricDetailPanelWidget::new().render(a, b, s)
+                                        }),
                                     ],
                                 },
                                 Horizontal {
@@ -157,16 +155,20 @@ impl Default for LayoutNode {
                                         Constraint::Percentage(25),
                                     ],
                                     children: vec![
-                                        Widget(PanelId::SpeciesTable),
-                                        Widget(PanelId::SpeciesSparkline),
-                                        Widget(PanelId::SpeciesPieChart),
+                                        Widget(|a, b, s| SpeciesTableWidget::new().render(a, b, s)),
+                                        Widget(|a, b, s| {
+                                            SpeciesSparklineComponent::new().render(a, b, s)
+                                        }),
+                                        Widget(|a, b, s| {
+                                            SpeciesPieChartComponent::new().render(a, b, s)
+                                        }),
                                     ],
                                 },
                             ],
                         },
                         Horizontal {
                             constraints: vec![Constraint::Fill(1)],
-                            children: vec![Widget(PanelId::Search)],
+                            children: vec![Widget(|a, b, s| SearchBarWidget::new(s).render(a, b))],
                         },
                     ],
                 },

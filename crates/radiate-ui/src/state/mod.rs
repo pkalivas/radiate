@@ -5,34 +5,12 @@ pub mod run;
 pub mod tables;
 
 use radiate_engines::{Chromosome, Metric};
-use ratatui::widgets::Block;
 
 pub use chart::LineChartType;
 pub use evo::EvoState;
-pub use nav::{NavState, UiMode};
+pub use nav::{DashboardTab, NavState, UiMode};
 pub use run::RunState;
 pub use tables::{AppTableState, TableStates};
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum PanelId {
-    EngineStatus,
-    FitnessChart,
-
-    MetricModal,
-    Search,
-
-    TimeTable,
-    StatsTable,
-    DistTable,
-    SpeciesTable,
-
-    TimePieChart,
-    SpeciesPieChart,
-
-    SpeciesSparkline,
-
-    MetricDetail,
-}
 
 pub struct AppState<C: Chromosome> {
     pub run: RunState,
@@ -58,10 +36,6 @@ impl<C: Chromosome> AppState<C> {
 
     pub fn get_selected_metric(&self) -> Option<&'static str> {
         self.tables.selected_metric(self.nav.dashboard_tab)
-    }
-
-    pub fn get_panel_block(&self, panel: PanelId) -> Block<'static> {
-        self.nav.get_panel_block(panel)
     }
 
     pub fn metric_matches_search(&self, metric: &Metric) -> bool {

@@ -1,8 +1,5 @@
-use super::PanelId;
 use super::chart::LineChartType;
 use radiate_engines::Metric;
-use ratatui::widgets::Block;
-use tui_piechart::border_style;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UiMode {
@@ -38,6 +35,10 @@ impl DashboardTab {
             DashboardTab::Species => DashboardTab::Distribution,
         }
     }
+
+    pub fn supports_metric_modal(self) -> bool {
+        !matches!(self, DashboardTab::Species)
+    }
 }
 
 pub struct SearchState {
@@ -49,11 +50,18 @@ pub struct NavState {
     pub mode: UiMode,
     pub dashboard_tab: DashboardTab,
     pub chart_tab: LineChartType,
-    pub focus_panel: PanelId,
     pub search: SearchState,
 }
 
 impl NavState {
+    pub fn is_tab_focused(&self, tab: DashboardTab) -> bool {
+        self.mode == UiMode::Dashboard && self.dashboard_tab == tab
+    }
+
+    pub fn is_search_focused(&self) -> bool {
+        self.mode == UiMode::Search
+    }
+
     pub fn open_search(&mut self) {
         if !matches!(self.mode, UiMode::Dashboard) {
             return;
@@ -88,12 +96,7 @@ impl NavState {
 
     pub fn toggle_metric_modal(&mut self) {
         match self.mode {
-            UiMode::Dashboard
-                if matches!(
-                    self.focus_panel,
-                    PanelId::TimeTable | PanelId::StatsTable | PanelId::DistTable
-                ) =>
-            {
+            UiMode::Dashboard if self.dashboard_tab.supports_metric_modal() => {
                 self.mode = UiMode::MetricModal;
             }
             UiMode::MetricModal => self.mode = UiMode::Dashboard,
@@ -103,15 +106,7 @@ impl NavState {
 
     pub fn next_tab(&mut self) {
         match self.mode {
-            UiMode::Dashboard => {
-                self.dashboard_tab = self.dashboard_tab.next();
-                self.focus_panel = match self.dashboard_tab {
-                    DashboardTab::Time => PanelId::TimeTable,
-                    DashboardTab::Stats => PanelId::StatsTable,
-                    DashboardTab::Distribution => PanelId::DistTable,
-                    DashboardTab::Species => PanelId::SpeciesTable,
-                };
-            }
+            UiMode::Dashboard => self.dashboard_tab = self.dashboard_tab.next(),
             UiMode::MetricModal => self.chart_tab = self.chart_tab.next(),
             _ => {}
         }
@@ -119,15 +114,7 @@ impl NavState {
 
     pub fn previous_tab(&mut self) {
         match self.mode {
-            UiMode::Dashboard => {
-                self.dashboard_tab = self.dashboard_tab.previous();
-                self.focus_panel = match self.dashboard_tab {
-                    DashboardTab::Time => PanelId::TimeTable,
-                    DashboardTab::Stats => PanelId::StatsTable,
-                    DashboardTab::Distribution => PanelId::DistTable,
-                    DashboardTab::Species => PanelId::SpeciesTable,
-                };
-            }
+            UiMode::Dashboard => self.dashboard_tab = self.dashboard_tab.previous(),
             UiMode::MetricModal => self.chart_tab = self.chart_tab.previous(),
             _ => {}
         }
@@ -148,21 +135,6 @@ impl NavState {
             LineChartType::Mean => 1,
             LineChartType::Stddev => 2,
             LineChartType::Variance => 3,
-        }
-    }
-
-    pub fn get_panel_block(&self, panel: PanelId) -> Block<'static> {
-        let effective = match self.mode {
-            UiMode::MetricModal => PanelId::MetricModal,
-            UiMode::Search => PanelId::Search,
-            _ => self.focus_panel,
-        };
-        if effective == panel {
-            border_style::BorderStyle::Rounded
-                .block()
-                .border_style(crate::styles::BORDER_GREEN)
-        } else {
-            border_style::BorderStyle::Rounded.block()
         }
     }
 
@@ -191,7 +163,6 @@ impl Default for NavState {
             mode: UiMode::Dashboard,
             dashboard_tab: DashboardTab::Stats,
             chart_tab: LineChartType::Mean,
-            focus_panel: PanelId::StatsTable,
             search: SearchState {
                 query: String::new(),
                 active: false,

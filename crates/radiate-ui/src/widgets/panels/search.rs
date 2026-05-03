@@ -32,7 +32,7 @@ impl<'a, C: Chromosome> Widget for SearchBarWidget<'a, C> {
             Style::default()
         };
 
-        let border_style = self.state.get_panel_block(crate::state::PanelId::Search);
+        let border_style = crate::styles::panel_block(self.state.nav.is_search_focused());
 
         Paragraph::new(self.state.nav.search.query.as_str())
             .block(
@@ -53,8 +53,6 @@ pub fn help_text_minimal<'a>() -> Line<'a> {
         Span::from(" navigate, "),
         "[◄ ►/h/l]".fg(Color::LightGreen).bold(),
         Span::from(" tabs, "),
-        // "[f]".fg(Color::LightGreen).bold(),
-        // Span::from(" toggle filters, "),
         "[?/H]".fg(Color::LightGreen).bold(),
         Span::from(" help "),
     ])

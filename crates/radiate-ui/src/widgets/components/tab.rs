@@ -18,7 +18,7 @@ impl<'a> TabComponent<'a> {
         Iter: IntoIterator,
         Iter::Item: Into<Line<'a>>,
     {
-        let options: Vec<Line<'a>> = options.into_iter().map(Into::into).collect();
+        let options = options.into_iter().map(Into::into).collect();
 
         Self {
             options,

@@ -40,7 +40,7 @@ where
     control: EngineControl,
     channel: CommandChannel<InputEvent<C>>,
     state: AppState<C>,
-    layout: LayoutNode,
+    layout: LayoutNode<C>,
 }
 
 impl<C> App<C>
