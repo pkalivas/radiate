@@ -66,9 +66,9 @@ where
 
     #[inline]
     fn mutate_gene(&self, gene: &mut C::Gene) -> usize {
-        // TODO: Should these be from the bounds?
-        let min = gene.min().extract::<f64>().unwrap();
-        let max = gene.max().extract::<f64>().unwrap();
+        let (lower, upper) = gene.bounds();
+        let min = lower.extract::<f64>().unwrap();
+        let max = upper.extract::<f64>().unwrap();
         let value = gene.allele().extract::<f64>().unwrap();
         let eta = self.eta as f64;
 

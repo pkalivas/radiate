@@ -7,10 +7,10 @@ import radiate as rd
 def test_selector_correlation(random_seed):
     """Test correlation between selector probabilities and expected probabilities."""
     selectors = [
-        (rd.RouletteSelector(), "max"),
-        (rd.RouletteSelector(), "min"),
-        (rd.BoltzmannSelector(temp=2.0), "max"),
-        (rd.BoltzmannSelector(temp=2.0), "min"),
+        (rd.RouletteSelector(), rd.MAX),
+        (rd.RouletteSelector(), rd.MIN),
+        (rd.BoltzmannSelector(temp=2.0), rd.MAX),
+        (rd.BoltzmannSelector(temp=2.0), rd.MIN),
     ]
 
     for selector, opt in selectors:
@@ -51,10 +51,10 @@ def test_selector_empirical_bias(random_seed):
 
     num_trials = 5000
     selectors = [
-        (rd.TournamentSelector(k=3), "max"),
-        (rd.TournamentSelector(k=3), "min"),
-        (rd.RankSelector(), "max"),
-        (rd.RankSelector(), "min"),
+        (rd.TournamentSelector(k=3), rd.MAX),
+        (rd.TournamentSelector(k=3), rd.MIN),
+        (rd.RankSelector(), rd.MAX),
+        (rd.RankSelector(), rd.MIN),
     ]
 
     for selector, opt in selectors:
@@ -67,10 +67,10 @@ def test_selector_empirical_bias(random_seed):
             counts[idx] += 1
 
         probs = counts / num_trials
-        ranking = np.argsort(probs) if opt == "max" else np.argsort(-probs)
+        ranking = np.argsort(probs) if opt == rd.MAX else np.argsort(-probs)
         top_indices = ranking[:5]
 
-        if opt == "max":
+        if opt == rd.MAX:
             assert all(top_indices >= pop_size * 0.8), (
                 f"Selector {selector.component} did not favor higher scores for {opt} objective."
             )
