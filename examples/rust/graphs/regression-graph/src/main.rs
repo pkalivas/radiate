@@ -23,11 +23,8 @@ fn main() {
         ))
         .build();
 
-    radiate::ui(engine)
-        .iter()
-        .until_score(MIN_SCORE)
-        .last()
-        .inspect(display);
+    // radiate::ui(engine)
+    engine.iter().until_score(MIN_SCORE).last().inspect(display);
 }
 
 fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
