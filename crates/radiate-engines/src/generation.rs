@@ -6,8 +6,94 @@ use radiate_expr::NamedExpr;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 use std::time::Duration;
+
+pub trait GenerationEpoch<C, T>
+where
+    C: Chromosome,
+{
+    fn score(&self) -> &Score;
+    // fn front(&self) -> Option<&Front<Phenotype<C>>>;
+    fn value(&self) -> &T;
+    fn index(&self) -> usize;
+    fn metrics(&self) -> &MetricSet;
+    fn objective(&self) -> &Objective;
+    fn ecosystem(&self) -> &Ecosystem<C>;
+    fn population(&self) -> &Population<C>;
+    fn species(&self) -> Option<&[Species<C>]>;
+    fn time(&self) -> Duration;
+    fn seconds(&self) -> f64;
+    fn exprs(&self) -> Option<Arc<Mutex<Vec<NamedExpr>>>>;
+}
+
+pub struct GenerationView<'a, C, T>
+where
+    C: Chromosome,
+{
+    context: &'a Context<C, T>,
+}
+
+impl<'a, C, T> GenerationView<'a, C, T>
+where
+    C: Chromosome,
+{
+    pub fn new(context: &'a Context<C, T>) -> Self {
+        GenerationView { context }
+    }
+}
+
+impl<'a, C, T> GenerationEpoch<C, T> for GenerationView<'a, C, T>
+where
+    C: Chromosome,
+{
+    fn score(&self) -> &Score {
+        self.context.score.as_ref().unwrap()
+    }
+
+    fn value(&self) -> &T {
+        &self.context.best
+    }
+
+    fn index(&self) -> usize {
+        self.context.index
+    }
+
+    fn metrics(&self) -> &MetricSet {
+        &self.context.metrics
+    }
+
+    fn objective(&self) -> &Objective {
+        &self.context.objective
+    }
+
+    fn ecosystem(&self) -> &Ecosystem<C> {
+        &self.context.ecosystem
+    }
+
+    fn population(&self) -> &Population<C> {
+        self.ecosystem().population()
+    }
+
+    fn species(&self) -> Option<&[Species<C>]> {
+        self.ecosystem().species().map(|s| s.as_slice())
+    }
+
+    fn time(&self) -> Duration {
+        self.metrics()
+            .time()
+            .and_then(|m| m.times().map(|t| t.sum()))
+            .unwrap_or_default()
+    }
+
+    fn seconds(&self) -> f64 {
+        self.time().as_secs_f64()
+    }
+
+    fn exprs(&self) -> Option<Arc<Mutex<Vec<NamedExpr>>>> {
+        self.context.exprs.clone()
+    }
+}
 
 /// A [Generation] represents a single generation in the evolutionary process.
 /// It contains the ecosystem, the best solution, index, metrics, score, objective,
@@ -109,6 +195,58 @@ where
     }
 
     pub fn exprs(&self) -> Option<Arc<Mutex<Vec<NamedExpr>>>> {
+        self.exprs.clone()
+    }
+}
+
+impl<C, T> GenerationEpoch<C, T> for Generation<C, T>
+where
+    C: Chromosome,
+{
+    fn score(&self) -> &Score {
+        &self.score
+    }
+
+    fn value(&self) -> &T {
+        &self.value
+    }
+
+    fn index(&self) -> usize {
+        self.index
+    }
+
+    fn metrics(&self) -> &MetricSet {
+        &self.metrics
+    }
+
+    fn objective(&self) -> &Objective {
+        &self.objective
+    }
+
+    fn ecosystem(&self) -> &Ecosystem<C> {
+        &self.ecosystem
+    }
+
+    fn population(&self) -> &Population<C> {
+        self.ecosystem().population()
+    }
+
+    fn species(&self) -> Option<&[Species<C>]> {
+        self.ecosystem().species().map(|s| s.as_slice())
+    }
+
+    fn time(&self) -> Duration {
+        self.metrics()
+            .time()
+            .and_then(|m| m.times().map(|t| t.sum()))
+            .unwrap_or_default()
+    }
+
+    fn seconds(&self) -> f64 {
+        self.time().as_secs_f64()
+    }
+
+    fn exprs(&self) -> Option<Arc<Mutex<Vec<NamedExpr>>>> {
         self.exprs.clone()
     }
 }

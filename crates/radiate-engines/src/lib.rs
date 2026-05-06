@@ -15,7 +15,7 @@ pub use builder::GeneticEngineBuilder;
 pub use control::EngineControl;
 pub use engine::GeneticEngine;
 pub use events::{EngineEvent, EngineEventInner, EventBus, EventHandler};
-pub use generation::Generation;
+pub use generation::{Generation, GenerationEpoch, GenerationView};
 pub use io::{CheckpointReader, CheckpointWriter, JsonCheckpointReader, JsonCheckpointWriter};
 pub use iter::{EngineIterator, EngineIteratorExt};
 pub use limit::Limit;

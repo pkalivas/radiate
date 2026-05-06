@@ -108,6 +108,15 @@ pub trait Engine {
     fn next(&mut self) -> Result<Self::Epoch>;
 }
 
+pub trait EngineStream {
+    type State;
+
+    fn start(&mut self) -> Result<()>;
+    fn finish(&mut self) -> Result<()>;
+    fn step(&mut self) -> Result<()>;
+    fn state(&self) -> &Self::State;
+}
+
 /// Extension trait providing convenient methods for running engines with custom logic.
 ///
 /// `EngineExt` provides additional functionality for engines without requiring

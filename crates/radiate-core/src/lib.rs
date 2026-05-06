@@ -24,11 +24,11 @@ pub use codecs::{
 };
 pub use diversity::{CosineDistance, Diversity, EuclideanDistance, HammingDistance};
 pub use domain::*;
-pub use engine::{Engine, EngineExt};
+pub use engine::{Engine, EngineExt, EngineStream};
 pub use evaluator::{BatchFitnessEvaluator, Evaluator, FitnessEvaluator};
 pub use executor::Executor;
 pub use fitness::{
-    BatchedFn, BatchFitnessFunction, CompositeFitnessFn, FitnessFunction, NoveltySearch,
+    BatchFitnessFunction, BatchedFn, CompositeFitnessFn, FitnessFunction, NoveltySearch,
 };
 pub use genome::*;
 pub use lineage::{Lineage, LineageEvent, LineageUpdate};
@@ -48,11 +48,11 @@ pub mod prelude {
     };
     pub use super::diversity::{CosineDistance, Diversity, EuclideanDistance, HammingDistance};
     pub use super::domain::random_provider;
-    pub use super::engine::{Engine, EngineExt};
+    pub use super::engine::{Engine, EngineExt, EngineStream};
     pub use super::evaluator::{BatchFitnessEvaluator, Evaluator, FitnessEvaluator};
     pub use super::executor::Executor;
     pub use super::fitness::{
-        BatchedFn, BatchFitnessFunction, CompositeFitnessFn, FitnessFunction, NoveltySearch,
+        BatchFitnessFunction, BatchedFn, CompositeFitnessFn, FitnessFunction, NoveltySearch,
     };
     pub use super::genome::{
         ArithmeticGene, BitChromosome, BitGene, BoundedGene, CharChromosome, CharGene, Chromosome,
