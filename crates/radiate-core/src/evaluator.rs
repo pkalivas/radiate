@@ -102,8 +102,8 @@ where
 {
     #[inline]
     fn eval(&self, ecosystem: &mut Ecosystem<C>, problem: Arc<dyn Problem<C, T>>) -> Result<usize> {
-        let mut jobs = Vec::new();
         let len = ecosystem.population.len();
+        let mut jobs = Vec::with_capacity(len);
         for idx in 0..len {
             if ecosystem.population[idx].score().is_none() {
                 let geno = ecosystem.population[idx].take_genotype()?;
@@ -111,21 +111,18 @@ where
             }
         }
 
-        let results = self.executor.execute_batch(
-            jobs.into_iter()
-                .map(|(idx, geno)| {
-                    let problem = Arc::clone(&problem);
-                    move || {
-                        let score = problem.eval(&geno);
-                        (idx, score, geno)
-                    }
-                })
-                .collect::<Vec<_>>(),
-        );
+        let results = self
+            .executor
+            .execute_batch(jobs.into_iter().map(|(idx, geno)| {
+                let problem = Arc::clone(&problem);
+                move || {
+                    let score = problem.eval(&geno);
+                    (idx, score, geno)
+                }
+            }));
 
         let count = results.len();
-        for result in results {
-            let (idx, score, genotype) = result;
+        for (idx, score, genotype) in results {
             ecosystem.population[idx].set_score(Some(score?));
             ecosystem.population[idx].set_genotype(genotype);
         }
@@ -243,8 +240,8 @@ where
 {
     #[inline]
     fn eval(&self, ecosystem: &mut Ecosystem<C>, problem: Arc<dyn Problem<C, T>>) -> Result<usize> {
-        let mut pairs = Vec::new();
         let len = ecosystem.population.len();
+        let mut pairs = Vec::with_capacity(len);
         for idx in 0..len {
             if ecosystem.population[idx].score().is_none() {
                 let geno = ecosystem.population[idx].take_genotype()?;
@@ -276,25 +273,21 @@ where
             batches.push((batch_indices, batch_genotypes));
         }
 
-        let results = self.executor.execute_batch(
-            batches
-                .into_iter()
-                .map(|batch| {
-                    let problem = Arc::clone(&problem);
-                    move || {
-                        let scores = problem.eval_batch(&batch.1);
-                        (batch.0, scores, batch.1)
-                    }
-                })
-                .collect(),
-        );
+        let results = self
+            .executor
+            .execute_batch(batches.into_iter().map(|batch| {
+                let problem = Arc::clone(&problem);
+                move || {
+                    let scores = problem.eval_batch(&batch.1);
+                    (batch.0, scores, batch.1)
+                }
+            }));
 
         let mut count = 0;
         for (indices, scores, genotypes) in results {
+            let scores = scores?;
             count += indices.len();
-            let score_genotype_iter = scores?.into_iter().zip(genotypes);
-            for (i, (score, genotype)) in score_genotype_iter.enumerate() {
-                let idx = indices[i];
+            for ((idx, score), genotype) in indices.into_iter().zip(scores).zip(genotypes) {
                 ecosystem.population[idx].set_score(Some(score));
                 ecosystem.population[idx].set_genotype(genotype);
             }

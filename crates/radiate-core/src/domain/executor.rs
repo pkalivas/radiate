@@ -63,25 +63,32 @@ impl Executor {
         }
     }
 
-    pub fn execute_batch<F, R>(&self, f: Vec<F>) -> Vec<R>
+    pub fn execute_batch<I, F, R>(&self, jobs: I) -> Vec<R>
     where
+        I: IntoIterator<Item = F>,
         F: FnOnce() -> R + Send + 'static,
         R: Send + 'static,
     {
         match self {
-            Executor::Serial => f.into_iter().map(|func| func()).collect(),
+            Executor::Serial => jobs.into_iter().map(|func| func()).collect(),
             Executor::FixedSizedWorkerPool(num_workers) => {
                 let pool = get_thread_pool(*num_workers);
-                let mut results = Vec::with_capacity(f.len());
+                let iter = jobs.into_iter();
+                let mut results = Vec::with_capacity(iter.size_hint().0);
 
-                for job in f {
+                for job in iter {
                     results.push(pool.submit_with_result(job));
                 }
 
                 results.into_iter().map(|r| r.result()).collect()
             }
             #[cfg(feature = "rayon")]
-            Executor::WorkerPool => f.into_par_iter().map(|func| func()).collect(),
+            Executor::WorkerPool => jobs
+                .into_iter()
+                .collect::<Vec<_>>()
+                .into_par_iter()
+                .map(|func| func())
+                .collect(),
         }
     }
 
@@ -104,20 +111,21 @@ impl Executor {
         }
     }
 
-    pub fn submit_blocking<F>(&self, f: Vec<F>)
+    pub fn submit_blocking<I, F>(&self, jobs: I)
     where
+        I: IntoIterator<Item = F>,
         F: FnOnce() + Send + 'static,
     {
         match self {
             Executor::Serial => {
-                for func in f {
+                for func in jobs {
                     func();
                 }
             }
             Executor::FixedSizedWorkerPool(num_workers) => {
                 let pool = get_thread_pool(*num_workers);
                 let wg = WaitGroup::new();
-                for job in f {
+                for job in jobs {
                     let guard = wg.guard();
                     pool.submit(move || {
                         job();
@@ -130,7 +138,7 @@ impl Executor {
             #[cfg(feature = "rayon")]
             Executor::WorkerPool => {
                 let wg = WaitGroup::new();
-                let with_guards = f
+                let with_guards = jobs
                     .into_iter()
                     .map(|job| {
                         let guard = wg.guard();
