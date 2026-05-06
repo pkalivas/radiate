@@ -3,11 +3,10 @@ use crate::context::Context;
 use crate::events::EngineMessage;
 use crate::iter::EngineIterator;
 use crate::pipeline::Pipeline;
-use crate::stream::EngineStreamHandle;
-use crate::{Chromosome, EngineControl, GenerationView};
+use crate::{Chromosome, EngineControl};
 use crate::{EventBus, Generation};
+use radiate_core::Engine;
 use radiate_core::error::Result;
-use radiate_core::{Engine, EngineStream};
 
 /// The [GeneticEngine] is the core component of the Radiate library's genetic algorithm implementation.
 /// The engine is designed to be fast, flexible and extensible, allowing users to
@@ -124,14 +123,6 @@ where
         let control = self.context.control.clone();
         EngineIterator::new(self, control)
     }
-
-    pub fn stream(self) -> EngineStreamHandle<GeneticEngine<C, T>>
-    where
-        C: Chromosome + Clone + 'static,
-        T: Clone + Send + Sync + 'static,
-    {
-        EngineStreamHandle::new(self)
-    }
 }
 
 /// Implementation of the [Engine] trait for [GeneticEngine].
@@ -184,56 +175,6 @@ where
         self.bus.publish(EngineMessage::EpochEnd(&self.context));
 
         Ok(Generation::from(&self.context))
-    }
-}
-
-impl<C, T> EngineStream for GeneticEngine<C, T>
-where
-    C: Chromosome + Clone + 'static,
-    T: Clone + Send + Sync + 'static,
-{
-    type State = Context<C, T>;
-
-    #[inline]
-    fn step(&mut self) -> Result<()> {
-        if let Some(control) = &self.context.control
-            && control.is_paused()
-        {
-            control.wait_before_step();
-        }
-
-        if matches!(self.context.index, 0) {
-            self.bus.publish(EngineMessage::<C, T>::Start);
-        }
-
-        self.bus.publish(EngineMessage::EpochStart(&self.context));
-        self.pipeline.run(&mut self.context)?;
-        if self.context.try_advance_one()? {
-            self.bus.publish(EngineMessage::Improvement(&self.context));
-        }
-
-        self.bus.publish(EngineMessage::EpochEnd(&self.context));
-
-        Ok(())
-    }
-
-    #[inline]
-    fn state(&self) -> &Self::State {
-        &self.context
-    }
-
-    #[inline]
-    fn finish(&mut self) -> Result<()> {
-        // Ensure the final state is emitted before finishing
-        self.bus.publish(EngineMessage::Stop(&self.context));
-        Ok(())
-    }
-
-    #[inline]
-    fn start(&mut self) -> Result<()> {
-        // No special initialization needed for this engine, but we could emit a start event if desired
-        self.bus.publish(EngineMessage::<C, T>::Start);
-        Ok(())
     }
 }
 

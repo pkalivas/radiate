@@ -24,9 +24,9 @@ fn main() {
         .build();
 
     // radiate::ui(engine)
-    // engine.iter().until_score(MIN_SCORE).last().inspect(display);
-    let result = engine.stream().until_score(MIN_SCORE).last();
-    result.inspect(display);
+    engine.iter().until_score(MIN_SCORE).last().inspect(display);
+    // let result = engine.stream().until_score(MIN_SCORE).last();
+    // result.inspect(display);
 }
 
 fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {

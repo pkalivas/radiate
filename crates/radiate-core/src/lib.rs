@@ -24,7 +24,7 @@ pub use codecs::{
 };
 pub use diversity::{CosineDistance, Diversity, EuclideanDistance, HammingDistance};
 pub use domain::*;
-pub use engine::{Engine, EngineExt, EngineStream};
+pub use engine::{Engine, EngineExt};
 pub use evaluator::{BatchFitnessEvaluator, Evaluator, FitnessEvaluator};
 pub use executor::Executor;
 pub use fitness::{
@@ -48,7 +48,7 @@ pub mod prelude {
     };
     pub use super::diversity::{CosineDistance, Diversity, EuclideanDistance, HammingDistance};
     pub use super::domain::random_provider;
-    pub use super::engine::{Engine, EngineExt, EngineStream};
+    pub use super::engine::{Engine, EngineExt};
     pub use super::evaluator::{BatchFitnessEvaluator, Evaluator, FitnessEvaluator};
     pub use super::executor::Executor;
     pub use super::fitness::{
