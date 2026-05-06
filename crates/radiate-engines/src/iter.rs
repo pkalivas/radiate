@@ -20,7 +20,7 @@
 use crate::{CheckpointWriter, JsonCheckpointWriter};
 use crate::{Generation, Limit, control::EngineControl, init_logging};
 use radiate_core::{Chromosome, Engine, Metric, Objective, Optimize, Score};
-use radiate_expr::{AnyValue, Expr, Evaluate};
+use radiate_expr::{AnyValue, Evaluate, Expr};
 #[cfg(feature = "serde")]
 use serde::Serialize;
 #[cfg(feature = "serde")]
@@ -720,7 +720,38 @@ where
         Self: Sized,
     {
         init_logging();
-        LoggingIterator { iter: self }
+        LoggingIterator {
+            iter: self,
+            interval: 1,
+        }
+    }
+
+    /// Adds logging at specified intervals to the iteration process.
+    ///
+    /// This is the same as the `logging()` method but allows you to specify how often to
+    /// log information about the generations. Sometimes we just don't want to log every single generation,
+    /// especially for long-running processes, so this method provides a way to log every N generations.
+    ///
+    /// # Arguments
+    /// * `interval` - The interval (in generations) at which to log information
+    ///
+    /// # Examples
+    /// ```rust,ignore
+    /// // Add logging every 10 generations
+    /// for generation in engine.iter().log_every(10) {
+    ///     // Each 10th generation will be logged automatically
+    ///     // Output format: "Epoch 10    | Score: 0.8500 | Time: 0.15s"
+    /// }
+    /// ```
+    fn log_every(self, interval: usize) -> impl Iterator<Item = Generation<C, T>>
+    where
+        Self: Sized,
+    {
+        init_logging();
+        LoggingIterator {
+            iter: self,
+            interval,
+        }
     }
 
     /// Adds checkpointing to the iteration process.
@@ -931,6 +962,7 @@ where
     C: Chromosome,
 {
     iter: I,
+    interval: usize,
 }
 
 /// Implementation of `Iterator` for [LoggingIterator].
@@ -947,6 +979,10 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         let next = self.iter.next()?;
+
+        if !next.index().is_multiple_of(self.interval) {
+            return Some(next);
+        }
 
         match next.objective() {
             Objective::Single(_) => {

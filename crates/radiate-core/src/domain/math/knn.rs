@@ -1,6 +1,8 @@
 use crate::diversity::Distance;
 use std::{cmp::Ordering, sync::Arc};
 
+const EPSILON: f32 = 1e-12;
+
 pub struct KnnQueryResult<'a> {
     pub cluster: &'a [(usize, f32)],
     pub max_distance: f32,
@@ -96,11 +98,12 @@ impl<'a, P> KNN<'a, P> {
         let mut max_distance = f32::NEG_INFINITY;
         for (idx, p) in self.points.iter().enumerate() {
             if let Some(qi) = query_index
-                && qi == idx {
-                    continue;
-                }
+                && qi == idx
+            {
+                continue;
+            }
 
-            let dist = self.metric.distance(query, p).max(1e-12);
+            let dist = self.metric.distance(query, p).max(EPSILON);
             min_distance = min_distance.min(dist);
             max_distance = max_distance.max(dist);
             self.scratch.push((idx, dist));

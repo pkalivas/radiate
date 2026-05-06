@@ -2,8 +2,8 @@ use radiate::random_provider;
 
 const NUM_STEPS: usize = 100;
 
-pub fn behavior_descriptor(pattern: &Vec<f32>) -> Vec<f32> {
-    let trajectory = simulate_movement(pattern);
+pub fn behavior_descriptor(pattern: Vec<f32>) -> Vec<f32> {
+    let trajectory = simulate_movement(&pattern);
     if trajectory.is_empty() {
         return vec![0.0; 6];
     }
