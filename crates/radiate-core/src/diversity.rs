@@ -84,8 +84,8 @@ impl<P: AsRef<[f32]>> Distance<P> for HammingDistance {
 }
 
 impl Novelty<Vec<f32>> for HammingDistance {
-    fn description(&self, phenotype: Vec<f32>) -> Vec<f32> {
-        phenotype
+    fn description(&self, phenotype: &Vec<f32>) -> Vec<f32> {
+        phenotype.clone()
     }
 }
 
@@ -142,8 +142,8 @@ impl<P: AsRef<[f32]>> Distance<P> for EuclideanDistance {
 }
 
 impl Novelty<Vec<f32>> for EuclideanDistance {
-    fn description(&self, phenotype: Vec<f32>) -> Vec<f32> {
-        phenotype
+    fn description(&self, phenotype: &Vec<f32>) -> Vec<f32> {
+        phenotype.clone()
     }
 }
 
@@ -199,8 +199,8 @@ impl<P: AsRef<[f32]>> Distance<P> for CosineDistance {
 }
 
 impl Novelty<Vec<f32>> for CosineDistance {
-    fn description(&self, phenotype: Vec<f32>) -> Vec<f32> {
-        phenotype
+    fn description(&self, phenotype: &Vec<f32>) -> Vec<f32> {
+        phenotype.clone()
     }
 }
 

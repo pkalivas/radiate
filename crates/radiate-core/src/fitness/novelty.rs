@@ -10,17 +10,22 @@ const DEFAULT_K: usize = 15;
 const DEFAULT_THRESHOLD: f32 = 0.5;
 
 pub trait Novelty<T>: Send + Sync {
-    fn description(&self, member: T) -> Vec<f32>;
-    fn batch_description(&self, members: Vec<T>) -> Vec<Vec<f32>> {
-        members.into_iter().map(|m| self.description(m)).collect()
+    fn description(&self, member: &T) -> Vec<f32>;
+
+    /// Compute descriptors for a whole batch. Default fans out to `description`.
+    /// Override this on your own concrete `Novelty` impl if you can vectorise the
+    /// batch path (shared setup, SIMD, GPU, etc.) — the closure blanket impl
+    /// always takes the default.
+    fn batch_description(&self, members: &[T]) -> Vec<Vec<f32>> {
+        members.iter().map(|m| self.description(m)).collect()
     }
 }
 
 impl<T, F> Novelty<T> for F
 where
-    F: Fn(T) -> Vec<f32> + Send + Sync,
+    F: Fn(&T) -> Vec<f32> + Send + Sync,
 {
-    fn description(&self, member: T) -> Vec<f32> {
+    fn description(&self, member: &T) -> Vec<f32> {
         self(member)
     }
 }
@@ -95,7 +100,7 @@ impl<T> NoveltySearch<T> {
         (avg_dist - min_dist) / range
     }
 
-    fn evaluate_internal(&self, individual: T) -> f32 {
+    fn evaluate_internal(&self, individual: &T) -> f32 {
         let description = self.behavior.description(individual);
         let mut archive = self.archive.write().unwrap();
 
@@ -112,29 +117,36 @@ impl<T> NoveltySearch<T> {
         novelty
     }
 
-    fn evaluate_batch_internal(&self, individuals: Vec<T>) -> Vec<f32> {
+    fn evaluate_batch_internal(&self, individuals: &[T]) -> Vec<f32> {
         let descriptions = self.behavior.batch_description(individuals);
         let mut archive = self.archive.write().unwrap();
 
         if archive.is_empty() {
-            for desc in &descriptions {
-                archive.push(desc.clone());
+            let result = vec![0.5; descriptions.len()];
+            for desc in descriptions {
+                archive.push(desc);
             }
 
-            return vec![0.5; descriptions.len()];
+            return result;
         }
 
-        descriptions
-            .into_iter()
-            .map(|desc| {
-                let novelty = self.novelty_score(&desc, &archive);
-                if novelty > self.threshold || archive.len() < self.k {
-                    archive.push(desc);
-                }
+        // Score every descriptor against the same pre-batch archive snapshot —
+        // no archive mutations happen during scoring, so individual-N's score
+        // does not depend on its position in the batch.
+        let scores = descriptions
+            .iter()
+            .map(|desc| self.novelty_score(desc, &archive))
+            .collect::<Vec<f32>>();
 
-                novelty
-            })
-            .collect()
+        // Admit in a separate pass. `archive.len() < self.k` still bootstraps,
+        // using the running size so we don't overshoot k by the whole batch.
+        for (desc, &score) in descriptions.into_iter().zip(&scores) {
+            if score > self.threshold || archive.len() < self.k {
+                archive.push(desc);
+            }
+        }
+
+        scores
     }
 }
 
@@ -143,16 +155,16 @@ where
     T: Send + Sync,
 {
     fn evaluate(&self, individual: T) -> f32 {
-        self.evaluate_internal(individual)
+        self.evaluate_internal(&individual)
     }
 }
 
 impl<T> FitnessFunction<&T, f32> for NoveltySearch<T>
 where
-    T: Send + Sync + Clone,
+    T: Send + Sync,
 {
     fn evaluate(&self, individual: &T) -> f32 {
-        self.evaluate_internal(individual.clone())
+        self.evaluate_internal(individual)
     }
 }
 
@@ -161,7 +173,7 @@ where
     T: Send + Sync,
 {
     fn evaluate(&self, individuals: Vec<T>) -> Vec<f32> {
-        self.evaluate_batch_internal(individuals)
+        self.evaluate_batch_internal(&individuals)
     }
 }
 
@@ -171,7 +183,7 @@ mod tests {
     use crate::{BatchFitnessFunction, FitnessFunction};
 
     fn make_ns(k: usize, threshold: f32) -> NoveltySearch<Vec<f32>> {
-        NoveltySearch::new(|v: Vec<f32>| v)
+        NoveltySearch::new(|v: &Vec<f32>| v.clone())
             .k(k)
             .threshold(threshold)
             .archive_size(100)
@@ -329,7 +341,7 @@ mod tests {
     #[test]
     fn archive_window_caps_at_configured_size() {
         // archive_size=5, threshold=-1 (always admit).
-        let ns = NoveltySearch::new(|v: Vec<f32>| v)
+        let ns = NoveltySearch::new(|v: &Vec<f32>| v.clone())
             .k(1)
             .threshold(-1.0)
             .archive_size(5);
@@ -367,17 +379,56 @@ mod tests {
     }
 
     #[test]
-    fn batch_eval_after_seeding_uses_running_archive() {
-        // Seed past bootstrap, then evaluate a batch where each individual
-        // is scored against an archive that already includes prior batch members
-        // when they themselves crossed the threshold.
-        let ns = make_ns(2, -1.0); // threshold=-1 so every batch member is admitted.
+    fn batch_eval_admits_via_running_archive_size_for_bootstrap() {
+        // Scoring is against a frozen pre-batch snapshot, but the admission pass
+        // walks the batch with the live archive size so bootstrap (`archive.len()
+        // < k`) still works mid-batch when the pre-batch archive is undersized.
+        let ns = make_ns(2, -1.0); // threshold=-1 → score-based admission also passes.
         seed(&ns, [vec![0.0], vec![10.0]]);
         let initial = archive_view_len(&ns);
 
         let scores = eval_batch(&ns, vec![vec![5.0], vec![20.0], vec![-5.0]]);
         assert_eq!(scores.len(), 3);
         assert_eq!(archive_view_len(&ns), initial + 3);
+    }
+
+    #[test]
+    fn batch_eval_scores_are_invariant_under_batch_reordering() {
+        // True-batch semantics: every individual is scored against the SAME
+        // pre-batch archive snapshot, so permuting the batch must permute the
+        // scores identically.
+        let archive_seed = [vec![0.0], vec![5.0], vec![10.0]];
+
+        let ns_a = make_ns(2, -1.0);
+        seed(&ns_a, archive_seed.iter().cloned());
+        let scores_a = eval_batch(&ns_a, vec![vec![2.0], vec![12.0], vec![-3.0]]);
+
+        let ns_b = make_ns(2, -1.0);
+        seed(&ns_b, archive_seed.iter().cloned());
+        let scores_b = eval_batch(&ns_b, vec![vec![-3.0], vec![2.0], vec![12.0]]);
+
+        // a[0]↔b[1] (=2.0), a[1]↔b[2] (=12.0), a[2]↔b[0] (=-3.0)
+        assert!((scores_a[0] - scores_b[1]).abs() < 1e-6);
+        assert!((scores_a[1] - scores_b[2]).abs() < 1e-6);
+        assert!((scores_a[2] - scores_b[0]).abs() < 1e-6);
+    }
+
+    #[test]
+    fn batch_eval_does_not_score_against_intra_batch_additions() {
+        // If the batch were "online" (admitting earlier members before scoring
+        // later ones), then a duplicate entry later in the batch would see its
+        // earlier copy as a near-zero-distance neighbour and score ~0.
+        // True batch should score the duplicate against only the pre-batch
+        // archive — yielding the same score as the original.
+        let ns = make_ns(2, -1.0);
+        seed(&ns, [vec![0.0], vec![10.0]]);
+
+        let scores = eval_batch(&ns, vec![vec![5.0], vec![5.0]]);
+        assert_eq!(scores.len(), 2);
+        assert!(
+            (scores[0] - scores[1]).abs() < 1e-6,
+            "duplicate batch members should score identically: {scores:?}"
+        );
     }
 
     #[test]
@@ -394,7 +445,7 @@ mod tests {
 
     #[test]
     fn cosine_distance_identical_direction_scores_zero_in_degenerate_case() {
-        let ns = NoveltySearch::new(|v: Vec<f32>| v)
+        let ns = NoveltySearch::new(|v: &Vec<f32>| v.clone())
             .k(3)
             .threshold(0.99)
             .archive_size(100)
@@ -411,7 +462,7 @@ mod tests {
         use std::thread;
 
         let ns = Arc::new(
-            NoveltySearch::new(|v: Vec<f32>| v)
+            NoveltySearch::new(|v: &Vec<f32>| v.clone())
                 .k(5)
                 .threshold(0.3)
                 .archive_size(200),
