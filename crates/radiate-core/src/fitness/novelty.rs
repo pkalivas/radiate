@@ -2,10 +2,8 @@ use crate::{
     BatchFitnessFunction, CosineDistance, EuclideanDistance, FitnessFunction, HammingDistance,
     diversity::Distance, math::knn::KNN,
 };
-use std::{
-    collections::VecDeque,
-    sync::{Arc, RwLock},
-};
+use radiate_utils::WindowBuffer;
+use std::sync::{Arc, RwLock};
 
 const DEFAULT_ARCHIVE_SIZE: usize = 1000;
 const DEFAULT_K: usize = 15;
@@ -27,7 +25,7 @@ where
 #[derive(Clone)]
 pub struct NoveltySearch<T> {
     pub behavior: Arc<dyn Novelty<T>>,
-    pub archive: Arc<RwLock<VecDeque<Vec<f32>>>>,
+    pub archive: Arc<RwLock<WindowBuffer<Vec<f32>>>>,
     pub k: usize,
     pub threshold: f32,
     pub max_archive_size: usize,
@@ -41,7 +39,7 @@ impl<T> NoveltySearch<T> {
     {
         NoveltySearch {
             behavior: Arc::new(behavior),
-            archive: Arc::new(RwLock::new(VecDeque::new())),
+            archive: Arc::new(RwLock::new(WindowBuffer::with_window(DEFAULT_ARCHIVE_SIZE))),
             k: DEFAULT_K,
             threshold: DEFAULT_THRESHOLD,
             max_archive_size: DEFAULT_ARCHIVE_SIZE,
@@ -82,12 +80,12 @@ impl<T> NoveltySearch<T> {
     fn normalized_novelty_score(
         &self,
         descriptor: &Vec<f32>,
-        archive: &mut VecDeque<Vec<f32>>,
+        archive: &mut WindowBuffer<Vec<f32>>,
     ) -> f32 {
         if archive.is_empty() {
             return 0.5;
         }
-        let slice = archive.make_contiguous();
+        let slice = archive.values();
 
         let mut knn = KNN::new(slice, Arc::clone(&self.distance_fn));
         let query = knn.query_point(descriptor, self.k);
@@ -115,7 +113,7 @@ impl<T> NoveltySearch<T> {
 
         if is_empty {
             let mut writer = self.archive.write().unwrap();
-            writer.push_back(description);
+            writer.push(description);
             return 0.5;
         }
 
@@ -129,11 +127,7 @@ impl<T> NoveltySearch<T> {
 
         if should_add {
             let mut writer = self.archive.write().unwrap();
-
-            writer.push_back(description);
-            while writer.len() > self.max_archive_size {
-                writer.pop_front();
-            }
+            writer.push(description);
         }
 
         novelty
