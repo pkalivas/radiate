@@ -250,19 +250,19 @@ class Expr(RsObject):
 
 
 def mean(metric_name: str) -> Expr:
-    return select(metric_name)
+    return select(metric_name).mean()
 
 
 def min(metric_name: str) -> Expr:
-    return select(metric_name)
+    return select(metric_name).min()
 
 
 def max(metric_name: str) -> Expr:
-    return select(metric_name)
+    return select(metric_name).max()
 
 
 def stddev(metric_name: str) -> Expr:
-    return select(metric_name)
+    return select(metric_name).stddev()
 
 
 def select(metric: str) -> Expr:
@@ -286,4 +286,4 @@ def every(interval: int) -> Every:
 
 
 def generation() -> Expr:
-    return Expr.from_rust(PyExpr.metric("index"))
+    return Expr.from_rust(PyExpr.select("index"))

@@ -207,6 +207,9 @@ impl Metric {
             MetricUpdate::Distribution(values) => {
                 self.update_statistic_from_iter(values.iter().cloned());
             }
+            MetricUpdate::OwnedDistribution(values) => {
+                self.update_statistic_from_iter(values);
+            }
             MetricUpdate::Statistic(stat) => {
                 self.inner.merge(&stat);
                 self.dtype = DATA_TYPE_FLOAT32;
@@ -300,6 +303,10 @@ impl Metric {
         self.inner.skewness().unwrap_or(0.0)
     }
 
+    pub fn kurt(&self) -> f32 {
+        self.inner.kurtosis().unwrap_or(0.0)
+    }
+    
     pub fn min(&self) -> f32 {
         self.inner.min()
     }
@@ -311,6 +318,7 @@ impl Metric {
     pub fn sum(&self) -> f32 {
         self.inner.sum()
     }
+
 }
 
 impl Hash for Metric {
@@ -321,12 +329,13 @@ impl Hash for Metric {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum MetricUpdate<'a> {
     Float(f32),
     Usize(usize),
     Duration(Duration),
     Distribution(&'a [f32]),
+    OwnedDistribution(Vec<f32>),
     UsizeDistribution(&'a [usize]),
     Statistic(Statistic),
 }
@@ -406,9 +415,9 @@ impl<'a> TryFrom<AnyValue<'a>> for MetricUpdate<'a> {
                                 "cannot convert AnyValue sequence into MetricUpdate::Statistic: element at index {index} has non-numeric type `{}`", v.type_name()))
                             
                     })
-                    .collect::<Result<Statistic, _>>()?;
+                    .collect::<Result<Vec<f32>, _>>()?;
 
-                Ok(MetricUpdate::Statistic(out))
+                Ok(MetricUpdate::OwnedDistribution(out))
             }
 
             AnyValue::Vector(values) => {
@@ -423,9 +432,9 @@ impl<'a> TryFrom<AnyValue<'a>> for MetricUpdate<'a> {
                                 "cannot convert AnyValue sequence into MetricUpdate::Distribution: element at index {index} has non-numeric type `{ty}`"
                             ))
                     })
-                    .collect::<Result<Statistic, _>>()?;
+                    .collect::<Result<Vec<f32>, _>>()?;
 
-                Ok(MetricUpdate::Statistic(out))
+                Ok(MetricUpdate::OwnedDistribution(out))
             }
 
             other => Err(radiate_err!(Metric: "cannot convert AnyValue of type `{}` into MetricUpdate", other.type_name())),

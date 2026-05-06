@@ -313,6 +313,7 @@ impl<'de> Deserialize<'de> for MetricSet {
     }
 }
 
+#[derive(Debug)]
 pub enum MetricSetUpdate<'a> {
     Many(Vec<Metric>),
     Single(Metric),

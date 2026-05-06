@@ -106,8 +106,6 @@ where
         let lhs = self.lhs.dispatch(input)?;
         let rhs = self.rhs.dispatch(input)?;
 
-        // println!("LHS: {:?}, RHS: {:?}, LHS < RHS: {:?}", lhs, rhs, lhs < rhs);
-
         let result = match self.op {
             BinaryOp::Add => lhs + rhs,
             BinaryOp::Sub => lhs - rhs,
