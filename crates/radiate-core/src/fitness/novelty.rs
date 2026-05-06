@@ -1,6 +1,6 @@
 use crate::{
-    BatchFitnessFunction, CosineDistance, EuclideanDistance, FitnessFunction, HammingDistance,
-    diversity::Distance, math::knn::KNN,
+    BatchFitnessFunction, BatchedFn, CosineDistance, EuclideanDistance, FitnessFunction,
+    HammingDistance, diversity::Distance, math::knn::KNN,
 };
 use radiate_utils::WindowBuffer;
 use std::sync::{Arc, RwLock};
@@ -30,6 +30,22 @@ where
     }
 }
 
+impl<T, F> Novelty<T> for BatchedFn<F>
+where
+    F: Fn(&[T]) -> Vec<Vec<f32>> + Send + Sync,
+{
+    fn description(&self, member: &T) -> Vec<f32> {
+        (self.0)(std::slice::from_ref(member))
+            .into_iter()
+            .next()
+            .unwrap_or_default()
+    }
+
+    fn batch_description(&self, members: &[T]) -> Vec<Vec<f32>> {
+        (self.0)(members)
+    }
+}
+
 #[derive(Clone)]
 pub struct NoveltySearch<T> {
     pub behavior: Arc<dyn Novelty<T>>,
@@ -51,6 +67,16 @@ impl<T> NoveltySearch<T> {
             threshold: DEFAULT_THRESHOLD,
             distance_fn: Arc::new(EuclideanDistance),
         }
+    }
+
+    /// Construct from a batch-shaped descriptor closure.
+    /// Equivalent to `NoveltySearch::new(BatchedFn(f))`.
+    pub fn from_batch_fn<F>(f: F) -> Self
+    where
+        F: Fn(&[T]) -> Vec<Vec<f32>> + Send + Sync + 'static,
+        T: 'static,
+    {
+        Self::new(BatchedFn(f))
     }
 
     pub fn k(mut self, k: usize) -> Self {
@@ -133,17 +159,15 @@ impl<T> NoveltySearch<T> {
         // Score every descriptor against the same pre-batch archive snapshot —
         // no archive mutations happen during scoring, so individual-N's score
         // does not depend on its position in the batch.
-        let scores = descriptions
-            .iter()
-            .map(|desc| self.novelty_score(desc, &archive))
-            .collect::<Vec<f32>>();
+        let mut scores = Vec::with_capacity(descriptions.len());
+        for desc in descriptions.into_iter() {
+            let score = self.novelty_score(&desc, &archive);
 
-        // Admit in a separate pass. `archive.len() < self.k` still bootstraps,
-        // using the running size so we don't overshoot k by the whole batch.
-        for (desc, &score) in descriptions.into_iter().zip(&scores) {
             if score > self.threshold || archive.len() < self.k {
                 archive.push(desc);
             }
+
+            scores.push(score);
         }
 
         scores
@@ -429,6 +453,38 @@ mod tests {
             (scores[0] - scores[1]).abs() < 1e-6,
             "duplicate batch members should score identically: {scores:?}"
         );
+    }
+
+    #[test]
+    fn from_batch_fn_routes_batch_through_user_closure_and_falls_back_per_item() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+
+        let batch_calls = Arc::new(AtomicUsize::new(0));
+        let total_seen = Arc::new(AtomicUsize::new(0));
+
+        let ns: NoveltySearch<Vec<f32>> = {
+            let batch_calls = Arc::clone(&batch_calls);
+            let total_seen = Arc::clone(&total_seen);
+            NoveltySearch::from_batch_fn(move |members: &[Vec<f32>]| {
+                batch_calls.fetch_add(1, Ordering::Relaxed);
+                total_seen.fetch_add(members.len(), Ordering::Relaxed);
+                members.iter().map(|v| v.clone()).collect()
+            })
+            .k(3)
+            .threshold(0.5)
+            .archive_size(100)
+        };
+
+        // Single-eval routes through the per-item fallback, which calls the
+        // batch closure with a 1-element slice.
+        let _ = eval(&ns, vec![1.0, 0.0]);
+        assert_eq!(batch_calls.load(Ordering::Relaxed), 1);
+        assert_eq!(total_seen.load(Ordering::Relaxed), 1);
+
+        // Batch eval calls the closure once with the full slice — the fast path.
+        let _ = eval_batch(&ns, vec![vec![1.0], vec![2.0], vec![3.0], vec![4.0]]);
+        assert_eq!(batch_calls.load(Ordering::Relaxed), 2);
+        assert_eq!(total_seen.load(Ordering::Relaxed), 5);
     }
 
     #[test]

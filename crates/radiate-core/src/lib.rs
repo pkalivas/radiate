@@ -27,7 +27,9 @@ pub use domain::*;
 pub use engine::{Engine, EngineExt};
 pub use evaluator::{BatchFitnessEvaluator, Evaluator, FitnessEvaluator};
 pub use executor::Executor;
-pub use fitness::{BatchFitnessFunction, CompositeFitnessFn, FitnessFunction, NoveltySearch};
+pub use fitness::{
+    BatchedFn, BatchFitnessFunction, CompositeFitnessFn, FitnessFunction, NoveltySearch,
+};
 pub use genome::*;
 pub use lineage::{Lineage, LineageEvent, LineageUpdate};
 pub use objectives::{Front, Objective, Optimize, Score, pareto};
@@ -50,7 +52,7 @@ pub mod prelude {
     pub use super::evaluator::{BatchFitnessEvaluator, Evaluator, FitnessEvaluator};
     pub use super::executor::Executor;
     pub use super::fitness::{
-        BatchFitnessFunction, CompositeFitnessFn, FitnessFunction, NoveltySearch,
+        BatchedFn, BatchFitnessFunction, CompositeFitnessFn, FitnessFunction, NoveltySearch,
     };
     pub use super::genome::{
         ArithmeticGene, BitChromosome, BitGene, BoundedGene, CharChromosome, CharGene, Chromosome,

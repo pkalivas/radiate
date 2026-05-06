@@ -45,3 +45,17 @@ where
         self(&individuals)
     }
 }
+
+pub struct SingleFn<F>(pub F);
+
+pub struct BatchedFn<F>(pub F);
+
+impl<T, S, F> FitnessFunction<T, S> for SingleFn<F>
+where
+    F: Fn(T) -> S + Send + Sync,
+    S: Into<Score>,
+{
+    fn evaluate(&self, individual: T) -> S {
+        self.0(individual)
+    }
+}
