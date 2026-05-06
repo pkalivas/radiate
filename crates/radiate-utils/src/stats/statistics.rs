@@ -51,7 +51,7 @@ pub struct Statistic<F: Float = f32> {
     m3: Adder<F>,
     m4: Adder<F>,
     sum: Adder<F>,
-    count: i32,
+    count: u32,
     last_value: F,
     max: F,
     min: F,
@@ -68,7 +68,7 @@ impl<F: Float> Statistic<F> {
         self.last_value
     }
 
-    pub fn count(&self) -> i32 {
+    pub fn count(&self) -> u32 {
         self.count
     }
 

@@ -1,4 +1,4 @@
-use crate::{AnyValue, ExprProjection, ExprQuery, ExprResult};
+use crate::{AnyValue, Evaluate, ExprProjection, ExprResult};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
@@ -24,11 +24,11 @@ pub enum ScheduleExpr {
     Every(EveryState),
 }
 
-impl<T> ExprQuery<T> for ScheduleExpr
+impl<T> Evaluate<T> for ScheduleExpr
 where
     T: ExprProjection,
 {
-    fn dispatch<'a>(&'a mut self, _input: &T) -> ExprResult<'a> {
+    fn eval<'a>(&'a mut self, _input: &T) -> ExprResult<'a> {
         match self {
             ScheduleExpr::Every(state) => {
                 state.count += 1;

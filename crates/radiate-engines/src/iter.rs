@@ -20,7 +20,7 @@
 use crate::{CheckpointWriter, JsonCheckpointWriter};
 use crate::{Generation, Limit, control::EngineControl, init_logging};
 use radiate_core::{Chromosome, Engine, Metric, Objective, Optimize, Score};
-use radiate_expr::{AnyValue, ApplyExpr, Expr};
+use radiate_expr::{AnyValue, Expr, Evaluate};
 #[cfg(feature = "serde")]
 use serde::Serialize;
 #[cfg(feature = "serde")]
@@ -1039,7 +1039,7 @@ where
         }
 
         let next = self.iter.next()?;
-        let expr_output = next.metrics().apply(&mut self.expr);
+        let expr_output = self.expr.eval(next.metrics()).unwrap_or(AnyValue::Null);
         if let AnyValue::Bool(val) = expr_output {
             self.done = val;
         } else {

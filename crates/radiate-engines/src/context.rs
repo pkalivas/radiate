@@ -6,7 +6,7 @@ use radiate_core::{
     Ecosystem, Front, Lineage, MetricSet, MetricUpdate, Objective, Phenotype, Problem,
     RadiateError, Score, metric, metric_names,
 };
-use radiate_expr::{ApplyExpr, NamedExpr};
+use radiate_expr::{Evaluate, NamedExpr};
 use std::sync::{Arc, Mutex, RwLock};
 
 pub struct Context<C: Chromosome, T> {
@@ -77,8 +77,7 @@ impl<C: Chromosome, T> Context<C, T> {
             for expr in exprs.iter_mut() {
                 let (name, exp) = expr.pair();
 
-                let output = self.metrics.apply(exp);
-                let update = MetricUpdate::try_from(output)?;
+                let update = MetricUpdate::try_from(exp.eval(&self.metrics)?)?;
                 let name = radiate_utils::intern!(name);
 
                 self.metrics.upsert((TagType::Expr, name, update));

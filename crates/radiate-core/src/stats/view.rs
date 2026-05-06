@@ -11,7 +11,7 @@ impl<'a, T> MetricView<'a, T> {
         self.name
     }
 
-    pub fn count(&self) -> i32 {
+    pub fn count(&self) -> u32 {
         self.statistic.count()
     }
 

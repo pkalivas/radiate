@@ -1,5 +1,5 @@
 use crate::{MetricSet, Valid};
-use radiate_expr::{ApplyExpr, Expr};
+use radiate_expr::{Expr, Evaluate};
 use std::fmt::Debug;
 
 pub trait RateCalculator {
@@ -63,7 +63,7 @@ pub enum Rate {
 impl Rate {
     pub fn get(&mut self, generation: usize, metrics: &MetricSet) -> f32 {
         match self {
-            Rate::Expr(expr) => metrics.apply(expr).extract().unwrap_or(0.0),
+            Rate::Expr(expr) => expr.eval(metrics).ok().and_then(|v| v.extract()).unwrap_or(0.0),
             _ => self.get_by_index(generation),
         }
     }

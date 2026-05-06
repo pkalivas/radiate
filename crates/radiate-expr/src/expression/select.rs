@@ -1,4 +1,4 @@
-use crate::{AnyValue, Expr, ExprProjection, ExprQuery, ExprResult, Field};
+use crate::{AnyValue, Evaluate, Expr, ExprProjection, ExprResult, Field};
 use radiate_error::radiate_bail;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -48,11 +48,11 @@ pub enum SelectExpr {
     Element,
 }
 
-impl<T> ExprQuery<T> for SelectExpr
+impl<T> Evaluate<T> for SelectExpr
 where
     T: ExprProjection,
 {
-    fn dispatch<'a>(&'a mut self, input: &T) -> ExprResult<'a> {
+    fn eval<'a>(&'a mut self, input: &T) -> ExprResult<'a> {
         if let Some(result) = input.project(self) {
             Ok(result)
         } else {

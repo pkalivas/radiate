@@ -29,9 +29,10 @@ fn main() {
 
     engine
         .iter()
-        .logging()
+        // .logging()
         .take(2000)
         .last()
+        .inspect(|result| println!("{}", result.metrics().dashboard()))
         .inspect(|result| visualize(result.clone()));
 }
 

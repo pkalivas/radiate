@@ -1,13 +1,12 @@
 use crate::PyExpr;
 use crate::object::Wrap;
 use pyo3::exceptions::PyValueError;
-use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use pyo3::{IntoPyObject, PyErr, PyResult, Python};
+use pyo3::{intern, prelude::*};
 use pyo3::{pyclass, pymethods};
-use radiate::{AnyValue, ApplyExpr, Metric, MetricSet, MetricUpdate};
+use radiate::{AnyValue, Evaluate, Metric, MetricSet, MetricUpdate};
 use radiate_error::radiate_py_bail;
-use radiate_utils::intern;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
@@ -29,7 +28,7 @@ impl PyMetricSet {
                 for (fld, val) in pairs.into_iter() {
                     let name = fld.name().to_string();
                     let metric_update = MetricUpdate::try_from(val)?;
-                    metric_set.upsert((intern!(name), metric_update));
+                    metric_set.upsert((radiate_utils::intern!(name), metric_update));
                 }
             } else {
                 radiate_py_bail!("Metric: Expected a struct of metrics, but got a different type.");
@@ -44,7 +43,7 @@ impl PyMetricSet {
     }
 
     pub fn upsert(&mut self, name: &str, update: Wrap<AnyValue<'_>>) -> PyResult<()> {
-        let interned_name = intern!(name);
+        let interned_name = radiate_utils::intern!(name);
         let metric_update = MetricUpdate::try_from(update.0)?;
         self.inner.upsert((interned_name, metric_update));
         Ok(())
@@ -113,7 +112,7 @@ impl PyMetricSet {
     }
 
     pub fn project<'py>(&self, py: Python<'py>, expr: &mut PyExpr) -> PyResult<Bound<'py, PyAny>> {
-        let result = self.inner.apply(expr.inner_mut());
+        let result = expr.inner_mut().eval(&self.inner).unwrap_or(AnyValue::Null);
         Wrap(result).into_pyobject(py)
     }
 
@@ -223,7 +222,7 @@ impl PyMetric {
     #[staticmethod]
     #[pyo3(signature = (name, values=None))]
     pub fn new(name: String, values: Option<Wrap<AnyValue<'_>>>) -> PyResult<Self> {
-        let mut metric = Metric::new(intern!(name));
+        let mut metric = Metric::new(radiate_utils::intern!(name));
         if let Some(values) = values {
             let metric_values = values.0.into_static();
             let metric_update = MetricUpdate::try_from(metric_values)?;
@@ -304,7 +303,7 @@ impl PyMetric {
     }
 
     #[getter]
-    pub fn value_count(&self) -> i32 {
+    pub fn value_count(&self) -> u32 {
         self.inner.count()
     }
 
@@ -349,29 +348,29 @@ impl PyMetric {
 
     pub fn to_dict<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
         let d = PyDict::new(py);
-        d.set_item("name", self.inner.name().to_string())?;
+        d.set_item(intern!(py, "name"), self.inner.name().to_string())?;
 
-        d.set_item("last", self.value_last())?;
-        d.set_item("sum", self.value_sum())?;
-        d.set_item("mean", self.value_mean())?;
-        d.set_item("stddev", self.value_stddev())?;
-        d.set_item("var", self.value_variance())?;
-        d.set_item("skew", self.value_skewness())?;
-        d.set_item("min", self.value_min())?;
-        d.set_item("max", self.value_max())?;
-        d.set_item("count", self.value_count())?;
+        d.set_item(intern!(py, "last"), self.value_last())?;
+        d.set_item(intern!(py, "sum"), self.value_sum())?;
+        d.set_item(intern!(py, "mean"), self.value_mean())?;
+        d.set_item(intern!(py, "stddev"), self.value_stddev())?;
+        d.set_item(intern!(py, "var"), self.value_variance())?;
+        d.set_item(intern!(py, "skew"), self.value_skewness())?;
+        d.set_item(intern!(py, "min"), self.value_min())?;
+        d.set_item(intern!(py, "max"), self.value_max())?;
+        d.set_item(intern!(py, "count"), self.value_count())?;
 
-        d.set_item("time_sum", self.time_sum())?;
-        d.set_item("time_mean", self.time_mean())?;
-        d.set_item("time_stddev", self.time_stddev())?;
-        d.set_item("time_min", self.time_min())?;
-        d.set_item("time_max", self.time_max())?;
-        d.set_item("time_var", self.time_variance())?;
+        d.set_item(intern!(py, "time_sum"), self.time_sum())?;
+        d.set_item(intern!(py, "time_mean"), self.time_mean())?;
+        d.set_item(intern!(py, "time_stddev"), self.time_stddev())?;
+        d.set_item(intern!(py, "time_min"), self.time_min())?;
+        d.set_item(intern!(py, "time_max"), self.time_max())?;
+        d.set_item(intern!(py, "time_var"), self.time_variance())?;
 
-        d.set_item("version", self.version())?;
-        d.set_item("update_count", self.update_count())?;
+        d.set_item(intern!(py, "version"), self.version())?;
+        d.set_item(intern!(py, "update_count"), self.update_count())?;
 
-        d.set_item("tags", self.tags())?;
+        d.set_item(intern!(py, "tags"), self.tags())?;
 
         Ok(d)
     }

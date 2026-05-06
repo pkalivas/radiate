@@ -108,7 +108,7 @@ impl ExprProjection for i32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{AnyValue, Expr, ExprQuery, Field, expr, expression::select::PathBuilder};
+    use crate::{AnyValue, Expr, Evaluate, Field, expr, expression::select::PathBuilder};
     use std::collections::HashMap;
 
     fn f32_of(value: AnyValue<'_>) -> f32 {
@@ -124,7 +124,7 @@ mod tests {
         let values = vec![10i32, 20, 30];
         let mut selector = SelectExpr::Nth(1);
 
-        let result = selector.dispatch(&values).unwrap();
+        let result = selector.eval(&values).unwrap();
 
         assert_eq!(i32_of(result), 20);
     }
@@ -134,7 +134,7 @@ mod tests {
         let values = vec![10i32, 20, 30];
         let mut selector = SelectExpr::Path(vec![PathSegment::Index(2)]);
 
-        let result = selector.dispatch(&values).unwrap();
+        let result = selector.eval(&values).unwrap();
 
         assert_eq!(i32_of(result), 30);
     }
@@ -145,7 +145,7 @@ mod tests {
         let mut selector =
             SelectExpr::Path(vec![PathSegment::Key(AnyValue::from("nope").into_static())]);
 
-        let result = selector.dispatch(&values).unwrap_or(AnyValue::Null);
+        let result = selector.eval(&values).unwrap_or(AnyValue::Null);
 
         assert!(matches!(result, AnyValue::Null));
     }
@@ -157,7 +157,7 @@ mod tests {
 
         let mut selector: Expr = expr::path("mean").into();
 
-        let result = selector.dispatch(&inner).unwrap();
+        let result = selector.eval(&inner).unwrap();
 
         assert_eq!(f32_of(result), 12.5);
     }
@@ -171,7 +171,7 @@ mod tests {
             AnyValue::from("accuracy").into_static(),
         )]);
 
-        let result = selector.dispatch(&map).unwrap();
+        let result = selector.eval(&map).unwrap();
 
         assert_eq!(f32_of(result), 0.91);
     }
@@ -185,7 +185,7 @@ mod tests {
             AnyValue::from("missing").into_static(),
         )]);
 
-        let result = selector.dispatch(&map).unwrap_or(AnyValue::Null);
+        let result = selector.eval(&map).unwrap_or(AnyValue::Null);
 
         assert!(matches!(result, AnyValue::Null));
     }
@@ -224,7 +224,7 @@ mod tests {
             PathSegment::Key(AnyValue::from("name").into_static()),
         ]);
 
-        let result = selector.dispatch(&root).unwrap();
+        let result = selector.eval(&root).unwrap();
 
         match result {
             AnyValue::Str(s) => assert_eq!(s, "bob"),
@@ -263,7 +263,7 @@ mod tests {
         let mut expr: Expr = PathBuilder::default().key("metric").key("value").into();
         expr = expr.gt(5.0);
 
-        let result = expr.dispatch(&root).unwrap();
+        let result = expr.eval(&root).unwrap();
 
         match result {
             AnyValue::Bool(v) => assert!(v),

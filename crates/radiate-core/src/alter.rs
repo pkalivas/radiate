@@ -38,7 +38,6 @@ impl AlterResult {
     }
 }
 
-
 impl From<usize> for AlterResult {
     fn from(value: usize) -> Self {
         AlterResult(value)
