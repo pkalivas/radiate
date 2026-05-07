@@ -140,7 +140,9 @@ where
 
     fn handle_metric_modal_event(&mut self, key: KeyEvent) {
         match key.code {
-            KeyCode::Esc | KeyCode::Enter => self.state.nav.toggle_metric_modal(),
+            KeyCode::Esc | KeyCode::Enter | KeyCode::Char('q') => {
+                self.state.nav.toggle_metric_modal()
+            }
 
             KeyCode::Right | KeyCode::Char('l') => self.state.nav.next_tab(),
             KeyCode::Left | KeyCode::Char('h') => self.state.nav.previous_tab(),
@@ -169,13 +171,16 @@ where
 
     fn handle_search_event(&mut self, key: KeyEvent) {
         match (key.code, key.modifiers) {
-            (KeyCode::Esc, _) | (KeyCode::Enter, _) => self.state.nav.close_search(),
+            (KeyCode::Esc, _) | (KeyCode::Enter, _) | (KeyCode::Char('/'), _) => {
+                self.state.nav.close_search()
+            }
             (KeyCode::Backspace, _) => self.state.nav.pop_search_char(),
 
             (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
                 self.state.nav.close_search();
                 self.state.nav.clear_search();
             }
+
             (KeyCode::Char(c), _) => self.state.nav.push_search_char(c),
             _ => {}
         }

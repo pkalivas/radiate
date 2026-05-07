@@ -44,16 +44,13 @@ impl<C: Chromosome> EvoState<C> {
     {
         if let Some(audits) = audits {
             for audit in audits.iter() {
-                match audit {
-                    ContextAudit::NewBest => {
-                        let phenotype = self
-                            .ecosystem
-                            .as_ref()
-                            .and_then(|eco| eco.get_phenotype(0))
-                            .cloned();
-                        self.best_phenotype = phenotype;
-                    }
-                    _ => {}
+                if let ContextAudit::NewBest = audit {
+                    let phenotype = self
+                        .ecosystem
+                        .as_ref()
+                        .and_then(|eco| eco.get_phenotype(0))
+                        .cloned();
+                    self.best_phenotype = phenotype;
                 }
             }
         }
