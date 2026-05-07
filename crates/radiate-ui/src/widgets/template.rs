@@ -91,13 +91,6 @@ impl<C: Chromosome> LayoutNode<C> {
     }
 }
 
-// if state.evo.pareto.objective.is_single() {
-//     title.push(" | Score ".fg(Color::Gray).bold());
-//     title.push(format!("{:.4} ", state.evo.score.as_f32()).fg(Color::LightGreen));
-// } else {
-//     title.push(" | MOGA ".fg(Color::Gray).bold());
-// }
-
 impl<C: Chromosome> Default for LayoutNode<C> {
     fn default() -> Self {
         use LayoutNode::*;
