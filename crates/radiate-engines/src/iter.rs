@@ -111,6 +111,7 @@ where
 {
     type Item = E::Epoch;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(control) = &self.control
             && control.is_stopped()
@@ -977,6 +978,7 @@ where
 {
     type Item = Generation<C, T>;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         let next = self.iter.next()?;
 
@@ -1031,6 +1033,7 @@ where
 {
     type Item = Generation<C, T>;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         if self.done {
             return None;
@@ -1069,6 +1072,7 @@ where
 {
     type Item = Generation<C, T>;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         if self.done {
             return None;
@@ -1116,6 +1120,7 @@ where
 {
     type Item = Generation<C, T>;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         if self.max_index == 0 || self.done {
             return None;
@@ -1157,6 +1162,7 @@ where
 {
     type Item = Generation<C, T>;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         if self.limit <= Duration::from_millis(0) || self.done {
             return None;
@@ -1198,6 +1204,7 @@ where
 {
     type Item = Generation<C, T>;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         if self.done {
             return None;
@@ -1264,6 +1271,7 @@ where
 {
     type Item = Generation<C, T>;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         if self.done {
             return None;
@@ -1314,6 +1322,7 @@ where
 {
     type Item = Generation<C, T>;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         if self.done {
             return None;

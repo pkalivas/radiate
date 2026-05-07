@@ -9,7 +9,6 @@ mod iter;
 mod limit;
 mod pipeline;
 mod steps;
-mod stream;
 
 pub use builder::GeneticEngineBuilder;
 pub use control::EngineControl;
@@ -20,7 +19,6 @@ pub use io::{CheckpointReader, CheckpointWriter, JsonCheckpointReader, JsonCheck
 pub use iter::{EngineIterator, EngineIteratorExt};
 pub use limit::Limit;
 pub use steps::EvaluateStep;
-// pub use stream::{EngineStream, EngineStreamExt};
 
 pub use radiate_alters::*;
 pub use radiate_core::*;

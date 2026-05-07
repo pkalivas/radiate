@@ -2,6 +2,7 @@ use radiate::random_provider;
 
 const NUM_STEPS: usize = 100;
 
+#[allow(dead_code)]
 pub fn batch_behavior_descriptors(patterns: &[Vec<f32>]) -> Vec<Vec<f32>> {
     patterns.iter().map(|p| behavior_descriptor(p)).collect()
 }
