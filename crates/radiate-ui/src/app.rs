@@ -57,7 +57,6 @@ where
     Crossterm(Event),
     EngineStart(Objective),
     EngineStop,
-
     EpochComplete(GenerationEvent<C>),
 }
 
