@@ -7,7 +7,16 @@ use radiate_core::{
     RadiateError, Score, metric, metric_names,
 };
 use radiate_expr::{Evaluate, NamedExpr};
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex, RwLock};
+
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone)]
+pub enum ContextAudit {
+    NewBest,
+    LimitReached(String),
+}
 
 pub struct Context<C: Chromosome, T> {
     pub(crate) ecosystem: Ecosystem<C>,
@@ -21,12 +30,14 @@ pub struct Context<C: Chromosome, T> {
     pub(crate) problem: Arc<dyn Problem<C, T>>,
     pub(crate) control: Option<EngineControl>,
     pub(crate) exprs: Option<Arc<Mutex<Vec<NamedExpr>>>>,
+    pub(crate) audits: Vec<ContextAudit>,
 }
 
 impl<C: Chromosome, T> Context<C, T> {
     pub fn try_advance_one(&mut self) -> RadiateResult<bool> {
         self.index += 1;
         self.lineage.write().unwrap().rollover();
+        self.audits.clear();
 
         self.metrics
             .replace(metric!(metric_names::INDEX, self.index));
@@ -60,6 +71,7 @@ impl<C: Chromosome, T> Context<C, T> {
         if best_improved {
             self.metrics
                 .upsert((metric_names::BEST_SCORE_IMPROVEMENT, 1));
+            self.audits.push(ContextAudit::NewBest);
         }
 
         if let Some(score) = &self.score {
@@ -119,6 +131,7 @@ where
                 problem: config.problem().clone(),
                 control: None,
                 exprs: generation.exprs(),
+                audits: vec![],
             };
         }
 
@@ -139,6 +152,7 @@ where
             problem: config.problem().clone(),
             control: None,
             exprs: config.exprs(),
+            audits: vec![],
         }
     }
 }

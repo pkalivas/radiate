@@ -1,4 +1,4 @@
-use crate::app::{App, InputEvent};
+use crate::app::{App, GenerationEvent, InputEvent};
 use color_eyre::{Result, eyre::Context};
 use radiate_engines::EngineControl;
 use radiate_engines::{
@@ -93,14 +93,9 @@ where
                 .unwrap();
         }
 
+        let event = GenerationEvent::from(&current);
         self.dispatcher
-            .send(InputEvent::EpochComplete(
-                current.index(),
-                current.metrics().clone(),
-                current.score().clone(),
-                current.front().cloned(),
-                current.ecosystem().species_snapshots(),
-            ))
+            .send(InputEvent::EpochComplete(event))
             .unwrap();
 
         Ok(current)

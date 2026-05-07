@@ -28,11 +28,16 @@ impl<'a, C: Chromosome> Widget for SearchBarWidget<'a, C> {
 
         let border_style = crate::styles::panel_block(self.state.nav.is_search_focused());
 
+        let total_renders = self.state.run.render_count;
+
+        let help_text = format!(" Renders: {} ", total_renders);
+
         Paragraph::new(self.state.nav.search.query.as_str())
             .block(
                 border_style
                     .title(title)
                     .title_bottom(help_text_minimal())
+                    .title_bottom(Line::from(help_text).right_aligned())
                     .style(Style::default())
                     .borders(Borders::ALL),
             )

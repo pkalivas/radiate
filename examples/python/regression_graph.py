@@ -75,6 +75,6 @@ print(result)
 print(result.metrics().dashboard())
 print(accuracy)
 
-collector.plot(
-    "species.threshold", "count.species", "rate.diversity", "species.evenness"
-)
+# collector.plot(
+#     "species.threshold", "count.species", "rate.diversity", "species.evenness"
+# )

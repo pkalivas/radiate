@@ -3,8 +3,8 @@ use crate::widgets::{HelpPanelWidget, LayoutNode, MetricModalWidget, ModalWidget
 use color_eyre::Result;
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use radiate_engines::{
-    Chromosome, CommandChannel, EngineControl, Front, MetricSet, Objective, Phenotype, Score,
-    SpeciesSnapshot,
+    Chromosome, CommandChannel, ContextAudit, Ecosystem, EngineControl, Front, Generation,
+    MetricSet, Objective, Phenotype, Score,
 };
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -16,6 +16,34 @@ use std::{
     io,
     time::{Duration, Instant},
 };
+
+pub struct GenerationEvent<C>
+where
+    C: Chromosome,
+{
+    pub index: usize,
+    pub metrics: MetricSet,
+    pub score: Score,
+    pub front: Option<Front<Phenotype<C>>>,
+    pub audits: Option<Vec<ContextAudit>>,
+    pub ecosystem: Arc<Ecosystem<C>>,
+}
+
+impl<C, T> From<&Generation<C, T>> for GenerationEvent<C>
+where
+    C: Chromosome + Clone,
+{
+    fn from(generation: &Generation<C, T>) -> Self {
+        Self {
+            index: generation.index(),
+            metrics: generation.metrics().clone(),
+            score: generation.score().clone(),
+            front: generation.front().cloned(),
+            audits: generation.audits().map(|a| a.to_vec()),
+            ecosystem: generation.cloned_ecosystem(),
+        }
+    }
+}
 
 // Clippy assumes that the `CrossTerm(Event)` event is the high-frequency event and
 // `EpochComplete` is the low-frequency variant - but it is exactly the opposite. `EpochComplete` events can happen hundreds, if
@@ -29,13 +57,8 @@ where
     Crossterm(Event),
     EngineStart(Objective),
     EngineStop,
-    EpochComplete(
-        usize,
-        MetricSet,
-        Score,
-        Option<Front<Phenotype<C>>>,
-        Option<Vec<SpeciesSnapshot>>,
-    ),
+
+    EpochComplete(GenerationEvent<C>),
 }
 
 pub(crate) struct App<C>
@@ -50,7 +73,7 @@ where
 
 impl<C> App<C>
 where
-    C: Chromosome,
+    C: Chromosome + Clone,
 {
     pub fn new(render_interval: Duration, control: EngineControl) -> Self {
         Self {
@@ -99,8 +122,8 @@ where
                 self.handle_engine_start(objective);
             }
             InputEvent::EngineStop => self.state.run.engine = false,
-            InputEvent::EpochComplete(index, metrics, score, front, species_snapshots) => {
-                self.handle_engine_epoch(index, metrics, score, front, species_snapshots);
+            InputEvent::EpochComplete(event) => {
+                self.handle_engine_epoch(event);
                 let now = Instant::now();
                 if let Some(last) = self.state.run.last_render {
                     let elapsed = now.duration_since(last);
@@ -203,21 +226,15 @@ where
         }
     }
 
-    fn handle_engine_epoch(
-        &mut self,
-        index: usize,
-        metrics: MetricSet,
-        score: Score,
-        front: Option<Front<Phenotype<C>>>,
-        species_snapshots: Option<Vec<SpeciesSnapshot>>,
-    ) {
-        self.state.evo.score = score;
-        self.state.evo.index = index;
+    fn handle_engine_epoch(&mut self, event: GenerationEvent<C>) {
+        self.state.evo.score = event.score;
+        self.state.evo.index = event.index;
 
-        self.state.evo.update_metrics(metrics);
-        self.state.evo.update_species(species_snapshots);
+        self.state.evo.update_ecosystem(event.ecosystem);
+        self.state.evo.update_metrics(event.metrics);
+        self.state.evo.update_audits(event.audits);
 
-        if let Some(front) = front {
+        if let Some(front) = event.front {
             self.state.evo.front = Some(front);
 
             let total = super::widgets::num_pairs(self.state.evo.pareto.objective.dims());
@@ -251,6 +268,7 @@ where
                 .fg(crate::styles::TEXT_FG_COLOR),
         );
 
+        self.state.run.render_count += 1;
         self.layout.draw(area, buf, &mut self.state);
 
         match self.state.nav.mode {

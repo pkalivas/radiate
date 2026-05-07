@@ -159,7 +159,7 @@ where
         if let Some(control) = &self.context.control
             && control.is_paused()
         {
-            control.wait_before_step();
+            control.wait();
         }
 
         if matches!(self.context.index, 0) {

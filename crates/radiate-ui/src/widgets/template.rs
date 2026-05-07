@@ -11,6 +11,7 @@ use radiate_engines::Chromosome;
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Direction, Layout, Rect},
+    text::Line,
     widgets::{StatefulWidget, Widget},
 };
 
@@ -25,6 +26,7 @@ pub enum LayoutNode<C: Chromosome> {
     },
     Tabbed {
         tabs: Vec<&'static str>,
+        title_fn: fn(&AppState<C>) -> Line<'static>,
         children: Vec<LayoutNode<C>>,
     },
     Widget(fn(Rect, &mut Buffer, &mut AppState<C>)),
@@ -59,7 +61,11 @@ impl<C: Chromosome> LayoutNode<C> {
                     child.draw(child_area, buf, state);
                 }
             }
-            LayoutNode::Tabbed { tabs, children } => {
+            LayoutNode::Tabbed {
+                tabs,
+                title_fn,
+                children,
+            } => {
                 let active_tab_idx = state.nav.dashboard_tab_index();
 
                 let areas = Layout::default()
@@ -72,6 +78,7 @@ impl<C: Chromosome> LayoutNode<C> {
                         .select(active_tab_idx)
                         .render(area, buf);
                 }))
+                .title_top_right(title_fn(state))
                 .render_inside_block(true)
                 .render(areas[0], buf);
 
@@ -83,6 +90,13 @@ impl<C: Chromosome> LayoutNode<C> {
         }
     }
 }
+
+// if state.evo.pareto.objective.is_single() {
+//     title.push(" | Score ".fg(Color::Gray).bold());
+//     title.push(format!("{:.4} ", state.evo.score.as_f32()).fg(Color::LightGreen));
+// } else {
+//     title.push(" | MOGA ".fg(Color::Gray).bold());
+// }
 
 impl<C: Chromosome> Default for LayoutNode<C> {
     fn default() -> Self {
@@ -103,6 +117,9 @@ impl<C: Chromosome> Default for LayoutNode<C> {
                     children: vec![
                         Tabbed {
                             tabs: vec!["Stats", "Time", "Distribution", "Species"],
+                            title_fn: |state: &AppState<C>| {
+                                crate::widgets::panels::metric_summary_line(state)
+                            },
                             children: vec![
                                 Horizontal {
                                     constraints: vec![

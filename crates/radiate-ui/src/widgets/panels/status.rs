@@ -134,6 +134,18 @@ impl<C: Chromosome> StatefulWidget for MetricModalWidget<C> {
     }
 }
 
+pub fn metric_summary_line<C: Chromosome>(state: &AppState<C>) -> Line<'static> {
+    let metric_meta = state.evo.metrics.summary();
+    let title = vec![
+        " Metrics: ".fg(Color::Gray).bold(),
+        format!("{}", metric_meta.metrics).fg(Color::LightGreen),
+        " | Updates: ".fg(Color::Gray).bold(),
+        format!("{} ", format_thousands(metric_meta.updates as usize)).fg(Color::LightGreen),
+    ];
+
+    title.into()
+}
+
 fn get_multi_objective_summaries(metrics: &MetricSet) -> Vec<Row<'static>> {
     let diversity = metrics.diversity_ratio().map(|m| m.mean()).unwrap_or(0.0);
     let carryover = metrics.carryover_rate().map(|m| m.mean()).unwrap_or(0.0);
@@ -217,4 +229,15 @@ fn get_single_objective_summaries(metrics: &MetricSet) -> Vec<Row<'static>> {
     ];
 
     rows
+}
+
+fn format_thousands(n: usize) -> String {
+    n.to_string()
+        .as_bytes()
+        .rchunks(3)
+        .rev()
+        .map(std::str::from_utf8)
+        .collect::<Result<Vec<&str>, _>>()
+        .unwrap()
+        .join(",")
 }
