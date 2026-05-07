@@ -17,19 +17,12 @@ impl<C: Chromosome + Clone> Select<C> for RouletteSelector {
         objective: &Objective,
         count: usize,
     ) -> Population<C> {
-        let fitness_values = match objective {
+        let weights = match objective {
             Objective::Single(opt) => {
-                let mut population_scores = Vec::with_capacity(population.len());
-                let mut sum = 0.0;
-                for score in population.iter_scores() {
-                    let single_score = score.as_f32();
-                    population_scores.push(single_score);
-                    sum += single_score;
-                }
-
-                for fit in population_scores.iter_mut() {
-                    *fit /= sum;
-                }
+                let mut population_scores = population
+                    .iter_scores()
+                    .map(|score| score.as_f32())
+                    .collect::<Vec<_>>();
 
                 if let Optimize::Minimize = opt {
                     population_scores.reverse();
@@ -38,19 +31,11 @@ impl<C: Chromosome + Clone> Select<C> for RouletteSelector {
                 population_scores
             }
             Objective::Multi(_) => {
-                let mut weights =
-                    pareto::weights(&population.iter_scores().collect::<Vec<_>>(), objective);
-                let total_weights = weights.iter().sum::<f32>();
-
-                for fit in weights.iter_mut() {
-                    *fit /= total_weights;
-                }
-
-                weights
+                pareto::weights(&population.iter_scores().collect::<Vec<_>>(), objective)
             }
         };
 
-        ProbabilityWheelIterator::new(&fitness_values, count)
+        ProbabilityWheelIterator::new(&weights, count)
             .map(|idx| population[idx].clone())
             .collect()
     }

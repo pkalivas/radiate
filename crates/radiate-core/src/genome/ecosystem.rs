@@ -78,18 +78,6 @@ impl<C: Chromosome> Ecosystem<C> {
         self.population.get(index).map(|p| p.genotype())
     }
 
-    pub fn get_genotype_mut(&mut self, index: usize) -> Option<&mut Genotype<C>> {
-        self.population.get_mut(index).map(|p| p.genotype_mut())
-    }
-
-    pub fn get_species(&self, index: usize) -> Option<&Species<C>> {
-        self.species.as_ref().and_then(|s| s.get(index))
-    }
-
-    pub fn get_species_mut(&mut self, index: usize) -> Option<&mut Species<C>> {
-        self.species.as_mut().and_then(|s| s.get_mut(index))
-    }
-
     pub fn species_mascots(&self) -> Vec<&Phenotype<C>> {
         self.species
             .as_ref()
@@ -180,9 +168,7 @@ impl<C: Chromosome> Ecosystem<C> {
                     .filter_map(|pheno| pheno.score())
                     .collect::<Vec<&Score>>();
 
-                let adjusted = Self::adjust_scores(&species_member_scores)
-                    .iter()
-                    .sum::<Score>();
+                let adjusted = Self::adjust_scores(&species_member_scores).sum::<Score>();
 
                 raw_scores.push(species_member_scores[0]);
                 adjusted_scores.push(adjusted);
@@ -201,11 +187,10 @@ impl<C: Chromosome> Ecosystem<C> {
     }
 
     #[inline]
-    fn adjust_scores(scores: &[&Score]) -> Vec<Score> {
+    fn adjust_scores(scores: &[&Score]) -> impl Iterator<Item = Score> {
         scores
             .iter()
             .map(|score| (**score).clone() / scores.len() as f32)
-            .collect()
     }
 }
 
@@ -253,36 +238,3 @@ mod tests {
         assert!(ecosystem.species.is_none());
     }
 }
-
-// #[inline]
-// fn fitness_share(&self, ecosystem: &mut Ecosystem<C>)
-// where
-//     C: PartialEq,
-// {
-//     if let Some(species) = ecosystem.species_mut() {
-//         let mut scores = Vec::with_capacity(species.len());
-//         for spec in species.iter() {
-//             let adjusted = Self::adjust_scores(spec).iter().sum::<Score>();
-
-//             scores.push(adjusted);
-//         }
-
-//         let total_score = scores.iter().sum::<Score>();
-//         for (i, spec) in species.iter_mut().enumerate() {
-//             let spec_score = scores[i].clone();
-//             let adjusted_score = spec_score / total_score.clone();
-//             spec.update_score(adjusted_score, &self.objective);
-//         }
-
-//         self.objective.sort(species);
-//     }
-// }
-
-// #[inline]
-// fn adjust_scores(species: &Species<C>) -> Vec<Score> {
-//     species
-//         .population
-//         .get_scores()
-//         .map(|score| (*score).clone() / species.len() as f32)
-//         .collect()
-// }

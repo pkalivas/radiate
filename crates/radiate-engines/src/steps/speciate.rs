@@ -100,10 +100,6 @@ where
             let phenotype = ecosystem.get_phenotype(i).unwrap();
             let maybe_idx = ecosystem.species().and_then(|specs| {
                 for (species_idx, species) in specs.iter().enumerate() {
-                    // if species.age(generation) != 0 {
-                    //     continue;
-                    // }
-
                     let dist = self.distance.measure(phenotype, species.mascot());
 
                     if dist < threshold {

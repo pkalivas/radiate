@@ -81,7 +81,6 @@ impl<C: Chromosome> Population<C> {
     pub fn drain_species(&mut self, species_id: SpeciesId) -> impl Iterator<Item = Phenotype<C>> {
         self.individuals
             .extract_if(.., move |val| val.species() == species_id)
-            .into_iter()
     }
 
     pub fn len(&self) -> usize {
