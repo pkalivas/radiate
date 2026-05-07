@@ -1,7 +1,7 @@
 use crate::steps::EngineStep;
 use radiate_core::{
     Alterer, Chromosome, Ecosystem, Lineage, MetricSet, Objective, Optimize, Population, Score,
-    Select,
+    Select, Species,
 };
 use radiate_error::Result;
 use std::sync::{Arc, RwLock};
@@ -23,7 +23,15 @@ where
         metrics: &mut MetricSet,
     ) -> Result<()> {
         let survivors = self.survivor_handle.select(ecosystem, metrics);
-        let offspring = self.offspring_handle.create(generation, ecosystem, metrics);
+
+        let (species, population) = ecosystem.species_population_mut();
+
+        let offspring = if let Some(species) = species {
+            self.offspring_handle
+                .create_with_species(generation, species, population, metrics)
+        } else {
+            self.offspring_handle.create(generation, ecosystem, metrics)
+        };
 
         let population = ecosystem.population_mut();
 
@@ -74,6 +82,54 @@ where
     C: Chromosome + PartialEq + Clone,
 {
     #[inline]
+    pub fn create_with_species(
+        &mut self,
+        generation: usize,
+        species: &[Species<C>],
+        population: &mut Population<C>,
+        metrics: &mut MetricSet,
+    ) -> Population<C> {
+        let mut lineage = self.lineage.write().unwrap();
+
+        let mut species_scores = species
+            .iter()
+            .filter_map(|spec| spec.score())
+            .collect::<Vec<_>>();
+
+        if let Objective::Single(Optimize::Minimize) = &self.objective {
+            species_scores.reverse();
+        }
+
+        let quotas = self.quotas_from_scores(&species_scores);
+
+        let mut next_population = Population::with_capacity(self.count);
+        for (species, count) in species.iter().zip(quotas.iter()) {
+            let mut pop = population
+                .drain_species(species.id())
+                .collect::<Population<C>>();
+
+            self.objective.sort(&mut pop);
+
+            let time = std::time::Instant::now();
+
+            let mut offspring = self.selector.select(&pop, &self.objective, *count);
+
+            metrics.upsert((self.names.0, offspring.len()));
+            metrics.upsert((self.names.1, time.elapsed()));
+
+            self.objective.sort(&mut offspring);
+
+            self.alters.iter_mut().for_each(|alt| {
+                alt.alter(&mut offspring, &mut lineage, metrics, generation);
+            });
+
+            next_population.extend(offspring);
+        }
+
+        next_population
+    }
+
+    #[inline]
     pub fn create(
         &mut self,
         generation: usize,
@@ -82,55 +138,21 @@ where
     ) -> Population<C> {
         let mut lineage = self.lineage.write().unwrap();
 
-        if let Some(species) = ecosystem.species() {
-            let mut species_scores = species
-                .iter()
-                .filter_map(|spec| spec.score())
-                .collect::<Vec<_>>();
+        let timer = std::time::Instant::now();
+        let mut offspring =
+            self.selector
+                .select(ecosystem.population(), &self.objective, self.count);
 
-            if let Objective::Single(Optimize::Minimize) = &self.objective {
-                species_scores.reverse();
-            }
+        metrics.upsert((self.names.0, offspring.len()));
+        metrics.upsert((self.names.1, timer.elapsed()));
 
-            let quotas = self.quotas_from_scores(&species_scores);
+        self.objective.sort(&mut offspring);
 
-            let mut next_population = Population::with_capacity(self.count);
-            for (species, count) in species.iter().zip(quotas.iter()) {
-                let time = std::time::Instant::now();
-                let mut offspring =
-                    self.selector
-                        .select(species.population(), &self.objective, *count);
+        self.alters.iter_mut().for_each(|alt| {
+            alt.alter(&mut offspring, &mut lineage, metrics, generation);
+        });
 
-                metrics.upsert((self.names.0, offspring.len()));
-                metrics.upsert((self.names.1, time.elapsed()));
-
-                self.objective.sort(&mut offspring);
-
-                self.alters.iter_mut().for_each(|alt| {
-                    alt.alter(&mut offspring, &mut lineage, metrics, generation);
-                });
-
-                next_population.extend(offspring);
-            }
-
-            next_population
-        } else {
-            let timer = std::time::Instant::now();
-            let mut offspring =
-                self.selector
-                    .select(ecosystem.population(), &self.objective, self.count);
-
-            metrics.upsert((self.names.0, offspring.len()));
-            metrics.upsert((self.names.1, timer.elapsed()));
-
-            self.objective.sort(&mut offspring);
-
-            self.alters.iter_mut().for_each(|alt| {
-                alt.alter(&mut offspring, &mut lineage, metrics, generation);
-            });
-
-            offspring
-        }
+        offspring
     }
 
     #[inline]
@@ -194,3 +216,63 @@ where
         quotas
     }
 }
+
+// #[inline]
+// pub fn create(
+//     &mut self,
+//     generation: usize,
+//     ecosystem: &Ecosystem<C>,
+//     metrics: &mut MetricSet,
+// ) -> Population<C> {
+//     let mut lineage = self.lineage.write().unwrap();
+
+//     if let Some(species) = ecosystem.species() {
+//         let mut species_scores = species
+//             .iter()
+//             .filter_map(|spec| spec.score())
+//             .collect::<Vec<_>>();
+
+//         if let Objective::Single(Optimize::Minimize) = &self.objective {
+//             species_scores.reverse();
+//         }
+
+//         let quotas = self.quotas_from_scores(&species_scores);
+
+//         let mut next_population = Population::with_capacity(self.count);
+//         for (species, count) in species.iter().zip(quotas.iter()) {
+//             let time = std::time::Instant::now();
+//             let mut offspring =
+//                 self.selector
+//                     .select(species.population(), &self.objective, *count);
+
+//             metrics.upsert((self.names.0, offspring.len()));
+//             metrics.upsert((self.names.1, time.elapsed()));
+
+//             self.objective.sort(&mut offspring);
+
+//             self.alters.iter_mut().for_each(|alt| {
+//                 alt.alter(&mut offspring, &mut lineage, metrics, generation);
+//             });
+
+//             next_population.extend(offspring);
+//         }
+
+//         next_population
+//     } else {
+//         let timer = std::time::Instant::now();
+//         let mut offspring =
+//             self.selector
+//                 .select(ecosystem.population(), &self.objective, self.count);
+
+//         metrics.upsert((self.names.0, offspring.len()));
+//         metrics.upsert((self.names.1, timer.elapsed()));
+
+//         self.objective.sort(&mut offspring);
+
+//         self.alters.iter_mut().for_each(|alt| {
+//             alt.alter(&mut offspring, &mut lineage, metrics, generation);
+//         });
+
+//         offspring
+//     }
+// }

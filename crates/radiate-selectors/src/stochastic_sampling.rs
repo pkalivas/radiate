@@ -19,7 +19,7 @@ impl<C: Chromosome + Clone> Select<C> for StochasticUniversalSamplingSelector {
         let fitness_values = match objective {
             Objective::Single(opt) => {
                 let scores = population
-                    .get_scores()
+                    .iter_scores()
                     .map(|score| score.as_f32())
                     .collect::<Vec<f32>>();
                 let total = scores.iter().sum::<f32>();
@@ -34,7 +34,7 @@ impl<C: Chromosome + Clone> Select<C> for StochasticUniversalSamplingSelector {
             }
             Objective::Multi(_) => {
                 let weights =
-                    pareto::weights(&population.get_scores().collect::<Vec<_>>(), objective);
+                    pareto::weights(&population.iter_scores().collect::<Vec<_>>(), objective);
                 let total_weights = weights.iter().sum::<f32>();
                 weights
                     .iter()

@@ -1,6 +1,6 @@
-use crate::species::SpeciesSnapshot;
-
 use super::{Chromosome, Genotype, Phenotype, Population, Species};
+use crate::{Objective, Score, random_provider, species::SpeciesSnapshot};
+use itertools::Itertools;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
@@ -40,21 +40,8 @@ impl<C: Chromosome> Ecosystem<C> {
         }
     }
 
-    /// Get the number of shared phenotypes in the population.
-    /// A shared phenotype is one that is reference cloned and held
-    /// by another structure, such as a [Species]. The only time the shared
-    /// count should ever be > 0 is when the ecosystem has [Species] that
-    /// hold references to phenotypes in the main population.
-    pub fn shared_count(&self) -> usize {
-        self.population.shared_count()
-    }
-
-    /// Like [Ecosystem::shared_count], but returns true if there are
-    /// any shared phenotypes in the population. This should only be true
-    /// when the ecosystem has [Species] that hold references to phenotypes
-    /// in the main population.
-    pub fn is_shared(&self) -> bool {
-        self.shared_count() > 0
+    pub fn species_population_mut(&mut self) -> (Option<&mut Vec<Species<C>>>, &mut Population<C>) {
+        (self.species.as_mut(), &mut self.population)
     }
 
     pub fn population(&self) -> &Population<C> {
@@ -110,11 +97,13 @@ impl<C: Chromosome> Ecosystem<C> {
             .unwrap_or_default()
     }
 
-    pub fn push_species(&mut self, species: Species<C>) {
+    pub fn push_species(&mut self, species: Species<C>) -> usize {
         if let Some(species_list) = &mut self.species {
             species_list.push(species);
+            species_list.len() - 1
         } else {
             self.species = Some(vec![species]);
+            0
         }
     }
 
@@ -128,20 +117,95 @@ impl<C: Chromosome> Ecosystem<C> {
     {
         if let Some(species) = &mut self.species
             && let Some(spec) = species.get_mut(species_idx)
-            && let Some(member) = self.population.ref_clone_member(member_idx)
+            && let Some(member) = self.population.get_mut(member_idx)
         {
-            spec.population.push(member);
+            member.set_species(spec.id());
+            spec.add_member(member.id());
         }
     }
 
     pub fn remove_dead_species(&mut self) -> usize {
         if let Some(species) = &mut self.species {
             let initial_len = species.len();
-            species.retain(|spec| !spec.is_empty());
+            let unique_species_ids = self
+                .population
+                .iter()
+                .map(|p| p.species())
+                .unique()
+                .collect::<Vec<_>>();
+            species.retain(|spec| unique_species_ids.contains(&spec.id()));
             initial_len - species.len()
         } else {
             0
         }
+    }
+
+    pub fn generate_mascots(&mut self)
+    where
+        C: Clone,
+    {
+        // Update mascots for each species by selecting a random member from the species population
+        // to be the new mascot for the next generation. This follows the NEAT algorithm approach.
+        if let Some(species) = &mut self.species {
+            for spec in species.iter_mut() {
+                let species_members = self
+                    .population
+                    .iter_species(spec.id())
+                    .collect::<Vec<&Phenotype<C>>>();
+
+                if species_members.is_empty() {
+                    continue;
+                }
+
+                let idx = random_provider::range(0..species_members.len());
+                if let Some(phenotype) = species_members.get(idx) {
+                    spec.set_new_mascot((*phenotype).clone());
+                }
+            }
+        }
+    }
+
+    #[inline]
+    pub fn fitness_share(&mut self, objective: &Objective)
+    where
+        C: PartialEq,
+    {
+        if let Some(species) = &mut self.species {
+            let mut adjusted_scores = Vec::with_capacity(species.len());
+            let mut raw_scores = Vec::with_capacity(species.len());
+            for spec in species.iter() {
+                let species_member_scores = self
+                    .population
+                    .iter_species(spec.id())
+                    .filter_map(|pheno| pheno.score())
+                    .collect::<Vec<&Score>>();
+
+                let adjusted = Self::adjust_scores(&species_member_scores)
+                    .iter()
+                    .sum::<Score>();
+
+                raw_scores.push(species_member_scores[0]);
+                adjusted_scores.push(adjusted);
+            }
+
+            let total_score = adjusted_scores.iter().sum::<Score>();
+            for (i, spec) in species.iter_mut().enumerate() {
+                let raw_score = raw_scores[i].clone();
+                let spec_score = adjusted_scores[i].clone();
+                let adjusted_score = spec_score / total_score.clone();
+                spec.update_score(raw_score, adjusted_score, objective);
+            }
+
+            objective.sort(species);
+        }
+    }
+
+    #[inline]
+    fn adjust_scores(scores: &[&Score]) -> Vec<Score> {
+        scores
+            .iter()
+            .map(|score| (**score).clone() / scores.len() as f32)
+            .collect()
     }
 }
 
@@ -189,3 +253,36 @@ mod tests {
         assert!(ecosystem.species.is_none());
     }
 }
+
+// #[inline]
+// fn fitness_share(&self, ecosystem: &mut Ecosystem<C>)
+// where
+//     C: PartialEq,
+// {
+//     if let Some(species) = ecosystem.species_mut() {
+//         let mut scores = Vec::with_capacity(species.len());
+//         for spec in species.iter() {
+//             let adjusted = Self::adjust_scores(spec).iter().sum::<Score>();
+
+//             scores.push(adjusted);
+//         }
+
+//         let total_score = scores.iter().sum::<Score>();
+//         for (i, spec) in species.iter_mut().enumerate() {
+//             let spec_score = scores[i].clone();
+//             let adjusted_score = spec_score / total_score.clone();
+//             spec.update_score(adjusted_score, &self.objective);
+//         }
+
+//         self.objective.sort(species);
+//     }
+// }
+
+// #[inline]
+// fn adjust_scores(species: &Species<C>) -> Vec<Score> {
+//     species
+//         .population
+//         .get_scores()
+//         .map(|score| (*score).clone() / species.len() as f32)
+//         .collect()
+// }

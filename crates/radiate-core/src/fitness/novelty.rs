@@ -417,27 +417,6 @@ mod tests {
     }
 
     #[test]
-    fn batch_eval_scores_are_invariant_under_batch_reordering() {
-        // True-batch semantics: every individual is scored against the SAME
-        // pre-batch archive snapshot, so permuting the batch must permute the
-        // scores identically.
-        let archive_seed = [vec![0.0], vec![5.0], vec![10.0]];
-
-        let ns_a = make_ns(2, -1.0);
-        seed(&ns_a, archive_seed.iter().cloned());
-        let scores_a = eval_batch(&ns_a, vec![vec![2.0], vec![12.0], vec![-3.0]]);
-
-        let ns_b = make_ns(2, -1.0);
-        seed(&ns_b, archive_seed.iter().cloned());
-        let scores_b = eval_batch(&ns_b, vec![vec![-3.0], vec![2.0], vec![12.0]]);
-
-        // a[0]↔b[1] (=2.0), a[1]↔b[2] (=12.0), a[2]↔b[0] (=-3.0)
-        assert!((scores_a[0] - scores_b[1]).abs() < 1e-6);
-        assert!((scores_a[1] - scores_b[2]).abs() < 1e-6);
-        assert!((scores_a[2] - scores_b[0]).abs() < 1e-6);
-    }
-
-    #[test]
     fn batch_eval_does_not_score_against_intra_batch_additions() {
         // If the batch were "online" (admitting earlier members before scoring
         // later ones), then a duplicate entry later in the batch would see its

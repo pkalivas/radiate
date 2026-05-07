@@ -35,7 +35,7 @@ impl<C: Chromosome + Clone> Select<C> for NSGA3Selector {
         count: usize,
     ) -> Population<C> {
         self.create_ref_dirs_if_needed(objective.dims(), self.num_refs);
-        let raw = population.get_scores().collect::<Vec<_>>();
+        let raw = population.iter_scores().collect::<Vec<_>>();
 
         let scores_min = raw
             .iter()
