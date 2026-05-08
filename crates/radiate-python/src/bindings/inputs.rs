@@ -1,9 +1,9 @@
-use crate::{PyAnyObject, PyGeneType, PyRate};
+use crate::{PyAnyObject, PyGeneType, PyRate, bindings::datatype::py_object_to_any_value};
 use pyo3::{
     Py, PyAny, PyResult, Python, exceptions::PyKeyError, prelude::FromPyObjectOwned, pyclass,
     pymethods,
 };
-use radiate::Rate;
+use radiate::{AnyValue, Rate};
 use std::{
     collections::{HashMap, HashSet},
     fmt::Debug,
@@ -87,6 +87,18 @@ impl PyEngineInput {
     pub fn extract<T: for<'py> FromPyObjectOwned<'py>>(&self, key: &str) -> PyResult<T> {
         Python::attach(|py| match self.args.get(key) {
             Some(v) => v.extract(py),
+            None => Err(PyKeyError::new_err(format!(
+                "Key '{}' not found in PyEngineInput args",
+                key
+            ))),
+        })
+    }
+
+    pub fn any_value(&self, key: &str) -> PyResult<AnyValue<'static>> {
+        Python::attach(|py| match self.args.get(key) {
+            Some(v) => {
+                py_object_to_any_value(v.inner.bind_borrowed(py), true).map(|val| val.into_static())
+            }
             None => Err(PyKeyError::new_err(format!(
                 "Key '{}' not found in PyEngineInput args",
                 key

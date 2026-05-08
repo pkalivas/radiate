@@ -16,9 +16,9 @@ from .engine import (
     MetricSet,
     Metric,
     Tag,
-    EngineLog,
-    EngineCheckpoint,
-    EngineUi,
+    LogParam,
+    CheckpointParam,
+    UiParam,
 )
 
 from .codec import (
@@ -276,9 +276,9 @@ __all__ = [
     "Metric",
     "Tag",
     # Options
-    "EngineLog",
-    "EngineCheckpoint",
-    "EngineUi",
+    "LogParam",
+    "CheckpointParam",
+    "UiParam",
     # Dtype
     "UInt8",
     "UInt16",

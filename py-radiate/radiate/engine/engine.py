@@ -33,6 +33,7 @@ from radiate.codec.base import CodecBase
 from radiate._bridge.input import EngineInput, EngineInputType
 from radiate._typing import (
     AtLeastOne,
+    Checkpoint,
     Subscriber,
     RdDataType,
     RdLossType,
@@ -40,7 +41,7 @@ from radiate._typing import (
 
 from .builder import EngineBuilder
 from .generation import Generation
-from .option import EngineCheckpoint, EngineLog, EngineUi
+from .option import LogParam, UiParam, normalize_checkpoint_params
 
 
 class Engine[G, T]:
@@ -260,17 +261,18 @@ class Engine[G, T]:
     def run(
         self,
         *limits: LimitBase,
-        log: bool | EngineLog = False,
-        checkpoint: tuple[int, str | Path] | EngineCheckpoint | None = None,
-        ui: bool | EngineUi = False,
+        log: bool | LogParam = False,
+        ui: bool | UiParam = False,
+        checkpoint: Checkpoint | None = None,
     ) -> Generation[G, T]:
         """Run the engine with the given limits.
         Args:
             limits: A single Limit or a list of Limits to apply to the engine.
             log: If True, enables logging for the generation process.
-            checkpoint: If provided, enables checkpointing at the specified interval and path. Checkpoint can be
-                        specified as a tuple (interval, path) or an EngineCheckpoint instance.
             ui: If True, enables a user interface for monitoring the evolution process.
+            checkpoint: If provided, enables checkpointing at the specified interval, path, and file type. Checkpoint can be
+                        specified as a path string, a tuple (interval, path, file_type), or a CheckpointParam instance.
+                        The default checkpoint interval is 250 generations, the default path is "./checkpoints", and the default file type is "pkl".
         Returns:
             Generation: The resulting generation after running the engine.
         Raises:
@@ -278,7 +280,16 @@ class Engine[G, T]:
 
         Example:
         ---------
+        >>> engine.run(log=True)
+        >>> engine.run(ui=True)
         >>> engine.run(rd.ScoreLimit(0.0001), log=True)
+        >>> engine.run(limit)
+        >>> engine.run(limit, checkpoint=True)
+        >>> engine.run(limit, checkpoint="checkpoints")
+        >>> engine.run(limit, checkpoint=(50, "checkpoints"))
+        >>> engine.run(
+        ...     checkpoint=rd.EngineCheckpoint(50, "checkpoints", file_type="json"),
+        ... )
         """
 
         engine = self._builder.build()
@@ -293,22 +304,9 @@ class Engine[G, T]:
             for lim in limits
         ]
 
-        # configure the logging option
-        log_option = log if isinstance(log, EngineLog) else EngineLog(enable=log)
-
-        # configure the checkpoint option
-        checkpoint_option = (
-            checkpoint if isinstance(checkpoint, EngineCheckpoint) else None
-        )
-        if checkpoint_option is None and isinstance(checkpoint, tuple):
-            checkpoint_option = EngineCheckpoint(
-                interval=checkpoint[0], path=checkpoint[1]
-            )
-
-        # configure the UI option
-        ui_option = ui if isinstance(ui, EngineUi) else None
-        if ui_option is None and ui is True:
-            ui_option = EngineUi()
+        log_option = log if isinstance(log, LogParam) else LogParam(enable=log)
+        checkpoint_option = normalize_checkpoint_params(checkpoint)
+        ui_option = UiParam() if isinstance(ui, UiParam) or ui is True else None
 
         options = list(
             [

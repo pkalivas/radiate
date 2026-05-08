@@ -3,7 +3,8 @@ use crate::events::PyEventHandler;
 use crate::{
     EngineBuilderHandle, EngineHandle, FreeThreadPyEvaluator, InputTransform,
     PickleCheckpointReader, PyCodec, PyEngine, PyEngineInput, PyEngineInputType, PyExpr,
-    PyFitnessFn, PyFitnessInner, PyPermutationCodec, PyPopulation, PyRate, prelude::*, radiate,
+    PyFitnessFn, PyFitnessInner, PyPermutationCodec, PyPopulation, PyRate, names, prelude::*,
+    radiate,
 };
 use crate::{PyGeneration, PySubscriber};
 use pyo3::{Py, PyAny, pyclass, pymethods, types::PyAnyMethods};
@@ -183,7 +184,7 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_single_typed(|typed_builder, input| {
-                let mut generation = input.extract::<PyGeneration>("generation")?;
+                let generation = input.extract::<PyGeneration>("generation")?;
                 let ecosystem = Ecosystem::from(generation.ecosystem());
                 Ok(typed_builder.ecosystem(ecosystem))
             })
@@ -200,6 +201,8 @@ impl PyEngineBuilder {
             Self::process_single_typed(|typed_builder, input| {
                 let ignore_not_found = input.get_bool("ignore_not_found").unwrap_or(false);
                 let path = input.extract::<String>("path")?;
+                let file_type = input.extract::<String>("file_type")?;
+
                 if ignore_not_found
                     && let Err(e) = std::fs::metadata(&path)
                     && e.kind() == std::io::ErrorKind::NotFound
@@ -208,7 +211,17 @@ impl PyEngineBuilder {
                     return Ok(typed_builder);
                 }
 
-                Ok(typed_builder.load_checkpoint(path, PickleCheckpointReader))
+                match file_type.as_str() {
+                    names::JSON_FILE_TYPE => {
+                        Ok(typed_builder.load_checkpoint(path, JsonCheckpointReader))
+                    }
+                    names::PICKLE_FILE_TYPE => {
+                        Ok(typed_builder.load_checkpoint(path, PickleCheckpointReader))
+                    }
+                    _ => {
+                        radiate_py_bail!(format!("Unsupported checkpoint file type: {}", file_type))
+                    }
+                }
             })
         )
     }

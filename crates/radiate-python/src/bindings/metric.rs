@@ -52,7 +52,7 @@ impl PyMetricSet {
     pub fn __repr__(&self) -> String {
         let summary = self.inner.summary();
         format!(
-            "MetricSet[metrics={}, updates={}]",
+            "MetricSet(metrics={}, updates={})",
             summary.metrics, summary.updates
         )
     }

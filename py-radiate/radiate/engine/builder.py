@@ -183,12 +183,20 @@ class EngineBuilder[G, T]:
         if checkpoint_path is None:
             return
 
+        file_type = checkpoint_path.split(".")[-1].lower()
+        if file_type not in {"pkl", "json"}:
+            raise ValueError(
+                "Checkpoint file type must be 'pkl' or 'json'. "
+                f"Got '{file_type}' from path '{checkpoint_path}'."
+            )
+
         self._inputs.append(
             EngineInput(
                 input_type=EngineInputType.Checkpoint,
                 component="checkpoint",
                 path=checkpoint_path,
                 ignore_not_found=ignore_not_found,
+                file_type=file_type,
             )
         )
 

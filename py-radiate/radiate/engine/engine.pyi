@@ -11,10 +11,10 @@ from radiate.genome import Population, Gene, Chromosome
 from radiate.gp import Graph, Tree, Op
 from radiate.operators import SelectorBase, AlterBase, DistanceBase, LimitBase, Rate
 
-from radiate._typing import AtLeastOne, Subscriber, RdDataType, RdLossType
+from radiate._typing import AtLeastOne, FileType, Subscriber, RdDataType, RdLossType
 
 from .generation import Generation
-from .option import EngineCheckpoint, EngineLog, EngineUi
+from .option import CheckpointParam, LogParam, UiParam
 
 if TYPE_CHECKING:
     from radiate._dependancies import numpy as np
@@ -447,9 +447,13 @@ class Engine[G, T]:
     def run(
         self,
         *limits: LimitBase,
-        log: bool | EngineLog = False,
-        checkpoint: tuple[int, str | Path] | EngineCheckpoint | None = None,
-        ui: bool | EngineUi = False,
+        log: bool | LogParam = False,
+        ui: bool | UiParam = False,
+        checkpoint: str
+        | Path
+        | tuple[int, str | Path, FileType | None]
+        | CheckpointParam
+        | None = None,
     ) -> Generation[G, T]: ...
 
     # ----------------------------

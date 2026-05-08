@@ -4,7 +4,7 @@ from .front import FrontValue, Front
 from .generation import Generation
 from .handlers import EventHandler, EventType, EngineEvent, MetricCollector
 from .metrics import MetricSet, Metric, Tag
-from .option import EngineLog, EngineCheckpoint, EngineUi
+from .option import LogParam, CheckpointParam, UiParam
 
 __all__ = [
     "EngineBuilder",
@@ -19,7 +19,7 @@ __all__ = [
     "MetricSet",
     "Metric",
     "Tag",
-    "EngineLog",
-    "EngineCheckpoint",
-    "EngineUi",
+    "LogParam",
+    "CheckpointParam",
+    "UiParam",
 ]
