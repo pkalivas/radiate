@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Sequence
 from collections.abc import Callable
+from pathlib import Path
 
 from radiate.expr import Expr
 from radiate.codec import (
@@ -260,7 +261,7 @@ class Engine[G, T]:
         self,
         *limits: LimitBase,
         log: bool | EngineLog = False,
-        checkpoint: tuple[int, str] | EngineCheckpoint | None = None,
+        checkpoint: tuple[int, str | Path] | EngineCheckpoint | None = None,
         ui: bool | EngineUi = False,
     ) -> Generation[G, T]:
         """Run the engine with the given limits.
@@ -1088,7 +1089,9 @@ class Engine[G, T]:
         self._builder.set_generation(generation)
         return self
 
-    def load_checkpoint(self, path: str) -> Engine[G, T]:
+    def load_checkpoint(
+        self, path: str | Path, ignore_not_found: bool = False
+    ) -> Engine[G, T]:
         """
         Load a checkpoint from a previous engine run.
 
@@ -1138,7 +1141,17 @@ class Engine[G, T]:
         )
         >>> result_from_checkpoint = engine.run(rd.Limit.score(0.001), log=True)
         """
-        self._builder.set_checkpoint_path(path)
+        if not isinstance(path, (str, Path)):
+            raise ValueError("Checkpoint path must be a string or Path object.")
+        if isinstance(path, str):
+            path = Path(path)
+
+        if not ignore_not_found and not path.exists():
+            raise FileNotFoundError(
+                f"Checkpoint file not found at path: {path.absolute()}"
+            )
+
+        self._builder.set_checkpoint_path(str(path), ignore_not_found=ignore_not_found)
         return self
 
     def metrics(

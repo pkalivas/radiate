@@ -1,10 +1,9 @@
 use crate::bindings::codec::{PyTreeCodec, TypedNumericCodec};
-use crate::bindings::{EngineBuilderHandle, EngineHandle};
 use crate::events::PyEventHandler;
 use crate::{
-    FreeThreadPyEvaluator, InputTransform, PickleCheckpointReader, PyCodec, PyEngine,
-    PyEngineInput, PyEngineInputType, PyExpr, PyFitnessFn, PyFitnessInner, PyPermutationCodec,
-    PyPopulation, PyRate, prelude::*, radiate,
+    EngineBuilderHandle, EngineHandle, FreeThreadPyEvaluator, InputTransform,
+    PickleCheckpointReader, PyCodec, PyEngine, PyEngineInput, PyEngineInputType, PyExpr,
+    PyFitnessFn, PyFitnessInner, PyPermutationCodec, PyPopulation, PyRate, prelude::*, radiate,
 };
 use crate::{PyGeneration, PySubscriber};
 use pyo3::{Py, PyAny, pyclass, pymethods, types::PyAnyMethods};
@@ -27,7 +26,7 @@ macro_rules! dispatch_builder_typed {
     // private core: actually match all variants once
     // ------------------------------------------------------------
     (@do $builder:expr, $call:expr) => {{
-        use EngineBuilderHandle::*;
+        use crate::EngineBuilderHandle::*;
         match $builder {
             UInt8(b) => $call(b).map(UInt8),
             UInt16(b) => $call(b).map(UInt16),
@@ -199,7 +198,17 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_single_typed(|typed_builder, input| {
+                let ignore_not_found = input.get_bool("ignore_not_found").unwrap_or(false);
                 let path = input.extract::<String>("path")?;
+                if ignore_not_found {
+                    if let Err(e) = std::fs::metadata(&path) {
+                        if e.kind() == std::io::ErrorKind::NotFound {
+                            // If the file doesn't exist and we're ignoring not found errors, just return the builder unchanged
+                            return Ok(typed_builder);
+                        }
+                    }
+                }
+
                 Ok(typed_builder.load_checkpoint(path, PickleCheckpointReader))
             })
         )

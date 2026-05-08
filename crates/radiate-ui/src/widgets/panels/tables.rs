@@ -309,7 +309,7 @@ fn metrics_into_dist_rows<'a>(
 
 fn species_into_rows<'a, C: Chromosome>(
     obj_index: usize,
-    species: &Vec<Species<C>>,
+    species: &[Species<C>],
 ) -> impl Iterator<Item = Row<'a>> {
     species.iter().map(move |s| {
         Row::new(vec![

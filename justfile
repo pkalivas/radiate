@@ -33,7 +33,7 @@ sync py=py-version: python-info
     @uv python install {{py}}
     @uv python pin {{py}}
     @uv venv .venv --clear
-    @uv pip install --upgrade --compile-bytecode --no-build \
+    @uv pip install --upgrade --compile-bytecode \
         -r py-radiate/requirements.txt
 
 coverage: _require-uv
@@ -87,8 +87,8 @@ test-rs:
 # Example commands
 # --------------------------
 
-example lang="py" id="":
-     @uv run python tools/examples.py run --lang {{lang}} --id {{id}}
+example:
+    @uv run python tools/examples.py list
 
 # --------------------------
 # Cleaning

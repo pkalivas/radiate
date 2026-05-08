@@ -1,4 +1,5 @@
 from __future__ import annotations
+from pathlib import Path
 
 from radiate.radiate import PyEngineRunOption
 from radiate._bridge.wrapper import RsObject
@@ -16,8 +17,14 @@ class EngineLog(RunOption):
 
 
 class EngineCheckpoint(RunOption):
-    def __init__(self, interval: int = 0, path: str = "./checkpoints"):
-        option = PyEngineRunOption.checkpoint(interval, path)
+    def __init__(self, interval: int = 0, path: str | Path = "./checkpoints"):
+        if interval < 0:
+            raise ValueError("Checkpoint interval must be a non-negative integer.")
+
+        if not isinstance(path, (str, Path)):
+            raise ValueError("Checkpoint path must be a string or Path object.")
+
+        option = PyEngineRunOption.checkpoint(interval, str(path))
         super().__init__(option)
 
 

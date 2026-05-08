@@ -11,8 +11,8 @@ import numpy as np
 import matplotlib.pyplot as plt  # type: ignore
 from matplotlib.animation import FuncAnimation  # type: ignore
 
-rd.random.seed(42)
-np.random.seed(42)
+rd.random.seed(514)
+np.random.seed(514)
 
 HEIGHT = 15
 WIDTH = 15
@@ -361,21 +361,19 @@ class SnakeEvolver:
         )
 
         if rd._GIL_ENABLED:
-            engine = rd.Engine(
-                codec,
-                fitness_func=SnakeEvolver.fitness_function,
-                offspring_selector=rd.TournamentSelector(4),
-                executor=rd.Executor.Serial(),
-                alters=[
-                    rd.GraphCrossover(0.5, 0.5),
-                    rd.OperationMutator(0.04, 0.05),
-                    rd.GraphMutator(0.08, 0.04, True),
-                ],
+            engine = (
+                rd.Engine(codec)
+                .fitness(SnakeEvolver.fitness_function)
+                .select(offspring=rd.Select.tournament(4))
+                .limit(rd.Limit.generations(generations), rd.Limit.seconds(60 * 2))
+                .alters(
+                    rd.Cross.graph(0.5, 0.5),
+                    rd.Mutate.op(0.04, 0.05),
+                    rd.Mutate.graph(0.08, 0.04, True),
+                )
             )
 
-            return engine.run(
-                rd.GenerationsLimit(generations), rd.SecondsLimit(60 * 2), log=True
-            )
+            return engine.run(log=True)
         else:
             engine = (
                 rd.Engine(codec)

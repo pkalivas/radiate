@@ -75,7 +75,7 @@ class EngineBuilder[G, T]:
         inst.set_executor(defaults.executor)
         inst.set_subscribers(defaults.subscribe)
         inst.set_generation(defaults.generation)
-        inst.set_checkpoint_path(defaults.checkpoint_path)
+        inst.set_checkpoint_path(defaults.checkpoint_path, ignore_not_found=True)
         inst.set_fitness(defaults.fitness_func)
         inst.set_codec(defaults.codec)
 
@@ -179,7 +179,7 @@ class EngineBuilder[G, T]:
             )
         )
 
-    def set_checkpoint_path(self, checkpoint_path: str | None):
+    def set_checkpoint_path(self, checkpoint_path: str | None, ignore_not_found: bool):
         if checkpoint_path is None:
             return
 
@@ -188,6 +188,7 @@ class EngineBuilder[G, T]:
                 input_type=EngineInputType.Checkpoint,
                 component="checkpoint",
                 path=checkpoint_path,
+                ignore_not_found=ignore_not_found,
             )
         )
 

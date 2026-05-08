@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any, Literal, Sequence, overload, Self, TYPE_CHECKING
 from collections.abc import Callable
 
@@ -447,7 +448,7 @@ class Engine[G, T]:
         self,
         *limits: LimitBase,
         log: bool | EngineLog = False,
-        checkpoint: tuple[int, str] | EngineCheckpoint | None = None,
+        checkpoint: tuple[int, str | Path] | EngineCheckpoint | None = None,
         ui: bool | EngineUi = False,
     ) -> Generation[G, T]: ...
 
@@ -497,7 +498,9 @@ class Engine[G, T]:
     def parallel(self, num_workers: int | None = None) -> Self: ...
     def subscribe(self, *event_handler: Subscriber) -> Self: ...
     def generation(self, generation: Generation[G, T] | None) -> Self: ...
-    def load_checkpoint(self, path: str) -> Self: ...
+    def load_checkpoint(
+        self, path: str | Path, ignore_not_found: bool = False
+    ) -> Self: ...
     def metrics(
         self, named_metrics: dict[str, Expr] | None = None, **kwargs
     ) -> Self: ...
