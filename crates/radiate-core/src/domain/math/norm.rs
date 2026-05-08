@@ -40,11 +40,6 @@ pub fn scale_l1<T: Float>(weights: &mut [T]) {
 
 #[inline]
 fn affine_l1_internal<T: Float>(weights: &mut [T], min: T, max: T) {
-    debug_assert!(
-        weights.iter().all(|&x| x >= T::ZERO),
-        "Affine L1 normalization requires non-negative values"
-    );
-
     // Shift only if negatives exist
     let offset = if min < T::ZERO { -min } else { T::ZERO };
 

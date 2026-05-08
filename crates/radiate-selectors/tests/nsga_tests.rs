@@ -5,8 +5,8 @@ mod nsga_tests {
     use crate::utilities::population_utils;
     use radiate_core::*;
     use radiate_selectors::nsga3::{
-        associate_with_dist, fronts_from_ranks, min_max_points, normalize_minmax,
-        nsga3_niching_fill, to_minimization_space,
+        ObjectiveBounds, fronts_from_ranks, nearest_reference_direction, niching_fill,
+        to_minimization_space,
     };
     use radiate_selectors::*;
 
@@ -207,7 +207,7 @@ mod nsga_tests {
         // (niche 0 count = 1). Candidates: one near x-axis (niche 0) and one
         // near y-axis (niche 1, count = 0). Niching must prefer niche 1.
         //
-        // Scores are in minimization space (passed directly to nsga3_niching_fill).
+        // Scores are in minimization space (passed directly to niching_fill).
         let scores = vec![
             vec![1.0f32, 0.0], // idx 0 — already selected, maps to niche 0
             vec![0.9f32, 0.1], // idx 1 — candidate, maps to niche 0
@@ -218,7 +218,7 @@ mod nsga_tests {
             vec![0.0f32, 1.0], // niche 1: y-axis
         ];
 
-        let result = nsga3_niching_fill(&scores, &ref_dirs, &[0], &[1, 2], 1);
+        let result = niching_fill(&scores, &ref_dirs, &[0], &[1, 2], 1);
 
         assert_eq!(result.len(), 1);
         assert_eq!(
@@ -289,94 +289,95 @@ mod nsga_tests {
     }
 
     // -----------------------------------------------------------------------
-    // min_max_points
+    // ObjectiveBounds
     // -----------------------------------------------------------------------
 
     #[test]
-    fn min_max_points_empty_input() {
-        let (ideal, nadir) = min_max_points(&[]);
-        assert!(ideal.is_empty() && nadir.is_empty());
+    fn objective_bounds_empty_input() {
+        // Empty scores → empty bounds; normalize on an empty point round-trips empty.
+        let bounds = ObjectiveBounds::from_scores(&[]);
+        assert!(bounds.normalize(&[]).is_empty());
     }
 
     #[test]
-    fn min_max_points_single_point_ideal_equals_nadir() {
-        let (ideal, nadir) = min_max_points(&[vec![2.0, 5.0]]);
-        assert_eq!(ideal, vec![2.0, 5.0]);
-        assert_eq!(nadir, vec![2.0, 5.0]);
+    fn objective_bounds_single_point_is_degenerate() {
+        // Single point → ideal == nadir on every dim → normalize must return zeros.
+        let bounds = ObjectiveBounds::from_scores(&[vec![2.0f32, 5.0]]);
+        assert_eq!(bounds.normalize(&[2.0, 5.0]), vec![0.0, 0.0]);
     }
 
     #[test]
-    fn min_max_points_known_values() {
+    fn objective_bounds_known_values_normalize_correctly() {
+        // ideal = [1, 2], nadir = [3, 5]. The corners map to 0 and 1 respectively,
+        // which exercises that from_scores computed both bounds correctly.
         let scores = vec![vec![1.0f32, 4.0], vec![3.0, 2.0], vec![2.0, 5.0]];
-        let (ideal, nadir) = min_max_points(&scores);
-        assert_eq!(ideal, vec![1.0, 2.0]);
-        assert_eq!(nadir, vec![3.0, 5.0]);
+        let bounds = ObjectiveBounds::from_scores(&scores);
+
+        assert_eq!(bounds.normalize(&[1.0, 2.0]), vec![0.0, 0.0]);
+        assert_eq!(bounds.normalize(&[3.0, 5.0]), vec![1.0, 1.0]);
     }
 
-    // -----------------------------------------------------------------------
-    // normalize_minmax
-    // -----------------------------------------------------------------------
-
     #[test]
-    fn normalize_minmax_known_values() {
-        let ideal = vec![0.0f32, 0.0];
-        let nadir = vec![10.0f32, 10.0];
-        let result = normalize_minmax(&[5.0, 2.0], &ideal, &nadir);
+    fn objective_bounds_normalize_known_values() {
+        // ideal = [0, 0], nadir = [10, 10] → [5, 2] → [0.5, 0.2].
+        let bounds = ObjectiveBounds::from_scores(&[vec![0.0f32, 0.0], vec![10.0, 10.0]]);
+        let result = bounds.normalize(&[5.0, 2.0]);
+
         assert!((result[0] - 0.5).abs() < 1e-5);
         assert!((result[1] - 0.2).abs() < 1e-5);
     }
 
     #[test]
-    fn normalize_minmax_zero_range_dimension_is_zero() {
-        // dim 0 has ideal == nadir → degenerate, must output 0.0
-        let ideal = vec![5.0f32, 0.0];
-        let nadir = vec![5.0f32, 10.0];
-        let result = normalize_minmax(&[5.0, 7.0], &ideal, &nadir);
+    fn objective_bounds_zero_range_dimension_is_zero() {
+        // dim 0 has ideal == nadir (every point has 5.0 on dim 0) → degenerate, must output 0.0.
+        let bounds = ObjectiveBounds::from_scores(&[vec![5.0f32, 0.0], vec![5.0, 10.0]]);
+        let result = bounds.normalize(&[5.0, 7.0]);
+
         assert_eq!(result[0], 0.0);
         assert!((result[1] - 0.7).abs() < 1e-5);
     }
 
     // -----------------------------------------------------------------------
-    // associate_with_dist
+    // nearest_reference_direction
     // -----------------------------------------------------------------------
 
     #[test]
-    fn associate_with_dist_picks_closest_reference_direction() {
+    fn nearest_reference_direction_picks_closest() {
         let ref_dirs = vec![
             vec![1.0f32, 0.0], // x-axis
             vec![0.0f32, 1.0], // y-axis
         ];
         // Point mostly along x-axis → should associate with direction 0.
-        let (k, _) = associate_with_dist(&[0.9, 0.1], &ref_dirs);
+        let (k, _) = nearest_reference_direction(&[0.9, 0.1], &ref_dirs);
         assert_eq!(k, 0, "expected x-axis direction");
 
         // Point mostly along y-axis → should associate with direction 1.
-        let (k, _) = associate_with_dist(&[0.1, 0.9], &ref_dirs);
+        let (k, _) = nearest_reference_direction(&[0.1, 0.9], &ref_dirs);
         assert_eq!(k, 1, "expected y-axis direction");
     }
 
     #[test]
-    fn associate_with_dist_exact_alignment_has_zero_distance() {
+    fn nearest_reference_direction_exact_alignment_has_zero_distance() {
         let ref_dirs = vec![vec![1.0f32, 0.0], vec![0.0f32, 1.0]];
-        let (k, d) = associate_with_dist(&[1.0, 0.0], &ref_dirs);
+        let (k, d) = nearest_reference_direction(&[1.0, 0.0], &ref_dirs);
         assert_eq!(k, 0);
         assert!(d < 1e-5, "exact alignment must have near-zero distance");
     }
 
     // -----------------------------------------------------------------------
-    // nsga3_niching_fill
+    // niching_fill
     // -----------------------------------------------------------------------
 
     #[test]
-    fn nsga3_niching_fill_zero_remaining_is_empty() {
+    fn niching_fill_zero_remaining_is_empty() {
         let scores = vec![vec![0.0f32, 1.0]];
         let ref_dirs = vec![vec![1.0f32, 0.0]];
-        let result = nsga3_niching_fill(&scores, &ref_dirs, &[], &[0], 0);
+        let result = niching_fill(&scores, &ref_dirs, &[], &[0], 0);
         assert!(result.is_empty());
     }
 
     #[test]
-    fn nsga3_niching_fill_returns_correct_count() {
+    fn niching_fill_returns_correct_count() {
         let scores = vec![
             vec![1.0f32, 0.0],
             vec![0.5, 0.5],
@@ -385,12 +386,12 @@ mod nsga_tests {
             vec![0.2, 0.8],
         ];
         let ref_dirs = vec![vec![1.0f32, 0.0], vec![0.5, 0.5], vec![0.0, 1.0]];
-        let result = nsga3_niching_fill(&scores, &ref_dirs, &[0, 2], &[1, 3, 4], 2);
+        let result = niching_fill(&scores, &ref_dirs, &[0, 2], &[1, 3, 4], 2);
         assert_eq!(result.len(), 2);
     }
 
     #[test]
-    fn nsga3_niching_fill_prefers_empty_niche_over_occupied() {
+    fn niching_fill_prefers_empty_niche_over_occupied() {
         // Niche 0 already has 1 member (idx 0). Niche 1 is empty.
         // Candidate idx 1 maps to niche 0; candidate idx 2 maps to niche 1.
         // Niching must pick idx 2.
@@ -401,7 +402,7 @@ mod nsga_tests {
         ];
         let ref_dirs = vec![vec![1.0f32, 0.0], vec![0.0f32, 1.0]];
 
-        let result = nsga3_niching_fill(&scores, &ref_dirs, &[0], &[1, 2], 1);
+        let result = niching_fill(&scores, &ref_dirs, &[0], &[1, 2], 1);
         assert_eq!(result.len(), 1);
         assert_eq!(
             result[0], 2,

@@ -1,5 +1,4 @@
 use radiate_error::RadiateError;
-use radiate_utils::Float;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
