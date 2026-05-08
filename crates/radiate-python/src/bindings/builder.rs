@@ -199,7 +199,7 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_single_typed(|typed_builder, input| {
-                let ignore_not_found = input.get_bool("ignore_not_found").unwrap_or(false);
+                let ignore_not_found = input.extract::<bool>("ignore_not_found").unwrap_or(false);
                 let path = input.extract::<String>("path")?;
                 let file_type = input.extract::<String>("file_type")?;
 
@@ -271,7 +271,7 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_single_typed(|typed_builder, input| {
-                let max_age = input.get_usize("age").unwrap_or(usize::MAX);
+                let max_age = input.extract::<i64>("age")? as usize;
                 Ok(typed_builder.max_species_age(max_age))
             })
         )
@@ -290,12 +290,12 @@ impl PyEngineBuilder {
                 } else if let Ok(expr) = input.extract::<PyExpr>("threshold") {
                     Rate::Expr(expr.inner().clone())
                 } else {
-                    let val = input.get_f32("threshold").unwrap_or(0.5);
+                    let val = input.extract::<f64>("threshold").unwrap_or(0.5);
                     if val <= 0.0 {
                         return Err(radiate_py_err!("Species threshold must be greater than 0."));
                     }
 
-                    Rate::Fixed(val)
+                    Rate::Fixed(val as f32)
                 };
 
                 Ok(typed_builder.species_threshold(threshold))
@@ -311,7 +311,9 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_single_typed(|typed_builder, input| {
-                let fraction = input.get_f32("fraction").unwrap_or(0.8);
+                let fraction = input.extract::<f64>("fraction").map_err(|e| {
+                    radiate_py_err!(format!("Invalid offspring fraction value: {}", e))
+                })?;
 
                 if !(0.0..=1.0).contains(&fraction) {
                     return Err(radiate_py_err!(
@@ -319,7 +321,7 @@ impl PyEngineBuilder {
                     ));
                 }
 
-                Ok(typed_builder.offspring_fraction(fraction))
+                Ok(typed_builder.offspring_fraction(fraction as f32))
             })
         )
     }
@@ -332,8 +334,10 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_single_typed(|typed_builder, input| {
-                let size = input.get_usize("size").unwrap_or(100);
-                Ok(typed_builder.population_size(size))
+                let size = input.extract::<i64>("size").map_err(|e| {
+                    radiate_py_err!(format!("Failed to extract population size value: {}", e))
+                })?;
+                Ok(typed_builder.population_size(size as usize))
             })
         )
     }
@@ -346,8 +350,10 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_single_typed(|typed_builder, input| {
-                let max_age = input.get_usize("age").unwrap_or(usize::MAX);
-                Ok(typed_builder.max_age(max_age))
+                let max_age = input.extract::<i64>("age").map_err(|e| {
+                    radiate_py_err!(format!("Failed to extract max phenotype age value: {}", e))
+                })?;
+                Ok(typed_builder.max_age(max_age as usize))
             })
         )
     }
@@ -361,7 +367,11 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_single_typed(|typed_builder, input| {
-                let selector = input.transform();
+                let selector =
+                    InputTransform::<RadiateResult<Box<dyn Select<_>>>>::transform(input).map_err(
+                        |e| radiate_py_err!(format!("Failed to transform selector input: {}", e)),
+                    )?;
+
                 Ok(match input.input_type() {
                     SurvivorSelector => typed_builder.boxed_survivor_selector(selector),
                     OffspringSelector => typed_builder.boxed_offspring_selector(selector),
@@ -395,8 +405,13 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_single_typed(|typed_builder, input| {
-                let diversity = input.transform();
-                Ok(typed_builder.boxed_diversity(diversity))
+                let diversity =
+                    InputTransform::<RadiateResult<Box<dyn Diversity<_>>>>::transform(input)
+                        .map_err(|e| {
+                            radiate_py_err!(format!("Failed to transform diversity input: {}", e))
+                        })?;
+
+                Ok(typed_builder.boxed_diversity(Some(diversity)))
             })
         )
     }
@@ -409,29 +424,22 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_single_typed(|typed_builder, input| {
-                let objectives = input.get_string("objective").map(|objs| {
-                    objs.split('|')
-                        .filter_map(|s| match s.trim().to_lowercase().as_str() {
-                            "min" => Some(Optimize::Minimize),
-                            "max" => Some(Optimize::Maximize),
-                            _ => None,
+                let objectives = input.extract::<Vec<String>>("objective").map(|objs| {
+                    objs.iter()
+                        .map(|val| match val.trim().to_lowercase().as_str() {
+                            "min" => Optimize::Minimize,
+                            "max" => Optimize::Maximize,
+                            _ => panic!("Objective {} not recognized", val),
                         })
                         .collect::<Vec<Optimize>>()
-                });
+                })?;
 
-                let opt = match objectives {
-                    Some(objs) => {
-                        if objs.len() == 1 {
-                            Objective::Single(objs[0])
-                        } else if objs.len() > 1 {
-                            Objective::Multi(objs)
-                        } else {
-                            radiate_py_bail!(
-                                "No objectives provided - I'm not even sure this is possible"
-                            );
-                        }
-                    }
-                    None => Objective::Single(Optimize::Maximize),
+                let opt = if objectives.len() == 1 {
+                    Objective::Single(objectives[0])
+                } else if objectives.len() > 1 {
+                    Objective::Multi(objectives)
+                } else {
+                    radiate_py_bail!("No objectives provided - I'm not even sure this is possible");
                 };
 
                 match opt {
@@ -453,8 +461,8 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_single_typed(|typed_builder, input| {
-                let min = input.get_usize("min").unwrap_or(700);
-                let max = input.get_usize("max").unwrap_or(900);
+                let min = input.extract::<i64>("min")? as usize;
+                let max = input.extract::<i64>("max")? as usize;
 
                 if min > max {
                     radiate_py_bail!(format!(
@@ -712,8 +720,8 @@ impl PyEngineBuilder {
             )))?;
 
         let executor = Self::get_input_of_type(inputs, PyEngineInputType::Executor)
-            .and_then(InputTransform::<Option<Executor>>::transform)
-            .unwrap_or(Executor::Serial);
+            .map(InputTransform::<RadiateResult<Executor>>::transform)
+            .unwrap_or(Ok(Executor::Serial))?;
 
         if executor.is_parallel() && gil_enabled && !matches!(problem.inner, Regression(_, _)) {
             radiate_py_bail!(

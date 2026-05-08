@@ -12,31 +12,37 @@ def test_selector_correlation(random_seed):
         (rd.BoltzmannSelector(temp=2.0), rd.MAX),
         (rd.BoltzmannSelector(temp=2.0), rd.MIN),
     ]
+    codec = rd.FloatCodec(shape=5, init_range=(0.0, 1.0))
+    pop_size = 100
+    num_trials = 10_000
+
+    scores = np.arange(1, pop_size + 1, dtype=np.float32)
+
+    population = rd.Population(
+        rd.Phenotype(codec.encode(), score=float(score)) for score in scores
+    )
 
     for selector, opt in selectors:
-        codec = rd.FloatCodec(shape=5, init_range=(0.0, 1.0))
-
-        pop_size = 100
-        population = rd.Population(
-            rd.Phenotype(codec.encode(), score=float(i + 1)) for i in range(pop_size)
-        )
-
-        num_trials = 10_000
-        selection_counts = np.zeros(pop_size)
+        selection_counts = np.zeros(pop_size, dtype=np.int32)
 
         for _ in range(num_trials):
             selected = selector.select(population, opt, 1)
-            idx = int(selected[0].score()[0]) - 1  # score was i+1
+            idx = int(selected[0].score()[0]) - 1
             selection_counts[idx] += 1
 
-        probabilities = selection_counts / num_trials
-        expected = np.array([i + 1 for i in range(pop_size)], dtype=np.float32)
-        expected /= expected.sum()
+        observed = selection_counts / num_trials
 
-        corr = np.corrcoef(expected, probabilities)[0, 1]
+        if opt == rd.MAX:
+            expected = scores.copy()
+        else:
+            # mirror typical minimization weighting
+            expected = scores.max() - scores + 1
+
+        expected /= expected.sum()
+        corr = np.corrcoef(expected, observed)[0, 1]
 
         assert corr > 0.9, (
-            f"Correlation too low: {corr} for {selector.component} with objective {opt}"
+            f"{selector.component} ({opt}) produced weak correlation: {corr:.4f}"
         )
 
 

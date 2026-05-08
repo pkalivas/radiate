@@ -380,7 +380,7 @@ class EngineBuilder[G, T]:
             EngineInput(
                 input_type=EngineInputType.Objective,
                 component="Objective",
-                objective="|".join(objective),
+                objective=objective,
             )
         )
 

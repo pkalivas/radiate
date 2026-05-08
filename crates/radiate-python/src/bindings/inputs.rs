@@ -1,9 +1,9 @@
-use crate::{PyAnyObject, PyGeneType, PyRate, bindings::datatype::py_object_to_any_value};
+use crate::{PyAnyObject, PyGeneType, PyRate};
 use pyo3::{
     Py, PyAny, PyResult, Python, exceptions::PyKeyError, prelude::FromPyObjectOwned, pyclass,
     pymethods,
 };
-use radiate::{AnyValue, Rate};
+use radiate::Rate;
 use std::{
     collections::{HashMap, HashSet},
     fmt::Debug,
@@ -94,52 +94,12 @@ impl PyEngineInput {
         })
     }
 
-    pub fn any_value(&self, key: &str) -> PyResult<AnyValue<'static>> {
-        Python::attach(|py| match self.args.get(key) {
-            Some(v) => {
-                py_object_to_any_value(v.inner.bind_borrowed(py), true).map(|val| val.into_static())
-            }
-            None => Err(PyKeyError::new_err(format!(
-                "Key '{}' not found in PyEngineInput args",
-                key
-            ))),
-        })
-    }
-
     pub fn get(&self, key: &str) -> Option<&PyAnyObject> {
         self.args.get(key)
     }
 
     pub fn get_rate(&self) -> Option<Rate> {
         self.rate.clone().map(|r| r.rate)
-    }
-
-    pub fn get_string(&self, key: &str) -> Option<String> {
-        self.args.get(key).and_then(|v| v.get_string())
-    }
-
-    pub fn get_i32(&self, key: &str) -> Option<i32> {
-        self.args.get(key).and_then(|v| v.get_i32())
-    }
-
-    pub fn get_f32(&self, key: &str) -> Option<f32> {
-        self.args.get(key).and_then(|v| v.get_f32())
-    }
-
-    pub fn get_f64(&self, key: &str) -> Option<f64> {
-        self.args.get(key).and_then(|v| v.get_f64())
-    }
-
-    pub fn get_usize(&self, key: &str) -> Option<usize> {
-        self.args.get(key).and_then(|v| v.get_usize())
-    }
-
-    pub fn get_vec_f32(&self, key: &str) -> Option<Vec<f32>> {
-        self.args.get(key).and_then(|v| v.get_vec_f32())
-    }
-
-    pub fn get_bool(&self, key: &str) -> Option<bool> {
-        self.args.get(key).and_then(|v| v.get_bool())
     }
 }
 

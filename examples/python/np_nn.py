@@ -75,7 +75,7 @@ engine = (
     .load_checkpoint(LOAD_PATH, ignore_not_found=True)
     .select(rd.Select.boltzmann(temp=4.0))
     .alters(rd.Cross.blend(0.7, 0.4), rd.Mutate.gaussian(0.1))
-    .limit(rd.Limit.score(0.01), rd.Limit.generations(500))
+    .limit(rd.Limit.score(0.01), rd.Limit.generations(50))
 )
 
 result = engine.run(log=True, checkpoint=(50, WRITE_PATH, "pkl"))
