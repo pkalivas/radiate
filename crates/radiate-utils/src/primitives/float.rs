@@ -2,11 +2,6 @@ use crate::primitives::Primitive;
 use num_order::{NumHash, NumOrd};
 
 pub trait Float: Primitive + num_traits::Float + NumHash + NumOrd<Self> {
-    const MIN: Self;
-    const MAX: Self;
-    const ZERO: Self;
-    const ONE: Self;
-    const TWO: Self;
     const THREE: Self;
     const FOUR: Self;
     const FIVE: Self;
@@ -28,6 +23,11 @@ macro_rules! impl_float_scalar {
     ($t:ty, $eps:expr) => {
         impl Primitive for $t {
             const HALF: Self = 0.5;
+            const MIN: Self = <$t>::MIN;
+            const MAX: Self = <$t>::MAX;
+            const ZERO: Self = 0.0;
+            const ONE: Self = 1.0;
+            const TWO: Self = 2.0;
 
             #[inline]
             fn safe_add(self, rhs: Self) -> Self {
@@ -56,11 +56,6 @@ macro_rules! impl_float_scalar {
         }
 
         impl Float for $t {
-            const MIN: Self = <$t>::MIN;
-            const MAX: Self = <$t>::MAX;
-            const ZERO: Self = 0.0;
-            const ONE: Self = 1.0;
-            const TWO: Self = 2.0;
             const THREE: Self = 3.0;
             const FOUR: Self = 4.0;
             const FIVE: Self = 5.0;

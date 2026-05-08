@@ -1,5 +1,5 @@
 use super::{Field, Scalar};
-use radiate_utils::{Float, Integer};
+use radiate_utils::Primitive;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
@@ -107,18 +107,18 @@ impl DataType {
     pub fn max(&self) -> Option<Scalar> {
         use DataType as D;
         match self {
-            D::Int8 => Some(Scalar::from(<i8 as Integer>::MAX)),
-            D::Int16 => Some(Scalar::from(<i16 as Integer>::MAX)),
-            D::Int32 => Some(Scalar::from(<i32 as Integer>::MAX)),
-            D::Int64 => Some(Scalar::from(<i64 as Integer>::MAX)),
-            D::Int128 => Some(Scalar::from(<i128 as Integer>::MAX)),
-            D::UInt8 => Some(Scalar::from(<u8 as Integer>::MAX)),
-            D::UInt16 => Some(Scalar::from(<u16 as Integer>::MAX)),
-            D::UInt32 => Some(Scalar::from(<u32 as Integer>::MAX)),
-            D::UInt64 => Some(Scalar::from(<u64 as Integer>::MAX)),
-            D::UInt128 => Some(Scalar::from(<u128 as Integer>::MAX)),
-            D::Float32 => Some(Scalar::from(<f32 as Float>::MAX)),
-            D::Float64 => Some(Scalar::from(<f64 as Float>::MAX)),
+            D::Int8 => Some(Scalar::from(<i8 as Primitive>::MAX)),
+            D::Int16 => Some(Scalar::from(<i16 as Primitive>::MAX)),
+            D::Int32 => Some(Scalar::from(<i32 as Primitive>::MAX)),
+            D::Int64 => Some(Scalar::from(<i64 as Primitive>::MAX)),
+            D::Int128 => Some(Scalar::from(<i128 as Primitive>::MAX)),
+            D::UInt8 => Some(Scalar::from(<u8 as Primitive>::MAX)),
+            D::UInt16 => Some(Scalar::from(<u16 as Primitive>::MAX)),
+            D::UInt32 => Some(Scalar::from(<u32 as Primitive>::MAX)),
+            D::UInt64 => Some(Scalar::from(<u64 as Primitive>::MAX)),
+            D::UInt128 => Some(Scalar::from(<u128 as Primitive>::MAX)),
+            D::Float32 => Some(Scalar::from(<f32 as Primitive>::MAX)),
+            D::Float64 => Some(Scalar::from(<f64 as Primitive>::MAX)),
             _ => None,
         }
     }
@@ -126,18 +126,18 @@ impl DataType {
     pub fn min(&self) -> Option<Scalar> {
         use DataType as D;
         match self {
-            D::Int8 => Some(Scalar::from(<i8 as Integer>::MIN)),
-            D::Int16 => Some(Scalar::from(<i16 as Integer>::MIN)),
-            D::Int32 => Some(Scalar::from(<i32 as Integer>::MIN)),
-            D::Int64 => Some(Scalar::from(<i64 as Integer>::MIN)),
-            D::Int128 => Some(Scalar::from(<i128 as Integer>::MIN)),
-            D::UInt8 => Some(Scalar::from(<u8 as Integer>::MIN)),
-            D::UInt16 => Some(Scalar::from(<u16 as Integer>::MIN)),
-            D::UInt32 => Some(Scalar::from(<u32 as Integer>::MIN)),
-            D::UInt64 => Some(Scalar::from(<u64 as Integer>::MIN)),
-            D::UInt128 => Some(Scalar::from(<u128 as Integer>::MIN)),
-            D::Float32 => Some(Scalar::from(<f32 as Float>::MIN)),
-            D::Float64 => Some(Scalar::from(<f64 as Float>::MIN)),
+            D::Int8 => Some(Scalar::from(<i8 as Primitive>::MIN)),
+            D::Int16 => Some(Scalar::from(<i16 as Primitive>::MIN)),
+            D::Int32 => Some(Scalar::from(<i32 as Primitive>::MIN)),
+            D::Int64 => Some(Scalar::from(<i64 as Primitive>::MIN)),
+            D::Int128 => Some(Scalar::from(<i128 as Primitive>::MIN)),
+            D::UInt8 => Some(Scalar::from(<u8 as Primitive>::MIN)),
+            D::UInt16 => Some(Scalar::from(<u16 as Primitive>::MIN)),
+            D::UInt32 => Some(Scalar::from(<u32 as Primitive>::MIN)),
+            D::UInt64 => Some(Scalar::from(<u64 as Primitive>::MIN)),
+            D::UInt128 => Some(Scalar::from(<u128 as Primitive>::MIN)),
+            D::Float32 => Some(Scalar::from(<f32 as Primitive>::MIN)),
+            D::Float64 => Some(Scalar::from(<f64 as Primitive>::MIN)),
             _ => None,
         }
     }

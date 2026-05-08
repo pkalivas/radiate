@@ -7,6 +7,33 @@ mod selector_tests {
     use radiate_selectors::*;
     use rstest::*;
 
+    fn fitness_improvement_metric(
+        population: &Population<FloatChromosome<f32>>,
+        selected: &Population<FloatChromosome<f32>>,
+        objectives: &Objective,
+    ) -> f32 {
+        let population_avg: f32 = population
+            .iter()
+            .map(|ind| ind.genotype()[0].as_slice()[0].allele())
+            .sum::<f32>()
+            / population.len() as f32;
+
+        let selected_avg: f32 = selected
+            .iter()
+            .map(|ind| ind.genotype()[0].as_slice()[0].allele())
+            .sum::<f32>()
+            / selected.len() as f32;
+
+        if let Objective::Single(optimize) = objectives {
+            match optimize {
+                Optimize::Minimize => population_avg - selected_avg,
+                Optimize::Maximize => selected_avg - population_avg,
+            }
+        } else {
+            panic!("Objective must be single");
+        }
+    }
+
     #[rstest]
     #[case(10, Optimize::Minimize)]
     #[case(20, Optimize::Minimize)]
@@ -80,30 +107,20 @@ mod selector_tests {
         assert!(percent_better_than_random > 0.9);
     }
 
-    fn fitness_improvement_metric(
-        population: &Population<FloatChromosome<f32>>,
-        selected: &Population<FloatChromosome<f32>>,
-        objectives: &Objective,
-    ) -> f32 {
-        let population_avg: f32 = population
-            .iter()
-            .map(|ind| ind.genotype()[0].as_slice()[0].allele())
-            .sum::<f32>()
-            / population.len() as f32;
+    // #[rstest]
+    // fn test_roulette_probability_distribution() {
+    //     let scores = population_utils::random_float_population2(100, Optimize::Maximize)
+    //         .iter_scores()
+    //         .map(|s| s.as_f32())
+    //         .collect::<Vec<_>>();
+    //     let probabilities = roulette_probabilities(&scores);
 
-        let selected_avg: f32 = selected
-            .iter()
-            .map(|ind| ind.genotype()[0].as_slice()[0].allele())
-            .sum::<f32>()
-            / selected.len() as f32;
+    //     let total: f32 = probabilities.iter().sum();
+    //     assert!((total - 1.0).abs() < 1e-6);
 
-        if let Objective::Single(optimize) = objectives {
-            match optimize {
-                Optimize::Minimize => population_avg - selected_avg,
-                Optimize::Maximize => selected_avg - population_avg,
-            }
-        } else {
-            panic!("Objective must be single");
-        }
-    }
+    //     for p in probabilities {
+    //         println!("Probability: {}", p);
+    //         assert!(p > 0.0);
+    //     }
+    // }
 }

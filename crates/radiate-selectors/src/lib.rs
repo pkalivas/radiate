@@ -22,26 +22,19 @@ pub use roulette::RouletteSelector;
 pub use stochastic_sampling::StochasticUniversalSamplingSelector;
 pub use tournament::TournamentSelector;
 
-pub(crate) struct ProbabilityWheelIterator {
-    cdf: Vec<f32>,
+pub(crate) struct ProbabilityWheelIterator<'a> {
+    probs: &'a [f32],
     total: f32,
     max_index: usize,
     current: usize,
 }
 
-impl ProbabilityWheelIterator {
-    pub fn new(weights: &[f32], max_index: usize) -> Self {
-        let mut cdf = Vec::with_capacity(weights.len());
-        let mut total = 0.0f32;
-
-        for &w in weights {
-            let w = if w.is_finite() && w > 0.0 { w } else { 0.0 };
-            total += w;
-            cdf.push(total);
-        }
+impl<'a> ProbabilityWheelIterator<'a> {
+    pub fn new(weights: &'a [f32], max_index: usize) -> Self {
+        let total = weights.iter().sum::<f32>();
 
         Self {
-            cdf,
+            probs: weights,
             total,
             max_index,
             current: 0,
@@ -49,7 +42,7 @@ impl ProbabilityWheelIterator {
     }
 }
 
-impl Iterator for ProbabilityWheelIterator {
+impl<'a> Iterator for ProbabilityWheelIterator<'a> {
     type Item = usize;
 
     #[inline]
@@ -57,21 +50,24 @@ impl Iterator for ProbabilityWheelIterator {
         if self.current >= self.max_index {
             return None;
         }
+
         self.current += 1;
 
-        let n = self.cdf.len();
+        let n = self.probs.len();
         if n == 0 {
             return Some(0);
         }
 
-        let idx = if self.total > 0.0 && self.total.is_finite() {
-            let r = random_provider::random::<f32>() * self.total;
-            self.cdf.partition_point(|&v| v <= r).min(n - 1)
-        } else {
-            let i = (random_provider::random::<f32>() * n as f32) as usize;
-            i.min(n - 1)
-        };
+        let mark = random_provider::range(0_f32..self.total);
 
-        Some(idx)
+        let mut accum = 0.0;
+        for (i, &p) in self.probs.iter().enumerate() {
+            accum += p;
+            if accum >= mark {
+                return Some(i);
+            }
+        }
+
+        Some(n - 1)
     }
 }

@@ -1,4 +1,6 @@
-use radiate_core::{Chromosome, Objective, Optimize, Population, Select, pareto, random_provider};
+use radiate_core::{
+    Chromosome, Objective, Optimize, Population, Select, math::norm, pareto, random_provider,
+};
 
 #[derive(Debug, Clone, Default)]
 pub struct StochasticUniversalSamplingSelector;
@@ -18,28 +20,26 @@ impl<C: Chromosome + Clone> Select<C> for StochasticUniversalSamplingSelector {
     ) -> Population<C> {
         let fitness_values = match objective {
             Objective::Single(opt) => {
-                let scores = population
+                let mut weights = population
                     .iter_scores()
-                    .map(|score| score.as_f32())
+                    .filter_map(|score| score.first())
                     .collect::<Vec<f32>>();
-                let total = scores.iter().sum::<f32>();
-                let mut fitness_values =
-                    scores.iter().map(|&fit| fit / total).collect::<Vec<f32>>();
+
+                norm::scale_l1(&mut weights);
 
                 if let Optimize::Minimize = opt {
-                    fitness_values.reverse();
+                    weights.reverse();
                 }
 
-                fitness_values
+                weights
             }
             Objective::Multi(_) => {
-                let weights =
-                    pareto::weights(&population.iter_scores().collect::<Vec<_>>(), objective);
-                let total_weights = weights.iter().sum::<f32>();
+                let scores = population.iter_scores().collect::<Vec<_>>();
+                let mut weights = pareto::weights(&scores, objective);
+
+                norm::scale_l1(&mut weights);
+
                 weights
-                    .iter()
-                    .map(|&fit| fit / total_weights)
-                    .collect::<Vec<f32>>()
             }
         };
 

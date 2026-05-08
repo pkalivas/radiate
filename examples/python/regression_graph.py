@@ -8,7 +8,7 @@ We have a simple polynomial function and we want to evolve a graph that approxim
 
 import radiate as rd
 
-rd.random.seed(1345)
+rd.random.seed(67123)
 
 
 def compute(x: float) -> float:
@@ -32,9 +32,10 @@ engine = (
         edge=rd.Op.weight(),
         output=rd.Op.linear(),
     )
+    .select(rd.Select.boltzmann(temp=4.0))
     .regression(inputs, answers, loss=rd.MSE)
     .alters(
-        rd.Cross.graph(0.5, 0.5),
+        rd.Cross.graph(0.05, 0.5),
         rd.Mutate.op(0.07, 0.05),
         rd.Mutate.graph(0.1, 0.1, False),
     )

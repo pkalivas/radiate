@@ -1,12 +1,6 @@
 use crate::Primitive;
 
 pub trait Integer: Primitive + num_traits::PrimInt {
-    const MIN: Self;
-    const MAX: Self;
-    const ZERO: Self;
-    const ONE: Self;
-    const TWO: Self;
-
     fn safe_clamp(self, min: Self, max: Self) -> Self {
         if self < min {
             min
@@ -24,6 +18,11 @@ macro_rules! impl_integer {
         $(
             impl Primitive for $t {
                 const HALF: Self = 0.5 as Self;
+                const MIN: Self = <$t>::MIN;
+                const MAX: Self = <$t>::MAX;
+                const ZERO: Self = 0;
+                const ONE: Self = 1;
+                const TWO: Self = 2;
 
                 #[inline]
                 fn safe_add(self, rhs: Self) -> Self {
@@ -56,12 +55,6 @@ macro_rules! impl_integer {
             }
 
             impl Integer for $t {
-                const MIN: Self = <$t>::MIN;
-                const MAX: Self = <$t>::MAX;
-                const ZERO: Self = 0;
-                const ONE: Self = 1;
-                const TWO: Self = 2;
-
                 fn safe_clamp(self, min: Self, max: Self) -> Self {
                     if self < min {
                         min

@@ -17,5 +17,5 @@ pub use intern::{
 };
 pub use lru::LruCache;
 pub use primitives::{Float, Integer, Primitive};
-pub use stats::{Distribution, Slope, Statistic};
+pub use stats::{Distribution, MinMax, Slope, Statistic};
 pub use str::SmallStr;

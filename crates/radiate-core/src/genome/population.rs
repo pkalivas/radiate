@@ -66,6 +66,7 @@ impl<C: Chromosome> Population<C> {
         self.individuals.iter_mut()
     }
 
+    #[inline]
     pub fn iter_scores(&self) -> impl Iterator<Item = &Score> {
         self.individuals
             .iter()

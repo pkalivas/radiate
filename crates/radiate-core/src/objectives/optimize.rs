@@ -226,6 +226,16 @@ impl From<Optimize> for &str {
     }
 }
 
+impl From<bool> for Optimize {
+    fn from(value: bool) -> Self {
+        if value {
+            Optimize::Maximize
+        } else {
+            Optimize::Minimize
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
