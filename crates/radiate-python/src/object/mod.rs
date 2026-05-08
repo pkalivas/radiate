@@ -1,11 +1,10 @@
 mod json;
 mod wrap;
 
-use radiate_error::radiate_py_bail;
 pub use wrap::*;
 
 use pyo3::prelude::FromPyObjectOwned;
-use pyo3::types::{PyFloat, PyInt, PyList};
+use pyo3::types::{PyFloat, PyInt};
 use pyo3::{Borrowed, IntoPyObject, PyAny, Python, types::PyAnyMethods};
 use pyo3::{Py, PyResult};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -39,7 +38,7 @@ impl PyAnyObject {
 
     pub fn to_json<'py>(&self, py: Python<'py>) -> PyResult<String> {
         let bound = self.inner.bind_borrowed(py);
-        let result = json::try_to_json(py, bound)?;
+        let result = json::try_to_json(bound)?;
         Ok(result)
     }
 

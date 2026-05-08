@@ -1,15 +1,12 @@
 use pyo3::{
-    Borrowed, Bound, PyAny, PyResult, Python,
+    Borrowed, Bound, PyAny, PyResult, intern,
     types::{PyAnyMethods, PyList},
 };
 use radiate_error::radiate_py_bail;
 
 const NUMPY_ARRAY_CLASS: &str = "ndarray";
 
-pub(super) fn try_to_json<'a, 'py>(
-    python: Python<'py>,
-    item: Borrowed<'a, 'py, PyAny>,
-) -> PyResult<String> {
+pub(super) fn try_to_json<'a, 'py>(item: Borrowed<'a, 'py, PyAny>) -> PyResult<String> {
     if item.is_instance_of::<PyList>() {
         let mut items = Vec::new();
         for item in item.cast::<PyList>()?.try_iter()? {
@@ -41,33 +38,36 @@ pub(super) fn try_to_json<'a, 'py>(
 
 #[inline]
 fn try_to_json_fn(item: &Bound<'_, PyAny>) -> Option<String> {
-    let to_json = item.getattr("to_json").ok()?;
+    let py = item.py();
+    let to_json = item.getattr(intern!(py, "to_json")).ok()?;
     let json_str = to_json.call0().ok()?;
 
-    return json_str.extract::<String>().ok();
+    json_str.extract::<String>().ok()
 }
 
 #[inline]
 fn try_to_json_dumps(item: &Bound<'_, PyAny>) -> Option<String> {
-    let json_module = item.py().import("json").ok()?;
-    let dumps = json_module.getattr("dumps").ok()?;
+    let py = item.py();
+    let json_module = py.import(intern!(py, "json")).ok()?;
+    let dumps = json_module.getattr(intern!(py, "dumps")).ok()?;
     let json_str = dumps.call1((item,)).ok()?;
 
-    return json_str.extract::<String>().ok();
+    json_str.extract::<String>().ok()
 }
 
 #[inline]
 fn try_to_json_numpy(item: &Bound<'_, PyAny>) -> Option<String> {
+    let py = item.py();
     let item_name = item
-        .getattr("__class__")
+        .getattr(intern!(py, "__class__"))
         .ok()?
-        .getattr("__name__")
+        .getattr(intern!(py, "__name__"))
         .ok()?
         .extract::<String>()
         .ok()?;
 
     if item_name == NUMPY_ARRAY_CLASS {
-        let numpy_list = item.call_method0("tolist").ok()?;
+        let numpy_list = item.call_method0(intern!(py, "tolist")).ok()?;
         return try_to_json_fn(&numpy_list).or_else(|| try_to_json_dumps(&numpy_list));
     }
 

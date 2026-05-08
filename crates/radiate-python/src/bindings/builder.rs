@@ -200,13 +200,12 @@ impl PyEngineBuilder {
             Self::process_single_typed(|typed_builder, input| {
                 let ignore_not_found = input.get_bool("ignore_not_found").unwrap_or(false);
                 let path = input.extract::<String>("path")?;
-                if ignore_not_found {
-                    if let Err(e) = std::fs::metadata(&path) {
-                        if e.kind() == std::io::ErrorKind::NotFound {
-                            // If the file doesn't exist and we're ignoring not found errors, just return the builder unchanged
-                            return Ok(typed_builder);
-                        }
-                    }
+                if ignore_not_found
+                    && let Err(e) = std::fs::metadata(&path)
+                    && e.kind() == std::io::ErrorKind::NotFound
+                {
+                    // If the file doesn't exist and we're ignoring not found errors, just return the builder unchanged
+                    return Ok(typed_builder);
                 }
 
                 Ok(typed_builder.load_checkpoint(path, PickleCheckpointReader))
