@@ -353,6 +353,7 @@ impl PyEngineBuilder {
                 let max_age = input.extract::<i64>("age").map_err(|e| {
                     radiate_py_err!(format!("Failed to extract max phenotype age value: {}", e))
                 })?;
+
                 Ok(typed_builder.max_age(max_age as usize))
             })
         )

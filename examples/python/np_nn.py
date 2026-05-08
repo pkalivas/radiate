@@ -8,11 +8,6 @@ The network weights are evolved using a float codec.
 import pprint
 import radiate as rd
 import numpy as np  # type: ignore
-from pathlib import Path
-
-PATH = Path(__file__).resolve().parent
-WRITE_PATH = PATH / "nn_checkpoint"
-LOAD_PATH = PATH / "nn_checkpoint" / "chckpnt_350.pkl"
 
 rd.random.seed(123)
 
@@ -72,17 +67,15 @@ engine = (
     )
     .fitness(fit)
     .minimizing()
-    .load_checkpoint(LOAD_PATH, ignore_not_found=True)
     .select(rd.Select.boltzmann(temp=4.0))
     .alters(rd.Cross.blend(0.7, 0.4), rd.Mutate.gaussian(0.1))
     .limit(rd.Limit.score(0.01), rd.Limit.generations(50))
 )
 
-result = engine.run(log=True, checkpoint=(50, WRITE_PATH, "pkl"))
+result = engine.run(log=True)
 metrics = result.metrics()
 
 print(result)
-# print(result.metrics().dashboard())
 
 for metric in metrics.values_by_tag(rd.Tag.DERIVED):
     print(metric)

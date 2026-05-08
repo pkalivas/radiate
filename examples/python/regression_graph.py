@@ -8,7 +8,7 @@ We have a simple polynomial function and we want to evolve a graph that approxim
 
 import radiate as rd
 
-rd.random.seed(67123)
+rd.random.seed(90)
 
 
 def compute(x: float) -> float:
@@ -25,28 +25,6 @@ for _ in range(-10, 10):
     answers.append([compute(input)])
 
 
-target_species = 4.0
-rolling = int(target_species)
-
-spec_count_signal = rd.select("count.species").rolling(rolling).mean() / target_species
-spec_dist_signal = (
-    rd.select("species.distance").mean().rolling(rolling).mean() / target_species
-)
-spec_thresh_signal = rd.select("species.threshold").rolling(rolling).mean()
-spec_evenness_signal = rd.select("species.evenness").rolling(rolling).mean()
-
-distance_signal = (
-    (rd.lit(0.9) * spec_count_signal)
-    + (rd.lit(0.4) * spec_dist_signal)
-    + (rd.lit(0.2) * spec_thresh_signal)
-    + (rd.lit(0.1) * spec_evenness_signal)
-).clamp(0.01, 10.0)
-
-
-print(distance_signal.__repr__())
-
-collector = rd.MetricCollector()
-
 engine = (
     rd.Engine.graph(
         shape=(1, 1),
@@ -55,9 +33,6 @@ engine = (
         output=rd.Op.linear(),
     )
     .regression(inputs, answers, loss=rd.MSE)
-    .subscribe(collector)
-    .metrics(distance_signal=distance_signal)
-    .diversity(rd.NeatDistance(), distance_signal)
     .alters(
         rd.Cross.graph(0.05, 0.5),
         rd.Mutate.op(0.07, 0.05),
@@ -74,7 +49,3 @@ accuracy = rd.accuracy(result.value(), inputs, answers, loss=rd.MSE)
 print(result)
 print(result.metrics().dashboard())
 print(accuracy)
-
-# collector.plot(
-#     "species.threshold", "count.species", "rate.diversity", "species.evenness"
-# )

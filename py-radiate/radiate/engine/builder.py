@@ -91,9 +91,12 @@ class EngineBuilder[G, T]:
 
     def build(self) -> PyEngine:
         """Build the PyEngine instance."""
+        for inp in self._inputs:
+            print(f"{inp}")
         builder = PyEngineBuilder(
             inputs=[self_input.__backend__() for self_input in self._inputs],
         )
+
         return builder.build()
 
     def inputs(self) -> list[EngineInput]:
