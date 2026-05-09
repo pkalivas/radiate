@@ -1,6 +1,7 @@
 use radiate_core::{
-    AlterContext, AlterResult, Chromosome, Crossover, Freezable, Freeze, Rate, Valid,
-    freeze::Frozen, random_provider,
+    AlterContext, AlterResult, Chromosome, Crossover, Freezable, Rate, Valid,
+    freeze::{Freeze, Frozen},
+    random_provider,
 };
 
 /// The [MultiPointCrossover] is a crossover method that takes two chromosomes and crosses them

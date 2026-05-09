@@ -24,8 +24,9 @@ use proc_macro_crate::{FoundCrate, crate_name};
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::quote;
 use syn::{
-    Attribute, Data, DeriveInput, Expr, ExprLit, Fields, Ident, Lit, Meta, Path, Token,
-    parse_macro_input, punctuated::Punctuated, spanned::Spanned,
+    Attribute, Data, DeriveInput, Expr, ExprLit, Fields, Ident, ItemImpl, Lit, LitStr, Meta, Path,
+    Token, parenthesized, parse::Parse, parse::ParseStream, parse_macro_input,
+    punctuated::Punctuated, spanned::Spanned,
 };
 
 /// Derive `Freezable` for a struct, building a `Frozen` from its fields.
@@ -158,5 +159,111 @@ fn expect_string(expr: &Expr, attr_name: &str) -> syn::Result<String> {
             other.span(),
             format!("`{attr_name}` expects a string literal"),
         )),
+    }
+}
+
+// =============================================================================
+// `#[freeze(...)]` — attribute macro on an impl block.
+//
+// Injects `fn as_frozen(&self) -> Frozen { ... }` into the impl, built from the
+// listed fields. Per-field modifiers:
+//
+//     #[freeze(rate, magnitude)]                         // plain — `self.field.clone()`
+//     #[freeze(rate: nested, alpha)]                     // call .as_frozen() on the field
+//     #[freeze(value_range: with(frozen_range))]         // call (func)(&self.field)
+//     #[freeze(field as "renamed")]                      // emit under a different key
+//     #[freeze(rate: nested as "rate")]                  // combine modifier + rename
+// =============================================================================
+
+/// Inject `fn as_frozen(&self) -> Frozen` into a trait impl block.
+#[proc_macro_attribute]
+pub fn freeze(args: TokenStream, input: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(args as ImplFreezeArgs);
+    let mut impl_block = parse_macro_input!(input as ItemImpl);
+
+    let krate = resolve_crate_path();
+    let withs = args.fields.iter().map(|f| f.expand());
+
+    let method: syn::ImplItem = syn::parse_quote! {
+        fn as_frozen(&self) -> #krate::Frozen {
+            #krate::Frozen::typed::<Self>()
+                #(#withs)*
+        }
+    };
+
+    impl_block.items.insert(0, method);
+    quote! { #impl_block }.into()
+}
+
+struct ImplFreezeArgs {
+    fields: Punctuated<FieldClause, Token![,]>,
+}
+
+impl Parse for ImplFreezeArgs {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        Ok(Self {
+            fields: Punctuated::parse_terminated(input)?,
+        })
+    }
+}
+
+struct FieldClause {
+    name: Ident,
+    modifier: ClauseMod,
+    rename: Option<String>,
+}
+
+enum ClauseMod {
+    Plain,
+    Nested,
+    With(Path),
+}
+
+impl Parse for FieldClause {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let name: Ident = input.parse()?;
+        let modifier = if input.peek(Token![:]) {
+            let _: Token![:] = input.parse()?;
+            let kind: Ident = input.parse()?;
+            if kind == "nested" {
+                ClauseMod::Nested
+            } else if kind == "with" {
+                let content;
+                parenthesized!(content in input);
+                ClauseMod::With(content.parse::<Path>()?)
+            } else {
+                return Err(syn::Error::new(
+                    kind.span(),
+                    "expected `nested` or `with(<func>)` after `:`",
+                ));
+            }
+        } else {
+            ClauseMod::Plain
+        };
+        let rename = if input.peek(Token![as]) {
+            let _: Token![as] = input.parse()?;
+            let s: LitStr = input.parse()?;
+            Some(s.value())
+        } else {
+            None
+        };
+        Ok(Self {
+            name,
+            modifier,
+            rename,
+        })
+    }
+}
+
+impl FieldClause {
+    fn expand(&self) -> TokenStream2 {
+        let name = &self.name;
+        let key = self.rename.clone().unwrap_or_else(|| name.to_string());
+        let value = match &self.modifier {
+            ClauseMod::Plain => quote! { self.#name.clone() },
+            ClauseMod::Nested => quote! { self.#name.as_frozen() },
+            ClauseMod::With(p) => quote! { (#p)(&self.#name) },
+        };
+        quote! { .with(#key, #value) }
     }
 }

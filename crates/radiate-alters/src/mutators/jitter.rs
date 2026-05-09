@@ -1,6 +1,8 @@
 use radiate_core::{
-    AlterContext, AlterResult, BoundedGene, Chromosome, FloatGene, Freezable, Freeze, Gene, Mutate,
-    Rate, Valid, freeze::Frozen, random_provider,
+    AlterContext, AlterResult, BoundedGene, Chromosome, FloatGene, Freezable, Gene, Mutate, Rate,
+    Valid,
+    freeze::{Freeze, Frozen},
+    random_provider,
 };
 use radiate_utils::Float;
 

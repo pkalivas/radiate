@@ -15,7 +15,7 @@ pub trait Freezable {
 }
 
 /// Re-export of the `#[derive(Freeze)]` proc-macro from `radiate-derive`.
-pub use radiate_derive::Freeze;
+pub use radiate_derive::{Freeze, freeze};
 
 /// A read-only snapshot of an engine's configurable knobs at `build()` time.
 ///
@@ -24,11 +24,11 @@ pub use radiate_derive::Freeze;
 /// component, but can also be a sequence (`AnyValue::Vector`, e.g. `alters`)
 /// or a scalar.
 #[derive(Debug, Clone, Default)]
-pub struct Freeze {
+pub struct FrozenMap {
     entries: BTreeMap<String, AnyValue<'static>>,
 }
 
-impl Freeze {
+impl FrozenMap {
     pub fn new() -> Self {
         Self::default()
     }
@@ -81,7 +81,7 @@ impl Freeze {
 }
 
 #[cfg(feature = "serde")]
-impl Serialize for Freeze {
+impl Serialize for FrozenMap {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         use serde::ser::SerializeMap;
         let mut map = serializer.serialize_map(Some(self.entries.len()))?;
@@ -93,11 +93,11 @@ impl Serialize for Freeze {
 }
 
 #[cfg(feature = "serde")]
-impl<'de> Deserialize<'de> for Freeze {
+impl<'de> Deserialize<'de> for FrozenMap {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let raw: BTreeMap<String, ScalarValue> = BTreeMap::deserialize(deserializer)?;
         let entries = raw.into_iter().map(|(k, v)| (k, v.into())).collect();
-        Ok(Freeze { entries })
+        Ok(FrozenMap { entries })
     }
 }
 
@@ -476,7 +476,7 @@ mod tests {
     #[cfg(feature = "serde")]
     #[test]
     fn freeze_round_trips_with_label_and_hoisted_type() {
-        let mut set = Freeze::default();
+        let mut set = FrozenMap::default();
         set.insert(
             "offspring_selector",
             Frozen::new()
@@ -494,7 +494,7 @@ mod tests {
         let expected = "offspring_selector:\n  BoltzmannSelector:\n    temperature: 4.0\nsurvivor_selector:\n  TournamentSelector:\n    k: 3\n";
         assert_eq!(yaml, expected);
 
-        let round_tripped: Freeze = yaml_serde::from_str(&yaml).unwrap();
+        let round_tripped: FrozenMap = yaml_serde::from_str(&yaml).unwrap();
         assert_eq!(round_tripped.len(), 2);
         assert_eq!(
             round_tripped.type_name("offspring_selector"),
@@ -511,7 +511,7 @@ mod tests {
     fn frozen_with_nested_field_round_trips() {
         // A frozen entry whose values include another nested frozen — like a
         // crossover with a structured `rate` schedule.
-        let mut set = Freeze::default();
+        let mut set = FrozenMap::default();
         set.insert(
             "alterer_0",
             Frozen::new()
@@ -531,7 +531,7 @@ mod tests {
         let expected = "alterer_0:\n  MultiPointCrossover:\n    rate:\n      Linear:\n        start: 0.1\n        end: 0.9\n        steps: 100\n    num_points: 2\n";
         assert_eq!(yaml, expected);
 
-        let round: Freeze = yaml_serde::from_str(&yaml).unwrap();
+        let round: FrozenMap = yaml_serde::from_str(&yaml).unwrap();
         assert_eq!(round.type_name("alterer_0"), Some("MultiPointCrossover"));
     }
 
@@ -550,7 +550,7 @@ mod tests {
                 .with("rate", 0.3f32)
                 .build(),
         ];
-        let mut set = Freeze::default();
+        let mut set = FrozenMap::default();
         set.insert(
             "schedule",
             Frozen::new()
@@ -562,7 +562,7 @@ mod tests {
         let expected = "schedule:\n  Stepwise:\n    steps:\n    - step: 0\n      rate: 0.5\n    - step: 10\n      rate: 0.3\n";
         assert_eq!(yaml, expected);
 
-        let round: Freeze = yaml_serde::from_str(&yaml).unwrap();
+        let round: FrozenMap = yaml_serde::from_str(&yaml).unwrap();
         assert_eq!(round.type_name("schedule"), Some("Stepwise"));
     }
 
@@ -581,7 +581,7 @@ mod tests {
                 .with("rate", 0.1f32)
                 .build(),
         ];
-        let mut set = Freeze::default();
+        let mut set = FrozenMap::default();
         set.insert("alters", AnyValue::Vector(alters));
 
         let yaml = yaml_serde::to_string(&set).unwrap();
@@ -589,7 +589,7 @@ mod tests {
             "alters:\n- MeanCrossover:\n    rate: 0.5\n- GaussianMutator:\n    rate: 0.1\n";
         assert_eq!(yaml, expected);
 
-        let round: Freeze = yaml_serde::from_str(&yaml).unwrap();
+        let round: FrozenMap = yaml_serde::from_str(&yaml).unwrap();
         let entry = round.get("alters").unwrap();
         let AnyValue::Vector(items) = entry else {
             panic!("expected Vector, got {:?}", entry);
@@ -612,7 +612,7 @@ mod tests {
         // Selectors live under a single `selectors:` key with `offspring` and
         // `survivor` as inner sub-frozen entries — same shape as the engine
         // builder produces.
-        let mut set = Freeze::default();
+        let mut set = FrozenMap::default();
         set.insert(
             "selectors",
             Frozen::new()
@@ -634,7 +634,7 @@ mod tests {
         let expected = "selectors:\n  offspring:\n    BoltzmannSelector:\n      temperature: 4.0\n  survivor:\n    TournamentSelector:\n      k: 3\n";
         assert_eq!(yaml, expected);
 
-        let round: Freeze = yaml_serde::from_str(&yaml).unwrap();
+        let round: FrozenMap = yaml_serde::from_str(&yaml).unwrap();
         let AnyValue::Map(top) = round.get("selectors").unwrap() else {
             panic!("expected selectors to be a Map");
         };

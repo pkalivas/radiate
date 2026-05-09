@@ -1,6 +1,7 @@
 use radiate_core::{
-    AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, Freezable, Freeze, Gene, Rate,
-    Valid, freeze::Frozen, random_provider,
+    AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, Freezable, Gene, Rate, Valid,
+    freeze::{Freeze, Frozen},
+    random_provider,
 };
 use radiate_utils::{Float, Primitive};
 

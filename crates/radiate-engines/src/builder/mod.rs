@@ -19,7 +19,7 @@ use crate::io::FileReader;
 use crate::objectives::{Objective, Optimize};
 use crate::pipeline::Pipeline;
 use crate::steps::{AuditStep, EngineStep, FilterStep, FrontStep, RecombineStep, SpeciateStep};
-use crate::{Chromosome, EvaluateStep, Freeze, Frozen, GeneticEngine};
+use crate::{Chromosome, EvaluateStep, FrozenMap, Frozen, GeneticEngine};
 use crate::{
     Crossover, EncodeReplace, EngineProblem, EventBus, EventHandler, Front, Mutate,
     ReplacementStrategy, RouletteSelector, TournamentSelector, context::Context,
@@ -54,7 +54,7 @@ where
     pub handlers: Vec<Arc<Mutex<dyn EventHandler<T>>>>,
     pub generation: Option<Generation<C, T>>,
     pub exprs: Option<Arc<Mutex<Vec<NamedExpr>>>>,
-    pub freeze: Freeze,
+    pub freeze: FrozenMap,
 }
 
 /// Parameters for the genetic engine.
@@ -204,7 +204,7 @@ where
         let opt = &self.params.optimization_params;
         let alt = &self.params.alterers;
 
-        let mut freeze = Freeze::default();
+        let mut freeze = FrozenMap::default();
 
         freeze.insert(
             "selectors",
@@ -507,7 +507,7 @@ where
                 handlers: Vec::new(),
                 exprs: None,
                 generation: None,
-                freeze: Freeze::default(),
+                freeze: FrozenMap::default(),
             },
             errors: Vec::new(),
         }

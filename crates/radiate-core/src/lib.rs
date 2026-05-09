@@ -21,6 +21,11 @@ pub mod replacement;
 pub mod selector;
 pub mod stats;
 
+// pub use radiate_derive::Freeze;
+// // `freeze` is also a module name above (in the type namespace); the proc-macro
+// // attribute lives in the macro namespace so they coexist without conflict.
+// pub use radiate_derive::freeze;
+
 use radiate_error::Result;
 pub use radiate_error::{RadiateError, ensure, radiate_err};
 
@@ -36,7 +41,7 @@ pub use executor::Executor;
 pub use fitness::{
     BatchFitnessFunction, BatchedFn, CompositeFitnessFn, FitnessFunction, NoveltySearch,
 };
-pub use freeze::{Freezable, Freeze, Frozen};
+pub use freeze::{Freezable, Frozen, FrozenMap};
 pub use genome::*;
 pub use lineage::{Lineage, LineageEvent, LineageUpdate};
 pub use objectives::{Front, Objective, Optimize, Score, pareto};
