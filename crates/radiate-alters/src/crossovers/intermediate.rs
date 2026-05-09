@@ -1,6 +1,6 @@
 use radiate_core::{
-    AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, FloatGene, Gene, Rate, Valid,
-    freeze::Frozen, random_provider,
+    AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, FloatGene, Freeze, Freezable,
+    Gene, Rate, Valid, freeze::Frozen, random_provider,
 };
 use radiate_utils::Float;
 
@@ -12,8 +12,9 @@ use radiate_utils::Float;
 /// ```
 /// where `a` is the new allele, `a1` is the allele from the first chromosome, `a2` is the allele
 /// from the second chromosome, and `alpha` is a value between 0 and 1.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Freeze)]
 pub struct IntermediateCrossover {
+    #[freeze(nested)]
     rate: Rate,
     alpha: f32,
 }
@@ -46,9 +47,7 @@ where
     }
 
     fn freeze(&self) -> Frozen {
-        Frozen::typed::<Self>()
-            .with("rate", self.rate.freeze())
-            .with("alpha", self.alpha)
+        <Self as Freezable>::freeze(self)
     }
 
     #[inline]

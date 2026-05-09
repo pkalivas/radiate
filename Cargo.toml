@@ -91,6 +91,7 @@ tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt"] }
 radiate = { version = "1.2.22", path = "crates/radiate", default-features = false }
 radiate-core = { version = "1.2.22", path = "crates/radiate-core", default-features = false }
+radiate-derive = { version = "1.2.22", path = "crates/radiate-derive" }
 radiate-alters = { version = "1.2.22", path = "crates/radiate-alters", default-features = false }
 radiate-selectors = { version = "1.2.22", path = "crates/radiate-selectors", default-features = false }
 radiate-engines = { version = "1.2.22", path = "crates/radiate-engines", default-features = false }

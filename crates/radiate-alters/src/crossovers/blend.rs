@@ -1,6 +1,6 @@
 use radiate_core::{
-    AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, Gene, Rate, Valid,
-    freeze::Frozen, random_provider,
+    AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, Freeze, Freezable, Gene, Rate,
+    Valid, freeze::Frozen, random_provider,
 };
 use radiate_utils::{Float, Primitive};
 
@@ -12,8 +12,9 @@ use radiate_utils::{Float, Primitive};
 /// new_allele_one = allele_one - (alpha * (allele_two - allele_one))
 /// new_allele_two = allele_two - (alpha * (allele_one - allele_two))
 /// ```
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Freeze)]
 pub struct BlendCrossover {
+    #[freeze(nested)]
     rate: Rate,
     alpha: f32,
 }
@@ -46,9 +47,7 @@ where
     }
 
     fn freeze(&self) -> Frozen {
-        Frozen::typed::<Self>()
-            .with("rate", self.rate.freeze())
-            .with("alpha", self.alpha)
+        <Self as Freezable>::freeze(self)
     }
 
     #[inline]
@@ -88,7 +87,22 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use radiate_core::{FloatChromosome, FloatGene, MetricSet};
+    use radiate_core::{AnyValue, FloatChromosome, FloatGene, MetricSet};
+
+    #[test]
+    fn derive_freeze_emits_expected_shape() {
+        let crossover = BlendCrossover::new(0.5, 0.3);
+        let frozen = <BlendCrossover as Freezable>::freeze(&crossover);
+        // Build the AnyValue and walk it to confirm the field set.
+        let any = frozen.build();
+        let AnyValue::Map(fields) = any else {
+            panic!("expected Map");
+        };
+        let names: Vec<&str> = fields.iter().map(|(n, _, _)| n.as_str()).collect();
+        assert_eq!(names, vec!["type", "rate", "alpha"]);
+        // `rate` should be a nested map (Rate::freeze emits a typed Frozen).
+        assert!(matches!(&fields[1].2, AnyValue::Map(_)));
+    }
 
     #[test]
     fn test_cross_chromosomes_basic() {

@@ -3,6 +3,20 @@ use radiate_utils::{AnyValue, DataType, Field, SmallStr};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
+/// Implemented by types that can describe themselves as a [`Frozen`].
+///
+/// Component traits like `Select`, `Crossover`, `Mutate`, `Codec`, etc. each
+/// have their own `freeze()` method on the trait surface. Hand-rolled
+/// implementations build a `Frozen` directly; `Freezable` is the layer the
+/// `#[derive(Freeze)]` macro targets, and concrete trait impls can delegate to
+/// it via `<Self as Freezable>::freeze(self)`.
+pub trait Freezable {
+    fn freeze(&self) -> Frozen;
+}
+
+/// Re-export of the `#[derive(Freeze)]` proc-macro from `radiate-derive`.
+pub use radiate_derive::Freeze;
+
 /// A read-only snapshot of an engine's configurable knobs at `build()` time.
 ///
 /// Keyed by user-supplied labels (e.g. `"offspring_selector"`), each entry is

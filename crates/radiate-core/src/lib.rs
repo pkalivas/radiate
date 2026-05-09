@@ -31,7 +31,7 @@ pub use executor::Executor;
 pub use fitness::{
     BatchFitnessFunction, BatchedFn, CompositeFitnessFn, FitnessFunction, NoveltySearch,
 };
-pub use freeze::{Freeze, Frozen};
+pub use freeze::{Freeze, Freezable, Frozen};
 pub use genome::*;
 pub use lineage::{Lineage, LineageEvent, LineageUpdate};
 pub use objectives::{Front, Objective, Optimize, Score, pareto};
