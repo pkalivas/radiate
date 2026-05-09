@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use pyo3::{intern, prelude::*, pybacked::PyBackedStr, types::PyList};
 use radiate_utils::{DataType, Field};
 
@@ -155,8 +157,8 @@ impl<'py> IntoPyObject<'py> for &Wrap<DataType> {
             DataType::Map(fields) => {
                 let field_class = rd.getattr(intern!(py, "Field"))?;
                 let iter = fields.iter().map(|fld| {
-                    let name = fld.name().as_str();
-                    let dtype = Wrap(fld.dtype().clone());
+                    let name = fld.0.to_string();
+                    let dtype = Wrap(fld.1.clone());
                     field_class.call1((name, &dtype)).unwrap()
                 });
                 let fields = PyList::new(py, iter)?;
@@ -181,13 +183,6 @@ impl<'py> IntoPyObject<'py> for &Wrap<DataType> {
                 let fields = PyList::new(py, iter)?;
                 let struct_class = rd.getattr(intern!(py, "Struct"))?;
                 struct_class.call1((main_field, fields))
-            }
-            DataType::Pair(left, right) => {
-                let pair_class = rd.getattr(intern!(py, "Pair"))?;
-                let pair_dtype = DataType::Pair(left.clone(), right.clone());
-
-                let wrap = Wrap(pair_dtype);
-                pair_class.call1((&wrap,))
             }
         }
     }
@@ -275,8 +270,13 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Wrap<DataType> {
                 let fields = fields
                     .extract::<Vec<Wrap<Field>>>()?
                     .into_iter()
-                    .map(|f| f.0)
-                    .collect::<Vec<Field>>();
+                    .map(|f| {
+                        (
+                            radiate_utils::cache_arc_string!(f.0.name().to_string()),
+                            f.0.dtype().clone(),
+                        )
+                    })
+                    .collect::<Vec<(Arc<String>, DataType)>>();
                 DataType::Map(fields)
             }
 

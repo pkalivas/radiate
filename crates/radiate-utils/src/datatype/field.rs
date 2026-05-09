@@ -48,6 +48,12 @@ impl Field {
     }
 }
 
+impl AsRef<str> for Field {
+    fn as_ref(&self) -> &str {
+        self.name.as_ref()
+    }
+}
+
 impl From<(&str, DataType)> for Field {
     fn from(s: (&str, DataType)) -> Self {
         Self::new(s.0.into(), s.1)

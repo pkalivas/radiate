@@ -2,7 +2,7 @@ use super::{Field, Scalar};
 use crate::Primitive;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use std::fmt::Display;
+use std::{fmt::Display, sync::Arc};
 
 pub mod dtype_names {
     pub const NULL: &str = "null";
@@ -27,7 +27,6 @@ pub mod dtype_names {
     pub const VEC: &str = "vec";
     pub const STRUCT: &str = "struct";
     pub const MAP: &str = "map";
-    pub const PAIR: &str = "pair";
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -61,18 +60,14 @@ pub enum DataType {
     String,
 
     List(Box<DataType>),
-    Map(Vec<Field>),
+    Map(Vec<(Arc<String>, DataType)>),
     Struct(Box<Field>, Vec<Field>),
-    Pair(Box<DataType>, Box<DataType>),
 }
 
 impl DataType {
     pub fn is_nested(&self) -> bool {
         use DataType as D;
-        matches!(
-            self,
-            D::List(_) | D::Map(_) | D::Struct(_, _) | D::Pair(_, _)
-        )
+        matches!(self, D::List(_) | D::Map(_) | D::Struct(_, _))
     }
 
     pub fn is_numeric(&self) -> bool {
@@ -195,7 +190,6 @@ impl From<String> for DataType {
             ),
 
             dtype_names::MAP => DataType::Map(Vec::new()),
-            dtype_names::PAIR => DataType::Pair(Box::new(DataType::Null), Box::new(DataType::Null)),
 
             _ => panic!("Unknown data type: {}", value),
         }
@@ -237,7 +231,7 @@ impl Display for DataType {
                 "{}({})",
                 dtype_names::MAP,
                 vals.iter()
-                    .map(|f| format!("{}", f.name.clone()))
+                    .map(|(name, _)| format!("{}", name))
                     .collect::<Vec<_>>()
                     .join(", ")
             )?,
@@ -253,7 +247,6 @@ impl Display for DataType {
                     .collect::<Vec<_>>()
                     .join(", ")
             )?,
-            DataType::Pair(left, right) => write!(f, "{}({}, {})", dtype_names::PAIR, left, right)?,
         };
 
         Ok(())

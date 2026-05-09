@@ -34,11 +34,9 @@ impl<'a> AnyValue<'a> {
             AnyValue::Slice(_) => 19,
             AnyValue::Vector(_) => 20,
 
-            AnyValue::Pair(_, _) => 21,
+            AnyValue::Map(_) => 21,
 
-            AnyValue::Map(_) => 22,
-
-            AnyValue::Struct(_, _) => 23,
+            AnyValue::Struct(_, _) => 22,
         }
     }
 
@@ -76,10 +74,10 @@ impl<'a> AnyValue<'a> {
             (Map(a), Map(b)) => {
                 let mut i = 0;
                 while i < a.len() && i < b.len() {
-                    let (fa, va) = &a[i];
-                    let (fb, vb) = &b[i];
+                    let (fa, _, va) = &a[i];
+                    let (fb, _, vb) = &b[i];
 
-                    match fa.name().cmp(fb.name()) {
+                    match fa.cmp(fb) {
                         Ordering::Equal => {}
                         non_eq => return non_eq,
                     }
@@ -122,14 +120,6 @@ impl<'a> AnyValue<'a> {
                 va.len().cmp(&vb.len())
             }
 
-            (Pair(left_a, right_a), Pair(left_b, right_b)) => {
-                match left_a.cmp(left_b) {
-                    Ordering::Equal => {}
-                    non_eq => return non_eq,
-                }
-
-                right_a.cmp(right_b)
-            }
             _ => unreachable!("cmp_same_variant called with different variants"),
         }
     }
@@ -158,14 +148,6 @@ impl<'a> AnyValue<'a> {
 
                 (Vector(a), Vector(b)) => a.iter().cmp(b.iter()),
                 (Slice(a), Slice(b)) => a.iter().cmp(b.iter()),
-                (Pair(left_a, right_a), Pair(left_b, right_b)) => {
-                    match left_a.cmp(left_b) {
-                        Ordering::Equal => {}
-                        non_eq => return Some(non_eq),
-                    }
-
-                    right_a.cmp(right_b)
-                }
 
                 _ => return None,
             };

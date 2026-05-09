@@ -170,18 +170,17 @@ impl Add for AnyValue<'_> {
                     return Null;
                 }
 
-                Map(
-                    a.into_iter()
-                        .zip(b)
-                        .map(|(one, two)| {
-                            if one.0.name() != two.0.name() {
-                                return (one.0, Null);
-                            }
+                Map(a
+                    .into_iter()
+                    .zip(b)
+                    .map(|(one, two)| {
+                        if one.0 != two.0 {
+                            return (one.0, one.1, Null);
+                        }
 
-                            (one.0, one.1 + two.1)
-                        })
-                        .collect(),
-                )
+                        (one.0, one.1, one.2 + two.2)
+                    })
+                    .collect())
             }
             (lhs, rhs) => bin_numeric_op!(lhs, rhs, +),
         }
@@ -210,18 +209,17 @@ impl Sub for AnyValue<'_> {
                     return Null;
                 }
 
-                Map(
-                    a.into_iter()
-                        .zip(b)
-                        .map(|(one, two)| {
-                            if one.0.name() != two.0.name() {
-                                return (one.0, Null);
-                            }
+                Map(a
+                    .into_iter()
+                    .zip(b)
+                    .map(|(one, two)| {
+                        if one.0 != two.0 {
+                            return (one.0, one.1, Null);
+                        }
 
-                            (one.0, one.1 - two.1)
-                        })
-                        .collect(),
-                )
+                        (one.0, one.1, one.2 - two.2)
+                    })
+                    .collect())
             }
             (lhs, rhs) => bin_numeric_op!(lhs, rhs, -),
         }
@@ -250,18 +248,17 @@ impl Mul for AnyValue<'_> {
                     return Null;
                 }
 
-                Map(
-                    a.into_iter()
-                        .zip(b)
-                        .map(|(one, two)| {
-                            if one.0.name() != two.0.name() {
-                                return (one.0, Null);
-                            }
+                Map(a
+                    .into_iter()
+                    .zip(b)
+                    .map(|(one, two)| {
+                        if one.0 != two.0 {
+                            return (one.0, one.1, Null);
+                        }
 
-                            (one.0, one.1 * two.1)
-                        })
-                        .collect(),
-                )
+                        (one.0, one.1, one.2 * two.2)
+                    })
+                    .collect())
             }
             (lhs, rhs) => bin_numeric_op!(lhs, rhs, *),
         }
@@ -289,18 +286,17 @@ impl Div for AnyValue<'_> {
                     return Null;
                 }
 
-                Map(
-                    a.into_iter()
-                        .zip(b)
-                        .map(|(one, two)| {
-                            if one.0.name() != two.0.name() {
-                                return (one.0, Null);
-                            }
+                Map(a
+                    .into_iter()
+                    .zip(b)
+                    .map(|(one, two)| {
+                        if one.0 != two.0 {
+                            return (one.0, one.1, Null);
+                        }
 
-                            (one.0, one.1 / two.1)
-                        })
-                        .collect(),
-                )
+                        (one.0, one.1, one.2 / two.2)
+                    })
+                    .collect())
             }
             (lhs, rhs) => bin_numeric_div!(lhs, rhs),
         }
@@ -327,18 +323,17 @@ impl Rem for AnyValue<'_> {
                     return Null;
                 }
 
-                Map(
-                    a.into_iter()
-                        .zip(b)
-                        .map(|(one, two)| {
-                            if one.0.name() != two.0.name() {
-                                return (one.0, Null);
-                            }
+                Map(a
+                    .into_iter()
+                    .zip(b)
+                    .map(|(one, two)| {
+                        if one.0 != two.0 {
+                            return (one.0, one.1, Null);
+                        }
 
-                            (one.0, one.1 % two.1)
-                        })
-                        .collect(),
-                )
+                        (one.0, one.1, one.2 % two.2)
+                    })
+                    .collect())
             }
             (lhs, rhs) => bin_numeric_op!(lhs, rhs, %),
         }
@@ -488,7 +483,7 @@ mod tests {
     fn make_struct(pairs: Vec<(&'static str, AnyValue<'static>)>) -> AnyValue<'static> {
         let fields = pairs
             .into_iter()
-            .map(|(name, val)| (Field::new(name.into(), val.dtype()), val))
+            .map(|(name, val)| (crate::cache_arc_string!(name), val.dtype(), val))
             .collect();
         AnyValue::Map(fields)
     }

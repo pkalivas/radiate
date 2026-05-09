@@ -44,7 +44,11 @@ where
                     self.iter()
                         .map(|(k, v)| {
                             let cloned_value = v.clone().into();
-                            (Field::new(k.into(), cloned_value.dtype()), cloned_value)
+                            (
+                                radiate_utils::cache_arc_string!(k.clone()),
+                                cloned_value.dtype(),
+                                cloned_value,
+                            )
                         })
                         .collect(),
                 );
@@ -108,8 +112,8 @@ impl ExprProjection for i32 {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::{Evaluate, Expr, expr, select::PathBuilder};
+    use super::*;
     use radiate_utils::{AnyValue, Field};
     use std::collections::HashMap;
 
@@ -206,13 +210,25 @@ mod tests {
             AnyValue::Map(
                 user1
                     .iter()
-                    .map(|(k, v)| (Field::new(k.clone().into(), v.dtype()), v.clone()))
+                    .map(|(k, v)| {
+                        (
+                            radiate_utils::cache_arc_string!(k.clone()),
+                            v.dtype(),
+                            v.clone(),
+                        )
+                    })
                     .collect(),
             ),
             AnyValue::Map(
                 user2
                     .iter()
-                    .map(|(k, v)| (Field::new(k.clone().into(), v.dtype()), v.clone()))
+                    .map(|(k, v)| {
+                        (
+                            radiate_utils::cache_arc_string!(k.clone()),
+                            v.dtype(),
+                            v.clone(),
+                        )
+                    })
                     .collect(),
             ),
         ];
