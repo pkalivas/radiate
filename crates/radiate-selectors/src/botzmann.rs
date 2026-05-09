@@ -1,6 +1,6 @@
 use crate::ProbabilityWheelIterator;
 use radiate_core::{
-    Chromosome, Objective, Optimize, Param, Population, Select, math::norm, pareto,
+    Chromosome, Objective, Optimize, Population, Select, math::norm, parameter::Parameter, pareto,
 };
 use radiate_utils::MinMax;
 
@@ -32,8 +32,10 @@ impl BoltzmannSelector {
 }
 
 impl<C: Chromosome + Clone> Select<C> for BoltzmannSelector {
-    fn register(&self) -> Param {
-        Param::typed::<Self>().add_field("temperature", self.temperature)
+    fn params(&self) -> Parameter {
+        Parameter::typed::<Self>()
+            .with("temperature", self.temperature)
+            .clone()
     }
 
     #[inline]

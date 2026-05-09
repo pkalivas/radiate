@@ -19,7 +19,7 @@ use crate::io::CheckpointReader;
 use crate::objectives::{Objective, Optimize};
 use crate::pipeline::Pipeline;
 use crate::steps::{AuditStep, EngineStep, FilterStep, FrontStep, RecombineStep, SpeciateStep};
-use crate::{Chromosome, EvaluateStep, GeneticEngine, Param, ParameterSet};
+use crate::{Chromosome, EvaluateStep, GeneticEngine, ParameterSet};
 use crate::{
     Crossover, EncodeReplace, EngineProblem, EventBus, EventHandler, Front, Mutate,
     ReplacementStrategy, RouletteSelector, TournamentSelector, context::Context,
@@ -29,6 +29,7 @@ use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::NamedExpr;
 use radiate_core::evaluator::BatchFitnessEvaluator;
+use radiate_core::parameter::Parameter;
 use radiate_core::problem::BatchEngineProblem;
 use radiate_core::{Alterer, Ecosystem, Executor, FitnessEvaluator, Rate, Valid};
 use radiate_core::{RadiateError, ensure, radiate_err};
@@ -199,20 +200,20 @@ where
 
     fn build_parameter_set(&mut self) -> Result<()> {
         let select_params = &self.params.selection_params;
+        let mut parameter_set = ParameterSet::default();
 
-        self.params.parameter_set.add(
-            "offspring_fraction",
-            Param::value("offspring_fraction", select_params.offspring_fraction),
-        );
-
-        self.params.parameter_set.add(
+        parameter_set.insert(
             "offspring_selector",
-            self.params.selection_params.offspring_selector.register(),
+            select_params.offspring_selector.params(),
         );
-        self.params.parameter_set.add(
+
+        parameter_set.insert(
             "survivor_selector",
-            self.params.selection_params.survivor_selector.register(),
+            select_params.survivor_selector.params(),
         );
+
+        parameter_set.insert("offspring_fraction", select_params.offspring_fraction);
+        self.params.parameter_set = parameter_set;
 
         println!("{:#?}", self.params.parameter_set);
 

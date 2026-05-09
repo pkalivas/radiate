@@ -19,6 +19,7 @@ rand = { workspace = true }
 itertools = { workspace = true }
 serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
+yaml_serde = { workspace = true, optional = true }
 rayon = { workspace = true, optional = true }
 
 [dev-dependencies]
@@ -27,5 +28,5 @@ serde_json = { workspace = true }
 
 [features]
 default = []
-serde = ["dep:serde", "dep:serde_json", "radiate-utils/serde"]
+serde = ["dep:serde", "dep:serde_json", "dep:yaml_serde", "radiate-utils/serde"]
 rayon = ["dep:rayon"]

@@ -34,7 +34,11 @@ impl<'a> AnyValue<'a> {
             AnyValue::Slice(_) => 19,
             AnyValue::Vector(_) => 20,
 
-            AnyValue::Struct(_) => 21,
+            AnyValue::Pair(_, _) => 21,
+
+            AnyValue::Map(_) => 22,
+
+            AnyValue::Struct(_, _) => 23,
         }
     }
 
@@ -69,7 +73,7 @@ impl<'a> AnyValue<'a> {
             (Slice(a), Slice(b)) => a.iter().cmp(b.iter()),
             (Vector(a), Vector(b)) => a.iter().cmp(b.iter()),
 
-            (Struct(a), Struct(b)) => {
+            (Map(a), Map(b)) => {
                 let mut i = 0;
                 while i < a.len() && i < b.len() {
                     let (fa, va) = &a[i];
@@ -89,6 +93,42 @@ impl<'a> AnyValue<'a> {
                 }
 
                 a.len().cmp(&b.len())
+            }
+
+            (Struct(fa, va), Struct(fb, vb)) => {
+                match fa.name().cmp(fb.name()) {
+                    Ordering::Equal => {}
+                    non_eq => return non_eq,
+                }
+
+                let mut i = 0;
+                while i < va.len() && i < vb.len() {
+                    let (fa, va) = &va[i];
+                    let (fb, vb) = &vb[i];
+
+                    match fa.name().cmp(fb.name()) {
+                        Ordering::Equal => {}
+                        non_eq => return non_eq,
+                    }
+
+                    match va.cmp(vb) {
+                        Ordering::Equal => {}
+                        non_eq => return non_eq,
+                    }
+
+                    i += 1;
+                }
+
+                va.len().cmp(&vb.len())
+            }
+
+            (Pair(left_a, right_a), Pair(left_b, right_b)) => {
+                match left_a.cmp(left_b) {
+                    Ordering::Equal => {}
+                    non_eq => return non_eq,
+                }
+
+                right_a.cmp(right_b)
             }
             _ => unreachable!("cmp_same_variant called with different variants"),
         }
@@ -118,6 +158,14 @@ impl<'a> AnyValue<'a> {
 
                 (Vector(a), Vector(b)) => a.iter().cmp(b.iter()),
                 (Slice(a), Slice(b)) => a.iter().cmp(b.iter()),
+                (Pair(left_a, right_a), Pair(left_b, right_b)) => {
+                    match left_a.cmp(left_b) {
+                        Ordering::Equal => {}
+                        non_eq => return Some(non_eq),
+                    }
+
+                    right_a.cmp(right_b)
+                }
 
                 _ => return None,
             };

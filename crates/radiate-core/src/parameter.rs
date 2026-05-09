@@ -1,44 +1,38 @@
-use std::sync::Arc;
+use std::collections::BTreeMap;
 
-use radiate_utils::{AnyValue, DataType, Field};
+use radiate_utils::AnyValue;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, Default)]
 pub struct ParameterSet {
-    parameters: Vec<(String, Param)>,
+    parameters: BTreeMap<String, Parameter>,
 }
 
 impl ParameterSet {
     pub fn new() -> Self {
-        ParameterSet {
-            parameters: Vec::new(),
-        }
+        Self::default()
     }
 
-    pub fn register<T>(&mut self, param: impl Into<Param>) -> Param
-    where
-        T: Default + 'static,
-    {
-        let type_name = std::any::type_name::<T>();
-        let parts = type_name.rsplit("::").take(1).collect::<Vec<_>>();
-
-        let name = parts[0];
-        let param = param.into();
-        self.parameters.push((name.to_string(), param.clone()));
-        param
+    pub fn register<T: ?Sized>(&mut self, parameter: Parameter) {
+        self.insert(short_type_name::<T>(), parameter);
     }
 
-    pub fn add(&mut self, name: &str, param: Param) {
-        self.parameters.push((name.to_string(), param));
+    pub fn insert(&mut self, name: impl Into<String>, parameter: impl Into<Parameter>) {
+        self.parameters.insert(name.into(), parameter.into());
     }
 
-    pub fn get(&self, name: &str) -> Option<&Param> {
-        self.parameters
-            .iter()
-            .find(|(n, _)| n == name)
-            .map(|(_, p)| p)
+    pub fn get(&self, name: &str) -> Option<&Parameter> {
+        self.parameters.get(name)
+    }
+
+    pub fn get_mut(&mut self, name: &str) -> Option<&mut Parameter> {
+        self.parameters.get_mut(name)
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&String, &Parameter)> {
+        self.parameters.iter()
     }
 
     pub fn len(&self) -> usize {
@@ -52,68 +46,120 @@ impl ParameterSet {
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone)]
-pub struct Param(Arc<String>, AnyValue<'static>);
+#[serde(untagged)]
+pub enum Parameter {
+    Scalar(AnyValue<'static>),
+    Section(BTreeMap<String, Parameter>),
+}
 
-impl Param {
-    pub fn typed<T: ?Sized>() -> Self {
-        let type_name = std::any::type_name::<T>();
-        let parts: Vec<&str> = type_name.rsplit("::").take(2).collect();
-        let obj_name = radiate_utils::intern!(parts.join("."));
-
-        let named_field = Field::new("type".into(), DataType::String);
-        let other = Field::new(obj_name.into(), DataType::String);
-
-        Self::value(
-            "param",
-            AnyValue::Struct(vec![(named_field, AnyValue::Str(obj_name))]),
-        )
-
-        // Param(AnyValue::Struct(
-        //     [(
-        //         named_field,
-        //         AnyValue::Struct(vec![(other, AnyValue::Str(obj_name))]),
-        //     )]
-        //     .to_vec(),
-        // ))
-    }
-
-    pub fn value(name: &str, value: impl Into<AnyValue<'static>>) -> Self {
-        let inner = value.into();
-        Param(Arc::new(name.to_string()), inner)
-    }
-
-    pub fn empty() -> Self {
-        Param(Arc::new("".to_string()), AnyValue::Null)
-    }
-
-    pub fn add_value(mut self, name: &str, value: impl Into<AnyValue<'static>>) -> Self {
-        let inner = value.into();
-        if let AnyValue::Struct(ref mut fields) = self.1 {
-            let dtype = inner.dtype();
-            let field = Field::new(name.into(), dtype.clone());
-            fields.push((field, inner));
-        } else {
-            panic!("Cannot add field to non-struct parameter");
-        }
-        self
-    }
-
-    pub fn add_field(&mut self, name: &str, value: impl Into<AnyValue<'static>>) -> &mut Self {
-        let inner = value.into();
-        if let AnyValue::Struct(ref mut fields) = self.1 {
-            let dtype = inner.dtype();
-            let field = Field::new(name.into(), dtype.clone());
-            fields.push((field, inner));
-        } else {
-            panic!("Cannot add field to non-struct parameter");
-        }
-
-        self
+impl Default for Parameter {
+    fn default() -> Self {
+        Parameter::Section(BTreeMap::new())
     }
 }
 
-impl Default for Param {
-    fn default() -> Self {
-        Param::empty()
+impl Parameter {
+    pub fn section() -> Self {
+        Self::default()
     }
+
+    pub fn typed<T: ?Sized>() -> Self {
+        Self::section().with("type", short_type_name::<T>())
+    }
+
+    pub fn scalar(value: impl Into<AnyValue<'static>>) -> Self {
+        Parameter::Scalar(value.into())
+    }
+
+    pub fn with(mut self, name: impl Into<String>, value: impl Into<Parameter>) -> Self {
+        self.insert(name, value);
+        self
+    }
+
+    pub fn insert(&mut self, name: impl Into<String>, value: impl Into<Parameter>) {
+        match self {
+            Parameter::Scalar(_) => {
+                panic!("cannot insert into scalar parameter");
+            }
+            Parameter::Section(map) => {
+                map.insert(name.into(), value.into());
+            }
+        }
+    }
+
+    pub fn get(&self, name: &str) -> Option<&Parameter> {
+        match self {
+            Parameter::Scalar(_) => None,
+            Parameter::Section(map) => map.get(name),
+        }
+    }
+
+    pub fn as_scalar(&self) -> Option<&AnyValue<'static>> {
+        match self {
+            Parameter::Scalar(value) => Some(value),
+            Parameter::Section(_) => None,
+        }
+    }
+
+    pub fn as_section(&self) -> Option<&BTreeMap<String, Parameter>> {
+        match self {
+            Parameter::Scalar(_) => None,
+            Parameter::Section(map) => Some(map),
+        }
+    }
+}
+
+impl From<AnyValue<'static>> for Parameter {
+    fn from(value: AnyValue<'static>) -> Self {
+        Parameter::Scalar(value)
+    }
+}
+
+impl From<&'static str> for Parameter {
+    fn from(value: &'static str) -> Self {
+        Parameter::Scalar(AnyValue::StrOwned(value.to_string()))
+    }
+}
+
+impl From<String> for Parameter {
+    fn from(value: String) -> Self {
+        Parameter::Scalar(AnyValue::StrOwned(value))
+    }
+}
+
+impl From<f32> for Parameter {
+    fn from(value: f32) -> Self {
+        Parameter::Scalar(value.into())
+    }
+}
+
+impl From<f64> for Parameter {
+    fn from(value: f64) -> Self {
+        Parameter::Scalar(value.into())
+    }
+}
+
+impl From<usize> for Parameter {
+    fn from(value: usize) -> Self {
+        Parameter::Scalar(value.into())
+    }
+}
+
+impl From<i32> for Parameter {
+    fn from(value: i32) -> Self {
+        Parameter::Scalar(value.into())
+    }
+}
+
+impl From<bool> for Parameter {
+    fn from(value: bool) -> Self {
+        Parameter::Scalar(value.into())
+    }
+}
+
+fn short_type_name<T: ?Sized>() -> &'static str {
+    std::any::type_name::<T>()
+        .rsplit("::")
+        .next()
+        .unwrap_or(std::any::type_name::<T>())
 }

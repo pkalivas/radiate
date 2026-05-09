@@ -1,7 +1,7 @@
 use super::{DataType, Field};
 use num_traits::NumCast;
 #[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, ser::SerializeStruct};
 use std::{collections::HashMap, fmt::Debug, hash::Hash, time::Duration};
 
 #[derive(Clone, Default, Debug)]
@@ -37,7 +37,10 @@ pub enum AnyValue<'a> {
     Slice(&'a [AnyValue<'a>]),
     Vector(Vec<AnyValue<'a>>),
 
-    Struct(Vec<(Field, AnyValue<'a>)>),
+    Pair(Box<AnyValue<'a>>, Box<AnyValue<'a>>),
+    Struct(Field, Vec<(Field, AnyValue<'a>)>),
+
+    Map(Vec<(Field, AnyValue<'a>)>),
 }
 
 impl<'a> AnyValue<'a> {
@@ -80,7 +83,7 @@ impl<'a> AnyValue<'a> {
 
     #[inline]
     pub fn is_nested(&self) -> bool {
-        matches!(self, Self::Struct(_) | Self::Vector(_) | Self::Slice(_))
+        matches!(self, Self::Map(_) | Self::Vector(_) | Self::Slice(_))
     }
 
     #[inline]
@@ -88,7 +91,7 @@ impl<'a> AnyValue<'a> {
         match self {
             Self::Slice(vals) => Some(vals.len()),
             Self::Vector(vals) => Some(vals.len()),
-            Self::Struct(vals) => Some(vals.len()),
+            Self::Map(vals) => Some(vals.len()),
             _ => None,
         }
     }
@@ -98,7 +101,7 @@ impl<'a> AnyValue<'a> {
         match self {
             Self::Slice(vals) => Some(vals.is_empty()),
             Self::Vector(vals) => Some(vals.is_empty()),
-            Self::Struct(vals) => Some(vals.is_empty()),
+            Self::Map(vals) => Some(vals.is_empty()),
             _ => None,
         }
     }
@@ -145,8 +148,10 @@ impl<'a> AnyValue<'a> {
             Self::StrOwned(_) => "string",
             Self::Slice(_) => "list",
             Self::Vector(_) => "list",
-            Self::Struct(_) => "struct",
+            Self::Map(_) => "map",
             Self::Duration(_) => "duration",
+            Self::Struct(_, _) => "struct",
+            Self::Pair(_, _) => "pair",
         }
     }
 
@@ -195,7 +200,15 @@ impl<'a> AnyValue<'a> {
                     .into(),
             ),
 
-            Self::Struct(vals) => DataType::Struct(vals.iter().map(|(f, _)| f.clone()).collect()),
+            Self::Map(vals) => DataType::Map(vals.iter().map(|(f, _)| f.clone()).collect()),
+
+            Self::Struct(field, fields) => DataType::Struct(
+                Box::new(field.clone()),
+                fields.iter().map(|(f, _)| f.clone()).collect(),
+            ),
+            Self::Pair(left, right) => {
+                DataType::Pair(Box::new(left.dtype()), Box::new(right.dtype()))
+            }
         }
     }
 
@@ -259,11 +272,18 @@ impl<'a> AnyValue<'a> {
             StrOwned(v) => StrOwned(v),
             Slice(v) => Vector(v.iter().map(|v| v.clone().into_static()).collect()),
             Vector(v) => Vector(v.into_iter().map(AnyValue::into_static).collect()),
-            Struct(v) => Struct(
-                v.into_iter()
-                    .map(|(field, val)| (field, val.into_static()))
+            Map(v) => Map(v
+                .into_iter()
+                .map(|(field, val)| (field, val.into_static()))
+                .collect()),
+            Struct(field, fields) => Struct(
+                field,
+                fields
+                    .into_iter()
+                    .map(|(f, v)| (f, v.into_static()))
                     .collect(),
             ),
+            Pair(left, right) => Pair(Box::new(left.into_static()), Box::new(right.into_static())),
         }
     }
 
@@ -315,7 +335,7 @@ impl<'a> AnyValue<'a> {
 
     pub fn get_key(&self, key: &AnyValue<'a>) -> Option<AnyValue<'a>> {
         match self {
-            AnyValue::Struct(fields) => {
+            AnyValue::Map(fields) => {
                 let key_str = match key {
                     AnyValue::Str(s) => *s,
                     AnyValue::StrOwned(s) => s.as_str(),
@@ -333,7 +353,7 @@ impl<'a> AnyValue<'a> {
 
     pub fn get_field(&self, field: &Field) -> Option<AnyValue<'a>> {
         match self {
-            AnyValue::Struct(fields) => fields
+            AnyValue::Map(fields) => fields
                 .iter()
                 .find(|(f, _)| f.name() == field.name())
                 .map(|(_, value)| value.clone()),
@@ -370,7 +390,7 @@ impl<'a> PartialEq for AnyValue<'a> {
             (Vector(a), Vector(b)) if a.len() == b.len() => {
                 a.iter().zip(b.iter()).all(|(x, y)| x == y)
             }
-            (Struct(a), Struct(b))
+            (Map(a), Map(b))
                 if a.len() == b.len()
                     && a.iter()
                         .map(|(f, _)| f.name())
@@ -379,6 +399,14 @@ impl<'a> PartialEq for AnyValue<'a> {
                 a.iter()
                     .zip(b.iter())
                     .all(|((f1, v1), (f2, v2))| f1.name() == f2.name() && v1 == v2)
+            }
+            (Struct(fa, va), Struct(fb, vb)) if fa.name() == fb.name() && va.len() == vb.len() => {
+                va.iter()
+                    .zip(vb.iter())
+                    .all(|((f1, v1), (f2, v2))| f1.name() == f2.name() && v1 == v2)
+            }
+            (Pair(left_a, right_a), Pair(left_b, right_b)) => {
+                left_a == left_b && right_a == right_b
             }
             _ => false,
         }
@@ -420,10 +448,21 @@ impl<'a> Hash for AnyValue<'a> {
             Vector(v) => v.hash(state),
             Slice(v) => v.hash(state),
 
-            Struct(v) => v.iter().for_each(|(k, v)| {
+            Map(v) => v.iter().for_each(|(k, v)| {
                 k.hash(state);
                 v.hash(state);
             }),
+            Struct(f, v) => {
+                f.hash(state);
+                v.iter().for_each(|(k, v)| {
+                    k.hash(state);
+                    v.hash(state);
+                });
+            }
+            Pair(left, right) => {
+                left.hash(state);
+                right.hash(state);
+            }
         }
     }
 }
@@ -474,7 +513,7 @@ where
     K: Into<AnyValue<'static>> + Clone,
 {
     fn from(map: HashMap<T, K>) -> Self {
-        AnyValue::Struct(
+        AnyValue::Map(
             map.into_iter()
                 .map(|(k, v)| {
                     let cloned_value = v.clone().into();
@@ -537,7 +576,7 @@ pub(crate) fn apply_zipped_struct_slice(
         out.push((fa.clone(), f(va, vb)?));
     }
 
-    Some(AnyValue::Struct(out))
+    Some(AnyValue::Map(out))
 }
 
 #[inline]
@@ -582,7 +621,19 @@ impl<'a> Serialize for AnyValue<'a> {
             StrOwned(v) => serializer.serialize_str(v),
             Slice(vals) => vals.serialize(serializer),
             Vector(vals) => vals.serialize(serializer),
-            Struct(vals) => vals.serialize(serializer),
+            Map(vals) => vals.serialize(serializer),
+            Struct(field, fields) => {
+                let mut state = serializer.serialize_struct("Struct", 2)?;
+                state.serialize_field("field", field)?;
+                state.serialize_field("fields", fields)?;
+                state.end()
+            }
+            Pair(left, right) => {
+                let mut state = serializer.serialize_struct("Pair", 2)?;
+                state.serialize_field("left", left)?;
+                state.serialize_field("right", right)?;
+                state.end()
+            }
         }
     }
 }
@@ -618,7 +669,9 @@ impl<'a, 'de> Deserialize<'de> for AnyValue<'a> {
             StrOwned(String),
             Slice(Vec<AnyValueDef>),
             Vector(Vec<AnyValueDef>),
-            Struct(Vec<(Field, AnyValueDef)>),
+            Map(Vec<(Field, AnyValueDef)>),
+            Struct(Field, Vec<(Field, AnyValueDef)>),
+            Pair(Box<AnyValueDef>, Box<AnyValueDef>),
         }
 
         impl From<AnyValueDef> for AnyValue<'_> {
@@ -648,8 +701,15 @@ impl<'a, 'de> Deserialize<'de> for AnyValue<'a> {
                     AnyValueDef::Vector(vals) => {
                         Vector(vals.into_iter().map(AnyValue::from).collect())
                     }
-                    AnyValueDef::Struct(vals) => {
-                        Struct(vals.into_iter().map(|(f, v)| (f, v.into())).collect())
+                    AnyValueDef::Map(vals) => {
+                        Map(vals.into_iter().map(|(f, v)| (f, v.into())).collect())
+                    }
+                    AnyValueDef::Struct(field, fields) => Struct(
+                        field,
+                        fields.into_iter().map(|(f, v)| (f, v.into())).collect(),
+                    ),
+                    AnyValueDef::Pair(left, right) => {
+                        Pair(Box::new((*left).into()), Box::new((*right).into()))
                     }
                 }
             }
@@ -678,8 +738,13 @@ impl<'a, 'de> Deserialize<'de> for AnyValue<'a> {
             AnyValueDef::Duration(ms) => Duration(std::time::Duration::from_millis(ms)),
             AnyValueDef::Slice(vals) => Vector(vals.into_iter().map(|v| v.into()).collect()),
             AnyValueDef::Vector(vals) => Vector(vals.into_iter().map(|v| v.into()).collect()),
-            AnyValueDef::Struct(vals) => {
-                Struct(vals.into_iter().map(|(f, v)| (f, v.into())).collect())
+            AnyValueDef::Struct(field, fields) => Struct(
+                field,
+                fields.into_iter().map(|(f, v)| (f, v.into())).collect(),
+            ),
+            AnyValueDef::Map(vals) => Map(vals.into_iter().map(|(f, v)| (f, v.into())).collect()),
+            AnyValueDef::Pair(left, right) => {
+                Pair(Box::new((*left).into()), Box::new((*right).into()))
             }
         })
     }
@@ -694,7 +759,7 @@ mod tests {
     #[test]
     #[cfg(feature = "serde")]
     fn test_anyvalue_equality() {
-        let v1 = AnyValue::Struct(vec![
+        let v1 = AnyValue::Map(vec![
             (
                 Field::from(("field1", DataType::Int32)),
                 AnyValue::Int32(42),
@@ -705,7 +770,7 @@ mod tests {
             ),
         ]);
 
-        let v2 = AnyValue::Struct(vec![
+        let v2 = AnyValue::Map(vec![
             (
                 Field::from(("field1", DataType::Int32)),
                 AnyValue::Int32(42),
@@ -716,7 +781,7 @@ mod tests {
             ),
         ]);
 
-        let v3 = AnyValue::Struct(vec![
+        let v3 = AnyValue::Map(vec![
             (
                 Field::from(("field1", DataType::Int32)),
                 AnyValue::Int32(43),

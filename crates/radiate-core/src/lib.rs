@@ -34,7 +34,7 @@ pub use fitness::{
 pub use genome::*;
 pub use lineage::{Lineage, LineageEvent, LineageUpdate};
 pub use objectives::{Front, Objective, Optimize, Score, pareto};
-pub use parameter::{Param, ParameterSet};
+pub use parameter::ParameterSet;
 pub use problem::{BatchEngineProblem, EngineProblem, Problem};
 pub use radiate_utils::{AnyValue, DataType, Field, dtype, dtype_names, value};
 pub use rate::Rate;

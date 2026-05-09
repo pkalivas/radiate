@@ -1,0 +1,8 @@
+parameters:
+  offspring_fraction: 0.8
+  offspring_selector:
+    temperature: 4.0
+    type: BoltzmannSelector
+  survivor_selector:
+    k: 3
+    type: TournamentSelector

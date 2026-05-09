@@ -1,7 +1,8 @@
 use crate::{
     Metric, MetricUpdate,
     stats::{
-        Meta, Tag, TagType, defaults::try_add_tag_from_str,
+        Meta, Tag, TagType,
+        defaults::try_add_tag_from_str,
         expression::{ExprProjection, SelectExpr},
         fmt,
     },

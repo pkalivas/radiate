@@ -54,7 +54,7 @@ pub fn any_value_into_py_object_ref<'py, 'a>(
                 .collect::<PyResult<Vec<_>>>()?,
         )?
         .into_any()),
-        Struct(pairs) => {
+        Map(pairs) => {
             let dict = pyo3::types::PyDict::new(py);
             for (fld, val) in pairs.iter() {
                 let key = fld.name().to_string();
@@ -93,7 +93,7 @@ pub fn any_value_into_py_object<'py>(av: AnyValue, py: Python<'py>) -> PyResult<
         AnyValue::Bool(v) => v.into_bound_py_any(py),
         AnyValue::Str(v) => v.into_bound_py_any(py),
         AnyValue::StrOwned(v) => v.into_bound_py_any(py),
-        AnyValue::Struct(v) => {
+        AnyValue::Map(v) => {
             let dict = struct_dict(py, v.into_iter())?;
             dict.into_bound_py_any(py)
         }
@@ -171,7 +171,7 @@ pub fn py_object_to_any_value<'a, 'py>(
                     key_value_pairs.push((Field::from((key.into_owned(), val.dtype())), val));
                 }
 
-                Ok(AnyValue::Struct(key_value_pairs))
+                Ok(AnyValue::Map(key_value_pairs))
             })
         } else {
             let ob_type = ob.get_type();

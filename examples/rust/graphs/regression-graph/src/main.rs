@@ -1,4 +1,5 @@
 use radiate::prelude::*;
+use serde::ser;
 
 const MIN_SCORE: f32 = 0.001;
 
@@ -23,6 +24,13 @@ fn main() {
             GraphMutator::new(0.1, 0.1).allow_recurrent(false)
         ))
         .build();
+
+    let params = engine.parameters();
+
+    let mut file = std::fs::File::create("anyvalue_test.yaml").unwrap();
+    yaml_serde::to_writer(&mut file, &params).unwrap();
+    let mut other_file = std::fs::File::create("anyvalue_test.json").unwrap();
+    serde_json::to_writer(&mut other_file, &params).unwrap();
 
     // random_provider::set_seed(90);
 

@@ -127,6 +127,10 @@ impl<'py> IntoPyObject<'py> for &Wrap<DataType> {
                 let class = rd.getattr(intern!(py, "Float64"))?;
                 class.call0()
             }
+            DataType::Usize => {
+                let class = rd.getattr(intern!(py, "Usize"))?;
+                class.call0()
+            }
             DataType::Duration => {
                 let class = rd.getattr(intern!(py, "Duration"))?;
                 class.call0()
@@ -148,7 +152,7 @@ impl<'py> IntoPyObject<'py> for &Wrap<DataType> {
                 let inner = Wrap(*inner.clone());
                 class.call1((&inner,))
             }
-            DataType::Struct(fields) => {
+            DataType::Map(fields) => {
                 let field_class = rd.getattr(intern!(py, "Field"))?;
                 let iter = fields.iter().map(|fld| {
                     let name = fld.name().as_str();
@@ -162,6 +166,28 @@ impl<'py> IntoPyObject<'py> for &Wrap<DataType> {
             DataType::Null => {
                 let class = rd.getattr(intern!(py, "Null"))?;
                 class.call0()
+            }
+            DataType::Struct(field, fields) => {
+                let field_class = rd.getattr(intern!(py, "Field"))?;
+                let name = field.name().as_str();
+                let dtype = Wrap(field.dtype().clone());
+                let main_field = field_class.call1((name, &dtype))?;
+
+                let iter = fields.iter().map(|fld| {
+                    let name = fld.name().as_str();
+                    let dtype = Wrap(fld.dtype().clone());
+                    field_class.call1((name, &dtype)).unwrap()
+                });
+                let fields = PyList::new(py, iter)?;
+                let struct_class = rd.getattr(intern!(py, "Struct"))?;
+                struct_class.call1((main_field, fields))
+            }
+            DataType::Pair(left, right) => {
+                let pair_class = rd.getattr(intern!(py, "Pair"))?;
+                let pair_dtype = DataType::Pair(left.clone(), right.clone());
+
+                let wrap = Wrap(pair_dtype);
+                pair_class.call1((&wrap,))
             }
         }
     }
@@ -251,7 +277,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Wrap<DataType> {
                     .into_iter()
                     .map(|f| f.0)
                     .collect::<Vec<Field>>();
-                DataType::Struct(fields)
+                DataType::Map(fields)
             }
 
             _ => {

@@ -19,6 +19,7 @@ radiate-error = { workspace = true }
 radiate-utils = { workspace = true }
 serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
+yaml_serde = { workspace = true, optional = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 itertools = { workspace = true }
@@ -26,4 +27,4 @@ itertools = { workspace = true }
 [features]
 default = []
 rayon = [ "radiate-core/rayon" ]
-serde = [ "dep:serde", "dep:serde_json", "radiate-core/serde", "radiate-selectors/serde" ]
+serde = [ "dep:serde", "dep:serde_json", "dep:yaml_serde", "radiate-core/serde", "radiate-selectors/serde" ]

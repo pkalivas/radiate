@@ -40,7 +40,7 @@ where
     fn project(&self, selector: &SelectExpr) -> Option<AnyValue<'static>> {
         match selector {
             SelectExpr::Path(path) => {
-                let mut current = AnyValue::Struct(
+                let mut current = AnyValue::Map(
                     self.iter()
                         .map(|(k, v)| {
                             let cloned_value = v.clone().into();
@@ -203,13 +203,13 @@ mod tests {
         user2.insert("score".to_string(), AnyValue::from(25.0f32).into_static());
 
         let users = vec![
-            AnyValue::Struct(
+            AnyValue::Map(
                 user1
                     .iter()
                     .map(|(k, v)| (Field::new(k.clone().into(), v.dtype()), v.clone()))
                     .collect(),
             ),
-            AnyValue::Struct(
+            AnyValue::Map(
                 user2
                     .iter()
                     .map(|(k, v)| (Field::new(k.clone().into(), v.dtype()), v.clone()))

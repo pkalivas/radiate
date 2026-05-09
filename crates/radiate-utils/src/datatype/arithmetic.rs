@@ -165,12 +165,12 @@ impl Add for AnyValue<'_> {
         match (self, other) {
             (Bool(a), Bool(b)) => Bool(a || b),
             (Vector(a), Vector(b)) => Vector(a.into_iter().zip(b).map(|(x, y)| x + y).collect()),
-            (Struct(a), Struct(b)) => {
+            (Map(a), Map(b)) => {
                 if a.len() != b.len() {
                     return Null;
                 }
 
-                Struct(
+                Map(
                     a.into_iter()
                         .zip(b)
                         .map(|(one, two)| {
@@ -205,12 +205,12 @@ impl Sub for AnyValue<'_> {
         match (self, other) {
             (Bool(a), Bool(b)) => Bool(a ^ b),
             (Vector(a), Vector(b)) => Vector(a.into_iter().zip(b).map(|(x, y)| x - y).collect()),
-            (Struct(a), Struct(b)) => {
+            (Map(a), Map(b)) => {
                 if a.len() != b.len() {
                     return Null;
                 }
 
-                Struct(
+                Map(
                     a.into_iter()
                         .zip(b)
                         .map(|(one, two)| {
@@ -245,12 +245,12 @@ impl Mul for AnyValue<'_> {
         match (self, other) {
             (Bool(a), Bool(b)) => Bool(a && b),
             (Vector(a), Vector(b)) => Vector(a.into_iter().zip(b).map(|(x, y)| x * y).collect()),
-            (Struct(a), Struct(b)) => {
+            (Map(a), Map(b)) => {
                 if a.len() != b.len() {
                     return Null;
                 }
 
-                Struct(
+                Map(
                     a.into_iter()
                         .zip(b)
                         .map(|(one, two)| {
@@ -284,12 +284,12 @@ impl Div for AnyValue<'_> {
 
         match (self, other) {
             (Vector(a), Vector(b)) => Vector(a.into_iter().zip(b).map(|(x, y)| x / y).collect()),
-            (Struct(a), Struct(b)) => {
+            (Map(a), Map(b)) => {
                 if a.len() != b.len() {
                     return Null;
                 }
 
-                Struct(
+                Map(
                     a.into_iter()
                         .zip(b)
                         .map(|(one, two)| {
@@ -322,12 +322,12 @@ impl Rem for AnyValue<'_> {
 
         match (self, other) {
             (Vector(a), Vector(b)) => Vector(a.into_iter().zip(b).map(|(x, y)| x % y).collect()),
-            (Struct(a), Struct(b)) => {
+            (Map(a), Map(b)) => {
                 if a.len() != b.len() {
                     return Null;
                 }
 
-                Struct(
+                Map(
                     a.into_iter()
                         .zip(b)
                         .map(|(one, two)| {
@@ -441,7 +441,7 @@ fn mean_anyvalue(one: &AnyValue<'_>, two: &AnyValue<'_>) -> Option<AnyValue<'sta
         (Bool(x), Bool(y)) => Some(Bool(*x && *y)),
 
         (Vector(xs), Vector(ys)) => super::value::apply_zipped_slice(xs, ys, mean_anyvalue),
-        (Struct(xs), Struct(ys)) => super::value::apply_zipped_struct_slice(xs, ys, mean_anyvalue),
+        (Map(xs), Map(ys)) => super::value::apply_zipped_struct_slice(xs, ys, mean_anyvalue),
         _ => None,
     }
 }
@@ -490,7 +490,7 @@ mod tests {
             .into_iter()
             .map(|(name, val)| (Field::new(name.into(), val.dtype()), val))
             .collect();
-        AnyValue::Struct(fields)
+        AnyValue::Map(fields)
     }
 
     // ---------- Numeric: happy paths (same-type) ----------

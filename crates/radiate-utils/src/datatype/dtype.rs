@@ -26,6 +26,8 @@ pub mod dtype_names {
     pub const DURATION: &str = "duration";
     pub const VEC: &str = "vec";
     pub const STRUCT: &str = "struct";
+    pub const MAP: &str = "map";
+    pub const PAIR: &str = "pair";
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -59,13 +61,18 @@ pub enum DataType {
     String,
 
     List(Box<DataType>),
-    Struct(Vec<Field>),
+    Map(Vec<Field>),
+    Struct(Box<Field>, Vec<Field>),
+    Pair(Box<DataType>, Box<DataType>),
 }
 
 impl DataType {
     pub fn is_nested(&self) -> bool {
         use DataType as D;
-        matches!(self, D::List(_) | D::Struct(_))
+        matches!(
+            self,
+            D::List(_) | D::Map(_) | D::Struct(_, _) | D::Pair(_, _)
+        )
     }
 
     pub fn is_numeric(&self) -> bool {
@@ -182,7 +189,13 @@ impl From<String> for DataType {
             dtype_names::STRING => DataType::String,
 
             dtype_names::VEC => DataType::List(Box::new(DataType::Null)),
-            dtype_names::STRUCT => DataType::Struct(vec![]),
+            dtype_names::STRUCT => DataType::Struct(
+                Box::new(Field::new("field".into(), DataType::Null)),
+                Vec::new(),
+            ),
+
+            dtype_names::MAP => DataType::Map(Vec::new()),
+            dtype_names::PAIR => DataType::Pair(Box::new(DataType::Null), Box::new(DataType::Null)),
 
             _ => panic!("Unknown data type: {}", value),
         }
@@ -219,14 +232,28 @@ impl Display for DataType {
             DataType::String => write!(f, "{}", dtype_names::STRING)?,
 
             DataType::List(inner) => write!(f, "{}({})", dtype_names::VEC, inner)?,
-            DataType::Struct(vals) => write!(
+            DataType::Map(vals) => write!(
                 f,
-                "struct({})",
+                "{}({})",
+                dtype_names::MAP,
                 vals.iter()
                     .map(|f| format!("{}", f.name.clone()))
                     .collect::<Vec<_>>()
                     .join(", ")
             )?,
+
+            DataType::Struct(name, fields) => write!(
+                f,
+                "{} {} {{ {} }}",
+                dtype_names::STRUCT,
+                name.name,
+                fields
+                    .iter()
+                    .map(|f| format!("{}", f.name,))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )?,
+            DataType::Pair(left, right) => write!(f, "{}({}, {})", dtype_names::PAIR, left, right)?,
         };
 
         Ok(())

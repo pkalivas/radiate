@@ -24,7 +24,7 @@ impl PyMetricSet {
     pub fn new(metrics: Option<Wrap<AnyValue<'_>>>) -> PyResult<Self> {
         if let Some(metrics) = metrics {
             let mut metric_set = MetricSet::new();
-            if let AnyValue::Struct(pairs) = metrics.0.into_static() {
+            if let AnyValue::Map(pairs) = metrics.0.into_static() {
                 for (fld, val) in pairs.into_iter() {
                     let name = fld.name().to_string();
                     let metric_update = MetricUpdate::try_from(val)?;
