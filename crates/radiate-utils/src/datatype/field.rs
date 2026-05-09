@@ -1,5 +1,5 @@
 use super::DataType;
-use radiate_utils::SmallStr;
+use crate::SmallStr;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
@@ -45,6 +45,12 @@ impl Field {
     #[inline]
     pub fn dtype(&self) -> &DataType {
         &self.dtype
+    }
+}
+
+impl AsRef<str> for Field {
+    fn as_ref(&self) -> &str {
+        self.name.as_ref()
     }
 }
 

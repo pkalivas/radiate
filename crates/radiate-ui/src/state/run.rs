@@ -6,6 +6,7 @@ pub struct RunState {
     pub paused: bool,
     pub last_render: Option<Instant>,
     pub render_interval: Duration,
+    pub render_count: usize,
 }
 
 impl Default for RunState {
@@ -16,6 +17,7 @@ impl Default for RunState {
             paused: false,
             last_render: None,
             render_interval: Duration::from_millis(500),
+            render_count: 0,
         }
     }
 }

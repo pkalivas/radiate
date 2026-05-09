@@ -14,7 +14,7 @@ fn main() {
         .codec(codec)
         .fitness_fn(|geno: Vec<f32>| dtlz_1(&geno))
         .multi_objective(vec![Optimize::Minimize; OBJECTIVES])
-        .offspring_selector(TournamentSelector::new(5))
+        .offspring_selector(RouletteSelector::new())
         .survivor_selector(NSGA3Selector::new(12))
         .diversity(CosineDistance)
         .front_size(200..250)
@@ -24,7 +24,7 @@ fn main() {
         ))
         .build();
 
-    let result = radiate::ui(engine).iter().limit(1000).last().unwrap();
+    let result = engine.iter().limit(1000).last().unwrap();
 
     println!("{:?}", result);
     let front = result.front().unwrap();

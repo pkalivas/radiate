@@ -28,8 +28,8 @@ where
         ecosystem: &mut Ecosystem<C>,
         prob: Arc<dyn Problem<C, T>>,
     ) -> RadiateResult<usize> {
-        let mut pairs = Vec::new();
         let len = ecosystem.population.len();
+        let mut pairs = Vec::with_capacity(len);
         for idx in 0..len {
             if ecosystem.population[idx].score().is_none() {
                 let geno = ecosystem.population[idx].take_genotype()?;
@@ -62,27 +62,22 @@ where
 
         let results = Python::attach(|py| {
             py.detach(|| {
-                self.executor.execute_batch(
-                    batches
-                        .into_iter()
-                        .map(|batch| {
-                            let problem = Arc::clone(&prob);
-                            move || {
-                                let scores = problem.eval_batch(&batch.1);
-                                (batch.0, scores, batch.1)
-                            }
-                        })
-                        .collect(),
-                )
+                self.executor
+                    .execute_batch(batches.into_iter().map(|batch| {
+                        let problem = Arc::clone(&prob);
+                        move || {
+                            let scores = problem.eval_batch(&batch.1);
+                            (batch.0, scores, batch.1)
+                        }
+                    }))
             })
         });
 
         let mut count = 0;
         for (indices, scores, genotypes) in results {
+            let scores = scores?;
             count += indices.len();
-            let score_genotype_iter = scores?.into_iter().zip(genotypes);
-            for (i, (score, genotype)) in score_genotype_iter.enumerate() {
-                let idx = indices[i];
+            for ((idx, score), genotype) in indices.into_iter().zip(scores).zip(genotypes) {
                 ecosystem.population[idx].set_score(Some(score));
                 ecosystem.population[idx].set_genotype(genotype);
             }

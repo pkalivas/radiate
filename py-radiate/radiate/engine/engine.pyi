@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any, Literal, Sequence, overload, Self, TYPE_CHECKING
 from collections.abc import Callable
 
@@ -10,10 +11,10 @@ from radiate.genome import Population, Gene, Chromosome
 from radiate.gp import Graph, Tree, Op
 from radiate.operators import SelectorBase, AlterBase, DistanceBase, LimitBase, Rate
 
-from radiate._typing import AtLeastOne, Subscriber, RdDataType, RdLossType
+from radiate._typing import AtLeastOne, FileType, Subscriber, RdDataType, RdLossType
 
 from .generation import Generation
-from .option import EngineCheckpoint, EngineLog, EngineUi
+from .option import CheckpointParam, LogParam, UiParam
 
 if TYPE_CHECKING:
     from radiate._dependancies import numpy as np
@@ -446,10 +447,15 @@ class Engine[G, T]:
     def run(
         self,
         *limits: LimitBase,
-        log: bool | EngineLog = False,
-        checkpoint: tuple[int, str] | EngineCheckpoint | None = None,
-        ui: bool | EngineUi = False,
+        log: bool | LogParam = False,
+        ui: bool | UiParam = False,
+        checkpoint: str
+        | Path
+        | tuple[int, str | Path, FileType | None]
+        | CheckpointParam
+        | None = None,
     ) -> Generation[G, T]: ...
+    def write(self, path: str | Path) -> None: ...
 
     # ----------------------------
     # Fluent configuration methods
@@ -497,7 +503,9 @@ class Engine[G, T]:
     def parallel(self, num_workers: int | None = None) -> Self: ...
     def subscribe(self, *event_handler: Subscriber) -> Self: ...
     def generation(self, generation: Generation[G, T] | None) -> Self: ...
-    def load_checkpoint(self, path: str) -> Self: ...
+    def load_checkpoint(
+        self, path: str | Path, ignore_not_found: bool = False
+    ) -> Self: ...
     def metrics(
         self, named_metrics: dict[str, Expr] | None = None, **kwargs
     ) -> Self: ...

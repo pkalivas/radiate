@@ -1,11 +1,11 @@
 use crate::{PyGeneType, PyOp, Wrap, bindings::datatype, dtype};
 use pyo3::{Bound, IntoPyObject, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
-    BitGene, BoundedGene, CharGene, Field, FloatGene, Gene, GraphNode, IntGene, Op,
-    PermutationGene, TreeNode, random_provider,
+    BitGene, BoundedGene, CharGene, FloatGene, Gene, GraphNode, IntGene, Op, PermutationGene,
+    TreeNode, random_provider,
 };
 use radiate_error::radiate_py_bail;
-use radiate_expr::{DataType, dtype_names};
+use radiate_utils::{DataType, dtype_names};
 use radiate_utils::{Float, Integer, SmallStr};
 use serde::{Deserialize, Serialize};
 
@@ -119,14 +119,14 @@ impl PyGene {
 
             GeneInner::Bit(_) => Wrap(DataType::Boolean).into_pyobject(py),
             GeneInner::Char(_) => Wrap(DataType::Char).into_pyobject(py),
-            GeneInner::GraphNode(_) => Wrap(DataType::Struct(vec![Field::new(
+            GeneInner::GraphNode(_) => Wrap(DataType::Map(vec![(
                 SmallStr::from("GraphNode"),
-                DataType::Struct(vec![Field::new(SmallStr::from("op"), DataType::Float32)]),
+                DataType::Map(vec![(SmallStr::from("op"), DataType::Float32)]),
             )]))
             .into_pyobject(py),
-            GeneInner::TreeNode(_) => Wrap(DataType::Struct(vec![Field::new(
+            GeneInner::TreeNode(_) => Wrap(DataType::Map(vec![(
                 SmallStr::from("TreeNode"),
-                DataType::Struct(vec![Field::new(SmallStr::from("op"), DataType::Float32)]),
+                DataType::Map(vec![(SmallStr::from("op"), DataType::Float32)]),
             )]))
             .into_pyobject(py),
             GeneInner::Permutation(_) => Wrap(DataType::UInt64).into_pyobject(py),

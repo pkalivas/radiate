@@ -5,8 +5,8 @@ mod field;
 mod scalar;
 pub mod value;
 
-pub(crate) use arithmetic::pow_anyvalue;
+pub use arithmetic::pow_anyvalue;
 pub use dtype::*;
 pub use field::Field;
 pub use scalar::Scalar;
-pub use value::AnyValue;
+pub use value::{AnyValue, dedup_slice};

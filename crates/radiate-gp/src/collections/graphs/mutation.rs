@@ -2,7 +2,7 @@ use super::transaction::{InsertStep, TransactionResult};
 use super::{Graph, GraphChromosome};
 use crate::node::Node;
 use crate::{Arity, Factory, NodeType};
-use radiate_core::{AlterContext, Chromosome};
+use radiate_core::{AlterContext, Chromosome, freeze::Frozen};
 use radiate_core::{AlterResult, Mutate, random_provider};
 
 const INVALID_MUTATION: &str = "mutate.graph.invalid";
@@ -71,6 +71,13 @@ impl<T> Mutate<GraphChromosome<T>> for GraphMutator
 where
     T: Clone + PartialEq + Default,
 {
+    fn freeze(&self) -> Frozen {
+        Frozen::typed::<Self>()
+            .with("vertex_rate", self.vertex_rate)
+            .with("edge_rate", self.edge_rate)
+            .with("allow_recurrent", self.allow_recurrent)
+    }
+
     #[inline]
     fn mutate_chromosome(
         &self,

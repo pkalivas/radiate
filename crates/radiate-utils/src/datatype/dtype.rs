@@ -1,5 +1,5 @@
 use super::{Field, Scalar};
-use radiate_utils::{Float, Integer};
+use crate::{Primitive, SmallStr};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
@@ -26,6 +26,7 @@ pub mod dtype_names {
     pub const DURATION: &str = "duration";
     pub const VEC: &str = "vec";
     pub const STRUCT: &str = "struct";
+    pub const MAP: &str = "map";
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -49,6 +50,8 @@ pub enum DataType {
     Float32,
     Float64,
 
+    Usize,
+
     Duration,
 
     Boolean,
@@ -57,13 +60,14 @@ pub enum DataType {
     String,
 
     List(Box<DataType>),
-    Struct(Vec<Field>),
+    Map(Vec<(SmallStr, DataType)>),
+    Struct(Box<Field>, Vec<Field>),
 }
 
 impl DataType {
     pub fn is_nested(&self) -> bool {
         use DataType as D;
-        matches!(self, D::List(_) | D::Struct(_))
+        matches!(self, D::List(_) | D::Map(_) | D::Struct(_, _))
     }
 
     pub fn is_numeric(&self) -> bool {
@@ -81,6 +85,7 @@ impl DataType {
                 | D::UInt64
                 | D::Float32
                 | D::Float64
+                | D::Usize
         )
     }
 
@@ -101,24 +106,25 @@ impl DataType {
                 | D::UInt64
                 | D::Float32
                 | D::Float64
+                | D::Usize
         )
     }
 
     pub fn max(&self) -> Option<Scalar> {
         use DataType as D;
         match self {
-            D::Int8 => Some(Scalar::from(<i8 as Integer>::MAX)),
-            D::Int16 => Some(Scalar::from(<i16 as Integer>::MAX)),
-            D::Int32 => Some(Scalar::from(<i32 as Integer>::MAX)),
-            D::Int64 => Some(Scalar::from(<i64 as Integer>::MAX)),
-            D::Int128 => Some(Scalar::from(<i128 as Integer>::MAX)),
-            D::UInt8 => Some(Scalar::from(<u8 as Integer>::MAX)),
-            D::UInt16 => Some(Scalar::from(<u16 as Integer>::MAX)),
-            D::UInt32 => Some(Scalar::from(<u32 as Integer>::MAX)),
-            D::UInt64 => Some(Scalar::from(<u64 as Integer>::MAX)),
-            D::UInt128 => Some(Scalar::from(<u128 as Integer>::MAX)),
-            D::Float32 => Some(Scalar::from(<f32 as Float>::MAX)),
-            D::Float64 => Some(Scalar::from(<f64 as Float>::MAX)),
+            D::Int8 => Some(Scalar::from(<i8 as Primitive>::MAX)),
+            D::Int16 => Some(Scalar::from(<i16 as Primitive>::MAX)),
+            D::Int32 => Some(Scalar::from(<i32 as Primitive>::MAX)),
+            D::Int64 => Some(Scalar::from(<i64 as Primitive>::MAX)),
+            D::Int128 => Some(Scalar::from(<i128 as Primitive>::MAX)),
+            D::UInt8 => Some(Scalar::from(<u8 as Primitive>::MAX)),
+            D::UInt16 => Some(Scalar::from(<u16 as Primitive>::MAX)),
+            D::UInt32 => Some(Scalar::from(<u32 as Primitive>::MAX)),
+            D::UInt64 => Some(Scalar::from(<u64 as Primitive>::MAX)),
+            D::UInt128 => Some(Scalar::from(<u128 as Primitive>::MAX)),
+            D::Float32 => Some(Scalar::from(<f32 as Primitive>::MAX)),
+            D::Float64 => Some(Scalar::from(<f64 as Primitive>::MAX)),
             _ => None,
         }
     }
@@ -126,18 +132,18 @@ impl DataType {
     pub fn min(&self) -> Option<Scalar> {
         use DataType as D;
         match self {
-            D::Int8 => Some(Scalar::from(<i8 as Integer>::MIN)),
-            D::Int16 => Some(Scalar::from(<i16 as Integer>::MIN)),
-            D::Int32 => Some(Scalar::from(<i32 as Integer>::MIN)),
-            D::Int64 => Some(Scalar::from(<i64 as Integer>::MIN)),
-            D::Int128 => Some(Scalar::from(<i128 as Integer>::MIN)),
-            D::UInt8 => Some(Scalar::from(<u8 as Integer>::MIN)),
-            D::UInt16 => Some(Scalar::from(<u16 as Integer>::MIN)),
-            D::UInt32 => Some(Scalar::from(<u32 as Integer>::MIN)),
-            D::UInt64 => Some(Scalar::from(<u64 as Integer>::MIN)),
-            D::UInt128 => Some(Scalar::from(<u128 as Integer>::MIN)),
-            D::Float32 => Some(Scalar::from(<f32 as Float>::MIN)),
-            D::Float64 => Some(Scalar::from(<f64 as Float>::MIN)),
+            D::Int8 => Some(Scalar::from(<i8 as Primitive>::MIN)),
+            D::Int16 => Some(Scalar::from(<i16 as Primitive>::MIN)),
+            D::Int32 => Some(Scalar::from(<i32 as Primitive>::MIN)),
+            D::Int64 => Some(Scalar::from(<i64 as Primitive>::MIN)),
+            D::Int128 => Some(Scalar::from(<i128 as Primitive>::MIN)),
+            D::UInt8 => Some(Scalar::from(<u8 as Primitive>::MIN)),
+            D::UInt16 => Some(Scalar::from(<u16 as Primitive>::MIN)),
+            D::UInt32 => Some(Scalar::from(<u32 as Primitive>::MIN)),
+            D::UInt64 => Some(Scalar::from(<u64 as Primitive>::MIN)),
+            D::UInt128 => Some(Scalar::from(<u128 as Primitive>::MIN)),
+            D::Float32 => Some(Scalar::from(<f32 as Primitive>::MIN)),
+            D::Float64 => Some(Scalar::from(<f64 as Primitive>::MIN)),
             _ => None,
         }
     }
@@ -170,13 +176,20 @@ impl From<String> for DataType {
             dtype_names::FLOAT32 => DataType::Float32,
             dtype_names::FLOAT64 => DataType::Float64,
 
+            dtype_names::USIZE => DataType::Usize,
+
             dtype_names::BOOLEAN => DataType::Boolean,
 
             dtype_names::CHAR => DataType::Char,
             dtype_names::STRING => DataType::String,
 
             dtype_names::VEC => DataType::List(Box::new(DataType::Null)),
-            dtype_names::STRUCT => DataType::Struct(vec![]),
+            dtype_names::STRUCT => DataType::Struct(
+                Box::new(Field::new("field".into(), DataType::Null)),
+                Vec::new(),
+            ),
+
+            dtype_names::MAP => DataType::Map(Vec::new()),
 
             _ => panic!("Unknown data type: {}", value),
         }
@@ -203,6 +216,8 @@ impl Display for DataType {
             DataType::Float32 => write!(f, "{}", dtype_names::FLOAT32)?,
             DataType::Float64 => write!(f, "{}", dtype_names::FLOAT64)?,
 
+            DataType::Usize => write!(f, "{}", dtype_names::USIZE)?,
+
             DataType::Duration => write!(f, "{}", dtype_names::DURATION)?,
 
             DataType::Boolean => write!(f, "{}", dtype_names::BOOLEAN)?,
@@ -211,11 +226,24 @@ impl Display for DataType {
             DataType::String => write!(f, "{}", dtype_names::STRING)?,
 
             DataType::List(inner) => write!(f, "{}({})", dtype_names::VEC, inner)?,
-            DataType::Struct(vals) => write!(
+            DataType::Map(vals) => write!(
                 f,
-                "struct({})",
+                "{}({})",
+                dtype_names::MAP,
                 vals.iter()
-                    .map(|f| format!("{}", f.name.clone()))
+                    .map(|(name, _)| format!("{}", name))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )?,
+
+            DataType::Struct(name, fields) => write!(
+                f,
+                "{} {} {{ {} }}",
+                dtype_names::STRUCT,
+                name.name,
+                fields
+                    .iter()
+                    .map(|f| format!("{}", f.name,))
                     .collect::<Vec<_>>()
                     .join(", ")
             )?,

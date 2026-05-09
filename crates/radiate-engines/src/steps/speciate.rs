@@ -1,10 +1,9 @@
 use crate::steps::EngineStep;
 use radiate_core::{
-    Chromosome, Ecosystem, Executor, MetricSet, Objective, Phenotype, Population, Rate, Score,
-    Species, diversity::Diversity, metric_names, random_provider,
+    Chromosome, Ecosystem, Executor, MetricSet, Objective, Phenotype, Population, Rate, Species,
+    diversity::Diversity, metric_names,
 };
 use radiate_error::Result;
-use std::borrow::Borrow;
 use std::sync::{Arc, Mutex, RwLock};
 
 pub struct SpeciateStep<C>
@@ -101,10 +100,6 @@ where
             let phenotype = ecosystem.get_phenotype(i).unwrap();
             let maybe_idx = ecosystem.species().and_then(|specs| {
                 for (species_idx, species) in specs.iter().enumerate() {
-                    if species.age(generation) != 0 {
-                        continue;
-                    }
-
                     let dist = self.distance.measure(phenotype, species.mascot());
 
                     if dist < threshold {
@@ -118,46 +113,15 @@ where
             match maybe_idx {
                 Some(idx) => ecosystem.add_species_member(idx, i),
                 None => {
-                    if let Some(pheno) = ecosystem.get_phenotype(i) {
+                    if let Some(pheno) = ecosystem.get_phenotype_mut(i) {
                         let new_species = Species::new(generation, pheno);
-                        ecosystem.push_species(new_species);
+                        let species_idx = ecosystem.push_species(new_species);
+
+                        ecosystem.add_species_member(species_idx, i);
                     }
                 }
             }
         }
-    }
-
-    #[inline]
-    fn fitness_share(&self, ecosystem: &mut Ecosystem<C>)
-    where
-        C: PartialEq,
-    {
-        if let Some(species) = ecosystem.species_mut() {
-            let mut scores = Vec::with_capacity(species.len());
-            for spec in species.iter() {
-                let adjusted = Self::adjust_scores(spec).iter().sum::<Score>();
-
-                scores.push(adjusted);
-            }
-
-            let total_score = scores.iter().sum::<Score>();
-            for (i, spec) in species.iter_mut().enumerate() {
-                let spec_score = scores[i].clone();
-                let adjusted_score = spec_score / total_score.clone();
-                spec.update_score(adjusted_score, &self.objective);
-            }
-
-            self.objective.sort(species);
-        }
-    }
-
-    #[inline]
-    fn adjust_scores(species: &Species<C>) -> Vec<Score> {
-        species
-            .population
-            .get_scores()
-            .map(|score| (*score).clone() / species.len() as f32)
-            .collect()
     }
 
     #[inline]
@@ -178,7 +142,7 @@ where
         for (idx, individual) in reader[range].iter().enumerate() {
             let mut assigned = None;
             for (idx, sp) in species_mascots.iter().enumerate() {
-                let dist = distance.measure(individual.borrow(), sp);
+                let dist = distance.measure(individual, sp);
                 inner_distances.push(dist);
 
                 if dist < threshold {
@@ -209,16 +173,7 @@ where
     where
         C: Clone,
     {
-        // Update mascots for each species by selecting a random member from the species population
-        // to be the new mascot for the next generation. This follows the NEAT algorithm approach.
-        if let Some(species) = ecosystem.species_mut() {
-            for spec in species {
-                let idx = random_provider::range(0..spec.population.len());
-                if let Some(phenotype) = spec.population().get(idx).cloned() {
-                    spec.set_new_mascot(phenotype);
-                }
-            }
-        }
+        ecosystem.generate_mascots();
 
         Arc::new(
             ecosystem
@@ -280,7 +235,7 @@ where
         metrics.upsert((metric_names::SPECIES_DIED, rm_species_count));
         metrics.upsert((metric_names::SPECIES_THRESHOLD, threshold));
 
-        self.fitness_share(ecosystem);
+        ecosystem.fitness_share(&self.objective);
 
         Ok(())
     }

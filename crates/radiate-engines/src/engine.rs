@@ -3,7 +3,7 @@ use crate::context::Context;
 use crate::events::EngineMessage;
 use crate::iter::EngineIterator;
 use crate::pipeline::Pipeline;
-use crate::{Chromosome, EngineControl};
+use crate::{Chromosome, EngineControl, Freeze};
 use crate::{EventBus, Generation};
 use radiate_core::Engine;
 use radiate_core::error::Result;
@@ -123,6 +123,10 @@ where
         let control = self.context.control.clone();
         EngineIterator::new(self, control)
     }
+
+    pub fn freeze(&self) -> Freeze {
+        self.context.freeze.clone()
+    }
 }
 
 /// Implementation of the [Engine] trait for [GeneticEngine].
@@ -159,7 +163,7 @@ where
         if let Some(control) = &self.context.control
             && control.is_paused()
         {
-            control.wait_before_step();
+            control.wait();
         }
 
         if matches!(self.context.index, 0) {

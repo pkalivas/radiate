@@ -1,6 +1,6 @@
-use crate::{AnyValue, DataType, Expr, ExprProjection, ExprQuery, ExprResult, value};
+use super::{Evaluate, Expr, ExprProjection, ExprResult};
 use radiate_error::radiate_bail;
-use radiate_utils::{Slope, Statistic, WindowBuffer};
+use radiate_utils::{AnyValue, DataType, Slope, Statistic, WindowBuffer, dedup_slice};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
@@ -65,7 +65,7 @@ impl AggExpr {
         }
 
         if let Rollup::Unique = rollup {
-            return Ok(value::dedup_slice(values));
+            return Ok(dedup_slice(values));
         } else if let Rollup::Count = rollup {
             return Ok(AnyValue::UInt64(values.len() as u64));
         } else if let Rollup::First = rollup {
@@ -104,12 +104,12 @@ impl AggExpr {
     }
 }
 
-impl<T> ExprQuery<T> for AggExpr
+impl<T> Evaluate<T> for AggExpr
 where
     T: ExprProjection,
 {
-    fn dispatch<'a>(&'a mut self, input: &T) -> ExprResult<'a> {
-        let child_output = self.child.dispatch(input)?;
+    fn eval<'a>(&'a mut self, input: &T) -> ExprResult<'a> {
+        let child_output = self.child.eval(input)?;
         let dtype = child_output.dtype();
 
         if let Some(buffer) = &mut self.buffer {
@@ -118,8 +118,22 @@ where
         }
 
         match child_output {
-            AnyValue::Slice(values) => Self::compute_rollup(values, self.rollup, dtype),
-            AnyValue::Vector(values) => Self::compute_rollup(&values, self.rollup, dtype),
+            AnyValue::Slice(values) => {
+                let elem_dtype = if let DataType::List(inner) = dtype {
+                    *inner
+                } else {
+                    dtype
+                };
+                Self::compute_rollup(values, self.rollup, elem_dtype)
+            }
+            AnyValue::Vector(values) => {
+                let elem_dtype = if let DataType::List(inner) = dtype {
+                    *inner
+                } else {
+                    dtype
+                };
+                Self::compute_rollup(&values, self.rollup, elem_dtype)
+            }
             _ => match self.rollup {
                 Rollup::Count => Ok(AnyValue::UInt64(1)),
                 Rollup::Unique => Ok(AnyValue::Vector(vec![child_output])),
@@ -147,12 +161,12 @@ impl BufferExpr {
     }
 }
 
-impl<T> ExprQuery<T> for BufferExpr
+impl<T> Evaluate<T> for BufferExpr
 where
     T: ExprProjection,
 {
-    fn dispatch<'a>(&'a mut self, input: &T) -> ExprResult<'a> {
-        let child_output = self.child.dispatch(input)?.into_static();
+    fn eval<'a>(&'a mut self, input: &T) -> ExprResult<'a> {
+        let child_output = self.child.eval(input)?.into_static();
 
         if child_output.is_nested() {
             radiate_bail!(Expr: "BufferExpr does not support nested values");

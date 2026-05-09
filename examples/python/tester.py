@@ -1,44 +1,46 @@
 # from pprint import pprint
 
+from pprint import pprint
+
 import radiate as rd
 
-gene = rd.Gene.int(init_range=(0, 10))
-other = rd.Gene.int(init_range=(0, 10))
+# gene = rd.Gene.int(init_range=(0, 10))
+# other = rd.Gene.int(init_range=(0, 10))
 
-print(gene)
-
-
-def fit(val) -> float:
-    print(val)
-    return sum(val)
+# print(gene)
 
 
-engine = rd.Engine.int(genes=[gene, other]).fitness(fit).minimizing()
-
-result = engine.run(rd.Limit.generations(10))
-print(result)
-
-chromosome = rd.Chromosome.int(5, init_range=(0, 10))
+# def fit(val) -> float:
+#     print(val)
+#     return sum(val)
 
 
-engine = (
-    rd.Engine.int(chromosomes=chromosome, use_numpy=True)
-    .fitness(fit)
-    .minimizing()
-    .limit(rd.Limit.generations(10))
-)
+# engine = rd.Engine.int(genes=[gene, other]).fitness(fit).minimizing()
 
-result = engine.run()
-print(result.metrics().dashboard())
+# result = engine.run(rd.Limit.generations(10))
+# print(result)
 
-metrics = result.metrics()
-expr = rd.select("scores").mean() == rd.select("scores").min()
+# chromosome = rd.Chromosome.int(5, init_range=(0, 10))
 
-print(type(expr))
-print(metrics.project(expr))
-print(metrics.project(expr))
-print(metrics.project(expr))
-print(metrics.project(expr))
+
+# engine = (
+#     rd.Engine.int(chromosomes=chromosome, use_numpy=True)
+#     .fitness(fit)
+#     .minimizing()
+#     .limit(rd.Limit.generations(10))
+# )
+
+# result = engine.run()
+# print(result.metrics().dashboard())
+
+# metrics = result.metrics()
+# expr = rd.select("scores").mean() == rd.select("scores").min()
+
+# print(type(expr))
+# print(metrics.project(expr))
+# print(metrics.project(expr))
+# print(metrics.project(expr))
+# print(metrics.project(expr))
 
 
 metrics = rd.MetricSet(
@@ -49,20 +51,23 @@ metrics = rd.MetricSet(
 # for metric in metrics.values():
 #     pprint(metric.to_dict())
 
-expr = rd.select("one").min() < -1.0
-other = (
-    rd.when(rd.select("one").min() < -1.0)
-    .then(rd.select("two").mean())
-    .otherwise(123123)
-)
+# expr = rd.select("one").min() < -1.0
+# other = (
+#     rd.when(rd.select("one").min() < -1.0)
+#     .then(rd.select("two").mean())
+#     .otherwise(123123)
+# )
 
-t = rd.every(2).then(rd.select("one").rolling(10).mean()).otherwise(rd.lit(-1.0))
+# t = rd.every(2).then(rd.select("one").rolling(10).mean()).otherwise(rd.lit(-1.0))
 
-for i in range(10):
-    # print(t.apply(i))
-    print(metrics.project(t))
+# for i in range(10):
+#     # print(t.apply(i))
+#     print(metrics.project(t))
 
 print(metrics.dashboard())
+
+for metric in metrics.values():
+    pprint(metric.to_dict())
 
 # print(metrics.project(other))
 # print(metrics.project(expr))

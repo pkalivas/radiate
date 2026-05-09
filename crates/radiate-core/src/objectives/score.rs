@@ -29,10 +29,6 @@ pub struct Score {
 
 impl Score {
     pub fn from_vec(values: Vec<f32>) -> Self {
-        if values.iter().any(|&v| v.is_nan()) {
-            panic!("Score value cannot be NaN");
-        }
-
         Score {
             values: Arc::from(values),
         }
@@ -42,8 +38,17 @@ impl Score {
         self.values.len() > 1
     }
 
+    pub fn is_single_objective(&self) -> bool {
+        self.values.len() == 1
+    }
+
     pub fn objective(&self, idx: usize) -> Option<&f32> {
         self.values.get(idx)
+    }
+
+    #[inline]
+    pub fn first(&self) -> Option<f32> {
+        self.values.first().cloned()
     }
 
     pub fn as_slice(&self) -> &[f32] {
@@ -129,10 +134,6 @@ impl From<Score> for Vec<f32> {
 
 impl From<f32> for Score {
     fn from(value: f32) -> Self {
-        if value.is_nan() {
-            panic!("Score value cannot be NaN")
-        }
-
         Score {
             values: Arc::from(vec![value]),
         }
@@ -151,10 +152,6 @@ impl TryFrom<i16> for Score {
 
 impl From<f64> for Score {
     fn from(value: f64) -> Self {
-        if value.is_nan() {
-            panic!("Score value cannot be NaN")
-        }
-
         Score {
             values: Arc::from(vec![value as f32]),
         }

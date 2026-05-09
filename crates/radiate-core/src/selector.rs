@@ -1,4 +1,5 @@
 use crate::Chromosome;
+use crate::freeze::Frozen;
 use crate::genome::population::Population;
 use crate::objectives::Objective;
 
@@ -31,6 +32,10 @@ pub trait Select<C: Chromosome>: Send + Sync {
         parts.insert(0, "selector");
 
         radiate_utils::intern_kv_pair(name, radiate_utils::intern!(parts.join(".")))
+    }
+
+    fn freeze(&self) -> Frozen {
+        Frozen::typed::<Self>()
     }
 
     fn select(

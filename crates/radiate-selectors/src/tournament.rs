@@ -1,17 +1,28 @@
-use radiate_core::{Chromosome, Objective, Population, Select, random_provider};
+use radiate_core::{
+    Chromosome, Objective, Population, Select, freeze::Frozen, random_provider,
+};
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone)]
 pub struct TournamentSelector {
-    num: usize,
+    k: usize,
 }
 
 impl TournamentSelector {
-    pub fn new(num: usize) -> Self {
-        TournamentSelector { num: num.max(1) }
+    pub fn new(k: usize) -> Self {
+        TournamentSelector { k: k.max(1) }
+    }
+
+    pub fn k(&self) -> usize {
+        self.k
     }
 }
 
 impl<C: Chromosome + Clone> Select<C> for TournamentSelector {
+    fn freeze(&self) -> Frozen {
+        Frozen::typed::<Self>().with("k", self.k).clone()
+    }
+
     fn select(&self, population: &Population<C>, _: &Objective, count: usize) -> Population<C> {
         let n = population.len();
         if n == 0 || count == 0 {
@@ -22,7 +33,7 @@ impl<C: Chromosome + Clone> Select<C> for TournamentSelector {
 
         for _ in 0..count {
             let mut best = random_provider::range(0..n);
-            for _ in 1..self.num {
+            for _ in 1..self.k {
                 let r = random_provider::range(0..n);
                 if r < best {
                     best = r;

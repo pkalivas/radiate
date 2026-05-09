@@ -1,7 +1,7 @@
 use crate::{InputTransform, PyEngineInput, PyEngineInputType, PyGeneType, PyPopulation};
 use pyo3::{PyResult, pyfunction};
 use radiate::prelude::*;
-use radiate_error::radiate_py_err;
+use radiate_error::{radiate_py_bail, radiate_py_err};
 
 #[pyfunction]
 pub fn py_select(
@@ -28,68 +28,85 @@ pub fn py_select(
         )));
     }
 
-    let objectives = objective.get_string("objective").map(|objs| {
-        objs.split('|')
-            .map(|s| match s.trim().to_lowercase().as_str() {
+    let objectives = objective.extract::<Vec<String>>("objective").map(|objs| {
+        objs.iter()
+            .map(|val| match val.trim().to_lowercase().as_str() {
                 "min" => Optimize::Minimize,
                 "max" => Optimize::Maximize,
-                _ => panic!("Objective {} not recognized", s),
+                _ => panic!("Objective {} not recognized", val),
             })
             .collect::<Vec<Optimize>>()
-    });
+    })?;
 
-    let obj = match objectives {
-        Some(objs) => {
-            if objs.len() == 1 {
-                Objective::Single(objs[0])
-            } else if objs.len() > 1 {
-                Objective::Multi(objs)
-            } else {
-                panic!("No objectives provided");
-            }
-        }
-        None => Objective::default(),
+    let obj = if objectives.len() == 1 {
+        Objective::Single(objectives[0])
+    } else if objectives.len() > 1 {
+        Objective::Multi(objectives)
+    } else {
+        radiate_py_bail!("No objectives provided - I'm not even sure this is possible");
     };
 
     match gene_type {
         PyGeneType::Float => {
-            let selector: Box<dyn Select<FloatChromosome<f64>>> = selector.transform();
+            let selector =
+                InputTransform::<RadiateResult<Box<dyn Select<FloatChromosome<f64>>>>>::transform(
+                    &selector,
+                )?;
+
             let population: Population<FloatChromosome<f64>> = population.into();
 
             Ok(selector.select(&population, &obj, count)).map(|pop| PyPopulation::from(&pop))
         }
         PyGeneType::Int => {
-            let selector: Box<dyn Select<IntChromosome<i64>>> = selector.transform();
+            let selector =
+                InputTransform::<RadiateResult<Box<dyn Select<IntChromosome<i64>>>>>::transform(
+                    &selector,
+                )?;
+
             let population: Population<IntChromosome<i64>> = population.into();
 
             Ok(selector.select(&population, &obj, count)).map(|pop| PyPopulation::from(&pop))
         }
         PyGeneType::Char => {
-            let selector: Box<dyn Select<CharChromosome>> = selector.transform();
+            let selector =
+                InputTransform::<RadiateResult<Box<dyn Select<CharChromosome>>>>::transform(
+                    &selector,
+                )?;
+
             let population: Population<CharChromosome> = population.into();
 
             Ok(selector.select(&population, &obj, count)).map(|pop| PyPopulation::from(&pop))
         }
         PyGeneType::Bit => {
-            let selector: Box<dyn Select<BitChromosome>> = selector.transform();
+            let selector =
+                InputTransform::<RadiateResult<Box<dyn Select<BitChromosome>>>>::transform(
+                    &selector,
+                )?;
             let population: Population<BitChromosome> = population.into();
 
             Ok(selector.select(&population, &obj, count)).map(|pop| PyPopulation::from(&pop))
         }
         PyGeneType::Permutation => {
-            let selector: Box<dyn Select<PermutationChromosome<usize>>> = selector.transform();
+            let selector = InputTransform::<
+                RadiateResult<Box<dyn Select<PermutationChromosome<usize>>>>,
+            >::transform(&selector)?;
             let population: Population<PermutationChromosome<usize>> = population.into();
 
             Ok(selector.select(&population, &obj, count)).map(|pop| PyPopulation::from(&pop))
         }
         PyGeneType::GraphNode => {
-            let selector: Box<dyn Select<GraphChromosome<Op<f32>>>> = selector.transform();
+            let selector = InputTransform::<
+                RadiateResult<Box<dyn Select<GraphChromosome<Op<f32>>>>>,
+            >::transform(&selector)?;
             let population: Population<GraphChromosome<Op<f32>>> = population.into();
 
             Ok(selector.select(&population, &obj, count)).map(|pop| PyPopulation::from(&pop))
         }
         PyGeneType::TreeNode => {
-            let selector: Box<dyn Select<TreeChromosome<Op<f32>>>> = selector.transform();
+            let selector =
+                InputTransform::<RadiateResult<Box<dyn Select<TreeChromosome<Op<f32>>>>>>::transform(
+                    &selector,
+                )?;
             let population: Population<TreeChromosome<Op<f32>>> = population.into();
 
             Ok(selector.select(&population, &obj, count)).map(|pop| PyPopulation::from(&pop))

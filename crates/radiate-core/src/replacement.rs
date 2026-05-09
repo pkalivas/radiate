@@ -1,4 +1,5 @@
 use super::{Chromosome, Genotype, Population, random_provider};
+use crate::freeze::Frozen;
 use std::sync::Arc;
 
 /// Trait for replacement strategies in the algorithms.
@@ -9,6 +10,10 @@ use std::sync::Arc;
 /// be desirable to replace the individual in a different way, such as by sampling from the
 /// [Population].
 pub trait ReplacementStrategy<C: Chromosome>: Send + Sync {
+    fn freeze(&self) -> Frozen {
+        Frozen::typed::<Self>()
+    }
+
     fn replace(
         &self,
         population: &Population<C>,

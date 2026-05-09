@@ -33,7 +33,7 @@ impl<C: Chromosome + Clone> Select<C> for NSGA2Selector {
         objective: &Objective,
         count: usize,
     ) -> Population<C> {
-        let scores = population.get_scores().collect::<Vec<_>>();
+        let scores = population.iter_scores().collect::<Vec<_>>();
         let ranks = pareto::rank(&scores, objective);
         let distances = pareto::crowding_distance(&scores);
 
@@ -79,26 +79,9 @@ impl<C: Chromosome + Clone> Select<C> for TournamentNSGA2Selector {
         objective: &Objective,
         count: usize,
     ) -> Population<C> {
-        let scores = population.get_scores().collect::<Vec<_>>();
+        let scores = population.iter_scores().collect::<Vec<_>>();
         let ranks = pareto::rank(&scores, objective);
         let distances = pareto::crowding_distance(&scores);
-
-        let mut indices = (0..population.len()).collect::<Vec<usize>>();
-
-        indices.sort_by(|&a, &b| {
-            let a_rank = ranks[a];
-            let b_rank = ranks[b];
-            let a_distance = distances[a];
-            let b_distance = distances[b];
-
-            if a_rank < b_rank || (a_rank == b_rank && a_distance > b_distance) {
-                std::cmp::Ordering::Less
-            } else if b_rank < a_rank || (b_rank == a_rank && b_distance > a_distance) {
-                std::cmp::Ordering::Greater
-            } else {
-                std::cmp::Ordering::Equal
-            }
-        });
 
         let mut result = Vec::new();
 
@@ -112,31 +95,27 @@ impl<C: Chromosome + Clone> Select<C> for TournamentNSGA2Selector {
                 indexes::SubsetMode::StratifiedCorrect,
             );
 
-            for i in 0..g.len() {
-                if result.len() >= count {
+            for i in (0..g.len()).step_by(2) {
+                if result.len() >= count || i + 1 >= g.len() {
                     break;
                 }
 
                 let one = g[i];
                 let two = g[i + 1];
 
-                let desired_index = if indices[one] < indices[two] {
+                let winner = if ranks[one] < ranks[two]
+                    || (ranks[one] == ranks[two] && distances[one] > distances[two])
+                {
                     one
-                } else if indices[one] > indices[two] {
+                } else if ranks[two] < ranks[one]
+                    || (ranks[two] == ranks[one] && distances[two] > distances[one])
+                {
                     two
                 } else {
                     *random_provider::choose(&[one, two])
                 };
 
-                let pop_list = scores
-                    .iter()
-                    .enumerate()
-                    .filter(|pair| pair.1 == &scores[desired_index])
-                    .map(|pair| pair.0)
-                    .collect::<Vec<_>>();
-
-                let random_phenotype = *random_provider::choose(&pop_list);
-                result.push(population[random_phenotype].clone());
+                result.push(population[winner].clone());
             }
         }
 

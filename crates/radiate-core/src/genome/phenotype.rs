@@ -1,6 +1,7 @@
 use super::{Valid, genotype::Genotype};
 use crate::Result;
 use crate::objectives::Score;
+use crate::species::SpeciesId;
 use crate::{Chromosome, objectives::Scored};
 use radiate_error::radiate_err;
 #[cfg(feature = "serde")]
@@ -69,6 +70,7 @@ pub struct Phenotype<C: Chromosome> {
     score: Option<Score>,
     generation: usize,
     family: FamilyId,
+    species: SpeciesId,
     id: PhenotypeId,
 }
 
@@ -101,6 +103,10 @@ impl<C: Chromosome> Phenotype<C> {
         self.score = score;
     }
 
+    pub fn set_species(&mut self, species: SpeciesId) {
+        self.species = species;
+    }
+
     pub fn generation(&self) -> usize {
         self.generation
     }
@@ -115,6 +121,10 @@ impl<C: Chromosome> Phenotype<C> {
 
     pub fn family(&self) -> FamilyId {
         self.family
+    }
+
+    pub fn species(&self) -> SpeciesId {
+        self.species
     }
 
     pub fn invalidate(&mut self, generation: usize) {
@@ -187,6 +197,7 @@ impl<C: Chromosome> From<Genotype<C>> for Phenotype<C> {
             generation: 0,
             id: PhenotypeId::new(),
             family: FamilyId::new(),
+            species: SpeciesId::empty(),
         }
     }
 }
@@ -199,6 +210,7 @@ impl<C: Chromosome> From<(Genotype<C>, usize)> for Phenotype<C> {
             generation,
             id: PhenotypeId::new(),
             family: FamilyId::new(),
+            species: SpeciesId::empty(),
         }
     }
 }
@@ -215,6 +227,7 @@ impl<C: Chromosome> From<(Vec<C>, usize)> for Phenotype<C> {
             generation,
             id: PhenotypeId::new(),
             family: FamilyId::new(),
+            species: SpeciesId::empty(),
         }
     }
 }

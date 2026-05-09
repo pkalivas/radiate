@@ -1,4 +1,5 @@
 use super::Codec;
+use crate::freeze::Frozen;
 use crate::genome::Gene;
 use crate::genome::genotype::Genotype;
 use crate::{BitChromosome, Chromosome};
@@ -62,7 +63,19 @@ impl BitCodec<bool> {
     }
 }
 
+impl<T> BitCodec<T> {
+    fn freeze_repr(&self) -> Frozen {
+        Frozen::typed::<Self>()
+            .with("num_chromosomes", self.num_chromosomes)
+            .with("num_genes", self.num_genes)
+    }
+}
+
 impl Codec<BitChromosome, Vec<Vec<bool>>> for BitCodec<Vec<Vec<bool>>> {
+    fn freeze(&self) -> Frozen {
+        self.freeze_repr()
+    }
+
     fn encode(&self) -> Genotype<BitChromosome> {
         Genotype::new(
             (0..self.num_chromosomes)
@@ -85,6 +98,10 @@ impl Codec<BitChromosome, Vec<Vec<bool>>> for BitCodec<Vec<Vec<bool>>> {
 }
 
 impl Codec<BitChromosome, Vec<bool>> for BitCodec<Vec<bool>> {
+    fn freeze(&self) -> Frozen {
+        self.freeze_repr()
+    }
+
     fn encode(&self) -> Genotype<BitChromosome> {
         Genotype::new(
             (0..self.num_chromosomes)
@@ -107,6 +124,10 @@ impl Codec<BitChromosome, Vec<bool>> for BitCodec<Vec<bool>> {
 }
 
 impl Codec<BitChromosome, bool> for BitCodec<bool> {
+    fn freeze(&self) -> Frozen {
+        self.freeze_repr()
+    }
+
     fn encode(&self) -> Genotype<BitChromosome> {
         Genotype::new(
             (0..self.num_chromosomes)

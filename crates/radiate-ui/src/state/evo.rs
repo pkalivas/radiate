@@ -1,8 +1,11 @@
+use std::sync::Arc;
+
 use super::chart::{ChartState, LineChartType};
 use crate::chart::RollingLineChart;
 use crate::widgets::num_pairs;
 use radiate_engines::{
-    Chromosome, Front, MetricSet, Objective, Optimize, Phenotype, Score, SpeciesSnapshot,
+    Chromosome, ContextAudit, Ecosystem, Front, MetricSet, Objective, Optimize, Phenotype, Score,
+    Species,
 };
 
 pub struct ObjectiveState {
@@ -13,16 +16,21 @@ pub struct ObjectiveState {
 }
 
 pub struct EvoState<C: Chromosome> {
+    pub best_phenotype: Option<Phenotype<C>>,
+    pub ecosystem: Option<Arc<Ecosystem<C>>>,
     pub front: Option<Front<Phenotype<C>>>,
     pub metrics: MetricSet,
     pub charts: ChartState,
-    pub species: Option<Vec<SpeciesSnapshot>>,
     pub index: usize,
     pub score: Score,
     pub pareto: ObjectiveState,
 }
 
 impl<C: Chromosome> EvoState<C> {
+    pub fn update_ecosystem(&mut self, ecosystem: Arc<Ecosystem<C>>) {
+        self.ecosystem = Some(ecosystem);
+    }
+
     pub fn update_metrics(&mut self, metrics: MetricSet) {
         for metric in metrics.iter() {
             self.charts.update_from_metric(metric.1);
@@ -30,10 +38,21 @@ impl<C: Chromosome> EvoState<C> {
         self.metrics = metrics;
     }
 
-    pub fn update_species(&mut self, species: Option<Vec<SpeciesSnapshot>>) {
-        self.species = species;
-        if let Some(species) = &mut self.species {
-            species.sort_unstable_by_key(|a| a.id.0);
+    pub fn update_audits(&mut self, audits: Option<Vec<ContextAudit>>)
+    where
+        C: Clone,
+    {
+        if let Some(audits) = audits {
+            for audit in audits.iter() {
+                if let ContextAudit::NewBest = audit {
+                    let phenotype = self
+                        .ecosystem
+                        .as_ref()
+                        .and_then(|eco| eco.get_phenotype(0))
+                        .cloned();
+                    self.best_phenotype = phenotype;
+                }
+            }
         }
     }
 
@@ -43,6 +62,10 @@ impl<C: Chromosome> EvoState<C> {
         chart_type: LineChartType,
     ) -> Option<&RollingLineChart> {
         self.charts.get_line_chart(key, chart_type)
+    }
+
+    pub fn get_species(&self) -> Option<&Vec<Species<C>>> {
+        self.ecosystem.as_ref().and_then(|eco| eco.species())
     }
 
     pub fn set_objective_index(&mut self, index: usize) {
@@ -88,10 +111,11 @@ impl<C: Chromosome> EvoState<C> {
 impl<C: Chromosome> Default for EvoState<C> {
     fn default() -> Self {
         Self {
+            best_phenotype: None,
             front: None,
             metrics: MetricSet::new(),
             charts: ChartState::new(),
-            species: None,
+            ecosystem: None,
             index: 0,
             score: Score::default(),
             pareto: ObjectiveState {

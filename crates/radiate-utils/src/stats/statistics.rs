@@ -1,7 +1,7 @@
 use core::f32;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use std::hash::Hash;
+use std::{fmt::Debug, hash::Hash};
 
 use crate::{Float, Primitive};
 
@@ -51,7 +51,7 @@ pub struct Statistic<F: Float = f32> {
     m3: Adder<F>,
     m4: Adder<F>,
     sum: Adder<F>,
-    count: i32,
+    count: u32,
     last_value: F,
     max: F,
     min: F,
@@ -68,7 +68,7 @@ impl<F: Float> Statistic<F> {
         self.last_value
     }
 
-    pub fn count(&self) -> i32 {
+    pub fn count(&self) -> u32 {
         self.count
     }
 
@@ -99,6 +99,8 @@ impl<F: Float> Statistic<F> {
             value = self.m2.value();
         } else if self.count > 1 {
             value = self.m2.value() / (F::from(self.count)? - F::ONE);
+        } else if self.count == 0 {
+            return None;
         }
 
         Some(value)
@@ -331,6 +333,23 @@ impl<F: Float> Hash for Statistic<F> {
         self.m2.value().num_hash(state);
         self.m3.value().num_hash(state);
         self.m4.value().num_hash(state);
+    }
+}
+
+impl<F: Debug + Float> Debug for Statistic<F> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Statistic")
+            .field("count", &self.count)
+            .field("last_value", &self.last_value)
+            .field("max", &self.max)
+            .field("min", &self.min)
+            .field("sum", &self.sum.value())
+            .field("mean", &self.mean())
+            .field("variance", &self.variance())
+            .field("std_dev", &self.std_dev())
+            .field("skewness", &self.skewness())
+            .field("kurtosis", &self.kurtosis())
+            .finish()
     }
 }
 

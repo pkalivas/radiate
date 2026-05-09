@@ -65,16 +65,16 @@ class SelectorBase(ComponentBase):
         selector_input = EngineInput(
             component=self.component,
             input_type=EngineInputType.SurvivorSelector,
-            args=self.args,
+            **self.args,
         ).__backend__()
+
+        objectives = objective if isinstance(objective, list) else [objective]
 
         objective_input = EngineInput(
             component="Objective",
             input_type=EngineInputType.Objective,
             allowed_genes={gene_type},
-            args={"objective": "|".join(objective)}
-            if isinstance(objective, list)
-            else {"objective": objective},
+            objective=objectives,
         ).__backend__()
 
         return Population.from_rust(

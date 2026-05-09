@@ -1,5 +1,6 @@
-use crate::{AnyValue, DataType, Expr, ExprProjection, ExprQuery, ExprResult};
+use super::{Evaluate, Expr, ExprProjection, ExprResult};
 use radiate_error::radiate_bail;
+use radiate_utils::{AnyValue, DataType};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
@@ -29,12 +30,12 @@ impl UnaryExpr {
     }
 }
 
-impl<T> ExprQuery<T> for UnaryExpr
+impl<T> Evaluate<T> for UnaryExpr
 where
     T: ExprProjection,
 {
-    fn dispatch<'a>(&'a mut self, input: &T) -> ExprResult<'a> {
-        let value = self.child.dispatch(input)?;
+    fn eval<'a>(&'a mut self, input: &T) -> ExprResult<'a> {
+        let value = self.child.eval(input)?;
 
         match self.op {
             UnaryOp::Not => match value {
@@ -98,15 +99,13 @@ impl BinaryExpr {
     }
 }
 
-impl<T> ExprQuery<T> for BinaryExpr
+impl<T> Evaluate<T> for BinaryExpr
 where
     T: ExprProjection,
 {
-    fn dispatch<'a>(&'a mut self, input: &T) -> ExprResult<'a> {
-        let lhs = self.lhs.dispatch(input)?;
-        let rhs = self.rhs.dispatch(input)?;
-
-        // println!("LHS: {:?}, RHS: {:?}, LHS < RHS: {:?}", lhs, rhs, lhs < rhs);
+    fn eval<'a>(&'a mut self, input: &T) -> ExprResult<'a> {
+        let lhs = self.lhs.eval(input)?;
+        let rhs = self.rhs.eval(input)?;
 
         let result = match self.op {
             BinaryOp::Add => lhs + rhs,
@@ -122,7 +121,7 @@ where
             BinaryOp::And => lhs & rhs,
             BinaryOp::Or => lhs | rhs,
             BinaryOp::Mod => lhs % rhs,
-            BinaryOp::Pow => crate::datatype::pow_anyvalue(&lhs, &rhs)?,
+            BinaryOp::Pow => radiate_utils::pow_anyvalue(&lhs, &rhs)?,
         };
 
         Ok(result)
@@ -156,14 +155,14 @@ impl TrinaryExpr {
     }
 }
 
-impl<T> ExprQuery<T> for TrinaryExpr
+impl<T> Evaluate<T> for TrinaryExpr
 where
     T: ExprProjection,
 {
-    fn dispatch<'a>(&'a mut self, input: &T) -> ExprResult<'a> {
+    fn eval<'a>(&'a mut self, input: &T) -> ExprResult<'a> {
         match self.operation {
             TrinaryOp::If => {
-                let condition = self.first.dispatch(input)?;
+                let condition = self.first.eval(input)?;
 
                 let cond = match condition {
                     AnyValue::Bool(b) => b,
@@ -171,15 +170,15 @@ where
                 };
 
                 if cond {
-                    self.second.dispatch(input)
+                    self.second.eval(input)
                 } else {
-                    self.third.dispatch(input)
+                    self.third.eval(input)
                 }
             }
             TrinaryOp::Clamp => {
-                let value = self.first.dispatch(input)?.extract::<f32>();
-                let min = self.second.dispatch(input)?.extract::<f32>();
-                let max = self.third.dispatch(input)?.extract::<f32>();
+                let value = self.first.eval(input)?.extract::<f32>();
+                let min = self.second.eval(input)?.extract::<f32>();
+                let max = self.third.eval(input)?.extract::<f32>();
 
                 if value.is_none() {
                     return Ok(AnyValue::Null);

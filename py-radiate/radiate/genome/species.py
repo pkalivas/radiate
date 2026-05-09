@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from radiate._bridge.wrapper import RsObject
 
-from .population import Population
-
 
 class Species[T](RsObject):
     """
@@ -13,7 +11,7 @@ class Species[T](RsObject):
     def __repr__(self):
         return self.__backend__().__repr__()
 
-    def population(self) -> Population[T]:
+    def population(self) -> set[int]:
         """
         Returns the population of the species.
 
@@ -21,5 +19,5 @@ class Species[T](RsObject):
         """
         return self.try_get_cache(
             "population_cache",
-            lambda: Population.from_rust(self.__backend__().population),
+            lambda: set(self.__backend__().population),
         )

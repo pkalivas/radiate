@@ -42,6 +42,9 @@ where
         random_provider::with_rng(|rand| {
             for gene in chromosome.as_mut_slice() {
                 if rand.bool(ctx.rate()) {
+                    // The reason we use the sampling min/max from the gene here instead of it's
+                    // 'bounds' is because this operation is essentially a form of 'local search'
+                    // and we want to ensure that the mutated value is not too far from the original value.
                     let min = gene.min().extract::<f64>().unwrap();
                     let max = gene.max().extract::<f64>().unwrap();
 

@@ -116,4 +116,60 @@ impl MetricSet {
     pub fn largest_species_share(&self) -> Option<&Metric> {
         self.get(super::metric_names::LARGEST_SPECIES_SHARE)
     }
+
+    pub fn species_new_ratio(&self) -> Option<&Metric> {
+        self.get(super::metric_names::SPECIES_NEW_RATIO)
+    }
+
+    pub fn front_filters(&self) -> Option<&Metric> {
+        self.get(super::metric_names::FRONT_FILTERS)
+    }
+
+    pub fn best_scores(&self) -> Option<&Metric> {
+        self.get(super::metric_names::BEST_SCORES)
+    }
+
+    pub fn index(&self) -> Option<&Metric> {
+        self.get(super::metric_names::INDEX)
+    }
+
+    pub fn species_threshold(&self) -> Option<&Metric> {
+        self.get(super::metric_names::SPECIES_THRESHOLD)
+    }
+
+    pub fn alter_parent_reuse(&self) -> Option<&Metric> {
+        self.get(super::metric_names::ALTER_PARENT_REUSE)
+    }
+
+    pub fn alter_within_family(&self) -> Option<&Metric> {
+        self.get(super::metric_names::ALTER_WITHIN_FAMILY)
+    }
+
+    pub fn alter_cross_family(&self) -> Option<&Metric> {
+        self.get(super::metric_names::ALTER_CROSS_FAMILY)
+    }
+
+    pub fn lineage_parents_used_ratio(&self) -> Option<&Metric> {
+        self.get(super::metric_names::LINEAGE_PARENTS_USED_RATIO)
+    }
+
+    pub fn lineage_events(&self) -> Option<&Metric> {
+        self.get(super::metric_names::LINEAGE_EVENTS)
+    }
+
+    pub fn lineage_parents_used_unique(&self) -> Option<&Metric> {
+        self.get(super::metric_names::LINEAGE_PARENTS_USED_UNIQUE)
+    }
+
+    pub fn lineage_family_pair_entropy(&self) -> Option<&Metric> {
+        self.get(super::metric_names::LINEAGE_FAMILY_PAIR_ENTROPY)
+    }
+
+    pub fn lineage_family_pair_unique(&self) -> Option<&Metric> {
+        self.get(super::metric_names::LINEAGE_FAMILY_PAIR_UNIQUE)
+    }
+
+    pub fn lineage_top1_pair_share(&self) -> Option<&Metric> {
+        self.get(super::metric_names::LINEAGE_TOP1_PAIR_SHARE)
+    }
 }

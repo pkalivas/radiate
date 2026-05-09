@@ -1,4 +1,6 @@
-use radiate_core::{BoundedGene, Chromosome, FloatGene, Gene, Mutate, Rate, random_provider};
+use radiate_core::{
+    BoundedGene, Chromosome, FloatGene, Gene, Mutate, Rate, freeze::Frozen, random_provider,
+};
 use radiate_utils::{Float, Primitive};
 
 // Use it when:
@@ -64,11 +66,17 @@ where
         self.rate.clone()
     }
 
+    fn freeze(&self) -> Frozen {
+        Frozen::typed::<Self>()
+            .with("rate", self.rate.freeze())
+            .with("eta", self.eta)
+    }
+
     #[inline]
     fn mutate_gene(&self, gene: &mut C::Gene) -> usize {
-        // TODO: Should these be from the bounds?
-        let min = gene.min().extract::<f64>().unwrap();
-        let max = gene.max().extract::<f64>().unwrap();
+        let (lower, upper) = gene.bounds();
+        let min = lower.extract::<f64>().unwrap();
+        let max = upper.extract::<f64>().unwrap();
         let value = gene.allele().extract::<f64>().unwrap();
         let eta = self.eta as f64;
 

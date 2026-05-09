@@ -1,5 +1,5 @@
 use pyo3::{intern, prelude::*, pybacked::PyBackedStr, types::PyList};
-use radiate_expr::{DataType, Field};
+use radiate_utils::{DataType, Field, SmallStr};
 
 use crate::Wrap;
 
@@ -127,6 +127,10 @@ impl<'py> IntoPyObject<'py> for &Wrap<DataType> {
                 let class = rd.getattr(intern!(py, "Float64"))?;
                 class.call0()
             }
+            DataType::Usize => {
+                let class = rd.getattr(intern!(py, "Usize"))?;
+                class.call0()
+            }
             DataType::Duration => {
                 let class = rd.getattr(intern!(py, "Duration"))?;
                 class.call0()
@@ -148,11 +152,11 @@ impl<'py> IntoPyObject<'py> for &Wrap<DataType> {
                 let inner = Wrap(*inner.clone());
                 class.call1((&inner,))
             }
-            DataType::Struct(fields) => {
+            DataType::Map(fields) => {
                 let field_class = rd.getattr(intern!(py, "Field"))?;
                 let iter = fields.iter().map(|fld| {
-                    let name = fld.name().as_str();
-                    let dtype = Wrap(fld.dtype().clone());
+                    let name = fld.0.to_string();
+                    let dtype = Wrap(fld.1.clone());
                     field_class.call1((name, &dtype)).unwrap()
                 });
                 let fields = PyList::new(py, iter)?;
@@ -162,6 +166,21 @@ impl<'py> IntoPyObject<'py> for &Wrap<DataType> {
             DataType::Null => {
                 let class = rd.getattr(intern!(py, "Null"))?;
                 class.call0()
+            }
+            DataType::Struct(field, fields) => {
+                let field_class = rd.getattr(intern!(py, "Field"))?;
+                let name = field.name().as_str();
+                let dtype = Wrap(field.dtype().clone());
+                let main_field = field_class.call1((name, &dtype))?;
+
+                let iter = fields.iter().map(|fld| {
+                    let name = fld.name().as_str();
+                    let dtype = Wrap(fld.dtype().clone());
+                    field_class.call1((name, &dtype)).unwrap()
+                });
+                let fields = PyList::new(py, iter)?;
+                let struct_class = rd.getattr(intern!(py, "Struct"))?;
+                struct_class.call1((main_field, fields))
             }
         }
     }
@@ -249,9 +268,9 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Wrap<DataType> {
                 let fields = fields
                     .extract::<Vec<Wrap<Field>>>()?
                     .into_iter()
-                    .map(|f| f.0)
-                    .collect::<Vec<Field>>();
-                DataType::Struct(fields)
+                    .map(|f| (SmallStr::from(f.0.name().to_string()), f.0.dtype().clone()))
+                    .collect::<Vec<(SmallStr, DataType)>>();
+                DataType::Map(fields)
             }
 
             _ => {

@@ -9,9 +9,14 @@ use num_traits::{Num, NumCast};
 use rand::distr::uniform::SampleUniform;
 
 pub trait Primitive:
-    Num + NumCast + Copy + PartialEq + SampleUniform + Debug + Display + Default
+    Num + NumCast + Copy + PartialEq + SampleUniform + Debug + Display + Default + PartialOrd
 {
     const HALF: Self;
+    const MIN: Self;
+    const MAX: Self;
+    const ZERO: Self;
+    const ONE: Self;
+    const TWO: Self;
 
     fn safe_add(self, rhs: Self) -> Self;
     fn safe_sub(self, rhs: Self) -> Self;

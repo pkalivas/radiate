@@ -4,7 +4,7 @@ use crate::{
     dtype,
 };
 use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
-use radiate_expr::{DataType, dtype_names};
+use radiate_utils::{DataType, dtype_names};
 
 #[pyclass(from_py_object)]
 #[derive(Clone)]

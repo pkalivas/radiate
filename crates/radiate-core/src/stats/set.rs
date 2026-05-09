@@ -1,9 +1,13 @@
 use crate::{
     Metric, MetricUpdate,
-    stats::{Meta, Tag, TagType, defaults::try_add_tag_from_str, fmt},
+    stats::{
+        Meta, Tag, TagType,
+        defaults::try_add_tag_from_str,
+        expression::{ExprProjection, SelectExpr},
+        fmt,
+    },
 };
-use radiate_expr::{AnyValue, ApplyExpr, DataType, Expr, ExprProjection, ExprQuery, SelectExpr};
-use radiate_utils::intern;
+use radiate_utils::{AnyValue, DataType, intern};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::{
@@ -211,12 +215,6 @@ impl MetricSet {
     }
 }
 
-impl<'a> ApplyExpr<'a> for MetricSet {
-    fn apply(&self, expr: &'a mut Expr) -> AnyValue<'a> {
-        expr.dispatch(self).unwrap()
-    }
-}
-
 impl ExprProjection for MetricSet {
     fn project(&self, path: &SelectExpr) -> Option<AnyValue<'static>> {
         let value_to_float32 = |value: f32| AnyValue::Float32(value);
@@ -313,6 +311,7 @@ impl<'de> Deserialize<'de> for MetricSet {
     }
 }
 
+#[derive(Debug)]
 pub enum MetricSetUpdate<'a> {
     Many(Vec<Metric>),
     Single(Metric),
@@ -370,7 +369,7 @@ mod tests {
         (a - b).abs() <= eps
     }
 
-    fn assert_stat_eq(m: &Metric, count: i32, mean: f32, var: f32, min: f32, max: f32) {
+    fn assert_stat_eq(m: &Metric, count: u32, mean: f32, var: f32, min: f32, max: f32) {
         assert_eq!(m.count(), count);
         assert!(approx_eq(m.mean(), mean, EPSILON), "mean");
         assert!(approx_eq(m.var(), var, EPSILON), "var");
@@ -378,9 +377,9 @@ mod tests {
         assert!(approx_eq(m.max(), max, EPSILON), "max");
     }
 
-    fn stats_of(values: &[f32]) -> (i32, f32, f32, f32, f32) {
+    fn stats_of(values: &[f32]) -> (u32, f32, f32, f32, f32) {
         // sample variance (n-1), matches your Statistic::variance
-        let n = values.len() as i32;
+        let n = values.len() as u32;
         if n == 0 {
             return (0, 0.0, f32::NAN, f32::INFINITY, f32::NEG_INFINITY);
         }

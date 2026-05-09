@@ -1,5 +1,6 @@
 use pyo3::prelude::*;
-use radiate::{AnyValue, Expr, ExprQuery, expr};
+use radiate::{AnyValue, Evaluate, Expr, expr};
+use radiate_error::radiate_py_bail;
 
 use crate::{Wrap, dtype_from_str};
 
@@ -67,11 +68,10 @@ impl PyExpr {
 
     pub fn evaluate(&mut self, input: Wrap<AnyValue<'_>>) -> PyResult<Wrap<AnyValue<'_>>> {
         let result = input.0.into_static();
-        match self.inner.dispatch(&result) {
+        match self.inner.eval(&result) {
             Ok(value) => Ok(Wrap(value)),
             Err(e) => {
-                let msg = format!("Error evaluating expression: {}", e);
-                Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(msg))
+                radiate_py_bail!(format!("Error evaluating expression: {}", e))
             }
         }
     }

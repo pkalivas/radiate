@@ -1,17 +1,16 @@
 use crate::stats::{MetricView, Tag, TagType, defaults};
 use radiate_error::{RadiateError, radiate_err};
-use radiate_expr::{AnyValue, DataType};
 use radiate_utils::{
-    Statistic, ToSnakeCase, cache_arc_string, intern, intern_snake_case,
+    AnyValue, DataType, Statistic, cache_arc_string,
 };
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::{hash::Hash, sync::Arc, time::Duration};
 
-const DATA_TYPE_NULL: u8 = 0;
-const DATA_TYPE_FLOAT32: u8 = 1;
-const DATA_TYPE_DURATION: u8 = 2;
-const DATA_TYPE_LIST: u8 = 3;
+const DTYPE_NULL: u8 = 0;
+const DTYPE_FLOAT32: u8 = 1;
+const DTYPE_DURATION: u8 = 2;
+const DTYPE_LIST: u8 = 3;
 
 #[macro_export]
 macro_rules! metric {
@@ -43,7 +42,7 @@ pub struct Metric {
 
 impl Metric {
     pub fn new(name: &'static str) -> Self {
-        let name = cache_arc_string!(intern_snake_case!(name));
+        let name = cache_arc_string!(name);
         let tags = defaults::default_tags(&name);
 
         Self {
@@ -51,7 +50,7 @@ impl Metric {
             meta: None,
             inner: Statistic::default(),
             tags,
-            dtype: DATA_TYPE_NULL,
+            dtype: DTYPE_NULL,
         }
     }
 
@@ -83,10 +82,10 @@ impl Metric {
 
     pub fn dtype(&self) -> DataType {
         match self.dtype {
-            DATA_TYPE_NULL => DataType::Null,
-            DATA_TYPE_FLOAT32 => DataType::Float32,
-            DATA_TYPE_DURATION => DataType::Duration,
-            DATA_TYPE_LIST => DataType::List(Box::new(DataType::Float32)),
+            DTYPE_NULL => DataType::Null,
+            DTYPE_FLOAT32 => DataType::Float32,
+            DTYPE_DURATION => DataType::Duration,
+            DTYPE_LIST => DataType::List(Box::new(DataType::Float32)),
             _ => DataType::Null,
         }
     }
@@ -94,20 +93,6 @@ impl Metric {
     #[inline(always)]
     pub fn tags(&self) -> Tag {
         self.tags
-    }
-
-    #[inline(always)]
-    pub fn with_tag(mut self, tag: TagType) -> Self {
-        self.add_tag(tag);
-        self
-    }
-
-    #[inline(always)]
-    pub fn with_tags<T>(&mut self, tags: T)
-    where
-        T: Into<Tag>,
-    {
-        self.tags = tags.into();
     }
 
     #[inline(always)]
@@ -207,9 +192,12 @@ impl Metric {
             MetricUpdate::Distribution(values) => {
                 self.update_statistic_from_iter(values.iter().cloned());
             }
+            MetricUpdate::OwnedDistribution(values) => {
+                self.update_statistic_from_iter(values);
+            }
             MetricUpdate::Statistic(stat) => {
                 self.inner.merge(&stat);
-                self.dtype = DATA_TYPE_FLOAT32;
+                self.dtype = DTYPE_FLOAT32;
                 if let Some(meta) = &mut self.meta {
                     meta.update_count += 1;
                 }
@@ -225,8 +213,8 @@ impl Metric {
             meta.update_count += 1;
         }
 
-        if self.dtype == DATA_TYPE_NULL {
-            self.dtype = DATA_TYPE_FLOAT32;
+        if self.dtype == DTYPE_NULL {
+            self.dtype = DTYPE_FLOAT32;
         }
     }
 
@@ -239,8 +227,8 @@ impl Metric {
 
         }
 
-        if self.dtype == DATA_TYPE_NULL {
-            self.dtype = DATA_TYPE_DURATION;
+        if self.dtype == DTYPE_NULL {
+            self.dtype = DTYPE_DURATION;
         }
     }
 
@@ -248,23 +236,16 @@ impl Metric {
     where
         I: IntoIterator<Item = f32>,
     {   
-        let mut values_count = 0;
-        let mut new_stat = Statistic::default();
-        for value in values {
-            new_stat.add(value);
-            values_count += 1;
-        }
-        
-        self.inner = new_stat;
+        self.inner = values.into_iter().collect::<Statistic>();
 
         if let Some(meta) = &mut self.meta {
-            meta.update_count += values_count;
+            meta.update_count += self.inner.count() as usize;
         }
         
         self.add_tag(TagType::Distribution);
 
-        if self.dtype == DATA_TYPE_NULL {
-            self.dtype = DATA_TYPE_LIST;
+        if self.dtype == DTYPE_NULL {
+            self.dtype = DTYPE_LIST;
         }
     }
 
@@ -280,7 +261,7 @@ impl Metric {
         self.inner.last_value()
     }
 
-    pub fn count(&self) -> i32 {
+    pub fn count(&self) -> u32 {
         self.inner.count()
     }
 
@@ -300,6 +281,10 @@ impl Metric {
         self.inner.skewness().unwrap_or(0.0)
     }
 
+    pub fn kurt(&self) -> f32 {
+        self.inner.kurtosis().unwrap_or(0.0)
+    }
+    
     pub fn min(&self) -> f32 {
         self.inner.min()
     }
@@ -311,6 +296,7 @@ impl Metric {
     pub fn sum(&self) -> f32 {
         self.inner.sum()
     }
+
 }
 
 impl Hash for Metric {
@@ -321,12 +307,13 @@ impl Hash for Metric {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum MetricUpdate<'a> {
     Float(f32),
     Usize(usize),
     Duration(Duration),
     Distribution(&'a [f32]),
+    OwnedDistribution(Vec<f32>),
     UsizeDistribution(&'a [usize]),
     Statistic(Statistic),
 }
@@ -403,12 +390,12 @@ impl<'a> TryFrom<AnyValue<'a>> for MetricUpdate<'a> {
                         v.clone().extract::<f32>().ok_or(
                             radiate_err!(
                                 Metric: 
-                                "cannot convert AnyValue sequence into MetricUpdate::Statistic: element at index {index} has non-numeric type `{}`", v.type_name()))
+                                "cannot convert AnyValue sequence into Vec<f32>: element at index {index} has non-numeric type `{}`", v.type_name()))
                             
                     })
-                    .collect::<Result<Statistic, _>>()?;
+                    .collect::<Result<Vec<f32>, _>>()?;
 
-                Ok(MetricUpdate::Statistic(out))
+                Ok(MetricUpdate::OwnedDistribution(out))
             }
 
             AnyValue::Vector(values) => {
@@ -420,12 +407,12 @@ impl<'a> TryFrom<AnyValue<'a>> for MetricUpdate<'a> {
                         v.extract::<f32>()
                             .ok_or(radiate_err!(
                                 Metric: 
-                                "cannot convert AnyValue sequence into MetricUpdate::Distribution: element at index {index} has non-numeric type `{ty}`"
+                                "cannot convert AnyValue sequence into Vec<f32>: element at index {index} has non-numeric type `{ty}`"
                             ))
                     })
-                    .collect::<Result<Statistic, _>>()?;
+                    .collect::<Result<Vec<f32>, _>>()?;
 
-                Ok(MetricUpdate::Statistic(out))
+                Ok(MetricUpdate::OwnedDistribution(out))
             }
 
             other => Err(radiate_err!(Metric: "cannot convert AnyValue of type `{}` into MetricUpdate", other.type_name())),
@@ -450,7 +437,7 @@ mod tests {
         (a - b).abs() <= eps
     }
 
-    fn assert_stat_eq(m: &Metric, count: i32, mean: f32, var: f32, min: f32, max: f32) {
+    fn assert_stat_eq(m: &Metric, count: u32, mean: f32, var: f32, min: f32, max: f32) {
         assert_eq!(m.count(), count);
         assert!(approx_eq(m.mean(), mean, EPSILON), "mean");
         assert!(approx_eq(m.var(), var, EPSILON), "var");
@@ -458,9 +445,9 @@ mod tests {
         assert!(approx_eq(m.max(), max, EPSILON), "max");
     }
 
-    fn stats_of(values: &[f32]) -> (i32, f32, f32, f32, f32) {
+    fn stats_of(values: &[f32]) -> (u32, f32, f32, f32, f32) {
         // sample variance (n-1), matches your Statistic::variance
-        let n = values.len() as i32;
+        let n = values.len() as u32;
         if n == 0 {
             return (0, 0.0, f32::NAN, f32::INFINITY, f32::NEG_INFINITY);
         }

@@ -25,7 +25,7 @@ impl<C: Chromosome> StatefulWidget for SpeciesPieChartComponent<C> {
     type State = AppState<C>;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let Some(species) = &state.evo.species else {
+        let Some(species) = &state.evo.get_species() else {
             let block = Block::bordered().title(Line::from(" No Data ").centered());
             block.render(area, buf);
             return;
@@ -36,7 +36,7 @@ impl<C: Chromosome> StatefulWidget for SpeciesPieChartComponent<C> {
             .iter()
             .enumerate()
             .filter_map(|(index, species)| {
-                species.score.as_ref().map(|score| {
+                species.score().as_ref().map(|score| {
                     let color = selected_chart_color(
                         index,
                         state.tables.species.selected_value.as_ref(),

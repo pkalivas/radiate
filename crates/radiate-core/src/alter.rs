@@ -1,3 +1,4 @@
+use crate::freeze::Frozen;
 use crate::{Chromosome, Gene, Genotype, Population, math::indexes, random_provider};
 use crate::{Lineage, LineageUpdate, MetricSet, MetricUpdate, Rate, metric};
 use radiate_utils::{ToSnakeCase, intern};
@@ -37,7 +38,6 @@ impl AlterResult {
         self.0 += other_count;
     }
 }
-
 
 impl From<usize> for AlterResult {
     fn from(value: usize) -> Self {
@@ -108,6 +108,13 @@ impl<C: Chromosome> Alterer<C> {
         match self {
             Alterer::Mutate(_, rate, _) => rate,
             Alterer::Crossover(_, rate, _) => rate,
+        }
+    }
+
+    pub fn freeze(&self) -> Frozen {
+        match self {
+            Alterer::Mutate(_, _, m) => m.freeze(),
+            Alterer::Crossover(_, _, c) => c.freeze(),
         }
     }
 
@@ -198,6 +205,10 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
 
     fn rate(&self) -> Rate {
         Rate::default()
+    }
+
+    fn freeze(&self) -> Frozen {
+        Frozen::typed::<Self>().with("rate", self.rate().freeze())
     }
 
     fn alterer(self) -> Alterer<C>
@@ -310,6 +321,10 @@ pub trait Mutate<C: Chromosome>: Send + Sync {
 
     fn rate(&self) -> Rate {
         Rate::default()
+    }
+
+    fn freeze(&self) -> Frozen {
+        Frozen::typed::<Self>().with("rate", self.rate().freeze())
     }
 
     fn alterer(self) -> Alterer<C>

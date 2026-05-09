@@ -1,6 +1,6 @@
 use crate::state::{AppState, AppTableState, DashboardTab};
 use radiate_engines::stats::TagType;
-use radiate_engines::{Chromosome, MetricSet, SpeciesSnapshot, metric_names};
+use radiate_engines::{Chromosome, MetricSet, Species, metric_names};
 use radiate_engines::{Metric, stats::fmt_duration};
 use ratatui::buffer::Buffer;
 use ratatui::text::Line;
@@ -25,7 +25,14 @@ pub const STAT_HEADER_CELLS: [&str; 8] = [
     "Count",
 ];
 pub const TIME_HEADER_CELLS: [&str; 5] = ["Metric", "Min", "Max", "μ (mean)", "Total"];
-pub const SPECIES_HEADER_CELLS: [&str; 6] = ["ID", "Gen", "Pop", "Stag", "Best", "Score"];
+pub const SPECIES_HEADER_CELLS: [&str; 6] = [
+    "ID",
+    "Created",
+    "Size",
+    "Gen. Stag",
+    "Raw Score",
+    "Adj. Score",
+];
 
 // --- Metric table ---
 
@@ -176,7 +183,7 @@ impl<C: Chromosome> StatefulWidget for SpeciesTableWidget<C> {
     type State = AppState<C>;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let items = match &state.evo.species {
+        let items = match state.evo.get_species() {
             Some(species) => species,
             None => return,
         };
@@ -186,7 +193,7 @@ impl<C: Chromosome> StatefulWidget for SpeciesTableWidget<C> {
         let obj_index = state.evo.pareto.objective_index;
         let border_style =
             crate::styles::panel_block(state.nav.is_tab_focused(DashboardTab::Species));
-        let rows = species_into_rows(obj_index, items.iter());
+        let rows = species_into_rows(obj_index, items);
 
         let table = Table::default()
             .block(border_style)
@@ -300,26 +307,27 @@ fn metrics_into_dist_rows<'a>(
     })
 }
 
-fn species_into_rows<'a>(
+fn species_into_rows<'a, C: Chromosome>(
     obj_index: usize,
-    species: impl Iterator<Item = &'a SpeciesSnapshot>,
+    species: &[Species<C>],
 ) -> impl Iterator<Item = Row<'a>> {
-    species.map(move |s| {
+    species.iter().map(move |s| {
         Row::new(vec![
             Cell::from(format!("{}", s.id.0)),
             Cell::from(format!("{}", s.generation)),
-            Cell::from(format!("{}", s.population_size)),
-            Cell::from(format!("{}", s.stagnation)),
+            Cell::from(format!("{}", s.size)),
+            Cell::from(format!("{}", s.stagnation())),
             Cell::from(format!(
                 "{:.4}",
-                s.best_score
+                s.tracker
+                    .best
                     .as_ref()
                     .map(|vals| vals[obj_index])
                     .unwrap_or_default()
             )),
             Cell::from(format!(
                 "{:.4}",
-                s.score
+                s.adjusted_score
                     .as_ref()
                     .map(|vals| vals[obj_index])
                     .unwrap_or_default()

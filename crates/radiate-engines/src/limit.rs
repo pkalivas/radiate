@@ -13,8 +13,7 @@
 //! - **Convergence Detection**: Stop when improvement rate falls below threshold
 //! - **Combined Limits**: Apply multiple limits simultaneously
 
-use radiate_core::{Metric, Score};
-use radiate_expr::Expr;
+use radiate_core::{Expr, Metric, Score};
 use std::{fmt::Debug, sync::Arc, time::Duration};
 
 /// Defines various types of limits for controlling genetic algorithm execution.

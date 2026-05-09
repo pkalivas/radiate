@@ -1,5 +1,5 @@
 use crate::ProbabilityWheelIterator;
-use radiate_core::{Chromosome, Objective, Optimize, Population, Select, pareto};
+use radiate_core::{Chromosome, Objective, Optimize, Population, Select, math::norm, pareto};
 
 #[derive(Debug, Default)]
 pub struct RouletteSelector;
@@ -19,33 +19,24 @@ impl<C: Chromosome + Clone> Select<C> for RouletteSelector {
     ) -> Population<C> {
         let fitness_values = match objective {
             Objective::Single(opt) => {
-                let mut population_scores = Vec::with_capacity(population.len());
-                let mut sum = 0.0;
-                for score in population.get_scores() {
-                    let single_score = score.as_f32();
-                    population_scores.push(single_score);
-                    sum += single_score;
-                }
+                let mut scores = population
+                    .iter_scores()
+                    .filter_map(|s| s.first())
+                    .collect::<Vec<_>>();
 
-                for fit in population_scores.iter_mut() {
-                    *fit /= sum;
-                }
+                norm::scale_l1_affine_sorted(&mut scores);
 
                 if let Optimize::Minimize = opt {
-                    population_scores.reverse();
+                    scores.reverse();
                 }
 
-                population_scores
+                scores
             }
             Objective::Multi(_) => {
-                let mut weights =
-                    pareto::weights(&population.get_scores().collect::<Vec<_>>(), objective);
-                let total_weights = weights.iter().sum::<f32>();
+                let scores = population.iter_scores().collect::<Vec<_>>();
 
-                for fit in weights.iter_mut() {
-                    *fit /= total_weights;
-                }
-
+                let mut weights = pareto::weights(&scores, objective);
+                norm::scale_l1(&mut weights);
                 weights
             }
         };

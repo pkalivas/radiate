@@ -1,11 +1,11 @@
 use crate::state::{AppState, LineChartType};
 use crate::widgets::components::LineChartWidget;
-use crate::widgets::{FnWidget, MetricDetailPanelWidget, Panel};
+use crate::widgets::{FnWidget, MetricDetailPanelWidget, Panel, TabComponent};
 use radiate_engines::stats::fmt_duration;
 use radiate_engines::{Chromosome, MetricSet};
 use ratatui::prelude::*;
 use ratatui::style::{Color, Stylize};
-use ratatui::widgets::{Paragraph, Row, Table, Tabs};
+use ratatui::widgets::{Paragraph, Row, Table};
 
 pub struct EngineStatusPanelWidget<C: Chromosome> {
     _phantom: std::marker::PhantomData<C>,
@@ -97,10 +97,6 @@ impl<C: Chromosome> StatefulWidget for MetricModalWidget<C> {
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         let current_metric_name = state.get_selected_metric().unwrap_or("");
 
-        let titles = LineChartType::chart_options()
-            .iter()
-            .map(|t| Span::styled(format!(" {t} "), Style::default().fg(Color::White)));
-
         let index = state.nav.chart_tab_index();
 
         let [left, right] =
@@ -108,30 +104,42 @@ impl<C: Chromosome> StatefulWidget for MetricModalWidget<C> {
 
         MetricDetailPanelWidget::new().render(left, buf, state);
 
+        let areas = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Length(3), Constraint::Fill(1)])
+            .split(right);
+
         let chart_type = state.nav.chart_tab;
         let charts = state.evo.get_chart_by_key(current_metric_name, chart_type);
 
         Panel::new(FnWidget::new(|area, buf| {
-            let chunks = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([Constraint::Length(1), Constraint::Fill(1)])
-                .split(area);
-
-            Tabs::new(titles)
-                .select(index)
-                .padding(" ", " ")
-                .divider(" ")
-                .highlight_style(crate::styles::selected_item_style())
-                .bold()
-                .render(chunks[0], buf);
-
-            LineChartWidget::from(charts)
-                .with_show_x_axis(true)
-                .render(chunks[1], buf);
+            TabComponent::new(
+                LineChartType::chart_options()
+                    .iter()
+                    .map(|t| Span::styled(format!(" {t} "), Style::default().fg(Color::White))),
+            )
+            .select(index)
+            .render(area, buf);
         }))
-        .titled(" Charts ")
-        .render(right, buf);
+        .render_inside_block(true)
+        .render(areas[0], buf);
+
+        LineChartWidget::from(charts)
+            .with_show_x_axis(true)
+            .render(areas[1], buf);
     }
+}
+
+pub fn metric_summary_line<C: Chromosome>(state: &AppState<C>) -> Line<'static> {
+    let metric_meta = state.evo.metrics.summary();
+    let title = vec![
+        " Metrics: ".fg(Color::Gray).bold(),
+        format!("{}", metric_meta.metrics).fg(Color::LightGreen),
+        " | Updates: ".fg(Color::Gray).bold(),
+        format!("{} ", format_thousands(metric_meta.updates as usize)).fg(Color::LightGreen),
+    ];
+
+    title.into()
 }
 
 fn get_multi_objective_summaries(metrics: &MetricSet) -> Vec<Row<'static>> {
@@ -217,4 +225,15 @@ fn get_single_objective_summaries(metrics: &MetricSet) -> Vec<Row<'static>> {
     ];
 
     rows
+}
+
+fn format_thousands(n: usize) -> String {
+    n.to_string()
+        .as_bytes()
+        .rchunks(3)
+        .rev()
+        .map(std::str::from_utf8)
+        .collect::<Result<Vec<&str>, _>>()
+        .unwrap()
+        .join(",")
 }

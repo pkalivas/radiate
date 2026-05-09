@@ -75,3 +75,13 @@ def test_multiple_limits(simple_float_engine):
         rd.Limit.metric("count.evaluation", lambda metric: metric.sum() > 1000)
     ).run()
     assert other_result.metrics()["count.evaluation"].sum() > 1000
+
+
+@pytest.mark.unit
+def test_expr_limit(simple_float_engine):
+    """Test expression-based limit."""
+    limit = rd.select("index") >= 10
+
+    result = simple_float_engine.run(rd.Limit.expr(limit))
+
+    assert result.index() == 10, "Expression limit should stop at index >= 10"

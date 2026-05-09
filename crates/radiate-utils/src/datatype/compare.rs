@@ -23,16 +23,20 @@ impl<'a> AnyValue<'a> {
             AnyValue::Float32(_) => 12,
             AnyValue::Float64(_) => 13,
 
-            AnyValue::Duration(_) => 14,
+            AnyValue::Usize(_) => 14,
 
-            AnyValue::Char(_) => 15,
-            AnyValue::Str(_) => 16,
-            AnyValue::StrOwned(_) => 17,
+            AnyValue::Duration(_) => 15,
 
-            AnyValue::Slice(_) => 18,
-            AnyValue::Vector(_) => 19,
+            AnyValue::Char(_) => 16,
+            AnyValue::Str(_) => 17,
+            AnyValue::StrOwned(_) => 18,
 
-            AnyValue::Struct(_) => 20,
+            AnyValue::Slice(_) => 19,
+            AnyValue::Vector(_) => 20,
+
+            AnyValue::Map(_) => 21,
+
+            AnyValue::Struct(_, _) => 22,
         }
     }
 
@@ -67,13 +71,13 @@ impl<'a> AnyValue<'a> {
             (Slice(a), Slice(b)) => a.iter().cmp(b.iter()),
             (Vector(a), Vector(b)) => a.iter().cmp(b.iter()),
 
-            (Struct(a), Struct(b)) => {
+            (Map(a), Map(b)) => {
                 let mut i = 0;
                 while i < a.len() && i < b.len() {
-                    let (fa, va) = &a[i];
-                    let (fb, vb) = &b[i];
+                    let (fa, _, va) = &a[i];
+                    let (fb, _, vb) = &b[i];
 
-                    match fa.name().cmp(fb.name()) {
+                    match fa.cmp(fb) {
                         Ordering::Equal => {}
                         non_eq => return non_eq,
                     }
@@ -88,6 +92,34 @@ impl<'a> AnyValue<'a> {
 
                 a.len().cmp(&b.len())
             }
+
+            (Struct(fa, va), Struct(fb, vb)) => {
+                match fa.name().cmp(fb.name()) {
+                    Ordering::Equal => {}
+                    non_eq => return non_eq,
+                }
+
+                let mut i = 0;
+                while i < va.len() && i < vb.len() {
+                    let (fa, va) = &va[i];
+                    let (fb, vb) = &vb[i];
+
+                    match fa.name().cmp(fb.name()) {
+                        Ordering::Equal => {}
+                        non_eq => return non_eq,
+                    }
+
+                    match va.cmp(vb) {
+                        Ordering::Equal => {}
+                        non_eq => return non_eq,
+                    }
+
+                    i += 1;
+                }
+
+                va.len().cmp(&vb.len())
+            }
+
             _ => unreachable!("cmp_same_variant called with different variants"),
         }
     }
@@ -102,13 +134,11 @@ impl<'a> AnyValue<'a> {
         } else if self.is_string() && other.is_string() {
             self.cmp_str(other)
         } else if self.is_int() && other.is_float() {
-            self
-                .clone()
+            self.clone()
                 .cast(&other.dtype())
                 .and_then(|v| v.fuzzy_cmp(other))
         } else if self.is_float() && other.is_int() {
-            self
-                .clone()
+            self.clone()
                 .cast(&other.dtype())
                 .and_then(|v| v.fuzzy_cmp(other))
         } else {

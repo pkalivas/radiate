@@ -17,10 +17,11 @@
 //! - **Specialized Iterators**: Various iterator types for different termination strategies
 //! - **Limit System**: Flexible limit specification and combination
 #[cfg(feature = "serde")]
-use crate::{CheckpointWriter, JsonCheckpointWriter};
+use crate::{FileWriter, JsonWriter};
 use crate::{Generation, Limit, control::EngineControl, init_logging};
-use radiate_core::{Chromosome, Engine, Metric, Objective, Optimize, Score};
-use radiate_expr::{AnyValue, ApplyExpr, Expr};
+use radiate_core::{
+    AnyValue, Chromosome, Engine, Evaluate, Expr, Metric, Objective, Optimize, Score,
+};
 #[cfg(feature = "serde")]
 use serde::Serialize;
 #[cfg(feature = "serde")]
@@ -111,6 +112,7 @@ where
 {
     type Item = E::Epoch;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(control) = &self.control
             && control.is_stopped()
@@ -720,7 +722,38 @@ where
         Self: Sized,
     {
         init_logging();
-        LoggingIterator { iter: self }
+        LoggingIterator {
+            iter: self,
+            interval: 1,
+        }
+    }
+
+    /// Adds logging at specified intervals to the iteration process.
+    ///
+    /// This is the same as the `logging()` method but allows you to specify how often to
+    /// log information about the generations. Sometimes we just don't want to log every single generation,
+    /// especially for long-running processes, so this method provides a way to log every N generations.
+    ///
+    /// # Arguments
+    /// * `interval` - The interval (in generations) at which to log information
+    ///
+    /// # Examples
+    /// ```rust,ignore
+    /// // Add logging every 10 generations
+    /// for generation in engine.iter().log_every(10) {
+    ///     // Each 10th generation will be logged automatically
+    ///     // Output format: "Epoch 10    | Score: 0.8500 | Time: 0.15s"
+    /// }
+    /// ```
+    fn log_every(self, interval: usize) -> impl Iterator<Item = Generation<C, T>>
+    where
+        Self: Sized,
+    {
+        init_logging();
+        LoggingIterator {
+            iter: self,
+            interval,
+        }
     }
 
     /// Adds checkpointing to the iteration process.
@@ -770,7 +803,7 @@ where
             iter: self,
             interval,
             path: PathBuf::from(path_without_extension),
-            writer: Box::new(JsonCheckpointWriter),
+            writer: Box::new(JsonWriter),
         }
     }
 
@@ -779,7 +812,7 @@ where
         self,
         interval: usize,
         folder_path: impl AsRef<Path>,
-        writer: Box<dyn CheckpointWriter<C, T>>,
+        writer: Box<dyn FileWriter<Generation<C, T>>>,
     ) -> impl Iterator<Item = Generation<C, T>>
     where
         Self: Sized,
@@ -876,7 +909,7 @@ where
     iter: I,
     interval: usize,
     path: PathBuf,
-    writer: Box<dyn CheckpointWriter<C, T>>,
+    writer: Box<dyn FileWriter<Generation<C, T>>>,
 }
 
 /// Implementation of `Iterator` for [CheckpointIterator].
@@ -904,11 +937,7 @@ where
                 self.writer.extension()
             ));
 
-            if !self.path.exists() {
-                std::fs::create_dir_all(&self.path).expect("Failed to create checkpoint directory");
-            }
-
-            let write_result = self.writer.write_checkpoint(file_path, &next);
+            let write_result = self.writer.write(file_path, &next);
 
             if let Err(e) = write_result {
                 eprintln!("Failed to write checkpoint: {e}");
@@ -931,6 +960,7 @@ where
     C: Chromosome,
 {
     iter: I,
+    interval: usize,
 }
 
 /// Implementation of `Iterator` for [LoggingIterator].
@@ -945,8 +975,13 @@ where
 {
     type Item = Generation<C, T>;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         let next = self.iter.next()?;
+
+        if !next.index().is_multiple_of(self.interval) {
+            return Some(next);
+        }
 
         match next.objective() {
             Objective::Single(_) => {
@@ -995,6 +1030,7 @@ where
 {
     type Item = Generation<C, T>;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         if self.done {
             return None;
@@ -1033,13 +1069,14 @@ where
 {
     type Item = Generation<C, T>;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         if self.done {
             return None;
         }
 
         let next = self.iter.next()?;
-        let expr_output = next.metrics().apply(&mut self.expr);
+        let expr_output = self.expr.eval(next.metrics()).unwrap_or(AnyValue::Null);
         if let AnyValue::Bool(val) = expr_output {
             self.done = val;
         } else {
@@ -1080,6 +1117,7 @@ where
 {
     type Item = Generation<C, T>;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         if self.max_index == 0 || self.done {
             return None;
@@ -1121,6 +1159,7 @@ where
 {
     type Item = Generation<C, T>;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         if self.limit <= Duration::from_millis(0) || self.done {
             return None;
@@ -1162,6 +1201,7 @@ where
 {
     type Item = Generation<C, T>;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         if self.done {
             return None;
@@ -1228,6 +1268,7 @@ where
 {
     type Item = Generation<C, T>;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         if self.done {
             return None;
@@ -1278,6 +1319,7 @@ where
 {
     type Item = Generation<C, T>;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         if self.done {
             return None;

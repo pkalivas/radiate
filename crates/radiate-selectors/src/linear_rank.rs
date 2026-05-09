@@ -1,5 +1,6 @@
-use radiate_core::{Chromosome, Objective, Optimize, Population, Select, pareto, random_provider};
+use radiate_core::{Chromosome, Objective, Population, Select, freeze::Frozen, random_provider};
 
+#[derive(Debug, Clone)]
 pub struct LinearRankSelector {
     selection_pressure: f32,
 }
@@ -11,55 +12,36 @@ impl LinearRankSelector {
 }
 
 impl<C: Chromosome + Clone> Select<C> for LinearRankSelector {
-    fn select(
-        &self,
-        population: &Population<C>,
-        objective: &Objective,
-        count: usize,
-    ) -> Population<C> {
-        let fitness_values = match objective {
-            Objective::Single(opt) => {
-                let scores = population
-                    .get_scores()
-                    .map(|score| score.as_f32())
-                    .collect::<Vec<f32>>();
-                let total = scores.iter().sum::<f32>();
-                let mut fitness_values =
-                    scores.iter().map(|&fit| fit / total).collect::<Vec<f32>>();
+    fn freeze(&self) -> Frozen {
+        Frozen::typed::<Self>().with("selection_pressure", self.selection_pressure)
+    }
 
-                if let Optimize::Minimize = opt {
-                    fitness_values.reverse();
-                }
+    fn select(&self, population: &Population<C>, _: &Objective, count: usize) -> Population<C> {
+        let n = population.len();
+        if n == 0 || count == 0 {
+            return Population::new(Vec::new());
+        }
 
-                fitness_values
-            }
-            Objective::Multi(_) => {
-                let weights =
-                    pareto::weights(&population.get_scores().collect::<Vec<_>>(), objective);
-                let total_weights = weights.iter().sum::<f32>();
-                weights
-                    .iter()
-                    .map(|&fit| fit / total_weights)
-                    .collect::<Vec<f32>>()
-            }
-        };
-
-        let total_rank = (1..=fitness_values.len()).map(|i| i as f32).sum::<f32>();
-        let mut selected_population = Vec::with_capacity(count);
+        // Population is pre-sorted best-first by the engine, so index 0 = best.
+        // Assign weight (n - i) to index i so the best individual gets weight n
+        // and the worst gets weight 1. Scale by selection_pressure so that
+        // total_rank == max cumulative rank and the inner loop always terminates.
+        let total_rank = (1..=n).map(|i| i as f32).sum::<f32>() * self.selection_pressure;
+        let mut selected = Vec::with_capacity(count);
 
         for _ in 0..count {
             let target = random_provider::range(0.0..total_rank);
-            let mut cumulative_rank = 0.0;
+            let mut cumulative = 0.0;
 
-            for (rank, _) in fitness_values.iter().enumerate() {
-                cumulative_rank += (rank + 1) as f32 * self.selection_pressure;
-                if cumulative_rank > target {
-                    selected_population.push(population[rank].clone());
+            for i in 0..n {
+                cumulative += (n - i) as f32 * self.selection_pressure;
+                if cumulative > target {
+                    selected.push(population[i].clone());
                     break;
                 }
             }
         }
 
-        Population::new(selected_population)
+        Population::new(selected)
     }
 }

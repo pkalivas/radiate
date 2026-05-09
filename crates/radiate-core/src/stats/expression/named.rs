@@ -1,4 +1,4 @@
-use crate::Expr;
+use super::Expr;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize, ser::SerializeStruct};
 

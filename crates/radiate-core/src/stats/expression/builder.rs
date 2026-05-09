@@ -1,68 +1,17 @@
-mod aggregate;
-mod logical;
-mod named;
-mod ops;
-mod projection;
-mod schedule;
-mod select;
-
-use crate::{
-    AnyValue, DataType, Field,
-    expression::schedule::{EveryState, ScheduleExpr},
+use super::{
+    Expr,
+    aggregate::{AggExpr, BufferExpr, Rollup},
+    expr_fields,
+    logical::When,
+    ops::{BinaryExpr, BinaryOp, TrinaryExpr, TrinaryOp, UnaryExpr, UnaryOp},
+    schedule::{EveryState, ScheduleExpr},
+    select::SelectExpr,
 };
-
-use aggregate::{AggExpr, BufferExpr, Rollup};
-use logical::When;
-pub use named::NamedExpr;
-use ops::{BinaryExpr, BinaryOp, TrinaryExpr, TrinaryOp, UnaryExpr, UnaryOp};
-pub use projection::*;
-use radiate_error::RadiateError;
-use radiate_utils::{SmallStr, WindowBuffer};
-pub use select::SelectExpr;
-#[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
-use std::fmt::Debug;
+use radiate_utils::{AnyValue, DataType, Field, WindowBuffer};
 use std::ops::{Add, Div, Mul, Neg, Not, Sub};
 
-mod expr_fields {
-    use super::*;
-    use crate::DataType;
-
-    pub static STD_DEV: Field = Field::new_const("std_dev", DataType::Float32);
-    pub static MEAN: Field = Field::new_const("mean", DataType::Float32);
-    pub static MIN: Field = Field::new_const("min", DataType::Float32);
-    pub static MAX: Field = Field::new_const("max", DataType::Float32);
-    pub static SUM: Field = Field::new_const("sum", DataType::Float32);
-    pub static VAR: Field = Field::new_const("var", DataType::Float32);
-    pub static SKEW: Field = Field::new_const("skew", DataType::Float32);
-    pub static COUNT: Field = Field::new_const("count", DataType::UInt64);
-    pub static LAST_VALUE: Field = Field::new_const("last_value", DataType::Float32);
-}
-
-pub(crate) type ExprResult<'a> = Result<AnyValue<'a>, RadiateError>;
-
-pub trait ApplyExpr<'a> {
-    fn apply(&self, expr: &'a mut Expr) -> AnyValue<'a>;
-}
-
-pub trait ExprQuery<I> {
-    fn dispatch<'a>(&'a mut self, input: &I) -> ExprResult<'a>;
-}
-
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Clone, Debug, PartialEq)]
-pub enum Expr {
-    Literal(AnyValue<'static>),
-    Selector(SelectExpr),
-    Aggregate(AggExpr),
-    Buffer(BufferExpr),
-    Schedule(ScheduleExpr),
-    Binary(BinaryExpr),
-    Unary(UnaryExpr),
-    Trinary(TrinaryExpr),
-}
-
 impl Expr {
+    // Rewrites a Field selector's dtype in-place. Returns true if the rewrite happened.
     fn try_swap_select_dtype(&mut self, to: DataType) -> bool {
         match self {
             Expr::Selector(SelectExpr::Field(value, field)) => {
@@ -74,6 +23,7 @@ impl Expr {
         }
     }
 
+    // Rewrites a Field selector's stat-field name in-place. Returns true if the rewrite happened.
     fn try_swap_select_name(&mut self, to: &Field) -> bool {
         match self {
             Expr::Selector(SelectExpr::Field(value, field)) => {
@@ -85,14 +35,15 @@ impl Expr {
         }
     }
 
+    // If this is a Field selector, rewrites its name to `to`; otherwise calls `func`.
     fn try_swap_select_field_or(mut self, to: &Field, func: impl FnOnce(Self) -> Expr) -> Expr {
         if self.try_swap_select_name(to) {
             return self;
         }
-
         func(self)
     }
 
+    // If this is an Aggregate (non-Unique), rewrites its rollup to `to`; otherwise calls `func`.
     fn try_swap_agg_rollup_or(mut self, to: Rollup, func: impl FnOnce(Self) -> Expr) -> Expr {
         match self {
             Expr::Aggregate(mut agg) => {
@@ -101,13 +52,14 @@ impl Expr {
                     self = Expr::Aggregate(agg);
                     return self;
                 }
-
                 func(Expr::Aggregate(agg))
             }
             _ => func(self),
         }
     }
 
+    // Fuses select("x").agg() into a single Selector node when possible, avoiding a wrapping
+    // Aggregate. Falls back to `func` for any other shape.
     fn try_reduce_select_agg_rollup_or(
         self,
         field: &Field,
@@ -147,7 +99,6 @@ impl Expr {
         }
     }
 
-    /// Aggregates
     pub fn first(self) -> Expr {
         self.try_reduce_select_agg_rollup_or(&expr_fields::LAST_VALUE, Rollup::First, |expr| {
             Expr::Aggregate(AggExpr::new(expr, Rollup::First))
@@ -224,7 +175,6 @@ impl Expr {
         Expr::Binary(BinaryExpr::new(self, exp.into(), BinaryOp::Pow))
     }
 
-    /// Comparisons
     pub fn lt(self, rhs: impl Into<Expr>) -> Expr {
         Expr::Binary(BinaryExpr::new(self, rhs.into(), BinaryOp::Lt))
     }
@@ -252,11 +202,9 @@ impl Expr {
     pub fn between(self, low: impl Into<Expr>, high: impl Into<Expr>) -> Expr {
         let low = low.into();
         let high = high.into();
-
         self.clone().gte(low).and(self.lte(high))
     }
 
-    /// Logic
     pub fn and(self, rhs: impl Into<Expr>) -> Expr {
         Expr::Binary(BinaryExpr::new(self, rhs.into(), BinaryOp::And))
     }
@@ -270,7 +218,6 @@ impl Expr {
         Expr::Unary(UnaryExpr::new(self, UnaryOp::Not))
     }
 
-    /// Arithmetic
     #[allow(clippy::should_implement_trait)]
     pub fn neg(self) -> Expr {
         Expr::Unary(UnaryExpr::new(self, UnaryOp::Neg))
@@ -309,7 +256,6 @@ impl Expr {
         ))
     }
 
-    // scheduling
     pub fn every(self, interval: usize) -> When {
         When::new(Expr::Schedule(ScheduleExpr::Every(EveryState::new(
             interval,
@@ -321,74 +267,9 @@ impl Expr {
     }
 }
 
-impl<I> ExprQuery<I> for Expr
-where
-    I: ExprProjection,
-{
-    fn dispatch<'a>(&'a mut self, input: &I) -> ExprResult<'a> {
-        match self {
-            Expr::Literal(value) => Ok(value.clone()),
-            Expr::Selector(selector) => selector.dispatch(input),
-            Expr::Aggregate(child) => child.dispatch(input),
-            Expr::Buffer(child) => child.dispatch(input),
-            Expr::Trinary(child) => child.dispatch(input),
-            Expr::Binary(child) => child.dispatch(input),
-            Expr::Unary(child) => child.dispatch(input),
-            Expr::Schedule(child) => child.dispatch(input),
-        }
-    }
-}
-
 impl From<f32> for Expr {
     fn from(value: f32) -> Self {
         Expr::Literal(AnyValue::Float32(value))
-    }
-}
-
-pub mod expr {
-    use super::*;
-    use crate::expression::{expr_fields::LAST_VALUE, select::PathBuilder};
-
-    pub fn lit(value: impl Into<AnyValue<'static>>) -> Expr {
-        Expr::Literal(value.into())
-    }
-
-    pub fn select(name: impl Into<SmallStr>) -> Expr {
-        let small_name = name.into();
-        Expr::Selector(SelectExpr::Field(
-            AnyValue::StrOwned(small_name.clone().into_string()),
-            LAST_VALUE.clone(),
-        ))
-    }
-
-    pub fn select_with_dtype(name: impl Into<SmallStr>, dtype: DataType) -> Expr {
-        let small_name = name.into();
-        Expr::Selector(SelectExpr::Field(
-            AnyValue::StrOwned(small_name.clone().into_string()),
-            LAST_VALUE.clone().with_dtype(dtype),
-        ))
-    }
-
-    pub fn when(cond: impl Into<Expr>) -> When {
-        When::new(cond.into())
-    }
-
-    pub fn path(name: impl Into<AnyValue<'static>>) -> PathBuilder {
-        PathBuilder::default().key(name.into())
-    }
-
-    pub fn nth(n: usize) -> Expr {
-        Expr::Selector(SelectExpr::Nth(n))
-    }
-
-    pub fn every(interval: usize) -> When {
-        When::new(Expr::Schedule(ScheduleExpr::Every(EveryState::new(
-            interval,
-        ))))
-    }
-
-    pub fn element() -> Expr {
-        Expr::Selector(SelectExpr::Element)
     }
 }
 

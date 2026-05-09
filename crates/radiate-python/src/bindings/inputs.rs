@@ -101,34 +101,6 @@ impl PyEngineInput {
     pub fn get_rate(&self) -> Option<Rate> {
         self.rate.clone().map(|r| r.rate)
     }
-
-    pub fn get_string(&self, key: &str) -> Option<String> {
-        self.args.get(key).and_then(|v| v.get_string())
-    }
-
-    pub fn get_i32(&self, key: &str) -> Option<i32> {
-        self.args.get(key).and_then(|v| v.get_i32())
-    }
-
-    pub fn get_f32(&self, key: &str) -> Option<f32> {
-        self.args.get(key).and_then(|v| v.get_f32())
-    }
-
-    pub fn get_f64(&self, key: &str) -> Option<f64> {
-        self.args.get(key).and_then(|v| v.get_f64())
-    }
-
-    pub fn get_usize(&self, key: &str) -> Option<usize> {
-        self.args.get(key).and_then(|v| v.get_usize())
-    }
-
-    pub fn get_vec_f32(&self, key: &str) -> Option<Vec<f32>> {
-        self.args.get(key).and_then(|v| v.get_vec_f32())
-    }
-
-    pub fn get_bool(&self, key: &str) -> Option<bool> {
-        self.args.get(key).and_then(|v| v.get_bool())
-    }
 }
 
 impl Debug for PyEngineInput {
