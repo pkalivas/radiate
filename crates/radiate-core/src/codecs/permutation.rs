@@ -18,7 +18,7 @@ impl<A: PartialEq + Clone> PermutationCodec<A> {
 }
 
 impl<A: PartialEq + Clone> Codec<PermutationChromosome<A>, Vec<A>> for PermutationCodec<A> {
-    fn freeze(&self) -> Frozen {
+    fn as_frozen(&self) -> Frozen {
         Frozen::typed::<Self>().with("alleles", self.alleles.len())
     }
 

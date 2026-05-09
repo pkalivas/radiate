@@ -1,6 +1,4 @@
-use radiate_core::{
-    Chromosome, Objective, Population, Select, freeze::Frozen, random_provider,
-};
+use radiate_core::{Chromosome, Objective, Population, Select, freeze::Frozen, random_provider};
 
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone)]
@@ -19,7 +17,7 @@ impl TournamentSelector {
 }
 
 impl<C: Chromosome + Clone> Select<C> for TournamentSelector {
-    fn freeze(&self) -> Frozen {
+    fn as_frozen(&self) -> Frozen {
         Frozen::typed::<Self>().with("k", self.k).clone()
     }
 

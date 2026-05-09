@@ -1,5 +1,5 @@
 use radiate_core::{
-    AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, Freeze, Freezable, Gene, Rate,
+    AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, Freezable, Freeze, Gene, Rate,
     Valid, freeze::Frozen, random_provider,
 };
 use radiate_utils::{Float, Primitive};
@@ -46,8 +46,8 @@ where
         self.rate.clone()
     }
 
-    fn freeze(&self) -> Frozen {
-        <Self as Freezable>::freeze(self)
+    fn as_frozen(&self) -> Frozen {
+        <Self as Freezable>::as_frozen(self)
     }
 
     #[inline]
@@ -92,7 +92,7 @@ mod tests {
     #[test]
     fn derive_freeze_emits_expected_shape() {
         let crossover = BlendCrossover::new(0.5, 0.3);
-        let frozen = <BlendCrossover as Freezable>::freeze(&crossover);
+        let frozen = <BlendCrossover as Freezable>::as_frozen(&crossover);
         // Build the AnyValue and walk it to confirm the field set.
         let any = frozen.build();
         let AnyValue::Map(fields) = any else {

@@ -70,7 +70,7 @@ impl<T> Codec<TreeChromosome<T>, Vec<Tree<T>>> for TreeCodec<T, Vec<Tree<T>>>
 where
     T: Clone + PartialEq + Default,
 {
-    fn freeze(&self) -> Frozen {
+    fn as_frozen(&self) -> Frozen {
         self.freeze_repr()
     }
 
@@ -103,7 +103,7 @@ impl<T> Codec<TreeChromosome<T>, Tree<T>> for TreeCodec<T, Tree<T>>
 where
     T: Clone + PartialEq + Default,
 {
-    fn freeze(&self) -> Frozen {
+    fn as_frozen(&self) -> Frozen {
         self.freeze_repr()
     }
 

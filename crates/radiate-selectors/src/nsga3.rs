@@ -38,7 +38,7 @@ impl<C: Chromosome + Clone> Select<C> for NSGA3Selector {
         "nsga3_selector"
     }
 
-    fn freeze(&self) -> Frozen {
+    fn as_frozen(&self) -> Frozen {
         Frozen::typed::<Self>().with("partitions", self.partitions)
     }
 

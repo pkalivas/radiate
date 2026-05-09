@@ -32,7 +32,7 @@ impl BoltzmannSelector {
 }
 
 impl<C: Chromosome + Clone> Select<C> for BoltzmannSelector {
-    fn freeze(&self) -> Frozen {
+    fn as_frozen(&self) -> Frozen {
         Frozen::typed::<Self>()
             .with("temperature", self.temperature)
             .clone()

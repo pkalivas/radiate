@@ -25,7 +25,7 @@ impl<T> SubSetCodec<T> {
 }
 
 impl<T> Codec<BitChromosome, Vec<Arc<T>>> for SubSetCodec<T> {
-    fn freeze(&self) -> Frozen {
+    fn as_frozen(&self) -> Frozen {
         Frozen::typed::<Self>().with("items", self.items.len())
     }
 

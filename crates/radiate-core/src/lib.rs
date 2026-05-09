@@ -1,3 +1,8 @@
+// Make `radiate_core` resolvable from inside this crate so that derive macros
+// (which emit `::radiate_core::...` paths) work for types defined in this
+// crate too.
+extern crate self as radiate_core;
+
 pub mod alter;
 pub mod codecs;
 pub mod diversity;
@@ -31,7 +36,7 @@ pub use executor::Executor;
 pub use fitness::{
     BatchFitnessFunction, BatchedFn, CompositeFitnessFn, FitnessFunction, NoveltySearch,
 };
-pub use freeze::{Freeze, Freezable, Frozen};
+pub use freeze::{Freezable, Freeze, Frozen};
 pub use genome::*;
 pub use lineage::{Lineage, LineageEvent, LineageUpdate};
 pub use objectives::{Front, Objective, Optimize, Score, pareto};

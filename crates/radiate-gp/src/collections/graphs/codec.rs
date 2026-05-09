@@ -1,25 +1,12 @@
 use super::{Graph, GraphChromosome, GraphNode};
 use crate::node::Node;
 use crate::{Factory, NodeStore, NodeType};
-use radiate_core::{Codec, Freezable, Freeze, Frozen, Genotype};
+use radiate_core::{Codec, Frozen, Genotype};
 
-#[derive(Clone, Freeze)]
+#[derive(Clone)]
 pub struct GraphCodec<T> {
-    #[freeze(skip)]
     store: NodeStore<T>,
-    #[freeze(with = "test_freeze")]
     template: GraphChromosome<T>,
-}
-
-pub fn test_freeze<T>(chromosome: &GraphChromosome<T>) -> Frozen {
-    let template = chromosome.as_ref();
-    let count_by = |t: NodeType| template.iter().filter(|n| n.node_type() == t).count();
-    Frozen::typed::<GraphCodec<T>>()
-        .with("aaaaaaaa", count_by(NodeType::Input))
-        .with("output_size", count_by(NodeType::Output))
-        .with("vertex_size", count_by(NodeType::Vertex))
-        .with("edge_size", count_by(NodeType::Edge))
-        .with("template_size", template.len())
 }
 
 impl<T: Clone + Default> GraphCodec<T> {
@@ -147,20 +134,18 @@ where
         Graph::new(genotype[0].as_ref().to_vec())
     }
 
-    fn freeze(&self) -> Frozen {
-        <Self as Freezable>::freeze(self)
-
-        // let template = self.template.as_ref();
-        // let count_by = |t: NodeType| template.iter().filter(|n| n.node_type() == t).count();
-        // let f = Frozen::typed::<Self>()
-        //     .with("input_size", count_by(NodeType::Input))
-        //     .with("output_size", count_by(NodeType::Output))
-        //     .with("vertex_size", count_by(NodeType::Vertex))
-        //     .with("edge_size", count_by(NodeType::Edge))
-        //     .with("template_size", template.len());
-        // match self.template.max_nodes() {
-        //     Some(max) => f.with("max_nodes", max),
-        //     None => f,
-        // }
+    fn as_frozen(&self) -> Frozen {
+        let template = self.template.as_ref();
+        let count_by = |t: NodeType| template.iter().filter(|n| n.node_type() == t).count();
+        let f = Frozen::typed::<Self>()
+            .with("input_size", count_by(NodeType::Input))
+            .with("output_size", count_by(NodeType::Output))
+            .with("vertex_size", count_by(NodeType::Vertex))
+            .with("edge_size", count_by(NodeType::Edge))
+            .with("template_size", template.len());
+        match self.template.max_nodes() {
+            Some(max) => f.with("max_nodes", max),
+            None => f,
+        }
     }
 }

@@ -71,7 +71,7 @@ impl<T> Mutate<GraphChromosome<T>> for GraphMutator
 where
     T: Clone + PartialEq + Default,
 {
-    fn freeze(&self) -> Frozen {
+    fn as_frozen(&self) -> Frozen {
         Frozen::typed::<Self>()
             .with("vertex_rate", self.vertex_rate)
             .with("edge_rate", self.edge_rate)

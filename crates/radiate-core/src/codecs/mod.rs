@@ -89,7 +89,7 @@ pub trait Codec<C: Chromosome, T> {
 
     fn decode(&self, genotype: &Genotype<C>) -> T;
 
-    fn freeze(&self) -> Frozen {
+    fn as_frozen(&self) -> Frozen {
         Frozen::typed::<Self>()
     }
 }

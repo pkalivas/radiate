@@ -85,7 +85,7 @@ impl<C: Chromosome, T> Codec<C, T> for PyCodec<C, T> {
         })
     }
 
-    fn freeze(&self) -> Frozen {
+    fn as_frozen(&self) -> Frozen {
         self.freeze
             .clone()
             .unwrap_or_else(|| Frozen::typed::<Self>())

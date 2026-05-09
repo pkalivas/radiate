@@ -72,7 +72,7 @@ impl<T> BitCodec<T> {
 }
 
 impl Codec<BitChromosome, Vec<Vec<bool>>> for BitCodec<Vec<Vec<bool>>> {
-    fn freeze(&self) -> Frozen {
+    fn as_frozen(&self) -> Frozen {
         self.freeze_repr()
     }
 
@@ -98,7 +98,7 @@ impl Codec<BitChromosome, Vec<Vec<bool>>> for BitCodec<Vec<Vec<bool>>> {
 }
 
 impl Codec<BitChromosome, Vec<bool>> for BitCodec<Vec<bool>> {
-    fn freeze(&self) -> Frozen {
+    fn as_frozen(&self) -> Frozen {
         self.freeze_repr()
     }
 
@@ -124,7 +124,7 @@ impl Codec<BitChromosome, Vec<bool>> for BitCodec<Vec<bool>> {
 }
 
 impl Codec<BitChromosome, bool> for BitCodec<bool> {
-    fn freeze(&self) -> Frozen {
+    fn as_frozen(&self) -> Frozen {
         self.freeze_repr()
     }
 

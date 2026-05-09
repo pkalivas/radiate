@@ -1,5 +1,5 @@
 use radiate_core::{
-    AlterContext, AlterResult, Chromosome, Crossover, Freeze, Freezable, Rate, Valid,
+    AlterContext, AlterResult, Chromosome, Crossover, Freezable, Freeze, Rate, Valid,
     freeze::Frozen, random_provider,
 };
 
@@ -38,8 +38,8 @@ impl<C: Chromosome> Crossover<C> for MultiPointCrossover {
         self.rate.clone()
     }
 
-    fn freeze(&self) -> Frozen {
-        <Self as Freezable>::freeze(self)
+    fn as_frozen(&self) -> Frozen {
+        <Self as Freezable>::as_frozen(self)
     }
 
     #[inline]

@@ -9,9 +9,9 @@ use std::collections::BTreeMap;
 /// have their own `freeze()` method on the trait surface. Hand-rolled
 /// implementations build a `Frozen` directly; `Freezable` is the layer the
 /// `#[derive(Freeze)]` macro targets, and concrete trait impls can delegate to
-/// it via `<Self as Freezable>::freeze(self)`.
+/// it via `<Self as Freezable>::as_frozen(self)`.
 pub trait Freezable {
-    fn freeze(&self) -> Frozen;
+    fn as_frozen(&self) -> Frozen;
 }
 
 /// Re-export of the `#[derive(Freeze)]` proc-macro from `radiate-derive`.

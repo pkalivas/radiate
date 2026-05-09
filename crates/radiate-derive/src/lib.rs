@@ -20,10 +20,12 @@
 //! ```
 
 use proc_macro::TokenStream;
+use proc_macro_crate::{FoundCrate, crate_name};
+use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::quote;
 use syn::{
-    Attribute, Data, DeriveInput, Expr, ExprLit, Fields, Lit, Meta, Path, Token, parse_macro_input,
-    punctuated::Punctuated, spanned::Spanned,
+    Attribute, Data, DeriveInput, Expr, ExprLit, Fields, Ident, Lit, Meta, Path, Token,
+    parse_macro_input, punctuated::Punctuated, spanned::Spanned,
 };
 
 /// Derive `Freezable` for a struct, building a `Frozen` from its fields.
@@ -64,7 +66,7 @@ fn expand_freeze(input: DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
         let ident = field.ident.as_ref().unwrap();
         let key = attrs.rename.unwrap_or_else(|| ident.to_string());
         let value_expr = if attrs.nested {
-            quote! { self.#ident.freeze() }
+            quote! { self.#ident.as_frozen() }
         } else if let Some(func) = attrs.with {
             quote! { (#func)(&self.#ident) }
         } else {
@@ -73,14 +75,40 @@ fn expand_freeze(input: DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
         withs.push(quote! { .with(#key, #value_expr) });
     }
 
+    let krate = resolve_crate_path();
+
     Ok(quote! {
-        impl #impl_g ::radiate_core::Freezable for #name #ty_g #where_c {
-            fn freeze(&self) -> ::radiate_core::Frozen {
-                ::radiate_core::Frozen::typed::<Self>()
+        impl #impl_g #krate::Freezable for #name #ty_g #where_c {
+            fn as_frozen(&self) -> #krate::Frozen {
+                #krate::Frozen::typed::<Self>()
                     #(#withs)*
             }
         }
     })
+}
+
+/// Resolve the path the generated code should use to refer to `Freezable`,
+/// `Frozen`, etc. Tries `radiate-core` (the canonical home), then `radiate`
+/// (the facade re-exports both), then falls back to `::radiate_core` so the
+/// error message points at the right place.
+fn resolve_crate_path() -> TokenStream2 {
+    if let Ok(found) = crate_name("radiate-core") {
+        return found_to_path(found);
+    }
+    if let Ok(found) = crate_name("radiate") {
+        return found_to_path(found);
+    }
+    quote! { ::radiate_core }
+}
+
+fn found_to_path(found: FoundCrate) -> TokenStream2 {
+    match found {
+        FoundCrate::Itself => quote! { crate },
+        FoundCrate::Name(name) => {
+            let ident = Ident::new(&name, Span::call_site());
+            quote! { ::#ident }
+        }
+    }
 }
 
 #[derive(Default)]

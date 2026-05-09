@@ -111,7 +111,7 @@ impl<T: Integer> IntCodec<T, T> {
 /// let decoded: Vec<Vec<i32>> = codec.decode(&genotype);
 /// ```
 impl<T: Integer> Codec<IntChromosome<T>, Vec<Vec<T>>> for IntCodec<T, Vec<Vec<T>>> {
-    fn freeze(&self) -> Frozen {
+    fn as_frozen(&self) -> Frozen {
         self.freeze_repr()
     }
 
@@ -146,7 +146,7 @@ impl<T: Integer> Codec<IntChromosome<T>, Vec<Vec<T>>> for IntCodec<T, Vec<Vec<T>
 /// let decoded: Vec<i32> = codec.decode(&genotype);
 /// ```
 impl<T: Integer> Codec<IntChromosome<T>, Vec<T>> for IntCodec<T, Vec<T>> {
-    fn freeze(&self) -> Frozen {
+    fn as_frozen(&self) -> Frozen {
         self.freeze_repr()
     }
 
@@ -183,7 +183,7 @@ impl<T: Integer> Codec<IntChromosome<T>, Vec<T>> for IntCodec<T, Vec<T>> {
 /// let decoded: i32 = codec.decode(&genotype);
 /// ```
 impl<T: Integer> Codec<IntChromosome<T>, T> for IntCodec<T, T> {
-    fn freeze(&self) -> Frozen {
+    fn as_frozen(&self) -> Frozen {
         self.freeze_repr()
     }
 

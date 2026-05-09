@@ -165,7 +165,7 @@ impl FloatCodec<f32> {
 /// assert_eq!(decoded[1][0].len(), 4);
 /// ```
 impl<F: Float> Codec<FloatChromosome<F>, Vec<Vec<Vec<F>>>> for FloatCodec<F, Vec<Vec<Vec<F>>>> {
-    fn freeze(&self) -> Frozen {
+    fn as_frozen(&self) -> Frozen {
         self.freeze_repr()
     }
 
@@ -224,7 +224,7 @@ impl<F: Float> Codec<FloatChromosome<F>, Vec<Vec<Vec<F>>>> for FloatCodec<F, Vec
 /// assert_eq!(decoded[0].len(), 4);
 /// ```
 impl<F: Float> Codec<FloatChromosome<F>, Vec<Vec<F>>> for FloatCodec<F, Vec<Vec<F>>> {
-    fn freeze(&self) -> Frozen {
+    fn as_frozen(&self) -> Frozen {
         self.freeze_repr()
     }
 
@@ -265,7 +265,7 @@ impl<F: Float> Codec<FloatChromosome<F>, Vec<Vec<F>>> for FloatCodec<F, Vec<Vec<
 /// assert_eq!(decoded.len(), 3);
 /// ```
 impl<F: Float> Codec<FloatChromosome<F>, Vec<F>> for FloatCodec<F, Vec<F>> {
-    fn freeze(&self) -> Frozen {
+    fn as_frozen(&self) -> Frozen {
         self.freeze_repr()
     }
 
@@ -304,7 +304,7 @@ impl<F: Float> Codec<FloatChromosome<F>, Vec<F>> for FloatCodec<F, Vec<F>> {
 /// let decoded: f32 = codec.decode(&genotype);
 /// ```
 impl<F: Float> Codec<FloatChromosome<F>, F> for FloatCodec<F, F> {
-    fn freeze(&self) -> Frozen {
+    fn as_frozen(&self) -> Frozen {
         self.freeze_repr()
     }
 

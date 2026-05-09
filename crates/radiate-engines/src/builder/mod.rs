@@ -209,8 +209,8 @@ where
         freeze.insert(
             "selectors",
             Frozen::new()
-                .with("offspring", sel.offspring_selector.freeze())
-                .with("survivor", sel.survivor_selector.freeze()),
+                .with("offspring", sel.offspring_selector.as_frozen())
+                .with("survivor", sel.survivor_selector.as_frozen()),
         );
         freeze.insert("offspring_fraction", Frozen::value(sel.offspring_fraction));
         freeze.insert("population_size", Frozen::value(pop.population_size));
@@ -230,7 +230,7 @@ where
         );
 
         if let Some(codec) = self.params.problem_params.codec.as_ref() {
-            freeze.insert("codec", codec.freeze());
+            freeze.insert("codec", codec.as_frozen());
         }
 
         self.params.freeze = freeze;

@@ -34,7 +34,7 @@ pub trait Select<C: Chromosome>: Send + Sync {
         radiate_utils::intern_kv_pair(name, radiate_utils::intern!(parts.join(".")))
     }
 
-    fn freeze(&self) -> Frozen {
+    fn as_frozen(&self) -> Frozen {
         Frozen::typed::<Self>()
     }
 

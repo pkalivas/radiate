@@ -66,7 +66,7 @@ where
         self.rate.clone()
     }
 
-    fn freeze(&self) -> Frozen {
+    fn as_frozen(&self) -> Frozen {
         Frozen::typed::<Self>()
             .with("rate", self.rate.freeze())
             .with("eta", self.eta)

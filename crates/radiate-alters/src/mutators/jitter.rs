@@ -1,5 +1,5 @@
 use radiate_core::{
-    AlterContext, AlterResult, BoundedGene, Chromosome, FloatGene, Freeze, Freezable, Gene, Mutate,
+    AlterContext, AlterResult, BoundedGene, Chromosome, FloatGene, Freezable, Freeze, Gene, Mutate,
     Rate, Valid, freeze::Frozen, random_provider,
 };
 use radiate_utils::Float;
@@ -42,8 +42,8 @@ where
         self.rate.clone()
     }
 
-    fn freeze(&self) -> Frozen {
-        <Self as Freezable>::freeze(self)
+    fn as_frozen(&self) -> Frozen {
+        <Self as Freezable>::as_frozen(self)
     }
 
     #[inline]

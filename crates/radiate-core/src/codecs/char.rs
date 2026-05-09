@@ -55,7 +55,7 @@ impl CharCodec<Vec<char>> {
 }
 
 impl Codec<CharChromosome, Vec<Vec<char>>> for CharCodec<Vec<Vec<char>>> {
-    fn freeze(&self) -> Frozen {
+    fn as_frozen(&self) -> Frozen {
         self.freeze_repr()
     }
 
@@ -87,7 +87,7 @@ impl Codec<CharChromosome, Vec<Vec<char>>> for CharCodec<Vec<Vec<char>>> {
 }
 
 impl Codec<CharChromosome, Vec<char>> for CharCodec<Vec<char>> {
-    fn freeze(&self) -> Frozen {
+    fn as_frozen(&self) -> Frozen {
         self.freeze_repr()
     }
 

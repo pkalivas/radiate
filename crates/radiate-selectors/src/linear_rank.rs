@@ -12,7 +12,7 @@ impl LinearRankSelector {
 }
 
 impl<C: Chromosome + Clone> Select<C> for LinearRankSelector {
-    fn freeze(&self) -> Frozen {
+    fn as_frozen(&self) -> Frozen {
         Frozen::typed::<Self>().with("selection_pressure", self.selection_pressure)
     }
 

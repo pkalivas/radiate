@@ -1,6 +1,6 @@
 use crate::freeze::Frozen;
 use crate::stats::expression::{Evaluate, Expr};
-use crate::{MetricSet, Valid};
+use crate::{Freezable, MetricSet, Valid};
 use radiate_utils::AnyValue;
 use std::fmt::Debug;
 
@@ -157,7 +157,10 @@ impl Rate {
                 let entries: Vec<AnyValue<'static>> = steps
                     .iter()
                     .map(|(step, rate)| {
-                        Frozen::new().with("step", *step).with("rate", *rate).build()
+                        Frozen::new()
+                            .with("step", *step)
+                            .with("rate", *rate)
+                            .build()
                     })
                     .collect();
                 Frozen::new()
@@ -203,6 +206,12 @@ impl Valid for Rate {
             }
             _ => true,
         }
+    }
+}
+
+impl Freezable for Rate {
+    fn as_frozen(&self) -> Frozen {
+        self.freeze()
     }
 }
 

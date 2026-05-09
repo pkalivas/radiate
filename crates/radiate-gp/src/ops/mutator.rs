@@ -98,7 +98,7 @@ where
         self.rate.clone()
     }
 
-    fn freeze(&self) -> Frozen {
+    fn as_frozen(&self) -> Frozen {
         Frozen::typed::<Self>()
             .with("rate", self.rate.freeze())
             .with("replace_rate", self.replace_rate)
@@ -144,7 +144,7 @@ where
         self.rate.clone()
     }
 
-    fn freeze(&self) -> Frozen {
+    fn as_frozen(&self) -> Frozen {
         Frozen::typed::<Self>()
             .with("rate", self.rate.freeze())
             .with("replace_rate", self.replace_rate)
