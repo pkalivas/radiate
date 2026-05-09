@@ -18,6 +18,10 @@ impl NSGA3Selector {
         }
     }
 
+    pub fn partitions(&self) -> usize {
+        self.partitions
+    }
+
     fn reference_dirs(&self, dims: usize) -> Vec<Vec<f32>> {
         let mut dirs = self.ref_dirs.lock().unwrap();
 

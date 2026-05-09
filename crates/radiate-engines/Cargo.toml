@@ -27,4 +27,4 @@ itertools = { workspace = true }
 [features]
 default = []
 rayon = [ "radiate-core/rayon" ]
-serde = [ "dep:serde", "dep:serde_json", "radiate-core/serde" ]
+serde = [ "dep:serde", "dep:serde_json", "radiate-core/serde", "radiate-selectors/serde", "radiate-expr/serde" ]

@@ -2,10 +2,6 @@ use crate::{MetricSet, Valid};
 use radiate_expr::{Evaluate, Expr};
 use std::fmt::Debug;
 
-pub trait RateCalculator {
-    fn rate(&mut self, generation: usize, metrics: &MetricSet) -> f32;
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub enum CycleShape {
     Triangle,

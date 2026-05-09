@@ -15,5 +15,11 @@ homepage = { workspace = true }
 radiate-core = { workspace = true }
 radiate-utils = { workspace = true }
 
+serde = { workspace = true, optional = true }
+
+[features]
+default = []
+serde = ["dep:serde", "radiate-core/serde"]
+
 [dev-dependencies]
 rstest = "0.25.0"

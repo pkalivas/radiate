@@ -102,13 +102,11 @@ impl<'a> AnyValue<'a> {
         } else if self.is_string() && other.is_string() {
             self.cmp_str(other)
         } else if self.is_int() && other.is_float() {
-            self
-                .clone()
+            self.clone()
                 .cast(&other.dtype())
                 .and_then(|v| v.fuzzy_cmp(other))
         } else if self.is_float() && other.is_int() {
-            self
-                .clone()
+            self.clone()
                 .cast(&other.dtype())
                 .and_then(|v| v.fuzzy_cmp(other))
         } else {

@@ -691,6 +691,7 @@ mod tests {
     use super::AnyValue;
 
     #[test]
+    #[cfg(feature = "serde")]
     fn test_anyvalue_equality() {
         let v1 = AnyValue::Struct(vec![
             (
@@ -727,11 +728,25 @@ mod tests {
 
         assert_eq!(v1, v2);
         assert_ne!(v1, v3);
+
+        // let mut file = std::fs::File::create("anyvalue_test.yaml").unwrap();
+        // yaml_serde::to_writer(&mut file, &v1).unwrap();
+
+        // write to file for debugging
+
+        // println!("{}", serialized);
     }
 
     #[test]
     fn test_anyvalue_type_name() {
         let v = AnyValue::Float64(3.14);
         assert_eq!(v.type_name(), "f64");
+    }
+
+    #[test]
+    fn test_anyvalue_cast() {
+        let v = AnyValue::Int32(42);
+        let casted = v.clone().cast(&DataType::Float64).unwrap();
+        assert_eq!(casted, AnyValue::Float64(42.0));
     }
 }

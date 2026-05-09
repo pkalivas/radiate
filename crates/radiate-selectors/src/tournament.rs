@@ -1,5 +1,6 @@
 use radiate_core::{Chromosome, Objective, Population, Select, random_provider};
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone)]
 pub struct TournamentSelector {
     k: usize,
@@ -8,6 +9,10 @@ pub struct TournamentSelector {
 impl TournamentSelector {
     pub fn new(k: usize) -> Self {
         TournamentSelector { k: k.max(1) }
+    }
+
+    pub fn k(&self) -> usize {
+        self.k
     }
 }
 

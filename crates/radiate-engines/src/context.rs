@@ -1,4 +1,4 @@
-use crate::builder::EngineConfig;
+use crate::builder::config::EngineConfig;
 use crate::{Chromosome, EngineControl};
 use radiate_core::error::RadiateResult;
 use radiate_core::stats::TagType;

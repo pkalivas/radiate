@@ -119,11 +119,19 @@ where
 
         match child_output {
             AnyValue::Slice(values) => {
-                let elem_dtype = if let DataType::List(inner) = dtype { *inner } else { dtype };
+                let elem_dtype = if let DataType::List(inner) = dtype {
+                    *inner
+                } else {
+                    dtype
+                };
                 Self::compute_rollup(values, self.rollup, elem_dtype)
             }
             AnyValue::Vector(values) => {
-                let elem_dtype = if let DataType::List(inner) = dtype { *inner } else { dtype };
+                let elem_dtype = if let DataType::List(inner) = dtype {
+                    *inner
+                } else {
+                    dtype
+                };
                 Self::compute_rollup(&values, self.rollup, elem_dtype)
             }
             _ => match self.rollup {
