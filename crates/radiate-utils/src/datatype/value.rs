@@ -517,6 +517,12 @@ where
     }
 }
 
+impl<'a> FromIterator<AnyValue<'a>> for AnyValue<'a> {
+    fn from_iter<T: IntoIterator<Item = AnyValue<'a>>>(iter: T) -> Self {
+        AnyValue::Vector(iter.into_iter().collect())
+    }
+}
+
 #[inline]
 pub(crate) fn apply_zipped_slice(
     one: &[AnyValue<'_>],
@@ -684,10 +690,9 @@ impl<'a, 'de> Deserialize<'de> for AnyValue<'a> {
                     AnyValueDef::Vector(vals) => {
                         Vector(vals.into_iter().map(AnyValue::from).collect())
                     }
-                    AnyValueDef::Map(vals) => Map(vals
-                        .into_iter()
-                        .map(|(f, d, v)| (SmallStr::from(f), d, v.into()))
-                        .collect()),
+                    AnyValueDef::Map(vals) => {
+                        Map(vals.into_iter().map(|(f, d, v)| (f, d, v.into())).collect())
+                    }
                     AnyValueDef::Struct(field, fields) => Struct(
                         field,
                         fields.into_iter().map(|(f, v)| (f, v.into())).collect(),

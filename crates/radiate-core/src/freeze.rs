@@ -1,8 +1,7 @@
-use std::collections::BTreeMap;
-
 use radiate_utils::{AnyValue, DataType, Field, SmallStr};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 /// A read-only snapshot of an engine's configurable knobs at `build()` time.
 ///
@@ -128,6 +127,18 @@ impl Frozen {
         Self::default()
     }
 
+    pub fn named(name: impl Into<String>) -> Self {
+        let mut freeze = Self::new();
+        freeze
+            .fields
+            .push((SmallStr::from(name.into()), DataType::Null, AnyValue::Null));
+        freeze
+    }
+
+    pub fn value(value: impl Into<AnyValue<'static>>) -> Self {
+        Self::new().with_value(value)
+    }
+
     /// Builder seeded with a `("type", <short type name>)` entry, matching the
     /// previous `Frozen::typed::<T>()` convention.
     pub fn typed<T: ?Sized>() -> Self {
@@ -139,6 +150,10 @@ impl Frozen {
         let dtype = value.dtype();
         self.fields.push((name.into(), dtype, value));
         self
+    }
+
+    pub fn with_value(self, value: impl Into<AnyValue<'static>>) -> Self {
+        self.with("value", value)
     }
 
     pub fn build(self) -> AnyValue<'static> {
@@ -156,6 +171,25 @@ impl Frozen {
 impl From<Frozen> for AnyValue<'static> {
     fn from(b: Frozen) -> Self {
         b.build()
+    }
+}
+
+impl FromIterator<Frozen> for Frozen {
+    fn from_iter<T: IntoIterator<Item = Frozen>>(iter: T) -> Self {
+        let fields = iter
+            .into_iter()
+            .map(|f| {
+                let name = f
+                    .type_name()
+                    .map(SmallStr::from)
+                    .unwrap_or_else(|| SmallStr::from("entry"));
+                let value = f.build();
+                let dtype = value.dtype();
+                (name, dtype, value)
+            })
+            .collect();
+
+        Self { fields }
     }
 }
 

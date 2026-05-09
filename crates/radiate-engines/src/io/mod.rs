@@ -1,65 +1,96 @@
-use crate::Generation;
-use radiate_core::Chromosome;
 #[cfg(feature = "serde")]
 use serde::Deserialize;
+#[cfg(feature = "serde")]
+use std::io;
 use std::path::PathBuf;
 
-pub trait CheckpointWriter<C, T>
-where
-    C: Chromosome,
-{
+pub trait FileWriter<T> {
     fn extension(&self) -> &str;
-    fn write_checkpoint(
-        &mut self,
-        path: PathBuf,
-        generation: &Generation<C, T>,
-    ) -> std::io::Result<()>;
+    fn write(&mut self, path: PathBuf, generation: &T) -> io::Result<()>;
 }
 
-pub trait CheckpointReader<C, T>
-where
-    C: Chromosome,
-{
-    fn read_checkpoint(&self, path: PathBuf) -> std::io::Result<Generation<C, T>>;
+pub trait FileReader<T> {
+    fn read(&self, path: PathBuf) -> io::Result<T>;
 }
 
-pub struct JsonCheckpointWriter;
+pub struct JsonWriter;
 
 #[cfg(feature = "serde")]
-impl<C, T> CheckpointWriter<C, T> for JsonCheckpointWriter
+impl<T> FileWriter<T> for JsonWriter
 where
-    C: Chromosome + serde::Serialize,
     T: serde::Serialize,
 {
     fn extension(&self) -> &str {
         "json"
     }
 
-    fn write_checkpoint(
-        &mut self,
-        path: PathBuf,
-        generation: &Generation<C, T>,
-    ) -> std::io::Result<()> {
-        let json = serde_json::to_string(generation).map_err(|e| {
-            std::io::Error::other(format!("Failed to serialize checkpoint file: {}", e))
-        })?;
+    fn write(&mut self, path: PathBuf, generation: &T) -> io::Result<()> {
+        if !path.parent().map_or(true, |p| p.exists()) {
+            std::fs::create_dir_all(path.parent().unwrap()).map_err(|e| {
+                io::Error::other(format!("Failed to create checkpoint directory: {}", e))
+            })?;
+        }
+
+        let json = serde_json::to_string(generation)
+            .map_err(|e| io::Error::other(format!("Failed to serialize checkpoint file: {}", e)))?;
 
         std::fs::write(path, json)
     }
 }
 
-pub struct JsonCheckpointReader;
+pub struct JsonReader;
 
 #[cfg(feature = "serde")]
-impl<C, T> CheckpointReader<C, T> for JsonCheckpointReader
+impl<T> FileReader<T> for JsonReader
 where
-    C: Chromosome + for<'de> Deserialize<'de>,
     T: for<'de> Deserialize<'de>,
 {
-    fn read_checkpoint(&self, path: PathBuf) -> std::io::Result<Generation<C, T>> {
+    fn read(&self, path: PathBuf) -> io::Result<T> {
         let json = std::fs::read_to_string(path)?;
         let generation = serde_json::from_str(&json).map_err(|e| {
-            std::io::Error::other(format!("Failed to deserialize checkpoint file: {}", e))
+            io::Error::other(format!("Failed to deserialize checkpoint file: {}", e))
+        })?;
+
+        Ok(generation)
+    }
+}
+
+pub struct YamlWriter;
+
+#[cfg(feature = "serde")]
+impl<T> FileWriter<T> for YamlWriter
+where
+    T: serde::Serialize,
+{
+    fn extension(&self) -> &str {
+        "yaml"
+    }
+
+    fn write(&mut self, path: PathBuf, generation: &T) -> io::Result<()> {
+        if !path.parent().map_or(true, |p| p.exists()) {
+            std::fs::create_dir_all(path.parent().unwrap()).map_err(|e| {
+                io::Error::other(format!("Failed to create checkpoint directory: {}", e))
+            })?;
+        }
+
+        let yaml = yaml_serde::to_string(generation)
+            .map_err(|e| io::Error::other(format!("Failed to serialize checkpoint file: {}", e)))?;
+
+        std::fs::write(path, yaml)
+    }
+}
+
+pub struct YamlReader;
+
+#[cfg(feature = "serde")]
+impl<T> FileReader<T> for YamlReader
+where
+    T: for<'de> Deserialize<'de>,
+{
+    fn read(&self, path: PathBuf) -> io::Result<T> {
+        let yaml = std::fs::read_to_string(path)?;
+        let generation = yaml_serde::from_str(&yaml).map_err(|e| {
+            io::Error::other(format!("Failed to deserialize checkpoint file: {}", e))
         })?;
 
         Ok(generation)

@@ -1,10 +1,9 @@
 use crate::bindings::codec::{PyTreeCodec, TypedNumericCodec};
 use crate::events::PyEventHandler;
 use crate::{
-    EngineBuilderHandle, EngineHandle, FreeThreadPyEvaluator, InputTransform,
-    PickleCheckpointReader, PyCodec, PyEngine, PyEngineInput, PyEngineInputType, PyExpr,
-    PyFitnessFn, PyFitnessInner, PyPermutationCodec, PyPopulation, PyRate, names, prelude::*,
-    radiate,
+    EngineBuilderHandle, EngineHandle, FreeThreadPyEvaluator, InputTransform, PickleReader,
+    PyCodec, PyEngine, PyEngineInput, PyEngineInputType, PyExpr, PyFitnessFn, PyFitnessInner,
+    PyPermutationCodec, PyPopulation, PyRate, names, prelude::*, radiate,
 };
 use crate::{PyGeneration, PySubscriber};
 use pyo3::{Py, PyAny, pyclass, pymethods, types::PyAnyMethods};
@@ -212,11 +211,9 @@ impl PyEngineBuilder {
                 }
 
                 match file_type.as_str() {
-                    names::JSON_FILE_TYPE => {
-                        Ok(typed_builder.load_checkpoint(path, JsonCheckpointReader))
-                    }
+                    names::JSON_FILE_TYPE => Ok(typed_builder.load_checkpoint(path, JsonReader)),
                     names::PICKLE_FILE_TYPE => {
-                        Ok(typed_builder.load_checkpoint(path, PickleCheckpointReader))
+                        Ok(typed_builder.load_checkpoint(path, PickleReader))
                     }
                     _ => {
                         radiate_py_bail!(format!("Unsupported checkpoint file type: {}", file_type))

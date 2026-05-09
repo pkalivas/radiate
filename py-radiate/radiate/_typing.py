@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from radiate.fitness.loss import LossType, LossTypeClass
     from radiate.engine.option import CheckpointParam
 
-type FileType = Literal["pkl", "json"]
+type FileType = Literal["pkl", "json", "yaml"]
 
 type AtLeastOne[T] = T | Sequence[T]
 

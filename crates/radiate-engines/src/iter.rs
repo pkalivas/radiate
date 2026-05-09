@@ -17,9 +17,11 @@
 //! - **Specialized Iterators**: Various iterator types for different termination strategies
 //! - **Limit System**: Flexible limit specification and combination
 #[cfg(feature = "serde")]
-use crate::{CheckpointWriter, JsonCheckpointWriter};
+use crate::{FileWriter, JsonWriter};
 use crate::{Generation, Limit, control::EngineControl, init_logging};
-use radiate_core::{AnyValue, Chromosome, Engine, Evaluate, Expr, Metric, Objective, Optimize, Score};
+use radiate_core::{
+    AnyValue, Chromosome, Engine, Evaluate, Expr, Metric, Objective, Optimize, Score,
+};
 #[cfg(feature = "serde")]
 use serde::Serialize;
 #[cfg(feature = "serde")]
@@ -801,7 +803,7 @@ where
             iter: self,
             interval,
             path: PathBuf::from(path_without_extension),
-            writer: Box::new(JsonCheckpointWriter),
+            writer: Box::new(JsonWriter),
         }
     }
 
@@ -810,7 +812,7 @@ where
         self,
         interval: usize,
         folder_path: impl AsRef<Path>,
-        writer: Box<dyn CheckpointWriter<C, T>>,
+        writer: Box<dyn FileWriter<Generation<C, T>>>,
     ) -> impl Iterator<Item = Generation<C, T>>
     where
         Self: Sized,
@@ -907,7 +909,7 @@ where
     iter: I,
     interval: usize,
     path: PathBuf,
-    writer: Box<dyn CheckpointWriter<C, T>>,
+    writer: Box<dyn FileWriter<Generation<C, T>>>,
 }
 
 /// Implementation of `Iterator` for [CheckpointIterator].
@@ -935,11 +937,7 @@ where
                 self.writer.extension()
             ));
 
-            if !self.path.exists() {
-                std::fs::create_dir_all(&self.path).expect("Failed to create checkpoint directory");
-            }
-
-            let write_result = self.writer.write_checkpoint(file_path, &next);
+            let write_result = self.writer.write(file_path, &next);
 
             if let Err(e) = write_result {
                 eprintln!("Failed to write checkpoint: {e}");

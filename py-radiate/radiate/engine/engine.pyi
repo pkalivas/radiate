@@ -455,6 +455,7 @@ class Engine[G, T]:
         | CheckpointParam
         | None = None,
     ) -> Generation[G, T]: ...
+    def write(self, path: str | Path) -> None: ...
 
     # ----------------------------
     # Fluent configuration methods

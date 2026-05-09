@@ -8,8 +8,13 @@ The network weights are evolved using a float codec.
 import pprint
 import radiate as rd
 import numpy as np  # type: ignore
+from pathlib import Path
 
 rd.random.seed(123)
+
+ROOT = Path(__file__).parent
+WRITE_DIR = ROOT / "results"
+READ_DIR = ROOT / "results" / "chckpnt_440.pkl"
 
 
 def compute(x: float) -> float:
@@ -67,12 +72,17 @@ engine = (
     )
     .fitness(fit)
     .minimizing()
+    .load_checkpoint(
+        READ_DIR, ignore_not_found=True
+    )  # Load from a previous checkpoint if it exists
     .select(rd.Select.boltzmann(temp=4.0))
     .alters(rd.Cross.blend(0.7, 0.4), rd.Mutate.gaussian(0.1))
-    .limit(rd.Limit.score(0.01), rd.Limit.generations(50))
+    .limit(rd.Limit.score(0.01), rd.Limit.generations(500))
 )
 
-result = engine.run(log=True)
+engine.write("nn_engine.yaml")
+
+result = engine.run(log=True)  # checkpoint=(55, WRITE_DIR, "pkl"))
 metrics = result.metrics()
 
 print(result)

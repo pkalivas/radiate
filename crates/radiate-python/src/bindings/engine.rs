@@ -1,10 +1,8 @@
-use crate::{
-    EngineHandle, EpochHandle, InputTransform, PickleCheckpointWriter, PyEngineInput, PyGeneration,
-};
+use crate::{EngineHandle, EpochHandle, InputTransform, PickleWriter, PyEngineInput, PyGeneration};
 use pyo3::{PyResult, pyclass, pymethods};
 use radiate::{
-    Chromosome, Engine, EngineIteratorExt, Generation, GeneticEngine, JsonCheckpointWriter, Limit,
-    radiate_err,
+    Chromosome, Engine, EngineIteratorExt, FileWriter, Generation, GeneticEngine, JsonWriter,
+    Limit, YamlWriter, radiate_err,
 };
 use radiate_error::{radiate_py_bail, radiate_py_err};
 use serde::Serialize;
@@ -119,6 +117,47 @@ impl PyEngine {
             Tree(eng) => EpochHandle::Tree(eng.next()?),
         }))
     }
+
+    pub fn write(&self, path: String, file_type: String) -> PyResult<()> {
+        use EngineHandle::*;
+        let engine = self
+            .engine
+            .as_ref()
+            .ok_or_else(|| radiate_py_err!("Engine has already been run"))?;
+
+        let freeze = match engine {
+            UInt8(eng) => eng.freeze(),
+            UInt16(eng) => eng.freeze(),
+            UInt32(eng) => eng.freeze(),
+            UInt64(eng) => eng.freeze(),
+            Int8(eng) => eng.freeze(),
+            Int16(eng) => eng.freeze(),
+            Int32(eng) => eng.freeze(),
+            Int64(eng) => eng.freeze(),
+            Float32(eng) => eng.freeze(),
+            Float64(eng) => eng.freeze(),
+            Char(eng) => eng.freeze(),
+            Bit(eng) => eng.freeze(),
+            Permutation(eng) => eng.freeze(),
+            Graph(eng) => eng.freeze(),
+            Tree(eng) => eng.freeze(),
+        };
+
+        if freeze.is_empty() {
+            radiate_py_bail!("Cannot write engine state: no configuration parameters found");
+        }
+
+        let path = std::path::PathBuf::from(path);
+        if file_type == "json" {
+            JsonWriter.write(path, &freeze)?;
+        } else if file_type == "yaml" {
+            YamlWriter.write(path, &freeze)?;
+        } else {
+            PickleWriter.write(path, &freeze)?;
+        }
+
+        Ok(())
+    }
 }
 
 fn run_engine<C, T>(
@@ -155,8 +194,8 @@ where
         .chain_if(checkpoint.is_some(), |eng| {
             let (interval, path, file_type) = checkpoint.unwrap();
             match file_type.as_str() {
-                "json" => eng.checkpoint_with(interval, path, Box::new(JsonCheckpointWriter)),
-                _ => eng.checkpoint_with(interval, path, Box::new(PickleCheckpointWriter)),
+                "json" => eng.checkpoint_with(interval, path, Box::new(JsonWriter)),
+                _ => eng.checkpoint_with(interval, path, Box::new(PickleWriter)),
             }
         })
         .limit(limits)

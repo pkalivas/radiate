@@ -15,11 +15,11 @@ use crate::builder::selectors::SelectionParams;
 use crate::builder::species::SpeciesParams;
 use crate::genome::phenotype::Phenotype;
 #[cfg(feature = "serde")]
-use crate::io::CheckpointReader;
+use crate::io::FileReader;
 use crate::objectives::{Objective, Optimize};
 use crate::pipeline::Pipeline;
 use crate::steps::{AuditStep, EngineStep, FilterStep, FrontStep, RecombineStep, SpeciateStep};
-use crate::{Chromosome, EvaluateStep, Freeze, GeneticEngine, Frozen};
+use crate::{Chromosome, EvaluateStep, Freeze, Frozen, GeneticEngine};
 use crate::{
     Crossover, EncodeReplace, EngineProblem, EventBus, EventHandler, Front, Mutate,
     ReplacementStrategy, RouletteSelector, TournamentSelector, context::Context,
@@ -135,13 +135,13 @@ where
     pub fn load_checkpoint<P: AsRef<std::path::Path>>(
         mut self,
         path: P,
-        reader: impl CheckpointReader<C, T>,
+        reader: impl FileReader<Generation<C, T>>,
     ) -> Self
     where
         C: for<'de> Deserialize<'de>,
         T: for<'de> Deserialize<'de>,
     {
-        let read_generation = reader.read_checkpoint(path.as_ref().to_path_buf());
+        let read_generation = reader.read(path.as_ref().to_path_buf());
         if let Err(e) = &read_generation {
             self.add_error_if(|| true, &format!("Failed to read checkpoint: {}", e));
         }
@@ -202,6 +202,8 @@ where
         let pop = &self.params.population_params;
         let spc = &self.params.species_params;
         let opt = &self.params.optimization_params;
+        let alt = &self.params.alterers;
+
         let mut freeze = Freeze::default();
 
         freeze.insert(
@@ -210,29 +212,17 @@ where
                 .with("offspring", sel.offspring_selector.freeze())
                 .with("survivor", sel.survivor_selector.freeze()),
         );
-        freeze.insert(
-            "offspring_fraction",
-            Frozen::new().with("value", sel.offspring_fraction),
-        );
-        freeze.insert(
-            "population_size",
-            Frozen::new().with("value", pop.population_size),
-        );
-        freeze.insert("max_age", Frozen::new().with("value", pop.max_age));
-        freeze.insert(
-            "max_species_age",
-            Frozen::new().with("value", spc.max_species_age),
-        );
+        freeze.insert("offspring_fraction", Frozen::value(sel.offspring_fraction));
+        freeze.insert("population_size", Frozen::value(pop.population_size));
+        freeze.insert("max_age", Frozen::value(pop.max_age));
+        freeze.insert("max_species_age", Frozen::value(spc.max_species_age));
         freeze.insert("species_threshold", spc.species_threshold.freeze());
         freeze.insert("objective", opt.objectives.freeze());
 
-        let alters: Vec<radiate_core::AnyValue<'static>> = self
-            .params
-            .alterers
-            .iter()
-            .map(|a| a.freeze().build())
-            .collect();
-        freeze.insert("alters", radiate_core::AnyValue::Vector(alters));
+        freeze.insert(
+            "alters",
+            alt.iter().map(|a| a.freeze().build()).collect::<Vec<_>>(),
+        );
 
         freeze.insert(
             "replacement_strategy",

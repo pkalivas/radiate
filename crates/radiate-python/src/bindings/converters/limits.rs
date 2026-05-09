@@ -15,19 +15,19 @@ impl InputTransform<Option<Limit>> for PyEngineInput {
             return None;
         }
 
-        if let Some(generation) = self.extract::<i64>("generations").ok() {
+        if let Ok(generation) = self.extract::<i64>("generations") {
             return Some(Limit::Generation(generation as usize));
         }
 
-        if let Some(sec) = self.extract::<f64>("seconds").ok() {
+        if let Ok(sec) = self.extract::<f64>("seconds") {
             return Some(Limit::Seconds(Duration::from_secs_f64(sec)));
         }
 
-        if let Some(score) = self.extract::<f64>("score").ok() {
+        if let Ok(score) = self.extract::<f64>("score") {
             return Some(Limit::Score(score.into()));
         }
 
-        if let Some(score) = self.extract::<Vec<f64>>("score").ok() {
+        if let Ok(score) = self.extract::<Vec<f64>>("score") {
             return Some(Limit::Score(score.into()));
         }
 
