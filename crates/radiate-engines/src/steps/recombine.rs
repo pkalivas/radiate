@@ -65,6 +65,9 @@ where
         metrics.upsert((self.names.0, survivors.len()));
         metrics.upsert((self.names.1, time.elapsed()));
         survivors
+            .into_iter()
+            .map(|p| ecosystem.population()[p].clone())
+            .collect()
     }
 }
 
@@ -114,7 +117,12 @@ where
 
             let time = std::time::Instant::now();
 
-            let mut offspring = self.selector.select(&pop, &self.objective, *count);
+            let mut offspring = self
+                .selector
+                .select(&pop, &self.objective, *count)
+                .into_iter()
+                .map(|p| pop[p].clone())
+                .collect::<Population<C>>();
 
             metrics.upsert((self.names.0, offspring.len()));
             metrics.upsert((self.names.1, time.elapsed()));
@@ -143,9 +151,9 @@ where
         let timer = std::time::Instant::now();
 
         let pop_len = ecosystem.population().len();
-        let indicies =
-            self.selector
-                .select_idx(ecosystem.population(), &self.objective, self.count);
+        let indicies = self
+            .selector
+            .select(ecosystem.population(), &self.objective, self.count);
 
         self.counts.begin(pop_len);
         for &idx in indicies.iter() {

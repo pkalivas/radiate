@@ -12,10 +12,10 @@ impl LinearRankSelector {
 }
 
 impl<C: Chromosome + Clone> Select<C> for LinearRankSelector {
-    fn select(&self, population: &Population<C>, _: &Objective, count: usize) -> Population<C> {
+    fn select(&self, population: &Population<C>, _: &Objective, count: usize) -> Vec<usize> {
         let n = population.len();
         if n == 0 || count == 0 {
-            return Population::new(Vec::new());
+            return Vec::new();
         }
 
         // Population is pre-sorted best-first by the engine, so index 0 = best.
@@ -32,12 +32,12 @@ impl<C: Chromosome + Clone> Select<C> for LinearRankSelector {
             for i in 0..n {
                 cumulative += (n - i) as f32 * self.selection_pressure;
                 if cumulative > target {
-                    selected.push(population[i].clone());
+                    selected.push(i);
                     break;
                 }
             }
         }
 
-        Population::new(selected)
+        selected
     }
 }

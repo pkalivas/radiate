@@ -61,8 +61,8 @@ mod nsga_tests {
         assert_eq!(selected.len(), 3);
 
         let rank0: Vec<Vec<f32>> = vec![vec![1.0, 3.0], vec![2.0, 2.0], vec![3.0, 1.0]];
-        for ind in selected.iter() {
-            let score = ind.score().unwrap().as_slice().to_vec();
+        for &ind in selected.iter() {
+            let score = population[ind].score().unwrap().as_slice().to_vec();
             assert!(
                 rank0.contains(&score),
                 "dominated individual {:?} was selected instead of a rank-0 point",
@@ -89,7 +89,7 @@ mod nsga_tests {
 
         let scores: Vec<Vec<f32>> = selected
             .iter()
-            .map(|ind| ind.score().unwrap().as_slice().to_vec())
+            .map(|&ind| population[ind].score().unwrap().as_slice().to_vec())
             .collect();
 
         assert!(
@@ -114,7 +114,7 @@ mod nsga_tests {
         let selected = selector.select(&population, &objective, 1);
 
         assert_eq!(
-            selected[0].score().unwrap().as_slice(),
+            population[selected[0]].score().unwrap().as_slice(),
             &[1.0, 10.0],
             "rank-0 point must be selected first"
         );
@@ -147,7 +147,7 @@ mod nsga_tests {
         for _ in 0..20 {
             let selected = selector.select(&population, &min2(), 1);
             assert_eq!(
-                selected[0].score().unwrap().as_slice(),
+                population[selected[0]].score().unwrap().as_slice(),
                 &[1.0, 1.0],
                 "rank-0 individual must always win the tournament"
             );
@@ -190,8 +190,8 @@ mod nsga_tests {
         let selected = selector.select(&population, &min3(), 3);
 
         let dominated: Vec<Vec<f32>> = vec![vec![5.0, 5.0, 5.0], vec![6.0, 6.0, 6.0]];
-        for ind in selected.iter() {
-            let score = ind.score().unwrap().as_slice().to_vec();
+        for &ind in selected.iter() {
+            let score = population[ind].score().unwrap().as_slice().to_vec();
             assert!(
                 !dominated.contains(&score),
                 "dominated individual {:?} was selected",

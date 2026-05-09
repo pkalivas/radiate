@@ -17,7 +17,7 @@ impl<C: Chromosome + Clone> Select<C> for StochasticUniversalSamplingSelector {
         population: &Population<C>,
         objective: &Objective,
         count: usize,
-    ) -> Population<C> {
+    ) -> Vec<usize> {
         let fitness_values = match objective {
             Objective::Single(opt) => {
                 let mut weights = population
@@ -57,10 +57,10 @@ impl<C: Chromosome + Clone> Select<C> for StochasticUniversalSamplingSelector {
                 index += 1;
                 fitness_sum += fitness_values[index];
             }
-            pointers.push(population[index].clone());
+            pointers.push(index);
             current_point += point_distance;
         }
 
-        Population::new(pointers)
+        pointers
     }
 }

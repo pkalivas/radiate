@@ -43,9 +43,9 @@ impl<C: Chromosome + Clone> Select<C> for NSGA3Selector {
         population: &Population<C>,
         objective: &Objective,
         count: usize,
-    ) -> Population<C> {
+    ) -> Vec<usize> {
         if population.is_empty() || count == 0 {
-            return Population::empty();
+            return Vec::new();
         }
 
         let scores = population
@@ -79,11 +79,7 @@ impl<C: Chromosome + Clone> Select<C> for NSGA3Selector {
             ));
         }
 
-        selected
-            .into_iter()
-            .take(count)
-            .map(|idx| population[idx].clone())
-            .collect()
+        selected.into_iter().take(count).collect()
     }
 }
 

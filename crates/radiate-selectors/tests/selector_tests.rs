@@ -50,7 +50,7 @@ mod selector_tests {
 
         for i in 0..num {
             let original = population[i].score().unwrap().as_f32();
-            let selected = selected[i].score().unwrap().as_f32();
+            let selected = population[selected[i]].score().unwrap().as_f32();
 
             assert_eq!(original, selected);
         }
@@ -87,8 +87,16 @@ mod selector_tests {
         let random_selector = RandomSelector::new();
 
         for _ in 0..num_permutations {
-            let selected = selector.select(&population, &objectives, count);
-            let random_selected = random_selector.select(&population, &objectives, count);
+            let selected = selector
+                .select(&population, &objectives, count)
+                .into_iter()
+                .map(|idx| population[idx].clone())
+                .collect::<Population<FloatChromosome<f32>>>();
+            let random_selected = random_selector
+                .select(&population, &objectives, count)
+                .into_iter()
+                .map(|idx| population[idx].clone())
+                .collect::<Population<FloatChromosome<f32>>>();
 
             assert_eq!(selected.len(), count);
             assert_eq!(random_selected.len(), count);

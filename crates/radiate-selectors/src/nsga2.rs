@@ -32,7 +32,7 @@ impl<C: Chromosome + Clone> Select<C> for NSGA2Selector {
         population: &Population<C>,
         objective: &Objective,
         count: usize,
-    ) -> Population<C> {
+    ) -> Vec<usize> {
         let scores = population.iter_scores().collect::<Vec<_>>();
         let ranks = pareto::rank(&scores, objective);
         let distances = pareto::crowding_distance(&scores);
@@ -55,11 +55,7 @@ impl<C: Chromosome + Clone> Select<C> for NSGA2Selector {
             }
         });
 
-        indices
-            .iter()
-            .take(count)
-            .map(|&i| population[i].clone())
-            .collect::<Population<C>>()
+        indices.into_iter().take(count).collect::<Vec<usize>>()
     }
 }
 
@@ -78,7 +74,7 @@ impl<C: Chromosome + Clone> Select<C> for TournamentNSGA2Selector {
         population: &Population<C>,
         objective: &Objective,
         count: usize,
-    ) -> Population<C> {
+    ) -> Vec<usize> {
         let scores = population.iter_scores().collect::<Vec<_>>();
         let ranks = pareto::rank(&scores, objective);
         let distances = pareto::crowding_distance(&scores);
@@ -115,10 +111,10 @@ impl<C: Chromosome + Clone> Select<C> for TournamentNSGA2Selector {
                     *random_provider::choose(&[one, two])
                 };
 
-                result.push(population[winner].clone());
+                result.push(winner);
             }
         }
 
-        result.into_iter().take(count).collect::<Population<C>>()
+        result.into_iter().take(count).collect::<Vec<usize>>()
     }
 }

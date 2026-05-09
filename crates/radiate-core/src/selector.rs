@@ -22,19 +22,14 @@ pub trait Select<C: Chromosome>: Send + Sync + Debug {
         radiate_utils::intern!(other)
     }
 
-    fn select(
-        &self,
-        population: &Population<C>,
-        optimize: &Objective,
-        count: usize,
-    ) -> Population<C>;
+    fn select(&self, population: &Population<C>, optimize: &Objective, count: usize) -> Vec<usize>;
 
-    fn select_idx(
-        &self,
-        population: &Population<C>,
-        optimize: &Objective,
-        count: usize,
-    ) -> Vec<usize> {
-        panic!("select_idx is not implemented for {}", self.name());
-    }
+    // fn select_idx(
+    //     &self,
+    //     population: &Population<C>,
+    //     optimize: &Objective,
+    //     count: usize,
+    // ) -> Vec<usize> {
+    //     panic!("select_idx is not implemented for {}", self.name());
+    // }
 }

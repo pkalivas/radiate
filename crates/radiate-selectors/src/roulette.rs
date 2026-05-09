@@ -16,7 +16,7 @@ impl<C: Chromosome + Clone> Select<C> for RouletteSelector {
         population: &Population<C>,
         objective: &Objective,
         count: usize,
-    ) -> Population<C> {
+    ) -> Vec<usize> {
         let fitness_values = match objective {
             Objective::Single(opt) => {
                 let mut scores = population
@@ -41,8 +41,6 @@ impl<C: Chromosome + Clone> Select<C> for RouletteSelector {
             }
         };
 
-        ProbabilityWheelIterator::new(&fitness_values, count)
-            .map(|idx| population[idx].clone())
-            .collect()
+        ProbabilityWheelIterator::new(&fitness_values, count).collect()
     }
 }
