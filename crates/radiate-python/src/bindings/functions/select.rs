@@ -55,7 +55,12 @@ pub fn py_select(
 
             let population: Population<FloatChromosome<f64>> = population.into();
 
-            Ok(selector.select(&population, &obj, count)).map(|pop| PyPopulation::from(&pop))
+            Ok(selector
+                .select(&population, &obj, count)
+                .iter()
+                .map(|pop| population[*pop].clone())
+                .collect::<Population<FloatChromosome<f64>>>())
+            .map(|pop| PyPopulation::from(&pop))
         }
         PyGeneType::Int => {
             let selector =
@@ -65,7 +70,12 @@ pub fn py_select(
 
             let population: Population<IntChromosome<i64>> = population.into();
 
-            Ok(selector.select(&population, &obj, count)).map(|pop| PyPopulation::from(&pop))
+            Ok(selector
+                .select(&population, &obj, count)
+                .iter()
+                .map(|pop| population[*pop].clone())
+                .collect::<Population<IntChromosome<i64>>>())
+            .map(|pop| PyPopulation::from(&pop))
         }
         PyGeneType::Char => {
             let selector =
@@ -75,7 +85,12 @@ pub fn py_select(
 
             let population: Population<CharChromosome> = population.into();
 
-            Ok(selector.select(&population, &obj, count)).map(|pop| PyPopulation::from(&pop))
+            Ok(selector
+                .select(&population, &obj, count)
+                .iter()
+                .map(|pop| population[*pop].clone())
+                .collect::<Population<CharChromosome>>())
+            .map(|pop| PyPopulation::from(&pop))
         }
         PyGeneType::Bit => {
             let selector =
@@ -84,7 +99,12 @@ pub fn py_select(
                 )?;
             let population: Population<BitChromosome> = population.into();
 
-            Ok(selector.select(&population, &obj, count)).map(|pop| PyPopulation::from(&pop))
+            Ok(selector
+                .select(&population, &obj, count)
+                .iter()
+                .map(|pop| population[*pop].clone())
+                .collect::<Population<BitChromosome>>())
+            .map(|pop| PyPopulation::from(&pop))
         }
         PyGeneType::Permutation => {
             let selector = InputTransform::<
@@ -92,7 +112,12 @@ pub fn py_select(
             >::transform(&selector)?;
             let population: Population<PermutationChromosome<usize>> = population.into();
 
-            Ok(selector.select(&population, &obj, count)).map(|pop| PyPopulation::from(&pop))
+            Ok(selector
+                .select(&population, &obj, count)
+                .iter()
+                .map(|pop| population[*pop].clone())
+                .collect::<Population<PermutationChromosome<usize>>>())
+            .map(|pop| PyPopulation::from(&pop))
         }
         PyGeneType::GraphNode => {
             let selector = InputTransform::<
@@ -100,7 +125,12 @@ pub fn py_select(
             >::transform(&selector)?;
             let population: Population<GraphChromosome<Op<f32>>> = population.into();
 
-            Ok(selector.select(&population, &obj, count)).map(|pop| PyPopulation::from(&pop))
+            Ok(selector
+                .select(&population, &obj, count)
+                .iter()
+                .map(|pop| population[*pop].clone())
+                .collect::<Population<GraphChromosome<Op<f32>>>>())
+            .map(|pop| PyPopulation::from(&pop))
         }
         PyGeneType::TreeNode => {
             let selector =
@@ -109,7 +139,12 @@ pub fn py_select(
                 )?;
             let population: Population<TreeChromosome<Op<f32>>> = population.into();
 
-            Ok(selector.select(&population, &obj, count)).map(|pop| PyPopulation::from(&pop))
+            Ok(selector
+                .select(&population, &obj, count)
+                .iter()
+                .map(|pop| population[*pop].clone())
+                .collect::<Population<TreeChromosome<Op<f32>>>>())
+            .map(|pop| PyPopulation::from(&pop))
         }
 
         _ => Err(radiate_py_err!(format!(

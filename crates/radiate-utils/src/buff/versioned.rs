@@ -60,6 +60,16 @@ impl VersionedCounts {
         slot.count
     }
 
+    /// Read the count at `idx` for the current session.
+    /// Returns `0` if the slot is out of bounds or stale.
+    #[inline]
+    pub fn get(&self, idx: usize) -> u32 {
+        match self.buckets.get(idx) {
+            Some(s) if s.version == self.current => s.count,
+            _ => 0,
+        }
+    }
+
     /// Live `(idx, count)` pairs in ascending idx order.
     #[inline]
     pub fn iter_live(&self) -> impl Iterator<Item = (usize, u32)> + '_ {
@@ -80,6 +90,39 @@ impl VersionedCounts {
         (0..len).rev().filter_map(move |i| {
             let s = &self.buckets[i];
             (s.version == cur).then_some((i, s.count))
+        })
+    }
+
+    /// Walk both buffers in parallel in descending idx order, yielding
+    /// `(idx, count_self, count_other)` for any idx where at least one side
+    /// is live this session. Slots stale or out-of-bounds on either side
+    /// contribute `0` for that side. Stops at `max(self.len, other.len)`.
+    #[inline]
+    pub fn iter_pair_live_rev<'a>(
+        &'a self,
+        other: &'a Self,
+    ) -> impl Iterator<Item = (usize, u32, u32)> + 'a {
+        let cur_self = self.current;
+        let cur_other = other.current;
+        let len = self.buckets.len().max(other.buckets.len());
+        (0..len).rev().filter_map(move |i| {
+            let a = self
+                .buckets
+                .get(i)
+                .filter(|s| s.version == cur_self)
+                .map(|s| s.count)
+                .unwrap_or(0);
+            let b = other
+                .buckets
+                .get(i)
+                .filter(|s| s.version == cur_other)
+                .map(|s| s.count)
+                .unwrap_or(0);
+            if a == 0 && b == 0 {
+                None
+            } else {
+                Some((i, a, b))
+            }
         })
     }
 }
@@ -163,5 +206,41 @@ mod tests {
         assert_eq!(c.iter_live().count(), 0);
         c.bump(10);
         assert_eq!(c.iter_live().collect::<Vec<_>>(), vec![(10, 1)]);
+    }
+
+    #[test]
+    fn iter_pair_live_rev_yields_union_descending() {
+        let mut a = VersionedCounts::new();
+        let mut b = VersionedCounts::new();
+        a.begin(10);
+        b.begin(10);
+
+        // overlapping at idx 5; a-only at idx 7; b-only at idx 2.
+        a.bump(5);
+        a.bump(5);
+        a.bump(7);
+        b.bump(5);
+        b.bump(2);
+        b.bump(2);
+        b.bump(2);
+
+        let pairs: Vec<_> = a.iter_pair_live_rev(&b).collect();
+        assert_eq!(pairs, vec![(7, 1, 0), (5, 2, 1), (2, 0, 3)]);
+    }
+
+    #[test]
+    fn iter_pair_live_rev_handles_stale_other() {
+        let mut a = VersionedCounts::new();
+        let mut b = VersionedCounts::new();
+        a.begin(8);
+        b.begin(8);
+        a.bump(4);
+        b.bump(4);
+
+        // Re-begin b without bumping anything — its slots are now stale.
+        b.begin(8);
+
+        let pairs: Vec<_> = a.iter_pair_live_rev(&b).collect();
+        assert_eq!(pairs, vec![(4, 1, 0)]);
     }
 }

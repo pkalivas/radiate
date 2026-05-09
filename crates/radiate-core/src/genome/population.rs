@@ -49,9 +49,7 @@ impl<C: Chromosome> Population<C> {
     }
 
     pub fn get_mut(&mut self, index: usize) -> Option<&mut Phenotype<C>> {
-        self.individuals
-            .get_mut(index)
-            .map(|cell| cell.borrow_mut())
+        self.individuals.get_mut(index)
     }
 
     pub fn push(&mut self, individual: Phenotype<C>) {

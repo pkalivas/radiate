@@ -353,21 +353,21 @@ where
         let survivor_time_name = radiate_utils::intern!(format!("{}.time", survivor_base_name));
 
         let recombine_step = RecombineStep {
-            survivor_handle: crate::steps::SurvivorRecombineHandle {
+            survivor: crate::steps::SurvivorConfig {
                 count: config.survivor_count(),
-                objective: config.objective(),
                 selector: survivor_selector,
                 names: (survivor_base_name, survivor_time_name),
             },
-            offspring_handle: crate::steps::OffspringRecombineHandle {
+            offspring: crate::steps::OffspringConfig {
                 count: config.offspring_count(),
-                objective: config.objective(),
                 selector: offspring_selector,
                 alters: config.alters().to_vec(),
-                lineage: config.lineage(),
                 names: (offspring_base_name, offspring_time_name),
-                counts: radiate_utils::VersionedCounts::new(),
             },
+            objective: config.objective(),
+            lineage: config.lineage(),
+            survivor_counts: radiate_utils::VersionedCounts::new(),
+            offspring_counts: radiate_utils::VersionedCounts::new(),
         };
 
         Some(Box::new(recombine_step))

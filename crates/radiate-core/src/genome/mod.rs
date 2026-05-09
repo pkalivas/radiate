@@ -14,4 +14,4 @@ pub use ecosystem::Ecosystem;
 pub use genotype::Genotype;
 pub use phenotype::Phenotype;
 pub use population::Population;
-pub use species::Species;
+pub use species::{Species, SpeciesId};
