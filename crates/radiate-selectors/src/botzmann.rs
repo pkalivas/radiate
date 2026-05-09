@@ -4,6 +4,7 @@ use radiate_utils::MinMax;
 
 const MIN: f32 = 1e-6;
 
+#[derive(Debug, Clone)]
 pub struct BoltzmannSelector {
     temperature: f32,
 }

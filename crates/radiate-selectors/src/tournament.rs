@@ -2,12 +2,12 @@ use radiate_core::{Chromosome, Objective, Population, Select, random_provider};
 
 #[derive(Debug, Clone)]
 pub struct TournamentSelector {
-    num: usize,
+    k: usize,
 }
 
 impl TournamentSelector {
-    pub fn new(num: usize) -> Self {
-        TournamentSelector { num: num.max(1) }
+    pub fn new(k: usize) -> Self {
+        TournamentSelector { k: k.max(1) }
     }
 }
 
@@ -22,7 +22,7 @@ impl<C: Chromosome + Clone> Select<C> for TournamentSelector {
 
         for _ in 0..count {
             let mut best = random_provider::range(0..n);
-            for _ in 1..self.num {
+            for _ in 1..self.k {
                 let r = random_provider::range(0..n);
                 if r < best {
                     best = r;
