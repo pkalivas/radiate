@@ -19,7 +19,7 @@ use crate::io::CheckpointReader;
 use crate::objectives::{Objective, Optimize};
 use crate::pipeline::Pipeline;
 use crate::steps::{AuditStep, EngineStep, FilterStep, FrontStep, RecombineStep, SpeciateStep};
-use crate::{Chromosome, EvaluateStep, GeneticEngine};
+use crate::{Chromosome, EvaluateStep, GeneticEngine, Param, ParameterSet};
 use crate::{
     Crossover, EncodeReplace, EngineProblem, EventBus, EventHandler, Front, Mutate,
     ReplacementStrategy, RouletteSelector, TournamentSelector, context::Context,
@@ -27,11 +27,11 @@ use crate::{
 use crate::{Generation, Result};
 use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
+use radiate_core::NamedExpr;
 use radiate_core::evaluator::BatchFitnessEvaluator;
 use radiate_core::problem::BatchEngineProblem;
 use radiate_core::{Alterer, Ecosystem, Executor, FitnessEvaluator, Rate, Valid};
 use radiate_core::{RadiateError, ensure, radiate_err};
-use radiate_core::NamedExpr;
 #[cfg(feature = "serde")]
 use serde::Deserialize;
 use std::sync::{Arc, Mutex};
@@ -54,6 +54,7 @@ where
     pub handlers: Vec<Arc<Mutex<dyn EventHandler<T>>>>,
     pub generation: Option<Generation<C, T>>,
     pub exprs: Option<Arc<Mutex<Vec<NamedExpr>>>>,
+    pub parameter_set: ParameterSet,
 }
 
 /// Parameters for the genetic engine.
@@ -176,6 +177,7 @@ where
         self.build_population()?;
         self.build_alterer()?;
         self.build_front()?;
+        self.build_parameter_set()?;
 
         let config = EngineConfig::<C, T>::from(&self.params);
 
@@ -193,6 +195,28 @@ where
         let context = Context::from(config);
 
         Ok(GeneticEngine::<C, T>::new(context, pipeline, event_bus))
+    }
+
+    fn build_parameter_set(&mut self) -> Result<()> {
+        let select_params = &self.params.selection_params;
+
+        self.params.parameter_set.add(
+            "offspring_fraction",
+            Param::value("offspring_fraction", select_params.offspring_fraction),
+        );
+
+        self.params.parameter_set.add(
+            "offspring_selector",
+            self.params.selection_params.offspring_selector.register(),
+        );
+        self.params.parameter_set.add(
+            "survivor_selector",
+            self.params.selection_params.survivor_selector.register(),
+        );
+
+        println!("{:#?}", self.params.parameter_set);
+
+        Ok(())
     }
 
     /// Build the problem of the genetic engine. This will create a new problem
@@ -465,6 +489,7 @@ where
                 handlers: Vec::new(),
                 exprs: None,
                 generation: None,
+                parameter_set: ParameterSet::default(),
             },
             errors: Vec::new(),
         }

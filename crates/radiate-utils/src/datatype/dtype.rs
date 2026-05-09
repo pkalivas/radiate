@@ -49,6 +49,8 @@ pub enum DataType {
     Float32,
     Float64,
 
+    Usize,
+
     Duration,
 
     Boolean,
@@ -81,6 +83,7 @@ impl DataType {
                 | D::UInt64
                 | D::Float32
                 | D::Float64
+                | D::Usize
         )
     }
 
@@ -101,6 +104,7 @@ impl DataType {
                 | D::UInt64
                 | D::Float32
                 | D::Float64
+                | D::Usize
         )
     }
 
@@ -170,6 +174,8 @@ impl From<String> for DataType {
             dtype_names::FLOAT32 => DataType::Float32,
             dtype_names::FLOAT64 => DataType::Float64,
 
+            dtype_names::USIZE => DataType::Usize,
+
             dtype_names::BOOLEAN => DataType::Boolean,
 
             dtype_names::CHAR => DataType::Char,
@@ -202,6 +208,8 @@ impl Display for DataType {
 
             DataType::Float32 => write!(f, "{}", dtype_names::FLOAT32)?,
             DataType::Float64 => write!(f, "{}", dtype_names::FLOAT64)?,
+
+            DataType::Usize => write!(f, "{}", dtype_names::USIZE)?,
 
             DataType::Duration => write!(f, "{}", dtype_names::DURATION)?,
 

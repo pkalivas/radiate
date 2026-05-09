@@ -9,6 +9,7 @@ pub mod fitness;
 pub mod genome;
 pub mod lineage;
 pub mod objectives;
+pub mod parameter;
 pub mod problem;
 pub mod rate;
 pub mod replacement;
@@ -33,7 +34,9 @@ pub use fitness::{
 pub use genome::*;
 pub use lineage::{Lineage, LineageEvent, LineageUpdate};
 pub use objectives::{Front, Objective, Optimize, Score, pareto};
+pub use parameter::{Param, ParameterSet};
 pub use problem::{BatchEngineProblem, EngineProblem, Problem};
+pub use radiate_utils::{AnyValue, DataType, Field, dtype, dtype_names, value};
 pub use rate::Rate;
 pub use replacement::{EncodeReplace, PopulationSampleReplace, ReplacementStrategy};
 pub use selector::Select;
@@ -41,8 +44,6 @@ pub use stats::{
     Evaluate, Expr, ExprProjection, Metric, MetricSet, MetricUpdate, NamedExpr, SelectExpr,
     expression::expr, metric_names, render_dashboard, render_full,
 };
-
-pub use radiate_utils::{AnyValue, DataType, Field, dtype, dtype_names, value};
 
 pub mod prelude {
     pub use radiate_error::*;

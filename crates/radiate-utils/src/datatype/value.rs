@@ -26,6 +26,8 @@ pub enum AnyValue<'a> {
     Float32(f32),
     Float64(f64),
 
+    Usize(usize),
+
     Duration(Duration),
 
     Char(char),
@@ -116,6 +118,7 @@ impl<'a> AnyValue<'a> {
                 | Self::Int128(_)
                 | Self::Float32(_)
                 | Self::Float64(_)
+                | Self::Usize(_)
         )
     }
 
@@ -136,6 +139,7 @@ impl<'a> AnyValue<'a> {
             Self::Int128(_) => "i128",
             Self::Float32(_) => "f32",
             Self::Float64(_) => "f64",
+            Self::Usize(_) => "usize",
             Self::Char(_) => "char",
             Self::Str(_) => "string",
             Self::StrOwned(_) => "string",
@@ -167,6 +171,8 @@ impl<'a> AnyValue<'a> {
 
             Self::Float32(_) => DataType::Float32,
             Self::Float64(_) => DataType::Float64,
+
+            Self::Usize(_) => DataType::Usize,
 
             Self::Duration(_) => DataType::Duration,
 
@@ -246,6 +252,7 @@ impl<'a> AnyValue<'a> {
             Bool(v) => Bool(v),
             Float32(v) => Float32(v),
             Float64(v) => Float64(v),
+            Usize(v) => Usize(v),
             Duration(d) => Duration(d),
             Char(v) => Char(v),
             Str(v) => StrOwned(v.to_string()),
@@ -274,6 +281,7 @@ impl<'a> AnyValue<'a> {
             AnyValue::Int128(v) => NumCast::from(*v),
             AnyValue::Float32(v) => NumCast::from(*v),
             AnyValue::Float64(v) => NumCast::from(*v),
+            AnyValue::Usize(v) => NumCast::from(*v),
             AnyValue::Duration(d) => NumCast::from(d.as_millis()),
             _ => None,
         }
@@ -352,6 +360,7 @@ impl<'a> PartialEq for AnyValue<'a> {
             (Int128(a), Int128(b)) => a == b,
             (Float32(a), Float32(b)) => a == b,
             (Float64(a), Float64(b)) => a == b,
+            (Usize(a), Usize(b)) => a == b,
             (Duration(a), Duration(b)) => a == b,
             (Char(a), Char(b)) => a == b,
             (Str(a), Str(b)) => a == b,
@@ -400,6 +409,8 @@ impl<'a> Hash for AnyValue<'a> {
             Float32(v) => v.to_ne_bytes().hash(state),
             Float64(v) => v.to_ne_bytes().hash(state),
 
+            Usize(v) => v.hash(state),
+
             Duration(v) => v.hash(state),
 
             Char(v) => v.hash(state),
@@ -417,57 +428,43 @@ impl<'a> Hash for AnyValue<'a> {
     }
 }
 
+macro_rules! impl_from {
+    ($variant:ident, $type:ty) => {
+        impl From<$type> for AnyValue<'_> {
+            fn from(value: $type) -> Self {
+                AnyValue::$variant(value)
+            }
+        }
+    };
+}
+
+impl_from!(Bool, bool);
+impl_from!(UInt8, u8);
+impl_from!(UInt16, u16);
+impl_from!(UInt32, u32);
+impl_from!(UInt64, u64);
+impl_from!(UInt128, u128);
+impl_from!(Int8, i8);
+impl_from!(Int16, i16);
+impl_from!(Int32, i32);
+impl_from!(Int64, i64);
+impl_from!(Int128, i128);
+impl_from!(Float32, f32);
+impl_from!(Float64, f64);
+impl_from!(Usize, usize);
+impl_from!(Char, char);
+impl_from!(Duration, Duration);
+impl_from!(StrOwned, String);
+
 impl<'a> From<&'a str> for AnyValue<'a> {
-    fn from(s: &'a str) -> Self {
-        AnyValue::Str(s)
-    }
-}
-
-impl<'a> From<String> for AnyValue<'a> {
-    fn from(s: String) -> Self {
-        AnyValue::StrOwned(s)
-    }
-}
-
-impl From<f32> for AnyValue<'_> {
-    fn from(f: f32) -> Self {
-        AnyValue::Float32(f)
-    }
-}
-
-impl From<f64> for AnyValue<'_> {
-    fn from(f: f64) -> Self {
-        AnyValue::Float64(f)
-    }
-}
-
-impl From<bool> for AnyValue<'_> {
-    fn from(b: bool) -> Self {
-        AnyValue::Bool(b)
-    }
-}
-
-impl From<char> for AnyValue<'_> {
-    fn from(c: char) -> Self {
-        AnyValue::Char(c)
-    }
-}
-
-impl<'a> From<Duration> for AnyValue<'a> {
-    fn from(d: Duration) -> Self {
-        AnyValue::Duration(d)
+    fn from(value: &'a str) -> Self {
+        AnyValue::Str(value)
     }
 }
 
 impl<'a> From<Vec<AnyValue<'a>>> for AnyValue<'a> {
     fn from(v: Vec<AnyValue<'a>>) -> Self {
         AnyValue::Vector(v)
-    }
-}
-
-impl From<i32> for AnyValue<'_> {
-    fn from(i: i32) -> Self {
-        AnyValue::Int32(i)
     }
 }
 
@@ -578,6 +575,7 @@ impl<'a> Serialize for AnyValue<'a> {
             Int128(v) => serializer.serialize_i128(*v),
             Float32(v) => serializer.serialize_f32(*v),
             Float64(v) => serializer.serialize_f64(*v),
+            Usize(v) => serializer.serialize_u64(*v as u64),
             Duration(v) => serializer.serialize_u64(v.as_millis() as u64),
             Char(v) => serializer.serialize_char(*v),
             Str(v) => serializer.serialize_str(v),
@@ -613,6 +611,7 @@ impl<'a, 'de> Deserialize<'de> for AnyValue<'a> {
             Int128(i128),
             Float32(f32),
             Float64(f64),
+            Usize(usize),
             Duration(u64),
             Char(char),
             Str(String),
@@ -639,6 +638,7 @@ impl<'a, 'de> Deserialize<'de> for AnyValue<'a> {
                     AnyValueDef::Int128(v) => Int128(v),
                     AnyValueDef::Float32(v) => Float32(v),
                     AnyValueDef::Float64(v) => Float64(v),
+                    AnyValueDef::Usize(v) => Usize(v),
                     AnyValueDef::Duration(ms) => Duration(std::time::Duration::from_millis(ms)),
                     AnyValueDef::Char(v) => Char(v),
                     AnyValueDef::Str(s) | AnyValueDef::StrOwned(s) => StrOwned(s),
@@ -671,6 +671,7 @@ impl<'a, 'de> Deserialize<'de> for AnyValue<'a> {
             AnyValueDef::Int128(v) => Int128(v),
             AnyValueDef::Float32(v) => Float32(v),
             AnyValueDef::Float64(v) => Float64(v),
+            AnyValueDef::Usize(v) => Usize(v),
             AnyValueDef::Char(v) => Char(v),
             AnyValueDef::Str(v) => StrOwned(v), // Deserialize as owned string
             AnyValueDef::StrOwned(v) => StrOwned(v), // Deserialize as owned string

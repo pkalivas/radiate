@@ -1,4 +1,4 @@
-use radiate_core::{Chromosome, Objective, Population, Select, random_provider};
+use radiate_core::{Chromosome, Objective, Param, Population, Select, random_provider};
 
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone)]
@@ -17,6 +17,10 @@ impl TournamentSelector {
 }
 
 impl<C: Chromosome + Clone> Select<C> for TournamentSelector {
+    fn register(&self) -> radiate_core::Param {
+        Param::typed::<Self>().add_field("k", self.k)
+    }
+
     fn select(&self, population: &Population<C>, _: &Objective, count: usize) -> Population<C> {
         let n = population.len();
         if n == 0 || count == 0 {

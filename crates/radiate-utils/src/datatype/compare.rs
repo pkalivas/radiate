@@ -23,16 +23,18 @@ impl<'a> AnyValue<'a> {
             AnyValue::Float32(_) => 12,
             AnyValue::Float64(_) => 13,
 
-            AnyValue::Duration(_) => 14,
+            AnyValue::Usize(_) => 14,
 
-            AnyValue::Char(_) => 15,
-            AnyValue::Str(_) => 16,
-            AnyValue::StrOwned(_) => 17,
+            AnyValue::Duration(_) => 15,
 
-            AnyValue::Slice(_) => 18,
-            AnyValue::Vector(_) => 19,
+            AnyValue::Char(_) => 16,
+            AnyValue::Str(_) => 17,
+            AnyValue::StrOwned(_) => 18,
 
-            AnyValue::Struct(_) => 20,
+            AnyValue::Slice(_) => 19,
+            AnyValue::Vector(_) => 20,
+
+            AnyValue::Struct(_) => 21,
         }
     }
 
