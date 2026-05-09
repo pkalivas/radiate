@@ -1,7 +1,7 @@
 use crate::Chromosome;
+use crate::freeze::Frozen;
 use crate::genome::population::Population;
 use crate::objectives::Objective;
-use crate::parameter::Parameter;
 
 /// A trait for selection algorithms. Selection algorithms are used to select
 /// individuals from a [Population] to be used in the next generation. The
@@ -34,8 +34,8 @@ pub trait Select<C: Chromosome>: Send + Sync {
         radiate_utils::intern_kv_pair(name, radiate_utils::intern!(parts.join(".")))
     }
 
-    fn params(&self) -> Parameter {
-        Parameter::typed::<Self>()
+    fn freeze(&self) -> Frozen {
+        Frozen::typed::<Self>()
     }
 
     fn select(

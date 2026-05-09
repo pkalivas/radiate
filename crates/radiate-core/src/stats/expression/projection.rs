@@ -1,5 +1,5 @@
 use super::{SelectExpr, select::PathSegment};
-use radiate_utils::{AnyValue, Field};
+use radiate_utils::{AnyValue, SmallStr};
 use std::collections::HashMap;
 
 pub trait ExprProjection {
@@ -45,7 +45,7 @@ where
                         .map(|(k, v)| {
                             let cloned_value = v.clone().into();
                             (
-                                radiate_utils::cache_arc_string!(k.clone()),
+                                SmallStr::from(k.clone()),
                                 cloned_value.dtype(),
                                 cloned_value,
                             )
@@ -114,7 +114,7 @@ impl ExprProjection for i32 {
 mod tests {
     use super::super::{Evaluate, Expr, expr, select::PathBuilder};
     use super::*;
-    use radiate_utils::{AnyValue, Field};
+    use radiate_utils::AnyValue;
     use std::collections::HashMap;
 
     fn f32_of(value: AnyValue<'_>) -> f32 {
@@ -210,25 +210,13 @@ mod tests {
             AnyValue::Map(
                 user1
                     .iter()
-                    .map(|(k, v)| {
-                        (
-                            radiate_utils::cache_arc_string!(k.clone()),
-                            v.dtype(),
-                            v.clone(),
-                        )
-                    })
+                    .map(|(k, v)| (SmallStr::from(k.clone()), v.dtype(), v.clone()))
                     .collect(),
             ),
             AnyValue::Map(
                 user2
                     .iter()
-                    .map(|(k, v)| {
-                        (
-                            radiate_utils::cache_arc_string!(k.clone()),
-                            v.dtype(),
-                            v.clone(),
-                        )
-                    })
+                    .map(|(k, v)| (SmallStr::from(k.clone()), v.dtype(), v.clone()))
                     .collect(),
             ),
         ];

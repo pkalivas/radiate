@@ -1,3 +1,4 @@
+use crate::freeze::Frozen;
 use crate::{
     Chromosome, Codec, Gene, Genotype, PermutationChromosome, PermutationGene, random_provider,
 };
@@ -17,6 +18,10 @@ impl<A: PartialEq + Clone> PermutationCodec<A> {
 }
 
 impl<A: PartialEq + Clone> Codec<PermutationChromosome<A>, Vec<A>> for PermutationCodec<A> {
+    fn freeze(&self) -> Frozen {
+        Frozen::typed::<Self>().with("alleles", self.alleles.len())
+    }
+
     fn encode(&self) -> Genotype<PermutationChromosome<A>> {
         Genotype::from(PermutationChromosome::new(
             random_provider::shuffled_indices(0..self.alleles.len())

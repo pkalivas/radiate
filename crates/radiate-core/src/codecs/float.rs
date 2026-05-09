@@ -1,6 +1,7 @@
-use radiate_utils::Float;
+use radiate_utils::{AnyValue, Float};
 
 use super::Codec;
+use crate::freeze::{Frozen, frozen_range};
 use crate::genome::Gene;
 use crate::genome::genotype::Genotype;
 use crate::{Chromosome, FloatChromosome};
@@ -28,6 +29,29 @@ impl<F: Float, T> FloatCodec<F, T> {
     pub fn with_bounds(mut self, range: Range<F>) -> Self {
         self.bounds = range;
         self
+    }
+
+    fn freeze_repr(&self) -> Frozen {
+        let f = Frozen::typed::<Self>()
+            .with("num_chromosomes", self.num_chromosomes)
+            .with("num_genes", self.num_genes)
+            .with("value_range", frozen_range(&self.value_range))
+            .with("bounds", frozen_range(&self.bounds));
+        match &self.shapes {
+            Some(s) => {
+                let shapes: Vec<AnyValue<'static>> = s
+                    .iter()
+                    .map(|(rows, cols)| {
+                        Frozen::new()
+                            .with("rows", *rows)
+                            .with("cols", *cols)
+                            .build()
+                    })
+                    .collect();
+                f.with("shapes", AnyValue::Vector(shapes))
+            }
+            None => f,
+        }
     }
 
     /// Every impl of `Codec` uses the same encode function for the `FloatCodec`, just with a few
@@ -143,6 +167,10 @@ impl FloatCodec<f32> {
 /// assert_eq!(decoded[1][0].len(), 4);
 /// ```
 impl<F: Float> Codec<FloatChromosome<F>, Vec<Vec<Vec<F>>>> for FloatCodec<F, Vec<Vec<Vec<F>>>> {
+    fn freeze(&self) -> Frozen {
+        self.freeze_repr()
+    }
+
     #[inline]
     fn encode(&self) -> Genotype<FloatChromosome<F>> {
         self.common_encode()
@@ -198,6 +226,10 @@ impl<F: Float> Codec<FloatChromosome<F>, Vec<Vec<Vec<F>>>> for FloatCodec<F, Vec
 /// assert_eq!(decoded[0].len(), 4);
 /// ```
 impl<F: Float> Codec<FloatChromosome<F>, Vec<Vec<F>>> for FloatCodec<F, Vec<Vec<F>>> {
+    fn freeze(&self) -> Frozen {
+        self.freeze_repr()
+    }
+
     #[inline]
     fn encode(&self) -> Genotype<FloatChromosome<F>> {
         self.common_encode()
@@ -235,6 +267,10 @@ impl<F: Float> Codec<FloatChromosome<F>, Vec<Vec<F>>> for FloatCodec<F, Vec<Vec<
 /// assert_eq!(decoded.len(), 3);
 /// ```
 impl<F: Float> Codec<FloatChromosome<F>, Vec<F>> for FloatCodec<F, Vec<F>> {
+    fn freeze(&self) -> Frozen {
+        self.freeze_repr()
+    }
+
     #[inline]
     fn encode(&self) -> Genotype<FloatChromosome<F>> {
         self.common_encode()
@@ -270,6 +306,10 @@ impl<F: Float> Codec<FloatChromosome<F>, Vec<F>> for FloatCodec<F, Vec<F>> {
 /// let decoded: f32 = codec.decode(&genotype);
 /// ```
 impl<F: Float> Codec<FloatChromosome<F>, F> for FloatCodec<F, F> {
+    fn freeze(&self) -> Frozen {
+        self.freeze_repr()
+    }
+
     #[inline]
     fn encode(&self) -> Genotype<FloatChromosome<F>> {
         self.common_encode()

@@ -471,7 +471,7 @@ fn mean_numeric(a: &AnyValue<'_>, b: &AnyValue<'_>) -> Option<AnyValue<'static>>
 
 #[cfg(test)]
 mod tests {
-    use crate::Field;
+    use crate::SmallStr;
 
     use super::*;
     use AnyValue::*;
@@ -483,7 +483,7 @@ mod tests {
     fn make_struct(pairs: Vec<(&'static str, AnyValue<'static>)>) -> AnyValue<'static> {
         let fields = pairs
             .into_iter()
-            .map(|(name, val)| (crate::cache_arc_string!(name), val.dtype(), val))
+            .map(|(name, val)| (SmallStr::from(name), val.dtype(), val))
             .collect();
         AnyValue::Map(fields)
     }

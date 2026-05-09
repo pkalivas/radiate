@@ -1,4 +1,5 @@
 use super::genome::genotype::Genotype;
+use crate::freeze::Frozen;
 
 pub mod bit;
 pub mod char;
@@ -87,4 +88,8 @@ pub trait Codec<C: Chromosome, T> {
     fn encode(&self) -> Genotype<C>;
 
     fn decode(&self, genotype: &Genotype<C>) -> T;
+
+    fn freeze(&self) -> Frozen {
+        Frozen::typed::<Self>()
+    }
 }

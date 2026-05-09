@@ -1,8 +1,9 @@
 use super::{DataType, Field};
+use crate::SmallStr;
 use num_traits::NumCast;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize, ser::SerializeStruct};
-use std::{collections::HashMap, fmt::Debug, hash::Hash, sync::Arc, time::Duration};
+use std::{collections::HashMap, fmt::Debug, hash::Hash, time::Duration};
 
 #[derive(Clone, Default, Debug)]
 pub enum AnyValue<'a> {
@@ -39,7 +40,7 @@ pub enum AnyValue<'a> {
 
     Struct(Field, Vec<(Field, AnyValue<'a>)>),
 
-    Map(Vec<(Arc<String>, DataType, AnyValue<'a>)>),
+    Map(Vec<(SmallStr, DataType, AnyValue<'a>)>),
 }
 
 impl<'a> AnyValue<'a> {
@@ -342,7 +343,7 @@ impl<'a> AnyValue<'a> {
 
                 fields
                     .iter()
-                    .find(|(field, _, _)| *(*field) == key_str)
+                    .find(|(field, _, _)| field == key_str)
                     .map(|(_, _, value)| value.clone())
             }
             _ => None,
@@ -354,7 +355,7 @@ impl<'a> AnyValue<'a> {
         match self {
             AnyValue::Map(fields) => fields
                 .iter()
-                .find(|(f, _, _)| *(*f) == field_str)
+                .find(|(f, _, _)| f == field_str)
                 .map(|(_, _, value)| value.clone()),
             _ => None,
         }
@@ -509,7 +510,7 @@ where
                 .map(|(k, v)| {
                     let cloned_value = v.clone().into();
                     let name = k.into();
-                    (Arc::new(name), cloned_value.dtype(), cloned_value)
+                    (SmallStr::from(name), cloned_value.dtype(), cloned_value)
                 })
                 .collect(),
         )
@@ -539,8 +540,8 @@ pub(crate) fn apply_zipped_slice(
 
 #[inline]
 pub(crate) fn apply_zipped_struct_slice(
-    one: &[(Arc<String>, DataType, AnyValue<'_>)],
-    two: &[(Arc<String>, DataType, AnyValue<'_>)],
+    one: &[(SmallStr, DataType, AnyValue<'_>)],
+    two: &[(SmallStr, DataType, AnyValue<'_>)],
     f: impl Fn(&AnyValue<'_>, &AnyValue<'_>) -> Option<AnyValue<'static>>,
 ) -> Option<AnyValue<'static>> {
     if one.len() != two.len() {
@@ -652,7 +653,7 @@ impl<'a, 'de> Deserialize<'de> for AnyValue<'a> {
             StrOwned(String),
             Slice(Vec<AnyValueDef>),
             Vector(Vec<AnyValueDef>),
-            Map(Vec<(Arc<String>, DataType, AnyValueDef)>),
+            Map(Vec<(SmallStr, DataType, AnyValueDef)>),
             Struct(Field, Vec<(Field, AnyValueDef)>),
         }
 
@@ -683,9 +684,10 @@ impl<'a, 'de> Deserialize<'de> for AnyValue<'a> {
                     AnyValueDef::Vector(vals) => {
                         Vector(vals.into_iter().map(AnyValue::from).collect())
                     }
-                    AnyValueDef::Map(vals) => {
-                        Map(vals.into_iter().map(|(f, d, v)| (f, d, v.into())).collect())
-                    }
+                    AnyValueDef::Map(vals) => Map(vals
+                        .into_iter()
+                        .map(|(f, d, v)| (SmallStr::from(f), d, v.into()))
+                        .collect()),
                     AnyValueDef::Struct(field, fields) => Struct(
                         field,
                         fields.into_iter().map(|(f, v)| (f, v.into())).collect(),
@@ -730,7 +732,7 @@ impl<'a, 'de> Deserialize<'de> for AnyValue<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::{DataType, Field};
+    use super::DataType;
 
     use super::AnyValue;
 

@@ -1,4 +1,4 @@
-use radiate_core::{Chromosome, Objective, Optimize, Population, Select, pareto};
+use radiate_core::{Chromosome, Objective, Optimize, Population, Select, freeze::Frozen, pareto};
 use std::cmp::Ordering;
 use std::sync::{Arc, Mutex};
 
@@ -36,6 +36,10 @@ impl NSGA3Selector {
 impl<C: Chromosome + Clone> Select<C> for NSGA3Selector {
     fn name(&self) -> &'static str {
         "nsga3_selector"
+    }
+
+    fn freeze(&self) -> Frozen {
+        Frozen::typed::<Self>().with("partitions", self.partitions)
     }
 
     fn select(

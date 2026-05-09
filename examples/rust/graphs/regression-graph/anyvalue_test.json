@@ -1,0 +1,1 @@
+{"parameters":{"aaa":{"fields":[["type","String","TournamentSelector"],["k","Usize",3]]},"offspring_selector":{"fields":[["type","String","BoltzmannSelector"],["temperature","Float32",4.0]]}}}

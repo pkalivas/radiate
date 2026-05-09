@@ -1,8 +1,8 @@
 use super::{Field, Scalar};
-use crate::Primitive;
+use crate::{Primitive, SmallStr};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use std::{fmt::Display, sync::Arc};
+use std::fmt::Display;
 
 pub mod dtype_names {
     pub const NULL: &str = "null";
@@ -60,7 +60,7 @@ pub enum DataType {
     String,
 
     List(Box<DataType>),
-    Map(Vec<(Arc<String>, DataType)>),
+    Map(Vec<(SmallStr, DataType)>),
     Struct(Box<Field>, Vec<Field>),
 }
 

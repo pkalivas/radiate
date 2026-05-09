@@ -1,7 +1,5 @@
-use std::sync::Arc;
-
 use pyo3::{intern, prelude::*, pybacked::PyBackedStr, types::PyList};
-use radiate_utils::{DataType, Field};
+use radiate_utils::{DataType, Field, SmallStr};
 
 use crate::Wrap;
 
@@ -270,13 +268,8 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Wrap<DataType> {
                 let fields = fields
                     .extract::<Vec<Wrap<Field>>>()?
                     .into_iter()
-                    .map(|f| {
-                        (
-                            radiate_utils::cache_arc_string!(f.0.name().to_string()),
-                            f.0.dtype().clone(),
-                        )
-                    })
-                    .collect::<Vec<(Arc<String>, DataType)>>();
+                    .map(|f| (SmallStr::from(f.0.name().to_string()), f.0.dtype().clone()))
+                    .collect::<Vec<(SmallStr, DataType)>>();
                 DataType::Map(fields)
             }
 

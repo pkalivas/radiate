@@ -19,7 +19,7 @@ use crate::io::CheckpointReader;
 use crate::objectives::{Objective, Optimize};
 use crate::pipeline::Pipeline;
 use crate::steps::{AuditStep, EngineStep, FilterStep, FrontStep, RecombineStep, SpeciateStep};
-use crate::{Chromosome, EvaluateStep, GeneticEngine, ParameterSet};
+use crate::{Chromosome, EvaluateStep, Freeze, GeneticEngine, Frozen};
 use crate::{
     Crossover, EncodeReplace, EngineProblem, EventBus, EventHandler, Front, Mutate,
     ReplacementStrategy, RouletteSelector, TournamentSelector, context::Context,
@@ -29,7 +29,6 @@ use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::NamedExpr;
 use radiate_core::evaluator::BatchFitnessEvaluator;
-use radiate_core::parameter::Parameter;
 use radiate_core::problem::BatchEngineProblem;
 use radiate_core::{Alterer, Ecosystem, Executor, FitnessEvaluator, Rate, Valid};
 use radiate_core::{RadiateError, ensure, radiate_err};
@@ -55,7 +54,7 @@ where
     pub handlers: Vec<Arc<Mutex<dyn EventHandler<T>>>>,
     pub generation: Option<Generation<C, T>>,
     pub exprs: Option<Arc<Mutex<Vec<NamedExpr>>>>,
-    pub parameter_set: ParameterSet,
+    pub freeze: Freeze,
 }
 
 /// Parameters for the genetic engine.
@@ -178,7 +177,7 @@ where
         self.build_population()?;
         self.build_alterer()?;
         self.build_front()?;
-        self.build_parameter_set()?;
+        self.build_freeze()?;
 
         let config = EngineConfig::<C, T>::from(&self.params);
 
@@ -198,25 +197,53 @@ where
         Ok(GeneticEngine::<C, T>::new(context, pipeline, event_bus))
     }
 
-    fn build_parameter_set(&mut self) -> Result<()> {
-        let select_params = &self.params.selection_params;
-        let mut parameter_set = ParameterSet::default();
+    fn build_freeze(&mut self) -> Result<()> {
+        let sel = &self.params.selection_params;
+        let pop = &self.params.population_params;
+        let spc = &self.params.species_params;
+        let opt = &self.params.optimization_params;
+        let mut freeze = Freeze::default();
 
-        parameter_set.insert(
-            "offspring_selector",
-            select_params.offspring_selector.params(),
+        freeze.insert(
+            "selectors",
+            Frozen::new()
+                .with("offspring", sel.offspring_selector.freeze())
+                .with("survivor", sel.survivor_selector.freeze()),
+        );
+        freeze.insert(
+            "offspring_fraction",
+            Frozen::new().with("value", sel.offspring_fraction),
+        );
+        freeze.insert(
+            "population_size",
+            Frozen::new().with("value", pop.population_size),
+        );
+        freeze.insert("max_age", Frozen::new().with("value", pop.max_age));
+        freeze.insert(
+            "max_species_age",
+            Frozen::new().with("value", spc.max_species_age),
+        );
+        freeze.insert("species_threshold", spc.species_threshold.freeze());
+        freeze.insert("objective", opt.objectives.freeze());
+
+        let alters: Vec<radiate_core::AnyValue<'static>> = self
+            .params
+            .alterers
+            .iter()
+            .map(|a| a.freeze().build())
+            .collect();
+        freeze.insert("alters", radiate_core::AnyValue::Vector(alters));
+
+        freeze.insert(
+            "replacement_strategy",
+            self.params.replacement_strategy.freeze(),
         );
 
-        parameter_set.insert(
-            "survivor_selector",
-            select_params.survivor_selector.params(),
-        );
+        if let Some(codec) = self.params.problem_params.codec.as_ref() {
+            freeze.insert("codec", codec.freeze());
+        }
 
-        parameter_set.insert("offspring_fraction", select_params.offspring_fraction);
-        self.params.parameter_set = parameter_set;
-
-        println!("{:#?}", self.params.parameter_set);
-
+        self.params.freeze = freeze;
         Ok(())
     }
 
@@ -490,7 +517,7 @@ where
                 handlers: Vec::new(),
                 exprs: None,
                 generation: None,
-                parameter_set: ParameterSet::default(),
+                freeze: Freeze::default(),
             },
             errors: Vec::new(),
         }

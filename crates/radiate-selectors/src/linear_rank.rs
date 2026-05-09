@@ -1,4 +1,4 @@
-use radiate_core::{Chromosome, Objective, Population, Select, random_provider};
+use radiate_core::{Chromosome, Objective, Population, Select, freeze::Frozen, random_provider};
 
 #[derive(Debug, Clone)]
 pub struct LinearRankSelector {
@@ -12,6 +12,10 @@ impl LinearRankSelector {
 }
 
 impl<C: Chromosome + Clone> Select<C> for LinearRankSelector {
+    fn freeze(&self) -> Frozen {
+        Frozen::typed::<Self>().with("selection_pressure", self.selection_pressure)
+    }
+
     fn select(&self, population: &Population<C>, _: &Objective, count: usize) -> Population<C> {
         let n = population.len();
         if n == 0 || count == 0 {

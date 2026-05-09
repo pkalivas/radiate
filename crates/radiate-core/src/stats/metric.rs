@@ -1,7 +1,7 @@
 use crate::stats::{MetricView, Tag, TagType, defaults};
 use radiate_error::{RadiateError, radiate_err};
 use radiate_utils::{
-    AnyValue, DataType, Statistic, ToSnakeCase, cache_arc_string, intern, intern_snake_case,
+    AnyValue, DataType, Statistic, cache_arc_string,
 };
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -42,7 +42,7 @@ pub struct Metric {
 
 impl Metric {
     pub fn new(name: &'static str) -> Self {
-        let name = cache_arc_string!(intern_snake_case!(name));
+        let name = cache_arc_string!(name);
         let tags = defaults::default_tags(&name);
 
         Self {

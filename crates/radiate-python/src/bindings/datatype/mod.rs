@@ -6,7 +6,7 @@ use cell::GILOnceCell;
 
 pub use dtype::*;
 use radiate::DataType;
-use radiate_utils::{AnyValue, Field};
+use radiate_utils::{AnyValue, SmallStr};
 
 use pyo3::{
     Borrowed, Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python,
@@ -19,7 +19,6 @@ use pyo3::{
 use std::{
     borrow::{Borrow, Cow},
     collections::HashMap,
-    sync::Arc,
 };
 
 type InitFn = for<'py> fn(&Bound<'py, PyAny>, bool) -> PyResult<AnyValue<'py>>;
@@ -171,11 +170,7 @@ pub fn py_object_to_any_value<'a, 'py>(
                     let key = k.extract::<Cow<str>>()?;
                     let val = py_object_to_any_value(v.as_borrowed(), strict)?;
 
-                    key_value_pairs.push((
-                        radiate_utils::cache_arc_string!(key.to_string()),
-                        val.dtype(),
-                        val,
-                    ));
+                    key_value_pairs.push((SmallStr::from(key.to_string()), val.dtype(), val));
                 }
 
                 Ok(AnyValue::Map(key_value_pairs))
@@ -223,7 +218,7 @@ pub fn py_object_to_any_value<'a, 'py>(
 
 fn struct_dict<'py, 'a>(
     py: Python<'py>,
-    vals: impl Iterator<Item = (Arc<String>, DataType, AnyValue<'a>)>,
+    vals: impl Iterator<Item = (SmallStr, DataType, AnyValue<'a>)>,
 ) -> PyResult<Bound<'py, PyDict>> {
     let dict = PyDict::new(py);
 

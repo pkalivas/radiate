@@ -25,7 +25,7 @@ fn main() {
         ))
         .build();
 
-    let params = engine.parameters();
+    let params = engine.freeze();
 
     let mut file = std::fs::File::create("anyvalue_test.yaml").unwrap();
     yaml_serde::to_writer(&mut file, &params).unwrap();

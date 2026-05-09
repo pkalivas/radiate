@@ -3,7 +3,7 @@ use crate::context::Context;
 use crate::events::EngineMessage;
 use crate::iter::EngineIterator;
 use crate::pipeline::Pipeline;
-use crate::{Chromosome, EngineControl, ParameterSet};
+use crate::{Chromosome, EngineControl, Freeze};
 use crate::{EventBus, Generation};
 use radiate_core::Engine;
 use radiate_core::error::Result;
@@ -124,8 +124,8 @@ where
         EngineIterator::new(self, control)
     }
 
-    pub fn parameters(&self) -> ParameterSet {
-        self.context.parameter_set.clone()
+    pub fn freeze(&self) -> Freeze {
+        self.context.freeze.clone()
     }
 }
 
