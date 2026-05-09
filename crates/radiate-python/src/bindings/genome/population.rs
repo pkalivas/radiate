@@ -4,7 +4,7 @@ use radiate::{
     BitChromosome, CharChromosome, Chromosome, FloatChromosome, GraphChromosome, IntChromosome, Op,
     PermutationChromosome, Phenotype, Population, TreeChromosome,
 };
-use radiate_expr::DataType;
+use radiate_utils::DataType;
 
 #[pyclass(from_py_object)]
 #[derive(Clone, Debug)]

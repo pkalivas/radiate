@@ -5,7 +5,7 @@ mod value;
 use cell::GILOnceCell;
 
 pub use dtype::*;
-use radiate_expr::{AnyValue, Field};
+use radiate_utils::{AnyValue, Field};
 
 use pyo3::{
     Borrowed, Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python,

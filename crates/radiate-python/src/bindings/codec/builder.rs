@@ -8,7 +8,7 @@ use pyo3::{Bound, IntoPyObject, IntoPyObjectExt, PyAny, PyResult};
 use radiate::{
     Chromosome, Codec, FloatChromosome, Gene, Genotype, IntChromosome, chromosomes::NumericAllele,
 };
-use radiate_expr::DataType;
+use radiate_utils::DataType;
 
 pub trait CodecBuilder<C: Chromosome, T> {
     fn build(self) -> PyCodec<C, T>;

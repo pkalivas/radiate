@@ -1,8 +1,7 @@
 use crate::stats::{MetricView, Tag, TagType, defaults};
 use radiate_error::{RadiateError, radiate_err};
-use radiate_expr::{AnyValue, DataType};
 use radiate_utils::{
-    Statistic, ToSnakeCase, cache_arc_string, intern, intern_snake_case,
+    AnyValue, DataType, Statistic, ToSnakeCase, cache_arc_string, intern, intern_snake_case,
 };
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};

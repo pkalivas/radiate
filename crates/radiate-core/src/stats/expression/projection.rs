@@ -1,4 +1,5 @@
-use crate::{AnyValue, Field, SelectExpr, expression::select::PathSegment};
+use super::{SelectExpr, select::PathSegment};
+use radiate_utils::{AnyValue, Field};
 use std::collections::HashMap;
 
 pub trait ExprProjection {
@@ -108,7 +109,8 @@ impl ExprProjection for i32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{AnyValue, Expr, Evaluate, Field, expr, expression::select::PathBuilder};
+    use super::super::{Evaluate, Expr, expr, select::PathBuilder};
+    use radiate_utils::{AnyValue, Field};
     use std::collections::HashMap;
 
     fn f32_of(value: AnyValue<'_>) -> f32 {

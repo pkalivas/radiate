@@ -19,8 +19,7 @@
 #[cfg(feature = "serde")]
 use crate::{CheckpointWriter, JsonCheckpointWriter};
 use crate::{Generation, Limit, control::EngineControl, init_logging};
-use radiate_core::{Chromosome, Engine, Metric, Objective, Optimize, Score};
-use radiate_expr::{AnyValue, Evaluate, Expr};
+use radiate_core::{AnyValue, Chromosome, Engine, Evaluate, Expr, Metric, Objective, Optimize, Score};
 #[cfg(feature = "serde")]
 use serde::Serialize;
 #[cfg(feature = "serde")]

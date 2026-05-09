@@ -1,5 +1,5 @@
 use super::{Field, Scalar};
-use radiate_utils::Primitive;
+use crate::Primitive;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;

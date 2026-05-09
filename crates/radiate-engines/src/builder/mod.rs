@@ -31,7 +31,7 @@ use radiate_core::evaluator::BatchFitnessEvaluator;
 use radiate_core::problem::BatchEngineProblem;
 use radiate_core::{Alterer, Ecosystem, Executor, FitnessEvaluator, Rate, Valid};
 use radiate_core::{RadiateError, ensure, radiate_err};
-use radiate_expr::NamedExpr;
+use radiate_core::NamedExpr;
 #[cfg(feature = "serde")]
 use serde::Deserialize;
 use std::sync::{Arc, Mutex};

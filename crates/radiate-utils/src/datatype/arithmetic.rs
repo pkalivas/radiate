@@ -379,7 +379,7 @@ impl<'a> Not for AnyValue<'a> {
 }
 
 #[inline]
-pub(crate) fn pow_anyvalue(
+pub fn pow_anyvalue(
     base: &AnyValue<'_>,
     exp: &AnyValue<'_>,
 ) -> Result<AnyValue<'static>, radiate_error::RadiateError> {

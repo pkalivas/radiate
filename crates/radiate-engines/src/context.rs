@@ -6,7 +6,7 @@ use radiate_core::{
     Ecosystem, Front, Lineage, MetricSet, MetricUpdate, Objective, Phenotype, Problem,
     RadiateError, Score, metric, metric_names,
 };
-use radiate_expr::{Evaluate, NamedExpr};
+use radiate_core::{Evaluate, NamedExpr};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex, RwLock};

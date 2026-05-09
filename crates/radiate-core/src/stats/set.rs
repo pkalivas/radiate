@@ -1,9 +1,12 @@
 use crate::{
     Metric, MetricUpdate,
-    stats::{Meta, Tag, TagType, defaults::try_add_tag_from_str, fmt},
+    stats::{
+        Meta, Tag, TagType, defaults::try_add_tag_from_str,
+        expression::{ExprProjection, SelectExpr},
+        fmt,
+    },
 };
-use radiate_expr::{AnyValue, DataType, ExprProjection, SelectExpr};
-use radiate_utils::intern;
+use radiate_utils::{AnyValue, DataType, intern};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::{

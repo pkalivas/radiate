@@ -1,5 +1,5 @@
 use pyo3::{intern, prelude::*, pybacked::PyBackedStr, types::PyList};
-use radiate_expr::{DataType, Field};
+use radiate_utils::{DataType, Field};
 
 use crate::Wrap;
 

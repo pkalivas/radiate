@@ -544,7 +544,7 @@ pub(crate) fn apply_zipped_struct_slice(
 }
 
 #[inline]
-pub(crate) fn dedup_slice<'a>(value: &[AnyValue<'a>]) -> AnyValue<'a> {
+pub fn dedup_slice<'a>(value: &[AnyValue<'a>]) -> AnyValue<'a> {
     let mut sorted_buff = Vec::with_capacity(value.len());
     for v in value.iter() {
         match sorted_buff.binary_search(v) {

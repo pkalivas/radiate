@@ -1,5 +1,6 @@
 mod array;
 mod buff;
+mod datatype;
 mod fmt;
 mod intern;
 mod lru;
@@ -9,6 +10,7 @@ mod str;
 
 pub use array::{Shape, Strides, Tensor};
 pub use buff::{SortedBuffer, Value, WindowBuffer};
+pub use datatype::{AnyValue, DataType, Field, dedup_slice, dtype, dtype_names, pow_anyvalue, value};
 pub use fmt::{ToSnakeCase, intern_kv_pair, intern_name_as_snake_case};
 pub use intern::{
     ARC_STRING_INTERN_CACHE, SNAKE_CASE_INTERN_CACHE, STR_CACHE, STR_INTERN_CACHE,

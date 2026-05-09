@@ -1,5 +1,6 @@
-use crate::{AnyValue, Evaluate, Expr, ExprProjection, ExprResult, Field};
+use super::{Evaluate, Expr, ExprProjection, ExprResult};
 use radiate_error::radiate_bail;
+use radiate_utils::{AnyValue, Field};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 

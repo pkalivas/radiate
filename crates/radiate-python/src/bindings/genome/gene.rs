@@ -5,7 +5,7 @@ use radiate::{
     PermutationGene, TreeNode, random_provider,
 };
 use radiate_error::radiate_py_bail;
-use radiate_expr::{DataType, dtype_names};
+use radiate_utils::{DataType, dtype_names};
 use radiate_utils::{Float, Integer, SmallStr};
 use serde::{Deserialize, Serialize};
 

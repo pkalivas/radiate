@@ -1,5 +1,6 @@
-use crate::{AnyValue, DataType, Evaluate, Expr, ExprProjection, ExprResult};
+use super::{Evaluate, Expr, ExprProjection, ExprResult};
 use radiate_error::radiate_bail;
+use radiate_utils::{AnyValue, DataType};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
@@ -120,7 +121,7 @@ where
             BinaryOp::And => lhs & rhs,
             BinaryOp::Or => lhs | rhs,
             BinaryOp::Mod => lhs % rhs,
-            BinaryOp::Pow => crate::datatype::pow_anyvalue(&lhs, &rhs)?,
+            BinaryOp::Pow => radiate_utils::pow_anyvalue(&lhs, &rhs)?,
         };
 
         Ok(result)

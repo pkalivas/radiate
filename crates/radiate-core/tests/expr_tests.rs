@@ -1,8 +1,7 @@
 #[cfg(test)]
 mod test {
 
-    use radiate_core::MetricSet;
-    use radiate_expr::{AnyValue, Evaluate, expr};
+    use radiate_core::{AnyValue, Evaluate, MetricSet, expr};
     use std::time::Duration;
 
     fn f32_of(value: AnyValue<'_>) -> f32 {

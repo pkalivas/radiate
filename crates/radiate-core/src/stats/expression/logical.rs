@@ -1,7 +1,5 @@
-use crate::{
-    Expr,
-    expression::ops::{TrinaryExpr, TrinaryOp},
-};
+use super::Expr;
+use super::ops::{TrinaryExpr, TrinaryOp};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct When {

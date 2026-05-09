@@ -2,7 +2,7 @@ use crate::Chromosome;
 use crate::context::{Context, ContextAudit};
 use radiate_core::objectives::Scored;
 use radiate_core::{Ecosystem, Front, MetricSet, Objective, Phenotype, Population, Score, Species};
-use radiate_expr::NamedExpr;
+use radiate_core::NamedExpr;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;

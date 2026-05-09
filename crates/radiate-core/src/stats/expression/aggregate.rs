@@ -1,6 +1,6 @@
-use crate::{AnyValue, DataType, Evaluate, Expr, ExprProjection, ExprResult, value};
+use super::{Evaluate, Expr, ExprProjection, ExprResult};
 use radiate_error::radiate_bail;
-use radiate_utils::{Slope, Statistic, WindowBuffer};
+use radiate_utils::{AnyValue, DataType, Slope, Statistic, WindowBuffer, dedup_slice};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
@@ -65,7 +65,7 @@ impl AggExpr {
         }
 
         if let Rollup::Unique = rollup {
-            return Ok(value::dedup_slice(values));
+            return Ok(dedup_slice(values));
         } else if let Rollup::Count = rollup {
             return Ok(AnyValue::UInt64(values.len() as u64));
         } else if let Rollup::First = rollup {

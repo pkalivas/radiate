@@ -3,7 +3,7 @@ use pyo3::{
     Borrowed, Bound, FromPyObject, IntoPyObject, PyAny, PyErr, PyResult, Python,
     exceptions::PyValueError,
 };
-use radiate_expr::AnyValue;
+use radiate_utils::AnyValue;
 
 impl<'py> FromPyObject<'_, 'py> for Wrap<AnyValue<'py>> {
     type Error = PyErr;

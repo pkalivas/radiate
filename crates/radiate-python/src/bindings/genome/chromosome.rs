@@ -3,7 +3,7 @@ use pyo3::{
     Bound, IntoPyObject, PyAny, PyResult, Python, exceptions::PyIndexError, pyclass, pymethods,
 };
 use radiate::prelude::*;
-use radiate_expr::DataType;
+use radiate_utils::DataType;
 
 #[pyclass(from_py_object)]
 #[derive(Clone, Debug, PartialEq)]

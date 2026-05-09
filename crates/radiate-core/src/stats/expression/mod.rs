@@ -14,17 +14,16 @@ pub use select::SelectExpr;
 pub use traits::Evaluate;
 pub(crate) use traits::ExprResult;
 
-use crate::{AnyValue, DataType};
 use aggregate::{AggExpr, BufferExpr};
 use logical::When;
 use ops::{BinaryExpr, TrinaryExpr, UnaryExpr};
-use radiate_utils::SmallStr;
+use radiate_utils::{AnyValue, DataType, SmallStr};
 use schedule::{EveryState, ScheduleExpr};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 mod expr_fields {
-    use crate::{DataType, Field};
+    use radiate_utils::{DataType, Field};
 
     pub static STD_DEV: Field = Field::new_const("std_dev", DataType::Float32);
     pub static MEAN: Field = Field::new_const("mean", DataType::Float32);
@@ -70,7 +69,7 @@ where
 
 pub mod expr {
     use super::*;
-    use crate::expression::{expr_fields::LAST_VALUE, select::PathBuilder};
+    use super::{expr_fields::LAST_VALUE, select::PathBuilder};
 
     pub fn lit(value: impl Into<AnyValue<'static>>) -> Expr {
         Expr::Literal(value.into())
@@ -117,8 +116,8 @@ pub mod expr {
 
 #[cfg(test)]
 mod tests {
-    use super::{Expr, expr};
-    use crate::{AnyValue, DataType, Evaluate};
+    use super::{Evaluate, Expr, expr};
+    use radiate_utils::{AnyValue, DataType};
     use std::collections::HashMap;
 
     fn f32_val(v: AnyValue<'_>) -> f32 {

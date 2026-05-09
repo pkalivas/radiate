@@ -11,8 +11,8 @@ use crate::builder::species::SpeciesParams;
 use crate::genome::phenotype::Phenotype;
 use crate::objectives::Objective;
 use crate::{EventHandler, Front, Problem, ReplacementStrategy, Select};
+use radiate_core::NamedExpr;
 use radiate_core::{Alterer, Diversity, Ecosystem, Evaluator, Executor, Genotype, Lineage, Rate};
-use radiate_expr::NamedExpr;
 use std::sync::{Arc, Mutex, RwLock};
 
 #[derive(Clone)]

@@ -37,7 +37,12 @@ pub use problem::{BatchEngineProblem, EngineProblem, Problem};
 pub use rate::Rate;
 pub use replacement::{EncodeReplace, PopulationSampleReplace, ReplacementStrategy};
 pub use selector::Select;
-pub use stats::{Metric, MetricSet, MetricUpdate, metric_names, render_dashboard, render_full};
+pub use stats::{
+    Evaluate, Expr, ExprProjection, Metric, MetricSet, MetricUpdate, NamedExpr, SelectExpr,
+    expression::expr, metric_names, render_dashboard, render_full,
+};
+
+pub use radiate_utils::{AnyValue, DataType, Field, dtype, dtype_names, value};
 
 pub mod prelude {
     pub use radiate_error::*;

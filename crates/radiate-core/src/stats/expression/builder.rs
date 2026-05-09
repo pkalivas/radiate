@@ -7,8 +7,7 @@ use super::{
     schedule::{EveryState, ScheduleExpr},
     select::SelectExpr,
 };
-use crate::{AnyValue, DataType, Field};
-use radiate_utils::WindowBuffer;
+use radiate_utils::{AnyValue, DataType, Field, WindowBuffer};
 use std::ops::{Add, Div, Mul, Neg, Not, Sub};
 
 impl Expr {
