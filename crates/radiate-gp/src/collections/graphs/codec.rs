@@ -1,7 +1,7 @@
 use super::{Graph, GraphChromosome, GraphNode};
 use crate::node::Node;
 use crate::{Factory, NodeStore, NodeType};
-use radiate_core::{Codec, Frozen, Genotype};
+use radiate_core::{Codec, Genotype};
 
 #[derive(Clone)]
 pub struct GraphCodec<T> {
@@ -134,18 +134,18 @@ where
         Graph::new(genotype[0].as_ref().to_vec())
     }
 
-    fn as_frozen(&self) -> Frozen {
+    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
         let template = self.template.as_ref();
         let count_by = |t: NodeType| template.iter().filter(|n| n.node_type() == t).count();
-        let f = Frozen::typed::<Self>()
-            .with("input_size", count_by(NodeType::Input))
-            .with("output_size", count_by(NodeType::Output))
-            .with("vertex_size", count_by(NodeType::Vertex))
-            .with("edge_size", count_by(NodeType::Edge))
-            .with("template_size", template.len());
-        match self.template.max_nodes() {
-            Some(max) => f.with("max_nodes", max),
-            None => f,
+        writeln!(w, "type: GraphCodec")?;
+        writeln!(w, "input_size: {}", count_by(NodeType::Input))?;
+        writeln!(w, "output_size: {}", count_by(NodeType::Output))?;
+        writeln!(w, "vertex_size: {}", count_by(NodeType::Vertex))?;
+        writeln!(w, "edge_size: {}", count_by(NodeType::Edge))?;
+        writeln!(w, "template_size: {}", template.len())?;
+        if let Some(max) = self.template.max_nodes() {
+            writeln!(w, "max_nodes: {}", max)?;
         }
+        Ok(())
     }
 }

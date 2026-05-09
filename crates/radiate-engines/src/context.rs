@@ -1,5 +1,5 @@
 use crate::builder::config::EngineConfig;
-use crate::{Chromosome, EngineControl, FrozenMap};
+use crate::{Chromosome, EngineControl};
 use radiate_core::error::RadiateResult;
 use radiate_core::stats::TagType;
 use radiate_core::{
@@ -16,7 +16,6 @@ use std::sync::{Arc, Mutex, RwLock};
 pub enum ContextAudit {
     NewBest,
     LimitReached(String),
-    Freeze(FrozenMap),
 }
 
 pub struct Context<C: Chromosome, T> {
@@ -32,7 +31,6 @@ pub struct Context<C: Chromosome, T> {
     pub(crate) control: Option<EngineControl>,
     pub(crate) exprs: Option<Arc<Mutex<Vec<NamedExpr>>>>,
     pub(crate) audits: Vec<ContextAudit>,
-    pub(crate) freeze: FrozenMap,
 }
 
 impl<C: Chromosome, T> Context<C, T> {
@@ -134,7 +132,6 @@ where
                 control: None,
                 exprs: generation.exprs(),
                 audits: vec![],
-                freeze: config.freeze(),
             };
         }
 
@@ -156,7 +153,6 @@ where
             control: None,
             exprs: config.exprs(),
             audits: vec![],
-            freeze: config.freeze(),
         }
     }
 }

@@ -21,15 +21,16 @@ pub use tree::PyTreeCodec;
 use numpy::{Element, PyArray1};
 use pyo3::{Bound, IntoPyObject, PyAny, PyResult, types::PyList};
 use pyo3::{IntoPyObjectExt, Python};
-use radiate::{Chromosome, Codec, Frozen, Gene, Genotype};
+use radiate::{Chromosome, Codec, Gene, Genotype};
 
 type DecoderFn<C, T> = Arc<dyn for<'py> Fn(Python<'py>, &Genotype<C>) -> T + Send + Sync>;
+type WriteFn = Arc<dyn Fn(&mut dyn std::io::Write) -> std::io::Result<()> + Send + Sync>;
 
 #[derive(Clone)]
 pub struct PyCodec<C: Chromosome, T> {
     encoder: Option<Arc<dyn Fn() -> Genotype<C>>>,
     decoder: Option<DecoderFn<C, T>>,
-    freeze: Option<Frozen>,
+    write: Option<WriteFn>,
 }
 
 impl<C: Chromosome, T> PyCodec<C, T> {
@@ -37,7 +38,7 @@ impl<C: Chromosome, T> PyCodec<C, T> {
         PyCodec {
             encoder: None,
             decoder: None,
-            freeze: None,
+            write: None,
         }
     }
 
@@ -64,8 +65,14 @@ impl<C: Chromosome, T> PyCodec<C, T> {
         self
     }
 
-    pub fn with_freeze(mut self, frozen: Frozen) -> Self {
-        self.freeze = Some(frozen);
+    /// Capture a `write` closure that this codec will return when its
+    /// `Codec::write` method is called. Used to surface Python-side codec
+    /// config (shape, dtype, etc.) since the closures themselves are opaque.
+    pub fn with_write<F>(mut self, write: F) -> Self
+    where
+        F: Fn(&mut dyn std::io::Write) -> std::io::Result<()> + Send + Sync + 'static,
+    {
+        self.write = Some(Arc::new(write));
         self
     }
 }
@@ -85,10 +92,11 @@ impl<C: Chromosome, T> Codec<C, T> for PyCodec<C, T> {
         })
     }
 
-    fn as_frozen(&self) -> Frozen {
-        self.freeze
-            .clone()
-            .unwrap_or_else(|| Frozen::typed::<Self>())
+    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
+        match &self.write {
+            Some(f) => f(w),
+            None => writeln!(w, "type: PyCodec"),
+        }
     }
 }
 

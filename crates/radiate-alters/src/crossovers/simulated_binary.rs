@@ -1,6 +1,6 @@
 use radiate_core::{
     AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, Gene, Rate, Valid,
-    freeze::Frozen, random_provider,
+    random_provider,
 };
 use radiate_utils::Float;
 
@@ -38,10 +38,10 @@ where
         self.crossover_rate.clone()
     }
 
-    fn as_frozen(&self) -> Frozen {
-        Frozen::typed::<Self>()
-            .with("rate", self.crossover_rate.freeze())
-            .with("contiguity", self.contiguty)
+    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
+        writeln!(w, "type: SimulatedBinaryCrossover")?;
+        writeln!(w, "rate: {:?}", self.crossover_rate)?;
+        writeln!(w, "contiguity: {}", self.contiguty)
     }
 
     #[inline]

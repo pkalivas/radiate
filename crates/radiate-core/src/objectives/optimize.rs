@@ -1,6 +1,4 @@
 use super::Scored;
-use crate::freeze::Frozen;
-use radiate_utils::AnyValue;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
@@ -27,23 +25,6 @@ impl Objective {
         match self {
             Objective::Single(_) => 1,
             Objective::Multi(opts) => opts.len(),
-        }
-    }
-
-    pub fn freeze(&self) -> Frozen {
-        match self {
-            Objective::Single(opt) => Frozen::new()
-                .with("type", "Single")
-                .with("optimize", optimize_label(opt)),
-            Objective::Multi(opts) => {
-                let labels: Vec<AnyValue<'static>> = opts
-                    .iter()
-                    .map(|o| AnyValue::Str(optimize_label(o)))
-                    .collect();
-                Frozen::new()
-                    .with("type", "Multi")
-                    .with("optimize", AnyValue::Vector(labels))
-            }
         }
     }
 
@@ -193,13 +174,6 @@ impl From<Objective> for Vec<&str> {
 pub enum Optimize {
     Minimize,
     Maximize,
-}
-
-fn optimize_label(opt: &Optimize) -> &'static str {
-    match opt {
-        Optimize::Minimize => "Minimize",
-        Optimize::Maximize => "Maximize",
-    }
 }
 
 impl Optimize {

@@ -1,4 +1,4 @@
-use radiate_core::{Chromosome, Objective, Population, Select, freeze::Frozen, random_provider};
+use radiate_core::{Chromosome, Objective, Population, Select, random_provider};
 
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone)]
@@ -17,8 +17,9 @@ impl TournamentSelector {
 }
 
 impl<C: Chromosome + Clone> Select<C> for TournamentSelector {
-    fn as_frozen(&self) -> Frozen {
-        Frozen::typed::<Self>().with("k", self.k).clone()
+    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
+        writeln!(w, "type: TournamentSelector")?;
+        writeln!(w, "k: {}", self.k)
     }
 
     fn select(&self, population: &Population<C>, _: &Objective, count: usize) -> Population<C> {

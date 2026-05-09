@@ -3,7 +3,7 @@ use crate::context::Context;
 use crate::events::EngineMessage;
 use crate::iter::EngineIterator;
 use crate::pipeline::Pipeline;
-use crate::{Chromosome, EngineControl, FrozenMap};
+use crate::{Chromosome, EngineControl};
 use crate::{EventBus, Generation};
 use radiate_core::Engine;
 use radiate_core::error::Result;
@@ -124,9 +124,6 @@ where
         EngineIterator::new(self, control)
     }
 
-    pub fn freeze(&self) -> FrozenMap {
-        self.context.freeze.clone()
-    }
 }
 
 /// Implementation of the [Engine] trait for [GeneticEngine].

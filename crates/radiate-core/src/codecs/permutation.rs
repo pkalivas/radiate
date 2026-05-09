@@ -1,4 +1,3 @@
-use crate::freeze::Frozen;
 use crate::{
     Chromosome, Codec, Gene, Genotype, PermutationChromosome, PermutationGene, random_provider,
 };
@@ -18,8 +17,9 @@ impl<A: PartialEq + Clone> PermutationCodec<A> {
 }
 
 impl<A: PartialEq + Clone> Codec<PermutationChromosome<A>, Vec<A>> for PermutationCodec<A> {
-    fn as_frozen(&self) -> Frozen {
-        Frozen::typed::<Self>().with("alleles", self.alleles.len())
+    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
+        writeln!(w, "type: PermutationCodec")?;
+        writeln!(w, "alleles: {}", self.alleles.len())
     }
 
     fn encode(&self) -> Genotype<PermutationChromosome<A>> {

@@ -1,5 +1,4 @@
 use super::Codec;
-use crate::freeze::Frozen;
 use crate::{BitChromosome, Chromosome, Gene, Genotype};
 use std::sync::Arc;
 
@@ -25,8 +24,9 @@ impl<T> SubSetCodec<T> {
 }
 
 impl<T> Codec<BitChromosome, Vec<Arc<T>>> for SubSetCodec<T> {
-    fn as_frozen(&self) -> Frozen {
-        Frozen::typed::<Self>().with("items", self.items.len())
+    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
+        writeln!(w, "type: SubSetCodec")?;
+        writeln!(w, "items: {}", self.items.len())
     }
 
     fn encode(&self) -> Genotype<BitChromosome> {

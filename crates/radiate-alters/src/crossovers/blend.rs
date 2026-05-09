@@ -1,6 +1,5 @@
 use radiate_core::{
-    AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, Freezable, Gene, Rate, Valid,
-    freeze::{Freeze, Frozen},
+    AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, Gene, Rate, Valid,
     random_provider,
 };
 use radiate_utils::{Float, Primitive};
@@ -13,9 +12,8 @@ use radiate_utils::{Float, Primitive};
 /// new_allele_one = allele_one - (alpha * (allele_two - allele_one))
 /// new_allele_two = allele_two - (alpha * (allele_one - allele_two))
 /// ```
-#[derive(Debug, Clone, PartialEq, Freeze)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct BlendCrossover {
-    #[freeze(nested)]
     rate: Rate,
     alpha: f32,
 }
@@ -47,8 +45,10 @@ where
         self.rate.clone()
     }
 
-    fn as_frozen(&self) -> Frozen {
-        <Self as Freezable>::as_frozen(self)
+    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
+        writeln!(w, "type: BlendCrossover")?;
+        writeln!(w, "rate: {:?}", self.rate)?;
+        writeln!(w, "alpha: {}", self.alpha)
     }
 
     #[inline]
@@ -88,21 +88,16 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use radiate_core::{AnyValue, FloatChromosome, FloatGene, MetricSet};
+    use radiate_core::{FloatChromosome, FloatGene, MetricSet};
 
     #[test]
-    fn derive_freeze_emits_expected_shape() {
+    fn write_emits_expected_shape() {
         let crossover = BlendCrossover::new(0.5, 0.3);
-        let frozen = <BlendCrossover as Freezable>::as_frozen(&crossover);
-        // Build the AnyValue and walk it to confirm the field set.
-        let any = frozen.build();
-        let AnyValue::Map(fields) = any else {
-            panic!("expected Map");
-        };
-        let names: Vec<&str> = fields.iter().map(|(n, _, _)| n.as_str()).collect();
-        assert_eq!(names, vec!["type", "rate", "alpha"]);
-        // `rate` should be a nested map (Rate::freeze emits a typed Frozen).
-        assert!(matches!(&fields[1].2, AnyValue::Map(_)));
+        let mut buf = Vec::<u8>::new();
+        Crossover::<FloatChromosome<f32>>::write(&crossover, &mut buf).unwrap();
+        let out = String::from_utf8(buf).unwrap();
+        assert!(out.contains("type: BlendCrossover"));
+        assert!(out.contains("alpha: 0.3"));
     }
 
     #[test]

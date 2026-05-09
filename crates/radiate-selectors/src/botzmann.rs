@@ -1,7 +1,5 @@
 use crate::ProbabilityWheelIterator;
-use radiate_core::{
-    Chromosome, Objective, Optimize, Population, Select, freeze::Frozen, math::norm, pareto,
-};
+use radiate_core::{Chromosome, Objective, Optimize, Population, Select, math::norm, pareto};
 use radiate_utils::MinMax;
 
 const MIN: f32 = 1e-6;
@@ -32,10 +30,9 @@ impl BoltzmannSelector {
 }
 
 impl<C: Chromosome + Clone> Select<C> for BoltzmannSelector {
-    fn as_frozen(&self) -> Frozen {
-        Frozen::typed::<Self>()
-            .with("temperature", self.temperature)
-            .clone()
+    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
+        writeln!(w, "type: BoltzmannSelector")?;
+        writeln!(w, "temperature: {}", self.temperature)
     }
 
     #[inline]

@@ -6,8 +6,7 @@ use num_traits::NumCast;
 use numpy::Element;
 use pyo3::{Bound, IntoPyObject, IntoPyObjectExt, PyAny, PyResult};
 use radiate::{
-    AnyValue, Chromosome, Codec, FloatChromosome, Frozen, Gene, Genotype, IntChromosome,
-    chromosomes::NumericAllele,
+    Chromosome, Codec, FloatChromosome, Gene, Genotype, IntChromosome, chromosomes::NumericAllele,
 };
 use radiate_utils::DataType;
 
@@ -261,17 +260,19 @@ where
         let cloned_lengths = lengths.clone();
         let use_numpy = self.use_numpy;
 
-        let frozen = numeric_codec_freeze(
-            &self.dtype,
-            &lengths,
-            &val_range,
-            &bound_range,
-            self.genes.as_deref(),
-            self.chromosomes.as_deref(),
-            use_numpy,
-        );
-
-        println!("NumericCodec freeze: {:?}", frozen);
+        // Capture write-relevant info for the snapshot closure.
+        let dtype_label = format!("{:?}", self.dtype);
+        let codec_kind = match self.dtype {
+            DataType::Float32 | DataType::Float64 => "FloatCodec",
+            _ => "IntCodec",
+        };
+        let shape_for_write = lengths.clone();
+        let val_start: f64 = num_traits::cast(val_range.start).unwrap_or(f64::NAN);
+        let val_end: f64 = num_traits::cast(val_range.end).unwrap_or(f64::NAN);
+        let bound_start: f64 = num_traits::cast(bound_range.start).unwrap_or(f64::NAN);
+        let bound_end: f64 = num_traits::cast(bound_range.end).unwrap_or(f64::NAN);
+        let gene_count = self.genes.as_ref().map(|g| g.len());
+        let chrom_count = self.chromosomes.as_ref().map(|c| c.len());
 
         let codec = if let Some(genes) = &self.genes {
             let materialized_chromosome = Self::materialize_genes::<G, C>(genes);
@@ -313,43 +314,20 @@ where
                 })
         };
 
-        codec.with_freeze(frozen)
+        codec.with_write(move |w| {
+            writeln!(w, "type: {}", codec_kind)?;
+            writeln!(w, "dtype: {}", dtype_label)?;
+            writeln!(w, "shape: {:?}", shape_for_write)?;
+            writeln!(w, "value_range: [{}, {}]", val_start, val_end)?;
+            writeln!(w, "bound_range: [{}, {}]", bound_start, bound_end)?;
+            writeln!(w, "use_numpy: {}", use_numpy)?;
+            if let Some(n) = gene_count {
+                writeln!(w, "genes: {}", n)?;
+            }
+            if let Some(n) = chrom_count {
+                writeln!(w, "chromosomes: {}", n)?;
+            }
+            Ok(())
+        })
     }
-}
-
-fn numeric_codec_freeze<A: NumericAllele + NumCast + Copy>(
-    dtype: &DataType,
-    shape: &[usize],
-    val_range: &Range<A>,
-    bound_range: &Range<A>,
-    genes: Option<&[PyGene]>,
-    chromosomes: Option<&[PyChromosome]>,
-    use_numpy: bool,
-) -> Frozen {
-    let codec_kind = match dtype {
-        DataType::Float32 | DataType::Float64 => "FloatCodec",
-        _ => "IntCodec",
-    };
-    let shape_vec: Vec<AnyValue<'static>> = shape.iter().map(|n| AnyValue::Usize(*n)).collect();
-
-    let mut f = Frozen::new()
-        .with("type", codec_kind)
-        .with("dtype", format!("{:?}", dtype))
-        .with("shape", AnyValue::Vector(shape_vec))
-        .with("value_range", anyvalue_range(val_range))
-        .with("bound_range", anyvalue_range(bound_range))
-        .with("use_numpy", use_numpy);
-    if let Some(g) = genes {
-        f = f.with("genes", g.len());
-    }
-    if let Some(c) = chromosomes {
-        f = f.with("chromosomes", c.len());
-    }
-    f
-}
-
-fn anyvalue_range<A: NumCast + Copy>(range: &Range<A>) -> Frozen {
-    let start: f64 = num_traits::cast(range.start).unwrap_or(f64::NAN);
-    let end: f64 = num_traits::cast(range.end).unwrap_or(f64::NAN);
-    Frozen::new().with("start", start).with("end", end)
 }

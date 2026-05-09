@@ -1,7 +1,6 @@
 use radiate_utils::Integer;
 
 use super::Codec;
-use crate::freeze::{Frozen, frozen_range};
 use crate::genome::Gene;
 use crate::genome::genotype::Genotype;
 use crate::{Chromosome, IntChromosome};
@@ -29,12 +28,12 @@ impl<T: Integer, D> IntCodec<T, D> {
         self
     }
 
-    fn freeze_repr(&self) -> Frozen {
-        Frozen::typed::<Self>()
-            .with("num_chromosomes", self.num_chromosomes)
-            .with("num_genes", self.num_genes)
-            .with("value_range", frozen_range(&self.value_range))
-            .with("bounds", frozen_range(&self.bounds))
+    fn write_repr(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
+        writeln!(w, "type: IntCodec")?;
+        writeln!(w, "num_chromosomes: {}", self.num_chromosomes)?;
+        writeln!(w, "num_genes: {}", self.num_genes)?;
+        writeln!(w, "value_range: {:?}", self.value_range)?;
+        writeln!(w, "bounds: {:?}", self.bounds)
     }
 
     /// The different variants of `IntCodec` are all the same, so this function is used to create
@@ -111,8 +110,8 @@ impl<T: Integer> IntCodec<T, T> {
 /// let decoded: Vec<Vec<i32>> = codec.decode(&genotype);
 /// ```
 impl<T: Integer> Codec<IntChromosome<T>, Vec<Vec<T>>> for IntCodec<T, Vec<Vec<T>>> {
-    fn as_frozen(&self) -> Frozen {
-        self.freeze_repr()
+    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
+        self.write_repr(w)
     }
 
     fn encode(&self) -> Genotype<IntChromosome<T>> {
@@ -146,8 +145,8 @@ impl<T: Integer> Codec<IntChromosome<T>, Vec<Vec<T>>> for IntCodec<T, Vec<Vec<T>
 /// let decoded: Vec<i32> = codec.decode(&genotype);
 /// ```
 impl<T: Integer> Codec<IntChromosome<T>, Vec<T>> for IntCodec<T, Vec<T>> {
-    fn as_frozen(&self) -> Frozen {
-        self.freeze_repr()
+    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
+        self.write_repr(w)
     }
 
     fn encode(&self) -> Genotype<IntChromosome<T>> {
@@ -183,8 +182,8 @@ impl<T: Integer> Codec<IntChromosome<T>, Vec<T>> for IntCodec<T, Vec<T>> {
 /// let decoded: i32 = codec.decode(&genotype);
 /// ```
 impl<T: Integer> Codec<IntChromosome<T>, T> for IntCodec<T, T> {
-    fn as_frozen(&self) -> Frozen {
-        self.freeze_repr()
+    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
+        self.write_repr(w)
     }
 
     fn encode(&self) -> Genotype<IntChromosome<T>> {

@@ -1,7 +1,5 @@
 use radiate_core::{
-    AlterContext, AlterResult, Chromosome, Crossover, Freezable, Rate, Valid,
-    freeze::{Freeze, Frozen},
-    random_provider,
+    AlterContext, AlterResult, Chromosome, Crossover, Rate, Valid, random_provider,
 };
 
 /// The [MultiPointCrossover] is a crossover method that takes two chromosomes and crosses them
@@ -12,10 +10,8 @@ use radiate_core::{
 ///
 /// This is the traditional crossver method used by genetic algorithms. It is a
 /// simple method that can be used with any type of gene.
-#[derive(Freeze)]
 pub struct MultiPointCrossover {
     num_points: usize,
-    #[freeze(nested)]
     rate: Rate,
 }
 
@@ -39,8 +35,10 @@ impl<C: Chromosome> Crossover<C> for MultiPointCrossover {
         self.rate.clone()
     }
 
-    fn as_frozen(&self) -> Frozen {
-        <Self as Freezable>::as_frozen(self)
+    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
+        writeln!(w, "type: MultiPointCrossover")?;
+        writeln!(w, "rate: {:?}", self.rate)?;
+        writeln!(w, "num_points: {}", self.num_points)
     }
 
     #[inline]

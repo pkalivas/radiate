@@ -1,7 +1,7 @@
 use crate::node::{Node, NodeExt};
 use crate::ops::operation::Op;
 use crate::{Factory, GraphChromosome, NodeStore, NodeType, TreeChromosome};
-use radiate_core::{AlterContext, AlterResult, Mutate, Rate, Valid, freeze::Frozen};
+use radiate_core::{AlterContext, AlterResult, Mutate, Rate, Valid};
 use radiate_core::{Chromosome, random_provider};
 
 const OP_MUTATED: &str = "mutate.operation.mutated";
@@ -98,10 +98,10 @@ where
         self.rate.clone()
     }
 
-    fn as_frozen(&self) -> Frozen {
-        Frozen::typed::<Self>()
-            .with("rate", self.rate.freeze())
-            .with("replace_rate", self.replace_rate)
+    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
+        writeln!(w, "type: OperationMutator")?;
+        writeln!(w, "rate: {:?}", self.rate)?;
+        writeln!(w, "replace_rate: {}", self.replace_rate)
     }
 
     #[inline]
@@ -144,10 +144,10 @@ where
         self.rate.clone()
     }
 
-    fn as_frozen(&self) -> Frozen {
-        Frozen::typed::<Self>()
-            .with("rate", self.rate.freeze())
-            .with("replace_rate", self.replace_rate)
+    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
+        writeln!(w, "type: OperationMutator")?;
+        writeln!(w, "rate: {:?}", self.rate)?;
+        writeln!(w, "replace_rate: {}", self.replace_rate)
     }
 
     #[inline]

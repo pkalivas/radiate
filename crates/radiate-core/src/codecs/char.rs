@@ -1,6 +1,5 @@
 use super::Codec;
 use crate::chromosomes::char;
-use crate::freeze::Frozen;
 use crate::genome::CharGene;
 use crate::genome::Gene;
 use crate::genome::genotype::Genotype;
@@ -24,11 +23,11 @@ impl<T> CharCodec<T> {
         self
     }
 
-    fn freeze_repr(&self) -> Frozen {
-        Frozen::typed::<Self>()
-            .with("num_chromosomes", self.num_chromosomes)
-            .with("num_genes", self.num_genes)
-            .with("char_set_size", self.char_set.len())
+    fn write_repr(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
+        writeln!(w, "type: CharCodec")?;
+        writeln!(w, "num_chromosomes: {}", self.num_chromosomes)?;
+        writeln!(w, "num_genes: {}", self.num_genes)?;
+        writeln!(w, "char_set_size: {}", self.char_set.len())
     }
 }
 
@@ -55,8 +54,8 @@ impl CharCodec<Vec<char>> {
 }
 
 impl Codec<CharChromosome, Vec<Vec<char>>> for CharCodec<Vec<Vec<char>>> {
-    fn as_frozen(&self) -> Frozen {
-        self.freeze_repr()
+    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
+        self.write_repr(w)
     }
 
     fn encode(&self) -> Genotype<CharChromosome> {
@@ -87,8 +86,8 @@ impl Codec<CharChromosome, Vec<Vec<char>>> for CharCodec<Vec<Vec<char>>> {
 }
 
 impl Codec<CharChromosome, Vec<char>> for CharCodec<Vec<char>> {
-    fn as_frozen(&self) -> Frozen {
-        self.freeze_repr()
+    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
+        self.write_repr(w)
     }
 
     fn encode(&self) -> Genotype<CharChromosome> {

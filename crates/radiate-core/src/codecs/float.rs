@@ -1,9 +1,8 @@
 use super::Codec;
-use crate::freeze::{Frozen, frozen_range};
 use crate::genome::Gene;
 use crate::genome::genotype::Genotype;
 use crate::{Chromosome, FloatChromosome};
-use radiate_utils::{AnyValue, Float};
+use radiate_utils::Float;
 use std::ops::Range;
 
 /// A [Codec] for a [Genotype] of `FloatGenes`. The `encode` function creates a [Genotype] with `num_chromosomes` chromosomes
@@ -30,26 +29,16 @@ impl<F: Float, T> FloatCodec<F, T> {
         self
     }
 
-    fn freeze_repr(&self) -> Frozen {
-        let f = Frozen::typed::<Self>()
-            .with("num_chromosomes", self.num_chromosomes)
-            .with("num_genes", self.num_genes)
-            .with("value_range", frozen_range(&self.value_range))
-            .with("bounds", frozen_range(&self.bounds));
-        match &self.shapes {
-            Some(s) => f.with(
-                "shapes",
-                s.iter()
-                    .map(|(rows, cols)| {
-                        Frozen::new()
-                            .with("rows", *rows)
-                            .with("cols", *cols)
-                            .build()
-                    })
-                    .collect::<Vec<AnyValue>>(),
-            ),
-            None => f,
+    fn write_repr(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
+        writeln!(w, "type: FloatCodec")?;
+        writeln!(w, "num_chromosomes: {}", self.num_chromosomes)?;
+        writeln!(w, "num_genes: {}", self.num_genes)?;
+        writeln!(w, "value_range: {:?}", self.value_range)?;
+        writeln!(w, "bounds: {:?}", self.bounds)?;
+        if let Some(s) = &self.shapes {
+            writeln!(w, "shapes: {:?}", s)?;
         }
+        Ok(())
     }
 
     /// Every impl of `Codec` uses the same encode function for the `FloatCodec`, just with a few
@@ -165,8 +154,8 @@ impl FloatCodec<f32> {
 /// assert_eq!(decoded[1][0].len(), 4);
 /// ```
 impl<F: Float> Codec<FloatChromosome<F>, Vec<Vec<Vec<F>>>> for FloatCodec<F, Vec<Vec<Vec<F>>>> {
-    fn as_frozen(&self) -> Frozen {
-        self.freeze_repr()
+    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
+        self.write_repr(w)
     }
 
     #[inline]
@@ -224,8 +213,8 @@ impl<F: Float> Codec<FloatChromosome<F>, Vec<Vec<Vec<F>>>> for FloatCodec<F, Vec
 /// assert_eq!(decoded[0].len(), 4);
 /// ```
 impl<F: Float> Codec<FloatChromosome<F>, Vec<Vec<F>>> for FloatCodec<F, Vec<Vec<F>>> {
-    fn as_frozen(&self) -> Frozen {
-        self.freeze_repr()
+    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
+        self.write_repr(w)
     }
 
     #[inline]
@@ -265,8 +254,8 @@ impl<F: Float> Codec<FloatChromosome<F>, Vec<Vec<F>>> for FloatCodec<F, Vec<Vec<
 /// assert_eq!(decoded.len(), 3);
 /// ```
 impl<F: Float> Codec<FloatChromosome<F>, Vec<F>> for FloatCodec<F, Vec<F>> {
-    fn as_frozen(&self) -> Frozen {
-        self.freeze_repr()
+    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
+        self.write_repr(w)
     }
 
     #[inline]
@@ -304,8 +293,8 @@ impl<F: Float> Codec<FloatChromosome<F>, Vec<F>> for FloatCodec<F, Vec<F>> {
 /// let decoded: f32 = codec.decode(&genotype);
 /// ```
 impl<F: Float> Codec<FloatChromosome<F>, F> for FloatCodec<F, F> {
-    fn as_frozen(&self) -> Frozen {
-        self.freeze_repr()
+    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
+        self.write_repr(w)
     }
 
     #[inline]

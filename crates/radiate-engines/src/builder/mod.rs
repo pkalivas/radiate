@@ -19,7 +19,7 @@ use crate::io::FileReader;
 use crate::objectives::{Objective, Optimize};
 use crate::pipeline::Pipeline;
 use crate::steps::{AuditStep, EngineStep, FilterStep, FrontStep, RecombineStep, SpeciateStep};
-use crate::{Chromosome, EvaluateStep, FrozenMap, Frozen, GeneticEngine};
+use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use crate::{
     Crossover, EncodeReplace, EngineProblem, EventBus, EventHandler, Front, Mutate,
     ReplacementStrategy, RouletteSelector, TournamentSelector, context::Context,
@@ -34,6 +34,7 @@ use radiate_core::{Alterer, Ecosystem, Executor, FitnessEvaluator, Rate, Valid};
 use radiate_core::{RadiateError, ensure, radiate_err};
 #[cfg(feature = "serde")]
 use serde::Deserialize;
+use std::fmt::Debug;
 use std::sync::{Arc, Mutex};
 
 #[derive(Clone)]
@@ -54,7 +55,6 @@ where
     pub handlers: Vec<Arc<Mutex<dyn EventHandler<T>>>>,
     pub generation: Option<Generation<C, T>>,
     pub exprs: Option<Arc<Mutex<Vec<NamedExpr>>>>,
-    pub freeze: FrozenMap,
 }
 
 /// Parameters for the genetic engine.
@@ -148,6 +148,50 @@ where
         let generation = read_generation.expect("Failed to read checkpoint file");
         self.generation(generation)
     }
+
+    /// Write a self-description of the engine configuration to `writer`.
+    /// Calls each component's `write` method in turn, framed with simple
+    /// section headers. Format is intentionally simple — components write
+    /// `key: value` lines; the engine adds blank-line-separated sections.
+    pub fn write_config(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
+        let sel = &self.params.selection_params;
+        let pop = &self.params.population_params;
+        let spc = &self.params.species_params;
+        let opt = &self.params.optimization_params;
+
+        writeln!(writer, "[engine]")?;
+        writeln!(writer, "population_size: {}", pop.population_size)?;
+        writeln!(writer, "max_age: {}", pop.max_age)?;
+        writeln!(writer, "max_species_age: {}", spc.max_species_age)?;
+        writeln!(writer, "offspring_fraction: {}", sel.offspring_fraction)?;
+        writeln!(writer, "objective: {:?}", opt.objectives)?;
+
+        writeln!(writer)?;
+        writeln!(writer, "[offspring_selector]")?;
+        sel.offspring_selector.write(writer)?;
+
+        writeln!(writer)?;
+        writeln!(writer, "[survivor_selector]")?;
+        sel.survivor_selector.write(writer)?;
+
+        for (i, alter) in self.params.alterers.iter().enumerate() {
+            writeln!(writer)?;
+            writeln!(writer, "[alterer.{}]", i)?;
+            alter.write(writer)?;
+        }
+
+        writeln!(writer)?;
+        writeln!(writer, "[replacement_strategy]")?;
+        self.params.replacement_strategy.write(writer)?;
+
+        if let Some(codec) = self.params.problem_params.codec.as_ref() {
+            writeln!(writer)?;
+            writeln!(writer, "[codec]")?;
+            codec.write(writer)?;
+        }
+
+        Ok(())
+    }
 }
 
 /// Static step builder for the genetic engine.
@@ -177,7 +221,6 @@ where
         self.build_population()?;
         self.build_alterer()?;
         self.build_front()?;
-        self.build_freeze()?;
 
         let config = EngineConfig::<C, T>::from(&self.params);
 
@@ -195,46 +238,6 @@ where
         let context = Context::from(config);
 
         Ok(GeneticEngine::<C, T>::new(context, pipeline, event_bus))
-    }
-
-    fn build_freeze(&mut self) -> Result<()> {
-        let sel = &self.params.selection_params;
-        let pop = &self.params.population_params;
-        let spc = &self.params.species_params;
-        let opt = &self.params.optimization_params;
-        let alt = &self.params.alterers;
-
-        let mut freeze = FrozenMap::default();
-
-        freeze.insert(
-            "selectors",
-            Frozen::new()
-                .with("offspring", sel.offspring_selector.as_frozen())
-                .with("survivor", sel.survivor_selector.as_frozen()),
-        );
-        freeze.insert("offspring_fraction", Frozen::value(sel.offspring_fraction));
-        freeze.insert("population_size", Frozen::value(pop.population_size));
-        freeze.insert("max_age", Frozen::value(pop.max_age));
-        freeze.insert("max_species_age", Frozen::value(spc.max_species_age));
-        freeze.insert("species_threshold", spc.species_threshold.freeze());
-        freeze.insert("objective", opt.objectives.freeze());
-
-        freeze.insert(
-            "alters",
-            alt.iter().map(|a| a.freeze().build()).collect::<Vec<_>>(),
-        );
-
-        freeze.insert(
-            "replacement_strategy",
-            self.params.replacement_strategy.freeze(),
-        );
-
-        if let Some(codec) = self.params.problem_params.codec.as_ref() {
-            freeze.insert("codec", codec.as_frozen());
-        }
-
-        self.params.freeze = freeze;
-        Ok(())
     }
 
     /// Build the problem of the genetic engine. This will create a new problem
@@ -459,6 +462,21 @@ where
     }
 }
 
+impl<C, T> Debug for GeneticEngineBuilder<C, T>
+where
+    C: Chromosome + Clone + PartialEq + 'static,
+    T: Clone + Send + 'static,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut buffer = Vec::new();
+        self.write_config(&mut buffer)
+            .map_err(|_| std::fmt::Error)?;
+
+        let config_str = String::from_utf8(buffer).map_err(|_| std::fmt::Error)?;
+        write!(f, "GeneticEngineBuilder {{\n{config_str}}}")
+    }
+}
+
 impl<C, T> Default for GeneticEngineBuilder<C, T>
 where
     C: Chromosome + Clone + 'static,
@@ -507,7 +525,6 @@ where
                 handlers: Vec::new(),
                 exprs: None,
                 generation: None,
-                freeze: FrozenMap::default(),
             },
             errors: Vec::new(),
         }

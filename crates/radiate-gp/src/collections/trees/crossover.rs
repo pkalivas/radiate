@@ -1,7 +1,7 @@
 use super::TreeChromosome;
 use crate::TreeNode;
 use radiate_core::genome::*;
-use radiate_core::{AlterContext, AlterResult, Crossover, Rate, freeze::Frozen, random_provider};
+use radiate_core::{AlterContext, AlterResult, Crossover, Rate, random_provider};
 
 const DEFAULT_MAX_SIZE: usize = 30;
 const MAX_ATTEMPTS: usize = 3;
@@ -76,10 +76,10 @@ where
         self.rate.clone()
     }
 
-    fn as_frozen(&self) -> Frozen {
-        Frozen::typed::<Self>()
-            .with("rate", self.rate.freeze())
-            .with("max_size", self.max_size)
+    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
+        writeln!(w, "type: TreeCrossover")?;
+        writeln!(w, "rate: {:?}", self.rate)?;
+        writeln!(w, "max_size: {}", self.max_size)
     }
 
     #[inline]

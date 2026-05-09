@@ -1,6 +1,6 @@
 use crate::NodeStore;
 use crate::collections::{Tree, TreeChromosome, TreeNode};
-use radiate_core::{Codec, Frozen, Genotype};
+use radiate_core::{Codec, Genotype};
 use std::sync::Arc;
 
 type Constraint<N> = Arc<dyn Fn(&N) -> bool>;
@@ -57,12 +57,12 @@ impl<T: Clone, D> TreeCodec<T, D> {
         self
     }
 
-    fn freeze_repr(&self) -> Frozen {
-        Frozen::typed::<Self>()
-            .with("depth", self.depth)
-            .with("num_trees", self.num_trees)
-            .with("has_template", self.template.is_some())
-            .with("has_constraint", self.constraint.is_some())
+    fn write_repr(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
+        writeln!(w, "type: TreeCodec")?;
+        writeln!(w, "depth: {}", self.depth)?;
+        writeln!(w, "num_trees: {}", self.num_trees)?;
+        writeln!(w, "has_template: {}", self.template.is_some())?;
+        writeln!(w, "has_constraint: {}", self.constraint.is_some())
     }
 }
 
@@ -70,8 +70,8 @@ impl<T> Codec<TreeChromosome<T>, Vec<Tree<T>>> for TreeCodec<T, Vec<Tree<T>>>
 where
     T: Clone + PartialEq + Default,
 {
-    fn as_frozen(&self) -> Frozen {
-        self.freeze_repr()
+    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
+        self.write_repr(w)
     }
 
     fn encode(&self) -> Genotype<TreeChromosome<T>> {
@@ -103,8 +103,8 @@ impl<T> Codec<TreeChromosome<T>, Tree<T>> for TreeCodec<T, Tree<T>>
 where
     T: Clone + PartialEq + Default,
 {
-    fn as_frozen(&self) -> Frozen {
-        self.freeze_repr()
+    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
+        self.write_repr(w)
     }
 
     fn encode(&self) -> Genotype<TreeChromosome<T>> {

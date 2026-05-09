@@ -1,5 +1,7 @@
+use std::fmt::Debug;
+
 use crate::Chromosome;
-use crate::freeze::Frozen;
+use crate::freeze::short_type_name;
 use crate::genome::population::Population;
 use crate::objectives::Objective;
 
@@ -8,7 +10,7 @@ use crate::objectives::Objective;
 /// selection process is (most of the time) based on the fitness of the individuals in the
 /// [Population]. The selection process can be based on the fitness of the individuals
 /// in the [Population], or it can be based on the individuals themselves.
-pub trait Select<C: Chromosome>: Send + Sync {
+pub trait Select<C: Chromosome>: Send + Sync + Debug {
     fn name(&self) -> &'static str {
         let name = std::any::type_name::<Self>()
             .split("<")
@@ -34,8 +36,17 @@ pub trait Select<C: Chromosome>: Send + Sync {
         radiate_utils::intern_kv_pair(name, radiate_utils::intern!(parts.join(".")))
     }
 
-    fn as_frozen(&self) -> Frozen {
-        Frozen::typed::<Self>()
+    /// Write a self-description to `writer`. Default writes a single
+    /// `type: <ShortTypeName>` line. Override to add fields:
+    ///
+    /// ```ignore
+    /// fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
+    ///     writeln!(w, "type: {}", radiate_core::short_type_name::<Self>())?;
+    ///     writeln!(w, "k: {}", self.k)
+    /// }
+    /// ```
+    fn write(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
+        writeln!(writer, "type: {}", short_type_name::<Self>())
     }
 
     fn select(

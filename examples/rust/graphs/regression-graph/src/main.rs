@@ -22,16 +22,17 @@ fn main() {
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
             GraphMutator::new(0.1, 0.1).allow_recurrent(false)
-        ))
-        .build();
+        ));
 
-    let params = engine.freeze();
+    // let params = engine.freeze();
+
+    println!("{:?}", engine);
 
     let mut file = std::fs::File::create("anyvalue_test.yaml").unwrap();
-    yaml_serde::to_writer(&mut file, &params).unwrap();
-    let mut other_file = std::fs::File::create("anyvalue_test.json").unwrap();
-    serde_json::to_writer(&mut other_file, &params).unwrap();
-
+    // yaml_serde::to_writer(&mut file, &params).unwrap();
+    // let mut other_file = std::fs::File::create("anyvalue_test.json").unwrap();
+    // serde_json::to_writer(&mut other_file, &params).unwrap();
+    let engine = engine.build();
     // random_provider::set_seed(90);
 
     // let store = vec![

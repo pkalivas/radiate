@@ -1,7 +1,5 @@
 use radiate_core::{
-    AlterContext, AlterResult, BoundedGene, Chromosome, FloatGene, Freezable, Gene, Mutate, Rate,
-    Valid,
-    freeze::{Freeze, Frozen},
+    AlterContext, AlterResult, BoundedGene, Chromosome, FloatGene, Gene, Mutate, Rate, Valid,
     random_provider,
 };
 use radiate_utils::Float;
@@ -13,9 +11,8 @@ use radiate_utils::Float;
 /// between -0.1 and 0.1. This allows for fine-tuning of the mutation process,
 /// as smaller magnitudes will result in smaller changes to the genes, while larger
 /// magnitudes will result in larger changes.
-#[derive(Debug, Clone, Freeze)]
+#[derive(Debug, Clone)]
 pub struct JitterMutator {
-    #[freeze(nested)]
     rate: Rate,
     magnitude: f32,
 }
@@ -44,8 +41,10 @@ where
         self.rate.clone()
     }
 
-    fn as_frozen(&self) -> Frozen {
-        <Self as Freezable>::as_frozen(self)
+    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
+        writeln!(w, "type: JitterMutator")?;
+        writeln!(w, "rate: {:?}", self.rate)?;
+        writeln!(w, "magnitude: {}", self.magnitude)
     }
 
     #[inline]

@@ -1,7 +1,6 @@
 use crate::Chromosome;
 use crate::Generation;
 use crate::GeneticEngineBuilder;
-use crate::FrozenMap;
 use crate::builder::EngineParams;
 use crate::builder::evaluators::EvaluationParams;
 use crate::builder::objectives::OptimizeParams;
@@ -37,7 +36,6 @@ pub(crate) struct EngineConfig<C: Chromosome, T: Clone> {
     handlers: Vec<Arc<Mutex<dyn EventHandler<T>>>>,
     exprs: Option<Arc<Mutex<Vec<NamedExpr>>>>,
     generation: Option<Generation<C, T>>,
-    freeze: FrozenMap,
 }
 
 impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
@@ -137,10 +135,6 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
     pub fn exprs(&self) -> Option<Arc<Mutex<Vec<NamedExpr>>>> {
         self.exprs.clone()
     }
-
-    pub fn freeze(&self) -> FrozenMap {
-        self.freeze.clone()
-    }
 }
 
 impl<C, T> From<&EngineParams<C, T>> for EngineConfig<C, T>
@@ -171,7 +165,6 @@ where
             handlers: params.handlers.clone(),
             generation: params.generation.clone(),
             exprs: params.exprs.clone(),
-            freeze: params.freeze.clone(),
         }
     }
 }
@@ -219,7 +212,6 @@ where
                 handlers: config.handlers,
                 exprs: config.exprs,
                 generation: config.generation,
-                freeze: config.freeze,
             },
             errors: Vec::new(),
         }

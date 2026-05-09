@@ -1,6 +1,4 @@
-use radiate_core::{
-    BoundedGene, Chromosome, FloatGene, Gene, Mutate, Rate, freeze::Frozen, random_provider,
-};
+use radiate_core::{BoundedGene, Chromosome, FloatGene, Gene, Mutate, Rate, random_provider};
 use radiate_utils::{Float, Primitive};
 
 // Use it when:
@@ -66,10 +64,10 @@ where
         self.rate.clone()
     }
 
-    fn as_frozen(&self) -> Frozen {
-        Frozen::typed::<Self>()
-            .with("rate", self.rate.freeze())
-            .with("eta", self.eta)
+    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
+        writeln!(w, "type: PolynomialMutator")?;
+        writeln!(w, "rate: {:?}", self.rate)?;
+        writeln!(w, "eta: {}", self.eta)
     }
 
     #[inline]

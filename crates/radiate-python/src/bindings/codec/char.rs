@@ -4,7 +4,7 @@ use pyo3::{
     Bound, IntoPyObjectExt, PyAny, PyResult, pyclass, pymethods,
     types::{PyList, PyListMethods},
 };
-use radiate::{AnyValue, CharChromosome, CharGene, Chromosome, Codec, Frozen, Gene, Genotype};
+use radiate::{CharChromosome, CharGene, Chromosome, Codec, Gene, Genotype};
 
 #[pyclass(from_py_object)]
 #[derive(Clone)]
@@ -31,14 +31,7 @@ impl PyCharCodec {
     #[staticmethod]
     #[pyo3(signature = (chromosomes))]
     pub fn from_chromosomes(chromosomes: Vec<PyChromosome>) -> Self {
-        let frozen = char_codec_freeze(
-            "from_chromosomes",
-            chromosomes
-                .iter()
-                .map(|c| c.genes.len())
-                .collect::<Vec<_>>(),
-            None,
-        );
+        let shape: Vec<usize> = chromosomes.iter().map(|c| c.genes.len()).collect();
         PyCharCodec {
             codec: PyCodec::new()
                 .with_encoder(move || {
@@ -68,14 +61,14 @@ impl PyCharCodec {
                         inner: outer.unbind().into_any(),
                     }
                 })
-                .with_freeze(frozen),
+                .with_write(move |w| char_codec_write(w, "from_chromosomes", &shape, None)),
         }
     }
 
     #[staticmethod]
     #[pyo3(signature = (genes))]
     pub fn from_genes(genes: Vec<PyGene>) -> Self {
-        let frozen = char_codec_freeze("from_genes", vec![genes.len()], None);
+        let gene_count = genes.len();
         PyCharCodec {
             codec: PyCodec::new()
                 .with_encoder(move || {
@@ -102,7 +95,7 @@ impl PyCharCodec {
                         inner: outer.unbind().into_any(),
                     }
                 })
-                .with_freeze(frozen),
+                .with_write(move |w| char_codec_write(w, "from_genes", &[gene_count], None)),
         }
     }
 
@@ -110,7 +103,8 @@ impl PyCharCodec {
     #[pyo3(signature = (chromosome_lengths=None, char_set=None))]
     pub fn matrix(chromosome_lengths: Option<Vec<usize>>, char_set: Option<String>) -> Self {
         let lengths = chromosome_lengths.unwrap_or(vec![1]);
-        let frozen = char_codec_freeze("matrix", lengths.clone(), char_set.as_deref());
+        let lengths_for_write = lengths.clone();
+        let char_set_size_for_write = char_set.as_ref().map(|s| s.chars().count());
 
         PyCharCodec {
             codec: PyCodec::new()
@@ -135,14 +129,16 @@ impl PyCharCodec {
                         inner: outer.unbind().into_any(),
                     }
                 })
-                .with_freeze(frozen),
+                .with_write(move |w| {
+                    char_codec_write_owned(w, "matrix", &lengths_for_write, char_set_size_for_write)
+                }),
         }
     }
 
     #[staticmethod]
     #[pyo3(signature = (length=1, char_set=None))]
     pub fn vector(length: usize, char_set: Option<String>) -> Self {
-        let frozen = char_codec_freeze("vector", vec![length], char_set.as_deref());
+        let char_set_size_for_write = char_set.as_ref().map(|s| s.chars().count());
         PyCharCodec {
             codec: PyCodec::new()
                 .with_encoder(move || {
@@ -160,26 +156,35 @@ impl PyCharCodec {
                         inner: outer.unbind().into_any(),
                     }
                 })
-                .with_freeze(frozen),
+                .with_write(move |w| {
+                    char_codec_write_owned(w, "vector", &[length], char_set_size_for_write)
+                }),
         }
     }
 }
 
-fn char_codec_freeze(
-    shape_kind: &'static str,
-    shape: Vec<usize>,
-    char_set: Option<&str>,
-) -> Frozen {
-    let shape_vec: Vec<AnyValue<'static>> =
-        shape.iter().map(|n| AnyValue::Usize(*n)).collect();
-    let mut f = Frozen::new()
-        .with("type", "CharCodec")
-        .with("shape_kind", shape_kind)
-        .with("shape", AnyValue::Vector(shape_vec));
-    if let Some(cs) = char_set {
-        f = f.with("char_set_size", cs.chars().count());
+fn char_codec_write(
+    w: &mut dyn std::io::Write,
+    shape_kind: &str,
+    shape: &[usize],
+    char_set_size: Option<usize>,
+) -> std::io::Result<()> {
+    writeln!(w, "type: CharCodec")?;
+    writeln!(w, "shape_kind: {}", shape_kind)?;
+    writeln!(w, "shape: {:?}", shape)?;
+    if let Some(n) = char_set_size {
+        writeln!(w, "char_set_size: {}", n)?;
     }
-    f
+    Ok(())
+}
+
+fn char_codec_write_owned(
+    w: &mut dyn std::io::Write,
+    shape_kind: &str,
+    shape: &[usize],
+    char_set_size: Option<usize>,
+) -> std::io::Result<()> {
+    char_codec_write(w, shape_kind, shape, char_set_size)
 }
 
 unsafe impl Send for PyCharCodec {}
