@@ -1,0 +1,32 @@
+alters:
+- BlendCrossover:
+    rate:
+      Fixed:
+        value: 0.7
+    alpha: 0.4
+- GaussianMutator:
+    rate:
+      Fixed:
+        value: 0.1
+max_age:
+  value: 20
+max_species_age:
+  value: 20
+objective:
+  Single:
+    optimize: Minimize
+offspring_fraction:
+  value: 0.8
+population_size:
+  value: 100
+replacement_strategy:
+  EncodeReplace: {}
+selectors:
+  offspring:
+    BoltzmannSelector:
+      temperature: 4.0
+  survivor:
+    RouletteSelector: {}
+species_threshold:
+  Fixed:
+    value: 0.5

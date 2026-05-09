@@ -21,7 +21,7 @@ pub use tree::PyTreeCodec;
 use numpy::{Element, PyArray1};
 use pyo3::{Bound, IntoPyObject, PyAny, PyResult, types::PyList};
 use pyo3::{IntoPyObjectExt, Python};
-use radiate::{Chromosome, Codec, Gene, Genotype};
+use radiate::{Chromosome, Codec, Frozen, Gene, Genotype};
 
 type DecoderFn<C, T> = Arc<dyn for<'py> Fn(Python<'py>, &Genotype<C>) -> T + Send + Sync>;
 
@@ -29,6 +29,7 @@ type DecoderFn<C, T> = Arc<dyn for<'py> Fn(Python<'py>, &Genotype<C>) -> T + Sen
 pub struct PyCodec<C: Chromosome, T> {
     encoder: Option<Arc<dyn Fn() -> Genotype<C>>>,
     decoder: Option<DecoderFn<C, T>>,
+    freeze: Option<Frozen>,
 }
 
 impl<C: Chromosome, T> PyCodec<C, T> {
@@ -36,6 +37,7 @@ impl<C: Chromosome, T> PyCodec<C, T> {
         PyCodec {
             encoder: None,
             decoder: None,
+            freeze: None,
         }
     }
 
@@ -61,6 +63,11 @@ impl<C: Chromosome, T> PyCodec<C, T> {
         self.decoder = Some(Arc::new(decoder));
         self
     }
+
+    pub fn with_freeze(mut self, frozen: Frozen) -> Self {
+        self.freeze = Some(frozen);
+        self
+    }
 }
 
 impl<C: Chromosome, T> Codec<C, T> for PyCodec<C, T> {
@@ -76,6 +83,12 @@ impl<C: Chromosome, T> Codec<C, T> for PyCodec<C, T> {
             Some(decoder) => decoder(py, genotype),
             None => panic!("Decoder function is not set"),
         })
+    }
+
+    fn freeze(&self) -> Frozen {
+        self.freeze
+            .clone()
+            .unwrap_or_else(|| Frozen::typed::<Self>())
     }
 }
 

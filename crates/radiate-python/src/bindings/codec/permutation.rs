@@ -1,7 +1,9 @@
 use super::PyCodec;
 use crate::{PyAnyObject, PyGenotype};
 use pyo3::{Bound, IntoPyObjectExt, Py, PyAny, PyResult, pyclass, pymethods, types::PyList};
-use radiate::{Chromosome, Codec, Gene, PermutationChromosome, PermutationGene, random_provider};
+use radiate::{
+    Chromosome, Codec, Frozen, Gene, PermutationChromosome, PermutationGene, random_provider,
+};
 use std::sync::Arc;
 
 #[pyclass(from_py_object)]
@@ -33,6 +35,9 @@ impl PyPermutationCodec {
         let indexed_alleles: Arc<[usize]> = (0..alleles.len()).collect::<Vec<usize>>().into();
         let arc_alleles = Arc::new(alleles);
         let allele_count = arc_alleles.len();
+        let frozen = Frozen::new()
+            .with("type", "PermutationCodec")
+            .with("alleles", allele_count);
 
         PyPermutationCodec {
             alleles: Arc::clone(&indexed_alleles),
@@ -64,7 +69,8 @@ impl PyPermutationCodec {
                     PyAnyObject {
                         inner: PyList::new(py, values).unwrap().unbind().into_any(),
                     }
-                }),
+                })
+                .with_freeze(frozen),
         }
     }
 }

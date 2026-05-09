@@ -1,6 +1,6 @@
 use crate::NodeStore;
 use crate::collections::{Tree, TreeChromosome, TreeNode};
-use radiate_core::{Codec, Genotype};
+use radiate_core::{Codec, Frozen, Genotype};
 use std::sync::Arc;
 
 type Constraint<N> = Arc<dyn Fn(&N) -> bool>;
@@ -56,12 +56,24 @@ impl<T: Clone, D> TreeCodec<T, D> {
         self.template = Some(template.into());
         self
     }
+
+    fn freeze_repr(&self) -> Frozen {
+        Frozen::typed::<Self>()
+            .with("depth", self.depth)
+            .with("num_trees", self.num_trees)
+            .with("has_template", self.template.is_some())
+            .with("has_constraint", self.constraint.is_some())
+    }
 }
 
 impl<T> Codec<TreeChromosome<T>, Vec<Tree<T>>> for TreeCodec<T, Vec<Tree<T>>>
 where
     T: Clone + PartialEq + Default,
 {
+    fn freeze(&self) -> Frozen {
+        self.freeze_repr()
+    }
+
     fn encode(&self) -> Genotype<TreeChromosome<T>> {
         if let Some(store) = &self.store {
             let new_chromosomes = (0..self.num_trees)
@@ -91,6 +103,10 @@ impl<T> Codec<TreeChromosome<T>, Tree<T>> for TreeCodec<T, Tree<T>>
 where
     T: Clone + PartialEq + Default,
 {
+    fn freeze(&self) -> Frozen {
+        self.freeze_repr()
+    }
+
     fn encode(&self) -> Genotype<TreeChromosome<T>> {
         if let Some(store) = &self.store {
             let tree = match self.template.as_ref() {

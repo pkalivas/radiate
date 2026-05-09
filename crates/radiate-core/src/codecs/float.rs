@@ -1,10 +1,9 @@
-use radiate_utils::{AnyValue, Float};
-
 use super::Codec;
 use crate::freeze::{Frozen, frozen_range};
 use crate::genome::Gene;
 use crate::genome::genotype::Genotype;
 use crate::{Chromosome, FloatChromosome};
+use radiate_utils::{AnyValue, Float};
 use std::ops::Range;
 
 /// A [Codec] for a [Genotype] of `FloatGenes`. The `encode` function creates a [Genotype] with `num_chromosomes` chromosomes
@@ -38,18 +37,17 @@ impl<F: Float, T> FloatCodec<F, T> {
             .with("value_range", frozen_range(&self.value_range))
             .with("bounds", frozen_range(&self.bounds));
         match &self.shapes {
-            Some(s) => {
-                let shapes: Vec<AnyValue<'static>> = s
-                    .iter()
+            Some(s) => f.with(
+                "shapes",
+                s.iter()
                     .map(|(rows, cols)| {
                         Frozen::new()
                             .with("rows", *rows)
                             .with("cols", *cols)
                             .build()
                     })
-                    .collect();
-                f.with("shapes", AnyValue::Vector(shapes))
-            }
+                    .collect::<Vec<AnyValue>>(),
+            ),
             None => f,
         }
     }

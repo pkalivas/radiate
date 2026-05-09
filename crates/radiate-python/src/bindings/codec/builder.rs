@@ -6,7 +6,8 @@ use num_traits::NumCast;
 use numpy::Element;
 use pyo3::{Bound, IntoPyObject, IntoPyObjectExt, PyAny, PyResult};
 use radiate::{
-    Chromosome, Codec, FloatChromosome, Gene, Genotype, IntChromosome, chromosomes::NumericAllele,
+    AnyValue, Chromosome, Codec, FloatChromosome, Frozen, Gene, Genotype, IntChromosome,
+    chromosomes::NumericAllele,
 };
 use radiate_utils::DataType;
 
@@ -260,7 +261,19 @@ where
         let cloned_lengths = lengths.clone();
         let use_numpy = self.use_numpy;
 
-        if let Some(genes) = &self.genes {
+        let frozen = numeric_codec_freeze(
+            &self.dtype,
+            &lengths,
+            &val_range,
+            &bound_range,
+            self.genes.as_deref(),
+            self.chromosomes.as_deref(),
+            use_numpy,
+        );
+
+        println!("NumericCodec freeze: {:?}", frozen);
+
+        let codec = if let Some(genes) = &self.genes {
             let materialized_chromosome = Self::materialize_genes::<G, C>(genes);
 
             PyCodec::new()
@@ -298,6 +311,45 @@ where
                         .unbind()
                         .into_any(),
                 })
-        }
+        };
+
+        codec.with_freeze(frozen)
     }
+}
+
+fn numeric_codec_freeze<A: NumericAllele + NumCast + Copy>(
+    dtype: &DataType,
+    shape: &[usize],
+    val_range: &Range<A>,
+    bound_range: &Range<A>,
+    genes: Option<&[PyGene]>,
+    chromosomes: Option<&[PyChromosome]>,
+    use_numpy: bool,
+) -> Frozen {
+    let codec_kind = match dtype {
+        DataType::Float32 | DataType::Float64 => "FloatCodec",
+        _ => "IntCodec",
+    };
+    let shape_vec: Vec<AnyValue<'static>> = shape.iter().map(|n| AnyValue::Usize(*n)).collect();
+
+    let mut f = Frozen::new()
+        .with("type", codec_kind)
+        .with("dtype", format!("{:?}", dtype))
+        .with("shape", AnyValue::Vector(shape_vec))
+        .with("value_range", anyvalue_range(val_range))
+        .with("bound_range", anyvalue_range(bound_range))
+        .with("use_numpy", use_numpy);
+    if let Some(g) = genes {
+        f = f.with("genes", g.len());
+    }
+    if let Some(c) = chromosomes {
+        f = f.with("chromosomes", c.len());
+    }
+    f
+}
+
+fn anyvalue_range<A: NumCast + Copy>(range: &Range<A>) -> Frozen {
+    let start: f64 = num_traits::cast(range.start).unwrap_or(f64::NAN);
+    let end: f64 = num_traits::cast(range.end).unwrap_or(f64::NAN);
+    Frozen::new().with("start", start).with("end", end)
 }

@@ -1,7 +1,7 @@
 use super::PyCodec;
 use crate::{PyAnyObject, PyGenotype};
 use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, pyclass, pymethods};
-use radiate::{BitChromosome, Codec, Genotype};
+use radiate::{AnyValue, BitChromosome, Codec, Frozen, Genotype};
 
 #[pyclass(from_py_object)]
 #[derive(Clone)]
@@ -29,11 +29,13 @@ impl PyBitCodec {
     #[pyo3(signature = (chromosome_lengths=None, use_numpy=false))]
     pub fn matrix(chromosome_lengths: Option<Vec<usize>>, use_numpy: bool) -> Self {
         let lengths = chromosome_lengths.unwrap_or(vec![1]);
+        let frozen = bit_codec_freeze(&lengths, use_numpy);
+        let lengths_for_encoder = lengths.clone();
 
         PyBitCodec {
             codec: PyCodec::new()
                 .with_encoder(move || {
-                    lengths
+                    lengths_for_encoder
                         .iter()
                         .map(|len| BitChromosome::new(*len))
                         .collect::<Vec<BitChromosome>>()
@@ -44,7 +46,8 @@ impl PyBitCodec {
                         .unwrap()
                         .unbind()
                         .into_any(),
-                }),
+                })
+                .with_freeze(frozen),
         }
     }
 
@@ -52,6 +55,7 @@ impl PyBitCodec {
     #[pyo3(signature = (chromosome_length=1, use_numpy=false))]
     pub fn vector(chromosome_length: Option<usize>, use_numpy: bool) -> Self {
         let length = chromosome_length.unwrap_or(1);
+        let frozen = bit_codec_freeze(&[length], use_numpy);
 
         PyBitCodec {
             codec: PyCodec::new()
@@ -61,9 +65,18 @@ impl PyBitCodec {
                         .unwrap()
                         .unbind()
                         .into_any(),
-                }),
+                })
+                .with_freeze(frozen),
         }
     }
+}
+
+fn bit_codec_freeze(lengths: &[usize], use_numpy: bool) -> Frozen {
+    let shape: Vec<AnyValue<'static>> = lengths.iter().map(|n| AnyValue::Usize(*n)).collect();
+    Frozen::new()
+        .with("type", "BitCodec")
+        .with("shape", AnyValue::Vector(shape))
+        .with("use_numpy", use_numpy)
 }
 
 unsafe impl Send for PyBitCodec {}

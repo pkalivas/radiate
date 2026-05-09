@@ -80,7 +80,7 @@ engine = (
     .limit(rd.Limit.score(0.01), rd.Limit.generations(500))
 )
 
-engine.write("nn_engine.yaml")
+engine.write("nn_engiddne.yaml")
 
 result = engine.run(log=True)  # checkpoint=(55, WRITE_DIR, "pkl"))
 metrics = result.metrics()

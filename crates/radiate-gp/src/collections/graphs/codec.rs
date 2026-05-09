@@ -1,6 +1,7 @@
 use super::{Graph, GraphChromosome, GraphNode};
-use crate::{Factory, NodeStore};
-use radiate_core::{Codec, Genotype};
+use crate::node::Node;
+use crate::{Factory, NodeStore, NodeType};
+use radiate_core::{Codec, Frozen, Genotype};
 
 #[derive(Clone)]
 pub struct GraphCodec<T> {
@@ -131,5 +132,20 @@ where
     #[inline]
     fn decode(&self, genotype: &Genotype<GraphChromosome<T>>) -> Graph<T> {
         Graph::new(genotype[0].as_ref().to_vec())
+    }
+
+    fn freeze(&self) -> Frozen {
+        let template = self.template.as_ref();
+        let count_by = |t: NodeType| template.iter().filter(|n| n.node_type() == t).count();
+        let f = Frozen::typed::<Self>()
+            .with("input_size", count_by(NodeType::Input))
+            .with("output_size", count_by(NodeType::Output))
+            .with("vertex_size", count_by(NodeType::Vertex))
+            .with("edge_size", count_by(NodeType::Edge))
+            .with("template_size", template.len());
+        match self.template.max_nodes() {
+            Some(max) => f.with("max_nodes", max),
+            None => f,
+        }
     }
 }
