@@ -58,7 +58,7 @@ impl<C: Chromosome> EvoState<C> {
 
     pub fn get_chart_by_key(
         &self,
-        key: &'static str,
+        key: &str,
         chart_type: LineChartType,
     ) -> Option<&RollingLineChart> {
         self.charts.get_line_chart(key, chart_type)

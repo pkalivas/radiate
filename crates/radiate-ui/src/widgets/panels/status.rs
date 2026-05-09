@@ -95,7 +95,7 @@ impl<C: Chromosome> StatefulWidget for MetricModalWidget<C> {
     type State = AppState<C>;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let current_metric_name = state.get_selected_metric().unwrap_or("");
+        let current_metric_name = state.get_selected_metric().unwrap_or("").to_owned();
 
         let index = state.nav.chart_tab_index();
 
@@ -110,7 +110,7 @@ impl<C: Chromosome> StatefulWidget for MetricModalWidget<C> {
             .split(right);
 
         let chart_type = state.nav.chart_tab;
-        let charts = state.evo.get_chart_by_key(current_metric_name, chart_type);
+        let charts = state.evo.get_chart_by_key(&current_metric_name, chart_type);
 
         Panel::new(FnWidget::new(|area, buf| {
             TabComponent::new(

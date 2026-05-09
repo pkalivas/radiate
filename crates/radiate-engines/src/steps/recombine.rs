@@ -4,6 +4,7 @@ use radiate_core::{
     Select, Species,
 };
 use radiate_error::Result;
+use radiate_utils::VersionedCounts;
 use std::sync::{Arc, RwLock};
 
 pub struct RecombineStep<C: Chromosome> {
@@ -75,6 +76,7 @@ pub struct OffspringRecombineHandle<C: Chromosome> {
     pub(crate) alters: Vec<Alterer<C>>,
     pub(crate) lineage: Arc<RwLock<Lineage>>,
     pub(crate) names: (&'static str, &'static str),
+    pub(crate) counts: VersionedCounts,
 }
 
 impl<C> OffspringRecombineHandle<C>
@@ -133,20 +135,38 @@ where
     pub fn create(
         &mut self,
         generation: usize,
-        ecosystem: &Ecosystem<C>,
+        ecosystem: &mut Ecosystem<C>,
         metrics: &mut MetricSet,
     ) -> Population<C> {
         let mut lineage = self.lineage.write().unwrap();
 
         let timer = std::time::Instant::now();
-        let mut offspring =
+
+        let pop_len = ecosystem.population().len();
+        let indicies =
             self.selector
-                .select(ecosystem.population(), &self.objective, self.count);
+                .select_idx(ecosystem.population(), &self.objective, self.count);
+
+        self.counts.begin(pop_len);
+        for &idx in indicies.iter() {
+            self.counts.bump(idx);
+        }
+
+        let mut offspring = Population::with_capacity(self.count);
+        let pop = ecosystem.population_mut();
+
+        for (idx, k) in self.counts.iter_live_rev() {
+            for _ in 0..k - 1 {
+                offspring.push(pop[idx].clone());
+            }
+            offspring.push(pop.swap_remove(idx));
+        }
 
         metrics.upsert((self.names.0, offspring.len()));
         metrics.upsert((self.names.1, timer.elapsed()));
 
         self.objective.sort(&mut offspring);
+        println!("Selected {} offspring", offspring.len());
 
         self.alters.iter_mut().for_each(|alt| {
             alt.alter(&mut offspring, &mut lineage, metrics, generation);

@@ -7,7 +7,7 @@ use crate::{
         fmt,
     },
 };
-use radiate_utils::{AnyValue, DataType, intern};
+use radiate_utils::{AnyValue, DataType, SmallStr};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::{
@@ -24,7 +24,7 @@ pub struct MetricSetSummary {
 
 #[derive(Clone, Default, PartialEq)]
 pub struct MetricSet {
-    metrics: HashMap<&'static str, Metric>,
+    metrics: HashMap<SmallStr, Metric>,
     meta: Meta,
 }
 
@@ -47,7 +47,7 @@ impl MetricSet {
     }
 
     #[inline(always)]
-    pub fn keys(&self) -> Vec<&'static str> {
+    pub fn keys(&self) -> Vec<SmallStr> {
         self.metrics.keys().cloned().collect()
     }
 
@@ -56,7 +56,7 @@ impl MetricSet {
         let version = target.next_version();
         for (key, mut m) in self.metrics.drain() {
             m.set_version(version);
-            if let Some(target_metric) = target.metrics.get_mut(key) {
+            if let Some(target_metric) = target.metrics.get_mut(key.as_str()) {
                 target_metric.update_from(m);
             } else {
                 try_add_tag_from_str(&mut m);
@@ -71,7 +71,7 @@ impl MetricSet {
     pub fn replace(&mut self, metric: impl Into<Metric>) {
         let mut metric = metric.into();
         try_add_tag_from_str(&mut metric);
-        self.metrics.insert(intern!(metric.name()), metric);
+        self.metrics.insert(metric.name().clone(), metric);
     }
 
     #[inline(always)]
@@ -105,7 +105,7 @@ impl MetricSet {
                 }
 
                 let new_name = radiate_utils::intern_name_as_snake_case(name);
-                if let Some(m) = self.metrics.get_mut(&new_name) {
+                if let Some(m) = self.metrics.get_mut(new_name) {
                     m.set_version(version);
                     m.apply_update(metric_update);
                     if let Some(tag) = tag {
@@ -128,10 +128,10 @@ impl MetricSet {
     }
 
     #[inline(always)]
-    pub fn iter_tagged(&self, tag: TagType) -> impl Iterator<Item = (&'static str, &Metric)> {
+    pub fn iter_tagged(&self, tag: TagType) -> impl Iterator<Item = (&str, &Metric)> {
         self.metrics.iter().filter_map(move |(k, m)| {
             if m.tags().has(tag) {
-                Some((*k, m))
+                Some((k.as_str(), m))
             } else {
                 None
             }
@@ -147,13 +147,13 @@ impl MetricSet {
     }
 
     #[inline(always)]
-    pub fn iter(&self) -> impl Iterator<Item = (&'static str, &Metric)> {
-        self.metrics.iter().map(|(name, metric)| (*name, metric))
+    pub fn iter(&self) -> impl Iterator<Item = (&str, &Metric)> {
+        self.metrics.iter().map(|(name, metric)| (name.as_str(), metric))
     }
 
     #[inline(always)]
     pub fn add(&mut self, metric: Metric) {
-        self.metrics.insert(intern!(metric.name()), metric);
+        self.metrics.insert(metric.name().clone(), metric);
     }
 
     #[inline(always)]
@@ -177,7 +177,7 @@ impl MetricSet {
 
     #[inline(always)]
     pub fn contains_key(&self, name: &str) -> bool {
-        self.metrics.contains_key(intern!(name))
+        self.metrics.contains_key(name)
     }
 
     #[inline(always)]
@@ -204,13 +204,13 @@ impl MetricSet {
 
     fn add_or_update_internal(&mut self, version: u64, mut metric: Metric) {
         self.meta.update_count += 1;
-        if let Some(existing) = self.metrics.get_mut(metric.name()) {
+        if let Some(existing) = self.metrics.get_mut(metric.name().as_str()) {
             existing.set_version(version);
             existing.update_from(metric);
         } else {
             try_add_tag_from_str(&mut metric);
             metric.set_version(version);
-            self.metrics.insert(intern!(metric.name()), metric);
+            self.metrics.insert(metric.name().clone(), metric);
         }
     }
 }

@@ -107,8 +107,8 @@ impl PyMetricSet {
         format!("{}", &self.inner)
     }
 
-    pub fn keys(&self) -> Vec<&'static str> {
-        self.inner.keys()
+    pub fn keys(&self) -> Vec<String> {
+        self.inner.keys().into_iter().map(|s| s.into_string()).collect()
     }
 
     pub fn project<'py>(&self, py: Python<'py>, expr: &mut PyExpr) -> PyResult<Bound<'py, PyAny>> {

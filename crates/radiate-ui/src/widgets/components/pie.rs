@@ -86,7 +86,7 @@ impl<C: Chromosome> StatefulWidget for TimePieChartComponent<C> {
             .enumerate()
             .map(|(index, (label, metric))| {
                 let color =
-                    selected_chart_color(index, state.tables.time.selected_value.as_ref(), label);
+                    selected_chart_color(index, state.tables.time.selected_value.as_deref(), label);
                 let value = metric
                     .times()
                     .map(|t| t.sum())
@@ -107,7 +107,7 @@ impl<C: Chromosome> StatefulWidget for TimePieChartComponent<C> {
     }
 }
 
-fn selected_chart_color<K: PartialEq>(index: usize, selected: Option<&K>, current: &K) -> Color {
+fn selected_chart_color<K: PartialEq + ?Sized>(index: usize, selected: Option<&K>, current: &K) -> Color {
     match selected {
         Some(sel) if sel == current => COLOR_WHEEL_400[index % COLOR_WHEEL_400.len()],
         _ => Color::DarkGray,

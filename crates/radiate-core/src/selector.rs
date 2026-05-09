@@ -1,9 +1,8 @@
-use radiate_utils::ToSnakeCase;
-use std::fmt::Debug;
-
 use crate::Chromosome;
 use crate::genome::population::Population;
 use crate::objectives::Objective;
+use radiate_utils::ToSnakeCase;
+use std::fmt::Debug;
 
 /// A trait for selection algorithms. Selection algorithms are used to select
 /// individuals from a [Population] to be used in the next generation. The
@@ -29,4 +28,13 @@ pub trait Select<C: Chromosome>: Send + Sync + Debug {
         optimize: &Objective,
         count: usize,
     ) -> Population<C>;
+
+    fn select_idx(
+        &self,
+        population: &Population<C>,
+        optimize: &Objective,
+        count: usize,
+    ) -> Vec<usize> {
+        panic!("select_idx is not implemented for {}", self.name());
+    }
 }

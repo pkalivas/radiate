@@ -214,9 +214,3 @@ macro_rules! ensure {
         if !$cond { $crate::radiate_bail!($($tt)+); }
     };
 }
-
-impl Into<std::fmt::Error> for RadiateError {
-    fn into(self) -> std::fmt::Error {
-        std::fmt::Error
-    }
-}

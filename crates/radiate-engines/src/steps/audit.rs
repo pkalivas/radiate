@@ -22,6 +22,8 @@ pub struct AuditStep {
     age_distribution: Vec<usize>,
     seen_ids: HashSet<PhenotypeId>,
     last_gen_ids: HashSet<PhenotypeId>,
+    curr_ids: HashSet<PhenotypeId>,
+    unique_members: HashSet<PhenotypeId>,
 }
 
 impl AuditStep {
@@ -124,15 +126,15 @@ impl AuditStep {
         metrics: &mut MetricSet,
         ecosystem: &Ecosystem<C>,
     ) {
-        let mut curr_ids = HashSet::with_capacity(ecosystem.population().len());
+        self.curr_ids.clear();
         for p in ecosystem.population().iter() {
-            curr_ids.insert(p.id());
+            self.curr_ids.insert(p.id());
         }
 
-        let pop_len = curr_ids.len();
+        let pop_len = self.curr_ids.len();
 
-        let new_this_gen = curr_ids.difference(&self.seen_ids).count();
-        let survivor_count = curr_ids.intersection(&self.last_gen_ids).count();
+        let new_this_gen = self.curr_ids.difference(&self.seen_ids).count();
+        let survivor_count = self.curr_ids.intersection(&self.last_gen_ids).count();
 
         let carryover_rate = if pop_len > 0 {
             survivor_count as f32 / pop_len as f32
@@ -140,8 +142,8 @@ impl AuditStep {
             0.0
         };
 
-        self.seen_ids.extend(curr_ids.iter().copied());
-        drop(std::mem::replace(&mut self.last_gen_ids, curr_ids));
+        self.seen_ids.extend(self.curr_ids.iter().copied());
+        std::mem::swap(&mut self.curr_ids, &mut self.last_gen_ids);
 
         metrics.upsert((metric_names::CARRYOVER_RATE, carryover_rate));
         metrics.upsert((metric_names::NEW_CHILDREN, new_this_gen));
@@ -272,10 +274,10 @@ impl<C: Chromosome> EngineStep<C> for AuditStep {
         }
 
         let mut size_metric = Vec::with_capacity(n);
-        let mut unique_members = HashSet::with_capacity(n);
+        self.unique_members.clear();
 
         for p in pop.iter() {
-            unique_members.insert(p.id());
+            self.unique_members.insert(p.id());
 
             self.age_distribution.push(p.age(generation));
 
@@ -329,7 +331,7 @@ impl<C: Chromosome> EngineStep<C> for AuditStep {
 
         metrics.upsert((metric_names::AGE, &self.age_distribution));
         metrics.upsert((metric_names::GENOME_SIZE, &size_metric));
-        metrics.upsert((metric_names::UNIQUE_MEMBERS, unique_members.len()));
+        metrics.upsert((metric_names::UNIQUE_MEMBERS, self.unique_members.len()));
 
         self.calc_membership_metrics(metrics, ecosystem);
         Self::calc_species_metrics(generation, metrics, ecosystem);

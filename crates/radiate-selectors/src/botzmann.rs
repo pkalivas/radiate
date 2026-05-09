@@ -68,4 +68,41 @@ impl<C: Chromosome + Clone> Select<C> for BoltzmannSelector {
             .map(|idx| population[idx].clone())
             .collect::<Population<C>>()
     }
+
+    #[inline]
+    fn select_idx(
+        &self,
+        population: &Population<C>,
+        objective: &Objective,
+        count: usize,
+    ) -> Vec<usize> {
+        let fitness_values = match objective {
+            Objective::Single(opt) => {
+                let mut fitness_values = population
+                    .iter_scores()
+                    .filter_map(|s| s.first())
+                    .collect::<Vec<_>>();
+
+                self.apply_boltzmann(&mut fitness_values);
+                norm::scale_l1_affine_sorted(&mut fitness_values);
+
+                if let Optimize::Minimize = opt {
+                    fitness_values.reverse();
+                }
+
+                fitness_values
+            }
+            Objective::Multi(_) => {
+                let scores = population.iter_scores().collect::<Vec<_>>();
+
+                let mut weights = pareto::weights(&scores, objective);
+                self.apply_boltzmann(&mut weights);
+                norm::scale_l1(&mut weights);
+
+                weights
+            }
+        };
+
+        ProbabilityWheelIterator::new(&fitness_values, count).collect()
+    }
 }

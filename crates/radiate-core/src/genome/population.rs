@@ -100,6 +100,10 @@ impl<C: Chromosome> Population<C> {
         self.individuals.extend(other.individuals);
     }
 
+    pub fn swap_remove(&mut self, index: usize) -> Phenotype<C> {
+        self.individuals.swap_remove(index)
+    }
+
     pub fn get_pair_mut(
         &mut self,
         first: usize,
@@ -352,66 +356,3 @@ mod test {
         assert_eq!(population, deserialized);
     }
 }
-
-// #[derive(Clone, PartialEq)]
-// pub struct Member<C: Chromosome> {
-//     cell: MutCell<Phenotype<C>>,
-// }
-
-// impl<C: Chromosome> Member<C> {
-//     pub fn into_inner(self) -> Phenotype<C>
-//     where
-//         C: Clone,
-//     {
-//         self.cell.into_inner()
-//     }
-
-//     pub fn is_unique(&self) -> bool {
-//         self.cell.is_unique()
-//     }
-
-//     pub fn ref_count(&self) -> usize {
-//         self.cell.strong_count()
-//     }
-// }
-
-// impl<C: Chromosome> Borrow<Phenotype<C>> for Member<C> {
-//     fn borrow(&self) -> &Phenotype<C> {
-//         self.cell.borrow()
-//     }
-// }
-
-// impl<C: Chromosome> BorrowMut<Phenotype<C>> for Member<C> {
-//     fn borrow_mut(&mut self) -> &mut Phenotype<C> {
-//         self.cell.borrow_mut()
-//     }
-// }
-
-// impl<C: Chromosome + Debug> Debug for Member<C> {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         write!(f, "{:?}", Borrow::<Phenotype<C>>::borrow(self))
-//     }
-// }
-
-// impl<C: Chromosome + PartialEq> PartialOrd for Member<C> {
-//     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-//         Borrow::<Phenotype<C>>::borrow(self).partial_cmp(Borrow::<Phenotype<C>>::borrow(other))
-//     }
-// }
-
-// impl<C: Chromosome> From<Phenotype<C>> for Member<C> {
-//     fn from(p: Phenotype<C>) -> Self {
-//         Member {
-//             cell: MutCell::from(p),
-//         }
-//     }
-// }
-
-// impl<C: Chromosome> Scored for Member<C> {
-//     fn score(&self) -> Option<&Score> {
-//         Borrow::<Phenotype<C>>::borrow(self).score()
-//     }
-// }
-
-// unsafe impl<C: Chromosome> Send for Member<C> {}
-// unsafe impl<C: Chromosome> Sync for Member<C> {}

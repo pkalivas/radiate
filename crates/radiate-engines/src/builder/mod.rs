@@ -366,6 +366,7 @@ where
                 alters: config.alters().to_vec(),
                 lineage: config.lineage(),
                 names: (offspring_base_name, offspring_time_name),
+                counts: radiate_utils::VersionedCounts::new(),
             },
         };
 

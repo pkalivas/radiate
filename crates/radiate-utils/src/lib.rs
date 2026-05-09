@@ -9,7 +9,7 @@ mod stats;
 mod str;
 
 pub use array::{Shape, Strides, Tensor};
-pub use buff::{SortedBuffer, Value, WindowBuffer};
+pub use buff::{SortedBuffer, Value, VersionedCounts, WindowBuffer};
 pub use datatype::{
     AnyValue, DataType, Field, dedup_slice, dtype, dtype_names, pow_anyvalue, value,
 };

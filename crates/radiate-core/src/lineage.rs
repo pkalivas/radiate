@@ -120,6 +120,17 @@ pub struct LineageStats {
     pub within_family_crossovers: usize,
 }
 
+impl LineageStats {
+    pub fn clear(&mut self) {
+        self.updates = 0;
+        self.parent_usage.clear();
+        self.family_usage.clear();
+        self.family_pairs.clear();
+        self.cross_family_crossovers = 0;
+        self.within_family_crossovers = 0;
+    }
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct Lineage {
     stats: LineageStats,
@@ -127,7 +138,7 @@ pub struct Lineage {
 
 impl Lineage {
     pub fn rollover(&mut self) {
-        self.stats = LineageStats::default();
+        self.stats.clear();
     }
 
     pub fn stats(&self) -> &LineageStats {

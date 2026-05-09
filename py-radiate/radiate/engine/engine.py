@@ -258,14 +258,6 @@ class Engine[G, T]:
             self._engine = None
             raise
 
-    def write(self, path: str | Path) -> None:
-        """Write the engine's configuration and state to a file."""
-        if self._engine is None:
-            self._engine = self._builder.build()
-
-        file_type = path.suffix[1:] if isinstance(path, Path) else path.split(".")[-1]
-        self._engine.write(path, file_type)
-
     def run(
         self,
         *limits: LimitBase,

@@ -1,11 +1,11 @@
 use crate::stats::{MetricView, Tag, TagType, defaults};
 use radiate_error::{RadiateError, radiate_err};
 use radiate_utils::{
-    AnyValue, DataType, Statistic, cache_arc_string,
+    AnyValue, DataType, SmallStr, Statistic
 };
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use std::{hash::Hash, sync::Arc, time::Duration};
+use std::{hash::Hash, time::Duration};
 
 const DTYPE_NULL: u8 = 0;
 const DTYPE_FLOAT32: u8 = 1;
@@ -33,7 +33,7 @@ pub(super) struct Meta {
 #[derive(Clone, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Metric {
-    name: Arc<String>,
+    name: SmallStr,
     meta: Option<Meta>,
     inner: Statistic,
     tags: Tag,
@@ -41,8 +41,8 @@ pub struct Metric {
 }
 
 impl Metric {
-    pub fn new(name: &'static str) -> Self {
-        let name = cache_arc_string!(name);
+    pub fn new(name: impl Into<SmallStr>) -> Self {
+        let name = name.into();
         let tags = defaults::default_tags(&name);
 
         Self {
@@ -253,7 +253,7 @@ impl Metric {
         &self.inner
     }
 
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> &SmallStr {
         &self.name
     }
 

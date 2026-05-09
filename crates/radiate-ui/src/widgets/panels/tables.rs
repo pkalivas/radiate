@@ -78,7 +78,7 @@ impl MetricTableKind {
         }
     }
 
-    fn filter_item(&self, name: &'static str) -> bool {
+    fn filter_item(&self, name: &str) -> bool {
         match self {
             Self::Time => name != metric_names::TIME,
             _ => true,
@@ -87,7 +87,7 @@ impl MetricTableKind {
 
     fn build_rows<'a>(
         &self,
-        items: impl Iterator<Item = (&'static str, &'a Metric)>,
+        items: impl Iterator<Item = (&'a str, &'a Metric)>,
     ) -> Vec<Row<'a>> {
         match self {
             Self::Time => metric_to_time_rows(items).collect(),
@@ -135,10 +135,10 @@ impl<C: Chromosome> StatefulWidget for MetricTableWidget<C> {
             .collect();
 
         match self.kind {
-            MetricTableKind::Time => state.tables.time.update_rows(&items, |(name, _)| name),
-            MetricTableKind::Stats => state.tables.stats.update_rows(&items, |(name, _)| name),
+            MetricTableKind::Time => state.tables.time.update_rows(&items, |(name, _)| (*name).into()),
+            MetricTableKind::Stats => state.tables.stats.update_rows(&items, |(name, _)| (*name).into()),
             MetricTableKind::Distribution => {
-                state.tables.dist.update_rows(&items, |(name, _)| name)
+                state.tables.dist.update_rows(&items, |(name, _)| (*name).into())
             }
         }
 
@@ -242,7 +242,7 @@ pub fn tagged_metrics<'a, C: Chromosome>(
     metrics: &'a MetricSet,
     state: &AppState<C>,
     tag: TagType,
-) -> Vec<(&'static str, &'a Metric)> {
+) -> Vec<(&'a str, &'a Metric)> {
     let mut items = metrics
         .iter_tagged(tag)
         .filter(|(_, m)| state.metric_matches_search(m))
@@ -254,7 +254,7 @@ pub fn tagged_metrics<'a, C: Chromosome>(
 // --- Row builders ---
 
 fn metric_to_time_rows<'a>(
-    metrics: impl Iterator<Item = (&'static str, &'a Metric)>,
+    metrics: impl Iterator<Item = (&'a str, &'a Metric)>,
 ) -> impl Iterator<Item = Row<'a>> {
     metrics.filter_map(|(name, m)| {
         m.times().map(|time| {
@@ -270,7 +270,7 @@ fn metric_to_time_rows<'a>(
 }
 
 fn metrics_into_stat_rows<'a>(
-    metrics: impl Iterator<Item = (&'static str, &'a Metric)>,
+    metrics: impl Iterator<Item = (&'a str, &'a Metric)>,
 ) -> impl Iterator<Item = Row<'a>> {
     metrics.filter_map(|(name, m)| {
         m.stats().map(|stat| {
@@ -289,7 +289,7 @@ fn metrics_into_stat_rows<'a>(
 }
 
 fn metrics_into_dist_rows<'a>(
-    metrics: impl Iterator<Item = (&'static str, &'a Metric)>,
+    metrics: impl Iterator<Item = (&'a str, &'a Metric)>,
 ) -> impl Iterator<Item = Row<'a>> {
     metrics.filter_map(|(name, m)| {
         m.distributions().map(|stat| {
