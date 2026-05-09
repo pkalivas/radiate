@@ -1,4 +1,3 @@
-use crate::freeze::short_type_name;
 use crate::{Chromosome, Gene, Genotype, Population, math::indexes, random_provider};
 use crate::{Lineage, LineageUpdate, MetricSet, MetricUpdate, Rate, metric};
 use radiate_utils::{ToSnakeCase, intern};
@@ -111,13 +110,6 @@ impl<C: Chromosome> Alterer<C> {
         }
     }
 
-    pub fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
-        match self {
-            Alterer::Mutate(_, _, m) => m.write(w),
-            Alterer::Crossover(_, _, c) => c.write(w),
-        }
-    }
-
     #[inline]
     pub fn alter(
         &mut self,
@@ -205,10 +197,6 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
 
     fn rate(&self) -> Rate {
         Rate::default()
-    }
-
-    fn write(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
-        writeln!(writer, "type: {}", short_type_name::<Self>())
     }
 
     fn alterer(self) -> Alterer<C>
@@ -321,10 +309,6 @@ pub trait Mutate<C: Chromosome>: Send + Sync {
 
     fn rate(&self) -> Rate {
         Rate::default()
-    }
-
-    fn write(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
-        writeln!(writer, "type: {}", short_type_name::<Self>())
     }
 
     fn alterer(self) -> Alterer<C>

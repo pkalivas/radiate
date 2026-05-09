@@ -38,7 +38,7 @@ pub enum AnyValue<'a> {
     Slice(&'a [AnyValue<'a>]),
     Vector(Vec<AnyValue<'a>>),
 
-    Struct(Field, Vec<(Field, AnyValue<'a>)>),
+    Struct(SmallStr, Vec<(Field, AnyValue<'a>)>),
 
     Map(Vec<(SmallStr, DataType, AnyValue<'a>)>),
 }
@@ -206,7 +206,7 @@ impl<'a> AnyValue<'a> {
             ),
 
             Self::Struct(field, fields) => DataType::Struct(
-                Box::new(field.clone()),
+                field.clone(),
                 fields.iter().map(|(f, _)| f.clone()).collect(),
             ),
         }
@@ -398,11 +398,10 @@ impl<'a> PartialEq for AnyValue<'a> {
                     .zip(b.iter())
                     .all(|((f1, _, v1), (f2, _, v2))| f1 == f2 && v1 == v2)
             }
-            (Struct(fa, va), Struct(fb, vb)) if fa.name() == fb.name() && va.len() == vb.len() => {
-                va.iter()
-                    .zip(vb.iter())
-                    .all(|((f1, v1), (f2, v2))| f1.name() == f2.name() && v1 == v2)
-            }
+            (Struct(fa, va), Struct(fb, vb)) if fa == fb && va.len() == vb.len() => va
+                .iter()
+                .zip(vb.iter())
+                .all(|((f1, v1), (f2, v2))| f1.name() == f2.name() && v1 == v2),
             _ => false,
         }
     }
@@ -660,7 +659,7 @@ impl<'a, 'de> Deserialize<'de> for AnyValue<'a> {
             Slice(Vec<AnyValueDef>),
             Vector(Vec<AnyValueDef>),
             Map(Vec<(SmallStr, DataType, AnyValueDef)>),
-            Struct(Field, Vec<(Field, AnyValueDef)>),
+            Struct(SmallStr, Vec<(Field, AnyValueDef)>),
         }
 
         impl From<AnyValueDef> for AnyValue<'_> {

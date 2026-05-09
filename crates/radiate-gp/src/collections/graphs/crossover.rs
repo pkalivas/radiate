@@ -28,12 +28,6 @@ where
         self.rate.clone()
     }
 
-    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
-        writeln!(w, "type: GraphCrossover")?;
-        writeln!(w, "rate: {:?}", self.rate)?;
-        writeln!(w, "parent_node_rate: {}", self.parent_node_rate)
-    }
-
     #[inline]
     fn cross(
         &self,

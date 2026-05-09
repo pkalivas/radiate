@@ -29,6 +29,7 @@ use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::NamedExpr;
 use radiate_core::evaluator::BatchFitnessEvaluator;
+use radiate_core::freeze::{DebugWriter, Writer};
 use radiate_core::problem::BatchEngineProblem;
 use radiate_core::{Alterer, Ecosystem, Executor, FitnessEvaluator, Rate, Valid};
 use radiate_core::{RadiateError, ensure, radiate_err};
@@ -147,50 +148,6 @@ where
         }
         let generation = read_generation.expect("Failed to read checkpoint file");
         self.generation(generation)
-    }
-
-    /// Write a self-description of the engine configuration to `writer`.
-    /// Calls each component's `write` method in turn, framed with simple
-    /// section headers. Format is intentionally simple — components write
-    /// `key: value` lines; the engine adds blank-line-separated sections.
-    pub fn write_config(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
-        let sel = &self.params.selection_params;
-        let pop = &self.params.population_params;
-        let spc = &self.params.species_params;
-        let opt = &self.params.optimization_params;
-
-        writeln!(writer, "[engine]")?;
-        writeln!(writer, "population_size: {}", pop.population_size)?;
-        writeln!(writer, "max_age: {}", pop.max_age)?;
-        writeln!(writer, "max_species_age: {}", spc.max_species_age)?;
-        writeln!(writer, "offspring_fraction: {}", sel.offspring_fraction)?;
-        writeln!(writer, "objective: {:?}", opt.objectives)?;
-
-        writeln!(writer)?;
-        writeln!(writer, "[offspring_selector]")?;
-        sel.offspring_selector.write(writer)?;
-
-        writeln!(writer)?;
-        writeln!(writer, "[survivor_selector]")?;
-        sel.survivor_selector.write(writer)?;
-
-        for (i, alter) in self.params.alterers.iter().enumerate() {
-            writeln!(writer)?;
-            writeln!(writer, "[alterer.{}]", i)?;
-            alter.write(writer)?;
-        }
-
-        writeln!(writer)?;
-        writeln!(writer, "[replacement_strategy]")?;
-        self.params.replacement_strategy.write(writer)?;
-
-        if let Some(codec) = self.params.problem_params.codec.as_ref() {
-            writeln!(writer)?;
-            writeln!(writer, "[codec]")?;
-            codec.write(writer)?;
-        }
-
-        Ok(())
     }
 }
 
@@ -468,12 +425,34 @@ where
     T: Clone + Send + 'static,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut buffer = Vec::new();
-        self.write_config(&mut buffer)
-            .map_err(|_| std::fmt::Error)?;
+        let writer = DebugWriter;
+        let pop = &self.params.population_params;
+        let sel = &self.params.selection_params;
+        let spc = &self.params.species_params;
+        let opt = &self.params.optimization_params;
 
-        let config_str = String::from_utf8(buffer).map_err(|_| std::fmt::Error)?;
-        write!(f, "GeneticEngineBuilder {{\n{config_str}}}")
+        let mut out = String::new();
+        out.push_str("[GeneticEngine]\n");
+        out.push_str(&format!("population_size: {}\n", pop.population_size));
+        out.push_str(&format!("max_age: {}\n", pop.max_age));
+        out.push_str(&format!("max_species_age: {}\n", spc.max_species_age));
+        out.push_str(&format!("species_threshold: {:?}\n", spc.species_threshold));
+        out.push_str(&format!("offspring_fraction: {}\n", sel.offspring_fraction));
+        out.push_str(&format!("objective: {:?}\n", opt.objectives));
+
+        out.push_str("\n[offspring_selector]\n");
+        if let Ok(s) = writer.write(&*sel.offspring_selector) {
+            out.push_str(&s);
+            out.push('\n');
+        }
+
+        out.push_str("\n[survivor_selector]\n");
+        if let Ok(s) = writer.write(&*sel.survivor_selector) {
+            out.push_str(&s);
+            out.push('\n');
+        }
+
+        write!(f, "{}", out)
     }
 }
 

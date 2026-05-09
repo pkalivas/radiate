@@ -1,7 +1,6 @@
 use std::fmt::Debug;
 
 use crate::Chromosome;
-use crate::freeze::short_type_name;
 use crate::genome::population::Population;
 use crate::objectives::Objective;
 
@@ -34,19 +33,6 @@ pub trait Select<C: Chromosome>: Send + Sync + Debug {
         parts.insert(0, "selector");
 
         radiate_utils::intern_kv_pair(name, radiate_utils::intern!(parts.join(".")))
-    }
-
-    /// Write a self-description to `writer`. Default writes a single
-    /// `type: <ShortTypeName>` line. Override to add fields:
-    ///
-    /// ```ignore
-    /// fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
-    ///     writeln!(w, "type: {}", radiate_core::short_type_name::<Self>())?;
-    ///     writeln!(w, "k: {}", self.k)
-    /// }
-    /// ```
-    fn write(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
-        writeln!(writer, "type: {}", short_type_name::<Self>())
     }
 
     fn select(

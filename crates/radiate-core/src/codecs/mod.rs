@@ -1,5 +1,4 @@
 use super::genome::genotype::Genotype;
-use crate::freeze::short_type_name;
 
 pub mod bit;
 pub mod char;
@@ -88,8 +87,4 @@ pub trait Codec<C: Chromosome, T> {
     fn encode(&self) -> Genotype<C>;
 
     fn decode(&self, genotype: &Genotype<C>) -> T;
-
-    fn write(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
-        writeln!(writer, "type: {}", short_type_name::<Self>())
-    }
 }

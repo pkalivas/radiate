@@ -28,14 +28,6 @@ impl<T: Integer, D> IntCodec<T, D> {
         self
     }
 
-    fn write_repr(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
-        writeln!(w, "type: IntCodec")?;
-        writeln!(w, "num_chromosomes: {}", self.num_chromosomes)?;
-        writeln!(w, "num_genes: {}", self.num_genes)?;
-        writeln!(w, "value_range: {:?}", self.value_range)?;
-        writeln!(w, "bounds: {:?}", self.bounds)
-    }
-
     /// The different variants of `IntCodec` are all the same, so this function is used to create
     /// a new `Genotype` with the given number of chromosomes and genes. The only difference between
     /// them is the type `D`, which is either a `Vec<Vec<T>>`, `Vec<T>`, or `T`.
@@ -110,10 +102,6 @@ impl<T: Integer> IntCodec<T, T> {
 /// let decoded: Vec<Vec<i32>> = codec.decode(&genotype);
 /// ```
 impl<T: Integer> Codec<IntChromosome<T>, Vec<Vec<T>>> for IntCodec<T, Vec<Vec<T>>> {
-    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
-        self.write_repr(w)
-    }
-
     fn encode(&self) -> Genotype<IntChromosome<T>> {
         self.encode_common()
     }
@@ -145,10 +133,6 @@ impl<T: Integer> Codec<IntChromosome<T>, Vec<Vec<T>>> for IntCodec<T, Vec<Vec<T>
 /// let decoded: Vec<i32> = codec.decode(&genotype);
 /// ```
 impl<T: Integer> Codec<IntChromosome<T>, Vec<T>> for IntCodec<T, Vec<T>> {
-    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
-        self.write_repr(w)
-    }
-
     fn encode(&self) -> Genotype<IntChromosome<T>> {
         self.encode_common()
     }
@@ -182,10 +166,6 @@ impl<T: Integer> Codec<IntChromosome<T>, Vec<T>> for IntCodec<T, Vec<T>> {
 /// let decoded: i32 = codec.decode(&genotype);
 /// ```
 impl<T: Integer> Codec<IntChromosome<T>, T> for IntCodec<T, T> {
-    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
-        self.write_repr(w)
-    }
-
     fn encode(&self) -> Genotype<IntChromosome<T>> {
         self.encode_common()
     }

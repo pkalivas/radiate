@@ -38,11 +38,6 @@ impl<C: Chromosome + Clone> Select<C> for NSGA3Selector {
         "nsga3_selector"
     }
 
-    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
-        writeln!(w, "type: NSGA3Selector")?;
-        writeln!(w, "partitions: {}", self.partitions)
-    }
-
     fn select(
         &self,
         population: &Population<C>,

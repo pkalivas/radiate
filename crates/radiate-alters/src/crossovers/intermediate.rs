@@ -45,12 +45,6 @@ where
         self.rate.clone()
     }
 
-    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
-        writeln!(w, "type: IntermediateCrossover")?;
-        writeln!(w, "rate: {:?}", self.rate)?;
-        writeln!(w, "alpha: {}", self.alpha)
-    }
-
     #[inline]
     fn cross_chromosomes(
         &self,

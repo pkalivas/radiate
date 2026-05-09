@@ -35,12 +35,6 @@ impl<C: Chromosome> Crossover<C> for MultiPointCrossover {
         self.rate.clone()
     }
 
-    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
-        writeln!(w, "type: MultiPointCrossover")?;
-        writeln!(w, "rate: {:?}", self.rate)?;
-        writeln!(w, "num_points: {}", self.num_points)
-    }
-
     #[inline]
     fn cross_chromosomes(
         &self,

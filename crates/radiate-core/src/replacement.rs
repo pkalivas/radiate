@@ -1,5 +1,4 @@
 use super::{Chromosome, Genotype, Population, random_provider};
-use crate::freeze::short_type_name;
 use std::sync::Arc;
 
 /// Trait for replacement strategies in the algorithms.
@@ -10,10 +9,6 @@ use std::sync::Arc;
 /// be desirable to replace the individual in a different way, such as by sampling from the
 /// [Population].
 pub trait ReplacementStrategy<C: Chromosome>: Send + Sync {
-    fn write(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
-        writeln!(writer, "type: {}", short_type_name::<Self>())
-    }
-
     fn replace(
         &self,
         population: &Population<C>,

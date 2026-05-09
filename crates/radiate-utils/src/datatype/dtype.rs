@@ -61,7 +61,7 @@ pub enum DataType {
 
     List(Box<DataType>),
     Map(Vec<(SmallStr, DataType)>),
-    Struct(Box<Field>, Vec<Field>),
+    Struct(SmallStr, Vec<Field>),
 }
 
 impl DataType {
@@ -184,10 +184,7 @@ impl From<String> for DataType {
             dtype_names::STRING => DataType::String,
 
             dtype_names::VEC => DataType::List(Box::new(DataType::Null)),
-            dtype_names::STRUCT => DataType::Struct(
-                Box::new(Field::new("field".into(), DataType::Null)),
-                Vec::new(),
-            ),
+            dtype_names::STRUCT => DataType::Struct(SmallStr::from_static("struct"), Vec::new()),
 
             dtype_names::MAP => DataType::Map(Vec::new()),
 
@@ -240,7 +237,7 @@ impl Display for DataType {
                 f,
                 "{} {} {{ {} }}",
                 dtype_names::STRUCT,
-                name.name,
+                name,
                 fields
                     .iter()
                     .map(|f| format!("{}", f.name,))

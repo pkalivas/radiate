@@ -56,24 +56,12 @@ impl<T: Clone, D> TreeCodec<T, D> {
         self.template = Some(template.into());
         self
     }
-
-    fn write_repr(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
-        writeln!(w, "type: TreeCodec")?;
-        writeln!(w, "depth: {}", self.depth)?;
-        writeln!(w, "num_trees: {}", self.num_trees)?;
-        writeln!(w, "has_template: {}", self.template.is_some())?;
-        writeln!(w, "has_constraint: {}", self.constraint.is_some())
-    }
 }
 
 impl<T> Codec<TreeChromosome<T>, Vec<Tree<T>>> for TreeCodec<T, Vec<Tree<T>>>
 where
     T: Clone + PartialEq + Default,
 {
-    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
-        self.write_repr(w)
-    }
-
     fn encode(&self) -> Genotype<TreeChromosome<T>> {
         if let Some(store) = &self.store {
             let new_chromosomes = (0..self.num_trees)
@@ -103,10 +91,6 @@ impl<T> Codec<TreeChromosome<T>, Tree<T>> for TreeCodec<T, Tree<T>>
 where
     T: Clone + PartialEq + Default,
 {
-    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
-        self.write_repr(w)
-    }
-
     fn encode(&self) -> Genotype<TreeChromosome<T>> {
         if let Some(store) = &self.store {
             let tree = match self.template.as_ref() {

@@ -98,12 +98,6 @@ where
         self.rate.clone()
     }
 
-    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
-        writeln!(w, "type: OperationMutator")?;
-        writeln!(w, "rate: {:?}", self.rate)?;
-        writeln!(w, "replace_rate: {}", self.replace_rate)
-    }
-
     #[inline]
     fn mutate_chromosome(
         &self,
@@ -142,12 +136,6 @@ where
 {
     fn rate(&self) -> Rate {
         self.rate.clone()
-    }
-
-    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
-        writeln!(w, "type: OperationMutator")?;
-        writeln!(w, "rate: {:?}", self.rate)?;
-        writeln!(w, "replace_rate: {}", self.replace_rate)
     }
 
     #[inline]

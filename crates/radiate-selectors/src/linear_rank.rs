@@ -12,11 +12,6 @@ impl LinearRankSelector {
 }
 
 impl<C: Chromosome + Clone> Select<C> for LinearRankSelector {
-    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
-        writeln!(w, "type: LinearRankSelector")?;
-        writeln!(w, "selection_pressure: {}", self.selection_pressure)
-    }
-
     fn select(&self, population: &Population<C>, _: &Objective, count: usize) -> Population<C> {
         let n = population.len();
         if n == 0 || count == 0 {

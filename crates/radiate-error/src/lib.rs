@@ -19,6 +19,7 @@ pub enum Code {
     Python,
     Multiple,
     Context,
+    IO,
 }
 
 #[derive(Error, Debug)]
@@ -63,6 +64,12 @@ pub enum RadiateError {
         #[source]
         source: Box<RadiateError>,
     },
+
+    #[error("I/O error: {0}")]
+    IO(#[from] std::io::Error),
+
+    #[error("Formatting error: {0}")]
+    Fmt(#[from] std::fmt::Error),
 }
 
 impl RadiateError {
@@ -81,6 +88,8 @@ impl RadiateError {
             RadiateError::Python { .. } => Code::Python,
             RadiateError::Multiple(_) => Code::Multiple,
             RadiateError::Context { .. } => Code::Context,
+            RadiateError::IO(_) => Code::IO,
+            RadiateError::Fmt(_) => Code::Other,
         }
     }
     pub fn context(self, msg: impl Into<String>) -> Self {
@@ -149,6 +158,13 @@ macro_rules! radiate_err {
         $crate::__private::must_use($source.into().context($msg))
     };
 
+    (IO: $fmt:literal $(, $arg:expr)* $(,)?) => {
+        $crate::__private::must_use($crate::RadiateError::IO(format!($fmt, $($arg),*)))
+    };
+    (Fmt: $fmt:literal $(, $arg:expr)* $(,)?) => {
+        $crate::__private::must_use($crate::RadiateError::Fmt(format!($fmt, $($arg),*)))
+    };
+
     // Raw string-like message (any expr -> String)
     (Builder: $msg:expr $(,)?) => {
         $crate::__private::must_use($crate::RadiateError::Builder($msg.to_string()))
@@ -174,6 +190,12 @@ macro_rules! radiate_err {
     (Expr: $msg:expr $(,)?) => {
         $crate::__private::must_use($crate::RadiateError::Expr($msg.to_string()))
     };
+    (IO: $msg:expr $(,)?) => {
+        $crate::__private::must_use($crate::RadiateError::IO($msg.to_string()))
+    };
+    (Fmt: $msg:expr $(,)?) => {
+        $crate::__private::must_use($crate::RadiateError::Fmt($msg.to_string()))
+    };
 
     // Fallback -> Engine (for now, could be Metric or other)
     ($msg:expr $(,)?) => {
@@ -191,4 +213,10 @@ macro_rules! ensure {
     ($cond:expr, $($tt:tt)+) => {
         if !$cond { $crate::radiate_bail!($($tt)+); }
     };
+}
+
+impl Into<std::fmt::Error> for RadiateError {
+    fn into(self) -> std::fmt::Error {
+        std::fmt::Error
+    }
 }

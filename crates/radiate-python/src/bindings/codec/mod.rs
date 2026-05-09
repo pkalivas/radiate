@@ -92,12 +92,6 @@ impl<C: Chromosome, T> Codec<C, T> for PyCodec<C, T> {
         })
     }
 
-    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
-        match &self.write {
-            Some(f) => f(w),
-            None => writeln!(w, "type: PyCodec"),
-        }
-    }
 }
 
 impl<C: Chromosome, T> Default for PyCodec<C, T> {

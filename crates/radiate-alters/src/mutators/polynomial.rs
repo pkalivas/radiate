@@ -64,12 +64,6 @@ where
         self.rate.clone()
     }
 
-    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
-        writeln!(w, "type: PolynomialMutator")?;
-        writeln!(w, "rate: {:?}", self.rate)?;
-        writeln!(w, "eta: {}", self.eta)
-    }
-
     #[inline]
     fn mutate_gene(&self, gene: &mut C::Gene) -> usize {
         let (lower, upper) = gene.bounds();

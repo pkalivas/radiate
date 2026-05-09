@@ -62,19 +62,7 @@ impl BitCodec<bool> {
     }
 }
 
-impl<T> BitCodec<T> {
-    fn write_repr(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
-        writeln!(w, "type: BitCodec")?;
-        writeln!(w, "num_chromosomes: {}", self.num_chromosomes)?;
-        writeln!(w, "num_genes: {}", self.num_genes)
-    }
-}
-
 impl Codec<BitChromosome, Vec<Vec<bool>>> for BitCodec<Vec<Vec<bool>>> {
-    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
-        self.write_repr(w)
-    }
-
     fn encode(&self) -> Genotype<BitChromosome> {
         Genotype::new(
             (0..self.num_chromosomes)
@@ -97,10 +85,6 @@ impl Codec<BitChromosome, Vec<Vec<bool>>> for BitCodec<Vec<Vec<bool>>> {
 }
 
 impl Codec<BitChromosome, Vec<bool>> for BitCodec<Vec<bool>> {
-    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
-        self.write_repr(w)
-    }
-
     fn encode(&self) -> Genotype<BitChromosome> {
         Genotype::new(
             (0..self.num_chromosomes)
@@ -123,10 +107,6 @@ impl Codec<BitChromosome, Vec<bool>> for BitCodec<Vec<bool>> {
 }
 
 impl Codec<BitChromosome, bool> for BitCodec<bool> {
-    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
-        self.write_repr(w)
-    }
-
     fn encode(&self) -> Genotype<BitChromosome> {
         Genotype::new(
             (0..self.num_chromosomes)

@@ -30,11 +30,6 @@ impl BoltzmannSelector {
 }
 
 impl<C: Chromosome + Clone> Select<C> for BoltzmannSelector {
-    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
-        writeln!(w, "type: BoltzmannSelector")?;
-        writeln!(w, "temperature: {}", self.temperature)
-    }
-
     #[inline]
     fn select(
         &self,

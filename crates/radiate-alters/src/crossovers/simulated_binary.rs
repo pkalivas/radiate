@@ -38,12 +38,6 @@ where
         self.crossover_rate.clone()
     }
 
-    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
-        writeln!(w, "type: SimulatedBinaryCrossover")?;
-        writeln!(w, "rate: {:?}", self.crossover_rate)?;
-        writeln!(w, "contiguity: {}", self.contiguty)
-    }
-
     #[inline]
     fn cross_chromosomes(
         &self,

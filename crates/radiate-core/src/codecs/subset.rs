@@ -24,11 +24,6 @@ impl<T> SubSetCodec<T> {
 }
 
 impl<T> Codec<BitChromosome, Vec<Arc<T>>> for SubSetCodec<T> {
-    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
-        writeln!(w, "type: SubSetCodec")?;
-        writeln!(w, "items: {}", self.items.len())
-    }
-
     fn encode(&self) -> Genotype<BitChromosome> {
         Genotype::new(vec![BitChromosome::new(self.items.len())])
     }

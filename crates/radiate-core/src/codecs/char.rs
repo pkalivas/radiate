@@ -22,13 +22,6 @@ impl<T> CharCodec<T> {
         self.char_set = char_set.into();
         self
     }
-
-    fn write_repr(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
-        writeln!(w, "type: CharCodec")?;
-        writeln!(w, "num_chromosomes: {}", self.num_chromosomes)?;
-        writeln!(w, "num_genes: {}", self.num_genes)?;
-        writeln!(w, "char_set_size: {}", self.char_set.len())
-    }
 }
 
 impl CharCodec<Vec<Vec<char>>> {
@@ -54,10 +47,6 @@ impl CharCodec<Vec<char>> {
 }
 
 impl Codec<CharChromosome, Vec<Vec<char>>> for CharCodec<Vec<Vec<char>>> {
-    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
-        self.write_repr(w)
-    }
-
     fn encode(&self) -> Genotype<CharChromosome> {
         Genotype::new(
             (0..self.num_chromosomes)
@@ -86,10 +75,6 @@ impl Codec<CharChromosome, Vec<Vec<char>>> for CharCodec<Vec<Vec<char>>> {
 }
 
 impl Codec<CharChromosome, Vec<char>> for CharCodec<Vec<char>> {
-    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
-        self.write_repr(w)
-    }
-
     fn encode(&self) -> Genotype<CharChromosome> {
         Genotype::new(
             (0..self.num_chromosomes)

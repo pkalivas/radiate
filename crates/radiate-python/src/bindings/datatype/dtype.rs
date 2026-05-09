@@ -169,9 +169,7 @@ impl<'py> IntoPyObject<'py> for &Wrap<DataType> {
             }
             DataType::Struct(field, fields) => {
                 let field_class = rd.getattr(intern!(py, "Field"))?;
-                let name = field.name().as_str();
-                let dtype = Wrap(field.dtype().clone());
-                let main_field = field_class.call1((name, &dtype))?;
+                let name = field.to_string();
 
                 let iter = fields.iter().map(|fld| {
                     let name = fld.name().as_str();
@@ -180,7 +178,7 @@ impl<'py> IntoPyObject<'py> for &Wrap<DataType> {
                 });
                 let fields = PyList::new(py, iter)?;
                 let struct_class = rd.getattr(intern!(py, "Struct"))?;
-                struct_class.call1((main_field, fields))
+                struct_class.call1((name, fields))
             }
         }
     }

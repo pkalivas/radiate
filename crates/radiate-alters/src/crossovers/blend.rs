@@ -45,12 +45,6 @@ where
         self.rate.clone()
     }
 
-    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
-        writeln!(w, "type: BlendCrossover")?;
-        writeln!(w, "rate: {:?}", self.rate)?;
-        writeln!(w, "alpha: {}", self.alpha)
-    }
-
     #[inline]
     fn cross_chromosomes(
         &self,
@@ -89,16 +83,6 @@ where
 mod tests {
     use super::*;
     use radiate_core::{FloatChromosome, FloatGene, MetricSet};
-
-    #[test]
-    fn write_emits_expected_shape() {
-        let crossover = BlendCrossover::new(0.5, 0.3);
-        let mut buf = Vec::<u8>::new();
-        Crossover::<FloatChromosome<f32>>::write(&crossover, &mut buf).unwrap();
-        let out = String::from_utf8(buf).unwrap();
-        assert!(out.contains("type: BlendCrossover"));
-        assert!(out.contains("alpha: 0.3"));
-    }
 
     #[test]
     fn test_cross_chromosomes_basic() {

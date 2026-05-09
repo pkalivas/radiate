@@ -71,13 +71,6 @@ impl<T> Mutate<GraphChromosome<T>> for GraphMutator
 where
     T: Clone + PartialEq + Default,
 {
-    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
-        writeln!(w, "type: GraphMutator")?;
-        writeln!(w, "vertex_rate: {}", self.vertex_rate)?;
-        writeln!(w, "edge_rate: {}", self.edge_rate)?;
-        writeln!(w, "allow_recurrent: {}", self.allow_recurrent)
-    }
-
     #[inline]
     fn mutate_chromosome(
         &self,

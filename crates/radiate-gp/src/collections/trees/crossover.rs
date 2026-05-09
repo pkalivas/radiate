@@ -76,12 +76,6 @@ where
         self.rate.clone()
     }
 
-    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
-        writeln!(w, "type: TreeCrossover")?;
-        writeln!(w, "rate: {:?}", self.rate)?;
-        writeln!(w, "max_size: {}", self.max_size)
-    }
-
     #[inline]
     fn cross_chromosomes(
         &self,

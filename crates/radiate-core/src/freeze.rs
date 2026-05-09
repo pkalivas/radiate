@@ -6,6 +6,12 @@
 //! on each component trait. This module retains the `short_type_name` helper
 //! that those default impls use to render `type: <Name>` lines.
 
+use std::fmt::Debug;
+
+use radiate_error::radiate_err;
+
+use crate::error::RadiateResult;
+
 /// Walk the full type name and strip the module path of every segment, not
 /// just the head. Segments are delimited by `<`, `>`, `,`, or space; each
 /// segment becomes whatever follows its last `::`. So
@@ -31,5 +37,20 @@ fn strip_path(segment: &str) -> &str {
     match segment.rfind("::") {
         Some(idx) => &segment[idx + 2..],
         None => segment,
+    }
+}
+
+pub trait Writer<T: ?Sized> {
+    type Output;
+    fn write(&self, item: &T) -> RadiateResult<Self::Output>;
+}
+
+pub struct DebugWriter;
+
+impl<T: Debug + ?Sized> Writer<T> for DebugWriter {
+    type Output = String;
+
+    fn write(&self, item: &T) -> RadiateResult<String> {
+        Ok(format!("{:?}", item))
     }
 }

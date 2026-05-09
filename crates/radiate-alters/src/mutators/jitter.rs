@@ -41,12 +41,6 @@ where
         self.rate.clone()
     }
 
-    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
-        writeln!(w, "type: JitterMutator")?;
-        writeln!(w, "rate: {:?}", self.rate)?;
-        writeln!(w, "magnitude: {}", self.magnitude)
-    }
-
     #[inline]
     fn mutate_chromosome(&self, chromosome: &mut C, ctx: &mut AlterContext) -> AlterResult {
         let mut count = 0;

@@ -1,6 +1,5 @@
 use super::{Graph, GraphChromosome, GraphNode};
-use crate::node::Node;
-use crate::{Factory, NodeStore, NodeType};
+use crate::{Factory, NodeStore};
 use radiate_core::{Codec, Genotype};
 
 #[derive(Clone)]
@@ -132,20 +131,5 @@ where
     #[inline]
     fn decode(&self, genotype: &Genotype<GraphChromosome<T>>) -> Graph<T> {
         Graph::new(genotype[0].as_ref().to_vec())
-    }
-
-    fn write(&self, w: &mut dyn std::io::Write) -> std::io::Result<()> {
-        let template = self.template.as_ref();
-        let count_by = |t: NodeType| template.iter().filter(|n| n.node_type() == t).count();
-        writeln!(w, "type: GraphCodec")?;
-        writeln!(w, "input_size: {}", count_by(NodeType::Input))?;
-        writeln!(w, "output_size: {}", count_by(NodeType::Output))?;
-        writeln!(w, "vertex_size: {}", count_by(NodeType::Vertex))?;
-        writeln!(w, "edge_size: {}", count_by(NodeType::Edge))?;
-        writeln!(w, "template_size: {}", template.len())?;
-        if let Some(max) = self.template.max_nodes() {
-            writeln!(w, "max_nodes: {}", max)?;
-        }
-        Ok(())
     }
 }
