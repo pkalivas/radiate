@@ -29,13 +29,12 @@ use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::NamedExpr;
 use radiate_core::evaluator::BatchFitnessEvaluator;
-use radiate_core::freeze::{DebugWriter, Writer};
+// use radiate_core::freeze::{DebugWriter, Writer};
 use radiate_core::problem::BatchEngineProblem;
 use radiate_core::{Alterer, Ecosystem, Executor, FitnessEvaluator, Rate, Valid};
 use radiate_core::{RadiateError, ensure, radiate_err};
 #[cfg(feature = "serde")]
 use serde::Deserialize;
-use std::fmt::Debug;
 use std::sync::{Arc, Mutex};
 
 #[derive(Clone)]
@@ -416,43 +415,6 @@ where
         };
 
         Some(Box::new(species_step))
-    }
-}
-
-impl<C, T> Debug for GeneticEngineBuilder<C, T>
-where
-    C: Chromosome + Clone + PartialEq + 'static,
-    T: Clone + Send + 'static,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let writer = DebugWriter;
-        let pop = &self.params.population_params;
-        let sel = &self.params.selection_params;
-        let spc = &self.params.species_params;
-        let opt = &self.params.optimization_params;
-
-        let mut out = String::new();
-        out.push_str("[GeneticEngine]\n");
-        out.push_str(&format!("population_size: {}\n", pop.population_size));
-        out.push_str(&format!("max_age: {}\n", pop.max_age));
-        out.push_str(&format!("max_species_age: {}\n", spc.max_species_age));
-        out.push_str(&format!("species_threshold: {:?}\n", spc.species_threshold));
-        out.push_str(&format!("offspring_fraction: {}\n", sel.offspring_fraction));
-        out.push_str(&format!("objective: {:?}\n", opt.objectives));
-
-        out.push_str("\n[offspring_selector]\n");
-        if let Ok(s) = writer.write(&*sel.offspring_selector) {
-            out.push_str(&s);
-            out.push('\n');
-        }
-
-        out.push_str("\n[survivor_selector]\n");
-        if let Ok(s) = writer.write(&*sel.survivor_selector) {
-            out.push_str(&s);
-            out.push('\n');
-        }
-
-        write!(f, "{}", out)
     }
 }
 
