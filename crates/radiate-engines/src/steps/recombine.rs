@@ -92,8 +92,8 @@ where
         let pop_slice = ecosystem.population().as_ref();
         let pop_len = pop_slice.len();
 
-        let s_indices = self.timed_select(&s_selector, pop_slice, metrics);
-        let o_indices = self.timed_select(&o_selector, pop_slice, metrics);
+        let s_indices = self.timed_select(s_selector, pop_slice, metrics);
+        let o_indices = self.timed_select(o_selector, pop_slice, metrics);
 
         self.offspring_counts.begin(pop_len);
         for &idx in o_indices.iter() {
@@ -179,7 +179,7 @@ where
             }
         }
 
-        let s_indices = self.timed_select(&s_selector, population.as_ref(), metrics);
+        let s_indices = self.timed_select(s_selector, population.as_ref(), metrics);
 
         self.survivor_counts.begin(population.len());
         for &idx in s_indices.iter() {

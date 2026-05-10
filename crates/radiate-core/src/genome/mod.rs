@@ -26,7 +26,7 @@ impl<T> GetPairMut<T> for Vec<T> {
     }
 }
 
-impl<'a, T> GetPairMut<T> for &'a mut [T] {
+impl<T> GetPairMut<T> for &mut [T] {
     fn get_pair_mut(&mut self, first: usize, second: usize) -> Option<(&mut T, &mut T)> {
         get_pair_mut_internal(self, first, second)
     }

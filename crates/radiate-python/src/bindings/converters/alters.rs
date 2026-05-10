@@ -46,10 +46,6 @@ where
     }
 }
 
-/// ---------------------------------------------------------------------------
-/// Registry macros
-/// ---------------------------------------------------------------------------
-
 macro_rules! alter_table {
     ($($name:expr => $fn:ident),* $(,)?) => {
         &[
@@ -76,10 +72,6 @@ macro_rules! impl_input_transform_for {
     };
 }
 
-/// ---------------------------------------------------------------------------
-/// Generic transform impl for slices
-/// ---------------------------------------------------------------------------
-
 impl<C> InputTransform<Vec<Alterer<C>>> for &[PyEngineInput]
 where
     C: Chromosome + Clone,
@@ -99,10 +91,6 @@ where
         alters
     }
 }
-
-/// ---------------------------------------------------------------------------
-/// Registry lookup
-/// ---------------------------------------------------------------------------
 
 fn alters_from_registry<C>(
     input: &PyEngineInput,
@@ -124,7 +112,6 @@ where
 /// ---------------------------------------------------------------------------
 /// INT REGISTRY
 /// ---------------------------------------------------------------------------
-
 fn int_registry<I>() -> AlterRegistry<IntChromosome<I>>
 where
     I: Integer,
@@ -146,7 +133,6 @@ where
 /// ---------------------------------------------------------------------------
 /// FLOAT REGISTRY
 /// ---------------------------------------------------------------------------
-
 fn float_registry<F>() -> AlterRegistry<FloatChromosome<F>>
 where
     F: Float + NumericAllele,
@@ -173,7 +159,6 @@ where
 /// ---------------------------------------------------------------------------
 /// CHAR REGISTRY
 /// ---------------------------------------------------------------------------
-
 fn char_registry() -> AlterRegistry<CharChromosome> {
     AlterRegistry::new(alter_table! {
         crate::names::MULTI_POINT_CROSSOVER   => convert_multi_point_crossover,
@@ -190,7 +175,6 @@ fn char_registry() -> AlterRegistry<CharChromosome> {
 /// ---------------------------------------------------------------------------
 /// BIT REGISTRY
 /// ---------------------------------------------------------------------------
-
 fn bit_registry() -> AlterRegistry<BitChromosome> {
     AlterRegistry::new(alter_table! {
         crate::names::MULTI_POINT_CROSSOVER   => convert_multi_point_crossover,
@@ -207,7 +191,6 @@ fn bit_registry() -> AlterRegistry<BitChromosome> {
 /// ---------------------------------------------------------------------------
 /// PERMUTATION REGISTRY
 /// ---------------------------------------------------------------------------
-
 fn perm_registry() -> AlterRegistry<PermutationChromosome<usize>> {
     AlterRegistry::new(alter_table! {
         crate::names::PARTIALLY_MAPPED_CROSSOVER => convert_partially_mapped_crossover,
@@ -223,7 +206,6 @@ fn perm_registry() -> AlterRegistry<PermutationChromosome<usize>> {
 /// ---------------------------------------------------------------------------
 /// GRAPH REGISTRY
 /// ---------------------------------------------------------------------------
-
 fn graph_registry() -> AlterRegistry<GraphChromosome<Op<f32>>> {
     AlterRegistry::new(alter_table! {
         crate::names::GRAPH_CROSSOVER       => convert_graph_crossover,
@@ -236,7 +218,6 @@ fn graph_registry() -> AlterRegistry<GraphChromosome<Op<f32>>> {
 /// ---------------------------------------------------------------------------
 /// TREE REGISTRY
 /// ---------------------------------------------------------------------------
-
 fn tree_registry() -> AlterRegistry<TreeChromosome<Op<f32>>> {
     AlterRegistry::new(alter_table! {
         crate::names::TREE_CROSSOVER        => convert_tree_crossover,
@@ -268,7 +249,6 @@ impl_input_transform_for!(TreeChromosome<Op<f32>>, tree_registry);
 /// ---------------------------------------------------------------------------
 /// Concrete converters
 /// ---------------------------------------------------------------------------
-
 fn convert_jitter_mutator(input: &PyEngineInput) -> RadiateResult<JitterMutator> {
     let rate = input.extract::<PyRate>("rate")?.rate;
     let magnitude = input.extract::<f64>("magnitude")?;
