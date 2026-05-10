@@ -2,6 +2,8 @@
 mod engine_tests {
     use radiate_core::*;
     use radiate_engines::*;
+    use radiate_test::*;
+    use rstest::*;
     use std::time::Duration;
 
     #[test]
@@ -9,14 +11,13 @@ mod engine_tests {
         const EXPECTED_SUM: i32 = 0;
         const EXPECTED_GENS: usize = 60;
 
-        random_provider::scoped_seed(42, || {
-            let engine = GeneticEngine::builder()
-                .minimizing()
-                .codec(IntCodec::vector(5, 0..100))
-                .fitness_fn(|geno: Vec<i32>| geno.iter().sum::<i32>())
-                .build();
+        seeded(42, || {
+            let result = int_minimize_engine(5, 100)
+                .iter()
+                .until_score(0)
+                .last()
+                .unwrap();
 
-            let result = engine.iter().until_score(0).last().unwrap();
             let best = result.value();
 
             assert_eq!(best.iter().sum::<i32>(), EXPECTED_SUM);
@@ -26,18 +27,14 @@ mod engine_tests {
 
     #[test]
     fn engine_can_maximize() {
-        const EXPECTED_SUM: i32 = 500;
+        const EXPECTED_SUM: usize = 20;
         const BUDGET: usize = 500;
 
-        random_provider::scoped_seed(43, || {
-            let mut engine = GeneticEngine::builder()
-                .codec(IntCodec::vector(5, 0..101))
-                .fitness_fn(|geno: Vec<i32>| geno.iter().sum::<i32>())
-                .build();
+        seeded(43, || {
+            let mut engine = onemax_engine(20);
+            let result = engine.run(|ctx| ctx.score().as_usize() == EXPECTED_SUM);
 
-            let result = engine.run(|ctx| ctx.score().as_i32() == EXPECTED_SUM);
-
-            assert_eq!(result.value().iter().sum::<i32>(), EXPECTED_SUM);
+            assert_eq!(result.value().iter().filter(|&&x| x).count(), EXPECTED_SUM);
             assert!(
                 result.index() < BUDGET,
                 "engine_can_maximize exceeded budget ({}/{BUDGET})",
@@ -51,7 +48,7 @@ mod engine_tests {
         const TARGET: [i32; 5] = [1, 2, 3, 4, 5];
         const BUDGET: usize = 200;
 
-        random_provider::scoped_seed(44, || {
+        seeded(44, || {
             let mut engine = GeneticEngine::builder()
                 .minimizing()
                 .codec(IntCodec::vector(TARGET.len(), 0..10))
@@ -85,7 +82,7 @@ mod engine_tests {
         // parallel evaluator, this test will become flaky.
         const BUDGET: usize = 300;
 
-        random_provider::scoped_seed(45, || {
+        seeded(45, || {
             let mut engine = GeneticEngine::builder()
                 .codec(IntChromosome::from((5, 0..100)))
                 .minimizing()
@@ -131,14 +128,8 @@ mod engine_tests {
     fn test_engine_score_iterator() {
         const BUDGET: usize = 200;
 
-        random_provider::scoped_seed(46, || {
-            let engine = GeneticEngine::builder()
-                .minimizing()
-                .codec(IntCodec::vector(5, 0..100))
-                .fitness_fn(|geno: Vec<i32>| geno.iter().sum::<i32>())
-                .build();
-
-            let result = engine
+        seeded(46, || {
+            let result = int_minimize_engine(10, 100)
                 .iter()
                 .limit(Limit::Generation(BUDGET))
                 .until_score(0)
@@ -158,13 +149,11 @@ mod engine_tests {
 
     #[test]
     fn test_engine_seconds_iterator() {
-        let engine = GeneticEngine::builder()
-            .minimizing()
-            .codec(IntCodec::vector(5, 0..100))
-            .fitness_fn(|geno: Vec<i32>| geno.iter().sum::<i32>())
-            .build();
-
-        let result = engine.iter().until_seconds(2_f64).last().unwrap();
+        let result = onemax_engine(200)
+            .iter()
+            .until_seconds(2_f64)
+            .last()
+            .unwrap();
 
         // Round here as the time taken to execute the engine may
         // be slightly over or under 2 seconds
@@ -173,23 +162,13 @@ mod engine_tests {
 
     #[test]
     fn test_engine_iterations_iterator() {
-        let engine = GeneticEngine::builder()
-            .minimizing()
-            .codec(IntCodec::vector(5, 0..100))
-            .fitness_fn(|geno: Vec<i32>| geno.iter().sum::<i32>())
-            .build();
-
-        let result = engine.iter().limit(10).last().unwrap();
+        let result = onemax_engine(50).iter().limit(10).last().unwrap();
         assert_eq!(result.index(), 10);
     }
 
     #[test]
     fn test_engine_custom_iterator() {
-        let engine = GeneticEngine::builder()
-            .minimizing()
-            .codec(IntCodec::vector(5, 0..100))
-            .fitness_fn(|geno: Vec<i32>| geno.iter().sum::<i32>())
-            .build();
+        let engine = onemax_engine(5);
 
         let result = engine
             .iter()
@@ -208,12 +187,7 @@ mod engine_tests {
         use std::thread;
         use std::time::Duration;
 
-        let mut engine = GeneticEngine::builder()
-            .minimizing()
-            .codec(IntCodec::vector(5, 0..100))
-            .fitness_fn(|geno: Vec<i32>| geno.iter().sum::<i32>())
-            .build();
-
+        let mut engine = onemax_engine(5);
         let control = engine.control();
 
         let handle = thread::spawn(move || {
@@ -235,12 +209,7 @@ mod engine_tests {
         use std::thread;
         use std::time::Duration;
 
-        let mut engine = GeneticEngine::builder()
-            .minimizing()
-            .codec(IntCodec::vector(5, 0..100))
-            .fitness_fn(|geno: Vec<i32>| geno.iter().sum::<i32>())
-            .build();
-
+        let mut engine = onemax_engine(5);
         let control = engine.control();
 
         let handle = thread::spawn(move || {
@@ -251,5 +220,101 @@ mod engine_tests {
         thread::sleep(Duration::from_millis(100));
         control.stop();
         handle.join().unwrap();
+    }
+
+    #[rstest]
+    #[case(101, 0.05, 300)]
+    #[case(202, 0.05, 300)]
+    #[case(303, 0.05, 300)]
+    fn speciated_regression_converges(
+        #[case] seed: u64,
+        #[case] threshold: f32,
+        #[case] budget: usize,
+    ) {
+        seeded(seed, || {
+            let test_inputs = (-10..=10).map(|i| i as f32 / 5.0).collect::<Vec<f32>>();
+            let targets = test_inputs
+                .iter()
+                .map(|x| 2.0 * x + 1.0)
+                .collect::<Vec<f32>>();
+
+            fn fitness(coeffs: &Vec<f32>, inputs: &[f32], targets: &[f32]) -> f32 {
+                inputs
+                    .iter()
+                    .zip(targets.iter())
+                    .map(|(x, y)| {
+                        let pred = coeffs[0] * x + coeffs[1];
+                        (pred - y).powi(2)
+                    })
+                    .sum::<f32>()
+                    / inputs.len() as f32
+            }
+
+            let engine = GeneticEngine::builder()
+                .minimizing()
+                .population_size(80)
+                .codec(FloatCodec::vector(2, -10.0..10.0))
+                .diversity(EuclideanDistance)
+                .species_threshold(0.5)
+                .survivor_selector(TournamentSelector::new(3))
+                .offspring_selector(BoltzmannSelector::new(4.0))
+                .alter(alters![
+                    BlendCrossover::new(0.6, 0.5),
+                    GaussianMutator::new(0.05)
+                ])
+                .fitness_fn(move |geno: Vec<f32>| fitness(&geno, &test_inputs, &targets))
+                .build();
+
+            let result = engine
+                .iter()
+                .limit(vec![
+                    Limit::Generation(budget),
+                    Limit::Score(threshold.into()),
+                ])
+                .last()
+                .unwrap();
+
+            assert!(
+                result.score().as_f32() < threshold,
+                "speciated regression MSE {} did not reach {} within {} gens",
+                result.score().as_f32(),
+                threshold,
+                budget,
+            );
+            assert_within_budget(&result, budget, "speciated regression");
+            assert_has_species(result.ecosystem(), "speciated regression");
+        });
+    }
+
+    /// Pop-integrity invariants every generation when species are active.
+    /// Runs a short engine, then audits the final population state.
+    #[test]
+    fn speciated_population_integrity() {
+        const POP_SIZE: usize = 100;
+        const GENS: usize = 50;
+
+        seeded(7777, || {
+            let engine = speciated_sphere_engine(3, POP_SIZE, 0.5);
+            let result = engine.iter().limit(GENS).last().unwrap();
+
+            assert_population_speciated(result.ecosystem(), "speciated population integrity");
+            assert_population_integrity(&result, POP_SIZE);
+        });
+    }
+
+    /// Edge case: very small population. Speciation can fail in interesting
+    /// ways with K phenotypes < typical species count.
+    #[test]
+    fn speciated_small_population_no_panic() {
+        const POP_SIZE: usize = 3;
+        const GENS: usize = 100;
+
+        seeded(1010, || {
+            let engine = speciated_sphere_engine(2, POP_SIZE, 0.3);
+            let result = engine.iter().limit(GENS).last().unwrap();
+
+            assert_population_speciated(result.ecosystem(), "speciated small population");
+            assert_eq!(result.population().len(), POP_SIZE);
+        });
     }
 }

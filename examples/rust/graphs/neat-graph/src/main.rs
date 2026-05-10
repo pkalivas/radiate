@@ -10,7 +10,7 @@ fn main() {
     let distance = args.next().unwrap_or_else(|| "expr".to_string());
     let target_species: usize = args
         .next()
-        .unwrap_or_else(|| "6".to_string())
+        .unwrap_or_else(|| "4".to_string())
         .parse()
         .expect("target_species must be a number");
 
@@ -29,7 +29,6 @@ fn main() {
         .codec(GraphCodec::directed(1, 1, store))
         .raw_batch_fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
-        .parallel()
         .diversity(NeatDistance::new(1.0, 1.0, 3.0))
         .species_threshold(get_threshold(use_expr, target_species))
         .alter(alters!(

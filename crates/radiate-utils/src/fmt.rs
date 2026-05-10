@@ -26,9 +26,11 @@ pub fn short_type_name<T: ?Sized>() -> String {
             segment_start = i + c.len_utf8();
         }
     }
+
     if segment_start < full.len() {
         out.push_str(strip_path(&full[segment_start..]));
     }
+
     out
 }
 

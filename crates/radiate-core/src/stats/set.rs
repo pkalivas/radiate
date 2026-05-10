@@ -148,7 +148,9 @@ impl MetricSet {
 
     #[inline(always)]
     pub fn iter(&self) -> impl Iterator<Item = (&str, &Metric)> {
-        self.metrics.iter().map(|(name, metric)| (name.as_str(), metric))
+        self.metrics
+            .iter()
+            .map(|(name, metric)| (name.as_str(), metric))
     }
 
     #[inline(always)]
