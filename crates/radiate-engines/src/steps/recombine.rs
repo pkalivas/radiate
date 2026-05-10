@@ -60,7 +60,11 @@ where
     /// offspring from the population. Each unique source idx yields exactly
     /// one `swap_remove` move regardless of how many survivor or offspring
     /// slots it fills, so we save a clone per idx that appears in both
-    /// selections (or in survivors only).
+    /// selections (or in survivors only). On the other hand, some indices that
+    /// fill only one bucket can be moved over from previous generation to
+    /// current without cloning. In practice this can save ~20-50% of clones compared to
+    /// a naive separate-walk approach.
+    #[inline]
     fn combined_create(
         &mut self,
         generation: usize,
@@ -94,38 +98,7 @@ where
             self.survivor_counts.bump(idx);
         }
 
-        // Single descending walk over the union of selected indices.
-        // For each unique source idx with total = s + o > 0, emit (total - 1)
-        // clones distributed to whichever bucket still needs entries, then
-        // swap_remove the last one and place it in whichever bucket has room.
-        let mut survivors = Population::with_capacity(self.survivor.count);
-        let mut offspring = Population::with_capacity(self.offspring.count);
-
-        let pop = ecosystem.population_mut();
-        let iter = self
-            .survivor_counts
-            .iter_pair_live_rev(&self.offspring_counts);
-
-        for (idx, s, o) in iter {
-            let mut s_left = s as usize;
-            let total = s_left + o as usize;
-
-            for _ in 0..total - 1 {
-                if s_left > 0 {
-                    survivors.push(pop[idx].clone());
-                    s_left -= 1;
-                } else {
-                    offspring.push(pop[idx].clone());
-                }
-            }
-
-            let moved = pop.swap_remove(idx);
-            if s_left > 0 {
-                survivors.push(moved);
-            } else {
-                offspring.push(moved);
-            }
-        }
+        let (survivors, mut offspring) = self.unioned_walk(ecosystem);
 
         metrics.upsert((self.survivor.names.0, survivors.len()));
         metrics.upsert((self.survivor.names.1, s_elapsed));
@@ -145,64 +118,12 @@ where
         pop.extend(offspring);
     }
 
-    #[inline]
-    pub fn create_with_species2(
-        &mut self,
-        generation: usize,
-        ecosystem: &mut Ecosystem<C>,
-        metrics: &mut MetricSet,
-    ) -> Population<C> {
-        let mut lineage = self.lineage.write().unwrap();
-        let (species, population) = ecosystem.species_population_mut();
-        let species = species.expect("species present");
-
-        let mut species_scores = species
-            .iter()
-            .filter_map(|spec| spec.score())
-            .collect::<Vec<_>>();
-
-        if let Objective::Single(Optimize::Minimize) = &self.objective {
-            species_scores.reverse();
-        }
-
-        let quotas = self.quotas_from_scores(&species_scores);
-
-        let mut next_population = Population::with_capacity(self.offspring.count);
-        for (species, count) in species.iter().zip(quotas.iter()) {
-            let mut pop = population
-                .drain_species(species.id())
-                .collect::<Population<C>>();
-
-            self.objective.sort(&mut pop);
-
-            let time = std::time::Instant::now();
-
-            let mut offspring = self
-                .offspring
-                .selector
-                .select(pop.as_ref(), &self.objective, *count)
-                .into_iter()
-                .map(|p| pop[p].clone())
-                .collect::<Population<C>>();
-
-            metrics.upsert((self.offspring.names.0, offspring.len()));
-            metrics.upsert((self.offspring.names.1, time.elapsed()));
-
-            self.objective.sort(&mut offspring);
-
-            self.offspring.alters.iter_mut().for_each(|alt| {
-                alt.alter(offspring.as_mut(), &mut lineage, metrics, generation);
-            });
-
-            next_population.extend(offspring);
-        }
-
-        next_population
-    }
-
     /// Species path: per-species reproduction. Survivors are selected globally
     /// via the survivor selector, then per-species offspring quotas drive
-    /// scoped selection + alteration within each species' drained sub-pop.
+    /// scoped selection + alteration within each species' drained sub-pop. This follows
+    /// a pretty similar approach to the above method, but we split the logic up by
+    /// species, so each species essentially performs the above algorithm in it's own search space.
+    #[inline]
     fn create_with_species(
         &mut self,
         generation: usize,
@@ -210,7 +131,9 @@ where
         metrics: &mut MetricSet,
     ) {
         let (species, population) = ecosystem.species_population_mut();
-        let species = species.expect("species present");
+        let Some(species) = species else {
+            return self.combined_create(generation, ecosystem, metrics);
+        };
 
         population.sort_by(|a, b| a.species().cmp(&b.species()));
 
@@ -274,6 +197,31 @@ where
             self.survivor_counts.bump(idx);
         }
 
+        let (survivors, mut offspring) = self.unioned_walk(ecosystem);
+
+        let mut lineage = self.lineage.write().unwrap();
+        let o_slice = offspring.as_mut();
+        for chunk in o_slice.chunk_by_mut(|a, b| a.species() == b.species()) {
+            let mut chunk = chunk;
+            self.objective.sort(&mut chunk);
+
+            for alt in &mut self.offspring.alters {
+                alt.alter(chunk, &mut lineage, metrics, generation);
+            }
+        }
+
+        let pop = ecosystem.population_mut();
+        pop.clear();
+        pop.extend(survivors);
+        pop.extend(offspring);
+    }
+
+    #[inline]
+    fn unioned_walk(&self, ecosystem: &mut Ecosystem<C>) -> (Population<C>, Population<C>) {
+        // Single descending walk over the union of selected indices.
+        // For each unique source idx with total = s + o > 0, emit (total - 1)
+        // clones distributed to whichever bucket still needs entries, then
+        // swap_remove the last one and place it in whichever bucket has room.
         let mut survivors = Population::with_capacity(self.survivor.count);
         let mut offspring = Population::with_capacity(self.offspring.count);
 
@@ -303,21 +251,7 @@ where
             }
         }
 
-        let mut lineage = self.lineage.write().unwrap();
-        let o_slice = offspring.as_mut();
-        for chunk in o_slice.chunk_by_mut(|a, b| a.species() == b.species()) {
-            let mut chunk = chunk;
-            self.objective.sort(&mut chunk);
-
-            for alt in &mut self.offspring.alters {
-                alt.alter(chunk, &mut lineage, metrics, generation);
-            }
-        }
-
-        let pop = ecosystem.population_mut();
-        pop.clear();
-        pop.extend(survivors);
-        pop.extend(offspring);
+        (survivors, offspring)
     }
 
     #[inline]
