@@ -1,7 +1,7 @@
 use radiate::*;
 
 fn main() {
-    random_provider::set_seed(100);
+    random_provider::seed(100);
 
     let target = "Hello, Radiate!";
 

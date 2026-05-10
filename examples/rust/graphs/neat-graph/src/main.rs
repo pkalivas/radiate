@@ -3,7 +3,7 @@ use radiate::prelude::*;
 const MIN_SCORE: f32 = 0.001;
 
 fn main() {
-    random_provider::set_seed(90);
+    random_provider::seed(90);
 
     let store = vec![
         (NodeType::Input, vec![Op::var(0)]),

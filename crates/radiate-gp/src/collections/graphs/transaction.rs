@@ -780,7 +780,7 @@ mod tests {
 
     #[test]
     fn random_node_helpers_can_return_edges_when_only_edges_exist() {
-        random_provider::set_seed(1337);
+        random_provider::seed(1337);
         random_provider::with_rng(|rand| {
             let mut g = Graph::<i32>::default();
             let mut tx = GraphTransaction::new(&mut g);

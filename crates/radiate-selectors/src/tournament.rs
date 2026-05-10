@@ -1,6 +1,8 @@
 use radiate_core::{Chromosome, Objective, Phenotype, Select, random_provider};
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone)]
 pub struct TournamentSelector {
     k: usize,

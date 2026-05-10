@@ -8,7 +8,7 @@ pub struct PyRandomProvider;
 impl PyRandomProvider {
     #[staticmethod]
     pub fn set_seed(seed: u64) {
-        random_provider::set_seed(seed);
+        random_provider::seed(seed);
     }
 
     #[staticmethod]

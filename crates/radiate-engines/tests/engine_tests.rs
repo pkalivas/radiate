@@ -6,6 +6,8 @@ mod engine_tests {
 
     #[test]
     fn engine_can_minimize() {
+        random_provider::seed(42);
+
         let engine = GeneticEngine::builder()
             .minimizing()
             .codec(IntCodec::vector(5, 0..100))

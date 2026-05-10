@@ -118,7 +118,7 @@ pub fn drop_some(mut data: Vec<Vec<Option<usize>>>, p_missing: f32) -> Vec<Vec<O
 }
 
 fn main() {
-    random_provider::set_seed(40);
+    random_provider::seed(40);
 
     // let dists = vec![
     //     vec![0.7, 0.3],           // Var0 card 2

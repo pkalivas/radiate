@@ -3,7 +3,7 @@ use radiate::*;
 const N_QUEENS: usize = 50;
 
 fn main() {
-    random_provider::set_seed(12345);
+    random_provider::seed(12345);
 
     let engine = GeneticEngine::builder()
         .codec(IntChromosome::from((N_QUEENS, 0..N_QUEENS as i8)))
