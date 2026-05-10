@@ -4,7 +4,7 @@ use radiate_core::{
     phenotype::PhenotypeId,
 };
 use radiate_error::Result;
-use radiate_utils::intern;
+use radiate_utils::SmallStr;
 use std::{
     cmp::Ordering,
     collections::HashSet,
@@ -310,10 +310,10 @@ impl<C: Chromosome> EngineStep<C> for AuditStep {
                 }
             }
 
-            let metric_name = if self.objective.is_single() {
+            let metric_name: SmallStr = if self.objective.is_single() {
                 metric_names::UNIQUE_SCORES
             } else {
-                intern!(format!("{}.{}", metric_names::UNIQUE_SCORES, idx))
+                format!("{}.{}", metric_names::UNIQUE_SCORES, idx).into()
             };
             metrics.upsert((metric_name, unique_count));
         }
@@ -323,7 +323,7 @@ impl<C: Chromosome> EngineStep<C> for AuditStep {
                 metrics.upsert((metric_names::SCORES, &self.score_distribution[0]));
             } else {
                 for (idx, vec) in self.score_distribution.iter().enumerate() {
-                    let metric_name = intern!(format!("{}.{}", metric_names::SCORES, idx));
+                    let metric_name: SmallStr = format!("{}.{}", metric_names::SCORES, idx).into();
                     metrics.upsert((metric_name, vec));
                 }
             }

@@ -45,6 +45,11 @@ impl SmallStr {
     pub fn into_string(self) -> String {
         self.0.into_string()
     }
+
+    #[inline(always)]
+    pub fn contains(&self, pat: impl AsRef<str>) -> bool {
+        self.as_str().contains(pat.as_ref())
+    }
 }
 
 impl Default for SmallStr {

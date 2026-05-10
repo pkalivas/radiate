@@ -107,11 +107,13 @@ impl ChartState {
                     .with_title(format!("{} σ (stddev)", key))
                     .with_color(ratatui::style::Color::LightGreen)
             }),
-            LineChartType::Variance => self.variance_charts.entry(key.clone()).or_insert_with(|| {
-                RollingLineChart::with_capacity(MAX_CHART_POINTS)
-                    .with_title(format!("{} σ² (variance)", key))
-                    .with_color(ratatui::style::Color::LightBlue)
-            }),
+            LineChartType::Variance => {
+                self.variance_charts.entry(key.clone()).or_insert_with(|| {
+                    RollingLineChart::with_capacity(MAX_CHART_POINTS)
+                        .with_title(format!("{} σ² (variance)", key))
+                        .with_color(ratatui::style::Color::LightBlue)
+                })
+            }
         }
     }
 }

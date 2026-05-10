@@ -252,8 +252,8 @@ impl PyMetric {
     }
 
     #[getter]
-    pub fn version(&self) -> u64 {
-        self.inner.version()
+    pub fn generation(&self) -> u64 {
+        self.inner.generation()
     }
 
     #[getter]
@@ -367,7 +367,7 @@ impl PyMetric {
         d.set_item(intern!(py, "time_max"), self.time_max())?;
         d.set_item(intern!(py, "time_var"), self.time_variance())?;
 
-        d.set_item(intern!(py, "version"), self.version())?;
+        d.set_item(intern!(py, "generation"), self.generation())?;
         d.set_item(intern!(py, "update_count"), self.update_count())?;
 
         d.set_item(intern!(py, "tags"), self.tags())?;

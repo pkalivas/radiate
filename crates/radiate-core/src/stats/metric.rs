@@ -27,7 +27,7 @@ macro_rules! metric {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub(super) struct Meta {
     pub(super) update_count: usize,
-    pub(super) version: u64,
+    pub(super) generation: u64,
 }
 
 #[derive(Clone, PartialEq, Default)]
@@ -60,22 +60,22 @@ impl Metric {
     }
 
     #[inline(always)]
-    pub fn version(&self) -> u64 {
-        self.meta.as_ref().map_or(0, |meta| meta.version)
+    pub fn generation(&self) -> u64 {
+        self.meta.as_ref().map_or(0, |meta| meta.generation)
     }
 
     #[inline(always)]
-    pub fn set_version(&mut self, version: u64) {
+    pub fn set_generation(&mut self, generation: u64) {
         if let Some(meta) = &mut self.meta {
-            if version != meta.version {
+            if generation != meta.generation {
                 meta.update_count = 0;
             }
 
-            meta.version = version;
+            meta.generation = generation;
         } else {
             self.meta = Some(Meta {
                 update_count: 0,
-                version,
+                generation,
             });
         }
     }

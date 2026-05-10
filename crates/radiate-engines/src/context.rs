@@ -96,7 +96,7 @@ impl<C: Chromosome, T> Context<C, T> {
             }
         }
 
-        self.metrics.next_version();
+        self.metrics.advance_generation();
 
         Ok(best_improved)
     }

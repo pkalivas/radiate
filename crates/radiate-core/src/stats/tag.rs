@@ -188,6 +188,7 @@ impl Ord for TagType {
 impl From<String> for TagType {
     fn from(s: String) -> Self {
         use TagType::*;
+
         match s.as_str().to_lowercase().as_str() {
             metric_tags::SELECTOR => Selector,
             metric_tags::ALTERER => Alterer,
