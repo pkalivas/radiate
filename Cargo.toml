@@ -25,7 +25,6 @@ members = [
 
     "examples/rust/trees/regression-tree",
     "examples/rust/trees/iris-tree", 
-    "examples/rust/pgm", 
 ]
 default-members = [
     "crates/*"
@@ -52,7 +51,6 @@ exclude = [
 
     "examples/rust/trees/regression-tree",
     "examples/rust/trees/iris-tree",    
-    "examples/rust/pgm",
 ]
 
 [workspace.package]
@@ -101,5 +99,4 @@ radiate-error = { version = "1.2.22", path = "crates/radiate-error", default-fea
 radiate-python = { version = "1.2.22", path = "crates/radiate-python", default-features = false }
 radiate-utils = { version = "1.2.22", path = "crates/radiate-utils", default-features = false }
 radiate-ui = { version = "1.2.22", path = "crates/radiate-ui", default-features = false }
-radiate-pgm = { version = "1.2.22", path = "crates/radiate-pgm", default-features = false }
 radiate-test = { path = "crates/radiate-test" }

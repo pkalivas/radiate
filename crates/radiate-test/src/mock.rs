@@ -196,15 +196,6 @@ pub fn maximize() -> Objective {
     Objective::Single(Optimize::Maximize)
 }
 
-// -----------------------------------------------------------------------------
-// Bare-population helpers — selector tests want a `Population<C>` directly,
-// not a full ecosystem. Each delegates to `MockEcosystem` so there's one
-// underlying construction path.
-// -----------------------------------------------------------------------------
-
-/// `num` float phenotypes with `score(i) = i`. Genotype contents are
-/// random within `[0, 1)` — selector tests using this don't read gene
-/// values, only scores.
 pub fn float_population(num: usize) -> Population<FloatChromosome<f32>> {
     MockEcosystem::new(FloatCodec::vector(1, 0.0..1.0))
         .pop_size(num)
@@ -212,9 +203,6 @@ pub fn float_population(num: usize) -> Population<FloatChromosome<f32>> {
         .build_population()
 }
 
-/// `num` float phenotypes with random gene allele in `[0, 100)`, and the
-/// score set equal to that gene allele. Tests that compute metrics from
-/// gene values rely on score order matching gene order.
 pub fn random_float_population(num: usize) -> Population<FloatChromosome<f32>> {
     MockEcosystem::new(FloatCodec::vector(1, 0.0..100.0))
         .pop_size(num)
@@ -222,9 +210,6 @@ pub fn random_float_population(num: usize) -> Population<FloatChromosome<f32>> {
         .build_population()
 }
 
-/// Multi-objective population built from explicit per-phenotype score
-/// vectors. Each phenotype's genotype content is irrelevant — the tests
-/// only care about the score vectors for Pareto-front computations.
 pub fn multi_obj_population(scores: Vec<Vec<f32>>) -> Population<FloatChromosome<f32>> {
     let n = scores.len();
     MockEcosystem::new(FloatCodec::vector(1, 0.0..1.0))

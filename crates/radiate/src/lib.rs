@@ -3,8 +3,6 @@ pub use radiate_engines::*;
 
 #[cfg(feature = "gp")]
 pub use radiate_gp::*;
-#[cfg(feature = "pgm")]
-pub use radiate_pgm::*;
 #[cfg(feature = "ui")]
 pub use radiate_ui::*;
 
@@ -14,8 +12,6 @@ pub mod prelude {
 
     #[cfg(feature = "gp")]
     pub use radiate_gp::*;
-    #[cfg(feature = "pgm")]
-    pub use radiate_pgm::*;
     #[cfg(feature = "ui")]
     pub use radiate_ui::*;
 }
