@@ -1,5 +1,5 @@
-use crate::{Chromosome, Gene, Genotype, Population, math::indexes, random_provider};
-use crate::{Lineage, LineageUpdate, MetricSet, MetricUpdate, Rate, metric};
+use crate::{Chromosome, Gene, Genotype, math::indexes, random_provider};
+use crate::{GetPairMut, Lineage, LineageUpdate, MetricSet, MetricUpdate, Phenotype, Rate, metric};
 use radiate_utils::{ToSnakeCase, intern};
 use std::sync::Arc;
 
@@ -113,7 +113,7 @@ impl<C: Chromosome> Alterer<C> {
     #[inline]
     pub fn alter(
         &mut self,
-        population: &mut Population<C>,
+        population: &mut [Phenotype<C>],
         lineage: &mut Lineage,
         metrics: &mut MetricSet,
         generation: usize,
@@ -207,7 +207,7 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
     }
 
     #[inline]
-    fn crossover(&self, population: &mut Population<C>, ctx: &mut AlterContext) -> AlterResult {
+    fn crossover(&self, population: &mut [Phenotype<C>], ctx: &mut AlterContext) -> AlterResult {
         let mut result = AlterResult::default();
         let mut parents = [0usize; MIN_NUM_PARENTS];
 
@@ -225,7 +225,7 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
     #[inline]
     fn cross(
         &self,
-        population: &mut Population<C>,
+        mut population: &mut [Phenotype<C>],
         parent_indexes: &[usize],
         ctx: &mut AlterContext,
     ) -> AlterResult {
@@ -319,7 +319,7 @@ pub trait Mutate<C: Chromosome>: Send + Sync {
     }
 
     #[inline]
-    fn mutate(&self, population: &mut Population<C>, ctx: &mut AlterContext) -> AlterResult {
+    fn mutate(&self, population: &mut [Phenotype<C>], ctx: &mut AlterContext) -> AlterResult {
         let mut result = AlterResult::default();
 
         for phenotype in population.iter_mut() {

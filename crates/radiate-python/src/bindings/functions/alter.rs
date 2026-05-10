@@ -102,8 +102,9 @@ fn alter<C: Chromosome>(
 ) -> Population<C> {
     let mut lineage = Lineage::default();
     let mut metrics = MetricSet::default();
+    let pop = population.as_mut();
     for alterer in alterers.iter_mut() {
-        alterer.alter(&mut population, &mut lineage, &mut metrics, generation);
+        alterer.alter(pop, &mut lineage, &mut metrics, generation);
     }
 
     population

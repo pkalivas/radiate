@@ -136,13 +136,68 @@ where
 
         let mut lineage = self.lineage.write().unwrap();
         for alt in &mut self.offspring.alters {
-            alt.alter(&mut offspring, &mut lineage, metrics, generation);
+            alt.alter(offspring.as_mut(), &mut lineage, metrics, generation);
         }
 
         let pop = ecosystem.population_mut();
         pop.clear();
         pop.extend(survivors);
         pop.extend(offspring);
+    }
+
+    #[inline]
+    pub fn create_with_species2(
+        &mut self,
+        generation: usize,
+        ecosystem: &mut Ecosystem<C>,
+        metrics: &mut MetricSet,
+    ) -> Population<C> {
+        let mut lineage = self.lineage.write().unwrap();
+        let (species, population) = ecosystem.species_population_mut();
+        let species = species.expect("species present");
+
+        let mut species_scores = species
+            .iter()
+            .filter_map(|spec| spec.score())
+            .collect::<Vec<_>>();
+
+        if let Objective::Single(Optimize::Minimize) = &self.objective {
+            species_scores.reverse();
+        }
+
+        let quotas = self.quotas_from_scores(&species_scores);
+
+        let mut next_population = Population::with_capacity(self.offspring.count);
+        for (species, count) in species.iter().zip(quotas.iter()) {
+            let mut pop = population
+                .drain_species(species.id())
+                .collect::<Population<C>>();
+
+            self.objective.sort(&mut pop);
+
+            let time = std::time::Instant::now();
+
+            let mut offspring = self
+                .offspring
+                .selector
+                .select(pop.as_ref(), &self.objective, *count)
+                .into_iter()
+                .map(|p| pop[p].clone())
+                .collect::<Population<C>>();
+
+            metrics.upsert((self.offspring.names.0, offspring.len()));
+            metrics.upsert((self.offspring.names.1, time.elapsed()));
+
+            self.objective.sort(&mut offspring);
+
+            self.offspring.alters.iter_mut().for_each(|alt| {
+                alt.alter(offspring.as_mut(), &mut lineage, metrics, generation);
+            });
+
+            next_population.extend(offspring);
+        }
+
+        next_population
     }
 
     /// Species path: per-species reproduction. Survivors are selected globally
@@ -157,10 +212,8 @@ where
         let (species, population) = ecosystem.species_population_mut();
         let species = species.expect("species present");
 
-        // Physical sort by species_id makes per-species access a contiguous slice.
         population.sort_by(|a, b| a.species().cmp(&b.species()));
 
-        // Walk consecutive runs of equal species_id to build the (species_id, range) table.
         let mut species_groups: Vec<(SpeciesId, Range<usize>)> = Vec::with_capacity(species.len());
         {
             let slice: &[_] = population.as_ref();
@@ -169,22 +222,6 @@ where
                 species_groups.push((chunk[0].species(), start..start + chunk.len()));
                 start += chunk.len();
             }
-        }
-
-        // Survivor selection runs on the (now sorted) population — indices land
-        // in the same coordinate space as offspring_counts.
-        let s_timer = std::time::Instant::now();
-        let s_indices = self.survivor.selector.select(
-            population.as_ref(),
-            &self.objective,
-            self.survivor.count,
-        );
-        metrics.upsert((self.survivor.names.0, s_indices.len()));
-        metrics.upsert((self.survivor.names.1, s_timer.elapsed()));
-
-        self.survivor_counts.begin(population.len());
-        for &idx in s_indices.iter() {
-            self.survivor_counts.bump(idx);
         }
 
         let mut species_scores = species
@@ -199,7 +236,6 @@ where
         let quotas = self.quotas_from_scores(&species_scores);
 
         self.offspring_counts.begin(population.len());
-
         for (species, count) in species.iter().zip(quotas.iter()) {
             let range = species_groups
                 .binary_search_by(|group| group.0.cmp(&species.id()))
@@ -219,6 +255,20 @@ where
             for &idx in offspring.iter() {
                 self.offspring_counts.bump(range.start + idx);
             }
+        }
+
+        let s_timer = std::time::Instant::now();
+        let s_indices = self.survivor.selector.select(
+            population.as_ref(),
+            &self.objective,
+            self.survivor.count,
+        );
+        metrics.upsert((self.survivor.names.0, s_indices.len()));
+        metrics.upsert((self.survivor.names.1, s_timer.elapsed()));
+
+        self.survivor_counts.begin(population.len());
+        for &idx in s_indices.iter() {
+            self.survivor_counts.bump(idx);
         }
 
         let mut survivors = Population::with_capacity(self.survivor.count);
@@ -250,8 +300,16 @@ where
             }
         }
 
-        // Group offspring by species so the per-species alter pass can use chunk_by_mut.
-        offspring.sort_by(|a, b| a.species().cmp(&b.species()));
+        let mut lineage = self.lineage.write().unwrap();
+        let o_slice = offspring.as_mut();
+        for chunk in o_slice.chunk_by_mut(|a, b| a.species() == b.species()) {
+            let mut chunk = chunk;
+            self.objective.sort(&mut chunk);
+
+            for alt in &mut self.offspring.alters {
+                alt.alter(chunk, &mut lineage, metrics, generation);
+            }
+        }
 
         let pop = ecosystem.population_mut();
         pop.clear();

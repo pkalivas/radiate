@@ -63,6 +63,7 @@ fn main() {
         .minimizing()
         // .parallel()
         // .register_metrics(vec![("idk", expr)])
+        // .survivor_selector(BoltzmannSelector::new(4.0))
         .diversity(NeatDistance::new(1.0, 1.0, 3.0))
         .species_threshold(distance_signal)
         .alter(alters!(
@@ -72,7 +73,7 @@ fn main() {
         ))
         .build();
 
-    engine
+    radiate::ui(engine)
         .iter()
         // .logging()
         .until_score(MIN_SCORE)

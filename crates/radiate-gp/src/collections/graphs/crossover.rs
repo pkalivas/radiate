@@ -31,7 +31,7 @@ where
     #[inline]
     fn cross(
         &self,
-        population: &mut Population<GraphChromosome<T>>,
+        mut population: &mut [Phenotype<GraphChromosome<T>>],
         indexes: &[usize],
         ctx: &mut AlterContext,
     ) -> AlterResult {
