@@ -3,7 +3,7 @@
 use radiate_alters::{BlendCrossover, GaussianMutator, UniformCrossover, UniformMutator};
 use radiate_core::{
     Alterer, BitChromosome, Chromosome, Codec, Crossover, Ecosystem, Executor, FloatChromosome,
-    FloatCodec, Genotype, IntChromosome, Lineage, Mutate, Objective, Optimize, Phenotype,
+    FloatCodec, Gene, Genotype, IntChromosome, Lineage, Mutate, Objective, Optimize, Phenotype,
     Population, Rate, Score, Species, alters, diversity::Diversity,
 };
 use radiate_engines::{OffspringConfig, RecombineStep, SelectConfig, SpeciateStep, SurvivorConfig};
@@ -39,7 +39,7 @@ impl<C: Chromosome + Clone> MockEcosystem<C> {
 
 pub struct MockEcosystemBuilder<C: Chromosome> {
     pop_size: usize,
-    score_fn: Option<Box<dyn Fn(usize) -> Score>>,
+    score_fn: Option<Box<dyn Fn(usize, &Genotype<C>) -> Score>>,
     species_sizes: Option<Vec<usize>>,
     genotype_fn: Box<dyn Fn() -> Genotype<C>>,
 }
@@ -50,17 +50,21 @@ impl<C: Chromosome + Clone> MockEcosystemBuilder<C> {
         self
     }
 
-    pub fn scores(mut self, score_fn: impl Fn(usize) -> Score + 'static) -> Self {
+    /// Set the per-phenotype score from index *and* genotype. Pass a
+    /// closure reading the genotype when score must be derived from gene
+    /// alleles (e.g. selector tests whose downstream metric reads gene
+    /// values and must agree with the score order).
+    pub fn scores(mut self, score_fn: impl Fn(usize, &Genotype<C>) -> Score + 'static) -> Self {
         self.score_fn = Some(Box::new(score_fn));
         self
     }
 
     pub fn scores_linear(self) -> Self {
-        self.scores(|i| Score::from(i as f32))
+        self.scores(|i, _| Score::from(i as f32))
     }
 
     pub fn scores_uniform(self, value: f32) -> Self {
-        self.scores(move |_| Score::from(value))
+        self.scores(move |_, _| Score::from(value))
     }
 
     pub fn with_species(mut self, sizes: &[usize]) -> Self {
@@ -68,12 +72,30 @@ impl<C: Chromosome + Clone> MockEcosystemBuilder<C> {
         self
     }
 
+    pub fn build_population(self) -> Population<C> {
+        Population::new(self.build_phenotypes())
+    }
+
+    fn build_phenotypes(&self) -> Vec<Phenotype<C>> {
+        (0..self.pop_size)
+            .map(|i| {
+                let geno = (self.genotype_fn)();
+                let mut p = Phenotype::from((geno.clone(), 0));
+                if let Some(score_fn) = &self.score_fn {
+                    p.set_score(Some(score_fn(i, &geno)));
+                }
+                p
+            })
+            .collect()
+    }
+
     pub fn build(self) -> Ecosystem<C> {
         let mut phenotypes = (0..self.pop_size)
             .map(|i| {
-                let mut p = Phenotype::from(((self.genotype_fn)(), 0));
+                let geno = (self.genotype_fn)();
+                let mut p = Phenotype::from((geno.clone(), 0));
                 if let Some(score_fn) = &self.score_fn {
-                    p.set_score(Some(score_fn(i)));
+                    p.set_score(Some(score_fn(i, &geno)));
                 }
                 p
             })
@@ -146,12 +168,10 @@ pub fn default_float_alters() -> Vec<Alterer<FloatChromosome<f32>>> {
     alters![BlendCrossover::new(0.5, 0.5), GaussianMutator::new(0.1)]
 }
 
-/// Stock alters for `IntChromosome<i32>` tests.
 pub fn default_int_alters() -> Vec<Alterer<IntChromosome<i32>>> {
     alters![UniformCrossover::new(0.7), UniformMutator::new(0.05)]
 }
 
-/// Stock alters for `BitChromosome` tests.
 pub fn default_bit_alters() -> Vec<Alterer<BitChromosome>> {
     alters![UniformCrossover::new(0.7), UniformMutator::new(0.05)]
 }
@@ -174,4 +194,41 @@ pub fn minimize() -> Objective {
 
 pub fn maximize() -> Objective {
     Objective::Single(Optimize::Maximize)
+}
+
+// -----------------------------------------------------------------------------
+// Bare-population helpers — selector tests want a `Population<C>` directly,
+// not a full ecosystem. Each delegates to `MockEcosystem` so there's one
+// underlying construction path.
+// -----------------------------------------------------------------------------
+
+/// `num` float phenotypes with `score(i) = i`. Genotype contents are
+/// random within `[0, 1)` — selector tests using this don't read gene
+/// values, only scores.
+pub fn float_population(num: usize) -> Population<FloatChromosome<f32>> {
+    MockEcosystem::new(FloatCodec::vector(1, 0.0..1.0))
+        .pop_size(num)
+        .scores_linear()
+        .build_population()
+}
+
+/// `num` float phenotypes with random gene allele in `[0, 100)`, and the
+/// score set equal to that gene allele. Tests that compute metrics from
+/// gene values rely on score order matching gene order.
+pub fn random_float_population(num: usize) -> Population<FloatChromosome<f32>> {
+    MockEcosystem::new(FloatCodec::vector(1, 0.0..100.0))
+        .pop_size(num)
+        .scores(|_, g| Score::from(*g[0].as_slice()[0].allele()))
+        .build_population()
+}
+
+/// Multi-objective population built from explicit per-phenotype score
+/// vectors. Each phenotype's genotype content is irrelevant — the tests
+/// only care about the score vectors for Pareto-front computations.
+pub fn multi_obj_population(scores: Vec<Vec<f32>>) -> Population<FloatChromosome<f32>> {
+    let n = scores.len();
+    MockEcosystem::new(FloatCodec::vector(1, 0.0..1.0))
+        .pop_size(n)
+        .scores(move |i, _| Score::from(scores[i].clone()))
+        .build_population()
 }

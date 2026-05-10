@@ -1,12 +1,9 @@
 //! Species-path coverage. The `RecombineStep::create_with_species` branch
 //! is structurally distinct from the non-species path
 
-#[path = "common/mod.rs"]
-mod common;
-
 #[cfg(test)]
 mod species_tests {
-    use super::common::*;
+    use radiate_test::*;
     use radiate_core::*;
     use radiate_engines::*;
     use rstest::*;

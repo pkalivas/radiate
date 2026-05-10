@@ -1,8 +1,6 @@
-mod utilities;
-
 #[cfg(test)]
 mod selector_tests {
-    use crate::utilities::population_utils;
+    use radiate_test::*;
     use radiate_core::*;
     use radiate_selectors::*;
     use rstest::*;
@@ -42,7 +40,7 @@ mod selector_tests {
     #[case(20, Optimize::Maximize)]
     #[case(30, Optimize::Maximize)]
     fn elite_selector_selects(#[case] num: usize, #[case] optimize: Optimize) {
-        let mut population = population_utils::float_population(100);
+        let mut population = float_population(100);
         optimize.sort(&mut population);
 
         let selector = EliteSelector::new();
@@ -79,7 +77,7 @@ mod selector_tests {
         let num_permutations = 1000;
         let objectives = Objective::Single(optimize);
 
-        let mut population = population_utils::random_float_population(100);
+        let mut population = random_float_population(100);
         optimize.sort(&mut population);
 
         let mut better_than_random = 0;
@@ -125,8 +123,8 @@ mod selector_tests {
     #[case(StochasticUniversalSamplingSelector::new())]
     #[case(RandomSelector::new())]
     fn selector_returns_requested_count(#[case] selector: impl Select<FloatChromosome<f32>>) {
-        random_provider::scoped_seed(7, || {
-            let population = population_utils::random_float_population(50);
+        seeded(7, || {
+            let population = random_float_population(50);
             let objective = Objective::Single(Optimize::Maximize);
 
             for &count in &[1, 5, 25, 50] {
@@ -148,8 +146,8 @@ mod selector_tests {
     #[case(RankSelector::new())]
     #[case(StochasticUniversalSamplingSelector::new())]
     fn selector_indices_in_bounds(#[case] selector: impl Select<FloatChromosome<f32>>) {
-        random_provider::scoped_seed(8, || {
-            let population = population_utils::random_float_population(50);
+        seeded(8, || {
+            let population = random_float_population(50);
             let objective = Objective::Single(Optimize::Maximize);
 
             let selected = selector.select(population.as_ref(), &objective, 100);
@@ -169,12 +167,12 @@ mod selector_tests {
     /// short-circuits to "always pick idx 0".
     #[test]
     fn tournament_k1_approaches_uniform() {
-        random_provider::scoped_seed(9, || {
+        seeded(9, || {
             const POP_SIZE: usize = 10;
             const SAMPLES: usize = 20_000;
             const EXPECTED: f32 = SAMPLES as f32 / POP_SIZE as f32; // ~2000 per slot
 
-            let mut population = population_utils::float_population(POP_SIZE);
+            let mut population = float_population(POP_SIZE);
             Optimize::Maximize.sort(&mut population);
 
             let selector = TournamentSelector::new(1);
@@ -205,11 +203,11 @@ mod selector_tests {
     /// distribution still beats random.
     #[test]
     fn boltzmann_high_temp_concentrates_on_best() {
-        random_provider::scoped_seed(10, || {
+        seeded(10, || {
             const POP_SIZE: usize = 10;
             const SAMPLES: usize = 5_000;
 
-            let mut population = population_utils::float_population(POP_SIZE);
+            let mut population = float_population(POP_SIZE);
             // Sort descending by score so idx 0 is best for Maximize.
             Optimize::Maximize.sort(&mut population);
 
@@ -235,11 +233,11 @@ mod selector_tests {
     /// least as often as worse ones
     #[test]
     fn boltzmann_monotone_in_score() {
-        random_provider::scoped_seed(11, || {
+        seeded(11, || {
             const POP_SIZE: usize = 10;
             const SAMPLES: usize = 5_000;
 
-            let mut population = population_utils::float_population(POP_SIZE);
+            let mut population = float_population(POP_SIZE);
             // Score equals index. Sort descending so idx 0 is highest.
             Optimize::Maximize.sort(&mut population);
 
@@ -269,11 +267,11 @@ mod selector_tests {
     /// off-by-one in the loop bound).
     #[test]
     fn tournament_pressure_grows_with_k() {
-        random_provider::scoped_seed(12, || {
+        seeded(12, || {
             const POP_SIZE: usize = 20;
             const SAMPLES: usize = 5_000;
 
-            let mut population = population_utils::float_population(POP_SIZE);
+            let mut population = float_population(POP_SIZE);
             Optimize::Maximize.sort(&mut population);
             let objective = Objective::Single(Optimize::Maximize);
 
@@ -303,11 +301,11 @@ mod selector_tests {
     /// step that's specific to roulette.
     #[test]
     fn roulette_monotone_in_score() {
-        random_provider::scoped_seed(13, || {
+        seeded(13, || {
             const POP_SIZE: usize = 10;
             const SAMPLES: usize = 5_000;
 
-            let mut population = population_utils::float_population(POP_SIZE);
+            let mut population = float_population(POP_SIZE);
             Optimize::Maximize.sort(&mut population);
 
             let selector = RouletteSelector::new();
@@ -339,7 +337,7 @@ mod selector_tests {
         const SAMPLES: usize = 5_000;
 
         let sample = |scale: f32, seed: u64| -> Vec<usize> {
-            random_provider::scoped_seed(seed, || {
+            seeded(seed, || {
                 // Pop with linearly increasing scores, scaled by `scale`.
                 // Both runs see the SAME rank order; only the magnitudes differ.
                 let phenotypes: Vec<_> = (0..POP_SIZE)
@@ -387,7 +385,7 @@ mod selector_tests {
     fn equal_scores_produce_balanced_selection(
         #[case] selector: impl Select<FloatChromosome<f32>>,
     ) {
-        random_provider::scoped_seed(14, || {
+        seeded(14, || {
             const POP_SIZE: usize = 10;
             const SAMPLES: usize = 10_000;
             const EXPECTED: f32 = SAMPLES as f32 / POP_SIZE as f32;

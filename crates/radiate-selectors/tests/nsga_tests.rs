@@ -1,8 +1,6 @@
-mod utilities;
-
 #[cfg(test)]
 mod nsga_tests {
-    use crate::utilities::population_utils;
+    use radiate_test::*;
     use radiate_core::*;
     use radiate_selectors::nsga3::{
         ObjectiveBounds, fronts_from_ranks, nearest_reference_direction, niching_fill,
@@ -27,7 +25,7 @@ mod nsga_tests {
     //   rank 1: [2,3], [3,2]       (each dominated by one rank-0 point)
     //   rank 2: [3,3]               (dominated by both rank-1 points)
     fn known_rank_population_2obj() -> radiate_core::Population<FloatChromosome<f32>> {
-        population_utils::multi_obj_population(vec![
+        multi_obj_population(vec![
             vec![1.0, 3.0], // rank 0
             vec![2.0, 2.0], // rank 0
             vec![3.0, 1.0], // rank 0
@@ -77,7 +75,7 @@ mod nsga_tests {
         // Boundary points [0,10] and [10,0] get infinite crowding distance.
         // Interior distances: [4,6] ~1.0, [6,4] ~1.0, [5,5] ~0.4.
         // Selecting 3 must exclude [5,5] (lowest crowding distance).
-        let population = population_utils::multi_obj_population(vec![
+        let population = multi_obj_population(vec![
             vec![0.0, 10.0],
             vec![10.0, 0.0],
             vec![4.0, 6.0],
@@ -105,7 +103,7 @@ mod nsga_tests {
         // [1,10] strictly dominates [2,9] (lower on obj0 AND higher on obj1).
         // [2,9]  strictly dominates [5,5].
         let objective = Objective::Multi(vec![Optimize::Minimize, Optimize::Maximize]);
-        let population = population_utils::multi_obj_population(vec![
+        let population = multi_obj_population(vec![
             vec![1.0, 10.0], // rank 0
             vec![2.0, 9.0],  // rank 1
             vec![5.0, 5.0],  // rank 2
@@ -138,7 +136,7 @@ mod nsga_tests {
     fn tournament_nsga2_dominant_always_wins_direct_matchup() {
         // Two-individual population: the tournament k=2 always uses both,
         // so the comparison is always rank-0 vs rank-1, which is deterministic.
-        let population = population_utils::multi_obj_population(vec![
+        let population = multi_obj_population(vec![
             vec![1.0, 1.0], // rank 0
             vec![3.0, 3.0], // rank 1: dominated on both dims
         ]);
@@ -162,7 +160,7 @@ mod nsga_tests {
     fn nsga3_returns_correct_count() {
         // 3-objective population. Use enough individuals that the selector
         // has to apply niching to fill the partial front.
-        let population = population_utils::multi_obj_population(vec![
+        let population = multi_obj_population(vec![
             vec![1.0, 0.0, 0.0], // rank 0
             vec![0.0, 1.0, 0.0], // rank 0
             vec![0.0, 0.0, 1.0], // rank 0
@@ -179,7 +177,7 @@ mod nsga_tests {
 
     #[test]
     fn nsga3_rank0_always_selected_before_dominated() {
-        let population = population_utils::multi_obj_population(vec![
+        let population = multi_obj_population(vec![
             vec![1.0, 2.0, 3.0], // rank 0
             vec![2.0, 1.0, 3.0], // rank 0
             vec![3.0, 2.0, 1.0], // rank 0

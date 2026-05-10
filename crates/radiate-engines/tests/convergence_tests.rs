@@ -1,11 +1,8 @@
 //! Convergence tests with strict generation budgets.
 
-#[path = "common/mod.rs"]
-mod common;
-
 #[cfg(test)]
 mod convergence_tests {
-    use super::common::*;
+    use radiate_test::*;
     use radiate_core::*;
     use radiate_engines::*;
     use rstest::*;

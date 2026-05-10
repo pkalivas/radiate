@@ -1,8 +1,21 @@
 use radiate::prelude::*;
 
 const MIN_SCORE: f32 = 0.001;
+const SPECIES_THRESHOLD: f32 = 0.3;
 
 fn main() {
+    let mut args = std::env::args();
+
+    args.next();
+    let distance = args.next().unwrap_or_else(|| "expr".to_string());
+    let target_species: usize = args
+        .next()
+        .unwrap_or_else(|| "6".to_string())
+        .parse()
+        .expect("target_species must be a number");
+
+    let use_expr = distance == "expr";
+
     random_provider::seed(90);
 
     let store = vec![
@@ -12,37 +25,13 @@ fn main() {
         (NodeType::Output, vec![Op::linear()]),
     ];
 
-    let target_species = 6.0;
-    let rolling = target_species as usize;
-
-    let spec_count_signal = expr::select("count.species")
-        .rolling(rolling)
-        .mean()
-        .div(target_species);
-
-    let spec_dist_signal = expr::select("species.distance")
-        .mean()
-        .rolling(rolling)
-        .mean()
-        .div(target_species);
-
-    let spec_thresh_signal = expr::select("species.threshold").rolling(rolling).mean();
-    let spec_evenness_signal = expr::select("species.evenness").rolling(rolling).mean();
-
-    let distance_signal = spec_count_signal
-        .mul(0.9)
-        .add(spec_dist_signal.mul(0.4))
-        .add(spec_thresh_signal.mul(0.2))
-        .add(spec_evenness_signal.mul(0.1))
-        .clamp(0.01, 10.0);
-
     let engine = GeneticEngine::builder()
         .codec(GraphCodec::directed(1, 1, store))
         .raw_batch_fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
         .parallel()
         .diversity(NeatDistance::new(1.0, 1.0, 3.0))
-        .species_threshold(distance_signal)
+        .species_threshold(get_threshold(use_expr, target_species))
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
@@ -81,4 +70,36 @@ fn dataset() -> impl Into<DataSet<f32>> {
 
 fn compute(x: f32) -> f32 {
     4.0 * x.powf(3.0) - 3.0 * x.powf(2.0) + x
+}
+
+fn get_threshold(use_expr_distance: bool, species_count: usize) -> impl Into<Rate> {
+    if use_expr_distance {
+        let target_species = species_count.max(1).min(100) as f32;
+        let rolling = target_species as usize;
+
+        let spec_count_signal = expr::select("count.species")
+            .rolling(rolling)
+            .mean()
+            .div(target_species);
+
+        let spec_dist_signal = expr::select("species.distance")
+            .mean()
+            .rolling(rolling)
+            .mean()
+            .div(target_species);
+
+        let spec_thresh_signal = expr::select("species.threshold").rolling(rolling).mean();
+        let spec_evenness_signal = expr::select("species.evenness").rolling(rolling).mean();
+
+        Rate::Expr(
+            spec_count_signal
+                .mul(0.9)
+                .add(spec_dist_signal.mul(0.4))
+                .add(spec_thresh_signal.mul(0.2))
+                .add(spec_evenness_signal.mul(0.1))
+                .clamp(0.01, 10.0),
+        )
+    } else {
+        Rate::from(SPECIES_THRESHOLD)
+    }
 }

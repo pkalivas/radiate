@@ -1,9 +1,6 @@
-#[path = "common/mod.rs"]
-mod common;
-
 #[cfg(test)]
 mod speciate_step_tests {
-    use super::common::*;
+    use radiate_test::*;
     use radiate_core::*;
     use radiate_engines::*;
 

@@ -5,12 +5,9 @@
 //!
 //! These tests are slower than the convergence tests (multi-second).
 
-#[path = "common/mod.rs"]
-mod common;
-
 #[cfg(test)]
 mod stress_tests {
-    use super::common::*;
+    use radiate_test::*;
     use radiate_core::*;
     use radiate_engines::*;
 
