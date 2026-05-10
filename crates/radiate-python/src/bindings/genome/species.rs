@@ -94,7 +94,7 @@ macro_rules! impl_into_py_species {
                     generation: species.generation(),
                     stagnation: species.stagnation(),
                     population: species.members.iter().map(|id| id.0).collect(),
-                    score: species.score().map(|s| s.as_ref().to_vec()),
+                    score: species.adj_score().map(|s| s.as_ref().to_vec()),
                 }
             }
         }
@@ -107,7 +107,7 @@ macro_rules! impl_into_py_species {
                 let mascot = Phenotype::from(py_species.mascot);
                 // let population = Population::from(py_species.population);
 
-                let species = Species::new(py_species.generation, &mascot);
+                let species = Species::new(py_species.generation, mascot);
 
                 // for member_id in py_species.population {
                 //     species.add_member(PhenotypeId(member_id));

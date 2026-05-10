@@ -1,9 +1,11 @@
 #![allow(dead_code)]
 
+use std::collections::HashSet;
+
 use radiate_core::*;
 use radiate_engines::*;
 
-pub fn assert_has_species<C: Chromosome, T>(result: &Generation<C, T>, label: &str) {
+pub fn assert_has_species<C: Chromosome>(result: &Ecosystem<C>, label: &str) {
     let species = result
         .species()
         .expect(&format!("{label}: expected species, but got None"));
@@ -13,7 +15,7 @@ pub fn assert_has_species<C: Chromosome, T>(result: &Generation<C, T>, label: &s
     );
 }
 
-pub fn assert_no_species<C: Chromosome, T>(result: &Generation<C, T>, label: &str) {
+pub fn assert_no_species<C: Chromosome>(result: &Ecosystem<C>, label: &str) {
     assert!(
         result.species().is_none(),
         "{label}: expected no species, but got Some with {} species",
@@ -21,11 +23,7 @@ pub fn assert_no_species<C: Chromosome, T>(result: &Generation<C, T>, label: &st
     );
 }
 
-pub fn assert_has_n_species<C: Chromosome, T>(
-    result: &Generation<C, T>,
-    expected: usize,
-    label: &str,
-) {
+pub fn assert_species_count<C: Chromosome>(result: &Ecosystem<C>, expected: usize, label: &str) {
     let species = result
         .species()
         .expect(&format!("{label}: expected species, but got None"));
@@ -35,6 +33,30 @@ pub fn assert_has_n_species<C: Chromosome, T>(
         "{label}: expected {expected} species, but got {}",
         species.len()
     );
+}
+
+pub fn assert_population_speciated<C: Chromosome>(result: &Ecosystem<C>, label: &str) {
+    let empty_id = SpeciesId::empty();
+    let pop = result.population();
+    let species = result
+        .species()
+        .expect(&format!("{label}: expected species, but got None"))
+        .iter()
+        .map(|s| s.id())
+        .collect::<HashSet<SpeciesId>>();
+
+    for phenotype in pop.iter() {
+        assert_ne!(
+            phenotype.species(),
+            empty_id,
+            "{label}: expected all phenotypes to be assigned to a species, but found one with None"
+        );
+        assert!(
+            species.contains(&phenotype.species()),
+            "{label}: expected all phenotypes to be assigned to a valid species, but found one with invalid species ID {:?}",
+            phenotype.species()
+        );
+    }
 }
 
 pub fn assert_within_budget<C: Chromosome, T: Clone>(
@@ -50,8 +72,7 @@ pub fn assert_within_budget<C: Chromosome, T: Clone>(
 }
 
 /// Assert that every phenotype in the population has a non-`None`
-/// genotype and a finite score. Catches dropped phenotypes and NaN
-/// propagation in one pass.
+/// genotype and a finite score.
 pub fn assert_population_integrity<C: Chromosome, T: Clone>(
     result: &Generation<C, T>,
     expected_size: usize,

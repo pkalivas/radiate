@@ -10,73 +10,83 @@
 use radiate_core::*;
 
 /// One-Max: maximize the count of `true` bits in a fixed-length bitstring.
-/// Optimum is `n_bits`. Trivial to solve, useful for sanity-checking the
-/// bit-codec pathway and selector × alterer matrices.
+/// Optimum is `n_bits`. Trivial to solve,
 pub struct OneMax {
     pub n_bits: usize,
+    codec: BitCodec<Vec<bool>>,
 }
 
 impl OneMax {
-    pub const fn new(n_bits: usize) -> Self {
-        Self { n_bits }
+    pub fn new(n_bits: usize) -> Self {
+        Self {
+            n_bits,
+            codec: BitCodec::vector(n_bits),
+        }
     }
 
-    pub fn fitness_fn(&self) -> impl Fn(Vec<bool>) -> i32 + Send + Sync + 'static {
-        |geno: Vec<bool>| geno.iter().filter(|b| **b).count() as i32
-    }
-
-    pub fn codec(&self) -> BitCodec<Vec<bool>> {
-        BitCodec::vector(self.n_bits)
-    }
-
-    /// The optimum score (all bits set).
     pub fn optimum(&self) -> i32 {
         self.n_bits as i32
+    }
+}
+
+impl Problem<BitChromosome, Vec<bool>> for OneMax {
+    fn encode(&self) -> Genotype<BitChromosome> {
+        self.codec.encode()
+    }
+
+    fn decode(&self, genotype: &Genotype<BitChromosome>) -> Vec<bool> {
+        self.codec.decode(genotype)
+    }
+
+    fn eval(&self, individual: &Genotype<BitChromosome>) -> Result<Score, RadiateError> {
+        let geno = self.decode(individual);
+        Ok(geno.iter().filter(|b| **b).count().into())
     }
 }
 
 /// Int-minimize-to-zero: minimize the sum of integer chromosome values
 /// drawn from `0..max`. Optimum is 0 (all genes at zero).
 pub struct IntMinimizeToZero {
-    pub n_genes: usize,
-    pub max: i32,
+    codec: IntCodec<i32, Vec<i32>>,
 }
 
 impl IntMinimizeToZero {
-    pub const fn new(n_genes: usize, max: i32) -> Self {
-        Self { n_genes, max }
+    pub fn new(n_genes: usize, max: i32) -> Self {
+        Self {
+            codec: IntCodec::vector(n_genes, 0..max),
+        }
+    }
+}
+
+impl Problem<IntChromosome<i32>, Vec<i32>> for IntMinimizeToZero {
+    fn encode(&self) -> Genotype<IntChromosome<i32>> {
+        self.codec.encode()
     }
 
-    pub fn codec(&self) -> IntCodec<i32, Vec<i32>> {
-        IntCodec::vector(self.n_genes, 0..self.max)
+    fn decode(&self, genotype: &Genotype<IntChromosome<i32>>) -> Vec<i32> {
+        self.codec.decode(genotype)
     }
 
-    pub fn fitness_fn(&self) -> impl Fn(Vec<i32>) -> i32 + Send + Sync + 'static {
-        |geno: Vec<i32>| geno.iter().sum::<i32>()
-    }
-
-    pub fn optimum(&self) -> i32 {
-        0
+    fn eval(&self, individual: &Genotype<IntChromosome<i32>>) -> Result<Score, RadiateError> {
+        let geno = self.decode(individual);
+        Ok(geno.iter().sum::<i32>().into())
     }
 }
 
 /// Quadratic regression: fit `a*x^2 + b*x + c` to a dense set of `(x, y)`
 /// samples drawn from `y = x^2` over `[-2, 2]`. Optimum is MSE → 0
 /// (achieved by the coefficients `a=1, b=0, c=0`).
-///
-/// Useful for exercising the float pathway: real-valued chromosomes,
-/// blend crossover, gaussian mutation, etc.
 pub struct QuadraticRegression {
-    pub n_samples: usize,
+    n_samples: usize,
+    codec: FloatCodec<f32, Vec<f32>>,
 }
 
 impl QuadraticRegression {
-    pub const fn new(n_samples: usize) -> Self {
-        Self { n_samples }
-    }
-
-    pub fn codec(&self) -> FloatCodec<f32, Vec<f32>> {
-        FloatCodec::vector(3, -5.0..5.0)
+    pub fn new(n_samples: usize) -> Self {
+        Self {
+            n_samples,
+            codec: FloatCodec::vector(3, -5.0..5.0),
+        }
     }
 
     /// Returns a closure that computes MSE for a candidate `(a, b, c)`.
@@ -104,25 +114,46 @@ impl QuadraticRegression {
     }
 }
 
+impl Problem<FloatChromosome<f32>, Vec<f32>> for QuadraticRegression {
+    fn encode(&self) -> Genotype<FloatChromosome<f32>> {
+        self.codec.encode()
+    }
+
+    fn decode(&self, genotype: &Genotype<FloatChromosome<f32>>) -> Vec<f32> {
+        self.codec.decode(genotype)
+    }
+
+    fn eval(&self, individual: &Genotype<FloatChromosome<f32>>) -> Result<Score, RadiateError> {
+        let geno = self.decode(individual);
+        Ok(self.fitness_fn()(geno).into())
+    }
+}
+
 /// Sphere function: minimize sum of squares of float genes. Smooth,
-/// convex, continuously differentiable. The "always converges fast"
-/// problem — useful for stability/long-run tests where you want the
-/// engine to find the optimum but you mainly care about non-pathology.
+/// convex, continuously differentiable.
 pub struct Sphere {
-    pub n_genes: usize,
-    pub range: f32,
+    codec: FloatCodec<f32, Vec<f32>>,
 }
 
 impl Sphere {
-    pub const fn new(n_genes: usize, range: f32) -> Self {
-        Self { n_genes, range }
+    pub fn new(n_genes: usize, range: f32) -> Self {
+        Self {
+            codec: FloatCodec::vector(n_genes, -range..range),
+        }
+    }
+}
+
+impl Problem<FloatChromosome<f32>, Vec<f32>> for Sphere {
+    fn encode(&self) -> Genotype<FloatChromosome<f32>> {
+        self.codec.encode()
     }
 
-    pub fn codec(&self) -> FloatCodec<f32, Vec<f32>> {
-        FloatCodec::vector(self.n_genes, -self.range..self.range)
+    fn decode(&self, genotype: &Genotype<FloatChromosome<f32>>) -> Vec<f32> {
+        self.codec.decode(genotype)
     }
 
-    pub fn fitness_fn(&self) -> impl Fn(Vec<f32>) -> f32 + Send + Sync + 'static {
-        |geno: Vec<f32>| geno.iter().map(|x| x * x).sum::<f32>()
+    fn eval(&self, individual: &Genotype<FloatChromosome<f32>>) -> Result<Score, RadiateError> {
+        let geno = self.decode(individual);
+        Ok(geno.iter().map(|x| x * x).sum::<f32>().into())
     }
 }

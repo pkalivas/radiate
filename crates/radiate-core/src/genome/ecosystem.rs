@@ -1,10 +1,8 @@
-use std::ops::Range;
-
 use super::{Chromosome, Genotype, Phenotype, Population, Species};
-use crate::{Objective, Score, SpeciesId, random_provider};
-use itertools::Itertools;
+use crate::{Objective, Score, random_provider};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 
 /// An ecosystem containing a population and optional species.
 /// This structure is the main container for solutions generated throughout the evolutionary process.
@@ -103,10 +101,7 @@ impl<C: Chromosome> Ecosystem<C> {
     /// The member is reference cloned from the population and added to the species' population.
     /// Just like with the [Ecosystem]'s `clone_ref` method, this creates a shared reference so
     /// any modifications to the phenotype within the [Species] will be reflected in the main [Population].
-    pub fn add_species_member(&mut self, species_idx: usize, member_idx: usize)
-    where
-        C: Clone,
-    {
+    pub fn add_species_member(&mut self, species_idx: usize, member_idx: usize) {
         if let Some(species) = &mut self.species
             && let Some(spec) = species.get_mut(species_idx)
             && let Some(member) = self.population.get_mut(member_idx)
@@ -123,32 +118,12 @@ impl<C: Chromosome> Ecosystem<C> {
                 .population
                 .iter()
                 .map(|p| p.species())
-                .unique()
-                .collect::<Vec<_>>();
+                .collect::<HashSet<_>>();
             species.retain(|spec| unique_species_ids.contains(&spec.id()));
             initial_len - species.len()
         } else {
             0
         }
-    }
-
-    pub fn group_by_species(&self) -> Vec<(SpeciesId, Range<usize>)> {
-        let mut ranges = Vec::new();
-        if let Some(first) = self.population.get(0) {
-            let mut current = first.species();
-            let mut start = 0;
-            for (i, p) in self.population.iter().enumerate().skip(1) {
-                if p.species() != current {
-                    ranges.push((current, start..i));
-                    current = p.species();
-                    start = i;
-                }
-            }
-
-            ranges.push((current, start..self.population.len()));
-        }
-
-        ranges
     }
 
     pub fn generate_mascots(&mut self)

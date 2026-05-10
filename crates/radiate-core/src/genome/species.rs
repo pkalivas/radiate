@@ -42,16 +42,13 @@ pub struct Species<C: Chromosome> {
 }
 
 impl<C: Chromosome> Species<C> {
-    pub fn new(generation: usize, initial: &Phenotype<C>) -> Self
-    where
-        C: Clone,
-    {
+    pub fn new(generation: usize, initial: Phenotype<C>) -> Self {
         Species {
             id: SpeciesId::new(),
             generation,
             tracker: Tracker::new(),
             adjusted_score: Some(initial.score().unwrap().clone()),
-            mascot: initial.clone(),
+            mascot: initial,
             size: 0,
             members: HashSet::new(),
         }
@@ -88,8 +85,12 @@ impl<C: Chromosome> Species<C> {
         &self.mascot
     }
 
-    pub fn score(&self) -> Option<&Score> {
+    pub fn adj_score(&self) -> Option<&Score> {
         self.adjusted_score.as_ref()
+    }
+
+    pub fn raw_score(&self) -> Option<&Score> {
+        self.tracker.best()
     }
 
     pub fn age(&self, current: usize) -> usize {
@@ -138,7 +139,7 @@ impl<C: Chromosome + PartialEq> PartialOrd for Species<C> {
 }
 impl<C: Chromosome + PartialEq> PartialEq for Species<C> {
     fn eq(&self, other: &Self) -> bool {
-        self.score() == other.score()
+        self.adj_score() == other.adj_score()
             && self.id == other.id
             && self.mascot() == other.mascot()
             && self.len() == other.len()
@@ -151,7 +152,7 @@ impl<C: Chromosome> Debug for Species<C> {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(
             f,
-            "Species {{ members: {:?}, score: {:?}, best_score: {:?}, stagnation: {:?}, generation: {:?}, id: {:?} }}",
+            "Species {{ members: {:?}, adj_score: {:?}, raw_score: {:?}, stagnation: {:?}, generation: {:?}, id: {:?} }}",
             self.len(),
             self.adjusted_score,
             self.tracker.current(),

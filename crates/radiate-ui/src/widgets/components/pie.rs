@@ -36,7 +36,7 @@ impl<C: Chromosome> StatefulWidget for SpeciesPieChartComponent<C> {
             .iter()
             .enumerate()
             .filter_map(|(index, species)| {
-                species.score().as_ref().map(|score| {
+                species.adj_score().as_ref().map(|score| {
                     let color = selected_chart_color(
                         index,
                         state.tables.species.selected_value.as_ref(),
@@ -107,7 +107,11 @@ impl<C: Chromosome> StatefulWidget for TimePieChartComponent<C> {
     }
 }
 
-fn selected_chart_color<K: PartialEq + ?Sized>(index: usize, selected: Option<&K>, current: &K) -> Color {
+fn selected_chart_color<K: PartialEq + ?Sized>(
+    index: usize,
+    selected: Option<&K>,
+    current: &K,
+) -> Color {
     match selected {
         Some(sel) if sel == current => COLOR_WHEEL_400[index % COLOR_WHEEL_400.len()],
         _ => Color::DarkGray,

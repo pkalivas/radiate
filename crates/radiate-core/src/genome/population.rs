@@ -3,7 +3,6 @@ use crate::species::SpeciesId;
 use crate::{Chromosome, Score};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use std::borrow::{Borrow, BorrowMut};
 use std::fmt::Debug;
 use std::ops::{Index, IndexMut, Range};
 
@@ -77,49 +76,11 @@ impl<C: Chromosome> Population<C> {
             .filter(move |val| val.species() == species_id)
     }
 
-    pub fn drain_species(&mut self, species_id: SpeciesId) -> impl Iterator<Item = Phenotype<C>> {
-        self.individuals
-            .extract_if(.., move |val| val.species() == species_id)
-    }
-
     pub fn sort_by<F>(&mut self, compare: F)
     where
         F: FnMut(&Phenotype<C>, &Phenotype<C>) -> std::cmp::Ordering,
     {
         self.individuals.sort_unstable_by(compare);
-    }
-
-    pub fn sorted_indecies_by<F>(&self, compare: F) -> Vec<usize>
-    where
-        F: Fn(&Phenotype<C>, &Phenotype<C>) -> std::cmp::Ordering,
-    {
-        let mut indecies = (0..self.individuals.len()).collect::<Vec<usize>>();
-        indecies.sort_unstable_by(|&a, &b| compare(&self.individuals[a], &self.individuals[b]));
-        indecies
-    }
-
-    pub fn group_by<K>(&self, key_fn: impl Fn(&Phenotype<C>) -> K) -> Vec<(K, Range<usize>)>
-    where
-        K: PartialEq,
-    {
-        if let Some(first) = self.individuals.first() {
-            let mut ranges = Vec::with_capacity(self.len());
-            let mut current = key_fn(first);
-            let mut start = 0;
-            for (i, p) in self.individuals.iter().enumerate().skip(1) {
-                let p_key = key_fn(p);
-                if p_key != current {
-                    ranges.push((current, start..i));
-                    current = p_key;
-                    start = i;
-                }
-            }
-
-            ranges.push((current, start..self.individuals.len()));
-            return ranges;
-        }
-
-        vec![]
     }
 
     pub fn len(&self) -> usize {
@@ -151,10 +112,10 @@ impl<C: Chromosome> Population<C> {
             None
         } else if first < second {
             let (left, right) = self.individuals.split_at_mut(second);
-            Some((left[first].borrow_mut(), right[0].borrow_mut()))
+            Some((&mut left[first], &mut right[0]))
         } else {
             let (left, right) = self.individuals.split_at_mut(first);
-            Some((right[0].borrow_mut(), left[second].borrow_mut()))
+            Some((&mut right[0], &mut left[second]))
         }
     }
 }
@@ -206,7 +167,7 @@ impl<C: Chromosome> IndexMut<Range<usize>> for Population<C> {
 
 impl<C: Chromosome> IndexMut<usize> for Population<C> {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        self.individuals[index].borrow_mut()
+        &mut self.individuals[index]
     }
 }
 
@@ -240,9 +201,7 @@ where
             individuals.push(f());
         }
 
-        Population {
-            individuals: individuals.into_iter().collect(),
-        }
+        Population { individuals }
     }
 }
 
@@ -258,7 +217,7 @@ impl<C: Chromosome + Debug> Debug for Population<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "Population [")?;
         for individual in &self.individuals {
-            writeln!(f, "{:?}, ", Borrow::<Phenotype<C>>::borrow(individual))?;
+            writeln!(f, "{:?}, ", individual)?;
         }
         write!(f, "]")
     }

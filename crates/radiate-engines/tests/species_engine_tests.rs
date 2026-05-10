@@ -3,9 +3,9 @@
 
 #[cfg(test)]
 mod species_tests {
-    use radiate_test::*;
     use radiate_core::*;
     use radiate_engines::*;
+    use radiate_test::*;
     use rstest::*;
 
     #[rstest]
@@ -53,8 +53,10 @@ mod species_tests {
 
             let result = engine
                 .iter()
-                .limit(Limit::Generation(budget))
-                .until_score(threshold)
+                .limit(vec![
+                    Limit::Generation(budget),
+                    Limit::Score(threshold.into()),
+                ])
                 .last()
                 .unwrap();
 
@@ -66,7 +68,7 @@ mod species_tests {
                 budget,
             );
             assert_within_budget(&result, budget, "speciated regression");
-            assert_has_species(&result, "speciated regression");
+            assert_has_species(result.ecosystem(), "speciated regression");
         });
     }
 
@@ -79,7 +81,7 @@ mod species_tests {
 
         seeded(7777, || {
             let engine = speciated_sphere_engine(3, POP_SIZE, 0.5);
-            let result = engine.iter().limit(Limit::Generation(GENS)).last().unwrap();
+            let result = engine.iter().limit(GENS).last().unwrap();
 
             assert_population_integrity(&result, POP_SIZE);
         });
@@ -89,11 +91,12 @@ mod species_tests {
     /// ways with K phenotypes < typical species count.
     #[test]
     fn speciated_small_population_no_panic() {
-        const POP_SIZE: usize = 10;
+        const POP_SIZE: usize = 3;
+        const GENS: usize = 100;
 
         seeded(1010, || {
             let engine = speciated_sphere_engine(2, POP_SIZE, 0.3);
-            let result = engine.iter().limit(Limit::Generation(100)).last().unwrap();
+            let result = engine.iter().limit(GENS).last().unwrap();
 
             assert_eq!(result.population().len(), POP_SIZE);
         });

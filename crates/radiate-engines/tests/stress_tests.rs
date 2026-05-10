@@ -7,13 +7,13 @@
 
 #[cfg(test)]
 mod stress_tests {
-    use radiate_test::*;
     use radiate_core::*;
     use radiate_engines::*;
+    use radiate_test::*;
 
     #[test]
     fn long_run_large_pop_stable() {
-        const POP_SIZE: usize = 500;
+        const POP_SIZE: usize = 1000;
         const GENS: usize = 1000;
 
         seeded(31337, || {
@@ -21,15 +21,14 @@ mod stress_tests {
             let engine = GeneticEngine::builder()
                 .minimizing()
                 .population_size(POP_SIZE)
-                .codec(problem.codec())
-                .fitness_fn(problem.fitness_fn())
+                .problem(problem)
                 .alter(alters![
                     BlendCrossover::new(0.5, 0.5),
                     GaussianMutator::new(0.05)
                 ])
                 .build();
 
-            let result = engine.iter().limit(Limit::Generation(GENS)).last().unwrap();
+            let result = engine.iter().limit(GENS).last().unwrap();
             let best = result.score().as_f32();
 
             assert_population_integrity(&result, POP_SIZE);
@@ -49,10 +48,10 @@ mod stress_tests {
 
         seeded(424242, || {
             let engine = speciated_sphere_engine(5, POP_SIZE, 0.1);
-            let result = engine.iter().limit(Limit::Generation(GENS)).last().unwrap();
+            let result = engine.iter().limit(GENS).last().unwrap();
 
-            assert_has_species(&result, "many species stable");
-            assert_has_n_species(&result, SPECIES_COUNT, "many species stable");
+            assert_population_speciated(result.ecosystem(), "many species stable");
+            assert_species_count(result.ecosystem(), SPECIES_COUNT, "many species stable");
             assert_population_integrity(&result, POP_SIZE);
         });
     }
@@ -72,7 +71,7 @@ mod stress_tests {
         seeded(seed, || {
             sphere_engine(4)
                 .iter()
-                .limit(Limit::Generation(gens))
+                .limit(gens)
                 .map(|ctx| ctx.score().as_f32())
                 .collect()
         })

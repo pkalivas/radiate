@@ -132,7 +132,7 @@ where
                 Some(idx) => ecosystem.add_species_member(idx, i),
                 None => {
                     if let Some(pheno) = ecosystem.get_phenotype_mut(i) {
-                        let new_species = Species::new(generation, pheno);
+                        let new_species = Species::new(generation, pheno.clone());
                         let species_idx = ecosystem.push_species(new_species);
 
                         ecosystem.add_species_member(species_idx, i);

@@ -2,9 +2,9 @@
 
 #[cfg(test)]
 mod convergence_tests {
-    use radiate_test::*;
     use radiate_core::*;
     use radiate_engines::*;
+    use radiate_test::*;
     use rstest::*;
 
     /// One-Max: maximize sum of bits in a fixed-length bitstring.
@@ -38,8 +38,7 @@ mod convergence_tests {
 
         seeded(seed, || {
             let engine = GeneticEngine::builder()
-                .codec(problem.codec())
-                .fitness_fn(problem.fitness_fn())
+                .problem(problem)
                 .boxed_survivor_selector(survivor)
                 .boxed_offspring_selector(offspring)
                 .alter(alters![
@@ -51,7 +50,7 @@ mod convergence_tests {
             let result = engine
                 .iter()
                 .limit(Limit::Generation(budget))
-                .until_score(problem.optimum())
+                .until_score(N_BITS)
                 .last()
                 .unwrap();
 

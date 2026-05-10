@@ -4,11 +4,14 @@ use radiate_alters::{BlendCrossover, GaussianMutator, UniformCrossover, UniformM
 use radiate_core::{
     Alterer, BitChromosome, Chromosome, Codec, Crossover, Ecosystem, Executor, FloatChromosome,
     FloatCodec, Gene, Genotype, IntChromosome, Lineage, Mutate, Objective, Optimize, Phenotype,
-    Population, Rate, Score, Species, alters, diversity::Diversity,
+    Population, Rate, Score, Species, alters, diversity::Diversity, random_provider,
 };
 use radiate_engines::{OffspringConfig, RecombineStep, SelectConfig, SpeciateStep, SurvivorConfig};
 use radiate_selectors::{BoltzmannSelector, TournamentSelector};
-use std::sync::{Arc, RwLock};
+use std::{
+    ops::Range,
+    sync::{Arc, RwLock},
+};
 
 /// Builder for a deterministic mock ecosystem. Each builder call decides
 /// one axis of the test scenario; the final `.build()` returns an
@@ -67,6 +70,13 @@ impl<C: Chromosome + Clone> MockEcosystemBuilder<C> {
         self.scores(move |_, _| Score::from(value))
     }
 
+    pub fn scores_random(self, range: Range<f32>) -> Self {
+        self.scores(move |_, _| {
+            let allele = random_provider::range(range.clone());
+            Score::from(allele)
+        })
+    }
+
     pub fn with_species(mut self, sizes: &[usize]) -> Self {
         self.species_sizes = Some(sizes.to_vec());
         self
@@ -115,7 +125,7 @@ impl<C: Chromosome + Clone> MockEcosystemBuilder<C> {
                     continue;
                 }
                 let mascot = phenotypes[start].clone();
-                let species = Species::new(0, &mascot);
+                let species = Species::new(0, mascot);
                 let species_id = species.id();
                 for p in &mut phenotypes[start..start + size] {
                     p.set_species(species_id);
