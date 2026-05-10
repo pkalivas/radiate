@@ -1,14 +1,14 @@
 use crate::Chromosome;
-use crate::genome::population::Population;
+use crate::genome::phenotype::Phenotype;
 use crate::objectives::Objective;
 use radiate_utils::ToSnakeCase;
 use std::fmt::Debug;
 
 /// A trait for selection algorithms. Selection algorithms are used to select
-/// individuals from a [Population] to be used in the next generation. The
-/// selection process is (most of the time) based on the fitness of the individuals in the
-/// [Population]. The selection process can be based on the fitness of the individuals
-/// in the [Population], or it can be based on the individuals themselves.
+/// individuals from a slice of [Phenotype]s to be used in the next generation.
+/// The selection process is (most of the time) based on the fitness of the
+/// individuals in the slice. Selectors return slice-relative indices —
+/// callers map them back to whatever absolute coordinate space they came from.
 pub trait Select<C: Chromosome>: Send + Sync + Debug {
     fn name(&self) -> &'static str {
         let name = radiate_utils::short_type_name::<Self>();
@@ -22,14 +22,6 @@ pub trait Select<C: Chromosome>: Send + Sync + Debug {
         radiate_utils::intern!(other)
     }
 
-    fn select(&self, population: &Population<C>, optimize: &Objective, count: usize) -> Vec<usize>;
-
-    // fn select_idx(
-    //     &self,
-    //     population: &Population<C>,
-    //     optimize: &Objective,
-    //     count: usize,
-    // ) -> Vec<usize> {
-    //     panic!("select_idx is not implemented for {}", self.name());
-    // }
+    fn select(&self, population: &[Phenotype<C>], optimize: &Objective, count: usize)
+    -> Vec<usize>;
 }

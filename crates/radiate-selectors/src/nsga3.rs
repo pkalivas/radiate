@@ -1,4 +1,4 @@
-use radiate_core::{Chromosome, Objective, Optimize, Population, Select, pareto};
+use radiate_core::{Chromosome, Objective, Optimize, Phenotype, Select, pareto};
 use std::cmp::Ordering;
 use std::sync::{Arc, Mutex};
 
@@ -40,7 +40,7 @@ impl<C: Chromosome + Clone> Select<C> for NSGA3Selector {
 
     fn select(
         &self,
-        population: &Population<C>,
+        population: &[Phenotype<C>],
         objective: &Objective,
         count: usize,
     ) -> Vec<usize> {
@@ -49,7 +49,8 @@ impl<C: Chromosome + Clone> Select<C> for NSGA3Selector {
         }
 
         let scores = population
-            .iter_scores()
+            .iter()
+            .filter_map(|p| p.score())
             .map(|score| to_minimization_space(score.as_ref(), objective))
             .collect::<Vec<_>>();
 

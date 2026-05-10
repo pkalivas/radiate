@@ -1,5 +1,5 @@
 use crate::ProbabilityWheelIterator;
-use radiate_core::{Chromosome, Objective, Optimize, Population, Select, math::norm, pareto};
+use radiate_core::{Chromosome, Objective, Optimize, Phenotype, Select, math::norm, pareto};
 use radiate_utils::MinMax;
 
 const MIN: f32 = 1e-6;
@@ -33,15 +33,15 @@ impl<C: Chromosome + Clone> Select<C> for BoltzmannSelector {
     #[inline]
     fn select(
         &self,
-        population: &Population<C>,
+        population: &[Phenotype<C>],
         objective: &Objective,
         count: usize,
     ) -> Vec<usize> {
         let fitness_values = match objective {
             Objective::Single(opt) => {
                 let mut fitness_values = population
-                    .iter_scores()
-                    .filter_map(|s| s.first())
+                    .iter()
+                    .filter_map(|p| p.score().and_then(|score| score.first()))
                     .collect::<Vec<_>>();
 
                 self.apply_boltzmann(&mut fitness_values);
@@ -54,7 +54,10 @@ impl<C: Chromosome + Clone> Select<C> for BoltzmannSelector {
                 fitness_values
             }
             Objective::Multi(_) => {
-                let scores = population.iter_scores().collect::<Vec<_>>();
+                let scores = population
+                    .iter()
+                    .filter_map(|p| p.score())
+                    .collect::<Vec<_>>();
 
                 let mut weights = pareto::weights(&scores, objective);
                 self.apply_boltzmann(&mut weights);

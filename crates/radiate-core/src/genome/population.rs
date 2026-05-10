@@ -82,6 +82,46 @@ impl<C: Chromosome> Population<C> {
             .extract_if(.., move |val| val.species() == species_id)
     }
 
+    pub fn sort_by<F>(&mut self, compare: F)
+    where
+        F: FnMut(&Phenotype<C>, &Phenotype<C>) -> std::cmp::Ordering,
+    {
+        self.individuals.sort_unstable_by(compare);
+    }
+
+    pub fn sorted_indecies_by<F>(&self, compare: F) -> Vec<usize>
+    where
+        F: Fn(&Phenotype<C>, &Phenotype<C>) -> std::cmp::Ordering,
+    {
+        let mut indecies = (0..self.individuals.len()).collect::<Vec<usize>>();
+        indecies.sort_unstable_by(|&a, &b| compare(&self.individuals[a], &self.individuals[b]));
+        indecies
+    }
+
+    pub fn group_by<K>(&self, key_fn: impl Fn(&Phenotype<C>) -> K) -> Vec<(K, Range<usize>)>
+    where
+        K: PartialEq,
+    {
+        if let Some(first) = self.individuals.first() {
+            let mut ranges = Vec::with_capacity(self.len());
+            let mut current = key_fn(first);
+            let mut start = 0;
+            for (i, p) in self.individuals.iter().enumerate().skip(1) {
+                let p_key = key_fn(p);
+                if p_key != current {
+                    ranges.push((current, start..i));
+                    current = p_key;
+                    start = i;
+                }
+            }
+
+            ranges.push((current, start..self.individuals.len()));
+            return ranges;
+        }
+
+        vec![]
+    }
+
     pub fn len(&self) -> usize {
         self.individuals.len()
     }
@@ -131,6 +171,12 @@ impl<C: Chromosome> From<Vec<Phenotype<C>>> for Population<C> {
     }
 }
 
+impl<C: Chromosome> AsRef<[Phenotype<C>]> for Population<C> {
+    fn as_ref(&self) -> &[Phenotype<C>] {
+        self.individuals.as_slice()
+    }
+}
+
 impl<C: Chromosome> AsMut<[Phenotype<C>]> for Population<C> {
     fn as_mut(&mut self) -> &mut [Phenotype<C>] {
         self.individuals.as_mut()
@@ -149,6 +195,12 @@ impl<C: Chromosome> Index<usize> for Population<C> {
 
     fn index(&self, index: usize) -> &Self::Output {
         &self.individuals[index]
+    }
+}
+
+impl<C: Chromosome> IndexMut<Range<usize>> for Population<C> {
+    fn index_mut(&mut self, index: Range<usize>) -> &mut Self::Output {
+        &mut self.individuals[index]
     }
 }
 

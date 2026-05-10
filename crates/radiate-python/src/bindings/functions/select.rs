@@ -56,7 +56,7 @@ pub fn py_select(
             let population: Population<FloatChromosome<f64>> = population.into();
 
             Ok(selector
-                .select(&population, &obj, count)
+                .select(population.as_ref(), &obj, count)
                 .iter()
                 .map(|pop| population[*pop].clone())
                 .collect::<Population<FloatChromosome<f64>>>())
@@ -71,7 +71,7 @@ pub fn py_select(
             let population: Population<IntChromosome<i64>> = population.into();
 
             Ok(selector
-                .select(&population, &obj, count)
+                .select(population.as_ref(), &obj, count)
                 .iter()
                 .map(|pop| population[*pop].clone())
                 .collect::<Population<IntChromosome<i64>>>())
@@ -86,7 +86,7 @@ pub fn py_select(
             let population: Population<CharChromosome> = population.into();
 
             Ok(selector
-                .select(&population, &obj, count)
+                .select(population.as_ref(), &obj, count)
                 .iter()
                 .map(|pop| population[*pop].clone())
                 .collect::<Population<CharChromosome>>())
@@ -100,7 +100,7 @@ pub fn py_select(
             let population: Population<BitChromosome> = population.into();
 
             Ok(selector
-                .select(&population, &obj, count)
+                .select(population.as_ref(), &obj, count)
                 .iter()
                 .map(|pop| population[*pop].clone())
                 .collect::<Population<BitChromosome>>())
@@ -113,7 +113,7 @@ pub fn py_select(
             let population: Population<PermutationChromosome<usize>> = population.into();
 
             Ok(selector
-                .select(&population, &obj, count)
+                .select(population.as_ref(), &obj, count)
                 .iter()
                 .map(|pop| population[*pop].clone())
                 .collect::<Population<PermutationChromosome<usize>>>())
@@ -126,7 +126,7 @@ pub fn py_select(
             let population: Population<GraphChromosome<Op<f32>>> = population.into();
 
             Ok(selector
-                .select(&population, &obj, count)
+                .select(population.as_ref(), &obj, count)
                 .iter()
                 .map(|pop| population[*pop].clone())
                 .collect::<Population<GraphChromosome<Op<f32>>>>())
@@ -140,7 +140,7 @@ pub fn py_select(
             let population: Population<TreeChromosome<Op<f32>>> = population.into();
 
             Ok(selector
-                .select(&population, &obj, count)
+                .select(population.as_ref(), &obj, count)
                 .iter()
                 .map(|pop| population[*pop].clone())
                 .collect::<Population<TreeChromosome<Op<f32>>>>())

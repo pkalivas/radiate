@@ -1,5 +1,5 @@
 use crate::ProbabilityWheelIterator;
-use radiate_core::{Chromosome, Objective, Population, Select};
+use radiate_core::{Chromosome, Objective, Phenotype, Select};
 
 // In rank selection, the selection probability does not depend directly on the fitness, but on
 // the fitness rank of an individual within the population. This puts large fitness differences
@@ -15,7 +15,7 @@ impl RankSelector {
 }
 
 impl<C: Chromosome + Clone> Select<C> for RankSelector {
-    fn select(&self, population: &Population<C>, _: &Objective, count: usize) -> Vec<usize> {
+    fn select(&self, population: &[Phenotype<C>], _: &Objective, count: usize) -> Vec<usize> {
         let n = population.len();
         if n == 0 || count == 0 {
             return Vec::new();

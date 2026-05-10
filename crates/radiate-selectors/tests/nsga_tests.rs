@@ -46,7 +46,7 @@ mod nsga_tests {
         let population = known_rank_population_2obj();
         let selector = NSGA2Selector::new();
         for count in [1, 3, 5, 6] {
-            let selected = selector.select(&population, &min2(), count);
+            let selected = selector.select(population.as_ref(), &min2(), count);
             assert_eq!(selected.len(), count, "count={count}");
         }
     }
@@ -57,7 +57,7 @@ mod nsga_tests {
         let selector = NSGA2Selector::new();
 
         // Selecting exactly 3 must yield the three rank-0 points.
-        let selected = selector.select(&population, &min2(), 3);
+        let selected = selector.select(population.as_ref(), &min2(), 3);
         assert_eq!(selected.len(), 3);
 
         let rank0: Vec<Vec<f32>> = vec![vec![1.0, 3.0], vec![2.0, 2.0], vec![3.0, 1.0]];
@@ -85,7 +85,7 @@ mod nsga_tests {
             vec![5.0, 5.0],
         ]);
         let selector = NSGA2Selector::new();
-        let selected = selector.select(&population, &min2(), 3);
+        let selected = selector.select(population.as_ref(), &min2(), 3);
 
         let scores: Vec<Vec<f32>> = selected
             .iter()
@@ -111,7 +111,7 @@ mod nsga_tests {
             vec![5.0, 5.0],  // rank 2
         ]);
         let selector = NSGA2Selector::new();
-        let selected = selector.select(&population, &objective, 1);
+        let selected = selector.select(population.as_ref(), &objective, 1);
 
         assert_eq!(
             population[selected[0]].score().unwrap().as_slice(),
@@ -129,7 +129,7 @@ mod nsga_tests {
         let population = known_rank_population_2obj();
         let selector = TournamentNSGA2Selector::new();
         for count in [1, 3, 6] {
-            let selected = selector.select(&population, &min2(), count);
+            let selected = selector.select(population.as_ref(), &min2(), count);
             assert_eq!(selected.len(), count, "count={count}");
         }
     }
@@ -145,7 +145,7 @@ mod nsga_tests {
         let selector = TournamentNSGA2Selector::new();
 
         for _ in 0..20 {
-            let selected = selector.select(&population, &min2(), 1);
+            let selected = selector.select(population.as_ref(), &min2(), 1);
             assert_eq!(
                 population[selected[0]].score().unwrap().as_slice(),
                 &[1.0, 1.0],
@@ -172,7 +172,7 @@ mod nsga_tests {
         let selector = NSGA3Selector::new(4);
 
         for count in [2, 3, 4, 5] {
-            let selected = selector.select(&population, &min3(), count);
+            let selected = selector.select(population.as_ref(), &min3(), count);
             assert_eq!(selected.len(), count, "count={count}");
         }
     }
@@ -187,7 +187,7 @@ mod nsga_tests {
             vec![6.0, 6.0, 6.0], // rank 1+
         ]);
         let selector = NSGA3Selector::new(4);
-        let selected = selector.select(&population, &min3(), 3);
+        let selected = selector.select(population.as_ref(), &min3(), 3);
 
         let dominated: Vec<Vec<f32>> = vec![vec![5.0, 5.0, 5.0], vec![6.0, 6.0, 6.0]];
         for &ind in selected.iter() {

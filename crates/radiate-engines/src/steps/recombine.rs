@@ -1,10 +1,11 @@
 use crate::steps::EngineStep;
 use radiate_core::{
     Alterer, Chromosome, Ecosystem, Lineage, MetricSet, Objective, Optimize, Population, Score,
-    Select,
+    Select, species::SpeciesId,
 };
 use radiate_error::Result;
 use radiate_utils::VersionedCounts;
+use std::ops::Range;
 use std::sync::{Arc, RwLock};
 
 #[derive(Clone)]
@@ -66,54 +67,48 @@ where
         ecosystem: &mut Ecosystem<C>,
         metrics: &mut MetricSet,
     ) {
-        let mut lineage = self.lineage.write().unwrap();
         let pop_len = ecosystem.population().len();
 
-        // Phase 1: run both selectors on the unmutated population.
+        let pop_slice = ecosystem.population().as_ref();
         let s_timer = std::time::Instant::now();
-        let s_indices = self.survivor.selector.select(
-            ecosystem.population(),
-            &self.objective,
-            self.survivor.count,
-        );
+        let s_indices =
+            self.survivor
+                .selector
+                .select(pop_slice, &self.objective, self.survivor.count);
         let s_elapsed = s_timer.elapsed();
 
         let o_timer = std::time::Instant::now();
-        let o_indices = self.offspring.selector.select(
-            ecosystem.population(),
-            &self.objective,
-            self.offspring.count,
-        );
+        let o_indices =
+            self.offspring
+                .selector
+                .select(pop_slice, &self.objective, self.offspring.count);
         let o_elapsed = o_timer.elapsed();
 
-        // Phase 2: aggregate per-idx counts into the two reusable buffers.
         self.offspring_counts.begin(pop_len);
-        for &idx in &o_indices {
+        for &idx in o_indices.iter() {
             self.offspring_counts.bump(idx);
         }
 
         self.survivor_counts.begin(pop_len);
-        for &idx in &s_indices {
+        for &idx in s_indices.iter() {
             self.survivor_counts.bump(idx);
         }
 
-        // Phase 3: single descending walk over the union of selected indices.
+        // Single descending walk over the union of selected indices.
         // For each unique source idx with total = s + o > 0, emit (total - 1)
         // clones distributed to whichever bucket still needs entries, then
         // swap_remove the last one and place it in whichever bucket has room.
         let mut survivors = Population::with_capacity(self.survivor.count);
         let mut offspring = Population::with_capacity(self.offspring.count);
 
-        // The iterator borrows the count buffers immutably; `pop` borrows
-        // `ecosystem` mutably. Distinct objects, so the borrows coexist.
+        let pop = ecosystem.population_mut();
         let iter = self
             .survivor_counts
             .iter_pair_live_rev(&self.offspring_counts);
-        let pop = ecosystem.population_mut();
 
         for (idx, s, o) in iter {
-            let (mut s_left, mut o_left) = (s as usize, o as usize);
-            let total = s_left + o_left;
+            let mut s_left = s as usize;
+            let total = s_left + o as usize;
 
             for _ in 0..total - 1 {
                 if s_left > 0 {
@@ -121,7 +116,6 @@ where
                     s_left -= 1;
                 } else {
                     offspring.push(pop[idx].clone());
-                    o_left -= 1;
                 }
             }
 
@@ -129,7 +123,6 @@ where
             if s_left > 0 {
                 survivors.push(moved);
             } else {
-                let _ = o_left;
                 offspring.push(moved);
             }
         }
@@ -139,8 +132,9 @@ where
         metrics.upsert((self.offspring.names.0, offspring.len()));
         metrics.upsert((self.offspring.names.1, o_elapsed));
 
-        // Phase 4: alter offspring only. Survivors pass through unchanged.
         self.objective.sort(&mut offspring);
+
+        let mut lineage = self.lineage.write().unwrap();
         for alt in &mut self.offspring.alters {
             alt.alter(&mut offspring, &mut lineage, metrics, generation);
         }
@@ -160,22 +154,38 @@ where
         ecosystem: &mut Ecosystem<C>,
         metrics: &mut MetricSet,
     ) {
+        let (species, population) = ecosystem.species_population_mut();
+        let species = species.expect("species present");
+
+        // Physical sort by species_id makes per-species access a contiguous slice.
+        population.sort_by(|a, b| a.species().cmp(&b.species()));
+
+        // Walk consecutive runs of equal species_id to build the (species_id, range) table.
+        let mut species_groups: Vec<(SpeciesId, Range<usize>)> = Vec::with_capacity(species.len());
+        {
+            let slice: &[_] = population.as_ref();
+            let mut start = 0;
+            for chunk in slice.chunk_by(|a, b| a.species() == b.species()) {
+                species_groups.push((chunk[0].species(), start..start + chunk.len()));
+                start += chunk.len();
+            }
+        }
+
+        // Survivor selection runs on the (now sorted) population — indices land
+        // in the same coordinate space as offspring_counts.
         let s_timer = std::time::Instant::now();
         let s_indices = self.survivor.selector.select(
-            ecosystem.population(),
+            population.as_ref(),
             &self.objective,
             self.survivor.count,
         );
         metrics.upsert((self.survivor.names.0, s_indices.len()));
         metrics.upsert((self.survivor.names.1, s_timer.elapsed()));
-        let survivors: Population<C> = s_indices
-            .into_iter()
-            .map(|p| ecosystem.population()[p].clone())
-            .collect();
 
-        let mut lineage = self.lineage.write().unwrap();
-        let (species, population) = ecosystem.species_population_mut();
-        let species = species.expect("species present");
+        self.survivor_counts.begin(population.len());
+        for &idx in s_indices.iter() {
+            self.survivor_counts.bump(idx);
+        }
 
         let mut species_scores = species
             .iter()
@@ -188,40 +198,65 @@ where
 
         let quotas = self.quotas_from_scores(&species_scores);
 
-        let mut next_population = Population::with_capacity(self.offspring.count);
-        for (species, count) in species.iter().zip(quotas.iter()) {
-            let mut pop = population
-                .drain_species(species.id())
-                .collect::<Population<C>>();
+        self.offspring_counts.begin(population.len());
 
+        for (species, count) in species.iter().zip(quotas.iter()) {
+            let range = species_groups
+                .binary_search_by(|group| group.0.cmp(&species.id()))
+                .ok()
+                .map(|i| species_groups[i].1.clone())
+                .expect("species in ranges");
+
+            let mut pop = &mut population[range.clone()];
             self.objective.sort(&mut pop);
 
             let time = std::time::Instant::now();
-            let mut offspring = self
-                .offspring
-                .selector
-                .select(&pop, &self.objective, *count)
-                .into_iter()
-                .map(|p| pop[p].clone())
-                .collect::<Population<C>>();
+            let offspring = self.offspring.selector.select(pop, &self.objective, *count);
 
             metrics.upsert((self.offspring.names.0, offspring.len()));
             metrics.upsert((self.offspring.names.1, time.elapsed()));
 
-            self.objective.sort(&mut offspring);
-
-            for alt in &mut self.offspring.alters {
-                alt.alter(&mut offspring, &mut lineage, metrics, generation);
+            for &idx in offspring.iter() {
+                self.offspring_counts.bump(range.start + idx);
             }
-
-            next_population.extend(offspring);
         }
 
-        drop(lineage);
+        let mut survivors = Population::with_capacity(self.survivor.count);
+        let mut offspring = Population::with_capacity(self.offspring.count);
+
+        let pop = ecosystem.population_mut();
+        let iter = self
+            .survivor_counts
+            .iter_pair_live_rev(&self.offspring_counts);
+
+        for (idx, s, o) in iter {
+            let mut s_left = s as usize;
+            let total = s_left + o as usize;
+
+            for _ in 0..total - 1 {
+                if s_left > 0 {
+                    survivors.push(pop[idx].clone());
+                    s_left -= 1;
+                } else {
+                    offspring.push(pop[idx].clone());
+                }
+            }
+
+            let moved = pop.swap_remove(idx);
+            if s_left > 0 {
+                survivors.push(moved);
+            } else {
+                offspring.push(moved);
+            }
+        }
+
+        // Group offspring by species so the per-species alter pass can use chunk_by_mut.
+        offspring.sort_by(|a, b| a.species().cmp(&b.species()));
+
         let pop = ecosystem.population_mut();
         pop.clear();
         pop.extend(survivors);
-        pop.extend(next_population);
+        pop.extend(offspring);
     }
 
     #[inline]

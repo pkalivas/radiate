@@ -46,7 +46,7 @@ mod selector_tests {
         optimize.sort(&mut population);
 
         let selector = EliteSelector::new();
-        let selected = selector.select(&population, &Objective::Single(optimize), num);
+        let selected = selector.select(population.as_ref(), &Objective::Single(optimize), num);
 
         for i in 0..num {
             let original = population[i].score().unwrap().as_f32();
@@ -88,12 +88,12 @@ mod selector_tests {
 
         for _ in 0..num_permutations {
             let selected = selector
-                .select(&population, &objectives, count)
+                .select(population.as_ref(), &objectives, count)
                 .into_iter()
                 .map(|idx| population[idx].clone())
                 .collect::<Population<FloatChromosome<f32>>>();
             let random_selected = random_selector
-                .select(&population, &objectives, count)
+                .select(population.as_ref(), &objectives, count)
                 .into_iter()
                 .map(|idx| population[idx].clone())
                 .collect::<Population<FloatChromosome<f32>>>();

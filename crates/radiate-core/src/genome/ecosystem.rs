@@ -1,5 +1,7 @@
+use std::ops::Range;
+
 use super::{Chromosome, Genotype, Phenotype, Population, Species};
-use crate::{Objective, Score, random_provider};
+use crate::{Objective, Score, SpeciesId, random_provider};
 use itertools::Itertools;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -42,6 +44,14 @@ impl<C: Chromosome> Ecosystem<C> {
 
     pub fn species_population_mut(&mut self) -> (Option<&mut Vec<Species<C>>>, &mut Population<C>) {
         (self.species.as_mut(), &mut self.population)
+    }
+
+    pub fn len(&self) -> usize {
+        self.population.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.population.is_empty()
     }
 
     pub fn population(&self) -> &Population<C> {
@@ -120,6 +130,25 @@ impl<C: Chromosome> Ecosystem<C> {
         } else {
             0
         }
+    }
+
+    pub fn group_by_species(&self) -> Vec<(SpeciesId, Range<usize>)> {
+        let mut ranges = Vec::new();
+        if let Some(first) = self.population.get(0) {
+            let mut current = first.species();
+            let mut start = 0;
+            for (i, p) in self.population.iter().enumerate().skip(1) {
+                if p.species() != current {
+                    ranges.push((current, start..i));
+                    current = p.species();
+                    start = i;
+                }
+            }
+
+            ranges.push((current, start..self.population.len()));
+        }
+
+        ranges
     }
 
     pub fn generate_mascots(&mut self)
