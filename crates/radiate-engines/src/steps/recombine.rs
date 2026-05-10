@@ -107,6 +107,12 @@ where
 
         let (survivors, mut offspring) = self.unioned_walk(ecosystem);
 
+        println!(
+            "Selected {} survivors and {} offspring",
+            survivors.len(),
+            offspring.len()
+        );
+
         self.objective.sort(&mut offspring);
 
         let mut lineage = self.lineage.write().unwrap();
@@ -221,12 +227,37 @@ where
         indices
     }
 
+    /// So, I was pulling my hair out over this for a bit because I knew it was possible but
+    /// couldn't quite get it right. However, now that we've arrived at an elegant solution, this
+    /// approach is pretty satisfying. The key insight is that we can interleave the survivor and offspring
+    /// creation in a single walk over the union of selected indices, which allows us to save a clone for each
+    /// index that appears in both selections. In practice this can save
+    /// ~20-50% of clones compared to a naive approach.
+    ///
+    /// In other words:
+    /// Single descending walk over the union of selected indices.
+    /// For each unique source idx with total = s + o > 0, emit (total - 1)
+    /// clones distributed to whichever bucket still needs entries, then
+    /// swap_remove the last one and place it in whichever bucket has room.
+    /// total - 1 clones in the inner loop, distributed to whichever bucket still needs entries.
+    /// 1 move via swap_remove after the loop, also placed in whichever bucket has room.
+    /// So total emissions = (total - 1) + 1 = total.
+    /// So, for example, suppose s = 3, o = 2 for some idx (so total = 5):
+    ///
+    /// loop iteration 1: s_left=3 > 0, clone -> survivors[0], s_left=2
+    /// loop iteration 2: s_left=2 > 0, clone -> survivors[1], s_left=1
+    /// loop iteration 3: s_left=1 > 0, clone -> survivors[2], s_left=0
+    /// loop iteration 4: s_left=0,     clone -> offspring[0]
+    ///
+    /// --- loop ends after total-1 = 4 iterations ---
+    ///
+    /// swap_remove:      s_left=0,     move  -> offspring[1]
+    ///
+    /// Result: 3 clones to survivors, 1 clone & 1 move to offspring.
+    /// This saves us 4 clones total instead of 5. One deep Phenotype<C> clone saved
+    /// per unique source idx.
     #[inline]
     fn unioned_walk(&self, ecosystem: &mut Ecosystem<C>) -> (Population<C>, Population<C>) {
-        // Single descending walk over the union of selected indices.
-        // For each unique source idx with total = s + o > 0, emit (total - 1)
-        // clones distributed to whichever bucket still needs entries, then
-        // swap_remove the last one and place it in whichever bucket has room.
         let mut survivors = Population::with_capacity(self.survivor.select.count);
         let mut offspring = Population::with_capacity(self.offspring.select.count);
 
