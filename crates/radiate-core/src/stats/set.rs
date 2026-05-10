@@ -15,9 +15,41 @@ use std::{
     time::Duration,
 };
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[repr(transparent)]
 pub struct MetricIdx(u32);
+
+impl MetricIdx {
+    pub const INVALID: MetricIdx = MetricIdx(u32::MAX);
+
+    #[inline(always)]
+    pub const fn new(idx: u32) -> Self {
+        MetricIdx(idx)
+    }
+
+    #[inline(always)]
+    pub const fn get(self) -> u32 {
+        self.0
+    }
+
+    #[inline(always)]
+    pub const fn as_usize(self) -> usize {
+        self.0 as usize
+    }
+
+    #[inline(always)]
+    pub const fn is_valid(self) -> bool {
+        self.0 != u32::MAX
+    }
+}
+
+impl Default for MetricIdx {
+    #[inline(always)]
+    fn default() -> Self {
+        MetricIdx::INVALID
+    }
+}
 
 #[derive(PartialEq)]
 pub struct MetricSetSummary {
