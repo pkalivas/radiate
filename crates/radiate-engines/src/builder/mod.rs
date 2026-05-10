@@ -18,7 +18,9 @@ use crate::genome::phenotype::Phenotype;
 use crate::io::FileReader;
 use crate::objectives::{Objective, Optimize};
 use crate::pipeline::Pipeline;
-use crate::steps::{AuditStep, EngineStep, FilterStep, FrontStep, RecombineStep, SpeciateStep};
+use crate::steps::{
+    AuditStep, EngineStep, FilterStep, FrontStep, RecombineStep, SelectConfig, SpeciateStep,
+};
 use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use crate::{
     Crossover, EncodeReplace, EngineProblem, EventBus, EventHandler, Front, Mutate,
@@ -352,17 +354,25 @@ where
         let survivor_base_name = radiate_utils::intern!(surv_name);
         let survivor_time_name = radiate_utils::intern!(format!("{}.time", survivor_base_name));
 
+        let survivor_select = SelectConfig {
+            selector: survivor_selector,
+            count: config.survivor_count(),
+            names: (survivor_base_name, survivor_time_name),
+        };
+
+        let offspring_select = SelectConfig {
+            selector: offspring_selector,
+            count: config.offspring_count(),
+            names: (offspring_base_name, offspring_time_name),
+        };
+
         let recombine_step = RecombineStep {
             survivor: crate::steps::SurvivorConfig {
-                count: config.survivor_count(),
-                selector: survivor_selector,
-                names: (survivor_base_name, survivor_time_name),
+                select: survivor_select,
             },
             offspring: crate::steps::OffspringConfig {
-                count: config.offspring_count(),
-                selector: offspring_selector,
+                select: offspring_select,
                 alters: config.alters().to_vec(),
-                names: (offspring_base_name, offspring_time_name),
             },
             objective: config.objective(),
             lineage: config.lineage(),
