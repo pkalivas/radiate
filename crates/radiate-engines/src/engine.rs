@@ -123,7 +123,6 @@ where
         let control = self.context.control.clone();
         EngineIterator::new(self, control)
     }
-
 }
 
 /// Implementation of the [Engine] trait for [GeneticEngine].

@@ -15,15 +15,41 @@ pub struct SelectConfig<C: Chromosome> {
     pub(crate) names: (&'static str, &'static str),
 }
 
+impl<C: Chromosome> SelectConfig<C> {
+    pub fn new(
+        count: usize,
+        selector: Arc<dyn Select<C>>,
+        names: (&'static str, &'static str),
+    ) -> Self {
+        Self {
+            count,
+            selector,
+            names,
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct SurvivorConfig<C: Chromosome> {
     pub(crate) select: SelectConfig<C>,
+}
+
+impl<C: Chromosome> SurvivorConfig<C> {
+    pub fn new(select: SelectConfig<C>) -> Self {
+        Self { select }
+    }
 }
 
 #[derive(Clone)]
 pub struct OffspringConfig<C: Chromosome> {
     pub(crate) select: SelectConfig<C>,
     pub(crate) alters: Vec<Alterer<C>>,
+}
+
+impl<C: Chromosome> OffspringConfig<C> {
+    pub fn new(select: SelectConfig<C>, alters: Vec<Alterer<C>>) -> Self {
+        Self { select, alters }
+    }
 }
 
 pub struct RecombineStep<C: Chromosome> {
@@ -33,6 +59,24 @@ pub struct RecombineStep<C: Chromosome> {
     pub(crate) lineage: Arc<RwLock<Lineage>>,
     pub(crate) survivor_counts: VersionedCounts,
     pub(crate) offspring_counts: VersionedCounts,
+}
+
+impl<C: Chromosome> RecombineStep<C> {
+    pub fn new(
+        survivor: SurvivorConfig<C>,
+        offspring: OffspringConfig<C>,
+        objective: Objective,
+        lineage: Arc<RwLock<Lineage>>,
+    ) -> Self {
+        Self {
+            survivor,
+            offspring,
+            objective,
+            lineage,
+            survivor_counts: VersionedCounts::new(),
+            offspring_counts: VersionedCounts::new(),
+        }
+    }
 }
 
 impl<C> EngineStep<C> for RecombineStep<C>
@@ -106,12 +150,6 @@ where
         }
 
         let (survivors, mut offspring) = self.unioned_walk(ecosystem);
-
-        println!(
-            "Selected {} survivors and {} offspring",
-            survivors.len(),
-            offspring.len()
-        );
 
         self.objective.sort(&mut offspring);
 

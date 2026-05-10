@@ -42,10 +42,6 @@ impl<C: Chromosome> Ecosystem<C> {
         }
     }
 
-    pub fn species_population_mut(&mut self) -> (Option<&mut Vec<Species<C>>>, &mut Population<C>) {
-        (self.species.as_mut(), &mut self.population)
-    }
-
     pub fn len(&self) -> usize {
         self.population.len()
     }
@@ -80,6 +76,10 @@ impl<C: Chromosome> Ecosystem<C> {
 
     pub fn get_genotype(&self, index: usize) -> Option<&Genotype<C>> {
         self.population.get(index).map(|p| p.genotype())
+    }
+
+    pub fn species_population_mut(&mut self) -> (Option<&mut Vec<Species<C>>>, &mut Population<C>) {
+        (self.species.as_mut(), &mut self.population)
     }
 
     pub fn species_mascots(&self) -> Vec<&Phenotype<C>> {

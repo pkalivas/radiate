@@ -19,7 +19,10 @@ pub use generation::Generation;
 pub use io::{FileReader, FileWriter, JsonReader, JsonWriter, YamlReader, YamlWriter};
 pub use iter::{EngineIterator, EngineIteratorExt};
 pub use limit::Limit;
-pub use steps::EvaluateStep;
+pub use steps::{
+    EngineStep, EvaluateStep, OffspringConfig, RecombineStep, SelectConfig, SpeciateStep,
+    SurvivorConfig,
+};
 
 pub use radiate_alters::*;
 pub use radiate_core::*;

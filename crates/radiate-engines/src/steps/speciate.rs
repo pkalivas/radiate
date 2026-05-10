@@ -18,6 +18,24 @@ where
     pub(crate) assignments: Arc<Mutex<Vec<Option<usize>>>>,
 }
 
+impl<C: Chromosome> SpeciateStep<C> {
+    pub fn new(
+        threshold: Rate,
+        objective: Objective,
+        distance: Arc<dyn Diversity<C>>,
+        executor: Arc<Executor>,
+    ) -> Self {
+        Self {
+            threshold,
+            objective,
+            distance,
+            executor,
+            distances: Arc::new(Mutex::new(Vec::new())),
+            assignments: Arc::new(Mutex::new(Vec::new())),
+        }
+    }
+}
+
 impl<C> SpeciateStep<C>
 where
     C: Chromosome + 'static,

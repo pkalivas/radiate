@@ -40,8 +40,7 @@ fn main() {
         .codec(GraphCodec::directed(1, 1, store))
         .raw_batch_fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
-        // .parallel()
-        // .survivor_selector(BoltzmannSelector::new(4.0))
+        .parallel()
         .diversity(NeatDistance::new(1.0, 1.0, 3.0))
         .species_threshold(distance_signal)
         .alter(alters!(
@@ -52,12 +51,7 @@ fn main() {
         .build();
 
     // radiate::ui(engine)
-    engine
-        .iter()
-        // .logging()
-        .until_score(MIN_SCORE)
-        .last()
-        .inspect(display);
+    engine.iter().until_score(MIN_SCORE).last().inspect(display);
 }
 
 fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
