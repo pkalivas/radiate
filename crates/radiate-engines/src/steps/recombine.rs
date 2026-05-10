@@ -240,8 +240,11 @@ where
             let range = species_groups
                 .binary_search_by(|group| group.0.cmp(&species.id()))
                 .ok()
-                .map(|i| species_groups[i].1.clone())
-                .expect("species in ranges");
+                .map(|i| species_groups[i].1.clone());
+
+            let Some(range) = range else {
+                return;
+            };
 
             let mut pop = &mut population[range.clone()];
             self.objective.sort(&mut pop);
