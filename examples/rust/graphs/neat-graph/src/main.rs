@@ -1,3 +1,5 @@
+use core::panic;
+
 use radiate::{graphs::NeatDistance, prelude::*};
 
 const MIN_SCORE: f32 = 0.001;
@@ -93,5 +95,12 @@ fn get_threshold(use_expr_distance: bool, target_species: usize) -> impl Into<Ra
 
     const GAIN: f32 = 0.999;
 
-    Rate::Expr(anchor.mul(count_error.mul(GAIN).add(1.0)).clamp(0.005, 2.0))
+    let result = anchor
+        .mul(count_error.mul(GAIN).add(1.0))
+        .clamp(0.005, 2.0)
+        .compile();
+
+    println!("{result:#?}");
+
+    Rate::Expr(result)
 }

@@ -94,7 +94,7 @@ impl<C: Chromosome, T> Context<C, T> {
             }
         }
 
-        self.metrics.advance_generation();
+        self.metrics.bump(self.index as u64);
 
         Ok(best_improved)
     }

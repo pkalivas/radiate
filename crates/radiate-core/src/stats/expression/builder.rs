@@ -1,43 +1,35 @@
 use super::{
-    Expr,
+    Expr, MetricField, MetricKind,
     aggregate::{AggExpr, BufferExpr, Rollup},
-    expr_fields,
     logical::When,
-    ops::{BinaryExpr, BinaryOp, TrinaryExpr, TrinaryOp, UnaryExpr, UnaryOp},
+    ops::{AffineExpr, BinaryExpr, BinaryOp, TrinaryExpr, TrinaryOp, UnaryExpr, UnaryOp},
     schedule::{EveryState, ScheduleExpr},
-    select::SelectExpr,
 };
-use radiate_utils::{AnyValue, DataType, Field, WindowBuffer};
+use radiate_utils::{AnyValue, DataType, WindowBuffer};
 use std::ops::{Add, Div, Mul, Neg, Not, Sub};
 
 impl Expr {
-    // Rewrites a Field selector's dtype in-place. Returns true if the rewrite happened.
-    fn try_swap_select_dtype(&mut self, to: DataType) -> bool {
-        match self {
-            Expr::Selector(SelectExpr::Field(value, field)) => {
-                let new_field = field.with_dtype(to);
-                *self = Expr::Selector(SelectExpr::Field(value.clone(), new_field));
-                true
-            }
-            _ => false,
+    // Rewrites a Selector's kind in-place. Returns true if the rewrite happened.
+    fn try_swap_select_kind(&mut self, to: MetricKind) -> bool {
+        if let Expr::Selector(sel) = self {
+            sel.kind = to;
+            return true;
         }
+        false
     }
 
-    // Rewrites a Field selector's stat-field name in-place. Returns true if the rewrite happened.
-    fn try_swap_select_name(&mut self, to: &Field) -> bool {
-        match self {
-            Expr::Selector(SelectExpr::Field(value, field)) => {
-                let new_field = field.with_name(to.name().clone());
-                *self = Expr::Selector(SelectExpr::Field(value.clone(), new_field));
-                true
-            }
-            _ => false,
+    // Rewrites a Selector's field in-place. Returns true if the rewrite happened.
+    fn try_swap_select_field(&mut self, to: MetricField) -> bool {
+        if let Expr::Selector(sel) = self {
+            sel.field = to;
+            return true;
         }
+        false
     }
 
-    // If this is a Field selector, rewrites its name to `to`; otherwise calls `func`.
-    fn try_swap_select_field_or(mut self, to: &Field, func: impl FnOnce(Self) -> Expr) -> Expr {
-        if self.try_swap_select_name(to) {
+    // If this is a Selector, rewrites its field to `to`; otherwise calls `func`.
+    fn try_swap_select_field_or(mut self, to: MetricField, func: impl FnOnce(Self) -> Expr) -> Expr {
+        if self.try_swap_select_field(to) {
             return self;
         }
         func(self)
@@ -62,7 +54,7 @@ impl Expr {
     // Aggregate. Falls back to `func` for any other shape.
     fn try_reduce_select_agg_rollup_or(
         self,
-        field: &Field,
+        field: MetricField,
         to: Rollup,
         func: impl FnOnce(Self) -> Expr,
     ) -> Expr {
@@ -70,12 +62,12 @@ impl Expr {
     }
 
     pub fn time(mut self) -> Expr {
-        self.try_swap_select_dtype(DataType::Duration);
+        self.try_swap_select_kind(MetricKind::Duration);
         self
     }
 
     pub fn value(mut self) -> Expr {
-        self.try_swap_select_dtype(DataType::Float32);
+        self.try_swap_select_kind(MetricKind::Value);
         self
     }
 
@@ -100,61 +92,61 @@ impl Expr {
     }
 
     pub fn first(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(&expr_fields::LAST_VALUE, Rollup::First, |expr| {
+        self.try_reduce_select_agg_rollup_or(MetricField::LastValue, Rollup::First, |expr| {
             Expr::Aggregate(AggExpr::new(expr, Rollup::First))
         })
     }
 
     pub fn last(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(&expr_fields::LAST_VALUE, Rollup::Last, |expr| {
+        self.try_reduce_select_agg_rollup_or(MetricField::LastValue, Rollup::Last, |expr| {
             Expr::Aggregate(AggExpr::new(expr, Rollup::Last))
         })
     }
 
     pub fn sum(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(&expr_fields::SUM, Rollup::Sum, |expr| {
+        self.try_reduce_select_agg_rollup_or(MetricField::Sum, Rollup::Sum, |expr| {
             Expr::Aggregate(AggExpr::new(expr, Rollup::Sum))
         })
     }
 
     pub fn mean(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(&expr_fields::MEAN, Rollup::Mean, |expr| {
+        self.try_reduce_select_agg_rollup_or(MetricField::Mean, Rollup::Mean, |expr| {
             Expr::Aggregate(AggExpr::new(expr, Rollup::Mean))
         })
     }
 
     pub fn stddev(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(&expr_fields::STD_DEV, Rollup::StdDev, |expr| {
+        self.try_reduce_select_agg_rollup_or(MetricField::StdDev, Rollup::StdDev, |expr| {
             Expr::Aggregate(AggExpr::new(expr, Rollup::StdDev))
         })
     }
 
     pub fn min(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(&expr_fields::MIN, Rollup::Min, |expr| {
+        self.try_reduce_select_agg_rollup_or(MetricField::Min, Rollup::Min, |expr| {
             Expr::Aggregate(AggExpr::new(expr, Rollup::Min))
         })
     }
 
     pub fn max(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(&expr_fields::MAX, Rollup::Max, |expr| {
+        self.try_reduce_select_agg_rollup_or(MetricField::Max, Rollup::Max, |expr| {
             Expr::Aggregate(AggExpr::new(expr, Rollup::Max))
         })
     }
 
     pub fn var(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(&expr_fields::VAR, Rollup::Var, |expr| {
+        self.try_reduce_select_agg_rollup_or(MetricField::Var, Rollup::Var, |expr| {
             Expr::Aggregate(AggExpr::new(expr, Rollup::Var))
         })
     }
 
     pub fn skew(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(&expr_fields::SKEW, Rollup::Skew, |expr| {
+        self.try_reduce_select_agg_rollup_or(MetricField::Skew, Rollup::Skew, |expr| {
             Expr::Aggregate(AggExpr::new(expr, Rollup::Skew))
         })
     }
 
     pub fn count(self) -> Expr {
-        self.try_reduce_select_agg_rollup_or(&expr_fields::COUNT, Rollup::Count, |expr| {
+        self.try_reduce_select_agg_rollup_or(MetricField::Count, Rollup::Count, |expr| {
             Expr::Aggregate(AggExpr::new(expr, Rollup::Count))
         })
     }
@@ -292,6 +284,19 @@ impl Expr {
 
     pub fn cast(self, to: DataType) -> Expr {
         Expr::Unary(UnaryExpr::new(self, UnaryOp::Cast(to)))
+    }
+
+    /// `scale * self + bias`. Replaces `self.mul(lit).add(lit)` with a single
+    /// fused node. Consecutive affines collapse: `x.affine(a, b).affine(c, d)`
+    /// becomes `x.affine(c * a, c * b + d)`.
+    pub fn affine(self, scale: f32, bias: f32) -> Expr {
+        match self {
+            Expr::Affine(inner) => {
+                let (child, s, b) = inner.into_parts();
+                Expr::Affine(AffineExpr::new(*child, scale * s, scale * b + bias))
+            }
+            other => Expr::Affine(AffineExpr::new(other, scale, bias)),
+        }
     }
 }
 

@@ -190,11 +190,6 @@ impl<T> GraphNode<T> {
         self.innovation
     }
 
-    // pub fn with_innovation(mut self, innovation: Option<InnovationId>) -> Self {
-    //     self.innovation = innovation;
-    //     self
-    // }
-
     pub fn set_innovation(&mut self, innovation: Option<InnovationId>) {
         self.innovation = innovation;
     }

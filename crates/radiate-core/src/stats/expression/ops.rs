@@ -1,4 +1,5 @@
-use super::{Evaluate, Expr, ExprProjection, ExprResult};
+use super::{Evaluate, Expr, ExprResult};
+use crate::MetricSet;
 use radiate_error::radiate_bail;
 use radiate_utils::{AnyValue, DataType};
 #[cfg(feature = "serde")]
@@ -30,12 +31,9 @@ impl UnaryExpr {
     }
 }
 
-impl<T> Evaluate<T> for UnaryExpr
-where
-    T: ExprProjection,
-{
-    fn eval<'a>(&'a mut self, input: &T) -> ExprResult<'a> {
-        let value = self.child.eval(input)?;
+impl Evaluate for UnaryExpr {
+    fn eval<'a>(&'a mut self, metrics: &MetricSet) -> ExprResult<'a> {
+        let value = self.child.eval(metrics)?;
 
         match self.op {
             UnaryOp::Not => match value {
@@ -105,23 +103,20 @@ impl BinaryExpr {
     }
 }
 
-impl<T> Evaluate<T> for BinaryExpr
-where
-    T: ExprProjection,
-{
-    fn eval<'a>(&'a mut self, input: &T) -> ExprResult<'a> {
+impl Evaluate for BinaryExpr {
+    fn eval<'a>(&'a mut self, metrics: &MetricSet) -> ExprResult<'a> {
         // Coalesce short-circuits: only evaluate rhs when lhs is bad.
         if let BinaryOp::Coalesce = self.op {
-            let lhs = self.lhs.eval(input)?;
+            let lhs = self.lhs.eval(metrics)?;
             let is_bad = match lhs.extract::<f32>() {
                 Some(v) => !v.is_finite(),
                 None => matches!(lhs, AnyValue::Null),
             };
-            return if is_bad { self.rhs.eval(input) } else { Ok(lhs) };
+            return if is_bad { self.rhs.eval(metrics) } else { Ok(lhs) };
         }
 
-        let lhs = self.lhs.eval(input)?;
-        let rhs = self.rhs.eval(input)?;
+        let lhs = self.lhs.eval(metrics)?;
+        let rhs = self.rhs.eval(metrics)?;
 
         let result = match self.op {
             BinaryOp::Coalesce => unreachable!("handled above"),
@@ -180,14 +175,11 @@ impl TrinaryExpr {
     }
 }
 
-impl<T> Evaluate<T> for TrinaryExpr
-where
-    T: ExprProjection,
-{
-    fn eval<'a>(&'a mut self, input: &T) -> ExprResult<'a> {
+impl Evaluate for TrinaryExpr {
+    fn eval<'a>(&'a mut self, metrics: &MetricSet) -> ExprResult<'a> {
         match self.operation {
             TrinaryOp::If => {
-                let condition = self.first.eval(input)?;
+                let condition = self.first.eval(metrics)?;
 
                 let cond = match condition {
                     AnyValue::Bool(b) => b,
@@ -195,15 +187,15 @@ where
                 };
 
                 if cond {
-                    self.second.eval(input)
+                    self.second.eval(metrics)
                 } else {
-                    self.third.eval(input)
+                    self.third.eval(metrics)
                 }
             }
             TrinaryOp::Clamp => {
-                let value = self.first.eval(input)?.extract::<f32>();
-                let min = self.second.eval(input)?.extract::<f32>();
-                let max = self.third.eval(input)?.extract::<f32>();
+                let value = self.first.eval(metrics)?.extract::<f32>();
+                let min = self.second.eval(metrics)?.extract::<f32>();
+                let max = self.third.eval(metrics)?.extract::<f32>();
 
                 let (min_v, max_v) = match (min, max) {
                     (Some(a), Some(b)) => (a, b),
@@ -219,6 +211,52 @@ where
                 };
                 Ok(AnyValue::Float32(result))
             }
+        }
+    }
+}
+
+/// `scale * child + bias`. A fused affine operator — replaces the
+/// `.mul(lit).add(lit)` pattern with a single node carrying two constants.
+///
+/// Useful for normalization (`(x - μ) / σ`), gain-style controllers, and any
+/// linear remap of a metric. Chains fuse algebraically when constructed via
+/// the `.affine(...)` builder, so `x.affine(a, b).affine(c, d)` collapses to a
+/// single `Affine { scale: c*a, bias: c*b + d }`.
+///
+/// Non-finite child output (Null, NaN, ±Inf) is propagated as `Null` so the
+/// outer Clamp or Coalesce can take over.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug, PartialEq)]
+pub struct AffineExpr {
+    pub(super) child: Box<Expr>,
+    pub(super) scale: f32,
+    pub(super) bias: f32,
+}
+
+impl AffineExpr {
+    pub fn new(child: Expr, scale: f32, bias: f32) -> Self {
+        Self {
+            child: Box::new(child),
+            scale,
+            bias,
+        }
+    }
+
+    pub(super) fn child_mut(&mut self) -> &mut Expr {
+        &mut self.child
+    }
+
+    pub(super) fn into_parts(self) -> (Box<Expr>, f32, f32) {
+        (self.child, self.scale, self.bias)
+    }
+}
+
+impl Evaluate for AffineExpr {
+    fn eval<'a>(&'a mut self, metrics: &MetricSet) -> ExprResult<'a> {
+        let value = self.child.eval(metrics)?;
+        match value.extract::<f32>() {
+            Some(x) if x.is_finite() => Ok(AnyValue::Float32(self.scale * x + self.bias)),
+            _ => Ok(AnyValue::Null),
         }
     }
 }

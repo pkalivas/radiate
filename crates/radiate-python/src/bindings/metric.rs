@@ -17,6 +17,12 @@ pub struct PyMetricSet {
     inner: MetricSet,
 }
 
+impl PyMetricSet {
+    pub(crate) fn inner(&self) -> &MetricSet {
+        &self.inner
+    }
+}
+
 #[pymethods]
 impl PyMetricSet {
     #[new]
@@ -77,7 +83,7 @@ impl PyMetricSet {
         }
 
         self.inner
-            .get_from_string(key)
+            .get(key)
             .map(|metric| Wrap(metric).into_pyobject(py))
             .transpose()
             .map_err(|e| {

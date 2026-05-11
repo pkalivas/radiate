@@ -1,4 +1,5 @@
-use super::{Evaluate, Expr, ExprProjection, ExprResult};
+use super::{Evaluate, Expr, ExprResult};
+use crate::MetricSet;
 use radiate_error::radiate_bail;
 use radiate_utils::{AnyValue, DataType, Slope, Statistic, WindowBuffer, dedup_slice};
 #[cfg(feature = "serde")]
@@ -131,12 +132,9 @@ impl AggExpr {
     }
 }
 
-impl<T> Evaluate<T> for AggExpr
-where
-    T: ExprProjection,
-{
-    fn eval<'a>(&'a mut self, input: &T) -> ExprResult<'a> {
-        let child_output = self.child.eval(input)?;
+impl Evaluate for AggExpr {
+    fn eval<'a>(&'a mut self, metrics: &MetricSet) -> ExprResult<'a> {
+        let child_output = self.child.eval(metrics)?;
         let dtype = child_output.dtype();
 
         if let Some(buffer) = &mut self.buffer {
@@ -194,12 +192,9 @@ impl BufferExpr {
     }
 }
 
-impl<T> Evaluate<T> for BufferExpr
-where
-    T: ExprProjection,
-{
-    fn eval<'a>(&'a mut self, input: &T) -> ExprResult<'a> {
-        let child_output = self.child.eval(input)?.into_static();
+impl Evaluate for BufferExpr {
+    fn eval<'a>(&'a mut self, metrics: &MetricSet) -> ExprResult<'a> {
+        let child_output = self.child.eval(metrics)?.into_static();
 
         if child_output.is_nested() {
             radiate_bail!(Expr: "BufferExpr does not support nested values");

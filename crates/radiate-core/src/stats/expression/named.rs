@@ -10,7 +10,10 @@ pub struct NamedExpr {
 
 impl NamedExpr {
     pub fn new(name: &'static str, expr: Expr) -> Self {
-        Self { name, expr }
+        Self {
+            name,
+            expr: expr.compile(),
+        }
     }
 
     pub fn pair(&mut self) -> (&'static str, &mut Expr) {

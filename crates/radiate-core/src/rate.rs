@@ -181,7 +181,7 @@ impl From<Vec<(usize, f32)>> for Rate {
 
 impl From<Expr> for Rate {
     fn from(expr: Expr) -> Self {
-        Rate::Expr(expr)
+        Rate::Expr(expr.compile())
     }
 }
 
