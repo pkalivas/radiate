@@ -91,13 +91,17 @@ impl MetricSet {
     }
 
     #[inline(always)]
-    pub fn upsert<'a>(&mut self, metric: impl Into<MetricSetUpdate<'a>>) {
-        let MetricSetUpdate::NamedSingle(name, metric_update, tag) = metric.into();
+    pub fn upsert<'a>(&mut self, key: impl Into<SmallStr>, metric: impl Into<MetricUpdate<'a>>) {
+        let name = key.into();
+        let metric_update = metric.into();
         let idx = self.resolve(&name);
         self.upsert_at(idx, metric_update);
-        if let Some(tag) = tag {
-            self.metrics[idx.as_usize()].add_tag(tag);
-        }
+
+        // let idx = self.resolve(&name);
+        // self.upsert_at(idx, metric_update);
+        // if let Some(tag) = tag {
+        //     self.metrics[idx.as_usize()].add_tag(tag);
+        // }
     }
 
     #[inline(always)]

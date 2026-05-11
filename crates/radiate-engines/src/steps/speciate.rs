@@ -272,13 +272,13 @@ where
             0.0
         };
 
-        metrics.upsert((metric_names::SPECIES_AGE, &ages));
-        metrics.upsert((metric_names::SPECIES_SIZE, &sizes));
-        metrics.upsert((metric_names::SPECIES_COUNT, s_count));
-        metrics.upsert((metric_names::SPECIES_CREATED, new_species_count));
-        metrics.upsert((metric_names::SPECIES_EVENNESS, evenness));
-        metrics.upsert((metric_names::SPECIES_NEW_RATIO, churn));
-        metrics.upsert((metric_names::LARGEST_SPECIES_SHARE, largest_share));
+        metrics.upsert(metric_names::SPECIES_AGE, &ages);
+        metrics.upsert(metric_names::SPECIES_SIZE, &sizes);
+        metrics.upsert(metric_names::SPECIES_COUNT, s_count);
+        metrics.upsert(metric_names::SPECIES_CREATED, new_species_count);
+        metrics.upsert(metric_names::SPECIES_EVENNESS, evenness);
+        metrics.upsert(metric_names::SPECIES_NEW_RATIO, churn);
+        metrics.upsert(metric_names::LARGEST_SPECIES_SHARE, largest_share);
     }
 }
 
@@ -321,9 +321,9 @@ where
 
         let rm_species_count = ecosystem.remove_dead_species();
 
-        metrics.upsert((metric_names::SPECIES_DISTANCE_DIST, &self.distances));
-        metrics.upsert((metric_names::SPECIES_DIED, rm_species_count));
-        metrics.upsert((metric_names::SPECIES_THRESHOLD, threshold));
+        metrics.upsert(metric_names::SPECIES_DISTANCE_DIST, &self.distances);
+        metrics.upsert(metric_names::SPECIES_DIED, rm_species_count);
+        metrics.upsert(metric_names::SPECIES_THRESHOLD, threshold);
         self.publish_species_stats(generation, ecosystem, metrics);
 
         ecosystem.fitness_share(&self.objective);

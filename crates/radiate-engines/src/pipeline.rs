@@ -30,11 +30,11 @@ impl<C: Chromosome> Pipeline<C> {
             step.execute(context.index, &mut context.ecosystem, &mut context.metrics)?;
             let elapsed = timer.elapsed();
 
-            context.metrics.upsert((name.as_str(), elapsed));
+            context.metrics.upsert(name.clone(), elapsed);
         }
 
         let elapsed = timer.elapsed();
-        context.metrics.upsert((metric_names::TIME, elapsed));
+        context.metrics.upsert(metric_names::TIME, elapsed);
 
         Ok(())
     }

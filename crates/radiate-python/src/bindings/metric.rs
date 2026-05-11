@@ -28,7 +28,7 @@ impl PyMetricSet {
                 for (fld, _, val) in pairs.into_iter() {
                     let name = fld.as_str().to_string();
                     let metric_update = MetricUpdate::try_from(val)?;
-                    metric_set.upsert((radiate_utils::intern!(name), metric_update));
+                    metric_set.upsert(radiate_utils::intern!(name), metric_update);
                 }
             } else {
                 radiate_py_bail!("Metric: Expected a struct of metrics, but got a different type.");
@@ -45,7 +45,7 @@ impl PyMetricSet {
     pub fn upsert(&mut self, name: &str, update: Wrap<AnyValue<'_>>) -> PyResult<()> {
         let interned_name = radiate_utils::intern!(name);
         let metric_update = MetricUpdate::try_from(update.0)?;
-        self.inner.upsert((interned_name, metric_update));
+        self.inner.upsert(interned_name, metric_update);
         Ok(())
     }
 

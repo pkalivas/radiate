@@ -67,17 +67,17 @@ impl<C: Chromosome, T> Context<C, T> {
         }
 
         if best_improved {
-            self.metrics
-                .upsert((metric_names::BEST_SCORE_IMPROVEMENT, 1));
+            self.metrics.upsert(metric_names::BEST_SCORE_IMPROVEMENT, 1);
             self.audits.push(ContextAudit::NewBest);
         }
 
         if let Some(score) = &self.score {
             if score.len() == 1 {
-                self.metrics.upsert((metric_names::BEST_SCORES, score[0]));
+                self.metrics.upsert(metric_names::BEST_SCORES, score[0]);
             } else {
                 for (i, score) in score.as_slice().iter().enumerate() {
-                    self.metrics.upsert((metric_names::BEST_SCORES, *score, i));
+                    let name = format!("{}.{}", metric_names::BEST_SCORES, i);
+                    self.metrics.upsert(&name, *score);
                 }
             }
         }
@@ -90,7 +90,7 @@ impl<C: Chromosome, T> Context<C, T> {
                 let update = MetricUpdate::try_from(exp.eval(&self.metrics)?)?;
                 let name = radiate_utils::intern!(name);
 
-                self.metrics.upsert((TagType::Expr, name, update));
+                self.metrics.upsert(name, update);
             }
         }
 

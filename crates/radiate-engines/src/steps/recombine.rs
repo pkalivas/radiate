@@ -254,8 +254,8 @@ where
     ) -> Vec<usize> {
         let timer = std::time::Instant::now();
         let indices = select.selector.select(population, &self.objective, count);
-        metrics.upsert((select.names.0, indices.len()));
-        metrics.upsert((select.names.1, timer.elapsed()));
+        metrics.upsert(select.names.0, indices.len());
+        metrics.upsert(select.names.1, timer.elapsed());
         indices
     }
 

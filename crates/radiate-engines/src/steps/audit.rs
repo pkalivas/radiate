@@ -54,8 +54,8 @@ impl AuditStep {
 
         std::mem::swap(&mut self.curr_ids, &mut self.last_gen_ids);
 
-        metrics.upsert((metric_names::CARRYOVER_RATE, carryover_rate));
-        metrics.upsert((metric_names::SURVIVOR_COUNT, survivor_count));
+        metrics.upsert(metric_names::CARRYOVER_RATE, carryover_rate);
+        metrics.upsert(metric_names::SURVIVOR_COUNT, survivor_count);
     }
 
     #[inline]
@@ -75,7 +75,7 @@ impl AuditStep {
             } else {
                 0.0
             };
-            metrics.upsert((metric_names::SCORE_VOLATILITY, score_coeff));
+            metrics.upsert(metric_names::SCORE_VOLATILITY, score_coeff);
         }
 
         let diversity_ratio = if !ecosystem.population().is_empty() {
@@ -87,7 +87,7 @@ impl AuditStep {
             0.0
         };
 
-        metrics.upsert((metric_names::DIVERSITY_RATIO, diversity_ratio));
+        metrics.upsert(metric_names::DIVERSITY_RATIO, diversity_ratio);
     }
 
     fn clear_state(&mut self, pop_size: usize) {
@@ -186,26 +186,26 @@ impl<C: Chromosome> EngineStep<C> for AuditStep {
             }
 
             if is_single {
-                metrics.upsert((metric_names::UNIQUE_SCORES, unique_count));
+                metrics.upsert(metric_names::UNIQUE_SCORES, unique_count);
             } else {
-                metrics.upsert((self.unique_scores_per_dim[idx].clone(), unique_count));
+                metrics.upsert(self.unique_scores_per_dim[idx].clone(), unique_count);
             }
         }
 
         if !self.score_distribution.is_empty() {
             if is_single {
-                metrics.upsert((metric_names::SCORES, &self.score_distribution[0]));
+                metrics.upsert(metric_names::SCORES, &self.score_distribution[0]);
             } else {
                 for (idx, vec) in self.score_distribution.iter().enumerate() {
-                    metrics.upsert((self.scores_per_dim[idx].clone(), vec));
+                    metrics.upsert(self.scores_per_dim[idx].clone(), vec);
                 }
             }
         }
 
-        metrics.upsert((metric_names::NEW_CHILDREN, new_this_gen));
-        metrics.upsert((metric_names::AGE, &self.age_distribution));
-        metrics.upsert((metric_names::GENOME_SIZE, &self.size_distribution));
-        metrics.upsert((metric_names::UNIQUE_MEMBERS, self.unique_members.len()));
+        metrics.upsert(metric_names::NEW_CHILDREN, new_this_gen);
+        metrics.upsert(metric_names::AGE, &self.age_distribution);
+        metrics.upsert(metric_names::GENOME_SIZE, &self.size_distribution);
+        metrics.upsert(metric_names::UNIQUE_MEMBERS, self.unique_members.len());
 
         self.calc_membership_metrics(metrics, ecosystem);
         Self::calc_derived_metrics(metrics, ecosystem);
