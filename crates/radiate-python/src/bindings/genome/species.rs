@@ -89,11 +89,11 @@ macro_rules! impl_into_py_species {
         {
             fn from(species: Species<$chromosome>) -> Self {
                 PySpecies {
-                    id: species.id().0,
+                    id: species.id().into(),
                     mascot: PyPhenotype::from(species.mascot().clone()),
                     generation: species.generation(),
                     stagnation: species.stagnation(),
-                    population: species.members.iter().map(|id| id.0).collect(),
+                    population: species.members.iter().map(|id| id.clone().into()).collect(),
                     score: species.adj_score().map(|s| s.as_ref().to_vec()),
                 }
             }

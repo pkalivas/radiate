@@ -51,7 +51,7 @@ where
                     let chromo_two = geno_two.get(chromo_index).unwrap();
 
                     let mut crosses = 0;
-                    let (mut ia, mut ib) = (0usize, 0usize);
+                    let (mut ia, mut ib) = (0, 0);
 
                     while ia < chromo_one.len() && ib < chromo_two.len() {
                         let gene_one = chromo_one.get(ia);

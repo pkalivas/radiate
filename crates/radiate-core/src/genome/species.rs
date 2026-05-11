@@ -1,34 +1,38 @@
 use super::{Chromosome, Phenotype};
-use crate::{Objective, Score, objectives::Scored, phenotype::PhenotypeId, tracker::Tracker};
+use crate::{
+    Objective, Score, objectives::Scored, phenotype::PhenotypeId, sentry_id, tracker::Tracker,
+};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashSet,
     fmt::{self, Debug, Formatter},
-    sync::atomic::{AtomicU64, Ordering},
+    sync::atomic::AtomicU64,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[repr(transparent)]
-pub struct SpeciesId(pub u64);
+sentry_id!(SpeciesId);
 
-impl SpeciesId {
-    pub fn new() -> Self {
-        static SPECIES_ID: AtomicU64 = AtomicU64::new(1);
-        SpeciesId(SPECIES_ID.fetch_add(1, Ordering::Relaxed))
-    }
+// #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+// #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+// #[repr(transparent)]
+// pub struct SpeciesId(pub u64);
 
-    pub fn empty() -> Self {
-        SpeciesId(0)
-    }
-}
+// impl SpeciesId {
+//     pub fn new() -> Self {
+//         static SPECIES_ID: AtomicU64 = AtomicU64::new(1);
+//         SpeciesId(SPECIES_ID.fetch_add(1, Ordering::Relaxed))
+//     }
 
-impl Default for SpeciesId {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+//     pub fn empty() -> Self {
+//         SpeciesId(0)
+//     }
+// }
+
+// impl Default for SpeciesId {
+//     fn default() -> Self {
+//         Self::new()
+//     }
+// }
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Species<C: Chromosome> {

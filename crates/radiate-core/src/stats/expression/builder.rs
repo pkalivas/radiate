@@ -256,6 +256,34 @@ impl Expr {
         ))
     }
 
+    /// Returns `self` if it evaluates to a finite number, otherwise `rhs`.
+    /// Triggers fallback on Null, NaN, and ±Inf. Short-circuits — `rhs` is only
+    /// evaluated when needed, so it's safe to use as a non-trivial default.
+    pub fn or_else(self, rhs: impl Into<Expr>) -> Expr {
+        Expr::Binary(BinaryExpr::new(self, rhs.into(), BinaryOp::Coalesce))
+    }
+
+    /// Elementwise min: `min(self, rhs)`. NaN on one side returns the other.
+    /// Use as a ceiling: `expr.min_with(2.0)`.
+    pub fn min_with(self, rhs: impl Into<Expr>) -> Expr {
+        Expr::Binary(BinaryExpr::new(self, rhs.into(), BinaryOp::Min))
+    }
+
+    /// Elementwise max: `max(self, rhs)`. NaN on one side returns the other.
+    /// Use as a floor: `expr.max_with(0.05)`.
+    pub fn max_with(self, rhs: impl Into<Expr>) -> Expr {
+        Expr::Binary(BinaryExpr::new(self, rhs.into(), BinaryOp::Max))
+    }
+
+    /// Quantile at `q ∈ [0, 1]` via linear interpolation between adjacent ranks.
+    /// On an empty buffer returns 0.0. Filters non-finite samples before sorting.
+    /// O(n log n) per evaluation — fine for window sizes ≤ ~1000.
+    pub fn quantile(self, q: f32) -> Expr {
+        self.try_swap_agg_rollup_or(Rollup::Quantile(q), |expr| {
+            Expr::Aggregate(AggExpr::new(expr, Rollup::Quantile(q)))
+        })
+    }
+
     pub fn every(self, interval: usize) -> When {
         When::new(Expr::Schedule(ScheduleExpr::Every(EveryState::new(
             interval,

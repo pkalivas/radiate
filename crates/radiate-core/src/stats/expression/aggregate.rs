@@ -20,6 +20,9 @@ pub enum Rollup {
     Count,
     Unique,
     Slope,
+    /// Quantile at q ∈ [0, 1] via linear interpolation between adjacent ranks.
+    /// Filters non-finite values before sorting.
+    Quantile(f32),
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -42,6 +45,13 @@ impl AggExpr {
     pub fn rolling(mut self, window_size: usize) -> Self {
         self.buffer = Some(WindowBuffer::with_window(window_size));
         self
+    }
+
+    pub(super) fn reset(&mut self) {
+        if let Some(buf) = &mut self.buffer {
+            buf.clear();
+        }
+        self.child.reset();
     }
 
     fn compute_rollup<'a>(
@@ -83,6 +93,23 @@ impl AggExpr {
                 .collect::<Slope<f32>>();
 
             return Ok(AnyValue::Float32(slope.value().unwrap_or(0.0)));
+        } else if let Rollup::Quantile(q) = rollup {
+            let mut sorted: Vec<f32> = values
+                .iter()
+                .filter_map(|v| v.extract::<f32>())
+                .filter(|v| v.is_finite())
+                .collect();
+            if sorted.is_empty() {
+                return Ok(AnyValue::Float32(0.0));
+            }
+            sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+            let q = q.clamp(0.0, 1.0);
+            let pos = q * (sorted.len() - 1) as f32;
+            let lo = pos.floor() as usize;
+            let hi = pos.ceil() as usize;
+            let frac = pos - lo as f32;
+            let result = sorted[lo] * (1.0 - frac) + sorted[hi] * frac;
+            return Ok(AnyValue::Float32(result));
         }
 
         let stats = values
@@ -158,6 +185,12 @@ impl BufferExpr {
             child: Box::new(child),
             dtype: DataType::Null,
         }
+    }
+
+    pub(super) fn reset(&mut self) {
+        self.buffer.clear();
+        self.dtype = DataType::Null;
+        self.child.reset();
     }
 }
 

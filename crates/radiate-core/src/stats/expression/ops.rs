@@ -79,6 +79,12 @@ pub enum BinaryOp {
     Ne,
     Mod,
     Pow,
+    /// Returns lhs if finite, otherwise rhs. Treats Null, NaN, ±Inf as fallback triggers.
+    Coalesce,
+    /// Elementwise min of two numeric values. NaN-on-one-side returns the other.
+    Min,
+    /// Elementwise max of two numeric values. NaN-on-one-side returns the other.
+    Max,
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -104,10 +110,21 @@ where
     T: ExprProjection,
 {
     fn eval<'a>(&'a mut self, input: &T) -> ExprResult<'a> {
+        // Coalesce short-circuits: only evaluate rhs when lhs is bad.
+        if let BinaryOp::Coalesce = self.op {
+            let lhs = self.lhs.eval(input)?;
+            let is_bad = match lhs.extract::<f32>() {
+                Some(v) => !v.is_finite(),
+                None => matches!(lhs, AnyValue::Null),
+            };
+            return if is_bad { self.rhs.eval(input) } else { Ok(lhs) };
+        }
+
         let lhs = self.lhs.eval(input)?;
         let rhs = self.rhs.eval(input)?;
 
         let result = match self.op {
+            BinaryOp::Coalesce => unreachable!("handled above"),
             BinaryOp::Add => lhs + rhs,
             BinaryOp::Sub => lhs - rhs,
             BinaryOp::Mul => lhs * rhs,
@@ -122,6 +139,14 @@ where
             BinaryOp::Or => lhs | rhs,
             BinaryOp::Mod => lhs % rhs,
             BinaryOp::Pow => radiate_utils::pow_anyvalue(&lhs, &rhs)?,
+            BinaryOp::Min => match (lhs.extract::<f32>(), rhs.extract::<f32>()) {
+                (Some(a), Some(b)) => AnyValue::Float32(a.min(b)),
+                _ => radiate_bail!(Expr: "Min requires numeric operands"),
+            },
+            BinaryOp::Max => match (lhs.extract::<f32>(), rhs.extract::<f32>()) {
+                (Some(a), Some(b)) => AnyValue::Float32(a.max(b)),
+                _ => radiate_bail!(Expr: "Max requires numeric operands"),
+            },
         };
 
         Ok(result)
@@ -180,18 +205,19 @@ where
                 let min = self.second.eval(input)?.extract::<f32>();
                 let max = self.third.eval(input)?.extract::<f32>();
 
-                println!("Clamp: value={:?}, min={:?}, max={:?}", value, min, max);
+                let (min_v, max_v) = match (min, max) {
+                    (Some(a), Some(b)) => (a, b),
+                    _ => radiate_bail!(Expr: "Clamp bounds must be numeric"),
+                };
 
-                if value.is_none() {
-                    return Ok(AnyValue::Float32(min.unwrap_or(0.0)));
-                }
-
-                match (value, min, max) {
-                    (Some(value), Some(min), Some(max)) => {
-                        Ok(AnyValue::Float32(value.clamp(min, max)))
-                    }
-                    _ => radiate_bail!(Expr: "Clamp operation requires numeric values"),
-                }
+                // Null, NaN, ±Inf all fall back to the floor — the safer default
+                // for rate-style controllers where a runaway high value is worse
+                // than a conservative low one.
+                let result = match value {
+                    Some(v) if v.is_finite() => v.clamp(min_v, max_v),
+                    _ => min_v,
+                };
+                Ok(AnyValue::Float32(result))
             }
         }
     }

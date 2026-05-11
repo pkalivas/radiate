@@ -259,11 +259,6 @@ impl<C: Chromosome> EngineStep<C> for AuditStep {
 
         self.clear_state(ecosystem.len());
 
-        // {
-        //     let lineage = self.lineage.read().unwrap();
-        //     Self::calc_lineage_metrics(&self.handles, metrics, ecosystem, &lineage);
-        // }
-
         let mut new_this_gen = 0;
         for p in ecosystem.population().iter() {
             let age = p.age(generation);

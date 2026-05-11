@@ -143,7 +143,7 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
 
                 trans.push((index, node.node_type(), node.value().clone(), node.arity()));
                 id_index_map.insert(*node_id, index);
-                trans.set_innovation(index, InnovationId::new());
+                trans.set_innovation(index, Some(InnovationId::new()));
             }
 
             for rel in self.relationships.iter() {

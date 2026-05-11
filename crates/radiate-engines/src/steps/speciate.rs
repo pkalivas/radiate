@@ -236,10 +236,7 @@ where
             return Ok(());
         }
 
-        let mut threshold = self.threshold.get(generation, metrics);
-        // if threshold <= 0.0 {
-        //     threshold = 0.1;
-        // }
+        let threshold = self.threshold.get(generation, metrics);
 
         let mascots = Self::generate_mascots(ecosystem);
 

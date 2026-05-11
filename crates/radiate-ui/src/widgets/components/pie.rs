@@ -43,7 +43,7 @@ impl<C: Chromosome> StatefulWidget for SpeciesPieChartComponent<C> {
                         &species.id,
                     );
 
-                    let name = radiate_utils::intern!(format!("{}", species.id.0));
+                    let name = radiate_utils::intern!(format!("{}", species.id.as_ref()));
                     PieSlice::new(name, score[obj_idx] as f64, color)
                 })
             })

@@ -81,6 +81,12 @@ impl<T> WindowBuffer<T> {
     pub fn as_slice(&self) -> &[T] {
         self.values()
     }
+
+    pub fn clear(&mut self) {
+        self.buffer.clear();
+        self.start = 0;
+        self.end = 0;
+    }
 }
 
 impl<T: Clone> Clone for WindowBuffer<T> {

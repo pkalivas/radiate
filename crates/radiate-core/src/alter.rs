@@ -137,6 +137,7 @@ impl<C: Chromosome> Alterer<C> {
             generation,
             rate,
         };
+
         match &mut self.inner {
             AlterInner::Mutate(m) => {
                 let timer = std::time::Instant::now();

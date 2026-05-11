@@ -97,15 +97,11 @@ impl MetricSet {
         idx
     }
 
-    /// Non-creating index lookup. Returns `None` if the name has not been
-    /// registered.
     #[inline]
     pub fn get_idx(&self, name: impl AsRef<str>) -> Option<MetricIdx> {
         self.by_name.get(name.as_ref()).copied()
     }
 
-    /// Fast-path upsert via a pre-resolved handle. Bypasses the name → idx
-    /// HashMap.
     #[inline]
     pub fn upsert_at<'a>(&mut self, idx: MetricIdx, update: impl Into<MetricUpdate<'a>>) {
         let i = idx.as_usize();
@@ -173,6 +169,9 @@ impl MetricSet {
         let generation = self.generation();
 
         match update {
+            MetricSetUpdate::Slot(idx, metric_update) => {
+                self.upsert_at(idx, metric_update);
+            }
             MetricSetUpdate::Many(metrics) => {
                 for metric in metrics {
                     self.add_or_update_internal(generation, metric);
@@ -220,8 +219,6 @@ impl MetricSet {
         self.metrics.iter().map(|m| (m.name().as_str(), m))
     }
 
-    /// Insert a metric by name. If the name already exists, the existing slot
-    /// is overwritten (handle stays valid).
     #[inline(always)]
     pub fn add(&mut self, metric: Metric) {
         self.replace(metric);
@@ -392,6 +389,13 @@ pub enum MetricSetUpdate<'a> {
     Single(Metric),
     ManyUpdate(Vec<(SmallStr, MetricUpdate<'a>)>),
     NamedSingle(SmallStr, MetricUpdate<'a>, Option<TagType>),
+    Slot(MetricIdx, MetricUpdate<'a>),
+}
+
+impl<'a> From<(MetricIdx, MetricUpdate<'a>)> for MetricSetUpdate<'a> {
+    fn from((idx, update): (MetricIdx, MetricUpdate<'a>)) -> Self {
+        MetricSetUpdate::Slot(idx, update)
+    }
 }
 
 impl From<Vec<Metric>> for MetricSetUpdate<'_> {

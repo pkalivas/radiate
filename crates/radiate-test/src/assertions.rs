@@ -36,7 +36,7 @@ pub fn assert_species_count<C: Chromosome>(result: &Ecosystem<C>, expected: usiz
 }
 
 pub fn assert_population_speciated<C: Chromosome>(result: &Ecosystem<C>, label: &str) {
-    let empty_id = SpeciesId::empty();
+    let empty_id = SpeciesId::EMPTY;
     let pop = result.population();
     let species = result
         .species()

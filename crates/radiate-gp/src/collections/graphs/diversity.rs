@@ -49,69 +49,82 @@ impl NeatDistance {
     }
 
     #[inline]
-    fn graph_distance(&self, a: &GraphChromosome<Op<f32>>, b: &GraphChromosome<Op<f32>>) -> f32 {
-        let max_genes = a.len().max(b.len()) as f32;
-        if max_genes == 0.0 {
+    fn graph_distance(
+        &self,
+        one: &GraphChromosome<Op<f32>>,
+        two: &GraphChromosome<Op<f32>>,
+    ) -> f32 {
+        let max_genes = one.len().max(two.len());
+        if max_genes == 0 {
             return 0.0;
         }
 
-        let va = a
-            .iter()
-            .filter_map(|node| node.innovation().map(|id| (id, node)))
-            .collect::<Vec<_>>();
-        let vb = b
-            .iter()
-            .filter_map(|node| node.innovation().map(|id| (id, node)))
-            .collect::<Vec<_>>();
-
-        let cutoff = match (va.last(), vb.last()) {
-            (Some((ma, _)), Some((mb, _))) => Some((*ma).min(*mb)),
+        let one_last = one.get(one.len() - 1).innovation();
+        let two_last = two.get(two.len() - 1).innovation();
+        let cutoff = match (one_last, two_last) {
+            (Some(ma), Some(mb)) => Some(ma.min(mb)),
             _ => None,
         };
 
-        let mut excess = 0.0f32;
-        let mut disjoint = 0.0f32;
-        let mut matching = 0.0f32;
-        let mut weight_diff = 0.0f32;
+        let mut excess = 0.0_f32;
+        let mut disjoint = 0.0_f32;
+        let mut matching = 0.0_f32;
+        let mut weight_diff = 0.0_f32;
 
-        let mut ia = 0usize;
-        let mut ib = 0usize;
-        while ia < va.len() || ib < vb.len() {
-            match (va.get(ia), vb.get(ib)) {
-                (Some((ida, na)), Some((idb, nb))) => match ida.cmp(idb) {
+        let mut idx_one = 0;
+        let mut idx_two = 0;
+
+        while idx_one < one.len() || idx_two < two.len() {
+            let gene_one = if idx_one < one.len() {
+                one.get(idx_one).innovation()
+            } else {
+                None
+            };
+            let gene_two = if idx_two < two.len() {
+                two.get(idx_two).innovation()
+            } else {
+                None
+            };
+
+            match (gene_one, gene_two) {
+                (Some(ida), Some(idb)) => match ida.cmp(&idb) {
                     Ordering::Equal => {
                         matching += 1.0;
-                        match (na.value(), nb.value()) {
-                            (Op::Value(_, _, a_op, _), Op::Value(_, _, b_op, _)) => {
-                                weight_diff += (a_op.data() - b_op.data()).abs();
-                            }
-                            _ => {}
+
+                        let one_node = one.get(idx_one);
+                        let two_node = two.get(idx_two);
+
+                        if let (Op::Value(_, _, a_op, _), Op::Value(_, _, b_op, _)) =
+                            (one_node.value(), two_node.value())
+                        {
+                            weight_diff += (a_op.data() - b_op.data()).abs();
                         }
-                        ia += 1;
-                        ib += 1;
+
+                        idx_one += 1;
+                        idx_two += 1;
                     }
                     Ordering::Less => {
-                        bump(*ida, cutoff, &mut excess, &mut disjoint);
-                        ia += 1;
+                        bump(ida, cutoff, &mut excess, &mut disjoint);
+                        idx_one += 1;
                     }
                     Ordering::Greater => {
-                        bump(*idb, cutoff, &mut excess, &mut disjoint);
-                        ib += 1;
+                        bump(idb, cutoff, &mut excess, &mut disjoint);
+                        idx_two += 1;
                     }
                 },
-                (Some((ida, _)), None) => {
-                    bump(*ida, cutoff, &mut excess, &mut disjoint);
-                    ia += 1;
+                (Some(ida), None) => {
+                    bump(ida, cutoff, &mut excess, &mut disjoint);
+                    idx_one += 1;
                 }
-                (None, Some((idb, _))) => {
-                    bump(*idb, cutoff, &mut excess, &mut disjoint);
-                    ib += 1;
+                (None, Some(idb)) => {
+                    bump(idb, cutoff, &mut excess, &mut disjoint);
+                    idx_two += 1;
                 }
                 (None, None) => break,
             }
         }
 
-        let inv_max = 1.0 / max_genes;
+        let inv_max = 1.0 / (max_genes as f32);
         let avg_weight_diff = if matching > 0.0 {
             weight_diff / matching
         } else {
@@ -170,11 +183,11 @@ mod tests {
         node
     }
 
-    fn innov_id(n: u64) -> InnovationId {
+    fn innov_id(n: u64) -> Option<InnovationId> {
         // SAFETY: InnovationId is #[repr(transparent)] over u64. Forging deterministic
         // IDs lets us assert exact alignment outcomes; `InnovationId::new()` shares a
         // process-wide counter and would be unstable across tests.
-        unsafe { std::mem::transmute::<u64, InnovationId>(n) }
+        unsafe { Some(std::mem::transmute::<u64, InnovationId>(n)) }
     }
 
     fn chromo(nodes: Vec<GraphNode<Op<f32>>>) -> GraphChromosome<Op<f32>> {

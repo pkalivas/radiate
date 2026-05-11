@@ -170,10 +170,10 @@ where
 
                     if let Some(trgt) = target_idx {
                         for src in source_idx {
-                            let insertion_type =
+                            let insertion_steps =
                                 trans.get_insertion_steps(src, trgt, node_idx, rand);
 
-                            for step in insertion_type {
+                            for step in insertion_steps {
                                 match step {
                                     InsertStep::Connect(source, target) => {
                                         trans.attach(source, target)
@@ -187,18 +187,16 @@ where
                                         target,
                                         node_type,
                                     ) => {
-                                        let source_innov =
+                                        let in_innov =
                                             trans.get(source).and_then(|n| n.innovation());
-                                        let target_innov =
+                                        let out_innov =
                                             trans.get(target).and_then(|n| n.innovation());
 
-                                        let innovation_id = self.innov_context.get_innovation(
-                                            source_innov,
-                                            target_innov,
-                                            node_type,
-                                        );
+                                        let innov_id = self
+                                            .innov_context
+                                            .get_innovation(in_innov, out_innov, node_type);
 
-                                        trans.set_innovation(new_node, innovation_id);
+                                        trans.set_innovation(new_node, Some(innov_id));
                                     }
                                     _ => {}
                                 }
