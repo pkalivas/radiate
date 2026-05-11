@@ -39,12 +39,7 @@ pub enum MutationStep {
         index: usize,
         previous_direction: Direction,
     },
-    StructureChange {
-        source_id: usize,
-        new_node_id: usize,
-        target_node_id: usize,
-        innovation_id: Option<InnovationId>,
-    },
+    StructureChange(usize, Option<InnovationId>),
 }
 
 /// A replayable step produced by `rollback()` to restore the effects that were undone.
@@ -235,8 +230,8 @@ impl<'a, T> GraphTransaction<'a, T> {
                         replay_steps.push(ReplayStep::DirectionChange(index, prev_dir));
                     }
                 }
-                MutationStep::StructureChange { new_node_id, .. } => {
-                    if let Some(node) = self.graph.get_mut(new_node_id) {
+                MutationStep::StructureChange(node_id, _) => {
+                    if let Some(node) = self.graph.get_mut(node_id) {
                         node.set_innovation(None);
                     }
                 }
@@ -296,12 +291,8 @@ impl<'a, T> GraphTransaction<'a, T> {
     pub fn set_innovation(&mut self, node_idx: usize, innovation: Option<InnovationId>) {
         if let Some(node) = self.graph.get_mut(node_idx) {
             node.set_innovation(innovation);
-            self.steps.push(MutationStep::StructureChange {
-                source_id: node_idx,
-                new_node_id: node_idx,
-                target_node_id: node_idx,
-                innovation_id: innovation,
-            });
+            self.steps
+                .push(MutationStep::StructureChange(node_idx, innovation));
         }
     }
 

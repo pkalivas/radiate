@@ -12,28 +12,6 @@ use std::{
 
 sentry_id!(SpeciesId);
 
-// #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-// #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-// #[repr(transparent)]
-// pub struct SpeciesId(pub u64);
-
-// impl SpeciesId {
-//     pub fn new() -> Self {
-//         static SPECIES_ID: AtomicU64 = AtomicU64::new(1);
-//         SpeciesId(SPECIES_ID.fetch_add(1, Ordering::Relaxed))
-//     }
-
-//     pub fn empty() -> Self {
-//         SpeciesId(0)
-//     }
-// }
-
-// impl Default for SpeciesId {
-//     fn default() -> Self {
-//         Self::new()
-//     }
-// }
-
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Species<C: Chromosome> {
     pub id: SpeciesId,

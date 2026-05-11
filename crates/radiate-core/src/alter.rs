@@ -67,7 +67,7 @@ impl<'a> AlterContext<'a> {
         self.generation
     }
 
-    pub fn metric(&mut self, name: &'static str, value: impl Into<MetricUpdate<'a>>) {
+    pub fn metric(&mut self, name: impl AsRef<str>, value: impl Into<MetricUpdate<'a>>) {
         self.metrics.upsert(name, value.into());
     }
 }
@@ -144,15 +144,15 @@ impl<C: Chromosome> Alterer<C> {
 
                 if let Some(mutator) = mutator {
                     let AlterResult(count) = mutator.mutate(population, &mut ctx);
-                    metrics.upsert(self.name.clone(), count);
-                    metrics.upsert(self.time_name.clone(), timer.elapsed());
+                    metrics.upsert(&self.name, count);
+                    metrics.upsert(&self.time_name, timer.elapsed());
                 }
             }
             AlterInner::Crossover(c) => {
                 let timer = std::time::Instant::now();
                 let AlterResult(count) = c.crossover(population, &mut ctx);
-                metrics.upsert(self.name.clone(), count);
-                metrics.upsert(self.time_name.clone(), timer.elapsed());
+                metrics.upsert(&self.name, count);
+                metrics.upsert(&self.time_name, timer.elapsed());
             }
         }
     }

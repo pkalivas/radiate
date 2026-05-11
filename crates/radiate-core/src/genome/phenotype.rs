@@ -81,10 +81,6 @@ impl<C: Chromosome> Phenotype<C> {
         self.id
     }
 
-    // pub fn family(&self) -> FamilyId {
-    //     self.family
-    // }
-
     pub fn species(&self) -> SpeciesId {
         self.species
     }

@@ -1,6 +1,6 @@
 use crate::collections::GraphChromosome;
 use crate::node::{Node, NodeExt};
-use radiate_core::{AlterContext, AlterResult, Crossover, random_provider};
+use radiate_core::{AlterContext, AlterResult, Crossover, RdRand, random_provider};
 use radiate_core::{Rate, genome::*};
 use std::cmp::Ordering;
 use std::fmt::Debug;
@@ -41,6 +41,7 @@ where
         }
 
         if let Some((parent_one, parent_two)) = population.get_pair_mut(indexes[0], indexes[1]) {
+            let is_speciated = !parent_one.species().is_empty() && !parent_two.species().is_empty();
             let num_crosses = {
                 let geno_one = parent_one.genotype_mut();
                 let geno_two = parent_two.genotype();
@@ -50,35 +51,11 @@ where
                     let chromo_one = geno_one.get_mut(chromo_index).unwrap();
                     let chromo_two = geno_two.get(chromo_index).unwrap();
 
-                    let mut crosses = 0;
-                    let (mut ia, mut ib) = (0, 0);
-
-                    while ia < chromo_one.len() && ib < chromo_two.len() {
-                        let gene_one = chromo_one.get(ia);
-                        let gene_two = chromo_two.get(ib);
-
-                        match gene_one.innovation().cmp(&gene_two.innovation()) {
-                            Ordering::Equal => {
-                                if rand.bool(self.parent_node_rate) {
-                                    let node_two = chromo_two.get(ib);
-                                    let node_one = chromo_one.get_mut(ia);
-
-                                    if node_one.arity() == node_two.arity()
-                                        && node_one.value() != node_two.value()
-                                    {
-                                        node_one.set_value(node_two.value().clone());
-                                        crosses += 1;
-                                    }
-                                }
-
-                                ia += 1;
-                                ib += 1;
-                            }
-                            Ordering::Less => ia += 1,
-                            Ordering::Greater => ib += 1,
-                        }
+                    if is_speciated {
+                        crossover_speciated(chromo_one, chromo_two, self.parent_node_rate, rand)
+                    } else {
+                        crossover_uniform(chromo_one, chromo_two, self.parent_node_rate, rand)
                     }
-                    crosses
                 })
             };
 
@@ -90,4 +67,77 @@ where
 
         AlterResult::empty()
     }
+}
+
+fn crossover_uniform<T>(
+    chromo_one: &mut GraphChromosome<T>,
+    chromo_two: &GraphChromosome<T>,
+    rate: f32,
+    rand: &mut RdRand,
+) -> usize
+where
+    T: Clone + PartialEq,
+{
+    let mut crosses = 0;
+    let min_len = std::cmp::min(chromo_one.len(), chromo_two.len());
+
+    for i in 0..min_len {
+        let node_one = chromo_one.get_mut(i);
+        let node_two = chromo_two.get(i);
+
+        if node_one.arity() != node_two.arity() {
+            continue;
+        }
+
+        if !rand.bool(rate) {
+            continue;
+        }
+
+        if node_one.value() != node_two.value() {
+            node_one.set_value(node_two.value().clone());
+            crosses += 1;
+        }
+    }
+
+    crosses
+}
+
+fn crossover_speciated<T>(
+    chromo_one: &mut GraphChromosome<T>,
+    chromo_two: &GraphChromosome<T>,
+    rate: f32,
+    rand: &mut RdRand,
+) -> usize
+where
+    T: Clone + PartialEq + Debug,
+{
+    let mut crosses = 0;
+    let (mut ia, mut ib) = (0, 0);
+
+    while ia < chromo_one.len() && ib < chromo_two.len() {
+        let gene_one = chromo_one.get(ia);
+        let gene_two = chromo_two.get(ib);
+
+        match gene_one.innovation().cmp(&gene_two.innovation()) {
+            Ordering::Equal => {
+                if rand.bool(rate) {
+                    let node_two = chromo_two.get(ib);
+                    let node_one = chromo_one.get_mut(ia);
+
+                    if node_one.arity() == node_two.arity() && node_one.value() != node_two.value()
+                    {
+                        node_one.set_value(node_two.value().clone());
+                        crosses += 1;
+                    }
+                }
+
+                ia += 1;
+                ib += 1;
+            }
+            Ordering::Less => ia += 1,
+            Ordering::Greater => ib += 1,
+        }
+    }
+
+    crosses
 }

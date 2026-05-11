@@ -3,11 +3,13 @@ use super::{Graph, GraphChromosome};
 use crate::graphs::node::InnovationId;
 use crate::node::Node;
 use crate::{Arity, Factory, NodeType};
-use radiate_core::{AlterContext, Chromosome};
+use radiate_core::{AlterContext, Chromosome, SmallStr};
 use radiate_core::{AlterResult, Mutate, random_provider};
 use std::collections::HashMap;
 
-const INVALID_MUTATION: &str = "mutate.graph.invalid";
+const SATURATED: SmallStr = SmallStr::from_static("mutate.graph.invalid.saturated");
+const NO_INSTANCE: SmallStr = SmallStr::from_static("mutate.graph.invalid.no_instance");
+const REJECTED: SmallStr = SmallStr::from_static("mutate.graph.invalid.rejected");
 
 #[derive(Hash, Eq, PartialEq, Debug, Clone)]
 struct StructureChange {
@@ -73,7 +75,6 @@ pub struct GraphMutator {
     innov_context: InnovationContext,
 }
 
-// updated GraphMutator implementation
 impl GraphMutator {
     /// Create a new graph mutator with a set of mutations
     ///
@@ -136,7 +137,7 @@ where
         if let Some(max_nodes) = chromosome.max_nodes()
             && chromosome.len() >= max_nodes
         {
-            ctx.metric(INVALID_MUTATION, 1);
+            ctx.metric(SATURATED, 1);
             return AlterResult::empty();
         }
 
@@ -148,7 +149,7 @@ where
             && let Some(store) = chromosome.store()
         {
             let Some(new_node) = store.new_instance((chromosome.len(), node_type)) else {
-                ctx.metric(INVALID_MUTATION, 1);
+                ctx.metric(NO_INSTANCE, 1);
                 return AlterResult::empty();
             };
 
@@ -214,7 +215,7 @@ where
 
             return match result {
                 TransactionResult::Invalid(_, _) => {
-                    ctx.metric(INVALID_MUTATION, 1);
+                    ctx.metric(REJECTED, 1);
                     AlterResult::empty()
                 }
                 TransactionResult::Valid(steps) => AlterResult::from(steps.len()),
