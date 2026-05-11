@@ -88,12 +88,12 @@ impl Expr {
             Expr::Aggregate(agg) => Expr::Aggregate(AggExpr {
                 child: agg.child,
                 rollup: agg.rollup,
-                buffer: Some(WindowBuffer::with_window(window_size)),
+                buffer: Some(WindowBuffer::with_capacity(window_size)),
             }),
             Expr::Selector(select) => Expr::Aggregate(AggExpr {
                 child: Box::new(Expr::Selector(select)),
                 rollup: Rollup::Last,
-                buffer: Some(WindowBuffer::with_window(window_size)),
+                buffer: Some(WindowBuffer::with_capacity(window_size)),
             }),
             _ => Expr::Buffer(BufferExpr::new(self, window_size)),
         }

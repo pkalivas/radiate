@@ -18,6 +18,7 @@ use crate::genome::phenotype::Phenotype;
 use crate::io::FileReader;
 use crate::objectives::{Objective, Optimize};
 use crate::pipeline::Pipeline;
+use crate::steps::speciate::SpeciesHandles;
 use crate::steps::{
     AuditStep, EngineStep, FilterStep, FrontStep, RecombineStep, SelectConfig, SpeciateStep,
 };
@@ -417,8 +418,9 @@ where
             distance: diversity,
             executor: config.species_executor(),
             objective: config.objective(),
-            distances: Arc::new(Mutex::new(Vec::new())),
+            distances: Vec::new(),
             assignments: Arc::new(Mutex::new(Vec::new())),
+            handles: SpeciesHandles::new(),
         };
 
         Some(Box::new(species_step))

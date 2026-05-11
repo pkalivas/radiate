@@ -2,29 +2,35 @@ use crate::{Float, Statistic};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, PartialEq, Default)]
+#[derive(Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Distribution<F: Float> {
-    pub statistic: Statistic<F>,
-    pub last_sequence: Vec<F>,
+    statistic: Statistic<F>,
+    values: Vec<F>,
 }
 
 impl<F: Float> Distribution<F> {
     pub fn with_capacity(capacity: usize) -> Self {
         Distribution {
             statistic: Statistic::default(),
-            last_sequence: Vec::with_capacity(capacity),
+            values: Vec::with_capacity(capacity),
         }
     }
 
     #[inline(always)]
     pub fn add(&mut self, value: F) {
+        if self.values.capacity() == self.values.len() {
+            panic!(
+                "Distribution capacity exceeded: {}. Consider increasing the capacity or using a different data structure.",
+                self.values.capacity()
+            );
+        }
         self.statistic.add(value);
-        self.last_sequence.push(value);
+        self.values.push(value);
     }
 
     pub fn count(&self) -> usize {
-        self.last_sequence.len()
+        self.values.len()
     }
 
     pub fn mean(&self) -> F {
@@ -57,11 +63,11 @@ impl<F: Float> Distribution<F> {
 
     pub fn clear(&mut self) {
         self.statistic.clear();
-        self.last_sequence.clear();
+        self.values.clear();
     }
 
     pub fn log2(&self) -> f32 {
-        (self.last_sequence.len() as f32).log2()
+        (self.values.len() as f32).log2()
     }
 
     // #[inline(always)]
@@ -70,7 +76,7 @@ impl<F: Float> Distribution<F> {
     //         panic!("Percentile must be between 0 and 100");
     //     }
 
-    //     let count = F::from(self.last_sequence.len()).unwrap();
+    //     let count = F::from(self.values.len()).unwrap();
     //     if count == F::zero() {
     //         return F::zero();
     //     }
@@ -99,7 +105,7 @@ impl<F: Float> Distribution<F> {
 
 impl From<&[f32]> for Distribution<f32> {
     fn from(value: &[f32]) -> Self {
-        let mut result = Distribution::default();
+        let mut result = Distribution::with_capacity(value.len());
         for &v in value {
             result.add(v);
         }
@@ -110,7 +116,7 @@ impl From<&[f32]> for Distribution<f32> {
 
 impl From<Vec<f32>> for Distribution<f32> {
     fn from(value: Vec<f32>) -> Self {
-        let mut result = Distribution::default();
+        let mut result = Distribution::with_capacity(value.len());
         for v in value {
             result.add(v);
         }
@@ -120,7 +126,7 @@ impl From<Vec<f32>> for Distribution<f32> {
 
 impl From<&Vec<usize>> for Distribution<f32> {
     fn from(value: &Vec<usize>) -> Self {
-        let mut dist = Distribution::default();
+        let mut dist = Distribution::with_capacity(value.len());
         for v in value.iter().map(|&v| v as f32) {
             dist.add(v);
         }

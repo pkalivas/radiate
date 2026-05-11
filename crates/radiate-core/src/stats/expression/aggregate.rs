@@ -43,7 +43,7 @@ impl AggExpr {
     }
 
     pub fn rolling(mut self, window_size: usize) -> Self {
-        self.buffer = Some(WindowBuffer::with_window(window_size));
+        self.buffer = Some(WindowBuffer::with_capacity(window_size));
         self
     }
 
@@ -181,7 +181,7 @@ pub struct BufferExpr {
 impl BufferExpr {
     pub fn new(child: Expr, window_size: usize) -> Self {
         Self {
-            buffer: WindowBuffer::with_window(window_size),
+            buffer: WindowBuffer::with_capacity(window_size),
             child: Box::new(child),
             dtype: DataType::Null,
         }

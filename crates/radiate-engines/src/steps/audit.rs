@@ -27,18 +27,6 @@ define_metric_handles! {
 }
 
 define_metric_handles! {
-    pub struct SpeciesHandles {
-        species_age           = metric_names::SPECIES_AGE,
-        species_size          = metric_names::SPECIES_SIZE,
-        species_count         = metric_names::SPECIES_COUNT,
-        species_created       = metric_names::SPECIES_CREATED,
-        species_evenness      = metric_names::SPECIES_EVENNESS,
-        species_new_ratio     = metric_names::SPECIES_NEW_RATIO,
-        largest_species_share = metric_names::LARGEST_SPECIES_SHARE,
-    }
-}
-
-define_metric_handles! {
     pub struct MultiObjectiveHandles {
         scores_per_dim[]        = metric_names::SCORES,
         unique_scores_per_dim[] = metric_names::UNIQUE_SCORES,
@@ -56,7 +44,6 @@ pub struct AuditStep {
     curr_ids: HashSet<PhenotypeId>,
     unique_members: HashSet<PhenotypeId>,
     handles: AuditHandles,
-    species_handles: SpeciesHandles,
     multiobj_handles: MultiObjectiveHandles,
 }
 
@@ -66,85 +53,6 @@ impl AuditStep {
             objective,
             ..Default::default()
         }
-    }
-
-    #[inline]
-    fn calc_species_metrics<C: Chromosome>(
-        handles: &SpeciesHandles,
-        generation: usize,
-        metrics: &mut MetricSet,
-        ecosystem: &Ecosystem<C>,
-    ) {
-        let Some(species) = ecosystem.species() else {
-            return;
-        };
-
-        let mut new_species_count = 0;
-        let mut species_ages = Vec::with_capacity(species.len());
-        let mut species_size = Vec::with_capacity(species.len());
-
-        let pop_len = ecosystem.population().len().max(1);
-
-        let mut max_size = 0;
-        let mut size_sum = 0;
-        let mut size_vec = Vec::with_capacity(species.len());
-
-        for spec in species.iter() {
-            let spec_age = spec.age(generation);
-
-            if spec_age == 0 {
-                new_species_count += 1;
-            }
-
-            let len = spec.len();
-
-            species_ages.push(spec_age);
-            species_size.push(len);
-
-            max_size = max_size.max(len);
-            size_sum += len;
-            size_vec.push(len);
-        }
-
-        // Largest species share (how dominant is the biggest species)
-        let largest_share = if pop_len > 0 {
-            max_size as f32 / pop_len as f32
-        } else {
-            0.0
-        };
-
-        // Species evenness via normalized Shannon entropy
-        let mut evenness = 0.0_f32;
-        let s_count = species.len();
-        if s_count > 1 && size_sum > 0 {
-            let size_sum_f = size_sum as f32;
-            let mut h = 0.0_f32;
-            for sz in size_vec {
-                if sz > 0 {
-                    let p = sz as f32 / size_sum_f;
-                    h -= p * p.ln();
-                }
-            }
-            let h_max = (s_count as f32).ln();
-            if h_max > 0.0 {
-                evenness = h / h_max;
-            }
-        }
-
-        // Species churn ratio: new species / total species
-        let churn_ratio = if s_count > 0 {
-            new_species_count as f32 / s_count as f32
-        } else {
-            0.0
-        };
-
-        metrics.upsert_at(handles.species_age, &species_ages);
-        metrics.upsert_at(handles.species_size, &species_size);
-        metrics.upsert_at(handles.species_count, species.len());
-        metrics.upsert_at(handles.species_created, new_species_count);
-        metrics.upsert_at(handles.species_evenness, evenness);
-        metrics.upsert_at(handles.species_new_ratio, churn_ratio);
-        metrics.upsert_at(handles.largest_species_share, largest_share);
     }
 
     #[inline]
@@ -249,10 +157,6 @@ impl<C: Chromosome> EngineStep<C> for AuditStep {
         let dims = self.objective.dims();
         self.handles.ensure(metrics, dims);
 
-        if ecosystem.species().is_some() {
-            self.species_handles.ensure(metrics, dims);
-        }
-
         if self.objective.is_multi() {
             self.multiobj_handles.ensure(metrics, dims);
         }
@@ -324,7 +228,7 @@ impl<C: Chromosome> EngineStep<C> for AuditStep {
         metrics.upsert_at(self.handles.unique_members, self.unique_members.len());
 
         self.calc_membership_metrics(metrics, ecosystem);
-        Self::calc_species_metrics(&self.species_handles, generation, metrics, ecosystem);
+        // Self::calc_species_metrics(&self.species_handles, generation, metrics, ecosystem);
         Self::calc_derived_metrics(&self.handles, metrics, ecosystem);
 
         Ok(())
@@ -369,4 +273,83 @@ impl<C: Chromosome> EngineStep<C> for AuditStep {
 //     }
 //     let h_max = (k as f32).ln();
 //     if h_max <= 0.0 { 0.0 } else { h / h_max }
+// }
+
+// #[inline]
+// fn calc_species_metrics<C: Chromosome>(
+//     handles: &SpeciesHandles,
+//     generation: usize,
+//     metrics: &mut MetricSet,
+//     ecosystem: &Ecosystem<C>,
+// ) {
+//     let Some(species) = ecosystem.species() else {
+//         return;
+//     };
+
+//     let mut new_species_count = 0;
+//     let mut species_ages = Vec::with_capacity(species.len());
+//     let mut species_size = Vec::with_capacity(species.len());
+
+//     let pop_len = ecosystem.population().len().max(1);
+
+//     let mut max_size = 0;
+//     let mut size_sum = 0;
+//     let mut size_vec = Vec::with_capacity(species.len());
+
+//     for spec in species.iter() {
+//         let spec_age = spec.age(generation);
+
+//         if spec_age == 0 {
+//             new_species_count += 1;
+//         }
+
+//         let len = spec.len();
+
+//         species_ages.push(spec_age);
+//         species_size.push(len);
+
+//         max_size = max_size.max(len);
+//         size_sum += len;
+//         size_vec.push(len);
+//     }
+
+//     // Largest species share (how dominant is the biggest species)
+//     let largest_share = if pop_len > 0 {
+//         max_size as f32 / pop_len as f32
+//     } else {
+//         0.0
+//     };
+
+//     // Species evenness via normalized Shannon entropy
+//     let mut evenness = 0.0_f32;
+//     let s_count = species.len();
+//     if s_count > 1 && size_sum > 0 {
+//         let size_sum_f = size_sum as f32;
+//         let mut h = 0.0_f32;
+//         for sz in size_vec {
+//             if sz > 0 {
+//                 let p = sz as f32 / size_sum_f;
+//                 h -= p * p.ln();
+//             }
+//         }
+//         let h_max = (s_count as f32).ln();
+//         if h_max > 0.0 {
+//             evenness = h / h_max;
+//         }
+//     }
+
+//     // Species churn ratio: new species / total species
+//     let churn_ratio = if s_count > 0 {
+//         new_species_count as f32 / s_count as f32
+//     } else {
+//         0.0
+//     };
+
+//     metrics.upsert_at(handles.species_age, &species_ages);
+//     metrics.upsert_at(handles.species_size, &species_size);
+//     metrics.upsert_at(handles.species_count, species.len());
+//     metrics.upsert_at(handles.species_created, new_species_count);
+//     metrics.upsert_at(handles.species_evenness, evenness);
+//     metrics.upsert_at(handles.species_new_ratio, churn_ratio);
+//     metrics.upsert_at(handles.largest_species_share, largest_share);
 // }

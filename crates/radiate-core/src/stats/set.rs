@@ -60,7 +60,7 @@ pub struct MetricSetSummary {
 #[derive(Clone, Default, PartialEq)]
 pub struct MetricSet {
     metrics: Vec<Metric>,
-    by_name: HashMap<SmallStr, MetricIdx>,
+    name_lookup: HashMap<SmallStr, MetricIdx>,
     meta: Meta,
 }
 
@@ -68,7 +68,7 @@ impl MetricSet {
     pub fn new() -> Self {
         MetricSet {
             metrics: Vec::new(),
-            by_name: HashMap::new(),
+            name_lookup: HashMap::new(),
             meta: Meta::default(),
         }
     }
@@ -87,37 +87,48 @@ impl MetricSet {
     /// the name has not been seen before. The returned handle is valid for the
     /// lifetime of this `MetricSet`.
     pub fn resolve(&mut self, name: &SmallStr) -> MetricIdx {
-        if let Some(&idx) = self.by_name.get(name.as_str()) {
+        if let Some(&idx) = self.name_lookup.get(name.as_str()) {
             return idx;
         }
 
         let idx = MetricIdx::new(self.metrics.len() as u32);
-        self.by_name.insert(name.clone(), idx);
+        self.name_lookup.insert(name.clone(), idx);
         self.metrics.push(Metric::new(name.clone()));
         idx
     }
 
     #[inline]
     pub fn get_idx(&self, name: impl AsRef<str>) -> Option<MetricIdx> {
-        self.by_name.get(name.as_ref()).copied()
+        self.name_lookup.get(name.as_ref()).copied()
     }
 
     #[inline]
     pub fn upsert_at<'a>(&mut self, idx: MetricIdx, update: impl Into<MetricUpdate<'a>>) {
-        let i = idx.as_usize();
-
-        debug_assert!(
-            i < self.metrics.len(),
-            "Attempted to upsert at invalid MetricIdx {idx:?}"
-        );
-
         let generation = self.meta.generation;
-        let m = &mut self.metrics[i];
+        let mmetric = &mut self.metrics[idx.as_usize()];
 
-        m.set_generation(generation);
-        m.apply_update(update.into());
+        mmetric.set_generation(generation);
+        mmetric.apply_update(update.into());
 
         self.meta.update_count += 1;
+    }
+
+    #[inline(always)]
+    pub fn upsert<'a>(&mut self, metric: impl Into<MetricSetUpdate<'a>>) {
+        let update = metric.into();
+
+        match update {
+            MetricSetUpdate::Slot(idx, metric_update) => {
+                self.upsert_at(idx, metric_update);
+            }
+            MetricSetUpdate::NamedSingle(name, metric_update, tag) => {
+                let idx = self.resolve(&name);
+                self.upsert_at(idx, metric_update);
+                if let Some(tag) = tag {
+                    self.metrics[idx.as_usize()].add_tag(tag);
+                }
+            }
+        }
     }
 
     /// Read by handle.
@@ -136,16 +147,16 @@ impl MetricSet {
         let generation = target.advance_generation();
         for mut m in self.metrics.drain(..) {
             m.set_generation(generation);
-            if let Some(&idx) = target.by_name.get(m.name().as_str()) {
+            if let Some(&idx) = target.name_lookup.get(m.name().as_str()) {
                 target.metrics[idx.as_usize()].update_from(m);
             } else {
                 let idx = MetricIdx::new(target.metrics.len() as u32);
-                target.by_name.insert(m.name().clone(), idx);
+                target.name_lookup.insert(m.name().clone(), idx);
                 target.metrics.push(m);
             }
         }
 
-        self.by_name.clear();
+        self.name_lookup.clear();
         self.meta.update_count = 0;
     }
 
@@ -154,44 +165,12 @@ impl MetricSet {
     #[inline(always)]
     pub fn replace(&mut self, metric: impl Into<Metric>) {
         let metric = metric.into();
-        if let Some(&idx) = self.by_name.get(metric.name().as_str()) {
+        if let Some(&idx) = self.name_lookup.get(metric.name().as_str()) {
             self.metrics[idx.as_usize()] = metric;
         } else {
             let idx = MetricIdx::new(self.metrics.len() as u32);
-            self.by_name.insert(metric.name().clone(), idx);
+            self.name_lookup.insert(metric.name().clone(), idx);
             self.metrics.push(metric);
-        }
-    }
-
-    #[inline(always)]
-    pub fn upsert<'a>(&mut self, metric: impl Into<MetricSetUpdate<'a>>) {
-        let update = metric.into();
-        let generation = self.generation();
-
-        match update {
-            MetricSetUpdate::Slot(idx, metric_update) => {
-                self.upsert_at(idx, metric_update);
-            }
-            MetricSetUpdate::Many(metrics) => {
-                for metric in metrics {
-                    self.add_or_update_internal(generation, metric);
-                }
-            }
-            MetricSetUpdate::Single(metric) => {
-                self.add_or_update_internal(generation, metric);
-            }
-            MetricSetUpdate::ManyUpdate(updates) => {
-                for metric in updates {
-                    self.upsert(metric);
-                }
-            }
-            MetricSetUpdate::NamedSingle(name, metric_update, tag) => {
-                let idx = self.resolve(&name);
-                self.upsert_at(idx, metric_update);
-                if let Some(tag) = tag {
-                    self.metrics[idx.as_usize()].add_tag(tag);
-                }
-            }
         }
     }
 
@@ -226,7 +205,7 @@ impl MetricSet {
 
     #[inline(always)]
     pub fn get(&self, name: impl AsRef<str>) -> Option<&Metric> {
-        self.by_name
+        self.name_lookup
             .get(name.as_ref())
             .and_then(|idx| self.metrics.get(idx.as_usize()))
     }
@@ -246,7 +225,7 @@ impl MetricSet {
 
     #[inline(always)]
     pub fn contains_key(&self, name: impl AsRef<str>) -> bool {
-        self.by_name.contains_key(name.as_ref())
+        self.name_lookup.contains_key(name.as_ref())
     }
 
     #[inline(always)]
@@ -269,20 +248,6 @@ impl MetricSet {
 
     pub fn dashboard(&self) -> String {
         fmt::render_full(self).unwrap_or_default()
-    }
-
-    fn add_or_update_internal(&mut self, generation: u64, mut metric: Metric) {
-        self.meta.update_count += 1;
-        if let Some(&idx) = self.by_name.get(metric.name().as_str()) {
-            let existing = &mut self.metrics[idx.as_usize()];
-            existing.set_generation(generation);
-            existing.update_from(metric);
-        } else {
-            metric.set_generation(generation);
-            let idx = MetricIdx::new(self.metrics.len() as u32);
-            self.by_name.insert(metric.name().clone(), idx);
-            self.metrics.push(metric);
-        }
     }
 }
 
@@ -377,7 +342,7 @@ impl<'de> Deserialize<'de> for MetricSet {
         }
         Ok(MetricSet {
             metrics,
-            by_name,
+            name_lookup: by_name,
             meta: Meta::default(),
         })
     }
@@ -385,9 +350,6 @@ impl<'de> Deserialize<'de> for MetricSet {
 
 #[derive(Debug)]
 pub enum MetricSetUpdate<'a> {
-    Many(Vec<Metric>),
-    Single(Metric),
-    ManyUpdate(Vec<(SmallStr, MetricUpdate<'a>)>),
     NamedSingle(SmallStr, MetricUpdate<'a>, Option<TagType>),
     Slot(MetricIdx, MetricUpdate<'a>),
 }
@@ -395,18 +357,6 @@ pub enum MetricSetUpdate<'a> {
 impl<'a> From<(MetricIdx, MetricUpdate<'a>)> for MetricSetUpdate<'a> {
     fn from((idx, update): (MetricIdx, MetricUpdate<'a>)) -> Self {
         MetricSetUpdate::Slot(idx, update)
-    }
-}
-
-impl From<Vec<Metric>> for MetricSetUpdate<'_> {
-    fn from(metrics: Vec<Metric>) -> Self {
-        MetricSetUpdate::Many(metrics)
-    }
-}
-
-impl From<Metric> for MetricSetUpdate<'_> {
-    fn from(metric: Metric) -> Self {
-        MetricSetUpdate::Single(metric)
     }
 }
 
@@ -501,7 +451,7 @@ mod tests {
     #[test]
     fn resolve_returns_stable_handle() {
         let mut set = MetricSet::new();
-        let name: SmallStr = SmallStr::from_static("test.metric");
+        let name = SmallStr::from_static("test.metric");
 
         let idx1 = set.resolve(&name);
         let idx2 = set.resolve(&name);
@@ -541,3 +491,17 @@ mod tests {
         assert_eq!(c.get(), 2);
     }
 }
+
+// fn add_or_update_internal(&mut self, generation: u64, mut metric: Metric) {
+//     self.meta.update_count += 1;
+//     if let Some(&idx) = self.by_name.get(metric.name().as_str()) {
+//         let existing = &mut self.metrics[idx.as_usize()];
+//         existing.set_generation(generation);
+//         existing.update_from(metric);
+//     } else {
+//         metric.set_generation(generation);
+//         let idx = MetricIdx::new(self.metrics.len() as u32);
+//         self.by_name.insert(metric.name().clone(), idx);
+//         self.metrics.push(metric);
+//     }
+// }
