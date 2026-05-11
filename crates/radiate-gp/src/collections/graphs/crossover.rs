@@ -1,6 +1,6 @@
 use crate::collections::GraphChromosome;
 use crate::node::{Node, NodeExt};
-use radiate_core::{AlterContext, AlterResult, Crossover, RdRand, random_provider};
+use radiate_core::{AlterContext, AlterResult, Crossover, random_provider};
 use radiate_core::{Rate, genome::*};
 use std::cmp::Ordering;
 use std::fmt::Debug;
@@ -50,13 +50,40 @@ where
                     let chromo_one = geno_one.get_mut(chromo_index).unwrap();
                     let chromo_two = geno_two.get(chromo_index).unwrap();
 
-                    crossover_by_innovation(chromo_one, chromo_two, rand, self.parent_node_rate)
+                    let mut crosses = 0;
+                    let (mut ia, mut ib) = (0usize, 0usize);
+
+                    while ia < chromo_one.len() && ib < chromo_two.len() {
+                        let gene_one = chromo_one.get(ia);
+                        let gene_two = chromo_two.get(ib);
+
+                        match gene_one.innovation().cmp(&gene_two.innovation()) {
+                            Ordering::Equal => {
+                                if rand.bool(self.parent_node_rate) {
+                                    let node_two = chromo_two.get(ib);
+                                    let node_one = chromo_one.get_mut(ia);
+
+                                    if node_one.arity() == node_two.arity()
+                                        && node_one.value() != node_two.value()
+                                    {
+                                        node_one.set_value(node_two.value().clone());
+                                        crosses += 1;
+                                    }
+                                }
+
+                                ia += 1;
+                                ib += 1;
+                            }
+                            Ordering::Less => ia += 1,
+                            Ordering::Greater => ib += 1,
+                        }
+                    }
+                    crosses
                 })
             };
 
             if num_crosses > 0 {
                 parent_one.invalidate(ctx.generation());
-
                 return AlterResult::from(num_crosses);
             }
         }
@@ -64,68 +91,3 @@ where
         AlterResult::empty()
     }
 }
-
-fn crossover_by_innovation<T: Clone + PartialEq>(
-    chromo_one: &mut GraphChromosome<T>,
-    chromo_two: &GraphChromosome<T>,
-    rand: &mut RdRand,
-    parent_node_rate: f32,
-) -> usize {
-    let mut crosses = 0;
-    let (mut ia, mut ib) = (0usize, 0usize);
-
-    while ia < chromo_one.len() && ib < chromo_two.len() {
-        let gene_one = chromo_one.get(ia);
-        let gene_two = chromo_two.get(ib);
-
-        match gene_one.innovation().cmp(&gene_two.innovation()) {
-            Ordering::Equal => {
-                if rand.bool(parent_node_rate) {
-                    let node_two = chromo_two.get(ib);
-                    let node_one = chromo_one.get_mut(ia);
-                    if node_one.arity() == node_two.arity() && node_one.value() != node_two.value()
-                    {
-                        node_one.set_value(node_two.value().clone());
-                        crosses += 1;
-                    }
-                }
-                ia += 1;
-                ib += 1;
-            }
-            Ordering::Less => ia += 1,
-            Ordering::Greater => ib += 1,
-        }
-    }
-
-    crosses
-}
-
-// random_provider::with_rng(|rand| {
-//     let chromo_index = rand.range(0..std::cmp::min(geno_one.len(), geno_two.len()));
-
-//     let chromo_one = geno_one.get_mut(chromo_index).unwrap();
-//     let chromo_two = geno_two.get(chromo_index).unwrap();
-
-//     let mut crosses = 0;
-//     let min_len = std::cmp::min(chromo_one.len(), chromo_two.len());
-
-//     for i in 0..min_len {
-//         let node_one = chromo_one.get_mut(i);
-//         let node_two = chromo_two.get(i);
-
-//         if node_one.arity() != node_two.arity() {
-//             continue;
-//         }
-
-//         if !rand.bool(self.parent_node_rate) {
-//             continue;
-//         }
-
-//         if node_one.innovation() == node_two.innovation() {
-//             node_one.set_value(node_two.value().clone());
-//             crosses += 1;
-//         }
-//     }
-
-//     crosses
-// })
