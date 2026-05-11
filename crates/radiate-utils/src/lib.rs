@@ -21,5 +21,5 @@ pub use intern::{
 };
 pub use lru::LruCache;
 pub use primitives::{Float, Integer, Primitive};
-pub use stats::{Distribution, EwMean, EwVariance, MinMax, Quantile, Slope, Statistic};
+pub use stats::{Distribution, MinMax, Quantile, Slope, Statistic};
 pub use str::SmallStr;

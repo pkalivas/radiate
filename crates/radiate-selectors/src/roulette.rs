@@ -45,6 +45,6 @@ impl<C: Chromosome + Clone> Select<C> for RouletteSelector {
             }
         };
 
-        ProbabilityWheelIterator::new(&fitness_values, count).collect()
+        ProbabilityWheelIterator::new(fitness_values, count).collect()
     }
 }

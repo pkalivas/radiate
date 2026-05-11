@@ -20,7 +20,7 @@ impl Expr {
     pub fn compile(self) -> Expr {
         match self {
             // Leaves — nothing to rewrite.
-            Expr::Literal(_) | Expr::Selector(_) | Expr::Schedule(_) => self,
+            Expr::Literal(_) | Expr::Selector(_) | Expr::Schedule(_) | Expr::Stagnation(_) => self,
 
             Expr::Unary(u) => Expr::Unary(UnaryExpr::new((*u.child).compile(), u.op)),
 

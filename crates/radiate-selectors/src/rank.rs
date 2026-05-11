@@ -27,6 +27,6 @@ impl<C: Chromosome + Clone> Select<C> for RankSelector {
             probabilities.push((n as f32 - i as f32) / rank_sum);
         }
 
-        ProbabilityWheelIterator::new(&probabilities, count).collect()
+        ProbabilityWheelIterator::new(probabilities, count).collect()
     }
 }

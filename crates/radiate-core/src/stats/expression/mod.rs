@@ -6,6 +6,7 @@ mod named;
 mod ops;
 mod schedule;
 mod select;
+mod stagnation;
 mod traits;
 
 pub use named::NamedExpr;
@@ -20,6 +21,7 @@ use radiate_utils::{AnyValue, SmallStr};
 use schedule::{EveryState, ScheduleExpr};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+use stagnation::StagnationExpr;
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
@@ -33,6 +35,7 @@ pub enum Expr {
     Unary(UnaryExpr),
     Trinary(TrinaryExpr),
     Affine(AffineExpr),
+    Stagnation(StagnationExpr),
 }
 
 impl Evaluate for Expr {
@@ -47,6 +50,7 @@ impl Evaluate for Expr {
             Expr::Unary(child) => child.eval(metrics),
             Expr::Schedule(child) => child.eval(metrics),
             Expr::Affine(child) => child.eval(metrics),
+            Expr::Stagnation(child) => child.eval(metrics),
         }
     }
 }
@@ -76,6 +80,7 @@ impl Expr {
                 t.third.reset();
             }
             Expr::Affine(a) => a.child_mut().reset(),
+            Expr::Stagnation(s) => s.reset(),
         }
     }
 }
@@ -99,6 +104,47 @@ pub mod expr {
         When::new(Expr::Schedule(ScheduleExpr::Every(EveryState::new(
             interval,
         ))))
+    }
+
+    /// Relative error from a target: `(x - target) / target`.
+    /// Fuses into a single Affine node.
+    pub fn error_from(metric: impl Into<SmallStr>, target: f32) -> Expr {
+        select(metric).error_from(target)
+    }
+
+    /// Convergence detector: true when `|first - last|` over the rolling window
+    /// drops below `epsilon`. Two independent rolling buffers, one for First,
+    /// one for Last.
+    pub fn is_converged(metric: impl Into<SmallStr>, window: usize, epsilon: f32) -> Expr {
+        let m = metric.into();
+        let first = select(m.clone()).rolling(window).first();
+        let last = select(m).rolling(window).last();
+        first.sub(last).abs().lt(lit(epsilon))
+    }
+
+    /// Counts consecutive evaluations during which `metric.last_value` has
+    /// stayed within `epsilon` of the value last considered an improvement.
+    /// Resets on any change exceeding `epsilon`.
+    pub fn stagnation(metric: impl Into<SmallStr>, epsilon: f32) -> Expr {
+        Expr::Stagnation(StagnationExpr::new(metric, epsilon))
+    }
+
+    /// True when `stagnation(metric, epsilon) >= patience`.
+    pub fn is_stagnant(metric: impl Into<SmallStr>, patience: u32, epsilon: f32) -> Expr {
+        stagnation(metric, epsilon).gte(lit(patience as f32))
+    }
+
+    /// PI-style control signal for a metric tracking toward a target. Returns
+    /// `1 + gain * (rolling_mean(metric) - target) / target`. Multiply this
+    /// by an anchor (e.g. observed magnitude of the controlled variable) and
+    /// clamp to produce a final rate.
+    pub fn pi_signal(metric: impl Into<SmallStr>, target: f32, gain: f32, window: usize) -> Expr {
+        select(metric)
+            .rolling(window)
+            .mean()
+            .error_from(target)
+            .affine(gain, 1.0)
+            .compile()
     }
 }
 
@@ -491,6 +537,140 @@ mod tests {
         assert!(!bool_val(e.eval(&metrics()).unwrap())); // tick 1 again
         assert!(!bool_val(e.eval(&metrics()).unwrap())); // tick 2 again
         assert!(bool_val(e.eval(&metrics()).unwrap())); // tick 3 — fires again
+    }
+
+    // ---- Pre-built composers ----
+
+    fn metrics_with(name: &str, value: f32) -> MetricSet {
+        let mut ms = MetricSet::new();
+        ms.upsert(name, value);
+        ms
+    }
+
+    #[test]
+    fn error_from_method_collapses_to_affine() {
+        // (x - 10) / 10 == x * 0.1 - 1
+        let e = expr::lit(15.0f32).error_from(10.0);
+        match &e {
+            Expr::Affine(_) => {}
+            other => panic!("expected fused Affine, got {other:?}"),
+        }
+        let mut e = e;
+        assert!((f32_val(e.eval(&metrics()).unwrap()) - 0.5).abs() < 1e-6);
+    }
+
+    #[test]
+    fn error_from_function_reads_metric() {
+        let ms = metrics_with("foo", 12.0);
+        let mut e = expr::error_from("foo", 10.0);
+        // (12 - 10) / 10 = 0.2
+        assert!((f32_val(e.eval(&ms).unwrap()) - 0.2).abs() < 1e-6);
+    }
+
+    #[test]
+    fn pi_signal_produces_expected_shape() {
+        // Window=1 mean = current value. error_from(10) on x=12 = 0.2.
+        // 1 + 0.5 * 0.2 = 1.1
+        let mut ms = metrics_with("count", 12.0);
+        let mut e = expr::pi_signal("count", 10.0, 0.5, 1);
+        // Need to push two values to fill window=1 buffer — first call seeds, second returns.
+        let _ = e.eval(&ms);
+        ms.upsert("count", 12.0);
+        let v = f32_val(e.eval(&ms).unwrap());
+        assert!((v - 1.1).abs() < 1e-4, "got {v}");
+    }
+
+    // ---- Stagnation ----
+
+    #[test]
+    fn stagnation_increments_when_value_unchanged() {
+        let ms = metrics_with("score", 1.0);
+        let mut e = expr::stagnation("score", 0.001);
+
+        assert_eq!(f32_val(e.eval(&ms).unwrap()), 0.0); // seed
+        assert_eq!(f32_val(e.eval(&ms).unwrap()), 1.0);
+        assert_eq!(f32_val(e.eval(&ms).unwrap()), 2.0);
+    }
+
+    #[test]
+    fn stagnation_resets_on_large_change() {
+        let mut ms = metrics_with("score", 1.0);
+        let mut e = expr::stagnation("score", 0.001);
+
+        let _ = e.eval(&ms);
+        let _ = e.eval(&ms); // count = 1
+
+        ms.upsert("score", 5.0); // big change > epsilon
+        assert_eq!(f32_val(e.eval(&ms).unwrap()), 0.0);
+        assert_eq!(f32_val(e.eval(&ms).unwrap()), 1.0);
+    }
+
+    #[test]
+    fn stagnation_tolerates_tiny_noise() {
+        let mut ms = metrics_with("score", 1.0);
+        let mut e = expr::stagnation("score", 0.01);
+
+        let _ = e.eval(&ms);
+        ms.upsert("score", 1.005); // within epsilon
+        assert_eq!(f32_val(e.eval(&ms).unwrap()), 1.0);
+        ms.upsert("score", 1.008);
+        assert_eq!(f32_val(e.eval(&ms).unwrap()), 2.0);
+    }
+
+    #[test]
+    fn stagnation_returns_null_when_metric_missing() {
+        let ms = MetricSet::new();
+        let mut e = expr::stagnation("missing", 0.001);
+        assert!(matches!(e.eval(&ms).unwrap(), AnyValue::Null));
+    }
+
+    #[test]
+    fn is_stagnant_fires_at_patience_threshold() {
+        let ms = metrics_with("score", 1.0);
+        let mut e = expr::is_stagnant("score", 3, 0.001);
+
+        assert!(!bool_val(e.eval(&ms).unwrap())); // count=0
+        assert!(!bool_val(e.eval(&ms).unwrap())); // count=1
+        assert!(!bool_val(e.eval(&ms).unwrap())); // count=2
+        assert!(bool_val(e.eval(&ms).unwrap())); // count=3, fires
+    }
+
+    #[test]
+    fn stagnation_reset_clears_state() {
+        let ms = metrics_with("score", 1.0);
+        let mut e = expr::stagnation("score", 0.001);
+
+        let _ = e.eval(&ms);
+        let _ = e.eval(&ms);
+        let _ = e.eval(&ms); // count = 2
+
+        e.reset();
+        assert_eq!(f32_val(e.eval(&ms).unwrap()), 0.0); // fresh seed
+    }
+
+    #[test]
+    fn is_converged_fires_when_window_is_flat() {
+        let mut ms = metrics_with("score", 1.0);
+        let mut e = expr::is_converged("score", 3, 0.01);
+
+        // Buffers seed up to size 3.
+        let _ = e.eval(&ms);
+        let _ = e.eval(&ms);
+        // Third eval: both first and last buffers full, both should hold ~1.0.
+        assert!(bool_val(e.eval(&ms).unwrap()));
+    }
+
+    #[test]
+    fn is_converged_does_not_fire_when_window_drifts() {
+        let mut ms = metrics_with("score", 1.0);
+        let mut e = expr::is_converged("score", 3, 0.01);
+
+        let _ = e.eval(&ms);
+        ms.upsert("score", 2.0);
+        let _ = e.eval(&ms);
+        ms.upsert("score", 3.0);
+        // first=1.0, last=3.0, diff=2.0 > epsilon
+        assert!(!bool_val(e.eval(&ms).unwrap()));
     }
 
     // ---- compile() ----

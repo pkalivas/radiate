@@ -298,6 +298,15 @@ impl Expr {
             other => Expr::Affine(AffineExpr::new(other, scale, bias)),
         }
     }
+
+    /// Relative error from a target: `(self - target) / target`. Fuses into
+    /// a single Affine node. `target == 0` produces a degenerate expression
+    /// (division by zero shows up as a NaN/Inf at eval time, then propagates
+    /// to the outer Clamp).
+    pub fn error_from(self, target: f32) -> Expr {
+        // (x - target) / target == x * (1/target) + (-1)
+        self.affine(1.0 / target, -1.0)
+    }
 }
 
 impl From<f32> for Expr {

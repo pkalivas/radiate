@@ -22,52 +22,100 @@ pub use roulette::RouletteSelector;
 pub use stochastic_sampling::StochasticUniversalSamplingSelector;
 pub use tournament::TournamentSelector;
 
-pub(crate) struct ProbabilityWheelIterator<'a> {
-    probs: &'a [f32],
+// pub(crate) struct ProbabilityWheelIterator<'a> {
+//     probs: &'a [f32],
+//     total: f32,
+//     max_index: usize,
+//     current: usize,
+// }
+
+// impl<'a> ProbabilityWheelIterator<'a> {
+//     pub fn new(weights: &'a [f32], max_index: usize) -> Self {
+//         let total = weights.iter().sum::<f32>();
+
+//         Self {
+//             probs: weights,
+//             total,
+//             max_index,
+//             current: 0,
+//         }
+//     }
+// }
+
+// impl<'a> Iterator for ProbabilityWheelIterator<'a> {
+//     type Item = usize;
+
+//     #[inline]
+//     fn next(&mut self) -> Option<Self::Item> {
+//         if self.current >= self.max_index {
+//             return None;
+//         }
+
+//         self.current += 1;
+
+//         let n = self.probs.len();
+//         if n == 0 {
+//             return Some(0);
+//         }
+
+//         let mark = random_provider::range(0_f32..self.total);
+
+//         let mut accum = 0.0;
+//         for (i, &p) in self.probs.iter().enumerate() {
+//             accum += p;
+//             if accum >= mark {
+//                 return Some(i);
+//             }
+//         }
+
+//         Some(n - 1)
+//     }
+// }
+
+pub(crate) struct ProbabilityWheelIterator {
+    cdf: Vec<f32>,
     total: f32,
     max_index: usize,
     current: usize,
+    n: usize,
 }
 
-impl<'a> ProbabilityWheelIterator<'a> {
-    pub fn new(weights: &'a [f32], max_index: usize) -> Self {
-        let total = weights.iter().sum::<f32>();
+impl ProbabilityWheelIterator {
+    pub fn new(mut weights: Vec<f32>, max_index: usize) -> Self {
+        // let mut cdf = Vec::with_capacity(weights.len());
+        let mut running = 0.0;
+        let n = weights.len();
+        for w in weights.iter_mut() {
+            running += *w;
+            *w = running;
+        }
 
+        let total = running;
         Self {
-            probs: weights,
+            cdf: weights,
             total,
             max_index,
             current: 0,
+            n,
         }
     }
 }
 
-impl<'a> Iterator for ProbabilityWheelIterator<'a> {
+impl Iterator for ProbabilityWheelIterator {
     type Item = usize;
 
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
+    fn next(&mut self) -> Option<usize> {
         if self.current >= self.max_index {
             return None;
         }
-
         self.current += 1;
-
-        let n = self.probs.len();
-        if n == 0 {
+        if self.n == 0 {
             return Some(0);
         }
 
         let mark = random_provider::range(0_f32..self.total);
 
-        let mut accum = 0.0;
-        for (i, &p) in self.probs.iter().enumerate() {
-            accum += p;
-            if accum >= mark {
-                return Some(i);
-            }
-        }
-
-        Some(n - 1)
+        let idx = self.cdf.partition_point(|&c| c < mark);
+        Some(idx.min(self.n - 1))
     }
 }

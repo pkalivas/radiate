@@ -1,5 +1,3 @@
-use core::panic;
-
 use radiate::{graphs::NeatDistance, prelude::*};
 
 const MIN_SCORE: f32 = 0.001;

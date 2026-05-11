@@ -238,9 +238,11 @@ where
         for spec in species.iter() {
             let age = spec.age(generation);
             let len = spec.len();
+
             if age == 0 {
                 new_species_count += 1;
             }
+
             ages.push(age);
             sizes.push(len);
             max_size = max_size.max(len);
@@ -254,7 +256,7 @@ where
         if s_count > 1 && size_sum > 0 {
             let total = size_sum as f32;
             let mut h = 0.0_f32;
-            for &sz in &sizes {
+            for &sz in sizes.iter() {
                 if sz > 0 {
                     let p = sz as f32 / total;
                     h -= p * p.ln();
