@@ -13,7 +13,7 @@ where
     }
 
     fn write(&mut self, path: PathBuf, generation: &T) -> std::io::Result<()> {
-        if !path.parent().map_or(true, |p| p.exists()) {
+        if !path.parent().is_none_or(|p| p.exists()) {
             std::fs::create_dir_all(path.parent().unwrap()).map_err(|e| {
                 std::io::Error::other(format!("Failed to create checkpoint directory: {}", e))
             })?;

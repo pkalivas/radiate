@@ -3,7 +3,7 @@ use crate::context::Context;
 use crate::events::EngineMessage;
 use crate::iter::EngineIterator;
 use crate::pipeline::Pipeline;
-use crate::{Chromosome, EngineControl, Freeze};
+use crate::{Chromosome, EngineControl};
 use crate::{EventBus, Generation};
 use radiate_core::Engine;
 use radiate_core::error::Result;
@@ -122,10 +122,6 @@ where
     pub fn iter(self) -> impl Iterator<Item = Generation<C, T>> {
         let control = self.context.control.clone();
         EngineIterator::new(self, control)
-    }
-
-    pub fn freeze(&self) -> Freeze {
-        self.context.freeze.clone()
     }
 }
 

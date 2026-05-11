@@ -1,5 +1,6 @@
 use crate::stats::TagType;
 use crate::{Metric, MetricSet, metric_names};
+use radiate_utils::SmallStr;
 use std::time::Duration;
 use std::{fmt::Write as _, io};
 
@@ -33,24 +34,24 @@ pub fn sparkline(values: &[f32], width: usize) -> String {
 pub fn render_dashboard(metrics: &MetricSet) -> io::Result<String> {
     let mut out = String::new();
 
-    let mut push_val = |name: &'static str, label: &str| {
+    let mut push_val = |name: &SmallStr, label: &str| {
         if let Some(m) = metrics.get(name) {
             let mu = m.mean();
             write!(out, "  {label}: {:.3}", mu).unwrap();
         }
     };
 
-    push_val(metric_names::CARRYOVER_RATE, "carryover");
-    push_val(metric_names::DIVERSITY_RATIO, "diversity");
+    push_val(&metric_names::CARRYOVER_RATE, "carryover");
+    push_val(&metric_names::DIVERSITY_RATIO, "diversity");
 
-    let mut push_int = |name: &'static str, label: &str| {
+    let mut push_int = |name: &SmallStr, label: &str| {
         if let Some(m) = metrics.get(name) {
             write!(out, "  {label}: {}", m.last_value() as i64).unwrap();
         }
     };
 
-    push_int(metric_names::UNIQUE_MEMBERS, "unique_members");
-    push_int(metric_names::UNIQUE_SCORES, "unique_scores");
+    push_int(&metric_names::UNIQUE_MEMBERS, "unique_members");
+    push_int(&metric_names::UNIQUE_SCORES, "unique_scores");
 
     if let Some(m) = metrics.get(metric_names::BEST_SCORE_IMPROVEMENT) {
         write!(out, "  improvements: {}", m.count() as i64).unwrap();

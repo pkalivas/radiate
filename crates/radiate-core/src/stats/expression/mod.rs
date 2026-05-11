@@ -67,6 +67,34 @@ where
     }
 }
 
+impl Expr {
+    /// Recursively clears state in stateful operators: rolling-window buffers
+    /// in `Aggregate`/`Buffer` nodes and counters in `Schedule::Every`. Children
+    /// of binary/unary/trinary nodes are also visited. Leaf nodes (literals,
+    /// selectors) are unaffected.
+    ///
+    /// Use after an engine restart or whenever the controller should "forget"
+    /// accumulated history.
+    pub fn reset(&mut self) {
+        match self {
+            Expr::Literal(_) | Expr::Selector(_) => {}
+            Expr::Aggregate(a) => a.reset(),
+            Expr::Buffer(b) => b.reset(),
+            Expr::Schedule(ScheduleExpr::Every(s)) => s.reset(),
+            Expr::Binary(b) => {
+                b.lhs.reset();
+                b.rhs.reset();
+            }
+            Expr::Unary(u) => u.child.reset(),
+            Expr::Trinary(t) => {
+                t.first.reset();
+                t.second.reset();
+                t.third.reset();
+            }
+        }
+    }
+}
+
 pub mod expr {
     use super::*;
     use super::{expr_fields::LAST_VALUE, select::PathBuilder};
@@ -348,6 +376,236 @@ mod tests {
     fn clamp_within_range_unchanged() {
         let mut e = expr::lit(0.5f32).clamp(expr::lit(0.0f32), expr::lit(1.0f32));
         assert_eq!(f32_val(e.eval(&0.0f32).unwrap()), 0.5);
+    }
+
+    #[test]
+    fn clamp_null_input_returns_min() {
+        let mut e = Expr::Literal(AnyValue::Null).clamp(expr::lit(0.05f32), expr::lit(2.0f32));
+        assert_eq!(f32_val(e.eval(&0.0f32).unwrap()), 0.05);
+    }
+
+    #[test]
+    fn clamp_nan_input_returns_min() {
+        let mut e = expr::lit(f32::NAN).clamp(expr::lit(0.05f32), expr::lit(2.0f32));
+        assert_eq!(f32_val(e.eval(&0.0f32).unwrap()), 0.05);
+    }
+
+    #[test]
+    fn clamp_pos_inf_input_returns_min() {
+        let mut e = expr::lit(f32::INFINITY).clamp(expr::lit(0.05f32), expr::lit(2.0f32));
+        assert_eq!(f32_val(e.eval(&0.0f32).unwrap()), 0.05);
+    }
+
+    #[test]
+    fn clamp_neg_inf_input_returns_min() {
+        let mut e = expr::lit(f32::NEG_INFINITY).clamp(expr::lit(0.05f32), expr::lit(2.0f32));
+        assert_eq!(f32_val(e.eval(&0.0f32).unwrap()), 0.05);
+    }
+
+    #[test]
+    fn clamp_missing_bounds_errors() {
+        let mut e = expr::lit(0.5f32).clamp(Expr::Literal(AnyValue::Null), expr::lit(2.0f32));
+        assert!(e.eval(&0.0f32).is_err());
+    }
+
+    // ---- or_else (Coalesce) ----
+
+    #[test]
+    fn or_else_finite_passes_through() {
+        let mut e = expr::lit(3.0f32).or_else(expr::lit(99.0f32));
+        assert_eq!(f32_val(e.eval(&0.0f32).unwrap()), 3.0);
+    }
+
+    #[test]
+    fn or_else_null_falls_back() {
+        let mut e = Expr::Literal(AnyValue::Null).or_else(expr::lit(99.0f32));
+        assert_eq!(f32_val(e.eval(&0.0f32).unwrap()), 99.0);
+    }
+
+    #[test]
+    fn or_else_nan_falls_back() {
+        let mut e = expr::lit(f32::NAN).or_else(expr::lit(99.0f32));
+        assert_eq!(f32_val(e.eval(&0.0f32).unwrap()), 99.0);
+    }
+
+    #[test]
+    fn or_else_inf_falls_back() {
+        let mut e = expr::lit(f32::INFINITY).or_else(expr::lit(99.0f32));
+        assert_eq!(f32_val(e.eval(&0.0f32).unwrap()), 99.0);
+    }
+
+    #[test]
+    fn or_else_neg_inf_falls_back() {
+        let mut e = expr::lit(f32::NEG_INFINITY).or_else(expr::lit(99.0f32));
+        assert_eq!(f32_val(e.eval(&0.0f32).unwrap()), 99.0);
+    }
+
+    #[test]
+    fn or_else_chains_through_bad_values() {
+        let mut e = Expr::Literal(AnyValue::Null)
+            .or_else(expr::lit(f32::NAN))
+            .or_else(expr::lit(7.0f32));
+        assert_eq!(f32_val(e.eval(&0.0f32).unwrap()), 7.0);
+    }
+
+    // ---- min_with / max_with ----
+
+    #[test]
+    fn min_with_picks_smaller() {
+        let mut e = expr::lit(5.0f32).min_with(expr::lit(3.0f32));
+        assert_eq!(f32_val(e.eval(&0.0f32).unwrap()), 3.0);
+    }
+
+    #[test]
+    fn max_with_picks_larger() {
+        let mut e = expr::lit(5.0f32).max_with(expr::lit(8.0f32));
+        assert_eq!(f32_val(e.eval(&0.0f32).unwrap()), 8.0);
+    }
+
+    #[test]
+    fn min_with_nan_on_one_side_returns_other() {
+        // f32::min(a, NaN) = a (IEEE 754-2019 minNum semantics)
+        let mut e = expr::lit(5.0f32).min_with(expr::lit(f32::NAN));
+        assert_eq!(f32_val(e.eval(&0.0f32).unwrap()), 5.0);
+    }
+
+    #[test]
+    fn max_with_nan_on_one_side_returns_other() {
+        let mut e = expr::lit(5.0f32).max_with(expr::lit(f32::NAN));
+        assert_eq!(f32_val(e.eval(&0.0f32).unwrap()), 5.0);
+    }
+
+    #[test]
+    fn floor_via_max_with_constant() {
+        // Common pattern: max_with as a floor without an upper ceiling.
+        let mut e = expr::lit(-3.0f32).max_with(expr::lit(0.0f32));
+        assert_eq!(f32_val(e.eval(&0.0f32).unwrap()), 0.0);
+    }
+
+    // ---- Quantile ----
+
+    #[test]
+    fn quantile_empty_returns_zero() {
+        let values: Vec<f32> = vec![];
+        let mut e = expr::element().quantile(0.5);
+        assert_eq!(f32_val(e.eval(&values).unwrap()), 0.0);
+    }
+
+    #[test]
+    fn quantile_single_value_returns_value() {
+        let values = vec![7.0f32];
+        let mut e = expr::element().quantile(0.5);
+        assert_eq!(f32_val(e.eval(&values).unwrap()), 7.0);
+    }
+
+    #[test]
+    fn quantile_p50_equals_median() {
+        let values = vec![1.0f32, 2.0, 3.0, 4.0, 5.0];
+        let mut e = expr::element().quantile(0.5);
+        assert_eq!(f32_val(e.eval(&values).unwrap()), 3.0);
+    }
+
+    #[test]
+    fn quantile_p0_equals_min() {
+        let values = vec![3.0f32, 1.0, 2.0, 5.0, 4.0];
+        let mut e = expr::element().quantile(0.0);
+        assert_eq!(f32_val(e.eval(&values).unwrap()), 1.0);
+    }
+
+    #[test]
+    fn quantile_p100_equals_max() {
+        let values = vec![3.0f32, 1.0, 2.0, 5.0, 4.0];
+        let mut e = expr::element().quantile(1.0);
+        assert_eq!(f32_val(e.eval(&values).unwrap()), 5.0);
+    }
+
+    #[test]
+    fn quantile_interpolates_between_ranks() {
+        // [1, 2, 3, 4] at q=0.5 → pos = 0.5 * 3 = 1.5 → 0.5*2 + 0.5*3 = 2.5
+        let values = vec![1.0f32, 2.0, 3.0, 4.0];
+        let mut e = expr::element().quantile(0.5);
+        assert!((f32_val(e.eval(&values).unwrap()) - 2.5).abs() < 1e-6);
+    }
+
+    #[test]
+    fn quantile_filters_nan_and_inf() {
+        let values = vec![1.0f32, f32::NAN, 3.0, f32::INFINITY, 5.0];
+        let mut e = expr::element().quantile(0.5);
+        // After filtering: [1, 3, 5], median = 3
+        assert_eq!(f32_val(e.eval(&values).unwrap()), 3.0);
+    }
+
+    #[test]
+    fn quantile_clamps_q_outside_unit_interval() {
+        let values = vec![1.0f32, 2.0, 3.0];
+        let mut over = expr::element().quantile(1.5);
+        let mut under = expr::element().quantile(-0.5);
+        assert_eq!(f32_val(over.eval(&values).unwrap()), 3.0);
+        assert_eq!(f32_val(under.eval(&values).unwrap()), 1.0);
+    }
+
+    // ---- Expr::reset ----
+
+    #[test]
+    fn reset_clears_rolling_buffer() {
+        // Rolling mean over a window of 3. Push three values, then reset.
+        // After reset the rolling mean should reflect only post-reset pushes.
+        let mut e = expr::element().rolling(3).mean();
+        assert_eq!(f32_val(e.eval(&10.0f32).unwrap()), 10.0);
+        assert_eq!(f32_val(e.eval(&20.0f32).unwrap()), 15.0);
+        assert_eq!(f32_val(e.eval(&30.0f32).unwrap()), 20.0);
+
+        e.reset();
+
+        // First post-reset value should stand alone in the buffer.
+        assert_eq!(f32_val(e.eval(&100.0f32).unwrap()), 100.0);
+    }
+
+    #[test]
+    fn reset_clears_schedule_counter() {
+        // every(3) fires true on every third call. After two calls + reset,
+        // the next call should NOT fire (counter starts fresh).
+        let mut e = expr::every(3)
+            .then(expr::lit(1.0f32))
+            .otherwise(expr::lit(0.0f32));
+
+        assert_eq!(f32_val(e.eval(&0.0f32).unwrap()), 0.0);
+        assert_eq!(f32_val(e.eval(&0.0f32).unwrap()), 0.0);
+
+        e.reset();
+
+        // Two more calls — should still be the "otherwise" branch since the
+        // counter restarted at 0.
+        assert_eq!(f32_val(e.eval(&0.0f32).unwrap()), 0.0);
+        assert_eq!(f32_val(e.eval(&0.0f32).unwrap()), 0.0);
+        // Third call from a fresh counter — should fire.
+        assert_eq!(f32_val(e.eval(&0.0f32).unwrap()), 1.0);
+    }
+
+    #[test]
+    fn reset_recurses_into_binary_children() {
+        // Rolling means on both sides of an add. After populating and resetting,
+        // both sides should be cleared.
+        let lhs = expr::element().rolling(2).mean();
+        let rhs = expr::lit(1.0f32);
+        let mut e = lhs.add(rhs);
+
+        // Populate the left buffer.
+        e.eval(&10.0f32).unwrap();
+        e.eval(&20.0f32).unwrap();
+
+        e.reset();
+
+        // After reset, lhs starts fresh: 50 → mean=50, plus rhs=1 → 51.
+        assert_eq!(f32_val(e.eval(&50.0f32).unwrap()), 51.0);
+    }
+
+    #[test]
+    fn reset_idempotent_on_leaf() {
+        let mut e = expr::lit(42.0f32);
+        e.reset();
+        e.reset();
+        assert_eq!(f32_val(e.eval(&0.0f32).unwrap()), 42.0);
     }
 
     // ---- Aggregations against Vec<f32> ----

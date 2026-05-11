@@ -176,7 +176,7 @@ impl<T: Debug> Debug for Tree<T> {
 #[cfg(test)]
 mod test {
 
-    use radiate_core::{AlterContext, Lineage, MetricSet};
+    use radiate_core::{AlterContext, MetricSet};
 
     use super::*;
     use crate::{Arity, Node, NodeType, Op, TreeCrossover, TreeIterator};
@@ -199,9 +199,8 @@ mod test {
         let copy_two = tree_two.clone();
 
         let mut metrics = MetricSet::default();
-        let mut lineage = Lineage::default();
 
-        let mut ctx = AlterContext::new("TestOperation", &mut metrics, &mut lineage, 0, 1.0);
+        let mut ctx = AlterContext::new(&mut metrics, 0, 1.0);
 
         TreeCrossover::cross_nodes(tree_one.as_mut(), tree_two.as_mut(), usize::MAX, &mut ctx);
 

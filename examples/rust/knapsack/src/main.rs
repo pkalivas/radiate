@@ -6,7 +6,7 @@ const KNAPSACK_SIZE: usize = 25;
 const MAX_EPOCHS: usize = 50;
 
 fn main() {
-    random_provider::set_seed(12345);
+    random_provider::seed(12345);
     let knapsack = Knapsack::new(KNAPSACK_SIZE);
     let capacity = knapsack.capacity;
     let codec = SubSetCodec::new(knapsack.items);

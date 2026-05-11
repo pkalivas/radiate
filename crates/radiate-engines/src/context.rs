@@ -1,10 +1,10 @@
 use crate::builder::config::EngineConfig;
-use crate::{Chromosome, EngineControl, Freeze};
+use crate::{Chromosome, EngineControl};
 use radiate_core::error::RadiateResult;
 use radiate_core::stats::TagType;
 use radiate_core::{
-    Ecosystem, Front, Lineage, MetricSet, MetricUpdate, Objective, Phenotype, Problem,
-    RadiateError, Score, metric, metric_names,
+    Ecosystem, Front, MetricSet, MetricUpdate, Objective, Phenotype, Problem, RadiateError, Score,
+    metric, metric_names,
 };
 use radiate_core::{Evaluate, NamedExpr};
 #[cfg(feature = "serde")]
@@ -16,7 +16,6 @@ use std::sync::{Arc, Mutex, RwLock};
 pub enum ContextAudit {
     NewBest,
     LimitReached(String),
-    Freeze(Freeze),
 }
 
 pub struct Context<C: Chromosome, T> {
@@ -26,19 +25,16 @@ pub struct Context<C: Chromosome, T> {
     pub(crate) metrics: MetricSet,
     pub(crate) score: Option<Score>,
     pub(crate) front: Arc<RwLock<Front<Phenotype<C>>>>,
-    pub(crate) lineage: Arc<RwLock<Lineage>>,
     pub(crate) objective: Objective,
     pub(crate) problem: Arc<dyn Problem<C, T>>,
     pub(crate) control: Option<EngineControl>,
     pub(crate) exprs: Option<Arc<Mutex<Vec<NamedExpr>>>>,
     pub(crate) audits: Vec<ContextAudit>,
-    pub(crate) freeze: Freeze,
 }
 
 impl<C: Chromosome, T> Context<C, T> {
     pub fn try_advance_one(&mut self) -> RadiateResult<bool> {
         self.index += 1;
-        self.lineage.write().unwrap().rollover();
         self.audits.clear();
 
         self.metrics
@@ -71,17 +67,17 @@ impl<C: Chromosome, T> Context<C, T> {
         }
 
         if best_improved {
-            self.metrics
-                .upsert((metric_names::BEST_SCORE_IMPROVEMENT, 1));
+            self.metrics.upsert(metric_names::BEST_SCORE_IMPROVEMENT, 1);
             self.audits.push(ContextAudit::NewBest);
         }
 
         if let Some(score) = &self.score {
             if score.len() == 1 {
-                self.metrics.upsert((metric_names::BEST_SCORES, score[0]));
+                self.metrics.upsert(metric_names::BEST_SCORES, score[0]);
             } else {
                 for (i, score) in score.as_slice().iter().enumerate() {
-                    self.metrics.upsert((metric_names::BEST_SCORES, *score, i));
+                    let name = format!("{}.{}", metric_names::BEST_SCORES, i);
+                    self.metrics.upsert(&name, *score);
                 }
             }
         }
@@ -94,11 +90,11 @@ impl<C: Chromosome, T> Context<C, T> {
                 let update = MetricUpdate::try_from(exp.eval(&self.metrics)?)?;
                 let name = radiate_utils::intern!(name);
 
-                self.metrics.upsert((TagType::Expr, name, update));
+                self.metrics.upsert(name, update);
             }
         }
 
-        self.metrics.next_version();
+        self.metrics.advance_generation();
 
         Ok(best_improved)
     }
@@ -128,13 +124,11 @@ where
                 metrics: generation.metrics().clone(),
                 score: Some(generation.score().clone()),
                 front: config.front(),
-                lineage: config.lineage(),
                 objective: config.objective().clone(),
                 problem: config.problem().clone(),
                 control: None,
                 exprs: generation.exprs(),
                 audits: vec![],
-                freeze: config.freeze(),
             };
         }
 
@@ -150,13 +144,11 @@ where
             metrics: MetricSet::default(),
             score: None,
             front: config.front(),
-            lineage: config.lineage(),
             objective: config.objective().clone(),
             problem: config.problem().clone(),
             control: None,
             exprs: config.exprs(),
             audits: vec![],
-            freeze: config.freeze(),
         }
     }
 }

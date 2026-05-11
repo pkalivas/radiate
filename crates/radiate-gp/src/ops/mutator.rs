@@ -1,7 +1,7 @@
 use crate::node::{Node, NodeExt};
 use crate::ops::operation::Op;
 use crate::{Factory, GraphChromosome, NodeStore, NodeType, TreeChromosome};
-use radiate_core::{AlterContext, AlterResult, Mutate, Rate, Valid, freeze::Frozen};
+use radiate_core::{AlterContext, AlterResult, Mutate, Rate, Valid};
 use radiate_core::{Chromosome, random_provider};
 
 const OP_MUTATED: &str = "mutate.operation.mutated";
@@ -98,15 +98,9 @@ where
         self.rate.clone()
     }
 
-    fn freeze(&self) -> Frozen {
-        Frozen::typed::<Self>()
-            .with("rate", self.rate.freeze())
-            .with("replace_rate", self.replace_rate)
-    }
-
     #[inline]
     fn mutate_chromosome(
-        &self,
+        &mut self,
         chromosome: &mut GraphChromosome<Op<T>>,
         ctx: &mut AlterContext,
     ) -> AlterResult {
@@ -144,15 +138,9 @@ where
         self.rate.clone()
     }
 
-    fn freeze(&self) -> Frozen {
-        Frozen::typed::<Self>()
-            .with("rate", self.rate.freeze())
-            .with("replace_rate", self.replace_rate)
-    }
-
     #[inline]
     fn mutate_chromosome(
-        &self,
+        &mut self,
         chromosome: &mut TreeChromosome<Op<T>>,
         ctx: &mut AlterContext,
     ) -> AlterResult {

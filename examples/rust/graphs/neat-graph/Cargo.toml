@@ -1,5 +1,5 @@
 [package]
-name = "pgm"
+name = "neat-graph"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
@@ -12,4 +12,7 @@ license.workspace = true
 homepage.workspace = true
 
 [dependencies]
-radiate = { workspace = true, features = ["pgm"] }
+radiate = { workspace = true, features = ["gp", "serde", "ui"] }
+serde = { version = "1.0.224", features = ["derive"] }
+serde_json = { version = "1.0.145" }
+yaml_serde = "0.10"

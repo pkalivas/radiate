@@ -17,7 +17,7 @@
 //! 2) `commit()`, `commit_with(...)`, or `try_commit()` to finalize
 //! 3) On invalid commit, use returned `replay` to re-apply later with `replay(...)`
 use super::{Direction, Graph, GraphNode};
-use crate::{Arity, NodeType, node::Node};
+use crate::{Arity, NodeType, graphs::node::InnovationId, node::Node};
 use radiate_core::{RdRand, Valid, random_provider};
 use radiate_utils::SortedBuffer;
 use std::{fmt::Debug, ops::Deref};
@@ -39,6 +39,12 @@ pub enum MutationStep {
         index: usize,
         previous_direction: Direction,
     },
+    StructureChange {
+        source_id: usize,
+        new_node_id: usize,
+        target_node_id: usize,
+        innovation_id: Option<InnovationId>,
+    },
 }
 
 /// A replayable step produced by `rollback()` to restore the effects that were undone.
@@ -52,6 +58,7 @@ pub enum ReplayStep<T> {
     AddEdge(usize, usize),
     RemoveEdge(usize, usize),
     DirectionChange(usize, Direction),
+    InnovationChange(usize, Option<InnovationId>),
 }
 
 /// Result of finalizing a transaction.
@@ -92,6 +99,7 @@ impl<T> TransactionResult<T> {
 pub enum InsertStep {
     Detach(usize, usize),
     Connect(usize, usize),
+    NewStructure(usize, usize, usize, NodeType),
     Invalid,
 }
 
@@ -227,6 +235,11 @@ impl<'a, T> GraphTransaction<'a, T> {
                         replay_steps.push(ReplayStep::DirectionChange(index, prev_dir));
                     }
                 }
+                MutationStep::StructureChange { new_node_id, .. } => {
+                    if let Some(node) = self.graph.get_mut(new_node_id) {
+                        node.set_innovation(None);
+                    }
+                }
             }
         }
 
@@ -254,6 +267,9 @@ impl<'a, T> GraphTransaction<'a, T> {
                 ReplayStep::DirectionChange(index, direction) => {
                     self.change_direction(index, direction);
                 }
+                ReplayStep::InnovationChange(node_idx, innovation) => {
+                    self.set_innovation(node_idx, innovation);
+                }
             }
         }
     }
@@ -274,6 +290,18 @@ impl<'a, T> GraphTransaction<'a, T> {
                     self.change_direction(cycle_idx, Direction::Backward);
                 }
             }
+        }
+    }
+
+    pub fn set_innovation(&mut self, node_idx: usize, innovation: Option<InnovationId>) {
+        if let Some(node) = self.graph.get_mut(node_idx) {
+            node.set_innovation(innovation);
+            self.steps.push(MutationStep::StructureChange {
+                source_id: node_idx,
+                new_node_id: node_idx,
+                target_node_id: node_idx,
+                innovation_id: innovation,
+            });
         }
     }
 
@@ -316,6 +344,12 @@ impl<'a, T> GraphTransaction<'a, T> {
                 steps.push(InsertStep::Connect(source_idx, new_node_idx));
                 steps.push(InsertStep::Connect(new_node_idx, source_outgoing));
                 steps.push(InsertStep::Detach(source_idx, source_outgoing));
+                steps.push(InsertStep::NewStructure(
+                    source_idx,
+                    new_node_idx,
+                    source_outgoing,
+                    source_node.node_type(),
+                ));
             }
         } else if target_is_edge || target_node.is_locked() {
             let target_incoming = *rand.choose(target_node.incoming());
@@ -326,10 +360,22 @@ impl<'a, T> GraphTransaction<'a, T> {
                 steps.push(InsertStep::Connect(target_incoming, new_node_idx));
                 steps.push(InsertStep::Connect(new_node_idx, target_idx));
                 steps.push(InsertStep::Detach(target_incoming, target_idx));
+                steps.push(InsertStep::NewStructure(
+                    target_incoming,
+                    new_node_idx,
+                    target_idx,
+                    target_node.node_type(),
+                ));
             }
         } else {
             steps.push(InsertStep::Connect(source_idx, new_node_idx));
             steps.push(InsertStep::Connect(new_node_idx, target_idx));
+            steps.push(InsertStep::NewStructure(
+                source_idx,
+                new_node_idx,
+                target_idx,
+                new_node.node_type(),
+            ));
         }
 
         steps
@@ -745,7 +791,7 @@ mod tests {
 
         let steps = random_provider::with_rng(|r| tx.get_insertion_steps(source, target, newn, r));
         assert_eq!(
-            steps,
+            steps[..3],
             vec![
                 InsertStep::Connect(source, newn),
                 InsertStep::Connect(newn, target),
@@ -769,7 +815,7 @@ mod tests {
 
         let steps = random_provider::with_rng(|r| tx.get_insertion_steps(source, target, newn, r));
         assert_eq!(
-            steps,
+            steps[..3],
             vec![
                 InsertStep::Connect(source, newn),
                 InsertStep::Connect(newn, target),
@@ -780,7 +826,7 @@ mod tests {
 
     #[test]
     fn random_node_helpers_can_return_edges_when_only_edges_exist() {
-        random_provider::set_seed(1337);
+        random_provider::seed(1337);
         random_provider::with_rng(|rand| {
             let mut g = Graph::<i32>::default();
             let mut tx = GraphTransaction::new(&mut g);

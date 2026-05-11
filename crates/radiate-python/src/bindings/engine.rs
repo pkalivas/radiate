@@ -1,8 +1,8 @@
 use crate::{EngineHandle, EpochHandle, InputTransform, PickleWriter, PyEngineInput, PyGeneration};
 use pyo3::{PyResult, pyclass, pymethods};
 use radiate::{
-    Chromosome, Engine, EngineIteratorExt, FileWriter, Generation, GeneticEngine, JsonWriter,
-    Limit, YamlWriter, radiate_err,
+    Chromosome, Engine, EngineIteratorExt, Generation, GeneticEngine, JsonWriter, Limit,
+    radiate_err,
 };
 use radiate_error::{radiate_py_bail, radiate_py_err};
 use serde::Serialize;
@@ -118,45 +118,16 @@ impl PyEngine {
         }))
     }
 
-    pub fn write(&self, path: String, file_type: String) -> PyResult<()> {
-        use EngineHandle::*;
-        let engine = self
-            .engine
-            .as_ref()
-            .ok_or_else(|| radiate_py_err!("Engine has already been run"))?;
-
-        let freeze = match engine {
-            UInt8(eng) => eng.freeze(),
-            UInt16(eng) => eng.freeze(),
-            UInt32(eng) => eng.freeze(),
-            UInt64(eng) => eng.freeze(),
-            Int8(eng) => eng.freeze(),
-            Int16(eng) => eng.freeze(),
-            Int32(eng) => eng.freeze(),
-            Int64(eng) => eng.freeze(),
-            Float32(eng) => eng.freeze(),
-            Float64(eng) => eng.freeze(),
-            Char(eng) => eng.freeze(),
-            Bit(eng) => eng.freeze(),
-            Permutation(eng) => eng.freeze(),
-            Graph(eng) => eng.freeze(),
-            Tree(eng) => eng.freeze(),
-        };
-
-        if freeze.is_empty() {
-            radiate_py_bail!("Cannot write engine state: no configuration parameters found");
-        }
-
-        let path = std::path::PathBuf::from(path);
-        if file_type == "json" {
-            JsonWriter.write(path, &freeze)?;
-        } else if file_type == "yaml" {
-            YamlWriter.write(path, &freeze)?;
-        } else {
-            PickleWriter.write(path, &freeze)?;
-        }
-
-        Ok(())
+    /// Write a self-description of the engine config to `path`. Currently a
+    /// no-op stub — the structured "freeze" snapshot was removed in favor of
+    /// `GeneticEngineBuilder::write_config`, which writes at build-time
+    /// rather than from a built engine. To re-enable engine-level write,
+    /// capture the config text in `PyEngine::new` from the builder before
+    /// consuming it, and dump it here.
+    pub fn write(&self, _path: String, _file_type: String) -> PyResult<()> {
+        radiate_py_bail!(
+            "engine.write is not currently wired up; use builder.write_config before .build()"
+        )
     }
 }
 

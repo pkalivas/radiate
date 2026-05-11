@@ -28,7 +28,7 @@ impl PyMetricSet {
                 for (fld, _, val) in pairs.into_iter() {
                     let name = fld.as_str().to_string();
                     let metric_update = MetricUpdate::try_from(val)?;
-                    metric_set.upsert((radiate_utils::intern!(name), metric_update));
+                    metric_set.upsert(radiate_utils::intern!(name), metric_update);
                 }
             } else {
                 radiate_py_bail!("Metric: Expected a struct of metrics, but got a different type.");
@@ -45,7 +45,7 @@ impl PyMetricSet {
     pub fn upsert(&mut self, name: &str, update: Wrap<AnyValue<'_>>) -> PyResult<()> {
         let interned_name = radiate_utils::intern!(name);
         let metric_update = MetricUpdate::try_from(update.0)?;
-        self.inner.upsert((interned_name, metric_update));
+        self.inner.upsert(interned_name, metric_update);
         Ok(())
     }
 
@@ -107,8 +107,12 @@ impl PyMetricSet {
         format!("{}", &self.inner)
     }
 
-    pub fn keys(&self) -> Vec<&'static str> {
-        self.inner.keys()
+    pub fn keys(&self) -> Vec<String> {
+        self.inner
+            .iter()
+            .filter(|(_, metric)| !metric.is_empty())
+            .map(|(key, _)| key.to_string())
+            .collect()
     }
 
     pub fn project<'py>(&self, py: Python<'py>, expr: &mut PyExpr) -> PyResult<Bound<'py, PyAny>> {
@@ -252,8 +256,8 @@ impl PyMetric {
     }
 
     #[getter]
-    pub fn version(&self) -> u64 {
-        self.inner.version()
+    pub fn generation(&self) -> u64 {
+        self.inner.generation()
     }
 
     #[getter]
@@ -367,7 +371,7 @@ impl PyMetric {
         d.set_item(intern!(py, "time_max"), self.time_max())?;
         d.set_item(intern!(py, "time_var"), self.time_variance())?;
 
-        d.set_item(intern!(py, "version"), self.version())?;
+        d.set_item(intern!(py, "generation"), self.generation())?;
         d.set_item(intern!(py, "update_count"), self.update_count())?;
 
         d.set_item(intern!(py, "tags"), self.tags())?;

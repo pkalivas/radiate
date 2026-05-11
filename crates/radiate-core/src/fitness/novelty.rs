@@ -62,7 +62,9 @@ impl<T> NoveltySearch<T> {
     {
         NoveltySearch {
             behavior: Arc::new(behavior),
-            archive: Arc::new(RwLock::new(WindowBuffer::with_window(DEFAULT_ARCHIVE_SIZE))),
+            archive: Arc::new(RwLock::new(WindowBuffer::with_capacity(
+                DEFAULT_ARCHIVE_SIZE,
+            ))),
             k: DEFAULT_K,
             threshold: DEFAULT_THRESHOLD,
             distance_fn: Arc::new(EuclideanDistance),
@@ -90,7 +92,7 @@ impl<T> NoveltySearch<T> {
     }
 
     pub fn archive_size(mut self, size: usize) -> Self {
-        self.archive = Arc::new(RwLock::new(WindowBuffer::with_window(size)));
+        self.archive = Arc::new(RwLock::new(WindowBuffer::with_capacity(size)));
         self
     }
 

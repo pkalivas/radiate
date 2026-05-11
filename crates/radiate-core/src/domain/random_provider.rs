@@ -25,7 +25,7 @@ pub fn with_rng<R>(f: impl FnOnce(&mut RdRand<'_>) -> R) -> R {
 }
 
 /// Seeds the thread-local random number generator with the given seed.
-pub fn set_seed(seed: u64) {
+pub fn seed(seed: u64) {
     let mut global = GLOBAL_RNG.lock().unwrap();
     *global = SmallRng::seed_from_u64(seed);
 }

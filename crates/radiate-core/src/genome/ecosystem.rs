@@ -1,8 +1,8 @@
 use super::{Chromosome, Genotype, Phenotype, Population, Species};
 use crate::{Objective, Score, random_provider};
-use itertools::Itertools;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 
 /// An ecosystem containing a population and optional species.
 /// This structure is the main container for solutions generated throughout the evolutionary process.
@@ -40,8 +40,12 @@ impl<C: Chromosome> Ecosystem<C> {
         }
     }
 
-    pub fn species_population_mut(&mut self) -> (Option<&mut Vec<Species<C>>>, &mut Population<C>) {
-        (self.species.as_mut(), &mut self.population)
+    pub fn len(&self) -> usize {
+        self.population.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.population.is_empty()
     }
 
     pub fn population(&self) -> &Population<C> {
@@ -72,6 +76,10 @@ impl<C: Chromosome> Ecosystem<C> {
         self.population.get(index).map(|p| p.genotype())
     }
 
+    pub fn species_population_mut(&mut self) -> (Option<&mut Vec<Species<C>>>, &mut Population<C>) {
+        (self.species.as_mut(), &mut self.population)
+    }
+
     pub fn species_mascots(&self) -> Vec<&Phenotype<C>> {
         self.species
             .as_ref()
@@ -89,14 +97,15 @@ impl<C: Chromosome> Ecosystem<C> {
         }
     }
 
+    pub fn clear_species(&mut self) {
+        self.species = None;
+    }
+
     /// Add a member to a species given the species index and member index in the population.
     /// The member is reference cloned from the population and added to the species' population.
     /// Just like with the [Ecosystem]'s `clone_ref` method, this creates a shared reference so
     /// any modifications to the phenotype within the [Species] will be reflected in the main [Population].
-    pub fn add_species_member(&mut self, species_idx: usize, member_idx: usize)
-    where
-        C: Clone,
-    {
+    pub fn add_species_member(&mut self, species_idx: usize, member_idx: usize) {
         if let Some(species) = &mut self.species
             && let Some(spec) = species.get_mut(species_idx)
             && let Some(member) = self.population.get_mut(member_idx)
@@ -113,8 +122,7 @@ impl<C: Chromosome> Ecosystem<C> {
                 .population
                 .iter()
                 .map(|p| p.species())
-                .unique()
-                .collect::<Vec<_>>();
+                .collect::<HashSet<_>>();
             species.retain(|spec| unique_species_ids.contains(&spec.id()));
             initial_len - species.len()
         } else {

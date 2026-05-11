@@ -1,4 +1,4 @@
-use radiate_core::{Chromosome, Objective, Population, Select};
+use radiate_core::{Chromosome, Objective, Phenotype, Select};
 
 #[derive(Debug, Default)]
 pub struct EliteSelector;
@@ -10,7 +10,7 @@ impl EliteSelector {
 }
 
 impl<C: Chromosome + Clone> Select<C> for EliteSelector {
-    fn select(&self, population: &Population<C>, _: &Objective, count: usize) -> Population<C> {
-        population.iter().take(count).cloned().collect()
+    fn select(&self, population: &[Phenotype<C>], _: &Objective, count: usize) -> Vec<usize> {
+        (0..count.min(population.len())).collect()
     }
 }

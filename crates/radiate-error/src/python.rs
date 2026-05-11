@@ -18,6 +18,10 @@ impl From<RadiateError> for PyErr {
             RadiateError::Context { .. } => PyRuntimeError::new_err(e.to_string()),
             #[cfg(feature = "python")]
             RadiateError::Python(source) => source,
+            RadiateError::IO(source) => PyRuntimeError::new_err(format!("I/O error: {}", source)),
+            RadiateError::Fmt(source) => {
+                PyRuntimeError::new_err(format!("Formatting error: {}", source))
+            }
         }
     }
 }

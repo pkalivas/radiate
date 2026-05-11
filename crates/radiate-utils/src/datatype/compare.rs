@@ -94,7 +94,7 @@ impl<'a> AnyValue<'a> {
             }
 
             (Struct(fa, va), Struct(fb, vb)) => {
-                match fa.name().cmp(fb.name()) {
+                match fa.cmp(fb) {
                     Ordering::Equal => {}
                     non_eq => return non_eq,
                 }

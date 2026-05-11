@@ -16,7 +16,7 @@ impl RollingLineChart {
             title: "".to_string(),
             min_y: f64::MAX,
             max_y: f64::MIN,
-            values: WindowBuffer::with_window(capacity),
+            values: WindowBuffer::with_capacity(capacity),
             color: Color::White,
             point_count: 0,
         }

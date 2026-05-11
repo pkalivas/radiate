@@ -1,6 +1,5 @@
 use crate::GeneticEngineBuilder;
 use radiate_core::{Alterer, Chromosome, Crossover, Mutate};
-use radiate_utils::intern;
 
 impl<C, T> GeneticEngineBuilder<C, T>
 where
@@ -33,7 +32,7 @@ where
     pub fn mutators(mut self, mutators: Vec<Box<dyn Mutate<C>>>) -> Self {
         let mutate_actions = mutators
             .into_iter()
-            .map(|m| Alterer::Mutate(intern!(m.name()), m.rate(), m.into()))
+            .map(|m| Alterer::mutation(radiate_utils::intern!(m.name()), m.rate(), m.into()))
             .collect::<Vec<_>>();
 
         self.params.alterers.extend(mutate_actions);
@@ -56,7 +55,7 @@ where
     pub fn crossovers(mut self, crossovers: Vec<Box<dyn Crossover<C>>>) -> Self {
         let crossover_actions = crossovers
             .into_iter()
-            .map(|c| Alterer::Crossover(c.name().leak(), c.rate(), c.into()))
+            .map(|c| Alterer::crossover(radiate_utils::intern!(c.name()), c.rate(), c.into()))
             .collect::<Vec<_>>();
 
         self.params.alterers.extend(crossover_actions);

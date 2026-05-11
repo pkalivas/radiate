@@ -1,8 +1,8 @@
-use radiate_core::{
-    Chromosome, Objective, Population, Select, freeze::Frozen, random_provider,
-};
+use radiate_core::{Chromosome, Objective, Phenotype, Select, random_provider};
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone)]
 pub struct TournamentSelector {
     k: usize,
@@ -19,14 +19,10 @@ impl TournamentSelector {
 }
 
 impl<C: Chromosome + Clone> Select<C> for TournamentSelector {
-    fn freeze(&self) -> Frozen {
-        Frozen::typed::<Self>().with("k", self.k).clone()
-    }
-
-    fn select(&self, population: &Population<C>, _: &Objective, count: usize) -> Population<C> {
+    fn select(&self, population: &[Phenotype<C>], _: &Objective, count: usize) -> Vec<usize> {
         let n = population.len();
         if n == 0 || count == 0 {
-            return Population::new(Vec::new());
+            return Vec::new();
         }
 
         let mut selected = Vec::with_capacity(count);
@@ -40,9 +36,9 @@ impl<C: Chromosome + Clone> Select<C> for TournamentSelector {
                 }
             }
 
-            selected.push(population[best].clone());
+            selected.push(best);
         }
 
-        Population::new(selected)
+        selected
     }
 }

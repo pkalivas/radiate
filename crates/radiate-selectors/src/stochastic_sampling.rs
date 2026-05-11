@@ -1,5 +1,5 @@
 use radiate_core::{
-    Chromosome, Objective, Optimize, Population, Select, math::norm, pareto, random_provider,
+    Chromosome, Objective, Optimize, Phenotype, Select, math::norm, pareto, random_provider,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -14,14 +14,15 @@ impl StochasticUniversalSamplingSelector {
 impl<C: Chromosome + Clone> Select<C> for StochasticUniversalSamplingSelector {
     fn select(
         &self,
-        population: &Population<C>,
+        population: &[Phenotype<C>],
         objective: &Objective,
         count: usize,
-    ) -> Population<C> {
+    ) -> Vec<usize> {
         let fitness_values = match objective {
             Objective::Single(opt) => {
                 let mut weights = population
-                    .iter_scores()
+                    .iter()
+                    .filter_map(|p| p.score())
                     .filter_map(|score| score.first())
                     .collect::<Vec<f32>>();
 
@@ -34,7 +35,10 @@ impl<C: Chromosome + Clone> Select<C> for StochasticUniversalSamplingSelector {
                 weights
             }
             Objective::Multi(_) => {
-                let scores = population.iter_scores().collect::<Vec<_>>();
+                let scores = population
+                    .iter()
+                    .filter_map(|p| p.score())
+                    .collect::<Vec<_>>();
                 let mut weights = pareto::weights(&scores, objective);
 
                 norm::scale_l1(&mut weights);
@@ -57,10 +61,10 @@ impl<C: Chromosome + Clone> Select<C> for StochasticUniversalSamplingSelector {
                 index += 1;
                 fitness_sum += fitness_values[index];
             }
-            pointers.push(population[index].clone());
+            pointers.push(index);
             current_point += point_distance;
         }
 
-        Population::new(pointers)
+        pointers
     }
 }

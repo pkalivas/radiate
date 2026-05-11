@@ -1,6 +1,6 @@
 use radiate_core::{
     AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, Gene, Rate, Valid,
-    freeze::Frozen, random_provider,
+    random_provider,
 };
 use radiate_utils::Float;
 
@@ -36,12 +36,6 @@ where
 
     fn rate(&self) -> Rate {
         self.crossover_rate.clone()
-    }
-
-    fn freeze(&self) -> Frozen {
-        Frozen::typed::<Self>()
-            .with("rate", self.crossover_rate.freeze())
-            .with("contiguity", self.contiguty)
     }
 
     #[inline]

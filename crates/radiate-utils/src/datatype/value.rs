@@ -38,7 +38,7 @@ pub enum AnyValue<'a> {
     Slice(&'a [AnyValue<'a>]),
     Vector(Vec<AnyValue<'a>>),
 
-    Struct(Field, Vec<(Field, AnyValue<'a>)>),
+    Struct(SmallStr, Vec<(Field, AnyValue<'a>)>),
 
     Map(Vec<(SmallStr, DataType, AnyValue<'a>)>),
 }
@@ -206,7 +206,7 @@ impl<'a> AnyValue<'a> {
             ),
 
             Self::Struct(field, fields) => DataType::Struct(
-                Box::new(field.clone()),
+                field.clone(),
                 fields.iter().map(|(f, _)| f.clone()).collect(),
             ),
         }
@@ -398,11 +398,10 @@ impl<'a> PartialEq for AnyValue<'a> {
                     .zip(b.iter())
                     .all(|((f1, _, v1), (f2, _, v2))| f1 == f2 && v1 == v2)
             }
-            (Struct(fa, va), Struct(fb, vb)) if fa.name() == fb.name() && va.len() == vb.len() => {
-                va.iter()
-                    .zip(vb.iter())
-                    .all(|((f1, v1), (f2, v2))| f1.name() == f2.name() && v1 == v2)
-            }
+            (Struct(fa, va), Struct(fb, vb)) if fa == fb && va.len() == vb.len() => va
+                .iter()
+                .zip(vb.iter())
+                .all(|((f1, v1), (f2, v2))| f1.name() == f2.name() && v1 == v2),
             _ => false,
         }
     }
@@ -660,7 +659,7 @@ impl<'a, 'de> Deserialize<'de> for AnyValue<'a> {
             Slice(Vec<AnyValueDef>),
             Vector(Vec<AnyValueDef>),
             Map(Vec<(SmallStr, DataType, AnyValueDef)>),
-            Struct(Field, Vec<(Field, AnyValueDef)>),
+            Struct(SmallStr, Vec<(Field, AnyValueDef)>),
         }
 
         impl From<AnyValueDef> for AnyValue<'_> {
@@ -737,56 +736,8 @@ impl<'a, 'de> Deserialize<'de> for AnyValue<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::DataType;
-
     use super::AnyValue;
-
-    #[test]
-    #[cfg(feature = "serde")]
-    fn test_anyvalue_equality() {
-        // let v1 = AnyValue::Map(vec![
-        //     (
-
-        //         AnyValue::Int32(42),
-        //     ),
-        //     (
-        //         Field::from(("field2", DataType::String)),
-        //         AnyValue::Str("hello"),
-        //     ),
-        // ]);
-
-        // let v2 = AnyValue::Map(vec![
-        //     (
-        //         Field::from(("field1", DataType::Int32)),
-        //         AnyValue::Int32(42),
-        //     ),
-        //     (
-        //         Field::from(("field2", DataType::String)),
-        //         AnyValue::Str("hello"),
-        //     ),
-        // ]);
-
-        // let v3 = AnyValue::Map(vec![
-        //     (
-        //         Field::from(("field1", DataType::Int32)),
-        //         AnyValue::Int32(43),
-        //     ),
-        //     (
-        //         Field::from(("field2", DataType::String)),
-        //         AnyValue::Str("hello"),
-        //     ),
-        // ]);
-
-        // assert_eq!(v1, v2);
-        // assert_ne!(v1, v3);
-
-        // let mut file = std::fs::File::create("anyvalue_test.yaml").unwrap();
-        // yaml_serde::to_writer(&mut file, &v1).unwrap();
-
-        // write to file for debugging
-
-        // println!("{}", serialized);
-    }
+    use super::DataType;
 
     #[test]
     fn test_anyvalue_type_name() {

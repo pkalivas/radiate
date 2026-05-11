@@ -1,11 +1,11 @@
 use crate::stats::{MetricView, Tag, TagType, defaults};
 use radiate_error::{RadiateError, radiate_err};
 use radiate_utils::{
-    AnyValue, DataType, Statistic, cache_arc_string,
+    AnyValue, DataType, SmallStr, Statistic
 };
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use std::{hash::Hash, sync::Arc, time::Duration};
+use std::{hash::Hash, time::Duration};
 
 const DTYPE_NULL: u8 = 0;
 const DTYPE_FLOAT32: u8 = 1;
@@ -27,57 +27,54 @@ macro_rules! metric {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub(super) struct Meta {
     pub(super) update_count: usize,
-    pub(super) version: u64,
+    pub(super) generation: u64,
 }
 
 #[derive(Clone, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Metric {
-    name: Arc<String>,
-    meta: Option<Meta>,
+    name: SmallStr,
+    meta: Meta,
     inner: Statistic,
     tags: Tag,
     dtype: u8,
 }
 
 impl Metric {
-    pub fn new(name: &'static str) -> Self {
-        let name = cache_arc_string!(name);
+    pub fn new(name: impl Into<SmallStr>) -> Self {
+        let name = name.into();
         let tags = defaults::default_tags(&name);
 
         Self {
             name,
-            meta: None,
+            meta: Meta::default(),
             inner: Statistic::default(),
             tags,
             dtype: DTYPE_NULL,
         }
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.meta.update_count == 0 && self.inner.count() == 0
+    }
+
     #[inline(always)]
     pub fn update_count(&self) -> usize {
-        self.meta.as_ref().map_or(0, |meta| meta.update_count)
+        self.meta.update_count
     }
 
     #[inline(always)]
-    pub fn version(&self) -> u64 {
-        self.meta.as_ref().map_or(0, |meta| meta.version)
+    pub fn generation(&self) -> u64 {
+        self.meta.generation
     }
 
     #[inline(always)]
-    pub fn set_version(&mut self, version: u64) {
-        if let Some(meta) = &mut self.meta {
-            if version != meta.version {
-                meta.update_count = 0;
-            }
-
-            meta.version = version;
-        } else {
-            self.meta = Some(Meta {
-                update_count: 0,
-                version,
-            });
+    pub fn set_generation(&mut self, generation: u64) {
+        if generation != self.meta.generation {
+            self.meta.update_count = 0;
         }
+
+        self.meta.generation = generation;
     }
 
     pub fn dtype(&self) -> DataType {
@@ -198,9 +195,7 @@ impl Metric {
             MetricUpdate::Statistic(stat) => {
                 self.inner.merge(&stat);
                 self.dtype = DTYPE_FLOAT32;
-                if let Some(meta) = &mut self.meta {
-                    meta.update_count += 1;
-                }
+                self.meta.update_count += 1;
             }
         }
     }
@@ -209,9 +204,7 @@ impl Metric {
         self.inner.add(value);
         self.add_tag(TagType::Statistic);
 
-        if let Some(meta) = &mut self.meta {
-            meta.update_count += 1;
-        }
+        self.meta.update_count += 1;
 
         if self.dtype == DTYPE_NULL {
             self.dtype = DTYPE_FLOAT32;
@@ -221,11 +214,7 @@ impl Metric {
     fn update_time_statistic(&mut self, value: Duration) {
         self.inner.add(value.as_secs_f32());
         self.add_tag(TagType::Time);
-        
-        if let Some(meta) = &mut self.meta {
-            meta.update_count += 1;
-
-        }
+        self.meta.update_count += 1;
 
         if self.dtype == DTYPE_NULL {
             self.dtype = DTYPE_DURATION;
@@ -237,10 +226,7 @@ impl Metric {
         I: IntoIterator<Item = f32>,
     {   
         self.inner = values.into_iter().collect::<Statistic>();
-
-        if let Some(meta) = &mut self.meta {
-            meta.update_count += self.inner.count() as usize;
-        }
+        self.meta.update_count += self.inner.count() as usize;
         
         self.add_tag(TagType::Distribution);
 
@@ -253,7 +239,7 @@ impl Metric {
         &self.inner
     }
 
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> &SmallStr {
         &self.name
     }
 

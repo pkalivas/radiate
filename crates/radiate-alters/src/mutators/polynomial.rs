@@ -1,6 +1,4 @@
-use radiate_core::{
-    BoundedGene, Chromosome, FloatGene, Gene, Mutate, Rate, freeze::Frozen, random_provider,
-};
+use radiate_core::{BoundedGene, Chromosome, FloatGene, Gene, Mutate, Rate, random_provider};
 use radiate_utils::{Float, Primitive};
 
 // Use it when:
@@ -19,7 +17,7 @@ use radiate_utils::{Float, Primitive};
 // 	- It determines the exploration vs. exploitation trade-off:
 // 	- Low eta (e.g. 1–5): leads to bigger mutations, promoting exploration.
 // 	- High eta (e.g. 20–100): leads to smaller, fine-grained mutations, good for local search.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PolynomialMutator {
     rate: Rate,
     eta: f32,
@@ -64,12 +62,6 @@ where
 {
     fn rate(&self) -> Rate {
         self.rate.clone()
-    }
-
-    fn freeze(&self) -> Frozen {
-        Frozen::typed::<Self>()
-            .with("rate", self.rate.freeze())
-            .with("eta", self.eta)
     }
 
     #[inline]

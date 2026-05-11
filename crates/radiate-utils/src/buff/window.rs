@@ -12,8 +12,8 @@ pub struct WindowBuffer<T> {
 }
 
 impl<T> WindowBuffer<T> {
-    pub fn with_window(cap: usize) -> Self {
-        assert!(cap > 0, "WindowBuffer capacity must be > 0");
+    pub fn with_capacity(cap: usize) -> Self {
+        debug_assert!(cap > 0, "WindowBuffer capacity must be > 0");
 
         let max = cap * 2;
         Self {
@@ -81,6 +81,12 @@ impl<T> WindowBuffer<T> {
     pub fn as_slice(&self) -> &[T] {
         self.values()
     }
+
+    pub fn clear(&mut self) {
+        self.buffer.clear();
+        self.start = 0;
+        self.end = 0;
+    }
 }
 
 impl<T: Clone> Clone for WindowBuffer<T> {
@@ -116,7 +122,7 @@ mod tests {
 
     #[test]
     fn ring_buffer_works() {
-        let mut buffer = WindowBuffer::with_window(5);
+        let mut buffer = WindowBuffer::with_capacity(5);
         for i in 0..20 {
             buffer.push(i);
         }

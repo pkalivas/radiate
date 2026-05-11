@@ -1,10 +1,9 @@
 use radiate::prelude::*;
-use serde::ser;
 
 const MIN_SCORE: f32 = 0.001;
 
 fn main() {
-    random_provider::set_seed(90);
+    random_provider::seed(90);
 
     let store = vec![
         (NodeType::Input, vec![Op::var(0)]),
@@ -24,13 +23,6 @@ fn main() {
             GraphMutator::new(0.1, 0.1).allow_recurrent(false)
         ))
         .build();
-
-    let params = engine.freeze();
-
-    let mut file = std::fs::File::create("anyvalue_test.yaml").unwrap();
-    yaml_serde::to_writer(&mut file, &params).unwrap();
-    let mut other_file = std::fs::File::create("anyvalue_test.json").unwrap();
-    serde_json::to_writer(&mut other_file, &params).unwrap();
 
     // random_provider::set_seed(90);
 
@@ -71,8 +63,9 @@ fn main() {
     //     .minimizing()
     //     // .parallel()
     //     // .register_metrics(vec![("idk", expr)])
-    //     .diversity(NeatDistance::new(1.0, 1.0, 3.0))
-    //     .species_threshold(distance_signal)
+    //     // .survivor_selector(BoltzmannSelector::new(4.0))
+    //     // .diversity(NeatDistance::new(1.0, 1.0, 3.0))
+    //     // .species_threshold(distance_signal)
     //     .alter(alters!(
     //         GraphCrossover::new(0.5, 0.5),
     //         OperationMutator::new(0.07, 0.05),
@@ -80,7 +73,8 @@ fn main() {
     //     ))
     //     .build();
 
-    radiate::ui(engine)
+    // radiate::ui(engine)
+    engine
         .iter()
         // .logging()
         .until_score(MIN_SCORE)

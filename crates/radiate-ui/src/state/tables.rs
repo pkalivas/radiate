@@ -1,11 +1,12 @@
 use super::nav::DashboardTab;
 use radiate_engines::species::SpeciesId;
+use radiate_utils::SmallStr;
 use ratatui::widgets::{ScrollbarState, TableState};
 
 pub struct TableStates {
-    pub time: AppTableState<&'static str>,
-    pub stats: AppTableState<&'static str>,
-    pub dist: AppTableState<&'static str>,
+    pub time: AppTableState<SmallStr>,
+    pub stats: AppTableState<SmallStr>,
+    pub dist: AppTableState<SmallStr>,
     pub species: AppTableState<SpeciesId>,
 }
 
@@ -28,11 +29,11 @@ impl TableStates {
         }
     }
 
-    pub fn selected_metric(&self, tab: DashboardTab) -> Option<&'static str> {
+    pub fn selected_metric(&self, tab: DashboardTab) -> Option<&str> {
         match tab {
-            DashboardTab::Time => self.time.selected_value,
-            DashboardTab::Stats => self.stats.selected_value,
-            DashboardTab::Distribution => self.dist.selected_value,
+            DashboardTab::Time => self.time.selected_value.as_deref(),
+            DashboardTab::Stats => self.stats.selected_value.as_deref(),
+            DashboardTab::Distribution => self.dist.selected_value.as_deref(),
             DashboardTab::Species => None,
         }
     }

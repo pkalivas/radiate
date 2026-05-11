@@ -24,6 +24,10 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 itertools = { workspace = true }
 
+[dev-dependencies]
+rstest = "0.25.0"
+radiate-test = { workspace = true }
+
 [features]
 default = []
 rayon = [ "radiate-core/rayon" ]

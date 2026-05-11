@@ -1,7 +1,6 @@
 use radiate_utils::Integer;
 
 use super::Codec;
-use crate::freeze::{Frozen, frozen_range};
 use crate::genome::Gene;
 use crate::genome::genotype::Genotype;
 use crate::{Chromosome, IntChromosome};
@@ -27,14 +26,6 @@ impl<T: Integer, D> IntCodec<T, D> {
     pub fn with_bounds(mut self, bounds: Range<T>) -> Self {
         self.bounds = bounds;
         self
-    }
-
-    fn freeze_repr(&self) -> Frozen {
-        Frozen::typed::<Self>()
-            .with("num_chromosomes", self.num_chromosomes)
-            .with("num_genes", self.num_genes)
-            .with("value_range", frozen_range(&self.value_range))
-            .with("bounds", frozen_range(&self.bounds))
     }
 
     /// The different variants of `IntCodec` are all the same, so this function is used to create
@@ -111,10 +102,6 @@ impl<T: Integer> IntCodec<T, T> {
 /// let decoded: Vec<Vec<i32>> = codec.decode(&genotype);
 /// ```
 impl<T: Integer> Codec<IntChromosome<T>, Vec<Vec<T>>> for IntCodec<T, Vec<Vec<T>>> {
-    fn freeze(&self) -> Frozen {
-        self.freeze_repr()
-    }
-
     fn encode(&self) -> Genotype<IntChromosome<T>> {
         self.encode_common()
     }
@@ -146,10 +133,6 @@ impl<T: Integer> Codec<IntChromosome<T>, Vec<Vec<T>>> for IntCodec<T, Vec<Vec<T>
 /// let decoded: Vec<i32> = codec.decode(&genotype);
 /// ```
 impl<T: Integer> Codec<IntChromosome<T>, Vec<T>> for IntCodec<T, Vec<T>> {
-    fn freeze(&self) -> Frozen {
-        self.freeze_repr()
-    }
-
     fn encode(&self) -> Genotype<IntChromosome<T>> {
         self.encode_common()
     }
@@ -183,10 +166,6 @@ impl<T: Integer> Codec<IntChromosome<T>, Vec<T>> for IntCodec<T, Vec<T>> {
 /// let decoded: i32 = codec.decode(&genotype);
 /// ```
 impl<T: Integer> Codec<IntChromosome<T>, T> for IntCodec<T, T> {
-    fn freeze(&self) -> Frozen {
-        self.freeze_repr()
-    }
-
     fn encode(&self) -> Genotype<IntChromosome<T>> {
         self.encode_common()
     }

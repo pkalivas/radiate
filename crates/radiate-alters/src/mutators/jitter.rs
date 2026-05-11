@@ -1,6 +1,6 @@
 use radiate_core::{
     AlterContext, AlterResult, BoundedGene, Chromosome, FloatGene, Gene, Mutate, Rate, Valid,
-    freeze::Frozen, random_provider,
+    random_provider,
 };
 use radiate_utils::Float;
 
@@ -41,14 +41,8 @@ where
         self.rate.clone()
     }
 
-    fn freeze(&self) -> Frozen {
-        Frozen::typed::<Self>()
-            .with("rate", self.rate.freeze())
-            .with("magnitude", self.magnitude)
-    }
-
     #[inline]
-    fn mutate_chromosome(&self, chromosome: &mut C, ctx: &mut AlterContext) -> AlterResult {
+    fn mutate_chromosome(&mut self, chromosome: &mut C, ctx: &mut AlterContext) -> AlterResult {
         let mut count = 0;
         let mag = F::from(self.magnitude).unwrap();
 

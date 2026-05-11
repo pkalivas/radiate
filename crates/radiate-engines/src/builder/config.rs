@@ -1,7 +1,6 @@
 use crate::Chromosome;
 use crate::Generation;
 use crate::GeneticEngineBuilder;
-use crate::Freeze;
 use crate::builder::EngineParams;
 use crate::builder::evaluators::EvaluationParams;
 use crate::builder::objectives::OptimizeParams;
@@ -13,7 +12,7 @@ use crate::genome::phenotype::Phenotype;
 use crate::objectives::Objective;
 use crate::{EventHandler, Front, Problem, ReplacementStrategy, Select};
 use radiate_core::NamedExpr;
-use radiate_core::{Alterer, Diversity, Ecosystem, Evaluator, Executor, Genotype, Lineage, Rate};
+use radiate_core::{Alterer, Diversity, Ecosystem, Evaluator, Executor, Genotype, Rate};
 use std::sync::{Arc, Mutex, RwLock};
 
 #[derive(Clone)]
@@ -31,13 +30,11 @@ pub(crate) struct EngineConfig<C: Chromosome, T: Clone> {
     max_age: usize,
     max_species_age: usize,
     front: Arc<RwLock<Front<Phenotype<C>>>>,
-    lineage: Arc<RwLock<Lineage>>,
     offspring_fraction: f32,
     executor: EvaluationParams<C, T>,
     handlers: Vec<Arc<Mutex<dyn EventHandler<T>>>>,
     exprs: Option<Arc<Mutex<Vec<NamedExpr>>>>,
     generation: Option<Generation<C, T>>,
-    freeze: Freeze,
 }
 
 impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
@@ -83,10 +80,6 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
 
     pub fn front(&self) -> Arc<RwLock<Front<Phenotype<C>>>> {
         Arc::clone(&self.front)
-    }
-
-    pub fn lineage(&self) -> Arc<RwLock<Lineage>> {
-        Arc::clone(&self.lineage)
     }
 
     pub fn evaluator(&self) -> Arc<dyn Evaluator<C, T>> {
@@ -137,10 +130,6 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
     pub fn exprs(&self) -> Option<Arc<Mutex<Vec<NamedExpr>>>> {
         self.exprs.clone()
     }
-
-    pub fn freeze(&self) -> Freeze {
-        self.freeze.clone()
-    }
 }
 
 impl<C, T> From<&EngineParams<C, T>> for EngineConfig<C, T>
@@ -164,14 +153,12 @@ where
             front: Arc::new(RwLock::new(
                 params.optimization_params.front.clone().unwrap(),
             )),
-            lineage: Arc::new(RwLock::new(Lineage::default())),
             offspring_fraction: params.selection_params.offspring_fraction,
             evaluator: params.evaluation_params.evaluator.clone(),
             executor: params.evaluation_params.clone(),
             handlers: params.handlers.clone(),
             generation: params.generation.clone(),
             exprs: params.exprs.clone(),
-            freeze: params.freeze.clone(),
         }
     }
 }
@@ -219,7 +206,6 @@ where
                 handlers: config.handlers,
                 exprs: config.exprs,
                 generation: config.generation,
-                freeze: config.freeze,
             },
             errors: Vec::new(),
         }

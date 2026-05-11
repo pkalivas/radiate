@@ -18,8 +18,10 @@ use crate::genome::phenotype::Phenotype;
 use crate::io::FileReader;
 use crate::objectives::{Objective, Optimize};
 use crate::pipeline::Pipeline;
-use crate::steps::{AuditStep, EngineStep, FilterStep, FrontStep, RecombineStep, SpeciateStep};
-use crate::{Chromosome, EvaluateStep, Freeze, Frozen, GeneticEngine};
+use crate::steps::{
+    AuditStep, EngineStep, FilterStep, FrontStep, RecombineStep, SelectConfig, SpeciateStep,
+};
+use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use crate::{
     Crossover, EncodeReplace, EngineProblem, EventBus, EventHandler, Front, Mutate,
     ReplacementStrategy, RouletteSelector, TournamentSelector, context::Context,
@@ -29,6 +31,7 @@ use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::NamedExpr;
 use radiate_core::evaluator::BatchFitnessEvaluator;
+// use radiate_core::freeze::{DebugWriter, Writer};
 use radiate_core::problem::BatchEngineProblem;
 use radiate_core::{Alterer, Ecosystem, Executor, FitnessEvaluator, Rate, Valid};
 use radiate_core::{RadiateError, ensure, radiate_err};
@@ -54,7 +57,6 @@ where
     pub handlers: Vec<Arc<Mutex<dyn EventHandler<T>>>>,
     pub generation: Option<Generation<C, T>>,
     pub exprs: Option<Arc<Mutex<Vec<NamedExpr>>>>,
-    pub freeze: Freeze,
 }
 
 /// Parameters for the genetic engine.
@@ -177,7 +179,6 @@ where
         self.build_population()?;
         self.build_alterer()?;
         self.build_front()?;
-        self.build_freeze()?;
 
         let config = EngineConfig::<C, T>::from(&self.params);
 
@@ -195,46 +196,6 @@ where
         let context = Context::from(config);
 
         Ok(GeneticEngine::<C, T>::new(context, pipeline, event_bus))
-    }
-
-    fn build_freeze(&mut self) -> Result<()> {
-        let sel = &self.params.selection_params;
-        let pop = &self.params.population_params;
-        let spc = &self.params.species_params;
-        let opt = &self.params.optimization_params;
-        let alt = &self.params.alterers;
-
-        let mut freeze = Freeze::default();
-
-        freeze.insert(
-            "selectors",
-            Frozen::new()
-                .with("offspring", sel.offspring_selector.freeze())
-                .with("survivor", sel.survivor_selector.freeze()),
-        );
-        freeze.insert("offspring_fraction", Frozen::value(sel.offspring_fraction));
-        freeze.insert("population_size", Frozen::value(pop.population_size));
-        freeze.insert("max_age", Frozen::value(pop.max_age));
-        freeze.insert("max_species_age", Frozen::value(spc.max_species_age));
-        freeze.insert("species_threshold", spc.species_threshold.freeze());
-        freeze.insert("objective", opt.objectives.freeze());
-
-        freeze.insert(
-            "alters",
-            alt.iter().map(|a| a.freeze().build()).collect::<Vec<_>>(),
-        );
-
-        freeze.insert(
-            "replacement_strategy",
-            self.params.replacement_strategy.freeze(),
-        );
-
-        if let Some(codec) = self.params.problem_params.codec.as_ref() {
-            freeze.insert("codec", codec.freeze());
-        }
-
-        self.params.freeze = freeze;
-        Ok(())
     }
 
     /// Build the problem of the genetic engine. This will create a new problem
@@ -393,21 +354,29 @@ where
         let survivor_base_name = radiate_utils::intern!(surv_name);
         let survivor_time_name = radiate_utils::intern!(format!("{}.time", survivor_base_name));
 
+        let survivor_select = SelectConfig {
+            selector: survivor_selector,
+            count: config.survivor_count(),
+            names: (survivor_base_name, survivor_time_name),
+        };
+
+        let offspring_select = SelectConfig {
+            selector: offspring_selector,
+            count: config.offspring_count(),
+            names: (offspring_base_name, offspring_time_name),
+        };
+
         let recombine_step = RecombineStep {
-            survivor_handle: crate::steps::SurvivorRecombineHandle {
-                count: config.survivor_count(),
-                objective: config.objective(),
-                selector: survivor_selector,
-                names: (survivor_base_name, survivor_time_name),
+            survivor: crate::steps::SurvivorConfig {
+                select: survivor_select,
             },
-            offspring_handle: crate::steps::OffspringRecombineHandle {
-                count: config.offspring_count(),
-                objective: config.objective(),
-                selector: offspring_selector,
+            offspring: crate::steps::OffspringConfig {
+                select: offspring_select,
                 alters: config.alters().to_vec(),
-                lineage: config.lineage(),
-                names: (offspring_base_name, offspring_time_name),
             },
+            objective: config.objective(),
+            survivor_counts: radiate_utils::VersionedCounts::new(),
+            offspring_counts: radiate_utils::VersionedCounts::new(),
         };
 
         Some(Box::new(recombine_step))
@@ -425,10 +394,7 @@ where
     }
 
     fn build_audit_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
-        Some(Box::new(AuditStep::new(
-            config.objective().clone(),
-            config.lineage(),
-        )))
+        Some(Box::new(AuditStep::new(config.objective().clone())))
     }
 
     fn build_front_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
@@ -451,7 +417,7 @@ where
             distance: diversity,
             executor: config.species_executor(),
             objective: config.objective(),
-            distances: Arc::new(Mutex::new(Vec::new())),
+            distances: Vec::new(),
             assignments: Arc::new(Mutex::new(Vec::new())),
         };
 
@@ -507,7 +473,6 @@ where
                 handlers: Vec::new(),
                 exprs: None,
                 generation: None,
-                freeze: Freeze::default(),
             },
             errors: Vec::new(),
         }

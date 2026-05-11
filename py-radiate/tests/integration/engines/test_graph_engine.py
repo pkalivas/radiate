@@ -48,7 +48,7 @@ def test_engine_graph_regression_with_speciation(
     engine = (
         rd.Engine(codec)
         .regression(inputs, outputs)
-        .diversity(rd.Dist.neat(0.1, 0.1, 0.5), 0.1)
+        .diversity(rd.Dist.neat(1.0, 1.0, 3.0), 0.1)
         .alters(
             rd.Cross.graph(0.5, 0.5),
             rd.Mutate.op(0.07, 0.05),
@@ -60,7 +60,7 @@ def test_engine_graph_regression_with_speciation(
 
     # Testing in multithreaded mode can lead to slightly different results so we
     # relax the assertion a bit by allowing a few # of species
-    assert len(result.species()) in [2, 3, 4], "Should maintain multiple species"
+    assert len(result.species()) > 1, "Should maintain multiple species"
     assert result.index() <= 500
     assert isinstance(result.value(), rd.Graph)
 

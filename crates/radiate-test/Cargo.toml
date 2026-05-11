@@ -1,0 +1,15 @@
+[package]
+name = "radiate-test"
+version = { workspace = true }
+edition = { workspace = true }
+authors = { workspace = true }
+description = "Test helpers and fixtures shared across the Radiate workspace."
+repository = { workspace = true }
+license = { workspace = true }
+publish = false
+
+[dependencies]
+radiate-core = { workspace = true }
+radiate-alters = { workspace = true }
+radiate-selectors = { workspace = true }
+radiate-engines = { workspace = true }

@@ -1,5 +1,5 @@
 use radiate_core::{
-    Chromosome, Objective, Population, Select, math::indexes, pareto, random_provider,
+    Chromosome, Objective, Phenotype, Select, math::indexes, pareto, random_provider,
 };
 
 const NSGA2_SELECTOR_NAME: &str = "nsga2_selector";
@@ -29,11 +29,14 @@ impl<C: Chromosome + Clone> Select<C> for NSGA2Selector {
 
     fn select(
         &self,
-        population: &Population<C>,
+        population: &[Phenotype<C>],
         objective: &Objective,
         count: usize,
-    ) -> Population<C> {
-        let scores = population.iter_scores().collect::<Vec<_>>();
+    ) -> Vec<usize> {
+        let scores = population
+            .iter()
+            .filter_map(|p| p.score())
+            .collect::<Vec<_>>();
         let ranks = pareto::rank(&scores, objective);
         let distances = pareto::crowding_distance(&scores);
 
@@ -55,11 +58,7 @@ impl<C: Chromosome + Clone> Select<C> for NSGA2Selector {
             }
         });
 
-        indices
-            .iter()
-            .take(count)
-            .map(|&i| population[i].clone())
-            .collect::<Population<C>>()
+        indices.into_iter().take(count).collect::<Vec<usize>>()
     }
 }
 
@@ -75,11 +74,14 @@ impl TournamentNSGA2Selector {
 impl<C: Chromosome + Clone> Select<C> for TournamentNSGA2Selector {
     fn select(
         &self,
-        population: &Population<C>,
+        population: &[Phenotype<C>],
         objective: &Objective,
         count: usize,
-    ) -> Population<C> {
-        let scores = population.iter_scores().collect::<Vec<_>>();
+    ) -> Vec<usize> {
+        let scores = population
+            .iter()
+            .filter_map(|p| p.score())
+            .collect::<Vec<_>>();
         let ranks = pareto::rank(&scores, objective);
         let distances = pareto::crowding_distance(&scores);
 
@@ -115,10 +117,10 @@ impl<C: Chromosome + Clone> Select<C> for TournamentNSGA2Selector {
                     *random_provider::choose(&[one, two])
                 };
 
-                result.push(population[winner].clone());
+                result.push(winner);
             }
         }
 
-        result.into_iter().take(count).collect::<Population<C>>()
+        result.into_iter().take(count).collect::<Vec<usize>>()
     }
 }

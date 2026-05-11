@@ -1,65 +1,56 @@
 use crate::stats::{Tag, TagType};
+use radiate_utils::SmallStr;
 
 pub mod metric_names {
-    pub const TIME: &str = "time";
+    use radiate_utils::SmallStr;
 
-    pub const AGE: &str = "age";
-    pub const REPLACE_AGE: &str = "age.replace";
-    pub const SPECIES_AGE_FAIL: &str = "age.species.fail";
-    pub const SPECIES_AGE: &str = "age.species";
+    pub const TIME: SmallStr = SmallStr::from_static("time");
 
-    pub const SPECIES_NEW_RATIO: &str = "new.species.ratio";
-    pub const FRONT_ADDITIONS: &str = "new.front";
-    pub const SPECIES_CREATED: &str = "new.species";
+    pub const AGE: SmallStr = SmallStr::from_static("age");
+    pub const REPLACE_AGE: SmallStr = SmallStr::from_static("age.replace");
+    pub const SPECIES_AGE_FAIL: SmallStr = SmallStr::from_static("age.species.fail");
+    pub const SPECIES_AGE: SmallStr = SmallStr::from_static("age.species");
 
-    pub const REPLACE_INVALID: &str = "invalid.replace";
-    pub const FRONT_REMOVALS: &str = "invalid.front";
-    pub const SPECIES_DIED: &str = "invalid.species";
+    pub const SPECIES_NEW_RATIO: SmallStr = SmallStr::from_static("new.species.ratio");
+    pub const FRONT_ADDITIONS: SmallStr = SmallStr::from_static("new.front");
+    pub const SPECIES_CREATED: SmallStr = SmallStr::from_static("new.species");
 
-    pub const GENOME_SIZE: &str = "size.genome";
-    pub const FRONT_SIZE: &str = "size.front";
-    pub const SPECIES_SIZE: &str = "size.species";
+    pub const REPLACE_INVALID: SmallStr = SmallStr::from_static("invalid.replace");
+    pub const FRONT_REMOVALS: SmallStr = SmallStr::from_static("invalid.front");
+    pub const SPECIES_DIED: SmallStr = SmallStr::from_static("invalid.species");
 
-    pub const FRONT_ENTROPY: &str = "front.entropy";
-    pub const FRONT_COMPARISONS: &str = "front.comparisons";
-    pub const FRONT_FILTERS: &str = "front.filters";
+    pub const GENOME_SIZE: SmallStr = SmallStr::from_static("size.genome");
+    pub const FRONT_SIZE: SmallStr = SmallStr::from_static("size.front");
+    pub const SPECIES_SIZE: SmallStr = SmallStr::from_static("size.species");
 
-    pub const SURVIVOR_COUNT: &str = "count.survivor";
-    pub const EVALUATION_COUNT: &str = "count.evaluation";
-    pub const SPECIES_COUNT: &str = "count.species";
+    pub const FRONT_ENTROPY: SmallStr = SmallStr::from_static("front.entropy");
+    pub const FRONT_COMPARISONS: SmallStr = SmallStr::from_static("front.comparisons");
+    pub const FRONT_FILTERS: SmallStr = SmallStr::from_static("front.filters");
 
-    pub const CARRYOVER_RATE: &str = "rate.carryover";
-    pub const DIVERSITY_RATIO: &str = "rate.diversity";
-    pub const LINEAGE_PARENTS_USED_RATIO: &str = "rate.lineage.parents_used";
+    pub const SURVIVOR_COUNT: SmallStr = SmallStr::from_static("count.survivor");
+    pub const EVALUATION_COUNT: SmallStr = SmallStr::from_static("count.evaluation");
+    pub const SPECIES_COUNT: SmallStr = SmallStr::from_static("count.species");
 
-    pub const SCORES: &str = "scores";
-    pub const BEST_SCORES: &str = "scores.best";
-    pub const SCORE_VOLATILITY: &str = "score.volatility";
-    pub const BEST_SCORE_IMPROVEMENT: &str = "score.improvement";
+    pub const CARRYOVER_RATE: SmallStr = SmallStr::from_static("rate.carryover");
+    pub const DIVERSITY_RATIO: SmallStr = SmallStr::from_static("rate.diversity");
+    pub const LINEAGE_PARENTS_USED_RATIO: SmallStr =
+        SmallStr::from_static("rate.lineage.parents_used");
 
-    pub const INDEX: &str = "index";
+    pub const SCORES: SmallStr = SmallStr::from_static("scores");
+    pub const BEST_SCORES: SmallStr = SmallStr::from_static("scores.best");
+    pub const SCORE_VOLATILITY: SmallStr = SmallStr::from_static("score.volatility");
+    pub const BEST_SCORE_IMPROVEMENT: SmallStr = SmallStr::from_static("score.improvement");
 
-    pub const SPECIES_DISTANCE_DIST: &str = "species.distance";
-    pub const SPECIES_EVENNESS: &str = "species.evenness";
-    pub const LARGEST_SPECIES_SHARE: &str = "species.largest_share";
-    pub const SPECIES_THRESHOLD: &str = "species.threshold";
+    pub const INDEX: SmallStr = SmallStr::from_static("index");
 
-    pub const ALTER_PARENT_REUSE: &str = "alter.parent_reuse";
-    pub const ALTER_WITHIN_FAMILY: &str = "alter.within_family";
-    pub const ALTER_CROSS_FAMILY: &str = "alter.cross_family";
+    pub const SPECIES_DISTANCE_DIST: SmallStr = SmallStr::from_static("species.distance");
+    pub const SPECIES_EVENNESS: SmallStr = SmallStr::from_static("species.evenness");
+    pub const LARGEST_SPECIES_SHARE: SmallStr = SmallStr::from_static("species.largest_share");
+    pub const SPECIES_THRESHOLD: SmallStr = SmallStr::from_static("species.threshold");
 
-    pub const LINEAGE_EVENTS: &str = "lineage.events";
-    pub const LINEAGE_PARENTS_USED_UNIQUE: &str = "lineage.parents_unique";
-    // •	FAMILY_PAIR_ENTROPY in [0, 1]
-    // •	0.0 = basically always the same pair (pairing collapse)
-    // •	1.0 = pairings evenly distributed across the pairs that occurred
-    pub const LINEAGE_FAMILY_PAIR_ENTROPY: &str = "lineage.family_pair";
-    pub const LINEAGE_FAMILY_PAIR_UNIQUE: &str = "lineage.family_pair_unique";
-    pub const LINEAGE_TOP1_PAIR_SHARE: &str = "lineage.top1_pair_share";
-
-    pub const UNIQUE_MEMBERS: &str = "unique.members";
-    pub const UNIQUE_SCORES: &str = "unique.scores";
-    pub const NEW_CHILDREN: &str = "new.children";
+    pub const UNIQUE_MEMBERS: SmallStr = SmallStr::from_static("unique.members");
+    pub const UNIQUE_SCORES: SmallStr = SmallStr::from_static("unique.scores");
+    pub const NEW_CHILDREN: SmallStr = SmallStr::from_static("new.children");
 }
 
 pub mod metric_tags {
@@ -90,8 +81,6 @@ pub mod metric_tags {
 
     pub const STEP: &str = "step";
 
-    pub const LINEAGE: &str = "lineage";
-
     pub const EXPR: &str = "expr";
 }
 
@@ -112,93 +101,61 @@ const RULES: &[(&str, &[TagType])] = &[
     (metric_tags::SCORE, &[TagType::Score]),
     (metric_tags::RATE, &[TagType::Rate]),
     (metric_tags::STEP, &[TagType::Step]),
-    (metric_tags::LINEAGE, &[TagType::Lineage]),
     (metric_tags::EXPR, &[TagType::Expr]),
 ];
 
-pub fn default_tags(name: &str) -> Tag {
+const EXACT_TAGS: &[(&SmallStr, &[TagType])] = &[
+    (
+        &metric_names::REPLACE_AGE,
+        &[TagType::Age, TagType::Failure],
+    ),
+    (&metric_names::REPLACE_INVALID, &[TagType::Failure]),
+    //
+    (&metric_names::FRONT_ADDITIONS, &[TagType::Front]),
+    (&metric_names::FRONT_REMOVALS, &[TagType::Front]),
+    (&metric_names::FRONT_COMPARISONS, &[TagType::Front]),
+    (&metric_names::FRONT_ENTROPY, &[TagType::Front]),
+    (&metric_names::FRONT_FILTERS, &[TagType::Front]),
+    (&metric_names::FRONT_SIZE, &[TagType::Front]),
+    //
+    (
+        &metric_names::SPECIES_AGE_FAIL,
+        &[TagType::Species, TagType::Age, TagType::Failure],
+    ),
+    (
+        &metric_names::SPECIES_AGE,
+        &[TagType::Species, TagType::Age],
+    ),
+    //
+    (&metric_names::UNIQUE_MEMBERS, &[TagType::Derived]),
+    (&metric_names::UNIQUE_SCORES, &[TagType::Derived]),
+    (&metric_names::NEW_CHILDREN, &[TagType::Derived]),
+    (&metric_names::SURVIVOR_COUNT, &[TagType::Derived]),
+    (&metric_names::CARRYOVER_RATE, &[TagType::Derived]),
+    (&metric_names::DIVERSITY_RATIO, &[TagType::Derived]),
+    (&metric_names::SCORE_VOLATILITY, &[TagType::Derived]),
+    //
+    (&metric_names::SCORES, &[TagType::Score]),
+    //
+];
+
+pub fn default_tags(metric_name: &SmallStr) -> Tag {
     let mut mask = Tag::empty();
-
-    // Exact-name mappings first
-    match name {
-        metric_names::REPLACE_AGE => {
-            mask.insert(TagType::Age);
-            mask.insert(TagType::Failure);
-        }
-        metric_names::REPLACE_INVALID => {
-            mask.insert(TagType::Failure);
-        }
-        metric_names::FRONT_ADDITIONS
-        | metric_names::FRONT_REMOVALS
-        | metric_names::FRONT_COMPARISONS
-        | metric_names::FRONT_ENTROPY
-        | metric_names::FRONT_FILTERS
-        | metric_names::FRONT_SIZE => {
-            mask.insert(TagType::Front);
-        }
-        metric_names::SPECIES_AGE_FAIL => {
-            mask.insert(TagType::Species);
-            mask.insert(TagType::Age);
-            mask.insert(TagType::Failure);
-        }
-        metric_names::SPECIES_AGE => {
-            mask.insert(TagType::Species);
-            mask.insert(TagType::Age);
-        }
-
-        // “Derived” metrics
-        metric_names::UNIQUE_MEMBERS
-        | metric_names::UNIQUE_SCORES
-        | metric_names::NEW_CHILDREN
-        | metric_names::SURVIVOR_COUNT
-        | metric_names::CARRYOVER_RATE
-        | metric_names::DIVERSITY_RATIO
-        | metric_names::SCORE_VOLATILITY => {
-            mask.insert(TagType::Derived);
-        }
-
-        metric_names::SCORES => {
-            mask.insert(TagType::Score);
-        }
-
-        metric_names::ALTER_CROSS_FAMILY
-        | metric_names::ALTER_WITHIN_FAMILY
-        | metric_names::ALTER_PARENT_REUSE => {
-            mask.insert(TagType::Alterer);
-            mask.insert(TagType::Lineage);
-        }
-
-        metric_names::LINEAGE_EVENTS
-        | metric_names::LINEAGE_PARENTS_USED_UNIQUE
-        | metric_names::LINEAGE_PARENTS_USED_RATIO
-        | metric_names::LINEAGE_FAMILY_PAIR_ENTROPY
-        | metric_names::LINEAGE_TOP1_PAIR_SHARE => {
-            mask.insert(TagType::Lineage);
-        }
-
-        x if x.contains(metric_tags::STEP) => {
-            mask.insert(TagType::Step);
-        }
-
-        _ => {}
-    }
-
-    mask
-}
-
-pub fn try_add_tag_from_str(metric: &mut crate::stats::Metric) {
-    let s = metric.name();
-    let mut tags = Tag::empty();
-
-    for (needle, kinds) in RULES {
-        if s.contains(needle) {
-            for &k in *kinds {
-                tags.insert(k);
+    for (name, tags) in EXACT_TAGS {
+        if *name == metric_name {
+            for &k in *tags {
+                mask.insert(k);
             }
         }
     }
 
-    if !tags.is_empty() {
-        metric.add_tags(tags);
+    for (needle, tags) in RULES {
+        if metric_name.contains(needle) {
+            for &k in *tags {
+                mask.insert(k);
+            }
+        }
     }
+
+    mask
 }

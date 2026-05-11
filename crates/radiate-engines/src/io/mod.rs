@@ -1,6 +1,5 @@
 #[cfg(feature = "serde")]
-use serde::Deserialize;
-#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use std::io;
 use std::path::PathBuf;
 
@@ -18,14 +17,14 @@ pub struct JsonWriter;
 #[cfg(feature = "serde")]
 impl<T> FileWriter<T> for JsonWriter
 where
-    T: serde::Serialize,
+    T: Serialize,
 {
     fn extension(&self) -> &str {
         "json"
     }
 
     fn write(&mut self, path: PathBuf, generation: &T) -> io::Result<()> {
-        if !path.parent().map_or(true, |p| p.exists()) {
+        if !path.parent().is_none_or(|p| p.exists()) {
             std::fs::create_dir_all(path.parent().unwrap()).map_err(|e| {
                 io::Error::other(format!("Failed to create checkpoint directory: {}", e))
             })?;
@@ -60,14 +59,14 @@ pub struct YamlWriter;
 #[cfg(feature = "serde")]
 impl<T> FileWriter<T> for YamlWriter
 where
-    T: serde::Serialize,
+    T: Serialize,
 {
     fn extension(&self) -> &str {
         "yaml"
     }
 
     fn write(&mut self, path: PathBuf, generation: &T) -> io::Result<()> {
-        if !path.parent().map_or(true, |p| p.exists()) {
+        if !path.parent().is_none_or(|p| p.exists()) {
             std::fs::create_dir_all(path.parent().unwrap()).map_err(|e| {
                 io::Error::other(format!("Failed to create checkpoint directory: {}", e))
             })?;

@@ -115,11 +115,14 @@ where
                         store
                             .new_instance((index, node.node_type()))
                             .map(|new_node| {
-                                if new_node.arity() == node.arity() {
+                                let mut new_node = if new_node.arity() == node.arity() {
                                     node.with_allele(new_node.allele())
                                 } else {
                                     node.clone()
-                                }
+                                };
+
+                                new_node.set_innovation(node.innovation());
+                                new_node
                             })
                     })
                     .collect(),

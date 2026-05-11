@@ -36,7 +36,7 @@ impl<C: Chromosome> StatefulWidget for FitnessChartPanelWidget<C> {
             // } else {
             // };
             let charts =
-                vec![chart_state.get_line_chart(metric_names::BEST_SCORES, LineChartType::Value)];
+                vec![chart_state.get_line_chart(&metric_names::BEST_SCORES, LineChartType::Value)];
 
             LineChartWidget::from(charts).render(area, buf);
         } else {

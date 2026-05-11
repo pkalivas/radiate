@@ -1,7 +1,5 @@
-use crate::freeze::Frozen;
 use crate::stats::expression::{Evaluate, Expr};
 use crate::{MetricSet, Valid};
-use radiate_utils::AnyValue;
 use std::fmt::Debug;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -125,50 +123,6 @@ impl Rate {
         }
     }
 
-    /// Render the schedule as a structured frozen entry — variant name as the
-    /// `"type"` tag, parameters as named fields. Falls back to the schedule's
-    /// debug repr for the `Expr` variant.
-    pub fn freeze(&self) -> Frozen {
-        match self {
-            Rate::Fixed(v) => Frozen::new().with("type", "Fixed").with("value", *v),
-            Rate::Linear(start, end, steps) => Frozen::new()
-                .with("type", "Linear")
-                .with("start", *start)
-                .with("end", *end)
-                .with("steps", *steps),
-            Rate::Exponential(start, end, half_life) => Frozen::new()
-                .with("type", "Exponential")
-                .with("start", *start)
-                .with("end", *end)
-                .with("half_life", *half_life),
-            Rate::Cyclical(min, max, period, shape) => Frozen::new()
-                .with("type", "Cyclical")
-                .with("min", *min)
-                .with("max", *max)
-                .with("period", *period)
-                .with(
-                    "shape",
-                    match shape {
-                        CycleShape::Triangle => "Triangle",
-                        CycleShape::Sine => "Sine",
-                    },
-                ),
-            Rate::Stepwise(steps) => {
-                let entries: Vec<AnyValue<'static>> = steps
-                    .iter()
-                    .map(|(step, rate)| {
-                        Frozen::new().with("step", *step).with("rate", *rate).build()
-                    })
-                    .collect();
-                Frozen::new()
-                    .with("type", "Stepwise")
-                    .with("steps", AnyValue::Vector(entries))
-            }
-            Rate::Expr(expr) => Frozen::new()
-                .with("type", "Expr")
-                .with("expr", format!("{:?}", expr)),
-        }
-    }
 }
 
 impl Valid for Rate {
@@ -205,6 +159,7 @@ impl Valid for Rate {
         }
     }
 }
+
 
 impl Default for Rate {
     fn default() -> Self {

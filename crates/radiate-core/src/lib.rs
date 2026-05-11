@@ -6,7 +6,6 @@ pub mod engine;
 pub mod error;
 pub mod evaluator;
 pub mod fitness;
-pub mod freeze;
 pub mod genome;
 pub mod lineage;
 pub mod objectives;
@@ -31,12 +30,10 @@ pub use executor::Executor;
 pub use fitness::{
     BatchFitnessFunction, BatchedFn, CompositeFitnessFn, FitnessFunction, NoveltySearch,
 };
-pub use freeze::{Freeze, Frozen};
 pub use genome::*;
-pub use lineage::{Lineage, LineageEvent, LineageUpdate};
 pub use objectives::{Front, Objective, Optimize, Score, pareto};
 pub use problem::{BatchEngineProblem, EngineProblem, Problem};
-pub use radiate_utils::{AnyValue, DataType, Field, dtype, dtype_names, value};
+pub use radiate_utils::{AnyValue, DataType, Field, SmallStr, dtype, dtype_names, value};
 pub use rate::Rate;
 pub use replacement::{EncodeReplace, PopulationSampleReplace, ReplacementStrategy};
 pub use selector::Select;

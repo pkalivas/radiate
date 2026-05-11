@@ -237,8 +237,7 @@ mod tests {
         let mut chrom_two = PermutationChromosome::new(genes2, Arc::clone(&alleles));
 
         let mut metrics = MetricSet::default();
-        let mut lineage = radiate_core::lineage::Lineage::default();
-        let mut ctx = AlterContext::new("TestOperation", &mut metrics, &mut lineage, 0, 1.0);
+        let mut ctx = AlterContext::new(&mut metrics, 0, 1.0);
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
@@ -278,8 +277,7 @@ mod tests {
         let mut chrom_two = PermutationChromosome::new(genes, Arc::clone(&alleles));
 
         let mut metrics = MetricSet::default();
-        let mut lineage = radiate_core::lineage::Lineage::default();
-        let mut ctx = AlterContext::new("TestOperation", &mut metrics, &mut lineage, 0, 1.0);
+        let mut ctx = AlterContext::new(&mut metrics, 0, 1.0);
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
@@ -309,8 +307,7 @@ mod tests {
         let mut chrom_two = PermutationChromosome::new(genes, Arc::clone(&alleles));
 
         let mut metrics = MetricSet::default();
-        let mut lineage = radiate_core::lineage::Lineage::default();
-        let mut ctx = AlterContext::new("TestOperation", &mut metrics, &mut lineage, 0, 1.0);
+        let mut ctx = AlterContext::new(&mut metrics, 0, 1.0);
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
         assert_eq!(result.count(), 1);
@@ -326,8 +323,7 @@ mod tests {
         let mut chrom_two = PermutationChromosome::new(genes, Arc::clone(&alleles));
 
         let mut metrics = MetricSet::default();
-        let mut lineage = radiate_core::lineage::Lineage::default();
-        let mut ctx = AlterContext::new("TestOperation", &mut metrics, &mut lineage, 0, 1.0);
+        let mut ctx = AlterContext::new(&mut metrics, 0, 1.0);
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
         assert_eq!(result.count(), 1);
@@ -368,8 +364,7 @@ mod tests {
             let mut chrom_two = PermutationChromosome::new(genes2, Arc::clone(&alleles));
 
             let mut metrics = MetricSet::default();
-            let mut lineage = radiate_core::lineage::Lineage::default();
-            let mut ctx = AlterContext::new("TestOperation", &mut metrics, &mut lineage, 0, 1.0);
+            let mut ctx = AlterContext::new(&mut metrics, 0, 1.0);
 
             let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
@@ -437,8 +432,7 @@ mod tests {
         let mut chrom_two = PermutationChromosome::new(genes2, Arc::clone(&alleles));
 
         let mut metrics = MetricSet::default();
-        let mut lineage = radiate_core::lineage::Lineage::default();
-        let mut ctx = AlterContext::new("TestOperation", &mut metrics, &mut lineage, 0, 1.0);
+        let mut ctx = AlterContext::new(&mut metrics, 0, 1.0);
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 

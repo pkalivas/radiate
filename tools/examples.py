@@ -108,10 +108,14 @@ def main() -> int:
     for i, example in enumerate(examples):
         print(f" [{i + 1}] {example.name}")
 
-    example_choice = input(":: ")
-    example_to_run = examples[int(example_choice) - 1]
+    try:
+        example_choice = input(":: ")
+        example_to_run = examples[int(example_choice) - 1]
 
-    run_example(example_to_run, extra_args=[])
+        run_example(example_to_run, extra_args=[])
+    except Exception as e:
+        print(f"Error: {e}")
+        return 1
 
     return 0
 

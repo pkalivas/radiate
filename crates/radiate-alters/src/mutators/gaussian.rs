@@ -36,7 +36,7 @@ where
     }
 
     #[inline]
-    fn mutate_chromosome(&self, chromosome: &mut C, ctx: &mut AlterContext) -> AlterResult {
+    fn mutate_chromosome(&mut self, chromosome: &mut C, ctx: &mut AlterContext) -> AlterResult {
         let mut count = 0;
 
         random_provider::with_rng(|rand| {

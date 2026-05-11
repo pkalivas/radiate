@@ -17,6 +17,10 @@ impl EveryState {
             count: 0,
         }
     }
+
+    pub(super) fn reset(&mut self) {
+        self.count = 0;
+    }
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]

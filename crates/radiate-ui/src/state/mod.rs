@@ -34,7 +34,7 @@ impl<C: Chromosome> AppState<C> {
         self.tables.move_up(self.nav.dashboard_tab);
     }
 
-    pub fn get_selected_metric(&self) -> Option<&'static str> {
+    pub fn get_selected_metric(&self) -> Option<&str> {
         self.tables.selected_metric(self.nav.dashboard_tab)
     }
 

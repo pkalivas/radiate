@@ -1,4 +1,4 @@
-use radiate_core::{Chromosome, Objective, Population, Select, freeze::Frozen, random_provider};
+use radiate_core::{Chromosome, Objective, Phenotype, Select, random_provider};
 
 #[derive(Debug, Clone)]
 pub struct LinearRankSelector {
@@ -12,14 +12,10 @@ impl LinearRankSelector {
 }
 
 impl<C: Chromosome + Clone> Select<C> for LinearRankSelector {
-    fn freeze(&self) -> Frozen {
-        Frozen::typed::<Self>().with("selection_pressure", self.selection_pressure)
-    }
-
-    fn select(&self, population: &Population<C>, _: &Objective, count: usize) -> Population<C> {
+    fn select(&self, population: &[Phenotype<C>], _: &Objective, count: usize) -> Vec<usize> {
         let n = population.len();
         if n == 0 || count == 0 {
-            return Population::new(Vec::new());
+            return Vec::new();
         }
 
         // Population is pre-sorted best-first by the engine, so index 0 = best.
@@ -36,12 +32,12 @@ impl<C: Chromosome + Clone> Select<C> for LinearRankSelector {
             for i in 0..n {
                 cumulative += (n - i) as f32 * self.selection_pressure;
                 if cumulative > target {
-                    selected.push(population[i].clone());
+                    selected.push(i);
                     break;
                 }
             }
         }
 
-        Population::new(selected)
+        selected
     }
 }

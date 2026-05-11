@@ -1,7 +1,8 @@
 use crate::collections::GraphChromosome;
 use crate::node::{Node, NodeExt};
-use radiate_core::{AlterContext, AlterResult, Crossover, freeze::Frozen, random_provider};
+use radiate_core::{AlterContext, AlterResult, Crossover, random_provider};
 use radiate_core::{Rate, genome::*};
+use std::cmp::Ordering;
 use std::fmt::Debug;
 
 const NUM_PARENTS: usize = 2;
@@ -28,16 +29,10 @@ where
         self.rate.clone()
     }
 
-    fn freeze(&self) -> Frozen {
-        Frozen::typed::<Self>()
-            .with("rate", self.rate.freeze())
-            .with("parent_node_rate", self.parent_node_rate)
-    }
-
     #[inline]
     fn cross(
         &self,
-        population: &mut Population<GraphChromosome<T>>,
+        mut population: &mut [Phenotype<GraphChromosome<T>>],
         indexes: &[usize],
         ctx: &mut AlterContext,
     ) -> AlterResult {
@@ -52,42 +47,43 @@ where
 
                 random_provider::with_rng(|rand| {
                     let chromo_index = rand.range(0..std::cmp::min(geno_one.len(), geno_two.len()));
-
                     let chromo_one = geno_one.get_mut(chromo_index).unwrap();
                     let chromo_two = geno_two.get(chromo_index).unwrap();
 
                     let mut crosses = 0;
-                    let min_len = std::cmp::min(chromo_one.len(), chromo_two.len());
+                    let (mut ia, mut ib) = (0, 0);
 
-                    for i in 0..min_len {
-                        let node_one = chromo_one.get_mut(i);
-                        let node_two = chromo_two.get(i);
+                    while ia < chromo_one.len() && ib < chromo_two.len() {
+                        let gene_one = chromo_one.get(ia);
+                        let gene_two = chromo_two.get(ib);
 
-                        if node_one.arity() != node_two.arity() {
-                            continue;
-                        }
+                        match gene_one.innovation().cmp(&gene_two.innovation()) {
+                            Ordering::Equal => {
+                                if rand.bool(self.parent_node_rate) {
+                                    let node_two = chromo_two.get(ib);
+                                    let node_one = chromo_one.get_mut(ia);
 
-                        if !rand.bool(self.parent_node_rate) {
-                            continue;
-                        }
+                                    if node_one.arity() == node_two.arity()
+                                        && node_one.value() != node_two.value()
+                                    {
+                                        node_one.set_value(node_two.value().clone());
+                                        crosses += 1;
+                                    }
+                                }
 
-                        if node_one.value() != node_two.value() {
-                            node_one.set_value(node_two.value().clone());
-                            crosses += 1;
+                                ia += 1;
+                                ib += 1;
+                            }
+                            Ordering::Less => ia += 1,
+                            Ordering::Greater => ib += 1,
                         }
                     }
-
                     crosses
                 })
             };
 
             if num_crosses > 0 {
-                let parent_lineage = (parent_one.family(), parent_two.family());
-                let parent_ids = (parent_one.id(), parent_two.id());
-
                 parent_one.invalidate(ctx.generation());
-                ctx.update_lineage((parent_lineage, parent_ids, parent_one.id()));
-
                 return AlterResult::from(num_crosses);
             }
         }

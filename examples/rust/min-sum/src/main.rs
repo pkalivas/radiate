@@ -3,7 +3,7 @@ use radiate::*;
 const MIN_SCORE: i32 = 0;
 
 fn main() {
-    random_provider::set_seed(42);
+    random_provider::seed(42);
 
     let mut engine = GeneticEngine::builder()
         .codec(IntCodec::vector(10, 0..100))
