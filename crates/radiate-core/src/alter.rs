@@ -1,4 +1,3 @@
-use crate::stats::MetricIdx;
 use crate::{Chromosome, Gene, Genotype, math::indexes, random_provider};
 use crate::{GetPairMut, MetricSet, MetricUpdate, Phenotype, Rate};
 use radiate_utils::{SmallStr, ToSnakeCase, intern};
@@ -85,26 +84,31 @@ pub enum AlterInner<C: Chromosome> {
 #[derive(Clone)]
 pub struct Alterer<C: Chromosome> {
     name: SmallStr,
+    time_name: SmallStr,
+    rate_name: SmallStr,
     rate: Rate,
-    metric_slots: [MetricIdx; 3],
     inner: AlterInner<C>,
 }
 
 impl<C: Chromosome> Alterer<C> {
     pub fn mutation(name: &'static str, rate: Rate, m: Arc<dyn Mutate<C>>) -> Self {
+        let name = SmallStr::from_static(name);
         Self {
-            name: SmallStr::from_static(name),
+            time_name: SmallStr::from_string(format!("{}.time", name)),
+            rate_name: SmallStr::from_string(format!("{}.rate", name)),
+            name,
             rate,
-            metric_slots: [MetricIdx::default(); 3],
             inner: AlterInner::Mutate(m),
         }
     }
 
     pub fn crossover(name: &'static str, rate: Rate, c: Arc<dyn Crossover<C>>) -> Self {
+        let name = SmallStr::from_static(name);
         Self {
-            name: SmallStr::from_static(name),
+            time_name: SmallStr::from_string(format!("{}.time", name)),
+            rate_name: SmallStr::from_string(format!("{}.rate", name)),
+            name,
             rate,
-            metric_slots: [MetricIdx::default(); 3],
             inner: AlterInner::Crossover(c),
         }
     }
@@ -123,14 +127,9 @@ impl<C: Chromosome> Alterer<C> {
         metrics: &mut MetricSet,
         generation: usize,
     ) {
-        self.ensure_metric_indices(metrics);
         let rate = self.rate.get(generation, metrics);
 
-        let op_idx = self.metric_slots[0];
-        let time_idx = self.metric_slots[1];
-        let rate_idx = self.metric_slots[2];
-
-        metrics.upsert_at(rate_idx, rate);
+        metrics.upsert((self.rate_name.clone(), rate));
 
         let mut ctx = AlterContext {
             metrics,
@@ -145,32 +144,16 @@ impl<C: Chromosome> Alterer<C> {
 
                 if let Some(mutator) = mutator {
                     let AlterResult(count) = mutator.mutate(population, &mut ctx);
-                    metrics.upsert_at(op_idx, count);
-                    metrics.upsert_at(time_idx, timer.elapsed());
+                    metrics.upsert((self.name.clone(), count));
+                    metrics.upsert((self.time_name.clone(), timer.elapsed()));
                 }
             }
             AlterInner::Crossover(c) => {
                 let timer = std::time::Instant::now();
                 let AlterResult(count) = c.crossover(population, &mut ctx);
-                metrics.upsert_at(op_idx, count);
-                metrics.upsert_at(time_idx, timer.elapsed());
+                metrics.upsert((self.name.clone(), count));
+                metrics.upsert((self.time_name.clone(), timer.elapsed()));
             }
-        }
-    }
-
-    fn ensure_metric_indices(&mut self, metrics: &mut MetricSet) {
-        if !self.metric_slots[0].is_valid() {
-            self.metric_slots[0] = metrics.resolve(&self.name);
-        }
-
-        if !self.metric_slots[1].is_valid() {
-            self.metric_slots[1] =
-                metrics.resolve(&SmallStr::from_string(format!("{}.time", self.name)));
-        }
-
-        if !self.metric_slots[2].is_valid() {
-            self.metric_slots[2] =
-                metrics.resolve(&SmallStr::from_string(format!("{}.rate", self.name)));
         }
     }
 }

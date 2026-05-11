@@ -1,22 +1,10 @@
 use crate::steps::EngineStep;
 use radiate_core::{
     Chromosome, Ecosystem, Executor, MetricSet, Objective, Phenotype, Population, Rate, Species,
-    define_metric_handles, diversity::Diversity, metric_names, random_provider,
+    diversity::Diversity, metric_names, random_provider,
 };
 use radiate_error::Result;
 use std::sync::{Arc, Mutex, RwLock};
-
-define_metric_handles! {
-    pub struct SpeciesHandles {
-        age           = metric_names::SPECIES_AGE,
-        size          = metric_names::SPECIES_SIZE,
-        count         = metric_names::SPECIES_COUNT,
-        created       = metric_names::SPECIES_CREATED,
-        evenness      = metric_names::SPECIES_EVENNESS,
-        new_ratio     = metric_names::SPECIES_NEW_RATIO,
-        largest_share = metric_names::LARGEST_SPECIES_SHARE,
-    }
-}
 
 pub struct SpeciateStep<C>
 where
@@ -28,7 +16,6 @@ where
     pub(crate) executor: Arc<Executor>,
     pub(crate) distances: Vec<f32>,
     pub(crate) assignments: Arc<Mutex<Vec<Option<(usize, f32)>>>>,
-    pub(crate) handles: SpeciesHandles,
 }
 
 impl<C: Chromosome> SpeciateStep<C> {
@@ -45,7 +32,6 @@ impl<C: Chromosome> SpeciateStep<C> {
             executor,
             distances: Vec::new(),
             assignments: Arc::new(Mutex::new(Vec::new())),
-            handles: SpeciesHandles::new(),
         }
     }
 }
@@ -286,13 +272,13 @@ where
             0.0
         };
 
-        metrics.upsert_at(self.handles.age, &ages);
-        metrics.upsert_at(self.handles.size, &sizes);
-        metrics.upsert_at(self.handles.count, s_count);
-        metrics.upsert_at(self.handles.created, new_species_count);
-        metrics.upsert_at(self.handles.evenness, evenness);
-        metrics.upsert_at(self.handles.new_ratio, churn);
-        metrics.upsert_at(self.handles.largest_share, largest_share);
+        metrics.upsert((metric_names::SPECIES_AGE, &ages));
+        metrics.upsert((metric_names::SPECIES_SIZE, &sizes));
+        metrics.upsert((metric_names::SPECIES_COUNT, s_count));
+        metrics.upsert((metric_names::SPECIES_CREATED, new_species_count));
+        metrics.upsert((metric_names::SPECIES_EVENNESS, evenness));
+        metrics.upsert((metric_names::SPECIES_NEW_RATIO, churn));
+        metrics.upsert((metric_names::LARGEST_SPECIES_SHARE, largest_share));
     }
 }
 
@@ -310,10 +296,6 @@ where
         let pop_len = ecosystem.population().len();
         if pop_len == 0 {
             return Ok(());
-        }
-
-        if generation == 0 {
-            self.handles.ensure(metrics, 0);
         }
 
         let threshold = self.threshold.get(generation, metrics);
