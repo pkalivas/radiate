@@ -650,7 +650,7 @@ mod tests {
 
     #[test]
     fn is_converged_fires_when_window_is_flat() {
-        let mut ms = metrics_with("score", 1.0);
+        let ms = metrics_with("score", 1.0);
         let mut e = expr::is_converged("score", 3, 0.01);
 
         // Buffers seed up to size 3.
