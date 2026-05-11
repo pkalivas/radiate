@@ -34,7 +34,7 @@ pub(super) struct Meta {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Metric {
     name: SmallStr,
-    meta: Option<Meta>,
+    meta: Meta,
     inner: Statistic,
     tags: Tag,
     dtype: u8,
@@ -47,37 +47,34 @@ impl Metric {
 
         Self {
             name,
-            meta: None,
+            meta: Meta::default(),
             inner: Statistic::default(),
             tags,
             dtype: DTYPE_NULL,
         }
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.meta.update_count == 0 && self.inner.count() == 0
+    }
+
     #[inline(always)]
     pub fn update_count(&self) -> usize {
-        self.meta.as_ref().map_or(0, |meta| meta.update_count)
+        self.meta.update_count
     }
 
     #[inline(always)]
     pub fn generation(&self) -> u64 {
-        self.meta.as_ref().map_or(0, |meta| meta.generation)
+        self.meta.generation
     }
 
     #[inline(always)]
     pub fn set_generation(&mut self, generation: u64) {
-        if let Some(meta) = &mut self.meta {
-            if generation != meta.generation {
-                meta.update_count = 0;
-            }
-
-            meta.generation = generation;
-        } else {
-            self.meta = Some(Meta {
-                update_count: 0,
-                generation,
-            });
+        if generation != self.meta.generation {
+            self.meta.update_count = 0;
         }
+
+        self.meta.generation = generation;
     }
 
     pub fn dtype(&self) -> DataType {
@@ -198,9 +195,7 @@ impl Metric {
             MetricUpdate::Statistic(stat) => {
                 self.inner.merge(&stat);
                 self.dtype = DTYPE_FLOAT32;
-                if let Some(meta) = &mut self.meta {
-                    meta.update_count += 1;
-                }
+                self.meta.update_count += 1;
             }
         }
     }
@@ -209,9 +204,7 @@ impl Metric {
         self.inner.add(value);
         self.add_tag(TagType::Statistic);
 
-        if let Some(meta) = &mut self.meta {
-            meta.update_count += 1;
-        }
+        self.meta.update_count += 1;
 
         if self.dtype == DTYPE_NULL {
             self.dtype = DTYPE_FLOAT32;
@@ -221,11 +214,7 @@ impl Metric {
     fn update_time_statistic(&mut self, value: Duration) {
         self.inner.add(value.as_secs_f32());
         self.add_tag(TagType::Time);
-        
-        if let Some(meta) = &mut self.meta {
-            meta.update_count += 1;
-
-        }
+        self.meta.update_count += 1;
 
         if self.dtype == DTYPE_NULL {
             self.dtype = DTYPE_DURATION;
@@ -237,10 +226,7 @@ impl Metric {
         I: IntoIterator<Item = f32>,
     {   
         self.inner = values.into_iter().collect::<Statistic>();
-
-        if let Some(meta) = &mut self.meta {
-            meta.update_count += self.inner.count() as usize;
-        }
+        self.meta.update_count += self.inner.count() as usize;
         
         self.add_tag(TagType::Distribution);
 

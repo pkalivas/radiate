@@ -16,7 +16,6 @@ pub enum LineageUpdate {
         child: PhenotypeId,
     },
     Replace {
-        reason: &'static str,
         old: (FamilyId, PhenotypeId),
         new: (FamilyId, PhenotypeId),
     },
@@ -63,16 +62,9 @@ impl From<((FamilyId, PhenotypeId), PhenotypeId)> for LineageUpdate {
     }
 }
 
-impl
-    From<(
-        &'static str,
-        (FamilyId, PhenotypeId),
-        (FamilyId, PhenotypeId),
-    )> for LineageUpdate
-{
+impl From<((FamilyId, PhenotypeId), (FamilyId, PhenotypeId))> for LineageUpdate {
     fn from(
-        (reason, (old_family, old_id), (new_family, new_id)): (
-            &'static str,
+        ((old_family, old_id), (new_family, new_id)): (
             (FamilyId, PhenotypeId),
             (FamilyId, PhenotypeId),
         ),
@@ -82,32 +74,10 @@ impl
         }
 
         LineageUpdate::Replace {
-            reason,
             old: (old_family, old_id),
             new: (new_family, new_id),
         }
     }
-}
-
-#[derive(Clone, Debug)]
-pub enum LineageEvent {
-    Mutate {
-        operator: &'static str,
-        family: FamilyId,
-        parent: PhenotypeId,
-        child: PhenotypeId,
-    },
-    Crossover {
-        operator: &'static str,
-        families: (FamilyId, FamilyId),
-        parents: (PhenotypeId, PhenotypeId),
-        child: PhenotypeId,
-    },
-    Replace {
-        reason: &'static str,
-        old: (FamilyId, PhenotypeId),
-        new: (FamilyId, PhenotypeId),
-    },
 }
 
 #[derive(Clone, Debug, Default)]
@@ -145,38 +115,27 @@ impl Lineage {
         &self.stats
     }
 
-    pub fn extend<I: IntoIterator<Item = impl Into<LineageUpdate>>>(
-        &mut self,
-        operation: &'static str,
-        events: I,
-    ) {
+    pub fn extend<I: IntoIterator<Item = impl Into<LineageUpdate>>>(&mut self, events: I) {
         for event in events {
-            self.push(operation, event.into());
+            self.push(event.into());
         }
     }
 
-    pub fn push(&mut self, operator: &'static str, update: LineageUpdate) {
+    pub fn push(&mut self, update: LineageUpdate) {
         match update {
             LineageUpdate::Invalid => return,
             LineageUpdate::Mutate {
                 family,
                 parent,
-                child,
+                child: _,
             } => {
                 *self.stats.parent_usage.entry(parent).or_insert(0) += 1;
                 *self.stats.family_usage.entry(family).or_insert(0) += 1;
-
-                LineageEvent::Mutate {
-                    operator,
-                    child,
-                    family,
-                    parent,
-                }
             }
             LineageUpdate::Crossover {
                 families,
                 parents,
-                child,
+                child: _,
             } => {
                 *self.stats.parent_usage.entry(parents.0).or_insert(0) += 1;
                 *self.stats.parent_usage.entry(parents.1).or_insert(0) += 1;
@@ -196,16 +155,9 @@ impl Lineage {
                 };
 
                 *self.stats.family_pairs.entry((a, b)).or_insert(0) += 1;
-
-                LineageEvent::Crossover {
-                    operator,
-                    families,
-                    parents,
-                    child,
-                }
             }
-            LineageUpdate::Replace { reason, old, new } => {
-                LineageEvent::Replace { reason, old, new }
+            LineageUpdate::Replace { .. } => {
+                // LineageEvent::Replace { old, new }
             }
         };
 

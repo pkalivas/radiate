@@ -107,7 +107,7 @@ mod tests {
 
         let mut metrics = MetricSet::default();
         let mut lineage = radiate_core::lineage::Lineage::default();
-        let mut ctx = AlterContext::new("TestOperation", &mut metrics, &mut lineage, 0, 1.0);
+        let mut ctx = AlterContext::new(&mut metrics, &mut lineage, 0, 1.0);
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
@@ -148,7 +148,7 @@ mod tests {
 
         let mut metrics = MetricSet::default();
         let mut lineage = radiate_core::lineage::Lineage::default();
-        let mut ctx = AlterContext::new("TestOperation", &mut metrics, &mut lineage, 0, 0.0);
+        let mut ctx = AlterContext::new(&mut metrics, &mut lineage, 0, 0.0);
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
@@ -180,7 +180,7 @@ mod tests {
 
         let mut metrics = MetricSet::default();
         let mut lineage = radiate_core::lineage::Lineage::default();
-        let mut ctx = AlterContext::new("TestOperation", &mut metrics, &mut lineage, 0, 1.0);
+        let mut ctx = AlterContext::new(&mut metrics, &mut lineage, 0, 1.0);
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
@@ -229,7 +229,7 @@ mod tests {
 
         let mut metrics = MetricSet::default();
         let mut lineage = radiate_core::lineage::Lineage::default();
-        let mut ctx = AlterContext::new("TestOperation", &mut metrics, &mut lineage, 0, 1.0);
+        let mut ctx = AlterContext::new(&mut metrics, &mut lineage, 0, 1.0);
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
@@ -260,7 +260,7 @@ mod tests {
 
         let mut metrics = MetricSet::default();
         let mut lineage = radiate_core::lineage::Lineage::default();
-        let mut ctx = AlterContext::new("TestOperation", &mut metrics, &mut lineage, 0, 1.0);
+        let mut ctx = AlterContext::new(&mut metrics, &mut lineage, 0, 1.0);
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
@@ -287,7 +287,7 @@ mod tests {
 
         let mut metrics = MetricSet::default();
         let mut lineage = radiate_core::lineage::Lineage::default();
-        let mut ctx = AlterContext::new("TestOperation", &mut metrics, &mut lineage, 0, 1.0);
+        let mut ctx = AlterContext::new(&mut metrics, &mut lineage, 0, 1.0);
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
@@ -331,7 +331,7 @@ mod tests {
 
             let mut metrics = MetricSet::default();
             let mut lineage = radiate_core::lineage::Lineage::default();
-            let mut ctx = AlterContext::new("TestOperation", &mut metrics, &mut lineage, 0, 1.0);
+            let mut ctx = AlterContext::new(&mut metrics, &mut lineage, 0, 1.0);
 
             let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
@@ -375,7 +375,7 @@ mod tests {
 
         let mut metrics = MetricSet::default();
         let mut lineage = radiate_core::lineage::Lineage::default();
-        let mut ctx = AlterContext::new("TestOperation", &mut metrics, &mut lineage, 0, 1.0);
+        let mut ctx = AlterContext::new(&mut metrics, &mut lineage, 0, 1.0);
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
@@ -403,7 +403,7 @@ mod tests {
 
         let mut metrics = MetricSet::default();
         let mut lineage = radiate_core::lineage::Lineage::default();
-        let mut ctx = AlterContext::new("TestOperation", &mut metrics, &mut lineage, 0, 1.0);
+        let mut ctx = AlterContext::new(&mut metrics, &mut lineage, 0, 1.0);
 
         crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 

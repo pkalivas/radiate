@@ -108,7 +108,11 @@ impl PyMetricSet {
     }
 
     pub fn keys(&self) -> Vec<String> {
-        self.inner.keys().into_iter().map(|s| s.into_string()).collect()
+        self.inner
+            .iter()
+            .filter(|(_, metric)| !metric.is_empty())
+            .map(|(key, _)| key.to_string())
+            .collect()
     }
 
     pub fn project<'py>(&self, py: Python<'py>, expr: &mut PyExpr) -> PyResult<Bound<'py, PyAny>> {

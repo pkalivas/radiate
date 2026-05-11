@@ -31,7 +31,7 @@ pub use fitness::{
     BatchFitnessFunction, BatchedFn, CompositeFitnessFn, FitnessFunction, NoveltySearch,
 };
 pub use genome::*;
-pub use lineage::{Lineage, LineageEvent, LineageUpdate};
+pub use lineage::{Lineage, LineageUpdate};
 pub use objectives::{Front, Objective, Optimize, Score, pareto};
 pub use problem::{BatchEngineProblem, EngineProblem, Problem};
 pub use radiate_utils::{AnyValue, DataType, Field, SmallStr, dtype, dtype_names, value};

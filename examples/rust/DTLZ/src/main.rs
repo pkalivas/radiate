@@ -14,9 +14,8 @@ fn main() {
         .codec(codec)
         .fitness_fn(|geno: Vec<f32>| dtlz_1(&geno))
         .multi_objective(vec![Optimize::Minimize; OBJECTIVES])
-        .offspring_selector(RouletteSelector::new())
+        .offspring_selector(TournamentSelector::new(5))
         .survivor_selector(NSGA3Selector::new(12))
-        .diversity(CosineDistance)
         .front_size(200..250)
         .alter(alters!(
             SimulatedBinaryCrossover::new(1_f32, 2.0),
@@ -27,6 +26,7 @@ fn main() {
     let result = engine.iter().limit(1000).last().unwrap();
 
     println!("{:?}", result);
+    println!("{}", result.metrics().dashboard());
     let front = result.front().unwrap();
     plot_front(front);
 }

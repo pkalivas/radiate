@@ -201,7 +201,7 @@ mod test {
         let mut metrics = MetricSet::default();
         let mut lineage = Lineage::default();
 
-        let mut ctx = AlterContext::new("TestOperation", &mut metrics, &mut lineage, 0, 1.0);
+        let mut ctx = AlterContext::new(&mut metrics, &mut lineage, 0, 1.0);
 
         TreeCrossover::cross_nodes(tree_one.as_mut(), tree_two.as_mut(), usize::MAX, &mut ctx);
 

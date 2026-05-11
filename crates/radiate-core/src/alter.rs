@@ -1,6 +1,7 @@
+use crate::stats::MetricIdx;
 use crate::{Chromosome, Gene, Genotype, math::indexes, random_provider};
-use crate::{GetPairMut, Lineage, LineageUpdate, MetricSet, MetricUpdate, Phenotype, Rate, metric};
-use radiate_utils::{ToSnakeCase, intern};
+use crate::{GetPairMut, Lineage, LineageUpdate, MetricSet, MetricUpdate, Phenotype, Rate};
+use radiate_utils::{SmallStr, ToSnakeCase, intern};
 use std::sync::Arc;
 
 #[macro_export]
@@ -47,14 +48,12 @@ impl From<usize> for AlterResult {
 pub struct AlterContext<'a> {
     metrics: &'a mut MetricSet,
     lineage: &'a mut Lineage,
-    operation: &'static str,
     generation: usize,
     rate: f32,
 }
 
 impl<'a> AlterContext<'a> {
     pub fn new(
-        operation: &'static str,
         metrics: &'a mut MetricSet,
         lineage: &'a mut Lineage,
         generation: usize,
@@ -63,7 +62,6 @@ impl<'a> AlterContext<'a> {
         Self {
             metrics,
             lineage,
-            operation,
             generation,
             rate,
         }
@@ -82,35 +80,54 @@ impl<'a> AlterContext<'a> {
     }
 
     pub fn update_lineage(&mut self, update: impl Into<LineageUpdate>) {
-        self.lineage.push(self.operation, update.into());
+        self.lineage.push(update.into());
     }
 }
 
-/// The [Alterer] enum is used to represent the different
+#[derive(Clone)]
+pub enum AlterInner<C: Chromosome> {
+    Mutate(Arc<dyn Mutate<C>>),
+    Crossover(Arc<dyn Crossover<C>>),
+}
+
+/// The [Alterer] struct is used to represent the different
 /// types of alterations that can be performed on a
 /// population - It can be either a mutation or a crossover operation.
 #[derive(Clone)]
-pub enum Alterer<C: Chromosome> {
-    Mutate(&'static str, Rate, Arc<dyn Mutate<C>>),
-    Crossover(&'static str, Rate, Arc<dyn Crossover<C>>),
+pub struct Alterer<C: Chromosome> {
+    name: SmallStr,
+    rate: Rate,
+    metric_slots: [MetricIdx; 3],
+    inner: AlterInner<C>,
 }
 
 impl<C: Chromosome> Alterer<C> {
-    pub fn name(&self) -> &'static str {
-        match &self {
-            Alterer::Mutate(name, _, _) => name,
-            Alterer::Crossover(name, _, _) => name,
+    pub fn mutation(name: &'static str, rate: Rate, m: Arc<dyn Mutate<C>>) -> Self {
+        Self {
+            name: SmallStr::from_static(name),
+            rate,
+            metric_slots: [MetricIdx::default(); 3],
+            inner: AlterInner::Mutate(m),
         }
     }
 
-    pub fn rate(&mut self) -> &mut Rate {
-        match self {
-            Alterer::Mutate(_, rate, _) => rate,
-            Alterer::Crossover(_, rate, _) => rate,
+    pub fn crossover(name: &'static str, rate: Rate, c: Arc<dyn Crossover<C>>) -> Self {
+        Self {
+            name: SmallStr::from_static(name),
+            rate,
+            metric_slots: [MetricIdx::default(); 3],
+            inner: AlterInner::Crossover(c),
         }
     }
 
-    #[inline]
+    pub fn rate(&self) -> &Rate {
+        &self.rate
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
     pub fn alter(
         &mut self,
         population: &mut [Phenotype<C>],
@@ -118,41 +135,50 @@ impl<C: Chromosome> Alterer<C> {
         metrics: &mut MetricSet,
         generation: usize,
     ) {
-        let rate = self.rate().get(generation, metrics);
-        let operation = self.name();
+        self.ensure_metric_indices(metrics);
+        let rate = self.rate.get(generation, metrics);
 
-        metrics.upsert(metric!(
-            radiate_utils::intern!(format!("{}.rate", operation)),
-            rate
-        ));
+        let op_idx = self.metric_slots[0];
+        let time_idx = self.metric_slots[1];
+        let rate_idx = self.metric_slots[2];
+
+        metrics.upsert_at(rate_idx, rate);
 
         let mut ctx = AlterContext {
             metrics,
             lineage,
-            operation,
             generation,
             rate,
         };
-
-        match &self {
-            Alterer::Mutate(name, _, m) => {
+        match &self.inner {
+            AlterInner::Mutate(m) => {
                 let timer = std::time::Instant::now();
                 let AlterResult(count) = m.mutate(population, &mut ctx);
-                metrics.upsert((*name, count));
-                metrics.upsert((
-                    radiate_utils::intern!(format!("{}.time", name)),
-                    timer.elapsed(),
-                ));
+                metrics.upsert_at(op_idx, count);
+                metrics.upsert_at(time_idx, timer.elapsed());
             }
-            Alterer::Crossover(name, _, c) => {
+            AlterInner::Crossover(c) => {
                 let timer = std::time::Instant::now();
                 let AlterResult(count) = c.crossover(population, &mut ctx);
-                metrics.upsert((*name, count));
-                metrics.upsert((
-                    radiate_utils::intern!(format!("{}.time", name)),
-                    timer.elapsed(),
-                ));
+                metrics.upsert_at(op_idx, count);
+                metrics.upsert_at(time_idx, timer.elapsed());
             }
+        }
+    }
+
+    fn ensure_metric_indices(&mut self, metrics: &mut MetricSet) {
+        if !self.metric_slots[0].is_valid() {
+            self.metric_slots[0] = metrics.resolve(&self.name);
+        }
+
+        if !self.metric_slots[1].is_valid() {
+            self.metric_slots[1] =
+                metrics.resolve(&SmallStr::from_string(format!("{}.time", self.name)));
+        }
+
+        if !self.metric_slots[2].is_valid() {
+            self.metric_slots[2] =
+                metrics.resolve(&SmallStr::from_string(format!("{}.rate", self.name)));
         }
     }
 }
@@ -203,7 +229,7 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
     where
         Self: Sized + 'static,
     {
-        Alterer::Crossover(intern!(self.name()), self.rate(), Arc::new(self))
+        Alterer::crossover(intern!(self.name()), self.rate(), Arc::new(self))
     }
 
     #[inline]
@@ -315,7 +341,7 @@ pub trait Mutate<C: Chromosome>: Send + Sync {
     where
         Self: Sized + 'static,
     {
-        Alterer::Mutate(intern!(self.name()), self.rate(), Arc::new(self))
+        Alterer::mutation(intern!(self.name()), self.rate(), Arc::new(self))
     }
 
     #[inline]
@@ -367,3 +393,74 @@ pub trait Mutate<C: Chromosome>: Send + Sync {
         1
     }
 }
+
+// /// The [Alterer] enum is used to represent the different
+// /// types of alterations that can be performed on a
+// /// population - It can be either a mutation or a crossover operation.
+// #[derive(Clone)]
+// pub enum Alterer<C: Chromosome> {
+//     Mutate(&'static str, Rate, Arc<dyn Mutate<C>>),
+//     Crossover(&'static str, Rate, Arc<dyn Crossover<C>>),
+// }
+
+// impl<C: Chromosome> Alterer<C> {
+//     pub fn name(&self) -> &'static str {
+//         match &self {
+//             Alterer::Mutate(name, _, _) => name,
+//             Alterer::Crossover(name, _, _) => name,
+//         }
+//     }
+
+//     pub fn rate(&mut self) -> &mut Rate {
+//         match self {
+//             Alterer::Mutate(_, rate, _) => rate,
+//             Alterer::Crossover(_, rate, _) => rate,
+//         }
+//     }
+
+//     #[inline]
+//     pub fn alter(
+//         &mut self,
+//         population: &mut [Phenotype<C>],
+//         lineage: &mut Lineage,
+//         metrics: &mut MetricSet,
+//         generation: usize,
+//     ) {
+//         let rate = self.rate().get(generation, metrics);
+//         let operation = self.name();
+
+//         metrics.upsert(metric!(
+//             radiate_utils::intern!(format!("{}.rate", operation)),
+//             rate
+//         ));
+
+//         let mut ctx = AlterContext {
+//             metrics,
+//             lineage,
+
+//             generation,
+//             rate,
+//         };
+
+//         match &self {
+//             Alterer::Mutate(name, _, m) => {
+//                 let timer = std::time::Instant::now();
+//                 let AlterResult(count) = m.mutate(population, &mut ctx);
+//                 metrics.upsert((*name, count));
+//                 metrics.upsert((
+//                     radiate_utils::intern!(format!("{}.time", name)),
+//                     timer.elapsed(),
+//                 ));
+//             }
+//             Alterer::Crossover(name, _, c) => {
+//                 let timer = std::time::Instant::now();
+//                 let AlterResult(count) = c.crossover(population, &mut ctx);
+//                 metrics.upsert((*name, count));
+//                 metrics.upsert((
+//                     radiate_utils::intern!(format!("{}.time", name)),
+//                     timer.elapsed(),
+//                 ));
+//             }
+//         }
+//     }
+// }

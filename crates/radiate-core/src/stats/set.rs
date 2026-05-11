@@ -58,18 +58,17 @@ pub struct MetricSetSummary {
 }
 
 #[derive(Clone, Default, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct MetricSet {
-    metrics: HashMap<SmallStr, Metric>,
-    idx_map: HashMap<MetricIdx, SmallStr>,
+    metrics: Vec<Metric>,
+    by_name: HashMap<SmallStr, MetricIdx>,
     meta: Meta,
 }
 
 impl MetricSet {
     pub fn new() -> Self {
         MetricSet {
-            metrics: HashMap::new(),
-            idx_map: HashMap::new(),
+            metrics: Vec::new(),
+            by_name: HashMap::new(),
             meta: Meta::default(),
         }
     }
@@ -84,30 +83,88 @@ impl MetricSet {
         self.meta.generation
     }
 
+    /// Resolve a name to a stable [`MetricIdx`], registering an empty metric if
+    /// the name has not been seen before. The returned handle is valid for the
+    /// lifetime of this `MetricSet`.
+    pub fn resolve(&mut self, name: &SmallStr) -> MetricIdx {
+        if let Some(&idx) = self.by_name.get(name.as_str()) {
+            return idx;
+        }
+
+        let idx = MetricIdx::new(self.metrics.len() as u32);
+        self.by_name.insert(name.clone(), idx);
+        self.metrics.push(Metric::new(name.clone()));
+        idx
+    }
+
+    /// Non-creating index lookup. Returns `None` if the name has not been
+    /// registered.
+    #[inline]
+    pub fn get_idx(&self, name: impl AsRef<str>) -> Option<MetricIdx> {
+        self.by_name.get(name.as_ref()).copied()
+    }
+
+    /// Fast-path upsert via a pre-resolved handle. Bypasses the name → idx
+    /// HashMap.
+    #[inline]
+    pub fn upsert_at<'a>(&mut self, idx: MetricIdx, update: impl Into<MetricUpdate<'a>>) {
+        let i = idx.as_usize();
+
+        debug_assert!(
+            i < self.metrics.len(),
+            "Attempted to upsert at invalid MetricIdx {idx:?}"
+        );
+
+        let generation = self.meta.generation;
+        let m = &mut self.metrics[i];
+
+        m.set_generation(generation);
+        m.apply_update(update.into());
+
+        self.meta.update_count += 1;
+    }
+
+    /// Read by handle.
+    #[inline]
+    pub fn get_by_idx(&self, idx: MetricIdx) -> Option<&Metric> {
+        self.metrics.get(idx.as_usize())
+    }
+
     #[inline(always)]
-    pub fn keys(&self) -> Vec<SmallStr> {
-        self.metrics.keys().cloned().collect()
+    pub fn keys(&self) -> impl Iterator<Item = SmallStr> {
+        self.metrics.iter().map(|m| m.name().clone())
     }
 
     #[inline(always)]
     pub fn flush_all_into(&mut self, target: &mut MetricSet) {
         let generation = target.advance_generation();
-        for (key, mut m) in self.metrics.drain() {
+        for mut m in self.metrics.drain(..) {
             m.set_generation(generation);
-            if let Some(target_metric) = target.metrics.get_mut(key.as_str()) {
-                target_metric.update_from(m);
+            if let Some(&idx) = target.by_name.get(m.name().as_str()) {
+                target.metrics[idx.as_usize()].update_from(m);
             } else {
-                target.metrics.insert(key, m);
+                let idx = MetricIdx::new(target.metrics.len() as u32);
+                target.by_name.insert(m.name().clone(), idx);
+                target.metrics.push(m);
             }
         }
 
-        self.clear();
+        self.by_name.clear();
+        self.meta.update_count = 0;
     }
 
+    /// Insert or fully overwrite a metric by name. If a metric with the same
+    /// name already exists, its slot is reused (handle stays valid).
     #[inline(always)]
     pub fn replace(&mut self, metric: impl Into<Metric>) {
         let metric = metric.into();
-        self.metrics.insert(metric.name().clone(), metric);
+        if let Some(&idx) = self.by_name.get(metric.name().as_str()) {
+            self.metrics[idx.as_usize()] = metric;
+        } else {
+            let idx = MetricIdx::new(self.metrics.len() as u32);
+            self.by_name.insert(metric.name().clone(), idx);
+            self.metrics.push(metric);
+        }
     }
 
     #[inline(always)]
@@ -130,23 +187,10 @@ impl MetricSet {
                 }
             }
             MetricSetUpdate::NamedSingle(name, metric_update, tag) => {
-                self.meta.update_count += 1;
-                if let Some(m) = self.metrics.get_mut(name.as_str()) {
-                    m.set_generation(generation);
-                    m.apply_update(metric_update);
-                    if let Some(tag) = tag {
-                        m.add_tag(tag);
-                    }
-                } else {
-                    let mut metric = Metric::new(name);
-                    metric.set_generation(generation);
-                    metric.apply_update(metric_update);
-
-                    if let Some(tag) = tag {
-                        metric.add_tag(tag);
-                    }
-
-                    self.add(metric);
+                let idx = self.resolve(&name);
+                self.upsert_at(idx, metric_update);
+                if let Some(tag) = tag {
+                    self.metrics[idx.as_usize()].add_tag(tag);
                 }
             }
         }
@@ -154,9 +198,9 @@ impl MetricSet {
 
     #[inline(always)]
     pub fn iter_tagged(&self, tag: TagType) -> impl Iterator<Item = (&str, &Metric)> {
-        self.metrics.iter().filter_map(move |(k, m)| {
+        self.metrics.iter().filter_map(move |m| {
             if m.tags().has(tag) {
-                Some((k.as_str(), m))
+                Some((m.name().as_str(), m))
             } else {
                 None
             }
@@ -166,45 +210,46 @@ impl MetricSet {
     #[inline(always)]
     pub fn tags(&self) -> impl Iterator<Item = TagType> {
         self.metrics
-            .values()
+            .iter()
             .fold(Tag::empty(), |acc, m| acc.union(m.tags()))
             .into_iter()
     }
 
     #[inline(always)]
     pub fn iter(&self) -> impl Iterator<Item = (&str, &Metric)> {
-        self.metrics
-            .iter()
-            .map(|(name, metric)| (name.as_str(), metric))
+        self.metrics.iter().map(|m| (m.name().as_str(), m))
     }
 
+    /// Insert a metric by name. If the name already exists, the existing slot
+    /// is overwritten (handle stays valid).
     #[inline(always)]
     pub fn add(&mut self, metric: Metric) {
-        self.metrics.insert(metric.name().clone(), metric);
+        self.replace(metric);
     }
 
     #[inline(always)]
     pub fn get(&self, name: impl AsRef<str>) -> Option<&Metric> {
-        self.metrics.get(name.as_ref())
+        self.by_name
+            .get(name.as_ref())
+            .and_then(|idx| self.metrics.get(idx.as_usize()))
     }
 
     #[inline(always)]
     pub fn get_from_string(&self, name: String) -> Option<&Metric> {
-        self.metrics.get(name.as_str())
+        self.get(name.as_str())
     }
 
     #[inline(always)]
     pub fn clear(&mut self) {
-        for (_, m) in self.metrics.iter_mut() {
+        for m in &mut self.metrics {
             m.clear_values();
         }
-
         self.meta.update_count = 0;
     }
 
     #[inline(always)]
     pub fn contains_key(&self, name: impl AsRef<str>) -> bool {
-        self.metrics.contains_key(name.as_ref())
+        self.by_name.contains_key(name.as_ref())
     }
 
     #[inline(always)]
@@ -231,12 +276,15 @@ impl MetricSet {
 
     fn add_or_update_internal(&mut self, generation: u64, mut metric: Metric) {
         self.meta.update_count += 1;
-        if let Some(existing) = self.metrics.get_mut(metric.name().as_str()) {
+        if let Some(&idx) = self.by_name.get(metric.name().as_str()) {
+            let existing = &mut self.metrics[idx.as_usize()];
             existing.set_generation(generation);
             existing.update_from(metric);
         } else {
             metric.set_generation(generation);
-            self.metrics.insert(metric.name().clone(), metric);
+            let idx = MetricIdx::new(self.metrics.len() as u32);
+            self.by_name.insert(metric.name().clone(), idx);
+            self.metrics.push(metric);
         }
     }
 }
@@ -306,6 +354,35 @@ impl Debug for MetricSet {
         writeln!(f, "MetricSet {{")?;
         writeln!(f, "{}", fmt::render_dashboard(self).unwrap_or_default())?;
         write!(f, "}}")
+    }
+}
+
+#[cfg(feature = "serde")]
+impl Serialize for MetricSet {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.metrics.serialize(serializer)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> Deserialize<'de> for MetricSet {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let metrics = Vec::<Metric>::deserialize(deserializer)?;
+        let mut by_name = HashMap::with_capacity(metrics.len());
+        for (i, m) in metrics.iter().enumerate() {
+            by_name.insert(m.name().clone(), MetricIdx::new(i as u32));
+        }
+        Ok(MetricSet {
+            metrics,
+            by_name,
+            meta: Meta::default(),
+        })
     }
 }
 
@@ -415,5 +492,48 @@ mod tests {
         let combined = [1.0, 2.0, 3.0, 10.0, 20.0];
         let (n, mean, var, min, max) = stats_of(&combined);
         assert_stat_eq(m, n, mean, var, min, max);
+    }
+
+    #[test]
+    fn resolve_returns_stable_handle() {
+        let mut set = MetricSet::new();
+        let name: SmallStr = SmallStr::from_static("test.metric");
+
+        let idx1 = set.resolve(&name);
+        let idx2 = set.resolve(&name);
+        assert_eq!(idx1, idx2);
+
+        set.upsert_at(idx1, 1.0);
+        set.upsert_at(idx1, 2.0);
+        set.upsert_at(idx1, 3.0);
+
+        let m = set.get(name.as_str()).unwrap();
+        assert_eq!(m.count(), 3);
+        assert_eq!(m.sum(), 6.0);
+    }
+
+    #[test]
+    fn upsert_by_name_and_at_share_storage() {
+        let mut set = MetricSet::new();
+        let name: SmallStr = SmallStr::from_static("shared");
+
+        set.upsert((name.clone(), 1.0));
+        let idx = set.get_idx(name.as_str()).unwrap();
+        set.upsert_at(idx, 2.0);
+
+        let m = set.get(name.as_str()).unwrap();
+        assert_eq!(m.count(), 2);
+        assert_eq!(m.sum(), 3.0);
+    }
+
+    #[test]
+    fn resolve_assigns_sequential_indices() {
+        let mut set = MetricSet::new();
+        let a = set.resolve(&SmallStr::from_static("a"));
+        let b = set.resolve(&SmallStr::from_static("b"));
+        let c = set.resolve(&SmallStr::from_static("c"));
+        assert_eq!(a.get(), 0);
+        assert_eq!(b.get(), 1);
+        assert_eq!(c.get(), 2);
     }
 }
