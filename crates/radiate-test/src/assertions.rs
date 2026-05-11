@@ -8,7 +8,7 @@ use radiate_engines::*;
 pub fn assert_has_species<C: Chromosome>(result: &Ecosystem<C>, label: &str) {
     let species = result
         .species()
-        .expect(&format!("{label}: expected species, but got None"));
+        .unwrap_or_else(|| panic!("{label}: expected species, but got None"));
     assert!(
         !species.is_empty(),
         "{label}: expected at least one species, but got an empty list"
@@ -26,7 +26,7 @@ pub fn assert_no_species<C: Chromosome>(result: &Ecosystem<C>, label: &str) {
 pub fn assert_species_count<C: Chromosome>(result: &Ecosystem<C>, expected: usize, label: &str) {
     let species = result
         .species()
-        .expect(&format!("{label}: expected species, but got None"));
+        .unwrap_or_else(|| panic!("{label}: expected species, but got None"));
     assert_eq!(
         species.len(),
         expected,
@@ -40,7 +40,7 @@ pub fn assert_population_speciated<C: Chromosome>(result: &Ecosystem<C>, label: 
     let pop = result.population();
     let species = result
         .species()
-        .expect(&format!("{label}: expected species, but got None"))
+        .unwrap_or_else(|| panic!("{label}: expected species, but got None"))
         .iter()
         .map(|s| s.id())
         .collect::<HashSet<SpeciesId>>();

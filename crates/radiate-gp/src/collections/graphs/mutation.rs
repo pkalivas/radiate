@@ -46,8 +46,8 @@ impl InnovationContext {
         node_type: NodeType,
     ) -> InnovationId {
         let change = StructureChange {
-            souce_id: source_id.clone(),
-            target_id: target_id.clone(),
+            souce_id: source_id,
+            target_id: target_id,
             node_type,
         };
         if let Some(id) = self.innovations.get(&change) {

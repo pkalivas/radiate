@@ -33,9 +33,9 @@ macro_rules! sentry_id {
             }
         }
 
-        impl Into<u64> for $name {
-            fn into(self) -> u64 {
-                self.0
+        impl From<u64> for $name {
+            fn from(value: u64) -> Self {
+                $name(value)
             }
         }
 
