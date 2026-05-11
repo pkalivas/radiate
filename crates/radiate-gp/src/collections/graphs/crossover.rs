@@ -2,6 +2,7 @@ use crate::collections::GraphChromosome;
 use crate::node::{Node, NodeExt};
 use radiate_core::{AlterContext, AlterResult, Crossover, RdRand, random_provider};
 use radiate_core::{Rate, genome::*};
+use std::cmp::Ordering;
 use std::fmt::Debug;
 
 const NUM_PARENTS: usize = 2;
@@ -44,36 +45,6 @@ where
                 let geno_one = parent_one.genotype_mut();
                 let geno_two = parent_two.genotype();
 
-                // random_provider::with_rng(|rand| {
-                //     let chromo_index = rand.range(0..std::cmp::min(geno_one.len(), geno_two.len()));
-
-                //     let chromo_one = geno_one.get_mut(chromo_index).unwrap();
-                //     let chromo_two = geno_two.get(chromo_index).unwrap();
-
-                //     let mut crosses = 0;
-                //     let min_len = std::cmp::min(chromo_one.len(), chromo_two.len());
-
-                //     for i in 0..min_len {
-                //         let node_one = chromo_one.get_mut(i);
-                //         let node_two = chromo_two.get(i);
-
-                //         if node_one.arity() != node_two.arity() {
-                //             continue;
-                //         }
-
-                //         if !rand.bool(self.parent_node_rate) {
-                //             continue;
-                //         }
-
-                //         if node_one.innovation() == node_two.innovation() {
-                //             node_one.set_value(node_two.value().clone());
-                //             crosses += 1;
-                //         }
-                //     }
-
-                //     crosses
-                // })
-
                 random_provider::with_rng(|rand| {
                     let chromo_index = rand.range(0..std::cmp::min(geno_one.len(), geno_two.len()));
                     let chromo_one = geno_one.get_mut(chromo_index).unwrap();
@@ -94,43 +65,24 @@ where
     }
 }
 
-use crate::collections::graphs::node::InnovationId;
-use std::cmp::Ordering;
-
 fn crossover_by_innovation<T: Clone + PartialEq>(
     chromo_one: &mut GraphChromosome<T>,
     chromo_two: &GraphChromosome<T>,
     rand: &mut RdRand,
     parent_node_rate: f32,
 ) -> usize {
-    // (innovation, position-in-chromosome). Skip unmarked nodes.
-    let mut a: Vec<(InnovationId, usize)> = chromo_one
-        .iter()
-        .enumerate()
-        .filter_map(|(i, n)| n.innovation().map(|id| (id, i)))
-        .collect();
-    let mut b: Vec<(InnovationId, usize)> = chromo_two
-        .iter()
-        .enumerate()
-        .filter_map(|(i, n)| n.innovation().map(|id| (id, i)))
-        .collect();
-
-    a.sort_unstable_by_key(|(id, _)| *id);
-    b.sort_unstable_by_key(|(id, _)| *id);
-
     let mut crosses = 0;
     let (mut ia, mut ib) = (0usize, 0usize);
 
-    while ia < a.len() && ib < b.len() {
-        let (id_a, pos_a) = a[ia];
-        let (id_b, pos_b) = b[ib];
+    while ia < chromo_one.len() && ib < chromo_two.len() {
+        let gene_one = chromo_one.get(ia);
+        let gene_two = chromo_two.get(ib);
 
-        match id_a.cmp(&id_b) {
+        match gene_one.innovation().cmp(&gene_two.innovation()) {
             Ordering::Equal => {
-                // Matching innovation: the only place crossover fires.
                 if rand.bool(parent_node_rate) {
-                    let node_two = chromo_two.get(pos_b);
-                    let node_one = chromo_one.get_mut(pos_a);
+                    let node_two = chromo_two.get(ib);
+                    let node_one = chromo_one.get_mut(ia);
                     if node_one.arity() == node_two.arity() && node_one.value() != node_two.value()
                     {
                         node_one.set_value(node_two.value().clone());
@@ -140,12 +92,40 @@ fn crossover_by_innovation<T: Clone + PartialEq>(
                 ia += 1;
                 ib += 1;
             }
-            // Disjoint/excess in parent_one — keep as-is (in-place semantics).
             Ordering::Less => ia += 1,
-            // Disjoint/excess in parent_two — ignore (we don't pull new genes in).
             Ordering::Greater => ib += 1,
         }
     }
 
     crosses
 }
+
+// random_provider::with_rng(|rand| {
+//     let chromo_index = rand.range(0..std::cmp::min(geno_one.len(), geno_two.len()));
+
+//     let chromo_one = geno_one.get_mut(chromo_index).unwrap();
+//     let chromo_two = geno_two.get(chromo_index).unwrap();
+
+//     let mut crosses = 0;
+//     let min_len = std::cmp::min(chromo_one.len(), chromo_two.len());
+
+//     for i in 0..min_len {
+//         let node_one = chromo_one.get_mut(i);
+//         let node_two = chromo_two.get(i);
+
+//         if node_one.arity() != node_two.arity() {
+//             continue;
+//         }
+
+//         if !rand.bool(self.parent_node_rate) {
+//             continue;
+//         }
+
+//         if node_one.innovation() == node_two.innovation() {
+//             node_one.set_value(node_two.value().clone());
+//             crosses += 1;
+//         }
+//     }
+
+//     crosses
+// })
