@@ -9,14 +9,14 @@ mod select;
 mod stagnation;
 mod traits;
 
-pub use named::NamedExpr;
+pub use named::MetricQuery;
 pub use select::{MetricField, MetricKind, SelectExpr};
 pub use traits::Evaluate;
 pub(crate) use traits::ExprResult;
 
 use aggregate::{AggExpr, BufferExpr};
 use logical::When;
-use ops::{AffineExpr, BinaryExpr, TrinaryExpr, UnaryExpr};
+use ops::{BinaryExpr, TrinaryExpr, UnaryExpr};
 use radiate_utils::{AnyValue, SmallStr};
 use schedule::{EveryState, ScheduleExpr};
 #[cfg(feature = "serde")]
@@ -34,7 +34,6 @@ pub enum Expr {
     Binary(BinaryExpr),
     Unary(UnaryExpr),
     Trinary(TrinaryExpr),
-    Affine(AffineExpr),
     Stagnation(StagnationExpr),
 }
 
@@ -49,7 +48,6 @@ impl Evaluate for Expr {
             Expr::Binary(child) => child.eval(metrics),
             Expr::Unary(child) => child.eval(metrics),
             Expr::Schedule(child) => child.eval(metrics),
-            Expr::Affine(child) => child.eval(metrics),
             Expr::Stagnation(child) => child.eval(metrics),
         }
     }
@@ -73,13 +71,17 @@ impl Expr {
                 b.lhs.reset();
                 b.rhs.reset();
             }
-            Expr::Unary(u) => u.child.reset(),
+            Expr::Unary(u) => {
+                u.child.reset();
+                if let ops::UnaryOp::Quantile(q) = &mut u.op {
+                    q.clear();
+                }
+            }
             Expr::Trinary(t) => {
                 t.first.reset();
                 t.second.reset();
                 t.third.reset();
             }
-            Expr::Affine(a) => a.child_mut().reset(),
             Expr::Stagnation(s) => s.reset(),
         }
     }
@@ -146,13 +148,35 @@ pub mod expr {
             .affine(gain, 1.0)
             .compile()
     }
+
+    /// Streaming median (P²) of a metric. Constant memory; sees all observations
+    /// since construction. For a windowed exact median, use
+    /// `select(metric).rolling(N).quantile(0.5)`.
+    pub fn p50(metric: impl Into<SmallStr>) -> Expr {
+        select(metric).quantile_stream(0.5)
+    }
+
+    /// Streaming 95th-percentile (P²) of a metric.
+    pub fn p95(metric: impl Into<SmallStr>) -> Expr {
+        select(metric).quantile_stream(0.95)
+    }
+
+    /// Streaming 99th-percentile (P²) of a metric.
+    pub fn p99(metric: impl Into<SmallStr>) -> Expr {
+        select(metric).quantile_stream(0.99)
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::ops::UnaryOp;
     use super::{Evaluate, Expr, expr};
     use crate::MetricSet;
     use radiate_utils::{AnyValue, DataType};
+
+    fn is_fused_affine(e: &Expr) -> bool {
+        matches!(e, Expr::Unary(u) if matches!(u.op, UnaryOp::Affine { .. }))
+    }
 
     fn metrics() -> MetricSet {
         MetricSet::default()
@@ -551,10 +575,7 @@ mod tests {
     fn error_from_method_collapses_to_affine() {
         // (x - 10) / 10 == x * 0.1 - 1
         let e = expr::lit(15.0f32).error_from(10.0);
-        match &e {
-            Expr::Affine(_) => {}
-            other => panic!("expected fused Affine, got {other:?}"),
-        }
+        assert!(is_fused_affine(&e), "expected fused Affine, got {e:?}");
         let mut e = e;
         assert!((f32_val(e.eval(&metrics()).unwrap()) - 0.5).abs() < 1e-6);
     }
@@ -578,6 +599,77 @@ mod tests {
         ms.upsert("count", 12.0);
         let v = f32_val(e.eval(&ms).unwrap());
         assert!((v - 1.1).abs() < 1e-4, "got {v}");
+    }
+
+    // ---- Streaming quantile (P²) ----
+
+    #[test]
+    fn quantile_stream_returns_first_sample_until_buffer_fills() {
+        let mut e = expr::p50("foo");
+        let ms = metrics_with("foo", 5.0);
+        // First sample seeds the estimator; with one sample p50 == that sample.
+        assert!((f32_val(e.eval(&ms).unwrap()) - 5.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn quantile_stream_null_when_metric_missing() {
+        let mut e = expr::p95("missing");
+        let ms = MetricSet::new();
+        assert!(matches!(e.eval(&ms).unwrap(), AnyValue::Null));
+    }
+
+    #[test]
+    fn quantile_stream_converges_on_uniform_sequence() {
+        let mut e = expr::p50("foo");
+        let mut ms = MetricSet::new();
+        for i in 1..=200 {
+            ms.upsert("foo", i as f32);
+            let _ = e.eval(&ms);
+        }
+        // True median is 100.5; P² is approximate but should be close.
+        let v = f32_val(e.eval(&ms).unwrap());
+        assert!(
+            (v - 100.5).abs() < 3.0,
+            "p50 estimate {v} far from true median 100.5"
+        );
+    }
+
+    #[test]
+    fn quantile_stream_p95_approximates_high_tail() {
+        let mut e = expr::p95("foo");
+        let mut ms = MetricSet::new();
+        for i in 1..=1000 {
+            ms.upsert("foo", i as f32);
+            let _ = e.eval(&ms);
+        }
+        let v = f32_val(e.eval(&ms).unwrap());
+        assert!((v - 950.0).abs() < 20.0, "p95 estimate {v} far from 950");
+    }
+
+    #[test]
+    fn quantile_stream_reset_clears_estimator() {
+        let mut e = expr::p50("foo");
+        let mut ms = MetricSet::new();
+        for i in 1..=50 {
+            ms.upsert("foo", i as f32);
+            let _ = e.eval(&ms);
+        }
+        e.reset();
+        // After reset, first eval should produce just-seeded estimator value.
+        ms.upsert("foo", 7.0);
+        let v = f32_val(e.eval(&ms).unwrap());
+        assert!((v - 7.0).abs() < 1e-6, "got {v}");
+    }
+
+    #[test]
+    fn quantile_stream_composes_with_arbitrary_child() {
+        // Stream p50 of a *literal* — exercises the "any child" composition.
+        let mut e = expr::lit(42.0f32).quantile_stream(0.5);
+        let ms = metrics();
+        let _ = e.eval(&ms);
+        let _ = e.eval(&ms);
+        // After multiple identical samples, p50 == constant.
+        assert!((f32_val(e.eval(&ms).unwrap()) - 42.0).abs() < 1e-6);
     }
 
     // ---- Stagnation ----
@@ -686,10 +778,7 @@ mod tests {
     #[test]
     fn compile_wraps_metric_plus_lit_as_affine() {
         let e = expr::select("foo").add(expr::lit(3.0f32)).compile();
-        match &e {
-            Expr::Affine(_) => {}
-            other => panic!("expected Affine, got {other:?}"),
-        }
+        assert!(is_fused_affine(&e), "expected Affine, got {e:?}");
     }
 
     #[test]
@@ -706,15 +795,7 @@ mod tests {
             .add(expr::lit(1.0f32))
             .compile();
 
-        match &e {
-            Expr::Affine(a) => {
-                // We can't read the fields directly (pub(super)), so just sanity-check
-                // the shape — the test above (chain_collapses) covers the math.
-                // Here we mostly assert: single Affine, not a Binary tree.
-                let _ = a;
-            }
-            other => panic!("expected single Affine, got {other:?}"),
-        }
+        assert!(is_fused_affine(&e), "expected single Affine, got {e:?}");
     }
 
     #[test]
@@ -750,10 +831,7 @@ mod tests {
     fn affine_chain_collapses_to_single_node() {
         // affine(affine(x, 2, 3), 4, 5) = 4*(2x + 3) + 5 = 8x + 17
         let e = expr::lit(1.0f32).affine(2.0, 3.0).affine(4.0, 5.0);
-        match &e {
-            Expr::Affine(_) => {}
-            other => panic!("expected single Affine, got {other:?}"),
-        }
+        assert!(is_fused_affine(&e), "expected single Affine, got {e:?}");
         let mut e = e;
         assert_eq!(f32_val(e.eval(&metrics()).unwrap()), 25.0); // 8 + 17
     }

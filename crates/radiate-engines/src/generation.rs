@@ -2,7 +2,7 @@ use crate::Chromosome;
 use crate::context::{Context, ContextAudit};
 use radiate_core::objectives::Scored;
 use radiate_core::{Ecosystem, Front, MetricSet, Objective, Phenotype, Population, Score, Species};
-use radiate_core::NamedExpr;
+use radiate_core::MetricQuery;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
@@ -54,7 +54,7 @@ where
     score: Score,
     objective: Objective,
     front: Option<Arc<Front<Phenotype<C>>>>,
-    exprs: Option<Arc<Mutex<Vec<NamedExpr>>>>,
+    exprs: Option<Arc<Mutex<Vec<MetricQuery>>>>,
     audits: Option<Vec<ContextAudit>>,
 }
 
@@ -109,7 +109,7 @@ where
         self.time().as_secs_f64()
     }
 
-    pub fn exprs(&self) -> Option<Arc<Mutex<Vec<NamedExpr>>>> {
+    pub fn exprs(&self) -> Option<Arc<Mutex<Vec<MetricQuery>>>> {
         self.exprs.clone()
     }
 

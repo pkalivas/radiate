@@ -24,7 +24,7 @@ members = [
     "examples/rust/graphs/neat-graph",
 
     "examples/rust/trees/regression-tree",
-    "examples/rust/trees/iris-tree", 
+    "examples/rust/trees/iris-tree",
 ]
 default-members = [
     "crates/*"

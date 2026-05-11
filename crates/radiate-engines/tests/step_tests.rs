@@ -7,7 +7,7 @@ mod recombine_step_tests {
     #[test]
     fn recombine_non_species_preserves_pop_size() {
         seeded(1, || {
-            let mut eco = MockEcosystem::new(FloatCodec::vector(3, -1.0..1.0))
+            let mut eco = MockEcosystem::builder(FloatCodec::vector(3, -1.0..1.0))
                 .pop_size(50)
                 .scores_linear()
                 .build();
@@ -23,7 +23,7 @@ mod recombine_step_tests {
     #[test]
     fn recombine_species_preserves_pop_size() {
         seeded(3, || {
-            let mut eco = MockEcosystem::new(FloatCodec::vector(3, -1.0..1.0))
+            let mut eco = MockEcosystem::builder(FloatCodec::vector(3, -1.0..1.0))
                 .pop_size(30)
                 .scores_linear()
                 .with_species(&[15, 10, 5])
@@ -43,7 +43,7 @@ mod recombine_step_tests {
     #[test]
     fn recombine_species_with_singleton_species_no_panic() {
         seeded(5, || {
-            let mut eco = MockEcosystem::new(FloatCodec::vector(2, -1.0..1.0))
+            let mut eco = MockEcosystem::builder(FloatCodec::vector(2, -1.0..1.0))
                 .pop_size(10)
                 .scores_linear()
                 .with_species(&[1, 4, 5])
@@ -62,7 +62,7 @@ mod recombine_step_tests {
     fn recombine_both_objectives_produce_valid_populations() {
         for (seed, obj) in [(10u64, minimize()), (11, maximize())] {
             seeded(seed, || {
-                let mut eco = MockEcosystem::new(FloatCodec::vector(2, -1.0..1.0))
+                let mut eco = MockEcosystem::builder(FloatCodec::vector(2, -1.0..1.0))
                     .pop_size(20)
                     .scores_linear()
                     .build();
@@ -82,7 +82,7 @@ mod recombine_step_tests {
     #[test]
     fn recombine_repeated_calls_stable_pop_size() {
         seeded(20, || {
-            let mut eco = MockEcosystem::new(FloatCodec::vector(3, -1.0..1.0))
+            let mut eco = MockEcosystem::builder(FloatCodec::vector(3, -1.0..1.0))
                 .pop_size(40)
                 .scores_linear()
                 .build();
@@ -110,7 +110,7 @@ mod recombine_step_tests {
     #[test]
     fn speciate_fresh_population_creates_initial_species() {
         seeded(100, || {
-            let mut eco = MockEcosystem::new(FloatCodec::vector(3, -1.0..1.0))
+            let mut eco = MockEcosystem::builder(FloatCodec::vector(3, -1.0..1.0))
                 .pop_size(20)
                 .scores_linear()
                 .build();
@@ -130,7 +130,7 @@ mod recombine_step_tests {
     #[test]
     fn speciate_loose_threshold_produces_single_species() {
         seeded(101, || {
-            let mut eco = MockEcosystem::new(FloatCodec::vector(3, -1.0..1.0))
+            let mut eco = MockEcosystem::builder(FloatCodec::vector(3, -1.0..1.0))
                 .pop_size(30)
                 .scores_linear()
                 .build();
@@ -153,7 +153,7 @@ mod recombine_step_tests {
     fn speciate_produces_adjusted_fitness_values() {
         seeded(106, || {
             const POP_SIZE: usize = 300;
-            let mut eco = MockEcosystem::new(FloatCodec::vector(3, -10.0..10.0))
+            let mut eco = MockEcosystem::builder(FloatCodec::vector(3, -10.0..10.0))
                 .pop_size(POP_SIZE)
                 .scores_random(-5.0..5.0)
                 .build();

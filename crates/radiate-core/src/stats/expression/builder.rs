@@ -2,10 +2,10 @@ use super::{
     Expr, MetricField, MetricKind,
     aggregate::{AggExpr, BufferExpr, Rollup},
     logical::When,
-    ops::{AffineExpr, BinaryExpr, BinaryOp, TrinaryExpr, TrinaryOp, UnaryExpr, UnaryOp},
+    ops::{BinaryExpr, BinaryOp, TrinaryExpr, TrinaryOp, UnaryExpr, UnaryOp, fuse_affine},
     schedule::{EveryState, ScheduleExpr},
 };
-use radiate_utils::{AnyValue, DataType, WindowBuffer};
+use radiate_utils::{AnyValue, DataType, Quantile, WindowBuffer};
 use std::ops::{Add, Div, Mul, Neg, Not, Sub};
 
 impl Expr {
@@ -28,7 +28,11 @@ impl Expr {
     }
 
     // If this is a Selector, rewrites its field to `to`; otherwise calls `func`.
-    fn try_swap_select_field_or(mut self, to: MetricField, func: impl FnOnce(Self) -> Expr) -> Expr {
+    fn try_swap_select_field_or(
+        mut self,
+        to: MetricField,
+        func: impl FnOnce(Self) -> Expr,
+    ) -> Expr {
         if self.try_swap_select_field(to) {
             return self;
         }
@@ -287,16 +291,10 @@ impl Expr {
     }
 
     /// `scale * self + bias`. Replaces `self.mul(lit).add(lit)` with a single
-    /// fused node. Consecutive affines collapse: `x.affine(a, b).affine(c, d)`
-    /// becomes `x.affine(c * a, c * b + d)`.
+    /// fused Unary(Affine) node. Consecutive affines collapse:
+    /// `x.affine(a, b).affine(c, d)` becomes `x.affine(c * a, c * b + d)`.
     pub fn affine(self, scale: f32, bias: f32) -> Expr {
-        match self {
-            Expr::Affine(inner) => {
-                let (child, s, b) = inner.into_parts();
-                Expr::Affine(AffineExpr::new(*child, scale * s, scale * b + bias))
-            }
-            other => Expr::Affine(AffineExpr::new(other, scale, bias)),
-        }
+        fuse_affine(self, scale, bias)
     }
 
     /// Relative error from a target: `(self - target) / target`. Fuses into
@@ -306,6 +304,19 @@ impl Expr {
     pub fn error_from(self, target: f32) -> Expr {
         // (x - target) / target == x * (1/target) + (-1)
         self.affine(1.0 / target, -1.0)
+    }
+
+    /// Streaming P² quantile estimator over the values this expression emits.
+    /// Constant memory (5 markers), constant per-eval cost. Approximate but
+    /// good for unimodal distributions; sees every observation since
+    /// construction or the last `reset()`.
+    ///
+    /// For an exact quantile over a recent window, use `.rolling(N).quantile(q)`.
+    ///
+    /// # Panics
+    /// `q` must lie in `(0, 1)`.
+    pub fn quantile_stream(self, q: f32) -> Expr {
+        Expr::Unary(UnaryExpr::new(self, UnaryOp::Quantile(Quantile::new(q))))
     }
 }
 

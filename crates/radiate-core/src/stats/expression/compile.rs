@@ -1,6 +1,6 @@
 use super::{
     Expr,
-    ops::{AffineExpr, BinaryExpr, BinaryOp, TrinaryExpr, UnaryExpr},
+    ops::{BinaryExpr, BinaryOp, TrinaryExpr, UnaryExpr, UnaryOp, fuse_affine},
 };
 use radiate_utils::AnyValue;
 
@@ -9,8 +9,8 @@ impl Expr {
     /// into the smallest possible form. Specifically:
     ///
     /// - Pure-literal subtrees fold (`Lit(2) + Lit(3)` → `Lit(5)`)
-    /// - `Add` / `Sub` / `Mul` / `Div` with one literal operand fuses into an
-    ///   [`AffineExpr`] (`x * 5 + 3` → `Affine { scale: 5, bias: 3 }`)
+    /// - `Add` / `Sub` / `Mul` / `Div` with one literal operand fuses into a
+    ///   `Unary(Affine)` (`x * 5 + 3` → `Affine { scale: 5, bias: 3 }`)
     /// - Nested affines collapse: `s2 * (s1*x + b1) + b2` → `Affine(s2*s1, s2*b1 + b2)`
     ///
     /// Called automatically when wrapping in `Rate::Expr` or `NamedExpr`. Safe
@@ -22,7 +22,16 @@ impl Expr {
             // Leaves — nothing to rewrite.
             Expr::Literal(_) | Expr::Selector(_) | Expr::Schedule(_) | Expr::Stagnation(_) => self,
 
-            Expr::Unary(u) => Expr::Unary(UnaryExpr::new((*u.child).compile(), u.op)),
+            Expr::Unary(u) => {
+                let UnaryExpr { child, op } = u;
+                let child = (*child).compile();
+                match op {
+                    // Affine on top of a compiled child: re-run fusion so any
+                    // newly-revealed Affine nested below collapses upward.
+                    UnaryOp::Affine { scale, bias } => fuse_affine(child, scale, bias),
+                    other_op => Expr::Unary(UnaryExpr::new(child, other_op)),
+                }
+            }
 
             Expr::Trinary(t) => Expr::Trinary(TrinaryExpr::new(
                 (*t.first).compile(),
@@ -35,12 +44,6 @@ impl Expr {
                 let lhs = (*b.lhs).compile();
                 let rhs = (*b.rhs).compile();
                 reduce_binary(lhs, rhs, b.op)
-            }
-
-            Expr::Affine(a) => {
-                let (child, s, k) = a.into_parts();
-                let child = (*child).compile();
-                fuse_affine(child, s, k)
             }
 
             // Stateful nodes — keep the rollup/buffer intact, just compile the child.
@@ -120,19 +123,6 @@ fn reduce_binary(lhs: Expr, rhs: Expr, op: BinaryOp) -> Expr {
     }
 
     Expr::Binary(BinaryExpr::new(lhs, rhs, op))
-}
-
-/// Build an `Affine(child, scale, bias)`. If `child` is itself an Affine,
-/// collapse the two into one using the algebraic identity
-/// `scale * (s2 * x + b2) + bias = (scale * s2) * x + (scale * b2 + bias)`.
-fn fuse_affine(child: Expr, scale: f32, bias: f32) -> Expr {
-    match child {
-        Expr::Affine(inner) => {
-            let (cc, s2, b2) = inner.into_parts();
-            Expr::Affine(AffineExpr::new(*cc, scale * s2, scale * b2 + bias))
-        }
-        other => Expr::Affine(AffineExpr::new(other, scale, bias)),
-    }
 }
 
 fn fold_literals(

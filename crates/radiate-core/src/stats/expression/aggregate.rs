@@ -1,7 +1,7 @@
 use super::{Evaluate, Expr, ExprResult};
 use crate::MetricSet;
 use radiate_error::radiate_bail;
-use radiate_utils::{AnyValue, DataType, Slope, Statistic, WindowBuffer, dedup_slice};
+use radiate_utils::{AnyValue, DataType, Quantile, Slope, Statistic, WindowBuffer, dedup_slice};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
@@ -95,22 +95,17 @@ impl AggExpr {
 
             return Ok(AnyValue::Float32(slope.value().unwrap_or(0.0)));
         } else if let Rollup::Quantile(q) = rollup {
-            let mut sorted: Vec<f32> = values
-                .iter()
-                .filter_map(|v| v.extract::<f32>())
-                .filter(|v| v.is_finite())
-                .collect();
-            if sorted.is_empty() {
-                return Ok(AnyValue::Float32(0.0));
+            let mut quantile = Quantile::new(q);
+            for v in values.iter().filter_map(|v| v.extract::<f32>()) {
+                if v.is_finite() {
+                    quantile.add(v);
+                }
             }
-            sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
-            let q = q.clamp(0.0, 1.0);
-            let pos = q * (sorted.len() - 1) as f32;
-            let lo = pos.floor() as usize;
-            let hi = pos.ceil() as usize;
-            let frac = pos - lo as f32;
-            let result = sorted[lo] * (1.0 - frac) + sorted[hi] * frac;
-            return Ok(AnyValue::Float32(result));
+
+            return Ok(quantile
+                .value()
+                .map(AnyValue::Float32)
+                .unwrap_or(AnyValue::Null));
         }
 
         let stats = values

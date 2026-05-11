@@ -31,11 +31,16 @@ macro_rules! sentry_id {
             pub const fn is_empty(&self) -> bool {
                 self.0 == 0
             }
+
+            pub const fn get(&self) -> u64 {
+                self.0
+            }
         }
 
-        impl From<u64> for $name {
-            fn from(value: u64) -> Self {
-                $name(value)
+        #[allow(clippy::from_over_into)]
+        impl Into<u64> for $name {
+            fn into(self) -> u64 {
+                self.0
             }
         }
 

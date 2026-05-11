@@ -1,7 +1,7 @@
 use super::{Evaluate, Expr, ExprResult};
 use crate::MetricSet;
 use radiate_error::radiate_bail;
-use radiate_utils::{AnyValue, DataType};
+use radiate_utils::{AnyValue, DataType, Quantile};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
@@ -13,6 +13,13 @@ pub enum UnaryOp {
     Abs,
     Cast(DataType),
     Debug,
+    /// Streaming P² quantile over the child's evaluated stream. Estimator state
+    /// lives inside the variant; cloning the expression clones an independent
+    /// estimator.
+    Quantile(Quantile<f32>),
+    /// Fused affine: `scale * child + bias`. Replaces the `.mul(lit).add(lit)`
+    /// pattern with a single node. Chains collapse via [`fuse_affine`].
+    Affine { scale: f32, bias: f32 },
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -56,6 +63,22 @@ impl Evaluate for UnaryExpr {
                 println!("{:?}", value);
                 Ok(value)
             }
+            UnaryOp::Quantile(ref mut estimator) => {
+                let Some(x) = value.extract::<f32>() else {
+                    return Ok(AnyValue::Null);
+                };
+                if x.is_finite() {
+                    estimator.add(x);
+                }
+                match estimator.value() {
+                    Some(q) => Ok(AnyValue::Float32(q)),
+                    None => Ok(AnyValue::Null),
+                }
+            }
+            UnaryOp::Affine { scale, bias } => match value.extract::<f32>() {
+                Some(x) if x.is_finite() => Ok(AnyValue::Float32(scale * x + bias)),
+                _ => Ok(AnyValue::Null),
+            },
         }
     }
 }
@@ -112,7 +135,11 @@ impl Evaluate for BinaryExpr {
                 Some(v) => !v.is_finite(),
                 None => matches!(lhs, AnyValue::Null),
             };
-            return if is_bad { self.rhs.eval(metrics) } else { Ok(lhs) };
+            return if is_bad {
+                self.rhs.eval(metrics)
+            } else {
+                Ok(lhs)
+            };
         }
 
         let lhs = self.lhs.eval(metrics)?;
@@ -215,48 +242,35 @@ impl Evaluate for TrinaryExpr {
     }
 }
 
-/// `scale * child + bias`. A fused affine operator — replaces the
-/// `.mul(lit).add(lit)` pattern with a single node carrying two constants.
+/// Construct `Unary(Affine(scale * child + bias))`, collapsing nested affines.
+/// `scale * (s2 * x + b2) + bias = (scale * s2) * x + (scale * b2 + bias)`.
 ///
-/// Useful for normalization (`(x - μ) / σ`), gain-style controllers, and any
-/// linear remap of a metric. Chains fuse algebraically when constructed via
-/// the `.affine(...)` builder, so `x.affine(a, b).affine(c, d)` collapses to a
-/// single `Affine { scale: c*a, bias: c*b + d }`.
-///
-/// Non-finite child output (Null, NaN, ±Inf) is propagated as `Null` so the
-/// outer Clamp or Coalesce can take over.
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Clone, Debug, PartialEq)]
-pub struct AffineExpr {
-    pub(super) child: Box<Expr>,
-    pub(super) scale: f32,
-    pub(super) bias: f32,
-}
-
-impl AffineExpr {
-    pub fn new(child: Expr, scale: f32, bias: f32) -> Self {
-        Self {
-            child: Box::new(child),
-            scale,
-            bias,
+/// Shared between the `.affine(...)` builder and the compile-pass binary-fusion
+/// rewriters so both produce the same fused shape.
+pub(super) fn fuse_affine(child: Expr, scale: f32, bias: f32) -> Expr {
+    if let Expr::Unary(u) = child {
+        if matches!(u.op, UnaryOp::Affine { .. }) {
+            let UnaryExpr { child: inner, op } = u;
+            let UnaryOp::Affine {
+                scale: s2,
+                bias: b2,
+            } = op
+            else {
+                unreachable!()
+            };
+            return Expr::Unary(UnaryExpr::new(
+                *inner,
+                UnaryOp::Affine {
+                    scale: scale * s2,
+                    bias: scale * b2 + bias,
+                },
+            ));
         }
+        // Some other unary op — put it back and wrap.
+        return Expr::Unary(UnaryExpr::new(
+            Expr::Unary(u),
+            UnaryOp::Affine { scale, bias },
+        ));
     }
-
-    pub(super) fn child_mut(&mut self) -> &mut Expr {
-        &mut self.child
-    }
-
-    pub(super) fn into_parts(self) -> (Box<Expr>, f32, f32) {
-        (self.child, self.scale, self.bias)
-    }
-}
-
-impl Evaluate for AffineExpr {
-    fn eval<'a>(&'a mut self, metrics: &MetricSet) -> ExprResult<'a> {
-        let value = self.child.eval(metrics)?;
-        match value.extract::<f32>() {
-            Some(x) if x.is_finite() => Ok(AnyValue::Float32(self.scale * x + self.bias)),
-            _ => Ok(AnyValue::Null),
-        }
-    }
+    Expr::Unary(UnaryExpr::new(child, UnaryOp::Affine { scale, bias }))
 }

@@ -6,6 +6,8 @@ use radiate_core::{
 use radiate_error::Result;
 use std::sync::{Arc, Mutex, RwLock};
 
+type SpeciesAssignments = Vec<Option<(usize, f32)>>;
+
 pub struct SpeciateStep<C>
 where
     C: Chromosome,
@@ -15,7 +17,7 @@ where
     pub(crate) distance: Arc<dyn Diversity<C>>,
     pub(crate) executor: Arc<Executor>,
     pub(crate) distances: Vec<f32>,
-    pub(crate) assignments: Arc<Mutex<Vec<Option<(usize, f32)>>>>,
+    pub(crate) assignments: Arc<Mutex<SpeciesAssignments>>,
 }
 
 impl<C: Chromosome> SpeciateStep<C> {
@@ -46,7 +48,7 @@ where
         threshold: f32,
         ecosystem: &mut Ecosystem<C>,
         mascots: Arc<Vec<Phenotype<C>>>,
-        assignments: Arc<Mutex<Vec<Option<(usize, f32)>>>>,
+        assignments: Arc<Mutex<SpeciesAssignments>>,
     ) -> Result<()>
     where
         C: Clone,
@@ -171,7 +173,7 @@ where
         species_mascots: Arc<Vec<Phenotype<C>>>,
         threshold: f32,
         distance: Arc<dyn Diversity<C>>,
-        assignments: Arc<Mutex<Vec<Option<(usize, f32)>>>>,
+        assignments: Arc<Mutex<SpeciesAssignments>>,
         range: std::ops::Range<usize>,
     ) {
         let mut inner_assignments = Vec::new();
