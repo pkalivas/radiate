@@ -1,7 +1,7 @@
 use crate::steps::EngineStep;
 use radiate_core::{
     Chromosome, Ecosystem, Executor, MetricSet, Objective, Phenotype, Population, Rate, Species,
-    diversity::Diversity, metric_names,
+    diversity::Diversity, metric_names, random_provider,
 };
 use radiate_error::Result;
 use std::sync::{Arc, Mutex, RwLock};
@@ -108,6 +108,7 @@ where
         C: Clone,
     {
         let pop_len = ecosystem.population().len();
+        let mut new_count = 0;
 
         for (i, assignment) in assignments.iter().enumerate().take(pop_len) {
             if let Some(species_id) = assignment {
@@ -136,6 +137,26 @@ where
                         let species_idx = ecosystem.push_species(new_species);
 
                         ecosystem.add_species_member(species_idx, i);
+
+                        new_count += 1;
+                    }
+                }
+            }
+        }
+
+        if generation == 0 && new_count == pop_len {
+            ecosystem.clear_species();
+            let mut distances = self.distances.lock().unwrap();
+            distances.clear();
+            distances.push(threshold);
+            let idx = random_provider::range(0..pop_len);
+            if let Some(phenotype) = ecosystem.get_phenotype(idx) {
+                let new_species = Species::new(generation, (*phenotype).clone());
+                let new_species_idx = ecosystem.push_species(new_species);
+
+                for i in 0..pop_len {
+                    if i != idx {
+                        ecosystem.add_species_member(new_species_idx, i);
                     }
                 }
             }

@@ -97,6 +97,10 @@ impl<C: Chromosome> Ecosystem<C> {
         }
     }
 
+    pub fn clear_species(&mut self) {
+        self.species = None;
+    }
+
     /// Add a member to a species given the species index and member index in the population.
     /// The member is reference cloned from the population and added to the species' population.
     /// Just like with the [Ecosystem]'s `clone_ref` method, this creates a shared reference so

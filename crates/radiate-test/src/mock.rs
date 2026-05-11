@@ -130,6 +130,7 @@ impl<C: Chromosome + Clone> MockEcosystemBuilder<C> {
                 for p in &mut phenotypes[start..start + size] {
                     p.set_species(species_id);
                 }
+
                 species_vec.push(species);
                 start += size;
             }

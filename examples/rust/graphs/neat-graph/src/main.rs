@@ -1,4 +1,4 @@
-use radiate::prelude::*;
+use radiate::{graphs::NeatDistance, prelude::*};
 
 const MIN_SCORE: f32 = 0.001;
 const SPECIES_THRESHOLD: f32 = 0.3;
@@ -29,6 +29,7 @@ fn main() {
         .codec(GraphCodec::directed(1, 1, store))
         .raw_batch_fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
+        // .diversity(InnovationDistance::new(1.0, 1.0, 3.0))
         .diversity(NeatDistance::new(1.0, 1.0, 3.0))
         .species_threshold(get_threshold(use_expr, target_species))
         .alter(alters!(
@@ -71,34 +72,67 @@ fn compute(x: f32) -> f32 {
     4.0 * x.powf(3.0) - 3.0 * x.powf(2.0) + x
 }
 
-fn get_threshold(use_expr_distance: bool, species_count: usize) -> impl Into<Rate> {
-    if use_expr_distance {
-        let target_species = species_count.max(1).min(100) as f32;
-        let rolling = target_species as usize;
-
-        let spec_count_signal = expr::select("count.species")
-            .rolling(rolling)
-            .mean()
-            .div(target_species);
-
-        let spec_dist_signal = expr::select("species.distance")
-            .mean()
-            .rolling(rolling)
-            .mean()
-            .div(target_species);
-
-        let spec_thresh_signal = expr::select("species.threshold").rolling(rolling).mean();
-        let spec_evenness_signal = expr::select("species.evenness").rolling(rolling).mean();
-
-        Rate::Expr(
-            spec_count_signal
-                .mul(0.9)
-                .add(spec_dist_signal.mul(0.4))
-                .add(spec_thresh_signal.mul(0.2))
-                .add(spec_evenness_signal.mul(0.1))
-                .clamp(0.01, 10.0),
-        )
-    } else {
-        Rate::from(SPECIES_THRESHOLD)
+fn get_threshold(use_expr_distance: bool, target_species: usize) -> impl Into<Rate> {
+    if !use_expr_distance {
+        return Rate::from(SPECIES_THRESHOLD);
     }
+
+    let target = target_species.clamp(1, 100) as f32;
+    let window = (target as usize).max(10);
+
+    // Anchor: smoothed (mean + 0.5·stddev) of per-gen distance distribution.
+    // The 0.5·stddev lift puts the anchor where a moderately-different pair
+    // sits rather than where the median pair sits — better speciation signal.
+    let dist_mean = expr::select("species.distance")
+        .mean()
+        .rolling(window)
+        .mean();
+    let dist_std = expr::select("species.distance")
+        .stddev()
+        .rolling(window)
+        .mean();
+    let anchor = dist_mean.add(dist_std.mul(0.5));
+
+    // Error: smoothed (count − target) / target.
+    let count_error = expr::select("count.species")
+        .rolling(window)
+        .mean()
+        .sub(target)
+        .div(target);
+
+    const GAIN: f32 = 0.5;
+
+    Rate::Expr(anchor.mul(count_error.mul(GAIN).add(1.0)).clamp(0.005, 2.0))
 }
+
+// fn get_threshold(use_expr_distance: bool, species_count: usize) -> impl Into<Rate> {
+//     if use_expr_distance {
+//         let target_species = species_count.max(1).min(100) as f32;
+//         let rolling = target_species as usize;
+
+//         let spec_count_signal = expr::select("count.species")
+//             .rolling(rolling)
+//             .mean()
+//             .div(target_species);
+
+//         let spec_dist_signal = expr::select("species.distance")
+//             .mean()
+//             .rolling(rolling)
+//             .mean()
+//             .div(target_species);
+
+//         let spec_thresh_signal = expr::select("species.threshold").rolling(rolling).mean();
+//         let spec_evenness_signal = expr::select("species.evenness").rolling(rolling).mean();
+
+//         Rate::Expr(
+//             spec_count_signal
+//                 .mul(0.9)
+//                 .add(spec_dist_signal.mul(0.4))
+//                 .add(spec_thresh_signal.mul(0.2))
+//                 .add(spec_evenness_signal.mul(0.1))
+//                 .clamp(0.01, 10.0),
+//         )
+//     } else {
+//         Rate::from(SPECIES_THRESHOLD)
+//     }
+// }

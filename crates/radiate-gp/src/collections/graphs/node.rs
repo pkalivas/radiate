@@ -573,7 +573,7 @@ impl<T: Debug> Debug for GraphNode<T> {
             self.innovation.map(|id| id.0).unwrap_or(0),
             format!("{:?}", self.node_type())[..3].to_owned(),
             self.arity(),
-            format!("{:?}", self.value).to_owned(),
+            format!("{:<7?}", self.value).to_owned(),
             self.is_valid(),
             self.is_recurrent(),
             self.incoming.len(),

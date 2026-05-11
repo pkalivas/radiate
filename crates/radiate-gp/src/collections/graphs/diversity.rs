@@ -1,11 +1,31 @@
+use super::GraphChromosome;
 use super::node::InnovationId;
-use super::{GraphChromosome, GraphIterator, GraphNode};
 use crate::{Node, Op};
 use radiate_core::{Chromosome, Diversity, Phenotype};
 use std::cmp::Ordering;
 
 const OP_MISMATCH_PENALTY: f32 = 0.3;
 
+/// NEAT compatibility distance that aligns genes by [`InnovationId`].
+///
+/// Unlike [`NeatDistance`], which walks chromosomes in topological order and matches
+/// genes by position, `InnovationDistance` projects each chromosome onto its innovation
+/// timeline and merges by historical marker — the textbook NEAT definition. Two nodes
+/// share an innovation iff they descend from the same structural event in the search
+/// history, so this metric stays stable under reorderings and structural drift that
+/// preserve homology.
+///
+/// The score follows Stanley's formula:
+///
+/// ```text
+/// d = c1 * E / N + c2 * D / N + c3 * W̄ + c4
+/// ```
+///
+/// where `E` is the count of excess genes (innovations past the smaller of the two
+/// parents' max innovation), `D` is disjoint (misaligned within the overlap), `W̄` is
+/// the average absolute weight difference across matching `Op::Value` genes, and `N`
+/// is `max(|a|, |b|)`. The `op_mismatch` term penalizes matching innovations whose
+/// op names disagree (e.g., `add` vs `mul`).
 pub struct NeatDistance {
     excess: f32,
     disjoint: f32,
@@ -27,78 +47,71 @@ impl NeatDistance {
         self.op_mismatch_penalty = penalty;
         self
     }
-}
 
-impl NeatDistance {
     #[inline]
-    fn graph_distance_iter(
-        &self,
-        a: &GraphChromosome<Op<f32>>,
-        b: &GraphChromosome<Op<f32>>,
-    ) -> f32 {
-        let mut ita = a.iter_topological().peekable();
-        let mut itb = b.iter_topological().peekable();
+    fn graph_distance(&self, a: &GraphChromosome<Op<f32>>, b: &GraphChromosome<Op<f32>>) -> f32 {
+        let max_genes = a.len().max(b.len()) as f32;
+        if max_genes == 0.0 {
+            return 0.0;
+        }
+
+        let va = a
+            .iter()
+            .filter_map(|node| node.innovation().map(|id| (id, node)))
+            .collect::<Vec<_>>();
+        let vb = b
+            .iter()
+            .filter_map(|node| node.innovation().map(|id| (id, node)))
+            .collect::<Vec<_>>();
+
+        let cutoff = match (va.last(), vb.last()) {
+            (Some((ma, _)), Some((mb, _))) => Some((*ma).min(*mb)),
+            _ => None,
+        };
 
         let mut excess = 0.0f32;
         let mut disjoint = 0.0f32;
         let mut matching = 0.0f32;
         let mut weight_diff = 0.0f32;
-        let mut op_mismatch_penalty = 0.0f32;
 
-        let max_genes = a.len().max(b.len()) as f32;
-        if max_genes == 0.0 {
-            return 0.0;
-        }
-        let inv_max = 1.0 / max_genes;
-
-        while ita.peek().is_some() || itb.peek().is_some() {
-            match (ita.peek(), itb.peek()) {
-                (Some(na), Some(nb)) => {
-                    let na = *na;
-                    let nb = *nb;
-
-                    match na.index().cmp(&nb.index()) {
-                        Ordering::Equal => {
-                            if na.node_type() == nb.node_type() {
-                                matching += 1.0;
-
-                                match (na.value(), nb.value()) {
-                                    (Op::Value(_, _, a_op, _), Op::Value(_, _, b_op, _)) => {
-                                        let (a_val, b_val) = (a_op.data(), b_op.data());
-                                        weight_diff += (a_val - b_val).abs();
-                                    }
-                                    (a_op, b_op) => {
-                                        if a_op.name() != b_op.name() {
-                                            op_mismatch_penalty += 1.0;
-                                        }
-                                    }
-                                }
+        let mut ia = 0usize;
+        let mut ib = 0usize;
+        while ia < va.len() || ib < vb.len() {
+            match (va.get(ia), vb.get(ib)) {
+                (Some((ida, na)), Some((idb, nb))) => match ida.cmp(idb) {
+                    Ordering::Equal => {
+                        matching += 1.0;
+                        match (na.value(), nb.value()) {
+                            (Op::Value(_, _, a_op, _), Op::Value(_, _, b_op, _)) => {
+                                weight_diff += (a_op.data() - b_op.data()).abs();
                             }
-                            ita.next();
-                            itb.next();
+                            _ => {}
                         }
-                        Ordering::Less => {
-                            disjoint += 1.0;
-                            ita.next();
-                        }
-                        Ordering::Greater => {
-                            disjoint += 1.0;
-                            itb.next();
-                        }
+                        ia += 1;
+                        ib += 1;
                     }
+                    Ordering::Less => {
+                        bump(*ida, cutoff, &mut excess, &mut disjoint);
+                        ia += 1;
+                    }
+                    Ordering::Greater => {
+                        bump(*idb, cutoff, &mut excess, &mut disjoint);
+                        ib += 1;
+                    }
+                },
+                (Some((ida, _)), None) => {
+                    bump(*ida, cutoff, &mut excess, &mut disjoint);
+                    ia += 1;
                 }
-                (Some(_), None) => {
-                    excess += 1.0;
-                    ita.next();
+                (None, Some((idb, _))) => {
+                    bump(*idb, cutoff, &mut excess, &mut disjoint);
+                    ib += 1;
                 }
-                (None, Some(_)) => {
-                    excess += 1.0;
-                    itb.next();
-                }
-                _ => break,
+                (None, None) => break,
             }
         }
 
+        let inv_max = 1.0 / max_genes;
         let avg_weight_diff = if matching > 0.0 {
             weight_diff / matching
         } else {
@@ -108,7 +121,15 @@ impl NeatDistance {
         (self.excess * excess * inv_max)
             + (self.disjoint * disjoint * inv_max)
             + (self.weight_diff * avg_weight_diff)
-            + (self.op_mismatch_penalty * op_mismatch_penalty)
+    }
+}
+
+#[inline]
+fn bump(id: InnovationId, cutoff: Option<InnovationId>, excess: &mut f32, disjoint: &mut f32) {
+    if cutoff.is_some_and(|c| id > c) {
+        *excess += 1.0;
+    } else {
+        *disjoint += 1.0;
     }
 }
 
@@ -121,7 +142,95 @@ impl Diversity<GraphChromosome<Op<f32>>> for NeatDistance {
         one.genotype()
             .iter()
             .zip(two.genotype().iter())
-            .map(|(a, b)| self.graph_distance_iter(a, b))
+            .map(|(a, b)| self.graph_distance(a, b))
             .sum()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::collections::graphs::node::InnovationId;
+    use crate::{Arity, GraphNode, NodeType};
+
+    fn vertex(index: usize, op: Op<f32>, innov: u64) -> GraphNode<Op<f32>> {
+        let mut node = GraphNode::with_arity(index, NodeType::Vertex, op, Arity::Exact(2));
+        node.set_innovation(innov_id(innov));
+        node
+    }
+
+    fn edge(index: usize, weight: f32, innov: u64) -> GraphNode<Op<f32>> {
+        let mut node = GraphNode::with_arity(
+            index,
+            NodeType::Edge,
+            Op::weight_with(weight),
+            Arity::Exact(1),
+        );
+        node.set_innovation(innov_id(innov));
+        node
+    }
+
+    fn innov_id(n: u64) -> InnovationId {
+        // SAFETY: InnovationId is #[repr(transparent)] over u64. Forging deterministic
+        // IDs lets us assert exact alignment outcomes; `InnovationId::new()` shares a
+        // process-wide counter and would be unstable across tests.
+        unsafe { std::mem::transmute::<u64, InnovationId>(n) }
+    }
+
+    fn chromo(nodes: Vec<GraphNode<Op<f32>>>) -> GraphChromosome<Op<f32>> {
+        GraphChromosome::new(nodes, Default::default())
+    }
+
+    #[test]
+    fn identical_chromosomes_have_zero_distance() {
+        let a = chromo(vec![vertex(0, Op::add(), 1), edge(1, 0.5, 2)]);
+        let b = chromo(vec![vertex(0, Op::add(), 1), edge(1, 0.5, 2)]);
+
+        let dist = NeatDistance::new(1.0, 1.0, 1.0)
+            .with_mismatch_penalty(1.0)
+            .graph_distance(&a, &b);
+        assert_eq!(dist, 0.0);
+    }
+
+    #[test]
+    fn weight_diff_accumulates_on_matching_innovations() {
+        let a = chromo(vec![edge(0, 0.5, 1), edge(1, 1.0, 2)]);
+        let b = chromo(vec![edge(0, 1.5, 1), edge(1, 0.0, 2)]);
+
+        // 2 matches, weight diffs |0.5-1.5|=1.0 and |1.0-0.0|=1.0 → avg 1.0.
+        let dist = NeatDistance::new(1.0, 1.0, 1.0).graph_distance(&a, &b);
+        assert!((dist - 1.0).abs() < 1e-6, "got {dist}");
+    }
+
+    #[test]
+    fn trailing_innovation_counts_as_excess_not_disjoint() {
+        // a has innov 1,2. b has innov 1,2,3. Innov 3 is beyond min(2,3)=2 → excess.
+        let a = chromo(vec![edge(0, 0.0, 1), edge(1, 0.0, 2)]);
+        let b = chromo(vec![edge(0, 0.0, 1), edge(1, 0.0, 2), edge(2, 0.0, 3)]);
+
+        let only_excess = NeatDistance::new(1.0, 0.0, 0.0).graph_distance(&a, &b);
+        let only_disjoint = NeatDistance::new(0.0, 1.0, 0.0).graph_distance(&a, &b);
+
+        let n = 3.0_f32;
+        assert!((only_excess - 1.0 / n).abs() < 1e-6, "excess={only_excess}");
+        assert_eq!(only_disjoint, 0.0);
+    }
+
+    #[test]
+    fn middle_misalignment_is_disjoint_not_excess() {
+        // a: 1,2,4. b: 1,3,4. min-max = 4. Innov 2 (only in a) and 3 (only in b) both
+        // lie at or below the cutoff → disjoint, not excess.
+        let a = chromo(vec![edge(0, 0.0, 1), edge(1, 0.0, 2), edge(2, 0.0, 4)]);
+        let b = chromo(vec![edge(0, 0.0, 1), edge(1, 0.0, 3), edge(2, 0.0, 4)]);
+
+        let only_excess = NeatDistance::new(1.0, 0.0, 0.0).graph_distance(&a, &b);
+        let only_disjoint = NeatDistance::new(0.0, 1.0, 0.0).graph_distance(&a, &b);
+
+        assert_eq!(only_excess, 0.0);
+        let n = 3.0_f32;
+        assert!(
+            (only_disjoint - 2.0 / n).abs() < 1e-6,
+            "disjoint={only_disjoint}"
+        );
     }
 }

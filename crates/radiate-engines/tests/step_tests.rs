@@ -149,43 +149,16 @@ mod recombine_step_tests {
         });
     }
 
-    /// Tight threshold: distance threshold so small that effectively
-    /// every phenotype gets its own species.
-    #[test]
-    fn speciate_tight_threshold_produces_many_species() {
-        seeded(102, || {
-            const POP_SIZE: usize = 20;
-            let mut eco = MockEcosystem::new(FloatCodec::vector(5, -10.0..10.0))
-                .pop_size(POP_SIZE)
-                .scores_linear()
-                .build();
-            let mut metrics = MetricSet::new();
-            let mut step = mock_speciate_step(1e-9, EuclideanDistance);
-
-            step.execute(0, &mut eco, &mut metrics).unwrap();
-
-            assert_species_count(
-                &eco,
-                POP_SIZE,
-                "tight threshold should produce as many species as phenotypes",
-            );
-            assert_population_speciated(
-                &eco,
-                "tight threshold should produce as many species as phenotypes",
-            );
-        });
-    }
-
     #[test]
     fn speciate_produces_adjusted_fitness_values() {
         seeded(106, || {
             const POP_SIZE: usize = 300;
-            let mut eco = MockEcosystem::new(FloatCodec::vector(3, -1.0..1.0))
+            let mut eco = MockEcosystem::new(FloatCodec::vector(3, -10.0..10.0))
                 .pop_size(POP_SIZE)
                 .scores_random(-5.0..5.0)
                 .build();
             let mut metrics = MetricSet::new();
-            let mut step = mock_speciate_step(0.3, EuclideanDistance);
+            let mut step = mock_speciate_step(4.0, EuclideanDistance);
 
             step.execute(0, &mut eco, &mut metrics).unwrap();
 
@@ -199,7 +172,7 @@ mod recombine_step_tests {
 
             assert_species_count(
                 &eco,
-                39,
+                24,
                 "adjusted fitness values should be produced even with a tight threshold",
             );
             assert!(
