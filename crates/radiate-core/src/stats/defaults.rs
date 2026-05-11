@@ -48,21 +48,6 @@ pub mod metric_names {
     pub const LARGEST_SPECIES_SHARE: SmallStr = SmallStr::from_static("species.largest_share");
     pub const SPECIES_THRESHOLD: SmallStr = SmallStr::from_static("species.threshold");
 
-    pub const ALTER_PARENT_REUSE: SmallStr = SmallStr::from_static("alter.parent_reuse");
-    pub const ALTER_WITHIN_FAMILY: SmallStr = SmallStr::from_static("alter.within_family");
-    pub const ALTER_CROSS_FAMILY: SmallStr = SmallStr::from_static("alter.cross_family");
-
-    pub const LINEAGE_EVENTS: SmallStr = SmallStr::from_static("lineage.events");
-    pub const LINEAGE_PARENTS_USED_UNIQUE: SmallStr =
-        SmallStr::from_static("lineage.parents_unique");
-    // •	FAMILY_PAIR_ENTROPY in [0, 1]
-    // •	0.0 = basically always the same pair (pairing collapse)
-    // •	1.0 = pairings evenly distributed across the pairs that occurred
-    pub const LINEAGE_FAMILY_PAIR_ENTROPY: SmallStr = SmallStr::from_static("lineage.family_pair");
-    pub const LINEAGE_FAMILY_PAIR_UNIQUE: SmallStr =
-        SmallStr::from_static("lineage.family_pair_unique");
-    pub const LINEAGE_TOP1_PAIR_SHARE: SmallStr = SmallStr::from_static("lineage.top1_pair_share");
-
     pub const UNIQUE_MEMBERS: SmallStr = SmallStr::from_static("unique.members");
     pub const UNIQUE_SCORES: SmallStr = SmallStr::from_static("unique.scores");
     pub const NEW_CHILDREN: SmallStr = SmallStr::from_static("new.children");
@@ -96,8 +81,6 @@ pub mod metric_tags {
 
     pub const STEP: &str = "step";
 
-    pub const LINEAGE: &str = "lineage";
-
     pub const EXPR: &str = "expr";
 }
 
@@ -118,7 +101,6 @@ const RULES: &[(&str, &[TagType])] = &[
     (metric_tags::SCORE, &[TagType::Score]),
     (metric_tags::RATE, &[TagType::Rate]),
     (metric_tags::STEP, &[TagType::Step]),
-    (metric_tags::LINEAGE, &[TagType::Lineage]),
     (metric_tags::EXPR, &[TagType::Expr]),
 ];
 
@@ -155,37 +137,6 @@ const EXACT_TAGS: &[(&SmallStr, &[TagType])] = &[
     //
     (&metric_names::SCORES, &[TagType::Score]),
     //
-    (
-        &metric_names::ALTER_CROSS_FAMILY,
-        &[TagType::Alterer, TagType::Lineage],
-    ),
-    (
-        &metric_names::ALTER_WITHIN_FAMILY,
-        &[TagType::Alterer, TagType::Lineage],
-    ),
-    (
-        &metric_names::ALTER_PARENT_REUSE,
-        &[TagType::Alterer, TagType::Lineage],
-    ),
-    //
-    (&metric_names::LINEAGE_EVENTS, &[TagType::Lineage]),
-    (
-        &metric_names::LINEAGE_PARENTS_USED_UNIQUE,
-        &[TagType::Lineage],
-    ),
-    (
-        &metric_names::LINEAGE_PARENTS_USED_RATIO,
-        &[TagType::Lineage],
-    ),
-    (
-        &metric_names::LINEAGE_FAMILY_PAIR_ENTROPY,
-        &[TagType::Lineage],
-    ),
-    (
-        &metric_names::LINEAGE_FAMILY_PAIR_UNIQUE,
-        &[TagType::Lineage],
-    ),
-    (&metric_names::LINEAGE_TOP1_PAIR_SHARE, &[TagType::Lineage]),
 ];
 
 pub fn default_tags(metric_name: &SmallStr) -> Tag {

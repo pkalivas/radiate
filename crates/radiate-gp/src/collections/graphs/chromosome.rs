@@ -117,8 +117,9 @@ where
                             .map(|new_node| {
                                 if new_node.arity() == node.arity() {
                                     node.with_allele(new_node.allele())
+                                        .with_innovation(node.innovation())
                                 } else {
-                                    node.clone()
+                                    node.clone().with_innovation(node.innovation())
                                 }
                             })
                     })

@@ -1,6 +1,6 @@
 use crate::stats::MetricIdx;
 use crate::{Chromosome, Gene, Genotype, math::indexes, random_provider};
-use crate::{GetPairMut, Lineage, LineageUpdate, MetricSet, MetricUpdate, Phenotype, Rate};
+use crate::{GetPairMut, MetricSet, MetricUpdate, Phenotype, Rate};
 use radiate_utils::{SmallStr, ToSnakeCase, intern};
 use std::sync::Arc;
 
@@ -47,21 +47,14 @@ impl From<usize> for AlterResult {
 
 pub struct AlterContext<'a> {
     metrics: &'a mut MetricSet,
-    lineage: &'a mut Lineage,
     generation: usize,
     rate: f32,
 }
 
 impl<'a> AlterContext<'a> {
-    pub fn new(
-        metrics: &'a mut MetricSet,
-        lineage: &'a mut Lineage,
-        generation: usize,
-        rate: f32,
-    ) -> Self {
+    pub fn new(metrics: &'a mut MetricSet, generation: usize, rate: f32) -> Self {
         Self {
             metrics,
-            lineage,
             generation,
             rate,
         }
@@ -77,10 +70,6 @@ impl<'a> AlterContext<'a> {
 
     pub fn metric(&mut self, name: &'static str, value: impl Into<MetricUpdate<'a>>) {
         self.metrics.upsert((name, value.into()));
-    }
-
-    pub fn update_lineage(&mut self, update: impl Into<LineageUpdate>) {
-        self.lineage.push(update.into());
     }
 }
 
@@ -131,7 +120,6 @@ impl<C: Chromosome> Alterer<C> {
     pub fn alter(
         &mut self,
         population: &mut [Phenotype<C>],
-        lineage: &mut Lineage,
         metrics: &mut MetricSet,
         generation: usize,
     ) {
@@ -146,16 +134,19 @@ impl<C: Chromosome> Alterer<C> {
 
         let mut ctx = AlterContext {
             metrics,
-            lineage,
             generation,
             rate,
         };
-        match &self.inner {
+        match &mut self.inner {
             AlterInner::Mutate(m) => {
                 let timer = std::time::Instant::now();
-                let AlterResult(count) = m.mutate(population, &mut ctx);
-                metrics.upsert_at(op_idx, count);
-                metrics.upsert_at(time_idx, timer.elapsed());
+                let mutator = Arc::get_mut(&mut (*m));
+
+                if let Some(mutator) = mutator {
+                    let AlterResult(count) = mutator.mutate(population, &mut ctx);
+                    metrics.upsert_at(op_idx, count);
+                    metrics.upsert_at(time_idx, timer.elapsed());
+                }
             }
             AlterInner::Crossover(c) => {
                 let timer = std::time::Instant::now();
@@ -272,13 +263,9 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
             };
 
             if cross_result.count() > 0 {
-                let parent_lineage = (one.family(), two.family());
-                let parent_ids = (one.id(), two.id());
                 one.invalidate(ctx.generation());
                 two.invalidate(ctx.generation());
 
-                ctx.update_lineage((parent_lineage, parent_ids, one.id()));
-                ctx.update_lineage((parent_lineage, parent_ids, two.id()));
                 result.merge(cross_result);
             }
         }
@@ -345,16 +332,14 @@ pub trait Mutate<C: Chromosome>: Send + Sync {
     }
 
     #[inline]
-    fn mutate(&self, population: &mut [Phenotype<C>], ctx: &mut AlterContext) -> AlterResult {
+    fn mutate(&mut self, population: &mut [Phenotype<C>], ctx: &mut AlterContext) -> AlterResult {
         let mut result = AlterResult::default();
 
         for phenotype in population.iter_mut() {
             let mutate_result = self.mutate_genotype(phenotype.genotype_mut(), ctx);
 
             if mutate_result.count() > 0 {
-                let parent = (phenotype.family(), phenotype.id());
                 phenotype.invalidate(ctx.generation());
-                ctx.update_lineage((parent, phenotype.id()));
             }
 
             result.merge(mutate_result);
@@ -364,7 +349,11 @@ pub trait Mutate<C: Chromosome>: Send + Sync {
     }
 
     #[inline]
-    fn mutate_genotype(&self, genotype: &mut Genotype<C>, ctx: &mut AlterContext) -> AlterResult {
+    fn mutate_genotype(
+        &mut self,
+        genotype: &mut Genotype<C>,
+        ctx: &mut AlterContext,
+    ) -> AlterResult {
         let mut result = AlterResult::default();
 
         for chromosome in genotype.iter_mut() {
@@ -376,7 +365,7 @@ pub trait Mutate<C: Chromosome>: Send + Sync {
     }
 
     #[inline]
-    fn mutate_chromosome(&self, chromosome: &mut C, ctx: &mut AlterContext) -> AlterResult {
+    fn mutate_chromosome(&mut self, chromosome: &mut C, ctx: &mut AlterContext) -> AlterResult {
         let mut count = 0;
         for gene in chromosome.iter_mut() {
             if random_provider::bool(ctx.rate()) {

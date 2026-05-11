@@ -17,7 +17,7 @@ use radiate_utils::{Float, Primitive};
 // 	- It determines the exploration vs. exploitation trade-off:
 // 	- Low eta (e.g. 1–5): leads to bigger mutations, promoting exploration.
 // 	- High eta (e.g. 20–100): leads to smaller, fine-grained mutations, good for local search.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PolynomialMutator {
     rate: Rate,
     eta: f32,

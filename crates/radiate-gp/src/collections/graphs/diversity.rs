@@ -1,4 +1,5 @@
-use super::{GraphChromosome, GraphIterator};
+use super::node::InnovationId;
+use super::{GraphChromosome, GraphIterator, GraphNode};
 use crate::{Node, Op};
 use radiate_core::{Chromosome, Diversity, Phenotype};
 use std::cmp::Ordering;

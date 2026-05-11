@@ -100,7 +100,7 @@ where
 
     #[inline]
     fn mutate_chromosome(
-        &self,
+        &mut self,
         chromosome: &mut GraphChromosome<Op<T>>,
         ctx: &mut AlterContext,
     ) -> AlterResult {
@@ -140,7 +140,7 @@ where
 
     #[inline]
     fn mutate_chromosome(
-        &self,
+        &mut self,
         chromosome: &mut TreeChromosome<Op<T>>,
         ctx: &mut AlterContext,
     ) -> AlterResult {

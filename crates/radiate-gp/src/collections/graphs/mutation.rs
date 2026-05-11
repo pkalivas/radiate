@@ -1,11 +1,62 @@
 use super::transaction::{InsertStep, TransactionResult};
 use super::{Graph, GraphChromosome};
+use crate::graphs::node::InnovationId;
 use crate::node::Node;
 use crate::{Arity, Factory, NodeType};
 use radiate_core::{AlterContext, Chromosome};
 use radiate_core::{AlterResult, Mutate, random_provider};
+use std::collections::HashMap;
 
 const INVALID_MUTATION: &str = "mutate.graph.invalid";
+
+#[derive(Hash, Eq, PartialEq, Debug, Clone)]
+struct StructureChange {
+    souce_id: Option<InnovationId>,
+    target_id: Option<InnovationId>,
+    node_type: NodeType,
+}
+
+#[derive(Debug, Clone)]
+pub struct InnovationContext {
+    version: usize,
+    innovations: HashMap<StructureChange, InnovationId>,
+}
+
+impl InnovationContext {
+    fn new() -> Self {
+        InnovationContext {
+            version: 0,
+            innovations: HashMap::new(),
+        }
+    }
+
+    fn bump(&mut self, next: usize) {
+        if next > self.version {
+            self.innovations.clear();
+            self.version = next;
+        }
+    }
+
+    fn get_innovation(
+        &mut self,
+        source_id: Option<InnovationId>,
+        target_id: Option<InnovationId>,
+        node_type: NodeType,
+    ) -> InnovationId {
+        let change = StructureChange {
+            souce_id: source_id.clone(),
+            target_id: target_id.clone(),
+            node_type,
+        };
+        if let Some(id) = self.innovations.get(&change) {
+            *id
+        } else {
+            let new_id = InnovationId::new();
+            self.innovations.insert(change, new_id);
+            new_id
+        }
+    }
+}
 
 /// A graph mutator that can be used to alter the graph structure within a [`GraphChromosome<T>`].
 /// By adding new vertices and edges to the graph, it can be used to explore the search space of a graph.
@@ -19,6 +70,7 @@ pub struct GraphMutator {
     vertex_rate: f32,
     edge_rate: f32,
     allow_recurrent: bool,
+    innov_context: InnovationContext,
 }
 
 // updated GraphMutator implementation
@@ -33,6 +85,7 @@ impl GraphMutator {
             vertex_rate,
             edge_rate,
             allow_recurrent: true,
+            innov_context: InnovationContext::new(),
         }
     }
 
@@ -73,7 +126,7 @@ where
 {
     #[inline]
     fn mutate_chromosome(
-        &self,
+        &mut self,
         chromosome: &mut GraphChromosome<T>,
         ctx: &mut AlterContext,
     ) -> AlterResult {
@@ -86,6 +139,8 @@ where
             ctx.metric(INVALID_MUTATION, 1);
             return AlterResult::empty();
         }
+
+        self.innov_context.bump(ctx.generation());
 
         // Else, if we are below the maximum number of nodes,
         // attempt to mutate the graph by adding a new node of the determined type.
@@ -125,6 +180,25 @@ where
                                     }
                                     InsertStep::Detach(source, target) => {
                                         trans.detach(source, target)
+                                    }
+                                    InsertStep::NewStructure(
+                                        source,
+                                        new_node,
+                                        target,
+                                        node_type,
+                                    ) => {
+                                        let source_innov =
+                                            trans.get(source).and_then(|n| n.innovation());
+                                        let target_innov =
+                                            trans.get(target).and_then(|n| n.innovation());
+
+                                        let innovation_id = self.innov_context.get_innovation(
+                                            source_innov,
+                                            target_innov,
+                                            node_type,
+                                        );
+
+                                        trans.set_innovation(new_node, innovation_id);
                                     }
                                     _ => {}
                                 }

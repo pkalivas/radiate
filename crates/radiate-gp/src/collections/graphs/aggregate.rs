@@ -1,7 +1,7 @@
 use super::node::GraphNodeId;
 use crate::{
     collections::{Graph, GraphNode, NodeType},
-    graphs::transaction::TransactionResult,
+    graphs::{node::InnovationId, transaction::TransactionResult},
     node::Node,
 };
 use std::collections::BTreeMap;
@@ -143,6 +143,7 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
 
                 trans.push((index, node.node_type(), node.value().clone(), node.arity()));
                 id_index_map.insert(*node_id, index);
+                trans.set_innovation(index, InnovationId::new());
             }
 
             for rel in self.relationships.iter() {

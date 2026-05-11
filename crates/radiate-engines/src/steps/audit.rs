@@ -1,14 +1,10 @@
 use crate::steps::EngineStep;
 use radiate_core::{
-    Chromosome, Ecosystem, Lineage, MetricSet, Objective, define_metric_handles, metric_names,
+    Chromosome, Ecosystem, MetricSet, Objective, define_metric_handles, metric_names,
     phenotype::PhenotypeId,
 };
 use radiate_error::Result;
-use std::{
-    cmp::Ordering,
-    collections::HashSet,
-    sync::{Arc, RwLock},
-};
+use std::{cmp::Ordering, collections::HashSet};
 
 const EPS: f32 = 1e-9;
 
@@ -27,17 +23,6 @@ define_metric_handles! {
         // Single-objective scalars (idle in multi-objective)
         scores            = metric_names::SCORES,
         unique_scores     = metric_names::UNIQUE_SCORES,
-
-        // Lineage
-        lineage_parents_unique     = metric_names::LINEAGE_PARENTS_USED_UNIQUE,
-        lineage_parents_ratio      = metric_names::LINEAGE_PARENTS_USED_RATIO,
-        alter_parent_reuse         = metric_names::ALTER_PARENT_REUSE,
-        alter_within_family        = metric_names::ALTER_WITHIN_FAMILY,
-        alter_cross_family         = metric_names::ALTER_CROSS_FAMILY,
-        lineage_events             = metric_names::LINEAGE_EVENTS,
-        lineage_family_pair        = metric_names::LINEAGE_FAMILY_PAIR_ENTROPY,
-        lineage_top1_pair_share    = metric_names::LINEAGE_TOP1_PAIR_SHARE,
-        lineage_family_pair_unique = metric_names::LINEAGE_FAMILY_PAIR_UNIQUE,
     }
 }
 
@@ -63,7 +48,6 @@ define_metric_handles! {
 #[derive(Default)]
 pub struct AuditStep {
     objective: Objective,
-    lineage: Arc<RwLock<Lineage>>,
     score_distribution: Vec<Vec<f32>>,
     unique_score_work: Vec<Vec<f32>>,
     age_distribution: Vec<usize>,
@@ -77,10 +61,9 @@ pub struct AuditStep {
 }
 
 impl AuditStep {
-    pub fn new(objective: Objective, lineage: Arc<RwLock<Lineage>>) -> Self {
+    pub fn new(objective: Objective) -> Self {
         Self {
             objective,
-            lineage,
             ..Default::default()
         }
     }
@@ -227,42 +210,6 @@ impl AuditStep {
         metrics.upsert_at(handles.diversity_ratio, diversity_ratio);
     }
 
-    fn calc_lineage_metrics<C: Chromosome>(
-        handles: &AuditHandles,
-        metrics: &mut MetricSet,
-        ecosystem: &Ecosystem<C>,
-        lineage: &Lineage,
-    ) {
-        let stats = lineage.stats();
-        let parent_usage = &stats.parent_usage;
-        let family_usage = &stats.family_usage;
-        let family_pairs = &stats.family_pairs;
-
-        let family_pair_dist = family_pairs.values().copied().collect::<Vec<usize>>();
-        let parent_usage_dist = parent_usage.values().cloned().collect::<Vec<usize>>();
-        let family_usage_dist = family_usage.values().cloned().collect::<Vec<usize>>();
-
-        let pair_entropy = normalized_shannon_entropy(&family_pair_dist);
-        let pair_unique = family_pair_dist.iter().filter(|&&c| c > 0).count();
-        let top1_pair_share = topk_share(family_pair_dist.clone(), 1);
-
-        let parents_used_ratio = if !parent_usage.is_empty() {
-            parent_usage.len() as f32 / ecosystem.population().len() as f32
-        } else {
-            0.0
-        };
-
-        metrics.upsert_at(handles.lineage_parents_unique, parent_usage.len());
-        metrics.upsert_at(handles.lineage_parents_ratio, parents_used_ratio);
-        metrics.upsert_at(handles.alter_parent_reuse, &parent_usage_dist);
-        metrics.upsert_at(handles.alter_within_family, &family_usage_dist);
-        metrics.upsert_at(handles.alter_cross_family, &family_pair_dist);
-        metrics.upsert_at(handles.lineage_events, stats.updates);
-        metrics.upsert_at(handles.lineage_family_pair, pair_entropy);
-        metrics.upsert_at(handles.lineage_top1_pair_share, top1_pair_share);
-        metrics.upsert_at(handles.lineage_family_pair_unique, pair_unique);
-    }
-
     fn clear_state(&mut self, pop_size: usize) {
         self.unique_members.clear();
 
@@ -312,10 +259,10 @@ impl<C: Chromosome> EngineStep<C> for AuditStep {
 
         self.clear_state(ecosystem.len());
 
-        {
-            let lineage = self.lineage.read().unwrap();
-            Self::calc_lineage_metrics(&self.handles, metrics, ecosystem, &lineage);
-        }
+        // {
+        //     let lineage = self.lineage.read().unwrap();
+        //     Self::calc_lineage_metrics(&self.handles, metrics, ecosystem, &lineage);
+        // }
 
         let mut new_this_gen = 0;
         for p in ecosystem.population().iter() {
@@ -389,41 +336,42 @@ impl<C: Chromosome> EngineStep<C> for AuditStep {
     }
 }
 
-fn topk_share(mut counts: Vec<usize>, k: usize) -> f32 {
-    if counts.is_empty() {
-        return 0.0;
-    }
-    counts.sort_unstable_by(|a, b| b.cmp(a));
-    let total: usize = counts.iter().sum();
-    if total == 0 {
-        return 0.0;
-    }
-    let take = counts.into_iter().take(k).sum::<usize>();
-    take as f32 / total as f32
-}
+// fn topk_share(mut counts: Vec<usize>, k: usize) -> f32 {
+//     if counts.is_empty() {
+//         return 0.0;
+//     }
+//     counts.sort_unstable_by(|a, b| b.cmp(a));
+//     let total: usize = counts.iter().sum();
+//     if total == 0 {
+//         return 0.0;
+//     }
+//     let take = counts.into_iter().take(k).sum::<usize>();
+//     take as f32 / total as f32
+// }
 
-fn normalized_shannon_entropy(counts: &[usize]) -> f32 {
-    let total: usize = counts.iter().sum();
-    if total == 0 {
-        return 0.0;
-    }
+// fn normalized_shannon_entropy(counts: &[usize]) -> f32 {
+//     println!("counts: {:?}", counts);
+//     let total: usize = counts.iter().sum();
+//     if total == 0 {
+//         return 0.0;
+//     }
 
-    let total_f = total as f32;
-    let mut h = 0.0f32;
-    let mut k = 0usize;
+//     let total_f = total as f32;
+//     let mut h = 0.0f32;
+//     let mut k = 0usize;
 
-    for &c in counts {
-        if c == 0 {
-            continue;
-        }
-        k += 1;
-        let p = c as f32 / total_f;
-        h -= p * p.ln();
-    }
+//     for &c in counts {
+//         if c == 0 {
+//             continue;
+//         }
+//         k += 1;
+//         let p = c as f32 / total_f;
+//         h -= p * p.ln();
+//     }
 
-    if k <= 1 {
-        return 0.0;
-    }
-    let h_max = (k as f32).ln();
-    if h_max <= 0.0 { 0.0 } else { h / h_max }
-}
+//     if k <= 1 {
+//         return 0.0;
+//     }
+//     let h_max = (k as f32).ln();
+//     if h_max <= 0.0 { 0.0 } else { h / h_max }
+// }

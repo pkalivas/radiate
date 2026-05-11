@@ -3,8 +3,8 @@ use crate::{Chromosome, EngineControl};
 use radiate_core::error::RadiateResult;
 use radiate_core::stats::TagType;
 use radiate_core::{
-    Ecosystem, Front, Lineage, MetricSet, MetricUpdate, Objective, Phenotype, Problem,
-    RadiateError, Score, metric, metric_names,
+    Ecosystem, Front, MetricSet, MetricUpdate, Objective, Phenotype, Problem, RadiateError, Score,
+    metric, metric_names,
 };
 use radiate_core::{Evaluate, NamedExpr};
 #[cfg(feature = "serde")]
@@ -25,7 +25,6 @@ pub struct Context<C: Chromosome, T> {
     pub(crate) metrics: MetricSet,
     pub(crate) score: Option<Score>,
     pub(crate) front: Arc<RwLock<Front<Phenotype<C>>>>,
-    pub(crate) lineage: Arc<RwLock<Lineage>>,
     pub(crate) objective: Objective,
     pub(crate) problem: Arc<dyn Problem<C, T>>,
     pub(crate) control: Option<EngineControl>,
@@ -36,7 +35,6 @@ pub struct Context<C: Chromosome, T> {
 impl<C: Chromosome, T> Context<C, T> {
     pub fn try_advance_one(&mut self) -> RadiateResult<bool> {
         self.index += 1;
-        self.lineage.write().unwrap().rollover();
         self.audits.clear();
 
         self.metrics
@@ -126,7 +124,6 @@ where
                 metrics: generation.metrics().clone(),
                 score: Some(generation.score().clone()),
                 front: config.front(),
-                lineage: config.lineage(),
                 objective: config.objective().clone(),
                 problem: config.problem().clone(),
                 control: None,
@@ -147,7 +144,6 @@ where
             metrics: MetricSet::default(),
             score: None,
             front: config.front(),
-            lineage: config.lineage(),
             objective: config.objective().clone(),
             problem: config.problem().clone(),
             control: None,

@@ -9,23 +9,23 @@ use serde::{Deserialize, Serialize};
 use std::hash::Hash;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[repr(transparent)]
-pub struct FamilyId(pub u64);
+// #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+// #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+// #[repr(transparent)]
+// pub struct FamilyId(pub u64);
 
-impl FamilyId {
-    pub fn new() -> Self {
-        static FAMILY_ID: AtomicU64 = AtomicU64::new(0);
-        FamilyId(FAMILY_ID.fetch_add(1, Ordering::Relaxed))
-    }
-}
+// impl FamilyId {
+//     pub fn new() -> Self {
+//         static FAMILY_ID: AtomicU64 = AtomicU64::new(0);
+//         FamilyId(FAMILY_ID.fetch_add(1, Ordering::Relaxed))
+//     }
+// }
 
-impl Default for FamilyId {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+// impl Default for FamilyId {
+//     fn default() -> Self {
+//         Self::new()
+//     }
+// }
 
 /// A unique identifier for a [Phenotype]. This is used to identify the [Phenotype] in the population.
 /// It is a simple wrapper around a `u64` value. Using this, we can uniquely identify each [Phenotype]
@@ -69,7 +69,7 @@ pub struct Phenotype<C: Chromosome> {
     genotype: Option<Genotype<C>>,
     score: Option<Score>,
     generation: usize,
-    family: FamilyId,
+    // family: FamilyId,
     species: SpeciesId,
     id: PhenotypeId,
 }
@@ -119,9 +119,9 @@ impl<C: Chromosome> Phenotype<C> {
         self.id
     }
 
-    pub fn family(&self) -> FamilyId {
-        self.family
-    }
+    // pub fn family(&self) -> FamilyId {
+    //     self.family
+    // }
 
     pub fn species(&self) -> SpeciesId {
         self.species
@@ -196,7 +196,7 @@ impl<C: Chromosome> From<Genotype<C>> for Phenotype<C> {
             score: None,
             generation: 0,
             id: PhenotypeId::new(),
-            family: FamilyId::new(),
+            // family: FamilyId::new(),
             species: SpeciesId::empty(),
         }
     }
@@ -209,7 +209,7 @@ impl<C: Chromosome> From<(Genotype<C>, usize)> for Phenotype<C> {
             score: None,
             generation,
             id: PhenotypeId::new(),
-            family: FamilyId::new(),
+            // family: FamilyId::new(),
             species: SpeciesId::empty(),
         }
     }
@@ -226,7 +226,7 @@ impl<C: Chromosome> From<(Vec<C>, usize)> for Phenotype<C> {
             score: None,
             generation,
             id: PhenotypeId::new(),
-            family: FamilyId::new(),
+            // family: FamilyId::new(),
             species: SpeciesId::empty(),
         }
     }

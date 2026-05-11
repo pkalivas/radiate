@@ -3,8 +3,8 @@
 use radiate_alters::{BlendCrossover, GaussianMutator, UniformCrossover, UniformMutator};
 use radiate_core::{
     Alterer, BitChromosome, Chromosome, Codec, Crossover, Ecosystem, Executor, FloatChromosome,
-    FloatCodec, Gene, Genotype, IntChromosome, Lineage, Mutate, Objective, Optimize, Phenotype,
-    Population, Rate, Score, Species, alters, diversity::Diversity, random_provider,
+    FloatCodec, Gene, Genotype, IntChromosome, Mutate, Objective, Optimize, Phenotype, Population,
+    Rate, Score, Species, alters, diversity::Diversity, random_provider,
 };
 use radiate_engines::{OffspringConfig, RecombineStep, SelectConfig, SpeciateStep, SurvivorConfig};
 use radiate_selectors::{BoltzmannSelector, TournamentSelector};
@@ -166,12 +166,7 @@ pub fn mock_recombine_step<C: Chromosome + Clone>(
         alters,
     );
 
-    RecombineStep::new(
-        survivor,
-        offspring,
-        objective,
-        Arc::new(RwLock::new(Lineage::default())),
-    )
+    RecombineStep::new(survivor, offspring, objective)
 }
 
 pub fn default_float_alters() -> Vec<Alterer<FloatChromosome<f32>>> {

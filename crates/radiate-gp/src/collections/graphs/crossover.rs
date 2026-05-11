@@ -76,11 +76,7 @@ where
             };
 
             if num_crosses > 0 {
-                let parent_lineage = (parent_one.family(), parent_two.family());
-                let parent_ids = (parent_one.id(), parent_two.id());
-
                 parent_one.invalidate(ctx.generation());
-                ctx.update_lineage((parent_lineage, parent_ids, parent_one.id()));
 
                 return AlterResult::from(num_crosses);
             }

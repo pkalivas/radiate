@@ -110,7 +110,6 @@ pub enum TagType {
     Score,
     Rate,
     Step,
-    Lineage,
     Expr,
 }
 
@@ -136,8 +135,7 @@ impl TagType {
             13 => Score,
             14 => Rate,
             15 => Step,
-            16 => Lineage,
-            17 => Expr,
+            16 => Expr,
             _ => return None,
         })
     }
@@ -167,7 +165,6 @@ impl TagType {
             Score => "Score",
             Rate => "Rate",
             Step => "Step",
-            Lineage => "Lineage",
             Expr => "Expr",
         }
     }
@@ -206,7 +203,6 @@ impl From<String> for TagType {
             metric_tags::SCORE => Score,
             metric_tags::RATE => Rate,
             metric_tags::STEP => Step,
-            metric_tags::LINEAGE => Lineage,
             metric_tags::EXPR => Expr,
             _ => Other,
         }

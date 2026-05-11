@@ -17,7 +17,7 @@
 //! 2) `commit()`, `commit_with(...)`, or `try_commit()` to finalize
 //! 3) On invalid commit, use returned `replay` to re-apply later with `replay(...)`
 use super::{Direction, Graph, GraphNode};
-use crate::{Arity, NodeType, node::Node};
+use crate::{Arity, NodeType, graphs::node::InnovationId, node::Node};
 use radiate_core::{RdRand, Valid, random_provider};
 use radiate_utils::SortedBuffer;
 use std::{fmt::Debug, ops::Deref};
@@ -92,6 +92,7 @@ impl<T> TransactionResult<T> {
 pub enum InsertStep {
     Detach(usize, usize),
     Connect(usize, usize),
+    NewStructure(usize, usize, usize, NodeType),
     Invalid,
 }
 
@@ -277,6 +278,12 @@ impl<'a, T> GraphTransaction<'a, T> {
         }
     }
 
+    pub fn set_innovation(&mut self, node_idx: usize, innovation: InnovationId) {
+        if let Some(node) = self.graph.get_mut(node_idx) {
+            node.set_innovation(innovation);
+        }
+    }
+
     /// Compute the steps needed to insert `new_node_idx` between `source_idx` and `target_idx`.
     ///
     /// Behavior:
@@ -316,6 +323,12 @@ impl<'a, T> GraphTransaction<'a, T> {
                 steps.push(InsertStep::Connect(source_idx, new_node_idx));
                 steps.push(InsertStep::Connect(new_node_idx, source_outgoing));
                 steps.push(InsertStep::Detach(source_idx, source_outgoing));
+                steps.push(InsertStep::NewStructure(
+                    source_idx,
+                    new_node_idx,
+                    source_outgoing,
+                    source_node.node_type(),
+                ));
             }
         } else if target_is_edge || target_node.is_locked() {
             let target_incoming = *rand.choose(target_node.incoming());
@@ -326,10 +339,22 @@ impl<'a, T> GraphTransaction<'a, T> {
                 steps.push(InsertStep::Connect(target_incoming, new_node_idx));
                 steps.push(InsertStep::Connect(new_node_idx, target_idx));
                 steps.push(InsertStep::Detach(target_incoming, target_idx));
+                steps.push(InsertStep::NewStructure(
+                    target_incoming,
+                    new_node_idx,
+                    target_idx,
+                    target_node.node_type(),
+                ));
             }
         } else {
             steps.push(InsertStep::Connect(source_idx, new_node_idx));
             steps.push(InsertStep::Connect(new_node_idx, target_idx));
+            steps.push(InsertStep::NewStructure(
+                source_idx,
+                new_node_idx,
+                target_idx,
+                new_node.node_type(),
+            ));
         }
 
         steps

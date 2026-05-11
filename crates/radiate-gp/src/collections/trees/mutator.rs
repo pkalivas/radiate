@@ -26,7 +26,7 @@ where
     }
 
     fn mutate_chromosome(
-        &self,
+        &mut self,
         chromosome: &mut TreeChromosome<T>,
         _: &mut AlterContext,
     ) -> AlterResult {

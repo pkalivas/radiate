@@ -375,7 +375,6 @@ where
                 alters: config.alters().to_vec(),
             },
             objective: config.objective(),
-            lineage: config.lineage(),
             survivor_counts: radiate_utils::VersionedCounts::new(),
             offspring_counts: radiate_utils::VersionedCounts::new(),
         };
@@ -395,10 +394,7 @@ where
     }
 
     fn build_audit_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
-        Some(Box::new(AuditStep::new(
-            config.objective().clone(),
-            config.lineage(),
-        )))
+        Some(Box::new(AuditStep::new(config.objective().clone())))
     }
 
     fn build_front_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {

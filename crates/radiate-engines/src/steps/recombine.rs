@@ -1,12 +1,11 @@
 use crate::steps::EngineStep;
 use radiate_core::Phenotype;
 use radiate_core::{
-    Alterer, Chromosome, Ecosystem, Lineage, MetricSet, Objective, Optimize, Population, Score,
-    Select,
+    Alterer, Chromosome, Ecosystem, MetricSet, Objective, Optimize, Population, Score, Select,
 };
 use radiate_error::{Result, radiate_bail};
 use radiate_utils::VersionedCounts;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct SelectConfig<C: Chromosome> {
@@ -56,7 +55,6 @@ pub struct RecombineStep<C: Chromosome> {
     pub(crate) survivor: SurvivorConfig<C>,
     pub(crate) offspring: OffspringConfig<C>,
     pub(crate) objective: Objective,
-    pub(crate) lineage: Arc<RwLock<Lineage>>,
     pub(crate) survivor_counts: VersionedCounts,
     pub(crate) offspring_counts: VersionedCounts,
 }
@@ -66,13 +64,11 @@ impl<C: Chromosome> RecombineStep<C> {
         survivor: SurvivorConfig<C>,
         offspring: OffspringConfig<C>,
         objective: Objective,
-        lineage: Arc<RwLock<Lineage>>,
     ) -> Self {
         Self {
             survivor,
             offspring,
             objective,
-            lineage,
             survivor_counts: VersionedCounts::new(),
             offspring_counts: VersionedCounts::new(),
         }
@@ -153,9 +149,8 @@ where
 
         self.objective.sort(&mut offspring);
 
-        let mut lineage = self.lineage.write().unwrap();
         for alt in &mut self.offspring.alters {
-            alt.alter(offspring.as_mut(), &mut lineage, metrics, generation);
+            alt.alter(offspring.as_mut(), metrics, generation);
         }
 
         Some((survivors, offspring))
@@ -226,14 +221,13 @@ where
 
         let (survivors, mut offspring) = self.unioned_walk(ecosystem);
 
-        let mut lineage = self.lineage.write().unwrap();
         let o_slice = offspring.as_mut();
         for sub_pop in o_slice.chunk_by_mut(|a, b| a.species() == b.species()) {
             let mut chunk = sub_pop;
             self.objective.sort(&mut chunk);
 
             for alt in &mut self.offspring.alters {
-                alt.alter(chunk, &mut lineage, metrics, generation);
+                alt.alter(chunk, metrics, generation);
             }
         }
 
