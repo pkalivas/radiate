@@ -17,8 +17,6 @@ pub struct AuditStep {
     last_gen_ids: HashSet<PhenotypeId>,
     curr_ids: HashSet<PhenotypeId>,
     unique_members: HashSet<PhenotypeId>,
-    // Per-dim metric names for multi-objective mode. Built lazily on first
-    // execute when `objective.is_multi()`. Empty for single-objective.
     scores_per_dim: Vec<SmallStr>,
     unique_scores_per_dim: Vec<SmallStr>,
 }
@@ -188,7 +186,7 @@ impl<C: Chromosome> EngineStep<C> for AuditStep {
             if is_single {
                 metrics.upsert(metric_names::UNIQUE_SCORES, unique_count);
             } else {
-                metrics.upsert(self.unique_scores_per_dim[idx].clone(), unique_count);
+                metrics.upsert(&self.unique_scores_per_dim[idx], unique_count);
             }
         }
 
@@ -197,7 +195,7 @@ impl<C: Chromosome> EngineStep<C> for AuditStep {
                 metrics.upsert(metric_names::SCORES, &self.score_distribution[0]);
             } else {
                 for (idx, vec) in self.score_distribution.iter().enumerate() {
-                    metrics.upsert(self.scores_per_dim[idx].clone(), vec);
+                    metrics.upsert(&self.scores_per_dim[idx], vec);
                 }
             }
         }

@@ -68,14 +68,15 @@ impl MetricSet {
     /// the name has not been seen before. The returned handle is valid for the
     /// lifetime of this `MetricSet`.
     #[inline]
-    pub(crate) fn resolve(&mut self, name: &SmallStr) -> MetricIdx {
-        if let Some(&idx) = self.name_lookup.get(name.as_str()) {
+    pub(crate) fn resolve(&mut self, name: impl AsRef<str>) -> MetricIdx {
+        if let Some(&idx) = self.name_lookup.get(name.as_ref()) {
             return idx;
         }
 
         let idx = MetricIdx::new(self.metrics.len() as u32);
+        let name = SmallStr::from(name.as_ref());
         self.name_lookup.insert(name.clone(), idx);
-        self.metrics.push(Metric::new(name.clone()));
+        self.metrics.push(Metric::new(name));
         idx
     }
 
@@ -91,17 +92,10 @@ impl MetricSet {
     }
 
     #[inline(always)]
-    pub fn upsert<'a>(&mut self, key: impl Into<SmallStr>, metric: impl Into<MetricUpdate<'a>>) {
-        let name = key.into();
+    pub fn upsert<'a>(&mut self, key: impl AsRef<str>, metric: impl Into<MetricUpdate<'a>>) {
         let metric_update = metric.into();
-        let idx = self.resolve(&name);
+        let idx = self.resolve(&key);
         self.upsert_at(idx, metric_update);
-
-        // let idx = self.resolve(&name);
-        // self.upsert_at(idx, metric_update);
-        // if let Some(tag) = tag {
-        //     self.metrics[idx.as_usize()].add_tag(tag);
-        // }
     }
 
     #[inline(always)]
