@@ -180,8 +180,10 @@ where
                 let min = self.second.eval(input)?.extract::<f32>();
                 let max = self.third.eval(input)?.extract::<f32>();
 
+                println!("Clamp: value={:?}, min={:?}, max={:?}", value, min, max);
+
                 if value.is_none() {
-                    return Ok(AnyValue::Null);
+                    return Ok(AnyValue::Float32(min.unwrap_or(0.0)));
                 }
 
                 match (value, min, max) {

@@ -237,9 +237,9 @@ where
         }
 
         let mut threshold = self.threshold.get(generation, metrics);
-        if threshold <= 0.0 {
-            threshold = 0.1;
-        }
+        // if threshold <= 0.0 {
+        //     threshold = 0.1;
+        // }
 
         let mascots = Self::generate_mascots(ecosystem);
 
