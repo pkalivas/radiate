@@ -24,6 +24,9 @@ for _ in range(-10, 10):
     inputs.append([input])
     answers.append([compute(input)])
 
+mut_rate = rd.select("score.improvement").div(
+    rd.select("score.improvement").mean().add(1e-8)
+)
 
 engine = (
     rd.Engine.graph(

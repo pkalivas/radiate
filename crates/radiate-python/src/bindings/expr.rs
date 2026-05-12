@@ -220,6 +220,25 @@ impl PyExpr {
     pub fn affine(&self, scale: f32, bias: f32) -> Self {
         self.inner.clone().affine(scale, bias).into()
     }
+
+    pub fn error(&self, target: f32) -> Self {
+        self.inner.clone().error_from(target).into()
+    }
+
+    pub fn quantile(&self, q: f32) -> Self {
+        if q < 0.0 || q > 1.0 {
+            panic!("Quantile must be between 0 and 1");
+        }
+
+        self.inner.clone().quantile(q).into()
+    }
+
+    pub fn pi_signal(&self, metric: String, target: f32, gain: f32, window: usize) -> Self {
+        self.inner
+            .clone()
+            .pi_signal(metric, target, gain, window)
+            .into()
+    }
 }
 
 impl From<Expr> for PyExpr {

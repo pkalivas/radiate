@@ -98,7 +98,5 @@ fn get_threshold(use_expr_distance: bool, target_species: usize) -> impl Into<Ra
         .clamp(0.005, 2.0)
         .compile();
 
-    println!("{result:#?}");
-
     Rate::Expr(result)
 }

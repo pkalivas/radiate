@@ -248,6 +248,12 @@ class Expr(RsObject):
     def cast(self, to: RdDataType) -> Expr:
         return Expr.from_rust(self.__backend__().cast(str(to)))
 
+    def error(self, target: float | int) -> Expr:
+        return Expr.from_rust(self.__backend__().error(target))
+
+    def quantile(self, q: float) -> Expr:
+        return Expr.from_rust(self.__backend__().quantile(q))
+
 
 def mean(metric_name: str) -> Expr:
     return select(metric_name).mean()

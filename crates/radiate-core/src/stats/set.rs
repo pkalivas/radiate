@@ -97,6 +97,21 @@ impl MetricSet {
     }
 
     #[inline(always)]
+    pub fn upsert_tagged<'a>(
+        &mut self,
+        key: impl AsRef<str>,
+        metric: impl Into<MetricUpdate<'a>>,
+        tag: TagType,
+    ) {
+        let metric_update = metric.into();
+        let idx = self.resolve(&key);
+        if let Some(metric) = self.metrics.get_mut(idx.as_usize()) {
+            metric.add_tag(tag);
+            self.upsert_at(idx, metric_update);
+        }
+    }
+
+    #[inline(always)]
     pub fn keys(&self) -> impl Iterator<Item = SmallStr> {
         self.metrics.iter().map(|m| m.name().clone())
     }
