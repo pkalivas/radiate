@@ -4,6 +4,7 @@ use radiate_utils::SmallStr;
 pub mod metric_names {
     use radiate_utils::SmallStr;
 
+    pub const INDEX: SmallStr = SmallStr::from_static("index");
     pub const TIME: SmallStr = SmallStr::from_static("time");
 
     pub const AGE: SmallStr = SmallStr::from_static("age");
@@ -33,15 +34,11 @@ pub mod metric_names {
 
     pub const CARRYOVER_RATE: SmallStr = SmallStr::from_static("rate.carryover");
     pub const DIVERSITY_RATIO: SmallStr = SmallStr::from_static("rate.diversity");
-    pub const LINEAGE_PARENTS_USED_RATIO: SmallStr =
-        SmallStr::from_static("rate.lineage.parents_used");
 
     pub const SCORES: SmallStr = SmallStr::from_static("scores");
     pub const BEST_SCORES: SmallStr = SmallStr::from_static("scores.best");
     pub const SCORE_VOLATILITY: SmallStr = SmallStr::from_static("score.volatility");
     pub const BEST_SCORE_IMPROVEMENT: SmallStr = SmallStr::from_static("score.improvement");
-
-    pub const INDEX: SmallStr = SmallStr::from_static("index");
 
     pub const SPECIES_DISTANCE_DIST: SmallStr = SmallStr::from_static("species.distance");
     pub const SPECIES_EVENNESS: SmallStr = SmallStr::from_static("species.evenness");

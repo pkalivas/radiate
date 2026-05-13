@@ -116,8 +116,6 @@ impl MetricSet {
         self.metrics.iter().map(|m| m.name().clone())
     }
 
-    /// Insert or fully overwrite a metric by name. If a metric with the same
-    /// name already exists, its slot is reused (handle stays valid).
     #[inline(always)]
     pub fn replace(&mut self, metric: impl Into<Metric>) {
         let metric = metric.into();
@@ -281,7 +279,7 @@ impl<'de> Deserialize<'de> for MetricSet {
 
 #[derive(Debug)]
 pub enum MetricSetUpdate<'a> {
-    NamedSingle(SmallStr, MetricUpdate<'a>, Option<TagType>),
+    Single(SmallStr, MetricUpdate<'a>, Option<TagType>),
 }
 
 impl<'a, N, U> From<(N, U)> for MetricSetUpdate<'a>
@@ -290,7 +288,7 @@ where
     U: Into<MetricUpdate<'a>>,
 {
     fn from((name, update): (N, U)) -> Self {
-        MetricSetUpdate::NamedSingle(name.into(), update.into(), None)
+        MetricSetUpdate::Single(name.into(), update.into(), None)
     }
 }
 
@@ -300,7 +298,7 @@ where
     U: Into<MetricUpdate<'a>>,
 {
     fn from((tag, name, update): (TagType, N, U)) -> Self {
-        MetricSetUpdate::NamedSingle(name.into(), update.into(), Some(tag))
+        MetricSetUpdate::Single(name.into(), update.into(), Some(tag))
     }
 }
 
@@ -311,7 +309,7 @@ where
 {
     fn from((name, update, count): (N, U, usize)) -> Self {
         let name: SmallStr = format!("{}.{}", name.as_ref(), count).into();
-        MetricSetUpdate::NamedSingle(name, update.into(), None)
+        MetricSetUpdate::Single(name, update.into(), None)
     }
 }
 

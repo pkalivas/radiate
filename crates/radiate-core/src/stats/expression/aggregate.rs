@@ -21,8 +21,6 @@ pub enum Rollup {
     Count,
     Unique,
     Slope,
-    /// Quantile at q ∈ [0, 1] via linear interpolation between adjacent ranks.
-    /// Filters non-finite values before sorting.
     Quantile(f32),
 }
 

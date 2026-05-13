@@ -12,29 +12,20 @@ fn main() {
         (NodeType::Output, vec![Op::linear()]),
     ];
 
-    let mut_rate = expr::select("scores.best")
-        .rolling(10)
-        .mean()
-        .affine(0.45, 0.05)
-        .clamp(0.05, 0.5);
-
     let engine = GeneticEngine::builder()
         .codec(GraphCodec::directed(1, 1, store))
         .raw_batch_fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
         .offspring_selector(BoltzmannSelector::new(4.0))
-        .register_metrics(vec![("tester", mut_rate.clone())])
         .alter(alters!(
-            GraphCrossover::new(mut_rate, 0.5),
+            GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
             GraphMutator::new(0.1, 0.1).allow_recurrent(false)
         ))
         .build();
 
     radiate::ui(engine)
-        // engine
         .iter()
-        // .logging()
         .until_score(MIN_SCORE)
         .last()
         .inspect(display);

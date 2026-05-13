@@ -122,7 +122,6 @@ impl Rate {
             _ => 1.0,
         }
     }
-
 }
 
 impl Valid for Rate {
@@ -159,7 +158,6 @@ impl Valid for Rate {
         }
     }
 }
-
 
 impl Default for Rate {
     fn default() -> Self {

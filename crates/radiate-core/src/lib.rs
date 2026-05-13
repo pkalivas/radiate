@@ -7,7 +7,6 @@ pub mod error;
 pub mod evaluator;
 pub mod fitness;
 pub mod genome;
-pub mod lineage;
 pub mod objectives;
 pub mod problem;
 pub mod rate;
