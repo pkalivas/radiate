@@ -1,8 +1,8 @@
 use crate::Chromosome;
 use crate::context::{Context, ContextAudit};
+use radiate_core::MetricQuery;
 use radiate_core::objectives::Scored;
 use radiate_core::{Ecosystem, Front, MetricSet, Objective, Phenotype, Population, Score, Species};
-use radiate_core::MetricQuery;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
@@ -181,18 +181,24 @@ where
 
         writeln!(f, "Generation {{")?;
         writeln!(f, "  metrics: {:?},", self.metrics)?;
-        writeln!(f, "  value: {:?},", self.value)?;
         writeln!(f, "  score: {:?},", self.score)?;
         writeln!(f, "  index: {:?},", self.index)?;
         writeln!(f, "  size: {:?},", ecosystem.population().len())?;
         writeln!(f, "  duration: {:?},", self.time())?;
         writeln!(f, "  objective: {:?},", self.objective)?;
-
         if let Some(species) = &ecosystem.species {
+            writeln!(f, "  species [")?;
             for s in species {
-                writeln!(f, "  species: {:?},", s)?;
+                writeln!(
+                    f,
+                    "  \t{:?}  age={}",
+                    s,
+                    self.index.saturating_sub(s.generation()),
+                )?;
             }
+            writeln!(f, "  ],")?;
         }
+        writeln!(f, "  value: {:?},", self.value)?;
 
         write!(f, "}}")
     }

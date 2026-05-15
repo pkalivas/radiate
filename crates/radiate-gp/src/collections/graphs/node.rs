@@ -505,13 +505,13 @@ impl<T: Debug> Debug for GraphNode<T> {
 
         write!(
             f,
-            "[{:<3}] [{:<7?}] [{:<5?}] {:>10?} :: {:<10} {:<12}  V:{:<5} R:{:<5} {:<2} {:<2} < [{}]",
+            "[{:<3}] [{:<7?}] [{:<5?}] {:>10?} :: {:<10} {:<20}  V:{:<5} R:{:<5} {:<2} {:<2} < [{}]",
             self.index,
             self.id.0,
             self.innovation.map(|id| id.0).unwrap_or(0),
             format!("{:?}", self.node_type())[..3].to_owned(),
             self.arity(),
-            format!("{:<7?}", self.value).to_owned(),
+            format!("{:.4?}", self.value), // pre-format with precision → String
             self.is_valid(),
             self.is_recurrent(),
             self.incoming.len(),

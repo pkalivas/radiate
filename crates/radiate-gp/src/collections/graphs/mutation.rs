@@ -19,7 +19,7 @@ struct StructureChange {
 }
 
 #[derive(Debug, Clone)]
-pub struct InnovationContext {
+struct InnovationContext {
     version: usize,
     innovations: HashMap<StructureChange, InnovationId>,
 }

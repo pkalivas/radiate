@@ -134,13 +134,21 @@ impl<C: Chromosome> Debug for Species<C> {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(
             f,
-            "Species {{ members: {:?}, adj_score: {:?}, raw_score: {:?}, stagnation: {:?}, generation: {:?}, id: {:?} }}",
+            "id={}  size={:>2}  adj={}  raw={}  stag={}  gen={}",
+            self.id.get(),
             self.len(),
-            self.adjusted_score,
-            self.tracker.current(),
+            fmt_opt_score(self.adjusted_score.as_ref()),
+            fmt_opt_score(self.tracker.current()),
             self.tracker.stagnation(),
             self.generation,
-            self.id
         )
+    }
+}
+
+fn fmt_opt_score(score: Option<&Score>) -> String {
+    match score {
+        Some(s) if s.is_single_objective() => format!("{:.6}", s.first().unwrap_or(f32::NAN)),
+        Some(s) => format!("{:?}", s.as_slice()),
+        None => "?".to_string(),
     }
 }

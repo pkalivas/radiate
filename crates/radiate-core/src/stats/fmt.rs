@@ -1,8 +1,26 @@
 use crate::stats::TagType;
 use crate::{Metric, MetricSet, metric_names};
 use radiate_utils::SmallStr;
+use std::borrow::Cow;
 use std::time::Duration;
 use std::{fmt::Write as _, io};
+
+const NAME_WIDTH: usize = 26;
+
+fn truncate_name(name: &str) -> Cow<'_, str> {
+    let len = name.chars().count();
+    if len <= NAME_WIDTH {
+        return Cow::Borrowed(name);
+    }
+
+    let available = NAME_WIDTH - 3;
+    let head_len = available.div_ceil(2);
+    let tail_len = available - head_len;
+    let head = name.chars().take(head_len).collect::<String>();
+    let tail = name.chars().skip(len - tail_len).collect::<String>();
+
+    Cow::Owned(format!("{head}...{tail}"))
+}
 
 pub fn sparkline(values: &[f32], width: usize) -> String {
     if values.is_empty() || width == 0 {
@@ -94,7 +112,7 @@ pub fn render_metric_rows_full(
         writeln!(
             out,
             "{:<26} | {:<6} | {:<10.3} | {:<10.3} | {:<10.3} | {:<6} | {:<12.3} | {:<10.3} | {:<10.3} | {:<10.3} | {:<10.3}",
-            name,
+            truncate_name(name),
             "dist",
             dist.mean(),
             dist.min(),
@@ -115,7 +133,7 @@ pub fn render_metric_rows_full(
         writeln!(
             out,
             "{:<26} | {:<6} | {:<10.3} | {:<10.3} | {:<10.3} | {:<6} | {:<12.3} | {:<10.3} | {:<10.3} | {:<10.3} | {:<10}",
-            name,
+            truncate_name(name),
             "value",
             stat.mean(),
             stat.min(),
@@ -136,7 +154,7 @@ pub fn render_metric_rows_full(
         writeln!(
             out,
             "{:<26} | {:<6} | {:<10} | {:<10} | {:<10} | {:<6} | {:<12} | {:<10} | {:<10} | {:<10} | {:<10}",
-            name,
+            truncate_name(name),
             "time",
             fmt_duration(t.mean()),
             fmt_duration(t.min()),
@@ -204,5 +222,30 @@ pub fn fmt_duration(d: Duration) -> String {
         format!("{:.3}ms", ns as f64 / 1e6)
     } else {
         format!("{:.3}s", ns as f64 / 1e9)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn short_name_unchanged() {
+        assert_eq!(truncate_name("count.species"), "count.species");
+    }
+
+    #[test]
+    fn name_at_limit_unchanged() {
+        let n: String = std::iter::repeat_n('a', NAME_WIDTH).collect();
+        assert_eq!(truncate_name(&n), n.as_str());
+    }
+
+    #[test]
+    fn long_name_gets_middle_ellipsis() {
+        let out = truncate_name("mutate.graph.invalid.rejected");
+        assert_eq!(out.chars().count(), NAME_WIDTH);
+        assert!(out.contains("..."));
+        assert!(out.starts_with("mutate"));
+        assert!(out.ends_with("rejected"));
     }
 }

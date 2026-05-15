@@ -142,8 +142,8 @@ impl<'a, T: Clone> GraphAggregate<'a, T> {
                 let node = self.nodes[node_id];
 
                 trans.push((index, node.node_type(), node.value().clone(), node.arity()));
-                id_index_map.insert(*node_id, index);
                 trans.set_innovation(index, Some(InnovationId::new()));
+                id_index_map.insert(*node_id, index);
             }
 
             for rel in self.relationships.iter() {
