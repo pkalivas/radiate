@@ -226,7 +226,7 @@ impl PyExpr {
     }
 
     pub fn quantile(&self, q: f32) -> Self {
-        if q < 0.0 || q > 1.0 {
+        if !(0.0..=1.0).contains(&q) {
             panic!("Quantile must be between 0 and 1");
         }
 
