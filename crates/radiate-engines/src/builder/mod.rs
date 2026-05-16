@@ -31,7 +31,6 @@ use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::MetricQuery;
 use radiate_core::evaluator::BatchFitnessEvaluator;
-// use radiate_core::freeze::{DebugWriter, Writer};
 use radiate_core::problem::{BatchEngineProblem, EngineProblem};
 use radiate_core::{Alterer, Ecosystem, Executor, FitnessEvaluator, Rate, Valid};
 use radiate_core::{RadiateError, ensure, radiate_err};
