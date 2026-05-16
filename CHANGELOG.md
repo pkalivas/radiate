@@ -29,8 +29,6 @@ adheres to semantic versioning.
   patience-based plateau detection, `is_converged` for windowed convergence,
   `pi_signal` PI-control helper, and streaming P² quantiles (`p50`, `p95`,
   `p99`) with constant-memory online estimation.
-- **New `EngineIterator` extension trait** for ergonomic iteration over
-  generations, including `logging()` and score-based termination.
 - **New `neat-graph` example** demonstrating NEAT-style neuroevolution.
 - **Workspace-wide `AnyValue` / `DataType` / `Field` re-exports** from
   `radiate-core` so downstream crates no longer need to depend on
@@ -56,6 +54,7 @@ adheres to semantic versioning.
   tests.
 - **UI refactor.** Panel state moved off the `PanelId` dispatch model into
   a cleaner per-panel ownership scheme.
+- **NSGA III** - The NSGA III has been greatly simplified and optimized with a better niching technique. This is a pretty nice improvement over the previous implementation.
 
 ### Fixed
 

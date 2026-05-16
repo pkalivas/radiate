@@ -45,7 +45,7 @@ By installing the above, you will get the core library. However, Radiate has a f
 radiate=0.0.13
 ```
 
-Python's radiate package includes all rust features by default, so you get all of rust's features (gp, serde, rayon, pgm, ui) without needing to do anything extra. That being said, radiate's python bindings do include their own set of features which futher integrate it into the python ecosystem at large. All of the following have internal checks within radiate and some specialized classes to work directly with these features. Radiate's python bindings include the following features:
+Python's radiate package includes all rust features by default, so you get all of rust's features (gp, serde, rayon, ui) without needing to do anything extra. That being said, radiate's python bindings do include their own set of features which futher integrate it into the python ecosystem at large. All of the following have internal checks within radiate and some specialized classes to work directly with these features. Radiate's python bindings include the following features:
 
 - `polars`: Enables integration with the [Polars](https://www.pola.rs/) DataFrame library, allowing you to easily convert and manipulate data collected from the engine in a tabular format. This is especially useful for analyzing and visualizing metrics collected during evolution.
 - `pandas`: Enables integration with the [Pandas](https://pandas.pydata.org/) DataFrame library, providing similar functionality to the `polars` feature but with support for Pandas' extensive data manipulation capabilities. This allows for seamless analysis and visualization of evolutionary metrics using the popular Pandas library.
@@ -63,7 +63,7 @@ uv add "radiate[all]" # to enable all features
 ```toml
 [dependencies]
 # Include the radiate crate with all optional features enabled.
-radiate = { version = "1.2.22", features = ["gp", "serde", "rayon", "pgm", "ui"] }
+radiate = { version = "1.2.22", features = ["gp", "serde", "rayon", "ui"] }
 ```
 
 opt-in features include:
@@ -73,7 +73,4 @@ opt-in features include:
     * Includes support for: Ecosystem, Population, Species, Phenotype, Genotype, all Chromosomes and their associated Genes, plus `gp`'s Graph<T> and Tree<T> structures.
 - `rayon`: Enables parallel processing through the [Rayon](https://docs.rs/rayon/latest/rayon/) library. Radiate can run in parallel without this feature, but this is included due to its popularity and ease of use. 
     * Note that the difference in performance between running with radiate's internal threadpool vs. Rayon is negligible for most use cases, so you can safely run without it if you prefer.
-- `pgm`: This is an **EXPERIMENTAL** feature which enables [probabilistic graphical models](https://en.wikipedia.org/wiki/Probabilistic_graphical_model) evolution. This is an add-on to the `gp` feature that allows `Op`s to hold tree structures, which enable nested graphical models.
-    * This feature is still under active development and may change in future releases.
-    * This feature also automatically enables the `gp` feature.
 - `ui`: This feature enables a simple terminal command-line user interface (TUI) for monitoring and controlling evolutionary runs. It provides real-time feedback on the progress of the evolution, including a plethora of statistics and visualizations. Thanks to [ratatui](https://ratatui.rs). Note that this is a completely opt-in feature and has no dependencies on the core library. This feature is still under active development and may change in future releases.

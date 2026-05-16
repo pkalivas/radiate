@@ -1,4 +1,4 @@
-use super::{Field, Scalar};
+use super::Scalar;
 use crate::{Primitive, SmallStr};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -61,7 +61,7 @@ pub enum DataType {
 
     List(Box<DataType>),
     Map(Vec<(SmallStr, DataType)>),
-    Struct(SmallStr, Vec<Field>),
+    Struct(SmallStr, Vec<(SmallStr, DataType)>),
 }
 
 impl DataType {
@@ -240,7 +240,7 @@ impl Display for DataType {
                 name,
                 fields
                     .iter()
-                    .map(|f| format!("{}", f.name,))
+                    .map(|(name, _)| format!("{}", name))
                     .collect::<Vec<_>>()
                     .join(", ")
             )?,

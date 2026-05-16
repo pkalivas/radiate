@@ -16,7 +16,7 @@ where
 impl<T> Default for Tracker<T>
 where
     T: Clone + PartialOrd,
- {
+{
     fn default() -> Self {
         Self::new()
     }

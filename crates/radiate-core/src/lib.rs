@@ -32,7 +32,7 @@ pub use fitness::{
 pub use genome::*;
 pub use objectives::{Front, Objective, Optimize, Score, pareto};
 pub use problem::{BatchEngineProblem, EngineProblem, Problem};
-pub use radiate_utils::{AnyValue, DataType, Field, SmallStr, dtype, dtype_names, value};
+pub use radiate_utils::{AnyValue, DataType, SmallStr, dtype, dtype_names, value};
 pub use rate::Rate;
 pub use replacement::{EncodeReplace, PopulationSampleReplace, ReplacementStrategy};
 pub use selector::Select;
