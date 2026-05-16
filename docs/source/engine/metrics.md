@@ -228,4 +228,4 @@ Tags available:
 | `Score`             | Metrics specifically related to fitness scores.                             |
 | `Rate`              | Metrics that represent rates (e.g., carryover rate).                                |
 | `Step`              | Metrics related to the different steps or phases of the evolutionary process (evaluation, recombination, filtering, etc.).    |
-| `Lineage`           | Metrics related to the lineage or ancestry of individuals.                    |
+| `Expr`             | Custom metrics or expressions supplied by the user.   |

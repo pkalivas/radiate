@@ -1,6 +1,6 @@
 use radiate::*;
 
-const N_QUEENS: usize = 50;
+const N_QUEENS: usize = 32;
 
 fn main() {
     random_provider::seed(12345);
