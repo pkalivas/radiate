@@ -50,12 +50,12 @@ def test_int_engine_novelty_with_decorator_creates(random_seed):
     """Test engine with novelty search."""
 
     @rd.novelty(distance=rd.Dist.hamming(), k=15, threshold=0.03)
-    def novelty(phenotype: list[int]) -> list[int]:
+    def fit(phenotype: list[int]) -> list[int]:
         return phenotype
 
     engine = (
         rd.Engine.int(6, init_range=(-100, 100))
-        .fitness(novelty)
+        .fitness(fit)
         .size(100)
         .select(offspring=rd.Select.tournament(3))
         .alters(rd.Cross.uniform(0.5), rd.Mutate.arithmetic(0.1))

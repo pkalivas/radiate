@@ -64,6 +64,21 @@ def test_engine_graph_regression_with_speciation(
     assert result.index() <= 500
     assert isinstance(result.value(), rd.Graph)
 
+    species = result.species()
+    score_total = 0.0
+    for spec in species:
+        mascot = spec.mascot()
+        score = spec.score()
+
+        assert isinstance(mascot, rd.Phenotype)
+        assert isinstance(score, list) and len(score) == 1
+        assert score is not None and len(score) == 1
+        score_total += score[0]
+
+    assert abs(score_total - 1.0) < 0.001, (
+        "Total score across species should be close to 1.0"
+    )
+
 
 @pytest.mark.integration
 def test_engine_graph_with_recurrent_connections(memory_dataset, random_seed):
