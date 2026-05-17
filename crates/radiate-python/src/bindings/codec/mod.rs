@@ -24,13 +24,11 @@ use pyo3::{IntoPyObjectExt, Python};
 use radiate::{Chromosome, Codec, Gene, Genotype};
 
 type DecoderFn<C, T> = Arc<dyn for<'py> Fn(Python<'py>, &Genotype<C>) -> T + Send + Sync>;
-type WriteFn = Arc<dyn Fn(&mut dyn std::io::Write) -> std::io::Result<()> + Send + Sync>;
 
 #[derive(Clone)]
 pub struct PyCodec<C: Chromosome, T> {
     encoder: Option<Arc<dyn Fn() -> Genotype<C>>>,
     decoder: Option<DecoderFn<C, T>>,
-    write: Option<WriteFn>,
 }
 
 impl<C: Chromosome, T> PyCodec<C, T> {
@@ -38,7 +36,6 @@ impl<C: Chromosome, T> PyCodec<C, T> {
         PyCodec {
             encoder: None,
             decoder: None,
-            write: None,
         }
     }
 
@@ -64,17 +61,6 @@ impl<C: Chromosome, T> PyCodec<C, T> {
         self.decoder = Some(Arc::new(decoder));
         self
     }
-
-    /// Capture a `write` closure that this codec will return when its
-    /// `Codec::write` method is called. Used to surface Python-side codec
-    /// config (shape, dtype, etc.) since the closures themselves are opaque.
-    pub fn with_write<F>(mut self, write: F) -> Self
-    where
-        F: Fn(&mut dyn std::io::Write) -> std::io::Result<()> + Send + Sync + 'static,
-    {
-        self.write = Some(Arc::new(write));
-        self
-    }
 }
 
 impl<C: Chromosome, T> Codec<C, T> for PyCodec<C, T> {
@@ -91,7 +77,6 @@ impl<C: Chromosome, T> Codec<C, T> for PyCodec<C, T> {
             None => panic!("Decoder function is not set"),
         })
     }
-
 }
 
 impl<C: Chromosome, T> Default for PyCodec<C, T> {

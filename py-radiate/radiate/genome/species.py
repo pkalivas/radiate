@@ -3,7 +3,7 @@ from __future__ import annotations
 from radiate._bridge.wrapper import RsObject
 
 
-class Species(RsObject):
+class Species[T](RsObject):
     """
     Represents a species in a population.
     """
