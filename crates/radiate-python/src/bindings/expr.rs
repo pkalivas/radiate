@@ -2,7 +2,11 @@ use pyo3::prelude::*;
 use radiate::{AnyValue, Evaluate, Expr, expr};
 use radiate_error::radiate_py_bail;
 
-use crate::{Wrap, dtype_from_str};
+use crate::{PyMetricSet, Wrap, dtype_from_str};
+
+fn dtype_is_duration(dtype_str: &str) -> bool {
+    matches!(dtype_from_str(dtype_str), radiate::DataType::Duration)
+}
 
 #[pyclass(from_py_object)]
 #[repr(transparent)]
@@ -26,12 +30,13 @@ impl PyExpr {
     #[staticmethod]
     #[pyo3(signature = (name, dtype=None))]
     pub fn select(name: &str, dtype: Option<&str>) -> Self {
-        PyExpr {
-            inner: match dtype {
-                Some(dtype_str) => expr::select_with_dtype(name, dtype_from_str(dtype_str)),
-                None => expr::select(name),
-            },
+        let mut e = expr::select(name);
+        if let Some(d) = dtype
+            && dtype_is_duration(d)
+        {
+            e = e.time();
         }
+        PyExpr { inner: e }
     }
 
     #[staticmethod]
@@ -59,16 +64,8 @@ impl PyExpr {
         }
     }
 
-    #[staticmethod]
-    pub fn element() -> Self {
-        PyExpr {
-            inner: expr::element(),
-        }
-    }
-
-    pub fn evaluate(&mut self, input: Wrap<AnyValue<'_>>) -> PyResult<Wrap<AnyValue<'_>>> {
-        let result = input.0.into_static();
-        match self.inner.eval(&result) {
+    pub fn evaluate(&mut self, metrics: &PyMetricSet) -> PyResult<Wrap<AnyValue<'_>>> {
+        match self.inner.eval(metrics.inner()) {
             Ok(value) => Ok(Wrap(value)),
             Err(e) => {
                 radiate_py_bail!(format!("Error evaluating expression: {}", e))
@@ -218,6 +215,71 @@ impl PyExpr {
             .clone()
             .clamp(min.inner.clone(), max.inner.clone())
             .into()
+    }
+
+    pub fn affine(&self, scale: f32, bias: f32) -> Self {
+        self.inner.clone().affine(scale, bias).into()
+    }
+
+    pub fn error(&self, target: f32) -> Self {
+        self.inner.clone().error_from(target).into()
+    }
+
+    pub fn quantile(&self, q: f32) -> Self {
+        if !(0.0..=1.0).contains(&q) {
+            panic!("Quantile must be between 0 and 1");
+        }
+
+        self.inner.clone().quantile(q).into()
+    }
+
+    pub fn quantile_stream(&self, q: f32) -> Self {
+        if q <= 0.0 || q >= 1.0 {
+            panic!("Streaming quantile q must be in (0, 1)");
+        }
+        self.inner.clone().quantile_stream(q).into()
+    }
+    #[staticmethod]
+    pub fn error_from(metric: &str, target: f32) -> Self {
+        expr::error_from(metric, target).into()
+    }
+
+    #[staticmethod]
+    pub fn is_converged(metric: &str, window: usize, epsilon: f32) -> Self {
+        expr::is_converged(metric, window, epsilon).into()
+    }
+
+    #[staticmethod]
+    #[pyo3(signature = (metric, epsilon=1e-4))]
+    pub fn stagnation(metric: &str, epsilon: f32) -> Self {
+        expr::stagnation(metric, epsilon).into()
+    }
+
+    #[staticmethod]
+    #[pyo3(signature = (metric, patience, epsilon=1e-4))]
+    pub fn is_stagnant(metric: &str, patience: u32, epsilon: f32) -> Self {
+        expr::is_stagnant(metric, patience, epsilon).into()
+    }
+
+    /// PI-style control signal: 1 + gain * (rolling_mean(metric, window) - target) / target.
+    #[staticmethod]
+    pub fn pi_signal(metric: &str, target: f32, gain: f32, window: usize) -> Self {
+        expr::pi_signal(metric, target, gain, window).into()
+    }
+
+    #[staticmethod]
+    pub fn p50(metric: &str) -> Self {
+        expr::p50(metric).into()
+    }
+
+    #[staticmethod]
+    pub fn p95(metric: &str) -> Self {
+        expr::p95(metric).into()
+    }
+
+    #[staticmethod]
+    pub fn p99(metric: &str) -> Self {
+        expr::p99(metric).into()
     }
 }
 

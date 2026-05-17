@@ -1155,6 +1155,38 @@ class Engine[G, T]:
     def metrics(
         self, named_metrics: dict[str, Expr] | None = None, **kwargs
     ) -> Engine[G, T]:
+        """
+        Set custom metrics for the engine.
+
+        This method allows you to define custom metrics that can be tracked and evaluated during the
+        engine's execution. Custom metrics can provide additional insights
+        into the evolution process beyond just the fitness score, such as
+        tracking diversity, convergence, or any other relevant information.
+
+        Example:
+        ---------
+        Lets create an engine and define some custom metrics to track during evolution. In this example,
+        we will track the rolling 50 average of the diversity rate throughout the engine's run.
+
+        >>> import radiate as rd
+        >>> ...
+        >>> rolling_diversirty = rd.select("rate.diversity").rolling(50).mean()
+        >>> engine = (
+        ...     rd.Engine.float(shape=10, init_range=(0.0, 1.0))
+        ...     .fitness(my_fitness_function)
+        ...     .metrics(
+        ...         rolling_div=rolling_diversirty
+        ...     )  # <- set a custom metric called "rolling_div". This will be included in the engine's MetricSet
+        ...     .limit(rd.Limit.generations(1000))
+        ... )
+        >>> result = engine.run(log=True)
+        >>> metrics = (
+        ...     result.metrics()
+        ... )  # <- get the metrics from the engine's result after the run
+        >>> rolling_div_metric = metrics[
+        ...     "rolling_div"
+        ... ]  # <- access the "rolling_div" metric that we defined
+        """
         evals = {}
         if named_metrics is not None:
             evals.update(named_metrics)

@@ -27,8 +27,17 @@ macro_rules! sentry_id {
                 static COUNTER: AtomicU64 = AtomicU64::new(1);
                 $name(COUNTER.fetch_add(1, Ordering::Relaxed))
             }
+
+            pub const fn is_empty(&self) -> bool {
+                self.0 == 0
+            }
+
+            pub const fn get(&self) -> u64 {
+                self.0
+            }
         }
 
+        #[allow(clippy::from_over_into)]
         impl Into<u64> for $name {
             fn into(self) -> u64 {
                 self.0

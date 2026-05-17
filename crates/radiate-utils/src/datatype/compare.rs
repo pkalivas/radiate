@@ -101,10 +101,10 @@ impl<'a> AnyValue<'a> {
 
                 let mut i = 0;
                 while i < va.len() && i < vb.len() {
-                    let (fa, va) = &va[i];
-                    let (fb, vb) = &vb[i];
+                    let (name_a, _, va) = &va[i];
+                    let (name_b, _, vb) = &vb[i];
 
-                    match fa.name().cmp(fb.name()) {
+                    match name_a.cmp(name_b) {
                         Ordering::Equal => {}
                         non_eq => return non_eq,
                     }

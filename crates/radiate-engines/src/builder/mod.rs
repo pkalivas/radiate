@@ -23,16 +23,15 @@ use crate::steps::{
 };
 use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use crate::{
-    Crossover, EncodeReplace, EngineProblem, EventBus, EventHandler, Front, Mutate,
-    ReplacementStrategy, RouletteSelector, TournamentSelector, context::Context,
+    Crossover, EncodeReplace, EventBus, EventHandler, Front, Mutate, ReplacementStrategy,
+    RouletteSelector, TournamentSelector, context::Context,
 };
 use crate::{Generation, Result};
 use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
-use radiate_core::NamedExpr;
+use radiate_core::MetricQuery;
 use radiate_core::evaluator::BatchFitnessEvaluator;
-// use radiate_core::freeze::{DebugWriter, Writer};
-use radiate_core::problem::BatchEngineProblem;
+use radiate_core::problem::{BatchEngineProblem, EngineProblem};
 use radiate_core::{Alterer, Ecosystem, Executor, FitnessEvaluator, Rate, Valid};
 use radiate_core::{RadiateError, ensure, radiate_err};
 #[cfg(feature = "serde")]
@@ -56,7 +55,7 @@ where
     pub replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
     pub handlers: Vec<Arc<Mutex<dyn EventHandler<T>>>>,
     pub generation: Option<Generation<C, T>>,
-    pub exprs: Option<Arc<Mutex<Vec<NamedExpr>>>>,
+    pub exprs: Option<Arc<Mutex<Vec<MetricQuery>>>>,
 }
 
 /// Parameters for the genetic engine.
@@ -123,7 +122,7 @@ where
         self
     }
 
-    pub fn register_metrics(mut self, exprs: Vec<impl Into<NamedExpr>>) -> Self {
+    pub fn register_metrics(mut self, exprs: Vec<impl Into<MetricQuery>>) -> Self {
         self.params.exprs = Some(Arc::new(Mutex::new(
             exprs.into_iter().map(|e| e.into()).collect(),
         )));

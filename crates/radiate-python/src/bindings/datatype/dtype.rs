@@ -1,7 +1,18 @@
-use pyo3::{intern, prelude::*, pybacked::PyBackedStr, types::PyList};
-use radiate_utils::{DataType, Field, SmallStr};
-
 use crate::Wrap;
+use pyo3::{intern, prelude::*, pybacked::PyBackedStr, types::PyList};
+use radiate_utils::{DataType, SmallStr};
+
+#[derive(Clone, Debug)]
+struct Field {
+    name: SmallStr,
+    dtype: DataType,
+}
+
+impl Field {
+    pub fn new(name: SmallStr, dtype: DataType) -> Self {
+        Self { name, dtype }
+    }
+}
 
 pub fn dtype_from_str(value: &str) -> DataType {
     // check to see if the value is a numpy dtype string like "numpy.float32"
@@ -171,9 +182,9 @@ impl<'py> IntoPyObject<'py> for &Wrap<DataType> {
                 let field_class = rd.getattr(intern!(py, "Field"))?;
                 let name = field.to_string();
 
-                let iter = fields.iter().map(|fld| {
-                    let name = fld.name().as_str();
-                    let dtype = Wrap(fld.dtype().clone());
+                let iter = fields.iter().map(|(name, dtype)| {
+                    let name = name.as_str();
+                    let dtype = Wrap(dtype.clone());
                     field_class.call1((name, &dtype)).unwrap()
                 });
                 let fields = PyList::new(py, iter)?;
@@ -266,7 +277,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Wrap<DataType> {
                 let fields = fields
                     .extract::<Vec<Wrap<Field>>>()?
                     .into_iter()
-                    .map(|f| (SmallStr::from(f.0.name().to_string()), f.0.dtype().clone()))
+                    .map(|f| (SmallStr::from(f.0.name.to_string()), f.0.dtype.clone()))
                     .collect::<Vec<(SmallStr, DataType)>>();
                 DataType::Map(fields)
             }

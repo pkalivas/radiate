@@ -25,14 +25,8 @@ pub const STAT_HEADER_CELLS: [&str; 8] = [
     "Count",
 ];
 pub const TIME_HEADER_CELLS: [&str; 5] = ["Metric", "Min", "Max", "μ (mean)", "Total"];
-pub const SPECIES_HEADER_CELLS: [&str; 6] = [
-    "ID",
-    "Created",
-    "Size",
-    "Gen. Stag",
-    "Raw Score",
-    "Adj. Score",
-];
+pub const SPECIES_HEADER_CELLS: [&str; 6] =
+    ["ID", "Age", "Size", "Gen. Stag", "Raw Score", "Adj. Score"];
 
 // --- Metric table ---
 
@@ -195,9 +189,10 @@ impl<C: Chromosome> StatefulWidget for SpeciesTableWidget<C> {
         state.tables.species.update_rows(items, |s| s.id);
 
         let obj_index = state.evo.pareto.objective_index;
+        let generation = state.evo.index;
         let border_style =
             crate::styles::panel_block(state.nav.is_tab_focused(DashboardTab::Species));
-        let rows = species_into_rows(obj_index, items);
+        let rows = species_into_rows(obj_index, generation, items);
 
         let table = Table::default()
             .block(border_style)
@@ -313,12 +308,13 @@ fn metrics_into_dist_rows<'a>(
 
 fn species_into_rows<'a, C: Chromosome>(
     obj_index: usize,
+    generation: usize,
     species: &[Species<C>],
 ) -> impl Iterator<Item = Row<'a>> {
     species.iter().map(move |s| {
         Row::new(vec![
             Cell::from(format!("{}", s.id.as_ref())),
-            Cell::from(format!("{}", s.generation)),
+            Cell::from(format!("{}", s.age(generation))),
             Cell::from(format!("{}", s.size)),
             Cell::from(format!("{}", s.stagnation())),
             Cell::from(format!(

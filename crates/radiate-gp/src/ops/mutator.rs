@@ -1,11 +1,11 @@
 use crate::node::{Node, NodeExt};
 use crate::ops::operation::Op;
 use crate::{Factory, GraphChromosome, NodeStore, NodeType, TreeChromosome};
-use radiate_core::{AlterContext, AlterResult, Mutate, Rate, Valid};
+use radiate_core::{AlterContext, AlterResult, Mutate, Rate, SmallStr, Valid};
 use radiate_core::{Chromosome, random_provider};
 
-const OP_MUTATED: &str = "mutate.operation.mutated";
-const OP_NEW_INSTANCE: &str = "mutate.operation.new";
+const OP_MUTATED: SmallStr = SmallStr::from_static("mutate.operation.mutated");
+const OP_NEW_INSTANCE: SmallStr = SmallStr::from_static("mutate.operation.new");
 
 #[derive(Default)]
 struct OpMutateMetrics {
@@ -111,6 +111,7 @@ where
             op_mutate: 0,
             op_new_instance: 0,
         };
+
         for i in mutation_indexes.iter() {
             let node = chromosome.get_mut(*i);
 

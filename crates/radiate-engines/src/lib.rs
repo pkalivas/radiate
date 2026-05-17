@@ -16,7 +16,7 @@ pub use control::EngineControl;
 pub use engine::GeneticEngine;
 pub use events::{EngineEvent, EngineEventInner, EventBus, EventHandler};
 pub use generation::Generation;
-pub use io::{FileReader, FileWriter, JsonReader, JsonWriter, YamlReader, YamlWriter};
+pub use io::{FileReader, FileWriter, JsonReader, JsonWriter};
 pub use iter::{EngineIterator, EngineIteratorExt};
 pub use limit::Limit;
 pub use steps::{

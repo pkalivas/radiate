@@ -30,14 +30,17 @@ impl<'a, C: Chromosome> Widget for SearchBarWidget<'a, C> {
 
         let total_renders = self.state.run.render_count;
 
-        let help_text = format!(" Renders: {} ", total_renders);
+        let renders = vec![
+            " Renders: ".fg(Color::Gray).bold(),
+            format!("{} ", total_renders).fg(Color::LightGreen),
+        ];
 
         Paragraph::new(self.state.nav.search.query.as_str())
             .block(
                 border_style
                     .title(title)
                     .title_bottom(help_text_minimal())
-                    .title_bottom(Line::from(help_text).right_aligned())
+                    .title_bottom(Line::from(renders).right_aligned().fg(Color::LightBlue))
                     .style(Style::default())
                     .borders(Borders::ALL),
             )

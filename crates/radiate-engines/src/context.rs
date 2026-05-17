@@ -2,11 +2,12 @@ use crate::builder::config::EngineConfig;
 use crate::{Chromosome, EngineControl};
 use radiate_core::error::RadiateResult;
 use radiate_core::stats::TagType;
+// use radiate_core::stats::TagType;
 use radiate_core::{
     Ecosystem, Front, MetricSet, MetricUpdate, Objective, Phenotype, Problem, RadiateError, Score,
     metric, metric_names,
 };
-use radiate_core::{Evaluate, NamedExpr};
+use radiate_core::{Evaluate, MetricQuery};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex, RwLock};
@@ -28,7 +29,7 @@ pub struct Context<C: Chromosome, T> {
     pub(crate) objective: Objective,
     pub(crate) problem: Arc<dyn Problem<C, T>>,
     pub(crate) control: Option<EngineControl>,
-    pub(crate) exprs: Option<Arc<Mutex<Vec<NamedExpr>>>>,
+    pub(crate) exprs: Option<Arc<Mutex<Vec<MetricQuery>>>>,
     pub(crate) audits: Vec<ContextAudit>,
 }
 
@@ -88,13 +89,12 @@ impl<C: Chromosome, T> Context<C, T> {
                 let (name, exp) = expr.pair();
 
                 let update = MetricUpdate::try_from(exp.eval(&self.metrics)?)?;
-                let name = radiate_utils::intern!(name);
 
-                self.metrics.upsert(name, update);
+                self.metrics.upsert_tagged(name, update, TagType::Expr);
             }
         }
 
-        self.metrics.advance_generation();
+        self.metrics.bump(self.index as u64);
 
         Ok(best_improved)
     }

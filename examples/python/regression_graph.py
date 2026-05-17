@@ -24,6 +24,10 @@ for _ in range(-10, 10):
     inputs.append([input])
     answers.append([compute(input)])
 
+# xover_rate = (
+#     rd.select("rate.diversity").rolling(10).mean().affine(-0.6, 0.8).clamp(0.2, 0.8)
+# )
+
 
 engine = (
     rd.Engine.graph(
@@ -35,7 +39,7 @@ engine = (
     .select(rd.Select.boltzmann(temp=4.0))
     .regression(inputs, answers, loss=rd.MSE)
     .alters(
-        rd.Cross.graph(0.05, 0.5),
+        rd.Cross.graph(0.4, 0.5),
         rd.Mutate.op(0.07, 0.05),
         rd.Mutate.graph(0.1, 0.1, False),
     )

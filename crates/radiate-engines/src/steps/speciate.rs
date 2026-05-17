@@ -6,6 +6,8 @@ use radiate_core::{
 use radiate_error::Result;
 use std::sync::{Arc, Mutex, RwLock};
 
+type SpeciesAssignments = Vec<Option<(usize, f32)>>;
+
 pub struct SpeciateStep<C>
 where
     C: Chromosome,
@@ -15,7 +17,7 @@ where
     pub(crate) distance: Arc<dyn Diversity<C>>,
     pub(crate) executor: Arc<Executor>,
     pub(crate) distances: Vec<f32>,
-    pub(crate) assignments: Arc<Mutex<Vec<Option<(usize, f32)>>>>,
+    pub(crate) assignments: Arc<Mutex<SpeciesAssignments>>,
 }
 
 impl<C: Chromosome> SpeciateStep<C> {
@@ -46,7 +48,7 @@ where
         threshold: f32,
         ecosystem: &mut Ecosystem<C>,
         mascots: Arc<Vec<Phenotype<C>>>,
-        assignments: Arc<Mutex<Vec<Option<(usize, f32)>>>>,
+        assignments: Arc<Mutex<SpeciesAssignments>>,
     ) -> Result<()>
     where
         C: Clone,
@@ -171,7 +173,7 @@ where
         species_mascots: Arc<Vec<Phenotype<C>>>,
         threshold: f32,
         distance: Arc<dyn Diversity<C>>,
-        assignments: Arc<Mutex<Vec<Option<(usize, f32)>>>>,
+        assignments: Arc<Mutex<SpeciesAssignments>>,
         range: std::ops::Range<usize>,
     ) {
         let mut inner_assignments = Vec::new();
@@ -238,9 +240,11 @@ where
         for spec in species.iter() {
             let age = spec.age(generation);
             let len = spec.len();
+
             if age == 0 {
                 new_species_count += 1;
             }
+
             ages.push(age);
             sizes.push(len);
             max_size = max_size.max(len);
@@ -254,7 +258,7 @@ where
         if s_count > 1 && size_sum > 0 {
             let total = size_sum as f32;
             let mut h = 0.0_f32;
-            for &sz in &sizes {
+            for &sz in sizes.iter() {
                 if sz > 0 {
                     let p = sz as f32 / total;
                     h -= p * p.ln();

@@ -125,7 +125,6 @@ def test_metric_tags(random_seed):
     )
 
     result = engine.run()
-
     metrics = result.metrics()
 
     # Check that certain metrics have expected tags
@@ -137,7 +136,6 @@ def test_metric_tags(random_seed):
 
     assert rd.Tag.SCORE in score_tags
     assert rd.Tag.DISTRIBUTION in score_tags
-
     assert rd.Tag.TIME in time_tags
 
     for metric in metrics.values_by_tag(rd.Tag.ALTERER):

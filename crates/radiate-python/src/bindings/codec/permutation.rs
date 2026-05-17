@@ -64,10 +64,6 @@ impl PyPermutationCodec {
                     PyAnyObject {
                         inner: PyList::new(py, values).unwrap().unbind().into_any(),
                     }
-                })
-                .with_write(move |w| {
-                    writeln!(w, "type: PermutationCodec")?;
-                    writeln!(w, "alleles: {}", allele_count)
                 }),
         }
     }

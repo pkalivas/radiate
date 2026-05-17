@@ -15,4 +15,3 @@ homepage.workspace = true
 radiate = { workspace = true, features = ["gp", "serde", "ui"] }
 serde = { version = "1.0.224", features = ["derive"] }
 serde_json = { version = "1.0.145" }
-yaml_serde = "0.10"

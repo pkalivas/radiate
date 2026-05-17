@@ -8,68 +8,8 @@ use std::fmt::Debug;
 use std::hash::Hash;
 use std::sync::atomic::AtomicU64;
 
-// /// A unique identifier for nodes in a graph structure.
-// ///
-// /// `GraphNodeId` is a newtype wrapper around a `u64` that provides a unique identifier
-// /// for each node in a graph. The ID is automatically generated using an atomic counter,
-// /// ensuring thread-safe unique ID generation across the application.
-// ///
-// /// # Examples
-// /// ```
-// /// use radiate_gp::collections::GraphNodeId;
-// ///
-// /// let id1 = GraphNodeId::new();
-// /// let id2 = GraphNodeId::new();
-// /// assert_ne!(id1, id2); // Each ID is unique
-// /// ```
-// ///
-// /// # Implementation Details
-// /// * Uses an atomic counter (`AtomicU64`) to ensure thread-safe ID generation
-// /// * Implements `Debug`, `Clone`, `Copy`, `PartialEq`, `Eq`, `Hash`, `PartialOrd`, and `Ord`
-// /// * When the "serde" feature is enabled, implements `Serialize` and `Deserialize`
-// /// * Uses `#[repr(transparent)]` to ensure the same memory layout as `u64`
-// // #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-// // #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-// // #[repr(transparent)]
-// // pub struct GraphNodeId(u64);
-
-// // impl GraphNodeId {
-// //     pub fn new() -> Self {
-// //         static GRAPH_NODE_ID: AtomicU64 = AtomicU64::new(0);
-// //         GraphNodeId(GRAPH_NODE_ID.fetch_add(1, Ordering::Relaxed))
-// //     }
-// // }
-
-// // impl Default for GraphNodeId {
-// //     fn default() -> Self {
-// //         GraphNodeId::new()
-// //     }
-// // }
-
 sentry_id!(GraphNodeId);
 sentry_id!(InnovationId);
-
-// #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-// #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-// #[repr(transparent)]
-// pub struct InnovationId(u64);
-
-// impl InnovationId {
-//     pub fn new() -> Self {
-//         static INNOVATION_ID: AtomicU64 = AtomicU64::new(1);
-//         InnovationId(INNOVATION_ID.fetch_add(1, Ordering::Relaxed))
-//     }
-
-//     pub fn empty() -> Self {
-//         InnovationId(0)
-//     }
-// }
-
-// impl Default for InnovationId {
-//     fn default() -> Self {
-//         InnovationId::empty()
-//     }
-// }
 
 /// Represents the direction of connections in a graph node.
 ///
@@ -249,11 +189,6 @@ impl<T> GraphNode<T> {
     pub fn innovation(&self) -> Option<InnovationId> {
         self.innovation
     }
-
-    // pub fn with_innovation(mut self, innovation: Option<InnovationId>) -> Self {
-    //     self.innovation = innovation;
-    //     self
-    // }
 
     pub fn set_innovation(&mut self, innovation: Option<InnovationId>) {
         self.innovation = innovation;
@@ -570,13 +505,13 @@ impl<T: Debug> Debug for GraphNode<T> {
 
         write!(
             f,
-            "[{:<3}] [{:<7?}] [{:<5?}] {:>10?} :: {:<10} {:<12}  V:{:<5} R:{:<5} {:<2} {:<2} < [{}]",
+            "[{:<3}] [{:<7?}] [{:<5?}] {:>10?} :: {:<10} {:<20}  V:{:<5} R:{:<5} {:<2} {:<2} < [{}]",
             self.index,
             self.id.0,
             self.innovation.map(|id| id.0).unwrap_or(0),
             format!("{:?}", self.node_type())[..3].to_owned(),
             self.arity(),
-            format!("{:<7?}", self.value).to_owned(),
+            format!("{:.4?}", self.value), // pre-format with precision → String
             self.is_valid(),
             self.is_recurrent(),
             self.incoming.len(),

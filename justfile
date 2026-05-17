@@ -81,7 +81,15 @@ test-py *args: _require-uv
     @uv run -m pytest -n auto {{args}}
 
 test-rs:
-    @cargo test
+    #!/usr/bin/env bash
+    if command -v cargo-nextest >/dev/null 2>&1; then
+        cargo nextest run
+    else
+        echo "nextest not found, falling back to standard cargo test..."
+        cargo test
+    fi
+
+    # @cargo test
 
 # --------------------------
 # Example commands

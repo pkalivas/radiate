@@ -122,7 +122,6 @@ impl Rate {
             _ => 1.0,
         }
     }
-
 }
 
 impl Valid for Rate {
@@ -160,7 +159,6 @@ impl Valid for Rate {
     }
 }
 
-
 impl Default for Rate {
     fn default() -> Self {
         Rate::Fixed(1.0)
@@ -181,7 +179,7 @@ impl From<Vec<(usize, f32)>> for Rate {
 
 impl From<Expr> for Rate {
     fn from(expr: Expr) -> Self {
-        Rate::Expr(expr)
+        Rate::Expr(expr.compile())
     }
 }
 

@@ -1,4 +1,4 @@
-use super::{DataType, Field};
+use super::DataType;
 use crate::SmallStr;
 use num_traits::NumCast;
 #[cfg(feature = "serde")]
@@ -38,7 +38,7 @@ pub enum AnyValue<'a> {
     Slice(&'a [AnyValue<'a>]),
     Vector(Vec<AnyValue<'a>>),
 
-    Struct(SmallStr, Vec<(Field, AnyValue<'a>)>),
+    Struct(SmallStr, Vec<(SmallStr, DataType, AnyValue<'a>)>),
 
     Map(Vec<(SmallStr, DataType, AnyValue<'a>)>),
 }
@@ -207,7 +207,10 @@ impl<'a> AnyValue<'a> {
 
             Self::Struct(field, fields) => DataType::Struct(
                 field.clone(),
-                fields.iter().map(|(f, _)| f.clone()).collect(),
+                fields
+                    .iter()
+                    .map(|(name, dtype, _)| (name.clone(), dtype.clone()))
+                    .collect(),
             ),
         }
     }
@@ -280,7 +283,7 @@ impl<'a> AnyValue<'a> {
                 field,
                 fields
                     .into_iter()
-                    .map(|(f, v)| (f, v.into_static()))
+                    .map(|(name, dtype, value)| (name, dtype, value.into_static()))
                     .collect(),
             ),
         }
@@ -401,7 +404,7 @@ impl<'a> PartialEq for AnyValue<'a> {
             (Struct(fa, va), Struct(fb, vb)) if fa == fb && va.len() == vb.len() => va
                 .iter()
                 .zip(vb.iter())
-                .all(|((f1, v1), (f2, v2))| f1.name() == f2.name() && v1 == v2),
+                .all(|((f1, _, v1), (f2, _, v2))| f1 == f2 && v1 == v2),
             _ => false,
         }
     }
@@ -449,9 +452,10 @@ impl<'a> Hash for AnyValue<'a> {
             }),
             Struct(f, v) => {
                 f.hash(state);
-                v.iter().for_each(|(k, v)| {
-                    k.hash(state);
-                    v.hash(state);
+                v.iter().for_each(|(name, dtype, value)| {
+                    name.hash(state);
+                    dtype.hash(state);
+                    value.hash(state);
                 });
             }
         }
@@ -659,7 +663,7 @@ impl<'a, 'de> Deserialize<'de> for AnyValue<'a> {
             Slice(Vec<AnyValueDef>),
             Vector(Vec<AnyValueDef>),
             Map(Vec<(SmallStr, DataType, AnyValueDef)>),
-            Struct(SmallStr, Vec<(Field, AnyValueDef)>),
+            Struct(SmallStr, Vec<(SmallStr, DataType, AnyValueDef)>),
         }
 
         impl From<AnyValueDef> for AnyValue<'_> {
@@ -694,7 +698,10 @@ impl<'a, 'de> Deserialize<'de> for AnyValue<'a> {
                     }
                     AnyValueDef::Struct(field, fields) => Struct(
                         field,
-                        fields.into_iter().map(|(f, v)| (f, v.into())).collect(),
+                        fields
+                            .into_iter()
+                            .map(|(name, dtype, value)| (name, dtype, value.into()))
+                            .collect(),
                     ),
                 }
             }
@@ -725,11 +732,15 @@ impl<'a, 'de> Deserialize<'de> for AnyValue<'a> {
             AnyValueDef::Vector(vals) => Vector(vals.into_iter().map(|v| v.into()).collect()),
             AnyValueDef::Struct(field, fields) => Struct(
                 field,
-                fields.into_iter().map(|(f, v)| (f, v.into())).collect(),
+                fields
+                    .into_iter()
+                    .map(|(name, dtype, value)| (name, dtype, value.into()))
+                    .collect(),
             ),
-            AnyValueDef::Map(vals) => {
-                Map(vals.into_iter().map(|(f, d, v)| (f, d, v.into())).collect())
-            }
+            AnyValueDef::Map(vals) => Map(vals
+                .into_iter()
+                .map(|(name, dtype, value)| (name, dtype, value.into()))
+                .collect()),
         })
     }
 }

@@ -93,7 +93,11 @@ macro_rules! impl_into_py_species {
                     mascot: PyPhenotype::from(species.mascot().clone()),
                     generation: species.generation(),
                     stagnation: species.stagnation(),
-                    population: species.members.iter().map(|id| id.clone().into()).collect(),
+                    population: species
+                        .members
+                        .iter()
+                        .map(|id| id.get())
+                        .collect::<HashSet<u64>>(),
                     score: species.adj_score().map(|s| s.as_ref().to_vec()),
                 }
             }

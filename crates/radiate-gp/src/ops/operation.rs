@@ -205,17 +205,19 @@ where
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Op::Fn(name, _, _) => write!(f, "Fn: {}", name),
+            Op::Fn(name, _, _) => write!(f, "Fn:  {}", name),
             Op::Var(name, index, card) => match card {
-                Some(k) => {
-                    write!(f, "Var: {}({}, Cat:{})", name, index, k)
-                }
+                Some(k) => write!(f, "Var: {}({},{})", name, index, k),
                 None => write!(f, "Var: {}({})", name, index),
             },
-            Op::Const(name, value) => write!(f, "C: {}({:?})", name, value),
-            Op::Value(name, _, value, _) => {
-                write!(f, "Val: {}({:?})", name, value)
-            }
+            Op::Const(name, value) => match f.precision() {
+                Some(p) => write!(f, "Con: {}({:.*?})", name, p, value),
+                None => write!(f, "Con: {}({:?})", name, value),
+            },
+            Op::Value(name, _, value, _) => match f.precision() {
+                Some(p) => write!(f, "Val: {}({:.*?})", name, p, value),
+                None => write!(f, "Val: {}({:?})", name, value),
+            },
         }
     }
 }

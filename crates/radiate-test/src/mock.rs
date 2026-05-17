@@ -13,6 +13,8 @@ use std::{
     sync::{Arc, RwLock},
 };
 
+type ScoreFn<C> = Box<dyn Fn(usize, &Genotype<C>) -> Score>;
+
 /// Builder for a deterministic mock ecosystem. Each builder call decides
 /// one axis of the test scenario; the final `.build()` returns an
 /// `Ecosystem<C>` ready to feed to a step.
@@ -30,7 +32,7 @@ pub struct MockEcosystem<C: Chromosome> {
 }
 
 impl<C: Chromosome + Clone> MockEcosystem<C> {
-    pub fn new<T>(codec: impl Codec<C, T> + 'static) -> MockEcosystemBuilder<C> {
+    pub fn builder<T>(codec: impl Codec<C, T> + 'static) -> MockEcosystemBuilder<C> {
         MockEcosystemBuilder {
             pop_size: 0,
             score_fn: None,
@@ -42,7 +44,7 @@ impl<C: Chromosome + Clone> MockEcosystem<C> {
 
 pub struct MockEcosystemBuilder<C: Chromosome> {
     pop_size: usize,
-    score_fn: Option<Box<dyn Fn(usize, &Genotype<C>) -> Score>>,
+    score_fn: Option<ScoreFn<C>>,
     species_sizes: Option<Vec<usize>>,
     genotype_fn: Box<dyn Fn() -> Genotype<C>>,
 }
@@ -203,14 +205,14 @@ pub fn maximize() -> Objective {
 }
 
 pub fn float_population(num: usize) -> Population<FloatChromosome<f32>> {
-    MockEcosystem::new(FloatCodec::vector(1, 0.0..1.0))
+    MockEcosystem::builder(FloatCodec::vector(1, 0.0..1.0))
         .pop_size(num)
         .scores_linear()
         .build_population()
 }
 
 pub fn random_float_population(num: usize) -> Population<FloatChromosome<f32>> {
-    MockEcosystem::new(FloatCodec::vector(1, 0.0..100.0))
+    MockEcosystem::builder(FloatCodec::vector(1, 0.0..100.0))
         .pop_size(num)
         .scores(|_, g| Score::from(*g[0].as_slice()[0].allele()))
         .build_population()
@@ -218,7 +220,7 @@ pub fn random_float_population(num: usize) -> Population<FloatChromosome<f32>> {
 
 pub fn multi_obj_population(scores: Vec<Vec<f32>>) -> Population<FloatChromosome<f32>> {
     let n = scores.len();
-    MockEcosystem::new(FloatCodec::vector(1, 0.0..1.0))
+    MockEcosystem::builder(FloatCodec::vector(1, 0.0..1.0))
         .pop_size(n)
         .scores(move |i, _| Score::from(scores[i].clone()))
         .build_population()

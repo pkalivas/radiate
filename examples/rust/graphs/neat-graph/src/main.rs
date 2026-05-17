@@ -39,8 +39,11 @@ fn main() {
         ))
         .build();
 
-    // radiate::ui(engine)
-    engine.iter().until_score(MIN_SCORE).last().inspect(display);
+    radiate::ui(engine)
+        .iter()
+        .until_score(MIN_SCORE)
+        .last()
+        .inspect(display);
 }
 
 fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
@@ -77,6 +80,8 @@ fn get_threshold(use_expr_distance: bool, target_species: usize) -> impl Into<Ra
         return Rate::from(SPECIES_THRESHOLD);
     }
 
+    const GAIN: f32 = 0.999;
+
     let target = target_species.clamp(1, 100) as f32;
     let window = (target as usize).max(10);
 
@@ -91,7 +96,10 @@ fn get_threshold(use_expr_distance: bool, target_species: usize) -> impl Into<Ra
         .sub(target)
         .div(target);
 
-    const GAIN: f32 = 0.999;
+    let result = anchor
+        .mul(count_error.mul(GAIN).add(1.0))
+        .clamp(0.005, 2.0)
+        .compile();
 
-    Rate::Expr(anchor.mul(count_error.mul(GAIN).add(1.0)).clamp(0.005, 2.0))
+    Rate::Expr(result)
 }

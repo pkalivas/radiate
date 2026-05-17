@@ -39,11 +39,9 @@ pub enum MutationStep {
         index: usize,
         previous_direction: Direction,
     },
-    StructureChange {
-        source_id: usize,
-        new_node_id: usize,
-        target_node_id: usize,
-        innovation_id: Option<InnovationId>,
+    InnovationChange {
+        node_idx: usize,
+        previous_innovation: Option<InnovationId>,
     },
 }
 
@@ -235,9 +233,15 @@ impl<'a, T> GraphTransaction<'a, T> {
                         replay_steps.push(ReplayStep::DirectionChange(index, prev_dir));
                     }
                 }
-                MutationStep::StructureChange { new_node_id, .. } => {
-                    if let Some(node) = self.graph.get_mut(new_node_id) {
-                        node.set_innovation(None);
+                MutationStep::InnovationChange {
+                    node_idx,
+                    previous_innovation,
+                } => {
+                    if let Some(node) = self.graph.get_mut(node_idx) {
+                        let current_innovation = node.innovation();
+                        node.set_innovation(previous_innovation);
+                        replay_steps
+                            .push(ReplayStep::InnovationChange(node_idx, current_innovation));
                     }
                 }
             }
@@ -295,12 +299,11 @@ impl<'a, T> GraphTransaction<'a, T> {
 
     pub fn set_innovation(&mut self, node_idx: usize, innovation: Option<InnovationId>) {
         if let Some(node) = self.graph.get_mut(node_idx) {
+            let previous_innovation = node.innovation();
             node.set_innovation(innovation);
-            self.steps.push(MutationStep::StructureChange {
-                source_id: node_idx,
-                new_node_id: node_idx,
-                target_node_id: node_idx,
-                innovation_id: innovation,
+            self.steps.push(MutationStep::InnovationChange {
+                node_idx,
+                previous_innovation,
             });
         }
     }
@@ -630,7 +633,7 @@ impl<T> Deref for GraphTransaction<'_, T> {
 #[cfg(test)]
 mod tests {
     use super::{GraphTransaction, InsertStep, MutationStep, TransactionResult};
-    use crate::collections::graphs::{Direction, Graph, GraphNode};
+    use crate::collections::graphs::{Direction, Graph, GraphNode, InnovationId};
     use crate::{Arity, Node, NodeType};
     use radiate_core::{Valid, random_provider};
 
@@ -841,5 +844,48 @@ mod tests {
             assert_eq!(src.node_type(), NodeType::Edge);
             assert_eq!(tgt.node_type(), NodeType::Edge);
         });
+    }
+
+    #[test]
+    fn rollback_restores_previous_innovation_and_replay_reapplies() {
+        let mut g = Graph::<i32>::default();
+        let initial = InnovationId::new();
+        let updated = InnovationId::new();
+
+        {
+            let mut tx = GraphTransaction::new(&mut g);
+            let input = tx.push((0, NodeType::Input, 0));
+            let output = tx.push((1, NodeType::Output, 1));
+            tx.attach(input, output);
+            tx.set_innovation(input, Some(initial));
+            assert!(matches!(tx.commit(), TransactionResult::Valid(_)));
+        }
+        assert_eq!(g[0].innovation(), Some(initial));
+
+        let replay = {
+            let mut tx = GraphTransaction::new(&mut g);
+            tx.set_innovation(0, Some(updated));
+            match tx.commit_with(|_| false) {
+                TransactionResult::Invalid(_, replay) => replay,
+                _ => panic!("expected forced rejection"),
+            }
+        };
+
+        assert_eq!(
+            g[0].innovation(),
+            Some(initial),
+            "rollback should restore previous innovation, not clear it"
+        );
+
+        {
+            let mut tx = GraphTransaction::new(&mut g);
+            tx.replay(replay);
+            assert!(matches!(tx.commit(), TransactionResult::Valid(_)));
+        }
+        assert_eq!(
+            g[0].innovation(),
+            Some(updated),
+            "replay should reapply the innovation change"
+        );
     }
 }

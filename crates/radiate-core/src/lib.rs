@@ -7,7 +7,6 @@ pub mod error;
 pub mod evaluator;
 pub mod fitness;
 pub mod genome;
-pub mod lineage;
 pub mod objectives;
 pub mod problem;
 pub mod rate;
@@ -32,14 +31,14 @@ pub use fitness::{
 };
 pub use genome::*;
 pub use objectives::{Front, Objective, Optimize, Score, pareto};
-pub use problem::{BatchEngineProblem, EngineProblem, Problem};
-pub use radiate_utils::{AnyValue, DataType, Field, SmallStr, dtype, dtype_names, value};
+pub use problem::Problem;
+pub use radiate_utils::{AnyValue, DataType, SmallStr, dtype, dtype_names, value};
 pub use rate::Rate;
 pub use replacement::{EncodeReplace, PopulationSampleReplace, ReplacementStrategy};
 pub use selector::Select;
 pub use stats::{
-    Evaluate, Expr, ExprProjection, Metric, MetricSet, MetricUpdate, NamedExpr, SelectExpr,
-    expression::expr, metric_names, render_dashboard, render_full,
+    Evaluate, Expr, Metric, MetricQuery, MetricSet, MetricUpdate, SelectExpr, expression::expr,
+    metric_names, render_dashboard, render_full,
 };
 
 pub mod prelude {

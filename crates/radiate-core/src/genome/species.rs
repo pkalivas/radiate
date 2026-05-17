@@ -12,28 +12,6 @@ use std::{
 
 sentry_id!(SpeciesId);
 
-// #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-// #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-// #[repr(transparent)]
-// pub struct SpeciesId(pub u64);
-
-// impl SpeciesId {
-//     pub fn new() -> Self {
-//         static SPECIES_ID: AtomicU64 = AtomicU64::new(1);
-//         SpeciesId(SPECIES_ID.fetch_add(1, Ordering::Relaxed))
-//     }
-
-//     pub fn empty() -> Self {
-//         SpeciesId(0)
-//     }
-// }
-
-// impl Default for SpeciesId {
-//     fn default() -> Self {
-//         Self::new()
-//     }
-// }
-
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Species<C: Chromosome> {
     pub id: SpeciesId,
@@ -156,13 +134,21 @@ impl<C: Chromosome> Debug for Species<C> {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(
             f,
-            "Species {{ members: {:?}, adj_score: {:?}, raw_score: {:?}, stagnation: {:?}, generation: {:?}, id: {:?} }}",
+            "id={}  size={:>2}  adj={}  raw={}  stag={}  gen={}",
+            self.id.get(),
             self.len(),
-            self.adjusted_score,
-            self.tracker.current(),
+            fmt_opt_score(self.adjusted_score.as_ref()),
+            fmt_opt_score(self.tracker.current()),
             self.tracker.stagnation(),
             self.generation,
-            self.id
         )
+    }
+}
+
+fn fmt_opt_score(score: Option<&Score>) -> String {
+    match score {
+        Some(s) if s.is_single_objective() => format!("{:.6}", s.first().unwrap_or(f32::NAN)),
+        Some(s) => format!("{:?}", s.as_slice()),
+        None => "?".to_string(),
     }
 }

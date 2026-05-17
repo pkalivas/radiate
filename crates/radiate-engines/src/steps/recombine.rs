@@ -298,8 +298,8 @@ where
             .iter_pair_live_rev(&self.offspring_counts);
 
         for (idx, s, o) in iter {
-            let mut s_left = s as usize;
-            let total = s_left + o as usize;
+            let mut s_left = s;
+            let total = s_left + o;
 
             for _ in 0..total - 1 {
                 if s_left > 0 {

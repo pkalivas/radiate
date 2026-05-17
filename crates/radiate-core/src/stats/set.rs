@@ -2,11 +2,11 @@ use crate::{
     Metric, MetricUpdate,
     stats::{
         Meta, Tag, TagType,
-        expression::{ExprProjection, SelectExpr},
+        expression::{MetricField, MetricKind, SelectExpr},
         fmt,
     },
 };
-use radiate_utils::{AnyValue, DataType, SmallStr};
+use radiate_utils::{AnyValue, SmallStr};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::{
@@ -54,10 +54,8 @@ impl MetricSet {
         }
     }
 
-    pub fn advance_generation(&mut self) -> u64 {
-        let result = self.meta.generation;
-        self.meta.generation += 1;
-        result
+    pub fn bump(&mut self, generation: u64) {
+        self.meta.generation = generation;
     }
 
     pub fn generation(&self) -> u64 {
@@ -99,12 +97,25 @@ impl MetricSet {
     }
 
     #[inline(always)]
+    pub fn upsert_tagged<'a>(
+        &mut self,
+        key: impl AsRef<str>,
+        metric: impl Into<MetricUpdate<'a>>,
+        tag: TagType,
+    ) {
+        let metric_update = metric.into();
+        let idx = self.resolve(&key);
+        if let Some(metric) = self.metrics.get_mut(idx.as_usize()) {
+            metric.add_tag(tag);
+            self.upsert_at(idx, metric_update);
+        }
+    }
+
+    #[inline(always)]
     pub fn keys(&self) -> impl Iterator<Item = SmallStr> {
         self.metrics.iter().map(|m| m.name().clone())
     }
 
-    /// Insert or fully overwrite a metric by name. If a metric with the same
-    /// name already exists, its slot is reused (handle stays valid).
     #[inline(always)]
     pub fn replace(&mut self, metric: impl Into<Metric>) {
         let metric = metric.into();
@@ -154,11 +165,6 @@ impl MetricSet {
     }
 
     #[inline(always)]
-    pub fn get_from_string(&self, name: String) -> Option<&Metric> {
-        self.get(name.as_str())
-    }
-
-    #[inline(always)]
     pub fn clear(&mut self) {
         for m in &mut self.metrics {
             m.clear_values();
@@ -176,12 +182,10 @@ impl MetricSet {
         self.metrics.len()
     }
 
-    #[inline(always)]
     pub fn is_empty(&self) -> bool {
         self.metrics.is_empty()
     }
 
-    #[inline(always)]
     pub fn summary(&self) -> MetricSetSummary {
         MetricSetSummary {
             metrics: self.metrics.len(),
@@ -194,51 +198,33 @@ impl MetricSet {
     }
 }
 
-impl ExprProjection for MetricSet {
-    fn project(&self, path: &SelectExpr) -> Option<AnyValue<'static>> {
-        let value_to_float32 = |value: f32| AnyValue::Float32(value);
-        let value_to_duration = |value: f32| Duration::from_secs_f32(value).into();
-
-        let SelectExpr::Field(key, field) = path else {
-            return None;
+impl MetricSet {
+    pub(crate) fn project_selector(&self, sel: &SelectExpr) -> AnyValue<'static> {
+        // Missing metrics return Null so downstream math can propagate it; the
+        // outer Clamp (or any consumer using non-finite fallback) then takes the
+        // floor instead of the engine seeing an unrelated error.
+        let Some(metric) = self.get(sel.metric.as_str()) else {
+            return AnyValue::Null;
         };
 
-        let str_key = key.as_str()?;
+        let wrap = |v: f32| match sel.kind {
+            MetricKind::Value => AnyValue::Float32(v),
+            MetricKind::Duration => AnyValue::Duration(Duration::from_secs_f32(v)),
+        };
 
-        self.get(str_key)
-            .map(|metric| match field.dtype() {
-                DataType::Float32 => match field.name().to_lowercase().as_str() {
-                    "last_value" => AnyValue::Float32(metric.last_value()),
-                    "mean" => value_to_float32(metric.mean()),
-                    "std_dev" => value_to_float32(metric.stddev()),
-                    "min" => value_to_float32(metric.min()),
-                    "max" => value_to_float32(metric.max()),
-                    "sum" => value_to_float32(metric.sum()),
-                    "skew" => value_to_float32(metric.skew()),
-                    "var" => value_to_float32(metric.var()),
-                    "count" => AnyValue::UInt64(metric.count() as u64),
-                    "generation" => AnyValue::UInt64(metric.generation()),
-                    "update_count" => AnyValue::UInt64(metric.update_count() as u64),
-                    _ => AnyValue::Null,
-                },
-                DataType::Duration => match field.name().to_lowercase().as_str() {
-                    "last_value" => {
-                        AnyValue::Duration(Duration::from_secs_f32(metric.last_value()))
-                    }
-                    "mean" => value_to_duration(metric.mean()),
-                    "std_dev" => value_to_duration(metric.stddev()),
-                    "min" => value_to_duration(metric.min()),
-                    "max" => value_to_duration(metric.max()),
-                    "sum" => value_to_duration(metric.sum()),
-                    "var" => value_to_duration(metric.var()),
-                    "count" => AnyValue::UInt64(metric.count() as u64),
-                    "generation" => AnyValue::UInt64(metric.generation()),
-                    "update_count" => AnyValue::UInt64(metric.update_count() as u64),
-                    _ => AnyValue::Null,
-                },
-                _ => AnyValue::Null,
-            })
-            .or_else(|| Some(AnyValue::Null))
+        match sel.field {
+            MetricField::LastValue => wrap(metric.last_value()),
+            MetricField::Mean => wrap(metric.mean()),
+            MetricField::StdDev => wrap(metric.stddev()),
+            MetricField::Min => wrap(metric.min()),
+            MetricField::Max => wrap(metric.max()),
+            MetricField::Sum => wrap(metric.sum()),
+            MetricField::Var => wrap(metric.var()),
+            MetricField::Skew => AnyValue::Float32(metric.skew()),
+            MetricField::Count => AnyValue::UInt64(metric.count() as u64),
+            MetricField::Generation => AnyValue::UInt64(metric.generation()),
+            MetricField::UpdateCount => AnyValue::UInt64(metric.update_count() as u64),
+        }
     }
 }
 
@@ -293,7 +279,7 @@ impl<'de> Deserialize<'de> for MetricSet {
 
 #[derive(Debug)]
 pub enum MetricSetUpdate<'a> {
-    NamedSingle(SmallStr, MetricUpdate<'a>, Option<TagType>),
+    Single(SmallStr, MetricUpdate<'a>, Option<TagType>),
 }
 
 impl<'a, N, U> From<(N, U)> for MetricSetUpdate<'a>
@@ -302,7 +288,7 @@ where
     U: Into<MetricUpdate<'a>>,
 {
     fn from((name, update): (N, U)) -> Self {
-        MetricSetUpdate::NamedSingle(name.into(), update.into(), None)
+        MetricSetUpdate::Single(name.into(), update.into(), None)
     }
 }
 
@@ -312,7 +298,7 @@ where
     U: Into<MetricUpdate<'a>>,
 {
     fn from((tag, name, update): (TagType, N, U)) -> Self {
-        MetricSetUpdate::NamedSingle(name.into(), update.into(), Some(tag))
+        MetricSetUpdate::Single(name.into(), update.into(), Some(tag))
     }
 }
 
@@ -323,7 +309,7 @@ where
 {
     fn from((name, update, count): (N, U, usize)) -> Self {
         let name: SmallStr = format!("{}.{}", name.as_ref(), count).into();
-        MetricSetUpdate::NamedSingle(name, update.into(), None)
+        MetricSetUpdate::Single(name, update.into(), None)
     }
 }
 

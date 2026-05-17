@@ -1,63 +1,66 @@
-use super::{Evaluate, Expr, ExprProjection, ExprResult};
-use radiate_error::radiate_bail;
-use radiate_utils::{AnyValue, Field};
+use super::{Evaluate, ExprResult};
+use crate::MetricSet;
+use radiate_utils::SmallStr;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
+/// Which statistic to extract from a metric in a [`MetricSet`].
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum MetricField {
+    LastValue,
+    Mean,
+    StdDev,
+    Min,
+    Max,
+    Sum,
+    Var,
+    Skew,
+    Count,
+    Generation,
+    UpdateCount,
+}
+
+/// How the extracted statistic should be wrapped. `Value` returns it as an `f32`
+/// (or `u64` for count/generation/update_count); `Duration` reinterprets the f32 as seconds.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum MetricKind {
+    Value,
+    Duration,
+}
+
+/// Selects one statistic from a named metric in a [`MetricSet`].
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
-pub enum PathSegment {
-    Key(AnyValue<'static>),
-    Index(usize),
-    StructField(Field),
+pub struct SelectExpr {
+    pub metric: SmallStr,
+    pub field: MetricField,
+    pub kind: MetricKind,
 }
 
-#[derive(Clone, Debug, PartialEq, Default)]
-pub struct PathBuilder {
-    path: Vec<PathSegment>,
-}
-
-impl PathBuilder {
-    pub fn key(mut self, key: impl Into<AnyValue<'static>>) -> Self {
-        self.path.push(PathSegment::Key(key.into()));
-        self
-    }
-
-    pub fn index(mut self, index: usize) -> Self {
-        self.path.push(PathSegment::Index(index));
-        self
-    }
-
-    pub fn field(mut self, field: Field) -> Self {
-        self.path.push(PathSegment::StructField(field));
-        self
-    }
-}
-
-impl From<PathBuilder> for Expr {
-    fn from(val: PathBuilder) -> Self {
-        Expr::Selector(SelectExpr::Path(val.path))
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub enum SelectExpr {
-    Field(AnyValue<'static>, Field),
-    Nth(usize),
-    Path(Vec<PathSegment>),
-    Element,
-}
-
-impl<T> Evaluate<T> for SelectExpr
-where
-    T: ExprProjection,
-{
-    fn eval<'a>(&'a mut self, input: &T) -> ExprResult<'a> {
-        if let Some(result) = input.project(self) {
-            Ok(result)
-        } else {
-            radiate_bail!(Expr: "Failed to project value using selector {:?}", self)
+impl SelectExpr {
+    pub fn new(metric: impl Into<SmallStr>) -> Self {
+        Self {
+            metric: metric.into(),
+            field: MetricField::LastValue,
+            kind: MetricKind::Value,
         }
+    }
+
+    pub fn with_field(mut self, field: MetricField) -> Self {
+        self.field = field;
+        self
+    }
+
+    pub fn with_kind(mut self, kind: MetricKind) -> Self {
+        self.kind = kind;
+        self
+    }
+}
+
+impl Evaluate for SelectExpr {
+    fn eval<'a>(&'a mut self, metrics: &MetricSet) -> ExprResult<'a> {
+        Ok(metrics.project_selector(self))
     }
 }

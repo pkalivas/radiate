@@ -28,7 +28,6 @@ pub struct Quantile<F: Float = f32> {
 }
 
 impl<F: Float> Quantile<F> {
-    /// New estimator for quantile `q ∈ (0, 1)`. Panics if `q` is out of range.
     pub fn new(q: F) -> Self {
         assert!(
             q > F::ZERO && q < F::ONE,
@@ -63,7 +62,6 @@ impl<F: Float> Quantile<F> {
         }
     }
 
-    /// Add one sample.
     pub fn add(&mut self, x: F) {
         if self.count < 5 {
             self.heights[self.count as usize] = x;
@@ -88,6 +86,7 @@ impl<F: Float> Quantile<F> {
         for i in (k + 1)..5 {
             self.positions[i] = self.positions[i] + F::ONE;
         }
+
         for i in 0..5 {
             self.desired[i] = self.desired[i] + self.increments[i];
         }

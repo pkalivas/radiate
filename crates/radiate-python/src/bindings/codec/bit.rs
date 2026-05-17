@@ -30,7 +30,6 @@ impl PyBitCodec {
     pub fn matrix(chromosome_lengths: Option<Vec<usize>>, use_numpy: bool) -> Self {
         let lengths = chromosome_lengths.unwrap_or(vec![1]);
         let lengths_for_encoder = lengths.clone();
-        let lengths_for_write = lengths.clone();
 
         PyBitCodec {
             codec: PyCodec::new()
@@ -46,8 +45,7 @@ impl PyBitCodec {
                         .unwrap()
                         .unbind()
                         .into_any(),
-                })
-                .with_write(move |w| bit_codec_write(w, &lengths_for_write, use_numpy)),
+                }),
         }
     }
 
@@ -64,20 +62,9 @@ impl PyBitCodec {
                         .unwrap()
                         .unbind()
                         .into_any(),
-                })
-                .with_write(move |w| bit_codec_write(w, &[length], use_numpy)),
+                }),
         }
     }
-}
-
-fn bit_codec_write(
-    w: &mut dyn std::io::Write,
-    lengths: &[usize],
-    use_numpy: bool,
-) -> std::io::Result<()> {
-    writeln!(w, "type: BitCodec")?;
-    writeln!(w, "shape: {:?}", lengths)?;
-    writeln!(w, "use_numpy: {}", use_numpy)
 }
 
 unsafe impl Send for PyBitCodec {}
