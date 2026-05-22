@@ -2,7 +2,7 @@
 
 !!! warning ":construction: Under Construction :construction:"
 
-    As of `04/25/2026`: These docs are a work in progress and may not be complete or fully accurate. Please check back later for updates. This feature is currently in active development and subject to change.
+    As of `05/18/2026`: These docs are a work in progress and may not be complete or fully accurate. Please check back later for updates. This feature is currently in active development and subject to change.
 
 Radiate includes a composable expression system that lets you query and transform the engine's metric state at runtime. Expressions are stateful, lazily-evaluated trees — each call to `.apply()` or an internal engine dispatch consumes one "tick" of any stateful nodes (rolling windows, schedules, etc.). This system was designed to be extremely similar to [polars' expression API](https://pola-rs.github.io/polars/py-polars/html/reference/expressions/index.html) to leverage the same mental model of lazy evaluation and chaining, but adapted to radiate's needs.
 

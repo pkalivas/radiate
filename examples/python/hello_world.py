@@ -18,9 +18,7 @@ def fit(x: list[str]) -> int:
 
 engine = (
     rd.Engine.char(len(target))
-    .fitness(
-        lambda member: sum(1 for i in range(len(target)) if member[i] == target[i])
-    )
+    .fitness(fit)
     .select(
         offspring=rd.Select.boltzmann(4.0)
     )  # <- specifying a selector is not really needed for such a simple problem, just for example purposes
