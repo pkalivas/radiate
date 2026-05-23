@@ -119,15 +119,15 @@ impl PyGene {
 
             GeneInner::Bit(_) => Wrap(DataType::Boolean).into_pyobject(py),
             GeneInner::Char(_) => Wrap(DataType::Char).into_pyobject(py),
-            GeneInner::GraphNode(_) => Wrap(DataType::Map(vec![(
+            GeneInner::GraphNode(_) => Wrap(DataType::Struct(
                 SmallStr::from("GraphNode"),
-                DataType::Map(vec![(SmallStr::from("op"), DataType::Float32)]),
-            )]))
+                vec![(SmallStr::from("op"), DataType::Float32)],
+            ))
             .into_pyobject(py),
-            GeneInner::TreeNode(_) => Wrap(DataType::Map(vec![(
+            GeneInner::TreeNode(_) => Wrap(DataType::Struct(
                 SmallStr::from("TreeNode"),
-                DataType::Map(vec![(SmallStr::from("op"), DataType::Float32)]),
-            )]))
+                vec![(SmallStr::from("op"), DataType::Float32)],
+            ))
             .into_pyobject(py),
             GeneInner::Permutation(_) => Wrap(DataType::UInt64).into_pyobject(py),
         }

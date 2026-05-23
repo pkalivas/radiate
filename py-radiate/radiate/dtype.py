@@ -165,21 +165,26 @@ class Struct(NestedType):
     Examples
     --------
     >>> person_dtype = Struct(
+    ...     "Person",
     ...     [
     ...         Field("name", String),
     ...         Field("age", Int32),
     ...         Field("is_student", Bool),
-    ...     ]
+    ...     ],
     ... )
     >>> person_dtype
     Struct({'name': String, 'age': Int32, 'is_student': Bool})
     """
 
+    name: str
     fields: list[Field]
 
     def __init__(
-        self, fields: list[Field] | list[tuple[str, DataType | DataTypeClass]]
+        self,
+        name: str,
+        fields: list[Field] | list[tuple[str, DataType | DataTypeClass]],
     ) -> None:
+        self.name = name
         if all(isinstance(fld, Field) for fld in fields):
             self.fields = fields  # type: ignore[assignment]
         elif all(isinstance(fld, tuple) and len(fld) == 2 for fld in fields):
@@ -193,12 +198,12 @@ class Struct(NestedType):
         if isclass(other) and issubclass(other, Struct):
             return True
         elif isinstance(other, Struct):
-            return self.fields == other.fields
+            return self.fields == other.fields and self.name == other.name
         else:
             return False
 
     def __hash__(self) -> int:
-        return hash((self.__class__, tuple(self.fields)))
+        return hash((self.__class__, tuple(self.fields), self.name))
 
     def __iter__(self) -> Iterator[tuple[str, DataType | DataTypeClass]]:
         for fld in self.fields:
@@ -206,11 +211,11 @@ class Struct(NestedType):
 
     def __repr__(self) -> str:
         class_name = self.__class__.__name__
-        return f"{class_name}({dict(self)})"
+        return f"{class_name}({self.name}, {dict(self)})"
 
     def __str__(self) -> str:
         class_name = self.__class__.__name__
-        return f"{class_name}({dict(self)})"
+        return f"{class_name}({self.name}, {dict(self)})"
 
 
 class List(NestedType):

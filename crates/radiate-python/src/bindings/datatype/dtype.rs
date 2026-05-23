@@ -165,31 +165,33 @@ impl<'py> IntoPyObject<'py> for &Wrap<DataType> {
             }
             DataType::Map(fields) => {
                 let field_class = rd.getattr(intern!(py, "Field"))?;
+
                 let iter = fields.iter().map(|fld| {
                     let name = fld.0.to_string();
                     let dtype = Wrap(fld.1.clone());
                     field_class.call1((name, &dtype)).unwrap()
                 });
+
                 let fields = PyList::new(py, iter)?;
-                let struct_class = rd.getattr(intern!(py, "Struct"))?;
+                let struct_class = rd.getattr(intern!(py, "Map"))?;
                 struct_class.call1((fields,))
             }
             DataType::Null => {
                 let class = rd.getattr(intern!(py, "Null"))?;
                 class.call0()
             }
-            DataType::Struct(field, fields) => {
+            DataType::Struct(name, fields) => {
                 let field_class = rd.getattr(intern!(py, "Field"))?;
-                let name = field.to_string();
 
                 let iter = fields.iter().map(|(name, dtype)| {
                     let name = name.as_str();
                     let dtype = Wrap(dtype.clone());
                     field_class.call1((name, &dtype)).unwrap()
                 });
+
                 let fields = PyList::new(py, iter)?;
                 let struct_class = rd.getattr(intern!(py, "Struct"))?;
-                struct_class.call1((name, fields))
+                struct_class.call1((name.to_string(), fields))
             }
         }
     }

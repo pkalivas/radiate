@@ -8,3 +8,7 @@ metrics.upsert("four", 5)
 
 
 print(metrics.dashboard())
+
+list_temp = rd.List(rd.Float32)
+
+print(list_temp)
