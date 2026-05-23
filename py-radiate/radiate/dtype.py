@@ -258,3 +258,54 @@ class List(NestedType):
     def __str__(self) -> str:
         class_name = self.__class__.__name__
         return f"{class_name}({self.inner})"
+
+
+class Map(NestedType):
+    """
+        Map data type, representing a collection of key-value pairs.
+        Parameters
+    ----------
+    key_type    The `DataType` of the keys in the map.
+    value_type  The `DataType` of the values in the map.
+    Examples
+    --------
+    >>> str_int_map_dtype = Map(String, Int32)
+    >>> str_int_map_dtype
+    Map(String, Int32)
+    >>> str_int_map_dtype == Map(String, Int32)
+    True
+    >>> str_int_map_dtype == Map(Int32, String)
+    False
+    """
+
+    key_type: DataTypeClass | DataType
+    value_type: DataTypeClass | DataType
+
+    def __init__(
+        self,
+        key_type: DataTypeClass | DataType,
+        value_type: DataTypeClass | DataType,
+    ) -> None:
+        self.key_type = key_type
+        self.value_type = value_type
+
+    def __eq__(self, other) -> bool:  # type: ignore[override]
+        if type(other) is DataTypeClass and issubclass(other, Map):
+            return True
+        elif isinstance(other, Map):
+            return (self.key_type == other.key_type) & (
+                self.value_type == other.value_type
+            )
+        else:
+            return False
+
+    def __hash__(self) -> int:
+        return hash((self.__class__, self.key_type, self.value_type))
+
+    def __repr__(self) -> str:
+        class_name = self.__class__.__name__
+        return f"{class_name}({self.key_type!r}, {self.value_type!r})"
+
+    def __str__(self) -> str:
+        class_name = self.__class__.__name__
+        return f"{class_name}({self.key_type}, {self.value_type})"

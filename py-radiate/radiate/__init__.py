@@ -131,12 +131,13 @@ from .dtype import (
     Float32,
     Float64,
     Boolean,
-    Struct,
-    List,
     Field,
     String,
     Char,
     Null,
+    Struct,
+    List,
+    Map,
 )
 
 from .expr import Expr, select, when, lit, element, every, generation
@@ -299,6 +300,7 @@ __all__ = [
     "Char",
     "Null",
     "List",
+    "Map",
     # dsl
     "Select",
     "Dist",
