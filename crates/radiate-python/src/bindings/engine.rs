@@ -1,4 +1,6 @@
-use crate::{EngineHandle, EpochHandle, InputTransform, PickleWriter, PyEngineInput, PyGeneration};
+use crate::{
+    EngineHandle, EpochHandle, InputTransform, PickleWriter, PyEngineInput, PyGeneration, names,
+};
 use pyo3::{PyResult, pyclass, pymethods};
 use radiate::{
     Chromosome, Engine, EngineIteratorExt, Generation, GeneticEngine, JsonWriter, Limit,
@@ -117,18 +119,6 @@ impl PyEngine {
             Tree(eng) => EpochHandle::Tree(eng.next()?),
         }))
     }
-
-    /// Write a self-description of the engine config to `path`. Currently a
-    /// no-op stub — the structured "freeze" snapshot was removed in favor of
-    /// `GeneticEngineBuilder::write_config`, which writes at build-time
-    /// rather than from a built engine. To re-enable engine-level write,
-    /// capture the config text in `PyEngine::new` from the builder before
-    /// consuming it, and dump it here.
-    pub fn write(&self, _path: String, _file_type: String) -> PyResult<()> {
-        radiate_py_bail!(
-            "engine.write is not currently wired up; use builder.write_config before .build()"
-        )
-    }
 }
 
 fn run_engine<C, T>(
@@ -165,7 +155,7 @@ where
         .chain_if(checkpoint.is_some(), |eng| {
             let (interval, path, file_type) = checkpoint.unwrap();
             match file_type.as_str() {
-                "json" => eng.checkpoint_with(interval, path, Box::new(JsonWriter)),
+                names::JSON_FILE_TYPE => eng.checkpoint_with(interval, path, Box::new(JsonWriter)),
                 _ => eng.checkpoint_with(interval, path, Box::new(PickleWriter)),
             }
         })
