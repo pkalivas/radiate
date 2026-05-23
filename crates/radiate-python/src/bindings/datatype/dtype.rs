@@ -163,7 +163,7 @@ impl<'py> IntoPyObject<'py> for &Wrap<DataType> {
                 let inner = Wrap(*inner.clone());
                 class.call1((&inner,))
             }
-            DataType::Map(fields) => {
+            DataType::Dict(fields) => {
                 let field_class = rd.getattr(intern!(py, "Field"))?;
 
                 let iter = fields.iter().map(|fld| {
@@ -173,8 +173,8 @@ impl<'py> IntoPyObject<'py> for &Wrap<DataType> {
                 });
 
                 let fields = PyList::new(py, iter)?;
-                let struct_class = rd.getattr(intern!(py, "Map"))?;
-                struct_class.call1((fields,))
+                let dict_class = rd.getattr(intern!(py, "Dict"))?;
+                dict_class.call1((fields,))
             }
             DataType::Null => {
                 let class = rd.getattr(intern!(py, "Null"))?;
@@ -275,13 +275,27 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Wrap<DataType> {
             }
 
             "Struct" => {
+                let name = obj
+                    .getattr(intern!(py, "name"))?
+                    .str()?
+                    .extract::<PyBackedStr>()?;
                 let fields = obj.getattr(intern!(py, "fields"))?;
                 let fields = fields
                     .extract::<Vec<Wrap<Field>>>()?
                     .into_iter()
                     .map(|f| (SmallStr::from(f.0.name.to_string()), f.0.dtype.clone()))
                     .collect::<Vec<(SmallStr, DataType)>>();
-                DataType::Map(fields)
+                DataType::Struct((&*name).into(), fields)
+            }
+
+            "Dict" => {
+                let fields = obj.getattr(intern!(py, "fields"))?;
+                let fields = fields
+                    .extract::<Vec<Wrap<Field>>>()?
+                    .into_iter()
+                    .map(|f| (SmallStr::from(f.0.name.to_string()), f.0.dtype.clone()))
+                    .collect::<Vec<(SmallStr, DataType)>>();
+                DataType::Dict(fields)
             }
 
             _ => {

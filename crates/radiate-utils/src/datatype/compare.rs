@@ -34,7 +34,7 @@ impl<'a> AnyValue<'a> {
             AnyValue::Slice(_) => 19,
             AnyValue::Vector(_) => 20,
 
-            AnyValue::Map(_) => 21,
+            AnyValue::Dict(_) => 21,
 
             AnyValue::Struct(_, _) => 22,
         }
@@ -71,7 +71,7 @@ impl<'a> AnyValue<'a> {
             (Slice(a), Slice(b)) => a.iter().cmp(b.iter()),
             (Vector(a), Vector(b)) => a.iter().cmp(b.iter()),
 
-            (Map(a), Map(b)) => {
+            (Dict(a), Dict(b)) => {
                 let mut i = 0;
                 while i < a.len() && i < b.len() {
                     let (fa, _, va) = &a[i];

@@ -137,7 +137,7 @@ from .dtype import (
     Null,
     Struct,
     List,
-    Map,
+    Dict,
 )
 
 from .expr import Expr, select, when, lit, element, every, generation
@@ -300,7 +300,7 @@ __all__ = [
     "Char",
     "Null",
     "List",
-    "Map",
+    "Dict",
     # dsl
     "Select",
     "Dist",

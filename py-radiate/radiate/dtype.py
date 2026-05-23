@@ -173,7 +173,7 @@ class Struct(NestedType):
     ...     ],
     ... )
     >>> person_dtype
-    Struct({'name': String, 'age': Int32, 'is_student': Bool})
+    Struct(Person, {'name': String, 'age': Int32, 'is_student': Bool})
     """
 
     name: str
@@ -265,52 +265,60 @@ class List(NestedType):
         return f"{class_name}({self.inner})"
 
 
-class Map(NestedType):
+class Dict(NestedType):
     """
-        Map data type, representing a collection of key-value pairs.
-        Parameters
+    Dict data type, representing a runtime container of named fields.
+
+    Unlike `Struct`, a `Dict` is not a declared schema — it describes the
+    shape of a Python dict instance, where each key may have its own value
+    type but the shape belongs to the instance, not the type.
+
+    Parameters
     ----------
-    key_type    The `DataType` of the keys in the map.
-    value_type  The `DataType` of the values in the map.
+    fields    A list of `Field` instances (or `(name, dtype)` tuples) describing
+              the key→type pairs present in the dict.
+
     Examples
     --------
-    >>> str_int_map_dtype = Map(String, Int32)
-    >>> str_int_map_dtype
-    Map(String, Int32)
-    >>> str_int_map_dtype == Map(String, Int32)
-    True
-    >>> str_int_map_dtype == Map(Int32, String)
-    False
+    >>> d = Dict([Field("loss", Float32), Field("epoch", Int32)])
+    >>> d
+    Dict({'loss': Float32, 'epoch': Int32})
     """
 
-    key_type: DataTypeClass | DataType
-    value_type: DataTypeClass | DataType
+    fields: list[Field]
 
     def __init__(
         self,
-        key_type: DataTypeClass | DataType,
-        value_type: DataTypeClass | DataType,
+        fields: list[Field] | list[tuple[str, DataType | DataTypeClass]],
     ) -> None:
-        self.key_type = key_type
-        self.value_type = value_type
+        if all(isinstance(fld, Field) for fld in fields):
+            self.fields = fields  # type: ignore[assignment]
+        elif all(isinstance(fld, tuple) and len(fld) == 2 for fld in fields):
+            self.fields = [Field(name, dtype) for name, dtype in fields]  # type: ignore[assignment]
+        else:
+            raise ValueError(
+                "Fields must be a list of Field instances or a list of (name, dtype) tuples."
+            )
 
     def __eq__(self, other) -> bool:  # type: ignore[override]
-        if type(other) is DataTypeClass and issubclass(other, Map):
+        if isclass(other) and issubclass(other, Dict):
             return True
-        elif isinstance(other, Map):
-            return (self.key_type == other.key_type) & (
-                self.value_type == other.value_type
-            )
+        elif isinstance(other, Dict):
+            return self.fields == other.fields
         else:
             return False
 
     def __hash__(self) -> int:
-        return hash((self.__class__, self.key_type, self.value_type))
+        return hash((self.__class__, tuple(self.fields)))
+
+    def __iter__(self) -> Iterator[tuple[str, DataType | DataTypeClass]]:
+        for fld in self.fields:
+            yield fld.name, fld.dtype
 
     def __repr__(self) -> str:
         class_name = self.__class__.__name__
-        return f"{class_name}({self.key_type!r}, {self.value_type!r})"
+        return f"{class_name}({dict(self)})"
 
     def __str__(self) -> str:
         class_name = self.__class__.__name__
-        return f"{class_name}({self.key_type}, {self.value_type})"
+        return f"{class_name}({dict(self)})"
