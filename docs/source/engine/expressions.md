@@ -463,7 +463,7 @@ You can register named expressions that are evaluated against the `MetricSet` at
 
 ### 3: Dynamic Rates
 
-An expression can also drive an alterer's rate, a species threashold, or any other parameter that accepts a `Rate`. The expression is evaluated against the `MetricSet` each generation, and the result is used as the rate for that step.
+An expression can also drive an alterer's rate, a species threshold, or any other parameter that accepts a `Rate`. The expression is evaluated against the `MetricSet` each generation, and the result is used as the rate for that step.
 
 === ":fontawesome-brands-python: Python"
 
@@ -513,7 +513,7 @@ An expression can also drive an alterer's rate, a species threashold, or any oth
 
 ## Example
 
-So, what does all this do in practice? Well, lets say you opt-in to using speciation and as you test, you discover that ideally, your problem gets solved best with ~4 species. Well, radiate doesn't offer a 'target species' option out of the box, but using expressions you can build a dyniamic rate (threshold in this case) that encourages the engine to maintain that number of species. Below we build a distance metric that acts as a feedback loop which combines several species-level metrics, then use it as the distance function for speciation. We also register two derived metrics to track the average distance and species count over time. 
+So, what does all this do in practice? Well, lets say you opt-in to using speciation and as you test, you discover that ideally, your problem gets solved best with ~4 species. Well, radiate doesn't offer a 'target species' option out of the box, but using expressions you can build a dynamic rate (threshold in this case) that encourages the engine to maintain that number of species. Below we build a distance metric that acts as a feedback loop which combines several species-level metrics, then use it as the distance function for speciation. We also register two derived metrics to track the average distance and species count over time. 
 
 === ":fontawesome-brands-python: Python"
 

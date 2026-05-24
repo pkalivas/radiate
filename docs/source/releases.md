@@ -16,7 +16,7 @@ Speed improvements centered around engine steps.
 
 ### Additions
 
-Added a new crate `radiate-expr` which includes expressions (think polars) to extend the metric and rating systems. This greatly improves the flexibility of of dynamic rates (mutation/crossover/species threasholds) and allows users to define their own rating systems. Along with the rate improvements, this extends into the engine itself by allowing users to define their own metrics and use them in the afforementioned dynamic rates - or simply just to track the engine. 
+Added a new crate `radiate-expr` which includes expressions (think polars) to extend the metric and rating systems. This greatly improves the flexibility of dynamic rates (mutation/crossover/species thresholds) and allows users to define their own rating systems. Along with the rate improvements, this extends into the engine itself by allowing users to define their own metrics and use them in the aforementioned dynamic rates - or simply just to track the engine. 
 
 Refactored `radiate-ui` to give much more insight into the engine and the metrics it produces. Included a new search bar and species panel to quickly find and visualize specific species and their members.
 

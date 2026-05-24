@@ -215,7 +215,7 @@ For example, if you're evolving a neural network, you might have:
 - Another chromosome for the weights of the second layer
 - Each chromosome contains multiple genes (the individual weights)
 
-Because each `Chromosome` has an associated `Gene`, the built int chromosomes are defined as follows:
+Because each `Chromosome` has an associated `Gene`, the built-in chromosomes are defined as follows:
 
 ??? info "FloatChromosome"
 
@@ -358,7 +358,7 @@ Because each `Chromosome` has an associated `Gene`, the built int chromosomes ar
 
 > The Complete Blueprint
 
-The `Genotype` is a collection of `Chromosomes` that represent the complete genetic makeup of an individual. A `Genotype` can be thought of as a "blueprint" for an individual that contains all of the genetic information necessary to fully express the traits and characteristics of that individual.  In essance, the `Genotype` is the "sentence" made up of multiple "words" (chromosomes). Each `Genotype` contains one or more `Chromosomes`, and each `Chromosome` contains one or more `Genes`. It is the "DNA" of the individual that the `GeneticEngine` is evolving.
+The `Genotype` is a collection of `Chromosomes` that represent the complete genetic makeup of an individual. A `Genotype` can be thought of as a "blueprint" for an individual that contains all of the genetic information necessary to fully express the traits and characteristics of that individual.  In essence, the `Genotype` is the "sentence" made up of multiple "words" (chromosomes). Each `Genotype` contains one or more `Chromosomes`, and each `Chromosome` contains one or more `Genes`. It is the "DNA" of the individual that the `GeneticEngine` is evolving.
 
 Because of the typed nature of the `Genotype`, it can only hold a collection of the same type of `Chromosome`. This means that you can have a `Genotype` that contains only `FloatChromosome`s, or only `IntChromosome`s. You cannot have a `Genotype` that contains both `FloatChromosome`s and `IntChromosome`s at the same time - this is by design.
 

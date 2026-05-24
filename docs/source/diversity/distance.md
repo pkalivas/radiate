@@ -4,7 +4,7 @@ Distance measurements are used to quantify the distance between individuals in a
 
 ## Hamming Distance
 
-**Compatible with**: `FloatGene<F>`, `IntGene<I>`, `BitGene`, `CharGene`, `PermuationGene<A>`
+**Compatible with**: `FloatGene<F>`, `IntGene<I>`, `BitGene`, `CharGene`, `PermutationGene<A>`
 
 Hamming distance is the most straightforward distance measure, defined as the number of positions at which the corresponding genes are different.
 

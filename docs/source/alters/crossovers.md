@@ -118,7 +118,7 @@ as it promotes a balanced combination of parent traits.
 	import radiate as rd
 
 	crossover = rd.MeanCrossover(rate=0.1)
-	crossvoer = rd.Cross.mean(rate=0.1) # Using the Cross dsl syntax
+	crossover = rd.Cross.mean(rate=0.1) # Using the Cross dsl syntax
 	```
 === ":fontawesome-brands-rust: Rust"
 
@@ -301,7 +301,7 @@ to introduce randomness while preserving valid gene configurations.
 - **Example**: Good for problems where you want to maintain diversity while exploring the space
 - **Compatible with**: `FloatGene`
 
-The `SimulatedBinaryCrossover` is a crossover operator designed for `FloatGene`s. It simulates binary crossover by creating offspring that are a linear combination of the parents, controlled by a contiguity factor. Effectively, it allows for a smooth transition between parent values while maintaining the overall structure of the `genes` by smampling from a uniform distribution between the two parents.
+The `SimulatedBinaryCrossover` is a crossover operator designed for `FloatGene`s. It simulates binary crossover by creating offspring that are a linear combination of the parents, controlled by a contiguity factor. Effectively, it allows for a smooth transition between parent values while maintaining the overall structure of the `genes` by sampling from a uniform distribution between the two parents.
 
 === ":fontawesome-brands-python: Python"
 

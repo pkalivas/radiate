@@ -12,20 +12,23 @@ A `tree` represents a hierarchical structure where each node has exactly one par
 
 === ":fontawesome-brands-python: Python"
 
-    Trees in python aren't quite as expressive as in rust, but they can still be constructed and used in a similar way.
+    Trees in python aren't quite as expressive as in rust. A `Tree` is produced from a `TreeCodec` — encode a genotype, then decode it into a `Tree` you can evaluate.
 
     ```python
     import radiate as rd
 
-    tree = rd.Tree(
-        min_height=3,       # Default
-        max_size=30,        # Default
-        root=rd.Op.add(),   # The root operation - isn't necessary to specify
+    codec = rd.TreeCodec(
+        shape=(2, 1),       # 2 inputs, 1 output
+        min_depth=3,        # starting depth of the tree (default 3)
+        max_size=30,        # max number of nodes (default 30)
         vertex=[rd.Op.add(), rd.Op.sub(), rd.Op.mul(), rd.Op.div()],
         leaf=[rd.Op.var(0), rd.Op.var(1)],
     )
 
-    result = tree.eval([1, 2]) 
+    # decode a (randomly initialized) genotype into a Tree
+    tree = codec.decode(codec.encode())
+
+    result = tree.eval([1.0, 2.0])  # list[float], one value per output
     ```
 
 === ":fontawesome-brands-rust: Rust"

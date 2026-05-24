@@ -92,7 +92,7 @@ Simple fitness functions are the most common type - they take a phenotype and re
 
 The batch fitness function groups members of the `Population` which need to be evaluated into buckets to be evaluated together. 
 If you need access to parts or the whole of a `Population` in order to compute fitness, this is your best bet. Depending on the 
-implementation of your actual fitness logic, this can also be a speed up to your `Engine`. The logic behind the grouping depends on the `Executor` being used. Meaning, if your `Executor` is using 4 workers (threads) the individuals which need to be evaluated will be split into 4 batches. On the flip side, if your `Executor` is using a single thread (Serial), your fitness function will recieve a single batch containing all individuals which need evaluation.
+implementation of your actual fitness logic, this can also be a speed up to your `Engine`. The logic behind the grouping depends on the `Executor` being used. Meaning, if your `Executor` is using 4 workers (threads) the individuals which need to be evaluated will be split into 4 batches. On the flip side, if your `Executor` is using a single thread (Serial), your fitness function will receive a single batch containing all individuals which need evaluation.
 
 Its important to note that other types of fitness functions like `NoveltySearch` & `CompositeFitnessFn` both support batch processing too by simply placing those objects within the call to `.batch_fitness_fn` - just like `.fitness_fn`.
 

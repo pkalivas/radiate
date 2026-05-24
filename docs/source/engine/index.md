@@ -107,7 +107,7 @@ This is the default epoch for the engine - `Generation`. It contains:
 
 ### Multi-Objective Epoch
 
-When the engine is configured for multi-objective optimization, the engine `Generation` will have a `ParetoFront` attached to it. The only difference between the single-objective and multi-objective is the availablity of the `ParetoFront` and the `fitness` value. The `fitness` value will be a list of scores, one for each objective being optimized.
+When the engine is configured for multi-objective optimization, the engine `Generation` will have a `ParetoFront` attached to it. The only difference between the single-objective and multi-objective is the availability of the `ParetoFront` and the `fitness` value. The `fitness` value will be a list of scores, one for each objective being optimized.
 
 === ":fontawesome-brands-python: Python"
 
@@ -183,7 +183,7 @@ Radiate provides multiple ways to run the `GeneticEngine`.
 
 2. **Iterator API** 
 
-    The `GeneticEngine` is an inherently iterable concept, as such we can treat the engine as an iterator. Because of this we can use it in a `for` loop or with iterator methods like `map`, `filter`, etc. We can also extend the iterator with custom methods to provide additional functionality, such as running until a certain fitness (score) is reached, time limit, or convergence. These custom methods are essentially sytactic sugar for 'take_until' or 'skip_while' style iterators.
+    The `GeneticEngine` is an inherently iterable concept, as such we can treat the engine as an iterator. Because of this we can use it in a `for` loop or with iterator methods like `map`, `filter`, etc. We can also extend the iterator with custom methods to provide additional functionality, such as running until a certain fitness (score) is reached, time limit, or convergence. These custom methods are essentially syntactic sugar for 'take_until' or 'skip_while' style iterators.
 
     During any sort of optimization task its useful to visually see the progress of the engine. Using the iterator API, we do this by calling `logging()` on the engine's iterator. This will give us nice console output of the progress provided by the [tracing](https://github.com/tokio-rs/tracing) project.
 
