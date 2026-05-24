@@ -16,11 +16,18 @@ import pytest
 
 import radiate as rd
 
-# Plotting snippets must render head-lessly (no GUI window) during tests.
+# Plotting snippets must not try to display anything during tests: force a headless
+# backend AND make `plt.show()` a no-op. Both `events.py` (`plt.show()`) and the built-in
+# `MetricCollector.plot()` in radiate call `matplotlib.pyplot.show()` at call time, so
+# neutralizing it here covers every plotting snippet — the plotting logic still runs (and
+# stays tested) but nothing is rendered/displayed, avoiding the Agg "cannot be shown" warning.
 try:
     import matplotlib
 
     matplotlib.use("Agg")
+    import matplotlib.pyplot as _plt
+
+    _plt.show = lambda *args, **kwargs: None
 except ImportError:
     pass
 
