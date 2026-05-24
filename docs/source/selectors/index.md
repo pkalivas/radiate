@@ -42,10 +42,7 @@ The `EliteSelector` is a selection strategy that selects the top `n` individuals
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    selector = rd.EliteSelector()
-    selector = rd.Select.elite() # Using the Select dsl syntax
+    --8<-- "python/selectors/index.py:elite_selector"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -71,10 +68,7 @@ Create a new `TournamentSelector` with a tournament size of 3
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    selector = rd.TournamentSelector(k=3)
-    selector = rd.Select.tournament(k=3) # Using the Select dsl syntax
+    --8<-- "python/selectors/index.py:tournament_selector"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -106,10 +100,7 @@ This is an extremely popular selection strategy due to its simplicity and effect
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    selector = rd.RouletteSelector()
-    selector = rd.Select.roulette() # Using the Select dsl syntax
+    --8<-- "python/selectors/index.py:roulette_selector"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -137,10 +128,7 @@ As the temperature decreases, the selection process becomes more deterministic, 
     If the `temperature` is not specified, it defaults to 1.0.
 
     ```python
-    import radiate as rd
-
-    selector = rd.BoltzmannSelector(temp=4.0)
-    selector = rd.Select.boltzmann(4.0) # Using the Select dsl syntax
+    --8<-- "python/selectors/index.py:boltzmann_selector"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -163,10 +151,7 @@ The `NSGA2Selector` is a selection strategy used in multi-objective optimization
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    selector = rd.NSGA2Selector()
-    selector = rd.Select.nsga2() # Using the Select dsl syntax
+    --8<-- "python/selectors/index.py:nsga2_selector"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -188,10 +173,7 @@ The `NSGA3Selector` is a selection strategy used in multi-objective optimization
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    selector = rd.NSGA3Selector(points=12)
-    selector = rd.Select.nsga3(12) # Using the Select dsl syntax
+    --8<-- "python/selectors/index.py:nsga3_selector"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -215,10 +197,7 @@ The `TournamentNSGA2Selector` is a selection strategy that combines the principl
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    selector = rd.TournamentNSGA2Selector()
-    selector = rd.Select.tournament_nsga2() # Using the Select dsl syntax
+    --8<-- "python/selectors/index.py:tournament_nsga2_selector"
     ```
 === ":fontawesome-brands-rust: Rust"
 
@@ -247,10 +226,7 @@ Stochastic Universal Sampling (SUS) is a probabilistic selection technique used 
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    selector = rd.StochasticSamplingSelector()
-    selector = rd.Select.stochastic_universal_sampling() # Using the Select dsl syntax
+    --8<-- "python/selectors/index.py:stochastic_sampling_selector"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -270,10 +246,7 @@ The `RankSelector` is a selection strategy that selects individuals from the `po
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    selector = rd.RankSelector()
-    selector = rd.Select.rank() # Using the Select dsl syntax
+    --8<-- "python/selectors/index.py:rank_selector"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -312,10 +285,7 @@ A higher `pressure` will result in a stronger bias towards fitter individuals, w
     If `pressure` is not specified, it defaults to `0.5`.
 
     ```python
-    import radiate as rd
-
-    selector = rd.LinearRankSelector(pressure=0.1)
-    selector = rd.Select.linear_rank(0.1) # Using the Select dsl syntax
+    --8<-- "python/selectors/index.py:linear_rank_selector"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -334,11 +304,9 @@ The `RandomSelector` is a selection strategy that selects individuals from the `
 
 === ":fontawesome-brands-python: Python"
 
-    ```python
-    import radiate as rd
+    !!! note
 
-    selector = rd.RandomSelector()
-    ```
+        `RandomSelector` is not currently exposed in the Python API; it is available in Rust only.
 
 === ":fontawesome-brands-rust: Rust"
 

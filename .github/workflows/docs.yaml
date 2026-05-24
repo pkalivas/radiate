@@ -1,0 +1,31 @@
+name: docs
+
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+    branches: ["main", "master"]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install docs dependencies
+        run: pip install mkdocs-material
+
+      # `--strict` + snippets `check_paths: true` makes a broken `--8<--` include
+      # (e.g. a renamed snippet section or moved source file) fail the build.
+      - name: Build docs (strict)
+        run: mkdocs build --strict
