@@ -98,6 +98,19 @@ impl RadiateError {
             source: Box::new(self),
         }
     }
+
+    /// The `Code` of the innermost cause, seeing through `Context` wrappers.
+    ///
+    /// `code()` reports `Context` for any error given context, which loses the
+    /// original classification. This walks to the root cause so callers (e.g.
+    /// the `PyErr` conversion) can decide how to surface the error based on what
+    /// actually went wrong, not on whether context happened to be attached.
+    pub fn leaf_code(&self) -> Code {
+        match self {
+            RadiateError::Context { source, .. } => source.leaf_code(),
+            other => other.code(),
+        }
+    }
 }
 
 pub trait ResultExt<T> {

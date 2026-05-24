@@ -1,5 +1,4 @@
 use crate::{InputTransform, PyEngineInput, PyEngineInputType, PyRate};
-use pyo3::{PyResult, exceptions::PyTypeError};
 use radiate::{chromosomes::NumericAllele, *};
 use radiate_utils::{Float, Integer};
 
@@ -23,7 +22,7 @@ where
         Self { entries }
     }
 
-    pub fn convert(&self, input: &PyEngineInput) -> PyResult<Alterer<C>> {
+    pub fn convert(&self, input: &PyEngineInput) -> RadiateResult<Alterer<C>> {
         let entry = self
             .entries
             .iter()
@@ -36,7 +35,7 @@ where
                     .collect::<Vec<_>>()
                     .join(", ");
 
-                PyTypeError::new_err(format!(
+                radiate_err!(Builder: format!(
                     "Invalid alterer type '{}'. Valid alterers: [{}]",
                     input.component, valid
                 ))
@@ -81,7 +80,7 @@ where
 
         for input in self.iter() {
             if input.input_type != PyEngineInputType::Alterer {
-                return Err(radiate_err!(format!(
+                return Err(radiate_err!(Builder: format!(
                     "Input type {:?} is not an alterer",
                     input.input_type
                 )));
@@ -102,7 +101,7 @@ where
     C: Chromosome + Clone + 'static,
 {
     if input.input_type != PyEngineInputType::Alterer {
-        return Err(radiate_err!(format!(
+        return Err(radiate_err!(Builder: format!(
             "Input type {:?} is not an alterer",
             input.input_type
         )));
