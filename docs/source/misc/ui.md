@@ -88,19 +88,7 @@ The TUI is completely opt-in and can be configured as shown below
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    engine = rd.Engine(
-        # ... configure your engine as normal ...
-    )
-
-    # Enable the UI by passing ui=True to run() Note that this will disable logging if log=True
-    result = engine.run(
-        *[rd.Limit.score(0.001), rd.Limit.generations(1000)],
-        ui=True,
-    )
-    print(result)
-
+    --8<-- "python/misc/ui_showcase.py:ui"
     ```
 
 === ":fontawesome-brands-rust: Rust"

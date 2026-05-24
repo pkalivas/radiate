@@ -32,55 +32,7 @@ Lets take a quick look at an example of where specifying the data type can lead 
 Now, we could leave the `dtype` argument blank and let the engine optimize using `Int64` values in the backend, but since we know that the values will always be between 0 and N-1 (where N is the number of queens), we can use `UInt8`. Since we are also decoding to a numpy array, our fitness function will receive a numpy array of `uint8`s.
 
 ```python
-import numpy as np
-import radiate as rd
-from numba import jit, uint8
-
-rd.random.seed(514)
-
-N_QUEENS = 32
-
-
-@jit(uint8(uint8[:]), nopython=True)
-def fitness_fn(queens: np.ndarray) -> int:
-    """Calculate the fitness score for the N-Queens problem."""
-
-    i_indices, j_indices = np.triu_indices(N_QUEENS, k=1)
-
-    same_row = queens[i_indices] == queens[j_indices]
-
-    same_diagonal = np.abs(i_indices - j_indices) == np.abs(
-        queens[i_indices] - queens[j_indices]
-    )
-
-    return np.sum(same_row) + np.sum(same_diagonal)
-
-
-engine = (
-    rd.Engine.int(N_QUEENS, init_range=(0, N_QUEENS), use_numpy=True, dtype=rd.UInt8)
-    .fitness(fitness_fn)
-    .minimizing()
-    .select(offspring=rd.Select.tournament(k=3))
-    .limit(rd.Limit.score(0))
-    .alters(
-        rd.Cross.multipoint(0.75, 2),
-        rd.Mutate.uniform(0.05),
-    )
-)
-
-
-result = engine.run(ui=True)
-print(result)
-
-
-board = result.value()
-for i in range(N_QUEENS):
-    for j in range(N_QUEENS):
-        if board[j] == i:
-            print("Q ", end="")
-        else:
-            print(". ", end="")
-    print()
+--8<-- "python/misc/dtype_showcase.py:nqueens"
 ```
 
 As a side note, we're also compiling this fitness function with [numba](https://numba.pydata.org/), which is a just-in-time compiler for Python. As a general statement, this example should run as fast (or almost as fast) as a pure rust implementation.
