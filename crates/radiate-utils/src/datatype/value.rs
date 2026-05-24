@@ -275,10 +275,11 @@ impl<'a> AnyValue<'a> {
             StrOwned(v) => StrOwned(v),
             Slice(v) => Vector(v.iter().map(|v| v.clone().into_static()).collect()),
             Vector(v) => Vector(v.into_iter().map(AnyValue::into_static).collect()),
-            Dict(v) => Dict(v
-                .into_iter()
-                .map(|(field, _, val)| (field, val.dtype(), val.into_static()))
-                .collect()),
+            Dict(v) => Dict(
+                v.into_iter()
+                    .map(|(field, _, val)| (field, val.dtype(), val.into_static()))
+                    .collect(),
+            ),
             Struct(field, fields) => Struct(
                 field,
                 fields
@@ -737,10 +738,11 @@ impl<'a, 'de> Deserialize<'de> for AnyValue<'a> {
                     .map(|(name, dtype, value)| (name, dtype, value.into()))
                     .collect(),
             ),
-            AnyValueDef::Dict(vals) => Dict(vals
-                .into_iter()
-                .map(|(name, dtype, value)| (name, dtype, value.into()))
-                .collect()),
+            AnyValueDef::Dict(vals) => Dict(
+                vals.into_iter()
+                    .map(|(name, dtype, value)| (name, dtype, value.into()))
+                    .collect(),
+            ),
         })
     }
 }

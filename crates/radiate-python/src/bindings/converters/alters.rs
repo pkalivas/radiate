@@ -63,44 +63,46 @@ macro_rules! alter_table {
 
 macro_rules! impl_input_transform_for {
     ($chrom:ty, $registry_fn:ident) => {
-        impl InputTransform<Vec<Alterer<$chrom>>> for PyEngineInput {
-            fn transform(&self) -> Vec<Alterer<$chrom>> {
+        impl InputTransform<RadiateResult<Vec<Alterer<$chrom>>>> for PyEngineInput {
+            fn transform(&self) -> RadiateResult<Vec<Alterer<$chrom>>> {
                 alters_from_registry(self, $registry_fn())
-                    .expect("Failed to convert alterer from PyEngineInput")
             }
         }
     };
 }
 
-impl<C> InputTransform<Vec<Alterer<C>>> for &[PyEngineInput]
+impl<C> InputTransform<RadiateResult<Vec<Alterer<C>>>> for &[PyEngineInput]
 where
     C: Chromosome + Clone,
-    PyEngineInput: InputTransform<Vec<Alterer<C>>>,
+    PyEngineInput: InputTransform<RadiateResult<Vec<Alterer<C>>>>,
 {
-    fn transform(&self) -> Vec<Alterer<C>> {
+    fn transform(&self) -> RadiateResult<Vec<Alterer<C>>> {
         let mut alters = Vec::new();
 
         for input in self.iter() {
             if input.input_type != PyEngineInputType::Alterer {
-                panic!("Input type {:?} is not an alterer", input.input_type);
+                return Err(radiate_err!(format!(
+                    "Input type {:?} is not an alterer",
+                    input.input_type
+                )));
             }
 
-            alters.extend(input.transform());
+            alters.extend(input.transform()?);
         }
 
-        alters
+        Ok(alters)
     }
 }
 
 fn alters_from_registry<C>(
     input: &PyEngineInput,
     registry: AlterRegistry<C>,
-) -> PyResult<Vec<Alterer<C>>>
+) -> RadiateResult<Vec<Alterer<C>>>
 where
     C: Chromosome + Clone + 'static,
 {
     if input.input_type != PyEngineInputType::Alterer {
-        return Err(PyTypeError::new_err(format!(
+        return Err(radiate_err!(format!(
             "Input type {:?} is not an alterer",
             input.input_type
         )));

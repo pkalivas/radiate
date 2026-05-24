@@ -34,3 +34,21 @@ def test_engine_invalid_limits():
 
     with pytest.raises(ValueError):
         engine.run(rd.GenerationsLimit(-1))  # Invalid limit
+
+
+@pytest.mark.unit
+def test_engine_invalid_numeric_alters():
+    """Test engine handles invalid numeric alters gracefully."""
+
+    def fitness_func(x: list[list[bool]]) -> float:
+        return sum(sum(row) for row in x)
+
+    engine = (
+        rd.Engine.bit(shape=[20, 20])
+        .alters(rd.Cross.blend(), rd.Mutate.gaussian())
+        .fitness(fitness_func)
+        .limit(rd.Limit.generations(10))
+    )
+
+    with pytest.raises(ValueError):
+        _ = engine.run()

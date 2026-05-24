@@ -389,7 +389,9 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_many_typed(|typed_builder, alter_inputs| {
-                let alters = alter_inputs.transform();
+                let alters = alter_inputs.transform().map_err(|e| {
+                    radiate_py_err!(format!("Failed to transform alterers input: {}", e))
+                })?;
                 Ok(typed_builder.alter(alters))
             })
         )
