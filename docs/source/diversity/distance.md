@@ -15,10 +15,7 @@ Hamming distance is the most straightforward distance measure, defined as the nu
 === ":fontawesome-brands-python: Python"
 
 	```python
-	import radiate as rd
-
-	diversity = rd.HammingDistance()
-	diversity = rd.Dist.hamming() # using the dsl syntax
+	--8<-- "python/diversity/distance.py:hamming"
 	```
 
 === ":fontawesome-brands-rust: Rust"
@@ -51,10 +48,7 @@ or, the square root of sum of squared differences between corresponding `genes`'
 === ":fontawesome-brands-python: Python"
 
 	```python
-	import radiate as rd
-
-	diversity = rd.EuclideanDistance()
-	diversity = rd.Dist.euclidean() # using the dsl syntax
+	--8<-- "python/diversity/distance.py:euclidean"
 	```
 
 === ":fontawesome-brands-rust: Rust"
@@ -87,10 +81,7 @@ The Cosine Distance measures diversity by calculating the cosine of the angle be
 === ":fontawesome-brands-python: Python"
 
 	```python
-	import radiate as rd
-
-	diversity = rd.CosineDistance()
-	diversity = rd.Dist.cosine() # using the dsl syntax
+	--8<-- "python/diversity/distance.py:cosine"
 	```
 
 === ":fontawesome-brands-rust: Rust"
@@ -116,12 +107,7 @@ The Neat Distance measures diversity by using the [NEAT](https://nn.cs.utexas.ed
 === ":fontawesome-brands-python: Python"
 
 	```python
-	import radiate as rd
-
-    # Parameters are: c1, c2, c3 - coefficients for excess genes, disjoint genes,
-    # and average weight differences respectively
-	diversity = rd.NeatDistance(excess=0.1, disjoint=1.0, weight_diff=0.5)
-	diversity = rd.Dist.neat(0.1, 1.0, 0.5) # using the dsl syntax
+	--8<-- "python/diversity/distance.py:neat"
 	```
 
 === ":fontawesome-brands-rust: Rust"

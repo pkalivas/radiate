@@ -32,25 +32,7 @@ Radiate provides a few basic graph architectures, but it is also possible to con
     Creating a graph in python doesn't offer as much flexibility as in rust at the current time, but it can still be done through the codec.
 
     ```python
-    import radiate as rd
-
-    codec = rd.GraphCodec.directed(
-        shape=(2, 1),
-        vertex=[rd.Op.add(), rd.Op.sub(), rd.Op.mul(), rd.Op.div()],
-        edge=rd.Op.weight(), # or [rd.Op.weight(), ...]
-        output=rd.Op.linear(), # or [rd.Op.linear(), ...]
-    )
-
-    graph = codec.decode(codec.encode())
-
-    inputs = [1.0, 2.0]
-    outputs = graph.eval(inputs) # list[float]
-
-    multi_inputs = [
-        [1.0, 2.0],  
-        [3.0, 4.0],
-    ]
-    multi_outputs = graph.eval(multi_inputs) # list[list[float]]
+    --8<-- "python/gp/graph.py:eval"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -93,44 +75,7 @@ Now, the above works just fine, but can become cumbersome quickly. To ease the p
     There isn't a direct way to create a Graph in python, instead we can use the codec to create on directly if needed.
 
     ```python
-    import radiate as rd
-
-    codec = rd.GraphCodec.directed(
-        shape=(2, 1),
-        vertex=[rd.Op.add(), rd.Op.sub(), rd.Op.mul(), rd.Op.div()],
-        edge=[rd.Op.weight()],
-        output=[rd.Op.linear()],
-    )
-
-    # or recurrent graph
-    codec = rd.GraphCodec.recurrent(
-        # ... same as above
-    )
-
-    # or weighted directed graph
-    codec = rd.GraphCodec.weighted_directed(
-        # ... same as above
-    )
-
-    # or weighted recurrent graph
-    codec = rd.GraphCodec.weighted_recurrent(
-        # ... same as above
-    )
-
-    # or lstm graph
-    codec = rd.GraphCodec.lstm(
-        # ... same as above
-    )
-
-    # or gru graph
-    codec = rd.GraphCodec.gru(
-        # ... same as above
-    )
-
-    graph = codec.decode(codec.encode())
-
-    inputs = [[1.0, 2.0]]
-    outputs = graph.eval(inputs)
+    --8<-- "python/gp/graph.py:variants"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -267,29 +212,7 @@ The `GraphCodec` is a codec that encodes a `GraphChromosome` and decodes it back
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    # Create a directed graph codec 
-    codec = rd.GraphCodec.directed(
-        shape=(2, 1),
-        vertex=[rd.Op.add(), rd.Op.mul()],
-        edge=rd.Op.weight(),
-        output=rd.Op.linear()
-    )
-
-    genotype = codec.encode()
-    graph = codec.decode(genotype)
-
-    # Create a recurrent graph codec
-    codec = rd.GraphCodec.recurrent(
-        shape=(2, 1),
-        vertex=[rd.Op.add(), rd.Op.mul()],
-        edge=rd.Op.weight(),
-        output=rd.Op.linear()
-    )
-
-    genotype = codec.encode()
-    recurrent_graph = codec.decode(genotype)
+    --8<-- "python/gp/graph.py:encode_decode"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -335,11 +258,7 @@ This mutator is used to add new nodes and connections to the graph. It can be us
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    # Create a mutator that adds vertices and edges with a 10% chance for either
-    mutator = rd.GraphMutator(vertex_rate=0.1, edge_rate=0.1, allow_recurrent=False)
-    mutator = rd.Mutate.graph(vertex_rate=0.1, edge_rate=0.1, allow_recurrent=False) # Using the dsl syntax for mutators
+    --8<-- "python/gp/graph.py:graph_mutator"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -367,10 +286,7 @@ This crossover operator is used to combine two parent graphs by swapping the val
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    crossover = rd.GraphCrossover(0.1, 0.5)
-    crossover = rd.Cross.graph(0.1, 0.5) # Using the dsl syntax for crossover operators
+    --8<-- "python/gp/graph.py:graph_crossover"
     ```
 
 === ":fontawesome-brands-rust: Rust"

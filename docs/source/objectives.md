@@ -35,19 +35,7 @@ The `minimizing()` method configures the genetic algorithm to find the minimum v
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    # Create an engine that has a genome of 1 chromosome with 10 float genes, initialized & bound between 0.0 and 1.0
-    codec = rd.FloatCodec(10, init_range=(0.0, 1.0))  # Example codec
-    engine = rd.Engine(codec).fitness(lambda x: sum(x)).minimizing()
-
-    # or create the same engine with the builder codec:
-    engine = (
-        rd.Engine.float(10, init_range=(0.0, 1.0))  # Example codec
-        .fitness(lambda x: sum(x))  # return a value to minimize
-        .minimizing()  # Configure for minimization
-        # ... other parameters ...
-    )
+    --8<-- "python/objectives.py:minimizing"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -84,20 +72,7 @@ This is the default option for the `GeneticEngine`, so you don't really need to 
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    # Create an engine that has a genome of 1 chromosome with 10 float genes, initialized & bound between 0.0 and 1.0
-    # Note that maximization is the default, so you could omit the '.maximizing()' call and it would still maximize
-    codec = rd.FloatCodec(10, init_range=(0.0, 1.0))  # Example codec
-    engine = rd.Engine(codec).fitness(lambda x: sum(x)).maximizing()
-
-    # or using builder pattern
-    engine = (
-        rd.Engine.float(10, init_range=(0.0, 1.0))  # Example codec
-        .fitness(lambda x: sum(x))  # return a value to maximize
-        .maximizing()  # Configure for maximization
-        # ... other parameters ...
-    )
+    --8<-- "python/objectives.py:maximizing"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -140,25 +115,7 @@ Use `multi_objective()` with a list of optimization directions to configure mult
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-    
-    codec = rd.FloatCodec(10, init_range=(0.0, 1.0))  # Example codec
-    engine = (
-        rd.Engine(codec)
-        .fitness(lambda x: [obj1_fitness_func(x), obj2_fitness_func(x)])  # Return list of objectives
-        .objective(rd.MIN, rd.MAX)  # Minimize obj1, maximize obj2
-        .front_range(800, 900)  # Pareto front size range
-        # ... other parameters ...
-    )
-
-    # Or using builder pattern
-    engine = (
-        rd.Engine.float(10, init_range=(0.0, 1.0))  # Example codec
-        .fitness(lambda x: [obj1_fitness_func(x), obj2_fitness_func(x)])  # Return list of objectives
-        .objective(rd.MIN, rd.MAX)  # Minimize obj1, maximize obj2
-        .front_range(800, 900)  # Pareto front size range
-        # ... other parameters ...
-    )
+    --8<-- "python/objectives.py:multi_objective"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -202,19 +159,7 @@ Although, any selector can be used, these are optimized for multi-objective prob
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    engine = (
-        rd.Engine.float(10, init_range=(0.0, 1.0))  # Example codec
-        .fitness(lambda x: [obj1_fitness_func(x), obj2_fitness_func(x)])  # Return list of objectives
-        .objective(rd.MIN, rd.MAX)  # Minimize obj1, maximize obj2
-        .front_range(800, 900)  # Pareto front size range
-        .select(
-            offspring=rd.Select.tournament_nsga2(k=3),
-            survivor=rd.Select.nsga3(12)
-        )  # Set MO selectors
-        # ... other parameters ...
-    )
+    --8<-- "python/objectives.py:multi_objective_selectors"
     ```
 
 === ":fontawesome-brands-rust: Rust"
