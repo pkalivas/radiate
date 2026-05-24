@@ -3,15 +3,14 @@
 The `ops` module provides sets of operations and formats for building and evolve genetic programs including `graphs` and `trees`. In the language of radiate, when using an `op`, it is the `Allele` of the `GraphNode` or `TreeNode`.
 An `op` is a function that takes a number of inputs and returns a single output. The `op` can be a constant value, a variable, or a function that operates on the inputs.   
 
-The `op` comes in five flavors:
+The `op` comes in four flavors, mirroring the variants of the `Op<T>` enum:
 
-1. **Function Operations**: Stateless functions that take inputs and return a value.
-2. **Variable Operations**: Read from an input index, returning the value at that index.
-3. **Constant Operations**: Fixed values that do not change - returning the value when called.
-4. **Mutable Constant Operations**: Constants that can change over time, allowing for learnable parameters.
-5. **Value Operations**: Stateful operations that maintain internal state and can take inputs to produce a value.
+1. **Function (`Fn`)**: Stateless functions that take inputs and return a value (e.g. `Add`, `Sigmoid`).
+2. **Variable (`Var`)**: Reads from an input index, returning the value at that index.
+3. **Constant (`Const`)**: A fixed value that does not change - returning the value when called.
+4. **Value (`Value`)**: A stateful operation that holds data (a `Param<T>`) alongside a function, allowing for learnable parameters such as the `Weight` op.
 
-Each `op` has an `arity`, definingt the number of inputs it accepts. For example, the `Add` operation has an `arity` of 2 because it takes two inputs and returns their sum. The `Const` operation has an arity of 0 because it does not take any inputs, it just returns it's value. The `Var` operation has an arity of 0 because it takes an index as a parameter, and returns the value of the input at that index. 
+Each `op` has an `arity`, defining the number of inputs it accepts. For example, the `Add` operation has an `arity` of 2 because it takes two inputs and returns their sum. The `Const` operation has an arity of 0 because it does not take any inputs, it just returns it's value. The `Var` operation has an arity of 0 because it takes an index as a parameter, and returns the value of the input at that index. 
 
 Provided `Ops` include:
 
@@ -47,20 +46,20 @@ Provided `Ops` include:
     | `Min` | Any | Min of n values | `Op::min()` | Fn |
     | `Ceil` | 1 | ceil(x) | `Op::ceil()` | Fn |
     | `Floor` | 1 | floor(x) | `Op::floor()` | Fn |
-    | `Weight` | 1 | x * w (input multiplied by a learnable weight) | `Op::weight()` | MutableConst |
+    | `Weight` | 1 | x * w (input multiplied by a learnable weight) | `Op::weight()` | Value |
 
 ??? info "Activation Ops"
 
-    These are the most common activation functions used in Neural Networks.
+    These are the most common activation functions used in Neural Networks. Each accepts any number of inputs, **sums them first**, then applies the activation — so `x` in the descriptions below refers to the sum of the node's inputs.
 
     | Name | Arity | Description | Initalize | Type |
     |------|-------|-------------|----------|---- |
     | `Sigmoid` | Any | 1 / (1 + e^-x) | `Op::sigmoid()` | Fn |
     | `Tanh` | Any | tanh(x) | `Op::tanh()` | Fn |
     | `ReLU` | Any | max(0, x) | `Op::relu()` | Fn |
-    | `LeakyReLU` | Any | x if x > 0 else 0.01x | `Op::leaky_relu()` | Fn |
-    | `ELU` | Any | x if x > 0 else a(e^x - 1) | `Op::elu()` | Fn |
-    | `Linear` | Any | Linear combination of n values | `Op::linear()` | Fn |
+    | `LeakyReLU` | Any | x if x > 0 else 0.5x | `Op::leaky_relu()` | Fn |
+    | `ELU` | Any | x if x > 0 else 0.5(e^x - 1) | `Op::elu()` | Fn |
+    | `Linear` | Any | x (sum of inputs, identity activation) | `Op::linear()` | Fn |
     | `Softplus` | Any | log(1 + e^x) | `Op::softplus()` | Fn |
     | `Swish` | Any | x / (1 + e^-x) | `Op::swish()` | Fn |
     | `Mish` | Any | x * tanh(ln(1 + e^x)) | `Op::mish()` | Fn |
@@ -93,7 +92,7 @@ Provided `Ops` include:
     mul = rd.Op.mul()
     div = rd.Op.div()
 
-    constant = rd.Op.constant(42.0)
+    constant = rd.Op.const(42.0)
     variable = rd.Op.var(0)
 
     sigmoid = rd.Op.sigmoid()
@@ -101,7 +100,7 @@ Provided `Ops` include:
     tanh = rd.Op.tanh()
 
     add_result = rd.Op.add().eval(1.0, 2.0)  # result is 3.0
-    const_result = rd.Op.constant(42.0).eval()  # result is 42.0
+    const_result = rd.Op.const(42.0).eval()  # result is 42.0
     var_result = rd.Op.var(0).eval(5.0, 10.0)  # result is 5.0 when evaluated with inputs
     ```
 
