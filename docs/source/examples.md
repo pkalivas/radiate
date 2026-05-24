@@ -537,7 +537,7 @@ Evolve a `Tree<Op<f32>>` to solve the a regression problem (Genetic Programming)
     )
 
 
-    result = engine.run(rd.Limit.score(0.01), rd.Limit.time(1.0), log=True)
+    result = engine.run(rd.Limit.score(0.01), rd.Limit.seconds(1), log=True)
     print(result)
 
     for input, target in zip(inputs, answers):

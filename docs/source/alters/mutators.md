@@ -181,14 +181,14 @@ The `ScrambleMutator` randomly reorders a segment of `genes` within a `chromosom
 - **Example**: Helpful in permutation problems where reverse ordering of segments might lead to better solutions
 - **Compatible with**: `BitGene`, `CharGene`, `FloatGene`, `IntGene<I>`, `PermutationGene<A>`
 
-`InvertMutator` is a segment inversion mutator. It randomly selects a segment of the `chromosome` and inverts the order of the `genes` within that segment.
+`InversionMutator` is a segment inversion mutator. It randomly selects a segment of the `chromosome` and inverts the order of the `genes` within that segment.
 
 === ":fontawesome-brands-python: Python"
 
 	```python
 	import radiate as rd
 
-	mutator = rd.InvertMutator(rate=0.1)
+	mutator = rd.InversionMutator(rate=0.1)
 	mutator = rd.Mutate.invert(rate=0.1) # Using the Mutate dsl syntax
 	```
 === ":fontawesome-brands-rust: Rust"
@@ -196,7 +196,7 @@ The `ScrambleMutator` randomly reorders a segment of `genes` within a `chromosom
 	```rust
 	use radiate::*;
 
-	let mutator = InvertMutator::new(0.1);
+	let mutator = InversionMutator::new(0.1);
 	```
 
 ## Polynomial

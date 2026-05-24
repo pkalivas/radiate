@@ -66,6 +66,10 @@ I split up some functionality into a new crate radiate-utils and have added a ne
 
 Adding support for experimental [PGM](https://en.wikipedia.org/wiki/Graphical_model) or Probabilistic graphical models through the GP feature (crate).
 
+!!! note
+
+    PGM support was experimental and has since been removed; it is no longer part of Radiate.
+
 Major cleanup or unused code and massive graph performance improvements through the use of [smallvec](https://docs.rs/smallvec/latest/smallvec/) as connections instead of BTreeSets. 
 
 Improving eventing system through cleaner code and removing redundant events.

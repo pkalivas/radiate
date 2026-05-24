@@ -181,9 +181,9 @@ Certain `Genes` have additional functionality that allows them to be manipulated
 
     === ":fontawesome-brands-python: Python"
 
-        !!! warning ":construction: Under Construction :construction:"
+        !!! note
 
-            This Gene is currently under construction and not yet available in the Python API.
+            The low-level `PermutationGene` is not exposed individually in the Python API, but permutation problems are fully supported via [`PermutationCodec`](codec.md) and the `rd.Engine.permutation(items)` engine constructor.
 
     === ":fontawesome-brands-rust: Rust"
 
@@ -338,9 +338,9 @@ Because each `Chromosome` has an associated `Gene`, the built int chromosomes ar
 
     === ":fontawesome-brands-python: Python"
 
-        !!! warning ":construction: Under Construction :construction:"
+        !!! note
 
-            This Chromosome is currently under construction and not yet available in the Python API.
+            The low-level `PermutationChromosome` is not exposed individually in the Python API, but permutation problems are fully supported via [`PermutationCodec`](codec.md) and the `rd.Engine.permutation(items)` engine constructor.
 
     === ":fontawesome-brands-rust: Rust"
 

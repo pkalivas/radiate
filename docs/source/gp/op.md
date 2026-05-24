@@ -38,7 +38,6 @@ Provided `Ops` include:
     | `Abs` | 1 | abs(x) | `Op::abs()` | Fn |
     | `pow` | 2 | x^y | `Op::pow()` | Fn |
     | `Sqrt` | 1 | sqrt(x) | `Op::sqrt()` | Fn |
-    | `Abs` | 1 | abs(x) | `Op::abs()` | Fn |
     | `Exp` | 1 | e^x | `Op::exp()` | Fn |
     | `Log` | 1 | log(x) | `Op::log()` | Fn |
     | `Sin` | 1 | sin(x) | `Op::sin()` | Fn |
@@ -48,7 +47,7 @@ Provided `Ops` include:
     | `Min` | Any | Min of n values | `Op::min()` | Fn |
     | `Ceil` | 1 | ceil(x) | `Op::ceil()` | Fn |
     | `Floor` | 1 | floor(x) | `Op::floor()` | Fn |
-    | `Weight` | 1 | Weighted sum of n values | `Op::weight()` | MutableConst |
+    | `Weight` | 1 | x * w (input multiplied by a learnable weight) | `Op::weight()` | MutableConst |
 
 ??? info "Activation Ops"
 
@@ -63,7 +62,6 @@ Provided `Ops` include:
     | `ELU` | Any | x if x > 0 else a(e^x - 1) | `Op::elu()` | Fn |
     | `Linear` | Any | Linear combination of n values | `Op::linear()` | Fn |
     | `Softplus` | Any | log(1 + e^x) | `Op::softplus()` | Fn |
-    | `SELU` | Any | x if x > 0 else a(e^x - 1) | `Op::selu()` | Fn |
     | `Swish` | Any | x / (1 + e^-x) | `Op::swish()` | Fn |
     | `Mish` | Any | x * tanh(ln(1 + e^x)) | `Op::mish()` | Fn |
     
