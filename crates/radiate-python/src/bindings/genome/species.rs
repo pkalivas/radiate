@@ -109,14 +109,7 @@ macro_rules! impl_into_py_species {
         {
             fn from(py_species: PySpecies) -> Self {
                 let mascot = Phenotype::from(py_species.mascot);
-                // let population = Population::from(py_species.population);
-
                 let species = Species::new(py_species.generation, mascot);
-
-                // for member_id in py_species.population {
-                //     species.add_member(PhenotypeId(member_id));
-                // }
-
                 species
             }
         }

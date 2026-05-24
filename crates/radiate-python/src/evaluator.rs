@@ -3,7 +3,7 @@ use pyo3::Python;
 use radiate::{Chromosome, Ecosystem, Evaluator, Executor, Problem, RadiateResult};
 use std::sync::Arc;
 
-/// Based off of the [pyo3 documentation](https://pyo3.rs/v0.28.0/parallelism)
+/// Based off of the [pyo3 documentation](https://pyo3.rs/v0.28.3/parallelism)
 ///
 /// The `PyEvaluator` is an [Evaluator<C, T>] implementation that allows for free-threaded evaluation.
 /// This is almost the exact same as the [BatchFitnessEvaluator](radiate::evaluator::BatchFitnessEvaluator),
@@ -38,7 +38,7 @@ where
         }
 
         let num_workers = self.executor.num_workers();
-        let batch_size = pairs.len().div_ceil(num_workers); // (pairs.len() + num_workers - 1) / num_workers;
+        let batch_size = pairs.len().div_ceil(num_workers);
 
         if pairs.is_empty() || batch_size == 0 {
             return Ok(0);

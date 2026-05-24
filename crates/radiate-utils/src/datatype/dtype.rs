@@ -26,7 +26,7 @@ pub mod dtype_names {
     pub const DURATION: &str = "duration";
     pub const VEC: &str = "vec";
     pub const STRUCT: &str = "struct";
-    pub const MAP: &str = "map";
+    pub const DICT: &str = "dict";
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -60,14 +60,14 @@ pub enum DataType {
     String,
 
     List(Box<DataType>),
-    Map(Vec<(SmallStr, DataType)>),
+    Dict(Vec<(SmallStr, DataType)>),
     Struct(SmallStr, Vec<(SmallStr, DataType)>),
 }
 
 impl DataType {
     pub fn is_nested(&self) -> bool {
         use DataType as D;
-        matches!(self, D::List(_) | D::Map(_) | D::Struct(_, _))
+        matches!(self, D::List(_) | D::Dict(_) | D::Struct(_, _))
     }
 
     pub fn is_numeric(&self) -> bool {
@@ -186,7 +186,7 @@ impl From<String> for DataType {
             dtype_names::VEC => DataType::List(Box::new(DataType::Null)),
             dtype_names::STRUCT => DataType::Struct(SmallStr::from_static("struct"), Vec::new()),
 
-            dtype_names::MAP => DataType::Map(Vec::new()),
+            dtype_names::DICT => DataType::Dict(Vec::new()),
 
             _ => panic!("Unknown data type: {}", value),
         }
@@ -223,10 +223,10 @@ impl Display for DataType {
             DataType::String => write!(f, "{}", dtype_names::STRING)?,
 
             DataType::List(inner) => write!(f, "{}({})", dtype_names::VEC, inner)?,
-            DataType::Map(vals) => write!(
+            DataType::Dict(vals) => write!(
                 f,
                 "{}({})",
-                dtype_names::MAP,
+                dtype_names::DICT,
                 vals.iter()
                     .map(|(name, _)| format!("{}", name))
                     .collect::<Vec<_>>()

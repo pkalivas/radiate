@@ -8,7 +8,7 @@ use crate::{
 use crate::{PyGeneration, PySubscriber};
 use pyo3::{Py, PyAny, pyclass, pymethods, types::PyAnyMethods};
 use radiate::prelude::*;
-use radiate_error::{radiate_py_bail, radiate_py_err};
+use radiate_error::{ResultExt, radiate_py_bail, radiate_py_err};
 use std::collections::HashMap;
 
 macro_rules! dispatch_builder_typed {
@@ -285,7 +285,7 @@ impl PyEngineBuilder {
                 let threshold = if let Ok(rate) = input.extract::<PyRate>("threshold") {
                     rate.rate
                 } else if let Ok(expr) = input.extract::<PyExpr>("threshold") {
-                    Rate::Expr(expr.inner().clone())
+                    Rate::Expr(expr.inner().clone().compile())
                 } else {
                     let val = input.extract::<f64>("threshold").unwrap_or(0.5);
                     if val <= 0.0 {
@@ -366,9 +366,8 @@ impl PyEngineBuilder {
             inputs,
             Self::process_single_typed(|typed_builder, input| {
                 let selector =
-                    InputTransform::<RadiateResult<Box<dyn Select<_>>>>::transform(input).map_err(
-                        |e| radiate_py_err!(format!("Failed to transform selector input: {}", e)),
-                    )?;
+                    InputTransform::<RadiateResult<Box<dyn Select<_>>>>::transform(input)
+                        .context("Failed to transform selector input")?;
 
                 Ok(match input.input_type() {
                     SurvivorSelector => typed_builder.boxed_survivor_selector(selector),
@@ -389,7 +388,9 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_many_typed(|typed_builder, alter_inputs| {
-                let alters = alter_inputs.transform();
+                let alters = alter_inputs
+                    .transform()
+                    .context("Failed to transform alterers input")?;
                 Ok(typed_builder.alter(alters))
             })
         )
@@ -405,9 +406,7 @@ impl PyEngineBuilder {
             Self::process_single_typed(|typed_builder, input| {
                 let diversity =
                     InputTransform::<RadiateResult<Box<dyn Diversity<_>>>>::transform(input)
-                        .map_err(|e| {
-                            radiate_py_err!(format!("Failed to transform diversity input: {}", e))
-                        })?;
+                        .context("Failed to transform diversity input")?;
 
                 Ok(typed_builder.boxed_diversity(Some(diversity)))
             })
@@ -490,7 +489,7 @@ impl PyEngineBuilder {
         use PyFitnessInner::Custom;
 
         if !matches!(fitness, Custom(_, _)) {
-            error::radiate_py_bail!("init_custom_handle only supports Custom fitness functions")
+            radiate_py_bail!("init_custom_handle only supports Custom fitness functions")
         }
 
         let builder = if let Ok(float_codec) = codec.extract::<PyFloatCodec>() {
@@ -543,9 +542,7 @@ impl PyEngineBuilder {
         use PyFitnessInner::Regression;
 
         let Regression(regression, is_batch) = regression else {
-            error::radiate_py_bail!(
-                "init_regression_builder only supports Regression fitness functions"
-            )
+            radiate_py_bail!("init_regression_builder only supports Regression fitness functions")
         };
 
         let builder = if let Ok(graph_codec) = codec.extract::<PyGraphCodec>() {
@@ -587,9 +584,7 @@ impl PyEngineBuilder {
         use PyFitnessInner::NoveltySearch;
 
         if !matches!(fitness, NoveltySearch(_, _)) {
-            error::radiate_py_bail!(
-                "init_novelty_builder only supports Novelty Search fitness functions"
-            )
+            radiate_py_bail!("init_novelty_builder only supports Novelty Search fitness functions")
         }
 
         let builder = if let Ok(float_codec) = codec.extract::<PyFloatCodec>() {

@@ -10,7 +10,10 @@ where
             self.input_type,
             PyEngineInputType::SurvivorSelector | PyEngineInputType::OffspringSelector
         ) {
-            panic!("Input type {:?} not a selector", self.input_type);
+            return Err(radiate_err!(Builder: format!(
+                "Expected input type to be SurvivorSelector or OffspringSelector, got {:?}",
+                self.input_type
+            )));
         }
 
         match self.component.as_str() {
@@ -40,7 +43,10 @@ where
                 Ok(Box::new(LinearRankSelector::new(selection_pressure as f32)))
             }
             _ => {
-                panic!("Selector type {} not yet implemented", self.component);
+                return Err(radiate_err!(Builder: format!(
+                    "Selector type {} not yet implemented",
+                    self.component
+                )));
             }
         }
     }

@@ -22,13 +22,14 @@ inspired by natural selection and genetics. The core is written in Rust and is a
  
 * Traditional genetic algorithm implementation.
 * Single & Multi-objective optimization support.
-* Neuroevolution (graph-based representation - [evolving neural networks](http://www.scholarpedia.org/article/Neuroevolution)) support. Simmilar to [NEAT](https://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf).
+* Neuroevolution (graph-based representation - [evolving neural networks](http://www.scholarpedia.org/article/Neuroevolution)) support. Opt-in [NEAT](https://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf) implementation.
 * Genetic programming support ([tree-based representation](https://en.wikipedia.org/wiki/Gene_expression_programming#:~:text=In%20computer%20programming%2C%20gene%20expression,much%20like%20a%20living%20organism.)) 
 * Built-in support for parallelism.
 * Extensive selection, crossover, and mutation operators.
 * Opt-in speciation for maintaining diversity.
 * Novelty search support.
 * First-class metric tracking.
+* Dynamic Expression DSL for dynamic rates & custom metrics
 
 --- 
 ## Installation
@@ -44,7 +45,56 @@ pip install radiate # --or-- uv add radiate
 ```
 
 ---
-## Building from source
+## Examples
+Lets see a simple 'Hello World' example of using `radiate` to evolve a simple string - `Hello, Radiate!`. See the [examples](https://github.com/pkalivas/radiate/tree/master/examples) directory for a much more comprehensive set of examples in both languages.
+
+```python
+import radiate as rd
+
+target = "Hello, Radiate!"
+
+engine = (
+    rd.Engine.char(len(target))
+    .fitness(
+        lambda member: sum(1 for i in range(len(target)) if member[i] == target[i])
+    )
+    .limit(rd.Limit.score(len(target)))
+)
+
+result = engine.run(log=True)
+
+print("Best solution:", "".join(result.value()))
+```
+
+Or in rust:
+
+```rust
+use radiate::prelude::*;
+
+let target = "Hello, Radiate!";
+
+let engine = GeneticEngine::builder()
+    .codec(CharCodec::vector(target.len()))
+    .fitness_fn(|geno: Vec<char>| {
+        geno.into_iter().zip(target.chars()).fold(
+            0,
+            |acc, (allele, targ)| {
+                if allele == targ { acc + 1 } else { acc }
+            },
+        )
+    })
+    .build();
+
+engine
+    .iter()
+    .logging()
+    .until_score(target.len())
+    .last()
+    .unwrap();
+```
+
+---
+## Building & running from source
 ```bash
 git clone https://github.com/pkalivas/radiate.git
 cd radiate
@@ -63,5 +113,4 @@ Both the above have an optional argument `py` to build the python package for a 
 * `just test` to run tests for both.
 * `just clean` to nuke the build artifacts
 
-Run examples with `just example <language> <example_id>` (args being language and example id, see `examples/examples.yaml` for available examples).
-For example to run the python's numpy neural network example: `just example py nn`.
+Run examples with `just example` to run a small python script which shows & runs selected examples.

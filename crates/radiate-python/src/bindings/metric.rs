@@ -30,14 +30,14 @@ impl PyMetricSet {
     pub fn new(metrics: Option<Wrap<AnyValue<'_>>>) -> PyResult<Self> {
         if let Some(metrics) = metrics {
             let mut metric_set = MetricSet::new();
-            if let AnyValue::Map(pairs) = metrics.0.into_static() {
+            if let AnyValue::Dict(pairs) = metrics.0.into_static() {
                 for (fld, _, val) in pairs.into_iter() {
                     let name = fld.as_str().to_string();
                     let metric_update = MetricUpdate::try_from(val)?;
                     metric_set.upsert(&name, metric_update);
                 }
             } else {
-                radiate_py_bail!("Metric: Expected a struct of metrics, but got a different type.");
+                radiate_py_bail!("Metric: Expected a dict of metrics, but got a different type.");
             }
 
             return Ok(PyMetricSet { inner: metric_set });

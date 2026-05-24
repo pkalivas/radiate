@@ -40,7 +40,7 @@ pub enum AnyValue<'a> {
 
     Struct(SmallStr, Vec<(SmallStr, DataType, AnyValue<'a>)>),
 
-    Map(Vec<(SmallStr, DataType, AnyValue<'a>)>),
+    Dict(Vec<(SmallStr, DataType, AnyValue<'a>)>),
 }
 
 impl<'a> AnyValue<'a> {
@@ -83,7 +83,7 @@ impl<'a> AnyValue<'a> {
 
     #[inline]
     pub fn is_nested(&self) -> bool {
-        matches!(self, Self::Map(_) | Self::Vector(_) | Self::Slice(_))
+        matches!(self, Self::Dict(_) | Self::Vector(_) | Self::Slice(_))
     }
 
     #[inline]
@@ -91,7 +91,7 @@ impl<'a> AnyValue<'a> {
         match self {
             Self::Slice(vals) => Some(vals.len()),
             Self::Vector(vals) => Some(vals.len()),
-            Self::Map(vals) => Some(vals.len()),
+            Self::Dict(vals) => Some(vals.len()),
             _ => None,
         }
     }
@@ -101,7 +101,7 @@ impl<'a> AnyValue<'a> {
         match self {
             Self::Slice(vals) => Some(vals.is_empty()),
             Self::Vector(vals) => Some(vals.is_empty()),
-            Self::Map(vals) => Some(vals.is_empty()),
+            Self::Dict(vals) => Some(vals.is_empty()),
             _ => None,
         }
     }
@@ -148,7 +148,7 @@ impl<'a> AnyValue<'a> {
             Self::StrOwned(_) => "string",
             Self::Slice(_) => "list",
             Self::Vector(_) => "list",
-            Self::Map(_) => "map",
+            Self::Dict(_) => "dict",
             Self::Duration(_) => "duration",
             Self::Struct(_, _) => "struct",
         }
@@ -199,7 +199,7 @@ impl<'a> AnyValue<'a> {
                     .into(),
             ),
 
-            Self::Map(vals) => DataType::Map(
+            Self::Dict(vals) => DataType::Dict(
                 vals.iter()
                     .map(|(f, s, _)| (f.clone(), s.clone()))
                     .collect(),
@@ -275,10 +275,11 @@ impl<'a> AnyValue<'a> {
             StrOwned(v) => StrOwned(v),
             Slice(v) => Vector(v.iter().map(|v| v.clone().into_static()).collect()),
             Vector(v) => Vector(v.into_iter().map(AnyValue::into_static).collect()),
-            Map(v) => Map(v
-                .into_iter()
-                .map(|(field, _, val)| (field, val.dtype(), val.into_static()))
-                .collect()),
+            Dict(v) => Dict(
+                v.into_iter()
+                    .map(|(field, _, val)| (field, val.dtype(), val.into_static()))
+                    .collect(),
+            ),
             Struct(field, fields) => Struct(
                 field,
                 fields
@@ -337,7 +338,7 @@ impl<'a> AnyValue<'a> {
 
     pub fn get_key(&self, key: &AnyValue<'a>) -> Option<AnyValue<'a>> {
         match self {
-            AnyValue::Map(fields) => {
+            AnyValue::Dict(fields) => {
                 let key_str = match key {
                     AnyValue::Str(s) => *s,
                     AnyValue::StrOwned(s) => s.as_str(),
@@ -356,7 +357,7 @@ impl<'a> AnyValue<'a> {
     pub fn get_field<T: AsRef<str>>(&self, field: T) -> Option<AnyValue<'a>> {
         let field_str = field.as_ref();
         match self {
-            AnyValue::Map(fields) => fields
+            AnyValue::Dict(fields) => fields
                 .iter()
                 .find(|(f, _, _)| f == field_str)
                 .map(|(_, _, value)| value.clone()),
@@ -393,7 +394,7 @@ impl<'a> PartialEq for AnyValue<'a> {
             (Vector(a), Vector(b)) if a.len() == b.len() => {
                 a.iter().zip(b.iter()).all(|(x, y)| x == y)
             }
-            (Map(a), Map(b))
+            (Dict(a), Dict(b))
                 if a.len() == b.len()
                     && a.iter().map(|(f, _, _)| f).eq(b.iter().map(|(f, _, _)| f)) =>
             {
@@ -445,7 +446,7 @@ impl<'a> Hash for AnyValue<'a> {
             Vector(v) => v.hash(state),
             Slice(v) => v.hash(state),
 
-            Map(v) => v.iter().for_each(|(k, d, v)| {
+            Dict(v) => v.iter().for_each(|(k, d, v)| {
                 k.hash(state);
                 d.hash(state);
                 v.hash(state);
@@ -508,7 +509,7 @@ where
     K: Into<AnyValue<'static>> + Clone,
 {
     fn from(map: HashMap<T, K>) -> Self {
-        AnyValue::Map(
+        AnyValue::Dict(
             map.into_iter()
                 .map(|(k, v)| {
                     let cloned_value = v.clone().into();
@@ -575,7 +576,7 @@ pub(crate) fn apply_zipped_struct_slice(
         out.push((fa.clone(), da.clone(), f(va, vb)?));
     }
 
-    Some(AnyValue::Map(out))
+    Some(AnyValue::Dict(out))
 }
 
 #[inline]
@@ -620,7 +621,7 @@ impl<'a> Serialize for AnyValue<'a> {
             StrOwned(v) => serializer.serialize_str(v),
             Slice(vals) => vals.serialize(serializer),
             Vector(vals) => vals.serialize(serializer),
-            Map(vals) => vals.serialize(serializer),
+            Dict(vals) => vals.serialize(serializer),
             Struct(field, fields) => {
                 let mut state = serializer.serialize_struct("Struct", 2)?;
                 state.serialize_field("field", field)?;
@@ -662,7 +663,7 @@ impl<'a, 'de> Deserialize<'de> for AnyValue<'a> {
             StrOwned(String),
             Slice(Vec<AnyValueDef>),
             Vector(Vec<AnyValueDef>),
-            Map(Vec<(SmallStr, DataType, AnyValueDef)>),
+            Dict(Vec<(SmallStr, DataType, AnyValueDef)>),
             Struct(SmallStr, Vec<(SmallStr, DataType, AnyValueDef)>),
         }
 
@@ -693,8 +694,8 @@ impl<'a, 'de> Deserialize<'de> for AnyValue<'a> {
                     AnyValueDef::Vector(vals) => {
                         Vector(vals.into_iter().map(AnyValue::from).collect())
                     }
-                    AnyValueDef::Map(vals) => {
-                        Map(vals.into_iter().map(|(f, d, v)| (f, d, v.into())).collect())
+                    AnyValueDef::Dict(vals) => {
+                        Dict(vals.into_iter().map(|(f, d, v)| (f, d, v.into())).collect())
                     }
                     AnyValueDef::Struct(field, fields) => Struct(
                         field,
@@ -737,10 +738,11 @@ impl<'a, 'de> Deserialize<'de> for AnyValue<'a> {
                     .map(|(name, dtype, value)| (name, dtype, value.into()))
                     .collect(),
             ),
-            AnyValueDef::Map(vals) => Map(vals
-                .into_iter()
-                .map(|(name, dtype, value)| (name, dtype, value.into()))
-                .collect()),
+            AnyValueDef::Dict(vals) => Dict(
+                vals.into_iter()
+                    .map(|(name, dtype, value)| (name, dtype, value.into()))
+                    .collect(),
+            ),
         })
     }
 }

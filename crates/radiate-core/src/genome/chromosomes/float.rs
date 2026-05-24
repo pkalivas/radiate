@@ -11,18 +11,11 @@ use std::{
     ops::{Add, Div, Mul, Range, Sub},
 };
 
-/// Minimum and maximum values for the [FloatGene] allele.
-/// This should be large enough to cover most practical use cases
-/// but small enough to avoid overflow or underflow issues in calculations.
-/// 1e18 = 1 quintillion
-///
 /// A [`Gene`] that represents a floating point number.
-/// The `allele` is the in the case of the [`FloatGene`] a f32. The `min` and `max` values
-/// default to [MIN] and [MAX] respectively. The `min` and `max` values are used to
-/// generate a random number between the `min` and `max` values, which is the `allele` of the [`FloatGene`].
-/// The `upper_bound` and `lower_bound` are used to set the bounds of the [`FloatGene`] when it is used
-/// in a `BoundGene` context (crossover or mutation). The `upper_bound` and `lower_bound`
-/// default to [MAX] and [MIN] respectively.
+/// The `allele` is the in the case of the [`FloatGene`] is of type `F` - which is a floating point type.
+/// The `min` and `max` values default to `F::MIN` and `F::MAX` respectively.
+/// During evolution, the `value_range` is used to generate new allele values, while the `bounds` are used
+/// to ensure that the `allele` remains within a valid range. If no `bounds` are provided, they default to the same values as `value_range`.
 ///
 /// # Example
 /// ``` rust

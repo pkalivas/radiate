@@ -165,12 +165,12 @@ impl Add for AnyValue<'_> {
         match (self, other) {
             (Bool(a), Bool(b)) => Bool(a || b),
             (Vector(a), Vector(b)) => Vector(a.into_iter().zip(b).map(|(x, y)| x + y).collect()),
-            (Map(a), Map(b)) => {
+            (Dict(a), Dict(b)) => {
                 if a.len() != b.len() {
                     return Null;
                 }
 
-                Map(a
+                Dict(a
                     .into_iter()
                     .zip(b)
                     .map(|(one, two)| {
@@ -204,12 +204,12 @@ impl Sub for AnyValue<'_> {
         match (self, other) {
             (Bool(a), Bool(b)) => Bool(a ^ b),
             (Vector(a), Vector(b)) => Vector(a.into_iter().zip(b).map(|(x, y)| x - y).collect()),
-            (Map(a), Map(b)) => {
+            (Dict(a), Dict(b)) => {
                 if a.len() != b.len() {
                     return Null;
                 }
 
-                Map(a
+                Dict(a
                     .into_iter()
                     .zip(b)
                     .map(|(one, two)| {
@@ -243,12 +243,12 @@ impl Mul for AnyValue<'_> {
         match (self, other) {
             (Bool(a), Bool(b)) => Bool(a && b),
             (Vector(a), Vector(b)) => Vector(a.into_iter().zip(b).map(|(x, y)| x * y).collect()),
-            (Map(a), Map(b)) => {
+            (Dict(a), Dict(b)) => {
                 if a.len() != b.len() {
                     return Null;
                 }
 
-                Map(a
+                Dict(a
                     .into_iter()
                     .zip(b)
                     .map(|(one, two)| {
@@ -281,12 +281,12 @@ impl Div for AnyValue<'_> {
 
         match (self, other) {
             (Vector(a), Vector(b)) => Vector(a.into_iter().zip(b).map(|(x, y)| x / y).collect()),
-            (Map(a), Map(b)) => {
+            (Dict(a), Dict(b)) => {
                 if a.len() != b.len() {
                     return Null;
                 }
 
-                Map(a
+                Dict(a
                     .into_iter()
                     .zip(b)
                     .map(|(one, two)| {
@@ -318,12 +318,12 @@ impl Rem for AnyValue<'_> {
 
         match (self, other) {
             (Vector(a), Vector(b)) => Vector(a.into_iter().zip(b).map(|(x, y)| x % y).collect()),
-            (Map(a), Map(b)) => {
+            (Dict(a), Dict(b)) => {
                 if a.len() != b.len() {
                     return Null;
                 }
 
-                Map(a
+                Dict(a
                     .into_iter()
                     .zip(b)
                     .map(|(one, two)| {
@@ -436,7 +436,7 @@ fn mean_anyvalue(one: &AnyValue<'_>, two: &AnyValue<'_>) -> Option<AnyValue<'sta
         (Bool(x), Bool(y)) => Some(Bool(*x && *y)),
 
         (Vector(xs), Vector(ys)) => super::value::apply_zipped_slice(xs, ys, mean_anyvalue),
-        (Map(xs), Map(ys)) => super::value::apply_zipped_struct_slice(xs, ys, mean_anyvalue),
+        (Dict(xs), Dict(ys)) => super::value::apply_zipped_struct_slice(xs, ys, mean_anyvalue),
         _ => None,
     }
 }
@@ -480,12 +480,12 @@ mod tests {
         AnyValue::Vector(xs)
     }
 
-    fn make_struct(pairs: Vec<(&'static str, AnyValue<'static>)>) -> AnyValue<'static> {
+    fn make_dict(pairs: Vec<(&'static str, AnyValue<'static>)>) -> AnyValue<'static> {
         let fields = pairs
             .into_iter()
             .map(|(name, val)| (SmallStr::from(name), val.dtype(), val))
             .collect();
-        AnyValue::Map(fields)
+        AnyValue::Dict(fields)
     }
 
     // ---------- Numeric: happy paths (same-type) ----------
@@ -591,33 +591,33 @@ mod tests {
     #[test]
     fn struct_same_shape_by_order() {
         // Current code: length check; name mismatch → per-field Null (keeps left field)
-        let a = make_struct(vec![("x", Int32(1)), ("y", Int32(2))]);
-        let b = make_struct(vec![("x", Int32(3)), ("y", Int32(4))]);
-        let out = make_struct(vec![("x", Int32(4)), ("y", Int32(6))]);
+        let a = make_dict(vec![("x", Int32(1)), ("y", Int32(2))]);
+        let b = make_dict(vec![("x", Int32(3)), ("y", Int32(4))]);
+        let out = make_dict(vec![("x", Int32(4)), ("y", Int32(6))]);
         assert_eq!(a + b, out);
     }
 
     #[test]
     fn struct_length_mismatch_yields_null() {
-        let a = make_struct(vec![("x", Int32(1))]);
-        let b = make_struct(vec![("x", Int32(2)), ("y", Int32(3))]);
+        let a = make_dict(vec![("x", Int32(1))]);
+        let b = make_dict(vec![("x", Int32(2)), ("y", Int32(3))]);
         assert_eq!(a + b, Null);
     }
 
     #[test]
     fn struct_field_name_mismatch_sets_field_null_under_current_rules() {
-        let a = make_struct(vec![("x", Int32(1)), ("y", Int32(2))]);
-        let b = make_struct(vec![("x", Int32(3)), ("z", Int32(9))]);
+        let a = make_dict(vec![("x", Int32(1)), ("y", Int32(2))]);
+        let b = make_dict(vec![("x", Int32(3)), ("z", Int32(9))]);
         // Current impl: when names differ at a position, that *slot* becomes Null; rest proceed.
-        let expected = make_struct(vec![("x", Int32(4)), ("y", Null)]);
+        let expected = make_dict(vec![("x", Int32(4)), ("y", Null)]);
         assert_eq!(a + b, expected);
     }
 
     #[test]
     fn struct_align_by_name_regardless_of_order() {
-        let a = make_struct(vec![("x", Int32(1)), ("y", Int32(2))]);
-        let b = make_struct(vec![("y", Int32(4)), ("x", Int32(3))]);
-        let out = make_struct(vec![("x", Null), ("y", Null)]);
+        let a = make_dict(vec![("x", Int32(1)), ("y", Int32(2))]);
+        let b = make_dict(vec![("y", Int32(4)), ("x", Int32(3))]);
+        let out = make_dict(vec![("x", Null), ("y", Null)]);
         assert_eq!(a + b, out);
     }
 
