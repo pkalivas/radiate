@@ -25,22 +25,7 @@ The species threshold determines how similar individuals need to be to be consid
 === ":fontawesome-brands-python: Python"
 
 	```python
-	import radiate as rd
-
-    engine = rd.Engine(
-        codec=your_codec,
-        fitness_func=your_fitness_func,
-        diversity=diversity,
-        species_threshold=.5  # Default value
-    )
-
-    # or using the fluent builder pattern:
-    engine = (
-        rd.Engine(your_codec)
-        .fitness(your_fitness_func)
-        .diversity(diversity, species_threshold=0.5) # Default value
-        # ... other parameters ...
-    )
+	--8<-- "python/diversity/index.py:diversity_basic"
 	```
 
 === ":fontawesome-brands-rust: Rust"
@@ -75,24 +60,7 @@ The `ecosystem` tracks the age of `species` to prevent stagnation, if a `species
 === ":fontawesome-brands-python: Python"
 
 	```python
-	import radiate as rd
-
-    engine = rd.Engine(
-        codec=your_codec,
-        fitness_func=your_fitness_func,
-        diversity=diversity,
-        species_threshold=.5  # Default value
-        max_species_age=20  # Default value
-    )
-
-    # or using the fluent builder pattern:
-    engine = (
-        rd.Engine(your_codec)
-        .fitness(your_fitness_func)
-        .diversity(diversity, species_threshold=0.5)
-        .age(max_species_age=20) # Default value
-        # ... other parameters ...
-    )
+	--8<-- "python/diversity/index.py:diversity_age"
 	```
 
 === ":fontawesome-brands-rust: Rust"

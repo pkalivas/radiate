@@ -84,47 +84,7 @@ These can be accessed through the `metrics()` method of the `Generation` object,
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    # Create an engine with 3 chromosomes each with 2 genes (i.e. a 3x2 matrix)
-    engine = (
-        rd.Engine.float([2, 2, 2], init_range=(0.0, 1.0))
-        .fitness(my_fitness_fn)  # Single objective fitness function
-        # ... other parameters ...
-    )
-
-    # Run the engine for 100 generations
-    result = engine.run(rd.GenerationsLimit(100))
-
-    # Get the metrics of the engine
-    metrics = result.metrics()  # MetricSet object
-    df = metrics.to_polars()  # Convert metrics to a Polars DataFrame for analysis (if installed)
-    df = metrics.to_pandas()  # Convert metrics to a Pandas DataFrame for analysis (if installed)
-
-    # Access specific metrics
-    carry_over = metrics['carryover_rate'].max() # Maximum carryover rate throughout evolution
-    
-    scores = metrics["scores"] 
-    score_mean = scores.mean()  
-    score_stddev = scores.stddev()  
-    score_variance = scores.variance()  
-    score_min = scores.min()  
-    score_max = scores.max()  
-    score_count = scores.count()  
-    score_skew = scores.skew()  
-    score_sum = scores.sum()
-
-    time = metrics["time"].time_sum() 
-
-    total_time = time.time_sum()  
-    mean_time = time.time_mean()  
-    stddev_time = time.time_stddev()  
-    variance_time = time.time_variance()  
-    min_time = time.time_min()  
-    max_time = time.time_max()  
-
-    # pretty-print the metrics dashboard
-    print(metrics.dashboard())
+    --8<-- "python/engine/metrics.py:basic_metrics"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -157,26 +117,7 @@ All metrics have a sort of metadata which identifies them based on their charact
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    # Create the evolution engine
-    engine = rd.Engine(
-        codec=codec,
-        fitness_func=fitness_function,
-        # ... other parameters ...
-    )
-
-    # Run the engine
-    result = engine.run(rd.ScoreLimit(0.01), rd.GenerationsLimit(1000))
-
-    # Access the metrics from the result
-    metrics = result.metrics()
-
-    # Get tags for a specific metric
-    tags = metrics['scores'].tags()  # e.g., ['rd.Tag.SCORE', 'rd.Tag.STATISTIC', 'rd.Tag.DISTRIBUTION']
-
-    for metric in metrics.values_by_tag(rd.Tag.ALTERER):
-        # ... access all metrics related to alterers (crossover, mutation) ...
+    --8<-- "python/engine/metrics.py:metric_tags"
     ```
 
 === ":fontawesome-brands-rust: Rust"
