@@ -1,10 +1,26 @@
 """Execute every user-guide Python snippet to keep the docs runnable.
 
-Each file under ``docs/source/src/python`` is a self-contained, runnable program.
-The rendered user guide shows only the regions between ``# --8<-- [start:NAME]`` and
-``# --8<-- [end:NAME]`` markers (via ``pymdownx.snippets``), but the *whole* file is
-executed here. If a snippet drifts from the real API, this test fails — that is the
-point. See the doc-testing plan for the full workflow.
+MIRROR CONVENTION
+-----------------
+Each user-guide page that contains Python examples has a 1:1 mirror host file at the
+same relative path:
+
+    docs/source/<path>.md   <->   docs/source/src/python/<path>.py
+
+So to edit a page's Python snippets, open the file at the matching path. The page
+includes regions of that file via ``--8<-- "python/<path>.py:NAME"`` (pymdownx.snippets);
+the file marks them with ``# --8<-- [start:NAME]`` / ``# --8<-- [end:NAME]``. Setup that
+shouldn't appear in the docs (fitness fns, sample data) goes *outside* the markers. The
+*whole* file is executed by this test, so if a snippet drifts from the real API it fails.
+
+EXCEPTIONS to the 1:1 mirror:
+  * ``<path>_showcase.py`` — long-running / UI / plotting / file-IO demos. EXCLUDED from
+    this run-test (see ``_excluded``); still rendered and include-validated by
+    ``mkdocs build --strict``. A page may have both ``<path>.py`` and ``<path>_showcase.py``.
+  * ``misc/randomness.py`` mirrors ``misc/random.md`` — it can't be named ``random.py``
+    because that shadows the stdlib ``random`` module (circular import when run).
+
+See the doc-testing plan for the full workflow.
 """
 
 from __future__ import annotations
@@ -22,10 +38,10 @@ import radiate as rd
 # neutralizing it here covers every plotting snippet — the plotting logic still runs (and
 # stays tested) but nothing is rendered/displayed, avoiding the Agg "cannot be shown" warning.
 try:
-    import matplotlib
+    import matplotlib  # type: ignore[import]
 
     matplotlib.use("Agg")
-    import matplotlib.pyplot as _plt
+    import matplotlib.pyplot as _plt  # type: ignore[import]
 
     _plt.show = lambda *args, **kwargs: None
 except ImportError:

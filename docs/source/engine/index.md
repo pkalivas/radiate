@@ -22,7 +22,7 @@ This is the default epoch for the engine - `Generation`. It contains:
 === ":fontawesome-brands-python: Python"
 
     ```python
-    --8<-- "python/engine/index_single.py:single_objective"
+    --8<-- "python/engine/index.py:single_objective"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -81,7 +81,7 @@ When the engine is configured for multi-objective optimization, the engine `Gene
 === ":fontawesome-brands-python: Python"
 
     ```python
-    --8<-- "python/engine/index_multi.py:multi_objective"
+    --8<-- "python/engine/index.py:multi_objective"
     ```
 
 === ":fontawesome-brands-rust: Rust"

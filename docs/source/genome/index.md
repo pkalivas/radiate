@@ -44,7 +44,7 @@ Certain `Genes` have additional functionality that allows them to be manipulated
     === ":fontawesome-brands-python: Python"
 
         ```python
-        --8<-- "python/genome/gene.py:float_gene"
+        --8<-- "python/genome/index.py:float_gene"
         ```
 
     === ":fontawesome-brands-rust: Rust"
@@ -76,7 +76,7 @@ Certain `Genes` have additional functionality that allows them to be manipulated
     === ":fontawesome-brands-python: Python"
 
         ```python
-        --8<-- "python/genome/gene.py:int_gene"
+        --8<-- "python/genome/index.py:int_gene"
         ```
 
     === ":fontawesome-brands-rust: Rust"
@@ -104,7 +104,7 @@ Certain `Genes` have additional functionality that allows them to be manipulated
     === ":fontawesome-brands-python: Python"
 
         ```python
-        --8<-- "python/genome/gene.py:bit_gene"
+        --8<-- "python/genome/index.py:bit_gene"
         ```
 
     === ":fontawesome-brands-rust: Rust"
@@ -126,7 +126,7 @@ Certain `Genes` have additional functionality that allows them to be manipulated
     === ":fontawesome-brands-python: Python"
 
         ```python
-        --8<-- "python/genome/gene.py:char_gene"
+        --8<-- "python/genome/index.py:char_gene"
         ```
 
     === ":fontawesome-brands-rust: Rust"
@@ -193,7 +193,7 @@ Because each `Chromosome` has an associated `Gene`, the built-in chromosomes are
     === ":fontawesome-brands-python: Python"
 
         ```python
-        --8<-- "python/genome/chromosome.py:float_chromosome"
+        --8<-- "python/genome/index.py:float_chromosome"
         ```
 
     === ":fontawesome-brands-rust: Rust"
@@ -215,7 +215,7 @@ Because each `Chromosome` has an associated `Gene`, the built-in chromosomes are
     === ":fontawesome-brands-python: Python"
 
         ```python
-        --8<-- "python/genome/chromosome.py:int_chromosome"
+        --8<-- "python/genome/index.py:int_chromosome"
         ```
 
     === ":fontawesome-brands-rust: Rust"
@@ -236,7 +236,7 @@ Because each `Chromosome` has an associated `Gene`, the built-in chromosomes are
     === ":fontawesome-brands-python: Python"
 
         ```python
-        --8<-- "python/genome/chromosome.py:bit_chromosome"
+        --8<-- "python/genome/index.py:bit_chromosome"
         ```
 
     === ":fontawesome-brands-rust: Rust"
@@ -255,7 +255,7 @@ Because each `Chromosome` has an associated `Gene`, the built-in chromosomes are
     === ":fontawesome-brands-python: Python"
 
         ```python
-        --8<-- "python/genome/chromosome.py:char_chromosome"
+        --8<-- "python/genome/index.py:char_chromosome"
         ```
 
     === ":fontawesome-brands-rust: Rust"
@@ -302,7 +302,7 @@ Because of the typed nature of the `Genotype`, it can only hold a collection of 
 === ":fontawesome-brands-python: Python"
 
     ```python
-    --8<-- "python/genome/genotype.py:genotype"
+    --8<-- "python/genome/index.py:genotype"
     ```
 
 === ":fontawesome-brands-rust: Rust"
