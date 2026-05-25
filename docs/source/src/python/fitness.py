@@ -14,8 +14,7 @@ def fit(x: list[float]) -> float:
     return value
 
 
-codec = rd.FloatCodec(N_GENES, init_range=(-RANGE, RANGE))
-engine = rd.Engine(codec).fitness(fit).minimizing()
+engine = rd.Engine.float(N_GENES, init_range=(-RANGE, RANGE)).fitness(fit).minimizing()
 # --8<-- [end:rastrigin]
 
 # --8<-- [start:fitness_decorator]
@@ -44,6 +43,7 @@ N_GENES = 2
 
 # NOTE this function expects a batch of inputs and returns a batch of outputs
 # the order in which the inputs are given is the order in which the outputs are returned
+# `x` here is a list of individuals, where each individual is a list of floats (the decoded genome).
 def fit_batch(x: list[list[float]]) -> list[float]:
     assert len(x) > 1
 
@@ -58,11 +58,13 @@ def fit_batch(x: list[list[float]]) -> list[float]:
     return results
 
 
-codec = rd.FloatCodec(N_GENES, init_range=(-RANGE, RANGE))
-
 # Create the genetic engine with batch fitness function.
 # Just wrap your fitness function in 'rd.BatchFitness'
-engine = rd.Engine(codec).fitness(rd.BatchFitness(fit_batch)).minimizing()
+engine = (
+    rd.Engine.float(N_GENES, init_range=(-RANGE, RANGE))
+    .fitness(rd.BatchFitness(fit_batch))
+    .minimizing()
+)
 # --8<-- [end:batch_fitness]
 
 # --8<-- [start:batch_fitness_decorator]
@@ -76,7 +78,8 @@ N_GENES = 2
 
 # NOTE this function expects a batch of inputs and returns a batch of outputs
 # the order in which the inputs are given is the order in which the outputs are returned
-@rd.fitness(batch=True)  # <- this decorator with batch=True
+# `x` here is a list of individuals, where each individual is a list of floats (the decoded genome).
+@rd.fitness(batch=True)  # <- Same decorator but with batch=True
 def fit_batch_decorated(x: list[list[float]]) -> list[float]:
     assert len(x) > 1
 
@@ -91,11 +94,13 @@ def fit_batch_decorated(x: list[list[float]]) -> list[float]:
     return results
 
 
-codec = rd.FloatCodec(N_GENES, init_range=(-RANGE, RANGE))
-
 # Create the genetic engine with batch fitness function.
 # NOTE: We no longer need to wrap 'fitness_fn' in 'rd.BatchFitness'
-engine = rd.Engine(codec).fitness(fit_batch_decorated).minimizing()
+engine = (
+    rd.Engine.float(N_GENES, init_range=(-RANGE, RANGE))
+    .fitness(fit_batch_decorated)
+    .minimizing()
+)
 # --8<-- [end:batch_fitness_decorator]
 
 # --8<-- [start:novelty_search]
@@ -113,10 +118,10 @@ def behavior(individual: list[float]) -> list[float]:
 # Create novelty search fitness function
 novelty_fitness = rd.NoveltySearch(
     descriptor=behavior,
-    # can use any of the distance inputs. The engine will use this to
-    # determine how 'novel' an individual is compared to the other's in the
-    # archinve or population, ultimently resulting in the individuals fitness score.
-    distance=rd.CosineDistance(),  # Distance metric to use,
+    # Can use any of the distance inputs. The engine uses this to
+    # determine how 'novel' an individual is compared to the others in the
+    # archive or population, ultimately producing the individual's fitness score.
+    distance=rd.CosineDistance(),  # Distance metric to use
     k=10,  # Number of nearest neighbors to consider
     threshold=0.1,  # Novelty threshold for archive addition
     archive_size=1000,  # defaults to 1000
