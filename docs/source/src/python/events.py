@@ -3,10 +3,6 @@ import polars as pl
 import matplotlib.pyplot as plt
 
 
-# Setup (not shown): stand-in codec + fitness for the snippets below.
-your_codec = rd.FloatCodec(2, init_range=(0.0, 1.0))
-
-
 def your_fitness_func(x):
     return sum(x)
 
@@ -15,14 +11,14 @@ def your_fitness_func(x):
 import radiate as rd
 
 engine = (
-    rd.Engine(your_codec)
+    rd.Engine.int(10, init_range=(0, 100))
     .fitness(your_fitness_func)
-    .subscribe(lambda event: print(event))  # Subscribe to all events using a lambda function
+    .subscribe(
+        lambda event: print(event)
+    )  # Subscribe to all events using a lambda function
     # ... other parameters ...
 )
 
-# Run the engine for 100 generations
-engine.run(rd.Limit.generations(100))
 # --8<-- [end:lambda_subscribe]
 
 # --8<-- [start:handler_subclass]
@@ -31,30 +27,30 @@ import radiate as rd
 
 # Inherit from EventHandler, tell the super class which event you'd like to subscribe to,
 # then override the on_event method
-class Subscriber(rd.EventHandler):
+class MySubscriber(rd.EventHandler):
+    """
+    If no `rd.EventType` is passed to the super constructor, this handler will subscribe to all events.
+    Otherwise, it will only subscribe to the specified event type.
+    """
+
     def __init__(self):
         super().__init__(rd.EventType.EPOCH_COMPLETE)
 
-    def on_event(self, event):
+    def on_event(self, event: rd.EngineEvent) -> None:
         print(f"Event: {event}")
 
 
 # Create an instance of your event handler
-handler = Subscriber()
+handler = MySubscriber()
 
-engine = rd.Engine(
-    codec=your_codec,
-    fitness_func=your_fitness_func,
-    subscribe=handler,
+engine = (
+    rd.Engine.int(10, init_range=(0, 100))
+    .fitness(your_fitness_func)
+    .subscribe(handler)  # Add your handler here
     # ... other parameters ...
 )
-
-# or add it later
-engine.subscribe(handler)
-
-# Run the engine for 100 generations
-engine.run(rd.GenerationsLimit(100))
 # --8<-- [end:handler_subclass]
+
 
 # --8<-- [start:score_plotter]
 class ScorePlotterHandler(rd.EventHandler):
@@ -88,14 +84,11 @@ class ScorePlotterHandler(rd.EventHandler):
 handler = ScorePlotterHandler()
 
 engine = (
-    rd.Engine(codec=your_codec)
+    rd.Engine.int(10, init_range=(0, 100))
     .fitness(your_fitness_func)
     .subscribe(handler)  # Add your handler here
     # ... other parameters ...
 )
-
-# Run the engine for 100 generations
-engine.run(rd.GenerationsLimit(100))
 # --8<-- [end:score_plotter]
 
 # --8<-- [start:metric_collector]

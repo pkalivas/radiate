@@ -9,13 +9,13 @@ Radiate provides an event system that allows you to monitor and react to the evo
 
 ## Overview
 
-The event system in Radiate is built around the concept of event handlers or subscribers that can be attached to the `GeneticEngine`. These subscribers receive events at key points during the evolution process, allowing you to monitor and react to changes in the environment in real-time. The event system is designed to be flexible and extensible, allowing you to create custom event handlers that can perform various actions based on the evolution state.
+The event system in `radiate` is built around the concept of event handlers or subscribers that can be attached to the `GeneticEngine`. These subscribers receive events at key points during the evolution process, allowing you to monitor and react to changes in the environment in real-time. The event system is designed to be flexible and extensible, allowing you to create custom event handlers that can perform various actions based on the evolution state.
 
-The `GeneticEngine` trys it's best to off-load almost the entire compute workload of the subscribers (handlers) to the user - be aware of this when implementing your handlers.
+The `GeneticEngine` offloads nearly all of a subscriber's compute cost onto the handler itself — so be mindful of this when implementing your handlers; expensive work here _can_ slow the whole run.
 
 !!! note "Threading Behavior"
     
-    Currently, the rust implementation is multi-threaded (if multi-threaded executors are used), meaning if you have multiple subscribers, there is no guarantee of the order in which they will be called. For python, regardless of if you are using a free-threaded interpreter (3.13t/3.14t, ect) or not, the events will be dispatched on a single thread in the order they were added.
+    Currently, the rust implementation is multi-threaded (if multi-threaded [executors](executors.md) are used), meaning if you have multiple subscribers, there is no guarantee of the order in which they will be called. For python, regardless of if you are using a free-threaded interpreter (3.13t/3.14t, etc) or not, the events will be dispatched on a single thread in the order they were added.
 
 --- 
 ## Event Types
@@ -62,7 +62,7 @@ Below there is a brief description of each event type with its representative da
     {
         'event_type': 'stop_event',
         'index': 0, // Current generation number
-        // This will be a MetricSet (or dictionary in python) of metrics collected, see Engine's metrics docs for more info
+        // This will be a MetricSet of metrics collected, see Engine's metrics docs for more info
         'metrics': ..., 
         // This will be the decoded best individual found so far. So, if you are 
         // evolving a vector of FloatGenes, this will be a list of floats
@@ -172,7 +172,7 @@ For more complex event handling, you can create a custom event handler class:
     --8<-- "python/events.py:handler_subclass"
     ```
 
-    Its also completely possible to create more advanced forms of visualization or logging through this method. For example, below we will collect the scores from each epoch then use polars to create a DataFrame and finally plot it with matplotlib.
+    It's also completely possible to create more advanced forms of visualization or logging through this method. For example, below we will collect the scores from each epoch then use polars to create a DataFrame and finally plot it with matplotlib.
 
     ```python
     --8<-- "python/events.py:score_plotter"
@@ -210,19 +210,23 @@ For more complex event handling, you can create a custom event handler class:
 
 ## Built in Handlers
 
-As of `4/25/2026`, the python implementation includes one built in event handler called the `MetricCollector`. This handler collects the metric set at the end of each epoch and stores it in a list for later use. Note to use this handler to it's fullest capacity, you should install radiate with the `polars` (or `pandas`) and `matplotlib` extras, as shown below:
-
-```bash
-uv add "radiate[polars,pandas,matplotlib]"
-```
-
-You can use this handler as follows (note - this is super useful when using radiate inside a `.ipynb` notebook):
-
 === ":fontawesome-brands-python: Python"
+
+    As of `4/25/2026`, the python implementation includes one built in event handler called the `MetricCollector`. This handler collects the [metric set](engine/metrics.md) at the end of each epoch and stores it in a list for later use. Note to use this handler to its fullest capacity, you should install radiate with the `polars` (or `pandas`) and `matplotlib` extras, as shown below:
+
+    ```bash
+    uv add "radiate[polars,pandas,matplotlib]"
+    ```
+
+    You can use this handler as follows (this is great when using radiate inside a `.ipynb` notebook):
 
     ```python
     --8<-- "python/events.py:metric_collector"
     ```
+
+=== ":fontawesome-brands-rust: Rust"
+
+    No built-in handlers in rust yet.
 
 ---
 
