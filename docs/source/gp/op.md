@@ -1,6 +1,6 @@
 # Ops
 
-The `ops` module provides sets of operations and formats for building and evolve genetic programs including `graphs` and `trees`. In the language of radiate, when using an `op`, it is the `Allele` of the `GraphNode` or `TreeNode`.
+The `ops` module provides sets of operations and formats for building and evolving genetic programs including `graphs` and `trees`. In the language of radiate, when using an `op`, it is the `Allele` of the `GraphNode` or `TreeNode`.
 An `op` is a function that takes a number of inputs and returns a single output. The `op` can be a constant value, a variable, or a function that operates on the inputs.   
 
 The `op` comes in four flavors, mirroring the variants of the `Op<T>` enum:
@@ -10,21 +10,21 @@ The `op` comes in four flavors, mirroring the variants of the `Op<T>` enum:
 3. **Constant (`Const`)**: A fixed value that does not change - returning the value when called.
 4. **Value (`Value`)**: A stateful operation that holds data (a `Param<T>`) alongside a function, allowing for learnable parameters such as the `Weight` op.
 
-Each `op` has an `arity`, defining the number of inputs it accepts. For example, the `Add` operation has an `arity` of 2 because it takes two inputs and returns their sum. The `Const` operation has an arity of 0 because it does not take any inputs, it just returns it's value. The `Var` operation has an arity of 0 because it takes an index as a parameter, and returns the value of the input at that index. 
+Each `op` has an `arity`, defining the number of inputs it accepts. For example, the `Add` operation has an `arity` of 2 because it takes two inputs and returns their sum. The `Const` operation has an arity of 0 because it does not take any inputs, it just returns its value. The `Var` operation has an arity of 0 because it takes an index as a parameter, and returns the value of the input at that index. 
 
 Provided `Ops` include:
 
 ??? info "Basic ops"
-    | Name | Arity | Description | Initalize | Type |
+    | Name | Arity | Description | Initialize | Type |
     |------|-------|-------------|----------|---- |
-    | `const` | 0 | x | `Op::constant()` | Const |
-    | `named_const` | 0 | x | `Op::named_constant(name)` | Const |
+    | `const` | 0 | A fixed constant value | `Op::constant()` | Const |
+    | `named_const` | 0 | A constant value with an associated name | `Op::named_constant(name)` | Const |
     | `var` | 0 | Variable. input[i] - return the value of the input at index `i` | `Op::var(i)` | Var |
     | `identity` |1| return the input value | `Op::identity()` | Fn |
 
 
 ??? info "Basic math operations"
-    | Name | Arity | Description | Initalize | Type |
+    | Name | Arity | Description | Initialize | Type |
     |------|-------|-------------|----------|---- |
     | `Add` | 2 | x + y | `Op::add()` | Fn |
     | `Sub` | 2 | x - y | `Op::sub()` | Fn |
@@ -52,7 +52,7 @@ Provided `Ops` include:
 
     These are the most common activation functions used in Neural Networks. Each accepts any number of inputs, **sums them first**, then applies the activation — so `x` in the descriptions below refers to the sum of the node's inputs.
 
-    | Name | Arity | Description | Initalize | Type |
+    | Name | Arity | Description | Initialize | Type |
     |------|-------|-------------|----------|---- |
     | `Sigmoid` | Any | 1 / (1 + e^-x) | `Op::sigmoid()` | Fn |
     | `Tanh` | Any | tanh(x) | `Op::tanh()` | Fn |
@@ -65,7 +65,7 @@ Provided `Ops` include:
     | `Mish` | Any | x * tanh(ln(1 + e^x)) | `Op::mish()` | Fn |
     
 ??? info "bool Ops"
-    | Name | Arity | Description | Initalize | Type |
+    | Name | Arity | Description | Initialize | Type |
     |------|-------|-------------|----------|---- |
     | `And` | 2 | x && y | `Op::and()` | Fn |
     | `Or` | 2 | `x || y` | `Op::or()` | Fn |
@@ -106,7 +106,7 @@ Provided `Ops` include:
     let inputs = var_op.eval(&[5.0, 10.0]); // result is 5.0 when evaluated with inputs
     ```
 
-    Want to create your own `Op<T>`? Its pretty simple! Let create a custom `Square` operation that squares it's input.
+    Want to create your own `Op<T>`? It's pretty simple! Let's create a custom `Square` operation that squares its input.
 
     ```rust
     use std::sync::Arc;
@@ -116,11 +116,12 @@ Provided `Ops` include:
         inputs[0] * inputs[0]
     }
 
-    // Supply a name, arity (number of inputs - 1 in this case), and function to create the Op
+    // Supply a name, arity (number of inputs), and function to create the Op.
+    // Square takes a single input, so its arity is Exact(1).
     let square_op = Op::new("Square", Arity::Exact(1), my_square_op);
     ```
 
-    Now you have a new `square_op` which is completely compatible with the rest of the Radiate GP system and can be plugged in anywhere a regular `Op` can be used! For more information on creating ops, checkout the [API docs](https://docs.rs/radiate-gp/1.2.22/radiate_gp/ops/operation/enum.Op.html) to see how the rest are created - its not too crazy. 
+    Now you have a new `square_op` which is completely compatible with the rest of the Radiate GP system and can be plugged in anywhere a regular `Op` can be used! For more information on creating ops, check out the [API docs](https://docs.rs/radiate-gp/latest/radiate_gp/ops/operation/enum.Op.html) to see how the rest are created - it's not too crazy. 
 
 ### Alters
 

@@ -11,8 +11,8 @@ Nodes in the `gp` system come in different types (roles) depending on whether yo
 
 **Tree Node Types:**
 
-- **Root**: The starting point of a tree (can have any number of children)
-- **Vertex**: Internal computation nodes (can have any number of children)
+- **Root**: The starting point of a tree (number of children is determined by its op's arity)
+- **Vertex**: Internal computation nodes (number of children is determined by the op's arity)
 - **Leaf**: Terminal nodes with no children (arity is `Arity::Zero`)
 
 **Graph Node Types:**
@@ -51,7 +51,7 @@ The `NodeStore<T>` manages available values for different node types, providing 
 
 === ":fontawesome-brands-python: Python"
 
-    There is no node store for python - it isn't nessesary for the api. Instead, the types of nodes are directly given the their codec or structure.
+    There is no node store for python - it isn't necessary for the api. Instead, the types of nodes are directly given by their codec or structure.
 
 === ":fontawesome-brands-rust: Rust"
 
@@ -72,7 +72,7 @@ The `NodeStore<T>` manages available values for different node types, providing 
         Root => [1, 2, 3],
         Vertex => [1, 2, 3],
         Leaf => [4, 5, 6],
-    }
+    };
 
     // -- with ops --
     // for trees, the input nodes are always the leaf nodes, so we can use the `Op::var` to represent them
@@ -120,7 +120,7 @@ The `NodeStore<T>` manages available values for different node types, providing 
     // Create a new vertex graph node at index 0
     let graph_node: GraphNode<i32> = graph_store.new_instance((0, NodeType::Vertex));
 
-    // Createa a new edge graph node at index 1
+    // Create a new edge graph node at index 1
     let edge_node: GraphNode<Op<f32>> = op_store.new_instance((1, NodeType::Edge));
     ```
 
@@ -132,6 +132,6 @@ The `NodeStore<T>` manages available values for different node types, providing 
 **Store Validation:**
 The node store ensures that:
 
-- Each node type has appropriate value
+- Each node type has appropriate values
 - Values have compatible arity for their node type
 - Invalid combinations are prevented during evolution
