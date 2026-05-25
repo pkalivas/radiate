@@ -33,8 +33,8 @@ A `tree` represents a hierarchical structure where each node has exactly one par
         .attach(TreeNode::new(1))
         .attach(TreeNode::new(2)
             .attach(TreeNode::new(3))
-            .attach(TreeNode::new(4))
-        .attach(TreeNode::new(3))));
+            .attach(TreeNode::new(4)))
+        .attach(TreeNode::new(3)));
 
     // The tree can be evaluated with a function that takes a vector of inputs
     // This creates a `Tree` that looks like:
