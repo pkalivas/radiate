@@ -38,7 +38,7 @@ codec = rd.TreeCodec(
     max_size=30,
     # The options for the root node of the tree. The root is the last node in the tree
     # to be evaluated and is the node that produces the final output of the tree.
-    # This is optional and defaults to a single add operator.
+    # This is optional; when left unspecified, the root samples from the vertex options.
     root=rd.Op.add(),
     vertex=[rd.Op.add(), rd.Op.sub(), rd.Op.mul()],
     leaf=[rd.Op.var(0), rd.Op.var(1)],

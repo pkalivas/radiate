@@ -76,12 +76,12 @@ A `tree` represents a hierarchical structure where each node has exactly one par
 
 ## Node
 
-Each node in a tree contains a value and optional children & arity. The `TreeNode` also implements the `gene` trait, making the node itself a `gene` and it's value the `allele`. 
+Each node in a tree contains a value and optional children & arity. The `TreeNode` also implements the `gene` trait, making the node itself a `gene` and its value the `allele`. 
 
 **Node Types:**
 
-- **Root**: Starting point of the tree (can have any number of children)
-- **Vertex**: Internal computation nodes (can have any number of children)
+- **Root**: Starting point of the tree (number of children is determined by its op's arity)
+- **Vertex**: Internal computation nodes (number of children is determined by the op's arity)
 - **Leaf**: Terminal nodes with no children (arity is `Arity::Zero`)
 
 ---
@@ -110,7 +110,7 @@ Then a multi-rooted tree would be necessary, with one root for `f(x)` and anothe
 Most of the params for the `TreeCodec` have sensible defaults in an attempt to make it as easy as possible to get started. So technically,
 you don't need to specify the ops, but in all likelihood you'll want to specify the ops to your specific use case. The defaults are as follows: 
 
-* Root: `Op.add()` `Op.sub()`, `Op.mul()`, `Op.div()`, `Op.sin()`, `Op.cos()`, `Op.tanh()`, `Op.relu()`, `Op.linear()`
+* Root: when left unspecified, the root samples from the **Vertex** options below
 * Vertex: `Op.add()`, `Op.sub()`, `Op.mul()`, `Op.div()`, `Op.sin()`, `Op.cos()`, `Op.tanh()`, `Op.relu()`, `Op.linear()`
 * Leaf: `Op.var(0)` - (first variable)
 
@@ -133,7 +133,7 @@ you don't need to specify the ops, but in all likelihood you'll want to specify 
 
     // Create a single rooted tree codec with a starting (minimum) depth of 3
     let codec = TreeCodec::single(3, store);
-    let genotype: Genotype<TreeChromosome<Op<f32>>> = single_root_codec.encode();
+    let genotype: Genotype<TreeChromosome<Op<f32>>> = codec.encode();
     let tree: Tree<Op<f32>> = codec.decode(&genotype);
 
     // Create a multi-rooted tree codec with a starting (minimum) depth of 3 and 2 trees
@@ -176,7 +176,7 @@ The `HoistMutator` is a mutation operator that randomly selects a subtree from t
 
 > Inputs
 > 
->   * `rate`: f32 - Mutation rate (0.0 to 1.0)
+>   * `rate`: f32 - Crossover rate (0.0 to 1.0)
 
 - **Purpose**: Swaps two subtrees between two trees.
 
