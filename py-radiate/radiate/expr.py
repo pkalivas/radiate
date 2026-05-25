@@ -120,6 +120,9 @@ class Expr(RsObject):
     def __or__(self, other):
         return self.or_(other)
 
+    def __invert__(self):
+        return self.not_()
+
     def __neg__(self):
         return self.neg_()
 

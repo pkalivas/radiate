@@ -9,8 +9,7 @@ const OP_MISMATCH_PENALTY: f32 = 0.3;
 /// NEAT compatibility distance that aligns genes by [`InnovationId`].
 ///
 /// Unlike [`NeatDistance`], which walks chromosomes in topological order and matches
-/// genes by position, `InnovationDistance` projects each chromosome onto its innovation
-/// timeline and merges by historical marker — the textbook NEAT definition. Two nodes
+/// genes by position — the textbook NEAT definition. Two nodes
 /// share an innovation iff they descend from the same structural event in the search
 /// history, so this metric stays stable under reorderings and structural drift that
 /// preserve homology.

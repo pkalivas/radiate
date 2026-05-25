@@ -8,6 +8,10 @@ individuals through `alters` like `mutation` and `crossover`. The `population` i
 distribution of individuals, and the `selector` is responsible for sampling from this distribution to create
 the next generation.
 
+<figure markdown="span">
+    ![Survivor and offspring selection flow](../../assets/selectors/selection.svg){ width="560" }
+</figure>
+
 The selection process is a critical part of the genetic algorithm, as it determines which individuals will
 be passed on to the next generation and which will be discarded. A majority of the time the selection process is based on the fitness of the individuals in the population, with fitter individuals being more likely to be selected. The choice of selection strategy can have a significant impact on the performance of the genetic algorithm, so it is important to choose a selection strategy that is well-suited to the problem being solved.
 
@@ -42,10 +46,7 @@ The `EliteSelector` is a selection strategy that selects the top `n` individuals
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    selector = rd.EliteSelector()
-    selector = rd.Select.elite() # Using the Select dsl syntax
+    --8<-- "python/selectors/index.py:elite_selector"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -62,19 +63,16 @@ The `EliteSelector` is a selection strategy that selects the top `n` individuals
 
 > Inputs
 > 
->   * `num`: usize - The number of individuals to compete in each tournament.
+>   * `k`: usize - The number of individuals to compete in each tournament.
 
-The `TournamentSelector` is a selection strategy that selects individuals from the `population` by holding a series of tournaments. In each tournament, a random subset of size `num` of individuals is selected, and the fittest individual from that subset is chosen. This can help to maintain diversity in the `population` and prevent premature convergence by allowing weaker individuals to be selected occasionally.
+The `TournamentSelector` is a selection strategy that selects individuals from the `population` by holding a series of tournaments. In each tournament, a random subset of size `k` of individuals is selected, and the fittest individual from that subset is chosen. This can help to maintain diversity in the `population` and prevent premature convergence by allowing weaker individuals to be selected occasionally.
 
 Create a new `TournamentSelector` with a tournament size of 3
 
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    selector = rd.TournamentSelector(k=3)
-    selector = rd.Select.tournament(k=3) # Using the Select dsl syntax
+    --8<-- "python/selectors/index.py:tournament_selector"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -106,10 +104,7 @@ This is an extremely popular selection strategy due to its simplicity and effect
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    selector = rd.RouletteSelector()
-    selector = rd.Select.roulette() # Using the Select dsl syntax
+    --8<-- "python/selectors/index.py:roulette_selector"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -137,10 +132,7 @@ As the temperature decreases, the selection process becomes more deterministic, 
     If the `temperature` is not specified, it defaults to 1.0.
 
     ```python
-    import radiate as rd
-
-    selector = rd.BoltzmannSelector(temp=4.0)
-    selector = rd.Select.boltzmann(4.0) # Using the Select dsl syntax
+    --8<-- "python/selectors/index.py:boltzmann_selector"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -163,10 +155,7 @@ The `NSGA2Selector` is a selection strategy used in multi-objective optimization
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    selector = rd.NSGA2Selector()
-    selector = rd.Select.nsga2() # Using the Select dsl syntax
+    --8<-- "python/selectors/index.py:nsga2_selector"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -188,10 +177,7 @@ The `NSGA3Selector` is a selection strategy used in multi-objective optimization
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    selector = rd.NSGA3Selector(points=12)
-    selector = rd.Select.nsga3(12) # Using the Select dsl syntax
+    --8<-- "python/selectors/index.py:nsga3_selector"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -215,10 +201,7 @@ The `TournamentNSGA2Selector` is a selection strategy that combines the principl
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    selector = rd.TournamentNSGA2Selector()
-    selector = rd.Select.tournament_nsga2() # Using the Select dsl syntax
+    --8<-- "python/selectors/index.py:tournament_nsga2_selector"
     ```
 === ":fontawesome-brands-rust: Rust"
 
@@ -247,10 +230,7 @@ Stochastic Universal Sampling (SUS) is a probabilistic selection technique used 
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    selector = rd.StochasticSamplingSelector()
-    selector = rd.Select.stochastic_universal_sampling() # Using the Select dsl syntax
+    --8<-- "python/selectors/index.py:stochastic_sampling_selector"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -270,10 +250,7 @@ The `RankSelector` is a selection strategy that selects individuals from the `po
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    selector = rd.RankSelector()
-    selector = rd.Select.rank() # Using the Select dsl syntax
+    --8<-- "python/selectors/index.py:rank_selector"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -292,30 +269,29 @@ The `RankSelector` is a selection strategy that selects individuals from the `po
 >
 > * `pressure`: f32 - The scaling factor for the selection probabilities.
 
-The `LinearRankSelector` is a selection strategy that selects individuals from the `population` based on their rank, or index, in the `population`, but with a linear scaling of the selection probabilities. The fitness values of the individuals are first ranked, and then the scaling factor is applied to the ranks. This helps to maintain diversity in the `population` and prevent premature convergence by ensuring that all individuals have a chance to be selected, but with a bias towards fitter individuals. The linear scaling function is defined as follows:
+The `LinearRankSelector` selects individuals based on their **rank** in the `population` rather than their raw fitness values. The population is ranked best-first, and each individual is given a selection weight that decreases linearly with its rank — the best individual gets weight $N$, the worst gets weight $1$ — and individuals are then sampled in proportion to those weights:
 
 $$
-p_{i}={\Sigma _{i=1}^{N}r_{i}} * pressure
+p_{i}=\frac{N - i}{\sum_{k=1}^{N} k}=\frac{2\,(N - i)}{N\,(N + 1)}
 $$
 
 Where
 
-- $p_{i}$ is the probability of individual $i$ being selected
-- $r_{i}$ is the rank of individual $i$
-- $N$ is the total number of individuals in the `population` 
-- `pressure` is a scaling factor that can be adjusted to control
+- $p_{i}$ is the probability of selecting the individual at rank $i$ (0-based, so $i = 0$ is the best)
+- $N$ is the total number of individuals in the `population`
 
-A higher `pressure` will result in a stronger bias towards fitter individuals, while a lower value will result in a more uniform selection.
+Because selection depends only on rank — not on the spread of the raw fitness *values* — linear rank keeps weaker individuals in play and resists premature convergence, which makes it useful when fitness values are erratic or span a wide range.
+
+!!! note "`pressure` currently has no effect on the distribution"
+
+    The `pressure` argument scales the internal weighting, but because it scales each individual's weight and the running total equally, it cancels out of the probabilities above — so changing it does not currently change which individuals are selected.
 
 === ":fontawesome-brands-python: Python"
 
     If `pressure` is not specified, it defaults to `0.5`.
 
     ```python
-    import radiate as rd
-
-    selector = rd.LinearRankSelector(pressure=0.1)
-    selector = rd.Select.linear_rank(0.1) # Using the Select dsl syntax
+    --8<-- "python/selectors/index.py:linear_rank_selector"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -334,11 +310,9 @@ The `RandomSelector` is a selection strategy that selects individuals from the `
 
 === ":fontawesome-brands-python: Python"
 
-    ```python
-    import radiate as rd
+    !!! note
 
-    selector = rd.RandomSelector()
-    ```
+        `RandomSelector` is not exposed in the Python API; it is available in Rust only.
 
 === ":fontawesome-brands-rust: Rust"
 

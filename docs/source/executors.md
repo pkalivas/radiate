@@ -14,92 +14,18 @@ Currently, radiate supports three executors:
 
 ## Example
 
-Continuing with our example from the preious sections - evolving a simple function: finding the best values for `y = ax + b` where we want to find optimal values for `a` and `b`. We'll keep the previous inputs the same as before, but now we add an `executor` to the `GeneticEngine`.
+Continuing with our example from the previous sections - evolving a simple function: finding the best values for `y = ax + b` where we want to find optimal values for `a` and `b`. We'll keep the previous inputs the same as before, but now we add an `executor` to the `GeneticEngine`.
 
 === ":fontawesome-brands-python: Python"
 
-    Its important to note that the `WorkerPool` and `FixedSizedWorkerPool` executors use multiple threads to run the fitness function concurrently. If you are not using a free-threaded interpreter (ie: `python3.13t/3.14t`) or the GIL is enabled, the engine will raise an exception. There are a few caveats to this with genetic programming problems - see the [GP regression](gp/regression.md) section for more details. 
+    !!! tip "Python concurrency"
 
-    If you are in fact using a free-threaded interpreter, your engine can take advantage of multiple threads to evaluate fitness concurrently. This can **significantly** speed up evolution, especially if your fitness function is computationally expensive. However, your fitness function **must** be thread-safe.
+        The `WorkerPool` and `FixedSizedWorkerPool` executors use multiple threads to run the fitness function concurrently. If you are not using a free-threaded interpreter (ie: `python3.13t/3.14t`) or the GIL is enabled, the engine will raise an exception. There are a few caveats to this with genetic programming problems - see the [GP regression](gp/regression.md) section for more details. 
+
+        If you are in fact using a free-threaded interpreter, your engine can take advantage of multiple threads to evaluate fitness concurrently. This can **significantly** speed up evolution, especially if your fitness function is computationally expensive. However, your fitness function **must** be thread-safe.
 
     ```python
-    import radiate as rd
-
-    # Define a fitness function that uses the decoded values
-    def fitness_function(individual: list[float]) -> float:    
-        # Calculate how well these parameters fit your data
-        a = individual[0]
-        b = individual[1]
-        return calculate_error(a, b)  # Your error calculation here
-
-    # Create a codec for two parameters (a and b)
-    codec = rd.FloatCodec(
-        shape=2,                  # We need two parameters: a and b
-        init_range=(-1.0, 1.0),    # Start with values between -1 and 1
-        bounds=(-10.0, 10.0)       # Allow evolution to modify the values between -10 and 10
-    )
-
-    # Use Boltzmann selection for offspring - individuals which
-    # will be used to create new individuals through mutation and crossover
-    offspring_selector = rd.BoltzmannSelector(temp=4)
-
-    # Use tournament selection for survivors - individuals which will 
-    # be passed down unchanged to the next generation
-    survivor_selector = rd.TournamentSelector(k=3)
-
-	# Define the alterers - these will be applied to the selected offspring
-	# to create new individuals. They will be applied in the order they are defined.
-	alters = [
-		rd.GaussianMutator(rate=0.1),
-		rd.BlendCrossover(rate=0.8, alpha=0.5)
-	]
-
-    # Define the diversity measure
-    diversity = rd.HammingDistance()  # or rd.EuclideanDistance() for continuous problems
-
-    # Define the executor - here we use a fixed size worker pool with 4 threads
-    executor = rd.Executor.FixedSizedWorkerPool(num_workers=4)
-    # Alternatively, you can use a WorkerPool (which uses rayon's global thread pool)
-    executor = rd.Executor.WorkerPool()
-    # Or for single-threaded execution, use Serial - this is the default if none is specified
-    executor = rd.Executor.Serial()
-
-    # Create the evolution engine
-    engine = rd.Engine(
-        codec=codec,
-        fitness_func=fitness_function,
-        offspring_selector=offspring_selector,
-        survivor_selector=survivor_selector,
-		alters=alters,
-        diversity=diversity,
-        species_threshold=0.5,
-        max_species_age=20,
-        executor=executor,  # Set the executor here
-        # ... other parameters ...
-    )
-
-    # Or create the engine using the fluent builder pattern & dsl syntax - both these engines are functionally equivalent:
-    # The big difference here is that we can use the convenient
-    # .parallel(num_workers: int | None = None) method.
-    # If num_workers is None, it will use rayon's global thread pool, otherwise
-    # it will use a fixed sized worker pool with the specified number of workers.
-    engine = (
-        rd.Engine.float(2, init_range=(-1.0, 1.0), bounds=(-10.0, 10.0))
-        .fitness(fitness_function)
-        .select(rd.Select.boltzmann(temp=4), rd.Select.tournament(k=3))
-        .alters(
-            rd.Mutate.gaussian(rate=0.1),
-            rd.Cross.blend(rate=0.8, alpha=0.5)
-        )
-        .diversity(rd.Dist.hamming(), 0.5)
-        .age(max_species_age=20)
-        .parallel(num_workers=4)  # Use a fixed sized worker pool with 4 workers
-        # .parallel()  # Use a worker pool with rayon's global thread pool
-        # ... other builder methods ...
-    )
-
-    # Run the engine
-    result = engine.run(rd.Limit.score(0.01), rd.Limit.generations(1000))
+    --8<-- "python/executors.py:example"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -125,23 +51,6 @@ Continuing with our example from the preious sections - evolving a simple functi
     // holds 2 FloatGenes (a and b), each with a value between -1.0 and 1.0 and a bound between -10.0 and 10.0
     let codec = FloatCodec::vector(2, -1.0..1.0).with_bounds(-10.0..10.0);
 
-    // Use Boltzmann selection for offspring - individuals which
-    // will be used to create new individuals through mutation and crossover
-    let offspring_selector = BoltzmannSelector::new(4.0);
-
-    // Use tournament selection for survivors - individuals which will
-    // be passed down unchanged to the next generation
-    let survivor_selector = TournamentSelector::new(3);
-
-    // Define some alters 
-	let alters = alters![
-		GaussianMutator::new(0.1),
-		BlendCrossover::new(0.8, 0.5)
-	];
-
-    // Define the diversity measure
-    let diversity = HammingDistance::new(); // or EuclideanDistance::new() for continuous problems
-
     // Define the executor - here we use a fixed size worker pool with 4 threads
     let executor = Executor::FixedSizedWorkerPool(4);
     // Alternatively, you can use a WorkerPool (which uses rayon's global thread pool)
@@ -151,13 +60,13 @@ Continuing with our example from the preious sections - evolving a simple functi
 
     let mut engine = GeneticEngine::builder()
         .codec(codec)
-        .offspring_selector(offspring_selector)
-        .survivor_selector(survivor_selector)
+        .offspring_selector(BoltzmannSelector::new(4.0))
+        .survivor_selector(TournamentSelector::new(3))
         .fitness_fn(fitness_fn)
-		.alterers(alters) 
-        .diversity(diversity)  
-        .species_threshold(0.5)     
-        .max_species_age(20)        
+		.alterers(alters!(
+            GaussianMutator::new(0.1),
+		    BlendCrossover::new(0.8, 0.5)
+        )) 
         .executor(executor)         // Set the executor here
         // ... other parameters ...
         .build();

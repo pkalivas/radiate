@@ -42,10 +42,10 @@ coverage: _require-uv
         --cov-report=term-missing
 
 lint: _require-uv
-    @uv run ruff check py-radiate tests examples
+    @uv run ruff check py-radiate examples
 
 format: _require-uv
-    @uv run ruff format py-radiate tests examples
+    @uv run ruff format py-radiate examples
 
 wheel py=py-version args=extra-args:
     @uv run maturin build -i {{py}} -m py-radiate/Cargo.toml --release {{args}}
@@ -91,6 +91,14 @@ test-rs:
 
     # @cargo test
 
+# Execute every user-guide Python snippet (docs/source/src/python) to catch doc drift
+test-docs *args: _require-uv
+    @uv run -m pytest py-radiate/tests/docs -n auto {{args}}
+
+# Strict mkdocs build — validates that all snippet (`--8<--`) includes resolve
+docs-build: _require-uv
+    @uv run --with mkdocs-material mkdocs build --strict
+
 # --------------------------
 # Example commands
 # --------------------------
@@ -107,4 +115,5 @@ clean:
     @rm -rf dist/
     @rm -rf target/
     @rm -rf .pytest_cache
+    @rm -rf site
     @just py-radiate/clean

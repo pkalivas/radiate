@@ -2,6 +2,17 @@
 
 Mutators introduce (usually small) random changes to individual genes or chromosomes, helping maintain diversity in the population and enabling exploration of the search space.
 
+| Mutator | Works on | What it does |
+|---|---|---|
+| [Uniform](#uniform) | any gene | replaces a gene with a fresh random value |
+| [Gaussian](#gaussian) | Float | adds normally-distributed noise |
+| [Arithmetic](#arithmetic) | Float, Int | applies a random +, −, ×, or ÷ |
+| [Swap](#swap) | any gene | swaps two genes' positions |
+| [Scramble](#scramble) | any gene | randomly reorders a segment |
+| [Invert](#invert) | any gene | reverses a segment |
+| [Polynomial](#polynomial) | Float | bounded perturbation with tunable spread (`eta`) |
+| [Jitter](#jitter) | Float | adds small uniform noise scaled by `magnitude` |
+
 ---
 
 ## Uniform
@@ -20,11 +31,7 @@ The most basic mutation operator. It randomly replaces a gene with a new instanc
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    mutator = rd.UniformMutator(rate=0.1)
-	mutator = rd.UniformMutator(rate=rd.Rate.fixed(0.1))
-	mutator = rd.Mutate.uniform(rate=0.1) # Using the Mutate dsl syntax
+    --8<-- "python/alters/mutators.py:uniform_mutator"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -33,7 +40,7 @@ The most basic mutation operator. It randomly replaces a gene with a new instanc
     use radiate::*;
 
     let mutator = UniformMutator::new(0.1);
-	let mutator = UniformMutator::from(Rate::fixed(0.1));
+    let mutator = UniformMutator::from(Rate::fixed(0.1));
     ```
 
 ---
@@ -54,10 +61,7 @@ The `GaussianMutator` operator is a mutation mechanism designed for `ArithmeticG
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    mutator = rd.GaussianMutator(rate=0.1)
-	mutator = rd.Mutate.gaussian(rate=0.1) # Using the Mutate dsl syntax
+    --8<-- "python/alters/mutators.py:gaussian_mutator"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -90,10 +94,7 @@ The `ArithmeticMutator` introduces diversity into genetic algorithms by mutating
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    mutator = rd.ArithmeticMutator(rate=0.1)
-	mutator = rd.Mutate.arithmetic(rate=0.1) # Using the Mutate dsl syntax
+    --8<-- "python/alters/mutators.py:arithmetic_mutator"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -122,10 +123,7 @@ The `SwapMutator` is a mutation operator designed for genetic algorithms to swap
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    mutator = rd.SwapMutator(rate=0.1)
-	mutator = rd.Mutate.swap(rate=0.1) # Using the Mutate dsl syntax
+    --8<-- "python/alters/mutators.py:swap_mutator"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -153,20 +151,17 @@ The `ScrambleMutator` randomly reorders a segment of `genes` within a `chromosom
 
 === ":fontawesome-brands-python: Python"
 
-	```python
-	import radiate as rd
-
-	mutator = rd.ScrambleMutator(rate=0.1)
-	mutator = rd.Mutate.scramble(rate=0.1) # Using the Mutate dsl syntax
-	```
+    ```python
+    --8<-- "python/alters/mutators.py:scramble_mutator"
+    ```
 
 === ":fontawesome-brands-rust: Rust"
 
-	```rust
-	use radiate::*;
+    ```rust
+    use radiate::*;
 
-	let mutator = ScrambleMutator::new(0.1);
-	```
+    let mutator = ScrambleMutator::new(0.1);
+    ```
 
 ---
 
@@ -181,23 +176,23 @@ The `ScrambleMutator` randomly reorders a segment of `genes` within a `chromosom
 - **Example**: Helpful in permutation problems where reverse ordering of segments might lead to better solutions
 - **Compatible with**: `BitGene`, `CharGene`, `FloatGene`, `IntGene<I>`, `PermutationGene<A>`
 
-`InvertMutator` is a segment inversion mutator. It randomly selects a segment of the `chromosome` and inverts the order of the `genes` within that segment.
+`InversionMutator` is a segment inversion mutator. It randomly selects a segment of the `chromosome` and inverts the order of the `genes` within that segment.
 
 === ":fontawesome-brands-python: Python"
 
-	```python
-	import radiate as rd
+    ```python
+    --8<-- "python/alters/mutators.py:invert_mutator"
+    ```
 
-	mutator = rd.InvertMutator(rate=0.1)
-	mutator = rd.Mutate.invert(rate=0.1) # Using the Mutate dsl syntax
-	```
 === ":fontawesome-brands-rust: Rust"
 
-	```rust
-	use radiate::*;
+    ```rust
+    use radiate::*;
 
-	let mutator = InvertMutator::new(0.1);
-	```
+    let mutator = InversionMutator::new(0.1);
+    ```
+
+---
 
 ## Polynomial
 
@@ -213,24 +208,23 @@ The `ScrambleMutator` randomly reorders a segment of `genes` within a `chromosom
 
 The `PolynomialMutator` applies a polynomial mutation to the genes of a chromosome. This provides a bounded and unbiased mutation to genes where you care about the distribution of the mutation. Unlike Gaussian mutation, Polynomial can give more control over the tail behavior.
 
-The `eta` parameter controls the shape of the mutation distribution. A higher `eta` value results in a more exploratory mutation, while a lower value makes the mutation more exploitative. For example, a low `eta` (1.0-5.0) leads to bigger mutations, while a high value (20.0-100.0) leads to smaller, more fine grained mutations.
+The `eta` parameter controls the shape of the mutation distribution. A higher `eta` value produces smaller, more exploitative mutations that stay close to the original value, while a lower value produces larger, more exploratory mutations. For example, a low `eta` (1.0-5.0) leads to bigger mutations, while a high value (20.0-100.0) leads to smaller, more fine grained mutations.
 
 === ":fontawesome-brands-python: Python"
 
-	```python
-	import radiate as rd
+    ```python
+    --8<-- "python/alters/mutators.py:polynomial_mutator"
+    ```
 
-	mutator = rd.PolynomialMutator(rate=0.1, eta=20.0)
-	mutator = rd.Mutate.polynomial(rate=0.1, eta=20.0) # Using the Mutate dsl syntax
-	```
 === ":fontawesome-brands-rust: Rust"
 
-	```rust
-	use radiate::*;
+    ```rust
+    use radiate::*;
 
-	let mutator = PolynomialMutator::new(0.1, 20.0);
-	```
+    let mutator = PolynomialMutator::new(0.1, 20.0);
+    ```
 
+---
 
 ## Jitter
 
@@ -248,16 +242,14 @@ The `JitterMutator` adds small random perturbations to the values of a `gene` wi
 
 === ":fontawesome-brands-python: Python"
 
-	```python
-	import radiate as rd
+    ```python
+    --8<-- "python/alters/mutators.py:jitter_mutator"
+    ```
 
-	mutator = rd.JitterMutator(rate=0.1, magnitude=0.5)
-	mutator = rd.Mutate.jitter(rate=0.1, magnitude=0.5) # Using the Mutate dsl syntax
-	```
 === ":fontawesome-brands-rust: Rust"
 
-	```rust
-	use radiate::*;
+    ```rust
+    use radiate::*;
 
-	let mutator = JitterMutator::new(0.1, 0.5);
-	```
+    let mutator = JitterMutator::new(0.1, 0.5);
+    ```

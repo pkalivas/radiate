@@ -7,13 +7,13 @@ The fitness function takes a decoded phenotype (the actual data structure) and r
 
 !!! note "**Fitness functions must return valid scores**"
     
-    All fitness functions must return a `Score` object. Radiate automatically converts common types like `f32`, `f64`, `i32`, `ì64`, `Vec<f32>`, etc. into `Score` objects. NaN values are not allowed and will cause a panic. The number of values returned by the fitness function must match your objectives. For example, if you have two objectives, your fitness function must return a `Score` with two values.
+    All fitness functions must return a `Score` object or a value that can be converted into a `Score`. Radiate automatically converts common types like `f32`, `f64`, `i32`, `i64`, `Vec<f32>`, etc. into `Score` objects - so those can be returned natively. NaN values are not allowed and will cause a panic. The number of values returned by the fitness function **must** match your objectives. For example, if you have two objectives, your fitness function must return a `Score` with two values.
 
 ## Overview
 
 | Fitness Function Type | Purpose | Use Case | Complexity |
 |----------------------|---------|----------|------------|
-| [Simple Functions](#simple-fitness) | Basic optimization | Problems, benchmarks, cutstom logic | Low |
+| [Simple Functions](#simple-fitness) | Basic optimization | Problems, benchmarks, custom logic | Low |
 | [Batch Fitness](#batch-fitness) | Batch optimization | Problems, benchmarks, custom logic | Low |
 | [Raw Fitness](#raw-fitness) | Direct genotype evaluation | When decoding is unnecessary | Low |
 | [Composite Functions](#composite-fitness) | Fitness combination | Balancing multiple goals | Medium |
@@ -33,36 +33,13 @@ Simple fitness functions are the most common type - they take a phenotype and re
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-    import math
-
-    A = 10.0
-    RANGE = 5.12
-    N_GENES = 2
-
-    def fitness_fn(x: list[float]) -> float:
-        value = A * N_GENES
-        for i in range(N_GENES):
-            value += x[i]**2 - A * math.cos((2.0 * 3.141592653589793 * x[i]))
-        return value
-
-    codec = rd.FloatCodec(N_GENES, init_range=(-RANGE, RANGE))
-    engine = rd.Engine(codec).fitness(fitness_fn).minimizing()
+    --8<-- "python/fitness.py:rastrigin"
     ```
 
-    Python also exposes a `@rd.fitness` decorator which can be used to annotate your fitness functions. As of `1/25/26` using the decorator for a simple fitness function like this doesn't provide any real benefit, the engine will handle wrapping the fitness function into it's DSL internally either way. This would be considered the "more explicit" way of defining your fitness function however and may provide benefits in the future as the python API matures.
+    Python also exposes a `@rd.fitness` decorator which can be used to annotate your fitness functions. As of `1/25/26` using the decorator for a simple fitness function like this doesn't provide any real benefit, the engine will handle wrapping the fitness function into its DSL internally either way. This would be considered the "more explicit" way of defining your fitness function however and may provide benefits in the future as the python API matures.
 
     ```python
-    import radiate as rd
-
-    @rd.fitness # <- this decorator
-    def fitness_fn(x: list[float]) -> float:
-        value = A * N_GENES
-        for i in range(N_GENES):
-            value += x[i]**2 - A * math.cos((2.0 * 3.141592653589793 * x[i]))
-        return value
-
-    # ... fill in the rest of your engine setup as normal (check first example above)...
+    --8<-- "python/fitness.py:fitness_decorator"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -70,17 +47,20 @@ Simple fitness functions are the most common type - they take a phenotype and re
     ```rust
     use radiate::*;
 
+    const N_GENES: usize = 2;
+    const A: f32 = 10.0;
+
     fn rastrigin_function(genotype: Vec<f32>) -> f32 {
-        let mut value = 10.0 * 2 as f32;
+        let mut value = A * N_GENES as f32;
         for i in 0..N_GENES {
-            value += genotype[i].powi(2) - 10.0 * (2.0 * std::f32::consts::PI * genotype[i]).cos();
+            value += genotype[i].powi(2) - A * (2.0 * std::f32::consts::PI * genotype[i]).cos();
         }
 
         value
     }
 
     let engine = GeneticEngine::builder()
-        .codec(FloatCodec::vector(2, -5.12..5.12))
+        .codec(FloatCodec::vector(N_GENES, -5.12..5.12))
         .minimizing()
         .fitness_fn(rastrigin_function)
         .build();
@@ -92,69 +72,20 @@ Simple fitness functions are the most common type - they take a phenotype and re
 
 The batch fitness function groups members of the `Population` which need to be evaluated into buckets to be evaluated together. 
 If you need access to parts or the whole of a `Population` in order to compute fitness, this is your best bet. Depending on the 
-implementation of your actual fitness logic, this can also be a speed up to your `Engine`. The logic behind the grouping depends on the `Executor` being used. Meaning, if your `Executor` is using 4 workers (threads) the individuals which need to be evaluated will be split into 4 batches. On the flip side, if your `Executor` is using a single thread (Serial), your fitness function will recieve a single batch containing all individuals which need evaluation.
+implementation of your actual fitness logic, this can also be a speed up to your `Engine`. The logic behind the grouping depends on the `Executor` being used. Meaning, if your `Executor` is using 4 workers (threads) the individuals which need to be evaluated will be split into 4 batches. On the flip side, if your `Executor` is using a single thread (Serial), your fitness function will receive a single batch containing all individuals which need evaluation.
 
 Its important to note that other types of fitness functions like `NoveltySearch` & `CompositeFitnessFn` both support batch processing too by simply placing those objects within the call to `.batch_fitness_fn` - just like `.fitness_fn`.
 
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-    import math
-
-    A = 10.0
-    RANGE = 5.12
-    N_GENES = 2
-
-    # NOTE this function expects a batch of inputs and returns a batch of outputs
-    # the order in which the inputs are given is the order in which the outputs are returned
-    def fitness_fn(x: list[list[float]]) -> list[float]:
-        assert len(x) > 1
-
-        results = []
-        for member in x:
-            value = A * N_GENES
-            for i in range(N_GENES):
-                value += member[i]**2 - A * math.cos((2.0 * 3.141592653589793 * member[i]))
-            results.append(value)
-        return results
-
-    codec = rd.FloatCodec(N_GENES, init_range=(-RANGE, RANGE))
-
-    # Create the genetic engine with batch fitness function.
-    # Just wrap your fitness function in 'rd.BatchFitness'
-    engine = rd.Engine(codec).fitness(rd.BatchFitness(fitness_fn)).minimizing()
+    --8<-- "python/fitness.py:batch_fitness"
     ```
 
     Just like simple fitness functions, python lets you opt out of wrapping your fitness function in `rd.BatchFitness` by using the `@rd.fitness` decorator.
 
     ```python
-    import radiate as rd
-    import math
-
-    A = 10.0
-    RANGE = 5.12
-    N_GENES = 2
-
-    # NOTE this function expects a batch of inputs and returns a batch of outputs
-    # the order in which the inputs are given is the order in which the outputs are returned
-    @rd.fitness(batch=True)  # <- this decorator with batch=True
-    def fitness_fn(x: list[list[float]]) -> list[float]:
-        assert len(x) > 1
-
-        results = []
-        for member in x:
-            value = A * N_GENES
-            for i in range(N_GENES):
-                value += member[i]**2 - A * math.cos((2.0 * 3.141592653589793 * member[i]))
-            results.append(value)
-        return results
-
-    codec = rd.FloatCodec(N_GENES, init_range=(-RANGE, RANGE))
-
-    # Create the genetic engine with batch fitness function.
-    # NOTE: We no longer need to wrap 'fitness_fn' in 'rd.BatchFitness'
-    engine = rd.Engine(codec).fitness(fitness_fn).minimizing()
+    --8<-- "python/fitness.py:batch_fitness_decorator"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -318,7 +249,7 @@ Composite fitness functions allow you to combine multiple objectives into a sing
 
 ## Novelty Search
 
-Novelty search is an advanced technique that rewards individuals for being behaviorally different from previously seen solutions, rather than just being "better" in terms of fitness. This helps avoid local optima and promotes exploration of the solution space. Below we can see a few members of the population generated by the python [script here](https://github.com/pkalivas/radiate/blob/master/examples/python/novelty_search.py). You can see that each of these has an equal fitness score or 'novelty', but they produce vastly different outcomes. Each phenotype was graded on how novel their walk was between points A and B noted by the green and red dots repsectively.
+Novelty search is an advanced technique that rewards individuals for being behaviorally different from previously seen solutions, rather than just being "better" in terms of fitness. This helps avoid local optima and promotes exploration of the solution space. Below we can see a few members of the population generated by the python [script here](https://github.com/pkalivas/radiate/blob/master/examples/python/novelty_search.py). You can see that each of these has an equal fitness score or 'novelty', but they produce vastly different outcomes. Each phenotype was graded on how novel their walk was between points A and B noted by the green and red dots respectively.
 
 <figure markdown="span">
     ![novelty_search](../assets/novelty_search.png){ width="600" }
@@ -328,60 +259,26 @@ Novelty search works by:
 
 1. **Behavioral Descriptors**: Each individual is described by a behavioral descriptor (e.g., output patterns, feature values)
 2. **Archive**: Novel solutions are stored in an archive
-3. **Distance Calculation**: Novelty is measured as the average distance to the k-nearest neighbors in the archive
+3. **Distance Calculation**: Novelty is measured as the average distance to the *k*-nearest neighbors in the archive — using one of the same [distance measures](diversity/distance.md) that drive speciation (Euclidean by default)
 4. **Threshold**: Solutions with novelty above a threshold are added to the archive
-
-You can implement your own behavioral descriptors by implementing the `Novelty` trait. 
 
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    # Define a behavioral descriptor
-    def behavior(self, individual: list[float]) -> list[float]:
-        # Return behavioral characteristics 
-        # Some code that describes the behavior of a vector
-        # The individual here is a list[float] because we are using a FloatCodec vector below
-        ... 
-        
-    # Create novelty search fitness function
-    novelty_fitness = rd.NoveltySearch(
-        descriptor=behavior,
-        # can use any of the distance inputs. The engine will use this to 
-        # determine how 'novel' an individual is compared to the other's in the 
-        # archinve or population, ultimently resulting in the individuals fitness score.
-        distance=rd.CosineDistance(),  # Distance metric to use,
-        k=10,           # Number of nearest neighbors to consider
-        threshold=0.1,   # Novelty threshold for archive addition
-        archive_size=1000, # defaults to 1000
-    )
-
-    engine = (
-        # The decoded value of your codec (a list[float] in this case) will be fed into the `behavior` function of your NoveltySearch fitness_func
-        rd.Engine.float(10, init_range=(0, 10), bounds=(0, 10))  
-        .fitness(novelty_fitness)
-        .maximizing()  # We want to maximize novelty - however this is the default so its not necessary to define
-    )
+    --8<-- "python/fitness.py:novelty_search"
     ```
 
     Just like the other fitness functions, radiate also exposes a `@rd.novelty` decorator which can be used to annotate your novelty search descriptor (fitness functions). The below code snippet is functionally identical to the one above, just using the decorator instead of passing the function into `rd.NoveltySearch`.
 
     ```python
-    import radiate as rd
-
-    # Define a behavioral descriptor
-    @rd.novelty(distance=rd.Dist.cosine(), k=10, threshold=0.1, archive=1000)
-    def behavior(self, individual: list[float]) -> list[float]:
-        # Return behavioral characteristics 
-        # Some code that describes the behavior of a vector
-        # The individual here is a list[float] because we are using a FloatCodec vector below
-        ... 
-        
-    engine = rd.Engine.float(10, init_range=(0, 10)).fitness(behavior)
+    --8<-- "python/fitness.py:novelty_decorator"
     ```
 
+    Note the keyword difference: `NoveltySearch(...)` takes `archive_size=`, while the `@rd.novelty(...)` decorator takes `archive=` — both set the same archive capacity.
+
 === ":fontawesome-brands-rust: Rust"
+
+    You can implement your own behavioral descriptors by implementing the `Novelty` trait. 
 
     ```rust
     use radiate::*;
