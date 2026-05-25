@@ -18,7 +18,7 @@ import radiate as rd
 engine = (
     rd.Engine(your_codec)
     .fitness(your_fitness_func)
-    .diversity(diversity, species_threshold=0.5)  # Default value
+    .diversity(diversity, species_threshold=0.5)
     # ... other parameters ...
 )
 # --8<-- [end:diversity_basic]
@@ -30,7 +30,7 @@ engine = (
     rd.Engine(your_codec)
     .fitness(your_fitness_func)
     .diversity(diversity, species_threshold=0.5)
-    .age(max_species_age=20)  # Default value
+    .age(max_species_age=25)  # Default value
     # ... other parameters ...
 )
 # --8<-- [end:diversity_age]

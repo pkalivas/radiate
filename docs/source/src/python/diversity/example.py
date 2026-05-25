@@ -17,11 +17,11 @@ def fit(individual: list[float]) -> float:
     return calculate_error(a, b)  # Your error calculation here
 
 
-# Define the diversity measure
+# Define the diversity measure - we'll use Euclidean distance to
+# measure how different, or structurally distant, two individuals are.
+# This is the function used to determine species membership and manage diversity.
 diversity = rd.Dist.euclidean()
 
-# Build the engine with the fluent builder pattern, attaching the diversity measure,
-# species threshold, and max species age:
 engine = (
     rd.Engine.float(2, init_range=(-1.0, 1.0), bounds=(-10.0, 10.0), dtype=rd.Float32)
     .fitness(fit)
@@ -37,7 +37,7 @@ engine = (
     .diversity(
         diversity, species_threshold=0.5
     )  # <- Add the diversity measure and species threshold
-    .age(max_species_age=20)  # <- Add the max species age
+    .age(max_species_age=25)  # <- Add the max species age
     .limit(rd.Limit.score(0.01), rd.Limit.generations(1000))
     # ... other parameters ...
 )
