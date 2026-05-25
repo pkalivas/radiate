@@ -172,7 +172,7 @@ Although, any selector can be used, these are optimized for multi-objective prob
     let engine = GeneticEngine::builder()
         .codec(FloatCodec::vector(10, 0.0..1.0))  // Example codec
         .multi_objective(vec![Optimize::Minimize, Optimize::Maximize])
-        .offspring_selector(TournamentNSGA2Selector::new(3))    // Tournament selection with Pareto dominance
+        .offspring_selector(TournamentNSGA2Selector::new())     // Tournament selection with Pareto dominance
         .survivor_selector(NSGA3Selector::new(12))              // NSGA-III with 12 reference directions
         .front_size(800..900)  // Pareto front size range
         .fitness_fn(|genotype| {

@@ -178,6 +178,10 @@ Certain `Genes` have additional functionality that allows them to be manipulated
 Each `Gene` is contained within a `Chromosome` and as such, each `Gene` has its own `Chromosome`.
 The `Chromosome` is a collection of `Genes` that represent a part or the whole of the genetic information of an individual. A `Chromosome` can be thought of as a "chunk" or vector of genetic information. For example, a `Chromosome` could represent a sequence of numbers, a string of characters, or a set of binary values among other things. The decision to define a `Chromosome` for each `Gene` was made to allow for more flexibility in the genetic information that can be represented. Think of it as a "sentence" made up of multiple "words" (genes). Each chromosome represents a specific part of your solution.
 
+<figure markdown="span">
+    ![Chromosome structure](../../assets/genome/chromosome.svg){ width="500" }
+</figure>
+
 For example, if you're evolving a neural network, you might have:
 
 - One chromosome for the weights of the first layer
@@ -299,6 +303,10 @@ The `Genotype` is a collection of `Chromosomes` that represent the complete gene
 
 Because of the typed nature of the `Genotype`, it can only hold a collection of the same type of `Chromosome`. This means that you can have a `Genotype` that contains only `FloatChromosome`s, or only `IntChromosome`s. You cannot have a `Genotype` that contains both `FloatChromosome`s and `IntChromosome`s at the same time - this is by design.
 
+<figure markdown="span">
+    ![Genotype structure](../../assets/genome/genotype.svg){ width="520" }
+</figure>
+
 === ":fontawesome-brands-python: Python"
 
     ```python
@@ -340,6 +348,10 @@ Because of the typed nature of the `Genotype`, it can only hold a collection of 
 > The Living Solution
 
 The `Phenotype` is the representation of an individual in the population that is being evolved by the `GeneticEngine`. It is a concrete implementation of a `Genotype` that includes additional functionality for the individual, such as calculating its fitness score. The `Phenotype` is the "living" version of the `Genotype`, and it is what the `GeneticEngine` interacts with during the evolution process.
+
+<figure markdown="span">
+    ![Phenotype structure](../../assets/genome/phenotype.svg){ width="600" }
+</figure>
 
 The `Phenotype` is responsible for:
 

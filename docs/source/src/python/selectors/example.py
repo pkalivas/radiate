@@ -17,14 +17,6 @@ def fit(individual: list[float]) -> float:
     return calculate_error(a, b)  # Your error calculation here
 
 
-# Create a codec for two parameters (a and b)
-codec = rd.FloatCodec(
-    shape=2,  # We need two parameters: a and b
-    init_range=(-1.0, 1.0),  # Start with values between -1 and 1
-    bounds=(-10.0, 10.0),  # Allow evolution to modify the values between -10 and 10
-    dtype=rd.Float32,  # Optional - default is Float64
-)
-
 # Use Boltzmann selection for offspring - individuals which
 # will be used to create new individuals through mutation and crossover
 offspring_selector = rd.Select.boltzmann(temp=4)

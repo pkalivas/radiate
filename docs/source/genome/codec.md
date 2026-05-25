@@ -7,6 +7,10 @@
 
 Radiate's `GeneticEngine` operates on an abstract representation of your domain problem using the 'Genome'. To bridge the gap between your domain and radiate's, we use a `Codec` - encoder-decoder. A `Codec` is a mechanism that encodes and decodes genetic information between the 'problem space' (your domain) and the 'solution space' (Radiate's internal representation).
 
+<figure markdown="span">
+    ![Codec encode/decode round trip](../../assets/genome/codec.svg){ width="620" }
+</figure>
+
 Essentially, this is a component that defines how genetic information is structured and represented in your evolutionary algorithm. Think of it as a blueprint that tells the algorithm:
 
 - What type of data you're evolving (numbers, characters, etc.)
@@ -44,7 +48,19 @@ Here's a simple breakdown of how codecs work in the evolution process:
 
 ## Types of Codecs
 
-Radiate provides several codec types out of the box that should be able to cover most use cases. Each codec type is designed to handle specific data types and structures, making it easier to evolve solutions for various problems. The core codecs include:
+Radiate provides several codec types out of the box that should be able to cover most use cases. Each codec type is designed to handle specific data types and structures, making it easier to evolve solutions for various problems. Use the table below to pick one, then expand its section for details.
+
+| Codec | Decodes to | Reach for it when… |
+|---|---|---|
+| **FloatCodec** | float / list / matrix of floats | continuous params, neural-net weights |
+| **IntCodec** | int / list / matrix of ints | discrete params, indices, counts |
+| **CharCodec** | chars / strings | text, string-matching |
+| **BitCodec** | bools | binary choices, feature selection |
+| **SubSetCodec** | a subset of your items | knapsack, feature selection |
+| **PermutationCodec** | an ordering of your items | TSP, scheduling, sequencing |
+| **FnCodec** | anything (you define encode/decode) | custom structures that don't fit the above |
+
+The core codecs include:
 
 ??? note "FloatCodec"
 
