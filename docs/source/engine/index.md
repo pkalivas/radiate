@@ -4,6 +4,54 @@ The `GeneticEngine` is the core component. Once built, it manages the entire evo
 
 ---
 
+## Building an Engine
+
+Every engine is created through a fluent builder. Only two things are **required** — an encoding (the [codec](../genome/codec.md)) and a [fitness function](../fitness.md); everything else has a sensible default you override only when you need to. Each setting below links to the section covering how to configure it in both Python and Rust.
+
+| Setting | Default |
+|---|---|
+| Encoding / genome | — *(required)* |
+| [Fitness function](../fitness.md) | — *(required)* |
+| [Objective](../objectives.md) | maximize, single |
+| Population size | 100 |
+| [Offspring selector](../selectors/index.md) | Roulette |
+| [Survivor selector](../selectors/index.md) | Tournament (k=3) |
+| Offspring fraction | 0.8 |
+| [Alterers](../alters/index.md) | UniformCrossover(0.5) + UniformMutator(0.1) |
+| [Diversity](../diversity/index.md) | off |
+| [Executor](../executors.md) | Serial |
+| Stopping [limits](#running) | none — runs until you stop it |
+| [Events](../events.md) | none |
+
+So a minimal engine with just a codec and a fitness function will do the following: maximizes a single objective over a population of 100, breeding 80% offspring each generation with uniform crossover and mutation, selecting offspring by roulette and survivors by tournament, running single-threaded. From there you change only what your problem needs.
+
+---
+
+## Life of a Generation
+
+Each time the engine advances one generation, it runs a fixed pipeline of steps. Two of them are conditional — `Front` only runs for multi-objective problems, and `Speciate` only when you've configured a [diversity measure](../diversity/index.md):
+
+```mermaid
+flowchart TD
+    S[Next generation] --> E1[Evaluate — score unscored individuals]
+    E1 --> R[Recombine — select survivors, breed offspring via crossover + mutation]
+    R --> F[Filter — replace individuals past max_age or with invalid genomes]
+    F --> E2[Evaluate — re-score the individuals whose genomes changed]
+    E2 --> MO{multi-objective?}
+    MO -->|yes| FR[Front — update the Pareto front]
+    MO -->|no| DV{diversity configured?}
+    FR --> DV
+    DV -->|yes| SP[Speciate — cluster the population into species by distance]
+    DV -->|no| AU[Audit — collect this generation's metrics]
+    SP --> AU
+    AU --> G[Emit a Generation epoch]
+    G --> S
+```
+
+The engine evaluates twice per generation. The first pass ranks the current population so selection has scores to work with. The second pass re-scores every individual whose genome changed in between — the offspring produced by crossover and mutation (modifying a genome invalidates its old score) and any replacements introduced by `Filter` — so each emitted epoch is fully scored.
+
+---
+
 ## Epochs
 
 Each epoch represents a single generation in the evolutionary process. An epoch contains information related not only to the current generation, but also the engine's state at that point in time. This is the primary output of the engine, and it can be used to track progress, visualize results, or make decisions based on the evolutionary process. 

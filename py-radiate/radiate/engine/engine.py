@@ -482,8 +482,8 @@ class Engine[G, T]:
         provided, the engine will use its default selection strategies and offspring fraction.
 
         Defaults:
-        - Offspring Selector: rd.Select.tournament(k=3)
-        - Survivor Selector: rd.Select.roulette()
+        - Offspring Selector: rd.Select.roulette()
+        - Survivor Selector: rd.Select.tournament(k=3)
         - Offspring Fraction: 0.8 (80% offspring, 20% survivors)
 
         Args:
