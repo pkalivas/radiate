@@ -16,9 +16,8 @@
 //! 1) Build with `push(...)`, `attach(...)`, `detach(...)`, `change_direction(...)`
 //! 2) `commit()`, `commit_with(...)`, or `try_commit()` to finalize
 //! 3) On invalid commit, use returned `replay` to re-apply later with `replay(...)`
-
 use super::{Direction, Graph, GraphNode};
-use crate::{Arity, NodeType, node::Node};
+use crate::{Arity, NodeType, graphs::node::InnovationId, node::Node};
 use radiate_core::{RdRand, Valid, random_provider};
 use radiate_utils::SortedBuffer;
 use std::{fmt::Debug, ops::Deref};
@@ -40,6 +39,10 @@ pub enum MutationStep {
         index: usize,
         previous_direction: Direction,
     },
+    InnovationChange {
+        node_idx: usize,
+        previous_innovation: Option<InnovationId>,
+    },
 }
 
 /// A replayable step produced by `rollback()` to restore the effects that were undone.
@@ -53,6 +56,7 @@ pub enum ReplayStep<T> {
     AddEdge(usize, usize),
     RemoveEdge(usize, usize),
     DirectionChange(usize, Direction),
+    InnovationChange(usize, Option<InnovationId>),
 }
 
 /// Result of finalizing a transaction.
@@ -93,6 +97,7 @@ impl<T> TransactionResult<T> {
 pub enum InsertStep {
     Detach(usize, usize),
     Connect(usize, usize),
+    NewStructure(usize, usize, usize, NodeType),
     Invalid,
 }
 
@@ -143,7 +148,7 @@ impl<'a, T> GraphTransaction<'a, T> {
         let mut attempts = 0;
 
         self.set_cycles();
-        while repaired == false && attempts < MAX_REPAIR_ATTEMPTS {
+        while !repaired && attempts < MAX_REPAIR_ATTEMPTS {
             repaired = self.repair_invalid_nodes();
             if repaired {
                 self.set_cycles();
@@ -228,6 +233,17 @@ impl<'a, T> GraphTransaction<'a, T> {
                         replay_steps.push(ReplayStep::DirectionChange(index, prev_dir));
                     }
                 }
+                MutationStep::InnovationChange {
+                    node_idx,
+                    previous_innovation,
+                } => {
+                    if let Some(node) = self.graph.get_mut(node_idx) {
+                        let current_innovation = node.innovation();
+                        node.set_innovation(previous_innovation);
+                        replay_steps
+                            .push(ReplayStep::InnovationChange(node_idx, current_innovation));
+                    }
+                }
             }
         }
 
@@ -255,6 +271,9 @@ impl<'a, T> GraphTransaction<'a, T> {
                 ReplayStep::DirectionChange(index, direction) => {
                     self.change_direction(index, direction);
                 }
+                ReplayStep::InnovationChange(node_idx, innovation) => {
+                    self.set_innovation(node_idx, innovation);
+                }
             }
         }
     }
@@ -275,6 +294,17 @@ impl<'a, T> GraphTransaction<'a, T> {
                     self.change_direction(cycle_idx, Direction::Backward);
                 }
             }
+        }
+    }
+
+    pub fn set_innovation(&mut self, node_idx: usize, innovation: Option<InnovationId>) {
+        if let Some(node) = self.graph.get_mut(node_idx) {
+            let previous_innovation = node.innovation();
+            node.set_innovation(innovation);
+            self.steps.push(MutationStep::InnovationChange {
+                node_idx,
+                previous_innovation,
+            });
         }
     }
 
@@ -317,6 +347,12 @@ impl<'a, T> GraphTransaction<'a, T> {
                 steps.push(InsertStep::Connect(source_idx, new_node_idx));
                 steps.push(InsertStep::Connect(new_node_idx, source_outgoing));
                 steps.push(InsertStep::Detach(source_idx, source_outgoing));
+                steps.push(InsertStep::NewStructure(
+                    source_idx,
+                    new_node_idx,
+                    source_outgoing,
+                    source_node.node_type(),
+                ));
             }
         } else if target_is_edge || target_node.is_locked() {
             let target_incoming = *rand.choose(target_node.incoming());
@@ -327,10 +363,22 @@ impl<'a, T> GraphTransaction<'a, T> {
                 steps.push(InsertStep::Connect(target_incoming, new_node_idx));
                 steps.push(InsertStep::Connect(new_node_idx, target_idx));
                 steps.push(InsertStep::Detach(target_incoming, target_idx));
+                steps.push(InsertStep::NewStructure(
+                    target_incoming,
+                    new_node_idx,
+                    target_idx,
+                    target_node.node_type(),
+                ));
             }
         } else {
             steps.push(InsertStep::Connect(source_idx, new_node_idx));
             steps.push(InsertStep::Connect(new_node_idx, target_idx));
+            steps.push(InsertStep::NewStructure(
+                source_idx,
+                new_node_idx,
+                target_idx,
+                new_node.node_type(),
+            ));
         }
 
         steps
@@ -410,15 +458,11 @@ impl<'a, T> GraphTransaction<'a, T> {
         for idx in invalid_nodes.iter() {
             let arity = self.graph[*idx].arity();
             match arity {
-                Arity::Zero => {
-                    if self.repair_zero_arity_node(*idx) {
-                        repaired = true;
-                    }
+                Arity::Zero if self.repair_zero_arity_node(*idx) => {
+                    repaired = true;
                 }
-                Arity::Exact(_) => {
-                    if self.repair_exact_arity_node(*idx) {
-                        repaired = true;
-                    }
+                Arity::Exact(_) if self.repair_exact_arity_node(*idx) => {
+                    repaired = true;
                 }
                 _ => {}
             }
@@ -442,7 +486,7 @@ impl<'a, T> GraphTransaction<'a, T> {
             if let Some(target) = random_target {
                 self.attach(node.index(), target);
 
-                if self.graph[node_idx].outgoing().len() > 0 {
+                if !self.graph[node_idx].outgoing().is_empty() {
                     return true;
                 }
             }
@@ -516,7 +560,7 @@ impl<'a, T> GraphTransaction<'a, T> {
             return None;
         }
 
-        let gene_node_type = rand.choose(&node_types);
+        let gene_node_type = rand.choose(node_types);
 
         let genes = match gene_node_type {
             NodeType::Input => self
@@ -589,7 +633,7 @@ impl<T> Deref for GraphTransaction<'_, T> {
 #[cfg(test)]
 mod tests {
     use super::{GraphTransaction, InsertStep, MutationStep, TransactionResult};
-    use crate::collections::graphs::{Direction, Graph, GraphNode};
+    use crate::collections::graphs::{Direction, Graph, GraphNode, InnovationId};
     use crate::{Arity, Node, NodeType};
     use radiate_core::{Valid, random_provider};
 
@@ -750,7 +794,7 @@ mod tests {
 
         let steps = random_provider::with_rng(|r| tx.get_insertion_steps(source, target, newn, r));
         assert_eq!(
-            steps,
+            steps[..3],
             vec![
                 InsertStep::Connect(source, newn),
                 InsertStep::Connect(newn, target),
@@ -774,7 +818,7 @@ mod tests {
 
         let steps = random_provider::with_rng(|r| tx.get_insertion_steps(source, target, newn, r));
         assert_eq!(
-            steps,
+            steps[..3],
             vec![
                 InsertStep::Connect(source, newn),
                 InsertStep::Connect(newn, target),
@@ -785,7 +829,7 @@ mod tests {
 
     #[test]
     fn random_node_helpers_can_return_edges_when_only_edges_exist() {
-        random_provider::set_seed(1337);
+        random_provider::seed(1337);
         random_provider::with_rng(|rand| {
             let mut g = Graph::<i32>::default();
             let mut tx = GraphTransaction::new(&mut g);
@@ -800,5 +844,48 @@ mod tests {
             assert_eq!(src.node_type(), NodeType::Edge);
             assert_eq!(tgt.node_type(), NodeType::Edge);
         });
+    }
+
+    #[test]
+    fn rollback_restores_previous_innovation_and_replay_reapplies() {
+        let mut g = Graph::<i32>::default();
+        let initial = InnovationId::new();
+        let updated = InnovationId::new();
+
+        {
+            let mut tx = GraphTransaction::new(&mut g);
+            let input = tx.push((0, NodeType::Input, 0));
+            let output = tx.push((1, NodeType::Output, 1));
+            tx.attach(input, output);
+            tx.set_innovation(input, Some(initial));
+            assert!(matches!(tx.commit(), TransactionResult::Valid(_)));
+        }
+        assert_eq!(g[0].innovation(), Some(initial));
+
+        let replay = {
+            let mut tx = GraphTransaction::new(&mut g);
+            tx.set_innovation(0, Some(updated));
+            match tx.commit_with(|_| false) {
+                TransactionResult::Invalid(_, replay) => replay,
+                _ => panic!("expected forced rejection"),
+            }
+        };
+
+        assert_eq!(
+            g[0].innovation(),
+            Some(initial),
+            "rollback should restore previous innovation, not clear it"
+        );
+
+        {
+            let mut tx = GraphTransaction::new(&mut g);
+            tx.replay(replay);
+            assert!(matches!(tx.commit(), TransactionResult::Valid(_)));
+        }
+        assert_eq!(
+            g[0].innovation(),
+            Some(updated),
+            "replay should reapply the innovation change"
+        );
     }
 }

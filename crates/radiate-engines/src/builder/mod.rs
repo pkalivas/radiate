@@ -1,4 +1,5 @@
 mod alters;
+pub(crate) mod config;
 mod evaluators;
 mod objectives;
 mod population;
@@ -14,28 +15,28 @@ use crate::builder::selectors::SelectionParams;
 use crate::builder::species::SpeciesParams;
 use crate::genome::phenotype::Phenotype;
 #[cfg(feature = "serde")]
-use crate::io::CheckpointReader;
+use crate::io::FileReader;
 use crate::objectives::{Objective, Optimize};
 use crate::pipeline::Pipeline;
-use crate::steps::{AuditStep, EngineStep, FilterStep, FrontStep, RecombineStep, SpeciateStep};
+use crate::steps::{
+    AuditStep, EngineStep, FilterStep, FrontStep, RecombineStep, SelectConfig, SpeciateStep,
+};
 use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use crate::{
-    Crossover, EncodeReplace, EngineProblem, EventBus, EventHandler, Front, Mutate, Problem,
-    ReplacementStrategy, RouletteSelector, Select, TournamentSelector, context::Context,
+    Crossover, EncodeReplace, EventBus, EventHandler, Front, Mutate, ReplacementStrategy,
+    RouletteSelector, TournamentSelector, context::Context,
 };
 use crate::{Generation, Result};
+use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
+use radiate_core::MetricQuery;
 use radiate_core::evaluator::BatchFitnessEvaluator;
-use radiate_core::problem::BatchEngineProblem;
-use radiate_core::{
-    Alterer, Diversity, Ecosystem, Evaluator, Executor, FitnessEvaluator, Genotype, Lineage, Rate,
-    Valid,
-};
+use radiate_core::problem::{BatchEngineProblem, EngineProblem};
+use radiate_core::{Alterer, Ecosystem, Executor, FitnessEvaluator, Rate, Valid};
 use radiate_core::{RadiateError, ensure, radiate_err};
-use radiate_expr::NamedExpr;
 #[cfg(feature = "serde")]
 use serde::Deserialize;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, Mutex};
 
 #[derive(Clone)]
 pub struct EngineParams<C, T>
@@ -54,7 +55,7 @@ where
     pub replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
     pub handlers: Vec<Arc<Mutex<dyn EventHandler<T>>>>,
     pub generation: Option<Generation<C, T>>,
-    pub exprs: Option<Arc<Mutex<Vec<NamedExpr>>>>,
+    pub exprs: Option<Arc<Mutex<Vec<MetricQuery>>>>,
 }
 
 /// Parameters for the genetic engine.
@@ -121,7 +122,7 @@ where
         self
     }
 
-    pub fn register_metrics(mut self, exprs: Vec<impl Into<NamedExpr>>) -> Self {
+    pub fn register_metrics(mut self, exprs: Vec<impl Into<MetricQuery>>) -> Self {
         self.params.exprs = Some(Arc::new(Mutex::new(
             exprs.into_iter().map(|e| e.into()).collect(),
         )));
@@ -135,13 +136,13 @@ where
     pub fn load_checkpoint<P: AsRef<std::path::Path>>(
         mut self,
         path: P,
-        reader: impl CheckpointReader<C, T>,
+        reader: impl FileReader<Generation<C, T>>,
     ) -> Self
     where
         C: for<'de> Deserialize<'de>,
         T: for<'de> Deserialize<'de>,
     {
-        let read_generation = reader.read_checkpoint(path.as_ref().to_path_buf());
+        let read_generation = reader.read(path.as_ref().to_path_buf());
         if let Err(e) = &read_generation {
             self.add_error_if(|| true, &format!("Failed to read checkpoint: {}", e));
         }
@@ -314,11 +315,11 @@ where
     fn build_front(&mut self) -> Result<()> {
         if self.params.optimization_params.front.is_some() {
             return Ok(());
-        } else if let Some(generation) = &self.params.generation {
-            if let Some(front) = generation.front() {
-                self.params.optimization_params.front = Some(front.clone());
-                return Ok(());
-            }
+        } else if let Some(generation) = &self.params.generation
+            && let Some(front) = generation.front()
+        {
+            self.params.optimization_params.front = Some(front.clone());
+            return Ok(());
         }
 
         let front_obj = self.params.optimization_params.objectives.clone();
@@ -352,21 +353,29 @@ where
         let survivor_base_name = radiate_utils::intern!(surv_name);
         let survivor_time_name = radiate_utils::intern!(format!("{}.time", survivor_base_name));
 
+        let survivor_select = SelectConfig {
+            selector: survivor_selector,
+            count: config.survivor_count(),
+            names: (survivor_base_name, survivor_time_name),
+        };
+
+        let offspring_select = SelectConfig {
+            selector: offspring_selector,
+            count: config.offspring_count(),
+            names: (offspring_base_name, offspring_time_name),
+        };
+
         let recombine_step = RecombineStep {
-            survivor_handle: crate::steps::SurvivorRecombineHandle {
-                count: config.survivor_count(),
-                objective: config.objective(),
-                selector: survivor_selector,
-                names: (survivor_base_name, survivor_time_name),
+            survivor: crate::steps::SurvivorConfig {
+                select: survivor_select,
             },
-            offspring_handle: crate::steps::OffspringRecombineHandle {
-                count: config.offspring_count(),
-                objective: config.objective(),
-                selector: offspring_selector,
+            offspring: crate::steps::OffspringConfig {
+                select: offspring_select,
                 alters: config.alters().to_vec(),
-                lineage: config.lineage(),
-                names: (offspring_base_name, offspring_time_name),
             },
+            objective: config.objective(),
+            survivor_counts: radiate_utils::VersionedCounts::new(),
+            offspring_counts: radiate_utils::VersionedCounts::new(),
         };
 
         Some(Box::new(recombine_step))
@@ -384,10 +393,7 @@ where
     }
 
     fn build_audit_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
-        Some(Box::new(AuditStep::new(
-            config.objective().clone(),
-            config.lineage(),
-        )))
+        Some(Box::new(AuditStep::new(config.objective().clone())))
     }
 
     fn build_front_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
@@ -403,16 +409,14 @@ where
     }
 
     fn build_species_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
-        if config.diversity().is_none() {
-            return None;
-        }
+        let diversity = config.diversity()?;
 
         let species_step = SpeciateStep {
             threshold: config.species_threshold(),
-            distance: config.diversity().unwrap(),
+            distance: diversity,
             executor: config.species_executor(),
             objective: config.objective(),
-            distances: Arc::new(Mutex::new(Vec::new())),
+            distances: Vec::new(),
             assignments: Arc::new(Mutex::new(Vec::new())),
         };
 
@@ -468,209 +472,6 @@ where
                 handlers: Vec::new(),
                 exprs: None,
                 generation: None,
-            },
-            errors: Vec::new(),
-        }
-    }
-}
-
-#[derive(Clone)]
-pub(crate) struct EngineConfig<C: Chromosome, T: Clone> {
-    ecosystem: Ecosystem<C>,
-    problem: Arc<dyn Problem<C, T>>,
-    survivor_selector: Arc<dyn Select<C>>,
-    offspring_selector: Arc<dyn Select<C>>,
-    replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
-    alterers: Vec<Alterer<C>>,
-    species_threshold: Rate,
-    diversity: Option<Arc<dyn Diversity<C>>>,
-    evaluator: Arc<dyn Evaluator<C, T>>,
-    objective: Objective,
-    max_age: usize,
-    max_species_age: usize,
-    front: Arc<RwLock<Front<Phenotype<C>>>>,
-    lineage: Arc<RwLock<Lineage>>,
-    offspring_fraction: f32,
-    executor: EvaluationParams<C, T>,
-    handlers: Vec<Arc<Mutex<dyn EventHandler<T>>>>,
-    exprs: Option<Arc<Mutex<Vec<NamedExpr>>>>,
-    generation: Option<Generation<C, T>>,
-}
-
-impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
-    pub fn ecosystem(&self) -> &Ecosystem<C> {
-        &self.ecosystem
-    }
-
-    pub fn survivor_selector(&self) -> Arc<dyn Select<C>> {
-        Arc::clone(&self.survivor_selector)
-    }
-
-    pub fn offspring_selector(&self) -> Arc<dyn Select<C>> {
-        Arc::clone(&self.offspring_selector)
-    }
-
-    pub fn replacement_strategy(&self) -> Arc<dyn ReplacementStrategy<C>> {
-        Arc::clone(&self.replacement_strategy)
-    }
-
-    pub fn alters(&self) -> &[Alterer<C>] {
-        &self.alterers
-    }
-
-    pub fn objective(&self) -> Objective {
-        self.objective.clone()
-    }
-
-    pub fn max_age(&self) -> usize {
-        self.max_age
-    }
-
-    pub fn max_species_age(&self) -> usize {
-        self.max_species_age
-    }
-
-    pub fn species_threshold(&self) -> Rate {
-        self.species_threshold.clone()
-    }
-
-    pub fn diversity(&self) -> Option<Arc<dyn Diversity<C>>> {
-        self.diversity.clone()
-    }
-
-    pub fn front(&self) -> Arc<RwLock<Front<Phenotype<C>>>> {
-        Arc::clone(&self.front)
-    }
-
-    pub fn lineage(&self) -> Arc<RwLock<Lineage>> {
-        Arc::clone(&self.lineage)
-    }
-
-    pub fn evaluator(&self) -> Arc<dyn Evaluator<C, T>> {
-        Arc::clone(&self.evaluator)
-    }
-
-    pub fn survivor_count(&self) -> usize {
-        self.ecosystem.population().len() - self.offspring_count()
-    }
-
-    pub fn offspring_count(&self) -> usize {
-        (self.ecosystem.population().len() as f32 * self.offspring_fraction) as usize
-    }
-
-    pub fn bus_executor(&self) -> Arc<Executor> {
-        Arc::clone(&self.executor.bus_executor)
-    }
-
-    pub fn species_executor(&self) -> Arc<Executor> {
-        Arc::clone(&self.executor.species_executor)
-    }
-
-    pub fn handlers(&self) -> Vec<Arc<Mutex<dyn EventHandler<T>>>> {
-        self.handlers.clone()
-    }
-
-    pub fn problem(&self) -> Arc<dyn Problem<C, T>> {
-        Arc::clone(&self.problem)
-    }
-
-    pub fn generation(&self) -> Option<Generation<C, T>>
-    where
-        C: Clone,
-        T: Clone,
-    {
-        self.generation.clone()
-    }
-
-    pub fn encoder(&self) -> Arc<dyn Fn() -> Genotype<C> + Send + Sync>
-    where
-        C: 'static,
-        T: 'static,
-    {
-        let problem = Arc::clone(&self.problem);
-        Arc::new(move || problem.encode())
-    }
-
-    pub fn exprs(&self) -> Option<Arc<Mutex<Vec<NamedExpr>>>> {
-        self.exprs.clone()
-    }
-}
-
-impl<C, T> From<&EngineParams<C, T>> for EngineConfig<C, T>
-where
-    C: Chromosome + Clone + 'static,
-    T: Clone + Send + Sync + 'static,
-{
-    fn from(params: &EngineParams<C, T>) -> Self {
-        Self {
-            ecosystem: params.population_params.ecosystem.clone().unwrap(),
-            problem: params.problem_params.problem.clone().unwrap(),
-            survivor_selector: params.selection_params.survivor_selector.clone(),
-            offspring_selector: params.selection_params.offspring_selector.clone(),
-            replacement_strategy: params.replacement_strategy.clone(),
-            alterers: params.alterers.clone(),
-            objective: params.optimization_params.objectives.clone(),
-            max_age: params.population_params.max_age,
-            max_species_age: params.species_params.max_species_age,
-            species_threshold: params.species_params.species_threshold.clone(),
-            diversity: params.species_params.diversity.clone(),
-            front: Arc::new(RwLock::new(
-                params.optimization_params.front.clone().unwrap(),
-            )),
-            lineage: Arc::new(RwLock::new(Lineage::default())),
-            offspring_fraction: params.selection_params.offspring_fraction,
-            evaluator: params.evaluation_params.evaluator.clone(),
-            executor: params.evaluation_params.clone(),
-            handlers: params.handlers.clone(),
-            generation: params.generation.clone(),
-            exprs: params.exprs.clone(),
-        }
-    }
-}
-
-impl<C, T> Into<GeneticEngineBuilder<C, T>> for EngineConfig<C, T>
-where
-    C: Chromosome + Clone + 'static,
-    T: Clone + Send + Sync + 'static,
-{
-    fn into(self) -> GeneticEngineBuilder<C, T> {
-        GeneticEngineBuilder {
-            params: EngineParams {
-                population_params: PopulationParams {
-                    population_size: self.ecosystem.population().len(),
-                    max_age: self.max_age,
-                    ecosystem: Some(self.ecosystem),
-                },
-                species_params: SpeciesParams {
-                    diversity: self.diversity,
-                    species_threshold: self.species_threshold,
-                    max_species_age: self.max_species_age,
-                },
-                evaluation_params: self.executor,
-                selection_params: SelectionParams {
-                    offspring_fraction: self.offspring_fraction,
-                    survivor_selector: self.survivor_selector,
-                    offspring_selector: self.offspring_selector,
-                },
-                optimization_params: OptimizeParams {
-                    objectives: self.objective,
-                    front_range: self.front.read().unwrap().range().clone(),
-                    front: Some(self.front.read().unwrap().clone()),
-                },
-                problem_params: ProblemParams {
-                    codec: None,
-                    problem: Some(self.problem),
-                    fitness_fn: None,
-                    batch_fitness_fn: None,
-                    raw_fitness_fn: None,
-                    raw_batch_fitness_fn: None,
-                },
-
-                replacement_strategy: self.replacement_strategy,
-                alterers: self.alterers,
-                handlers: self.handlers,
-                exprs: self.exprs,
-                generation: self.generation,
             },
             errors: Vec::new(),
         }

@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, overload
 
 from radiate.radiate import PyFront
 from radiate.genome.genotype import Genotype
@@ -54,6 +54,12 @@ class Front[T](RsObject):
         :return: The length of the front.
         """
         return len(self.__backend__())
+
+    @overload
+    def __getitem__(self, index: int) -> FrontValue[T]: ...
+
+    @overload
+    def __getitem__(self, index: slice) -> list[FrontValue[T]]: ...
 
     def __getitem__(self, index: int | slice) -> FrontValue[T] | list[FrontValue[T]]:
         """

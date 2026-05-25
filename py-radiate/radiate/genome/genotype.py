@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from typing import overload
 from radiate.radiate import PyGenotype
 from radiate._bridge.wrapper import RsObject
 
@@ -34,7 +35,12 @@ class Genotype[T](RsObject):
         """
         return len(self._pyobj)
 
-    def __getitem__(self, index: int | slice) -> Chromosome[T]:
+    @overload
+    def __getitem__(self, index: int) -> Chromosome[T]: ...
+    @overload
+    def __getitem__(self, index: slice) -> list[Chromosome[T]]: ...
+
+    def __getitem__(self, index: int | slice) -> Chromosome[T] | list[Chromosome[T]]:
         """
         Returns the chromosome at the specified index.
         :param index: Index of the chromosome to retrieve.

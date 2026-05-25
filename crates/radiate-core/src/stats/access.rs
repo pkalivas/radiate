@@ -116,4 +116,24 @@ impl MetricSet {
     pub fn largest_species_share(&self) -> Option<&Metric> {
         self.get(super::metric_names::LARGEST_SPECIES_SHARE)
     }
+
+    pub fn species_new_ratio(&self) -> Option<&Metric> {
+        self.get(super::metric_names::SPECIES_NEW_RATIO)
+    }
+
+    pub fn front_filters(&self) -> Option<&Metric> {
+        self.get(super::metric_names::FRONT_FILTERS)
+    }
+
+    pub fn best_scores(&self) -> Option<&Metric> {
+        self.get(super::metric_names::BEST_SCORES)
+    }
+
+    pub fn index(&self) -> Option<&Metric> {
+        self.get(super::metric_names::INDEX)
+    }
+
+    pub fn species_threshold(&self) -> Option<&Metric> {
+        self.get(super::metric_names::SPECIES_THRESHOLD)
+    }
 }

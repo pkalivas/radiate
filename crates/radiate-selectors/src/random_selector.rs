@@ -1,4 +1,4 @@
-use radiate_core::{Chromosome, Objective, Population, Select, random_provider};
+use radiate_core::{Chromosome, Objective, Phenotype, Select, random_provider};
 
 #[derive(Debug, Default)]
 pub struct RandomSelector;
@@ -10,15 +10,14 @@ impl RandomSelector {
 }
 
 impl<C: Chromosome + Clone> Select<C> for RandomSelector {
-    fn select(&self, population: &Population<C>, _: &Objective, count: usize) -> Population<C> {
+    fn select(&self, population: &[Phenotype<C>], _: &Objective, count: usize) -> Vec<usize> {
         let mut selected = Vec::with_capacity(count);
 
         for _ in 0..count {
             let idx = random_provider::range(0..population.len());
-            let member = population.get(idx).expect("Index in range");
-            selected.push(member.clone());
+            selected.push(idx);
         }
 
-        Population::from(selected)
+        selected
     }
 }

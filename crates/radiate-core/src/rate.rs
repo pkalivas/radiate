@@ -1,10 +1,6 @@
+use crate::stats::expression::{Evaluate, Expr};
 use crate::{MetricSet, Valid};
-use radiate_expr::{ApplyExpr, Expr};
 use std::fmt::Debug;
-
-pub trait RateCalculator {
-    fn rate(&mut self, generation: usize, metrics: &MetricSet) -> f32;
-}
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum CycleShape {
@@ -63,7 +59,11 @@ pub enum Rate {
 impl Rate {
     pub fn get(&mut self, generation: usize, metrics: &MetricSet) -> f32 {
         match self {
-            Rate::Expr(expr) => metrics.apply(expr).extract().unwrap_or(0.0),
+            Rate::Expr(expr) => expr
+                .eval(metrics)
+                .ok()
+                .and_then(|v| v.extract())
+                .unwrap_or(0.0),
             _ => self.get_by_index(generation),
         }
     }
@@ -174,6 +174,12 @@ impl From<f32> for Rate {
 impl From<Vec<(usize, f32)>> for Rate {
     fn from(steps: Vec<(usize, f32)>) -> Self {
         Rate::Stepwise(steps)
+    }
+}
+
+impl From<Expr> for Rate {
+    fn from(expr: Expr) -> Self {
+        Rate::Expr(expr.compile())
     }
 }
 

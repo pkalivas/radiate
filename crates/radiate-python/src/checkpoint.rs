@@ -1,47 +1,43 @@
-use radiate::{CheckpointReader, CheckpointWriter, Chromosome, Generation};
+use radiate::{FileReader, FileWriter};
 use serde_pickle::{DeOptions, SerOptions};
 use std::path::PathBuf;
 
-pub struct PickleCheckpointWriter;
+pub struct PickleWriter;
 
-impl<C, T> CheckpointWriter<C, T> for PickleCheckpointWriter
+impl<T> FileWriter<T> for PickleWriter
 where
-    C: Chromosome + serde::Serialize,
     T: serde::Serialize,
 {
     fn extension(&self) -> &str {
         "pkl"
     }
 
-    fn write_checkpoint(
-        &mut self,
-        path: PathBuf,
-        generation: &Generation<C, T>,
-    ) -> std::io::Result<()> {
+    fn write(&mut self, path: PathBuf, generation: &T) -> std::io::Result<()> {
+        if !path.parent().is_none_or(|p| p.exists()) {
+            std::fs::create_dir_all(path.parent().unwrap()).map_err(|e| {
+                std::io::Error::other(format!("Failed to create checkpoint directory: {}", e))
+            })?;
+        }
         let pickle = serde_pickle::to_vec(generation, SerOptions::default()).map_err(|e| {
-            std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!("Failed to serialize checkpoint to pickle: {}", e),
-            )
+            std::io::Error::other(format!("Failed to serialize checkpoint to pickle: {}", e))
         })?;
         std::fs::write(path, pickle)
     }
 }
 
-pub struct PickleCheckpointReader;
+pub struct PickleReader;
 
-impl<C, T> CheckpointReader<C, T> for PickleCheckpointReader
+impl<T> FileReader<T> for PickleReader
 where
-    C: Chromosome + for<'de> serde::de::DeserializeOwned,
     T: for<'de> serde::de::DeserializeOwned,
 {
-    fn read_checkpoint(&self, path: PathBuf) -> std::io::Result<Generation<C, T>> {
+    fn read(&self, path: PathBuf) -> std::io::Result<T> {
         let pickle = std::fs::read(path)?;
         let generation = serde_pickle::from_slice(&pickle, DeOptions::default()).map_err(|e| {
-            std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!("Failed to deserialize checkpoint from pickle: {}", e),
-            )
+            std::io::Error::other(format!(
+                "Failed to deserialize checkpoint from pickle: {}",
+                e
+            ))
         })?;
 
         Ok(generation)

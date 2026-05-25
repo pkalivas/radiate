@@ -42,7 +42,7 @@ pub fn _all_ops() -> Vec<PyOp> {
         Op::softplus(),
     ]
     .into_iter()
-    .map(|op| PyOp(op))
+    .map(PyOp)
     .collect()
 }
 
@@ -60,7 +60,7 @@ pub fn _activation_ops() -> Vec<PyOp> {
         Op::softplus(),
     ]
     .into_iter()
-    .map(|op| PyOp(op))
+    .map(PyOp)
     .collect()
 }
 
@@ -68,7 +68,7 @@ pub fn _activation_ops() -> Vec<PyOp> {
 pub fn _edge_ops() -> Vec<PyOp> {
     vec![Op::weight(), Op::identity()]
         .into_iter()
-        .map(|op| PyOp(op))
+        .map(PyOp)
         .collect()
 }
 
@@ -97,10 +97,10 @@ impl PyOp {
             let output = self.0.eval(&input_vec);
             Ok(output)
         } else {
-            return Err(pyo3::exceptions::PyTypeError::new_err(format!(
+            Err(pyo3::exceptions::PyTypeError::new_err(format!(
                 "Input must be either Vec[numeric] or a single numeric value but found: {:?}",
                 inputs,
-            )));
+            )))
         }
     }
 
@@ -132,7 +132,7 @@ impl<'py> FromPyObject<'_, 'py> for Wrap<Op<f32>> {
         }
 
         let name = ob.getattr("name")?.extract::<String>()?;
-        let py_op = _create_op(ob.py(), name.as_str(), Some(ob.clone().into()))?;
+        let py_op = _create_op(ob.py(), name.as_str(), Some(ob.into()))?;
         Ok(Wrap(py_op.0))
     }
 }

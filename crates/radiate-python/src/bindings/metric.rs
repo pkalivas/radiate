@@ -1,13 +1,12 @@
 use crate::PyExpr;
 use crate::object::Wrap;
 use pyo3::exceptions::PyValueError;
-use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use pyo3::{IntoPyObject, PyErr, PyResult, Python};
+use pyo3::{intern, prelude::*};
 use pyo3::{pyclass, pymethods};
-use radiate::{AnyValue, ApplyExpr, Metric, MetricSet, MetricUpdate};
+use radiate::{AnyValue, Evaluate, Metric, MetricSet, MetricUpdate};
 use radiate_error::radiate_py_bail;
-use radiate_utils::intern;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
@@ -18,21 +17,27 @@ pub struct PyMetricSet {
     inner: MetricSet,
 }
 
+impl PyMetricSet {
+    pub(crate) fn inner(&self) -> &MetricSet {
+        &self.inner
+    }
+}
+
 #[pymethods]
 impl PyMetricSet {
     #[new]
     #[pyo3(signature = (metrics=None))]
-    pub fn new<'py>(metrics: Option<Wrap<AnyValue<'_>>>) -> PyResult<Self> {
+    pub fn new(metrics: Option<Wrap<AnyValue<'_>>>) -> PyResult<Self> {
         if let Some(metrics) = metrics {
             let mut metric_set = MetricSet::new();
-            if let AnyValue::Struct(pairs) = metrics.0.into_static() {
-                for (fld, val) in pairs.into_iter() {
-                    let name = fld.name().to_string();
+            if let AnyValue::Dict(pairs) = metrics.0.into_static() {
+                for (fld, _, val) in pairs.into_iter() {
+                    let name = fld.as_str().to_string();
                     let metric_update = MetricUpdate::try_from(val)?;
-                    metric_set.upsert((intern!(name), metric_update));
+                    metric_set.upsert(&name, metric_update);
                 }
             } else {
-                radiate_py_bail!("Metric: Expected a struct of metrics, but got a different type.");
+                radiate_py_bail!("Metric: Expected a dict of metrics, but got a different type.");
             }
 
             return Ok(PyMetricSet { inner: metric_set });
@@ -44,16 +49,15 @@ impl PyMetricSet {
     }
 
     pub fn upsert(&mut self, name: &str, update: Wrap<AnyValue<'_>>) -> PyResult<()> {
-        let interned_name = intern!(name);
         let metric_update = MetricUpdate::try_from(update.0)?;
-        self.inner.upsert((interned_name, metric_update));
+        self.inner.upsert(name, metric_update);
         Ok(())
     }
 
     pub fn __repr__(&self) -> String {
         let summary = self.inner.summary();
         format!(
-            "MetricSet[metrics={}, updates={}]",
+            "MetricSet(metrics={}, updates={})",
             summary.metrics, summary.updates
         )
     }
@@ -78,7 +82,7 @@ impl PyMetricSet {
         }
 
         self.inner
-            .get_from_string(key)
+            .get(key)
             .map(|metric| Wrap(metric).into_pyobject(py))
             .transpose()
             .map_err(|e| {
@@ -108,12 +112,16 @@ impl PyMetricSet {
         format!("{}", &self.inner)
     }
 
-    pub fn keys(&self) -> Vec<&'static str> {
-        self.inner.keys()
+    pub fn keys(&self) -> Vec<String> {
+        self.inner
+            .iter()
+            .filter(|(_, metric)| !metric.is_empty())
+            .map(|(key, _)| key.to_string())
+            .collect()
     }
 
     pub fn project<'py>(&self, py: Python<'py>, expr: &mut PyExpr) -> PyResult<Bound<'py, PyAny>> {
-        let result = self.inner.apply(expr.inner_mut());
+        let result = expr.inner_mut().eval(&self.inner).unwrap_or(AnyValue::Null);
         Wrap(result).into_pyobject(py)
     }
 
@@ -222,8 +230,8 @@ impl From<Metric> for PyMetric {
 impl PyMetric {
     #[staticmethod]
     #[pyo3(signature = (name, values=None))]
-    pub fn new<'py>(name: String, values: Option<Wrap<AnyValue<'_>>>) -> PyResult<Self> {
-        let mut metric = Metric::new(intern!(name));
+    pub fn new(name: String, values: Option<Wrap<AnyValue<'_>>>) -> PyResult<Self> {
+        let mut metric = Metric::new(radiate_utils::intern!(name));
         if let Some(values) = values {
             let metric_values = values.0.into_static();
             let metric_update = MetricUpdate::try_from(metric_values)?;
@@ -253,8 +261,8 @@ impl PyMetric {
     }
 
     #[getter]
-    pub fn version(&self) -> u64 {
-        self.inner.version()
+    pub fn generation(&self) -> u64 {
+        self.inner.generation()
     }
 
     #[getter]
@@ -304,7 +312,7 @@ impl PyMetric {
     }
 
     #[getter]
-    pub fn value_count(&self) -> i32 {
+    pub fn value_count(&self) -> u32 {
         self.inner.count()
     }
 
@@ -313,66 +321,65 @@ impl PyMetric {
     pub fn time_last(&self) -> Duration {
         self.inner
             .times()
-            .and_then(|time| time.last())
+            .map(|time| time.last())
             .unwrap_or_default()
     }
 
     #[getter]
     pub fn time_sum(&self) -> Option<Duration> {
-        self.inner.times().and_then(|time| time.sum())
+        self.inner.times().map(|time| time.sum())
     }
 
     #[getter]
     pub fn time_mean(&self) -> Option<Duration> {
-        self.inner.times().and_then(|time| time.mean())
+        self.inner.times().map(|time| time.mean())
     }
 
     #[getter]
     pub fn time_stddev(&self) -> Option<Duration> {
-        self.inner.times().and_then(|time| time.stddev())
+        self.inner.times().map(|time| time.stddev())
     }
 
     #[getter]
     pub fn time_min(&self) -> Option<Duration> {
-        self.inner.times().and_then(|time| time.min())
+        self.inner.times().map(|time| time.min())
     }
 
     #[getter]
     pub fn time_max(&self) -> Option<Duration> {
-        self.inner.times().and_then(|time| time.max())
+        self.inner.times().map(|time| time.max())
     }
 
     #[getter]
     pub fn time_variance(&self) -> Option<Duration> {
-        self.inner.times().and_then(|time| time.var())
+        self.inner.times().map(|time| time.var())
     }
 
-    /// Convert to a dict (nice for DataFrame construction / JSON dumps).
     pub fn to_dict<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
         let d = PyDict::new(py);
-        d.set_item("name", self.inner.name().to_string())?;
+        d.set_item(intern!(py, "name"), self.inner.name().to_string())?;
 
-        d.set_item("last", self.value_last())?;
-        d.set_item("sum", self.value_sum())?;
-        d.set_item("mean", self.value_mean())?;
-        d.set_item("stddev", self.value_stddev())?;
-        d.set_item("var", self.value_variance())?;
-        d.set_item("skew", self.value_skewness())?;
-        d.set_item("min", self.value_min())?;
-        d.set_item("max", self.value_max())?;
-        d.set_item("count", self.value_count())?;
+        d.set_item(intern!(py, "last"), self.value_last())?;
+        d.set_item(intern!(py, "sum"), self.value_sum())?;
+        d.set_item(intern!(py, "mean"), self.value_mean())?;
+        d.set_item(intern!(py, "stddev"), self.value_stddev())?;
+        d.set_item(intern!(py, "var"), self.value_variance())?;
+        d.set_item(intern!(py, "skew"), self.value_skewness())?;
+        d.set_item(intern!(py, "min"), self.value_min())?;
+        d.set_item(intern!(py, "max"), self.value_max())?;
+        d.set_item(intern!(py, "count"), self.value_count())?;
 
-        d.set_item("time_sum", self.time_sum())?;
-        d.set_item("time_mean", self.time_mean())?;
-        d.set_item("time_stddev", self.time_stddev())?;
-        d.set_item("time_min", self.time_min())?;
-        d.set_item("time_max", self.time_max())?;
-        d.set_item("time_var", self.time_variance())?;
+        d.set_item(intern!(py, "time_sum"), self.time_sum())?;
+        d.set_item(intern!(py, "time_mean"), self.time_mean())?;
+        d.set_item(intern!(py, "time_stddev"), self.time_stddev())?;
+        d.set_item(intern!(py, "time_min"), self.time_min())?;
+        d.set_item(intern!(py, "time_max"), self.time_max())?;
+        d.set_item(intern!(py, "time_var"), self.time_variance())?;
 
-        d.set_item("version", self.version())?;
-        d.set_item("update_count", self.update_count())?;
+        d.set_item(intern!(py, "generation"), self.generation())?;
+        d.set_item(intern!(py, "update_count"), self.update_count())?;
 
-        d.set_item("tags", self.tags())?;
+        d.set_item(intern!(py, "tags"), self.tags())?;
 
         Ok(d)
     }

@@ -8,7 +8,7 @@ use pyo3::{Bound, IntoPyObject, IntoPyObjectExt, PyAny, PyResult};
 use radiate::{
     Chromosome, Codec, FloatChromosome, Gene, Genotype, IntChromosome, chromosomes::NumericAllele,
 };
-use radiate_expr::DataType;
+use radiate_utils::DataType;
 
 pub trait CodecBuilder<C: Chromosome, T> {
     fn build(self) -> PyCodec<C, T>;
@@ -128,7 +128,7 @@ impl<T> NumericCodecBuilder<T> {
     }
 
     pub fn init_range(mut self, range: Option<(T, T)>) -> Self {
-        if !range.is_none() {
+        if range.is_some() {
             self.init_range = range;
         }
 
@@ -136,7 +136,7 @@ impl<T> NumericCodecBuilder<T> {
     }
 
     pub fn bound_range(mut self, range: Option<(T, T)>) -> Self {
-        if !range.is_none() {
+        if range.is_some() {
             self.bound_range = range;
         }
 
@@ -250,12 +250,11 @@ where
 
         let bound_range = self
             .bound_range
-            .map(|rng| {
+            .and_then(|rng| {
                 A::from(rng.0)
                     .zip(A::from(rng.1))
                     .map(|(min, max)| min..max)
             })
-            .flatten()
             .unwrap_or(val_range.clone());
         let lengths = self.shape.clone();
         let cloned_lengths = lengths.clone();
@@ -264,25 +263,25 @@ where
         if let Some(genes) = &self.genes {
             let materialized_chromosome = Self::materialize_genes::<G, C>(genes);
 
-            return PyCodec::new()
+            PyCodec::new()
                 .with_encoder(move || Genotype::from(materialized_chromosome.clone()))
                 .with_decoder(move |py, geno| PyAnyObject {
                     inner: super::decode_genotype_to_array(py, geno, use_numpy)
                         .unwrap()
                         .unbind()
                         .into_any(),
-                });
+                })
         } else if let Some(chromosomes) = &self.chromosomes {
             let materialized_chromosomes = Self::materialize_chromosomes::<G, C>(chromosomes);
 
-            return PyCodec::new()
+            PyCodec::new()
                 .with_encoder(move || Genotype::from(materialized_chromosomes.clone()))
                 .with_decoder(move |py, geno| PyAnyObject {
                     inner: super::decode_genotype_to_array(py, geno, use_numpy)
                         .unwrap()
                         .unbind()
                         .into_any(),
-                });
+                })
         } else {
             PyCodec::new()
                 .with_encoder(move || {

@@ -1,44 +1,15 @@
 use crate::node::Node;
 use crate::{Arity, NodeType};
-use radiate_core::{Gene, Valid};
+use radiate_core::{Gene, Valid, sentry_id};
 use radiate_utils::SortedBuffer;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use std::hash::Hash;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::AtomicU64;
 
-/// A unique identifier for nodes in a graph structure.
-///
-/// `GraphNodeId` is a newtype wrapper around a `u64` that provides a unique identifier
-/// for each node in a graph. The ID is automatically generated using an atomic counter,
-/// ensuring thread-safe unique ID generation across the application.
-///
-/// # Examples
-/// ```
-/// use radiate_gp::collections::GraphNodeId;
-///
-/// let id1 = GraphNodeId::new();
-/// let id2 = GraphNodeId::new();
-/// assert_ne!(id1, id2); // Each ID is unique
-/// ```
-///
-/// # Implementation Details
-/// * Uses an atomic counter (`AtomicU64`) to ensure thread-safe ID generation
-/// * Implements `Debug`, `Clone`, `Copy`, `PartialEq`, `Eq`, `Hash`, `PartialOrd`, and `Ord`
-/// * When the "serde" feature is enabled, implements `Serialize` and `Deserialize`
-/// * Uses `#[repr(transparent)]` to ensure the same memory layout as `u64`
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[repr(transparent)]
-pub struct GraphNodeId(u64);
-
-impl GraphNodeId {
-    pub fn new() -> Self {
-        static GRAPH_NODE_ID: AtomicU64 = AtomicU64::new(0);
-        GraphNodeId(GRAPH_NODE_ID.fetch_add(1, Ordering::Relaxed))
-    }
-}
+sentry_id!(GraphNodeId);
+sentry_id!(InnovationId);
 
 /// Represents the direction of connections in a graph node.
 ///
@@ -91,7 +62,7 @@ pub enum Direction {
 ///
 /// # Type Parameters
 /// * `T` - The type of value stored in the node. This type must implement `Clone`, `PartialEq`, and other traits
-///         required by the genetic programming operations.
+///   required by the genetic programming operations.
 ///
 /// # Fields
 /// * `value` - The actual value stored in the node
@@ -100,8 +71,7 @@ pub enum Direction {
 /// * `direction` - The direction of the node's connections (Forward or Backward)
 /// * `node_type` - Optional [NodeType] that specifies the role of the node (Input, Output, Vertex, Edge, etc.)
 /// * `arity` - Optional [Arity] that specifies how many incoming connections the node can have. If
-/// the arity is not supplied, the node will try it's best to determine it based on the node type and
-/// the number of connections.
+///   the arity is not supplied, the node will try it's best to determine it based on the node type and the number of connections.
 /// * `incoming` - Set of indices of nodes that have connections to this node
 /// * `outgoing` - Set of indices of nodes that this node has connections to
 ///
@@ -155,6 +125,7 @@ pub struct GraphNode<T> {
     direction: Direction,
     node_type: Option<NodeType>,
     arity: Option<Arity>,
+    innovation: Option<InnovationId>,
     incoming: SortedBuffer<usize>,
     outgoing: SortedBuffer<usize>,
 }
@@ -172,6 +143,7 @@ impl<T> GraphNode<T> {
             direction: Direction::Forward,
             node_type: Some(node_type),
             arity: None,
+            innovation: None,
             incoming: SortedBuffer::new(),
             outgoing: SortedBuffer::new(),
         }
@@ -190,6 +162,7 @@ impl<T> GraphNode<T> {
             direction: Direction::Forward,
             node_type: Some(node_type),
             arity: Some(arity),
+            innovation: None,
             incoming: SortedBuffer::new(),
             outgoing: SortedBuffer::new(),
         }
@@ -211,6 +184,14 @@ impl<T> GraphNode<T> {
 
     pub fn set_direction(&mut self, direction: Direction) {
         self.direction = direction;
+    }
+
+    pub fn innovation(&self) -> Option<InnovationId> {
+        self.innovation
+    }
+
+    pub fn set_innovation(&mut self, innovation: Option<InnovationId>) {
+        self.innovation = innovation;
     }
 
     pub fn index(&self) -> usize {
@@ -346,6 +327,7 @@ where
             direction: self.direction,
             node_type: self.node_type,
             arity: self.arity,
+            innovation: self.innovation,
             incoming: self.incoming.clone(),
             outgoing: self.outgoing.clone(),
         }
@@ -359,6 +341,7 @@ where
             direction: self.direction,
             node_type: self.node_type,
             arity: self.arity,
+            innovation: self.innovation,
             incoming: self.incoming.clone(),
             outgoing: self.outgoing.clone(),
         }
@@ -421,6 +404,7 @@ impl<T: Default> From<(usize, T)> for GraphNode<T> {
             direction: Direction::Forward,
             node_type: None,
             arity: None,
+            innovation: None,
             incoming: SortedBuffer::new(),
             outgoing: SortedBuffer::new(),
         }
@@ -442,6 +426,7 @@ impl<T: Default> From<(usize, T, Arity)> for GraphNode<T> {
             direction: Direction::Forward,
             node_type: None,
             arity: Some(arity),
+            innovation: None,
             incoming: SortedBuffer::new(),
             outgoing: SortedBuffer::new(),
         }
@@ -463,6 +448,7 @@ where
             direction: Direction::Forward,
             node_type: Some(node_type),
             arity: None,
+            innovation: None,
             incoming,
             outgoing,
         }
@@ -478,6 +464,7 @@ impl<T: Default> Default for GraphNode<T> {
             direction: Direction::Forward,
             node_type: None,
             arity: None,
+            innovation: None,
             incoming: SortedBuffer::new(),
             outgoing: SortedBuffer::new(),
         }
@@ -493,6 +480,7 @@ impl<T: Hash> Hash for GraphNode<T> {
         self.arity.hash(state);
         self.incoming.hash(state);
         self.outgoing.hash(state);
+        self.innovation.hash(state);
         self.value.hash(state);
     }
 
@@ -517,12 +505,13 @@ impl<T: Debug> Debug for GraphNode<T> {
 
         write!(
             f,
-            "[{:<3}] [{:<7?}] {:>10?} :: {:<10} {:<12} V:{:<5} R:{:<5} {:<2} {:<2} < [{}]",
+            "[{:<3}] [{:<7?}] [{:<5?}] {:>10?} :: {:<10} {:<20}  V:{:<5} R:{:<5} {:<2} {:<2} < [{}]",
             self.index,
             self.id.0,
+            self.innovation.map(|id| id.0).unwrap_or(0),
             format!("{:?}", self.node_type())[..3].to_owned(),
             self.arity(),
-            format!("{:?}", self.value).to_owned(),
+            format!("{:.4?}", self.value), // pre-format with precision → String
             self.is_valid(),
             self.is_recurrent(),
             self.incoming.len(),

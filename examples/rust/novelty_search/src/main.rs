@@ -8,7 +8,7 @@ const NUM_GENES: usize = 6;
 const GENE_RANGE: std::ops::Range<f32> = -5.0..5.0;
 
 fn main() {
-    random_provider::set_seed(12345);
+    random_provider::seed(12345);
 
     let novelty = NoveltySearch::new(robot::behavior_descriptor)
         .k(10)
@@ -29,9 +29,10 @@ fn main() {
 
     engine
         .iter()
-        .logging()
+        .log_every(100)
         .take(2000)
         .last()
+        .inspect(|result| println!("{}", result.metrics().dashboard()))
         .inspect(|result| visualize(result.clone()));
 }
 

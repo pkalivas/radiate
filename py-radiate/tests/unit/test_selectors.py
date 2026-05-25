@@ -7,36 +7,42 @@ import radiate as rd
 def test_selector_correlation(random_seed):
     """Test correlation between selector probabilities and expected probabilities."""
     selectors = [
-        (rd.RouletteSelector(), "max"),
-        (rd.RouletteSelector(), "min"),
-        (rd.BoltzmannSelector(temp=2.0), "max"),
-        (rd.BoltzmannSelector(temp=2.0), "min"),
+        (rd.RouletteSelector(), rd.MAX),
+        (rd.RouletteSelector(), rd.MIN),
+        (rd.BoltzmannSelector(temp=2.0), rd.MAX),
+        (rd.BoltzmannSelector(temp=2.0), rd.MIN),
     ]
+    codec = rd.FloatCodec(shape=5, init_range=(0.0, 1.0))
+    pop_size = 100
+    num_trials = 10_000
+
+    scores = np.arange(1, pop_size + 1, dtype=np.float32)
+
+    population = rd.Population(
+        rd.Phenotype(codec.encode(), score=float(score)) for score in scores
+    )
 
     for selector, opt in selectors:
-        codec = rd.FloatCodec(shape=5, init_range=(0.0, 1.0))
-
-        pop_size = 100
-        population = rd.Population(
-            rd.Phenotype(codec.encode(), score=float(i + 1)) for i in range(pop_size)
-        )
-
-        num_trials = 10_000
-        selection_counts = np.zeros(pop_size)
+        selection_counts = np.zeros(pop_size, dtype=np.int32)
 
         for _ in range(num_trials):
             selected = selector.select(population, opt, 1)
-            idx = int(selected[0].score()[0]) - 1  # score was i+1
+            idx = int(selected[0].score()[0]) - 1
             selection_counts[idx] += 1
 
-        probabilities = selection_counts / num_trials
-        expected = np.array([i + 1 for i in range(pop_size)], dtype=np.float32)
-        expected /= expected.sum()
+        observed = selection_counts / num_trials
 
-        corr = np.corrcoef(expected, probabilities)[0, 1]
+        if opt == rd.MAX:
+            expected = scores.copy()
+        else:
+            # mirror typical minimization weighting
+            expected = scores.max() - scores + 1
+
+        expected /= expected.sum()
+        corr = np.corrcoef(expected, observed)[0, 1]
 
         assert corr > 0.9, (
-            f"Correlation too low: {corr} for {selector.component} with objective {opt}"
+            f"{selector.component} ({opt}) produced weak correlation: {corr:.4f}"
         )
 
 
@@ -51,10 +57,10 @@ def test_selector_empirical_bias(random_seed):
 
     num_trials = 5000
     selectors = [
-        (rd.TournamentSelector(k=3), "max"),
-        (rd.TournamentSelector(k=3), "min"),
-        (rd.RankSelector(), "max"),
-        (rd.RankSelector(), "min"),
+        (rd.TournamentSelector(k=3), rd.MAX),
+        (rd.TournamentSelector(k=3), rd.MIN),
+        (rd.RankSelector(), rd.MAX),
+        (rd.RankSelector(), rd.MIN),
     ]
 
     for selector, opt in selectors:
@@ -67,10 +73,10 @@ def test_selector_empirical_bias(random_seed):
             counts[idx] += 1
 
         probs = counts / num_trials
-        ranking = np.argsort(probs) if opt == "max" else np.argsort(-probs)
+        ranking = np.argsort(probs) if opt == rd.MAX else np.argsort(-probs)
         top_indices = ranking[:5]
 
-        if opt == "max":
+        if opt == rd.MAX:
             assert all(top_indices >= pop_size * 0.8), (
                 f"Selector {selector.component} did not favor higher scores for {opt} objective."
             )

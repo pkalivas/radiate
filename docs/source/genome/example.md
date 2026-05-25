@@ -7,46 +7,18 @@ Let's look at a basic example of how to use the `Codec` for evolving a simple fu
 
     Python also allows you to pass a flag to most codecs to specify if you want a `numpy.array` or a `list` to be returned when decoding. You can do this by passing `use_numpy=True` to the codec constructor. 
 
-    E.g. `rd.FloatCodec(shape=2, init_range=(-1.0, 1.0), bounds=(-10.0, 10.0), use_numpy=True)` will return a `numpy.array` when decoding. You can also just write the decoded value in your `fitnesss_func` in a `numpy.arry(my_decoded_value)` format to get a `numpy.array` back. The performance difference between the two is negligible, so you can choose the one that best fits your needs.
+    E.g. `rd.FloatCodec(shape=2, init_range=(-1.0, 1.0), bounds=(-10.0, 10.0), use_numpy=True)` will return a `numpy.array` when decoding. You can also just write the decoded value in your `fitness_func` in a `numpy.array(my_decoded_value)` format to get a `numpy.array` back. The performance difference between the two is negligible, so you can choose the one that best fits your needs.
+
+    ---
+
+    ## Building a python engine
+
+    We just went over the `codec` and how to use it, now let's see how it translates into an actual engine. In python, `radiate`'s engine is built using a builder pattern, which allows you to chain method calls together to setup your engine. To make this easier, the `Engine` class itself has helper functions that actually construct the `codec` for you - same parameters, just wrapped, more fluid, and with better type hinting. Below we'll use both methods, but moving forward we'll use the helper function.
+
+    The things below that look unfamiliar (`rd.Limit...`) will be covered in later sections, but for now just know that they are stopping conditions for the engine. The engine will stop when either of those conditions are met.
 
     ```python
-    import radiate as rd
-
-    # Define a fitness function that uses the decoded values
-    def fitness_function(individual: list[float]) -> float:    
-        # Calculate how well these parameters fit your data
-        a = individual[0]
-        b = individual[1]
-        return calculate_error(a, b)  # Your error calculation here
-
-    # Create a codec for two parameters (a and b)
-    codec = rd.FloatCodec(
-        shape=2,                   # We need two parameters: a and b
-        init_range=(-1.0, 1.0),     # Start with values between -1 and 1
-        bounds=(-10.0, 10.0),       # Allow evolution to modify the values between -10 and 10
-        dtype=rd.Float32,           # Optional - default is Float64
-    )
-
-    # Create the evolution engine
-    engine = rd.Engine(
-        codec=codec,
-        fitness_func=fitness_function,
-        # ... other parameters ...
-    )
-
-    # note the same engine can be built using a fluent builder pattern as such:
-    engine = (
-        rd.Engine.float(2, init_range=(-1.0, 1.0), bounds=(-10.0, 10.0), dtype=rd.Float32)
-        .fitness(fitness_function)
-    )
-
-    # Theres no real difference between the two, but 
-    # radiate as a whole is moving towards the builder pattern.
-    # It allows for much better type hinting and is more intuitive to use. 
-    # Both methods will be supported for the foreseeable future however, so feel free to use either one.
-
-    # Run the engine
-    result = engine.run(rd.Limit.score(0.01), rd.Limit.generations(1000))
+    --8<-- "python/genome/example.py:example"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -83,7 +55,7 @@ Let's look at a basic example of how to use the `Codec` for evolving a simple fu
     ```rust
     // This is the same as using a FloatCodec::vector(2, -1.0..1.0).with_bounds(-10.0..10.0);
     let mut engine = GeneticEngine::builder()
-        .codec(FloatChromosome::from((2, -1.0..1.0, -10..10)))
+        .codec(FloatChromosome::from((2, -1.0..1.0, -10.0..10.0)))
         .fitness_fn(fitness_fn)
         // ... other parameters ...
         .build()
@@ -91,7 +63,7 @@ Let's look at a basic example of how to use the `Codec` for evolving a simple fu
     // To create a matrix codec using a Chromosome just use a Vec
     let mut engine = GeneticEngine::builder()
         .codec(vec![
-            FloatChromosome::from((2, -1.0..1.0, -10..10)),
+            FloatChromosome::from((2, -1.0..1.0, -10.0..10.0)),
             FloatChromosome::from(vec![
                 FloatGene::from(-3.0..3.0),
                 FloatGene::from((-5.0..5.0, -10.0..10.0))

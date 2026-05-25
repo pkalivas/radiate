@@ -1,11 +1,10 @@
 use crate::chart::RollingLineChart;
 use radiate_engines::{Metric, stats::TagType};
-use radiate_utils::intern;
+use radiate_utils::SmallStr;
 use std::collections::HashMap;
 
 const MAX_CHART_POINTS: usize = 1000;
-
-const CHART_NAMES: &[&'static str] = &["Value", "Mean", "Stddev", "Variance"];
+const CHART_NAMES: &[&str] = &["Value", "Mean", "Stddev", "Variance"];
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub enum LineChartType {
@@ -40,10 +39,10 @@ impl LineChartType {
 }
 
 pub struct ChartState {
-    value_charts: HashMap<&'static str, RollingLineChart>,
-    mean_charts: HashMap<&'static str, RollingLineChart>,
-    stddev_charts: HashMap<&'static str, RollingLineChart>,
-    variance_charts: HashMap<&'static str, RollingLineChart>,
+    value_charts: HashMap<SmallStr, RollingLineChart>,
+    mean_charts: HashMap<SmallStr, RollingLineChart>,
+    stddev_charts: HashMap<SmallStr, RollingLineChart>,
+    variance_charts: HashMap<SmallStr, RollingLineChart>,
 }
 
 impl ChartState {
@@ -58,7 +57,7 @@ impl ChartState {
 
     pub fn get_line_chart(
         &self,
-        key: &'static str,
+        key: &str,
         chart_type: LineChartType,
     ) -> Option<&RollingLineChart> {
         match chart_type {
@@ -71,7 +70,7 @@ impl ChartState {
 
     pub fn update_from_metric(&mut self, metric: &Metric) {
         let stat = metric.statistic();
-        let key = intern!(metric.name());
+        let key = metric.name();
         if !metric.contains_tag(&TagType::Distribution) {
             let value_chart = self.get_or_create_chart(key, LineChartType::Value);
             value_chart.push(stat.last_value() as f64);
@@ -89,30 +88,32 @@ impl ChartState {
 
     fn get_or_create_chart(
         &mut self,
-        key: &'static str,
+        key: &SmallStr,
         chart_type: LineChartType,
     ) -> &mut RollingLineChart {
         match chart_type {
-            LineChartType::Value => self.value_charts.entry(key).or_insert_with(|| {
+            LineChartType::Value => self.value_charts.entry(key.clone()).or_insert_with(|| {
                 RollingLineChart::with_capacity(MAX_CHART_POINTS)
-                    .with_title(key)
+                    .with_title(key.as_str())
                     .with_color(ratatui::style::Color::LightCyan)
             }),
-            LineChartType::Mean => self.mean_charts.entry(key).or_insert_with(|| {
+            LineChartType::Mean => self.mean_charts.entry(key.clone()).or_insert_with(|| {
                 RollingLineChart::with_capacity(MAX_CHART_POINTS)
                     .with_title(format!("{} μ (mean)", key))
                     .with_color(ratatui::style::Color::Yellow)
             }),
-            LineChartType::Stddev => self.stddev_charts.entry(key).or_insert_with(|| {
+            LineChartType::Stddev => self.stddev_charts.entry(key.clone()).or_insert_with(|| {
                 RollingLineChart::with_capacity(MAX_CHART_POINTS)
                     .with_title(format!("{} σ (stddev)", key))
                     .with_color(ratatui::style::Color::LightGreen)
             }),
-            LineChartType::Variance => self.variance_charts.entry(key).or_insert_with(|| {
-                RollingLineChart::with_capacity(MAX_CHART_POINTS)
-                    .with_title(format!("{} σ² (variance)", key))
-                    .with_color(ratatui::style::Color::LightBlue)
-            }),
+            LineChartType::Variance => {
+                self.variance_charts.entry(key.clone()).or_insert_with(|| {
+                    RollingLineChart::with_capacity(MAX_CHART_POINTS)
+                        .with_title(format!("{} σ² (variance)", key))
+                        .with_color(ratatui::style::Color::LightBlue)
+                })
+            }
         }
     }
 }

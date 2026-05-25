@@ -7,7 +7,6 @@ pub mod error;
 pub mod evaluator;
 pub mod fitness;
 pub mod genome;
-pub mod lineage;
 pub mod objectives;
 pub mod problem;
 pub mod rate;
@@ -27,15 +26,20 @@ pub use domain::*;
 pub use engine::{Engine, EngineExt};
 pub use evaluator::{BatchFitnessEvaluator, Evaluator, FitnessEvaluator};
 pub use executor::Executor;
-pub use fitness::{BatchFitnessFunction, CompositeFitnessFn, FitnessFunction, NoveltySearch};
+pub use fitness::{
+    BatchFitnessFunction, BatchedFn, CompositeFitnessFn, FitnessFunction, NoveltySearch,
+};
 pub use genome::*;
-pub use lineage::{Lineage, LineageEvent, LineageUpdate};
 pub use objectives::{Front, Objective, Optimize, Score, pareto};
-pub use problem::{BatchEngineProblem, EngineProblem, Problem};
+pub use problem::Problem;
+pub use radiate_utils::{AnyValue, DataType, SmallStr, dtype, dtype_names, value};
 pub use rate::Rate;
 pub use replacement::{EncodeReplace, PopulationSampleReplace, ReplacementStrategy};
 pub use selector::Select;
-pub use stats::{Metric, MetricSet, MetricUpdate, metric_names, render_dashboard, render_full};
+pub use stats::{
+    Evaluate, Expr, Metric, MetricQuery, MetricSet, MetricUpdate, SelectExpr, expression::expr,
+    metric_names, render_dashboard, render_full,
+};
 
 pub mod prelude {
     pub use radiate_error::*;
@@ -50,7 +54,7 @@ pub mod prelude {
     pub use super::evaluator::{BatchFitnessEvaluator, Evaluator, FitnessEvaluator};
     pub use super::executor::Executor;
     pub use super::fitness::{
-        BatchFitnessFunction, CompositeFitnessFn, FitnessFunction, NoveltySearch,
+        BatchFitnessFunction, BatchedFn, CompositeFitnessFn, FitnessFunction, NoveltySearch,
     };
     pub use super::genome::{
         ArithmeticGene, BitChromosome, BitGene, BoundedGene, CharChromosome, CharGene, Chromosome,

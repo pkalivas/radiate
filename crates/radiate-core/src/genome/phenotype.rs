@@ -1,39 +1,15 @@
 use super::{Valid, genotype::Genotype};
-use crate::Result;
 use crate::objectives::Score;
+use crate::species::SpeciesId;
 use crate::{Chromosome, objectives::Scored};
+use crate::{Result, sentry_id};
 use radiate_error::radiate_err;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::hash::Hash;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::AtomicU64;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[repr(transparent)]
-pub struct FamilyId(pub u64);
-
-impl FamilyId {
-    pub fn new() -> Self {
-        static FAMILY_ID: AtomicU64 = AtomicU64::new(0);
-        FamilyId(FAMILY_ID.fetch_add(1, Ordering::Relaxed))
-    }
-}
-
-/// A unique identifier for a [Phenotype]. This is used to identify the [Phenotype] in the population.
-/// It is a simple wrapper around a `u64` value. Using this, we can uniquely identify each [Phenotype]
-/// and can track them by a sort of 'version'. Every time a [Phenotype] is created or invalidated, its ID is updated.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[repr(transparent)]
-pub struct PhenotypeId(pub u64);
-
-impl PhenotypeId {
-    pub fn new() -> Self {
-        static PHENOTYPE_ID: AtomicU64 = AtomicU64::new(0);
-        PhenotypeId(PHENOTYPE_ID.fetch_add(1, Ordering::Relaxed))
-    }
-}
+sentry_id!(PhenotypeId);
 
 /// A [Phenotype] is a representation of an individual in the population. It contains:
 /// * `Genotype` - the genetic representation of the individual
@@ -56,7 +32,7 @@ pub struct Phenotype<C: Chromosome> {
     genotype: Option<Genotype<C>>,
     score: Option<Score>,
     generation: usize,
-    family: FamilyId,
+    species: SpeciesId,
     id: PhenotypeId,
 }
 
@@ -76,10 +52,9 @@ impl<C: Chromosome> Phenotype<C> {
     }
 
     pub fn take_genotype(&mut self) -> Result<Genotype<C>> {
-        self.genotype.take().map_or(
-            Err(radiate_err!(Genome: "Genotype is None - this shouldn't happen.")),
-            Ok,
-        )
+        self.genotype
+            .take()
+            .ok_or(radiate_err!(Genome: "Genotype is None - this shouldn't happen."))
     }
 
     pub fn set_genotype(&mut self, genotype: Genotype<C>) {
@@ -88,6 +63,10 @@ impl<C: Chromosome> Phenotype<C> {
 
     pub fn set_score(&mut self, score: Option<Score>) {
         self.score = score;
+    }
+
+    pub fn set_species(&mut self, species: SpeciesId) {
+        self.species = species;
     }
 
     pub fn generation(&self) -> usize {
@@ -102,8 +81,8 @@ impl<C: Chromosome> Phenotype<C> {
         self.id
     }
 
-    pub fn family(&self) -> FamilyId {
-        self.family
+    pub fn species(&self) -> SpeciesId {
+        self.species
     }
 
     pub fn invalidate(&mut self, generation: usize) {
@@ -175,7 +154,7 @@ impl<C: Chromosome> From<Genotype<C>> for Phenotype<C> {
             score: None,
             generation: 0,
             id: PhenotypeId::new(),
-            family: FamilyId::new(),
+            species: SpeciesId::EMPTY,
         }
     }
 }
@@ -187,7 +166,7 @@ impl<C: Chromosome> From<(Genotype<C>, usize)> for Phenotype<C> {
             score: None,
             generation,
             id: PhenotypeId::new(),
-            family: FamilyId::new(),
+            species: SpeciesId::EMPTY,
         }
     }
 }
@@ -203,7 +182,7 @@ impl<C: Chromosome> From<(Vec<C>, usize)> for Phenotype<C> {
             score: None,
             generation,
             id: PhenotypeId::new(),
-            family: FamilyId::new(),
+            species: SpeciesId::EMPTY,
         }
     }
 }

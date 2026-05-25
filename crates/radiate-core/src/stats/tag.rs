@@ -1,8 +1,7 @@
-use std::hash::Hash;
-
 use crate::stats::metric_tags;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+use std::hash::Hash;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -111,7 +110,6 @@ pub enum TagType {
     Score,
     Rate,
     Step,
-    Lineage,
     Expr,
 }
 
@@ -137,8 +135,7 @@ impl TagType {
             13 => Score,
             14 => Rate,
             15 => Step,
-            16 => Lineage,
-            17 => Expr,
+            16 => Expr,
             _ => return None,
         })
     }
@@ -168,7 +165,6 @@ impl TagType {
             Score => "Score",
             Rate => "Rate",
             Step => "Step",
-            Lineage => "Lineage",
             Expr => "Expr",
         }
     }
@@ -176,7 +172,7 @@ impl TagType {
 
 impl PartialOrd for TagType {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some((*self as u16).cmp(&(*other as u16)))
+        Some(self.cmp(other))
     }
 }
 
@@ -189,6 +185,7 @@ impl Ord for TagType {
 impl From<String> for TagType {
     fn from(s: String) -> Self {
         use TagType::*;
+
         match s.as_str().to_lowercase().as_str() {
             metric_tags::SELECTOR => Selector,
             metric_tags::ALTERER => Alterer,
@@ -206,7 +203,6 @@ impl From<String> for TagType {
             metric_tags::SCORE => Score,
             metric_tags::RATE => Rate,
             metric_tags::STEP => Step,
-            metric_tags::LINEAGE => Lineage,
             metric_tags::EXPR => Expr,
             _ => Other,
         }
@@ -225,7 +221,7 @@ impl Iterator for TagMaskIter {
             return None;
         }
 
-        let tz = self.bits.trailing_zeros() as u32;
+        let tz = self.bits.trailing_zeros();
         self.bits &= self.bits - 1;
         TagType::from_index(tz)
     }

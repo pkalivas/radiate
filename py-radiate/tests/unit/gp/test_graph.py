@@ -56,9 +56,14 @@ def test_gp_graph_eval():
 @pytest.mark.integration
 def test_graph_from_json(graph_simple_2x1):
     """Test GP Graph creation from JSON."""
+    initial_eval = graph_simple_2x1.eval([[1.0, 2.0]])
     json_data = graph_simple_2x1.to_json()
+
     graph = rd.Graph.from_json(json_data)
+    post_eval = graph.eval([[1.0, 2.0]])
 
     assert graph is not None
     assert isinstance(graph, rd.Graph)
-    assert graph.eval([[1.0, 2.0]]) is not None
+    assert initial_eval == post_eval, (
+        "Graph evaluation should be consistent before and after JSON serialization"
+    )

@@ -46,7 +46,7 @@ where
     C: Chromosome,
 {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let d = self.state.objective_state.objective.dims();
+        let d = self.state.evo.pareto.objective.dims();
         if d < 2 {
             Panel::empty("need 2+ objectives").render(area, buf);
             return;
@@ -60,7 +60,7 @@ where
             return;
         }
 
-        let objective_state = &self.state.objective_state;
+        let objective_state = &self.state.evo.pareto;
         let start = objective_state
             .chart_start_index
             .min(total.saturating_sub(1));
@@ -97,7 +97,7 @@ where
 {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let areas =
-            Layout::horizontal(std::iter::repeat(Constraint::Fill(1)).take(self.count)).split(area);
+            Layout::horizontal(std::iter::repeat_n(Constraint::Fill(1), self.count)).split(area);
 
         for (pane_idx, rect) in areas.iter().enumerate() {
             let k = self.start + pane_idx;
@@ -133,7 +133,7 @@ where
     C: Chromosome,
 {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let front = match &self.state.front {
+        let front = match &self.state.evo.front {
             Some(f) if !f.is_empty() => f,
             _ => {
                 Block::default()
@@ -219,9 +219,9 @@ where
                     .style(Style::default().gray())
                     .bounds([min_y, max_y])
                     .labels(Line::from(vec![
-                        format!("{:.2}", min_y).bold().into(),
+                        format!("{:.2}", min_y).bold(),
                         format!("{:.2}", mid_y).into(),
-                        format!("{:.2}", max_y).bold().into(),
+                        format!("{:.2}", max_y).bold(),
                     ])),
             );
 

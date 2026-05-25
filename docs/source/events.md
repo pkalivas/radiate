@@ -9,13 +9,13 @@ Radiate provides an event system that allows you to monitor and react to the evo
 
 ## Overview
 
-The event system in Radiate is built around the concept of event handlers or subscribers that can be attached to the `GeneticEngine`. These subscribers receive events at key points during the evolution process, allowing you to monitor and react to changes in the environment in real-time. The event system is designed to be flexible and extensible, allowing you to create custom event handlers that can perform various actions based on the evolution state.
+The event system in `radiate` is built around the concept of event handlers or subscribers that can be attached to the `GeneticEngine`. These subscribers receive events at key points during the evolution process, allowing you to monitor and react to changes in the environment in real-time. The event system is designed to be flexible and extensible, allowing you to create custom event handlers that can perform various actions based on the evolution state.
 
-The `GeneticEngine` trys it's best to off-load almost the entire compute workload of the subscribers (handlers) to the user - be aware of this when implementing your handlers.
+The `GeneticEngine` offloads nearly all of a subscriber's compute cost onto the handler itself — so be mindful of this when implementing your handlers; expensive work here _can_ slow the whole run.
 
 !!! note "Threading Behavior"
     
-    Currently, the rust implementation is multi-threaded (if multi-threaded executors are used), meaning if you have multiple subscribers, there is no guarantee of the order in which they will be called. For python, regardless of if you are using a free-threaded interpreter (3.13t/3.14t, ect) or not, the events will be dispatched on a single thread in the order they were added.
+    Currently, the rust implementation is multi-threaded (if multi-threaded [executors](executors.md) are used), meaning if you have multiple subscribers, there is no guarantee of the order in which they will be called. For python, regardless of if you are using a free-threaded interpreter (3.13t/3.14t, etc) or not, the events will be dispatched on a single thread in the order they were added.
 
 --- 
 ## Event Types
@@ -62,7 +62,7 @@ Below there is a brief description of each event type with its representative da
     {
         'event_type': 'stop_event',
         'index': 0, // Current generation number
-        // This will be a MetricSet (or dictionary in python) of metrics collected, see Engine's metrics docs for more info
+        // This will be a MetricSet of metrics collected, see Engine's metrics docs for more info
         'metrics': ..., 
         // This will be the decoded best individual found so far. So, if you are 
         // evolving a vector of FloatGenes, this will be a list of floats
@@ -137,17 +137,7 @@ The simplest way to subscribe to events is by providing a callback function:
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    engine = (
-        rd.Engine(your_codec)
-        .fitness(your_fitness_func)
-        .subscribe(lambda event: print(event))  # Subscribe to all events using a lambda function
-        # ... other parameters ...
-    )
-
-    # Run the engine for 100 generations
-    engine.run(rd.Limit.generations(100))
+    --8<-- "python/events.py:lambda_subscribe"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -179,75 +169,13 @@ For more complex event handling, you can create a custom event handler class:
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    # Inherit from EventHandler, tell the super class which event you'd like to subscribe to, 
-    # then override the on_event method
-    class Subscriber(rd.EventHandler):
-        def __init__(self):
-            super().__init__(rd.EventType.EPOCH_COMPLETE)
-
-        def on_event(self, event):
-            print(f"Event: {event}")
-
-    # Create an instance of your event handler
-    handler = Subscriber()
-
-    engine = rd.Engine(
-        codec=your_codec,
-        fitness_func=your_fitness_func,
-        subscribe=handler,
-        # ... other parameters ...
-    )
-
-    # or add it later
-    engine.subscribe(handler)
-
-    # Run the engine for 100 generations
-    engine.run(rd.GenerationsLimit(100))
+    --8<-- "python/events.py:handler_subclass"
     ```
 
-    Its also completely possible to create more advanced forms of visualization or logging through this method. For example, below we will collect the scores from each epoch then use polars to create a DataFrame and finally plot it with matplotlib.
+    It's also completely possible to create more advanced forms of visualization or logging through this method. For example, below we will collect the scores from each epoch then use polars to create a DataFrame and finally plot it with matplotlib.
 
     ```python
-    class ScorePlotterHandler(rd.EventHandler):
-        """
-        An event handler that collects best scores over epochs and plots them at the end.
-        1. On EPOCH_COMPLETE, it appends the best score to a list.
-        2. On STOP, it creates a DataFrame and plots the scores over generations.
-        """
-
-        def __init__(self):
-            super().__init__() # Not specifying an event type to listen to all events
-            self.scores = []
-
-        def on_event(self, event: rd.EngineEvent) -> None:
-            if event.event_type() == rd.EventType.EPOCH_COMPLETE:
-                best_score = event.score()
-                self.scores.append(best_score)
-            elif event.event_type() == rd.EventType.STOP:
-                df = pl.DataFrame(
-                    {"Generation": list(range(len(self.scores))), "Score": self.scores}
-                )
-                plt.plot(df["Generation"], df["Score"])
-                plt.xlabel("Generation")
-                plt.ylabel("Best Score")
-                plt.title("Best Score over Generations")
-                plt.grid(True)
-                plt.show()
-
-    # Create an instance of your event handler
-    handler = ScorePlotterHandler()
-
-    engine = (
-        rd.Engine(codec=your_codec)
-        .fitness(your_fitness_func)
-        .subscribe(handler)   # Add your handler here
-        # ... other parameters ...
-    )
-    
-    # Run the engine for 100 generations
-    engine.run(rd.GenerationsLimit(100))
+    --8<-- "python/events.py:score_plotter"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -282,42 +210,23 @@ For more complex event handling, you can create a custom event handler class:
 
 ## Built in Handlers
 
-As of `4/25/2026`, the python implementation includes one built in event handler called the `MetricCollector`. This handler collects the metric set at the end of each epoch and stores it in a list for later use. Note to use this handler to it's fullest capacity, you should install radiate with the `polars` (or `pandas`) and `matplotlib` extras, as shown below:
-
-```bash
-uv add "radiate[polars,pandas,matplotlib]"
-```
-
-You can use this handler as follows (note - this is super useful when using radiate inside a `.ipynb` notebook):
-
 === ":fontawesome-brands-python: Python"
 
-    ```python
-    import radiate as rd
+    As of `4/25/2026`, the python implementation includes one built in event handler called the `MetricCollector`. This handler collects the [metric set](engine/metrics.md) at the end of each epoch and stores it in a list for later use. Note to use this handler to its fullest capacity, you should install radiate with the `polars` (or `pandas`) and `matplotlib` extras, as shown below:
 
-    # Create an instance of the MetricCollector
-    collector = rd.MetricCollector()
-
-    engine = (
-        rd.Engine ... # configure your engine as normal
-        .fitness(your_fitness_func)
-        .subscribe(collector)  # Subscribe the MetricCollector to the engine
-        # ... other parameters ...
-    )
-
-    # Run the engine for 100 generations
-    engine.run(rd.Limit.generations(100))
-
-    # After the run, you can access the collected metrics
-    # Convert collected metric sets to a df where each row is a single metric (includes all collected metrics).
-    df = collector.to_polars(lazy=False) # optional lazy arg - defaults to False
-
-    # Same as above but with pandas instead of polars
-    df = collector.to_pandas()
-
-    # Plot specific metrics to a matplotlib line plot
-    collector.plot("scores.best", "rate.diversity")
+    ```bash
+    uv add "radiate[polars,pandas,matplotlib]"
     ```
+
+    You can use this handler as follows (this is great when using radiate inside a `.ipynb` notebook):
+
+    ```python
+    --8<-- "python/events.py:metric_collector"
+    ```
+
+=== ":fontawesome-brands-rust: Rust"
+
+    No built-in handlers in rust yet.
 
 ---
 

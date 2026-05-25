@@ -1,4 +1,4 @@
-use crate::RadiateError;
+use crate::{Code, RadiateError};
 use pyo3::PyErr;
 use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError};
 
@@ -15,9 +15,23 @@ impl From<RadiateError> for PyErr {
             RadiateError::Expr(message) => PyRuntimeError::new_err(message),
             RadiateError::Other(message) => PyRuntimeError::new_err(message),
             RadiateError::Multiple(m) => PyRuntimeError::new_err(m),
-            RadiateError::Context { .. } => PyRuntimeError::new_err(e.to_string()),
+            // Context wraps another error; classify by the root cause so the
+            // exception type reflects what went wrong, while the message keeps
+            // the full "context\nCaused by: ..." chain.
+            RadiateError::Context { .. } => {
+                let message = e.to_string();
+                match e.leaf_code() {
+                    Code::InvalidConfig => PyValueError::new_err(message),
+                    Code::Codec => PyTypeError::new_err(message),
+                    _ => PyRuntimeError::new_err(message),
+                }
+            }
             #[cfg(feature = "python")]
             RadiateError::Python(source) => source,
+            RadiateError::IO(source) => PyRuntimeError::new_err(format!("I/O error: {}", source)),
+            RadiateError::Fmt(source) => {
+                PyRuntimeError::new_err(format!("Formatting error: {}", source))
+            }
         }
     }
 }

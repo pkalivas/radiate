@@ -156,10 +156,10 @@ where
 
     #[inline]
     fn next(&mut self) -> Result<Generation<C, T>> {
-        if let Some(control) = &self.context.control {
-            if control.is_paused() {
-                control.wait_before_step();
-            }
+        if let Some(control) = &self.context.control
+            && control.is_paused()
+        {
+            control.wait();
         }
 
         if matches!(self.context.index, 0) {

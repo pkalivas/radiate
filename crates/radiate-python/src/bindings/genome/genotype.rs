@@ -4,7 +4,7 @@ use radiate::{
     BitChromosome, CharChromosome, Chromosome, FloatChromosome, Genotype, GraphChromosome,
     IntChromosome, Op, PermutationChromosome, TreeChromosome,
 };
-use radiate_expr::DataType;
+use radiate_utils::DataType;
 
 #[pyclass(from_py_object)]
 #[derive(Clone, Debug, PartialEq)]
@@ -54,10 +54,6 @@ impl PyGenotype {
 
     pub fn chromosomes(&self) -> Vec<PyChromosome> {
         self.chromosomes.clone()
-    }
-
-    pub fn len(&self) -> usize {
-        self.chromosomes.len()
     }
 
     pub fn gene_type(&self) -> PyGeneType {

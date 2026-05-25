@@ -1,36 +1,47 @@
-use pyo3::{intern, prelude::*, pybacked::PyBackedStr, types::PyList};
-use radiate_expr::{DataType, Field};
-
 use crate::Wrap;
+use pyo3::{intern, prelude::*, pybacked::PyBackedStr, types::PyList};
+use radiate_utils::{DataType, SmallStr};
+
+#[derive(Clone, Debug)]
+struct Field {
+    name: SmallStr,
+    dtype: DataType,
+}
+
+impl Field {
+    pub fn new(name: SmallStr, dtype: DataType) -> Self {
+        Self { name, dtype }
+    }
+}
 
 pub fn dtype_from_str(value: &str) -> DataType {
     // check to see if the value is a numpy dtype string like "numpy.float32"
     let value = value.trim().to_lowercase();
-    if let Some(stripped) = value.strip_prefix('<') {
-        if stripped.contains("numpy") {
-            let dtype_str = stripped.trim_start_matches("numpy").split('.');
-            let last_parsed = dtype_str
-                .clone()
-                .last()
-                .map(|s| s.trim_matches(|c: char| !c.is_alphanumeric()));
+    if let Some(stripped) = value.strip_prefix('<')
+        && stripped.contains("numpy")
+    {
+        let dtype_str = stripped.trim_start_matches("numpy").split('.');
+        let last_parsed = dtype_str
+            .clone()
+            .next_back()
+            .map(|s| s.trim_matches(|c: char| !c.is_alphanumeric()));
 
-            match last_parsed {
-                Some("float32") => return DataType::Float32,
-                Some("float64") => return DataType::Float64,
+        match last_parsed {
+            Some("float32") => return DataType::Float32,
+            Some("float64") => return DataType::Float64,
 
-                Some("int8") => return DataType::Int8,
-                Some("int16") => return DataType::Int16,
-                Some("int32") => return DataType::Int32,
-                Some("int64") => return DataType::Int64,
+            Some("int8") => return DataType::Int8,
+            Some("int16") => return DataType::Int16,
+            Some("int32") => return DataType::Int32,
+            Some("int64") => return DataType::Int64,
 
-                Some("uint8") => return DataType::UInt8,
-                Some("uint16") => return DataType::UInt16,
-                Some("uint32") => return DataType::UInt32,
-                Some("uint64") => return DataType::UInt64,
+            Some("uint8") => return DataType::UInt8,
+            Some("uint16") => return DataType::UInt16,
+            Some("uint32") => return DataType::UInt32,
+            Some("uint64") => return DataType::UInt64,
 
-                Some("bool") => return DataType::Boolean,
-                _ => return DataType::Null,
-            }
+            Some("bool") => return DataType::Boolean,
+            _ => return DataType::Null,
         }
     }
 
@@ -127,6 +138,10 @@ impl<'py> IntoPyObject<'py> for &Wrap<DataType> {
                 let class = rd.getattr(intern!(py, "Float64"))?;
                 class.call0()
             }
+            DataType::Usize => {
+                let class = rd.getattr(intern!(py, "Usize"))?;
+                class.call0()
+            }
             DataType::Duration => {
                 let class = rd.getattr(intern!(py, "Duration"))?;
                 class.call0()
@@ -148,29 +163,35 @@ impl<'py> IntoPyObject<'py> for &Wrap<DataType> {
                 let inner = Wrap(*inner.clone());
                 class.call1((&inner,))
             }
-            DataType::Struct(fields) => {
+            DataType::Dict(fields) => {
                 let field_class = rd.getattr(intern!(py, "Field"))?;
+
                 let iter = fields.iter().map(|fld| {
-                    let name = fld.name().as_str();
-                    let dtype = Wrap(fld.dtype().clone());
+                    let name = fld.0.to_string();
+                    let dtype = Wrap(fld.1.clone());
                     field_class.call1((name, &dtype)).unwrap()
                 });
+
                 let fields = PyList::new(py, iter)?;
-                let struct_class = rd.getattr(intern!(py, "Struct"))?;
-                struct_class.call1((fields,))
+                let dict_class = rd.getattr(intern!(py, "Dict"))?;
+                dict_class.call1((fields,))
             }
-            // DataType::Struct(fields) => {
-            //     let class = rd.getattr(intern!(py, "Op32"))?;
-            //     class.call0()
-            // }
-            // DataType::Node(inner) => {
-            //     let class = rd.getattr(intern!(py, "Node"))?;
-            //     let inner = Wrap(*inner.clone());
-            //     class.call1((&inner,))
-            // }
             DataType::Null => {
                 let class = rd.getattr(intern!(py, "Null"))?;
                 class.call0()
+            }
+            DataType::Struct(name, fields) => {
+                let field_class = rd.getattr(intern!(py, "Field"))?;
+
+                let iter = fields.iter().map(|(name, dtype)| {
+                    let name = name.as_str();
+                    let dtype = Wrap(dtype.clone());
+                    field_class.call1((name, &dtype)).unwrap()
+                });
+
+                let fields = PyList::new(py, iter)?;
+                let struct_class = rd.getattr(intern!(py, "Struct"))?;
+                struct_class.call1((name.to_string(), fields))
             }
         }
     }
@@ -254,13 +275,27 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Wrap<DataType> {
             }
 
             "Struct" => {
+                let name = obj
+                    .getattr(intern!(py, "name"))?
+                    .str()?
+                    .extract::<PyBackedStr>()?;
                 let fields = obj.getattr(intern!(py, "fields"))?;
                 let fields = fields
                     .extract::<Vec<Wrap<Field>>>()?
                     .into_iter()
-                    .map(|f| f.0)
-                    .collect::<Vec<Field>>();
-                DataType::Struct(fields)
+                    .map(|f| (SmallStr::from(f.0.name.to_string()), f.0.dtype.clone()))
+                    .collect::<Vec<(SmallStr, DataType)>>();
+                DataType::Struct((&*name).into(), fields)
+            }
+
+            "Dict" => {
+                let fields = obj.getattr(intern!(py, "fields"))?;
+                let fields = fields
+                    .extract::<Vec<Wrap<Field>>>()?
+                    .into_iter()
+                    .map(|f| (SmallStr::from(f.0.name.to_string()), f.0.dtype.clone()))
+                    .collect::<Vec<(SmallStr, DataType)>>();
+                DataType::Dict(fields)
             }
 
             _ => {

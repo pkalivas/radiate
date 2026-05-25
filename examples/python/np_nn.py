@@ -5,11 +5,15 @@ It implements a simple feedforward neural network with 3 layers (input, hidden, 
 The network weights are evolved using a float codec.
 """
 
-import pprint
 import radiate as rd
 import numpy as np  # type: ignore
+from pathlib import Path
 
 rd.random.seed(123)
+
+ROOT = Path(__file__).parent
+WRITE_DIR = ROOT / "results"
+READ_DIR = ROOT / "results" / "chckpnt_440.pkl"
 
 
 def compute(x: float) -> float:
@@ -75,11 +79,16 @@ engine = (
 result = engine.run(log=True)
 metrics = result.metrics()
 
-print(result.metrics().dashboard())
-# pprint.pprint(metrics["carryover_rate"].tags())
+print(result)
 
-for metric in metrics.values_by_tag(rd.Tag.DERIVED):
-    print(metric)
 
-print()
-pprint.pprint(metrics["rate.carryover"].to_dict())
+# checkpoint=(55, WRITE_DIR, "pkl"))
+# .load_checkpoint(
+#     READ_DIR, ignore_not_found=True
+# )  # Load from a previous checkpoint if it exists
+
+# for metric in metrics.values_by_tag(rd.Tag.DERIVED):
+#     print(metric)
+
+# print()
+# pprint.pprint(metrics["rate.carryover"].to_dict())

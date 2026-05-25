@@ -3,6 +3,8 @@ use std::sync::Arc;
 
 const MIN_SCORE: f32 = 1e-8;
 
+type ObjectiveFitness<T, S> = Arc<dyn for<'a> FitnessFunction<&'a T, S>>;
+
 /// A composite fitness function that combines multiple fitness objectives with weights.
 ///
 /// This struct allows you to create a single fitness function from multiple sub-objectives,
@@ -35,7 +37,7 @@ const MIN_SCORE: f32 = 1e-8;
 /// let fitness = composite.evaluate(vec![0.5, 0.5]);
 /// ```
 pub struct CompositeFitnessFn<T, S> {
-    objectives: Vec<Arc<dyn for<'a> FitnessFunction<&'a T, S>>>,
+    objectives: Vec<ObjectiveFitness<T, S>>,
     weights: Vec<f32>,
 }
 
@@ -73,6 +75,15 @@ where
         self.objectives.push(Arc::new(fitness_fn));
         self.weights.push(1.0);
         self
+    }
+}
+
+impl<T, S> Default for CompositeFitnessFn<T, S>
+where
+    S: Into<Score> + Clone,
+{
+    fn default() -> Self {
+        Self::new()
     }
 }
 

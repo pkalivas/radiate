@@ -77,11 +77,8 @@ impl<T: Clone + Default> Tree<T> {
         };
 
         for _ in 0..num_children {
-            if let Some(child) = Self::grow(current_depth - 1, store) {
-                parent.add_child(child);
-            } else {
-                return None;
-            }
+            let child = Self::grow(current_depth - 1, store)?;
+            parent.add_child(child);
         }
 
         Some(parent)

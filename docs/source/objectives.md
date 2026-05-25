@@ -35,19 +35,7 @@ The `minimizing()` method configures the genetic algorithm to find the minimum v
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    # Create an engine that has a genome of 1 chromosome with 10 float genes, initialized & bound between 0.0 and 1.0
-    codec = rd.FloatCodec(10, init_range=(0.0, 1.0))  # Example codec
-    engine = rd.Engine(codec).fitness(lambda x: sum(x)).minimizing()
-
-    # or create the same engine with the builder codec:
-    engine = (
-        rd.Engine.float(10, init_range=(0.0, 1.0))  # Example codec
-        .fitness(lambda x: sum(x))  # return a value to minimize
-        .minimizing()  # Configure for minimization
-        # ... other parameters ...
-    )
+    --8<-- "python/objectives.py:minimizing"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -84,20 +72,7 @@ This is the default option for the `GeneticEngine`, so you don't really need to 
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    # Create an engine that has a genome of 1 chromosome with 10 float genes, initialized & bound between 0.0 and 1.0
-    # Note that maximization is the default, so you could omit the '.maximizing()' call and it would still maximize
-    codec = rd.FloatCodec(10, init_range=(0.0, 1.0))  # Example codec
-    engine = rd.Engine(codec).fitness(lambda x: sum(x)).maximizing()
-
-    # or using builder pattern
-    engine = (
-        rd.Engine.float(10, init_range=(0.0, 1.0))  # Example codec
-        .fitness(lambda x: sum(x))  # return a value to maximize
-        .maximizing()  # Configure for maximization
-        # ... other parameters ...
-    )
+    --8<-- "python/objectives.py:maximizing"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -131,34 +106,18 @@ Multi-objective optimization allows you to optimize multiple conflicting objecti
 
 > **Purpose**: Optimize multiple conflicting objectives simultaneously
 
+With multiple objectives there's rarely a single "best" solution — improving one objective usually means giving ground on another. The key idea is **Pareto dominance**: solution *A* dominates solution *B* if it is at least as good as *B* on **every** objective and strictly better on **at least one**. The solutions that *no* other solution dominates form the **Pareto front** — the set of best available trade-offs. Rather than collapsing everything down to one winner, multi-objective optimization evolves and returns this whole front, leaving the final trade-off choice to you.
+
 ---
 
 ### Setting Up MO Problems
 
-Use `multi_objective()` with a list of optimization directions to configure multi-objective optimization. To control the size of the Pareto front, use `front_range()` to specify the minimum and maximum number of solutions to maintain as seen below:
+Use `multi_objective()` with a list of optimization directions to configure multi-objective optimization. To bound how many solutions the engine keeps on the Pareto front, set the **front-size range** — `front_range(min, max)` in Python, `front_size(min..max)` in Rust. It defaults to `800..900`.
 
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-    
-    codec = rd.FloatCodec(10, init_range=(0.0, 1.0))  # Example codec
-    engine = (
-        rd.Engine(codec)
-        .fitness(lambda x: [obj1_fitness_func(x), obj2_fitness_func(x)])  # Return list of objectives
-        .objective(rd.MIN, rd.MAX)  # Minimize obj1, maximize obj2
-        .front_range(800, 900)  # Pareto front size range
-        # ... other parameters ...
-    )
-
-    # Or using builder pattern
-    engine = (
-        rd.Engine.float(10, init_range=(0.0, 1.0))  # Example codec
-        .fitness(lambda x: [obj1_fitness_func(x), obj2_fitness_func(x)])  # Return list of objectives
-        .objective(rd.MIN, rd.MAX)  # Minimize obj1, maximize obj2
-        .front_range(800, 900)  # Pareto front size range
-        # ... other parameters ...
-    )
+    --8<-- "python/objectives.py:multi_objective"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -185,7 +144,7 @@ Use `multi_objective()` with a list of optimization directions to configure mult
 
 ### Pareto Front Management
 
-The `front_size()` parameter controls the size of the Pareto front. When the pareto front is full (reaches the upper bound), the algorithm will truncate down to the lower bound by removing solutions based on Pareto dominance and crowding distance.
+The **front-size range** controls how large the Pareto front is allowed to grow. When the front fills up (reaches the upper bound), the engine truncates it back down to the lower bound, dropping solutions by Pareto dominance and then crowding distance — so it keeps the most diverse, least-dominated set.
 
 ---
 
@@ -202,19 +161,7 @@ Although, any selector can be used, these are optimized for multi-objective prob
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    engine = (
-        rd.Engine.float(10, init_range=(0.0, 1.0))  # Example codec
-        .fitness(lambda x: [obj1_fitness_func(x), obj2_fitness_func(x)])  # Return list of objectives
-        .objective(rd.MIN, rd.MAX)  # Minimize obj1, maximize obj2
-        .front_range(800, 900)  # Pareto front size range
-        .select(
-            offspring=rd.Select.tournament_nsga2(k=3),
-            survivor=rd.Select.nsga3(12)
-        )  # Set MO selectors
-        # ... other parameters ...
-    )
+    --8<-- "python/objectives.py:multi_objective_selectors"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -225,8 +172,8 @@ Although, any selector can be used, these are optimized for multi-objective prob
     let engine = GeneticEngine::builder()
         .codec(FloatCodec::vector(10, 0.0..1.0))  // Example codec
         .multi_objective(vec![Optimize::Minimize, Optimize::Maximize])
-        .survivor_selector(NSGA2Selector::new())                // NSGA-II for Pareto ranking
-        .offspring_selector(TournamentNSGA2Selector::new(3))    // Tournament selection with Pareto dominance
+        .offspring_selector(TournamentNSGA2Selector::new())     // Tournament selection with Pareto dominance
+        .survivor_selector(NSGA3Selector::new(12))              // NSGA-III with 12 reference directions
         .front_size(800..900)  // Pareto front size range
         .fitness_fn(|genotype| {
             vec![

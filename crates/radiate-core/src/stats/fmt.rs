@@ -1,7 +1,26 @@
 use crate::stats::TagType;
 use crate::{Metric, MetricSet, metric_names};
+use radiate_utils::SmallStr;
+use std::borrow::Cow;
 use std::time::Duration;
 use std::{fmt::Write as _, io};
+
+const NAME_WIDTH: usize = 26;
+
+fn truncate_name(name: &str) -> Cow<'_, str> {
+    let len = name.chars().count();
+    if len <= NAME_WIDTH {
+        return Cow::Borrowed(name);
+    }
+
+    let available = NAME_WIDTH - 3;
+    let head_len = available.div_ceil(2);
+    let tail_len = available - head_len;
+    let head = name.chars().take(head_len).collect::<String>();
+    let tail = name.chars().skip(len - tail_len).collect::<String>();
+
+    Cow::Owned(format!("{head}...{tail}"))
+}
 
 pub fn sparkline(values: &[f32], width: usize) -> String {
     if values.is_empty() || width == 0 {
@@ -33,33 +52,33 @@ pub fn sparkline(values: &[f32], width: usize) -> String {
 pub fn render_dashboard(metrics: &MetricSet) -> io::Result<String> {
     let mut out = String::new();
 
-    let mut push_val = |name: &'static str, label: &str| {
+    let mut push_val = |name: &SmallStr, label: &str| {
         if let Some(m) = metrics.get(name) {
             let mu = m.mean();
             write!(out, "  {label}: {:.3}", mu).unwrap();
         }
     };
 
-    push_val(metric_names::CARRYOVER_RATE, "carryover");
-    push_val(metric_names::DIVERSITY_RATIO, "diversity");
+    push_val(&metric_names::CARRYOVER_RATE, "carryover");
+    push_val(&metric_names::DIVERSITY_RATIO, "diversity");
 
-    let mut push_int = |name: &'static str, label: &str| {
+    let mut push_int = |name: &SmallStr, label: &str| {
         if let Some(m) = metrics.get(name) {
             write!(out, "  {label}: {}", m.last_value() as i64).unwrap();
         }
     };
 
-    push_int(metric_names::UNIQUE_MEMBERS, "unique_members");
-    push_int(metric_names::UNIQUE_SCORES, "unique_scores");
+    push_int(&metric_names::UNIQUE_MEMBERS, "unique_members");
+    push_int(&metric_names::UNIQUE_SCORES, "unique_scores");
 
     if let Some(m) = metrics.get(metric_names::BEST_SCORE_IMPROVEMENT) {
         write!(out, "  improvements: {}", m.count() as i64).unwrap();
     }
 
-    if let Some(m) = metrics.get(metric_names::TIME) {
-        if let Some(mu) = m.times().and_then(|t| t.mean()) {
-            write!(out, "  iter_time(mean): {}", fmt_duration(mu)).unwrap();
-        }
+    if let Some(m) = metrics.get(metric_names::TIME)
+        && let Some(mu) = m.times().map(|t| t.mean())
+    {
+        write!(out, "  iter_time(mean): {}", fmt_duration(mu)).unwrap();
     }
 
     Ok(if out.is_empty() {
@@ -93,16 +112,16 @@ pub fn render_metric_rows_full(
         writeln!(
             out,
             "{:<26} | {:<6} | {:<10.3} | {:<10.3} | {:<10.3} | {:<6} | {:<12.3} | {:<10.3} | {:<10.3} | {:<10.3} | {:<10.3}",
-            name,
+            truncate_name(name),
             "dist",
-            dist.mean().unwrap_or_default(),
-            dist.min().unwrap_or_default(),
-            dist.max().unwrap_or_default(),
+            dist.mean(),
+            dist.min(),
+            dist.max(),
             dist.count(),
-            dist.sum().unwrap() / 1_000.0, // scale sum to avoid overflow
-            dist.stddev().unwrap_or(0.0),
-            dist.skewness().unwrap_or(0.0),
-            dist.kurtosis().unwrap_or(0.0),
+            dist.sum() / 1_000.0, // scale sum to avoid overflow
+            dist.stddev(),
+            dist.skewness(),
+            dist.kurtosis(),
             // dist.entropy().unwrap_or(0.0),
             "-",
         ).unwrap();
@@ -114,16 +133,16 @@ pub fn render_metric_rows_full(
         writeln!(
             out,
             "{:<26} | {:<6} | {:<10.3} | {:<10.3} | {:<10.3} | {:<6} | {:<12.3} | {:<10.3} | {:<10.3} | {:<10.3} | {:<10}",
-            name,
+            truncate_name(name),
             "value",
-            stat.mean().unwrap_or_default(),
-            stat.min().unwrap_or_default(),
-            stat.max().unwrap_or_default(),
+            stat.mean(),
+            stat.min(),
+            stat.max(),
             stat.count(),
-            stat.sum().unwrap() / 1_000.0, // scale sum to avoid overflow
-            stat.stddev().unwrap_or(0.0),
-            stat.skewness().unwrap_or(0.0),
-            stat.kurtosis().unwrap_or(0.0),
+            stat.sum() / 1_000.0, // scale sum to avoid overflow
+            stat.stddev(),
+            stat.skewness(),
+            stat.kurtosis(),
             "-",
         ).unwrap();
     }
@@ -135,14 +154,14 @@ pub fn render_metric_rows_full(
         writeln!(
             out,
             "{:<26} | {:<6} | {:<10} | {:<10} | {:<10} | {:<6} | {:<12} | {:<10} | {:<10} | {:<10} | {:<10}",
-            name,
+            truncate_name(name),
             "time",
-            fmt_duration(t.mean().unwrap_or_default()),
-            fmt_duration(t.min().unwrap_or_default()),
-            fmt_duration(t.max().unwrap_or_default()),
+            fmt_duration(t.mean()),
+            fmt_duration(t.min()),
+            fmt_duration(t.max()),
             t.count(),
-            fmt_duration(t.sum().unwrap_or_default()),
-            fmt_duration(t.stddev().unwrap_or_default()),
+            fmt_duration(t.sum()),
+            fmt_duration(t.stddev()),
             "-",
             "-",
             "-",
@@ -203,5 +222,30 @@ pub fn fmt_duration(d: Duration) -> String {
         format!("{:.3}ms", ns as f64 / 1e6)
     } else {
         format!("{:.3}s", ns as f64 / 1e9)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn short_name_unchanged() {
+        assert_eq!(truncate_name("count.species"), "count.species");
+    }
+
+    #[test]
+    fn name_at_limit_unchanged() {
+        let n: String = std::iter::repeat_n('a', NAME_WIDTH).collect();
+        assert_eq!(truncate_name(&n), n.as_str());
+    }
+
+    #[test]
+    fn long_name_gets_middle_ellipsis() {
+        let out = truncate_name("mutate.graph.invalid.rejected");
+        assert_eq!(out.chars().count(), NAME_WIDTH);
+        assert!(out.contains("..."));
+        assert!(out.starts_with("mutate"));
+        assert!(out.ends_with("rejected"));
     }
 }

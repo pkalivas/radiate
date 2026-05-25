@@ -1,9 +1,8 @@
-use radiate_utils::Float;
-
 use super::Codec;
 use crate::genome::Gene;
 use crate::genome::genotype::Genotype;
 use crate::{Chromosome, FloatChromosome};
+use radiate_utils::Float;
 use std::ops::Range;
 
 /// A [Codec] for a [Genotype] of `FloatGenes`. The `encode` function creates a [Genotype] with `num_chromosomes` chromosomes

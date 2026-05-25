@@ -1,15 +1,14 @@
 use crate::bindings::codec::{PyTreeCodec, TypedNumericCodec};
-use crate::bindings::{EngineBuilderHandle, EngineHandle};
 use crate::events::PyEventHandler;
 use crate::{
-    FreeThreadPyEvaluator, InputTransform, PickleCheckpointReader, PyCodec, PyEngine,
-    PyEngineInput, PyEngineInputType, PyExpr, PyFitnessFn, PyFitnessInner, PyPermutationCodec,
-    PyPopulation, PyRate, prelude::*, radiate,
+    EngineBuilderHandle, EngineHandle, FreeThreadPyEvaluator, InputTransform, PickleReader,
+    PyCodec, PyEngine, PyEngineInput, PyEngineInputType, PyExpr, PyFitnessFn, PyFitnessInner,
+    PyPermutationCodec, PyPopulation, PyRate, names, prelude::*, radiate,
 };
 use crate::{PyGeneration, PySubscriber};
 use pyo3::{Py, PyAny, pyclass, pymethods, types::PyAnyMethods};
 use radiate::prelude::*;
-use radiate_error::{radiate_py_bail, radiate_py_err};
+use radiate_error::{ResultExt, radiate_py_bail, radiate_py_err};
 use std::collections::HashMap;
 
 macro_rules! dispatch_builder_typed {
@@ -27,7 +26,7 @@ macro_rules! dispatch_builder_typed {
     // private core: actually match all variants once
     // ------------------------------------------------------------
     (@do $builder:expr, $call:expr) => {{
-        use EngineBuilderHandle::*;
+        use crate::EngineBuilderHandle::*;
         match $builder {
             UInt8(b) => $call(b).map(UInt8),
             UInt16(b) => $call(b).map(UInt16),
@@ -161,7 +160,7 @@ impl PyEngineBuilder {
                     let name = input.extract::<String>("name")?;
                     let expr = input.extract::<PyExpr>("expr")?;
 
-                    metrics.push(NamedExpr::new(
+                    metrics.push(MetricQuery::new(
                         radiate_utils::intern!(name),
                         expr.inner().clone(),
                     ));
@@ -184,7 +183,7 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_single_typed(|typed_builder, input| {
-                let mut generation = input.extract::<PyGeneration>("generation")?;
+                let generation = input.extract::<PyGeneration>("generation")?;
                 let ecosystem = Ecosystem::from(generation.ecosystem());
                 Ok(typed_builder.ecosystem(ecosystem))
             })
@@ -199,8 +198,27 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_single_typed(|typed_builder, input| {
+                let ignore_not_found = input.extract::<bool>("ignore_not_found").unwrap_or(false);
                 let path = input.extract::<String>("path")?;
-                Ok(typed_builder.load_checkpoint(path, PickleCheckpointReader))
+                let file_type = input.extract::<String>("file_type")?;
+
+                if ignore_not_found
+                    && let Err(e) = std::fs::metadata(&path)
+                    && e.kind() == std::io::ErrorKind::NotFound
+                {
+                    // If the file doesn't exist and we're ignoring not found errors, just return the builder unchanged
+                    return Ok(typed_builder);
+                }
+
+                match file_type.as_str() {
+                    names::JSON_FILE_TYPE => Ok(typed_builder.load_checkpoint(path, JsonReader)),
+                    names::PICKLE_FILE_TYPE => {
+                        Ok(typed_builder.load_checkpoint(path, PickleReader))
+                    }
+                    _ => {
+                        radiate_py_bail!(format!("Unsupported checkpoint file type: {}", file_type))
+                    }
+                }
             })
         )
     }
@@ -250,7 +268,7 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_single_typed(|typed_builder, input| {
-                let max_age = input.get_usize("age").unwrap_or(usize::MAX);
+                let max_age = input.extract::<i64>("age")? as usize;
                 Ok(typed_builder.max_species_age(max_age))
             })
         )
@@ -267,14 +285,14 @@ impl PyEngineBuilder {
                 let threshold = if let Ok(rate) = input.extract::<PyRate>("threshold") {
                     rate.rate
                 } else if let Ok(expr) = input.extract::<PyExpr>("threshold") {
-                    Rate::Expr(expr.inner().clone())
+                    Rate::Expr(expr.inner().clone().compile())
                 } else {
-                    let val = input.get_f32("threshold").unwrap_or(0.5);
+                    let val = input.extract::<f64>("threshold").unwrap_or(0.5);
                     if val <= 0.0 {
                         return Err(radiate_py_err!("Species threshold must be greater than 0."));
                     }
 
-                    Rate::Fixed(val)
+                    Rate::Fixed(val as f32)
                 };
 
                 Ok(typed_builder.species_threshold(threshold))
@@ -290,7 +308,9 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_single_typed(|typed_builder, input| {
-                let fraction = input.get_f32("fraction").unwrap_or(0.8);
+                let fraction = input.extract::<f64>("fraction").map_err(|e| {
+                    radiate_py_err!(format!("Invalid offspring fraction value: {}", e))
+                })?;
 
                 if !(0.0..=1.0).contains(&fraction) {
                     return Err(radiate_py_err!(
@@ -298,7 +318,7 @@ impl PyEngineBuilder {
                     ));
                 }
 
-                Ok(typed_builder.offspring_fraction(fraction))
+                Ok(typed_builder.offspring_fraction(fraction as f32))
             })
         )
     }
@@ -311,8 +331,10 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_single_typed(|typed_builder, input| {
-                let size = input.get_usize("size").unwrap_or(100);
-                Ok(typed_builder.population_size(size))
+                let size = input.extract::<i64>("size").map_err(|e| {
+                    radiate_py_err!(format!("Failed to extract population size value: {}", e))
+                })?;
+                Ok(typed_builder.population_size(size as usize))
             })
         )
     }
@@ -325,8 +347,11 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_single_typed(|typed_builder, input| {
-                let max_age = input.get_usize("age").unwrap_or(usize::MAX);
-                Ok(typed_builder.max_age(max_age))
+                let max_age = input.extract::<i64>("age").map_err(|e| {
+                    radiate_py_err!(format!("Failed to extract max phenotype age value: {}", e))
+                })?;
+
+                Ok(typed_builder.max_age(max_age as usize))
             })
         )
     }
@@ -340,7 +365,10 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_single_typed(|typed_builder, input| {
-                let selector = input.transform();
+                let selector =
+                    InputTransform::<RadiateResult<Box<dyn Select<_>>>>::transform(input)
+                        .context("Failed to transform selector input")?;
+
                 Ok(match input.input_type() {
                     SurvivorSelector => typed_builder.boxed_survivor_selector(selector),
                     OffspringSelector => typed_builder.boxed_offspring_selector(selector),
@@ -360,7 +388,9 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_many_typed(|typed_builder, alter_inputs| {
-                let alters = alter_inputs.transform();
+                let alters = alter_inputs
+                    .transform()
+                    .context("Failed to transform alterers input")?;
                 Ok(typed_builder.alter(alters))
             })
         )
@@ -374,8 +404,11 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_single_typed(|typed_builder, input| {
-                let diversity = input.transform();
-                Ok(typed_builder.boxed_diversity(diversity))
+                let diversity =
+                    InputTransform::<RadiateResult<Box<dyn Diversity<_>>>>::transform(input)
+                        .context("Failed to transform diversity input")?;
+
+                Ok(typed_builder.boxed_diversity(Some(diversity)))
             })
         )
     }
@@ -388,29 +421,22 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_single_typed(|typed_builder, input| {
-                let objectives = input.get_string("objective").map(|objs| {
-                    objs.split('|')
-                        .filter_map(|s| match s.trim().to_lowercase().as_str() {
-                            "min" => Some(Optimize::Minimize),
-                            "max" => Some(Optimize::Maximize),
-                            _ => None,
+                let objectives = input.extract::<Vec<String>>("objective").map(|objs| {
+                    objs.iter()
+                        .map(|val| match val.trim().to_lowercase().as_str() {
+                            "min" => Optimize::Minimize,
+                            "max" => Optimize::Maximize,
+                            _ => panic!("Objective {} not recognized", val),
                         })
                         .collect::<Vec<Optimize>>()
-                });
+                })?;
 
-                let opt = match objectives {
-                    Some(objs) => {
-                        if objs.len() == 1 {
-                            Objective::Single(objs[0])
-                        } else if objs.len() > 1 {
-                            Objective::Multi(objs)
-                        } else {
-                            radiate_py_bail!(
-                                "No objectives provided - I'm not even sure this is possible"
-                            );
-                        }
-                    }
-                    None => Objective::Single(Optimize::Maximize),
+                let opt = if objectives.len() == 1 {
+                    Objective::Single(objectives[0])
+                } else if objectives.len() > 1 {
+                    Objective::Multi(objectives)
+                } else {
+                    radiate_py_bail!("No objectives provided - I'm not even sure this is possible");
                 };
 
                 match opt {
@@ -432,8 +458,8 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_single_typed(|typed_builder, input| {
-                let min = input.get_usize("min").unwrap_or(700);
-                let max = input.get_usize("max").unwrap_or(900);
+                let min = input.extract::<i64>("min")? as usize;
+                let max = input.extract::<i64>("max")? as usize;
 
                 if min > max {
                     radiate_py_bail!(format!(
@@ -463,7 +489,7 @@ impl PyEngineBuilder {
         use PyFitnessInner::Custom;
 
         if !matches!(fitness, Custom(_, _)) {
-            error::radiate_py_bail!("init_custom_handle only supports Custom fitness functions")
+            radiate_py_bail!("init_custom_handle only supports Custom fitness functions")
         }
 
         let builder = if let Ok(float_codec) = codec.extract::<PyFloatCodec>() {
@@ -516,9 +542,7 @@ impl PyEngineBuilder {
         use PyFitnessInner::Regression;
 
         let Regression(regression, is_batch) = regression else {
-            error::radiate_py_bail!(
-                "init_regression_builder only supports Regression fitness functions"
-            )
+            radiate_py_bail!("init_regression_builder only supports Regression fitness functions")
         };
 
         let builder = if let Ok(graph_codec) = codec.extract::<PyGraphCodec>() {
@@ -560,9 +584,7 @@ impl PyEngineBuilder {
         use PyFitnessInner::NoveltySearch;
 
         if !matches!(fitness, NoveltySearch(_, _)) {
-            error::radiate_py_bail!(
-                "init_novelty_builder only supports Novelty Search fitness functions"
-            )
+            radiate_py_bail!("init_novelty_builder only supports Novelty Search fitness functions")
         }
 
         let builder = if let Ok(float_codec) = codec.extract::<PyFloatCodec>() {
@@ -678,21 +700,21 @@ impl PyEngineBuilder {
             .getattr(py, "_GIL_ENABLED")?
             .extract::<bool>(py)?;
 
-        let codec = Self::get_input_of_type(&inputs, PyEngineInputType::Codec)
+        let codec = Self::get_input_of_type(inputs, PyEngineInputType::Codec)
             .map(|codec| codec.extract::<Py<PyAny>>("codec"))
             .unwrap_or(Err(radiate_py_err!(
                 "EngineBuilder requires a Codec input."
             )))?;
 
-        let problem = Self::get_input_of_type(&inputs, PyEngineInputType::FitnessFunction)
+        let problem = Self::get_input_of_type(inputs, PyEngineInputType::FitnessFunction)
             .map(|fitness| fitness.extract::<PyFitnessFn>("fitness"))
             .unwrap_or(Err(radiate_py_err!(
                 "EngineBuilder requires a FitnessFunction input."
             )))?;
 
-        let executor = Self::get_input_of_type(&inputs, PyEngineInputType::Executor)
-            .and_then(|input| InputTransform::<Option<Executor>>::transform(input))
-            .unwrap_or(Executor::Serial);
+        let executor = Self::get_input_of_type(inputs, PyEngineInputType::Executor)
+            .map(InputTransform::<RadiateResult<Executor>>::transform)
+            .unwrap_or(Ok(Executor::Serial))?;
 
         if executor.is_parallel() && gil_enabled && !matches!(problem.inner, Regression(_, _)) {
             radiate_py_bail!(
@@ -704,10 +726,10 @@ impl PyEngineBuilder {
         Ok((problem.inner, codec, executor))
     }
 
-    fn get_input_of_type<'a>(
-        inputs: &'a [PyEngineInput],
+    fn get_input_of_type(
+        inputs: &[PyEngineInput],
         input_type: PyEngineInputType,
-    ) -> Option<&'a PyEngineInput> {
+    ) -> Option<&PyEngineInput> {
         inputs
             .iter()
             .rev()

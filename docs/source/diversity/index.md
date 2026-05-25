@@ -1,46 +1,46 @@
-
 # Diversity
 
-Diversity is an opt-in aspect of radiate's genetic algorithm. At its core, this operator helps maintain a healthy population and prevent premature convergence. By using this operator, the `GeneticEngine` will split the `population` up into `species` by measuring the genetic distance, or diversity, between individuals during the evolution process. Its important to note that adding a diversity operator will increase the computational cost of the algorithm, so it should be used judiciously based on the problem at hand.
+By default the `GeneticEngine` evolves one flat population where every individual competes against every other. That works in a majority of problems, but it can fail into what is known as **premature convergence** - where the `population` piles into the first decent solution it finds and stops exploring. A novel individual that needs a few generations to really evolve and pay off gets out-competed and lost before it ever matures.
 
----
+**Diversity** is `radiate`'s opt-in defense against premature convergence. Instead of one undifferentiated pool, the engine groups genetically-similar individuals into **species** and lets them compete *as groups*. A promising-but-immature lineage then competes mainly against its own kind, giving it room to refine before it has to stand against the rest of the population.
 
-## Overview
+## How it fits together
 
-Diversity in Radiate is implemented through two main components:
+Diversity is really two halves of a single loop that runs each generation:
 
-1. **Diversity Measurement**: Methods to quantify how different individuals are from each other. This is typically done by measuring the genetic distance between individuals - meaning the actual `chromosomes` and `genes` that make up the individuals.
-2. **Species Management**: Mechanisms to group similar individuals and maintain population diversity
+- A **distance measure** answers *"how genetically similar are these two individuals?"* given the structure of their `genotypes`. This effectively turns a pair of `genotypes` into a single number.
+- **Species** are what the engine builds *from* those numbers, or distances: it clusters the population, shares fitness within each cluster, and allocates offspring between clusters.
 
----
+Here we can see the whole cycle before diving into either piece:
 
-## Species Management
+```mermaid
+flowchart LR
+    A[Population] --> B[Measure distance<br/>between individuals]
+    B --> C[Group into species<br/>within a threshold]
+    C --> D[Compete as groups:<br/>share fitness, allocate offspring]
+    D --> A
+```
 
-Radiate implements species management to maintain population diversity through several mechanisms:
+The **distance measure** is the input to everything while the **species** machinery is what consumes it. 
 
-### Species Threshold
+| Page | What it covers |
+|---|---|
+| **[Distance](distance.md)** | The built-in measures (Hamming, Euclidean, Cosine, NEAT), what each one captures, and the value range it produces. |
+| **[Species](species.md)** | How the engine forms species from those measurements, shares fitness, and allocates offspring + the knobs that tune it. |
+| **[Example](example.md)** | Wiring it all into a working engine. |
 
-The species threshold determines how similar individuals need to be to be considered part of the same `species`. A lower threshold will result in more species being formed, while a higher threshold will group more individuals into fewer species. This is crucial for controlling the balance between exploration and exploitation in the population. All of this is controlled by the `species_threshold` parameter in the engine:
+!!! note "Opt-in, and not free"
+
+	Speciation only runs when you attach a distance measure. It also adds computational cost — every generation the engine measures distances and re-clusters the population — so reach for it when a problem is converging too early or not reaching its global optimum, not by default.
+
+## The whole feature, in one call
+
+Turning diversity on comes down to two settings: the **measure** (which distance) and the **threshold** (how close counts as "the same species"). Everything in this sections builds on these two, so here is a brief look at how they work together:
 
 === ":fontawesome-brands-python: Python"
 
 	```python
-	import radiate as rd
-
-    engine = rd.Engine(
-        codec=your_codec,
-        fitness_func=your_fitness_func,
-        diversity=diversity,
-        species_threshold=.5  # Default value
-    )
-
-    # or using the fluent builder pattern:
-    engine = (
-        rd.Engine(your_codec)
-        .fitness(your_fitness_func)
-        .diversity(diversity, species_threshold=0.5) # Default value
-        # ... other parameters ...
-    )
+	--8<-- "python/diversity/index.py:diversity_basic"
 	```
 
 === ":fontawesome-brands-rust: Rust"
@@ -48,125 +48,10 @@ The species threshold determines how similar individuals need to be to be consid
 	```rust
 	use radiate::*;
 
-    let engine = GeneticEngine::builder()
-        // ... other parameters ...
-        .diversity(your_diversity)
-        .species_threshold(0.5) // Default value
-        // ... other parameters ...
-        .build();
+	let engine = GeneticEngine::builder()
+	    // ... other parameters ...
+	    .diversity(EuclideanDistance::new())
+	    .species_threshold(0.5)
+	    // ... other parameters ...
+	    .build();
 	```
-
-A higher threshold means:
-
-- More individuals will be considered part of the same species resulting in a fewer number of species
-- Less diversity in the `population`
-- Faster convergence
-
-A lower threshold means:
-
-- Fewer individuals will be considered part of the same species
-- More diversity in the `population`
-- Slower convergence
-
-### Species Age
-
-The `ecosystem` tracks the age of `species` to prevent stagnation, if a `species` reaches the given age limit without improvement, it will be removed from the `population`. This is controlled by the `max_species_age` parameter:
-
-=== ":fontawesome-brands-python: Python"
-
-	```python
-	import radiate as rd
-
-    engine = rd.Engine(
-        codec=your_codec,
-        fitness_func=your_fitness_func,
-        diversity=diversity,
-        species_threshold=.5  # Default value
-        max_species_age=20  # Default value
-    )
-
-    # or using the fluent builder pattern:
-    engine = (
-        rd.Engine(your_codec)
-        .fitness(your_fitness_func)
-        .diversity(diversity, species_threshold=0.5)
-        .age(max_species_age=20) # Default value
-        # ... other parameters ...
-    )
-	```
-
-=== ":fontawesome-brands-rust: Rust"
-
-	```rust
-	use radiate::*;
-
-    let engine = GeneticEngine::builder()
-        // ... other parameters ...
-        .diversity(your_diversity)
-        .species_threshold(0.5) // Default value
-        .max_species_age(20) // Default value
-        // ... other parameters ...
-        .build();
-	```
-
-This helps by:
-
-- Limiting how long a species can survive without improvement
-- Preventing dominant species from taking over the population
-- Encouraging exploration of new solutions
-
-## Best Practices
-
-### Choosing a Diversity Measure
-
-1. **For Binary/Discrete Problems**:
-    - Use Hamming Distance
-    - Good for problems where exact matches matter
-    - Example: Binary optimization, discrete scheduling
-
-2. **For Continuous Problems**:
-    - Use Euclidean Distance
-    - Better for problems where magnitude of differences matters
-    - Example: Parameter optimization, function approximation
-
-### Setting Species Threshold
-
-1. **Start Conservative**:
-    - Begin with the default value (`0.5`)
-    - Monitor population diversity
-    - Adjust based on convergence behavior
-
-2. **Adjust Based on Problem**:
-    - For problems requiring high diversity: Use lower values (`0.05`-`0.2`)
-    - For problems needing faster convergence: Use higher values (`0.5`-`1.0`)
-
-### Age Limits
-
-1. **Species Age**:
-    - Default (`20`) works well for most problems
-    - Increase for complex problems requiring more exploration
-    - Decrease for problems where quick convergence is desired
-
-## Common Pitfalls
-
-1. **Premature Convergence**:
-    - Problem: Population converges too quickly to suboptimal solutions
-    - Solution: 
-        - Lower the species threshold
-        - Increase max_species_age
-        - Use a more aggressive mutation rate
-
-2. **Excessive Diversity**:
-    - Problem: Population fails to converge
-    - Solution:
-        - Increase the species threshold
-        - Decrease max_species_age
-        - Adjust selection pressure
-
-3. **Stagnation**:
-    - Problem: Population stops improving
-    - Solution:
-        - Decrease max_phenotype_age
-        - Increase mutation rate
-        - Adjust species threshold
-

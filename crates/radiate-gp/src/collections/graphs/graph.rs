@@ -19,7 +19,7 @@ use std::ops::{Index, IndexMut};
 ///
 /// # Type Parameters
 /// * `T` - The type of value stored in each node. This type must implement `Clone`, `PartialEq`,
-///         and other traits required by the genetic programming operations.
+///   and other traits required by the genetic programming operations.
 ///
 /// # Structure
 /// A [Graph] is simply a 'Vec' of [GraphNode]'s.
@@ -416,9 +416,9 @@ impl<T: Hash> Hash for Graph<T> {
 
 impl<T: Debug> Debug for Graph<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Graph {{\n")?;
+        writeln!(f, "Graph {{")?;
         for node in self.as_ref() {
-            write!(f, "  {:?},\n", node)?;
+            writeln!(f, "  {:?},", node)?;
         }
         write!(f, "}}")
     }

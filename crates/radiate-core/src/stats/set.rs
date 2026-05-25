@@ -1,9 +1,12 @@
 use crate::{
     Metric, MetricUpdate,
-    stats::{Meta, Tag, TagType, defaults::try_add_tag_from_str, fmt},
+    stats::{
+        Meta, Tag, TagType,
+        expression::{MetricField, MetricKind, SelectExpr},
+        fmt,
+    },
 };
-use radiate_expr::{AnyValue, ApplyExpr, DataType, Expr, ExprProjection, ExprQuery, SelectExpr};
-use radiate_utils::intern;
+use radiate_utils::{AnyValue, SmallStr};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::{
@@ -11,6 +14,23 @@ use std::{
     fmt::{Debug, Display},
     time::Duration,
 };
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[repr(transparent)]
+pub(crate) struct MetricIdx(u32);
+
+impl MetricIdx {
+    #[inline(always)]
+    pub(crate) const fn new(idx: u32) -> Self {
+        MetricIdx(idx)
+    }
+
+    #[inline(always)]
+    pub(crate) const fn as_usize(self) -> usize {
+        self.0 as usize
+    }
+}
 
 #[derive(PartialEq)]
 pub struct MetricSetSummary {
@@ -20,117 +40,99 @@ pub struct MetricSetSummary {
 
 #[derive(Clone, Default, PartialEq)]
 pub struct MetricSet {
-    metrics: HashMap<&'static str, Metric>,
+    metrics: Vec<Metric>,
+    name_lookup: HashMap<SmallStr, MetricIdx>,
     meta: Meta,
 }
 
 impl MetricSet {
     pub fn new() -> Self {
         MetricSet {
-            metrics: HashMap::new(),
+            metrics: Vec::new(),
+            name_lookup: HashMap::new(),
             meta: Meta::default(),
         }
     }
 
-    pub fn next_version(&mut self) -> u64 {
-        let result = self.meta.version;
-        self.meta.version += 1;
-        result
+    pub fn bump(&mut self, generation: u64) {
+        self.meta.generation = generation;
     }
 
-    pub fn version(&self) -> u64 {
-        self.meta.version
+    pub fn generation(&self) -> u64 {
+        self.meta.generation
     }
 
-    #[inline(always)]
-    pub fn keys(&self) -> Vec<&'static str> {
-        self.metrics.keys().cloned().collect()
-    }
-
-    #[inline(always)]
-    pub fn flush_all_into(&mut self, target: &mut MetricSet) {
-        let version = target.next_version();
-        for (key, mut m) in self.metrics.drain() {
-            m.set_version(version);
-            if let Some(target_metric) = target.metrics.get_mut(key) {
-                target_metric.update_from(m);
-            } else {
-                try_add_tag_from_str(&mut m);
-                target.metrics.insert(key, m);
-            }
+    /// Resolve a name to a stable [`MetricIdx`], registering an empty metric if
+    /// the name has not been seen before. The returned handle is valid for the
+    /// lifetime of this `MetricSet`.
+    #[inline]
+    pub(crate) fn resolve(&mut self, name: impl AsRef<str>) -> MetricIdx {
+        if let Some(&idx) = self.name_lookup.get(name.as_ref()) {
+            return idx;
         }
 
-        self.clear();
+        let idx = MetricIdx::new(self.metrics.len() as u32);
+        let name = SmallStr::from(name.as_ref());
+        self.name_lookup.insert(name.clone(), idx);
+        self.metrics.push(Metric::new(name));
+        idx
+    }
+
+    #[inline]
+    pub(crate) fn upsert_at<'a>(&mut self, idx: MetricIdx, update: impl Into<MetricUpdate<'a>>) {
+        let generation = self.meta.generation;
+        let mmetric = &mut self.metrics[idx.as_usize()];
+
+        mmetric.set_generation(generation);
+        mmetric.apply_update(update.into());
+
+        self.meta.update_count += 1;
+    }
+
+    #[inline(always)]
+    pub fn upsert<'a>(&mut self, key: impl AsRef<str>, metric: impl Into<MetricUpdate<'a>>) {
+        let metric_update = metric.into();
+        let idx = self.resolve(&key);
+        self.upsert_at(idx, metric_update);
+    }
+
+    #[inline(always)]
+    pub fn upsert_tagged<'a>(
+        &mut self,
+        key: impl AsRef<str>,
+        metric: impl Into<MetricUpdate<'a>>,
+        tag: TagType,
+    ) {
+        let metric_update = metric.into();
+        let idx = self.resolve(&key);
+        if let Some(metric) = self.metrics.get_mut(idx.as_usize()) {
+            metric.add_tag(tag);
+            self.upsert_at(idx, metric_update);
+        }
+    }
+
+    #[inline(always)]
+    pub fn keys(&self) -> impl Iterator<Item = SmallStr> {
+        self.metrics.iter().map(|m| m.name().clone())
     }
 
     #[inline(always)]
     pub fn replace(&mut self, metric: impl Into<Metric>) {
-        let mut metric = metric.into();
-        try_add_tag_from_str(&mut metric);
-        self.metrics.insert(intern!(metric.name()), metric);
-    }
-
-    #[inline(always)]
-    pub fn upsert<'a>(&mut self, metric: impl Into<MetricSetUpdate<'a>>) {
-        let update = metric.into();
-        let version = self.version();
-
-        match update {
-            MetricSetUpdate::Many(metrics) => {
-                for metric in metrics {
-                    self.add_or_update_internal(version, metric);
-                }
-            }
-            MetricSetUpdate::Single(metric) => {
-                self.add_or_update_internal(version, metric);
-            }
-            MetricSetUpdate::ManyUpdate(updates) => {
-                for metric in updates {
-                    self.upsert(metric);
-                }
-            }
-            MetricSetUpdate::NamedSingle(name, metric_update, tag) => {
-                self.meta.update_count += 1;
-                if let Some(m) = self.metrics.get_mut(name) {
-                    m.set_version(version);
-                    m.apply_update(metric_update);
-                    if let Some(tag) = tag {
-                        m.add_tag(tag);
-                    }
-                    return;
-                }
-
-                let new_name = radiate_utils::intern_name_as_snake_case(name);
-                if let Some(m) = self.metrics.get_mut(&new_name) {
-                    m.set_version(version);
-                    m.apply_update(metric_update);
-                    if let Some(tag) = tag {
-                        m.add_tag(tag);
-                    }
-                } else {
-                    let mut metric = Metric::new(new_name);
-                    try_add_tag_from_str(&mut metric);
-                    metric.set_version(version);
-                    metric.apply_update(metric_update);
-
-                    if let Some(tag) = tag {
-                        metric.add_tag(tag);
-                    }
-
-                    self.add(metric);
-                }
-            }
+        let metric = metric.into();
+        if let Some(&idx) = self.name_lookup.get(metric.name().as_str()) {
+            self.metrics[idx.as_usize()] = metric;
+        } else {
+            let idx = MetricIdx::new(self.metrics.len() as u32);
+            self.name_lookup.insert(metric.name().clone(), idx);
+            self.metrics.push(metric);
         }
     }
 
     #[inline(always)]
-    pub fn iter_tagged<'a>(
-        &'a self,
-        tag: TagType,
-    ) -> impl Iterator<Item = (&'static str, &'a Metric)> {
-        self.metrics.iter().filter_map(move |(k, m)| {
+    pub fn iter_tagged(&self, tag: TagType) -> impl Iterator<Item = (&str, &Metric)> {
+        self.metrics.iter().filter_map(move |m| {
             if m.tags().has(tag) {
-                Some((*k, m))
+                Some((m.name().as_str(), m))
             } else {
                 None
             }
@@ -140,43 +142,39 @@ impl MetricSet {
     #[inline(always)]
     pub fn tags(&self) -> impl Iterator<Item = TagType> {
         self.metrics
-            .values()
+            .iter()
             .fold(Tag::empty(), |acc, m| acc.union(m.tags()))
             .into_iter()
     }
 
     #[inline(always)]
-    pub fn iter(&self) -> impl Iterator<Item = (&'static str, &Metric)> {
-        self.metrics.iter().map(|(name, metric)| (*name, metric))
+    pub fn iter(&self) -> impl Iterator<Item = (&str, &Metric)> {
+        self.metrics.iter().map(|m| (m.name().as_str(), m))
     }
 
     #[inline(always)]
     pub fn add(&mut self, metric: Metric) {
-        self.metrics.insert(intern!(metric.name()), metric);
+        self.replace(metric);
     }
 
     #[inline(always)]
-    pub fn get(&self, name: &str) -> Option<&Metric> {
-        self.metrics.get(name)
-    }
-
-    #[inline(always)]
-    pub fn get_from_string(&self, name: String) -> Option<&Metric> {
-        self.metrics.get(name.as_str())
+    pub fn get(&self, name: impl AsRef<str>) -> Option<&Metric> {
+        self.name_lookup
+            .get(name.as_ref())
+            .and_then(|idx| self.metrics.get(idx.as_usize()))
     }
 
     #[inline(always)]
     pub fn clear(&mut self) {
-        for (_, m) in self.metrics.iter_mut() {
+        for m in &mut self.metrics {
             m.clear_values();
         }
-
         self.meta.update_count = 0;
     }
 
     #[inline(always)]
-    pub fn contains_key(&self, name: &str) -> bool {
-        self.metrics.contains_key(intern!(name))
+    pub fn contains_key(&self, name: impl AsRef<str>) -> bool {
+        self.name_lookup.contains_key(name.as_ref())
     }
 
     #[inline(always)]
@@ -184,7 +182,10 @@ impl MetricSet {
         self.metrics.len()
     }
 
-    #[inline(always)]
+    pub fn is_empty(&self) -> bool {
+        self.metrics.is_empty()
+    }
+
     pub fn summary(&self) -> MetricSetSummary {
         MetricSetSummary {
             metrics: self.metrics.len(),
@@ -195,72 +196,35 @@ impl MetricSet {
     pub fn dashboard(&self) -> String {
         fmt::render_full(self).unwrap_or_default()
     }
-
-    fn add_or_update_internal(&mut self, version: u64, mut metric: Metric) {
-        self.meta.update_count += 1;
-        if let Some(existing) = self.metrics.get_mut(metric.name()) {
-            existing.set_version(version);
-            existing.update_from(metric);
-        } else {
-            try_add_tag_from_str(&mut metric);
-            metric.set_version(version);
-            self.metrics.insert(intern!(metric.name()), metric);
-        }
-    }
 }
 
-impl<'a> ApplyExpr<'a> for MetricSet {
-    fn apply(&self, expr: &'a mut Expr) -> AnyValue<'a> {
-        expr.dispatch(self).unwrap()
-    }
-}
-
-impl ExprProjection for MetricSet {
-    fn project(&self, path: &SelectExpr) -> Option<AnyValue<'static>> {
-        let value_to_float32 = |value: f32| AnyValue::Float32(value);
-
-        let value_to_duration = |value: f32| Duration::from_secs_f32(value).into();
-
-        let SelectExpr::Field(key, field) = path else {
-            return None;
+impl MetricSet {
+    pub(crate) fn project_selector(&self, sel: &SelectExpr) -> AnyValue<'static> {
+        // Missing metrics return Null so downstream math can propagate it; the
+        // outer Clamp (or any consumer using non-finite fallback) then takes the
+        // floor instead of the engine seeing an unrelated error.
+        let Some(metric) = self.get(sel.metric.as_str()) else {
+            return AnyValue::Null;
         };
 
-        let str_key = key.as_str()?;
+        let wrap = |v: f32| match sel.kind {
+            MetricKind::Value => AnyValue::Float32(v),
+            MetricKind::Duration => AnyValue::Duration(Duration::from_secs_f32(v)),
+        };
 
-        self.get(str_key)
-            .map(|metric| match field.dtype() {
-                DataType::Float32 => match field.name().to_lowercase().as_str() {
-                    "last_value" => AnyValue::Float32(metric.last_value()),
-                    "mean" => value_to_float32(metric.mean()),
-                    "std_dev" => value_to_float32(metric.stddev()),
-                    "min" => value_to_float32(metric.min()),
-                    "max" => value_to_float32(metric.max()),
-                    "sum" => value_to_float32(metric.sum()),
-                    "skew" => value_to_float32(metric.skew()),
-                    "var" => value_to_float32(metric.var()),
-                    "count" => AnyValue::UInt64(metric.count() as u64),
-                    "version" => AnyValue::UInt64(metric.version()),
-                    "update_count" => AnyValue::UInt64(metric.update_count() as u64),
-                    _ => AnyValue::Null,
-                },
-                DataType::Duration => match field.name().to_lowercase().as_str() {
-                    "last_value" => {
-                        AnyValue::Duration(Duration::from_secs_f32(metric.last_value()))
-                    }
-                    "mean" => value_to_duration(metric.mean()),
-                    "std_dev" => value_to_duration(metric.stddev()),
-                    "min" => value_to_duration(metric.min()),
-                    "max" => value_to_duration(metric.max()),
-                    "sum" => value_to_duration(metric.sum()),
-                    "var" => value_to_duration(metric.var()),
-                    "count" => AnyValue::UInt64(metric.count() as u64),
-                    "version" => AnyValue::UInt64(metric.version()),
-                    "update_count" => AnyValue::UInt64(metric.update_count() as u64),
-                    _ => AnyValue::Null,
-                },
-                _ => AnyValue::Null,
-            })
-            .or_else(|| Some(AnyValue::Null))
+        match sel.field {
+            MetricField::LastValue => wrap(metric.last_value()),
+            MetricField::Mean => wrap(metric.mean()),
+            MetricField::StdDev => wrap(metric.stddev()),
+            MetricField::Min => wrap(metric.min()),
+            MetricField::Max => wrap(metric.max()),
+            MetricField::Sum => wrap(metric.sum()),
+            MetricField::Var => wrap(metric.var()),
+            MetricField::Skew => AnyValue::Float32(metric.skew()),
+            MetricField::Count => AnyValue::UInt64(metric.count() as u64),
+            MetricField::Generation => AnyValue::UInt64(metric.generation()),
+            MetricField::UpdateCount => AnyValue::UInt64(metric.update_count() as u64),
+        }
     }
 }
 
@@ -278,8 +242,8 @@ impl Display for MetricSet {
 
 impl Debug for MetricSet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "MetricSet {{\n")?;
-        write!(f, "{}\n", fmt::render_dashboard(&self).unwrap_or_default())?;
+        writeln!(f, "MetricSet {{")?;
+        writeln!(f, "{}", fmt::render_dashboard(self).unwrap_or_default())?;
         write!(f, "}}")
     }
 }
@@ -290,12 +254,7 @@ impl Serialize for MetricSet {
     where
         S: serde::Serializer,
     {
-        let metrics = self
-            .metrics
-            .iter()
-            .map(|(_, metric)| metric.clone())
-            .collect::<Vec<Metric>>();
-        metrics.serialize(serializer)
+        self.metrics.serialize(serializer)
     }
 }
 
@@ -306,60 +265,51 @@ impl<'de> Deserialize<'de> for MetricSet {
         D: serde::Deserializer<'de>,
     {
         let metrics = Vec::<Metric>::deserialize(deserializer)?;
-
-        let mut metric_set = MetricSet::new();
-        for metric in metrics {
-            metric_set.add(metric);
+        let mut by_name = HashMap::with_capacity(metrics.len());
+        for (i, m) in metrics.iter().enumerate() {
+            by_name.insert(m.name().clone(), MetricIdx::new(i as u32));
         }
-
-        Ok(metric_set)
+        Ok(MetricSet {
+            metrics,
+            name_lookup: by_name,
+            meta: Meta::default(),
+        })
     }
 }
 
+#[derive(Debug)]
 pub enum MetricSetUpdate<'a> {
-    Many(Vec<Metric>),
-    Single(Metric),
-    ManyUpdate(Vec<(&'static str, MetricUpdate<'a>)>),
-    NamedSingle(&'static str, MetricUpdate<'a>, Option<TagType>),
+    Single(SmallStr, MetricUpdate<'a>, Option<TagType>),
 }
 
-impl From<Vec<Metric>> for MetricSetUpdate<'_> {
-    fn from(metrics: Vec<Metric>) -> Self {
-        MetricSetUpdate::Many(metrics)
-    }
-}
-
-impl From<Metric> for MetricSetUpdate<'_> {
-    fn from(metric: Metric) -> Self {
-        MetricSetUpdate::Single(metric)
-    }
-}
-
-impl<'a, U> From<(&'static str, U)> for MetricSetUpdate<'a>
+impl<'a, N, U> From<(N, U)> for MetricSetUpdate<'a>
 where
+    N: Into<SmallStr>,
     U: Into<MetricUpdate<'a>>,
 {
-    fn from((name, update): (&'static str, U)) -> Self {
-        MetricSetUpdate::NamedSingle(name, update.into(), None)
+    fn from((name, update): (N, U)) -> Self {
+        MetricSetUpdate::Single(name.into(), update.into(), None)
     }
 }
 
-impl<'a, U> From<(TagType, &'static str, U)> for MetricSetUpdate<'a>
+impl<'a, N, U> From<(TagType, N, U)> for MetricSetUpdate<'a>
 where
+    N: Into<SmallStr>,
     U: Into<MetricUpdate<'a>>,
 {
-    fn from((tag, name, update): (TagType, &'static str, U)) -> Self {
-        MetricSetUpdate::NamedSingle(name, update.into(), Some(tag))
+    fn from((tag, name, update): (TagType, N, U)) -> Self {
+        MetricSetUpdate::Single(name.into(), update.into(), Some(tag))
     }
 }
 
-impl<'a, U> From<(&'static str, U, usize)> for MetricSetUpdate<'a>
+impl<'a, N, U> From<(N, U, usize)> for MetricSetUpdate<'a>
 where
+    N: AsRef<str>,
     U: Into<MetricUpdate<'a>>,
 {
-    fn from((name, update, count): (&'static str, U, usize)) -> Self {
-        let name = radiate_utils::intern!(format!("{name}.{count}"));
-        MetricSetUpdate::NamedSingle(name, update.into(), None)
+    fn from((name, update, count): (N, U, usize)) -> Self {
+        let name: SmallStr = format!("{}.{}", name.as_ref(), count).into();
+        MetricSetUpdate::Single(name, update.into(), None)
     }
 }
 
@@ -367,56 +317,32 @@ where
 mod tests {
     use super::*;
 
-    const EPSILON: f32 = 1e-5;
+    #[test]
+    fn resolve_returns_stable_handle() {
+        let mut set = MetricSet::new();
+        let name = SmallStr::from_static("test.metric");
 
-    fn approx_eq(a: f32, b: f32, eps: f32) -> bool {
-        (a - b).abs() <= eps
-    }
+        let idx1 = set.resolve(&name);
+        let idx2 = set.resolve(&name);
+        assert_eq!(idx1, idx2);
 
-    fn assert_stat_eq(m: &Metric, count: i32, mean: f32, var: f32, min: f32, max: f32) {
-        assert_eq!(m.count(), count);
-        assert!(approx_eq(m.mean(), mean, EPSILON), "mean");
-        assert!(approx_eq(m.var(), var, EPSILON), "var");
-        assert!(approx_eq(m.min(), min, EPSILON), "min");
-        assert!(approx_eq(m.max(), max, EPSILON), "max");
-    }
+        set.upsert_at(idx1, 1.0);
+        set.upsert_at(idx1, 2.0);
+        set.upsert_at(idx1, 3.0);
 
-    fn stats_of(values: &[f32]) -> (i32, f32, f32, f32, f32) {
-        // sample variance (n-1), matches your Statistic::variance
-        let n = values.len() as i32;
-        if n == 0 {
-            return (0, 0.0, f32::NAN, f32::INFINITY, f32::NEG_INFINITY);
-        }
-        let mean = values.iter().sum::<f32>() / values.len() as f32;
-
-        let mut m2 = 0.0_f32;
-        for &v in values {
-            let d = v - mean;
-            m2 += d * d;
-        }
-
-        let var = if n == 1 { 0.0 } else { m2 / (n as f32 - 1.0) };
-
-        let min = values.iter().cloned().fold(f32::INFINITY, f32::min);
-        let max = values.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
-
-        (n, mean, var, min, max)
+        let m = set.get(name.as_str()).unwrap();
+        assert_eq!(m.count(), 3);
+        assert_eq!(m.sum(), 6.0);
     }
 
     #[test]
-    fn metric_set_flush_all_into_merges_metrics() {
-        let mut a = MetricSet::new();
-        let mut b = MetricSet::new();
-
-        a.upsert(("scores", &[1.0, 2.0, 3.0][..]));
-        b.upsert(("scores", &[10.0, 20.0][..]));
-
-        // move a into b
-        a.flush_all_into(&mut b);
-
-        let m = b.get("scores").unwrap();
-        let combined = [1.0, 2.0, 3.0, 10.0, 20.0];
-        let (n, mean, var, min, max) = stats_of(&combined);
-        assert_stat_eq(m, n, mean, var, min, max);
+    fn resolve_assigns_sequential_indices() {
+        let mut set = MetricSet::new();
+        let a = set.resolve(&SmallStr::from_static("a"));
+        let b = set.resolve(&SmallStr::from_static("b"));
+        let c = set.resolve(&SmallStr::from_static("c"));
+        assert_eq!(a.as_usize(), 0);
+        assert_eq!(b.as_usize(), 1);
+        assert_eq!(c.as_usize(), 2);
     }
 }

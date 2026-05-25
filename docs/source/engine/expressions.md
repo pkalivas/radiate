@@ -2,7 +2,7 @@
 
 !!! warning ":construction: Under Construction :construction:"
 
-    As of `04/25/2026`: These docs are a work in progress and may not be complete or fully accurate. Please check back later for updates. This feature is currently in active development and subject to change.
+    As of `05/18/2026`: These docs are a work in progress and may not be complete or fully accurate. Please check back later for updates. This feature is currently in active development and subject to change.
 
 Radiate includes a composable expression system that lets you query and transform the engine's metric state at runtime. Expressions are stateful, lazily-evaluated trees — each call to `.apply()` or an internal engine dispatch consumes one "tick" of any stateful nodes (rolling windows, schedules, etc.). This system was designed to be extremely similar to [polars' expression API](https://pola-rs.github.io/polars/py-polars/html/reference/expressions/index.html) to leverage the same mental model of lazy evaluation and chaining, but adapted to radiate's needs.
 
@@ -21,16 +21,7 @@ Expressions are used in three places within the engine:
     The expression DSL is available directly from the `radiate` package:
 
     ```python
-    import radiate as rd
-
-    # Select a metric by name. By default this reads the last recorded value.
-    score = rd.metric("scores.best")
-
-    # A literal constant
-    threshold = rd.lit(0.01)
-
-    # The current generation index
-    gen = rd.generation()
+    --8<-- "python/engine/expressions.py:building"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -59,26 +50,7 @@ Expressions can aggregate over accumulated history using a rolling window or dir
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    score = rd.metric("scores.best")
-
-    score.last()          # last recorded value (default)
-    score.mean()          # running mean of all values seen
-    score.stddev()        # standard deviation
-    score.min()           # running minimum
-    score.max()           # running maximum
-    score.sum()           # running sum
-    score.var()           # variance
-    score.skew()          # skewness
-    score.count()         # number of values seen
-    score.slope()         # linear slope over accumulated values
-    score.unique()        # deduplicated collection
-
-    # Rolling window: aggregate over the last N values only
-    score.rolling(50).mean()    # mean of the last 50 values
-    score.rolling(50).stddev()  # std dev of the last 50
-    score.rolling(100).slope()  # slope over a 100-generation window
+    --8<-- "python/engine/expressions.py:aggregations"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -116,26 +88,7 @@ Expressions support standard comparison and boolean operators. These always prod
     Python operator overloads are supported, so you can write expressions naturally:
 
     ```python
-    import radiate as rd
-
-    score = rd.metric("scores.best")
-
-    # Comparisons — Python operators work directly
-    score < 0.01
-    score <= 0.01
-    score > 0.99
-    score >= 0.99
-    score == 0.5
-    score != 0.5
-
-    # Boolean logic
-    (score < 0.01) & (rd.metric("index") > 50)   # and
-    (score < 0.01) | (rd.metric("time") > 10.0)  # or
-    ~(score < 0.01)                      # not
-
-    # Convenience: between (inclusive)
-    # equivalent to (score >= 0.0) & (score <= 1.0)
-    (score >= 0.0) & (score <= 1.0)
+    --8<-- "python/engine/expressions.py:comparisons"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -171,19 +124,7 @@ Expressions support standard comparison and boolean operators. These always prod
     Python arithmetic operators are supported:
 
     ```python
-    import radiate as rd
-
-    a = rd.metric("scores.best")
-    b = rd.metric("score.volatility")
-
-    a + b
-    a - b
-    a * 2.0
-    a / b
-    a ** 2
-    -a
-    abs(a)
-    a.clamp(0.0, 1.0)
+    --8<-- "python/engine/expressions.py:arithmetic"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -213,14 +154,7 @@ Expressions support standard comparison and boolean operators. These always prod
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    # If the best score is below 0.01, use its mean; otherwise use a fallback literal
-    expr = (
-        rd.when(rd.metric("scores.best") < 0.01)
-        .then(rd.metric("scores.best").mean())
-        .otherwise(rd.lit(1.0))
-    )
+    --8<-- "python/engine/expressions.py:conditional"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -242,15 +176,7 @@ Expressions support standard comparison and boolean operators. These always prod
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    # Compute a rolling stddev but only report it every 10 generations;
-    # otherwise return the last value.
-    expr = (
-        rd.every(10)
-        .then(rd.metric("scores.best").rolling(10).stddev())
-        .otherwise(rd.metric("scores.best"))
-    )
+    --8<-- "python/engine/expressions.py:schedule"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -271,18 +197,12 @@ Expressions are evaluated against the engine's `MetricSet`. Meaning any metric i
 
 Additional metrics are available when the engine is configured for [species-based diversity](../diversity/index.md) (`count.species`, `age.species`, etc.) or [multi-objective optimization](../objectives.md) (`size.front`, `front.entropy`, etc.).
 
-By default `expr::select("metric_name")` reads `last_value`. To explicitly select a statistic slot or interpret the value as a duration, chain `.value()` (float) or `.time()` (duration) before the aggregation:
+By default `expr::select("metric_name")` reads `last_value`. To interpret the value as a duration, chain `.time()` before the aggregation:
 
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    # Mean of the time metric, interpreted as a duration
-    rd.metric("time").time().mean()
-
-    # Count of evaluations as a number
-    rd.metric("count.evaluation").count()
+    --8<-- "python/engine/expressions.py:querying"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -308,27 +228,13 @@ An `Expr` that returns a `bool` can be used as a termination condition. The engi
 === ":fontawesome-brands-python: Python"
 
     ```python
-    import radiate as rd
-
-    engine = (
-        rd.Engine.float(10, init_range=(-5.0, 5.0))
-        .fitness(my_fitness_fn)
-        .minimizing()
-    )
-
-    # Stop when the best score has been below 0.01 on average over the last 50 generations
-    stop_expr = rd.metric("scores.best").rolling(50).mean() < 0.01
-
-    result = engine.run(rd.Limit.expr(stop_expr))
+    --8<-- "python/engine/expressions.py:limit_expr"
     ```
 
     You can also combine an expression limit with other limits:
 
     ```python
-    result = engine.run(
-        rd.Limit.expr(stop_expr),
-        rd.Limit.generations(5000),  # hard ceiling
-    )
+    --8<-- "python/engine/expressions.py:limit_combined"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -366,43 +272,13 @@ You can register named expressions that are evaluated against the `MetricSet` at
     Pass kwargs to `.metrics()` on the engine builder:
 
     ```python
-    import radiate as rd
-
-    score_trend = rd.metric("scores.best").rolling(20).slope()
-    score_cv    = rd.metric("scores.best").rolling(20).stddev() / rd.metric("scores.best").rolling(20).mean()
-
-    engine = (
-        rd.Engine.float(10, init_range=(-5.0, 5.0))
-        .fitness(my_fitness_fn)
-        .minimizing()
-        .metrics(
-            score_trend=score_trend,
-            score_cv=score_cv,
-        )
-    )
-
-    # These metrics are now available in every generation result
-    result = engine.run(rd.Limit.generations(500))
-    metrics = result.metrics()
-    print(metrics["score_trend"].last_value())
-    print(metrics["score_cv"].last_value())
+    --8<-- "python/engine/expressions.py:derived_metrics"
     ```
 
     Derived metrics can also reference each other, as long as the referenced metric was registered first. They can also be used directly in a `Limit.expr`:
 
     ```python
-    # Register a trend metric, then stop when it flattens
-    engine = (
-        rd.Engine.float(10, init_range=(-5.0, 5.0))
-        .fitness(my_fitness_fn)
-        .minimizing()
-        .metrics(score_trend=rd.metric("scores.best").rolling(50).slope())
-    )
-
-    result = engine.run(
-        rd.Limit.expr(abs(rd.metric("score_trend")) < 0.0001),
-        rd.Limit.generations(5000),
-    )
+    --8<-- "python/engine/expressions.py:derived_metrics_limit"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -463,27 +339,14 @@ You can register named expressions that are evaluated against the `MetricSet` at
 
 ### 3: Dynamic Rates
 
-An expression can also drive an alterer's rate, a species threashold, or any other parameter that accepts a `Rate`. The expression is evaluated against the `MetricSet` each generation, and the result is used as the rate for that step.
+An expression can also drive an alterer's rate, a species threshold, or any other parameter that accepts a `Rate`. The expression is evaluated against the `MetricSet` each generation, and the result is used as the rate for that step.
 
 === ":fontawesome-brands-python: Python"
 
     Pass `Rate::Expr(expr)` or just a plain `expr` wherever a `Rate` is accepted:
 
     ```python
-    import radiate as rd
-
-    # Start aggressive, decay as volatility drops
-    dynamic_rate = rd.metric("score.volatility").rolling(20).mean().clamp(0.01, 0.5)
-
-    engine = (
-        rd.Engine.float(10, init_range=(-5.0, 5.0))
-        .fitness(my_fitness_fn)
-        .minimizing()
-        .alters(
-            rd.Mutate.gaussian(rate=dynamic_rate),
-            rd.Cross.blend(rate=0.5),
-        )
-    )
+    --8<-- "python/engine/expressions.py:dynamic_rates"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -513,65 +376,14 @@ An expression can also drive an alterer's rate, a species threashold, or any oth
 
 ## Example
 
-So, what does all this do in practice? Well, lets say you opt-in to using speciation and as you test, you discover that ideally, your problem gets solved best with ~4 species. Well, radiate doesn't offer a 'target species' option out of the box, but using expressions you can build a dyniamic rate (threshold in this case) that encourages the engine to maintain that number of species. Below we build a distance metric that acts as a feedback loop which combines several species-level metrics, then use it as the distance function for speciation. We also register two derived metrics to track the average distance and species count over time. 
+So, what does all this do in practice? Well, let's say you opt-in to using speciation and as you test, you discover that ideally, your problem gets solved best with ~4 species. Well, radiate doesn't offer a 'target species' option out of the box, but using expressions you can build a dynamic rate (threshold in this case) that encourages the engine to maintain that number of species. Below we build a distance metric that acts as a feedback loop which combines several species-level metrics, then use it as the distance function for speciation. We also register two derived metrics to track the average distance and species count over time. 
 
 === ":fontawesome-brands-python: Python"
 
     Then, using radiate's built-in `MetricCollector` subscriber, we plot those metrics over time to see how our registered distance signal correlates with species count and overall diversity.
 
     ```python
-    import radiate as rd
-
-    target_species = 4.0
-    rolling = int(target_species)
-
-    spec_count_signal = rd.metric("count.species").rolling(rolling).mean() / target_species
-    spec_dist_signal = (
-        rd.metric("species.distance").mean().rolling(rolling).mean() / target_species
-    )
-    spec_thresh_signal = rd.metric("species.threshold").rolling(rolling).mean()
-    spec_evenness_signal = rd.metric("species.evenness").rolling(rolling).mean()
-
-    distance_signal = (
-        (rd.lit(0.9) * spec_count_signal)
-        + (rd.lit(0.4) * spec_dist_signal)
-        + (rd.lit(0.2) * spec_thresh_signal)
-        + (rd.lit(0.1) * spec_evenness_signal)
-    ).clamp(0.01, 10.0)
-
-    distance_signal_mean = distance_signal.mean()
-    species_count_mean = rd.metric("count.species").mean().rolling(10).mean()
-
-    collector = rd.MetricCollector()
-
-    engine = (
-        rd.Engine.graph(
-            shape=(1, 1),
-            vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
-            edge=rd.Op.weight(),
-            output=rd.Op.linear(),
-        )
-        .regression(inputs, answers, loss=rd.MSE)
-        .subscribe(collector)
-        .diversity(rd.NeatDistance(), distance_signal)
-        .metrics(
-            distance_signal_mean=distance_signal_mean, species_count_mean=species_count_mean
-        )
-        .alters(
-            rd.Cross.graph(0.05, 0.5),
-            rd.Mutate.op(0.07, 0.05),
-            rd.Mutate.graph(0.1, 0.1, False),
-        )
-        .limit(rd.Limit.score(0.001), rd.Limit.generations(1000))
-    )
-
-    result = engine.run(log=True)
-
-    collector.plot(
-        "count.species",
-        "distance_signal_mean",
-        "species_count_mean",
-    )
+    --8<-- "python/engine/expressions_showcase.py:example"
     ```
 
 === ":fontawesome-brands-rust: Rust"
@@ -626,7 +438,7 @@ So, what does all this do in practice? Well, lets say you opt-in to using specia
         .build();
     ```
 
-The above engine's will produce something (this was produced in python) like the following. We can see that the rolling 10 generation species threshold (orange) is adjusting dynamically according to the species count, resulting in an average of around 4 species (green) and a corresponding species count (blue).
+The above engine will produce something (this was produced in python) like the following. We can see that the rolling 10 generation species threshold (orange) is adjusting dynamically according to the species count, resulting in an average of around 4 species (green) and a corresponding species count (blue).
 
 <figure markdown="span">
     ![expr_spec_threshold](../../assets/rates/expr_spec_threshold.png){ width="600" }

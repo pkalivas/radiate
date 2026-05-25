@@ -90,7 +90,7 @@ impl EngineControl {
 
     /// Called by engine thread before computing next epoch.
     #[inline]
-    pub fn wait_before_step(&self) {
+    pub fn wait(&self) {
         let (lock, cv) = &*self.inner;
         let mut st = lock.lock().unwrap();
 

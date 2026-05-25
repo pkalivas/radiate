@@ -25,25 +25,25 @@ impl<C: Chromosome> StatefulWidget for SpeciesPieChartComponent<C> {
     type State = AppState<C>;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let Some(species) = &state.species else {
+        let Some(species) = &state.evo.get_species() else {
             let block = Block::bordered().title(Line::from(" No Data ").centered());
             block.render(area, buf);
             return;
         };
 
-        let obj_idx = state.objective_state.objective_index;
+        let obj_idx = state.evo.pareto.objective_index;
         let slices = species
             .iter()
             .enumerate()
             .filter_map(|(index, species)| {
-                species.score.as_ref().map(|score| {
+                species.adj_score().as_ref().map(|score| {
                     let color = selected_chart_color(
                         index,
-                        state.species_table.selected_value.as_ref(),
+                        state.tables.species.selected_value.as_ref(),
                         &species.id,
                     );
 
-                    let name = radiate_utils::intern!(format!("{}", species.id.0));
+                    let name = radiate_utils::intern!(format!("{}", species.id.as_ref()));
                     PieSlice::new(name, score[obj_idx] as f64, color)
                 })
             })
@@ -75,10 +75,10 @@ impl<C: Chromosome> StatefulWidget for TimePieChartComponent<C> {
     type State = AppState<C>;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let items = tagged_metrics(&state.metrics, state, TagType::Time)
+        let items = tagged_metrics(&state.evo.metrics, state, TagType::Time)
             .iter()
             .filter(|met| met.0 != metric_names::TIME)
-            .map(|m| *m)
+            .copied()
             .collect::<Vec<_>>();
 
         let slices = items
@@ -86,14 +86,14 @@ impl<C: Chromosome> StatefulWidget for TimePieChartComponent<C> {
             .enumerate()
             .map(|(index, (label, metric))| {
                 let color =
-                    selected_chart_color(index, state.time_table.selected_value.as_ref(), label);
+                    selected_chart_color(index, state.tables.time.selected_value.as_deref(), label);
                 let value = metric
                     .times()
-                    .and_then(|t| t.sum())
+                    .map(|t| t.sum())
                     .map(|d| d.as_millis() as f64)
                     .unwrap_or(0.0);
 
-                PieSlice::new(*label, value, color)
+                PieSlice::new(label, value, color)
             })
             .collect::<Vec<_>>();
 
@@ -107,7 +107,11 @@ impl<C: Chromosome> StatefulWidget for TimePieChartComponent<C> {
     }
 }
 
-fn selected_chart_color<K: PartialEq>(index: usize, selected: Option<&K>, current: &K) -> Color {
+fn selected_chart_color<K: PartialEq + ?Sized>(
+    index: usize,
+    selected: Option<&K>,
+    current: &K,
+) -> Color {
     match selected {
         Some(sel) if sel == current => COLOR_WHEEL_400[index % COLOR_WHEEL_400.len()],
         _ => Color::DarkGray,

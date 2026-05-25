@@ -7,6 +7,10 @@
 
 Radiate's `GeneticEngine` operates on an abstract representation of your domain problem using the 'Genome'. To bridge the gap between your domain and radiate's, we use a `Codec` - encoder-decoder. A `Codec` is a mechanism that encodes and decodes genetic information between the 'problem space' (your domain) and the 'solution space' (Radiate's internal representation).
 
+<figure markdown="span">
+    ![Codec encode/decode round trip](../../assets/genome/codec.svg){ width="620" }
+</figure>
+
 Essentially, this is a component that defines how genetic information is structured and represented in your evolutionary algorithm. Think of it as a blueprint that tells the algorithm:
 
 - What type of data you're evolving (numbers, characters, etc.)
@@ -44,7 +48,19 @@ Here's a simple breakdown of how codecs work in the evolution process:
 
 ## Types of Codecs
 
-Radiate provides several codec types out of the box that should be able to cover most use cases. Each codec type is designed to handle specific data types and structures, making it easier to evolve solutions for various problems. The core codecs include:
+Radiate provides several codec types out of the box that should be able to cover most use cases. Each codec type is designed to handle specific data types and structures, making it easier to evolve solutions for various problems. Use the table below to pick one, then expand its section for details.
+
+| Codec | Decodes to | Reach for it when… |
+|---|---|---|
+| **FloatCodec** | float / list / matrix of floats | continuous params, neural-net weights |
+| **IntCodec** | int / list / matrix of ints | discrete params, indices, counts |
+| **CharCodec** | chars / strings | text, string-matching |
+| **BitCodec** | bools | binary choices, feature selection |
+| **SubSetCodec** | a subset of your items | knapsack, feature selection |
+| **PermutationCodec** | an ordering of your items | TSP, scheduling, sequencing |
+| **FnCodec** | anything (you define encode/decode) | custom structures that don't fit the above |
+
+The core codecs include:
 
 ??? note "FloatCodec"
 
@@ -55,32 +71,13 @@ Radiate provides several codec types out of the box that should be able to cover
     - Continuous optimization problems
     - Real-valued parameters
 
-    In all `FloatCodec` varients, the `bounds` is optional and defaults to the `init_range` if not specified.
+    In all `FloatCodec` variants, the `bounds` is optional and defaults to the `init_range` if not specified.
 
 
     === ":fontawesome-brands-python: Python"
 
         ```python
-        import radiate as rd
-
-
-        # scalar codec that decodes to a single float
-        codec = rd.FloatCodec(init_range=(-1.0, 1.0), bounds=(-10.0, 10.0)) 
-
-        # vector codec that decodes to a np.ndarray
-        codec = rd.FloatCodec(shape=5, init_range=(-1.0, 1.0), bounds=(-10.0, 10.0), use_numpy=True)
-
-        # For a 3x2 matrix of parameters (like neural network weights)
-        codec = rd.FloatCodec(shape=(3, 2), init_range=(-0.1, 0.1), bounds=(-1.0, 1.0))
-        # -- or --
-        # supply a list of shapes for jagged matrices e.g. matrix with three rows (chromosomes) and two columns (genes)
-        codec = rd.FloatCodec(
-            shape=[2, 2, 2],
-            init_range=(-0.1, 0.1), 
-            bounds=(-1.0, 1.0), 
-            use_numpy=True,
-            dtype=rd.Float32 # also adding dtype here - default is Float64
-        )
+        --8<-- "python/genome/codec.py:float_codec"
         ```
 
     === ":fontawesome-brands-rust: Rust"
@@ -114,34 +111,12 @@ Radiate provides several codec types out of the box that should be able to cover
     - Array indices
     - Configuration parameters that must be whole numbers
 
-    In all `IntCodec` varients, the `bounds` is optional and defaults to the `init_range` if not specified.
+    In all `IntCodec` variants, the `bounds` is optional and defaults to the `init_range` if not specified.
 
     === ":fontawesome-brands-python: Python"
 
         ```python
-        import radiate as rd
-
-        # For a single parameter
-        codec = rd.IntCodec(init_range=(0, 1), bounds=(-10, 10))
-
-        # For a list of parameters
-        codec = rd.IntCodec(shape=5, init_range=(-1, 1), bounds=(-10, 10))
-
-        # For a 3x2 matrix of parameters
-        codec = rd.IntCodec((3, 2), init_range=(-1, 1), bounds=(-10, 10))
-        # -- or --
-        # supply a list of shapes for jagged matrices e.g. matrix with three rows (chromosomes) and two columns (genes)
-        codec = rd.IntCodec([2, 2, 2], init_range=(-1, 1), bounds=(-10, 10))
-
-        # The codec can also be created by directly:
-        # The chromosome will be a dense 4x5 matrix (4 rows with 5 colummns) of IntGenes that decodes to a 4x5 numpy array of np.int16 values.
-        codec = rd.IntCodec(
-            shape=[5, 5, 5, 5],
-            init_range=(0, 100), 
-            bounds=(-100, 200), 
-            use_numpy=True,
-            dtype=rd.Int16
-        )
+        --8<-- "python/genome/codec.py:int_codec"
         ```
 
     === ":fontawesome-brands-rust: Rust"
@@ -179,16 +154,7 @@ Radiate provides several codec types out of the box that should be able to cover
     === ":fontawesome-brands-python: Python"
 
         ```python
-        import radiate as rd
-
-        # For a list of parameters
-        codec = rd.CharCodec(length=5, char_set='abcdefghijklmnopqrstuvwxyz')
-
-        # For a matrix of chars
-        codec = rd.CharCodec((3, 2), char_set={'a', 'b', 'c', 'd'})
-        # -- or --
-        # supply a list of shapes for jagged matrices e.g. matrix with three rows (chromosomes) and two columns (genes) - use the default char_set
-        codec = rd.CharCodec([2, 2, 2])
+        --8<-- "python/genome/codec.py:char_codec"
         ```
 
     === ":fontawesome-brands-rust: Rust"
@@ -218,21 +184,12 @@ Radiate provides several codec types out of the box that should be able to cover
     - Boolean configurations
     - Subset selection problems (e.g., Knapsack problem)
 
-    There is no `scalar` varient of the `BitCodec` because...that doesn't seem useful at all.
+    There is no `scalar` variant of the `BitCodec` because...that doesn't seem useful at all.
 
     === ":fontawesome-brands-python: Python"
 
         ```python
-        import radiate as rd
-
-        # For a list of parameters
-        codec = rd.BitCodec(5)
-
-        # For a matrix of bools
-        codec = rd.BitCodec((3, 2))
-        # -- or --
-        # supply a list of shapes for jagged matrices e.g. matrix with three rows (chromosomes) and two columns (genes)
-        codec = rd.BitCodec([2, 2, 2])
+        --8<-- "python/genome/codec.py:bit_codec"
         ```
 
     === ":fontawesome-brands-rust: Rust"
@@ -309,19 +266,7 @@ Radiate provides several codec types out of the box that should be able to cover
     === ":fontawesome-brands-python: Python"
 
         ```python
-        import radiate as rd
-
-        # For a list of unique items
-        codec = rd.PermutationCodec(alleles=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
-        # This will produce a Genotype<PermutationChromosome> with 1 PermutationChromosome which
-        # holds 10 unique genes (0-9) in a random order.
-        genotype = codec.encode()
-        # Decode to a list of unique items
-        decoded = codec.decode(genotype)
-        # decoded will be a list of unique items from the original alleles.
-        # e.g. [3, 0, 7, 1, 9, 2, 5, 6, 4, 8]
-        # Note: The order of the decoded items will be the same as the order of the
-        # genes in the PermutationChromosome, which is a random permutation of the original alleles.
+        --8<-- "python/genome/codec.py:permutation_codec"
         ```
 
     === ":fontawesome-brands-rust: Rust"

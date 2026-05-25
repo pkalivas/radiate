@@ -1,20 +1,21 @@
 use crate::{InputTransform, PyEngineInput, PyEngineInputType};
-use radiate::Executor;
+use radiate::{Executor, RadiateResult};
+use radiate_error::radiate_bail;
 
-impl InputTransform<Option<Executor>> for PyEngineInput {
-    fn transform(&self) -> Option<Executor> {
+impl InputTransform<RadiateResult<Executor>> for PyEngineInput {
+    fn transform(&self) -> RadiateResult<Executor> {
         if self.input_type != PyEngineInputType::Executor {
-            return None;
+            radiate_bail!(Builder: "Expected Executor input, got {:?}", self.input_type);
         }
 
-        Some(match self.component.as_str() {
+        Ok(match self.component.as_str() {
             crate::names::SERIAL_EXECUTOR => Executor::Serial,
             crate::names::FIXED_SIZED_WORKER_POOL_EXECUTOR => {
-                let num_workers = self.get_usize("num_workers").unwrap_or(1);
-                Executor::FixedSizedWorkerPool(num_workers)
+                let num_workers = self.extract::<i64>("num_workers")?;
+                Executor::FixedSizedWorkerPool(num_workers as usize)
             }
             crate::names::WORKER_POOL_EXECUTOR => Executor::WorkerPool,
-            _ => panic!("Executor type {} not yet implemented", self.component),
+            _ => radiate_bail!(Builder: "Unknown executor type: {}", self.component),
         })
     }
 }

@@ -76,14 +76,18 @@ class EngineInput(RsObject):
         elif isinstance(allowed_genes, GeneType):
             allowed_genes = {allowed_genes}
 
+        rate = rate.__backend__() if rate else None
+        args = {**kwargs}
+        if rate is not None:
+            args["rate"] = rate
+
         self._pyobj = PyEngineInput(
             input_type=input_type_mapping[input_type],
             component=component,
             allowed_genes=set(
                 GENE_TYPE_MAPPING["rs"][gene_type] for gene_type in allowed_genes
             ),
-            args={k: v for k, v in kwargs.items()},
-            rate=rate.__backend__() if rate else None,
+            args=args,
         )
 
     def __str__(self) -> str:

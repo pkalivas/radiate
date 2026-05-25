@@ -22,3 +22,5 @@ pyrightconfig.json
 **libradiate.dylib.dSYM**
 .github/makefile
 *.claude
+docs.md
+site/

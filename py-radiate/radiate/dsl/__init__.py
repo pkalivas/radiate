@@ -552,7 +552,7 @@ class Limit:
 
     @staticmethod
     def metric(
-        name: str = "evaluation_count", limit=lambda metric: metric.sum() > 1000
+        name: str = "count.evaluation", limit=lambda metric: metric.sum() > 1000
     ) -> MetricLimit:
         return MetricLimit(name, limit)
 

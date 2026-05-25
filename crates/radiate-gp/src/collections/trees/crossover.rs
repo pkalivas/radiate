@@ -1,11 +1,11 @@
 use super::TreeChromosome;
 use crate::TreeNode;
-use radiate_core::genome::*;
 use radiate_core::{AlterContext, AlterResult, Crossover, Rate, random_provider};
+use radiate_core::{SmallStr, genome::*};
 
 const DEFAULT_MAX_SIZE: usize = 30;
 const MAX_ATTEMPTS: usize = 3;
-const TN_X_ATTEMPTS: &str = "tn_x_att";
+const TN_X_ATTEMPTS: SmallStr = SmallStr::from_static("tn_x_att");
 
 #[derive(Clone, Debug)]
 pub struct TreeCrossover {

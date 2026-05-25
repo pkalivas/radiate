@@ -21,10 +21,10 @@ members = [
     "examples/rust/graphs/regression-graph",
     "examples/rust/graphs/xor-graph",
     "examples/rust/graphs/simple-memory-graph",
+    "examples/rust/graphs/neat-graph",
 
     "examples/rust/trees/regression-tree",
-    "examples/rust/trees/iris-tree", 
-    "examples/rust/pgm",
+    "examples/rust/trees/iris-tree",
 ]
 default-members = [
     "crates/*"
@@ -47,10 +47,10 @@ exclude = [
     "examples/rust/graphs/xor-graph",
     "examples/rust/graphs/regression-graph",
     "examples/rust/graphs/simple-memory-graph",
+    "examples/rust/graphs/neat-graph",
 
     "examples/rust/trees/regression-tree",
     "examples/rust/trees/iris-tree",    
-    "examples/rust/pgm",
 ]
 
 [workspace.package]
@@ -70,6 +70,7 @@ rand = "0.10.1"
 pyo3 = "0.28.3"
 numpy ="0.28.0"
 rayon = "1.12.0"
+itertools = "0.14.0"
 smallvec = { version = "1.13", features = ["serde"] }
 thiserror = "2.0.18"
 serde = { version = "1.0.228", features = ["derive", "rc"] }
@@ -78,7 +79,7 @@ serde-pickle = "1.1"
 compact_str = { version = "0.9.0" }
 foldhash = "0.2.0"
 slotmap = "1.0"
-hashbrown = { version = "0.17.0" }
+hashbrown = { version = "0.17.1" }
 crossterm = "0.29"
 ratatui = { version = "0.30", default-features = false, features = ["crossterm"] }
 tui-piechart = "0.3.3"
@@ -97,5 +98,4 @@ radiate-error = { version = "1.2.22", path = "crates/radiate-error", default-fea
 radiate-python = { version = "1.2.22", path = "crates/radiate-python", default-features = false }
 radiate-utils = { version = "1.2.22", path = "crates/radiate-utils", default-features = false }
 radiate-ui = { version = "1.2.22", path = "crates/radiate-ui", default-features = false }
-radiate-pgm = { version = "1.2.22", path = "crates/radiate-pgm", default-features = false }
-radiate-expr = { version = "1.2.22", path = "crates/radiate-expr", default-features = false }
+radiate-test = { path = "crates/radiate-test" }

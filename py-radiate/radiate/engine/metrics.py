@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from typing import Any
-import enum
+from typing import Any, Iterator
 from datetime import timedelta
 
 from radiate._bridge.wrapper import RsObject
 from radiate.expr import Expr
 
 from radiate.radiate import PyMetricSet
+
+import enum
 
 
 class Tag(enum.Enum):
@@ -29,7 +30,6 @@ class Tag(enum.Enum):
     SCORE = "score"
     RATE = "rate"
     STEP = "step"
-    LINEAGE = "lineage"
     EXPR = "expr"
 
     def __repr__(self) -> str:
@@ -54,7 +54,6 @@ tag_map = {
         "score": Tag.SCORE,
         "rate": Tag.RATE,
         "step": Tag.STEP,
-        "lineage": Tag.LINEAGE,
         "expr": Tag.EXPR,
     },
     "rs": {
@@ -74,7 +73,6 @@ tag_map = {
         Tag.SCORE: "score",
         Tag.RATE: "rate",
         Tag.STEP: "step",
-        Tag.LINEAGE: "lineage",
         Tag.EXPR: "expr",
     },
 }
@@ -102,6 +100,10 @@ class MetricSet(RsObject):
 
     def __contains__(self, item: str) -> bool:
         return self.__backend__().__contains__(item)
+
+    def __iter__(self) -> "Iterator[Metric]":
+        for key in self.keys():
+            yield self[key]
 
     def dashboard(self) -> str:
         return self.__backend__().dashboard()
@@ -196,43 +198,22 @@ class Metric(RsObject):
 
     # --- time stats ---
     def time_last(self) -> timedelta | None:
-        last_time = self.__backend__().time_last
-        if last_time is None:
-            return None
-        return last_time
+        return self.__backend__().time_last
 
     def time_sum(self) -> timedelta | None:
-        sum_time = self.__backend__().time_sum
-        if sum_time is None:
-            return None
-        return sum_time
+        return self.__backend__().time_sum
 
     def time_mean(self) -> timedelta | None:
-        mean_time = self.__backend__().time_mean
-        if mean_time is None:
-            return None
-        return mean_time
+        return self.__backend__().time_mean
 
     def time_stddev(self) -> timedelta | None:
-        stddev_time = self.__backend__().time_stddev
-        if stddev_time is None:
-            return None
-        return stddev_time
+        return self.__backend__().time_stddev
 
     def time_variance(self) -> timedelta | None:
-        variance_time = self.__backend__().time_variance
-        if variance_time is None:
-            return None
-        return variance_time
+        return self.__backend__().time_variance
 
     def time_min(self) -> timedelta | None:
-        time_min = self.__backend__().time_min
-        if time_min is None:
-            return None
-        return time_min
+        return self.__backend__().time_min
 
     def time_max(self) -> timedelta | None:
-        time_max = self.__backend__().time_max
-        if time_max is None:
-            return None
-        return time_max
+        return self.__backend__().time_max

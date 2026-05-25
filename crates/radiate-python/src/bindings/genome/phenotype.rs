@@ -4,7 +4,7 @@ use radiate::{
     BitChromosome, CharChromosome, Chromosome, FloatChromosome, Genotype, GraphChromosome,
     IntChromosome, Op, PermutationChromosome, Phenotype, TreeChromosome,
 };
-use radiate_expr::DataType;
+use radiate_utils::DataType;
 
 #[pyclass(from_py_object)]
 #[derive(Clone, Debug, PartialEq)]
@@ -84,7 +84,7 @@ macro_rules! impl_from_py_phenotype {
                         .score()
                         .map(|score| score.as_ref().to_vec())
                         .unwrap_or_default(),
-                    id: phenotype.id().0,
+                    id: phenotype.id().into(),
                 }
             }
         }

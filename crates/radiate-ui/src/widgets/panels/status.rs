@@ -1,11 +1,11 @@
 use crate::state::{AppState, LineChartType};
 use crate::widgets::components::LineChartWidget;
-use crate::widgets::{FnWidget, MetricDetailPanelWidget, Panel};
+use crate::widgets::{FnWidget, MetricDetailPanelWidget, Panel, TabComponent};
 use radiate_engines::stats::fmt_duration;
 use radiate_engines::{Chromosome, MetricSet};
 use ratatui::prelude::*;
 use ratatui::style::{Color, Stylize};
-use ratatui::widgets::{Paragraph, Row, Table, Tabs};
+use ratatui::widgets::{Paragraph, Row, Table};
 
 pub struct EngineStatusPanelWidget<C: Chromosome> {
     _phantom: std::marker::PhantomData<C>,
@@ -23,27 +23,27 @@ impl<C: Chromosome> StatefulWidget for EngineStatusPanelWidget<C> {
     type State = AppState<C>;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let metrics = state.metrics();
+        let metrics = &state.evo.metrics;
         let elapsed = metrics
             .time()
-            .and_then(|m| m.times().and_then(|t| t.sum()))
+            .and_then(|m| m.times().map(|t| t.sum()))
             .map(fmt_duration)
             .unwrap_or_else(|| "00:00:00.000".to_string());
 
-        let rows = if state.objective_state.objective.is_single() {
-            get_single_objective_summaries::<C>(&metrics)
+        let rows = if state.evo.pareto.objective.is_single() {
+            get_single_objective_summaries(metrics)
         } else {
-            get_multi_objective_summaries::<C>(&metrics)
+            get_multi_objective_summaries(metrics)
         };
 
         let mut title = vec![
             "Gen ".fg(Color::Gray).bold(),
-            format!("{}", state.index()).fg(Color::LightGreen),
+            format!("{}", state.evo.index).fg(Color::LightGreen),
         ];
 
-        if state.objective_state.objective.is_single() {
+        if state.evo.pareto.objective.is_single() {
             title.push(" | Score ".fg(Color::Gray).bold());
-            title.push(format!("{:.4} ", state.score().as_f32()).fg(Color::LightGreen));
+            title.push(format!("{:.4} ", state.evo.score.as_f32()).fg(Color::LightGreen));
         } else {
             title.push(" | MOGA ".fg(Color::Gray).bold());
         }
@@ -53,10 +53,10 @@ impl<C: Chromosome> StatefulWidget for EngineStatusPanelWidget<C> {
 
         let engine_table = Table::default()
             .rows(crate::styles::striped_rows(rows))
-            .widths(&[Constraint::Fill(1), Constraint::Fill(1)]);
+            .widths([Constraint::Fill(1), Constraint::Fill(1)]);
 
-        let engine_state = if state.is_engine_running() {
-            if state.is_engine_paused() {
+        let engine_state = if state.run.engine {
+            if state.run.paused {
                 " Paused ".fg(Color::Yellow).bold()
             } else {
                 " Running ".fg(Color::LightGreen).bold()
@@ -95,51 +95,54 @@ impl<C: Chromosome> StatefulWidget for MetricModalWidget<C> {
     type State = AppState<C>;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let current_metric_name = state.get_selected_metric().unwrap_or("");
+        let current_metric_name = state.get_selected_metric().unwrap_or("").to_owned();
 
-        let titles = LineChartType::chart_options()
-            .into_iter()
-            .map(|t| Span::styled(format!(" {t} "), Style::default().fg(Color::White)));
-
-        let index = match state.display.chart_id {
-            LineChartType::Value => 0,
-            LineChartType::Mean => 1,
-            LineChartType::Stddev => 2,
-            LineChartType::Variance => 3,
-        };
+        let index = state.nav.chart_tab_index();
 
         let [left, right] =
             Layout::horizontal([Constraint::Percentage(25), Constraint::Fill(1)]).areas(area);
 
         MetricDetailPanelWidget::new().render(left, buf, state);
 
-        let chart_type = state.display.chart_id;
-        let charts = state.get_chart_by_key(current_metric_name, chart_type);
+        let areas = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Length(3), Constraint::Fill(1)])
+            .split(right);
+
+        let chart_type = state.nav.chart_tab;
+        let charts = state.evo.get_chart_by_key(&current_metric_name, chart_type);
 
         Panel::new(FnWidget::new(|area, buf| {
-            let chunks = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([Constraint::Length(1), Constraint::Fill(1)])
-                .split(area);
-
-            Tabs::new(titles)
-                .select(index)
-                .padding(" ", " ")
-                .divider(" ")
-                .highlight_style(crate::styles::selected_item_style())
-                .bold()
-                .render(chunks[0], buf);
-
-            LineChartWidget::from(charts)
-                .with_show_x_axis(true)
-                .render(chunks[1], buf);
+            TabComponent::new(
+                LineChartType::chart_options()
+                    .iter()
+                    .map(|t| Span::styled(format!(" {t} "), Style::default().fg(Color::White))),
+            )
+            .select(index)
+            .render(area, buf);
         }))
-        .titled(" Charts ")
-        .render(right, buf);
+        .render_inside_block(true)
+        .render(areas[0], buf);
+
+        LineChartWidget::from(charts)
+            .with_show_x_axis(true)
+            .render(areas[1], buf);
     }
 }
 
-fn get_multi_objective_summaries<C: Chromosome>(metrics: &MetricSet) -> Vec<Row<'static>> {
+pub fn metric_summary_line<C: Chromosome>(state: &AppState<C>) -> Line<'static> {
+    let metric_meta = state.evo.metrics.summary();
+    let title = vec![
+        " Metrics: ".fg(Color::Gray).bold(),
+        format!("{}", metric_meta.metrics).fg(Color::LightGreen),
+        " | Updates: ".fg(Color::Gray).bold(),
+        format!("{} ", format_thousands(metric_meta.updates as usize)).fg(Color::LightGreen),
+    ];
+
+    title.into()
+}
+
+fn get_multi_objective_summaries(metrics: &MetricSet) -> Vec<Row<'static>> {
     let diversity = metrics.diversity_ratio().map(|m| m.mean()).unwrap_or(0.0);
     let carryover = metrics.carryover_rate().map(|m| m.mean()).unwrap_or(0.0);
     let unique_members = metrics.unique_members().map(|m| m.mean()).unwrap_or(0.0);
@@ -184,7 +187,7 @@ fn get_multi_objective_summaries<C: Chromosome>(metrics: &MetricSet) -> Vec<Row<
     rows
 }
 
-fn get_single_objective_summaries<C: Chromosome>(metrics: &MetricSet) -> Vec<Row<'static>> {
+fn get_single_objective_summaries(metrics: &MetricSet) -> Vec<Row<'static>> {
     let diversity = metrics.diversity_ratio().map(|m| m.mean()).unwrap_or(0.0);
     let carryover = metrics.carryover_rate().map(|m| m.mean()).unwrap_or(0.0);
     let unique_members = metrics.unique_members().map(|m| m.mean()).unwrap_or(0.0);
@@ -222,4 +225,15 @@ fn get_single_objective_summaries<C: Chromosome>(metrics: &MetricSet) -> Vec<Row
     ];
 
     rows
+}
+
+fn format_thousands(n: usize) -> String {
+    n.to_string()
+        .as_bytes()
+        .rchunks(3)
+        .rev()
+        .map(std::str::from_utf8)
+        .collect::<Result<Vec<&str>, _>>()
+        .unwrap()
+        .join(",")
 }

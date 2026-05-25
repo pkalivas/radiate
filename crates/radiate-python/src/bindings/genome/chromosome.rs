@@ -3,7 +3,7 @@ use pyo3::{
     Bound, IntoPyObject, PyAny, PyResult, Python, exceptions::PyIndexError, pyclass, pymethods,
 };
 use radiate::prelude::*;
-use radiate_expr::DataType;
+use radiate_utils::DataType;
 
 #[pyclass(from_py_object)]
 #[derive(Clone, Debug, PartialEq)]
@@ -37,7 +37,7 @@ impl PyChromosome {
         self.genes.iter().zip(&other.genes).all(|(a, b)| a == b)
     }
 
-    pub fn __getitem__<'py>(&self, index: isize) -> PyResult<PyGene> {
+    pub fn __getitem__(&self, index: isize) -> PyResult<PyGene> {
         if index >= self.genes.len() as isize || index < -(self.genes.len() as isize) {
             return Err(PyIndexError::new_err("index out of range"));
         }

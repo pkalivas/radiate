@@ -29,10 +29,6 @@ pub struct Score {
 
 impl Score {
     pub fn from_vec(values: Vec<f32>) -> Self {
-        if values.iter().any(|&v| v.is_nan()) {
-            panic!("Score value cannot be NaN");
-        }
-
         Score {
             values: Arc::from(values),
         }
@@ -42,8 +38,17 @@ impl Score {
         self.values.len() > 1
     }
 
+    pub fn is_single_objective(&self) -> bool {
+        self.values.len() == 1
+    }
+
     pub fn objective(&self, idx: usize) -> Option<&f32> {
         self.values.get(idx)
+    }
+
+    #[inline]
+    pub fn first(&self) -> Option<f32> {
+        self.values.first().cloned()
     }
 
     pub fn as_slice(&self) -> &[f32] {
@@ -51,11 +56,11 @@ impl Score {
     }
 
     pub fn as_f32(&self) -> f32 {
-        self.values.get(0).cloned().unwrap_or(f32::NAN)
+        self.values.first().cloned().unwrap_or(f32::NAN)
     }
 
     pub fn as_f64(&self) -> f64 {
-        self.values.get(0).cloned().unwrap_or(f32::NAN) as f64
+        self.values.first().cloned().unwrap_or(f32::NAN) as f64
     }
 
     pub fn as_i32(&self) -> i32 {
@@ -76,6 +81,10 @@ impl Score {
 
     pub fn len(&self) -> usize {
         self.values.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.values.is_empty()
     }
 }
 
@@ -117,18 +126,14 @@ impl Index<usize> for Score {
     }
 }
 
-impl Into<Vec<f32>> for Score {
-    fn into(self) -> Vec<f32> {
-        self.values.to_vec()
+impl From<Score> for Vec<f32> {
+    fn from(score: Score) -> Vec<f32> {
+        score.values.to_vec()
     }
 }
 
 impl From<f32> for Score {
     fn from(value: f32) -> Self {
-        if value.is_nan() {
-            panic!("Score value cannot be NaN")
-        }
-
         Score {
             values: Arc::from(vec![value]),
         }
@@ -147,10 +152,6 @@ impl TryFrom<i16> for Score {
 
 impl From<f64> for Score {
     fn from(value: f64) -> Self {
-        if value.is_nan() {
-            panic!("Score value cannot be NaN")
-        }
-
         Score {
             values: Arc::from(vec![value as f32]),
         }
@@ -287,7 +288,7 @@ impl Add<f32> for Score {
         }
 
         Score {
-            values: Arc::from(self.values),
+            values: values.into(),
         }
     }
 }

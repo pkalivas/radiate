@@ -1,6 +1,6 @@
 use ratatui::{
     style::{Color, Style, palette::material},
-    widgets::Row,
+    widgets::{Block, Row},
 };
 
 pub const BG_COLOR: Color = material::GRAY.c800;
@@ -23,7 +23,7 @@ pub const SELECTED_GREEN: Color = material::GREEN.c300;
 pub const BORDER_GREEN: Color = material::GREEN.c200;
 
 pub fn alternating_row_style(index: usize) -> ratatui::style::Style {
-    if index % 2 == 0 {
+    if index.is_multiple_of(2) {
         ratatui::style::Style::new().bg(BG_COLOR).fg(TEXT_FG_COLOR)
     } else {
         ratatui::style::Style::new()
@@ -39,9 +39,22 @@ pub fn selected_item_style() -> ratatui::style::Style {
         .reversed()
 }
 
+pub fn panel_block(focused: bool) -> Block<'static> {
+    let base = tui_piechart::border_style::BorderStyle::Rounded.block();
+    if focused {
+        base.border_style(Style::default().fg(BORDER_GREEN))
+    } else {
+        base
+    }
+}
+
 pub fn striped_rows<'a>(rows: impl IntoIterator<Item = Row<'a>>) -> impl Iterator<Item = Row<'a>> {
     rows.into_iter().enumerate().map(|(i, row)| {
-        let bg = if i % 2 == 0 { BG_COLOR } else { ALT_BG_COLOR };
+        let bg = if i.is_multiple_of(2) {
+            BG_COLOR
+        } else {
+            ALT_BG_COLOR
+        };
         row.style(Style::default().bg(bg))
     })
 }

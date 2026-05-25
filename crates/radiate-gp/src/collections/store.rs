@@ -138,10 +138,7 @@ impl<T> NodeStore<T> {
         F: Fn(Vec<&NodeValue<T>>) -> K,
     {
         let values = self.values.read().unwrap();
-        let all_values = values
-            .values()
-            .flat_map(|val| val)
-            .collect::<Vec<&NodeValue<T>>>();
+        let all_values = values.values().flatten().collect::<Vec<&NodeValue<T>>>();
 
         if all_values.is_empty() {
             return None;
@@ -303,10 +300,7 @@ where
             .read()
             .map_err(|_| S::Error::custom("Failed to acquire read lock"))?;
 
-        let serializable: Vec<_> = values
-            .iter()
-            .map(|(node_type, values)| (node_type, values))
-            .collect();
+        let serializable = values.iter().collect::<Vec<_>>();
 
         serializable.serialize(serializer)
     }

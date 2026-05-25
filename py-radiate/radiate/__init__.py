@@ -16,9 +16,9 @@ from .engine import (
     MetricSet,
     Metric,
     Tag,
-    EngineLog,
-    EngineCheckpoint,
-    EngineUi,
+    LogParam,
+    CheckpointParam,
+    UiParam,
 )
 
 from .codec import (
@@ -131,15 +131,16 @@ from .dtype import (
     Float32,
     Float64,
     Boolean,
-    Struct,
-    List,
     Field,
     String,
     Char,
     Null,
+    Struct,
+    List,
+    Dict,
 )
 
-from .expr import Expr, metric, when, lit, element, every, generation
+from .expr import Expr, select, when, lit, element, every, generation
 
 from .dsl import Select, Mutate, Cross, Dist, Limit
 
@@ -169,7 +170,7 @@ __all__ = [
     "random",
     # Expressions
     "Expr",
-    "metric",
+    "select",
     "when",
     "lit",
     "element",
@@ -276,9 +277,9 @@ __all__ = [
     "Metric",
     "Tag",
     # Options
-    "EngineLog",
-    "EngineCheckpoint",
-    "EngineUi",
+    "LogParam",
+    "CheckpointParam",
+    "UiParam",
     # Dtype
     "UInt8",
     "UInt16",
@@ -299,6 +300,7 @@ __all__ = [
     "Char",
     "Null",
     "List",
+    "Dict",
     # dsl
     "Select",
     "Dist",

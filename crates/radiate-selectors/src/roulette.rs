@@ -1,5 +1,5 @@
 use crate::ProbabilityWheelIterator;
-use radiate_core::{Chromosome, Objective, Optimize, Population, Select, pareto};
+use radiate_core::{Chromosome, Objective, Optimize, Phenotype, Select, math::norm, pareto};
 
 #[derive(Debug, Default)]
 pub struct RouletteSelector;
@@ -13,45 +13,38 @@ impl RouletteSelector {
 impl<C: Chromosome + Clone> Select<C> for RouletteSelector {
     fn select(
         &self,
-        population: &Population<C>,
+        population: &[Phenotype<C>],
         objective: &Objective,
         count: usize,
-    ) -> Population<C> {
+    ) -> Vec<usize> {
         let fitness_values = match objective {
             Objective::Single(opt) => {
-                let mut population_scores = Vec::with_capacity(population.len());
-                let mut sum = 0.0;
-                for score in population.get_scores() {
-                    let single_score = score.as_f32();
-                    population_scores.push(single_score);
-                    sum += single_score;
-                }
+                let mut scores = population
+                    .iter()
+                    .filter_map(|p| p.score())
+                    .filter_map(|s| s.first())
+                    .collect::<Vec<_>>();
 
-                for fit in population_scores.iter_mut() {
-                    *fit /= sum;
-                }
+                norm::scale_l1_affine_sorted(&mut scores);
 
                 if let Optimize::Minimize = opt {
-                    population_scores.reverse();
+                    scores.reverse();
                 }
 
-                population_scores
+                scores
             }
             Objective::Multi(_) => {
-                let mut weights =
-                    pareto::weights(&population.get_scores().collect::<Vec<_>>(), objective);
-                let total_weights = weights.iter().sum::<f32>();
+                let scores = population
+                    .iter()
+                    .filter_map(|p| p.score())
+                    .collect::<Vec<_>>();
 
-                for fit in weights.iter_mut() {
-                    *fit /= total_weights;
-                }
-
+                let mut weights = pareto::weights(&scores, objective);
+                norm::scale_l1(&mut weights);
                 weights
             }
         };
 
-        ProbabilityWheelIterator::new(&fitness_values, count)
-            .map(|idx| population[idx].clone())
-            .collect()
+        ProbabilityWheelIterator::new(fitness_values, count).collect()
     }
 }

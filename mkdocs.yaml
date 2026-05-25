@@ -23,6 +23,7 @@ nav:
       - Diversity: 
           - source/diversity/index.md
           - Distance: source/diversity/distance.md
+          - Species: source/diversity/species.md
           - Example: source/diversity/example.md
       - Executor: source/executors.md
       - Objectives: source/objectives.md
@@ -39,7 +40,6 @@ nav:
     - Tree: source/gp/trees.md
     - Graph: source/gp/graph.md
     - Regression: source/gp/regression.md
-    - PGM: source/gp/pgm.md
   - Misc: 
     - source/misc/index.md
     - Randomness: source/misc/random.md
@@ -90,7 +90,9 @@ markdown_extensions:
       line_spans: __span
       pygments_lang_class: true
   - pymdownx.inlinehilite
-  - pymdownx.snippets
+  - pymdownx.snippets:
+      base_path: ["docs/source/src"]
+      check_paths: true
   - admonition
   - pymdownx.details
   - pymdownx.superfences:

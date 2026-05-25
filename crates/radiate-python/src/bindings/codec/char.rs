@@ -88,9 +88,9 @@ impl PyCharCodec {
                         outer.append(value).unwrap();
                     }
 
-                    return PyAnyObject {
+                    PyAnyObject {
                         inner: outer.unbind().into_any(),
-                    };
+                    }
                 }),
         }
     }
@@ -119,9 +119,9 @@ impl PyCharCodec {
                         outer.append(inner).unwrap();
                     }
 
-                    return PyAnyObject {
+                    PyAnyObject {
                         inner: outer.unbind().into_any(),
-                    };
+                    }
                 }),
         }
     }
@@ -142,9 +142,9 @@ impl PyCharCodec {
                         }
                     }
 
-                    return PyAnyObject {
+                    PyAnyObject {
                         inner: outer.unbind().into_any(),
-                    };
+                    }
                 }),
         }
     }

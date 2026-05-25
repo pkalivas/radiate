@@ -45,11 +45,11 @@ impl<W: Widget> Panel<W> {
     //     self
     // }
 
-    // pub fn title_top_right(mut self, title: impl Into<Line<'static>>) -> Self {
-    //     let line = title.into();
-    //     self.top_right_title = Some(line);
-    //     self
-    // }
+    pub fn title_top_right(mut self, title: impl Into<Line<'static>>) -> Self {
+        let line = title.into();
+        self.top_right_title = Some(line);
+        self
+    }
 
     #[allow(dead_code)]
     pub fn render_inside_block(mut self, render_inside: bool) -> Self {
@@ -109,7 +109,6 @@ where
             if let Some(child) = self.child {
                 child.render(area, buf);
             }
-            return;
         } else if self.title.is_some() || self.title_bottom.is_some() || self.render_inside_block {
             let mut block = self.block;
 

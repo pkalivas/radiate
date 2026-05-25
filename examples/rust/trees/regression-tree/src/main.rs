@@ -3,7 +3,7 @@ use radiate::*;
 const MIN_SCORE: f32 = 0.001;
 
 fn main() {
-    random_provider::set_seed(40);
+    random_provider::seed(40);
 
     let store = vec![
         (

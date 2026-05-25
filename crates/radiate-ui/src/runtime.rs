@@ -1,4 +1,4 @@
-use crate::app::{App, InputEvent};
+use crate::app::{App, GenerationEvent, InputEvent};
 use color_eyre::{Result, eyre::Context};
 use radiate_engines::EngineControl;
 use radiate_engines::{
@@ -93,14 +93,9 @@ where
                 .unwrap();
         }
 
+        let event = GenerationEvent::from(&current);
         self.dispatcher
-            .send(InputEvent::EpochComplete(
-                current.index(),
-                current.metrics().clone(),
-                current.score().clone(),
-                current.front().cloned(),
-                current.ecosystem().species_snapshots(),
-            ))
+            .send(InputEvent::EpochComplete(event))
             .unwrap();
 
         Ok(current)
@@ -119,18 +114,18 @@ where
 
         self.control.set_paused(false);
 
-        if let Some(event_listener) = self.app_thread.take() {
-            if let Err(e) = event_listener.join() {
-                eprintln!("Error joining app thread: {:?}", e);
-            }
+        if let Some(event_listener) = self.app_thread.take()
+            && let Err(e) = event_listener.join()
+        {
+            eprintln!("Error joining app thread: {:?}", e);
         }
 
         self.control.stop();
 
-        if let Some(key_listener) = self.key_thread.take() {
-            if let Err(e) = key_listener.join() {
-                eprintln!("Error joining key listener thread: {:?}", e);
-            }
+        if let Some(key_listener) = self.key_thread.take()
+            && let Err(e) = key_listener.join()
+        {
+            eprintln!("Error joining key listener thread: {:?}", e);
         }
     }
 }

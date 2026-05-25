@@ -5,7 +5,7 @@ const MAX_INDEX: usize = 500;
 const MAX_SECONDS: f64 = 1.0;
 
 fn main() {
-    random_provider::set_seed(12345);
+    random_provider::seed(12345);
 
     let inputs = vec![
         vec![0.0, 0.0],

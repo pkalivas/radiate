@@ -6,7 +6,7 @@ const OBJECTIVES: usize = 3;
 const K: usize = VARIABLES - OBJECTIVES + 1;
 
 fn main() {
-    random_provider::set_seed(500);
+    random_provider::seed(500);
 
     let codec = FloatCodec::vector(VARIABLES, 0_f32..1_f32);
 
@@ -16,7 +16,6 @@ fn main() {
         .multi_objective(vec![Optimize::Minimize; OBJECTIVES])
         .offspring_selector(TournamentSelector::new(5))
         .survivor_selector(NSGA3Selector::new(12))
-        .diversity(CosineDistance)
         .front_size(200..250)
         .alter(alters!(
             SimulatedBinaryCrossover::new(1_f32, 2.0),
@@ -24,9 +23,10 @@ fn main() {
         ))
         .build();
 
-    let result = radiate::ui(engine).iter().limit(1000).last().unwrap();
+    let result = engine.iter().limit(1000).last().unwrap();
 
     println!("{:?}", result);
+    println!("{}", result.metrics().dashboard());
     let front = result.front().unwrap();
     plot_front(front);
 }

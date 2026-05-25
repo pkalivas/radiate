@@ -17,8 +17,8 @@ def test_generation_metrics(random_seed):
         .metrics()
     )
 
-    assert len(metrics) == 38
-    assert len(metrics.keys()) == 38
+    assert len(metrics) == 29
+    assert len(metrics.keys()) == 29
     for key in metrics.keys():
         assert key in metrics
 
@@ -96,6 +96,26 @@ def test_metrics_from_events(random_seed):
 
 
 @pytest.mark.integration
+def test_metric_times_are_correct(random_seed):
+    result = (
+        rd.Engine.int(5, init_range=(0, 10))
+        .fitness(lambda x: sum(x))
+        .minimizing()
+        .limit(rd.Limit.score(0), rd.Limit.generations(500))
+    ).run()
+
+    time_name_set = set()
+    for metric in result.metrics():
+        if rd.Tag.TIME in metric.tags():
+            assert metric.time_last() is not None
+            time_name_set.add(metric.name())
+
+    for metric in result.metrics().values_by_tag(rd.Tag.TIME):
+        assert metric.time_last() is not None
+        assert metric.name() in time_name_set
+
+
+@pytest.mark.integration
 def test_metric_tags(random_seed):
     engine = (
         rd.Engine.int(5, init_range=(0, 10))
@@ -105,7 +125,6 @@ def test_metric_tags(random_seed):
     )
 
     result = engine.run()
-
     metrics = result.metrics()
 
     # Check that certain metrics have expected tags
@@ -115,10 +134,8 @@ def test_metric_tags(random_seed):
     score_tags = metrics["scores"].tags()
     time_tags = metrics["time"].tags()
 
-    # assert rd.Tag.STATISTIC in score_tags
     assert rd.Tag.SCORE in score_tags
     assert rd.Tag.DISTRIBUTION in score_tags
-
     assert rd.Tag.TIME in time_tags
 
     for metric in metrics.values_by_tag(rd.Tag.ALTERER):

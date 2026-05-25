@@ -1,9 +1,8 @@
-use crate::{PyAnyObject, PyGeneType, PyRate};
+use crate::{PyAnyObject, PyGeneType};
 use pyo3::{
     Py, PyAny, PyResult, Python, exceptions::PyKeyError, prelude::FromPyObjectOwned, pyclass,
     pymethods,
 };
-use radiate::Rate;
 use std::{
     collections::{HashMap, HashSet},
     fmt::Debug,
@@ -41,7 +40,6 @@ pub struct PyEngineInput {
     pub component: String,
     pub input_type: PyEngineInputType,
     pub allowed_genes: HashSet<PyGeneType>,
-    pub rate: Option<PyRate>,
     pub args: HashMap<String, PyAnyObject>,
 }
 
@@ -52,14 +50,13 @@ impl PyEngineInput {
         component: String,
         input_type: PyEngineInputType,
         allowed_genes: HashSet<PyGeneType>,
-        rate: Option<PyRate>,
         args: HashMap<String, Py<PyAny>>,
     ) -> Self {
         PyEngineInput {
             component,
             input_type,
             allowed_genes,
-            rate,
+            // rate,
             args: args
                 .into_iter()
                 .map(|(k, v)| (k, PyAnyObject { inner: v }))
@@ -97,38 +94,6 @@ impl PyEngineInput {
     pub fn get(&self, key: &str) -> Option<&PyAnyObject> {
         self.args.get(key)
     }
-
-    pub fn get_rate(&self) -> Option<Rate> {
-        self.rate.clone().map(|r| r.rate)
-    }
-
-    pub fn get_string(&self, key: &str) -> Option<String> {
-        self.args.get(key).and_then(|v| v.get_string())
-    }
-
-    pub fn get_i32(&self, key: &str) -> Option<i32> {
-        self.args.get(key).and_then(|v| v.get_i32())
-    }
-
-    pub fn get_f32(&self, key: &str) -> Option<f32> {
-        self.args.get(key).and_then(|v| v.get_f32())
-    }
-
-    pub fn get_f64(&self, key: &str) -> Option<f64> {
-        self.args.get(key).and_then(|v| v.get_f64())
-    }
-
-    pub fn get_usize(&self, key: &str) -> Option<usize> {
-        self.args.get(key).and_then(|v| v.get_usize())
-    }
-
-    pub fn get_vec_f32(&self, key: &str) -> Option<Vec<f32>> {
-        self.args.get(key).and_then(|v| v.get_vec_f32())
-    }
-
-    pub fn get_bool(&self, key: &str) -> Option<bool> {
-        self.args.get(key).and_then(|v| v.get_bool())
-    }
 }
 
 impl Debug for PyEngineInput {
@@ -145,8 +110,8 @@ impl Debug for PyEngineInput {
         }
         write!(
             f,
-            "PyEngineInput {{ \n\tcomponent: {}, \n\tinput_type: {:?}, \n\tallowed_genes: {:?}, \n\trate: {:?}, \n\targs: {{{}}} \n}}",
-            self.component, self.input_type, self.allowed_genes, self.rate, args
+            "PyEngineInput {{ \n\tcomponent: {}, \n\tinput_type: {:?}, \n\tallowed_genes: {:?}, \n\targs: {{{}}} \n}}",
+            self.component, self.input_type, self.allowed_genes, args
         )
     }
 }

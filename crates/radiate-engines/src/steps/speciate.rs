@@ -1,10 +1,12 @@
 use crate::steps::EngineStep;
 use radiate_core::{
-    Chromosome, Ecosystem, Executor, MetricSet, Objective, Phenotype, Population, Rate, Score,
-    Species, diversity::Diversity, metric_names, random_provider,
+    Chromosome, Ecosystem, Executor, MetricSet, Objective, Phenotype, Population, Rate, Species,
+    diversity::Diversity, metric_names, random_provider,
 };
 use radiate_error::Result;
 use std::sync::{Arc, Mutex, RwLock};
+
+type SpeciesAssignments = Vec<Option<(usize, f32)>>;
 
 pub struct SpeciateStep<C>
 where
@@ -14,8 +16,26 @@ where
     pub(crate) objective: Objective,
     pub(crate) distance: Arc<dyn Diversity<C>>,
     pub(crate) executor: Arc<Executor>,
-    pub(crate) distances: Arc<Mutex<Vec<f32>>>,
-    pub(crate) assignments: Arc<Mutex<Vec<Option<usize>>>>,
+    pub(crate) distances: Vec<f32>,
+    pub(crate) assignments: Arc<Mutex<SpeciesAssignments>>,
+}
+
+impl<C: Chromosome> SpeciateStep<C> {
+    pub fn new(
+        threshold: Rate,
+        objective: Objective,
+        distance: Arc<dyn Diversity<C>>,
+        executor: Arc<Executor>,
+    ) -> Self {
+        Self {
+            threshold,
+            objective,
+            distance,
+            executor,
+            distances: Vec::new(),
+            assignments: Arc::new(Mutex::new(Vec::new())),
+        }
+    }
 }
 
 impl<C> SpeciateStep<C>
@@ -23,13 +43,12 @@ where
     C: Chromosome + 'static,
 {
     fn assign_species(
-        &self,
+        &mut self,
         generation: usize,
         threshold: f32,
         ecosystem: &mut Ecosystem<C>,
         mascots: Arc<Vec<Phenotype<C>>>,
-        assignments: Arc<Mutex<Vec<Option<usize>>>>,
-        distances: Arc<Mutex<Vec<f32>>>,
+        assignments: Arc<Mutex<SpeciesAssignments>>,
     ) -> Result<()>
     where
         C: Clone,
@@ -49,7 +68,6 @@ where
 
             let distance = Arc::clone(&self.distance);
             let assignments = Arc::clone(&assignments);
-            let distances = Arc::clone(&distances);
             let population = Arc::clone(&population);
             let species_snapshot = Arc::clone(&mascots);
 
@@ -60,7 +78,6 @@ where
                     threshold,
                     distance,
                     assignments,
-                    distances,
                     chunk_start..chunk_end,
                 );
             });
@@ -81,85 +98,73 @@ where
 
     #[inline]
     fn assign_unassigned(
-        &self,
+        &mut self,
         generation: usize,
         threshold: f32,
         ecosystem: &mut Ecosystem<C>,
-        assignments: &[Option<usize>],
+        assignments: &[Option<(usize, f32)>],
     ) where
         C: Clone,
     {
         let pop_len = ecosystem.population().len();
+        let mut new_count = 0;
 
-        for i in 0..pop_len {
-            if let Some(species_id) = assignments[i] {
-                ecosystem.add_species_member(species_id, i);
+        for (i, assignment) in assignments.iter().enumerate().take(pop_len) {
+            if let Some((species_id, dist)) = assignment {
+                ecosystem.add_species_member(*species_id, i);
+                self.distances[i] = *dist;
                 continue;
             }
 
+            let mut best_dist = f32::MAX;
             let phenotype = ecosystem.get_phenotype(i).unwrap();
-            let maybe_idx = ecosystem
-                .species()
-                .map(|specs| {
-                    for (species_idx, species) in specs.iter().enumerate() {
-                        if species.age(generation) != 0 {
-                            continue;
-                        }
+            let maybe_idx = ecosystem.species().and_then(|specs| {
+                for (species_idx, species) in specs.iter().enumerate() {
+                    let dist = self.distance.measure(phenotype, species.mascot());
 
-                        let dist = self.distance.measure(phenotype, species.mascot());
+                    best_dist = best_dist.min(dist);
 
-                        if dist < threshold {
-                            return Some(species_idx);
-                        }
+                    if dist < threshold {
+                        self.distances[i] = dist;
+                        return Some(species_idx);
                     }
+                }
 
-                    None
-                })
-                .flatten();
+                None
+            });
 
             match maybe_idx {
                 Some(idx) => ecosystem.add_species_member(idx, i),
                 None => {
-                    if let Some(pheno) = ecosystem.get_phenotype(i) {
-                        let new_species = Species::new(generation, pheno);
-                        ecosystem.push_species(new_species);
+                    if let Some(pheno) = ecosystem.get_phenotype_mut(i) {
+                        let new_species = Species::new(generation, pheno.clone());
+                        let species_idx = ecosystem.push_species(new_species);
+
+                        ecosystem.add_species_member(species_idx, i);
+                        self.distances[i] = best_dist;
+
+                        new_count += 1;
                     }
                 }
             }
         }
-    }
 
-    #[inline]
-    fn fitness_share(&self, ecosystem: &mut Ecosystem<C>)
-    where
-        C: PartialEq,
-    {
-        if let Some(species) = ecosystem.species_mut() {
-            let mut scores = Vec::with_capacity(species.len());
-            for spec in species.iter() {
-                let adjusted = Self::adjust_scores(spec).iter().sum::<Score>();
+        if new_count == pop_len {
+            ecosystem.clear_species();
+            self.distances.clear();
+            self.distances.push(threshold);
+            let idx = random_provider::range(0..pop_len);
+            if let Some(phenotype) = ecosystem.get_phenotype(idx) {
+                let new_species = Species::new(generation, (*phenotype).clone());
+                let new_species_idx = ecosystem.push_species(new_species);
 
-                scores.push(adjusted);
+                for i in 0..pop_len {
+                    if i != idx {
+                        ecosystem.add_species_member(new_species_idx, i);
+                    }
+                }
             }
-
-            let total_score = scores.iter().sum::<Score>();
-            for (i, spec) in species.iter_mut().enumerate() {
-                let spec_score = scores[i].clone();
-                let adjusted_score = spec_score / total_score.clone();
-                spec.update_score(adjusted_score, &self.objective);
-            }
-
-            self.objective.sort(species);
         }
-    }
-
-    #[inline]
-    fn adjust_scores(species: &Species<C>) -> Vec<Score> {
-        species
-            .population
-            .get_scores()
-            .map(|score| (*score).clone() / species.len() as f32)
-            .collect()
     }
 
     #[inline]
@@ -168,23 +173,20 @@ where
         species_mascots: Arc<Vec<Phenotype<C>>>,
         threshold: f32,
         distance: Arc<dyn Diversity<C>>,
-        assignments: Arc<Mutex<Vec<Option<usize>>>>,
-        distances: Arc<Mutex<Vec<f32>>>,
+        assignments: Arc<Mutex<SpeciesAssignments>>,
         range: std::ops::Range<usize>,
     ) {
-        let mut inner_distances = Vec::new();
         let mut inner_assignments = Vec::new();
 
         let start = range.start;
         let reader = population.read().unwrap();
         for (idx, individual) in reader[range].iter().enumerate() {
             let mut assigned = None;
-            for (idx, sp) in species_mascots.iter().enumerate() {
-                let dist = distance.measure(individual.borrow(), &sp);
-                inner_distances.push(dist);
+            for (spec_idx, sp) in species_mascots.iter().enumerate() {
+                let dist = distance.measure(individual, sp);
 
                 if dist < threshold {
-                    assigned = Some(idx);
+                    assigned = Some((spec_idx, dist));
                     break;
                 }
             }
@@ -200,10 +202,6 @@ where
                 assignments[idx] = assigned;
             }
         }
-
-        {
-            distances.lock().unwrap().extend(inner_distances);
-        }
     }
 
     #[inline]
@@ -211,24 +209,80 @@ where
     where
         C: Clone,
     {
-        // Update mascots for each species by selecting a random member from the species population
-        // to be the new mascot for the next generation. This follows the NEAT algorithm approach.
-        if let Some(species) = ecosystem.species_mut() {
-            for spec in species {
-                let idx = random_provider::range(0..spec.population.len());
-                spec.population().get(idx).cloned().map(|phenotype| {
-                    spec.set_new_mascot(phenotype);
-                });
-            }
-        }
+        ecosystem.generate_mascots();
 
         Arc::new(
             ecosystem
                 .species_mascots()
                 .into_iter()
-                .map(|spec| spec.clone())
+                .cloned()
                 .collect::<Vec<Phenotype<C>>>(),
         )
+    }
+
+    fn publish_species_stats(
+        &self,
+        generation: usize,
+        ecosystem: &Ecosystem<C>,
+        metrics: &mut MetricSet,
+    ) {
+        let Some(species) = ecosystem.species() else {
+            return;
+        };
+
+        let pop_len = ecosystem.population().len().max(1);
+        let mut new_species_count = 0;
+        let mut ages = Vec::with_capacity(species.len());
+        let mut sizes = Vec::with_capacity(species.len());
+        let mut max_size = 0;
+        let mut size_sum = 0;
+
+        for spec in species.iter() {
+            let age = spec.age(generation);
+            let len = spec.len();
+
+            if age == 0 {
+                new_species_count += 1;
+            }
+
+            ages.push(age);
+            sizes.push(len);
+            max_size = max_size.max(len);
+            size_sum += len;
+        }
+
+        let largest_share = max_size as f32 / pop_len as f32;
+
+        let mut evenness = 0.0_f32;
+        let s_count = species.len();
+        if s_count > 1 && size_sum > 0 {
+            let total = size_sum as f32;
+            let mut h = 0.0_f32;
+            for &sz in sizes.iter() {
+                if sz > 0 {
+                    let p = sz as f32 / total;
+                    h -= p * p.ln();
+                }
+            }
+            let h_max = (s_count as f32).ln();
+            if h_max > 0.0 {
+                evenness = h / h_max;
+            }
+        }
+
+        let churn = if s_count > 0 {
+            new_species_count as f32 / s_count as f32
+        } else {
+            0.0
+        };
+
+        metrics.upsert(metric_names::SPECIES_AGE, &ages);
+        metrics.upsert(metric_names::SPECIES_SIZE, &sizes);
+        metrics.upsert(metric_names::SPECIES_COUNT, s_count);
+        metrics.upsert(metric_names::SPECIES_CREATED, new_species_count);
+        metrics.upsert(metric_names::SPECIES_EVENNESS, evenness);
+        metrics.upsert(metric_names::SPECIES_NEW_RATIO, churn);
+        metrics.upsert(metric_names::LARGEST_SPECIES_SHARE, largest_share);
     }
 }
 
@@ -251,13 +305,8 @@ where
         let threshold = self.threshold.get(generation, metrics);
         let mascots = Self::generate_mascots(ecosystem);
 
-        let distances = {
-            let distance_capacity = pop_len * mascots.len().max(1);
-            let mut distances_guard = self.distances.lock().unwrap();
-            distances_guard.clear();
-            distances_guard.reserve_exact(distance_capacity);
-            Arc::clone(&self.distances)
-        };
+        self.distances.clear();
+        self.distances.resize(pop_len, 0.0);
 
         let assignments = {
             let mut assignments_guard = self.assignments.lock().unwrap();
@@ -272,17 +321,16 @@ where
             ecosystem,
             Arc::clone(&mascots),
             Arc::clone(&assignments),
-            Arc::clone(&distances),
         )?;
 
         let rm_species_count = ecosystem.remove_dead_species();
 
-        metrics.upsert((metric_names::SPECIES_DIED, rm_species_count));
-        metrics.upsert((metric_names::SPECIES_THRESHOLD, threshold));
-        let distances = distances.lock().unwrap();
-        metrics.upsert((metric_names::SPECIES_DISTANCE_DIST, &*distances));
+        metrics.upsert(metric_names::SPECIES_DISTANCE_DIST, &self.distances);
+        metrics.upsert(metric_names::SPECIES_DIED, rm_species_count);
+        metrics.upsert(metric_names::SPECIES_THRESHOLD, threshold);
+        self.publish_species_stats(generation, ecosystem, metrics);
 
-        self.fitness_share(ecosystem);
+        ecosystem.fitness_share(&self.objective);
 
         Ok(())
     }

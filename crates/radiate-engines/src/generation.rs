@@ -1,8 +1,8 @@
 use crate::Chromosome;
-use crate::context::Context;
+use crate::context::{Context, ContextAudit};
+use radiate_core::MetricQuery;
 use radiate_core::objectives::Scored;
 use radiate_core::{Ecosystem, Front, MetricSet, Objective, Phenotype, Population, Score, Species};
-use radiate_expr::NamedExpr;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
@@ -47,14 +47,15 @@ pub struct Generation<C, T>
 where
     C: Chromosome,
 {
-    ecosystem: Ecosystem<C>,
+    ecosystem: Arc<Ecosystem<C>>,
     value: T,
     index: usize,
     metrics: MetricSet,
     score: Score,
     objective: Objective,
-    front: Option<Front<Phenotype<C>>>,
-    exprs: Option<Arc<Mutex<Vec<NamedExpr>>>>,
+    front: Option<Arc<Front<Phenotype<C>>>>,
+    exprs: Option<Arc<Mutex<Vec<MetricQuery>>>>,
+    audits: Option<Vec<ContextAudit>>,
 }
 
 impl<C, T> Generation<C, T>
@@ -66,7 +67,7 @@ where
     }
 
     pub fn front(&self) -> Option<&Front<Phenotype<C>>> {
-        self.front.as_ref()
+        self.front.as_deref()
     }
 
     pub fn value(&self) -> &T {
@@ -90,7 +91,7 @@ where
     }
 
     pub fn population(&self) -> &Population<C> {
-        &self.ecosystem().population()
+        self.ecosystem().population()
     }
 
     pub fn species(&self) -> Option<&[Species<C>]> {
@@ -100,8 +101,7 @@ where
     pub fn time(&self) -> Duration {
         self.metrics()
             .time()
-            .map(|m| m.times().and_then(|t| t.sum()))
-            .flatten()
+            .and_then(|m| m.times().map(|t| t.sum()))
             .unwrap_or_default()
     }
 
@@ -109,8 +109,16 @@ where
         self.time().as_secs_f64()
     }
 
-    pub fn exprs(&self) -> Option<Arc<Mutex<Vec<NamedExpr>>>> {
+    pub fn exprs(&self) -> Option<Arc<Mutex<Vec<MetricQuery>>>> {
         self.exprs.clone()
+    }
+
+    pub fn audits(&self) -> Option<&[ContextAudit]> {
+        self.audits.as_deref()
+    }
+
+    pub fn cloned_ecosystem(&self) -> Arc<Ecosystem<C>> {
+        Arc::clone(&self.ecosystem)
     }
 }
 
@@ -127,17 +135,18 @@ where
 {
     fn from(context: &Context<C, T>) -> Self {
         Generation {
-            ecosystem: context.ecosystem.clone(),
+            ecosystem: Arc::new(context.ecosystem.clone()),
             value: context.best.clone(),
             index: context.index,
             metrics: context.metrics.clone(),
             score: context.score.clone().unwrap(),
             objective: context.objective.clone(),
             front: match context.objective {
-                Objective::Multi(_) => Some(context.front.read().unwrap().clone()),
+                Objective::Multi(_) => Some(Arc::new(context.front.read().unwrap().clone())),
                 _ => None,
             },
             exprs: context.exprs.clone(),
+            audits: Some(context.audits.clone()),
         }
     }
 }
@@ -149,14 +158,15 @@ where
 {
     fn clone(&self) -> Self {
         Generation {
-            ecosystem: self.ecosystem.clone(),
+            ecosystem: Arc::clone(&self.ecosystem),
             value: self.value.clone(),
             index: self.index,
             metrics: self.metrics.clone(),
             score: self.score.clone(),
             objective: self.objective.clone(),
-            front: self.front.as_ref().map(|f| f.clone()),
+            front: self.front.clone(),
             exprs: self.exprs.clone(),
+            audits: self.audits.clone(),
         }
     }
 }
@@ -169,22 +179,48 @@ where
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let ecosystem = &self.ecosystem;
 
-        write!(f, "Generation {{\n")?;
-        write!(f, "  metrics: {:?},\n", self.metrics)?;
-        write!(f, "  value: {:?},\n", self.value)?;
-        write!(f, "  score: {:?},\n", self.score)?;
-        write!(f, "  index: {:?},\n", self.index)?;
-        write!(f, "  size: {:?},\n", ecosystem.population().len())?;
-        write!(f, "  duration: {:?},\n", self.time())?;
-        write!(f, "  objective: {:?},\n", self.objective)?;
-
+        writeln!(f, "Generation {{")?;
+        writeln!(f, "  metrics: {:?},", self.metrics)?;
+        writeln!(f, "  score: {:?},", self.score)?;
+        writeln!(f, "  index: {:?},", self.index)?;
+        writeln!(f, "  size: {:?},", ecosystem.population().len())?;
+        writeln!(f, "  duration: {:?},", self.time())?;
+        writeln!(f, "  objective: {:?},", self.objective)?;
         if let Some(species) = &ecosystem.species {
+            writeln!(f, "  species [")?;
             for s in species {
-                write!(f, "  species: {:?},\n", s)?;
+                writeln!(
+                    f,
+                    "  \t{:?}  age={}",
+                    s,
+                    self.index.saturating_sub(s.generation()),
+                )?;
             }
+            writeln!(f, "  ],")?;
         }
+        writeln!(f, "  value: {:?},", self.value)?;
 
         write!(f, "}}")
+    }
+}
+
+impl<C, T> Default for Generation<C, T>
+where
+    C: Chromosome + Default,
+    T: Default,
+{
+    fn default() -> Self {
+        Generation {
+            ecosystem: Arc::new(Ecosystem::default()),
+            value: T::default(),
+            index: 0,
+            metrics: MetricSet::default(),
+            score: Score::default(),
+            objective: Objective::default(),
+            front: None,
+            exprs: None,
+            audits: None,
+        }
     }
 }
 
@@ -195,8 +231,7 @@ where
     fn from_iter<I: IntoIterator<Item = Generation<C, T>>>(iter: I) -> Self {
         iter.into_iter()
             .last()
-            .map(|generation| generation.front().map(|front| front.clone()))
-            .flatten()
+            .and_then(|generation| generation.front().cloned())
             .unwrap_or_default()
     }
 }

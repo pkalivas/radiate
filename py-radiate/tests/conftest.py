@@ -180,9 +180,24 @@ def graph_1x1_engine():
         edge=rd.Op.weight(),
         output=rd.Op.linear(),
     ).alters(
-        rd.Cross.graph(0.05, 0.5),
+        rd.Cross.graph(0.05),
         rd.Mutate.op(0.07, 0.05),
         rd.Mutate.graph(0.1, 0.1, False),
+    )
+
+
+@pytest.fixture
+def tree_2x1_engine():
+    """Create a simple 2x1 tree engine for testing."""
+    return rd.Engine.tree(
+        shape=(2, 1),
+        vertex=[rd.Op.add(), rd.Op.mul(), rd.Op.sub()],
+        leaf=[rd.Op.var(0), rd.Op.var(1)],
+        root=rd.Op.linear(),
+    ).alters(
+        rd.Cross.tree(0.05),
+        rd.Mutate.op(0.07, 0.05),
+        rd.Mutate.hoist(0.1),
     )
 
 

@@ -12,7 +12,7 @@ const NUM_GENES: usize = 175;
 const POLYGON_SIZE: usize = 5;
 
 fn main() {
-    random_provider::set_seed(50);
+    random_provider::seed(50);
 
     let image_bytes = include_bytes!("../monalisa.png");
 

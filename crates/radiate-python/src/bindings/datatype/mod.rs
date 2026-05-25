@@ -5,7 +5,8 @@ mod value;
 use cell::GILOnceCell;
 
 pub use dtype::*;
-use radiate_expr::{AnyValue, Field};
+use radiate::DataType;
+use radiate_utils::{AnyValue, SmallStr};
 
 use pyo3::{
     Borrowed, Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python,
@@ -54,10 +55,10 @@ pub fn any_value_into_py_object_ref<'py, 'a>(
                 .collect::<PyResult<Vec<_>>>()?,
         )?
         .into_any()),
-        Struct(pairs) => {
+        Dict(pairs) => {
             let dict = pyo3::types::PyDict::new(py);
-            for (fld, val) in pairs.iter() {
-                let key = fld.name().to_string();
+            for (fld, _, val) in pairs.iter() {
+                let key = fld.as_str().to_string();
                 let value = any_value_into_py_object_ref(val, py)?;
                 dict.set_item(key, value)?;
             }
@@ -93,7 +94,7 @@ pub fn any_value_into_py_object<'py>(av: AnyValue, py: Python<'py>) -> PyResult<
         AnyValue::Bool(v) => v.into_bound_py_any(py),
         AnyValue::Str(v) => v.into_bound_py_any(py),
         AnyValue::StrOwned(v) => v.into_bound_py_any(py),
-        AnyValue::Struct(v) => {
+        AnyValue::Dict(v) => {
             let dict = struct_dict(py, v.into_iter())?;
             dict.into_bound_py_any(py)
         }
@@ -134,12 +135,12 @@ pub fn py_object_to_any_value<'a, 'py>(
     }
 
     fn get_str(ob: &Bound<'_, PyAny>, _strict: bool) -> PyResult<AnyValue<'static>> {
-        Ok(AnyValue::StrOwned(ob.extract::<String>()?.into()))
+        Ok(AnyValue::StrOwned(ob.extract::<String>()?))
     }
 
     fn get_list(ob: &Bound<'_, PyAny>, strict: bool) -> PyResult<AnyValue<'static>> {
         let seq = ob.cast::<PySequence>()?;
-        let mut out: Vec<AnyValue<'static>> = Vec::with_capacity(seq.len().unwrap_or(0).max(0));
+        let mut out: Vec<AnyValue<'static>> = Vec::with_capacity(seq.len().unwrap_or(0));
         for item in seq.try_iter()? {
             let av = py_object_to_any_value(item?.as_borrowed(), strict)?;
             out.push(av.into_static());
@@ -168,10 +169,11 @@ pub fn py_object_to_any_value<'a, 'py>(
                 for (k, v) in dict.into_iter() {
                     let key = k.extract::<Cow<str>>()?;
                     let val = py_object_to_any_value(v.as_borrowed(), strict)?;
-                    key_value_pairs.push((Field::from((key.into_owned(), val.dtype())), val));
+
+                    key_value_pairs.push((SmallStr::from(key.to_string()), val.dtype(), val));
                 }
 
-                Ok(AnyValue::Struct(key_value_pairs))
+                Ok(AnyValue::Dict(key_value_pairs))
             })
         } else {
             let ob_type = ob.get_type();
@@ -216,12 +218,12 @@ pub fn py_object_to_any_value<'a, 'py>(
 
 fn struct_dict<'py, 'a>(
     py: Python<'py>,
-    vals: impl Iterator<Item = (Field, AnyValue<'a>)>,
+    vals: impl Iterator<Item = (SmallStr, DataType, AnyValue<'a>)>,
 ) -> PyResult<Bound<'py, PyDict>> {
     let dict = PyDict::new(py);
 
-    for (fld, val) in vals {
-        let key = fld.name().to_string();
+    for (fld, _, val) in vals {
+        let key = fld.as_str();
         let value = any_value_into_py_object(val, py)?;
         dict.set_item(key, value)?;
     }

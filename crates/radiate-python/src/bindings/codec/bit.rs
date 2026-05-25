@@ -29,11 +29,12 @@ impl PyBitCodec {
     #[pyo3(signature = (chromosome_lengths=None, use_numpy=false))]
     pub fn matrix(chromosome_lengths: Option<Vec<usize>>, use_numpy: bool) -> Self {
         let lengths = chromosome_lengths.unwrap_or(vec![1]);
+        let lengths_for_encoder = lengths.clone();
 
         PyBitCodec {
             codec: PyCodec::new()
                 .with_encoder(move || {
-                    lengths
+                    lengths_for_encoder
                         .iter()
                         .map(|len| BitChromosome::new(*len))
                         .collect::<Vec<BitChromosome>>()

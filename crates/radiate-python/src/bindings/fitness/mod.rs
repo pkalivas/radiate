@@ -1,5 +1,5 @@
-mod fitness;
+mod funcs;
 mod novelty;
 
-pub use fitness::{PyFitnessFn, PyFitnessInner};
+pub use funcs::{PyFitnessFn, PyFitnessInner};
 pub use novelty::PyNoveltySearch;

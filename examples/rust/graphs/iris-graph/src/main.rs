@@ -5,7 +5,7 @@ const MIN_SCORE: f32 = 0.01;
 const MAX_SECONDS: f64 = 5.0;
 
 fn main() {
-    random_provider::set_seed(1000);
+    random_provider::seed(1000);
 
     let (train, test) = load_iris_dataset().shuffle().standardize().split(0.75);
 

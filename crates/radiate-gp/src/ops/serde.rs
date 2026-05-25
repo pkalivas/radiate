@@ -149,12 +149,10 @@ impl From<OpVariant<f32>> for Result<Op<f32>, serde::de::value::Error> {
                 value,
             } => match name.as_str() {
                 "w" => Ok(Op::weight_with(value)),
-                _ => {
-                    return Err(serde::de::Error::custom(format!(
-                        "Unknown mutable constant name: {}",
-                        name
-                    )));
-                }
+                _ => Err(serde::de::Error::custom(format!(
+                    "Unknown mutable constant name: {}",
+                    name
+                ))),
             },
         }
     }
@@ -190,12 +188,10 @@ impl From<OpVariant<bool>> for Result<Op<bool>, serde::de::value::Error> {
                     ))),
                 }
             }
-            OpVariant::Value { name, .. } => {
-                return Err(serde::de::Error::custom(format!(
-                    "Mutable constants are not supported for boolean ops: {}",
-                    name
-                )));
-            }
+            OpVariant::Value { name, .. } => Err(serde::de::Error::custom(format!(
+                "Mutable constants are not supported for boolean ops: {}",
+                name
+            ))),
             OpVariant::Var { name, index, card } => {
                 let name = radiate_utils::intern!(name);
                 Ok(Op::Var(name, index, card))

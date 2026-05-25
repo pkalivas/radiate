@@ -19,6 +19,7 @@ pub enum Code {
     Python,
     Multiple,
     Context,
+    IO,
 }
 
 #[derive(Error, Debug)]
@@ -63,6 +64,12 @@ pub enum RadiateError {
         #[source]
         source: Box<RadiateError>,
     },
+
+    #[error("I/O error: {0}")]
+    IO(#[from] std::io::Error),
+
+    #[error("Formatting error: {0}")]
+    Fmt(#[from] std::fmt::Error),
 }
 
 impl RadiateError {
@@ -81,12 +88,27 @@ impl RadiateError {
             RadiateError::Python { .. } => Code::Python,
             RadiateError::Multiple(_) => Code::Multiple,
             RadiateError::Context { .. } => Code::Context,
+            RadiateError::IO(_) => Code::IO,
+            RadiateError::Fmt(_) => Code::Other,
         }
     }
     pub fn context(self, msg: impl Into<String>) -> Self {
         RadiateError::Context {
             context: msg.into(),
             source: Box::new(self),
+        }
+    }
+
+    /// The `Code` of the innermost cause, seeing through `Context` wrappers.
+    ///
+    /// `code()` reports `Context` for any error given context, which loses the
+    /// original classification. This walks to the root cause so callers (e.g.
+    /// the `PyErr` conversion) can decide how to surface the error based on what
+    /// actually went wrong, not on whether context happened to be attached.
+    pub fn leaf_code(&self) -> Code {
+        match self {
+            RadiateError::Context { source, .. } => source.leaf_code(),
+            other => other.code(),
         }
     }
 }
@@ -149,6 +171,13 @@ macro_rules! radiate_err {
         $crate::__private::must_use($source.into().context($msg))
     };
 
+    (IO: $fmt:literal $(, $arg:expr)* $(,)?) => {
+        $crate::__private::must_use($crate::RadiateError::IO(format!($fmt, $($arg),*)))
+    };
+    (Fmt: $fmt:literal $(, $arg:expr)* $(,)?) => {
+        $crate::__private::must_use($crate::RadiateError::Fmt(format!($fmt, $($arg),*)))
+    };
+
     // Raw string-like message (any expr -> String)
     (Builder: $msg:expr $(,)?) => {
         $crate::__private::must_use($crate::RadiateError::Builder($msg.to_string()))
@@ -173,6 +202,12 @@ macro_rules! radiate_err {
     };
     (Expr: $msg:expr $(,)?) => {
         $crate::__private::must_use($crate::RadiateError::Expr($msg.to_string()))
+    };
+    (IO: $msg:expr $(,)?) => {
+        $crate::__private::must_use($crate::RadiateError::IO($msg.to_string()))
+    };
+    (Fmt: $msg:expr $(,)?) => {
+        $crate::__private::must_use($crate::RadiateError::Fmt($msg.to_string()))
     };
 
     // Fallback -> Engine (for now, could be Metric or other)

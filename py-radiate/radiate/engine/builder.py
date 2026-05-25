@@ -75,7 +75,7 @@ class EngineBuilder[G, T]:
         inst.set_executor(defaults.executor)
         inst.set_subscribers(defaults.subscribe)
         inst.set_generation(defaults.generation)
-        inst.set_checkpoint_path(defaults.checkpoint_path)
+        inst.set_checkpoint_path(defaults.checkpoint_path, ignore_not_found=True)
         inst.set_fitness(defaults.fitness_func)
         inst.set_codec(defaults.codec)
 
@@ -94,6 +94,7 @@ class EngineBuilder[G, T]:
         builder = PyEngineBuilder(
             inputs=[self_input.__backend__() for self_input in self._inputs],
         )
+
         return builder.build()
 
     def inputs(self) -> list[EngineInput]:
@@ -179,15 +180,24 @@ class EngineBuilder[G, T]:
             )
         )
 
-    def set_checkpoint_path(self, checkpoint_path: str | None):
+    def set_checkpoint_path(self, checkpoint_path: str | None, ignore_not_found: bool):
         if checkpoint_path is None:
             return
+
+        file_type = checkpoint_path.split(".")[-1].lower()
+        if file_type not in {"pkl", "json"}:
+            raise ValueError(
+                "Checkpoint file type must be 'pkl' or 'json'. "
+                f"Got '{file_type}' from path '{checkpoint_path}'."
+            )
 
         self._inputs.append(
             EngineInput(
                 input_type=EngineInputType.Checkpoint,
                 component="checkpoint",
                 path=checkpoint_path,
+                ignore_not_found=ignore_not_found,
+                file_type=file_type,
             )
         )
 
@@ -371,7 +381,7 @@ class EngineBuilder[G, T]:
             EngineInput(
                 input_type=EngineInputType.Objective,
                 component="Objective",
-                objective="|".join(objective),
+                objective=objective,
             )
         )
 

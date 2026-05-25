@@ -5,7 +5,7 @@ import pytest
 @pytest.mark.unit
 def test_generations_limit(simple_float_engine):
     """Test generations limit functionality."""
-    limit = rd.GenerationsLimit(10)
+    limit = rd.Limit.generations(10)
     result = simple_float_engine.run(limit)
 
     assert result.index() == 10
@@ -14,7 +14,7 @@ def test_generations_limit(simple_float_engine):
 @pytest.mark.unit
 def test_time_limit(simple_float_engine):
     """Test time limit functionality."""
-    limit = rd.SecondsLimit(3)
+    limit = rd.Limit.seconds(3)
     result = simple_float_engine.run(limit)
 
     assert abs(result.duration().total_seconds() - 3) < 0.01
@@ -23,7 +23,7 @@ def test_time_limit(simple_float_engine):
 @pytest.mark.unit
 def test_score_limit(simple_float_engine):
     """Test score limit functionality."""
-    limit = rd.ScoreLimit(0.01)
+    limit = rd.Limit.score(0.01)
     result = simple_float_engine.run(limit)
 
     assert result.score()[0] <= 0.01
@@ -61,7 +61,7 @@ def test_convergence_limit(simple_float_engine, random_seed):
 @pytest.mark.unit
 def test_multiple_limits(simple_float_engine):
     """Test running with multiple limits."""
-    limits = [rd.GenerationsLimit(5), rd.ScoreLimit(0.1), rd.SecondsLimit(2)]
+    limits = [rd.Limit.generations(5), rd.Limit.score(0.1), rd.Limit.seconds(2)]
     result = simple_float_engine.run(*limits)
 
     if result.index() < 5 and result.score()[0] > 0.1:
@@ -75,3 +75,13 @@ def test_multiple_limits(simple_float_engine):
         rd.Limit.metric("count.evaluation", lambda metric: metric.sum() > 1000)
     ).run()
     assert other_result.metrics()["count.evaluation"].sum() > 1000
+
+
+@pytest.mark.unit
+def test_expr_limit(simple_float_engine):
+    """Test expression-based limit."""
+    limit = rd.select("index") >= 10
+
+    result = simple_float_engine.run(rd.Limit.expr(limit))
+
+    assert result.index() == 10, "Expression limit should stop at index >= 10"

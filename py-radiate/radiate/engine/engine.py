@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Sequence
 from collections.abc import Callable
+from pathlib import Path
 
 from radiate.expr import Expr
 from radiate.codec import (
@@ -32,6 +33,7 @@ from radiate.codec.base import CodecBase
 from radiate._bridge.input import EngineInput, EngineInputType
 from radiate._typing import (
     AtLeastOne,
+    Checkpoint,
     Subscriber,
     RdDataType,
     RdLossType,
@@ -39,7 +41,7 @@ from radiate._typing import (
 
 from .builder import EngineBuilder
 from .generation import Generation
-from .option import EngineCheckpoint, EngineLog, EngineUi
+from .option import LogParam, UiParam, normalize_checkpoint_params
 
 
 class Engine[G, T]:
@@ -250,7 +252,7 @@ class Engine[G, T]:
             self._engine = self._builder.build()
 
         try:
-            generation = self._engine.next()
+            generation = self._engine.step_next()
             return Generation.from_rust(generation)
         except StopIteration:
             self._engine = None
@@ -259,17 +261,18 @@ class Engine[G, T]:
     def run(
         self,
         *limits: LimitBase,
-        log: bool | EngineLog = False,
-        checkpoint: tuple[int, str] | EngineCheckpoint | None = None,
-        ui: bool | EngineUi = False,
+        log: bool | LogParam = False,
+        ui: bool | UiParam = False,
+        checkpoint: Checkpoint | None = None,
     ) -> Generation[G, T]:
         """Run the engine with the given limits.
         Args:
             limits: A single Limit or a list of Limits to apply to the engine.
             log: If True, enables logging for the generation process.
-            checkpoint: If provided, enables checkpointing at the specified interval and path. Checkpoint can be
-                        specified as a tuple (interval, path) or an EngineCheckpoint instance.
             ui: If True, enables a user interface for monitoring the evolution process.
+            checkpoint: If provided, enables checkpointing at the specified interval, path, and file type. Checkpoint can be
+                        specified as a path string, a tuple (interval, path, file_type), or a CheckpointParam instance.
+                        The default checkpoint interval is 250 generations, the default path is "./checkpoints", and the default file type is "pkl".
         Returns:
             Generation: The resulting generation after running the engine.
         Raises:
@@ -277,7 +280,16 @@ class Engine[G, T]:
 
         Example:
         ---------
+        >>> engine.run(log=True)
+        >>> engine.run(ui=True)
         >>> engine.run(rd.ScoreLimit(0.0001), log=True)
+        >>> engine.run(limit)
+        >>> engine.run(limit, checkpoint=True)
+        >>> engine.run(limit, checkpoint="checkpoints")
+        >>> engine.run(limit, checkpoint=(50, "checkpoints"))
+        >>> engine.run(
+        ...     checkpoint=rd.EngineCheckpoint(50, "checkpoints", file_type="json"),
+        ... )
         """
 
         engine = self._builder.build()
@@ -292,22 +304,9 @@ class Engine[G, T]:
             for lim in limits
         ]
 
-        # configure the logging option
-        log_option = log if isinstance(log, EngineLog) else EngineLog(enable=log)
-
-        # configure the checkpoint option
-        checkpoint_option = (
-            checkpoint if isinstance(checkpoint, EngineCheckpoint) else None
-        )
-        if checkpoint_option is None and isinstance(checkpoint, tuple):
-            checkpoint_option = EngineCheckpoint(
-                interval=checkpoint[0], path=checkpoint[1]
-            )
-
-        # configure the UI option
-        ui_option = ui if isinstance(ui, EngineUi) else None
-        if ui_option is None and ui is True:
-            ui_option = EngineUi()
+        log_option = log if isinstance(log, LogParam) else LogParam(enable=log)
+        checkpoint_option = normalize_checkpoint_params(checkpoint)
+        ui_option = UiParam() if isinstance(ui, UiParam) or ui is True else None
 
         options = list(
             [
@@ -483,8 +482,8 @@ class Engine[G, T]:
         provided, the engine will use its default selection strategies and offspring fraction.
 
         Defaults:
-        - Offspring Selector: rd.Select.tournament(k=3)
-        - Survivor Selector: rd.Select.roulette()
+        - Offspring Selector: rd.Select.roulette()
+        - Survivor Selector: rd.Select.tournament(k=3)
         - Offspring Fraction: 0.8 (80% offspring, 20% survivors)
 
         Args:
@@ -1088,7 +1087,9 @@ class Engine[G, T]:
         self._builder.set_generation(generation)
         return self
 
-    def load_checkpoint(self, path: str) -> Engine[G, T]:
+    def load_checkpoint(
+        self, path: str | Path, ignore_not_found: bool = False
+    ) -> Engine[G, T]:
         """
         Load a checkpoint from a previous engine run.
 
@@ -1138,12 +1139,54 @@ class Engine[G, T]:
         )
         >>> result_from_checkpoint = engine.run(rd.Limit.score(0.001), log=True)
         """
-        self._builder.set_checkpoint_path(path)
+        if not isinstance(path, (str, Path)):
+            raise ValueError("Checkpoint path must be a string or Path object.")
+        if isinstance(path, str):
+            path = Path(path)
+
+        if not ignore_not_found and not path.exists():
+            raise FileNotFoundError(
+                f"Checkpoint file not found at path: {path.absolute()}"
+            )
+
+        self._builder.set_checkpoint_path(str(path), ignore_not_found=ignore_not_found)
         return self
 
     def metrics(
         self, named_metrics: dict[str, Expr] | None = None, **kwargs
     ) -> Engine[G, T]:
+        """
+        Set custom metrics for the engine.
+
+        This method allows you to define custom metrics that can be tracked and evaluated during the
+        engine's execution. Custom metrics can provide additional insights
+        into the evolution process beyond just the fitness score, such as
+        tracking diversity, convergence, or any other relevant information.
+
+        Example:
+        ---------
+        Lets create an engine and define some custom metrics to track during evolution. In this example,
+        we will track the rolling 50 average of the diversity rate throughout the engine's run.
+
+        >>> import radiate as rd
+        >>> ...
+        >>> rolling_diversirty = rd.select("rate.diversity").rolling(50).mean()
+        >>> engine = (
+        ...     rd.Engine.float(shape=10, init_range=(0.0, 1.0))
+        ...     .fitness(my_fitness_function)
+        ...     .metrics(
+        ...         rolling_div=rolling_diversirty
+        ...     )  # <- set a custom metric called "rolling_div". This will be included in the engine's MetricSet
+        ...     .limit(rd.Limit.generations(1000))
+        ... )
+        >>> result = engine.run(log=True)
+        >>> metrics = (
+        ...     result.metrics()
+        ... )  # <- get the metrics from the engine's result after the run
+        >>> rolling_div_metric = metrics[
+        ...     "rolling_div"
+        ... ]  # <- access the "rolling_div" metric that we defined
+        """
         evals = {}
         if named_metrics is not None:
             evals.update(named_metrics)

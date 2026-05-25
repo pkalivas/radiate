@@ -2,6 +2,18 @@
 
 Crossovers combine genetic material from two parents to create offspring, allowing good traits to be combined and propagated through the population.
 
+| Crossover | Works on | What it does |
+|---|---|---|
+| [Blend](#blend) | Float, Int | child = parent ± α·(difference); can reach past a parent |
+| [Intermediate](#intermediate) | Float | weighted average of the two parents' alleles |
+| [Mean](#mean) | Float, Int | child gene = mean of the two parents' genes |
+| [Multi-Point](#multi-point) | any gene | swaps segments at N cut points (classic GA crossover) |
+| [Partially Mapped (PMX)](#partially-mapped-pmx) | Permutation | order-preserving crossover for permutations |
+| [Edge Recombination](#edge-recombination) | Permutation | preserves adjacency/edges from both parents |
+| [Shuffle](#shuffle) | any gene | shuffles positions, then swaps genes |
+| [Simulated Binary](#simulated-binary) | Float | real-valued analog of binary crossover (contiguity-controlled) |
+| [Uniform](#uniform) | any gene | each gene independently taken from either parent |
+
 ---
 
 ## Blend
@@ -26,20 +38,17 @@ $$
 
 === ":fontawesome-brands-python: Python"
 
-	```python
-	import radiate as rd
-
-	crossover = rd.BlendCrossover(rate=0.1, alpha=0.5)
-	crossover = rd.Cross.blend(rate=0.1, alpha=0.5) # Using the Cross dsl syntax
-	```
+    ```python
+    --8<-- "python/alters/crossovers.py:blend_crossover"
+    ```
 
 === ":fontawesome-brands-rust: Rust"
 
-	```rust
-	use radiate::*;
+    ```rust
+    use radiate::*;
 
-	let crossover = BlendCrossover::new(0.1, 0.5);
-	```
+    let crossover = BlendCrossover::new(0.1, 0.5);
+    ```
 ---
 
 ## Intermediate
@@ -60,38 +69,36 @@ with a value that lies between the two parent `genes`. The new gene is calculate
 of the two parent `genes`, where the weight is determined by the `alpha` parameter.
 
 1. Input:
-	* Two parent chromosomes (Parent 1 and Parent 2) composed of real-valued genes.
-	* A crossover `rate`, determining the probability of applying the operation for each gene.
-	* An interpolation parameter (`alpha`), which controls the weight given to each parent’s gene during crossover.
+    * Two parent chromosomes (Parent 1 and Parent 2) composed of real-valued genes.
+    * A crossover `rate`, determining the probability of applying the operation for each gene.
+    * An interpolation parameter (`alpha`), which controls the weight given to each parent’s gene during crossover.
 2. Weighted Interpolation:
-	* For each gene position in the parents:
-	* Generate a random value between 0 and 1.
-	* If the random value is less than the rate, compute a new allele as a weighted combination of the parent’s alleles:
+    * For each gene position in the parents:
+    * Generate a random value between 0 and 1.
+    * If the random value is less than the rate, compute a new allele as a weighted combination of the parent’s alleles:
 
-	$$
-	\text{allele}_{\text{child}} = \alpha \cdot \text{allele}_{\text{parent1}} + (1 - \alpha) \cdot \text{allele}_{\text{parent2}}
-	$$ 
-	
-	* Here, ${alpha}$ is randomly sampled from the range [0, ${self.alpha}$].
+    $$
+    \text{allele}_{\text{child}} = \alpha \cdot \text{allele}_{\text{parent1}} + (1 - \alpha) \cdot \text{allele}_{\text{parent2}}
+    $$ 
+    
+    * Here, the blend factor $\alpha$ is randomly sampled from the range $[0, \text{alpha}]$ for each gene, where `alpha` is the configured parameter.
 
 3. Modify Genes:
-	* Replace the gene in Parent 1 with the newly calculated gene value. Parent 2 remains unmodified.
+    * Replace the gene in Parent 1 with the newly calculated gene value. Parent 2 remains unmodified.
 
 === ":fontawesome-brands-python: Python"
 
-	```python
-	import radiate as rd
-	
-	crossover = rd.IntermediateCrossover(rate=0.1, alpha=0.5)
-	crossover = rd.Cross.intermediate(rate=0.1, alpha=0.5) # Using the Cross dsl syntax
-	```
+    ```python
+    --8<-- "python/alters/crossovers.py:intermediate_crossover"
+    ```
+
 === ":fontawesome-brands-rust: Rust"
 
-	```rust
-	use radiate::*;
+    ```rust
+    use radiate::*;
 
-	let crossover = IntermediateCrossover::new(0.1, 0.5);
-	```
+    let crossover = IntermediateCrossover::new(0.1, 0.5);
+    ```
 
 ---
 
@@ -114,19 +121,17 @@ as it promotes a balanced combination of parent traits.
 
 === ":fontawesome-brands-python: Python"
 
-	```python
-	import radiate as rd
+    ```python
+    --8<-- "python/alters/crossovers.py:mean_crossover"
+    ```
 
-	crossover = rd.MeanCrossover(rate=0.1)
-	crossvoer = rd.Cross.mean(rate=0.1) # Using the Cross dsl syntax
-	```
 === ":fontawesome-brands-rust: Rust"
 
-	```rust
-	use radiate::*;
+    ```rust
+    use radiate::*;
 
-	let crossover = MeanCrossover::new(0.1);
-	```
+    let crossover = MeanCrossover::new(0.1);
+    ```
 
 ---
 
@@ -147,19 +152,17 @@ classic crossover operator.
 
 === ":fontawesome-brands-python: Python"
 
-	```python
-	import radiate as rd
+    ```python
+    --8<-- "python/alters/crossovers.py:multipoint_crossover"
+    ```
 
-	crossover = rd.MultiPointCrossover(rate=0.1, num_points=2)
-	crossover = rd.Cross.multipoint(rate=0.1, num_points=2) # Using the Cross dsl syntax
-	```
 === ":fontawesome-brands-rust: Rust"
 
-	```rust
-	use radiate::*;
+    ```rust
+    use radiate::*;
 
-	let crossover = MultiPointCrossover::new(0.1, 2);
-	```
+    let crossover = MultiPointCrossover::new(0.1, 2);
+    ```
 
 ---
 
@@ -179,30 +182,31 @@ It is widely used in combinatorial optimization problems, such as the Traveling 
 where the order of elements in a solution is significant.
 
 1. Two random crossover points are selected, dividing the parents into three segments: left, middle, and right.
-	* The middle segment defines the “mapping region.”
-3.	Mapping Region:
-	* The elements between the crossover points in Parent 1 and Parent 2 are exchanged to create mappings.
-	* These mappings define how elements in the offspring are reordered.
-4.	Child Construction:
-	* The middle segment of one parent is directly copied into the child.
-	* For the remaining positions, the mapping ensures that no duplicate elements are introduced:
-	* If an element is already in the middle segment, its mapped counterpart is used.
-	* This process continues recursively until all positions are filled.
+    * The middle segment defines the “mapping region.”
+2.	Mapping Region:
+    * The elements between the crossover points in Parent 1 and Parent 2 are exchanged to create mappings.
+    * These mappings define how elements in the offspring are reordered.
+3.	Child Construction:
+    * The middle segment of one parent is directly copied into the child.
+    * For the remaining positions, the mapping ensures that no duplicate elements are introduced:
+    * If an element is already in the middle segment, its mapped counterpart is used.
+    * This process continues recursively until all positions are filled.
 
 === ":fontawesome-brands-python: Python"
-	```python
-	import radiate as rd
 
-	crossover = rd.PartiallyMappedCrossover(rate=0.1)
-	crossover = rd.Cross.pmx(rate=0.1) # Using the Cross dsl syntax
-	```
+    ```python
+    --8<-- "python/alters/crossovers.py:pmx_crossover"
+    ```
+
 === ":fontawesome-brands-rust: Rust"
 
-	```rust
-	use radiate::*;
+    ```rust
+    use radiate::*;
 
-	let crossover = PMXCrossover::new(0.1);
-	```
+    let crossover = PMXCrossover::new(0.1);
+    ```
+
+---
 
 ## Edge Recombination
 
@@ -218,31 +222,29 @@ where the order of elements in a solution is significant.
 The `EdgeRecombinationCrossover` is a specialized crossover operator for permutation problems. It focuses on preserving the connectivity between genes by combining edges from both parents.
 
 1. **Edge List Creation**:
-	* For each parent, create a list of edges representing the connections between genes.
+    * For each parent, create a list of edges representing the connections between genes.
 2. **Edge Selection**:
-	* Randomly select edges from both parents to create a new offspring.
-	* This selection process ensures that the offspring inherits important connections from both parents.
+    * Randomly select edges from both parents to create a new offspring.
+    * This selection process ensures that the offspring inherits important connections from both parents.
 3. **Child Construction**:
-	* The selected edges are used to construct the offspring's gene sequence.
-	* This process helps maintain the overall structure and relationships present in the parent solutions.
+    * The selected edges are used to construct the offspring's gene sequence.
+    * This process helps maintain the overall structure and relationships present in the parent solutions.
   
 **Example**: If Parent 1 has edges (A-B, B-C) and Parent 2 has edges (B-C, C-D), the offspring might inherit edges (A-B, C-D).
 
 === ":fontawesome-brands-python: Python"
 
-	```python
-	import radiate as rd
+    ```python
+    --8<-- "python/alters/crossovers.py:edge_recombination_crossover"
+    ```
 
-	crossover = rd.EdgeRecombinationCrossover(rate=0.1)
-	crossover = rd.Cross.edge_recombination(rate=0.1) # Using the Cross dsl syntax
-	```
 === ":fontawesome-brands-rust: Rust"
 
-	```rust
-	use radiate::*;
+    ```rust
+    use radiate::*;
 
-	let crossover = EdgeRecombinationCrossover::new(0.1);
-	```
+    let crossover = EdgeRecombinationCrossover::new(0.1);
+    ```
 
 ---
 
@@ -263,29 +265,27 @@ It works by shuffling the order in which genes are exchanged between two parent 
 to introduce randomness while preserving valid gene configurations.
 
 1. Determine Gene Indices:
-	* Generate a list of indices corresponding to the positions in the chromosomes.
-	* Shuffle these indices to randomize the order in which genes will be swapped.
+    * Generate a list of indices corresponding to the positions in the chromosomes.
+    * Shuffle these indices to randomize the order in which genes will be swapped.
 2.	Swap Genes Alternately:
-	* Iterate over the shuffled indices.
-	* For even indices, copy the gene from Parent 2 into the corresponding position in Child 1, and vice versa for odd indices.
+    * Iterate over the shuffled indices.
+    * For even indices, copy the gene from Parent 2 into the corresponding position in Child 1, and vice versa for odd indices.
 3.	Result:
-	* Two offspring chromosomes are produced with genes shuffled and swapped in random positions.
+    * Two offspring chromosomes are produced with genes shuffled and swapped in random positions.
 
 === ":fontawesome-brands-python: Python"
 
-	```python
-	import radiate as rd
+    ```python
+    --8<-- "python/alters/crossovers.py:shuffle_crossover"
+    ```
 
-	crossover = rd.ShuffleCrossover(rate=0.1)
-	crossover = rd.Cross.shuffle(rate=0.1) # Using the Cross dsl syntax
-	```
 === ":fontawesome-brands-rust: Rust"
 
-	```rust
-	use radiate::*;
+    ```rust
+    use radiate::*;
 
-	let crossover = ShuffleCrossover::new(0.1);
-	```
+    let crossover = ShuffleCrossover::new(0.1);
+    ```
 
 ---
 
@@ -301,24 +301,21 @@ to introduce randomness while preserving valid gene configurations.
 - **Example**: Good for problems where you want to maintain diversity while exploring the space
 - **Compatible with**: `FloatGene`
 
-The `SimulatedBinaryCrossover` is a crossover operator designed for `FloatGene`s. It simulates binary crossover by creating offspring that are a linear combination of the parents, controlled by a contiguity factor. Effectively, it allows for a smooth transition between parent values while maintaining the overall structure of the `genes` by smampling from a uniform distribution between the two parents.
+The `SimulatedBinaryCrossover` is a crossover operator designed for `FloatGene`s. It simulates binary crossover by creating offspring that are a linear combination of the parents, controlled by a contiguity factor. Effectively, it allows for a smooth transition between parent values while maintaining the overall structure of the `genes` by sampling from a uniform distribution between the two parents.
 
 === ":fontawesome-brands-python: Python"
 
-	```python
-	import radiate as rd
-
-	crossover = rd.SimulatedBinaryCrossover(rate=0.1, contiguity=0.5)
-	crossover = rd.Cross.sbx(rate=0.1, contiguity=0.5) # Using the Cross dsl syntax
-	```
+    ```python
+    --8<-- "python/alters/crossovers.py:sbx_crossover"
+    ```
 
 === ":fontawesome-brands-rust: Rust"
 
-	```rust
-	use radiate::*;
+    ```rust
+    use radiate::*;
 
-	let crossover = SimulatedBinaryCrossover::new(0.1, 0.5);
-	```
+    let crossover = SimulatedBinaryCrossover::new(0.1, 0.5);
+    ```
 
 ---
 
@@ -337,16 +334,14 @@ The `UniformCrossover` is a crossover operator creates new individuals by select
 
 === ":fontawesome-brands-python: Python"
 
-	```python
-	import radiate as rd
+    ```python
+    --8<-- "python/alters/crossovers.py:uniform_crossover"
+    ```
 
-	crossover = rd.UniformCrossover(rate=0.1)
-	crossover = rd.Cross.uniform(rate=0.1) # Using the Cross dsl syntax
-	```
 === ":fontawesome-brands-rust: Rust"
 
-	```rust
-	use radiate::*;
+    ```rust
+    use radiate::*;
 
-	let crossover = UniformCrossover::new(0.1);
-	```
+    let crossover = UniformCrossover::new(0.1);
+    ```

@@ -33,7 +33,7 @@ sync py=py-version: python-info
     @uv python install {{py}}
     @uv python pin {{py}}
     @uv venv .venv --clear
-    @uv pip install --upgrade --compile-bytecode --no-build \
+    @uv pip install --upgrade --compile-bytecode \
         -r py-radiate/requirements.txt
 
 coverage: _require-uv
@@ -42,10 +42,10 @@ coverage: _require-uv
         --cov-report=term-missing
 
 lint: _require-uv
-    @uv run ruff check py-radiate tests examples
+    @uv run ruff check py-radiate examples
 
 format: _require-uv
-    @uv run ruff format py-radiate tests examples
+    @uv run ruff format py-radiate examples
 
 wheel py=py-version args=extra-args:
     @uv run maturin build -i {{py}} -m py-radiate/Cargo.toml --release {{args}}
@@ -81,14 +81,30 @@ test-py *args: _require-uv
     @uv run -m pytest -n auto {{args}}
 
 test-rs:
-    @cargo test
+    #!/usr/bin/env bash
+    if command -v cargo-nextest >/dev/null 2>&1; then
+        cargo nextest run
+    else
+        echo "nextest not found, falling back to standard cargo test..."
+        cargo test
+    fi
+
+    # @cargo test
+
+# Execute every user-guide Python snippet (docs/source/src/python) to catch doc drift
+test-docs *args: _require-uv
+    @uv run -m pytest py-radiate/tests/docs -n auto {{args}}
+
+# Strict mkdocs build — validates that all snippet (`--8<--`) includes resolve
+docs-build: _require-uv
+    @uv run --with mkdocs-material mkdocs build --strict
 
 # --------------------------
 # Example commands
 # --------------------------
 
-example lang="py" id="":
-     @uv run python tools/examples.py run --lang {{lang}} --id {{id}}
+example:
+    @uv run python tools/examples.py list
 
 # --------------------------
 # Cleaning
@@ -99,4 +115,5 @@ clean:
     @rm -rf dist/
     @rm -rf target/
     @rm -rf .pytest_cache
+    @rm -rf site
     @just py-radiate/clean

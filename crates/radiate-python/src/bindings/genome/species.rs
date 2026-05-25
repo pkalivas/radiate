@@ -1,9 +1,10 @@
-use crate::{PyPhenotype, PyPopulation};
-use pyo3::{Bound, PyAny, PyResult, Python, pyclass, pymethods};
+use crate::PyPhenotype;
+use pyo3::{pyclass, pymethods};
 use radiate::{
     BitChromosome, CharChromosome, Chromosome, FloatChromosome, GraphChromosome, IntChromosome, Op,
-    PermutationChromosome, Phenotype, Population, Species, TreeChromosome,
+    PermutationChromosome, Phenotype, Species, TreeChromosome,
 };
+use std::collections::HashSet;
 
 #[pyclass(from_py_object)]
 #[derive(Clone, Debug)]
@@ -17,7 +18,7 @@ pub struct PySpecies {
     #[pyo3(get)]
     stagnation: usize,
     #[pyo3(get)]
-    population: PyPopulation,
+    population: HashSet<u64>,
     #[pyo3(get)]
     score: Option<Vec<f32>>,
 }
@@ -30,7 +31,7 @@ impl PySpecies {
         mascot: PyPhenotype,
         generation: usize,
         stagnation: usize,
-        population: PyPopulation,
+        population: HashSet<u64>,
         score: Option<Vec<f32>>,
     ) -> Self {
         PySpecies {
@@ -51,7 +52,7 @@ impl PySpecies {
             self.stagnation,
             self.score,
             self.mascot,
-            self.population.__len__()
+            self.population.len()
         )
     }
 
@@ -71,16 +72,12 @@ impl PySpecies {
         self.stagnation
     }
 
-    pub fn population(&self) -> PyPopulation {
+    pub fn population(&self) -> HashSet<u64> {
         self.population.clone()
     }
 
     pub fn score(&self) -> Option<Vec<f32>> {
         self.score.clone()
-    }
-
-    pub fn dtype<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-        self.population.dtype(py)
     }
 }
 
@@ -92,12 +89,16 @@ macro_rules! impl_into_py_species {
         {
             fn from(species: Species<$chromosome>) -> Self {
                 PySpecies {
-                    id: species.id().0,
+                    id: species.id().into(),
                     mascot: PyPhenotype::from(species.mascot().clone()),
                     generation: species.generation(),
                     stagnation: species.stagnation(),
-                    population: PyPopulation::from(species.population()),
-                    score: species.score().map(|s| s.as_ref().to_vec()),
+                    population: species
+                        .members
+                        .iter()
+                        .map(|id| id.get())
+                        .collect::<HashSet<u64>>(),
+                    score: species.adj_score().map(|s| s.as_ref().to_vec()),
                 }
             }
         }
@@ -108,14 +109,7 @@ macro_rules! impl_into_py_species {
         {
             fn from(py_species: PySpecies) -> Self {
                 let mascot = Phenotype::from(py_species.mascot);
-                let population = Population::from(py_species.population);
-
-                let mut species = Species::new(py_species.generation, &mascot);
-
-                for individual in population.iter() {
-                    species.push(individual.clone());
-                }
-
+                let species = Species::new(py_species.generation, mascot);
                 species
             }
         }

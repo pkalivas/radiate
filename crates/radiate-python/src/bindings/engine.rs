@@ -1,9 +1,10 @@
 use crate::{
-    EngineHandle, EpochHandle, InputTransform, PickleCheckpointWriter, PyEngineInput, PyGeneration,
+    EngineHandle, EpochHandle, InputTransform, PickleWriter, PyEngineInput, PyGeneration, names,
 };
 use pyo3::{PyResult, pyclass, pymethods};
 use radiate::{
-    Chromosome, Engine, EngineIteratorExt, Generation, GeneticEngine, Limit, radiate_err,
+    Chromosome, Engine, EngineIteratorExt, Generation, GeneticEngine, JsonWriter, Limit,
+    radiate_err,
 };
 use radiate_error::{radiate_py_bail, radiate_py_err};
 use serde::Serialize;
@@ -13,7 +14,7 @@ use std::time::Duration;
 #[derive(Clone)]
 pub enum PyEngineRunOption {
     Log(bool),
-    Checkpoint(usize, String),
+    Checkpoint(usize, String, String),
     Ui(Duration),
 }
 
@@ -25,8 +26,8 @@ impl PyEngineRunOption {
     }
 
     #[staticmethod]
-    pub fn checkpoint(interval: usize, path: String) -> Self {
-        PyEngineRunOption::Checkpoint(interval, path)
+    pub fn checkpoint(interval: usize, path: String, file_type: String) -> Self {
+        PyEngineRunOption::Checkpoint(interval, path, file_type)
     }
 
     #[staticmethod]
@@ -93,7 +94,7 @@ impl PyEngine {
         }))
     }
 
-    pub fn next(&mut self) -> PyResult<PyGeneration> {
+    pub fn step_next(&mut self) -> PyResult<PyGeneration> {
         use EngineHandle::*;
         let engine = self
             .engine
@@ -152,8 +153,11 @@ where
     engine
         .chain_if(log.unwrap_or(false), |eng| eng.logging())
         .chain_if(checkpoint.is_some(), |eng| {
-            let (interval, path) = checkpoint.unwrap();
-            eng.checkpoint_with(interval, path, Box::new(PickleCheckpointWriter))
+            let (interval, path, file_type) = checkpoint.unwrap();
+            match file_type.as_str() {
+                names::JSON_FILE_TYPE => eng.checkpoint_with(interval, path, Box::new(JsonWriter)),
+                _ => eng.checkpoint_with(interval, path, Box::new(PickleWriter)),
+            }
         })
         .limit(limits)
         .last()
@@ -176,13 +180,13 @@ fn get_log_option(options: &[PyEngineRunOption]) -> Option<bool> {
     if ui.is_some() { Some(false) } else { log }
 }
 
-fn get_checkpoint_option(options: &[PyEngineRunOption]) -> Option<(usize, String)> {
+fn get_checkpoint_option(options: &[PyEngineRunOption]) -> Option<(usize, String, String)> {
     options
         .iter()
-        .find(|opt| matches!(opt, PyEngineRunOption::Checkpoint(_, _)))
+        .find(|opt| matches!(opt, PyEngineRunOption::Checkpoint(_, _, _)))
         .and_then(|opt| {
-            if let PyEngineRunOption::Checkpoint(interval, path) = opt {
-                Some((*interval, path.clone()))
+            if let PyEngineRunOption::Checkpoint(interval, path, file_type) = opt {
+                Some((*interval, path.clone(), file_type.clone()))
             } else {
                 None
             }

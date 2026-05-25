@@ -37,7 +37,7 @@ def test_engine_is_novel(random_seed):
         .alters(rd.Cross.uniform(0.5), rd.Mutate.gaussian(0.1))
     )
 
-    result = engine.run(rd.GenerationsLimit(100))
+    result = engine.run(rd.Limit.generations(100))
 
     assert calc_population_diversity(result.population()) > 0.85, (
         "Population should have diversity"
@@ -50,18 +50,18 @@ def test_int_engine_novelty_with_decorator_creates(random_seed):
     """Test engine with novelty search."""
 
     @rd.novelty(distance=rd.Dist.hamming(), k=15, threshold=0.03)
-    def novelty(phenotype: list[int]) -> list[int]:
+    def fit(phenotype: list[int]) -> list[int]:
         return phenotype
 
     engine = (
         rd.Engine.int(6, init_range=(-100, 100))
-        .fitness(novelty)
+        .fitness(fit)
         .size(100)
         .select(offspring=rd.Select.tournament(3))
         .alters(rd.Cross.uniform(0.5), rd.Mutate.arithmetic(0.1))
     )
 
-    result = engine.run(rd.GenerationsLimit(100))
+    result = engine.run(rd.Limit.generations(100))
 
     assert calc_population_diversity(result.population()) > 0.85, (  # type: ignore
         "Population should have diversity"

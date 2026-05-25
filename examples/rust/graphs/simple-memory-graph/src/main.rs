@@ -4,7 +4,7 @@ const MAX_INDEX: usize = 500;
 const MIN_SCORE: f32 = 0.01;
 
 fn main() {
-    random_provider::set_seed(2);
+    random_provider::seed(2);
 
     let values = vec![
         (NodeType::Input, vec![Op::var(0)]),
