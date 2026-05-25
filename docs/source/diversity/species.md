@@ -1,9 +1,9 @@
 
 # Species
 
-A **species** is a cluster of genetically-similar individuals. When a [distance measure](distance.md) is attached to the engine, `radiate` groups the `population` into species each generation and lets them compete *as groups* rather than as a single undifferentiated pool. This is what protects a promising-but-immature lineage from being wiped out before it has a chance to refine — the core idea behind [NEAT](https://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf)-style speciation.
+A **species** is a cluster of genetically-similar individuals. When a [distance measure](distance.md) is attached to the engine, `radiate` groups the `population` into species each generation and lets them compete *as groups* rather than as a single pool. By doing this, we protect a promising-but-immature lineage from being wiped out before it has a chance to refine. This is the core idea behind [NEAT](https://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf)-style speciation, and `radiate` applies this to all of speciation.
 
-This page covers *what a species is* and *how the engine forms and uses them*. For the distance measures that decide who is "similar," see [Distance](distance.md).
+This page covers *what a species is* and *how the engine forms and uses them*. For the distance measures that decide who is "similar," see the last section, [Distance](distance.md).
 
 !!! note "Speciation is opt-in"
 
@@ -18,8 +18,8 @@ Each species tracks a small amount of state across generations:
 | Field | Meaning |
 |---|---|
 | **mascot** | A representative individual, re-chosen *at random* from the species' members every generation. Membership for the next generation is decided by distance to this mascot. |
-| **members** | The individuals currently assigned to the species. |
-| **generation** | The generation the species was founded — used to compute its age. |
+| **members** | The individuals currently assigned to the species. For what it's worth, this is the individual's `PhenotypeId`, not the entire individual. |
+| **generation** | The generation the species was founded which is used to compute its age. |
 | **best / stagnation** | The species' best score so far and how many generations it has gone without improving it. |
 | **adjusted score** | The species' *fitness-shared* score, used to decide how many offspring it earns (see [below](#fitness-sharing-and-offspring-allocation)). |
 
@@ -56,7 +56,7 @@ flowchart TD
 
 ## Fitness sharing and offspring allocation
 
-This is the reason speciation is worth its cost. Rather than letting the globally-fittest individuals dominate reproduction, the engine shares fitness *within* a species and hands out offspring *between* species in proportion to how each species is doing on average.
+Rather than letting the globally-fittest individuals dominate reproduction, the engine shares fitness *within* a species and hands out offspring *between* species in proportion to how each species is doing on average.
 
 **Fitness sharing.** A species' raw fitness is divided across its members, so being in a crowded species dilutes each member's contribution. Concretely, the species' **adjusted score** is the average of its members' scores, then normalized across all species so the adjusted scores form a distribution:
 
@@ -68,12 +68,12 @@ $$
 
 where $S$ is the species size. The effect: a large species must be *better on average* to keep its share, which discourages any one cluster from swamping the population.
 
-**Offspring allocation.** During recombination the total offspring budget is split into **per-species quotas** proportional to each species' normalized adjusted score (largest fractional remainders get the leftover slots). Selection and alteration then happen *within* each species' sub-population:
+**Offspring allocation.** During recombination the total offspring budget is split into **per-species quotas** proportional to each species' normalized adjusted score (largest fractional remainders get the leftover slots if needed). Selection and alteration then happen *within* each species' sub-population:
 
 - A higher-scoring species earns a larger quota of offspring.
 - Survivors are still selected globally, but offspring are bred per-species, so young or unusual species get protected breeding room instead of competing head-to-head with established ones.
 
-This is what lets novel structure survive long enough to mature.
+This is really the core algorithm that allows novel structures to survive long enough to mature.
 
 ---
 
@@ -105,6 +105,8 @@ The threshold sets how close two individuals must be — *under the chosen dista
 !!! warning "Defaults differ by language"
 
 	The default `species_threshold` is **`0.5`** in Rust and **`1.5`** in Python. Because the meaningful range depends entirely on your distance measure (Hamming is bounded in `[0, 1]`, Euclidean is not), always set it explicitly for your problem rather than relying on the default.
+
+As a general rule, the `species_threshold` follows the below pattern:
 
 A **lower** threshold → individuals must be very similar to group → **more, smaller species** → more diversity, slower convergence.
 
