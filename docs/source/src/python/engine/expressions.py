@@ -49,22 +49,21 @@ import radiate as rd
 
 score = rd.select("scores.best")
 
-# Comparisons — Python operators work directly
-score = score < 0.01
-score = score <= 0.01
-score = score > 0.99
-score = score >= 0.99
-score = score == 0.5
-score = score != 0.5
+# Comparisons — Python operators work directly. Each produces a Bool expression.
+below = score < 0.01
+at_most = score <= 0.01
+above = score > 0.99
+at_least = score >= 0.99
+equal = score == 0.5
+not_equal = score != 0.5
 
-# Boolean logic
-score = (score < 0.01) & (rd.select("index") > 50)  # and
-score = (score < 0.01) | (rd.select("time") > 10.0)  # or
-score = ~(score < 0.01)  # not
+# Boolean logic combines Bool expressions
+both = (score < 0.01) & (rd.select("index") > 50)  # and
+either = (score < 0.01) | (rd.select("time") > 10.0)  # or
+negated = ~(score < 0.01)  # not
 
-# Convenience: between (inclusive)
-# equivalent to (score >= 0.0) & (score <= 1.0)
-score = (score >= 0.0) & (score <= 1.0)
+# A range check is just two comparisons (an inclusive "between")
+in_range = (score >= 0.0) & (score <= 1.0)
 # --8<-- [end:comparisons]
 
 # --8<-- [start:arithmetic]

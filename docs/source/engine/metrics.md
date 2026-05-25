@@ -1,6 +1,6 @@
 # Metrics
 
-Metric collection in radiate is interwoven into every aspect of the evolutionary process. It uses the [Kahan summation algorithm](https://en.wikipedia.org/wiki/Kahan_summation_algorithm) paired with [Welford's one-pass online algorithm](https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Welford's_online_algorithm) for fast, accurate, and numerically stable computation of statistics. All of this combined provides robust and reliable metric tracking throughout the evolutionary process. Using the `MetricSet` (a collection of independent `Metric`s) we can collect a whole host statistics that span the entire evolutionary process allowing us to gain deep insights into the evolutionary dynamics.
+Metric collection in radiate is interwoven into every aspect of the evolutionary process. It uses the [Kahan summation algorithm](https://en.wikipedia.org/wiki/Kahan_summation_algorithm) paired with [Welford's one-pass online algorithm](https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Welford's_online_algorithm) for fast, accurate, and numerically stable computation of statistics. All of this combined provides robust and reliable metric tracking throughout the evolutionary process. Using the `MetricSet` (a collection of independent `Metric`s) we can collect a whole host of statistics that span the entire evolutionary process allowing us to gain deep insights into the evolutionary dynamics.
 
 ---
 
@@ -11,12 +11,12 @@ The `MetricSet` is an object (struct) provided to the user in two main forms:
 1. On the engine's `Generation` - given to the user after each epoch or each pass of the evolution process.
 2. Through the engine's eventing system. Various events emit metric data allowing the user to track metrics or derive their own in real-time.
 
-A `metric` is essentially a statistic with a name and some extra metadata attached it. The `Statistic` exposes a number of different statistical measures that can be used to summarize the data, such as, `last_value`, `count`, `min`, `max`, `mean`, `sum`, `variance`, `std_dev`, `skewness`, and `kurtosis`.
+A `metric` is essentially a statistic with a name and some extra metadata attached to it. The `Statistic` exposes a number of different statistical measures that can be used to summarize the data, such as, `last_value`, `count`, `min`, `max`, `mean`, `sum`, `variance`, `std_dev`, `skewness`, and `kurtosis`.
 
-There are a few differeny types of metrics that can be collected:
+There are a few different types of metrics that can be collected:
 
 1. **Numeric Metric**: A plain old metric that collects single point numeric data each generation and aggregates it over the _entire_ evolutionary run. For example, the `rate.diversity` metric collects the diversity rate each generation and adds it to the previous generation's metrics. 
-2. **Duration Metric**: A metric that collects timing information for various components of the engine. For example, the `time.evaluation` metric collects the time taken to perform evaluations each generation and adds it to the previous generation's metrics. When accessed, it should be noted that when calling `metric.time()` the underyling statistic will convert the numerical data to a `Duration` object, which provides methods for accessing the time in different units (e.g., seconds, milliseconds, etc.).
+2. **Duration Metric**: A metric that collects timing information for various components of the engine. For example, the `time.evaluation` metric collects the time taken to perform evaluations each generation and adds it to the previous generation's metrics. When accessed, it should be noted that when calling `metric.time()` the underlying statistic will convert the numerical data to a `Duration` object, which provides methods for accessing the time in different units (e.g., seconds, milliseconds, etc.).
 3. **Distribution Metric**: A metric that collects a distribution of data each generation, replacing the previous generation's data. For example, the `scores` metric collects the scores of all individuals in the population each generation, replacing the previous generation's scores. This means that each generation, the metric reflects only the _current_ generation's state, nothing before it.
 
 ## Collection
@@ -40,7 +40,7 @@ Metrics collected by default (always included):
 | `unique.members`   | The number of unique members in the `Ecosystem`. |
 | `unique.scores`    | The number of unique scores in the `Ecosystem`. |
 | `new.children`     | The number of new children created each generation through either mutation or crossover (or both). |
-| `count.survivors`   | The number of individuals that survived to the next generation - summation throughout the evolution process. |
+| `count.survivor`   | The number of individuals that survived to the next generation - summation throughout the evolution process. |
 | `rate.carryover`   | The rate at which unique individuals are carried over to the next generation - `survivor_count` per generation / population size. |
 | `count.evaluation` | The total number of evaluations performed per generation. |
 | `rate.diversity`  | The ratio of unique scores to the size of the `Ecosystem`. |
@@ -67,7 +67,7 @@ Additional metrics collected when using species-based diversity:
 
 | Name                | Description                                                                 |
 |---------------------|-----------------------------------------------------------------------------|
-| `count.species`    | The number of `species` in the 'Ecosystem`. |
+| `count.species`    | The number of `species` in the `Ecosystem`. |
 | `new.species`  | The number of `species` created in the `Ecosystem`. |
 | `invalid.species`     | The number of `species` that have died in the `Ecosystem`. |
 | `age.species`      | The age of all the `species` in the `Ecosystem`. |
@@ -93,7 +93,7 @@ These can be accessed through the `metrics()` method of the `Generation` object,
     // --- set up the engine ---
 
     let result = engine.run(|ctx| {
-        // get the scroe metric from the generation context
+        // get the score metric from the generation context
         let temp = ctx.metrics().get("scores").unwrap();
         // get the standard deviation of the score distribution
         let std = temp.value_std_dev();

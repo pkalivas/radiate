@@ -6,7 +6,7 @@ The `GeneticEngine` is the core component. Once built, it manages the entire evo
 
 ## Building an Engine
 
-Every engine is created through a fluent builder. Only two things are **required** — an encoding (the [codec](../genome/codec.md)) and a [fitness function](../fitness.md); everything else has a sensible default you override only when you need to. Each setting below links to the section covering how to configure it in both Python and Rust.
+We've already taken a pretty comprehensive look at how to build engine's in the prior sections, but lets just go ahead and take a direct look at the builder below. Every engine is created through a fluent builder. Only two things are **required** — an encoding (the [codec](../genome/codec.md)) and a [fitness function](../fitness.md); everything else has a sensible default you override only when you need to.
 
 | Setting | Default |
 |---|---|
