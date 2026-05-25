@@ -306,7 +306,7 @@ The `RandomSelector` is a selection strategy that selects individuals from the `
 
     !!! note
 
-        `RandomSelector` is not currently exposed in the Python API; it is available in Rust only.
+        `RandomSelector` is not exposed in the Python API; it is available in Rust only.
 
 === ":fontawesome-brands-rust: Rust"
 

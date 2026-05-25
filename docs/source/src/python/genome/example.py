@@ -11,8 +11,7 @@ import radiate as rd
 
 
 # Define a fitness function that uses the decoded values
-def fitness_function(individual: list[float]) -> float:
-    # Calculate how well these parameters fit your data
+def fit(individual: list[float]) -> float:
     a = individual[0]
     b = individual[1]
     return calculate_error(a, b)  # Your error calculation here
@@ -27,22 +26,22 @@ codec = rd.FloatCodec(
 )
 
 # Create the evolution engine
-engine = rd.Engine(
-    codec=codec,
-    fitness_func=fitness_function,
-    # ... other parameters ...
+engine = (
+    rd.Engine(codec)
+    .fitness(fit)
+    .limit(rd.Limit.score(0.01))
+    .limit(rd.Limit.generations(1000))
 )
 
-# note the same engine can be built using a fluent builder pattern as such:
-engine = rd.Engine.float(
-    2, init_range=(-1.0, 1.0), bounds=(-10.0, 10.0), dtype=rd.Float32
-).fitness(fitness_function)
-
-# Theres no real difference between the two, but
-# radiate as a whole is moving towards the builder pattern.
-# It allows for much better type hinting and is more intuitive to use.
-# Both methods will be supported for the foreseeable future however, so feel free to use either one.
+# Here is where the engine's helper function is used. Again,
+# same parameters as above, just wrapped in a more fluid interface.
+engine = (
+    rd.Engine.float(2, init_range=(-1.0, 1.0), bounds=(-10.0, 10.0), dtype=rd.Float32)
+    .fitness(fit)
+    .limit(rd.Limit.score(0.01))
+    .limit(rd.Limit.generations(1000))
+)
 
 # Run the engine
-result = engine.run(rd.Limit.score(0.01), rd.Limit.generations(1000))
+result = engine.run()
 # --8<-- [end:example]

@@ -150,3 +150,7 @@ For those interested in diving deeper into the concepts and theories behind gene
 
 * [Genetic Algorithms in Search, Optimization, and Machine Learning](https://www.amazon.com/Genetic-Algorithms-Search-Optimization-Machine/dp/0201157675) by David E. Goldberg: A foundational text that covers the principles and applications of genetic algorithms.
 * [Genetic Algorithms](https://www.amazon.com/Genetic-Algorithms-Concepts-Textbooks-Processing/dp/1852330724) by K.F. Man, K.S. Tang, and S. Kwong: A comprehensive book that covers the fundamental concepts and techniques of genetic algorithms.
+
+## Guide 
+
+Throughout this user guide, at the end of each section, we will build upon the same example problem to demonstrate how to use the concepts that were just covered. 
