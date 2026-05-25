@@ -6,7 +6,7 @@ The `GeneticEngine` is the core component. Once built, it manages the entire evo
 
 ## Epochs
 
-Each epoch represents a single generation in the evolutionary process. An epoch contains information related not only the current generation, but also the engine's state at that point in time. This is the primary output of the engine, and it can be used to track progress, visualize results, or make decisions based on the evolutionary process. 
+Each epoch represents a single generation in the evolutionary process. An epoch contains information related not only to the current generation, but also the engine's state at that point in time. This is the primary output of the engine, and it can be used to track progress, visualize results, or make decisions based on the evolutionary process. 
 
 ### Single-Objective Epoch
 
@@ -41,7 +41,7 @@ This is the default epoch for the engine - `Generation`. It contains:
         .build();
 
     // Run the engine for 100 generations - the result will be a `Generation<FloatChromosome, f32>`
-    let result = engine.run(|generation: &Generation<FloatChromosome, f32>| {
+    let result = engine.run(|generation: &Generation<FloatChromosome<f32>, f32>| {
         generation.index() >= 100
     });
 
@@ -60,9 +60,9 @@ This is the default epoch for the engine - `Generation`. It contains:
     // Get the ecosystem level information:
     // Note - the result needs to be 'mut' to access these methods as 
     // they may require mutable access internally - caching, etc.
-    let ecosystem: Ecosystem<FloatChromosome> = result.ecosystem();
-    let population: Population<FloatChromosome> = ecosystem.population();
-    let species: Option<&[Species<FloatChromosome>]> = ecosystem.species();
+    let ecosystem: Ecosystem<FloatChromosome<f32>> = result.ecosystem();
+    let population: Population<FloatChromosome<f32>> = ecosystem.population();
+    let species: Option<&[Species<FloatChromosome<f32>>]> = ecosystem.species();
 
     // Get performance metrics:
     let metrics: MetricSet = result.metrics();
@@ -95,13 +95,13 @@ When the engine is configured for multi-objective optimization, the engine `Gene
     // Where the `epoch` is `Generation<FloatChromosome, f32>`
     let mut engine = GeneticEngine::builder()
         .codec(FloatCodec::scalar(0.0..1.0)) 
-        .multi_objective(vec![Objective::Min, Objective::Max]) // Specify multi-objective optimization
+        .multi_objective(vec![Optimize::Minimize, Optimize::Maximize]) // Specify multi-objective optimization
         .fitness_fn(|genotype: f32| my_fitness_fn(genotype)) // Return a multi-objective fitness score
         // ... other parameters ...
         .build();
 
     // Run the engine for 100 generations - the result will be a `MultiObjectiveGeneration<FloatChromosome>`
-    let result = engine.run(|generation: &Generation<FloatChromosome, f32>| {
+    let result = engine.run(|generation: &Generation<FloatChromosome<f32>, f32>| {
         generation.index() >= 100
     });
 
@@ -111,10 +111,10 @@ When the engine is configured for multi-objective optimization, the engine `Gene
     // Everything in this generation is the same as the single-objective epoch, except that 
     // the function call to `front()` will return a `ParetoFront` object.:
     // This will be of type `Front<Phenotype<FloatChromosome>>`
-    let front: Option<&Front<Phenotype<FloatChromosome>>> = result.front();
+    let front: Option<&Front<Phenotype<FloatChromosome<f32>>>> = result.front().unwrap();
 
     // Get the members of the Pareto front:
-    let individuals: &[Arc<Phenotype<FloatChromosome>>] = front.values();
+    let individuals: &[Arc<Phenotype<FloatChromosome<f32>>>] = front.values();
     ```
 
 ---
@@ -131,11 +131,11 @@ Radiate provides multiple ways to run the `GeneticEngine`.
 
     The `GeneticEngine` is an inherently iterable concept, as such we can treat the engine as an iterator. Because of this we can use it in a `for` loop or with iterator methods like `map`, `filter`, etc. We can also extend the iterator with custom methods to provide additional functionality, such as running until a certain fitness (score) is reached, time limit, or convergence. These custom methods are essentially syntactic sugar for 'take_until' or 'skip_while' style iterators.
 
-    During any sort of optimization task its useful to visually see the progress of the engine. Using the iterator API, we do this by calling `logging()` on the engine's iterator. This will give us nice console output of the progress provided by the [tracing](https://github.com/tokio-rs/tracing) project.
+    During any sort of optimization task it's useful to visually see the progress of the engine. Using the iterator API, we do this by calling `logging()` on the engine's iterator. This will give us nice console output of the progress provided by the [tracing](https://github.com/tokio-rs/tracing) project.
 
     !!! warning "Stopping Condition"
 
-        The engine's iterator is an 'streaming' or 'infinite iterator', meaning it will continue to produce epochs until a stopping condition, a `break` or a `return` is met. So, unless you want to run the engine indefinitely, you should always use a method like `take`, `until`, or `last` to limit the number of epochs produced.
+        The engine's iterator is a 'streaming' or 'infinite iterator', meaning it will continue to produce epochs until a stopping condition, a `break` or a `return` is met. So, unless you want to run the engine indefinitely, you should always use a method like `take`, `until`, or `last` to limit the number of epochs produced.
         
 
 === ":fontawesome-brands-python: Python"
@@ -178,7 +178,7 @@ Radiate provides multiple ways to run the `GeneticEngine`.
     // 5.) log the progress of the engine to the console using the `logging()` method
     let result = engine.iter().logging().until_seconds(10).last().unwrap();
 
-    // 5.) combined limits
+    // 6.) combined limits
     let result = engine
         .iter()
         .logging()
@@ -190,7 +190,7 @@ Radiate provides multiple ways to run the `GeneticEngine`.
         .last()
         .unwrap();
 
-    // 6.) metrics limit - stop after 1000 evaluations
+    // 7.) metrics limit - stop after 1000 evaluations
     let result = engine
         .iter()
         .until_metric(metric_names::EVALUATION_COUNT, |metric| {
@@ -199,7 +199,7 @@ Radiate provides multiple ways to run the `GeneticEngine`.
         .last()
         .unwrap();
 
-    // 7.) Checkpointing - save the engine state every 10 generations
+    // 8.) Checkpointing - save the engine state every 10 generations
     let checkpoint_path = "checkpoint.json";
     let result = engine
         .iter()
@@ -208,8 +208,8 @@ Radiate provides multiple ways to run the `GeneticEngine`.
         .last()
         .unwrap();
 
-    // 8.) Using the engine's run method with a closure - stop after 100 generations
-    let result = engine.run(|generation: &Generation<FloatChromosome, Vec<f32>>| {
+    // 9.) Using the engine's run method with a closure - stop after 100 generations
+    let result = engine.run(|generation: &Generation<FloatChromosome<f32>, f32>| {
         generation.index() >= 100
     });
     ```

@@ -19,15 +19,15 @@ import radiate as rd
 
 # Create an engine. Float Scalar engine (one chromosome, with one gene)
 single_obj_engine: rd.Engine[float, float] = (
-    rd.Engine.float(init_range=(0.0, 1.0)).fitness(single_fit)
+    rd.Engine.float(init_range=(0.0, 1.0))
+    .fitness(single_fit)
+    .limit(rd.Limit.generations(100))
     # ... other parameters ...
 )
 
 
 # Run the engine for 100 generations
-single_result: rd.Generation[float, float] = single_obj_engine.run(
-    rd.Limit.generations(100)
-)
+single_result: rd.Generation[float, float] = single_obj_engine.run()
 
 # Get the best individual's decoded value
 value: float = single_result.value()
@@ -67,17 +67,17 @@ multi_obj_engine: rd.Engine[float, list[np.ndarray]] = (
     rd.Engine.float(shape=[2, 2, 2], init_range=(0.0, 1.0), use_numpy=True)
     .fitness(multi_fit)  # Multi-objective fitness function
     .objective(rd.MIN, rd.MAX)  # Specify multi-objective optimization
+    .limit(rd.Limit.generations(100))
     # ... other parameters ...
 )
 
 # Run the engine for 100 generations
-multi_result: rd.Generation[float, list[np.ndarray]] = multi_obj_engine.run(
-    rd.Limit.generations(100)
-)
+multi_result: rd.Generation[float, list[np.ndarray]] = multi_obj_engine.run()
 
 # Everything in the multi-objective epoch is the same as the single-objective epoch, except for the value.
 # The function call to `front()` will return a `ParetoFront` object while `value()` will return None.:
 front: rd.Front[float] = multi_result.front()  # ParetoFront object
+
 # This is of type `Front` with `FrontValue` members.
 value_at_index_0: rd.FrontValue[float] = front[0]  # FrontValue object
 all_values: list[rd.FrontValue[float]] = front.values()  # list[FrontValue]

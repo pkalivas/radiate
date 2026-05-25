@@ -64,11 +64,6 @@ engine = (
 # Or pass the limits to the run method.
 # Log the progress of the engine to the console
 result = engine.run(
-    score_limit,
-    generations_limit,
-    seconds_limit,
-    convergence_limit,
-    metric_limit,
     log=True,
     ui=True,  # Enable terminal UI - if enabled, log is ignored
     checkpoint=(
