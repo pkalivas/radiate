@@ -14,10 +14,6 @@ def obj2_fitness_func(x):
 import radiate as rd
 
 # Create an engine that has a genome of 1 chromosome with 10 float genes, initialized & bound between 0.0 and 1.0
-codec = rd.FloatCodec(10, init_range=(0.0, 1.0))  # Example codec
-engine = rd.Engine(codec).fitness(lambda x: sum(x)).minimizing()
-
-# or create the same engine with the builder codec:
 engine = (
     rd.Engine.float(10, init_range=(0.0, 1.0))  # Example codec
     .fitness(lambda x: sum(x))  # return a value to minimize
@@ -31,12 +27,8 @@ import radiate as rd
 
 # Create an engine that has a genome of 1 chromosome with 10 float genes, initialized & bound between 0.0 and 1.0
 # Note that maximization is the default, so you could omit the '.maximizing()' call and it would still maximize
-codec = rd.FloatCodec(10, init_range=(0.0, 1.0))  # Example codec
-engine = rd.Engine(codec).fitness(lambda x: sum(x)).maximizing()
-
-# or using builder pattern
 engine = (
-    rd.Engine.float(10, init_range=(0.0, 1.0))  # Example codec
+    rd.Engine.float(10, init_range=(0.0, 1.0))
     .fitness(lambda x: sum(x))  # return a value to maximize
     .maximizing()  # Configure for maximization
     # ... other parameters ...
@@ -46,20 +38,9 @@ engine = (
 # --8<-- [start:multi_objective]
 import radiate as rd
 
-codec = rd.FloatCodec(10, init_range=(0.0, 1.0))  # Example codec
+# Create an engine that has a genome of 1 chromosome with 10 float genes, initialized & bound between 0.0 and 1.0
 engine = (
-    rd.Engine(codec)
-    .fitness(
-        lambda x: [obj1_fitness_func(x), obj2_fitness_func(x)]
-    )  # Return list of objectives
-    .objective(rd.MIN, rd.MAX)  # Minimize obj1, maximize obj2
-    .front_range(800, 900)  # Pareto front size range
-    # ... other parameters ...
-)
-
-# Or using builder pattern
-engine = (
-    rd.Engine.float(10, init_range=(0.0, 1.0))  # Example codec
+    rd.Engine.float(10, init_range=(0.0, 1.0))
     .fitness(
         lambda x: [obj1_fitness_func(x), obj2_fitness_func(x)]
     )  # Return list of objectives
@@ -81,7 +62,7 @@ engine = (
     .front_range(800, 900)  # Pareto front size range
     .select(
         offspring=rd.Select.tournament_nsga2(k=3),
-        survivor=rd.Select.nsga3(12),
+        survivor=rd.Select.nsga3(points=12),  # 12 reference directions for niching
     )  # Set MO selectors
     # ... other parameters ...
 )
