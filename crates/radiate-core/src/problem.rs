@@ -134,25 +134,6 @@ type RawFitnessFn<C> = dyn Fn(&Genotype<C>) -> Score + Send + Sync;
 ///
 /// - `C`: The [Chromosome] type that represents the genetic material
 /// - `T`: The phenotype type that represents the decoded individual
-///
-/// # Examples
-///
-/// ```rust
-/// use radiate_core::*;
-/// use std::sync::Arc;
-///
-/// // Create a simple fitness function
-/// let fitness_fn = Arc::new(|phenotype: Vec<f32>| {
-///     Score::from(phenotype.iter().cloned().fold(0.0, f32::max))
-/// });
-///
-/// let problem = EngineProblem {
-///     objective: Objective::Single(Optimize::Maximize),
-///     codec: Arc::new(FloatCodec::vector(5, 0.0..1.0)),
-///     fitness_fn: Some(fitness_fn),
-///     raw_fitness_fn: None,
-///};
-/// ```
 pub struct EngineProblem<C, T>
 where
     C: Chromosome,
@@ -224,27 +205,6 @@ type RawBatchFitnessFn<C> = dyn Fn(Vec<&Genotype<C>>) -> Vec<Score> + Send + Syn
 ///
 /// - `C`: The [Chromosome] type that represents the genetic material
 /// - `T`: The phenotype type that represents the decoded individual
-///
-/// # Examples
-///
-/// ```rust
-/// use radiate_core::*;
-/// use std::sync::Arc;
-///
-/// // Create a simple fitness function
-/// let batch_fitness_fn = Arc::new(|phenotypes: Vec<Vec<f32>>| {
-///     phenotypes.iter().map(|p| {
-///         Score::from(p.iter().cloned().fold(0.0, f32::max))
-///     }).collect()
-/// });
-///
-/// let problem = BatchEngineProblem {
-///     objective: Objective::Single(Optimize::Maximize),
-///     codec: Arc::new(FloatCodec::vector(5, 0.0..1.0)),
-///     batch_fitness_fn: Some(batch_fitness_fn),
-///     raw_batch_fitness_fn: None,
-///};
-/// ```
 ///
 /// # Use Cases
 ///
