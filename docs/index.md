@@ -153,4 +153,4 @@ For those interested in diving deeper into the concepts and theories behind gene
 
 ## Guide 
 
-Throughout this user guide, at the end of each section, we will build upon the same example problem to demonstrate how to use the concepts that were just covered. 
+Throughout this user guide, at the end of each section, we will build upon the same example problem to demonstrate how to use the concepts that were just covered.

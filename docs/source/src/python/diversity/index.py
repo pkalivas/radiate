@@ -15,14 +15,6 @@ diversity = rd.HammingDistance()
 # --8<-- [start:diversity_basic]
 import radiate as rd
 
-# engine = rd.Engine(
-#     codec=your_codec,
-#     fitness_func=your_fitness_func,
-#     diversity=diversity,
-#     species_threshold=.5  # Default value
-# )
-
-# or using the fluent builder pattern:
 engine = (
     rd.Engine(your_codec)
     .fitness(your_fitness_func)
@@ -34,15 +26,6 @@ engine = (
 # --8<-- [start:diversity_age]
 import radiate as rd
 
-# engine = rd.Engine(
-#     codec=your_codec,
-#     fitness_func=your_fitness_func,
-#     diversity=diversity,
-#     species_threshold=.5,  # Default value
-#     max_species_age=20,  # Default value
-# )
-
-# or using the fluent builder pattern:
 engine = (
     rd.Engine(your_codec)
     .fitness(your_fitness_func)
