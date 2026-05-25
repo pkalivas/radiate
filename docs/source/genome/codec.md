@@ -55,7 +55,7 @@ Radiate provides several codec types out of the box that should be able to cover
     - Continuous optimization problems
     - Real-valued parameters
 
-    In all `FloatCodec` varients, the `bounds` is optional and defaults to the `init_range` if not specified.
+    In all `FloatCodec` variants, the `bounds` is optional and defaults to the `init_range` if not specified.
 
 
     === ":fontawesome-brands-python: Python"
@@ -95,7 +95,7 @@ Radiate provides several codec types out of the box that should be able to cover
     - Array indices
     - Configuration parameters that must be whole numbers
 
-    In all `IntCodec` varients, the `bounds` is optional and defaults to the `init_range` if not specified.
+    In all `IntCodec` variants, the `bounds` is optional and defaults to the `init_range` if not specified.
 
     === ":fontawesome-brands-python: Python"
 
@@ -168,7 +168,7 @@ Radiate provides several codec types out of the box that should be able to cover
     - Boolean configurations
     - Subset selection problems (e.g., Knapsack problem)
 
-    There is no `scalar` varient of the `BitCodec` because...that doesn't seem useful at all.
+    There is no `scalar` variant of the `BitCodec` because...that doesn't seem useful at all.
 
     === ":fontawesome-brands-python: Python"
 

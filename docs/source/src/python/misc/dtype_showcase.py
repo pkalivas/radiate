@@ -28,7 +28,9 @@ def fitness_fn(queens: np.ndarray) -> int:
 
 
 engine = (
-    rd.Engine.int(N_QUEENS, init_range=(0, N_QUEENS), use_numpy=True, dtype=rd.UInt8)
+    rd.Engine.int(
+        N_QUEENS, init_range=(0, N_QUEENS), use_numpy=True, dtype=rd.UInt8
+    )  # <- note the UInt8 dtype here, which matches the numba function's expected input
     .fitness(fitness_fn)
     .minimizing()
     .select(offspring=rd.Select.tournament(k=3))

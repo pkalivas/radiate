@@ -7,7 +7,7 @@ Let's look at a basic example of how to use the `Codec` for evolving a simple fu
 
     Python also allows you to pass a flag to most codecs to specify if you want a `numpy.array` or a `list` to be returned when decoding. You can do this by passing `use_numpy=True` to the codec constructor. 
 
-    E.g. `rd.FloatCodec(shape=2, init_range=(-1.0, 1.0), bounds=(-10.0, 10.0), use_numpy=True)` will return a `numpy.array` when decoding. You can also just write the decoded value in your `fitnesss_func` in a `numpy.array(my_decoded_value)` format to get a `numpy.array` back. The performance difference between the two is negligible, so you can choose the one that best fits your needs.
+    E.g. `rd.FloatCodec(shape=2, init_range=(-1.0, 1.0), bounds=(-10.0, 10.0), use_numpy=True)` will return a `numpy.array` when decoding. You can also just write the decoded value in your `fitness_func` in a `numpy.array(my_decoded_value)` format to get a `numpy.array` back. The performance difference between the two is negligible, so you can choose the one that best fits your needs.
 
     ---
 
@@ -55,7 +55,7 @@ Let's look at a basic example of how to use the `Codec` for evolving a simple fu
     ```rust
     // This is the same as using a FloatCodec::vector(2, -1.0..1.0).with_bounds(-10.0..10.0);
     let mut engine = GeneticEngine::builder()
-        .codec(FloatChromosome::from((2, -1.0..1.0, -10..10)))
+        .codec(FloatChromosome::from((2, -1.0..1.0, -10.0..10.0)))
         .fitness_fn(fitness_fn)
         // ... other parameters ...
         .build()
@@ -63,7 +63,7 @@ Let's look at a basic example of how to use the `Codec` for evolving a simple fu
     // To create a matrix codec using a Chromosome just use a Vec
     let mut engine = GeneticEngine::builder()
         .codec(vec![
-            FloatChromosome::from((2, -1.0..1.0, -10..10)),
+            FloatChromosome::from((2, -1.0..1.0, -10.0..10.0)),
             FloatChromosome::from(vec![
                 FloatGene::from(-3.0..3.0),
                 FloatGene::from((-5.0..5.0, -10.0..10.0))

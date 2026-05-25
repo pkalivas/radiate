@@ -40,8 +40,8 @@ engine = (
     .fitness(fitness_func)
     .minimizing()  # We want to minimize the loss
     .limit(
-        rd.Limit.score(0.001), rd.Limit.generations(1000)
-    )  # Stop when we reach a loss of 0.001 or after 1000 generations
+        rd.Limit.score(0.001), rd.Limit.generations(100)
+    )  # Stop when we reach a loss of 0.001 or after 100 generations
     .alters(
         rd.Cross.graph(0.5, 0.5),
         rd.Mutate.op(0.07, 0.05),
@@ -51,7 +51,7 @@ engine = (
     )
 )
 
-# Run the genetic engine with a score (error) limit of 0.001 or a maximum of 1000 generations
+# Run the genetic engine with a score (error) limit of 0.001 or a maximum of 100 generations
 result = engine.run(log=True)
 # --8<-- [end:graph_regression]
 
@@ -72,10 +72,13 @@ df = pl.DataFrame(
 
 # Build a regression that evolves Graphs with two input features and one output
 # (notice that the shape of the Graphs is equal to the number of features and targets in the DataFrame).
-# The loss function is mean average error (MAE) in this case, but thats only to show flexibility.
+# The loss function is mean absolute error (MAE) in this case, but that's only to show flexibility.
 engine = (
     rd.Engine.graph(
-        shape=(2, 1),  # <- notice how we have two features now, so the input shape is (2, 1)
+        shape=(
+            2,
+            1,
+        ),  # <- notice how we have two features now, so the input shape is (2, 1)
         vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
         edge=rd.Op.weight(),
         output=rd.Op.linear(),
@@ -86,7 +89,7 @@ engine = (
         feature_cols=["feature_one", "feature_two"],
         loss=rd.MAE,
     )
-    .limit(rd.Limit.score(0.001), rd.Limit.generations(1000))
+    .limit(rd.Limit.score(0.001), rd.Limit.generations(100))
     .alters(
         rd.Cross.graph(0.5, 0.5),
         rd.Mutate.op(0.07, 0.05),
