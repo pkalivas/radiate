@@ -2,6 +2,17 @@
 
 Mutators introduce (usually small) random changes to individual genes or chromosomes, helping maintain diversity in the population and enabling exploration of the search space.
 
+| Mutator | Works on | What it does |
+|---|---|---|
+| [Uniform](#uniform) | any gene | replaces a gene with a fresh random value |
+| [Gaussian](#gaussian) | Float | adds normally-distributed noise |
+| [Arithmetic](#arithmetic) | Float, Int | applies a random +, −, ×, or ÷ |
+| [Swap](#swap) | any gene | swaps two genes' positions |
+| [Scramble](#scramble) | any gene | randomly reorders a segment |
+| [Invert](#invert) | any gene | reverses a segment |
+| [Polynomial](#polynomial) | Float | bounded perturbation with tunable spread (`eta`) |
+| [Jitter](#jitter) | Float | adds small uniform noise scaled by `magnitude` |
+
 ---
 
 ## Uniform
@@ -29,7 +40,7 @@ The most basic mutation operator. It randomly replaces a gene with a new instanc
     use radiate::*;
 
     let mutator = UniformMutator::new(0.1);
-	let mutator = UniformMutator::from(Rate::fixed(0.1));
+    let mutator = UniformMutator::from(Rate::fixed(0.1));
     ```
 
 ---
@@ -140,17 +151,17 @@ The `ScrambleMutator` randomly reorders a segment of `genes` within a `chromosom
 
 === ":fontawesome-brands-python: Python"
 
-	```python
-	--8<-- "python/alters/mutators.py:scramble_mutator"
-	```
+    ```python
+    --8<-- "python/alters/mutators.py:scramble_mutator"
+    ```
 
 === ":fontawesome-brands-rust: Rust"
 
-	```rust
-	use radiate::*;
+    ```rust
+    use radiate::*;
 
-	let mutator = ScrambleMutator::new(0.1);
-	```
+    let mutator = ScrambleMutator::new(0.1);
+    ```
 
 ---
 
@@ -169,16 +180,19 @@ The `ScrambleMutator` randomly reorders a segment of `genes` within a `chromosom
 
 === ":fontawesome-brands-python: Python"
 
-	```python
-	--8<-- "python/alters/mutators.py:invert_mutator"
-	```
+    ```python
+    --8<-- "python/alters/mutators.py:invert_mutator"
+    ```
+
 === ":fontawesome-brands-rust: Rust"
 
-	```rust
-	use radiate::*;
+    ```rust
+    use radiate::*;
 
-	let mutator = InversionMutator::new(0.1);
-	```
+    let mutator = InversionMutator::new(0.1);
+    ```
+
+---
 
 ## Polynomial
 
@@ -194,21 +208,23 @@ The `ScrambleMutator` randomly reorders a segment of `genes` within a `chromosom
 
 The `PolynomialMutator` applies a polynomial mutation to the genes of a chromosome. This provides a bounded and unbiased mutation to genes where you care about the distribution of the mutation. Unlike Gaussian mutation, Polynomial can give more control over the tail behavior.
 
-The `eta` parameter controls the shape of the mutation distribution. A higher `eta` value results in a more exploratory mutation, while a lower value makes the mutation more exploitative. For example, a low `eta` (1.0-5.0) leads to bigger mutations, while a high value (20.0-100.0) leads to smaller, more fine grained mutations.
+The `eta` parameter controls the shape of the mutation distribution. A higher `eta` value produces smaller, more exploitative mutations that stay close to the original value, while a lower value produces larger, more exploratory mutations. For example, a low `eta` (1.0-5.0) leads to bigger mutations, while a high value (20.0-100.0) leads to smaller, more fine grained mutations.
 
 === ":fontawesome-brands-python: Python"
 
-	```python
-	--8<-- "python/alters/mutators.py:polynomial_mutator"
-	```
+    ```python
+    --8<-- "python/alters/mutators.py:polynomial_mutator"
+    ```
+
 === ":fontawesome-brands-rust: Rust"
 
-	```rust
-	use radiate::*;
+    ```rust
+    use radiate::*;
 
-	let mutator = PolynomialMutator::new(0.1, 20.0);
-	```
+    let mutator = PolynomialMutator::new(0.1, 20.0);
+    ```
 
+---
 
 ## Jitter
 
@@ -226,13 +242,14 @@ The `JitterMutator` adds small random perturbations to the values of a `gene` wi
 
 === ":fontawesome-brands-python: Python"
 
-	```python
-	--8<-- "python/alters/mutators.py:jitter_mutator"
-	```
+    ```python
+    --8<-- "python/alters/mutators.py:jitter_mutator"
+    ```
+
 === ":fontawesome-brands-rust: Rust"
 
-	```rust
-	use radiate::*;
+    ```rust
+    use radiate::*;
 
-	let mutator = JitterMutator::new(0.1, 0.5);
-	```
+    let mutator = JitterMutator::new(0.1, 0.5);
+    ```

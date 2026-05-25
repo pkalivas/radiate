@@ -29,19 +29,18 @@ See the [image evolution example](https://github.com/pkalivas/radiate/tree/maste
             genotype.genes().iter().map(|gene| gene.value()).collect()
         }
 
-        fn eval(&self, genotype: &Genotype<FloatChromosome>) -> Score {
+        fn eval(&self, genotype: &Genotype<FloatChromosome>) -> Result<Score, RadiateError> {
             // Evaluate the genotype directly without decoding
-            my_fitness_fn(&genotype)
+            Ok(my_fitness_fn(genotype))
         }
     }
 
-    // The `Problem<C, T>` trait requires `Send` and `Sync` implementations
-    unsafe impl Send for MyFloatProblem {}
-    unsafe impl Sync for MyFloatProblem {}
+    // `Problem<C, T>` requires `Send + Sync`; this struct satisfies them automatically.
+    // You'd only write a manual `unsafe impl` if it held non-thread-safe state.
 
     // Create an engine with the problem
     let mut engine = GeneticEngine::builder()
-        .problem(MyProblem { num_genes: 10, value_range: 0.0..1.0 })
+        .problem(MyFloatProblem { num_genes: 10, value_range: 0.0..1.0 })
         .build();
 
     // Run the engine

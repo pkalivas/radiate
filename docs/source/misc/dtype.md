@@ -1,4 +1,6 @@
 
+# Data Types
+
 You may have noticed throughout these docs that we have snuck in a `dtype` argument here and there in the Python API. Radiate supports running certain `genes` & `chromosomes` with different data types in the backend (rust side), and this `dtype` argument allows you to specify which data type you want to use. This can seem like a minor detail, but in reality this can have a significant impact on the performance of your engine.
 
 ---
@@ -27,7 +29,7 @@ The choice of data type can have a significant impact on the performance of your
 
 ## Example
 
-Lets take a quick look at an example of where specifying the data type can lead to significant performance improvements. In this example, we will be solving the N-Queens problem using a radiate. The N-Queens problem is a classic problem in which the goal is to place N queens on an N x N chessboard such that no two queens threaten each other. This means that no two queens can be in the same row, column, or diagonal.
+Let's take a quick look at an example of where specifying the data type can lead to significant performance improvements. In this example, we will be solving the N-Queens problem using radiate. The N-Queens problem is a classic problem in which the goal is to place N queens on an N x N chessboard such that no two queens threaten each other. This means that no two queens can be in the same row, column, or diagonal.
 
 Now, we could leave the `dtype` argument blank and let the engine optimize using `Int64` values in the backend, but since we know that the values will always be between 0 and N-1 (where N is the number of queens), we can use `UInt8`. Since we are also decoding to a numpy array, our fitness function will receive a numpy array of `uint8`s.
 
