@@ -73,9 +73,6 @@ Continuing with our example from the previous sections - evolving a simple funct
 
     // Run the engine
     let result = engine.run(|generation| {
-        // Now because we have added diversity, the ecosystem will include species like such:
-        let species = generation.species().unwrap();
-        println!("Species count: {}", species.len());
         generation.index() >= 1000 || generation.score().as_f32() <= 0.01
     });
     ```

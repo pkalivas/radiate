@@ -5,7 +5,7 @@ A **species** is a cluster of genetically-similar individuals. When a [distance 
 
 This page covers *what a species is* and *how the engine forms and uses them*. For the distance measures that decide who is "similar," see the last section, [Distance](distance.md).
 
-!!! note "Speciation is opt-in"
+!!! tip "Speciation is opt-in"
 
 	Speciation only runs if you provide a diversity measure (see [Diversity](index.md)). Without one, the engine evolves a single flat population and none of the machinery below is active.
 

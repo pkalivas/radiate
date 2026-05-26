@@ -6,7 +6,7 @@ An `op` is a function that takes a number of inputs and returns a single output.
 The `op` comes in four flavors, mirroring the variants of the `Op<T>` enum:
 
 1. **Function (`Fn`)**: Stateless functions that take inputs and return a value (e.g. `Add`, `Sigmoid`).
-2. **Variable (`Var`)**: Reads from an input index, returning the value at that index.
+2. **Variable (`Var`)**: Reads from an input vector, returning the value at that index.
 3. **Constant (`Const`)**: A fixed value that does not change - returning the value when called.
 4. **Value (`Value`)**: A stateful operation that holds data (a `Param<T>`) alongside a function, allowing for learnable parameters such as the `Weight` op.
 

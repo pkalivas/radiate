@@ -9,15 +9,19 @@ def your_fitness_func(x):
     return sum(abs(v) for v in x)
 
 
+def your_char_fit_func(x):
+    return sum(ord(c) for c in x)
+
+
 # --8<-- [start:threshold]
 import radiate as rd
 
 engine = (
-    rd.Engine(your_codec)
-    .fitness(your_fitness_func)
+    rd.Engine.char(10)
+    .fitness(your_char_fit_func)
     # A distance measure turns speciation on; the threshold sets how close
     # two individuals must be (per the measure) to share a species.
-    .diversity(rd.Dist.euclidean(), species_threshold=0.5)
+    .diversity(rd.Dist.hamming(), species_threshold=0.5)
 )
 # --8<-- [end:threshold]
 
@@ -28,7 +32,7 @@ import radiate as rd
 # Here it widens from 0.3 to 0.9 across the first 100 generations: start
 # fine-grained (many small species), then coarsen to encourage convergence.
 engine = (
-    rd.Engine(your_codec)
+    rd.Engine.float(2)
     .fitness(your_fitness_func)
     .diversity(
         rd.Dist.euclidean(),
@@ -41,7 +45,7 @@ engine = (
 import radiate as rd
 
 engine = (
-    rd.Engine(your_codec)
+    rd.Engine.float(2)
     .fitness(your_fitness_func)
     .diversity(rd.Dist.euclidean(), species_threshold=0.5)
     # A species that survives this many generations without improving its best

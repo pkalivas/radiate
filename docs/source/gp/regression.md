@@ -14,7 +14,9 @@ Let's take a quick look at how we would put together a regression problem using 
 
 === ":fontawesome-brands-python: Python"
 
-    The regression fitness function runs purely in rust, as such any executor can be used (including multi-threaded executors) without any issues with the GIL regardless of the python version being used.
+    !!! tip "GP regression and the GIL"
+    
+        The regression fitness function runs purely in rust, as such any executor can be used (including multi-threaded executors) without any issues with the GIL regardless of the python version being used.
 
     ```python
     --8<-- "python/gp/regression.py:graph_regression"
