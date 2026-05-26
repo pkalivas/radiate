@@ -24,11 +24,6 @@ for _ in range(-10, 10):
     inputs.append([input])
     answers.append([compute(input)])
 
-# xover_rate = (
-#     rd.select("rate.diversity").rolling(10).mean().affine(-0.6, 0.8).clamp(0.2, 0.8)
-# )
-
-
 engine = (
     rd.Engine.graph(
         shape=(1, 1),

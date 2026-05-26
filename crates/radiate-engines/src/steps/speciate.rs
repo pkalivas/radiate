@@ -220,7 +220,7 @@ where
         )
     }
 
-    fn publish_species_stats(
+    fn calc_species_metrics(
         &self,
         generation: usize,
         ecosystem: &Ecosystem<C>,
@@ -328,7 +328,7 @@ where
         metrics.upsert(metric_names::SPECIES_DISTANCE_DIST, &self.distances);
         metrics.upsert(metric_names::SPECIES_DIED, rm_species_count);
         metrics.upsert(metric_names::SPECIES_THRESHOLD, threshold);
-        self.publish_species_stats(generation, ecosystem, metrics);
+        self.calc_species_metrics(generation, ecosystem, metrics);
 
         ecosystem.fitness_share(&self.objective);
 

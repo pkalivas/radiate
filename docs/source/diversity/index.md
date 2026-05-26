@@ -29,9 +29,9 @@ The **distance measure** is the input to everything while the **species** machin
 | **[Species](species.md)** | How the engine forms species from those measurements, shares fitness, and allocates offspring + the knobs that tune it. |
 | **[Example](example.md)** | Wiring it all into a working engine. |
 
-!!! note "Opt-in, and not free"
+!!! tip "Opt-in, and not free"
 
-	Speciation only runs when you attach a distance measure. It also adds computational cost — every generation the engine measures distances and re-clusters the population — so reach for it when a problem is converging too early or not reaching its global optimum, not by default.
+	Speciation only runs when you attach a distance measure. It also adds computational cost because every generation the engine must measure distances and re-cluster the population — so reach for it when a problem is converging too early or not reaching its global optimum, not by default.
 
 ## The whole feature, in one call
 

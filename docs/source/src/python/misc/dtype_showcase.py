@@ -1,7 +1,3 @@
-# Showcase (excluded from the run-test via the *_showcase.py suffix): uses a numba @jit
-# fitness function and ui=True (launches the terminal UI) — neither belongs in the fast suite.
-# Rendered into docs/source/misc/dtype.md and include-validated by `mkdocs build --strict`.
-
 # --8<-- [start:nqueens]
 import numpy as np
 import radiate as rd
@@ -33,7 +29,6 @@ engine = (
     )  # <- note the UInt8 dtype here, which matches the numba function's expected input
     .fitness(fitness_fn)
     .minimizing()
-    .select(offspring=rd.Select.tournament(k=3))
     .limit(rd.Limit.score(0))
     .alters(
         rd.Cross.multipoint(0.75, 2),
