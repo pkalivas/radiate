@@ -50,22 +50,7 @@ Certain `Genes` have additional functionality that allows them to be manipulated
     === ":fontawesome-brands-rust: Rust"
 
         ```rust
-        use radiate::*;
-
-        // Create a float gene that can evolve between -1.0 and 1.0 but 
-        // must stay within -10.0 to 10.0 during evolution
-        let gene: FloatGene<f32> = FloatGene::new(0.5, -1.0..1.0, -10.0..10.0);
-        let gene_f64: FloatGene<f64> = FloatGene::new(0.5, -1_f64..1_f64, -10_f64..10_f64);
-
-        // Create a float gene with a randomly generated allele between -1.0 and 1.0
-        // and bounds between -1.0 and 1.0
-        let gene = FloatGene::from(-1.0..1.0)
-
-        // Create a float gene with a randomly generated allele between -1.0 and 1.0 with bounds between -10.0 and 10.0
-        let gene = FloatGene::from(-1.0..1.0, -10.0..10.0);
-
-        // Create a float gene with an allele of 0.5 allele between -1.0 and 1.0 with bounds between -10.0 and 10.0
-        let gene = FloatGene::from((0.5, -1.0..1.0, -10.0..10.0));
+        --8<-- "rust/genome/index.rs:float_gene"
         ```
 
 
@@ -82,19 +67,7 @@ Certain `Genes` have additional functionality that allows them to be manipulated
     === ":fontawesome-brands-rust: Rust"
 
         ```rust
-        use radiate::*;
-
-        // Create an integer gene that can evolve between -100 and 100
-        let gene = IntGene::new(42, -10..10, -100..100);
-
-        // Create an integer gene with a randomly generated allele between -10 and 10 - specify the int type
-        let gene = IntGene::<i8>::from(-10..10);
-
-        // Create an integer gene with a randomly generated allele between -10 and 10 with bounds between -100 and 100
-        let gene = IntGene::from(-10..10, -100..100);
-
-        // Create an integer gene with an allele of 42 between -10 and 10 with bounds between -100 and 100
-        let gene = IntGene::from((42, -10..10, -100..100));
+        --8<-- "rust/genome/index.rs:int_gene"
         ``` 
 
 ??? info "BitGene"
@@ -110,13 +83,7 @@ Certain `Genes` have additional functionality that allows them to be manipulated
     === ":fontawesome-brands-rust: Rust"
 
         ```rust
-        use radiate::*;
-
-        // Create an bit gene with a randomly generated allele of true or false.
-        let gene = BitGene::new();
-
-        // Create a bit gene with an allele of true
-        let gene = BitGene::from(true); 
+        --8<-- "rust/genome/index.rs:bit_gene"
         ```
 
 ??? info "CharGene"
@@ -132,16 +99,7 @@ Certain `Genes` have additional functionality that allows them to be manipulated
     === ":fontawesome-brands-rust: Rust"
 
         ```rust
-        use radiate::*;
-
-        // Create an char gene with a randomly generated allele from the ASCII printable characters
-        let gene = CharGene::default();
-
-        // Create a char gene with a char_set of 'abc' of which the allele will be randomly chosen from
-        let gene = CharGene::from("abc");
-
-        // Create a char gene with an allele of 'A' from the char_set 'abc'
-        let gene = CharGene::from(('A', Arc::new(['a', 'b', 'c'])));
+        --8<-- "rust/genome/index.rs:char_gene"
         ```
 
 ??? info "PermutationGene"
@@ -157,16 +115,7 @@ Certain `Genes` have additional functionality that allows them to be manipulated
     === ":fontawesome-brands-rust: Rust"
 
         ```rust
-        use radiate::*;
-
-        // Define a list of alleles the associated genes
-        let alleles = Arc::new(vec![1, 2, 3, 4]);
-        let genes = vec![
-            PermutationGene::new(0, Arc::clone(&alleles)),
-            PermutationGene::new(1, Arc::clone(&alleles)),
-            PermutationGene::new(2, Arc::clone(&alleles)),
-            PermutationGene::new(3, Arc::clone(&alleles)),
-        ];
+        --8<-- "rust/genome/index.rs:permutation_gene"
         ```
 
 ---
@@ -203,13 +152,7 @@ Because each `Chromosome` has an associated `Gene`, the built-in chromosomes are
     === ":fontawesome-brands-rust: Rust"
 
         ```rust
-        use radiate::*;
-
-        // Create a float chromosome with 5 genes, each initialized to a random value between -1.0 and 1.0
-        let chromosome = FloatChromosome::from((5, -1.0..1.0));
-        let f64_chromosome: FloatChromosome<f64> = FloatChromosome::from((5, -1_f64..1_f64));
-
-        let bounded_chromosome = FloatChromosome::from((5, -1.0..1.0, -10.0..10.0));
+        --8<-- "rust/genome/index.rs:float_chromosome"
         ```
 
 ??? info "IntChromosome"
@@ -225,12 +168,7 @@ Because each `Chromosome` has an associated `Gene`, the built-in chromosomes are
     === ":fontawesome-brands-rust: Rust"
 
         ```rust
-        use radiate::*;
-
-        // Create an integer chromosome with 5 genes, each initialized to a random value between -10 and 10
-        let chromosome = IntChromosome::<i32>::from((5, -10..10));
-
-        let bounded_chromosome = IntChromosome::<i32>::from((5, -10..10, -100..100));
+        --8<-- "rust/genome/index.rs:int_chromosome"
         ```
 
 ??? info "BitChromosome"
@@ -246,10 +184,7 @@ Because each `Chromosome` has an associated `Gene`, the built-in chromosomes are
     === ":fontawesome-brands-rust: Rust"
 
         ```rust
-        use radiate::*;
-
-        // Create a bit chromosome with 5 genes, each initialized to a random value of true or false
-        let chromosome = BitChromosome::new(5);
+        --8<-- "rust/genome/index.rs:bit_chromosome"        
         ```
 
 ??? info "CharChromosome"
@@ -265,12 +200,7 @@ Because each `Chromosome` has an associated `Gene`, the built-in chromosomes are
     === ":fontawesome-brands-rust: Rust"
 
         ```rust
-        use radiate::*;
-
-        // Create a character chromosome with 5 genes, each initialized to
-        // a random character from the provided char_set
-        let chromosome = CharChromosome::new((5, vec!['a', 'b', 'c']));
-        let chromosome_with_set = CharChromosome::from((5, "abc"));
+        --8<-- "rust/genome/index.rs:char_chromosome"
         ```
 
 ??? info "PermutationChromosome<T>"
@@ -286,11 +216,7 @@ Because each `Chromosome` has an associated `Gene`, the built-in chromosomes are
     === ":fontawesome-brands-rust: Rust"
 
         ```rust
-        use radiate::*;
-
-        // Define a list of alleles the associated genes
-        let alleles = Arc::new(vec![1, 2, 3, 4]);
-        let chromosome = PermutationChromosome::from((4, Arc::clone(&alleles)));
+        --8<-- "rust/genome/index.rs:permutation_chromosome"
         ```
 
 ---
@@ -316,29 +242,7 @@ Because of the typed nature of the `Genotype`, it can only hold a collection of 
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    // Create a genotype with a single FloatChromosome and a 5 FloatGenes 
-    let genotype = Genotype::from(FloatChromosome::from((5, -1.0..1.0)));
-    // -- or --
-    let genotype = Genotype::from(vec![FloatChromosome::new(vec![FloatGene::new(0.1, -1.0..1.0)])]);
-
-    // Create a genotype with multiple chromosomes of lengths 5, 15, and 3
-    let three_chromosome_genotype = Genotype::new(vec![
-        FloatChromosome::from((5, -1.0..1.0)),
-        FloatChromosome::from((15, -1.0..1.0)),
-        FloatChromosome::from((3, -1.0..1.0))
-    ])
-
-    let genotype_length = three_chromosome_genotype.len(); // 3
-
-    // Get the second chromosome from the genotype
-    let second_chromosome = three_chromosome_genotype.get(1).unwrap(); // or use `three_chromosome_genotype[1]`
-    let mut second_chromosome_mut = three_chromosome_genotype.get_mut(1).unwrap();
-
-    for chromosome in three_chromosome_genotype.iter() { // or iter_mut()
-        // Do something with each chromosome
-    }
+    --8<-- "rust/genome/index.rs:genotype"
     ```
 
 ---

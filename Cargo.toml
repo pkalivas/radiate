@@ -3,6 +3,7 @@ resolver = "3"
 members = [
     "crates/*",
     "py-radiate",
+    "docs/source/src/rust",
 
     "examples/rust/DTLZ",
     "examples/rust/min-sum",

@@ -1,0 +1,34 @@
+[package]
+name = "radiate-doc-examples"
+version = { workspace = true }
+authors = { workspace = true }
+edition = { workspace = true }
+homepage = { workspace = true }
+license = { workspace = true }
+repository = { workspace = true }
+description = "Code examples included in the Radiate documentation website"
+
+# Doc snippets are written for readability, not to satisfy the linter:
+# bindings are often constructed to show an API and never read. Relax the
+# "unused" family crate-wide so snippets stay clean (no `_` prefixes leaking
+# into the rendered docs) while still catching real compile errors.
+[lints.rust]
+unused_variables = "allow"
+unused_assignments = "allow"
+unused_imports = "allow"
+dead_code = "allow"
+
+[dependencies.radiate]
+workspace = true
+
+[[bin]]
+name = "genome-index"
+path = "genome/index.rs"
+
+[[bin]]
+name = "genome-codec"
+path = "genome/codec.rs"
+
+[[bin]]
+name = "genome-example"
+path = "genome/example.rs"
