@@ -18,14 +18,6 @@ fn main() {
     // holds 2 FloatGenes (a and b), each with a value between -1.0 and 1.0 and a bound between -10.0 and 10.0
     let codec = FloatCodec::vector(2, -1.0..1.0).with_bounds(-10.0..10.0);
 
-    // Use Boltzmann selection for offspring - individuals which
-    // will be used to create new individuals through mutation and crossover
-    let offspring_selector = BoltzmannSelector::new(4.0);
-
-    // Use tournament selection for survivors - individuals which will
-    // be passed down unchanged to the next generation
-    let survivor_selector = TournamentSelector::new(3);
-
     // There are a few different ways we can add alters to the engine in rust. Assuming you
     // use the same alters for each method below, the resulting engine will be the same.
     // Choose the one that you prefer, but keep in mind that the alters
@@ -39,8 +31,8 @@ fn main() {
 
     let engine = GeneticEngine::builder()
         .codec(codec.clone())
-        .offspring_selector(offspring_selector.clone())
-        .survivor_selector(survivor_selector.clone())
+        .offspring_selector(BoltzmannSelector::new(4.0))
+        .survivor_selector(TournamentSelector::new(3))
         .fitness_fn(fit)
         .alter(alters) // Add the alterers to the engine
         // ... other parameters ...
@@ -54,8 +46,8 @@ fn main() {
 
     let engine = GeneticEngine::builder()
         .codec(codec.clone())
-        .offspring_selector(offspring_selector.clone())
-        .survivor_selector(survivor_selector.clone())
+        .offspring_selector(BoltzmannSelector::new(4.0))
+        .survivor_selector(TournamentSelector::new(3))
         .mutator(mutator)
         .crossover(crossover)
         .fitness_fn(fit)
@@ -77,8 +69,8 @@ fn main() {
 
     let mut engine = GeneticEngine::builder()
         .codec(codec)
-        .offspring_selector(offspring_selector)
-        .survivor_selector(survivor_selector)
+        .offspring_selector(BoltzmannSelector::new(4.0))
+        .survivor_selector(TournamentSelector::new(3))
         .mutators(mutators)
         .crossovers(crossovers)
         .fitness_fn(fit)

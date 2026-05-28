@@ -42,9 +42,7 @@ Best for:
 === ":fontawesome-brands-rust: Rust"
 
 	```rust
-	use radiate::*;
-
-	let diversity = HammingDistance::new();
+	--8<-- "rust/diversity/distance.rs:hamming"
 	```
 
 ---
@@ -76,9 +74,7 @@ Best for:
 === ":fontawesome-brands-rust: Rust"
 
 	```rust
-	use radiate::*;
-
-	let diversity = EuclideanDistance::new();
+	--8<-- "rust/diversity/distance.rs:euclidean"
 	```
 
 ---
@@ -110,9 +106,7 @@ Best for:
 === ":fontawesome-brands-rust: Rust"
 
 	```rust
-	use radiate::*;
-
-	let diversity = CosineDistance::new();
+	--8<-- "rust/diversity/distance.rs:cosine"
 	```
 
 ---
@@ -145,9 +139,5 @@ This lets the engine separate genuinely different architectures from ones that m
 	!!! note "requires the `gp` feature flag"
 
 		```rust
-		use radiate::*;
-
-		// c1, c2, c3 — coefficients for excess genes, disjoint genes,
-		// and average weight differences respectively.
-		let diversity = NeatDistance::new(0.1, 1.0, 0.5);
+		--8<-- "rust/diversity/distance.rs:neat_distance"
 		```

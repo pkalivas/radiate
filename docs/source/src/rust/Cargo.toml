@@ -20,6 +20,7 @@ dead_code = "allow"
 
 [dependencies.radiate]
 workspace = true
+features = ["gp"]
 
 # Genome 
 [[bin]]
@@ -59,4 +60,21 @@ path = "selectors/index.rs"
 [[bin]]
 name = "selectors-example"
 path = "selectors/example.rs"
+
+# Diversity
+[[bin]]
+name = "diversity-index"
+path = "diversity/index.rs"
+
+[[bin]]
+name = "diversity-distance"
+path = "diversity/distance.rs"
+
+[[bin]]
+name = "diversity-species"
+path = "diversity/species.rs"
+
+[[bin]]
+name = "diversity-example"
+path = "diversity/example.rs"
 
