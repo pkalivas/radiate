@@ -47,3 +47,16 @@ path = "alters/crossovers.rs"
 name = "alters-mutators"
 path = "alters/mutators.rs"
 
+[[bin]]
+name = "alters-example"
+path = "alters/example.rs"
+
+# Selectors
+[[bin]]
+name = "selectors-index"
+path = "selectors/index.rs"
+
+[[bin]]
+name = "selectors-example"
+path = "selectors/example.rs"
+
