@@ -20,7 +20,7 @@ dead_code = "allow"
 
 [dependencies.radiate]
 workspace = true
-features = ["gp"]
+features = ["gp", "rayon"]
 
 # Genome 
 [[bin]]
@@ -77,4 +77,9 @@ path = "diversity/species.rs"
 [[bin]]
 name = "diversity-example"
 path = "diversity/example.rs"
+
+# Executors
+[[bin]]
+name = "executors"
+path = "executors.rs"
 

@@ -38,50 +38,11 @@ Continuing with our example from the previous sections - evolving a simple funct
     ```
 
     ```rust
-    use radiate::*;
-
-    // Define a fitness function that uses the decoded values
-    fn fitness_fn(individual: Vec<f32>) -> f32 {
-        let a = individual[0];
-        let b = individual[1];
-        calculate_error(a, b)  // Your error calculation here
-    }
-
-    // This will produce a Genotype<FloatChromosome> with 1 FloatChromosome which
-    // holds 2 FloatGenes (a and b), each with a value between -1.0 and 1.0 and a bound between -10.0 and 10.0
-    let codec = FloatCodec::vector(2, -1.0..1.0).with_bounds(-10.0..10.0);
-
-    // Define the executor - here we use a fixed size worker pool with 4 threads
-    let executor = Executor::FixedSizedWorkerPool(4);
-    // Alternatively, you can use a WorkerPool (which uses rayon's global thread pool)
-    let executor = Executor::WorkerPool;
-    // Or for single-threaded execution, use Serial - this is the default if none is specified
-    let executor = Executor::Serial;
-
-    let mut engine = GeneticEngine::builder()
-        .codec(codec)
-        .offspring_selector(BoltzmannSelector::new(4.0))
-        .survivor_selector(TournamentSelector::new(3))
-        .fitness_fn(fitness_fn)
-		.alterers(alters!(
-            GaussianMutator::new(0.1),
-		    BlendCrossover::new(0.8, 0.5)
-        )) 
-        .executor(executor)         // Set the executor here
-        // ... other parameters ...
-        .build();
-
-    // Run the engine
-    let result = engine.run(|generation| {
-        generation.index() >= 1000 || generation.score().as_f32() <= 0.01
-    });
+    --8<-- "rust/executors.rs:example"
     ```
 
     You can also use the convenient `.parallel()` method on the engine builder. If the `rayon` feature is enabled, this will set the executor to `WorkerPool`, otherwise it will set it to `FixedSizedWorkerPool(std::thread::available_parallelism().unwrap().get())`.:
 
     ```rust
-    let mut engine = GeneticEngine::builder()
-        // ... other builder methods ...
-        .parallel() 
-        .build();
+    --8<-- "rust/executors.rs:parallel"
     ```
