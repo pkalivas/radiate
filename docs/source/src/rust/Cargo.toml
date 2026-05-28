@@ -43,3 +43,7 @@ path = "alters/rate.rs"
 name = "alters-crossovers"
 path = "alters/crossovers.rs"
 
+[[bin]]
+name = "alters-mutators"
+path = "alters/mutators.rs"
+
