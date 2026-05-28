@@ -45,9 +45,7 @@ $$
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let crossover = BlendCrossover::new(0.1, 0.5);
+    --8<-- "rust/alters/crossovers.rs:blend_crossover"
     ```
 ---
 
@@ -95,9 +93,7 @@ of the two parent `genes`, where the weight is determined by the `alpha` paramet
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let crossover = IntermediateCrossover::new(0.1, 0.5);
+    --8<-- "rust/alters/crossovers.rs:intermediate_crossover"
     ```
 
 ---
@@ -128,9 +124,7 @@ as it promotes a balanced combination of parent traits.
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let crossover = MeanCrossover::new(0.1);
+    --8<-- "rust/alters/crossovers.rs:mean_crossover"
     ```
 
 ---
@@ -159,9 +153,7 @@ classic crossover operator.
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let crossover = MultiPointCrossover::new(0.1, 2);
+    --8<-- "rust/alters/crossovers.rs:multipoint_crossover"
     ```
 
 ---
@@ -201,9 +193,7 @@ where the order of elements in a solution is significant.
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let crossover = PMXCrossover::new(0.1);
+    --8<-- "rust/alters/crossovers.rs:pmx_crossover"
     ```
 
 ---
@@ -241,9 +231,7 @@ The `EdgeRecombinationCrossover` is a specialized crossover operator for permuta
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let crossover = EdgeRecombinationCrossover::new(0.1);
+    --8<-- "rust/alters/crossovers.rs:edge_recombination_crossover"
     ```
 
 ---
@@ -282,9 +270,7 @@ to introduce randomness while preserving valid gene configurations.
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let crossover = ShuffleCrossover::new(0.1);
+    --8<-- "rust/alters/crossovers.rs:shuffle_crossover"
     ```
 
 ---
@@ -312,9 +298,7 @@ The `SimulatedBinaryCrossover` is a crossover operator designed for `FloatGene`s
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let crossover = SimulatedBinaryCrossover::new(0.1, 0.5);
+    --8<-- "rust/alters/crossovers.rs:sbx_crossover"
     ```
 
 ---
@@ -341,7 +325,5 @@ The `UniformCrossover` is a crossover operator creates new individuals by select
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let crossover = UniformCrossover::new(0.1);
+    --8<-- "rust/alters/crossovers.rs:uniform_crossover"
     ```

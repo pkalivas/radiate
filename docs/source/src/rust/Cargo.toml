@@ -21,6 +21,7 @@ dead_code = "allow"
 [dependencies.radiate]
 workspace = true
 
+# Genome 
 [[bin]]
 name = "genome-index"
 path = "genome/index.rs"
@@ -32,3 +33,13 @@ path = "genome/codec.rs"
 [[bin]]
 name = "genome-example"
 path = "genome/example.rs"
+
+# Alters
+[[bin]]
+name = "alters-rate"
+path = "alters/rate.rs"
+
+[[bin]]
+name = "alters-crossovers"
+path = "alters/crossovers.rs"
+
