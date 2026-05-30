@@ -41,7 +41,7 @@ Continuing with our example from the previous sections - evolving a simple funct
     --8<-- "rust/executors.rs:example"
     ```
 
-    You can also use the convenient `.parallel()` method on the engine builder. If the `rayon` feature is enabled, this will set the executor to `WorkerPool`, otherwise it will set it to `FixedSizedWorkerPool(std::thread::available_parallelism().unwrap().get())`.:
+    You can also use the convenient `.parallel()` method on the engine builder. If `rayon` is enabled, this will use `rayon`'s global thread pool, otherwise it will use `radiate`'s internal thread pool with # cpu threads. The performance difference between the two is negligible for our use cases.
 
     ```rust
     --8<-- "rust/executors.rs:parallel"

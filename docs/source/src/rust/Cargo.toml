@@ -83,3 +83,18 @@ path = "diversity/example.rs"
 name = "executors"
 path = "executors.rs"
 
+# Objectives
+[[bin]]
+name = "objectives"
+path = "objectives.rs"
+
+# Fitness
+[[bin]]
+name = "fitness"
+path = "fitness.rs"
+
+# Events
+[[bin]]
+name = "events"
+path = "events.rs"
+

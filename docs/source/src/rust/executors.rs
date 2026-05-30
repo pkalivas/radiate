@@ -39,8 +39,8 @@ fn main() {
         // ... other parameters ...
         .build();
 
-    // Run the engine: stop when score <= 0.01 or after 1000 generations
-    let result = engine.iter().until_score(0.01).take(1000).run();
+    // Run the engine: stop after 1000 generations
+    let result = engine.iter().take(1000).run();
     // --8<-- [end:example]
 
     // --8<-- [start:parallel]
