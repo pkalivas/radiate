@@ -20,7 +20,7 @@ dead_code = "allow"
 
 [dependencies.radiate]
 workspace = true
-features = ["gp", "rayon"]
+features = ["gp", "rayon", "serde"]
 
 # Genome 
 [[bin]]
@@ -97,4 +97,17 @@ path = "fitness.rs"
 [[bin]]
 name = "events"
 path = "events.rs"
+
+# Engine
+[[bin]]
+name = "engine-index"
+path = "engine/index.rs"
+
+[[bin]]
+name = "engine-metrics"
+path = "engine/metrics.rs"
+
+[[bin]]
+name = "engine-expressions"
+path = "engine/expressions.rs"
 
