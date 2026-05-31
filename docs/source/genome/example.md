@@ -31,5 +31,5 @@ Let's look at a basic example of how to use the `Codec` for evolving a simple fu
     engines using methods as seen below. For the duration of the user guide however, we'll use the above method.
 
     ```rust
-    --8<-- "rust/genome/example.rs:chromosome_codec_example"    
+    --8<-- "rust/genome/example.rs:chromosome_codec_example"
     ```

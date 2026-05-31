@@ -184,7 +184,8 @@ Because each `Chromosome` has an associated `Gene`, the built-in chromosomes are
     === ":fontawesome-brands-rust: Rust"
 
         ```rust
-        --8<-- "rust/genome/index.rs:bit_chromosome"        
+        --8<-- "rust/genome/index.rs:bit_chromosome"
+
         ```
 
 ??? info "CharChromosome"
