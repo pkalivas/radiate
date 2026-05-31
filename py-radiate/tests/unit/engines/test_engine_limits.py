@@ -80,7 +80,7 @@ def test_multiple_limits(simple_float_engine):
 @pytest.mark.unit
 def test_expr_limit(simple_float_engine):
     """Test expression-based limit."""
-    limit = rd.select("index") >= 10
+    limit = rd.Expr.select("index") >= 10
 
     result = simple_float_engine.run(rd.Limit.expr(limit))
 

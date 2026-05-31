@@ -140,7 +140,7 @@ from .dtype import (
     Dict,
 )
 
-from .expr import Expr, select, when, lit, element, every, generation
+from .expr import Expr
 
 from .dsl import Select, Mutate, Cross, Dist, Limit
 
@@ -170,12 +170,6 @@ __all__ = [
     "random",
     # Expressions
     "Expr",
-    "select",
-    "when",
-    "lit",
-    "element",
-    "every",
-    "generation",
     # Codecs
     "PermutationCodec",
     "FloatCodec",

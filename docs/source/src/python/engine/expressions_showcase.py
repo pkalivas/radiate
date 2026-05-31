@@ -13,22 +13,22 @@ import radiate as rd
 target_species = 4.0
 rolling = int(target_species)
 
-spec_count_signal = rd.select("count.species").rolling(rolling).mean() / target_species
+spec_count_signal = rd.Expr.select("count.species").rolling(rolling).mean() / target_species
 spec_dist_signal = (
-    rd.select("species.distance").mean().rolling(rolling).mean() / target_species
+    rd.Expr.select("species.distance").mean().rolling(rolling).mean() / target_species
 )
-spec_thresh_signal = rd.select("species.threshold").rolling(rolling).mean()
-spec_evenness_signal = rd.select("species.evenness").rolling(rolling).mean()
+spec_thresh_signal = rd.Expr.select("species.threshold").rolling(rolling).mean()
+spec_evenness_signal = rd.Expr.select("species.evenness").rolling(rolling).mean()
 
 distance_signal = (
-    (rd.lit(0.9) * spec_count_signal)
-    + (rd.lit(0.4) * spec_dist_signal)
-    + (rd.lit(0.2) * spec_thresh_signal)
-    + (rd.lit(0.1) * spec_evenness_signal)
+    (rd.Expr.lit(0.9) * spec_count_signal)
+    + (rd.Expr.lit(0.4) * spec_dist_signal)
+    + (rd.Expr.lit(0.2) * spec_thresh_signal)
+    + (rd.Expr.lit(0.1) * spec_evenness_signal)
 ).clamp(0.01, 10.0)
 
 distance_signal_mean = distance_signal.mean()
-species_count_mean = rd.select("count.species").mean().rolling(10).mean()
+species_count_mean = rd.Expr.select("count.species").mean().rolling(10).mean()
 
 collector = rd.MetricCollector()
 
