@@ -111,3 +111,24 @@ path = "engine/metrics.rs"
 name = "engine-expressions"
 path = "engine/expressions.rs"
 
+# GP
+[[bin]]
+name = "gp-op"
+path = "gp/op.rs"
+
+[[bin]]
+name = "gp-node"
+path = "gp/node.rs"
+
+[[bin]]
+name = "gp-trees"
+path = "gp/trees.rs"
+
+[[bin]]
+name = "gp-graph"
+path = "gp/graph.rs"
+
+[[bin]]
+name = "gp-regression"
+path = "gp/regression.rs"
+
