@@ -149,3 +149,8 @@ path = "misc/checkpoint.rs"
 name = "misc-ui"
 path = "misc/ui.rs"
 
+# Examples
+[[bin]]
+name = "examples-page"
+path = "examples.rs"
+
