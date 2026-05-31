@@ -9,6 +9,10 @@ use radiate_utils::{DataType, dtype_names};
 use radiate_utils::{Float, Integer, SmallStr};
 use serde::{Deserialize, Serialize};
 
+const GRAPH_NODE_NAME: SmallStr = SmallStr::from_static("GraphNode");
+const TREE_NODE_NAME: SmallStr = SmallStr::from_static("TreeNode");
+const OP_FIELD_NAME: SmallStr = SmallStr::from_static("op");
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 enum GeneInner {
     UInt8(IntGene<u8>),
@@ -120,13 +124,13 @@ impl PyGene {
             GeneInner::Bit(_) => Wrap(DataType::Boolean).into_pyobject(py),
             GeneInner::Char(_) => Wrap(DataType::Char).into_pyobject(py),
             GeneInner::GraphNode(_) => Wrap(DataType::Struct(
-                SmallStr::from("GraphNode"),
-                vec![(SmallStr::from("op"), DataType::Float32)],
+                GRAPH_NODE_NAME,
+                vec![(OP_FIELD_NAME, DataType::Float32)],
             ))
             .into_pyobject(py),
             GeneInner::TreeNode(_) => Wrap(DataType::Struct(
-                SmallStr::from("TreeNode"),
-                vec![(SmallStr::from("op"), DataType::Float32)],
+                TREE_NODE_NAME,
+                vec![(OP_FIELD_NAME, DataType::Float32)],
             ))
             .into_pyobject(py),
             GeneInner::Permutation(_) => Wrap(DataType::UInt64).into_pyobject(py),
