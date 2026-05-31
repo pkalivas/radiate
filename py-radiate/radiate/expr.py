@@ -85,7 +85,7 @@ class Expr(RsObject):
 
     An ``Expr`` is a small, composable formula evaluated against the engine's
     live ``MetricSet`` once per generation. Use it to drive adaptive rates
-    (``rd.Rate.dynamic`` / passing an ``Expr`` to ``.diversity(...)``), stopping
+    (``rd.Rate.expr`` / passing an ``Expr`` to ``.diversity(...)``), stopping
     conditions (``rd.Limit.expr``), or derived metrics (``.metrics(...)``).
 
     The class is both the value type and the namespace for building expressions:
@@ -259,7 +259,7 @@ class Expr(RsObject):
         Parameters
         ----------
         metric : str
-            Metric to track. Read via ``last_value``, smoothed over ``window`` gens.
+            Metric to track. Read as a rolling mean over the last ``window`` gens.
         target : float
             Desired equilibrium value of the metric. Must be non-zero.
         gain : float
@@ -310,7 +310,7 @@ class Expr(RsObject):
         return cls.select(metric).streaming_quantile(q)
 
     @classmethod
-    def adaptive_rate(
+    def track(
         cls,
         metric: str,
         target: float,
@@ -318,42 +318,82 @@ class Expr(RsObject):
         anchor: Expr | float = 1.0,
         gain: float = 0.5,
         window: int = 10,
-        lo: float = 0.0,
+        lo: float = 0.0001,
         hi: float = 1.0,
     ) -> Expr:
         """
-        High-level adaptive rate driven by a metric tracking toward a target.
+        High-level adaptive rate that nudges a controlled variable based on how
+        far a metric sits from a target. Equivalent to::
 
-        Bundles the canonical PI-controller-with-clamp pattern into one call.
-        Equivalent to::
+            clamp(
+                anchor * (1 + gain * (rolling_mean(metric, window) - target) / target),
+                lo,
+                hi,
+            )
 
-            clamp(anchor * pi_signal(metric, target, gain, window), lo, hi)
+        i.e. ``clamp(anchor * pi_signal(metric, target, gain, window), lo, hi)``.
 
-        Use this when you want a rate (mutation rate, crossover rate, threshold,
-        etc.) that auto-corrects to keep an observed metric near a target value.
+        Use this for a rate (mutation rate, crossover rate, speciation threshold,
+        etc.) that auto-corrects to hold an observed metric near a target value.
+
+        Choosing the anchor — proportional vs. target-seeking
+        -----------------------------------------------------
+        The ``anchor`` is the reference the correction multiplies, and it
+        determines what kind of controller you get:
+
+        * **Static anchor (a scalar, or a metric unrelated to the output).**
+          Each generation the rate is recomputed from scratch as
+          ``anchor * (1 + gain*error)``. This is a *proportional* controller: it
+          pushes in the right direction but settles at a non-zero steady-state
+          error (it parks *near* the target, not *on* it), since the only way the
+          error reaches zero is if ``anchor`` already happens to equal the
+          output that hits the target.
+        * **Dynamic anchor = the controller's own previous output.** Passing
+          ``anchor = rd.Expr.select("<this rate's metric>").last()`` turns the
+          recurrence into ``out_t = out_{t-1} * (1 + gain*error)``, a
+          multiplicative *integrator*. At steady state ``out_t == out_{t-1}``
+          forces ``error == 0``, so it genuinely seeks the target with no offset.
+          This requires the engine to record the rate's output as a metric the
+          next generation can read (the speciation threshold is recorded as
+          ``species.threshold``).
+
+          **With this self-referential form, ``lo`` must be strictly positive.**
+          Zero is an absorbing state: on the first generation the metric is not
+          yet recorded, so the anchor is ``Null`` and clamps to ``lo``; if that
+          seed is ``0`` then every later step is ``0 * signal == 0`` and the
+          controller is stuck at zero forever. ``lo`` doubles as both the
+          minimum output and the generation-zero seed, so keep it small but
+          non-zero (the default ``0.0001`` is safe).
 
         Parameters
         ----------
         metric : str
-            Metric to observe (read via ``last_value``).
+            Metric to observe. Read as a rolling mean over ``window`` generations
+            (not the raw last value), so the controller reacts to a smoothed
+            signal rather than single-generation noise.
         target : float
             Desired equilibrium value of the metric. Must be non-zero.
         anchor : Expr or float, default 1.0
-            Natural magnitude of the controlled variable. If a scalar, the rate
-            oscillates around ``anchor``. If an Expr (e.g. another metric or a
-            rolling stat), the anchor itself varies over time.
+            Reference the correction multiplies. A scalar (or unrelated Expr)
+            gives a proportional controller; the rate's own previous output gives
+            a target-seeking integrator. See the discussion above.
         gain : float, default 0.5
-            Correction aggressiveness. 0 = no response, 1.0+ may oscillate.
+            Correction aggressiveness. 0 = no response; ~0.1–0.5 is a sane band;
+            1.0+ may oscillate, especially with an integrating anchor.
         window : int, default 10
-            Rolling-mean smoothing window for the metric.
-        lo, hi : float
-            Clamp bounds on the final rate.
+            Rolling-mean smoothing window for the metric. Larger = smoother but
+            adds loop lag (more oscillation risk with an integrating anchor).
+        lo, hi : float, default 0.0001 and 1.0
+            Clamp bounds on the final rate. ``lo`` must be ``> 0`` when the
+            anchor is the controller's own previous output (see above) — it is
+            both the floor and the generation-zero seed, and a zero seed traps
+            the integrator at zero.
 
         Examples
         --------
-        Scalar anchor — rate centered at 0.1, corrected by ±50%::
+        Proportional — rate centered at 0.1, corrected by the score error::
 
-            rate = rd.Expr.adaptive_rate(
+            rate = rd.Expr.track(
                 "scores.best",
                 target=0.0,
                 anchor=0.1,
@@ -363,15 +403,16 @@ class Expr(RsObject):
                 hi=0.3,
             )
 
-        Dynamic anchor — rate tracks an observed magnitude::
+        Target-seeking — hold the species count near 8 by driving the speciation
+        threshold, anchored on its own previous value so it converges with no
+        steady-state offset::
 
-            anchor = rd.Expr.select("species.distance").rolling(10).max()
-            rate = rd.Expr.adaptive_rate(
+            threshold = rd.Expr.track(
                 "count.species",
                 target=8.0,
-                anchor=anchor,
-                gain=0.5,
-                window=10,
+                anchor=rd.Expr.select("species.threshold").last(),
+                gain=0.3,
+                window=8,
                 lo=0.005,
                 hi=2.0,
             )

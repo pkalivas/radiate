@@ -101,7 +101,7 @@ def test_constructors_live_on_expr_namespace():
         "p95",
         "p99",
         "quantile_stream",
-        "adaptive_rate",
+        "track",
     ):
         assert hasattr(rd.Expr, name), f"rd.Expr.{name} should exist"
 
