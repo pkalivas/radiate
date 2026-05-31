@@ -81,13 +81,27 @@ class Every(RsObject):
 
 class Expr(RsObject):
     """
-    Base class for all expressions in the Radiate DSL. This class serves as a wrapper around Rust
-    expressions, allowing them to be used seamlessly in Python.
+    A node in the Radiate metric-expression DSL.
 
-    Parameters
-    ----------
-    rs_expr
-        The underlying Rust expression object that this Python `Expr` wraps.
+    An ``Expr`` is a small, composable formula evaluated against the engine's
+    live ``MetricSet`` once per generation. Use it to drive adaptive rates
+    (``rd.Rate.dynamic`` / passing an ``Expr`` to ``.diversity(...)``), stopping
+    conditions (``rd.Limit.expr``), or derived metrics (``.metrics(...)``).
+
+    The class is both the value type and the namespace for building expressions:
+
+    * **Constructors** are classmethods that start a new expression —
+      :meth:`select`, :meth:`lit`, :meth:`when`, :meth:`every`,
+      :meth:`generation`, :meth:`pi_signal`, and friends.
+    * **Combinators** are instance methods that transform an existing expression
+      — :meth:`rolling`, :meth:`mean`, :meth:`clamp`, the arithmetic
+      (``+ - * / **``) and comparison (``< <= > >= == !=``) operators, etc.
+
+    Examples
+    --------
+    >>> import radiate as rd
+    >>> # smoothed relative error of the species count vs a target of 8
+    >>> rd.Expr.select("count.species").rolling(10).mean().error(8.0)
     """
 
     def __repr__(self) -> str:
@@ -95,6 +109,281 @@ class Expr(RsObject):
 
     def __str__(self) -> str:
         return self.__backend__().__str__()
+
+    # ── construction (classmethods) ─────────────────────────────────────────
+
+    @classmethod
+    def select(cls, metric: str) -> Expr:
+        """
+        Read a metric by name. Defaults to the metric's last recorded value;
+        chain an aggregation (:meth:`mean`, :meth:`max`, ...) to read a stat.
+
+        >>> import radiate as rd
+        >>> rd.Expr.select("scores.best")
+        """
+        return cls.from_rust(PyExpr.select(metric))
+
+    @classmethod
+    def lit(cls, value: float | int | str) -> Expr:
+        """
+        A literal constant.
+
+        >>> import radiate as rd
+        >>> rd.Expr.lit(0.01)
+        """
+        return cls.from_rust(PyExpr.literal(value))
+
+    @classmethod
+    def when(cls, condition: Expr) -> When:
+        """
+        Begin a conditional. Pair with ``.then(...).otherwise(...)``.
+
+        >>> import radiate as rd
+        >>> (
+        ...     rd.Expr.when(rd.Expr.select("scores.best") < 0.01)
+        ...     .then(rd.Expr.select("scores.best").mean())
+        ...     .otherwise(rd.Expr.lit(1.0))
+        ... )
+        """
+        return When(condition=condition)
+
+    @classmethod
+    def every(cls, interval: int) -> Every:
+        """
+        A schedule that is "active" every ``interval`` generations. Pair with
+        ``.then(...).otherwise(...)`` to switch between two expressions.
+
+        >>> import radiate as rd
+        >>> (
+        ...     rd.Expr.every(10)
+        ...     .then(rd.Expr.select("scores.best").rolling(10).stddev())
+        ...     .otherwise(rd.Expr.select("scores.best"))
+        ... )
+        """
+        return Every(interval=interval)
+
+    @classmethod
+    def element(cls) -> Expr:
+        """The current element being evaluated (for element-wise contexts)."""
+        return cls.from_rust(PyExpr.element())
+
+    @classmethod
+    def generation(cls) -> Expr:
+        """
+        The current generation index.
+
+        >>> import radiate as rd
+        >>> rd.Expr.generation()
+        """
+        return cls.from_rust(PyExpr.select("index"))
+
+    @classmethod
+    def error_from(cls, metric: str, target: float) -> Expr:
+        """
+        Relative error from a target: ``(metric - target) / target``.
+
+        Reads ``metric.last_value`` and computes a signed normalized error.
+        Fuses to a single Affine node.
+
+        Parameters
+        ----------
+        metric : str
+            Name of the metric to read.
+        target : float
+            Reference value. Must be non-zero.
+        """
+        return cls.from_rust(PyExpr.error_from(metric, target))
+
+    @classmethod
+    def is_converged(cls, metric: str, window: int, epsilon: float) -> Expr:
+        """
+        Bool. True when ``|first - last|`` over a rolling window of size
+        ``window`` falls below ``epsilon``.
+
+        Useful as an early-stop limit:
+
+        >>> import radiate as rd
+        >>> rd.Limit.expr(rd.Expr.is_converged("scores.best", 50, 1e-4))
+        """
+        return cls.from_rust(PyExpr.is_converged(metric, window, epsilon))
+
+    @classmethod
+    def stagnation(cls, metric: str, epsilon: float = 1e-4) -> Expr:
+        """
+        Counter: number of consecutive generations during which
+        ``metric.last_value`` has stayed within ``epsilon`` of the last value
+        considered an improvement. Resets to 0 on any change > ``epsilon``.
+
+        Returns a Float32 counter, suitable for comparison via ``.gt()`` / ``.gte()``.
+        """
+        return cls.from_rust(PyExpr.stagnation(metric, epsilon))
+
+    @classmethod
+    def is_stagnant(cls, metric: str, patience: int, epsilon: float = 1e-4) -> Expr:
+        """
+        Bool. True when ``stagnation(metric, epsilon) >= patience``.
+
+        Common pattern: gate a mutation-rate boost on this condition.
+
+        >>> import radiate as rd
+        >>> mut_rate = (
+        ...     rd.Expr.when(rd.Expr.is_stagnant("scores.best", patience=20))
+        ...     .then(rd.Expr.lit(0.30))
+        ...     .otherwise(rd.Expr.lit(0.05))
+        ... )
+        """
+        return cls.from_rust(PyExpr.is_stagnant(metric, patience, epsilon))
+
+    @classmethod
+    def pi_signal(cls, metric: str, target: float, gain: float, window: int) -> Expr:
+        """
+        Adaptive correction signal centered at 1.0.
+
+        Evaluates each generation to::
+
+            signal = 1 + gain * (rolling_mean(metric, window) - target) / target
+
+        Interpretation
+        --------------
+        - metric ≈ target  →  signal ≈ 1.0  (no correction)
+        - metric > target  →  signal > 1.0  (push controlled variable up)
+        - metric < target  →  signal < 1.0  (push down)
+
+        Use as a multiplier on the variable you want to control:
+
+        >>> import radiate as rd
+        >>> anchor = rd.Expr.select("species.distance").rolling(10).max()
+        >>> signal = rd.Expr.pi_signal("count.species", target=8, gain=0.5, window=10)
+        >>> threshold = (anchor * signal).clamp(0.005, 2.0)
+
+        Parameters
+        ----------
+        metric : str
+            Metric to track. Read via ``last_value``, smoothed over ``window`` gens.
+        target : float
+            Desired equilibrium value of the metric. Must be non-zero.
+        gain : float
+            Correction aggressiveness. 0 = no response, 0.5 is a typical starting
+            point, 1.0+ may oscillate.
+        window : int
+            Rolling-mean smoothing window.
+
+        Notes
+        -----
+        Structurally a proportional controller with a smoothed input. Loosely
+        called "PI" because the rolling mean approximates an integral over the
+        window, but no accumulating integral state is kept. For a true
+        target-seeking controller, multiply ``pi_signal`` by the controller's
+        own previous output (e.g. ``rd.Expr.select("species.threshold").last()``)
+        rather than a static anchor.
+        """
+        return cls.from_rust(PyExpr.pi_signal(metric, target, gain, window))
+
+    @classmethod
+    def p50(cls, metric: str) -> Expr:
+        """
+        Streaming median (P²) of a metric. Constant memory; sees every observation
+        since the expression was constructed. For an exact windowed median, use
+        ``rd.Expr.select(metric).rolling(N).quantile(0.5)``.
+        """
+        return cls.from_rust(PyExpr.p50(metric))
+
+    @classmethod
+    def p95(cls, metric: str) -> Expr:
+        """Streaming 95th-percentile (P²) of a metric."""
+        return cls.from_rust(PyExpr.p95(metric))
+
+    @classmethod
+    def p99(cls, metric: str) -> Expr:
+        """Streaming 99th-percentile (P²) of a metric."""
+        return cls.from_rust(PyExpr.p99(metric))
+
+    @classmethod
+    def quantile_stream(cls, metric: str, q: float) -> Expr:
+        """
+        Streaming P² quantile estimator for an arbitrary ``q`` in ``(0, 1)``.
+
+        Constant memory, constant per-update time. Approximate but accurate for
+        unimodal distributions. For exact quantiles over a recent window, use
+        ``rd.Expr.select(metric).rolling(N).quantile(q)``.
+        """
+        return cls.select(metric).streaming_quantile(q)
+
+    @classmethod
+    def adaptive_rate(
+        cls,
+        metric: str,
+        target: float,
+        *,
+        anchor: Expr | float = 1.0,
+        gain: float = 0.5,
+        window: int = 10,
+        lo: float = 0.0,
+        hi: float = 1.0,
+    ) -> Expr:
+        """
+        High-level adaptive rate driven by a metric tracking toward a target.
+
+        Bundles the canonical PI-controller-with-clamp pattern into one call.
+        Equivalent to::
+
+            clamp(anchor * pi_signal(metric, target, gain, window), lo, hi)
+
+        Use this when you want a rate (mutation rate, crossover rate, threshold,
+        etc.) that auto-corrects to keep an observed metric near a target value.
+
+        Parameters
+        ----------
+        metric : str
+            Metric to observe (read via ``last_value``).
+        target : float
+            Desired equilibrium value of the metric. Must be non-zero.
+        anchor : Expr or float, default 1.0
+            Natural magnitude of the controlled variable. If a scalar, the rate
+            oscillates around ``anchor``. If an Expr (e.g. another metric or a
+            rolling stat), the anchor itself varies over time.
+        gain : float, default 0.5
+            Correction aggressiveness. 0 = no response, 1.0+ may oscillate.
+        window : int, default 10
+            Rolling-mean smoothing window for the metric.
+        lo, hi : float
+            Clamp bounds on the final rate.
+
+        Examples
+        --------
+        Scalar anchor — rate centered at 0.1, corrected by ±50%::
+
+            rate = rd.Expr.adaptive_rate(
+                "scores.best",
+                target=0.0,
+                anchor=0.1,
+                gain=0.5,
+                window=10,
+                lo=0.01,
+                hi=0.3,
+            )
+
+        Dynamic anchor — rate tracks an observed magnitude::
+
+            anchor = rd.Expr.select("species.distance").rolling(10).max()
+            rate = rd.Expr.adaptive_rate(
+                "count.species",
+                target=8.0,
+                anchor=anchor,
+                gain=0.5,
+                window=10,
+                lo=0.005,
+                hi=2.0,
+            )
+        """
+        signal = cls.pi_signal(metric, target, gain, window)
+        if isinstance(anchor, Expr):
+            product = anchor * signal
+        else:
+            product = signal * float(anchor)
+        return product.clamp(lo, hi)
+
+    # ── operator overloads ──────────────────────────────────────────────────
 
     def __lt__(self, other):
         return self.lt(other)
@@ -143,6 +432,8 @@ class Expr(RsObject):
 
     def __truediv__(self, other):
         return self.div(other)
+
+    # ── combinators (instance methods) ───────────────────────────────────────
 
     def apply(self, value: Any) -> Any:
         """
@@ -199,9 +490,6 @@ class Expr(RsObject):
     def unique(self) -> Expr:
         return Expr.from_rust(self.__backend__().unique())
 
-    def literal(self, value: float | int | str) -> Expr:
-        return Expr.from_rust(PyExpr.literal(value))
-
     def debug(self) -> Expr:
         return Expr.from_rust(self.__backend__().debug())
 
@@ -239,12 +527,6 @@ class Expr(RsObject):
     def clamp(self, min: Expr | float | int, max: Expr | float | int) -> Expr:
         return Expr.from_rust(self.__backend__().clamp_(_coerce(min), _coerce(max)))
 
-    def when(self, condition: Expr) -> When:
-        return When(condition=condition)
-
-    def every(self, interval: int) -> When:
-        return When(condition=PyExpr.every(interval))
-
     def cast(self, to: RdDataType) -> Expr:
         return Expr.from_rust(self.__backend__().cast(str(to)))
 
@@ -255,7 +537,7 @@ class Expr(RsObject):
         Fuses into a single Affine node. Useful after a rolling mean
         or other transform to compute signed error:
 
-            select("count.species").rolling(10).mean().error(8.0)
+            rd.Expr.select("count.species").rolling(10).mean().error(8.0)
         """
         return Expr.from_rust(self.__backend__().error(target))
 
@@ -287,7 +569,7 @@ class Expr(RsObject):
         a binary op, etc.:
 
             # streaming p95 of a 20-gen rolling mean
-            select("scores.best").rolling(20).mean().streaming_quantile(0.95)
+            rd.Expr.select("scores.best").rolling(20).mean().streaming_quantile(0.95)
 
         For an exact quantile over a recent window, use `.rolling(N).quantile(q)`.
 
@@ -297,240 +579,3 @@ class Expr(RsObject):
             Quantile to track, in the open interval (0, 1).
         """
         return Expr.from_rust(self.__backend__().streaming_quantile(q))
-
-
-def mean(metric_name: str) -> Expr:
-    return select(metric_name).mean()
-
-
-def min(metric_name: str) -> Expr:
-    return select(metric_name).min()
-
-
-def max(metric_name: str) -> Expr:
-    return select(metric_name).max()
-
-
-def stddev(metric_name: str) -> Expr:
-    return select(metric_name).stddev()
-
-
-def select(metric: str) -> Expr:
-    return Expr.from_rust(PyExpr.select(metric))
-
-
-def when(condition: Expr) -> When:
-    return When(condition=condition)
-
-
-def lit(value: float | int | str) -> Expr:
-    return Expr.from_rust(PyExpr.literal(value))
-
-
-def element() -> Expr:
-    return Expr.from_rust(PyExpr.element())
-
-
-def every(interval: int) -> Every:
-    return Every(interval=interval)
-
-
-def generation() -> Expr:
-    return Expr.from_rust(PyExpr.select("index"))
-
-
-# ─── Metric-based constructors ──────────────────────────────────────────────
-
-
-def error_from(metric: str, target: float) -> Expr:
-    """
-    Relative error from a target: ``(metric - target) / target``.
-
-    Reads ``metric.last_value`` and computes a signed normalized error.
-    Fuses to a single Affine node.
-
-    Parameters
-    ----------
-    metric : str
-        Name of the metric to read.
-    target : float
-        Reference value. Must be non-zero.
-    """
-    return Expr.from_rust(PyExpr.error_from(metric, target))
-
-
-def is_converged(metric: str, window: int, epsilon: float) -> Expr:
-    """
-    Bool. True when ``|first - last|`` over a rolling window of size
-    ``window`` falls below ``epsilon``.
-
-    Useful as an early-stop limit:
-
-        engine.iter().limit(Limit.expr(is_converged("scores.best", 50, 1e-4)))
-    """
-    return Expr.from_rust(PyExpr.is_converged(metric, window, epsilon))
-
-
-def stagnation(metric: str, epsilon: float = 1e-4) -> Expr:
-    """
-    Counter: number of consecutive generations during which
-    ``metric.last_value`` has stayed within ``epsilon`` of the last value
-    considered an improvement. Resets to 0 on any change > ``epsilon``.
-
-    Returns a Float32 counter, suitable for comparison via ``.gt()`` / ``.gte()``.
-    """
-    return Expr.from_rust(PyExpr.stagnation(metric, epsilon))
-
-
-def is_stagnant(metric: str, patience: int, epsilon: float = 1e-4) -> Expr:
-    """
-    Bool. True when ``stagnation(metric, epsilon) >= patience``.
-
-    Common pattern: gate a mutation-rate boost on this condition.
-
-        mut_rate = when(is_stagnant("scores.best", patience=20))
-            .then(lit(0.30))
-            .otherwise(lit(0.05))
-    """
-    return Expr.from_rust(PyExpr.is_stagnant(metric, patience, epsilon))
-
-
-def pi_signal(metric: str, target: float, gain: float, window: int) -> Expr:
-    """
-    Adaptive correction signal centered at 1.0.
-
-    Evaluates each generation to::
-
-        signal = 1 + gain * (rolling_mean(metric, window) - target) / target
-
-    Interpretation
-    --------------
-    - metric ≈ target  →  signal ≈ 1.0  (no correction)
-    - metric > target  →  signal > 1.0  (push controlled variable up)
-    - metric < target  →  signal < 1.0  (push down)
-
-    Use as a multiplier on the variable you want to control:
-
-        anchor = select("species.distance").rolling(10).max()
-        signal = pi_signal("count.species", target=8, gain=0.5, window=10)
-        threshold = (anchor * signal).clamp(0.005, 2.0)
-
-    Parameters
-    ----------
-    metric : str
-        Metric to track. Read via ``last_value``, smoothed over ``window`` gens.
-    target : float
-        Desired equilibrium value of the metric. Must be non-zero.
-    gain : float
-        Correction aggressiveness. 0 = no response, 0.5 is a typical starting
-        point, 1.0+ may oscillate.
-    window : int
-        Rolling-mean smoothing window.
-
-    Notes
-    -----
-    Structurally a proportional controller with a smoothed input. Loosely
-    called "PI" because the rolling mean approximates an integral over the
-    window, but no accumulating integral state is kept.
-    """
-    return Expr.from_rust(PyExpr.pi_signal(metric, target, gain, window))
-
-
-def p50(metric: str) -> Expr:
-    """
-    Streaming median (P²) of a metric. Constant memory; sees every observation
-    since the expression was constructed. For an exact windowed median, use
-    ``select(metric).rolling(N).quantile(0.5)``.
-    """
-    return Expr.from_rust(PyExpr.p50(metric))
-
-
-def p95(metric: str) -> Expr:
-    """Streaming 95th-percentile (P²) of a metric."""
-    return Expr.from_rust(PyExpr.p95(metric))
-
-
-def p99(metric: str) -> Expr:
-    """Streaming 99th-percentile (P²) of a metric."""
-    return Expr.from_rust(PyExpr.p99(metric))
-
-
-def quantile_stream(metric: str, q: float) -> Expr:
-    """
-    Streaming P² quantile estimator for an arbitrary ``q`` in ``(0, 1)``.
-
-    Constant memory, constant per-update time. Approximate but accurate for
-    unimodal distributions. For exact quantiles over a recent window, use
-    ``select(metric).rolling(N).quantile(q)``.
-    """
-    return Expr.from_rust(select(metric).__backend__().streaming_quantile(q))
-
-
-# ─── High-level controller helper ───────────────────────────────────────────
-
-
-def adaptive_rate(
-    metric: str,
-    target: float,
-    *,
-    anchor: Expr | float = 1.0,
-    gain: float = 0.5,
-    window: int = 10,
-    lo: float = 0.0,
-    hi: float = 1.0,
-) -> Expr:
-    """
-    High-level adaptive rate driven by a metric tracking toward a target.
-
-    Bundles the canonical PI-controller-with-clamp pattern into one call.
-    Equivalent to::
-
-        clamp(anchor * pi_signal(metric, target, gain, window), lo, hi)
-
-    Use this when you want a rate (mutation rate, crossover rate, threshold,
-    etc.) that auto-corrects to keep an observed metric near a target value.
-
-    Parameters
-    ----------
-    metric : str
-        Metric to observe (read via ``last_value``).
-    target : float
-        Desired equilibrium value of the metric. Must be non-zero.
-    anchor : Expr or float, default 1.0
-        Natural magnitude of the controlled variable. If a scalar, the rate
-        oscillates around ``anchor``. If an Expr (e.g. another metric or a
-        rolling stat), the anchor itself varies over time.
-    gain : float, default 0.5
-        Correction aggressiveness. 0 = no response, 1.0+ may oscillate.
-    window : int, default 10
-        Rolling-mean smoothing window for the metric.
-    lo, hi : float
-        Clamp bounds on the final rate.
-
-    Examples
-    --------
-    Scalar anchor — rate centered at 0.1, corrected by ±50%::
-
-        rate = adaptive_rate(
-            "scores.best", target=0.0, anchor=0.1, gain=0.5, window=10, lo=0.01, hi=0.3
-        )
-
-    Dynamic anchor — rate tracks an observed magnitude::
-
-        anchor = select("species.distance").rolling(10).max()
-        rate = adaptive_rate(
-            "count.species",
-            target=8.0,
-            anchor=anchor,
-            gain=0.5,
-            window=10,
-            lo=0.005,
-            hi=2.0,
-        )
-    """
-    signal = pi_signal(metric, target, gain, window)
-    if isinstance(anchor, Expr):
-        product = anchor * signal
-    else:
-        product = signal * float(anchor)
-    return product.clamp(lo, hi)

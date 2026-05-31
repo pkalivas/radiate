@@ -12,19 +12,19 @@ def my_fitness_fn(x):
 import radiate as rd
 
 # Select a metric by name. By default this reads the last recorded value.
-score = rd.select("scores.best")
+score = rd.Expr.select("scores.best")
 
 # A literal constant
-threshold = rd.lit(0.01)
+threshold = rd.Expr.lit(0.01)
 
 # The current generation index
-gen = rd.generation()
+gen = rd.Expr.generation()
 # --8<-- [end:building]
 
 # --8<-- [start:aggregations]
 import radiate as rd
 
-score = rd.select("scores.best")
+score = rd.Expr.select("scores.best")
 
 score.last()  # last recorded value (default)
 score.mean()  # running mean of all values seen
@@ -47,7 +47,7 @@ score.rolling(100).slope()  # slope over a 100-generation window
 # --8<-- [start:comparisons]
 import radiate as rd
 
-score = rd.select("scores.best")
+score = rd.Expr.select("scores.best")
 
 # Comparisons — Python operators work directly. Each produces a Bool expression.
 below = score < 0.01
@@ -58,8 +58,8 @@ equal = score == 0.5
 not_equal = score != 0.5
 
 # Boolean logic combines Bool expressions
-both = (score < 0.01) & (rd.select("index") > 50)  # and
-either = (score < 0.01) | (rd.select("time") > 10.0)  # or
+both = (score < 0.01) & (rd.Expr.select("index") > 50)  # and
+either = (score < 0.01) | (rd.Expr.select("time") > 10.0)  # or
 negated = ~(score < 0.01)  # not
 
 # A range check is just two comparisons (an inclusive "between")
@@ -69,8 +69,8 @@ in_range = (score >= 0.0) & (score <= 1.0)
 # --8<-- [start:arithmetic]
 import radiate as rd
 
-a = rd.select("scores.best")
-b = rd.select("score.volatility")
+a = rd.Expr.select("scores.best")
+b = rd.Expr.select("score.volatility")
 
 added = a + b
 subtracted = a - b
@@ -87,9 +87,9 @@ import radiate as rd
 
 # If the best score is below 0.01, use its mean; otherwise use a fallback literal
 expr = (
-    rd.when(rd.select("scores.best") < 0.01)
-    .then(rd.select("scores.best").mean())
-    .otherwise(rd.lit(1.0))
+    rd.Expr.when(rd.Expr.select("scores.best") < 0.01)
+    .then(rd.Expr.select("scores.best").mean())
+    .otherwise(rd.Expr.lit(1.0))
 )
 # --8<-- [end:conditional]
 
@@ -99,9 +99,9 @@ import radiate as rd
 # Compute a rolling stddev but only report it every 10 generations;
 # otherwise return the last value.
 expr = (
-    rd.every(10)
-    .then(rd.select("scores.best").rolling(10).stddev())
-    .otherwise(rd.select("scores.best"))
+    rd.Expr.every(10)
+    .then(rd.Expr.select("scores.best").rolling(10).stddev())
+    .otherwise(rd.Expr.select("scores.best"))
 )
 # --8<-- [end:schedule]
 
@@ -109,10 +109,10 @@ expr = (
 import radiate as rd
 
 # Mean of the time metric, interpreted as a duration
-rd.select("time").time().mean()
+rd.Expr.select("time").time().mean()
 
 # Count of evaluations as a number
-rd.select("count.evaluation").count()
+rd.Expr.select("count.evaluation").count()
 # --8<-- [end:querying]
 
 # --8<-- [start:limit_expr]
@@ -121,14 +121,14 @@ import radiate as rd
 engine = rd.Engine.float(10, init_range=(-5.0, 5.0)).fitness(my_fitness_fn).minimizing()
 
 # Stop when the best score has been below 0.01 on average over the last 50 generations
-stop_expr = rd.select("scores.best").rolling(50).mean() < 0.01
+stop_expr = rd.Expr.select("scores.best").rolling(50).mean() < 0.01
 
 result = engine.run(rd.Limit.expr(stop_expr))
 # --8<-- [end:limit_expr]
 
 # Rebuild the engine + stop_expr (not shown) so the combined-limit snippet below is runnable.
 engine = rd.Engine.float(10, init_range=(-5.0, 5.0)).fitness(my_fitness_fn).minimizing()
-stop_expr = rd.select("scores.best").rolling(50).mean() < 0.01
+stop_expr = rd.Expr.select("scores.best").rolling(50).mean() < 0.01
 
 # --8<-- [start:limit_combined]
 result = engine.run(
@@ -140,10 +140,10 @@ result = engine.run(
 # --8<-- [start:derived_metrics]
 import radiate as rd
 
-score_trend = rd.select("scores.best").rolling(20).slope()
+score_trend = rd.Expr.select("scores.best").rolling(20).slope()
 score_cv = (
-    rd.select("scores.best").rolling(20).stddev()
-    / rd.select("scores.best").rolling(20).mean()
+    rd.Expr.select("scores.best").rolling(20).stddev()
+    / rd.Expr.select("scores.best").rolling(20).mean()
 )
 
 engine = (
@@ -169,11 +169,11 @@ engine = (
     rd.Engine.float(10, init_range=(-5.0, 5.0))
     .fitness(my_fitness_fn)
     .minimizing()
-    .metrics(score_trend=rd.select("scores.best").rolling(50).slope())
+    .metrics(score_trend=rd.Expr.select("scores.best").rolling(50).slope())
 )
 
 result = engine.run(
-    rd.Limit.expr(abs(rd.select("score_trend")) < 0.0001),
+    rd.Limit.expr(abs(rd.Expr.select("score_trend")) < 0.0001),
     rd.Limit.generations(5000),
 )
 # --8<-- [end:derived_metrics_limit]
@@ -182,7 +182,7 @@ result = engine.run(
 import radiate as rd
 
 # Start aggressive, decay as volatility drops
-dynamic_rate = rd.select("score.volatility").rolling(20).mean().clamp(0.01, 0.5)
+dynamic_rate = rd.Expr.select("score.volatility").rolling(20).mean().clamp(0.01, 0.5)
 
 engine = (
     rd.Engine.float(10, init_range=(-5.0, 5.0))

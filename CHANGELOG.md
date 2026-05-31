@@ -16,8 +16,16 @@ adheres to semantic versioning.
   `expression::expr`). No separate dependency is required.
 - **Removed the `lineage` module** from `radiate-core`. `Lineage`,
   `LineageEvent`, and `LineageUpdate` are no longer part of the public API.
-- **Python: `rd.metric(...)` is now `rd.select(...)`** when referencing a
-  metric inside an expression. The old name has been removed.
+- **Python: expression DSL constructors moved onto `rd.Expr`.** The flat
+  module functions (`rd.select`, `rd.when`, `rd.lit`, `rd.every`,
+  `rd.generation`, `rd.element`, `rd.pi_signal`, `rd.adaptive_rate`,
+  `rd.error_from`, `rd.is_converged`, `rd.stagnation`, `rd.is_stagnant`,
+  `rd.p50/p95/p99`, `rd.quantile_stream`) are now classmethods on `Expr`
+  (`rd.Expr.select(...)`, `rd.Expr.when(...)`, etc.), matching the library's
+  `rd.Noun.factory` convention and keeping the `rd.*` namespace free of names
+  that shadowed builtins. The redundant `rd.mean/min/max/stddev(metric)`
+  shorthands were dropped — use `rd.Expr.select(metric).mean()`. Expressions
+  remain experimental; no back-compat aliases are kept.
 
 ### Added
 
