@@ -52,9 +52,7 @@ The `EliteSelector` is a selection strategy that selects the top `n` individuals
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let selector = EliteSelector::new();
+    --8<-- "rust/selectors/index.rs:elite_selector"
     ```
 
 ---
@@ -78,9 +76,7 @@ Create a new `TournamentSelector` with a tournament size of 3
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let selector = TournamentSelector::new(3);
+    --8<-- "rust/selectors/index.rs:tournament_selector"
     ```
 
 ---
@@ -110,9 +106,7 @@ This is an extremely popular selection strategy due to its simplicity and effect
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let selector = RouletteSelector::new();
+    --8<-- "rust/selectors/index.rs:roulette_selector"
     ```
 
 ---
@@ -138,9 +132,7 @@ As the temperature decreases, the selection process becomes more deterministic, 
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let selector = BoltzmannSelector::new(4_f32);
+    --8<-- "rust/selectors/index.rs:boltzmann_selector"
     ```
 ---
 
@@ -161,9 +153,7 @@ The `NSGA2Selector` is a selection strategy used in multi-objective optimization
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let selector = NSGA2Selector::new();
+    --8<-- "rust/selectors/index.rs:nsga2_selector"
     ```
 
 ---
@@ -183,9 +173,7 @@ The `NSGA3Selector` is a selection strategy used in multi-objective optimization
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let selector = NSGA3Selector::new(12);
+    --8<-- "rust/selectors/index.rs:nsga3_selector"
     ```
 
 ---
@@ -206,9 +194,7 @@ The `TournamentNSGA2Selector` is a selection strategy that combines the principl
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let selector = TournamentNSGA2Selector::new();
+    --8<-- "rust/selectors/index.rs:tournament_nsga2_selector"
     ```
 
 ---
@@ -236,9 +222,7 @@ Stochastic Universal Sampling (SUS) is a probabilistic selection technique used 
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let selector = StochasticUniversalSamplingSelector::new();
+    --8<-- "rust/selectors/index.rs:stochastic_sampling_selector"
     ```
 
 ---
@@ -256,9 +240,7 @@ The `RankSelector` is a selection strategy that selects individuals from the `po
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let selector = RankSelector::new();
+    --8<-- "rust/selectors/index.rs:rank_selector"
     ```
 
 ---
@@ -297,9 +279,7 @@ Because selection depends only on rank — not on the spread of the raw fitness 
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let selector = LinearRankSelector::new(0.1);
+    --8<-- "rust/selectors/index.rs:linear_rank_selector"
     ```
 
 ---
@@ -317,9 +297,7 @@ The `RandomSelector` is a selection strategy that selects individuals from the `
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let selector = RandomSelector::new();
+    --8<-- "rust/selectors/index.rs:random_selector"
     ```
 
 ---

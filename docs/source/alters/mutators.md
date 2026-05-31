@@ -37,10 +37,7 @@ The most basic mutation operator. It randomly replaces a gene with a new instanc
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let mutator = UniformMutator::new(0.1);
-    let mutator = UniformMutator::from(Rate::fixed(0.1));
+    --8<-- "rust/alters/mutators.rs:uniform_mutator"
     ```
 
 ---
@@ -67,9 +64,7 @@ The `GaussianMutator` operator is a mutation mechanism designed for `ArithmeticG
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let mutator = GaussianMutator::new(0.1);
+    --8<-- "rust/alters/mutators.rs:gaussian_mutator"
     ```
 
 ---
@@ -100,9 +95,7 @@ The `ArithmeticMutator` introduces diversity into genetic algorithms by mutating
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let mutator = ArithmeticMutator::new(0.1);
+    --8<-- "rust/alters/mutators.rs:arithmetic_mutator"
     ```
 
 ---
@@ -129,9 +122,7 @@ The `SwapMutator` is a mutation operator designed for genetic algorithms to swap
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let mutator = SwapMutator::new(0.1);
+    --8<-- "rust/alters/mutators.rs:swap_mutator"
     ```
 
 ---
@@ -158,9 +149,7 @@ The `ScrambleMutator` randomly reorders a segment of `genes` within a `chromosom
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let mutator = ScrambleMutator::new(0.1);
+    --8<-- "rust/alters/mutators.rs:scramble_mutator"
     ```
 
 ---
@@ -187,9 +176,7 @@ The `ScrambleMutator` randomly reorders a segment of `genes` within a `chromosom
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let mutator = InversionMutator::new(0.1);
+    --8<-- "rust/alters/mutators.rs:invert_mutator"
     ```
 
 ---
@@ -219,9 +206,7 @@ The `eta` parameter controls the shape of the mutation distribution. A higher `e
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let mutator = PolynomialMutator::new(0.1, 20.0);
+    --8<-- "rust/alters/mutators.rs:polynomial_mutator"
     ```
 
 ---
@@ -249,7 +234,5 @@ The `JitterMutator` adds small random perturbations to the values of a `gene` wi
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let mutator = JitterMutator::new(0.1, 0.5);
+    --8<-- "rust/alters/mutators.rs:jitter_mutator"
     ```

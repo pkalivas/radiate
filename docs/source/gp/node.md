@@ -32,12 +32,12 @@ Each node type is defined by the `NodeType` enum:
 
     ```rust
     pub enum NodeType {
-        Root,    // Tree-specific
-        Vertex,  // Both trees and graphs
-        Leaf,    // Tree-specific
         Input,   // Graph-specific
         Output,  // Graph-specific
+        Vertex,  // Both trees and graphs
         Edge,    // Graph-specific
+        Leaf,    // Tree-specific
+        Root,    // Tree-specific
     }
     ```
 
@@ -56,72 +56,7 @@ The `NodeStore<T>` manages available values for different node types, providing 
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-    
-    // Create a store for tree operations
-    // Each vertex node created will have a random value chosen from [1, 2, 3]
-    // Each leaf node created will have a random value chosen from [4, 5, 6]
-    let tree_store: NodeStore<i32> = vec![
-        (NodeType::Vertex, vec![1, 2, 3]),
-        (NodeType::Leaf, vec![4, 5, 6]),
-    ].into();
-
-    // -- or use the macro --
-
-    let tree_store: NodeStore<i32> = node_store! {
-        Root => [1, 2, 3],
-        Vertex => [1, 2, 3],
-        Leaf => [4, 5, 6],
-    };
-
-    // -- with ops --
-    // for trees, the input nodes are always the leaf nodes, so we can use the `Op::var` to represent them
-    let op_store: NodeStore<Op<f32>> = node_store! {
-        Root => [Op::sigmoid()],
-        Vertex => [Op::add(), Op::mul()],
-        Leaf => (0..3).map(Op::var).collect::<Vec<_>>(),
-    };
-
-    // Create a new vertex tree node 
-    let tree_node: TreeNode<i32> = tree_store.new_instance(NodeType::Vertex);
-
-    // Create a new leaf tree node
-    let leaf_node: TreeNode<Op<f32>> = op_store.new_instance(NodeType::Leaf);
-    
-    // Create a store for graph operations
-    // Each input node created will have a random value chosen from [1, 2]
-    // Each edge node created will have a random value chosen from [3, 4]
-    // Each vertex node created will have a random value chosen from [5, 6, 7]
-    // Each output node created will have a random value chosen from [8, 9, 10]
-    let graph_store: NodeStore<i32> = vec![
-        (NodeType::Input, vec![1, 2]),
-        (NodeType::Edge, vec![3, 4]),
-        (NodeType::Vertex, vec![5, 6, 7]),
-        (NodeType::Output, vec![8, 9, 10]),
-    ].into();
-
-    // -- or use the macro --
-
-    let graph_store: NodeStore<i32> = node_store! {
-        Input => [1, 2],
-        Edge => [3, 4],
-        Vertex => [5, 6, 7],
-        Output => [8, 9, 10],
-    };
-
-    // -- with ops --
-    let op_store: NodeStore<Op<f32>> = node_store! {
-        Input => [Op::var(0), Op::var(1)],
-        Edge => [Op::add(), Op::mul()],
-        Vertex => [Op::sub(), Op::div(), Op::max()],
-        Output => [Op::sigmoid(), Op::tanh(), Op::relu()],
-    };
-
-    // Create a new vertex graph node at index 0
-    let graph_node: GraphNode<i32> = graph_store.new_instance((0, NodeType::Vertex));
-
-    // Create a new edge graph node at index 1
-    let edge_node: GraphNode<Op<f32>> = op_store.new_instance((1, NodeType::Edge));
+    --8<-- "rust/gp/node.rs:store"
     ```
 
 **Node Type Mapping:**

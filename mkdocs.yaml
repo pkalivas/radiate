@@ -93,6 +93,7 @@ markdown_extensions:
   - pymdownx.snippets:
       base_path: ["docs/source/src"]
       check_paths: true
+      dedent_subsections: true
   - admonition
   - pymdownx.details
   - pymdownx.superfences:

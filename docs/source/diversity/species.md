@@ -92,14 +92,7 @@ The threshold sets how close two individuals must be — *under the chosen dista
 === ":fontawesome-brands-rust: Rust"
 
 	```rust
-	use radiate::*;
-
-	let engine = GeneticEngine::builder()
-	    // ... other parameters ...
-	    .diversity(EuclideanDistance::new())
-	    .species_threshold(0.5)
-	    // ... other parameters ...
-	    .build();
+	--8<-- "rust/diversity/species.rs:threshold"
 	```
 
 !!! warning "Defaults differ by language"
@@ -127,14 +120,7 @@ Since `species_threshold` accepts a [`Rate`](../alters/rate.md), it can change o
 === ":fontawesome-brands-rust: Rust"
 
 	```rust
-	use radiate::*;
-
-	let engine = GeneticEngine::builder()
-	    // ... other parameters ...
-	    .diversity(EuclideanDistance::new())
-	    .species_threshold(Rate::Linear(0.3, 0.9, 100))
-	    // ... other parameters ...
-	    .build();
+	--8<-- "rust/diversity/species.rs:dynamic_threshold"
 	```
 
 The threshold can also be driven by live metrics via an expression — see [Expressions](../engine/expressions.md).
@@ -152,15 +138,7 @@ A species that goes `max_species_age` generations without improving its best sco
 === ":fontawesome-brands-rust: Rust"
 
 	```rust
-	use radiate::*;
-
-	let engine = GeneticEngine::builder()
-	    // ... other parameters ...
-	    .diversity(EuclideanDistance::new())
-	    .species_threshold(0.5)
-	    .max_species_age(25) // Default value
-	    // ... other parameters ...
-	    .build();
+	--8<-- "rust/diversity/species.rs:age"
 	```
 
 The default is **`25`** generations. Increase it for hard problems that need more time to refine a niche; decrease it to clear out stagnant clusters faster.

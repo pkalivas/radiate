@@ -41,17 +41,7 @@ The `minimizing()` method configures the genetic algorithm to find the minimum v
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let engine = GeneticEngine::builder()
-        .codec(FloatCodec::vector(10, 0.0..1.0))  // Example codec
-        .minimizing() // Configure for minimization
-        .fitness_fn(|genotype| {
-            // Return a value to minimize
-            genotype.iter().sum::<f32>()
-        })
-        // ... other parameters ...
-        .build();
+    --8<-- "rust/objectives.rs:minimizing"
     ```
 
 **Common Applications:**
@@ -78,17 +68,7 @@ This is the default option for the `GeneticEngine`, so you don't really need to 
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let engine = GeneticEngine::builder()
-        .codec(FloatCodec::vector(10, 0.0..1.0))  // Example codec
-        .maximizing()  // Configure for maximization
-        .fitness_fn(|genotype| {
-            // Return a value to maximize
-            genotype.iter().sum::<f32>()
-        })
-        // ... other parameters ...
-        .build();
+    --8<-- "rust/objectives.rs:maximizing"
     ```
 
 **Common Applications:**
@@ -123,21 +103,7 @@ Use `multi_objective()` with a list of optimization directions to configure mult
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let engine = GeneticEngine::builder()
-        .codec(FloatCodec::vector(10, 0.0..1.0))  // Example codec
-        .multi_objective(vec![Optimize::Minimize, Optimize::Maximize])
-        .front_size(800..900)  // Pareto front size range
-        .fitness_fn(|genotype| {
-            // Return a vector of fitness values
-            vec![
-                objective1(genotype),  // Minimize this
-                objective2(genotype),  // Maximize this
-            ]
-        })
-        // ... other parameters ...
-        .build();
+    --8<-- "rust/objectives.rs:multi_objective"
     ```
 
 ---
@@ -167,21 +133,7 @@ Although, any selector can be used, these are optimized for multi-objective prob
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let engine = GeneticEngine::builder()
-        .codec(FloatCodec::vector(10, 0.0..1.0))  // Example codec
-        .multi_objective(vec![Optimize::Minimize, Optimize::Maximize])
-        .offspring_selector(TournamentNSGA2Selector::new())     // Tournament selection with Pareto dominance
-        .survivor_selector(NSGA3Selector::new(12))              // NSGA-III with 12 reference directions
-        .front_size(800..900)  // Pareto front size range
-        .fitness_fn(|genotype| {
-            vec![
-                objective1(genotype),  // Minimize this
-                objective2(genotype),  // Maximize this
-            ]
-        })
-        .build();
+    --8<-- "rust/objectives.rs:multi_objective_selectors"
     ```
     
 ---

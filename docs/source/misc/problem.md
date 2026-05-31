@@ -12,37 +12,5 @@ See the [image evolution example](https://github.com/pkalivas/radiate/tree/maste
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    // Define a problem struct that holds stateful information
-    struct MyFloatProblem {
-        num_genes: usize,
-        value_range: Range<f32>,
-    }
-
-    impl Problem<FloatChromosome, Vec<f32>> for MyFloatProblem {
-        fn encode(&self) -> Genotype<FloatChromosome> {
-            Genotype::from(FloatChromosome::from((self.num_genes, self.value_range.clone())))
-        }
-        
-        fn decode(&self, genotype: &Genotype<FloatChromosome>) -> Vec<f32> {
-            genotype.genes().iter().map(|gene| gene.value()).collect()
-        }
-
-        fn eval(&self, genotype: &Genotype<FloatChromosome>) -> Result<Score, RadiateError> {
-            // Evaluate the genotype directly without decoding
-            Ok(my_fitness_fn(genotype))
-        }
-    }
-
-    // `Problem<C, T>` requires `Send + Sync`; this struct satisfies them automatically.
-    // You'd only write a manual `unsafe impl` if it held non-thread-safe state.
-
-    // Create an engine with the problem
-    let mut engine = GeneticEngine::builder()
-        .problem(MyFloatProblem { num_genes: 10, value_range: 0.0..1.0 })
-        .build();
-
-    // Run the engine
-    let result = engine.run(|epoch| epoch.index() >= 100);
+    --8<-- "rust/misc/problem.rs:problem"
     ```

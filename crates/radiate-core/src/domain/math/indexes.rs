@@ -19,10 +19,12 @@ pub fn create_individual_indexes(index: usize, max_index: usize, num_indices: us
         &mut scratch,
         SubsetMode::StratifiedCorrect,
     );
+
     let mut i = 0;
     while i < scratch.len() && scratch[i] < index {
         i += 1;
     }
+
     if i < scratch.len() {
         scratch[i] = index;
     }
@@ -33,10 +35,12 @@ pub fn create_individual_indexes(index: usize, max_index: usize, num_indices: us
 
 pub fn individual_indexes(index: usize, max_index: usize, num_indices: usize, buff: &mut [usize]) {
     subset(max_index, num_indices, buff, SubsetMode::StratifiedCorrect);
+
     let mut i = 0;
     while i < buff.len() && buff[i] < index {
         i += 1;
     }
+
     if i < buff.len() {
         buff[i] = index;
     }

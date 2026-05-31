@@ -91,34 +91,13 @@ Provided `Ops` include:
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    // Example usage of an Op
-    let fn_op = Op::add();
-    let result = fn_op.eval(&[1.0, 2.0]); // result is 3.0
-
-    // Example usage of a constant Op
-    let const_op = Op::constant(42.0);
-    let result = const_op.eval(&[]); // result is 42.0
-
-    // Example usage of a variable Op
-    let var_op = Op::var(0); // Read from input at index 0
-    let inputs = var_op.eval(&[5.0, 10.0]); // result is 5.0 when evaluated with inputs
+    --8<-- "rust/gp/op.rs:ops"
     ```
 
-    Want to create your own `Op<T>`? It's pretty simple! Let's create a custom `Square` operation that squares its input.
+    Want to create your own `Op<T>`? It's pretty simple! But beware, `radiate` cannot serialize/deserialize custom ops. Let's create a custom `Square` operation that squares its input.
 
     ```rust
-    use std::sync::Arc;
-    use radiate::*;
-
-    fn my_square_op(inputs: &[f32]) -> f32 {
-        inputs[0] * inputs[0]
-    }
-
-    // Supply a name, arity (number of inputs), and function to create the Op.
-    // Square takes a single input, so its arity is Exact(1).
-    let square_op = Op::new("Square", Arity::Exact(1), my_square_op);
+    --8<-- "rust/gp/op.rs:custom_op"
     ```
 
     Now you have a new `square_op` which is completely compatible with the rest of the Radiate GP system and can be plugged in anywhere a regular `Op` can be used! For more information on creating ops, check out the [API docs](https://docs.rs/radiate-gp/latest/radiate_gp/ops/operation/enum.Op.html) to see how the rest are created - it's not too crazy. 
@@ -145,9 +124,6 @@ This mutator randomly changes or alters the `op` of a node within a `TreeChromos
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    // Create a mutator that has a 10% chance to mutate an op and a 50% chance to replace it with a new one
-    let mutator = OperationMutator::new(0.1, 0.5);
+    --8<-- "rust/gp/op.rs:operation_mutator"
     ```
 

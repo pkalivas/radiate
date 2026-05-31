@@ -85,22 +85,7 @@ The core codecs include:
         Every `FloatCodec` will `encode()` a `Genotype<FloatChromosome>`.
 
         ```rust
-        use radiate::*;
-
-        // single float parameter
-        let codec_scalar: FloatCodec<f32> = FloatCodec::scalar(-1.0..1.0).with_bounds(-10.0..10.0); 
-        let encoded_scalar: Genotype<FloatChromosome<f32>> = codec_scalar.encode();
-        let decoded_scalar: f32 = codec_scalar.decode(&encoded_scalar);     
-
-        // vector of 5 floats
-        let codec_vector: FloatCodec<f64> = FloatCodec::vector(5, -1.0..1.0).with_bounds(-10.0..10.0);   
-        let encoded_vector: Genotype<FloatChromosome<f64>> = codec_vector.encode();
-        let decoded_vector: Vec<f64> = codec_vector.decode(&encoded_vector);
-
-        // 3x2 matrix of floats
-        let codec_matrix: FloatCodec<f32> = FloatCodec::matrix(3, 2, -0.1..0.1).with_bounds(-1.0..1.0);  
-        let encoded_matrix: Genotype<FloatChromosome<f32>> = codec_matrix.encode();
-        let decoded_matrix: Vec<Vec<f32>> = codec_matrix.decode(&encoded_matrix);
+        --8<-- "rust/genome/codec.rs:float_codec"
         ```
 
 ??? note "IntCodec"
@@ -124,22 +109,7 @@ The core codecs include:
         The type of int can be specified as `i8`, `i16`, `i32`, `i64`, `i128` or `u8`, `u16`, `u32`, `u64`, `u128` depending on your needs. Every `IntCodec<I>` will `encode()` a `Genotype<IntChromosome<I>>`.
 
         ```rust
-        use radiate::*;
-
-        // single int parameter
-        let codec_scalar: IntCodec<i32> = IntCodec::scalar(-1..1).with_bounds(-10..10);
-        let encoded_scalar: Genotype<IntChromosome<i32>> = codec_scalar.encode();
-        let decoded_scalar: i32 = codec_scalar.decode(&encoded_scalar);
-
-        // vector of 5 ints - specify the int type
-        let codec_vector: IntCodec<i128> = IntCodec::<i128>::vector(5, -1..1).with_bounds(-10..10);
-        let encoded_vector: Genotype<IntChromosome<i128>> = codec_vector.encode();
-        let decoded_vector: Vec<i128> = codec_vector.decode(&encoded_vector);
-
-        // 3x2 matrix of parameters - specify the int type
-        let codec_matrix: IntCodec<i32> = IntCodec::matrix(3, 2, -1..1).with_bounds(-10..10);
-        let encoded_matrix: Genotype<IntChromosome<i32>> = codec_matrix.encode();
-        let decoded_matrix: Vec<Vec<i32>> = codec_matrix.decode(&encoded_matrix);
+        --8<-- "rust/genome/codec.rs:int_codec"
         ```
 
 ??? note "CharCodec"
@@ -162,17 +132,7 @@ The core codecs include:
         Every `CharCodec` will `encode()` a `Genotype<CharChromosome>`.
 
         ```rust
-        use radiate::*;
-
-        // vector of 5 chars - specify the char set
-        let codec_vector = CharCodec::vector(5).with_char_set("abcdefghijklmnopqrstuvwxyz");
-        let encoded_vector: Genotype<CharChromosome> = codec_vector.encode();
-        let decoded_vector: Vec<char> = codec_vector.decode(&encoded_vector);
-
-        // 3x2 matrix of chars
-        let codec_matrix = CharCodec::matrix(3, 2);
-        let encoded_matrix: Genotype<CharChromosome> = codec_matrix.encode();
-        let decoded_matrix: Vec<Vec<char>> = codec_matrix.decode(&encoded_matrix);
+        --8<-- "rust/genome/codec.rs:char_codec"
         ```
 
 ??? note "BitCodec"
@@ -197,17 +157,7 @@ The core codecs include:
         Every `BitCodec` will `encode()` a `Genotype<BitChromosome>`.
 
         ```rust
-        use radiate::*;
-
-        // vector of 5 bools
-        let codec_vector = BitCodec::vector(5);
-        let encoded_vector: Genotype<BitChromosome> = codec_vector.encode();
-        let decoded_vector: Vec<bool> = codec_vector.decode(&encoded_vector);
-
-        // 3x2 matrix of bools
-        let codec_matrix = BitCodec::matrix(3, 2);
-        let encoded_matrix: Genotype<BitChromosome> = codec_matrix.encode();
-        let decoded_matrix: Vec<Vec<bool>> = codec_matrix.decode(&encoded_matrix);
+        --8<-- "rust/genome/codec.rs:bit_codec"
         ```
 
 ??? note "SubSetCodec"
@@ -230,29 +180,7 @@ The core codecs include:
         where a selected item is "selected" if the corresponding gene in the `BitChromosome` is `true`.
 
         ```rust
-        use radiate::*;
-
-        #[derive(Debug, Clone)]
-        pub struct Item {
-            pub weight: f32,
-            pub value: f32,
-        }
-
-        let items = vec![
-            Item { weight: 2.0, value: 3.0 },
-            Item { weight: 3.0, value: 4.0 },
-            Item { weight: 4.0, value: 5.0 },
-            Item { weight: 5.0, value: 6.0 },
-            Item { weight: 6.0, value: 7.0 },
-            Item { weight: 7.0, value: 8.0 },
-            Item { weight: 8.0, value: 9.0 },
-            Item { weight: 9.0, value: 10.0 },
-        ];
-
-        let subset_codec = SubSetCodec::vector(items);
-
-        let genotype: Genotype<BitChromosome> = subset_codec.encode();
-        let decoded: Vec<Arc<Item>> = subset_codec.decode(&genotype);
+        --8<-- "rust/genome/codec.rs:subset_codec"
         ```
 
 ??? note "PermutationCodec"
@@ -274,15 +202,7 @@ The core codecs include:
         Every `PermutationCodec<T>` will `encode()` a `Genotype<PermutationChromosome<T>>` and `decode()` to a `Vec<T>` where each `T` is a unique item from the given set of `allele`s.
 
         ```rust
-        use radiate::*;
-
-        let codec: PermutationCodec<usize> = PermutationCodec::new((0..10).collect());
-
-        // Encode a genotype of Genotype<PermutationChromosome> and decode to a Vec<usize> where each usize is a unique index
-        // from the original value_range.
-        // This will ensure that the permutation is valid and does not contain duplicates.
-        let genotype: Genotype<PermutationChromosome<usize>> = codec.encode();
-        let decoded: Vec<usize> = codec.decode(&genotype);
+        --8<-- "rust/genome/codec.rs:permutation_codec"
 
         ```
 
@@ -305,34 +225,7 @@ The core codecs include:
         Each `FnCodec<I, O>` will `encode()` a `Genotype<C>` where `C` is the `chromosome` that you choose and `decode()` to an `O`. In the below case, the type `C` is an `IntChromosome<i8>` and `O` is the output type (e.g., `NQueens`).
 
         ```rust
-        use radiate::*;
-
-        // A simple struct to represent the NQueens problem - this struct will be the input to your fitness function.
-        const N_QUEENS: usize = 8;
-
-        #[derive(Clone, Debug, PartialEq)]
-        struct NQueens(Vec<i8>);
-
-        // this is a simple example of the NQueens problem.
-        // The resulting codec type will be FnCodec<IntChromosome<i8>, NQueens>.
-        let codec: FnCodec<IntChromosome<i8>, NQueens> = FnCodec::new()
-            .with_encoder(|| {
-                Genotype::new(vec![IntChromosome::new((0..N_QUEENS)
-                        .map(|_| IntGene::from(0..N_QUEENS as i8))
-                        .collect(),
-                )])
-            })
-            .with_decoder(|genotype| {
-                NQueens(genotype[0]
-                    .genes()
-                    .iter()
-                    .map(|g| *g.allele())
-                    .collect::<Vec<i8>>())
-            });
-
-        // encode and decode
-        let genotype: Genotype<IntChromosome<i8>> = codec.encode();
-        let decoded: NQueens = codec.decode(&genotype);
+        --8<-- "rust/genome/codec.rs:fn_codec"
         ```
 
 ---
