@@ -32,9 +32,7 @@ Use the table below to pick a schedule, then see its section for the parameters 
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let rate = Rate::fixed(0.1);
+    --8<-- "rust/alters/rate.rs:fixed_rate"
     ```
 
 <figure markdown="span">
@@ -55,9 +53,7 @@ Use the table below to pick a schedule, then see its section for the parameters 
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let rate = Rate::linear(0.1, 0.9, 25);
+    --8<-- "rust/alters/rate.rs:linear_rate"
     ```
 
 <figure markdown="span">
@@ -78,11 +74,7 @@ Use the table below to pick a schedule, then see its section for the parameters 
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let steps = vec![(0, 0.1), (25, 0.5), (75, 0.9)];
-    let rate = Rate::stepwise(steps);
-    let rate = Rate::from(steps);
+    --8<-- "rust/alters/rate.rs:step_rate"
     ```
 
 <figure markdown="span">
@@ -103,9 +95,7 @@ Use the table below to pick a schedule, then see its section for the parameters 
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let rate = Rate::cyclical(0.1, 0.9, 10, "sine");
+    --8<-- "rust/alters/rate.rs:cyclical_rate"
     ```
 
 <figure markdown="span">
@@ -126,9 +116,7 @@ Use the table below to pick a schedule, then see its section for the parameters 
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let rate = Rate::cyclical(0.1, 0.9, 10, "triangular");
+    --8<-- "rust/alters/rate.rs:triangular_cyclical_rate"
     ```
 
 <figure markdown="span">
@@ -149,9 +137,7 @@ Use the table below to pick a schedule, then see its section for the parameters 
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let rate = Rate::exponential(0.5, 0.1, 25);
+    --8<-- "rust/alters/rate.rs:exponential_rate"
     ```
 
 <figure markdown="span">

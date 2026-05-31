@@ -46,12 +46,5 @@ Turning diversity on comes down to two settings: the **measure** (which distance
 === ":fontawesome-brands-rust: Rust"
 
 	```rust
-	use radiate::*;
-
-	let engine = GeneticEngine::builder()
-	    // ... other parameters ...
-	    .diversity(EuclideanDistance::new())
-	    .species_threshold(0.5)
-	    // ... other parameters ...
-	    .build();
+	--8<-- "rust/diversity/index.rs:diversity_basic"
 	```

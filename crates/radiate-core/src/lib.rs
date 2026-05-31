@@ -27,7 +27,7 @@ pub use engine::{Engine, EngineExt};
 pub use evaluator::{BatchFitnessEvaluator, Evaluator, FitnessEvaluator};
 pub use executor::Executor;
 pub use fitness::{
-    BatchFitnessFunction, BatchedFn, CompositeFitnessFn, FitnessFunction, NoveltySearch,
+    BatchFitnessFunction, BatchedFn, CompositeFitnessFn, FitnessFunction, Novelty, NoveltySearch,
 };
 pub use genome::*;
 pub use objectives::{Front, Objective, Optimize, Score, pareto};

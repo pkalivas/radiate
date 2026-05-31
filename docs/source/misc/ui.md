@@ -94,20 +94,7 @@ The TUI is completely opt-in and can be configured as shown below
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-    
-    const MIN_SCORE: i32 = 100;
-
-    let engine = GeneticEngine::builder()
-        // ... configure your engine as normal ...
-        .build();
-
-    // Wrap the engine with the UI
-    let final_generation = radiate::ui(engine)
-        .iter()
-        .until_score(MIN_SCORE)
-        .last()
-        .unwrap();
+    --8<-- "rust/misc/ui.rs:ui"
     ```
 
 ## Navigation

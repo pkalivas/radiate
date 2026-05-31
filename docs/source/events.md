@@ -20,10 +20,10 @@ The `GeneticEngine` offloads nearly all of a subscriber's compute cost onto the 
 --- 
 ## Event Types
 
-Radiate provides several key events that you can subscribe to. Here is the actual enum definition in Rust:
+Radiate provides several key events that you can subscribe to. The variants live on the `EngineEventInner<T>` enum; in a handler you receive an `EngineEvent<T>` — a cheap, clonable `Arc` wrapper around it — and pattern-match against the inner enum via `event.inner()`:
 
 ```rust
-pub enum EngineEvent<T> {
+pub enum EngineEventInner<T> {
     /// Triggered when the evolution process starts.
     /// Has no associated data, is simply a signal that evolution has begun.
     Start,
@@ -143,24 +143,8 @@ The simplest way to subscribe to events is by providing a callback function:
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let mut engine = GeneticEngine::builder()
-        .codec(FloatCodec::vector(6, -5.0..5.0))
-        .fitness_fn(your_fitness_fn)
-        .subscribe(|event: &EngineEvent<Vec<f32>>| {
-            if let EngineEvent::EpochComplete(index, best, metrics, score, objective) = event {
-                println!("Printing from event handler! [ {:?} ]: {:?}", index, score);
-            }
-        })
-        // ... other parameters ...
-        .build();
-
-    // Run the engine
-    let result = engine.run(|generation| {
-        generation.index() >= 100
-    });
-    ``` 
+    --8<-- "rust/events.rs:callback"
+    ```
 
 ### Event Handler Class
 
@@ -181,30 +165,7 @@ For more complex event handling, you can create a custom event handler class:
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    struct MyHandler;
-
-    impl EventHandler<Vec<f32>> for MyHandler {
-        fn handle(&mut self, event: Arc<EngineEvent<Vec<f32>>>) {
-            if let EngineEvent::EpochComplete(index, best, metrics, score, objective) = event.as_ref() {
-                println!("Printing from event handler! [ {:?} ]: {:?}", index, score);
-            }
-        }
-    }
-
-    // Create and configure the engine
-    let mut engine = GeneticEngine::builder()
-        .codec(FloatCodec::vector(6, -5.0..5.0))
-        .subscribe(MyHandler)   // Add your handler here
-        .fitness_fn(your_fitness_fn)
-        // ... other parameters ...
-        .build();
-
-    // Run the engine
-    let result = engine.run(|generation| {
-        generation.index() >= 100
-    });
+    --8<-- "rust/events.rs:handler"
     ```
 
 

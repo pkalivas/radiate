@@ -21,49 +21,7 @@ A `tree` represents a hierarchical structure where each node has exactly one par
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    // create a simple tree:
-    //              42
-    //           /  |   \
-    //          1   2    3
-    //             / \    
-    //            3   4    
-    let tree: Tree<i32> = Tree::new(TreeNode::new(42)
-        .attach(TreeNode::new(1))
-        .attach(TreeNode::new(2)
-            .attach(TreeNode::new(3))
-            .attach(TreeNode::new(4)))
-        .attach(TreeNode::new(3)));
-
-    // The tree can be evaluated with a function that takes a vector of inputs
-    // This creates a `Tree` that looks like:
-    //      +
-    //    /   \
-    //   *     +
-    //  / \   / \
-    // 2  3  2   x
-    //
-    // Where `x` is the first variable in the input.
-    // This can also be thought of (and is functionally equivalent) as:
-    //
-    // f(x) = (2 * 3) + (2 + x)
-    //
-    let root = TreeNode::new(Op::add())
-        .attach(
-            TreeNode::new(Op::mul())
-                .attach(TreeNode::new(Op::constant(2.0)))
-                .attach(TreeNode::new(Op::constant(3.0))),
-        )
-        .attach(
-            TreeNode::new(Op::add())
-                .attach(TreeNode::new(Op::constant(2.0)))
-                .attach(TreeNode::new(Op::var(0))),
-        );
-
-    // And the result of evaluating this tree with an input of `1` would be:
-    let result = root.eval(&vec![1_f32]);
-    assert_eq!(result, 9.0);
+    --8<-- "rust/gp/trees.rs:build_tree"
     ```
 
 **Key Properties:**
@@ -123,25 +81,7 @@ you don't need to specify the ops, but in all likelihood you'll want to specify 
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let store = vec![
-        (NodeType::Root, vec![Op::add(), Op::sub()]),
-        (NodeType::Vertex, vec![Op::add(), Op::sub(), Op::mul()]),
-        (NodeType::Leaf, vec![Op::constant(1.0), Op::constant(2.0)]),
-    ];
-
-    // Create a single rooted tree codec with a starting (minimum) depth of 3
-    let codec = TreeCodec::single(3, store);
-    let genotype: Genotype<TreeChromosome<Op<f32>>> = codec.encode();
-    let tree: Tree<Op<f32>> = codec.decode(&genotype);
-
-    // Create a multi-rooted tree codec with a starting (minimum) depth of 3 and 2 trees
-    let codec = TreeCodec::multi_root(3, 2, store);
-    let genotype: Genotype<TreeChromosome<Op<f32>>> = codec.encode();
-    // multi-rooted codec decodes to a Vec of Trees
-    // one for each root in the genotype
-    let trees: Vec<Tree<Op<f32>>> = codec.decode(&genotype); 
+    --8<-- "rust/gp/trees.rs:tree_codec"
     ```
 
 ---
@@ -167,9 +107,7 @@ The `HoistMutator` is a mutation operator that randomly selects a subtree from t
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let mutator = HoistMutator::new(0.1);
+    --8<-- "rust/gp/trees.rs:hoist_mutator"
     ```
 
 ### TreeCrossover
@@ -191,7 +129,5 @@ The `TreeCrossover` is a crossover operator that randomly selects a subtree from
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    let mutator = TreeCrossover::new(0.1);
+    --8<-- "rust/gp/trees.rs:tree_crossover"
     ```
