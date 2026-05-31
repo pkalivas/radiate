@@ -43,10 +43,10 @@ where
                 Ok(Box::new(LinearRankSelector::new(selection_pressure as f32)))
             }
             _ => {
-                return Err(radiate_err!(Builder: format!(
+                Err(radiate_err!(Builder: format!(
                     "Selector type {} not yet implemented",
                     self.component
-                )));
+                )))
             }
         }
     }
