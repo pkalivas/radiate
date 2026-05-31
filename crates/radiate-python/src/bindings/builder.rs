@@ -162,7 +162,7 @@ impl PyEngineBuilder {
 
                     metrics.push(MetricQuery::new(
                         radiate_utils::intern!(name),
-                        expr.inner().clone(),
+                        expr.inner().clone().compile(),
                     ));
                 }
 

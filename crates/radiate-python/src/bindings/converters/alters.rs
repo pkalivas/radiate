@@ -41,7 +41,7 @@ where
                 ))
             })?;
 
-        Ok((entry.convert)(input)?)
+        (entry.convert)(input)
     }
 }
 
