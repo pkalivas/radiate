@@ -20,7 +20,7 @@ dead_code = "allow"
 
 [dependencies.radiate]
 workspace = true
-features = ["gp", "rayon", "serde"]
+features = ["gp", "rayon", "serde", "ui"]
 
 # Genome 
 [[bin]]
@@ -131,4 +131,21 @@ path = "gp/graph.rs"
 [[bin]]
 name = "gp-regression"
 path = "gp/regression.rs"
+
+# Misc
+[[bin]]
+name = "misc-random"
+path = "misc/random.rs"
+
+[[bin]]
+name = "misc-problem"
+path = "misc/problem.rs"
+
+[[bin]]
+name = "misc-checkpoint"
+path = "misc/checkpoint.rs"
+
+[[bin]]
+name = "misc-ui"
+path = "misc/ui.rs"
 

@@ -28,7 +28,9 @@ from numba import jit, uint8
 N_QUEENS = 32
 
 
-@jit(uint8(uint8[:]), nopython=True)  # add this decorator from numba to compile the fitness function to native C code.
+@jit(
+    uint8(uint8[:]), nopython=True
+)  # add this decorator from numba to compile the fitness function to native C code.
 def nqueens_fitness_fn(queens: np.ndarray) -> int:
     """Calculate the fitness score for the N-Queens problem."""
 
@@ -152,9 +154,9 @@ y = [member.score()[1] for member in front]
 z = [member.score()[2] for member in front]
 
 ax.scatter(x, y, z)
-ax.set_xlim([0, 0.5])
-ax.set_ylim([0, 0.5])
-ax.set_zlim([0, 0.5])
+ax.set_xlim((0, 0.5))
+ax.set_ylim((0, 0.5))
+ax.set_zlim((0, 0.5))
 plt.show()
 # --8<-- [end:dtlz1]
 

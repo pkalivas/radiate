@@ -14,44 +14,5 @@ Radiate provides built-in support for checkpointing, allowing you to save the st
 === ":fontawesome-brands-rust: Rust"
 
     ```rust
-    use radiate::*;
-
-    fn main() {
-        let target = "Hello, Radiate!";
-        let target_len = target.len();
-
-        fn fitness_fn(geno: Vec<char>) -> Score {
-            geno.into_iter().zip(target.chars()).fold(
-                0,
-                |acc, (allele, targ)| {
-                    if allele == targ { acc + 1 } else { acc }
-                },
-            ).into()
-        }
-
-        let engine = GeneticEngine::builder()
-            .codec(CharCodec::vector(target.len()))
-            .offspring_selector(BoltzmannSelector::new(4_f32))
-            .fitness_fn(fitness_fn)
-            .build();
-
-        let result = engine.iter()
-            .checkpoint(10, "checks")
-            .until_score(target_len)
-            .last()
-            .expect("No result from engine run");
-
-        // load from checkpoint from generation 10
-        let resumed_engine = GeneticEngine::builder()
-            .codec(CharCodec::vector(target.len()))
-            .offspring_selector(BoltzmannSelector::new(4_f32))
-            .fitness_fn(fitness_fn)
-            .load_checkpoint("checks/chckpnt_10.json")
-            .build();
-
-        let resumed_result = resumed_engine.iter()
-            .until_score(target_len)
-            .last()
-            .expect("No result from resumed engine run");
-    }
+    --8<-- "rust/misc/checkpoint.rs:checkpoint"
     ```
