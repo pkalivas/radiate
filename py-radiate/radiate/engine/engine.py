@@ -282,7 +282,7 @@ class Engine[G, T]:
         ---------
         >>> engine.run(log=True)
         >>> engine.run(ui=True)
-        >>> engine.run(rd.ScoreLimit(0.0001), log=True)
+        >>> engine.run(rd.Limit.score(0.0001), log=True)
         >>> engine.run(limit)
         >>> engine.run(limit, checkpoint=True)
         >>> engine.run(limit, checkpoint="checkpoints")
