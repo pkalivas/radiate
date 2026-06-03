@@ -242,9 +242,24 @@ class Engine[G, T]:
         )
 
     def __iter__(self):
-        """Allow unpacking the engine into its components."""
-        while True:
-            yield self.__next__()
+        """
+        Iterate over generations produced by the engine. I mean, all this really does is let you use the
+        engine as an iterator. Pretty self explanitory.
+
+        Example:
+        ---------
+        >>> import radiate as rd
+        >>> engine = (
+        ...     rd.Engine.int(5)
+        ...     .fitness(lambda indv: sum(indv))
+        ...     .minimizing()
+        ...     .limit(rd.Limit.generations(10))
+        ... )
+        >>> # iterate the engine for 10 generations and print out the index and score of each generation
+        >>> for generation in engine:
+        ...     print(generation.index(), generation.score())
+        """
+        return self
 
     def __next__(self) -> Generation[G, T]:
         """Get the next generation from the engine."""

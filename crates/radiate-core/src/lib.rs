@@ -61,7 +61,7 @@ pub mod prelude {
         FloatChromosome, FloatGene, Gene, IntChromosome, IntGene, Valid,
     };
     pub use super::objectives::{Front, Objective, Optimize, Score, pareto};
-    pub use super::problem::{BatchEngineProblem, EngineProblem, Problem};
+    pub use super::problem::Problem;
     pub use super::replacement::{EncodeReplace, PopulationSampleReplace, ReplacementStrategy};
     pub use super::selector::Select;
     pub use super::stats::{Metric, MetricSet};

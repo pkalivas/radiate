@@ -19,7 +19,10 @@ pub enum UnaryOp {
     Quantile(Quantile<f32>),
     /// Fused affine: `scale * child + bias`. Replaces the `.mul(lit).add(lit)`
     /// pattern with a single node. Chains collapse via [`fuse_affine`].
-    Affine { scale: f32, bias: f32 },
+    Affine {
+        scale: f32,
+        bias: f32,
+    },
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]

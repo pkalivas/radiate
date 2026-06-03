@@ -1,14 +1,21 @@
 use crate::{
-    EngineHandle, EpochHandle, InputTransform, PickleWriter, PyEngineInput, PyGeneration, names,
+    EngineHandle, EpochHandle, InputTransform, PickleWriter, PyEngineInput, PyGeneration,
+    bindings::handles::StepHandle, names,
 };
 use pyo3::{PyResult, pyclass, pymethods};
 use radiate::{
-    Chromosome, Engine, EngineIteratorExt, Generation, GeneticEngine, JsonWriter, Limit,
-    radiate_err,
+    Chromosome, EngineIteratorExt, Generation, GeneticEngine, JsonWriter, Limit, radiate_err,
 };
 use radiate_error::{radiate_py_bail, radiate_py_err};
 use serde::Serialize;
 use std::time::Duration;
+
+const BUILD_ENGINE_WITH_LIMIT_ERROR_STRING: &str = "Engine must be built with at least one limit:
+    engine = (
+        rd.Engine.int(5)
+        .fitness(my_fitness_fn)
+        .limit(rd.Limit.generation(100)) # <- Must have at least one limit
+    )";
 
 #[pyclass(from_py_object)]
 #[derive(Clone)]
@@ -39,6 +46,7 @@ impl PyEngineRunOption {
 #[pyclass(unsendable)]
 pub struct PyEngine {
     engine: Option<EngineHandle>,
+    iter: Option<StepHandle>,
     limits: Vec<Limit>,
 }
 
@@ -46,6 +54,7 @@ impl PyEngine {
     pub fn new(limits: Vec<Limit>, engine: EngineHandle) -> Self {
         Self {
             engine: Some(engine),
+            iter: None,
             limits,
         }
     }
@@ -72,7 +81,7 @@ impl PyEngine {
             .collect::<Vec<_>>();
 
         if limits.is_empty() {
-            radiate_py_bail!("At least one limit must be provided");
+            radiate_py_bail!(BUILD_ENGINE_WITH_LIMIT_ERROR_STRING);
         }
 
         Ok(PyGeneration::new(match engine {
@@ -95,29 +104,41 @@ impl PyEngine {
     }
 
     pub fn step_next(&mut self) -> PyResult<PyGeneration> {
-        use EngineHandle::*;
-        let engine = self
-            .engine
-            .as_mut()
-            .ok_or_else(|| radiate_py_err!("Engine has already been run"))?;
+        use StepHandle::*;
 
-        Ok(PyGeneration::new(match engine {
-            UInt8(eng) => EpochHandle::UInt8(eng.next()?),
-            UInt16(eng) => EpochHandle::UInt16(eng.next()?),
-            UInt32(eng) => EpochHandle::UInt32(eng.next()?),
-            UInt64(eng) => EpochHandle::UInt64(eng.next()?),
-            Int8(eng) => EpochHandle::Int8(eng.next()?),
-            Int16(eng) => EpochHandle::Int16(eng.next()?),
-            Int32(eng) => EpochHandle::Int32(eng.next()?),
-            Int64(eng) => EpochHandle::Int64(eng.next()?),
-            Float32(eng) => EpochHandle::Float32(eng.next()?),
-            Float64(eng) => EpochHandle::Float64(eng.next()?),
-            Char(eng) => EpochHandle::Char(eng.next()?),
-            Bit(eng) => EpochHandle::Bit(eng.next()?),
-            Permutation(eng) => EpochHandle::Permutation(eng.next()?),
-            Graph(eng) => EpochHandle::Graph(eng.next()?),
-            Tree(eng) => EpochHandle::Tree(eng.next()?),
-        }))
+        if self.iter.is_none() {
+            let engine = self
+                .engine
+                .take()
+                .ok_or_else(|| radiate_py_err!("Engine has already been run"))?;
+
+            if self.limits.is_empty() {
+                radiate_py_bail!(BUILD_ENGINE_WITH_LIMIT_ERROR_STRING);
+            }
+
+            self.iter = Some(engine.into_step(self.limits.clone()));
+        }
+
+        let next = match self.iter.as_mut().unwrap() {
+            UInt8(it) => it.next().map(EpochHandle::UInt8),
+            UInt16(it) => it.next().map(EpochHandle::UInt16),
+            UInt32(it) => it.next().map(EpochHandle::UInt32),
+            UInt64(it) => it.next().map(EpochHandle::UInt64),
+            Int8(it) => it.next().map(EpochHandle::Int8),
+            Int16(it) => it.next().map(EpochHandle::Int16),
+            Int32(it) => it.next().map(EpochHandle::Int32),
+            Int64(it) => it.next().map(EpochHandle::Int64),
+            Float32(it) => it.next().map(EpochHandle::Float32),
+            Float64(it) => it.next().map(EpochHandle::Float64),
+            Char(it) => it.next().map(EpochHandle::Char),
+            Bit(it) => it.next().map(EpochHandle::Bit),
+            Permutation(it) => it.next().map(EpochHandle::Permutation),
+            Graph(it) => it.next().map(EpochHandle::Graph),
+            Tree(it) => it.next().map(EpochHandle::Tree),
+        };
+
+        next.map(PyGeneration::new)
+            .ok_or_else(|| pyo3::exceptions::PyStopIteration::new_err(()))
     }
 }
 

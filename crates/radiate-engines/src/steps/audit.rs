@@ -145,6 +145,15 @@ impl<C: Chromosome> EngineStep<C> for AuditStep {
 
         let mut new_this_gen = 0;
         for p in ecosystem.population().iter() {
+            if let Some(score) = p.score() {
+                if !self.objective.validate(score) {
+                    return Err(radiate_error::RadiateError::Fitness(format!(
+                        "Score {:?} has invalid dimensions for the objective {:?}.",
+                        score, self.objective
+                    )));
+                }
+            }
+
             let age = p.age(generation);
             let geno_size = p
                 .genotype()

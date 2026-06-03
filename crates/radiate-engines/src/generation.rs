@@ -1,5 +1,5 @@
 use crate::Chromosome;
-use crate::context::{Context, ContextAudit};
+use crate::context::Context;
 use radiate_core::MetricQuery;
 use radiate_core::objectives::Scored;
 use radiate_core::{Ecosystem, Front, MetricSet, Objective, Phenotype, Population, Score, Species};
@@ -55,7 +55,6 @@ where
     objective: Objective,
     front: Option<Arc<Front<Phenotype<C>>>>,
     exprs: Option<Arc<Mutex<Vec<MetricQuery>>>>,
-    audits: Option<Vec<ContextAudit>>,
 }
 
 impl<C, T> Generation<C, T>
@@ -113,10 +112,6 @@ where
         self.exprs.clone()
     }
 
-    pub fn audits(&self) -> Option<&[ContextAudit]> {
-        self.audits.as_deref()
-    }
-
     pub fn cloned_ecosystem(&self) -> Arc<Ecosystem<C>> {
         Arc::clone(&self.ecosystem)
     }
@@ -146,7 +141,6 @@ where
                 _ => None,
             },
             exprs: context.exprs.clone(),
-            audits: Some(context.audits.clone()),
         }
     }
 }
@@ -166,7 +160,6 @@ where
             objective: self.objective.clone(),
             front: self.front.clone(),
             exprs: self.exprs.clone(),
-            audits: self.audits.clone(),
         }
     }
 }
@@ -219,7 +212,6 @@ where
             objective: Objective::default(),
             front: None,
             exprs: None,
-            audits: None,
         }
     }
 }

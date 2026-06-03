@@ -13,6 +13,7 @@ pub use front::*;
 use radiate_core::{Chromosome, Ecosystem, MetricSet};
 use radiate_error::Result;
 
+use radiate_utils::ToSnakeCase;
 pub use recombine::*;
 pub use speciate::*;
 
@@ -29,20 +30,17 @@ where
             .last()
             .unwrap_or("Unknown Step");
 
-        if let Some(interned) = radiate_utils::try_get_interned_str(name) {
-            return interned;
-        }
+        let snake_case = name.to_snake_case();
 
-        let snake_case_name = radiate_utils::intern_name_as_snake_case(name);
-
-        let mut parts = snake_case_name
+        let mut parts = snake_case
             .split('_')
             .filter(|part| !part.is_empty() && !part.contains("step"))
             .collect::<Vec<_>>();
 
         parts.insert(0, "step");
+        let result = parts.join(".");
 
-        radiate_utils::intern_kv_pair(name, radiate_utils::intern!(parts.join(".")))
+        return radiate_utils::intern!(result);
     }
 
     fn execute(

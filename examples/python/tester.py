@@ -14,7 +14,7 @@ def fit(indv: list[int]) -> float:
     return sum(indv)
 
 
-engine = rd.Engine.int(5).fitness(fit).minimizing().limit(rd.Limit.generations(10))
+engine = rd.Engine.int(5).fitness(fit).minimizing()
 
 for epoch in engine:
     print(epoch.index())

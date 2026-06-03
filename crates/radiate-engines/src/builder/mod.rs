@@ -34,6 +34,7 @@ use radiate_core::evaluator::BatchFitnessEvaluator;
 use radiate_core::problem::{BatchEngineProblem, EngineProblem};
 use radiate_core::{Alterer, Ecosystem, Executor, FitnessEvaluator, Rate, Valid};
 use radiate_core::{RadiateError, ensure, radiate_err};
+use radiate_utils::VersionedCounts;
 #[cfg(feature = "serde")]
 use serde::Deserialize;
 use std::sync::{Arc, Mutex};
@@ -374,8 +375,8 @@ where
                 alters: config.alters().to_vec(),
             },
             objective: config.objective(),
-            survivor_counts: radiate_utils::VersionedCounts::new(),
-            offspring_counts: radiate_utils::VersionedCounts::new(),
+            survivor_counts: VersionedCounts::new(),
+            offspring_counts: VersionedCounts::new(),
         };
 
         Some(Box::new(recombine_step))

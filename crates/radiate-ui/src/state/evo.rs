@@ -4,8 +4,7 @@ use super::chart::{ChartState, LineChartType};
 use crate::chart::RollingLineChart;
 use crate::widgets::num_pairs;
 use radiate_engines::{
-    Chromosome, ContextAudit, Ecosystem, Front, MetricSet, Objective, Optimize, Phenotype, Score,
-    Species,
+    Chromosome, Ecosystem, Front, MetricSet, Objective, Optimize, Phenotype, Score, Species,
 };
 
 pub struct ObjectiveState {
@@ -15,6 +14,7 @@ pub struct ObjectiveState {
     pub objective_index: usize,
 }
 
+#[allow(dead_code)]
 pub struct EvoState<C: Chromosome> {
     pub best_phenotype: Option<Phenotype<C>>,
     pub ecosystem: Option<Arc<Ecosystem<C>>>,
@@ -27,33 +27,25 @@ pub struct EvoState<C: Chromosome> {
 }
 
 impl<C: Chromosome> EvoState<C> {
-    pub fn update_ecosystem(&mut self, ecosystem: Arc<Ecosystem<C>>) {
+    pub fn update_ecosystem(&mut self, ecosystem: Arc<Ecosystem<C>>)
+    where
+        C: Clone,
+    {
         self.ecosystem = Some(ecosystem);
+        let phenotype = self
+            .ecosystem
+            .as_ref()
+            .and_then(|eco| eco.get_phenotype(0))
+            .cloned();
+        self.best_phenotype = phenotype;
     }
 
     pub fn update_metrics(&mut self, metrics: MetricSet) {
         for metric in metrics.iter() {
             self.charts.update_from_metric(metric.1);
         }
-        self.metrics = metrics;
-    }
 
-    pub fn update_audits(&mut self, audits: Option<Vec<ContextAudit>>)
-    where
-        C: Clone,
-    {
-        if let Some(audits) = audits {
-            for audit in audits.iter() {
-                if let ContextAudit::NewBest = audit {
-                    let phenotype = self
-                        .ecosystem
-                        .as_ref()
-                        .and_then(|eco| eco.get_phenotype(0))
-                        .cloned();
-                    self.best_phenotype = phenotype;
-                }
-            }
-        }
+        self.metrics = metrics;
     }
 
     pub fn get_chart_by_key(

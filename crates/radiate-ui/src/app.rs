@@ -3,8 +3,8 @@ use crate::widgets::{HelpPanelWidget, LayoutNode, MetricModalWidget, ModalWidget
 use color_eyre::Result;
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use radiate_engines::{
-    Chromosome, CommandChannel, ContextAudit, Ecosystem, EngineControl, Front, Generation,
-    MetricSet, Objective, Phenotype, Score,
+    Chromosome, CommandChannel, Ecosystem, EngineControl, Front, Generation, MetricSet, Objective,
+    Phenotype, Score,
 };
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -25,7 +25,6 @@ where
     pub metrics: MetricSet,
     pub score: Score,
     pub front: Option<Front<Phenotype<C>>>,
-    pub audits: Option<Vec<ContextAudit>>,
     pub ecosystem: Arc<Ecosystem<C>>,
 }
 
@@ -39,7 +38,6 @@ where
             metrics: generation.metrics().clone(),
             score: generation.score().clone(),
             front: generation.front().cloned(),
-            audits: generation.audits().map(|a| a.to_vec()),
             ecosystem: generation.cloned_ecosystem(),
         }
     }
@@ -236,7 +234,6 @@ where
 
         self.state.evo.update_ecosystem(event.ecosystem);
         self.state.evo.update_metrics(event.metrics);
-        self.state.evo.update_audits(event.audits);
 
         if let Some(front) = event.front {
             self.state.evo.front = Some(front);

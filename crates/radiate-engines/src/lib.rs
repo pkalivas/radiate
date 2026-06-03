@@ -11,7 +11,6 @@ mod pipeline;
 mod steps;
 
 pub use builder::GeneticEngineBuilder;
-pub use context::ContextAudit;
 pub use control::EngineControl;
 pub use engine::GeneticEngine;
 pub use events::{EngineEvent, EngineEventInner, EventBus, EventHandler};
