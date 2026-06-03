@@ -4,7 +4,6 @@ from typing import Any, Iterator
 from datetime import timedelta
 
 from radiate._bridge.wrapper import RsObject
-from radiate.expr import Expr
 
 from radiate.radiate import PyMetricSet
 
@@ -137,9 +136,6 @@ class MetricSet(RsObject):
                 "Pandas is not available. Please install it to use this feature."
             )
         return self.__backend__().to_pandas()
-
-    def project(self, expr: Expr) -> Any:
-        return self.__backend__().project(expr.__backend__())
 
     def upsert(self, name: str, value: Any) -> None:
         """Upsert new metrics into the MetricSet."""

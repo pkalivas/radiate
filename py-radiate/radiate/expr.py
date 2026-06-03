@@ -4,6 +4,7 @@ from typing import Any
 from radiate._bridge.input import RsObject
 from radiate._typing import RdDataType
 from radiate.radiate import PyExpr
+from radiate.engine.metrics import MetricSet
 
 
 def _coerce(value, *, allow_str: bool = False):
@@ -476,7 +477,7 @@ class Expr(RsObject):
 
     # ── combinators (instance methods) ───────────────────────────────────────
 
-    def apply(self, value: Any) -> Any:
+    def eval(self, value: MetricSet) -> Any:
         """
         Apply the expression to a given value. This is useful for evaluating the expression with specific inputs.
 
@@ -490,7 +491,7 @@ class Expr(RsObject):
         Any
             The result of applying the expression to the input value.
         """
-        return self.__backend__().evaluate(value)
+        return self.__backend__().evaluate(value.__backend__())
 
     def time(self) -> Expr:
         return Expr.from_rust(self.__backend__().time())

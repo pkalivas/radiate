@@ -1,11 +1,10 @@
-use crate::PyExpr;
 use crate::object::Wrap;
 use pyo3::exceptions::PyValueError;
 use pyo3::types::PyDict;
 use pyo3::{IntoPyObject, PyErr, PyResult, Python};
 use pyo3::{intern, prelude::*};
 use pyo3::{pyclass, pymethods};
-use radiate::{AnyValue, Evaluate, Metric, MetricSet, MetricUpdate};
+use radiate::{AnyValue, Metric, MetricSet, MetricUpdate};
 use radiate_error::radiate_py_bail;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
@@ -118,11 +117,6 @@ impl PyMetricSet {
             .filter(|(_, metric)| !metric.is_empty())
             .map(|(key, _)| key.to_string())
             .collect()
-    }
-
-    pub fn project<'py>(&self, py: Python<'py>, expr: &mut PyExpr) -> PyResult<Bound<'py, PyAny>> {
-        let result = expr.inner_mut().eval(&self.inner).unwrap_or(AnyValue::Null);
-        Wrap(result).into_pyobject(py)
     }
 
     pub fn values_by_tag<'py>(

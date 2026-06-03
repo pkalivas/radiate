@@ -4,8 +4,6 @@ use crate::{Node, Op};
 use radiate_core::{Chromosome, Diversity, Phenotype};
 use std::cmp::Ordering;
 
-const OP_MISMATCH_PENALTY: f32 = 0.3;
-
 /// NEAT compatibility distance that aligns genes by [`InnovationId`].
 ///
 /// Unlike [`NeatDistance`], which walks chromosomes in topological order and matches
@@ -29,7 +27,6 @@ pub struct NeatDistance {
     excess: f32,
     disjoint: f32,
     weight_diff: f32,
-    op_mismatch_penalty: f32,
 }
 
 impl NeatDistance {
@@ -38,13 +35,7 @@ impl NeatDistance {
             excess,
             disjoint,
             weight_diff,
-            op_mismatch_penalty: OP_MISMATCH_PENALTY,
         }
-    }
-
-    pub fn with_mismatch_penalty(mut self, penalty: f32) -> Self {
-        self.op_mismatch_penalty = penalty;
-        self
     }
 
     #[inline]
@@ -198,9 +189,7 @@ mod tests {
         let a = chromo(vec![vertex(0, Op::add(), 1), edge(1, 0.5, 2)]);
         let b = chromo(vec![vertex(0, Op::add(), 1), edge(1, 0.5, 2)]);
 
-        let dist = NeatDistance::new(1.0, 1.0, 1.0)
-            .with_mismatch_penalty(1.0)
-            .graph_distance(&a, &b);
+        let dist = NeatDistance::new(1.0, 1.0, 1.0).graph_distance(&a, &b);
         assert_eq!(dist, 0.0);
     }
 
