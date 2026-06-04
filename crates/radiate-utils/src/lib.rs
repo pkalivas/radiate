@@ -13,8 +13,7 @@ pub use buff::{SortedBuffer, Value, VersionedCounts, WindowBuffer};
 pub use datatype::{AnyValue, DataType, dedup_slice, dtype, dtype_names, pow_anyvalue, value};
 pub use fmt::{ToSnakeCase, intern_kv_pair, short_type_name};
 pub use intern::{
-    ARC_STRING_INTERN_CACHE, SNAKE_CASE_INTERN_CACHE, STR_CACHE, STR_INTERN_CACHE, is_str_cached,
-    is_str_interned, try_get_interned_str,
+    STR_CACHE, STR_INTERN_CACHE, is_str_cached, is_str_interned, try_get_interned_str,
 };
 pub use lru::LruCache;
 pub use primitives::{Float, Integer, Primitive};

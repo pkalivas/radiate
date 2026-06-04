@@ -2,14 +2,14 @@ mod aggregate;
 mod builder;
 mod compile;
 mod logical;
-mod named;
 mod ops;
+mod query;
 mod schedule;
 mod select;
 mod stagnation;
 mod traits;
 
-pub use named::MetricQuery;
+pub use query::MetricQuery;
 pub use select::{MetricField, MetricKind, SelectExpr};
 pub use traits::Evaluate;
 pub(crate) use traits::ExprResult;
@@ -22,6 +22,53 @@ use schedule::{EveryState, ScheduleExpr};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use stagnation::StagnationExpr;
+
+// /// Multiplicative integrator: `out_t = clamp(out_{t-1} * factor_t, lo, hi)`,
+// /// seeded with `seed` on the first eval (and after `reset`). This is the
+// /// self-anchored controller `expr::track` lowers to — it carries its own
+// /// previous output, so no external "previous threshold" metric is needed.
+// #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+// #[derive(Clone, Debug, PartialEq)]
+// pub struct FeedbackExpr {
+//     pub(super) factor: Box<Expr>,
+//     pub(super) seed: f32,
+//     pub(super) lo: f32,
+//     pub(super) hi: f32,
+//     pub(super) state: Option<f32>, // prev output; None until first eval
+// }
+
+// impl FeedbackExpr {
+//     pub fn new(factor: Expr, seed: f32, lo: f32, hi: f32) -> Self {
+//         Self {
+//             factor: Box::new(factor),
+//             seed,
+//             lo,
+//             hi,
+//             state: None,
+//         }
+//     }
+//     pub(super) fn reset(&mut self) {
+//         self.state = None;
+//         self.factor.reset();
+//     }
+// }
+
+// impl Evaluate for FeedbackExpr {
+//     fn eval<'a>(&'a mut self, metrics: &MetricSet) -> ExprResult<'a> {
+//         let prev = self.state.unwrap_or(self.seed);
+//         // Missing/non-finite factor (e.g. gen 0 before the metric exists) → hold.
+//         let factor = self
+//             .factor
+//             .eval(metrics)
+//             .ok()
+//             .and_then(|v| v.extract::<f32>())
+//             .filter(|f| f.is_finite())
+//             .unwrap_or(1.0);
+//         let out = (prev * factor).clamp(self.lo, self.hi);
+//         self.state = Some(out);
+//         Ok(AnyValue::Float32(out))
+//     }
+// }
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]

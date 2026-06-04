@@ -220,12 +220,7 @@ where
         )
     }
 
-    fn calc_species_metrics(
-        &self,
-        generation: usize,
-        ecosystem: &Ecosystem<C>,
-        metrics: &mut MetricSet,
-    ) {
+    fn calc_species_metrics(generation: usize, ecosystem: &Ecosystem<C>, metrics: &mut MetricSet) {
         let Some(species) = ecosystem.species() else {
             return;
         };
@@ -253,11 +248,11 @@ where
 
         let largest_share = max_size as f32 / pop_len as f32;
 
-        let mut evenness = 0.0_f32;
+        let mut evenness = 0_f32;
         let s_count = species.len();
         if s_count > 1 && size_sum > 0 {
             let total = size_sum as f32;
-            let mut h = 0.0_f32;
+            let mut h = 0_f32;
             for &sz in sizes.iter() {
                 if sz > 0 {
                     let p = sz as f32 / total;
@@ -328,7 +323,8 @@ where
         metrics.upsert(metric_names::SPECIES_DISTANCE_DIST, &self.distances);
         metrics.upsert(metric_names::SPECIES_DIED, rm_species_count);
         metrics.upsert(metric_names::SPECIES_THRESHOLD, threshold);
-        self.calc_species_metrics(generation, ecosystem, metrics);
+
+        Self::calc_species_metrics(generation, ecosystem, metrics);
 
         ecosystem.fitness_share(&self.objective);
 

@@ -5,7 +5,7 @@ use super::{
     ops::{BinaryExpr, BinaryOp, TrinaryExpr, TrinaryOp, UnaryExpr, UnaryOp, fuse_affine},
     schedule::{EveryState, ScheduleExpr},
 };
-use radiate_utils::{AnyValue, DataType, Quantile, WindowBuffer};
+use radiate_utils::{AnyValue, DataType, Quantile};
 use std::ops::{Add, Div, Mul, Neg, Not, Sub};
 
 impl Expr {
@@ -81,16 +81,12 @@ impl Expr {
 
     pub fn rolling(self, window_size: usize) -> Expr {
         match self {
-            Expr::Aggregate(agg) => Expr::Aggregate(AggExpr {
-                child: agg.child,
-                rollup: agg.rollup,
-                buffer: Some(WindowBuffer::with_capacity(window_size)),
-            }),
-            Expr::Selector(select) => Expr::Aggregate(AggExpr {
-                child: Box::new(Expr::Selector(select)),
-                rollup: Rollup::Last,
-                buffer: Some(WindowBuffer::with_capacity(window_size)),
-            }),
+            Expr::Aggregate(agg) => {
+                Expr::Aggregate(AggExpr::new(*agg.child, agg.rollup).rolling(window_size))
+            }
+            Expr::Selector(select) => Expr::Aggregate(
+                AggExpr::new(Expr::Selector(select), Rollup::Last).rolling(window_size),
+            ),
             _ => Expr::Buffer(BufferExpr::new(self, window_size)),
         }
     }

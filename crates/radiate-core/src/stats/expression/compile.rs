@@ -145,4 +145,3 @@ fn fold_literals(
         None
     }
 }
-

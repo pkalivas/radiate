@@ -126,7 +126,11 @@ def test_engine_with_iter(random_seed):
     def fit(val: list[float]) -> float:
         return sum(i**2 for i in val)
 
-    engine = rd.Engine.float(2, init_range=(-5.0, 5.0)).fitness(fit)
+    engine = (
+        rd.Engine.float(2, init_range=(-5.0, 5.0))
+        .fitness(fit)
+        .limit(rd.Limit.generations(5))
+    )
 
     results = []
     while len(results) < 5:
