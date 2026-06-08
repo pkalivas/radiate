@@ -2,7 +2,7 @@ use crate::{PyGeneType, PyGenotype, Wrap};
 use pyo3::{Bound, IntoPyObject, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
     BitChromosome, CharChromosome, Chromosome, FloatChromosome, Genotype, GraphChromosome,
-    IntChromosome, Op, PermutationChromosome, Phenotype, TreeChromosome,
+    IntChromosome, Op, PermutationChromosome, Phenotype, TreeChromosome, phenotype::PhenotypeId,
 };
 use radiate_utils::DataType;
 
@@ -20,12 +20,12 @@ pub struct PyPhenotype {
 #[pymethods]
 impl PyPhenotype {
     #[new]
-    #[pyo3(signature = (genotype, score=None, id=0))]
-    pub fn new(genotype: PyGenotype, score: Option<Vec<f32>>, id: u64) -> Self {
+    #[pyo3(signature = (genotype, score=None, id=None))]
+    pub fn new(genotype: PyGenotype, score: Option<Vec<f32>>, id: Option<u64>) -> Self {
         PyPhenotype {
             genotype,
             score: score.unwrap_or_default(),
-            id,
+            id: id.unwrap_or(PhenotypeId::new().into()),
         }
     }
 

@@ -51,12 +51,12 @@ class AlterBase(ComponentBase):
             component=self.component,
             input_type=EngineInputType.Alterer,
             allowed_genes=self.allowed_genes,
-            args=self.args,
-            rate=self.rate.__backend__(),
+            rate=self.rate,
+            **self.args,
         ).__backend__()
 
-        return Population(
-            individuals=py_alter(
+        return Population.from_rust(
+            py_alter(
                 population.__backend__().gene_type(),
                 alterer_input,
                 population.__backend__(),

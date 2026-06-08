@@ -4,6 +4,32 @@ use pyo3::{
 };
 use radiate::prelude::*;
 use radiate_utils::DataType;
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum ChromosomeInner {
+    UInt8(IntChromosome<u8>),
+    UInt16(IntChromosome<u16>),
+    UInt32(IntChromosome<u32>),
+    UInt64(IntChromosome<u64>),
+    UInt128(IntChromosome<u128>),
+    Int8(IntChromosome<i8>),
+    Int16(IntChromosome<i16>),
+    Int32(IntChromosome<i32>),
+    Int64(IntChromosome<i64>),
+    Int128(IntChromosome<i128>),
+
+    Float32(FloatChromosome<f32>),
+    Float64(FloatChromosome<f64>),
+
+    Bit(BitChromosome),
+    Char(CharChromosome),
+
+    Permutation(PermutationChromosome<usize>),
+
+    GraphNode(GraphChromosome<Op<f32>>),
+    TreeNode(TreeChromosome<Op<f32>>),
+}
 
 #[pyclass(from_py_object)]
 #[derive(Clone, Debug, PartialEq)]

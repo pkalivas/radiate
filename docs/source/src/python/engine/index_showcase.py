@@ -13,14 +13,14 @@ import radiate as rd
 
 # Create an engine
 engine = (
-    rd.Engine.float(init_range=(0.0, 1.0)).fitness(my_fitness_fn)
+    rd.Engine.float(init_range=(0.0, 1.0))
+    .fitness(my_fitness_fn)
+    .limit(rd.Limit.generations(100))
     # ... other parameters ...
 )
 
 # use a simple for loop to iterate through 100 generations
 for epoch in engine:
-    if epoch.index() >= 100:
-        break
     print(f"Generation {epoch.index()}: Score = {epoch.score()}")
 
 # just use the next() function to get the next epoch
