@@ -1,30 +1,24 @@
 use crate::{
     state::{AppState, LineChartType},
-    widgets::{components::LineChartWidget, components::ParetoPagingWidget},
+    widgets::{AppWidget, components::LineChartWidget, components::ParetoPagingWidget},
 };
 use radiate_engines::{Chromosome, metric_names};
-use ratatui::widgets::{StatefulWidget, Widget};
+use ratatui::widgets::Widget;
 
-pub struct FitnessChartPanelWidget<C: Chromosome> {
-    _phantom: std::marker::PhantomData<C>,
-}
+pub struct FitnessChartPanelWidget;
 
-impl<C: Chromosome> FitnessChartPanelWidget<C> {
+impl FitnessChartPanelWidget {
     pub fn new() -> Self {
-        Self {
-            _phantom: std::marker::PhantomData,
-        }
+        Self
     }
 }
 
-impl<C: Chromosome> StatefulWidget for FitnessChartPanelWidget<C> {
-    type State = AppState<C>;
-
+impl<C: Chromosome> AppWidget<C> for FitnessChartPanelWidget {
     fn render(
-        self,
+        &self,
         area: ratatui::layout::Rect,
         buf: &mut ratatui::buffer::Buffer,
-        state: &mut Self::State,
+        state: &mut AppState<C>,
     ) {
         if state.evo.pareto.objective.is_single() {
             let chart_state = &state.evo.charts;

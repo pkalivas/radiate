@@ -1,30 +1,27 @@
-use crate::{state::AppState, styles::COLOR_WHEEL_400, widgets::panels::tables::tagged_metrics};
+use crate::{
+    state::AppState, styles::COLOR_WHEEL_400, widgets::AppWidget,
+    widgets::panels::tables::tagged_metrics,
+};
 use radiate_engines::{Chromosome, metric_names, stats::TagType};
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
     style::Color,
     text::Line,
-    widgets::{Block, StatefulWidget, Widget},
+    widgets::{Block, Widget},
 };
 use tui_piechart::{PieChart, PieSlice};
 
-pub struct SpeciesPieChartComponent<C: Chromosome> {
-    _marker: std::marker::PhantomData<C>,
-}
+pub struct SpeciesPieChartComponent;
 
-impl<C: Chromosome> SpeciesPieChartComponent<C> {
+impl SpeciesPieChartComponent {
     pub fn new() -> Self {
-        Self {
-            _marker: std::marker::PhantomData,
-        }
+        Self
     }
 }
 
-impl<C: Chromosome> StatefulWidget for SpeciesPieChartComponent<C> {
-    type State = AppState<C>;
-
-    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+impl<C: Chromosome> AppWidget<C> for SpeciesPieChartComponent {
+    fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
         let Some(species) = &state.evo.get_species() else {
             let block = Block::bordered().title(Line::from(" No Data ").centered());
             block.render(area, buf);
@@ -59,22 +56,16 @@ impl<C: Chromosome> StatefulWidget for SpeciesPieChartComponent<C> {
     }
 }
 
-pub struct TimePieChartComponent<C> {
-    _marker: std::marker::PhantomData<C>,
-}
+pub struct TimePieChartComponent;
 
-impl<C> TimePieChartComponent<C> {
+impl TimePieChartComponent {
     pub fn new() -> Self {
-        Self {
-            _marker: std::marker::PhantomData,
-        }
+        Self
     }
 }
 
-impl<C: Chromosome> StatefulWidget for TimePieChartComponent<C> {
-    type State = AppState<C>;
-
-    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+impl<C: Chromosome> AppWidget<C> for TimePieChartComponent {
+    fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
         let items = tagged_metrics(&state.evo.metrics, state, TagType::Time)
             .iter()
             .filter(|met| met.0 != metric_names::TIME)

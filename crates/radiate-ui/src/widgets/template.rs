@@ -1,10 +1,10 @@
 use crate::{
     state::AppState,
     widgets::{
-        EngineStatusPanelWidget, FitnessChartPanelWidget, FnWidget, MetricDetailPanelWidget,
-        MetricTableWidget, Panel, SearchBarWidget, TabComponent,
+        AppWidget, EngineStatusPanelWidget, FitnessChartPanelWidget, FnWidget,
+        MetricDetailPanelWidget, MetricTableWidget, Panel, SearchBarWidget, TabComponent,
         components::{SpeciesPieChartComponent, SpeciesSparklineComponent, TimePieChartComponent},
-        panels::tables::SpeciesTableWidget,
+        panels::{MetricChartPanelWidget, tables::SpeciesTableWidget},
     },
 };
 use radiate_engines::Chromosome;
@@ -12,7 +12,7 @@ use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Direction, Layout, Rect},
     text::Line,
-    widgets::{StatefulWidget, Widget},
+    widgets::Widget,
 };
 
 pub enum LayoutNode<C: Chromosome> {
@@ -117,15 +117,15 @@ impl<C: Chromosome> Default for LayoutNode<C> {
                                 Horizontal {
                                     constraints: vec![
                                         Constraint::Fill(1),
-                                        Constraint::Percentage(15),
+                                        Constraint::Percentage(30),
+                                        Constraint::Percentage(20),
                                     ],
                                     children: vec![
                                         Widget(|a, b, s| {
                                             MetricTableWidget::stats().render(a, b, s)
                                         }),
-                                        Widget(|a, b, s| {
-                                            MetricDetailPanelWidget::new().render(a, b, s)
-                                        }),
+                                        Widget(|a, b, s| MetricChartPanelWidget.render(a, b, s)),
+                                        Widget(|a, b, s| MetricDetailPanelWidget.render(a, b, s)),
                                     ],
                                 },
                                 Horizontal {
@@ -139,9 +139,7 @@ impl<C: Chromosome> Default for LayoutNode<C> {
                                         Widget(|a, b, s| {
                                             TimePieChartComponent::new().render(a, b, s)
                                         }),
-                                        Widget(|a, b, s| {
-                                            MetricDetailPanelWidget::new().render(a, b, s)
-                                        }),
+                                        Widget(|a, b, s| MetricDetailPanelWidget.render(a, b, s)),
                                     ],
                                 },
                                 Horizontal {
@@ -153,9 +151,7 @@ impl<C: Chromosome> Default for LayoutNode<C> {
                                         Widget(|a, b, s| {
                                             MetricTableWidget::distribution().render(a, b, s)
                                         }),
-                                        Widget(|a, b, s| {
-                                            MetricDetailPanelWidget::new().render(a, b, s)
-                                        }),
+                                        Widget(|a, b, s| MetricDetailPanelWidget.render(a, b, s)),
                                     ],
                                 },
                                 Horizontal {

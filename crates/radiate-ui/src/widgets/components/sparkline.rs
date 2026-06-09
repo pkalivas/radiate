@@ -1,30 +1,25 @@
 use crate::state::AppState;
+use crate::widgets::AppWidget;
 use radiate_engines::Chromosome;
 use ratatui::{
     style::{Color, Style},
-    widgets::{Block, RenderDirection, Sparkline, SparklineBar, StatefulWidget, Widget},
+    widgets::{Block, RenderDirection, Sparkline, SparklineBar, Widget},
 };
 
-pub struct SpeciesSparklineComponent<C> {
-    _phantom: std::marker::PhantomData<C>,
-}
+pub struct SpeciesSparklineComponent;
 
-impl<C> SpeciesSparklineComponent<C> {
+impl SpeciesSparklineComponent {
     pub fn new() -> Self {
-        Self {
-            _phantom: std::marker::PhantomData,
-        }
+        Self
     }
 }
 
-impl<C: Chromosome> StatefulWidget for SpeciesSparklineComponent<C> {
-    type State = AppState<C>;
-
+impl<C: Chromosome> AppWidget<C> for SpeciesSparklineComponent {
     fn render(
-        self,
+        &self,
         area: ratatui::layout::Rect,
         buf: &mut ratatui::buffer::Buffer,
-        state: &mut Self::State,
+        state: &mut AppState<C>,
     ) {
         let items = match state.evo.get_species() {
             Some(species) => species,

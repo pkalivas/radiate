@@ -1,5 +1,5 @@
 use crate::state::{AppState, RunState, UiMode};
-use crate::widgets::{HelpPanelWidget, LayoutNode, MetricModalWidget, ModalWidget};
+use crate::widgets::{AppWidget, HelpPanelWidget, LayoutNode, MetricModalWidget, ModalWidget};
 use color_eyre::Result;
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use radiate_engines::{
@@ -9,7 +9,7 @@ use radiate_engines::{
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Style;
-use ratatui::widgets::{StatefulWidget, Widget};
+use ratatui::widgets::Widget;
 use ratatui::{Terminal, backend::CrosstermBackend};
 use std::sync::{Arc, mpsc};
 use std::{
@@ -275,7 +275,7 @@ where
         match self.state.nav.mode {
             UiMode::Help => ModalWidget::new(HelpPanelWidget).render(area, buf),
             UiMode::MetricModal => {
-                ModalWidget::new(MetricModalWidget::new()).render(area, buf, &mut self.state);
+                ModalWidget::new(MetricModalWidget).render(area, buf, &mut self.state);
             }
             _ => {}
         }

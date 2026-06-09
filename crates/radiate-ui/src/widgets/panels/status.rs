@@ -1,28 +1,22 @@
 use crate::state::{AppState, LineChartType};
-use crate::widgets::components::LineChartWidget;
-use crate::widgets::{FnWidget, MetricDetailPanelWidget, Panel, TabComponent};
+use crate::widgets::panels::MetricChartPanelWidget;
+use crate::widgets::{AppWidget, FnWidget, MetricDetailPanelWidget, Panel, TabComponent};
 use radiate_engines::stats::fmt_duration;
 use radiate_engines::{Chromosome, MetricSet};
 use ratatui::prelude::*;
 use ratatui::style::{Color, Stylize};
 use ratatui::widgets::{Paragraph, Row, Table};
 
-pub struct EngineStatusPanelWidget<C: Chromosome> {
-    _phantom: std::marker::PhantomData<C>,
-}
+pub struct EngineStatusPanelWidget;
 
-impl<C: Chromosome> EngineStatusPanelWidget<C> {
+impl EngineStatusPanelWidget {
     pub fn new() -> Self {
-        Self {
-            _phantom: std::marker::PhantomData,
-        }
+        Self
     }
 }
 
-impl<C: Chromosome> StatefulWidget for EngineStatusPanelWidget<C> {
-    type State = AppState<C>;
-
-    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+impl<C: Chromosome> AppWidget<C> for EngineStatusPanelWidget {
+    fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
         let metrics = &state.evo.metrics;
         let elapsed = metrics
             .time()
@@ -79,38 +73,21 @@ impl<C: Chromosome> StatefulWidget for EngineStatusPanelWidget<C> {
     }
 }
 
-pub struct MetricModalWidget<C: Chromosome> {
-    _phantom: std::marker::PhantomData<C>,
-}
+pub struct MetricModalWidget;
 
-impl<C: Chromosome> MetricModalWidget<C> {
-    pub fn new() -> Self {
-        Self {
-            _phantom: std::marker::PhantomData,
-        }
-    }
-}
-
-impl<C: Chromosome> StatefulWidget for MetricModalWidget<C> {
-    type State = AppState<C>;
-
-    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let current_metric_name = state.get_selected_metric().unwrap_or("").to_owned();
-
+impl<C: Chromosome> AppWidget<C> for MetricModalWidget {
+    fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
         let index = state.nav.chart_tab_index();
 
         let [left, right] =
             Layout::horizontal([Constraint::Percentage(25), Constraint::Fill(1)]).areas(area);
 
-        MetricDetailPanelWidget::new().render(left, buf, state);
+        MetricDetailPanelWidget.render(left, buf, state);
 
         let areas = Layout::default()
             .direction(Direction::Vertical)
             .constraints([Constraint::Length(3), Constraint::Fill(1)])
             .split(right);
-
-        let chart_type = state.nav.chart_tab;
-        let charts = state.evo.get_chart_by_key(&current_metric_name, chart_type);
 
         Panel::new(FnWidget::new(|area, buf| {
             TabComponent::new(
@@ -124,9 +101,7 @@ impl<C: Chromosome> StatefulWidget for MetricModalWidget<C> {
         .render_inside_block(true)
         .render(areas[0], buf);
 
-        LineChartWidget::from(charts)
-            .with_show_x_axis(true)
-            .render(areas[1], buf);
+        MetricChartPanelWidget.render(areas[1], buf, state);
     }
 }
 

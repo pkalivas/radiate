@@ -12,6 +12,7 @@ pub struct LineChartWidget<'a> {
     charts: Vec<&'a RollingLineChart>,
     bg_color: Color,
     show_x_axis: bool,
+    show_boarders: bool,
 }
 
 impl<'a> LineChartWidget<'a> {
@@ -20,11 +21,17 @@ impl<'a> LineChartWidget<'a> {
             charts,
             bg_color: crate::styles::ALT_BG_COLOR,
             show_x_axis: false,
+            show_boarders: true,
         }
     }
 
     pub fn with_show_x_axis(mut self, show: bool) -> Self {
         self.show_x_axis = show;
+        self
+    }
+
+    pub fn with_show_boarders(mut self, show: bool) -> Self {
+        self.show_boarders = show;
         self
     }
 }
@@ -94,7 +101,9 @@ impl<'a> Widget for LineChartWidget<'a> {
             self.charts,
             self.bg_color,
             self.show_x_axis,
+            self.show_boarders,
         );
+
         chart.render(area, buf);
     }
 }
@@ -105,6 +114,7 @@ fn chart_widget<'a>(
     charts: Vec<&'a RollingLineChart>,
     bg_color: Color,
     show_x_axis: bool,
+    show_boarders: bool,
 ) -> ratatui::widgets::Chart<'a> {
     let (min_x, max_x) = x_bounds;
     let (min_y, max_y) = y_bounds;
@@ -138,18 +148,22 @@ fn chart_widget<'a>(
             .bounds([min_x, max_x])
     };
 
-    Chart::new(datasets)
-        .bg(bg_color)
-        .block(Block::bordered().title(Line::from(format!(" {} ", charts[0].title())).centered()))
-        .x_axis(x_axis)
-        .y_axis(
-            Axis::default()
-                .style(Style::default().gray())
-                .bounds([min_y, max_y])
-                .labels(Line::from(vec![
-                    format!("{:.2}", min_y).bold(),
-                    format!("{:.2}", mid_y).into(),
-                    format!("{:.2}", max_y).bold(),
-                ])),
+    let result = Chart::new(datasets).bg(bg_color).x_axis(x_axis).y_axis(
+        Axis::default()
+            .style(Style::default().fg(bg_color))
+            .bounds([min_y, max_y])
+            .labels(Line::from(vec![
+                format!("{:.2}", min_y).bold(),
+                format!("{:.2}", mid_y).into(),
+                format!("{:.2}", max_y).bold(),
+            ])),
+    );
+
+    if show_boarders {
+        result.block(
+            Block::bordered().title(Line::from(format!(" {} ", charts[0].title())).centered()),
         )
+    } else {
+        result
+    }
 }

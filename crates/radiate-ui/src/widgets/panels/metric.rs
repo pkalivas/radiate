@@ -1,28 +1,95 @@
 use crate::state::AppState;
-use crate::widgets::{FnWidget, Panel};
+use crate::widgets::{AppWidget, FnWidget, LineChartWidget, Panel};
 use radiate_engines::stats::{TagType, fmt_duration};
 use radiate_engines::{Chromosome, Metric};
 use ratatui::prelude::*;
 use ratatui::style::{Color, Stylize};
 use ratatui::text::ToSpan;
-use ratatui::widgets::{Paragraph, Row, Table};
+use ratatui::widgets::{Block, Paragraph, Row, Table};
 
-pub struct MetricDetailPanelWidget<C: Chromosome> {
-    _phantom: std::marker::PhantomData<C>,
-}
+pub struct MetricChartPanelWidget;
 
-impl<C: Chromosome> MetricDetailPanelWidget<C> {
-    pub fn new() -> Self {
-        Self {
-            _phantom: std::marker::PhantomData,
-        }
+impl<C: Chromosome> AppWidget<C> for MetricChartPanelWidget {
+    fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
+        let current_metric_name = state.get_selected_metric().unwrap_or("");
+
+        let chart_type = state.nav.chart_tab;
+        let charts = state.evo.get_chart_by_key(current_metric_name, chart_type);
+
+        let inner = if area.width > 2 && area.height > 2 {
+            Rect {
+                x: area.x + 1,
+                y: area.y + 1,
+                width: area.width.saturating_sub(2),
+                height: area.height.saturating_sub(2),
+            }
+        } else {
+            area
+        };
+
+        let chart_metrics = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Min(8), Constraint::Length(1)].as_ref())
+            .split(inner);
+
+        LineChartWidget::from(charts)
+            .with_show_x_axis(false)
+            .with_show_boarders(false)
+            .render(chart_metrics[0], buf);
+
+        let line = if let Some(metric) = state.evo.metrics.get(current_metric_name) {
+            render_metrics_text(metric)
+        } else {
+            Line::from("No data".to_span().italic().fg(Color::DarkGray))
+        };
+
+        Paragraph::new(line)
+            .alignment(Alignment::Center)
+            .render(chart_metrics[1], buf);
+
+        Block::bordered()
+            .title(Line::from(format!(" {} ", current_metric_name)).centered())
+            .render(area, buf);
     }
 }
 
-impl<C: Chromosome> StatefulWidget for MetricDetailPanelWidget<C> {
-    type State = AppState<C>;
+fn render_metrics_text<'a>(metrics: &Metric) -> Line<'a> {
+    let spans = if let Some(stat_view) = metrics.stats() {
+        vec![
+            Span::styled("last", Style::default().fg(Color::Gray)),
+            Span::styled(
+                format!(" {:.4}", stat_view.last()),
+                Style::default().fg(Color::LightGreen),
+            ),
+            Span::raw(" "),
+        ]
+        //     Span::styled("avg", Style::default().fg(Color::Gray)),
+        //     Span::styled(format!(" {:.0}", mean_val), Style::default().fg(c)),
+        //     Span::raw(" "),
+        //     Span::styled("med", Style::default().fg(Color::Gray)),
+        //     Span::styled(format!(" {:.0}", median_val), Style::default().fg(c)),
+    } else {
+        vec![Span::styled(
+            "No data",
+            Style::default().fg(Color::DarkGray).italic(),
+        )]
+    };
 
-    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+    // let spans = vec![
+    //     Span::styled("avg", Style::default().fg(Color::Gray)),
+    //     Span::styled(format!(" {:.0}", mean_val), Style::default().fg(c)),
+    //     Span::raw(" "),
+    //     Span::styled("med", Style::default().fg(Color::Gray)),
+    //     Span::styled(format!(" {:.0}", median_val), Style::default().fg(c)),
+    //     // … p25, p75, optional jit/loss …
+    // ];
+    Line::from(spans)
+}
+
+pub struct MetricDetailPanelWidget;
+
+impl<C: Chromosome> AppWidget<C> for MetricDetailPanelWidget {
+    fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
         let current_metric_name = state.get_selected_metric().unwrap_or("");
         let metrics = &state.evo.metrics;
         let metric = metrics.get(current_metric_name);
