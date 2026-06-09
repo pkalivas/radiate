@@ -28,13 +28,6 @@ impl<C: Chromosome> StatefulWidget for FitnessChartPanelWidget<C> {
     ) {
         if state.evo.pareto.objective.is_single() {
             let chart_state = &state.evo.charts;
-            // let charts = if state.display_mini_chart() {
-            //     vec![
-            //         chart_state.get_by_key(metric_names::BEST_SCORES, ChartType::Value),
-            //         chart_state.get_by_key(metric_names::BEST_SCORES, ChartType::Mean),
-            //     ]
-            // } else {
-            // };
             let charts =
                 vec![chart_state.get_line_chart(&metric_names::BEST_SCORES, LineChartType::Value)];
 

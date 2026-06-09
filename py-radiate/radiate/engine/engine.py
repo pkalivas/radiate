@@ -584,7 +584,10 @@ class Engine[G, T]:
         return self
 
     def diversity(
-        self, diversity: DistanceBase, species_threshold: Rate | Expr | float = 0.5
+        self,
+        diversity: DistanceBase,
+        species_threshold: Rate | Expr | float = 0.5,
+        target_species: int | None = None,
     ) -> Engine[G, T]:
         """
         Set the diversity measure and species threshold for speciation in the engine.
@@ -602,6 +605,7 @@ class Engine[G, T]:
         Args:
             diversity: A distance-based diversity measure to promote genetic diversity.
             species_threshold: A threshold for grouping individuals into species based on genetic distance. Must be greater than 0.
+            target_species: If provided, the engine will dynamically adjust the species threshold to try to maintain the specified number of species in the population. Must be greater than 0.
         Returns:
             Engine: The engine instance with the diversity measure and species threshold set.
 
@@ -617,10 +621,28 @@ class Engine[G, T]:
         ...     )  # <- use Euclidean distance for speciation with a threshold of 0.7
         ... )
         """
+        if target_species is not None:
+            if target_species <= 0:
+                raise ValueError("Target species must be greater than 0.")
+            initial_threshold = (
+                species_threshold
+                if isinstance(species_threshold, (int, float))
+                else 0.5
+            )
+
+            index = Expr.select("index")
+            thresh = Expr.select("species.threshold")
+            err = Expr.select("count.species").error(target_species) * 0.05
+
+            species_threshold = (
+                Expr.when(index < 2).then(initial_threshold).otherwise(err + thresh)
+            )
+
         if isinstance(species_threshold, (int, float)):
             if species_threshold <= 0:
                 raise ValueError("Species threshold must be greater than 0.")
             species_threshold = Rate.fixed(species_threshold)
+
         self._builder.set_diversity(diversity, species_threshold)
         return self
 
