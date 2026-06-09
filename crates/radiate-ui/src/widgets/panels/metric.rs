@@ -184,6 +184,10 @@ fn map_to_distribution_metric_rows(metric: &Metric) -> Vec<Row<'_>> {
                 "Kurtosis".bold(),
                 format!("{:.4}", view.kurtosis()).into(),
             ]),
+            Row::new(vec![
+                "q50".bold(),
+                format!("{:.4}", view.quantile(0.5).unwrap_or(f32::NAN)).into(),
+            ]),
         ];
 
         return rows;

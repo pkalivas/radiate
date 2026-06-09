@@ -35,7 +35,7 @@ pub(super) struct Meta {
 pub struct Metric {
     name: SmallStr,
     inner: Statistic,
-    
+    samples: Option<Vec<f32>>,
     meta: Meta,
     tags: Tag,
     dtype: u8,
@@ -50,6 +50,7 @@ impl Metric {
             name,
             inner: Statistic::default(),
             meta: Meta::default(),
+            samples: None,
             tags,
             dtype: DTYPE_NULL,
         }
@@ -113,6 +114,7 @@ impl Metric {
 
     pub fn clear_values(&mut self) {
         self.inner = Statistic::default();
+        self.samples = None;
     }
 
     pub fn stats<'a>(&'a self) -> Option<MetricView<'a, f32>> {
@@ -123,6 +125,7 @@ impl Metric {
         Some(MetricView {
             name: &self.name,
             statistic: &self.inner,
+            samples: self.samples.as_deref(),
             mapper: |v| v,
         })
     }
@@ -135,8 +138,9 @@ impl Metric {
         Some(MetricView {
             name: &self.name,
             statistic: &self.inner,
+            samples: self.samples.as_deref(),
             mapper: |v| Duration::from_secs_f32(v),
-        } )
+        })
     }
 
     pub fn distributions<'a>(&'a self) -> Option<MetricView<'a, f32>> {
@@ -147,6 +151,7 @@ impl Metric {
         Some(MetricView {
             name: &self.name,
             statistic: &self.inner,
+            samples: self.samples.as_deref(),
             mapper: |v| v,
          })
     }
@@ -226,7 +231,16 @@ impl Metric {
     where
         I: IntoIterator<Item = f32>,
     {   
-        self.inner = values.into_iter().collect::<Statistic>();
+        let samples = self.samples.get_or_insert_with(Vec::new);
+
+        samples.clear();
+        self.inner.clear();
+
+        for val in values {
+            samples.push(val);
+            self.inner.add(val);
+        }
+        
         self.meta.update_count += self.inner.count() as usize;
         
         self.add_tag(TagType::Distribution);
@@ -284,6 +298,9 @@ impl Metric {
         self.inner.sum()
     }
 
+    pub fn quantile(&self, q: f32) -> Option<f32> {
+        self.distributions().and_then(|view| view.quantile(q))
+    }
 }
 
 impl Hash for Metric {

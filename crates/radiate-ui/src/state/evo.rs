@@ -19,7 +19,7 @@ pub struct EvoState<C: Chromosome> {
     pub best_phenotype: Option<Phenotype<C>>,
     pub ecosystem: Option<Arc<Ecosystem<C>>>,
     pub front: Option<Front<Phenotype<C>>>,
-    pub metrics: MetricSet,
+    pub metrics: Arc<MetricSet>,
     pub charts: ChartState,
     pub index: usize,
     pub score: Score,
@@ -40,7 +40,7 @@ impl<C: Chromosome> EvoState<C> {
         self.best_phenotype = phenotype;
     }
 
-    pub fn update_metrics(&mut self, metrics: MetricSet) {
+    pub fn update_metrics(&mut self, metrics: Arc<MetricSet>) {
         for metric in metrics.iter() {
             self.charts.update_from_metric(metric.1);
         }
@@ -105,7 +105,7 @@ impl<C: Chromosome> Default for EvoState<C> {
         Self {
             best_phenotype: None,
             front: None,
-            metrics: MetricSet::new(),
+            metrics: Arc::new(MetricSet::new()),
             charts: ChartState::new(),
             ecosystem: None,
             index: 0,

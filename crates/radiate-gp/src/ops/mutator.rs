@@ -124,8 +124,8 @@ where
             }
         }
 
-        ctx.metric(OP_MUTATED, metrics.op_mutate);
-        ctx.metric(OP_NEW_INSTANCE, metrics.op_new_instance);
+        // ctx.metric(OP_MUTATED, metrics.op_mutate);
+        // ctx.metric(OP_NEW_INSTANCE, metrics.op_new_instance);
 
         AlterResult::from(metrics.len())
     }
@@ -156,8 +156,8 @@ where
                 }
             }
 
-            ctx.metric(OP_MUTATED, metrics.op_mutate);
-            ctx.metric(OP_NEW_INSTANCE, metrics.op_new_instance);
+            ctx.upsert(OP_MUTATED, metrics.op_mutate);
+            ctx.upsert(OP_NEW_INSTANCE, metrics.op_new_instance);
 
             return AlterResult::from(metrics.len());
         }

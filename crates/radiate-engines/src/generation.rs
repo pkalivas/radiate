@@ -50,7 +50,7 @@ where
     ecosystem: Arc<Ecosystem<C>>,
     value: T,
     index: usize,
-    metrics: MetricSet,
+    metrics: Arc<MetricSet>,
     score: Score,
     objective: Objective,
     front: Option<Arc<Front<Phenotype<C>>>>,
@@ -112,8 +112,12 @@ where
         self.exprs.clone()
     }
 
-    pub fn cloned_ecosystem(&self) -> Arc<Ecosystem<C>> {
+    pub fn arc_ecosystem(&self) -> Arc<Ecosystem<C>> {
         Arc::clone(&self.ecosystem)
+    }
+
+    pub fn arc_metrics(&self) -> Arc<MetricSet> {
+        Arc::clone(&self.metrics)
     }
 }
 
@@ -133,7 +137,7 @@ where
             ecosystem: Arc::new(context.ecosystem.clone()),
             value: context.best.clone(),
             index: context.index,
-            metrics: context.metrics.clone(),
+            metrics: Arc::new(context.metrics.clone()),
             score: context.score.clone().unwrap(),
             objective: context.objective.clone(),
             front: match context.objective {
@@ -155,7 +159,7 @@ where
             ecosystem: Arc::clone(&self.ecosystem),
             value: self.value.clone(),
             index: self.index,
-            metrics: self.metrics.clone(),
+            metrics: Arc::clone(&self.metrics),
             score: self.score.clone(),
             objective: self.objective.clone(),
             front: self.front.clone(),
@@ -207,7 +211,7 @@ where
             ecosystem: Arc::new(Ecosystem::default()),
             value: T::default(),
             index: 0,
-            metrics: MetricSet::default(),
+            metrics: Arc::new(MetricSet::default()),
             score: Score::default(),
             objective: Objective::default(),
             front: None,

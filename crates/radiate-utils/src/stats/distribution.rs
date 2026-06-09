@@ -34,15 +34,27 @@ impl<F: Float> Distribution<F> {
         self.values.len()
     }
 
+    pub fn min(&self) -> F {
+        self.statistic.min()
+    }
+
+    pub fn max(&self) -> F {
+        self.statistic.max()
+    }
+
     pub fn mean(&self) -> F {
         self.statistic.mean()
+    }
+
+    pub fn sum(&self) -> F {
+        self.statistic.sum()
     }
 
     pub fn variance(&self) -> Option<F> {
         self.statistic.variance()
     }
 
-    pub fn standard_deviation(&self) -> Option<F> {
+    pub fn std_dev(&self) -> Option<F> {
         self.statistic.std_dev()
     }
 
@@ -54,17 +66,23 @@ impl<F: Float> Distribution<F> {
         self.statistic.kurtosis()
     }
 
-    pub fn min(&self) -> F {
-        self.statistic.min()
-    }
-
-    pub fn max(&self) -> F {
-        self.statistic.max()
-    }
-
     pub fn clear(&mut self) {
         self.statistic.clear();
         self.values.clear();
+    }
+}
+
+impl<F> Extend<F> for Distribution<F>
+where
+    F: Float,
+{
+    fn extend<T: IntoIterator<Item = F>>(&mut self, iter: T) {
+        self.clear();
+        self.values.extend(iter);
+
+        for &value in &self.values {
+            self.statistic.add(value);
+        }
     }
 }
 

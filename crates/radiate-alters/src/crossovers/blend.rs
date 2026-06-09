@@ -82,7 +82,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use radiate_core::{FloatChromosome, FloatGene, MetricSet};
+    use radiate_core::{FloatChromosome, FloatGene, alter::AlterUpdates};
 
     #[test]
     fn test_cross_chromosomes_basic() {
@@ -105,8 +105,8 @@ mod tests {
         let original_one: Vec<f32> = chrom_one.iter().map(|g| *g.allele()).collect();
         let original_two: Vec<f32> = chrom_two.iter().map(|g| *g.allele()).collect();
 
-        let mut metrics = MetricSet::default();
-        let mut ctx = AlterContext::new(&mut metrics, 0, 1.0);
+        let mut updates = AlterUpdates::default();
+        let mut ctx = AlterContext::new(&mut updates, 0, 1.0);
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
@@ -145,8 +145,8 @@ mod tests {
         let original_one: Vec<f32> = chrom_one.iter().map(|g| *g.allele()).collect();
         let original_two: Vec<f32> = chrom_two.iter().map(|g| *g.allele()).collect();
 
-        let mut metrics = MetricSet::default();
-        let mut ctx = AlterContext::new(&mut metrics, 0, 0.0);
+        let mut updates = AlterUpdates::default();
+        let mut ctx = AlterContext::new(&mut updates, 0, 0.0);
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
@@ -176,8 +176,8 @@ mod tests {
         let mut chrom_one = FloatChromosome::new(genes1);
         let mut chrom_two = FloatChromosome::new(genes2);
 
-        let mut metrics = MetricSet::default();
-        let mut ctx = AlterContext::new(&mut metrics, 0, 1.0);
+        let mut updates = AlterUpdates::default();
+        let mut ctx = AlterContext::new(&mut updates, 0, 1.0);
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
@@ -224,8 +224,8 @@ mod tests {
         let original_one: Vec<f32> = chrom_one.iter().map(|g| *g.allele()).collect();
         let original_two: Vec<f32> = chrom_two.iter().map(|g| *g.allele()).collect();
 
-        let mut metrics = MetricSet::default();
-        let mut ctx = AlterContext::new(&mut metrics, 0, 1.0);
+        let mut updates = AlterUpdates::default();
+        let mut ctx = AlterContext::new(&mut updates, 0, 1.0);
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
@@ -254,8 +254,8 @@ mod tests {
         let mut chrom_one = FloatChromosome::new(genes1);
         let mut chrom_two = FloatChromosome::new(genes2);
 
-        let mut metrics = MetricSet::default();
-        let mut ctx = AlterContext::new(&mut metrics, 0, 1.0);
+        let mut updates = AlterUpdates::default();
+        let mut ctx = AlterContext::new(&mut updates, 0, 1.0);
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
@@ -280,8 +280,8 @@ mod tests {
         let mut chrom_one = FloatChromosome::new(genes.clone());
         let mut chrom_two = FloatChromosome::new(genes);
 
-        let mut metrics = MetricSet::default();
-        let mut ctx = AlterContext::new(&mut metrics, 0, 1.0);
+        let mut updates = AlterUpdates::default();
+        let mut ctx = AlterContext::new(&mut updates, 0, 1.0);
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
@@ -323,8 +323,8 @@ mod tests {
             let original_one: Vec<f32> = chrom_one.iter().map(|g| *g.allele()).collect();
             let original_two: Vec<f32> = chrom_two.iter().map(|g| *g.allele()).collect();
 
-            let mut metrics = MetricSet::default();
-            let mut ctx = AlterContext::new(&mut metrics, 0, 1.0);
+            let mut updates = AlterUpdates::default();
+            let mut ctx = AlterContext::new(&mut updates, 0, 1.0);
 
             let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
@@ -366,8 +366,8 @@ mod tests {
         let mut chrom_one = FloatChromosome::new(genes1);
         let mut chrom_two = FloatChromosome::new(genes2);
 
-        let mut metrics = MetricSet::default();
-        let mut ctx = AlterContext::new(&mut metrics, 0, 1.0);
+        let mut updates = AlterUpdates::default();
+        let mut ctx = AlterContext::new(&mut updates, 0, 1.0);
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
@@ -393,8 +393,8 @@ mod tests {
         let mut chrom_one = FloatChromosome::<f32>::new(genes1);
         let mut chrom_two = FloatChromosome::<f32>::new(genes2);
 
-        let mut metrics = MetricSet::default();
-        let mut ctx = AlterContext::new(&mut metrics, 0, 1.0);
+        let mut updates = AlterUpdates::default();
+        let mut ctx = AlterContext::new(&mut updates, 0, 1.0);
 
         crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 

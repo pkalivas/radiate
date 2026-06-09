@@ -137,7 +137,7 @@ where
         if let Some(max_nodes) = chromosome.max_nodes()
             && chromosome.len() >= max_nodes
         {
-            ctx.metric(SATURATED, 1);
+            ctx.upsert(SATURATED, 1);
             return AlterResult::empty();
         }
 
@@ -149,7 +149,7 @@ where
             && let Some(store) = chromosome.store()
         {
             let Some(new_node) = store.new_instance((chromosome.len(), node_type)) else {
-                ctx.metric(NO_INSTANCE, 1);
+                ctx.upsert(NO_INSTANCE, 1);
                 return AlterResult::empty();
             };
 
@@ -215,7 +215,7 @@ where
 
             return match result {
                 TransactionResult::Invalid(_, _) => {
-                    ctx.metric(REJECTED, 1);
+                    ctx.upsert(REJECTED, 1);
                     AlterResult::empty()
                 }
                 TransactionResult::Valid(steps) => AlterResult::from(steps.len()),

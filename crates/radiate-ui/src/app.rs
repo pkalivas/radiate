@@ -22,7 +22,7 @@ where
     C: Chromosome,
 {
     pub index: usize,
-    pub metrics: MetricSet,
+    pub metrics: Arc<MetricSet>,
     pub score: Score,
     pub front: Option<Front<Phenotype<C>>>,
     pub ecosystem: Arc<Ecosystem<C>>,
@@ -35,10 +35,10 @@ where
     fn from(generation: &Generation<C, T>) -> Self {
         Self {
             index: generation.index(),
-            metrics: generation.metrics().clone(),
+            metrics: generation.arc_metrics(),
             score: generation.score().clone(),
             front: generation.front().cloned(),
-            ecosystem: generation.cloned_ecosystem(),
+            ecosystem: generation.arc_ecosystem(),
         }
     }
 }
