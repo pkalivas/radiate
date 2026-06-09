@@ -6,12 +6,8 @@ use radiate::{
 };
 use radiate_error::radiate_py_bail;
 use radiate_utils::{DataType, dtype_names};
-use radiate_utils::{Float, Integer, SmallStr};
+use radiate_utils::{Float, Integer};
 use serde::{Deserialize, Serialize};
-
-const GRAPH_NODE_NAME: SmallStr = SmallStr::from_static("GraphNode");
-const TREE_NODE_NAME: SmallStr = SmallStr::from_static("TreeNode");
-const OP_FIELD_NAME: SmallStr = SmallStr::from_static("op");
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 enum GeneInner {
@@ -105,36 +101,30 @@ impl PyGene {
     }
 
     pub fn dtype<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-        match &self.inner {
-            GeneInner::UInt8(_) => Wrap(DataType::UInt8).into_pyobject(py),
-            GeneInner::UInt16(_) => Wrap(DataType::UInt16).into_pyobject(py),
-            GeneInner::UInt32(_) => Wrap(DataType::UInt32).into_pyobject(py),
-            GeneInner::UInt64(_) => Wrap(DataType::UInt64).into_pyobject(py),
-            GeneInner::UInt128(_) => Wrap(DataType::UInt128).into_pyobject(py),
+        let dtype = match &self.inner {
+            GeneInner::UInt8(_) => DataType::UInt8,
+            GeneInner::UInt16(_) => DataType::UInt16,
+            GeneInner::UInt32(_) => DataType::UInt32,
+            GeneInner::UInt64(_) => DataType::UInt64,
+            GeneInner::UInt128(_) => DataType::UInt128,
 
-            GeneInner::Int8(_) => Wrap(DataType::Int8).into_pyobject(py),
-            GeneInner::Int16(_) => Wrap(DataType::Int16).into_pyobject(py),
-            GeneInner::Int32(_) => Wrap(DataType::Int32).into_pyobject(py),
-            GeneInner::Int64(_) => Wrap(DataType::Int64).into_pyobject(py),
-            GeneInner::Int128(_) => Wrap(DataType::Int128).into_pyobject(py),
+            GeneInner::Int8(_) => DataType::Int8,
+            GeneInner::Int16(_) => DataType::Int16,
+            GeneInner::Int32(_) => DataType::Int32,
+            GeneInner::Int64(_) => DataType::Int64,
+            GeneInner::Int128(_) => DataType::Int128,
 
-            GeneInner::Float32(_) => Wrap(DataType::Float32).into_pyobject(py),
-            GeneInner::Float64(_) => Wrap(DataType::Float64).into_pyobject(py),
+            GeneInner::Float32(_) => DataType::Float32,
+            GeneInner::Float64(_) => DataType::Float64,
 
-            GeneInner::Bit(_) => Wrap(DataType::Boolean).into_pyobject(py),
-            GeneInner::Char(_) => Wrap(DataType::Char).into_pyobject(py),
-            GeneInner::GraphNode(_) => Wrap(DataType::Struct(
-                GRAPH_NODE_NAME,
-                vec![(OP_FIELD_NAME, DataType::Float32)],
-            ))
-            .into_pyobject(py),
-            GeneInner::TreeNode(_) => Wrap(DataType::Struct(
-                TREE_NODE_NAME,
-                vec![(OP_FIELD_NAME, DataType::Float32)],
-            ))
-            .into_pyobject(py),
-            GeneInner::Permutation(_) => Wrap(DataType::UInt64).into_pyobject(py),
-        }
+            GeneInner::Bit(_) => DataType::Boolean,
+            GeneInner::Char(_) => DataType::Char,
+            GeneInner::GraphNode(_) => dtype::graph_node_dtype(),
+            GeneInner::TreeNode(_) => dtype::tree_node_dtype(),
+            GeneInner::Permutation(_) => DataType::UInt64,
+        };
+
+        Wrap(dtype).into_pyobject(py)
     }
 
     pub fn allele<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {

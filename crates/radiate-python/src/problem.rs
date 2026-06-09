@@ -43,7 +43,23 @@ impl<C: Chromosome, T> PyProblem<C, T> {
             } else {
                 Score::from(scores_vec)
             }
+        } else if let Ok(scores_vec) = any_value.extract::<Vec<f64>>(py) {
+            if scores_vec.is_empty() {
+                error::radiate_bail!(Evaluation:
+                    "Fitness function returned an empty score vector."
+                );
+            } else {
+                Score::from(scores_vec)
+            }
         } else if let Ok(scores_vec) = any_value.extract::<Vec<i32>>(py) {
+            if scores_vec.is_empty() {
+                error::radiate_bail!(Evaluation:
+                    "Fitness function returned an empty score vector."
+                );
+            } else {
+                Score::from(scores_vec)
+            }
+        } else if let Ok(scores_vec) = any_value.extract::<Vec<i64>>(py) {
             if scores_vec.is_empty() {
                 error::radiate_bail!(Evaluation:
                     "Fitness function returned an empty score vector."

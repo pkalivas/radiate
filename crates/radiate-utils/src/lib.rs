@@ -10,7 +10,9 @@ mod str;
 
 pub use array::{Shape, Strides, Tensor};
 pub use buff::{SortedBuffer, Value, VersionedCounts, WindowBuffer};
-pub use datatype::{AnyValue, DataType, dedup_slice, dtype, dtype_names, pow_anyvalue, value};
+pub use datatype::{
+    AnyValue, DType, DataType, dedup_slice, dtype, dtype_names, pow_anyvalue, value,
+};
 pub use fmt::{ToSnakeCase, intern_kv_pair, short_type_name};
 pub use intern::{
     STR_CACHE, STR_INTERN_CACHE, is_str_cached, is_str_interned, try_get_interned_str,

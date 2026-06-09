@@ -1,7 +1,7 @@
 use crate::{InputTransform, PyEngineInput, PyEngineInputType, PyGeneType, PyPopulation};
 use pyo3::{PyResult, pyfunction};
 use radiate::prelude::*;
-use radiate_error::{radiate_py_bail, radiate_py_err};
+use radiate_error::radiate_py_err;
 
 #[pyfunction]
 pub fn py_alter(
@@ -81,17 +81,16 @@ pub fn py_alter(
             )))
         }
         PyGeneType::GraphNode => {
-            radiate_py_bail!("Graph alteration is currently not supported in the Python bindings.");
-            // let alterer =
-            //     InputTransform::<RadiateResult<Vec<Alterer<GraphChromosome<Op<f32>>>>>>::transform(
-            //         &alterer,
-            //     )?;
+            let alterer =
+                InputTransform::<RadiateResult<Vec<Alterer<GraphChromosome<Op<f32>>>>>>::transform(
+                    &alterer,
+                )?;
 
-            // Ok(PyPopulation::from(&alter(
-            //     alterer,
-            //     population.into(),
-            //     generation,
-            // )))
+            Ok(PyPopulation::from(&alter(
+                alterer,
+                population.into(),
+                generation,
+            )))
         }
         PyGeneType::TreeNode => {
             let alterer =

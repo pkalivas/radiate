@@ -85,12 +85,12 @@ fn get_threshold(use_expr_distance: bool, target_species: usize) -> impl Into<Ra
     let target = target_species.clamp(1, 100) as f32;
     let window = (target as usize).max(10);
 
-    let anchor = expr::select("species.distance")
+    let anchor = Expr::select("species.distance")
         .max()
         .rolling(window)
         .mean();
 
-    let count_error = expr::select("count.species")
+    let count_error = Expr::select("count.species")
         .rolling(window)
         .mean()
         .sub(target)

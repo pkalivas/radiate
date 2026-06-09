@@ -4,7 +4,7 @@ use radiate_core::{Chromosome, Valid};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::{fmt::Debug, hash::Hash, sync::Arc};
 
-type Constraint<N> = Arc<dyn Fn(&N) -> bool>;
+type Constraint<N> = Arc<dyn Fn(&N) -> bool + Send + Sync>;
 
 #[derive(Clone, Default)]
 pub struct TreeChromosome<T> {

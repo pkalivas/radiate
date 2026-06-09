@@ -92,16 +92,9 @@ def test_constructors_live_on_expr_namespace():
         "every",
         "generation",
         "element",
-        "error_from",
-        "is_converged",
+        "error",
         "stagnation",
         "is_stagnant",
-        "pi_signal",
-        "p50",
-        "p95",
-        "p99",
-        "quantile_stream",
-        "track",
     ):
         assert hasattr(rd.Expr, name), f"rd.Expr.{name} should exist"
 

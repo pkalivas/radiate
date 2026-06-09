@@ -2,6 +2,10 @@ use crate::Wrap;
 use pyo3::{intern, prelude::*, pybacked::PyBackedStr, types::PyList};
 use radiate_utils::{DataType, SmallStr};
 
+const GRAPH_NODE_NAME: SmallStr = SmallStr::from_static("GraphNode");
+const TREE_NODE_NAME: SmallStr = SmallStr::from_static("TreeNode");
+const OP_FIELD_NAME: SmallStr = SmallStr::from_static("op");
+
 #[derive(Clone, Debug)]
 struct Field {
     name: SmallStr,
@@ -12,6 +16,38 @@ impl Field {
     pub fn new(name: SmallStr, dtype: DataType) -> Self {
         Self { name, dtype }
     }
+}
+
+#[pyfunction]
+pub fn _get_dtype_max<'py>(py: Python<'py>, dt: String) -> PyResult<Bound<'py, PyAny>> {
+    let dt = DataType::from(dt);
+    let max = dt.max();
+
+    super::any_value_into_py_object(
+        max.ok_or_else(|| {
+            pyo3::exceptions::PyValueError::new_err(format!(
+                "Data type {dt} does not have a defined maximum value."
+            ))
+        })?
+        .into_value(),
+        py,
+    )
+}
+
+#[pyfunction]
+pub fn _get_dtype_min<'py>(py: Python<'py>, dt: String) -> PyResult<Bound<'py, PyAny>> {
+    let dt = DataType::from(dt);
+    let min = dt.min();
+
+    super::any_value_into_py_object(
+        min.ok_or_else(|| {
+            pyo3::exceptions::PyValueError::new_err(format!(
+                "Data type {dt} does not have a defined minimum value."
+            ))
+        })?
+        .into_value(),
+        py,
+    )
 }
 
 pub fn dtype_from_str(value: &str) -> DataType {
@@ -48,36 +84,12 @@ pub fn dtype_from_str(value: &str) -> DataType {
     DataType::from(value.to_string())
 }
 
-#[pyfunction]
-pub fn _get_dtype_max<'py>(py: Python<'py>, dt: String) -> PyResult<Bound<'py, PyAny>> {
-    let dt = DataType::from(dt);
-    let max = dt.max();
-
-    super::any_value_into_py_object(
-        max.ok_or_else(|| {
-            pyo3::exceptions::PyValueError::new_err(format!(
-                "Data type {dt} does not have a defined maximum value."
-            ))
-        })?
-        .into_value(),
-        py,
-    )
+pub fn graph_node_dtype() -> DataType {
+    DataType::Struct(GRAPH_NODE_NAME, vec![(OP_FIELD_NAME, DataType::Float32)])
 }
 
-#[pyfunction]
-pub fn _get_dtype_min<'py>(py: Python<'py>, dt: String) -> PyResult<Bound<'py, PyAny>> {
-    let dt = DataType::from(dt);
-    let min = dt.min();
-
-    super::any_value_into_py_object(
-        min.ok_or_else(|| {
-            pyo3::exceptions::PyValueError::new_err(format!(
-                "Data type {dt} does not have a defined minimum value."
-            ))
-        })?
-        .into_value(),
-        py,
-    )
+pub fn tree_node_dtype() -> DataType {
+    DataType::Struct(TREE_NODE_NAME, vec![(OP_FIELD_NAME, DataType::Float32)])
 }
 
 impl<'py> IntoPyObject<'py> for &Wrap<DataType> {

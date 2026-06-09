@@ -37,8 +37,8 @@ pub use rate::Rate;
 pub use replacement::{EncodeReplace, PopulationSampleReplace, ReplacementStrategy};
 pub use selector::Select;
 pub use stats::{
-    Evaluate, Expr, Metric, MetricQuery, MetricSet, MetricUpdate, SelectExpr, expression::expr,
-    metric_names, render_dashboard, render_full,
+    Evaluate, Expr, Metric, MetricQuery, MetricSet, MetricUpdate, SelectExpr, metric_names,
+    render_dashboard, render_full,
 };
 
 pub mod prelude {

@@ -20,17 +20,17 @@ for epoch in engine:
     print(epoch.index())
 
 
-# metrics = rd.MetricSet()
+metrics = rd.MetricSet()
 
-# base = rd.Expr.select("test")
+base = rd.Expr.select("test")
 
-# rolling = base.rolling(2)
-# first_rolling = rolling.last()
-# combined = base * first_rolling
+rolling = base.rolling(2)
+first_rolling = rolling.last()
+combined = base * first_rolling
 
-# for i in range(10):
-#     metrics.upsert("test", i)
-#     print(f"combined: {combined.eval(metrics)}")
+for i in range(10):
+    metrics.upsert("test", i)
+    print(f"combined: {combined.eval(metrics)}")
 
 
 # codec = rd.IntCodec(shape=5, init_range=(0, 10))
@@ -58,23 +58,23 @@ for epoch in engine:
 #     print(f"before: {before}, after: {after}")
 
 
-codec = rd.GraphCodec(
-    shape=(3, 2), vertex=[rd.Op.add(), rd.Op.mul()], edge=rd.Op.weight()
-)
-population = codec.population(size=20)
+# codec = rd.GraphCodec(
+#     shape=(3, 2), vertex=[rd.Op.add(), rd.Op.mul()], edge=rd.Op.weight()
+# )
+# population = codec.population(size=20)
 
-mutator = rd.Mutate.graph(1.0, 1.0)
-mutated_population = population
+# mutator = rd.Mutate.graph(1.0, 1.0)
+# mutated_population = population
 
-for _ in range(50):
-    mutated_population = mutator.alter(mutated_population)
+# for _ in range(10):
+#     mutated_population = mutator.alter(mutated_population)
 
-one = population[0].genotype()
-two = mutated_population[0].genotype()
+# one = population[0].genotype()
+# two = mutated_population[0].genotype()
 
-one = codec.decode(one)
-two = codec.decode(two)
+# one = codec.decode(one)
+# two = codec.decode(two)
 
 
-print(one)
-print(two)
+# print(one)
+# print(two)

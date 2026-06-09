@@ -584,7 +584,7 @@ class Engine[G, T]:
         return self
 
     def diversity(
-        self, diversity: DistanceBase, species_threshold: Rate | Expr | float = 1.5
+        self, diversity: DistanceBase, species_threshold: Rate | Expr | float = 0.5
     ) -> Engine[G, T]:
         """
         Set the diversity measure and species threshold for speciation in the engine.
@@ -598,7 +598,7 @@ class Engine[G, T]:
 
         Defaults:
         - Diversity Measure: None (no speciation)
-        - Species Threshold: 1.5
+        - Species Threshold: 0.5
         Args:
             diversity: A distance-based diversity measure to promote genetic diversity.
             species_threshold: A threshold for grouping individuals into species based on genetic distance. Must be greater than 0.

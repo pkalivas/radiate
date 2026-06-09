@@ -1,7 +1,7 @@
 use crate::{
     Metric, MetricUpdate,
     stats::{
-        Meta, Tag, TagType,
+        ExprSelector, Meta, Tag, TagType,
         expression::{MetricField, MetricKind, SelectExpr},
         fmt,
     },
@@ -198,12 +198,12 @@ impl MetricSet {
     }
 }
 
-impl MetricSet {
-    pub(crate) fn project_selector(&self, sel: &SelectExpr) -> AnyValue<'static> {
+impl ExprSelector for MetricSet {
+    fn select(&self, sel: &SelectExpr) -> AnyValue<'static> {
         // Missing metrics return Null so downstream math can propagate it; the
         // outer Clamp (or any consumer using non-finite fallback) then takes the
         // floor instead of the engine seeing an unrelated error.
-        let Some(metric) = self.get(sel.metric.as_str()) else {
+        let Some(metric) = sel.metric.as_ref().and_then(|name| self.get(name.as_str())) else {
             return AnyValue::Null;
         };
 

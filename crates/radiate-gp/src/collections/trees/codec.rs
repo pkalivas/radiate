@@ -3,7 +3,7 @@ use crate::collections::{Tree, TreeChromosome, TreeNode};
 use radiate_core::{Codec, Genotype};
 use std::sync::Arc;
 
-type Constraint<N> = Arc<dyn Fn(&N) -> bool>;
+type Constraint<N> = Arc<dyn Fn(&N) -> bool + Send + Sync>;
 
 #[derive(Clone)]
 pub struct TreeCodec<T: Clone, D = Vec<Tree<T>>> {
@@ -46,7 +46,7 @@ impl<T: Clone + Default> TreeCodec<T> {
 impl<T: Clone, D> TreeCodec<T, D> {
     pub fn constraint<F>(mut self, constraint: F) -> Self
     where
-        F: Fn(&TreeNode<T>) -> bool + 'static,
+        F: Fn(&TreeNode<T>) -> bool + Send + Sync + 'static,
     {
         self.constraint = Some(Arc::new(constraint));
         self

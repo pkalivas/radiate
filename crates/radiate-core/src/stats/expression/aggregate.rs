@@ -1,5 +1,5 @@
 use super::{Evaluate, Expr, ExprResult};
-use crate::MetricSet;
+use crate::stats::ExprSelector;
 use radiate_error::radiate_bail;
 use radiate_utils::{AnyValue, DataType, Quantile, Slope, Statistic, WindowBuffer, dedup_slice};
 #[cfg(feature = "serde")]
@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Rollup {
     First,
     Last,
@@ -21,7 +21,7 @@ pub enum Rollup {
     Count,
     Unique,
     Slope,
-    Quantile(f32),
+    Quantile(Quantile<f32>),
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -51,11 +51,15 @@ impl AggExpr {
             buf.clear();
         }
         self.child.reset();
+
+        if let Rollup::Quantile(q) = &mut self.rollup {
+            q.clear();
+        }
     }
 
     fn compute_rollup<'a>(
         values: &[AnyValue<'a>],
-        rollup: Rollup,
+        rollup: &mut Rollup,
         dtype: DataType,
     ) -> ExprResult<'a> {
         if values.is_empty() {
@@ -92,8 +96,8 @@ impl AggExpr {
                 .collect::<Slope<f32>>();
 
             return Ok(AnyValue::Float32(slope.value().unwrap_or(0.0)));
-        } else if let Rollup::Quantile(q) = rollup {
-            let mut quantile = Quantile::new(q);
+        } else if let Rollup::Quantile(quantile) = rollup {
+            quantile.clear();
             for v in values.iter().filter_map(|v| v.extract::<f32>()) {
                 if v.is_finite() {
                     quantile.add(v);
@@ -125,14 +129,21 @@ impl AggExpr {
     }
 }
 
-impl Evaluate for AggExpr {
-    fn eval<'a>(&'a mut self, metrics: &MetricSet) -> ExprResult<'a> {
+impl<T> Evaluate<T> for AggExpr
+where
+    T: ExprSelector,
+{
+    fn eval<'a>(&'a mut self, metrics: &T) -> ExprResult<'a> {
         let child_output = self.child.eval(metrics)?;
         let dtype = child_output.dtype();
 
         if let Some(buffer) = &mut self.buffer {
+            if child_output.is_nested() {
+                radiate_bail!(Expr: "AggExpr with rolling window does not support nested values");
+            }
+
             buffer.push(child_output.into_static());
-            return Self::compute_rollup(buffer.values(), self.rollup, dtype);
+            return Self::compute_rollup(buffer.values(), &mut self.rollup, dtype);
         }
 
         match child_output {
@@ -142,7 +153,7 @@ impl Evaluate for AggExpr {
                 } else {
                     dtype
                 };
-                Self::compute_rollup(values, self.rollup, elem_dtype)
+                Self::compute_rollup(values, &mut self.rollup, elem_dtype)
             }
             AnyValue::Vector(values) => {
                 let elem_dtype = if let DataType::List(inner) = dtype {
@@ -150,60 +161,24 @@ impl Evaluate for AggExpr {
                 } else {
                     dtype
                 };
-                Self::compute_rollup(&values, self.rollup, elem_dtype)
+                Self::compute_rollup(&values, &mut self.rollup, elem_dtype)
             }
             _ => match self.rollup {
                 Rollup::Count => Ok(AnyValue::UInt64(1)),
                 Rollup::Unique => Ok(AnyValue::Vector(vec![child_output])),
+                Rollup::Quantile(ref mut q) => {
+                    if let Some(v) = child_output.extract::<f32>() {
+                        if v.is_finite() {
+                            q.add(v);
+                        }
+                    } else {
+                        return Ok(AnyValue::Null);
+                    }
+
+                    Ok(q.value().map(AnyValue::Float32).unwrap_or(AnyValue::Null))
+                }
                 _ => Ok(child_output),
             },
         }
-    }
-}
-
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Clone, Debug, PartialEq)]
-pub struct BufferExpr {
-    pub(super) buffer: WindowBuffer<AnyValue<'static>>,
-    pub(super) child: Box<Expr>,
-    pub(super) dtype: DataType,
-}
-
-impl BufferExpr {
-    pub fn new(child: Expr, window_size: usize) -> Self {
-        Self {
-            buffer: WindowBuffer::with_capacity(window_size),
-            child: Box::new(child),
-            dtype: DataType::Null,
-        }
-    }
-
-    pub(super) fn reset(&mut self) {
-        self.buffer.clear();
-        self.dtype = DataType::Null;
-        self.child.reset();
-    }
-}
-
-impl Evaluate for BufferExpr {
-    fn eval<'a>(&'a mut self, metrics: &MetricSet) -> ExprResult<'a> {
-        let child_output = self.child.eval(metrics)?.into_static();
-
-        if child_output.is_nested() {
-            radiate_bail!(Expr: "BufferExpr does not support nested values");
-        }
-
-        if self.dtype == DataType::Null {
-            self.dtype = child_output.dtype();
-        } else if self.dtype != child_output.dtype() {
-            radiate_bail!(Expr:
-                "BufferExpr received value of type {:?} but expected {:?}",
-                child_output.dtype(),
-                self.dtype
-            );
-        }
-
-        self.buffer.push(child_output);
-        Ok(AnyValue::Slice(self.buffer.values()))
     }
 }

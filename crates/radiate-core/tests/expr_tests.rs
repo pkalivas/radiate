@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod test {
 
-    use radiate_core::{AnyValue, Evaluate, MetricSet, expr};
+    use radiate_core::{AnyValue, Evaluate, Expr, MetricSet};
     use std::time::Duration;
 
     fn f32_of(value: AnyValue<'_>) -> f32 {
@@ -34,7 +34,7 @@ mod test {
 
     #[test]
     fn test_rolling_mean() {
-        let mut expr = expr::select("accuracy").rolling(3).mean();
+        let mut expr = Expr::select("accuracy").rolling(3).mean();
         let mut metrics = MetricSet::default();
 
         metrics.upsert("accuracy", 1.0);
@@ -52,7 +52,7 @@ mod test {
 
     #[test]
     fn test_rolling_sum() {
-        let mut expr = expr::select("accuracy").rolling(3).sum();
+        let mut expr = Expr::select("accuracy").rolling(3).sum();
         let mut metrics = MetricSet::default();
 
         metrics.upsert("accuracy", 1.0);
@@ -70,8 +70,8 @@ mod test {
 
     #[test]
     fn test_rolling_min_and_max() {
-        let mut min_expr = expr::select("accuracy").rolling(4).min();
-        let mut max_expr = expr::select("accuracy").rolling(4).max();
+        let mut min_expr = Expr::select("accuracy").rolling(4).min();
+        let mut max_expr = Expr::select("accuracy").rolling(4).max();
         let mut metrics = MetricSet::default();
 
         for value in [3.0, 1.0, 4.0, 2.0] {
@@ -86,7 +86,7 @@ mod test {
 
     #[test]
     fn test_rolling_count() {
-        let mut expr = expr::select("accuracy").rolling(3).count();
+        let mut expr = Expr::select("accuracy").rolling(3).count();
         let mut metrics = MetricSet::default();
 
         metrics.upsert("accuracy", 10.0);
@@ -104,7 +104,7 @@ mod test {
 
     #[test]
     fn test_rolling_n_unique() {
-        let mut expr = expr::select("accuracy").rolling(5).unique().count();
+        let mut expr = Expr::select("accuracy").rolling(5).unique().count();
         let mut metrics = MetricSet::default();
 
         metrics.upsert("accuracy", 1.0);
@@ -125,7 +125,7 @@ mod test {
 
     #[test]
     fn test_lt_comparison_true_and_false() {
-        let mut expr = expr::select("accuracy").lt(expr::select("loss"));
+        let mut expr = Expr::select("accuracy").lt(Expr::select("loss"));
         let mut metrics = MetricSet::default();
 
         metrics.upsert("accuracy", 0.8);
@@ -139,7 +139,7 @@ mod test {
 
     #[test]
     fn test_gte_comparison() {
-        let mut expr = expr::select("accuracy").gte(expr::select("target"));
+        let mut expr = Expr::select("accuracy").gte(Expr::select("target"));
         let mut metrics = MetricSet::default();
 
         metrics.upsert("accuracy", 0.95);
@@ -153,7 +153,7 @@ mod test {
 
     #[test]
     fn test_eq_comparison_uses_epsilon() {
-        let mut expr = expr::select("a").eq(expr::select("b"));
+        let mut expr = Expr::select("a").eq(Expr::select("b"));
         let mut metrics = MetricSet::default();
 
         metrics.upsert("a", 1.0f32);
@@ -163,7 +163,7 @@ mod test {
 
     #[test]
     fn test_ne_comparison() {
-        let mut expr = expr::select("a").ne(expr::select("b"));
+        let mut expr = Expr::select("a").ne(Expr::select("b"));
         let mut metrics = MetricSet::default();
 
         metrics.upsert("a", 1.0f32);
@@ -194,7 +194,7 @@ mod test {
 
     #[test]
     fn test_between_inclusive() {
-        let mut expr = expr::select("x").between(1.0, 3.0);
+        let mut expr = Expr::select("x").between(1.0, 3.0);
         let mut metrics = MetricSet::default();
 
         metrics.upsert("x", 1.0);
@@ -215,7 +215,7 @@ mod test {
 
     #[test]
     fn test_add_expr() {
-        let mut expr = expr::select("a").add(expr::select("b"));
+        let mut expr = Expr::select("a").add(Expr::select("b"));
         let mut metrics = MetricSet::default();
 
         metrics.upsert("a", 2.0);
@@ -226,7 +226,7 @@ mod test {
 
     #[test]
     fn test_sub_expr() {
-        let mut expr = expr::select("a").sub(expr::select("b"));
+        let mut expr = Expr::select("a").sub(Expr::select("b"));
         let mut metrics = MetricSet::default();
 
         metrics.upsert("a", 5.0);
@@ -237,7 +237,7 @@ mod test {
 
     #[test]
     fn test_mul_expr() {
-        let mut expr = expr::select("a").mul(2.5);
+        let mut expr = Expr::select("a").mul(2.5);
         let mut metrics = MetricSet::default();
 
         metrics.upsert("a", 4.0);
@@ -247,7 +247,7 @@ mod test {
 
     #[test]
     fn test_div_expr() {
-        let mut expr = expr::select("a").div(expr::select("b"));
+        let mut expr = Expr::select("a").div(Expr::select("b"));
         let mut metrics = MetricSet::default();
 
         metrics.upsert("a", 9.0);
@@ -258,7 +258,7 @@ mod test {
 
     #[test]
     fn test_div_by_zero_returns_null() {
-        let mut expr = expr::select("a").div(expr::select("b"));
+        let mut expr = Expr::select("a").div(Expr::select("b"));
         let mut metrics = MetricSet::default();
 
         metrics.upsert("a", 9.0);
@@ -269,7 +269,7 @@ mod test {
 
     #[test]
     fn test_neg_expr() {
-        let mut expr = expr::select("a").neg();
+        let mut expr = Expr::select("a").neg();
         let mut metrics = MetricSet::default();
 
         metrics.upsert("a", 4.0);
@@ -279,7 +279,7 @@ mod test {
 
     #[test]
     fn test_abs_expr() {
-        let mut expr = expr::select("a").sub(10.0).abs();
+        let mut expr = Expr::select("a").sub(10.0).abs();
         let mut metrics = MetricSet::default();
 
         metrics.upsert("a", 4.0);
@@ -291,7 +291,7 @@ mod test {
 
     #[test]
     fn test_clamp_expr() {
-        let mut expr = expr::select("a").clamp(0.1, 0.5);
+        let mut expr = Expr::select("a").clamp(0.1, 0.5);
         let mut metrics = MetricSet::default();
 
         metrics.upsert("a", 0.05);
@@ -306,7 +306,7 @@ mod test {
 
     #[test]
     fn test_duration_expr() {
-        let mut expr = expr::select("time").time().rolling(10).min();
+        let mut expr = Expr::select("time").time().rolling(10).min();
         let mut metrics = MetricSet::default();
 
         println!("{:#?}", expr);
@@ -323,8 +323,8 @@ mod test {
 
     #[test]
     fn test_every_expr() {
-        let mut expr = expr::every(3)
-            .then(expr::select("accuracy").mean())
+        let mut expr = Expr::every(3)
+            .then(Expr::select("accuracy").mean())
             .otherwise(0.0);
 
         let mut metrics = MetricSet::default();
