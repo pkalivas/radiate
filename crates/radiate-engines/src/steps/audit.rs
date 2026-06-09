@@ -1,6 +1,7 @@
 use crate::steps::EngineStep;
 use radiate_core::{
-    Chromosome, Ecosystem, MetricSet, Objective, SmallStr, metric_names, phenotype::PhenotypeId,
+    Chromosome, Ecosystem, MetricSet, Objective, SmallStr, math::distribution, metric_names,
+    phenotype::PhenotypeId,
 };
 use radiate_error::Result;
 use std::{cmp::Ordering, collections::HashSet};
@@ -10,15 +11,26 @@ const EPS: f32 = 1e-9;
 #[derive(Default)]
 pub struct AuditStep {
     objective: Objective,
+
     score_dist_per_dim: Vec<Vec<f32>>,
     unique_scores_per_dim: Vec<Vec<f32>>,
+
+    score_sum_per_dim: Vec<f64>,
+    score_sum_squared_per_dim: Vec<f64>,
+    sum_score_size_per_dim: Vec<f64>,
+
     age_distribution: Vec<usize>,
     size_distribution: Vec<usize>,
+
     last_gen_ids: HashSet<PhenotypeId>,
     curr_ids: HashSet<PhenotypeId>,
     unique_members: HashSet<PhenotypeId>,
+
     score_names: Vec<SmallStr>,
     unique_score_names: Vec<SmallStr>,
+    evenness_names: Vec<SmallStr>,
+    gini_names: Vec<SmallStr>,
+    corr_names: Vec<SmallStr>,
 }
 
 impl AuditStep {
@@ -88,6 +100,9 @@ impl AuditStep {
         self.age_distribution.clear();
         self.size_distribution.clear();
         self.curr_ids.clear();
+        self.score_sum_per_dim.clear();
+        self.score_sum_squared_per_dim.clear();
+        self.sum_score_size_per_dim.clear();
 
         let dims = self.objective.dims();
         if self.score_dist_per_dim.len() < dims {
@@ -95,6 +110,15 @@ impl AuditStep {
         }
         if self.unique_scores_per_dim.len() < dims {
             self.unique_scores_per_dim.resize_with(dims, Vec::new);
+        }
+        if self.score_sum_per_dim.len() < dims {
+            self.score_sum_per_dim.resize(dims, 0.0);
+        }
+        if self.score_sum_squared_per_dim.len() < dims {
+            self.score_sum_squared_per_dim.resize(dims, 0.0);
+        }
+        if self.sum_score_size_per_dim.len() < dims {
+            self.sum_score_size_per_dim.resize(dims, 0.0);
         }
 
         for v in &mut self.score_dist_per_dim {
@@ -115,12 +139,11 @@ impl AuditStep {
             return;
         }
 
-        self.score_names = (0..dims)
-            .map(|i| SmallStr::from_string(format!("{}.{}", metric_names::SCORES, i)))
-            .collect();
-        self.unique_score_names = (0..dims)
-            .map(|i| SmallStr::from_string(format!("{}.{}", metric_names::UNIQUE_SCORES, i)))
-            .collect();
+        self.score_names = per_dim_names(&metric_names::SCORES, dims);
+        self.unique_score_names = per_dim_names(&metric_names::UNIQUE_SCORES, dims);
+        self.evenness_names = per_dim_names(&metric_names::SCORES_EVENNESS, dims);
+        self.gini_names = per_dim_names(&metric_names::SCORES_GINI, dims);
+        self.corr_names = per_dim_names(&metric_names::SIZE_SCORE_CORR, dims);
     }
 }
 
@@ -135,15 +158,25 @@ impl<C: Chromosome> EngineStep<C> for AuditStep {
         self.ensure_per_dim_names();
         self.clear_state();
 
+        // Streaming accumulators for the genome-size ↔ fitness correlation
+        // (bloat signal). Only the scored members contribute, so size sums are
+        // gathered here rather than from `size_distribution` (which spans every
+        // member, scored or not). f64 to stay stable across large populations.
+        let dims = self.objective.dims();
+        let mut sum_size = 0.0f64;
+        let mut sum_size2 = 0.0f64;
+
         let mut new_this_gen = 0;
         for p in ecosystem.population().iter() {
-            if let Some(score) = p.score() {
-                if !self.objective.validate(score) {
-                    return Err(radiate_error::RadiateError::Fitness(format!(
-                        "Score {:?} has invalid dimensions for the objective {:?}.",
-                        score, self.objective
-                    )));
-                }
+            let Some(score) = p.score() else {
+                continue;
+            };
+
+            if !self.objective.validate(score) {
+                return Err(radiate_error::RadiateError::Fitness(format!(
+                    "Score {:?} has invalid dimensions for the objective {:?}.",
+                    score, self.objective
+                )));
             }
 
             let id = p.id();
@@ -163,11 +196,18 @@ impl<C: Chromosome> EngineStep<C> for AuditStep {
                 new_this_gen += 1;
             }
 
-            if let Some(score) = p.score() {
-                for (idx, val) in score.iter().enumerate() {
-                    self.score_dist_per_dim[idx].push(*val);
-                    self.unique_scores_per_dim[idx].push(*val);
-                }
+            let sz = geno_size as f64;
+            sum_size += sz;
+            sum_size2 += sz * sz;
+
+            for (idx, val) in score.iter().enumerate() {
+                self.score_dist_per_dim[idx].push(*val);
+                self.unique_scores_per_dim[idx].push(*val);
+
+                let v = *val as f64;
+                self.score_sum_per_dim[idx] += v;
+                self.score_sum_squared_per_dim[idx] += v * v;
+                self.sum_score_size_per_dim[idx] += sz * v;
             }
         }
 
@@ -177,19 +217,16 @@ impl<C: Chromosome> EngineStep<C> for AuditStep {
 
         let is_single = self.objective.is_single();
         for (idx, v) in self.unique_scores_per_dim.iter().enumerate() {
-            let mut unique_count = 0;
-            let mut last: Option<f32> = None;
-            for val in v {
-                if last.map(|l| (l - val).abs() > EPS).unwrap_or(true) {
-                    unique_count += 1;
-                    last = Some(*val);
-                }
-            }
+            let shape = distribution::shape(v);
 
             if is_single {
-                metrics.upsert(metric_names::UNIQUE_SCORES, unique_count);
+                metrics.upsert(metric_names::UNIQUE_SCORES, shape.unique);
+                metrics.upsert(metric_names::SCORES_EVENNESS, shape.evenness);
+                metrics.upsert(metric_names::SCORES_GINI, shape.gini);
             } else {
-                metrics.upsert(&self.unique_score_names[idx], unique_count);
+                metrics.upsert(&self.unique_score_names[idx], shape.unique);
+                metrics.upsert(&self.evenness_names[idx], shape.evenness);
+                metrics.upsert(&self.gini_names[idx], shape.gini);
             }
         }
 
@@ -199,6 +236,35 @@ impl<C: Chromosome> EngineStep<C> for AuditStep {
             } else {
                 for (idx, vec) in self.score_dist_per_dim.iter().enumerate() {
                     metrics.upsert(&self.score_names[idx], vec);
+                }
+            }
+        }
+
+        // Genome-size ↔ fitness correlation (Pearson r per objective). Only
+        // defined when genome length actually varies across the population —
+        // i.e. variable-length GP genomes; for fixed-length genomes the size
+        // variance is zero and the metric is omitted rather than reported as 0.
+        let n = ecosystem.len() as f64;
+        let var_size = sum_size2 - sum_size * sum_size / n;
+        if var_size > EPS as f64 {
+            let denom_size = var_size.sqrt();
+            for idx in 0..dims {
+                let sum_score = self.score_sum_per_dim[idx];
+                let square_sum_score = self.score_sum_squared_per_dim[idx];
+                let sum_size_score = self.sum_score_size_per_dim[idx];
+
+                let var_score = square_sum_score - sum_score * sum_score / n;
+                if var_score <= EPS as f64 {
+                    continue;
+                }
+
+                let cov = sum_size_score - sum_size * sum_score / n;
+                let r = (cov / (denom_size * var_score.sqrt())) as f32;
+
+                if is_single {
+                    metrics.upsert(metric_names::SIZE_SCORE_CORR, r);
+                } else {
+                    metrics.upsert(&self.corr_names[idx], r);
                 }
             }
         }
@@ -213,4 +279,10 @@ impl<C: Chromosome> EngineStep<C> for AuditStep {
 
         Ok(())
     }
+}
+
+fn per_dim_names(base: &SmallStr, dims: usize) -> Vec<SmallStr> {
+    (0..dims)
+        .map(|i| SmallStr::from_string(format!("{}.{}", base, i)))
+        .collect()
 }

@@ -1,5 +1,5 @@
 use super::{Chromosome, Genotype, Phenotype, Population, Species};
-use crate::{Objective, Score, random_provider};
+use crate::{Objective, Score};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -127,31 +127,6 @@ impl<C: Chromosome> Ecosystem<C> {
             initial_len - species.len()
         } else {
             0
-        }
-    }
-
-    pub fn generate_mascots(&mut self)
-    where
-        C: Clone,
-    {
-        // Update mascots for each species by selecting a random member from the species population
-        // to be the new mascot for the next generation. This follows the NEAT algorithm approach.
-        if let Some(species) = &mut self.species {
-            for spec in species.iter_mut() {
-                let species_members = self
-                    .population
-                    .iter_species(spec.id())
-                    .collect::<Vec<&Phenotype<C>>>();
-
-                if species_members.is_empty() {
-                    continue;
-                }
-
-                let idx = random_provider::range(0..species_members.len());
-                if let Some(phenotype) = species_members.get(idx) {
-                    spec.set_new_mascot((*phenotype).clone());
-                }
-            }
         }
     }
 

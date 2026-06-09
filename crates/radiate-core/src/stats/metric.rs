@@ -34,8 +34,9 @@ pub(super) struct Meta {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Metric {
     name: SmallStr,
-    meta: Meta,
     inner: Statistic,
+    
+    meta: Meta,
     tags: Tag,
     dtype: u8,
 }
@@ -47,8 +48,8 @@ impl Metric {
 
         Self {
             name,
-            meta: Meta::default(),
             inner: Statistic::default(),
+            meta: Meta::default(),
             tags,
             dtype: DTYPE_NULL,
         }

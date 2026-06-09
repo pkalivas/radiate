@@ -52,6 +52,11 @@ macro_rules! impl_integer {
                 fn safe_mean(self, rhs: Self) -> Self {
                     self.safe_add(rhs).safe_div(Self::TWO)
                 }
+
+                #[inline]
+                fn is_equal(self, rhs: Self) -> bool {
+                    self == rhs
+                }
             }
 
             impl Integer for $t {

@@ -53,6 +53,11 @@ macro_rules! impl_float_scalar {
             fn safe_mean(self, rhs: Self) -> Self {
                 (self + rhs) * Self::HALF
             }
+
+            #[inline]
+            fn is_equal(self, rhs: Self) -> bool {
+                (self - rhs).abs() <= $eps
+            }
         }
 
         impl Float for $t {
