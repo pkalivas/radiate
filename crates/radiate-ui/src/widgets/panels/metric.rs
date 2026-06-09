@@ -85,7 +85,10 @@ fn map_to_stat_metric_rows(metric: &Metric) -> Vec<Row<'_>> {
     if let Some(view) = metric.stats() {
         let rows = vec![
             Row::new(vec!["Type".bold(), metric.dtype().to_string().into()]),
-            Row::new(vec!["Generation".bold(), metric.generation().to_string().into()]),
+            Row::new(vec![
+                "Generation".bold(),
+                metric.generation().to_string().into(),
+            ]),
             Row::new(vec![
                 "Updates".bold(),
                 metric.update_count().to_string().into(),
@@ -123,7 +126,10 @@ fn map_to_time_metric_rows(metric: &Metric) -> Vec<Row<'_>> {
     if let Some(view) = metric.times() {
         let rows = vec![
             Row::new(vec!["Type".bold(), metric.dtype().to_string().into()]),
-            Row::new(vec!["Generation".bold(), metric.generation().to_string().into()]),
+            Row::new(vec![
+                "Generation".bold(),
+                metric.generation().to_string().into(),
+            ]),
             Row::new(vec![
                 "Updates".bold(),
                 metric.update_count().to_string().into(),
@@ -152,7 +158,10 @@ fn map_to_distribution_metric_rows(metric: &Metric) -> Vec<Row<'_>> {
     if let Some(view) = metric.distributions() {
         let rows = vec![
             Row::new(vec!["Type".bold(), metric.dtype().to_string().into()]),
-            Row::new(vec!["Generation".bold(), metric.generation().to_string().into()]),
+            Row::new(vec![
+                "Generation".bold(),
+                metric.generation().to_string().into(),
+            ]),
             Row::new(vec![
                 "Updates".bold(),
                 metric.update_count().to_string().into(),

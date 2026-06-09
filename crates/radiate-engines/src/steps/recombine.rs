@@ -87,9 +87,9 @@ where
         metrics: &mut MetricSet,
     ) -> Result<()> {
         let new_members = if ecosystem.species().is_some() {
-            self.create_with_species(generation, ecosystem, metrics)
+            self.recombine_clustered(generation, ecosystem, metrics)
         } else {
-            self.combined_create(generation, ecosystem, metrics)
+            self.recombine_flat(generation, ecosystem, metrics)
         };
 
         match new_members {
@@ -120,7 +120,7 @@ where
     /// current without cloning. In practice this can save ~20-50% of clones compared to
     /// a naive separate-walk approach.
     #[inline]
-    fn combined_create(
+    fn recombine_flat(
         &mut self,
         generation: usize,
         ecosystem: &mut Ecosystem<C>,
@@ -162,7 +162,7 @@ where
     /// a pretty similar approach to the above method, but we split the logic up by
     /// species, so each species essentially performs the above algorithm in it's own search space.
     #[inline]
-    fn create_with_species(
+    fn recombine_clustered(
         &mut self,
         generation: usize,
         ecosystem: &mut Ecosystem<C>,

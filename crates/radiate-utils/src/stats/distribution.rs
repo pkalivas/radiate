@@ -25,6 +25,7 @@ impl<F: Float> Distribution<F> {
                 self.values.capacity()
             );
         }
+
         self.statistic.add(value);
         self.values.push(value);
     }
@@ -64,10 +65,6 @@ impl<F: Float> Distribution<F> {
     pub fn clear(&mut self) {
         self.statistic.clear();
         self.values.clear();
-    }
-
-    pub fn log2(&self) -> f32 {
-        (self.values.len() as f32).log2()
     }
 }
 

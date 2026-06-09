@@ -80,6 +80,7 @@ result = engine.run(log=True)
 metrics = result.metrics()
 
 print(result)
+print(metrics.dashboard())
 
 
 # checkpoint=(55, WRITE_DIR, "pkl"))
