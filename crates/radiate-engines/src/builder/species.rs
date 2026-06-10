@@ -26,11 +26,6 @@ where
     }
 
     pub fn species_threshold(mut self, threshold: impl Into<Rate>) -> Self {
-        // self.add_error_if(
-        //     || threshold < 0.0,
-        //     "species_threshold must be greater than 0",
-        // );
-
         self.params.species_params.species_threshold = threshold.into();
         self
     }

@@ -45,6 +45,7 @@ fn main() {
             println!("Species count: {}", species.len());
         })
         .take(100)
-        .run();
+        .last()
+        .unwrap();
     // --8<-- [end:example]
 }

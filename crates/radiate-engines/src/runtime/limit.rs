@@ -104,7 +104,7 @@ pub enum Limit {
     Score(Score),
     Convergence(usize, f32),
     Combined(Vec<Limit>),
-    Metric(String, Arc<dyn Fn(&Metric) -> bool>),
+    Metric(String, Arc<dyn Fn(&Metric) -> bool + Send + Sync>),
     Expr(Expr),
 }
 
@@ -146,7 +146,7 @@ impl From<Expr> for Limit {
 
 impl<F> From<(&str, F)> for Limit
 where
-    F: Fn(&Metric) -> bool + 'static,
+    F: Fn(&Metric) -> bool + Send + Sync + 'static,
 {
     fn from(value: (&str, F)) -> Self {
         Limit::Metric(value.0.to_string(), Arc::new(value.1))

@@ -8,8 +8,26 @@ use radiate_core::{
 };
 use radiate_core::{Evaluate, MetricQuery};
 use std::sync::{Arc, Mutex, RwLock};
+use std::time::Duration;
 
-pub struct Context<C: Chromosome, T> {
+pub trait RuntimeContext {
+    fn index(&self) -> usize;
+    fn score(&self) -> Option<&Score>;
+    fn metrics(&self) -> &MetricSet;
+    fn objective(&self) -> &Objective;
+    fn time(&self) -> Duration {
+        self.metrics()
+            .time()
+            .and_then(|m| m.times().map(|t| t.sum()))
+            .unwrap_or_default()
+    }
+}
+
+pub trait ObjectiveContext<C: Chromosome>: RuntimeContext {
+    fn front(&self) -> Arc<RwLock<Front<Phenotype<C>>>>;
+}
+
+pub struct EvolutionContext<C: Chromosome, T> {
     pub(crate) ecosystem: Ecosystem<C>,
     pub(crate) best: T,
     pub(crate) index: usize,
@@ -22,7 +40,7 @@ pub struct Context<C: Chromosome, T> {
     pub(crate) exprs: Option<Arc<Mutex<Vec<MetricQuery>>>>,
 }
 
-impl<C: Chromosome, T> Context<C, T> {
+impl<C: Chromosome, T> EvolutionContext<C, T> {
     pub fn try_advance_one(&mut self) -> RadiateResult<bool> {
         self.index += 1;
 
@@ -94,16 +112,50 @@ impl<C: Chromosome, T> Context<C, T> {
 
         self.control.as_ref().unwrap().clone()
     }
+
+    pub fn ecosystem(&self) -> &Ecosystem<C> {
+        &self.ecosystem
+    }
 }
 
-impl<C, T> From<EngineConfig<C, T>> for Context<C, T>
+impl<C, T> RuntimeContext for EvolutionContext<C, T>
+where
+    C: Chromosome,
+{
+    fn index(&self) -> usize {
+        self.index
+    }
+
+    fn score(&self) -> Option<&Score> {
+        self.score.as_ref()
+    }
+
+    fn metrics(&self) -> &MetricSet {
+        &self.metrics
+    }
+
+    fn objective(&self) -> &Objective {
+        &self.objective
+    }
+}
+
+impl<C, T> ObjectiveContext<C> for EvolutionContext<C, T>
+where
+    C: Chromosome,
+{
+    fn front(&self) -> Arc<RwLock<Front<Phenotype<C>>>> {
+        Arc::clone(&self.front)
+    }
+}
+
+impl<C, T> From<EngineConfig<C, T>> for EvolutionContext<C, T>
 where
     C: Chromosome + Clone,
     T: Clone,
 {
     fn from(config: EngineConfig<C, T>) -> Self {
         if let Some(generation) = config.generation() {
-            return Context {
+            return EvolutionContext {
                 ecosystem: generation.ecosystem().clone(),
                 best: generation.value().clone(),
                 index: generation.index(),
@@ -122,7 +174,7 @@ where
             .get_genotype(0)
             .map(|geno| config.problem().decode(geno));
 
-        Context {
+        EvolutionContext {
             ecosystem: config.ecosystem().clone(),
             best: initial_genotype.unwrap(),
             index: 0,

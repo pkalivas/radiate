@@ -1,10 +1,10 @@
 use crate::app::{App, GenerationEvent, InputEvent};
 use color_eyre::{Result, eyre::Context};
-use radiate_engines::EngineControl;
+use radiate_engines::context::{ObjectiveContext, RuntimeContext};
 use radiate_engines::{
-    Chromosome, Engine, EngineIterator, Generation, GeneticEngine, error::RadiateResult,
-    sync::ArcExt,
+    Chromosome, Engine, Generation, GeneticEngine, error::RadiateResult, sync::ArcExt,
 };
+use radiate_engines::{EngineControl, EngineRuntime, EvolutionContext};
 use std::{
     sync::{Arc, atomic::Ordering, mpsc},
     time::Duration,
@@ -65,9 +65,9 @@ where
         }
     }
 
-    pub fn iter(self) -> impl Iterator<Item = Generation<C, T>> {
+    pub fn iter(self) -> EngineRuntime<Self> {
         let control = self.control.clone();
-        EngineIterator::new(self, Some(control))
+        EngineRuntime::new(self, Some(control))
     }
 }
 
@@ -77,28 +77,37 @@ where
     T: Clone + Send + Sync + 'static,
 {
     type Epoch = Generation<C, T>;
+    type Context = EvolutionContext<C, T>;
+
+    fn context(&self) -> &Self::Context {
+        self.inner.context()
+    }
+
+    fn epoch(&self) -> Self::Epoch {
+        self.inner.epoch()
+    }
 
     #[inline]
-    fn next(&mut self) -> RadiateResult<Self::Epoch> {
-        let current = self.inner.next()?;
+    fn step(&mut self) -> RadiateResult<()> {
+        self.inner.step()?;
+        let current = self.inner.context();
 
-        // Early return if stopped to avoid sending events after stop
         if self.control.is_stopped() {
-            return Ok(current);
+            return Ok(());
         }
 
         if current.index() == 1 {
             self.dispatcher
-                .send(InputEvent::EngineStart(current.objective().clone()))
+                .send(InputEvent::EngineStart(Arc::clone(&current.front())))
                 .unwrap();
         }
 
-        let event = GenerationEvent::from(&current);
+        let event = GenerationEvent::from(current);
         self.dispatcher
             .send(InputEvent::EpochComplete(event))
             .unwrap();
 
-        Ok(current)
+        Ok(())
     }
 }
 

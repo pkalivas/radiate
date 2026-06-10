@@ -1,23 +1,23 @@
 pub mod builder;
-mod context;
+pub mod context;
 mod control;
 pub mod engine;
 mod events;
 mod generation;
 mod io;
-mod iter;
-mod limit;
 mod pipeline;
+mod runtime;
 mod steps;
 
 pub use builder::GeneticEngineBuilder;
+pub use context::EvolutionContext;
 pub use control::EngineControl;
 pub use engine::GeneticEngine;
 pub use events::{EngineEvent, EngineEventInner, EventBus, EventHandler};
 pub use generation::Generation;
 pub use io::{FileReader, FileWriter, JsonReader, JsonWriter};
-pub use iter::{EngineIterator, EngineIteratorExt};
-pub use limit::Limit;
+pub use runtime::{EngineRuntime, Limit};
+
 pub use steps::{
     EngineStep, EvaluateStep, OffspringConfig, RecombineStep, SelectConfig, SpeciateStep,
     SurvivorConfig,

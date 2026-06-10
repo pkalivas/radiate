@@ -1,6 +1,8 @@
 use crate::state::{AppState, Pane};
 use crate::widgets::AppWidget;
 use radiate_engines::Chromosome;
+use ratatui::style::Stylize;
+use ratatui::text::{Line, Span};
 use ratatui::{
     style::{Color, Style},
     widgets::{RenderDirection, Sparkline, SparklineBar, Widget},
@@ -26,27 +28,38 @@ impl<C: Chromosome> AppWidget<C> for SpeciesSparklineComponent {
             None => return,
         };
 
-        let bars = items
-            .iter()
-            .map(|species| {
-                let color = if let Some(selected_id) = state.tables.species.selected_value {
-                    if selected_id == species.id {
-                        crate::styles::SELECTED_GREEN
-                    } else {
-                        Color::DarkGray
-                    }
-                } else {
-                    Color::DarkGray
-                };
+        let inner_width = area.width.saturating_sub(2) as usize;
+        let n = items.len();
 
-                SparklineBar::from(species.size as u64).style(Style::default().fg(color))
-            })
-            .collect::<Vec<_>>();
+        let bars = if inner_width == 0 || n == 0 {
+            Vec::new()
+        } else {
+            let base = inner_width / n;
+            let extra = inner_width % n;
+            items
+                .iter()
+                .enumerate()
+                .flat_map(|(i, species)| {
+                    let color = match state.tables.species.selected_value {
+                        Some(selected_id) if selected_id == species.id => {
+                            crate::styles::SELECTED_GREEN
+                        }
+                        _ => Color::DarkGray,
+                    };
+                    let width = base + if i < extra { 1 } else { 0 };
+                    (0..width).map(move |_| {
+                        SparklineBar::from(species.size as u64).style(Style::default().fg(color))
+                    })
+                })
+                .collect::<Vec<_>>()
+        };
 
         let sparkline = Sparkline::default()
-            .block(crate::styles::panel_block(
-                state.nav.is_pane_focused(Pane::Chart),
-            ))
+            .block(
+                crate::styles::panel_block(state.nav.is_pane_focused(Pane::Chart)).title(
+                    Line::from(Span::from(" Species Sizes ").fg(Color::White).bold()).centered(),
+                ),
+            )
             .data(bars)
             .direction(RenderDirection::LeftToRight)
             .style(Style::default().fg(Color::LightGreen))

@@ -1,5 +1,5 @@
 use crate::Chromosome;
-use crate::context::Context;
+use crate::context::EvolutionContext;
 use radiate_core::MetricQuery;
 use radiate_core::objectives::Scored;
 use radiate_core::{Ecosystem, Front, MetricSet, Objective, Phenotype, Population, Score, Species};
@@ -7,7 +7,7 @@ use radiate_core::{Ecosystem, Front, MetricSet, Objective, Phenotype, Population
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 /// A [Generation] represents a single generation in the evolutionary process.
 /// It contains the ecosystem, the best solution, index, metrics, score, objective,
@@ -127,13 +127,14 @@ impl<C: Chromosome, T> Scored for Generation<C, T> {
     }
 }
 
-impl<C, T> From<&Context<C, T>> for Generation<C, T>
+impl<C, T> From<&EvolutionContext<C, T>> for Generation<C, T>
 where
     C: Chromosome + Clone,
     T: Clone,
 {
-    fn from(context: &Context<C, T>) -> Self {
-        Generation {
+    fn from(context: &EvolutionContext<C, T>) -> Self {
+        let time = Instant::now();
+        let mut result = Generation {
             ecosystem: Arc::new(context.ecosystem.clone()),
             value: context.best.clone(),
             index: context.index,
@@ -145,7 +146,15 @@ where
                 _ => None,
             },
             exprs: context.exprs.clone(),
-        }
+        };
+
+        // Update time metric
+        let elapsed = time.elapsed();
+        Arc::get_mut(&mut result.metrics)
+            .unwrap()
+            .upsert("TEST", elapsed);
+
+        result
     }
 }
 

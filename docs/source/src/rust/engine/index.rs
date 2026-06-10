@@ -140,9 +140,10 @@ fn main() {
     let engine = build_engine();
     let result = engine
         .iter()
-        .until_metric(&metric_names::EVALUATION_COUNT, |metric| {
-            metric.sum() >= 1000.0
-        })
+        .until_metric(
+            &metric_names::EVALUATION_COUNT,
+            Arc::new(|metric| metric.sum() >= 1000.0),
+        )
         .last()
         .unwrap();
 

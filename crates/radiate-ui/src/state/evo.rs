@@ -1,11 +1,10 @@
-use std::sync::Arc;
-
 use super::chart::{ChartState, MetricChartType};
 use crate::chart::RollingLineChart;
 use crate::widgets::num_pairs;
 use radiate_engines::{
     Chromosome, Ecosystem, Front, MetricSet, Objective, Optimize, Phenotype, Score, Species,
 };
+use std::sync::{Arc, RwLock};
 
 pub struct ObjectiveState {
     pub objective: Objective,
@@ -17,9 +16,9 @@ pub struct ObjectiveState {
 #[allow(dead_code)]
 pub struct EvoState<C: Chromosome> {
     pub best_phenotype: Option<Phenotype<C>>,
-    pub ecosystem: Option<Arc<Ecosystem<C>>>,
-    pub front: Option<Front<Phenotype<C>>>,
-    pub metrics: Arc<MetricSet>,
+    pub ecosystem: Option<Ecosystem<C>>,
+    pub front: Arc<RwLock<Front<Phenotype<C>>>>,
+    pub metrics: MetricSet,
     pub charts: ChartState,
     pub index: usize,
     pub score: Score,
@@ -27,7 +26,7 @@ pub struct EvoState<C: Chromosome> {
 }
 
 impl<C: Chromosome> EvoState<C> {
-    pub fn update_ecosystem(&mut self, ecosystem: Arc<Ecosystem<C>>)
+    pub fn update_ecosystem(&mut self, ecosystem: Ecosystem<C>)
     where
         C: Clone,
     {
@@ -40,7 +39,7 @@ impl<C: Chromosome> EvoState<C> {
         self.best_phenotype = phenotype;
     }
 
-    pub fn update_metrics(&mut self, metrics: Arc<MetricSet>) {
+    pub fn update_metrics(&mut self, metrics: MetricSet) {
         for metric in metrics.iter() {
             self.charts.update_from_metric(metric.1);
         }
@@ -109,8 +108,8 @@ impl<C: Chromosome> Default for EvoState<C> {
     fn default() -> Self {
         Self {
             best_phenotype: None,
-            front: None,
-            metrics: Arc::new(MetricSet::new()),
+            front: Arc::new(RwLock::new(Front::default())),
+            metrics: MetricSet::new(),
             charts: ChartState::new(),
             ecosystem: None,
             index: 0,

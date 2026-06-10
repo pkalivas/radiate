@@ -101,7 +101,13 @@ impl<C: Chromosome> AppWidget<C> for MetricLineChartWidget {
             } else {
                 Line::default()
             })
-            .title(Line::from(format!(" {} ", current_metric_name,)).centered())
+            .title(
+                Line::from(Span::styled(
+                    format!(" {} ", current_metric_name),
+                    Style::default().fg(Color::White).bold(),
+                ))
+                .centered(),
+            )
             .render(area, buf);
     }
 }
@@ -155,13 +161,16 @@ impl<C: Chromosome> AppWidget<C> for MetricDetailPanelWidget {
         Panel::new(FnWidget::new(|area, buf| {
             Widget::render(metric_table, area, buf);
         }))
-        .titled(format!(" {} ", current_metric_name).bold())
+        .titled(Span::styled(
+            format!(" {} ", current_metric_name),
+            Style::default().fg(Color::White).bold(),
+        ))
         .render(left_layout[0], buf);
 
         Panel::new(FnWidget::new(|area, buf| {
             Widget::render(tag_table, area, buf);
         }))
-        .titled("Tags".to_span().bold())
+        .titled(" Tags ".to_span().fg(Color::White).bold())
         .render(left_layout[1], buf);
     }
 }
@@ -429,117 +438,3 @@ fn map_to_distribution_metric_rows(metric: &Metric) -> Vec<Row<'_>> {
 
     vec![]
 }
-
-// /// Bin `samples` into `bins` equal-width buckets over [min,max] → per-bucket counts.
-// /// Degenerate input (empty / all-equal) collapses into one bucket.
-// fn histogram(samples: &[f32], bins: usize) -> Vec<u64> {
-//     let n = bins.max(1);
-//     let mut counts = vec![0u64; n];
-
-//     let (min, max) = samples
-//         .iter()
-//         .copied()
-//         .filter(|v| v.is_finite())
-//         .fold((f32::INFINITY, f32::NEG_INFINITY), |(lo, hi), v| {
-//             (lo.min(v), hi.max(v))
-//         });
-
-//     if !min.is_finite() || max <= min {
-//         counts[0] = samples.iter().filter(|v| v.is_finite()).count() as u64;
-//         return counts;
-//     }
-
-//     let span = max - min;
-//     for &v in samples.iter().filter(|v| v.is_finite()) {
-//         let idx = (((v - min) / span) * n as f32) as usize;
-//         counts[idx.min(n - 1)] += 1; // clamp the max edge into the last bin
-//     }
-//     counts
-// }
-
-// pub struct MetricBoxWhiskerChartWidget;
-
-// impl<C: Chromosome> AppWidget<C> for MetricBoxWhiskerChartWidget {
-//     fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
-//         let current_metric_name = state.get_selected_metric().unwrap_or("");
-//         let Some(current_metric) = state.evo.metrics.get(current_metric_name) else {
-//             Paragraph::new(Line::from("No metric selected").centered()).render(area, buf);
-//             return;
-//         };
-
-//         let inner = if area.width > 2 && area.height > 2 {
-//             Rect {
-//                 x: area.x + 1,
-//                 y: area.y + 1,
-//                 width: area.width.saturating_sub(2),
-//                 height: area.height.saturating_sub(2),
-//             }
-//         } else {
-//             area
-//         };
-
-//         let chart_metrics = Layout::default()
-//             .direction(Direction::Vertical)
-//             .constraints([Constraint::Min(8), Constraint::Length(1)].as_ref())
-//             .split(inner);
-
-//         if let Some(view) = current_metric.distributions() {
-//             let quantiles = view.quantiles(&[0.25, 0.5, 0.75]).unwrap_or(vec![0.0; 3]);
-//             let mean = view.mean();
-//             let min = view.min();
-//             let max = view.max();
-//             let stddev = view.stddev();
-//             let count = view.count();
-//             let q1 = quantiles[0];
-//             let med = quantiles[1];
-//             let q3 = quantiles[2];
-
-//             let canvas = Canvas::default()
-//                 .x_bounds([(min - stddev) as f64, (max + stddev) as f64])
-//                 .y_bounds([-1.0, 1.0])
-//                 .background_color(styles::ALT_BG_COLOR)
-//                 .paint(move |ctx| {
-//                     if count >= 2 {
-//                         // Box (Q1 to Q3)
-//                         draw_line(ctx, q1, -0.4, q3, -0.4, Color::White);
-//                         draw_line(ctx, q1, 0.4, q3, 0.4, Color::White);
-//                         draw_line(ctx, q1, -0.4, q1, 0.4, Color::White);
-//                         draw_line(ctx, q3, -0.4, q3, 0.4, Color::White);
-
-//                         // Median
-//                         draw_line(ctx, med, -0.4, med, 0.4, Color::Yellow);
-
-//                         // Mean
-//                         draw_line(ctx, mean, -0.4, mean, 0.4, Color::Cyan);
-
-//                         // Whiskers
-//                         draw_line(ctx, min, 0.0, q1, 0.0, Color::White);
-//                         draw_line(ctx, q3, 0.0, max, 0.0, Color::White);
-
-//                         // Whisker caps
-//                         draw_line(ctx, min, -0.2, min, 0.2, Color::White);
-//                         draw_line(ctx, max, -0.2, max, 0.2, Color::White);
-//                     } else {
-//                         // Single sample: just mark the point
-//                         draw_line(ctx, med, -0.4, med, 0.4, Color::Yellow);
-//                     }
-//                 });
-
-//             canvas.render(chart_metrics[0], buf);
-
-//             Paragraph::new(box_summary_line(q1, med, q3, mean)).render(chart_metrics[1], buf);
-//         } else {
-//             Paragraph::new(Line::from("No distribution data").centered())
-//                 .style(Style::default().fg(Color::DarkGray).italic())
-//                 .render(chart_metrics[0], buf);
-//         }
-
-//         crate::styles::panel_block(state.nav.is_pane_focused(Pane::Chart))
-//             .title(
-//                 Line::from(format!(" {} ", current_metric_name))
-//                     .fg(crate::styles::SELECTED_GREEN)
-//                     .centered(),
-//             )
-//             .render(area, buf);
-//     }
-// }

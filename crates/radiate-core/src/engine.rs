@@ -79,6 +79,7 @@ pub trait Engine {
     /// - Convergence metrics
     /// - Any other state information needed for monitoring or decision-making
     type Epoch;
+    type Context;
 
     /// Advances the engine to the next epoch or generation.
     ///
@@ -105,7 +106,16 @@ pub trait Engine {
     ///
     /// This method is called repeatedly during execution, so it should be
     /// optimized for performance.
-    fn next(&mut self) -> Result<Self::Epoch>;
+    fn context(&self) -> &Self::Context;
+
+    fn epoch(&self) -> Self::Epoch;
+
+    fn step(&mut self) -> Result<()>;
+
+    fn next(&mut self) -> Result<Self::Epoch> {
+        self.step()?;
+        Ok(self.epoch())
+    }
 }
 
 /// Extension trait providing convenient methods for running engines with custom logic.
@@ -186,6 +196,8 @@ where
         F: Fn(&E::Epoch) -> bool,
     {
         loop {
+            self.step().expect("Engine step failed");
+
             match self.next() {
                 Ok(epoch) => {
                     if limit(&epoch) {
@@ -216,14 +228,31 @@ mod tests {
 
     impl Engine for MockEngine {
         type Epoch = MockEpoch;
+        type Context = ();
 
-        fn next(&mut self) -> Result<Self::Epoch> {
-            self.generation += 1;
-            Ok(MockEpoch {
-                generation: self.generation,
-                fitness: 1.0 / (self.generation as f32),
-            })
+        fn context(&self) -> &Self::Context {
+            &()
         }
+
+        fn epoch(&self) -> Self::Epoch {
+            MockEpoch {
+                generation: self.generation,
+                fitness: 1.0 / (self.generation as f32 + 1.0),
+            }
+        }
+
+        fn step(&mut self) -> Result<()> {
+            self.generation += 1;
+            Ok(())
+        }
+
+        // fn next(&mut self) -> Result<Self::Epoch> {
+        //     self.generation += 1;
+        //     Ok(MockEpoch {
+        //         generation: self.generation,
+        //         fitness: 1.0 / (self.generation as f32),
+        //     })
+        // }
     }
 
     #[test]

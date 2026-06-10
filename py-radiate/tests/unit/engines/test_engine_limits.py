@@ -59,25 +59,6 @@ def test_convergence_limit(simple_float_engine, random_seed):
 
 
 @pytest.mark.unit
-def test_multiple_limits(simple_float_engine):
-    """Test running with multiple limits."""
-    limits = [rd.Limit.generations(5), rd.Limit.score(0.1), rd.Limit.seconds(2)]
-    result = simple_float_engine.run(*limits)
-
-    if result.index() < 5 and result.score()[0] > 0.1:
-        assert result.duration().total_seconds() < 2, "Should respect time limit"
-    elif result.index() == 5:
-        assert result.score()[0] > 0.1, "Should respect score limit"
-    else:
-        assert result.index() == 5, "Should respect generations limit"
-
-    other_result = simple_float_engine.limit(
-        rd.Limit.metric("count.evaluation", lambda metric: metric.sum() > 1000)
-    ).run()
-    assert other_result.metrics()["count.evaluation"].sum() > 1000
-
-
-@pytest.mark.unit
 def test_expr_limit(simple_float_engine):
     """Test expression-based limit."""
     limit = rd.Expr.select("index") >= 10

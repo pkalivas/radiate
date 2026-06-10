@@ -28,7 +28,8 @@ fn main() {
         .iter()
         .until_score(MIN_SCORE)
         .last()
-        .inspect(display);
+        .inspect(display)
+        .unwrap();
 }
 
 fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {

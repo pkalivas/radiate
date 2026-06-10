@@ -1,8 +1,8 @@
 use crate::builder::GeneticEngineBuilder;
-use crate::context::Context;
+use crate::context::EvolutionContext;
 use crate::events::EngineMessage;
-use crate::iter::EngineIterator;
 use crate::pipeline::Pipeline;
+use crate::runtime::EngineRuntime;
 use crate::{Chromosome, EngineControl};
 use crate::{EventBus, Generation};
 use radiate_core::Engine;
@@ -59,7 +59,7 @@ where
     C: Chromosome,
     T: Clone + Send + Sync + 'static,
 {
-    context: Context<C, T>,
+    context: EvolutionContext<C, T>,
     pipeline: Pipeline<C>,
     bus: EventBus<T>,
 }
@@ -73,7 +73,11 @@ where
     ///
     /// This constructor is primarily used internally by the builder pattern.
     /// Users should create engines using `GeneticEngine::builder()`.
-    pub(crate) fn new(context: Context<C, T>, pipeline: Pipeline<C>, bus: EventBus<T>) -> Self {
+    pub(crate) fn new(
+        context: EvolutionContext<C, T>,
+        pipeline: Pipeline<C>,
+        bus: EventBus<T>,
+    ) -> Self {
         GeneticEngine {
             context,
             pipeline,
@@ -119,9 +123,14 @@ where
     ///
     /// The iterator consumes the engine, so you can only iterate once. If you need
     /// to run the engine multiple times, create a new instance using the builder.
-    pub fn iter(self) -> impl Iterator<Item = Generation<C, T>> {
+    pub fn iter(self) -> EngineRuntime<Self> {
         let control = self.context.control.clone();
-        EngineIterator::new(self, control)
+        EngineRuntime::new(self, control)
+    }
+
+    pub fn into_iter(self) -> impl Iterator<Item = Generation<C, T>> {
+        let control = self.context.control.clone();
+        EngineRuntime::new(self, control)
     }
 }
 
@@ -153,9 +162,18 @@ where
     T: Clone + Send + Sync + 'static,
 {
     type Epoch = Generation<C, T>;
+    type Context = EvolutionContext<C, T>;
+
+    fn context(&self) -> &Self::Context {
+        &self.context
+    }
+
+    fn epoch(&self) -> Self::Epoch {
+        Generation::from(&self.context)
+    }
 
     #[inline]
-    fn next(&mut self) -> Result<Generation<C, T>> {
+    fn step(&mut self) -> Result<()> {
         if let Some(control) = &self.context.control
             && control.is_paused()
         {
@@ -174,7 +192,7 @@ where
 
         self.bus.publish(EngineMessage::EpochEnd(&self.context));
 
-        Ok(Generation::from(&self.context))
+        Ok(())
     }
 }
 

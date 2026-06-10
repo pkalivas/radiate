@@ -29,7 +29,8 @@ fn main() {
         .logging()
         .until_score(MIN_SCORE)
         .last()
-        .inspect(display);
+        .inspect(display)
+        .unwrap();
 }
 
 fn display(result: &Generation<TreeChromosome<Op<f32>>, Tree<Op<f32>>>) {

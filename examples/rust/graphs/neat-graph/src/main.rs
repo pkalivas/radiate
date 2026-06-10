@@ -39,7 +39,8 @@ fn main() {
         .iter()
         .until_score(MIN_SCORE)
         .last()
-        .inspect(display);
+        .inspect(display)
+        .expect("No result from engine run");
 }
 
 fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
