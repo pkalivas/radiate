@@ -141,7 +141,9 @@ impl<C: Chromosome> Default for LayoutNode<C> {
                                                 MetricTableWidget::stats().render(a, b, s)
                                             }),
                                             Widget(|a, b, s| {
-                                                MetricLineChartWidget::default().render(a, b, s)
+                                                MetricLineChartWidget::default()
+                                                    .with_show_bottom_options(true)
+                                                    .render(a, b, s)
                                             }),
                                             Widget(|a, b, s| {
                                                 MetricDetailPanelWidget.render(a, b, s)
@@ -185,7 +187,9 @@ impl<C: Chromosome> Default for LayoutNode<C> {
                                                 MetricTableWidget::distribution().render(a, b, s)
                                             }),
                                             Widget(|a, b, s| {
-                                                MetricLineChartWidget::default().render(a, b, s)
+                                                MetricLineChartWidget::default()
+                                                    .with_show_bottom_options(true)
+                                                    .render(a, b, s)
                                             }),
                                             Widget(|a, b, s| {
                                                 MetricDetailPanelWidget.render(a, b, s)

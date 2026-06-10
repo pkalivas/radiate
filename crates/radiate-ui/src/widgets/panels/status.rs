@@ -107,7 +107,10 @@ impl<C: Chromosome> AppWidget<C> for MetricModalWidget {
         .render_inside_block(true)
         .render(areas[0], buf);
 
-        MetricLineChartWidget::default().render(areas[1], buf, state);
+        MetricLineChartWidget::default()
+            .with_show_bottom_options(false)
+            .with_show_x_axis(true)
+            .render(areas[1], buf, state);
     }
 }
 
@@ -158,7 +161,9 @@ fn get_multi_objective_summaries(metrics: &MetricSet) -> Vec<Row<'static>> {
         ]),
         Row::new(vec![
             "Updates".bold(),
-            format_thousands(metric_meta.updates as usize).to_string().into(),
+            format_thousands(metric_meta.updates as usize)
+                .to_string()
+                .into(),
         ]),
     ];
 
@@ -207,7 +212,9 @@ fn get_single_objective_summaries(metrics: &MetricSet) -> Vec<Row<'static>> {
         ]),
         Row::new(vec![
             "Updates".bold(),
-            format_thousands(metric_meta.updates as usize).to_string().into(),
+            format_thousands(metric_meta.updates as usize)
+                .to_string()
+                .into(),
         ]),
     ];
 

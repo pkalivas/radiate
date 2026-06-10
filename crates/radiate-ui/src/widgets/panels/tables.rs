@@ -127,7 +127,9 @@ impl<C: Chromosome> AppWidget<C> for MetricTableWidget {
                 .update_rows(&items, |(name, _)| (*name).into()),
         }
 
-        let border_style = crate::styles::panel_block(state.nav.is_pane_focused(Pane::List));
+        let focused = state.nav.is_pane_focused(Pane::List);
+        let border_style = crate::styles::panel_block(focused);
+
         let rows = self.kind.build_rows(items.iter().copied());
 
         let table = Table::default()

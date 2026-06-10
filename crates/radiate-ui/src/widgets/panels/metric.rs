@@ -15,6 +15,8 @@ use ratatui::widgets::{Paragraph, Row, Table, canvas::Line as CanvasLine};
 pub struct MetricLineChartWidget {
     name: Option<SmallStr>,
     chart_type: Option<MetricChartType>,
+    show_bottom_options: bool,
+    show_x_axis: bool,
 }
 
 impl MetricLineChartWidget {
@@ -22,7 +24,19 @@ impl MetricLineChartWidget {
         Self {
             name: Some(name.into()),
             chart_type: Some(chart_type),
+            show_bottom_options: false,
+            show_x_axis: false,
         }
+    }
+
+    pub fn with_show_bottom_options(mut self, show: bool) -> Self {
+        self.show_bottom_options = show;
+        self
+    }
+
+    pub fn with_show_x_axis(mut self, show: bool) -> Self {
+        self.show_x_axis = show;
+        self
     }
 }
 
@@ -32,7 +46,7 @@ impl<C: Chromosome> AppWidget<C> for MetricLineChartWidget {
             .name
             .as_deref()
             .unwrap_or_else(|| state.get_selected_metric().unwrap_or(""));
-        let Some(current_metric) = state.evo.metrics.get(current_metric_name) else {
+        let Some(metric) = state.evo.metrics.get(current_metric_name) else {
             Paragraph::new(Line::from("No metric selected").centered()).render(area, buf);
             return;
         };
@@ -48,33 +62,46 @@ impl<C: Chromosome> AppWidget<C> for MetricLineChartWidget {
             area
         };
 
-        let chart_metrics = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Min(8), Constraint::Length(1)].as_ref())
-            .split(inner);
-
         let chart_type = self
             .chart_type
             .unwrap_or_else(|| state.current_chart_view());
 
-        if current_metric.tags().has(TagType::Statistic) {
-            render_stat_metric_chart(chart_type, current_metric, &chart_metrics, buf, state);
-        } else if current_metric.tags().has(TagType::Distribution) {
+        let show_x = self.show_x_axis;
+
+        if metric.tags().has(TagType::Statistic) {
+            render_stat_metric_chart(chart_type, metric, show_x, inner, buf, state);
+        } else if metric.tags().has(TagType::Distribution) {
             if chart_type == MetricChartType::BoxWhisker {
-                render_box_whisker_chart(current_metric, &chart_metrics, buf);
+                let chart_metrics = Layout::default()
+                    .direction(Direction::Vertical)
+                    .constraints([Constraint::Min(8), Constraint::Length(1)].as_ref())
+                    .split(inner);
+                render_box_whisker_chart(metric, &chart_metrics, buf);
             } else if chart_type == MetricChartType::Distribution {
-                render_distribution_metric_chart(current_metric, &chart_metrics, buf);
+                render_distribution_metric_chart(metric, show_x, inner, buf);
             } else {
-                render_stat_metric_chart(chart_type, current_metric, &chart_metrics, buf, state);
+                render_stat_metric_chart(chart_type, metric, show_x, inner, buf, state);
             }
         } else {
-            render_stat_metric_chart(chart_type, current_metric, &chart_metrics, buf, state);
+            render_stat_metric_chart(chart_type, metric, show_x, inner, buf, state);
         }
 
         crate::styles::panel_block(state.nav.is_pane_focused(Pane::Chart) && self.name.is_none())
-            .title(
-                Line::from(format!(" {} {} ", current_metric_name, chart_type.label())).centered(),
-            )
+            .title_bottom(if self.show_bottom_options {
+                chart_type_bottom(chart_type, state).centered()
+            } else {
+                Line::default()
+            })
+            .title_top(if self.show_bottom_options {
+                Line::from(Span::styled(
+                    format!(" [Tab] "),
+                    Style::default().fg(Color::Green).bold(),
+                ))
+                .right_aligned()
+            } else {
+                Line::default()
+            })
+            .title(Line::from(format!(" {} ", current_metric_name,)).centered())
             .render(area, buf);
     }
 }
@@ -112,9 +139,6 @@ impl<C: Chromosome> AppWidget<C> for MetricDetailPanelWidget {
             .collect::<Vec<_>>();
 
         let tag_table = Table::default()
-            .header(Row::new(vec![
-                "Tags".to_span().bold().fg(crate::styles::SELECTED_GREEN),
-            ]))
             .rows(crate::styles::striped_rows(metric_tags))
             .widths([Constraint::Fill(1)]);
 
@@ -123,24 +147,30 @@ impl<C: Chromosome> AppWidget<C> for MetricDetailPanelWidget {
             .style(Style::default().fg(Color::White))
             .widths([Constraint::Fill(1), Constraint::Fill(1)]);
 
-        Panel::new(FnWidget::new(|area, buf| {
-            let left_layout = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([Constraint::Percentage(70), Constraint::Percentage(30)])
-                .split(area);
+        let left_layout = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Percentage(70), Constraint::Percentage(30)])
+            .split(area);
 
-            Widget::render(metric_table, left_layout[0], buf);
-            Widget::render(tag_table, left_layout[1], buf);
+        Panel::new(FnWidget::new(|area, buf| {
+            Widget::render(metric_table, area, buf);
         }))
         .titled(format!(" {} ", current_metric_name).bold())
-        .render(area, buf);
+        .render(left_layout[0], buf);
+
+        Panel::new(FnWidget::new(|area, buf| {
+            Widget::render(tag_table, area, buf);
+        }))
+        .titled("Tags".to_span().bold())
+        .render(left_layout[1], buf);
     }
 }
 
 fn render_stat_metric_chart(
     chart_type: MetricChartType,
     current_metric: &Metric,
-    areas: &[Rect],
+    show_x_axis: bool,
+    area: Rect,
     buf: &mut Buffer,
     state: &AppState<impl Chromosome>,
 ) {
@@ -149,14 +179,9 @@ fn render_stat_metric_chart(
         .get_chart_by_key(current_metric.name(), chart_type);
 
     LineChartWidget::from(charts)
-        .with_show_x_axis(false)
+        .with_show_x_axis(show_x_axis)
         .with_show_boarders(false)
-        .render(areas[0], buf);
-
-    let line = render_metrics_text(current_metric);
-    Paragraph::new(line)
-        .alignment(Alignment::Center)
-        .render(areas[1], buf);
+        .render(area, buf);
 }
 
 fn render_box_whisker_chart(current_metric: &Metric, areas: &[Rect], buf: &mut Buffer) {
@@ -212,21 +237,21 @@ fn render_box_whisker_chart(current_metric: &Metric, areas: &[Rect], buf: &mut B
     }
 }
 
-fn render_distribution_metric_chart(current_metric: &Metric, areas: &[Rect], buf: &mut Buffer) {
-    if let Some(view) = current_metric.distributions() {
+fn render_distribution_metric_chart(
+    metric: &Metric,
+    show_x_axis: bool,
+    area: Rect,
+    buf: &mut Buffer,
+) {
+    if let Some(view) = metric.distributions() {
         let chart = view
             .samples()
             .map(|samples| DistributionLineChart::from(samples).with_color(Color::LightGreen));
 
         LineChartWidget::from(chart.as_ref())
-            .with_show_x_axis(false)
+            .with_show_x_axis(show_x_axis)
             .with_show_boarders(false)
-            .render(areas[0], buf);
-
-        let line = render_metrics_text(current_metric);
-        Paragraph::new(line)
-            .alignment(Alignment::Center)
-            .render(areas[1], buf);
+            .render(area, buf);
     }
 }
 
@@ -246,6 +271,41 @@ pub fn draw_line(
         y2: y2 as f64,
         color,
     });
+}
+
+fn chart_type_bottom(
+    chart_type: MetricChartType,
+    state: &AppState<impl Chromosome>,
+) -> Line<'static> {
+    let bottom = state
+        .selected_metric_views()
+        .iter()
+        .map(|v| {
+            if *v == chart_type {
+                Span::styled(
+                    format!(" {} ", v.short_label()),
+                    Style::default().fg(Color::LightGreen),
+                )
+            } else {
+                Span::styled(
+                    format!(" {} ", v.short_label()),
+                    Style::default().fg(Color::White),
+                )
+            }
+        })
+        .collect::<Vec<_>>();
+
+    let mut final_bottom = Vec::new();
+    for i in 0..bottom.len() {
+        final_bottom.push(bottom[i].clone());
+        if i == bottom.len() - 1 {
+            break;
+        }
+
+        final_bottom.push(Span::styled("|", Style::default().fg(Color::White)));
+    }
+
+    Line::from(final_bottom)
 }
 
 fn box_summary_line<'a>(q1: f32, med: f32, q3: f32, mean: f32) -> Line<'a> {
@@ -270,67 +330,16 @@ fn box_summary_line<'a>(q1: f32, med: f32, q3: f32, mean: f32) -> Line<'a> {
     .centered()
 }
 
-fn render_metrics_text<'a>(metrics: &Metric) -> Line<'a> {
-    let spans = if let Some(stat_view) = metrics.stats() {
-        vec![
-            Span::styled("last", Style::default().fg(Color::Gray)),
-            Span::styled(
-                format!(" {:.4}", stat_view.last()),
-                Style::default().fg(Color::Cyan),
-            ),
-            Span::raw(" "),
-            Span::styled("μ", Style::default().fg(Color::Gray)),
-            Span::styled(
-                format!(" {:.4}", stat_view.mean()),
-                Style::default().fg(Color::Cyan),
-            ),
-        ]
-    } else if let Some(dist_view) = metrics.distributions() {
-        vec![
-            Span::styled("N", Style::default().fg(Color::Gray)),
-            Span::styled(
-                format!(" {}", dist_view.count()),
-                Style::default().fg(Color::LightGreen),
-            ),
-            Span::raw(" "),
-            Span::styled("mean", Style::default().fg(Color::Gray)),
-            Span::styled(
-                format!(" {:.4}", dist_view.mean()),
-                Style::default().fg(Color::LightGreen),
-            ),
-            Span::raw(" "),
-            Span::styled("std", Style::default().fg(Color::Gray)),
-            Span::styled(
-                format!(" {:.4}", dist_view.stddev()),
-                Style::default().fg(Color::LightGreen),
-            ),
-        ]
-    } else {
-        vec![Span::styled(
-            "No data",
-            Style::default().fg(Color::DarkGray).italic(),
-        )]
-    };
-
-    Line::from(spans)
-}
-
 fn map_to_stat_metric_rows(metric: &Metric) -> Vec<Row<'_>> {
     if let Some(view) = metric.stats() {
         let rows = vec![
             Row::new(vec!["Type".bold(), metric.dtype().to_string().into()]),
-            Row::new(vec![
-                "Generation".bold(),
-                metric.generation().to_string().into(),
-            ]),
+            Row::new(vec!["Gen.".bold(), metric.generation().to_string().into()]),
             Row::new(vec![
                 "Updates".bold(),
                 metric.update_count().to_string().into(),
             ]),
-            Row::new(vec![
-                "Last Value".bold(),
-                format!("{:.2}", view.last()).into(),
-            ]),
+            Row::new(vec!["Last".bold(), format!("{:.2}", view.last()).into()]),
             Row::new(vec!["Sum".bold(), format!("{:.4}", view.sum()).into()]),
             Row::new(vec!["Min.".bold(), format!("{:.2}", view.min()).into()]),
             Row::new(vec!["Max.".bold(), format!("{:.2}", view.max()).into()]),
@@ -339,13 +348,13 @@ fn map_to_stat_metric_rows(metric: &Metric) -> Vec<Row<'_>> {
                 "Std Dev".bold(),
                 format!("{:.4}", view.stddev()).into(),
             ]),
-            Row::new(vec!["Variance".bold(), format!("{:.4}", view.var()).into()]),
+            Row::new(vec!["Var.".bold(), format!("{:.4}", view.var()).into()]),
             Row::new(vec![
                 "Skew".bold(),
                 format!("{:.4}", view.skewness()).into(),
             ]),
             Row::new(vec![
-                "Kurtosis".bold(),
+                "Kurt.".bold(),
                 format!("{:.4}", view.kurtosis()).into(),
             ]),
         ];
@@ -360,26 +369,20 @@ fn map_to_time_metric_rows(metric: &Metric) -> Vec<Row<'_>> {
     if let Some(view) = metric.times() {
         let rows = vec![
             Row::new(vec!["Type".bold(), metric.dtype().to_string().into()]),
-            Row::new(vec![
-                "Generation".bold(),
-                metric.generation().to_string().into(),
-            ]),
+            Row::new(vec!["Gen.".bold(), metric.generation().to_string().into()]),
             Row::new(vec![
                 "Updates".bold(),
                 metric.update_count().to_string().into(),
             ]),
-            Row::new(vec!["Last Value".bold(), fmt_duration(view.last()).into()]),
+            Row::new(vec!["Last".bold(), fmt_duration(view.last()).into()]),
             Row::new(vec!["Sum".bold(), fmt_duration(view.sum()).into()]),
             Row::new(vec!["Min.".bold(), fmt_duration(view.min()).into()]),
             Row::new(vec!["Max.".bold(), fmt_duration(view.max()).into()]),
             Row::new(vec!["Mean".bold(), fmt_duration(view.mean()).into()]),
             Row::new(vec!["Std Dev".bold(), fmt_duration(view.stddev()).into()]),
-            Row::new(vec!["Variance".bold(), fmt_duration(view.var()).into()]),
+            Row::new(vec!["Var.".bold(), fmt_duration(view.var()).into()]),
             Row::new(vec!["Skew".bold(), fmt_duration(view.skewness()).into()]),
-            Row::new(vec![
-                "Kurtosis".bold(),
-                fmt_duration(view.kurtosis()).into(),
-            ]),
+            Row::new(vec!["Kurt.".bold(), fmt_duration(view.kurtosis()).into()]),
         ];
 
         return rows;
@@ -392,10 +395,7 @@ fn map_to_distribution_metric_rows(metric: &Metric) -> Vec<Row<'_>> {
     if let Some(view) = metric.distributions() {
         let rows = vec![
             Row::new(vec!["Type".bold(), metric.dtype().to_string().into()]),
-            Row::new(vec![
-                "Generation".bold(),
-                metric.generation().to_string().into(),
-            ]),
+            Row::new(vec!["Gen.".bold(), metric.generation().to_string().into()]),
             Row::new(vec![
                 "Updates".bold(),
                 metric.update_count().to_string().into(),
@@ -409,13 +409,13 @@ fn map_to_distribution_metric_rows(metric: &Metric) -> Vec<Row<'_>> {
                 "Std Dev".bold(),
                 format!("{:.4}", view.stddev()).into(),
             ]),
-            Row::new(vec!["Variance".bold(), format!("{:.4}", view.var()).into()]),
+            Row::new(vec!["Var.".bold(), format!("{:.4}", view.var()).into()]),
             Row::new(vec![
                 "Skew".bold(),
                 format!("{:.4}", view.skewness()).into(),
             ]),
             Row::new(vec![
-                "Kurtosis".bold(),
+                "Kurt.".bold(),
                 format!("{:.4}", view.kurtosis()).into(),
             ]),
             Row::new(vec![

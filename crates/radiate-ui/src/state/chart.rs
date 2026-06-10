@@ -51,7 +51,18 @@ impl MetricChartType {
             MetricChartType::Stddev => "Stddev",
             MetricChartType::Variance => "Variance",
             MetricChartType::BoxWhisker => "Box & Whisker",
-            MetricChartType::Distribution => "Distribution",
+            MetricChartType::Distribution => "Dist.",
+        }
+    }
+
+    pub fn short_label(self) -> &'static str {
+        match self {
+            MetricChartType::Last => "last",
+            MetricChartType::Mean => "mean",
+            MetricChartType::Stddev => "stddev",
+            MetricChartType::Variance => "var",
+            MetricChartType::BoxWhisker => "box",
+            MetricChartType::Distribution => "dist",
         }
     }
 }

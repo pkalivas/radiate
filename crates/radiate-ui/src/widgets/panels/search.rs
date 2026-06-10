@@ -21,9 +21,16 @@ impl<'a, C: Chromosome> SearchBarWidget<'a, C> {
 impl<'a, C: Chromosome> Widget for SearchBarWidget<'a, C> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let title = if self.state.nav.search.active {
-            " Search (active) "
+            Line::from(vec![
+                Span::from(" Search (").fg(Color::White).bold(),
+                Span::from("active").fg(Color::Green).bold(),
+                Span::from(") ").fg(Color::White).bold(),
+            ])
         } else {
-            " Search (/) "
+            Line::from(vec![
+                Span::from(" Search ").fg(Color::White).bold(),
+                Span::from("[/] ").fg(Color::Green).bold(),
+            ])
         };
 
         let border_style = crate::styles::panel_block(self.state.nav.is_search_focused());
@@ -68,7 +75,6 @@ pub fn help_text<C: Chromosome>(state: &AppState<C>) -> Line<'static> {
                 }
             };
 
-            v.push(kv("⇥", "pane"));
             v.push(kv("h/l", "tabs"));
 
             if nav.dashboard_tab.supports_metric_modal() {
@@ -101,6 +107,6 @@ pub fn help_text<C: Chromosome>(state: &AppState<C>) -> Line<'static> {
 fn kv(key: &str, desc: &str) -> [Span<'static>; 2] {
     [
         Span::from(format!("[{key}]")).fg(Color::LightGreen).bold(),
-        Span::from(format!(" {desc}  ")).fg(Color::Gray),
+        Span::from(format!(" {desc} ")).fg(Color::Gray),
     ]
 }

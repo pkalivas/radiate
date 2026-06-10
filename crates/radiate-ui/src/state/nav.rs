@@ -69,7 +69,7 @@ pub struct NavState {
 
 impl NavState {
     pub fn is_pane_focused(&self, pane: Pane) -> bool {
-        self.mode == UiMode::Dashboard && self.focus == pane
+        self.focus == pane && matches!(self.mode, UiMode::Dashboard | UiMode::MetricModal)
     }
 
     /// The chart view remembered for the active dashboard tab.
@@ -81,28 +81,6 @@ impl NavState {
     pub fn set_chart_tab(&mut self, view: MetricChartType) {
         let idx = self.dashboard_tab_index();
         self.chart_tabs[idx] = view;
-    }
-
-    pub fn next_pane(&mut self) {
-        if let UiMode::Dashboard = self.mode
-            && !matches!(
-                self.dashboard_tab,
-                DashboardTab::Species | DashboardTab::Time
-            )
-        {
-            self.focus = cycle(self.dashboard_tab.panes(), self.focus, 1);
-        }
-    }
-
-    pub fn previous_pane(&mut self) {
-        if let UiMode::Dashboard = self.mode
-            && !matches!(
-                self.dashboard_tab,
-                DashboardTab::Species | DashboardTab::Time
-            )
-        {
-            self.focus = cycle(self.dashboard_tab.panes(), self.focus, -1);
-        }
     }
 
     fn clamp_focus(&mut self) {
@@ -120,6 +98,7 @@ impl NavState {
         if !matches!(self.mode, UiMode::Dashboard) {
             return;
         }
+
         self.mode = UiMode::Search;
         self.search.active = true;
     }
@@ -152,8 +131,12 @@ impl NavState {
         match self.mode {
             UiMode::Dashboard if self.dashboard_tab.supports_metric_modal() => {
                 self.mode = UiMode::MetricModal;
+                self.focus = Pane::Chart;
             }
-            UiMode::MetricModal => self.mode = UiMode::Dashboard,
+            UiMode::MetricModal => {
+                self.mode = UiMode::Dashboard;
+                self.focus = Pane::List;
+            }
             _ => {}
         }
     }
@@ -242,9 +225,9 @@ fn tab_available(tab: DashboardTab, has_species: bool) -> bool {
     !matches!(tab, DashboardTab::Species) || has_species
 }
 
-/// Step through `panes` from `current` by `dir` (±1), wrapping.
-fn cycle(panes: &[Pane], current: Pane, dir: isize) -> Pane {
-    let n = panes.len() as isize;
-    let i = panes.iter().position(|p| *p == current).unwrap_or(0) as isize;
-    panes[(((i + dir) % n + n) % n) as usize]
-}
+// /// Step through `panes` from `current` by `dir` (±1), wrapping.
+// fn cycle(panes: &[Pane], current: Pane, dir: isize) -> Pane {
+//     let n = panes.len() as isize;
+//     let i = panes.iter().position(|p| *p == current).unwrap_or(0) as isize;
+//     panes[(((i + dir) % n + n) % n) as usize]
+// }

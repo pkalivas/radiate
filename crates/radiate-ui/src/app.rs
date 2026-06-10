@@ -1,4 +1,4 @@
-use crate::state::{AppState, Pane, RunState, UiMode};
+use crate::state::{AppState, RunState, UiMode};
 use crate::widgets::{AppWidget, HelpPanelWidget, LayoutNode, MetricModalWidget, ModalWidget};
 use color_eyre::Result;
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
@@ -142,8 +142,8 @@ where
                 self.state.nav.toggle_metric_modal()
             }
 
-            KeyCode::Right | KeyCode::Char('l') => self.state.next_chart_view(),
-            KeyCode::Left | KeyCode::Char('h') => self.state.prev_chart_view(),
+            KeyCode::Right | KeyCode::Tab => self.state.next_chart_view(),
+            KeyCode::Left | KeyCode::BackTab => self.state.prev_chart_view(),
 
             KeyCode::Char('p') => {
                 let paused = self.control.toggle_pause();
@@ -195,14 +195,8 @@ where
 
             KeyCode::Char('?') | KeyCode::Char('H') => self.state.nav.toggle_help(),
 
-            KeyCode::Down | KeyCode::Char('j') => match self.state.nav.focus {
-                Pane::List => self.state.move_selection_down(),
-                Pane::Chart => self.state.next_chart_view(),
-            },
-            KeyCode::Up | KeyCode::Char('k') => match self.state.nav.focus {
-                Pane::List => self.state.move_selection_up(),
-                Pane::Chart => self.state.prev_chart_view(),
-            },
+            KeyCode::Down | KeyCode::Char('j') => self.state.move_selection_down(),
+            KeyCode::Up | KeyCode::Char('k') => self.state.move_selection_up(),
 
             KeyCode::Char(']') => self.state.evo.next_objective_pair_page(),
             KeyCode::Char('[') => self.state.evo.previous_objective_pair_page(),
@@ -216,8 +210,8 @@ where
                 self.state.nav.previous_tab(self.state.evo.has_species())
             }
 
-            KeyCode::Tab => self.state.nav.next_pane(),
-            KeyCode::BackTab => self.state.nav.previous_pane(),
+            KeyCode::Tab => self.state.next_chart_view(),
+            KeyCode::BackTab => self.state.prev_chart_view(),
 
             KeyCode::Char('p') => {
                 let paused = self.control.toggle_pause();
