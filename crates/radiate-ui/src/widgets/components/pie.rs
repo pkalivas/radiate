@@ -51,9 +51,7 @@ impl<C: Chromosome> AppWidget<C> for SpeciesPieChartComponent {
         PieChart::new(slices)
             .show_legend(false)
             .show_percentages(true)
-            .block(crate::styles::panel_block(
-                state.nav.is_pane_focused(Pane::Detail),
-            ))
+            .block(Block::bordered())
             .legend_layout(tui_piechart::LegendLayout::Horizontal)
             .high_resolution(true)
             .render(area, buf);

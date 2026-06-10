@@ -195,16 +195,13 @@ where
 
             KeyCode::Char('?') | KeyCode::Char('H') => self.state.nav.toggle_help(),
 
-            // j/k act on the focused pane.
             KeyCode::Down | KeyCode::Char('j') => match self.state.nav.focus {
                 Pane::List => self.state.move_selection_down(),
                 Pane::Chart => self.state.next_chart_view(),
-                Pane::Detail => {}
             },
             KeyCode::Up | KeyCode::Char('k') => match self.state.nav.focus {
                 Pane::List => self.state.move_selection_up(),
                 Pane::Chart => self.state.prev_chart_view(),
-                Pane::Detail => {}
             },
 
             KeyCode::Char(']') => self.state.evo.next_objective_pair_page(),
@@ -212,8 +209,12 @@ where
             KeyCode::Char('+') => self.state.evo.expand_objective_pairs(),
             KeyCode::Char('-') => self.state.evo.shrink_objective_pairs(),
 
-            KeyCode::Right | KeyCode::Char('l') => self.state.nav.next_tab(),
-            KeyCode::Left | KeyCode::Char('h') => self.state.nav.previous_tab(),
+            KeyCode::Right | KeyCode::Char('l') => {
+                self.state.nav.next_tab(self.state.evo.has_species())
+            }
+            KeyCode::Left | KeyCode::Char('h') => {
+                self.state.nav.previous_tab(self.state.evo.has_species())
+            }
 
             KeyCode::Tab => self.state.nav.next_pane(),
             KeyCode::BackTab => self.state.nav.previous_pane(),
@@ -246,6 +247,10 @@ where
 
         self.state.evo.update_ecosystem(event.ecosystem);
         self.state.evo.update_metrics(event.metrics);
+
+        self.state
+            .nav
+            .ensure_tab_available(self.state.evo.has_species());
 
         if let Some(front) = event.front {
             self.state.evo.front = Some(front);

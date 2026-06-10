@@ -60,6 +60,11 @@ impl<C: Chromosome> EvoState<C> {
         self.ecosystem.as_ref().and_then(|eco| eco.species())
     }
 
+    pub fn has_species(&self) -> bool {
+        self.get_species()
+            .is_some_and(|species| !species.is_empty())
+    }
+
     pub fn set_objective_index(&mut self, index: usize) {
         if index < self.pareto.objective.dims() {
             self.pareto.objective_index = index;

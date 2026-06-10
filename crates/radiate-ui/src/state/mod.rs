@@ -51,8 +51,9 @@ impl<C: Chromosome> AppState<C> {
 
     pub fn current_chart_view(&self) -> MetricChartType {
         let views = self.selected_metric_views();
-        if views.contains(&self.nav.chart_tab) {
-            self.nav.chart_tab
+        let stored = self.nav.chart_tab();
+        if views.contains(&stored) {
+            stored
         } else {
             views[0]
         }
@@ -69,13 +70,13 @@ impl<C: Chromosome> AppState<C> {
     pub fn next_chart_view(&mut self) {
         let views = self.selected_metric_views();
         let next = (self.chart_view_index() + 1) % views.len();
-        self.nav.chart_tab = views[next];
+        self.nav.set_chart_tab(views[next]);
     }
 
     pub fn prev_chart_view(&mut self) {
         let views = self.selected_metric_views();
         let prev = (self.chart_view_index() + views.len() - 1) % views.len();
-        self.nav.chart_tab = views[prev];
+        self.nav.set_chart_tab(views[prev]);
     }
 }
 

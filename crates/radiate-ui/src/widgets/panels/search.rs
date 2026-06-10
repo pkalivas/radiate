@@ -66,7 +66,6 @@ pub fn help_text<C: Chromosome>(state: &AppState<C>) -> Line<'static> {
                     let view = state.current_chart_view().label().to_lowercase();
                     vec![kv("j/k", &format!("view: {view}"))]
                 }
-                Pane::Detail => vec![],
             };
 
             v.push(kv("⇥", "pane"));

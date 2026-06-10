@@ -107,7 +107,7 @@ impl<C: Chromosome> AppWidget<C> for MetricModalWidget {
         .render_inside_block(true)
         .render(areas[0], buf);
 
-        MetricLineChartWidget.render(areas[1], buf, state);
+        MetricLineChartWidget::default().render(areas[1], buf, state);
     }
 }
 

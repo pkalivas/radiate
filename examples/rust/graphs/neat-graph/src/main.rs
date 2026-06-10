@@ -40,7 +40,6 @@ fn main() {
         .build();
 
     radiate::ui(engine)
-        .pause()
         .iter()
         .until_score(MIN_SCORE)
         .last()
@@ -91,7 +90,7 @@ fn get_threshold(use_expr_distance: bool, target_species: usize) -> impl Into<Ra
         .rolling(window)
         .mean();
 
-    let count_error = Expr::select("count.species")
+    let count_error = Expr::select("species.count")
         .rolling(window)
         .mean()
         .sub(target)

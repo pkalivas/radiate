@@ -4,17 +4,34 @@ use crate::styles;
 use crate::widgets::{AppWidget, FnWidget, LineChartWidget, Panel};
 use radiate_engines::stats::{TagType, fmt_duration};
 use radiate_engines::{Chromosome, Metric};
+use radiate_utils::SmallStr;
 use ratatui::prelude::*;
 use ratatui::style::{Color, Stylize};
 use ratatui::text::ToSpan;
 use ratatui::widgets::canvas::Canvas;
 use ratatui::widgets::{Paragraph, Row, Table, canvas::Line as CanvasLine};
 
-pub struct MetricLineChartWidget;
+#[derive(Default)]
+pub struct MetricLineChartWidget {
+    name: Option<SmallStr>,
+    chart_type: Option<MetricChartType>,
+}
+
+impl MetricLineChartWidget {
+    pub fn new(name: impl Into<SmallStr>, chart_type: MetricChartType) -> Self {
+        Self {
+            name: Some(name.into()),
+            chart_type: Some(chart_type),
+        }
+    }
+}
 
 impl<C: Chromosome> AppWidget<C> for MetricLineChartWidget {
     fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
-        let current_metric_name = state.get_selected_metric().unwrap_or("");
+        let current_metric_name = self
+            .name
+            .as_deref()
+            .unwrap_or_else(|| state.get_selected_metric().unwrap_or(""));
         let Some(current_metric) = state.evo.metrics.get(current_metric_name) else {
             Paragraph::new(Line::from("No metric selected").centered()).render(area, buf);
             return;
@@ -36,7 +53,9 @@ impl<C: Chromosome> AppWidget<C> for MetricLineChartWidget {
             .constraints([Constraint::Min(8), Constraint::Length(1)].as_ref())
             .split(inner);
 
-        let chart_type = state.current_chart_view();
+        let chart_type = self
+            .chart_type
+            .unwrap_or_else(|| state.current_chart_view());
 
         if current_metric.tags().has(TagType::Statistic) {
             render_stat_metric_chart(chart_type, current_metric, &chart_metrics, buf, state);
@@ -54,9 +73,7 @@ impl<C: Chromosome> AppWidget<C> for MetricLineChartWidget {
 
         crate::styles::panel_block(state.nav.is_pane_focused(Pane::Chart))
             .title(
-                Line::from(format!(" {} ", current_metric_name))
-                    .fg(crate::styles::SELECTED_GREEN)
-                    .centered(),
+                Line::from(format!(" {} {} ", current_metric_name, chart_type.label())).centered(),
             )
             .render(area, buf);
     }
@@ -115,12 +132,7 @@ impl<C: Chromosome> AppWidget<C> for MetricDetailPanelWidget {
             Widget::render(metric_table, left_layout[0], buf);
             Widget::render(tag_table, left_layout[1], buf);
         }))
-        .titled(
-            format!(" {} ", current_metric_name)
-                .fg(crate::styles::SELECTED_GREEN)
-                .bold(),
-        )
-        .focused(state.nav.is_pane_focused(Pane::Detail))
+        .titled(format!(" {} ", current_metric_name).bold())
         .render(area, buf);
     }
 }

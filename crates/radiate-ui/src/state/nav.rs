@@ -43,7 +43,7 @@ impl DashboardTab {
     /// The focusable panes this tab lays out, in `Tab`-cycle order. Every tab
     /// currently has the same shape: a list, a chart, and a detail panel.
     pub fn panes(self) -> &'static [Pane] {
-        &[Pane::List, Pane::Chart, Pane::Detail]
+        &[Pane::List, Pane::Chart]
     }
 }
 
@@ -52,7 +52,6 @@ impl DashboardTab {
 pub enum Pane {
     List,
     Chart,
-    Detail,
 }
 
 pub struct SearchState {
@@ -64,8 +63,8 @@ pub struct NavState {
     pub mode: UiMode,
     pub dashboard_tab: DashboardTab,
     pub focus: Pane,
-    pub chart_tab: MetricChartType,
     pub search: SearchState,
+    chart_tabs: [MetricChartType; 4],
 }
 
 impl NavState {
@@ -73,15 +72,36 @@ impl NavState {
         self.mode == UiMode::Dashboard && self.focus == pane
     }
 
+    /// The chart view remembered for the active dashboard tab.
+    pub fn chart_tab(&self) -> MetricChartType {
+        self.chart_tabs[self.dashboard_tab_index()]
+    }
+
+    /// Remember `view` for the active dashboard tab.
+    pub fn set_chart_tab(&mut self, view: MetricChartType) {
+        let idx = self.dashboard_tab_index();
+        self.chart_tabs[idx] = view;
+    }
+
     pub fn next_pane(&mut self) {
         if let UiMode::Dashboard = self.mode {
-            self.focus = cycle(self.dashboard_tab.panes(), self.focus, 1);
+            if !matches!(
+                self.dashboard_tab,
+                DashboardTab::Species | DashboardTab::Time
+            ) {
+                self.focus = cycle(self.dashboard_tab.panes(), self.focus, 1);
+            }
         }
     }
 
     pub fn previous_pane(&mut self) {
         if let UiMode::Dashboard = self.mode {
-            self.focus = cycle(self.dashboard_tab.panes(), self.focus, -1);
+            if !matches!(
+                self.dashboard_tab,
+                DashboardTab::Species | DashboardTab::Time
+            ) {
+                self.focus = cycle(self.dashboard_tab.panes(), self.focus, -1);
+            }
         }
     }
 
@@ -138,16 +158,31 @@ impl NavState {
         }
     }
 
-    pub fn next_tab(&mut self) {
+    pub fn next_tab(&mut self, has_species: bool) {
         if let UiMode::Dashboard = self.mode {
-            self.dashboard_tab = self.dashboard_tab.next();
+            let mut next = self.dashboard_tab.next();
+            while !tab_available(next, has_species) {
+                next = next.next();
+            }
+            self.dashboard_tab = next;
             self.clamp_focus();
         }
     }
 
-    pub fn previous_tab(&mut self) {
+    pub fn previous_tab(&mut self, has_species: bool) {
         if let UiMode::Dashboard = self.mode {
-            self.dashboard_tab = self.dashboard_tab.previous();
+            let mut prev = self.dashboard_tab.previous();
+            while !tab_available(prev, has_species) {
+                prev = prev.previous();
+            }
+            self.dashboard_tab = prev;
+            self.clamp_focus();
+        }
+    }
+
+    pub fn ensure_tab_available(&mut self, has_species: bool) {
+        if !tab_available(self.dashboard_tab, has_species) {
+            self.dashboard_tab = DashboardTab::Stats;
             self.clamp_focus();
         }
     }
@@ -186,13 +221,25 @@ impl Default for NavState {
             mode: UiMode::Dashboard,
             dashboard_tab: DashboardTab::Stats,
             focus: Pane::List,
-            chart_tab: MetricChartType::Mean,
+            chart_tabs: [
+                MetricChartType::Mean,
+                MetricChartType::Mean,
+                MetricChartType::BoxWhisker,
+                MetricChartType::Mean,
+            ],
             search: SearchState {
                 query: String::new(),
                 active: false,
             },
         }
     }
+}
+
+/// Whether a tab can currently be shown. Only Species is conditional; the rest
+/// are always available, which guarantees the skip-loops in `next_tab` /
+/// `previous_tab` terminate.
+fn tab_available(tab: DashboardTab, has_species: bool) -> bool {
+    !matches!(tab, DashboardTab::Species) || has_species
 }
 
 /// Step through `panes` from `current` by `dir` (±1), wrapping.

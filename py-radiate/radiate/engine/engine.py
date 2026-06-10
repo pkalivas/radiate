@@ -632,7 +632,7 @@ class Engine[G, T]:
 
             index = Expr.select("index")
             thresh = Expr.select("species.threshold")
-            err = Expr.select("count.species").error(target_species) * 0.05
+            err = Expr.select("species.count").error(target_species) * 0.05
 
             species_threshold = (
                 Expr.when(index < 2).then(initial_threshold).otherwise(err + thresh)

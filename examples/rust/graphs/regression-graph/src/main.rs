@@ -25,7 +25,6 @@ fn main() {
         .build();
 
     radiate::ui(engine)
-        .pause()
         .iter()
         .until_score(MIN_SCORE)
         .last()
