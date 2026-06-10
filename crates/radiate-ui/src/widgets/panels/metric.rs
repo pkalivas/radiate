@@ -1,4 +1,5 @@
-use crate::state::AppState;
+use crate::chart::DistributionLineChart;
+use crate::state::{AppState, MetricChartType, Pane};
 use crate::styles;
 use crate::widgets::{AppWidget, FnWidget, LineChartWidget, Panel};
 use radiate_engines::stats::{TagType, fmt_duration};
@@ -7,7 +8,7 @@ use ratatui::prelude::*;
 use ratatui::style::{Color, Stylize};
 use ratatui::text::ToSpan;
 use ratatui::widgets::canvas::Canvas;
-use ratatui::widgets::{Block, Paragraph, Row, Table, canvas::Line as CanvasLine};
+use ratatui::widgets::{Paragraph, Row, Table, canvas::Line as CanvasLine};
 
 pub struct MetricLineChartWidget;
 
@@ -36,106 +37,22 @@ impl<C: Chromosome> AppWidget<C> for MetricLineChartWidget {
             .split(inner);
 
         let chart_type = state.current_chart_view();
-        let line = render_metrics_text(current_metric);
-        let charts = state.evo.get_chart_by_key(current_metric_name, chart_type);
 
-        LineChartWidget::from(charts)
-            .with_show_x_axis(false)
-            .with_show_boarders(false)
-            .render(chart_metrics[0], buf);
-
-        Paragraph::new(line)
-            .alignment(Alignment::Center)
-            .render(chart_metrics[1], buf);
-
-        Block::bordered()
-            .title(
-                Line::from(format!(" {} ", current_metric_name))
-                    .fg(crate::styles::SELECTED_GREEN)
-                    .centered(),
-            )
-            .render(area, buf);
-    }
-}
-
-pub struct MetricBoxWhiskerChartWidget;
-
-impl<C: Chromosome> AppWidget<C> for MetricBoxWhiskerChartWidget {
-    fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
-        let current_metric_name = state.get_selected_metric().unwrap_or("");
-        let Some(current_metric) = state.evo.metrics.get(current_metric_name) else {
-            Paragraph::new(Line::from("No metric selected").centered()).render(area, buf);
-            return;
-        };
-
-        let inner = if area.width > 2 && area.height > 2 {
-            Rect {
-                x: area.x + 1,
-                y: area.y + 1,
-                width: area.width.saturating_sub(2),
-                height: area.height.saturating_sub(2),
+        if current_metric.tags().has(TagType::Statistic) {
+            render_stat_metric_chart(chart_type, current_metric, &chart_metrics, buf, state);
+        } else if current_metric.tags().has(TagType::Distribution) {
+            if chart_type == MetricChartType::BoxWhisker {
+                render_box_whisker_chart(current_metric, &chart_metrics, buf);
+            } else if chart_type == MetricChartType::Distribution {
+                render_distribution_metric_chart(current_metric, &chart_metrics, buf);
+            } else {
+                render_stat_metric_chart(chart_type, current_metric, &chart_metrics, buf, state);
             }
         } else {
-            area
-        };
-
-        let chart_metrics = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Min(8), Constraint::Length(1)].as_ref())
-            .split(inner);
-
-        if let Some(view) = current_metric.distributions() {
-            let quantiles = view.quantiles(&[0.25, 0.5, 0.75]).unwrap_or(vec![0.0; 3]);
-            let mean = view.mean();
-            let min = view.min();
-            let max = view.max();
-            let stddev = view.stddev();
-            let count = view.count();
-            let q1 = quantiles[0];
-            let med = quantiles[1];
-            let q3 = quantiles[2];
-
-            let canvas = Canvas::default()
-                .x_bounds([(min - stddev) as f64, (max + stddev) as f64])
-                .y_bounds([-1.0, 1.0])
-                .background_color(styles::ALT_BG_COLOR)
-                .paint(move |ctx| {
-                    if count >= 2 {
-                        // Box (Q1 to Q3)
-                        draw_line(ctx, q1, -0.4, q3, -0.4, Color::White);
-                        draw_line(ctx, q1, 0.4, q3, 0.4, Color::White);
-                        draw_line(ctx, q1, -0.4, q1, 0.4, Color::White);
-                        draw_line(ctx, q3, -0.4, q3, 0.4, Color::White);
-
-                        // Median
-                        draw_line(ctx, med, -0.4, med, 0.4, Color::Yellow);
-
-                        // Mean
-                        draw_line(ctx, mean, -0.4, mean, 0.4, Color::Cyan);
-
-                        // Whiskers
-                        draw_line(ctx, min, 0.0, q1, 0.0, Color::White);
-                        draw_line(ctx, q3, 0.0, max, 0.0, Color::White);
-
-                        // Whisker caps
-                        draw_line(ctx, min, -0.2, min, 0.2, Color::White);
-                        draw_line(ctx, max, -0.2, max, 0.2, Color::White);
-                    } else {
-                        // Single sample: just mark the point
-                        draw_line(ctx, med, -0.4, med, 0.4, Color::Yellow);
-                    }
-                });
-
-            canvas.render(chart_metrics[0], buf);
-
-            Paragraph::new(box_summary_line(q1, med, q3, mean)).render(chart_metrics[1], buf);
-        } else {
-            Paragraph::new(Line::from("No distribution data").centered())
-                .style(Style::default().fg(Color::DarkGray).italic())
-                .render(chart_metrics[0], buf);
+            render_stat_metric_chart(chart_type, current_metric, &chart_metrics, buf, state);
         }
 
-        Block::bordered()
+        crate::styles::panel_block(state.nav.is_pane_focused(Pane::Chart))
             .title(
                 Line::from(format!(" {} ", current_metric_name))
                     .fg(crate::styles::SELECTED_GREEN)
@@ -203,7 +120,101 @@ impl<C: Chromosome> AppWidget<C> for MetricDetailPanelWidget {
                 .fg(crate::styles::SELECTED_GREEN)
                 .bold(),
         )
+        .focused(state.nav.is_pane_focused(Pane::Detail))
         .render(area, buf);
+    }
+}
+
+fn render_stat_metric_chart(
+    chart_type: MetricChartType,
+    current_metric: &Metric,
+    areas: &[Rect],
+    buf: &mut Buffer,
+    state: &AppState<impl Chromosome>,
+) {
+    let charts = state
+        .evo
+        .get_chart_by_key(current_metric.name(), chart_type);
+
+    LineChartWidget::from(charts)
+        .with_show_x_axis(false)
+        .with_show_boarders(false)
+        .render(areas[0], buf);
+
+    let line = render_metrics_text(current_metric);
+    Paragraph::new(line)
+        .alignment(Alignment::Center)
+        .render(areas[1], buf);
+}
+
+fn render_box_whisker_chart(current_metric: &Metric, areas: &[Rect], buf: &mut Buffer) {
+    if let Some(view) = current_metric.distributions() {
+        let quantiles = view.quantiles(&[0.25, 0.5, 0.75]).unwrap_or(vec![0.0; 3]);
+        let mean = view.mean();
+        let min = view.min();
+        let max = view.max();
+        let stddev = view.stddev();
+        let count = view.count();
+        let q1 = quantiles[0];
+        let med = quantiles[1];
+        let q3 = quantiles[2];
+
+        let canvas = Canvas::default()
+            .x_bounds([(min - stddev) as f64, (max + stddev) as f64])
+            .y_bounds([-1.0, 1.0])
+            .background_color(styles::ALT_BG_COLOR)
+            .paint(move |ctx| {
+                if count >= 2 {
+                    // Box (Q1 to Q3)
+                    draw_line(ctx, q1, -0.4, q3, -0.4, Color::White);
+                    draw_line(ctx, q1, 0.4, q3, 0.4, Color::White);
+                    draw_line(ctx, q1, -0.4, q1, 0.4, Color::White);
+                    draw_line(ctx, q3, -0.4, q3, 0.4, Color::White);
+
+                    // Median
+                    draw_line(ctx, med, -0.4, med, 0.4, Color::Yellow);
+
+                    // Mean
+                    draw_line(ctx, mean, -0.4, mean, 0.4, Color::Cyan);
+
+                    // Whiskers
+                    draw_line(ctx, min, 0.0, q1, 0.0, Color::White);
+                    draw_line(ctx, q3, 0.0, max, 0.0, Color::White);
+
+                    // Whisker caps
+                    draw_line(ctx, min, -0.2, min, 0.2, Color::White);
+                    draw_line(ctx, max, -0.2, max, 0.2, Color::White);
+                } else {
+                    // Single sample: just mark the point
+                    draw_line(ctx, med, -0.4, med, 0.4, Color::Yellow);
+                }
+            });
+
+        canvas.render(areas[0], buf);
+
+        Paragraph::new(box_summary_line(q1, med, q3, mean)).render(areas[1], buf);
+    } else {
+        Paragraph::new(Line::from("No distribution data").centered())
+            .style(Style::default().fg(Color::DarkGray).italic())
+            .render(areas[0], buf);
+    }
+}
+
+fn render_distribution_metric_chart(current_metric: &Metric, areas: &[Rect], buf: &mut Buffer) {
+    if let Some(view) = current_metric.distributions() {
+        let chart = view
+            .samples()
+            .map(|samples| DistributionLineChart::from(samples).with_color(Color::LightGreen));
+
+        LineChartWidget::from(chart.as_ref())
+            .with_show_x_axis(false)
+            .with_show_boarders(false)
+            .render(areas[0], buf);
+
+        let line = render_metrics_text(current_metric);
+        Paragraph::new(line)
+            .alignment(Alignment::Center)
+            .render(areas[1], buf);
     }
 }
 
@@ -432,4 +443,91 @@ fn map_to_distribution_metric_rows(metric: &Metric) -> Vec<Row<'_>> {
 //         counts[idx.min(n - 1)] += 1; // clamp the max edge into the last bin
 //     }
 //     counts
+// }
+
+// pub struct MetricBoxWhiskerChartWidget;
+
+// impl<C: Chromosome> AppWidget<C> for MetricBoxWhiskerChartWidget {
+//     fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
+//         let current_metric_name = state.get_selected_metric().unwrap_or("");
+//         let Some(current_metric) = state.evo.metrics.get(current_metric_name) else {
+//             Paragraph::new(Line::from("No metric selected").centered()).render(area, buf);
+//             return;
+//         };
+
+//         let inner = if area.width > 2 && area.height > 2 {
+//             Rect {
+//                 x: area.x + 1,
+//                 y: area.y + 1,
+//                 width: area.width.saturating_sub(2),
+//                 height: area.height.saturating_sub(2),
+//             }
+//         } else {
+//             area
+//         };
+
+//         let chart_metrics = Layout::default()
+//             .direction(Direction::Vertical)
+//             .constraints([Constraint::Min(8), Constraint::Length(1)].as_ref())
+//             .split(inner);
+
+//         if let Some(view) = current_metric.distributions() {
+//             let quantiles = view.quantiles(&[0.25, 0.5, 0.75]).unwrap_or(vec![0.0; 3]);
+//             let mean = view.mean();
+//             let min = view.min();
+//             let max = view.max();
+//             let stddev = view.stddev();
+//             let count = view.count();
+//             let q1 = quantiles[0];
+//             let med = quantiles[1];
+//             let q3 = quantiles[2];
+
+//             let canvas = Canvas::default()
+//                 .x_bounds([(min - stddev) as f64, (max + stddev) as f64])
+//                 .y_bounds([-1.0, 1.0])
+//                 .background_color(styles::ALT_BG_COLOR)
+//                 .paint(move |ctx| {
+//                     if count >= 2 {
+//                         // Box (Q1 to Q3)
+//                         draw_line(ctx, q1, -0.4, q3, -0.4, Color::White);
+//                         draw_line(ctx, q1, 0.4, q3, 0.4, Color::White);
+//                         draw_line(ctx, q1, -0.4, q1, 0.4, Color::White);
+//                         draw_line(ctx, q3, -0.4, q3, 0.4, Color::White);
+
+//                         // Median
+//                         draw_line(ctx, med, -0.4, med, 0.4, Color::Yellow);
+
+//                         // Mean
+//                         draw_line(ctx, mean, -0.4, mean, 0.4, Color::Cyan);
+
+//                         // Whiskers
+//                         draw_line(ctx, min, 0.0, q1, 0.0, Color::White);
+//                         draw_line(ctx, q3, 0.0, max, 0.0, Color::White);
+
+//                         // Whisker caps
+//                         draw_line(ctx, min, -0.2, min, 0.2, Color::White);
+//                         draw_line(ctx, max, -0.2, max, 0.2, Color::White);
+//                     } else {
+//                         // Single sample: just mark the point
+//                         draw_line(ctx, med, -0.4, med, 0.4, Color::Yellow);
+//                     }
+//                 });
+
+//             canvas.render(chart_metrics[0], buf);
+
+//             Paragraph::new(box_summary_line(q1, med, q3, mean)).render(chart_metrics[1], buf);
+//         } else {
+//             Paragraph::new(Line::from("No distribution data").centered())
+//                 .style(Style::default().fg(Color::DarkGray).italic())
+//                 .render(chart_metrics[0], buf);
+//         }
+
+//         crate::styles::panel_block(state.nav.is_pane_focused(Pane::Chart))
+//             .title(
+//                 Line::from(format!(" {} ", current_metric_name))
+//                     .fg(crate::styles::SELECTED_GREEN)
+//                     .centered(),
+//             )
+//             .render(area, buf);
+//     }
 // }

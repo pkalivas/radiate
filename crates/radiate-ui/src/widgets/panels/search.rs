@@ -1,4 +1,4 @@
-use crate::state::{AppState, UiMode};
+use crate::state::{AppState, Pane, UiMode};
 use radiate_engines::Chromosome;
 use ratatui::{
     buffer::Buffer,
@@ -59,7 +59,18 @@ pub fn help_text<C: Chromosome>(state: &AppState<C>) -> Line<'static> {
 
     let mut chips = match nav.mode {
         UiMode::Dashboard => {
-            let mut v = vec![kv("j/k", "navigate"), kv("h/l", "tabs")];
+            // j/k means something different per focused pane.
+            let mut v = match nav.focus {
+                Pane::List => vec![kv("j/k", "navigate")],
+                Pane::Chart => {
+                    let view = state.current_chart_view().label().to_lowercase();
+                    vec![kv("j/k", &format!("view: {view}"))]
+                }
+                Pane::Detail => vec![],
+            };
+
+            v.push(kv("⇥", "pane"));
+            v.push(kv("h/l", "tabs"));
 
             if nav.dashboard_tab.supports_metric_modal() {
                 v.push(kv("↵", "expand"));
@@ -68,7 +79,6 @@ pub fn help_text<C: Chromosome>(state: &AppState<C>) -> Line<'static> {
             v.push(kv("/", "find"));
             v.push(kv("p", pause));
             v.push(kv("?", "help"));
-            v.push(kv("q", "quit"));
             v
         }
         UiMode::MetricModal => vec![

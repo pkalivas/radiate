@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use super::chart::{ChartState, LineChartType};
+use super::chart::{ChartState, MetricChartType};
 use crate::chart::RollingLineChart;
 use crate::widgets::num_pairs;
 use radiate_engines::{
@@ -51,7 +51,7 @@ impl<C: Chromosome> EvoState<C> {
     pub fn get_chart_by_key(
         &self,
         key: &str,
-        chart_type: LineChartType,
+        chart_type: MetricChartType,
     ) -> Option<&RollingLineChart> {
         self.charts.get_line_chart(key, chart_type)
     }

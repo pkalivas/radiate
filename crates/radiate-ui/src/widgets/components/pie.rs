@@ -1,5 +1,7 @@
 use crate::{
-    state::AppState, styles::COLOR_WHEEL_400, widgets::AppWidget,
+    state::{AppState, Pane},
+    styles::COLOR_WHEEL_400,
+    widgets::AppWidget,
     widgets::panels::tables::tagged_metrics,
 };
 use radiate_engines::{Chromosome, metric_names, stats::TagType};
@@ -49,7 +51,9 @@ impl<C: Chromosome> AppWidget<C> for SpeciesPieChartComponent {
         PieChart::new(slices)
             .show_legend(false)
             .show_percentages(true)
-            .block(Block::bordered())
+            .block(crate::styles::panel_block(
+                state.nav.is_pane_focused(Pane::Detail),
+            ))
             .legend_layout(tui_piechart::LegendLayout::Horizontal)
             .high_resolution(true)
             .render(area, buf);
@@ -91,7 +95,9 @@ impl<C: Chromosome> AppWidget<C> for TimePieChartComponent {
         PieChart::new(slices)
             .show_legend(false)
             .show_percentages(true)
-            .block(Block::bordered())
+            .block(crate::styles::panel_block(
+                state.nav.is_pane_focused(Pane::Chart),
+            ))
             .legend_layout(tui_piechart::LegendLayout::Horizontal)
             .high_resolution(true)
             .render(area, buf);

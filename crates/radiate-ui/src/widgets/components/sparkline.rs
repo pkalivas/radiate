@@ -1,9 +1,9 @@
-use crate::state::AppState;
+use crate::state::{AppState, Pane};
 use crate::widgets::AppWidget;
 use radiate_engines::Chromosome;
 use ratatui::{
     style::{Color, Style},
-    widgets::{Block, RenderDirection, Sparkline, SparklineBar, Widget},
+    widgets::{RenderDirection, Sparkline, SparklineBar, Widget},
 };
 
 pub struct SpeciesSparklineComponent;
@@ -44,7 +44,9 @@ impl<C: Chromosome> AppWidget<C> for SpeciesSparklineComponent {
             .collect::<Vec<_>>();
 
         let sparkline = Sparkline::default()
-            .block(Block::bordered())
+            .block(crate::styles::panel_block(
+                state.nav.is_pane_focused(Pane::Chart),
+            ))
             .data(bars)
             .direction(RenderDirection::LeftToRight)
             .style(Style::default().fg(Color::LightGreen))

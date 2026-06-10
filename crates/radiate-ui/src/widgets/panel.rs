@@ -35,6 +35,16 @@ impl<W: Widget> Panel<W> {
         self
     }
 
+    /// Highlight the border when this panel's pane is focused.
+    pub fn focused(mut self, focused: bool) -> Self {
+        if focused {
+            self.block = self
+                .block
+                .border_style(ratatui::style::Style::default().fg(crate::styles::BORDER_GREEN));
+        }
+        self
+    }
+
     // pub fn bordered(mut self, block: Block<'static>) -> Self {
     //     self.block = block;
     //     self

@@ -1,4 +1,4 @@
-use super::chart::LineChartType;
+use super::chart::MetricChartType;
 use radiate_engines::Metric;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -39,6 +39,20 @@ impl DashboardTab {
     pub fn supports_metric_modal(self) -> bool {
         !matches!(self, DashboardTab::Species)
     }
+
+    /// The focusable panes this tab lays out, in `Tab`-cycle order. Every tab
+    /// currently has the same shape: a list, a chart, and a detail panel.
+    pub fn panes(self) -> &'static [Pane] {
+        &[Pane::List, Pane::Chart, Pane::Detail]
+    }
+}
+
+/// A focusable region within the active dashboard tab.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum Pane {
+    List,
+    Chart,
+    Detail,
 }
 
 pub struct SearchState {
@@ -49,13 +63,33 @@ pub struct SearchState {
 pub struct NavState {
     pub mode: UiMode,
     pub dashboard_tab: DashboardTab,
-    pub chart_tab: LineChartType,
+    pub focus: Pane,
+    pub chart_tab: MetricChartType,
     pub search: SearchState,
 }
 
 impl NavState {
-    pub fn is_tab_focused(&self, tab: DashboardTab) -> bool {
-        self.mode == UiMode::Dashboard && self.dashboard_tab == tab
+    pub fn is_pane_focused(&self, pane: Pane) -> bool {
+        self.mode == UiMode::Dashboard && self.focus == pane
+    }
+
+    pub fn next_pane(&mut self) {
+        if let UiMode::Dashboard = self.mode {
+            self.focus = cycle(self.dashboard_tab.panes(), self.focus, 1);
+        }
+    }
+
+    pub fn previous_pane(&mut self) {
+        if let UiMode::Dashboard = self.mode {
+            self.focus = cycle(self.dashboard_tab.panes(), self.focus, -1);
+        }
+    }
+
+    fn clamp_focus(&mut self) {
+        let panes = self.dashboard_tab.panes();
+        if !panes.contains(&self.focus) {
+            self.focus = panes[0];
+        }
     }
 
     pub fn is_search_focused(&self) -> bool {
@@ -107,12 +141,14 @@ impl NavState {
     pub fn next_tab(&mut self) {
         if let UiMode::Dashboard = self.mode {
             self.dashboard_tab = self.dashboard_tab.next();
+            self.clamp_focus();
         }
     }
 
     pub fn previous_tab(&mut self) {
         if let UiMode::Dashboard = self.mode {
             self.dashboard_tab = self.dashboard_tab.previous();
+            self.clamp_focus();
         }
     }
 
@@ -149,11 +185,19 @@ impl Default for NavState {
         Self {
             mode: UiMode::Dashboard,
             dashboard_tab: DashboardTab::Stats,
-            chart_tab: LineChartType::Mean,
+            focus: Pane::List,
+            chart_tab: MetricChartType::Mean,
             search: SearchState {
                 query: String::new(),
                 active: false,
             },
         }
     }
+}
+
+/// Step through `panes` from `current` by `dir` (±1), wrapping.
+fn cycle(panes: &[Pane], current: Pane, dir: isize) -> Pane {
+    let n = panes.len() as isize;
+    let i = panes.iter().position(|p| *p == current).unwrap_or(0) as isize;
+    panes[(((i + dir) % n + n) % n) as usize]
 }

@@ -6,9 +6,9 @@ pub mod tables;
 
 use radiate_engines::{Chromosome, Metric};
 
-pub use chart::LineChartType;
+pub use chart::MetricChartType;
 pub use evo::EvoState;
-pub use nav::{DashboardTab, NavState, UiMode};
+pub use nav::{NavState, Pane, UiMode};
 pub use run::RunState;
 pub use tables::{AppTableState, TableStates};
 
@@ -42,14 +42,14 @@ impl<C: Chromosome> AppState<C> {
         self.nav.metric_matches_search(metric)
     }
 
-    pub fn selected_metric_views(&self) -> &'static [LineChartType] {
+    pub fn selected_metric_views(&self) -> &'static [MetricChartType] {
         self.get_selected_metric()
             .and_then(|name| self.evo.metrics.get(name))
-            .map(LineChartType::for_metric)
-            .unwrap_or(LineChartType::SCALAR_VIEWS)
+            .map(MetricChartType::for_metric)
+            .unwrap_or(MetricChartType::SCALAR_VIEWS)
     }
 
-    pub fn current_chart_view(&self) -> LineChartType {
+    pub fn current_chart_view(&self) -> MetricChartType {
         let views = self.selected_metric_views();
         if views.contains(&self.nav.chart_tab) {
             self.nav.chart_tab

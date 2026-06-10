@@ -4,7 +4,7 @@ use crate::{
         AppWidget, EngineStatusPanelWidget, FitnessChartPanelWidget, FnWidget,
         MetricDetailPanelWidget, MetricTableWidget, Panel, SearchBarWidget, TabComponent,
         components::{SpeciesPieChartComponent, SpeciesSparklineComponent, TimePieChartComponent},
-        panels::{MetricBoxWhiskerChartWidget, MetricLineChartWidget, tables::SpeciesTableWidget},
+        panels::{MetricLineChartWidget, tables::SpeciesTableWidget},
     },
 };
 use radiate_engines::Chromosome;
@@ -73,7 +73,6 @@ impl<C: Chromosome> LayoutNode<C> {
                         .select(active_tab_idx)
                         .render(area, buf);
                 }))
-                // .title_top_right(title_fn(state))
                 .render_inside_block(true)
                 .render(areas[0], buf);
 
@@ -144,9 +143,7 @@ impl<C: Chromosome> Default for LayoutNode<C> {
                                         Widget(|a, b, s| {
                                             MetricTableWidget::distribution().render(a, b, s)
                                         }),
-                                        Widget(|a, b, s| {
-                                            MetricBoxWhiskerChartWidget.render(a, b, s)
-                                        }),
+                                        Widget(|a, b, s| MetricLineChartWidget.render(a, b, s)),
                                         Widget(|a, b, s| MetricDetailPanelWidget.render(a, b, s)),
                                     ],
                                 },

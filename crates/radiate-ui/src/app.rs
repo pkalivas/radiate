@@ -1,4 +1,4 @@
-use crate::state::{AppState, RunState, UiMode};
+use crate::state::{AppState, Pane, RunState, UiMode};
 use crate::widgets::{AppWidget, HelpPanelWidget, LayoutNode, MetricModalWidget, ModalWidget};
 use color_eyre::Result;
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
@@ -195,8 +195,17 @@ where
 
             KeyCode::Char('?') | KeyCode::Char('H') => self.state.nav.toggle_help(),
 
-            KeyCode::Down | KeyCode::Char('j') => self.state.move_selection_down(),
-            KeyCode::Up | KeyCode::Char('k') => self.state.move_selection_up(),
+            // j/k act on the focused pane.
+            KeyCode::Down | KeyCode::Char('j') => match self.state.nav.focus {
+                Pane::List => self.state.move_selection_down(),
+                Pane::Chart => self.state.next_chart_view(),
+                Pane::Detail => {}
+            },
+            KeyCode::Up | KeyCode::Char('k') => match self.state.nav.focus {
+                Pane::List => self.state.move_selection_up(),
+                Pane::Chart => self.state.prev_chart_view(),
+                Pane::Detail => {}
+            },
 
             KeyCode::Char(']') => self.state.evo.next_objective_pair_page(),
             KeyCode::Char('[') => self.state.evo.previous_objective_pair_page(),
@@ -205,6 +214,9 @@ where
 
             KeyCode::Right | KeyCode::Char('l') => self.state.nav.next_tab(),
             KeyCode::Left | KeyCode::Char('h') => self.state.nav.previous_tab(),
+
+            KeyCode::Tab => self.state.nav.next_pane(),
+            KeyCode::BackTab => self.state.nav.previous_pane(),
 
             KeyCode::Char('p') => {
                 let paused = self.control.toggle_pause();

@@ -1,4 +1,4 @@
-use crate::state::{AppState, AppTableState, DashboardTab};
+use crate::state::{AppState, AppTableState, Pane};
 use crate::widgets::AppWidget;
 use radiate_engines::stats::TagType;
 use radiate_engines::{Chromosome, MetricSet, Species, metric_names};
@@ -42,14 +42,6 @@ impl MetricTableKind {
             Self::Time => TagType::Time,
             Self::Stats => TagType::Statistic,
             Self::Distribution => TagType::Distribution,
-        }
-    }
-
-    fn tab(&self) -> DashboardTab {
-        match self {
-            Self::Time => DashboardTab::Time,
-            Self::Stats => DashboardTab::Stats,
-            Self::Distribution => DashboardTab::Distribution,
         }
     }
 
@@ -135,7 +127,7 @@ impl<C: Chromosome> AppWidget<C> for MetricTableWidget {
                 .update_rows(&items, |(name, _)| (*name).into()),
         }
 
-        let border_style = crate::styles::panel_block(state.nav.is_tab_focused(self.kind.tab()));
+        let border_style = crate::styles::panel_block(state.nav.is_pane_focused(Pane::List));
         let rows = self.kind.build_rows(items.iter().copied());
 
         let table = Table::default()
@@ -179,8 +171,7 @@ impl<C: Chromosome> AppWidget<C> for SpeciesTableWidget {
 
         let obj_index = state.evo.pareto.objective_index;
         let generation = state.evo.index;
-        let border_style =
-            crate::styles::panel_block(state.nav.is_tab_focused(DashboardTab::Species));
+        let border_style = crate::styles::panel_block(state.nav.is_pane_focused(Pane::List));
         let rows = species_into_rows(obj_index, generation, items);
 
         let table = Table::default()
