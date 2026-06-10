@@ -71,7 +71,7 @@ impl<C: Chromosome> AppWidget<C> for MetricLineChartWidget {
             render_stat_metric_chart(chart_type, current_metric, &chart_metrics, buf, state);
         }
 
-        crate::styles::panel_block(state.nav.is_pane_focused(Pane::Chart))
+        crate::styles::panel_block(state.nav.is_pane_focused(Pane::Chart) && self.name.is_none())
             .title(
                 Line::from(format!(" {} {} ", current_metric_name, chart_type.label())).centered(),
             )
