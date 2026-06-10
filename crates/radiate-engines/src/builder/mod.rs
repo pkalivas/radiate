@@ -442,6 +442,7 @@ where
                     diversity: None,
                     species_threshold: Rate::Fixed(0.5),
                     max_species_age: 25,
+                    target_species_count: None,
                 },
                 evaluation_params: EvaluationParams {
                     evaluator: Arc::new(FitnessEvaluator::default()),

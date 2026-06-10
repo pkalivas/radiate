@@ -180,30 +180,9 @@ impl PyMetricSet {
 }
 
 impl From<MetricSet> for PyMetricSet {
-    fn from(metric_set: MetricSet) -> Self {
+    fn from(mut metric_set: MetricSet) -> Self {
+        metric_set.remove_samples();
         PyMetricSet { inner: metric_set }
-    }
-}
-
-impl<'py> IntoPyObject<'py> for Wrap<&MetricSet> {
-    type Target = PyMetricSet;
-    type Output = Bound<'py, Self::Target>;
-    type Error = PyErr;
-
-    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        let metric_set = self.0.clone();
-        Bound::new(py, PyMetricSet::from(metric_set))
-    }
-}
-
-impl<'py> IntoPyObject<'py> for Wrap<MetricSet> {
-    type Target = PyMetricSet;
-    type Output = Bound<'py, Self::Target>;
-    type Error = PyErr;
-
-    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        let metric_set = self.0;
-        Bound::new(py, PyMetricSet::from(metric_set))
     }
 }
 

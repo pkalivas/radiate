@@ -65,11 +65,6 @@ where
         }
     }
 
-    pub fn pause(self) -> Self {
-        self.control.set_paused(true);
-        self
-    }
-
     pub fn iter(self) -> impl Iterator<Item = Generation<C, T>> {
         let control = self.control.clone();
         EngineIterator::new(self, Some(control))

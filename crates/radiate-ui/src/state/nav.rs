@@ -84,24 +84,24 @@ impl NavState {
     }
 
     pub fn next_pane(&mut self) {
-        if let UiMode::Dashboard = self.mode {
-            if !matches!(
+        if let UiMode::Dashboard = self.mode
+            && !matches!(
                 self.dashboard_tab,
                 DashboardTab::Species | DashboardTab::Time
-            ) {
-                self.focus = cycle(self.dashboard_tab.panes(), self.focus, 1);
-            }
+            )
+        {
+            self.focus = cycle(self.dashboard_tab.panes(), self.focus, 1);
         }
     }
 
     pub fn previous_pane(&mut self) {
-        if let UiMode::Dashboard = self.mode {
-            if !matches!(
+        if let UiMode::Dashboard = self.mode
+            && !matches!(
                 self.dashboard_tab,
                 DashboardTab::Species | DashboardTab::Time
-            ) {
-                self.focus = cycle(self.dashboard_tab.panes(), self.focus, -1);
-            }
+            )
+        {
+            self.focus = cycle(self.dashboard_tab.panes(), self.focus, -1);
         }
     }
 
@@ -210,7 +210,7 @@ impl NavState {
         let q = query.to_lowercase();
         metric.name().to_lowercase().contains(&q)
             || metric
-                .tags_iter()
+                .iter_tags()
                 .any(|tag| tag.as_str().to_lowercase().contains(&q))
     }
 }

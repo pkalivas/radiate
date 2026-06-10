@@ -46,7 +46,7 @@ impl InnovationContext {
         node_type: NodeType,
     ) -> InnovationId {
         let change = StructureChange {
-            source_id: source_id,
+            source_id,
             target_id,
             node_type,
         };

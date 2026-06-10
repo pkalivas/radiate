@@ -95,20 +95,11 @@ impl Metric {
     }
 
     #[inline(always)]
-    pub fn add_tags(&mut self, tags: Tag) {
-        self.tags = self.tags.union(tags);
-    }
-
-    #[inline(always)]
     pub fn add_tag(&mut self, tag: TagType) {
         self.tags.insert(tag);
     }
 
-    pub fn contains_tag(&self, tag: &TagType) -> bool {
-        self.tags.has(*tag)
-    }
-
-    pub fn tags_iter(&self) -> impl Iterator<Item = TagType> {
+    pub fn iter_tags(&self) -> impl Iterator<Item = TagType> {
         self.tags.iter()
     }
 
@@ -250,6 +241,10 @@ impl Metric {
         }
     }
 
+    pub fn clear_samples(&mut self) {
+        self.samples = None;
+    }
+        
     pub fn statistic(&self) -> &Statistic {
         &self.inner
     }

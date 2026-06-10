@@ -158,7 +158,7 @@ fn get_multi_objective_summaries(metrics: &MetricSet) -> Vec<Row<'static>> {
         ]),
         Row::new(vec![
             "Updates".bold(),
-            format!("{}", format_thousands(metric_meta.updates as usize)).into(),
+            format_thousands(metric_meta.updates as usize).to_string().into(),
         ]),
     ];
 
@@ -207,7 +207,7 @@ fn get_single_objective_summaries(metrics: &MetricSet) -> Vec<Row<'static>> {
         ]),
         Row::new(vec![
             "Updates".bold(),
-            format!("{}", format_thousands(metric_meta.updates as usize)).into(),
+            format_thousands(metric_meta.updates as usize).to_string().into(),
         ]),
     ];
 

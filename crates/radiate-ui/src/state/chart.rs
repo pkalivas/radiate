@@ -36,7 +36,7 @@ impl MetricChartType {
     /// the chart panel asks the metric what it can show, mirroring how the
     /// detail panel already branches on tag.
     pub fn for_metric(metric: &Metric) -> &'static [MetricChartType] {
-        if metric.contains_tag(&TagType::Distribution) {
+        if metric.tags().has(TagType::Distribution) {
             Self::DISTRIBUTION_VIEWS
         } else {
             // Statistic and Time both read as value + running mean.
@@ -91,7 +91,7 @@ impl ChartState {
         let stat = metric.statistic();
         let key = metric.name();
 
-        if !metric.contains_tag(&TagType::Distribution) {
+        if !metric.tags().has(TagType::Distribution) {
             let value_chart = self.get_or_create_chart(key, MetricChartType::Last);
             value_chart.push(stat.last_value() as f64);
         }

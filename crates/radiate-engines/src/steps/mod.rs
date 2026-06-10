@@ -40,7 +40,7 @@ where
         parts.insert(0, "step");
         let result = parts.join(".");
 
-        return radiate_utils::intern!(result);
+        radiate_utils::intern!(result)
     }
 
     fn execute(
