@@ -5,7 +5,7 @@ mod status;
 pub mod tables;
 
 pub use help::HelpPanelWidget;
-pub use metric::{MetricChartPanelWidget, MetricDetailPanelWidget};
+pub use metric::{MetricBoxWhiskerChartWidget, MetricDetailPanelWidget, MetricLineChartWidget};
 pub use search::SearchBarWidget;
-pub use status::{EngineStatusPanelWidget, MetricModalWidget, metric_summary_line};
+pub use status::{EngineStatusPanelWidget, MetricModalWidget};
 pub use tables::MetricTableWidget;

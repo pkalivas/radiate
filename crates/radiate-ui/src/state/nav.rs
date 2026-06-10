@@ -105,18 +105,14 @@ impl NavState {
     }
 
     pub fn next_tab(&mut self) {
-        match self.mode {
-            UiMode::Dashboard => self.dashboard_tab = self.dashboard_tab.next(),
-            UiMode::MetricModal => self.chart_tab = self.chart_tab.next(),
-            _ => {}
+        if let UiMode::Dashboard = self.mode {
+            self.dashboard_tab = self.dashboard_tab.next();
         }
     }
 
     pub fn previous_tab(&mut self) {
-        match self.mode {
-            UiMode::Dashboard => self.dashboard_tab = self.dashboard_tab.previous(),
-            UiMode::MetricModal => self.chart_tab = self.chart_tab.previous(),
-            _ => {}
+        if let UiMode::Dashboard = self.mode {
+            self.dashboard_tab = self.dashboard_tab.previous();
         }
     }
 
@@ -126,15 +122,6 @@ impl NavState {
             DashboardTab::Time => 1,
             DashboardTab::Distribution => 2,
             DashboardTab::Species => 3,
-        }
-    }
-
-    pub fn chart_tab_index(&self) -> usize {
-        match self.chart_tab {
-            LineChartType::Value => 0,
-            LineChartType::Mean => 1,
-            LineChartType::Stddev => 2,
-            LineChartType::Variance => 3,
         }
     }
 

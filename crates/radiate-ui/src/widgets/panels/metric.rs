@@ -1,20 +1,23 @@
 use crate::state::AppState;
+use crate::styles;
 use crate::widgets::{AppWidget, FnWidget, LineChartWidget, Panel};
 use radiate_engines::stats::{TagType, fmt_duration};
 use radiate_engines::{Chromosome, Metric};
 use ratatui::prelude::*;
 use ratatui::style::{Color, Stylize};
 use ratatui::text::ToSpan;
-use ratatui::widgets::{Block, Paragraph, Row, Table};
+use ratatui::widgets::canvas::Canvas;
+use ratatui::widgets::{Block, Paragraph, Row, Table, canvas::Line as CanvasLine};
 
-pub struct MetricChartPanelWidget;
+pub struct MetricLineChartWidget;
 
-impl<C: Chromosome> AppWidget<C> for MetricChartPanelWidget {
+impl<C: Chromosome> AppWidget<C> for MetricLineChartWidget {
     fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
         let current_metric_name = state.get_selected_metric().unwrap_or("");
-
-        let chart_type = state.nav.chart_tab;
-        let charts = state.evo.get_chart_by_key(current_metric_name, chart_type);
+        let Some(current_metric) = state.evo.metrics.get(current_metric_name) else {
+            Paragraph::new(Line::from("No metric selected").centered()).render(area, buf);
+            return;
+        };
 
         let inner = if area.width > 2 && area.height > 2 {
             Rect {
@@ -32,58 +35,114 @@ impl<C: Chromosome> AppWidget<C> for MetricChartPanelWidget {
             .constraints([Constraint::Min(8), Constraint::Length(1)].as_ref())
             .split(inner);
 
+        let chart_type = state.current_chart_view();
+        let line = render_metrics_text(current_metric);
+        let charts = state.evo.get_chart_by_key(current_metric_name, chart_type);
+
         LineChartWidget::from(charts)
             .with_show_x_axis(false)
             .with_show_boarders(false)
             .render(chart_metrics[0], buf);
-
-        let line = if let Some(metric) = state.evo.metrics.get(current_metric_name) {
-            render_metrics_text(metric)
-        } else {
-            Line::from("No data".to_span().italic().fg(Color::DarkGray))
-        };
 
         Paragraph::new(line)
             .alignment(Alignment::Center)
             .render(chart_metrics[1], buf);
 
         Block::bordered()
-            .title(Line::from(format!(" {} ", current_metric_name)).centered())
+            .title(
+                Line::from(format!(" {} ", current_metric_name))
+                    .fg(crate::styles::SELECTED_GREEN)
+                    .centered(),
+            )
             .render(area, buf);
     }
 }
 
-fn render_metrics_text<'a>(metrics: &Metric) -> Line<'a> {
-    let spans = if let Some(stat_view) = metrics.stats() {
-        vec![
-            Span::styled("last", Style::default().fg(Color::Gray)),
-            Span::styled(
-                format!(" {:.4}", stat_view.last()),
-                Style::default().fg(Color::LightGreen),
-            ),
-            Span::raw(" "),
-        ]
-        //     Span::styled("avg", Style::default().fg(Color::Gray)),
-        //     Span::styled(format!(" {:.0}", mean_val), Style::default().fg(c)),
-        //     Span::raw(" "),
-        //     Span::styled("med", Style::default().fg(Color::Gray)),
-        //     Span::styled(format!(" {:.0}", median_val), Style::default().fg(c)),
-    } else {
-        vec![Span::styled(
-            "No data",
-            Style::default().fg(Color::DarkGray).italic(),
-        )]
-    };
+pub struct MetricBoxWhiskerChartWidget;
 
-    // let spans = vec![
-    //     Span::styled("avg", Style::default().fg(Color::Gray)),
-    //     Span::styled(format!(" {:.0}", mean_val), Style::default().fg(c)),
-    //     Span::raw(" "),
-    //     Span::styled("med", Style::default().fg(Color::Gray)),
-    //     Span::styled(format!(" {:.0}", median_val), Style::default().fg(c)),
-    //     // … p25, p75, optional jit/loss …
-    // ];
-    Line::from(spans)
+impl<C: Chromosome> AppWidget<C> for MetricBoxWhiskerChartWidget {
+    fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
+        let current_metric_name = state.get_selected_metric().unwrap_or("");
+        let Some(current_metric) = state.evo.metrics.get(current_metric_name) else {
+            Paragraph::new(Line::from("No metric selected").centered()).render(area, buf);
+            return;
+        };
+
+        let inner = if area.width > 2 && area.height > 2 {
+            Rect {
+                x: area.x + 1,
+                y: area.y + 1,
+                width: area.width.saturating_sub(2),
+                height: area.height.saturating_sub(2),
+            }
+        } else {
+            area
+        };
+
+        let chart_metrics = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Min(8), Constraint::Length(1)].as_ref())
+            .split(inner);
+
+        if let Some(view) = current_metric.distributions() {
+            let quantiles = view.quantiles(&[0.25, 0.5, 0.75]).unwrap_or(vec![0.0; 3]);
+            let mean = view.mean();
+            let min = view.min();
+            let max = view.max();
+            let stddev = view.stddev();
+            let count = view.count();
+            let q1 = quantiles[0];
+            let med = quantiles[1];
+            let q3 = quantiles[2];
+
+            let canvas = Canvas::default()
+                .x_bounds([(min - stddev) as f64, (max + stddev) as f64])
+                .y_bounds([-1.0, 1.0])
+                .background_color(styles::ALT_BG_COLOR)
+                .paint(move |ctx| {
+                    if count >= 2 {
+                        // Box (Q1 to Q3)
+                        draw_line(ctx, q1, -0.4, q3, -0.4, Color::White);
+                        draw_line(ctx, q1, 0.4, q3, 0.4, Color::White);
+                        draw_line(ctx, q1, -0.4, q1, 0.4, Color::White);
+                        draw_line(ctx, q3, -0.4, q3, 0.4, Color::White);
+
+                        // Median
+                        draw_line(ctx, med, -0.4, med, 0.4, Color::Yellow);
+
+                        // Mean
+                        draw_line(ctx, mean, -0.4, mean, 0.4, Color::Cyan);
+
+                        // Whiskers
+                        draw_line(ctx, min, 0.0, q1, 0.0, Color::White);
+                        draw_line(ctx, q3, 0.0, max, 0.0, Color::White);
+
+                        // Whisker caps
+                        draw_line(ctx, min, -0.2, min, 0.2, Color::White);
+                        draw_line(ctx, max, -0.2, max, 0.2, Color::White);
+                    } else {
+                        // Single sample: just mark the point
+                        draw_line(ctx, med, -0.4, med, 0.4, Color::Yellow);
+                    }
+                });
+
+            canvas.render(chart_metrics[0], buf);
+
+            Paragraph::new(box_summary_line(q1, med, q3, mean)).render(chart_metrics[1], buf);
+        } else {
+            Paragraph::new(Line::from("No distribution data").centered())
+                .style(Style::default().fg(Color::DarkGray).italic())
+                .render(chart_metrics[0], buf);
+        }
+
+        Block::bordered()
+            .title(
+                Line::from(format!(" {} ", current_metric_name))
+                    .fg(crate::styles::SELECTED_GREEN)
+                    .centered(),
+            )
+            .render(area, buf);
+    }
 }
 
 pub struct MetricDetailPanelWidget;
@@ -146,6 +205,91 @@ impl<C: Chromosome> AppWidget<C> for MetricDetailPanelWidget {
         )
         .render(area, buf);
     }
+}
+
+/// Helper function to draw a line on a canvas
+pub fn draw_line(
+    ctx: &mut ratatui::widgets::canvas::Context,
+    x1: f32,
+    y1: f32,
+    x2: f32,
+    y2: f32,
+    color: Color,
+) {
+    ctx.draw(&CanvasLine {
+        x1: x1 as f64,
+        y1: y1 as f64,
+        x2: x2 as f64,
+        y2: y2 as f64,
+        color,
+    });
+}
+
+fn box_summary_line<'a>(q1: f32, med: f32, q3: f32, mean: f32) -> Line<'a> {
+    let kv = |label: &str, val: f32, color: Color| {
+        [
+            Span::styled(format!("{label} "), Style::default().fg(Color::Gray)),
+            Span::styled(format!("{val:.2}"), Style::default().fg(color)),
+            Span::raw("  "),
+        ]
+    };
+    Line::from(
+        [
+            kv("q1", q1, Color::White),
+            kv("med", med, Color::Yellow), // ← matches the median line
+            kv("μ", mean, Color::Cyan),    // ← matches the mean line
+            kv("q3", q3, Color::White),
+        ]
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>(),
+    )
+    .centered()
+}
+
+fn render_metrics_text<'a>(metrics: &Metric) -> Line<'a> {
+    let spans = if let Some(stat_view) = metrics.stats() {
+        vec![
+            Span::styled("last", Style::default().fg(Color::Gray)),
+            Span::styled(
+                format!(" {:.4}", stat_view.last()),
+                Style::default().fg(Color::Cyan),
+            ),
+            Span::raw(" "),
+            Span::styled("μ", Style::default().fg(Color::Gray)),
+            Span::styled(
+                format!(" {:.4}", stat_view.mean()),
+                Style::default().fg(Color::Cyan),
+            ),
+        ]
+    } else if let Some(dist_view) = metrics.distributions() {
+        vec![
+            Span::styled("N", Style::default().fg(Color::Gray)),
+            Span::styled(
+                format!(" {}", dist_view.count()),
+                Style::default().fg(Color::LightGreen),
+            ),
+            Span::raw(" "),
+            Span::styled("mean", Style::default().fg(Color::Gray)),
+            Span::styled(
+                format!(" {:.4}", dist_view.mean()),
+                Style::default().fg(Color::LightGreen),
+            ),
+            Span::raw(" "),
+            Span::styled("std", Style::default().fg(Color::Gray)),
+            Span::styled(
+                format!(" {:.4}", dist_view.stddev()),
+                Style::default().fg(Color::LightGreen),
+            ),
+        ]
+    } else {
+        vec![Span::styled(
+            "No data",
+            Style::default().fg(Color::DarkGray).italic(),
+        )]
+    };
+
+    Line::from(spans)
 }
 
 fn map_to_stat_metric_rows(metric: &Metric) -> Vec<Row<'_>> {
@@ -262,3 +406,30 @@ fn map_to_distribution_metric_rows(metric: &Metric) -> Vec<Row<'_>> {
 
     vec![]
 }
+
+// /// Bin `samples` into `bins` equal-width buckets over [min,max] → per-bucket counts.
+// /// Degenerate input (empty / all-equal) collapses into one bucket.
+// fn histogram(samples: &[f32], bins: usize) -> Vec<u64> {
+//     let n = bins.max(1);
+//     let mut counts = vec![0u64; n];
+
+//     let (min, max) = samples
+//         .iter()
+//         .copied()
+//         .filter(|v| v.is_finite())
+//         .fold((f32::INFINITY, f32::NEG_INFINITY), |(lo, hi), v| {
+//             (lo.min(v), hi.max(v))
+//         });
+
+//     if !min.is_finite() || max <= min {
+//         counts[0] = samples.iter().filter(|v| v.is_finite()).count() as u64;
+//         return counts;
+//     }
+
+//     let span = max - min;
+//     for &v in samples.iter().filter(|v| v.is_finite()) {
+//         let idx = (((v - min) / span) * n as f32) as usize;
+//         counts[idx.min(n - 1)] += 1; // clamp the max edge into the last bin
+//     }
+//     counts
+// }

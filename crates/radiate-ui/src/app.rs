@@ -142,8 +142,8 @@ where
                 self.state.nav.toggle_metric_modal()
             }
 
-            KeyCode::Right | KeyCode::Char('l') => self.state.nav.next_tab(),
-            KeyCode::Left | KeyCode::Char('h') => self.state.nav.previous_tab(),
+            KeyCode::Right | KeyCode::Char('l') => self.state.next_chart_view(),
+            KeyCode::Left | KeyCode::Char('h') => self.state.prev_chart_view(),
 
             KeyCode::Char('p') => {
                 let paused = self.control.toggle_pause();

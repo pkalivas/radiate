@@ -4,36 +4,48 @@ use radiate_utils::SmallStr;
 use std::collections::HashMap;
 
 const MAX_CHART_POINTS: usize = 1000;
-const CHART_NAMES: &[&str] = &["Value", "Mean", "Stddev", "Variance"];
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub enum LineChartType {
-    Value,
+    Last,
     Mean,
     Stddev,
     Variance,
 }
 
 impl LineChartType {
-    pub fn chart_options() -> &'static [&'static str] {
-        CHART_NAMES
-    }
+    // Scalar/Time metrics: their per-generation value and its running average.
+    // Stddev/Variance over generations are rarely what you want for a scalar, so
+    // they're kept out of the scalar set to reduce noise.
+    pub(crate) const SCALAR_VIEWS: &'static [LineChartType] =
+        &[LineChartType::Last, LineChartType::Mean];
+    // Distribution metrics: the population's center and spread over generations.
+    // `Last` is meaningless (no single value), so it's excluded; the within-gen
+    // Histogram and cross-gen quantile Bands views slot in here next.
+    pub(crate) const DISTRIBUTION_VIEWS: &'static [LineChartType] = &[
+        LineChartType::Mean,
+        LineChartType::Stddev,
+        LineChartType::Variance,
+    ];
 
-    pub fn next(self) -> Self {
-        match self {
-            LineChartType::Value => LineChartType::Mean,
-            LineChartType::Mean => LineChartType::Stddev,
-            LineChartType::Stddev => LineChartType::Variance,
-            LineChartType::Variance => LineChartType::Value,
+    /// The ordered set of chart views a metric supports, driven by its tags —
+    /// the chart panel asks the metric what it can show, mirroring how the
+    /// detail panel already branches on tag.
+    pub fn for_metric(metric: &Metric) -> &'static [LineChartType] {
+        if metric.contains_tag(&TagType::Distribution) {
+            Self::DISTRIBUTION_VIEWS
+        } else {
+            // Statistic and Time both read as value + running mean.
+            Self::SCALAR_VIEWS
         }
     }
 
-    pub fn previous(self) -> Self {
+    pub fn label(self) -> &'static str {
         match self {
-            LineChartType::Value => LineChartType::Variance,
-            LineChartType::Mean => LineChartType::Value,
-            LineChartType::Stddev => LineChartType::Mean,
-            LineChartType::Variance => LineChartType::Stddev,
+            LineChartType::Last => "Last",
+            LineChartType::Mean => "Mean",
+            LineChartType::Stddev => "Stddev",
+            LineChartType::Variance => "Variance",
         }
     }
 }
@@ -61,7 +73,7 @@ impl ChartState {
         chart_type: LineChartType,
     ) -> Option<&RollingLineChart> {
         match chart_type {
-            LineChartType::Value => self.value_charts.get(key),
+            LineChartType::Last => self.value_charts.get(key),
             LineChartType::Mean => self.mean_charts.get(key),
             LineChartType::Stddev => self.stddev_charts.get(key),
             LineChartType::Variance => self.variance_charts.get(key),
@@ -71,8 +83,9 @@ impl ChartState {
     pub fn update_from_metric(&mut self, metric: &Metric) {
         let stat = metric.statistic();
         let key = metric.name();
+
         if !metric.contains_tag(&TagType::Distribution) {
-            let value_chart = self.get_or_create_chart(key, LineChartType::Value);
+            let value_chart = self.get_or_create_chart(key, LineChartType::Last);
             value_chart.push(stat.last_value() as f64);
         }
 
@@ -92,7 +105,7 @@ impl ChartState {
         chart_type: LineChartType,
     ) -> &mut RollingLineChart {
         match chart_type {
-            LineChartType::Value => self.value_charts.entry(key.clone()).or_insert_with(|| {
+            LineChartType::Last => self.value_charts.entry(key.clone()).or_insert_with(|| {
                 RollingLineChart::with_capacity(MAX_CHART_POINTS)
                     .with_title(key.as_str())
                     .with_color(ratatui::style::Color::LightCyan)

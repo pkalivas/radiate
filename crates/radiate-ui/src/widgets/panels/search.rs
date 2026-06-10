@@ -1,4 +1,4 @@
-use crate::state::AppState;
+use crate::state::{AppState, UiMode};
 use radiate_engines::Chromosome;
 use ratatui::{
     buffer::Buffer,
@@ -39,7 +39,7 @@ impl<'a, C: Chromosome> Widget for SearchBarWidget<'a, C> {
             .block(
                 border_style
                     .title(title)
-                    .title_bottom(help_text_minimal())
+                    .title_bottom(help_text(self.state))
                     .title_bottom(Line::from(renders).right_aligned().fg(Color::LightBlue))
                     .style(Style::default())
                     .borders(Borders::ALL),
@@ -49,14 +49,49 @@ impl<'a, C: Chromosome> Widget for SearchBarWidget<'a, C> {
     }
 }
 
-pub fn help_text_minimal<'a>() -> Line<'a> {
-    Line::from(vec![
-        " [j/k]".fg(Color::LightGreen).bold(),
-        Span::from(" navigate, "),
-        "[◄ ►/h/l]".fg(Color::LightGreen).bold(),
-        Span::from(" tabs, "),
-        "[?/H]".fg(Color::LightGreen).bold(),
-        Span::from(" help "),
-    ])
-    .centered()
+/// Context-sensitive footer hint: shows only the keys live in the current
+/// [`UiMode`], so the control vocabulary the user has to scan stays small no
+/// matter how much data the dashboard grows to hold. The full key map lives
+/// behind the `?` help overlay.
+pub fn help_text<C: Chromosome>(state: &AppState<C>) -> Line<'static> {
+    let nav = &state.nav;
+    let pause = if state.run.paused { "resume" } else { "pause" };
+
+    let mut chips = match nav.mode {
+        UiMode::Dashboard => {
+            let mut v = vec![kv("j/k", "navigate"), kv("h/l", "tabs")];
+
+            if nav.dashboard_tab.supports_metric_modal() {
+                v.push(kv("↵", "expand"));
+            }
+
+            v.push(kv("/", "find"));
+            v.push(kv("p", pause));
+            v.push(kv("?", "help"));
+            v.push(kv("q", "quit"));
+            v
+        }
+        UiMode::MetricModal => vec![
+            kv("h/l", "chart"),
+            kv("↵/esc", "close"),
+            kv("p", pause),
+            kv("?", "help"),
+        ],
+        UiMode::Search => vec![kv("type", "filter"), kv("↵", "apply"), kv("esc", "cancel")],
+        UiMode::Help => vec![kv("?/esc", "close")],
+    }
+    .into_iter()
+    .flatten()
+    .collect::<Vec<_>>();
+
+    chips.insert(0, Span::raw("  "));
+    Line::from(chips).centered()
+}
+
+/// One `[key] description` footer chip.
+fn kv(key: &str, desc: &str) -> [Span<'static>; 2] {
+    [
+        Span::from(format!("[{key}]")).fg(Color::LightGreen).bold(),
+        Span::from(format!(" {desc}  ")).fg(Color::Gray),
+    ]
 }
