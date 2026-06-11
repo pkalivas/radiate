@@ -14,7 +14,7 @@ const POLYGON_SIZE: usize = 5;
 fn main() {
     random_provider::seed(50);
 
-    let image_bytes = include_bytes!("../monalisa.png");
+    let image_bytes = include_bytes!("../../../data/monalisa.png");
 
     let problem = ImageProblem::new(
         NUM_GENES,

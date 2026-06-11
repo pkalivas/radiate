@@ -46,7 +46,7 @@ impl PyGraph {
         let chromosome = GraphChromosome::<Op<f32>>::from(chromosome.clone());
 
         Ok(PyGraph {
-            inner: Graph::from(chromosome.iter().cloned().collect()),
+            inner: chromosome.iter().cloned().collect(),
             eval_cache: None,
         })
     }

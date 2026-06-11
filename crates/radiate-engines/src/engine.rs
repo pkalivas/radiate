@@ -127,11 +127,6 @@ where
         let control = self.context.control.clone();
         EngineRuntime::new(self, control)
     }
-
-    pub fn into_iter(self) -> impl Iterator<Item = Generation<C, T>> {
-        let control = self.context.control.clone();
-        EngineRuntime::new(self, control)
-    }
 }
 
 /// Implementation of the [Engine] trait for [GeneticEngine].

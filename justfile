@@ -33,12 +33,8 @@ sync py=py-version: python-info
     @uv python install {{py}}
     @uv python pin {{py}}
     @uv venv .venv --clear
-    @req=py-radiate/requirements.txt; \
-    if echo "{{py}}" | grep -qiE 'freethreaded|[0-9]t$'; then \
-        req=py-radiate/requirements-freethreaded.txt; \
-        echo "free-threaded interpreter ({{py}}) -> $req (skipping GIL-only deps)"; \
-    fi; \
-    uv pip install --upgrade --compile-bytecode -r "$req"
+    @uv pip install --upgrade --compile-bytecode \
+        -r py-radiate/requirements.txt
 
 coverage: _require-uv
     @uv run -m pytest -n auto \

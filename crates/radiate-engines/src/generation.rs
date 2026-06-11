@@ -7,7 +7,7 @@ use radiate_core::{Ecosystem, Front, MetricSet, Objective, Phenotype, Population
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 /// A [Generation] represents a single generation in the evolutionary process.
 /// It contains the ecosystem, the best solution, index, metrics, score, objective,
@@ -133,8 +133,7 @@ where
     T: Clone,
 {
     fn from(context: &EvolutionContext<C, T>) -> Self {
-        let time = Instant::now();
-        let mut result = Generation {
+        Generation {
             ecosystem: Arc::new(context.ecosystem.clone()),
             value: context.best.clone(),
             index: context.index,
@@ -146,15 +145,7 @@ where
                 _ => None,
             },
             exprs: context.exprs.clone(),
-        };
-
-        // Update time metric
-        let elapsed = time.elapsed();
-        Arc::get_mut(&mut result.metrics)
-            .unwrap()
-            .upsert("TEST", elapsed);
-
-        result
+        }
     }
 }
 

@@ -94,7 +94,7 @@ impl<C: Chromosome> AppWidget<C> for MetricLineChartWidget {
             })
             .title_top(if self.show_bottom_options {
                 Line::from(Span::styled(
-                    format!(" [Tab] "),
+                    " [Tab] ".to_string(),
                     Style::default().fg(Color::Green).bold(),
                 ))
                 .right_aligned()

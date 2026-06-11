@@ -1,13 +1,12 @@
+#[cfg(feature = "serde")]
+use crate::FileWriter;
+use crate::{context::RuntimeContext, runtime::iter::EngineGuard};
 use radiate_core::{Engine, Objective};
 #[cfg(feature = "serde")]
 use serde::Serialize;
 #[cfg(feature = "serde")]
 use std::path::PathBuf;
 use tracing::info;
-
-#[cfg(feature = "serde")]
-use crate::FileWriter;
-use crate::{context::RuntimeContext, runtime::runtime::EngineGuard};
 
 pub trait RuntimeAction<E: Engine> {
     fn execute<'a>(&mut self, guard: &EngineGuard<'a, E>);
@@ -75,7 +74,7 @@ where
 {
     fn execute<'a>(&mut self, guard: &EngineGuard<'a, E>) {
         let snapshot = guard.view();
-        if snapshot.index() % self.interval == 0 {
+        if snapshot.index().is_multiple_of(self.interval) {
             let file_path = self.path.join(format!(
                 "chckpnt_{}.{}",
                 snapshot.index(),

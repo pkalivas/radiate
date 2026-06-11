@@ -25,16 +25,6 @@ for _ in range(-10, 10):
     answers.append([compute(input)])
 
 
-@rd.novelty(
-    distance=rd.Dist.euclidean(),
-    k=15,
-    threshold=0.1,
-)
-def behavior(genome: rd.Graph) -> list[float]:
-    # For simplicity, we'll just use the number of nodes and edges as the behavior descriptor
-    return genome.eval(inputs)[0]
-
-
 engine = (
     rd.Engine.graph(
         shape=(1, 1),
@@ -43,8 +33,7 @@ engine = (
         output=rd.Op.linear(),
     )
     .select(rd.Select.boltzmann(temp=4.0))
-    .fitness(behavior)
-    # .regression(inputs, answers, loss=rd.MSE)
+    .regression(inputs, answers, loss=rd.MSE)
     .diversity(
         rd.Dist.neat(excess=1.0, disjoint=1.0, weight_diff=3.0),
         species_threshold=0.15,
@@ -66,12 +55,3 @@ accuracy = rd.accuracy(result.value(), inputs, answers, loss=rd.MSE)
 print(result)
 print(result.metrics().dashboard())
 print(accuracy)
-
-for member in result.population():
-    chromosome = member.genotype()[0]
-    graph = rd.Graph.from_chromosome(chromosome)
-    eval_results = graph.eval(inputs)
-    accuracy = rd.accuracy(graph, inputs, answers, loss=rd.MSE)
-    print(
-        f"Member {member.id()} - Accuracy: {accuracy.accuracy():.4f} size: {len(graph)}"
-    )

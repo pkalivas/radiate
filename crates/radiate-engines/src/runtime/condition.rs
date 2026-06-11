@@ -1,4 +1,4 @@
-use crate::{context::RuntimeContext, runtime::runtime::EngineGuard};
+use crate::{context::RuntimeContext, runtime::iter::EngineGuard};
 use radiate_core::{AnyValue, Engine, Evaluate, Expr, Metric, Objective, Optimize, Score};
 use std::{collections::VecDeque, sync::Arc, time::Duration};
 
@@ -146,7 +146,7 @@ where
         }
 
         if self.buffer.len() < self.window {
-            return true; // Not enough data to determine convergence yet
+            return true;
         }
 
         let first = &self.buffer[0];

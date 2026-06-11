@@ -43,16 +43,24 @@ use radiate_error::Result;
 ///
 /// impl Engine for MyEngine {
 ///     type Epoch = MyEpoch;
-///     
-///     fn next(&mut self) -> Result<Self::Epoch, RadiateError> {
+///     type Context = ();
+///
+///     fn context(&self) -> &Self::Context {
+///        &()
+///     }
+///
+///     fn epoch(&self) -> Self::Epoch {
+///        MyEpoch {
+///           generation: self.generation,
+///           population_size: self.population.len(),
+///         }
+///     }
+///
+///     fn step(&mut self) -> Result<(), RadiateError> {
 ///         // Perform one generation of evolution
-///         // ... evolve population ...
+///         // ... evolve population ...  
 ///         self.generation += 1;
-///         
-///         Ok(MyEpoch {
-///             generation: self.generation,
-///             population_size: self.population.len()
-///         })
+///         Ok(())
 ///     }
 /// }
 ///
@@ -196,8 +204,6 @@ where
         F: Fn(&E::Epoch) -> bool,
     {
         loop {
-            self.step().expect("Engine step failed");
-
             match self.next() {
                 Ok(epoch) => {
                     if limit(&epoch) {
@@ -237,7 +243,7 @@ mod tests {
         fn epoch(&self) -> Self::Epoch {
             MockEpoch {
                 generation: self.generation,
-                fitness: 1.0 / (self.generation as f32 + 1.0),
+                fitness: 1.0 / (self.generation as f32),
             }
         }
 
@@ -245,14 +251,6 @@ mod tests {
             self.generation += 1;
             Ok(())
         }
-
-        // fn next(&mut self) -> Result<Self::Epoch> {
-        //     self.generation += 1;
-        //     Ok(MockEpoch {
-        //         generation: self.generation,
-        //         fitness: 1.0 / (self.generation as f32),
-        //     })
-        // }
     }
 
     #[test]

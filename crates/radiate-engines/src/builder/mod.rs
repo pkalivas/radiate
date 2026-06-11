@@ -21,7 +21,7 @@ use crate::pipeline::Pipeline;
 use crate::steps::{
     AuditStep, EngineStep, FilterStep, FrontStep, RecombineStep, SelectConfig, SpeciateStep,
 };
-use crate::{Chromosome, EvaluateStep, GeneticEngine, Limit};
+use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use crate::{
     Crossover, EncodeReplace, EventBus, EventHandler, Front, Mutate, ReplacementStrategy,
     RouletteSelector, TournamentSelector, context::EvolutionContext,
@@ -57,7 +57,6 @@ where
     pub handlers: Vec<Arc<Mutex<dyn EventHandler<T>>>>,
     pub generation: Option<Generation<C, T>>,
     pub exprs: Option<Arc<Mutex<Vec<MetricQuery>>>>,
-    pub limits: Option<Vec<Limit>>,
 }
 
 /// Parameters for the genetic engine.
@@ -121,14 +120,6 @@ where
     /// when resuming a previously paused or stopped engine.
     pub fn generation(mut self, generation: Generation<C, T>) -> Self {
         self.params.generation = Some(generation);
-        self
-    }
-
-    pub fn limit(mut self, limit: impl Into<Limit>) -> Self {
-        self.params
-            .limits
-            .get_or_insert_with(Vec::new)
-            .push(limit.into());
         self
     }
 
@@ -483,7 +474,6 @@ where
                 handlers: Vec::new(),
                 exprs: None,
                 generation: None,
-                limits: None,
             },
             errors: Vec::new(),
         }

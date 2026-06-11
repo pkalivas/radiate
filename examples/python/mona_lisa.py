@@ -7,11 +7,7 @@ Each triangle is one chromosome of 10 genes -- 3 vertices (x, y) plus RGBA --
 all normalized to [0, 1]. Fitness is the mean-squared pixel error between the
 rendered candidate and the (downscaled) target; we minimize it.
 
-Drive it with `for epoch in engine:` so we can snapshot the current best every
-few generations and stitch them into an animated gif.
-
 Requires: pillow, numpy  (`uv pip install pillow numpy`)
-Run:      python examples/python/mona_lisa.py path/to/target.png
 """
 
 import sys
@@ -30,14 +26,14 @@ RENDER_MAX = 128  # longest side used for fitness (small = fast)
 SAVE_EVERY = 25  # snapshot cadence (generations)
 GENERATIONS = 1000  # Rust: .iter().take(1000)
 
-ROOT = Path(__file__).parent
-OUT = ROOT / "results" / "mona_lisa"
+ROOT = Path(__file__).parent.parent
+OUT = ROOT / "data" / "results" / "mona_lisa"
 OUT.mkdir(parents=True, exist_ok=True)
 
 rd.random.seed(50)
 
 # --- target -----------------------------------------------------------------
-target_path = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "monalisa.png"
+target_path = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "data" / "monalisa.png"
 if not target_path.exists():
     sys.exit(
         f"Target image not found: {target_path}\nPass one: python {Path(__file__).name} target.png"
@@ -107,8 +103,6 @@ engine = (
     )
     .fitness(fit)
     .minimizing()
-    .parallel()
-    .subscribe(ImageWriter(SAVE_EVERY, OUT))
     .select(survivor=rd.Select.roulette(), offspring=rd.Select.tournament(3))
     .alters(
         rd.Cross.mean(0.3),
@@ -117,6 +111,9 @@ engine = (
     )
     .limit(rd.Limit.generations(GENERATIONS))
 )
+
+if not rd._GIL_ENABLED:
+    engine = engine.parallel()
 
 result = engine.run(log=True)
 
