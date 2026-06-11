@@ -140,7 +140,6 @@ impl_into_py_chromosome_inner!(PermutationChromosome<usize>, Permutation);
 #[pyclass(from_py_object)]
 #[derive(Clone, Debug, PartialEq)]
 pub struct PyChromosome {
-    // pub(crate) genes: Vec<PyGene>,
     pub(crate) inner: ChromosomeInner,
 }
 

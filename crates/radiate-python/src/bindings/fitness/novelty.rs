@@ -48,6 +48,9 @@ impl PyNoveltySearch {
 
         if let Ok(vals) = described.extract::<Vec<f32>>() {
             Ok(self.inner.evaluate(vals))
+        } else if let Ok(vals) = described.extract::<Vec<f64>>() {
+            let vals: Vec<f32> = vals.into_iter().map(|v| v as f32).collect();
+            Ok(self.inner.evaluate(vals))
         } else if let Ok(vals) = described.extract::<Vec<i32>>() {
             let vals: Vec<f32> = vals.into_iter().map(|v| v as f32).collect();
             Ok(self.inner.evaluate(vals))
