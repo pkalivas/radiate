@@ -1,15 +1,16 @@
 use crate::context::RuntimeContext;
+use crate::generation::GenerationView;
 use crate::runtime::RuntimeAction;
 use crate::runtime::actions::LoggingAction;
 use crate::runtime::condition::{
     ConvergenceLimit, DurationLimit, ExprLimit, GenerationLimit, MetricLimit, RuntimeLimit,
     ScoreLimit,
 };
-use crate::{Engine, EngineControl, Limit, init_logging};
+use crate::{Engine, EngineControl, EvolutionContext, Generation, Limit, init_logging};
 #[cfg(feature = "serde")]
 use crate::{FileWriter, JsonWriter};
 use radiate_core::error::Result;
-use radiate_core::{Expr, Metric, Score, radiate_err};
+use radiate_core::{Chromosome, Expr, Metric, Score, radiate_err};
 #[cfg(feature = "serde")]
 use serde::Serialize;
 #[cfg(feature = "serde")]
@@ -60,6 +61,51 @@ where
             limits: None,
             done: false,
         }
+    }
+
+    #[inline]
+    pub fn run(mut self) -> Result<E::Epoch> {
+        loop {
+            if self.done {
+                return Ok(self.engine.epoch());
+            }
+
+            self.step()?;
+        }
+    }
+
+    #[inline]
+    fn step(&mut self) -> Result<()> {
+        if self.done {
+            return Err(radiate_err!("Engine has already completed"));
+        }
+
+        if let Some(control) = &self.control
+            && control.is_stopped()
+        {
+            self.done = true;
+            return Ok(());
+        }
+
+        self.engine.step()?;
+        let guard = EngineGuard::new(&self.engine);
+
+        if let Some(actions) = &mut self.actions {
+            for action in actions.iter_mut() {
+                action.execute(&guard);
+            }
+        }
+
+        if let Some(limits) = &mut self.limits {
+            for limit in limits.iter_mut() {
+                if !limit.check(&guard) {
+                    self.done = true;
+                    return Ok(());
+                }
+            }
+        }
+
+        Ok(())
     }
 
     pub fn until_score(mut self, score: impl Into<Score>) -> EngineRuntime<E> {
@@ -144,51 +190,6 @@ where
 
     pub fn chain_if(self, condition: bool, action_fn: impl FnOnce(Self) -> Self) -> Self {
         if condition { action_fn(self) } else { self }
-    }
-
-    #[inline]
-    pub fn run(mut self) -> Result<E::Epoch> {
-        loop {
-            if self.done {
-                return Ok(self.engine.epoch());
-            }
-
-            self.step()?;
-        }
-    }
-
-    #[inline]
-    fn step(&mut self) -> Result<()> {
-        if self.done {
-            return Err(radiate_err!("Engine has already completed"));
-        }
-
-        if let Some(control) = &self.control
-            && control.is_stopped()
-        {
-            self.done = true;
-            return Ok(());
-        }
-
-        self.engine.step()?;
-        let guard = EngineGuard::new(&self.engine);
-
-        if let Some(actions) = &mut self.actions {
-            for action in actions.iter_mut() {
-                action.execute(&guard);
-            }
-        }
-
-        if let Some(limits) = &mut self.limits {
-            for limit in limits.iter_mut() {
-                if !limit.check(&guard) {
-                    self.done = true;
-                    return Ok(());
-                }
-            }
-        }
-
-        Ok(())
     }
 
     fn add_limit<L>(&mut self, limit: L)
@@ -276,11 +277,62 @@ where
     }
 }
 
+impl<C, T, E> EngineRuntime<E>
+where
+    E: Engine<Epoch = Generation<C, T>, Context = EvolutionContext<C, T>> + 'static,
+    E::Context: RuntimeContext,
+    C: Chromosome + Clone + 'static,
+    T: Clone + Send + Sync + 'static,
+{
+    pub fn until<F>(mut self, limit: F) -> EngineRuntime<E>
+    where
+        E: 'static,
+        F: Fn(GenerationView<C, T>) -> bool + 'static,
+    {
+        pub(crate) struct FnLimit<Ch, V, F>
+        where
+            F: Fn(GenerationView<Ch, V>) -> bool,
+        {
+            condition: F,
+            _chrome: std::marker::PhantomData<Ch>,
+            _value: std::marker::PhantomData<V>,
+        }
+
+        impl<Ch, V, F> FnLimit<Ch, V, F>
+        where
+            F: Fn(GenerationView<Ch, V>) -> bool,
+        {
+            pub fn new(condition: F) -> Self {
+                FnLimit {
+                    condition,
+                    _chrome: std::marker::PhantomData,
+                    _value: std::marker::PhantomData,
+                }
+            }
+        }
+
+        impl<Ch, V, F, E> RuntimeLimit<E> for FnLimit<Ch, V, F>
+        where
+            E: Engine<Epoch = Generation<Ch, V>, Context = EvolutionContext<Ch, V>>,
+            Ch: Chromosome,
+            F: Fn(GenerationView<Ch, V>) -> bool,
+        {
+            fn check<'a>(&mut self, snapshot: &EngineGuard<'a, E>) -> bool {
+                let view = GenerationView::new(snapshot.view());
+                !(self.condition)(view)
+            }
+        }
+
+        let limit = FnLimit::new(limit);
+        self.add_limit(limit);
+        self
+    }
+}
+
 impl<E> Iterator for EngineRuntime<E>
 where
-    E: Engine,
+    E: Engine + 'static,
     E::Context: RuntimeContext,
-    E::Epoch: for<'a> From<&'a E::Context>,
 {
     type Item = E::Epoch;
 

@@ -9,6 +9,40 @@ where
     fn check<'a>(&mut self, snapshot: &EngineGuard<'a, E>) -> bool;
 }
 
+// pub(crate) struct FnLimit<E, T, F>
+// where
+//     T: 'static,
+//     F: Fn(T) -> bool,
+// {
+//     condition: F,
+//     _e: std::marker::PhantomData<E>,
+//     _marker: std::marker::PhantomData<T>,
+// }
+
+// impl<E, T, F> FnLimit<E, T, F>
+// where
+//     T: 'static,
+//     F: Fn(T) -> bool,
+// {
+//     pub fn new(condition: F) -> Self {
+//         FnLimit {
+//             condition,
+//             _e: std::marker::PhantomData,
+//             _marker: std::marker::PhantomData,
+//         }
+//     }
+// }
+
+// impl<E, T, F> RuntimeLimit<E> for FnLimit<E, T, F>
+// where
+//     E: Engine,
+//     F: Fn(T) -> bool,
+// {
+//     fn check<'a>(&mut self, snapshot: &EngineGuard<'a, E>) -> bool {
+//         (self.condition)(snapshot.view())
+//     }
+// }
+
 pub(crate) struct GenerationLimit {
     limit: usize,
 }
@@ -92,10 +126,6 @@ where
                 all_pass
             }
         };
-
-        // if !passed {
-        //     self.done = true;
-        // }
 
         passed
     }

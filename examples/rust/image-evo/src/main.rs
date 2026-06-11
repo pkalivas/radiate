@@ -43,7 +43,7 @@ fn main() {
         .value()
         .save(
             std::env::current_dir()
-                .map(|dir| dir.join("output.png"))
+                .map(|dir| dir.join("examples/rust/image-evo/output.png"))
                 .unwrap(),
         )
         .unwrap();

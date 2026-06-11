@@ -6,7 +6,7 @@ use radiate_core::{Ecosystem, Front, MetricSet, Objective, Phenotype, Population
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 use std::time::Duration;
 
 /// A [Generation] represents a single generation in the evolutionary process.
@@ -229,5 +229,68 @@ where
             .last()
             .and_then(|generation| generation.front().cloned())
             .unwrap_or_default()
+    }
+}
+
+pub struct GenerationView<'a, C, T>
+where
+    C: Chromosome,
+{
+    generation: &'a EvolutionContext<C, T>,
+}
+
+impl<'a, C, T> GenerationView<'a, C, T>
+where
+    C: Chromosome,
+{
+    pub fn new(generation: &'a EvolutionContext<C, T>) -> Self {
+        Self { generation }
+    }
+
+    pub fn score(&self) -> &Score {
+        self.generation.score.as_ref().unwrap()
+    }
+
+    pub fn front(&self) -> Arc<RwLock<Front<Phenotype<C>>>> {
+        Arc::clone(&self.generation.front)
+    }
+
+    pub fn value(&self) -> &T {
+        &self.generation.best
+    }
+
+    pub fn index(&self) -> usize {
+        self.generation.index
+    }
+
+    pub fn metrics(&self) -> &MetricSet {
+        &self.generation.metrics
+    }
+
+    pub fn objective(&self) -> &Objective {
+        &self.generation.objective
+    }
+
+    pub fn ecosystem(&self) -> &Ecosystem<C> {
+        &self.generation.ecosystem
+    }
+
+    pub fn population(&self) -> &Population<C> {
+        self.ecosystem().population()
+    }
+
+    pub fn species(&self) -> Option<&[Species<C>]> {
+        self.ecosystem().species().map(|s| s.as_slice())
+    }
+
+    pub fn time(&self) -> Duration {
+        self.metrics()
+            .time()
+            .and_then(|m| m.times().map(|t| t.sum()))
+            .unwrap_or_default()
+    }
+
+    pub fn seconds(&self) -> f64 {
+        self.time().as_secs_f64()
     }
 }
