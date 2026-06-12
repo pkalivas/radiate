@@ -4,8 +4,8 @@ use crate::{
 };
 use pyo3::{PyResult, pyclass, pymethods};
 use radiate::{
-    Chromosome, Engine, EngineRuntime, Generation, GeneticEngine, JsonWriter, Limit,
-    context::RuntimeContext,
+    Chromosome, Engine, EngineRuntime, EvolutionContext, Generation, GeneticEngine, JsonWriter,
+    Limit,
 };
 use radiate_error::{radiate_py_bail, radiate_py_err};
 use serde::Serialize;
@@ -166,8 +166,7 @@ fn iter_engine<E, C, T>(
     options: Vec<PyEngineRunOption>,
 ) -> PyResult<Generation<C, T>>
 where
-    E: Engine<Epoch = Generation<C, T>> + 'static,
-    E::Context: RuntimeContext,
+    E: Engine<Epoch = Generation<C, T>, Ctx = EvolutionContext<C, T>> + 'static,
     E::Epoch: Serialize,
     C: Chromosome + Clone + Serialize + 'static,
     T: Clone + Send + Sync + Serialize + 'static,

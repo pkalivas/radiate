@@ -87,7 +87,7 @@ pub trait Engine {
     /// - Convergence metrics
     /// - Any other state information needed for monitoring or decision-making
     type Epoch;
-    type Context;
+    type Ctx;
 
     /// Advances the engine to the next epoch or generation.
     ///
@@ -114,15 +114,14 @@ pub trait Engine {
     ///
     /// This method is called repeatedly during execution, so it should be
     /// optimized for performance.
-    fn context(&self) -> &Self::Context;
+    fn context(&self) -> &Self::Ctx;
 
     fn epoch(&self) -> Self::Epoch;
 
     fn step(&mut self) -> Result<()>;
 
     fn next(&mut self) -> Result<Self::Epoch> {
-        self.step()?;
-        Ok(self.epoch())
+        self.step().map(|_| self.epoch())
     }
 }
 
@@ -234,9 +233,9 @@ mod tests {
 
     impl Engine for MockEngine {
         type Epoch = MockEpoch;
-        type Context = ();
+        type Ctx = ();
 
-        fn context(&self) -> &Self::Context {
+        fn context(&self) -> &Self::Ctx {
             &()
         }
 

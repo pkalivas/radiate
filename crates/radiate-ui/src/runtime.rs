@@ -1,6 +1,5 @@
 use crate::app::{App, GenerationEvent, InputEvent};
 use color_eyre::{Result, eyre::Context};
-use radiate_engines::context::{ObjectiveContext, RuntimeContext};
 use radiate_engines::{
     Chromosome, Engine, Generation, GeneticEngine, error::RadiateResult, sync::ArcExt,
 };
@@ -76,10 +75,10 @@ where
     C: Chromosome + Clone,
     T: Clone + Send + Sync + 'static,
 {
+    type Ctx = EvolutionContext<C, T>;
     type Epoch = Generation<C, T>;
-    type Context = EvolutionContext<C, T>;
 
-    fn context(&self) -> &Self::Context {
+    fn context(&self) -> &Self::Ctx {
         self.inner.context()
     }
 

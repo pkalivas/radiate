@@ -1,31 +1,11 @@
 use crate::builder::config::EngineConfig;
 use crate::{Chromosome, EngineControl};
+use radiate_core::MetricQuery;
 use radiate_core::error::RadiateResult;
-use radiate_core::stats::TagType;
 use radiate_core::{
-    Ecosystem, Front, MetricSet, MetricUpdate, Objective, Phenotype, Problem, RadiateError, Score,
-    metric, metric_names,
+    Ecosystem, Front, MetricSet, Objective, Phenotype, Problem, Score, metric, metric_names,
 };
-use radiate_core::{Evaluate, MetricQuery};
 use std::sync::{Arc, Mutex, RwLock};
-use std::time::Duration;
-
-pub trait RuntimeContext {
-    fn index(&self) -> usize;
-    fn score(&self) -> Option<&Score>;
-    fn metrics(&self) -> &MetricSet;
-    fn objective(&self) -> &Objective;
-    fn time(&self) -> Duration {
-        self.metrics()
-            .time()
-            .and_then(|m| m.times().map(|t| t.sum()))
-            .unwrap_or_default()
-    }
-}
-
-pub trait ObjectiveContext<C: Chromosome>: RuntimeContext {
-    fn front(&self) -> Arc<RwLock<Front<Phenotype<C>>>>;
-}
 
 pub struct EvolutionContext<C: Chromosome, T> {
     pub(crate) ecosystem: Ecosystem<C>,
@@ -41,66 +21,24 @@ pub struct EvolutionContext<C: Chromosome, T> {
 }
 
 impl<C: Chromosome, T> EvolutionContext<C, T> {
-    pub fn try_advance_one(&mut self) -> RadiateResult<bool> {
-        self.index += 1;
+    pub fn index(&self) -> usize {
+        self.index
+    }
 
-        self.metrics
-            .replace(metric!(metric_names::INDEX, self.index));
+    pub fn metrics(&self) -> &MetricSet {
+        &self.metrics
+    }
 
-        let mut best_improved = false;
+    pub fn score(&self) -> Option<&Score> {
+        self.score.as_ref()
+    }
 
-        let best = self.ecosystem.get_phenotype(0);
-        if let Some(best) = best {
-            if let (Some(score), Some(current)) = (best.score(), &self.score) {
-                if !self.objective.validate(score) {
-                    return Err(RadiateError::Fitness(format!(
-                        "Score {:?} has invalid dimensions for the objective {:?}.",
-                        score, self.objective
-                    )));
-                }
+    pub fn ecosystem(&self) -> &Ecosystem<C> {
+        &self.ecosystem
+    }
 
-                if self.objective.is_better(score, current) {
-                    self.score = Some(score.clone());
-                    self.best = self.problem.decode(best.genotype());
-
-                    best_improved = true;
-                }
-            } else {
-                self.score = best.score().cloned();
-                self.best = self.problem.decode(best.genotype());
-
-                best_improved = true;
-            }
-        }
-
-        if best_improved {
-            self.metrics.upsert(metric_names::BEST_SCORE_IMPROVEMENT, 1);
-        }
-
-        if let Some(score) = &self.score {
-            if score.len() == 1 {
-                self.metrics.upsert(metric_names::BEST_SCORES, score[0]);
-            } else {
-                for (i, score) in score.as_slice().iter().enumerate() {
-                    let name = format!("{}.{}", metric_names::BEST_SCORES, i);
-                    self.metrics.upsert(&name, *score);
-                }
-            }
-        }
-
-        if let Some(exprs) = &self.exprs {
-            let mut exprs = exprs.lock().unwrap();
-            for expr in exprs.iter_mut() {
-                let (name, exp) = expr.pair();
-                let update = MetricUpdate::try_from(exp.eval(&self.metrics)?)?;
-
-                self.metrics.upsert_tagged(name, update, TagType::Expr);
-            }
-        }
-
-        self.metrics.bump(self.index as u64);
-
-        Ok(best_improved)
+    pub fn front(&self) -> Arc<RwLock<Front<Phenotype<C>>>> {
+        self.front.clone()
     }
 
     pub fn get_or_create_control(&mut self) -> EngineControl {
@@ -113,38 +51,26 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
         self.control.as_ref().unwrap().clone()
     }
 
-    pub fn ecosystem(&self) -> &Ecosystem<C> {
-        &self.ecosystem
-    }
-}
+    pub(crate) fn try_advance_one(&mut self) -> RadiateResult<bool> {
+        self.index += 1;
 
-impl<C, T> RuntimeContext for EvolutionContext<C, T>
-where
-    C: Chromosome,
-{
-    fn index(&self) -> usize {
-        self.index
-    }
+        let best = self.ecosystem.get_phenotype(0);
+        let best_improved = self
+            .metrics
+            .improvements()
+            .map(|m| m.last_value() > 0.0)
+            .unwrap_or(false);
 
-    fn score(&self) -> Option<&Score> {
-        self.score.as_ref()
-    }
+        if best_improved && let Some(best) = best {
+            self.score = best.score().cloned();
+            self.best = self.problem.decode(best.genotype());
+        }
 
-    fn metrics(&self) -> &MetricSet {
-        &self.metrics
-    }
+        self.metrics
+            .replace(metric!(metric_names::INDEX, self.index));
+        self.metrics.bump(self.index as u64);
 
-    fn objective(&self) -> &Objective {
-        &self.objective
-    }
-}
-
-impl<C, T> ObjectiveContext<C> for EvolutionContext<C, T>
-where
-    C: Chromosome,
-{
-    fn front(&self) -> Arc<RwLock<Front<Phenotype<C>>>> {
-        Arc::clone(&self.front)
+        Ok(best_improved)
     }
 }
 

@@ -2,7 +2,6 @@ use crate::state::{AppState, RunState, UiMode};
 use crate::widgets::{AppWidget, HelpPanelWidget, LayoutNode, MetricModalWidget, ModalWidget};
 use color_eyre::Result;
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
-use radiate_engines::context::RuntimeContext;
 use radiate_engines::{
     Chromosome, CommandChannel, Ecosystem, EngineControl, EvolutionContext, Front, MetricSet,
     Phenotype, Score,

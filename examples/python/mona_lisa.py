@@ -122,24 +122,3 @@ value = result.value()
 frame = render(np.asarray(value, dtype=np.float32), W, H)
 frame.save(OUT / "final.png")
 print(f"Final RMS: {result.score()}")
-
-
-# --- drive + capture frames -------------------------------------------------
-# frames: list[Image.Image] = []
-# for epoch in engine:
-#     if epoch.index() % SAVE_EVERY == 0:
-#         best = np.asarray(epoch.value(), dtype=np.float32)
-#         frame = render(best, W, H)
-#         frame.save(OUT / f"gen_{epoch.index():05d}.png")
-#         frames.append(frame.copy())
-#         print(f"gen {epoch.index():5d}  rms={epoch.score()}")
-
-# if frames:
-#     frames[0].save(
-#         OUT / "evolisa.gif",
-#         save_all=True,
-#         append_images=frames[1:],
-#         duration=80,
-#         loop=0,
-#     )
-#     print(f"\nWrote {len(frames)} frames + {OUT / 'evolisa.gif'}")

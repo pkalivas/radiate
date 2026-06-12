@@ -2,8 +2,7 @@ use crate::builder::GeneticEngineBuilder;
 use crate::context::EvolutionContext;
 use crate::events::EngineMessage;
 use crate::pipeline::Pipeline;
-use crate::runtime::EngineRuntime;
-use crate::{Chromosome, EngineControl};
+use crate::{Chromosome, EngineControl, EngineRuntime};
 use crate::{EventBus, Generation};
 use radiate_core::Engine;
 use radiate_core::error::Result;
@@ -156,10 +155,10 @@ where
     C: Chromosome + Clone,
     T: Clone + Send + Sync + 'static,
 {
+    type Ctx = EvolutionContext<C, T>;
     type Epoch = Generation<C, T>;
-    type Context = EvolutionContext<C, T>;
 
-    fn context(&self) -> &Self::Context {
+    fn context(&self) -> &Self::Ctx {
         &self.context
     }
 

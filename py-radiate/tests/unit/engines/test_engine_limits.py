@@ -47,9 +47,9 @@ def test_convergence_limit(simple_float_engine, random_seed):
             self.convergence_data.append(generation.score())
 
     handler = Subscriber()
-    simple_float_engine.subscribe(handler)
-
-    simple_float_engine.run(rd.ConvergenceLimit(window_size, threshold))
+    simple_float_engine.subscribe(handler).run(
+        rd.Limit.convergence(window_size, threshold)
+    )
 
     assert len(handler.convergence_data) == window_size
     assert all(

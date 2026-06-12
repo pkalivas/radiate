@@ -236,43 +236,43 @@ pub struct GenerationView<'a, C, T>
 where
     C: Chromosome,
 {
-    generation: &'a EvolutionContext<C, T>,
+    context: &'a EvolutionContext<C, T>,
 }
 
 impl<'a, C, T> GenerationView<'a, C, T>
 where
     C: Chromosome,
 {
-    pub fn new(generation: &'a EvolutionContext<C, T>) -> Self {
-        Self { generation }
+    pub fn new(context: &'a EvolutionContext<C, T>) -> Self {
+        Self { context }
     }
 
     pub fn score(&self) -> &Score {
-        self.generation.score.as_ref().unwrap()
+        self.context.score.as_ref().unwrap()
     }
 
     pub fn front(&self) -> Arc<RwLock<Front<Phenotype<C>>>> {
-        Arc::clone(&self.generation.front)
+        Arc::clone(&self.context.front)
     }
 
     pub fn value(&self) -> &T {
-        &self.generation.best
+        &self.context.best
     }
 
     pub fn index(&self) -> usize {
-        self.generation.index
+        self.context.index
     }
 
     pub fn metrics(&self) -> &MetricSet {
-        &self.generation.metrics
+        &self.context.metrics
     }
 
     pub fn objective(&self) -> &Objective {
-        &self.generation.objective
+        &self.context.objective
     }
 
     pub fn ecosystem(&self) -> &Ecosystem<C> {
-        &self.generation.ecosystem
+        &self.context.ecosystem
     }
 
     pub fn population(&self) -> &Population<C> {

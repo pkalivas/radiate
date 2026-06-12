@@ -74,7 +74,7 @@ impl<C: Chromosome> AppWidget<C> for MetricLineChartWidget {
             if chart_type == MetricChartType::BoxWhisker {
                 let chart_metrics = Layout::default()
                     .direction(Direction::Vertical)
-                    .constraints([Constraint::Min(8), Constraint::Length(1)].as_ref())
+                    .constraints([Constraint::Min(8), Constraint::Length(2)].as_ref())
                     .split(inner);
                 render_box_whisker_chart(metric, &chart_metrics, buf);
             } else if chart_type == MetricChartType::Distribution {
@@ -311,7 +311,7 @@ fn chart_type_bottom(
             break;
         }
 
-        final_bottom.push(Span::styled("|", Style::default().fg(Color::White)));
+        final_bottom.push(Span::styled("-", Style::default().fg(Color::White)));
     }
 
     Line::from(final_bottom)
