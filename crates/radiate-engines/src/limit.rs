@@ -67,9 +67,6 @@ use std::{collections::VecDeque, fmt::Debug, sync::Arc, time::Duration};
 ///
 /// // Score threshold
 /// let score_limit = Limit::Score(Score::from(0.95));
-///
-/// // Convergence detection
-/// let conv_limit = Limit::Convergence(50, 0.001);
 /// ```
 ///
 /// ## Combined Limits
