@@ -24,6 +24,7 @@ for _ in range(-10, 10):
     inputs.append([input])
     answers.append([compute(input)])
 
+
 engine = (
     rd.Engine.graph(
         shape=(1, 1),
@@ -34,14 +35,16 @@ engine = (
     .select(rd.Select.boltzmann(temp=4.0))
     .regression(inputs, answers, loss=rd.MSE)
     .diversity(
-        rd.Dist.neat(excess=1.0, disjoint=1.0, weight_diff=3.0), species_threshold=0.15
+        rd.Dist.neat(excess=1.0, disjoint=1.0, weight_diff=3.0),
+        species_threshold=0.15,
+        target_species=5,
     )
     .alters(
         rd.Cross.graph(0.4, 0.5),
         rd.Mutate.op(0.07, 0.05),
         rd.Mutate.graph(0.1, 0.1, False),
     )
-    .limit(rd.Limit.score(0.001), rd.Limit.generations(1000))
+    .limit(rd.Limit.generations(100))
 )
 
 result = engine.run(ui=True)

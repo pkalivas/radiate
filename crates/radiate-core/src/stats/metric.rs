@@ -34,8 +34,9 @@ pub(super) struct Meta {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Metric {
     name: SmallStr,
-    meta: Meta,
     inner: Statistic,
+    samples: Option<Vec<f32>>,
+    meta: Meta,
     tags: Tag,
     dtype: u8,
 }
@@ -47,8 +48,9 @@ impl Metric {
 
         Self {
             name,
-            meta: Meta::default(),
             inner: Statistic::default(),
+            meta: Meta::default(),
+            samples: None,
             tags,
             dtype: DTYPE_NULL,
         }
@@ -93,25 +95,17 @@ impl Metric {
     }
 
     #[inline(always)]
-    pub fn add_tags(&mut self, tags: Tag) {
-        self.tags = self.tags.union(tags);
-    }
-
-    #[inline(always)]
     pub fn add_tag(&mut self, tag: TagType) {
         self.tags.insert(tag);
     }
 
-    pub fn contains_tag(&self, tag: &TagType) -> bool {
-        self.tags.has(*tag)
-    }
-
-    pub fn tags_iter(&self) -> impl Iterator<Item = TagType> {
+    pub fn iter_tags(&self) -> impl Iterator<Item = TagType> {
         self.tags.iter()
     }
 
     pub fn clear_values(&mut self) {
         self.inner = Statistic::default();
+        self.samples = None;
     }
 
     pub fn stats<'a>(&'a self) -> Option<MetricView<'a, f32>> {
@@ -122,6 +116,7 @@ impl Metric {
         Some(MetricView {
             name: &self.name,
             statistic: &self.inner,
+            samples: self.samples.as_deref(),
             mapper: |v| v,
         })
     }
@@ -134,8 +129,9 @@ impl Metric {
         Some(MetricView {
             name: &self.name,
             statistic: &self.inner,
+            samples: self.samples.as_deref(),
             mapper: |v| Duration::from_secs_f32(v),
-        } )
+        })
     }
 
     pub fn distributions<'a>(&'a self) -> Option<MetricView<'a, f32>> {
@@ -146,6 +142,7 @@ impl Metric {
         Some(MetricView {
             name: &self.name,
             statistic: &self.inner,
+            samples: self.samples.as_deref(),
             mapper: |v| v,
          })
     }
@@ -225,7 +222,16 @@ impl Metric {
     where
         I: IntoIterator<Item = f32>,
     {   
-        self.inner = values.into_iter().collect::<Statistic>();
+        let samples = self.samples.get_or_insert_with(Vec::new);
+
+        samples.clear();
+        self.inner.clear();
+
+        for val in values {
+            samples.push(val);
+            self.inner.add(val);
+        }
+        
         self.meta.update_count += self.inner.count() as usize;
         
         self.add_tag(TagType::Distribution);
@@ -235,6 +241,10 @@ impl Metric {
         }
     }
 
+    pub fn clear_samples(&mut self) {
+        self.samples = None;
+    }
+        
     pub fn statistic(&self) -> &Statistic {
         &self.inner
     }
@@ -283,6 +293,9 @@ impl Metric {
         self.inner.sum()
     }
 
+    pub fn quantile(&self, q: f32) -> Option<f32> {
+        self.distributions().and_then(|view| view.quantile(q))
+    }
 }
 
 impl Hash for Metric {

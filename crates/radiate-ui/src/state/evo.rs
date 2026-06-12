@@ -1,12 +1,10 @@
-use std::sync::Arc;
-
-use super::chart::{ChartState, LineChartType};
+use super::chart::{ChartState, MetricChartType};
 use crate::chart::RollingLineChart;
 use crate::widgets::num_pairs;
 use radiate_engines::{
-    Chromosome, ContextAudit, Ecosystem, Front, MetricSet, Objective, Optimize, Phenotype, Score,
-    Species,
+    Chromosome, Ecosystem, Front, MetricSet, Objective, Optimize, Phenotype, Score, Species,
 };
+use std::sync::{Arc, RwLock};
 
 pub struct ObjectiveState {
     pub objective: Objective,
@@ -15,10 +13,11 @@ pub struct ObjectiveState {
     pub objective_index: usize,
 }
 
+#[allow(dead_code)]
 pub struct EvoState<C: Chromosome> {
     pub best_phenotype: Option<Phenotype<C>>,
-    pub ecosystem: Option<Arc<Ecosystem<C>>>,
-    pub front: Option<Front<Phenotype<C>>>,
+    pub ecosystem: Option<Ecosystem<C>>,
+    pub front: Arc<RwLock<Front<Phenotype<C>>>>,
     pub metrics: MetricSet,
     pub charts: ChartState,
     pub index: usize,
@@ -27,45 +26,42 @@ pub struct EvoState<C: Chromosome> {
 }
 
 impl<C: Chromosome> EvoState<C> {
-    pub fn update_ecosystem(&mut self, ecosystem: Arc<Ecosystem<C>>) {
+    pub fn update_ecosystem(&mut self, ecosystem: Ecosystem<C>)
+    where
+        C: Clone,
+    {
         self.ecosystem = Some(ecosystem);
+        let phenotype = self
+            .ecosystem
+            .as_ref()
+            .and_then(|eco| eco.get_phenotype(0))
+            .cloned();
+        self.best_phenotype = phenotype;
     }
 
     pub fn update_metrics(&mut self, metrics: MetricSet) {
         for metric in metrics.iter() {
             self.charts.update_from_metric(metric.1);
         }
-        self.metrics = metrics;
-    }
 
-    pub fn update_audits(&mut self, audits: Option<Vec<ContextAudit>>)
-    where
-        C: Clone,
-    {
-        if let Some(audits) = audits {
-            for audit in audits.iter() {
-                if let ContextAudit::NewBest = audit {
-                    let phenotype = self
-                        .ecosystem
-                        .as_ref()
-                        .and_then(|eco| eco.get_phenotype(0))
-                        .cloned();
-                    self.best_phenotype = phenotype;
-                }
-            }
-        }
+        self.metrics = metrics;
     }
 
     pub fn get_chart_by_key(
         &self,
         key: &str,
-        chart_type: LineChartType,
+        chart_type: MetricChartType,
     ) -> Option<&RollingLineChart> {
         self.charts.get_line_chart(key, chart_type)
     }
 
     pub fn get_species(&self) -> Option<&Vec<Species<C>>> {
         self.ecosystem.as_ref().and_then(|eco| eco.species())
+    }
+
+    pub fn has_species(&self) -> bool {
+        self.get_species()
+            .is_some_and(|species| !species.is_empty())
     }
 
     pub fn set_objective_index(&mut self, index: usize) {
@@ -112,7 +108,7 @@ impl<C: Chromosome> Default for EvoState<C> {
     fn default() -> Self {
         Self {
             best_phenotype: None,
-            front: None,
+            front: Arc::new(RwLock::new(Front::default())),
             metrics: MetricSet::new(),
             charts: ChartState::new(),
             ecosystem: None,

@@ -62,15 +62,17 @@ impl<C: Chromosome + Clone> Crossover<C> for ShuffleCrossover {
 mod tests {
 
     use super::ShuffleCrossover;
-    use radiate_core::{AlterContext, Chromosome, Crossover, Gene, IntChromosome, MetricSet};
+    use radiate_core::{
+        AlterContext, Chromosome, Crossover, Gene, IntChromosome, alter::AlterUpdates,
+    };
 
     #[test]
     fn test_shuffle_crossover() {
         let mut chrom_one = IntChromosome::from(vec![1, 2, 3, 4, 5]);
         let mut chrom_two = IntChromosome::from(vec![6, 7, 8, 9, 10]);
 
-        let mut metrics = MetricSet::default();
-        let mut ctx = AlterContext::new(&mut metrics, 0, 1.0);
+        let mut updates = AlterUpdates::default();
+        let mut ctx = AlterContext::new(&mut updates, 0, 1.0);
 
         let crossover = ShuffleCrossover::new(1.0);
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
@@ -88,8 +90,8 @@ mod tests {
         let mut chrom_one = IntChromosome::from(vec![1, 2, 3, 4, 5]);
         let mut chrom_two = IntChromosome::from(vec![6, 7, 8, 9, 10]);
 
-        let mut metrics = MetricSet::default();
-        let mut ctx = AlterContext::new(&mut metrics, 0, 0.0);
+        let mut updates = AlterUpdates::default();
+        let mut ctx = AlterContext::new(&mut updates, 0, 0.0);
 
         let crossover = ShuffleCrossover::new(0.0);
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);

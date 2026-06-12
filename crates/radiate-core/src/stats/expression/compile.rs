@@ -20,7 +20,7 @@ impl Expr {
     pub fn compile(self) -> Expr {
         match self {
             // Leaves — nothing to rewrite.
-            Expr::Literal(_) | Expr::Selector(_) | Expr::Schedule(_) | Expr::Stagnation(_) => self,
+            Expr::Literal(_) | Expr::Selector(_) | Expr::Schedule(_) => self,
 
             Expr::Unary(u) => {
                 let UnaryExpr { child, op } = u;
@@ -51,11 +51,6 @@ impl Expr {
                 let child = std::mem::replace(a.child.as_mut(), Expr::Literal(AnyValue::Null));
                 *a.child = child.compile();
                 Expr::Aggregate(a)
-            }
-            Expr::Buffer(mut b) => {
-                let child = std::mem::replace(b.child.as_mut(), Expr::Literal(AnyValue::Null));
-                *b.child = child.compile();
-                Expr::Buffer(b)
             }
         }
     }
@@ -145,4 +140,3 @@ fn fold_literals(
         None
     }
 }
-

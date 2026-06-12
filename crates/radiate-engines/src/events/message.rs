@@ -1,4 +1,4 @@
-use crate::context::Context;
+use crate::context::EvolutionContext;
 use radiate_core::{Chromosome, MetricSet, Objective, Score};
 use std::{fmt::Debug, sync::Arc};
 
@@ -8,10 +8,10 @@ where
     T: Clone,
 {
     Start,
-    Stop(&'a Context<C, T>),
-    EpochStart(&'a Context<C, T>),
-    EpochEnd(&'a Context<C, T>),
-    Improvement(&'a Context<C, T>),
+    Stop(&'a EvolutionContext<C, T>),
+    EpochStart(&'a EvolutionContext<C, T>),
+    EpochEnd(&'a EvolutionContext<C, T>),
+    Improvement(&'a EvolutionContext<C, T>),
 }
 
 pub enum EngineEventInner<T> {

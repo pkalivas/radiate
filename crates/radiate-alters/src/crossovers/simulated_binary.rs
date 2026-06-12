@@ -4,7 +4,7 @@ use radiate_core::{
 };
 use radiate_utils::Float;
 
-const NAME: &str = "sbx_crossover";
+const NAME: &str = "crossover.sbx";
 
 pub struct SimulatedBinaryCrossover {
     crossover_rate: Rate,

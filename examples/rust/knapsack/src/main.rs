@@ -11,25 +11,29 @@ fn main() {
     let capacity = knapsack.capacity;
     let codec = SubSetCodec::new(knapsack.items);
 
-    let mut engine = GeneticEngine::builder()
+    let engine = GeneticEngine::builder()
         .codec(codec)
         .max_age(MAX_EPOCHS)
         .fitness_fn(move |genotype: Vec<Arc<Item>>| Knapsack::fitness(&capacity, &genotype))
         .build();
 
-    let result = engine.run(|ctx| {
-        let value_total = Knapsack::value_total(&ctx.value());
-        let weight_total = Knapsack::weight_total(&ctx.value());
+    let result = engine
+        .iter()
+        .until(|ctx| {
+            let value_total = Knapsack::value_total(&ctx.value());
+            let weight_total = Knapsack::weight_total(&ctx.value());
 
-        println!(
-            "[ {:?} ]: Value={:?} Weight={:?}",
-            ctx.index(),
-            value_total,
-            weight_total
-        );
+            println!(
+                "[ {:?} ]: Value={:?} Weight={:?}",
+                ctx.index(),
+                value_total,
+                weight_total
+            );
 
-        ctx.index() == MAX_EPOCHS
-    });
+            ctx.index() == MAX_EPOCHS
+        })
+        .run()
+        .unwrap();
 
     println!(
         "Value Total=[ {:?} ]",

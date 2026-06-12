@@ -1,4 +1,4 @@
-use crate::chart::RollingLineChart;
+use crate::chart::LineChart;
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
@@ -8,18 +8,20 @@ use ratatui::{
     widgets::{Axis, Block, Chart, Dataset, GraphType, Widget},
 };
 
-pub struct LineChartWidget<'a> {
-    charts: Vec<&'a RollingLineChart>,
+pub struct LineChartWidget<'a, T: LineChart> {
+    charts: Vec<&'a T>,
     bg_color: Color,
     show_x_axis: bool,
+    show_boarders: bool,
 }
 
-impl<'a> LineChartWidget<'a> {
-    pub fn new(charts: Vec<&'a RollingLineChart>) -> Self {
+impl<'a, T: LineChart> LineChartWidget<'a, T> {
+    pub fn new(charts: Vec<&'a T>) -> Self {
         Self {
             charts,
             bg_color: crate::styles::ALT_BG_COLOR,
             show_x_axis: false,
+            show_boarders: true,
         }
     }
 
@@ -27,22 +29,27 @@ impl<'a> LineChartWidget<'a> {
         self.show_x_axis = show;
         self
     }
+
+    pub fn with_show_boarders(mut self, show: bool) -> Self {
+        self.show_boarders = show;
+        self
+    }
 }
 
-impl<'a> From<Vec<&'a RollingLineChart>> for LineChartWidget<'a> {
-    fn from(value: Vec<&'a RollingLineChart>) -> Self {
+impl<'a, T: LineChart> From<Vec<&'a T>> for LineChartWidget<'a, T> {
+    fn from(value: Vec<&'a T>) -> Self {
         Self::new(value)
     }
 }
 
-impl<'a> From<&'a RollingLineChart> for LineChartWidget<'a> {
-    fn from(value: &'a RollingLineChart) -> Self {
+impl<'a, T: LineChart> From<&'a T> for LineChartWidget<'a, T> {
+    fn from(value: &'a T) -> Self {
         Self::new(vec![value])
     }
 }
 
-impl<'a> From<Option<&'a RollingLineChart>> for LineChartWidget<'a> {
-    fn from(value: Option<&'a RollingLineChart>) -> Self {
+impl<'a, T: LineChart> From<Option<&'a T>> for LineChartWidget<'a, T> {
+    fn from(value: Option<&'a T>) -> Self {
         match value {
             Some(chart) => Self::new(vec![chart]),
             None => Self::new(vec![]),
@@ -50,14 +57,14 @@ impl<'a> From<Option<&'a RollingLineChart>> for LineChartWidget<'a> {
     }
 }
 
-impl<'a> From<Vec<Option<&'a RollingLineChart>>> for LineChartWidget<'a> {
-    fn from(value: Vec<Option<&'a RollingLineChart>>) -> Self {
+impl<'a, T: LineChart> From<Vec<Option<&'a T>>> for LineChartWidget<'a, T> {
+    fn from(value: Vec<Option<&'a T>>) -> Self {
         let charts = value.into_iter().flatten().collect();
         Self::new(charts)
     }
 }
 
-impl<'a> Widget for LineChartWidget<'a> {
+impl<'a, T: LineChart> Widget for LineChartWidget<'a, T> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         if self.charts.is_empty() {
             let block = Block::bordered().title(Line::from(" No Data ").centered());
@@ -94,17 +101,20 @@ impl<'a> Widget for LineChartWidget<'a> {
             self.charts,
             self.bg_color,
             self.show_x_axis,
+            self.show_boarders,
         );
+
         chart.render(area, buf);
     }
 }
 
-fn chart_widget<'a>(
+fn chart_widget<'a, T: LineChart>(
     x_bounds: (f64, f64),
     y_bounds: (f64, f64),
-    charts: Vec<&'a RollingLineChart>,
+    charts: Vec<&'a T>,
     bg_color: Color,
     show_x_axis: bool,
+    show_boarders: bool,
 ) -> ratatui::widgets::Chart<'a> {
     let (min_x, max_x) = x_bounds;
     let (min_y, max_y) = y_bounds;
@@ -138,18 +148,22 @@ fn chart_widget<'a>(
             .bounds([min_x, max_x])
     };
 
-    Chart::new(datasets)
-        .bg(bg_color)
-        .block(Block::bordered().title(Line::from(format!(" {} ", charts[0].title())).centered()))
-        .x_axis(x_axis)
-        .y_axis(
-            Axis::default()
-                .style(Style::default().gray())
-                .bounds([min_y, max_y])
-                .labels(Line::from(vec![
-                    format!("{:.2}", min_y).bold(),
-                    format!("{:.2}", mid_y).into(),
-                    format!("{:.2}", max_y).bold(),
-                ])),
+    let result = Chart::new(datasets).bg(bg_color).x_axis(x_axis).y_axis(
+        Axis::default()
+            .style(Style::default().fg(bg_color))
+            .bounds([min_y, max_y])
+            .labels(Line::from(vec![
+                format!("{:.2}", min_y).bold(),
+                format!("{:.2}", mid_y).into(),
+                format!("{:.2}", max_y).bold(),
+            ])),
+    );
+
+    if show_boarders {
+        result.block(
+            Block::bordered().title(Line::from(format!(" {} ", charts[0].title())).centered()),
         )
+    } else {
+        result
+    }
 }

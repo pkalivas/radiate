@@ -1,5 +1,5 @@
 use super::{Evaluate, ExprResult};
-use crate::MetricSet;
+use crate::stats::ExprSelector;
 use radiate_utils::SmallStr;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -34,7 +34,7 @@ pub enum MetricKind {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct SelectExpr {
-    pub metric: SmallStr,
+    pub metric: Option<SmallStr>,
     pub field: MetricField,
     pub kind: MetricKind,
 }
@@ -42,7 +42,7 @@ pub struct SelectExpr {
 impl SelectExpr {
     pub fn new(metric: impl Into<SmallStr>) -> Self {
         Self {
-            metric: metric.into(),
+            metric: Some(metric.into()),
             field: MetricField::LastValue,
             kind: MetricKind::Value,
         }
@@ -59,8 +59,11 @@ impl SelectExpr {
     }
 }
 
-impl Evaluate for SelectExpr {
-    fn eval<'a>(&'a mut self, metrics: &MetricSet) -> ExprResult<'a> {
-        Ok(metrics.project_selector(self))
+impl<T> Evaluate<T> for SelectExpr
+where
+    T: ExprSelector,
+{
+    fn eval<'a>(&'a mut self, metrics: &T) -> ExprResult<'a> {
+        Ok(metrics.select(self))
     }
 }

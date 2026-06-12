@@ -30,12 +30,13 @@ class EngineEvent(RsObject):
     def __str__(self):
         return self.__repr__()
 
-    def index(self) -> int | None:
+    def index(self) -> int:
         """
         Get the index of the event.
         :return: The index of the event.
         """
-        return self.__backend__().index()
+        index = self.__backend__().index()
+        return index if index is not None else 0
 
     def event_type(self) -> EventType:
         """
@@ -68,7 +69,7 @@ class EngineEvent(RsObject):
         Get the value of the event.
         :return: The value of the event.
         """
-        return self.try_get_cache("value_cache", lambda: self.__backend__().value())
+        return self.try_get_cache("value_cache", lambda: self.__backend__().best())
 
     def metrics(self) -> MetricSet:
         """

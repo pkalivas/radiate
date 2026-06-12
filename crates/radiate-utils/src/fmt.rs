@@ -1,11 +1,6 @@
 use crate::intern;
 
 #[inline]
-pub fn intern_name_as_snake_case(name: &'static str) -> &'static str {
-    crate::intern_snake_case!(name)
-}
-
-#[inline]
 pub fn intern_kv_pair(name: &'static str, value: &'static str) -> &'static str {
     crate::intern_str_cache!(name, value)
 }

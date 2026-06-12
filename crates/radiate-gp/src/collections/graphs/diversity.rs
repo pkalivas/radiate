@@ -1,10 +1,8 @@
 use super::GraphChromosome;
 use super::node::InnovationId;
-use crate::{Node, Op};
-use radiate_core::{Chromosome, Diversity, Phenotype};
+use crate::{GraphNode, Node, Op};
+use radiate_core::{Diversity, Novelty, Phenotype, diversity::Distance};
 use std::cmp::Ordering;
-
-const OP_MISMATCH_PENALTY: f32 = 0.3;
 
 /// NEAT compatibility distance that aligns genes by [`InnovationId`].
 ///
@@ -29,7 +27,6 @@ pub struct NeatDistance {
     excess: f32,
     disjoint: f32,
     weight_diff: f32,
-    op_mismatch_penalty: f32,
 }
 
 impl NeatDistance {
@@ -38,28 +35,21 @@ impl NeatDistance {
             excess,
             disjoint,
             weight_diff,
-            op_mismatch_penalty: OP_MISMATCH_PENALTY,
         }
     }
 
-    pub fn with_mismatch_penalty(mut self, penalty: f32) -> Self {
-        self.op_mismatch_penalty = penalty;
-        self
-    }
-
     #[inline]
-    fn graph_distance(
-        &self,
-        one: &GraphChromosome<Op<f32>>,
-        two: &GraphChromosome<Op<f32>>,
-    ) -> f32 {
+    fn graph_distance<G: AsRef<[GraphNode<Op<f32>>]>>(&self, one: &G, two: &G) -> f32 {
+        let one = one.as_ref();
+        let two = two.as_ref();
+
         let max_genes = one.len().max(two.len());
         if max_genes == 0 {
             return 0.0;
         }
 
-        let one_last = one.get(one.len() - 1).innovation();
-        let two_last = two.get(two.len() - 1).innovation();
+        let one_last = one[one.len() - 1].innovation();
+        let two_last = two[two.len() - 1].innovation();
         let cutoff = match (one_last, two_last) {
             (Some(ma), Some(mb)) => Some(ma.min(mb)),
             _ => None,
@@ -75,12 +65,12 @@ impl NeatDistance {
 
         while idx_one < one.len() || idx_two < two.len() {
             let gene_one = if idx_one < one.len() {
-                one.get(idx_one).innovation()
+                one[idx_one].innovation()
             } else {
                 None
             };
             let gene_two = if idx_two < two.len() {
-                two.get(idx_two).innovation()
+                two[idx_two].innovation()
             } else {
                 None
             };
@@ -90,8 +80,8 @@ impl NeatDistance {
                     Ordering::Equal => {
                         matching += 1.0;
 
-                        let one_node = one.get(idx_one);
-                        let two_node = two.get(idx_two);
+                        let one_node = &one[idx_one];
+                        let two_node = &two[idx_two];
 
                         if let (Op::Value(_, _, a_op, _), Op::Value(_, _, b_op, _)) =
                             (one_node.value(), two_node.value())
@@ -159,6 +149,22 @@ impl Diversity<GraphChromosome<Op<f32>>> for NeatDistance {
     }
 }
 
+impl<G: AsRef<[GraphNode<Op<f32>>]>> Distance<G> for NeatDistance {
+    fn distance(&self, one: &G, two: &G) -> f32 {
+        self.graph_distance(one, two)
+    }
+}
+
+impl<G: AsRef<[GraphNode<Op<f32>>]>> Novelty<G> for NeatDistance {
+    fn description(&self, phenotype: &G) -> Vec<f32> {
+        phenotype
+            .as_ref()
+            .iter()
+            .map(|n| n.innovation().map_or(0.0, |id| id.get() as f32))
+            .collect()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -198,9 +204,7 @@ mod tests {
         let a = chromo(vec![vertex(0, Op::add(), 1), edge(1, 0.5, 2)]);
         let b = chromo(vec![vertex(0, Op::add(), 1), edge(1, 0.5, 2)]);
 
-        let dist = NeatDistance::new(1.0, 1.0, 1.0)
-            .with_mismatch_penalty(1.0)
-            .graph_distance(&a, &b);
+        let dist = NeatDistance::new(1.0, 1.0, 1.0).graph_distance(&a, &b);
         assert_eq!(dist, 0.0);
     }
 

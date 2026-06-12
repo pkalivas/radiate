@@ -31,7 +31,7 @@ def test_engine_regression_polars_df_target_and_feature_cols_smoke(graph_1x1_eng
 
     engine = graph_1x1_engine.regression(
         df, target_cols="x", feature_cols=["dd"], loss=rd.MSE
-    )
+    ).limit(rd.Limit.generations(10))
 
     res = next(engine)
     assert res.index() == 1
@@ -43,7 +43,9 @@ def test_engine_regression_polars_df_default_target_last_col_smoke(graph_1x1_eng
 
     df = pl.DataFrame({"a": [1.0, 2.0, 3.0], "x": [10.0, 20.0, 30.0]})
 
-    engine = graph_1x1_engine.regression(df, loss=rd.MSE)
+    engine = graph_1x1_engine.regression(df, loss=rd.MSE).limit(
+        rd.Limit.generations(10)
+    )
 
     assert next(engine).index() == 1
 
@@ -59,7 +61,7 @@ def test_engine_regression_pandas_df_target_and_feature_cols_smoke(graph_1x1_eng
 
     engine = graph_1x1_engine.regression(
         df, target_cols="x", feature_cols=["dd"], loss=rd.MSE
-    )
+    ).limit(rd.Limit.generations(10))
 
     assert next(engine).index() == 1
 
@@ -71,7 +73,9 @@ def test_engine_regression_numpy_arrays_smoke(graph_1x1_engine):
     X = np.array([[0.0], [1.0], [2.0], [3.0]], dtype=np.float64)
     y = np.array([0.0, 2.0, 4.0, 6.0], dtype=np.float64)
 
-    engine = graph_1x1_engine.regression(X, y, loss=rd.MSE)
+    engine = graph_1x1_engine.regression(X, y, loss=rd.MSE).limit(
+        rd.Limit.generations(10)
+    )
 
     assert X.shape == (4, 1)
     assert y.shape == (4,)
@@ -84,7 +88,9 @@ def test_engine_regression_python_lists_smoke(graph_1x1_engine):
     X = [[0.0], [1.0], [2.0], [3.0]]
     y = [0.0, 2.0, 4.0, 6.0]
 
-    engine = graph_1x1_engine.regression(X, y, loss=rd.MSE)
+    engine = graph_1x1_engine.regression(X, y, loss=rd.MSE).limit(
+        rd.Limit.generations(10)
+    )
 
     assert next(engine).index() == 1
 

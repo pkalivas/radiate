@@ -1,6 +1,7 @@
 use crate::{Chromosome, Gene, Genotype, math::indexes, random_provider};
-use crate::{GetPairMut, MetricSet, MetricUpdate, Phenotype, Rate};
+use crate::{GetPairMut, MetricSet, Phenotype, Rate};
 use radiate_utils::{SmallStr, ToSnakeCase, intern};
+use std::collections::HashMap;
 use std::sync::Arc;
 
 #[macro_export]
@@ -44,16 +45,44 @@ impl From<usize> for AlterResult {
     }
 }
 
+#[derive(Clone, Default)]
+pub struct AlterUpdates(pub HashMap<SmallStr, usize>);
+
+impl AlterUpdates {
+    pub fn new() -> Self {
+        AlterUpdates(HashMap::new())
+    }
+
+    pub fn clear(&mut self) {
+        for value in self.0.values_mut() {
+            *value = 0;
+        }
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&SmallStr, &usize)> {
+        self.0.iter().filter(|(_, count)| **count > 0)
+    }
+
+    pub fn upsert(&mut self, name: impl AsRef<str>, value: usize) {
+        if let Some(existing) = self.0.get_mut(name.as_ref()) {
+            *existing += value;
+        } else {
+            self.0
+                .insert(SmallStr::from_string(name.as_ref().into()), value);
+        }
+    }
+}
+
 pub struct AlterContext<'a> {
-    metrics: &'a mut MetricSet,
+    alter_counts: &'a mut AlterUpdates,
     generation: usize,
     rate: f32,
 }
 
 impl<'a> AlterContext<'a> {
-    pub fn new(metrics: &'a mut MetricSet, generation: usize, rate: f32) -> Self {
-        Self {
-            metrics,
+    pub fn new(alter_counts: &'a mut AlterUpdates, generation: usize, rate: f32) -> Self {
+        AlterContext {
+            alter_counts,
             generation,
             rate,
         }
@@ -67,8 +96,8 @@ impl<'a> AlterContext<'a> {
         self.generation
     }
 
-    pub fn metric(&mut self, name: impl AsRef<str>, value: impl Into<MetricUpdate<'a>>) {
-        self.metrics.upsert(name, value.into());
+    pub fn upsert(&mut self, name: impl AsRef<str>, value: usize) {
+        self.alter_counts.upsert(name, value);
     }
 }
 
@@ -88,6 +117,7 @@ pub struct Alterer<C: Chromosome> {
     rate_name: SmallStr,
     rate: Rate,
     inner: AlterInner<C>,
+    alter_counts: AlterUpdates,
 }
 
 impl<C: Chromosome> Alterer<C> {
@@ -99,6 +129,7 @@ impl<C: Chromosome> Alterer<C> {
             name,
             rate,
             inner: AlterInner::Mutate(m),
+            alter_counts: AlterUpdates::new(),
         }
     }
 
@@ -110,6 +141,7 @@ impl<C: Chromosome> Alterer<C> {
             name,
             rate,
             inner: AlterInner::Crossover(c),
+            alter_counts: AlterUpdates::new(),
         }
     }
 
@@ -130,9 +162,10 @@ impl<C: Chromosome> Alterer<C> {
         let rate = self.rate.get(generation, metrics);
 
         metrics.upsert(self.rate_name.clone(), rate);
+        self.alter_counts.clear();
 
         let mut ctx = AlterContext {
-            metrics,
+            alter_counts: &mut self.alter_counts,
             generation,
             rate,
         };
@@ -143,16 +176,24 @@ impl<C: Chromosome> Alterer<C> {
                 let mutator = Arc::get_mut(&mut (*m));
 
                 if let Some(mutator) = mutator {
-                    let AlterResult(count) = mutator.mutate(population, &mut ctx);
-                    metrics.upsert(&self.name, count);
+                    let result = mutator.mutate(population, &mut ctx);
+                    metrics.upsert(&self.name, result.count());
                     metrics.upsert(&self.time_name, timer.elapsed());
+
+                    for (name, count) in ctx.alter_counts.iter() {
+                        metrics.upsert(name, *count);
+                    }
                 }
             }
             AlterInner::Crossover(c) => {
                 let timer = std::time::Instant::now();
-                let AlterResult(count) = c.crossover(population, &mut ctx);
-                metrics.upsert(&self.name, count);
+                let result = c.crossover(population, &mut ctx);
+                metrics.upsert(&self.name, result.count());
                 metrics.upsert(&self.time_name, timer.elapsed());
+
+                for (name, count) in ctx.alter_counts.iter() {
+                    metrics.upsert(name, *count);
+                }
             }
         }
     }
@@ -294,7 +335,7 @@ pub trait Mutate<C: Chromosome>: Send + Sync {
             .unwrap();
 
         let path = name.split('_').collect::<Vec<&str>>();
-        let mut new_name = vec!["mutate"];
+        let mut new_name = vec!["mutator"];
         for part in path {
             if !part.contains("mutat") {
                 new_name.push(part);

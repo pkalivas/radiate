@@ -1,17 +1,17 @@
 use crate::state::{AppState, RunState, UiMode};
-use crate::widgets::{HelpPanelWidget, LayoutNode, MetricModalWidget, ModalWidget};
+use crate::widgets::{AppWidget, HelpPanelWidget, LayoutNode, MetricModalWidget, ModalWidget};
 use color_eyre::Result;
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use radiate_engines::{
-    Chromosome, CommandChannel, ContextAudit, Ecosystem, EngineControl, Front, Generation,
-    MetricSet, Objective, Phenotype, Score,
+    Chromosome, CommandChannel, Ecosystem, EngineControl, EvolutionContext, Front, MetricSet,
+    Phenotype, Score,
 };
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Style;
-use ratatui::widgets::{StatefulWidget, Widget};
+use ratatui::widgets::Widget;
 use ratatui::{Terminal, backend::CrosstermBackend};
-use std::sync::{Arc, mpsc};
+use std::sync::{Arc, RwLock, mpsc};
 use std::{
     io,
     time::{Duration, Instant},
@@ -24,23 +24,19 @@ where
     pub index: usize,
     pub metrics: MetricSet,
     pub score: Score,
-    pub front: Option<Front<Phenotype<C>>>,
-    pub audits: Option<Vec<ContextAudit>>,
-    pub ecosystem: Arc<Ecosystem<C>>,
+    pub ecosystem: Ecosystem<C>,
 }
 
-impl<C, T> From<&Generation<C, T>> for GenerationEvent<C>
+impl<C, T> From<&EvolutionContext<C, T>> for GenerationEvent<C>
 where
     C: Chromosome + Clone,
 {
-    fn from(generation: &Generation<C, T>) -> Self {
+    fn from(context: &EvolutionContext<C, T>) -> Self {
         Self {
-            index: generation.index(),
-            metrics: generation.metrics().clone(),
-            score: generation.score().clone(),
-            front: generation.front().cloned(),
-            audits: generation.audits().map(|a| a.to_vec()),
-            ecosystem: generation.cloned_ecosystem(),
+            index: context.index(),
+            metrics: context.metrics().clone(),
+            score: context.score().cloned().unwrap_or_default(),
+            ecosystem: context.ecosystem().clone(),
         }
     }
 }
@@ -55,7 +51,7 @@ where
     C: Chromosome,
 {
     Crossterm(Event),
-    EngineStart(Objective),
+    EngineStart(Arc<RwLock<Front<Phenotype<C>>>>),
     EngineStop,
     EpochComplete(GenerationEvent<C>),
 }
@@ -117,8 +113,8 @@ where
                     }
                 }
             }
-            InputEvent::EngineStart(objective) => {
-                self.handle_engine_start(objective);
+            InputEvent::EngineStart(front) => {
+                self.handle_engine_start(front);
             }
             InputEvent::EngineStop => self.state.run.engine = false,
             InputEvent::EpochComplete(event) => {
@@ -144,8 +140,8 @@ where
                 self.state.nav.toggle_metric_modal()
             }
 
-            KeyCode::Right | KeyCode::Char('l') => self.state.nav.next_tab(),
-            KeyCode::Left | KeyCode::Char('h') => self.state.nav.previous_tab(),
+            KeyCode::Right | KeyCode::Tab => self.state.next_chart_view(),
+            KeyCode::Left | KeyCode::BackTab => self.state.prev_chart_view(),
 
             KeyCode::Char('p') => {
                 let paused = self.control.toggle_pause();
@@ -205,8 +201,15 @@ where
             KeyCode::Char('+') => self.state.evo.expand_objective_pairs(),
             KeyCode::Char('-') => self.state.evo.shrink_objective_pairs(),
 
-            KeyCode::Right | KeyCode::Char('l') => self.state.nav.next_tab(),
-            KeyCode::Left | KeyCode::Char('h') => self.state.nav.previous_tab(),
+            KeyCode::Right | KeyCode::Char('l') => {
+                self.state.nav.next_tab(self.state.evo.has_species())
+            }
+            KeyCode::Left | KeyCode::Char('h') => {
+                self.state.nav.previous_tab(self.state.evo.has_species())
+            }
+
+            KeyCode::Tab => self.state.next_chart_view(),
+            KeyCode::BackTab => self.state.prev_chart_view(),
 
             KeyCode::Char('p') => {
                 let paused = self.control.toggle_pause();
@@ -236,26 +239,29 @@ where
 
         self.state.evo.update_ecosystem(event.ecosystem);
         self.state.evo.update_metrics(event.metrics);
-        self.state.evo.update_audits(event.audits);
 
-        if let Some(front) = event.front {
-            self.state.evo.front = Some(front);
-
-            let total = super::widgets::num_pairs(self.state.evo.pareto.objective.dims());
-            if total > 0 {
-                self.state.evo.pareto.chart_start_index =
-                    self.state.evo.pareto.chart_start_index.min(total - 1);
-            } else {
-                self.state.evo.pareto.chart_start_index = 0;
-            }
-        }
+        self.state
+            .nav
+            .ensure_tab_available(self.state.evo.has_species());
     }
 
-    pub fn handle_engine_start(&mut self, objective: Objective) {
+    pub fn handle_engine_start(&mut self, front: Arc<RwLock<Front<Phenotype<C>>>>) {
+        let objectives = front.read().unwrap().objective().clone();
+
         self.state.run.engine = true;
-        self.state.evo.pareto.objective = objective.clone();
-        if objective.dims() == 2 {
+        self.state.evo.pareto.objective = objectives.clone();
+        if objectives.dims() == 2 {
             self.state.evo.pareto.charts_visible = 1;
+        }
+
+        self.state.evo.front = Arc::clone(&front);
+
+        let total = super::widgets::num_pairs(self.state.evo.pareto.objective.dims());
+        if total > 0 {
+            self.state.evo.pareto.chart_start_index =
+                self.state.evo.pareto.chart_start_index.min(total - 1);
+        } else {
+            self.state.evo.pareto.chart_start_index = 0;
         }
     }
 }
@@ -278,7 +284,7 @@ where
         match self.state.nav.mode {
             UiMode::Help => ModalWidget::new(HelpPanelWidget).render(area, buf),
             UiMode::MetricModal => {
-                ModalWidget::new(MetricModalWidget::new()).render(area, buf, &mut self.state);
+                ModalWidget::new(MetricModalWidget).render(area, buf, &mut self.state);
             }
             _ => {}
         }

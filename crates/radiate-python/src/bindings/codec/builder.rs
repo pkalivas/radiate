@@ -178,12 +178,12 @@ impl<T> NumericCodecBuilder<T> {
 
     pub fn materialize_chromosomes<G, C>(chromosomes: &[PyChromosome]) -> Vec<C>
     where
-        C: Chromosome<Gene = G> + From<Vec<G>>,
+        C: Chromosome<Gene = G> + From<PyChromosome>,
         G: Gene + From<PyGene>,
     {
         chromosomes
             .iter()
-            .map(|chrom| Self::materialize_genes(&chrom.genes))
+            .map(|chrom| C::from(chrom.clone()))
             .collect::<Vec<C>>()
     }
 }
@@ -228,7 +228,12 @@ where
         + for<'py> IntoPyObjectExt<'py>
         + 'static,
     G: Gene<Allele = A> + From<PyGene>,
-    C: Chromosome<Gene = G> + Clone + From<Vec<G>> + From<(usize, Range<A>, Range<A>)> + 'static,
+    C: Chromosome<Gene = G>
+        + Clone
+        + From<PyChromosome>
+        + From<Vec<G>>
+        + From<(usize, Range<A>, Range<A>)>
+        + 'static,
 {
     fn build(self) -> PyCodec<C, PyAnyObject> {
         let val_range = self

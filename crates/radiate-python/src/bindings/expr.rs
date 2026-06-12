@@ -1,5 +1,5 @@
 use pyo3::prelude::*;
-use radiate::{AnyValue, Evaluate, Expr, expr};
+use radiate::{AnyValue, Evaluate, Expr};
 use radiate_error::radiate_py_bail;
 
 use crate::{PyMetricSet, Wrap, dtype_from_str};
@@ -30,7 +30,7 @@ impl PyExpr {
     #[staticmethod]
     #[pyo3(signature = (name, dtype=None))]
     pub fn select(name: &str, dtype: Option<&str>) -> Self {
-        let mut e = expr::select(name);
+        let mut e = Expr::select(name);
         if let Some(d) = dtype
             && dtype_is_duration(d)
         {
@@ -42,14 +42,14 @@ impl PyExpr {
     #[staticmethod]
     pub fn literal(value: Wrap<AnyValue<'_>>) -> Self {
         PyExpr {
-            inner: expr::lit(value.0.into_static()),
+            inner: Expr::lit(value.0.into_static()),
         }
     }
 
     #[staticmethod]
     pub fn when_then_otherwise(condition: &PyExpr, then_expr: &PyExpr, else_expr: &PyExpr) -> Self {
         PyExpr {
-            inner: expr::when(condition.inner().clone())
+            inner: Expr::when(condition.inner().clone())
                 .then(then_expr.inner().clone())
                 .otherwise(else_expr.inner().clone()),
         }
@@ -58,10 +58,25 @@ impl PyExpr {
     #[staticmethod]
     pub fn every(interval: usize, then_expr: &PyExpr, else_expr: &PyExpr) -> Self {
         PyExpr {
-            inner: expr::every(interval)
+            inner: Expr::every(interval)
                 .then(then_expr.inner().clone())
                 .otherwise(else_expr.inner().clone()),
         }
+    }
+
+    #[staticmethod]
+    #[pyo3(signature = (metric, epsilon=1e-4))]
+    pub fn stagnation(metric: &str, epsilon: f32) -> Self {
+        Expr::select(metric).stagnation(epsilon).into()
+    }
+
+    #[staticmethod]
+    #[pyo3(signature = (metric, patience, epsilon=1e-4))]
+    pub fn is_stagnant(metric: &str, patience: u32, epsilon: f32) -> Self {
+        Expr::select(metric)
+            .stagnation(epsilon)
+            .gte(patience)
+            .into()
     }
 
     pub fn evaluate(&mut self, metrics: &PyMetricSet) -> PyResult<Wrap<AnyValue<'_>>> {
@@ -217,12 +232,8 @@ impl PyExpr {
             .into()
     }
 
-    pub fn affine(&self, scale: f32, bias: f32) -> Self {
-        self.inner.clone().affine(scale, bias).into()
-    }
-
     pub fn error(&self, target: f32) -> Self {
-        self.inner.clone().error_from(target).into()
+        self.inner.clone().error(target).into()
     }
 
     pub fn quantile(&self, q: f32) -> Self {
@@ -231,55 +242,6 @@ impl PyExpr {
         }
 
         self.inner.clone().quantile(q).into()
-    }
-
-    pub fn quantile_stream(&self, q: f32) -> Self {
-        if q <= 0.0 || q >= 1.0 {
-            panic!("Streaming quantile q must be in (0, 1)");
-        }
-        self.inner.clone().quantile_stream(q).into()
-    }
-    #[staticmethod]
-    pub fn error_from(metric: &str, target: f32) -> Self {
-        expr::error_from(metric, target).into()
-    }
-
-    #[staticmethod]
-    pub fn is_converged(metric: &str, window: usize, epsilon: f32) -> Self {
-        expr::is_converged(metric, window, epsilon).into()
-    }
-
-    #[staticmethod]
-    #[pyo3(signature = (metric, epsilon=1e-4))]
-    pub fn stagnation(metric: &str, epsilon: f32) -> Self {
-        expr::stagnation(metric, epsilon).into()
-    }
-
-    #[staticmethod]
-    #[pyo3(signature = (metric, patience, epsilon=1e-4))]
-    pub fn is_stagnant(metric: &str, patience: u32, epsilon: f32) -> Self {
-        expr::is_stagnant(metric, patience, epsilon).into()
-    }
-
-    /// PI-style control signal: 1 + gain * (rolling_mean(metric, window) - target) / target.
-    #[staticmethod]
-    pub fn pi_signal(metric: &str, target: f32, gain: f32, window: usize) -> Self {
-        expr::pi_signal(metric, target, gain, window).into()
-    }
-
-    #[staticmethod]
-    pub fn p50(metric: &str) -> Self {
-        expr::p50(metric).into()
-    }
-
-    #[staticmethod]
-    pub fn p95(metric: &str) -> Self {
-        expr::p95(metric).into()
-    }
-
-    #[staticmethod]
-    pub fn p99(metric: &str) -> Self {
-        expr::p99(metric).into()
     }
 }
 

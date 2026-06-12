@@ -346,6 +346,7 @@ mod tests {
     use super::*;
     use crate::{Factory, Node, TreeNode, ops};
 
+    #[allow(dead_code)]
     fn create_test_store() -> NodeStore<i32> {
         let store = NodeStore::new();
 

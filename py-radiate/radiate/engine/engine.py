@@ -242,9 +242,24 @@ class Engine[G, T]:
         )
 
     def __iter__(self):
-        """Allow unpacking the engine into its components."""
-        while True:
-            yield self.__next__()
+        """
+        Iterate over generations produced by the engine. I mean, all this really does is let you use the
+        engine as an iterator. Pretty self explanitory.
+
+        Example:
+        ---------
+        >>> import radiate as rd
+        >>> engine = (
+        ...     rd.Engine.int(5)
+        ...     .fitness(lambda indv: sum(indv))
+        ...     .minimizing()
+        ...     .limit(rd.Limit.generations(10))
+        ... )
+        >>> # iterate the engine for 10 generations and print out the index and score of each generation
+        >>> for generation in engine:
+        ...     print(generation.index(), generation.score())
+        """
+        return self
 
     def __next__(self) -> Generation[G, T]:
         """Get the next generation from the engine."""
@@ -282,7 +297,7 @@ class Engine[G, T]:
         ---------
         >>> engine.run(log=True)
         >>> engine.run(ui=True)
-        >>> engine.run(rd.ScoreLimit(0.0001), log=True)
+        >>> engine.run(rd.Limit.score(0.0001), log=True)
         >>> engine.run(limit)
         >>> engine.run(limit, checkpoint=True)
         >>> engine.run(limit, checkpoint="checkpoints")
@@ -569,7 +584,10 @@ class Engine[G, T]:
         return self
 
     def diversity(
-        self, diversity: DistanceBase, species_threshold: Rate | Expr | float = 1.5
+        self,
+        diversity: DistanceBase,
+        species_threshold: Rate | Expr | float = 0.5,
+        target_species: int | None = None,
     ) -> Engine[G, T]:
         """
         Set the diversity measure and species threshold for speciation in the engine.
@@ -583,10 +601,11 @@ class Engine[G, T]:
 
         Defaults:
         - Diversity Measure: None (no speciation)
-        - Species Threshold: 1.5
+        - Species Threshold: 0.5
         Args:
             diversity: A distance-based diversity measure to promote genetic diversity.
             species_threshold: A threshold for grouping individuals into species based on genetic distance. Must be greater than 0.
+            target_species: If provided, the engine will dynamically adjust the species threshold to try to maintain the specified number of species in the population. Must be greater than 0.
         Returns:
             Engine: The engine instance with the diversity measure and species threshold set.
 
@@ -602,10 +621,28 @@ class Engine[G, T]:
         ...     )  # <- use Euclidean distance for speciation with a threshold of 0.7
         ... )
         """
+        if target_species is not None:
+            if target_species <= 0:
+                raise ValueError("Target species must be greater than 0.")
+            initial_threshold = (
+                species_threshold
+                if isinstance(species_threshold, (int, float))
+                else 0.5
+            )
+
+            index = Expr.select("index")
+            thresh = Expr.select("species.threshold")
+            err = Expr.select("species.count").error(target_species) * 0.05
+
+            species_threshold = (
+                Expr.when(index < 2).then(initial_threshold).otherwise(err + thresh)
+            )
+
         if isinstance(species_threshold, (int, float)):
             if species_threshold <= 0:
                 raise ValueError("Species threshold must be greater than 0.")
             species_threshold = Rate.fixed(species_threshold)
+
         self._builder.set_diversity(diversity, species_threshold)
         return self
 

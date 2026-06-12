@@ -8,42 +8,94 @@ pub mod metric_names {
     pub const TIME: SmallStr = SmallStr::from_static("time");
 
     pub const AGE: SmallStr = SmallStr::from_static("age");
-    pub const REPLACE_AGE: SmallStr = SmallStr::from_static("age.replace");
-    pub const SPECIES_AGE_FAIL: SmallStr = SmallStr::from_static("age.species.fail");
-    pub const SPECIES_AGE: SmallStr = SmallStr::from_static("age.species");
 
-    pub const SPECIES_NEW_RATIO: SmallStr = SmallStr::from_static("new.species.ratio");
-    pub const FRONT_ADDITIONS: SmallStr = SmallStr::from_static("new.front");
-    pub const SPECIES_CREATED: SmallStr = SmallStr::from_static("new.species");
+    pub const REPLACE_AGE: SmallStr = SmallStr::from_static("replace.age");
+    pub const REPLACE_INVALID: SmallStr = SmallStr::from_static("replace.invalid");
 
-    pub const REPLACE_INVALID: SmallStr = SmallStr::from_static("invalid.replace");
-    pub const FRONT_REMOVALS: SmallStr = SmallStr::from_static("invalid.front");
-    pub const SPECIES_DIED: SmallStr = SmallStr::from_static("invalid.species");
+    pub const SPECIES_AGE: SmallStr = SmallStr::from_static("species.age");
+    pub const SPECIES_AGE_FAIL: SmallStr = SmallStr::from_static("species.fail.age");
+    pub const SPECIES_NEW_RATIO: SmallStr = SmallStr::from_static("species.new.ratio");
+    pub const SPECIES_CREATED: SmallStr = SmallStr::from_static("species.new");
+    pub const SPECIES_DIED: SmallStr = SmallStr::from_static("species.fail.empty");
+    pub const SPECIES_SIZE: SmallStr = SmallStr::from_static("species.size");
+    pub const SPECIES_DISTANCE_DIST: SmallStr = SmallStr::from_static("species.distance");
+    pub const SPECIES_EVENNESS: SmallStr = SmallStr::from_static("species.evenness");
+    pub const LARGEST_SPECIES_SHARE: SmallStr = SmallStr::from_static("species.largest_share");
+    pub const SPECIES_THRESHOLD: SmallStr = SmallStr::from_static("species.threshold");
+    pub const SPECIES_COUNT: SmallStr = SmallStr::from_static("species.count");
 
-    pub const GENOME_SIZE: SmallStr = SmallStr::from_static("size.genome");
-    pub const FRONT_SIZE: SmallStr = SmallStr::from_static("size.front");
-    pub const SPECIES_SIZE: SmallStr = SmallStr::from_static("size.species");
-
+    pub const FRONT_ADDITIONS: SmallStr = SmallStr::from_static("front.additions");
+    pub const FRONT_REMOVALS: SmallStr = SmallStr::from_static("front.removals");
     pub const FRONT_ENTROPY: SmallStr = SmallStr::from_static("front.entropy");
     pub const FRONT_COMPARISONS: SmallStr = SmallStr::from_static("front.comparisons");
     pub const FRONT_FILTERS: SmallStr = SmallStr::from_static("front.filters");
+    pub const FRONT_SIZE: SmallStr = SmallStr::from_static("front.size");
+
+    pub const GENOME_SIZE: SmallStr = SmallStr::from_static("genome.size");
 
     pub const SURVIVOR_COUNT: SmallStr = SmallStr::from_static("count.survivor");
     pub const EVALUATION_COUNT: SmallStr = SmallStr::from_static("count.evaluation");
-    pub const SPECIES_COUNT: SmallStr = SmallStr::from_static("count.species");
 
     pub const CARRYOVER_RATE: SmallStr = SmallStr::from_static("rate.carryover");
     pub const DIVERSITY_RATIO: SmallStr = SmallStr::from_static("rate.diversity");
 
     pub const SCORES: SmallStr = SmallStr::from_static("scores");
     pub const BEST_SCORES: SmallStr = SmallStr::from_static("scores.best");
+
+    /// Pielou evenness of the population's fitness distribution, in `[0, 1]`.
+    /// Pairs with [`UNIQUE_SCORES`] (richness — *how many* distinct scores) to
+    /// describe *how the population is spread across* those scores.
+    ///
+    /// - `~1.0`: every distinct score is held by roughly the same number of
+    ///   members — fitness is spread evenly, a healthy, exploring population.
+    /// - `~0.0`: nearly all members share a few (or one) score — the population
+    ///   has collapsed onto a plateau (premature convergence). This can read
+    ///   low even when `stddev` looks fine, because a handful of outliers
+    ///   inflate the spread while the bulk is piled up.
+    ///
+    /// Defined as Shannon entropy of the per-score frequencies normalized by
+    /// `ln(unique_scores)`; reported as `0.0` when there is only one distinct
+    /// score (no diversity to be even about).
+    pub const SCORES_EVENNESS: SmallStr = SmallStr::from_static("scores.evenness");
+
+    /// Gini coefficient of the population's fitness distribution, in `[0, 1]` —
+    /// a measure of fitness *inequality* / effective selection pressure.
+    ///
+    /// - `0.0`: perfect equality — every member has the same score (fully
+    ///   converged, or pre-evaluation).
+    /// - low (e.g. `~0.1`): fitness is fairly uniform across the population.
+    /// - high (e.g. `~0.7+`): a small elite holds most of the "fitness mass"
+    ///   while the rest trail far behind — steep selection pressure, the regime
+    ///   where a few individuals dominate reproduction.
+    ///
+    /// Independent of scale and (via an internal floor-shift) of sign, so it is
+    /// comparable across runs and works for both maximization and minimization.
+    /// Complements [`SCORE_VOLATILITY`] (coefficient of variation): both gauge
+    /// spread, but Gini is distribution-shape based rather than mean-relative.
+    pub const SCORES_GINI: SmallStr = SmallStr::from_static("scores.gini");
+
     pub const SCORE_VOLATILITY: SmallStr = SmallStr::from_static("score.volatility");
     pub const BEST_SCORE_IMPROVEMENT: SmallStr = SmallStr::from_static("score.improvement");
 
-    pub const SPECIES_DISTANCE_DIST: SmallStr = SmallStr::from_static("species.distance");
-    pub const SPECIES_EVENNESS: SmallStr = SmallStr::from_static("species.evenness");
-    pub const LARGEST_SPECIES_SHARE: SmallStr = SmallStr::from_static("species.largest_share");
-    pub const SPECIES_THRESHOLD: SmallStr = SmallStr::from_static("species.threshold");
+    /// Pearson correlation between genome size and fitness across the
+    /// population, in `[-1, 1]` — the bloat signal. Only emitted when genome
+    /// length actually varies (variable-length GP genomes); for fixed-length
+    /// genomes there is no size variance and the metric is omitted.
+    ///
+    /// Sign is relative to the score scale, so interpret it together with the
+    /// objective's direction. Reading it as "are bigger genomes scoring
+    /// better?":
+    /// - `~+0.9`: size and score move together almost lockstep — if bigger is
+    ///   *not* buying proportionally better fitness, this is the classic bloat
+    ///   signature (genomes growing without payoff).
+    /// - `~0.0`: size and fitness are decoupled — growth (or shrinkage) is not
+    ///   tracking quality.
+    /// - `~-0.9`: smaller genomes score better — parsimony pressure is winning,
+    ///   or large genomes are being penalized.
+    ///
+    /// Computed only over scored members so it never desyncs from skipped /
+    /// unevaluated individuals.
+    pub const SIZE_SCORE_CORR: SmallStr = SmallStr::from_static("genome.size.score.corr");
 
     pub const UNIQUE_MEMBERS: SmallStr = SmallStr::from_static("unique.members");
     pub const UNIQUE_SCORES: SmallStr = SmallStr::from_static("unique.scores");
@@ -131,6 +183,9 @@ const EXACT_TAGS: &[(&SmallStr, &[TagType])] = &[
     (&metric_names::CARRYOVER_RATE, &[TagType::Derived]),
     (&metric_names::DIVERSITY_RATIO, &[TagType::Derived]),
     (&metric_names::SCORE_VOLATILITY, &[TagType::Derived]),
+    (&metric_names::SCORES_EVENNESS, &[TagType::Derived]),
+    (&metric_names::SCORES_GINI, &[TagType::Derived]),
+    (&metric_names::SIZE_SCORE_CORR, &[TagType::Derived]),
     //
     (&metric_names::SCORES, &[TagType::Score]),
     //

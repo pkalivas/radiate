@@ -1,19 +1,24 @@
 use crate::{
-    state::AppState,
+    state::{AppState, MetricChartType},
     widgets::{
-        EngineStatusPanelWidget, FitnessChartPanelWidget, FnWidget, MetricDetailPanelWidget,
-        MetricTableWidget, Panel, SearchBarWidget, TabComponent,
+        AppWidget, EngineStatusPanelWidget, FnWidget, MetricDetailPanelWidget, MetricTableWidget,
+        Panel, ParetoPagingWidget, SearchBarWidget, TabComponent,
         components::{SpeciesPieChartComponent, SpeciesSparklineComponent, TimePieChartComponent},
-        panels::tables::SpeciesTableWidget,
+        panels::{MetricLineChartWidget, tables::SpeciesTableWidget},
     },
 };
-use radiate_engines::Chromosome;
+use radiate_engines::{Chromosome, metric_names};
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Direction, Layout, Rect},
-    text::Line,
-    widgets::{StatefulWidget, Widget},
+    widgets::Widget,
 };
+
+pub struct TabNode<C: Chromosome> {
+    pub title: &'static str,
+    pub condition: fn(&AppState<C>) -> bool,
+    pub content: LayoutNode<C>,
+}
 
 pub enum LayoutNode<C: Chromosome> {
     Horizontal {
@@ -25,9 +30,7 @@ pub enum LayoutNode<C: Chromosome> {
         children: Vec<LayoutNode<C>>,
     },
     Tabbed {
-        tabs: Vec<&'static str>,
-        title_fn: fn(&AppState<C>) -> Line<'static>,
-        children: Vec<LayoutNode<C>>,
+        children: Vec<TabNode<C>>,
     },
     Widget(fn(Rect, &mut Buffer, &mut AppState<C>)),
 }
@@ -61,11 +64,7 @@ impl<C: Chromosome> LayoutNode<C> {
                     child.draw(child_area, buf, state);
                 }
             }
-            LayoutNode::Tabbed {
-                tabs,
-                title_fn,
-                children,
-            } => {
+            LayoutNode::Tabbed { children } => {
                 let active_tab_idx = state.nav.dashboard_tab_index();
 
                 let areas = Layout::default()
@@ -73,17 +72,25 @@ impl<C: Chromosome> LayoutNode<C> {
                     .constraints([Constraint::Length(3), Constraint::Fill(1)])
                     .split(area);
 
+                let titles = children
+                    .iter()
+                    .filter(|t| (t.condition)(state))
+                    .map(|t| t.title)
+                    .collect::<Vec<_>>();
+
+                let select = children[..active_tab_idx]
+                    .iter()
+                    .filter(|t| (t.condition)(state))
+                    .count();
+
                 Panel::new(FnWidget::new(|area, buf| {
-                    TabComponent::from(tabs.clone())
-                        .select(active_tab_idx)
-                        .render(area, buf);
+                    TabComponent::from(titles).select(select).render(area, buf);
                 }))
-                .title_top_right(title_fn(state))
                 .render_inside_block(true)
                 .render(areas[0], buf);
 
                 if let Some(active_child) = children.get(active_tab_idx) {
-                    active_child.draw(areas[1], buf, state);
+                    active_child.content.draw(areas[1], buf, state);
                 }
             }
             LayoutNode::Widget(render) => render(area, buf, state),
@@ -102,77 +109,115 @@ impl<C: Chromosome> Default for LayoutNode<C> {
                     constraints: vec![Constraint::Percentage(25), Constraint::Fill(1)],
                     children: vec![
                         Widget(|a, b, s| EngineStatusPanelWidget::new().render(a, b, s)),
-                        Widget(|a, b, s| FitnessChartPanelWidget::new().render(a, b, s)),
+                        Widget(|a, b, s| {
+                            if s.evo.pareto.objective.is_single() {
+                                MetricLineChartWidget::new(
+                                    metric_names::BEST_SCORES,
+                                    MetricChartType::Last,
+                                )
+                                .render(a, b, s)
+                            } else {
+                                ParetoPagingWidget::new(s).render(a, b);
+                            }
+                        }),
                     ],
                 },
                 Vertical {
                     constraints: vec![Constraint::Fill(1), Constraint::Length(3)],
                     children: vec![
                         Tabbed {
-                            tabs: vec!["Stats", "Time", "Distribution", "Species"],
-                            title_fn: |state: &AppState<C>| {
-                                crate::widgets::panels::metric_summary_line(state)
-                            },
                             children: vec![
-                                Horizontal {
-                                    constraints: vec![
-                                        Constraint::Fill(1),
-                                        Constraint::Percentage(15),
-                                    ],
-                                    children: vec![
-                                        Widget(|a, b, s| {
-                                            MetricTableWidget::stats().render(a, b, s)
-                                        }),
-                                        Widget(|a, b, s| {
-                                            MetricDetailPanelWidget::new().render(a, b, s)
-                                        }),
-                                    ],
+                                TabNode {
+                                    title: "Stats",
+                                    condition: |_| true,
+                                    content: Horizontal {
+                                        constraints: vec![
+                                            Constraint::Fill(1),
+                                            Constraint::Percentage(30),
+                                            Constraint::Percentage(20),
+                                        ],
+                                        children: vec![
+                                            Widget(|a, b, s| {
+                                                MetricTableWidget::stats().render(a, b, s)
+                                            }),
+                                            Widget(|a, b, s| {
+                                                MetricLineChartWidget::default()
+                                                    .with_show_bottom_options(true)
+                                                    .render(a, b, s)
+                                            }),
+                                            Widget(|a, b, s| {
+                                                MetricDetailPanelWidget.render(a, b, s)
+                                            }),
+                                        ],
+                                    },
                                 },
-                                Horizontal {
-                                    constraints: vec![
-                                        Constraint::Fill(1),
-                                        Constraint::Percentage(30),
-                                        Constraint::Percentage(20),
-                                    ],
-                                    children: vec![
-                                        Widget(|a, b, s| MetricTableWidget::time().render(a, b, s)),
-                                        Widget(|a, b, s| {
-                                            TimePieChartComponent::new().render(a, b, s)
-                                        }),
-                                        Widget(|a, b, s| {
-                                            MetricDetailPanelWidget::new().render(a, b, s)
-                                        }),
-                                    ],
+                                TabNode {
+                                    title: "Time",
+                                    condition: |_| true,
+                                    content: Horizontal {
+                                        constraints: vec![
+                                            Constraint::Fill(1),
+                                            Constraint::Percentage(30),
+                                            Constraint::Percentage(20),
+                                        ],
+                                        children: vec![
+                                            Widget(|a, b, s| {
+                                                MetricTableWidget::time().render(a, b, s)
+                                            }),
+                                            Widget(|a, b, s| {
+                                                TimePieChartComponent::new().render(a, b, s)
+                                            }),
+                                            Widget(|a, b, s| {
+                                                MetricDetailPanelWidget.render(a, b, s)
+                                            }),
+                                        ],
+                                    },
                                 },
-                                Horizontal {
-                                    constraints: vec![
-                                        Constraint::Fill(1),
-                                        Constraint::Percentage(20),
-                                    ],
-                                    children: vec![
-                                        Widget(|a, b, s| {
-                                            MetricTableWidget::distribution().render(a, b, s)
-                                        }),
-                                        Widget(|a, b, s| {
-                                            MetricDetailPanelWidget::new().render(a, b, s)
-                                        }),
-                                    ],
+                                TabNode {
+                                    title: "Distribution",
+                                    condition: |_| true,
+                                    content: Horizontal {
+                                        constraints: vec![
+                                            Constraint::Fill(1),
+                                            Constraint::Percentage(30),
+                                            Constraint::Percentage(20),
+                                        ],
+                                        children: vec![
+                                            Widget(|a, b, s| {
+                                                MetricTableWidget::distribution().render(a, b, s)
+                                            }),
+                                            Widget(|a, b, s| {
+                                                MetricLineChartWidget::default()
+                                                    .with_show_bottom_options(true)
+                                                    .render(a, b, s)
+                                            }),
+                                            Widget(|a, b, s| {
+                                                MetricDetailPanelWidget.render(a, b, s)
+                                            }),
+                                        ],
+                                    },
                                 },
-                                Horizontal {
-                                    constraints: vec![
-                                        Constraint::Fill(1),
-                                        Constraint::Percentage(25),
-                                        Constraint::Percentage(25),
-                                    ],
-                                    children: vec![
-                                        Widget(|a, b, s| SpeciesTableWidget::new().render(a, b, s)),
-                                        Widget(|a, b, s| {
-                                            SpeciesSparklineComponent::new().render(a, b, s)
-                                        }),
-                                        Widget(|a, b, s| {
-                                            SpeciesPieChartComponent::new().render(a, b, s)
-                                        }),
-                                    ],
+                                TabNode {
+                                    title: "Species",
+                                    condition: |s| s.evo.has_species(),
+                                    content: Horizontal {
+                                        constraints: vec![
+                                            Constraint::Fill(1),
+                                            Constraint::Percentage(25),
+                                            Constraint::Percentage(25),
+                                        ],
+                                        children: vec![
+                                            Widget(|a, b, s| {
+                                                SpeciesTableWidget::new().render(a, b, s)
+                                            }),
+                                            Widget(|a, b, s| {
+                                                SpeciesSparklineComponent::new().render(a, b, s)
+                                            }),
+                                            Widget(|a, b, s| {
+                                                SpeciesPieChartComponent::new().render(a, b, s)
+                                            }),
+                                        ],
+                                    },
                                 },
                             ],
                         },

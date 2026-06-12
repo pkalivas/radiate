@@ -91,10 +91,11 @@ pub fn render_dashboard(metrics: &MetricSet) -> io::Result<String> {
 fn render_table_header(mut out: String) -> io::Result<String> {
     writeln!(
         out,
-        "{:<26} | {:<6} | {:<10} | {:<10} | {:<10} | {:<6} | {:<12} | {:<10} | {:<10} | {:<10} | {:<10}",
-        "Name", "Type", "Mean", "Min", "Max", "N", "Total", "StdDev", "Skew", "Kurt", "Entr"
-    ).unwrap();
-    writeln!(out, "{}", "-".repeat(145)).unwrap();
+        "{:<26} | {:<6} | {:<10} | {:<10} | {:<10} | {:<6} | {:<12} | {:<10} | {:<10} | {:<10}",
+        "Name", "Type", "Mean", "Min", "Max", "N", "Total", "StdDev", "Skew", "Kurt"
+    )
+    .unwrap();
+    writeln!(out, "{}", "-".repeat(135)).unwrap();
     Ok(out)
 }
 
@@ -111,7 +112,7 @@ pub fn render_metric_rows_full(
     {
         writeln!(
             out,
-            "{:<26} | {:<6} | {:<10.3} | {:<10.3} | {:<10.3} | {:<6} | {:<12.3} | {:<10.3} | {:<10.3} | {:<10.3} | {:<10.3}",
+            "{:<26} | {:<6} | {:<10.3} | {:<10.3} | {:<10.3} | {:<6} | {:<12.3} | {:<10.3} | {:<10.3} | {:<10.3}",
             truncate_name(name),
             "dist",
             dist.mean(),
@@ -121,9 +122,8 @@ pub fn render_metric_rows_full(
             dist.sum() / 1_000.0, // scale sum to avoid overflow
             dist.stddev(),
             dist.skewness(),
-            dist.kurtosis(),
-            // dist.entropy().unwrap_or(0.0),
-            "-",
+            dist.kurtosis()
+            ,
         ).unwrap();
     }
 
@@ -132,7 +132,7 @@ pub fn render_metric_rows_full(
     {
         writeln!(
             out,
-            "{:<26} | {:<6} | {:<10.3} | {:<10.3} | {:<10.3} | {:<6} | {:<12.3} | {:<10.3} | {:<10.3} | {:<10.3} | {:<10}",
+            "{:<26} | {:<6} | {:<10.3} | {:<10.3} | {:<10.3} | {:<6} | {:<12.3} | {:<10.3} | {:<10.3} | {:<10.3}",
             truncate_name(name),
             "value",
             stat.mean(),
@@ -143,7 +143,6 @@ pub fn render_metric_rows_full(
             stat.stddev(),
             stat.skewness(),
             stat.kurtosis(),
-            "-",
         ).unwrap();
     }
 
@@ -153,7 +152,7 @@ pub fn render_metric_rows_full(
     {
         writeln!(
             out,
-            "{:<26} | {:<6} | {:<10} | {:<10} | {:<10} | {:<6} | {:<12} | {:<10} | {:<10} | {:<10} | {:<10}",
+            "{:<26} | {:<6} | {:<10} | {:<10} | {:<10} | {:<6} | {:<12} | {:<10} | {:<10} | {:<10}",
             truncate_name(name),
             "time",
             fmt_duration(t.mean()),
@@ -164,8 +163,8 @@ pub fn render_metric_rows_full(
             fmt_duration(t.stddev()),
             "-",
             "-",
-            "-",
-        ).unwrap();
+        )
+        .unwrap();
     }
 
     Ok(())

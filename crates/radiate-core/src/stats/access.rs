@@ -81,6 +81,18 @@ impl MetricSet {
         self.get(super::metric_names::SCORE_VOLATILITY)
     }
 
+    pub fn scores_evenness(&self) -> Option<&Metric> {
+        self.get(super::metric_names::SCORES_EVENNESS)
+    }
+
+    pub fn scores_gini(&self) -> Option<&Metric> {
+        self.get(super::metric_names::SCORES_GINI)
+    }
+
+    pub fn size_score_corr(&self) -> Option<&Metric> {
+        self.get(super::metric_names::SIZE_SCORE_CORR)
+    }
+
     pub fn species_count(&self) -> Option<&Metric> {
         self.get(super::metric_names::SPECIES_COUNT)
     }

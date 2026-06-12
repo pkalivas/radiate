@@ -1,4 +1,5 @@
-use crate::state::{AppState, AppTableState, DashboardTab};
+use crate::state::{AppState, AppTableState, Pane};
+use crate::widgets::AppWidget;
 use radiate_engines::stats::TagType;
 use radiate_engines::{Chromosome, MetricSet, Species, metric_names};
 use radiate_engines::{Metric, stats::fmt_duration};
@@ -12,21 +13,20 @@ use ratatui::{
     widgets::{Cell, Row, Table},
 };
 use std::iter::{once, repeat_n};
-use std::marker::PhantomData;
 
-pub const STAT_HEADER_CELLS: [&str; 8] = [
+pub const STAT_HEADER_CELLS: [&str; 6] = ["Metric", "Last", "Min", "Max", "μ (mean)", "Count"];
+pub const TIME_HEADER_CELLS: [&str; 5] = ["Metric", "Min", "Max", "μ (mean)", "Total"];
+pub const SPECIES_HEADER_CELLS: [&str; 6] =
+    ["ID", "Age", "Size", "Gen. Stag", "Raw Score", "Adj. Score"];
+pub const DIST_HEADER_CELLS: [&str; 7] = [
     "Metric",
     "Min",
     "Max",
     "μ (mean)",
-    "Sum",
-    "StdDev",
+    "Std Dev",
     "Var",
     "Count",
 ];
-pub const TIME_HEADER_CELLS: [&str; 5] = ["Metric", "Min", "Max", "μ (mean)", "Total"];
-pub const SPECIES_HEADER_CELLS: [&str; 6] =
-    ["ID", "Age", "Size", "Gen. Stag", "Raw Score", "Adj. Score"];
 
 // --- Metric table ---
 
@@ -45,18 +45,11 @@ impl MetricTableKind {
         }
     }
 
-    fn tab(&self) -> DashboardTab {
-        match self {
-            Self::Time => DashboardTab::Time,
-            Self::Stats => DashboardTab::Stats,
-            Self::Distribution => DashboardTab::Distribution,
-        }
-    }
-
     fn headers(&self) -> &'static [&'static str] {
         match self {
             Self::Time => &TIME_HEADER_CELLS,
-            Self::Stats | Self::Distribution => &STAT_HEADER_CELLS,
+            Self::Stats => &STAT_HEADER_CELLS,
+            Self::Distribution => &DIST_HEADER_CELLS,
         }
     }
 
@@ -64,10 +57,10 @@ impl MetricTableKind {
         match self {
             Self::Time => vec![Constraint::Fill(1); 5],
             Self::Stats => once(Constraint::Length(20))
-                .chain(repeat_n(Constraint::Fill(1), 7))
+                .chain(repeat_n(Constraint::Fill(1), 5))
                 .collect(),
-            Self::Distribution => once(Constraint::Length(22))
-                .chain(repeat_n(Constraint::Fill(1), 7))
+            Self::Distribution => once(Constraint::Length(20))
+                .chain(repeat_n(Constraint::Fill(1), 6))
                 .collect(),
         }
     }
@@ -88,38 +81,32 @@ impl MetricTableKind {
     }
 }
 
-pub struct MetricTableWidget<C: Chromosome> {
+pub struct MetricTableWidget {
     kind: MetricTableKind,
-    _phantom: PhantomData<C>,
 }
 
-impl<C: Chromosome> MetricTableWidget<C> {
+impl MetricTableWidget {
     pub fn time() -> Self {
         Self {
             kind: MetricTableKind::Time,
-            _phantom: PhantomData,
         }
     }
 
     pub fn stats() -> Self {
         Self {
             kind: MetricTableKind::Stats,
-            _phantom: PhantomData,
         }
     }
 
     pub fn distribution() -> Self {
         Self {
             kind: MetricTableKind::Distribution,
-            _phantom: PhantomData,
         }
     }
 }
 
-impl<C: Chromosome> StatefulWidget for MetricTableWidget<C> {
-    type State = AppState<C>;
-
-    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+impl<C: Chromosome> AppWidget<C> for MetricTableWidget {
+    fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
         let items: Vec<_> = tagged_metrics(&state.evo.metrics, state, self.kind.tag())
             .into_iter()
             .filter(|(name, _)| self.kind.filter_item(name))
@@ -140,7 +127,9 @@ impl<C: Chromosome> StatefulWidget for MetricTableWidget<C> {
                 .update_rows(&items, |(name, _)| (*name).into()),
         }
 
-        let border_style = crate::styles::panel_block(state.nav.is_tab_focused(self.kind.tab()));
+        let focused = state.nav.is_pane_focused(Pane::List);
+        let border_style = crate::styles::panel_block(focused);
+
         let rows = self.kind.build_rows(items.iter().copied());
 
         let table = Table::default()
@@ -165,22 +154,16 @@ impl<C: Chromosome> StatefulWidget for MetricTableWidget<C> {
     }
 }
 
-pub struct SpeciesTableWidget<C: Chromosome> {
-    _phantom: PhantomData<C>,
-}
+pub struct SpeciesTableWidget;
 
-impl<C: Chromosome> SpeciesTableWidget<C> {
+impl SpeciesTableWidget {
     pub fn new() -> Self {
-        Self {
-            _phantom: PhantomData,
-        }
+        Self
     }
 }
 
-impl<C: Chromosome> StatefulWidget for SpeciesTableWidget<C> {
-    type State = AppState<C>;
-
-    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+impl<C: Chromosome> AppWidget<C> for SpeciesTableWidget {
+    fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
         let items = match state.evo.get_species() {
             Some(species) => species,
             None => return,
@@ -190,8 +173,7 @@ impl<C: Chromosome> StatefulWidget for SpeciesTableWidget<C> {
 
         let obj_index = state.evo.pareto.objective_index;
         let generation = state.evo.index;
-        let border_style =
-            crate::styles::panel_block(state.nav.is_tab_focused(DashboardTab::Species));
+        let border_style = crate::styles::panel_block(state.nav.is_pane_focused(Pane::List));
         let rows = species_into_rows(obj_index, generation, items);
 
         let table = Table::default()
@@ -275,12 +257,10 @@ fn metrics_into_stat_rows<'a>(
         m.stats().map(|stat| {
             Row::new(vec![
                 Cell::from(Line::from(name.to_string())),
+                Cell::from(format!("{:.2}", stat.last())),
                 Cell::from(format!("{:.2}", stat.min())),
                 Cell::from(format!("{:.2}", stat.max())),
                 Cell::from(format!("{:.2}", stat.mean())),
-                Cell::from(format!("{:.2}", stat.sum())),
-                Cell::from(format!("{:.2}", stat.stddev())),
-                Cell::from(format!("{:.2}", stat.var())),
                 Cell::from(format!("{}", stat.count())),
             ])
         })
@@ -297,7 +277,6 @@ fn metrics_into_dist_rows<'a>(
                 Cell::from(format!("{:.2}", stat.min())),
                 Cell::from(format!("{:.2}", stat.max())),
                 Cell::from(format!("{:.2}", stat.mean())),
-                Cell::from(format!("{:.2}", stat.sum())),
                 Cell::from(format!("{:.2}", stat.stddev())),
                 Cell::from(format!("{:.2}", stat.var())),
                 Cell::from(format!("{}", stat.count())),

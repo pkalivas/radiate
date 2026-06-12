@@ -56,7 +56,7 @@ impl TreeCrossover {
 
                 if one_crossover_size <= max_size && two_crossover_size <= max_size {
                     std::mem::swap(one_sub_node, two_sub_node);
-                    ctx.metric(TN_X_ATTEMPTS, attempts + 1);
+                    ctx.upsert(TN_X_ATTEMPTS, attempts + 1);
                     return AlterResult::from(2);
                 }
             }

@@ -7,6 +7,7 @@ pub struct SpeciesParams<C: Chromosome> {
     pub diversity: Option<Arc<dyn Diversity<C>>>,
     pub species_threshold: Rate,
     pub max_species_age: usize,
+    pub target_species_count: Option<usize>,
 }
 
 impl<C, T> GeneticEngineBuilder<C, T>
@@ -25,11 +26,6 @@ where
     }
 
     pub fn species_threshold(mut self, threshold: impl Into<Rate>) -> Self {
-        // self.add_error_if(
-        //     || threshold < 0.0,
-        //     "species_threshold must be greater than 0",
-        // );
-
         self.params.species_params.species_threshold = threshold.into();
         self
     }
@@ -41,6 +37,16 @@ where
         );
 
         self.params.species_params.max_species_age = max_species_age;
+        self
+    }
+
+    pub fn target_species(mut self, target_species_count: usize) -> Self {
+        self.add_error_if(
+            || target_species_count < 1,
+            "target_species_count must be greater than 0",
+        );
+
+        self.params.species_params.target_species_count = Some(target_species_count);
         self
     }
 }

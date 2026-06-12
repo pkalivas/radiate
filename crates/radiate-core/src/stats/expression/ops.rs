@@ -1,7 +1,7 @@
 use super::{Evaluate, Expr, ExprResult};
-use crate::MetricSet;
+use crate::stats::ExprSelector;
 use radiate_error::radiate_bail;
-use radiate_utils::{AnyValue, DataType, Quantile};
+use radiate_utils::{AnyValue, DataType};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
@@ -13,13 +13,17 @@ pub enum UnaryOp {
     Abs,
     Cast(DataType),
     Debug,
-    /// Streaming P² quantile over the child's evaluated stream. Estimator state
-    /// lives inside the variant; cloning the expression clones an independent
-    /// estimator.
-    Quantile(Quantile<f32>),
     /// Fused affine: `scale * child + bias`. Replaces the `.mul(lit).add(lit)`
     /// pattern with a single node. Chains collapse via [`fuse_affine`].
-    Affine { scale: f32, bias: f32 },
+    Affine {
+        scale: f32,
+        bias: f32,
+    },
+    Stagnation {
+        epsilon: f32,
+        last_value: Option<f32>,
+        count: u32,
+    },
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -36,10 +40,26 @@ impl UnaryExpr {
             op,
         }
     }
+
+    pub fn reset(&mut self) {
+        self.child.reset();
+        if let UnaryOp::Stagnation {
+            ref mut last_value,
+            ref mut count,
+            ..
+        } = self.op
+        {
+            *last_value = None;
+            *count = 0;
+        }
+    }
 }
 
-impl Evaluate for UnaryExpr {
-    fn eval<'a>(&'a mut self, metrics: &MetricSet) -> ExprResult<'a> {
+impl<T> Evaluate<T> for UnaryExpr
+where
+    T: ExprSelector,
+{
+    fn eval<'a>(&'a mut self, metrics: &T) -> ExprResult<'a> {
         let value = self.child.eval(metrics)?;
 
         match self.op {
@@ -63,22 +83,37 @@ impl Evaluate for UnaryExpr {
                 println!("{:?}", value);
                 Ok(value)
             }
-            UnaryOp::Quantile(ref mut estimator) => {
-                let Some(x) = value.extract::<f32>() else {
-                    return Ok(AnyValue::Null);
-                };
-                if x.is_finite() {
-                    estimator.add(x);
-                }
-                match estimator.value() {
-                    Some(q) => Ok(AnyValue::Float32(q)),
-                    None => Ok(AnyValue::Null),
-                }
-            }
             UnaryOp::Affine { scale, bias } => match value.extract::<f32>() {
                 Some(x) if x.is_finite() => Ok(AnyValue::Float32(scale * x + bias)),
                 _ => Ok(AnyValue::Null),
             },
+            UnaryOp::Stagnation {
+                epsilon,
+                ref mut last_value,
+                ref mut count,
+            } => {
+                let current = match value.extract::<f32>() {
+                    Some(v) if v.is_finite() => v,
+                    _ => return Ok(AnyValue::Null),
+                };
+
+                match last_value {
+                    None => {
+                        *last_value = Some(current);
+                        *count = 0;
+                    }
+                    Some(last) => {
+                        if (current - *last).abs() > epsilon {
+                            *last_value = Some(current);
+                            *count = 0;
+                        } else {
+                            *count = count.saturating_add(1);
+                        }
+                    }
+                }
+
+                Ok(AnyValue::UInt32(*count))
+            }
         }
     }
 }
@@ -126,8 +161,11 @@ impl BinaryExpr {
     }
 }
 
-impl Evaluate for BinaryExpr {
-    fn eval<'a>(&'a mut self, metrics: &MetricSet) -> ExprResult<'a> {
+impl<T> Evaluate<T> for BinaryExpr
+where
+    T: ExprSelector,
+{
+    fn eval<'a>(&'a mut self, metrics: &T) -> ExprResult<'a> {
         // Coalesce short-circuits: only evaluate rhs when lhs is bad.
         if let BinaryOp::Coalesce = self.op {
             let lhs = self.lhs.eval(metrics)?;
@@ -202,8 +240,11 @@ impl TrinaryExpr {
     }
 }
 
-impl Evaluate for TrinaryExpr {
-    fn eval<'a>(&'a mut self, metrics: &MetricSet) -> ExprResult<'a> {
+impl<T> Evaluate<T> for TrinaryExpr
+where
+    T: ExprSelector,
+{
+    fn eval<'a>(&'a mut self, metrics: &T) -> ExprResult<'a> {
         match self.operation {
             TrinaryOp::If => {
                 let condition = self.first.eval(metrics)?;
@@ -258,6 +299,7 @@ pub(super) fn fuse_affine(child: Expr, scale: f32, bias: f32) -> Expr {
             else {
                 unreachable!()
             };
+
             return Expr::Unary(UnaryExpr::new(
                 *inner,
                 UnaryOp::Affine {
@@ -266,11 +308,12 @@ pub(super) fn fuse_affine(child: Expr, scale: f32, bias: f32) -> Expr {
                 },
             ));
         }
-        // Some other unary op — put it back and wrap.
+
         return Expr::Unary(UnaryExpr::new(
             Expr::Unary(u),
             UnaryOp::Affine { scale, bias },
         ));
     }
+
     Expr::Unary(UnaryExpr::new(child, UnaryOp::Affine { scale, bias }))
 }

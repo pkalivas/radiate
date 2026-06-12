@@ -95,10 +95,6 @@ The threshold sets how close two individuals must be — *under the chosen dista
 	--8<-- "rust/diversity/species.rs:threshold"
 	```
 
-!!! warning "Defaults differ by language"
-
-	The default `species_threshold` is **`0.5`** in Rust and **`1.5`** in Python. Because the meaningful range depends entirely on your distance measure (Hamming is bounded in `[0, 1]`, Euclidean is not), always set it explicitly for your problem rather than relying on the default.
-
 As a general rule, the `species_threshold` follows the below pattern:
 
 A **lower** threshold → individuals must be very similar to group → **more, smaller species** → more diversity, slower convergence.

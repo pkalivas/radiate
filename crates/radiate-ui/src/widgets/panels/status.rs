@@ -1,28 +1,22 @@
-use crate::state::{AppState, LineChartType};
-use crate::widgets::components::LineChartWidget;
-use crate::widgets::{FnWidget, MetricDetailPanelWidget, Panel, TabComponent};
+use crate::state::AppState;
+use crate::widgets::panels::MetricLineChartWidget;
+use crate::widgets::{AppWidget, FnWidget, MetricDetailPanelWidget, Panel, TabComponent};
 use radiate_engines::stats::fmt_duration;
 use radiate_engines::{Chromosome, MetricSet};
 use ratatui::prelude::*;
 use ratatui::style::{Color, Stylize};
 use ratatui::widgets::{Paragraph, Row, Table};
 
-pub struct EngineStatusPanelWidget<C: Chromosome> {
-    _phantom: std::marker::PhantomData<C>,
-}
+pub struct EngineStatusPanelWidget;
 
-impl<C: Chromosome> EngineStatusPanelWidget<C> {
+impl EngineStatusPanelWidget {
     pub fn new() -> Self {
-        Self {
-            _phantom: std::marker::PhantomData,
-        }
+        Self
     }
 }
 
-impl<C: Chromosome> StatefulWidget for EngineStatusPanelWidget<C> {
-    type State = AppState<C>;
-
-    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+impl<C: Chromosome> AppWidget<C> for EngineStatusPanelWidget {
+    fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
         let metrics = &state.evo.metrics;
         let elapsed = metrics
             .time()
@@ -79,67 +73,45 @@ impl<C: Chromosome> StatefulWidget for EngineStatusPanelWidget<C> {
     }
 }
 
-pub struct MetricModalWidget<C: Chromosome> {
-    _phantom: std::marker::PhantomData<C>,
-}
+pub struct MetricModalWidget;
 
-impl<C: Chromosome> MetricModalWidget<C> {
-    pub fn new() -> Self {
-        Self {
-            _phantom: std::marker::PhantomData,
-        }
-    }
-}
-
-impl<C: Chromosome> StatefulWidget for MetricModalWidget<C> {
-    type State = AppState<C>;
-
-    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let current_metric_name = state.get_selected_metric().unwrap_or("").to_owned();
-
-        let index = state.nav.chart_tab_index();
+impl<C: Chromosome> AppWidget<C> for MetricModalWidget {
+    fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
+        let index = state.chart_view_index();
+        let tab_labels = state
+            .selected_metric_views()
+            .iter()
+            .map(|v| {
+                Span::styled(
+                    format!(" {} ", v.label()),
+                    Style::default().fg(Color::White),
+                )
+            })
+            .collect::<Vec<Span<'static>>>();
 
         let [left, right] =
             Layout::horizontal([Constraint::Percentage(25), Constraint::Fill(1)]).areas(area);
 
-        MetricDetailPanelWidget::new().render(left, buf, state);
+        MetricDetailPanelWidget.render(left, buf, state);
 
         let areas = Layout::default()
             .direction(Direction::Vertical)
             .constraints([Constraint::Length(3), Constraint::Fill(1)])
             .split(right);
 
-        let chart_type = state.nav.chart_tab;
-        let charts = state.evo.get_chart_by_key(&current_metric_name, chart_type);
-
-        Panel::new(FnWidget::new(|area, buf| {
-            TabComponent::new(
-                LineChartType::chart_options()
-                    .iter()
-                    .map(|t| Span::styled(format!(" {t} "), Style::default().fg(Color::White))),
-            )
-            .select(index)
-            .render(area, buf);
+        Panel::new(FnWidget::new(move |area, buf| {
+            TabComponent::new(tab_labels)
+                .select(index)
+                .render(area, buf);
         }))
         .render_inside_block(true)
         .render(areas[0], buf);
 
-        LineChartWidget::from(charts)
+        MetricLineChartWidget::default()
+            .with_show_bottom_options(false)
             .with_show_x_axis(true)
-            .render(areas[1], buf);
+            .render(areas[1], buf, state);
     }
-}
-
-pub fn metric_summary_line<C: Chromosome>(state: &AppState<C>) -> Line<'static> {
-    let metric_meta = state.evo.metrics.summary();
-    let title = vec![
-        " Metrics: ".fg(Color::Gray).bold(),
-        format!("{}", metric_meta.metrics).fg(Color::LightGreen),
-        " | Updates: ".fg(Color::Gray).bold(),
-        format!("{} ", format_thousands(metric_meta.updates as usize)).fg(Color::LightGreen),
-    ];
-
-    title.into()
 }
 
 fn get_multi_objective_summaries(metrics: &MetricSet) -> Vec<Row<'static>> {
@@ -151,6 +123,7 @@ fn get_multi_objective_summaries(metrics: &MetricSet) -> Vec<Row<'static>> {
     let new_children = metrics.new_children().map(|m| m.mean()).unwrap_or(0.0);
     let front_size = metrics.front_size().map(|m| m.mean()).unwrap_or(0.0);
     let front_entropy = metrics.front_entropy().map(|m| m.mean()).unwrap_or(0.0);
+    let metric_meta = metrics.summary();
 
     let rows = vec![
         Row::new(vec!["Improvements".bold(), improvements.to_string().into()]),
@@ -182,6 +155,16 @@ fn get_multi_objective_summaries(metrics: &MetricSet) -> Vec<Row<'static>> {
             "Children / Gen.".bold(),
             format!("{:.2}", new_children).into(),
         ]),
+        Row::new(vec![
+            "Metrics".bold(),
+            format!("{}", metric_meta.metrics).into(),
+        ]),
+        Row::new(vec![
+            "Updates".bold(),
+            format_thousands(metric_meta.updates as usize)
+                .to_string()
+                .into(),
+        ]),
     ];
 
     rows
@@ -195,6 +178,7 @@ fn get_single_objective_summaries(metrics: &MetricSet) -> Vec<Row<'static>> {
     let improvements = metrics.improvements().map(|m| m.count()).unwrap_or(0);
     let survivor_count = metrics.survivor_count().map(|m| m.mean()).unwrap_or(0.0);
     let new_children = metrics.new_children().map(|m| m.mean()).unwrap_or(0.0);
+    let metric_meta = metrics.summary();
 
     let rows = vec![
         Row::new(vec!["Improvements".bold(), improvements.to_string().into()]),
@@ -221,6 +205,16 @@ fn get_single_objective_summaries(metrics: &MetricSet) -> Vec<Row<'static>> {
         Row::new(vec![
             "Children / Gen.".bold(),
             format!("{:.2}", new_children).into(),
+        ]),
+        Row::new(vec![
+            "Metrics".bold(),
+            format!("{}", metric_meta.metrics).into(),
+        ]),
+        Row::new(vec![
+            "Updates".bold(),
+            format_thousands(metric_meta.updates as usize)
+                .to_string()
+                .into(),
         ]),
     ];
 

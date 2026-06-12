@@ -1,7 +1,7 @@
 use crate::steps::EngineStep;
 use radiate_core::{
     Chromosome, Ecosystem, Executor, MetricSet, Objective, Phenotype, Population, Rate, Species,
-    diversity::Diversity, metric_names, random_provider,
+    diversity::Diversity, math::distribution, metric_names, random_provider,
 };
 use radiate_error::Result;
 use std::sync::{Arc, Mutex, RwLock};
@@ -209,7 +209,24 @@ where
     where
         C: Clone,
     {
-        ecosystem.generate_mascots();
+        let (species, population) = ecosystem.species_population_mut();
+
+        if let Some(species) = species {
+            for spec in species.iter_mut() {
+                let species_members = population
+                    .iter_species(spec.id())
+                    .collect::<Vec<&Phenotype<C>>>();
+
+                if species_members.is_empty() {
+                    continue;
+                }
+
+                let idx = random_provider::range(0..species_members.len());
+                if let Some(phenotype) = species_members.get(idx) {
+                    spec.set_new_mascot((*phenotype).clone());
+                }
+            }
+        }
 
         Arc::new(
             ecosystem
@@ -220,12 +237,7 @@ where
         )
     }
 
-    fn calc_species_metrics(
-        &self,
-        generation: usize,
-        ecosystem: &Ecosystem<C>,
-        metrics: &mut MetricSet,
-    ) {
+    fn calc_species_metrics(generation: usize, ecosystem: &Ecosystem<C>, metrics: &mut MetricSet) {
         let Some(species) = ecosystem.species() else {
             return;
         };
@@ -235,7 +247,6 @@ where
         let mut ages = Vec::with_capacity(species.len());
         let mut sizes = Vec::with_capacity(species.len());
         let mut max_size = 0;
-        let mut size_sum = 0;
 
         for spec in species.iter() {
             let age = spec.age(generation);
@@ -248,27 +259,11 @@ where
             ages.push(age);
             sizes.push(len);
             max_size = max_size.max(len);
-            size_sum += len;
         }
 
         let largest_share = max_size as f32 / pop_len as f32;
-
-        let mut evenness = 0.0_f32;
+        let evenness = distribution::evenness(&sizes);
         let s_count = species.len();
-        if s_count > 1 && size_sum > 0 {
-            let total = size_sum as f32;
-            let mut h = 0.0_f32;
-            for &sz in sizes.iter() {
-                if sz > 0 {
-                    let p = sz as f32 / total;
-                    h -= p * p.ln();
-                }
-            }
-            let h_max = (s_count as f32).ln();
-            if h_max > 0.0 {
-                evenness = h / h_max;
-            }
-        }
 
         let churn = if s_count > 0 {
             new_species_count as f32 / s_count as f32
@@ -328,7 +323,8 @@ where
         metrics.upsert(metric_names::SPECIES_DISTANCE_DIST, &self.distances);
         metrics.upsert(metric_names::SPECIES_DIED, rm_species_count);
         metrics.upsert(metric_names::SPECIES_THRESHOLD, threshold);
-        self.calc_species_metrics(generation, ecosystem, metrics);
+
+        Self::calc_species_metrics(generation, ecosystem, metrics);
 
         ecosystem.fitness_share(&self.objective);
 

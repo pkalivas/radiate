@@ -36,6 +36,11 @@ impl VersionedCounts {
         s
     }
 
+    #[inline]
+    pub fn unique_count(&self) -> usize {
+        self.iter_live().count()
+    }
+
     /// Start a new session. Resizes if needed and bumps the version so all
     /// previously-touched slots read as stale on the first `bump`.
     #[inline]

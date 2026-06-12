@@ -32,7 +32,8 @@ fn main() {
         .logging()
         .until_score(MIN_SCORE)
         .last()
-        .inspect(display);
+        .inspect(display)
+        .expect("No result from engine run");
 }
 
 // A simple function to take the output of the engine and display the accuracy

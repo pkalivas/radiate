@@ -28,6 +28,7 @@ impl Objective {
         }
     }
 
+    #[inline]
     pub fn validate<T: AsRef<[K]>, K>(&self, values: &T) -> bool {
         match self {
             Objective::Single(_) => values.as_ref().len() == 1,

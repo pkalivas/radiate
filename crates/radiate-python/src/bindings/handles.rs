@@ -1,8 +1,8 @@
 use crate::PyAnyObject;
 use radiate::{
     BitChromosome, CharChromosome, FloatChromosome, Generation, GeneticEngine,
-    GeneticEngineBuilder, Graph, GraphChromosome, IntChromosome, Op, PermutationChromosome, Tree,
-    TreeChromosome,
+    GeneticEngineBuilder, Graph, GraphChromosome, IntChromosome, Limit, Op, PermutationChromosome,
+    Tree, TreeChromosome,
 };
 use serde::{Deserialize, Serialize};
 
@@ -11,6 +11,8 @@ type RegressionEngine<C, T> = GeneticEngine<C, T>;
 
 type CustomBuilder<C, T> = GeneticEngineBuilder<C, T>;
 type RegressionBuilder<C, T> = GeneticEngineBuilder<C, T>;
+
+type GenIter<C, T> = Box<dyn Iterator<Item = Generation<C, T>>>;
 
 pub enum EngineBuilderHandle {
     Empty,
@@ -56,6 +58,29 @@ pub enum EngineHandle {
     Tree(RegressionEngine<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>),
 }
 
+impl EngineHandle {
+    pub fn into_step(self, limits: Vec<Limit>) -> StepHandle {
+        use EngineHandle::*;
+        match self {
+            UInt8(eng) => StepHandle::UInt8(Box::new(eng.iter().limit(limits))),
+            UInt16(eng) => StepHandle::UInt16(Box::new(eng.iter().limit(limits))),
+            UInt32(eng) => StepHandle::UInt32(Box::new(eng.iter().limit(limits))),
+            UInt64(eng) => StepHandle::UInt64(Box::new(eng.iter().limit(limits))),
+            Int8(eng) => StepHandle::Int8(Box::new(eng.iter().limit(limits))),
+            Int16(eng) => StepHandle::Int16(Box::new(eng.iter().limit(limits))),
+            Int32(eng) => StepHandle::Int32(Box::new(eng.iter().limit(limits))),
+            Int64(eng) => StepHandle::Int64(Box::new(eng.iter().limit(limits))),
+            Float32(eng) => StepHandle::Float32(Box::new(eng.iter().limit(limits))),
+            Float64(eng) => StepHandle::Float64(Box::new(eng.iter().limit(limits))),
+            Char(eng) => StepHandle::Char(Box::new(eng.iter().limit(limits))),
+            Bit(eng) => StepHandle::Bit(Box::new(eng.iter().limit(limits))),
+            Permutation(eng) => StepHandle::Permutation(Box::new(eng.iter().limit(limits))),
+            Graph(eng) => StepHandle::Graph(Box::new(eng.iter().limit(limits))),
+            Tree(eng) => StepHandle::Tree(Box::new(eng.iter().limit(limits))),
+        }
+    }
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 pub enum EpochHandle {
     UInt8(Generation<IntChromosome<u8>, PyAnyObject>),
@@ -76,4 +101,26 @@ pub enum EpochHandle {
     Permutation(Generation<PermutationChromosome<usize>, PyAnyObject>),
     Graph(Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>),
     Tree(Generation<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>),
+}
+
+pub enum StepHandle {
+    UInt8(GenIter<IntChromosome<u8>, PyAnyObject>),
+    UInt16(GenIter<IntChromosome<u16>, PyAnyObject>),
+    UInt32(GenIter<IntChromosome<u32>, PyAnyObject>),
+    UInt64(GenIter<IntChromosome<u64>, PyAnyObject>),
+
+    Int8(GenIter<IntChromosome<i8>, PyAnyObject>),
+    Int16(GenIter<IntChromosome<i16>, PyAnyObject>),
+    Int32(GenIter<IntChromosome<i32>, PyAnyObject>),
+    Int64(GenIter<IntChromosome<i64>, PyAnyObject>),
+
+    Float32(GenIter<FloatChromosome<f32>, PyAnyObject>),
+    Float64(GenIter<FloatChromosome<f64>, PyAnyObject>),
+
+    Char(GenIter<CharChromosome, PyAnyObject>),
+    Bit(GenIter<BitChromosome, PyAnyObject>),
+    Permutation(GenIter<PermutationChromosome<usize>, PyAnyObject>),
+
+    Graph(GenIter<GraphChromosome<Op<f32>>, Graph<Op<f32>>>),
+    Tree(GenIter<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>),
 }

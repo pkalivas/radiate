@@ -195,7 +195,8 @@ fn graph_xor() {
         .logging()
         .until_score(MIN_SCORE)
         .last()
-        .inspect(display);
+        .inspect(display)
+        .expect("No result from engine run");
 
     fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
         let mut reducer = GraphEvaluator::new(result.value());

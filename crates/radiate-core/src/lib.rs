@@ -37,8 +37,8 @@ pub use rate::Rate;
 pub use replacement::{EncodeReplace, PopulationSampleReplace, ReplacementStrategy};
 pub use selector::Select;
 pub use stats::{
-    Evaluate, Expr, Metric, MetricQuery, MetricSet, MetricUpdate, SelectExpr, expression::expr,
-    metric_names, render_dashboard, render_full,
+    Evaluate, Expr, Metric, MetricQuery, MetricSet, MetricUpdate, SelectExpr, metric_names,
+    render_dashboard, render_full,
 };
 
 pub mod prelude {
@@ -61,7 +61,7 @@ pub mod prelude {
         FloatChromosome, FloatGene, Gene, IntChromosome, IntGene, Valid,
     };
     pub use super::objectives::{Front, Objective, Optimize, Score, pareto};
-    pub use super::problem::{BatchEngineProblem, EngineProblem, Problem};
+    pub use super::problem::Problem;
     pub use super::replacement::{EncodeReplace, PopulationSampleReplace, ReplacementStrategy};
     pub use super::selector::Select;
     pub use super::stats::{Metric, MetricSet};

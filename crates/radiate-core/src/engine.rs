@@ -43,16 +43,24 @@ use radiate_error::Result;
 ///
 /// impl Engine for MyEngine {
 ///     type Epoch = MyEpoch;
-///     
-///     fn next(&mut self) -> Result<Self::Epoch, RadiateError> {
+///     type Context = ();
+///
+///     fn context(&self) -> &Self::Context {
+///        &()
+///     }
+///
+///     fn epoch(&self) -> Self::Epoch {
+///        MyEpoch {
+///           generation: self.generation,
+///           population_size: self.population.len(),
+///         }
+///     }
+///
+///     fn step(&mut self) -> Result<(), RadiateError> {
 ///         // Perform one generation of evolution
-///         // ... evolve population ...
+///         // ... evolve population ...  
 ///         self.generation += 1;
-///         
-///         Ok(MyEpoch {
-///             generation: self.generation,
-///             population_size: self.population.len()
-///         })
+///         Ok(())
 ///     }
 /// }
 ///
@@ -79,6 +87,7 @@ pub trait Engine {
     /// - Convergence metrics
     /// - Any other state information needed for monitoring or decision-making
     type Epoch;
+    type Ctx;
 
     /// Advances the engine to the next epoch or generation.
     ///
@@ -105,7 +114,15 @@ pub trait Engine {
     ///
     /// This method is called repeatedly during execution, so it should be
     /// optimized for performance.
-    fn next(&mut self) -> Result<Self::Epoch>;
+    fn context(&self) -> &Self::Ctx;
+
+    fn epoch(&self) -> Self::Epoch;
+
+    fn step(&mut self) -> Result<()>;
+
+    fn next(&mut self) -> Result<Self::Epoch> {
+        self.step().map(|_| self.epoch())
+    }
 }
 
 /// Extension trait providing convenient methods for running engines with custom logic.
@@ -216,13 +233,22 @@ mod tests {
 
     impl Engine for MockEngine {
         type Epoch = MockEpoch;
+        type Ctx = ();
 
-        fn next(&mut self) -> Result<Self::Epoch> {
-            self.generation += 1;
-            Ok(MockEpoch {
+        fn context(&self) -> &Self::Ctx {
+            &()
+        }
+
+        fn epoch(&self) -> Self::Epoch {
+            MockEpoch {
                 generation: self.generation,
                 fitness: 1.0 / (self.generation as f32),
-            })
+            }
+        }
+
+        fn step(&mut self) -> Result<()> {
+            self.generation += 1;
+            Ok(())
         }
     }
 

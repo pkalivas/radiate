@@ -171,6 +171,14 @@ impl<T> Tensor<T> {
         self.data.is_empty()
     }
 
+    pub fn len(&self) -> usize {
+        self.data.len()
+    }
+
+    pub fn clear(&mut self) {
+        self.data.clear();
+    }
+
     /// --- raw pointers ---
     #[inline]
     pub fn as_ptr(&self) -> *const T {

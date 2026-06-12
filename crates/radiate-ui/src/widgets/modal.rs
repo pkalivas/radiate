@@ -1,8 +1,10 @@
+use crate::{state::AppState, widgets::AppWidget};
+use radiate_engines::Chromosome;
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Direction, Layout, Rect},
     style::Style,
-    widgets::{Block, Clear, StatefulWidget, Widget},
+    widgets::{Block, Clear, Widget},
 };
 
 pub struct ModalWidget<W> {
@@ -71,13 +73,12 @@ where
     }
 }
 
-impl<W> StatefulWidget for ModalWidget<W>
+impl<C, W> AppWidget<C> for ModalWidget<W>
 where
-    W: StatefulWidget,
+    C: Chromosome,
+    W: AppWidget<C>,
 {
-    type State = W::State;
-
-    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+    fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
         let popup_area = Self::centered_rect(area, self.height_pct, self.width_pct);
 
         Block::default().style(self.overlay_style).render(area, buf);
@@ -85,8 +86,8 @@ where
         Clear.render(popup_area, buf);
 
         let mut block = Block::default().style(self.block_style);
-        if let Some(title) = self.title {
-            block = block.title(title);
+        if let Some(title) = &self.title {
+            block = block.title(title.clone());
         }
 
         let inner = block.inner(popup_area);

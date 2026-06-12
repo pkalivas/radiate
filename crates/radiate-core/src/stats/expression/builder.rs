@@ -1,70 +1,12 @@
 use super::{
     Expr, MetricField, MetricKind,
-    aggregate::{AggExpr, BufferExpr, Rollup},
-    logical::When,
+    aggregate::{AggExpr, Rollup},
     ops::{BinaryExpr, BinaryOp, TrinaryExpr, TrinaryOp, UnaryExpr, UnaryOp, fuse_affine},
-    schedule::{EveryState, ScheduleExpr},
 };
-use radiate_utils::{AnyValue, DataType, Quantile, WindowBuffer};
+use radiate_utils::{DataType, Quantile};
 use std::ops::{Add, Div, Mul, Neg, Not, Sub};
 
 impl Expr {
-    // Rewrites a Selector's kind in-place. Returns true if the rewrite happened.
-    fn try_swap_select_kind(&mut self, to: MetricKind) -> bool {
-        if let Expr::Selector(sel) = self {
-            sel.kind = to;
-            return true;
-        }
-        false
-    }
-
-    // Rewrites a Selector's field in-place. Returns true if the rewrite happened.
-    fn try_swap_select_field(&mut self, to: MetricField) -> bool {
-        if let Expr::Selector(sel) = self {
-            sel.field = to;
-            return true;
-        }
-        false
-    }
-
-    // If this is a Selector, rewrites its field to `to`; otherwise calls `func`.
-    fn try_swap_select_field_or(
-        mut self,
-        to: MetricField,
-        func: impl FnOnce(Self) -> Expr,
-    ) -> Expr {
-        if self.try_swap_select_field(to) {
-            return self;
-        }
-        func(self)
-    }
-
-    // If this is an Aggregate (non-Unique), rewrites its rollup to `to`; otherwise calls `func`.
-    fn try_swap_agg_rollup_or(mut self, to: Rollup, func: impl FnOnce(Self) -> Expr) -> Expr {
-        match self {
-            Expr::Aggregate(mut agg) => {
-                if agg.rollup != Rollup::Unique {
-                    agg.rollup = to;
-                    self = Expr::Aggregate(agg);
-                    return self;
-                }
-                func(Expr::Aggregate(agg))
-            }
-            _ => func(self),
-        }
-    }
-
-    // Fuses select("x").agg() into a single Selector node when possible, avoiding a wrapping
-    // Aggregate. Falls back to `func` for any other shape.
-    fn try_reduce_select_agg_rollup_or(
-        self,
-        field: MetricField,
-        to: Rollup,
-        func: impl FnOnce(Self) -> Expr,
-    ) -> Expr {
-        self.try_swap_select_field_or(field, |outer| outer.try_swap_agg_rollup_or(to, func))
-    }
-
     pub fn time(mut self) -> Expr {
         self.try_swap_select_kind(MetricKind::Duration);
         self
@@ -81,17 +23,13 @@ impl Expr {
 
     pub fn rolling(self, window_size: usize) -> Expr {
         match self {
-            Expr::Aggregate(agg) => Expr::Aggregate(AggExpr {
-                child: agg.child,
-                rollup: agg.rollup,
-                buffer: Some(WindowBuffer::with_capacity(window_size)),
-            }),
-            Expr::Selector(select) => Expr::Aggregate(AggExpr {
-                child: Box::new(Expr::Selector(select)),
-                rollup: Rollup::Last,
-                buffer: Some(WindowBuffer::with_capacity(window_size)),
-            }),
-            _ => Expr::Buffer(BufferExpr::new(self, window_size)),
+            Expr::Aggregate(agg) => {
+                Expr::Aggregate(AggExpr::new(*agg.child, agg.rollup).rolling(window_size))
+            }
+            Expr::Selector(select) => Expr::Aggregate(
+                AggExpr::new(Expr::Selector(select), Rollup::Last).rolling(window_size),
+            ),
+            _ => Expr::Aggregate(AggExpr::new(self, Rollup::Last).rolling(window_size)),
         }
     }
 
@@ -275,81 +213,165 @@ impl Expr {
     /// On an empty buffer returns 0.0. Filters non-finite samples before sorting.
     /// O(n log n) per evaluation — fine for window sizes ≤ ~1000.
     pub fn quantile(self, q: f32) -> Expr {
-        self.try_swap_agg_rollup_or(Rollup::Quantile(q), |expr| {
-            Expr::Aggregate(AggExpr::new(expr, Rollup::Quantile(q)))
+        self.try_swap_agg_rollup_or(Rollup::Quantile(Quantile::new(q)), |expr| {
+            Expr::Aggregate(AggExpr::new(expr, Rollup::Quantile(Quantile::new(q))))
         })
     }
 
-    pub fn every(self, interval: usize) -> When {
-        When::new(Expr::Schedule(ScheduleExpr::Every(EveryState::new(
-            interval,
-        ))))
+    pub fn stagnation(self, epsilon: f32) -> Expr {
+        Expr::Unary(UnaryExpr::new(
+            self,
+            UnaryOp::Stagnation {
+                epsilon,
+                last_value: None,
+                count: 0,
+            },
+        ))
     }
 
     pub fn cast(self, to: DataType) -> Expr {
         Expr::Unary(UnaryExpr::new(self, UnaryOp::Cast(to)))
     }
 
-    /// `scale * self + bias`. Replaces `self.mul(lit).add(lit)` with a single
-    /// fused Unary(Affine) node. Consecutive affines collapse:
-    /// `x.affine(a, b).affine(c, d)` becomes `x.affine(c * a, c * b + d)`.
-    pub fn affine(self, scale: f32, bias: f32) -> Expr {
-        fuse_affine(self, scale, bias)
-    }
-
     /// Relative error from a target: `(self - target) / target`. Fuses into
     /// a single Affine node. `target == 0` produces a degenerate expression
     /// (division by zero shows up as a NaN/Inf at eval time, then propagates
     /// to the outer Clamp).
-    pub fn error_from(self, target: f32) -> Expr {
+    pub fn error(self, target: f32) -> Expr {
         // (x - target) / target == x * (1/target) + (-1)
-        self.affine(1.0 / target, -1.0)
+        fuse_affine(self, 1.0 / target, -1.0)
     }
 
-    /// Streaming P² quantile estimator over the values this expression emits.
-    /// Constant memory (5 markers), constant per-eval cost. Approximate but
-    /// good for unimodal distributions; sees every observation since
-    /// construction or the last `reset()`.
-    ///
-    /// For an exact quantile over a recent window, use `.rolling(N).quantile(q)`.
-    ///
-    /// # Panics
-    /// `q` must lie in `(0, 1)`.
-    pub fn quantile_stream(self, q: f32) -> Expr {
-        Expr::Unary(UnaryExpr::new(self, UnaryOp::Quantile(Quantile::new(q))))
+    // Rewrites a Selector's kind in-place. Returns true if the rewrite happened.
+    fn try_swap_select_kind(&mut self, to: MetricKind) -> bool {
+        if let Expr::Selector(sel) = self {
+            sel.kind = to;
+            return true;
+        }
+        false
+    }
+
+    // Rewrites a Selector's field in-place. Returns true if the rewrite happened.
+    fn try_swap_select_field(&mut self, to: MetricField) -> bool {
+        if let Expr::Selector(sel) = self {
+            sel.field = to;
+            return true;
+        }
+        false
+    }
+
+    // If this is a Selector, rewrites its field to `to`; otherwise calls `func`.
+    fn try_swap_select_field_or(
+        mut self,
+        to: MetricField,
+        func: impl FnOnce(Self) -> Expr,
+    ) -> Expr {
+        if self.try_swap_select_field(to) {
+            return self;
+        }
+        func(self)
+    }
+
+    // If this is an Aggregate (non-Unique), rewrites its rollup to `to`; otherwise calls `func`.
+    fn try_swap_agg_rollup_or(mut self, to: Rollup, func: impl FnOnce(Self) -> Expr) -> Expr {
+        match self {
+            Expr::Aggregate(mut agg) => {
+                if agg.rollup != Rollup::Unique {
+                    agg.rollup = to;
+                    self = Expr::Aggregate(agg);
+                    return self;
+                }
+                func(Expr::Aggregate(agg))
+            }
+            _ => func(self),
+        }
+    }
+
+    // Fuses select("x").agg() into a single Selector node when possible, avoiding a wrapping
+    // Aggregate. Falls back to `func` for any other shape.
+    fn try_reduce_select_agg_rollup_or(
+        self,
+        field: MetricField,
+        to: Rollup,
+        func: impl FnOnce(Self) -> Expr,
+    ) -> Expr {
+        self.try_swap_select_field_or(field, |outer| outer.try_swap_agg_rollup_or(to, func))
     }
 }
 
-impl From<f32> for Expr {
-    fn from(value: f32) -> Self {
-        Expr::Literal(AnyValue::Float32(value))
-    }
+macro_rules! impl_from_literal {
+    ($($ty:ty => $variant:ident),*) => {
+        $(
+            impl From<$ty> for Expr {
+                fn from(value: $ty) -> Self {
+                    Expr::Literal(value.into())
+                }
+            }
+        )*
+    };
 }
 
-impl Add for Expr {
+impl_from_literal!(
+    u8 => UInt8,
+    u16 => UInt16,
+    u32 => UInt32,
+    u64 => UInt64,
+    u128 => UInt128,
+
+    i8 => Int8,
+    i16 => Int16,
+    i32 => Int32,
+    i64 => Int64,
+    i128 => Int128,
+
+    f32 => Float32,
+    f64 => Float64,
+
+    bool => Bool,
+    char => Char,
+    String => Str
+);
+
+impl<T> Add<T> for Expr
+where
+    T: Into<Expr>,
+{
     type Output = Expr;
-    fn add(self, rhs: Expr) -> Expr {
+    fn add(self, rhs: T) -> Expr {
+        let rhs = rhs.into();
         Expr::Binary(BinaryExpr::new(self, rhs, BinaryOp::Add))
     }
 }
 
-impl Sub for Expr {
+impl<T> Sub<T> for Expr
+where
+    T: Into<Expr>,
+{
     type Output = Expr;
-    fn sub(self, rhs: Expr) -> Expr {
+    fn sub(self, rhs: T) -> Expr {
+        let rhs = rhs.into();
         Expr::Binary(BinaryExpr::new(self, rhs, BinaryOp::Sub))
     }
 }
 
-impl Mul for Expr {
+impl<T> Mul<T> for Expr
+where
+    T: Into<Expr>,
+{
     type Output = Expr;
-    fn mul(self, rhs: Expr) -> Expr {
+    fn mul(self, rhs: T) -> Expr {
+        let rhs = rhs.into();
         Expr::Binary(BinaryExpr::new(self, rhs, BinaryOp::Mul))
     }
 }
 
-impl Div for Expr {
+impl<T> Div<T> for Expr
+where
+    T: Into<Expr>,
+{
     type Output = Expr;
-    fn div(self, rhs: Expr) -> Expr {
+    fn div(self, rhs: T) -> Expr {
+        let rhs = rhs.into();
         Expr::Binary(BinaryExpr::new(self, rhs, BinaryOp::Div))
     }
 }

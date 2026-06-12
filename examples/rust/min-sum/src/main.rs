@@ -5,7 +5,7 @@ const MIN_SCORE: i32 = 0;
 fn main() {
     random_provider::seed(42);
 
-    let mut engine = GeneticEngine::builder()
+    let engine = GeneticEngine::builder()
         .codec(IntCodec::vector(10, 0..100))
         .population_size(150)
         .minimizing()
@@ -15,10 +15,11 @@ fn main() {
         .fitness_fn(|geno: Vec<i32>| geno.iter().sum::<i32>())
         .build();
 
-    let result = engine.run(|ctx| {
-        println!("[ {:?} ]: {:?}", ctx.index(), ctx.value());
-        ctx.score().as_i32() == MIN_SCORE || ctx.seconds() > 3.0
-    });
+    let result = engine
+        .iter()
+        .logging()
+        .until(|ctx| ctx.score().as_i32() == MIN_SCORE || ctx.seconds() >= 3.0)
+        .run();
 
     println!("{:?}", result);
 }

@@ -1,11 +1,10 @@
-use crate::PyExpr;
 use crate::object::Wrap;
 use pyo3::exceptions::PyValueError;
 use pyo3::types::PyDict;
 use pyo3::{IntoPyObject, PyErr, PyResult, Python};
 use pyo3::{intern, prelude::*};
 use pyo3::{pyclass, pymethods};
-use radiate::{AnyValue, Evaluate, Metric, MetricSet, MetricUpdate};
+use radiate::{AnyValue, Metric, MetricSet, MetricUpdate};
 use radiate_error::radiate_py_bail;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
@@ -120,11 +119,6 @@ impl PyMetricSet {
             .collect()
     }
 
-    pub fn project<'py>(&self, py: Python<'py>, expr: &mut PyExpr) -> PyResult<Bound<'py, PyAny>> {
-        let result = expr.inner_mut().eval(&self.inner).unwrap_or(AnyValue::Null);
-        Wrap(result).into_pyobject(py)
-    }
-
     pub fn values_by_tag<'py>(
         &self,
         py: Python<'py>,
@@ -186,30 +180,9 @@ impl PyMetricSet {
 }
 
 impl From<MetricSet> for PyMetricSet {
-    fn from(metric_set: MetricSet) -> Self {
+    fn from(mut metric_set: MetricSet) -> Self {
+        metric_set.remove_samples();
         PyMetricSet { inner: metric_set }
-    }
-}
-
-impl<'py> IntoPyObject<'py> for Wrap<&MetricSet> {
-    type Target = PyMetricSet;
-    type Output = Bound<'py, Self::Target>;
-    type Error = PyErr;
-
-    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        let metric_set = self.0.clone();
-        Bound::new(py, PyMetricSet::from(metric_set))
-    }
-}
-
-impl<'py> IntoPyObject<'py> for Wrap<MetricSet> {
-    type Target = PyMetricSet;
-    type Output = Bound<'py, Self::Target>;
-    type Error = PyErr;
-
-    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        let metric_set = self.0;
-        Bound::new(py, PyMetricSet::from(metric_set))
     }
 }
 

@@ -1,8 +1,9 @@
-use radiate_utils::Statistic;
+use radiate_utils::{Quantile, Statistic};
 
 pub struct MetricView<'a, T> {
     pub(super) name: &'a str,
     pub(super) statistic: &'a Statistic,
+    pub(super) samples: Option<&'a [f32]>,
     pub(super) mapper: fn(f32) -> T,
 }
 
@@ -49,5 +50,48 @@ impl<'a, T> MetricView<'a, T> {
 
     pub fn max(&self) -> T {
         (self.mapper)(self.statistic.max())
+    }
+
+    pub fn quantile(&self, q: f32) -> Option<T> {
+        if let Some(samples) = &self.samples {
+            let mut quant = Quantile::new(q);
+            for &value in samples.iter() {
+                if !value.is_finite() {
+                    continue;
+                }
+
+                quant.add(value);
+            }
+
+            quant.value().map(self.mapper)
+        } else {
+            None
+        }
+    }
+
+    pub fn quantiles(&self, quantiles: &[f32]) -> Option<Vec<T>> {
+        if let Some(samples) = &self.samples {
+            let mut quants: Vec<Quantile> = quantiles.iter().map(|&q| Quantile::new(q)).collect();
+            for &value in samples.iter() {
+                if !value.is_finite() {
+                    continue;
+                }
+
+                for quant in quants.iter_mut() {
+                    quant.add(value);
+                }
+            }
+
+            quants
+                .iter()
+                .map(|quant| quant.value().map(self.mapper))
+                .collect()
+        } else {
+            None
+        }
+    }
+
+    pub fn samples(&self) -> Option<&[f32]> {
+        self.samples
     }
 }

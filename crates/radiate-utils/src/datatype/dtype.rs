@@ -29,6 +29,10 @@ pub mod dtype_names {
     pub const DICT: &str = "dict";
 }
 
+pub trait DType {
+    fn dtype(&self) -> DataType;
+}
+
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub enum DataType {

@@ -1,4 +1,5 @@
 use radiate::prelude::*;
+use std::collections::VecDeque;
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
@@ -115,7 +116,11 @@ fn main() {
     let epsilon = 0.01; // how close the scores must be over the window to consider convergence
     let result = engine
         .iter()
-        .limit(Limit::Convergence(window, epsilon))
+        .limit(Limit::Convergence(
+            window,
+            epsilon,
+            VecDeque::with_capacity(window),
+        ))
         .last()
         .unwrap();
 
@@ -140,9 +145,10 @@ fn main() {
     let engine = build_engine();
     let result = engine
         .iter()
-        .until_metric(&metric_names::EVALUATION_COUNT, |metric| {
-            metric.sum() >= 1000.0
-        })
+        .until_metric(
+            &metric_names::EVALUATION_COUNT,
+            Arc::new(|metric| metric.sum() >= 1000.0),
+        )
         .last()
         .unwrap();
 

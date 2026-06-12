@@ -22,7 +22,7 @@ fn main() {
         target: target.clone(),
     };
 
-    let mut engine = GeneticEngine::builder()
+    let engine = GeneticEngine::builder()
         .minimizing()
         .codec(codec.clone())
         .offspring_selector(BoltzmannSelector::new(4_f32))
@@ -34,10 +34,16 @@ fn main() {
         .fitness_fn(move |net: NeuralNet| net.error(&inputs, &target))
         .build();
 
-    let result = engine.run(|ctx| {
-        println!("[ {:?} ]: {:?}", ctx.index(), ctx.score().as_f32());
-        ctx.score().as_f32() < MIN_SCORE || ctx.index() == MAX_INDEX || ctx.seconds() > MAX_SECONDS
-    });
+    let result = engine
+        .iter()
+        .until(|ctx| {
+            println!("[ {:?} ]: {:?}", ctx.index(), ctx.score().as_f32());
+            ctx.score().as_f32() < MIN_SCORE
+                || ctx.index() == MAX_INDEX
+                || ctx.seconds() > MAX_SECONDS
+        })
+        .run()
+        .unwrap();
 
     println!("Seconds: {:?}", result.seconds());
     println!("{}", result.metrics());

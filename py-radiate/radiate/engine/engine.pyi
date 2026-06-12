@@ -481,7 +481,8 @@ class Engine[G, T]:
     def diversity(
         self,
         diversity: DistanceBase,
-        species_threshold: Rate | Expr | float = 1.5,
+        species_threshold: Rate | Expr | float = 0.5,
+        target_species: int | None = None,
     ) -> Self: ...
     def limit(self, *limits: LimitBase | Expr) -> Self: ...
     def size(self, size: int) -> Self: ...

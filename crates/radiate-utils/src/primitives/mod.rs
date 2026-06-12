@@ -23,6 +23,7 @@ pub trait Primitive:
     fn safe_mul(self, rhs: Self) -> Self;
     fn safe_div(self, rhs: Self) -> Self;
     fn safe_mean(self, rhs: Self) -> Self;
+    fn is_equal(self, rhs: Self) -> bool;
 
     fn extract<T: NumCast>(self) -> Option<T> {
         T::from(self)

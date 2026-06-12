@@ -1,12 +1,12 @@
 use crate::Chromosome;
-use crate::context::{Context, ContextAudit};
+use crate::context::EvolutionContext;
 use radiate_core::MetricQuery;
 use radiate_core::objectives::Scored;
 use radiate_core::{Ecosystem, Front, MetricSet, Objective, Phenotype, Population, Score, Species};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 use std::time::Duration;
 
 /// A [Generation] represents a single generation in the evolutionary process.
@@ -50,12 +50,11 @@ where
     ecosystem: Arc<Ecosystem<C>>,
     value: T,
     index: usize,
-    metrics: MetricSet,
+    metrics: Arc<MetricSet>,
     score: Score,
     objective: Objective,
     front: Option<Arc<Front<Phenotype<C>>>>,
     exprs: Option<Arc<Mutex<Vec<MetricQuery>>>>,
-    audits: Option<Vec<ContextAudit>>,
 }
 
 impl<C, T> Generation<C, T>
@@ -113,12 +112,12 @@ where
         self.exprs.clone()
     }
 
-    pub fn audits(&self) -> Option<&[ContextAudit]> {
-        self.audits.as_deref()
+    pub fn arc_ecosystem(&self) -> Arc<Ecosystem<C>> {
+        Arc::clone(&self.ecosystem)
     }
 
-    pub fn cloned_ecosystem(&self) -> Arc<Ecosystem<C>> {
-        Arc::clone(&self.ecosystem)
+    pub fn arc_metrics(&self) -> Arc<MetricSet> {
+        Arc::clone(&self.metrics)
     }
 }
 
@@ -128,17 +127,17 @@ impl<C: Chromosome, T> Scored for Generation<C, T> {
     }
 }
 
-impl<C, T> From<&Context<C, T>> for Generation<C, T>
+impl<C, T> From<&EvolutionContext<C, T>> for Generation<C, T>
 where
     C: Chromosome + Clone,
     T: Clone,
 {
-    fn from(context: &Context<C, T>) -> Self {
+    fn from(context: &EvolutionContext<C, T>) -> Self {
         Generation {
             ecosystem: Arc::new(context.ecosystem.clone()),
             value: context.best.clone(),
             index: context.index,
-            metrics: context.metrics.clone(),
+            metrics: Arc::new(context.metrics.clone()),
             score: context.score.clone().unwrap(),
             objective: context.objective.clone(),
             front: match context.objective {
@@ -146,7 +145,6 @@ where
                 _ => None,
             },
             exprs: context.exprs.clone(),
-            audits: Some(context.audits.clone()),
         }
     }
 }
@@ -161,12 +159,11 @@ where
             ecosystem: Arc::clone(&self.ecosystem),
             value: self.value.clone(),
             index: self.index,
-            metrics: self.metrics.clone(),
+            metrics: Arc::clone(&self.metrics),
             score: self.score.clone(),
             objective: self.objective.clone(),
             front: self.front.clone(),
             exprs: self.exprs.clone(),
-            audits: self.audits.clone(),
         }
     }
 }
@@ -214,12 +211,11 @@ where
             ecosystem: Arc::new(Ecosystem::default()),
             value: T::default(),
             index: 0,
-            metrics: MetricSet::default(),
+            metrics: Arc::new(MetricSet::default()),
             score: Score::default(),
             objective: Objective::default(),
             front: None,
             exprs: None,
-            audits: None,
         }
     }
 }
@@ -233,5 +229,68 @@ where
             .last()
             .and_then(|generation| generation.front().cloned())
             .unwrap_or_default()
+    }
+}
+
+pub struct GenerationView<'a, C, T>
+where
+    C: Chromosome,
+{
+    context: &'a EvolutionContext<C, T>,
+}
+
+impl<'a, C, T> GenerationView<'a, C, T>
+where
+    C: Chromosome,
+{
+    pub fn new(context: &'a EvolutionContext<C, T>) -> Self {
+        Self { context }
+    }
+
+    pub fn score(&self) -> &Score {
+        self.context.score.as_ref().unwrap()
+    }
+
+    pub fn front(&self) -> Arc<RwLock<Front<Phenotype<C>>>> {
+        Arc::clone(&self.context.front)
+    }
+
+    pub fn value(&self) -> &T {
+        &self.context.best
+    }
+
+    pub fn index(&self) -> usize {
+        self.context.index
+    }
+
+    pub fn metrics(&self) -> &MetricSet {
+        &self.context.metrics
+    }
+
+    pub fn objective(&self) -> &Objective {
+        &self.context.objective
+    }
+
+    pub fn ecosystem(&self) -> &Ecosystem<C> {
+        &self.context.ecosystem
+    }
+
+    pub fn population(&self) -> &Population<C> {
+        self.ecosystem().population()
+    }
+
+    pub fn species(&self) -> Option<&[Species<C>]> {
+        self.ecosystem().species().map(|s| s.as_slice())
+    }
+
+    pub fn time(&self) -> Duration {
+        self.metrics()
+            .time()
+            .and_then(|m| m.times().map(|t| t.sum()))
+            .unwrap_or_default()
+    }
+
+    pub fn seconds(&self) -> f64 {
+        self.time().as_secs_f64()
     }
 }
