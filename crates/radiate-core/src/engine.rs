@@ -43,9 +43,9 @@ use radiate_error::Result;
 ///
 /// impl Engine for MyEngine {
 ///     type Epoch = MyEpoch;
-///     type Context = ();
+///     type Ctx = ();
 ///
-///     fn context(&self) -> &Self::Context {
+///     fn context(&self) -> &Self::Ctx {
 ///        &()
 ///     }
 ///
