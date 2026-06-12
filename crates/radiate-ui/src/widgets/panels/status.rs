@@ -1,5 +1,5 @@
-use crate::state::{AppState, LineChartType};
-use crate::widgets::panels::MetricChartPanelWidget;
+use crate::state::AppState;
+use crate::widgets::panels::MetricLineChartWidget;
 use crate::widgets::{AppWidget, FnWidget, MetricDetailPanelWidget, Panel, TabComponent};
 use radiate_engines::stats::fmt_duration;
 use radiate_engines::{Chromosome, MetricSet};
@@ -77,7 +77,17 @@ pub struct MetricModalWidget;
 
 impl<C: Chromosome> AppWidget<C> for MetricModalWidget {
     fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
-        let index = state.nav.chart_tab_index();
+        let index = state.chart_view_index();
+        let tab_labels = state
+            .selected_metric_views()
+            .iter()
+            .map(|v| {
+                Span::styled(
+                    format!(" {} ", v.label()),
+                    Style::default().fg(Color::White),
+                )
+            })
+            .collect::<Vec<Span<'static>>>();
 
         let [left, right] =
             Layout::horizontal([Constraint::Percentage(25), Constraint::Fill(1)]).areas(area);
@@ -89,32 +99,19 @@ impl<C: Chromosome> AppWidget<C> for MetricModalWidget {
             .constraints([Constraint::Length(3), Constraint::Fill(1)])
             .split(right);
 
-        Panel::new(FnWidget::new(|area, buf| {
-            TabComponent::new(
-                LineChartType::chart_options()
-                    .iter()
-                    .map(|t| Span::styled(format!(" {t} "), Style::default().fg(Color::White))),
-            )
-            .select(index)
-            .render(area, buf);
+        Panel::new(FnWidget::new(move |area, buf| {
+            TabComponent::new(tab_labels)
+                .select(index)
+                .render(area, buf);
         }))
         .render_inside_block(true)
         .render(areas[0], buf);
 
-        MetricChartPanelWidget.render(areas[1], buf, state);
+        MetricLineChartWidget::default()
+            .with_show_bottom_options(false)
+            .with_show_x_axis(true)
+            .render(areas[1], buf, state);
     }
-}
-
-pub fn metric_summary_line<C: Chromosome>(state: &AppState<C>) -> Line<'static> {
-    let metric_meta = state.evo.metrics.summary();
-    let title = vec![
-        " Metrics: ".fg(Color::Gray).bold(),
-        format!("{}", metric_meta.metrics).fg(Color::LightGreen),
-        " | Updates: ".fg(Color::Gray).bold(),
-        format!("{} ", format_thousands(metric_meta.updates as usize)).fg(Color::LightGreen),
-    ];
-
-    title.into()
 }
 
 fn get_multi_objective_summaries(metrics: &MetricSet) -> Vec<Row<'static>> {
@@ -126,6 +123,7 @@ fn get_multi_objective_summaries(metrics: &MetricSet) -> Vec<Row<'static>> {
     let new_children = metrics.new_children().map(|m| m.mean()).unwrap_or(0.0);
     let front_size = metrics.front_size().map(|m| m.mean()).unwrap_or(0.0);
     let front_entropy = metrics.front_entropy().map(|m| m.mean()).unwrap_or(0.0);
+    let metric_meta = metrics.summary();
 
     let rows = vec![
         Row::new(vec!["Improvements".bold(), improvements.to_string().into()]),
@@ -157,6 +155,16 @@ fn get_multi_objective_summaries(metrics: &MetricSet) -> Vec<Row<'static>> {
             "Children / Gen.".bold(),
             format!("{:.2}", new_children).into(),
         ]),
+        Row::new(vec![
+            "Metrics".bold(),
+            format!("{}", metric_meta.metrics).into(),
+        ]),
+        Row::new(vec![
+            "Updates".bold(),
+            format_thousands(metric_meta.updates as usize)
+                .to_string()
+                .into(),
+        ]),
     ];
 
     rows
@@ -170,6 +178,7 @@ fn get_single_objective_summaries(metrics: &MetricSet) -> Vec<Row<'static>> {
     let improvements = metrics.improvements().map(|m| m.count()).unwrap_or(0);
     let survivor_count = metrics.survivor_count().map(|m| m.mean()).unwrap_or(0.0);
     let new_children = metrics.new_children().map(|m| m.mean()).unwrap_or(0.0);
+    let metric_meta = metrics.summary();
 
     let rows = vec![
         Row::new(vec!["Improvements".bold(), improvements.to_string().into()]),
@@ -196,6 +205,16 @@ fn get_single_objective_summaries(metrics: &MetricSet) -> Vec<Row<'static>> {
         Row::new(vec![
             "Children / Gen.".bold(),
             format!("{:.2}", new_children).into(),
+        ]),
+        Row::new(vec![
+            "Metrics".bold(),
+            format!("{}", metric_meta.metrics).into(),
+        ]),
+        Row::new(vec![
+            "Updates".bold(),
+            format_thousands(metric_meta.updates as usize)
+                .to_string()
+                .into(),
         ]),
     ];
 

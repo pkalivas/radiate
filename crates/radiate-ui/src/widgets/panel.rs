@@ -35,6 +35,15 @@ impl<W: Widget> Panel<W> {
         self
     }
 
+    // pub fn focused(mut self, focused: bool) -> Self {
+    //     if focused {
+    //         self.block = self
+    //             .block
+    //             .border_style(ratatui::style::Style::default().fg(crate::styles::BORDER_GREEN));
+    //     }
+    //     self
+    // }
+
     // pub fn bordered(mut self, block: Block<'static>) -> Self {
     //     self.block = block;
     //     self
@@ -45,11 +54,11 @@ impl<W: Widget> Panel<W> {
     //     self
     // }
 
-    pub fn title_top_right(mut self, title: impl Into<Line<'static>>) -> Self {
-        let line = title.into();
-        self.top_right_title = Some(line);
-        self
-    }
+    // pub fn title_top_right(mut self, title: impl Into<Line<'static>>) -> Self {
+    //     let line = title.into();
+    //     self.top_right_title = Some(line);
+    //     self
+    // }
 
     #[allow(dead_code)]
     pub fn render_inside_block(mut self, render_inside: bool) -> Self {

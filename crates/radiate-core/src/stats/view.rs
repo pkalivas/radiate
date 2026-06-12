@@ -68,4 +68,30 @@ impl<'a, T> MetricView<'a, T> {
             None
         }
     }
+
+    pub fn quantiles(&self, quantiles: &[f32]) -> Option<Vec<T>> {
+        if let Some(samples) = &self.samples {
+            let mut quants: Vec<Quantile> = quantiles.iter().map(|&q| Quantile::new(q)).collect();
+            for &value in samples.iter() {
+                if !value.is_finite() {
+                    continue;
+                }
+
+                for quant in quants.iter_mut() {
+                    quant.add(value);
+                }
+            }
+
+            quants
+                .iter()
+                .map(|quant| quant.value().map(self.mapper))
+                .collect()
+        } else {
+            None
+        }
+    }
+
+    pub fn samples(&self) -> Option<&[f32]> {
+        self.samples
+    }
 }

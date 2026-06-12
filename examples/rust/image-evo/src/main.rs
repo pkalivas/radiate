@@ -14,7 +14,7 @@ const POLYGON_SIZE: usize = 5;
 fn main() {
     random_provider::seed(50);
 
-    let image_bytes = include_bytes!("../monalisa.png");
+    let image_bytes = include_bytes!("../../../data/monalisa.png");
 
     let problem = ImageProblem::new(
         NUM_GENES,
@@ -43,7 +43,7 @@ fn main() {
         .value()
         .save(
             std::env::current_dir()
-                .map(|dir| dir.join("output.png"))
+                .map(|dir| dir.join("examples/rust/image-evo/output.png"))
                 .unwrap(),
         )
         .unwrap();

@@ -1,6 +1,5 @@
-use crate::{PyPhenotype, Wrap};
-
 use super::PyGenotype;
+use crate::{PyPhenotype, Wrap};
 use pyo3::{
     Bound, IntoPyObject, Py, PyAny, PyErr, PyResult, Python, pyclass, pymethods,
     types::{PyDict, PyDictMethods},

@@ -5,6 +5,7 @@ from typing import Any, overload, TYPE_CHECKING
 from radiate.radiate import PyGraph
 from radiate._bridge.wrapper import RsObject
 from radiate.utils import _normalize_single_chunk
+from radiate.genome.chromosome import Chromosome
 
 if TYPE_CHECKING:
     from radiate._dependancies import numpy as np
@@ -13,6 +14,10 @@ if TYPE_CHECKING:
 
 
 class Graph(RsObject):
+    @classmethod
+    def from_chromosome(cls, chromosome: Chromosome) -> Graph:
+        return cls.from_rust(PyGraph.from_chromosome(chromosome.__backend__()))
+
     def __repr__(self):
         return self.__backend__().__repr__()
 
@@ -23,6 +28,9 @@ class Graph(RsObject):
         if not isinstance(other, Graph):
             return False
         return self.__backend__() == other.__backend__()
+
+    def __len__(self):
+        return self.__backend__().__len__()
 
     def shape(self) -> tuple[int, int]:
         """

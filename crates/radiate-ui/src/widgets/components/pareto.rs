@@ -1,5 +1,6 @@
 use crate::{state::AppState, styles, widgets::Panel};
 use radiate_engines::Chromosome;
+use radiate_utils::Quantile;
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
@@ -133,16 +134,7 @@ where
     C: Chromosome,
 {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let front = match &self.state.evo.front {
-            Some(f) if !f.is_empty() => f,
-            _ => {
-                Block::default()
-                    .borders(Borders::ALL)
-                    .title(Line::from(" Pareto Front (no data) ").centered())
-                    .render(area, buf);
-                return;
-            }
-        };
+        let front = self.state.evo.front.read().unwrap();
 
         let mut points: Vec<(f64, f64)> = Vec::new();
         let (mut min_x, mut max_x) = (f64::INFINITY, f64::NEG_INFINITY);
@@ -168,6 +160,8 @@ where
             min_y = min_y.min(y);
             max_y = max_y.max(y);
         }
+
+        drop(front); // release read lock before expensive quantile calculations
 
         if points.is_empty() {
             Block::default()
@@ -229,34 +223,30 @@ where
     }
 }
 
-fn quantile(sorted: &[f64], q: f64) -> f64 {
-    let n = sorted.len() as f64;
-    let pos = (n - 1.0) * q.clamp(0.0, 1.0);
-    let lo = pos.floor() as usize;
-    let hi = pos.ceil() as usize;
-
-    if lo == hi {
-        return sorted[lo];
-    }
-
-    let t = pos - (lo as f64);
-    sorted[lo] * (1.0 - t) + sorted[hi] * t
-}
-
 fn filter_outliers_quantile(points: &[(f64, f64)], trim: f64) -> (Vec<(f64, f64)>, [f64; 4]) {
     // trim=0.02 => keep [2%, 98%]
     let lo_q = trim;
     let hi_q = 1.0 - trim;
 
-    let mut xs = points.iter().map(|(x, _)| *x).collect::<Vec<f64>>();
-    let mut ys = points.iter().map(|(_, y)| *y).collect::<Vec<f64>>();
-    xs.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap());
-    ys.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap());
+    let mut xs = Quantile::new(lo_q);
+    let mut ys = Quantile::new(lo_q);
+    for &(x, y) in points {
+        xs.add(x);
+        ys.add(y);
+    }
 
-    let x_lo = quantile(&xs, lo_q);
-    let x_hi = quantile(&xs, hi_q);
-    let y_lo = quantile(&ys, lo_q);
-    let y_hi = quantile(&ys, hi_q);
+    let x_lo = xs.value().unwrap_or(0.0);
+    let y_lo = ys.value().unwrap_or(0.0);
+
+    let mut xs = Quantile::new(hi_q);
+    let mut ys = Quantile::new(hi_q);
+    for &(x, y) in points {
+        xs.add(x);
+        ys.add(y);
+    }
+
+    let x_hi = xs.value().unwrap_or(0.0);
+    let y_hi = ys.value().unwrap_or(0.0);
 
     let filtered: Vec<(f64, f64)> = points
         .iter()

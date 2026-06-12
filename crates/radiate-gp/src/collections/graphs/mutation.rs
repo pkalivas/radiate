@@ -13,7 +13,7 @@ const REJECTED: SmallStr = SmallStr::from_static("mutate.graph.invalid.rejected"
 
 #[derive(Hash, Eq, PartialEq, Debug, Clone)]
 struct StructureChange {
-    souce_id: Option<InnovationId>,
+    source_id: Option<InnovationId>,
     target_id: Option<InnovationId>,
     node_type: NodeType,
 }
@@ -46,7 +46,7 @@ impl InnovationContext {
         node_type: NodeType,
     ) -> InnovationId {
         let change = StructureChange {
-            souce_id: source_id,
+            source_id,
             target_id,
             node_type,
         };

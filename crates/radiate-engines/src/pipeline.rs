@@ -1,4 +1,4 @@
-use crate::{context::Context, steps::EngineStep};
+use crate::{context::EvolutionContext, steps::EngineStep};
 use radiate_core::{Chromosome, SmallStr, metric_names};
 use radiate_error::Result;
 
@@ -22,7 +22,7 @@ impl<C: Chromosome> Pipeline<C> {
     }
 
     #[inline]
-    pub fn run<T>(&mut self, context: &mut Context<C, T>) -> Result<()> {
+    pub fn run<T>(&mut self, context: &mut EvolutionContext<C, T>) -> Result<()> {
         let timer = std::time::Instant::now();
 
         for (step, name) in self.steps.iter_mut().zip(self.names.iter()) {

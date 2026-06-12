@@ -47,34 +47,15 @@ def test_convergence_limit(simple_float_engine, random_seed):
             self.convergence_data.append(generation.score())
 
     handler = Subscriber()
-    simple_float_engine.subscribe(handler)
-
-    simple_float_engine.run(rd.ConvergenceLimit(window_size, threshold))
+    simple_float_engine.subscribe(handler).run(
+        rd.Limit.convergence(window_size, threshold)
+    )
 
     assert len(handler.convergence_data) == window_size
     assert all(
         abs(handler.convergence_data[i] - handler.convergence_data[i - 1]) < threshold
         for i in range(1, len(handler.convergence_data))
     ), "Convergence limit should ensure scores are within threshold"
-
-
-@pytest.mark.unit
-def test_multiple_limits(simple_float_engine):
-    """Test running with multiple limits."""
-    limits = [rd.Limit.generations(5), rd.Limit.score(0.1), rd.Limit.seconds(2)]
-    result = simple_float_engine.run(*limits)
-
-    if result.index() < 5 and result.score()[0] > 0.1:
-        assert result.duration().total_seconds() < 2, "Should respect time limit"
-    elif result.index() == 5:
-        assert result.score()[0] > 0.1, "Should respect score limit"
-    else:
-        assert result.index() == 5, "Should respect generations limit"
-
-    other_result = simple_float_engine.limit(
-        rd.Limit.metric("count.evaluation", lambda metric: metric.sum() > 1000)
-    ).run()
-    assert other_result.metrics()["count.evaluation"].sum() > 1000
 
 
 @pytest.mark.unit

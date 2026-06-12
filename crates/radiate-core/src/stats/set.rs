@@ -177,6 +177,14 @@ impl MetricSet {
         self.name_lookup.contains_key(name.as_ref())
     }
 
+    pub fn remove_samples(&mut self) {
+        for m in &mut self.metrics {
+            if m.tags().has(TagType::Distribution) {
+                m.clear_samples();
+            }
+        }
+    }
+
     #[inline(always)]
     pub fn len(&self) -> usize {
         self.metrics.len()

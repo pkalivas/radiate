@@ -1,6 +1,6 @@
 use crate::PyAnyObject;
 use radiate::{
-    BitChromosome, CharChromosome, EngineIteratorExt, FloatChromosome, Generation, GeneticEngine,
+    BitChromosome, CharChromosome, FloatChromosome, Generation, GeneticEngine,
     GeneticEngineBuilder, Graph, GraphChromosome, IntChromosome, Limit, Op, PermutationChromosome,
     Tree, TreeChromosome,
 };
@@ -62,21 +62,21 @@ impl EngineHandle {
     pub fn into_step(self, limits: Vec<Limit>) -> StepHandle {
         use EngineHandle::*;
         match self {
-            UInt8(eng) => StepHandle::UInt8(eng.iter().limit(limits)),
-            UInt16(eng) => StepHandle::UInt16(eng.iter().limit(limits)),
-            UInt32(eng) => StepHandle::UInt32(eng.iter().limit(limits)),
-            UInt64(eng) => StepHandle::UInt64(eng.iter().limit(limits)),
-            Int8(eng) => StepHandle::Int8(eng.iter().limit(limits)),
-            Int16(eng) => StepHandle::Int16(eng.iter().limit(limits)),
-            Int32(eng) => StepHandle::Int32(eng.iter().limit(limits)),
-            Int64(eng) => StepHandle::Int64(eng.iter().limit(limits)),
-            Float32(eng) => StepHandle::Float32(eng.iter().limit(limits)),
-            Float64(eng) => StepHandle::Float64(eng.iter().limit(limits)),
-            Char(eng) => StepHandle::Char(eng.iter().limit(limits)),
-            Bit(eng) => StepHandle::Bit(eng.iter().limit(limits)),
-            Permutation(eng) => StepHandle::Permutation(eng.iter().limit(limits)),
-            Graph(eng) => StepHandle::Graph(eng.iter().limit(limits)),
-            Tree(eng) => StepHandle::Tree(eng.iter().limit(limits)),
+            UInt8(eng) => StepHandle::UInt8(Box::new(eng.iter().limit(limits))),
+            UInt16(eng) => StepHandle::UInt16(Box::new(eng.iter().limit(limits))),
+            UInt32(eng) => StepHandle::UInt32(Box::new(eng.iter().limit(limits))),
+            UInt64(eng) => StepHandle::UInt64(Box::new(eng.iter().limit(limits))),
+            Int8(eng) => StepHandle::Int8(Box::new(eng.iter().limit(limits))),
+            Int16(eng) => StepHandle::Int16(Box::new(eng.iter().limit(limits))),
+            Int32(eng) => StepHandle::Int32(Box::new(eng.iter().limit(limits))),
+            Int64(eng) => StepHandle::Int64(Box::new(eng.iter().limit(limits))),
+            Float32(eng) => StepHandle::Float32(Box::new(eng.iter().limit(limits))),
+            Float64(eng) => StepHandle::Float64(Box::new(eng.iter().limit(limits))),
+            Char(eng) => StepHandle::Char(Box::new(eng.iter().limit(limits))),
+            Bit(eng) => StepHandle::Bit(Box::new(eng.iter().limit(limits))),
+            Permutation(eng) => StepHandle::Permutation(Box::new(eng.iter().limit(limits))),
+            Graph(eng) => StepHandle::Graph(Box::new(eng.iter().limit(limits))),
+            Tree(eng) => StepHandle::Tree(Box::new(eng.iter().limit(limits))),
         }
     }
 }

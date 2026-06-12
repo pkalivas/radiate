@@ -1,7 +1,8 @@
-use crate::{IntoPyAnyObject, PyAnyObject};
+use crate::{IntoPyAnyObject, PyAnyObject, PyChromosome, PyGeneType};
 use pyo3::{Bound, IntoPyObject, IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
-    EvalMut, Graph, GraphEvaluator, GraphIterator, NodeType, Op, ToDot, graphs::GraphEvalCache,
+    Chromosome, EvalMut, Graph, GraphChromosome, GraphEvaluator, GraphIterator, NodeType, Op,
+    ToDot, graphs::GraphEvalCache,
 };
 use serde::{Deserialize, Serialize};
 
@@ -31,6 +32,23 @@ impl PyGraph {
     pub fn from_json(json: &str) -> PyResult<Self> {
         serde_json::from_str::<PyGraph>(json)
             .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("Invalid JSON: {}", e)))
+    }
+
+    #[staticmethod]
+    pub fn from_chromosome(chromosome: &PyChromosome) -> PyResult<Self> {
+        if chromosome.gene_type() != PyGeneType::GraphNode {
+            return Err(pyo3::exceptions::PyTypeError::new_err(format!(
+                "Expected a Graph chromosome, got {:?}",
+                chromosome.gene_type()
+            )));
+        }
+
+        let chromosome = GraphChromosome::<Op<f32>>::from(chromosome.clone());
+
+        Ok(PyGraph {
+            inner: chromosome.iter().cloned().collect(),
+            eval_cache: None,
+        })
     }
 
     pub fn to_json(&self) -> String {

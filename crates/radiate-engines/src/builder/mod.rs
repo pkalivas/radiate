@@ -19,12 +19,12 @@ use crate::io::FileReader;
 use crate::objectives::{Objective, Optimize};
 use crate::pipeline::Pipeline;
 use crate::steps::{
-    AuditStep, EngineStep, FilterStep, FrontStep, RecombineStep, SelectConfig, SpeciateStep,
+    EngineStep, FilterStep, FrontStep, MetricStep, RecombineStep, SelectConfig, SpeciateStep,
 };
 use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use crate::{
     Crossover, EncodeReplace, EventBus, EventHandler, Front, Mutate, ReplacementStrategy,
-    RouletteSelector, TournamentSelector, context::Context,
+    RouletteSelector, TournamentSelector, context::EvolutionContext,
 };
 use crate::{Generation, Result};
 use config::EngineConfig;
@@ -73,7 +73,7 @@ where
 /// - `T`: The type of the best individual in the population.
 pub struct GeneticEngineBuilder<C, T>
 where
-    C: Chromosome + Clone + 'static,
+    C: Chromosome + 'static,
     T: Clone + 'static,
 {
     params: EngineParams<C, T>,
@@ -193,7 +193,7 @@ where
         pipeline.add_step(Self::build_audit_step(&config));
 
         let event_bus = EventBus::new(config.bus_executor(), config.handlers());
-        let context = Context::from(config);
+        let context = EvolutionContext::from(config);
 
         Ok(GeneticEngine::<C, T>::new(context, pipeline, event_bus))
     }
@@ -394,7 +394,10 @@ where
     }
 
     fn build_audit_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
-        Some(Box::new(AuditStep::new(config.objective().clone())))
+        Some(Box::new(MetricStep::new(
+            config.objective().clone(),
+            config.exprs().clone(),
+        )))
     }
 
     fn build_front_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
@@ -427,7 +430,7 @@ where
 
 impl<C, T> Default for GeneticEngineBuilder<C, T>
 where
-    C: Chromosome + Clone + 'static,
+    C: Chromosome + 'static,
     T: Clone + Send + 'static,
 {
     fn default() -> Self {
@@ -442,6 +445,7 @@ where
                     diversity: None,
                     species_threshold: Rate::Fixed(0.5),
                     max_species_age: 25,
+                    target_species_count: None,
                 },
                 evaluation_params: EvaluationParams {
                     evaluator: Arc::new(FitnessEvaluator::default()),

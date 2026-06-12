@@ -44,7 +44,7 @@ engine = (
         rd.Mutate.op(0.07, 0.05),
         rd.Mutate.graph(0.1, 0.1, False),
     )
-    .limit(rd.Limit.score(0.001), rd.Limit.generations(1000))
+    .limit(rd.Limit.generations(100))
 )
 
 result = engine.run(ui=True)

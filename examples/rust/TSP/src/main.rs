@@ -4,17 +4,15 @@ use plotters::drawing::IntoDrawingArea;
 use plotters::element::Circle;
 use plotters::prelude::{BLUE, Color, IntoFont, LineSeries, RED, WHITE};
 use radiate::*;
-use std::fs::File;
-use std::io::{self, BufRead};
-use std::path::PathBuf;
+use std::io::{self};
 
 fn main() -> io::Result<()> {
-    let tsp_file_path = std::env::current_dir()?.join("examples/TSP/gr17.txt");
-    let (distance_matrix, distance_points) = read_tsp_file(&tsp_file_path)?;
+    let tsp_file_path = include_str!("../gr17.txt");
+    let (distance_matrix, distance_points) = read_tsp_file(tsp_file_path)?;
 
     let codec = PermutationCodec::new((0..distance_matrix.len()).collect());
 
-    let mut engine = GeneticEngine::builder()
+    let engine = GeneticEngine::builder()
         .codec(codec)
         .minimizing()
         .population_size(250)
@@ -30,10 +28,14 @@ fn main() -> io::Result<()> {
         })
         .build();
 
-    let result = engine.run(move |ctx| {
-        println!("[ {:?} ]: {:?}", ctx.index(), ctx.score());
-        ctx.index() > 2500 || ctx.score().as_usize() == 2085
-    });
+    let result = engine
+        .iter()
+        .until(move |ctx| {
+            println!("[ {:?} ]: {:?}", ctx.index(), ctx.score());
+            ctx.index() > 2500 || ctx.score().as_usize() == 2085
+        })
+        .run()
+        .unwrap();
 
     plot_tsp_solution(&result.value(), &distance_points).unwrap();
 
@@ -42,15 +44,14 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-fn read_tsp_file(file_path: &PathBuf) -> io::Result<(Vec<Vec<f32>>, Vec<(f32, f32)>)> {
-    let file = File::open(file_path)?;
-    let lines = io::BufReader::new(file).lines();
+fn read_tsp_file(file_content: &str) -> io::Result<(Vec<Vec<f32>>, Vec<(f32, f32)>)> {
+    let lines = file_content.lines();
 
     let mut dimension = 0;
     let mut edge_weights = Vec::new();
     let mut in_edge_weight_section = false;
 
-    for line in lines.map_while(std::result::Result::ok) {
+    for line in lines {
         if line.starts_with("DIMENSION") {
             dimension = line
                 .split_whitespace()
@@ -105,7 +106,7 @@ fn plot_tsp_solution(
     tour: &[usize],
     points: &[(f32, f32)],
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let file_path = std::env::current_dir()?.join("examples/TSP/tsp_solution.png");
+    let file_path = std::env::current_dir()?.join("../tsp_solution.png");
     let root = BitMapBackend::new(&file_path, (800, 600)).into_drawing_area();
     root.fill(&WHITE)?;
 

@@ -41,9 +41,10 @@ fn main() {
     engine
         .iter()
         .logging()
-        .take_while(|epoch| epoch.score().as_f32() > MIN_SCORE && epoch.seconds() < MAX_SECONDS)
+        .until(|epoch| epoch.score().as_f32() < MIN_SCORE || epoch.seconds() > MAX_SECONDS)
         .last()
-        .inspect(|ctx| display(&train, &test, ctx));
+        .inspect(|ctx| display(&train, &test, ctx))
+        .expect("No result from engine run");
 }
 
 fn display(
@@ -51,6 +52,7 @@ fn display(
     test: &DataSet<f32>,
     result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>,
 ) {
+    println!("{}", result.metrics().dashboard());
     let mut reducer = GraphEvaluator::new(result.value());
 
     let train_acc = Accuracy::default()

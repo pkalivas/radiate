@@ -4,7 +4,8 @@ use crate::{
 };
 use pyo3::{PyResult, pyclass, pymethods};
 use radiate::{
-    Chromosome, EngineIteratorExt, Generation, GeneticEngine, JsonWriter, Limit, radiate_err,
+    Chromosome, Engine, EngineRuntime, EvolutionContext, Generation, GeneticEngine, JsonWriter,
+    Limit,
 };
 use radiate_error::{radiate_py_bail, radiate_py_err};
 use serde::Serialize;
@@ -159,12 +160,14 @@ where
     }
 }
 
-fn iter_engine<C, T>(
-    engine: impl Iterator<Item = Generation<C, T>> + 'static,
+fn iter_engine<E, C, T>(
+    engine: EngineRuntime<E>,
     limits: Vec<Limit>,
     options: Vec<PyEngineRunOption>,
 ) -> PyResult<Generation<C, T>>
 where
+    E: Engine<Epoch = Generation<C, T>, Ctx = EvolutionContext<C, T>> + 'static,
+    E::Epoch: Serialize,
     C: Chromosome + Clone + Serialize + 'static,
     T: Clone + Send + Sync + Serialize + 'static,
 {
@@ -182,7 +185,7 @@ where
         })
         .limit(limits)
         .last()
-        .ok_or_else(|| radiate_err!(Python: "Failed to run engine and obtain final generation"))
+        .map_err(|err| radiate_py_err!(format!("Engine failed during execution: {err}")))
 }
 
 fn get_log_option(options: &[PyEngineRunOption]) -> Option<bool> {

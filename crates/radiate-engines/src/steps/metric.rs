@@ -1,16 +1,23 @@
 use crate::steps::EngineStep;
 use radiate_core::{
-    Chromosome, Ecosystem, MetricSet, Objective, SmallStr, math::distribution, metric_names,
-    phenotype::PhenotypeId,
+    Chromosome, Ecosystem, Evaluate, MetricQuery, MetricSet, MetricUpdate, Objective, Score,
+    SmallStr, math::distribution, metric_names, phenotype::PhenotypeId, stats::TagType,
 };
 use radiate_error::Result;
-use std::{cmp::Ordering, collections::HashSet};
+use std::{
+    cmp::Ordering,
+    collections::HashSet,
+    sync::{Arc, Mutex},
+};
 
 const EPS: f32 = 1e-9;
 
 #[derive(Default)]
-pub struct AuditStep {
+pub struct MetricStep {
     objective: Objective,
+    best_score: Option<Score>,
+
+    expressions: Option<Arc<Mutex<Vec<MetricQuery>>>>,
 
     score_dist_per_dim: Vec<Vec<f32>>,
     unique_scores_per_dim: Vec<Vec<f32>>,
@@ -31,12 +38,14 @@ pub struct AuditStep {
     evenness_names: Vec<SmallStr>,
     gini_names: Vec<SmallStr>,
     corr_names: Vec<SmallStr>,
+    best_score_names: Vec<SmallStr>,
 }
 
-impl AuditStep {
-    pub fn new(objective: Objective) -> Self {
+impl MetricStep {
+    pub fn new(objective: Objective, expressions: Option<Arc<Mutex<Vec<MetricQuery>>>>) -> Self {
         Self {
             objective,
+            expressions,
             ..Default::default()
         }
     }
@@ -95,6 +104,56 @@ impl AuditStep {
         metrics.upsert(metric_names::DIVERSITY_RATIO, diversity_ratio);
     }
 
+    #[inline]
+    fn calc_improvement_metrics<C: Chromosome>(
+        &mut self,
+        metrics: &mut MetricSet,
+        ecosystem: &Ecosystem<C>,
+    ) {
+        let mut best_improved = false;
+        let current_best = ecosystem.get_phenotype(0).and_then(|p| p.score());
+
+        if self.best_score.is_none() {
+            self.best_score = current_best.cloned();
+            best_improved = true;
+        } else if let (Some(current), Some(best)) = (current_best, &self.best_score)
+            && self.objective.is_better(current, best) {
+                self.best_score = Some(current.clone());
+                best_improved = true;
+            }
+
+        metrics.upsert(
+            metric_names::BEST_SCORE_IMPROVEMENT,
+            if best_improved { 1 } else { 0 },
+        );
+
+        if let Some(score) = &self.best_score {
+            if score.len() == 1 {
+                metrics.upsert(metric_names::BEST_SCORES, score[0]);
+            } else {
+                for (i, score) in score.as_slice().iter().enumerate() {
+                    let name = &self.best_score_names[i];
+                    metrics.upsert(name, *score);
+                }
+            }
+        }
+    }
+
+    #[inline]
+    fn calc_expression_metrics(&mut self, metrics: &mut MetricSet) -> Result<()> {
+        if let Some(exprs) = &self.expressions {
+            let mut exprs = exprs.lock().unwrap();
+            for expr in exprs.iter_mut() {
+                let (name, exp) = expr.pair();
+                let update = MetricUpdate::try_from(exp.eval(metrics)?)?;
+
+                metrics.upsert_tagged(name, update, TagType::Expr);
+            }
+        }
+
+        Ok(())
+    }
+
     fn clear_state(&mut self) {
         self.unique_members.clear();
         self.age_distribution.clear();
@@ -144,10 +203,11 @@ impl AuditStep {
         self.evenness_names = per_dim_names(&metric_names::SCORES_EVENNESS, dims);
         self.gini_names = per_dim_names(&metric_names::SCORES_GINI, dims);
         self.corr_names = per_dim_names(&metric_names::SIZE_SCORE_CORR, dims);
+        self.best_score_names = per_dim_names(&metric_names::BEST_SCORES, dims);
     }
 }
 
-impl<C: Chromosome> EngineStep<C> for AuditStep {
+impl<C: Chromosome> EngineStep<C> for MetricStep {
     #[inline]
     fn execute(
         &mut self,
@@ -276,6 +336,8 @@ impl<C: Chromosome> EngineStep<C> for AuditStep {
 
         self.calc_membership_metrics(metrics, ecosystem);
         Self::calc_derived_metrics(metrics, ecosystem);
+        self.calc_improvement_metrics(metrics, ecosystem);
+        self.calc_expression_metrics(metrics)?;
 
         Ok(())
     }

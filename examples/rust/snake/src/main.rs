@@ -98,7 +98,8 @@ fn run_graph_engine() {
         .inspect(|generation| {
             ascii_snake(SnakeAI::Graph(generation.value()));
             println!("{}", generation.metrics().dashboard());
-        });
+        })
+        .unwrap();
 }
 
 fn run_neural_net_engine() {
@@ -125,7 +126,8 @@ fn run_neural_net_engine() {
         .inspect(|generation| {
             ascii_snake(SnakeAI::NeuralNet(generation.value()));
             println!("{}", generation.metrics().dashboard());
-        });
+        })
+        .unwrap();
 }
 
 fn snake_fitness<'a>(ai: SnakeAI<'a>) -> f32 {

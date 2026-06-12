@@ -1,7 +1,7 @@
 use crate::{InputTransform, PyEngineInput, PyEngineInputType, PyExpr, PyMetric};
 use pyo3::Python;
 use radiate::Limit;
-use std::{sync::Arc, time::Duration};
+use std::{collections::VecDeque, sync::Arc, time::Duration};
 
 impl InputTransform<Vec<Limit>> for Vec<PyEngineInput> {
     fn transform(&self) -> Vec<Limit> {
@@ -34,7 +34,11 @@ impl InputTransform<Option<Limit>> for PyEngineInput {
         let window = self.extract::<i64>("window").ok();
         let epsilon = self.extract::<f64>("epsilon").ok();
         if let (Some(window), Some(epsilon)) = (window, epsilon) {
-            return Some(Limit::Convergence(window as usize, epsilon as f32));
+            return Some(Limit::Convergence(
+                window as usize,
+                epsilon as f32,
+                VecDeque::with_capacity(window as usize),
+            ));
         }
 
         let name = self.extract::<String>("name").ok();

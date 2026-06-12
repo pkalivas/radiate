@@ -6,9 +6,9 @@ pub mod tables;
 
 use radiate_engines::{Chromosome, Metric};
 
-pub use chart::LineChartType;
+pub use chart::MetricChartType;
 pub use evo::EvoState;
-pub use nav::{DashboardTab, NavState, UiMode};
+pub use nav::{NavState, Pane, UiMode};
 pub use run::RunState;
 pub use tables::{AppTableState, TableStates};
 
@@ -40,6 +40,43 @@ impl<C: Chromosome> AppState<C> {
 
     pub fn metric_matches_search(&self, metric: &Metric) -> bool {
         self.nav.metric_matches_search(metric)
+    }
+
+    pub fn selected_metric_views(&self) -> &'static [MetricChartType] {
+        self.get_selected_metric()
+            .and_then(|name| self.evo.metrics.get(name))
+            .map(MetricChartType::for_metric)
+            .unwrap_or(MetricChartType::SCALAR_VIEWS)
+    }
+
+    pub fn current_chart_view(&self) -> MetricChartType {
+        let views = self.selected_metric_views();
+        let stored = self.nav.chart_tab();
+        if views.contains(&stored) {
+            stored
+        } else {
+            views[0]
+        }
+    }
+
+    pub fn chart_view_index(&self) -> usize {
+        let current = self.current_chart_view();
+        self.selected_metric_views()
+            .iter()
+            .position(|v| *v == current)
+            .unwrap_or(0)
+    }
+
+    pub fn next_chart_view(&mut self) {
+        let views = self.selected_metric_views();
+        let next = (self.chart_view_index() + 1) % views.len();
+        self.nav.set_chart_tab(views[next]);
+    }
+
+    pub fn prev_chart_view(&mut self) {
+        let views = self.selected_metric_views();
+        let prev = (self.chart_view_index() + views.len() - 1) % views.len();
+        self.nav.set_chart_tab(views[prev]);
     }
 }
 

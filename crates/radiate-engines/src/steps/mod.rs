@@ -1,14 +1,14 @@
-pub mod audit;
 pub mod evaluate;
 pub mod filter;
 pub mod front;
+pub mod metric;
 pub mod recombine;
 pub mod speciate;
 
-pub use audit::*;
 pub use evaluate::*;
 pub use filter::*;
 pub use front::*;
+pub use metric::*;
 
 use radiate_core::{Chromosome, Ecosystem, MetricSet};
 use radiate_error::Result;
@@ -40,7 +40,7 @@ where
         parts.insert(0, "step");
         let result = parts.join(".");
 
-        return radiate_utils::intern!(result);
+        radiate_utils::intern!(result)
     }
 
     fn execute(

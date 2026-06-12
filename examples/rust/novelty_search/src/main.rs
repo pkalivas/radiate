@@ -33,7 +33,8 @@ fn main() {
         .take(2000)
         .last()
         .inspect(|result| println!("{}", result.metrics().dashboard()))
-        .inspect(|result| visualize(result.clone()));
+        .inspect(|result| visualize(result.clone()))
+        .unwrap();
 }
 
 fn visualize(result: Generation<FloatChromosome<f32>, Vec<f32>>) {

@@ -8,29 +8,33 @@ pub mod metric_names {
     pub const TIME: SmallStr = SmallStr::from_static("time");
 
     pub const AGE: SmallStr = SmallStr::from_static("age");
-    pub const REPLACE_AGE: SmallStr = SmallStr::from_static("age.replace");
-    pub const SPECIES_AGE_FAIL: SmallStr = SmallStr::from_static("age.species.fail");
-    pub const SPECIES_AGE: SmallStr = SmallStr::from_static("age.species");
 
-    pub const SPECIES_NEW_RATIO: SmallStr = SmallStr::from_static("new.species.ratio");
-    pub const FRONT_ADDITIONS: SmallStr = SmallStr::from_static("new.front");
-    pub const SPECIES_CREATED: SmallStr = SmallStr::from_static("new.species");
+    pub const REPLACE_AGE: SmallStr = SmallStr::from_static("replace.age");
+    pub const REPLACE_INVALID: SmallStr = SmallStr::from_static("replace.invalid");
 
-    pub const REPLACE_INVALID: SmallStr = SmallStr::from_static("invalid.replace");
-    pub const FRONT_REMOVALS: SmallStr = SmallStr::from_static("invalid.front");
-    pub const SPECIES_DIED: SmallStr = SmallStr::from_static("invalid.species");
+    pub const SPECIES_AGE: SmallStr = SmallStr::from_static("species.age");
+    pub const SPECIES_AGE_FAIL: SmallStr = SmallStr::from_static("species.fail.age");
+    pub const SPECIES_NEW_RATIO: SmallStr = SmallStr::from_static("species.new.ratio");
+    pub const SPECIES_CREATED: SmallStr = SmallStr::from_static("species.new");
+    pub const SPECIES_DIED: SmallStr = SmallStr::from_static("species.fail.empty");
+    pub const SPECIES_SIZE: SmallStr = SmallStr::from_static("species.size");
+    pub const SPECIES_DISTANCE_DIST: SmallStr = SmallStr::from_static("species.distance");
+    pub const SPECIES_EVENNESS: SmallStr = SmallStr::from_static("species.evenness");
+    pub const LARGEST_SPECIES_SHARE: SmallStr = SmallStr::from_static("species.largest_share");
+    pub const SPECIES_THRESHOLD: SmallStr = SmallStr::from_static("species.threshold");
+    pub const SPECIES_COUNT: SmallStr = SmallStr::from_static("species.count");
 
-    pub const GENOME_SIZE: SmallStr = SmallStr::from_static("size.genome");
-    pub const FRONT_SIZE: SmallStr = SmallStr::from_static("size.front");
-    pub const SPECIES_SIZE: SmallStr = SmallStr::from_static("size.species");
-
+    pub const FRONT_ADDITIONS: SmallStr = SmallStr::from_static("front.additions");
+    pub const FRONT_REMOVALS: SmallStr = SmallStr::from_static("front.removals");
     pub const FRONT_ENTROPY: SmallStr = SmallStr::from_static("front.entropy");
     pub const FRONT_COMPARISONS: SmallStr = SmallStr::from_static("front.comparisons");
     pub const FRONT_FILTERS: SmallStr = SmallStr::from_static("front.filters");
+    pub const FRONT_SIZE: SmallStr = SmallStr::from_static("front.size");
+
+    pub const GENOME_SIZE: SmallStr = SmallStr::from_static("genome.size");
 
     pub const SURVIVOR_COUNT: SmallStr = SmallStr::from_static("count.survivor");
     pub const EVALUATION_COUNT: SmallStr = SmallStr::from_static("count.evaluation");
-    pub const SPECIES_COUNT: SmallStr = SmallStr::from_static("count.species");
 
     pub const CARRYOVER_RATE: SmallStr = SmallStr::from_static("rate.carryover");
     pub const DIVERSITY_RATIO: SmallStr = SmallStr::from_static("rate.diversity");
@@ -91,12 +95,7 @@ pub mod metric_names {
     ///
     /// Computed only over scored members so it never desyncs from skipped /
     /// unevaluated individuals.
-    pub const SIZE_SCORE_CORR: SmallStr = SmallStr::from_static("size.score.corr");
-
-    pub const SPECIES_DISTANCE_DIST: SmallStr = SmallStr::from_static("species.distance");
-    pub const SPECIES_EVENNESS: SmallStr = SmallStr::from_static("species.evenness");
-    pub const LARGEST_SPECIES_SHARE: SmallStr = SmallStr::from_static("species.largest_share");
-    pub const SPECIES_THRESHOLD: SmallStr = SmallStr::from_static("species.threshold");
+    pub const SIZE_SCORE_CORR: SmallStr = SmallStr::from_static("genome.size.score.corr");
 
     pub const UNIQUE_MEMBERS: SmallStr = SmallStr::from_static("unique.members");
     pub const UNIQUE_SCORES: SmallStr = SmallStr::from_static("unique.scores");

@@ -11,7 +11,9 @@ use crate::builder::species::SpeciesParams;
 use crate::genome::phenotype::Phenotype;
 use crate::objectives::Objective;
 use crate::{EventHandler, Front, Problem, ReplacementStrategy, Select};
+use radiate_core::Expr;
 use radiate_core::MetricQuery;
+use radiate_core::metric_names;
 use radiate_core::{Alterer, Diversity, Ecosystem, Evaluator, Executor, Genotype, Rate};
 use std::sync::{Arc, Mutex, RwLock};
 
@@ -130,6 +132,10 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
     pub fn exprs(&self) -> Option<Arc<Mutex<Vec<MetricQuery>>>> {
         self.exprs.clone()
     }
+
+    // pub fn limits(&self) -> Option<Vec<Limit>> {
+    //     self.limits.clone()
+    // }
 }
 
 impl<C, T> From<&EngineParams<C, T>> for EngineConfig<C, T>
@@ -138,6 +144,22 @@ where
     T: Clone + Send + Sync + 'static,
 {
     fn from(params: &EngineParams<C, T>) -> Self {
+        let threshold = if let Some(count) = params.species_params.target_species_count {
+            let curr_threshold = params.species_params.species_threshold.get_by_index(1);
+
+            let index = Expr::select(metric_names::INDEX);
+            let thresh = Expr::select(metric_names::SPECIES_THRESHOLD);
+            let err = Expr::select(metric_names::SPECIES_COUNT).error(count as f32) * 0.05;
+
+            Rate::Expr(
+                Expr::when(index.lt(2))
+                    .then(curr_threshold)
+                    .otherwise(err + thresh),
+            )
+        } else {
+            params.species_params.species_threshold.clone()
+        };
+
         Self {
             ecosystem: params.population_params.ecosystem.clone().unwrap(),
             problem: params.problem_params.problem.clone().unwrap(),
@@ -148,7 +170,7 @@ where
             objective: params.optimization_params.objectives.clone(),
             max_age: params.population_params.max_age,
             max_species_age: params.species_params.max_species_age,
-            species_threshold: params.species_params.species_threshold.clone(),
+            species_threshold: threshold,
             diversity: params.species_params.diversity.clone(),
             front: Arc::new(RwLock::new(
                 params.optimization_params.front.clone().unwrap(),
@@ -180,6 +202,7 @@ where
                     diversity: config.diversity,
                     species_threshold: config.species_threshold,
                     max_species_age: config.max_species_age,
+                    target_species_count: None,
                 },
                 evaluation_params: config.executor,
                 selection_params: SelectionParams {

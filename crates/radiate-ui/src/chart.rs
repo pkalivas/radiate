@@ -1,6 +1,16 @@
 use radiate_utils::WindowBuffer;
 use ratatui::style::Color;
 
+pub trait LineChart {
+    fn values(&self) -> &[(f64, f64)];
+    fn min_x(&self) -> f64;
+    fn max_x(&self) -> f64;
+    fn min_y(&self) -> f64;
+    fn max_y(&self) -> f64;
+    fn color(&self) -> Color;
+    fn title(&self) -> &str;
+}
+
 pub struct RollingLineChart {
     title: String,
     min_y: f64,
@@ -100,6 +110,118 @@ impl RollingLineChart {
                 self.max_y = *y;
             }
         }
+    }
+}
+
+impl LineChart for RollingLineChart {
+    fn values(&self) -> &[(f64, f64)] {
+        self.values()
+    }
+
+    fn min_x(&self) -> f64 {
+        self.min_x()
+    }
+
+    fn max_x(&self) -> f64 {
+        self.max_x()
+    }
+
+    fn min_y(&self) -> f64 {
+        self.min_y()
+    }
+
+    fn max_y(&self) -> f64 {
+        self.max_y()
+    }
+
+    fn color(&self) -> Color {
+        self.color()
+    }
+
+    fn title(&self) -> &str {
+        self.title()
+    }
+}
+
+pub struct DistributionLineChart {
+    title: String,
+    min_y: f64,
+    max_y: f64,
+    values: Vec<(f64, f64)>,
+    color: Color,
+}
+
+impl DistributionLineChart {
+    pub fn with_color(mut self, color: Color) -> Self {
+        self.color = color;
+        self
+    }
+}
+
+impl From<&[f32]> for DistributionLineChart {
+    fn from(values: &[f32]) -> Self {
+        Self::from(values.to_vec())
+    }
+}
+
+impl From<Vec<f32>> for DistributionLineChart {
+    fn from(values: Vec<f32>) -> Self {
+        let mut chart = Self {
+            title: "".to_string(),
+            min_y: f64::MAX,
+            max_y: f64::MIN,
+            values: Vec::new(),
+            color: Color::White,
+        };
+
+        for (i, value) in values.into_iter().enumerate() {
+            let value = value as f64;
+            chart.values.push((i as f64, value));
+            if value < chart.min_y {
+                chart.min_y = value;
+            }
+            if value > chart.max_y {
+                chart.max_y = value;
+            }
+        }
+
+        if chart.min_y == chart.max_y {
+            // avoid zero range
+            chart.min_y -= 0.5;
+            chart.max_y += 0.5;
+        }
+
+        chart
+    }
+}
+
+impl LineChart for DistributionLineChart {
+    fn values(&self) -> &[(f64, f64)] {
+        &self.values
+    }
+
+    fn min_x(&self) -> f64 {
+        self.values.first().map_or(0.0, |v| v.0)
+    }
+
+    fn max_x(&self) -> f64 {
+        self.values.last().map_or(0.0, |v| v.0)
+    }
+
+    fn min_y(&self) -> f64 {
+        self.min_y
+    }
+
+    fn max_y(&self) -> f64 {
+        self.max_y
+    }
+
+    fn color(&self) -> Color {
+        self.color
+    }
+
+    fn title(&self) -> &str {
+        &self.title
     }
 }
 
