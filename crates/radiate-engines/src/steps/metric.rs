@@ -116,12 +116,11 @@ impl MetricStep {
         if self.best_score.is_none() {
             self.best_score = current_best.cloned();
             best_improved = true;
-        } else if let (Some(current), Some(best)) = (current_best, &self.best_score) {
-            if self.objective.is_better(current, best) {
+        } else if let (Some(current), Some(best)) = (current_best, &self.best_score)
+            && self.objective.is_better(current, best) {
                 self.best_score = Some(current.clone());
                 best_improved = true;
             }
-        }
 
         metrics.upsert(
             metric_names::BEST_SCORE_IMPROVEMENT,
@@ -134,7 +133,7 @@ impl MetricStep {
             } else {
                 for (i, score) in score.as_slice().iter().enumerate() {
                     let name = &self.best_score_names[i];
-                    metrics.upsert(&name, *score);
+                    metrics.upsert(name, *score);
                 }
             }
         }

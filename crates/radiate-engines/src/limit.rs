@@ -176,9 +176,7 @@ where
                 let last = history.back().unwrap();
 
                 let improved = match &ctx.objective {
-                    Objective::Single(obj) => match obj {
-                        _ => last - first,
-                    },
+                    Objective::Single(_) => last - first,
                     Objective::Multi(_) => {
                         let mut total_improvement = 0.0;
                         for (i, score) in history.iter().enumerate() {

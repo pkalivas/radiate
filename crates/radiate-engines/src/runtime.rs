@@ -75,14 +75,14 @@ where
         if let Some(actions) = &mut self.actions {
             let ctx = self.engine.context();
             for action in actions.iter_mut() {
-                action.execute(&ctx)?;
+                action.execute(ctx)?;
             }
         }
 
         if let Some(limits) = &mut self.limits {
             let ctx = self.engine.context();
             for limit in limits.iter_mut() {
-                if !limit.proceed(&ctx)? {
+                if !limit.proceed(ctx)? {
                     self.done = true;
                     return Ok(());
                 }
