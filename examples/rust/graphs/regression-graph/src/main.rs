@@ -26,7 +26,7 @@ fn main() {
 
     radiate::ui(engine)
         .iter()
-        .until_score(MIN_SCORE)
+        .limit(5)
         .last()
         .inspect(display)
         .unwrap();

@@ -279,6 +279,7 @@ where
             return None;
         }
 
-        self.engine.next().ok()
+        self.step().ok()?;
+        Some(self.engine.epoch())
     }
 }
