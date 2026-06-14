@@ -21,10 +21,7 @@ pub trait RuntimeAction<E: Engine> {
     fn execute(&mut self, guard: &E::Ctx) -> RadiateResult<()>;
 }
 
-pub struct EngineRuntime<E>
-where
-    E: Engine,
-{
+pub struct EngineRuntime<E: Engine> {
     engine: E,
     control: Option<EngineControl>,
     actions: Option<Vec<Box<dyn RuntimeAction<E>>>>,
@@ -32,10 +29,7 @@ where
     done: bool,
 }
 
-impl<E> EngineRuntime<E>
-where
-    E: Engine,
-{
+impl<E: Engine> EngineRuntime<E> {
     pub fn new(engine: E, control: Option<EngineControl>) -> Self {
         Self {
             engine,

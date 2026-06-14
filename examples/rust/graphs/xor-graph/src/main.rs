@@ -26,7 +26,7 @@ fn main() {
     let graph_codec = GraphCodec::directed(2, 1, values);
     let regression = Regression::new(get_dataset(), Loss::MSE);
 
-    let mut engine = GeneticEngine::builder()
+    let engine = GeneticEngine::builder()
         .codec(graph_codec)
         .fitness_fn(regression)
         .minimizing()
@@ -37,12 +37,15 @@ fn main() {
         ))
         .build();
 
-    let result = engine.run(|ctx| {
-        println!("[ {:?} ]: {:?}", ctx.index(), ctx.score().as_f32(),);
-        ctx.index() == MAX_INDEX || ctx.score().as_f32() < MIN_SCORE
-    });
-
-    display(&result);
+    engine
+        .iter()
+        .until(|view| {
+            println!("[ {:?} ]: {:?}", view.index(), view.score().as_f32(),);
+            view.index() == MAX_INDEX || view.score().as_f32() <= MIN_SCORE
+        })
+        .run()
+        .inspect(display)
+        .expect("Engine run failed");
 }
 
 fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {

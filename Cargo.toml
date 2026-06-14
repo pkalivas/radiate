@@ -68,11 +68,12 @@ homepage = "https://pkalivas.github.io/radiate/"
 
 [workspace.dependencies]
 rand = "0.10.1"
-pyo3 = "0.28.3"
-numpy ="0.28.0"
+pyo3 = "0.29.0"
+# numpy ="0.28.0"
+numpy = { git = "https://github.com/g-bauer/rust-numpy.git", branch = "pyo3_0.29.0" }
 rayon = "1.12.0"
 itertools = "0.14.0"
-smallvec = { version = "1.13", features = ["serde"] }
+smallvec = { version = "1.15.2", features = ["serde"] }
 thiserror = "2.0.18"
 serde = { version = "1.0.228", features = ["derive", "rc"] }
 serde_json = { version = "1.0.149" }

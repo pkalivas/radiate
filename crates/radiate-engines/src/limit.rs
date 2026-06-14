@@ -310,8 +310,8 @@ where
     E: Engine<Epoch = Generation<C, T>, Ctx = EvolutionContext<C, T>>,
     F: Fn(GenerationView<C, T>) -> bool,
 {
-    fn proceed(&mut self, snapshot: &E::Ctx) -> RadiateResult<bool> {
-        let view = GenerationView::new(snapshot);
+    fn proceed(&mut self, ctx: &E::Ctx) -> RadiateResult<bool> {
+        let view = GenerationView::new(ctx);
         Ok(!(self)(view))
     }
 }
