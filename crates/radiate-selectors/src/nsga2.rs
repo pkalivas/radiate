@@ -22,7 +22,7 @@ impl NSGA2Selector {
     }
 }
 
-impl<C: Chromosome + Clone> Select<C> for NSGA2Selector {
+impl<C: Chromosome> Select<C> for NSGA2Selector {
     fn name(&self) -> &'static str {
         NSGA2_SELECTOR_NAME
     }
@@ -71,7 +71,7 @@ impl TournamentNSGA2Selector {
     }
 }
 
-impl<C: Chromosome + Clone> Select<C> for TournamentNSGA2Selector {
+impl<C: Chromosome> Select<C> for TournamentNSGA2Selector {
     fn select(
         &self,
         population: &[Phenotype<C>],

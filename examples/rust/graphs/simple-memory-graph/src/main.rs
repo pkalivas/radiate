@@ -13,7 +13,7 @@ fn main() {
         (NodeType::Output, vec![Op::sigmoid()]),
     ];
 
-    let mut engine = GeneticEngine::builder()
+    let engine = GeneticEngine::builder()
         .codec(GraphCodec::lstm(1, 1, values))
         .fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
@@ -26,12 +26,15 @@ fn main() {
         ))
         .build();
 
-    let result = engine.run(|ctx| {
-        println!("[ {:?} ]: {:?}", ctx.index(), ctx.score().as_f32());
-        ctx.index() == MAX_INDEX || ctx.score().as_f32() < MIN_SCORE
-    });
-
-    display(&result);
+    engine
+        .iter()
+        .until(|view| {
+            println!("[ {:?} ]: {:?}", view.index(), view.score().as_f32());
+            view.index() == MAX_INDEX || view.score().as_f32() < MIN_SCORE
+        })
+        .last()
+        .inspect(display)
+        .unwrap();
 }
 
 fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {

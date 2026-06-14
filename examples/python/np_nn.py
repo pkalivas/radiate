@@ -76,7 +76,7 @@ engine = (
     .limit(rd.Limit.score(0.01), rd.Limit.generations(500))
 )
 
-result = engine.run(log=True)
+result = engine.run(ui=True)
 metrics = result.metrics()
 
 print(result)

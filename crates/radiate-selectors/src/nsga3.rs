@@ -33,7 +33,7 @@ impl NSGA3Selector {
     }
 }
 
-impl<C: Chromosome + Clone> Select<C> for NSGA3Selector {
+impl<C: Chromosome> Select<C> for NSGA3Selector {
     fn name(&self) -> &'static str {
         "selector.nsga3"
     }
