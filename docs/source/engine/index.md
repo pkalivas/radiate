@@ -42,7 +42,7 @@ flowchart TD
     MO -->|no| DV{diversity configured?}
     FR --> DV
     DV -->|yes| SP[Speciate — cluster the population into species by distance]
-    DV -->|no| AU[Audit — collect this generation's metrics]
+    DV -->|no| AU[Metrics — collect generation's metrics]
     SP --> AU
     AU --> G[Emit a Generation epoch]
     G --> S

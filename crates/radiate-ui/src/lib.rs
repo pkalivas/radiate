@@ -5,13 +5,13 @@ mod state;
 mod styles;
 mod widgets;
 
-use crate::runtime::UiRuntime;
+use crate::runtime::TuiEngine;
 use radiate_engines::{Chromosome, GeneticEngine};
 use std::time::Duration;
 
 pub const DEFAULT_RENDER_INTERVAL: Duration = Duration::from_millis(100);
 
-pub fn ui<C, T>(engine: impl Into<UiInput<C, T>>) -> UiRuntime<C, T>
+pub fn ui<C, T>(engine: impl Into<UiInput<C, T>>) -> TuiEngine<C, T>
 where
     C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync,
@@ -21,7 +21,7 @@ where
         UiInput::EngineRenderInterval(e, d) => (e, d),
     };
 
-    UiRuntime::new(engine, render_interval)
+    TuiEngine::new(engine, render_interval)
 }
 
 pub enum UiInput<C, T>

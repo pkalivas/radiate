@@ -123,10 +123,7 @@ impl MetricStep {
             best_improved = true;
         }
 
-        metrics.upsert(
-            metric_names::BEST_SCORE_IMPROVEMENT,
-            if best_improved { 1 } else { 0 },
-        );
+        metrics.upsert(metric_names::BEST_SCORE_IMPROVEMENT, best_improved);
 
         if let Some(score) = &self.best_score {
             if score.len() == 1 {

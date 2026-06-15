@@ -194,6 +194,9 @@ impl Metric {
                 self.dtype = DTYPE_FLOAT32;
                 self.meta.update_count += 1;
             }
+            MetricUpdate::Bool(value) => {
+                self.update_statistic(if value { 1.0 } else { 0.0 });
+            }
         }
     }
 
@@ -315,6 +318,7 @@ pub enum MetricUpdate<'a> {
     OwnedDistribution(Vec<f32>),
     UsizeDistribution(&'a [usize]),
     Statistic(Statistic),
+    Bool(bool),
 }
 
 impl From<f32> for MetricUpdate<'_> {
@@ -356,6 +360,12 @@ impl<'a> From<&'a Vec<usize>> for MetricUpdate<'a> {
 impl From<Statistic> for MetricUpdate<'_> {
     fn from(value: Statistic) -> Self {
         MetricUpdate::Statistic(value)
+    }
+}
+
+impl From<bool> for MetricUpdate<'_> {
+    fn from(value: bool) -> Self {
+        MetricUpdate::Bool(value)
     }
 }
 

@@ -2,8 +2,8 @@
 """
 Radiate example: Evolisa (a.k.a. "Mona Lisa with polygons")
 
-Evolve a set of semi-transparent triangles to approximate a target image.
-Each triangle is one chromosome of 10 genes -- 3 vertices (x, y) plus RGBA --
+Evolve a set of semi-transparent polygons to approximate a target image.
+Each polygon is one chromosome of 4 + 2 * VERTS genes -- VERTS vertices (x, y) plus RGBA --
 all normalized to [0, 1]. Fitness is the mean-squared pixel error between the
 rendered candidate and the (downscaled) target; we minimize it.
 
@@ -21,10 +21,10 @@ import radiate as rd
 # --- config -----------------------------------------------------------------
 POLYGONS = 175  # number of polygons (Rust: NUM_GENES)
 VERTS = 5  # vertices per polygon (Rust: POLYGON_SIZE)
-GENES_PER = 4 + 2 * VERTS  # [r, g, b, a, x0, y0, ... ] = 14 floats
+GENES_PER = 4 + 2 * VERTS  # [r, g, b, a, x0, y0, ... ]
 RENDER_MAX = 128  # longest side used for fitness (small = fast)
 SAVE_EVERY = 25  # snapshot cadence (generations)
-GENERATIONS = 1000  # Rust: .iter().take(1000)
+GENERATIONS = 1000
 
 ROOT = Path(__file__).parent.parent
 OUT = ROOT / "data" / "results" / "mona_lisa"
@@ -103,7 +103,7 @@ engine = (
     )
     .fitness(fit)
     .minimizing()
-    .select(survivor=rd.Select.roulette(), offspring=rd.Select.tournament(3))
+    .select(rd.Select.tournament(3), rd.Select.roulette())
     .alters(
         rd.Cross.mean(0.3),
         rd.Mutate.jitter(0.01, 0.15),
