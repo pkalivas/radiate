@@ -132,10 +132,6 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
     pub fn exprs(&self) -> Option<Arc<Mutex<Vec<MetricQuery>>>> {
         self.exprs.clone()
     }
-
-    // pub fn limits(&self) -> Option<Vec<Limit>> {
-    //     self.limits.clone()
-    // }
 }
 
 impl<C, T> From<&EngineParams<C, T>> for EngineConfig<C, T>
