@@ -64,5 +64,7 @@ pub mod prelude {
     pub use super::problem::Problem;
     pub use super::replacement::{EncodeReplace, PopulationSampleReplace, ReplacementStrategy};
     pub use super::selector::Select;
-    pub use super::stats::{Metric, MetricSet};
+    pub use super::stats::{
+        Evaluate, Expr, Metric, MetricQuery, MetricSet, SelectExpr, metric_names,
+    };
 }

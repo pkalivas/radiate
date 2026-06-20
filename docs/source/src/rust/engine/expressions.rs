@@ -1,5 +1,4 @@
 use radiate::prelude::*;
-use radiate::stats::Expr;
 
 fn my_fitness_fn(geno: Vec<f32>) -> f32 {
     geno.iter().sum()

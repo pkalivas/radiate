@@ -17,12 +17,12 @@ Radiate has reached `1.3.0`! This release includes a major refactor of the engin
   re-exports `radiate_pgm::*`.
     * I don't think this was really used at all and it never really reached more than an infancy state. If PGMs are a desired feature, they can be reintroduced in the future with a more focused scope and better design - please open an issue if you'd like to see them.
 - **Removed the `radiate-expr` crate.** The metric expression DSL has moved
-  into `radiate-core` under `stats::expression`, and is re-exported from the
-  crate root (`Expr`, `SelectExpr`, `MetricQuery`, `Evaluate`,
-  `expression::expr`). No separate dependency is required. The Rust `prelude`
-  no longer re-exports `radiate_expr::*` — these types now flow through the
-  `radiate-core` re-export instead, so `use radiate::prelude::*` continues to
-  work without changes.
+  into `radiate-core` under `stats::expression`, and the core types are
+  re-exported from the `radiate-core` crate root (`Expr`, `SelectExpr`,
+  `MetricQuery`, `Evaluate`), and are also available through
+  `radiate::prelude` (so `use radiate::prelude::*;` brings `Expr` into scope).
+  No separate dependency is required, and the `prelude` no longer re-exports
+  `radiate_expr::*`.
 - **Removed the `lineage` module** from `radiate-core`. `Lineage`,
   `LineageEvent`, and `LineageUpdate` are no longer part of the public API.
 - **Removed the `Field` struct** from `radiate-utils` (and its re-export).
@@ -34,17 +34,15 @@ Radiate has reached `1.3.0`! This release includes a major refactor of the engin
   log=True)` still works); only the typed option objects were renamed. Code
   that imported or constructed `EngineUi` must switch to `UiParam`.
 - **Python: expression DSL constructors moved onto `rd.Expr`.** The flat
-  module functions (`rd.select`, `rd.when`, `rd.lit`, `rd.every`,
-  `rd.generation`, `rd.element`, `rd.pi_signal`, `rd.error_from`,
-  `rd.is_converged`, `rd.stagnation`, `rd.is_stagnant`, `rd.p50/p95/p99`,
-  `rd.quantile_stream`) are now classmethods on `Expr`
-  (`rd.Expr.select(...)`, `rd.Expr.when(...)`, etc.), matching the library's
-  `rd.Noun.factory` convention and keeping the `rd.*` namespace free of names
+  module functions that previously lived on `rd` — `rd.metric`, `rd.when`,
+  `rd.lit`, `rd.element`, `rd.every`, and `rd.generation` — are now
+  classmethods on `Expr`, and `rd.metric(...)` is renamed to
+  `rd.Expr.select(...)` (so: `rd.Expr.when(...)`, `rd.Expr.lit(...)`,
+  `rd.Expr.element(...)`, etc.). This matches the library's
+  `rd.Noun.factory` convention and keeps the `rd.*` namespace free of names
   that shadowed builtins. The redundant `rd.mean/min/max/stddev(metric)`
-  shorthands were dropped — use `rd.Expr.select(metric).mean()`. The
-  controller helper is now `rd.Expr.track(metric, target, ...)` (was the
-  flat `adaptive_rate`). Expressions remain experimental; no back-compat
-  aliases are kept.
+  shorthands were dropped — use `rd.Expr.select(metric).mean()`. Expressions
+  remain experimental; no back-compat aliases are kept.
 - **Metric names have changed**. The names of certain metrics have changed to be more consistent and intuitive. Run a quick engine and print out the `metrics.dashboard()` to see new names or checkout the user guide.
 
 ### Added
@@ -55,11 +53,12 @@ Radiate has reached `1.3.0`! This release includes a major refactor of the engin
   fused `Affine` node. Idempotent.
 - **Expression DSL — new operators.** `stagnation` / `is_stagnant` for
   patience-based plateau detection, `is_converged` for windowed convergence,
-  `pi_signal` PI-control helper, and streaming P² quantiles (`p50`, `p95`,
-  `p99`) with constant-memory online estimation.
-- **Expression DSL (Python) — new methods.** `Expr.error(target)` and
-  `Expr.quantile(q)` are now available on expression instances, alongside the
-  classmethod constructors.
+  and a streaming P² quantile (`.quantile(q)`) with constant-memory online
+  estimation.
+- **Expression DSL (Python) — new constructors & methods.** New `Expr`
+  classmethods `Expr.stagnation(metric, ...)` and
+  `Expr.is_stagnant(metric, patience, ...)`, plus instance methods
+  `Expr.error(target)` and `Expr.quantile(q)`.
 - **Python: `Species` is now inspectable.** New accessors expose speciation
   results to Python — `population()`, `mascot()`, `generation()`,
   `stagnation()`, and `score()`.
