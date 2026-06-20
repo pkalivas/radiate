@@ -39,7 +39,7 @@ The main thesis of `radiate` is that one evolutionary engine should drive everyt
 Add this to your `Cargo.toml`:
 ```toml
 [dependencies]
-radiate = { version = "1.2.22", features = ["x"] }
+radiate = { version = "1.3.0", features = ["x"] }
 ``` 
 ### Python
 ```bash

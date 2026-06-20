@@ -63,7 +63,7 @@ uv add "radiate[all]" # to enable all features
 ```toml
 [dependencies]
 # Include the radiate crate with all optional features enabled.
-radiate = { version = "1.2.22", features = ["gp", "serde", "rayon", "ui"] }
+radiate = { version = "1.3.0", features = ["gp", "serde", "rayon", "ui"] }
 ```
 
 opt-in features include:
