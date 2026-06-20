@@ -18,7 +18,7 @@ fn main() {
     let result = engine
         .iter()
         .logging()
-        .until(|ctx| ctx.score().as_i32() == MIN_SCORE || ctx.seconds() >= 3.0)
+        .until(|view| view.score().as_i32() == MIN_SCORE || view.seconds() >= 3.0)
         .run();
 
     println!("{:?}", result);

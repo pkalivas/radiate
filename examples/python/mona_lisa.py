@@ -2,12 +2,21 @@
 """
 Radiate example: Evolisa (a.k.a. "Mona Lisa with polygons")
 
-Evolve a set of semi-transparent triangles to approximate a target image.
-Each triangle is one chromosome of 10 genes -- 3 vertices (x, y) plus RGBA --
+Evolve a set of semi-transparent polygons to approximate a target image.
+Each polygon is one chromosome of 4 + 2 * VERTS genes -- VERTS vertices (x, y) plus RGBA --
 all normalized to [0, 1]. Fitness is the mean-squared pixel error between the
 rendered candidate and the (downscaled) target; we minimize it.
 
 Requires: pillow, numpy  (`uv pip install pillow numpy`)
+
+This is _almost_ a 1:1 translation of the Rust example, but with a few differences:
+- The Rust example uses a custom renderer, while this one uses Pillow.
+- The Rust example uses a custom fitness function, while this one uses NumPy.
+
+The Rust example is going to be faster. Its rust, it can run natively in parallel, we
+don't have to cross the Rust-Python bridge, and we don't have to convert between Pillow/Numpy/Rust image formats.
+BUT, this Python example is easier to read and modify, and it can run on any platform that supports Python. Other than
+that, the two examples will produce almost the exact same results - which is pretty cool.
 """
 
 import sys
@@ -21,10 +30,10 @@ import radiate as rd
 # --- config -----------------------------------------------------------------
 POLYGONS = 175  # number of polygons (Rust: NUM_GENES)
 VERTS = 5  # vertices per polygon (Rust: POLYGON_SIZE)
-GENES_PER = 4 + 2 * VERTS  # [r, g, b, a, x0, y0, ... ] = 14 floats
+GENES_PER = 4 + 2 * VERTS  # [r, g, b, a, x0, y0, ... ]
 RENDER_MAX = 128  # longest side used for fitness (small = fast)
-SAVE_EVERY = 25  # snapshot cadence (generations)
-GENERATIONS = 1000  # Rust: .iter().take(1000)
+SAVE_EVERY = 100  # snapshot cadence (generations) for the ImageWriter event handler
+GENERATIONS = 1000
 
 ROOT = Path(__file__).parent.parent
 OUT = ROOT / "data" / "results" / "mona_lisa"
@@ -54,7 +63,7 @@ def render(genes: np.ndarray, w: int, h: int) -> Image.Image:
     """genes: (POLYGONS, GENES_PER) in [0, 1] -> composited RGB image.
 
     Layout per polygon mirrors the Rust example: [r, g, b, a, x0, y0, ...].
-    White background + per-polygon alpha compositing, same as `Polygon::draw`.
+    White background + per-polygon alpha compositing.
     """
     canvas = Image.new("RGBA", (w, h), (255, 255, 255, 255))
     for poly in genes:
@@ -74,10 +83,9 @@ def render(genes: np.ndarray, w: int, h: int) -> Image.Image:
 def fit(chromosomes: list[np.ndarray]) -> float:
     genes = np.asarray(chromosomes, dtype=np.float32)  # (POLYGONS, GENES_PER)
     candidate = np.asarray(render(genes, W, H), dtype=np.float32)
-    return float(np.sqrt(np.mean((candidate - target_arr) ** 2)))  # RMS, like Rust
+    return float(np.sqrt(np.mean((candidate - target_arr) ** 2)))
 
 
-# --- engine -----------------------------------------------------------------
 class ImageWriter(rd.EventHandler):
     def __init__(self, save_every: int, out_dir: Path):
         super().__init__(rd.EventType.EPOCH_COMPLETE)
@@ -103,7 +111,8 @@ engine = (
     )
     .fitness(fit)
     .minimizing()
-    .select(survivor=rd.Select.roulette(), offspring=rd.Select.tournament(3))
+    .subscribe(ImageWriter(SAVE_EVERY, OUT))
+    .select(rd.Select.tournament(3), rd.Select.roulette())
     .alters(
         rd.Cross.mean(0.3),
         rd.Mutate.jitter(0.01, 0.15),
@@ -116,7 +125,6 @@ if not rd._GIL_ENABLED:
     engine = engine.parallel()
 
 result = engine.run(log=True)
-
 value = result.value()
 
 frame = render(np.asarray(value, dtype=np.float32), W, H)

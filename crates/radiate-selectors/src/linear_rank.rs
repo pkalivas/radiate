@@ -11,7 +11,7 @@ impl LinearRankSelector {
     }
 }
 
-impl<C: Chromosome + Clone> Select<C> for LinearRankSelector {
+impl<C: Chromosome> Select<C> for LinearRankSelector {
     fn select(&self, population: &[Phenotype<C>], _: &Objective, count: usize) -> Vec<usize> {
         let n = population.len();
         if n == 0 || count == 0 {

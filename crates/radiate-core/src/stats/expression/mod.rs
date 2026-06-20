@@ -77,9 +77,7 @@ impl Expr {
             }
         }
     }
-}
 
-impl Expr {
     pub fn lit(value: impl Into<AnyValue<'static>>) -> Expr {
         Expr::Literal(value.into())
     }

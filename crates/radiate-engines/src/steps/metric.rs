@@ -117,21 +117,19 @@ impl MetricStep {
             self.best_score = current_best.cloned();
             best_improved = true;
         } else if let (Some(current), Some(best)) = (current_best, &self.best_score)
-            && self.objective.is_better(current, best) {
-                self.best_score = Some(current.clone());
-                best_improved = true;
-            }
+            && self.objective.is_better(current, best)
+        {
+            self.best_score = Some(current.clone());
+            best_improved = true;
+        }
 
-        metrics.upsert(
-            metric_names::BEST_SCORE_IMPROVEMENT,
-            if best_improved { 1 } else { 0 },
-        );
+        metrics.upsert(metric_names::BEST_SCORE_IMPROVEMENT, best_improved);
 
         if let Some(score) = &self.best_score {
             if score.len() == 1 {
                 metrics.upsert(metric_names::BEST_SCORES, score[0]);
             } else {
-                for (i, score) in score.as_slice().iter().enumerate() {
+                for (i, score) in score.iter().enumerate() {
                     let name = &self.best_score_names[i];
                     metrics.upsert(name, *score);
                 }

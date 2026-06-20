@@ -11,7 +11,7 @@ use std::{
 
 const KEY_REPEAT_DELAY: Duration = Duration::from_millis(100);
 
-pub struct UiRuntime<C, T>
+pub struct TuiEngine<C, T>
 where
     C: Chromosome,
     T: Clone + Send + Sync + 'static,
@@ -23,7 +23,7 @@ where
     key_thread: Option<std::thread::JoinHandle<Result<()>>>,
 }
 
-impl<C, T> UiRuntime<C, T>
+impl<C, T> TuiEngine<C, T>
 where
     C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync + 'static,
@@ -70,7 +70,7 @@ where
     }
 }
 
-impl<C, T> Engine for UiRuntime<C, T>
+impl<C, T> Engine for TuiEngine<C, T>
 where
     C: Chromosome + Clone,
     T: Clone + Send + Sync + 'static,
@@ -110,7 +110,7 @@ where
     }
 }
 
-impl<C, T> Drop for UiRuntime<C, T>
+impl<C, T> Drop for TuiEngine<C, T>
 where
     C: Chromosome,
     T: Clone + Send + Sync + 'static,

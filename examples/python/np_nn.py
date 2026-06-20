@@ -71,31 +71,22 @@ engine = (
     )
     .fitness(fit)
     .minimizing()
-    .load_checkpoint(
-        READ_DIR, ignore_not_found=True
-    )  # Load from a previous checkpoint if it exists
     .select(rd.Select.boltzmann(temp=4.0))
     .alters(rd.Cross.blend(0.7, 0.4), rd.Mutate.gaussian(0.1))
     .limit(rd.Limit.score(0.01), rd.Limit.generations(500))
 )
 
-result = engine.run(log=True, checkpoint=(50, WRITE_DIR, "pkl"))
+result = engine.run(ui=True)
 metrics = result.metrics()
 
 print(result)
 print(metrics.dashboard())
 
-population = result.population()
-# population.
-
-
-# checkpoint=(55, WRITE_DIR, "pkl"))
 # .load_checkpoint(
 #     READ_DIR, ignore_not_found=True
 # )  # Load from a previous checkpoint if it exists
 
+# checkpoint = (50, WRITE_DIR, "pkl")
+
 # for metric in metrics.values_by_tag(rd.Tag.DERIVED):
 #     print(metric)
-
-# print()
-# pprint.pprint(metrics["rate.carryover"].to_dict())

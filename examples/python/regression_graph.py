@@ -41,7 +41,7 @@ engine = (
     .limit(rd.Limit.score(0.001), rd.Limit.generations(1000))
 )
 
-result = engine.run(log=True, ui=True)
+result = engine.run(ui=True)
 
 eval_results = result.value().eval(inputs)
 accuracy = rd.accuracy(result.value(), inputs, answers, loss=rd.MSE)

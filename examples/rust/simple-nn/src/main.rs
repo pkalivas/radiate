@@ -36,13 +36,13 @@ fn main() {
 
     let result = engine
         .iter()
-        .until(|ctx| {
-            println!("[ {:?} ]: {:?}", ctx.index(), ctx.score().as_f32());
-            ctx.score().as_f32() < MIN_SCORE
-                || ctx.index() == MAX_INDEX
-                || ctx.seconds() > MAX_SECONDS
+        .until(|view| {
+            println!("[ {:?} ]: {:?}", view.index(), view.score().as_f32());
+            view.score().as_f32() < MIN_SCORE
+                || view.index() == MAX_INDEX
+                || view.seconds() > MAX_SECONDS
         })
-        .run()
+        .last()
         .unwrap();
 
     println!("Seconds: {:?}", result.seconds());

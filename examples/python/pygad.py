@@ -10,7 +10,7 @@ depending on your random seed & your machine.
 
 import numpy as np
 import radiate as rd
-from numba import float64, jit
+from numba import float64, jit  # type: ignore
 
 rd.random.seed(123)
 

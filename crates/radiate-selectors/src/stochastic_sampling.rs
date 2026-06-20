@@ -11,7 +11,7 @@ impl StochasticUniversalSamplingSelector {
     }
 }
 
-impl<C: Chromosome + Clone> Select<C> for StochasticUniversalSamplingSelector {
+impl<C: Chromosome> Select<C> for StochasticUniversalSamplingSelector {
     fn select(
         &self,
         population: &[Phenotype<C>],

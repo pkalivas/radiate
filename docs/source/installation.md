@@ -42,7 +42,7 @@ By installing the above, you will get the core library. However, Radiate has a f
 
 ```text
 # requirements.txt
-radiate=0.0.13
+radiate=0.0.14
 ```
 
 Python's radiate package includes all rust features by default, so you get all of rust's features (gp, serde, rayon, ui) without needing to do anything extra. That being said, radiate's python bindings do include their own set of features which futher integrate it into the python ecosystem at large. All of the following have internal checks within radiate and some specialized classes to work directly with these features. Radiate's python bindings include the following features:
@@ -63,7 +63,7 @@ uv add "radiate[all]" # to enable all features
 ```toml
 [dependencies]
 # Include the radiate crate with all optional features enabled.
-radiate = { version = "1.2.22", features = ["gp", "serde", "rayon", "ui"] }
+radiate = { version = "1.3.0", features = ["gp", "serde", "rayon", "ui"] }
 ```
 
 opt-in features include:

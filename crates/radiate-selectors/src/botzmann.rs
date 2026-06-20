@@ -29,7 +29,7 @@ impl BoltzmannSelector {
     }
 }
 
-impl<C: Chromosome + Clone> Select<C> for BoltzmannSelector {
+impl<C: Chromosome> Select<C> for BoltzmannSelector {
     #[inline]
     fn select(
         &self,
