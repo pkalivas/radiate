@@ -1,5 +1,13 @@
 # Release Notes
 
+## v1.3.0 - py 0.0.14
+- 2026-06-20
+- [Release](https://github.com/pkalivas/radiate/releases/tag/v1.3.0)
+  
+Radiate has reached `1.3.0`! This release includes a major refactor of the engine's iteration model, a new expression DSL pass and operators, a substantial NSGA III simplification and optimization, a NEAT implementation refactor, and various other improvements and cleanups across the codebase. The `engine` is now _much_ more efficient, and the new expression DSL features should make it easier to implement complex adaptive behaviors without custom code. The user guide has been rebuilt around testable snippets, and a new guide on diversity and speciation has been added. 
+
+Check the [changelog](https://github.com/pkalivas/radiate/blob/master/CHANGELOG.md) for a full list of changes.
+
 ## v1.2.22 - py 0.0.13
 
 - 2026-04-25
