@@ -72,6 +72,7 @@ Radiate has reached `1.3.0`! This release includes a major refactor of the engin
   `SmallStr`, `dtype`, `dtype_names`, and `value` are now re-exported from
   `radiate-core` so downstream crates no longer need to depend on
   `radiate-utils` directly for these types.
+- **Python 3.14/t** support. Radiate now supports Python 3.14/t and has **dropped** support for python 3.13t. Maturin/PyO3 now requires Python 3.14 or later to build free-threaded bindings. Single threaded bindings will still work for lower versions.
 
 ### Changed
 
