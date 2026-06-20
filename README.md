@@ -31,6 +31,8 @@ inspired by natural selection and genetics. The core is written in Rust and is a
 * First-class metric tracking.
 * Dynamic Expression DSL for dynamic rates & custom metrics
 
+The main thesis of `radiate` is that one evolutionary engine should drive everything from a 15-character string match to an [LSTM](https://en.wikipedia.org/wiki/Long_short-term_memory)-topology search. The same Pipeline that evolves `Vec<char>` to spell _"Hello, Radiate!"_ evolves NEAT-style neural network graphs and symbolic-regression trees.
+
 --- 
 ## Installation
 ### Rust
