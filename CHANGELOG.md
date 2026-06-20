@@ -46,6 +46,7 @@ adheres to semantic versioning.
 
 ### Changed
 
+- **Engine Iterator** the engine iterator is now a `runtime`. Instead of cloning the entire ecosystem every generation, the engine can now operate in a tight loop. The most common type of iterator methods used on the engine (`.last()`, `.take(n)`) are overwritten to work with the new design. That being said, if the user decideds to use something like `.take_while(..)` or other more complex iterator methods, they will get the old behavior of cloning the entire ecosystem every generation. This is a pretty big change, but nothing should break from a user's perspective. This change should just make the engine more efficient.
 - **Recombination is substantially faster.** Survivor and offspring
   construction now share a single descending walk over the union of
   selected indices, emitting one `swap_remove` move plus `(total - 1)`
@@ -53,21 +54,18 @@ adheres to semantic versioning.
   independently. The species path applies the same optimization within
   each species' sub-population. In practice ~20–50% fewer `Phenotype`
   clones per generation.
-- **Novelty search rewritten and expanded** (~+470 lines in
-  `fitness/novelty.rs`) — broader archive management and behavior-distance
-  options.
-- **Engine builder restructured.** Survivor/offspring configuration is now
-  factored into `builder/config.rs`, simplifying the top-level builder and
-  making the per-step configuration explicit.
 - **Metric subsystem cleanup.** Stale fixture data and brittle snapshot
   tests removed; `MetricView` is leaner and now covered by direct unit
   tests.
 - **UI refactor.** Panel state moved off the `PanelId` dispatch model into
   a cleaner per-panel ownership scheme.
 - **NSGA III** - The NSGA III has been greatly simplified and optimized with a better niching technique. This is a pretty nice improvement over the previous implementation.
+- **NEAT** - the Graph's NEAT implementation has been refactored to be more true to the original paper. The `neat-graph` example demonstrates this new implementation.
 
 ### Fixed
 
 - Various clippy and correctness cleanups across the alters, selectors,
   and engine crates (no behavior changes intended; flagged here only
   because several touched hot paths).
+
+**For example and details please refer to the user guide and API docs.**

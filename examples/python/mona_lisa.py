@@ -54,7 +54,7 @@ def render(genes: np.ndarray, w: int, h: int) -> Image.Image:
     """genes: (POLYGONS, GENES_PER) in [0, 1] -> composited RGB image.
 
     Layout per polygon mirrors the Rust example: [r, g, b, a, x0, y0, ...].
-    White background + per-polygon alpha compositing, same as `Polygon::draw`.
+    White background + per-polygon alpha compositing.
     """
     canvas = Image.new("RGBA", (w, h), (255, 255, 255, 255))
     for poly in genes:
@@ -74,10 +74,9 @@ def render(genes: np.ndarray, w: int, h: int) -> Image.Image:
 def fit(chromosomes: list[np.ndarray]) -> float:
     genes = np.asarray(chromosomes, dtype=np.float32)  # (POLYGONS, GENES_PER)
     candidate = np.asarray(render(genes, W, H), dtype=np.float32)
-    return float(np.sqrt(np.mean((candidate - target_arr) ** 2)))  # RMS, like Rust
+    return float(np.sqrt(np.mean((candidate - target_arr) ** 2)))
 
 
-# --- engine -----------------------------------------------------------------
 class ImageWriter(rd.EventHandler):
     def __init__(self, save_every: int, out_dir: Path):
         super().__init__(rd.EventType.EPOCH_COMPLETE)
