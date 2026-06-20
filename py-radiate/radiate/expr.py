@@ -93,7 +93,7 @@ class Expr(RsObject):
 
     * **Constructors** are classmethods that start a new expression —
       :meth:`select`, :meth:`lit`, :meth:`when`, :meth:`every`,
-      :meth:`generation`, :meth:`pi_signal`, and friends.
+      :meth:`generation`, :meth:`stagnation`, and friends.
     * **Combinators** are instance methods that transform an existing expression
       — :meth:`rolling`, :meth:`mean`, :meth:`clamp`, the arithmetic
       (``+ - * / **``) and comparison (``< <= > >= == !=``) operators, etc.
