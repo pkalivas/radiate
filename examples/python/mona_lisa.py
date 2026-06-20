@@ -8,6 +8,15 @@ all normalized to [0, 1]. Fitness is the mean-squared pixel error between the
 rendered candidate and the (downscaled) target; we minimize it.
 
 Requires: pillow, numpy  (`uv pip install pillow numpy`)
+
+This is _almost_ a 1:1 translation of the Rust example, but with a few differences:
+- The Rust example uses a custom renderer, while this one uses Pillow.
+- The Rust example uses a custom fitness function, while this one uses NumPy.
+
+The Rust example is going to be faster. Its rust, it can run natively in parallel, we
+don't have to cross the Rust-Python bridge, and we don't have to convert between Pillow/Numpy/Rust image formats.
+BUT, this Python example is easier to read and modify, and it can run on any platform that supports Python. Other than
+that, the two examples will produce almost the exact same results - which is pretty cool.
 """
 
 import sys
@@ -23,7 +32,7 @@ POLYGONS = 175  # number of polygons (Rust: NUM_GENES)
 VERTS = 5  # vertices per polygon (Rust: POLYGON_SIZE)
 GENES_PER = 4 + 2 * VERTS  # [r, g, b, a, x0, y0, ... ]
 RENDER_MAX = 128  # longest side used for fitness (small = fast)
-SAVE_EVERY = 25  # snapshot cadence (generations)
+SAVE_EVERY = 100  # snapshot cadence (generations) for the ImageWriter event handler
 GENERATIONS = 1000
 
 ROOT = Path(__file__).parent.parent
@@ -102,6 +111,7 @@ engine = (
     )
     .fitness(fit)
     .minimizing()
+    .subscribe(ImageWriter(SAVE_EVERY, OUT))
     .select(rd.Select.tournament(3), rd.Select.roulette())
     .alters(
         rd.Cross.mean(0.3),
@@ -115,7 +125,6 @@ if not rd._GIL_ENABLED:
     engine = engine.parallel()
 
 result = engine.run(log=True)
-
 value = result.value()
 
 frame = render(np.asarray(value, dtype=np.float32), W, H)
