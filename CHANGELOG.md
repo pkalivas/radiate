@@ -6,11 +6,16 @@ adheres to semantic versioning.
 
 ## [1.3.0] — 2026-06-20
 
+Radiate has reached `1.3.0`! This release includes a major refactor of the engine's iteration model, a new expression DSL pass and operators, a substantial NSGA III simplification and optimization, a NEAT implementation refactor, and various other improvements and cleanups across the codebase. The `engine` is now _much_ more efficient, and the new expression DSL features should make it easier to implement complex adaptive behaviors without custom code. The user guide has been rebuilt around testable snippets, and a new guide on diversity and speciation has been added. Check below!
+
+**User guide has been updated and expanded, if you haven't looked at it in a while, check it out!**
+
 ### Breaking
 
 - **Removed the `radiate-pgm` crate** and its example. Probabilistic
   graphical model support is no longer shipped. The Rust `prelude` no longer
   re-exports `radiate_pgm::*`.
+    * I don't think this was really used at all and it never really reached more than an infancy state. If PGMs are a desired feature, they can be reintroduced in the future with a more focused scope and better design - please open an issue if you'd like to see them.
 - **Removed the `radiate-expr` crate.** The metric expression DSL has moved
   into `radiate-core` under `stats::expression`, and is re-exported from the
   crate root (`Expr`, `SelectExpr`, `MetricQuery`, `Evaluate`,
@@ -40,6 +45,7 @@ adheres to semantic versioning.
   controller helper is now `rd.Expr.track(metric, target, ...)` (was the
   flat `adaptive_rate`). Expressions remain experimental; no back-compat
   aliases are kept.
+- **Metric names have changed**. The names of certain metrics have changed to be more consistent and intuitive. Run a quick engine and print out the `metrics.dashboard()` to see new names or checkout the user guide.
 
 ### Added
 
@@ -70,7 +76,7 @@ adheres to semantic versioning.
 
 ### Changed
 
-- **Engine Iterator** the engine iterator is now a `runtime`. Instead of cloning the entire ecosystem every generation, the engine can now operate in a tight loop. The most common type of iterator methods used on the engine (`.last()`, `.take(n)`) are overwritten to work with the new design. That being said, if the user decides to use something like `.take_while(..)` or other more complex iterator methods, they will get the old behavior of cloning the entire ecosystem every generation. This is a pretty big change, but nothing should break from a user's perspective. This change should just make the engine more efficient.
+- **Engine Iterator** the engine iterator is now a `runtime`. Instead of cloning the entire ecosystem every generation, the engine can now operate in a tight loop. The most common type of iterator methods used on the engine (`.last()`, `.take(n)`) are overwritten to work with the new design. That being said, if the user decides to use something like `.take_while(..)` or other more complex iterator methods, they will get the old behavior of cloning the entire ecosystem every generation. This is a pretty big change, but nothing should break from a user's perspective. This change should just make the engine _much_ more efficient.
 - **Recombination is substantially faster.** Survivor and offspring
   construction now share a single descending walk over the union of
   selected indices, emitting one `swap_remove` move plus `(total - 1)`
@@ -83,7 +89,7 @@ adheres to semantic versioning.
   tests.
 - **UI refactor.** Panel state moved off the `PanelId` dispatch model into
   a cleaner per-panel ownership scheme.
-- **NSGA III** - The NSGA III has been greatly simplified and optimized with a better niching technique. This is a pretty nice improvement over the previous implementation.
+- **NSGA III** - The NSGA III has been greatly simplified and optimized with a better niching technique. This is a pretty nice mathematical and speed improvement over the previous implementation.
 - **NEAT** - the Graph's NEAT implementation has been refactored to be more true to the original paper. The `neat-graph` example demonstrates this new implementation.
 
 ### Docs
