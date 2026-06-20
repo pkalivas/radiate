@@ -53,3 +53,30 @@ engine = (
     .age(max_species_age=25)
 )
 # --8<-- [end:age]
+
+# --8<-- [start:target_species_count]
+import radiate as rd
+
+# `target_species` is an alternative to `species_threshold` that tries to maintain a certain number of
+# species. The engine will adjust the threshold up or down as needed to try to meet the target count.
+engine = (
+    rd.Engine.float(2)
+    .fitness(your_fitness_func)
+    .diversity(rd.Dist.euclidean(), target_species=4)
+)
+
+# This is equivalent to setting the `species_threshold`
+# (previous section) to an expression like so (this is actually what the engine does
+# under the hood when you set `target_species`):
+initial_threshold = 0.5  # <- note that this is the default species_threshold
+target_species = 4
+
+species_threshold = (
+    rd.Expr.when(rd.Expr.select("index") < 2)
+    .then(initial_threshold)
+    .otherwise(
+        (rd.Expr.select("species.count").error(target_species) * 0.05)
+        + rd.Expr.select("species.threshold")
+    )
+)
+# --8<-- [end:target_species_count]

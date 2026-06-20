@@ -121,6 +121,22 @@ Since `species_threshold` accepts a [`Rate`](../alters/rate.md), it can change o
 
 The threshold can also be driven by live metrics via an expression — see [Expressions](../engine/expressions.md).
 
+### Target Species Count
+
+The engine's `target_species_count` acts as a soft target for the number of species to maintain. Internally, it replaces the `species_threshold` with an `Expression` that nudges the threshold up or down based on how many species are currently active — if there are too many species, the threshold rises to encourage consolidation; if there are too few, it drops to encourage diversification.
+
+=== ":fontawesome-brands-python: Python"
+
+	```python
+	--8<-- "python/diversity/species.py:target_species_count"
+	```
+
+=== ":fontawesome-brands-rust: Rust"
+
+	```rust
+	--8<-- "rust/diversity/species.rs:target_species_count"
+	```
+
 ### Maximum species age
 
 A species that goes `max_species_age` generations without improving its best score is considered stagnant and removed; its members sit out crossover and mutation for that generation. This frees the offspring budget for species that are still making progress.
