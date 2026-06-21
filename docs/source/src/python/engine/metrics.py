@@ -83,6 +83,5 @@ tags = metrics[
 ].tags()  # e.g., ['rd.Tag.SCORE', 'rd.Tag.STATISTIC', 'rd.Tag.DISTRIBUTION']
 
 for metric in metrics.values_by_tag(rd.Tag.ALTERER):
-    # ... access all metrics related to alterers (crossover, mutation) ...
-    pass
+    ...  # access all metrics related to alterers (crossover, mutation) ...
 # --8<-- [end:metric_tags]
