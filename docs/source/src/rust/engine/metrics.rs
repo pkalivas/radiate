@@ -12,9 +12,9 @@ fn main() {
     // --8<-- [start:basic_metrics]
     // --- set up the engine ---
 
-    let result = engine.run(|ctx| {
+    let result = engine.run(|generation| {
         // get the score metric from the generation context
-        let temp = ctx.metrics().get("scores").unwrap();
+        let temp = generation.metrics().get("scores").unwrap();
         // get the standard deviation of the score distribution
         let std = temp.stddev();
 

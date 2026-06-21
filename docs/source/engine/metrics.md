@@ -31,22 +31,35 @@ Metrics collected by default (always included):
 
 | Name                | Description                                                                 |
 |---------------------|-----------------------------------------------------------------------------|
+| `index`             | The index of the generation. This is pretty much just for reference if you want to keep a log per generation. |
 | `time`              | The time taken for the evolution process.                                   |
 | `scores`            | The scores (fitness) of all the individuals evolved throughout the evolution process. |
+| `scores.best`       | The best score found so far over the course of the run. |
+| `scores.evenness`   | Pielou evenness of the population's fitness distribution, in `[0, 1]`. `~1.0` means fitness is spread evenly across distinct scores (healthy, exploring); `~0.0` means the population has collapsed onto a plateau (premature convergence). |
+| `scores.gini`       | Gini coefficient of the population's fitness distribution, in `[0, 1]` — a measure of fitness *inequality* / effective selection pressure. `0.0` is perfect equality (fully converged); high (`~0.7+`) means a small elite holds most of the fitness mass. |
 | `age`               | The age of all the individuals in the `Ecosystem` throughout the evolution process. |
-| `age.replace`      | The number of individuals replaced based on age. |
-| `invalid.replace`  | The number of individuals replaced based on invalid structure (e.g. Bounds) |
-| `size.genome`      | The size of each genome over the evolution process. This is usually static and doesn't change. |
+| `genome.size`       | The size of each genome over the evolution process. This is usually static and doesn't change. |
+| `replace.age`       | The number of individuals replaced based on age. |
+| `replace.invalid`   | The number of individuals replaced based on invalid structure (e.g. Bounds). |
 | `unique.members`   | The number of unique members in the `Ecosystem`. |
 | `unique.scores`    | The number of unique scores in the `Ecosystem`. |
 | `new.children`     | The number of new children created each generation through either mutation or crossover (or both). |
 | `count.survivor`   | The number of individuals that survived to the next generation - summation throughout the evolution process. |
-| `rate.carryover`   | The rate at which unique individuals are carried over to the next generation - `survivor_count` per generation / population size. |
 | `count.evaluation` | The total number of evaluations performed per generation. |
+| `rate.carryover`   | The rate at which unique individuals are carried over to the next generation - `survivor_count` per generation / population size. |
 | `rate.diversity`  | The ratio of unique scores to the size of the `Ecosystem`. |
 | `score.volatility` | The volatility of the scores in the `Ecosystem`. This is calculated as the standard deviation of the scores / mean. |
 | `score.improvement` | The improvement of the best score from the previous generation to the current generation - either a 1 or 0 each generation. |
-| `index`             | The index of the generation. This is pretty much just for reference if you want to keep a log per generation. |
+
+A few default metrics are only collected when the relevant data exists:
+
+| Name                | Description                                                                 |
+|---------------------|-----------------------------------------------------------------------------|
+| `genome.size.score.corr` | Pearson correlation between genome size and fitness across the population, in `[-1, 1]` — the bloat signal. Only emitted when genome length actually varies (variable-length GP genomes); for fixed-length genomes there is no size variance and the metric is omitted. |
+
+!!! note "Multi-objective naming"
+
+    The per-dimension metrics — `scores`, `scores.best`, `scores.evenness`, `scores.gini`, `unique.scores`, and `genome.size.score.corr` — are emitted under their bare name for single-objective runs. Under **multi-objective** optimization they gain a numeric suffix per objective instead (`scores.0`, `scores.1`, …, `scores.best.0`, `scores.best.1`, and so on).
 
 ## Multi-objective Metrics
 
@@ -54,12 +67,12 @@ Additional metrics collected when using multi-objective optimization:
 
 | Name                | Description                                                                 |
 |---------------------|-----------------------------------------------------------------------------|
-| `new.front`            | The number of members added to the Pareto front each generation. | 
-| `front.entropy`  | The entropy of the Pareto front throughout the evolution process - only calculated every 10 generations (its kinda an expensive calculation). |
-| `invalid.front`  | The number of members removed from the Pareto front each generation. |
+| `front.additions`    | The number of members added to the Pareto front each generation. |
+| `front.removals`     | The number of members removed from the Pareto front each generation. |
+| `front.size`         | The size of the Pareto front each generation. |
 | `front.comparisons`  | The number of comparisons made to update the Pareto front each generation. |
-| `size.front`  | The size of the Pareto front each generation. |   
-| `front.filters`  | The number of times the Pareto front was filtered each generation. |
+| `front.filters`      | The number of times the Pareto front was filtered each generation. |
+| `front.entropy`      | The entropy of the Pareto front throughout the evolution process - only calculated every 10 generations (its kinda an expensive calculation). |
 
 ## Species-based Metrics
 
@@ -67,14 +80,17 @@ Additional metrics collected when using species-based diversity:
 
 | Name                | Description                                                                 |
 |---------------------|-----------------------------------------------------------------------------|
-| `count.species`    | The number of `species` in the `Ecosystem`. |
-| `new.species`  | The number of `species` created in the `Ecosystem`. |
-| `invalid.species`     | The number of `species` that have died in the `Ecosystem`. |
-| `age.species`      | The age of all the `species` in the `Ecosystem`. |
-| `age.species.fail` | The count of species that have failed based on age each generation. |
+| `species.count`    | The number of `species` in the `Ecosystem`. |
+| `species.new`  | The number of `species` created in the `Ecosystem`. |
+| `species.new.ratio` | The ratio of new species created each generation. |
+| `species.fail.empty`     | The number of `species` that have died (emptied out) in the `Ecosystem`. |
+| `species.age`      | The age of all the `species` in the `Ecosystem`. |
+| `species.fail.age` | The count of species that have failed based on age each generation. |
+| `species.size`     | The distribution of species sizes (number of members per species) each generation. |
+| `species.distance` | The distribution of compatibility distances used when assigning members to species. |
+| `species.threshold` | The current compatibility threshold used to decide species membership. |
 | `species.evenness` | The evenness of the species distribution in the `Ecosystem`. |
 | `species.largest_share` | The share of the largest species in the `Ecosystem`. |
-| `new.species.ratio` | The ratio of new species created each generation. |
 
 
 ## Accessing Metrics
