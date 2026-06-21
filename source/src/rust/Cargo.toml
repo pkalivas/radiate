@@ -1,0 +1,156 @@
+[package]
+name = "radiate-doc-examples"
+version = { workspace = true }
+authors = { workspace = true }
+edition = { workspace = true }
+homepage = { workspace = true }
+license = { workspace = true }
+repository = { workspace = true }
+description = "Code examples included in the Radiate documentation website"
+
+# Doc snippets are written for readability, not to satisfy the linter:
+# bindings are often constructed to show an API and never read. Relax the
+# "unused" family crate-wide so snippets stay clean (no `_` prefixes leaking
+# into the rendered docs) while still catching real compile errors.
+[lints.rust]
+unused_variables = "allow"
+unused_assignments = "allow"
+unused_imports = "allow"
+dead_code = "allow"
+
+[dependencies.radiate]
+workspace = true
+features = ["gp", "rayon", "serde", "ui"]
+
+# Genome 
+[[bin]]
+name = "genome-index"
+path = "genome/index.rs"
+
+[[bin]]
+name = "genome-codec"
+path = "genome/codec.rs"
+
+[[bin]]
+name = "genome-example"
+path = "genome/example.rs"
+
+# Alters
+[[bin]]
+name = "alters-rate"
+path = "alters/rate.rs"
+
+[[bin]]
+name = "alters-crossovers"
+path = "alters/crossovers.rs"
+
+[[bin]]
+name = "alters-mutators"
+path = "alters/mutators.rs"
+
+[[bin]]
+name = "alters-example"
+path = "alters/example.rs"
+
+# Selectors
+[[bin]]
+name = "selectors-index"
+path = "selectors/index.rs"
+
+[[bin]]
+name = "selectors-example"
+path = "selectors/example.rs"
+
+# Diversity
+[[bin]]
+name = "diversity-index"
+path = "diversity/index.rs"
+
+[[bin]]
+name = "diversity-distance"
+path = "diversity/distance.rs"
+
+[[bin]]
+name = "diversity-species"
+path = "diversity/species.rs"
+
+[[bin]]
+name = "diversity-example"
+path = "diversity/example.rs"
+
+# Executors
+[[bin]]
+name = "executors"
+path = "executors.rs"
+
+# Objectives
+[[bin]]
+name = "objectives"
+path = "objectives.rs"
+
+# Fitness
+[[bin]]
+name = "fitness"
+path = "fitness.rs"
+
+# Events
+[[bin]]
+name = "events"
+path = "events.rs"
+
+# Engine
+[[bin]]
+name = "engine-index"
+path = "engine/index.rs"
+
+[[bin]]
+name = "engine-metrics"
+path = "engine/metrics.rs"
+
+[[bin]]
+name = "engine-expressions"
+path = "engine/expressions.rs"
+
+# GP
+[[bin]]
+name = "gp-op"
+path = "gp/op.rs"
+
+[[bin]]
+name = "gp-node"
+path = "gp/node.rs"
+
+[[bin]]
+name = "gp-trees"
+path = "gp/trees.rs"
+
+[[bin]]
+name = "gp-graph"
+path = "gp/graph.rs"
+
+[[bin]]
+name = "gp-regression"
+path = "gp/regression.rs"
+
+# Misc
+[[bin]]
+name = "misc-random"
+path = "misc/random.rs"
+
+[[bin]]
+name = "misc-problem"
+path = "misc/problem.rs"
+
+[[bin]]
+name = "misc-checkpoint"
+path = "misc/checkpoint.rs"
+
+[[bin]]
+name = "misc-ui"
+path = "misc/ui.rs"
+
+# Examples
+[[bin]]
+name = "examples-page"
+path = "examples.rs"
+
