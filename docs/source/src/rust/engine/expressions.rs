@@ -174,7 +174,7 @@ fn main() {
     let dynamic_rate = Expr::select("score.volatility")
         .rolling(20)
         .mean()
-        .clamp(Expr::lit(0.01_f32), Expr::lit(0.5_f32));
+        .clamp(0.01_f32, 0.5_f32);
 
     let engine = GeneticEngine::builder()
         .codec(FloatCodec::vector(10, -5.0..5.0))
