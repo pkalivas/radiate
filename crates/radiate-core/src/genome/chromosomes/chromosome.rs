@@ -1,6 +1,8 @@
+use std::ops::Range;
+
 use super::{Valid, gene::Gene};
 use crate::{
-    ArithmeticGene, BoundedGene,
+    ArithmeticGene, BoundedGene, RangeLookup,
     chromosomes::{NumericAllele, NumericGene},
 };
 
@@ -110,3 +112,50 @@ where
     Self::Gene: ArithmeticGene,
 {
 }
+
+pub struct FixedGeneView<'a, T>
+where
+    T: NumericAllele,
+{
+    allele: &'a T,
+    init_range: &'a Range<T>,
+    bounds_range: &'a Range<T>,
+}
+
+pub struct FixedBoundedChromosome<T, const N: usize>
+where
+    T: NumericAllele,
+{
+    allelss: [T; N],
+    init_range: RangeLookup<T>,
+    bounds_range: RangeLookup<T>,
+}
+
+impl<T, const N: usize> FixedBoundedChromosome<T, N>
+where
+    T: NumericAllele,
+{
+    pub fn new(init_range: RangeLookup<T>, bounds_range: RangeLookup<T>) -> Self {
+        let allelss = [T::default(); N];
+        Self {
+            allelss,
+            init_range,
+            bounds_range,
+        }
+    }
+}
+
+// impl<T, const N: usize> Chromosome for FixedBoundedChromosome<T, N>
+// where
+//     T: NumericAllele,
+// {
+//     type Gene = NumericGene<T>;
+
+//     fn as_slice(&self) -> &[Self::Gene] {
+//         unimplemented!()
+//     }
+
+//     fn as_mut_slice(&mut self) -> &mut [Self::Gene] {
+//         unimplemented!()
+//     }
+// }
