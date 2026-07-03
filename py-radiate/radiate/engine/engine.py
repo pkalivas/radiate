@@ -4,8 +4,8 @@ from typing import Any, Sequence
 from collections.abc import Callable
 from pathlib import Path
 
-from radiate.expr import Expr
-from radiate.codec import (
+from ..expr import Expr
+from ..codec import (
     FloatCodec,
     IntCodec,
     CharCodec,
@@ -15,7 +15,7 @@ from radiate.codec import (
     PermutationCodec,
 )
 
-from radiate.operators import (
+from ..operators import (
     SelectorBase,
     AlterBase,
     DistanceBase,
@@ -24,14 +24,14 @@ from radiate.operators import (
     Rate,
     ExprLimit,
 )
-from radiate.fitness import FitnessBase, Regression, MSE
-from radiate.genome import Population, GeneType, Gene, Chromosome
-from radiate.gp import Graph, Tree, Op
-from radiate.dtype import Float64, Int64
-from radiate.codec.base import CodecBase
+from ..fitness import FitnessBase, Regression, MSE
+from ..genome import Population, GeneType, Gene, Chromosome
+from ..gp import Graph, Tree, Op
+from ..dtype import Float64, Int64
+from ..codec.base import CodecBase
 
-from radiate._bridge.input import EngineInput, EngineInputType
-from radiate._typing import (
+from .._bridge.input import EngineInput, EngineInputType
+from .._typing import (
     AtLeastOne,
     Checkpoint,
     Subscriber,

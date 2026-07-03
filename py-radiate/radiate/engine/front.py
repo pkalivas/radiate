@@ -1,9 +1,9 @@
 from typing import Any, overload
 
 from radiate.radiate import PyFront
-from radiate.genome.genotype import Genotype
-from radiate.genome.phenotype import Phenotype
-from radiate._bridge.wrapper import RsObject
+from ..genome.genotype import Genotype
+from ..genome.phenotype import Phenotype
+from .._bridge.wrapper import RsObject
 
 
 class FrontValue[T](RsObject):

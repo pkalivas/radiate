@@ -3,14 +3,14 @@ from __future__ import annotations
 from typing import Any, overload, TYPE_CHECKING
 
 from radiate.radiate import PyGraph
-from radiate._bridge.wrapper import RsObject
-from radiate.utils import _normalize_single_chunk
-from radiate.genome.chromosome import Chromosome
+from .._bridge.wrapper import RsObject
+from ..utils import _normalize_single_chunk
+from ..genome.chromosome import Chromosome
 
 if TYPE_CHECKING:
-    from radiate._dependancies import numpy as np
-    from radiate._dependancies import polars as pl
-    from radiate._dependancies import pandas as pd
+    from .._dependancies import numpy as np
+    from .._dependancies import polars as pl
+    from .._dependancies import pandas as pd
 
 
 class Graph(RsObject):

@@ -1,13 +1,13 @@
 from .base import FitnessBase
 from typing import Any
 from radiate.radiate import PyFitnessFn
-from radiate.utils._normalize import _normalize_regression_data
+from ..utils._normalize import _normalize_regression_data
 
 
 class Regression[T](FitnessBase[T]):
     """Fitness function for regression problems."""
 
-    from radiate._typing import RdLossType
+    from .._typing import RdLossType
     from .loss import MSE
 
     def __init__(

@@ -4,7 +4,7 @@ from typing import Any, Callable
 
 from radiate.radiate import PySubscriber
 
-from radiate._bridge.wrapper import RsObject
+from .._bridge.wrapper import RsObject
 
 from .metrics import MetricSet
 
@@ -147,13 +147,13 @@ class MetricCollector(EventHandler):
         self.metric_history.append(metrics)
 
     def to_polars(self, lazy: bool = False):
-        from radiate._dependancies import _POLARS_AVAILABLE
+        from .._dependancies import _POLARS_AVAILABLE
 
         if not _POLARS_AVAILABLE:
             raise ImportError(
                 "Polars is not available. Please install it to use this feature."
             )
-        from radiate._dependancies import polars as pl
+        from .._dependancies import polars as pl
 
         if lazy:
             return pl.LazyFrame(
@@ -173,13 +173,13 @@ class MetricCollector(EventHandler):
         )
 
     def to_pandas(self):
-        from radiate._dependancies import _PANDAS_AVAILABLE
+        from .._dependancies import _PANDAS_AVAILABLE
 
         if not _PANDAS_AVAILABLE:
             raise ImportError(
                 "Pandas is not available. Please install it to use this feature."
             )
-        from radiate._dependancies import pandas as pd
+        from .._dependancies import pandas as pd
 
         return pd.DataFrame(
             [
@@ -190,14 +190,14 @@ class MetricCollector(EventHandler):
         )
 
     def plot(self, *names: str):
-        from radiate._dependancies import _MATPLOTLIB_AVAILABLE
+        from .._dependancies import _MATPLOTLIB_AVAILABLE
 
         if not _MATPLOTLIB_AVAILABLE:
             raise ImportError(
                 "Matplotlib is not available. Please install it to use this feature."
             )
 
-        from radiate._dependancies import matplotlib as plt
+        from .._dependancies import matplotlib as plt
 
         vals = {name: [] for name in names}
         for metric_set in self.metric_history:

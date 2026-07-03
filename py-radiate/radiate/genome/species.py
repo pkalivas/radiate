@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from radiate._bridge.wrapper import RsObject
+from .._bridge.wrapper import RsObject
 from .phenotype import Phenotype
 
 

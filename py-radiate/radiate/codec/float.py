@@ -5,15 +5,15 @@ from typing import Sequence, overload, Any, Literal, TYPE_CHECKING
 from .base import CodecBase
 
 from radiate.radiate import PyFloatCodec
-from radiate.genome import Genotype, Gene, Chromosome, GeneType
-from radiate.dtype import DataType, DataTypeClass, Float64
-from radiate._bridge.wrapper import RsObject
-from radiate._typing import (
+from ..genome import Genotype, Gene, Chromosome, GeneType
+from ..dtype import DataType, DataTypeClass, Float64
+from .._bridge.wrapper import RsObject
+from .._typing import (
     AtLeastOne,
 )
 
 if TYPE_CHECKING:
-    from radiate._dependancies import numpy as np
+    from .._dependancies import numpy as np
 
 
 class FloatCodec[D](CodecBase[float, D], RsObject):
@@ -385,7 +385,7 @@ class FloatCodec[D](CodecBase[float, D], RsObject):
         chromosomes: AtLeastOne[Chromosome[float]],
         use_numpy: bool = False,
     ) -> PyFloatCodec:
-        from radiate.genome import GeneType
+        from ..genome import GeneType
 
         if isinstance(chromosomes, Chromosome):
             chromosomes = [chromosomes]

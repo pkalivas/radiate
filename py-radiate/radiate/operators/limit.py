@@ -1,6 +1,6 @@
 from typing import Dict, Any, List, Callable
-from radiate.engine.metrics import Metric
-from radiate.expr import Expr
+from ..engine.metrics import Metric
+from ..expr import Expr
 from .base import ComponentBase
 
 

@@ -5,7 +5,7 @@ from typing import Any, TYPE_CHECKING
 from abc import ABC
 
 if TYPE_CHECKING:
-    from radiate._typing import RdDataType
+    from .._typing import RdDataType
 
 
 class RsObject(ABC):

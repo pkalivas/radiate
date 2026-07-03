@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from .base import CodecBase
-from radiate.gp import Op, Tree, OpsConfig
-from radiate._bridge.wrapper import RsObject
-from radiate._typing import AtLeastOne
-from radiate.genome import Genotype, GeneType
+from ..gp import Op, Tree, OpsConfig
+from .._bridge.wrapper import RsObject
+from .._typing import AtLeastOne
+from ..genome import Genotype, GeneType
 from radiate.radiate import PyTreeCodec
 
 

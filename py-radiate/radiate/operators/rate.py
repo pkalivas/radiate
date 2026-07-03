@@ -1,11 +1,11 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
-from radiate._bridge.wrapper import RsObject
+from .._bridge.wrapper import RsObject
 from radiate.radiate import PyRate
 
 if TYPE_CHECKING:
-    from radiate.expr import Expr
+    from ..expr import Expr
 
 
 class Rate(RsObject):

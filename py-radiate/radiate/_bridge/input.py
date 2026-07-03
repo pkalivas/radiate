@@ -3,7 +3,7 @@ from enum import Enum
 
 from radiate.radiate import PyEngineInput, PyEngineInputType
 from .wrapper import RsObject
-from radiate.operators.rate import Rate
+from ..operators.rate import Rate
 
 from ..genome import (
     GENE_TYPE_MAPPING,

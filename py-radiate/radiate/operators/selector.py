@@ -1,10 +1,10 @@
 from typing import Any
 
-from radiate._bridge.input import EngineInput, EngineInputType
+from .._bridge.input import EngineInput, EngineInputType
 
-from radiate.genome.population import Population
-from radiate.genome.gene import GeneType
-from radiate.genome import GENE_TYPE_MAPPING
+from ..genome.population import Population
+from ..genome.gene import GeneType
+from ..genome import GENE_TYPE_MAPPING
 
 from .base import ComponentBase
 

@@ -1,20 +1,20 @@
 from __future__ import annotations
 from typing import Sequence, overload, Any, Literal, TYPE_CHECKING
 
-from radiate.genome.chromosome import Chromosome
-from radiate.genome.gene import Gene
+from ..genome.chromosome import Chromosome
+from ..genome.gene import Gene
 
 from .base import CodecBase
-from radiate.genome import Genotype, GeneType
-from radiate._bridge.wrapper import RsObject
+from ..genome import Genotype, GeneType
+from .._bridge.wrapper import RsObject
 from radiate.radiate import PyIntCodec
-from radiate._typing import (
+from .._typing import (
     AtLeastOne,
 )
-from radiate.dtype import DataTypeClass, DataType, Int64
+from ..dtype import DataTypeClass, DataType, Int64
 
 if TYPE_CHECKING:
-    from radiate._dependancies import numpy as np
+    from .._dependancies import numpy as np
 
 
 class IntCodec[D](CodecBase[int, D], RsObject):
@@ -255,7 +255,7 @@ class IntCodec[D](CodecBase[int, D], RsObject):
         Returns:
             A new IntCodec instance with the specified genes.
         """
-        from radiate.genome import GeneType
+        from ..genome import GeneType
 
         if isinstance(genes, Gene):
             genes = [genes]
@@ -280,7 +280,7 @@ class IntCodec[D](CodecBase[int, D], RsObject):
         Returns:
             A new PyIntCodec instance with the specified chromosomes.
         """
-        from radiate.genome import GeneType
+        from ..genome import GeneType
 
         if isinstance(chromosomes, Chromosome):
             chromosomes = [chromosomes]

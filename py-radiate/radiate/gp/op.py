@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from radiate._bridge.wrapper import RsObject
-from radiate._typing import AtLeastOne
+from .._bridge.wrapper import RsObject
+from .._typing import AtLeastOne
 from radiate.radiate import _create_op
 
 

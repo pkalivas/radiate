@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from radiate.radiate import PyPhenotype
-from radiate._typing import AtLeastOne
-from radiate._bridge.wrapper import RsObject
+from .._typing import AtLeastOne
+from .._bridge.wrapper import RsObject
 
 from .genotype import Genotype
 from .gene import GeneType

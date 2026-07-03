@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from radiate._typing import AtLeastOne
+from .._typing import AtLeastOne
 
 from .base import CodecBase
 from ..gp import Op, Graph, OpsConfig
-from radiate.genome import Genotype, GeneType
-from radiate._bridge.wrapper import RsObject
+from ..genome import Genotype, GeneType
+from .._bridge.wrapper import RsObject
 from radiate.radiate import PyGraphCodec
 
 

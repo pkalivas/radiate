@@ -2,8 +2,8 @@ from .base import FitnessBase
 
 from typing import Any, Callable
 
-from radiate.operators.descriptor import CustomDescriptor, DescriptorBase
-from radiate.operators.distance import DistanceBase, EuclideanDistance, HammingDistance
+from ..operators.descriptor import CustomDescriptor, DescriptorBase
+from ..operators.distance import DistanceBase, EuclideanDistance, HammingDistance
 from radiate.radiate import PyFitnessFn
 
 

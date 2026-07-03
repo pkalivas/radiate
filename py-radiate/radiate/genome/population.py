@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Iterable, Iterator
 from radiate.radiate import PyPopulation
-from radiate._bridge.wrapper import RsObject
+from .._bridge.wrapper import RsObject
 
 from .phenotype import Phenotype
 from .gene import GeneType

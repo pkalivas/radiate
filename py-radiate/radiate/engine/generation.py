@@ -2,11 +2,11 @@ from datetime import timedelta
 
 from radiate.radiate import PyGeneration
 
-from radiate.genome.ecosystem import Ecosystem
-from radiate.genome.species import Species
-from radiate.genome.population import Population
+from ..genome.ecosystem import Ecosystem
+from ..genome.species import Species
+from ..genome.population import Population
 
-from radiate._bridge.wrapper import RsObject
+from .._bridge.wrapper import RsObject
 
 from .metrics import MetricSet
 from .front import Front

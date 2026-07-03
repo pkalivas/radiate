@@ -6,12 +6,12 @@ from typing import Any, TYPE_CHECKING, Literal
 
 
 if TYPE_CHECKING:
-    from radiate.expr import Expr
-    from radiate.operators.rate import Rate
+    from .expr import Expr
+    from .operators.rate import Rate
     from .engine.handlers import EventHandler
     from .dtype import DataType, DataTypeClass
-    from radiate.fitness.loss import LossType, LossTypeClass
-    from radiate.engine.option import CheckpointParam
+    from .fitness.loss import LossType, LossTypeClass
+    from .engine.option import CheckpointParam
 
 type FileType = Literal["pkl", "json"]
 

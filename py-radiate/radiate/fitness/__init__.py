@@ -5,7 +5,7 @@ from .novelty import NoveltySearch
 from .loss import MSE, MAE, XEnt, Diff
 from functools import wraps
 from typing import Any, Callable
-from radiate.operators.distance import DistanceBase, HammingDistance
+from ..operators.distance import DistanceBase, HammingDistance
 
 
 def fitness(

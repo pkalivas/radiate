@@ -1,6 +1,6 @@
 from typing import Any, Dict
 
-from radiate.genome import GeneType
+from ..genome import GeneType
 
 from .base import ComponentBase
 

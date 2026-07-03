@@ -2,10 +2,10 @@ from typing import Callable, Any
 from dataclasses import dataclass
 
 from radiate.radiate import PyEngine, PyEngineBuilder
-from radiate.codec import CodecBase
-from radiate.genome import Population, GeneType
-from radiate.fitness import FitnessBase, CallableFitness
-from radiate.operators import (
+from ..codec import CodecBase
+from ..genome import Population, GeneType
+from ..fitness import FitnessBase, CallableFitness
+from ..operators import (
     AlterBase,
     DistanceBase,
     SelectorBase,
@@ -15,13 +15,13 @@ from radiate.operators import (
     Executor,
     Rate,
 )
-from radiate.expr import Expr
+from ..expr import Expr
 
 from .handlers import CallableEventHandler, EventHandler
 from .generation import Generation
 
-from radiate._bridge.input import EngineInput, EngineInputType
-from radiate._typing import Subscriber
+from .._bridge.input import EngineInput, EngineInputType
+from .._typing import Subscriber
 
 
 @dataclass(slots=True)

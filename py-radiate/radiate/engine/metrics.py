@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Iterator
 from datetime import timedelta
 
-from radiate._bridge.wrapper import RsObject
+from .._bridge.wrapper import RsObject
 
 from radiate.radiate import PyMetricSet
 
@@ -120,7 +120,7 @@ class MetricSet(RsObject):
         ]
 
     def to_polars(self, lazy: bool = False):
-        from radiate._dependancies import _POLARS_AVAILABLE
+        from .._dependancies import _POLARS_AVAILABLE
 
         if not _POLARS_AVAILABLE:
             raise ImportError(
@@ -129,7 +129,7 @@ class MetricSet(RsObject):
         return self.__backend__().to_polars(lazy=lazy)
 
     def to_pandas(self):
-        from radiate._dependancies import _PANDAS_AVAILABLE
+        from .._dependancies import _PANDAS_AVAILABLE
 
         if not _PANDAS_AVAILABLE:
             raise ImportError(

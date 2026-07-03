@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from typing import overload, Sequence, Any
 
-from radiate.genome.chromosome import Chromosome
-from radiate.genome.gene import Gene
+from ..genome.chromosome import Chromosome
+from ..genome.gene import Gene
 from .base import CodecBase
 
 from radiate.radiate import PyCharCodec
-from radiate.genome import Genotype, GeneType
-from radiate._bridge.wrapper import RsObject
-from radiate._typing import AtLeastOne
+from ..genome import Genotype, GeneType
+from .._bridge.wrapper import RsObject
+from .._typing import AtLeastOne
 
 
 def _normalize_char_set(char_set: str | list[str] | set[str] | None) -> str | None:
@@ -110,7 +110,7 @@ class CharCodec[D](CodecBase[str, D], RsObject):
         Returns:
             A new CharCodec instance with the specified genes.
         """
-        from radiate.genome import GeneType
+        from ..genome import GeneType
 
         if not isinstance(genes, (list, tuple)):
             raise TypeError("genes must be a list or tuple of Gene instances.")
@@ -130,7 +130,7 @@ class CharCodec[D](CodecBase[str, D], RsObject):
         Returns:
             A new PyCharCodec instance with the specified chromosomes.
         """
-        from radiate.genome import GeneType
+        from ..genome import GeneType
 
         if not isinstance(chromosomes, (list, tuple)):
             raise TypeError(

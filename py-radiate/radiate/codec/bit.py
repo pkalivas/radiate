@@ -5,14 +5,14 @@ from typing import overload, Sequence, Any, Literal, TYPE_CHECKING
 from .base import CodecBase
 
 from radiate.radiate import PyBitCodec
-from radiate.genome import Genotype, Gene, Chromosome, GeneType
-from radiate._bridge.wrapper import RsObject
-from radiate._typing import (
+from ..genome import Genotype, Gene, Chromosome, GeneType
+from .._bridge.wrapper import RsObject
+from .._typing import (
     AtLeastOne,
 )
 
 if TYPE_CHECKING:
-    from radiate._dependancies import numpy as np
+    from .._dependancies import numpy as np
 
 
 class BitCodec[D](CodecBase[bool, D], RsObject):
@@ -152,7 +152,7 @@ class BitCodec[D](CodecBase[bool, D], RsObject):
         chromosomes: AtLeastOne[Chromosome[bool]],
         use_numpy: bool,
     ) -> PyBitCodec:
-        from radiate.genome import GeneType
+        from ..genome import GeneType
 
         if isinstance(chromosomes, Chromosome):
             chromosomes = [chromosomes]

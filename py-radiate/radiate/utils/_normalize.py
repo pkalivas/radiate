@@ -2,17 +2,17 @@ from __future__ import annotations
 
 from typing import Any, Sequence
 
-from radiate._dependancies import (
+from .._dependancies import (
     _check_for_numpy,
     _check_for_pandas,
     _check_for_polars,
     _check_for_torch,
 )
 
-from radiate._dependancies import numpy as np
-from radiate._dependancies import pandas as pd
-from radiate._dependancies import polars as pl
-from radiate._dependancies import torch
+from .._dependancies import numpy as np
+from .._dependancies import pandas as pd
+from .._dependancies import polars as pl
+from .._dependancies import torch
 
 
 def _ensure_2d_np(arr: Any, *, name: str) -> Any:

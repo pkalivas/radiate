@@ -3,8 +3,8 @@ from __future__ import annotations
 from .base import CodecBase
 
 from radiate.radiate import PyPermutationCodec
-from radiate.genome import Genotype, GeneType
-from radiate._bridge.wrapper import RsObject
+from ..genome import Genotype, GeneType
+from .._bridge.wrapper import RsObject
 
 
 class PermutationCodec[T](CodecBase[T, list[T]], RsObject):

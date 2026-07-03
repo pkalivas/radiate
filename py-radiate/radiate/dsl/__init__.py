@@ -6,7 +6,7 @@ if TYPE_CHECKING:
     from .._typing import OperatorRate
 
 
-from radiate.operators.selector import (
+from ..operators.selector import (
     TournamentSelector,
     RouletteSelector,
     NSGA2Selector,
@@ -18,7 +18,7 @@ from radiate.operators.selector import (
     StochasticSamplingSelector,
     TournamentNSGA2Selector,
 )
-from radiate.operators.alterer import (
+from ..operators.alterer import (
     BlendCrossover,
     IntermediateCrossover,
     ArithmeticMutator,
@@ -42,7 +42,7 @@ from radiate.operators.alterer import (
     JitterMutator,
     ScrambleMutator,
 )
-from radiate.operators.limit import (
+from ..operators.limit import (
     ExprLimit,
     ScoreLimit,
     GenerationsLimit,
@@ -50,15 +50,15 @@ from radiate.operators.limit import (
     ConvergenceLimit,
     MetricLimit,
 )
-from radiate.operators.distance import (
+from ..operators.distance import (
     EuclideanDistance,
     CosineDistance,
     NeatDistance,
     HammingDistance,
 )
 
-from radiate.operators.rate import Rate
-from radiate.expr import Expr
+from ..operators.rate import Rate
+from ..expr import Expr
 
 
 def _get_rate(rate: OperatorRate) -> Rate:
