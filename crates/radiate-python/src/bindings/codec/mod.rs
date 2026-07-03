@@ -99,10 +99,19 @@ where
     G: Gene<Allele = A>,
     A: Element + IntoPyObject<'py> + IntoPyObjectExt<'py> + Copy + Default,
 {
-    // Scalar branceh: if there's only one gene with one allele, return it directly as a scalar
+    // Scalar branch: if there's only one gene with one allele, return it directly as a scalar
     if genotype.len() == 1 && genotype[0].len() == 1 {
-        let value = genotype[0].get(0).allele();
-        return Ok(value.into_py_any(py)?.into_bound(py));
+        match genotype[0].get(0) {
+            Some(gene) => {
+                let value = *gene.allele();
+                return Ok(value.into_py_any(py)?.into_bound(py));
+            }
+            None => {
+                return Err(pyo3::exceptions::PyValueError::new_err(
+                    "Genotype has no genes",
+                ));
+            }
+        };
     }
 
     // Single chromosome branch

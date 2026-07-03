@@ -85,17 +85,19 @@ where
         let node_one = chromo_one.get_mut(i);
         let node_two = chromo_two.get(i);
 
-        if node_one.arity() != node_two.arity() {
-            continue;
-        }
+        if let Some((node_one, node_two)) = node_one.zip(node_two) {
+            if node_one.arity() != node_two.arity() {
+                continue;
+            }
 
-        if !rand.bool(rate) {
-            continue;
-        }
+            if !rand.bool(rate) {
+                continue;
+            }
 
-        if node_one.value() != node_two.value() {
-            node_one.set_value(node_two.value().clone());
-            crosses += 1;
+            if node_one.value() != node_two.value() {
+                node_one.set_value(node_two.value().clone());
+                crosses += 1;
+            }
         }
     }
 
@@ -118,17 +120,29 @@ where
         let gene_one = chromo_one.get(ia);
         let gene_two = chromo_two.get(ib);
 
+        let Some((gene_one, gene_two)) = gene_one.zip(gene_two) else {
+            break;
+        };
+
         match gene_one.innovation().cmp(&gene_two.innovation()) {
             Ordering::Equal => {
                 if rand.bool(rate) {
-                    let node_two = chromo_two.get(ib);
+                    // let node_two = chromo_two.get(ib);
                     let node_one = chromo_one.get_mut(ia);
 
-                    if node_one.arity() == node_two.arity() && node_one.value() != node_two.value()
+                    if let Some(node_one) = node_one
+                        && node_one.arity() == gene_two.arity()
+                        && node_one.value() != gene_two.value()
                     {
-                        node_one.set_value(node_two.value().clone());
+                        node_one.set_value(gene_two.value().clone());
                         crosses += 1;
                     }
+
+                    // if node_one.arity() == gene_two.arity() && node_one.value() != gene_two.value()
+                    // {
+                    //     node_one.set_value(gene_two.value().clone());
+                    //     crosses += 1;
+                    // }
                 }
 
                 ia += 1;

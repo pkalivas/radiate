@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Literal, Self, Sequence, overload
 
 from radiate._typing import AtLeastOne, FileType, RdDataType, RdLossType, Subscriber
 from radiate.codec.base import CodecBase
-from radiate.dtype import Float32
+from radiate.dtype import Float32, Int8, Int16, Int32, UInt8, UInt16, UInt32, UInt64
 from radiate.expr import Expr
 from radiate.fitness import MSE, FitnessBase
 from radiate.genome import Chromosome, Gene, Population
@@ -223,17 +223,16 @@ class Engine[G, T]:
     # ----------------------------
     # Int engine constructors
     # ----------------------------
-    # Int Scalar overloads
-    # ----------------------------
+
+    # Scalar
     @overload
     @staticmethod
     def int(
         *,
-        shape: None = ...,
         init_range: tuple[int, int] | None = (0, 100),
         bounds: tuple[int, int] | None = None,
         dtype: RdDataType = ...,
-        use_numpy: Literal[False] = False,
+        use_numpy: bool = ...,
         genes: None = ...,
         chromosomes: None = ...,
     ) -> "Engine[int, int]": ...
@@ -241,18 +240,15 @@ class Engine[G, T]:
     @staticmethod
     def int(
         *,
-        shape: None = ...,
         init_range: tuple[int, int] | None = (0, 100),
         bounds: tuple[int, int] | None = None,
         dtype: RdDataType = ...,
-        use_numpy: Literal[False] = False,
-        genes: Gene[int] = ...,
+        use_numpy: bool = ...,
+        genes: Gene[int],
         chromosomes: None = ...,
     ) -> "Engine[int, int]": ...
-    # --- End Int Scalar overloads ---
-    #
-    # Int Vector overloads
-    # ----------------------------
+
+    # Vector via shape
     @overload
     @staticmethod
     def int(
@@ -265,6 +261,90 @@ class Engine[G, T]:
         genes: None = ...,
         chromosomes: None = ...,
     ) -> "Engine[int, list[int]]": ...
+    @overload
+    @staticmethod
+    def int(
+        shape: int,
+        *,
+        init_range: tuple[int, int] | None = (0, 100),
+        bounds: tuple[int, int] | None = None,
+        dtype: type[Int8],
+        use_numpy: Literal[True],
+        genes: None = ...,
+        chromosomes: None = ...,
+    ) -> "Engine[int, np.typing.NDArray[np.int8]]": ...
+    @overload
+    @staticmethod
+    def int(
+        shape: int,
+        *,
+        init_range: tuple[int, int] | None = (0, 100),
+        bounds: tuple[int, int] | None = None,
+        dtype: type[Int16],
+        use_numpy: Literal[True],
+        genes: None = ...,
+        chromosomes: None = ...,
+    ) -> "Engine[int, np.typing.NDArray[np.int16]]": ...
+    @overload
+    @staticmethod
+    def int(
+        shape: int,
+        *,
+        init_range: tuple[int, int] | None = (0, 100),
+        bounds: tuple[int, int] | None = None,
+        dtype: type[Int32],
+        use_numpy: Literal[True],
+        genes: None = ...,
+        chromosomes: None = ...,
+    ) -> "Engine[int, np.typing.NDArray[np.int32]]": ...
+    @overload
+    @staticmethod
+    def int(
+        shape: int,
+        *,
+        init_range: tuple[int, int] | None = (0, 100),
+        bounds: tuple[int, int] | None = None,
+        dtype: type[UInt8],
+        use_numpy: Literal[True],
+        genes: None = ...,
+        chromosomes: None = ...,
+    ) -> "Engine[int, np.typing.NDArray[np.uint8]]": ...
+    @overload
+    @staticmethod
+    def int(
+        shape: int,
+        *,
+        init_range: tuple[int, int] | None = (0, 100),
+        bounds: tuple[int, int] | None = None,
+        dtype: type[UInt16],
+        use_numpy: Literal[True],
+        genes: None = ...,
+        chromosomes: None = ...,
+    ) -> "Engine[int, np.typing.NDArray[np.uint16]]": ...
+    @overload
+    @staticmethod
+    def int(
+        shape: int,
+        *,
+        init_range: tuple[int, int] | None = (0, 100),
+        bounds: tuple[int, int] | None = None,
+        dtype: type[UInt32],
+        use_numpy: Literal[True],
+        genes: None = ...,
+        chromosomes: None = ...,
+    ) -> "Engine[int, np.typing.NDArray[np.uint32]]": ...
+    @overload
+    @staticmethod
+    def int(
+        shape: int,
+        *,
+        init_range: tuple[int, int] | None = (0, 100),
+        bounds: tuple[int, int] | None = None,
+        dtype: type[UInt64],
+        use_numpy: Literal[True],
+        genes: None = ...,
+        chromosomes: None = ...,
+    ) -> "Engine[int, np.typing.NDArray[np.uint64]]": ...
     @overload
     @staticmethod
     def int(
@@ -276,59 +356,134 @@ class Engine[G, T]:
         use_numpy: Literal[True],
         genes: None = ...,
         chromosomes: None = ...,
-    ) -> "Engine[int, np.ndarray]": ...
+    ) -> "Engine[int, np.typing.NDArray[np.int64]]": ...
+
+    # Vector via genes
     @overload
     @staticmethod
     def int(
         *,
-        shape: None = ...,
         init_range: tuple[int, int] | None = (0, 100),
         bounds: tuple[int, int] | None = None,
         dtype: RdDataType = ...,
         use_numpy: Literal[False] = False,
-        genes: Sequence[Gene[int]] = ...,
+        genes: Sequence[Gene[int]],
         chromosomes: None = ...,
     ) -> "Engine[int, list[int]]": ...
     @overload
     @staticmethod
     def int(
         *,
-        shape: None = ...,
         init_range: tuple[int, int] | None = (0, 100),
         bounds: tuple[int, int] | None = None,
-        dtype: RdDataType = ...,
-        use_numpy: Literal[True] = True,
-        genes: Sequence[Gene[int]] = ...,
+        dtype: type[Int8],
+        use_numpy: Literal[True],
+        genes: Sequence[Gene[int]],
         chromosomes: None = ...,
-    ) -> "Engine[int, np.ndarray]": ...
+    ) -> "Engine[int, np.typing.NDArray[np.int8]]": ...
     @overload
     @staticmethod
     def int(
         *,
-        shape: None = ...,
+        init_range: tuple[int, int] | None = (0, 100),
+        bounds: tuple[int, int] | None = None,
+        dtype: type[Int16],
+        use_numpy: Literal[True],
+        genes: Sequence[Gene[int]],
+        chromosomes: None = ...,
+    ) -> "Engine[int, np.typing.NDArray[np.int16]]": ...
+    @overload
+    @staticmethod
+    def int(
+        *,
+        init_range: tuple[int, int] | None = (0, 100),
+        bounds: tuple[int, int] | None = None,
+        dtype: type[Int32],
+        use_numpy: Literal[True],
+        genes: Sequence[Gene[int]],
+        chromosomes: None = ...,
+    ) -> "Engine[int, np.typing.NDArray[np.int32]]": ...
+    @overload
+    @staticmethod
+    def int(
+        *,
+        init_range: tuple[int, int] | None = (0, 100),
+        bounds: tuple[int, int] | None = None,
+        dtype: type[UInt8],
+        use_numpy: Literal[True],
+        genes: Sequence[Gene[int]],
+        chromosomes: None = ...,
+    ) -> "Engine[int, np.typing.NDArray[np.uint8]]": ...
+    @overload
+    @staticmethod
+    def int(
+        *,
+        init_range: tuple[int, int] | None = (0, 100),
+        bounds: tuple[int, int] | None = None,
+        dtype: type[UInt16],
+        use_numpy: Literal[True],
+        genes: Sequence[Gene[int]],
+        chromosomes: None = ...,
+    ) -> "Engine[int, np.typing.NDArray[np.uint16]]": ...
+    @overload
+    @staticmethod
+    def int(
+        *,
+        init_range: tuple[int, int] | None = (0, 100),
+        bounds: tuple[int, int] | None = None,
+        dtype: type[UInt32],
+        use_numpy: Literal[True],
+        genes: Sequence[Gene[int]],
+        chromosomes: None = ...,
+    ) -> "Engine[int, np.typing.NDArray[np.uint32]]": ...
+    @overload
+    @staticmethod
+    def int(
+        *,
+        init_range: tuple[int, int] | None = (0, 100),
+        bounds: tuple[int, int] | None = None,
+        dtype: type[UInt64],
+        use_numpy: Literal[True],
+        genes: Sequence[Gene[int]],
+        chromosomes: None = ...,
+    ) -> "Engine[int, np.typing.NDArray[np.uint64]]": ...
+    @overload
+    @staticmethod
+    def int(
+        *,
+        init_range: tuple[int, int] | None = (0, 100),
+        bounds: tuple[int, int] | None = None,
+        dtype: RdDataType = ...,
+        use_numpy: Literal[True],
+        genes: Sequence[Gene[int]],
+        chromosomes: None = ...,
+    ) -> "Engine[int, np.typing.NDArray[np.int64]]": ...
+
+    # Vector via chromosome (dtype narrowing deferred)
+    @overload
+    @staticmethod
+    def int(
+        *,
         init_range: tuple[int, int] | None = (0, 100),
         bounds: tuple[int, int] | None = None,
         dtype: RdDataType = ...,
         use_numpy: Literal[False] = False,
         genes: None = ...,
-        chromosomes: Chromosome[int] = ...,
+        chromosomes: Chromosome[int],
     ) -> "Engine[int, list[int]]": ...
     @overload
     @staticmethod
     def int(
         *,
-        shape: None = ...,
         init_range: tuple[int, int] | None = (0, 100),
         bounds: tuple[int, int] | None = None,
         dtype: RdDataType = ...,
-        use_numpy: Literal[True] = True,
+        use_numpy: Literal[True],
         genes: None = ...,
-        chromosomes: Chromosome[int] = ...,
+        chromosomes: Chromosome[int],
     ) -> "Engine[int, np.ndarray]": ...
-    # --- End Int Vector overloads ---
-    #
-    # Int Matrix overloads
-    # ----------------------------
+
+    # Matrix via shape
     @overload
     @staticmethod
     def int(
@@ -348,28 +503,122 @@ class Engine[G, T]:
         *,
         init_range: tuple[int, int] | None = (0, 100),
         bounds: tuple[int, int] | None = None,
-        dtype: RdDataType = ...,
-        use_numpy: Literal[True] = True,
+        dtype: type[Int8],
+        use_numpy: Literal[True],
         genes: None = ...,
         chromosomes: None = ...,
-    ) -> "Engine[int, list[np.ndarray]]": ...
+    ) -> "Engine[int, list[np.typing.NDArray[np.int8]]]": ...
+    @overload
+    @staticmethod
+    def int(
+        shape: Sequence[int],
+        *,
+        init_range: tuple[int, int] | None = (0, 100),
+        bounds: tuple[int, int] | None = None,
+        dtype: type[Int16],
+        use_numpy: Literal[True],
+        genes: None = ...,
+        chromosomes: None = ...,
+    ) -> "Engine[int, list[np.typing.NDArray[np.int16]]]": ...
+    @overload
+    @staticmethod
+    def int(
+        shape: Sequence[int],
+        *,
+        init_range: tuple[int, int] | None = (0, 100),
+        bounds: tuple[int, int] | None = None,
+        dtype: type[Int32],
+        use_numpy: Literal[True],
+        genes: None = ...,
+        chromosomes: None = ...,
+    ) -> "Engine[int, list[np.typing.NDArray[np.int32]]]": ...
+    @overload
+    @staticmethod
+    def int(
+        shape: Sequence[int],
+        *,
+        init_range: tuple[int, int] | None = (0, 100),
+        bounds: tuple[int, int] | None = None,
+        dtype: type[UInt8],
+        use_numpy: Literal[True],
+        genes: None = ...,
+        chromosomes: None = ...,
+    ) -> "Engine[int, list[np.typing.NDArray[np.uint8]]]": ...
+    @overload
+    @staticmethod
+    def int(
+        shape: Sequence[int],
+        *,
+        init_range: tuple[int, int] | None = (0, 100),
+        bounds: tuple[int, int] | None = None,
+        dtype: type[UInt16],
+        use_numpy: Literal[True],
+        genes: None = ...,
+        chromosomes: None = ...,
+    ) -> "Engine[int, list[np.typing.NDArray[np.uint16]]]": ...
+    @overload
+    @staticmethod
+    def int(
+        shape: Sequence[int],
+        *,
+        init_range: tuple[int, int] | None = (0, 100),
+        bounds: tuple[int, int] | None = None,
+        dtype: type[UInt32],
+        use_numpy: Literal[True],
+        genes: None = ...,
+        chromosomes: None = ...,
+    ) -> "Engine[int, list[np.typing.NDArray[np.uint32]]]": ...
+    @overload
+    @staticmethod
+    def int(
+        shape: Sequence[int],
+        *,
+        init_range: tuple[int, int] | None = (0, 100),
+        bounds: tuple[int, int] | None = None,
+        dtype: type[UInt64],
+        use_numpy: Literal[True],
+        genes: None = ...,
+        chromosomes: None = ...,
+    ) -> "Engine[int, list[np.typing.NDArray[np.uint64]]]": ...
+    @overload
+    @staticmethod
+    def int(
+        shape: Sequence[int],
+        *,
+        init_range: tuple[int, int] | None = (0, 100),
+        bounds: tuple[int, int] | None = None,
+        dtype: RdDataType = ...,
+        use_numpy: Literal[True],
+        genes: None = ...,
+        chromosomes: None = ...,
+    ) -> "Engine[int, list[np.typing.NDArray[np.int64]]]": ...
+
+    # Matrix via chromosomes (dtype narrowing deferred)
     @overload
     @staticmethod
     def int(
         *,
-        shape: None = ...,
         init_range: tuple[int, int] | None = (0, 100),
         bounds: tuple[int, int] | None = None,
         dtype: RdDataType = ...,
-        use_numpy: Literal[True] = True,
+        use_numpy: Literal[False] = False,
         genes: None = ...,
-        chromosomes: Sequence[Chromosome[int]] = ...,
-    ) -> "Engine[int, list[np.ndarray]]": ...
-    # --- End Int Matrix overloads ---
-    # ----------------------------
+        chromosomes: Sequence[Chromosome[int]],
+    ) -> "Engine[int, list[list[int]]]": ...
+    @overload
     @staticmethod
     def int(
-        shape: AtLeastOne[int] | None = 1,
+        *,
+        init_range: tuple[int, int] | None = (0, 100),
+        bounds: tuple[int, int] | None = None,
+        dtype: RdDataType = ...,
+        use_numpy: Literal[True],
+        genes: None = ...,
+        chromosomes: Sequence[Chromosome[int]],
+    ) -> "Engine[int, list[np.ndarray]]": ...
+    @staticmethod
+    def int(
+        shape: AtLeastOne[int] | None = None,
         *,
         init_range: tuple[int, int] | None = (0, 100),
         bounds: tuple[int, int] | None = None,

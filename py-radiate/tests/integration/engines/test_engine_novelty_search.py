@@ -1,5 +1,6 @@
-import radiate as rd
 import pytest
+
+import radiate as rd
 
 
 def calc_population_diversity(population: rd.Population[float]) -> float:

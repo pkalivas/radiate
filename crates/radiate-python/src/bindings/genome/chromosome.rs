@@ -221,7 +221,10 @@ impl PyChromosome {
             index
         } as usize;
 
-        Ok(match_chromosome!(self.inner, chrom => PyGene::from(chrom.get(index).clone())))
+        match_chromosome!(self.inner, chrom => match chrom.get(index) {
+            Some(gene) => Ok(PyGene::from(gene.clone())),
+            None => Err(PyIndexError::new_err("index out of range")),
+        })
     }
 
     pub fn gene_type(&self) -> PyGeneType {

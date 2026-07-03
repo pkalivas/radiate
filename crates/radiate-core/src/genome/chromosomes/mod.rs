@@ -20,6 +20,14 @@ pub trait NumericAllele: Primitive {
     fn extract<T: NumCast>(self) -> Option<T> {
         T::from(self)
     }
+
+    fn clamp(&mut self, min: &Self, max: &Self) {
+        if *self < *min {
+            *self = *min;
+        } else if *self > *max {
+            *self = *max;
+        }
+    }
 }
 
 macro_rules! impl_numeric_allele {

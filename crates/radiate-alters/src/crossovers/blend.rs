@@ -1,5 +1,6 @@
 use radiate_core::{
     AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, Gene, Rate, Valid,
+    chromosomes::{BoundedChromosome, NumericAllele, NumericChromosome, NumericGene},
     random_provider,
 };
 use radiate_utils::{Float, Primitive};
@@ -37,9 +38,9 @@ impl BlendCrossover {
 
 impl<A, G, C> Crossover<C> for BlendCrossover
 where
-    A: Primitive + Float,
-    G: Gene<Allele = A> + BoundedGene,
-    C: Chromosome<Gene = G>,
+    A: Primitive + Float + NumericAllele,
+    G: Gene<Allele = A> + BoundedGene + NumericGene,
+    C: BoundedChromosome<Gene = G> + NumericChromosome<Gene = G>,
 {
     fn rate(&self) -> Rate {
         self.rate.clone()
@@ -56,29 +57,77 @@ where
         let alpha = A::from(self.alpha).unwrap();
 
         random_provider::with_rng(|rand| {
-            for (one, two) in chrom_one.zip_mut(chrom_two) {
+            let min_len = std::cmp::min(chrom_one.len(), chrom_two.len());
+            for i in 0..min_len {
                 if rand.bool(ctx.rate()) {
-                    let allele_one = *one.allele();
-                    let allele_two = *two.allele();
+                    let allele_one = *chrom_one.allele(i).unwrap();
+                    let allele_two = *chrom_two.allele(i).unwrap();
 
                     let new_allele_one = allele_one - (alpha * (allele_two - allele_one));
                     let new_allele_two = allele_two - (alpha * (allele_one - allele_two));
 
-                    let (one_min, one_max) = one.bounds();
-                    let (two_min, two_max) = two.bounds();
+                    let (one_min, one_max) = chrom_one.bounds(i).unwrap();
+                    let (two_min, two_max) = chrom_two.bounds(i).unwrap();
 
-                    *one.allele_mut() = new_allele_one.clamp(*one_min, *one_max);
-                    *two.allele_mut() = new_allele_two.clamp(*two_min, *two_max);
+                    *chrom_one.allele_mut(i).unwrap() = new_allele_one.clamp(*one_min, *one_max);
+                    *chrom_two.allele_mut(i).unwrap() = new_allele_two.clamp(*two_min, *two_max);
 
                     cross_count += 1;
                 }
             }
         });
 
+        // random_provider::with_rng(|rand| {
+        //     for (one, two) in chrom_one.zip_mut(chrom_two) {
+        //         if rand.bool(ctx.rate()) {
+        //             let allele_one = *one.allele();
+        //             let allele_two = *two.allele();
+
+        //             let new_allele_one = allele_one - (alpha * (allele_two - allele_one));
+        //             let new_allele_two = allele_two - (alpha * (allele_one - allele_two));
+
+        //             let (one_min, one_max) = one.bounds();
+        //             let (two_min, two_max) = two.bounds();
+
+        //             *one.allele_mut() = new_allele_one.clamp(*one_min, *one_max);
+        //             *two.allele_mut() = new_allele_two.clamp(*two_min, *two_max);
+
+        //             cross_count += 1;
+        //         }
+        //     }
+        // });
+
         cross_count.into()
     }
 }
 
+// if rand.bool(ctx.rate()) {
+//     let (new_one, new_two) = {
+//         let allele_one = chrom_one.allele_mut(i);
+//         let allele_two = chrom_two.allele_mut(i);
+
+//         if let Some((allele_one, allele_two)) = allele_one.zip(allele_two) {
+//             let new_allele_one =
+//                 *allele_one - (alpha * (*allele_two - *allele_one));
+//             let new_allele_two =
+//                 *allele_two - (alpha * (*allele_one - *allele_two));
+
+//             (new_allele_one, new_allele_two)
+//         } else {
+//             continue;
+//         }
+//     };
+
+//     if let Some((min, max)) = chrom_one.bounds(i) {
+//         let clamped_one = new_one.clamp(*min, *max);
+//         *chrom_one.allele_mut(i).unwrap() = clamped_one;
+//     }
+
+//     if let Some((min, max)) = chrom_two.bounds(i) {
+//         let clamped_two = new_two.clamp(*min, *max);
+//         *chrom_two.allele_mut(i).unwrap() = clamped_two;
+//     }
+// }
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -121,8 +170,8 @@ mod tests {
             let expected_one = original_one[i] - (alpha * (original_two[i] - original_one[i]));
             let expected_two = original_two[i] - (alpha * (original_one[i] - original_two[i]));
 
-            assert!((chrom_one.get(i).allele() - expected_one).abs() < 1e-6);
-            assert!((chrom_two.get(i).allele() - expected_two).abs() < 1e-6);
+            assert!((chrom_one.get(i).unwrap().allele() - expected_one).abs() < 1e-6);
+            assert!((chrom_two.get(i).unwrap().allele() - expected_two).abs() < 1e-6);
         }
     }
 
@@ -154,8 +203,8 @@ mod tests {
 
         // Values should remain unchanged
         for i in 0..chrom_one.len() {
-            assert_eq!(*chrom_one.get(i).allele(), original_one[i]);
-            assert_eq!(*chrom_two.get(i).allele(), original_two[i]);
+            assert_eq!(*chrom_one.get(i).unwrap().allele(), original_one[i]);
+            assert_eq!(*chrom_two.get(i).unwrap().allele(), original_two[i]);
         }
     }
 
@@ -190,19 +239,31 @@ mod tests {
         let expected_two_1 = 5.0 - (alpha * (2.0 - 5.0));
 
         assert!(
-            (chrom_one.get(0).allele().extract::<f32>().unwrap() - expected_one_0).abs() < 1e-6
+            (NumericAllele::extract::<f32>(*chrom_one.allele(0).unwrap()).unwrap()
+                - expected_one_0)
+                .abs()
+                < 1e-6
         );
         assert!(
-            (chrom_two.get(0).allele().extract::<f32>().unwrap() - expected_two_0).abs() < 1e-6
+            (NumericAllele::extract::<f32>(*chrom_two.allele(0).unwrap()).unwrap()
+                - expected_two_0)
+                .abs()
+                < 1e-6
         );
         assert!(
-            (chrom_one.get(1).allele().extract::<f32>().unwrap() - expected_one_1).abs() < 1e-6
+            (NumericAllele::extract::<f32>(*chrom_one.allele(1).unwrap()).unwrap()
+                - expected_one_1)
+                .abs()
+                < 1e-6
         );
         assert!(
-            (chrom_two.get(1).allele().extract::<f32>().unwrap() - expected_two_1).abs() < 1e-6
+            (NumericAllele::extract::<f32>(*chrom_two.allele(1).unwrap()).unwrap()
+                - expected_two_1)
+                .abs()
+                < 1e-6
         );
 
-        assert_eq!(*chrom_one.get(2).allele(), 3.0);
+        assert_eq!(*chrom_one.get(2).unwrap().allele(), 3.0);
     }
 
     #[test]
@@ -233,8 +294,8 @@ mod tests {
 
         // With alpha = 0, values should remain unchanged
         for i in 0..chrom_one.len() {
-            assert_eq!(*chrom_one.get(i).allele(), original_one[i]);
-            assert_eq!(*chrom_two.get(i).allele(), original_two[i]);
+            assert_eq!(*chrom_one.get(i).unwrap().allele(), original_one[i]);
+            assert_eq!(*chrom_two.get(i).unwrap().allele(), original_two[i]);
         }
     }
 
@@ -262,10 +323,10 @@ mod tests {
         assert_eq!(result.count(), 2);
 
         // With alpha = 1, values should be swapped
-        assert_eq!(*chrom_one.get(0).allele(), -2.0);
-        assert_eq!(*chrom_two.get(0).allele(), 7.0);
-        assert_eq!(*chrom_one.get(1).allele(), -1.0);
-        assert_eq!(*chrom_two.get(1).allele(), 8.0);
+        assert_eq!(*chrom_one.get(0).unwrap().allele(), -2.0);
+        assert_eq!(*chrom_two.get(0).unwrap().allele(), 7.0);
+        assert_eq!(*chrom_one.get(1).unwrap().allele(), -1.0);
+        assert_eq!(*chrom_two.get(1).unwrap().allele(), 8.0);
     }
 
     #[test]
@@ -289,7 +350,10 @@ mod tests {
 
         // With identical parents, values should remain the same
         for i in 0..chrom_one.len() {
-            assert_eq!(*chrom_one.get(i).allele(), *chrom_two.get(i).allele());
+            assert_eq!(
+                *chrom_one.get(i).unwrap().allele(),
+                *chrom_two.get(i).unwrap().allele()
+            );
         }
     }
 
@@ -335,8 +399,8 @@ mod tests {
                 let expected_one = original_one[i] - (alpha * (original_two[i] - original_one[i]));
                 let expected_two = original_two[i] - (alpha * (original_one[i] - original_two[i]));
 
-                let gene_one = chrom_one.get(i);
-                let gene_two = chrom_two.get(i);
+                let gene_one = chrom_one.get(i).unwrap();
+                let gene_two = chrom_two.get(i).unwrap();
 
                 if expected_one < *gene_one.bounds().0 || expected_one > *gene_one.bounds().1 {
                     assert!(*gene_one.allele() >= *gene_one.bounds().0);
@@ -404,7 +468,7 @@ mod tests {
         let expected_one = 2.0 - (alpha * (8.0 - 2.0));
         let expected_two = 8.0 - (alpha * (2.0 - 8.0));
 
-        assert!((chrom_one.get(0).allele() - expected_one).abs() < 1e-6);
-        assert!((chrom_two.get(0).allele() - expected_two).abs() < 1e-6);
+        assert!((chrom_one.get(0).unwrap().allele() - expected_one).abs() < 1e-6);
+        assert!((chrom_two.get(0).unwrap().allele() - expected_two).abs() < 1e-6);
     }
 }

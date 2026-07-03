@@ -21,6 +21,6 @@ impl Problem<FloatChromosome<f32>, f32> for FloatEvalProblem {
     }
 
     fn eval(&self, individual: &Genotype<FloatChromosome<f32>>) -> Result<Score> {
-        Ok(Score::from(*individual[0].get(0).allele()))
+        Ok(Score::from(*individual[0].get(0).unwrap().allele()))
     }
 }

@@ -1,6 +1,7 @@
-import radiate as rd
 import numpy as np
 import pytest
+
+import radiate as rd
 
 
 @pytest.mark.integration

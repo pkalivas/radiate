@@ -89,6 +89,10 @@ where
         let one_node = chrom_one.get_mut(swap_one_index);
         let two_node = chrom_two.get_mut(swap_two_index);
 
-        Self::cross_nodes(one_node, two_node, self.max_size, ctx)
+        if let Some((one_node, two_node)) = one_node.zip(two_node) {
+            return Self::cross_nodes(one_node, two_node, self.max_size, ctx);
+        }
+
+        AlterResult::empty()
     }
 }

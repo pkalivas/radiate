@@ -4,6 +4,7 @@ pub mod genotype;
 pub mod phenotype;
 pub mod population;
 pub mod species;
+pub mod store;
 
 pub use chromosomes::{
     ArithmeticGene, BitChromosome, BitGene, BoundedGene, CharChromosome, CharGene, Chromosome,
@@ -15,6 +16,7 @@ pub use genotype::Genotype;
 pub use phenotype::Phenotype;
 pub use population::Population;
 pub use species::{Species, SpeciesId};
+pub use store::{BoundedFixedSequence, RangeLookup, Sequence};
 
 pub trait GetPairMut<T> {
     fn get_pair_mut(&mut self, index1: usize, index2: usize) -> Option<(&mut T, &mut T)>;

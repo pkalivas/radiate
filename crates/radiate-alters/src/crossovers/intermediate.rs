@@ -61,20 +61,22 @@ where
                     let gene_one = chrom_one.get_mut(i);
                     let gene_two = chrom_two.get_mut(i);
 
-                    let allele_one = *gene_one.allele();
-                    let allele_two = *gene_two.allele();
+                    if let Some((gene_one, gene_two)) = gene_one.zip(gene_two) {
+                        let allele_one = *gene_one.allele();
+                        let allele_two = *gene_two.allele();
 
-                    let alpha = rand.range(F::ZERO..alpha);
-                    let new_allele_one = allele_one * alpha + allele_two * (F::ONE - alpha);
-                    let new_allele_two = allele_two * alpha + allele_one * (F::ONE - alpha);
+                        let alpha = rand.range(F::ZERO..alpha);
+                        let new_allele_one = allele_one * alpha + allele_two * (F::ONE - alpha);
+                        let new_allele_two = allele_two * alpha + allele_one * (F::ONE - alpha);
 
-                    let (one_min, one_max) = gene_one.bounds();
-                    let (two_min, two_max) = gene_two.bounds();
+                        let (one_min, one_max) = gene_one.bounds();
+                        let (two_min, two_max) = gene_two.bounds();
 
-                    *gene_one.allele_mut() = new_allele_one.clamp(*one_min, *one_max);
-                    *gene_two.allele_mut() = new_allele_two.clamp(*two_min, *two_max);
+                        *gene_one.allele_mut() = new_allele_one.clamp(*one_min, *one_max);
+                        *gene_two.allele_mut() = new_allele_two.clamp(*two_min, *two_max);
 
-                    cross_count += 1;
+                        cross_count += 1;
+                    }
                 }
             }
         });

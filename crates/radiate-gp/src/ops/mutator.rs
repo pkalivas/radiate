@@ -113,19 +113,16 @@ where
         };
 
         for i in mutation_indexes.iter() {
-            let node = chromosome.get_mut(*i);
+            if let Some(node) = chromosome.get_mut(*i) {
+                if matches!(node.node_type(), NodeType::Input | NodeType::Output) {
+                    continue;
+                }
 
-            if matches!(node.node_type(), NodeType::Input | NodeType::Output) {
-                continue;
-            }
-
-            if let Some(store) = store.as_ref() {
-                self.mutate_node(node, store, &mut metrics);
+                if let Some(store) = store.as_ref() {
+                    self.mutate_node(node, store, &mut metrics);
+                }
             }
         }
-
-        // ctx.metric(OP_MUTATED, metrics.op_mutate);
-        // ctx.metric(OP_NEW_INSTANCE, metrics.op_new_instance);
 
         AlterResult::from(metrics.len())
     }

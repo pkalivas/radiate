@@ -130,7 +130,7 @@ where
         }
 
         for (i, allele) in offspring.iter().enumerate() {
-            chrom_one.set(i, chrom_one.get(i).with_index(*allele));
+            chrom_one.set(i, chrom_one.get(i).unwrap().with_index(*allele));
         }
 
         1.into()

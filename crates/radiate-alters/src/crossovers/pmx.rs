@@ -55,21 +55,24 @@ impl<A: PartialEq + Clone> Crossover<PermutationChromosome<A>> for PMXCrossover 
 
         for i in 0..length {
             if i < start || i > end {
-                let mut gene_one = chrom_one.get(i);
-                let mut gene_two = chrom_two.get(i);
+                if let Some((mut gene_one, mut gene_two)) = chrom_one.get(i).zip(chrom_two.get(i)) {
+                    while offspring_one[start..=end].contains(gene_one) {
+                        let index = chrom_two.genes.iter().position(|g| g == gene_one).unwrap();
+                        if let Some(g) = chrom_two.get(index) {
+                            gene_one = g;
+                        }
+                    }
 
-                while offspring_one[start..=end].contains(gene_one) {
-                    let index = chrom_two.genes.iter().position(|g| g == gene_one).unwrap();
-                    gene_one = chrom_one.get(index);
+                    while offspring_two[start..=end].contains(gene_two) {
+                        let index = chrom_one.genes.iter().position(|g| g == gene_two).unwrap();
+                        if let Some(g) = chrom_one.get(index) {
+                            gene_two = g;
+                        }
+                    }
+
+                    offspring_one[i] = gene_one.clone();
+                    offspring_two[i] = gene_two.clone();
                 }
-
-                while offspring_two[start..=end].contains(gene_two) {
-                    let index = chrom_one.genes.iter().position(|g| g == gene_two).unwrap();
-                    gene_two = chrom_two.get(index);
-                }
-
-                offspring_one[i] = gene_one.clone();
-                offspring_two[i] = gene_two.clone();
             }
         }
 

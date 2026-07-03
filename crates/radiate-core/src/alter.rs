@@ -312,13 +312,15 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
                 let gene_one = chrom_one.get(i);
                 let gene_two = chrom_two.get(i);
 
-                let new_gene_one = gene_one.with_allele(gene_two.allele());
-                let new_gene_two = gene_two.with_allele(gene_one.allele());
+                if let Some((gene_one, gene_two)) = gene_one.zip(gene_two) {
+                    let new_gene_one = gene_one.with_allele(gene_two.allele());
+                    let new_gene_two = gene_two.with_allele(gene_one.allele());
 
-                chrom_one.set(i, new_gene_one);
-                chrom_two.set(i, new_gene_two);
+                    chrom_one.set(i, new_gene_one);
+                    chrom_two.set(i, new_gene_two);
 
-                cross_count += 1;
+                    cross_count += 1;
+                }
             }
         }
 
