@@ -4,7 +4,7 @@ pub mod genotype;
 pub mod phenotype;
 pub mod population;
 pub mod species;
-pub mod store;
+mod store;
 
 pub use chromosomes::{
     ArithmeticGene, BitChromosome, BitGene, BoundedGene, CharChromosome, CharGene, Chromosome,

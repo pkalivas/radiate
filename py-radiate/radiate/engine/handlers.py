@@ -214,3 +214,39 @@ class MetricCollector(EventHandler):
         plt.grid(True)
         plt.legend()
         plt.show()
+
+
+def on_epoch(func: Callable[["EngineEvent"], None]) -> CallableEventHandler:
+    """
+    Decorator to register a function as an event handler for the EPOCH_COMPLETE event.
+    :param func: The function to register as an event handler.
+    :return: A CallableEventHandler instance.
+    """
+    return CallableEventHandler(func, EventType.EPOCH_COMPLETE)
+
+
+def on_start(func: Callable[["EngineEvent"], None]) -> CallableEventHandler:
+    """
+    Decorator to register a function as an event handler for the START event.
+    :param func: The function to register as an event handler.
+    :return: A CallableEventHandler instance.
+    """
+    return CallableEventHandler(func, EventType.START)
+
+
+def on_stop(func: Callable[["EngineEvent"], None]) -> CallableEventHandler:
+    """
+    Decorator to register a function as an event handler for the STOP event.
+    :param func: The function to register as an event handler.
+    :return: A CallableEventHandler instance.
+    """
+    return CallableEventHandler(func, EventType.STOP)
+
+
+def on_improvement(func: Callable[["EngineEvent"], None]) -> CallableEventHandler:
+    """
+    Decorator to register a function as an event handler for the ENGINE_IMPROVEMENT event.
+    :param func: The function to register as an event handler.
+    :return: A CallableEventHandler instance.
+    """
+    return CallableEventHandler(func, EventType.ENGINE_IMPROVEMENT)

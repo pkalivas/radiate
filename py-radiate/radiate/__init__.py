@@ -58,6 +58,10 @@ from .engine import (
     MetricSet,
     Tag,
     UiParam,
+    on_epoch,
+    on_improvement,
+    on_start,
+    on_stop,
 )
 from .expr import Expr
 from .fitness import (  # Base fitness classes,; Decorators; Loss functions
@@ -183,6 +187,10 @@ __all__ = [
     "EventType",
     "EngineEvent",
     "MetricCollector",
+    "on_epoch",
+    "on_improvement",
+    "on_start",
+    "on_stop",
     # Rate
     "Rate",
     "rate",

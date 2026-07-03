@@ -1,5 +1,5 @@
-#[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
+// #[cfg(feature = "serde")]
+// use serde::{Deserialize, Serialize};
 use std::ops::Range;
 
 use crate::{BoundedGene, RangeLookup};

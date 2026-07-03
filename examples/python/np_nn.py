@@ -57,6 +57,11 @@ def fit(weights: list[np.ndarray]) -> float:
     return float(np.mean((yhat - Y) ** 2, dtype=np.float32))
 
 
+@rd.on_epoch
+def temp(event: rd.EngineEvent):
+    print(f"Epoch {event.index()} complete. Score: {event.score()}")
+
+
 engine = (
     rd.Engine.float(
         # Create an engine that evolves genomes with 3 chromosomes, one for each layer's weights, 1 with 16 genes, 1 with 64 genes, and 1 with 8 genes
@@ -72,12 +77,13 @@ engine = (
     )
     .fitness(fit)
     .minimizing()
+    .subscribe(temp)
     .select(rd.Select.boltzmann(temp=4.0))
     .alters(rd.Cross.blend(0.7, 0.4), rd.Mutate.gaussian(0.1))
     .limit(rd.Limit.score(0.01), rd.Limit.generations(500))
 )
 
-result = engine.run(ui=True)
+result = engine.run()
 metrics = result.metrics()
 
 print(result)

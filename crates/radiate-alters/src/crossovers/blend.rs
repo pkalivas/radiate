@@ -1,5 +1,5 @@
 use radiate_core::{
-    AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, Gene, Rate, Valid,
+    AlterContext, AlterResult, BoundedGene, Crossover, Gene, Rate, Valid,
     chromosomes::{BoundedChromosome, NumericAllele, NumericChromosome, NumericGene},
     random_provider,
 };
@@ -77,61 +77,14 @@ where
             }
         });
 
-        // random_provider::with_rng(|rand| {
-        //     for (one, two) in chrom_one.zip_mut(chrom_two) {
-        //         if rand.bool(ctx.rate()) {
-        //             let allele_one = *one.allele();
-        //             let allele_two = *two.allele();
-
-        //             let new_allele_one = allele_one - (alpha * (allele_two - allele_one));
-        //             let new_allele_two = allele_two - (alpha * (allele_one - allele_two));
-
-        //             let (one_min, one_max) = one.bounds();
-        //             let (two_min, two_max) = two.bounds();
-
-        //             *one.allele_mut() = new_allele_one.clamp(*one_min, *one_max);
-        //             *two.allele_mut() = new_allele_two.clamp(*two_min, *two_max);
-
-        //             cross_count += 1;
-        //         }
-        //     }
-        // });
-
         cross_count.into()
     }
 }
 
-// if rand.bool(ctx.rate()) {
-//     let (new_one, new_two) = {
-//         let allele_one = chrom_one.allele_mut(i);
-//         let allele_two = chrom_two.allele_mut(i);
-
-//         if let Some((allele_one, allele_two)) = allele_one.zip(allele_two) {
-//             let new_allele_one =
-//                 *allele_one - (alpha * (*allele_two - *allele_one));
-//             let new_allele_two =
-//                 *allele_two - (alpha * (*allele_one - *allele_two));
-
-//             (new_allele_one, new_allele_two)
-//         } else {
-//             continue;
-//         }
-//     };
-
-//     if let Some((min, max)) = chrom_one.bounds(i) {
-//         let clamped_one = new_one.clamp(*min, *max);
-//         *chrom_one.allele_mut(i).unwrap() = clamped_one;
-//     }
-
-//     if let Some((min, max)) = chrom_two.bounds(i) {
-//         let clamped_two = new_two.clamp(*min, *max);
-//         *chrom_two.allele_mut(i).unwrap() = clamped_two;
-//     }
-// }
 #[cfg(test)]
 mod tests {
     use super::*;
-    use radiate_core::{FloatChromosome, FloatGene, alter::AlterUpdates};
+    use radiate_core::{Chromosome, FloatChromosome, FloatGene, alter::AlterUpdates};
 
     #[test]
     fn test_cross_chromosomes_basic() {

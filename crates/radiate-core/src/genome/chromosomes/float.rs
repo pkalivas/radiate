@@ -3,7 +3,6 @@ use super::{
     gene::{ArithmeticGene, BoundedGene, Gene, Valid},
 };
 use crate::{
-    RangeLookup,
     chromosomes::{BoundedChromosome, NumericAllele, NumericChromosome},
     random_provider,
 };
@@ -369,66 +368,6 @@ impl<F: Float> IntoIterator for FloatChromosome<F> {
 impl<F: Float> Debug for FloatChromosome<F> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self.genes)
-    }
-}
-
-pub struct FixedFloatChromosome<F: Float, const N: usize> {
-    alleles: [F; N],
-    init_lookup: RangeLookup<F>,
-    bounds_lookup: RangeLookup<F>,
-}
-
-impl<F: Float, const N: usize> FixedFloatChromosome<F, N> {
-    pub fn new(
-        alleles: [F; N],
-        init_lookup: RangeLookup<F>,
-        bounds_lookup: RangeLookup<F>,
-    ) -> Self {
-        Self {
-            alleles,
-            init_lookup,
-            bounds_lookup,
-        }
-    }
-}
-
-impl<F: Float, const N: usize> Chromosome for FixedFloatChromosome<F, N> {
-    type Gene = FloatGene<F>;
-
-    fn as_slice(&self) -> &[Self::Gene] {
-        unimplemented!()
-    }
-
-    fn as_mut_slice(&mut self) -> &mut [Self::Gene] {
-        unimplemented!()
-    }
-}
-
-impl<F: Float, const N: usize> BoundedChromosome for FixedFloatChromosome<F, N> {
-    fn min(&self, index: usize) -> Option<&F> {
-        self.init_lookup.get(index).map(|range| &range.start)
-    }
-
-    fn max(&self, index: usize) -> Option<&F> {
-        self.init_lookup.get(index).map(|range| &range.end)
-    }
-
-    fn bounds(&self, index: usize) -> Option<(&F, &F)> {
-        self.bounds_lookup
-            .get(index)
-            .map(|range| (&range.start, &range.end))
-    }
-}
-
-impl<F: Float, const N: usize> Valid for FixedFloatChromosome<F, N> {
-    fn is_valid(&self) -> bool {
-        self.alleles.iter().enumerate().all(|(index, allele)| {
-            if let Some((min, max)) = self.bounds(index) {
-                *allele >= *min && *allele <= *max
-            } else {
-                false
-            }
-        })
     }
 }
 
