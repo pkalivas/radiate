@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, Literal, Self, Sequence, overload
 
 from radiate._typing import AtLeastOne, FileType, RdDataType, RdLossType, Subscriber
 from radiate.codec.base import CodecBase
+from radiate.dtype import Float32
 from radiate.expr import Expr
 from radiate.fitness import MSE, FitnessBase
 from radiate.genome import Chromosome, Gene, Population
@@ -25,13 +26,11 @@ class Engine[G, T]:
     # Float engine constructors
     # ----------------------------
 
-    # Float Scalar overloads
-    # ----------------------------
+    # Scalar
     @overload
     @staticmethod
     def float(
         *,
-        shape: None = ...,
         init_range: tuple[float, float] | None = (0, 1.0),
         bounds: tuple[float, float] | None = None,
         dtype: RdDataType = ...,
@@ -43,7 +42,6 @@ class Engine[G, T]:
     @staticmethod
     def float(
         *,
-        shape: None = ...,
         init_range: tuple[float, float] | None = (0, 1.0),
         bounds: tuple[float, float] | None = None,
         dtype: RdDataType = ...,
@@ -51,10 +49,8 @@ class Engine[G, T]:
         genes: Gene[float],
         chromosomes: None = ...,
     ) -> "Engine[float, float]": ...
-    # --- End Float Scalar overloads ---
-    #
-    # Float Vector overloads
-    # ----------------------------
+
+    # Vector via shape
     @overload
     @staticmethod
     def float(
@@ -74,16 +70,29 @@ class Engine[G, T]:
         *,
         init_range: tuple[float, float] | None = (0, 1.0),
         bounds: tuple[float, float] | None = None,
-        dtype: RdDataType = ...,
-        use_numpy: Literal[True] = True,
+        dtype: type[Float32],
+        use_numpy: Literal[True],
         genes: None = ...,
         chromosomes: None = ...,
-    ) -> "Engine[float, np.ndarray]": ...
+    ) -> "Engine[float, np.typing.NDArray[np.float32]]": ...
+    @overload
+    @staticmethod
+    def float(
+        shape: int,
+        *,
+        init_range: tuple[float, float] | None = (0, 1.0),
+        bounds: tuple[float, float] | None = None,
+        dtype: RdDataType = ...,
+        use_numpy: Literal[True],
+        genes: None = ...,
+        chromosomes: None = ...,
+    ) -> "Engine[float, np.typing.NDArray[np.float64]]": ...
+
+    # Vector via genes
     @overload
     @staticmethod
     def float(
         *,
-        shape: None = ...,
         init_range: tuple[float, float] | None = (0, 1.0),
         bounds: tuple[float, float] | None = None,
         dtype: RdDataType = ...,
@@ -95,19 +104,30 @@ class Engine[G, T]:
     @staticmethod
     def float(
         *,
-        shape: None = ...,
         init_range: tuple[float, float] | None = (0, 1.0),
         bounds: tuple[float, float] | None = None,
-        dtype: RdDataType = ...,
-        use_numpy: Literal[True] = True,
+        dtype: type[Float32],
+        use_numpy: Literal[True],
         genes: Sequence[Gene[float]],
         chromosomes: None = ...,
-    ) -> "Engine[float, np.ndarray]": ...
+    ) -> "Engine[float, np.typing.NDArray[np.float32]]": ...
     @overload
     @staticmethod
     def float(
         *,
-        shape: None = ...,
+        init_range: tuple[float, float] | None = (0, 1.0),
+        bounds: tuple[float, float] | None = None,
+        dtype: RdDataType = ...,
+        use_numpy: Literal[True],
+        genes: Sequence[Gene[float]],
+        chromosomes: None = ...,
+    ) -> "Engine[float, np.typing.NDArray[np.float64]]": ...
+
+    # Vector via chromosome (dtype narrowing deferred)
+    @overload
+    @staticmethod
+    def float(
+        *,
         init_range: tuple[float, float] | None = (0, 1.0),
         bounds: tuple[float, float] | None = None,
         dtype: RdDataType = ...,
@@ -119,18 +139,15 @@ class Engine[G, T]:
     @staticmethod
     def float(
         *,
-        shape: None = ...,
         init_range: tuple[float, float] | None = (0, 1.0),
         bounds: tuple[float, float] | None = None,
         dtype: RdDataType = ...,
-        use_numpy: Literal[True] = True,
+        use_numpy: Literal[True],
         genes: None = ...,
         chromosomes: Chromosome[float],
     ) -> "Engine[float, np.ndarray]": ...
-    # --- End Float Vector overloads ---
-    #
-    # Float Matrix overloads
-    # ----------------------------
+
+    # Matrix via shape
     @overload
     @staticmethod
     def float(
@@ -142,7 +159,19 @@ class Engine[G, T]:
         use_numpy: Literal[False] = False,
         genes: None = ...,
         chromosomes: None = ...,
-    ) -> Engine[float, list[list[float]]]: ...
+    ) -> "Engine[float, list[list[float]]]": ...
+    @overload
+    @staticmethod
+    def float(
+        shape: Sequence[int],
+        *,
+        init_range: tuple[float, float] | None = (0, 1.0),
+        bounds: tuple[float, float] | None = None,
+        dtype: type[Float32],
+        use_numpy: Literal[True],
+        genes: None = ...,
+        chromosomes: None = ...,
+    ) -> "Engine[float, list[np.typing.NDArray[np.float32]]]": ...
     @overload
     @staticmethod
     def float(
@@ -151,15 +180,16 @@ class Engine[G, T]:
         init_range: tuple[float, float] | None = (0, 1.0),
         bounds: tuple[float, float] | None = None,
         dtype: RdDataType = ...,
-        use_numpy: Literal[True] = True,
+        use_numpy: Literal[True],
         genes: None = ...,
         chromosomes: None = ...,
-    ) -> "Engine[float, list[np.ndarray]]": ...
+    ) -> "Engine[float, list[np.typing.NDArray[np.float64]]]": ...
+
+    # Matrix via chromosomes (dtype narrowing deferred)
     @overload
     @staticmethod
     def float(
         *,
-        shape: None = ...,
         init_range: tuple[float, float] | None = (0, 1.0),
         bounds: tuple[float, float] | None = None,
         dtype: RdDataType = ...,
@@ -171,16 +201,13 @@ class Engine[G, T]:
     @staticmethod
     def float(
         *,
-        shape: None = ...,
         init_range: tuple[float, float] | None = (0, 1.0),
         bounds: tuple[float, float] | None = None,
         dtype: RdDataType = ...,
-        use_numpy: Literal[True] = True,
+        use_numpy: Literal[True],
         genes: None = ...,
         chromosomes: Sequence[Chromosome[float]],
     ) -> "Engine[float, list[np.ndarray]]": ...
-    # --- End Float Matrix overloads ---
-    # ----------------------------
     @staticmethod
     def float(
         shape: AtLeastOne[int] | None = None,

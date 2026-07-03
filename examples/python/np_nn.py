@@ -5,9 +5,10 @@ It implements a simple feedforward neural network with 3 layers (input, hidden, 
 The network weights are evolved using a float codec.
 """
 
-import radiate as rd
-import numpy as np  # type: ignore
 from pathlib import Path
+
+import numpy as np  # type: ignore
+import radiate as rd
 
 rd.random.seed(123)
 
