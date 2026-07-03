@@ -1,27 +1,26 @@
-from typing import Callable, Any
 from dataclasses import dataclass
+from typing import Any, Callable
 
 from radiate.radiate import PyEngine, PyEngineBuilder
-from ..codec import CodecBase
-from ..genome import Population, GeneType
-from ..fitness import FitnessBase, CallableFitness
-from ..operators import (
-    AlterBase,
-    DistanceBase,
-    SelectorBase,
-    TournamentSelector,
-    RouletteSelector,
-    LimitBase,
-    Executor,
-    Rate,
-)
-from ..expr import Expr
-
-from .handlers import CallableEventHandler, EventHandler
-from .generation import Generation
 
 from .._bridge.input import EngineInput, EngineInputType
 from .._typing import Subscriber
+from ..codec import CodecBase
+from ..expr import Expr
+from ..fitness import CallableFitness, FitnessBase
+from ..genome import GeneType, Population
+from ..operators import (
+    AlterBase,
+    DistanceBase,
+    Executor,
+    LimitBase,
+    Rate,
+    RouletteSelector,
+    SelectorBase,
+    TournamentSelector,
+)
+from .generation import Generation
+from .handlers import CallableEventHandler, EventHandler
 
 
 @dataclass(slots=True)

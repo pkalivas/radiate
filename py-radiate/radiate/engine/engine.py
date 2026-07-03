@@ -1,44 +1,35 @@
 from __future__ import annotations
 
-from typing import Any, Sequence
 from collections.abc import Callable
 from pathlib import Path
+from typing import Any, Sequence
 
-from ..expr import Expr
+from .._bridge.input import EngineInput, EngineInputType
+from .._typing import AtLeastOne, Checkpoint, RdDataType, RdLossType, Subscriber
 from ..codec import (
-    FloatCodec,
-    IntCodec,
-    CharCodec,
     BitCodec,
+    CharCodec,
+    FloatCodec,
     GraphCodec,
-    TreeCodec,
+    IntCodec,
     PermutationCodec,
+    TreeCodec,
 )
-
+from ..codec.base import CodecBase
+from ..dtype import Float64, Int64
+from ..expr import Expr
+from ..fitness import MSE, FitnessBase, Regression
+from ..genome import Chromosome, Gene, GeneType, Population
+from ..gp import Graph, Op, Tree
 from ..operators import (
-    SelectorBase,
     AlterBase,
     DistanceBase,
     Executor,
+    ExprLimit,
     LimitBase,
     Rate,
-    ExprLimit,
+    SelectorBase,
 )
-from ..fitness import FitnessBase, Regression, MSE
-from ..genome import Population, GeneType, Gene, Chromosome
-from ..gp import Graph, Tree, Op
-from ..dtype import Float64, Int64
-from ..codec.base import CodecBase
-
-from .._bridge.input import EngineInput, EngineInputType
-from .._typing import (
-    AtLeastOne,
-    Checkpoint,
-    Subscriber,
-    RdDataType,
-    RdLossType,
-)
-
 from .builder import EngineBuilder
 from .generation import Generation
 from .option import LogParam, UiParam, normalize_checkpoint_params

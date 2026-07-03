@@ -4,146 +4,6 @@ except ImportError:
     __version__ = "unknown"
     __version_tuple__ = (0, 0, 0)
 
-from .engine import (
-    Engine,
-    Generation,
-    Front,
-    FrontValue,
-    EventHandler,
-    EventType,
-    EngineEvent,
-    MetricCollector,
-    MetricSet,
-    Metric,
-    Tag,
-    LogParam,
-    CheckpointParam,
-    UiParam,
-)
-
-from .codec import (
-    FloatCodec,
-    IntCodec,
-    CharCodec,
-    BitCodec,
-    GraphCodec,
-    TreeCodec,
-    PermutationCodec,
-)
-
-from .random import RandomProvider as random
-
-from .genome import (
-    chromosome,
-    Gene,
-    Chromosome,
-    Genotype,
-    Phenotype,
-    Population,
-    Species,
-    Ecosystem,
-)
-
-from .gp import Op, Graph, Tree, accuracy, OpsConfig, AccuracyResult
-
-from .operators.executor import Executor
-from .fitness import (
-    # Base fitness classes,
-    Regression,
-    NoveltySearch,
-    BatchFitness,
-    # Decorators
-    fitness,
-    novelty,
-    # Loss functions
-    MSE,
-    MAE,
-    XEnt,
-    Diff,
-)
-from .operators.selector import (
-    TournamentSelector,
-    RouletteSelector,
-    RankSelector,
-    EliteSelector,
-    StochasticSamplingSelector,
-    BoltzmannSelector,
-    LinearRankSelector,
-    NSGA2Selector,
-    TournamentNSGA2Selector,
-    NSGA3Selector,
-)
-
-from .operators.alterer import (
-    BlendCrossover,
-    IntermediateCrossover,
-    ArithmeticMutator,
-    UniformCrossover,
-    UniformMutator,
-    MultiPointCrossover,
-    MeanCrossover,
-    ShuffleCrossover,
-    SimulatedBinaryCrossover,
-    PartiallyMappedCrossover,
-    GaussianMutator,
-    ScrambleMutator,
-    SwapMutator,
-    GraphMutator,
-    OperationMutator,
-    GraphCrossover,
-    TreeCrossover,
-    HoistMutator,
-    InversionMutator,
-    PolynomialMutator,
-    EdgeRecombinationCrossover,
-    JitterMutator,
-)
-
-from .operators.distance import (
-    HammingDistance,
-    EuclideanDistance,
-    NeatDistance,
-    CosineDistance,
-)
-
-from .operators.limit import (
-    SecondsLimit,
-    GenerationsLimit,
-    ScoreLimit,
-    ConvergenceLimit,
-    MetricLimit,
-)
-
-from .operators.rate import Rate
-from .operators import rate
-
-from .dtype import (
-    UInt8,
-    UInt16,
-    UInt32,
-    UInt64,
-    UInt128,
-    Int8,
-    Int16,
-    Int32,
-    Int64,
-    Int128,
-    Float32,
-    Float64,
-    Boolean,
-    Field,
-    String,
-    Char,
-    Null,
-    Struct,
-    List,
-    Dict,
-)
-
-from .expr import Expr
-
-from .dsl import Select, Mutate, Cross, Dist, Limit
-
 from ._dependancies import (
     _GIL_ENABLED,
     _NUMPY_AVAILABLE,
@@ -151,6 +11,130 @@ from ._dependancies import (
     _POLARS_AVAILABLE,
     _TORCH_AVAILABLE,
 )
+from .codec import (
+    BitCodec,
+    CharCodec,
+    FloatCodec,
+    GraphCodec,
+    IntCodec,
+    PermutationCodec,
+    TreeCodec,
+)
+from .dsl import Cross, Dist, Limit, Mutate, Select
+from .dtype import (
+    Boolean,
+    Char,
+    Dict,
+    Field,
+    Float32,
+    Float64,
+    Int8,
+    Int16,
+    Int32,
+    Int64,
+    Int128,
+    List,
+    Null,
+    String,
+    Struct,
+    UInt8,
+    UInt16,
+    UInt32,
+    UInt64,
+    UInt128,
+)
+from .engine import (
+    CheckpointParam,
+    Engine,
+    EngineEvent,
+    EventHandler,
+    EventType,
+    Front,
+    FrontValue,
+    Generation,
+    LogParam,
+    Metric,
+    MetricCollector,
+    MetricSet,
+    Tag,
+    UiParam,
+)
+from .expr import Expr
+from .fitness import (  # Base fitness classes,; Decorators; Loss functions
+    MAE,
+    MSE,
+    BatchFitness,
+    Diff,
+    NoveltySearch,
+    Regression,
+    XEnt,
+    fitness,
+    novelty,
+)
+from .genome import (
+    Chromosome,
+    Ecosystem,
+    Gene,
+    Genotype,
+    Phenotype,
+    Population,
+    Species,
+    chromosome,
+)
+from .gp import AccuracyResult, Graph, Op, OpsConfig, Tree, accuracy
+from .operators import rate
+from .operators.alterer import (
+    ArithmeticMutator,
+    BlendCrossover,
+    EdgeRecombinationCrossover,
+    GaussianMutator,
+    GraphCrossover,
+    GraphMutator,
+    HoistMutator,
+    IntermediateCrossover,
+    InversionMutator,
+    JitterMutator,
+    MeanCrossover,
+    MultiPointCrossover,
+    OperationMutator,
+    PartiallyMappedCrossover,
+    PolynomialMutator,
+    ScrambleMutator,
+    ShuffleCrossover,
+    SimulatedBinaryCrossover,
+    SwapMutator,
+    TreeCrossover,
+    UniformCrossover,
+    UniformMutator,
+)
+from .operators.distance import (
+    CosineDistance,
+    EuclideanDistance,
+    HammingDistance,
+    NeatDistance,
+)
+from .operators.executor import Executor
+from .operators.limit import (
+    ConvergenceLimit,
+    GenerationsLimit,
+    MetricLimit,
+    ScoreLimit,
+    SecondsLimit,
+)
+from .operators.rate import Rate
+from .operators.selector import (
+    BoltzmannSelector,
+    EliteSelector,
+    LinearRankSelector,
+    NSGA2Selector,
+    NSGA3Selector,
+    RankSelector,
+    RouletteSelector,
+    StochasticSamplingSelector,
+    TournamentNSGA2Selector,
+    TournamentSelector,
+)
+from .random import RandomProvider as random
 
 MIN = "min"
 MAX = "max"

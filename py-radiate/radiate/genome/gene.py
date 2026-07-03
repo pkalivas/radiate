@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from radiate.radiate import PyGene
-from .._bridge.wrapper import RsObject
-from ..dtype import Float64, Int64
-from .._typing import RdDataType
 
+from .._bridge.wrapper import RsObject
+from .._typing import RdDataType
+from ..dtype import Float64, Int64
 from . import GeneType
 
 

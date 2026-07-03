@@ -1,4 +1,5 @@
 from radiate.radiate import PyFitnessFn
+
 from .._bridge.wrapper import RsObject
 
 

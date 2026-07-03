@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+
+from radiate.radiate import _create_op
+
 from .._bridge.wrapper import RsObject
 from .._typing import AtLeastOne
-from radiate.radiate import _create_op
 
 
 @dataclass(frozen=True, slots=True)

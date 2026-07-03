@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from .._typing import AtLeastOne
-
-from .base import CodecBase
-from ..gp import Op, Graph, OpsConfig
-from ..genome import Genotype, GeneType
-from .._bridge.wrapper import RsObject
 from radiate.radiate import PyGraphCodec
+
+from .._bridge.wrapper import RsObject
+from .._typing import AtLeastOne
+from ..genome import GeneType, Genotype
+from ..gp import Graph, Op, OpsConfig
+from .base import CodecBase
 
 
 class GraphCodec(CodecBase[Op, Graph], RsObject):

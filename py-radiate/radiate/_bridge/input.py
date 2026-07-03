@@ -1,14 +1,12 @@
 from __future__ import annotations
+
 from enum import Enum
 
 from radiate.radiate import PyEngineInput, PyEngineInputType
-from .wrapper import RsObject
-from ..operators.rate import Rate
 
-from ..genome import (
-    GENE_TYPE_MAPPING,
-    GeneType,
-)
+from ..genome import GENE_TYPE_MAPPING, GeneType
+from ..operators.rate import Rate
+from .wrapper import RsObject
 
 
 class EngineInputType(Enum):

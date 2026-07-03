@@ -1,11 +1,9 @@
 from typing import Any
 
 from .._bridge.input import EngineInput, EngineInputType
-
-from ..genome.population import Population
-from ..genome.gene import GeneType
 from ..genome import GENE_TYPE_MAPPING
-
+from ..genome.gene import GeneType
+from ..genome.population import Population
 from .base import ComponentBase
 
 

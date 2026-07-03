@@ -1,11 +1,12 @@
-from .base import FitnessBase
-from .regression import Regression
-from .custom import CallableFitness, BatchFitness
-from .novelty import NoveltySearch
-from .loss import MSE, MAE, XEnt, Diff
 from functools import wraps
 from typing import Any, Callable
+
 from ..operators.distance import DistanceBase, HammingDistance
+from .base import FitnessBase
+from .custom import BatchFitness, CallableFitness
+from .loss import MAE, MSE, Diff, XEnt
+from .novelty import NoveltySearch
+from .regression import Regression
 
 
 def fitness(

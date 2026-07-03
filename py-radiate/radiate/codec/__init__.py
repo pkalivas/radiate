@@ -1,13 +1,12 @@
 # from .float import FloatCodec
-from .int import IntCodec
-from .char import CharCodec
-from .bit import BitCodec
 from .base import CodecBase
-from .graph import GraphCodec
-from .tree import TreeCodec
+from .bit import BitCodec
+from .char import CharCodec
 from .float import FloatCodec
+from .graph import GraphCodec
+from .int import IntCodec
 from .permutation import PermutationCodec
-
+from .tree import TreeCodec
 
 __all__ = [
     "FloatCodec",

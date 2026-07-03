@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, Iterator
+import enum
 from datetime import timedelta
-
-from .._bridge.wrapper import RsObject
+from typing import Any, Iterator
 
 from radiate.radiate import PyMetricSet
 
-import enum
+from .._bridge.wrapper import RsObject
 
 
 class Tag(enum.Enum):

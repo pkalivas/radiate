@@ -1,5 +1,10 @@
-from typing import Dict, Any, List, Callable
-from ..engine.metrics import Metric
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, Callable, Dict, List
+
+if TYPE_CHECKING:
+    from ..engine.metrics import Metric
+
 from ..expr import Expr
 from .base import ComponentBase
 
@@ -124,12 +129,14 @@ class MetricLimit(LimitBase):
                 "Metric limit must be a callable that takes a Metric and returns a bool."
             )
 
+        def _wrap(metric):
+            from ..engine.metrics import Metric as _Metric
+
+            return limit(_Metric.from_rust(metric))
+
         super().__init__(
             component="metric",
-            args={
-                "name": name,
-                "limit": lambda metric: limit(Metric.from_rust(metric)),
-            },
+            args={"name": name, "limit": _wrap},
         )
 
 

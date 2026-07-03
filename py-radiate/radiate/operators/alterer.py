@@ -1,11 +1,9 @@
 from typing import Any
 
 from ..genome.gene import GeneType
-
-from .rate import Rate
-from .base import ComponentBase
-
 from ..genome.population import Population
+from .base import ComponentBase
+from .rate import Rate
 
 
 class AlterBase(ComponentBase):
@@ -45,6 +43,7 @@ class AlterBase(ComponentBase):
         :return: The altered population.
         """
         from radiate.radiate import py_alter
+
         from .._bridge.input import EngineInput, EngineInputType
 
         alterer_input = EngineInput(

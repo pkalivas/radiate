@@ -2,14 +2,12 @@ from datetime import timedelta
 
 from radiate.radiate import PyGeneration
 
-from ..genome.ecosystem import Ecosystem
-from ..genome.species import Species
-from ..genome.population import Population
-
 from .._bridge.wrapper import RsObject
-
-from .metrics import MetricSet
+from ..genome.ecosystem import Ecosystem
+from ..genome.population import Population
+from ..genome.species import Species
 from .front import Front
+from .metrics import MetricSet
 
 
 class Generation[G, T](RsObject):
@@ -77,8 +75,9 @@ class Generation[G, T](RsObject):
 
         def _get_value():
             from radiate.radiate import PyGraph, PyTree
-            from ..gp.tree import Tree
+
             from ..gp.graph import Graph
+            from ..gp.tree import Tree
 
             val = self.__backend__().value()
 

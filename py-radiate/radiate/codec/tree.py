@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from .base import CodecBase
-from ..gp import Op, Tree, OpsConfig
+from radiate.radiate import PyTreeCodec
+
 from .._bridge.wrapper import RsObject
 from .._typing import AtLeastOne
-from ..genome import Genotype, GeneType
-from radiate.radiate import PyTreeCodec
+from ..genome import GeneType, Genotype
+from ..gp import Op, OpsConfig, Tree
+from .base import CodecBase
 
 
 class TreeCodec(CodecBase[Op, Tree], RsObject):

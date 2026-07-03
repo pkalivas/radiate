@@ -1,8 +1,10 @@
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
-from .._bridge.wrapper import RsObject
 from radiate.radiate import PyRate
+
+from .._bridge.wrapper import RsObject
 
 if TYPE_CHECKING:
     from ..expr import Expr

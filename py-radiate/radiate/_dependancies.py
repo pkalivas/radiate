@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-import sys
 import re
+import sys
 from collections.abc import Hashable
 from functools import cache
-from typing import TYPE_CHECKING, Any, ClassVar, cast
 from importlib import import_module
 from importlib.util import find_spec
 from types import ModuleType
+from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 if hasattr(sys, "_is_gil_enabled"):
     _GIL_ENABLED = sys._is_gil_enabled()
@@ -146,11 +146,11 @@ if TYPE_CHECKING:
     import pickle
     import subprocess
 
+    import matplotlib.pyplot as matplotlib
     import numpy
     import pandas
-    import torch
     import polars
-    import matplotlib.pyplot as matplotlib
+    import torch
 
 else:
     # infrequently-used builtins

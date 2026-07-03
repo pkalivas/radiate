@@ -1,15 +1,13 @@
 from __future__ import annotations
 
-from typing import overload, Sequence, Any, Literal, TYPE_CHECKING
-
-from .base import CodecBase
+from typing import TYPE_CHECKING, Any, Literal, Sequence, overload
 
 from radiate.radiate import PyBitCodec
-from ..genome import Genotype, Gene, Chromosome, GeneType
+
 from .._bridge.wrapper import RsObject
-from .._typing import (
-    AtLeastOne,
-)
+from .._typing import AtLeastOne
+from ..genome import Chromosome, Gene, GeneType, Genotype
+from .base import CodecBase
 
 if TYPE_CHECKING:
     from .._dependancies import numpy as np

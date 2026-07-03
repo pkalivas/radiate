@@ -1,17 +1,16 @@
 from __future__ import annotations
-from typing import Sequence, overload, Any, Literal, TYPE_CHECKING
 
+from typing import TYPE_CHECKING, Any, Literal, Sequence, overload
+
+from radiate.radiate import PyIntCodec
+
+from .._bridge.wrapper import RsObject
+from .._typing import AtLeastOne
+from ..dtype import DataType, DataTypeClass, Int64
+from ..genome import GeneType, Genotype
 from ..genome.chromosome import Chromosome
 from ..genome.gene import Gene
-
 from .base import CodecBase
-from ..genome import Genotype, GeneType
-from .._bridge.wrapper import RsObject
-from radiate.radiate import PyIntCodec
-from .._typing import (
-    AtLeastOne,
-)
-from ..dtype import DataTypeClass, DataType, Int64
 
 if TYPE_CHECKING:
     from .._dependancies import numpy as np

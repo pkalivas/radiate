@@ -1,16 +1,17 @@
 from __future__ import annotations
 
-from typing import Any, overload, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, overload
 
 from radiate.radiate import PyGraph
+
 from .._bridge.wrapper import RsObject
-from ..utils import _normalize_single_chunk
 from ..genome.chromosome import Chromosome
+from ..utils import _normalize_single_chunk
 
 if TYPE_CHECKING:
     from .._dependancies import numpy as np
-    from .._dependancies import polars as pl
     from .._dependancies import pandas as pd
+    from .._dependancies import polars as pl
 
 
 class Graph(RsObject):

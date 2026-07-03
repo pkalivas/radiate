@@ -1,10 +1,10 @@
-from .base import FitnessBase
-
 from typing import Any, Callable
+
+from radiate.radiate import PyFitnessFn
 
 from ..operators.descriptor import CustomDescriptor, DescriptorBase
 from ..operators.distance import DistanceBase, EuclideanDistance, HammingDistance
-from radiate.radiate import PyFitnessFn
+from .base import FitnessBase
 
 
 class NoveltySearch[T](FitnessBase[T]):

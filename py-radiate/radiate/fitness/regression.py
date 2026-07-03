@@ -1,7 +1,9 @@
-from .base import FitnessBase
 from typing import Any
+
 from radiate.radiate import PyFitnessFn
+
 from ..utils._normalize import _normalize_regression_data
+from .base import FitnessBase
 
 
 class Regression[T](FitnessBase[T]):

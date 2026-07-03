@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
 
 from .._bridge.wrapper import RsObject
 
-
 if TYPE_CHECKING:
-    from ..genome import Genotype, GeneType, Population
+    from ..genome import GeneType, Genotype, Population
 
 
 class CodecBase[T, D](RsObject, ABC):
@@ -28,7 +27,7 @@ class CodecBase[T, D](RsObject, ABC):
         :param size: The number of genotypes to generate.
         :return: A population of genotypes.
         """
-        from ..genome import Population, Phenotype
+        from ..genome import Phenotype, Population
 
         phenotypes = [Phenotype(genotype=self.encode()) for _ in range(size)]
         return Population(phenotypes)

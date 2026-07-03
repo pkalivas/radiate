@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from typing import overload
-from radiate.radiate import PyGenotype
-from .._bridge.wrapper import RsObject
 
+from radiate.radiate import PyGenotype
+
+from .._bridge.wrapper import RsObject
 from .chromosome import Chromosome
 from .gene import GeneType
 

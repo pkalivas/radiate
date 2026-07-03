@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from radiate.radiate import PyEcosystem
-from .._bridge.wrapper import RsObject
 
-from .species import Species
+from .._bridge.wrapper import RsObject
 from .population import Population
+from .species import Species
 
 
 class Ecosystem[T](RsObject):

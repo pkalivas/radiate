@@ -1,10 +1,14 @@
 from __future__ import annotations
-from typing import Any
+
+from typing import TYPE_CHECKING, Any
+
+from radiate.radiate import PyExpr
 
 from ._bridge.input import RsObject
 from ._typing import RdDataType
-from radiate.radiate import PyExpr
-from .engine.metrics import MetricSet
+
+if TYPE_CHECKING:
+    from .engine.metrics import MetricSet
 
 
 def _coerce(value, *, allow_str: bool = False):

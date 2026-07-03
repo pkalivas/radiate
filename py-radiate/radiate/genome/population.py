@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from typing import Iterable, Iterator
-from radiate.radiate import PyPopulation
-from .._bridge.wrapper import RsObject
 
-from .phenotype import Phenotype
+from radiate.radiate import PyPopulation
+
+from .._bridge.wrapper import RsObject
 from .gene import GeneType
+from .phenotype import Phenotype
 
 
 class Population[T](RsObject):

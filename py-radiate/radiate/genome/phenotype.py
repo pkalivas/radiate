@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from radiate.radiate import PyPhenotype
-from .._typing import AtLeastOne
-from .._bridge.wrapper import RsObject
 
-from .genotype import Genotype
+from .._bridge.wrapper import RsObject
+from .._typing import AtLeastOne
 from .gene import GeneType
+from .genotype import Genotype
 
 
 class Phenotype[T](RsObject):

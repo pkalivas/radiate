@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import Any, TYPE_CHECKING
 from abc import ABC
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from .._typing import RdDataType

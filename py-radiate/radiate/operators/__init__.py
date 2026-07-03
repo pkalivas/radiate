@@ -1,65 +1,58 @@
-from .executor import Executor
-
 from .alterer import (
     AlterBase,
-    BlendCrossover,
-    IntermediateCrossover,
     ArithmeticMutator,
-    UniformCrossover,
-    UniformMutator,
-    MultiPointCrossover,
+    BlendCrossover,
+    EdgeRecombinationCrossover,
+    GaussianMutator,
+    GraphCrossover,
+    GraphMutator,
+    IntermediateCrossover,
+    InversionMutator,
+    JitterMutator,
     MeanCrossover,
+    MultiPointCrossover,
+    OperationMutator,
+    PartiallyMappedCrossover,
+    PolynomialMutator,
+    ScrambleMutator,
     ShuffleCrossover,
     SimulatedBinaryCrossover,
-    PartiallyMappedCrossover,
-    GaussianMutator,
-    ScrambleMutator,
     SwapMutator,
-    GraphMutator,
-    OperationMutator,
-    GraphCrossover,
-    InversionMutator,
-    PolynomialMutator,
-    EdgeRecombinationCrossover,
-    JitterMutator,
+    UniformCrossover,
+    UniformMutator,
 )
-
+from .descriptor import CustomDescriptor
+from .distance import (
+    CosineDistance,
+    DistanceBase,
+    EuclideanDistance,
+    HammingDistance,
+    NeatDistance,
+)
+from .executor import Executor
+from .limit import (
+    ConvergenceLimit,
+    ExprLimit,
+    GenerationsLimit,
+    LimitBase,
+    MetricLimit,
+    ScoreLimit,
+    SecondsLimit,
+)
+from .rate import Rate
 from .selector import (
-    SelectorBase,
-    TournamentSelector,
-    RouletteSelector,
-    RankSelector,
-    EliteSelector,
-    StochasticSamplingSelector,
     BoltzmannSelector,
+    EliteSelector,
     LinearRankSelector,
     NSGA2Selector,
-    TournamentNSGA2Selector,
     NSGA3Selector,
+    RankSelector,
+    RouletteSelector,
+    SelectorBase,
+    StochasticSamplingSelector,
+    TournamentNSGA2Selector,
+    TournamentSelector,
 )
-
-from .distance import (
-    DistanceBase,
-    HammingDistance,
-    EuclideanDistance,
-    NeatDistance,
-    CosineDistance,
-)
-
-from .limit import (
-    LimitBase,
-    SecondsLimit,
-    GenerationsLimit,
-    ScoreLimit,
-    ConvergenceLimit,
-    MetricLimit,
-    ExprLimit,
-)
-
-from .rate import Rate
-
-from .descriptor import CustomDescriptor
-
 
 __all__ = [
     # Selectors

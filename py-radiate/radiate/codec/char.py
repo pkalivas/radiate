@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from typing import overload, Sequence, Any
+from typing import Any, Sequence, overload
 
+from radiate.radiate import PyCharCodec
+
+from .._bridge.wrapper import RsObject
+from .._typing import AtLeastOne
+from ..genome import GeneType, Genotype
 from ..genome.chromosome import Chromosome
 from ..genome.gene import Gene
 from .base import CodecBase
-
-from radiate.radiate import PyCharCodec
-from ..genome import Genotype, GeneType
-from .._bridge.wrapper import RsObject
-from .._typing import AtLeastOne
 
 
 def _normalize_char_set(char_set: str | list[str] | set[str] | None) -> str | None:

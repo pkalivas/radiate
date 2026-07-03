@@ -1,7 +1,8 @@
 from typing import Any, Callable
 
-from .base import FitnessBase
 from radiate.radiate import PyFitnessFn
+
+from .base import FitnessBase
 
 
 class CallableFitness[T](FitnessBase[T]):

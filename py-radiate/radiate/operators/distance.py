@@ -1,7 +1,6 @@
 from typing import Any, Dict
 
 from ..genome import GeneType
-
 from .base import ComponentBase
 
 

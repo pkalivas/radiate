@@ -7,12 +7,11 @@ from .._dependancies import (
     _check_for_pandas,
     _check_for_polars,
     _check_for_torch,
+    torch,
 )
-
 from .._dependancies import numpy as np
 from .._dependancies import pandas as pd
 from .._dependancies import polars as pl
-from .._dependancies import torch
 
 
 def _ensure_2d_np(arr: Any, *, name: str) -> Any:

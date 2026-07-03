@@ -5,60 +5,58 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .._typing import OperatorRate
 
-
-from ..operators.selector import (
-    TournamentSelector,
-    RouletteSelector,
-    NSGA2Selector,
-    NSGA3Selector,
-    EliteSelector,
-    BoltzmannSelector,
-    RankSelector,
-    LinearRankSelector,
-    StochasticSamplingSelector,
-    TournamentNSGA2Selector,
-)
+from ..expr import Expr
 from ..operators.alterer import (
-    BlendCrossover,
-    IntermediateCrossover,
     ArithmeticMutator,
-    SwapMutator,
-    UniformCrossover,
-    UniformMutator,
-    MultiPointCrossover,
-    MeanCrossover,
-    ShuffleCrossover,
-    SimulatedBinaryCrossover,
-    PartiallyMappedCrossover,
+    BlendCrossover,
+    EdgeRecombinationCrossover,
     GaussianMutator,
     GraphCrossover,
-    OperationMutator,
     GraphMutator,
-    TreeCrossover,
     HoistMutator,
+    IntermediateCrossover,
     InversionMutator,
-    PolynomialMutator,
-    EdgeRecombinationCrossover,
     JitterMutator,
+    MeanCrossover,
+    MultiPointCrossover,
+    OperationMutator,
+    PartiallyMappedCrossover,
+    PolynomialMutator,
     ScrambleMutator,
-)
-from ..operators.limit import (
-    ExprLimit,
-    ScoreLimit,
-    GenerationsLimit,
-    SecondsLimit,
-    ConvergenceLimit,
-    MetricLimit,
+    ShuffleCrossover,
+    SimulatedBinaryCrossover,
+    SwapMutator,
+    TreeCrossover,
+    UniformCrossover,
+    UniformMutator,
 )
 from ..operators.distance import (
-    EuclideanDistance,
     CosineDistance,
-    NeatDistance,
+    EuclideanDistance,
     HammingDistance,
+    NeatDistance,
 )
-
+from ..operators.limit import (
+    ConvergenceLimit,
+    ExprLimit,
+    GenerationsLimit,
+    MetricLimit,
+    ScoreLimit,
+    SecondsLimit,
+)
 from ..operators.rate import Rate
-from ..expr import Expr
+from ..operators.selector import (
+    BoltzmannSelector,
+    EliteSelector,
+    LinearRankSelector,
+    NSGA2Selector,
+    NSGA3Selector,
+    RankSelector,
+    RouletteSelector,
+    StochasticSamplingSelector,
+    TournamentNSGA2Selector,
+    TournamentSelector,
+)
 
 
 def _get_rate(rate: OperatorRate) -> Rate:
