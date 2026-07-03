@@ -7,7 +7,6 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLES_DIR = ROOT / "examples"
 PY_EXAMPLES_DIR = EXAMPLES_DIR / "python"

@@ -33,23 +33,6 @@ pub enum Expr {
     Trinary(TrinaryExpr),
 }
 
-impl<T> Evaluate<T> for Expr
-where
-    T: ExprSelector,
-{
-    fn eval<'a>(&'a mut self, metrics: &T) -> ExprResult<'a> {
-        match self {
-            Expr::Literal(value) => Ok(value.clone()),
-            Expr::Selector(selector) => selector.eval(metrics),
-            Expr::Aggregate(child) => child.eval(metrics),
-            Expr::Trinary(child) => child.eval(metrics),
-            Expr::Binary(child) => child.eval(metrics),
-            Expr::Unary(child) => child.eval(metrics),
-            Expr::Schedule(child) => child.eval(metrics),
-        }
-    }
-}
-
 impl Expr {
     /// Recursively clears state in stateful operators: rolling-window buffers
     /// in `Aggregate`/`Buffer` nodes and counters in `Schedule::Every`. Children
@@ -102,6 +85,23 @@ impl Expr {
             field: MetricField::LastValue,
             kind: MetricKind::Value,
         })
+    }
+}
+
+impl<T> Evaluate<T> for Expr
+where
+    T: ExprSelector,
+{
+    fn eval<'a>(&'a mut self, metrics: &T) -> ExprResult<'a> {
+        match self {
+            Expr::Literal(value) => Ok(value.clone()),
+            Expr::Selector(selector) => selector.eval(metrics),
+            Expr::Aggregate(child) => child.eval(metrics),
+            Expr::Trinary(child) => child.eval(metrics),
+            Expr::Binary(child) => child.eval(metrics),
+            Expr::Unary(child) => child.eval(metrics),
+            Expr::Schedule(child) => child.eval(metrics),
+        }
     }
 }
 

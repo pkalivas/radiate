@@ -129,14 +129,8 @@ impl MetricSet {
     }
 
     #[inline(always)]
-    pub fn iter_tagged(&self, tag: TagType) -> impl Iterator<Item = (&str, &Metric)> {
-        self.metrics.iter().filter_map(move |m| {
-            if m.tags().has(tag) {
-                Some((m.name().as_str(), m))
-            } else {
-                None
-            }
-        })
+    pub fn iter_tagged(&self, tag: TagType) -> impl Iterator<Item = &Metric> {
+        self.metrics.iter().filter(move |m| m.tags().has(tag))
     }
 
     #[inline(always)]
@@ -148,8 +142,8 @@ impl MetricSet {
     }
 
     #[inline(always)]
-    pub fn iter(&self) -> impl Iterator<Item = (&str, &Metric)> {
-        self.metrics.iter().map(|m| (m.name().as_str(), m))
+    pub fn iter(&self) -> impl Iterator<Item = &Metric> {
+        self.metrics.iter()
     }
 
     #[inline(always)]

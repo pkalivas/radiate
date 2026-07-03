@@ -23,16 +23,16 @@ pub enum MetricField {
 
 /// How the extracted statistic should be wrapped. `Value` returns it as an `f32`
 /// (or `u64` for count/generation/update_count); `Duration` reinterprets the f32 as seconds.
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum MetricKind {
     Value,
     Duration,
 }
 
 /// Selects one statistic from a named metric in a [`MetricSet`].
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SelectExpr {
     pub metric: Option<SmallStr>,
     pub field: MetricField,

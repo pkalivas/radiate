@@ -41,7 +41,7 @@ impl<C: Chromosome> EvoState<C> {
 
     pub fn update_metrics(&mut self, metrics: MetricSet) {
         for metric in metrics.iter() {
-            self.charts.update_from_metric(metric.1);
+            self.charts.update_from_metric(metric);
         }
 
         self.metrics = metrics;

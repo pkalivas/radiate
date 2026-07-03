@@ -21,18 +21,6 @@ mod test {
     }
 
     #[test]
-    fn test_rolling_returns_slice_with_expected_window_contents() {
-        // let mut expr = expr::select("accuracy").rolling(3);
-
-        // let result = expr.eval(&1.0f32);
-        // assert!(result.is_nested());
-        // if let AnyValue::Slice(values) = result {
-        //     assert_eq!(values.len(), 1);
-        //     assert_eq!(values[0].clone().extract::<f32>().unwrap(), 1.0);
-        // }
-    }
-
-    #[test]
     fn test_rolling_mean() {
         let mut expr = Expr::select("accuracy").rolling(3).mean();
         let mut metrics = MetricSet::default();

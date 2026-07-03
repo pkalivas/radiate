@@ -72,7 +72,7 @@ impl MetricTableKind {
         }
     }
 
-    fn build_rows<'a>(&self, items: impl Iterator<Item = (&'a str, &'a Metric)>) -> Vec<Row<'a>> {
+    fn build_rows<'a>(&self, items: impl Iterator<Item = &'a Metric>) -> Vec<Row<'a>> {
         match self {
             Self::Time => metric_to_time_rows(items).collect(),
             Self::Stats => metrics_into_stat_rows(items).collect(),
@@ -109,22 +109,15 @@ impl<C: Chromosome> AppWidget<C> for MetricTableWidget {
     fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
         let items: Vec<_> = tagged_metrics(&state.evo.metrics, state, self.kind.tag())
             .into_iter()
-            .filter(|(name, _)| self.kind.filter_item(name))
+            .filter(|m| self.kind.filter_item(m.name()))
             .collect();
 
         match self.kind {
-            MetricTableKind::Time => state
-                .tables
-                .time
-                .update_rows(&items, |(name, _)| (*name).into()),
-            MetricTableKind::Stats => state
-                .tables
-                .stats
-                .update_rows(&items, |(name, _)| (*name).into()),
-            MetricTableKind::Distribution => state
-                .tables
-                .dist
-                .update_rows(&items, |(name, _)| (*name).into()),
+            MetricTableKind::Time => state.tables.time.update_rows(&items, |m| m.name().clone()),
+            MetricTableKind::Stats => state.tables.stats.update_rows(&items, |m| m.name().clone()),
+            MetricTableKind::Distribution => {
+                state.tables.dist.update_rows(&items, |m| m.name().clone())
+            }
         }
 
         let focused = state.nav.is_pane_focused(Pane::List);
@@ -223,24 +216,24 @@ pub fn tagged_metrics<'a, C: Chromosome>(
     metrics: &'a MetricSet,
     state: &AppState<C>,
     tag: TagType,
-) -> Vec<(&'a str, &'a Metric)> {
+) -> Vec<&'a Metric> {
     let mut items = metrics
         .iter_tagged(tag)
-        .filter(|(_, m)| state.metric_matches_search(m))
+        .filter(|m| state.metric_matches_search(m))
         .collect::<Vec<_>>();
-    items.sort_unstable_by(|a, b| a.0.cmp(b.0));
+    items.sort_unstable_by(|a, b| a.name().cmp(&b.name()));
     items
 }
 
 // --- Row builders ---
 
 fn metric_to_time_rows<'a>(
-    metrics: impl Iterator<Item = (&'a str, &'a Metric)>,
+    metrics: impl Iterator<Item = &'a Metric>,
 ) -> impl Iterator<Item = Row<'a>> {
-    metrics.filter_map(|(name, m)| {
+    metrics.filter_map(|m| {
         m.times().map(|time| {
             Row::new(vec![
-                Cell::from(name.to_string()),
+                Cell::from(m.name().to_string()),
                 Cell::from(fmt_duration(time.min())),
                 Cell::from(fmt_duration(time.max())),
                 Cell::from(fmt_duration(time.mean())),
@@ -251,12 +244,12 @@ fn metric_to_time_rows<'a>(
 }
 
 fn metrics_into_stat_rows<'a>(
-    metrics: impl Iterator<Item = (&'a str, &'a Metric)>,
+    metrics: impl Iterator<Item = &'a Metric>,
 ) -> impl Iterator<Item = Row<'a>> {
-    metrics.filter_map(|(name, m)| {
+    metrics.filter_map(|m| {
         m.stats().map(|stat| {
             Row::new(vec![
-                Cell::from(Line::from(name.to_string())),
+                Cell::from(Line::from(m.name().to_string())),
                 Cell::from(format!("{:.2}", stat.last())),
                 Cell::from(format!("{:.2}", stat.min())),
                 Cell::from(format!("{:.2}", stat.max())),
@@ -268,12 +261,12 @@ fn metrics_into_stat_rows<'a>(
 }
 
 fn metrics_into_dist_rows<'a>(
-    metrics: impl Iterator<Item = (&'a str, &'a Metric)>,
+    metrics: impl Iterator<Item = &'a Metric>,
 ) -> impl Iterator<Item = Row<'a>> {
-    metrics.filter_map(|(name, m)| {
+    metrics.filter_map(|m| {
         m.distributions().map(|stat| {
             Row::new(vec![
-                Cell::from(Line::from(name.to_string())),
+                Cell::from(Line::from(m.name().to_string())),
                 Cell::from(format!("{:.2}", stat.min())),
                 Cell::from(format!("{:.2}", stat.max())),
                 Cell::from(format!("{:.2}", stat.mean())),
