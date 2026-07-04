@@ -62,12 +62,19 @@ impl<C: Chromosome> AppWidget<C> for ImprovementLogWidget {
             Span::raw(" "),
         ]);
 
+        let border_style = crate::styles::panel_block(focused);
+
         let table = Table::default()
-            .block(crate::styles::panel_block(focused).title(title))
+            .block(border_style)
             .header(header_row(&HEADER))
             .rows(striped_rows(rows))
-            .row_highlight_style(crate::styles::selected_item_style())
-            .highlight_spacing(HighlightSpacing::Always)
+            .column_spacing(1)
+            .style(Color::White)
+            .row_highlight_style(Style::new().on_black().bold())
+            .column_highlight_style(Color::Gray)
+            .cell_highlight_style(Style::new().reversed().yellow())
+            .highlight_spacing(ratatui::widgets::HighlightSpacing::Always)
+            .highlight_symbol("▶ ")
             .widths([
                 Constraint::Length(8),
                 Constraint::Length(14),

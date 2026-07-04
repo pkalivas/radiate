@@ -136,9 +136,8 @@ impl<C: Chromosome> AppWidget<C> for MetricTableWidget {
             .row_highlight_style(Style::new().on_black().bold())
             .column_highlight_style(Color::Gray)
             .cell_highlight_style(Style::new().reversed().yellow())
-            // .row_highlight_style(crate::styles::selected_item_style())
-            // .highlight_spacing(ratatui::widgets::HighlightSpacing::Always)
-            .highlight_symbol(">> ")
+            .highlight_spacing(ratatui::widgets::HighlightSpacing::Always)
+            .highlight_symbol("▶ ")
             .widths(self.kind.widths());
 
         match self.kind {
@@ -183,6 +182,7 @@ impl<C: Chromosome> AppWidget<C> for SpeciesTableWidget {
             .rows(striped_rows(rows))
             .row_highlight_style(crate::styles::selected_item_style())
             .highlight_spacing(ratatui::widgets::HighlightSpacing::Always)
+            .highlight_symbol("▶ ")
             .widths(
                 (0..SPECIES_HEADER_CELLS.len())
                     .map(|_| Constraint::Fill(1))
