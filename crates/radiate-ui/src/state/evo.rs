@@ -4,7 +4,16 @@ use crate::widgets::num_pairs;
 use radiate_engines::{
     Chromosome, Ecosystem, Front, MetricSet, Objective, Optimize, Phenotype, Score, Species,
 };
+use std::collections::VecDeque;
 use std::sync::{Arc, RwLock};
+
+const MAX_IMPROVEMENT_LOG: usize = 500;
+
+pub struct ImprovementEntry {
+    pub generation: usize,
+    pub score: f32,
+    pub delta: f32,
+}
 
 pub struct ObjectiveState {
     pub objective: Objective,
@@ -22,10 +31,35 @@ pub struct EvoState<C: Chromosome> {
     pub charts: ChartState,
     pub index: usize,
     pub score: Score,
+    pub best_score: Score,
     pub pareto: ObjectiveState,
+    pub improvement_log: VecDeque<ImprovementEntry>,
 }
 
 impl<C: Chromosome> EvoState<C> {
+    pub fn record_improvement(&mut self, new_score: &Score) {
+        if self.score.is_empty() {
+            return;
+        }
+        let prev = self.score.as_f32();
+        let next = new_score.as_f32();
+        let delta = match &self.pareto.objective {
+            Objective::Single(Optimize::Minimize) => prev - next,
+            _ => next - prev,
+        };
+        if delta > 0.0 {
+            self.best_score = new_score.clone();
+            if self.improvement_log.len() >= MAX_IMPROVEMENT_LOG {
+                self.improvement_log.pop_back();
+            }
+            self.improvement_log.push_front(ImprovementEntry {
+                generation: self.index,
+                score: next,
+                delta,
+            });
+        }
+    }
+
     pub fn update_ecosystem(&mut self, ecosystem: Ecosystem<C>)
     where
         C: Clone,
@@ -114,6 +148,8 @@ impl<C: Chromosome> Default for EvoState<C> {
             ecosystem: None,
             index: 0,
             score: Score::default(),
+            best_score: Score::default(),
+            improvement_log: VecDeque::new(),
             pareto: ObjectiveState {
                 objective: Objective::Single(Optimize::Maximize),
                 charts_visible: 2,

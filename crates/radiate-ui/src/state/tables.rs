@@ -17,6 +17,7 @@ impl TableStates {
             DashboardTab::Time => Self::scroll_down(&mut self.time),
             DashboardTab::Distribution => Self::scroll_down(&mut self.dist),
             DashboardTab::Species => Self::scroll_down(&mut self.species),
+            DashboardTab::Events => {}
         }
     }
 
@@ -26,6 +27,7 @@ impl TableStates {
             DashboardTab::Time => Self::scroll_up(&mut self.time),
             DashboardTab::Distribution => Self::scroll_up(&mut self.dist),
             DashboardTab::Species => Self::scroll_up(&mut self.species),
+            DashboardTab::Events => {}
         }
     }
 
@@ -34,7 +36,7 @@ impl TableStates {
             DashboardTab::Time => self.time.selected_value.as_deref(),
             DashboardTab::Stats => self.stats.selected_value.as_deref(),
             DashboardTab::Distribution => self.dist.selected_value.as_deref(),
-            DashboardTab::Species => None,
+            DashboardTab::Species | DashboardTab::Events => None,
         }
     }
 

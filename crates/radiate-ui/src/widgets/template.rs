@@ -1,8 +1,9 @@
 use crate::{
     state::{AppState, MetricChartType},
     widgets::{
-        AppWidget, EngineStatusPanelWidget, FnWidget, MetricDetailPanelWidget, MetricTableWidget,
-        Panel, ParetoPagingWidget, SearchBarWidget, TabComponent,
+        AppWidget, EngineStatusPanelWidget, FnWidget, ImprovementLogWidget,
+        MetricDetailPanelWidget, MetricTableWidget, Panel, ParetoPagingWidget, SearchBarWidget,
+        TabComponent,
         components::{SpeciesPieChartComponent, SpeciesSparklineComponent, TimePieChartComponent},
         panels::{MetricLineChartWidget, tables::SpeciesTableWidget},
     },
@@ -218,6 +219,11 @@ impl<C: Chromosome> Default for LayoutNode<C> {
                                             }),
                                         ],
                                     },
+                                },
+                                TabNode {
+                                    title: "Events",
+                                    condition: |_| true,
+                                    content: Widget(|a, b, s| ImprovementLogWidget.render(a, b, s)),
                                 },
                             ],
                         },

@@ -15,6 +15,7 @@ pub enum DashboardTab {
     Time,
     Distribution,
     Species,
+    Events,
 }
 
 impl DashboardTab {
@@ -23,21 +24,23 @@ impl DashboardTab {
             DashboardTab::Stats => DashboardTab::Time,
             DashboardTab::Time => DashboardTab::Distribution,
             DashboardTab::Distribution => DashboardTab::Species,
-            DashboardTab::Species => DashboardTab::Stats,
+            DashboardTab::Species => DashboardTab::Events,
+            DashboardTab::Events => DashboardTab::Stats,
         }
     }
 
     pub fn previous(self) -> Self {
         match self {
-            DashboardTab::Stats => DashboardTab::Species,
+            DashboardTab::Stats => DashboardTab::Events,
             DashboardTab::Time => DashboardTab::Stats,
             DashboardTab::Distribution => DashboardTab::Time,
             DashboardTab::Species => DashboardTab::Distribution,
+            DashboardTab::Events => DashboardTab::Species,
         }
     }
 
     pub fn supports_metric_modal(self) -> bool {
-        !matches!(self, DashboardTab::Species)
+        !matches!(self, DashboardTab::Species | DashboardTab::Events)
     }
 
     /// The focusable panes this tab lays out, in `Tab`-cycle order. Every tab
@@ -64,7 +67,7 @@ pub struct NavState {
     pub dashboard_tab: DashboardTab,
     pub focus: Pane,
     pub search: SearchState,
-    chart_tabs: [MetricChartType; 4],
+    chart_tabs: [MetricChartType; 5],
 }
 
 impl NavState {
@@ -176,6 +179,7 @@ impl NavState {
             DashboardTab::Time => 1,
             DashboardTab::Distribution => 2,
             DashboardTab::Species => 3,
+            DashboardTab::Events => 4,
         }
     }
 
@@ -209,6 +213,7 @@ impl Default for NavState {
                 MetricChartType::Mean,
                 MetricChartType::BoxWhisker,
                 MetricChartType::Mean,
+                MetricChartType::Mean,
             ],
             search: SearchState {
                 query: String::new(),
@@ -222,7 +227,11 @@ impl Default for NavState {
 /// are always available, which guarantees the skip-loops in `next_tab` /
 /// `previous_tab` terminate.
 fn tab_available(tab: DashboardTab, has_species: bool) -> bool {
-    !matches!(tab, DashboardTab::Species) || has_species
+    if matches!(tab, DashboardTab::Species) {
+        has_species
+    } else {
+        true
+    }
 }
 
 // /// Step through `panes` from `current` by `dir` (±1), wrapping.

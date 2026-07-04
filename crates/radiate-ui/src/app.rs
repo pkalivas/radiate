@@ -234,6 +234,7 @@ where
     }
 
     fn handle_engine_epoch(&mut self, event: GenerationEvent<C>) {
+        self.state.evo.record_improvement(&event.score);
         self.state.evo.score = event.score;
         self.state.evo.index = event.index;
 
