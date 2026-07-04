@@ -1,9 +1,10 @@
 use super::{Valid, genotype::Genotype};
+use crate::Result;
 use crate::objectives::Score;
 use crate::species::SpeciesId;
 use crate::{Chromosome, objectives::Scored};
-use crate::{Result, sentry_id};
 use radiate_error::radiate_err;
+use radiate_utils::sentry_id;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::hash::Hash;

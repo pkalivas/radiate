@@ -148,16 +148,17 @@ where
 {
     fn from(params: &EngineParams<C, T>) -> Self {
         let threshold = if let Some(count) = params.species_params.target_species_count {
-            let curr_threshold = params.species_params.species_threshold.get_by_index(1);
+            let curr_threshold = params.species_params.species_threshold.fixed_value();
 
             let index = Expr::select(metric_names::INDEX);
             let thresh = Expr::select(metric_names::SPECIES_THRESHOLD);
             let err = Expr::select(metric_names::SPECIES_COUNT).error(count as f32) * 0.05;
 
-            Rate::Expr(
+            Rate::NamedExpr(
                 Expr::when(index.lt(2))
                     .then(curr_threshold)
-                    .otherwise(err + thresh),
+                    .otherwise(err + thresh)
+                    .alias("HI"),
             )
         } else {
             params.species_params.species_threshold.clone()

@@ -1,10 +1,15 @@
 use crate::{Evaluate, Expr, ExprResult, ExprSelector};
 use radiate_utils::SmallStr;
+use radiate_utils::sentry_id;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize, ser::SerializeStruct};
+use std::sync::atomic::AtomicU64;
+
+sentry_id!(ExprId);
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct NamedExpr {
+    pub id: ExprId,
     pub name: SmallStr,
     pub expr: Expr,
 }
@@ -12,6 +17,7 @@ pub struct NamedExpr {
 impl NamedExpr {
     pub fn new(name: impl Into<SmallStr>, expr: Expr) -> Self {
         Self {
+            id: ExprId::new(),
             name: name.into(),
             expr: expr.compile(),
         }
@@ -47,6 +53,17 @@ where
             Expr::Binary(child) => child.eval(metrics),
             Expr::Unary(child) => child.eval(metrics),
             Expr::Schedule(child) => child.eval(metrics),
+        }
+    }
+}
+
+impl From<Expr> for NamedExpr {
+    fn from(expr: Expr) -> Self {
+        let id = ExprId::new();
+        NamedExpr {
+            id,
+            name: SmallStr::from_string(format!("Named.{:?}", id)),
+            expr,
         }
     }
 }

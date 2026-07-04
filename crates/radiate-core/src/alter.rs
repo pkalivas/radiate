@@ -176,7 +176,7 @@ impl<C: Chromosome> Alterer<C> {
                 let rate = match expr.eval(metrics)?.extract::<f32>() {
                     Some(rate) => rate,
                     None => {
-                        radiate_bail!(Engine:
+                        radiate_bail!(Expr:
                             "Failed to evaluate rate expression for alterer {}: {}",
                             self.name,
                             expr.name()

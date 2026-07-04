@@ -300,7 +300,7 @@ where
         let threshold = metrics
             .get(metric_names::SPECIES_THRESHOLD)
             .map(|v| v.last_value())
-            .unwrap_or(self.threshold.get(generation, metrics));
+            .unwrap_or(self.threshold.get(metrics)?);
         let mascots = Self::generate_mascots(ecosystem);
 
         self.distances.clear();

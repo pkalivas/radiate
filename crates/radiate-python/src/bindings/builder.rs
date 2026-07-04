@@ -3,7 +3,7 @@ use crate::events::PyEventHandler;
 use crate::{
     EngineBuilderHandle, EngineHandle, FreeThreadPyEvaluator, InputTransform, PickleReader,
     PyCodec, PyEngine, PyEngineInput, PyEngineInputType, PyExpr, PyFitnessFn, PyFitnessInner,
-    PyPermutationCodec, PyPopulation, PyRate, names, prelude::*, radiate,
+    PyPermutationCodec, PyPopulation, names, prelude::*, radiate,
 };
 use crate::{PyGeneration, PySubscriber};
 use pyo3::{Py, PyAny, pyclass, pymethods, types::PyAnyMethods};
@@ -301,20 +301,20 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_single_typed(|typed_builder, input| {
-                let threshold = if let Ok(rate) = input.extract::<PyRate>("threshold") {
-                    rate.rate
-                } else if let Ok(expr) = input.extract::<PyExpr>("threshold") {
-                    Rate::Expr(expr.inner().clone().compile())
+                let threshold = if let Ok(expr) = input.extract::<PyExpr>("threshold") {
+                    expr.inner().clone().compile()
                 } else {
                     let val = input.extract::<f64>("threshold").unwrap_or(0.5);
                     if val <= 0.0 {
                         return Err(radiate_py_err!("Species threshold must be greater than 0."));
                     }
 
-                    Rate::Fixed(val as f32)
+                    Expr::lit(val)
                 };
 
-                Ok(typed_builder.species_threshold(threshold))
+                Ok(typed_builder.species_threshold(Rate::NamedExpr(
+                    threshold.alias(metric_names::SPECIES_THRESHOLD),
+                )))
             })
         )
     }

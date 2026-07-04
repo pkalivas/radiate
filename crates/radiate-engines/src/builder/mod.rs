@@ -334,7 +334,7 @@ where
         let mut exprs = ExprSet::default();
 
         if let Some(count) = self.params.species_params.target_species_count {
-            let curr_threshold = self.params.species_params.species_threshold.get_by_index(1);
+            let curr_threshold = self.params.species_params.species_threshold.fixed_value();
 
             let index = Expr::select(metric_names::INDEX);
             let thresh = Expr::select(metric_names::SPECIES_THRESHOLD);

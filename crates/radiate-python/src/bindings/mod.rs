@@ -13,7 +13,6 @@ mod gp;
 mod handles;
 mod inputs;
 mod metric;
-mod rate;
 mod subscriber;
 
 pub use builder::*;
@@ -38,7 +37,6 @@ pub use handles::{EngineBuilderHandle, EngineHandle, EpochHandle};
 pub use inputs::{PyEngineInput, PyEngineInputType};
 pub use metric::{PyMetric, PyMetricSet};
 use pyo3::{Py, Python, sync::PyOnceLock, types::PyModule};
-pub use rate::PyRate;
 pub use subscriber::{PyEngineEvent, PySubscriber};
 
 static RADIATE: PyOnceLock<Py<PyModule>> = PyOnceLock::new();
