@@ -1,6 +1,6 @@
 use radiate_core::{
-    AlterContext, AlterResult, Chromosome, Crossover, Expr, ExprSet,
-    PermutationChromosome, random_provider,
+    AlterContext, AlterResult, Chromosome, Crossover, Expr, ExprSet, PermutationChromosome,
+    random_provider,
 };
 
 const EDGE_RECOMBINATION_CROSSOVER_RATE: &str = "crossover.edge_recombination.rate";
@@ -86,7 +86,7 @@ impl<T> Crossover<PermutationChromosome<T>> for EdgeRecombinationCrossover
 where
     T: PartialEq + Clone,
 {
-    fn rates(&self) -> ExprSet {
+    fn expressions(&self) -> ExprSet {
         ExprSet::from(self.rate.clone().alias(EDGE_RECOMBINATION_CROSSOVER_RATE))
     }
 

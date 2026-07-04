@@ -23,7 +23,7 @@ impl InversionMutator {
 }
 
 impl<C: Chromosome> Mutate<C> for InversionMutator {
-    fn rates(&self) -> ExprSet {
+    fn expressions(&self) -> ExprSet {
         ExprSet::from(self.rate.clone().alias(INVERSION_MUTATOR_RATE))
     }
 

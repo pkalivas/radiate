@@ -36,7 +36,7 @@ where
     F: Float,
     C: Chromosome<Gene = FloatGene<F>>,
 {
-    fn rates(&self) -> ExprSet {
+    fn expressions(&self) -> ExprSet {
         ExprSet::from(self.rate.clone().alias(JITTER_MUTATOR_RATE))
     }
 

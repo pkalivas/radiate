@@ -13,7 +13,7 @@ impl UniformCrossover {
 }
 
 impl<C: Chromosome> Crossover<C> for UniformCrossover {
-    fn rates(&self) -> ExprSet {
+    fn expressions(&self) -> ExprSet {
         ExprSet::from(self.rate.clone().alias(UNIFORM_CROSSOVER_RATE))
     }
 }

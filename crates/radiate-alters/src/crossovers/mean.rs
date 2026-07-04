@@ -31,7 +31,7 @@ impl<C: Chromosome> Crossover<C> for MeanCrossover
 where
     C::Gene: ArithmeticGene,
 {
-    fn rates(&self) -> ExprSet {
+    fn expressions(&self) -> ExprSet {
         ExprSet::from(self.rate.clone().alias(MEAN_CROSSOVER_RATE))
     }
 

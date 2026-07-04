@@ -13,7 +13,7 @@ impl ShuffleCrossover {
 }
 
 impl<C: Chromosome + Clone> Crossover<C> for ShuffleCrossover {
-    fn rates(&self) -> ExprSet {
+    fn expressions(&self) -> ExprSet {
         ExprSet::from(self.rate.clone().alias(SHUFFLE_CROSSOVER_RATE))
     }
 

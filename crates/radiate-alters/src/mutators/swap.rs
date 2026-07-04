@@ -15,7 +15,7 @@ impl SwapMutator {
 }
 
 impl<C: Chromosome> Mutate<C> for SwapMutator {
-    fn rates(&self) -> ExprSet {
+    fn expressions(&self) -> ExprSet {
         ExprSet::from(self.rate.clone().alias(SWAP_MUTATOR_RATE))
     }
 

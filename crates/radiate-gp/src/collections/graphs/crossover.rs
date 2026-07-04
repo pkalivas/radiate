@@ -28,7 +28,7 @@ impl<T> Crossover<GraphChromosome<T>> for GraphCrossover
 where
     T: Clone + PartialEq + Debug,
 {
-    fn rates(&self) -> ExprSet {
+    fn expressions(&self) -> ExprSet {
         ExprSet::from(self.rate.clone())
     }
 

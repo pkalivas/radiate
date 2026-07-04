@@ -2,7 +2,7 @@ use radiate::prelude::*;
 
 fn main() {
     // --8<-- [start:fixed_rate]
-    let fixed_rate = Rate::Fixed(0.01);
+    // let fixed_rate = Rate::Fixed(0.01);
     // --8<-- [end:fixed_rate]
 
     // --8<-- [start:linear_rate]

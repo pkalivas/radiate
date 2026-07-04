@@ -20,7 +20,7 @@ impl<T> Mutate<TreeChromosome<T>> for HoistMutator
 where
     T: Clone + PartialEq,
 {
-    fn rates(&self) -> ExprSet {
+    fn expressions(&self) -> ExprSet {
         ExprSet::from(self.rate.clone())
     }
 

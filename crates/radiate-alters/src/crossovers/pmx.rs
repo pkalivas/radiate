@@ -16,7 +16,7 @@ impl PMXCrossover {
 }
 
 impl<A: PartialEq + Clone> Crossover<PermutationChromosome<A>> for PMXCrossover {
-    fn rates(&self) -> ExprSet {
+    fn expressions(&self) -> ExprSet {
         ExprSet::from(self.rate.clone().alias(PMX_CROSSOVER_RATE))
     }
 

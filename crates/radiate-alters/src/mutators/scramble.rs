@@ -18,7 +18,7 @@ impl ScrambleMutator {
 }
 
 impl<C: Chromosome> Mutate<C> for ScrambleMutator {
-    fn rates(&self) -> ExprSet {
+    fn expressions(&self) -> ExprSet {
         ExprSet::from(self.rate.clone().alias(SCRAMBLE_MUTATOR_RATE))
     }
 

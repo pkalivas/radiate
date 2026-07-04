@@ -128,7 +128,7 @@ impl<T> Mutate<GraphChromosome<T>> for GraphMutator
 where
     T: Clone + PartialEq + Default,
 {
-    fn rates(&self) -> ExprSet {
+    fn expressions(&self) -> ExprSet {
         ExprSet::from([
             Expr::lit(1.0).alias(MUTATE_RATE),
             self.edge_rate.clone(),

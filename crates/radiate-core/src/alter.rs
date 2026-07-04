@@ -135,7 +135,7 @@ pub struct Alterer<C: Chromosome> {
 impl<C: Chromosome> Alterer<C> {
     pub fn mutation(name: &'static str, m: Arc<dyn Mutate<C>>) -> Self {
         let name = SmallStr::from_static(name);
-        let exprs = m.rates();
+        let exprs = m.expressions();
         Self {
             time_name: SmallStr::from_string(format!("{}.time", name)),
             name,
@@ -148,7 +148,7 @@ impl<C: Chromosome> Alterer<C> {
 
     pub fn crossover(name: &'static str, c: Arc<dyn Crossover<C>>) -> Self {
         let name = SmallStr::from_static(name);
-        let exprs = c.rates();
+        let exprs = c.expressions();
         Self {
             time_name: SmallStr::from_string(format!("{}.time", name)),
             name,
@@ -276,7 +276,7 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
         new_name.join(".")
     }
 
-    fn rates(&self) -> ExprSet {
+    fn expressions(&self) -> ExprSet {
         ExprSet::from(Expr::lit(1.0).alias(SmallStr::from_string(format!("{}.rate", self.name()))))
     }
 
@@ -386,7 +386,7 @@ pub trait Mutate<C: Chromosome>: Send + Sync {
         new_name.join(".")
     }
 
-    fn rates(&self) -> ExprSet {
+    fn expressions(&self) -> ExprSet {
         ExprSet::from(Expr::lit(1.0).alias(SmallStr::from_string(format!("{}.rate", self.name()))))
     }
 

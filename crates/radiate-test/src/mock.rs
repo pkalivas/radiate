@@ -4,7 +4,7 @@ use radiate_alters::{BlendCrossover, GaussianMutator, UniformCrossover, UniformM
 use radiate_core::{
     AlterContext, Alterer, BitChromosome, Chromosome, Codec, Crossover, Ecosystem, Executor, Expr,
     FloatChromosome, FloatCodec, Gene, Genotype, IntChromosome, Mutate, Objective, Optimize,
-    Phenotype, Population, Rate, Score, Species, alter::AlterUpdates, alters, diversity::Diversity,
+    Phenotype, Population, Score, Species, alter::AlterUpdates, alters, diversity::Diversity,
     random_provider,
 };
 use radiate_engines::{OffspringConfig, RecombineStep, SelectConfig, SpeciateStep, SurvivorConfig};

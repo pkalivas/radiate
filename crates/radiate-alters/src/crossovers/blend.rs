@@ -41,7 +41,7 @@ where
     G: Gene<Allele = A> + BoundedGene + NumericGene,
     C: BoundedChromosome<Gene = G> + NumericChromosome<Gene = G>,
 {
-    fn rates(&self) -> ExprSet {
+    fn expressions(&self) -> ExprSet {
         ExprSet::from(self.rate.clone().alias(BLEND_CROSSOVER_RATE))
     }
 

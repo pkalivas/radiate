@@ -1,6 +1,6 @@
 use radiate_core::{
-    AlterContext, AlterResult, BoundedGene, Chromosome, Expr, ExprSet, FloatGene, Gene,
-    Mutate, SmallStr, random_provider,
+    AlterContext, AlterResult, BoundedGene, Chromosome, Expr, ExprSet, FloatGene, Gene, Mutate,
+    SmallStr, random_provider,
 };
 use radiate_utils::{Float, Primitive};
 
@@ -27,7 +27,7 @@ where
     F: Float + Primitive,
     C: Chromosome<Gene = FloatGene<F>>,
 {
-    fn rates(&self) -> ExprSet {
+    fn expressions(&self) -> ExprSet {
         ExprSet::from(self.rate.clone().alias(GAUSSIAN_MUTATOR_RATE))
     }
 

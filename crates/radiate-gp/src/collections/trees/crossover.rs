@@ -75,7 +75,7 @@ impl<T> Crossover<TreeChromosome<T>> for TreeCrossover
 where
     T: Clone + PartialEq,
 {
-    fn rates(&self) -> ExprSet {
+    fn expressions(&self) -> ExprSet {
         ExprSet::from(self.rate.clone())
     }
 

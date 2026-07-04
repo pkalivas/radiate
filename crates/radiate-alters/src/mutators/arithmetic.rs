@@ -1,6 +1,6 @@
 use radiate_core::{
-    AlterContext, AlterResult, ArithmeticGene, Chromosome, Expr, ExprSet, Mutate,
-    SmallStr, random_provider,
+    AlterContext, AlterResult, ArithmeticGene, Chromosome, Expr, ExprSet, Mutate, SmallStr,
+    random_provider,
 };
 
 const ARITHMETIC_MUTATOR_RATE: SmallStr = SmallStr::from_static("mutator.arithmetic.rate");
@@ -30,7 +30,7 @@ where
     G: ArithmeticGene,
     C: Chromosome<Gene = G>,
 {
-    fn rates(&self) -> ExprSet {
+    fn expressions(&self) -> ExprSet {
         ExprSet::from(self.rate.clone().alias(ARITHMETIC_MUTATOR_RATE))
     }
 

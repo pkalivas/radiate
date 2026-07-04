@@ -30,7 +30,7 @@ where
         "crossover.sbx".to_string()
     }
 
-    fn rates(&self) -> ExprSet {
+    fn expressions(&self) -> ExprSet {
         ExprSet::from(self.rate.clone().alias(SBX_CROSSOVER_RATE))
     }
 

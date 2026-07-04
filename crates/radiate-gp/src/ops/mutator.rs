@@ -94,7 +94,7 @@ impl<T> Mutate<GraphChromosome<Op<T>>> for OperationMutator
 where
     T: Clone + PartialEq + Default,
 {
-    fn rates(&self) -> ExprSet {
+    fn expressions(&self) -> ExprSet {
         ExprSet::from([
             self.rate.clone(),
             Expr::lit(self.replace_rate)
@@ -136,7 +136,7 @@ impl<T> Mutate<TreeChromosome<Op<T>>> for OperationMutator
 where
     T: Clone + PartialEq + Default,
 {
-    fn rates(&self) -> ExprSet {
+    fn expressions(&self) -> ExprSet {
         ExprSet::from([
             self.rate.clone(),
             Expr::lit(self.replace_rate)

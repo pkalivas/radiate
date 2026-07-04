@@ -1,6 +1,6 @@
 use radiate_core::{
-    AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, Expr, ExprSet,
-    FloatGene, Gene, random_provider,
+    AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, Expr, ExprSet, FloatGene, Gene,
+    random_provider,
 };
 use radiate_utils::Float;
 
@@ -28,7 +28,10 @@ impl IntermediateCrossover {
             panic!("Alpha must be between 0 and 1");
         }
 
-        IntermediateCrossover { rate: rate.into(), alpha }
+        IntermediateCrossover {
+            rate: rate.into(),
+            alpha,
+        }
     }
 }
 
@@ -37,7 +40,7 @@ where
     F: Float,
     C: Chromosome<Gene = FloatGene<F>>,
 {
-    fn rates(&self) -> ExprSet {
+    fn expressions(&self) -> ExprSet {
         ExprSet::from(self.rate.clone().alias(INTERMEDIATE_CROSSOVER_RATE))
     }
 

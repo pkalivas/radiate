@@ -17,7 +17,7 @@ impl UniformMutator {
 }
 
 impl<C: Chromosome> Mutate<C> for UniformMutator {
-    fn rates(&self) -> ExprSet {
+    fn expressions(&self) -> ExprSet {
         ExprSet::from(self.rate.clone().alias(UNIFORM_MUTATOR_RATE))
     }
 }

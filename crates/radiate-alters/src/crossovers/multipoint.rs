@@ -27,7 +27,7 @@ impl MultiPointCrossover {
 }
 
 impl<C: Chromosome> Crossover<C> for MultiPointCrossover {
-    fn rates(&self) -> ExprSet {
+    fn expressions(&self) -> ExprSet {
         ExprSet::from(self.rate.clone().alias(MULTIPOINT_CROSSOVER_RATE))
     }
 
