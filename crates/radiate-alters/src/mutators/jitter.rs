@@ -1,6 +1,6 @@
 use radiate_core::{
     AlterContext, AlterResult, BoundedGene, Chromosome, Expr, ExprSet, FloatGene, Gene, Mutate,
-    Expr, SmallStr, random_provider,
+    SmallStr, random_provider,
 };
 use radiate_utils::Float;
 
@@ -21,7 +21,7 @@ pub struct JitterMutator {
 
 impl JitterMutator {
     pub fn new(rate: impl Into<Expr>, magnitude: f32) -> Self {
-        let rate = rate.into().alias(JITTER_MUTATOR_RATE);
+        let rate = rate.into();
 
         if magnitude <= 0.0 {
             panic!("Magnitude must be greater than 0");
@@ -37,7 +37,7 @@ where
     C: Chromosome<Gene = FloatGene<F>>,
 {
     fn rates(&self) -> ExprSet {
-        ExprSet::from(self.rate.clone())
+        ExprSet::from(self.rate.clone().alias(JITTER_MUTATOR_RATE))
     }
 
     #[inline]

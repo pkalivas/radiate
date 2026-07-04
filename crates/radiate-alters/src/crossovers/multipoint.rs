@@ -1,5 +1,5 @@
 use radiate_core::{
-    AlterContext, AlterResult, Chromosome, Crossover, Expr, Expr, ExprSet, random_provider,
+    AlterContext, AlterResult, Chromosome, Crossover, Expr, ExprSet, random_provider,
 };
 
 const MULTIPOINT_CROSSOVER_RATE: &str = "crossover.multipoint.rate";
@@ -22,13 +22,13 @@ impl MultiPointCrossover {
     /// The rate must be between 0.0 and 1.0, and the number of points must be between 1 and the length
     /// of the chromosome.
     pub fn new(rate: impl Into<Expr>, num_points: usize) -> Self {
-        Self { num_points, rate: rate.into().alias(MULTIPOINT_CROSSOVER_RATE) }
+        Self { num_points, rate: rate.into() }
     }
 }
 
 impl<C: Chromosome> Crossover<C> for MultiPointCrossover {
     fn rates(&self) -> ExprSet {
-        ExprSet::from(self.rate.clone())
+        ExprSet::from(self.rate.clone().alias(MULTIPOINT_CROSSOVER_RATE))
     }
 
     #[inline]

@@ -162,7 +162,7 @@ impl PyEngineBuilder {
                     let name = input.extract::<String>("name")?;
                     let expr = input.extract::<PyExpr>("expr")?;
 
-                    metrics.push(Expr::new(
+                    metrics.push(NamedExpr::new(
                         radiate_utils::intern!(name),
                         expr.inner().clone().compile(),
                     ));

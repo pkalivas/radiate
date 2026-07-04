@@ -1,5 +1,5 @@
 use radiate_core::{
-    AlterContext, AlterResult, Chromosome, Crossover, Expr, Expr, ExprSet,
+    AlterContext, AlterResult, Chromosome, Crossover, Expr, ExprSet,
     PermutationChromosome, random_provider,
 };
 
@@ -16,7 +16,7 @@ pub struct EdgeRecombinationCrossover {
 
 impl EdgeRecombinationCrossover {
     pub fn new(rate: impl Into<Expr>) -> Self {
-        EdgeRecombinationCrossover { rate: rate.into().alias(EDGE_RECOMBINATION_CROSSOVER_RATE) }
+        EdgeRecombinationCrossover { rate: rate.into() }
     }
 
     fn build_edge_table(&self, parent1: &[usize], parent2: &[usize]) -> HashMap<usize, Vec<usize>> {
@@ -87,7 +87,7 @@ where
     T: PartialEq + Clone,
 {
     fn rates(&self) -> ExprSet {
-        ExprSet::from(self.rate.clone())
+        ExprSet::from(self.rate.clone().alias(EDGE_RECOMBINATION_CROSSOVER_RATE))
     }
 
     #[inline]

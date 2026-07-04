@@ -1,4 +1,4 @@
-use radiate_core::{AlterContext, AlterResult, Chromosome, Expr, Expr, ExprSet, Mutate, random_provider};
+use radiate_core::{AlterContext, AlterResult, Chromosome, Expr, ExprSet, Mutate, random_provider};
 
 const SWAP_MUTATOR_RATE: &str = "mutator.swap.rate";
 
@@ -10,13 +10,13 @@ pub struct SwapMutator {
 
 impl SwapMutator {
     pub fn new(rate: impl Into<Expr>) -> Self {
-        SwapMutator { rate: rate.into().alias(SWAP_MUTATOR_RATE) }
+        SwapMutator { rate: rate.into() }
     }
 }
 
 impl<C: Chromosome> Mutate<C> for SwapMutator {
     fn rates(&self) -> ExprSet {
-        ExprSet::from(self.rate.clone())
+        ExprSet::from(self.rate.clone().alias(SWAP_MUTATOR_RATE))
     }
 
     #[inline]

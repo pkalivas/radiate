@@ -1,5 +1,5 @@
 use radiate_core::{
-    AlterContext, AlterResult, ArithmeticGene, Chromosome, Expr, Expr, ExprSet, Mutate,
+    AlterContext, AlterResult, ArithmeticGene, Chromosome, Expr, ExprSet, Mutate,
     SmallStr, random_provider,
 };
 
@@ -21,7 +21,7 @@ impl ArithmeticMutator {
     /// Create a new instance of the `ArithmeticMutator` with the given rate.
     /// The rate must be between 0.0 and 1.0.
     pub fn new(rate: impl Into<Expr>) -> Self {
-        Self { rate: rate.into().alias(ARITHMETIC_MUTATOR_RATE) }
+        Self { rate: rate.into() }
     }
 }
 
@@ -31,7 +31,7 @@ where
     C: Chromosome<Gene = G>,
 {
     fn rates(&self) -> ExprSet {
-        ExprSet::from(self.rate.clone())
+        ExprSet::from(self.rate.clone().alias(ARITHMETIC_MUTATOR_RATE))
     }
 
     /// Mutate a gene by performing an arithmetic operation on it.

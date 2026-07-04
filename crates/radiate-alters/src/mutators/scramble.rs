@@ -1,6 +1,4 @@
-use radiate_core::{
-    AlterContext, AlterResult, Chromosome, Expr, ExprSet, Mutate, Expr, random_provider,
-};
+use radiate_core::{AlterContext, AlterResult, Chromosome, Expr, ExprSet, Mutate, random_provider};
 
 const SCRAMBLE_MUTATOR_RATE: &str = "mutator.scramble.rate";
 
@@ -15,15 +13,13 @@ pub struct ScrambleMutator {
 
 impl ScrambleMutator {
     pub fn new(rate: impl Into<Expr>) -> Self {
-        ScrambleMutator {
-            rate: rate.into().alias(SCRAMBLE_MUTATOR_RATE),
-        }
+        ScrambleMutator { rate: rate.into() }
     }
 }
 
 impl<C: Chromosome> Mutate<C> for ScrambleMutator {
     fn rates(&self) -> ExprSet {
-        ExprSet::from(self.rate.clone())
+        ExprSet::from(self.rate.clone().alias(SCRAMBLE_MUTATOR_RATE))
     }
 
     #[inline]

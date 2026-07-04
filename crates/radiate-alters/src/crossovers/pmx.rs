@@ -1,5 +1,5 @@
 use radiate_core::{
-    AlterContext, AlterResult, Chromosome, Crossover, Expr, Expr, ExprSet, PermutationChromosome,
+    AlterContext, AlterResult, Chromosome, Crossover, Expr, ExprSet, PermutationChromosome,
     SubsetMode, math::indexes,
 };
 
@@ -11,13 +11,13 @@ pub struct PMXCrossover {
 
 impl PMXCrossover {
     pub fn new(rate: impl Into<Expr>) -> Self {
-        PMXCrossover { rate: rate.into().alias(PMX_CROSSOVER_RATE) }
+        PMXCrossover { rate: rate.into() }
     }
 }
 
 impl<A: PartialEq + Clone> Crossover<PermutationChromosome<A>> for PMXCrossover {
     fn rates(&self) -> ExprSet {
-        ExprSet::from(self.rate.clone())
+        ExprSet::from(self.rate.clone().alias(PMX_CROSSOVER_RATE))
     }
 
     #[inline]

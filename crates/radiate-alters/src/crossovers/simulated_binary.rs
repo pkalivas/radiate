@@ -1,5 +1,5 @@
 use radiate_core::{
-    AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, Expr, Expr, ExprSet, Gene,
+    AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, Expr, ExprSet, Gene,
     random_provider,
 };
 use radiate_utils::Float;
@@ -13,7 +13,10 @@ pub struct SimulatedBinaryCrossover {
 
 impl SimulatedBinaryCrossover {
     pub fn new(rate: impl Into<Expr>, contiguty: f32) -> Self {
-        Self { rate: rate.into().alias(SBX_CROSSOVER_RATE), contiguty }
+        Self {
+            rate: rate.into(),
+            contiguty,
+        }
     }
 }
 
@@ -28,7 +31,7 @@ where
     }
 
     fn rates(&self) -> ExprSet {
-        ExprSet::from(self.rate.clone())
+        ExprSet::from(self.rate.clone().alias(SBX_CROSSOVER_RATE))
     }
 
     #[inline]

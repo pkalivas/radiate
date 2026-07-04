@@ -16,7 +16,6 @@ use radiate_core::EcosystemFilter;
 use radiate_core::Expr;
 use radiate_core::metric_names;
 use radiate_core::rate::ExprSet;
-use radiate_core::rate::Expr;
 use radiate_core::{Alterer, Diversity, Ecosystem, Evaluator, Executor, Genotype, Rate};
 use std::sync::{Arc, Mutex, RwLock};
 

@@ -1,5 +1,5 @@
 use radiate_core::{
-    AlterContext, AlterResult, BoundedGene, Crossover, Expr, ExprSet, Gene, Expr,
+    AlterContext, AlterResult, BoundedGene, Crossover, Expr, ExprSet, Gene,
     chromosomes::{BoundedChromosome, NumericAllele, NumericChromosome, NumericGene},
     random_provider,
 };

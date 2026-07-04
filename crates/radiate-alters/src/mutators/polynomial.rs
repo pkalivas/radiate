@@ -1,5 +1,5 @@
 use radiate_core::{
-    BoundedGene, Chromosome, Expr, ExprSet, FloatGene, Gene, Mutate, Expr, random_provider,
+    BoundedGene, Chromosome, Expr, ExprSet, FloatGene, Gene, Mutate, random_provider,
 };
 use radiate_utils::{Float, Primitive};
 
@@ -29,7 +29,7 @@ pub struct PolynomialMutator {
 
 impl PolynomialMutator {
     pub fn new(rate: impl Into<Expr>, eta: f32) -> Self {
-        PolynomialMutator { rate: rate.into().alias(POLYNOMIAL_MUTATOR_RATE), eta }
+        PolynomialMutator { rate: rate.into(), eta }
     }
 
     fn polynomial_mutation(&self, value: f64, min: f64, max: f64, eta: f64) -> f64 {
@@ -64,7 +64,7 @@ where
     C: Chromosome<Gene = FloatGene<F>>,
 {
     fn rates(&self) -> ExprSet {
-        ExprSet::from(self.rate.clone())
+        ExprSet::from(self.rate.clone().alias(POLYNOMIAL_MUTATOR_RATE))
     }
 
     #[inline]

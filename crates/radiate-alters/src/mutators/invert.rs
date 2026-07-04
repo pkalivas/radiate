@@ -1,6 +1,5 @@
 use radiate_core::{
-    AlterContext, AlterResult, Chromosome, Expr, ExprSet, Mutate, Expr, SmallStr,
-    random_provider,
+    AlterContext, AlterResult, Chromosome, Expr, ExprSet, Mutate, SmallStr, random_provider,
 };
 
 const INVERSION_MUTATOR_RATE: SmallStr = SmallStr::from_static("mutator.inversion.rate");
@@ -18,14 +17,14 @@ impl InversionMutator {
     /// Create a new instance of the [InversionMutator] with the given rate.
     /// The rate must be between 0.0 and 1.0.
     pub fn new(rate: impl Into<Expr>) -> Self {
-        let rate = rate.into().alias(INVERSION_MUTATOR_RATE);
+        let rate = rate.into();
         InversionMutator { rate }
     }
 }
 
 impl<C: Chromosome> Mutate<C> for InversionMutator {
     fn rates(&self) -> ExprSet {
-        ExprSet::from(self.rate.clone())
+        ExprSet::from(self.rate.clone().alias(INVERSION_MUTATOR_RATE))
     }
 
     #[inline]

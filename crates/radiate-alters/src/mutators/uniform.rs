@@ -1,4 +1,4 @@
-use radiate_core::{Chromosome, Expr, Expr, ExprSet, Mutate};
+use radiate_core::{Chromosome, Expr, ExprSet, Mutate};
 
 const UNIFORM_MUTATOR_RATE: &str = "mutator.uniform.rate";
 
@@ -12,12 +12,12 @@ pub struct UniformMutator {
 
 impl UniformMutator {
     pub fn new(rate: impl Into<Expr>) -> Self {
-        UniformMutator { rate: rate.into().alias(UNIFORM_MUTATOR_RATE) }
+        UniformMutator { rate: rate.into() }
     }
 }
 
 impl<C: Chromosome> Mutate<C> for UniformMutator {
     fn rates(&self) -> ExprSet {
-        ExprSet::from(self.rate.clone())
+        ExprSet::from(self.rate.clone().alias(UNIFORM_MUTATOR_RATE))
     }
 }

@@ -22,7 +22,7 @@ impl MeanCrossover {
     /// The rate must be between 0.0 and 1.0.
     pub fn new(rate: impl Into<Expr>) -> Self {
         MeanCrossover {
-            rate: rate.into().alias(MEAN_CROSSOVER_RATE),
+            rate: rate.into(),
         }
     }
 }
@@ -32,7 +32,7 @@ where
     C::Gene: ArithmeticGene,
 {
     fn rates(&self) -> ExprSet {
-        ExprSet::from(self.rate.clone())
+        ExprSet::from(self.rate.clone().alias(MEAN_CROSSOVER_RATE))
     }
 
     #[inline]
