@@ -29,11 +29,11 @@ pub enum ScheduleExpr {
     Every(EveryState),
 }
 
-impl<T> Evaluate<T> for ScheduleExpr
+impl<'a, T> Evaluate<'a, T> for ScheduleExpr
 where
     T: ExprSelector,
 {
-    fn eval<'a>(&'a mut self, _metrics: &T) -> ExprResult<'a> {
+    fn eval(&'a mut self, _metrics: &T) -> ExprResult<'a> {
         match self {
             ScheduleExpr::Every(state) => {
                 state.count += 1;

@@ -1,22 +1,19 @@
-use radiate_core::{Chromosome, Crossover, Rate, Valid};
+use radiate_core::{Chromosome, Crossover, Expr, Expr, ExprSet};
+
+const UNIFORM_CROSSOVER_RATE: &str = "crossover.uniform.rate";
 
 pub struct UniformCrossover {
-    rate: Rate,
+    rate: Expr,
 }
 
 impl UniformCrossover {
-    pub fn new(rate: impl Into<Rate>) -> Self {
-        let rate = rate.into();
-        if !rate.is_valid() {
-            panic!("Rate {rate:?} is not valid. Must be between 0.0 and 1.0",);
-        }
-
-        Self { rate }
+    pub fn new(rate: impl Into<Expr>) -> Self {
+        Self { rate: rate.into().alias(UNIFORM_CROSSOVER_RATE) }
     }
 }
 
 impl<C: Chromosome> Crossover<C> for UniformCrossover {
-    fn rate(&self) -> Rate {
-        self.rate.clone()
+    fn rates(&self) -> ExprSet {
+        ExprSet::from(self.rate.clone())
     }
 }

@@ -1,9 +1,11 @@
 use radiate_core::{
-    AlterContext, AlterResult, BoundedGene, Crossover, Gene, Rate, Valid,
+    AlterContext, AlterResult, BoundedGene, Crossover, Expr, ExprSet, Gene, Expr,
     chromosomes::{BoundedChromosome, NumericAllele, NumericChromosome, NumericGene},
     random_provider,
 };
 use radiate_utils::{Float, Primitive};
+
+const BLEND_CROSSOVER_RATE: &str = "crossover.blend.rate";
 
 /// The [BlendCrossover] is a crossover operator that blends [FloatGene] alleles from two parent chromosomes to create offspring.
 /// The blending is controlled by the `alpha` parameter, which determines the extent of blending between the two alleles.
@@ -15,18 +17,15 @@ use radiate_utils::{Float, Primitive};
 /// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct BlendCrossover {
-    rate: Rate,
+    rate: Expr,
     alpha: f32,
 }
 
 impl BlendCrossover {
     /// Create a new instance of the [BlendCrossover] with the given rate and alpha.
     /// The rate must be between 0.0 and 1.0, and the alpha must be between 0.0 and 1.0.
-    pub fn new(rate: impl Into<Rate>, alpha: f32) -> Self {
+    pub fn new(rate: impl Into<Expr>, alpha: f32) -> Self {
         let rate = rate.into();
-        if !rate.is_valid() {
-            panic!("Rate is not valid");
-        }
 
         if !(0.0..=1.0).contains(&alpha) {
             panic!("Alpha must be between 0 and 1");
@@ -42,8 +41,8 @@ where
     G: Gene<Allele = A> + BoundedGene + NumericGene,
     C: BoundedChromosome<Gene = G> + NumericChromosome<Gene = G>,
 {
-    fn rate(&self) -> Rate {
-        self.rate.clone()
+    fn rates(&self) -> ExprSet {
+        ExprSet::from(self.rate.clone().alias(BLEND_CROSSOVER_RATE))
     }
 
     #[inline]

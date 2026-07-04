@@ -1,9 +1,10 @@
 use crate::steps::EngineStep;
-use radiate_core::Phenotype;
+use radiate_core::error::RadiateResult;
 use radiate_core::{
     Alterer, Chromosome, Ecosystem, MetricSet, Objective, Optimize, Population, Score, Select,
 };
-use radiate_error::{Result, radiate_bail};
+use radiate_core::{Phenotype, radiate_err};
+use radiate_error::Result;
 use radiate_utils::VersionedCounts;
 use std::sync::Arc;
 
@@ -93,7 +94,7 @@ where
         };
 
         match new_members {
-            Some((survivors, offspring)) => {
+            Ok((survivors, offspring)) => {
                 let pop = ecosystem.population_mut();
 
                 pop.clear();
@@ -102,7 +103,7 @@ where
 
                 Ok(())
             }
-            None => radiate_bail!("Failed to create new population during recombination step"),
+            Err(err) => Err(err.context("Recombination Step failed")),
         }
     }
 }
@@ -125,7 +126,7 @@ where
         generation: usize,
         ecosystem: &mut Ecosystem<C>,
         metrics: &mut MetricSet,
-    ) -> Option<(Population<C>, Population<C>)> {
+    ) -> RadiateResult<(Population<C>, Population<C>)> {
         let s_selector = &self.survivor.select;
         let o_selector = &self.offspring.select;
 
@@ -150,10 +151,10 @@ where
         self.objective.sort(&mut offspring);
 
         for alt in &mut self.offspring.alters {
-            alt.alter(offspring.as_mut(), metrics, generation);
+            alt.alter(offspring.as_mut(), metrics, generation)?;
         }
 
-        Some((survivors, offspring))
+        Ok((survivors, offspring))
     }
 
     /// Species path: per-species reproduction. Survivors are selected globally
@@ -167,12 +168,14 @@ where
         generation: usize,
         ecosystem: &mut Ecosystem<C>,
         metrics: &mut MetricSet,
-    ) -> Option<(Population<C>, Population<C>)> {
+    ) -> RadiateResult<(Population<C>, Population<C>)> {
         let s_selector = &self.survivor.select;
         let o_selector = &self.offspring.select;
 
         let (species, population) = ecosystem.species_population_mut();
-        let species = species?;
+        let species = species
+            .as_ref()
+            .ok_or(radiate_err!(Engine: "Species population is None during recombination"))?;
 
         population.sort_by(|a, b| a.species().cmp(&b.species()));
 
@@ -200,7 +203,8 @@ where
             let range = species_groups
                 .binary_search_by(|group| group.0.cmp(&species.id()))
                 .ok()
-                .map(|i| species_groups[i].1.clone())?;
+                .map(|i| species_groups[i].1.clone())
+                .ok_or(radiate_err!(Engine: "Failed to find species {:?} in population during recombination", species.id()))?;
 
             let mut sub_pop = &mut population[range.clone()];
             self.objective.sort(&mut sub_pop);
@@ -227,11 +231,11 @@ where
             self.objective.sort(&mut chunk);
 
             for alt in &mut self.offspring.alters {
-                alt.alter(chunk, metrics, generation);
+                alt.alter(chunk, metrics, generation)?;
             }
         }
 
-        Some((survivors, offspring))
+        Ok((survivors, offspring))
     }
 
     #[inline]

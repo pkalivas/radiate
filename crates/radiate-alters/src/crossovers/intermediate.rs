@@ -1,8 +1,10 @@
 use radiate_core::{
-    AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, FloatGene, Gene, Rate, Valid,
-    random_provider,
+    AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, Expr, Expr, ExprSet,
+    FloatGene, Gene, random_provider,
 };
 use radiate_utils::Float;
+
+const INTERMEDIATE_CROSSOVER_RATE: &str = "crossover.intermediate.rate";
 
 /// Intermediate Crossover. This crossover method takes two chromosomes and crosses them
 /// by taking a weighted average of the two alleles. The weight is determined by the `alpha`
@@ -14,25 +16,19 @@ use radiate_utils::Float;
 /// from the second chromosome, and `alpha` is a value between 0 and 1.
 #[derive(Clone, Debug)]
 pub struct IntermediateCrossover {
-    rate: Rate,
+    rate: Expr,
     alpha: f32,
 }
 
 impl IntermediateCrossover {
     /// Create a new instance of the `IntermediateCrossover` with the given rate and alpha.
     /// The rate must be between 0.0 and 1.0, and the alpha must be between 0.0 and 1.0.
-    pub fn new(rate: impl Into<Rate>, alpha: f32) -> Self {
-        let rate = rate.into();
-
-        if !rate.is_valid() {
-            panic!("Rate {rate:?} is not valid. Must be between 0.0 and 1.0",);
-        }
-
+    pub fn new(rate: impl Into<Expr>, alpha: f32) -> Self {
         if !(0.0..=1.0).contains(&alpha) {
             panic!("Alpha must be between 0 and 1");
         }
 
-        IntermediateCrossover { rate, alpha }
+        IntermediateCrossover { rate: rate.into().alias(INTERMEDIATE_CROSSOVER_RATE), alpha }
     }
 }
 
@@ -41,8 +37,8 @@ where
     F: Float,
     C: Chromosome<Gene = FloatGene<F>>,
 {
-    fn rate(&self) -> Rate {
-        self.rate.clone()
+    fn rates(&self) -> ExprSet {
+        ExprSet::from(self.rate.clone())
     }
 
     #[inline]

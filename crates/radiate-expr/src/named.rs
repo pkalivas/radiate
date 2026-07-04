@@ -1,6 +1,4 @@
-use crate::{Evaluate, ExprResult, ExprSelector};
-
-use super::Expr;
+use crate::{Evaluate, Expr, ExprResult, ExprSelector};
 use radiate_utils::SmallStr;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize, ser::SerializeStruct};
@@ -36,11 +34,11 @@ impl NamedExpr {
     }
 }
 
-impl<T> Evaluate<T> for NamedExpr
+impl<'a, T> Evaluate<'a, T> for NamedExpr
 where
     T: ExprSelector,
 {
-    fn eval<'a>(&'a mut self, metrics: &T) -> ExprResult<'a> {
+    fn eval(&'a mut self, metrics: &T) -> ExprResult<'a> {
         match &mut self.expr {
             Expr::Literal(value) => Ok(value.clone()),
             Expr::Selector(selector) => selector.eval(metrics),

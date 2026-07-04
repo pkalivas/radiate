@@ -1,4 +1,9 @@
-use radiate_core::{AlterContext, AlterResult, Chromosome, Mutate, Rate, Valid, random_provider};
+use radiate_core::{
+    AlterContext, AlterResult, Chromosome, Expr, ExprSet, Mutate, Expr, SmallStr,
+    random_provider,
+};
+
+const INVERSION_MUTATOR_RATE: SmallStr = SmallStr::from_static("mutator.inversion.rate");
 
 /// The [InversionMutator] is a simple mutator that inverts a random section of the chromosome.
 ///
@@ -6,25 +11,21 @@ use radiate_core::{AlterContext, AlterResult, Chromosome, Mutate, Rate, Valid, r
 /// may not be very effective. This mutator is best used with larger chromosomes.
 #[derive(Debug, Clone)]
 pub struct InversionMutator {
-    rate: Rate,
+    rate: Expr,
 }
 
 impl InversionMutator {
     /// Create a new instance of the [InversionMutator] with the given rate.
     /// The rate must be between 0.0 and 1.0.
-    pub fn new(rate: impl Into<Rate>) -> Self {
-        let rate = rate.into();
-        if !rate.is_valid() {
-            panic!("Rate is not valid: {:?}", rate);
-        }
-
+    pub fn new(rate: impl Into<Expr>) -> Self {
+        let rate = rate.into().alias(INVERSION_MUTATOR_RATE);
         InversionMutator { rate }
     }
 }
 
 impl<C: Chromosome> Mutate<C> for InversionMutator {
-    fn rate(&self) -> Rate {
-        self.rate.clone()
+    fn rates(&self) -> ExprSet {
+        ExprSet::from(self.rate.clone())
     }
 
     #[inline]

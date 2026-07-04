@@ -1,21 +1,22 @@
-use radiate_core::{AlterContext, AlterResult, Chromosome, Mutate, Rate, random_provider};
+use radiate_core::{AlterContext, AlterResult, Chromosome, Expr, Expr, ExprSet, Mutate, random_provider};
+
+const SWAP_MUTATOR_RATE: &str = "mutator.swap.rate";
 
 /// The [SwapMutator] is a simple mutator that swaps random genes in the [Chromosome].
 #[derive(Debug, Clone)]
 pub struct SwapMutator {
-    rate: Rate,
+    rate: Expr,
 }
 
 impl SwapMutator {
-    pub fn new(rate: impl Into<Rate>) -> Self {
-        let rate = rate.into();
-        SwapMutator { rate }
+    pub fn new(rate: impl Into<Expr>) -> Self {
+        SwapMutator { rate: rate.into().alias(SWAP_MUTATOR_RATE) }
     }
 }
 
 impl<C: Chromosome> Mutate<C> for SwapMutator {
-    fn rate(&self) -> Rate {
-        self.rate.clone()
+    fn rates(&self) -> ExprSet {
+        ExprSet::from(self.rate.clone())
     }
 
     #[inline]

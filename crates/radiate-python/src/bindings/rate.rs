@@ -24,40 +24,6 @@ impl PyRate {
     }
 
     #[staticmethod]
-    pub fn linear(start: f32, end: f32, duration: usize) -> Self {
-        PyRate {
-            rate: Rate::Linear(start, end, duration),
-        }
-    }
-
-    #[staticmethod]
-    pub fn exponential(start: f32, end: f32, duration: usize) -> Self {
-        PyRate {
-            rate: Rate::Exponential(start, end, duration),
-        }
-    }
-
-    #[staticmethod]
-    pub fn cyclical(min: f32, max: f32, period: usize, cycle_type: String) -> Self {
-        let cycle_shape = match cycle_type.as_str() {
-            "sine" => CycleShape::Sine,
-            "triangular" => CycleShape::Triangle,
-            _ => CycleShape::Sine,
-        };
-
-        PyRate {
-            rate: Rate::Cyclical(min, max, period, cycle_shape),
-        }
-    }
-
-    #[staticmethod]
-    pub fn stepwise(steps: Vec<(usize, f32)>) -> Self {
-        PyRate {
-            rate: Rate::Stepwise(steps),
-        }
-    }
-
-    #[staticmethod]
     pub fn expression(expr: PyExpr) -> Self {
         PyRate {
             rate: Rate::Expr(expr.into()),

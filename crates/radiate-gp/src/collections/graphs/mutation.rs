@@ -3,7 +3,7 @@ use super::{Graph, GraphChromosome};
 use crate::graphs::node::InnovationId;
 use crate::node::Node;
 use crate::{Factory, NodeType};
-use radiate_core::{AlterContext, Chromosome, Expr, ExprSet, SmallStr};
+use radiate_core::{AlterContext, Chromosome, Expr, ExprSet, NamedExpr, SmallStr};
 use radiate_core::{AlterResult, Mutate, random_provider};
 use std::collections::HashMap;
 
@@ -72,8 +72,8 @@ impl InnovationContext {
 /// - `allow_recurrent`: If true, recurrent nodes are allowed. If false, they are not. Default is true.
 #[derive(Clone, Debug)]
 pub struct GraphMutator {
-    vertex_rate: Expr,
-    edge_rate: Expr,
+    vertex_rate: NamedExpr,
+    edge_rate: NamedExpr,
     allow_recurrent: bool,
     innov_context: InnovationContext,
 }
@@ -86,8 +86,8 @@ impl GraphMutator {
     /// - `edge_rate`: The probability of adding an edge.
     pub fn new(vertex_rate: impl Into<Expr>, edge_rate: impl Into<Expr>) -> Self {
         GraphMutator {
-            vertex_rate: vertex_rate.into(),
-            edge_rate: edge_rate.into(),
+            vertex_rate: vertex_rate.into().alias(ADD_VERTEX_RATE),
+            edge_rate: edge_rate.into().alias(ADD_EDGE_RATE),
             allow_recurrent: true,
             innov_context: InnovationContext::new(),
         }
@@ -131,8 +131,8 @@ where
     fn rates(&self) -> ExprSet {
         ExprSet::from([
             Expr::lit(1.0).alias(MUTATE_RATE),
-            self.edge_rate.clone().alias(ADD_EDGE_RATE),
-            self.vertex_rate.clone().alias(ADD_VERTEX_RATE),
+            self.edge_rate.clone(),
+            self.vertex_rate.clone(),
         ])
     }
 

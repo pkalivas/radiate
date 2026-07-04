@@ -337,7 +337,7 @@ mod test {
 #[cfg(test)]
 mod tests {
     use radiate_core::MetricSet;
-    use radiate_expr::{Evaluate, Expr};
+    use radiate_expr::{Evaluate, Expr, Expr};
     use radiate_utils::{AnyValue, DataType};
 
     // fn is_fused_affine(e: &Expr) -> bool {

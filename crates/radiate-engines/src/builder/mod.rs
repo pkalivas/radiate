@@ -35,7 +35,7 @@ use radiate_core::evaluator::BatchFitnessEvaluator;
 use radiate_core::problem::{BatchEngineProblem, EngineProblem};
 use radiate_core::rate::ExprSet;
 use radiate_core::{
-    Alterer, Ecosystem, Executor, Expr, FitnessEvaluator, Rate, Valid, metric_names,
+    Alterer, Ecosystem, Executor, Expr, FitnessEvaluator, Expr, Rate, Valid, metric_names,
 };
 use radiate_core::{RadiateError, ensure, radiate_err};
 use radiate_utils::VersionedCounts;

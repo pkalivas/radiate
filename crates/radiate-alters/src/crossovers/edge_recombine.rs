@@ -1,7 +1,9 @@
 use radiate_core::{
-    AlterContext, AlterResult, Chromosome, Crossover, PermutationChromosome, Rate, Valid,
-    random_provider,
+    AlterContext, AlterResult, Chromosome, Crossover, Expr, Expr, ExprSet,
+    PermutationChromosome, random_provider,
 };
+
+const EDGE_RECOMBINATION_CROSSOVER_RATE: &str = "crossover.edge_recombination.rate";
 use std::collections::{HashMap, HashSet};
 
 // Example: Parents [1,2,3,4,5] and [1,3,5,2,4]
@@ -9,17 +11,12 @@ use std::collections::{HashMap, HashSet};
 // Offspring: [1,2,4,5,3] (following edges when possible)
 #[derive(Debug, Clone, PartialEq)]
 pub struct EdgeRecombinationCrossover {
-    rate: Rate,
+    rate: Expr,
 }
 
 impl EdgeRecombinationCrossover {
-    pub fn new(rate: impl Into<Rate>) -> Self {
-        let rate = rate.into();
-        if !rate.is_valid() {
-            panic!("Crossover rate must be between 0.0 and 1.0");
-        }
-
-        EdgeRecombinationCrossover { rate }
+    pub fn new(rate: impl Into<Expr>) -> Self {
+        EdgeRecombinationCrossover { rate: rate.into().alias(EDGE_RECOMBINATION_CROSSOVER_RATE) }
     }
 
     fn build_edge_table(&self, parent1: &[usize], parent2: &[usize]) -> HashMap<usize, Vec<usize>> {
@@ -89,8 +86,8 @@ impl<T> Crossover<PermutationChromosome<T>> for EdgeRecombinationCrossover
 where
     T: PartialEq + Clone,
 {
-    fn rate(&self) -> Rate {
-        self.rate.clone()
+    fn rates(&self) -> ExprSet {
+        ExprSet::from(self.rate.clone())
     }
 
     #[inline]

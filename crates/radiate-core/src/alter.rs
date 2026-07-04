@@ -1,6 +1,6 @@
 use crate::error::RadiateResult;
 use crate::{Chromosome, Gene, Genotype, math::indexes, random_provider};
-use crate::{GetPairMut, MetricSet, Phenotype, Rate};
+use crate::{GetPairMut, MetricSet, Phenotype};
 use radiate_error::radiate_bail;
 pub use radiate_expr::*;
 use radiate_utils::{SmallStr, ToSnakeCase, intern};
@@ -148,7 +148,7 @@ impl<C: Chromosome> Alterer<C> {
 
     pub fn crossover(name: &'static str, c: Arc<dyn Crossover<C>>) -> Self {
         let name = SmallStr::from_static(name);
-        let exprs = c.exprs();
+        let exprs = c.rates();
         Self {
             time_name: SmallStr::from_string(format!("{}.time", name)),
             name,
@@ -196,10 +196,8 @@ impl<C: Chromosome> Alterer<C> {
         population: &mut [Phenotype<C>],
         metrics: &mut MetricSet,
         generation: usize,
-    ) {
-        self.calculate_rates(metrics).unwrap_or_else(|e| {
-            eprintln!("Failed to calculate rates for alterer {}: {}", self.name, e);
-        });
+    ) -> RadiateResult<()> {
+        self.calculate_rates(metrics)?;
 
         self.alter_counts.clear();
 
@@ -235,6 +233,8 @@ impl<C: Chromosome> Alterer<C> {
                 }
             }
         }
+
+        Ok(())
     }
 }
 
@@ -276,11 +276,7 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
         new_name.join(".")
     }
 
-    fn rate(&self) -> Rate {
-        Rate::default()
-    }
-
-    fn exprs(&self) -> ExprSet {
+    fn rates(&self) -> ExprSet {
         ExprSet::from(Expr::lit(1.0).alias(SmallStr::from_string(format!("{}.rate", self.name()))))
     }
 
@@ -392,10 +388,6 @@ pub trait Mutate<C: Chromosome>: Send + Sync {
 
     fn rates(&self) -> ExprSet {
         ExprSet::from(Expr::lit(1.0).alias(SmallStr::from_string(format!("{}.rate", self.name()))))
-    }
-
-    fn rate(&self) -> Rate {
-        Rate::default()
     }
 
     fn alterer(self) -> Alterer<C>

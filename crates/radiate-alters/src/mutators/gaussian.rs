@@ -1,6 +1,6 @@
 use radiate_core::{
-    AlterContext, AlterResult, BoundedGene, Chromosome, Expr, ExprSet, FloatGene, Gene, Mutate,
-    SmallStr, random_provider,
+    AlterContext, AlterResult, BoundedGene, Chromosome, Expr, Expr, ExprSet, FloatGene, Gene,
+    Mutate, SmallStr, random_provider,
 };
 use radiate_utils::{Float, Primitive};
 
@@ -18,9 +18,7 @@ impl GaussianMutator {
     /// Create a new instance of the `GaussianMutator` with the given rate.
     /// The rate must be between 0.0 and 1.0.
     pub fn new(rate: impl Into<Expr>) -> Self {
-        let rate = rate.into();
-
-        GaussianMutator { rate }
+        GaussianMutator { rate: rate.into().alias(GAUSSIAN_MUTATOR_RATE) }
     }
 }
 
@@ -30,7 +28,7 @@ where
     C: Chromosome<Gene = FloatGene<F>>,
 {
     fn rates(&self) -> ExprSet {
-        ExprSet::from(self.rate.clone().alias(GAUSSIAN_MUTATOR_RATE))
+        ExprSet::from(self.rate.clone())
     }
 
     #[inline]

@@ -128,11 +128,11 @@ impl AggExpr {
     }
 }
 
-impl<T> Evaluate<T> for AggExpr
+impl<'a, T> Evaluate<'a, T> for AggExpr
 where
     T: ExprSelector,
 {
-    fn eval<'a>(&'a mut self, metrics: &T) -> ExprResult<'a> {
+    fn eval(&'a mut self, metrics: &T) -> ExprResult<'a> {
         let child_output = self.child.eval(metrics)?;
         let dtype = child_output.dtype();
 

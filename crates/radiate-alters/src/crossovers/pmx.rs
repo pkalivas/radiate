@@ -1,26 +1,23 @@
 use radiate_core::{
-    AlterContext, AlterResult, Chromosome, Crossover, PermutationChromosome, Rate, SubsetMode,
-    Valid, math::indexes,
+    AlterContext, AlterResult, Chromosome, Crossover, Expr, Expr, ExprSet, PermutationChromosome,
+    SubsetMode, math::indexes,
 };
 
+const PMX_CROSSOVER_RATE: &str = "crossover.pmx.rate";
+
 pub struct PMXCrossover {
-    rate: Rate,
+    rate: Expr,
 }
 
 impl PMXCrossover {
-    pub fn new(rate: impl Into<Rate>) -> Self {
-        let rate = rate.into();
-        if !rate.is_valid() {
-            panic!("Rate {rate:?} is not valid. Must be between 0.0 and 1.0",);
-        }
-
-        PMXCrossover { rate }
+    pub fn new(rate: impl Into<Expr>) -> Self {
+        PMXCrossover { rate: rate.into().alias(PMX_CROSSOVER_RATE) }
     }
 }
 
 impl<A: PartialEq + Clone> Crossover<PermutationChromosome<A>> for PMXCrossover {
-    fn rate(&self) -> Rate {
-        self.rate.clone()
+    fn rates(&self) -> ExprSet {
+        ExprSet::from(self.rate.clone())
     }
 
     #[inline]

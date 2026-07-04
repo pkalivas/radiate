@@ -59,11 +59,11 @@ impl SelectExpr {
     }
 }
 
-impl<T> Evaluate<T> for SelectExpr
+impl<'a, T> Evaluate<'a, T> for SelectExpr
 where
     T: ExprSelector,
 {
-    fn eval<'a>(&'a mut self, metrics: &T) -> ExprResult<'a> {
+    fn eval(&'a mut self, metrics: &T) -> ExprResult<'a> {
         Ok(metrics.select(self))
     }
 }

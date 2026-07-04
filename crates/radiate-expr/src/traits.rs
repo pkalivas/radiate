@@ -2,13 +2,13 @@ use crate::SelectExpr;
 use radiate_error::RadiateError;
 use radiate_utils::AnyValue;
 
-pub(crate) type ExprResult<'a> = Result<AnyValue<'a>, RadiateError>;
+pub(crate) type ExprResult<'a, O = AnyValue<'a>> = Result<O, RadiateError>;
 
-pub trait Evaluate<T>
+pub trait Evaluate<'a, I, O = AnyValue<'a>>
 where
-    T: ExprSelector,
+    I: ExprSelector,
 {
-    fn eval<'a>(&'a mut self, metrics: &T) -> ExprResult<'a>;
+    fn eval(&'a mut self, metrics: &I) -> ExprResult<'a, O>;
 }
 
 pub trait ExprSelector {

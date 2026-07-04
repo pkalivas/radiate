@@ -1,8 +1,8 @@
-use crate::{Expr, MetricField, MetricKind};
 use super::{
     aggregate::{AggExpr, Rollup},
     ops::{BinaryExpr, BinaryOp, TrinaryExpr, TrinaryOp, UnaryExpr, UnaryOp, fuse_affine},
 };
+use crate::{Expr, MetricField, MetricKind};
 use radiate_utils::{DataType, Quantile};
 use std::ops::{Add, Div, Mul, Neg, Not, Sub};
 

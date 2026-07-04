@@ -1,6 +1,8 @@
 use radiate_core::{
-    AlterContext, AlterResult, Chromosome, Crossover, Rate, Valid, random_provider,
+    AlterContext, AlterResult, Chromosome, Crossover, Expr, Expr, ExprSet, random_provider,
 };
+
+const MULTIPOINT_CROSSOVER_RATE: &str = "crossover.multipoint.rate";
 
 /// The [MultiPointCrossover] is a crossover method that takes two chromosomes and crosses them
 /// by selecting multiple points in the chromosome and swapping the genes between the two chromosomes.
@@ -12,27 +14,21 @@ use radiate_core::{
 /// simple method that can be used with any type of gene.
 pub struct MultiPointCrossover {
     num_points: usize,
-    rate: Rate,
+    rate: Expr,
 }
 
 impl MultiPointCrossover {
     /// Create a new instance of the [MultiPointCrossover] with the given rate and number of points.
     /// The rate must be between 0.0 and 1.0, and the number of points must be between 1 and the length
     /// of the chromosome.
-    pub fn new(rate: impl Into<Rate>, num_points: usize) -> Self {
-        let rate = rate.into();
-
-        if !rate.is_valid() {
-            panic!("Rate {rate:?} is not valid. Must be between 0.0 and 1.0",);
-        }
-
-        Self { num_points, rate }
+    pub fn new(rate: impl Into<Expr>, num_points: usize) -> Self {
+        Self { num_points, rate: rate.into().alias(MULTIPOINT_CROSSOVER_RATE) }
     }
 }
 
 impl<C: Chromosome> Crossover<C> for MultiPointCrossover {
-    fn rate(&self) -> Rate {
-        self.rate.clone()
+    fn rates(&self) -> ExprSet {
+        ExprSet::from(self.rate.clone())
     }
 
     #[inline]

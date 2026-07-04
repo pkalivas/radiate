@@ -1,8 +1,10 @@
 use radiate_core::{
-    AlterContext, AlterResult, BoundedGene, Chromosome, FloatGene, Gene, Mutate, Rate, Valid,
-    random_provider,
+    AlterContext, AlterResult, BoundedGene, Chromosome, Expr, ExprSet, FloatGene, Gene, Mutate,
+    Expr, SmallStr, random_provider,
 };
 use radiate_utils::Float;
+
+const JITTER_MUTATOR_RATE: SmallStr = SmallStr::from_static("mutator.jitter.rate");
 
 /// The `JitterMutator` is a simple mutator that adds a small random value to [FloatGene]s.
 ///
@@ -13,16 +15,13 @@ use radiate_utils::Float;
 /// magnitudes will result in larger changes.
 #[derive(Debug, Clone)]
 pub struct JitterMutator {
-    rate: Rate,
+    rate: Expr,
     magnitude: f32,
 }
 
 impl JitterMutator {
-    pub fn new(rate: impl Into<Rate>, magnitude: f32) -> Self {
-        let rate = rate.into();
-        if !rate.is_valid() {
-            panic!("Rate is not valid: {:?}", rate);
-        }
+    pub fn new(rate: impl Into<Expr>, magnitude: f32) -> Self {
+        let rate = rate.into().alias(JITTER_MUTATOR_RATE);
 
         if magnitude <= 0.0 {
             panic!("Magnitude must be greater than 0");
@@ -37,8 +36,8 @@ where
     F: Float,
     C: Chromosome<Gene = FloatGene<F>>,
 {
-    fn rate(&self) -> Rate {
-        self.rate.clone()
+    fn rates(&self) -> ExprSet {
+        ExprSet::from(self.rate.clone())
     }
 
     #[inline]

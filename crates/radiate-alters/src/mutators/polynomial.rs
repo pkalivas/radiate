@@ -1,5 +1,9 @@
-use radiate_core::{BoundedGene, Chromosome, FloatGene, Gene, Mutate, Rate, random_provider};
+use radiate_core::{
+    BoundedGene, Chromosome, Expr, ExprSet, FloatGene, Gene, Mutate, Expr, random_provider,
+};
 use radiate_utils::{Float, Primitive};
+
+const POLYNOMIAL_MUTATOR_RATE: &str = "mutator.polynomial.rate";
 
 // Use it when:
 // 	- You’re evolving floating-point representations (like real-valued neural nets, control parameters, orbital mechanics).
@@ -19,14 +23,13 @@ use radiate_utils::{Float, Primitive};
 // 	- High eta (e.g. 20–100): leads to smaller, fine-grained mutations, good for local search.
 #[derive(Debug, Clone)]
 pub struct PolynomialMutator {
-    rate: Rate,
+    rate: Expr,
     eta: f32,
 }
 
 impl PolynomialMutator {
-    pub fn new(rate: impl Into<Rate>, eta: f32) -> Self {
-        let rate = rate.into();
-        PolynomialMutator { rate, eta }
+    pub fn new(rate: impl Into<Expr>, eta: f32) -> Self {
+        PolynomialMutator { rate: rate.into().alias(POLYNOMIAL_MUTATOR_RATE), eta }
     }
 
     fn polynomial_mutation(&self, value: f64, min: f64, max: f64, eta: f64) -> f64 {
@@ -60,8 +63,8 @@ where
     F: Float + Primitive,
     C: Chromosome<Gene = FloatGene<F>>,
 {
-    fn rate(&self) -> Rate {
-        self.rate.clone()
+    fn rates(&self) -> ExprSet {
+        ExprSet::from(self.rate.clone())
     }
 
     #[inline]

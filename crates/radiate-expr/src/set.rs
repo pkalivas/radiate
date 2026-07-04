@@ -28,11 +28,11 @@ impl ExprSet {
     }
 }
 
-impl<T> Evaluate<T> for ExprSet
+impl<'a, T> Evaluate<'a, T> for ExprSet
 where
     T: ExprSelector,
 {
-    fn eval<'a>(&'a mut self, metrics: &T) -> ExprResult<'a> {
+    fn eval(&'a mut self, metrics: &T) -> ExprResult<'a> {
         let mut results = Vec::with_capacity(self.exprs.len());
         for expr in self.exprs.iter_mut() {
             let name = expr.name.clone();
@@ -52,7 +52,7 @@ impl From<NamedExpr> for ExprSet {
 
 impl<const N: usize> From<[NamedExpr; N]> for ExprSet {
     fn from(exprs: [NamedExpr; N]) -> Self {
-        Self::new(exprs.into())
+        Self::new(exprs.into_iter().collect())
     }
 }
 

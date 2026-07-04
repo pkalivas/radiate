@@ -1,19 +1,18 @@
 use super::TreeChromosome;
-use radiate_core::{AlterContext, AlterResult, Mutate, Rate, Valid, random_provider};
+use radiate_core::{AlterContext, AlterResult, Expr, ExprSet, Mutate, NamedExpr, random_provider};
+
+const HOIST_MUTATOR_RATE: &str = "mutator.hoist.rate";
 
 #[derive(Clone, Debug)]
 pub struct HoistMutator {
-    rate: Rate,
+    rate: NamedExpr,
 }
 
 impl HoistMutator {
-    pub fn new(rate: impl Into<Rate>) -> Self {
-        let rate = rate.into();
-        if !rate.is_valid() {
-            panic!("rate {:?} is not valid", rate);
+    pub fn new(rate: impl Into<Expr>) -> Self {
+        HoistMutator {
+            rate: rate.into().alias(HOIST_MUTATOR_RATE),
         }
-
-        HoistMutator { rate }
     }
 }
 
@@ -21,8 +20,8 @@ impl<T> Mutate<TreeChromosome<T>> for HoistMutator
 where
     T: Clone + PartialEq,
 {
-    fn rate(&self) -> Rate {
-        self.rate.clone()
+    fn rates(&self) -> ExprSet {
+        ExprSet::from(self.rate.clone())
     }
 
     fn mutate_chromosome(

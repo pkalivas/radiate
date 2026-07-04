@@ -1,26 +1,19 @@
 use radiate_core::{
-    AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, Gene, Rate, Valid,
+    AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, Expr, Expr, ExprSet, Gene,
     random_provider,
 };
 use radiate_utils::Float;
 
-const NAME: &str = "crossover.sbx";
+const SBX_CROSSOVER_RATE: &str = "crossover.sbx.rate";
 
 pub struct SimulatedBinaryCrossover {
-    crossover_rate: Rate,
+    rate: Expr,
     contiguty: f32,
 }
 
 impl SimulatedBinaryCrossover {
-    pub fn new(crossover_rate: impl Into<Rate>, contiguty: f32) -> Self {
-        let crossover_rate = crossover_rate.into();
-        if !crossover_rate.is_valid() {
-            panic!("Rate {crossover_rate:?} is not valid. Must be between 0.0 and 1.0",);
-        }
-        Self {
-            contiguty,
-            crossover_rate,
-        }
+    pub fn new(rate: impl Into<Expr>, contiguty: f32) -> Self {
+        Self { rate: rate.into().alias(SBX_CROSSOVER_RATE), contiguty }
     }
 }
 
@@ -31,11 +24,11 @@ where
     C: Chromosome<Gene = G>,
 {
     fn name(&self) -> String {
-        NAME.to_string()
+        "crossover.sbx".to_string()
     }
 
-    fn rate(&self) -> Rate {
-        self.crossover_rate.clone()
+    fn rates(&self) -> ExprSet {
+        ExprSet::from(self.rate.clone())
     }
 
     #[inline]

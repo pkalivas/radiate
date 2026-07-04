@@ -176,10 +176,9 @@ impl<T: Debug> Debug for Tree<T> {
 #[cfg(test)]
 mod test {
 
-    use radiate_core::{AlterContext, alter::AlterUpdates};
-
     use super::*;
     use crate::{Arity, Node, NodeType, Op, TreeCrossover, TreeIterator};
+    use radiate_core::{AlterContext, alter::AlterUpdates};
 
     // #[test]
     // fn test_swap_subtrees() {

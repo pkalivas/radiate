@@ -1,6 +1,5 @@
 pub(crate) mod aggregate;
 mod builder;
-mod compile;
 pub(crate) mod logical;
 pub(crate) mod ops;
 pub(crate) mod schedule;

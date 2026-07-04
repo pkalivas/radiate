@@ -1,5 +1,5 @@
-use crate::{Evaluate, Expr, ExprResult};
 use crate::ExprSelector;
+use crate::{Evaluate, Expr, ExprResult};
 use radiate_error::radiate_bail;
 use radiate_utils::{AnyValue, DataType};
 #[cfg(feature = "serde")]
@@ -55,11 +55,11 @@ impl UnaryExpr {
     }
 }
 
-impl<T> Evaluate<T> for UnaryExpr
+impl<'a, T> Evaluate<'a, T> for UnaryExpr
 where
     T: ExprSelector,
 {
-    fn eval<'a>(&'a mut self, metrics: &T) -> ExprResult<'a> {
+    fn eval(&'a mut self, metrics: &T) -> ExprResult<'a> {
         let value = self.child.eval(metrics)?;
 
         match self.op {
@@ -161,11 +161,11 @@ impl BinaryExpr {
     }
 }
 
-impl<T> Evaluate<T> for BinaryExpr
+impl<'a, T> Evaluate<'a, T> for BinaryExpr
 where
     T: ExprSelector,
 {
-    fn eval<'a>(&'a mut self, metrics: &T) -> ExprResult<'a> {
+    fn eval(&'a mut self, metrics: &T) -> ExprResult<'a> {
         // Coalesce short-circuits: only evaluate rhs when lhs is bad.
         if let BinaryOp::Coalesce = self.op {
             let lhs = self.lhs.eval(metrics)?;
@@ -240,11 +240,11 @@ impl TrinaryExpr {
     }
 }
 
-impl<T> Evaluate<T> for TrinaryExpr
+impl<'a, T> Evaluate<'a, T> for TrinaryExpr
 where
     T: ExprSelector,
 {
-    fn eval<'a>(&'a mut self, metrics: &T) -> ExprResult<'a> {
+    fn eval(&'a mut self, metrics: &T) -> ExprResult<'a> {
         match self.operation {
             TrinaryOp::If => {
                 let condition = self.first.eval(metrics)?;

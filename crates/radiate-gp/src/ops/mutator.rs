@@ -1,7 +1,7 @@
 use crate::node::{Node, NodeExt};
 use crate::ops::operation::Op;
 use crate::{Factory, GraphChromosome, NodeStore, NodeType, TreeChromosome};
-use radiate_core::{AlterContext, AlterResult, Expr, ExprSet, Mutate, SmallStr};
+use radiate_core::{AlterContext, AlterResult, Expr, ExprSet, Mutate, NamedExpr, SmallStr};
 use radiate_core::{Chromosome, random_provider};
 
 const OP_MUTATED: SmallStr = SmallStr::from_static("mutate.operation.mutated");
@@ -20,19 +20,22 @@ impl OpMutateMetrics {
 }
 
 pub struct OperationMutator {
-    rate: Expr,
+    rate: NamedExpr,
     replace_rate: f32,
 }
 
 impl OperationMutator {
     pub fn new(rate: impl Into<Expr>, replace_rate: f32) -> Self {
-        let rate = rate.into();
-
         if !(0.0..=1.0).contains(&replace_rate) {
             panic!("replace_rate must be between 0.0 and 1.0");
         }
 
-        OperationMutator { rate, replace_rate }
+        OperationMutator {
+            rate: rate
+                .into()
+                .alias(SmallStr::from_static("mutator.operation.rate")),
+            replace_rate,
+        }
     }
 
     #[inline]
@@ -93,9 +96,7 @@ where
 {
     fn rates(&self) -> ExprSet {
         ExprSet::from([
-            self.rate
-                .clone()
-                .alias(SmallStr::from_static("mutator.operation.rate")),
+            self.rate.clone(),
             Expr::lit(self.replace_rate)
                 .alias(SmallStr::from_static("mutator.operation.replace_rate")),
         ])
@@ -137,9 +138,7 @@ where
 {
     fn rates(&self) -> ExprSet {
         ExprSet::from([
-            self.rate
-                .clone()
-                .alias(SmallStr::from_static("mutator.operation.rate")),
+            self.rate.clone(),
             Expr::lit(self.replace_rate)
                 .alias(SmallStr::from_static("mutator.operation.replace_rate")),
         ])
