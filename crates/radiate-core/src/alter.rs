@@ -176,7 +176,6 @@ impl<C: Chromosome> Alterer<C> {
         generation: usize,
     ) -> RadiateResult<()> {
         let rates = self.rate_set.calculate_rates(generation, metrics)?;
-        // self.calculate_rates(metrics)?;
 
         self.alter_counts.clear();
 

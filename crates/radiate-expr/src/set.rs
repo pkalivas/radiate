@@ -1,8 +1,8 @@
-use radiate_utils::{AnyValue, SmallStr};
+use radiate_utils::SmallStr;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-use crate::{Evaluate, Expr, ExprResult, ExprSelector, NamedExpr};
+use crate::{Expr, NamedExpr};
 
 #[derive(Clone, Debug, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -15,6 +15,11 @@ impl ExprSet {
         Self { exprs }
     }
 
+    pub fn get(&self, name: impl AsRef<str>) -> Option<&NamedExpr> {
+        let name = name.as_ref();
+        self.exprs.iter().find(|e| e.name() == name)
+    }
+
     pub fn add(&mut self, expr: NamedExpr) {
         self.exprs.push(expr);
     }
@@ -25,22 +30,6 @@ impl ExprSet {
 
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut NamedExpr> {
         self.exprs.iter_mut()
-    }
-}
-
-impl<'a, T> Evaluate<'a, T> for ExprSet
-where
-    T: ExprSelector,
-{
-    fn eval(&'a mut self, metrics: &T) -> ExprResult<'a> {
-        let mut results = Vec::with_capacity(self.exprs.len());
-        for expr in self.exprs.iter_mut() {
-            let name = expr.name.clone();
-            let value = expr.eval(metrics)?;
-            results.push((name, value.dtype(), value));
-        }
-
-        Ok(AnyValue::Dict(results))
     }
 }
 

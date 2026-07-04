@@ -63,7 +63,7 @@ impl From<Expr> for NamedExpr {
         NamedExpr {
             id,
             name: SmallStr::from_string(format!("Named.{:?}", id)),
-            expr,
+            expr: expr.compile(),
         }
     }
 }

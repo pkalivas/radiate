@@ -50,6 +50,15 @@ impl RateSet {
         Ok(&self.rate_cache)
     }
 
+    pub fn calculate_control_rate(
+        &mut self,
+        generation: usize,
+        metrics: &MetricSet,
+    ) -> RadiateResult<f32> {
+        self.calculate_rates(generation, metrics)?;
+        Ok(self.rate_cache[0])
+    }
+
     pub fn rates(&self) -> &[f32] {
         &self.rate_cache
     }
@@ -92,6 +101,12 @@ impl Default for RateSet {
             last_update_index: 0,
             has_updated: false,
         }
+    }
+}
+
+impl From<Expr> for RateSet {
+    fn from(expr: Expr) -> Self {
+        Self::new(expr)
     }
 }
 

@@ -21,32 +21,40 @@ fn main() {
         (NodeType::Output, vec![Op::linear()]),
     ];
 
-    let add_node_expr = Expr::when(Expr::select("index").lt(2))
-        .then(0.1)
-        .otherwise(
-            Expr::when(
-                Expr::select("genome.size.score.corr")
-                    .rolling(20)
-                    .mean()
-                    .between(0.0, 0.1),
-            )
-            .then(0.05)
-            .otherwise(0.1),
+    let add_node_expr = Expr::when(Expr::select("index").lt(2)).then(0.1).otherwise(
+        Expr::when(
+            Expr::select("genome.size.score.corr")
+                .rolling(20)
+                .mean()
+                .between(0.0, 0.1),
         )
-        .alias("test");
+        .then(0.05)
+        .otherwise(0.1),
+    );
+
+    let target_size = 30.0_f32;
+
+    let size_ratio = Expr::select("genome.size")
+        .rolling(10)
+        .mean()
+        .div(target_size)
+        .clamp(1.0_f32, 5.0_f32); // 1x at target, up to 5x above
+
+    let vertex_rate = Expr::lit(0.1_f32).div(size_ratio.clone());
+    let edge_rate = Expr::lit(0.1_f32).div(size_ratio);
 
     let engine = GeneticEngine::builder()
         .codec(GraphCodec::directed(1, 1, store))
         .raw_batch_fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
         .parallel()
-        .metrics(add_node_expr)
+        .metrics(add_node_expr.clone().alias("test").clone())
         .diversity(NeatDistance::new(1.0, 1.0, 3.0))
         .target_species(target_species)
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
-            GraphMutator::new(0.1, 0.1).allow_recurrent(false)
+            GraphMutator::new(vertex_rate, edge_rate).allow_recurrent(false)
         ))
         .build();
 

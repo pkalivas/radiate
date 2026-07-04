@@ -1,7 +1,7 @@
 use crate::steps::EngineStep;
 use radiate_core::{
-    Chromosome, Ecosystem, Evaluate, Executor, Expr, MetricSet, Objective, Phenotype, Population,
-    Species, diversity::Diversity, math::distribution, metric_names, random_provider,
+    Chromosome, Ecosystem, Executor, MetricSet, Objective, Phenotype, Population, RateSet, Species,
+    diversity::Diversity, math::distribution, metric_names, random_provider,
 };
 use radiate_error::Result;
 use std::sync::{Arc, Mutex, RwLock};
@@ -12,7 +12,7 @@ pub struct SpeciateStep<C>
 where
     C: Chromosome,
 {
-    pub(crate) threshold: Expr,
+    pub(crate) threshold: RateSet,
     pub(crate) objective: Objective,
     pub(crate) distance: Arc<dyn Diversity<C>>,
     pub(crate) executor: Arc<Executor>,
@@ -22,13 +22,13 @@ where
 
 impl<C: Chromosome> SpeciateStep<C> {
     pub fn new(
-        threshold: Expr,
+        threshold: impl Into<RateSet>,
         objective: Objective,
         distance: Arc<dyn Diversity<C>>,
         executor: Arc<Executor>,
     ) -> Self {
         Self {
-            threshold,
+            threshold: threshold.into(),
             objective,
             distance,
             executor,
@@ -297,15 +297,7 @@ where
             return Ok(());
         }
 
-        let threshold = metrics
-            .get(metric_names::SPECIES_THRESHOLD)
-            .map(|v| v.last_value())
-            .unwrap_or(
-                self.threshold
-                    .eval(metrics)?
-                    .extract::<f32>()
-                    .unwrap_or(0.5),
-            );
+        let threshold = self.threshold.calculate_control_rate(generation, metrics)?;
         let mascots = Self::generate_mascots(ecosystem);
 
         self.distances.clear();
@@ -330,7 +322,6 @@ where
 
         metrics.upsert(metric_names::SPECIES_DISTANCE_DIST, &self.distances);
         metrics.upsert(metric_names::SPECIES_DIED, rm_species_count);
-        metrics.upsert(metric_names::SPECIES_THRESHOLD, threshold);
 
         Self::calc_species_metrics(generation, ecosystem, metrics);
 

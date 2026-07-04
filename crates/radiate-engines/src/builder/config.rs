@@ -1,19 +1,11 @@
 use crate::Chromosome;
 use crate::Generation;
-use crate::GeneticEngineBuilder;
 use crate::builder::EngineParams;
 use crate::builder::evaluators::EvaluationParams;
-use crate::builder::filters::FilterParams;
-use crate::builder::objectives::OptimizeParams;
-use crate::builder::population::PopulationParams;
-use crate::builder::problem::ProblemParams;
-use crate::builder::selectors::SelectionParams;
-use crate::builder::species::SpeciesParams;
 use crate::genome::phenotype::Phenotype;
 use crate::objectives::Objective;
 use crate::{EventHandler, Front, Problem, ReplacementStrategy, Select};
 use radiate_core::EcosystemFilter;
-use radiate_core::Expr;
 use radiate_core::rate::ExprSet;
 use radiate_core::{Alterer, Diversity, Ecosystem, Evaluator, Executor, Genotype};
 use std::sync::{Arc, Mutex, RwLock};
@@ -27,7 +19,6 @@ pub(crate) struct EngineConfig<C: Chromosome, T: Clone> {
     replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
     filters: Vec<Arc<Mutex<dyn EcosystemFilter<C>>>>,
     alterers: Vec<Alterer<C>>,
-    species_threshold: Expr,
     diversity: Option<Arc<dyn Diversity<C>>>,
     evaluator: Arc<dyn Evaluator<C, T>>,
     objective: Objective,
@@ -72,10 +63,6 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
 
     pub fn max_species_age(&self) -> usize {
         self.max_species_age
-    }
-
-    pub fn species_threshold(&self) -> Expr {
-        self.species_threshold.clone()
     }
 
     pub fn diversity(&self) -> Option<Arc<dyn Diversity<C>>> {
@@ -156,7 +143,6 @@ where
             objective: params.optimization_params.objectives.clone(),
             max_age: params.population_params.max_age,
             max_species_age: params.species_params.max_species_age,
-            species_threshold: params.species_params.species_threshold.clone(),
             diversity: params.species_params.diversity.clone(),
             front: Arc::new(RwLock::new(
                 params.optimization_params.front.clone().unwrap(),
@@ -168,59 +154,6 @@ where
             generation: params.generation.clone(),
             exprs: params.exprs.clone(),
             filters: params.filter_params.filters.clone(),
-        }
-    }
-}
-
-impl<C, T> From<EngineConfig<C, T>> for GeneticEngineBuilder<C, T>
-where
-    C: Chromosome + Clone + 'static,
-    T: Clone + Send + Sync + 'static,
-{
-    fn from(config: EngineConfig<C, T>) -> Self {
-        GeneticEngineBuilder {
-            params: EngineParams {
-                population_params: PopulationParams {
-                    population_size: config.ecosystem.population().len(),
-                    max_age: config.max_age,
-                    ecosystem: Some(config.ecosystem),
-                },
-                species_params: SpeciesParams {
-                    diversity: config.diversity,
-                    species_threshold: config.species_threshold,
-                    max_species_age: config.max_species_age,
-                    target_species_count: None,
-                },
-                evaluation_params: config.executor,
-                selection_params: SelectionParams {
-                    offspring_fraction: config.offspring_fraction,
-                    survivor_selector: config.survivor_selector,
-                    offspring_selector: config.offspring_selector,
-                },
-                optimization_params: OptimizeParams {
-                    objectives: config.objective,
-                    front_range: config.front.read().unwrap().range().clone(),
-                    front: Some(config.front.read().unwrap().clone()),
-                },
-                problem_params: ProblemParams {
-                    codec: None,
-                    problem: Some(config.problem),
-                    fitness_fn: None,
-                    batch_fitness_fn: None,
-                    raw_fitness_fn: None,
-                    raw_batch_fitness_fn: None,
-                },
-                filter_params: FilterParams {
-                    filters: config.filters,
-                },
-
-                replacement_strategy: config.replacement_strategy,
-                alterers: config.alterers,
-                handlers: config.handlers,
-                exprs: config.exprs,
-                generation: config.generation,
-            },
-            errors: Vec::new(),
         }
     }
 }
