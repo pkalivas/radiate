@@ -141,6 +141,10 @@ class Boolean(DataType):
     """Boolean data type."""
 
 
+class Usize(NumericType):
+    """Unsigned integer type representing the size of an object in memory."""
+
+
 class String(DataType):
     """UTF-8 encoded string type."""
 

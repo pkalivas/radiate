@@ -6,9 +6,9 @@ This version includes extensive logging to understand why
 the best solution behaves differently after evolution.
 """
 
-import radiate as rd
-import numpy as np
 import matplotlib.pyplot as plt  # type: ignore
+import numpy as np
+import radiate as rd
 from matplotlib.animation import FuncAnimation  # type: ignore
 
 rd.random.seed(514)

@@ -170,7 +170,7 @@ impl PyEngineBuilder {
                     return Ok(typed_builder);
                 }
 
-                Ok(typed_builder.register_metrics(metrics))
+                Ok(typed_builder.metrics(metrics))
             })
         )
     }

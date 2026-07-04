@@ -137,7 +137,7 @@ fn main() {
         .codec(FloatCodec::vector(10, -5.0..5.0))
         .minimizing()
         .fitness_fn(my_fitness_fn)
-        .register_metrics(vec![("score_trend", score_trend), ("score_cv", score_cv)])
+        .metrics(vec![("score_trend", score_trend), ("score_cv", score_cv)])
         .build();
 
     let result = engine.iter().limit(5000).last().unwrap();
@@ -154,7 +154,7 @@ fn main() {
         .codec(FloatCodec::vector(10, -5.0..5.0))
         .minimizing()
         .fitness_fn(my_fitness_fn)
-        .register_metrics(vec![(
+        .metrics(vec![(
             "score_trend",
             Expr::select("scores.best").rolling(50).slope(),
         )])

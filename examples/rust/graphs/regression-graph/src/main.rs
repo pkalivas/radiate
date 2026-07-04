@@ -3,7 +3,7 @@ use radiate::prelude::*;
 const MIN_SCORE: f32 = 0.001;
 
 fn main() {
-    random_provider::seed(90);
+    random_provider::seed(33);
 
     let store = vec![
         (NodeType::Input, vec![Op::var(0)]),
@@ -17,6 +17,7 @@ fn main() {
         .raw_batch_fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
         .offspring_selector(BoltzmannSelector::new(4.0))
+        .add_filter(UniqueScoreFilter::new(5, 0.01))
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
@@ -33,6 +34,9 @@ fn main() {
 }
 
 fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
+    // let dot = result.value().to_dot();
+    // // Save the DOT representation to a file
+    // std::fs::write("graph.dot", dot).expect("Unable to write DOT file");
     Accuracy::default()
         .named("Regression Graph")
         .on(&dataset().into())

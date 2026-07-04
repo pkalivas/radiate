@@ -7,8 +7,8 @@ This example demonstrates using the TreeCodec to solve a regression problem.
 We have a simple polynomial function and we want to evolve a graph that approximates it.
 """
 
-import radiate as rd
 import numpy as np
+import radiate as rd
 
 rd.random.seed(500)
 

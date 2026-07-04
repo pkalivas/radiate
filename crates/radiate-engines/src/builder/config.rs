@@ -11,6 +11,7 @@ use crate::builder::species::SpeciesParams;
 use crate::genome::phenotype::Phenotype;
 use crate::objectives::Objective;
 use crate::{EventHandler, Front, Problem, ReplacementStrategy, Select};
+use radiate_core::EcosystemFilter;
 use radiate_core::Expr;
 use radiate_core::MetricQuery;
 use radiate_core::metric_names;
@@ -24,6 +25,7 @@ pub(crate) struct EngineConfig<C: Chromosome, T: Clone> {
     survivor_selector: Arc<dyn Select<C>>,
     offspring_selector: Arc<dyn Select<C>>,
     replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
+    filters: Vec<Arc<Mutex<dyn EcosystemFilter<C>>>>,
     alterers: Vec<Alterer<C>>,
     species_threshold: Rate,
     diversity: Option<Arc<dyn Diversity<C>>>,
@@ -112,6 +114,10 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
         Arc::clone(&self.problem)
     }
 
+    pub fn filters(&self) -> &[Arc<Mutex<dyn EcosystemFilter<C>>>] {
+        &self.filters
+    }
+
     pub fn generation(&self) -> Option<Generation<C, T>>
     where
         C: Clone,
@@ -177,6 +183,7 @@ where
             handlers: params.handlers.clone(),
             generation: params.generation.clone(),
             exprs: params.exprs.clone(),
+            filters: params.filters.clone(),
         }
     }
 }
@@ -221,6 +228,7 @@ where
                 },
 
                 replacement_strategy: config.replacement_strategy,
+                filters: config.filters,
                 alterers: config.alterers,
                 handlers: config.handlers,
                 exprs: config.exprs,

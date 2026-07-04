@@ -18,3 +18,6 @@ engine = rd.Engine.int(5).fitness(fit).minimizing().limit(rd.Limit.generations(1
 
 for epoch in engine:
     print(epoch.index())
+
+for epoch in engine:
+    print(epoch.index())

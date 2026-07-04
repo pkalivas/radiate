@@ -2,14 +2,14 @@ use super::transaction::{InsertStep, TransactionResult};
 use super::{Graph, GraphChromosome};
 use crate::graphs::node::InnovationId;
 use crate::node::Node;
-use crate::{Arity, Factory, NodeType};
+use crate::{Factory, NodeType};
 use radiate_core::{AlterContext, Chromosome, SmallStr};
 use radiate_core::{AlterResult, Mutate, random_provider};
 use std::collections::HashMap;
 
-const SATURATED: SmallStr = SmallStr::from_static("mutate.graph.invalid.saturated");
-const NO_INSTANCE: SmallStr = SmallStr::from_static("mutate.graph.invalid.no_instance");
-const REJECTED: SmallStr = SmallStr::from_static("mutate.graph.invalid.rejected");
+const SATURATED: SmallStr = SmallStr::from_static("mutator.graph.invalid.saturated");
+const NO_INSTANCE: SmallStr = SmallStr::from_static("mutator.graph.invalid.no_instance");
+const REJECTED: SmallStr = SmallStr::from_static("mutator.graph.invalid.rejected");
 
 #[derive(Hash, Eq, PartialEq, Debug, Clone)]
 struct StructureChange {
@@ -157,15 +157,11 @@ where
 
             let result = random_provider::with_rng(|rand| {
                 graph.try_modify(|mut trans| {
-                    let needed_insertions = match new_node.arity() {
-                        Arity::Exact(n) => n,
-                        _ => 1,
-                    };
-
                     let target_idx = trans.random_target_node(rand).map(|n| n.index());
-                    let source_idx = (0..needed_insertions)
-                        .filter_map(|_| trans.random_source_node(rand).map(|n| n.index()))
-                        .collect::<Vec<usize>>();
+                    let source_idx = trans
+                        .unique_random_source_node(&new_node.arity(), rand)
+                        .map(|nodes| nodes.into_iter().map(|n| n.index()).collect::<Vec<usize>>())
+                        .unwrap_or_default();
 
                     let node_idx = trans.push(new_node);
 

@@ -18,7 +18,7 @@ fn float_codec() {
 
     // 3x2 matrix of floats - 3 Chromosomes each with 2 genes
     let codec_matrix: FloatCodec<f32, Vec<Vec<f32>>> =
-        FloatCodec::matrix(3, 2, -0.1..0.1).with_bounds(-1.0..1.0);
+        FloatCodec::matrix(vec![2, 2, 2], -0.1..0.1).with_bounds(-1.0..1.0);
     let encoded_matrix: Genotype<FloatChromosome<f32>> = codec_matrix.encode();
     let decoded_matrix: Vec<Vec<f32>> = codec_matrix.decode(&encoded_matrix);
 
@@ -59,7 +59,7 @@ fn int_codec() {
 
     // 3x2 matrix of ints - 3 Chromosomes each with 2 genes
     let codec_matrix: IntCodec<i16, Vec<Vec<i16>>> =
-        IntCodec::matrix(3, 2, -10..10).with_bounds(-100..100);
+        IntCodec::matrix(vec![2, 2, 2], -10..10).with_bounds(-100..100);
     let encoded_matrix: Genotype<IntChromosome<i16>> = codec_matrix.encode();
     let decoded_matrix: Vec<Vec<i16>> = codec_matrix.decode(&encoded_matrix);
 

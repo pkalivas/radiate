@@ -691,7 +691,7 @@ class Engine[G, T]:
     # ----------------------------
 
     @staticmethod
-    def permutation(items: list[T]) -> "Engine[T, list[T]]": ...
+    def permutation[P](items: list[P]) -> "Engine[P, list[P]]": ...
     @staticmethod
     def graph(
         shape: tuple[int, int],

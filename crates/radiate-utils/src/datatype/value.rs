@@ -225,6 +225,15 @@ impl<'a> AnyValue<'a> {
         match (self, to) {
             (_, D::Null) => Some(AnyValue::Null),
             (AnyValue::Bool(v), D::Boolean) => Some(AnyValue::Bool(v)),
+
+            (AnyValue::Null, D::List(_)) => Some(AnyValue::Vector(Vec::new())),
+            (AnyValue::Null, D::Boolean) => Some(AnyValue::Bool(false)),
+            (AnyValue::Null, D::String) => Some(AnyValue::StrOwned(String::new())),
+            (AnyValue::Null, D::Usize) => Some(AnyValue::Usize(0)),
+            (AnyValue::Null, D::Dict(_)) => Some(AnyValue::Dict(Vec::new())),
+            (AnyValue::Null, D::Struct(field, _)) => {
+                Some(AnyValue::Struct(field.clone(), Vec::new()))
+            }
             (v, D::UInt8) => v.extract().map(AnyValue::UInt8),
             (v, D::UInt16) => v.extract().map(AnyValue::UInt16),
             (v, D::UInt32) => v.extract().map(AnyValue::UInt32),
@@ -237,6 +246,7 @@ impl<'a> AnyValue<'a> {
             (v, D::Int128) => v.extract().map(AnyValue::Int128),
             (v, D::Float32) => v.extract().map(AnyValue::Float32),
             (v, D::Float64) => v.extract().map(AnyValue::Float64),
+            (v, D::Usize) => v.extract().map(AnyValue::Usize),
             (v, D::Duration) => v
                 .extract()
                 .map(|ms| AnyValue::Duration(Duration::from_millis(ms))),
@@ -244,6 +254,7 @@ impl<'a> AnyValue<'a> {
             (v @ AnyValue::Str(_), D::String) | (v @ AnyValue::StrOwned(_), D::String) => {
                 Some(v.into_static())
             }
+
             _ => None,
         }
     }

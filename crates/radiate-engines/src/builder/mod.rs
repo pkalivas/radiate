@@ -32,6 +32,7 @@ use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::MetricQuery;
 use radiate_core::evaluator::BatchFitnessEvaluator;
 use radiate_core::problem::{BatchEngineProblem, EngineProblem};
+use radiate_core::replacement::EcosystemFilter;
 use radiate_core::{Alterer, Ecosystem, Executor, FitnessEvaluator, Rate, Valid};
 use radiate_core::{RadiateError, ensure, radiate_err};
 use radiate_utils::VersionedCounts;
@@ -54,6 +55,7 @@ where
 
     pub alterers: Vec<Alterer<C>>,
     pub replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
+    pub filters: Vec<Arc<Mutex<dyn EcosystemFilter<C>>>>,
     pub handlers: Vec<Arc<Mutex<dyn EventHandler<T>>>>,
     pub generation: Option<Generation<C, T>>,
     pub exprs: Option<Arc<Mutex<Vec<MetricQuery>>>>,
@@ -104,6 +106,14 @@ where
         self
     }
 
+    /// Add a filter to the engine. The filter will be applied to the [Ecosystem] after the
+    /// [RecombineStep] and before the [FrontStep]. This allows you to filter
+    /// the population based on custom criteria, such as age, fitness, or any other metric.
+    pub fn add_filter<F: EcosystemFilter<C> + 'static>(mut self, filter: F) -> Self {
+        self.params.filters.push(Arc::new(Mutex::new(filter)));
+        self
+    }
+
     /// Subscribe to engine events with the given event handler.
     /// The event handler will be called whenever an event is emitted by the engine.
     /// You can use this to log events, or to perform custom actions
@@ -123,7 +133,9 @@ where
         self
     }
 
-    pub fn register_metrics(mut self, exprs: Vec<impl Into<MetricQuery>>) -> Self {
+    /// Set the metrics for the engine. This allows you to define custom metrics
+    /// that will be calculated during the evolution process.
+    pub fn metrics(mut self, exprs: Vec<impl Into<MetricQuery>>) -> Self {
         self.params.exprs = Some(Arc::new(Mutex::new(
             exprs.into_iter().map(|e| e.into()).collect(),
         )));
@@ -388,6 +400,7 @@ where
             encoder: config.encoder(),
             max_age: config.max_age(),
             max_species_age: config.max_species_age(),
+            filters: config.filters().to_vec(),
         };
 
         Some(Box::new(filter_step))
@@ -473,6 +486,7 @@ where
                 },
 
                 replacement_strategy: Arc::new(EncodeReplace),
+                filters: Vec::new(),
                 alterers: Vec::new(),
                 handlers: Vec::new(),
                 exprs: None,

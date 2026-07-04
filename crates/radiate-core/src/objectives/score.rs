@@ -106,6 +106,8 @@ impl Debug for Score {
     }
 }
 
+impl Eq for Score {}
+
 impl Hash for Score {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         let mut hash: usize = 0;

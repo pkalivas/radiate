@@ -42,6 +42,7 @@ from .dtype import (
     UInt32,
     UInt64,
     UInt128,
+    Usize,
 )
 from .engine import (
     CheckpointParam,
@@ -287,6 +288,7 @@ __all__ = [
     "Null",
     "List",
     "Dict",
+    "Usize",
     # dsl
     "Select",
     "Dist",

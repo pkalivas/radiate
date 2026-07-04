@@ -21,6 +21,10 @@ impl Expr {
         Expr::Unary(UnaryExpr::new(self, UnaryOp::Debug))
     }
 
+    pub fn coalesce(self, rhs: impl Into<Expr>) -> Expr {
+        Expr::Binary(BinaryExpr::new(self, rhs.into(), BinaryOp::Coalesce))
+    }
+
     pub fn rolling(self, window_size: usize) -> Expr {
         match self {
             Expr::Aggregate(agg) => {
@@ -329,7 +333,9 @@ impl_from_literal!(
 
     bool => Bool,
     char => Char,
-    String => Str
+    String => Str,
+
+    usize => Usize
 );
 
 impl<T> Add<T> for Expr

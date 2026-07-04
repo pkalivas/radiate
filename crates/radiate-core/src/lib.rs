@@ -34,7 +34,9 @@ pub use objectives::{Front, Objective, Optimize, Score, pareto};
 pub use problem::Problem;
 pub use radiate_utils::{AnyValue, DataType, SmallStr, dtype, dtype_names, value};
 pub use rate::Rate;
-pub use replacement::{EncodeReplace, PopulationSampleReplace, ReplacementStrategy};
+pub use replacement::{
+    EcosystemFilter, EncodeReplace, PopulationSampleReplace, ReplacementStrategy, UniqueScoreFilter,
+};
 pub use selector::Select;
 pub use stats::{
     Evaluate, Expr, Metric, MetricQuery, MetricSet, MetricUpdate, SelectExpr, metric_names,
@@ -62,7 +64,10 @@ pub mod prelude {
     };
     pub use super::objectives::{Front, Objective, Optimize, Score, pareto};
     pub use super::problem::Problem;
-    pub use super::replacement::{EncodeReplace, PopulationSampleReplace, ReplacementStrategy};
+    pub use super::replacement::{
+        EcosystemFilter, EncodeReplace, PopulationSampleReplace, ReplacementStrategy,
+        UniqueScoreFilter,
+    };
     pub use super::selector::Select;
     pub use super::stats::{
         Evaluate, Expr, Metric, MetricQuery, MetricSet, SelectExpr, metric_names,

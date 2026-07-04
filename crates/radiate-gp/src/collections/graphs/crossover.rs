@@ -127,7 +127,6 @@ where
         match gene_one.innovation().cmp(&gene_two.innovation()) {
             Ordering::Equal => {
                 if rand.bool(rate) {
-                    // let node_two = chromo_two.get(ib);
                     let node_one = chromo_one.get_mut(ia);
 
                     if let Some(node_one) = node_one
@@ -137,12 +136,6 @@ where
                         node_one.set_value(gene_two.value().clone());
                         crosses += 1;
                     }
-
-                    // if node_one.arity() == gene_two.arity() && node_one.value() != gene_two.value()
-                    // {
-                    //     node_one.set_value(gene_two.value().clone());
-                    //     crosses += 1;
-                    // }
                 }
 
                 ia += 1;

@@ -182,7 +182,7 @@ class Engine[G, T]:
         return Engine(codec=BitCodec(shape, use_numpy=use_numpy))
 
     @staticmethod
-    def permutation(items: list[T]) -> Engine[T, list[T]]:
+    def permutation[P](items: list[P]) -> Engine[P, list[P]]:
         """Create a genetic engine for optimizing permutations of a list of items."""
         return Engine(codec=PermutationCodec(items))
 
