@@ -48,6 +48,42 @@ pub fn panel_block(focused: bool) -> Block<'static> {
     }
 }
 
+/// Maps a 0–1 value to green / yellow / red (higher is better).
+/// Pass `1.0 - value` for lower-is-better metrics.
+pub fn sentiment_color(value: f32, warn: f32, good: f32) -> Color {
+    if value >= good {
+        material::GREEN.c400
+    } else if value >= warn {
+        material::YELLOW.c400
+    } else {
+        material::RED.c400
+    }
+}
+
+/// Green if `last` is meaningfully above `mean`, red if below, gray if flat.
+pub fn trend_color(last: f32, mean: f32) -> Color {
+    let eps = mean.abs() * 0.01 + f32::EPSILON;
+    if last > mean + eps {
+        material::GREEN.c200
+    } else if last < mean - eps {
+        material::RED.c200
+    } else {
+        material::GRAY.c500
+    }
+}
+
+/// ↑ / → / ↓ symbol for the last-vs-mean trend.
+pub fn trend_symbol(last: f32, mean: f32) -> &'static str {
+    let eps = mean.abs() * 0.01 + f32::EPSILON;
+    if last > mean + eps {
+        "↑"
+    } else if last < mean - eps {
+        "↓"
+    } else {
+        "→"
+    }
+}
+
 pub fn striped_rows<'a>(rows: impl IntoIterator<Item = Row<'a>>) -> impl Iterator<Item = Row<'a>> {
     rows.into_iter().enumerate().map(|(i, row)| {
         let bg = if i.is_multiple_of(2) {

@@ -30,6 +30,7 @@ from .distance import (
     NeatDistance,
 )
 from .executor import Executor
+from .filter import FilterBase, UniqueScoreFilter
 from .limit import (
     ConvergenceLimit,
     ExprLimit,
@@ -108,4 +109,7 @@ __all__ = [
     "ConvergenceLimit",
     "CustomDescriptor",
     "Rate",
+    # Filters
+    "FilterBase",
+    "UniqueScoreFilter",
 ]

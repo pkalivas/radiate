@@ -36,6 +36,7 @@ from ..operators.distance import (
     HammingDistance,
     NeatDistance,
 )
+from ..operators.filter import UniqueScoreFilter
 from ..operators.limit import (
     ConvergenceLimit,
     ExprLimit,
@@ -529,6 +530,21 @@ class Mutate:
         :param rate: The probability of mutating each gene in an individual.
         """
         return ArithmeticMutator(_get_rate(rate))
+
+
+class Filter:
+    @staticmethod
+    def unique_score(threshold: float = 0.01, max_stagnation: int = 10):
+        """
+        The `UniqueScoreFilter` is a filter that removes individuals from the population that have a score
+        that is too similar to other individuals. This can help to maintain diversity in the population and
+        prevent premature convergence by ensuring that the population does not become dominated by a single
+        solution.
+
+        :param threshold: The minimum difference in score between two individuals for them to be considered unique.
+        :param max_stagnation: The maximum number of generations an individual can remain in the population without being replaced.
+        """
+        return UniqueScoreFilter(threshold=threshold, max_stagnation=max_stagnation)
 
 
 class Limit:

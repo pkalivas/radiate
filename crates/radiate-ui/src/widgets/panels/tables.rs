@@ -4,7 +4,7 @@ use radiate_engines::stats::TagType;
 use radiate_engines::{Chromosome, MetricSet, Species, metric_names};
 use radiate_engines::{Metric, stats::fmt_duration};
 use ratatui::buffer::Buffer;
-use ratatui::text::Line;
+use ratatui::text::{Line, Span};
 use ratatui::widgets::StatefulWidget;
 use ratatui::widgets::{Scrollbar, ScrollbarOrientation, ScrollbarState};
 use ratatui::{
@@ -56,10 +56,10 @@ impl MetricTableKind {
     fn widths(&self) -> Vec<Constraint> {
         match self {
             Self::Time => vec![Constraint::Fill(1); 5],
-            Self::Stats => once(Constraint::Length(20))
+            Self::Stats => once(Constraint::Length(25))
                 .chain(repeat_n(Constraint::Fill(1), 5))
                 .collect(),
-            Self::Distribution => once(Constraint::Length(20))
+            Self::Distribution => once(Constraint::Length(25))
                 .chain(repeat_n(Constraint::Fill(1), 6))
                 .collect(),
         }
@@ -248,12 +248,19 @@ fn metrics_into_stat_rows<'a>(
 ) -> impl Iterator<Item = Row<'a>> {
     metrics.filter_map(|m| {
         m.stats().map(|stat| {
+            let last = stat.last();
+            let mean = stat.mean();
+            let color = crate::styles::trend_color(last, mean);
+            let symbol = crate::styles::trend_symbol(last, mean);
             Row::new(vec![
                 Cell::from(Line::from(m.name().to_string())),
-                Cell::from(format!("{:.2}", stat.last())),
+                Cell::from(Span::styled(
+                    format!("{} {:.2}", symbol, last),
+                    Style::default().fg(color),
+                )),
                 Cell::from(format!("{:.2}", stat.min())),
                 Cell::from(format!("{:.2}", stat.max())),
-                Cell::from(format!("{:.2}", stat.mean())),
+                Cell::from(format!("{:.2}", mean)),
                 Cell::from(format!("{}", stat.count())),
             ])
         })

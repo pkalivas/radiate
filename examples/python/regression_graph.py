@@ -33,6 +33,7 @@ engine = (
     )
     .select(rd.Select.boltzmann(temp=4.0))
     .regression(inputs, answers, loss=rd.MSE)
+    .filter(rd.Filter.unique_score())
     .alters(
         rd.Cross.graph(0.4, 0.5),
         rd.Mutate.op(0.07, 0.05),

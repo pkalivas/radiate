@@ -3,6 +3,7 @@ use crate::Generation;
 use crate::GeneticEngineBuilder;
 use crate::builder::EngineParams;
 use crate::builder::evaluators::EvaluationParams;
+use crate::builder::filters::FilterParams;
 use crate::builder::objectives::OptimizeParams;
 use crate::builder::population::PopulationParams;
 use crate::builder::problem::ProblemParams;
@@ -183,7 +184,7 @@ where
             handlers: params.handlers.clone(),
             generation: params.generation.clone(),
             exprs: params.exprs.clone(),
-            filters: params.filters.clone(),
+            filters: params.filter_params.filters.clone(),
         }
     }
 }
@@ -226,9 +227,11 @@ where
                     raw_fitness_fn: None,
                     raw_batch_fitness_fn: None,
                 },
+                filter_params: FilterParams {
+                    filters: config.filters,
+                },
 
                 replacement_strategy: config.replacement_strategy,
-                filters: config.filters,
                 alterers: config.alterers,
                 handlers: config.handlers,
                 exprs: config.exprs,

@@ -10,6 +10,7 @@ use pyo3::{Py, PyAny, pyclass, pymethods, types::PyAnyMethods};
 use radiate::prelude::*;
 use radiate_error::{ResultExt, radiate_py_bail, radiate_py_err};
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
 macro_rules! dispatch_builder_typed {
     // ------------------------------------------------------------
@@ -143,6 +144,7 @@ impl PyEngineBuilder {
             Generation => Self::process_generation(builder, inputs),
             Checkpoint => Self::process_checkpoint(builder, inputs),
             Metric => Self::process_metrics(builder, inputs),
+            Filter => Self::process_filters(builder, inputs),
             _ => Ok(builder),
         }
     }
@@ -171,6 +173,23 @@ impl PyEngineBuilder {
                 }
 
                 Ok(typed_builder.metrics(metrics))
+            })
+        )
+    }
+
+    fn process_filters(
+        builder: EngineBuilderHandle,
+        inputs: &[PyEngineInput],
+    ) -> PyResult<EngineBuilderHandle> {
+        dispatch_builder_typed!(
+            builder,
+            inputs,
+            Self::process_many_typed(|typed_builder, inputs| {
+                let filters = InputTransform::<
+                    RadiateResult<Vec<Arc<Mutex<dyn EcosystemFilter<_>>>>>,
+                >::transform(&inputs)
+                .context("Failed to transform filter input")?;
+                Ok(typed_builder.filters(filters))
             })
         )
     }
@@ -388,9 +407,9 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_many_typed(|typed_builder, alter_inputs| {
-                let alters = alter_inputs
-                    .transform()
-                    .context("Failed to transform alterers input")?;
+                let alters =
+                    InputTransform::<RadiateResult<Vec<Alterer<_>>>>::transform(&alter_inputs)
+                        .context("Failed to transform alterers input")?;
                 Ok(typed_builder.alter(alters))
             })
         )

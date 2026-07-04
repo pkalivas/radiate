@@ -20,7 +20,7 @@ from .codec import (
     PermutationCodec,
     TreeCodec,
 )
-from .dsl import Cross, Dist, Limit, Mutate, Select
+from .dsl import Cross, Dist, Filter, Limit, Mutate, Select
 from .dtype import (
     Boolean,
     Char,
@@ -295,6 +295,7 @@ __all__ = [
     "Mutate",
     "Cross",
     "Limit",
+    "Filter",
     # constants
     "MIN",
     "MAX",

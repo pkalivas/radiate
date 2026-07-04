@@ -26,6 +26,7 @@ from ..operators import (
     DistanceBase,
     Executor,
     ExprLimit,
+    FilterBase,
     LimitBase,
     Rate,
     SelectorBase,
@@ -697,6 +698,20 @@ class Engine[G, T]:
             else:
                 raise ValueError("Limits must be instances of LimitBase or Expr.")
         self._builder.set_limits(list(processed_limits))
+        return self
+
+    def filter(self, *filters: FilterBase) -> Engine[G, T]:
+        """
+        Set the filters for the engine.
+
+        This method allows you to specify one or more filters that will be applied during the evolution process.
+        Filters can be used to enforce constraints on the population, such as removing individuals that do not meet certain criteria.
+        If no filters are provided, the engine will not apply any filtering to the population.
+
+        Args:
+            *filters: One or more filters to apply during evolution.
+        """
+        self._builder.set_filters(list(filters))
         return self
 
     def size(self, size: int) -> Engine[G, T]:

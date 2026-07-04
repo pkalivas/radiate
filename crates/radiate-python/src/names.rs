@@ -48,6 +48,9 @@ pub(crate) const INVERSION_MUTATOR: &str = "InversionMutator";
 pub(crate) const POLYNOMIAL_MUTATOR: &str = "PolynomialMutator";
 pub(crate) const JITTER_MUTATOR: &str = "JitterMutator";
 
+// Filters
+pub(crate) const UNIQUE_SCORE_FILTER: &str = "UniqueScoreFilter";
+
 // Events
 pub(crate) const ALL_EVENTS: &str = "all";
 pub(crate) const START_EVENT: &str = "start_event";

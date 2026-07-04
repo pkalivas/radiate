@@ -13,6 +13,7 @@ from ..operators import (
     AlterBase,
     DistanceBase,
     Executor,
+    FilterBase,
     LimitBase,
     Rate,
     RouletteSelector,
@@ -315,6 +316,19 @@ class EngineBuilder[G, T]:
                     input_type=EngineInputType.Limit,
                     component=limit.component,
                     **limit.args,
+                )
+            )
+
+    def set_filters(self, filters: list[FilterBase] | None):
+        if filters is None:
+            return
+
+        for filter in filters:
+            self._inputs.append(
+                EngineInput(
+                    input_type=EngineInputType.Filter,
+                    component=filter.component,
+                    **filter.args,
                 )
             )
 

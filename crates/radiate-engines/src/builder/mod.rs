@@ -1,6 +1,7 @@
 mod alters;
 pub(crate) mod config;
 mod evaluators;
+mod filters;
 mod objectives;
 mod population;
 mod problem;
@@ -8,6 +9,7 @@ mod selectors;
 mod species;
 
 use crate::builder::evaluators::EvaluationParams;
+use crate::builder::filters::FilterParams;
 use crate::builder::objectives::OptimizeParams;
 use crate::builder::population::PopulationParams;
 use crate::builder::problem::ProblemParams;
@@ -32,7 +34,6 @@ use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::MetricQuery;
 use radiate_core::evaluator::BatchFitnessEvaluator;
 use radiate_core::problem::{BatchEngineProblem, EngineProblem};
-use radiate_core::replacement::EcosystemFilter;
 use radiate_core::{Alterer, Ecosystem, Executor, FitnessEvaluator, Rate, Valid};
 use radiate_core::{RadiateError, ensure, radiate_err};
 use radiate_utils::VersionedCounts;
@@ -52,10 +53,10 @@ where
     pub selection_params: SelectionParams<C>,
     pub optimization_params: OptimizeParams<C>,
     pub problem_params: ProblemParams<C, T>,
+    pub filter_params: FilterParams<C>,
 
     pub alterers: Vec<Alterer<C>>,
     pub replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
-    pub filters: Vec<Arc<Mutex<dyn EcosystemFilter<C>>>>,
     pub handlers: Vec<Arc<Mutex<dyn EventHandler<T>>>>,
     pub generation: Option<Generation<C, T>>,
     pub exprs: Option<Arc<Mutex<Vec<MetricQuery>>>>,
@@ -103,14 +104,6 @@ where
     /// be using the `Codec` to encode a new individual from scratch.
     pub fn replace_strategy<R: ReplacementStrategy<C> + 'static>(mut self, replace: R) -> Self {
         self.params.replacement_strategy = Arc::new(replace);
-        self
-    }
-
-    /// Add a filter to the engine. The filter will be applied to the [Ecosystem] after the
-    /// [RecombineStep] and before the [FrontStep]. This allows you to filter
-    /// the population based on custom criteria, such as age, fitness, or any other metric.
-    pub fn add_filter<F: EcosystemFilter<C> + 'static>(mut self, filter: F) -> Self {
-        self.params.filters.push(Arc::new(Mutex::new(filter)));
         self
     }
 
@@ -484,9 +477,11 @@ where
                     raw_fitness_fn: None,
                     raw_batch_fitness_fn: None,
                 },
+                filter_params: FilterParams {
+                    filters: Vec::new(),
+                },
 
                 replacement_strategy: Arc::new(EncodeReplace),
-                filters: Vec::new(),
                 alterers: Vec::new(),
                 handlers: Vec::new(),
                 exprs: None,

@@ -11,7 +11,14 @@ from radiate.expr import Expr
 from radiate.fitness import MSE, FitnessBase
 from radiate.genome import Chromosome, Gene, Population
 from radiate.gp import Graph, Op, Tree
-from radiate.operators import AlterBase, DistanceBase, LimitBase, Rate, SelectorBase
+from radiate.operators import (
+    AlterBase,
+    DistanceBase,
+    FilterBase,
+    LimitBase,
+    Rate,
+    SelectorBase,
+)
 
 from .generation import Generation
 from .option import CheckpointParam, LogParam, UiParam
@@ -760,6 +767,7 @@ class Engine[G, T]:
         target_species: int | None = None,
     ) -> Self: ...
     def limit(self, *limits: LimitBase | Expr) -> Self: ...
+    def filter(self, *filters: FilterBase) -> Self: ...
     def size(self, size: int) -> Self: ...
     def age(
         self,

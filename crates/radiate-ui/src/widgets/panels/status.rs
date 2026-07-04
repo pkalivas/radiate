@@ -4,7 +4,7 @@ use crate::widgets::{AppWidget, FnWidget, MetricDetailPanelWidget, Panel, TabCom
 use radiate_engines::stats::fmt_duration;
 use radiate_engines::{Chromosome, MetricSet};
 use ratatui::prelude::*;
-use ratatui::style::{Color, Stylize};
+use ratatui::style::{Color, Style, Stylize};
 use ratatui::widgets::{Paragraph, Row, Table};
 
 pub struct EngineStatusPanelWidget;
@@ -116,28 +116,71 @@ impl<C: Chromosome> AppWidget<C> for MetricModalWidget {
 
 fn get_multi_objective_summaries(metrics: &MetricSet) -> Vec<Row<'static>> {
     let diversity = metrics.diversity_ratio().map(|m| m.mean()).unwrap_or(0.0);
+    let diversity_last = metrics
+        .diversity_ratio()
+        .map(|m| m.last_value())
+        .unwrap_or(diversity);
     let carryover = metrics.carryover_rate().map(|m| m.mean()).unwrap_or(0.0);
+    let carryover_last = metrics
+        .carryover_rate()
+        .map(|m| m.last_value())
+        .unwrap_or(carryover);
     let unique_members = metrics.unique_members().map(|m| m.mean()).unwrap_or(0.0);
+    let unique_last = metrics
+        .unique_members()
+        .map(|m| m.last_value())
+        .unwrap_or(unique_members);
     let improvements = metrics.improvements().map(|m| m.count()).unwrap_or(0);
     let survivor_count = metrics.survivor_count().map(|m| m.mean()).unwrap_or(0.0);
     let new_children = metrics.new_children().map(|m| m.mean()).unwrap_or(0.0);
     let front_size = metrics.front_size().map(|m| m.mean()).unwrap_or(0.0);
     let front_entropy = metrics.front_entropy().map(|m| m.mean()).unwrap_or(0.0);
+    let front_entropy_last = metrics
+        .front_entropy()
+        .map(|m| m.last_value())
+        .unwrap_or(front_entropy);
     let metric_meta = metrics.summary();
 
-    let rows = vec![
-        Row::new(vec!["Improvements".bold(), improvements.to_string().into()]),
+    vec![
+        Row::new(vec![
+            "Improvements".bold(),
+            Span::styled(
+                improvements.to_string(),
+                Style::default().fg(if improvements > 0 {
+                    Color::LightGreen
+                } else {
+                    Color::Red
+                }),
+            ),
+        ]),
         Row::new(vec![
             "Diversity".bold(),
-            format!("{:.2}%", diversity * 100.0).into(),
+            Span::styled(
+                format!(
+                    "{} {:.2}%",
+                    crate::styles::trend_symbol(diversity_last, diversity),
+                    diversity * 100.0
+                ),
+                Style::default().fg(crate::styles::sentiment_color(diversity, 0.1, 0.3)),
+            ),
         ]),
         Row::new(vec![
             "Carryover".bold(),
-            format!("{:.2}%", carryover * 100.0).into(),
+            Span::styled(
+                format!(
+                    "{} {:.2}%",
+                    crate::styles::trend_symbol(carryover, carryover_last), // inverted: rising carryover is bad
+                    carryover * 100.0
+                ),
+                Style::default().fg(crate::styles::sentiment_color(1.0 - carryover, 0.2, 0.5)),
+            ),
         ]),
         Row::new(vec![
             "Unique Members".bold(),
-            format!("{:.2}", unique_members).into(),
+            Span::styled(
+                format!("{:.2}", unique_members),
+                Style::default().fg(crate::styles::trend_color(unique_last, unique_members)),
+            ),
         ]),
         Row::new(vec![
             "Front Size".bold(),
@@ -145,7 +188,13 @@ fn get_multi_objective_summaries(metrics: &MetricSet) -> Vec<Row<'static>> {
         ]),
         Row::new(vec![
             "Front Entropy".bold(),
-            format!("{:.4}", front_entropy).into(),
+            Span::styled(
+                format!("{:.4}", front_entropy),
+                Style::default().fg(crate::styles::trend_color(
+                    front_entropy_last,
+                    front_entropy,
+                )),
+            ),
         ]),
         Row::new(vec![
             "Survivor / Gen.".bold(),
@@ -165,38 +214,88 @@ fn get_multi_objective_summaries(metrics: &MetricSet) -> Vec<Row<'static>> {
                 .to_string()
                 .into(),
         ]),
-    ];
-
-    rows
+    ]
 }
 
 fn get_single_objective_summaries(metrics: &MetricSet) -> Vec<Row<'static>> {
     let diversity = metrics.diversity_ratio().map(|m| m.mean()).unwrap_or(0.0);
+    let diversity_last = metrics
+        .diversity_ratio()
+        .map(|m| m.last_value())
+        .unwrap_or(diversity);
     let carryover = metrics.carryover_rate().map(|m| m.mean()).unwrap_or(0.0);
+    let carryover_last = metrics
+        .carryover_rate()
+        .map(|m| m.last_value())
+        .unwrap_or(carryover);
     let unique_members = metrics.unique_members().map(|m| m.mean()).unwrap_or(0.0);
+    let unique_members_last = metrics
+        .unique_members()
+        .map(|m| m.last_value())
+        .unwrap_or(unique_members);
     let unique_scores = metrics.unique_scores().map(|m| m.mean()).unwrap_or(0.0);
+    let unique_scores_last = metrics
+        .unique_scores()
+        .map(|m| m.last_value())
+        .unwrap_or(unique_scores);
     let improvements = metrics.improvements().map(|m| m.count()).unwrap_or(0);
     let survivor_count = metrics.survivor_count().map(|m| m.mean()).unwrap_or(0.0);
     let new_children = metrics.new_children().map(|m| m.mean()).unwrap_or(0.0);
     let metric_meta = metrics.summary();
 
-    let rows = vec![
-        Row::new(vec!["Improvements".bold(), improvements.to_string().into()]),
+    vec![
+        Row::new(vec![
+            "Improvements".bold(),
+            Span::styled(
+                improvements.to_string(),
+                Style::default().fg(if improvements > 0 {
+                    Color::LightGreen
+                } else {
+                    Color::Red
+                }),
+            ),
+        ]),
         Row::new(vec![
             "Diversity".bold(),
-            format!("{:.2}%", diversity * 100.0).into(),
+            Span::styled(
+                format!(
+                    "{} {:.2}%",
+                    crate::styles::trend_symbol(diversity_last, diversity),
+                    diversity * 100.0
+                ),
+                Style::default().fg(crate::styles::sentiment_color(diversity, 0.1, 0.3)),
+            ),
         ]),
         Row::new(vec![
             "Carryover".bold(),
-            format!("{:.2}%", carryover * 100.0).into(),
+            Span::styled(
+                format!(
+                    "{} {:.2}%",
+                    crate::styles::trend_symbol(carryover, carryover_last), // inverted: rising carryover is bad
+                    carryover * 100.0
+                ),
+                Style::default().fg(crate::styles::sentiment_color(1.0 - carryover, 0.2, 0.5)),
+            ),
         ]),
         Row::new(vec![
             "Unique Members".bold(),
-            format!("{:.2}", unique_members).into(),
+            Span::styled(
+                format!("{:.2}", unique_members),
+                Style::default().fg(crate::styles::trend_color(
+                    unique_members_last,
+                    unique_members,
+                )),
+            ),
         ]),
         Row::new(vec![
             "Unique Scores".bold(),
-            format!("{:.2}", unique_scores).into(),
+            Span::styled(
+                format!("{:.2}", unique_scores),
+                Style::default().fg(crate::styles::trend_color(
+                    unique_scores_last,
+                    unique_scores,
+                )),
+            ),
         ]),
         Row::new(vec![
             "Survivor / Gen.".bold(),
@@ -216,9 +315,7 @@ fn get_single_objective_summaries(metrics: &MetricSet) -> Vec<Row<'static>> {
                 .to_string()
                 .into(),
         ]),
-    ];
-
-    rows
+    ]
 }
 
 fn format_thousands(n: usize) -> String {

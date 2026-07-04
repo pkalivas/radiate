@@ -30,6 +30,7 @@ class EngineInputType(Enum):
     Codec = "Codec"
     FitnessFunction = "FitnessFunction"
     Metric = "Metric"
+    Filter = "Filter"
 
 
 input_type_mapping = {
@@ -53,6 +54,7 @@ input_type_mapping = {
     EngineInputType.Codec: PyEngineInputType.Codec,
     EngineInputType.FitnessFunction: PyEngineInputType.FitnessFunction,
     EngineInputType.Metric: PyEngineInputType.Metric,
+    EngineInputType.Filter: PyEngineInputType.Filter,
 }
 
 
