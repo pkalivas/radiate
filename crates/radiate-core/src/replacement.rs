@@ -102,7 +102,7 @@ impl<C: Chromosome> EcosystemFilter<C> for UniqueScoreFilter {
         };
 
         if !bool {
-            metrics.upsert(metric_names::FILTER_REPLACED, 0);
+            metrics.upsert(metric_names::FILTER_UNIQUE_SCORES, 0);
             return Ok(());
         }
 
@@ -127,7 +127,7 @@ impl<C: Chromosome> EcosystemFilter<C> for UniqueScoreFilter {
             }
         }
 
-        metrics.upsert(metric_names::FILTER_REPLACED, replaced_count);
+        metrics.upsert(metric_names::FILTER_UNIQUE_SCORES, replaced_count);
 
         Ok(())
     }

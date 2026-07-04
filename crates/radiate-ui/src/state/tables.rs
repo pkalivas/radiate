@@ -8,6 +8,7 @@ pub struct TableStates {
     pub stats: AppTableState<SmallStr>,
     pub dist: AppTableState<SmallStr>,
     pub species: AppTableState<SpeciesId>,
+    pub log: AppTableState<usize>,
 }
 
 impl TableStates {
@@ -17,7 +18,7 @@ impl TableStates {
             DashboardTab::Time => Self::scroll_down(&mut self.time),
             DashboardTab::Distribution => Self::scroll_down(&mut self.dist),
             DashboardTab::Species => Self::scroll_down(&mut self.species),
-            DashboardTab::Events => {}
+            DashboardTab::Events => Self::scroll_down(&mut self.log),
         }
     }
 
@@ -27,7 +28,7 @@ impl TableStates {
             DashboardTab::Time => Self::scroll_up(&mut self.time),
             DashboardTab::Distribution => Self::scroll_up(&mut self.dist),
             DashboardTab::Species => Self::scroll_up(&mut self.species),
-            DashboardTab::Events => {}
+            DashboardTab::Events => Self::scroll_up(&mut self.log),
         }
     }
 
@@ -81,6 +82,7 @@ impl Default for TableStates {
             stats: AppTableState::new(),
             dist: AppTableState::new(),
             species: AppTableState::new(),
+            log: AppTableState::new(),
         }
     }
 }

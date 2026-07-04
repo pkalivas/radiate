@@ -27,7 +27,7 @@ pub const SELECTED_GREEN: Color = material::GREEN.c300;
 pub const BORDER_GREEN: Color = material::GREEN.c400;
 
 pub fn alternating_row_style(index: usize) -> ratatui::style::Style {
-    if index.is_multiple_of(2) {
+    if index.is_multiple_of(100) {
         ratatui::style::Style::new().bg(BG_COLOR).fg(TEXT_FG_COLOR)
     } else {
         ratatui::style::Style::new()
@@ -40,6 +40,7 @@ pub fn selected_item_style() -> ratatui::style::Style {
     ratatui::style::Style::new()
         .fg(SELECTED_GREEN)
         .bg(material::BLACK)
+        .add_modifier(ratatui::style::Modifier::BOLD)
         .reversed()
 }
 

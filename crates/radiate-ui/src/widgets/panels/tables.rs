@@ -131,8 +131,14 @@ impl<C: Chromosome> AppWidget<C> for MetricTableWidget {
             .block(border_style)
             .header(header_row(self.kind.headers()))
             .rows(striped_rows(rows))
-            .row_highlight_style(crate::styles::selected_item_style())
-            .highlight_spacing(ratatui::widgets::HighlightSpacing::Always)
+            .column_spacing(1)
+            .style(Color::White)
+            .row_highlight_style(Style::new().on_black().bold())
+            .column_highlight_style(Color::Gray)
+            .cell_highlight_style(Style::new().reversed().yellow())
+            // .row_highlight_style(crate::styles::selected_item_style())
+            // .highlight_spacing(ratatui::widgets::HighlightSpacing::Always)
+            .highlight_symbol(">> ")
             .widths(self.kind.widths());
 
         match self.kind {
@@ -189,7 +195,7 @@ impl<C: Chromosome> AppWidget<C> for SpeciesTableWidget {
 
 // --- Shared helpers ---
 
-fn render_scrollable_table<T>(
+pub(super) fn render_scrollable_table<T>(
     buf: &mut Buffer,
     area: Rect,
     table: Table,
@@ -318,13 +324,15 @@ fn species_into_rows<'a, C: Chromosome>(
     })
 }
 
-fn striped_rows<'a>(rows: impl IntoIterator<Item = Row<'a>>) -> impl Iterator<Item = Row<'a>> {
+pub(super) fn striped_rows<'a>(
+    rows: impl IntoIterator<Item = Row<'a>>,
+) -> impl Iterator<Item = Row<'a>> {
     rows.into_iter()
         .enumerate()
         .map(|(i, row)| row.style(crate::styles::alternating_row_style(i)))
 }
 
-fn header_row<'a>(cols: &'a [&str]) -> Row<'a> {
+pub(super) fn header_row<'a>(cols: &'a [&str]) -> Row<'a> {
     Row::new(cols.iter().copied().map(Cell::from))
         .height(1)
         .style(Style::default().bold().underlined().fg(Color::White))

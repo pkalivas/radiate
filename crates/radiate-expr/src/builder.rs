@@ -44,6 +44,16 @@ impl Expr {
         }
     }
 
+    /// Override the minimum number of samples required before the rolling aggregate
+    /// emits a value. Defaults to the window size when `.rolling(n)` is called.
+    /// Use `.min_samples(1)` to restore partial-window behavior.
+    pub fn min_samples(self, n: usize) -> Expr {
+        match self.kind {
+            ExprKind::Aggregate(agg) => Expr::new(ExprKind::Aggregate(agg.min_samples(n))),
+            _ => self,
+        }
+    }
+
     pub fn first(self) -> Expr {
         self.try_reduce_select_agg_rollup_or(MetricField::LastValue, Rollup::First, |expr| {
             Expr::new(ExprKind::Aggregate(AggExpr::new(expr, Rollup::First)))

@@ -29,6 +29,7 @@ pub struct AggExpr {
     pub(crate) child: Box<Expr>,
     pub(crate) rollup: Rollup,
     pub(crate) buffer: Option<WindowBuffer<AnyValue<'static>>>,
+    pub(crate) min_samples: usize,
 }
 
 impl AggExpr {
@@ -37,11 +38,18 @@ impl AggExpr {
             child: Box::new(child),
             rollup,
             buffer: None,
+            min_samples: 0,
         }
     }
 
     pub fn rolling(mut self, window_size: usize) -> Self {
         self.buffer = Some(WindowBuffer::with_capacity(window_size));
+        self.min_samples = window_size;
+        self
+    }
+
+    pub fn min_samples(mut self, n: usize) -> Self {
+        self.min_samples = n;
         self
     }
 
@@ -142,6 +150,11 @@ where
             }
 
             buffer.push(child_output.into_static());
+
+            if buffer.values().len() < self.min_samples {
+                return Ok(AnyValue::Null);
+            }
+
             return Self::compute_rollup(buffer.values(), &mut self.rollup, dtype);
         }
 

@@ -4,7 +4,7 @@ use crate::widgets::num_pairs;
 use radiate_engines::{
     Chromosome, Ecosystem, Front, MetricSet, Objective, Optimize, Phenotype, Score, Species,
 };
-use std::collections::VecDeque;
+use radiate_utils::WindowBuffer;
 use std::sync::{Arc, RwLock};
 
 const MAX_IMPROVEMENT_LOG: usize = 500;
@@ -33,14 +33,16 @@ pub struct EvoState<C: Chromosome> {
     pub score: Score,
     pub best_score: Score,
     pub pareto: ObjectiveState,
-    pub improvement_log: VecDeque<ImprovementEntry>,
+    pub improvement_log: WindowBuffer<ImprovementEntry>,
 }
 
 impl<C: Chromosome> EvoState<C> {
-    pub fn record_improvement(&mut self, new_score: &Score) {
+    pub fn update_score(&mut self, new_score: Score) {
         if self.score.is_empty() {
+            self.score = new_score.clone();
             return;
         }
+
         let prev = self.score.as_f32();
         let next = new_score.as_f32();
         let delta = match &self.pareto.objective {
@@ -49,15 +51,18 @@ impl<C: Chromosome> EvoState<C> {
         };
         if delta > 0.0 {
             self.best_score = new_score.clone();
-            if self.improvement_log.len() >= MAX_IMPROVEMENT_LOG {
-                self.improvement_log.pop_back();
-            }
-            self.improvement_log.push_front(ImprovementEntry {
+            self.improvement_log.push(ImprovementEntry {
                 generation: self.index,
                 score: next,
                 delta,
             });
         }
+
+        self.score = new_score;
+    }
+
+    pub fn update_index(&mut self, index: usize) {
+        self.index = index;
     }
 
     pub fn update_ecosystem(&mut self, ecosystem: Ecosystem<C>)
@@ -149,7 +154,7 @@ impl<C: Chromosome> Default for EvoState<C> {
             index: 0,
             score: Score::default(),
             best_score: Score::default(),
-            improvement_log: VecDeque::new(),
+            improvement_log: WindowBuffer::with_capacity(MAX_IMPROVEMENT_LOG),
             pareto: ObjectiveState {
                 objective: Objective::Single(Optimize::Maximize),
                 charts_visible: 2,

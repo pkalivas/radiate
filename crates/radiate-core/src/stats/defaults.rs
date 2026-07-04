@@ -12,7 +12,7 @@ pub mod metric_names {
     pub const REPLACE_AGE: SmallStr = SmallStr::from_static("replace.age");
     pub const REPLACE_INVALID: SmallStr = SmallStr::from_static("replace.invalid");
 
-    pub const FILTER_REPLACED: SmallStr = SmallStr::from_static("filter.replaced");
+    pub const FILTER_UNIQUE_SCORES: SmallStr = SmallStr::from_static("filter.unique.scores");
 
     pub const SPECIES_AGE: SmallStr = SmallStr::from_static("species.age");
     pub const SPECIES_AGE_FAIL: SmallStr = SmallStr::from_static("species.fail.age");
@@ -181,7 +181,7 @@ const EXACT_TAGS: &[(&SmallStr, &[TagType])] = &[
     ),
     //
     (
-        &metric_names::FILTER_REPLACED,
+        &metric_names::FILTER_UNIQUE_SCORES,
         &[TagType::Derived, TagType::Failure],
     ),
     //
