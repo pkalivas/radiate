@@ -39,6 +39,8 @@ pub struct MetricStep {
     gini_names: Vec<SmallStr>,
     corr_names: Vec<SmallStr>,
     best_score_names: Vec<SmallStr>,
+
+    stagnation_count: usize,
 }
 
 impl MetricStep {
@@ -123,6 +125,13 @@ impl MetricStep {
             best_improved = true;
         }
 
+        if best_improved {
+            self.stagnation_count = 0;
+        } else {
+            self.stagnation_count += 1;
+        }
+
+        metrics.upsert(metric_names::STAGNATION_COUNT, self.stagnation_count);
         metrics.upsert(metric_names::BEST_SCORE_IMPROVEMENT, best_improved);
 
         if let Some(score) = &self.best_score {

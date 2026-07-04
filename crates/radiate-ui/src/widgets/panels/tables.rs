@@ -15,7 +15,7 @@ use ratatui::{
 use std::iter::{once, repeat_n};
 
 pub const STAT_HEADER_CELLS: [&str; 6] = ["Metric", "Last", "Min", "Max", "μ (mean)", "Count"];
-pub const TIME_HEADER_CELLS: [&str; 6] = ["Metric", "Min", "Max", "μ (mean)", "Total", "Std Dev"];
+pub const TIME_HEADER_CELLS: [&str; 5] = ["Metric", "Total", "μ (mean)", "Min", "Max"];
 pub const SPECIES_HEADER_CELLS: [&str; 6] =
     ["ID", "Age", "Size", "Gen. Stag", "Raw Score", "Adj. Score"];
 pub const DIST_HEADER_CELLS: [&str; 7] = [
@@ -56,7 +56,7 @@ impl MetricTableKind {
     fn widths(&self) -> Vec<Constraint> {
         match self {
             Self::Time => once(Constraint::Length(25))
-                .chain(repeat_n(Constraint::Fill(1), 5))
+                .chain(repeat_n(Constraint::Fill(1), 4))
                 .collect(),
             Self::Stats => once(Constraint::Length(25))
                 .chain(repeat_n(Constraint::Fill(1), 5))
@@ -76,7 +76,10 @@ impl MetricTableKind {
 
     fn build_rows<'a>(&self, items: impl Iterator<Item = &'a Metric>) -> Vec<Row<'a>> {
         match self {
-            Self::Time => metric_to_time_rows(items).collect(),
+            Self::Time => {
+                let v = items.collect::<Vec<_>>();
+                metric_to_time_rows(&v)
+            }
             Self::Stats => metrics_into_stat_rows(items).collect(),
             Self::Distribution => metrics_into_dist_rows(items).collect(),
         }
@@ -235,21 +238,35 @@ pub fn tagged_metrics<'a, C: Chromosome>(
 
 // --- Row builders ---
 
-fn metric_to_time_rows<'a>(
-    metrics: impl Iterator<Item = &'a Metric>,
-) -> impl Iterator<Item = Row<'a>> {
-    metrics.filter_map(|m| {
-        m.times().map(|time| {
-            Row::new(vec![
-                Cell::from(m.name().to_string()),
-                Cell::from(fmt_duration(time.min())),
-                Cell::from(fmt_duration(time.max())),
-                Cell::from(fmt_duration(time.mean())),
-                Cell::from(fmt_duration(time.sum())),
-                Cell::from(fmt_duration(time.stddev())),
-            ])
+fn metric_to_time_rows<'a>(metrics: &[&'a Metric]) -> Vec<Row<'a>> {
+    let max_nanos = metrics
+        .iter()
+        .filter_map(|m| m.times().map(|t| t.sum().as_nanos()))
+        .fold(0u128, u128::max);
+
+    metrics
+        .iter()
+        .filter_map(|m| {
+            m.times().map(|time| {
+                let total = time.sum();
+                let ratio = if max_nanos > 0 {
+                    (total.as_nanos() as f32 / max_nanos as f32).clamp(0.0, 1.0)
+                } else {
+                    0.0
+                };
+                Row::new(vec![
+                    Cell::from(m.name().to_string()),
+                    Cell::from(Span::styled(
+                        fmt_duration(total),
+                        Style::default().fg(crate::styles::sentiment_color(1.0 - ratio, 0.2, 0.6)),
+                    )),
+                    Cell::from(fmt_duration(time.mean())),
+                    Cell::from(fmt_duration(time.min())),
+                    Cell::from(fmt_duration(time.max())),
+                ])
+            })
         })
-    })
+        .collect()
 }
 
 fn metrics_into_stat_rows<'a>(

@@ -38,6 +38,7 @@ pub mod metric_names {
 
     pub const SURVIVOR_COUNT: SmallStr = SmallStr::from_static("count.survivor");
     pub const EVALUATION_COUNT: SmallStr = SmallStr::from_static("count.evaluation");
+    pub const STAGNATION_COUNT: SmallStr = SmallStr::from_static("count.stagnation");
 
     pub const CARRYOVER_RATE: SmallStr = SmallStr::from_static("rate.carryover");
     pub const DIVERSITY_RATIO: SmallStr = SmallStr::from_static("rate.diversity");

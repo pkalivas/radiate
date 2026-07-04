@@ -5,8 +5,8 @@ use radiate_engines::{Chromosome, Objective, Optimize};
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Rect};
 use ratatui::style::{Color, Style};
-use ratatui::text::{Line, Span};
-use ratatui::widgets::{Cell, HighlightSpacing, Row, Table};
+use ratatui::text::Span;
+use ratatui::widgets::{Cell, Row, Table};
 
 const HEADER: [&str; 4] = ["   Gen", "Score", "Δ", ""];
 
@@ -28,7 +28,7 @@ impl<C: Chromosome> AppWidget<C> for ImprovementLogWidget {
             .log
             .update_rows(log.as_slice(), |entry| entry.generation);
 
-        let rows = log
+        let mut rows = log
             .iter()
             .map(|entry| {
                 let bar = delta_bar(entry.delta, max_delta, 10);
@@ -54,14 +54,9 @@ impl<C: Chromosome> AppWidget<C> for ImprovementLogWidget {
             })
             .collect::<Vec<_>>();
 
-        let count = log.len();
-        let focused = state.nav.is_pane_focused(Pane::List);
-        let title = Line::from(vec![
-            Span::raw(" Events "),
-            Span::styled(format!("({count})"), Style::default().fg(Color::DarkGray)),
-            Span::raw(" "),
-        ]);
+        rows.reverse();
 
+        let focused = state.nav.is_pane_focused(Pane::List);
         let border_style = crate::styles::panel_block(focused);
 
         let table = Table::default()

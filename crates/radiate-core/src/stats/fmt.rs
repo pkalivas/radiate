@@ -216,11 +216,11 @@ pub fn fmt_duration(d: Duration) -> String {
     } else if ns < 1_000 {
         format!("{ns}ns")
     } else if ns < 1_000_000 {
-        format!("{:.3}µs", ns as f64 / 1e3)
+        format!("{:.2}µs", ns as f64 / 1e3)
     } else if ns < 1_000_000_000 {
-        format!("{:.3}ms", ns as f64 / 1e6)
+        format!("{:.2}ms", ns as f64 / 1e6)
     } else {
-        format!("{:.3}s", ns as f64 / 1e9)
+        format!("{:.2}s", ns as f64 / 1e9)
     }
 }
 
