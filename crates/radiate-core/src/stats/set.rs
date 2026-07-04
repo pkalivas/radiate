@@ -29,13 +29,6 @@ impl MetricIdx {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct MetricQueryIndex {
-    pub metric: MetricIdx,
-    pub name: SmallStr,
-}
-
 #[derive(PartialEq)]
 pub struct MetricSetSummary {
     pub metrics: usize,
@@ -64,12 +57,6 @@ impl MetricSet {
 
     pub fn generation(&self) -> u64 {
         self.meta.generation
-    }
-
-    pub(crate) fn register(&mut self, name: impl Into<SmallStr>) -> MetricQueryIndex {
-        let name = name.into();
-        let idx = self.resolve(&name);
-        MetricQueryIndex { metric: idx, name }
     }
 
     /// Resolve a name to a stable [`MetricIdx`], registering an empty metric if

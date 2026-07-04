@@ -1,7 +1,7 @@
 use crate::steps::EngineStep;
 use radiate_core::{
-    Chromosome, Ecosystem, Executor, MetricSet, Objective, Phenotype, Population, Rate, Species,
-    diversity::Diversity, math::distribution, metric_names, random_provider,
+    Chromosome, Ecosystem, Evaluate, Executor, Expr, MetricSet, Objective, Phenotype, Population,
+    Species, diversity::Diversity, math::distribution, metric_names, random_provider,
 };
 use radiate_error::Result;
 use std::sync::{Arc, Mutex, RwLock};
@@ -12,7 +12,7 @@ pub struct SpeciateStep<C>
 where
     C: Chromosome,
 {
-    pub(crate) threshold: Rate,
+    pub(crate) threshold: Expr,
     pub(crate) objective: Objective,
     pub(crate) distance: Arc<dyn Diversity<C>>,
     pub(crate) executor: Arc<Executor>,
@@ -22,7 +22,7 @@ where
 
 impl<C: Chromosome> SpeciateStep<C> {
     pub fn new(
-        threshold: Rate,
+        threshold: Expr,
         objective: Objective,
         distance: Arc<dyn Diversity<C>>,
         executor: Arc<Executor>,
@@ -300,7 +300,12 @@ where
         let threshold = metrics
             .get(metric_names::SPECIES_THRESHOLD)
             .map(|v| v.last_value())
-            .unwrap_or(self.threshold.get(metrics)?);
+            .unwrap_or(
+                self.threshold
+                    .eval(metrics)?
+                    .extract::<f32>()
+                    .unwrap_or(0.5),
+            );
         let mascots = Self::generate_mascots(ecosystem);
 
         self.distances.clear();

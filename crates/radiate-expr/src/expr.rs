@@ -66,6 +66,10 @@ impl Expr {
     pub fn alias(self, name: impl Into<SmallStr>) -> NamedExpr {
         NamedExpr::new(name, self)
     }
+
+    pub fn is_literal(&self) -> bool {
+        matches!(self, Expr::Literal(_))
+    }
 }
 
 impl<'a, T> Evaluate<'a, T> for Expr

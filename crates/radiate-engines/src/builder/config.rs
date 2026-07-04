@@ -14,9 +14,8 @@ use crate::objectives::Objective;
 use crate::{EventHandler, Front, Problem, ReplacementStrategy, Select};
 use radiate_core::EcosystemFilter;
 use radiate_core::Expr;
-use radiate_core::metric_names;
 use radiate_core::rate::ExprSet;
-use radiate_core::{Alterer, Diversity, Ecosystem, Evaluator, Executor, Genotype, Rate};
+use radiate_core::{Alterer, Diversity, Ecosystem, Evaluator, Executor, Genotype};
 use std::sync::{Arc, Mutex, RwLock};
 
 #[derive(Clone)]
@@ -28,7 +27,7 @@ pub(crate) struct EngineConfig<C: Chromosome, T: Clone> {
     replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
     filters: Vec<Arc<Mutex<dyn EcosystemFilter<C>>>>,
     alterers: Vec<Alterer<C>>,
-    species_threshold: Rate,
+    species_threshold: Expr,
     diversity: Option<Arc<dyn Diversity<C>>>,
     evaluator: Arc<dyn Evaluator<C, T>>,
     objective: Objective,
@@ -75,7 +74,7 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
         self.max_species_age
     }
 
-    pub fn species_threshold(&self) -> Rate {
+    pub fn species_threshold(&self) -> Expr {
         self.species_threshold.clone()
     }
 
@@ -147,23 +146,6 @@ where
     T: Clone + Send + Sync + 'static,
 {
     fn from(params: &EngineParams<C, T>) -> Self {
-        let threshold = if let Some(count) = params.species_params.target_species_count {
-            let curr_threshold = params.species_params.species_threshold.fixed_value();
-
-            let index = Expr::select(metric_names::INDEX);
-            let thresh = Expr::select(metric_names::SPECIES_THRESHOLD);
-            let err = Expr::select(metric_names::SPECIES_COUNT).error(count as f32) * 0.05;
-
-            Rate::NamedExpr(
-                Expr::when(index.lt(2))
-                    .then(curr_threshold)
-                    .otherwise(err + thresh)
-                    .alias("HI"),
-            )
-        } else {
-            params.species_params.species_threshold.clone()
-        };
-
         Self {
             ecosystem: params.population_params.ecosystem.clone().unwrap(),
             problem: params.problem_params.problem.clone().unwrap(),
@@ -174,7 +156,7 @@ where
             objective: params.optimization_params.objectives.clone(),
             max_age: params.population_params.max_age,
             max_species_age: params.species_params.max_species_age,
-            species_threshold: threshold,
+            species_threshold: params.species_params.species_threshold.clone(),
             diversity: params.species_params.diversity.clone(),
             front: Arc::new(RwLock::new(
                 params.optimization_params.front.clone().unwrap(),

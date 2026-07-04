@@ -221,15 +221,14 @@ fn main() {
         .add(spec_dist_signal.mul(0.4))
         .add(spec_thresh_signal.mul(0.2))
         .add(spec_evenness_signal.mul(0.1))
-        .clamp(0.01, 10.0)
-        .alias("species_threshold");
+        .clamp(0.01, 10.0);
 
     let engine = GeneticEngine::builder()
         .codec(GraphCodec::directed(1, 1, store))
         .raw_batch_fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
         .diversity(NeatDistance::new(1.0, 1.0, 3.0))
-        .species_threshold(Rate::from(distance_signal))
+        .species_threshold(distance_signal)
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),

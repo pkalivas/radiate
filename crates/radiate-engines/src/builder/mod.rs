@@ -34,9 +34,7 @@ use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::evaluator::BatchFitnessEvaluator;
 use radiate_core::problem::{BatchEngineProblem, EngineProblem};
 use radiate_core::rate::ExprSet;
-use radiate_core::{
-    Alterer, Ecosystem, Executor, Expr, FitnessEvaluator, Rate, Valid, metric_names,
-};
+use radiate_core::{Alterer, Ecosystem, Executor, Expr, FitnessEvaluator, Valid, metric_names};
 use radiate_core::{RadiateError, ensure, radiate_err};
 use radiate_utils::VersionedCounts;
 #[cfg(feature = "serde")]
@@ -333,19 +331,30 @@ where
     fn build_rates(&mut self) -> Result<()> {
         let mut exprs = ExprSet::default();
 
-        if let Some(count) = self.params.species_params.target_species_count {
-            let curr_threshold = self.params.species_params.species_threshold.fixed_value();
+        if self.params.species_params.diversity.is_some() {
+            let curr_threshold = &self.params.species_params.species_threshold;
+            if let Some(count) = self.params.species_params.target_species_count {
+                let first_val = match curr_threshold {
+                    Expr::Literal(lit) => f32::try_from(lit.clone()).unwrap_or(0.5),
+                    _ => 0.5,
+                };
 
-            let index = Expr::select(metric_names::INDEX);
-            let thresh = Expr::select(metric_names::SPECIES_THRESHOLD);
-            let err = Expr::select(metric_names::SPECIES_COUNT).error(count as f32) * 0.05;
-
-            exprs.add(
-                Expr::when(index.lt(2))
-                    .then(curr_threshold)
-                    .otherwise(err + thresh)
-                    .alias(metric_names::SPECIES_THRESHOLD),
-            );
+                exprs.add(
+                    Expr::when(Expr::select(metric_names::INDEX).lt(2))
+                        .then(first_val)
+                        .otherwise(
+                            (Expr::select(metric_names::SPECIES_COUNT).error(count as f32) * 0.05)
+                                + Expr::select(metric_names::SPECIES_THRESHOLD),
+                        )
+                        .alias(metric_names::SPECIES_THRESHOLD),
+                );
+            } else {
+                exprs.add(
+                    curr_threshold
+                        .clone()
+                        .alias(metric_names::SPECIES_THRESHOLD),
+                );
+            }
         }
 
         if let Some(others) = &self.params.exprs {
@@ -480,7 +489,7 @@ where
                 },
                 species_params: SpeciesParams {
                     diversity: None,
-                    species_threshold: Rate::Fixed(0.5),
+                    species_threshold: Expr::lit(0.5),
                     max_species_age: 25,
                     target_species_count: None,
                 },

@@ -2,7 +2,7 @@
 
 use radiate_alters::{BlendCrossover, GaussianMutator, UniformCrossover, UniformMutator};
 use radiate_core::{
-    AlterContext, Alterer, BitChromosome, Chromosome, Codec, Crossover, Ecosystem, Executor,
+    AlterContext, Alterer, BitChromosome, Chromosome, Codec, Crossover, Ecosystem, Executor, Expr,
     FloatChromosome, FloatCodec, Gene, Genotype, IntChromosome, Mutate, Objective, Optimize,
     Phenotype, Population, Rate, Score, Species, alter::AlterUpdates, alters, diversity::Diversity,
     random_provider,
@@ -190,7 +190,7 @@ pub fn mock_speciate_step<C: Chromosome>(
     distance: impl Diversity<C> + 'static,
 ) -> SpeciateStep<C> {
     SpeciateStep::new(
-        Rate::from(threshold),
+        Expr::lit(threshold),
         minimize(),
         Arc::new(distance),
         Arc::new(Executor::Serial),

@@ -312,9 +312,7 @@ impl PyEngineBuilder {
                     Expr::lit(val)
                 };
 
-                Ok(typed_builder.species_threshold(Rate::NamedExpr(
-                    threshold.alias(metric_names::SPECIES_THRESHOLD),
-                )))
+                Ok(typed_builder.species_threshold(threshold))
             })
         )
     }
