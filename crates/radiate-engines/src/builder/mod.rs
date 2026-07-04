@@ -347,64 +347,37 @@ where
                 //     )
                 //     .clamp(0.0, 10.0)
                 //     .alias(metric_names::SPECIES_THRESHOLD);
-                // let species_expression = Expr::when(Expr::select(metric_names::INDEX).lt(2))
-                //     .then(first_val)
-                //     .otherwise(
-                //         (Expr::select(metric_names::SPECIES_COUNT).error(count as f32) * 0.05)
-                //             + Expr::select(metric_names::SPECIES_THRESHOLD),
-                //     )
-                //     .clamp(0.0, 10.0)
-                //     .alias(metric_names::SPECIES_THRESHOLD);
 
-                // let target = 4.0_f32;
-                // let kp = 0.05_f32; // same meaning at any target
-                // let ki = 0.005_f32;
-
-                // let error = Expr::select("species.count")
-                //     .error(target)
-                //     .alias("species.error");
-
-                // let proportional = Expr::select("species.error") * kp;
-                // let integral = Expr::select("species.error").sum() * ki;
-
-                // let species_expression = Expr::when(Expr::select("index").lt(2_i32))
-                //     .then(Expr::lit(0.5_f32))
-                //     .otherwise(Expr::select("species.threshold") + proportional + integral)
-                //     .clamp(0.0_f32, target * 2.5_f32) // clamp ceiling scales with target too
-                //     .alias("species.threshold");
-
-                // //  0.01 × (count − 4) + 0.002 × accumulated_error
-                // exprs.add(error);
-                // exprs.add(species_expression);
-                // Raw error registered as a metric so integral/derivative can accumulate history
-                let target = 6.0_f32;
                 let kp = 0.05_f32;
                 let ki = 0.005_f32;
                 let kd = 0.02_f32;
-                let raw_error = Expr::select("species.count")
-                    .error(target)
-                    .alias("species.error");
+
+                let raw_error = Expr::select(metric_names::SPECIES_COUNT)
+                    .error(count as f32)
+                    .alias(metric_names::SPECIES_ERROR);
 
                 // Proportional: smoothed count so single-gen bursts don't cause hard jumps
-                let proportional = Expr::select("species.count")
+                let proportional = Expr::select(metric_names::SPECIES_COUNT)
                     .rolling(3)
                     .mean()
-                    .error(target)
+                    .error(count as f32)
                     * kp;
 
                 // Integral: accumulated recent error over a rolling window
-                let integral = Expr::select("species.error").rolling(20).sum() * ki;
-
                 // Derivative: velocity of the error — anticipates rising/falling count
-                let derivative = Expr::select("species.error").rolling(5).slope() * kd;
+                let integral = Expr::select(metric_names::SPECIES_ERROR).rolling(20).sum() * ki;
+                let derivative = Expr::select(metric_names::SPECIES_ERROR).rolling(5).slope() * kd;
 
-                let species_expression = Expr::when(Expr::select("index").lt(2_i32))
-                    .then(Expr::lit(0.5_f32))
+                let species_expression = Expr::when(Expr::select(metric_names::INDEX).lt(2_i32))
+                    .then(first_val)
                     .otherwise(
-                        Expr::select("species.threshold") + proportional + integral + derivative,
+                        Expr::select(metric_names::SPECIES_THRESHOLD)
+                            + proportional
+                            + integral
+                            + derivative,
                     )
-                    .clamp(0.0_f32, target * 2.5_f32)
-                    .alias("species.threshold");
+                    .clamp(0.0_f32, count as f32 * 2.5_f32)
+                    .alias(metric_names::SPECIES_THRESHOLD);
 
                 exprs.add(raw_error);
                 exprs.add(species_expression);

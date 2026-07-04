@@ -25,6 +25,7 @@ pub mod metric_names {
     pub const LARGEST_SPECIES_SHARE: SmallStr = SmallStr::from_static("species.largest_share");
     pub const SPECIES_THRESHOLD: SmallStr = SmallStr::from_static("species.threshold");
     pub const SPECIES_COUNT: SmallStr = SmallStr::from_static("species.count");
+    pub const SPECIES_ERROR: SmallStr = SmallStr::from_static("species.error");
 
     pub const FRONT_ADDITIONS: SmallStr = SmallStr::from_static("front.additions");
     pub const FRONT_REMOVALS: SmallStr = SmallStr::from_static("front.removals");
