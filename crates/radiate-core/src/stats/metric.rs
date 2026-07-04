@@ -197,8 +197,10 @@ impl Metric {
             MetricUpdate::Bool(value) => {
                 self.update_statistic(if value { 1.0 } else { 0.0 });
             }
+
         }
     }
+
 
     fn update_statistic(&mut self, value: f32) {
         self.inner.add(value);
@@ -309,7 +311,7 @@ impl Hash for Metric {
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive( PartialEq, Debug)]
 pub enum MetricUpdate<'a> {
     Float(f32),
     Usize(usize),

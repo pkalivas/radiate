@@ -337,15 +337,9 @@ where
         if self.params.species_params.diversity.is_some() {
             let curr_threshold = &self.params.species_params.species_threshold;
             if let Some(count) = self.params.species_params.target_species_count {
-                let first_val = match curr_threshold {
-                    Expr::Literal(lit) => f32::try_from(lit.clone()).unwrap_or(0.5),
-                    _ => 0.5,
-                };
+                let first_val = curr_threshold.try_extract_lit::<f32>().unwrap_or(0.5);
 
-                exprs.add(
-                    expr::target_species_expr(count, first_val)
-                        .alias(metric_names::SPECIES_THRESHOLD),
-                );
+                exprs.add(expr::target_species_expr(count, first_val));
             } else {
                 exprs.add(
                     curr_threshold

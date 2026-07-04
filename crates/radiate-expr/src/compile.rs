@@ -1,4 +1,5 @@
 use crate::Expr;
+use crate::expr::ExprKind;
 use crate::nodes::ops::{BinaryExpr, BinaryOp, TrinaryExpr, UnaryExpr, UnaryOp, fuse_affine};
 use radiate_utils::AnyValue;
 
@@ -16,95 +17,96 @@ impl Expr {
     /// f32 precision (and within the existing arithmetic semantics for Null /
     /// non-finite operands).
     pub fn compile(self) -> Expr {
-        match self {
-            // Leaves — nothing to rewrite.
-            Expr::Literal(_) | Expr::Selector(_) | Expr::Schedule(_) => self,
+        let name = self.name;
+        let kind = compile_kind(self.kind);
+        let id = self.id;
+        Expr { name, id, kind }
+    }
+}
 
-            Expr::Unary(u) => {
-                let UnaryExpr { child, op } = u;
-                let child = (*child).compile();
-                match op {
-                    // Affine on top of a compiled child: re-run fusion so any
-                    // newly-revealed Affine nested below collapses upward.
-                    UnaryOp::Affine { scale, bias } => fuse_affine(child, scale, bias),
-                    other_op => Expr::Unary(UnaryExpr::new(child, other_op)),
-                }
+fn compile_kind(kind: ExprKind) -> ExprKind {
+    match kind {
+        ExprKind::Literal(_) | ExprKind::Selector(_) | ExprKind::Schedule(_) => kind,
+
+        ExprKind::Unary(u) => {
+            let UnaryExpr { child, op } = u;
+            let child = child.compile();
+            match op {
+                UnaryOp::Affine { scale, bias } => fuse_affine(child, scale, bias).kind,
+                other_op => ExprKind::Unary(UnaryExpr::new(child, other_op)),
             }
+        }
 
-            Expr::Trinary(t) => Expr::Trinary(TrinaryExpr::new(
-                (*t.first).compile(),
-                (*t.second).compile(),
-                (*t.third).compile(),
-                t.operation,
-            )),
+        ExprKind::Trinary(t) => ExprKind::Trinary(TrinaryExpr::new(
+            (*t.first).compile(),
+            (*t.second).compile(),
+            (*t.third).compile(),
+            t.operation,
+        )),
 
-            Expr::Binary(b) => {
-                let lhs = (*b.lhs).compile();
-                let rhs = (*b.rhs).compile();
-                reduce_binary(lhs, rhs, b.op)
-            }
+        ExprKind::Binary(b) => {
+            let lhs = (*b.lhs).compile();
+            let rhs = (*b.rhs).compile();
+            reduce_binary(lhs, rhs, b.op).kind
+        }
 
-            // Stateful nodes — keep the rollup/buffer intact, just compile the child.
-            Expr::Aggregate(mut a) => {
-                let child = std::mem::replace(a.child.as_mut(), Expr::Literal(AnyValue::Null));
-                *a.child = child.compile();
-                Expr::Aggregate(a)
-            }
+        ExprKind::Aggregate(mut a) => {
+            let child = std::mem::replace(
+                a.child.as_mut(),
+                Expr::new(ExprKind::Literal(AnyValue::Null)),
+            );
+            *a.child = child.compile();
+            ExprKind::Aggregate(a)
         }
     }
 }
 
 fn reduce_binary(lhs: Expr, rhs: Expr, op: BinaryOp) -> Expr {
-    // Pure literal-on-literal: fold to a Literal.
-    if let (Expr::Literal(l), Expr::Literal(r)) = (&lhs, &rhs)
+    if let (ExprKind::Literal(l), ExprKind::Literal(r)) = (&lhs.kind, &rhs.kind)
         && let Some(folded) = fold_literals(l, r, op)
     {
-        return Expr::Literal(folded);
+        return Expr::new(ExprKind::Literal(folded));
     }
 
-    // Affine fusion patterns. Only Add/Sub/Mul/Div are linear; the rest fall through.
     match op {
         BinaryOp::Add => {
-            if let Expr::Literal(v) = &rhs
+            if let ExprKind::Literal(v) = &rhs.kind
                 && let Some(k) = v.extract::<f32>()
             {
                 return fuse_affine(lhs, 1.0, k);
             }
-            if let Expr::Literal(v) = &lhs
+            if let ExprKind::Literal(v) = &lhs.kind
                 && let Some(k) = v.extract::<f32>()
             {
                 return fuse_affine(rhs, 1.0, k);
             }
         }
         BinaryOp::Sub => {
-            if let Expr::Literal(v) = &rhs
+            if let ExprKind::Literal(v) = &rhs.kind
                 && let Some(k) = v.extract::<f32>()
             {
-                // x - k → Affine(x, 1, -k)
                 return fuse_affine(lhs, 1.0, -k);
             }
-            if let Expr::Literal(v) = &lhs
+            if let ExprKind::Literal(v) = &lhs.kind
                 && let Some(k) = v.extract::<f32>()
             {
-                // k - x → Affine(x, -1, k)
                 return fuse_affine(rhs, -1.0, k);
             }
         }
         BinaryOp::Mul => {
-            if let Expr::Literal(v) = &rhs
+            if let ExprKind::Literal(v) = &rhs.kind
                 && let Some(s) = v.extract::<f32>()
             {
                 return fuse_affine(lhs, s, 0.0);
             }
-            if let Expr::Literal(v) = &lhs
+            if let ExprKind::Literal(v) = &lhs.kind
                 && let Some(s) = v.extract::<f32>()
             {
                 return fuse_affine(rhs, s, 0.0);
             }
         }
         BinaryOp::Div => {
-            // Only fold `x / Lit` (constant divisor). `Lit / x` is non-linear in x.
-            if let Expr::Literal(v) = &rhs
+            if let ExprKind::Literal(v) = &rhs.kind
                 && let Some(d) = v.extract::<f32>()
                 && d != 0.0
                 && d.is_finite()
@@ -115,7 +117,7 @@ fn reduce_binary(lhs: Expr, rhs: Expr, op: BinaryOp) -> Expr {
         _ => {}
     }
 
-    Expr::Binary(BinaryExpr::new(lhs, rhs, op))
+    Expr::new(ExprKind::Binary(BinaryExpr::new(lhs, rhs, op)))
 }
 
 fn fold_literals(

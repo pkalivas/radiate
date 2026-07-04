@@ -12,35 +12,29 @@ fn main() {
         (NodeType::Output, vec![Op::linear()]),
     ];
 
-    // let add_node_expr = Expr::when(Expr::select("index").lt(2))
-    //     .then(0.1)
-    //     .otherwise(
-    //         Expr::when(
-    //             Expr::select("genome.size.score.corr")
-    //                 .rolling(20)
-    //                 .mean()
-    //                 .between(0.0, 0.1),
-    //         )
-    //         .then(0.05)
-    //         .otherwise(0.1),
-    //     )
-    //     .alias("test");
-
     let engine = GeneticEngine::builder()
         .codec(GraphCodec::directed(1, 1, store))
         .raw_batch_fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
+        .metrics(
+            Expr::select("scores.best")
+                .rolling(10)
+                .warmup(10)
+                .slope()
+                .alias("scores.trend=[10]"),
+        )
         .offspring_selector(BoltzmannSelector::new(4.0))
         // .filter(UniqueScoreFilter::new(5, 0.01))
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
-            GraphMutator::new(0.1, 0.1).allow_recurrent(false)
+            GraphMutator::new(0.1, 0.1)
+                .allow_recurrent(false)
+                .target_size(7)
         ))
         .build();
 
-    // radiate::ui((engine, true))
-    engine
+    radiate::ui((engine, true))
         .iter()
         .until_score(MIN_SCORE)
         .last()

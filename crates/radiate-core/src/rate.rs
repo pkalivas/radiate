@@ -9,15 +9,15 @@ const DEFAULT_VALUE: f32 = 1.0;
 
 #[derive(Clone)]
 pub struct RateSet {
-    pub control: NamedExpr,
-    pub internal: Vec<NamedExpr>,
+    pub control: Expr,
+    pub internal: Vec<Expr>,
     pub rate_cache: SmallVec<[f32; 8]>,
     pub last_update_index: usize,
     pub has_updated: bool,
 }
 
 impl RateSet {
-    pub fn new(control: impl Into<NamedExpr>) -> Self {
+    pub fn new(control: impl Into<Expr>) -> Self {
         Self {
             control: control.into(),
             internal: Vec::new(),
@@ -38,8 +38,8 @@ impl RateSet {
             let control_rate = Self::try_eval_rate(metrics, &mut self.control)?;
             self.rate_cache.push(control_rate);
 
-            for named_expr in &mut self.internal {
-                let rate = Self::try_eval_rate(metrics, named_expr)?;
+            for expr in &mut self.internal {
+                let rate = Self::try_eval_rate(metrics, expr)?;
                 self.rate_cache.push(rate);
             }
 
@@ -65,16 +65,16 @@ impl RateSet {
 
     pub fn alias(mut self, name: impl Into<SmallStr>) -> Self {
         let name = name.into();
-        self.control = self.control.expr.alias(name);
+        self.control = self.control.clone().alias(name);
         self
     }
 
-    pub fn add(mut self, expr: impl Into<NamedExpr>) -> Self {
+    pub fn add(mut self, expr: impl Into<Expr>) -> Self {
         self.internal.push(expr.into());
         self
     }
 
-    fn try_eval_rate(metrics: &MetricSet, expr: &mut NamedExpr) -> RadiateResult<f32> {
+    fn try_eval_rate(metrics: &MetricSet, expr: &mut Expr) -> RadiateResult<f32> {
         if let Some(metric) = metrics.get(expr.name()) {
             return Ok(metric.last_value());
         }
@@ -95,7 +95,7 @@ impl RateSet {
 impl Default for RateSet {
     fn default() -> Self {
         Self {
-            control: NamedExpr::new("control", Expr::lit(DEFAULT_VALUE)),
+            control: Expr::lit(DEFAULT_VALUE),
             internal: Vec::new(),
             rate_cache: SmallVec::new(),
             last_update_index: 0,

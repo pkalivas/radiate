@@ -1,13 +1,12 @@
+mod builder;
 mod compile;
 mod expr;
-mod named;
 pub mod nodes;
 mod select;
 mod set;
 mod traits;
 
-pub use expr::Expr;
-pub use named::NamedExpr;
+pub use expr::{Expr, ExprKind};
 pub use select::{MetricField, MetricKind, SelectExpr};
 pub use set::ExprSet;
 pub(crate) use traits::ExprResult;

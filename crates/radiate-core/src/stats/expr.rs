@@ -1,5 +1,5 @@
 use crate::metric_names;
-use radiate_expr::{Expr, NamedExpr};
+use radiate_expr::Expr;
 
 const KP: f32 = 0.05_f32;
 const KI: f32 = 0.005_f32;
@@ -32,6 +32,7 @@ pub fn target_species_expr(target: usize, base_val: f32) -> Expr {
             Expr::select(metric_names::SPECIES_THRESHOLD) + proportional + integral + derivative,
         )
         .clamp(0.0_f32, target_f32 * 2.5_f32)
+        .alias(metric_names::SPECIES_THRESHOLD)
 }
 
 // Rolling slope of best score — useful for limits and convergence detection
@@ -39,6 +40,7 @@ pub fn score_trend_expr(window: usize) -> Expr {
     Expr::select(metric_names::BEST_SCORES)
         .rolling(window)
         .slope()
+        .alias(&format!("{}.[{}]", metric_names::SCORES_TREND, window))
 }
 
 // Coefficient of variation — normalized score spread

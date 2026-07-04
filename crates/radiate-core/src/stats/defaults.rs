@@ -44,6 +44,7 @@ pub mod metric_names {
 
     pub const SCORES: SmallStr = SmallStr::from_static("scores");
     pub const BEST_SCORES: SmallStr = SmallStr::from_static("scores.best");
+    pub const SCORES_TREND: SmallStr = SmallStr::from_static("scores.trend");
 
     /// Pielou evenness of the population's fitness distribution, in `[0, 1]`.
     /// Pairs with [`UNIQUE_SCORES`] (richness — *how many* distinct scores) to

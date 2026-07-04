@@ -11,6 +11,6 @@ pub use defaults::{metric_names, metric_tags};
 pub use fmt::{fmt_duration, render_dashboard, render_full, render_metric_rows_full, sparkline};
 pub use metric::*;
 
-pub use set::{MetricSet, MetricSetUpdate};
+pub use set::MetricSet;
 pub use tag::{Tag, TagType};
 pub use view::MetricView;

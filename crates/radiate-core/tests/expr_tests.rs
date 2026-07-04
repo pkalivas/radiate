@@ -337,7 +337,7 @@ mod test {
 #[cfg(test)]
 mod tests {
     use radiate_core::MetricSet;
-    use radiate_expr::{Evaluate, Expr};
+    use radiate_expr::{Evaluate, Expr, ExprKind};
     use radiate_utils::{AnyValue, DataType};
 
     // fn is_fused_affine(e: &Expr) -> bool {
@@ -391,8 +391,8 @@ mod tests {
 
     #[test]
     fn not_inverts_bool() {
-        let mut t = Expr::Literal(AnyValue::Bool(true)).not();
-        let mut f = Expr::Literal(AnyValue::Bool(false)).not();
+        let mut t = Expr::lit(AnyValue::Bool(true)).not();
+        let mut f = Expr::lit(AnyValue::Bool(false)).not();
         assert!(!bool_val(t.eval(&metrics()).unwrap()));
         assert!(bool_val(f.eval(&metrics()).unwrap()));
     }
@@ -458,7 +458,7 @@ mod tests {
 
     #[test]
     fn not_operator_overload() {
-        let mut e = !Expr::Literal(AnyValue::Bool(true));
+        let mut e = !Expr::lit(AnyValue::Bool(true));
         assert!(!bool_val(e.eval(&metrics()).unwrap()));
     }
 
@@ -523,8 +523,8 @@ mod tests {
     #[test]
     fn and_or_short_circuit_values() {
         let input = &metrics();
-        let t = || Expr::Literal(AnyValue::Bool(true));
-        let f = || Expr::Literal(AnyValue::Bool(false));
+        let t = || Expr::lit(AnyValue::Bool(true));
+        let f = || Expr::lit(AnyValue::Bool(false));
 
         assert!(!bool_val(t().and(f()).eval(input).unwrap()));
         assert!(bool_val(t().and(t()).eval(input).unwrap()));
@@ -536,7 +536,7 @@ mod tests {
 
     #[test]
     fn when_selects_then_branch_on_true() {
-        let mut e = Expr::when(Expr::Literal(AnyValue::Bool(true)))
+        let mut e = Expr::when(Expr::lit(AnyValue::Bool(true)))
             .then(Expr::lit(1.0f32))
             .otherwise(Expr::lit(2.0f32));
         assert_eq!(f32_val(e.eval(&metrics()).unwrap()), 1.0);
@@ -544,7 +544,7 @@ mod tests {
 
     #[test]
     fn when_selects_otherwise_branch_on_false() {
-        let mut e = Expr::when(Expr::Literal(AnyValue::Bool(false)))
+        let mut e = Expr::when(Expr::lit(AnyValue::Bool(false)))
             .then(Expr::lit(1.0f32))
             .otherwise(Expr::lit(2.0f32));
         assert_eq!(f32_val(e.eval(&metrics()).unwrap()), 2.0);
@@ -580,7 +580,7 @@ mod tests {
 
     #[test]
     fn clamp_null_input_returns_min() {
-        let mut e = Expr::Literal(AnyValue::Null).clamp(Expr::lit(0.05f32), Expr::lit(2.0f32));
+        let mut e = Expr::lit(AnyValue::Null).clamp(Expr::lit(0.05f32), Expr::lit(2.0f32));
         assert_eq!(f32_val(e.eval(&metrics()).unwrap()), 0.05);
     }
 
@@ -604,7 +604,7 @@ mod tests {
 
     #[test]
     fn clamp_missing_bounds_errors() {
-        let mut e = Expr::lit(0.5f32).clamp(Expr::Literal(AnyValue::Null), Expr::lit(2.0f32));
+        let mut e = Expr::lit(0.5f32).clamp(Expr::lit(AnyValue::Null), Expr::lit(2.0f32));
         assert!(e.eval(&metrics()).is_err());
     }
 
@@ -618,7 +618,7 @@ mod tests {
 
     #[test]
     fn or_else_null_falls_back() {
-        let mut e = Expr::Literal(AnyValue::Null).or_else(Expr::lit(99.0f32));
+        let mut e = Expr::lit(AnyValue::Null).or_else(Expr::lit(99.0f32));
         assert_eq!(f32_val(e.eval(&metrics()).unwrap()), 99.0);
     }
 
@@ -642,7 +642,7 @@ mod tests {
 
     #[test]
     fn or_else_chains_through_bad_values() {
-        let mut e = Expr::Literal(AnyValue::Null)
+        let mut e = Expr::lit(AnyValue::Null)
             .or_else(Expr::lit(f32::NAN))
             .or_else(Expr::lit(7.0f32));
         assert_eq!(f32_val(e.eval(&metrics()).unwrap()), 7.0);
@@ -718,8 +718,8 @@ mod tests {
     #[test]
     fn every_fires_on_nth_call_then_resets() {
         let mut e = Expr::every(3)
-            .then(Expr::Literal(AnyValue::Bool(true)))
-            .otherwise(Expr::Literal(AnyValue::Bool(false)));
+            .then(Expr::lit(AnyValue::Bool(true)))
+            .otherwise(Expr::lit(AnyValue::Bool(false)));
 
         assert!(!bool_val(e.eval(&metrics()).unwrap())); // tick 1
         assert!(!bool_val(e.eval(&metrics()).unwrap())); // tick 2
@@ -923,7 +923,7 @@ mod tests {
     #[test]
     fn compile_folds_pure_literal_subtree() {
         let e = Expr::lit(2.0f32).add(Expr::lit(3.0f32)).compile();
-        assert!(matches!(e, Expr::Literal(_)));
+        assert!(matches!(e.kind(), ExprKind::Literal(_)));
         let mut e = e;
         assert_eq!(f32_val(e.eval(&metrics()).unwrap()), 5.0);
     }

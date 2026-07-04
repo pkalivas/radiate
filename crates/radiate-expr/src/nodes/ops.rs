@@ -24,6 +24,10 @@ pub enum UnaryOp {
         last_value: Option<f32>,
         count: u32,
     },
+    Warmup {
+        total: usize,
+        remaining: usize,
+    },
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -43,14 +47,22 @@ impl UnaryExpr {
 
     pub fn reset(&mut self) {
         self.child.reset();
-        if let UnaryOp::Stagnation {
-            ref mut last_value,
-            ref mut count,
-            ..
-        } = self.op
-        {
-            *last_value = None;
-            *count = 0;
+        match &mut self.op {
+            UnaryOp::Stagnation {
+                ref mut last_value,
+                ref mut count,
+                ..
+            } => {
+                *last_value = None;
+                *count = 0;
+            }
+            UnaryOp::Warmup {
+                total,
+                ref mut remaining,
+            } => {
+                *remaining = *total;
+            }
+            _ => {}
         }
     }
 }
@@ -113,6 +125,14 @@ where
                 }
 
                 Ok(AnyValue::UInt32(*count))
+            }
+            UnaryOp::Warmup { ref mut remaining } => {
+                if *remaining > 0 {
+                    *remaining -= 1;
+                    Ok(AnyValue::Null)
+                } else {
+                    Ok(value)
+                }
             }
         }
     }
@@ -289,7 +309,8 @@ where
 /// Shared between the `.affine(...)` builder and the compile-pass binary-fusion
 /// rewriters so both produce the same fused shape.
 pub(crate) fn fuse_affine(child: Expr, scale: f32, bias: f32) -> Expr {
-    if let Expr::Unary(u) = child {
+    use crate::expr::ExprKind;
+    if let ExprKind::Unary(u) = child.kind {
         if matches!(u.op, UnaryOp::Affine { .. }) {
             let UnaryExpr { child: inner, op } = u;
             let UnaryOp::Affine {
@@ -300,20 +321,23 @@ pub(crate) fn fuse_affine(child: Expr, scale: f32, bias: f32) -> Expr {
                 unreachable!()
             };
 
-            return Expr::Unary(UnaryExpr::new(
+            return Expr::new(ExprKind::Unary(UnaryExpr::new(
                 *inner,
                 UnaryOp::Affine {
                     scale: scale * s2,
                     bias: scale * b2 + bias,
                 },
-            ));
+            )));
         }
 
-        return Expr::Unary(UnaryExpr::new(
-            Expr::Unary(u),
+        return Expr::new(ExprKind::Unary(UnaryExpr::new(
+            Expr::new(ExprKind::Unary(u)),
             UnaryOp::Affine { scale, bias },
-        ));
+        )));
     }
 
-    Expr::Unary(UnaryExpr::new(child, UnaryOp::Affine { scale, bias }))
+    Expr::new(ExprKind::Unary(UnaryExpr::new(
+        child,
+        UnaryOp::Affine { scale, bias },
+    )))
 }
