@@ -1,5 +1,9 @@
+use radiate_error::radiate_bail;
 pub use radiate_expr::*;
 use radiate_utils::SmallStr;
+use smallvec::SmallVec;
+
+use crate::{MetricSet, error::RadiateResult};
 
 const DEFAULT_VALUE: f32 = 1.0;
 
@@ -7,6 +11,9 @@ const DEFAULT_VALUE: f32 = 1.0;
 pub struct RateSet {
     pub control: NamedExpr,
     pub internal: Vec<NamedExpr>,
+    pub rate_cache: SmallVec<[f32; 8]>,
+    pub last_update_index: usize,
+    pub has_updated: bool,
 }
 
 impl RateSet {
@@ -14,7 +21,37 @@ impl RateSet {
         Self {
             control: control.into(),
             internal: Vec::new(),
+            rate_cache: SmallVec::new(),
+            last_update_index: 0,
+            has_updated: false,
         }
+    }
+
+    pub fn calculate_rates(
+        &mut self,
+        generation: usize,
+        metrics: &MetricSet,
+    ) -> RadiateResult<&[f32]> {
+        if generation > self.last_update_index || !self.has_updated {
+            self.rate_cache.clear();
+
+            let control_rate = Self::try_eval_rate(metrics, &mut self.control)?;
+            self.rate_cache.push(control_rate);
+
+            for named_expr in &mut self.internal {
+                let rate = Self::try_eval_rate(metrics, named_expr)?;
+                self.rate_cache.push(rate);
+            }
+
+            self.last_update_index = generation;
+            self.has_updated = true;
+        }
+
+        Ok(&self.rate_cache)
+    }
+
+    pub fn rates(&self) -> &[f32] {
+        &self.rate_cache
     }
 
     pub fn alias(mut self, name: impl Into<SmallStr>) -> Self {
@@ -26,6 +63,23 @@ impl RateSet {
     pub fn add(&mut self, expr: impl Into<NamedExpr>) {
         self.internal.push(expr.into());
     }
+
+    fn try_eval_rate(metrics: &MetricSet, expr: &mut NamedExpr) -> RadiateResult<f32> {
+        if let Some(metric) = metrics.get(expr.name()) {
+            return Ok(metric.last_value());
+        }
+
+        let output = expr.eval(metrics)?;
+        match output.extract::<f32>() {
+            Some(rate) => Ok(rate),
+            None => {
+                radiate_bail!(Expr:
+                    "Failed to evaluate rate expression for alterer: expected f32 value, got {:?}",
+                    output
+                );
+            }
+        }
+    }
 }
 
 impl Default for RateSet {
@@ -33,6 +87,9 @@ impl Default for RateSet {
         Self {
             control: NamedExpr::new("control", Expr::lit(DEFAULT_VALUE)),
             internal: Vec::new(),
+            rate_cache: SmallVec::new(),
+            last_update_index: 0,
+            has_updated: false,
         }
     }
 }

@@ -135,7 +135,6 @@ pub struct Alterer<C: Chromosome> {
     alter_counts: AlterUpdates,
     rate_set: RateSet,
     expr_set: ExprSet,
-    rates: SmallVec<[f32; 4]>,
 }
 
 impl<C: Chromosome> Alterer<C> {
@@ -176,7 +175,6 @@ impl<C: Chromosome> Alterer<C> {
             alter_counts: AlterUpdates::new(),
             rate_set,
             expr_set: exprs,
-            rates: SmallVec::new(),
         }
     }
 
@@ -192,45 +190,22 @@ impl<C: Chromosome> Alterer<C> {
         self.expr_set.clone()
     }
 
-    fn calculate_rates(&mut self, metrics: &MetricSet) -> RadiateResult<()> {
-        self.rates.clear();
-        for expr in self.expr_set.iter_mut() {
-            if let Some(rate) = metrics.get(expr.name()).map(|v| v.last_value()) {
-                self.rates.push(rate);
-            } else {
-                let rate = match expr.eval(metrics)?.extract::<f32>() {
-                    Some(rate) => rate,
-                    None => {
-                        radiate_bail!(Expr:
-                            "Failed to evaluate rate expression for alterer {}: {}",
-                            self.name,
-                            expr.name()
-                        );
-                    }
-                };
-
-                self.rates.push(rate);
-            }
-        }
-
-        Ok(())
-    }
-
     pub fn alter(
         &mut self,
         population: &mut [Phenotype<C>],
         metrics: &mut MetricSet,
         generation: usize,
     ) -> RadiateResult<()> {
-        self.calculate_rates(metrics)?;
+        let rates = self.rate_set.calculate_rates(generation, metrics)?;
+        // self.calculate_rates(metrics)?;
 
         self.alter_counts.clear();
 
         let mut ctx = AlterContext {
             alter_counts: &mut self.alter_counts,
             generation,
-            control_rate: self.rates[0],
-            internal_rates: &self.rates[1..],
+            control_rate: rates[0],
+            internal_rates: &rates[1..],
         };
 
         match &mut self.inner {
@@ -482,3 +457,27 @@ pub trait Mutate<C: Chromosome>: Send + Sync {
         1
     }
 }
+
+// fn calculate_rates(&mut self, metrics: &MetricSet) -> RadiateResult<()> {
+//     self.rates.clear();
+//     for expr in self.expr_set.iter_mut() {
+//         if let Some(rate) = metrics.get(expr.name()).map(|v| v.last_value()) {
+//             self.rates.push(rate);
+//         } else {
+//             let rate = match expr.eval(metrics)?.extract::<f32>() {
+//                 Some(rate) => rate,
+//                 None => {
+//                     radiate_bail!(Expr:
+//                         "Failed to evaluate rate expression for alterer {}: {}",
+//                         self.name,
+//                         expr.name()
+//                     );
+//                 }
+//             };
+
+//             self.rates.push(rate);
+//         }
+//     }
+
+//     Ok(())
+// }
