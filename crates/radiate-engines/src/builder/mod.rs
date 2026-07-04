@@ -365,10 +365,10 @@ where
         }
 
         for alter in self.params.alterers.iter() {
-            let mut rate_keys = Vec::new();
-            for expr in alter.exprs().iter() {
-                rate_keys.push(expr.name().clone());
-                exprs.add(expr.clone());
+            let rates = alter.rates();
+            exprs.add(rates.control.clone());
+            for inner in rates.internal.iter() {
+                exprs.add(inner.clone());
             }
         }
 

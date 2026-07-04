@@ -110,12 +110,12 @@ impl GraphMutator {
     fn mutate_type(&self, ctx: &AlterContext) -> Option<NodeType> {
         random_provider::with_rng(|rand| {
             if rand.bool(0.5) {
-                if rand.bool(ctx.rate_at(1)) {
+                if rand.bool(ctx.internal_rate(1)) {
                     Some(NodeType::Edge)
                 } else {
                     None
                 }
-            } else if rand.bool(ctx.rate_at(2)) {
+            } else if rand.bool(ctx.internal_rate(2)) {
                 Some(NodeType::Vertex)
             } else {
                 None

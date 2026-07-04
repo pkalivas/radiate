@@ -1,6 +1,7 @@
 pub use radiate_expr::*;
+use radiate_utils::SmallStr;
 
-const DEFAULT_VALUE: f32 = 0.5;
+const DEFAULT_VALUE: f32 = 1.0;
 
 #[derive(Clone)]
 pub struct RateSet {
@@ -9,8 +10,17 @@ pub struct RateSet {
 }
 
 impl RateSet {
-    pub fn new(control: NamedExpr, internal: Vec<NamedExpr>) -> Self {
-        Self { control, internal }
+    pub fn new(control: impl Into<NamedExpr>) -> Self {
+        Self {
+            control: control.into(),
+            internal: Vec::new(),
+        }
+    }
+
+    pub fn alias(mut self, name: impl Into<SmallStr>) -> Self {
+        let name = name.into();
+        self.control = self.control.expr.alias(name);
+        self
     }
 
     pub fn add(&mut self, expr: impl Into<NamedExpr>) {

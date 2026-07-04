@@ -74,6 +74,18 @@ impl<T: Into<SmallStr>> From<(T, Expr)> for NamedExpr {
     }
 }
 
+impl From<f32> for NamedExpr {
+    fn from(value: f32) -> Self {
+        Self::from(Expr::lit(value))
+    }
+}
+
+impl From<f64> for NamedExpr {
+    fn from(value: f64) -> Self {
+        Self::from(Expr::lit(value))
+    }
+}
+
 #[cfg(feature = "serde")]
 impl Serialize for NamedExpr {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>

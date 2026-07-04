@@ -1,6 +1,6 @@
-use crate::error::RadiateResult;
 use crate::{Chromosome, Gene, Genotype, math::indexes, random_provider};
 use crate::{GetPairMut, MetricSet, Phenotype};
+use crate::{RateSet, error::RadiateResult};
 use radiate_error::radiate_bail;
 pub use radiate_expr::*;
 use radiate_utils::{SmallStr, ToSnakeCase, intern};
@@ -80,28 +80,31 @@ impl AlterUpdates {
 pub struct AlterContext<'a> {
     alter_counts: &'a mut AlterUpdates,
     generation: usize,
-    rates: &'a SmallVec<[f32; 4]>,
+    control_rate: f32,
+    internal_rates: &'a [f32],
 }
 
 impl<'a> AlterContext<'a> {
     pub fn new(
         alter_counts: &'a mut AlterUpdates,
         generation: usize,
-        rates: &'a SmallVec<[f32; 4]>,
+        control_rate: f32,
+        internal_rates: &'a [f32],
     ) -> Self {
         AlterContext {
             alter_counts,
             generation,
-            rates,
+            control_rate,
+            internal_rates,
         }
     }
 
     pub fn rate(&self) -> f32 {
-        self.rates[0]
+        self.control_rate
     }
 
-    pub fn rate_at(&self, index: usize) -> f32 {
-        self.rates.get(index).copied().unwrap_or(0.0)
+    pub fn internal_rate(&self, index: usize) -> f32 {
+        self.internal_rates.get(index).copied().unwrap_or(0.0)
     }
 
     pub fn generation(&self) -> usize {
@@ -124,39 +127,61 @@ pub enum AlterInner<C: Chromosome> {
 /// population - It can be either a mutation or a crossover operation.
 #[derive(Clone)]
 pub struct Alterer<C: Chromosome> {
-    name: SmallStr,
     time_name: SmallStr,
+    control_rate_name: SmallStr,
+    inner_rate_names: SmallVec<[SmallStr; 4]>,
+    name: SmallStr,
     inner: AlterInner<C>,
     alter_counts: AlterUpdates,
+    rate_set: RateSet,
     expr_set: ExprSet,
     rates: SmallVec<[f32; 4]>,
 }
 
 impl<C: Chromosome> Alterer<C> {
     pub fn mutation(name: &'static str, m: Arc<dyn Mutate<C>>) -> Self {
-        let name = SmallStr::from_static(name);
-        let exprs = m.expressions();
+        Self::build_internal(name, AlterInner::Mutate(m))
+    }
+
+    pub fn crossover(name: &'static str, c: Arc<dyn Crossover<C>>) -> Self {
+        Self::build_internal(name, AlterInner::Crossover(c))
+    }
+
+    fn build_internal(name: impl Into<SmallStr>, inner: AlterInner<C>) -> Self {
+        let name = name.into();
+
+        let time_name = SmallStr::from_string(format!("{}.time", name));
+        let control_rate_name = SmallStr::from_string(format!("{}.rate", name));
+
+        let exprs = match &inner {
+            AlterInner::Mutate(m) => m.expressions(),
+            AlterInner::Crossover(c) => c.expressions(),
+        };
+        let rate_set = match &inner {
+            AlterInner::Mutate(m) => m.rates().alias(control_rate_name.clone()),
+            AlterInner::Crossover(c) => c.rates().alias(control_rate_name.clone()),
+        };
+
+        let inner_rate_names = exprs
+            .iter()
+            .map(|e| e.name().clone())
+            .collect::<SmallVec<[SmallStr; 4]>>();
+
         Self {
-            time_name: SmallStr::from_string(format!("{}.time", name)),
+            time_name,
+            control_rate_name,
+            inner_rate_names,
             name,
-            inner: AlterInner::Mutate(m),
+            inner,
             alter_counts: AlterUpdates::new(),
+            rate_set,
             expr_set: exprs,
             rates: SmallVec::new(),
         }
     }
 
-    pub fn crossover(name: &'static str, c: Arc<dyn Crossover<C>>) -> Self {
-        let name = SmallStr::from_static(name);
-        let exprs = c.expressions();
-        Self {
-            time_name: SmallStr::from_string(format!("{}.time", name)),
-            name,
-            inner: AlterInner::Crossover(c),
-            alter_counts: AlterUpdates::new(),
-            expr_set: exprs,
-            rates: SmallVec::new(),
-        }
+    pub fn rates(&self) -> &RateSet {
+        &self.rate_set
     }
 
     pub fn name(&self) -> &str {
@@ -204,7 +229,8 @@ impl<C: Chromosome> Alterer<C> {
         let mut ctx = AlterContext {
             alter_counts: &mut self.alter_counts,
             generation,
-            rates: &self.rates,
+            control_rate: self.rates[0],
+            internal_rates: &self.rates[1..],
         };
 
         match &mut self.inner {
@@ -277,7 +303,11 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
     }
 
     fn expressions(&self) -> ExprSet {
-        ExprSet::from(Expr::lit(1.0).alias(SmallStr::from_string(format!("{}.rate", self.name()))))
+        ExprSet::from(Expr::lit(1.0).alias(format!("{}.rate", self.name())))
+    }
+
+    fn rates(&self) -> RateSet {
+        RateSet::default()
     }
 
     fn alterer(self) -> Alterer<C>
@@ -387,7 +417,11 @@ pub trait Mutate<C: Chromosome>: Send + Sync {
     }
 
     fn expressions(&self) -> ExprSet {
-        ExprSet::from(Expr::lit(1.0).alias(SmallStr::from_string(format!("{}.rate", self.name()))))
+        ExprSet::from(Expr::lit(1.0).alias(format!("{}.rate", self.name())))
+    }
+
+    fn rates(&self) -> RateSet {
+        RateSet::default()
     }
 
     fn alterer(self) -> Alterer<C>

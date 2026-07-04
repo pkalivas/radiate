@@ -1,7 +1,7 @@
 use crate::collections::GraphChromosome;
 use crate::node::{Node, NodeExt};
 use radiate_core::{
-    AlterContext, AlterResult, Crossover, Expr, NamedExpr, RdRand, random_provider,
+    AlterContext, AlterResult, Crossover, Expr, NamedExpr, RateSet, RdRand, random_provider,
 };
 use radiate_core::{ExprSet, genome::*};
 use std::cmp::Ordering;
@@ -30,6 +30,10 @@ where
 {
     fn expressions(&self) -> ExprSet {
         ExprSet::from(self.rate.clone())
+    }
+
+    fn rates(&self) -> RateSet {
+        RateSet::new(self.rate.clone())
     }
 
     #[inline]
