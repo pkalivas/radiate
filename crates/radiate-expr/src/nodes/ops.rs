@@ -24,10 +24,6 @@ pub enum UnaryOp {
         last_value: Option<f32>,
         count: u32,
     },
-    Warmup {
-        total: usize,
-        remaining: usize,
-    },
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -49,18 +45,10 @@ impl UnaryExpr {
         self.child.reset();
         match &mut self.op {
             UnaryOp::Stagnation {
-                ref mut last_value,
-                ref mut count,
-                ..
+                last_value, count, ..
             } => {
                 *last_value = None;
                 *count = 0;
-            }
-            UnaryOp::Warmup {
-                total,
-                ref mut remaining,
-            } => {
-                *remaining = *total;
             }
             _ => {}
         }
@@ -125,14 +113,6 @@ where
                 }
 
                 Ok(AnyValue::UInt32(*count))
-            }
-            UnaryOp::Warmup { ref mut remaining } => {
-                if *remaining > 0 {
-                    *remaining -= 1;
-                    Ok(AnyValue::Null)
-                } else {
-                    Ok(value)
-                }
             }
         }
     }

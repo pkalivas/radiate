@@ -19,7 +19,6 @@ fn main() {
         .metrics(
             Expr::select("scores.best")
                 .rolling(10)
-                .warmup(10)
                 .slope()
                 .alias("scores.trend=[10]"),
         )

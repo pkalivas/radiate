@@ -44,13 +44,6 @@ impl Expr {
         }
     }
 
-    pub fn warmup(self, count: usize) -> Expr {
-        Expr::new(ExprKind::Unary(UnaryExpr::new(
-            self,
-            UnaryOp::Warmup { remaining: count },
-        )))
-    }
-
     pub fn first(self) -> Expr {
         self.try_reduce_select_agg_rollup_or(MetricField::LastValue, Rollup::First, |expr| {
             Expr::new(ExprKind::Aggregate(AggExpr::new(expr, Rollup::First)))
