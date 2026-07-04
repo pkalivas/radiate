@@ -31,11 +31,14 @@ use crate::{
 use crate::{Generation, Result};
 use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
-use radiate_core::problem::{BatchEngineProblem, EngineProblem};
 use radiate_core::rate::ExprSet;
 use radiate_core::{Alterer, Ecosystem, Executor, Expr, FitnessEvaluator, Valid, metric_names};
 use radiate_core::{RadiateError, ensure, radiate_err};
 use radiate_core::{RateSet, evaluator::BatchFitnessEvaluator};
+use radiate_core::{
+    expr,
+    problem::{BatchEngineProblem, EngineProblem},
+};
 use radiate_utils::VersionedCounts;
 #[cfg(feature = "serde")]
 use serde::Deserialize;
@@ -339,48 +342,7 @@ where
                     _ => 0.5,
                 };
 
-                // let species_expression = Expr::when(Expr::select(metric_names::INDEX).lt(2))
-                //     .then(first_val)
-                //     .otherwise(
-                //         (Expr::select(metric_names::SPECIES_COUNT).error(count as f32) * 0.05)
-                //             + Expr::select(metric_names::SPECIES_THRESHOLD),
-                //     )
-                //     .clamp(0.0, 10.0)
-                //     .alias(metric_names::SPECIES_THRESHOLD);
-
-                let kp = 0.05_f32;
-                let ki = 0.005_f32;
-                let kd = 0.02_f32;
-
-                let raw_error = Expr::select(metric_names::SPECIES_COUNT)
-                    .error(count as f32)
-                    .alias(metric_names::SPECIES_ERROR);
-
-                // Proportional: smoothed count so single-gen bursts don't cause hard jumps
-                let proportional = Expr::select(metric_names::SPECIES_COUNT)
-                    .rolling(3)
-                    .mean()
-                    .error(count as f32)
-                    * kp;
-
-                // Integral: accumulated recent error over a rolling window
-                // Derivative: velocity of the error — anticipates rising/falling count
-                let integral = Expr::select(metric_names::SPECIES_ERROR).rolling(20).sum() * ki;
-                let derivative = Expr::select(metric_names::SPECIES_ERROR).rolling(5).slope() * kd;
-
-                let species_expression = Expr::when(Expr::select(metric_names::INDEX).lt(2_i32))
-                    .then(first_val)
-                    .otherwise(
-                        Expr::select(metric_names::SPECIES_THRESHOLD)
-                            + proportional
-                            + integral
-                            + derivative,
-                    )
-                    .clamp(0.0_f32, count as f32 * 2.5_f32)
-                    .alias(metric_names::SPECIES_THRESHOLD);
-
-                exprs.add(raw_error);
-                exprs.add(species_expression);
+                exprs.add(expr::target_species_expr(count, first_val));
             } else {
                 exprs.add(
                     curr_threshold

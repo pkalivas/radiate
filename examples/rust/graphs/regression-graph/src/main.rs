@@ -12,19 +12,19 @@ fn main() {
         (NodeType::Output, vec![Op::linear()]),
     ];
 
-    let add_node_expr = Expr::when(Expr::select("index").lt(2))
-        .then(0.1)
-        .otherwise(
-            Expr::when(
-                Expr::select("genome.size.score.corr")
-                    .rolling(20)
-                    .mean()
-                    .between(0.0, 0.1),
-            )
-            .then(0.05)
-            .otherwise(0.1),
-        )
-        .alias("test");
+    // let add_node_expr = Expr::when(Expr::select("index").lt(2))
+    //     .then(0.1)
+    //     .otherwise(
+    //         Expr::when(
+    //             Expr::select("genome.size.score.corr")
+    //                 .rolling(20)
+    //                 .mean()
+    //                 .between(0.0, 0.1),
+    //         )
+    //         .then(0.05)
+    //         .otherwise(0.1),
+    //     )
+    //     .alias("test");
 
     let engine = GeneticEngine::builder()
         .codec(GraphCodec::directed(1, 1, store))

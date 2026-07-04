@@ -39,7 +39,9 @@ pub use replacement::{
     EcosystemFilter, EncodeReplace, PopulationSampleReplace, ReplacementStrategy, UniqueScoreFilter,
 };
 pub use selector::Select;
-pub use stats::{Metric, MetricSet, MetricUpdate, metric_names, render_dashboard, render_full};
+pub use stats::{
+    Metric, MetricSet, MetricUpdate, expr, metric_names, render_dashboard, render_full,
+};
 
 pub mod prelude {
     pub use radiate_error::*;
@@ -67,5 +69,5 @@ pub mod prelude {
         UniqueScoreFilter,
     };
     pub use super::selector::Select;
-    pub use super::stats::{Metric, MetricSet, metric_names};
+    pub use super::stats::{Metric, MetricSet, expr, metric_names};
 }

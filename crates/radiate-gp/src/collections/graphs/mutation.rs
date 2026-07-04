@@ -3,7 +3,7 @@ use super::{Graph, GraphChromosome};
 use crate::graphs::node::InnovationId;
 use crate::node::Node;
 use crate::{Factory, NodeType};
-use radiate_core::{AlterContext, Chromosome, Expr, NamedExpr, RateSet, SmallStr};
+use radiate_core::{AlterContext, Chromosome, Expr, RateSet, SmallStr, metric_names};
 use radiate_core::{AlterResult, Mutate, random_provider};
 use std::collections::HashMap;
 
@@ -71,8 +71,8 @@ impl InnovationContext {
 /// - `allow_recurrent`: If true, recurrent nodes are allowed. If false, they are not. Default is true.
 #[derive(Clone, Debug)]
 pub struct GraphMutator {
-    vertex_rate: NamedExpr,
-    edge_rate: NamedExpr,
+    vertex_rate: Expr,
+    edge_rate: Expr,
     allow_recurrent: bool,
     innov_context: InnovationContext,
 }
@@ -85,8 +85,8 @@ impl GraphMutator {
     /// - `edge_rate`: The probability of adding an edge.
     pub fn new(vertex_rate: impl Into<Expr>, edge_rate: impl Into<Expr>) -> Self {
         GraphMutator {
-            vertex_rate: vertex_rate.into().alias(ADD_VERTEX_RATE),
-            edge_rate: edge_rate.into().alias(ADD_EDGE_RATE),
+            vertex_rate: vertex_rate.into(),
+            edge_rate: edge_rate.into(),
             allow_recurrent: true,
             innov_context: InnovationContext::new(),
         }
@@ -100,6 +100,20 @@ impl GraphMutator {
     /// no changes to the graph.
     pub fn allow_recurrent(mut self, allow: bool) -> Self {
         self.allow_recurrent = allow;
+        self
+    }
+
+    /// Set the target size of the graph. If the graph is at or above this size
+    /// the mutation rates will be reduced to prevent the graph from growing too large.
+    pub fn target_size(mut self, size: usize) -> Self {
+        let size_ratio = Expr::select(metric_names::GENOME_SIZE)
+            .rolling(10)
+            .mean()
+            .div(size as f32)
+            .clamp(1.0_f32, 5.0_f32);
+
+        self.vertex_rate = self.vertex_rate.div(size_ratio.clone());
+        self.edge_rate = self.edge_rate.div(size_ratio);
         self
     }
 
@@ -129,8 +143,8 @@ where
 {
     fn rates(&self) -> RateSet {
         RateSet::new(1.0)
-            .add(self.edge_rate.clone())
-            .add(self.vertex_rate.clone())
+            .add(self.edge_rate.clone().alias(ADD_EDGE_RATE))
+            .add(self.vertex_rate.clone().alias(ADD_VERTEX_RATE))
     }
 
     #[inline]

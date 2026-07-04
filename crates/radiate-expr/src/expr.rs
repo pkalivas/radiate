@@ -72,6 +72,7 @@ impl<'a, T> Evaluate<'a, T> for Expr
 where
     T: ExprSelector,
 {
+    #[inline]
     fn eval(&'a mut self, metrics: &T) -> ExprResult<'a> {
         match self {
             Expr::Literal(value) => Ok(value.clone()),

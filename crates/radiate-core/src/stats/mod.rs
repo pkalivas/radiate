@@ -1,5 +1,6 @@
 mod access;
 mod defaults;
+pub mod expr;
 mod fmt;
 mod metric;
 mod set;
