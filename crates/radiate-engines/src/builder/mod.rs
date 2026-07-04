@@ -342,7 +342,10 @@ where
                     _ => 0.5,
                 };
 
-                exprs.add(expr::target_species_expr(count, first_val));
+                exprs.add(
+                    expr::target_species_expr(count, first_val)
+                        .alias(metric_names::SPECIES_THRESHOLD),
+                );
             } else {
                 exprs.add(
                     curr_threshold
