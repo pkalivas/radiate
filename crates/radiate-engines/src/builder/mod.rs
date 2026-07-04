@@ -34,7 +34,9 @@ use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::evaluator::BatchFitnessEvaluator;
 use radiate_core::problem::{BatchEngineProblem, EngineProblem};
 use radiate_core::rate::ExprSet;
-use radiate_core::{Alterer, Ecosystem, Executor, FitnessEvaluator, Rate, Valid};
+use radiate_core::{
+    Alterer, Ecosystem, Executor, Expr, FitnessEvaluator, Rate, Valid, metric_names,
+};
 use radiate_core::{RadiateError, ensure, radiate_err};
 use radiate_utils::VersionedCounts;
 #[cfg(feature = "serde")]
@@ -182,6 +184,7 @@ where
         self.build_population()?;
         self.build_alterer()?;
         self.build_front()?;
+        self.build_rates()?;
 
         let config = EngineConfig::<C, T>::from(&self.params);
 
@@ -293,14 +296,6 @@ where
     /// with a 0.5 crossover rate and a 0.1 mutation rate.
     fn build_alterer(&mut self) -> Result<()> {
         if !self.params.alterers.is_empty() {
-            for alter in self.params.alterers.iter_mut() {
-                if !alter.rate().is_valid() {
-                    return Err(radiate_err!(
-                        Builder: "Alterer {} is not valid. Ensure rate {:?} is valid.", alter.name(), alter.rate()
-                    ));
-                }
-            }
-
             return Ok(());
         }
 
@@ -331,6 +326,44 @@ where
             self.params.optimization_params.front_range.clone(),
             front_obj,
         ));
+
+        Ok(())
+    }
+
+    fn build_rates(&mut self) -> Result<()> {
+        let mut exprs = ExprSet::default();
+
+        if let Some(count) = self.params.species_params.target_species_count {
+            let curr_threshold = self.params.species_params.species_threshold.get_by_index(1);
+
+            let index = Expr::select(metric_names::INDEX);
+            let thresh = Expr::select(metric_names::SPECIES_THRESHOLD);
+            let err = Expr::select(metric_names::SPECIES_COUNT).error(count as f32) * 0.05;
+
+            exprs.add(
+                Expr::when(index.lt(2))
+                    .then(curr_threshold)
+                    .otherwise(err + thresh)
+                    .alias(metric_names::SPECIES_THRESHOLD),
+            );
+        }
+
+        if let Some(others) = &self.params.exprs {
+            let others = others.lock().unwrap();
+            for expr in others.iter() {
+                exprs.add(expr.clone());
+            }
+        }
+
+        for alter in self.params.alterers.iter() {
+            let mut rate_keys = Vec::new();
+            for expr in alter.exprs().iter() {
+                rate_keys.push(expr.name().clone());
+                exprs.add(expr.clone());
+            }
+        }
+
+        self.params.exprs = Some(Arc::new(Mutex::new(exprs)));
 
         Ok(())
     }

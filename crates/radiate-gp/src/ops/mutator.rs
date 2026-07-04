@@ -1,7 +1,7 @@
 use crate::node::{Node, NodeExt};
 use crate::ops::operation::Op;
 use crate::{Factory, GraphChromosome, NodeStore, NodeType, TreeChromosome};
-use radiate_core::{AlterContext, AlterResult, Mutate, Rate, SmallStr, Valid};
+use radiate_core::{AlterContext, AlterResult, Expr, ExprSet, Mutate, SmallStr};
 use radiate_core::{Chromosome, random_provider};
 
 const OP_MUTATED: SmallStr = SmallStr::from_static("mutate.operation.mutated");
@@ -20,16 +20,13 @@ impl OpMutateMetrics {
 }
 
 pub struct OperationMutator {
-    rate: Rate,
+    rate: Expr,
     replace_rate: f32,
 }
 
 impl OperationMutator {
-    pub fn new(rate: impl Into<Rate>, replace_rate: f32) -> Self {
+    pub fn new(rate: impl Into<Expr>, replace_rate: f32) -> Self {
         let rate = rate.into();
-        if !rate.is_valid() {
-            panic!("rate must be between 0.0 and 1.0");
-        }
 
         if !(0.0..=1.0).contains(&replace_rate) {
             panic!("replace_rate must be between 0.0 and 1.0");
@@ -94,8 +91,14 @@ impl<T> Mutate<GraphChromosome<Op<T>>> for OperationMutator
 where
     T: Clone + PartialEq + Default,
 {
-    fn rate(&self) -> Rate {
-        self.rate.clone()
+    fn rates(&self) -> ExprSet {
+        ExprSet::from([
+            self.rate
+                .clone()
+                .alias(SmallStr::from_static("mutator.operation.rate")),
+            Expr::lit(self.replace_rate)
+                .alias(SmallStr::from_static("mutator.operation.replace_rate")),
+        ])
     }
 
     #[inline]
@@ -132,8 +135,14 @@ impl<T> Mutate<TreeChromosome<Op<T>>> for OperationMutator
 where
     T: Clone + PartialEq + Default,
 {
-    fn rate(&self) -> Rate {
-        self.rate.clone()
+    fn rates(&self) -> ExprSet {
+        ExprSet::from([
+            self.rate
+                .clone()
+                .alias(SmallStr::from_static("mutator.operation.rate")),
+            Expr::lit(self.replace_rate)
+                .alias(SmallStr::from_static("mutator.operation.replace_rate")),
+        ])
     }
 
     #[inline]

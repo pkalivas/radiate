@@ -1,7 +1,10 @@
+use crate::error::RadiateResult;
 use crate::{Chromosome, Gene, Genotype, math::indexes, random_provider};
 use crate::{GetPairMut, MetricSet, Phenotype, Rate};
+use radiate_error::radiate_bail;
 pub use radiate_expr::*;
-use radiate_utils::{AnyValue, SmallStr, ToSnakeCase, intern};
+use radiate_utils::{SmallStr, ToSnakeCase, intern};
+use smallvec::SmallVec;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -77,20 +80,28 @@ impl AlterUpdates {
 pub struct AlterContext<'a> {
     alter_counts: &'a mut AlterUpdates,
     generation: usize,
-    rate: f32,
+    rates: &'a SmallVec<[f32; 4]>,
 }
 
 impl<'a> AlterContext<'a> {
-    pub fn new(alter_counts: &'a mut AlterUpdates, generation: usize, rate: f32) -> Self {
+    pub fn new(
+        alter_counts: &'a mut AlterUpdates,
+        generation: usize,
+        rates: &'a SmallVec<[f32; 4]>,
+    ) -> Self {
         AlterContext {
             alter_counts,
             generation,
-            rate,
+            rates,
         }
     }
 
     pub fn rate(&self) -> f32 {
-        self.rate
+        self.rates[0]
+    }
+
+    pub fn rate_at(&self, index: usize) -> f32 {
+        self.rates.get(index).copied().unwrap_or(0.0)
     }
 
     pub fn generation(&self) -> usize {
@@ -115,51 +126,69 @@ pub enum AlterInner<C: Chromosome> {
 pub struct Alterer<C: Chromosome> {
     name: SmallStr,
     time_name: SmallStr,
-    rate_name: SmallStr,
-    rate: Rate,
     inner: AlterInner<C>,
     alter_counts: AlterUpdates,
     expr_set: ExprSet,
+    rates: SmallVec<[f32; 4]>,
 }
 
 impl<C: Chromosome> Alterer<C> {
-    pub fn add_expr(&mut self, expr: impl Into<ExprSet>) {
-        self.expr_set = expr.into();
-    }
-
-    pub fn mutation(name: &'static str, rate: Rate, m: Arc<dyn Mutate<C>>) -> Self {
+    pub fn mutation(name: &'static str, m: Arc<dyn Mutate<C>>) -> Self {
         let name = SmallStr::from_static(name);
-        let exprs = m.expr_set();
+        let exprs = m.rates();
         Self {
             time_name: SmallStr::from_string(format!("{}.time", name)),
-            rate_name: SmallStr::from_string(format!("{}.rate", name)),
             name,
-            rate,
             inner: AlterInner::Mutate(m),
             alter_counts: AlterUpdates::new(),
             expr_set: exprs,
+            rates: SmallVec::new(),
         }
     }
 
-    pub fn crossover(name: &'static str, rate: Rate, c: Arc<dyn Crossover<C>>) -> Self {
+    pub fn crossover(name: &'static str, c: Arc<dyn Crossover<C>>) -> Self {
         let name = SmallStr::from_static(name);
+        let exprs = c.exprs();
         Self {
             time_name: SmallStr::from_string(format!("{}.time", name)),
-            rate_name: SmallStr::from_string(format!("{}.rate", name)),
             name,
-            rate,
             inner: AlterInner::Crossover(c),
             alter_counts: AlterUpdates::new(),
-            expr_set: ExprSet::default(),
+            expr_set: exprs,
+            rates: SmallVec::new(),
         }
-    }
-
-    pub fn rate(&self) -> &Rate {
-        &self.rate
     }
 
     pub fn name(&self) -> &str {
         &self.name
+    }
+
+    pub fn exprs(&self) -> ExprSet {
+        self.expr_set.clone()
+    }
+
+    fn calculate_rates(&mut self, metrics: &MetricSet) -> RadiateResult<()> {
+        self.rates.clear();
+        for expr in self.expr_set.iter_mut() {
+            if let Some(rate) = metrics.get(expr.name()).map(|v| v.last_value()) {
+                self.rates.push(rate);
+            } else {
+                let rate = match expr.eval(metrics)?.extract::<f32>() {
+                    Some(rate) => rate,
+                    None => {
+                        radiate_bail!(Engine:
+                            "Failed to evaluate rate expression for alterer {}: {}",
+                            self.name,
+                            expr.name()
+                        );
+                    }
+                };
+
+                self.rates.push(rate);
+            }
+        }
+
+        Ok(())
     }
 
     pub fn alter(
@@ -168,33 +197,16 @@ impl<C: Chromosome> Alterer<C> {
         metrics: &mut MetricSet,
         generation: usize,
     ) {
-        let rate = self.rate.get(generation, metrics);
-        metrics.upsert(self.rate_name.clone(), rate);
-
-        let expr_results = self.expr_set.eval(metrics).unwrap_or_else(|e| {
-            panic!(
-                "Failed to evaluate expression set for alterer {}: {}",
-                self.name, e
-            );
+        self.calculate_rates(metrics).unwrap_or_else(|e| {
+            eprintln!("Failed to calculate rates for alterer {}: {}", self.name, e);
         });
-
-        let rates = match expr_results {
-            AnyValue::Vector(vec) => vec
-                .into_iter()
-                .map(|v| v.extract::<f32>().unwrap_or(0.0))
-                .collect::<Vec<f32>>(),
-            _ => panic!(
-                "Expected expression set to evaluate to a vector for alterer {}",
-                self.name
-            ),
-        };
 
         self.alter_counts.clear();
 
         let mut ctx = AlterContext {
             alter_counts: &mut self.alter_counts,
             generation,
-            rate,
+            rates: &self.rates,
         };
 
         match &mut self.inner {
@@ -268,11 +280,15 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
         Rate::default()
     }
 
+    fn exprs(&self) -> ExprSet {
+        ExprSet::from(Expr::lit(1.0).alias(SmallStr::from_string(format!("{}.rate", self.name()))))
+    }
+
     fn alterer(self) -> Alterer<C>
     where
         Self: Sized + 'static,
     {
-        Alterer::crossover(intern!(self.name()), self.rate(), Arc::new(self))
+        Alterer::crossover(intern!(self.name()), Arc::new(self))
     }
 
     #[inline]
@@ -374,19 +390,19 @@ pub trait Mutate<C: Chromosome>: Send + Sync {
         new_name.join(".")
     }
 
-    fn rate(&self) -> Rate {
-        Rate::default()
+    fn rates(&self) -> ExprSet {
+        ExprSet::from(Expr::lit(1.0).alias(SmallStr::from_string(format!("{}.rate", self.name()))))
     }
 
-    fn expr_set(&self) -> ExprSet {
-        ExprSet::default()
+    fn rate(&self) -> Rate {
+        Rate::default()
     }
 
     fn alterer(self) -> Alterer<C>
     where
         Self: Sized + 'static,
     {
-        Alterer::mutation(intern!(self.name()), self.rate(), Arc::new(self))
+        Alterer::mutation(intern!(self.name()), Arc::new(self))
     }
 
     #[inline]

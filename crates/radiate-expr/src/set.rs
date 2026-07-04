@@ -15,6 +15,10 @@ impl ExprSet {
         Self { exprs }
     }
 
+    pub fn add(&mut self, expr: NamedExpr) {
+        self.exprs.push(expr);
+    }
+
     pub fn iter(&self) -> impl Iterator<Item = &NamedExpr> {
         self.exprs.iter()
     }
@@ -30,12 +34,13 @@ where
 {
     fn eval<'a>(&'a mut self, metrics: &T) -> ExprResult<'a> {
         let mut results = Vec::with_capacity(self.exprs.len());
-        for expr in &mut self.exprs {
+        for expr in self.exprs.iter_mut() {
+            let name = expr.name.clone();
             let value = expr.eval(metrics)?;
-            results.push(value);
+            results.push((name, value.dtype(), value));
         }
 
-        Ok(AnyValue::Vector(results))
+        Ok(AnyValue::Dict(results))
     }
 }
 

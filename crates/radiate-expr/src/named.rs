@@ -31,8 +31,8 @@ impl NamedExpr {
         &mut self.expr
     }
 
-    pub fn name(&self) -> &str {
-        self.name.as_str()
+    pub fn name(&self) -> &SmallStr {
+        &self.name
     }
 }
 

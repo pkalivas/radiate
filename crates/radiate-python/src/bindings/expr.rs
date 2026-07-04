@@ -12,7 +12,7 @@ fn dtype_is_duration(dtype_str: &str) -> bool {
 #[repr(transparent)]
 #[derive(Clone)]
 pub struct PyExpr {
-    inner: Expr,
+    pub(crate) inner: Expr,
 }
 
 impl PyExpr {

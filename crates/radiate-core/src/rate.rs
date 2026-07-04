@@ -1,6 +1,12 @@
 use crate::{MetricSet, Valid};
 pub use radiate_expr::*;
+use radiate_utils::SmallStr;
 use std::fmt::Debug;
+
+pub struct RateBuilder {
+    pub name: SmallStr,
+    pub exprs: ExprSet,
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum CycleShape {

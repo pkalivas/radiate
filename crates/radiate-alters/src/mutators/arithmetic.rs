@@ -1,6 +1,9 @@
 use radiate_core::{
-    AlterContext, AlterResult, ArithmeticGene, Chromosome, Mutate, Rate, Valid, random_provider,
+    AlterContext, AlterResult, ArithmeticGene, Chromosome, Expr, ExprSet, Mutate, SmallStr,
+    random_provider,
 };
+
+const ARITHMETIC_MUTATOR_RATE: SmallStr = SmallStr::from_static("mutator.arithmetic.rate");
 
 /// Arithmetic Mutator. Mutates genes by performing arithmetic operations on them.
 /// The [ArithmeticMutator] takes a rate parameter that determines the likelihood that
@@ -11,17 +14,14 @@ use radiate_core::{
 /// `Add`, `Sub`, `Mul`, and `Div` traits - [ArithmeticGene] is a good example.
 #[derive(Debug, Clone)]
 pub struct ArithmeticMutator {
-    rate: Rate,
+    rate: Expr,
 }
 
 impl ArithmeticMutator {
     /// Create a new instance of the `ArithmeticMutator` with the given rate.
     /// The rate must be between 0.0 and 1.0.
-    pub fn new(rate: impl Into<Rate>) -> Self {
+    pub fn new(rate: impl Into<Expr>) -> Self {
         let rate = rate.into();
-        if !rate.is_valid() {
-            panic!("Rate {rate:?} is not valid. Must be between 0.0 and 1.0",);
-        }
 
         Self { rate }
     }
@@ -32,8 +32,8 @@ where
     G: ArithmeticGene,
     C: Chromosome<Gene = G>,
 {
-    fn rate(&self) -> Rate {
-        self.rate.clone()
+    fn rates(&self) -> ExprSet {
+        ExprSet::from(self.rate.clone().alias(ARITHMETIC_MUTATOR_RATE))
     }
 
     /// Mutate a gene by performing an arithmetic operation on it.

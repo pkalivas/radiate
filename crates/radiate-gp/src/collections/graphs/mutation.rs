@@ -3,10 +3,11 @@ use super::{Graph, GraphChromosome};
 use crate::graphs::node::InnovationId;
 use crate::node::Node;
 use crate::{Factory, NodeType};
-use radiate_core::{AlterContext, Chromosome, SmallStr};
+use radiate_core::{AlterContext, Chromosome, Expr, ExprSet, SmallStr};
 use radiate_core::{AlterResult, Mutate, random_provider};
 use std::collections::HashMap;
 
+const MUTATE_RATE: SmallStr = SmallStr::from_static("mutator.graph.rate");
 const SATURATED: SmallStr = SmallStr::from_static("mutator.graph.invalid.saturated");
 const NO_INSTANCE: SmallStr = SmallStr::from_static("mutator.graph.invalid.no_instance");
 const REJECTED: SmallStr = SmallStr::from_static("mutator.graph.invalid.rejected");
@@ -71,8 +72,8 @@ impl InnovationContext {
 /// - `allow_recurrent`: If true, recurrent nodes are allowed. If false, they are not. Default is true.
 #[derive(Clone, Debug)]
 pub struct GraphMutator {
-    vertex_rate: f32,
-    edge_rate: f32,
+    vertex_rate: Expr,
+    edge_rate: Expr,
     allow_recurrent: bool,
     innov_context: InnovationContext,
 }
@@ -83,10 +84,10 @@ impl GraphMutator {
     /// # Arguments
     /// - `vertex_rate`: The probability of adding a vertex.
     /// - `edge_rate`: The probability of adding an edge.
-    pub fn new(vertex_rate: f32, edge_rate: f32) -> Self {
+    pub fn new(vertex_rate: impl Into<Expr>, edge_rate: impl Into<Expr>) -> Self {
         GraphMutator {
-            vertex_rate,
-            edge_rate,
+            vertex_rate: vertex_rate.into(),
+            edge_rate: edge_rate.into(),
             allow_recurrent: true,
             innov_context: InnovationContext::new(),
         }
@@ -106,15 +107,15 @@ impl GraphMutator {
     /// Get the type of node to add to the graph. This is used to determine if the node
     /// should be an edge or a vertex. First, a random boolean is generated. If true,
     /// we attempt to add an edge. If false, we attempt to add a vertex.
-    fn mutate_type(&self) -> Option<NodeType> {
+    fn mutate_type(&self, ctx: &AlterContext) -> Option<NodeType> {
         random_provider::with_rng(|rand| {
             if rand.bool(0.5) {
-                if rand.bool(self.edge_rate) {
+                if rand.bool(ctx.rate_at(1)) {
                     Some(NodeType::Edge)
                 } else {
                     None
                 }
-            } else if rand.bool(self.vertex_rate) {
+            } else if rand.bool(ctx.rate_at(2)) {
                 Some(NodeType::Vertex)
             } else {
                 None
@@ -127,6 +128,14 @@ impl<T> Mutate<GraphChromosome<T>> for GraphMutator
 where
     T: Clone + PartialEq + Default,
 {
+    fn rates(&self) -> ExprSet {
+        ExprSet::from([
+            Expr::lit(1.0).alias(MUTATE_RATE),
+            self.edge_rate.clone().alias(ADD_EDGE_RATE),
+            self.vertex_rate.clone().alias(ADD_VERTEX_RATE),
+        ])
+    }
+
     #[inline]
     fn mutate_chromosome(
         &mut self,
@@ -147,7 +156,7 @@ where
 
         // Else, if we are below the maximum number of nodes,
         // attempt to mutate the graph by adding a new node of the determined type.
-        if let Some(node_type) = self.mutate_type()
+        if let Some(node_type) = self.mutate_type(ctx)
             && let Some(store) = chromosome.store()
         {
             let Some(new_node) = store.new_instance((chromosome.len(), node_type)) else {
