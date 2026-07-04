@@ -1,6 +1,5 @@
 import radiate as rd
 
-
 # Setup (not shown): stand-ins for the placeholders referenced in the snippets below.
 your_codec = rd.FloatCodec(shape=2, init_range=(-1.0, 1.0))
 
@@ -36,7 +35,7 @@ engine = (
     .fitness(your_fitness_func)
     .diversity(
         rd.Dist.euclidean(),
-        species_threshold=rd.Rate.linear(start=0.3, end=0.9, duration=100),
+        # species_threshold=rd.Rate.linear(start=0.3, end=0.9, duration=100),
     )
 )
 # --8<-- [end:dynamic_threshold]

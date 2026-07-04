@@ -35,7 +35,7 @@ pub fn py_alter(
                 alterer,
                 population.into(),
                 generation,
-            )))
+            )?))
         }
         PyGeneType::Int => {
             let alterer =
@@ -47,7 +47,7 @@ pub fn py_alter(
                 alterer,
                 population.into(),
                 generation,
-            )))
+            )?))
         }
         PyGeneType::Char => {
             let alterer =
@@ -57,7 +57,7 @@ pub fn py_alter(
                 alterer,
                 population.into(),
                 generation,
-            )))
+            )?))
         }
         PyGeneType::Bit => {
             let alterer =
@@ -67,7 +67,7 @@ pub fn py_alter(
                 alterer,
                 population.into(),
                 generation,
-            )))
+            )?))
         }
         PyGeneType::Permutation => {
             let alterer = InputTransform::<
@@ -78,7 +78,7 @@ pub fn py_alter(
                 alterer,
                 population.into(),
                 generation,
-            )))
+            )?))
         }
         PyGeneType::GraphNode => {
             let alterer =
@@ -90,7 +90,7 @@ pub fn py_alter(
                 alterer,
                 population.into(),
                 generation,
-            )))
+            )?))
         }
         PyGeneType::TreeNode => {
             let alterer =
@@ -102,7 +102,7 @@ pub fn py_alter(
                 alterer,
                 population.into(),
                 generation,
-            )))
+            )?))
         }
         _ => Err(radiate_py_err!(format!(
             "Gene type {:?} not supported for alteration",
@@ -115,12 +115,12 @@ fn alter<C: Chromosome>(
     mut alterers: Vec<Alterer<C>>,
     mut population: Population<C>,
     generation: usize,
-) -> Population<C> {
+) -> RadiateResult<Population<C>> {
     let mut metrics = MetricSet::default();
     let pop = population.as_mut();
     for alterer in alterers.iter_mut() {
-        alterer.alter(pop, &mut metrics, generation);
+        alterer.alter(pop, &mut metrics, generation)?;
     }
 
-    population
+    Ok(population)
 }

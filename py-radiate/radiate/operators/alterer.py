@@ -1,9 +1,10 @@
 from typing import Any
 
+from .._typing import OperatorRate
+from ..expr import Expr
 from ..genome.gene import GeneType
 from ..genome.population import Population
 from .base import ComponentBase
-from .rate import Rate
 
 
 class AlterBase(ComponentBase):
@@ -11,7 +12,7 @@ class AlterBase(ComponentBase):
         self,
         component: str,
         args: dict[str, Any] = {},
-        rate: Rate | float = 1.0,
+        rate: Expr | float = 1.0,
         allowed_genes: set[GeneType] | GeneType = set(),
     ):
         """
@@ -19,7 +20,7 @@ class AlterBase(ComponentBase):
         :param alterer: An instance of the PyAlterer class.
         """
         super().__init__(component=component, args=args)
-        self.rate = rate if isinstance(rate, Rate) else Rate.fixed(rate)
+        self.rate = rate if isinstance(rate, Expr) else Expr.lit(rate)
         self.allowed_genes = allowed_genes if allowed_genes else GeneType.core()
 
     def __repr__(self):
@@ -50,7 +51,7 @@ class AlterBase(ComponentBase):
             component=self.component,
             input_type=EngineInputType.Alterer,
             allowed_genes=self.allowed_genes,
-            rate=self.rate,
+            expr=self.rate,
             **self.args,
         ).__backend__()
 
@@ -65,7 +66,7 @@ class AlterBase(ComponentBase):
 
 
 class BlendCrossover(AlterBase):
-    def __init__(self, rate: Rate | float = 0.1, alpha: float = 0.5):
+    def __init__(self, rate: OperatorRate = 0.1, alpha: float = 0.5):
         """
         The `BlendCrossover` is a crossover operator designed for `ArithmeticGene`s (IntGene & FloatGene).
         It introduces variability by blending the `gene` controlled by the `alpha` parameter.
@@ -84,7 +85,7 @@ class BlendCrossover(AlterBase):
 
 
 class IntermediateCrossover(AlterBase):
-    def __init__(self, rate: Rate | float = 0.1, alpha: float = 0.5):
+    def __init__(self, rate: OperatorRate = 0.1, alpha: float = 0.5):
         """
         The `IntermediateCrossover` operator is a crossover mechanism designed for `ArithmeticGene`s.
         It combines the corresponding `genes` of two parent chromosomes by replacing a gene in one chromosome
@@ -115,7 +116,7 @@ class IntermediateCrossover(AlterBase):
 
 
 class MeanCrossover(AlterBase):
-    def __init__(self, rate: Rate | float = 0.5):
+    def __init__(self, rate: OperatorRate = 0.5):
         """
         The `MeanCrossover` operator is a crossover mechanism designed
         for `ArithmeticGene`s. It combines the corresponding `genes` of two parent chromosomes by
@@ -133,7 +134,7 @@ class MeanCrossover(AlterBase):
 
 
 class ShuffleCrossover(AlterBase):
-    def __init__(self, rate: Rate | float = 0.1):
+    def __init__(self, rate: OperatorRate = 0.1):
         """
         The `ShuffleCrossover` is a crossover operator used in genetic algorithms,
         particularly when working with permutations or chromosomes where order matters.
@@ -155,7 +156,7 @@ class ShuffleCrossover(AlterBase):
 
 
 class SimulatedBinaryCrossover(AlterBase):
-    def __init__(self, rate: Rate | float = 0.1, contiguity: float = 0.5):
+    def __init__(self, rate: OperatorRate = 0.1, contiguity: float = 0.5):
         """
         The `SimulatedBinaryCrossover` is a crossover operator designed for `FloatGene`s.
         It simulates binary crossover by creating offspring that are a linear combination of the parents, controlled
@@ -174,7 +175,7 @@ class SimulatedBinaryCrossover(AlterBase):
 
 
 class PartiallyMappedCrossover(AlterBase):
-    def __init__(self, rate: Rate | float = 0.1):
+    def __init__(self, rate: OperatorRate = 0.1):
         """
         The `PMXCrossover` is a genetic algorithm crossover technique used for problems where solutions are represented as permutations.
         It is widely used in combinatorial optimization problems, such as the Traveling Salesman Problem (TSP),
@@ -201,7 +202,7 @@ class PartiallyMappedCrossover(AlterBase):
 
 
 class MultiPointCrossover(AlterBase):
-    def __init__(self, rate: Rate | float = 0.1, num_points: int = 2):
+    def __init__(self, rate: OperatorRate = 0.1, num_points: int = 2):
         """
         The `MultiPointCrossover` is a crossover operator that combines two parent individuals by selecting
         multiple crossover points and swapping the genetic material between the parents at those points. This is a
@@ -218,7 +219,7 @@ class MultiPointCrossover(AlterBase):
 
 
 class UniformCrossover(AlterBase):
-    def __init__(self, rate: Rate | float = 0.5):
+    def __init__(self, rate: OperatorRate = 0.5):
         """
         The `UniformCrossover` is a crossover operator creates new individuals by selecting `genes`
         from the parents with equal probability and swapping them between the parents.
@@ -230,7 +231,7 @@ class UniformCrossover(AlterBase):
 
 
 class UniformMutator(AlterBase):
-    def __init__(self, rate: Rate | float = 0.1):
+    def __init__(self, rate: OperatorRate = 0.1):
         """
         The most basic mutation operator. It randomly replaces a gene with a new instance of the gene type.
 
@@ -240,7 +241,7 @@ class UniformMutator(AlterBase):
 
 
 class ArithmeticMutator(AlterBase):
-    def __init__(self, rate: Rate | float = 0.1):
+    def __init__(self, rate: OperatorRate = 0.1):
         """
         The `ArithmeticMutator` introduces diversity into genetic algorithms by mutating numerically
         based `genes` through basic arithmetic operations. It is designed to work on `genes` that
@@ -261,7 +262,7 @@ class ArithmeticMutator(AlterBase):
 
 
 class GaussianMutator(AlterBase):
-    def __init__(self, rate: Rate | float = 0.1):
+    def __init__(self, rate: OperatorRate = 0.1):
         """
         The `GaussianMutator` operator is a mutation mechanism designed for `ArithmeticGene`s.
         It introduces random noise to the gene values by adding a sample from a Gaussian distribution
@@ -278,7 +279,7 @@ class GaussianMutator(AlterBase):
 
 
 class ScrambleMutator(AlterBase):
-    def __init__(self, rate: Rate | float = 0.1):
+    def __init__(self, rate: OperatorRate = 0.1):
         """
         The `ScrambleMutator` randomly reorders a segment of `genes` within a `chromosome`.
 
@@ -288,7 +289,7 @@ class ScrambleMutator(AlterBase):
 
 
 class SwapMutator(AlterBase):
-    def __init__(self, rate: Rate | float = 0.1):
+    def __init__(self, rate: OperatorRate = 0.1):
         """
         The `SwapMutator` is a mutation operator designed for genetic algorithms
         to swap the positions of two `Gene`s in a `Chromosome`. This mutator swaps two `Gene`s
@@ -303,8 +304,8 @@ class SwapMutator(AlterBase):
 class GraphMutator(AlterBase):
     def __init__(
         self,
-        vertex_rate: float = 0.1,
-        edge_rate: float = 0.1,
+        vertex_rate: OperatorRate = 0.1,
+        edge_rate: OperatorRate = 0.1,
         allow_recurrent: bool = True,
     ):
         """
@@ -318,8 +319,12 @@ class GraphMutator(AlterBase):
         super().__init__(
             component="GraphMutator",
             args={
-                "vertex_rate": vertex_rate,
-                "edge_rate": edge_rate,
+                "vertex_rate": vertex_rate.__backend__()
+                if isinstance(vertex_rate, Expr)
+                else Expr.lit(vertex_rate),
+                "edge_rate": edge_rate.__backend__()
+                if isinstance(edge_rate, Expr)
+                else Expr.lit(edge_rate),
                 "allow_recurrent": allow_recurrent,
             },
             allowed_genes=GeneType.GRAPH,
@@ -327,7 +332,7 @@ class GraphMutator(AlterBase):
 
 
 class OperationMutator(AlterBase):
-    def __init__(self, rate: Rate | float = 0.1, replace_rate: float = 0.1):
+    def __init__(self, rate: OperatorRate = 0.1, replace_rate: float = 0.1):
         """
         This mutator randomly changes or alters the `op` of a node within a `TreeChromosome` or `GraphChromosome`.
         It can replace the `op` with a new one from the store or modify its parameters.
@@ -344,7 +349,7 @@ class OperationMutator(AlterBase):
 
 
 class GraphCrossover(AlterBase):
-    def __init__(self, rate: Rate | float = 0.5, parent_node_rate: float = 0.5):
+    def __init__(self, rate: OperatorRate = 0.5, parent_node_rate: float = 0.5):
         """
         This crossover operator is used to combine two parent graphs by swapping the values of their nodes.
         It can be used to create new graphs that inherit the structure and values of their parents.
@@ -365,7 +370,7 @@ class GraphCrossover(AlterBase):
 
 
 class TreeCrossover(AlterBase):
-    def __init__(self, rate: Rate | float = 0.5, max_size: int = 30):
+    def __init__(self, rate: OperatorRate = 0.5, max_size: int = 30):
         """
         The `TreeCrossover` is a crossover operator that randomly selects a subtree from one parent tree and
         swaps it with a subtree from another parent tree.
@@ -382,7 +387,7 @@ class TreeCrossover(AlterBase):
 
 
 class HoistMutator(AlterBase):
-    def __init__(self, rate: Rate | float = 0.1):
+    def __init__(self, rate: OperatorRate = 0.1):
         """
         The `HoistMutator` is a mutation operator that randomly selects a subtree
         from the tree and moves it to a different location in the tree. This can create new
@@ -398,7 +403,7 @@ class HoistMutator(AlterBase):
 
 
 class InversionMutator(AlterBase):
-    def __init__(self, rate: Rate | float = 0.1):
+    def __init__(self, rate: OperatorRate = 0.1):
         """
         `InvertMutator` is a segment inversion mutator. It randomly selects a segment of the
         `chromosome` and inverts the order of the `genes` within that segment.
@@ -412,7 +417,7 @@ class InversionMutator(AlterBase):
 
 
 class EdgeRecombinationCrossover(AlterBase):
-    def __init__(self, rate: Rate | float = 0.5):
+    def __init__(self, rate: OperatorRate = 0.5):
         """
         The `EdgeRecombinationCrossover` is a specialized crossover operator for permutation problems.
         It focuses on preserving the connectivity between genes by combining edges from both parents.
@@ -438,7 +443,7 @@ class EdgeRecombinationCrossover(AlterBase):
 
 
 class PolynomialMutator(AlterBase):
-    def __init__(self, rate: Rate | float = 0.5, eta: float = 20.0):
+    def __init__(self, rate: OperatorRate = 0.5, eta: float = 20.0):
         """
         The `PolynomialMutator` applies a polynomial mutation to the genes of a chromosome.
         This provides a bounded and unbiased mutation to genes where you care about the distribution of the mutation.
@@ -461,7 +466,7 @@ class PolynomialMutator(AlterBase):
 
 
 class JitterMutator(AlterBase):
-    def __init__(self, rate: Rate | float = 0.1, magnitude: float = 0.1):
+    def __init__(self, rate: OperatorRate = 0.1, magnitude: float = 0.1):
         """
         The `JitterMutator` adds small random perturbations to the values of a `gene`
         within a `chromosome`. A random value is sampled from a uniform

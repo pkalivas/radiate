@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from enum import Enum
+from typing import TYPE_CHECKING
 
 from radiate.radiate import PyEngineInput, PyEngineInputType
 
+if TYPE_CHECKING:
+    from ..expr import Expr
+
 from ..genome import GENE_TYPE_MAPPING, GeneType
-from ..operators.rate import Rate
 from .wrapper import RsObject
 
 
@@ -63,7 +66,7 @@ class EngineInput(RsObject):
         self,
         input_type: EngineInputType,
         component: str,
-        rate: Rate | None = None,
+        rate: Expr | None = None,
         allowed_genes: set[GeneType] | list[GeneType] | GeneType | None = None,
         **kwargs,
     ):

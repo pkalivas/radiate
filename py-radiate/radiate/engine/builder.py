@@ -15,7 +15,6 @@ from ..operators import (
     Executor,
     FilterBase,
     LimitBase,
-    Rate,
     RouletteSelector,
     SelectorBase,
     TournamentSelector,
@@ -40,7 +39,7 @@ class EngineConfig[G, T]:
     offspring_fraction: float = 0.8
     max_phenotype_age: int = 20
     max_species_age: int = 20
-    species_threshold: Rate = Rate.fixed(0.5)
+    species_threshold: Expr | float = 0.5
 
     objective: str | list[str] = "max"
     front_range: tuple[int, int] = (800, 900)
@@ -278,7 +277,7 @@ class EngineBuilder[G, T]:
             )
 
     def set_diversity(
-        self, diversity: DistanceBase | None, species_threshold: Rate | Expr
+        self, diversity: DistanceBase | None, species_threshold: Expr | float
     ):
         if diversity is None:
             return
@@ -302,7 +301,9 @@ class EngineBuilder[G, T]:
                 input_type=EngineInputType.SpeciesThreshold,
                 component="SpeciesThreshold",
                 allowed_genes=diversity.allowed_genes,
-                threshold=species_threshold.__backend__(),
+                threshold=species_threshold.__backend__()
+                if isinstance(species_threshold, Expr)
+                else species_threshold,
             )
         )
 

@@ -45,7 +45,6 @@ from ..operators.limit import (
     ScoreLimit,
     SecondsLimit,
 )
-from ..operators.rate import Rate
 from ..operators.selector import (
     BoltzmannSelector,
     EliteSelector,
@@ -60,13 +59,13 @@ from ..operators.selector import (
 )
 
 
-def _get_rate(rate: OperatorRate) -> Rate:
-    if isinstance(rate, Rate):
+def _get_rate(rate: OperatorRate) -> Expr:
+    if isinstance(rate, Expr):
         return rate
-    elif isinstance(rate, Expr):
-        return Rate.expr(rate)
+    if isinstance(rate, float):
+        return Expr.lit(rate)
     else:
-        return Rate.fixed(rate)
+        raise TypeError(f"Invalid rate type: {type(rate)}. Must be float or Expr.")
 
 
 class Select:
@@ -430,7 +429,9 @@ class Mutate:
 
     @staticmethod
     def graph(
-        vertex_rate: float = 0.1, edge_rate: float = 0.1, allow_recurrent: bool = True
+        vertex_rate: OperatorRate = 0.1,
+        edge_rate: OperatorRate = 0.1,
+        allow_recurrent: bool = True,
     ):
         """
         This mutator is used to add new nodes and connections to the graph.
@@ -440,7 +441,9 @@ class Mutate:
         :param edge_rate: The probability of adding a new edge to the graph.
         :param allow_recurrent: Whether to allow recurrent connections in the graph.
         """
-        return GraphMutator(vertex_rate, edge_rate, allow_recurrent)
+        return GraphMutator(
+            _get_rate(vertex_rate), _get_rate(edge_rate), allow_recurrent
+        )
 
     @staticmethod
     def scramble(rate: OperatorRate = 0.1):

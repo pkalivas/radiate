@@ -28,7 +28,6 @@ from ..operators import (
     ExprLimit,
     FilterBase,
     LimitBase,
-    Rate,
     SelectorBase,
 )
 from .builder import EngineBuilder
@@ -578,7 +577,7 @@ class Engine[G, T]:
     def diversity(
         self,
         diversity: DistanceBase,
-        species_threshold: Rate | Expr | float = 0.5,
+        species_threshold: Expr | float = 0.5,
         target_species: int | None = None,
     ) -> Engine[G, T]:
         """
@@ -633,7 +632,7 @@ class Engine[G, T]:
         if isinstance(species_threshold, (int, float)):
             if species_threshold <= 0:
                 raise ValueError("Species threshold must be greater than 0.")
-            species_threshold = Rate.fixed(species_threshold)
+            species_threshold = Expr.lit(species_threshold)
 
         self._builder.set_diversity(diversity, species_threshold)
         return self

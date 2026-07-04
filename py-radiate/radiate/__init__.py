@@ -87,7 +87,6 @@ from .genome import (
     chromosome,
 )
 from .gp import AccuracyResult, Graph, Op, OpsConfig, Tree, accuracy
-from .operators import rate
 from .operators.alterer import (
     ArithmeticMutator,
     BlendCrossover,
@@ -126,7 +125,6 @@ from .operators.limit import (
     ScoreLimit,
     SecondsLimit,
 )
-from .operators.rate import Rate
 from .operators.selector import (
     BoltzmannSelector,
     EliteSelector,
@@ -192,9 +190,6 @@ __all__ = [
     "on_improvement",
     "on_start",
     "on_stop",
-    # Rate
-    "Rate",
-    "rate",
     # Alters
     "BlendCrossover",
     "TreeCrossover",

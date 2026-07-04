@@ -40,7 +40,6 @@ from .limit import (
     ScoreLimit,
     SecondsLimit,
 )
-from .rate import Rate
 from .selector import (
     BoltzmannSelector,
     EliteSelector,
@@ -108,7 +107,6 @@ __all__ = [
     # Descriptors
     "ConvergenceLimit",
     "CustomDescriptor",
-    "Rate",
     # Filters
     "FilterBase",
     "UniqueScoreFilter",

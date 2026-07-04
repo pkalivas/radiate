@@ -2,7 +2,7 @@
 import radiate as rd
 
 mutator = rd.UniformMutator(rate=0.1)
-mutator = rd.UniformMutator(rate=rd.Rate.fixed(0.1))
+mutator = rd.UniformMutator(rate=rd.Expr.lit(0.1))
 mutator = rd.Mutate.uniform(rate=0.1)  # Using the Mutate dsl syntax
 # --8<-- [end:uniform_mutator]
 

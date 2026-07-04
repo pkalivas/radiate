@@ -10,7 +10,6 @@ if TYPE_CHECKING:
     from .engine.option import CheckpointParam
     from .expr import Expr
     from .fitness.loss import LossType, LossTypeClass
-    from .operators.rate import Rate
 
 type FileType = Literal["pkl", "json"]
 
@@ -22,7 +21,7 @@ type RdLossType = LossType | LossTypeClass
 
 type Subscriber = AtLeastOne[Callable[[Any], None]] | AtLeastOne[EventHandler]
 
-type OperatorRate = float | Rate | Expr
+type OperatorRate = float | Expr
 
 type Checkpoint = (
     bool | str | Path | tuple[int, str | Path, FileType | None] | CheckpointParam
