@@ -40,13 +40,11 @@ impl<C: Chromosome> AppWidget<C> for EngineStatusPanelWidget {
             let best = state.evo.best_score.as_f32();
             let at_peak = (current - best).abs() < f32::EPSILON || best == 0.0;
             title.push(" | Score ".fg(Color::Gray).bold());
-            title.push(
-                format!("{:.4}", current).fg(if at_peak {
-                    Color::LightGreen
-                } else {
-                    Color::Yellow
-                }),
-            );
+            title.push(format!("{:.4}", current).fg(if at_peak {
+                Color::LightGreen
+            } else {
+                Color::Yellow
+            }));
             if !at_peak {
                 title.push(" / ".fg(Color::Gray));
                 title.push(format!("{:.4} ", best).fg(Color::LightGreen));

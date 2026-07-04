@@ -1,15 +1,20 @@
+use crate::{
+    Evaluate,
+    stats::{ExprResult, ExprSelector},
+};
+
 use super::Expr;
 use radiate_utils::SmallStr;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize, ser::SerializeStruct};
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct MetricQuery {
+pub struct NamedExpr {
     pub name: SmallStr,
     pub expr: Expr,
 }
 
-impl MetricQuery {
+impl NamedExpr {
     pub fn new(name: impl Into<SmallStr>, expr: Expr) -> Self {
         Self {
             name: name.into(),
@@ -34,14 +39,31 @@ impl MetricQuery {
     }
 }
 
-impl<T: Into<SmallStr>> From<(T, Expr)> for MetricQuery {
+impl<T> Evaluate<T> for NamedExpr
+where
+    T: ExprSelector,
+{
+    fn eval<'a>(&'a mut self, metrics: &T) -> ExprResult<'a> {
+        match &mut self.expr {
+            Expr::Literal(value) => Ok(value.clone()),
+            Expr::Selector(selector) => selector.eval(metrics),
+            Expr::Aggregate(child) => child.eval(metrics),
+            Expr::Trinary(child) => child.eval(metrics),
+            Expr::Binary(child) => child.eval(metrics),
+            Expr::Unary(child) => child.eval(metrics),
+            Expr::Schedule(child) => child.eval(metrics),
+        }
+    }
+}
+
+impl<T: Into<SmallStr>> From<(T, Expr)> for NamedExpr {
     fn from((name, expr): (T, Expr)) -> Self {
         Self::new(name, expr)
     }
 }
 
 #[cfg(feature = "serde")]
-impl Serialize for MetricQuery {
+impl Serialize for NamedExpr {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -54,7 +76,7 @@ impl Serialize for MetricQuery {
 }
 
 #[cfg(feature = "serde")]
-impl<'de> Deserialize<'de> for MetricQuery {
+impl<'de> Deserialize<'de> for NamedExpr {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
@@ -66,9 +88,6 @@ impl<'de> Deserialize<'de> for MetricQuery {
         }
 
         let data = NamedExprData::deserialize(deserializer)?;
-        Ok(MetricQuery::new(
-            radiate_utils::intern!(data.name),
-            data.expr,
-        ))
+        Ok(NamedExpr::new(radiate_utils::intern!(data.name), data.expr))
     }
 }

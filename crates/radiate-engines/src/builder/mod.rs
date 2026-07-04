@@ -31,9 +31,9 @@ use crate::{
 use crate::{Generation, Result};
 use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
-use radiate_core::MetricQuery;
 use radiate_core::evaluator::BatchFitnessEvaluator;
 use radiate_core::problem::{BatchEngineProblem, EngineProblem};
+use radiate_core::stats::ExprSet;
 use radiate_core::{Alterer, Ecosystem, Executor, FitnessEvaluator, Rate, Valid};
 use radiate_core::{RadiateError, ensure, radiate_err};
 use radiate_utils::VersionedCounts;
@@ -59,7 +59,7 @@ where
     pub replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
     pub handlers: Vec<Arc<Mutex<dyn EventHandler<T>>>>,
     pub generation: Option<Generation<C, T>>,
-    pub exprs: Option<Arc<Mutex<Vec<MetricQuery>>>>,
+    pub exprs: Option<Arc<Mutex<ExprSet>>>,
 }
 
 /// Parameters for the genetic engine.
@@ -128,10 +128,8 @@ where
 
     /// Set the metrics for the engine. This allows you to define custom metrics
     /// that will be calculated during the evolution process.
-    pub fn metrics(mut self, exprs: Vec<impl Into<MetricQuery>>) -> Self {
-        self.params.exprs = Some(Arc::new(Mutex::new(
-            exprs.into_iter().map(|e| e.into()).collect(),
-        )));
+    pub fn metrics(mut self, exprs: impl Into<ExprSet>) -> Self {
+        self.params.exprs = Some(Arc::new(Mutex::new(exprs.into())));
         self
     }
 

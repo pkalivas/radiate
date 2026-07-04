@@ -14,8 +14,8 @@ use crate::objectives::Objective;
 use crate::{EventHandler, Front, Problem, ReplacementStrategy, Select};
 use radiate_core::EcosystemFilter;
 use radiate_core::Expr;
-use radiate_core::MetricQuery;
 use radiate_core::metric_names;
+use radiate_core::stats::ExprSet;
 use radiate_core::{Alterer, Diversity, Ecosystem, Evaluator, Executor, Genotype, Rate};
 use std::sync::{Arc, Mutex, RwLock};
 
@@ -38,7 +38,7 @@ pub(crate) struct EngineConfig<C: Chromosome, T: Clone> {
     offspring_fraction: f32,
     executor: EvaluationParams<C, T>,
     handlers: Vec<Arc<Mutex<dyn EventHandler<T>>>>,
-    exprs: Option<Arc<Mutex<Vec<MetricQuery>>>>,
+    exprs: Option<Arc<Mutex<ExprSet>>>,
     generation: Option<Generation<C, T>>,
 }
 
@@ -136,7 +136,7 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
         Arc::new(move || problem.encode())
     }
 
-    pub fn exprs(&self) -> Option<Arc<Mutex<Vec<MetricQuery>>>> {
+    pub fn exprs(&self) -> Option<Arc<Mutex<ExprSet>>> {
         self.exprs.clone()
     }
 }

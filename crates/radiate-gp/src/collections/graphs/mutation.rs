@@ -10,6 +10,8 @@ use std::collections::HashMap;
 const SATURATED: SmallStr = SmallStr::from_static("mutator.graph.invalid.saturated");
 const NO_INSTANCE: SmallStr = SmallStr::from_static("mutator.graph.invalid.no_instance");
 const REJECTED: SmallStr = SmallStr::from_static("mutator.graph.invalid.rejected");
+const ADD_VERTEX_RATE: SmallStr = SmallStr::from_static("mutator.graph.rate.vertex");
+const ADD_EDGE_RATE: SmallStr = SmallStr::from_static("mutator.graph.rate.edge");
 
 #[derive(Hash, Eq, PartialEq, Debug, Clone)]
 struct StructureChange {

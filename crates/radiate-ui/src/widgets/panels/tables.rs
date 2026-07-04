@@ -15,7 +15,7 @@ use ratatui::{
 use std::iter::{once, repeat_n};
 
 pub const STAT_HEADER_CELLS: [&str; 6] = ["Metric", "Last", "Min", "Max", "μ (mean)", "Count"];
-pub const TIME_HEADER_CELLS: [&str; 5] = ["Metric", "Min", "Max", "μ (mean)", "Total"];
+pub const TIME_HEADER_CELLS: [&str; 6] = ["Metric", "Min", "Max", "μ (mean)", "Total", "Std Dev"];
 pub const SPECIES_HEADER_CELLS: [&str; 6] =
     ["ID", "Age", "Size", "Gen. Stag", "Raw Score", "Adj. Score"];
 pub const DIST_HEADER_CELLS: [&str; 7] = [
@@ -55,7 +55,9 @@ impl MetricTableKind {
 
     fn widths(&self) -> Vec<Constraint> {
         match self {
-            Self::Time => vec![Constraint::Fill(1); 5],
+            Self::Time => once(Constraint::Length(25))
+                .chain(repeat_n(Constraint::Fill(1), 5))
+                .collect(),
             Self::Stats => once(Constraint::Length(25))
                 .chain(repeat_n(Constraint::Fill(1), 5))
                 .collect(),
@@ -238,6 +240,7 @@ fn metric_to_time_rows<'a>(
                 Cell::from(fmt_duration(time.max())),
                 Cell::from(fmt_duration(time.mean())),
                 Cell::from(fmt_duration(time.sum())),
+                Cell::from(fmt_duration(time.stddev())),
             ])
         })
     })

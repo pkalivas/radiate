@@ -1,5 +1,6 @@
+use crate::stats::ExprSet;
 use crate::{Chromosome, Gene, Genotype, math::indexes, random_provider};
-use crate::{GetPairMut, MetricSet, Phenotype, Rate};
+use crate::{Evaluate, GetPairMut, MetricSet, Phenotype, Rate};
 use radiate_utils::{SmallStr, ToSnakeCase, intern};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -118,6 +119,7 @@ pub struct Alterer<C: Chromosome> {
     rate: Rate,
     inner: AlterInner<C>,
     alter_counts: AlterUpdates,
+    expr_set: ExprSet,
 }
 
 impl<C: Chromosome> Alterer<C> {
@@ -130,6 +132,7 @@ impl<C: Chromosome> Alterer<C> {
             rate,
             inner: AlterInner::Mutate(m),
             alter_counts: AlterUpdates::new(),
+            expr_set: ExprSet::default(),
         }
     }
 
@@ -142,6 +145,7 @@ impl<C: Chromosome> Alterer<C> {
             rate,
             inner: AlterInner::Crossover(c),
             alter_counts: AlterUpdates::new(),
+            expr_set: ExprSet::default(),
         }
     }
 
@@ -160,8 +164,8 @@ impl<C: Chromosome> Alterer<C> {
         generation: usize,
     ) {
         let rate = self.rate.get(generation, metrics);
-
         metrics.upsert(self.rate_name.clone(), rate);
+
         self.alter_counts.clear();
 
         let mut ctx = AlterContext {

@@ -1,7 +1,10 @@
 use crate::steps::EngineStep;
 use radiate_core::{
-    Chromosome, Ecosystem, Evaluate, MetricQuery, MetricSet, MetricUpdate, Objective, Score,
-    SmallStr, math::distribution, metric_names, phenotype::PhenotypeId, stats::TagType,
+    Chromosome, Ecosystem, Evaluate, MetricSet, MetricUpdate, Objective, Score, SmallStr,
+    math::distribution,
+    metric_names,
+    phenotype::PhenotypeId,
+    stats::{ExprSet, TagType},
 };
 use radiate_error::Result;
 use std::{
@@ -17,7 +20,7 @@ pub struct MetricStep {
     objective: Objective,
     best_score: Option<Score>,
 
-    expressions: Option<Arc<Mutex<Vec<MetricQuery>>>>,
+    expressions: Option<Arc<Mutex<ExprSet>>>,
 
     score_dist_per_dim: Vec<Vec<f32>>,
     unique_scores_per_dim: Vec<Vec<f32>>,
@@ -42,7 +45,7 @@ pub struct MetricStep {
 }
 
 impl MetricStep {
-    pub fn new(objective: Objective, expressions: Option<Arc<Mutex<Vec<MetricQuery>>>>) -> Self {
+    pub fn new(objective: Objective, expressions: Option<Arc<Mutex<ExprSet>>>) -> Self {
         Self {
             objective,
             expressions,

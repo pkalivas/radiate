@@ -1,7 +1,7 @@
 use crate::builder::config::EngineConfig;
 use crate::{Chromosome, EngineControl};
-use radiate_core::MetricQuery;
 use radiate_core::error::RadiateResult;
+use radiate_core::stats::ExprSet;
 use radiate_core::{
     Ecosystem, Front, MetricSet, Objective, Phenotype, Problem, Score, metric, metric_names,
 };
@@ -17,7 +17,7 @@ pub struct EvolutionContext<C: Chromosome, T> {
     pub(crate) objective: Objective,
     pub(crate) problem: Arc<dyn Problem<C, T>>,
     pub(crate) control: Option<EngineControl>,
-    pub(crate) exprs: Option<Arc<Mutex<Vec<MetricQuery>>>>,
+    pub(crate) exprs: Option<Arc<Mutex<ExprSet>>>,
 }
 
 impl<C: Chromosome, T> EvolutionContext<C, T> {

@@ -8,6 +8,10 @@ pub const ALT_BG_COLOR: Color = material::GRAY.c900;
 pub const TEXT_FG_COLOR: Color = material::GRAY.c300;
 pub const OVERLAY_COLOR: Color = material::GRAY.c700;
 
+pub const TREND_UP_COLOR: Color = material::GREEN.c200;
+pub const TREND_DOWN_COLOR: Color = material::RED.c200;
+pub const TREND_FLAT_COLOR: Color = material::GRAY.c500;
+
 pub(crate) const COLOR_WHEEL_400: [Color; 8] = [
     material::RED.c400,
     material::BLUE.c400,
@@ -52,11 +56,11 @@ pub fn panel_block(focused: bool) -> Block<'static> {
 /// Pass `1.0 - value` for lower-is-better metrics.
 pub fn sentiment_color(value: f32, warn: f32, good: f32) -> Color {
     if value >= good {
-        material::GREEN.c400
+        TREND_UP_COLOR
     } else if value >= warn {
         material::YELLOW.c400
     } else {
-        material::RED.c400
+        TREND_DOWN_COLOR
     }
 }
 
@@ -64,11 +68,11 @@ pub fn sentiment_color(value: f32, warn: f32, good: f32) -> Color {
 pub fn trend_color(last: f32, mean: f32) -> Color {
     let eps = mean.abs() * 0.01 + f32::EPSILON;
     if last > mean + eps {
-        material::GREEN.c200
+        TREND_UP_COLOR
     } else if last < mean - eps {
-        material::RED.c200
+        TREND_DOWN_COLOR
     } else {
-        material::GRAY.c500
+        TREND_FLAT_COLOR
     }
 }
 

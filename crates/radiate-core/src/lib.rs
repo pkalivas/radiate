@@ -39,7 +39,7 @@ pub use replacement::{
 };
 pub use selector::Select;
 pub use stats::{
-    Evaluate, Expr, Metric, MetricQuery, MetricSet, MetricUpdate, SelectExpr, metric_names,
+    Evaluate, Expr, Metric, MetricSet, MetricUpdate, NamedExpr, SelectExpr, metric_names,
     render_dashboard, render_full,
 };
 
@@ -70,6 +70,6 @@ pub mod prelude {
     };
     pub use super::selector::Select;
     pub use super::stats::{
-        Evaluate, Expr, Metric, MetricQuery, MetricSet, SelectExpr, metric_names,
+        Evaluate, Expr, Metric, MetricSet, NamedExpr, SelectExpr, metric_names,
     };
 }

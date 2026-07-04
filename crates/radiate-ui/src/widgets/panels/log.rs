@@ -37,12 +37,12 @@ impl<C: Chromosome> AppWidget<C> for ImprovementLogWidget {
                     .unwrap_or(crate::styles::BG_COLOR);
                 Row::new(vec![
                     Cell::from(format!("{:>6}", entry.generation))
-                        .style(Style::default().fg(Color::Gray)),
+                        .style(Style::default().fg(crate::styles::TEXT_FG_COLOR)),
                     Cell::from(format!("{:.6}", entry.score))
                         .style(Style::default().fg(score_color)),
                     Cell::from(Span::styled(
                         format!("+{:.6}", entry.delta),
-                        Style::default().fg(Color::LightGreen),
+                        Style::default().fg(crate::styles::TREND_UP_COLOR),
                     )),
                     Cell::from(bar).style(Style::default().fg(bar_color)),
                 ])
