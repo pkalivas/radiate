@@ -1,10 +1,8 @@
 use crate::{Chromosome, Gene, Genotype, math::indexes, random_provider};
 use crate::{GetPairMut, MetricSet, Phenotype};
 use crate::{RateSet, error::RadiateResult};
-use radiate_error::radiate_bail;
 pub use radiate_expr::*;
 use radiate_utils::{SmallStr, ToSnakeCase, intern};
-use smallvec::SmallVec;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -128,13 +126,10 @@ pub enum AlterInner<C: Chromosome> {
 #[derive(Clone)]
 pub struct Alterer<C: Chromosome> {
     time_name: SmallStr,
-    control_rate_name: SmallStr,
-    inner_rate_names: SmallVec<[SmallStr; 4]>,
     name: SmallStr,
     inner: AlterInner<C>,
     alter_counts: AlterUpdates,
     rate_set: RateSet,
-    expr_set: ExprSet,
 }
 
 impl<C: Chromosome> Alterer<C> {
@@ -152,29 +147,17 @@ impl<C: Chromosome> Alterer<C> {
         let time_name = SmallStr::from_string(format!("{}.time", name));
         let control_rate_name = SmallStr::from_string(format!("{}.rate", name));
 
-        let exprs = match &inner {
-            AlterInner::Mutate(m) => m.expressions(),
-            AlterInner::Crossover(c) => c.expressions(),
-        };
         let rate_set = match &inner {
             AlterInner::Mutate(m) => m.rates().alias(control_rate_name.clone()),
             AlterInner::Crossover(c) => c.rates().alias(control_rate_name.clone()),
         };
 
-        let inner_rate_names = exprs
-            .iter()
-            .map(|e| e.name().clone())
-            .collect::<SmallVec<[SmallStr; 4]>>();
-
         Self {
             time_name,
-            control_rate_name,
-            inner_rate_names,
             name,
             inner,
             alter_counts: AlterUpdates::new(),
             rate_set,
-            expr_set: exprs,
         }
     }
 
@@ -184,10 +167,6 @@ impl<C: Chromosome> Alterer<C> {
 
     pub fn name(&self) -> &str {
         &self.name
-    }
-
-    pub fn exprs(&self) -> ExprSet {
-        self.expr_set.clone()
     }
 
     pub fn alter(
@@ -275,10 +254,6 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
         }
 
         new_name.join(".")
-    }
-
-    fn expressions(&self) -> ExprSet {
-        ExprSet::from(Expr::lit(1.0).alias(format!("{}.rate", self.name())))
     }
 
     fn rates(&self) -> RateSet {
@@ -389,10 +364,6 @@ pub trait Mutate<C: Chromosome>: Send + Sync {
         }
 
         new_name.join(".")
-    }
-
-    fn expressions(&self) -> ExprSet {
-        ExprSet::from(Expr::lit(1.0).alias(format!("{}.rate", self.name())))
     }
 
     fn rates(&self) -> RateSet {

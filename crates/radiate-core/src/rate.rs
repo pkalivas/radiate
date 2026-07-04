@@ -60,8 +60,9 @@ impl RateSet {
         self
     }
 
-    pub fn add(&mut self, expr: impl Into<NamedExpr>) {
+    pub fn add(mut self, expr: impl Into<NamedExpr>) -> Self {
         self.internal.push(expr.into());
+        self
     }
 
     fn try_eval_rate(metrics: &MetricSet, expr: &mut NamedExpr) -> RadiateResult<f32> {

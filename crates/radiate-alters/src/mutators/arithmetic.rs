@@ -1,9 +1,6 @@
 use radiate_core::{
-    AlterContext, AlterResult, ArithmeticGene, Chromosome, Expr, ExprSet, Mutate, SmallStr,
-    random_provider,
+    AlterContext, AlterResult, ArithmeticGene, Chromosome, Expr, Mutate, RateSet, random_provider,
 };
-
-const ARITHMETIC_MUTATOR_RATE: SmallStr = SmallStr::from_static("mutator.arithmetic.rate");
 
 /// Arithmetic Mutator. Mutates genes by performing arithmetic operations on them.
 /// The [ArithmeticMutator] takes a rate parameter that determines the likelihood that
@@ -30,8 +27,8 @@ where
     G: ArithmeticGene,
     C: Chromosome<Gene = G>,
 {
-    fn expressions(&self) -> ExprSet {
-        ExprSet::from(self.rate.clone().alias(ARITHMETIC_MUTATOR_RATE))
+    fn rates(&self) -> RateSet {
+        RateSet::new(self.rate.clone())
     }
 
     /// Mutate a gene by performing an arithmetic operation on it.

@@ -1,10 +1,8 @@
 use radiate_core::{
-    AlterContext, AlterResult, BoundedGene, Chromosome, Expr, ExprSet, FloatGene, Gene, Mutate,
-    SmallStr, random_provider,
+    AlterContext, AlterResult, BoundedGene, Chromosome, Expr, FloatGene, Gene, Mutate, RateSet,
+    random_provider,
 };
 use radiate_utils::{Float, Primitive};
-
-const GAUSSIAN_MUTATOR_RATE: SmallStr = SmallStr::from_static("mutator.gaussian.rate");
 
 /// The `GaussianMutator` is a simple mutator that adds a small amount of Gaussian noise to the gene.
 ///
@@ -27,8 +25,8 @@ where
     F: Float + Primitive,
     C: Chromosome<Gene = FloatGene<F>>,
 {
-    fn expressions(&self) -> ExprSet {
-        ExprSet::from(self.rate.clone().alias(GAUSSIAN_MUTATOR_RATE))
+    fn rates(&self) -> RateSet {
+        RateSet::new(self.rate.clone())
     }
 
     #[inline]

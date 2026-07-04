@@ -1,6 +1,6 @@
-use radiate_core::{AlterContext, AlterResult, Chromosome, Crossover, Expr, ExprSet, random_provider};
-
-const SHUFFLE_CROSSOVER_RATE: &str = "crossover.shuffle.rate";
+use radiate_core::{
+    AlterContext, AlterResult, Chromosome, Crossover, Expr, RateSet, random_provider,
+};
 
 pub struct ShuffleCrossover {
     rate: Expr,
@@ -13,8 +13,8 @@ impl ShuffleCrossover {
 }
 
 impl<C: Chromosome + Clone> Crossover<C> for ShuffleCrossover {
-    fn expressions(&self) -> ExprSet {
-        ExprSet::from(self.rate.clone().alias(SHUFFLE_CROSSOVER_RATE))
+    fn rates(&self) -> RateSet {
+        RateSet::new(self.rate.clone())
     }
 
     #[inline]

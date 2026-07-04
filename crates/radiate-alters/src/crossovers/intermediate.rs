@@ -1,10 +1,8 @@
 use radiate_core::{
-    AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, Expr, ExprSet, FloatGene, Gene,
+    AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, Expr, FloatGene, Gene, RateSet,
     random_provider,
 };
 use radiate_utils::Float;
-
-const INTERMEDIATE_CROSSOVER_RATE: &str = "crossover.intermediate.rate";
 
 /// Intermediate Crossover. This crossover method takes two chromosomes and crosses them
 /// by taking a weighted average of the two alleles. The weight is determined by the `alpha`
@@ -40,8 +38,8 @@ where
     F: Float,
     C: Chromosome<Gene = FloatGene<F>>,
 {
-    fn expressions(&self) -> ExprSet {
-        ExprSet::from(self.rate.clone().alias(INTERMEDIATE_CROSSOVER_RATE))
+    fn rates(&self) -> radiate_core::RateSet {
+        RateSet::new(self.rate.clone())
     }
 
     #[inline]

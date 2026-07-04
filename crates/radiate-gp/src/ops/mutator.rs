@@ -1,7 +1,7 @@
 use crate::node::{Node, NodeExt};
 use crate::ops::operation::Op;
 use crate::{Factory, GraphChromosome, NodeStore, NodeType, TreeChromosome};
-use radiate_core::{AlterContext, AlterResult, Expr, ExprSet, Mutate, NamedExpr, SmallStr};
+use radiate_core::{AlterContext, AlterResult, Expr, Mutate, RateSet, SmallStr};
 use radiate_core::{Chromosome, random_provider};
 
 const OP_MUTATED: SmallStr = SmallStr::from_static("mutate.operation.mutated");
@@ -20,7 +20,7 @@ impl OpMutateMetrics {
 }
 
 pub struct OperationMutator {
-    rate: NamedExpr,
+    rate: Expr,
     replace_rate: f32,
 }
 
@@ -31,9 +31,7 @@ impl OperationMutator {
         }
 
         OperationMutator {
-            rate: rate
-                .into()
-                .alias(SmallStr::from_static("mutator.operation.rate")),
+            rate: rate.into(),
             replace_rate,
         }
     }
@@ -94,12 +92,11 @@ impl<T> Mutate<GraphChromosome<Op<T>>> for OperationMutator
 where
     T: Clone + PartialEq + Default,
 {
-    fn expressions(&self) -> ExprSet {
-        ExprSet::from([
-            self.rate.clone(),
+    fn rates(&self) -> RateSet {
+        RateSet::new(self.rate.clone()).add(
             Expr::lit(self.replace_rate)
                 .alias(SmallStr::from_static("mutator.operation.replace_rate")),
-        ])
+        )
     }
 
     #[inline]
@@ -136,12 +133,11 @@ impl<T> Mutate<TreeChromosome<Op<T>>> for OperationMutator
 where
     T: Clone + PartialEq + Default,
 {
-    fn expressions(&self) -> ExprSet {
-        ExprSet::from([
-            self.rate.clone(),
+    fn rates(&self) -> RateSet {
+        RateSet::new(self.rate.clone()).add(
             Expr::lit(self.replace_rate)
                 .alias(SmallStr::from_static("mutator.operation.replace_rate")),
-        ])
+        )
     }
 
     #[inline]

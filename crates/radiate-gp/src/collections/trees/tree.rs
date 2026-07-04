@@ -180,36 +180,36 @@ mod test {
     use crate::{Arity, Node, NodeType, Op, TreeCrossover, TreeIterator};
     use radiate_core::{AlterContext, alter::AlterUpdates};
 
-    // #[test]
-    // fn test_swap_subtrees() {
-    //     let mut tree_one = Tree::new(
-    //         TreeNode::new(Op::add())
-    //             .attach(TreeNode::new(Op::constant(1.0)))
-    //             .attach(TreeNode::new(Op::constant(2.0))),
-    //     );
+    #[test]
+    fn test_swap_subtrees() {
+        let mut tree_one = Tree::new(
+            TreeNode::new(Op::add())
+                .attach(TreeNode::new(Op::constant(1.0)))
+                .attach(TreeNode::new(Op::constant(2.0))),
+        );
 
-    //     let mut tree_two = Tree::new(
-    //         TreeNode::new(Op::mul())
-    //             .attach(TreeNode::new(Op::constant(3.0)))
-    //             .attach(TreeNode::new(Op::constant(4.0))),
-    //     );
+        let mut tree_two = Tree::new(
+            TreeNode::new(Op::mul())
+                .attach(TreeNode::new(Op::constant(3.0)))
+                .attach(TreeNode::new(Op::constant(4.0))),
+        );
 
-    //     let copy_one = tree_one.clone();
-    //     let copy_two = tree_two.clone();
+        let copy_one = tree_one.clone();
+        let copy_two = tree_two.clone();
 
-    //     let mut updates = AlterUpdates::default();
+        let mut updates = AlterUpdates::default();
 
-    //     let mut ctx = AlterContext::new(&mut updates, 0, &SmallVec::from_elem(1.0, 4));
+        let mut ctx = AlterContext::new(&mut updates, 0, 1.0, &[]);
 
-    //     TreeCrossover::cross_nodes(tree_one.as_mut(), tree_two.as_mut(), usize::MAX, &mut ctx);
+        TreeCrossover::cross_nodes(tree_one.as_mut(), tree_two.as_mut(), usize::MAX, &mut ctx);
 
-    //     let new_one = tree_one.clone();
-    //     let new_two = tree_two.clone();
+        let new_one = tree_one.clone();
+        let new_two = tree_two.clone();
 
-    //     // Ensure that subtrees have been swapped
-    //     assert_ne!(copy_one, new_one);
-    //     assert_ne!(copy_two, new_two);
-    // }
+        // Ensure that subtrees have been swapped
+        assert_ne!(copy_one, new_one);
+        assert_ne!(copy_two, new_two);
+    }
 
     #[test]
     fn test_size() {

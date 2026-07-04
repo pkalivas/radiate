@@ -1,10 +1,8 @@
 use radiate_core::{
-    AlterContext, AlterResult, BoundedGene, Chromosome, Expr, ExprSet, FloatGene, Gene, Mutate,
-    SmallStr, random_provider,
+    AlterContext, AlterResult, BoundedGene, Chromosome, Expr, FloatGene, Gene, Mutate, RateSet,
+    random_provider,
 };
 use radiate_utils::Float;
-
-const JITTER_MUTATOR_RATE: SmallStr = SmallStr::from_static("mutator.jitter.rate");
 
 /// The `JitterMutator` is a simple mutator that adds a small random value to [FloatGene]s.
 ///
@@ -36,8 +34,8 @@ where
     F: Float,
     C: Chromosome<Gene = FloatGene<F>>,
 {
-    fn expressions(&self) -> ExprSet {
-        ExprSet::from(self.rate.clone().alias(JITTER_MUTATOR_RATE))
+    fn rates(&self) -> RateSet {
+        RateSet::new(self.rate.clone())
     }
 
     #[inline]

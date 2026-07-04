@@ -1,10 +1,8 @@
 use radiate_core::{
-    AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, Expr, ExprSet, Gene,
+    AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, Expr, Gene, RateSet,
     random_provider,
 };
 use radiate_utils::Float;
-
-const SBX_CROSSOVER_RATE: &str = "crossover.sbx.rate";
 
 pub struct SimulatedBinaryCrossover {
     rate: Expr,
@@ -30,8 +28,8 @@ where
         "crossover.sbx".to_string()
     }
 
-    fn expressions(&self) -> ExprSet {
-        ExprSet::from(self.rate.clone().alias(SBX_CROSSOVER_RATE))
+    fn rates(&self) -> RateSet {
+        RateSet::new(self.rate.clone())
     }
 
     #[inline]

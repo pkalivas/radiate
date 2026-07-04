@@ -1,6 +1,4 @@
-use radiate_core::{Chromosome, Expr, ExprSet, Mutate};
-
-const UNIFORM_MUTATOR_RATE: &str = "mutator.uniform.rate";
+use radiate_core::{Chromosome, Expr, Mutate, RateSet};
 
 /// The [UniformMutator] is a simple mutator that applies uniform mutation to genes in a [Chromosome].
 ///
@@ -17,7 +15,7 @@ impl UniformMutator {
 }
 
 impl<C: Chromosome> Mutate<C> for UniformMutator {
-    fn expressions(&self) -> ExprSet {
-        ExprSet::from(self.rate.clone().alias(UNIFORM_MUTATOR_RATE))
+    fn rates(&self) -> RateSet {
+        RateSet::new(self.rate.clone())
     }
 }

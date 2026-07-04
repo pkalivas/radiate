@@ -3,11 +3,10 @@ use super::{Graph, GraphChromosome};
 use crate::graphs::node::InnovationId;
 use crate::node::Node;
 use crate::{Factory, NodeType};
-use radiate_core::{AlterContext, Chromosome, Expr, ExprSet, NamedExpr, SmallStr};
+use radiate_core::{AlterContext, Chromosome, Expr, NamedExpr, RateSet, SmallStr};
 use radiate_core::{AlterResult, Mutate, random_provider};
 use std::collections::HashMap;
 
-const MUTATE_RATE: SmallStr = SmallStr::from_static("mutator.graph.rate");
 const SATURATED: SmallStr = SmallStr::from_static("mutator.graph.invalid.saturated");
 const NO_INSTANCE: SmallStr = SmallStr::from_static("mutator.graph.invalid.no_instance");
 const REJECTED: SmallStr = SmallStr::from_static("mutator.graph.invalid.rejected");
@@ -110,12 +109,12 @@ impl GraphMutator {
     fn mutate_type(&self, ctx: &AlterContext) -> Option<NodeType> {
         random_provider::with_rng(|rand| {
             if rand.bool(0.5) {
-                if rand.bool(ctx.internal_rate(1)) {
+                if rand.bool(ctx.internal_rate(0)) {
                     Some(NodeType::Edge)
                 } else {
                     None
                 }
-            } else if rand.bool(ctx.internal_rate(2)) {
+            } else if rand.bool(ctx.internal_rate(1)) {
                 Some(NodeType::Vertex)
             } else {
                 None
@@ -128,12 +127,10 @@ impl<T> Mutate<GraphChromosome<T>> for GraphMutator
 where
     T: Clone + PartialEq + Default,
 {
-    fn expressions(&self) -> ExprSet {
-        ExprSet::from([
-            Expr::lit(1.0).alias(MUTATE_RATE),
-            self.edge_rate.clone(),
-            self.vertex_rate.clone(),
-        ])
+    fn rates(&self) -> RateSet {
+        RateSet::new(1.0)
+            .add(self.edge_rate.clone())
+            .add(self.vertex_rate.clone())
     }
 
     #[inline]

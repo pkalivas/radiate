@@ -1,6 +1,4 @@
-use radiate_core::{AlterContext, AlterResult, Chromosome, Expr, ExprSet, Mutate, random_provider};
-
-const SCRAMBLE_MUTATOR_RATE: &str = "mutator.scramble.rate";
+use radiate_core::{AlterContext, AlterResult, Chromosome, Expr, Mutate, RateSet, random_provider};
 
 /// The [ScrambleMutator] is a simple mutator that scrambles a random section of the [Chromosome].
 ///
@@ -18,8 +16,8 @@ impl ScrambleMutator {
 }
 
 impl<C: Chromosome> Mutate<C> for ScrambleMutator {
-    fn expressions(&self) -> ExprSet {
-        ExprSet::from(self.rate.clone().alias(SCRAMBLE_MUTATOR_RATE))
+    fn rates(&self) -> RateSet {
+        RateSet::new(self.rate.clone())
     }
 
     #[inline]

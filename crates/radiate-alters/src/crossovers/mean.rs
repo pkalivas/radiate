@@ -1,9 +1,7 @@
 use radiate_core::{
-    AlterContext, AlterResult, ArithmeticGene, Chromosome, Crossover, Expr, ExprSet,
+    AlterContext, AlterResult, ArithmeticGene, Chromosome, Crossover, Expr, RateSet,
     random_provider,
 };
-
-const MEAN_CROSSOVER_RATE: &str = "crossover.mean.rate";
 
 /// The [MeanCrossover] is a simple crossover method that replaces the genes of the first chromosome
 /// with the mean of the two genes. The mean is calculated by adding the two genes together and dividing
@@ -21,9 +19,7 @@ impl MeanCrossover {
     /// Create a new instance of the `MeanCrossover` with the given rate.
     /// The rate must be between 0.0 and 1.0.
     pub fn new(rate: impl Into<Expr>) -> Self {
-        MeanCrossover {
-            rate: rate.into(),
-        }
+        MeanCrossover { rate: rate.into() }
     }
 }
 
@@ -31,8 +27,8 @@ impl<C: Chromosome> Crossover<C> for MeanCrossover
 where
     C::Gene: ArithmeticGene,
 {
-    fn expressions(&self) -> ExprSet {
-        ExprSet::from(self.rate.clone().alias(MEAN_CROSSOVER_RATE))
+    fn rates(&self) -> RateSet {
+        RateSet::new(self.rate.clone())
     }
 
     #[inline]

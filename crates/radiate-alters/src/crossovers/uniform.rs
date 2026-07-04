@@ -1,6 +1,4 @@
-use radiate_core::{Chromosome, Crossover, Expr, ExprSet};
-
-const UNIFORM_CROSSOVER_RATE: &str = "crossover.uniform.rate";
+use radiate_core::{Chromosome, Crossover, Expr, RateSet};
 
 pub struct UniformCrossover {
     rate: Expr,
@@ -13,7 +11,7 @@ impl UniformCrossover {
 }
 
 impl<C: Chromosome> Crossover<C> for UniformCrossover {
-    fn expressions(&self) -> ExprSet {
-        ExprSet::from(self.rate.clone().alias(UNIFORM_CROSSOVER_RATE))
+    fn rates(&self) -> RateSet {
+        RateSet::new(self.rate.clone())
     }
 }

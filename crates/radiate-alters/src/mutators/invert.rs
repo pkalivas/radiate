@@ -1,8 +1,4 @@
-use radiate_core::{
-    AlterContext, AlterResult, Chromosome, Expr, ExprSet, Mutate, SmallStr, random_provider,
-};
-
-const INVERSION_MUTATOR_RATE: SmallStr = SmallStr::from_static("mutator.inversion.rate");
+use radiate_core::{AlterContext, AlterResult, Chromosome, Expr, Mutate, RateSet, random_provider};
 
 /// The [InversionMutator] is a simple mutator that inverts a random section of the chromosome.
 ///
@@ -23,8 +19,8 @@ impl InversionMutator {
 }
 
 impl<C: Chromosome> Mutate<C> for InversionMutator {
-    fn expressions(&self) -> ExprSet {
-        ExprSet::from(self.rate.clone().alias(INVERSION_MUTATOR_RATE))
+    fn rates(&self) -> RateSet {
+        RateSet::new(self.rate.clone())
     }
 
     #[inline]

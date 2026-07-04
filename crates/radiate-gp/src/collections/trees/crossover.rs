@@ -1,25 +1,22 @@
 use super::TreeChromosome;
 use crate::TreeNode;
-use radiate_core::{
-    AlterContext, AlterResult, Crossover, Expr, ExprSet, NamedExpr, random_provider,
-};
+use radiate_core::{AlterContext, AlterResult, Crossover, Expr, RateSet, random_provider};
 use radiate_core::{SmallStr, genome::*};
 
 const DEFAULT_MAX_SIZE: usize = 30;
 const MAX_ATTEMPTS: usize = 3;
 const TN_X_ATTEMPTS: SmallStr = SmallStr::from_static("tn_x_att");
-const TREE_CROSSOVER_RATE: &str = "crossover.tree.rate";
 
 #[derive(Clone, Debug)]
 pub struct TreeCrossover {
-    rate: NamedExpr,
+    rate: Expr,
     max_size: usize,
 }
 
 impl TreeCrossover {
     pub fn new(rate: impl Into<Expr>) -> Self {
         TreeCrossover {
-            rate: rate.into().alias(TREE_CROSSOVER_RATE),
+            rate: rate.into(),
             max_size: DEFAULT_MAX_SIZE,
         }
     }
@@ -75,8 +72,8 @@ impl<T> Crossover<TreeChromosome<T>> for TreeCrossover
 where
     T: Clone + PartialEq,
 {
-    fn expressions(&self) -> ExprSet {
-        ExprSet::from(self.rate.clone())
+    fn rates(&self) -> RateSet {
+        RateSet::new(self.rate.clone())
     }
 
     #[inline]
