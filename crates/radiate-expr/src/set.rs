@@ -2,10 +2,7 @@ use radiate_utils::{AnyValue, SmallStr};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    Evaluate, Expr, NamedExpr,
-    stats::{ExprResult, ExprSelector},
-};
+use crate::{Evaluate, Expr, ExprResult, ExprSelector, NamedExpr};
 
 #[derive(Clone, Debug, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]

@@ -1,7 +1,7 @@
 use crate::Chromosome;
 use crate::context::EvolutionContext;
 use radiate_core::objectives::Scored;
-use radiate_core::stats::ExprSet;
+use radiate_core::rate::ExprSet;
 use radiate_core::{Ecosystem, Front, MetricSet, Objective, Phenotype, Population, Score, Species};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};

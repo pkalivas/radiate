@@ -1,9 +1,8 @@
-use radiate_error::radiate_bail;
-use radiate_utils::{AnyValue, DataType};
-
-use crate::{Ecosystem, Evaluate, Expr, MetricSet, Phenotype, error::RadiateResult, metric_names};
-
 use super::{Chromosome, Genotype, Population, random_provider};
+use crate::{Ecosystem, MetricSet, Phenotype, error::RadiateResult, metric_names};
+use radiate_error::radiate_bail;
+pub use radiate_expr::*;
+use radiate_utils::{AnyValue, DataType};
 use std::{collections::HashSet, sync::Arc};
 
 /// Trait for replacement strategies in the algorithms.

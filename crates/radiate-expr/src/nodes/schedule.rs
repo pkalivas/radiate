@@ -1,5 +1,4 @@
-use super::{Evaluate, ExprResult};
-use crate::stats::ExprSelector;
+use crate::{Evaluate, ExprResult, ExprSelector};
 use radiate_utils::AnyValue;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -19,7 +18,7 @@ impl EveryState {
         }
     }
 
-    pub(super) fn reset(&mut self) {
+    pub(crate) fn reset(&mut self) {
         self.count = 0;
     }
 }

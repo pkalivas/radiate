@@ -1,7 +1,5 @@
-use super::{
-    Expr,
-    ops::{BinaryExpr, BinaryOp, TrinaryExpr, UnaryExpr, UnaryOp, fuse_affine},
-};
+use crate::Expr;
+use super::ops::{BinaryExpr, BinaryOp, TrinaryExpr, UnaryExpr, UnaryOp, fuse_affine};
 use radiate_utils::AnyValue;
 
 impl Expr {

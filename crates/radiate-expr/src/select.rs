@@ -1,5 +1,5 @@
 use super::{Evaluate, ExprResult};
-use crate::stats::ExprSelector;
+use crate::ExprSelector;
 use radiate_utils::SmallStr;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};

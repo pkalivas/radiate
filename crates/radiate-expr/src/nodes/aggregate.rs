@@ -1,5 +1,4 @@
-use super::{Evaluate, Expr, ExprResult};
-use crate::stats::ExprSelector;
+use crate::{Evaluate, Expr, ExprResult, ExprSelector};
 use radiate_error::radiate_bail;
 use radiate_utils::{AnyValue, DataType, Quantile, Slope, Statistic, WindowBuffer, dedup_slice};
 #[cfg(feature = "serde")]
@@ -27,9 +26,9 @@ pub enum Rollup {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct AggExpr {
-    pub(super) child: Box<Expr>,
-    pub(super) rollup: Rollup,
-    pub(super) buffer: Option<WindowBuffer<AnyValue<'static>>>,
+    pub(crate) child: Box<Expr>,
+    pub(crate) rollup: Rollup,
+    pub(crate) buffer: Option<WindowBuffer<AnyValue<'static>>>,
 }
 
 impl AggExpr {
@@ -46,7 +45,7 @@ impl AggExpr {
         self
     }
 
-    pub(super) fn reset(&mut self) {
+    pub(crate) fn reset(&mut self) {
         if let Some(buf) = &mut self.buffer {
             buf.clear();
         }

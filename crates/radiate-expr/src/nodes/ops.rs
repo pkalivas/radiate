@@ -1,5 +1,5 @@
-use super::{Evaluate, Expr, ExprResult};
-use crate::stats::ExprSelector;
+use crate::{Evaluate, Expr, ExprResult};
+use crate::ExprSelector;
 use radiate_error::radiate_bail;
 use radiate_utils::{AnyValue, DataType};
 #[cfg(feature = "serde")]
@@ -29,8 +29,8 @@ pub enum UnaryOp {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct UnaryExpr {
-    pub(super) child: Box<Expr>,
-    pub(super) op: UnaryOp,
+    pub(crate) child: Box<Expr>,
+    pub(crate) op: UnaryOp,
 }
 
 impl UnaryExpr {
@@ -146,9 +146,9 @@ pub enum BinaryOp {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct BinaryExpr {
-    pub(super) lhs: Box<Expr>,
-    pub(super) rhs: Box<Expr>,
-    pub(super) op: BinaryOp,
+    pub(crate) lhs: Box<Expr>,
+    pub(crate) rhs: Box<Expr>,
+    pub(crate) op: BinaryOp,
 }
 
 impl BinaryExpr {
@@ -223,10 +223,10 @@ pub enum TrinaryOp {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct TrinaryExpr {
-    pub(super) first: Box<Expr>,
-    pub(super) second: Box<Expr>,
-    pub(super) third: Box<Expr>,
-    pub(super) operation: TrinaryOp,
+    pub(crate) first: Box<Expr>,
+    pub(crate) second: Box<Expr>,
+    pub(crate) third: Box<Expr>,
+    pub(crate) operation: TrinaryOp,
 }
 
 impl TrinaryExpr {
@@ -288,7 +288,7 @@ where
 ///
 /// Shared between the `.affine(...)` builder and the compile-pass binary-fusion
 /// rewriters so both produce the same fused shape.
-pub(super) fn fuse_affine(child: Expr, scale: f32, bias: f32) -> Expr {
+pub(crate) fn fuse_affine(child: Expr, scale: f32, bias: f32) -> Expr {
     if let Expr::Unary(u) = child {
         if matches!(u.op, UnaryOp::Affine { .. }) {
             let UnaryExpr { child: inner, op } = u;

@@ -1,0 +1,24 @@
+[package]
+name = "radiate-expr"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+description = "Expression DSL for radiate — metric-driven dynamic rates and limits."
+repository.workspace = true
+readme.workspace = true
+categories.workspace = true
+keywords.workspace = true
+license.workspace = true
+homepage.workspace = true
+
+[dependencies]
+radiate-error = { workspace = true }
+radiate-utils = { workspace = true }
+serde = { workspace = true, optional = true }
+
+[dev-dependencies]
+radiate-core = { workspace = true }
+
+[features]
+default = []
+serde = ["dep:serde", "radiate-utils/serde"]

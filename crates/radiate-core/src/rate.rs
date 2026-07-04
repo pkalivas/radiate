@@ -1,5 +1,5 @@
-use crate::stats::expression::{Evaluate, Expr};
 use crate::{MetricSet, Valid};
+pub use radiate_expr::*;
 use std::fmt::Debug;
 
 #[derive(Clone, Debug, PartialEq)]

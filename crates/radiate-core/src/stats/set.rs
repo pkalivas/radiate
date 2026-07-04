@@ -1,11 +1,8 @@
 use crate::{
     Metric, MetricUpdate,
-    stats::{
-        ExprSelector, Meta, Tag, TagType,
-        expression::{MetricField, MetricKind, SelectExpr},
-        fmt,
-    },
+    stats::{Meta, Tag, TagType, fmt},
 };
+pub use radiate_expr::*;
 use radiate_utils::{AnyValue, SmallStr};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};

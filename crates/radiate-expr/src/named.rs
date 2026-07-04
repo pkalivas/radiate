@@ -1,7 +1,4 @@
-use crate::{
-    Evaluate,
-    stats::{ExprResult, ExprSelector},
-};
+use crate::{Evaluate, ExprResult, ExprSelector};
 
 use super::Expr;
 use radiate_utils::SmallStr;

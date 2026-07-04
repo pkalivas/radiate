@@ -1,9 +1,9 @@
-use super::Expr;
+use crate::Expr;
 use super::ops::{TrinaryExpr, TrinaryOp};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct When {
-    pub(super) cond: Expr,
+    pub(crate) cond: Expr,
 }
 
 impl When {
@@ -20,8 +20,8 @@ impl When {
 }
 
 pub struct Then {
-    pub(super) cond: Expr,
-    pub(super) then_expr: Expr,
+    pub(crate) cond: Expr,
+    pub(crate) then_expr: Expr,
 }
 
 impl Then {

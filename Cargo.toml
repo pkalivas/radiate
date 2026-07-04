@@ -96,6 +96,7 @@ radiate-selectors = { version = "1.3.0", path = "crates/radiate-selectors", defa
 radiate-engines = { version = "1.3.0", path = "crates/radiate-engines", default-features = false }
 radiate-gp = { version = "1.3.0", path = "crates/radiate-gp", default-features = false }
 radiate-error = { version = "1.3.0", path = "crates/radiate-error", default-features = false }
+radiate-expr = { version = "1.3.0", path = "crates/radiate-expr", default-features = false }
 radiate-python = { version = "1.3.0", path = "crates/radiate-python", default-features = false }
 radiate-utils = { version = "1.3.0", path = "crates/radiate-utils", default-features = false }
 radiate-ui = { version = "1.3.0", path = "crates/radiate-ui", default-features = false }

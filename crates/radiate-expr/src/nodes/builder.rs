@@ -1,5 +1,5 @@
+use crate::{Expr, MetricField, MetricKind};
 use super::{
-    Expr, MetricField, MetricKind,
     aggregate::{AggExpr, Rollup},
     ops::{BinaryExpr, BinaryOp, TrinaryExpr, TrinaryOp, UnaryExpr, UnaryOp, fuse_affine},
 };

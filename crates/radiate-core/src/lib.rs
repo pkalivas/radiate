@@ -16,6 +16,7 @@ pub mod stats;
 
 use radiate_error::Result;
 pub use radiate_error::{RadiateError, ensure, radiate_err};
+pub use radiate_expr::*;
 
 pub use alter::{AlterContext, AlterResult, Alterer, Crossover, Mutate};
 pub use codecs::{
@@ -38,10 +39,7 @@ pub use replacement::{
     EcosystemFilter, EncodeReplace, PopulationSampleReplace, ReplacementStrategy, UniqueScoreFilter,
 };
 pub use selector::Select;
-pub use stats::{
-    Evaluate, Expr, Metric, MetricSet, MetricUpdate, NamedExpr, SelectExpr, metric_names,
-    render_dashboard, render_full,
-};
+pub use stats::{Metric, MetricSet, MetricUpdate, metric_names, render_dashboard, render_full};
 
 pub mod prelude {
     pub use radiate_error::*;
@@ -69,7 +67,5 @@ pub mod prelude {
         UniqueScoreFilter,
     };
     pub use super::selector::Select;
-    pub use super::stats::{
-        Evaluate, Expr, Metric, MetricSet, NamedExpr, SelectExpr, metric_names,
-    };
+    pub use super::stats::{Metric, MetricSet, metric_names};
 }

@@ -1,10 +1,11 @@
 use crate::steps::EngineStep;
 use radiate_core::{
-    Chromosome, Ecosystem, Evaluate, MetricSet, MetricUpdate, Objective, Score, SmallStr,
+    Chromosome, Ecosystem, MetricSet, MetricUpdate, Objective, Score, SmallStr,
     math::distribution,
     metric_names,
     phenotype::PhenotypeId,
-    stats::{ExprSet, TagType},
+    rate::{Evaluate, ExprSet},
+    stats::TagType,
 };
 use radiate_error::Result;
 use std::{

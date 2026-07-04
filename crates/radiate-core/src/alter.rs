@@ -1,7 +1,7 @@
-use crate::stats::ExprSet;
 use crate::{Chromosome, Gene, Genotype, math::indexes, random_provider};
-use crate::{Evaluate, GetPairMut, MetricSet, Phenotype, Rate};
-use radiate_utils::{SmallStr, ToSnakeCase, intern};
+use crate::{GetPairMut, MetricSet, Phenotype, Rate};
+pub use radiate_expr::*;
+use radiate_utils::{AnyValue, SmallStr, ToSnakeCase, intern};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -123,8 +123,13 @@ pub struct Alterer<C: Chromosome> {
 }
 
 impl<C: Chromosome> Alterer<C> {
+    pub fn add_expr(&mut self, expr: impl Into<ExprSet>) {
+        self.expr_set = expr.into();
+    }
+
     pub fn mutation(name: &'static str, rate: Rate, m: Arc<dyn Mutate<C>>) -> Self {
         let name = SmallStr::from_static(name);
+        let exprs = m.expr_set();
         Self {
             time_name: SmallStr::from_string(format!("{}.time", name)),
             rate_name: SmallStr::from_string(format!("{}.rate", name)),
@@ -132,7 +137,7 @@ impl<C: Chromosome> Alterer<C> {
             rate,
             inner: AlterInner::Mutate(m),
             alter_counts: AlterUpdates::new(),
-            expr_set: ExprSet::default(),
+            expr_set: exprs,
         }
     }
 
@@ -165,6 +170,24 @@ impl<C: Chromosome> Alterer<C> {
     ) {
         let rate = self.rate.get(generation, metrics);
         metrics.upsert(self.rate_name.clone(), rate);
+
+        let expr_results = self.expr_set.eval(metrics).unwrap_or_else(|e| {
+            panic!(
+                "Failed to evaluate expression set for alterer {}: {}",
+                self.name, e
+            );
+        });
+
+        let rates = match expr_results {
+            AnyValue::Vector(vec) => vec
+                .into_iter()
+                .map(|v| v.extract::<f32>().unwrap_or(0.0))
+                .collect::<Vec<f32>>(),
+            _ => panic!(
+                "Expected expression set to evaluate to a vector for alterer {}",
+                self.name
+            ),
+        };
 
         self.alter_counts.clear();
 
@@ -353,6 +376,10 @@ pub trait Mutate<C: Chromosome>: Send + Sync {
 
     fn rate(&self) -> Rate {
         Rate::default()
+    }
+
+    fn expr_set(&self) -> ExprSet {
+        ExprSet::default()
     }
 
     fn alterer(self) -> Alterer<C>
