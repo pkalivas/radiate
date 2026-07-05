@@ -99,6 +99,19 @@ test-docs *args: _require-uv
 docs-build: _require-uv
     @uv run --with mkdocs-material mkdocs build --strict
 
+smoke py=py-version extras="all":
+    @just wheel py={{py}}
+
+    @rm -rf .venv-smoke
+    @uv venv .venv-smoke --python {{py}}
+
+    @.venv-smoke/bin/python -m pip install dist/*.whl[{{extras}}]
+
+    @.venv-smoke/bin/python - <<'EOF'
+    import radiate
+    print(radiate.__version__)
+    EOF
+
 # --------------------------
 # Example commands
 # --------------------------

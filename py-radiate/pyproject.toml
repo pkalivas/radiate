@@ -29,12 +29,24 @@ documentation = "https://pkalivas.github.io/radiate/"
 repository = "https://github.com/pkalivas/radiate"
 
 [project.optional-dependencies]
-polars = ["polars>=1.38.1 ; python_version >= '3.12' and python_version < '3.14'"]
-pandas = ["pandas>=2.1.0 ; python_version >= '3.12' and python_version < '3.14'"]
-torch = ["torch>=2.7.1 ; python_version >= '3.12' and python_version < '3.14'"]
-numpy = ["numpy>=2.4.3"]
-matplotlib = ["matplotlib>=3.8.0"]
-all = ["numpy", "polars", "pandas", "torch", "matplotlib"]
+plot = [
+    "matplotlib>=3.8.0",
+]
+data = [
+    "numpy>=2.4.3",
+    "pandas>=2.1.0 ; python_version < '3.14'",
+    "polars>=1.38.1 ; python_version < '3.14'",
+]
+torch = [
+    "torch>=2.7.1 ; python_version < '3.14'",
+]
+all = [
+    "numpy>=2.4.3",
+    "matplotlib>=3.8.0",
+    "pandas>=2.1.0 ; python_version < '3.14'",
+    "polars>=1.38.1 ; python_version < '3.14'",
+    "torch>=2.7.1 ; python_version < '3.14'",
+]
 
 [tool.uv]
 package = false
