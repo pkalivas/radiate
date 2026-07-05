@@ -136,8 +136,8 @@ where
 {
     fn rates(&self) -> RateSet {
         RateSet::new(1.0)
-            .add(self.edge_rate.clone().alias(ADD_EDGE_RATE))
-            .add(self.vertex_rate.clone().alias(ADD_VERTEX_RATE))
+            .push(self.edge_rate.clone().alias(ADD_EDGE_RATE))
+            .push(self.vertex_rate.clone().alias(ADD_VERTEX_RATE))
     }
 
     #[inline]

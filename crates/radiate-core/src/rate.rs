@@ -69,7 +69,7 @@ impl RateSet {
         self
     }
 
-    pub fn add(mut self, expr: impl Into<Expr>) -> Self {
+    pub fn push(mut self, expr: impl Into<Expr>) -> Self {
         self.internal.push(expr.into());
         self
     }

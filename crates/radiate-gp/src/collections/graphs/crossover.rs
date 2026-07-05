@@ -27,7 +27,7 @@ where
     T: Clone + PartialEq + Debug,
 {
     fn rates(&self) -> RateSet {
-        RateSet::new(self.rate.clone()).add(self.parent_node_rate.clone().alias(PARENT_RATE))
+        RateSet::new(self.rate.clone()).push(self.parent_node_rate.clone().alias(PARENT_RATE))
     }
 
     #[inline]

@@ -99,7 +99,7 @@ where
     }
 
     fn rates(&self) -> RateSet {
-        RateSet::new(self.rate.clone()).add(self.replace_rate.clone().alias(OP_MUTATE_NEW_INST))
+        RateSet::new(self.rate.clone()).push(self.replace_rate.clone().alias(OP_MUTATE_NEW_INST))
     }
 
     #[inline]
@@ -139,7 +139,7 @@ where
     T: Clone + PartialEq + Default,
 {
     fn rates(&self) -> RateSet {
-        RateSet::new(self.rate.clone()).add(self.replace_rate.clone().alias(OP_MUTATE_NEW_INST))
+        RateSet::new(self.rate.clone()).push(self.replace_rate.clone().alias(OP_MUTATE_NEW_INST))
     }
 
     #[inline]
