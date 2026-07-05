@@ -1,7 +1,7 @@
 use crate::{
     state::{AppState, MetricChartType},
     widgets::{
-        AppWidget, EngineStatusPanelWidget, FnWidget, ImprovementLogWidget,
+        AppWidget, EngineStatusPanelWidget, FnWidget, FrontEventLogWidget, ImprovementLogWidget,
         MetricDetailPanelWidget, MetricTableWidget, Panel, ParetoPagingWidget, SearchBarWidget,
         TabComponent,
         components::{SpeciesPieChartComponent, SpeciesSparklineComponent, TimePieChartComponent},
@@ -232,9 +232,31 @@ impl<C: Chromosome> Default for LayoutNode<C> {
                                     },
                                 },
                                 TabNode {
-                                    title: "Events",
-                                    condition: |_| true,
+                                    title: "Log",
+                                    condition: |s| !s.evo.is_multi(),
                                     content: Widget(|a, b, s| ImprovementLogWidget.render(a, b, s)),
+                                },
+                                TabNode {
+                                    title: "Front",
+                                    condition: |s| s.evo.is_multi(),
+                                    content: Horizontal {
+                                        constraints: vec![
+                                            Constraint::Fill(1),
+                                            Constraint::Percentage(30),
+                                            Constraint::Percentage(20),
+                                        ],
+                                        children: vec![
+                                            Widget(|a, b, s| FrontEventLogWidget.render(a, b, s)),
+                                            Widget(|a, b, s| {
+                                                MetricLineChartWidget::default()
+                                                    .with_show_bottom_options(true)
+                                                    .render(a, b, s)
+                                            }),
+                                            Widget(|a, b, s| {
+                                                MetricDetailPanelWidget.render(a, b, s)
+                                            }),
+                                        ],
+                                    },
                                 },
                             ],
                         },

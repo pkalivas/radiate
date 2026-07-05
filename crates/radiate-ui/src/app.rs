@@ -201,12 +201,14 @@ where
             KeyCode::Char('+') => self.state.evo.expand_objective_pairs(),
             KeyCode::Char('-') => self.state.evo.shrink_objective_pairs(),
 
-            KeyCode::Right | KeyCode::Char('l') => {
-                self.state.nav.next_tab(self.state.evo.has_species())
-            }
-            KeyCode::Left | KeyCode::Char('h') => {
-                self.state.nav.previous_tab(self.state.evo.has_species())
-            }
+            KeyCode::Right | KeyCode::Char('l') => self
+                .state
+                .nav
+                .next_tab(self.state.evo.has_species(), self.state.evo.is_multi()),
+            KeyCode::Left | KeyCode::Char('h') => self
+                .state
+                .nav
+                .previous_tab(self.state.evo.has_species(), self.state.evo.is_multi()),
 
             KeyCode::Tab => self.state.next_chart_view(),
             KeyCode::BackTab => self.state.prev_chart_view(),
@@ -241,7 +243,7 @@ where
 
         self.state
             .nav
-            .ensure_tab_available(self.state.evo.has_species());
+            .ensure_tab_available(self.state.evo.has_species(), self.state.evo.is_multi());
     }
 
     pub fn handle_engine_start(&mut self, front: Arc<RwLock<Front<Phenotype<C>>>>) {

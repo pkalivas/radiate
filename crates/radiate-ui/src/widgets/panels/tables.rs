@@ -16,8 +16,7 @@ use std::iter::{once, repeat_n};
 
 pub const STAT_HEADER_CELLS: [&str; 6] = ["Metric", "Last", "Min", "Max", "Mean", "N"];
 pub const TIME_HEADER_CELLS: [&str; 5] = ["Metric", "Total", "Mean", "Min", "Max"];
-pub const SPECIES_HEADER_CELLS: [&str; 6] =
-    ["ID", "Age", "Size", "Gen. Stag", "Raw Score", "Adj. Score"];
+pub const SPECIES_HEADER_CELLS: [&str; 7] = ["ID", "Age", "Size", "Stag", "Raw", "Adj.", "Δ"];
 pub const DIST_HEADER_CELLS: [&str; 7] = ["Metric", "Std Dev", "Min", "Max", "Mean", "Var", "N"];
 
 // --- Metric table ---
@@ -379,27 +378,25 @@ fn species_into_rows<'a, C: Chromosome>(
                     Style::default().fg(crate::styles::stagnation_color(stag)),
                 )),
                 Cell::from(format!("{:.4}", raw)),
-                Cell::from(Line::from(vec![
-                    Span::styled(
-                        format!("{:.4} ", adj),
-                        Style::default().fg(crate::styles::sentiment_color(adj_ratio, 0.2, 0.6)),
+                Cell::from(Line::from(vec![Span::styled(
+                    format!("{:.4} ", adj),
+                    Style::default().fg(crate::styles::sentiment_color(adj_ratio, 0.2, 0.6)),
+                )])),
+                Cell::from(Line::from(vec![Span::styled(
+                    format!(
+                        " {}{:.4}",
+                        if adj >= raw { "↑" } else { "↓" },
+                        (adj - raw).abs()
                     ),
-                    Span::styled(
-                        format!(
-                            " {}{:.4}",
-                            if adj >= raw { "↑" } else { "↓" },
-                            (adj - raw).abs()
-                        ),
-                        Style::default().fg({
-                            let delta_good = if is_minimize { adj <= raw } else { adj >= raw };
-                            if delta_good {
-                                crate::styles::TREND_UP_COLOR_LIGHT
-                            } else {
-                                crate::styles::TREND_DOWN_COLOR_LIGHT
-                            }
-                        }),
-                    ),
-                ])),
+                    Style::default().fg({
+                        let delta_good = if is_minimize { adj <= raw } else { adj >= raw };
+                        if delta_good {
+                            crate::styles::TREND_UP_COLOR_LIGHT
+                        } else {
+                            crate::styles::TREND_DOWN_COLOR_LIGHT
+                        }
+                    }),
+                )])),
             ])
         })
         .collect()

@@ -15,7 +15,8 @@ pub enum DashboardTab {
     Time,
     Distribution,
     Species,
-    Events,
+    Log,
+    Front,
 }
 
 impl DashboardTab {
@@ -24,23 +25,28 @@ impl DashboardTab {
             DashboardTab::Stats => DashboardTab::Time,
             DashboardTab::Time => DashboardTab::Distribution,
             DashboardTab::Distribution => DashboardTab::Species,
-            DashboardTab::Species => DashboardTab::Events,
-            DashboardTab::Events => DashboardTab::Stats,
+            DashboardTab::Species => DashboardTab::Log,
+            DashboardTab::Log => DashboardTab::Front,
+            DashboardTab::Front => DashboardTab::Stats,
         }
     }
 
     pub fn previous(self) -> Self {
         match self {
-            DashboardTab::Stats => DashboardTab::Events,
+            DashboardTab::Stats => DashboardTab::Front,
             DashboardTab::Time => DashboardTab::Stats,
             DashboardTab::Distribution => DashboardTab::Time,
             DashboardTab::Species => DashboardTab::Distribution,
-            DashboardTab::Events => DashboardTab::Species,
+            DashboardTab::Log => DashboardTab::Species,
+            DashboardTab::Front => DashboardTab::Log,
         }
     }
 
     pub fn supports_metric_modal(self) -> bool {
-        !matches!(self, DashboardTab::Species | DashboardTab::Events)
+        !matches!(
+            self,
+            DashboardTab::Species | DashboardTab::Log | DashboardTab::Front
+        )
     }
 
     /// The focusable panes this tab lays out, in `Tab`-cycle order. Every tab
@@ -144,10 +150,10 @@ impl NavState {
         }
     }
 
-    pub fn next_tab(&mut self, has_species: bool) {
+    pub fn next_tab(&mut self, has_species: bool, is_multi: bool) {
         if let UiMode::Dashboard = self.mode {
             let mut next = self.dashboard_tab.next();
-            while !tab_available(next, has_species) {
+            while !tab_available(next, has_species, is_multi) {
                 next = next.next();
             }
             self.dashboard_tab = next;
@@ -155,10 +161,10 @@ impl NavState {
         }
     }
 
-    pub fn previous_tab(&mut self, has_species: bool) {
+    pub fn previous_tab(&mut self, has_species: bool, is_multi: bool) {
         if let UiMode::Dashboard = self.mode {
             let mut prev = self.dashboard_tab.previous();
-            while !tab_available(prev, has_species) {
+            while !tab_available(prev, has_species, is_multi) {
                 prev = prev.previous();
             }
             self.dashboard_tab = prev;
@@ -166,8 +172,8 @@ impl NavState {
         }
     }
 
-    pub fn ensure_tab_available(&mut self, has_species: bool) {
-        if !tab_available(self.dashboard_tab, has_species) {
+    pub fn ensure_tab_available(&mut self, has_species: bool, is_multi: bool) {
+        if !tab_available(self.dashboard_tab, has_species, is_multi) {
             self.dashboard_tab = DashboardTab::Stats;
             self.clamp_focus();
         }
@@ -179,7 +185,8 @@ impl NavState {
             DashboardTab::Time => 1,
             DashboardTab::Distribution => 2,
             DashboardTab::Species => 3,
-            DashboardTab::Events => 4,
+            DashboardTab::Log => 4,
+            DashboardTab::Front => 5,
         }
     }
 
@@ -223,14 +230,14 @@ impl Default for NavState {
     }
 }
 
-/// Whether a tab can currently be shown. Only Species is conditional; the rest
-/// are always available, which guarantees the skip-loops in `next_tab` /
-/// `previous_tab` terminate.
-fn tab_available(tab: DashboardTab, has_species: bool) -> bool {
-    if matches!(tab, DashboardTab::Species) {
-        has_species
-    } else {
-        true
+/// Whether a tab can currently be shown given current run state.
+/// Stats/Time/Distribution are always available (guarantees the skip-loops terminate).
+fn tab_available(tab: DashboardTab, has_species: bool, is_multi: bool) -> bool {
+    match tab {
+        DashboardTab::Species => has_species,
+        DashboardTab::Log => !is_multi,
+        DashboardTab::Front => is_multi,
+        _ => true,
     }
 }
 
