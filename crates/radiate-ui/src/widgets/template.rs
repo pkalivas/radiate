@@ -14,7 +14,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Stylize},
     text::{Line, Span},
-    widgets::{Block, Widget},
+    widgets::Widget,
 };
 
 pub struct TabNode<C: Chromosome> {

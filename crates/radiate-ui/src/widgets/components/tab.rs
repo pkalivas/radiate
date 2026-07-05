@@ -3,7 +3,7 @@ use ratatui::{
     layout::Rect,
     style::{Color, Style, Stylize},
     text::{Line, Span},
-    widgets::{Block, Tabs, Widget},
+    widgets::{Tabs, Widget},
 };
 
 #[derive(Default)]
