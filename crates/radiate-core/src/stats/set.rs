@@ -1,6 +1,5 @@
 use crate::{
     Metric, MetricUpdate,
-    error::RadiateResult,
     stats::{Meta, Tag, TagType, fmt},
 };
 pub use radiate_expr::*;
@@ -92,23 +91,6 @@ impl MetricSet {
         let metric_update = metric.into();
         let idx = self.resolve(&key);
         self.upsert_at(idx, metric_update);
-    }
-
-    #[inline(always)]
-    pub fn upsert_expr(&mut self, expr: &mut Expr) -> RadiateResult<()> {
-        let idx = self.resolve(expr.name());
-        let eval = expr.eval(self)?;
-
-        let generation = self.meta.generation;
-        let mmetric = &mut self.metrics[idx.as_usize()];
-
-        let update = MetricUpdate::try_from(eval)?;
-
-        mmetric.set_generation(generation);
-        mmetric.apply_update(update);
-        mmetric.add_tag(TagType::Expr);
-
-        Ok(())
     }
 
     #[inline(always)]

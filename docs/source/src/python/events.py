@@ -1,6 +1,6 @@
-import radiate as rd
-import polars as pl
 import matplotlib.pyplot as plt
+import polars as pl
+import radiate as rd
 
 
 def your_fitness_func(x):
@@ -115,5 +115,5 @@ df = collector.to_polars(lazy=False)  # optional lazy arg - defaults to False
 df = collector.to_pandas()
 
 # Plot specific metrics to a matplotlib line plot
-collector.plot("scores.best", "rate.diversity")
+collector.plot("scores.best", "pct.diversity")
 # --8<-- [end:metric_collector]

@@ -336,31 +336,31 @@ where
 
         if self.params.species_params.diversity.is_some() {
             let curr_threshold = &self.params.species_params.species_threshold;
-            if let Some(count) = self.params.species_params.target_species_count {
-                let first_val = curr_threshold.try_extract_lit::<f32>().unwrap_or(0.5);
+            let threshold = if let Some(count) = self.params.species_params.target_species_count {
+                let first_val = f32::try_from(curr_threshold.clone()).unwrap_or(0.5);
 
-                exprs.add(expr::target_species_expr(count, first_val));
+                expr::target_species_expr(count, first_val)
             } else {
-                exprs.add(
-                    curr_threshold
-                        .clone()
-                        .alias(metric_names::SPECIES_THRESHOLD),
-                );
-            }
+                curr_threshold
+                    .clone()
+                    .alias(metric_names::SPECIES_THRESHOLD)
+            };
+
+            exprs.push(threshold);
         }
 
         if let Some(others) = &self.params.exprs {
             let others = others.lock().unwrap();
-            for expr in others.iter() {
-                exprs.add(expr.clone());
+            for (name, expr) in others.iter() {
+                exprs.add(name.clone(), expr.clone());
             }
         }
 
         for alter in self.params.alterers.iter() {
             let rates = alter.rates();
-            exprs.add(rates.control.clone());
+            exprs.push(rates.control.clone());
             for inner in rates.internal.iter() {
-                exprs.add(inner.clone());
+                exprs.push(inner.clone());
             }
         }
 

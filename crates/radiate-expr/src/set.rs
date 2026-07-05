@@ -1,49 +1,51 @@
 use crate::Expr;
-use radiate_error::RadiateError;
 use radiate_utils::SmallStr;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Clone, Debug, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct ExprSet {
-    pub exprs: Vec<Expr>,
+    pub exprs: HashMap<SmallStr, Expr>,
 }
 
 impl ExprSet {
     pub fn new(exprs: Vec<Expr>) -> Self {
-        Self { exprs }
+        Self {
+            exprs: exprs.into_iter().map(|e| (e.name().into(), e)).collect(),
+        }
     }
 
     pub fn get(&self, name: impl AsRef<str>) -> Option<&Expr> {
         let name = name.as_ref();
-        self.exprs.iter().find(|e| e.name() == name)
+        self.exprs.get(name)
     }
 
     pub fn len(&self) -> usize {
         self.exprs.len()
     }
 
-    pub fn add(&mut self, expr: impl Into<Expr>) {
-        self.exprs.push(expr.into());
+    pub fn is_empty(&self) -> bool {
+        self.exprs.is_empty()
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &Expr> {
+    pub fn push(&mut self, expr: impl Into<Expr>) {
+        let expr = expr.into();
+        self.exprs.insert(expr.name().into(), expr);
+    }
+
+    pub fn add(&mut self, name: impl Into<SmallStr>, expr: impl Into<Expr>) {
+        let expr = expr.into();
+        self.exprs.insert(name.into(), expr);
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&SmallStr, &Expr)> {
         self.exprs.iter()
     }
 
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Expr> {
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = (&SmallStr, &mut Expr)> {
         self.exprs.iter_mut()
-    }
-
-    pub fn apply_mut<F>(&mut self, mut f: F) -> Result<(), RadiateError>
-    where
-        F: FnMut(&mut Expr) -> Result<(), RadiateError>,
-    {
-        for expr in &mut self.exprs {
-            f(expr)?;
-        }
-        Ok(())
     }
 }
 

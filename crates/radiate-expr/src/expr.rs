@@ -1,5 +1,6 @@
 use crate::nodes::{AggExpr, BinaryExpr, EveryState, ScheduleExpr, TrinaryExpr, UnaryExpr, When};
 use crate::{Evaluate, ExprResult, ExprSelector, MetricField, MetricKind, SelectExpr};
+use radiate_error::{RadiateError, radiate_err};
 use radiate_utils::sentry_id;
 use radiate_utils::{AnyValue, SmallStr};
 #[cfg(feature = "serde")]
@@ -122,6 +123,22 @@ where
             ExprKind::Binary(child) => child.eval(metrics),
             ExprKind::Unary(child) => child.eval(metrics),
             ExprKind::Schedule(child) => child.eval(metrics),
+        }
+    }
+}
+
+impl TryFrom<Expr> for f32 {
+    type Error = RadiateError;
+
+    fn try_from(value: Expr) -> Result<Self, Self::Error> {
+        if let ExprKind::Literal(lit) = value.kind {
+            let extracted = lit.extract::<f32>();
+            match extracted {
+                Some(val) => Ok(val),
+                None => Err(radiate_err!(Expr: "Failed to extract f32 from literal")),
+            }
+        } else {
+            Err(radiate_err!(Expr: "Cannot convert Expr to f32: Expr is not a literal"))
         }
     }
 }

@@ -21,7 +21,9 @@ pub const TEXT_FG_COLOR: Color = material::GRAY.c300;
 pub const OVERLAY_COLOR: Color = material::GRAY.c700;
 
 pub const TREND_UP_COLOR: Color = material::GREEN.c200;
+pub const TREND_UP_COLOR_LIGHT: Color = material::GREEN.c100;
 pub const TREND_DOWN_COLOR: Color = material::RED.c200;
+pub const TREND_DOWN_COLOR_LIGHT: Color = material::RED.c100;
 pub const TREND_FLAT_COLOR: Color = material::GRAY.c500;
 
 pub(crate) const COLOR_WHEEL_400: [Color; 8] = [

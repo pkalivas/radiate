@@ -1,7 +1,7 @@
 use crate::state::{AppState, AppTableState, Pane};
 use crate::widgets::AppWidget;
 use radiate_engines::stats::TagType;
-use radiate_engines::{Chromosome, MetricSet, Species, metric_names};
+use radiate_engines::{Chromosome, MetricSet, Objective, Optimize, Species, metric_names};
 use radiate_engines::{Metric, stats::fmt_duration};
 use ratatui::buffer::Buffer;
 use ratatui::text::{Line, Span};
@@ -169,7 +169,11 @@ impl<C: Chromosome> AppWidget<C> for SpeciesTableWidget {
         let obj_index = state.evo.pareto.objective_index;
         let generation = state.evo.index;
         let border_style = crate::styles::panel_block(state.nav.is_pane_focused(Pane::List));
-        let rows = species_into_rows(obj_index, generation, items);
+        let is_minimize = matches!(
+            &state.evo.pareto.objective,
+            Objective::Single(Optimize::Minimize)
+        );
+        let rows = species_into_rows(obj_index, generation, is_minimize, items);
 
         let table = Table::default()
             .block(border_style)
@@ -332,12 +336,17 @@ fn metrics_into_dist_rows<'a>(
 fn species_into_rows<'a, C: Chromosome>(
     obj_index: usize,
     generation: usize,
+    is_minimize: bool,
     species: &[Species<C>],
 ) -> Vec<Row<'a>> {
     let max_adj = species
         .iter()
         .filter_map(|s| s.adjusted_score.as_ref().map(|v| v[obj_index]))
         .fold(0.0_f32, f32::max);
+    let min_adj = species
+        .iter()
+        .filter_map(|s| s.adjusted_score.as_ref().map(|v| v[obj_index]))
+        .fold(f32::INFINITY, f32::min);
 
     species
         .iter()
@@ -348,7 +357,17 @@ fn species_into_rows<'a, C: Chromosome>(
                 .as_ref()
                 .map(|v| v[obj_index])
                 .unwrap_or(0.0);
-            let adj_ratio = if max_adj > 0.0 { adj / max_adj } else { 0.0 };
+            let adj_ratio = if is_minimize {
+                if adj > min_adj + f32::EPSILON {
+                    min_adj / adj
+                } else {
+                    1.0
+                }
+            } else if max_adj > 0.0 {
+                adj / max_adj
+            } else {
+                0.0
+            };
             let raw = s.tracker.best.as_ref().map(|v| v[obj_index]).unwrap_or(0.0);
 
             Row::new(vec![
@@ -360,10 +379,27 @@ fn species_into_rows<'a, C: Chromosome>(
                     Style::default().fg(crate::styles::stagnation_color(stag)),
                 )),
                 Cell::from(format!("{:.4}", raw)),
-                Cell::from(Span::styled(
-                    format!("{:.4}", adj),
-                    Style::default().fg(crate::styles::sentiment_color(adj_ratio, 0.2, 0.6)),
-                )),
+                Cell::from(Line::from(vec![
+                    Span::styled(
+                        format!("{:.4} ", adj),
+                        Style::default().fg(crate::styles::sentiment_color(adj_ratio, 0.2, 0.6)),
+                    ),
+                    Span::styled(
+                        format!(
+                            " {}{:.4}",
+                            if adj >= raw { "↑" } else { "↓" },
+                            (adj - raw).abs()
+                        ),
+                        Style::default().fg({
+                            let delta_good = if is_minimize { adj <= raw } else { adj >= raw };
+                            if delta_good {
+                                crate::styles::TREND_UP_COLOR_LIGHT
+                            } else {
+                                crate::styles::TREND_DOWN_COLOR_LIGHT
+                            }
+                        }),
+                    ),
+                ])),
             ])
         })
         .collect()
