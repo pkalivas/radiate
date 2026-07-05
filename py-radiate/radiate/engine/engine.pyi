@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, Literal, Self, Sequence, overload
 from radiate._typing import AtLeastOne, FileType, RdDataType, RdLossType, Subscriber
 from radiate.codec.base import CodecBase
 from radiate.dtype import Float32, Int8, Int16, Int32, UInt8, UInt16, UInt32, UInt64
+from radiate.engine.control import EngineControl
 from radiate.expr import Expr
 from radiate.fitness import MSE, FitnessBase
 from radiate.genome import Chromosome, Gene, Population
@@ -724,6 +725,7 @@ class Engine[G, T]:
     # ----------------------------
     def __iter__(self) -> Engine[G, T]: ...
     def __next__(self) -> Generation[G, T]: ...
+    def control(self) -> EngineControl: ...
     def run(
         self,
         *limits: LimitBase,

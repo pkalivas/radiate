@@ -22,7 +22,7 @@ pub use codec::{
 };
 pub use converters::InputTransform;
 pub use datatype::{_get_dtype_max, _get_dtype_min, dtype, dtype_from_str};
-pub use engine::{PyEngine, PyEngineRunOption};
+pub use engine::{PyEngine, PyEngineControl, PyEngineRunOption};
 pub use epoch::PyGeneration;
 pub use expr::PyExpr;
 pub use fitness::{PyFitnessFn, PyFitnessInner, PyNoveltySearch};

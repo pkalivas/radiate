@@ -1,8 +1,8 @@
 use crate::events::PyEventHandler;
 use crate::{
-    EngineBuilderHandle, EngineHandle, FreeThreadPyEvaluator, InputTransform, PyCodec, PyEngine,
-    PyEngineInput, PyEngineInputType, PyExpr, PyFitnessFn, PyFitnessInner, PyPermutationCodec,
-    PyPopulation, prelude::*, radiate,
+    EngineBuilderHandle, FreeThreadPyEvaluator, InputTransform, PyCodec, PyEngine, PyEngineInput,
+    PyEngineInputType, PyExpr, PyFitnessFn, PyFitnessInner, PyPermutationCodec, PyPopulation,
+    prelude::*, radiate,
 };
 use crate::{
     PyCheckpointReader,
@@ -65,7 +65,6 @@ impl PyEngineBuilder {
     }
 
     pub fn build<'py>(&mut self, py: Python<'py>) -> PyResult<PyEngine> {
-        use EngineBuilderHandle::*;
         let mut inner = self.create_builder(py)?;
 
         let mut accum = HashMap::<PyEngineInputType, Vec<PyEngineInput>>::new();
@@ -85,29 +84,7 @@ impl PyEngineBuilder {
             .map(|inputs| inputs.transform())
             .unwrap_or_default();
 
-        Ok(PyEngine::new(
-            limits,
-            match inner {
-                UInt8(builder) => EngineHandle::UInt8(builder.try_build()?),
-                UInt16(builder) => EngineHandle::UInt16(builder.try_build()?),
-                UInt32(builder) => EngineHandle::UInt32(builder.try_build()?),
-                UInt64(builder) => EngineHandle::UInt64(builder.try_build()?),
-                Int8(builder) => EngineHandle::Int8(builder.try_build()?),
-                Int16(builder) => EngineHandle::Int16(builder.try_build()?),
-                Int32(builder) => EngineHandle::Int32(builder.try_build()?),
-                Int64(builder) => EngineHandle::Int64(builder.try_build()?),
-                Float32(builder) => EngineHandle::Float32(builder.try_build()?),
-                Float64(builder) => EngineHandle::Float64(builder.try_build()?),
-                Char(builder) => EngineHandle::Char(builder.try_build()?),
-                Bit(builder) => EngineHandle::Bit(builder.try_build()?),
-                Permutation(builder) => EngineHandle::Permutation(builder.try_build()?),
-                Graph(builder) => EngineHandle::Graph(builder.try_build()?),
-                Tree(builder) => EngineHandle::Tree(builder.try_build()?),
-                _ => {
-                    radiate_py_bail!("Unsupported builder type for engine creation");
-                }
-            },
-        ))
+        Ok(PyEngine::new(limits, inner.try_build()?))
     }
 }
 

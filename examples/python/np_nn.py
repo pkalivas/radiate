@@ -83,7 +83,24 @@ engine = (
     .limit(rd.Limit.score(0.01), rd.Limit.generations(500))
 )
 
-print(engine.run(ui=True))
+# print(engine.run(ui=True))
+
+# one = next(engine)
+# print(one)
+# two = next(engine)
+# print(two)
+# three = next(engine)
+# print(three)
+
+# control = engine.control()
+
+# four = next(engine)
+# print(four)
+
+# control.pause()
+
+# five = next(engine)
+# print(five)
 
 
 # .load_checkpoint(

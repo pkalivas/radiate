@@ -33,6 +33,7 @@ from ..operators import (
     SelectorBase,
 )
 from .builder import EngineBuilder
+from .control import EngineControl
 from .generation import Generation
 from .option import LogParam, UiParam, normalize_checkpoint_params
 
@@ -258,6 +259,14 @@ class Engine[G, T]:
         except StopIteration:
             self._iterating = False
             raise StopIteration
+
+    def control(self) -> EngineControl:
+        """Get the control interface for the engine."""
+        if self._engine is None:
+            raise ValueError(
+                "Engine has not been run yet. Call run() or iterate to start the engine."
+            )
+        return EngineControl(self._engine.control())
 
     def run(
         self,
