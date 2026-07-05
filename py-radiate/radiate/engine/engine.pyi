@@ -737,6 +737,7 @@ class Engine[G, T]:
         | CheckpointParam
         | None = None,
     ) -> Generation[G, T]: ...
+    def nth(self, n: int) -> Generation[G, T]: ...
 
     # ----------------------------
     # Fluent configuration methods

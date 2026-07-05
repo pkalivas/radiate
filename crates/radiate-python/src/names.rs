@@ -64,7 +64,3 @@ pub(crate) const MSE_LOSS: &str = "mse";
 pub(crate) const MAE_LOSS: &str = "mae";
 pub(crate) const CROSS_ENTROPY_LOSS: &str = "xent";
 pub(crate) const DIFF_LOSS: &str = "diff";
-
-// File Types
-pub(crate) const PICKLE_FILE_TYPE: &str = "pkl";
-pub(crate) const JSON_FILE_TYPE: &str = "json";

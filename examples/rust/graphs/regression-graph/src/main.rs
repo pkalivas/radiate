@@ -17,15 +17,10 @@ fn main() {
         .raw_batch_fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
         .offspring_selector(BoltzmannSelector::new(4.0))
-        .metrics([
-            expr::stagnation_expr(10, 0.01).alias("stagnation"),
-            expr::genome_size_throttle(0.1, 10).alias("genome_throttle"),
-        ])
-        // .filter(UniqueScoreFilter::new(5, 0.01))
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),
-            GraphMutator::new(0.1, 0.1).allow_recurrent(false) // .target_size(7)
+            GraphMutator::new(0.1, 0.1).allow_recurrent(false)
         ))
         .build();
 

@@ -12,6 +12,7 @@ pub use gene::PyGene;
 pub use genotype::PyGenotype;
 pub use phenotype::PyPhenotype;
 pub use population::PyPopulation;
+use serde::{Deserialize, Serialize};
 pub use species::PySpecies;
 
 use pyo3::{pyclass, pymethods};
@@ -25,7 +26,7 @@ pub const TREE_GENE_TYPE: &str = "TreeNode";
 pub const PERMUTATION_GENE_TYPE: &str = "PermutationGene";
 
 #[pyclass(from_py_object)]
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Copy, Serialize, Deserialize)]
 pub enum PyGeneType {
     Empty,
     Int,

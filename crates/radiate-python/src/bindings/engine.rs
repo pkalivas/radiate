@@ -1,11 +1,10 @@
 use crate::{
-    EngineHandle, EpochHandle, InputTransform, PickleWriter, PyEngineInput, PyGeneration,
-    bindings::handles::StepHandle, names,
+    EngineHandle, EpochHandle, InputTransform, PyCheckpointWriter, PyEngineInput, PyGeneration,
+    bindings::handles::StepHandle,
 };
-use pyo3::{PyResult, Python, pyclass, pymethods};
+use pyo3::{PyRefMut, PyResult, Python, pyclass, pymethods};
 use radiate::{
-    Chromosome, Engine, EngineRuntime, EvolutionContext, Generation, GeneticEngine, JsonWriter,
-    Limit,
+    Chromosome, Engine, EngineRuntime, EvolutionContext, Generation, GeneticEngine, Limit,
 };
 use radiate_error::{radiate_py_bail, radiate_py_err};
 use serde::Serialize;
@@ -107,22 +106,26 @@ impl PyEngine {
         })
     }
 
-    pub fn step_next(&mut self, py: Python) -> PyResult<PyGeneration> {
-        use StepHandle::*;
+    pub fn __iter__(slf: PyRefMut<Self>) -> PyRefMut<Self> {
+        slf
+    }
 
-        if self.iter.is_none() {
-            let engine = self
-                .engine
-                .take()
-                .ok_or_else(|| radiate_py_err!("Engine has already been run"))?;
+    pub fn __next__(&mut self, py: Python) -> PyResult<Option<PyGeneration>> {
+        py.detach(|| {
+            use StepHandle::*;
+            if self.iter.is_none() {
+                let engine = self
+                    .engine
+                    .take()
+                    .ok_or_else(|| radiate_py_err!("Engine has already been run"))?;
 
-            if self.limits.is_empty() {
-                radiate_py_bail!(BUILD_ENGINE_WITH_LIMIT_ERROR_STRING);
+                if self.limits.is_empty() {
+                    radiate_py_bail!(BUILD_ENGINE_WITH_LIMIT_ERROR_STRING);
+                }
+
+                self.iter = Some(engine.into_step(self.limits.clone()));
             }
 
-            self.iter = Some(engine.into_step(self.limits.clone()));
-        }
-        py.detach(|| {
             let next = match self.iter.as_mut().unwrap() {
                 UInt8(it) => it.next().map(EpochHandle::UInt8),
                 UInt16(it) => it.next().map(EpochHandle::UInt16),
@@ -141,8 +144,7 @@ impl PyEngine {
                 Tree(it) => it.next().map(EpochHandle::Tree),
             };
 
-            next.map(PyGeneration::new)
-                .ok_or_else(|| radiate_py_err!("Engine has already completed all steps"))
+            Ok(next.map(PyGeneration::new))
         })
     }
 }
@@ -155,6 +157,7 @@ fn run_engine<C, T>(
 where
     C: Chromosome + Clone + Serialize + 'static,
     T: Clone + Send + Sync + Serialize + 'static,
+    Generation<C, T>: Serialize + Into<EpochHandle>,
 {
     let ui_interval = get_ui_option(&options);
     if let Some(interval) = ui_interval {
@@ -171,7 +174,7 @@ fn iter_engine<E, C, T>(
 ) -> PyResult<Generation<C, T>>
 where
     E: Engine<Epoch = Generation<C, T>, Ctx = EvolutionContext<C, T>> + 'static,
-    E::Epoch: Serialize,
+    E::Epoch: Serialize + Into<EpochHandle>,
     C: Chromosome + Clone + Serialize + 'static,
     T: Clone + Send + Sync + Serialize + 'static,
 {
@@ -182,10 +185,7 @@ where
         .chain_if(log.unwrap_or(false), |eng| eng.logging())
         .chain_if(checkpoint.is_some(), |eng| {
             let (interval, path, file_type) = checkpoint.unwrap();
-            match file_type.as_str() {
-                names::JSON_FILE_TYPE => eng.checkpoint_with(interval, path, Box::new(JsonWriter)),
-                _ => eng.checkpoint_with(interval, path, Box::new(PickleWriter)),
-            }
+            eng.checkpoint_with(interval, path, Box::new(PyCheckpointWriter(file_type)))
         })
         .limit(limits)
         .last()

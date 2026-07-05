@@ -1,9 +1,12 @@
-use crate::bindings::codec::{PyTreeCodec, TypedNumericCodec};
 use crate::events::PyEventHandler;
 use crate::{
-    EngineBuilderHandle, EngineHandle, FreeThreadPyEvaluator, InputTransform, PickleReader,
-    PyCodec, PyEngine, PyEngineInput, PyEngineInputType, PyExpr, PyFitnessFn, PyFitnessInner,
-    PyPermutationCodec, PyPopulation, names, prelude::*, radiate,
+    EngineBuilderHandle, EngineHandle, FreeThreadPyEvaluator, InputTransform, PyCodec, PyEngine,
+    PyEngineInput, PyEngineInputType, PyExpr, PyFitnessFn, PyFitnessInner, PyPermutationCodec,
+    PyPopulation, prelude::*, radiate,
+};
+use crate::{
+    PyCheckpointReader,
+    bindings::codec::{PyTreeCodec, TypedNumericCodec},
 };
 use crate::{PyGeneration, PySubscriber};
 use pyo3::{Py, PyAny, pyclass, pymethods, types::PyAnyMethods};
@@ -223,19 +226,10 @@ impl PyEngineBuilder {
                     && let Err(e) = std::fs::metadata(&path)
                     && e.kind() == std::io::ErrorKind::NotFound
                 {
-                    // If the file doesn't exist and we're ignoring not found errors, just return the builder unchanged
                     return Ok(typed_builder);
                 }
 
-                match file_type.as_str() {
-                    names::JSON_FILE_TYPE => Ok(typed_builder.load_checkpoint(path, JsonReader)),
-                    names::PICKLE_FILE_TYPE => {
-                        Ok(typed_builder.load_checkpoint(path, PickleReader))
-                    }
-                    _ => {
-                        radiate_py_bail!(format!("Unsupported checkpoint file type: {}", file_type))
-                    }
-                }
+                Ok(typed_builder.load_checkpoint(path, PyCheckpointReader(file_type)))
             })
         )
     }

@@ -3,13 +3,14 @@ use pyo3::{
     Py, PyAny, PyResult, Python, exceptions::PyKeyError, prelude::FromPyObjectOwned, pyclass,
     pymethods,
 };
+use serde::{Deserialize, Serialize};
 use std::{
     collections::{HashMap, HashSet},
     fmt::Debug,
 };
 
 #[pyclass(from_py_object)]
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Copy)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Copy, Serialize, Deserialize)]
 pub enum PyEngineInputType {
     Alterer,
     OffspringSelector,
@@ -37,7 +38,7 @@ pub enum PyEngineInputType {
 }
 
 #[pyclass(from_py_object)]
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct PyEngineInput {
     pub component: String,
     pub input_type: PyEngineInputType,

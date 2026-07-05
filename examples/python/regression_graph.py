@@ -41,12 +41,13 @@ engine = (
     .limit(rd.Limit.score(0.001), rd.Limit.generations(1000))
 )
 
-result = engine.run(ui=True)
 
-eval_results = result.value().eval(inputs)
-accuracy = rd.accuracy(result.value(), inputs, answers, loss=rd.MSE)
+# result = engine.run(ui=True)
 
-print(result)
-print(result.metrics().dashboard())
-print(accuracy)
-print(result.dtype())
+# eval_results = result.value().eval(inputs)
+# accuracy = rd.accuracy(result.value(), inputs, answers, loss=rd.MSE)
+
+# print(result)
+# print(result.metrics().dashboard())
+# print(accuracy)
+# print(result.dtype())

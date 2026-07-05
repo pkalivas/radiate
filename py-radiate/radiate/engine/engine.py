@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Sequence
+from typing import TYPE_CHECKING, Any, Sequence
+
+from radiate.radiate import PyEngine
 
 from .._bridge.input import EngineInput, EngineInputType
 from .._typing import AtLeastOne, Checkpoint, RdDataType, RdLossType, Subscriber
@@ -34,13 +36,14 @@ from .builder import EngineBuilder
 from .generation import Generation
 from .option import LogParam, UiParam, normalize_checkpoint_params
 
+if TYPE_CHECKING:
+    from radiate._rd import PyEngine
+
 
 class Engine[G, T]:
-    """
-    Genetic Engine for optimization problems.
-    This class serves as the main interface for running genetic algorithms, allowing
-    the customization of various parameters of the engine.
-    """
+    _engine: PyEngine = None
+    _builder: EngineBuilder[G, T]
+    _iterating: bool = False
 
     def __init__(
         self,
@@ -54,6 +57,7 @@ class Engine[G, T]:
 
         self._engine = None
         self._builder = EngineBuilder._default(codec.gene_type, codec=codec, **kwargs)
+        self._iterating = False
 
     @staticmethod
     def float(
@@ -232,66 +236,28 @@ class Engine[G, T]:
             )
         )
 
-    @classmethod
-    def load(cls, path: str | Path) -> Engine[G, T]:
-        """Load an engine from a checkpoint file."""
-        if not isinstance(path, (str, Path)):
-            raise ValueError("Path must be a string or Path object.")
-
-        if isinstance(path, str):
-            path = Path(path)
-
-        if not path.exists():
-            raise FileNotFoundError(f"Checkpoint file not found: {path}")
-
-        file_ext = path.suffix.lower()
-        if file_ext == ".json":
-            content = path.read_text()
-            generation = Generation.from_json(content)
-        elif file_ext == ".pkl":
-            with open(path, "rb") as f:
-                pickle_bytes = f.read()
-            generation = Generation.from_pickle(pickle_bytes)
-        else:
-            raise ValueError(f"Unsupported checkpoint file type: {file_ext}")
-
-        builder = EngineBuilder.from_generation(generation)
-
-        engine = cls.__new__(cls)
-        engine._builder = builder
-        return engine
-
     def __iter__(self):
         """
-        Iterate over generations produced by the engine. I mean, all this really does is let you use the
-        engine as an iterator. Pretty self explanitory.
-
-        Example:
-        ---------
-        >>> import radiate as rd
-        >>> engine = (
-        ...     rd.Engine.int(5)
-        ...     .fitness(lambda indv: sum(indv))
-        ...     .minimizing()
-        ...     .limit(rd.Limit.generations(10))
-        ... )
-        >>> # iterate the engine for 10 generations and print out the index and score of each generation
-        >>> for generation in engine:
-        ...     print(generation.index(), generation.score())
+        Prepares the engine for looping. If the user breaks and restarts,
+        it automatically triggers a fresh run.
         """
+        if self._iterating:
+            self._engine = None
+
+        self._iterating = True
         return self
 
     def __next__(self) -> Generation[G, T]:
-        """Get the next generation from the engine."""
+        """Get the next generation from the engine. Supports next(engine)."""
         if self._engine is None:
-            self._engine = self._builder.build()
+            self._engine = self._builder.build().__iter__()
 
         try:
-            generation = self._engine.step_next()
+            generation = next(self._engine)
             return Generation.from_rust(generation)
         except StopIteration:
-            self._engine = None
-            raise
+            self._iterating = False
+            raise StopIteration
 
     def run(
         self,
@@ -318,7 +284,7 @@ class Engine[G, T]:
         >>> engine.run(log=True)
         >>> engine.run(ui=True)
         >>> engine.run(rd.Limit.score(0.0001), log=True)
-        >>> engine.run(limit)
+        >>> engine.run()
         >>> engine.run(limit, checkpoint=True)
         >>> engine.run(limit, checkpoint="checkpoints")
         >>> engine.run(limit, checkpoint=(50, "checkpoints"))
@@ -326,7 +292,6 @@ class Engine[G, T]:
         ...     checkpoint=rd.EngineCheckpoint(50, "checkpoints", file_type="json"),
         ... )
         """
-
         engine = self._builder.build()
 
         limit_inputs = [
@@ -343,15 +308,19 @@ class Engine[G, T]:
         checkpoint_option = normalize_checkpoint_params(checkpoint)
         ui_option = UiParam() if isinstance(ui, UiParam) or ui is True else None
 
-        options = list(
-            [
-                opt.__backend__()
-                for opt in [log_option, checkpoint_option, ui_option]
-                if opt is not None
-            ]
-        )
+        options = [
+            opt.__backend__()
+            for opt in [log_option, checkpoint_option, ui_option]
+            if opt is not None
+        ]
 
         return Generation.from_rust(engine.run(limit_inputs, options))
+
+    def nth(self, n: int) -> Generation[G, T]:
+        """Get the nth generation from the engine. Supports engine.nth(n)."""
+        from radiate.dsl import Limit
+
+        return self.run(Limit.generations(n))
 
     def fitness(
         self, fitness_func: Callable[[T], Any] | FitnessBase[T]

@@ -14,7 +14,7 @@ rd.random.seed(123)
 
 ROOT = Path(__file__).parent
 WRITE_DIR = ROOT / "results"
-READ_DIR = ROOT / "results" / "chckpnt_440.pkl"
+READ_DIR = ROOT / "results" / "chckpnt_50.pkl"
 
 
 def compute(x: float) -> float:
@@ -78,17 +78,35 @@ engine = (
     .fitness(fit)
     .minimizing()
     .subscribe(metrics_dashboard)
+    .load_checkpoint(
+        READ_DIR, ignore_not_found=True
+    )  # Load from a previous checkpoint if it exists
     .select(rd.Select.boltzmann(temp=4.0))
     .alters(rd.Cross.blend(0.7, 0.4), rd.Mutate.gaussian(0.1))
     .limit(rd.Limit.score(0.01), rd.Limit.generations(500))
 )
 
-print(
-    engine.run(
-        ui=True,
-        checkpoint=(50, WRITE_DIR, "json"),
-    )
+result = engine.run(
+    ui=True,
+    # checkpoint=(50, WRITE_DIR, "pkl"),
 )
+
+import json
+
+if not WRITE_DIR.exists():
+    WRITE_DIR.mkdir(parents=True, exist_ok=True)
+
+with open(WRITE_DIR / "chckpnt_50.json", "w+") as f:
+    string = result.to_json()
+    json.dump(
+        string,
+        f,
+    )
+
+with open(WRITE_DIR / "chckpnt_50.json", "rb+") as f:
+    string = f.read().decode("utf-8")
+    generation = rd.Generation.from_json(string)
+    print(f"Loaded generation from JSON: {generation}")
 
 
 # .load_checkpoint(

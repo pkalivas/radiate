@@ -126,3 +126,40 @@ pub enum EpochHandle {
     Graph(Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>),
     Tree(Generation<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>),
 }
+
+macro_rules! impl_from_epoch {
+    ($($variant:ident, $chrom:ty, $decoded:ty),*) => {
+        $(
+            impl From<Generation<$chrom, $decoded>> for EpochHandle {
+                fn from(epoch: Generation<$chrom, $decoded>) -> Self {
+                    EpochHandle::$variant(epoch)
+                }
+            }
+
+            impl From<EpochHandle> for Generation<$chrom, $decoded> {
+                fn from(handle: EpochHandle) -> Self {
+                    match handle {
+                        EpochHandle::$variant(epoch) => epoch,
+                        _ => panic!("Invalid epoch handle variant for this type"),
+                    }
+                }
+            }
+        )*
+    };
+}
+
+impl_from_epoch!(UInt8, IntChromosome<u8>, PyAnyObject);
+impl_from_epoch!(UInt16, IntChromosome<u16>, PyAnyObject);
+impl_from_epoch!(UInt32, IntChromosome<u32>, PyAnyObject);
+impl_from_epoch!(UInt64, IntChromosome<u64>, PyAnyObject);
+impl_from_epoch!(Int8, IntChromosome<i8>, PyAnyObject);
+impl_from_epoch!(Int16, IntChromosome<i16>, PyAnyObject);
+impl_from_epoch!(Int32, IntChromosome<i32>, PyAnyObject);
+impl_from_epoch!(Int64, IntChromosome<i64>, PyAnyObject);
+impl_from_epoch!(Float32, FloatChromosome<f32>, PyAnyObject);
+impl_from_epoch!(Float64, FloatChromosome<f64>, PyAnyObject);
+impl_from_epoch!(Char, CharChromosome, PyAnyObject);
+impl_from_epoch!(Bit, BitChromosome, PyAnyObject);
+impl_from_epoch!(Permutation, PermutationChromosome<usize>, PyAnyObject);
+impl_from_epoch!(Graph, GraphChromosome<Op<f32>>, Graph<Op<f32>>);
+impl_from_epoch!(Tree, TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>);

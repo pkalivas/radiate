@@ -7,7 +7,7 @@ import radiate as rd
 
 
 @pytest.mark.integration
-def test_load_checkpoint(example_1x1_regression_dataset):
+def test_load_checkpoint(example_1x1_regression_dataset, random_seed):
     inputs, answers = example_1x1_regression_dataset
     path = Path(__file__).parent.parent / "data" / "chckpnt_50.json"
 
@@ -32,18 +32,13 @@ def test_load_checkpoint(example_1x1_regression_dataset):
 
     engine = (
         rd.Engine.float(
-            # Create an engine that evolves genomes with 3 chromosomes, one for each layer's weights, 1 with 16 genes, 1 with 64 genes, and 1 with 8 genes
             shape=[16, 64, 8],
-            # Each gene is initialized randomly in the range [-1, 1]
             init_range=(-1.0, 1.0),
-            # Genes aren't allowed to go outside the range [-3, 3] during evolution
             bounds=(-3.0, 3.0),
-            # Decode radiate's backend (rust) chromosomes into numpy arrays for the fitness function
             use_numpy=True,
-            # Use 32-bit floats in radiate's backend (rust side) - note the numpy arrays will also be float32, so we avoid unnecessary up/down casting
             dtype=rd.Float32,
         )
-        .generation(rd.Generation.from_json(path.read_text()))
+        .load_checkpoint(path)
         .fitness(fit)
         .minimizing()
         .select(rd.Select.boltzmann(temp=4.0))
@@ -51,4 +46,5 @@ def test_load_checkpoint(example_1x1_regression_dataset):
         .limit(rd.Limit.score(0.01), rd.Limit.generations(500))
     )
 
-    engine.run()
+    for epoch in engine:
+        assert epoch.index() > 50
