@@ -15,7 +15,7 @@ use ratatui::{
 use std::iter::{once, repeat_n};
 
 pub const STAT_HEADER_CELLS: [&str; 6] = ["Metric", "Last", "Min", "Max", "Mean", "N"];
-pub const TIME_HEADER_CELLS: [&str; 5] = ["Metric", "Total", "Mean", "Min", "Max"];
+pub const TIME_HEADER_CELLS: [&str; 5] = ["Metric", "Total", "Mean", "Last", ""];
 pub const SPECIES_HEADER_CELLS: [&str; 7] = ["ID", "Age", "Size", "Stag", "Raw", "Adj.", "Δ"];
 pub const DIST_HEADER_CELLS: [&str; 7] = ["Metric", "Std Dev", "Min", "Max", "Mean", "Var", "N"];
 
@@ -65,11 +65,15 @@ impl MetricTableKind {
         }
     }
 
-    fn build_rows<'a>(&self, items: impl Iterator<Item = &'a Metric>) -> Vec<Row<'a>> {
+    fn build_rows<'a>(
+        &self,
+        items: impl Iterator<Item = &'a Metric>,
+        area_width: usize,
+    ) -> Vec<Row<'a>> {
         match self {
             Self::Time => {
                 let v = items.collect::<Vec<_>>();
-                metric_to_time_rows(&v)
+                metric_to_time_rows(&v, area_width)
             }
             Self::Stats => metrics_into_stat_rows(items).collect(),
             Self::Distribution => metrics_into_dist_rows(items).collect(),
@@ -119,7 +123,9 @@ impl<C: Chromosome> AppWidget<C> for MetricTableWidget {
         let focused = state.nav.is_pane_focused(Pane::List);
         let border_style = crate::styles::panel_block(focused);
 
-        let rows = self.kind.build_rows(items.iter().copied());
+        let rows = self
+            .kind
+            .build_rows(items.iter().copied(), area.width as usize);
 
         let table = Table::default()
             .block(border_style)
@@ -240,11 +246,15 @@ pub fn tagged_metrics<'a, C: Chromosome>(
 
 // --- Row builders ---
 
-fn metric_to_time_rows<'a>(metrics: &[&'a Metric]) -> Vec<Row<'a>> {
+fn metric_to_time_rows<'a>(metrics: &[&'a Metric], area_width: usize) -> Vec<Row<'a>> {
     let max_nanos = metrics
         .iter()
         .filter_map(|m| m.times().map(|t| t.sum().as_nanos()))
         .fold(0u128, u128::max);
+    let total_times = metrics
+        .iter()
+        .filter_map(|m| m.times().map(|t| t.last().as_nanos()))
+        .sum::<u128>();
 
     metrics
         .iter()
@@ -257,6 +267,18 @@ fn metric_to_time_rows<'a>(metrics: &[&'a Metric]) -> Vec<Row<'a>> {
                     0.0
                 };
 
+                let a = if total_times > 0 {
+                    (time.last().as_nanos() as f32 / total_times as f32).clamp(0.0, 1.0)
+                } else {
+                    0.0
+                };
+
+                let cell_width = area_width.saturating_sub(4 * 14);
+                let bar = Span::styled(
+                    crate::styles::delta_bar(a, 1.0, cell_width),
+                    Style::default().fg(crate::styles::sentiment_color(1.0 - ratio, 0.2, 0.6)),
+                );
+
                 Row::new(vec![
                     Cell::from(m.name().to_string()),
                     Cell::from(Span::styled(
@@ -264,8 +286,8 @@ fn metric_to_time_rows<'a>(metrics: &[&'a Metric]) -> Vec<Row<'a>> {
                         Style::default().fg(crate::styles::sentiment_color(1.0 - ratio, 0.2, 0.6)),
                     )),
                     Cell::from(fmt_duration(time.mean())),
-                    Cell::from(fmt_duration(time.min())),
-                    Cell::from(fmt_duration(time.max())),
+                    Cell::from(fmt_duration(time.last())),
+                    Cell::from(bar),
                 ])
             })
         })
@@ -383,7 +405,7 @@ fn species_into_rows<'a, C: Chromosome>(
                 Cell::from(format!("{:.4}", raw)),
                 Cell::from(Line::from(vec![Span::styled(
                     format!("{:.4} ", adj),
-                    Style::default().fg(crate::styles::sentiment_color(adj_ratio, 0.2, 0.6)),
+                    Style::default().fg(crate::styles::sentiment_color(adj_ratio, 0.1, 0.3)),
                 )])),
                 Cell::from(Line::from(vec![Span::styled(
                     format!(
@@ -392,12 +414,9 @@ fn species_into_rows<'a, C: Chromosome>(
                         (adj - raw).abs()
                     ),
                     Style::default().fg({
-                        let delta_good = if is_minimize { adj <= raw } else { adj >= raw };
-                        if delta_good {
-                            crate::styles::TREND_UP_COLOR_LIGHT
-                        } else {
-                            crate::styles::TREND_DOWN_COLOR_LIGHT
-                        }
+                        let delta = (adj - raw).abs();
+                        let max_delta = (max_adj - min_adj).abs().max(f32::EPSILON);
+                        crate::styles::sentiment_color(delta / max_delta, 0.1, 0.3)
                     }),
                 )])),
             ])

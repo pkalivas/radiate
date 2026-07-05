@@ -1,5 +1,5 @@
 use ratatui::{
-    style::{Color, Style, palette::material},
+    style::{Color, Modifier, Style, palette::material},
     widgets::{Block, Row},
 };
 
@@ -70,7 +70,7 @@ pub fn sentiment_color(value: f32, warn: f32, good: f32) -> Color {
     if value >= good {
         TREND_UP_COLOR
     } else if value >= warn {
-        material::YELLOW.c400
+        TREND_FLAT_COLOR
     } else {
         TREND_DOWN_COLOR
     }
@@ -113,11 +113,25 @@ pub fn striped_rows<'a>(rows: impl IntoIterator<Item = Row<'a>>) -> impl Iterato
 
 pub fn stagnation_color(gens: usize) -> Color {
     if gens < 10 {
-        Color::LightGreen
+        crate::styles::TREND_UP_COLOR
     } else if gens < 50 {
-        Color::Green
+        crate::styles::TREND_UP_COLOR_LIGHT
     } else if gens < 150 {
-        Color::Yellow
+        crate::styles::TREND_DOWN_COLOR_LIGHT
+    } else if gens < 300 {
+        crate::styles::TREND_DOWN_COLOR
+    } else {
+        Color::DarkGray
+    }
+}
+
+pub fn stagnation_dark_color(gens: usize) -> Color {
+    if gens < 10 {
+        Color::Green
+    } else if gens < 50 {
+        Color::LightGreen
+    } else if gens < 150 {
+        Color::LightRed
     } else if gens < 300 {
         Color::Red
     } else {
@@ -145,5 +159,5 @@ pub fn delta_bar(delta: f32, max_delta: f32, max_width: usize) -> String {
         return String::new();
     }
     let filled = ((delta / max_delta).clamp(0.0, 1.0) * max_width as f32).round() as usize;
-    "█".repeat(filled)
+    SPARK_CHARS[3].to_string().repeat(filled)
 }

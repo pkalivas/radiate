@@ -11,7 +11,7 @@ use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Bar, BarChart, BarGroup, Cell, Row, Table, Widget};
 
-const IMPROVEMENT_HEADER: [&str; 4] = ["   Gen", "Score", "Δ", ""];
+const IMPROVEMENT_HEADER: [&str; 5] = ["Idx", "Gen", "Score", "Δ", ""];
 const FRONT_EVENT_HEADER: [&str; 6] = [
     "   Gen", "Size", "+Added", "-Removed", "Compared", "Filtered",
 ];
@@ -37,13 +37,16 @@ impl<C: Chromosome> AppWidget<C> for ImprovementLogWidget {
 
         let rows = log
             .iter()
-            .map(|entry| {
-                let bar = delta_bar(entry.delta, max_delta, 10);
+            .enumerate()
+            .map(|(i, entry)| {
+                let bar = delta_bar(entry.delta, max_delta, 15);
                 let bar_color = delta_color(entry.delta, max_delta);
                 let score_color = score_quality_color(entry.score, best, is_minimize);
 
                 Row::new(vec![
-                    Cell::from(format!("{:>6}", entry.generation))
+                    Cell::from(format!("{:?}", i))
+                        .style(Style::default().fg(crate::styles::TEXT_FG_COLOR)),
+                    Cell::from(format!("{:?}", entry.generation))
                         .style(Style::default().fg(crate::styles::TEXT_FG_COLOR)),
                     Cell::from(format!("{:.6}", entry.score))
                         .style(Style::default().fg(score_color)),
@@ -67,6 +70,7 @@ impl<C: Chromosome> AppWidget<C> for ImprovementLogWidget {
             .highlight_spacing(ratatui::widgets::HighlightSpacing::Always)
             .highlight_symbol(Span::styled("▶ ", Style::default().fg(Color::LightGreen)))
             .widths([
+                Constraint::Length(8),
                 Constraint::Length(8),
                 Constraint::Length(14),
                 Constraint::Length(14),
@@ -184,49 +188,62 @@ pub struct DeltaBarChartWidget;
 impl<C: Chromosome> AppWidget<C> for DeltaBarChartWidget {
     fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
         let log = &state.evo.improvement_log;
-        let max_delta = log.iter().map(|e| e.delta).fold(0.0_f32, f32::max);
-
         let entries = log.as_slice();
-        let bars = entries
-            .iter()
-            .rev()
-            .enumerate()
-            .map(|(i, entry)| {
+        let total = entries.len();
+
+        let focused = state.nav.is_pane_focused(Pane::Chart);
+        let block =
+            crate::styles::panel_block(focused).title(Line::from(" Improvement Δ ").centered());
+
+        if total == 0 {
+            Widget::render(block, area, buf);
+            return;
+        }
+
+        let max_delta = entries.iter().map(|e| e.delta).fold(0.0_f32, f32::max);
+        let selected_row = state.tables.log.selected_row;
+
+        // Log is newest-first; in the bar chart, oldest is leftmost (chart pos 0).
+        // selected_row is the log index (0 = newest), which maps to chart pos = total-1-selected_row.
+        let selected_chart_pos = total.saturating_sub(1 + selected_row);
+
+        // Fit as many bars as the area allows (subtract 2 for borders).
+        let visible = (area.width as usize).saturating_sub(2).max(1);
+
+        // Center the window on the selected bar.
+        let window_start = selected_chart_pos
+            .saturating_sub(visible / 2)
+            .min(total.saturating_sub(visible.min(total)));
+        let window_end = (window_start + visible).min(total);
+
+        let bars = (window_start..window_end)
+            .map(|chart_pos| {
+                let entry = &entries[total - 1 - chart_pos];
                 let value = if max_delta > 0.0 {
-                    ((entry.delta / max_delta) * entries.len() as f32) as u64
+                    ((entry.delta / max_delta) * 1000.0) as u64
                 } else {
                     0
                 };
-
-                let bar_color = if state.tables.log.selected_row == i {
-                    Color::Black
-                } else {
-                    delta_color(entry.delta, max_delta)
-                };
-
+                let color = delta_color(entry.delta, max_delta);
+                let is_selected = chart_pos == selected_chart_pos;
                 Bar::default()
                     .value(value)
                     .text_value(String::new())
-                    .style(Style::default().fg(bar_color))
+                    .style(if is_selected {
+                        Style::default().on_black().bold().fg(color)
+                    } else {
+                        Style::default().fg(color)
+                    })
             })
             .collect::<Vec<_>>();
 
-        let focused = state.nav.is_pane_focused(Pane::Chart);
-
         Widget::render(
             BarChart::default()
-                .block(
-                    crate::styles::panel_block(focused).title(
-                        Line::from(Span::styled(
-                            format!(" Improvement Δ "),
-                            Style::default().fg(Color::White).bold(),
-                        ))
-                        .centered(),
-                    ),
-                )
+                .block(block)
                 .data(BarGroup::default().bars(&bars))
                 .bar_width(1)
-                .bar_gap(0),
+                .bar_gap(0)
+                .max(1000),
             area,
             buf,
         );

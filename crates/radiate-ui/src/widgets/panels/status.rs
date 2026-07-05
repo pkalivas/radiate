@@ -1,6 +1,7 @@
 use crate::state::{AppState, EvoState};
 use crate::widgets::panels::MetricLineChartWidget;
 use crate::widgets::{AppWidget, FnWidget, MetricDetailPanelWidget, Panel, TabComponent};
+use color_eyre::owo_colors::OwoColorize;
 use radiate_engines::Chromosome;
 use radiate_engines::stats::fmt_duration;
 use ratatui::prelude::*;
@@ -273,15 +274,15 @@ fn get_single_objective_summaries<C: Chromosome>(evo: &EvoState<C>) -> Vec<Row<'
                 Style::default().fg(if improvements == 0 {
                     Color::DarkGray
                 } else {
-                    crate::styles::stagnation_color(stagnation)
+                    crate::styles::stagnation_dark_color(stagnation)
                 }),
             ),
         ]),
         Row::new(vec![
             "Stagnation".bold(),
             Span::styled(
-                format!("{} gen", stagnation),
-                Style::default().fg(crate::styles::stagnation_color(stagnation)),
+                format!("{}", stagnation),
+                Style::default().fg(crate::styles::stagnation_dark_color(stagnation)),
             ),
         ]),
         Row::new(vec!["Avg Score".bold(), format!("{:.6}", avg_score).into()]),
