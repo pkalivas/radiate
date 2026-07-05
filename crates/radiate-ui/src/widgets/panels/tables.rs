@@ -20,10 +20,10 @@ pub const SPECIES_HEADER_CELLS: [&str; 6] =
     ["ID", "Age", "Size", "Gen. Stag", "Raw Score", "Adj. Score"];
 pub const DIST_HEADER_CELLS: [&str; 7] = [
     "Metric",
+    "Std Dev",
     "Min",
     "Max",
     "μ (mean)",
-    "Std Dev",
     "Var",
     "Count",
 ];
@@ -140,7 +140,7 @@ impl<C: Chromosome> AppWidget<C> for MetricTableWidget {
             .column_highlight_style(Color::Gray)
             .cell_highlight_style(Style::new().reversed().yellow())
             .highlight_spacing(ratatui::widgets::HighlightSpacing::Always)
-            .highlight_symbol("▶ ")
+            .highlight_symbol(Span::styled("▶ ", Style::default().fg(Color::LightGreen)))
             .widths(self.kind.widths());
 
         match self.kind {
@@ -254,6 +254,7 @@ fn metric_to_time_rows<'a>(metrics: &[&'a Metric]) -> Vec<Row<'a>> {
                 } else {
                     0.0
                 };
+
                 Row::new(vec![
                     Cell::from(m.name().to_string()),
                     Cell::from(Span::styled(
@@ -298,12 +299,23 @@ fn metrics_into_dist_rows<'a>(
 ) -> impl Iterator<Item = Row<'a>> {
     metrics.filter_map(|m| {
         m.distributions().map(|stat| {
+            let mean = stat.mean();
+            let stddev = stat.stddev();
+            let cv = if mean.abs() > f32::EPSILON {
+                (stddev / mean.abs()).clamp(0.0, 1.0)
+            } else {
+                0.0
+            };
+            let stddev_color = crate::styles::sentiment_color(cv, 0.1, 0.3);
             Row::new(vec![
                 Cell::from(Line::from(m.name().to_string())),
+                Cell::from(Span::styled(
+                    format!("{:.2}", stddev),
+                    Style::default().fg(stddev_color),
+                )),
                 Cell::from(format!("{:.2}", stat.min())),
                 Cell::from(format!("{:.2}", stat.max())),
-                Cell::from(format!("{:.2}", stat.mean())),
-                Cell::from(format!("{:.2}", stat.stddev())),
+                Cell::from(format!("{:.2}", mean)),
                 Cell::from(format!("{:.2}", stat.var())),
                 Cell::from(format!("{}", stat.count())),
             ])

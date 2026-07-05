@@ -51,7 +51,7 @@ impl<C: Chromosome> EvoState<C> {
         };
         if delta > 0.0 {
             self.best_score = new_score.clone();
-            self.improvement_log.push(ImprovementEntry {
+            self.improvement_log.push_front(ImprovementEntry {
                 generation: self.index,
                 score: next,
                 delta,

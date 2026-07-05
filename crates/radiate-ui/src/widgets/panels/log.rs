@@ -1,6 +1,9 @@
 use super::tables::{header_row, render_scrollable_table, striped_rows};
-use crate::state::{AppState, Pane};
 use crate::widgets::AppWidget;
+use crate::{
+    state::{AppState, Pane},
+    styles::delta_bar,
+};
 use radiate_engines::{Chromosome, Objective, Optimize};
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Rect};
@@ -28,18 +31,13 @@ impl<C: Chromosome> AppWidget<C> for ImprovementLogWidget {
             .log
             .update_rows(log.as_slice(), |entry| entry.generation);
 
-        let mut rows = log
+        let rows = log
             .iter()
             .map(|entry| {
                 let bar = delta_bar(entry.delta, max_delta, 10);
                 let bar_color = delta_color(entry.delta, max_delta);
                 let score_color = score_quality_color(entry.score, best, is_minimize);
-                let is_selected = state.tables.log.selected_row == entry.generation;
-                let bar_style = if is_selected {
-                    Style::default().bg(crate::styles::SELECTED_GREEN)
-                } else {
-                    Style::default().fg(bar_color)
-                };
+
                 Row::new(vec![
                     Cell::from(format!("{:>6}", entry.generation))
                         .style(Style::default().fg(crate::styles::TEXT_FG_COLOR)),
@@ -49,12 +47,10 @@ impl<C: Chromosome> AppWidget<C> for ImprovementLogWidget {
                         format!("+{:.6}", entry.delta),
                         Style::default().fg(crate::styles::TREND_UP_COLOR),
                     )),
-                    Cell::from(bar).style(bar_style),
+                    Cell::from(bar).style(Style::default().fg(bar_color)),
                 ])
             })
             .collect::<Vec<_>>();
-
-        rows.reverse();
 
         let focused = state.nav.is_pane_focused(Pane::List);
         let border_style = crate::styles::panel_block(focused);
@@ -69,7 +65,7 @@ impl<C: Chromosome> AppWidget<C> for ImprovementLogWidget {
             .column_highlight_style(Color::Gray)
             .cell_highlight_style(Style::new().reversed().yellow())
             .highlight_spacing(ratatui::widgets::HighlightSpacing::Always)
-            .highlight_symbol("▶ ")
+            .highlight_symbol(Span::styled("▶ ", Style::default().fg(Color::LightGreen)))
             .widths([
                 Constraint::Length(8),
                 Constraint::Length(14),
@@ -93,14 +89,6 @@ fn score_quality_color(score: f32, best: f32, is_minimize: bool) -> Color {
     .clamp(0.0, 1.0);
 
     crate::styles::sentiment_color(ratio, 0.7, 0.95)
-}
-
-fn delta_bar(delta: f32, max_delta: f32, max_width: usize) -> String {
-    if max_delta <= 0.0 {
-        return String::new();
-    }
-    let filled = ((delta / max_delta).clamp(0.0, 1.0) * max_width as f32).round() as usize;
-    "█".repeat(filled)
 }
 
 fn delta_color(delta: f32, max_delta: f32) -> Color {

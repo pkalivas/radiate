@@ -3,6 +3,18 @@ use ratatui::{
     widgets::{Block, Row},
 };
 
+#[allow(dead_code)]
+pub const SPARK_CHARS: [char; 8] = [
+    ' ', // U+2581 (lowest)
+    '▂', // U+2582
+    '▃', // U+2583
+    '▄', // U+2584
+    '▅', // U+2585
+    '▆', // U+2586
+    '▇', // U+2587
+    '█', // U+2588 (highest)
+];
+
 pub const BG_COLOR: Color = material::GRAY.c800;
 pub const ALT_BG_COLOR: Color = material::GRAY.c900;
 pub const TEXT_FG_COLOR: Color = material::GRAY.c300;
@@ -98,4 +110,12 @@ pub fn striped_rows<'a>(rows: impl IntoIterator<Item = Row<'a>>) -> impl Iterato
         };
         row.style(Style::default().bg(bg))
     })
+}
+
+pub fn delta_bar(delta: f32, max_delta: f32, max_width: usize) -> String {
+    if max_delta <= 0.0 {
+        return String::new();
+    }
+    let filled = ((delta / max_delta).clamp(0.0, 1.0) * max_width as f32).round() as usize;
+    "█".repeat(filled)
 }
