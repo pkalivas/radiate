@@ -42,12 +42,12 @@ engine = (
 )
 
 
-# result = engine.run(ui=True)
+result = engine.run(ui=True)
 
-# eval_results = result.value().eval(inputs)
-# accuracy = rd.accuracy(result.value(), inputs, answers, loss=rd.MSE)
+eval_results = result.value().eval(inputs)
+accuracy = rd.accuracy(result.value(), inputs, answers, loss=rd.MSE)
 
-# print(result)
-# print(result.metrics().dashboard())
-# print(accuracy)
-# print(result.dtype())
+print(result)
+print(result.metrics().dashboard())
+print(accuracy)
+print(result.dtype())

@@ -1,8 +1,4 @@
 use super::{Valid, gene::Gene};
-use crate::{
-    ArithmeticGene, BoundedGene,
-    chromosomes::{NumericAllele, NumericGene},
-};
 
 /// The [Chromosome] is part of the genetic makeup of an individual.
 /// It is a collection of [Gene] instances, it is essentially a
@@ -32,14 +28,6 @@ pub trait Chromosome: Valid {
         self.as_mut_slice().get_mut(index)
     }
 
-    fn allele(&self, index: usize) -> Option<&<Self::Gene as Gene>::Allele> {
-        self.get(index).map(|gene| gene.allele())
-    }
-
-    fn allele_mut(&mut self, index: usize) -> Option<&mut <Self::Gene as Gene>::Allele> {
-        self.get_mut(index).map(|gene| gene.allele_mut())
-    }
-
     fn set(&mut self, index: usize, gene: Self::Gene) {
         self.as_mut_slice()[index] = gene;
     }
@@ -66,46 +54,4 @@ pub trait Chromosome: Valid {
     ) -> impl Iterator<Item = (&'a mut Self::Gene, &'a mut Self::Gene)> {
         self.iter_mut().zip(other.iter_mut())
     }
-}
-
-type AlleleType<C> = <<C as Chromosome>::Gene as Gene>::Allele;
-
-pub trait BoundedChromosome: Chromosome
-where
-    Self::Gene: BoundedGene,
-{
-    fn min(&self, index: usize) -> Option<&AlleleType<Self>> {
-        self.get(index).map(|gene| gene.min())
-    }
-
-    fn max(&self, index: usize) -> Option<&AlleleType<Self>> {
-        self.get(index).map(|gene| gene.max())
-    }
-
-    fn bounds(&self, index: usize) -> Option<(&AlleleType<Self>, &AlleleType<Self>)> {
-        self.get(index).map(|gene| gene.bounds())
-    }
-}
-
-pub trait NumericChromosome: Chromosome
-where
-    Self::Gene: NumericGene,
-    <Self::Gene as Gene>::Allele: NumericAllele,
-{
-    fn clamp(
-        &mut self,
-        index: usize,
-        min: <Self::Gene as Gene>::Allele,
-        max: <Self::Gene as Gene>::Allele,
-    ) {
-        if let Some(allele) = self.allele_mut(index) {
-            allele.clamp(&min, &max);
-        }
-    }
-}
-
-pub trait ArithmeticChromosome: Chromosome
-where
-    Self::Gene: ArithmeticGene,
-{
 }

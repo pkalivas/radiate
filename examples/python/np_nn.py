@@ -14,7 +14,7 @@ rd.random.seed(123)
 
 ROOT = Path(__file__).parent.parent
 WRITE_DIR = ROOT / "data" / "scratch"
-READ_DIR = ROOT / "data" / "scratch" / "chckpnt_50.pkl"
+READ_DIR = ROOT / "data" / "scratch" / "chckpnt_50.json"
 
 
 def compute(x: float) -> float:

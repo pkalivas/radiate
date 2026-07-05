@@ -14,6 +14,7 @@ if hasattr(sys, "_is_gil_enabled"):
 else:
     _GIL_ENABLED = True
 
+_NUMPY_AVAILABLE = True
 _PANDAS_AVAILABLE = True
 _POLARS_AVAILABLE = True
 _TORCH_AVAILABLE = True
@@ -159,6 +160,7 @@ else:
     subprocess, _ = _lazy_import("subprocess")
 
     # heavy/optional third party libs
+    numpy, _NUMPY_AVAILABLE = _lazy_import("numpy")
     pandas, _PANDAS_AVAILABLE = _lazy_import("pandas")
     polars, _POLARS_AVAILABLE = _lazy_import("polars")
     torch, _TORCH_AVAILABLE = _lazy_import("torch")
@@ -174,6 +176,12 @@ def _might_be(cls: type, type_: str) -> bool:
         return any(f"{type_}." in str(o) for o in cls.mro())
     except TypeError:
         return False
+
+
+def _check_for_numpy(obj: Any, *, check_type: bool = True) -> bool:
+    return _NUMPY_AVAILABLE and _might_be(
+        cast(Hashable, type(obj) if check_type else obj), "numpy"
+    )
 
 
 def _check_for_pandas(obj: Any, *, check_type: bool = True) -> bool:
@@ -214,12 +222,14 @@ __all__ = [
     "torch",
     "matplotlib",
     # lazy utilities
+    "_check_for_numpy",
     "_check_for_pandas",
     "_check_for_torch",
     "_check_for_polars",
     "_check_for_matplotlib",
     # exported flags/guards
     "_GIL_ENABLED",
+    "_NUMPY_AVAILABLE",
     "_PANDAS_AVAILABLE",
     "_POLARS_AVAILABLE",
     "_TORCH_AVAILABLE",

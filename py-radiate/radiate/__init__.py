@@ -6,6 +6,7 @@ except ImportError:
 
 from ._dependancies import (
     _GIL_ENABLED,
+    _NUMPY_AVAILABLE,
     _PANDAS_AVAILABLE,
     _POLARS_AVAILABLE,
     _TORCH_AVAILABLE,
@@ -151,6 +152,7 @@ __all__ = [
     "_PANDAS_AVAILABLE",
     "_POLARS_AVAILABLE",
     "_TORCH_AVAILABLE",
+    "_NUMPY_AVAILABLE",
     # Random
     "random",
     # Expressions

@@ -1,6 +1,7 @@
 import pytest
+
 import radiate as rd
-from radiate.genome import Population, Phenotype, Genotype, GeneType
+from radiate.genome import GeneType, Genotype, Phenotype, Population
 
 
 class TestPopulation:

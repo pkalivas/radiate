@@ -722,8 +722,6 @@ class Engine[G, T]:
     # ----------------------------
     # Iteration / execution
     # ----------------------------
-    @classmethod
-    def load(cls, path: str | Path) -> Self: ...
     def __iter__(self) -> Engine[G, T]: ...
     def __next__(self) -> Generation[G, T]: ...
     def run(
@@ -743,7 +741,7 @@ class Engine[G, T]:
     # Fluent configuration methods
     # ----------------------------
 
-    def fitness(self, fitness_func: Callable[[Any], Any] | FitnessBase) -> Self: ...
+    def fitness(self, fitness_func: Callable[[T], Any] | FitnessBase[T]) -> Self: ...
     def regression(
         self,
         features: Any,

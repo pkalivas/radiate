@@ -2,14 +2,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, overload
 
-import numpy as np
-
 from radiate.radiate import PyGraph
 
 from .._bridge.wrapper import RsObject
 from ..genome.chromosome import Chromosome
 
 if TYPE_CHECKING:
+    from .._dependancies import numpy as np
     from .._dependancies import pandas as pd
     from .._dependancies import polars as pl
 
@@ -74,6 +73,15 @@ class Graph(RsObject):
 
         Supports 1D/2D Lists, NumPy arrays, Polars, and Pandas objects.
         """
+        from .._dependancies import _NUMPY_AVAILABLE
+
+        if not _NUMPY_AVAILABLE:
+            raise ImportError(
+                "NumPy is not available. Please install it to use this feature."
+            )
+        else:
+            from .._dependancies import numpy as np
+
         input_type = type(inputs).__name__
         graph_shape = self.shape()
         eval_data = inputs
@@ -112,13 +120,7 @@ class Graph(RsObject):
 
         # Rust handles dimension tracking and f64 -> f32 downcasting internally.
         # It always yields a Bound<'py, PyArrayDyn<f32>> back to the CPython layer.
-        result_array = self.__backend__().eval(eval_data)
-
-        if isinstance(inputs, np.ndarray):
-            return result_array
-
-        # For legacy users expecting regular lists, extract it via fast C-level iterator unpack
-        return result_array.tolist()
+        return self.__backend__().eval(eval_data)
 
     def reset(self):
         """

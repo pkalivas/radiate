@@ -85,6 +85,30 @@ impl<T> RangeLookup<T> {
     }
 }
 
+#[derive(Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct BoundedSequence<T> {
+    data: Vec<T>,
+    init_range: RangeLookup<T>,
+    bounds: RangeLookup<T>,
+}
+
+impl<G, T> From<Vec<G>> for BoundedSequence<T>
+where
+    G: BoundedGene<Allele = T>,
+    T: Clone + PartialEq,
+{
+    fn from(data: Vec<G>) -> Self {
+        let init_range = build_init_range_loookup(&data);
+        let bounds = build_bounds_lookup(&data);
+        Self {
+            data: data.into_iter().map(|gene| gene.allele().clone()).collect(),
+            init_range,
+            bounds,
+        }
+    }
+}
+
 fn build_init_range_loookup<G>(genes: &[G]) -> RangeLookup<G::Allele>
 where
     G: BoundedGene,
@@ -134,40 +158,4 @@ where
     }
 
     RangeLookup::new(bounds, index_to_bounds_map)
-}
-
-#[derive(Clone, PartialEq)]
-pub struct BoundedFixedSequence<T, const N: usize> {
-    data: [T; N],
-    init_range: RangeLookup<T>,
-    bounds: RangeLookup<T>,
-}
-
-impl<G, T, const N: usize> From<[G; N]> for BoundedFixedSequence<T, N>
-where
-    G: BoundedGene<Allele = T>,
-    T: Clone + PartialEq,
-{
-    fn from(data: [G; N]) -> Self {
-        let init_range = build_init_range_loookup(&data);
-        let bounds = build_bounds_lookup(&data);
-        Self {
-            data: data.map(|gene| gene.allele().clone()),
-            init_range,
-            bounds,
-        }
-    }
-}
-
-impl<G, T, const N: usize> TryFrom<Vec<G>> for BoundedFixedSequence<T, N>
-where
-    G: BoundedGene<Allele = T>,
-    T: Clone + PartialEq,
-{
-    type Error = Vec<G>;
-
-    fn try_from(genes: Vec<G>) -> Result<Self, Self::Error> {
-        let arr: [G; N] = genes.try_into()?;
-        Ok(Self::from(arr))
-    }
 }

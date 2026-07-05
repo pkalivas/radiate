@@ -2,10 +2,7 @@ use super::{
     Chromosome,
     gene::{ArithmeticGene, BoundedGene, Gene, Valid},
 };
-use crate::{
-    chromosomes::{BoundedChromosome, NumericAllele, NumericChromosome},
-    random_provider,
-};
+use crate::random_provider;
 use radiate_utils::Float;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -282,28 +279,6 @@ impl<F: Float> Chromosome for FloatChromosome<F> {
     }
 }
 
-impl<F: Float> BoundedChromosome for FloatChromosome<F> {
-    fn min(&self, index: usize) -> Option<&F> {
-        self.genes.get(index).map(|gene| gene.min())
-    }
-
-    fn max(&self, index: usize) -> Option<&F> {
-        self.genes.get(index).map(|gene| gene.max())
-    }
-
-    fn bounds(&self, index: usize) -> Option<(&F, &F)> {
-        self.genes.get(index).map(|gene| gene.bounds())
-    }
-}
-
-impl<F: NumericAllele + Float> NumericChromosome for FloatChromosome<F> {
-    fn clamp(&mut self, index: usize, min: F, max: F) {
-        if let Some(allele) = self.allele_mut(index) {
-            allele.clamp(&min, &max);
-        }
-    }
-}
-
 impl<F: Float> Valid for FloatChromosome<F> {
     fn is_valid(&self) -> bool {
         self.genes.iter().all(|gene| gene.is_valid())
@@ -371,6 +346,43 @@ impl<F: Float> Debug for FloatChromosome<F> {
     }
 }
 
+// #[cfg(feature = "serde")]
+// impl<F: Float + Serialize> Serialize for FloatChromosome<F> {
+//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+//     where
+//         S: serde::Serializer,
+//     {
+//         let bounded_sequence = BoundedSequence::from(self.genes.clone());
+//         bounded_sequence.serialize(serializer)
+//     }
+// }
+
+// #[cfg(feature = "serde")]
+// impl<'de, F: Float + Deserialize<'de>> Deserialize<'de> for FloatChromosome<F> {
+//     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+//     where
+//         D: serde::Deserializer<'de>,
+//     {
+//         let sequence = BoundedSequence::deserialize(deserializer)?;
+//         let mut genes = Vec::with_capacity(sequence.data.len());
+//         for (index, allele) in sequence.data.into_iter().enumerate() {
+//             let value_range = sequence
+//                 .init_range
+//                 .get(index)
+//                 .ok_or_else(|| serde::de::Error::custom("Missing init range for gene"))?
+//                 .clone();
+//             let bounds = sequence
+//                 .bounds
+//                 .get(index)
+//                 .ok_or_else(|| serde::de::Error::custom("Missing bounds for gene"))?
+//                 .clone();
+
+//             genes.push(FloatGene::new(allele, value_range, bounds));
+//         }
+
+//         Ok(FloatChromosome { genes })
+//     }
+// }
 #[cfg(test)]
 mod tests {
 

@@ -28,13 +28,12 @@ requires-python = ">=3.12"
 documentation = "https://pkalivas.github.io/radiate/"
 repository = "https://github.com/pkalivas/radiate"
 
-dependencies = "numpy>=2.4.3"
-
 [project.optional-dependencies]
 plot = [
     "matplotlib>=3.8.0",
 ]
 data = [
+    "numpy>=2.4.3",
     "pandas>=2.1.0 ; python_version < '3.14'",
     "polars>=1.38.1 ; python_version < '3.14'",
 ]

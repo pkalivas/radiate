@@ -37,11 +37,13 @@ def test_normalize_graph_eval_with_pandas_dataframe(graph_simple_2x1, random_see
     predictions = graph_simple_2x1.eval(df, columns=["x1", "x2"])
 
     assert len(predictions) == 3
-    assert all(isinstance(pred, list) and len(pred) == 1 for pred in predictions)
-    assert all(isinstance(pred[0], float) for pred in predictions)
+    assert predictions.shape == (
+        3,
+        1,
+    )
 
 
-@pytest.mark.integration
+@pytest.mark.skipif(not rd._NUMPY_AVAILABLE, reason="numpy not installed")
 def test_normalize_graph_eval_with_numpy_array(graph_simple_2x1, random_seed):
     import numpy as np
 
@@ -56,7 +58,7 @@ def test_normalize_graph_eval_with_numpy_array(graph_simple_2x1, random_seed):
     )
 
 
-@pytest.mark.integration
+@pytest.mark.skipif(not rd._NUMPY_AVAILABLE, reason="numpy not installed")
 def test_normalize_graph_eval_with_numpy_1d_array(graph_simple_1x1, random_seed):
     import numpy as np
 

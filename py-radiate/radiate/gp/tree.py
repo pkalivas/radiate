@@ -72,7 +72,17 @@ class Tree(RsObject):
         Returns:
             list[list[float]] | list[float]: The output of the graph after evaluation.
         """
+        from .._dependancies import _NUMPY_AVAILABLE
+
+        if not _NUMPY_AVAILABLE:
+            raise ImportError(
+                "NumPy is not available. Please install it to use this feature."
+            )
+        else:
+            from .._dependancies import numpy as np
+
         input_type = type(inputs).__name__
+        eval_data = inputs
 
         if input_type in ("DataFrame", "Series"):
             if hasattr(inputs, "to_numpy"):  # Pandas / Polars / Backends
@@ -82,17 +92,14 @@ class Tree(RsObject):
                 elif columns is not None and hasattr(inputs, "__getitem__"):
                     inputs = inputs[columns]  # Pandas syntax
 
+                if not eval_data.flags["C_CONTIGUOUS"]:
+                    eval_data = np.ascontiguousarray(eval_data)
+
                 eval_data = inputs.to_numpy()
             else:
                 raise TypeError(f"Unsupported dataframe object wrapper: {input_type}")
-        else:
-            eval_data = inputs
 
-        result_array = self.__backend__().eval(eval_data)
-
-        if isinstance(inputs, np.ndarray):
-            return result_array
-        return result_array.tolist()
+        return self.__backend__().eval(eval_data)
 
     def to_dot(self) -> str:
         """

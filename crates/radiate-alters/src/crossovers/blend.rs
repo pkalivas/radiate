@@ -1,6 +1,6 @@
 use radiate_core::{
-    AlterContext, AlterResult, BoundedGene, Crossover, Expr, Gene, RateSet,
-    chromosomes::{BoundedChromosome, NumericAllele, NumericChromosome, NumericGene},
+    AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, Expr, Gene, RateSet,
+    chromosomes::{NumericAllele, NumericGene},
     random_provider,
 };
 use radiate_utils::{Float, Primitive};
@@ -37,7 +37,7 @@ impl<A, G, C> Crossover<C> for BlendCrossover
 where
     A: Primitive + Float + NumericAllele,
     G: Gene<Allele = A> + BoundedGene + NumericGene,
-    C: BoundedChromosome<Gene = G> + NumericChromosome<Gene = G>,
+    C: Chromosome<Gene = G>,
 {
     fn rates(&self) -> RateSet {
         RateSet::new(self.rate.clone())
@@ -54,20 +54,22 @@ where
         let alpha = A::from(self.alpha).unwrap();
 
         random_provider::with_rng(|rand| {
-            let min_len = std::cmp::min(chrom_one.len(), chrom_two.len());
-            for i in 0..min_len {
+            for (one, two) in chrom_one.iter_mut().zip(chrom_two.iter_mut()) {
                 if rand.bool(ctx.rate()) {
-                    let allele_one = *chrom_one.allele(i).unwrap();
-                    let allele_two = *chrom_two.allele(i).unwrap();
+                    let allele_one = *one.allele();
+                    let allele_two = *two.allele();
 
                     let new_allele_one = allele_one - (alpha * (allele_two - allele_one));
                     let new_allele_two = allele_two - (alpha * (allele_one - allele_two));
 
-                    let (one_min, one_max) = chrom_one.bounds(i).unwrap();
-                    let (two_min, two_max) = chrom_two.bounds(i).unwrap();
+                    let (one_min, one_max) = one.bounds();
+                    let (two_min, two_max) = two.bounds();
 
-                    *chrom_one.allele_mut(i).unwrap() = new_allele_one.clamp(*one_min, *one_max);
-                    *chrom_two.allele_mut(i).unwrap() = new_allele_two.clamp(*two_min, *two_max);
+                    *one.allele_mut() = new_allele_one.clamp(*one_min, *one_max);
+                    *two.allele_mut() = new_allele_two.clamp(*two_min, *two_max);
+
+                    // *chrom_one.get_mut(i).unwrap() = new_allele_one.clamp(*one_min, *one_max);
+                    // *chrom_two.get_mut(i).unwrap() = new_allele_two.clamp(*two_min, *two_max);
 
                     cross_count += 1;
                 }
@@ -182,36 +184,16 @@ mod tests {
 
         assert_eq!(result.count(), 2);
 
-        let alpha = 0.3;
-        let expected_one_0 = 1.0 - (alpha * (4.0 - 1.0));
-        let expected_two_0 = 4.0 - (alpha * (1.0 - 4.0));
-        let expected_one_1 = 2.0 - (alpha * (5.0 - 2.0));
-        let expected_two_1 = 5.0 - (alpha * (2.0 - 5.0));
+        let alpha = 0.3_f32;
+        let expected_one_0 = 1.0_f32 - (alpha * (4.0_f32 - 1.0_f32));
+        let expected_two_0 = 4.0_f32 - (alpha * (1.0_f32 - 4.0_f32));
+        let expected_one_1 = 2.0_f32 - (alpha * (5.0_f32 - 2.0_f32));
+        let expected_two_1 = 5.0_f32 - (alpha * (2.0_f32 - 5.0_f32));
 
-        assert!(
-            (NumericAllele::extract::<f32>(*chrom_one.allele(0).unwrap()).unwrap()
-                - expected_one_0)
-                .abs()
-                < 1e-6
-        );
-        assert!(
-            (NumericAllele::extract::<f32>(*chrom_two.allele(0).unwrap()).unwrap()
-                - expected_two_0)
-                .abs()
-                < 1e-6
-        );
-        assert!(
-            (NumericAllele::extract::<f32>(*chrom_one.allele(1).unwrap()).unwrap()
-                - expected_one_1)
-                .abs()
-                < 1e-6
-        );
-        assert!(
-            (NumericAllele::extract::<f32>(*chrom_two.allele(1).unwrap()).unwrap()
-                - expected_two_1)
-                .abs()
-                < 1e-6
-        );
+        assert!((*chrom_one.get(0).unwrap().allele() - expected_one_0).abs() < 1e-6);
+        assert!((*chrom_two.get(0).unwrap().allele() - expected_two_0).abs() < 1e-6);
+        assert!((*chrom_one.get(1).unwrap().allele() - expected_one_1).abs() < 1e-6);
+        assert!((*chrom_two.get(1).unwrap().allele() - expected_two_1).abs() < 1e-6);
 
         assert_eq!(*chrom_one.get(2).unwrap().allele(), 3.0);
     }
