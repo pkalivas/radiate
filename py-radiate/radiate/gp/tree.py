@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, overload
 
+import numpy as np
+
 from radiate.radiate import PyTree
 
 from .._bridge.wrapper import RsObject
-from ..utils import _normalize_single_chunk
 
 if TYPE_CHECKING:
-    from .._dependancies import numpy as np
     from .._dependancies import pandas as pd
     from .._dependancies import polars as pl
 
@@ -72,13 +72,27 @@ class Tree(RsObject):
         Returns:
             list[list[float]] | list[float]: The output of the graph after evaluation.
         """
-        if isinstance(inputs, list) and all(
-            isinstance(row, (int, float)) for row in inputs
-        ):
-            return self.__backend__().eval(inputs)
+        input_type = type(inputs).__name__
 
-        eval_inputs = _normalize_single_chunk(inputs, cols=columns)
-        return self.__backend__().eval(eval_inputs)
+        if input_type in ("DataFrame", "Series"):
+            if hasattr(inputs, "to_numpy"):  # Pandas / Polars / Backends
+                # Optional: Filter by column list if provided
+                if columns is not None and hasattr(inputs, "select"):
+                    inputs = inputs.select(columns)  # Polars syntax
+                elif columns is not None and hasattr(inputs, "__getitem__"):
+                    inputs = inputs[columns]  # Pandas syntax
+
+                eval_data = inputs.to_numpy()
+            else:
+                raise TypeError(f"Unsupported dataframe object wrapper: {input_type}")
+        else:
+            eval_data = inputs
+
+        result_array = self.__backend__().eval(eval_data)
+
+        if isinstance(inputs, np.ndarray):
+            return result_array
+        return result_array.tolist()
 
     def to_dot(self) -> str:
         """

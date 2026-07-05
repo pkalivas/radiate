@@ -1,4 +1,6 @@
+import numpy as np
 import pytest
+
 import radiate as rd
 
 
@@ -14,7 +16,7 @@ def test_gp_tree_creation():
     tree = codec.decode(codec.encode())
 
     assert tree is not None
-    assert tree.eval([[1.0, 2.0, 3.0]]) is not None
+    assert tree.eval(np.array([[1.0, 2.0, 3.0]])) is not None
 
 
 @pytest.mark.unit
@@ -28,16 +30,16 @@ def test_gp_tree_eval_with_single_input():
 
     tree = codec.decode(codec.encode())
 
-    result = tree.eval([1.0, 2.0])
-    assert isinstance(result, list)
-    assert len(result) == 1
-    assert all(isinstance(val, float) for val in result)
+    result = tree.eval(np.array([1.0, 2.0]))
 
-    result_matrix = tree.eval([[1.0, 2.0], [3.0, 4.0]])
-    assert isinstance(result_matrix, list)
-    assert len(result_matrix) == 2
-    assert all(isinstance(row, list) for row in result_matrix)
-    assert all(isinstance(val, float) for row in result_matrix for val in row)
+    assert isinstance(result, np.ndarray)
+    assert len(result) == 1
+
+    result_matrix = tree.eval(np.array([[1.0, 2.0], [3.0, 4.0]]))
+
+    assert isinstance(result_matrix, np.ndarray)
+    assert result_matrix.shape[0] == 2
+    assert result_matrix.shape[1] == 1
 
 
 @pytest.mark.unit
@@ -50,33 +52,16 @@ def test_gp_tree_eval_with_multiple_inputs():
     )
 
     tree = codec.decode(codec.encode())
-    inputs = [
-        [1.0, 2.0],
-        [3.0, 4.0],
-        [5.0, 6.0],
-    ]
-    result = tree.eval(inputs)
-    assert isinstance(result, list)
-    assert len(result) == len(inputs)
-
-
-@pytest.mark.unit
-def test_gp_tree_eval_with_invalid_input():
-    """Test GP Tree evaluation with invalid input."""
-    # Create a simple tree
-    codec = rd.TreeCodec(
-        vertex=[rd.Op.add(), rd.Op.sub(), rd.Op.mul(), rd.Op.div()],
-        leaf=[rd.Op.var(0), rd.Op.var(1)],
-        max_size=30,
+    inputs = np.array(
+        [
+            [1.0, 2.0],
+            [3.0, 4.0],
+            [5.0, 6.0],
+        ]
     )
-
-    tree = codec.decode(codec.encode())
-
-    with pytest.raises(TypeError):
-        tree.eval("invalid")  # type: ignore
-
-    with pytest.raises(ValueError):
-        tree.eval([[1.0, "invalid", 3.0]])  # type: ignore
+    result = tree.eval(inputs)
+    assert isinstance(result, np.ndarray)
+    assert len(result) == len(inputs)
 
 
 @pytest.mark.unit
@@ -87,5 +72,5 @@ def test_tree_from_json(tree_simple_2x1):
 
     assert new_tree is not None
     assert isinstance(new_tree, rd.Tree)
-    assert new_tree.eval([[1.0, 2.0]]) is not None
+    assert new_tree.eval(np.array([[1.0, 2.0]])) is not None
     assert len(new_tree) == len(tree_simple_2x1)

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import math
+
+import numpy as np
 import pytest
 
 import radiate as rd
@@ -66,10 +68,8 @@ def test_engine_regression_pandas_df_target_and_feature_cols_smoke(graph_1x1_eng
     assert next(engine).index() == 1
 
 
-@pytest.mark.skipif(not rd._NUMPY_AVAILABLE, reason="numpy not installed")
+@pytest.mark.integration
 def test_engine_regression_numpy_arrays_smoke(graph_1x1_engine):
-    import numpy as np
-
     X = np.array([[0.0], [1.0], [2.0], [3.0]], dtype=np.float64)
     y = np.array([0.0, 2.0, 4.0, 6.0], dtype=np.float64)
 
@@ -83,7 +83,7 @@ def test_engine_regression_numpy_arrays_smoke(graph_1x1_engine):
     assert next(engine).index() == 1
 
 
-@pytest.mark.unit
+@pytest.mark.integration
 def test_engine_regression_python_lists_smoke(graph_1x1_engine):
     X = [[0.0], [1.0], [2.0], [3.0]]
     y = [0.0, 2.0, 4.0, 6.0]
@@ -177,7 +177,7 @@ def test_normalize_regression_errors_when_targets_none_and_not_dataframe(
         _normalize_regression_data(features, targets)
 
 
-@pytest.mark.skipif(not rd._NUMPY_AVAILABLE, reason="numpy not installed")
+@pytest.mark.integration
 def test_normalize_regression_numpy_arrays_return_lists_2d_float():
     import numpy as np
 

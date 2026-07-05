@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, overload
 
+import numpy as np
+
 from radiate.radiate import PyGraph
 
 from .._bridge.wrapper import RsObject
 from ..genome.chromosome import Chromosome
-from ..utils import _normalize_single_chunk
 
 if TYPE_CHECKING:
-    from .._dependancies import numpy as np
     from .._dependancies import pandas as pd
     from .._dependancies import polars as pl
 
@@ -55,37 +55,70 @@ class Graph(RsObject):
     @overload
     def eval(
         self, inputs: "np.ndarray", *, columns: list[str] | None = None
-    ) -> list[float]: ...
+    ) -> "np.ndarray": ...  # Performance upgrade: return array to array users
 
     @overload
     def eval(
         self, inputs: "pl.DataFrame | pl.Series", *, columns: list[str] | None = None
-    ) -> list[list[float]]: ...
+    ) -> "np.ndarray": ...
 
     @overload
     def eval(
         self, inputs: "pd.DataFrame | pd.Series", *, columns: list[str] | None = None
-    ) -> list[list[float]]: ...
+    ) -> "np.ndarray": ...
 
     def eval(
         self, inputs: Any, *, columns: list[str] | None = None
-    ) -> list[list[float]] | list[float]:
-        """
-        Evaluate the graph with the given inputs. The inputs needs to be a list of
-        lists (for multiple samples).
+    ) -> list[list[float]] | list[float] | "np.ndarray":
+        """Evaluate the graph with the given inputs.
 
-        Args:
-            inputs (list[list[float]] | list[float]): The input data to evaluate the graph on.
-        Returns:
-            list[list[float]] | list[float]: The output of the graph after evaluation.
+        Supports 1D/2D Lists, NumPy arrays, Polars, and Pandas objects.
         """
-        if isinstance(inputs, list) and all(
-            isinstance(row, (int, float)) for row in inputs
-        ):
-            return self.__backend__().eval(inputs)
+        input_type = type(inputs).__name__
+        graph_shape = self.shape()
+        eval_data = inputs
 
-        eval_inputs = _normalize_single_chunk(inputs, cols=columns)
-        return self.__backend__().eval(eval_inputs)
+        if input_type in ("DataFrame", "Series"):
+            if hasattr(inputs, "to_numpy"):
+                # Polars syntax
+                if columns is not None and hasattr(inputs, "select"):
+                    inputs = inputs.select(columns)
+                    eval_data = inputs.to_numpy(order="c")
+
+                # Pandas syntax
+                elif columns is not None and hasattr(inputs, "__getitem__"):
+                    inputs = inputs[columns]
+                    eval_data = inputs.to_numpy()
+
+            else:
+                raise TypeError(f"Unsupported dataframe object wrapper: {input_type}")
+
+            if not eval_data.flags["C_CONTIGUOUS"]:
+                eval_data = np.ascontiguousarray(eval_data)
+
+        if hasattr(eval_data, "shape"):
+            shape = eval_data.shape
+            dims = len(shape)
+            if dims == 1:
+                if graph_shape[0] != shape[0]:
+                    raise ValueError(
+                        f"Input length {shape[0]} does not match graph input size {graph_shape[0]}"
+                    )
+            elif dims == 2:
+                if graph_shape[0] != shape[1]:
+                    raise ValueError(
+                        f"Input width {shape[1]} does not match graph input size {graph_shape[0]}"
+                    )
+
+        # Rust handles dimension tracking and f64 -> f32 downcasting internally.
+        # It always yields a Bound<'py, PyArrayDyn<f32>> back to the CPython layer.
+        result_array = self.__backend__().eval(eval_data)
+
+        if isinstance(inputs, np.ndarray):
+            return result_array
+
+        # For legacy users expecting regular lists, extract it via fast C-level iterator unpack
+        return result_array.tolist()
 
     def reset(self):
         """

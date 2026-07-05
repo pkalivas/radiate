@@ -6,7 +6,6 @@ except ImportError:
 
 from ._dependancies import (
     _GIL_ENABLED,
-    _NUMPY_AVAILABLE,
     _PANDAS_AVAILABLE,
     _POLARS_AVAILABLE,
     _TORCH_AVAILABLE,
@@ -149,7 +148,6 @@ __all__ = [
     "__version_tuple__",
     # Dependencies
     "_GIL_ENABLED",
-    "_NUMPY_AVAILABLE",
     "_PANDAS_AVAILABLE",
     "_POLARS_AVAILABLE",
     "_TORCH_AVAILABLE",

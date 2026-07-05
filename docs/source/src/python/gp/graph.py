@@ -1,4 +1,5 @@
 # --8<-- [start:eval]
+import numpy as np
 import radiate as rd
 
 codec = rd.GraphCodec.directed(
@@ -10,13 +11,15 @@ codec = rd.GraphCodec.directed(
 
 graph = codec.decode(codec.encode())
 
-inputs = [1.0, 2.0]
+inputs = np.array([1.0, 2.0])
 outputs = graph.eval(inputs)  # list[float]
 
-multi_inputs = [
-    [1.0, 2.0],
-    [3.0, 4.0],
-]
+multi_inputs = np.array(
+    [
+        [1.0, 2.0],
+        [3.0, 4.0],
+    ]
+)
 multi_outputs = graph.eval(multi_inputs)  # list[list[float]]
 # --8<-- [end:eval]
 
@@ -48,7 +51,7 @@ codec = rd.GraphCodec.gru(shape, vertex=vertex, edge=edge, output=output)
 
 graph = codec.decode(codec.encode())
 
-inputs = [[1.0, 2.0]]
+inputs = np.array([[1.0, 2.0]])
 outputs = graph.eval(inputs)
 # --8<-- [end:variants]
 

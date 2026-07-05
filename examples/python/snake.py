@@ -218,7 +218,9 @@ class SnakeAI:
 
     def predict(self, state: list[float]) -> int:
         """Predict the best action given current state."""
-        output = self.graph.eval(state)
+        output = self.graph.eval(
+            np.array([state])
+        )  # Expecting a 2D array for batch processing
         return np.argmax(output)  # type: ignore
 
 

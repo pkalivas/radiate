@@ -1,5 +1,6 @@
 use crate::{IntoPyAnyObject, PyAnyObject};
-use pyo3::{Bound, IntoPyObject, IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
+use numpy::PyArrayDyn;
+use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{Eval, Format, Op, ToDot, Tree};
 use serde::{Deserialize, Serialize};
 
@@ -37,21 +38,14 @@ impl PyTree {
             .join("\n")
     }
 
-    pub fn eval<'py>(&mut self, py: Python<'py>, inputs: Py<PyAny>) -> PyResult<Bound<'py, PyAny>> {
-        if let Ok(input_mat) = inputs.extract::<Vec<Vec<f32>>>(py) {
-            let outputs = input_mat
-                .into_iter()
-                .map(|input| self.inner.eval(&input))
-                .collect::<Vec<Vec<f32>>>();
-            outputs.into_pyobject(py)
-        } else if let Ok(input_vec) = inputs.extract::<Vec<f32>>(py) {
-            let output = self.inner.eval(&input_vec);
-            output.into_pyobject(py)
-        } else {
-            Err(pyo3::exceptions::PyTypeError::new_err(
-                "Input must be Vec[Vec[float]] or Vec[float].",
-            ))
-        }
+    pub fn eval<'py>(
+        &self,
+        py: Python<'py>,
+        inputs: &Bound<'py, PyAny>,
+    ) -> PyResult<Bound<'py, PyArrayDyn<f32>>> {
+        super::generic_eval_runner(py, self.__len__(), inputs, |slice| {
+            self.inner.eval(slice).into_iter().collect::<Vec<f32>>()
+        })
     }
 
     pub fn __repr__(&self) -> String {

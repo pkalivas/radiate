@@ -1,5 +1,6 @@
 use crate::{IntoPyAnyObject, PyAnyObject, PyChromosome, PyGeneType};
-use pyo3::{Bound, IntoPyObject, IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
+use numpy::PyArrayDyn;
+use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
     Chromosome, EvalMut, Graph, GraphChromosome, GraphEvaluator, GraphIterator, NodeType, Op,
     ToDot, graphs::GraphEvalCache,
@@ -76,7 +77,11 @@ impl PyGraph {
         )
     }
 
-    pub fn eval<'py>(&mut self, py: Python<'py>, inputs: Py<PyAny>) -> PyResult<Bound<'py, PyAny>> {
+    pub fn eval<'py>(
+        &mut self,
+        py: Python<'py>,
+        inputs: &Bound<'py, PyAny>,
+    ) -> PyResult<Bound<'py, PyArrayDyn<f32>>> {
         let mut evaluator = if self.eval_cache.is_some() {
             let cache = self.eval_cache.take().unwrap();
             GraphEvaluator::from((&self.inner, cache))
@@ -84,22 +89,13 @@ impl PyGraph {
             GraphEvaluator::new(&self.inner)
         };
 
-        if let Ok(input_vec) = inputs.extract::<Vec<f32>>(py) {
-            let output = evaluator.eval_mut(&input_vec);
-            self.eval_cache = Some(evaluator.take_cache());
-            output.into_pyobject(py)
-        } else if let Ok(input_vecvec) = inputs.extract::<Vec<Vec<f32>>>(py) {
-            let outputs = input_vecvec
-                .into_iter()
-                .map(|input| evaluator.eval_mut(&input))
-                .collect::<Vec<Vec<f32>>>();
-            self.eval_cache = Some(evaluator.take_cache());
-            outputs.into_pyobject(py)
-        } else {
-            Err(pyo3::exceptions::PyTypeError::new_err(
-                "Input must be either Vec[float] or Vec[Vec[float]]",
-            ))
-        }
+        let result = super::generic_eval_runner(py, self.shape().1, inputs, |slice| {
+            evaluator.eval_mut(slice)
+        });
+
+        // Put cache back regardless of Ok/Err state safely
+        self.eval_cache = Some(evaluator.take_cache());
+        result
     }
 
     pub fn copy(&self) -> Self {

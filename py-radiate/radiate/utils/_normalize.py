@@ -2,16 +2,18 @@ from __future__ import annotations
 
 from typing import Any, Sequence
 
+import numpy as np
+
 from .._dependancies import (
-    _check_for_numpy,
     _check_for_pandas,
     _check_for_polars,
     _check_for_torch,
     torch,
 )
-from .._dependancies import numpy as np
 from .._dependancies import pandas as pd
 from .._dependancies import polars as pl
+
+# def _to_contiguous_numpy(arr: Any, *, name: str) -> np.ndarray:
 
 
 def _ensure_2d_np(arr: Any, *, name: str) -> Any:
@@ -26,8 +28,6 @@ def _as_numpy_2d_f32(x: Any, *, name: str) -> Any:
     """
     Convert supported array-like inputs into a 2D numpy float32 ndarray.
     """
-    if _check_for_numpy(x) and isinstance(x, np.ndarray):
-        return _ensure_2d_np(x.astype(np.float32, copy=False), name=name)
 
     if _check_for_polars(x):
         if isinstance(x, pl.DataFrame):
@@ -94,9 +94,6 @@ def _normalize_single_chunk(
 
         elif _check_for_pandas(features) and isinstance(features, pd.DataFrame):
             features = features[list(cols)]
-
-        elif _check_for_numpy(features) and isinstance(features, np.ndarray):
-            features = features[:, cols]
 
         else:
             raise TypeError(
