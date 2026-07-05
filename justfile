@@ -116,4 +116,5 @@ clean:
     @rm -rf target/
     @rm -rf .pytest_cache
     @rm -rf site
+    @rm -rf examples/data/scratch
     @just py-radiate/clean

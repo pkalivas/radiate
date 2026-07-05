@@ -13,7 +13,10 @@ pub struct ExprSet {
 impl ExprSet {
     pub fn new(exprs: Vec<Expr>) -> Self {
         Self {
-            exprs: exprs.into_iter().map(|e| (e.name().into(), e)).collect(),
+            exprs: exprs
+                .into_iter()
+                .map(|e| (e.name().into(), e.compile()))
+                .collect(),
         }
     }
 
