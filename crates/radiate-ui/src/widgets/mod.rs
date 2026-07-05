@@ -7,8 +7,9 @@ pub use components::*;
 pub use modal::ModalWidget;
 pub use panel::{FnWidget, Panel};
 pub use panels::{
-    EngineStatusPanelWidget, FrontEventLogWidget, HelpPanelWidget, ImprovementLogWidget,
-    MetricDetailPanelWidget, MetricModalWidget, MetricTableWidget, SearchBarWidget,
+    DeltaBarChartWidget, EngineStatusPanelWidget, FrontEventLogWidget, HelpPanelWidget,
+    ImprovementLogWidget, MetricDetailPanelWidget, MetricModalWidget, MetricTableWidget,
+    SearchBarWidget,
 };
 
 mod template;

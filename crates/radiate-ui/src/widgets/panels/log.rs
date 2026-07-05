@@ -9,7 +9,7 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Rect};
 use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Cell, Row, Table};
+use ratatui::widgets::{Bar, BarChart, BarGroup, Block, Cell, Row, Table, Widget};
 
 const IMPROVEMENT_HEADER: [&str; 4] = ["   Gen", "Score", "Δ", ""];
 const FRONT_EVENT_HEADER: [&str; 6] = [
@@ -176,6 +176,60 @@ impl<C: Chromosome> AppWidget<C> for FrontEventLogWidget {
             ]);
 
         render_scrollable_table(buf, area, table, &mut state.tables.log);
+    }
+}
+
+pub struct DeltaBarChartWidget;
+
+impl<C: Chromosome> AppWidget<C> for DeltaBarChartWidget {
+    fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
+        let log = &state.evo.improvement_log;
+        let max_delta = log.iter().map(|e| e.delta).fold(0.0_f32, f32::max);
+
+        let entries = log.as_slice();
+        let bars = entries
+            .iter()
+            .rev()
+            .map(|entry| {
+                let value = if max_delta > 0.0 {
+                    ((entry.delta / max_delta) * 1000.0) as u64
+                } else {
+                    0
+                };
+                Bar::default()
+                    .value(value)
+                    .text_value(String::new())
+                    .style(Style::default().fg(delta_color(entry.delta, max_delta)))
+            })
+            .collect::<Vec<_>>();
+
+        let focused = state.nav.is_pane_focused(Pane::Chart);
+        let border_color = if focused {
+            crate::styles::BORDER_GREEN
+        } else {
+            Color::DarkGray
+        };
+
+        Widget::render(
+            BarChart::default()
+                .block(
+                    Block::bordered()
+                        .title(
+                            Line::from(Span::styled(
+                                format!(" Improvement Δ "),
+                                Style::default().fg(Color::White).bold(),
+                            ))
+                            .centered(),
+                        )
+                        .border_style(Style::default().fg(border_color)),
+                )
+                .data(BarGroup::default().bars(&bars))
+                .bar_width(1)
+                .bar_gap(0)
+                .max(1000),
+            area,
+            buf,
+        );
     }
 }
 

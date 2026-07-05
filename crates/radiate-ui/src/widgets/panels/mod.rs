@@ -6,7 +6,7 @@ mod status;
 pub mod tables;
 
 pub use help::HelpPanelWidget;
-pub use log::{FrontEventLogWidget, ImprovementLogWidget};
+pub use log::{DeltaBarChartWidget, FrontEventLogWidget, ImprovementLogWidget};
 pub use metric::{MetricDetailPanelWidget, MetricLineChartWidget};
 pub use search::SearchBarWidget;
 pub use status::{EngineStatusPanelWidget, MetricModalWidget};

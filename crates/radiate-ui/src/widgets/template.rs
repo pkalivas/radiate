@@ -1,8 +1,9 @@
 use crate::{
     state::{AppState, MetricChartType},
     widgets::{
-        AppWidget, EngineStatusPanelWidget, FnWidget, FrontEventLogWidget, ImprovementLogWidget,
-        MetricDetailPanelWidget, MetricTableWidget, Panel, ParetoPagingWidget, SearchBarWidget,
+        AppWidget, DeltaBarChartWidget, EngineStatusPanelWidget, FnWidget, FrontEventLogWidget,
+        ImprovementLogWidget, MetricDetailPanelWidget, MetricTableWidget, Panel,
+        ParetoPagingWidget, SearchBarWidget,
         TabComponent,
         components::{SpeciesPieChartComponent, SpeciesSparklineComponent, TimePieChartComponent},
         panels::{MetricLineChartWidget, tables::SpeciesTableWidget},
@@ -234,7 +235,16 @@ impl<C: Chromosome> Default for LayoutNode<C> {
                                 TabNode {
                                     title: "Log",
                                     condition: |s| !s.evo.is_multi(),
-                                    content: Widget(|a, b, s| ImprovementLogWidget.render(a, b, s)),
+                                    content: Horizontal {
+                                        constraints: vec![
+                                            Constraint::Fill(1),
+                                            Constraint::Percentage(35),
+                                        ],
+                                        children: vec![
+                                            Widget(|a, b, s| ImprovementLogWidget.render(a, b, s)),
+                                            Widget(|a, b, s| DeltaBarChartWidget.render(a, b, s)),
+                                        ],
+                                    },
                                 },
                                 TabNode {
                                     title: "Front",
@@ -242,18 +252,24 @@ impl<C: Chromosome> Default for LayoutNode<C> {
                                     content: Horizontal {
                                         constraints: vec![
                                             Constraint::Fill(1),
-                                            Constraint::Percentage(30),
-                                            Constraint::Percentage(20),
+                                            Constraint::Percentage(25),
+                                            Constraint::Percentage(25),
                                         ],
                                         children: vec![
                                             Widget(|a, b, s| FrontEventLogWidget.render(a, b, s)),
                                             Widget(|a, b, s| {
-                                                MetricLineChartWidget::default()
-                                                    .with_show_bottom_options(true)
-                                                    .render(a, b, s)
+                                                MetricLineChartWidget::new(
+                                                    metric_names::FRONT_SIZE,
+                                                    MetricChartType::Last,
+                                                )
+                                                .render(a, b, s)
                                             }),
                                             Widget(|a, b, s| {
-                                                MetricDetailPanelWidget.render(a, b, s)
+                                                MetricLineChartWidget::new(
+                                                    metric_names::FRONT_ENTROPY,
+                                                    MetricChartType::Last,
+                                                )
+                                                .render(a, b, s)
                                             }),
                                         ],
                                     },
