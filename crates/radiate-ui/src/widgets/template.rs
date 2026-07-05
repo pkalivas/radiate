@@ -12,7 +12,9 @@ use radiate_engines::{Chromosome, metric_names};
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Direction, Layout, Rect},
-    widgets::Widget,
+    style::{Color, Stylize},
+    text::{Line, Span},
+    widgets::{Block, Widget},
 };
 
 pub struct TabNode<C: Chromosome> {
@@ -67,6 +69,7 @@ impl<C: Chromosome> LayoutNode<C> {
             }
             LayoutNode::Tabbed { children } => {
                 let active_tab_idx = state.nav.dashboard_tab_index();
+                let active_objective_idx = state.evo.pareto.objective_index;
 
                 let areas = Layout::default()
                     .direction(Direction::Vertical)
@@ -88,6 +91,14 @@ impl<C: Chromosome> LayoutNode<C> {
                     TabComponent::from(titles).select(select).render(area, buf);
                 }))
                 .render_inside_block(true)
+                .titled(
+                    Line::from(vec![
+                        Span::from(format!(" Obj({}) ", active_objective_idx))
+                            .fg(Color::White)
+                            .bold(),
+                    ])
+                    .right_aligned(),
+                )
                 .render(areas[0], buf);
 
                 if let Some(active_child) = children.get(active_tab_idx) {

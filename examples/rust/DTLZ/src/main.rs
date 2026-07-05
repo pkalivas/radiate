@@ -17,18 +17,23 @@ fn main() {
         .offspring_selector(TournamentSelector::new(5))
         .survivor_selector(NSGA3Selector::new(12))
         .front_size(200..250)
+        .diversity(CosineDistance)
         .alter(alters!(
             SimulatedBinaryCrossover::new(1_f32, 2.0),
             UniformMutator::new(0.1),
         ))
         .build();
 
-    let result = radiate::ui(engine).iter().limit(1000).last().unwrap();
+    let result = radiate::ui((engine, true))
+        .iter()
+        .limit(1000)
+        .last()
+        .unwrap();
 
     println!("{:?}", result);
     println!("{}", result.metrics().dashboard());
     let front = result.front().unwrap();
-    plot_front(front);
+    // plot_front(front);
 }
 
 fn plot_front(front: &Front<Phenotype<FloatChromosome<f32>>>) {

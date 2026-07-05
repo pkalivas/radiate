@@ -7,12 +7,21 @@ use radiate_engines::{
 use radiate_utils::WindowBuffer;
 use std::sync::{Arc, RwLock};
 
-const MAX_IMPROVEMENT_LOG: usize = 500;
+const MAX_IMPROVEMENT_LOG: usize = 100;
 
 pub struct ImprovementEntry {
     pub generation: usize,
     pub score: f32,
     pub delta: f32,
+}
+
+pub struct FrontEventEntry {
+    pub generation: usize,
+    pub front_size: usize,
+    pub additions: usize,
+    pub removals: usize,
+    pub comparisons: usize,
+    pub filtered: bool,
 }
 
 pub struct ObjectiveState {
@@ -34,6 +43,7 @@ pub struct EvoState<C: Chromosome> {
     pub best_score: Score,
     pub pareto: ObjectiveState,
     pub improvement_log: WindowBuffer<ImprovementEntry>,
+    pub front_event_log: WindowBuffer<FrontEventEntry>,
 }
 
 impl<C: Chromosome> EvoState<C> {
@@ -84,6 +94,55 @@ impl<C: Chromosome> EvoState<C> {
         }
 
         self.metrics = metrics;
+        self.update_front_events();
+    }
+
+    fn update_front_events(&mut self) {
+        if self.pareto.objective.is_single() {
+            return;
+        }
+
+        let additions = self
+            .metrics
+            .front_additions()
+            .map(|m| m.last_value() as usize)
+            .unwrap_or(0);
+
+        if additions == 0 {
+            return;
+        }
+        let removals = self
+            .metrics
+            .front_removals()
+            .map(|m| m.last_value() as usize)
+            .unwrap_or(0);
+
+        let front_size = self
+            .metrics
+            .front_size()
+            .map(|m| m.last_value() as usize)
+            .unwrap_or(0);
+
+        let front_comparisons = self
+            .metrics
+            .front_comparisons()
+            .map(|m| m.last_value() as usize)
+            .unwrap_or(0);
+
+        let front_filters = self
+            .metrics
+            .front_filters()
+            .map(|m| m.last_value() > 0.0)
+            .unwrap_or(false);
+
+        self.front_event_log.push_front(FrontEventEntry {
+            generation: self.index,
+            front_size,
+            additions,
+            removals,
+            comparisons: front_comparisons,
+            filtered: front_filters,
+        });
     }
 
     pub fn get_chart_by_key(
@@ -155,6 +214,7 @@ impl<C: Chromosome> Default for EvoState<C> {
             score: Score::default(),
             best_score: Score::default(),
             improvement_log: WindowBuffer::with_capacity(MAX_IMPROVEMENT_LOG),
+            front_event_log: WindowBuffer::with_capacity(MAX_IMPROVEMENT_LOG),
             pareto: ObjectiveState {
                 objective: Objective::Single(Optimize::Maximize),
                 charts_visible: 2,

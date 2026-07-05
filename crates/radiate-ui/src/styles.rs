@@ -25,6 +25,7 @@ pub const TREND_UP_COLOR_LIGHT: Color = material::GREEN.c100;
 pub const TREND_DOWN_COLOR: Color = material::RED.c200;
 pub const TREND_DOWN_COLOR_LIGHT: Color = material::RED.c100;
 pub const TREND_FLAT_COLOR: Color = material::GRAY.c500;
+pub const TREND_NEUTRAL_COLOR: Color = material::GRAY.c400;
 
 pub(crate) const COLOR_WHEEL_400: [Color; 8] = [
     material::RED.c400,
@@ -122,6 +123,21 @@ pub fn stagnation_color(gens: usize) -> Color {
     } else {
         Color::DarkGray
     }
+}
+
+pub fn format_thousands(n: usize) -> String {
+    let s = n.to_string();
+    let bytes = s.as_bytes();
+    let len = bytes.len();
+    let mut result = String::with_capacity(len + len / 3);
+    for (i, &b) in bytes.iter().enumerate() {
+        let pos_from_right = len - i - 1;
+        if i > 0 && pos_from_right % 3 == 2 {
+            result.push(',');
+        }
+        result.push(b as char);
+    }
+    result
 }
 
 pub fn delta_bar(delta: f32, max_delta: f32, max_width: usize) -> String {
