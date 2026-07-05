@@ -5,8 +5,8 @@ mod tree;
 
 pub use accuracy::{PyAccuracy, py_accuracy};
 pub use graph::PyGraph;
+use numpy::IntoPyArray;
 use numpy::PyArrayDyn;
-use numpy::{IntoPyArray, ndarray::Axis};
 use numpy::{PyArray1, PyArrayMethods};
 use numpy::{
     PyUntypedArrayMethods,
@@ -88,8 +88,6 @@ where
                     .as_array()
                     .into_dimensionality::<numpy::ndarray::Ix2>()
                     .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
-
-                let t = array_view.slice_axis(Axis(1), numpy::ndarray::Slice::from(..));
 
                 let mut flat_outputs = Vec::with_capacity(array_view.shape()[0] * output_length);
                 let mut cast_buffer = Vec::with_capacity(array_view.shape()[1]);
