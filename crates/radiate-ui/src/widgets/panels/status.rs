@@ -139,7 +139,6 @@ fn get_multi_objective_summaries<C: Chromosome>(evo: &EvoState<C>) -> Vec<Row<'s
         .carryover_rate()
         .map(|m| m.last_value())
         .unwrap_or(carryover);
-    let improvements = metrics.improvements().map(|m| m.sum()).unwrap_or(0.0) as usize;
     let survivor_count = metrics.survivor_count().map(|m| m.mean()).unwrap_or(0.0);
     let new_children = metrics.new_children().map(|m| m.mean()).unwrap_or(0.0);
     let front_size = metrics.front_size().map(|m| m.mean()).unwrap_or(0.0);
@@ -148,11 +147,15 @@ fn get_multi_objective_summaries<C: Chromosome>(evo: &EvoState<C>) -> Vec<Row<'s
         .front_entropy()
         .map(|m| m.last_value())
         .unwrap_or(front_entropy);
-    let avg_score = metrics.score().map(|m| m.mean()).unwrap_or(0.0);
-    let stagnation = metrics
-        .stagnation_count()
+    let front_additions = metrics
+        .front_additions()
         .map(|m| m.last_value() as usize)
         .unwrap_or(0);
+    let front_removals = metrics
+        .front_removals()
+        .map(|m| m.last_value() as usize)
+        .unwrap_or(0);
+
     let species_count = metrics
         .species_count()
         .map(|m| m.last_value() as usize)
@@ -160,24 +163,27 @@ fn get_multi_objective_summaries<C: Chromosome>(evo: &EvoState<C>) -> Vec<Row<'s
 
     let mut rows = vec![
         Row::new(vec![
-            "Improvements".bold(),
+            "Front Additions".bold(),
             Span::styled(
-                improvements.to_string(),
-                Style::default().fg(if improvements == 0 {
-                    Color::DarkGray
+                format!("{}", front_additions),
+                Style::default().fg(if front_additions > 0 {
+                    crate::styles::TREND_UP_COLOR
                 } else {
-                    crate::styles::stagnation_color(stagnation)
+                    Color::DarkGray
                 }),
             ),
         ]),
         Row::new(vec![
-            "Stagnation".bold(),
+            "Front Removals".bold(),
             Span::styled(
-                format!("{} gen", stagnation),
-                Style::default().fg(crate::styles::stagnation_color(stagnation)),
+                format!("{}", front_removals),
+                Style::default().fg(if front_removals > 0 {
+                    crate::styles::TREND_DOWN_COLOR
+                } else {
+                    Color::DarkGray
+                }),
             ),
         ]),
-        Row::new(vec!["Avg Score".bold(), format!("{:.6}", avg_score).into()]),
         Row::new(vec![
             "Diversity".bold(),
             Span::styled(
@@ -320,4 +326,3 @@ fn get_single_objective_summaries<C: Chromosome>(evo: &EvoState<C>) -> Vec<Row<'
 
     rows
 }
-
