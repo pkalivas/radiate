@@ -195,6 +195,10 @@ where
 
             KeyCode::Down | KeyCode::Char('j') => self.state.move_selection_down(),
             KeyCode::Up | KeyCode::Char('k') => self.state.move_selection_up(),
+            KeyCode::PageDown | KeyCode::Char('d') => self.state.move_selection_page_down(),
+            KeyCode::PageUp | KeyCode::Char('u') => self.state.move_selection_page_up(),
+            KeyCode::Home | KeyCode::Char('g') => self.state.move_selection_to_top(),
+            KeyCode::End | KeyCode::Char('G') => self.state.move_selection_to_bottom(),
 
             KeyCode::Char(']') => self.state.evo.next_objective_pair_page(),
             KeyCode::Char('[') => self.state.evo.previous_objective_pair_page(),

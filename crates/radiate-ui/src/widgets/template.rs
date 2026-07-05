@@ -3,8 +3,7 @@ use crate::{
     widgets::{
         AppWidget, DeltaBarChartWidget, EngineStatusPanelWidget, FnWidget, FrontEventLogWidget,
         ImprovementLogWidget, MetricDetailPanelWidget, MetricTableWidget, Panel,
-        ParetoPagingWidget, SearchBarWidget,
-        TabComponent,
+        ParetoPagingWidget, SearchBarWidget, TabComponent,
         components::{SpeciesPieChartComponent, SpeciesSparklineComponent, TimePieChartComponent},
         panels::{MetricLineChartWidget, tables::SpeciesTableWidget},
     },
@@ -233,7 +232,7 @@ impl<C: Chromosome> Default for LayoutNode<C> {
                                     },
                                 },
                                 TabNode {
-                                    title: "Log",
+                                    title: "Improvements",
                                     condition: |s| !s.evo.is_multi(),
                                     content: Horizontal {
                                         constraints: vec![

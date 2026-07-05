@@ -9,7 +9,7 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Rect};
 use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Bar, BarChart, BarGroup, Block, Cell, Row, Table, Widget};
+use ratatui::widgets::{Bar, BarChart, BarGroup, Cell, Row, Table, Widget};
 
 const IMPROVEMENT_HEADER: [&str; 4] = ["   Gen", "Score", "Δ", ""];
 const FRONT_EVENT_HEADER: [&str; 6] = [
@@ -190,43 +190,43 @@ impl<C: Chromosome> AppWidget<C> for DeltaBarChartWidget {
         let bars = entries
             .iter()
             .rev()
-            .map(|entry| {
+            .enumerate()
+            .map(|(i, entry)| {
                 let value = if max_delta > 0.0 {
-                    ((entry.delta / max_delta) * 1000.0) as u64
+                    ((entry.delta / max_delta) * entries.len() as f32) as u64
                 } else {
                     0
                 };
+
+                let bar_color = if state.tables.log.selected_row == i {
+                    Color::Black
+                } else {
+                    delta_color(entry.delta, max_delta)
+                };
+
                 Bar::default()
                     .value(value)
                     .text_value(String::new())
-                    .style(Style::default().fg(delta_color(entry.delta, max_delta)))
+                    .style(Style::default().fg(bar_color))
             })
             .collect::<Vec<_>>();
 
         let focused = state.nav.is_pane_focused(Pane::Chart);
-        let border_color = if focused {
-            crate::styles::BORDER_GREEN
-        } else {
-            Color::DarkGray
-        };
 
         Widget::render(
             BarChart::default()
                 .block(
-                    Block::bordered()
-                        .title(
-                            Line::from(Span::styled(
-                                format!(" Improvement Δ "),
-                                Style::default().fg(Color::White).bold(),
-                            ))
-                            .centered(),
-                        )
-                        .border_style(Style::default().fg(border_color)),
+                    crate::styles::panel_block(focused).title(
+                        Line::from(Span::styled(
+                            format!(" Improvement Δ "),
+                            Style::default().fg(Color::White).bold(),
+                        ))
+                        .centered(),
+                    ),
                 )
                 .data(BarGroup::default().bars(&bars))
                 .bar_width(1)
-                .bar_gap(0)
-                .max(1000),
+                .bar_gap(0),
             area,
             buf,
         );

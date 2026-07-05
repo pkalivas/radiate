@@ -206,6 +206,9 @@ pub(super) fn render_scrollable_table<T>(
     let [tbl, scroll] =
         Layout::horizontal([Constraint::Fill(1), Constraint::Length(1)]).areas(area);
 
+    // 2 border rows + 1 header row
+    state.visible_rows = (tbl.height as usize).saturating_sub(3).max(1);
+
     StatefulWidget::render(&table, tbl, buf, &mut state.state);
 
     if state.row_count > tbl.height as usize {
