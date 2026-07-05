@@ -14,19 +14,11 @@ use ratatui::{
 };
 use std::iter::{once, repeat_n};
 
-pub const STAT_HEADER_CELLS: [&str; 6] = ["Metric", "Last", "Min", "Max", "μ (mean)", "Count"];
-pub const TIME_HEADER_CELLS: [&str; 5] = ["Metric", "Total", "μ (mean)", "Min", "Max"];
+pub const STAT_HEADER_CELLS: [&str; 6] = ["Metric", "Last", "Min", "Max", "Mean", "N"];
+pub const TIME_HEADER_CELLS: [&str; 5] = ["Metric", "Total", "Mean", "Min", "Max"];
 pub const SPECIES_HEADER_CELLS: [&str; 6] =
     ["ID", "Age", "Size", "Gen. Stag", "Raw Score", "Adj. Score"];
-pub const DIST_HEADER_CELLS: [&str; 7] = [
-    "Metric",
-    "Std Dev",
-    "Min",
-    "Max",
-    "μ (mean)",
-    "Var",
-    "Count",
-];
+pub const DIST_HEADER_CELLS: [&str; 7] = ["Metric", "Std Dev", "Min", "Max", "Mean", "Var", "N"];
 
 // --- Metric table ---
 
@@ -182,10 +174,14 @@ impl<C: Chromosome> AppWidget<C> for SpeciesTableWidget {
         let table = Table::default()
             .block(border_style)
             .header(header_row(&SPECIES_HEADER_CELLS))
+            .column_spacing(1)
+            .style(Color::White)
             .rows(striped_rows(rows))
-            .row_highlight_style(crate::styles::selected_item_style())
+            .row_highlight_style(Style::new().on_black().bold())
+            .column_highlight_style(Color::Gray)
+            .cell_highlight_style(Style::new().reversed().yellow())
             .highlight_spacing(ratatui::widgets::HighlightSpacing::Always)
-            .highlight_symbol("▶ ")
+            .highlight_symbol(Span::styled("▶ ", Style::default().fg(Color::LightGreen)))
             .widths(
                 (0..SPECIES_HEADER_CELLS.len())
                     .map(|_| Constraint::Fill(1))
@@ -294,6 +290,16 @@ fn metrics_into_stat_rows<'a>(
     })
 }
 
+#[allow(dead_code)]
+fn position_spark(last: f32, min: f32, max: f32) -> char {
+    let range = max - min;
+    if range <= f32::EPSILON {
+        return crate::styles::SPARK_CHARS[3];
+    }
+    let ratio = ((last - min) / range).clamp(0.0, 1.0);
+    crate::styles::SPARK_CHARS[(ratio * 7.0).round() as usize]
+}
+
 fn metrics_into_dist_rows<'a>(
     metrics: impl Iterator<Item = &'a Metric>,
 ) -> impl Iterator<Item = Row<'a>> {
@@ -327,38 +333,47 @@ fn species_into_rows<'a, C: Chromosome>(
     obj_index: usize,
     generation: usize,
     species: &[Species<C>],
-) -> impl Iterator<Item = Row<'a>> {
-    species.iter().map(move |s| {
-        Row::new(vec![
-            Cell::from(format!("{}", s.id.as_ref())),
-            Cell::from(format!("{}", s.age(generation))),
-            Cell::from(format!("{}", s.size)),
-            Cell::from(format!("{}", s.stagnation())),
-            Cell::from(format!(
-                "{:.4}",
-                s.tracker
-                    .best
-                    .as_ref()
-                    .map(|vals| vals[obj_index])
-                    .unwrap_or_default()
-            )),
-            Cell::from(format!(
-                "{:.4}",
-                s.adjusted_score
-                    .as_ref()
-                    .map(|vals| vals[obj_index])
-                    .unwrap_or_default()
-            )),
-        ])
-    })
+) -> Vec<Row<'a>> {
+    let max_adj = species
+        .iter()
+        .filter_map(|s| s.adjusted_score.as_ref().map(|v| v[obj_index]))
+        .fold(0.0_f32, f32::max);
+
+    species
+        .iter()
+        .map(move |s| {
+            let stag = s.stagnation();
+            let adj = s
+                .adjusted_score
+                .as_ref()
+                .map(|v| v[obj_index])
+                .unwrap_or(0.0);
+            let adj_ratio = if max_adj > 0.0 { adj / max_adj } else { 0.0 };
+            let raw = s.tracker.best.as_ref().map(|v| v[obj_index]).unwrap_or(0.0);
+
+            Row::new(vec![
+                Cell::from(format!("{}", s.id.as_ref())),
+                Cell::from(format!("{}", s.age(generation))),
+                Cell::from(format!("{}", s.size)),
+                Cell::from(Span::styled(
+                    format!("{}", stag),
+                    Style::default().fg(crate::styles::stagnation_color(stag)),
+                )),
+                Cell::from(format!("{:.4}", raw)),
+                Cell::from(Span::styled(
+                    format!("{:.4}", adj),
+                    Style::default().fg(crate::styles::sentiment_color(adj_ratio, 0.2, 0.6)),
+                )),
+            ])
+        })
+        .collect()
 }
 
 pub(super) fn striped_rows<'a>(
     rows: impl IntoIterator<Item = Row<'a>>,
 ) -> impl Iterator<Item = Row<'a>> {
     rows.into_iter()
-        .enumerate()
-        .map(|(i, row)| row.style(crate::styles::alternating_row_style(i)))
+        .map(|row| row.style(crate::styles::table_row_style()))
 }
 
 pub(super) fn header_row<'a>(cols: &'a [&str]) -> Row<'a> {

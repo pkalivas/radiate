@@ -145,6 +145,7 @@ impl PyEngineBuilder {
             Checkpoint => Self::process_checkpoint(builder, inputs),
             Metric => Self::process_metrics(builder, inputs),
             Filter => Self::process_filters(builder, inputs),
+            TargetSpecies => Self::process_target_species(builder, inputs),
             _ => Ok(builder),
         }
     }
@@ -310,6 +311,20 @@ impl PyEngineBuilder {
                 };
 
                 Ok(typed_builder.species_threshold(threshold))
+            })
+        )
+    }
+
+    fn process_target_species(
+        builder: EngineBuilderHandle,
+        inputs: &[PyEngineInput],
+    ) -> PyResult<EngineBuilderHandle> {
+        dispatch_builder_typed!(
+            builder,
+            inputs,
+            Self::process_single_typed(|typed_builder, input| {
+                let target_species = input.extract::<i64>("target_species")? as usize;
+                Ok(typed_builder.target_species(target_species))
             })
         )
     }

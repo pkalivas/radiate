@@ -33,11 +33,10 @@ engine = (
     )
     .select(rd.Select.boltzmann(temp=4.0))
     .regression(inputs, answers, loss=rd.MSE)
-    .filter(rd.Filter.unique_score())
     .alters(
         rd.Cross.graph(0.4, 0.5),
         rd.Mutate.op(0.07, 0.05),
-        rd.Mutate.graph(0.1, 0.1, False),
+        rd.Mutate.graph(rd.Expr.diversity_rate(0.01, 0.9, 20), 0.1, False),
     )
     .limit(rd.Limit.score(0.001), rd.Limit.generations(1000))
 )

@@ -8,16 +8,27 @@ import radiate as rd
 
 
 # print(metrics.dashboard())
+def my_fitness_fn(x):
+    return 0.001
 
 
-def fit(indv: list[int]) -> float:
-    return sum(indv)
+score_trend = rd.Expr.select("scores.best").rolling(20).slope().debug()
+score_cv = (
+    rd.Expr.select("scores.best").rolling(20).stddev()
+    / rd.Expr.select("scores.best").rolling(20).mean()
+)
 
+engine = (
+    rd.Engine.float(10, init_range=(-5.0, 5.0))
+    .fitness(my_fitness_fn)
+    .minimizing()
+    .metrics(
+        score_trend=score_trend,
+        score_cv=score_cv,
+    )
+)
 
-engine = rd.Engine.int(5).fitness(fit).minimizing().limit(rd.Limit.generations(10))
-
-for epoch in engine:
-    print(epoch.index())
-
-for epoch in engine:
-    print(epoch.index())
+result = engine.run(rd.Limit.generations(500))
+metrics = result.metrics()
+print(metrics["score_trend"].value_last())
+print(metrics["score_cv"].value_last())

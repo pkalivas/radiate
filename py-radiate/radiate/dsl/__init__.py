@@ -368,7 +368,7 @@ class Cross:
         return EdgeRecombinationCrossover(_get_rate(rate))
 
     @staticmethod
-    def graph(rate: OperatorRate = 0.5, parent_node_rate: float = 0.5):
+    def graph(rate: OperatorRate = 0.5, parent_node_rate: OperatorRate = 0.5):
         """
         This crossover operator is used to combine two parent graphs by swapping the values of their nodes.
         It can be used to create new graphs that inherit the structure and values of their parents.
@@ -380,7 +380,7 @@ class Cross:
         :param rate: The probability of applying the crossover to a pair of parents.
         :param parent_node_rate: The probability of inheriting a node's value from the more fit parent.
         """
-        return GraphCrossover(_get_rate(rate), parent_node_rate)
+        return GraphCrossover(_get_rate(rate), _get_rate(parent_node_rate))
 
     @staticmethod
     def tree(rate: OperatorRate = 0.1):
@@ -417,7 +417,7 @@ class Mutate:
         return GaussianMutator(_get_rate(rate))
 
     @staticmethod
-    def op(rate: OperatorRate = 0.1, replace_rate: float = 0.1):
+    def op(rate: OperatorRate = 0.1, replace_rate: OperatorRate = 0.1):
         """
         This mutator randomly changes or alters the `op` of a node within a `TreeChromosome` or `GraphChromosome`.
         It can replace the `op` with a new one from the store or modify its parameters.
@@ -425,13 +425,14 @@ class Mutate:
         :param rate: The probability of mutating each gene in an individual.
         :param replace_rate: The probability of replacing the operation entirely instead of just modifying it.
         """
-        return OperationMutator(_get_rate(rate), replace_rate)
+        return OperationMutator(_get_rate(rate), _get_rate(replace_rate))
 
     @staticmethod
     def graph(
         vertex_rate: OperatorRate = 0.1,
         edge_rate: OperatorRate = 0.1,
         allow_recurrent: bool = True,
+        target_size: int | None = None,
     ):
         """
         This mutator is used to add new nodes and connections to the graph.
@@ -440,9 +441,10 @@ class Mutate:
         :param vertex_rate: The probability of adding a new vertex to the graph.
         :param edge_rate: The probability of adding a new edge to the graph.
         :param allow_recurrent: Whether to allow recurrent connections in the graph.
+        :param target_size: The target size of the graph.
         """
         return GraphMutator(
-            _get_rate(vertex_rate), _get_rate(edge_rate), allow_recurrent
+            _get_rate(vertex_rate), _get_rate(edge_rate), allow_recurrent, target_size
         )
 
     @staticmethod

@@ -38,14 +38,10 @@ pub(crate) const COLOR_WHEEL_400: [Color; 8] = [
 pub const SELECTED_GREEN: Color = material::GREEN.c300;
 pub const BORDER_GREEN: Color = material::GREEN.c400;
 
-pub fn alternating_row_style(_: usize) -> ratatui::style::Style {
+pub fn table_row_style() -> ratatui::style::Style {
     ratatui::style::Style::new()
         .bg(ALT_BG_COLOR)
         .fg(TEXT_FG_COLOR)
-    // if index.is_multiple_of(100) {
-    //     ratatui::style::Style::new().bg(BG_COLOR).fg(TEXT_FG_COLOR)
-    // } else {
-    // }
 }
 
 pub fn selected_item_style() -> ratatui::style::Style {
@@ -110,6 +106,20 @@ pub fn striped_rows<'a>(rows: impl IntoIterator<Item = Row<'a>>) -> impl Iterato
         };
         row.style(Style::default().bg(bg))
     })
+}
+
+pub fn stagnation_color(gens: usize) -> Color {
+    if gens < 10 {
+        Color::LightGreen
+    } else if gens < 50 {
+        Color::Green
+    } else if gens < 150 {
+        Color::Yellow
+    } else if gens < 300 {
+        Color::Red
+    } else {
+        Color::DarkGray
+    }
 }
 
 pub fn delta_bar(delta: f32, max_delta: f32, max_width: usize) -> String {

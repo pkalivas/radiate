@@ -140,7 +140,7 @@ result = engine.run(
 # --8<-- [start:derived_metrics]
 import radiate as rd
 
-score_trend = rd.Expr.select("scores.best").rolling(20).slope()
+score_trend = rd.Expr.select("scores.best").rolling(20).slope().debug()
 score_cv = (
     rd.Expr.select("scores.best").rolling(20).stddev()
     / rd.Expr.select("scores.best").rolling(20).mean()

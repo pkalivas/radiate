@@ -3,13 +3,12 @@ use super::{Graph, GraphChromosome};
 use crate::graphs::node::InnovationId;
 use crate::node::Node;
 use crate::{Factory, NodeType};
-use radiate_core::{AlterContext, Chromosome, Expr, RateSet, SmallStr, metric_names};
+use radiate_core::{AlterContext, Chromosome, Expr, RateSet, SmallStr, expr};
 use radiate_core::{AlterResult, Mutate, random_provider};
 use std::collections::HashMap;
 
 const SATURATED: SmallStr = SmallStr::from_static("mutator.graph.invalid.saturated");
-const NO_INSTANCE: SmallStr = SmallStr::from_static("mutator.graph.invalid.no_instance");
-const REJECTED: SmallStr = SmallStr::from_static("mutator.graph.invalid.rejected");
+const REJECTED: SmallStr = SmallStr::from_static("mutator.graph.invalid");
 const ADD_VERTEX_RATE: SmallStr = SmallStr::from_static("mutator.graph.rate.vertex");
 const ADD_EDGE_RATE: SmallStr = SmallStr::from_static("mutator.graph.rate.edge");
 
@@ -106,14 +105,8 @@ impl GraphMutator {
     /// Set the target size of the graph. If the graph is at or above this size
     /// the mutation rates will be reduced to prevent the graph from growing too large.
     pub fn target_size(mut self, size: usize) -> Self {
-        let size_ratio = Expr::select(metric_names::GENOME_SIZE)
-            .rolling(10)
-            .mean()
-            .div(size as f32)
-            .clamp(1.0_f32, 5.0_f32);
-
-        self.vertex_rate = self.vertex_rate.div(size_ratio.clone());
-        self.edge_rate = self.edge_rate.div(size_ratio);
+        self.vertex_rate = expr::genome_size_rate(self.vertex_rate.clone(), size);
+        self.edge_rate = expr::genome_size_rate(self.edge_rate.clone(), size);
         self
     }
 
@@ -171,7 +164,6 @@ where
             && let Some(store) = chromosome.store()
         {
             let Some(new_node) = store.new_instance((chromosome.len(), node_type)) else {
-                ctx.upsert(NO_INSTANCE, 1);
                 return AlterResult::empty();
             };
 

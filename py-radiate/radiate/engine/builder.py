@@ -277,7 +277,10 @@ class EngineBuilder[G, T]:
             )
 
     def set_diversity(
-        self, diversity: DistanceBase | None, species_threshold: Expr | float
+        self,
+        diversity: DistanceBase | None,
+        species_threshold: Expr | float,
+        target_species: int | None = None,
     ):
         if diversity is None:
             return
@@ -306,6 +309,25 @@ class EngineBuilder[G, T]:
                 else species_threshold,
             )
         )
+
+        if target_species is not None:
+            if not isinstance(target_species, (int, float)):
+                raise TypeError(
+                    "Target species must be an int or float, "
+                    f"got {type(target_species).__name__}"
+                )
+
+            if target_species <= 0:
+                raise ValueError("Target species must be greater than 0.")
+
+            self._inputs.append(
+                EngineInput(
+                    input_type=EngineInputType.TargetSpecies,
+                    component="TargetSpecies",
+                    allowed_genes=diversity.allowed_genes,
+                    target_species=int(target_species),
+                )
+            )
 
     def set_limits(self, limits: list[LimitBase] | None):
         if limits is None:

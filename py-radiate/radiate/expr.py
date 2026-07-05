@@ -209,6 +209,17 @@ class Expr(RsObject):
         """
         return cls.from_rust(PyExpr.is_stagnant(metric, patience, epsilon))
 
+    @classmethod
+    def diversity_rate(
+        cls, min: float = 0.01, max: float = 0.9, window: int = 10
+    ) -> Expr:
+        """
+        A rate that is driven by the diversity ratio of the population.
+        The diversity ratio is the number of unique species divided by the total number of individuals in the population.
+        This expression computes a rate that is clamped between `min` and `max`, and is scaled based on the diversity ratio over a rolling window.
+        """
+        return cls.from_rust(PyExpr.diversity_rate(min, max, window))
+
     # ── operator overloads ──────────────────────────────────────────────────
 
     def __lt__(self, other):
@@ -374,3 +385,11 @@ class Expr(RsObject):
         value as a 1-element distribution.
         """
         return Expr.from_rust(self.__backend__().quantile(q))
+
+    def genome_size_rate(self, target_size: int) -> Expr:
+        """
+        A rate that is driven by the genome size of the population.
+        The genome size rate is computed based on the base rate and the target size.
+        This expression computes a rate that is adjusted based on the genome size relative to the target size.
+        """
+        return Expr.from_rust(self.__backend__().genome_size_rate(target_size))

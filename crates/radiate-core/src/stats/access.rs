@@ -66,7 +66,7 @@ impl MetricSet {
     }
 
     pub fn carryover_rate(&self) -> Option<&Metric> {
-        self.get(super::metric_names::CARRYOVER_RATE)
+        self.get(super::metric_names::CARRYOVER_RATIO)
     }
 
     pub fn evaluation_count(&self) -> Option<&Metric> {

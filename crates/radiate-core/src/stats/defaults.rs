@@ -40,8 +40,10 @@ pub mod metric_names {
     pub const EVALUATION_COUNT: SmallStr = SmallStr::from_static("count.evaluation");
     pub const STAGNATION_COUNT: SmallStr = SmallStr::from_static("count.stagnation");
 
-    pub const CARRYOVER_RATE: SmallStr = SmallStr::from_static("rate.carryover");
-    pub const DIVERSITY_RATIO: SmallStr = SmallStr::from_static("rate.diversity");
+    pub const CARRYOVER_RATIO: SmallStr = SmallStr::from_static("pct.carryover");
+    pub const DIVERSITY_RATIO: SmallStr = SmallStr::from_static("pct.diversity");
+
+    pub const DIVERSITY_RATE: SmallStr = SmallStr::from_static("rate.diversity");
 
     pub const SCORES: SmallStr = SmallStr::from_static("scores");
     pub const BEST_SCORES: SmallStr = SmallStr::from_static("scores.best");
@@ -190,7 +192,7 @@ const EXACT_TAGS: &[(&SmallStr, &[TagType])] = &[
     (&metric_names::UNIQUE_SCORES, &[TagType::Derived]),
     (&metric_names::NEW_CHILDREN, &[TagType::Derived]),
     (&metric_names::SURVIVOR_COUNT, &[TagType::Derived]),
-    (&metric_names::CARRYOVER_RATE, &[TagType::Derived]),
+    (&metric_names::CARRYOVER_RATIO, &[TagType::Derived]),
     (&metric_names::DIVERSITY_RATIO, &[TagType::Derived]),
     (&metric_names::SCORE_VOLATILITY, &[TagType::Derived]),
     (&metric_names::SCORES_EVENNESS, &[TagType::Derived]),

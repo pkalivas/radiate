@@ -17,6 +17,7 @@ class EngineInputType(Enum):
     SurvivorSelector = "SurvivorSelector"
     OffspringSelector = "OffspringSelector"
     SpeciesThreshold = "SpeciesThreshold"
+    TargetSpecies = "TargetSpecies"
     PopulationSize = "PopulationSize"
     OffspringFraction = "OffspringFraction"
     MaxPhenotypeAge = "MaxPhenotypeAge"
@@ -41,6 +42,7 @@ input_type_mapping = {
     EngineInputType.SurvivorSelector: PyEngineInputType.SurvivorSelector,
     EngineInputType.OffspringSelector: PyEngineInputType.OffspringSelector,
     EngineInputType.SpeciesThreshold: PyEngineInputType.SpeciesThreshold,
+    EngineInputType.TargetSpecies: PyEngineInputType.TargetSpecies,
     EngineInputType.PopulationSize: PyEngineInputType.PopulationSize,
     EngineInputType.OffspringFraction: PyEngineInputType.OffspringFraction,
     EngineInputType.MaxPhenotypeAge: PyEngineInputType.MaxPhenotypeAge,

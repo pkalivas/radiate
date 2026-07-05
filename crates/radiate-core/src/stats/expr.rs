@@ -56,24 +56,25 @@ pub fn score_cv_expr(window: usize) -> Expr {
 }
 
 // Throttles add-vertex/add-edge rates as genome grows past target
-pub fn genome_size_rate(base_rate: f32, target_size: usize) -> Expr {
+pub fn genome_size_rate(base_rate: impl Into<Expr>, target_size: usize) -> Expr {
     let pressure = Expr::select(metric_names::GENOME_SIZE)
         .rolling(10)
         .mean()
         .div(target_size as f32)
         .clamp(1.0_f32, 5.0_f32);
-    Expr::lit(base_rate).div(pressure)
+    base_rate.into().div(pressure)
 }
 
 // Higher mutation when diversity is low, lower when healthy
-pub fn diversity_driven_rate(min: f32, max: f32) -> Expr {
+pub fn diversity_driven_rate(window: usize, min: f32, max: f32) -> Expr {
     let diversity = Expr::select(metric_names::DIVERSITY_RATIO)
-        .rolling(10)
+        .rolling(window)
         .mean();
     (Expr::lit(1.0_f32) - diversity)
         .mul(max - min)
         .add(min)
         .clamp(min, max)
+        .alias(format!("{}.[{}]", metric_names::DIVERSITY_RATE, window))
 }
 
 // True when best score hasn't meaningfully moved in `window` generations
@@ -83,12 +84,4 @@ pub fn stagnation_expr(window: usize, epsilon: f32) -> Expr {
         .slope()
         .abs()
         .lt(epsilon)
-}
-
-// True when rolling mean crosses a target threshold
-pub fn score_convergence_expr(window: usize, threshold: f32) -> Expr {
-    Expr::select(metric_names::BEST_SCORES)
-        .rolling(window)
-        .mean()
-        .lt(threshold)
 }

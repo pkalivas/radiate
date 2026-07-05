@@ -1,5 +1,6 @@
-import radiate as rd
 import pytest
+
+import radiate as rd
 
 
 @pytest.mark.integration
@@ -17,8 +18,8 @@ def test_generation_metrics(random_seed):
         .metrics()
     )
 
-    assert len(metrics) == 31
-    assert len(metrics.keys()) == 31
+    assert len(metrics) == 32
+    assert len(metrics.keys()) == 32
     for key in metrics.keys():
         assert key in metrics
 

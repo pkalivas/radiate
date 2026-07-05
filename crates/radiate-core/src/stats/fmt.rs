@@ -59,7 +59,7 @@ pub fn render_dashboard(metrics: &MetricSet) -> io::Result<String> {
         }
     };
 
-    push_val(&metric_names::CARRYOVER_RATE, "carryover");
+    push_val(&metric_names::CARRYOVER_RATIO, "carryover");
     push_val(&metric_names::DIVERSITY_RATIO, "diversity");
 
     let mut push_int = |name: &SmallStr, label: &str| {

@@ -25,6 +25,7 @@ pub enum PyEngineInputType {
     Executor,
     Evaluator,
     SpeciesThreshold,
+    TargetSpecies,
     Population,
     Subscriber,
     Generation,
@@ -84,7 +85,12 @@ impl PyEngineInput {
 impl PyEngineInput {
     pub fn extract<T: for<'py> FromPyObjectOwned<'py>>(&self, key: &str) -> PyResult<T> {
         Python::attach(|py| match self.args.get(key) {
-            Some(v) => v.extract(py),
+            Some(v) => v.extract::<T>(py).map_err(|e| {
+                PyKeyError::new_err(format!(
+                    "Failed to extract key '{}' from PyEngineInput args: {}",
+                    key, e
+                ))
+            }),
             None => Err(PyKeyError::new_err(format!(
                 "Key '{}' not found in PyEngineInput args",
                 key

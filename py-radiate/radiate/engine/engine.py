@@ -585,7 +585,7 @@ class Engine[G, T]:
 
         This method allows you to specify a distance-based diversity measure to promote genetic diversity in the population,
         as well as a species threshold that determines how individuals are grouped into species based on their genetic distance.
-        The default for this is None, so without specifiying a distance (diversity) measure, the engine will not perform speciation.
+        The default for this is None, so without specifying a distance (diversity) measure, the engine will not perform speciation.
         If a diversity measure is provided, the engine will use it to calculate genetic distances between individuals
         and group them into species based on the specified threshold. It should be noted that this increases the computational
         overhead of the engine, so it is recommended to use this feature when maintaining diversity is a concern for the problem at hand.
@@ -596,7 +596,8 @@ class Engine[G, T]:
         Args:
             diversity: A distance-based diversity measure to promote genetic diversity.
             species_threshold: A threshold for grouping individuals into species based on genetic distance. Must be greater than 0.
-            target_species: If provided, the engine will dynamically adjust the species threshold to try to maintain the specified number of species in the population. Must be greater than 0.
+            target_species: If provided, the engine will dynamically adjust the species threshold to try to maintain the specified
+                number of species in the population. Must be greater than 0.
         Returns:
             Engine: The engine instance with the diversity measure and species threshold set.
 
@@ -612,29 +613,7 @@ class Engine[G, T]:
         ...     )  # <- use Euclidean distance for speciation with a threshold of 0.7
         ... )
         """
-        if target_species is not None:
-            if target_species <= 0:
-                raise ValueError("Target species must be greater than 0.")
-            initial_threshold = (
-                species_threshold
-                if isinstance(species_threshold, (int, float))
-                else 0.5
-            )
-
-            index = Expr.select("index")
-            thresh = Expr.select("species.threshold")
-            err = Expr.select("species.count").error(target_species) * 0.05
-
-            species_threshold = (
-                Expr.when(index < 2).then(initial_threshold).otherwise(err + thresh)
-            )
-
-        if isinstance(species_threshold, (int, float)):
-            if species_threshold <= 0:
-                raise ValueError("Species threshold must be greater than 0.")
-            species_threshold = Expr.lit(species_threshold)
-
-        self._builder.set_diversity(diversity, species_threshold)
+        self._builder.set_diversity(diversity, species_threshold, target_species)
         return self
 
     def limit(self, *limits: LimitBase | Expr) -> Engine[G, T]:

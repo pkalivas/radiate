@@ -149,7 +149,10 @@ fn get_multi_objective_summaries<C: Chromosome>(evo: &EvoState<C>) -> Vec<Row<'s
         .map(|m| m.last_value())
         .unwrap_or(front_entropy);
     let avg_score = metrics.score().map(|m| m.mean()).unwrap_or(0.0);
-    let stagnation = stagnation_gens(evo);
+    let stagnation = metrics
+        .stagnation_count()
+        .map(|m| m.last_value() as usize)
+        .unwrap_or(0);
     let species_count = metrics
         .species_count()
         .map(|m| m.last_value() as usize)
@@ -163,7 +166,7 @@ fn get_multi_objective_summaries<C: Chromosome>(evo: &EvoState<C>) -> Vec<Row<'s
                 Style::default().fg(if improvements == 0 {
                     Color::DarkGray
                 } else {
-                    stagnation_color(stagnation)
+                    crate::styles::stagnation_color(stagnation)
                 }),
             ),
         ]),
@@ -171,7 +174,7 @@ fn get_multi_objective_summaries<C: Chromosome>(evo: &EvoState<C>) -> Vec<Row<'s
             "Stagnation".bold(),
             Span::styled(
                 format!("{} gen", stagnation),
-                Style::default().fg(stagnation_color(stagnation)),
+                Style::default().fg(crate::styles::stagnation_color(stagnation)),
             ),
         ]),
         Row::new(vec!["Avg Score".bold(), format!("{:.6}", avg_score).into()]),
@@ -247,7 +250,10 @@ fn get_single_objective_summaries<C: Chromosome>(evo: &EvoState<C>) -> Vec<Row<'
     let survivor_count = metrics.survivor_count().map(|m| m.mean()).unwrap_or(0.0);
     let new_children = metrics.new_children().map(|m| m.mean()).unwrap_or(0.0);
     let avg_score = metrics.score().map(|m| m.mean()).unwrap_or(0.0);
-    let stagnation = stagnation_gens(evo);
+    let stagnation = metrics
+        .stagnation_count()
+        .map(|m| m.last_value() as usize)
+        .unwrap_or(0);
     let species_count = metrics
         .species_count()
         .map(|m| m.last_value() as usize)
@@ -261,7 +267,7 @@ fn get_single_objective_summaries<C: Chromosome>(evo: &EvoState<C>) -> Vec<Row<'
                 Style::default().fg(if improvements == 0 {
                     Color::DarkGray
                 } else {
-                    stagnation_color(stagnation)
+                    crate::styles::stagnation_color(stagnation)
                 }),
             ),
         ]),
@@ -269,7 +275,7 @@ fn get_single_objective_summaries<C: Chromosome>(evo: &EvoState<C>) -> Vec<Row<'
             "Stagnation".bold(),
             Span::styled(
                 format!("{} gen", stagnation),
-                Style::default().fg(stagnation_color(stagnation)),
+                Style::default().fg(crate::styles::stagnation_color(stagnation)),
             ),
         ]),
         Row::new(vec!["Avg Score".bold(), format!("{:.6}", avg_score).into()]),
@@ -315,26 +321,3 @@ fn get_single_objective_summaries<C: Chromosome>(evo: &EvoState<C>) -> Vec<Row<'
     rows
 }
 
-fn stagnation_gens<C: Chromosome>(evo: &EvoState<C>) -> usize {
-    let last_gen = evo
-        .improvement_log
-        .as_slice()
-        .last()
-        .map(|e| e.generation)
-        .unwrap_or(0);
-    evo.index.saturating_sub(last_gen)
-}
-
-fn stagnation_color(gens: usize) -> Color {
-    if gens < 10 {
-        Color::LightGreen
-    } else if gens < 50 {
-        Color::Green
-    } else if gens < 150 {
-        Color::Yellow
-    } else if gens < 300 {
-        Color::Red
-    } else {
-        Color::DarkGray
-    }
-}

@@ -307,6 +307,7 @@ class GraphMutator(AlterBase):
         vertex_rate: OperatorRate = 0.1,
         edge_rate: OperatorRate = 0.1,
         allow_recurrent: bool = True,
+        target_size: int | None = None,
     ):
         """
         This mutator is used to add new nodes and connections to the graph.
@@ -326,13 +327,14 @@ class GraphMutator(AlterBase):
                 if isinstance(edge_rate, Expr)
                 else Expr.lit(edge_rate),
                 "allow_recurrent": allow_recurrent,
+                "target_size": target_size,
             },
             allowed_genes=GeneType.GRAPH,
         )
 
 
 class OperationMutator(AlterBase):
-    def __init__(self, rate: OperatorRate = 0.1, replace_rate: float = 0.1):
+    def __init__(self, rate: OperatorRate = 0.1, replace_rate: OperatorRate = 0.1):
         """
         This mutator randomly changes or alters the `op` of a node within a `TreeChromosome` or `GraphChromosome`.
         It can replace the `op` with a new one from the store or modify its parameters.
@@ -342,14 +344,18 @@ class OperationMutator(AlterBase):
         """
         super().__init__(
             component="OperationMutator",
-            args={"replace_rate": replace_rate},
+            args={
+                "replace_rate": replace_rate.__backend__()
+                if isinstance(replace_rate, Expr)
+                else Expr.lit(replace_rate)
+            },
             rate=rate,
             allowed_genes={GeneType.GRAPH, GeneType.TREE},
         )
 
 
 class GraphCrossover(AlterBase):
-    def __init__(self, rate: OperatorRate = 0.5, parent_node_rate: float = 0.5):
+    def __init__(self, rate: OperatorRate = 0.5, parent_node_rate: OperatorRate = 0.5):
         """
         This crossover operator is used to combine two parent graphs by swapping the values of their nodes.
         It can be used to create new graphs that inherit the structure and values of their parents.
@@ -363,7 +369,11 @@ class GraphCrossover(AlterBase):
         """
         super().__init__(
             component="GraphCrossover",
-            args={"parent_node_rate": parent_node_rate},
+            args={
+                "parent_node_rate": parent_node_rate.__backend__()
+                if isinstance(parent_node_rate, Expr)
+                else Expr.lit(parent_node_rate)
+            },
             rate=rate,
             allowed_genes=GeneType.GRAPH,
         )

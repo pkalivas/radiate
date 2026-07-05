@@ -6,17 +6,18 @@ use std::cmp::Ordering;
 use std::fmt::Debug;
 
 const NUM_PARENTS: usize = 2;
+const PARENT_RATE: &str = "crossover.graph.rate.parent";
 
 pub struct GraphCrossover {
     rate: Expr,
-    parent_node_rate: f32,
+    parent_node_rate: Expr,
 }
 
 impl GraphCrossover {
-    pub fn new(rate: impl Into<Expr>, crossover_parent_node_rate: f32) -> Self {
+    pub fn new(rate: impl Into<Expr>, crossover_parent_node_rate: impl Into<Expr>) -> Self {
         GraphCrossover {
             rate: rate.into(),
-            parent_node_rate: crossover_parent_node_rate,
+            parent_node_rate: crossover_parent_node_rate.into(),
         }
     }
 }
@@ -26,7 +27,7 @@ where
     T: Clone + PartialEq + Debug,
 {
     fn rates(&self) -> RateSet {
-        RateSet::new(self.rate.clone())
+        RateSet::new(self.rate.clone()).add(self.parent_node_rate.clone().alias(PARENT_RATE))
     }
 
     #[inline]
@@ -40,6 +41,7 @@ where
             return AlterResult::empty();
         }
 
+        let parent_rate = ctx.internal_rate(0);
         if let Some((parent_one, parent_two)) = population.get_pair_mut(indexes[0], indexes[1]) {
             let is_speciated = !parent_one.species().is_empty() && !parent_two.species().is_empty();
             let num_crosses = {
@@ -52,9 +54,9 @@ where
                     let chromo_two = geno_two.get(chromo_index).unwrap();
 
                     if is_speciated {
-                        crossover_speciated(chromo_one, chromo_two, self.parent_node_rate, rand)
+                        crossover_speciated(chromo_one, chromo_two, parent_rate, rand)
                     } else {
-                        crossover_uniform(chromo_one, chromo_two, self.parent_node_rate, rand)
+                        crossover_uniform(chromo_one, chromo_two, parent_rate, rand)
                     }
                 })
             };
