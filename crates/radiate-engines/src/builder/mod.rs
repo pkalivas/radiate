@@ -352,7 +352,7 @@ where
         if let Some(others) = &self.params.exprs {
             let others = others.lock().unwrap();
             for (name, expr) in others.iter() {
-                exprs.add(name.clone(), expr.clone());
+                exprs.insert(name.clone(), expr.clone());
             }
         }
 
@@ -452,15 +452,13 @@ where
 
     fn build_species_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
         let diversity = config.diversity()?;
-        let threshold_expr = config
-            .exprs()
-            .and_then(|exprs| {
-                exprs
-                    .lock()
-                    .unwrap()
-                    .get(metric_names::SPECIES_THRESHOLD)
-                    .cloned()
-            })?;
+        let threshold_expr = config.exprs().and_then(|exprs| {
+            exprs
+                .lock()
+                .unwrap()
+                .get(metric_names::SPECIES_THRESHOLD)
+                .cloned()
+        })?;
 
         let species_step = SpeciateStep {
             threshold: RateSet::new(threshold_expr),

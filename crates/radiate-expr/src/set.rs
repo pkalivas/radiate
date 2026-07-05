@@ -35,7 +35,7 @@ impl ExprSet {
         self.exprs.insert(expr.name().into(), expr);
     }
 
-    pub fn add(&mut self, name: impl Into<SmallStr>, expr: impl Into<Expr>) {
+    pub fn insert(&mut self, name: impl Into<SmallStr>, expr: impl Into<Expr>) {
         let expr = expr.into();
         self.exprs.insert(name.into(), expr);
     }
