@@ -84,7 +84,9 @@ class EngineBuilder[G, T]:
     def from_generation(
         cls, generation: Generation[G, T], **kwargs
     ) -> "EngineBuilder[G, T]":
-        inst = cls._default(generation.population().gene_type(), **kwargs)
+        inst = cls.__new__(cls)
+        inst._inputs = []
+        inst._gene_type = generation.gene_type()
         inst.set_generation(generation)
         return inst
 

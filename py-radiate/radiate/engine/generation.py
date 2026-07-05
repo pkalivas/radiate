@@ -3,6 +3,7 @@ from datetime import timedelta
 from radiate.radiate import PyGeneration
 
 from .._bridge.wrapper import RsObject
+from ..genome import GeneType
 from ..genome.ecosystem import Ecosystem
 from ..genome.population import Population
 from ..genome.species import Species
@@ -51,6 +52,13 @@ class Generation[G, T](RsObject):
         """
 
         return Generation.from_rust(PyGeneration.from_pickle(pickle_bytes))
+
+    def gene_type(self) -> "GeneType":
+        """
+        Get the gene type of the generation.
+        :return: The gene type of the generation.
+        """
+        return GeneType.from_str(self.__backend__().gene_type())
 
     def score(self) -> list[float]:
         """

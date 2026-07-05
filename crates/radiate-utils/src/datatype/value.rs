@@ -610,35 +610,44 @@ impl<'a> Serialize for AnyValue<'a> {
         S: serde::Serializer,
     {
         use AnyValue::*;
+        // Must match the adjacently-tagged AnyValueDef used in Deserialize:
+        // every variant serializes as {"type": "<Variant>", "value": <data>}
+        macro_rules! tagged {
+            ($tag:literal, $val:expr) => {{
+                let mut s = serializer.serialize_struct("AnyValue", 2)?;
+                s.serialize_field("type", $tag)?;
+                s.serialize_field("value", $val)?;
+                s.end()
+            }};
+        }
         match self {
-            Null => serializer.serialize_unit_variant("AnyValue", 0, "Null"),
-            Bool(v) => serializer.serialize_bool(*v),
-            UInt8(v) => serializer.serialize_u8(*v),
-            UInt16(v) => serializer.serialize_u16(*v),
-            UInt32(v) => serializer.serialize_u32(*v),
-            UInt64(v) => serializer.serialize_u64(*v),
-            UInt128(v) => serializer.serialize_u128(*v),
-            Int8(v) => serializer.serialize_i8(*v),
-            Int16(v) => serializer.serialize_i16(*v),
-            Int32(v) => serializer.serialize_i32(*v),
-            Int64(v) => serializer.serialize_i64(*v),
-            Int128(v) => serializer.serialize_i128(*v),
-            Float32(v) => serializer.serialize_f32(*v),
-            Float64(v) => serializer.serialize_f64(*v),
-            Usize(v) => serializer.serialize_u64(*v as u64),
-            Duration(v) => serializer.serialize_u64(v.as_millis() as u64),
-            Char(v) => serializer.serialize_char(*v),
-            Str(v) => serializer.serialize_str(v),
-            StrOwned(v) => serializer.serialize_str(v),
-            Slice(vals) => vals.serialize(serializer),
-            Vector(vals) => vals.serialize(serializer),
-            Dict(vals) => vals.serialize(serializer),
-            Struct(field, fields) => {
-                let mut state = serializer.serialize_struct("Struct", 2)?;
-                state.serialize_field("field", field)?;
-                state.serialize_field("fields", fields)?;
-                state.end()
+            Null => {
+                let mut s = serializer.serialize_struct("AnyValue", 1)?;
+                s.serialize_field("type", "Null")?;
+                s.end()
             }
+            Bool(v) => tagged!("Bool", v),
+            UInt8(v) => tagged!("UInt8", v),
+            UInt16(v) => tagged!("UInt16", v),
+            UInt32(v) => tagged!("UInt32", v),
+            UInt64(v) => tagged!("UInt64", v),
+            UInt128(v) => tagged!("UInt128", v),
+            Int8(v) => tagged!("Int8", v),
+            Int16(v) => tagged!("Int16", v),
+            Int32(v) => tagged!("Int32", v),
+            Int64(v) => tagged!("Int64", v),
+            Int128(v) => tagged!("Int128", v),
+            Float32(v) => tagged!("Float32", v),
+            Float64(v) => tagged!("Float64", v),
+            Usize(v) => tagged!("Usize", &(*v as u64)),
+            Duration(v) => tagged!("Duration", &(v.as_millis() as u64)),
+            Char(v) => tagged!("Char", v),
+            Str(v) => tagged!("Str", v),
+            StrOwned(v) => tagged!("StrOwned", v),
+            Slice(vals) => tagged!("Slice", vals),
+            Vector(vals) => tagged!("Vector", vals),
+            Dict(vals) => tagged!("Dict", vals),
+            Struct(field, fields) => tagged!("Struct", &(field, fields)),
         }
     }
 }
@@ -779,5 +788,39 @@ mod tests {
         let v = AnyValue::Int32(42);
         let casted = v.clone().cast(&DataType::Float64).unwrap();
         assert_eq!(casted, AnyValue::Float64(42.0));
+    }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn test_anyvalue_json_roundtrip() {
+        let values: Vec<AnyValue<'static>> = vec![
+            AnyValue::Null,
+            AnyValue::Bool(true),
+            AnyValue::UInt8(1),
+            AnyValue::UInt16(2),
+            AnyValue::UInt32(3),
+            AnyValue::UInt64(4),
+            AnyValue::Int8(-1),
+            AnyValue::Int16(-2),
+            AnyValue::Int32(-3),
+            AnyValue::Int64(-4),
+            AnyValue::Float32(0.7),
+            AnyValue::Float64(1.23456789),
+            AnyValue::Usize(42),
+            AnyValue::Char('x'),
+            AnyValue::StrOwned("hello".into()),
+            AnyValue::Vector(vec![AnyValue::Float32(1.0), AnyValue::Float32(2.0)]),
+        ];
+
+        for original in &values {
+            let json = serde_json::to_string(original)
+                .unwrap_or_else(|e| panic!("serialize failed for {original:?}: {e}"));
+            let restored: AnyValue<'static> = serde_json::from_str(&json)
+                .unwrap_or_else(|e| panic!("deserialize failed for {original:?} (json={json}): {e}"));
+            assert_eq!(
+                original, &restored,
+                "round-trip mismatch for {original:?}"
+            );
+        }
     }
 }

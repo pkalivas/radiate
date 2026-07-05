@@ -86,7 +86,7 @@ engine = (
 print(
     engine.run(
         ui=True,
-        # checkpoint=(50, WRITE_DIR, "json"),
+        checkpoint=(50, WRITE_DIR, "json"),
     )
 )
 

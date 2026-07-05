@@ -59,18 +59,10 @@ impl PyGeneration {
 
     #[staticmethod]
     pub fn from_json(json_str: &str) -> PyResult<Self> {
-        let handle =
-            serde_json::from_str::<Generation<FloatChromosome<f32>, PyAnyObject>>(json_str)
-                .map_err(|e| {
-                    pyo3::exceptions::PyValueError::new_err(format!("Invalid JSON: {}", e))
-                })?;
+        let handle = serde_json::from_str::<EpochHandle>(json_str)
+            .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("Invalid JSON: {}", e)))?;
 
-        Ok(PyGeneration::new(EpochHandle::Float32(handle)))
-
-        // let handle = serde_json::from_str::<EpochHandle>(json_str)
-        //     .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("Invalid JSON: {}", e)))?;
-
-        // Ok(PyGeneration::new(handle))
+        Ok(PyGeneration::new(handle))
     }
 
     pub fn to_pickle<'py>(&self, python: Python<'py>) -> PyResult<Bound<'py, PyBytes>> {
