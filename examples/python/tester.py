@@ -28,6 +28,7 @@ engine = (
     )
 )
 
+
 result = engine.run(rd.Limit.generations(500))
 metrics = result.metrics()
 print(metrics["score_trend"].value_last())

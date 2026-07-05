@@ -16,7 +16,6 @@ from radiate.operators import (
     DistanceBase,
     FilterBase,
     LimitBase,
-    Rate,
     SelectorBase,
 )
 
@@ -723,7 +722,8 @@ class Engine[G, T]:
     # ----------------------------
     # Iteration / execution
     # ----------------------------
-
+    @classmethod
+    def load(cls, path: str | Path) -> Self: ...
     def __iter__(self) -> Engine[G, T]: ...
     def __next__(self) -> Generation[G, T]: ...
     def run(
@@ -763,8 +763,8 @@ class Engine[G, T]:
     def diversity(
         self,
         diversity: DistanceBase,
-        species_threshold: Rate | Expr | float = 0.5,
-        target_species: int | None = None,
+        threshold: Expr | float = 0.5,
+        target: int | None = None,
     ) -> Self: ...
     def limit(self, *limits: LimitBase | Expr) -> Self: ...
     def filter(self, *filters: FilterBase) -> Self: ...

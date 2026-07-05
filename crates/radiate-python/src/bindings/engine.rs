@@ -2,7 +2,7 @@ use crate::{
     EngineHandle, EpochHandle, InputTransform, PickleWriter, PyEngineInput, PyGeneration,
     bindings::handles::StepHandle, names,
 };
-use pyo3::{PyResult, pyclass, pymethods};
+use pyo3::{PyResult, Python, pyclass, pymethods};
 use radiate::{
     Chromosome, Engine, EngineRuntime, EvolutionContext, Generation, GeneticEngine, JsonWriter,
     Limit,
@@ -65,6 +65,7 @@ impl PyEngine {
 impl PyEngine {
     pub fn run(
         &mut self,
+        py: Python,
         limits: Vec<PyEngineInput>,
         options: Vec<PyEngineRunOption>,
     ) -> PyResult<PyGeneration> {
@@ -85,26 +86,28 @@ impl PyEngine {
             radiate_py_bail!(BUILD_ENGINE_WITH_LIMIT_ERROR_STRING);
         }
 
-        Ok(PyGeneration::new(match engine {
-            UInt8(eng) => EpochHandle::UInt8(run_engine(eng, limits, options)?),
-            UInt16(eng) => EpochHandle::UInt16(run_engine(eng, limits, options)?),
-            UInt32(eng) => EpochHandle::UInt32(run_engine(eng, limits, options)?),
-            UInt64(eng) => EpochHandle::UInt64(run_engine(eng, limits, options)?),
-            Int8(eng) => EpochHandle::Int8(run_engine(eng, limits, options)?),
-            Int16(eng) => EpochHandle::Int16(run_engine(eng, limits, options)?),
-            Int32(eng) => EpochHandle::Int32(run_engine(eng, limits, options)?),
-            Int64(eng) => EpochHandle::Int64(run_engine(eng, limits, options)?),
-            Float32(eng) => EpochHandle::Float32(run_engine(eng, limits, options)?),
-            Float64(eng) => EpochHandle::Float64(run_engine(eng, limits, options)?),
-            Char(eng) => EpochHandle::Char(run_engine(eng, limits, options)?),
-            Bit(eng) => EpochHandle::Bit(run_engine(eng, limits, options)?),
-            Permutation(eng) => EpochHandle::Permutation(run_engine(eng, limits, options)?),
-            Graph(eng) => EpochHandle::Graph(run_engine(eng, limits, options)?),
-            Tree(eng) => EpochHandle::Tree(run_engine(eng, limits, options)?),
-        }))
+        py.detach(|| {
+            Ok(PyGeneration::new(match engine {
+                UInt8(eng) => EpochHandle::UInt8(run_engine(eng, limits, options)?),
+                UInt16(eng) => EpochHandle::UInt16(run_engine(eng, limits, options)?),
+                UInt32(eng) => EpochHandle::UInt32(run_engine(eng, limits, options)?),
+                UInt64(eng) => EpochHandle::UInt64(run_engine(eng, limits, options)?),
+                Int8(eng) => EpochHandle::Int8(run_engine(eng, limits, options)?),
+                Int16(eng) => EpochHandle::Int16(run_engine(eng, limits, options)?),
+                Int32(eng) => EpochHandle::Int32(run_engine(eng, limits, options)?),
+                Int64(eng) => EpochHandle::Int64(run_engine(eng, limits, options)?),
+                Float32(eng) => EpochHandle::Float32(run_engine(eng, limits, options)?),
+                Float64(eng) => EpochHandle::Float64(run_engine(eng, limits, options)?),
+                Char(eng) => EpochHandle::Char(run_engine(eng, limits, options)?),
+                Bit(eng) => EpochHandle::Bit(run_engine(eng, limits, options)?),
+                Permutation(eng) => EpochHandle::Permutation(run_engine(eng, limits, options)?),
+                Graph(eng) => EpochHandle::Graph(run_engine(eng, limits, options)?),
+                Tree(eng) => EpochHandle::Tree(run_engine(eng, limits, options)?),
+            }))
+        })
     }
 
-    pub fn step_next(&mut self) -> PyResult<PyGeneration> {
+    pub fn step_next(&mut self, py: Python) -> PyResult<PyGeneration> {
         use StepHandle::*;
 
         if self.iter.is_none() {
@@ -119,27 +122,28 @@ impl PyEngine {
 
             self.iter = Some(engine.into_step(self.limits.clone()));
         }
+        py.detach(|| {
+            let next = match self.iter.as_mut().unwrap() {
+                UInt8(it) => it.next().map(EpochHandle::UInt8),
+                UInt16(it) => it.next().map(EpochHandle::UInt16),
+                UInt32(it) => it.next().map(EpochHandle::UInt32),
+                UInt64(it) => it.next().map(EpochHandle::UInt64),
+                Int8(it) => it.next().map(EpochHandle::Int8),
+                Int16(it) => it.next().map(EpochHandle::Int16),
+                Int32(it) => it.next().map(EpochHandle::Int32),
+                Int64(it) => it.next().map(EpochHandle::Int64),
+                Float32(it) => it.next().map(EpochHandle::Float32),
+                Float64(it) => it.next().map(EpochHandle::Float64),
+                Char(it) => it.next().map(EpochHandle::Char),
+                Bit(it) => it.next().map(EpochHandle::Bit),
+                Permutation(it) => it.next().map(EpochHandle::Permutation),
+                Graph(it) => it.next().map(EpochHandle::Graph),
+                Tree(it) => it.next().map(EpochHandle::Tree),
+            };
 
-        let next = match self.iter.as_mut().unwrap() {
-            UInt8(it) => it.next().map(EpochHandle::UInt8),
-            UInt16(it) => it.next().map(EpochHandle::UInt16),
-            UInt32(it) => it.next().map(EpochHandle::UInt32),
-            UInt64(it) => it.next().map(EpochHandle::UInt64),
-            Int8(it) => it.next().map(EpochHandle::Int8),
-            Int16(it) => it.next().map(EpochHandle::Int16),
-            Int32(it) => it.next().map(EpochHandle::Int32),
-            Int64(it) => it.next().map(EpochHandle::Int64),
-            Float32(it) => it.next().map(EpochHandle::Float32),
-            Float64(it) => it.next().map(EpochHandle::Float64),
-            Char(it) => it.next().map(EpochHandle::Char),
-            Bit(it) => it.next().map(EpochHandle::Bit),
-            Permutation(it) => it.next().map(EpochHandle::Permutation),
-            Graph(it) => it.next().map(EpochHandle::Graph),
-            Tree(it) => it.next().map(EpochHandle::Tree),
-        };
-
-        next.map(PyGeneration::new)
-            .ok_or_else(|| pyo3::exceptions::PyStopIteration::new_err(()))
+            next.map(PyGeneration::new)
+                .ok_or_else(|| radiate_py_err!("Engine has already completed all steps"))
+        })
     }
 }
 

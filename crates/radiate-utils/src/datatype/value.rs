@@ -683,19 +683,24 @@ impl<'a, 'de> Deserialize<'de> for AnyValue<'a> {
                 match def {
                     AnyValueDef::Null => Null,
                     AnyValueDef::Bool(v) => Bool(v),
+
                     AnyValueDef::UInt8(v) => UInt8(v),
                     AnyValueDef::UInt16(v) => UInt16(v),
                     AnyValueDef::UInt32(v) => UInt32(v),
                     AnyValueDef::UInt64(v) => UInt64(v),
                     AnyValueDef::UInt128(v) => UInt128(v),
+
                     AnyValueDef::Int8(v) => Int8(v),
                     AnyValueDef::Int16(v) => Int16(v),
                     AnyValueDef::Int32(v) => Int32(v),
                     AnyValueDef::Int64(v) => Int64(v),
                     AnyValueDef::Int128(v) => Int128(v),
+
                     AnyValueDef::Float32(v) => Float32(v),
                     AnyValueDef::Float64(v) => Float64(v),
+
                     AnyValueDef::Usize(v) => Usize(v),
+
                     AnyValueDef::Duration(ms) => Duration(std::time::Duration::from_millis(ms)),
                     AnyValueDef::Char(v) => Char(v),
                     AnyValueDef::Str(s) | AnyValueDef::StrOwned(s) => StrOwned(s),

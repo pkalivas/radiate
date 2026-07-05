@@ -232,6 +232,35 @@ class Engine[G, T]:
             )
         )
 
+    @classmethod
+    def load(cls, path: str | Path) -> Engine[G, T]:
+        """Load an engine from a checkpoint file."""
+        if not isinstance(path, (str, Path)):
+            raise ValueError("Path must be a string or Path object.")
+
+        if isinstance(path, str):
+            path = Path(path)
+
+        if not path.exists():
+            raise FileNotFoundError(f"Checkpoint file not found: {path}")
+
+        file_ext = path.suffix.lower()
+        if file_ext == ".json":
+            content = path.read_text()
+            generation = Generation.from_json(content)
+        elif file_ext == ".pkl":
+            with open(path, "rb") as f:
+                pickle_bytes = f.read()
+            generation = Generation.from_pickle(pickle_bytes)
+        else:
+            raise ValueError(f"Unsupported checkpoint file type: {file_ext}")
+
+        builder = EngineBuilder.from_generation(generation)
+
+        engine = cls.__new__(cls)
+        engine._builder = builder
+        return engine
+
     def __iter__(self):
         """
         Iterate over generations produced by the engine. I mean, all this really does is let you use the

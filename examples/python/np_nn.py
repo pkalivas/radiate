@@ -57,19 +57,10 @@ def fit(weights: list[np.ndarray]) -> float:
     return float(np.mean((yhat - Y) ** 2, dtype=np.float32))
 
 
-@rd.on_epoch
-def my_logger(event: rd.EngineEvent):
-    print(f"Epoch {event.index()} complete. Score: {event.score()}")
-
-
 @rd.on_stop
 def metrics_dashboard(event: rd.EngineEvent):
     print(event.metrics().dashboard())
 
-
-stag = (
-    rd.Expr.when(rd.Expr.stagnation("scores.best", 0.001) > 3).then(50).otherwise(100)
-)
 
 engine = (
     rd.Engine.float(
@@ -86,14 +77,18 @@ engine = (
     )
     .fitness(fit)
     .minimizing()
-    .metrics(stag=stag)
     .subscribe(metrics_dashboard)
     .select(rd.Select.boltzmann(temp=4.0))
     .alters(rd.Cross.blend(0.7, 0.4), rd.Mutate.gaussian(0.1))
     .limit(rd.Limit.score(0.01), rd.Limit.generations(500))
 )
 
-print(engine.run(ui=True))
+print(
+    engine.run(
+        ui=True,
+        # checkpoint=(50, WRITE_DIR, "json"),
+    )
+)
 
 
 # .load_checkpoint(

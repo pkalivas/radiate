@@ -81,28 +81,6 @@ impl EngineHandle {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
-pub enum EpochHandle {
-    UInt8(Generation<IntChromosome<u8>, PyAnyObject>),
-    UInt16(Generation<IntChromosome<u16>, PyAnyObject>),
-    UInt32(Generation<IntChromosome<u32>, PyAnyObject>),
-    UInt64(Generation<IntChromosome<u64>, PyAnyObject>),
-
-    Int8(Generation<IntChromosome<i8>, PyAnyObject>),
-    Int16(Generation<IntChromosome<i16>, PyAnyObject>),
-    Int32(Generation<IntChromosome<i32>, PyAnyObject>),
-    Int64(Generation<IntChromosome<i64>, PyAnyObject>),
-
-    Float32(Generation<FloatChromosome<f32>, PyAnyObject>),
-    Float64(Generation<FloatChromosome<f64>, PyAnyObject>),
-
-    Char(Generation<CharChromosome, PyAnyObject>),
-    Bit(Generation<BitChromosome, PyAnyObject>),
-    Permutation(Generation<PermutationChromosome<usize>, PyAnyObject>),
-    Graph(Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>),
-    Tree(Generation<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>),
-}
-
 pub enum StepHandle {
     UInt8(GenIter<IntChromosome<u8>, PyAnyObject>),
     UInt16(GenIter<IntChromosome<u16>, PyAnyObject>),
@@ -123,4 +101,28 @@ pub enum StepHandle {
 
     Graph(GenIter<GraphChromosome<Op<f32>>, Graph<Op<f32>>>),
     Tree(GenIter<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>),
+}
+
+unsafe impl Send for StepHandle {}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub enum EpochHandle {
+    UInt8(Generation<IntChromosome<u8>, PyAnyObject>),
+    UInt16(Generation<IntChromosome<u16>, PyAnyObject>),
+    UInt32(Generation<IntChromosome<u32>, PyAnyObject>),
+    UInt64(Generation<IntChromosome<u64>, PyAnyObject>),
+
+    Int8(Generation<IntChromosome<i8>, PyAnyObject>),
+    Int16(Generation<IntChromosome<i16>, PyAnyObject>),
+    Int32(Generation<IntChromosome<i32>, PyAnyObject>),
+    Int64(Generation<IntChromosome<i64>, PyAnyObject>),
+
+    Float32(Generation<FloatChromosome<f32>, PyAnyObject>),
+    Float64(Generation<FloatChromosome<f64>, PyAnyObject>),
+
+    Char(Generation<CharChromosome, PyAnyObject>),
+    Bit(Generation<BitChromosome, PyAnyObject>),
+    Permutation(Generation<PermutationChromosome<usize>, PyAnyObject>),
+    Graph(Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>),
+    Tree(Generation<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>),
 }

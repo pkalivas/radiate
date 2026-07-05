@@ -29,7 +29,6 @@ class Generation[G, T](RsObject):
     def to_pickle(self) -> bytes:
         """
         Serialize the generation to a pickle byte string.
-        :param python: The Python interpreter to use for serialization.
         :return: The pickle byte string representation of the generation.
         """
         return self.__backend__().to_pickle()

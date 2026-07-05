@@ -1,8 +1,11 @@
 use super::PyGenotype;
-use crate::bindings::gp::{PyGraph, PyTree};
 use crate::{
     EpochHandle, IntoPyAnyObject, PyAnyObject, PyEcosystem, PyFront, PyMetricSet, PyPopulation,
     PySpecies,
+};
+use crate::{
+    PyGeneType,
+    bindings::gp::{PyGraph, PyTree},
 };
 
 use pyo3::{
@@ -56,10 +59,18 @@ impl PyGeneration {
 
     #[staticmethod]
     pub fn from_json(json_str: &str) -> PyResult<Self> {
-        let handle = serde_json::from_str::<EpochHandle>(json_str)
-            .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("Invalid JSON: {}", e)))?;
+        let handle =
+            serde_json::from_str::<Generation<FloatChromosome<f32>, PyAnyObject>>(json_str)
+                .map_err(|e| {
+                    pyo3::exceptions::PyValueError::new_err(format!("Invalid JSON: {}", e))
+                })?;
 
-        Ok(PyGeneration::new(handle))
+        Ok(PyGeneration::new(EpochHandle::Float32(handle)))
+
+        // let handle = serde_json::from_str::<EpochHandle>(json_str)
+        //     .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("Invalid JSON: {}", e)))?;
+
+        // Ok(PyGeneration::new(handle))
     }
 
     pub fn to_pickle<'py>(&self, python: Python<'py>) -> PyResult<Bound<'py, PyBytes>> {
@@ -160,6 +171,10 @@ impl PyGeneration {
 
     pub fn dtype<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         self.population().dtype(py)
+    }
+
+    pub fn gene_type(&self) -> PyGeneType {
+        self.population().gene_type()
     }
 
     pub fn __repr__(&self, py: Python) -> PyResult<String> {

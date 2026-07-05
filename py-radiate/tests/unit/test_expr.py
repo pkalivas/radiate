@@ -68,7 +68,9 @@ def test_unique_returns_distinct_values(simple_metric_set):
 
 @pytest.mark.unit
 def test_stddev_zero_on_constant(simple_metric_set):
-    assert rd.Expr.select("const").stddev().eval(simple_metric_set) == pytest.approx(0.0, abs=1e-5)
+    assert rd.Expr.select("const").stddev().eval(simple_metric_set) == pytest.approx(
+        0.0, abs=1e-5
+    )
 
 
 @pytest.mark.unit

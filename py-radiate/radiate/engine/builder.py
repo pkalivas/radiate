@@ -80,6 +80,14 @@ class EngineBuilder[G, T]:
 
         return inst
 
+    @classmethod
+    def from_generation(
+        cls, generation: Generation[G, T], **kwargs
+    ) -> "EngineBuilder[G, T]":
+        inst = cls._default(generation.population().gene_type(), **kwargs)
+        inst.set_generation(generation)
+        return inst
+
     def __init__(self, gene_type: GeneType):
         self._inputs = []
         self._gene_type = gene_type

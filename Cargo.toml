@@ -67,7 +67,7 @@ license = "MIT"
 homepage = "https://pkalivas.github.io/radiate/"
 
 [workspace.dependencies]
-rand = "0.10.1"
+rand = "0.10.2"
 pyo3 = "0.29.0"
 numpy ="0.29.0"
 rayon = "1.12.0"
@@ -75,7 +75,7 @@ itertools = "0.15.0"
 smallvec = { version = "1.15.2", features = ["serde"] }
 thiserror = "2.0.18"
 serde = { version = "1.0.228", features = ["derive", "rc"] }
-serde_json = { version = "1.0.149" }
+serde_json = { version = "1.0.150" }
 serde-pickle = "1.1"
 compact_str = { version = "0.9.1" }
 foldhash = "0.2.0"
