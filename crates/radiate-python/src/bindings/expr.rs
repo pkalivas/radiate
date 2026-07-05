@@ -82,7 +82,7 @@ impl PyExpr {
     #[staticmethod]
     #[pyo3(signature = (min, max, window))]
     pub fn diversity_rate(min: f32, max: f32, window: usize) -> Self {
-        expr::diversity_driven_rate(window, min, max).into()
+        expr::diversity_signal(window, min, max).into()
     }
 
     pub fn evaluate(&mut self, metrics: &PyMetricSet) -> PyResult<Wrap<AnyValue<'_>>> {
@@ -103,7 +103,7 @@ impl PyExpr {
     }
 
     pub fn genome_size_rate(&self, target_size: usize) -> Self {
-        expr::genome_size_rate(self.inner.clone(), target_size).into()
+        expr::genome_size_throttle(self.inner.clone(), target_size).into()
     }
 
     pub fn cast(&self, to: String) -> Self {

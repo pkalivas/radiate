@@ -338,8 +338,7 @@ where
             let curr_threshold = &self.params.species_params.species_threshold;
             let threshold = if let Some(count) = self.params.species_params.target_species_count {
                 let first_val = f32::try_from(curr_threshold.clone()).unwrap_or(0.5);
-
-                expr::target_species_expr(count, first_val)
+                expr::species_target_control(count, first_val)
             } else {
                 curr_threshold
                     .clone()

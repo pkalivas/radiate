@@ -16,7 +16,7 @@ engine = (
     .fitness(your_fitness_func)
     # A distance measure turns speciation on; the threshold sets how close
     # two individuals must be (per the measure) to share a species.
-    .diversity(rd.Dist.euclidean(), species_threshold=0.5)
+    .diversity(rd.Dist.euclidean(), threshold=0.5)
     # ... other parameters ...
 )
 # --8<-- [end:diversity_basic]

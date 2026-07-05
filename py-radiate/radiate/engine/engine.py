@@ -577,8 +577,8 @@ class Engine[G, T]:
     def diversity(
         self,
         diversity: DistanceBase,
-        species_threshold: Expr | float = 0.5,
-        target_species: int | None = None,
+        threshold: Expr | float = 0.5,
+        target: int | None = None,
     ) -> Engine[G, T]:
         """
         Set the diversity measure and species threshold for speciation in the engine.
@@ -595,8 +595,8 @@ class Engine[G, T]:
         - Species Threshold: 0.5
         Args:
             diversity: A distance-based diversity measure to promote genetic diversity.
-            species_threshold: A threshold for grouping individuals into species based on genetic distance. Must be greater than 0.
-            target_species: If provided, the engine will dynamically adjust the species threshold to try to maintain the specified
+            threshold: A threshold for grouping individuals into species based on genetic distance. Must be greater than 0.
+            target: If provided, the engine will dynamically adjust the species threshold to try to maintain the specified
                 number of species in the population. Must be greater than 0.
         Returns:
             Engine: The engine instance with the diversity measure and species threshold set.
@@ -609,11 +609,11 @@ class Engine[G, T]:
         ...     rd.Engine.float(shape=[2, 2], init_range=(0.0, 10.0))
         ...     .fitness(my_fitness_function)
         ...     .diversity(
-        ...         rd.Dist.euclidean(), species_threshold=0.7
+        ...         rd.Dist.euclidean(), threshold=0.7
         ...     )  # <- use Euclidean distance for speciation with a threshold of 0.7
         ... )
         """
-        self._builder.set_diversity(diversity, species_threshold, target_species)
+        self._builder.set_diversity(diversity, threshold, target)
         return self
 
     def limit(self, *limits: LimitBase | Expr) -> Engine[G, T]:

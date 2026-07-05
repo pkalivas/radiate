@@ -1,5 +1,5 @@
 use ratatui::{
-    style::{Color, Modifier, Style, palette::material},
+    style::{Color, Style, palette::material},
     widgets::{Block, Row},
 };
 

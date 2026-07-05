@@ -5,11 +5,11 @@ const KP: f32 = 0.05_f32;
 const KI: f32 = 0.005_f32;
 const KD: f32 = 0.02_f32;
 
-pub fn species_error_expr(count: usize) -> Expr {
+pub fn species_error_signal(count: usize) -> Expr {
     Expr::select(metric_names::SPECIES_COUNT).error(count as f32)
 }
 
-pub fn target_species_expr(target: usize, base_val: f32) -> Expr {
+pub fn species_target_control(target: usize, base_val: f32) -> Expr {
     let target_f32 = target as f32;
 
     let raw_error = Expr::select(metric_names::SPECIES_COUNT).error(target_f32);
@@ -36,7 +36,7 @@ pub fn target_species_expr(target: usize, base_val: f32) -> Expr {
 }
 
 // Rolling slope of best score — useful for limits and convergence detection
-pub fn score_trend_expr(window: usize) -> Expr {
+pub fn score_trend_signal(window: usize) -> Expr {
     Expr::select(metric_names::BEST_SCORES)
         .rolling(window)
         .slope()
@@ -44,7 +44,7 @@ pub fn score_trend_expr(window: usize) -> Expr {
 }
 
 // Coefficient of variation — normalized score spread
-pub fn score_cv_expr(window: usize) -> Expr {
+pub fn score_cv_signal(window: usize) -> Expr {
     Expr::select(metric_names::BEST_SCORES)
         .rolling(window)
         .stddev()
@@ -56,7 +56,7 @@ pub fn score_cv_expr(window: usize) -> Expr {
 }
 
 // Throttles add-vertex/add-edge rates as genome grows past target
-pub fn genome_size_rate(base_rate: impl Into<Expr>, target_size: usize) -> Expr {
+pub fn genome_size_throttle(base_rate: impl Into<Expr>, target_size: usize) -> Expr {
     let pressure = Expr::select(metric_names::GENOME_SIZE)
         .rolling(10)
         .mean()
@@ -66,7 +66,7 @@ pub fn genome_size_rate(base_rate: impl Into<Expr>, target_size: usize) -> Expr 
 }
 
 // Higher mutation when diversity is low, lower when healthy
-pub fn diversity_driven_rate(window: usize, min: f32, max: f32) -> Expr {
+pub fn diversity_signal(window: usize, min: f32, max: f32) -> Expr {
     let diversity = Expr::select(metric_names::DIVERSITY_RATIO)
         .rolling(window)
         .mean();

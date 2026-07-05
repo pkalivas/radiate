@@ -8,7 +8,7 @@ use crate::{
         panels::{MetricLineChartWidget, tables::SpeciesTableWidget},
     },
 };
-use radiate_engines::{Chromosome, metric_names};
+use radiate_engines::{Chromosome, Objective, metric_names};
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Direction, Layout, Rect},
@@ -93,9 +93,12 @@ impl<C: Chromosome> LayoutNode<C> {
                 .render_inside_block(true)
                 .titled(
                     Line::from(vec![
-                        Span::from(format!(" Obj({}) ", active_objective_idx))
-                            .fg(Color::White)
-                            .bold(),
+                        Span::from(match state.evo.pareto.objective {
+                            Objective::Single(obj) => format!(" {:?} ", obj),
+                            _ => format!(" Obj({}) ", active_objective_idx),
+                        })
+                        .fg(Color::White)
+                        .bold(),
                     ])
                     .right_aligned(),
                 )

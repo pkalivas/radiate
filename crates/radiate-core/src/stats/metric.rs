@@ -426,6 +426,8 @@ impl<'a> TryFrom<AnyValue<'a>> for MetricUpdate<'a> {
                 Ok(MetricUpdate::OwnedDistribution(out))
             }
 
+            AnyValue::Bool(bool) => Ok(MetricUpdate::Bool(bool)),
+
             other => Err(radiate_err!(Metric: "cannot convert AnyValue of type `{}` into MetricUpdate", other.type_name())),
         }
     }

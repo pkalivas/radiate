@@ -1,7 +1,6 @@
 use crate::state::{AppState, EvoState};
 use crate::widgets::panels::MetricLineChartWidget;
 use crate::widgets::{AppWidget, FnWidget, MetricDetailPanelWidget, Panel, TabComponent};
-use color_eyre::owo_colors::OwoColorize;
 use radiate_engines::Chromosome;
 use radiate_engines::stats::fmt_duration;
 use ratatui::prelude::*;

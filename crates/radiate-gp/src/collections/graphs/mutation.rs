@@ -105,8 +105,8 @@ impl GraphMutator {
     /// Set the target size of the graph. If the graph is at or above this size
     /// the mutation rates will be reduced to prevent the graph from growing too large.
     pub fn target_size(mut self, size: usize) -> Self {
-        self.vertex_rate = expr::genome_size_rate(self.vertex_rate.clone(), size);
-        self.edge_rate = expr::genome_size_rate(self.edge_rate.clone(), size);
+        self.vertex_rate = expr::genome_size_throttle(self.vertex_rate.clone(), size);
+        self.edge_rate = expr::genome_size_throttle(self.edge_rate.clone(), size);
         self
     }
 

@@ -259,6 +259,10 @@ where
         &self.context.best
     }
 
+    pub fn phenotype(&self) -> &Phenotype<C> {
+        &self.context.ecosystem().population()[0]
+    }
+
     pub fn index(&self) -> usize {
         self.context.index
     }
