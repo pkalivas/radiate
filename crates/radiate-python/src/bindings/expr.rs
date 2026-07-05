@@ -257,7 +257,7 @@ impl PyExpr {
 
 impl From<Expr> for PyExpr {
     fn from(expr: Expr) -> Self {
-        PyExpr { inner: expr.into() }
+        PyExpr { inner: expr }
     }
 }
 

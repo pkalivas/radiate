@@ -454,14 +454,13 @@ where
         let diversity = config.diversity()?;
         let threshold_expr = config
             .exprs()
-            .map(|exprs| {
+            .and_then(|exprs| {
                 exprs
                     .lock()
                     .unwrap()
                     .get(metric_names::SPECIES_THRESHOLD)
                     .cloned()
-            })
-            .flatten()?;
+            })?;
 
         let species_step = SpeciateStep {
             threshold: RateSet::new(threshold_expr),

@@ -68,22 +68,21 @@ pub trait Chromosome: Valid {
     }
 }
 
+type AlleleType<C> = <<C as Chromosome>::Gene as Gene>::Allele;
+
 pub trait BoundedChromosome: Chromosome
 where
     Self::Gene: BoundedGene,
 {
-    fn min(&self, index: usize) -> Option<&<Self::Gene as Gene>::Allele> {
+    fn min(&self, index: usize) -> Option<&AlleleType<Self>> {
         self.get(index).map(|gene| gene.min())
     }
 
-    fn max(&self, index: usize) -> Option<&<Self::Gene as Gene>::Allele> {
+    fn max(&self, index: usize) -> Option<&AlleleType<Self>> {
         self.get(index).map(|gene| gene.max())
     }
 
-    fn bounds(
-        &self,
-        index: usize,
-    ) -> Option<(&<Self::Gene as Gene>::Allele, &<Self::Gene as Gene>::Allele)> {
+    fn bounds(&self, index: usize) -> Option<(&AlleleType<Self>, &AlleleType<Self>)> {
         self.get(index).map(|gene| gene.bounds())
     }
 }

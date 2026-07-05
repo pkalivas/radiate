@@ -43,14 +43,11 @@ impl UnaryExpr {
 
     pub fn reset(&mut self) {
         self.child.reset();
-        match &mut self.op {
-            UnaryOp::Stagnation {
+        if let UnaryOp::Stagnation {
                 last_value, count, ..
-            } => {
-                *last_value = None;
-                *count = 0;
-            }
-            _ => {}
+            } = &mut self.op {
+            *last_value = None;
+            *count = 0;
         }
     }
 }

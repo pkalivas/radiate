@@ -40,7 +40,7 @@ pub fn score_trend_expr(window: usize) -> Expr {
     Expr::select(metric_names::BEST_SCORES)
         .rolling(window)
         .slope()
-        .alias(&format!("{}.[{}]", metric_names::SCORES_TREND, window))
+        .alias(format!("{}.[{}]", metric_names::SCORES_TREND, window))
 }
 
 // Coefficient of variation — normalized score spread

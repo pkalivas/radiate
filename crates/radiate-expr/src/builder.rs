@@ -348,12 +348,11 @@ impl Expr {
     }
 
     fn try_swap_agg_rollup_or(mut self, to: Rollup, func: impl FnOnce(Self) -> Expr) -> Expr {
-        if let ExprKind::Aggregate(ref mut agg) = self.kind {
-            if agg.rollup != Rollup::Unique {
+        if let ExprKind::Aggregate(ref mut agg) = self.kind
+            && agg.rollup != Rollup::Unique {
                 agg.rollup = to;
                 return self;
             }
-        }
         func(self)
     }
 

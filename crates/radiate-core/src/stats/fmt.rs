@@ -176,7 +176,7 @@ fn render_tagged(ms: &MetricSet, tag: TagType, title: &str) -> io::Result<String
     out = render_table_header(out)?;
 
     let mut items: Vec<_> = ms.iter_tagged(tag).collect();
-    items.sort_by(|a, b| a.name().cmp(&b.name()));
+    items.sort_by(|a, b| a.name().cmp(b.name()));
 
     for m in items {
         render_metric_rows_full(&mut out, m.name().as_str(), m, tag)?;

@@ -232,7 +232,7 @@ pub fn tagged_metrics<'a, C: Chromosome>(
         .iter_tagged(tag)
         .filter(|m| state.metric_matches_search(m))
         .collect::<Vec<_>>();
-    items.sort_unstable_by(|a, b| a.name().cmp(&b.name()));
+    items.sort_unstable_by(|a, b| a.name().cmp(b.name()));
     items
 }
 
