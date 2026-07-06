@@ -101,11 +101,12 @@ engine = (
     rd.Engine.float(2, init_range=(0.0, 1.0))  # configure your engine as normal
     .fitness(your_fitness_func)
     .subscribe(collector)  # Subscribe the MetricCollector to the engine
+    .limit(rd.Limit.generations(100))  # Set a limit for the run
     # ... other parameters ...
 )
 
 # Run the engine for 100 generations
-engine.run(rd.Limit.generations(100))
+engine.run()
 
 # After the run, you can access the collected metrics
 # Convert collected metric sets to a df where each row is a single metric (includes all collected metrics).

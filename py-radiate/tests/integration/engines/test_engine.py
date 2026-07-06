@@ -1,6 +1,7 @@
-import radiate as rd
 import numpy as np
 import pytest
+
+import radiate as rd
 
 
 @pytest.mark.integration
@@ -26,9 +27,10 @@ def test_engine_maintains_population_size(random_seed):
         .minimizing()
         .population(population)
         .alters(rd.Cross.uniform(0.5), rd.Mutate.arithmetic(0.01))
+        .limit(rd.Limit.score(0.0001), rd.Limit.generations(1000))
     )
 
-    result = engine.run(rd.Limit.score(0.0001), rd.Limit.generations(1000))
+    result = engine.run()
 
     assert all(i < 0.001 for i in result.value())
     assert len(result.value()) == N_GENES
@@ -67,9 +69,10 @@ def test_engine_batch_fitness():
         .minimizing()
         .population(population)
         .alters(rd.Cross.uniform(0.5), rd.Mutate.arithmetic(0.01))
+        .limit(rd.Limit.score(0.0001), rd.Limit.generations(1000))
     )
 
-    result = engine.run(rd.Limit.score(0.0001), rd.Limit.generations(1000))
+    result = engine.run()
 
     assert all(i < 0.001 for i in result.value())
     assert len(result.value()) == N_GENES
@@ -91,9 +94,10 @@ def test_engine_multi_objective(random_seed):
         .objective(rd.MIN, rd.MAX)
         .alters(rd.Cross.uniform(0.7), rd.Mutate.arithmetic(0.1))
         .select(rd.Select.tournament(3), rd.Select.nsga2())
+        .limit(rd.Limit.generations(50))
     )
 
-    result = engine.run(rd.Limit.generations(50))
+    result = engine.run()
 
     assert len(result.score()) == 2, "Should return two objectives"
     assert result.index() == 50, "Should complete within 50 generations"
@@ -103,7 +107,7 @@ def test_engine_multi_objective(random_seed):
 @pytest.mark.integration
 def test_engine_multi_objective_front(simple_multi_objective_engine, random_seed):
     """Test multi-objective engine with Pareto front."""
-    result = simple_multi_objective_engine.run(rd.Limit.generations(100))
+    result = simple_multi_objective_engine.limit(rd.Limit.generations(100)).run()
 
     fitness_values = list(set(map(lambda x: tuple(x.score()), result.front())))
 
@@ -140,3 +144,37 @@ def test_engine_with_iter(random_seed):
         "Should yield Generation objects"
     )
     assert results[-1].index() == 5, "Last generation index should be 5"
+
+
+@pytest.mark.integration
+def test_engine_with_iter_and_run(random_seed):
+    """Test that engine can be iterated over and run, yielding results."""
+
+    def fit(val: list[float]) -> float:
+        return sum(i**2 for i in val)
+
+    engine = (
+        rd.Engine.float(2, init_range=(-5.0, 5.0))
+        .fitness(fit)
+        .limit(rd.Limit.generations(5))
+    )
+
+    results = []
+    for generation in engine:
+        results.append(generation)
+        if generation.index() == 3:
+            break
+
+    # Now run the engine to completion
+    final_result = engine.run()
+    other_results = list(engine)
+
+    assert all(isinstance(r, rd.Generation) for r in results), (
+        "Should yield Generation objects"
+    )
+    assert results[-1].index() == 3, "Last generation index should be 3"
+    assert final_result.index() == 5, "Final result index should be 5"
+    assert all(isinstance(r, rd.Generation) for r in other_results), (
+        "Should yield Generation objects after run"
+    )
+    assert other_results[-1].index() == 5, "Last generation index after run should be 5"

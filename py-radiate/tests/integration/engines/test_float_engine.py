@@ -19,9 +19,10 @@ def test_engine_float_vector_maximization(random_seed):
         .size(50)
         .select(rd.Select.boltzmann(4.0), rd.Select.elite())
         .alters(rd.Cross.uniform(0.7), rd.Mutate.arithmetic(0.01))
+        .limit(rd.Limit.score(2.9), rd.Limit.generations(100))
     )
 
-    result = engine.run(rd.Limit.score(2.9), rd.Limit.generations(100))
+    result = engine.run()
 
     # Should find values close to ±1.0
     assert result.score()[0] > 2.5
@@ -55,9 +56,10 @@ def test_engine_float_matrix_minimization(random_seed):
         .size(50)
         .select(rd.Select.tournament(3), rd.Select.elite())
         .alters(rd.Cross.mean(0.7), rd.Mutate.gaussian(0.1))
+        .limit(rd.Limit.score(0.1), rd.Limit.generations(200))
     )
 
-    result = engine.run(rd.Limit.score(0.1), rd.Limit.generations(200))
+    result = engine.run()
 
     # Should find values close to 0.0
     assert result.score()[0] < 0.5

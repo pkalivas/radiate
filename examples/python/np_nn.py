@@ -87,14 +87,6 @@ engine = (
     .alters(rd.Cross.blend(0.7, 0.4), rd.Mutate.gaussian(0.1))
     .limit(rd.Limit.score(0.01), rd.Limit.generations(500))
 )
-# import time
-
-# with engine.worker() as worker:
-#     # Load from a previous checkpoint if it exists
-#     for i in range(20):
-#         time.sleep(0.01)
-#         print(f"\n=== Worker iteration {i + 1} ===")
-
 
 # import threading
 # import time

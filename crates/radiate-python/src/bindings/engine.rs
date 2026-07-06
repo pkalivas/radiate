@@ -1,11 +1,10 @@
 use crate::{
-    EngineHandle, EpochHandle, InputTransform, PyCheckpointWriter, PyEngineInput, PyGeneration,
+    EngineHandle, EpochHandle, PyCheckpointWriter, PyGeneration,
     bindings::handles::EngineIterHandle, match_variant,
 };
 use pyo3::{PyRefMut, PyResult, Python, pyclass, pymethods};
 use radiate::{
-    Chromosome, Engine, EngineControl, EngineRuntime, EvolutionContext, Generation, GeneticEngine,
-    Limit,
+    Chromosome, Engine, EngineRuntime, EvolutionContext, Generation, GeneticEngine, Limit,
 };
 use radiate_error::{radiate_py_bail, radiate_py_err};
 use serde::Serialize;
@@ -41,39 +40,6 @@ impl PyEngineRunOption {
     #[staticmethod]
     pub fn ui() -> Self {
         PyEngineRunOption::Ui(radiate::DEFAULT_RENDER_INTERVAL)
-    }
-}
-
-#[pyclass(from_py_object)]
-#[derive(Clone)]
-pub struct PyEngineControl {
-    control: EngineControl,
-}
-
-#[pymethods]
-impl PyEngineControl {
-    pub fn pause(&mut self) {
-        self.control.set_paused(true);
-    }
-
-    pub fn resume(&mut self) {
-        self.control.set_paused(false);
-    }
-
-    pub fn stop(&mut self) {
-        self.control.stop();
-    }
-
-    pub fn is_paused(&self) -> bool {
-        self.control.is_paused()
-    }
-
-    pub fn is_stopped(&self) -> bool {
-        self.control.is_stopped()
-    }
-
-    pub fn step_once(&mut self) {
-        self.control.step_once();
     }
 }
 
@@ -124,42 +90,21 @@ impl PyEngine {
         })
     }
 
-    pub fn run(
-        &mut self,
-        py: Python,
-        limits: Vec<PyEngineInput>,
-        options: Vec<PyEngineRunOption>,
-    ) -> PyResult<PyGeneration> {
+    pub fn run(&mut self, py: Python, options: Vec<PyEngineRunOption>) -> PyResult<PyGeneration> {
         let engine_handle = self
             .engine
             .take()
             .ok_or_else(|| radiate_py_err!("Engine has already been run"))?;
 
-        let limits = self
-            .limits
-            .clone()
-            .into_iter()
-            .chain(limits.into_iter().filter_map(|input| input.transform()))
-            .collect::<Vec<_>>();
-
-        if limits.is_empty() {
+        if self.limits.is_empty() {
             radiate_py_bail!(BUILD_ENGINE_WITH_LIMIT_ERROR_STRING);
         }
 
         py.detach(|| {
-            let epoch_handle = match_variant!(EngineHandle, engine_handle, engine => EpochHandle::from(run_engine(engine, limits, options)?));
+            
+            let epoch_handle = match_variant!(EngineHandle, engine_handle, engine => run_engine(engine, self.limits.clone() , options)?.into());
             Ok(PyGeneration::new(epoch_handle))
         })
-    }
-
-    pub fn control(&mut self) -> PyResult<PyEngineControl> {
-        match self.engine {
-            Some(ref mut engine) => {
-                let control = match_variant!(EngineHandle, engine, engine => engine.control());
-                Ok(PyEngineControl { control })
-            }
-            None => Err(radiate_py_err!("Engine has already been run")),
-        }
     }
 }
 

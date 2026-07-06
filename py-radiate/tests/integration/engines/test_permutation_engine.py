@@ -1,5 +1,6 @@
-import radiate as rd
 import pytest
+
+import radiate as rd
 
 
 @pytest.mark.integration
@@ -18,9 +19,9 @@ def test_engine_permutation_tsp(random_seed):
         offspring_selector=rd.TournamentSelector(3),
         survivor_selector=rd.EliteSelector(),
         alters=[rd.PartiallyMappedCrossover(0.7), rd.InversionMutator(0.1)],
-    )
+    ).limit(rd.Limit.score(5), rd.Limit.generations(100))
 
-    result = engine.run(rd.GenerationsLimit(100))
+    result = engine.run()
 
     assert result.index() <= 100
     assert len(set(result.value())) == 5

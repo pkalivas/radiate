@@ -1,5 +1,6 @@
-import radiate as rd
 import pytest
+
+import radiate as rd
 
 
 @pytest.mark.unit
@@ -16,7 +17,7 @@ def test_engine_empty_population():
             objective=rd.MIN,
             population_size=0,  # Invalid
         )
-        engine.run(rd.Limit.generations(10))
+        engine.limit(rd.Limit.generations(10)).run()
 
 
 @pytest.mark.unit
@@ -33,7 +34,7 @@ def test_engine_invalid_limits():
     )
 
     with pytest.raises(ValueError):
-        engine.run(rd.Limit.generations(-1))  # Invalid limit
+        engine.limit(rd.Limit.generations(-1)).run()  # Invalid limit
 
 
 @pytest.mark.unit

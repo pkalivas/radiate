@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Any, Sequence
 
 from radiate.radiate import PyEngine
 
-from .._bridge.input import EngineInput, EngineInputType
 from .._typing import AtLeastOne, Checkpoint, RdDataType, RdLossType, Subscriber
 from ..codec import (
     BitCodec,
@@ -21,7 +20,7 @@ from ..codec.base import CodecBase
 from ..dtype import Float64, Int64
 from ..expr import Expr
 from ..fitness import MSE, FitnessBase, Regression
-from ..genome import Chromosome, Gene, GeneType, Population
+from ..genome import Chromosome, Gene, Population
 from ..gp import Graph, Op, Tree
 from ..operators import (
     AlterBase,
@@ -33,20 +32,52 @@ from ..operators import (
     SelectorBase,
 )
 from .builder import EngineBuilder
-from .control import EngineControl
 from .generation import Generation
 from .option import LogParam, UiParam, normalize_checkpoint_params
 
 if TYPE_CHECKING:
     from radiate._rd import PyEngine
 
-from ..utils.worker import BackgroundWorker
+
+class EngineRuntime[G, T]:
+    _engine: PyEngine
+
+    def __init__(self, engine: PyEngine):
+        self._engine = engine
+
+    def __iter__(self):
+        inner_iter = iter(self._engine)
+        while generation := next(inner_iter):
+            yield Generation.from_rust(generation)
+
+    def __next__(self) -> Generation[G, T]:
+        """Get the next generation from the engine. Supports next(engine)."""
+        generation = next(self._engine)
+        return Generation.from_rust(generation)
+
+    def run(
+        self,
+        log: bool = False,
+        ui: bool = False,
+        checkpoint: Checkpoint | None = None,
+    ) -> Generation[G, T]:
+        """Run the engine and return the resulting generation."""
+        log_option = LogParam(enable=log)
+        checkpoint_option = normalize_checkpoint_params(checkpoint)
+        ui_option = UiParam() if ui else None
+
+        options = [
+            opt.__backend__()
+            for opt in [log_option, checkpoint_option, ui_option]
+            if opt is not None
+        ]
+
+        return Generation.from_rust(self._engine.run(options))
 
 
 class Engine[G, T]:
-    _engine: PyEngine = None
+    _runtime: EngineRuntime[G, T] | None
     _builder: EngineBuilder[G, T]
-    _iterating: bool = False
 
     def __init__(
         self,
@@ -58,9 +89,8 @@ class Engine[G, T]:
                 "Input to engine must have an instance of CodecBase to be constructed"
             )
 
-        self._engine = None
+        self._runtime = None
         self._builder = EngineBuilder._default(codec.gene_type, codec=codec, **kwargs)
-        self._iterating = False
 
     @staticmethod
     def float(
@@ -244,70 +274,23 @@ class Engine[G, T]:
         Prepares the engine for looping. If the user breaks and restarts,
         it automatically triggers a fresh run.
         """
-        if self._iterating:
-            raise RuntimeError(
-                "Engine is already iterating. Use next(engine) to get the next generation."
-            )
-
-        self._iterating = True
-        return self
+        return EngineRuntime(self._builder.build())
 
     def __next__(self) -> Generation[G, T]:
         """Get the next generation from the engine. Supports next(engine)."""
-        if self._engine is None:
-            self._engine = self._builder.build()
+        if self._runtime is None:
+            self._runtime = EngineRuntime(self._builder.build())
 
         try:
-            generation = next(self._engine)
-            return Generation.from_rust(generation)
+            return next(self._runtime)
         except StopIteration:
-            self._iterating = False
+            self._runtime = None
             raise StopIteration
-
-    def worker(
-        self,
-        log: bool | LogParam = False,
-        ui: bool | UiParam = False,
-        checkpoint: Checkpoint | None = None,
-    ) -> BackgroundWorker:
-        """
-        Run the engine in a background thread with the given limits.
-        This method allows you to run the engine in a separate thread, enabling you to perform other tasks concurrently.
-        It returns a BackgroundWorker context manager that manages the lifecycle of the background thread.
-
-        Args:
-            limits: A single Limit or a list of Limits to apply to the engine.
-            log: If True, enables logging for the generation process.
-            ui: If True, enables a user interface for monitoring the evolution process.
-            checkpoint: If provided, enables checkpointing at the specified interval, path, and file type. Checkpoint can be
-                        specified as a path string, a tuple (interval, path, file_type), or a CheckpointParam instance.
-                        The default checkpoint interval is 250 generations, the default path is "./checkpoints", and the default file type is "pkl".
-
-        Returns:
-            BackgroundWorker: A context manager that runs the engine in a background thread.
-
-        Example:
-        ---------
-        >>> with engine.worker(log=True) as worker:
-        ...     # Perform other tasks while the engine runs in the background
-        ...     do_other_tasks()
-        >>> # The background worker will automatically wait for completion when exiting the context
-        """
-        return BackgroundWorker(self.run, log=log, ui=ui, checkpoint=checkpoint)
-
-    def control(self) -> EngineControl:
-        """Get the control interface for the engine."""
-        if self._engine is None:
-            raise ValueError(
-                "Engine has not been run yet. Call run() or iterate to start the engine."
-            )
-        return EngineControl(self._engine.control())
 
     def run(
         self,
-        *limits: LimitBase,
-        log: bool | LogParam = False,
-        ui: bool | UiParam = False,
+        log: bool = False,
+        ui: bool = False,
         checkpoint: Checkpoint | None = None,
     ) -> Generation[G, T]:
         """Run the engine with the given limits.
@@ -336,40 +319,8 @@ class Engine[G, T]:
         ...     checkpoint=rd.EngineCheckpoint(50, "checkpoints", file_type="json"),
         ... )
         """
-        if self._iterating:
-            raise RuntimeError(
-                "Cannot call run() while the engine is iterating. Use next(engine) to get the next generation."
-            )
-
         engine = self._builder.build()
-
-        limit_inputs = [
-            EngineInput(
-                input_type=EngineInputType.Limit,
-                component=lim.component,
-                allowed_genes=GeneType.all(),
-                **lim.args,
-            ).__backend__()
-            for lim in limits
-        ]
-
-        log_option = log if isinstance(log, LogParam) else LogParam(enable=log)
-        checkpoint_option = normalize_checkpoint_params(checkpoint)
-        ui_option = UiParam() if isinstance(ui, UiParam) or ui is True else None
-
-        options = [
-            opt.__backend__()
-            for opt in [log_option, checkpoint_option, ui_option]
-            if opt is not None
-        ]
-
-        return Generation.from_rust(engine.run(limit_inputs, options))
-
-    def nth(self, n: int) -> Generation[G, T]:
-        """Get the nth generation from the engine. Supports engine.nth(n)."""
-        from radiate.dsl import Limit
-
-        return self.run(Limit.generations(n))
+        return EngineRuntime(engine).run(log=log, ui=ui, checkpoint=checkpoint)
 
     def fitness(
         self, fitness_func: Callable[[T], Any] | FitnessBase[T]

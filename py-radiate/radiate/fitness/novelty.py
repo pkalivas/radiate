@@ -6,6 +6,8 @@ from ..operators.descriptor import CustomDescriptor, DescriptorBase
 from ..operators.distance import DistanceBase, EuclideanDistance, HammingDistance
 from .base import FitnessBase
 
+type NoveltyOutput = float | int | list[float] | list[int]
+
 
 class NoveltySearch[T](FitnessBase[T]):
     """Fitness function for novelty search algorithms."""
@@ -13,7 +15,7 @@ class NoveltySearch[T](FitnessBase[T]):
     def __init__(
         self,
         distance: DistanceBase | None,
-        descriptor: Callable[[T], float | list[float]] | DescriptorBase,
+        descriptor: Callable[[T], NoveltyOutput] | DescriptorBase,
         k: int = 15,
         threshold: float = 0.03,
         archive_size: int = 1000,

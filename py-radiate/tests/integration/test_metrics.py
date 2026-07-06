@@ -91,9 +91,10 @@ def test_metrics_from_events(random_seed):
         .fitness(lambda x: sum(x))
         .minimizing()
         .subscribe(MetricSetAssertHandler())
+        .limit(rd.Limit.score(0), rd.Limit.generations(500))
     )
 
-    engine.run(rd.ScoreLimit(0), rd.GenerationsLimit(500))
+    engine.run()
 
 
 @pytest.mark.integration

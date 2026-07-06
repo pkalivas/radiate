@@ -1,4 +1,3 @@
-from functools import wraps
 from typing import Any, Callable
 
 from ..operators.distance import DistanceBase, HammingDistance
@@ -9,20 +8,14 @@ from .novelty import NoveltySearch
 from .regression import Regression
 
 
-def fitness(
-    func: Callable[..., Any] | None = None,
-    /,
-    *,
-    batch: bool = False,
-):
-    def decorator(f: Callable[..., Any]) -> FitnessBase:
-        @wraps(f)
-        def wrapper(*args, **kwargs):
-            return f(*args, **kwargs)
+def fitness[T](batch: bool = False):
+    def decorator(func: Callable[[T | list[T]], Any]) -> FitnessBase[T]:
+        if batch:
+            return BatchFitness(func)
+        else:
+            return CallableFitness(func)
 
-        return BatchFitness(wrapper) if batch else CallableFitness(wrapper)
-
-    return decorator if func is None else decorator(func)
+    return decorator
 
 
 def novelty[T](
@@ -31,7 +24,9 @@ def novelty[T](
     threshold: float = 0.03,
     distance: DistanceBase = HammingDistance(),
 ):
-    def decorator(func: Callable[[T], float | list[float]]) -> NoveltySearch[T]:
+    def decorator(
+        func: Callable[[T], float | int | list[float] | list[int]],
+    ) -> NoveltySearch[T]:
         return NoveltySearch(
             descriptor=func,
             archive_size=archive,
