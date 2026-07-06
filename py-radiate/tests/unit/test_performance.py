@@ -57,9 +57,9 @@ class TestEnginePerformance:
             .fitness(fitness_func)
             .minimizing()
             .size(100)
-            .select(rd.TournamentSelector(3), rd.EliteSelector())
-            .alters(rd.UniformCrossover(0.7), rd.ArithmeticMutator(0.1))
-            .limit(rd.GenerationsLimit(50))
+            .select(rd.Select.tournament(k=3), rd.Select.elite())
+            .alters(rd.Cross.uniform(rate=0.7), rd.Mutate.arithmetic(rate=0.1))
+            .limit(rd.Limit.generations(50))
         )
 
         def engine_run():
@@ -82,9 +82,9 @@ class TestEnginePerformance:
             .fitness(fitness_func)
             .minimizing()
             .size(1000)
-            .select(rd.TournamentSelector(3), rd.EliteSelector())
-            .alters(rd.UniformCrossover(0.7), rd.ArithmeticMutator(0.1))
-            .limit(rd.GenerationsLimit(10))
+            .select(rd.Select.tournament(k=3), rd.Select.elite())
+            .alters(rd.Cross.uniform(rate=0.7), rd.Mutate.arithmetic(rate=0.1))
+            .limit(rd.Limit.generations(10))
         )
 
         def engine_run():
@@ -113,8 +113,8 @@ class TestMemoryPerformance:
             .fitness(fitness_func)
             .minimizing()
             .size(100)
-            .select(rd.TournamentSelector(3), rd.EliteSelector())
-            .alters(rd.UniformCrossover(0.7), rd.ArithmeticMutator(0.1))
+            .select(rd.Select.tournament(k=3), rd.Select.elite())
+            .alters(rd.Cross.uniform(rate=0.7), rd.Mutate.arithmetic(rate=0.1))
             .limit(rd.Limit.generations(50))
         )
 
@@ -142,8 +142,8 @@ class TestMemoryPerformance:
                 .fitness(fitness_func)
                 .minimizing()
                 .size(200)
-                .select(rd.TournamentSelector(3), rd.EliteSelector())
-                .alters(rd.UniformCrossover(0.7), rd.ArithmeticMutator(0.1))
+                .select(rd.Select.tournament(k=3), rd.Select.elite())
+                .alters(rd.Cross.uniform(rate=0.7), rd.Mutate.arithmetic(rate=0.1))
                 .limit(rd.Limit.generations(10))
             )
 
@@ -179,8 +179,8 @@ class TestScalabilityPerformance:
                 .fitness(fitness_func)
                 .minimizing()
                 .size(100)
-                .select(rd.TournamentSelector(3), rd.EliteSelector())
-                .alters(rd.UniformCrossover(0.7), rd.ArithmeticMutator(0.1))
+                .select(rd.Select.tournament(k=3), rd.Select.elite())
+                .alters(rd.Cross.uniform(rate=0.7), rd.Mutate.arithmetic(rate=0.1))
                 .limit(rd.Limit.generations(20))
             )
 

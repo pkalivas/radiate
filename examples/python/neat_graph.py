@@ -32,7 +32,10 @@ engine = (
         edge=rd.Op.weight(),
         output=rd.Op.linear(),
     )
-    .select(rd.Select.boltzmann(temp=4.0))
+    .select(
+        rd.Select.boltzmann(temp=4.0),
+    )
+    .filter(rd.Filter.unique_score())
     .regression(inputs, answers, loss=rd.MSE)
     .diversity(
         rd.Dist.neat(excess=1.0, disjoint=1.0, weight_diff=3.0),

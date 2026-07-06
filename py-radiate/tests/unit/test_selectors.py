@@ -8,10 +8,10 @@ import radiate as rd
 def test_selector_correlation(random_seed):
     """Test correlation between selector probabilities and expected probabilities."""
     selectors = [
-        (rd.RouletteSelector(), rd.MAX),
-        (rd.RouletteSelector(), rd.MIN),
-        (rd.BoltzmannSelector(temp=2.0), rd.MAX),
-        (rd.BoltzmannSelector(temp=2.0), rd.MIN),
+        (rd.Select.roulette(), rd.MAX),
+        (rd.Select.roulette(), rd.MIN),
+        (rd.Select.boltzmann(temp=2.0), rd.MAX),
+        (rd.Select.boltzmann(temp=2.0), rd.MIN),
     ]
     codec = rd.FloatCodec(shape=5, init_range=(0.0, 1.0))
     pop_size = 100
@@ -58,10 +58,10 @@ def test_selector_empirical_bias(random_seed):
 
     num_trials = 5000
     selectors = [
-        (rd.TournamentSelector(k=3), rd.MAX),
-        (rd.TournamentSelector(k=3), rd.MIN),
-        (rd.RankSelector(), rd.MAX),
-        (rd.RankSelector(), rd.MIN),
+        (rd.Select.tournament(k=3), rd.MAX),
+        (rd.Select.tournament(k=3), rd.MIN),
+        (rd.Select.rank(), rd.MAX),
+        (rd.Select.rank(), rd.MIN),
     ]
 
     for selector, opt in selectors:

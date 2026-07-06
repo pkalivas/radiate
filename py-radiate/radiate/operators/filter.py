@@ -1,27 +1,15 @@
-from .base import ComponentBase
+from .._rd import components
+from .input import EngineInput, EngineInputType
 
 
-class FilterBase(ComponentBase):
-    """Base class for all filter components."""
-
+class Filter(EngineInput):
     def __init__(self, component: str, **kwargs):
-        super().__init__(component, **kwargs)
-
-
-class UniqueScoreFilter(FilterBase):
-    """Filter that removes individuals with duplicate scores."""
-
-    def __init__(self, max_stagnation: int, threshold: float):
         super().__init__(
-            component="UniqueScoreFilter",
-            args={
-                "max_stagnation": max_stagnation,
-                "threshold": threshold,
-            },
+            component=component,
+            input_type=EngineInputType.Filter,
+            **kwargs,
         )
 
-
-class Filter:
     @staticmethod
     def unique_score(threshold: float = 0.01, max_stagnation: int = 10):
         """
@@ -33,4 +21,8 @@ class Filter:
         :param threshold: The minimum difference in score between two individuals for them to be considered unique.
         :param max_stagnation: The maximum number of generations an individual can remain in the population without being replaced.
         """
-        return UniqueScoreFilter(threshold=threshold, max_stagnation=max_stagnation)
+        return Filter(
+            component=components.UNIQUE_SCORE_FILTER,
+            max_stagnation=max_stagnation,
+            threshold=threshold,
+        )

@@ -24,14 +24,12 @@ from ..genome import Chromosome, Gene, Population
 from ..gp import Graph, Op, Tree
 from ..operators import (
     AlterBase,
-    DistanceBase,
     Executor,
-    ExprLimit,
-    FilterBase,
-    LimitBase,
-    SelectorBase,
 )
+from ..operators.distance import Dist
+from ..operators.filter import Filter
 from ..operators.limit import Limit
+from ..operators.selector import Select
 from .builder import EngineBuilder
 from .generation import Generation
 from .option import LogParam, UiParam, normalize_checkpoint_params
@@ -479,8 +477,8 @@ class Engine[G, T]:
 
     def select(
         self,
-        offspring: SelectorBase | None = None,
-        survivor: SelectorBase | None = None,
+        offspring: Select | None = None,
+        survivor: Select | None = None,
         frac: float | None = None,
     ) -> Engine[G, T]:
         """
@@ -578,7 +576,7 @@ class Engine[G, T]:
 
     def diversity(
         self,
-        diversity: DistanceBase,
+        diversity: Dist,
         threshold: Expr | float = 0.5,
         target: int | None = None,
     ) -> Engine[G, T]:
@@ -674,13 +672,13 @@ class Engine[G, T]:
             if isinstance(lim, Limit):
                 processed_limits.append(lim)
             elif isinstance(lim, Expr):
-                processed_limits.append(ExprLimit(lim))
+                processed_limits.append(Limit.expr(lim))
             else:
-                raise ValueError("Limits must be instances of LimitBase or Expr.")
+                raise ValueError("Limits must be instances of Limit or Expr.")
         self._builder.set_limits(list(processed_limits))
         return self
 
-    def filter(self, *filters: FilterBase) -> Engine[G, T]:
+    def filter(self, *filters: Filter) -> Engine[G, T]:
         """
         Set the filters for the engine.
 

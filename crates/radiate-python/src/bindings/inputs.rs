@@ -35,6 +35,7 @@ pub enum PyEngineInputType {
     Codec,
     FitnessFunction,
     Filter,
+    Unknown,
 }
 
 #[pyclass(from_py_object)]

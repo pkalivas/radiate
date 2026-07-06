@@ -123,27 +123,8 @@ from .operators.distance import (
 )
 from .operators.executor import Executor
 from .operators.filter import Filter
-from .operators.limit import (
-    ConvergenceLimit,
-    GenerationsLimit,
-    Limit,
-    MetricLimit,
-    ScoreLimit,
-    SecondsLimit,
-)
-from .operators.selector import (
-    BoltzmannSelector,
-    EliteSelector,
-    LinearRankSelector,
-    NSGA2Selector,
-    NSGA3Selector,
-    RankSelector,
-    RouletteSelector,
-    Select,
-    StochasticSamplingSelector,
-    TournamentNSGA2Selector,
-    TournamentSelector,
-)
+from .operators.limit import Limit
+from .operators.selector import Select
 from .random import RandomProvider as random
 
 MIN = "min"
@@ -223,11 +204,7 @@ __all__ = [
     # Executor
     "Executor",
     # Limits
-    "SecondsLimit",
-    "GenerationsLimit",
-    "ScoreLimit",
-    "ConvergenceLimit",
-    "MetricLimit",
+    "Limit",
     # Problem
     "Regression",
     "NoveltySearch",
@@ -240,16 +217,7 @@ __all__ = [
     "XEnt",
     "Diff",
     # Selectors
-    "TournamentSelector",
-    "RouletteSelector",
-    "RankSelector",
-    "EliteSelector",
-    "StochasticSamplingSelector",
-    "BoltzmannSelector",
-    "LinearRankSelector",
-    "NSGA2Selector",
-    "TournamentNSGA2Selector",
-    "NSGA3Selector",
+    "Select",
     # Diversity Measures
     "NeatDistance",
     "CosineDistance",

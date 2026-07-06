@@ -36,27 +36,29 @@ from ..operators.distance import (
     HammingDistance,
     NeatDistance,
 )
-from ..operators.filter import UniqueScoreFilter
-from ..operators.limit import (
-    ConvergenceLimit,
-    ExprLimit,
-    GenerationsLimit,
-    MetricLimit,
-    ScoreLimit,
-    SecondsLimit,
-)
-from ..operators.selector import (
-    BoltzmannSelector,
-    EliteSelector,
-    LinearRankSelector,
-    NSGA2Selector,
-    NSGA3Selector,
-    RankSelector,
-    RouletteSelector,
-    StochasticSamplingSelector,
-    TournamentNSGA2Selector,
-    TournamentSelector,
-)
+
+# from ..operators.filter import UniqueScoreFilter
+
+# from ..operators.limit import (
+#     ConvergenceLimit,
+#     ExprLimit,
+#     GenerationsLimit,
+#     MetricLimit,
+#     ScoreLimit,
+#     SecondsLimit,
+# )
+# from ..operators.selector import (
+#     BoltzmannSelector,
+#     EliteSelector,
+#     LinearRankSelector,
+#     NSGA2Selector,
+#     NSGA3Selector,
+#     RankSelector,
+#     RouletteSelector,
+#     StochasticSamplingSelector,
+#     TournamentNSGA2Selector,
+#     TournamentSelector,
+# )
 
 
 def _get_rate(rate: OperatorRate) -> Expr:

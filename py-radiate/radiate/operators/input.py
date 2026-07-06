@@ -31,6 +31,7 @@ class EngineInputType(StrEnum):
     FitnessFunction = "FitnessFunction"
     Metric = "Metric"
     Filter = "Filter"
+    Unknown = "Unknown"
 
 
 input_type_mapping = {
@@ -56,72 +57,8 @@ input_type_mapping = {
     EngineInputType.FitnessFunction: PyEngineInputType.FitnessFunction,
     EngineInputType.Metric: PyEngineInputType.Metric,
     EngineInputType.Filter: PyEngineInputType.Filter,
+    EngineInputType.Unknown: PyEngineInputType.Unknown,
 }
-
-
-class AlterComponentType(StrEnum):
-    MultiPointCrossover = "MultiPointCrossover"
-    UniformCrossover = "UniformCrossover"
-    MeanCrossover = "MeanCrossover"
-    IntermediateCrossover = "IntermediateCrossover"
-    BlendCrossover = "BlendCrossover"
-    ShuffleCrossover = "ShuffleCrossover"
-    SimulatedBinaryCrossover = "SimulatedBinaryCrossover"
-    GraphCrossover = "GraphCrossover"
-    TreeCrossover = "TreeCrossover"
-    PartiallyMappedCrossover = "PartiallyMappedCrossover"
-    EdgeRecombinationCrossover = "EdgeRecombinationCrossover"
-    UniformMutator = "UniformMutator"
-    ScrambleMutator = "ScrambleMutator"
-    SwapMutator = "SwapMutator"
-    ArithmeticMutator = "ArithmeticMutator"
-    GaussianMutator = "GaussianMutator"
-    GraphMutator = "GraphMutator"
-    OperationMutator = "OperationMutator"
-    HoistMutator = "HoistMutator"
-    InversionMutator = "InversionMutator"
-    PolynomialMutator = "PolynomialMutator"
-    JitterMutator = "JitterMutator"
-
-
-class LimitComponentType(StrEnum):
-    Generations = "Generations"
-    Seconds = "Seconds"
-    Score = "Score"
-    Convergence = "Convergence"
-    Metric = "Metric"
-    Expr = "Expr"
-
-
-class DistanceComponentType(StrEnum):
-    Hamming = "Hamming"
-    Cosine = "Cosine"
-    Euclidean = "Euclidean"
-    Neat = "Neat"
-
-
-class SelectorComponentType(StrEnum):
-    Tournament = "Tournament"
-    RouletteWheel = "RouletteWheel"
-    Rank = "Rank"
-    StochasticUniversal = "StochasticUniversal"
-    Boltzmann = "Boltzmann"
-    Elite = "Elite"
-    Random = "Random"
-    NSGA2 = "NSGA2"
-    NSGA3 = "NSGA3"
-    TournamentNSGA2 = "TournamentNSGA2"
-    LinearRank = "LinearRank"
-
-
-class FilterComponentType(StrEnum):
-    UniqueScore = "UniqueScore"
-
-
-class ExecutorComponentType(StrEnum):
-    Serial = "Serial"
-    FixedSizedWorkerPool = "FixedSizedWorkerPool"
-    WorkerPool = "WorkerPool"
 
 
 class EngineInput(RsObject):

@@ -30,43 +30,9 @@ from .distance import (
     NeatDistance,
 )
 from .executor import Executor
-from .filter import FilterBase, UniqueScoreFilter
-from .limit import (
-    ConvergenceLimit,
-    ExprLimit,
-    GenerationsLimit,
-    LimitBase,
-    MetricLimit,
-    ScoreLimit,
-    SecondsLimit,
-)
-from .selector import (
-    BoltzmannSelector,
-    EliteSelector,
-    LinearRankSelector,
-    NSGA2Selector,
-    NSGA3Selector,
-    RankSelector,
-    RouletteSelector,
-    SelectorBase,
-    StochasticSamplingSelector,
-    TournamentNSGA2Selector,
-    TournamentSelector,
-)
+from .filter import Filter
 
 __all__ = [
-    # Selectors
-    "SelectorBase",
-    "TournamentSelector",
-    "RouletteSelector",
-    "RankSelector",
-    "EliteSelector",
-    "StochasticSamplingSelector",
-    "BoltzmannSelector",
-    "LinearRankSelector",
-    "NSGA2Selector",
-    "TournamentNSGA2Selector",
-    "NSGA3Selector",
     # Alterers
     "AlterBase",
     "BlendCrossover",
@@ -98,16 +64,7 @@ __all__ = [
     # Executor
     "Executor",
     # Limits
-    "LimitBase",
-    "SecondsLimit",
-    "GenerationsLimit",
-    "ScoreLimit",
-    "MetricLimit",
-    "ExprLimit",
-    # Descriptors
-    "ConvergenceLimit",
     "CustomDescriptor",
     # Filters
-    "FilterBase",
-    "UniqueScoreFilter",
+    "Filter",
 ]

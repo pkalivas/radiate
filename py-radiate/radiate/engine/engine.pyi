@@ -13,13 +13,12 @@ from radiate.genome import Chromosome, Gene, Population
 from radiate.gp import Graph, Op, Tree
 from radiate.operators import (
     AlterBase,
-    DistanceBase,
-    FilterBase,
-    LimitBase,
-    SelectorBase,
 )
+from radiate.operators.filter import Filter
 from radiate.operators.limit import Limit
+from radiate.operators.selector import Select
 
+from ..operators.distance import Dist
 from .generation import Generation
 from .option import CheckpointParam
 
@@ -754,19 +753,19 @@ class Engine[G, T]:
     ) -> Self: ...
     def select(
         self,
-        offspring: SelectorBase | None = None,
-        survivor: SelectorBase | None = None,
+        offspring: Select | None = None,
+        survivor: Select | None = None,
         frac: float | None = None,
     ) -> Self: ...
     def alters(self, *alters: AlterBase) -> Self: ...
     def diversity(
         self,
-        diversity: DistanceBase,
+        diversity: Dist,
         threshold: Expr | float = 0.5,
         target: int | None = None,
     ) -> Self: ...
     def limit(self, *limits: Limit | Expr) -> Self: ...
-    def filter(self, *filters: FilterBase) -> Self: ...
+    def filter(self, *filters: Filter) -> Self: ...
     def size(self, size: int) -> Self: ...
     def age(
         self,

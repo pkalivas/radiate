@@ -95,6 +95,7 @@ class PyEngineInputType(StrEnum):
     FitnessFunction = "FitnessFunction"
     Metric = "Metric"
     Filter = "Filter"
+    Unknown = "Unknown"
 
 class PyEngineControl:
     def pause(self) -> None: ...

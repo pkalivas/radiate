@@ -16,9 +16,9 @@ def test_engine_permutation_tsp(random_seed):
         fitness_func=fitness_func,
         objective=rd.MIN,
         population_size=50,
-        offspring_selector=rd.TournamentSelector(3),
-        survivor_selector=rd.EliteSelector(),
-        alters=[rd.PartiallyMappedCrossover(0.7), rd.InversionMutator(0.1)],
+        offspring_selector=rd.Select.tournament(k=3),
+        survivor_selector=rd.Select.elite(),
+        alters=[rd.Cross.pmx(rate=0.7), rd.Mutate.inversion(rate=0.1)],
     ).limit(rd.Limit.score(5), rd.Limit.generations(100))
 
     result = engine.run()

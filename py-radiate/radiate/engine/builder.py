@@ -9,15 +9,13 @@ from ..fitness import CallableFitness, FitnessBase
 from ..genome import GeneType, Population
 from ..operators import (
     AlterBase,
-    DistanceBase,
     Executor,
-    FilterBase,
-    LimitBase,
-    RouletteSelector,
-    SelectorBase,
-    TournamentSelector,
 )
+from ..operators.distance import Dist
+from ..operators.filter import Filter
 from ..operators.input import EngineInput, EngineInputType
+from ..operators.limit import Limit
+from ..operators.selector import Select
 from .generation import Generation
 from .handlers import CallableEventHandler, EventHandler
 
@@ -29,10 +27,10 @@ class EngineConfig[G, T]:
     fitness_func: Callable[[T], Any] | FitnessBase | None = None
 
     population: Population[G] | None = None
-    offspring_selector: SelectorBase | None = None
-    survivor_selector: SelectorBase | None = None
+    offspring_selector: Select | None = None
+    survivor_selector: Select | None = None
     alters: AlterBase | list[AlterBase] | None = None
-    diversity: DistanceBase | None = None
+    diversity: Dist | None = None
 
     population_size: int = 100
     offspring_fraction: float = 0.8
@@ -58,10 +56,8 @@ class EngineBuilder[G, T]:
         inst._gene_type = gene_type
 
         inst.set_population(defaults.population)
-        inst.set_offspring_selector(
-            defaults.offspring_selector or TournamentSelector(3)
-        )
-        inst.set_survivor_selector(defaults.survivor_selector or RouletteSelector())
+        inst.set_offspring_selector(defaults.offspring_selector or Select.tournament(3))
+        inst.set_survivor_selector(defaults.survivor_selector or Select.roulette())
         inst.set_alters(defaults.alters)
         inst.set_diversity(defaults.diversity, defaults.species_threshold)
         inst.set_population_size(defaults.population_size)
@@ -227,35 +223,21 @@ class EngineBuilder[G, T]:
                 )
             )
 
-    def set_survivor_selector(self, selector: SelectorBase):
+    def set_survivor_selector(self, selector: Select):
         if self._gene_type not in selector.allowed_genes:
             raise ValueError(
                 f"Selector {selector.component} does not support gene type {self._gene_type}"
             )
 
-        self._inputs.append(
-            EngineInput(
-                input_type=EngineInputType.SurvivorSelector,
-                component=selector.component,
-                allowed_genes=selector.allowed_genes,
-                **selector.args,
-            )
-        )
+        self._inputs.append(selector.to_survivor_selector())
 
-    def set_offspring_selector(self, selector: SelectorBase):
+    def set_offspring_selector(self, selector: Select):
         if self._gene_type not in selector.allowed_genes:
             raise ValueError(
                 f"Selector {selector.component} does not support gene type {self._gene_type}"
             )
 
-        self._inputs.append(
-            EngineInput(
-                input_type=EngineInputType.OffspringSelector,
-                component=selector.component,
-                allowed_genes=selector.allowed_genes,
-                **selector.args,
-            )
-        )
+        self._inputs.append(selector.to_offspring_selector())
 
     def set_alters(self, alters: AlterBase | list[AlterBase] | None):
         if alters is None:
@@ -277,7 +259,7 @@ class EngineBuilder[G, T]:
 
     def set_diversity(
         self,
-        diversity: DistanceBase | None,
+        diversity: Dist | None,
         species_threshold: Expr | float,
         target_species: int | None = None,
     ):
@@ -289,14 +271,7 @@ class EngineBuilder[G, T]:
                 f"Diversity {diversity.component} does not support gene type {self._gene_type}"
             )
 
-        self._inputs.append(
-            EngineInput(
-                input_type=EngineInputType.Diversity,
-                component=diversity.component,
-                allowed_genes=diversity.allowed_genes,
-                **diversity.args,
-            )
-        )
+        self._inputs.append(diversity)
 
         self._inputs.append(
             EngineInput(
@@ -328,31 +303,19 @@ class EngineBuilder[G, T]:
                 )
             )
 
-    def set_limits(self, limits: list[LimitBase] | None):
+    def set_limits(self, limits: list[Limit] | None):
         if limits is None:
             return
 
         for limit in limits:
-            self._inputs.append(
-                EngineInput(
-                    input_type=EngineInputType.Limit,
-                    component=limit.component,
-                    **limit.args,
-                )
-            )
+            self._inputs.append(limit)
 
-    def set_filters(self, filters: list[FilterBase] | None):
+    def set_filters(self, filters: list[Filter] | None):
         if filters is None:
             return
 
         for filter in filters:
-            self._inputs.append(
-                EngineInput(
-                    input_type=EngineInputType.Filter,
-                    component=filter.component,
-                    **filter.args,
-                )
-            )
+            self._inputs.append(filter)
 
     def set_population_size(self, size: int):
         if size <= 0:
@@ -439,10 +402,4 @@ class EngineBuilder[G, T]:
         if executor is None:
             executor = Executor.Serial()
 
-        self._inputs.append(
-            EngineInput(
-                input_type=EngineInputType.Executor,
-                component=executor.component,
-                **executor.args,
-            )
-        )
+        self._inputs.append(executor)
