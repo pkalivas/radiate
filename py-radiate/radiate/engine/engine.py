@@ -31,6 +31,7 @@ from ..operators import (
     LimitBase,
     SelectorBase,
 )
+from ..operators.limit import Limit
 from .builder import EngineBuilder
 from .generation import Generation
 from .option import LogParam, UiParam, normalize_checkpoint_params
@@ -617,7 +618,7 @@ class Engine[G, T]:
         self._builder.set_diversity(diversity, threshold, target)
         return self
 
-    def limit(self, *limits: LimitBase | Expr) -> Engine[G, T]:
+    def limit(self, *limits: Limit | Expr) -> Engine[G, T]:
         """
         Set the limits for the engine.
 
@@ -670,7 +671,7 @@ class Engine[G, T]:
         """
         processed_limits = []
         for lim in limits:
-            if isinstance(lim, LimitBase):
+            if isinstance(lim, Limit):
                 processed_limits.append(lim)
             elif isinstance(lim, Expr):
                 processed_limits.append(ExprLimit(lim))

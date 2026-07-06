@@ -163,35 +163,38 @@ class Limit(EngineInput):
             component=component, input_type=EngineInputType.Limit, **kwargs
         )
 
-    @staticmethod
-    def score2(value: float) -> Limit:
-        return Limit(component=components.SCORE2, score=value)
+    # @staticmethod
+    # def score2(value: float) -> Limit:
+    #     return Limit(components.SCORE_LIMIT, score=value)
 
     @staticmethod
-    def score(value: float) -> ScoreLimit:
-        return ScoreLimit(value)
+    def score(value: float) -> Limit:
+        from .._rd import components
+
+        print(dir(components))
+        return Limit(components.SCORE_LIMIT, score=value)
 
     @staticmethod
-    def generations(n: int) -> GenerationsLimit:
-        return GenerationsLimit(n)
+    def generations(n: int) -> Limit:
+        return Limit(components.GENERATIONS_LIMIT, generations=n)
 
     @staticmethod
-    def seconds(secs: int) -> SecondsLimit:
-        return SecondsLimit(secs)
+    def seconds(secs: int) -> Limit:
+        return Limit(components.SECONDS_LIMIT, seconds=secs)
 
     @staticmethod
-    def convergence(window: int, threshold: float) -> ConvergenceLimit:
-        return ConvergenceLimit(window, threshold)
+    def convergence(window: int, threshold: float) -> Limit:
+        return Limit(components.CONVERGENCE_LIMIT, window=window, epsilon=threshold)
 
     @staticmethod
     def metric(
         name: str = "count.evaluation", limit=lambda metric: metric.sum() > 1000
-    ) -> MetricLimit:
-        return MetricLimit(name, limit)
+    ) -> Limit:
+        return Limit(components.METRIC_LIMIT, name=name, limit=limit)
 
     @staticmethod
-    def expr(expr: Expr) -> ExprLimit:
-        return ExprLimit(expr)
+    def expr(expr: Expr) -> Limit:
+        return Limit(components.EXPR_LIMIT, expr=expr)
 
 
 # class Limit:

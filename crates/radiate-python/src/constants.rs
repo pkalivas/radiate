@@ -61,14 +61,19 @@ pub mod components {
 
         UNIQUE_SCORE_FILTER = "UniqueScoreFilter";
 
+        SCORE_LIMIT = "ScoreLimit";
+        GENERATIONS_LIMIT = "GenerationsLimit";
+        SECONDS_LIMIT = "SecondsLimit";
+        CONVERGENCE_LIMIT = "ConvergenceLimit";
+        METRIC_LIMIT = "MetricLimit";
+        EXPR_LIMIT = "ExprLimit";
+
         ALL_EVENTS = "all";
         START_EVENT = "start_event";
         STOP_EVENT = "stop_event";
         EPOCH_START_EVENT = "epoch_start_event";
         EPOCH_COMPLETE_EVENT = "epoch_complete_event";
         ENGINE_IMPROVEMENT_EVENT = "engine_improvement_event";
-
-
     }
 }
 

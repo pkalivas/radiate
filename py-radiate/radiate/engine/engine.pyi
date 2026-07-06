@@ -18,6 +18,7 @@ from radiate.operators import (
     LimitBase,
     SelectorBase,
 )
+from radiate.operators.limit import Limit
 
 from .generation import Generation
 from .option import CheckpointParam
@@ -764,7 +765,7 @@ class Engine[G, T]:
         threshold: Expr | float = 0.5,
         target: int | None = None,
     ) -> Self: ...
-    def limit(self, *limits: LimitBase | Expr) -> Self: ...
+    def limit(self, *limits: Limit | Expr) -> Self: ...
     def filter(self, *filters: FilterBase) -> Self: ...
     def size(self, size: int) -> Self: ...
     def age(
