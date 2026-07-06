@@ -1,9 +1,8 @@
 from dataclasses import dataclass
 from typing import Any, Callable
 
-from radiate.radiate import PyEngine, PyEngineBuilder
-
 from .._bridge.input import EngineInput, EngineInputType
+from .._rd import PyEngine, PyEngineBuilder
 from .._typing import Subscriber
 from ..codec import CodecBase
 from ..expr import Expr

@@ -40,6 +40,8 @@ from .option import LogParam, UiParam, normalize_checkpoint_params
 if TYPE_CHECKING:
     from radiate._rd import PyEngine
 
+from ..utils.worker import BackgroundWorker
+
 
 class Engine[G, T]:
     _engine: PyEngine = None
@@ -243,7 +245,9 @@ class Engine[G, T]:
         it automatically triggers a fresh run.
         """
         if self._iterating:
-            self._engine = None
+            raise RuntimeError(
+                "Engine is already iterating. Use next(engine) to get the next generation."
+            )
 
         self._iterating = True
         return self
@@ -251,7 +255,7 @@ class Engine[G, T]:
     def __next__(self) -> Generation[G, T]:
         """Get the next generation from the engine. Supports next(engine)."""
         if self._engine is None:
-            self._engine = self._builder.build().__iter__()
+            self._engine = self._builder.build()
 
         try:
             generation = next(self._engine)
@@ -259,6 +263,37 @@ class Engine[G, T]:
         except StopIteration:
             self._iterating = False
             raise StopIteration
+
+    def worker(
+        self,
+        log: bool | LogParam = False,
+        ui: bool | UiParam = False,
+        checkpoint: Checkpoint | None = None,
+    ) -> BackgroundWorker:
+        """
+        Run the engine in a background thread with the given limits.
+        This method allows you to run the engine in a separate thread, enabling you to perform other tasks concurrently.
+        It returns a BackgroundWorker context manager that manages the lifecycle of the background thread.
+
+        Args:
+            limits: A single Limit or a list of Limits to apply to the engine.
+            log: If True, enables logging for the generation process.
+            ui: If True, enables a user interface for monitoring the evolution process.
+            checkpoint: If provided, enables checkpointing at the specified interval, path, and file type. Checkpoint can be
+                        specified as a path string, a tuple (interval, path, file_type), or a CheckpointParam instance.
+                        The default checkpoint interval is 250 generations, the default path is "./checkpoints", and the default file type is "pkl".
+
+        Returns:
+            BackgroundWorker: A context manager that runs the engine in a background thread.
+
+        Example:
+        ---------
+        >>> with engine.worker(log=True) as worker:
+        ...     # Perform other tasks while the engine runs in the background
+        ...     do_other_tasks()
+        >>> # The background worker will automatically wait for completion when exiting the context
+        """
+        return BackgroundWorker(self.run, log=log, ui=ui, checkpoint=checkpoint)
 
     def control(self) -> EngineControl:
         """Get the control interface for the engine."""
@@ -301,6 +336,11 @@ class Engine[G, T]:
         ...     checkpoint=rd.EngineCheckpoint(50, "checkpoints", file_type="json"),
         ... )
         """
+        if self._iterating:
+            raise RuntimeError(
+                "Cannot call run() while the engine is iterating. Use next(engine) to get the next generation."
+            )
+
         engine = self._builder.build()
 
         limit_inputs = [

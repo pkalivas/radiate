@@ -3,7 +3,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import TYPE_CHECKING
 
-from radiate.radiate import PyEngineInput, PyEngineInputType
+from .._rd import PyEngineInput, PyEngineInputType
 
 if TYPE_CHECKING:
     from ..expr import Expr

@@ -25,29 +25,22 @@ def fitness(
     return decorator if func is None else decorator(func)
 
 
-def novelty(
-    behavior_func: Callable[..., Any] | None = None,
-    /,
-    *,
+def novelty[T](
     archive: int = 1000,
     k: int = 15,
     threshold: float = 0.03,
     distance: DistanceBase = HammingDistance(),
 ):
-    def decorator(f: Callable[..., Any]) -> FitnessBase:
-        @wraps(f)
-        def wrapper(*args, **kwargs):
-            return f(*args, **kwargs)
-
+    def decorator(func: Callable[[T], float | list[float]]) -> NoveltySearch[T]:
         return NoveltySearch(
-            descriptor=wrapper,
+            descriptor=func,
             archive_size=archive,
             k=k,
             distance=distance,
             threshold=threshold,
         )
 
-    return decorator if behavior_func is None else decorator(behavior_func)
+    return decorator
 
 
 __all__ = [

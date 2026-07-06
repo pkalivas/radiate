@@ -19,6 +19,7 @@ from radiate.operators import (
     LimitBase,
     SelectorBase,
 )
+from radiate.utils.worker import BackgroundWorker
 
 from .generation import Generation
 from .option import CheckpointParam, LogParam, UiParam
@@ -725,6 +726,7 @@ class Engine[G, T]:
     # ----------------------------
     def __iter__(self) -> Engine[G, T]: ...
     def __next__(self) -> Generation[G, T]: ...
+    def worker(self) -> BackgroundWorker: ...
     def control(self) -> EngineControl: ...
     def run(
         self,

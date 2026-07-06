@@ -62,6 +62,11 @@ def metrics_dashboard(event: rd.EngineEvent):
     print(event.metrics().dashboard())
 
 
+@rd.on_epoch
+def my_logger(event: rd.EngineEvent):
+    print(f"Epoch {event.index()}: Best score = {event.score():.6f}")
+
+
 engine = (
     rd.Engine.float(
         # Create an engine that evolves genomes with 3 chromosomes, one for each layer's weights, 1 with 16 genes, 1 with 64 genes, and 1 with 8 genes
@@ -77,42 +82,104 @@ engine = (
     )
     .fitness(fit)
     .minimizing()
-    .subscribe(metrics_dashboard)
+    .subscribe(metrics_dashboard, my_logger)
     .select(rd.Select.boltzmann(temp=4.0))
     .alters(rd.Cross.blend(0.7, 0.4), rd.Mutate.gaussian(0.1))
     .limit(rd.Limit.score(0.01), rd.Limit.generations(500))
 )
+# import time
 
-# print(engine.run(ui=True))
-
-# one = next(engine)
-# print(one)
-# two = next(engine)
-# print(two)
-# three = next(engine)
-# print(three)
-
-# control = engine.control()
-
-# four = next(engine)
-# print(four)
-
-# control.pause()
-
-# five = next(engine)
-# print(five)
+# with engine.worker() as worker:
+#     # Load from a previous checkpoint if it exists
+#     for i in range(20):
+#         time.sleep(0.01)
+#         print(f"\n=== Worker iteration {i + 1} ===")
 
 
-# .load_checkpoint(
-#     READ_DIR, ignore_not_found=True
-# )  # Load from a previous checkpoint if it exists
-
-# checkpoint = (50, WRITE_DIR, "pkl")
-
-# for metric in metrics.values_by_tag(rd.Tag.DERIVED):
-#     print(metric)
+# import threading
+# import time
 
 
-# .load_checkpoint(
-#         READ_DIR, ignore_not_found=True
-#     )  # Load from a previous checkpoint if it exists
+# class BackgroundWorker:
+#     def __init__(self, target_function, *args, **kwargs):
+#         """
+#         Accepts any function and its arguments to run in the background.
+#         """
+#         self.target = target_function
+#         self.args = args
+#         self.kwargs = kwargs
+#         self.thread = None
+
+#     def __enter__(self):
+#         # Create and start the thread immediately
+#         self.thread = threading.Thread(
+#             target=self.target,
+#             args=self.args,
+#             kwargs=self.kwargs,
+#             daemon=True,  # Ensures the thread dies if the main program crashes
+#         )
+#         self.thread.start()
+#         return self  # Control moves instantly to the code inside the 'with' block
+
+#     def __exit__(self, exc_type, exc_val, exc_tb):
+#         # Wait for the background task to finish before leaving the block
+#         if self.thread and self.thread.is_alive():
+#             print("\n[Front] Main tasks done. Waiting for background task to finish...")
+#             self.thread.join()
+#         print("[Front] Background worker context closed.")
+
+
+# # 1. Define your slow background task
+# def heavy_download(file_name, duration):
+#     print(f"[Back] Starting download of {file_name}...")
+#     for i in range(1, duration + 1):
+#         time.sleep(1)
+#         print(f"[Back] Downloading... {i}/{duration}s")
+#     print(f"[Back] {file_name} successfully downloaded!")
+
+
+# # 2. Run the front-end and back-end simultaneously
+# print("[Front] Program started.")
+
+# with BackgroundWorker(heavy_download, "dataset.csv", duration=4):
+#     # This code executes immediately while the download runs in parallel
+#     print("[Front] User interface is responsive! Type data or process inputs here.")
+#     for step in ["A", "B", "C"]:
+#         time.sleep(0.8)
+#         print(f"[Front] Processing frontend step {step}...")
+
+# print("[Front] Program complete.")
+
+# # print(engine.run(ui=True))
+
+# # one = next(engine)
+# # print(one)
+# # two = next(engine)
+# # print(two)
+# # three = next(engine)
+# # print(three)
+
+# # control = engine.control()
+
+# # four = next(engine)
+# # print(four)
+
+# # control.pause()
+
+# # five = next(engine)
+# # print(five)
+
+
+# # .load_checkpoint(
+# #     READ_DIR, ignore_not_found=True
+# # )  # Load from a previous checkpoint if it exists
+
+# # checkpoint = (50, WRITE_DIR, "pkl")
+
+# # for metric in metrics.values_by_tag(rd.Tag.DERIVED):
+# #     print(metric)
+
+
+# # .load_checkpoint(
+# #         READ_DIR, ignore_not_found=True
+# #     )  # Load from a previous checkpoint if it exists

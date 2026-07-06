@@ -1,4 +1,4 @@
-from typing import Any, Callable
+from typing import Callable
 
 from radiate.radiate import PyFitnessFn
 
@@ -13,7 +13,7 @@ class NoveltySearch[T](FitnessBase[T]):
     def __init__(
         self,
         distance: DistanceBase | None,
-        descriptor: Callable[[Any], float | list[float]] | DescriptorBase,
+        descriptor: Callable[[T], float | list[float]] | DescriptorBase,
         k: int = 15,
         threshold: float = 0.03,
         archive_size: int = 1000,
