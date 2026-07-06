@@ -387,11 +387,10 @@ class SnakeEvolver:
                     rd.Mutate.op(0.04, 0.05),
                     rd.Mutate.graph(0.08, 0.04, True),
                 )
+                .limit(rd.Limit.generations(generations), rd.Limit.seconds(60 * 2))
             )
 
-            return engine.run(
-                rd.Limit.generations(generations), rd.Limit.seconds(60 * 2), log=True
-            )
+            return engine.run(log=True)
 
     def visualize_best_snake(self, graph: rd.Graph, title: str = "Best Snake AI"):
         """Visualize the best evolved snake playing."""

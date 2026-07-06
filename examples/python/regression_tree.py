@@ -26,22 +26,22 @@ for _ in range(-10, 10):
     inputs.append([input])
     answers.append([compute(input)])
 
-engine = rd.Engine(
-    codec=rd.TreeCodec(
+engine = (
+    rd.Engine.tree(
         shape=(1, 1),
         vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.add()],
         root=rd.Op.linear(),
-    ),
-    fitness_func=rd.Regression(inputs, answers),
-    objective=rd.MIN,
-    alters=[
+    )
+    .regression(inputs, answers)
+    .alters(
         rd.TreeCrossover(0.7),
         rd.HoistMutator(0.01),
-    ],
+    )
+    .limit(rd.Limit.score(0.01), rd.Limit.generations(500))
 )
 
 
-result = engine.run(rd.ScoreLimit(0.01), rd.GenerationsLimit(1000), log=True)
+result = engine.run(log=True)
 eval_results = result.value().eval(inputs)
 accuracy = np.mean(
     np.abs(np.array(eval_results).flatten() - np.array(answers).flatten()) < 0.1

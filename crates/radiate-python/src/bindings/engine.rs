@@ -91,7 +91,7 @@ impl PyEngine {
     }
 
     pub fn run(&mut self, py: Python, options: Vec<PyEngineRunOption>) -> PyResult<PyGeneration> {
-        let engine_handle = self
+        let handle = self
             .engine
             .take()
             .ok_or_else(|| radiate_py_err!("Engine has already been run"))?;
@@ -101,9 +101,9 @@ impl PyEngine {
         }
 
         py.detach(|| {
-            
-            let epoch_handle = match_variant!(EngineHandle, engine_handle, engine => run_engine(engine, self.limits.clone() , options)?.into());
-            Ok(PyGeneration::new(epoch_handle))
+            let limits = self.limits.clone();
+            let epoch = match_variant!(EngineHandle, handle, engine => run_engine(engine, limits, options)?.into());
+            Ok(PyGeneration::new(epoch))
         })
     }
 }

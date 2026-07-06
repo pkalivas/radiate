@@ -1,4 +1,5 @@
 use crate::{IntoPyAnyObject, PyAnyObject, PyFitnessInner, bindings::PyCodec};
+use numpy::{PyArrayDyn, PyArrayMethods};
 use pyo3::{Py, PyAny, Python, types::PyList};
 use radiate::{Chromosome, Codec, Genotype, Problem, RadiateResult, Score, error};
 
@@ -26,6 +27,38 @@ impl<C: Chromosome, T> PyProblem<C, T> {
                 e
             )
         })?;
+
+        let bound = any_value.bind(py);
+
+        if let Ok(other) = bound.cast::<PyArrayDyn<f32>>() {
+            let readonly_view = other.readonly();
+            let slice = readonly_view.as_slice().map_err(|e| {
+                error::radiate_err!(Evaluation:
+                    "Fitness function returned a non-contiguous numpy array: {}", e
+                )
+            })?;
+            if slice.is_empty() {
+                error::radiate_bail!(Evaluation:
+                    "Fitness function returned an empty score array."
+                );
+            }
+            return Ok(Score::from(slice.to_vec()));
+        } else if let Ok(other) = bound.cast::<PyArrayDyn<f64>>() {
+            let readonly_view = other.readonly();
+            let slice = readonly_view.as_slice().map_err(|e| {
+                error::radiate_err!(Evaluation:
+                    "Fitness function returned a non-contiguous numpy array: {}", e
+                )
+            })?;
+            if slice.is_empty() {
+                error::radiate_bail!(Evaluation:
+                    "Fitness function returned an empty score array."
+                );
+            }
+            return Ok(Score::from(
+                slice.iter().map(|&x| x as f32).collect::<Vec<f32>>(),
+            ));
+        }
 
         let score = if let Ok(parsed) = any_value.extract::<f32>(py) {
             Score::from(parsed)

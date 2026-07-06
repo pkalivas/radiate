@@ -93,7 +93,6 @@ impl PyGraph {
             evaluator.eval_mut(slice)
         });
 
-        // Put cache back regardless of Ok/Err state safely
         self.eval_cache = Some(evaluator.take_cache());
         result
     }

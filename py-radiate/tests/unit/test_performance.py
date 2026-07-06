@@ -52,23 +52,23 @@ class TestEnginePerformance:
         def fitness_func(x: list[float]) -> float:
             return sum(xi**2 for xi in x)
 
-        # engine = rd.Engine(
-        #     codec=rd.FloatCodec(shape=10, init_range=(-1.0, 1.0)),
-        #     fitness_func=fitness_func,
-        #     objective=rd.MIN,
-        #     population_size=100,
-        #     offspring_selector=rd.TournamentSelector(3),
-        #     survivor_selector=rd.EliteSelector(),
-        #     alters=[rd.UniformCrossover(0.7), rd.ArithmeticMutator(0.1)],
-        # )
+        engine = (
+            rd.Engine.float(shape=10, init_range=(-1.0, 1.0))
+            .fitness(fitness_func)
+            .minimizing()
+            .size(100)
+            .select(rd.TournamentSelector(3), rd.EliteSelector())
+            .alters(rd.UniformCrossover(0.7), rd.ArithmeticMutator(0.1))
+            .limit(rd.GenerationsLimit(50))
+        )
 
-        # def engine_run():
-        #     return engine.run(rd.GenerationsLimit(50))
+        def engine_run():
+            return engine.run()
 
-        # result, execution_time = performance_benchmark.time_function(engine_run)
+        result, execution_time = performance_benchmark.time_function(engine_run)
 
-        # assert result.index() == 50
-        # assert execution_time < 5.0
+        assert result.index() == 50
+        assert execution_time < 5.0
 
     @pytest.mark.performance
     def test_engine_large_population_performance(self, performance_benchmark):
@@ -77,23 +77,23 @@ class TestEnginePerformance:
         def fitness_func(x: list[float]) -> float:
             return sum(xi**2 for xi in x)
 
-        # engine = rd.Engine(
-        #     codec=rd.FloatCodec(shape=20, init_range=(-1.0, 1.0)),
-        #     fitness_func=fitness_func,
-        #     objective=rd.MIN,
-        #     population_size=1000,
-        #     offspring_selector=rd.TournamentSelector(3),
-        #     survivor_selector=rd.EliteSelector(),
-        #     alters=[rd.UniformCrossover(0.7), rd.ArithmeticMutator(0.1)],
-        # )
+        engine = (
+            rd.Engine.float(shape=20, init_range=(-1.0, 1.0))
+            .fitness(fitness_func)
+            .minimizing()
+            .size(1000)
+            .select(rd.TournamentSelector(3), rd.EliteSelector())
+            .alters(rd.UniformCrossover(0.7), rd.ArithmeticMutator(0.1))
+            .limit(rd.GenerationsLimit(10))
+        )
 
-        # def engine_run():
-        #     return engine.run()
+        def engine_run():
+            return engine.run()
 
-        # result, execution_time = performance_benchmark.time_function(engine_run)
+        result, execution_time = performance_benchmark.time_function(engine_run)
 
-        # assert result.index() == 10
-        # assert execution_time < 30.0
+        assert result.index() == 10
+        assert execution_time < 30.0
 
 
 class TestMemoryPerformance:
@@ -115,7 +115,7 @@ class TestMemoryPerformance:
             .size(100)
             .select(rd.TournamentSelector(3), rd.EliteSelector())
             .alters(rd.UniformCrossover(0.7), rd.ArithmeticMutator(0.1))
-            .limit(rd.GenerationsLimit(50))
+            .limit(rd.Limit.generations(50))
         )
 
         engine.run()
@@ -144,7 +144,7 @@ class TestMemoryPerformance:
                 .size(200)
                 .select(rd.TournamentSelector(3), rd.EliteSelector())
                 .alters(rd.UniformCrossover(0.7), rd.ArithmeticMutator(0.1))
-                .limit(rd.GenerationsLimit(10))
+                .limit(rd.Limit.generations(10))
             )
 
             engine.run()
@@ -167,30 +167,30 @@ class TestScalabilityPerformance:
     def test_scalability_chromosome_length(self, performance_benchmark):
         """Test how performance scales with chromosome length."""
         ...
-        # lengths = [10, 50, 100, 500]
-        # execution_times = []
+        lengths = [10, 50, 100, 500]
+        execution_times = []
 
-        # def fitness_func(x: list[float]) -> float:
-        #     return sum(xi**2 for xi in x)
+        def fitness_func(x: list[float]) -> float:
+            return sum(xi**2 for xi in x)
 
-        # for length in lengths:
-        #     engine = rd.Engine(
-        #         codec=rd.FloatCodec(shape=length, init_range=(-1.0, 1.0)),
-        #         fitness_func=fitness_func,
-        #         objective=rd.MIN,
-        #         population_size=100,
-        #         offspring_selector=rd.TournamentSelector(3),
-        #         survivor_selector=rd.EliteSelector(),
-        #         alters=[rd.UniformCrossover(0.7), rd.ArithmeticMutator(0.1)],
-        #     )
+        for length in lengths:
+            engine = (
+                rd.Engine.float(shape=length, init_range=(-1.0, 1.0))
+                .fitness(fitness_func)
+                .minimizing()
+                .size(100)
+                .select(rd.TournamentSelector(3), rd.EliteSelector())
+                .alters(rd.UniformCrossover(0.7), rd.ArithmeticMutator(0.1))
+                .limit(rd.Limit.generations(20))
+            )
 
-        #     _, execution_time = performance_benchmark.time_function(
-        #         engine.run, rd.GenerationsLimit(20)
-        #     )
-        #     execution_times.append(execution_time)
+            _, execution_time = performance_benchmark.time_function(
+                engine.run,
+            )
+            execution_times.append(execution_time)
 
-        # # Performance should scale reasonably (not exponentially)
-        # for i in range(1, len(execution_times)):
-        #     time_ratio = execution_times[i] / execution_times[i - 1]
-        #     length_ratio = lengths[i] / lengths[i - 1]
-        #     assert time_ratio < length_ratio * 2
+        # Performance should scale reasonably (not exponentially)
+        for i in range(1, len(execution_times)):
+            time_ratio = execution_times[i] / execution_times[i - 1]
+            length_ratio = lengths[i] / lengths[i - 1]
+            assert time_ratio < length_ratio * 2
