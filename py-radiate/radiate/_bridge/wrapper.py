@@ -18,6 +18,13 @@ class RsObject(ABC):
     _pyobj: Any
     _cache: dict[str, Any]
 
+    def __new__(cls, *args, **kwargs):
+        instance = super().__new__(cls)
+        instance._pyobj = None
+        instance._cache = {}
+        instance._dtype = None
+        return instance
+
     def __init__(self, pyobj: Any = None):
         self._pyobj = pyobj
         self._cache = {}

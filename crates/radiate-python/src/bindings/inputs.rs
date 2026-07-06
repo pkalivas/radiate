@@ -59,7 +59,6 @@ impl PyEngineInput {
             component,
             input_type,
             allowed_genes,
-            // rate,
             args: args
                 .into_iter()
                 .map(|(k, v)| (k, PyAnyObject { inner: v }))

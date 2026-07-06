@@ -20,7 +20,8 @@ from .codec import (
     PermutationCodec,
     TreeCodec,
 )
-from .dsl import Cross, Dist, Filter, Limit, Mutate, Select
+
+# from .dsl import Filter
 from .dtype import (
     Boolean,
     Char,
@@ -90,6 +91,7 @@ from .gp import AccuracyResult, Graph, Op, OpsConfig, Tree, accuracy
 from .operators.alterer import (
     ArithmeticMutator,
     BlendCrossover,
+    Cross,
     EdgeRecombinationCrossover,
     GaussianMutator,
     GraphCrossover,
@@ -100,6 +102,7 @@ from .operators.alterer import (
     JitterMutator,
     MeanCrossover,
     MultiPointCrossover,
+    Mutate,
     OperationMutator,
     PartiallyMappedCrossover,
     PolynomialMutator,
@@ -113,14 +116,17 @@ from .operators.alterer import (
 )
 from .operators.distance import (
     CosineDistance,
+    Dist,
     EuclideanDistance,
     HammingDistance,
     NeatDistance,
 )
 from .operators.executor import Executor
+from .operators.filter import Filter
 from .operators.limit import (
     ConvergenceLimit,
     GenerationsLimit,
+    Limit,
     MetricLimit,
     ScoreLimit,
     SecondsLimit,
@@ -133,6 +139,7 @@ from .operators.selector import (
     NSGA3Selector,
     RankSelector,
     RouletteSelector,
+    Select,
     StochasticSamplingSelector,
     TournamentNSGA2Selector,
     TournamentSelector,

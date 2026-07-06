@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from typing import Any, Callable
 
-from .._bridge.input import EngineInput, EngineInputType
 from .._rd import PyEngine, PyEngineBuilder
 from .._typing import Subscriber
 from ..codec import CodecBase
@@ -18,6 +17,7 @@ from ..operators import (
     SelectorBase,
     TournamentSelector,
 )
+from ..operators.input import EngineInput, EngineInputType
 from .generation import Generation
 from .handlers import CallableEventHandler, EventHandler
 

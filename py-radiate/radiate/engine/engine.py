@@ -310,11 +310,10 @@ class Engine[G, T]:
         ---------
         >>> engine.run(log=True)
         >>> engine.run(ui=True)
-        >>> engine.run(rd.Limit.score(0.0001), log=True)
         >>> engine.run()
-        >>> engine.run(limit, checkpoint=True)
-        >>> engine.run(limit, checkpoint="checkpoints")
-        >>> engine.run(limit, checkpoint=(50, "checkpoints"))
+        >>> engine.run(checkpoint=True)
+        >>> engine.run(checkpoint="checkpoints")
+        >>> engine.run(checkpoint=(50, "checkpoints"))
         >>> engine.run(
         ...     checkpoint=rd.EngineCheckpoint(50, "checkpoints", file_type="json"),
         ... )

@@ -26,10 +26,11 @@ engine = (
         score_trend=score_trend,
         score_cv=score_cv,
     )
+    .limit(rd.Limit.generations(1000))
 )
 
 
-result = engine.run(rd.Limit.generations(500))
+result = engine.run()
 metrics = result.metrics()
 print(metrics["score_trend"].value_last())
 print(metrics["score_cv"].value_last())

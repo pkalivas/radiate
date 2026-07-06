@@ -7,6 +7,7 @@ if TYPE_CHECKING:
 
 from ..expr import Expr
 from .base import ComponentBase
+from .input import EngineInput, EngineInputType
 
 
 class LimitBase(ComponentBase):
@@ -153,3 +154,72 @@ class ExprLimit(LimitBase):
         if not isinstance(expr, Expr):
             raise TypeError("Expr limit must be an instance of Expr.")
         super().__init__(component="expr", args={"expr": expr.__backend__()})
+
+
+class Limit(EngineInput):
+    def __init__(self, component: str, **kwargs):
+        super().__init__(
+            component=component, input_type=EngineInputType.Limit, **kwargs
+        )
+
+    @staticmethod
+    def score2(value: float) -> Limit:
+        return Limit(component="score", score=value)
+
+    @staticmethod
+    def score(value: float) -> ScoreLimit:
+        return ScoreLimit(value)
+
+    @staticmethod
+    def generations(n: int) -> GenerationsLimit:
+        return GenerationsLimit(n)
+
+    @staticmethod
+    def seconds(secs: int) -> SecondsLimit:
+        return SecondsLimit(secs)
+
+    @staticmethod
+    def convergence(window: int, threshold: float) -> ConvergenceLimit:
+        return ConvergenceLimit(window, threshold)
+
+    @staticmethod
+    def metric(
+        name: str = "count.evaluation", limit=lambda metric: metric.sum() > 1000
+    ) -> MetricLimit:
+        return MetricLimit(name, limit)
+
+    @staticmethod
+    def expr(expr: Expr) -> ExprLimit:
+        return ExprLimit(expr)
+
+
+# class Limit:
+#     @classmethod
+#     def score2(cls, value: float) -> ScoreLimit:
+#         return ScoreLimit(value)
+
+#     @staticmethod
+#     def score(value: float) -> ScoreLimit:
+#         return ScoreLimit(value)
+
+#     @staticmethod
+#     def generations(n: int) -> GenerationsLimit:
+#         return GenerationsLimit(n)
+
+#     @staticmethod
+#     def seconds(secs: int) -> SecondsLimit:
+#         return SecondsLimit(secs)
+
+#     @staticmethod
+#     def convergence(window: int, threshold: float) -> ConvergenceLimit:
+#         return ConvergenceLimit(window, threshold)
+
+#     @staticmethod
+#     def metric(
+#         name: str = "count.evaluation", limit=lambda metric: metric.sum() > 1000
+#     ) -> MetricLimit:
+#         return MetricLimit(name, limit)
+
+#     @staticmethod
+#     def expr(expr: Expr) -> ExprLimit:
+#         return ExprLimit(expr)

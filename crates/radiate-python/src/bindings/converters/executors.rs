@@ -9,12 +9,12 @@ impl InputTransform<RadiateResult<Executor>> for PyEngineInput {
         }
 
         Ok(match self.component.as_str() {
-            crate::names::SERIAL_EXECUTOR => Executor::Serial,
-            crate::names::FIXED_SIZED_WORKER_POOL_EXECUTOR => {
+            crate::constants::SERIAL_EXECUTOR => Executor::Serial,
+            crate::constants::FIXED_SIZED_WORKER_POOL_EXECUTOR => {
                 let num_workers = self.extract::<i64>("num_workers")?;
                 Executor::FixedSizedWorkerPool(num_workers as usize)
             }
-            crate::names::WORKER_POOL_EXECUTOR => Executor::WorkerPool,
+            crate::constants::WORKER_POOL_EXECUTOR => Executor::WorkerPool,
             _ => radiate_bail!(Builder: "Unknown executor type: {}", self.component),
         })
     }

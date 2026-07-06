@@ -80,10 +80,10 @@ pub fn py_accuracy<'py>(
     let data_set = DataSet::new(features, targets);
     let loss = match loss {
         Some(loss_name) => match loss_name.to_lowercase().trim() {
-            crate::names::MSE_LOSS => Loss::MSE,
-            crate::names::MAE_LOSS => Loss::MAE,
-            crate::names::CROSS_ENTROPY_LOSS => Loss::XEnt,
-            crate::names::DIFF_LOSS => Loss::Diff,
+            crate::constants::MSE_LOSS => Loss::MSE,
+            crate::constants::MAE_LOSS => Loss::MAE,
+            crate::constants::CROSS_ENTROPY_LOSS => Loss::XEnt,
+            crate::constants::DIFF_LOSS => Loss::Diff,
             _ => panic!("Unsupported loss function: {}", loss_name),
         },
         None => Loss::MSE,

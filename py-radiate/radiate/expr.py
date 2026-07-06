@@ -4,8 +4,8 @@ from typing import TYPE_CHECKING, Any
 
 from radiate.radiate import PyExpr
 
-from ._bridge.input import RsObject
 from ._typing import RdDataType
+from .operators.input import RsObject
 
 if TYPE_CHECKING:
     from .engine.metrics import MetricSet

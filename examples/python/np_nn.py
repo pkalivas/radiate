@@ -90,6 +90,8 @@ engine = (
     .limit(rd.Limit.score(0.01), rd.Limit.generations(500))
 )
 
+print(engine.run(log=True))
+
 
 # # .load_checkpoint(
 # #     READ_DIR, ignore_not_found=True

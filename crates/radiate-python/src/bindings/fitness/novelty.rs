@@ -21,13 +21,13 @@ impl PyNoveltySearch {
     ) -> Self {
         PyNoveltySearch {
             descriptor,
-            inner: if distance == crate::names::EUCLIDEAN_DISTANCE {
+            inner: if distance == crate::constants::EUCLIDEAN_DISTANCE {
                 NoveltySearch::new(EuclideanDistance)
                     .k(k)
                     .threshold(threshold)
                     .archive_size(archive_size)
                     .euclidean_distance()
-            } else if distance == crate::names::COSINE_DISTANCE {
+            } else if distance == crate::constants::COSINE_DISTANCE {
                 NoveltySearch::new(CosineDistance)
                     .k(k)
                     .threshold(threshold)
