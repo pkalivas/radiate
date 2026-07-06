@@ -19,18 +19,18 @@ impl PyEventHandler {
                 handler
                     .event_name()
                     .map(|name| {
-                        if name == crate::constants::ALL_EVENTS {
+                        if name == crate::constants::components::ALL_EVENTS {
                             true
                         } else if event.is_start() {
-                            name == crate::constants::START_EVENT
+                            name == crate::constants::components::START_EVENT
                         } else if event.is_stop() {
-                            name == crate::constants::STOP_EVENT
+                            name == crate::constants::components::STOP_EVENT
                         } else if event.is_epoch_start() {
-                            name == crate::constants::EPOCH_START_EVENT
+                            name == crate::constants::components::EPOCH_START_EVENT
                         } else if event.is_epoch_complete() {
-                            name == crate::constants::EPOCH_COMPLETE_EVENT
+                            name == crate::constants::components::EPOCH_COMPLETE_EVENT
                         } else if event.is_improvement() {
-                            name == crate::constants::ENGINE_IMPROVEMENT_EVENT
+                            name == crate::constants::components::ENGINE_IMPROVEMENT_EVENT
                         } else {
                             false
                         }

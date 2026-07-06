@@ -18,7 +18,7 @@ where
                 )));
             }
             match input.component.as_str() {
-                crate::constants::UNIQUE_SCORE_FILTER => {
+                crate::constants::components::UNIQUE_SCORE_FILTER => {
                     let threshold = input.extract::<f64>("threshold")?;
                     let max_stagnation = input.extract::<i64>("max_stagnation")?;
                     filters.push(Arc::new(Mutex::new(UniqueScoreFilter::new(

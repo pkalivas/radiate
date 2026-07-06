@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Callable, Dict, List
 
 if TYPE_CHECKING:
+    from .._rd import components
     from ..engine.metrics import Metric
 
 from ..expr import Expr
@@ -164,7 +165,7 @@ class Limit(EngineInput):
 
     @staticmethod
     def score2(value: float) -> Limit:
-        return Limit(component="score", score=value)
+        return Limit(component=components.SCORE2, score=value)
 
     @staticmethod
     def score(value: float) -> ScoreLimit:

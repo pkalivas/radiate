@@ -3,15 +3,12 @@ macro_rules! define_consts {
     ($($konst:ident = $val:literal;)+) => {
         $(pub(crate) const $konst: &str = $val;)+
 
-        pub(crate) fn register(m: &pyo3::Bound<'_, pyo3::types::PyModule>) -> pyo3::PyResult<()> {
+        pub fn register(m: &pyo3::Bound<'_, pyo3::types::PyModule>) -> pyo3::PyResult<()> {
             $(m.add(stringify!($konst), $konst)?;)+
             Ok(())
         }
     };
 }
-
-pub use components::*;
-pub use loss_functions::*;
 
 pub mod components {
     use pyo3::prelude::*;

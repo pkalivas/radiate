@@ -10,7 +10,7 @@ from types import ModuleType
 from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 if hasattr(sys, "_is_gil_enabled"):
-    _GIL_ENABLED = sys._is_gil_enabled()
+    _GIL_ENABLED = sys._is_gil_enabled()  # type: ignore
 else:
     _GIL_ENABLED = True
 

@@ -118,16 +118,16 @@ where
     I: Integer,
 {
     AlterRegistry::new(alter_table! {
-        crate::constants::MULTI_POINT_CROSSOVER   => convert_multi_point_crossover,
-        crate::constants::UNIFORM_CROSSOVER       => convert_uniform_crossover,
-        crate::constants::MEAN_CROSSOVER          => convert_mean_crossover,
-        crate::constants::SHUFFLE_CROSSOVER       => convert_shuffle_crossover,
+        crate::constants::components::MULTI_POINT_CROSSOVER   => convert_multi_point_crossover,
+        crate::constants::components::UNIFORM_CROSSOVER       => convert_uniform_crossover,
+        crate::constants::components::MEAN_CROSSOVER          => convert_mean_crossover,
+        crate::constants::components::SHUFFLE_CROSSOVER       => convert_shuffle_crossover,
 
-        crate::constants::ARITHMETIC_MUTATOR      => convert_arithmetic_mutator,
-        crate::constants::SWAP_MUTATOR            => convert_swap_mutator,
-        crate::constants::SCRAMBLE_MUTATOR        => convert_scramble_mutator,
-        crate::constants::UNIFORM_MUTATOR         => convert_uniform_mutator,
-        crate::constants::INVERSION_MUTATOR       => convert_inversion_mutator,
+        crate::constants::components::ARITHMETIC_MUTATOR      => convert_arithmetic_mutator,
+        crate::constants::components::SWAP_MUTATOR            => convert_swap_mutator,
+        crate::constants::components::SCRAMBLE_MUTATOR        => convert_scramble_mutator,
+        crate::constants::components::UNIFORM_MUTATOR         => convert_uniform_mutator,
+        crate::constants::components::INVERSION_MUTATOR       => convert_inversion_mutator,
     })
 }
 
@@ -139,21 +139,21 @@ where
     F: Float + NumericAllele,
 {
     AlterRegistry::new(alter_table! {
-        crate::constants::MULTI_POINT_CROSSOVER        => convert_multi_point_crossover,
-        crate::constants::UNIFORM_CROSSOVER            => convert_uniform_crossover,
-        crate::constants::MEAN_CROSSOVER               => convert_mean_crossover,
-        crate::constants::INTERMEDIATE_CROSSOVER       => convert_intermediate_crossover,
-        crate::constants::BLEND_CROSSOVER              => convert_blend_crossover,
-        crate::constants::SIMULATED_BINARY_CROSSOVER   => convert_simulated_binary_crossover,
+        crate::constants::components::MULTI_POINT_CROSSOVER        => convert_multi_point_crossover,
+        crate::constants::components::UNIFORM_CROSSOVER            => convert_uniform_crossover,
+        crate::constants::components::MEAN_CROSSOVER               => convert_mean_crossover,
+        crate::constants::components::INTERMEDIATE_CROSSOVER       => convert_intermediate_crossover,
+        crate::constants::components::BLEND_CROSSOVER              => convert_blend_crossover,
+        crate::constants::components::SIMULATED_BINARY_CROSSOVER   => convert_simulated_binary_crossover,
 
-        crate::constants::GAUSSIAN_MUTATOR             => convert_gaussian_mutator,
-        crate::constants::ARITHMETIC_MUTATOR           => convert_arithmetic_mutator,
-        crate::constants::SWAP_MUTATOR                 => convert_swap_mutator,
-        crate::constants::SCRAMBLE_MUTATOR             => convert_scramble_mutator,
-        crate::constants::UNIFORM_MUTATOR              => convert_uniform_mutator,
-        crate::constants::INVERSION_MUTATOR            => convert_inversion_mutator,
-        crate::constants::POLYNOMIAL_MUTATOR           => convert_polynomial_mutator,
-        crate::constants::JITTER_MUTATOR               => convert_jitter_mutator,
+        crate::constants::components::GAUSSIAN_MUTATOR             => convert_gaussian_mutator,
+        crate::constants::components::ARITHMETIC_MUTATOR           => convert_arithmetic_mutator,
+        crate::constants::components::SWAP_MUTATOR                 => convert_swap_mutator,
+        crate::constants::components::SCRAMBLE_MUTATOR             => convert_scramble_mutator,
+        crate::constants::components::UNIFORM_MUTATOR              => convert_uniform_mutator,
+        crate::constants::components::INVERSION_MUTATOR            => convert_inversion_mutator,
+        crate::constants::components::POLYNOMIAL_MUTATOR           => convert_polynomial_mutator,
+        crate::constants::components::JITTER_MUTATOR               => convert_jitter_mutator,
     })
 }
 
@@ -162,14 +162,14 @@ where
 /// ---------------------------------------------------------------------------
 fn char_registry() -> AlterRegistry<CharChromosome> {
     AlterRegistry::new(alter_table! {
-        crate::constants::MULTI_POINT_CROSSOVER   => convert_multi_point_crossover,
-        crate::constants::UNIFORM_CROSSOVER       => convert_uniform_crossover,
-        crate::constants::SHUFFLE_CROSSOVER       => convert_shuffle_crossover,
+        crate::constants::components::MULTI_POINT_CROSSOVER   => convert_multi_point_crossover,
+        crate::constants::components::UNIFORM_CROSSOVER       => convert_uniform_crossover,
+        crate::constants::components::SHUFFLE_CROSSOVER       => convert_shuffle_crossover,
 
-        crate::constants::SWAP_MUTATOR            => convert_swap_mutator,
-        crate::constants::SCRAMBLE_MUTATOR        => convert_scramble_mutator,
-        crate::constants::UNIFORM_MUTATOR         => convert_uniform_mutator,
-        crate::constants::INVERSION_MUTATOR       => convert_inversion_mutator,
+        crate::constants::components::SWAP_MUTATOR            => convert_swap_mutator,
+        crate::constants::components::SCRAMBLE_MUTATOR        => convert_scramble_mutator,
+        crate::constants::components::UNIFORM_MUTATOR         => convert_uniform_mutator,
+        crate::constants::components::INVERSION_MUTATOR       => convert_inversion_mutator,
     })
 }
 
@@ -178,14 +178,14 @@ fn char_registry() -> AlterRegistry<CharChromosome> {
 /// ---------------------------------------------------------------------------
 fn bit_registry() -> AlterRegistry<BitChromosome> {
     AlterRegistry::new(alter_table! {
-        crate::constants::MULTI_POINT_CROSSOVER   => convert_multi_point_crossover,
-        crate::constants::UNIFORM_CROSSOVER       => convert_uniform_crossover,
-        crate::constants::SHUFFLE_CROSSOVER       => convert_shuffle_crossover,
+        crate::constants::components::MULTI_POINT_CROSSOVER   => convert_multi_point_crossover,
+        crate::constants::components::UNIFORM_CROSSOVER       => convert_uniform_crossover,
+        crate::constants::components::SHUFFLE_CROSSOVER       => convert_shuffle_crossover,
 
-        crate::constants::SWAP_MUTATOR            => convert_swap_mutator,
-        crate::constants::SCRAMBLE_MUTATOR        => convert_scramble_mutator,
-        crate::constants::UNIFORM_MUTATOR         => convert_uniform_mutator,
-        crate::constants::INVERSION_MUTATOR       => convert_inversion_mutator,
+        crate::constants::components::SWAP_MUTATOR            => convert_swap_mutator,
+        crate::constants::components::SCRAMBLE_MUTATOR        => convert_scramble_mutator,
+        crate::constants::components::UNIFORM_MUTATOR         => convert_uniform_mutator,
+        crate::constants::components::INVERSION_MUTATOR       => convert_inversion_mutator,
     })
 }
 
@@ -194,13 +194,13 @@ fn bit_registry() -> AlterRegistry<BitChromosome> {
 /// ---------------------------------------------------------------------------
 fn perm_registry() -> AlterRegistry<PermutationChromosome<usize>> {
     AlterRegistry::new(alter_table! {
-        crate::constants::PARTIALLY_MAPPED_CROSSOVER => convert_partially_mapped_crossover,
-        crate::constants::EDGE_RECOMBINE_CROSSOVER   => convert_edge_recombine_crossover,
+        crate::constants::components::PARTIALLY_MAPPED_CROSSOVER => convert_partially_mapped_crossover,
+        crate::constants::components::EDGE_RECOMBINE_CROSSOVER   => convert_edge_recombine_crossover,
 
-        crate::constants::SWAP_MUTATOR               => convert_swap_mutator,
-        crate::constants::SCRAMBLE_MUTATOR           => convert_scramble_mutator,
-        crate::constants::UNIFORM_MUTATOR            => convert_uniform_mutator,
-        crate::constants::INVERSION_MUTATOR          => convert_inversion_mutator,
+        crate::constants::components::SWAP_MUTATOR               => convert_swap_mutator,
+        crate::constants::components::SCRAMBLE_MUTATOR           => convert_scramble_mutator,
+        crate::constants::components::UNIFORM_MUTATOR            => convert_uniform_mutator,
+        crate::constants::components::INVERSION_MUTATOR          => convert_inversion_mutator,
     })
 }
 
@@ -209,10 +209,10 @@ fn perm_registry() -> AlterRegistry<PermutationChromosome<usize>> {
 /// ---------------------------------------------------------------------------
 fn graph_registry() -> AlterRegistry<GraphChromosome<Op<f32>>> {
     AlterRegistry::new(alter_table! {
-        crate::constants::GRAPH_CROSSOVER       => convert_graph_crossover,
+        crate::constants::components::GRAPH_CROSSOVER       => convert_graph_crossover,
 
-        crate::constants::GRAPH_MUTATOR         => convert_graph_mutator,
-        crate::constants::OPERATION_MUTATOR     => convert_operation_mutator,
+        crate::constants::components::GRAPH_MUTATOR         => convert_graph_mutator,
+        crate::constants::components::OPERATION_MUTATOR     => convert_operation_mutator,
     })
 }
 
@@ -221,10 +221,10 @@ fn graph_registry() -> AlterRegistry<GraphChromosome<Op<f32>>> {
 /// ---------------------------------------------------------------------------
 fn tree_registry() -> AlterRegistry<TreeChromosome<Op<f32>>> {
     AlterRegistry::new(alter_table! {
-        crate::constants::TREE_CROSSOVER        => convert_tree_crossover,
+        crate::constants::components::TREE_CROSSOVER        => convert_tree_crossover,
 
-        crate::constants::HOIST_MUTATOR         => convert_hoist_mutator,
-        crate::constants::OPERATION_MUTATOR     => convert_operation_mutator,
+        crate::constants::components::HOIST_MUTATOR         => convert_hoist_mutator,
+        crate::constants::components::OPERATION_MUTATOR     => convert_operation_mutator,
     })
 }
 
