@@ -35,6 +35,7 @@ class EngineConfig[G, T]:
     max_phenotype_age: int = 20
     max_species_age: int = 20
     species_threshold: Expr | float = 0.5
+    target_species: int | None = None
 
     objective: str | list[str] = "max"
     front_range: tuple[int, int] = (800, 900)
@@ -57,7 +58,9 @@ class EngineBuilder[G, T]:
         inst.set_offspring_selector(defaults.offspring_selector or Select.tournament(3))
         inst.set_survivor_selector(defaults.survivor_selector or Select.roulette())
         inst.set_alters(defaults.alters)
-        inst.set_diversity(defaults.diversity, defaults.species_threshold)
+        inst.set_diversity(
+            defaults.diversity, defaults.species_threshold, defaults.target_species
+        )
         inst.set_population_size(defaults.population_size)
         inst.set_offspring_fraction(defaults.offspring_fraction)
         inst.set_max_age(defaults.max_phenotype_age)

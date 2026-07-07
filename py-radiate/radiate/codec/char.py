@@ -69,7 +69,7 @@ class CharCodec[D](CodecBase[str, D], RsObject):
                     length=shape, char_set=_normalize_char_set(char_set)
                 )
             elif isinstance(shape, (tuple, list)):
-                self._pyobj = self.__matrix(
+                self._pyobj = self._matrix(
                     shape=shape,
                     char_set=set(char_set) if char_set is not None else None,
                 )
@@ -78,9 +78,9 @@ class CharCodec[D](CodecBase[str, D], RsObject):
                     "Shape must be an int, tuple of ints, or list of ints."
                 )
         elif genes is not None:
-            self._pyobj = self.__from_genes(genes=genes)
+            self._pyobj = self._from_genes(genes=genes)
         elif chromosomes is not None:
-            self._pyobj = self.__from_chromosomes(chromosomes=chromosomes)
+            self._pyobj = self._from_chromosomes(chromosomes=chromosomes)
         else:
             raise ValueError("Shape must be provided.")
 
@@ -102,7 +102,7 @@ class CharCodec[D](CodecBase[str, D], RsObject):
         return self.__backend__().decode_py(genotype=genotype.__backend__())
 
     @staticmethod
-    def __from_genes(genes: AtLeastOne[Gene[str]]) -> CharCodec[list[str]]:
+    def _from_genes(genes: AtLeastOne[Gene[str]]) -> CharCodec[list[str]]:
         """
         Create a codec for a single chromosome with specified genes.
         Args:
@@ -120,7 +120,7 @@ class CharCodec[D](CodecBase[str, D], RsObject):
         return PyCharCodec.from_genes(list(map(lambda g: g.__backend__(), genes)))
 
     @staticmethod
-    def __from_chromosomes(
+    def _from_chromosomes(
         chromosomes: AtLeastOne[Chromosome[str]],
     ) -> CharCodec[list[list[str]]]:
         """
@@ -146,7 +146,7 @@ class CharCodec[D](CodecBase[str, D], RsObject):
         )
 
     @staticmethod
-    def __matrix(
+    def _matrix(
         shape: AtLeastOne[int],
         char_set: set[str] | None = None,
     ) -> PyCharCodec:

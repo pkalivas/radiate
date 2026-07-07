@@ -68,9 +68,6 @@ where
                     *one.allele_mut() = new_allele_one.clamp(*one_min, *one_max);
                     *two.allele_mut() = new_allele_two.clamp(*two_min, *two_max);
 
-                    // *chrom_one.get_mut(i).unwrap() = new_allele_one.clamp(*one_min, *one_max);
-                    // *chrom_two.get_mut(i).unwrap() = new_allele_two.clamp(*two_min, *two_max);
-
                     cross_count += 1;
                 }
             }

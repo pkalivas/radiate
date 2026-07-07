@@ -346,43 +346,6 @@ impl<F: Float> Debug for FloatChromosome<F> {
     }
 }
 
-// #[cfg(feature = "serde")]
-// impl<F: Float + Serialize> Serialize for FloatChromosome<F> {
-//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-//     where
-//         S: serde::Serializer,
-//     {
-//         let bounded_sequence = BoundedSequence::from(self.genes.clone());
-//         bounded_sequence.serialize(serializer)
-//     }
-// }
-
-// #[cfg(feature = "serde")]
-// impl<'de, F: Float + Deserialize<'de>> Deserialize<'de> for FloatChromosome<F> {
-//     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-//     where
-//         D: serde::Deserializer<'de>,
-//     {
-//         let sequence = BoundedSequence::deserialize(deserializer)?;
-//         let mut genes = Vec::with_capacity(sequence.data.len());
-//         for (index, allele) in sequence.data.into_iter().enumerate() {
-//             let value_range = sequence
-//                 .init_range
-//                 .get(index)
-//                 .ok_or_else(|| serde::de::Error::custom("Missing init range for gene"))?
-//                 .clone();
-//             let bounds = sequence
-//                 .bounds
-//                 .get(index)
-//                 .ok_or_else(|| serde::de::Error::custom("Missing bounds for gene"))?
-//                 .clone();
-
-//             genes.push(FloatGene::new(allele, value_range, bounds));
-//         }
-
-//         Ok(FloatChromosome { genes })
-//     }
-// }
 #[cfg(test)]
 mod tests {
 

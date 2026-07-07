@@ -86,6 +86,7 @@ ratatui = { version = "0.30.2", default-features = false, features = ["crossterm
 tui-piechart = "0.3.3"
 color-eyre = "0.6.3"
 num-traits = "0.2.19"
+bytemuck = { version = "1.25", features = ["derive"] }
 num-order = "1.2.0"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt"] }
