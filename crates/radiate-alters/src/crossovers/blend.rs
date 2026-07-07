@@ -54,7 +54,7 @@ where
         let alpha = A::from(self.alpha).unwrap();
 
         random_provider::with_rng(|rand| {
-            for (one, two) in chrom_one.iter_mut().zip(chrom_two.iter_mut()) {
+            chrom_one.apply_paired(chrom_two, |one, two| {
                 if rand.bool(ctx.rate()) {
                     let allele_one = *one.allele();
                     let allele_two = *two.allele();
@@ -70,8 +70,28 @@ where
 
                     cross_count += 1;
                 }
-            }
+            });
         });
+
+        // random_provider::with_rng(|rand| {
+        //     for (one, two) in chrom_one.iter_mut().zip(chrom_two.iter_mut()) {
+        //         if rand.bool(ctx.rate()) {
+        //             let allele_one = *one.allele();
+        //             let allele_two = *two.allele();
+
+        //             let new_allele_one = allele_one - (alpha * (allele_two - allele_one));
+        //             let new_allele_two = allele_two - (alpha * (allele_one - allele_two));
+
+        //             let (one_min, one_max) = one.bounds();
+        //             let (two_min, two_max) = two.bounds();
+
+        //             *one.allele_mut() = new_allele_one.clamp(*one_min, *one_max);
+        //             *two.allele_mut() = new_allele_two.clamp(*two_min, *two_max);
+
+        //             cross_count += 1;
+        //         }
+        //     }
+        // });
 
         cross_count.into()
     }

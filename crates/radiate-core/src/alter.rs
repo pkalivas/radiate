@@ -327,15 +327,17 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
 
         for i in 0..std::cmp::min(chrom_one.len(), chrom_two.len()) {
             if random_provider::bool(ctx.rate()) {
-                let gene_one = chrom_one.get(i);
-                let gene_two = chrom_two.get(i);
+                let gene_one = chrom_one.get_mut(i);
+                let gene_two = chrom_two.get_mut(i);
 
                 if let Some((gene_one, gene_two)) = gene_one.zip(gene_two) {
-                    let new_gene_one = gene_one.with_allele(gene_two.allele());
-                    let new_gene_two = gene_two.with_allele(gene_one.allele());
+                    // let new_gene_one = gene_one.with_allele(gene_two.allele());
+                    // let new_gene_two = gene_two.with_allele(gene_one.allele());
 
-                    chrom_one.set(i, new_gene_one);
-                    chrom_two.set(i, new_gene_two);
+                    // chrom_one.set(i, gene_two);
+                    // chrom_two.set(i, gene_one);
+
+                    std::mem::swap(gene_one, gene_two);
 
                     cross_count += 1;
                 }
@@ -414,18 +416,19 @@ pub trait Mutate<C: Chromosome>: Send + Sync {
         let mut count = 0;
         for gene in chromosome.iter_mut() {
             if random_provider::bool(ctx.rate()) {
-                count += self.mutate_gene(gene);
+                // count += self.mutate_gene(gene);
+                panic!("mutate_gene is not implemented for this mutator");
             }
         }
 
         count.into()
     }
 
-    #[inline]
-    fn mutate_gene(&self, gene: &mut C::Gene) -> usize {
-        *gene = gene.new_instance();
-        1
-    }
+    // #[inline]
+    // fn mutate_gene(&self, gene: &mut C::Gene) -> usize {
+    //     *gene = gene.new_instance();
+    //     1
+    // }
 }
 
 // fn calculate_rates(&mut self, metrics: &MetricSet) -> RadiateResult<()> {

@@ -1,6 +1,4 @@
-use std::{fmt::Debug, ops::Range};
-
-use crate::BoundedGene;
+use radiate_utils::Primitive;
 
 use super::{Valid, gene::Gene};
 
@@ -19,7 +17,7 @@ use super::{Valid, gene::Gene};
 /// Chromosome: [Gene, Gene, Gene]
 /// ```
 pub trait Chromosome: Valid {
-    type Gene: Gene;
+    type Gene;
 
     fn as_slice(&self) -> &[Self::Gene];
     fn as_mut_slice(&mut self) -> &mut [Self::Gene];
@@ -58,186 +56,16 @@ pub trait Chromosome: Valid {
     ) -> impl Iterator<Item = (&'a mut Self::Gene, &'a mut Self::Gene)> {
         self.iter_mut().zip(other.iter_mut())
     }
-}
 
-// #[cfg(feature = "serde")]
-// use serde::{Deserialize, Serialize};
-
-#[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
-use std::sync::Arc;
-
-#[derive(Clone, PartialEq, Default)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct RangeLookup<T> {
-    bounds: Arc<[Range<T>]>,
-}
-
-impl<T> RangeLookup<T> {
-    pub fn new(bounds: Vec<Range<T>>) -> Self {
-        Self {
-            bounds: Arc::from(bounds),
-        }
-    }
-
-    pub fn get(&self, index: usize) -> Option<&Range<T>> {
-        self.bounds.get(index)
-    }
-}
-
-impl<T> Debug for RangeLookup<T>
-where
-    T: Debug,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("RangeLookup")
-            .field("bounds", &self.bounds)
-            .finish()
-    }
-}
-
-fn build_init_range_loookup<G>(genes: &[G]) -> RangeLookup<G::Allele>
-where
-    G: BoundedGene,
-    G::Allele: Clone + PartialEq,
-{
-    let mut bounds: Vec<Range<G::Allele>> = Vec::new();
-
-    let mut current_index = 0;
-    let mut current_range: Option<Range<G::Allele>> = None;
-
-    while current_index < genes.len() {
-        let gene = &genes[current_index];
-        let (min, max) = gene.bounds();
-
-        match &mut current_range {
-            Some(range) => {
-                if range.start == *min && range.end == *max {
-                    // Same range, continue
-                } else {
-                    // Different range, push the current range and start a new one
-                    bounds.push(range.clone());
-                    current_range = Some(min.clone()..max.clone());
-                }
-            }
-            None => {
-                // First range
-                current_range = Some(min.clone()..max.clone());
-            }
-        }
-
-        current_index += 1;
-    }
-
-    if let Some(range) = current_range {
-        bounds.push(range);
-    }
-
-    RangeLookup::new(bounds)
-}
-
-fn build_bounds_lookup<G>(genes: &[G]) -> RangeLookup<G::Allele>
-where
-    G: BoundedGene,
-    G::Allele: Clone + PartialEq,
-{
-    let mut bounds: Vec<Range<G::Allele>> = Vec::new();
-
-    let mut current_index = 0;
-    let mut current_range: Option<Range<G::Allele>> = None;
-
-    while current_index < genes.len() {
-        let gene = &genes[current_index];
-        let (min, max) = gene.bounds();
-
-        match &mut current_range {
-            Some(range) => {
-                if range.start == *min && range.end == *max {
-                    // Same range, continue
-                } else {
-                    // Different range, push the current range and start a new one
-                    bounds.push(range.clone());
-                    current_range = Some(min.clone()..max.clone());
-                }
-            }
-            None => {
-                // First range
-                current_range = Some(min.clone()..max.clone());
-            }
-        }
-
-        current_index += 1;
-    }
-
-    if let Some(range) = current_range {
-        bounds.push(range);
-    }
-
-    RangeLookup::new(bounds)
-}
-
-#[derive(Clone, PartialEq)]
-pub struct BoundedFixedSequence<T> {
-    data: Vec<T>,
-    init_range: RangeLookup<T>,
-    bounds: RangeLookup<T>,
-}
-
-impl<G, T> From<Vec<G>> for BoundedFixedSequence<T>
-where
-    G: BoundedGene<Allele = T>,
-    T: Clone + PartialEq,
-{
-    fn from(genes: Vec<G>) -> Self {
-        let init_range = build_init_range_loookup(&genes);
-        let bounds = build_bounds_lookup(&genes);
-        Self {
-            data: genes
-                .into_iter()
-                .map(|gene| gene.allele().clone())
-                .collect(),
-            init_range,
-            bounds,
+    fn apply_paired<F>(&mut self, other: &mut Self, mut op: F)
+    where
+        Self: Sized,
+        F: FnMut(&mut Self::Gene, &mut Self::Gene),
+    {
+        for (a, b) in self.iter_mut().zip(other.iter_mut()) {
+            op(a, b);
         }
     }
 }
 
-impl<T> Debug for BoundedFixedSequence<T>
-where
-    T: Debug,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("BoundedFixedSequence")
-            .field("data", &self.data)
-            .field("init_range", &self.init_range)
-            .field("bounds", &self.bounds)
-            .finish()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-
-    use super::*;
-    use crate::{FloatChromosome, FloatGene};
-
-    #[test]
-    fn test_build_init_range_lookup() {
-        let float_chromosome = FloatChromosome::from(vec![
-            FloatGene::new(0.0, 0.0..1.0, 0.0..1.0),
-            FloatGene::new(0.5, 0.0..1.0, 0.0..1.0),
-            FloatGene::new(0.2, 0.0..1.0, 0.0..1.0),
-            FloatGene::new(0.3, 0.0..2.0, -2.0..1.0),
-            FloatGene::new(0.4, 0.0..1.0, 0.0..1.0),
-            FloatGene::new(0.5, -4.0..1.0, -5.0..1.0),
-            FloatGene::new(0.6, 0.0..1.0, -10.0..10.0),
-            FloatGene::new(0.7, 0.0..1.0, 0.0..1.0),
-        ])
-        .into_iter()
-        .collect::<Vec<_>>();
-
-        let bounded_sequence = BoundedFixedSequence::from(float_chromosome);
-
-        println!("{:#?}", bounded_sequence);
-    }
-}
+pub trait NumericChromosome<T: Primitive>: Chromosome<Gene = T> {}

@@ -69,17 +69,29 @@ where
     }
 
     #[inline]
-    fn mutate_gene(&self, gene: &mut C::Gene) -> usize {
-        let (lower, upper) = gene.bounds();
-        let min = lower.extract::<f64>().unwrap();
-        let max = upper.extract::<f64>().unwrap();
-        let value = gene.allele().extract::<f64>().unwrap();
-        let eta = self.eta as f64;
+    fn mutate_chromosome(
+        &mut self,
+        chromosome: &mut C,
+        ctx: &mut radiate_core::prelude::AlterContext,
+    ) -> radiate_core::AlterResult {
+        let mut count = 0;
+        for gene in chromosome.iter_mut() {
+            if random_provider::bool(ctx.rate()) {
+                let (lower, upper) = gene.bounds();
+                let min = lower.extract::<f64>().unwrap();
+                let max = upper.extract::<f64>().unwrap();
+                let value = gene.allele().extract::<f64>().unwrap();
+                let eta = self.eta as f64;
 
-        let new_value = self.polynomial_mutation(value, min, max, eta);
+                let new_value = self.polynomial_mutation(value, min, max, eta);
 
-        let clamped_value = new_value.clamp(min, max);
-        *gene.allele_mut() = clamped_value.extract::<F>().unwrap();
-        1
+                let clamped_value = new_value.clamp(min, max);
+                *gene.allele_mut() = clamped_value.extract::<F>().unwrap();
+
+                count += 1;
+            }
+        }
+
+        count.into()
     }
 }
