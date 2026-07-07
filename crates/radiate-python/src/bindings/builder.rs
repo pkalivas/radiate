@@ -46,8 +46,10 @@ macro_rules! dispatch_builder_typed {
             Char(b) => $call(b).map(Char),
             Bit(b) => $call(b).map(Bit),
             Permutation(b) => $call(b).map(Permutation),
-            Graph(b) => $call(b).map(Graph),
-            Tree(b) => $call(b).map(Tree),
+            Graph32(b) => $call(b).map(Graph32),
+            Graph64(b) => $call(b).map(Graph64),
+            Tree32(b) => $call(b).map(Tree32),
+            Tree64(b) => $call(b).map(Tree64),
             Empty => Err(radiate_py_err!("Cannot apply method to Empty builder"))
         }
     }};
@@ -98,7 +100,8 @@ impl PyEngineBuilder {
         let codec = codec.bind(py);
         match fitness {
             custom @ Custom(..) => Self::init_custom_builder(custom, codec, executor),
-            reg @ Regression(..) => Self::init_regression_builder(reg, codec, executor),
+            reg32 @ Regression32(..) => Self::init_regression_builder32(reg32, codec, executor),
+            reg64 @ Regression64(..) => Self::init_regression_builder64(reg64, codec, executor),
             novelty @ NoveltySearch(..) => Self::init_novelty_builder(novelty, codec, executor),
         }
     }
@@ -550,15 +553,15 @@ impl PyEngineBuilder {
         Ok(builder)
     }
 
-    fn init_regression_builder<'py>(
+    fn init_regression_builder32<'py>(
         regression: PyFitnessInner,
         codec: &Bound<'py, PyAny>,
         executor: Executor,
     ) -> PyResult<EngineBuilderHandle> {
         use EngineBuilderHandle::*;
-        use PyFitnessInner::Regression;
+        use PyFitnessInner::Regression32;
 
-        let Regression(regression, is_batch) = regression else {
+        let Regression32(regression, is_batch) = regression else {
             radiate_py_bail!("init_regression_builder only supports Regression fitness functions")
         };
 
@@ -577,18 +580,8 @@ impl PyEngineBuilder {
                         Graph32(base_engine.raw_fitness_fn(regression))
                     }
                 }
-                PyGraphCodecInner::Float64(c) => {
-                    let base_engine = GeneticEngine::builder()
-                        .codec(c)
-                        .executor(executor)
-                        .bus_executor(Executor::default())
-                        .replace_strategy(GraphReplacement);
-
-                    if is_batch {
-                        Graph64(base_engine.raw_batch_fitness_fn(regression))
-                    } else {
-                        Graph64(base_engine.raw_fitness_fn(regression))
-                    }
+                _ => {
+                    radiate_py_bail!("Unsupported graph codec type for regression problem");
                 }
             }
         } else if let Ok(tree_codec) = codec.extract::<PyTreeCodec>() {
@@ -605,6 +598,50 @@ impl PyEngineBuilder {
                         Tree32(base_engine.raw_fitness_fn(regression))
                     }
                 }
+                _ => {
+                    radiate_py_bail!("Unsupported tree codec type for regression problem");
+                }
+            }
+        } else {
+            radiate_py_bail!("Only Graph or Tree codecs are supported for regression problems");
+        };
+
+        Ok(builder)
+    }
+
+    fn init_regression_builder64<'py>(
+        regression: PyFitnessInner,
+        codec: &Bound<'py, PyAny>,
+        executor: Executor,
+    ) -> PyResult<EngineBuilderHandle> {
+        use EngineBuilderHandle::*;
+        use PyFitnessInner::Regression64;
+
+        let Regression64(regression, is_batch) = regression else {
+            radiate_py_bail!("init_regression_builder only supports Regression fitness functions")
+        };
+
+        let builder = if let Ok(graph_codec) = codec.extract::<PyGraphCodec>() {
+            match graph_codec.codec {
+                PyGraphCodecInner::Float64(c) => {
+                    let base_engine = GeneticEngine::builder()
+                        .codec(c)
+                        .executor(executor)
+                        .bus_executor(Executor::default())
+                        .replace_strategy(GraphReplacement);
+
+                    if is_batch {
+                        Graph64(base_engine.raw_batch_fitness_fn(regression))
+                    } else {
+                        Graph64(base_engine.raw_fitness_fn(regression))
+                    }
+                }
+                _ => {
+                    radiate_py_bail!("Unsupported graph codec type for regression problem");
+                }
+            }
+        } else if let Ok(tree_codec) = codec.extract::<PyTreeCodec>() {
+            match tree_codec.codec {
                 PyTreeCodecInner::Float64(c) => {
                     let base_engine = GeneticEngine::builder()
                         .codec(c)
@@ -616,6 +653,9 @@ impl PyEngineBuilder {
                     } else {
                         Tree64(base_engine.raw_fitness_fn(regression))
                     }
+                }
+                _ => {
+                    radiate_py_bail!("Unsupported tree codec type for regression problem");
                 }
             }
         } else {
@@ -782,7 +822,10 @@ impl PyEngineBuilder {
             .map(InputTransform::<RadiateResult<Executor>>::transform)
             .unwrap_or(Ok(Executor::Serial))?;
 
-        if executor.is_parallel() && gil_enabled && !matches!(problem.inner, Regression(_, _)) {
+        if executor.is_parallel()
+            && gil_enabled
+            && !matches!(problem.inner, Regression32(_, _) | Regression64(_, _))
+        {
             radiate_py_bail!(
                 "Parallel execution is not supported for non-regression fitness functions
                  when the GIL is enabled. Please disable the GIL or use the 'Executor.Serial()' executor."

@@ -1,6 +1,9 @@
 use crate::{PyGenotype, PyOp, bindings::gp::PyTree};
 use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
-use radiate::{Codec, NodeType, Op, Tree, TreeChromosome, TreeCodec, ops::GpFloat};
+use radiate::{
+    Codec, DataType, NodeType, Op, Tree, TreeChromosome, TreeCodec, dtype_names, ops::GpFloat,
+};
+use radiate_error::radiate_py_bail;
 use std::collections::HashMap;
 
 const LEAF_NODE_TYPE: &str = "leaf";
@@ -33,45 +36,50 @@ impl PyTreeCodec {
         py: Python<'py>,
         genotype: &PyGenotype,
     ) -> PyResult<Bound<'py, PyAny>> {
-        let genotype: radiate::Genotype<TreeChromosome<Op<f32>>> = genotype.clone().into();
-        let obj_value = self.codec.decode(&genotype);
+        // let genotype: radiate::Genotype<TreeChromosome<Op<f32>>> = genotype.clone().into();
+        // let obj_value = self.codec.decode(&genotype);
 
-        PyTree { inner: obj_value }.into_bound_py_any(py)
+        // PyTree { inner: obj_value }.into_bound_py_any(py)
+        match &self.codec {
+            PyTreeCodecInner::Float32(codec) => {
+                PyTree::from(codec.decode(&genotype.clone().into()))
+            }
+            PyTreeCodecInner::Float64(codec) => {
+                PyTree::from(codec.decode(&genotype.clone().into()))
+            }
+        }
+        .into_bound_py_any(py)
     }
 
     #[new]
-    #[pyo3(signature = (output_size=1, min_depth=1, max_size=30, ops=None))]
+    #[pyo3(signature = (output_size=1, min_depth=1, max_size=30, ops=None, dtype=None))]
     pub fn new(
         output_size: usize,
         min_depth: usize,
         max_size: usize,
         ops: Option<HashMap<String, Vec<PyOp>>>,
-    ) -> Self {
-        let mut values = Vec::new();
-        if let Some(ops) = &ops {
-            for (key, value) in ops.iter() {
-                if key == LEAF_NODE_TYPE {
-                    values.push((
-                        NodeType::Leaf,
-                        value.iter().map(|op| op.0.clone()).collect(),
-                    ));
-                } else if key == ROOT_NODE_TYPE {
-                    values.push((
-                        NodeType::Root,
-                        value.iter().map(|op| op.0.clone()).collect(),
-                    ));
-                } else if key == VERTEX_NODE_TYPE {
-                    values.push((
-                        NodeType::Vertex,
-                        value.iter().map(|op| op.0.clone()).collect(),
-                    ));
-                }
-            }
-        }
+        dtype: Option<&str>,
+    ) -> PyResult<Self> {
+        let datatype = crate::dtype_from_str(&dtype.unwrap_or_else(|| dtype_names::FLOAT32.into()));
 
-        Self {
-            codec: TreeCodec::multi_root(min_depth, output_size, values)
-                .constraint(move |node| node.size() <= max_size),
+        match datatype {
+            DataType::Float32 => Ok(Self {
+                codec: PyTreeCodecInner::Float32(build_typed_codec(
+                    output_size,
+                    min_depth,
+                    max_size,
+                    ops,
+                )),
+            }),
+            DataType::Float64 => Ok(Self {
+                codec: PyTreeCodecInner::Float64(build_typed_codec(
+                    output_size,
+                    min_depth,
+                    max_size,
+                    ops,
+                )),
+            }),
+            _ => radiate_py_bail!("Unsupported data type for TreeCodec: {:datatype?}"),
         }
     }
 }
@@ -80,11 +88,10 @@ unsafe impl Send for PyTreeCodec {}
 unsafe impl Sync for PyTreeCodec {}
 
 fn build_typed_codec<F: GpFloat>(
-    graph_type: Option<&str>,
-    input_size: usize,
     output_size: usize,
+    min_depth: usize,
+    max_size: usize,
     ops: Option<HashMap<String, Vec<PyOp>>>,
-    max_nodes: Option<usize>,
 ) -> TreeCodec<Op<F>>
 where
     PyOp: Into<Op<F>> + Clone,
@@ -97,28 +104,15 @@ where
                 .map(|op| op.clone().into())
                 .collect::<Vec<Op<F>>>();
             if key == LEAF_NODE_TYPE {
-                values.push((NodeType::Leaf, current_ops));
+                values.push((NodeType::Leaf, current_ops.clone()));
             } else if key == ROOT_NODE_TYPE {
-                values.push((NodeType::Root, current_ops));
+                values.push((NodeType::Root, current_ops.clone()));
             } else if key == VERTEX_NODE_TYPE {
-                values.push((NodeType::Vertex, current_ops));
+                values.push((NodeType::Vertex, current_ops.clone()));
             }
         }
     }
 
-    let codec = match graph_type {
-        Some("recurrent") => GraphCodec::recurrent(input_size, output_size, values),
-        Some("weighted_directed") => GraphCodec::weighted_directed(input_size, output_size, values),
-        Some("weighted_recurrent") => {
-            GraphCodec::weighted_recurrent(input_size, output_size, values)
-        }
-        Some("gru") => GraphCodec::gru(input_size, output_size, values),
-        Some("lstm") => GraphCodec::lstm(input_size, output_size, values),
-        _ => GraphCodec::directed(input_size, output_size, values),
-    };
-
-    match max_nodes {
-        Some(max_nodes) => codec.with_max_nodes(max_nodes),
-        None => codec,
-    }
+    TreeCodec::multi_root(min_depth, output_size, values)
+        .constraint(move |node| node.size() <= max_size)
 }

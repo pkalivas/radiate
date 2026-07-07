@@ -110,3 +110,47 @@ where
         obj
     )))
 }
+
+/// A (features, targets) pair, each already extracted into a single, shared float
+/// width. `Regression<f32>`/`Regression<f64>` are genuinely different Rust types,
+/// so this is the smallest thing that can carry either result out of dispatch.
+pub(crate) enum FloatMatrixPair {
+    F32 {
+        features: Vec<Vec<f32>>,
+        targets: Vec<Vec<f32>>,
+    },
+    F64 {
+        features: Vec<Vec<f64>>,
+        targets: Vec<Vec<f64>>,
+    },
+}
+
+/// Decide one shared float width for a `(features, targets)` pair, then extract
+/// both into it.
+///
+/// Policy: f32 only when *both* inputs are already f32 NumPy arrays — that's the
+/// only case where the caller unambiguously asked for f32. Everything else (an
+/// f64 NumPy array, a plain Python list — which has no dtype of its own, Python
+/// floats are always f64 — or a mismatched pair) resolves to f64. This mirrors
+/// `problem.rs`'s existing `cast::<PyArrayDyn<f32>>()` / `cast::<PyArrayDyn<f64>>()`
+/// probe order rather than inventing a new dtype-sniffing mechanism.
+pub(crate) fn extract_regression_pair<'py>(
+    py: Python<'py>,
+    features: &Bound<'py, PyAny>,
+    targets: &Bound<'py, PyAny>,
+) -> PyResult<FloatMatrixPair> {
+    let both_f32 =
+        features.cast::<PyArrayDyn<f32>>().is_ok() && targets.cast::<PyArrayDyn<f32>>().is_ok();
+
+    if both_f32 {
+        Ok(FloatMatrixPair::F32 {
+            features: py_object_into_2d_vec::<f32>(py, features)?,
+            targets: py_object_into_2d_vec::<f32>(py, targets)?,
+        })
+    } else {
+        Ok(FloatMatrixPair::F64 {
+            features: py_object_into_2d_vec::<f64>(py, features)?,
+            targets: py_object_into_2d_vec::<f64>(py, targets)?,
+        })
+    }
+}

@@ -1,5 +1,5 @@
 use crate::{InputTransform, PyEngineInput, PyEngineInputType, PyExpr};
-use radiate::{chromosomes::NumericAllele, *};
+use radiate::{chromosomes::NumericAllele, ops::GpFloat, *};
 use radiate_utils::{Float, Integer};
 
 type AlterConv<C> = fn(&PyEngineInput) -> RadiateResult<Alterer<C>>;
@@ -207,7 +207,7 @@ fn perm_registry() -> AlterRegistry<PermutationChromosome<usize>> {
 /// ---------------------------------------------------------------------------
 /// GRAPH REGISTRY
 /// ---------------------------------------------------------------------------
-fn graph_registry() -> AlterRegistry<GraphChromosome<Op<f32>>> {
+fn graph_registry<F: GpFloat>() -> AlterRegistry<GraphChromosome<Op<F>>> {
     AlterRegistry::new(alter_table! {
         crate::constants::components::GRAPH_CROSSOVER       => convert_graph_crossover,
 
@@ -219,7 +219,7 @@ fn graph_registry() -> AlterRegistry<GraphChromosome<Op<f32>>> {
 /// ---------------------------------------------------------------------------
 /// TREE REGISTRY
 /// ---------------------------------------------------------------------------
-fn tree_registry() -> AlterRegistry<TreeChromosome<Op<f32>>> {
+fn tree_registry<F: GpFloat>() -> AlterRegistry<TreeChromosome<Op<F>>> {
     AlterRegistry::new(alter_table! {
         crate::constants::components::TREE_CROSSOVER        => convert_tree_crossover,
 
@@ -244,8 +244,12 @@ impl_input_transform_for!(FloatChromosome<f64>, float_registry);
 impl_input_transform_for!(CharChromosome, char_registry);
 impl_input_transform_for!(BitChromosome, bit_registry);
 impl_input_transform_for!(PermutationChromosome<usize>, perm_registry);
+
 impl_input_transform_for!(GraphChromosome<Op<f32>>, graph_registry);
+impl_input_transform_for!(GraphChromosome<Op<f64>>, graph_registry);
+
 impl_input_transform_for!(TreeChromosome<Op<f32>>, tree_registry);
+impl_input_transform_for!(TreeChromosome<Op<f64>>, tree_registry);
 
 /// ---------------------------------------------------------------------------
 /// Concrete converters

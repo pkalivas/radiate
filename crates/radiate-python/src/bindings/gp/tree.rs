@@ -152,3 +152,18 @@ impl PyTree {
         self.inner == other.inner
     }
 }
+
+impl From<Vec<Tree<Op<f32>>>> for PyTree {
+    fn from(trees: Vec<Tree<Op<f32>>>) -> Self {
+        PyTree {
+            inner: PyTreeInner::Float32(trees),
+        }
+    }
+}
+impl From<Vec<Tree<Op<f64>>>> for PyTree {
+    fn from(trees: Vec<Tree<Op<f64>>>) -> Self {
+        PyTree {
+            inner: PyTreeInner::Float64(trees),
+        }
+    }
+}

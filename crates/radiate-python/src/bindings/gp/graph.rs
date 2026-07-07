@@ -1,9 +1,8 @@
-use crate::{IntoPyAnyObject, PyAnyObject, PyChromosome, PyGeneType};
+use crate::{IntoPyAnyObject, PyAnyObject};
 use numpy::PyArrayDyn;
 use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
-    Chromosome, EvalMut, Graph, GraphChromosome, GraphEvaluator, GraphIterator, NodeType, Op,
-    ToDot, graphs::GraphEvalCache,
+    EvalMut, Graph, GraphEvaluator, GraphIterator, NodeType, Op, ToDot, graphs::GraphEvalCache,
 };
 use serde::{Deserialize, Serialize};
 
@@ -40,7 +39,7 @@ pub(crate) enum PyGraphInner {
 #[pyclass(from_py_object)]
 #[derive(Serialize, Deserialize)]
 pub struct PyGraph {
-    pub inner: PyGraphInner,
+    pub(crate) inner: PyGraphInner,
 }
 
 #[pymethods]
@@ -120,6 +119,32 @@ impl PyGraph {
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err(
                 "Graph is not of type f32",
+            ))
+        }
+    }
+
+    pub fn eval_f64<'py>(
+        &mut self,
+        py: Python<'py>,
+        inputs: &Bound<'py, PyAny>,
+    ) -> PyResult<Bound<'py, PyArrayDyn<f64>>> {
+        let shape = self.shape();
+        if let PyGraphInner::Float64(graph, cache) = &mut self.inner {
+            let mut evaluator = if cache.is_some() {
+                let cache = cache.take().unwrap();
+                GraphEvaluator::from((&graph, cache))
+            } else {
+                GraphEvaluator::new(graph)
+            };
+
+            let result =
+                super::generic_eval_runner(py, shape.1, inputs, |slice| evaluator.eval_mut(slice));
+
+            *cache = Some(evaluator.take_cache());
+            result
+        } else {
+            Err(pyo3::exceptions::PyTypeError::new_err(
+                "Graph is not of type f64",
             ))
         }
     }

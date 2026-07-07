@@ -123,6 +123,10 @@ impl_from_py_phenotype!(FloatChromosome<f64>);
 
 impl_from_py_phenotype!(BitChromosome);
 impl_from_py_phenotype!(CharChromosome);
-impl_from_py_phenotype!(GraphChromosome<Op<f32>>);
-impl_from_py_phenotype!(TreeChromosome<Op<f32>>);
 impl_from_py_phenotype!(PermutationChromosome<usize>);
+
+impl_from_py_phenotype!(GraphChromosome<Op<f32>>);
+impl_from_py_phenotype!(GraphChromosome<Op<f64>>);
+
+impl_from_py_phenotype!(TreeChromosome<Op<f32>>);
+impl_from_py_phenotype!(TreeChromosome<Op<f64>>);

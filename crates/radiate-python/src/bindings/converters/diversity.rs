@@ -2,7 +2,7 @@ use crate::{InputTransform, PyEngineInput};
 use radiate::{
     BitChromosome, CharChromosome, CosineDistance, Diversity, EuclideanDistance, FloatChromosome,
     GraphChromosome, HammingDistance, IntChromosome, NeatDistance, Op, PermutationChromosome,
-    RadiateResult, TreeChromosome, chromosomes::NumericAllele,
+    RadiateResult, TreeChromosome, chromosomes::NumericAllele, ops::GpFloat,
 };
 use radiate_error::radiate_bail;
 use radiate_utils::{Float, Integer};
@@ -62,15 +62,19 @@ impl InputTransform<RadiateResult<Box<dyn Diversity<PermutationChromosome<usize>
     }
 }
 
-impl InputTransform<RadiateResult<Box<dyn Diversity<TreeChromosome<Op<f32>>>>>> for PyEngineInput {
-    fn transform(&self) -> RadiateResult<Box<dyn Diversity<TreeChromosome<Op<f32>>>>> {
+impl<F: GpFloat> InputTransform<RadiateResult<Box<dyn Diversity<TreeChromosome<Op<F>>>>>>
+    for PyEngineInput
+{
+    fn transform(&self) -> RadiateResult<Box<dyn Diversity<TreeChromosome<Op<F>>>>> {
         // There are currently no diversity measures implemented for tree chromosomes
         radiate_bail!(Builder: "No diversity measures implemented for tree chromosomes")
     }
 }
 
-impl InputTransform<RadiateResult<Box<dyn Diversity<GraphChromosome<Op<f32>>>>>> for PyEngineInput {
-    fn transform(&self) -> RadiateResult<Box<dyn Diversity<GraphChromosome<Op<f32>>>>> {
+impl<F: GpFloat> InputTransform<RadiateResult<Box<dyn Diversity<GraphChromosome<Op<F>>>>>>
+    for PyEngineInput
+{
+    fn transform(&self) -> RadiateResult<Box<dyn Diversity<GraphChromosome<Op<F>>>>> {
         match self.component() {
             crate::constants::components::NEAT_DISTANCE => {
                 let excess = self.extract::<f64>("excess")?;

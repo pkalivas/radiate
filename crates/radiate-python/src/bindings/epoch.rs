@@ -1,7 +1,7 @@
 use super::PyGenotype;
 use crate::{
-    EpochHandle, IntoPyAnyObject, PyAnyObject, PyEcosystem, PyFront, PyMetricSet, PyPopulation,
-    PySpecies, match_variant,
+    EngineBuilderHandle::Graph32, EpochHandle, IntoPyAnyObject, PyAnyObject, PyEcosystem, PyFront,
+    PyMetricSet, PyPopulation, PySpecies, match_variant,
 };
 use crate::{
     PyGeneType,
@@ -97,15 +97,10 @@ impl PyGeneration {
             Char(epoch) => get_value(py, epoch),
             Bit(epoch) => get_value(py, epoch),
             Permutation(epoch) => get_value(py, epoch),
-            Graph(epoch) => PyGraph {
-                inner: epoch.value().clone(),
-                eval_cache: None,
-            }
-            .into_bound_py_any(py),
-            Tree(epoch) => PyTree {
-                inner: epoch.value().clone(),
-            }
-            .into_bound_py_any(py),
+            Graph32(epoch) => PyGraph::from(epoch.value().clone()).into_bound_py_any(py),
+            Graph64(epoch) => PyGraph::from(epoch.value().clone()).into_bound_py_any(py),
+            Tree32(epoch) => PyTree::from(epoch.value().clone()).into_bound_py_any(py),
+            Tree64(epoch) => PyTree::from(epoch.value().clone()).into_bound_py_any(py),
         }
     }
 

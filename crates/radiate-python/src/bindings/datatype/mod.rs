@@ -5,6 +5,7 @@ mod value;
 
 use cell::GILOnceCell;
 
+pub(crate) use array::{FloatMatrixPair, extract_regression_pair};
 pub use dtype::*;
 use radiate::DataType;
 use radiate_utils::{AnyValue, SmallStr};
