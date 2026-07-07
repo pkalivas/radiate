@@ -69,7 +69,7 @@ where
                         ((v1 - v2) * A::HALF) + (beta * A::HALF * (v1 - v2).abs())
                     };
 
-                    let (one_min, one_max) = one_slice[i].bounds();
+                    let (one_min, one_max) = one_slice[i].bound_range();
                     let new_gene = v.clamp(*one_min, *one_max);
 
                     count += 1;

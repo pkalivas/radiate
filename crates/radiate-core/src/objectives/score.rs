@@ -216,6 +216,18 @@ impl From<Vec<f64>> for Score {
     }
 }
 
+impl From<&[f32]> for Score {
+    fn from(value: &[f32]) -> Self {
+        Score::from_vec(value.to_vec())
+    }
+}
+
+impl From<&[f64]> for Score {
+    fn from(value: &[f64]) -> Self {
+        Score::from_vec(value.iter().map(|&v| v as f32).collect())
+    }
+}
+
 impl From<Vec<i32>> for Score {
     fn from(value: Vec<i32>) -> Self {
         Score::from_vec(value.into_iter().map(|v| v as f32).collect())

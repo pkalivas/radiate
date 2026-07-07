@@ -59,8 +59,8 @@ pub mod prelude {
         BatchFitnessFunction, BatchedFn, CompositeFitnessFn, FitnessFunction, NoveltySearch,
     };
     pub use super::genome::{
-        ArithmeticGene, BitChromosome, BitGene, BoundedGene, CharChromosome, CharGene, Chromosome,
-        FloatChromosome, FloatGene, Gene, IntChromosome, IntGene, Valid,
+        BitChromosome, BitGene, BoundedGene, CharChromosome, CharGene, Chromosome, FloatChromosome,
+        FloatGene, Gene, IntChromosome, IntGene, Valid,
     };
     pub use super::objectives::{Front, Objective, Optimize, Score, pareto};
     pub use super::problem::Problem;

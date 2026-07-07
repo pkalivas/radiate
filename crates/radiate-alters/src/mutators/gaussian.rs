@@ -39,8 +39,8 @@ where
                     // The reason we use the sampling min/max from the gene here instead of it's
                     // 'bounds' is because this operation is essentially a form of 'local search'
                     // and we want to ensure that the mutated value is not too far from the original value.
-                    let min = gene.min().extract::<f64>().unwrap();
-                    let max = gene.max().extract::<f64>().unwrap();
+                    let min = gene.init_min().extract::<f64>().unwrap();
+                    let max = gene.init_max().extract::<f64>().unwrap();
 
                     let std_dev = (max - min) * 0.25;
                     let value = gene.allele().extract::<f64>().unwrap();

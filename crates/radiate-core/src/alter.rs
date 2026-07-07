@@ -416,8 +416,8 @@ pub trait Mutate<C: Chromosome>: Send + Sync {
         let mut count = 0;
         for gene in chromosome.iter_mut() {
             if random_provider::bool(ctx.rate()) {
-                // count += self.mutate_gene(gene);
-                panic!("mutate_gene is not implemented for this mutator");
+                *gene = gene.new_instance();
+                count += 1;
             }
         }
 

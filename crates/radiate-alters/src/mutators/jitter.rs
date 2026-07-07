@@ -48,7 +48,7 @@ where
                 if rand.bool(ctx.rate()) {
                     let change = rand.range(-F::ONE..F::ONE) * mag;
                     let new_allele = *gene.allele() + change;
-                    let (min, max) = gene.bounds();
+                    let (min, max) = gene.bound_range();
 
                     (*gene.allele_mut()) = new_allele.clamp(*min, *max);
                     count += 1;

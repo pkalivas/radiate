@@ -1,9 +1,8 @@
 use radiate_core::{
     AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, Expr, Gene, RateSet,
-    chromosomes::{NumericAllele, NumericGene},
     random_provider,
 };
-use radiate_utils::{Float, Primitive};
+use radiate_utils::Float;
 
 /// The [BlendCrossover] is a crossover operator that blends [FloatGene] alleles from two parent chromosomes to create offspring.
 /// The blending is controlled by the `alpha` parameter, which determines the extent of blending between the two alleles.
@@ -35,8 +34,8 @@ impl BlendCrossover {
 
 impl<A, G, C> Crossover<C> for BlendCrossover
 where
-    A: Primitive + Float + NumericAllele,
-    G: Gene<Allele = A> + BoundedGene + NumericGene,
+    A: Float,
+    G: Gene<Allele = A> + BoundedGene,
     C: Chromosome<Gene = G>,
 {
     fn rates(&self) -> RateSet {
@@ -62,8 +61,8 @@ where
                     let new_allele_one = allele_one - (alpha * (allele_two - allele_one));
                     let new_allele_two = allele_two - (alpha * (allele_one - allele_two));
 
-                    let (one_min, one_max) = one.bounds();
-                    let (two_min, two_max) = two.bounds();
+                    let (one_min, one_max) = one.bound_range();
+                    let (two_min, two_max) = two.bound_range();
 
                     *one.allele_mut() = new_allele_one.clamp(*one_min, *one_max);
                     *two.allele_mut() = new_allele_two.clamp(*two_min, *two_max);
@@ -72,26 +71,6 @@ where
                 }
             });
         });
-
-        // random_provider::with_rng(|rand| {
-        //     for (one, two) in chrom_one.iter_mut().zip(chrom_two.iter_mut()) {
-        //         if rand.bool(ctx.rate()) {
-        //             let allele_one = *one.allele();
-        //             let allele_two = *two.allele();
-
-        //             let new_allele_one = allele_one - (alpha * (allele_two - allele_one));
-        //             let new_allele_two = allele_two - (alpha * (allele_one - allele_two));
-
-        //             let (one_min, one_max) = one.bounds();
-        //             let (two_min, two_max) = two.bounds();
-
-        //             *one.allele_mut() = new_allele_one.clamp(*one_min, *one_max);
-        //             *two.allele_mut() = new_allele_two.clamp(*two_min, *two_max);
-
-        //             cross_count += 1;
-        //         }
-        //     }
-        // });
 
         cross_count.into()
     }
@@ -351,16 +330,20 @@ mod tests {
                 let gene_one = chrom_one.get(i).unwrap();
                 let gene_two = chrom_two.get(i).unwrap();
 
-                if expected_one < *gene_one.bounds().0 || expected_one > *gene_one.bounds().1 {
-                    assert!(*gene_one.allele() >= *gene_one.bounds().0);
-                    assert!(*gene_one.allele() <= *gene_one.bounds().1);
+                if expected_one < *gene_one.bound_range().0
+                    || expected_one > *gene_one.bound_range().1
+                {
+                    assert!(*gene_one.allele() >= *gene_one.bound_range().0);
+                    assert!(*gene_one.allele() <= *gene_one.bound_range().1);
                 } else {
                     assert!((gene_one.allele() - expected_one).abs() < 1e-6);
                 }
 
-                if expected_two < *gene_two.bounds().0 || expected_two > *gene_two.bounds().1 {
-                    assert!(*gene_two.allele() >= *gene_two.bounds().0);
-                    assert!(*gene_two.allele() <= *gene_two.bounds().1);
+                if expected_two < *gene_two.bound_range().0
+                    || expected_two > *gene_two.bound_range().1
+                {
+                    assert!(*gene_two.allele() >= *gene_two.bound_range().0);
+                    assert!(*gene_two.allele() <= *gene_two.bound_range().1);
                 } else {
                     assert!((gene_two.allele() - expected_two).abs() < 1e-6);
                 }

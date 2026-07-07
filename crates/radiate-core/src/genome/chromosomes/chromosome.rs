@@ -1,6 +1,9 @@
-use radiate_utils::Primitive;
+use crate::{
+    Gene,
+    chromosomes::{NumericAllele, NumericGene},
+};
 
-use super::{Valid, gene::Gene};
+use super::Valid;
 
 /// The [Chromosome] is part of the genetic makeup of an individual.
 /// It is a collection of [Gene] instances, it is essentially a
@@ -17,7 +20,7 @@ use super::{Valid, gene::Gene};
 /// Chromosome: [Gene, Gene, Gene]
 /// ```
 pub trait Chromosome: Valid {
-    type Gene;
+    type Gene: Gene;
 
     fn as_slice(&self) -> &[Self::Gene];
     fn as_mut_slice(&mut self) -> &mut [Self::Gene];
@@ -68,4 +71,9 @@ pub trait Chromosome: Valid {
     }
 }
 
-pub trait NumericChromosome<T: Primitive>: Chromosome<Gene = T> {}
+pub trait NumericChromosome<A>: Chromosome
+where
+    Self::Gene: NumericGene<Allele = A>,
+    A: NumericAllele,
+{
+}

@@ -53,8 +53,19 @@ class Graph(RsObject):
 
     @overload
     def eval(
-        self, inputs: "np.ndarray", *, columns: list[str] | None = None
-    ) -> "np.ndarray": ...  # Performance upgrade: return array to array users
+        self,
+        inputs: "np.typing.NDArray[np.float32]",
+    ) -> (
+        "np.typing.NDArray[np.float32]"
+    ): ...  # Performance upgrade: return array to array users
+
+    @overload
+    def eval(
+        self,
+        inputs: "np.typing.NDArray[np.float64]",
+    ) -> (
+        "np.typing.NDArray[np.float64]"
+    ): ...  # Performance upgrade: return array to array users
 
     @overload
     def eval(

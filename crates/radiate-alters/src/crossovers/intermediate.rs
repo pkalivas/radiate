@@ -66,8 +66,8 @@ where
                         let new_allele_one = allele_one * alpha + allele_two * (F::ONE - alpha);
                         let new_allele_two = allele_two * alpha + allele_one * (F::ONE - alpha);
 
-                        let (one_min, one_max) = gene_one.bounds();
-                        let (two_min, two_max) = gene_two.bounds();
+                        let (one_min, one_max) = gene_one.bound_range();
+                        let (two_min, two_max) = gene_two.bound_range();
 
                         *gene_one.allele_mut() = new_allele_one.clamp(*one_min, *one_max);
                         *gene_two.allele_mut() = new_allele_two.clamp(*two_min, *two_max);

@@ -154,20 +154,20 @@ impl PyGene {
 
     pub fn init_range<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         match &self.inner {
-            GeneInner::UInt8(gene) => (gene.min(), gene.max()).into_bound_py_any(py),
-            GeneInner::UInt16(gene) => (gene.min(), gene.max()).into_bound_py_any(py),
-            GeneInner::UInt32(gene) => (gene.min(), gene.max()).into_bound_py_any(py),
-            GeneInner::UInt64(gene) => (gene.min(), gene.max()).into_bound_py_any(py),
-            GeneInner::UInt128(gene) => (gene.min(), gene.max()).into_bound_py_any(py),
+            GeneInner::UInt8(gene) => (gene.init_min(), gene.init_max()).into_bound_py_any(py),
+            GeneInner::UInt16(gene) => (gene.init_min(), gene.init_max()).into_bound_py_any(py),
+            GeneInner::UInt32(gene) => (gene.init_min(), gene.init_max()).into_bound_py_any(py),
+            GeneInner::UInt64(gene) => (gene.init_min(), gene.init_max()).into_bound_py_any(py),
+            GeneInner::UInt128(gene) => (gene.init_min(), gene.init_max()).into_bound_py_any(py),
 
-            GeneInner::Int8(gene) => (gene.min(), gene.max()).into_bound_py_any(py),
-            GeneInner::Int16(gene) => (gene.min(), gene.max()).into_bound_py_any(py),
-            GeneInner::Int32(gene) => (gene.min(), gene.max()).into_bound_py_any(py),
-            GeneInner::Int64(gene) => (gene.min(), gene.max()).into_bound_py_any(py),
-            GeneInner::Int128(gene) => (gene.min(), gene.max()).into_bound_py_any(py),
+            GeneInner::Int8(gene) => (gene.init_min(), gene.init_max()).into_bound_py_any(py),
+            GeneInner::Int16(gene) => (gene.init_min(), gene.init_max()).into_bound_py_any(py),
+            GeneInner::Int32(gene) => (gene.init_min(), gene.init_max()).into_bound_py_any(py),
+            GeneInner::Int64(gene) => (gene.init_min(), gene.init_max()).into_bound_py_any(py),
+            GeneInner::Int128(gene) => (gene.init_min(), gene.init_max()).into_bound_py_any(py),
 
-            GeneInner::Float32(gene) => (gene.min(), gene.max()).into_bound_py_any(py),
-            GeneInner::Float64(gene) => (gene.min(), gene.max()).into_bound_py_any(py),
+            GeneInner::Float32(gene) => (gene.init_min(), gene.init_max()).into_bound_py_any(py),
+            GeneInner::Float64(gene) => (gene.init_min(), gene.init_max()).into_bound_py_any(py),
 
             _ => py.None().into_bound_py_any(py),
         }
@@ -175,20 +175,20 @@ impl PyGene {
 
     pub fn bounds<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         match &self.inner {
-            GeneInner::UInt8(gene) => gene.bounds().into_bound_py_any(py),
-            GeneInner::UInt16(gene) => gene.bounds().into_bound_py_any(py),
-            GeneInner::UInt32(gene) => gene.bounds().into_bound_py_any(py),
-            GeneInner::UInt64(gene) => gene.bounds().into_bound_py_any(py),
-            GeneInner::UInt128(gene) => gene.bounds().into_bound_py_any(py),
+            GeneInner::UInt8(gene) => gene.bound_range().into_bound_py_any(py),
+            GeneInner::UInt16(gene) => gene.bound_range().into_bound_py_any(py),
+            GeneInner::UInt32(gene) => gene.bound_range().into_bound_py_any(py),
+            GeneInner::UInt64(gene) => gene.bound_range().into_bound_py_any(py),
+            GeneInner::UInt128(gene) => gene.bound_range().into_bound_py_any(py),
 
-            GeneInner::Int8(gene) => gene.bounds().into_bound_py_any(py),
-            GeneInner::Int16(gene) => gene.bounds().into_bound_py_any(py),
-            GeneInner::Int32(gene) => gene.bounds().into_bound_py_any(py),
-            GeneInner::Int64(gene) => gene.bounds().into_bound_py_any(py),
-            GeneInner::Int128(gene) => gene.bounds().into_bound_py_any(py),
+            GeneInner::Int8(gene) => gene.bound_range().into_bound_py_any(py),
+            GeneInner::Int16(gene) => gene.bound_range().into_bound_py_any(py),
+            GeneInner::Int32(gene) => gene.bound_range().into_bound_py_any(py),
+            GeneInner::Int64(gene) => gene.bound_range().into_bound_py_any(py),
+            GeneInner::Int128(gene) => gene.bound_range().into_bound_py_any(py),
 
-            GeneInner::Float32(gene) => gene.bounds().into_bound_py_any(py),
-            GeneInner::Float64(gene) => gene.bounds().into_bound_py_any(py),
+            GeneInner::Float32(gene) => gene.bound_range().into_bound_py_any(py),
+            GeneInner::Float64(gene) => gene.bound_range().into_bound_py_any(py),
 
             _ => py.None().into_bound_py_any(py),
         }

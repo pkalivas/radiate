@@ -1,5 +1,5 @@
 use radiate_core::{
-    AlterContext, AlterResult, ArithmeticGene, Chromosome, Crossover, Expr, RateSet,
+    AlterContext, AlterResult, Chromosome, Crossover, Expr, RateSet, chromosomes::NumericGene,
     random_provider,
 };
 
@@ -23,9 +23,10 @@ impl MeanCrossover {
     }
 }
 
-impl<C: Chromosome> Crossover<C> for MeanCrossover
+impl<C, G> Crossover<C> for MeanCrossover
 where
-    C::Gene: ArithmeticGene,
+    C: Chromosome<Gene = G>,
+    G: NumericGene,
 {
     fn rates(&self) -> RateSet {
         RateSet::new(self.rate.clone())

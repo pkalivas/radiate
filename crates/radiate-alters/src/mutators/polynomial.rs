@@ -77,7 +77,7 @@ where
         let mut count = 0;
         for gene in chromosome.iter_mut() {
             if random_provider::bool(ctx.rate()) {
-                let (lower, upper) = gene.bounds();
+                let (lower, upper) = gene.bound_range();
                 let min = lower.extract::<f64>().unwrap();
                 let max = upper.extract::<f64>().unwrap();
                 let value = gene.allele().extract::<f64>().unwrap();

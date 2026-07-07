@@ -1,5 +1,6 @@
 use radiate_core::{
-    AlterContext, AlterResult, ArithmeticGene, Chromosome, Expr, Mutate, RateSet, random_provider,
+    AlterContext, AlterResult, Chromosome, Expr, Mutate, RateSet, chromosomes::NumericGene,
+    random_provider,
 };
 
 /// Arithmetic Mutator. Mutates genes by performing arithmetic operations on them.
@@ -22,10 +23,10 @@ impl ArithmeticMutator {
     }
 }
 
-impl<G, C> Mutate<C> for ArithmeticMutator
+impl<C, G, A> Mutate<C> for ArithmeticMutator
 where
-    G: ArithmeticGene,
     C: Chromosome<Gene = G>,
+    G: NumericGene<Allele = A>,
 {
     fn rates(&self) -> RateSet {
         RateSet::new(self.rate.clone())
@@ -43,10 +44,10 @@ where
                 let operator = random_provider::range(0..4);
 
                 let new_gene = match operator {
-                    0 => gene.clone() + gene.new_instance(),
-                    1 => gene.clone() - gene.new_instance(),
-                    2 => gene.clone() * gene.new_instance(),
-                    3 => gene.clone() / gene.new_instance(),
+                    0 => gene.safe_add(&gene.new_instance()),
+                    1 => gene.safe_sub(&gene.new_instance()),
+                    2 => gene.safe_mul(&gene.new_instance()),
+                    3 => gene.safe_div(&gene.new_instance()),
                     _ => panic!("Invalid operator - this shouldn't happen: {}", operator),
                 };
 

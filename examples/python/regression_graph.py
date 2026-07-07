@@ -30,21 +30,28 @@ x = np.array(inputs, dtype=np.float32)
 y = np.array(answers, dtype=np.float32)
 
 
-def fit(graph: rd.Graph) -> np.float32:
-    predictions = graph.eval(x)
-    return np.mean((predictions - y) ** 2, dtype=np.float32)
+# def fit(graph: rd.Graph) -> np.float32:
+#     predictions = graph.eval(x)
+#     return np.mean((predictions - y) ** 2, dtype=np.float32)
+
+
+@rd.fitness(batch=True)
+def fit(graph: list[rd.Graph]) -> list[np.float32]:
+    # raise NotImplementedError("This function is not implemented yet.")
+    predictions = [g.eval(x) for g in graph]
+    return [np.mean((pred - y) ** 2, dtype=np.float32) for pred in predictions]
 
 
 engine = (
     rd.Engine.graph(
         shape=(1, 1),
-        vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
-        edge=rd.Op.weight(),
+        # vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
+        # edge=rd.Op.weight(),
         output=rd.Op.linear(),
     )
-    # .fitness(fit)
-    # .minimizing()
-    .regression(inputs, answers, loss=rd.MSE)
+    .fitness(fit)
+    .minimizing()
+    # .regression(inputs, answers, loss=rd.MSE)
     .select(rd.Select.boltzmann(temp=4.0))
     .alters(
         rd.Cross.graph(0.4, 0.5),
@@ -55,7 +62,7 @@ engine = (
 )
 
 
-result = engine.run(ui=True)
+result = engine.run(ui=False)
 
 eval_results = result.value().eval(inputs)
 accuracy = rd.accuracy(result.value(), inputs, answers, loss=rd.MSE)

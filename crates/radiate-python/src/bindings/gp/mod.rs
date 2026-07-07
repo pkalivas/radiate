@@ -5,9 +5,9 @@ mod tree;
 
 pub use accuracy::{PyAccuracy, py_accuracy};
 pub use graph::PyGraph;
-use numpy::IntoPyArray;
-use numpy::PyArrayDyn;
+use numpy::{IntoPyArray, PyArray, ndarray::IxDynImpl};
 use numpy::{PyArray1, PyArrayMethods};
+use numpy::{PyArrayDyn, ndarray::Dim};
 use numpy::{
     PyUntypedArrayMethods,
     ndarray::{ArrayD, IxDyn},
@@ -23,141 +23,172 @@ pub fn generic_eval_runner<'py, F>(
     py: Python<'py>,
     output_length: usize,
     inputs: &Bound<'py, PyAny>,
-    mut eval_row: F,
+    eval_row: F,
 ) -> PyResult<Bound<'py, PyArrayDyn<f32>>>
 where
     F: FnMut(&[f32]) -> Vec<f32>,
 {
     if let Ok(np_array_f32) = inputs.cast::<PyArrayDyn<f32>>() {
-        let readonly_view = np_array_f32.readonly();
-        let ndim = readonly_view.ndim();
-
-        match ndim {
-            1 => {
-                let input_slice = readonly_view.as_slice()?;
-                let output = eval_row(input_slice);
-                return Ok(PyArray1::from_vec(py, output).to_dyn().into());
-            }
-            2 => {
-                let array_view = readonly_view
-                    .as_array()
-                    .into_dimensionality::<numpy::ndarray::Ix2>()
-                    .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
-
-                let mut flat_outputs = Vec::with_capacity(array_view.shape()[0] * output_length);
-                for row in array_view.rows() {
-                    flat_outputs.extend(eval_row(match row.as_slice() {
-                        Some(slice) => slice,
-                        None => {
-                            radiate_py_bail!("NumPy array memory must be contiguous",);
-                        }
-                    }));
-                }
-
-                let rows = array_view.shape()[0];
-                let cols = output_length;
-
-                let shape = IxDyn(&[rows, cols]);
-                let ndarray_2d = ArrayD::from_shape_vec(shape, flat_outputs)
-                    .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
-
-                return Ok(ndarray_2d.into_pyarray(py).to_dyn().into());
-            }
-            _ => {
-                radiate_py_bail!("Expected 1D or 2D NumPy array",);
-            }
-        };
+        return run_gp_eval_f32(py, output_length, &np_array_f32, eval_row);
     } else if let Ok(np_array_f64) = inputs.cast::<PyArrayDyn<f64>>() {
-        // Intercept native f64 Python NumPy arrays and downcast them directly to f32
-        let readonly_view = np_array_f64.readonly();
-        let ndim = readonly_view.ndim();
-
-        match ndim {
-            1 => {
-                let input_slice_f64 = readonly_view.as_slice()?;
-                let input_slice_f32 = input_slice_f64
-                    .iter()
-                    .map(|&x| x as f32)
-                    .collect::<Vec<f32>>();
-
-                let output = eval_row(&input_slice_f32);
-                return Ok(PyArray1::from_vec(py, output).to_dyn().into());
-            }
-            2 => {
-                let array_view = readonly_view
-                    .as_array()
-                    .into_dimensionality::<numpy::ndarray::Ix2>()
-                    .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
-
-                let mut flat_outputs = Vec::with_capacity(array_view.shape()[0] * output_length);
-                let mut cast_buffer = Vec::with_capacity(array_view.shape()[1]);
-
-                for row in array_view.rows() {
-                    let input_slice_f64 = row.as_slice().ok_or_else(|| {
-                        pyo3::exceptions::PyValueError::new_err(
-                            "NumPy array memory must be contiguous",
-                        )
-                    })?;
-
-                    // Direct buffer recycling assignment via iterator map conversion
-                    cast_buffer.clear();
-                    cast_buffer.extend(input_slice_f64.iter().map(|&x| x as f32));
-
-                    flat_outputs.extend(eval_row(&cast_buffer));
-                }
-
-                let rows = array_view.shape()[0];
-                let cols = output_length;
-
-                let shape = IxDyn(&[rows, cols]);
-                let ndarray_2d = ArrayD::from_shape_vec(shape, flat_outputs)
-                    .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
-
-                return Ok(ndarray_2d.into_pyarray(py).to_dyn().into());
-            }
-            _ => {
-                radiate_py_bail!("Expected 1D or 2D NumPy array",);
-            }
-        };
+        return run_gp_eval_f64(py, output_length, &np_array_f64, eval_row);
+    } else if let Ok(py_list) = inputs.cast::<PyList>() {
+        return run_gp_eval_list(py, output_length, &py_list, eval_row);
     }
 
-    if let Ok(py_list) = inputs.cast::<PyList>() {
-        if py_list.is_empty() {
-            radiate_py_bail!("Input list cannot be empty",);
+    radiate_py_bail!("Input must be either a 1D/2D NumPy array or a 1D/2D Python list",);
+}
+
+fn run_gp_eval_f32<'py, F>(
+    py: Python<'py>,
+    output_length: usize,
+    np_array_f32: &Bound<'_, PyArray<f32, Dim<IxDynImpl>>>,
+    mut eval_row: F,
+) -> PyResult<Bound<'py, PyArrayDyn<f32>>>
+where
+    F: FnMut(&[f32]) -> Vec<f32>,
+{
+    let readonly_view = np_array_f32.readonly();
+    let ndim = readonly_view.ndim();
+
+    match ndim {
+        1 => {
+            let input_slice = readonly_view.as_slice()?;
+            let output = eval_row(input_slice);
+            return Ok(PyArray1::from_vec(py, output).to_dyn().into());
         }
+        2 => {
+            let array_view = readonly_view
+                .as_array()
+                .into_dimensionality::<numpy::ndarray::Ix2>()
+                .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
 
-        let first_element = py_list.get_item(0)?;
-
-        if first_element.cast::<PyList>().is_ok() {
-            let rows = py_list.len();
-            let mut flat_outputs = Vec::new();
-            let mut reuse_buffer = Vec::new();
-
-            for item in py_list.try_iter()? {
-                match item?.cast::<PyList>() {
-                    Ok(row_list) => {
-                        reuse_buffer.clear();
-                        reuse_buffer.extend(row_list.extract::<Vec<f32>>()?);
-
-                        flat_outputs.extend(eval_row(&reuse_buffer));
+            let mut flat_outputs = Vec::with_capacity(array_view.shape()[0] * output_length);
+            for row in array_view.rows() {
+                flat_outputs.extend(eval_row(match row.as_slice() {
+                    Some(slice) => slice,
+                    None => {
+                        radiate_py_bail!("NumPy array memory must be contiguous",);
                     }
-                    Err(_) => {
-                        radiate_py_bail!("All elements of the outer list must be lists",);
-                    }
-                }
+                }));
             }
 
-            let shape = IxDyn(&[rows, output_length]);
+            let rows = array_view.shape()[0];
+            let cols = output_length;
+
+            let shape = IxDyn(&[rows, cols]);
             let ndarray_2d = ArrayD::from_shape_vec(shape, flat_outputs)
                 .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
 
             return Ok(ndarray_2d.into_pyarray(py).to_dyn().into());
-        } else {
-            let input_vec: Vec<f32> = py_list.extract()?;
-            let output = eval_row(&input_vec);
+        }
+        _ => {
+            radiate_py_bail!("Expected 1D or 2D NumPy array",);
+        }
+    };
+}
+
+fn run_gp_eval_f64<'py, F>(
+    py: Python<'py>,
+    output_length: usize,
+    np_array_f64: &Bound<'_, PyArray<f64, Dim<IxDynImpl>>>,
+    mut eval_row: F,
+) -> PyResult<Bound<'py, PyArrayDyn<f32>>>
+where
+    F: FnMut(&[f32]) -> Vec<f32>,
+{
+    let readonly_view = np_array_f64.readonly();
+    let ndim = readonly_view.ndim();
+
+    match ndim {
+        1 => {
+            let input_slice_f64 = readonly_view.as_slice()?;
+            let input_slice_f32 = input_slice_f64
+                .iter()
+                .map(|&x| x as f32)
+                .collect::<Vec<f32>>();
+
+            let output = eval_row(&input_slice_f32);
             return Ok(PyArray1::from_vec(py, output).to_dyn().into());
-        };
+        }
+        2 => {
+            let array_view = readonly_view
+                .as_array()
+                .into_dimensionality::<numpy::ndarray::Ix2>()
+                .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
+
+            let mut flat_outputs = Vec::with_capacity(array_view.shape()[0] * output_length);
+            let mut cast_buffer = Vec::with_capacity(array_view.shape()[1]);
+
+            for row in array_view.rows() {
+                let input_slice_f64 = row.as_slice().ok_or_else(|| {
+                    pyo3::exceptions::PyValueError::new_err("NumPy array memory must be contiguous")
+                })?;
+
+                // Direct buffer recycling assignment via iterator map conversion
+                cast_buffer.clear();
+                cast_buffer.extend(input_slice_f64.iter().map(|&x| x as f32));
+
+                flat_outputs.extend(eval_row(&cast_buffer));
+            }
+
+            let rows = array_view.shape()[0];
+            let cols = output_length;
+
+            let shape = IxDyn(&[rows, cols]);
+            let ndarray_2d = ArrayD::from_shape_vec(shape, flat_outputs)
+                .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
+
+            return Ok(ndarray_2d.into_pyarray(py).to_dyn().into());
+        }
+        _ => {
+            radiate_py_bail!("Expected 1D or 2D NumPy array",);
+        }
+    };
+}
+
+fn run_gp_eval_list<'py, F>(
+    py: Python<'py>,
+    output_length: usize,
+    py_list: &Bound<'_, PyList>,
+    mut eval_row: F,
+) -> PyResult<Bound<'py, PyArrayDyn<f32>>>
+where
+    F: FnMut(&[f32]) -> Vec<f32>,
+{
+    if py_list.is_empty() {
+        radiate_py_bail!("Input list cannot be empty",);
     }
 
-    radiate_py_bail!("Input must be either a 1D/2D NumPy array or a 1D/2D Python list",);
+    let first_element = py_list.get_item(0)?;
+
+    if first_element.cast::<PyList>().is_ok() {
+        let rows = py_list.len();
+        let mut flat_outputs = Vec::new();
+        let mut reuse_buffer = Vec::new();
+
+        for item in py_list.try_iter()? {
+            match item?.cast::<PyList>() {
+                Ok(row_list) => {
+                    reuse_buffer.clear();
+                    reuse_buffer.extend(row_list.extract::<Vec<f32>>()?);
+
+                    flat_outputs.extend(eval_row(&reuse_buffer));
+                }
+                Err(_) => {
+                    radiate_py_bail!("All elements of the outer list must be lists",);
+                }
+            }
+        }
+
+        let shape = IxDyn(&[rows, output_length]);
+        let ndarray_2d = ArrayD::from_shape_vec(shape, flat_outputs)
+            .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
+
+        return Ok(ndarray_2d.into_pyarray(py).to_dyn().into());
+    } else {
+        let input_vec: Vec<f32> = py_list.extract()?;
+        let output = eval_row(&input_vec);
+        return Ok(PyArray1::from_vec(py, output).to_dyn().into());
+    };
 }

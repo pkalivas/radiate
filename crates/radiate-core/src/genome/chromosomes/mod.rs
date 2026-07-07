@@ -10,7 +10,7 @@ pub use bit::{BitChromosome, BitGene};
 pub use char::{CharChromosome, CharGene};
 pub use chromosome::*;
 pub use float::{FloatChromosome, FloatGene};
-pub use gene::{ArithmeticGene, BoundedGene, Gene, NumericGene, Valid};
+pub use gene::{BoundedGene, Gene, NumericGene, Valid};
 pub use int::{IntChromosome, IntGene};
 use num_traits::NumCast;
 pub use permutation::{PermutationChromosome, PermutationGene};
@@ -21,13 +21,13 @@ pub trait NumericAllele: Primitive {
         T::from(self)
     }
 
-    fn clamp(&mut self, min: &Self, max: &Self) {
-        if *self < *min {
-            *self = *min;
-        } else if *self > *max {
-            *self = *max;
-        }
-    }
+    // fn clamp(&mut self, min: &Self, max: &Self) {
+    //     if *self < *min {
+    //         *self = *min;
+    //     } else if *self > *max {
+    //         *self = *max;
+    //     }
+    // }
 }
 
 macro_rules! impl_numeric_allele {
@@ -118,8 +118,8 @@ where
     let mut index_to_bounds_map = Vec::new();
 
     for gene in genes {
-        let min_allele = (*gene.min()).clone();
-        let max_allele = (*gene.max()).clone();
+        let min_allele = (*gene.init_min()).clone();
+        let max_allele = (*gene.init_max()).clone();
 
         let bounds_index = bounds
             .iter()
@@ -144,7 +144,7 @@ where
     let mut index_to_bounds_map = Vec::new();
 
     for gene in genes {
-        let (min, max) = gene.bounds();
+        let (min, max) = gene.bound_range();
 
         let bounds_index = bounds
             .iter()

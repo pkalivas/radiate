@@ -3,6 +3,21 @@ use numpy::{PyArrayDyn, PyArrayMethods};
 use pyo3::{Py, PyAny, Python, types::PyList};
 use radiate::{Chromosome, Codec, Genotype, Problem, RadiateResult, Score, error};
 
+struct PyFitness {
+    func: PyAnyObject,
+    is_batch: bool,
+}
+
+impl PyFitness {
+    fn call<'py>(&self, py: Python<'py>, input: Py<PyAny>) -> RadiateResult<Py<PyAny>> {
+        self.func.inner.call1(py, (input,)).map_err(|e| {
+            error::radiate_err!(Evaluation:
+                "Fitness function failed: {}", e
+            )
+        })
+    }
+}
+
 pub struct PyProblem<C: Chromosome, T> {
     fitness_func: PyAnyObject,
     codec: PyCodec<C, T>,
