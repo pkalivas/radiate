@@ -1,4 +1,6 @@
 use crate::Arity;
+#[cfg(feature = "serde")]
+use crate::ops::GpFloat;
 use crate::ops::op_names;
 use crate::ops::operation::Op;
 #[cfg(feature = "serde")]
@@ -42,12 +44,12 @@ where
 }
 
 #[cfg(feature = "serde")]
-impl<'de> Deserialize<'de> for Op<f32> {
+impl<'de, F: GpFloat + Serialize + Deserialize<'de>> Deserialize<'de> for Op<F> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
-        let variant = OpVariant::<f32>::deserialize(deserializer)?;
+        let variant = OpVariant::<F>::deserialize(deserializer)?;
         Result::from(variant).map_err(|e| {
             serde::de::Error::custom(format!("Failed to convert OpVariant to Op: {}", e))
         })
@@ -92,8 +94,8 @@ impl<T: Clone> From<Op<T>> for OpVariant<T> {
     }
 }
 
-impl From<OpVariant<f32>> for Result<Op<f32>, serde::de::value::Error> {
-    fn from(variant: OpVariant<f32>) -> Self {
+impl<F: GpFloat> From<OpVariant<F>> for Result<Op<F>, serde::de::value::Error> {
+    fn from(variant: OpVariant<F>) -> Self {
         match variant {
             OpVariant::Fn { name, .. } => {
                 let name: &'static str = Box::leak(name.into_boxed_str());
@@ -244,7 +246,7 @@ mod tests {
 
     #[test]
     fn test_serialize_deserialize_mutable_const() {
-        let op = Op::weight();
+        let op = Op::<f32>::weight();
         let serialized = serde_json::to_string(&op).unwrap();
         let deserialized: Op<f32> = serde_json::from_str(&serialized).unwrap();
         assert_eq!(op.name(), deserialized.name());

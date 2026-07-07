@@ -5,7 +5,7 @@ use radiate::{Loss, RadiateResult, Regression};
 #[derive(Clone)]
 pub enum PyFitnessInner {
     Custom(PyAnyObject, bool), // bool indicates if batch
-    Regression(Regression, bool),
+    Regression(Regression<f32>, bool),
     NoveltySearch(PyAnyObject, bool),
 }
 

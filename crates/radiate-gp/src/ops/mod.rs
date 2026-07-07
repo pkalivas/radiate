@@ -1,6 +1,7 @@
 pub mod bool;
 pub mod expr;
-pub mod math;
+// pub mod math;
+pub mod math_generic;
 pub mod mutator;
 pub mod operation;
 mod param;
@@ -8,11 +9,41 @@ pub mod primitives;
 #[cfg(feature = "serde")]
 mod serde;
 
+use radiate_utils::Float;
+use std::cell::RefCell;
+
 pub use expr::Expression;
-pub use math::{activation_ops, all_ops, math_ops};
+// pub use math::{activation_ops, all_ops, math_ops};
+pub use math_generic::{activation_ops, all_ops, math_ops};
 pub use mutator::OperationMutator;
 pub use operation::*;
 pub use param::Param;
+
+pub trait GpFloat: Float + Send + Sync {
+    const MAX_VALUE: Self;
+    const LOG_EPS: Self;
+
+    fn with_loss_buffer<R>(f: impl FnOnce(&mut Vec<Self>) -> R) -> R;
+}
+
+macro_rules! impl_gp_float {
+    ($t:ty, $max:expr, $log_eps:expr) => {
+        impl GpFloat for $t {
+            const MAX_VALUE: Self = $max;
+            const LOG_EPS: Self = $log_eps;
+
+            fn with_loss_buffer<R>(f: impl FnOnce(&mut Vec<Self>) -> R) -> R {
+                thread_local! {
+                    static BUFFER: RefCell<Vec<$t>> = const { RefCell::new(Vec::new()) };
+                }
+                BUFFER.with(|cell| f(&mut cell.borrow_mut()))
+            }
+        }
+    };
+}
+
+impl_gp_float!(f32, 1e10_f32, 1e-7_f32);
+impl_gp_float!(f64, 1e10_f64, 1e-7_f64);
 
 pub(crate) mod op_names {
     /// Mathematical operation names

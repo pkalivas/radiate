@@ -106,7 +106,7 @@ mod tests {
 
     #[test]
     fn test_graph_iterator() {
-        let graph = Graph::new(vec![
+        let graph = Graph::<Op<f64>>::new(vec![
             GraphNode::from((0, NodeType::Input, Op::var(0))).with_outgoing([2]),
             GraphNode::from((1, NodeType::Input, Op::var(1))).with_outgoing([2]),
             GraphNode::from((2, NodeType::Vertex, Op::add()))
@@ -127,11 +127,11 @@ mod tests {
     #[test]
     fn test_graph_iterator_recurrent() {
         let nodes = vec![
-            GraphNode::from((0, NodeType::Input, Op::var(0), vec![], vec![2])),
-            GraphNode::from((1, NodeType::Input, Op::var(1), vec![], vec![2])),
-            GraphNode::from((2, NodeType::Vertex, Op::add(), vec![0, 1], vec![3])),
-            GraphNode::from((3, NodeType::Vertex, Op::mul(), vec![2], vec![2])),
-            GraphNode::from((4, NodeType::Output, Op::linear(), vec![3], vec![])),
+            GraphNode::from((0, NodeType::Input, Op::<f64>::var(0), vec![], vec![2])),
+            GraphNode::from((1, NodeType::Input, Op::<f64>::var(1), vec![], vec![2])),
+            GraphNode::from((2, NodeType::Vertex, Op::<f64>::add(), vec![0, 1], vec![3])),
+            GraphNode::from((3, NodeType::Vertex, Op::<f64>::mul(), vec![2], vec![2])),
+            GraphNode::from((4, NodeType::Output, Op::<f64>::linear(), vec![3], vec![])),
         ];
 
         let graph = Graph::new(nodes);
@@ -148,10 +148,10 @@ mod tests {
     #[test]
     fn test_graph_iterator_disconnected() {
         let nodes = vec![
-            GraphNode::from((0, NodeType::Input, Op::var(0))).with_outgoing([2]),
-            GraphNode::from((1, NodeType::Input, Op::var(1))),
-            GraphNode::from((2, NodeType::Vertex, Op::add())).with_incoming([0]),
-            GraphNode::from((3, NodeType::Output, Op::linear())).with_incoming([2]),
+            GraphNode::from((0, NodeType::Input, Op::<f64>::var(0))).with_outgoing([2]),
+            GraphNode::from((1, NodeType::Input, Op::<f64>::var(1))),
+            GraphNode::from((2, NodeType::Vertex, Op::<f64>::add())).with_incoming([0]),
+            GraphNode::from((3, NodeType::Output, Op::<f64>::linear())).with_incoming([2]),
         ];
 
         let results = Graph::new(nodes)

@@ -385,7 +385,7 @@ mod tests {
 
     #[test]
     fn test_graph_builder() {
-        let graph = Graph::directed(3, 3, Op::sigmoid());
+        let graph = Graph::directed(3, 3, Op::<f32>::sigmoid());
 
         assert_eq!(graph.len(), 6);
 
@@ -405,7 +405,7 @@ mod tests {
 
     #[test]
     fn test_graph_builder_recurrent() {
-        let graph = Graph::recurrent(3, 3, Op::sigmoid());
+        let graph = Graph::recurrent(3, 3, Op::<f32>::sigmoid());
 
         assert_eq!(graph.len(), 9);
 
@@ -429,7 +429,7 @@ mod tests {
 
     #[test]
     fn test_graph_builder_with_no_any() {
-        let graph = Graph::directed(3, 3, Op::add());
+        let graph = Graph::directed(3, 3, Op::<f32>::add());
 
         assert_eq!(graph.len(), 6);
         assert!(graph.is_valid());

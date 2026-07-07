@@ -1,7 +1,5 @@
 use super::DataSet;
-use crate::EvalMut;
-
-const EPS: f32 = 1e-7;
+use crate::{EvalMut, ops::GpFloat};
 
 #[derive(Debug, Clone, Copy)]
 pub enum Loss {
@@ -13,9 +11,13 @@ pub enum Loss {
 
 impl Loss {
     #[inline]
-    pub fn calc(&self, data_set: &DataSet<f32>, eval: &mut impl EvalMut<[f32], Vec<f32>>) -> f32 {
+    pub fn calc<F: GpFloat>(
+        &self,
+        data_set: &DataSet<F>,
+        eval: &mut impl EvalMut<[F], Vec<F>>,
+    ) -> F {
         let out_len = data_set.shape().2;
-        let mut buffer = vec![0.0; out_len];
+        let mut buffer = vec![F::ZERO; out_len];
 
         self.calculate(data_set, &mut buffer[..out_len], |x, y| {
             let v = eval.eval_mut(x);
@@ -24,17 +26,18 @@ impl Loss {
     }
 
     #[inline]
-    pub fn calculate<F>(
+    pub fn calculate<F, E>(
         &self,
-        data_set: &DataSet<f32>,
-        buffer: &mut [f32],
-        mut eval_into_buf: F,
-    ) -> f32
+        data_set: &DataSet<F>,
+        buffer: &mut [F],
+        mut eval_into_buf: E,
+    ) -> F
     where
-        F: FnMut(&[f32], &mut [f32]),
+        F: GpFloat,
+        E: FnMut(&[F], &mut [F]),
     {
-        let n = data_set.len() as f32;
-        let mut sum = 0.0;
+        let n = F::from(data_set.len()).unwrap();
+        let mut sum = F::ZERO;
 
         match self {
             Loss::MSE => {
@@ -42,7 +45,7 @@ impl Loss {
                     eval_into_buf(sample.input(), buffer);
                     for (&target, &pred) in sample.output().iter().zip(buffer.iter()) {
                         let d = target - pred;
-                        sum += d * d;
+                        sum = sum + d * d;
                     }
                 }
             }
@@ -52,7 +55,7 @@ impl Loss {
                     let target = sample.output();
                     for (&t, &p) in target.iter().zip(buffer.iter()) {
                         let d = t - p;
-                        sum += d.abs();
+                        sum = sum + d.abs();
                     }
                 }
             }
@@ -60,8 +63,8 @@ impl Loss {
                 for sample in data_set.iter() {
                     eval_into_buf(sample.input(), buffer);
                     for (&target, &pred) in sample.output().iter().zip(buffer.iter()) {
-                        let q = pred.clamp(EPS, 1.0);
-                        sum += -target * q.ln();
+                        let q = pred.clamp(F::LOG_EPS, F::ONE);
+                        sum = sum - target * q.ln();
                     }
                 }
             }
@@ -70,7 +73,7 @@ impl Loss {
                     eval_into_buf(sample.input(), buffer);
                     let target = sample.output();
                     for (&t, &p) in target.iter().zip(buffer.iter()) {
-                        sum += t - p;
+                        sum = sum + (t - p);
                     }
                 }
             }

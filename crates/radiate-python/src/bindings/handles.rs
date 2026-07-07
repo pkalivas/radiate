@@ -30,8 +30,10 @@ macro_rules! gene_variants {
             Char        => CharChromosome,               PyAnyObject;
             Bit         => BitChromosome,                PyAnyObject;
             Permutation => PermutationChromosome<usize>, PyAnyObject;
-            Graph       => GraphChromosome<Op<f32>>,     Graph<Op<f32>>;
-            Tree        => TreeChromosome<Op<f32>>,      Vec<Tree<Op<f32>>>;
+            Graph32       => GraphChromosome<Op<f32>>,     Graph<Op<f32>>;
+            Graph64       => GraphChromosome<Op<f64>>,     Graph<Op<f64>>;
+            Tree32        => TreeChromosome<Op<f32>>,      Vec<Tree<Op<f32>>>;
+            Tree64        => TreeChromosome<Op<f64>>,      Vec<Tree<Op<f64>>>;
         }
     };
 }
@@ -54,8 +56,10 @@ macro_rules! match_variant {
             Char($bind) => $body,
             Bit($bind) => $body,
             Permutation($bind) => $body,
-            Graph($bind) => $body,
-            Tree($bind) => $body,
+            Graph32($bind) => $body,
+            Graph64($bind) => $body,
+            Tree32($bind) => $body,
+            Tree64($bind) => $body,
         }
     }};
 }

@@ -30,8 +30,11 @@ enum GeneInner {
 
     Permutation(PermutationGene<usize>),
 
-    GraphNode(GraphNode<Op<f32>>),
-    TreeNode(TreeNode<Op<f32>>),
+    GraphNode32(GraphNode<Op<f32>>),
+    GraphNode64(GraphNode<Op<f64>>),
+
+    TreeNode32(TreeNode<Op<f32>>),
+    TreeNode64(TreeNode<Op<f64>>),
 }
 
 #[pyclass(from_py_object)]
@@ -61,9 +64,13 @@ impl PyGene {
 
             GeneInner::Bit(gene) => format!("{}", gene),
             GeneInner::Char(gene) => format!("{:?}", gene),
-            GeneInner::GraphNode(gene) => format!("{:?}", gene),
-            GeneInner::TreeNode(gene) => format!("{:?}", gene),
             GeneInner::Permutation(gene) => format!("{:?}", gene),
+
+            GeneInner::GraphNode32(gene) => format!("{:?}", gene),
+            GeneInner::GraphNode64(gene) => format!("{:?}", gene),
+
+            GeneInner::TreeNode32(gene) => format!("{:?}", gene),
+            GeneInner::TreeNode64(gene) => format!("{:?}", gene),
         }
     }
 
@@ -94,9 +101,13 @@ impl PyGene {
 
             GeneInner::Bit(_) => PyGeneType::Bit,
             GeneInner::Char(_) => PyGeneType::Char,
-            GeneInner::GraphNode(_) => PyGeneType::GraphNode,
-            GeneInner::TreeNode(_) => PyGeneType::TreeNode,
             GeneInner::Permutation(_) => PyGeneType::Permutation,
+
+            GeneInner::GraphNode32(_) => PyGeneType::GraphNode,
+            GeneInner::GraphNode64(_) => PyGeneType::GraphNode,
+
+            GeneInner::TreeNode32(_) => PyGeneType::TreeNode,
+            GeneInner::TreeNode64(_) => PyGeneType::TreeNode,
         }
     }
 
@@ -119,9 +130,13 @@ impl PyGene {
 
             GeneInner::Bit(_) => DataType::Boolean,
             GeneInner::Char(_) => DataType::Char,
-            GeneInner::GraphNode(_) => dtype::graph_node_dtype(),
-            GeneInner::TreeNode(_) => dtype::tree_node_dtype(),
             GeneInner::Permutation(_) => DataType::UInt64,
+
+            GeneInner::GraphNode32(_) => dtype::graph_node_dtype(DataType::Float32),
+            GeneInner::GraphNode64(_) => dtype::graph_node_dtype(DataType::Float64),
+
+            GeneInner::TreeNode32(_) => dtype::tree_node_dtype(),
+            GeneInner::TreeNode64(_) => dtype::tree_node_dtype(),
         };
 
         Wrap(dtype).into_pyobject(py)
@@ -146,9 +161,13 @@ impl PyGene {
 
             GeneInner::Bit(gene) => gene.allele().into_bound_py_any(py),
             GeneInner::Char(gene) => gene.allele().into_bound_py_any(py),
-            GeneInner::GraphNode(gene) => PyOp(gene.allele().clone()).into_bound_py_any(py),
-            GeneInner::TreeNode(gene) => PyOp(gene.allele().clone()).into_bound_py_any(py),
             GeneInner::Permutation(gene) => gene.allele().into_bound_py_any(py),
+
+            GeneInner::GraphNode32(gene) => PyOp::from(gene.allele().clone()).into_bound_py_any(py),
+            GeneInner::GraphNode64(gene) => PyOp::from(gene.allele().clone()).into_bound_py_any(py),
+
+            GeneInner::TreeNode32(gene) => PyOp::from(gene.allele().clone()).into_bound_py_any(py),
+            GeneInner::TreeNode64(gene) => PyOp::from(gene.allele().clone()).into_bound_py_any(py),
         }
     }
 
@@ -388,6 +407,10 @@ impl_into_py_gene!(FloatGene<f64>, Float64);
 
 impl_into_py_gene!(BitGene, Bit);
 impl_into_py_gene!(CharGene, Char);
-impl_into_py_gene!(GraphNode<Op<f32>>, GraphNode);
-impl_into_py_gene!(TreeNode<Op<f32>>, TreeNode);
 impl_into_py_gene!(PermutationGene<usize>, Permutation);
+
+impl_into_py_gene!(GraphNode<Op<f32>>, GraphNode32);
+impl_into_py_gene!(GraphNode<Op<f64>>, GraphNode64);
+
+impl_into_py_gene!(TreeNode<Op<f32>>, TreeNode32);
+impl_into_py_gene!(TreeNode<Op<f64>>, TreeNode64);

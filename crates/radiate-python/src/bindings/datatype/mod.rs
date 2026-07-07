@@ -1,3 +1,4 @@
+mod array;
 mod cell;
 pub mod dtype;
 mod value;

@@ -33,14 +33,17 @@ macro_rules! match_chromosome {
 
             Permutation($epoch) => $body,
 
-            Graph($epoch) => $body,
-            Tree($epoch) => $body,
+            Graph32($epoch) => $body,
+            Graph64($epoch) => $body,
+
+            Tree32($epoch) => $body,
+            Tree64($epoch) => $body,
         }
     }};
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum ChromosomeInner {
+pub(crate) enum ChromosomeInner {
     UInt8(IntChromosome<u8>),
     UInt16(IntChromosome<u16>),
     UInt32(IntChromosome<u32>),
@@ -61,8 +64,11 @@ pub enum ChromosomeInner {
 
     Permutation(PermutationChromosome<usize>),
 
-    Graph(GraphChromosome<Op<f32>>),
-    Tree(TreeChromosome<Op<f32>>),
+    Graph32(GraphChromosome<Op<f32>>),
+    Graph64(GraphChromosome<Op<f64>>),
+
+    Tree32(TreeChromosome<Op<f32>>),
+    Tree64(TreeChromosome<Op<f64>>),
 }
 
 impl From<ChromosomeInner> for Vec<PyGene> {
@@ -73,18 +79,25 @@ impl From<ChromosomeInner> for Vec<PyGene> {
             ChromosomeInner::UInt32(chrom) => chrom.into_iter().map(PyGene::from).collect(),
             ChromosomeInner::UInt64(chrom) => chrom.into_iter().map(PyGene::from).collect(),
             ChromosomeInner::UInt128(chrom) => chrom.into_iter().map(PyGene::from).collect(),
+
             ChromosomeInner::Int8(chrom) => chrom.into_iter().map(PyGene::from).collect(),
             ChromosomeInner::Int16(chrom) => chrom.into_iter().map(PyGene::from).collect(),
             ChromosomeInner::Int32(chrom) => chrom.into_iter().map(PyGene::from).collect(),
             ChromosomeInner::Int64(chrom) => chrom.into_iter().map(PyGene::from).collect(),
             ChromosomeInner::Int128(chrom) => chrom.into_iter().map(PyGene::from).collect(),
+
             ChromosomeInner::Float32(chrom) => chrom.into_iter().map(PyGene::from).collect(),
             ChromosomeInner::Float64(chrom) => chrom.into_iter().map(PyGene::from).collect(),
+
             ChromosomeInner::Bit(chrom) => chrom.into_iter().map(PyGene::from).collect(),
             ChromosomeInner::Char(chrom) => chrom.into_iter().map(PyGene::from).collect(),
             ChromosomeInner::Permutation(chrom) => chrom.into_iter().map(PyGene::from).collect(),
-            ChromosomeInner::Graph(chrom) => chrom.into_iter().map(PyGene::from).collect(),
-            ChromosomeInner::Tree(chrom) => chrom.into_iter().map(PyGene::from).collect(),
+
+            ChromosomeInner::Graph32(chrom) => chrom.into_iter().map(PyGene::from).collect(),
+            ChromosomeInner::Graph64(chrom) => chrom.into_iter().map(PyGene::from).collect(),
+
+            ChromosomeInner::Tree32(chrom) => chrom.into_iter().map(PyGene::from).collect(),
+            ChromosomeInner::Tree64(chrom) => chrom.into_iter().map(PyGene::from).collect(),
         }
     }
 }
@@ -133,9 +146,13 @@ impl_into_py_chromosome_inner!(FloatChromosome<f64>, Float64);
 
 impl_into_py_chromosome_inner!(BitChromosome, Bit);
 impl_into_py_chromosome_inner!(CharChromosome, Char);
-impl_into_py_chromosome_inner!(GraphChromosome<Op<f32>>, Graph);
-impl_into_py_chromosome_inner!(TreeChromosome<Op<f32>>, Tree);
 impl_into_py_chromosome_inner!(PermutationChromosome<usize>, Permutation);
+
+impl_into_py_chromosome_inner!(GraphChromosome<Op<f32>>, Graph32);
+impl_into_py_chromosome_inner!(GraphChromosome<Op<f64>>, Graph64);
+
+impl_into_py_chromosome_inner!(TreeChromosome<Op<f32>>, Tree32);
+impl_into_py_chromosome_inner!(TreeChromosome<Op<f64>>, Tree64);
 
 #[pyclass(from_py_object)]
 #[derive(Clone, Debug, PartialEq)]
@@ -249,8 +266,11 @@ impl PyChromosome {
 
             ChromosomeInner::Permutation(_) => PyGeneType::Permutation,
 
-            ChromosomeInner::Graph(_) => PyGeneType::GraphNode,
-            ChromosomeInner::Tree(_) => PyGeneType::TreeNode,
+            ChromosomeInner::Graph32(_) => PyGeneType::GraphNode,
+            ChromosomeInner::Graph64(_) => PyGeneType::GraphNode,
+
+            ChromosomeInner::Tree32(_) => PyGeneType::TreeNode,
+            ChromosomeInner::Tree64(_) => PyGeneType::TreeNode,
         }
     }
 
@@ -276,8 +296,11 @@ impl PyChromosome {
 
             ChromosomeInner::Permutation(_) => DataType::Usize,
 
-            ChromosomeInner::Graph(_) => dtype::graph_node_dtype(),
-            ChromosomeInner::Tree(_) => dtype::tree_node_dtype(),
+            ChromosomeInner::Graph32(_) => dtype::graph_node_dtype(DataType::Float32),
+            ChromosomeInner::Graph64(_) => dtype::graph_node_dtype(DataType::Float64),
+
+            ChromosomeInner::Tree32(_) => dtype::tree_node_dtype(),
+            ChromosomeInner::Tree64(_) => dtype::tree_node_dtype(),
         };
 
         Wrap(dtype).into_pyobject(py)
@@ -322,6 +345,10 @@ impl_into_py_chromosome!(FloatChromosome<f64>, Float64);
 
 impl_into_py_chromosome!(BitChromosome, Bit);
 impl_into_py_chromosome!(CharChromosome, Char);
-impl_into_py_chromosome!(GraphChromosome<Op<f32>>, Graph);
-impl_into_py_chromosome!(TreeChromosome<Op<f32>>, Tree);
 impl_into_py_chromosome!(PermutationChromosome<usize>, Permutation);
+
+impl_into_py_chromosome!(GraphChromosome<Op<f32>>, Graph32);
+impl_into_py_chromosome!(GraphChromosome<Op<f64>>, Graph64);
+
+impl_into_py_chromosome!(TreeChromosome<Op<f32>>, Tree32);
+impl_into_py_chromosome!(TreeChromosome<Op<f64>>, Tree64);

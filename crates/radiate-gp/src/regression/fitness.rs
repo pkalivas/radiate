@@ -1,20 +1,18 @@
 use super::{DataSet, Loss};
-use crate::{Graph, GraphChromosome, GraphEvaluator, Op, Tree, TreeChromosome, eval::EvalIntoMut};
-use radiate_core::{BatchFitnessFunction, Genotype, fitness::FitnessFunction};
-use std::cell::RefCell;
-
-thread_local! {
-    static LOSS_BUFFER: RefCell<Vec<f32>> = const { RefCell::new(Vec::new()) };
-}
+use crate::{
+    Graph, GraphChromosome, GraphEvaluator, Op, Tree, TreeChromosome, eval::EvalIntoMut,
+    ops::GpFloat,
+};
+use radiate_core::{BatchFitnessFunction, Genotype, Score, fitness::FitnessFunction};
 
 #[derive(Clone)]
-pub struct Regression {
-    data_set: DataSet<f32>,
+pub struct Regression<F: GpFloat> {
+    data_set: DataSet<F>,
     loss: Loss,
 }
 
-impl Regression {
-    pub fn new(sample_set: impl Into<DataSet<f32>>, loss: Loss) -> Self {
+impl<F: GpFloat> Regression<F> {
+    pub fn new(sample_set: impl Into<DataSet<F>>, loss: Loss) -> Self {
         Regression {
             data_set: sample_set.into(),
             loss,
@@ -22,16 +20,14 @@ impl Regression {
     }
 
     #[inline]
-    fn calc_into_buff_mut<EV>(&self, eval: &mut EV) -> f32
+    fn calc_into_buff_mut<EV>(&self, eval: &mut EV) -> F
     where
-        EV: EvalIntoMut<[f32], [f32]>,
+        EV: EvalIntoMut<[F], [F]>,
     {
         let out_len = self.data_set.shape().2;
-        LOSS_BUFFER.with(|cell| {
-            let mut buf = cell.borrow_mut();
-
+        F::with_loss_buffer(|buf| {
             if buf.len() < out_len {
-                buf.resize(out_len, 0.0);
+                buf.resize(out_len, F::ZERO);
             }
 
             self.loss
@@ -42,26 +38,34 @@ impl Regression {
     }
 }
 
-/// --- Graphs ---
-impl<'a> FitnessFunction<&'a Genotype<GraphChromosome<Op<f32>>>, f32> for Regression {
+impl<'a, F> FitnessFunction<&'a Genotype<GraphChromosome<Op<F>>>, F> for Regression<F>
+where
+    F: GpFloat + Into<Score>,
+{
     #[inline]
-    fn evaluate(&self, input: &'a Genotype<GraphChromosome<Op<f32>>>) -> f32 {
+    fn evaluate(&self, input: &'a Genotype<GraphChromosome<Op<F>>>) -> F {
         let mut evaluator = GraphEvaluator::new(&input[0]);
         self.calc_into_buff_mut(&mut evaluator)
     }
 }
 
-impl FitnessFunction<Graph<Op<f32>>, f32> for Regression {
+impl<F> FitnessFunction<Graph<Op<F>>, F> for Regression<F>
+where
+    F: GpFloat + Into<Score>,
+{
     #[inline]
-    fn evaluate(&self, input: Graph<Op<f32>>) -> f32 {
+    fn evaluate(&self, input: Graph<Op<F>>) -> F {
         let mut evaluator = GraphEvaluator::new(&input);
         self.calc_into_buff_mut(&mut evaluator)
     }
 }
 
-impl BatchFitnessFunction<Graph<Op<f32>>, f32> for Regression {
+impl<F> BatchFitnessFunction<Graph<Op<F>>, F> for Regression<F>
+where
+    F: GpFloat + Into<Score>,
+{
     #[inline]
-    fn evaluate(&self, inputs: Vec<Graph<Op<f32>>>) -> Vec<f32> {
+    fn evaluate(&self, inputs: Vec<Graph<Op<F>>>) -> Vec<F> {
         let mut results = Vec::with_capacity(inputs.len());
         for input in inputs {
             let mut evaluator = GraphEvaluator::new(&input);
@@ -72,9 +76,12 @@ impl BatchFitnessFunction<Graph<Op<f32>>, f32> for Regression {
     }
 }
 
-impl<'a> BatchFitnessFunction<&'a Genotype<GraphChromosome<Op<f32>>>, f32> for Regression {
+impl<'a, F> BatchFitnessFunction<&'a Genotype<GraphChromosome<Op<F>>>, F> for Regression<F>
+where
+    F: GpFloat + Into<Score>,
+{
     #[inline]
-    fn evaluate(&self, inputs: Vec<&'a Genotype<GraphChromosome<Op<f32>>>>) -> Vec<f32> {
+    fn evaluate(&self, inputs: Vec<&'a Genotype<GraphChromosome<Op<F>>>>) -> Vec<F> {
         let mut results = Vec::with_capacity(inputs.len());
         for input in inputs {
             let mut evaluator = GraphEvaluator::new(&input[0]);
@@ -86,23 +93,32 @@ impl<'a> BatchFitnessFunction<&'a Genotype<GraphChromosome<Op<f32>>>, f32> for R
 }
 
 /// --- Trees ---
-impl FitnessFunction<Tree<Op<f32>>, f32> for Regression {
+impl<F> FitnessFunction<Tree<Op<F>>, F> for Regression<F>
+where
+    F: GpFloat + Into<Score>,
+{
     #[inline]
-    fn evaluate(&self, mut input: Tree<Op<f32>>) -> f32 {
+    fn evaluate(&self, mut input: Tree<Op<F>>) -> F {
         self.calc_into_buff_mut(&mut input)
     }
 }
 
-impl FitnessFunction<Vec<Tree<Op<f32>>>, f32> for Regression {
+impl<F> FitnessFunction<Vec<Tree<Op<F>>>, F> for Regression<F>
+where
+    F: GpFloat + Into<Score>,
+{
     #[inline]
-    fn evaluate(&self, mut input: Vec<Tree<Op<f32>>>) -> f32 {
+    fn evaluate(&self, mut input: Vec<Tree<Op<F>>>) -> F {
         self.calc_into_buff_mut(&mut input)
     }
 }
 
-impl BatchFitnessFunction<Tree<Op<f32>>, f32> for Regression {
+impl<F> BatchFitnessFunction<Tree<Op<F>>, F> for Regression<F>
+where
+    F: GpFloat + Into<Score>,
+{
     #[inline]
-    fn evaluate(&self, mut inputs: Vec<Tree<Op<f32>>>) -> Vec<f32> {
+    fn evaluate(&self, mut inputs: Vec<Tree<Op<F>>>) -> Vec<F> {
         let mut results = Vec::with_capacity(inputs.len());
         for input in inputs.iter_mut() {
             results.push(self.calc_into_buff_mut(input));
@@ -112,9 +128,12 @@ impl BatchFitnessFunction<Tree<Op<f32>>, f32> for Regression {
     }
 }
 
-impl BatchFitnessFunction<Vec<Tree<Op<f32>>>, f32> for Regression {
+impl<F> BatchFitnessFunction<Vec<Tree<Op<F>>>, F> for Regression<F>
+where
+    F: GpFloat + Into<Score>,
+{
     #[inline]
-    fn evaluate(&self, mut inputs: Vec<Vec<Tree<Op<f32>>>>) -> Vec<f32> {
+    fn evaluate(&self, mut inputs: Vec<Vec<Tree<Op<F>>>>) -> Vec<F> {
         let mut results = Vec::with_capacity(inputs.len());
         for input in inputs.iter_mut() {
             results.push(self.calc_into_buff_mut(input));
@@ -124,17 +143,23 @@ impl BatchFitnessFunction<Vec<Tree<Op<f32>>>, f32> for Regression {
     }
 }
 
-impl<'a> FitnessFunction<&'a Genotype<TreeChromosome<Op<f32>>>, f32> for Regression {
+impl<'a, F> FitnessFunction<&'a Genotype<TreeChromosome<Op<F>>>, F> for Regression<F>
+where
+    F: GpFloat + Into<Score>,
+{
     #[inline]
-    fn evaluate(&self, input: &'a Genotype<TreeChromosome<Op<f32>>>) -> f32 {
+    fn evaluate(&self, input: &'a Genotype<TreeChromosome<Op<F>>>) -> F {
         let roots = input.iter().map(|c| c.root()).collect::<Vec<_>>();
         self.calc_into_buff_mut(&mut roots.as_slice())
     }
 }
 
-impl<'a> BatchFitnessFunction<&'a Genotype<TreeChromosome<Op<f32>>>, f32> for Regression {
+impl<'a, F> BatchFitnessFunction<&'a Genotype<TreeChromosome<Op<F>>>, F> for Regression<F>
+where
+    F: GpFloat + Into<Score>,
+{
     #[inline]
-    fn evaluate(&self, inputs: Vec<&'a Genotype<TreeChromosome<Op<f32>>>>) -> Vec<f32> {
+    fn evaluate(&self, inputs: Vec<&'a Genotype<TreeChromosome<Op<F>>>>) -> Vec<F> {
         let mut results = Vec::with_capacity(inputs.len());
         for input in inputs {
             let roots = input.iter().map(|c| c.root()).collect::<Vec<_>>();

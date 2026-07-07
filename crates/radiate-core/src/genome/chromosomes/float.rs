@@ -49,17 +49,6 @@ impl<F: Float> FloatGene<F> {
     }
 }
 
-/// Implement the [`Valid`] trait for the [`FloatGene`].
-///
-/// The `is_valid` method checks if the `allele` of the [`FloatGene`] is between the `min` and `max` values.
-/// The `GeneticEngine` will check the validity of the [`Chromosome`] and `Phenotype` and remove any
-/// invalid individuals from the population, replacing them with new individuals at the given generation.
-impl<F: Float> Valid for FloatGene<F> {
-    fn is_valid(&self) -> bool {
-        self.allele >= self.bounds.start && self.allele <= self.bounds.end
-    }
-}
-
 impl<F: Float> Gene for FloatGene<F> {
     type Allele = F;
 
@@ -140,6 +129,17 @@ impl<F: Float> NumericGene for FloatGene<F> {
             value_range: self.value_range.clone(),
             bounds: self.bounds.clone(),
         }
+    }
+}
+
+// Implement the [`Valid`] trait for the [`FloatGene`].
+///
+/// The `is_valid` method checks if the `allele` of the [`FloatGene`] is between the `min` and `max` values.
+/// The `GeneticEngine` will check the validity of the [`Chromosome`] and `Phenotype` and remove any
+/// invalid individuals from the population, replacing them with new individuals at the given generation.
+impl<F: Float> Valid for FloatGene<F> {
+    fn is_valid(&self) -> bool {
+        self.allele >= self.bounds.start && self.allele <= self.bounds.end
     }
 }
 

@@ -8,6 +8,7 @@ pub trait Float: Primitive + num_traits::Float + NumHash + NumOrd<Self> {
     const SIX: Self;
     const EPS: Self;
     const NAN: Self;
+    const TENTH: Self;
 
     fn safe_clamp(self, min: Self, max: Self) -> Self {
         if self.is_finite() {
@@ -67,6 +68,7 @@ macro_rules! impl_float_scalar {
             const SIX: Self = 6.0;
             const NAN: Self = <$t>::NAN;
             const EPS: Self = $eps;
+            const TENTH: Self = 0.1;
         }
     };
 }

@@ -1,22 +1,31 @@
 use crate::{PyGenotype, PyOp, bindings::gp::PyTree};
 use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
-use radiate::{Codec, NodeType, Op, Tree, TreeChromosome, TreeCodec};
+use radiate::{Codec, NodeType, Op, Tree, TreeChromosome, TreeCodec, ops::GpFloat};
 use std::collections::HashMap;
 
 const LEAF_NODE_TYPE: &str = "leaf";
 const ROOT_NODE_TYPE: &str = "root";
 const VERTEX_NODE_TYPE: &str = "vertex";
 
+#[derive(Clone)]
+pub enum PyTreeCodecInner {
+    Float32(TreeCodec<Op<f32>, Vec<Tree<Op<f32>>>>),
+    Float64(TreeCodec<Op<f64>, Vec<Tree<Op<f64>>>>),
+}
+
 #[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct PyTreeCodec {
-    pub codec: TreeCodec<Op<f32>, Vec<Tree<Op<f32>>>>,
+    pub codec: PyTreeCodecInner,
 }
 
 #[pymethods]
 impl PyTreeCodec {
     pub fn encode_py(&self) -> PyResult<PyGenotype> {
-        Ok(PyGenotype::from(self.codec.encode()))
+        match &self.codec {
+            PyTreeCodecInner::Float32(codec) => Ok(PyGenotype::from(codec.encode())),
+            PyTreeCodecInner::Float64(codec) => Ok(PyGenotype::from(codec.encode())),
+        }
     }
 
     pub fn decode_py<'py>(
@@ -69,3 +78,47 @@ impl PyTreeCodec {
 
 unsafe impl Send for PyTreeCodec {}
 unsafe impl Sync for PyTreeCodec {}
+
+fn build_typed_codec<F: GpFloat>(
+    graph_type: Option<&str>,
+    input_size: usize,
+    output_size: usize,
+    ops: Option<HashMap<String, Vec<PyOp>>>,
+    max_nodes: Option<usize>,
+) -> TreeCodec<Op<F>>
+where
+    PyOp: Into<Op<F>> + Clone,
+{
+    let mut values: Vec<(NodeType, Vec<Op<F>>)> = Vec::new();
+    if let Some(ops) = &ops {
+        for (key, value) in ops.iter() {
+            let current_ops = value
+                .iter()
+                .map(|op| op.clone().into())
+                .collect::<Vec<Op<F>>>();
+            if key == LEAF_NODE_TYPE {
+                values.push((NodeType::Leaf, current_ops));
+            } else if key == ROOT_NODE_TYPE {
+                values.push((NodeType::Root, current_ops));
+            } else if key == VERTEX_NODE_TYPE {
+                values.push((NodeType::Vertex, current_ops));
+            }
+        }
+    }
+
+    let codec = match graph_type {
+        Some("recurrent") => GraphCodec::recurrent(input_size, output_size, values),
+        Some("weighted_directed") => GraphCodec::weighted_directed(input_size, output_size, values),
+        Some("weighted_recurrent") => {
+            GraphCodec::weighted_recurrent(input_size, output_size, values)
+        }
+        Some("gru") => GraphCodec::gru(input_size, output_size, values),
+        Some("lstm") => GraphCodec::lstm(input_size, output_size, values),
+        _ => GraphCodec::directed(input_size, output_size, values),
+    };
+
+    match max_nodes {
+        Some(max_nodes) => codec.with_max_nodes(max_nodes),
+        None => codec,
+    }
+}

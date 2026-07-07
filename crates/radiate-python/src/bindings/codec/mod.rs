@@ -13,10 +13,10 @@ pub use bit::PyBitCodec;
 pub use builder::{NumericCodecBuilder, TypedNumericCodec};
 pub use char::PyCharCodec;
 pub use float::PyFloatCodec;
-pub use graph::PyGraphCodec;
+pub use graph::{PyGraphCodec, PyGraphCodecInner};
 pub use int::PyIntCodec;
 pub use permutation::PyPermutationCodec;
-pub use tree::PyTreeCodec;
+pub use tree::{PyTreeCodec, PyTreeCodecInner};
 
 use numpy::{Element, PyArray1};
 use pyo3::{Bound, IntoPyObject, PyAny, PyResult, types::PyList};

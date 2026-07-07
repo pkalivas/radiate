@@ -128,9 +128,13 @@ impl_into_py_genotype!(IntChromosome<i128>);
 
 impl_into_py_genotype!(FloatChromosome<f32>);
 impl_into_py_genotype!(FloatChromosome<f64>);
+impl_into_py_genotype!(PermutationChromosome<usize>);
 
 impl_into_py_genotype!(BitChromosome);
 impl_into_py_genotype!(CharChromosome);
+
 impl_into_py_genotype!(GraphChromosome<Op<f32>>);
+impl_into_py_genotype!(GraphChromosome<Op<f64>>);
+
 impl_into_py_genotype!(TreeChromosome<Op<f32>>);
-impl_into_py_genotype!(PermutationChromosome<usize>);
+impl_into_py_genotype!(TreeChromosome<Op<f64>>);

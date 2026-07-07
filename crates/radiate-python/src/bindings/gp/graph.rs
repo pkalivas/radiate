@@ -11,8 +11,7 @@ impl IntoPyAnyObject for Graph<Op<f32>> {
     fn into_py<'py>(self, py: Python<'py>) -> PyAnyObject {
         PyAnyObject {
             inner: PyGraph {
-                inner: self,
-                eval_cache: None,
+                inner: PyGraphInner::Float32(self, None),
             }
             .into_py_any(py)
             .unwrap(),
@@ -20,11 +19,28 @@ impl IntoPyAnyObject for Graph<Op<f32>> {
     }
 }
 
+impl IntoPyAnyObject for Graph<Op<f64>> {
+    fn into_py<'py>(self, py: Python<'py>) -> PyAnyObject {
+        PyAnyObject {
+            inner: PyGraph {
+                inner: PyGraphInner::Float64(self, None),
+            }
+            .into_py_any(py)
+            .unwrap(),
+        }
+    }
+}
+
+#[derive(Clone, Serialize, Deserialize, PartialEq)]
+pub(crate) enum PyGraphInner {
+    Float32(Graph<Op<f32>>, Option<GraphEvalCache<f32>>),
+    Float64(Graph<Op<f64>>, Option<GraphEvalCache<f64>>),
+}
+
 #[pyclass(from_py_object)]
 #[derive(Serialize, Deserialize)]
 pub struct PyGraph {
-    pub inner: Graph<Op<f32>>,
-    pub eval_cache: Option<GraphEvalCache<f32>>,
+    pub inner: PyGraphInner,
 }
 
 #[pymethods]
@@ -35,66 +51,77 @@ impl PyGraph {
             .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("Invalid JSON: {}", e)))
     }
 
-    #[staticmethod]
-    pub fn from_chromosome(chromosome: &PyChromosome) -> PyResult<Self> {
-        if chromosome.gene_type() != PyGeneType::GraphNode {
-            return Err(pyo3::exceptions::PyTypeError::new_err(format!(
-                "Expected a Graph chromosome, got {:?}",
-                chromosome.gene_type()
-            )));
-        }
-
-        let chromosome = GraphChromosome::<Op<f32>>::from(chromosome.clone());
-
-        Ok(PyGraph {
-            inner: chromosome.iter().cloned().collect(),
-            eval_cache: None,
-        })
-    }
-
     pub fn to_json(&self) -> String {
         serde_json::to_string(&self).unwrap()
     }
 
     pub fn to_dot(&self) -> String {
-        self.inner.to_dot()
+        match &self.inner {
+            PyGraphInner::Float32(graph, _) => graph.to_dot(),
+            PyGraphInner::Float64(graph, _) => graph.to_dot(),
+        }
     }
 
     pub fn reset(&mut self) {
-        self.eval_cache = None;
+        match &mut self.inner {
+            PyGraphInner::Float32(_, cache) => {
+                *cache = None;
+            }
+            PyGraphInner::Float64(_, cache) => {
+                *cache = None;
+            }
+        }
     }
 
     pub fn shape(&self) -> (usize, usize) {
-        (
-            self.inner
-                .get_nodes_of_type(NodeType::Input)
-                .collect::<Vec<_>>()
-                .len(),
-            self.inner
-                .get_nodes_of_type(NodeType::Output)
-                .collect::<Vec<_>>()
-                .len(),
-        )
+        match &self.inner {
+            PyGraphInner::Float32(graph, _) => (
+                graph
+                    .get_nodes_of_type(NodeType::Input)
+                    .collect::<Vec<_>>()
+                    .len(),
+                graph
+                    .get_nodes_of_type(NodeType::Output)
+                    .collect::<Vec<_>>()
+                    .len(),
+            ),
+            PyGraphInner::Float64(graph, _) => (
+                graph
+                    .get_nodes_of_type(NodeType::Input)
+                    .collect::<Vec<_>>()
+                    .len(),
+                graph
+                    .get_nodes_of_type(NodeType::Output)
+                    .collect::<Vec<_>>()
+                    .len(),
+            ),
+        }
     }
 
-    pub fn eval<'py>(
+    pub fn eval_f32<'py>(
         &mut self,
         py: Python<'py>,
         inputs: &Bound<'py, PyAny>,
     ) -> PyResult<Bound<'py, PyArrayDyn<f32>>> {
-        let mut evaluator = if self.eval_cache.is_some() {
-            let cache = self.eval_cache.take().unwrap();
-            GraphEvaluator::from((&self.inner, cache))
+        let shape = self.shape();
+        if let PyGraphInner::Float32(graph, cache) = &mut self.inner {
+            let mut evaluator = if cache.is_some() {
+                let cache = cache.take().unwrap();
+                GraphEvaluator::from((&graph, cache))
+            } else {
+                GraphEvaluator::new(graph)
+            };
+
+            let result =
+                super::generic_eval_runner(py, shape.1, inputs, |slice| evaluator.eval_mut(slice));
+
+            *cache = Some(evaluator.take_cache());
+            result
         } else {
-            GraphEvaluator::new(&self.inner)
-        };
-
-        let result = super::generic_eval_runner(py, self.shape().1, inputs, |slice| {
-            evaluator.eval_mut(slice)
-        });
-
-        self.eval_cache = Some(evaluator.take_cache());
-        result
+            Err(pyo3::exceptions::PyTypeError::new_err(
+                "Graph is not of type f32",
+            ))
+        }
     }
 
     pub fn copy(&self) -> Self {
@@ -104,26 +131,32 @@ impl PyGraph {
     pub fn __repr__(&self) -> String {
         let mut result = String::new();
         result.push_str("Graph(\n");
-        for (i, node) in self.inner.iter().enumerate() {
-            result.push_str(&format!("  Node {}: {:?}\n", i, node));
+        match &self.inner {
+            PyGraphInner::Float32(graph, _) => {
+                for (i, node) in graph.iter().enumerate() {
+                    result.push_str(&format!("  Node {}: {:?}\n", i, node));
+                }
+            }
+            PyGraphInner::Float64(graph, _) => {
+                for (i, node) in graph.iter().enumerate() {
+                    result.push_str(&format!("  Node {}: {:?}\n", i, node));
+                }
+            }
         }
+
         result.push(')');
         result
     }
 
     pub fn __str__(&self) -> String {
-        let mut result = String::new();
-        result.push_str("Graph(\n");
-        for node in self.inner.iter() {
-            result.push_str(&format!("{:?}\n", node));
-        }
-        result.push(')');
-
-        result
+        self.__repr__()
     }
 
     pub fn __len__(&self) -> usize {
-        self.inner.len()
+        match &self.inner {
+            PyGraphInner::Float32(graph, _) => graph.len(),
+            PyGraphInner::Float64(graph, _) => graph.len(),
+        }
     }
 
     pub fn __eq__(&self, other: &PyGraph) -> bool {
@@ -134,8 +167,15 @@ impl PyGraph {
 impl From<Graph<Op<f32>>> for PyGraph {
     fn from(graph: Graph<Op<f32>>) -> Self {
         PyGraph {
-            inner: graph,
-            eval_cache: None,
+            inner: PyGraphInner::Float32(graph, None),
+        }
+    }
+}
+
+impl From<Graph<Op<f64>>> for PyGraph {
+    fn from(graph: Graph<Op<f64>>) -> Self {
+        PyGraph {
+            inner: PyGraphInner::Float64(graph, None),
         }
     }
 }
@@ -144,7 +184,6 @@ impl Clone for PyGraph {
     fn clone(&self) -> Self {
         PyGraph {
             inner: self.inner.clone(),
-            eval_cache: self.eval_cache.clone(),
         }
     }
 }

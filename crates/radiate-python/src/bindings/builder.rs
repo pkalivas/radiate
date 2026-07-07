@@ -1,3 +1,4 @@
+use crate::bindings::codec::{PyGraphCodecInner, PyTreeCodecInner};
 use crate::events::PyEventHandler;
 use crate::{
     EngineBuilderHandle, FreeThreadPyEvaluator, InputTransform, PyCodec, PyEngine, PyEngineInput,
@@ -521,11 +522,27 @@ impl PyEngineBuilder {
         } else if let Ok(perm_codec) = codec.extract::<PyPermutationCodec>() {
             Permutation(Self::new_builder(fitness, perm_codec.codec, executor))
         } else if let Ok(graph_codec) = codec.extract::<PyGraphCodec>() {
-            let py_codec = Self::wrapped_codec(graph_codec.codec);
-            Graph(Self::new_builder(fitness, py_codec, executor).replace_strategy(GraphReplacement))
+            match graph_codec.codec {
+                PyGraphCodecInner::Float32(c) => Graph32(
+                    Self::new_builder(fitness, Self::wrapped_codec(c), executor)
+                        .replace_strategy(GraphReplacement),
+                ),
+                PyGraphCodecInner::Float64(c) => Graph64(
+                    Self::new_builder(fitness, Self::wrapped_codec(c), executor)
+                        .replace_strategy(GraphReplacement),
+                ),
+            }
         } else if let Ok(tree_codec) = codec.extract::<PyTreeCodec>() {
-            let py_codec = Self::wrapped_codec(tree_codec.codec);
-            Tree(Self::new_builder(fitness, py_codec, executor))
+            match tree_codec.codec {
+                PyTreeCodecInner::Float32(c) => {
+                    let py_codec = Self::wrapped_codec(c);
+                    Tree32(Self::new_builder(fitness, py_codec, executor))
+                }
+                PyTreeCodecInner::Float64(c) => {
+                    let py_codec = Self::wrapped_codec(c);
+                    Tree64(Self::new_builder(fitness, py_codec, executor))
+                }
+            }
         } else {
             radiate_py_bail!("Unsupported codec type for custom fitness function");
         };
@@ -546,27 +563,60 @@ impl PyEngineBuilder {
         };
 
         let builder = if let Ok(graph_codec) = codec.extract::<PyGraphCodec>() {
-            let base_engine = GeneticEngine::builder()
-                .codec(graph_codec.codec)
-                .executor(executor)
-                .bus_executor(Executor::default())
-                .replace_strategy(GraphReplacement);
+            match graph_codec.codec {
+                PyGraphCodecInner::Float32(c) => {
+                    let base_engine = GeneticEngine::builder()
+                        .codec(c)
+                        .executor(executor)
+                        .bus_executor(Executor::default())
+                        .replace_strategy(GraphReplacement);
 
-            if is_batch {
-                Graph(base_engine.raw_batch_fitness_fn(regression))
-            } else {
-                Graph(base_engine.raw_fitness_fn(regression))
+                    if is_batch {
+                        Graph32(base_engine.raw_batch_fitness_fn(regression))
+                    } else {
+                        Graph32(base_engine.raw_fitness_fn(regression))
+                    }
+                }
+                PyGraphCodecInner::Float64(c) => {
+                    let base_engine = GeneticEngine::builder()
+                        .codec(c)
+                        .executor(executor)
+                        .bus_executor(Executor::default())
+                        .replace_strategy(GraphReplacement);
+
+                    if is_batch {
+                        Graph64(base_engine.raw_batch_fitness_fn(regression))
+                    } else {
+                        Graph64(base_engine.raw_fitness_fn(regression))
+                    }
+                }
             }
         } else if let Ok(tree_codec) = codec.extract::<PyTreeCodec>() {
-            let base_engine = GeneticEngine::builder()
-                .codec(tree_codec.codec)
-                .executor(executor)
-                .bus_executor(Executor::default());
+            match tree_codec.codec {
+                PyTreeCodecInner::Float32(c) => {
+                    let base_engine = GeneticEngine::builder()
+                        .codec(c)
+                        .executor(executor)
+                        .bus_executor(Executor::default());
 
-            if is_batch {
-                Tree(base_engine.raw_batch_fitness_fn(regression))
-            } else {
-                Tree(base_engine.raw_fitness_fn(regression))
+                    if is_batch {
+                        Tree32(base_engine.raw_batch_fitness_fn(regression))
+                    } else {
+                        Tree32(base_engine.raw_fitness_fn(regression))
+                    }
+                }
+                PyTreeCodecInner::Float64(c) => {
+                    let base_engine = GeneticEngine::builder()
+                        .codec(c)
+                        .executor(executor)
+                        .bus_executor(Executor::default());
+
+                    if is_batch {
+                        Tree64(base_engine.raw_batch_fitness_fn(regression))
+                    } else {
+                        Tree64(base_engine.raw_fitness_fn(regression))
+                    }
+                }
             }
         } else {
             radiate_py_bail!("Only Graph or Tree codecs are supported for regression problems");
@@ -620,11 +670,27 @@ impl PyEngineBuilder {
                 executor,
             ))
         } else if let Ok(graph_codec) = codec.extract::<PyGraphCodec>() {
-            let py_codec = Self::wrapped_codec(graph_codec.codec);
-            Graph(Self::new_builder(fitness, py_codec, executor).replace_strategy(GraphReplacement))
+            match graph_codec.codec {
+                PyGraphCodecInner::Float32(c) => Graph32(
+                    Self::new_builder(fitness, Self::wrapped_codec(c), executor)
+                        .replace_strategy(GraphReplacement),
+                ),
+                PyGraphCodecInner::Float64(c) => Graph64(
+                    Self::new_builder(fitness, Self::wrapped_codec(c), executor)
+                        .replace_strategy(GraphReplacement),
+                ),
+            }
         } else if let Ok(tree_codec) = codec.extract::<PyTreeCodec>() {
-            let py_codec = Self::wrapped_codec(tree_codec.codec);
-            Tree(Self::new_builder(fitness, py_codec, executor))
+            match tree_codec.codec {
+                PyTreeCodecInner::Float32(c) => {
+                    let py_codec = Self::wrapped_codec(c);
+                    Tree32(Self::new_builder(fitness, py_codec, executor))
+                }
+                PyTreeCodecInner::Float64(c) => {
+                    let py_codec = Self::wrapped_codec(c);
+                    Tree64(Self::new_builder(fitness, py_codec, executor))
+                }
+            }
         } else {
             radiate_py_bail!("Unsupported codec type for novelty search problem");
         };

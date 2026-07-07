@@ -7,15 +7,49 @@ use serde::{Deserialize, Serialize};
 impl IntoPyAnyObject for Vec<Tree<Op<f32>>> {
     fn into_py<'py>(self, py: Python<'py>) -> PyAnyObject {
         PyAnyObject {
-            inner: PyTree { inner: self }.into_py_any(py).unwrap(),
+            inner: PyTree {
+                inner: PyTreeInner::Float32(self),
+            }
+            .into_py_any(py)
+            .unwrap(),
         }
+    }
+}
+
+impl IntoPyAnyObject for Vec<Tree<Op<f64>>> {
+    fn into_py<'py>(self, py: Python<'py>) -> PyAnyObject {
+        PyAnyObject {
+            inner: PyTree {
+                inner: PyTreeInner::Float64(self),
+            }
+            .into_py_any(py)
+            .unwrap(),
+        }
+    }
+}
+
+#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub(crate) enum PyTreeInner {
+    Float32(Vec<Tree<Op<f32>>>),
+    Float64(Vec<Tree<Op<f64>>>),
+}
+
+impl From<Vec<Tree<Op<f32>>>> for PyTreeInner {
+    fn from(trees: Vec<Tree<Op<f32>>>) -> Self {
+        PyTreeInner::Float32(trees)
+    }
+}
+
+impl From<Vec<Tree<Op<f64>>>> for PyTreeInner {
+    fn from(trees: Vec<Tree<Op<f64>>>) -> Self {
+        PyTreeInner::Float64(trees)
     }
 }
 
 #[pyclass(from_py_object)]
 #[derive(Clone, Serialize, Deserialize)]
 pub struct PyTree {
-    pub inner: Vec<Tree<Op<f32>>>,
+    pub inner: PyTreeInner,
 }
 
 #[pymethods]
@@ -31,11 +65,18 @@ impl PyTree {
     }
 
     pub fn to_dot(&self) -> String {
-        self.inner
-            .iter()
-            .map(|tree| tree.to_dot())
-            .collect::<Vec<String>>()
-            .join("\n")
+        match &self.inner {
+            PyTreeInner::Float32(trees) => trees
+                .iter()
+                .map(|tree| tree.to_dot())
+                .collect::<Vec<String>>()
+                .join("\n"),
+            PyTreeInner::Float64(trees) => trees
+                .iter()
+                .map(|tree| tree.to_dot())
+                .collect::<Vec<String>>()
+                .join("\n"),
+        }
     }
 
     pub fn eval<'py>(
@@ -43,16 +84,37 @@ impl PyTree {
         py: Python<'py>,
         inputs: &Bound<'py, PyAny>,
     ) -> PyResult<Bound<'py, PyArrayDyn<f32>>> {
-        super::generic_eval_runner(py, self.__len__(), inputs, |slice| {
-            self.inner.eval(slice).into_iter().collect::<Vec<f32>>()
-        })
+        if let PyTreeInner::Float32(trees) = &self.inner {
+            super::generic_eval_runner(py, self.__len__(), inputs, |slice| {
+                trees
+                    .iter()
+                    .map(|tree| tree.eval(slice))
+                    .collect::<Vec<f32>>()
+            })
+        } else {
+            Err(pyo3::exceptions::PyTypeError::new_err(
+                "Tree is not of type f32",
+            ))
+        }
+        // super::generic_eval_runner(py, self.__len__(), inputs, |slice| {
+        //     self.inner.eval(slice).into_iter().collect::<Vec<f32>>()
+        // })
     }
 
     pub fn __repr__(&self) -> String {
         let mut result = String::new();
         result.push_str("Tree(\n");
-        for tree in self.inner.iter() {
-            result.push_str(tree.format().as_str());
+        match &self.inner {
+            PyTreeInner::Float32(trees) => {
+                for tree in trees {
+                    result.push_str(tree.format().as_str());
+                }
+            }
+            PyTreeInner::Float64(trees) => {
+                for tree in trees {
+                    result.push_str(tree.format().as_str());
+                }
+            }
         }
         result.push(')');
 
@@ -62,8 +124,17 @@ impl PyTree {
     pub fn __str__(&self) -> String {
         let mut result = String::new();
         result.push_str("Tree(\n");
-        for node in self.inner.iter() {
-            result.push_str(&format!("{:?}\n", node));
+        match &self.inner {
+            PyTreeInner::Float32(trees) => {
+                for tree in trees {
+                    result.push_str(&format!("{:?}\n", tree));
+                }
+            }
+            PyTreeInner::Float64(trees) => {
+                for tree in trees {
+                    result.push_str(&format!("{:?}\n", tree));
+                }
+            }
         }
         result.push(')');
 
@@ -71,7 +142,10 @@ impl PyTree {
     }
 
     pub fn __len__(&self) -> usize {
-        self.inner.len()
+        match &self.inner {
+            PyTreeInner::Float32(trees) => trees.len(),
+            PyTreeInner::Float64(trees) => trees.len(),
+        }
     }
 
     pub fn __eq__(&self, other: &PyTree) -> bool {

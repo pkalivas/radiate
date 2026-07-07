@@ -423,34 +423,4 @@ pub trait Mutate<C: Chromosome>: Send + Sync {
 
         count.into()
     }
-
-    // #[inline]
-    // fn mutate_gene(&self, gene: &mut C::Gene) -> usize {
-    //     *gene = gene.new_instance();
-    //     1
-    // }
 }
-
-// fn calculate_rates(&mut self, metrics: &MetricSet) -> RadiateResult<()> {
-//     self.rates.clear();
-//     for expr in self.expr_set.iter_mut() {
-//         if let Some(rate) = metrics.get(expr.name()).map(|v| v.last_value()) {
-//             self.rates.push(rate);
-//         } else {
-//             let rate = match expr.eval(metrics)?.extract::<f32>() {
-//                 Some(rate) => rate,
-//                 None => {
-//                     radiate_bail!(Expr:
-//                         "Failed to evaluate rate expression for alterer {}: {}",
-//                         self.name,
-//                         expr.name()
-//                     );
-//                 }
-//             };
-
-//             self.rates.push(rate);
-//         }
-//     }
-
-//     Ok(())
-// }
