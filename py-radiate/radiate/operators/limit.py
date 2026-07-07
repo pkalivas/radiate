@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from .._rd import components
-from ..expr import Expr
+from ..dsl.expr import Expr
 from .input import EngineInput, EngineInputType
 
 

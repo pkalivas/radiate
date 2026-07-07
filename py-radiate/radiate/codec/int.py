@@ -6,7 +6,7 @@ from radiate.radiate import PyIntCodec
 
 from .._bridge import RsObject
 from .._typing import AtLeastOne
-from ..dtype import DataType, DataTypeClass, Int64
+from ..dsl.dtype import DataType, DataTypeClass, Int64
 from ..genome import GeneType, Genotype
 from ..genome.chromosome import Chromosome
 from ..genome.gene import Gene

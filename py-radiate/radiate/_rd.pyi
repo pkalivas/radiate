@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from enum import StrEnum
 from typing import Final
 
@@ -128,3 +129,23 @@ class PyEngine:
     def __iter__(self) -> "PyEngine": ...
     def __next__(self) -> "PyGeneration": ...
     def run(self, options: list[PyEngineInput]) -> PyGeneration: ...
+
+class PyFitnessFn[T]:
+    @staticmethod
+    def novelty_search(
+        distance_fn: str,
+        descriptor: Callable[[T], object],
+        k: int,
+        threshold: float,
+        archive_size: int,
+        is_batch: bool,
+    ) -> PyFitnessFn: ...
+    @staticmethod
+    def custom(fitness_fn: Callable[[T], object], is_batch: bool) -> PyFitnessFn: ...
+    @staticmethod
+    def regression(
+        features: list[list[float]],
+        targets: list[list[float]],
+        loss: str,
+        is_batch: bool,
+    ) -> PyFitnessFn: ...

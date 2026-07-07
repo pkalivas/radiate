@@ -17,14 +17,15 @@ from ..codec import (
     TreeCodec,
 )
 from ..codec.base import CodecBase
-from ..dtype import Float64, Int64
-from ..expr import Expr
-from ..fitness import MSE, FitnessBase, Regression
+from ..dsl.dtype import Float64, Int64
+from ..dsl.expr import Expr
+from ..fitness import MSE, Regression
 from ..genome import Chromosome, Gene, Population
 from ..gp import Graph, Op, Tree
 from ..operators import (
     AlterBase,
     Executor,
+    Fitness,
 )
 from ..operators.distance import Dist
 from ..operators.filter import Filter
@@ -320,9 +321,7 @@ class Engine[G, T]:
         engine = self._builder.build()
         return EngineRuntime(engine).run(log=log, ui=ui, checkpoint=checkpoint)
 
-    def fitness(
-        self, fitness_func: Callable[[T], Any] | FitnessBase[T]
-    ) -> Engine[G, T]:
+    def fitness(self, fitness_func: Callable[[T], Any] | Fitness[T]) -> Engine[G, T]:
         """
         Set the fitness function for the engine.
 
@@ -459,14 +458,22 @@ class Engine[G, T]:
         ... )
         """
         self._builder.set_fitness(
-            Regression(
+            Fitness.regression(
                 features,
-                targets,
+                targets=targets,
                 target_cols=target_cols,
                 feature_cols=feature_cols,
                 loss=loss,
                 batch=batch,
             )
+            # Regression(
+            #     features,
+            #     targets,
+            #     target_cols=target_cols,
+            #     feature_cols=feature_cols,
+            #     loss=loss,
+            #     batch=batch,
+            # )
         )
         self._builder.set_objective("min")
         return self

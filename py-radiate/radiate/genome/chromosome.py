@@ -6,7 +6,7 @@ from radiate.radiate import PyChromosome
 
 from .._bridge import RsObject
 from .._typing import RdDataType
-from ..dtype import Float64, Int64
+from ..dsl.dtype import Float64, Int64
 from .gene import Gene, GeneType
 
 

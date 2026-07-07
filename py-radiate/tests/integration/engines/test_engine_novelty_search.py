@@ -26,7 +26,7 @@ def test_engine_is_novel(random_seed):
     engine = (
         rd.Engine.float(6, init_range=(-100.0, 100.0))
         .fitness(
-            rd.NoveltySearch(
+            rd.Fitness.novelty(
                 descriptor=lambda x: x,
                 distance=rd.Dist.cosine(),
                 k=15,

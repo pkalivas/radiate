@@ -4,12 +4,13 @@ from typing import Any, Callable
 from .._rd import PyEngine, PyEngineBuilder
 from .._typing import Subscriber
 from ..codec import CodecBase
-from ..expr import Expr
+from ..dsl.expr import Expr
 from ..fitness import CallableFitness, FitnessBase
 from ..genome import GeneType, Population
 from ..operators import (
     AlterBase,
     Executor,
+    Fitness,
 )
 from ..operators.distance import Dist
 from ..operators.filter import Filter
@@ -24,7 +25,7 @@ from .handlers import CallableEventHandler, EventHandler
 class EngineConfig[G, T]:
     gene_type: GeneType | None = None
     codec: CodecBase[G, T] | None = None
-    fitness_func: Callable[[T], Any] | FitnessBase | None = None
+    fitness_func: Callable[[T], Any] | Fitness | None = None
 
     population: Population[G] | None = None
     offspring_selector: Select | None = None
@@ -106,27 +107,20 @@ class EngineBuilder[G, T]:
         self._inputs.append(
             EngineInput(
                 input_type=EngineInputType.Codec,
-                component="codec",
                 codec=codec.__backend__(),
             )
         )
 
         return self
 
-    def set_fitness(self, fitness: FitnessBase | Callable[[T], Any] | None = None):
+    def set_fitness(self, fitness: Fitness | Callable[[T], Any] | None = None):
         if fitness is None:
             return
 
         if isinstance(fitness, Callable):
-            fitness = CallableFitness(fitness)
+            fitness = Fitness.custom(fitness, is_batch=False)
 
-        self._inputs.append(
-            EngineInput(
-                input_type=EngineInputType.FitnessFunction,
-                component="fitnessfunction",
-                fitness=fitness.__backend__(),
-            )
-        )
+        self._inputs.append(fitness)
 
         return self
 
@@ -139,7 +133,6 @@ class EngineBuilder[G, T]:
                 self._inputs.append(
                     EngineInput(
                         input_type=EngineInputType.Subscriber,
-                        component="subscriber",
                         subscriber=sub._py_handler,
                     )
                 )
@@ -147,7 +140,6 @@ class EngineBuilder[G, T]:
                 self._inputs.append(
                     EngineInput(
                         input_type=EngineInputType.Subscriber,
-                        component="subscriber",
                         subscriber=CallableEventHandler(sub)._py_handler,
                     )
                 )
@@ -169,7 +161,6 @@ class EngineBuilder[G, T]:
         self._inputs.append(
             EngineInput(
                 input_type=EngineInputType.Generation,
-                component="generation",
                 generation=generation.__backend__(),
             )
         )
@@ -188,7 +179,6 @@ class EngineBuilder[G, T]:
         self._inputs.append(
             EngineInput(
                 input_type=EngineInputType.Checkpoint,
-                component="checkpoint",
                 path=checkpoint_path,
                 ignore_not_found=ignore_not_found,
                 file_type=file_type,
@@ -204,7 +194,6 @@ class EngineBuilder[G, T]:
         self._inputs.append(
             EngineInput(
                 input_type=EngineInputType.Population,
-                component="population",
                 population=population.__backend__(),
             )
         )
@@ -217,7 +206,6 @@ class EngineBuilder[G, T]:
             self._inputs.append(
                 EngineInput(
                     input_type=EngineInputType.Metric,
-                    component="metric",
                     name=name,
                     expr=expr.__backend__(),
                 )

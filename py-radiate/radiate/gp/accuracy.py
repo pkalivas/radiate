@@ -4,7 +4,7 @@ from radiate.radiate import py_accuracy
 
 from .._bridge import RsObject
 from .._typing import RdLossType
-from ..fitness.loss import MSE
+from ..dsl.loss import MSE
 from ..utils._normalize import _normalize_regression_data
 from .graph import Graph
 from .tree import Tree

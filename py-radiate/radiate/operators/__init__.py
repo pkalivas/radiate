@@ -2,6 +2,7 @@ from .alterer import AlterBase, Cross, Mutate
 from .distance import Dist
 from .executor import Executor
 from .filter import Filter
+from .fitness import Fitness
 from .limit import Limit
 
 __all__ = [
@@ -17,4 +18,6 @@ __all__ = [
     "Limit",
     # Filters
     "Filter",
+    # Fitness
+    "Fitness",
 ]

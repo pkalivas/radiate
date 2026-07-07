@@ -22,7 +22,7 @@ from .codec import (
 )
 
 # from .dsl import Filter
-from .dtype import (
+from .dsl.dtype import (
     Boolean,
     Char,
     Dict,
@@ -45,6 +45,13 @@ from .dtype import (
     UInt128,
     Usize,
 )
+from .dsl.expr import Expr
+from .dsl.loss import (
+    MAE,
+    MSE,
+    Diff,
+    XEnt,
+)
 from .engine import (
     CheckpointParam,
     Engine,
@@ -65,18 +72,6 @@ from .engine import (
     on_start,
     on_stop,
 )
-from .expr import Expr
-from .fitness import (  # Base fitness classes,; Decorators; Loss functions
-    MAE,
-    MSE,
-    BatchFitness,
-    Diff,
-    NoveltySearch,
-    Regression,
-    XEnt,
-    fitness,
-    novelty,
-)
 from .genome import (
     Chromosome,
     Ecosystem,
@@ -95,6 +90,7 @@ from .operators.alterer import (
 from .operators.distance import Dist
 from .operators.executor import Executor
 from .operators.filter import Filter
+from .operators.fitness import Fitness, fitness, novelty
 from .operators.limit import Limit
 from .operators.selector import Select
 from .random import RandomProvider as random
@@ -157,10 +153,11 @@ __all__ = [
     "Executor",
     # Limits
     "Limit",
+    # Filters
+    "Filter",
+    # Fitness
+    "Fitness",
     # Problem
-    "Regression",
-    "NoveltySearch",
-    "BatchFitness",
     "fitness",
     "novelty",
     # Loss functions
@@ -208,13 +205,6 @@ __all__ = [
     "List",
     "Dict",
     "Usize",
-    # dsl
-    "Select",
-    "Dist",
-    "Mutate",
-    "Cross",
-    "Limit",
-    "Filter",
     # constants
     "MIN",
     "MAX",

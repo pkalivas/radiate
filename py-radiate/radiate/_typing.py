@@ -5,11 +5,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
 if TYPE_CHECKING:
-    from .dtype import DataType, DataTypeClass
+    from .dsl.dtype import DataType, DataTypeClass
+    from .dsl.expr import Expr
+    from .dsl.loss import LossType, LossTypeClass
     from .engine.handlers import EventHandler
     from .engine.option import CheckpointParam
-    from .expr import Expr
-    from .fitness.loss import LossType, LossTypeClass
 
 type FileType = Literal["pkl", "json"]
 

@@ -10,7 +10,7 @@ class Regression[T](FitnessBase[T]):
     """Fitness function for regression problems."""
 
     from .._typing import RdLossType
-    from .loss import MSE
+    from ..dsl.loss import MSE
 
     def __init__(
         self,

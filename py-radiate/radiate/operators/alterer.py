@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from .._rd import components
 from .._typing import OperatorRate
-from ..expr import Expr
+from ..dsl.expr import Expr
 from ..genome.gene import GeneType
 from ..genome.population import Population
 from .input import EngineInput, EngineInputType

@@ -64,7 +64,7 @@ def fit_batch(x: list[list[float]]) -> list[float]:
 # Just wrap your fitness function in 'rd.BatchFitness'
 engine = (
     rd.Engine.float(N_GENES, init_range=(-RANGE, RANGE))
-    .fitness(rd.BatchFitness(fit_batch))
+    .fitness(rd.Fitness.custom(fit_batch, is_batch=True))
     .minimizing()
 )
 # --8<-- [end:batch_fitness]
@@ -119,7 +119,7 @@ def behavior(individual: list[float]) -> list[float]:
 
 
 # Create novelty search fitness function
-novelty_fitness = rd.NoveltySearch(
+novelty_fitness = rd.Fitness.novelty(
     descriptor=behavior,
     # Can use any of the distance inputs. The engine uses this to
     # determine how 'novel' an individual is compared to the others in the

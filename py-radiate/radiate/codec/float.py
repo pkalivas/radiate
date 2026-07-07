@@ -6,7 +6,7 @@ from radiate.radiate import PyFloatCodec
 
 from .._bridge import RsObject
 from .._typing import AtLeastOne
-from ..dtype import DataType, DataTypeClass, Float64
+from ..dsl.dtype import DataType, DataTypeClass, Float64
 from ..genome import Chromosome, Gene, GeneType, Genotype
 from .base import CodecBase
 

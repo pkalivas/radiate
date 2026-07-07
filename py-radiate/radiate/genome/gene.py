@@ -4,7 +4,7 @@ from radiate.radiate import PyGene
 
 from .._bridge import RsObject
 from .._typing import RdDataType
-from ..dtype import Float64, Int64
+from ..dsl.dtype import Float64, Int64
 from . import GeneType
 
 

@@ -6,13 +6,14 @@ from typing import TYPE_CHECKING, Any, Literal, Self, Sequence, overload
 
 from radiate._typing import AtLeastOne, FileType, RdDataType, RdLossType, Subscriber
 from radiate.codec.base import CodecBase
-from radiate.dtype import Float32, Int8, Int16, Int32, UInt8, UInt16, UInt32, UInt64
-from radiate.expr import Expr
+from radiate.dsl.dtype import Float32, Int8, Int16, Int32, UInt8, UInt16, UInt32, UInt64
+from radiate.dsl.expr import Expr
 from radiate.fitness import MSE, FitnessBase
 from radiate.genome import Chromosome, Gene, Population
 from radiate.gp import Graph, Op, Tree
 from radiate.operators import (
     AlterBase,
+    Fitness,
 )
 from radiate.operators.filter import Filter
 from radiate.operators.limit import Limit
@@ -740,7 +741,7 @@ class Engine[G, T]:
     # Fluent configuration methods
     # ----------------------------
 
-    def fitness(self, fitness_func: Callable[[T], Any] | FitnessBase[T]) -> Self: ...
+    def fitness(self, fitness_func: Callable[[T], Any] | Fitness[T]) -> Self: ...
     def regression(
         self,
         features: Any,
