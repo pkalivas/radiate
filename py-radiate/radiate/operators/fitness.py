@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from functools import wraps
 from typing import Any, Literal, TypeVar, overload
 
 from radiate._typing import RdLossType
-from radiate.fitness import wraps
 
 from .._rd import PyFitnessFn
 from ..dsl.loss import MSE

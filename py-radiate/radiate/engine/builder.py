@@ -5,15 +5,12 @@ from .._rd import PyEngine, PyEngineBuilder
 from .._typing import Subscriber
 from ..codec import CodecBase
 from ..dsl.expr import Expr
-from ..fitness import CallableFitness, FitnessBase
 from ..genome import GeneType, Population
-from ..operators import (
-    AlterBase,
-    Executor,
-    Fitness,
-)
+from ..operators.alterer import AlterBase
 from ..operators.distance import Dist
+from ..operators.executor import Executor
 from ..operators.filter import Filter
+from ..operators.fitness import Fitness
 from ..operators.input import EngineInput, EngineInputType
 from ..operators.limit import Limit
 from ..operators.selector import Select

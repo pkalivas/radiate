@@ -19,7 +19,7 @@ from ..codec import (
 from ..codec.base import CodecBase
 from ..dsl.dtype import Float64, Int64
 from ..dsl.expr import Expr
-from ..fitness import MSE, Regression
+from ..dsl.loss import MSE
 from ..genome import Chromosome, Gene, Population
 from ..gp import Graph, Op, Tree
 from ..operators import (

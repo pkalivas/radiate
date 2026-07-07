@@ -8,7 +8,7 @@ from radiate._typing import AtLeastOne, FileType, RdDataType, RdLossType, Subscr
 from radiate.codec.base import CodecBase
 from radiate.dsl.dtype import Float32, Int8, Int16, Int32, UInt8, UInt16, UInt32, UInt64
 from radiate.dsl.expr import Expr
-from radiate.fitness import MSE, FitnessBase
+from radiate.dsl.loss import MSE
 from radiate.genome import Chromosome, Gene, Population
 from radiate.gp import Graph, Op, Tree
 from radiate.operators import (
