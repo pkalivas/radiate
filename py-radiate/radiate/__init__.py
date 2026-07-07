@@ -89,38 +89,10 @@ from .genome import (
 )
 from .gp import AccuracyResult, Graph, Op, OpsConfig, Tree, accuracy
 from .operators.alterer import (
-    ArithmeticMutator,
-    BlendCrossover,
     Cross,
-    EdgeRecombinationCrossover,
-    GaussianMutator,
-    GraphCrossover,
-    GraphMutator,
-    HoistMutator,
-    IntermediateCrossover,
-    InversionMutator,
-    JitterMutator,
-    MeanCrossover,
-    MultiPointCrossover,
     Mutate,
-    OperationMutator,
-    PartiallyMappedCrossover,
-    PolynomialMutator,
-    ScrambleMutator,
-    ShuffleCrossover,
-    SimulatedBinaryCrossover,
-    SwapMutator,
-    TreeCrossover,
-    UniformCrossover,
-    UniformMutator,
 )
-from .operators.distance import (
-    CosineDistance,
-    Dist,
-    EuclideanDistance,
-    HammingDistance,
-    NeatDistance,
-)
+from .operators.distance import Dist
 from .operators.executor import Executor
 from .operators.filter import Filter
 from .operators.limit import Limit
@@ -179,28 +151,8 @@ __all__ = [
     "on_start",
     "on_stop",
     # Alters
-    "BlendCrossover",
-    "TreeCrossover",
-    "GraphCrossover",
-    "IntermediateCrossover",
-    "MultiPointCrossover",
-    "MeanCrossover",
-    "ShuffleCrossover",
-    "SimulatedBinaryCrossover",
-    "PartiallyMappedCrossover",
-    "UniformCrossover",
-    "ArithmeticMutator",
-    "UniformMutator",
-    "GaussianMutator",
-    "ScrambleMutator",
-    "SwapMutator",
-    "HoistMutator",
-    "GraphMutator",
-    "OperationMutator",
-    "InversionMutator",
-    "PolynomialMutator",
-    "EdgeRecombinationCrossover",
-    "JitterMutator",
+    "Cross",
+    "Mutate",
     # Executor
     "Executor",
     # Limits
@@ -219,10 +171,7 @@ __all__ = [
     # Selectors
     "Select",
     # Diversity Measures
-    "NeatDistance",
-    "CosineDistance",
-    "HammingDistance",
-    "EuclideanDistance",
+    "Dist",
     # Engine
     "Engine",
     "Generation",

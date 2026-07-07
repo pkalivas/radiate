@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from radiate.radiate import PyGeneration
 
-from .._bridge.wrapper import RsObject
+from .._bridge import RsObject
 from ..genome import GeneType
 from ..genome.ecosystem import Ecosystem
 from ..genome.population import Population

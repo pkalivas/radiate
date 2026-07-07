@@ -6,36 +6,6 @@ if TYPE_CHECKING:
     from .._typing import OperatorRate
 
 from ..expr import Expr
-from ..operators.alterer import (
-    ArithmeticMutator,
-    BlendCrossover,
-    EdgeRecombinationCrossover,
-    GaussianMutator,
-    GraphCrossover,
-    GraphMutator,
-    HoistMutator,
-    IntermediateCrossover,
-    InversionMutator,
-    JitterMutator,
-    MeanCrossover,
-    MultiPointCrossover,
-    OperationMutator,
-    PartiallyMappedCrossover,
-    PolynomialMutator,
-    ScrambleMutator,
-    ShuffleCrossover,
-    SimulatedBinaryCrossover,
-    SwapMutator,
-    TreeCrossover,
-    UniformCrossover,
-    UniformMutator,
-)
-from ..operators.distance import (
-    CosineDistance,
-    EuclideanDistance,
-    HammingDistance,
-    NeatDistance,
-)
 
 # from ..operators.filter import UniqueScoreFilter
 

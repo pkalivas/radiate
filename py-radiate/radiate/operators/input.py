@@ -3,7 +3,7 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import override
 
-from .._bridge.wrapper import RsObject
+from .._bridge import RsObject
 from .._rd import PyEngineInput, PyEngineInputType
 from ..genome import GENE_TYPE_MAPPING, GeneType
 
@@ -62,25 +62,25 @@ input_type_mapping = {
 
 
 class EngineInput(RsObject):
-    _component: str
     _input_type: EngineInputType
+    _component: str | None
     _allowed_genes: set[GeneType] | list[GeneType] | GeneType | None
     _args: dict[str, object] | None
 
     def __init__(
         self,
-        component: str,
         input_type: EngineInputType,
+        component: str | None = None,
         allowed_genes: set[GeneType] | list[GeneType] | GeneType | None = None,
         **kwargs,
     ):
-        self._component = component
         self._input_type = input_type
+        self._component = component
         self._allowed_genes = allowed_genes
         self._args = {**kwargs} if kwargs else None
 
     @property
-    def component(self) -> str:
+    def component(self) -> str | None:
         return self._component
 
     @property
@@ -117,29 +117,3 @@ class EngineInput(RsObject):
                 for name, value in self.args.items()
             },
         )
-
-        # super().__init__()
-        # if input_type not in input_type_mapping:
-        #     raise ValueError(f"Invalid input type: {input_type}")
-
-        # if not allowed_genes:
-        #     allowed_genes = GeneType.all()
-        # elif isinstance(allowed_genes, GeneType):
-        #     allowed_genes = {allowed_genes}
-
-        # args = {
-        #     name: value.__backend__() if isinstance(value, RsObject) else value
-        #     for name, value in kwargs.items()
-        # }
-
-        # self._pyobj = PyEngineInput(
-        #     input_type=input_type_mapping[input_type],
-        #     component=component,
-        #     allowed_genes=set(
-        #         GENE_TYPE_MAPPING["rs"][gene_type] for gene_type in allowed_genes
-        #     ),
-        #     args=args,
-        # )
-
-    # def __str__(self) -> str:
-    #     return self.__backend__().__str__()

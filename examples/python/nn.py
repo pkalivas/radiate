@@ -3,12 +3,11 @@
 PyTorch Neural Network Weight Evolution with Radiate FloatCode
 """
 
+import numpy as np  # type: ignore
 import radiate as rd
 import torch  # type: ignore
-from torch import nn  # type: ignore
 import torch.nn.functional as F  # type: ignore
-import numpy as np  # type: ignore
-
+from torch import nn  # type: ignore
 
 rd.random.seed(42)
 torch.manual_seed(42)

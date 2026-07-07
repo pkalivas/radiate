@@ -83,10 +83,6 @@ class Engine[G, T]:
         codec: CodecBase[G, T],
         **kwargs: Any,
     ):
-        # from radiate.radiate import _constants
-
-        # print(_constants.components.HAMMING_DISTANCE)
-        # raise
         if not isinstance(codec, CodecBase) or codec is None:
             raise ValueError(
                 "Input to engine must have an instance of CodecBase to be constructed"

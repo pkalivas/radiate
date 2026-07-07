@@ -20,7 +20,8 @@ pub fn py_alter(
     if !alterer.allowed_genes.contains(&gene_type) {
         return Err(radiate_py_err!(format!(
             "Alterer {} does not allow gene type {:?}",
-            alterer.component, gene_type
+            alterer.component(),
+            gene_type
         )));
     }
 

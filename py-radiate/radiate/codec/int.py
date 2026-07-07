@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Literal, Sequence, overload
 
 from radiate.radiate import PyIntCodec
 
-from .._bridge.wrapper import RsObject
+from .._bridge import RsObject
 from .._typing import AtLeastOne
 from ..dtype import DataType, DataTypeClass, Int64
 from ..genome import GeneType, Genotype

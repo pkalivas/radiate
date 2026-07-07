@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, overload
 
 from radiate.radiate import PyGraph
 
-from .._bridge.wrapper import RsObject
+from .._bridge import RsObject
 from ..genome.chromosome import Chromosome
 
 if TYPE_CHECKING:

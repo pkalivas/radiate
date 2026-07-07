@@ -24,7 +24,8 @@ pub fn py_select(
     if !selector.allowed_genes.contains(&gene_type) {
         return Err(radiate_py_err!(format!(
             "Selector {} does not allow gene type {:?}",
-            selector.component, gene_type
+            selector.component(),
+            gene_type
         )));
     }
 

@@ -4,7 +4,7 @@ from typing import Iterable, Iterator
 
 from radiate.radiate import PyPopulation
 
-from .._bridge.wrapper import RsObject
+from .._bridge import RsObject
 from .gene import GeneType
 from .phenotype import Phenotype
 

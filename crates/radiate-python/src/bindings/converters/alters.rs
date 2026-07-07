@@ -26,7 +26,7 @@ where
         let entry = self
             .entries
             .iter()
-            .find(|entry| entry.name == input.component.as_str())
+            .find(|entry| entry.name == input.component.as_deref().unwrap_or(""))
             .ok_or_else(|| {
                 let valid = self
                     .entries
@@ -36,7 +36,7 @@ where
                     .join(", ");
 
                 radiate_err!(Builder: format!(
-                    "Invalid alterer type '{}'. Valid alterers: [{}]",
+                    "Invalid alterer type '{:?}'. Valid alterers: [{}]",
                     input.component, valid
                 ))
             })?;

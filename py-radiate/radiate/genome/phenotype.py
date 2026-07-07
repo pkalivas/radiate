@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from radiate.radiate import PyPhenotype
 
-from .._bridge.wrapper import RsObject
+from .._bridge import RsObject
 from .._typing import AtLeastOne
 from .gene import GeneType
 from .genotype import Genotype

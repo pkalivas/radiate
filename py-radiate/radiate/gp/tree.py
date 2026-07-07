@@ -6,7 +6,7 @@ import numpy as np
 
 from radiate.radiate import PyTree
 
-from .._bridge.wrapper import RsObject
+from .._bridge import RsObject
 
 if TYPE_CHECKING:
     from .._dependancies import pandas as pd

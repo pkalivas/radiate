@@ -85,7 +85,6 @@ recurrent_graph = codec.decode(genotype)
 import radiate as rd
 
 # Create a mutator that adds vertices and edges with a 10% chance for either
-mutator = rd.GraphMutator(vertex_rate=0.1, edge_rate=0.1, allow_recurrent=False)
 mutator = rd.Mutate.graph(
     vertex_rate=0.1, edge_rate=0.1, allow_recurrent=False
 )  # Using the dsl syntax for mutators
@@ -94,6 +93,5 @@ mutator = rd.Mutate.graph(
 # --8<-- [start:graph_crossover]
 import radiate as rd
 
-crossover = rd.GraphCrossover(0.1, 0.5)
 crossover = rd.Cross.graph(0.1, 0.5)  # Using the dsl syntax for crossover operators
 # --8<-- [end:graph_crossover]

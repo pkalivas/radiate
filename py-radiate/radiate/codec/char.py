@@ -4,7 +4,7 @@ from typing import Any, Sequence, overload
 
 from radiate.radiate import PyCharCodec
 
-from .._bridge.wrapper import RsObject
+from .._bridge import RsObject
 from .._typing import AtLeastOne
 from ..genome import GeneType, Genotype
 from ..genome.chromosome import Chromosome

@@ -6,7 +6,7 @@ from typing import Any, Iterator
 
 from radiate.radiate import PyMetricSet
 
-from .._bridge.wrapper import RsObject
+from .._bridge import RsObject
 
 
 class Tag(enum.Enum):

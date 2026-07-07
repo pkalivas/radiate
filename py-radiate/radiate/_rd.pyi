@@ -49,6 +49,10 @@ class _Components:
 
     UNIQUE_SCORE_FILTER: Final[str]
 
+    OBJECTIVE: Final[str]
+    MIN: Final[str]
+    MAX: Final[str]
+
     ALL_EVENTS: Final[str]
     START_EVENT: Final[str]
     STOP_EVENT: Final[str]
@@ -111,7 +115,7 @@ class PyEngineInput:
     def __init__(
         self,
         input_type: PyEngineInputType,
-        component: str,
+        component: str | None,
         allowed_genes: set[str],
         args: dict[str, object] | None = None,
     ): ...

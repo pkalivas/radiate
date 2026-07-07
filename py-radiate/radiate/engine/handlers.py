@@ -4,7 +4,7 @@ from typing import Any, Callable
 
 from radiate.radiate import PySubscriber
 
-from .._bridge.wrapper import RsObject
+from .._bridge import RsObject
 from .metrics import MetricSet
 
 

@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Literal, Sequence, overload
 
 from radiate.radiate import PyBitCodec
 
-from .._bridge.wrapper import RsObject
+from .._bridge import RsObject
 from .._typing import AtLeastOne
 from ..genome import Chromosome, Gene, GeneType, Genotype
 from .base import CodecBase

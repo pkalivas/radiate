@@ -16,7 +16,7 @@ where
             )));
         }
 
-        match self.component.as_str() {
+        match self.component() {
             crate::constants::components::TOURNAMENT_SELECTOR => {
                 let tournament_size = self.extract::<i64>("k")?;
                 Ok(Box::new(TournamentSelector::new(tournament_size as usize)))
@@ -48,7 +48,7 @@ where
             }
             _ => Err(radiate_err!(Builder: format!(
                 "Selector type {} not yet implemented",
-                self.component
+                self.component()
             ))),
         }
     }

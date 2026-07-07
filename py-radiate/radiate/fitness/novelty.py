@@ -2,27 +2,23 @@ from typing import Callable
 
 from radiate.radiate import PyFitnessFn
 
-from ..operators.descriptor import CustomDescriptor, DescriptorBase
-from ..operators.distance import DistanceBase, EuclideanDistance, HammingDistance
+from ..operators.distance import Dist
 from .base import FitnessBase
 
 type NoveltyOutput = float | int | list[float] | list[int]
 
 
 class NoveltySearch[T](FitnessBase[T]):
-    """Fitness function for novelty search algorithms."""
-
     def __init__(
         self,
-        distance: DistanceBase | None,
-        descriptor: Callable[[T], NoveltyOutput] | DescriptorBase,
+        distance: Dist | None,
+        descriptor: Callable[[T], NoveltyOutput],
         k: int = 15,
         threshold: float = 0.03,
         archive_size: int = 1000,
         batch: bool = False,
     ):
-        """Initialize novelty search with descriptor, distance function, and parameters."""
-        self._validate_inputs(descriptor, distance, k, threshold, archive_size)
+        self._validate_inputs(descriptor, k, threshold, archive_size)
 
         descriptor = self._setup_descriptor(descriptor, distance)
         distance = self._setup_distance(distance)
@@ -30,7 +26,7 @@ class NoveltySearch[T](FitnessBase[T]):
         super().__init__(
             PyFitnessFn.novelty_search(
                 distance_fn=distance.component,
-                descriptor=descriptor.descriptor,
+                descriptor=descriptor,
                 k=k,
                 threshold=threshold,
                 archive_size=archive_size,
@@ -38,14 +34,18 @@ class NoveltySearch[T](FitnessBase[T]):
             )
         )
 
-    def _validate_inputs(self, descriptor, distance, k, threshold, archive_size):
-        """Validate constructor inputs."""
-        if not isinstance(descriptor, (Callable, DescriptorBase)):
+    def _validate_inputs(
+        self,
+        descriptor: Callable[[T], NoveltyOutput],
+        k: int,
+        threshold: float,
+        archive_size: int,
+    ):
+        if not isinstance(descriptor, Callable):
             raise TypeError(
                 "descriptor must be a callable or an instance of DescriptorBase."
             )
-        if distance is not None and not isinstance(distance, DistanceBase):
-            raise TypeError("distance must be an instance of DistanceBase.")
+
         if k <= 0:
             raise ValueError("k must be a positive integer.")
         if threshold < 0:
@@ -53,17 +53,16 @@ class NoveltySearch[T](FitnessBase[T]):
         if archive_size <= 0:
             raise ValueError("archive_size must be a positive integer.")
 
-    def _setup_descriptor(self, descriptor, distance):
-        """Setup descriptor with appropriate distance function."""
+    def _setup_descriptor(
+        self, descriptor: Callable[[T], NoveltyOutput], distance: Dist | None
+    ):
         if isinstance(descriptor, Callable):
-            descriptor = CustomDescriptor(descriptor)
             if distance is None:
-                distance = EuclideanDistance()
+                distance = Dist.euclidean()
         return descriptor
 
-    def _setup_distance(self, distance):
-        """Setup distance function with default fallback."""
+    def _setup_distance(self, distance: Dist | None) -> Dist:
         if distance is None:
             # HammingDistance works with all gene types
-            distance = HammingDistance()
+            distance = Dist.hamming()
         return distance

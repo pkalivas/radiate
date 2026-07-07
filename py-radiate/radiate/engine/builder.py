@@ -247,15 +247,7 @@ class EngineBuilder[G, T]:
             alters = [alters]
 
         for alter in alters:
-            self._inputs.append(
-                EngineInput(
-                    input_type=EngineInputType.Alterer,
-                    component=alter.component,
-                    allowed_genes=alter.allowed_genes,
-                    rate=alter.rate,
-                    **alter.args,
-                )
-            )
+            self._inputs.append(alter)
 
     def set_diversity(
         self,
@@ -276,11 +268,7 @@ class EngineBuilder[G, T]:
         self._inputs.append(
             EngineInput(
                 input_type=EngineInputType.SpeciesThreshold,
-                component="SpeciesThreshold",
-                allowed_genes=diversity.allowed_genes,
-                threshold=species_threshold.__backend__()
-                if isinstance(species_threshold, Expr)
-                else species_threshold,
+                threshold=species_threshold,
             )
         )
 
@@ -297,8 +285,6 @@ class EngineBuilder[G, T]:
             self._inputs.append(
                 EngineInput(
                     input_type=EngineInputType.TargetSpecies,
-                    component="TargetSpecies",
-                    allowed_genes=diversity.allowed_genes,
                     target_species=int(target_species),
                 )
             )
@@ -324,7 +310,6 @@ class EngineBuilder[G, T]:
         self._inputs.append(
             EngineInput(
                 input_type=EngineInputType.PopulationSize,
-                component="PopulationSize",
                 size=size,
             )
         )
@@ -336,7 +321,6 @@ class EngineBuilder[G, T]:
         self._inputs.append(
             EngineInput(
                 input_type=EngineInputType.OffspringFraction,
-                component="OffspringFraction",
                 fraction=fraction,
             )
         )
@@ -348,7 +332,6 @@ class EngineBuilder[G, T]:
         self._inputs.append(
             EngineInput(
                 input_type=EngineInputType.MaxPhenotypeAge,
-                component="MaxPhenotypeAge",
                 age=age,
             )
         )
@@ -361,7 +344,6 @@ class EngineBuilder[G, T]:
             self._inputs.append(
                 EngineInput(
                     input_type=EngineInputType.MaxSpeciesAge,
-                    component="MaxSpeciesAge",
                     age=age,
                 )
             )
@@ -378,7 +360,6 @@ class EngineBuilder[G, T]:
         self._inputs.append(
             EngineInput(
                 input_type=EngineInputType.Objective,
-                component="Objective",
                 objective=objective,
             )
         )
@@ -392,7 +373,6 @@ class EngineBuilder[G, T]:
         self._inputs.append(
             EngineInput(
                 input_type=EngineInputType.FrontRange,
-                component="FrontRange",
                 min=min,
                 max=max,
             )

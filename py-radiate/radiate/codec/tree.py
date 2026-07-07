@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from radiate.radiate import PyTreeCodec
 
-from .._bridge.wrapper import RsObject
+from .._bridge import RsObject
 from .._typing import AtLeastOne
 from ..genome import GeneType, Genotype
 from ..gp import Op, OpsConfig, Tree

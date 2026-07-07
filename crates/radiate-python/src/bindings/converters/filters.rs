@@ -17,7 +17,7 @@ where
                     input.input_type
                 )));
             }
-            match input.component.as_str() {
+            match input.component() {
                 crate::constants::components::UNIQUE_SCORE_FILTER => {
                     let threshold = input.extract::<f64>("threshold")?;
                     let max_stagnation = input.extract::<i64>("max_stagnation")?;
@@ -29,7 +29,7 @@ where
                 _ => {
                     return Err(radiate_err!(Builder: format!(
                         "Filter type {} not yet implemented",
-                        input.component
+                        input.component()
                     )));
                 }
             }

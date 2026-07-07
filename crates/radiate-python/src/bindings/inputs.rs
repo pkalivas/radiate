@@ -41,7 +41,7 @@ pub enum PyEngineInputType {
 #[pyclass(from_py_object)]
 #[derive(Clone, Serialize, Deserialize)]
 pub struct PyEngineInput {
-    pub component: String,
+    pub component: Option<String>,
     pub input_type: PyEngineInputType,
     pub allowed_genes: HashSet<PyGeneType>,
     pub args: HashMap<String, PyAnyObject>,
@@ -51,8 +51,8 @@ pub struct PyEngineInput {
 impl PyEngineInput {
     #[new]
     pub fn new(
-        component: String,
         input_type: PyEngineInputType,
+        component: Option<String>,
         allowed_genes: HashSet<PyGeneType>,
         args: HashMap<String, Py<PyAny>>,
     ) -> Self {
@@ -67,8 +67,8 @@ impl PyEngineInput {
         }
     }
 
-    pub fn component(&self) -> String {
-        self.component.clone()
+    pub fn component(&self) -> &str {
+        self.component.as_deref().unwrap_or("")
     }
 
     pub fn input_type(&self) -> PyEngineInputType {
@@ -118,7 +118,7 @@ impl Debug for PyEngineInput {
         }
         write!(
             f,
-            "PyEngineInput {{ \n\tcomponent: {}, \n\tinput_type: {:?}, \n\tallowed_genes: {:?}, \n\targs: {{{}}} \n}}",
+            "PyEngineInput {{ \n\tcomponent: {:?}, \n\tinput_type: {:?}, \n\tallowed_genes: {:?}, \n\targs: {{{}}} \n}}",
             self.component, self.input_type, self.allowed_genes, args
         )
     }

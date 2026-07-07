@@ -11,11 +11,11 @@ impl<I: Integer + NumericAllele> InputTransform<RadiateResult<Box<dyn Diversity<
     for PyEngineInput
 {
     fn transform(&self) -> RadiateResult<Box<dyn Diversity<IntChromosome<I>>>> {
-        match self.component.as_str() {
+        match self.component() {
             crate::constants::components::HAMMING_DISTANCE => Ok(Box::new(HammingDistance)),
             crate::constants::components::EUCLIDEAN_DISTANCE => Ok(Box::new(EuclideanDistance)),
             crate::constants::components::COSINE_DISTANCE => Ok(Box::new(CosineDistance)),
-            _ => radiate_bail!(Builder: "Unknown diversity measure: {}", self.component),
+            _ => radiate_bail!(Builder: "Unknown diversity measure: {}", self.component()),
         }
     }
 }
@@ -24,29 +24,29 @@ impl<F: Float + NumericAllele> InputTransform<RadiateResult<Box<dyn Diversity<Fl
     for PyEngineInput
 {
     fn transform(&self) -> RadiateResult<Box<dyn Diversity<FloatChromosome<F>>>> {
-        match self.component.as_str() {
-            crate::constants::components::EUCLIDEAN_DISTANCE => Ok(Box::new(EuclideanDistance)),
+        match self.component() {
             crate::constants::components::HAMMING_DISTANCE => Ok(Box::new(HammingDistance)),
             crate::constants::components::COSINE_DISTANCE => Ok(Box::new(CosineDistance)),
-            _ => radiate_bail!(Builder: "Unknown diversity measure: {}", self.component),
+            crate::constants::components::EUCLIDEAN_DISTANCE => Ok(Box::new(EuclideanDistance)),
+            _ => radiate_bail!(Builder: "Unknown diversity measure: {}", self.component()),
         }
     }
 }
 
 impl InputTransform<RadiateResult<Box<dyn Diversity<BitChromosome>>>> for PyEngineInput {
     fn transform(&self) -> RadiateResult<Box<dyn Diversity<BitChromosome>>> {
-        match self.component.as_str() {
+        match self.component() {
             crate::constants::components::HAMMING_DISTANCE => Ok(Box::new(HammingDistance)),
-            _ => radiate_bail!(Builder: "Unknown diversity measure: {}", self.component),
+            _ => radiate_bail!(Builder: "Unknown diversity measure: {}", self.component()),
         }
     }
 }
 
 impl InputTransform<RadiateResult<Box<dyn Diversity<CharChromosome>>>> for PyEngineInput {
     fn transform(&self) -> RadiateResult<Box<dyn Diversity<CharChromosome>>> {
-        match self.component.as_str() {
+        match self.component() {
             crate::constants::components::HAMMING_DISTANCE => Ok(Box::new(HammingDistance)),
-            _ => radiate_bail!(Builder: "Unknown diversity measure: {}", self.component),
+            _ => radiate_bail!(Builder: "Unknown diversity measure: {}", self.component()),
         }
     }
 }
@@ -55,9 +55,9 @@ impl InputTransform<RadiateResult<Box<dyn Diversity<PermutationChromosome<usize>
     for PyEngineInput
 {
     fn transform(&self) -> RadiateResult<Box<dyn Diversity<PermutationChromosome<usize>>>> {
-        match self.component.as_str() {
+        match self.component() {
             crate::constants::components::HAMMING_DISTANCE => Ok(Box::new(HammingDistance)),
-            _ => radiate_bail!(Builder: "Unknown diversity measure: {}", self.component),
+            _ => radiate_bail!(Builder: "Unknown diversity measure: {}", self.component()),
         }
     }
 }
@@ -71,7 +71,7 @@ impl InputTransform<RadiateResult<Box<dyn Diversity<TreeChromosome<Op<f32>>>>>> 
 
 impl InputTransform<RadiateResult<Box<dyn Diversity<GraphChromosome<Op<f32>>>>>> for PyEngineInput {
     fn transform(&self) -> RadiateResult<Box<dyn Diversity<GraphChromosome<Op<f32>>>>> {
-        match self.component.as_str() {
+        match self.component() {
             crate::constants::components::NEAT_DISTANCE => {
                 let excess = self.extract::<f64>("excess")?;
                 let disjoint = self.extract::<f64>("disjoint")?;
@@ -84,7 +84,7 @@ impl InputTransform<RadiateResult<Box<dyn Diversity<GraphChromosome<Op<f32>>>>>>
                 )))
             }
             crate::constants::components::HAMMING_DISTANCE => Ok(Box::new(HammingDistance)),
-            _ => radiate_bail!(Builder: "Unknown diversity measure: {}", self.component),
+            _ => radiate_bail!(Builder: "Unknown diversity measure: {}", self.component()),
         }
     }
 }

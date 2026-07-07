@@ -34,8 +34,8 @@ engine = (
     )
     .regression(inputs, answers)
     .alters(
-        rd.TreeCrossover(0.7),
-        rd.HoistMutator(0.01),
+        rd.Cross.tree(0.7),
+        rd.Mutate.hoist(0.01),
     )
     .limit(rd.Limit.score(0.01), rd.Limit.generations(500))
 )

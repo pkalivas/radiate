@@ -1,70 +1,20 @@
-from .alterer import (
-    AlterBase,
-    ArithmeticMutator,
-    BlendCrossover,
-    EdgeRecombinationCrossover,
-    GaussianMutator,
-    GraphCrossover,
-    GraphMutator,
-    IntermediateCrossover,
-    InversionMutator,
-    JitterMutator,
-    MeanCrossover,
-    MultiPointCrossover,
-    OperationMutator,
-    PartiallyMappedCrossover,
-    PolynomialMutator,
-    ScrambleMutator,
-    ShuffleCrossover,
-    SimulatedBinaryCrossover,
-    SwapMutator,
-    UniformCrossover,
-    UniformMutator,
-)
-from .descriptor import CustomDescriptor
-from .distance import (
-    CosineDistance,
-    DistanceBase,
-    EuclideanDistance,
-    HammingDistance,
-    NeatDistance,
-)
+from .alterer import AlterBase, Cross, Mutate
+from .distance import Dist
 from .executor import Executor
 from .filter import Filter
+from .limit import Limit
 
 __all__ = [
     # Alterers
     "AlterBase",
-    "BlendCrossover",
-    "IntermediateCrossover",
-    "MultiPointCrossover",
-    "MeanCrossover",
-    "ShuffleCrossover",
-    "SimulatedBinaryCrossover",
-    "PartiallyMappedCrossover",
-    "EdgeRecombinationCrossover",
-    "GraphCrossover",
-    "UniformCrossover",
-    "ArithmeticMutator",
-    "UniformMutator",
-    "PolynomialMutator",
-    "GaussianMutator",
-    "ScrambleMutator",
-    "InversionMutator",
-    "JitterMutator",
-    "SwapMutator",
-    "GraphMutator",
-    "OperationMutator",
+    "Cross",
+    "Mutate",
     # Distances
-    "DistanceBase",
-    "CosineDistance",
-    "HammingDistance",
-    "EuclideanDistance",
-    "NeatDistance",
+    "Dist",
     # Executor
     "Executor",
     # Limits
-    "CustomDescriptor",
+    "Limit",
     # Filters
     "Filter",
 ]

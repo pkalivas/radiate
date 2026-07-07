@@ -4,7 +4,7 @@ from pathlib import Path
 
 from radiate.radiate import PyEngineRunOption
 
-from .._bridge.wrapper import RsObject
+from .._bridge import RsObject
 from .._typing import Checkpoint
 
 

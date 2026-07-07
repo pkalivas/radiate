@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from radiate.radiate import PyPermutationCodec
 
-from .._bridge.wrapper import RsObject
+from .._bridge import RsObject
 from ..genome import GeneType, Genotype
 from .base import CodecBase
 

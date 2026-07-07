@@ -28,21 +28,17 @@ class Select(EngineInput):
 
         gene_type = population.gene_type()
 
-        selector_input = self.to_offspring_selector().__backend__()
-
         objectives = objective if isinstance(objective, list) else [objective]
 
         objective_input = EngineInput(
-            component="Objective",
             input_type=EngineInputType.Objective,
-            allowed_genes={gene_type},
             objective=objectives,
         ).__backend__()
 
         return Population.from_rust(
             py_select(
                 gene_type=GENE_TYPE_MAPPING["rs"][gene_type],
-                selector=selector_input,
+                selector=self.to_offspring_selector().__backend__(),
                 objective=objective_input,
                 population=population.__backend__(),
                 count=count,

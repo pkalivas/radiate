@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
-from .._bridge.wrapper import RsObject
+from .._bridge import RsObject
 
 if TYPE_CHECKING:
     from ..genome import GeneType, Genotype, Population

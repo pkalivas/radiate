@@ -1,21 +1,18 @@
 # --8<-- [start:hamming]
 import radiate as rd
 
-diversity = rd.HammingDistance()
 diversity = rd.Dist.hamming()  # using the dsl syntax
 # --8<-- [end:hamming]
 
 # --8<-- [start:euclidean]
 import radiate as rd
 
-diversity = rd.EuclideanDistance()
 diversity = rd.Dist.euclidean()  # using the dsl syntax
 # --8<-- [end:euclidean]
 
 # --8<-- [start:cosine]
 import radiate as rd
 
-diversity = rd.CosineDistance()
 diversity = rd.Dist.cosine()  # using the dsl syntax
 # --8<-- [end:cosine]
 
@@ -24,6 +21,5 @@ import radiate as rd
 
 # Parameters are: c1, c2, c3 - coefficients for excess genes, disjoint genes,
 # and average weight differences respectively
-diversity = rd.NeatDistance(excess=0.1, disjoint=1.0, weight_diff=0.5)
 diversity = rd.Dist.neat(0.1, 1.0, 0.5)  # using the dsl syntax
 # --8<-- [end:neat]

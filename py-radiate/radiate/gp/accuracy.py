@@ -2,7 +2,7 @@ from typing import Any
 
 from radiate.radiate import py_accuracy
 
-from .._bridge.wrapper import RsObject
+from .._bridge import RsObject
 from .._typing import RdLossType
 from ..fitness.loss import MSE
 from ..utils._normalize import _normalize_regression_data

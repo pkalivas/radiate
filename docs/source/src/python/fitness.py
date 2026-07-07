@@ -1,6 +1,7 @@
 # --8<-- [start:rastrigin]
-import radiate as rd
 import math
+
+import radiate as rd
 
 A = 10.0
 RANGE = 5.12
@@ -21,7 +22,7 @@ engine = rd.Engine.float(N_GENES, init_range=(-RANGE, RANGE)).fitness(fit).minim
 import radiate as rd
 
 
-@rd.fitness  # <- this decorator
+@rd.fitness()  # <- this decorator
 def fit_decorated(x: list[float]) -> float:
     value = A * N_GENES
     for i in range(N_GENES):
@@ -33,8 +34,9 @@ def fit_decorated(x: list[float]) -> float:
 # --8<-- [end:fitness_decorator]
 
 # --8<-- [start:batch_fitness]
-import radiate as rd
 import math
+
+import radiate as rd
 
 A = 10.0
 RANGE = 5.12
@@ -68,8 +70,9 @@ engine = (
 # --8<-- [end:batch_fitness]
 
 # --8<-- [start:batch_fitness_decorator]
-import radiate as rd
 import math
+
+import radiate as rd
 
 A = 10.0
 RANGE = 5.12
@@ -121,7 +124,7 @@ novelty_fitness = rd.NoveltySearch(
     # Can use any of the distance inputs. The engine uses this to
     # determine how 'novel' an individual is compared to the others in the
     # archive or population, ultimately producing the individual's fitness score.
-    distance=rd.CosineDistance(),  # Distance metric to use
+    distance=rd.Dist.hamming(),  # Distance metric to use
     k=10,  # Number of nearest neighbors to consider
     threshold=0.1,  # Novelty threshold for archive addition
     archive_size=1000,  # defaults to 1000

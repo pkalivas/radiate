@@ -5,7 +5,7 @@ from typing import overload
 
 from radiate.radiate import PyGenotype
 
-from .._bridge.wrapper import RsObject
+from .._bridge import RsObject
 from .chromosome import Chromosome
 from .gene import GeneType
 

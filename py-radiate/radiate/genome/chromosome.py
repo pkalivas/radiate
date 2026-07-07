@@ -4,7 +4,7 @@ from collections.abc import Iterable, Sequence
 
 from radiate.radiate import PyChromosome
 
-from .._bridge.wrapper import RsObject
+from .._bridge import RsObject
 from .._typing import RdDataType
 from ..dtype import Float64, Int64
 from .gene import Gene, GeneType
