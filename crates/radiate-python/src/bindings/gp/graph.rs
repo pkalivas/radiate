@@ -1,10 +1,34 @@
 use crate::{IntoPyAnyObject, PyAnyObject};
 use numpy::PyArrayDyn;
-use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
+use pyo3::{
+    Bound, IntoPyObjectExt, PyAny, PyResult, Python, prelude::FromPyObjectOwned, pyclass, pymethods,
+};
 use radiate::{
     EvalMut, Graph, GraphEvaluator, GraphIterator, NodeType, Op, ToDot, graphs::GraphEvalCache,
 };
+use radiate_utils::Float;
 use serde::{Deserialize, Serialize};
+
+fn eval_graph<'py, F>(
+    py: Python<'py>,
+    graph: &Graph<Op<F>>,
+    cache: &mut Option<GraphEvalCache<F>>,
+    output_len: usize,
+    inputs: &Bound<'py, PyAny>,
+) -> PyResult<Bound<'py, PyArrayDyn<F>>>
+where
+    F: Float + numpy::Element + FromPyObjectOwned<'py>,
+{
+    let mut evaluator = match cache.take() {
+        Some(c) => GraphEvaluator::from((graph, c)),
+        None => GraphEvaluator::new(graph),
+    };
+
+    let result =
+        super::generic_eval_runner(py, output_len, inputs, |slice| evaluator.eval_mut(slice));
+    *cache = Some(evaluator.take_cache());
+    result
+}
 
 impl IntoPyAnyObject for Graph<Op<f32>> {
     fn into_py<'py>(self, py: Python<'py>) -> PyAnyObject {
@@ -97,55 +121,19 @@ impl PyGraph {
         }
     }
 
-    pub fn eval_f32<'py>(
+    pub fn eval<'py>(
         &mut self,
         py: Python<'py>,
         inputs: &Bound<'py, PyAny>,
-    ) -> PyResult<Bound<'py, PyArrayDyn<f32>>> {
-        let shape = self.shape();
-        if let PyGraphInner::Float32(graph, cache) = &mut self.inner {
-            let mut evaluator = if cache.is_some() {
-                let cache = cache.take().unwrap();
-                GraphEvaluator::from((&graph, cache))
-            } else {
-                GraphEvaluator::new(graph)
-            };
-
-            let result =
-                super::generic_eval_runner(py, shape.1, inputs, |slice| evaluator.eval_mut(slice));
-
-            *cache = Some(evaluator.take_cache());
-            result
-        } else {
-            Err(pyo3::exceptions::PyTypeError::new_err(
-                "Graph is not of type f32",
-            ))
-        }
-    }
-
-    pub fn eval_f64<'py>(
-        &mut self,
-        py: Python<'py>,
-        inputs: &Bound<'py, PyAny>,
-    ) -> PyResult<Bound<'py, PyArrayDyn<f64>>> {
-        let shape = self.shape();
-        if let PyGraphInner::Float64(graph, cache) = &mut self.inner {
-            let mut evaluator = if cache.is_some() {
-                let cache = cache.take().unwrap();
-                GraphEvaluator::from((&graph, cache))
-            } else {
-                GraphEvaluator::new(graph)
-            };
-
-            let result =
-                super::generic_eval_runner(py, shape.1, inputs, |slice| evaluator.eval_mut(slice));
-
-            *cache = Some(evaluator.take_cache());
-            result
-        } else {
-            Err(pyo3::exceptions::PyTypeError::new_err(
-                "Graph is not of type f64",
-            ))
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let output_len = self.shape().1;
+        match &mut self.inner {
+            PyGraphInner::Float32(graph, cache) => {
+                Ok(eval_graph(py, graph, cache, output_len, inputs)?.into_any())
+            }
+            PyGraphInner::Float64(graph, cache) => {
+                Ok(eval_graph(py, graph, cache, output_len, inputs)?.into_any())
+            }
         }
     }
 

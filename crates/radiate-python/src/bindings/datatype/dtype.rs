@@ -88,8 +88,8 @@ pub fn graph_node_dtype(inner: DataType) -> DataType {
     DataType::Struct(GRAPH_NODE_NAME, vec![(OP_FIELD_NAME, inner)])
 }
 
-pub fn tree_node_dtype() -> DataType {
-    DataType::Struct(TREE_NODE_NAME, vec![(OP_FIELD_NAME, DataType::Float32)])
+pub fn tree_node_dtype(inner: DataType) -> DataType {
+    DataType::Struct(TREE_NODE_NAME, vec![(OP_FIELD_NAME, inner)])
 }
 
 impl<'py> IntoPyObject<'py> for &Wrap<DataType> {

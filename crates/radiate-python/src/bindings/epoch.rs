@@ -1,7 +1,7 @@
 use super::PyGenotype;
 use crate::{
-    EngineBuilderHandle::Graph32, EpochHandle, IntoPyAnyObject, PyAnyObject, PyEcosystem, PyFront,
-    PyMetricSet, PyPopulation, PySpecies, match_variant,
+    EpochHandle, IntoPyAnyObject, PyAnyObject, PyEcosystem, PyFront, PyMetricSet, PyPopulation,
+    PySpecies, match_variant,
 };
 use crate::{
     PyGeneType,

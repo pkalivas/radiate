@@ -34,3 +34,7 @@ result = engine.run()
 metrics = result.metrics()
 print(metrics["score_trend"].value_last())
 print(metrics["score_cv"].value_last())
+
+
+for op in rd.Op.all_ops():
+    print(op.name())

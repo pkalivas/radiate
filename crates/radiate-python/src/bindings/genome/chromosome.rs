@@ -299,8 +299,8 @@ impl PyChromosome {
             ChromosomeInner::Graph32(_) => dtype::graph_node_dtype(DataType::Float32),
             ChromosomeInner::Graph64(_) => dtype::graph_node_dtype(DataType::Float64),
 
-            ChromosomeInner::Tree32(_) => dtype::tree_node_dtype(),
-            ChromosomeInner::Tree64(_) => dtype::tree_node_dtype(),
+            ChromosomeInner::Tree32(_) => dtype::tree_node_dtype(DataType::Float32),
+            ChromosomeInner::Tree64(_) => dtype::tree_node_dtype(DataType::Float64),
         };
 
         Wrap(dtype).into_pyobject(py)

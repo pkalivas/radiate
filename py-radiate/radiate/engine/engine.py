@@ -229,9 +229,9 @@ class Engine[G, T]:
         vertex: Op | list[Op] | None = None,
         edge: Op | list[Op] | None = None,
         output: Op | list[Op] | None = None,
-        values: dict[str, AtLeastOne[Op]] | None = None,
         max_nodes: int | None = None,
         graph_type: str = "directed",
+        dtype: RdDataType = Float64,
     ) -> Engine[Op, Graph]:
         """Create a genetic engine for optimizing graph structures."""
         codec = GraphCodec(
@@ -240,8 +240,8 @@ class Engine[G, T]:
             vertex=vertex,
             edge=edge,
             output=output,
-            values=values,
             max_nodes=max_nodes,
+            dtype=dtype,
         )
 
         return Engine(codec=codec)
@@ -466,14 +466,6 @@ class Engine[G, T]:
                 loss=loss,
                 batch=batch,
             )
-            # Regression(
-            #     features,
-            #     targets,
-            #     target_cols=target_cols,
-            #     feature_cols=feature_cols,
-            #     loss=loss,
-            #     batch=batch,
-            # )
         )
         self._builder.set_objective("min")
         return self

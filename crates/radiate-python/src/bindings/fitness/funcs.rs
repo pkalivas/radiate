@@ -73,9 +73,6 @@ impl PyFitnessFn {
             }
         };
 
-        // Width is decided once, for the pair, in one place (datatype::array) —
-        // f32 only when both features and targets are already f32 NumPy arrays;
-        // f64 otherwise (f64 arrays, plain lists, or a mismatched pair).
         let inner = match extract_regression_pair(py, features, targets)? {
             FloatMatrixPair::F32 { features, targets } => {
                 PyFitnessInner::Regression32(Regression::new((features, targets), loss), is_batch)

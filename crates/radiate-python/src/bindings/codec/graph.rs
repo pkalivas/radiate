@@ -2,7 +2,7 @@ use crate::{PyGenotype, PyOp, bindings::gp::PyGraph};
 use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{Codec, DataType, GraphCodec, NodeType, Op, dtype_names, ops::GpFloat};
 use radiate_error::radiate_py_bail;
-use std::{clone, collections::HashMap};
+use std::collections::HashMap;
 
 const INPUT_NODE_TYPE: &str = "input";
 const OUTPUT_NODE_TYPE: &str = "output";
@@ -57,7 +57,7 @@ impl PyGraphCodec {
         max_nodes: Option<usize>,
         dtype: Option<&str>,
     ) -> PyResult<Self> {
-        let datatype = crate::dtype_from_str(&dtype.unwrap_or_else(|| dtype_names::FLOAT32.into()));
+        let datatype = crate::dtype_from_str(&dtype.unwrap_or_else(|| dtype_names::FLOAT64.into()));
 
         match datatype {
             DataType::Float32 => Ok(PyGraphCodec {

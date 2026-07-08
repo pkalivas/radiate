@@ -42,10 +42,6 @@ class RsObject(ABC):
         return instance
 
     def dtype(self) -> "RdDataType":
-        """
-        Get the data type of the underlying Rust object, if applicable.
-        :return: The data type as a RdDataType.
-        """
         from .dsl.dtype import Null
 
         if self._dtype is not None:
@@ -62,38 +58,48 @@ class RsObject(ABC):
         return self._pyobj
 
     def __repr__(self) -> str:
-        """Default representation using the inner object."""
         if "_pyobj" not in self.__dict__:
             return f"{self.__class__.__name__}"
         return f"{self.__class__.__name__}({self._pyobj})"
 
     def __eq__(self, other: Any) -> bool:
-        """Compare with another wrapper or the inner object."""
         if isinstance(other, type(self)):
             return self.__backend__() == other.__backend__()
         return self.__backend__() == other
 
     def __hash__(self) -> int:
-        """Hash based on the inner object."""
         return hash(self.__backend__())
 
     def try_invalidate_cache(self, key: str) -> None:
-        """
-        Invalidate a cached value by key.
-        :param key: The cache key to invalidate.
-        """
         if key in self._cache:
             del self._cache[key]
 
     def try_get_cache(self, key: str, acquire_fn: Callable[[], Any]) -> Any:
-        """
-        Try to get a cached value by key, if not present, acquire it using the provided function.
-        :param key: The cache key.
-        :param acquire_fn: A callable that produces the value if not cached.
-        :return: The cached or newly acquired value.
-        """
         if key in self._cache:
             return self._cache[key]
         value = acquire_fn()
         self._cache[key] = value
         return value
+
+
+class LazyRsObject(RsObject):
+    """
+    A subclass of RsObject that allows for lazy initialization of the underlying Rust object.
+    """
+
+    def __init__(self, pyobj: Any = None):
+        super().__init__(pyobj)
+        self._initialized = False
+
+    def _initialize(self) -> Callable[[], Any]:
+        """
+        Method to initialize the underlying Rust object. Should be overridden by subclasses.
+        """
+        raise NotImplementedError("Subclasses must implement the _initialize method.")
+
+    def __backend__(self) -> Any:
+        if not self._initialized:
+            build_fn = self._initialize()
+            self._pyobj = build_fn()
+            self._initialized = True
+        return super().__backend__()

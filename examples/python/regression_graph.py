@@ -47,11 +47,13 @@ engine = (
         shape=(1, 1),
         vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
         edge=rd.Op.weight(),
+        output=rd.Op.linear(),
+        dtype=rd.Float32,
         # output=rd.Op.linear(),
     )
-    .fitness(fit)
-    .minimizing()
-    # .regression(inputs, answers, loss=rd.MSE)
+    # .fitness(fit)
+    # .minimizing()
+    .regression(x, y, loss=rd.MSE)
     .select(rd.Select.boltzmann(temp=4.0))
     .alters(
         rd.Cross.graph(0.4, 0.5),

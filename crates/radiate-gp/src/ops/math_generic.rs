@@ -444,7 +444,11 @@ pub fn edge_ops<F: GpFloat>() -> Vec<Op<F>> {
 
 /// Get a list of all the operations.
 pub fn all_ops<F: GpFloat>() -> Vec<Op<F>> {
-    math_ops().into_iter().chain(activation_ops()).collect()
+    math_ops()
+        .into_iter()
+        .chain(activation_ops())
+        .chain(edge_ops())
+        .collect()
 }
 
 #[cfg(test)]

@@ -6,7 +6,17 @@ from typing import TYPE_CHECKING, Any, Literal, Self, Sequence, overload
 
 from radiate._typing import AtLeastOne, FileType, RdDataType, RdLossType, Subscriber
 from radiate.codec.base import CodecBase
-from radiate.dsl.dtype import Float32, Int8, Int16, Int32, UInt8, UInt16, UInt32, UInt64
+from radiate.dsl.dtype import (
+    Float32,
+    Float64,
+    Int8,
+    Int16,
+    Int32,
+    UInt8,
+    UInt16,
+    UInt32,
+    UInt64,
+)
 from radiate.dsl.expr import Expr
 from radiate.dsl.loss import MSE
 from radiate.genome import Chromosome, Gene, Population
@@ -705,9 +715,9 @@ class Engine[G, T]:
         vertex: Op | list[Op] | None = None,
         edge: Op | list[Op] | None = None,
         output: Op | list[Op] | None = None,
-        values: dict[str, AtLeastOne[Op]] | None = None,
         max_nodes: int | None = None,
         graph_type: str = "directed",
+        dtype: RdDataType = Float64,
     ) -> "Engine[Op, Graph]": ...
     @staticmethod
     def tree(

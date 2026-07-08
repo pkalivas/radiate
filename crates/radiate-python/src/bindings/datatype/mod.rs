@@ -5,7 +5,7 @@ mod value;
 
 use cell::GILOnceCell;
 
-pub(crate) use array::{FloatMatrixPair, extract_regression_pair};
+pub(crate) use array::{FloatMatrixPair, extract_regression_pair, py_object_into_2d_vec};
 pub use dtype::*;
 use radiate::DataType;
 use radiate_utils::{AnyValue, SmallStr};

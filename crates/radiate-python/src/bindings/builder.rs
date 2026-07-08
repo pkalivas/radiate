@@ -599,7 +599,9 @@ impl PyEngineBuilder {
                     }
                 }
                 _ => {
-                    radiate_py_bail!("Unsupported tree codec type for regression problem");
+                    radiate_py_bail!(
+                        "Unsupported tree codec type for regression problem: only Float32 trees are supported"
+                    );
                 }
             }
         } else {
@@ -637,7 +639,9 @@ impl PyEngineBuilder {
                     }
                 }
                 _ => {
-                    radiate_py_bail!("Unsupported graph codec type for regression problem");
+                    radiate_py_bail!(
+                        "Unsupported graph codec type for regression problem: only Float64 graphs are supported"
+                    );
                 }
             }
         } else if let Ok(tree_codec) = codec.extract::<PyTreeCodec>() {

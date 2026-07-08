@@ -1,8 +1,28 @@
 use crate::{IntoPyAnyObject, PyAnyObject};
 use numpy::PyArrayDyn;
-use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
+use pyo3::{
+    Bound, IntoPyObjectExt, PyAny, PyResult, Python, prelude::FromPyObjectOwned, pyclass, pymethods,
+};
 use radiate::{Eval, Format, Op, ToDot, Tree};
+use radiate_utils::Float;
 use serde::{Deserialize, Serialize};
+
+fn eval_trees<'py, F>(
+    py: Python<'py>,
+    trees: &[Tree<Op<F>>],
+    output_len: usize,
+    inputs: &Bound<'py, PyAny>,
+) -> PyResult<Bound<'py, PyArrayDyn<F>>>
+where
+    F: Float + numpy::Element + FromPyObjectOwned<'py>,
+{
+    super::generic_eval_runner(py, output_len, inputs, |slice| {
+        trees
+            .iter()
+            .map(|tree| tree.eval(slice))
+            .collect::<Vec<F>>()
+    })
+}
 
 impl IntoPyAnyObject for Vec<Tree<Op<f32>>> {
     fn into_py<'py>(self, py: Python<'py>) -> PyAnyObject {
@@ -29,7 +49,7 @@ impl IntoPyAnyObject for Vec<Tree<Op<f64>>> {
 }
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
-pub(crate) enum PyTreeInner {
+pub enum PyTreeInner {
     Float32(Vec<Tree<Op<f32>>>),
     Float64(Vec<Tree<Op<f64>>>),
 }
@@ -83,22 +103,16 @@ impl PyTree {
         &self,
         py: Python<'py>,
         inputs: &Bound<'py, PyAny>,
-    ) -> PyResult<Bound<'py, PyArrayDyn<f32>>> {
-        if let PyTreeInner::Float32(trees) = &self.inner {
-            super::generic_eval_runner(py, self.__len__(), inputs, |slice| {
-                trees
-                    .iter()
-                    .map(|tree| tree.eval(slice))
-                    .collect::<Vec<f32>>()
-            })
-        } else {
-            Err(pyo3::exceptions::PyTypeError::new_err(
-                "Tree is not of type f32",
-            ))
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let output_len = self.__len__();
+        match &self.inner {
+            PyTreeInner::Float32(trees) => {
+                Ok(eval_trees(py, trees, output_len, inputs)?.into_any())
+            }
+            PyTreeInner::Float64(trees) => {
+                Ok(eval_trees(py, trees, output_len, inputs)?.into_any())
+            }
         }
-        // super::generic_eval_runner(py, self.__len__(), inputs, |slice| {
-        //     self.inner.eval(slice).into_iter().collect::<Vec<f32>>()
-        // })
     }
 
     pub fn __repr__(&self) -> String {

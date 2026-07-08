@@ -1,7 +1,6 @@
-use crate::object::Wrap;
-use pyo3::exceptions::PyValueError;
-use pyo3::{Borrowed, Py, PyErr, Python, intern, pyfunction, pymethods};
-use pyo3::{FromPyObject, PyAny, PyResult, pyclass, types::PyAnyMethods};
+use pyo3::{Py, Python, intern, pyfunction, pymethods};
+use pyo3::{PyAny, PyResult, pyclass, types::PyAnyMethods};
+use pyo3::{exceptions::PyValueError, prelude::FromPyObjectOwned};
 use radiate::{
     Arity, DataType, Eval, Factory, Op,
     ops::{GpFloat, math_generic},
@@ -45,9 +44,6 @@ pub fn _edge_ops(dtype: &str) -> PyResult<Vec<PyOp>> {
     }
 }
 
-/// `Op<T>` comes in two float widths (`f32`/`f64`) depending on which chromosome
-/// produced it. A plain two-way enum is enough here — no need for a macro or a
-/// trait object, the surface is tiny and both arms behave identically.
 #[derive(Clone)]
 pub enum PyOpInner {
     F32(Op<f32>),
@@ -139,75 +135,43 @@ impl PyOp {
     }
 }
 
-// impl PyOp {
-//     /// The graph/tree codecs are still f32-only — used at the codec construction
-//     /// boundary (`PyGraphCodec::new`/`PyTreeCodec::new`) to unwrap a `Vec<PyOp>`
-//     /// supplied from Python, erroring clearly if a 64-bit Op sneaks in instead of
-//     /// silently truncating or panicking on a bad downcast.
-//     pub fn as_f32(&self) -> PyResult<Op<f32>> {
-//         match &self.0 {
-//             PyOpInner::F32(op) => Ok(op.clone()),
-//             PyOpInner::F64(_) => Err(PyValueError::new_err(
-//                 "expected a 32-bit Op, found a 64-bit Op (graph/tree codecs are f32-only for now)",
-//             )),
-//         }
-//     }
-// }
-
-impl<'py> FromPyObject<'_, 'py> for Wrap<Vec<Op<f32>>> {
-    type Error = PyErr;
-
-    fn extract(ob: Borrowed<'_, 'py, PyAny>) -> PyResult<Self> {
-        let mut ops = Vec::new();
-        for item in ob.try_iter()? {
-            let wrap: Wrap<Op<f32>> = item?.extract()?;
-            ops.push(wrap.0);
-        }
-        Ok(Wrap(ops))
-    }
-}
-
-impl<'py> FromPyObject<'_, 'py> for Wrap<Op<f32>> {
-    type Error = PyErr;
-
-    fn extract(ob: Borrowed<'_, 'py, PyAny>) -> PyResult<Self> {
-        if ob.is_instance_of::<PyOp>() {
-            let py_op: PyOp = ob.extract()?;
-            return match py_op.0 {
-                PyOpInner::F32(op) => Ok(Wrap(op)),
-                PyOpInner::F64(_) => Err(PyValueError::new_err(
-                    "expected a 32-bit Op, found a 64-bit Op",
-                )),
-            };
-        }
-
-        let name = ob.getattr("name")?.extract::<String>()?;
-        let py_op = _create_op(ob.py(), name.as_str(), Some(ob.into()))?;
-        match py_op.0 {
-            PyOpInner::F32(op) => Ok(Wrap(op)),
-            PyOpInner::F64(_) => unreachable!("_create_op only ever constructs 32-bit Ops"),
-        }
-    }
-}
-
 #[pyfunction]
-#[pyo3(signature = (name, params=None))]
-pub fn _create_op(py: Python<'_>, name: &str, params: Option<Py<PyAny>>) -> PyResult<PyOp> {
+#[pyo3(signature = (name, dtype, params=None))]
+pub fn _create_op<'py>(
+    py: Python<'py>,
+    name: &str,
+    dtype: &str,
+    params: Option<Py<PyAny>>,
+) -> PyResult<PyOp> {
+    let datatype = crate::dtype_from_str(dtype);
+    match datatype {
+        DataType::Float32 => build_typed_op::<f32>(py, name, params),
+        DataType::Float64 => build_typed_op::<f64>(py, name, params),
+        _ => radiate_py_bail!("Unsupported data type for op creation: {:datatype:?}"),
+    }
+}
+
+fn build_typed_op<'py, F>(py: Python<'py>, name: &str, params: Option<Py<PyAny>>) -> PyResult<PyOp>
+where
+    PyOp: From<Op<F>>,
+    F: FromPyObjectOwned<'py> + GpFloat,
+{
     let op = match name {
         "constant" => {
-            let value: f32 = params
+            let value = params
                 .ok_or_else(|| PyValueError::new_err("Missing parameters for constant Op"))?
-                .bind_borrowed(py)
+                .bind(py)
                 .get_item("value")?
-                .extract()?;
+                .extract::<F>()
+                .map_err(|_| PyValueError::new_err("Invalid value for constant Op"))?;
             Op::constant(value)
         }
         "var" => {
-            let index: usize = params
+            let index = params
                 .ok_or_else(|| PyValueError::new_err("Missing parameters for var Op"))?
                 .bind_borrowed(py)
                 .get_item("index")?
-                .extract()?;
+                .extract::<usize>()?;
             Op::var(index)
         }
         "identity" => Op::identity(),
@@ -241,7 +205,7 @@ pub fn _create_op(py: Python<'_>, name: &str, params: Option<Py<PyAny>>) -> PyRe
         "mish" => Op::mish(),
         "swish" => Op::swish(),
         "softplus" => Op::softplus(),
-        _ => return Err(PyValueError::new_err(format!("Unknown Op name: {}", name))),
+        _ => radiate_py_bail!(format!("Unknown Op name: {:?}", name)),
     };
 
     Ok(PyOp::from(op))

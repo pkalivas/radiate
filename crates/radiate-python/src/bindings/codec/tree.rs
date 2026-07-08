@@ -1,8 +1,6 @@
 use crate::{PyGenotype, PyOp, bindings::gp::PyTree};
 use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
-use radiate::{
-    Codec, DataType, NodeType, Op, Tree, TreeChromosome, TreeCodec, dtype_names, ops::GpFloat,
-};
+use radiate::{Codec, DataType, NodeType, Op, Tree, TreeCodec, dtype_names, ops::GpFloat};
 use radiate_error::radiate_py_bail;
 use std::collections::HashMap;
 
@@ -60,7 +58,7 @@ impl PyTreeCodec {
         ops: Option<HashMap<String, Vec<PyOp>>>,
         dtype: Option<&str>,
     ) -> PyResult<Self> {
-        let datatype = crate::dtype_from_str(&dtype.unwrap_or_else(|| dtype_names::FLOAT32.into()));
+        let datatype = crate::dtype_from_str(&dtype.unwrap_or_else(|| dtype_names::FLOAT64.into()));
 
         match datatype {
             DataType::Float32 => Ok(Self {
