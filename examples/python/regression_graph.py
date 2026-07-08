@@ -51,9 +51,9 @@ engine = (
         dtype=rd.Float32,
         # output=rd.Op.linear(),
     )
-    # .fitness(fit)
-    # .minimizing()
-    .regression(x, y, loss=rd.MSE)
+    .fitness(fit)
+    .minimizing()
+    # .regression(x, y, loss=rd.MSE)
     .select(rd.Select.boltzmann(temp=4.0))
     .alters(
         rd.Cross.graph(0.4, 0.5),
@@ -64,10 +64,10 @@ engine = (
 )
 
 
-result = engine.run(ui=False)
+result = engine.run(log=True)
 
-eval_results = result.value().eval(inputs)
-accuracy = rd.accuracy(result.value(), inputs, answers, loss=rd.MSE)
+eval_results = result.value().eval(x)
+accuracy = rd.accuracy(result.value(), x, y, loss=rd.MSE)
 
 print(result)
 print(result.metrics().dashboard())

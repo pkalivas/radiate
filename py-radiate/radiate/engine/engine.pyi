@@ -727,7 +727,7 @@ class Engine[G, T]:
         vertex: Op | list[Op] | None = None,
         leaf: Op | list[Op] | None = None,
         root: Op | list[Op] | None = None,
-        values: dict[str, AtLeastOne[Op]] | None = None,
+        dtype: RdDataType = Float64,
     ) -> "Engine[Op, Tree]": ...
 
     # ----------------------------

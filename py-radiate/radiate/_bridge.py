@@ -91,6 +91,12 @@ class LazyRsObject(RsObject):
         super().__init__(pyobj)
         self._initialized = False
 
+    @classmethod
+    def from_rust(cls, py_obj: Any | dict):
+        instance = super().from_rust(py_obj)
+        instance._initialized = True
+        return instance
+
     def _initialize(self) -> Callable[[], Any]:
         """
         Method to initialize the underlying Rust object. Should be overridden by subclasses.

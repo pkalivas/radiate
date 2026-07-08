@@ -1,5 +1,7 @@
-use crate::bindings::datatype::{FloatMatrixPair, extract_regression_pair};
-use crate::{PyAnyObject, PyNoveltySearch};
+use crate::{
+    PyAnyObject, PyNoveltySearch,
+    bindings::datatype::{FloatMatrixPair, extract_regression_pair},
+};
 use pyo3::{
     Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python, exceptions::PyValueError, pyclass,
     pymethods,
@@ -8,7 +10,7 @@ use radiate::{Loss, RadiateResult, Regression};
 
 #[derive(Clone)]
 pub enum PyFitnessInner {
-    Custom(PyAnyObject, bool), // bool indicates if batch
+    Custom(PyAnyObject, bool),
     Regression32(Regression<f32>, bool),
     Regression64(Regression<f64>, bool),
     NoveltySearch(PyAnyObject, bool),

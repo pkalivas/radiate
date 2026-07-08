@@ -47,7 +47,7 @@ def test_normalize_graph_eval_with_pandas_dataframe(graph_simple_2x1, random_see
 def test_normalize_graph_eval_with_numpy_array(graph_simple_2x1, random_seed):
     import numpy as np
 
-    arr = np.array([[1.0, 4.0], [2.0, 5.0], [3.0, 6.0]], dtype=np.float32)
+    arr = np.array([[1.0, 4.0], [2.0, 5.0], [3.0, 6.0]], dtype=np.float64)
 
     predictions = graph_simple_2x1.eval(arr)
 
@@ -62,7 +62,7 @@ def test_normalize_graph_eval_with_numpy_array(graph_simple_2x1, random_seed):
 def test_normalize_graph_eval_with_numpy_1d_array(graph_simple_1x1, random_seed):
     import numpy as np
 
-    arr = np.array([1, 2, 3], dtype=np.float32).reshape(-1, 1)
+    arr = np.array([1, 2, 3], dtype=np.float64).reshape(-1, 1)
 
     predictions = graph_simple_1x1.eval(arr)
 

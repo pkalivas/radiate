@@ -1,6 +1,9 @@
 from collections.abc import Callable
 from enum import StrEnum
-from typing import Final
+from typing import TYPE_CHECKING, Final
+
+if TYPE_CHECKING:
+    from radiate._dependancies import numpy as np
 
 class _Components:
     TOURNAMENT_SELECTOR: Final[str]
@@ -144,8 +147,8 @@ class PyFitnessFn[T]:
     def custom(fitness_fn: Callable[[T], object], is_batch: bool) -> PyFitnessFn: ...
     @staticmethod
     def regression(
-        features: list[list[float]],
-        targets: list[list[float]],
+        features: list[list[float]] | "np.ndarray",
+        targets: list[list[float]] | "np.ndarray",
         loss: str,
         is_batch: bool,
     ) -> PyFitnessFn: ...

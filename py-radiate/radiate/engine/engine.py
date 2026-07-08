@@ -254,7 +254,7 @@ class Engine[G, T]:
         vertex: Op | list[Op] | None = None,
         leaf: Op | list[Op] | None = None,
         root: Op | list[Op] | None = None,
-        values: dict[str, AtLeastOne[Op]] | None = None,
+        dtype: RdDataType = Float64,
     ) -> Engine[Op, Tree]:
         """Create a genetic engine for optimizing tree structures."""
         return Engine(
@@ -265,7 +265,7 @@ class Engine[G, T]:
                 vertex=vertex,
                 leaf=leaf,
                 root=root,
-                values=values,
+                dtype=dtype,
             )
         )
 

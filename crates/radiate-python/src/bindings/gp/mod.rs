@@ -36,7 +36,7 @@ where
         return run_gp_eval_list(py, output_length, &py_list, eval_row);
     }
 
-    radiate_py_bail!("Input must be either a matching-dtype NumPy array or a Python list",);
+    radiate_py_bail!("Input must be either a matching-dtype NumPy array or a Python list.",);
 }
 
 fn run_gp_eval_array<'py, F, E>(

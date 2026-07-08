@@ -26,6 +26,7 @@ where
 
     let result =
         super::generic_eval_runner(py, output_len, inputs, |slice| evaluator.eval_mut(slice));
+
     *cache = Some(evaluator.take_cache());
     result
 }

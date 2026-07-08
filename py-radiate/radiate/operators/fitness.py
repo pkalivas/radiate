@@ -130,8 +130,8 @@ class Fitness[T](EngineInput):
 
         return Fitness(
             fitness=PyFitnessFn.regression(
-                features=features,
-                targets=targets,
+                features=x,
+                targets=y,
                 loss=loss_str,
                 is_batch=batch,
             )

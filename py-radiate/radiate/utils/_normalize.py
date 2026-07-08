@@ -2,106 +2,111 @@ from __future__ import annotations
 
 from typing import Any, Sequence
 
-import numpy as np
-
 from .._dependancies import (
+    _NUMPY_AVAILABLE,
+    _PANDAS_AVAILABLE,
+    _POLARS_AVAILABLE,
+    _check_for_numpy,
     _check_for_pandas,
     _check_for_polars,
     _check_for_torch,
     torch,
 )
+from .._dependancies import numpy as np
 from .._dependancies import pandas as pd
 from .._dependancies import polars as pl
 
-# def _to_contiguous_numpy(arr: Any, *, name: str) -> np.ndarray:
+
+def _select_columns(df: Any, columns: Sequence[Any]) -> Any:
+    """Select columns (by name) from a polars or pandas DataFrame."""
+    if _check_for_polars(df) and isinstance(df, pl.DataFrame):
+        return df.select(list(columns))
+    if _check_for_pandas(df) and isinstance(df, pd.DataFrame):
+        return df[list(columns)]
+    raise TypeError(
+        f"columns is only supported for DataFrame input, got {type(df).__name__}"
+    )
 
 
-def _ensure_2d_np(arr: Any, *, name: str) -> Any:
-    if arr.ndim == 1:
-        return arr.reshape(-1, 1)
-    if arr.ndim != 2:
-        raise ValueError(f"{name} must be 1D or 2D. Got shape={arr.shape}")
+def _to_float_array(x: Any, *, columns: Sequence[Any] | None = None) -> "np.ndarray":
+    """
+    Normalize a DataFrame/Series/tensor/array-like into a contiguous NumPy
+    array. Whatever float width the input already has (float32/float64) is
+    preserved; anything else (int arrays, plain Python sequences — which have
+    no native width of their own) becomes float64. `columns` selects a
+    DataFrame's columns before conversion and only makes sense for DataFrame
+    input; passing it alongside anything else is an error, not a silent no-op.
+    """
+    is_polars_series = _check_for_polars(x) and isinstance(x, pl.Series)
+    is_pandas_series = _check_for_pandas(x) and isinstance(x, pd.Series)
+
+    if (is_polars_series or is_pandas_series) and _NUMPY_AVAILABLE:
+        if columns is not None:
+            raise TypeError("columns is not supported for a Series input")
+        arr = x.to_numpy()
+    elif (_check_for_polars(x) and isinstance(x, pl.DataFrame)) or (
+        _check_for_pandas(x) and isinstance(x, pd.DataFrame)
+    ):
+        arr = (_select_columns(x, columns) if columns is not None else x).to_numpy()
+    elif _check_for_torch(x) and isinstance(x, torch.Tensor):
+        if columns is not None:
+            raise TypeError("columns is only supported for DataFrame input")
+        arr = x.detach().cpu().numpy()
+    else:
+        if columns is not None:
+            raise TypeError(
+                f"columns is only supported for DataFrame input, got {type(x).__name__}"
+            )
+        if isinstance(x, (str, bytes)) or x is None:
+            raise TypeError(f"must be array-like. Got {type(x).__name__}")
+        arr = np.asarray(x)
+
+    if arr.dtype not in (np.float32, np.float64):
+        arr = arr.astype(np.float64)
+    if not arr.flags["C_CONTIGUOUS"]:
+        arr = np.ascontiguousarray(arr)
+
     return arr
 
 
-def _as_numpy_2d_f32(x: Any, *, name: str) -> Any:
-    """
-    Convert supported array-like inputs into a 2D numpy float32 ndarray.
-    """
-
-    if _check_for_polars(x):
-        if isinstance(x, pl.DataFrame):
-            return _ensure_2d_np(x.to_numpy().astype(np.float32, copy=False), name=name)
-        if isinstance(x, pl.Series):
-            return _ensure_2d_np(x.to_numpy().astype(np.float32, copy=False), name=name)
-
-    if _check_for_torch(x) and isinstance(x, torch.Tensor):
-        arr = x.detach().cpu().numpy().astype(np.float32, copy=False)
-        return _ensure_2d_np(arr, name=name)
-
-    if _check_for_pandas(x):
-        if isinstance(x, pd.DataFrame):
-            return _ensure_2d_np(x.to_numpy().astype(np.float32, copy=False), name=name)
-        if isinstance(x, pd.Series):
-            return _ensure_2d_np(x.to_numpy().astype(np.float32, copy=False), name=name)
-
-    if isinstance(x, (str, bytes)) or x is None:
-        raise TypeError(f"{name} must be array-like. Got {type(x).__name__}")
-
-    try:
-        first = x[0]
-    except Exception as e:
-        raise TypeError(f"{name} must be array-like. Got {type(x).__name__}") from e
-
-    # Python sequence fallback
-    if not isinstance(first, (str, bytes)) and hasattr(first, "__iter__"):
-        arr = np.array([[float(v) for v in row] for row in x], dtype=np.float32)
-    else:
-        arr = np.array([[float(v)] for v in x], dtype=np.float32)
-
-    return _ensure_2d_np(arr, name=name)
+def _reshape_for_regression(arr: "np.ndarray", *, name: str) -> "np.ndarray":
+    """A 1D regression column is N samples of one feature, not one N-feature sample."""
+    if _check_for_numpy(arr):
+        if arr.ndim == 1:
+            return arr.reshape(-1, 1)
+        if arr.ndim != 2:
+            raise ValueError(f"{name} must be 1D or 2D. Got shape={arr.shape}")
+    return arr
 
 
-def _to_2d_f32(x: Any, *, name: str) -> list[list[float]]:
-    """
-    Normalize x into a 2D nested float list.
-
-    Supports:
-      - python sequences
-      - numpy arrays
-      - polars DataFrame / Series
-      - pandas DataFrame / Series
-      - torch tensors
-    """
-    return _as_numpy_2d_f32(x, name=name).tolist()
-
-
-def _normalize_single_chunk(
-    features: Any,
+def _split_feature_target_columns(
+    columns: Sequence[Any],
     *,
-    cols: Sequence[Any] | None = None,
-) -> list[list[float]]:
-    """
-    Normalize a single evaluation chunk to list[list[float]].
-
-    If cols is provided:
-      - polars/pandas DataFrames: select columns by name/index
-      - numpy arrays: select columns by numeric indices/slices only
-    """
-    if cols is not None:
-        if _check_for_polars(features) and isinstance(features, pl.DataFrame):
-            features = features.select(list(cols))
-
-        elif _check_for_pandas(features) and isinstance(features, pd.DataFrame):
-            features = features[list(cols)]
-
-        else:
-            raise TypeError(
-                "Unsupported features type for column selection; expected "
-                "polars.DataFrame, pandas.DataFrame, or numpy.ndarray."
+    feature_cols: Sequence[Any] | None,
+    target_cols: Sequence[Any] | None,
+) -> tuple[list[Any], list[Any]]:
+    """Resolve (feature_cols, target_cols) name lists from one DataFrame's columns."""
+    if target_cols is None:
+        if len(columns) < 2:
+            raise ValueError(
+                "Regression dataframe must contain at least one feature column "
+                "and one target column."
             )
+        return list(columns[:-1]), [columns[-1]]
 
-    return _to_2d_f32(features, name="features")
+    target_cols = list(target_cols)
+    feature_cols = (
+        list(feature_cols)
+        if feature_cols is not None
+        else [c for c in columns if c not in target_cols]
+    )
+
+    if not feature_cols:
+        raise ValueError("No feature columns remain after excluding target_cols.")
+    if not target_cols:
+        raise ValueError("target_cols cannot be empty.")
+
+    return feature_cols, target_cols
 
 
 def _normalize_regression_data(
@@ -110,90 +115,43 @@ def _normalize_regression_data(
     *,
     feature_cols: Sequence[Any] | None = None,
     target_cols: Sequence[Any] | None = None,
-) -> tuple[list[list[float]], list[list[float]]]:
+) -> tuple[np.ndarray, np.ndarray]:
     """
-    Normalize regression inputs into (X, y), both as list[list[float]].
+    Normalize regression inputs into (X, y), each a contiguous NumPy array
+    that preserves its original float width (see `_to_float_array`).
 
     Cases:
       1. features is a DataFrame and targets is None:
-         - infer X/y from target_cols or use last column as target
+         - infer X/y from target_cols or use the last column as the target
       2. features and targets are passed separately:
          - normalize each independently
     """
     if targets is None:
         if _check_for_polars(features) and isinstance(features, pl.DataFrame):
-            df = features
-
-            if target_cols is None:
-                if len(df.columns) < 2:
-                    raise ValueError(
-                        "Regression dataframe must contain at least one feature column "
-                        "and one target column."
-                    )
-                X = df.select(df.columns[:-1])
-                y = df.select([df.columns[-1]])
-            else:
-                target_cols = list(target_cols)
-                cols = (
-                    list(feature_cols)
-                    if feature_cols is not None
-                    else [c for c in df.columns if c not in target_cols]
-                )
-
-                if not cols:
-                    raise ValueError(
-                        "No feature columns remain after excluding target_cols."
-                    )
-                if not target_cols:
-                    raise ValueError("target_cols cannot be empty.")
-
-                X = df.select(cols)
-                y = df.select(target_cols)
-
+            columns = features.columns
         elif _check_for_pandas(features) and isinstance(features, pd.DataFrame):
-            df = features
-
-            if target_cols is None:
-                if df.shape[1] < 2:
-                    raise ValueError(
-                        "Regression dataframe must contain at least one feature column "
-                        "and one target column."
-                    )
-                X = df.iloc[:, :-1]
-                y = df.iloc[:, -1:]
-            else:
-                target_cols = list(target_cols)
-                cols = (
-                    list(feature_cols)
-                    if feature_cols is not None
-                    else [c for c in df.columns if c not in target_cols]
-                )
-
-                if not cols:
-                    raise ValueError(
-                        "No feature columns remain after excluding target_cols."
-                    )
-                if not target_cols:
-                    raise ValueError("target_cols cannot be empty.")
-
-                X = df[cols]
-                y = df[target_cols]
-
+            columns = list(features.columns)
         else:
             raise TypeError(
                 "When targets is None, features must be a polars or pandas DataFrame."
             )
+
+        resolved_feature_cols, resolved_target_cols = _split_feature_target_columns(
+            columns, feature_cols=feature_cols, target_cols=target_cols
+        )
+        X = _to_float_array(features, columns=resolved_feature_cols)
+        y = _to_float_array(features, columns=resolved_target_cols)
     else:
-        X = features
-        y = targets
+        X = _to_float_array(features, columns=feature_cols)
+        y = _to_float_array(targets, columns=target_cols)
 
-    X_out = _to_2d_f32(X, name="features")
-    y_out = _to_2d_f32(y, name="targets")
+    X = _reshape_for_regression(X, name="features")
+    y = _reshape_for_regression(y, name="targets")
 
-    if len(X_out) != len(y_out):
+    if len(X) != len(y):
         raise ValueError(
             f"features and targets must have the same number of rows. "
-            f"Got {len(X_out)} and {len(y_out)}."
+            f"Got {len(X)} and {len(y)}."
         )
 
-    return X_out, y_out
+    return X, y

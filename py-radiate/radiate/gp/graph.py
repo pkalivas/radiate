@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, overload
 from radiate.radiate import PyGraph
 
 from .._bridge import RsObject
+from .._dependancies import _check_for_numpy
 from ..genome.chromosome import Chromosome
 
 if TYPE_CHECKING:
@@ -84,53 +85,16 @@ class Graph(RsObject):
 
         Supports 1D/2D Lists, NumPy arrays, Polars, and Pandas objects.
         """
-        from .._dependancies import _NUMPY_AVAILABLE
+        from ..utils._normalize import _to_float_array
 
-        if not _NUMPY_AVAILABLE:
-            raise ImportError(
-                "NumPy is not available. Please install it to use this feature."
-            )
-        else:
-            from .._dependancies import numpy as np
+        eval_data = _to_float_array(inputs, columns=columns)
+        if not _check_for_numpy(eval_data):
+            if not isinstance(inputs, (list, tuple)):
+                raise TypeError(
+                    f"Unsupported input type: {type(inputs).__name__}. "
+                    "Supported types are 1D/2D lists, NumPy arrays, Polars DataFrames/Series, and Pandas DataFrames/Series."
+                )
 
-        input_type = type(inputs).__name__
-        graph_shape = self.shape()
-        eval_data = inputs
-
-        if input_type in ("DataFrame", "Series"):
-            if hasattr(inputs, "to_numpy"):
-                # Polars syntax
-                if columns is not None and hasattr(inputs, "select"):
-                    inputs = inputs.select(columns)
-                    eval_data = inputs.to_numpy(order="c")
-
-                # Pandas syntax
-                elif columns is not None and hasattr(inputs, "__getitem__"):
-                    inputs = inputs[columns]
-                    eval_data = inputs.to_numpy()
-
-            else:
-                raise TypeError(f"Unsupported dataframe object wrapper: {input_type}")
-
-            if not eval_data.flags["C_CONTIGUOUS"]:
-                eval_data = np.ascontiguousarray(eval_data)
-
-        if hasattr(eval_data, "shape"):
-            shape = eval_data.shape
-            dims = len(shape)
-            if dims == 1:
-                if graph_shape[0] != shape[0]:
-                    raise ValueError(
-                        f"Input length {shape[0]} does not match graph input size {graph_shape[0]}"
-                    )
-            elif dims == 2:
-                if graph_shape[0] != shape[1]:
-                    raise ValueError(
-                        f"Input width {shape[1]} does not match graph input size {graph_shape[0]}"
-                    )
-
-        # Rust handles dimension tracking and f64 -> f32 downcasting internally.
-        # It always yields a Bound<'py, PyArrayDyn<f32>> back to the CPython layer.
         return self.__backend__().eval(eval_data)
 
     def reset(self):

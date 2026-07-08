@@ -178,7 +178,8 @@ class Op(LazyRsObject):
     softplus = _op_factory("softplus")
 
     @staticmethod
-    def default_vertex_ops(dtype: RdDataType) -> list[Op]:
+    def default_vertex_ops(dtype: RdDataType | None = None) -> list[Op]:
+        dtype = dtype if dtype is not None else Float64
         return [
             Op.add(dtype=dtype),
             Op.sub(dtype=dtype),
@@ -192,7 +193,8 @@ class Op(LazyRsObject):
         ]
 
     @staticmethod
-    def default_edge_ops(dtype: RdDataType) -> list[Op]:
+    def default_edge_ops(dtype: RdDataType | None = None) -> list[Op]:
+        dtype = dtype if dtype is not None else Float64
         return [Op.weight(dtype=dtype)]
 
     @staticmethod

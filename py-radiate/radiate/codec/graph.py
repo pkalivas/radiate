@@ -7,7 +7,7 @@ from .._bridge import RsObject
 from .._typing import AtLeastOne
 from ..dsl.dtype import DataType, DataTypeClass, Float32, Float64
 from ..genome import GeneType, Genotype
-from ..gp import Graph, Op, OpsConfig
+from ..gp import Graph, Op
 from .base import CodecBase
 
 
@@ -77,7 +77,6 @@ class GraphCodec(CodecBase[Op, Graph], RsObject):
         vertex: AtLeastOne[Op] | None = None,
         edge: AtLeastOne[Op] | None = None,
         output: AtLeastOne[Op] | None = None,
-        values: dict[str, AtLeastOne[Op]] | None = None,
         max_nodes: int | None = None,
         dtype: DataTypeClass | DataType = Float64,
     ) -> GraphCodec:
@@ -97,7 +96,6 @@ class GraphCodec(CodecBase[Op, Graph], RsObject):
         vertex: AtLeastOne[Op] | None = None,
         edge: AtLeastOne[Op] | None = None,
         output: AtLeastOne[Op] | None = None,
-        values: dict[str, AtLeastOne[Op]] | None = None,
         max_nodes: int | None = None,
         dtype: DataTypeClass | DataType = Float64,
     ) -> GraphCodec:
@@ -117,7 +115,6 @@ class GraphCodec(CodecBase[Op, Graph], RsObject):
         vertex: AtLeastOne[Op] | None = None,
         edge: AtLeastOne[Op] | None = None,
         output: AtLeastOne[Op] | None = None,
-        values: dict[str, AtLeastOne[Op]] | None = None,
         max_nodes: int | None = None,
         dtype: DataTypeClass | DataType = Float64,
     ) -> GraphCodec:
@@ -137,7 +134,6 @@ class GraphCodec(CodecBase[Op, Graph], RsObject):
         vertex: AtLeastOne[Op] | None = None,
         edge: AtLeastOne[Op] | None = None,
         output: AtLeastOne[Op] | None = None,
-        values: dict[str, AtLeastOne[Op]] | None = None,
         max_nodes: int | None = None,
         dtype: DataTypeClass | DataType = Float64,
     ) -> GraphCodec:
@@ -157,7 +153,6 @@ class GraphCodec(CodecBase[Op, Graph], RsObject):
         vertex: AtLeastOne[Op] | None = None,
         edge: AtLeastOne[Op] | None = None,
         output: AtLeastOne[Op] | None = None,
-        values: dict[str, AtLeastOne[Op]] | None = None,
         max_nodes: int | None = None,
         dtype: DataTypeClass | DataType = Float64,
     ) -> GraphCodec:
@@ -177,7 +172,6 @@ class GraphCodec(CodecBase[Op, Graph], RsObject):
         vertex: AtLeastOne[Op] | None = None,
         edge: AtLeastOne[Op] | None = None,
         output: AtLeastOne[Op] | None = None,
-        values: dict[str, AtLeastOne[Op]] | None = None,
         max_nodes: int | None = None,
         dtype: DataTypeClass | DataType = Float64,
     ) -> GraphCodec:

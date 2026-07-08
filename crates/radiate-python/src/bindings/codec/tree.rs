@@ -34,10 +34,6 @@ impl PyTreeCodec {
         py: Python<'py>,
         genotype: &PyGenotype,
     ) -> PyResult<Bound<'py, PyAny>> {
-        // let genotype: radiate::Genotype<TreeChromosome<Op<f32>>> = genotype.clone().into();
-        // let obj_value = self.codec.decode(&genotype);
-
-        // PyTree { inner: obj_value }.into_bound_py_any(py)
         match &self.codec {
             PyTreeCodecInner::Float32(codec) => {
                 PyTree::from(codec.decode(&genotype.clone().into()))

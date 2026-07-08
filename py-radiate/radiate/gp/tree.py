@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, overload
 
-import numpy as np
-
+from radiate._dependancies import _check_for_numpy
 from radiate.radiate import PyTree
 
 from .._bridge import RsObject
 
 if TYPE_CHECKING:
+    from .._dependancies import numpy as np
     from .._dependancies import pandas as pd
     from .._dependancies import polars as pl
 
@@ -72,32 +72,14 @@ class Tree(RsObject):
         Returns:
             list[list[float]] | list[float]: The output of the graph after evaluation.
         """
-        from .._dependancies import _NUMPY_AVAILABLE
+        from ..utils._normalize import _to_float_array
 
-        if not _NUMPY_AVAILABLE:
-            raise ImportError(
-                "NumPy is not available. Please install it to use this feature."
+        if not _check_for_numpy(inputs) and not isinstance(inputs, (list, tuple)):
+            raise TypeError(
+                f"Unsupported input type: {type(inputs).__name__}. "
+                "Supported types are 1D/2D lists, NumPy arrays, Polars DataFrames/Series, and Pandas DataFrames/Series."
             )
-        else:
-            from .._dependancies import numpy as np
-
-        input_type = type(inputs).__name__
-        eval_data = inputs
-
-        if input_type in ("DataFrame", "Series"):
-            if hasattr(inputs, "to_numpy"):  # Pandas / Polars / Backends
-                # Optional: Filter by column list if provided
-                if columns is not None and hasattr(inputs, "select"):
-                    inputs = inputs.select(columns)  # Polars syntax
-                elif columns is not None and hasattr(inputs, "__getitem__"):
-                    inputs = inputs[columns]  # Pandas syntax
-
-                if not eval_data.flags["C_CONTIGUOUS"]:
-                    eval_data = np.ascontiguousarray(eval_data)
-
-                eval_data = inputs.to_numpy()
-            else:
-                raise TypeError(f"Unsupported dataframe object wrapper: {input_type}")
+        eval_data = _to_float_array(inputs, columns=columns)
 
         return self.__backend__().eval(eval_data)
 
