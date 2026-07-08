@@ -26,13 +26,13 @@ for _ in range(-10, 10):
     inputs.append([input])
     answers.append([compute(input)])
 
-x = np.array(inputs, dtype=np.float32)
-y = np.array(answers, dtype=np.float32)
+x = np.array(inputs, dtype=np.float64)
+y = np.array(answers, dtype=np.float64)
 
 
-def fit(graph: rd.Graph) -> np.float32:
+def fit(graph: rd.Graph) -> np.float64:
     predictions = graph.eval(x)
-    return np.mean((predictions - y) ** 2, dtype=np.float32)
+    return np.mean((predictions - y) ** 2, dtype=np.float64)
 
 
 # @rd.fitness(batch=True)
@@ -48,7 +48,7 @@ engine = (
         vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
         edge=rd.Op.weight(),
         output=rd.Op.linear(),
-        dtype=rd.Float32,
+        dtype=rd.Float64,
         # output=rd.Op.linear(),
     )
     .fitness(fit)

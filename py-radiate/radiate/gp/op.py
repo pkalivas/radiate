@@ -124,9 +124,6 @@ class Op(LazyRsObject):
 
     def _initialize(self) -> Callable[[], Any]:
         def build():
-            print(
-                f"Creating Op: name={self._name}, dtype={self._dtype}, args={self._args}"
-            )
             return _create_op(self._name, str(self._dtype), self._args)
 
         return build

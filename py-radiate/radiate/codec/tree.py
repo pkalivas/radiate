@@ -3,10 +3,9 @@ from __future__ import annotations
 from radiate.radiate import PyTreeCodec
 
 from .._bridge import RsObject
-from .._typing import AtLeastOne
 from ..dsl.dtype import DataType, DataTypeClass, Float64
 from ..genome import GeneType, Genotype
-from ..gp import Op, OpsConfig, Tree
+from ..gp import Op, Tree
 from ..gp.op import OpBuilder
 from .base import CodecBase
 

@@ -95,7 +95,7 @@ class Graph(RsObject):
                     "Supported types are 1D/2D lists, NumPy arrays, Polars DataFrames/Series, and Pandas DataFrames/Series."
                 )
 
-        return self.__backend__().eval(eval_data)
+        return self.__backend__().eval(inputs)
 
     def reset(self):
         """
