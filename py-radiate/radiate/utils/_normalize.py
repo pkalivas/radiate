@@ -37,15 +37,28 @@ def _to_float_array(x: Any, *, columns: Sequence[Any] | None = None) -> "np.ndar
     DataFrame's columns before conversion and only makes sense for DataFrame
     input; passing it alongside anything else is an error, not a silent no-op.
     """
-    is_polars_series = _check_for_polars(x) and isinstance(x, pl.Series)
-    is_pandas_series = _check_for_pandas(x) and isinstance(x, pd.Series)
+    # Fast path: already exactly what a tight eval loop hands in on every call
+    # after the first — skip the DataFrame/Series/tensor dispatch entirely.
+    if (
+        columns is None
+        and _check_for_numpy(x)
+        and getattr(x, "dtype", None) in (np.float32, np.float64)
+    ):
+        return x if x.flags["C_CONTIGUOUS"] else np.ascontiguousarray(x)
 
-    if (is_polars_series or is_pandas_series) and _NUMPY_AVAILABLE:
+    is_polars = _check_for_polars(x)
+    is_pandas = _check_for_pandas(x)
+
+    is_series = (is_polars and isinstance(x, pl.Series)) or (
+        is_pandas and isinstance(x, pd.Series)
+    )
+
+    if is_series and _NUMPY_AVAILABLE:
         if columns is not None:
             raise TypeError("columns is not supported for a Series input")
         arr = x.to_numpy()
-    elif (_check_for_polars(x) and isinstance(x, pl.DataFrame)) or (
-        _check_for_pandas(x) and isinstance(x, pd.DataFrame)
+    elif (is_polars and isinstance(x, pl.DataFrame)) or (
+        is_pandas and isinstance(x, pd.DataFrame)
     ):
         arr = (_select_columns(x, columns) if columns is not None else x).to_numpy()
     elif _check_for_torch(x) and isinstance(x, torch.Tensor):

@@ -17,8 +17,6 @@ if TYPE_CHECKING:
 
 
 class IntCodec[D](CodecBase[int, D], RsObject):
-    gene_type = GeneType.INT
-
     @overload
     def __new__(
         cls,
@@ -243,17 +241,14 @@ class IntCodec[D](CodecBase[int, D], RsObject):
             raise TypeError("genotype must be an instance of Genotype.")
         return self.__backend__().decode_py(genotype=genotype.__backend__())
 
+    @property
+    def gene_type(self) -> GeneType:
+        return GeneType.INT
+
     @staticmethod
     def _from_genes(
         genes: Gene[int] | Sequence[Gene[int]], use_numpy: bool = False
     ) -> PyIntCodec:
-        """
-        Create a codec for a single chromosome with specified genes.
-        Args:
-            genes: A list or tuple of Gene instances.
-        Returns:
-            A new IntCodec instance with the specified genes.
-        """
         from ..genome import GeneType
 
         if isinstance(genes, Gene):
@@ -272,13 +267,6 @@ class IntCodec[D](CodecBase[int, D], RsObject):
         chromosomes: Chromosome[int] | Sequence[Chromosome[int]],
         use_numpy: bool = False,
     ) -> PyIntCodec:
-        """
-        Create a codec for multiple chromosomes.
-        Args:
-            chromosomes: A single Chromosome instance or a sequence of Chromosome instances.
-        Returns:
-            A new PyIntCodec instance with the specified chromosomes.
-        """
         from ..genome import GeneType
 
         if isinstance(chromosomes, Chromosome):

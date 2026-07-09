@@ -10,6 +10,7 @@ use crate::{
     bindings::codec::{PyTreeCodec, TypedNumericCodec},
 };
 use crate::{PyGeneration, PySubscriber};
+use core::panic;
 use pyo3::{Py, PyAny, pyclass, pymethods, types::PyAnyMethods};
 use radiate::prelude::*;
 use radiate_error::{ResultExt, radiate_py_bail, radiate_py_err};
@@ -526,14 +527,20 @@ impl PyEngineBuilder {
             Permutation(Self::new_builder(fitness, perm_codec.codec, executor))
         } else if let Ok(graph_codec) = codec.extract::<PyGraphCodec>() {
             match graph_codec.codec {
-                PyGraphCodecInner::Float32(c) => Graph32(
-                    Self::new_builder(fitness, Self::wrapped_codec(c), executor)
-                        .replace_strategy(GraphReplacement),
-                ),
-                PyGraphCodecInner::Float64(c) => Graph64(
-                    Self::new_builder(fitness, Self::wrapped_codec(c), executor)
-                        .replace_strategy(GraphReplacement),
-                ),
+                PyGraphCodecInner::Float32(c) => {
+                    let py_codec = Self::wrapped_codec(c);
+                    Graph32(
+                        Self::new_builder(fitness, py_codec, executor)
+                            .replace_strategy(GraphReplacement),
+                    )
+                }
+                PyGraphCodecInner::Float64(c) => {
+                    let py_codec = Self::wrapped_codec(c);
+                    Graph64(
+                        Self::new_builder(fitness, py_codec, executor)
+                            .replace_strategy(GraphReplacement),
+                    )
+                }
             }
         } else if let Ok(tree_codec) = codec.extract::<PyTreeCodec>() {
             match tree_codec.codec {
@@ -565,50 +572,40 @@ impl PyEngineBuilder {
             radiate_py_bail!("init_regression_builder only supports Regression fitness functions")
         };
 
-        let builder = if let Ok(graph_codec) = codec.extract::<PyGraphCodec>() {
-            match graph_codec.codec {
-                PyGraphCodecInner::Float32(c) => {
-                    let base_engine = GeneticEngine::builder()
-                        .codec(c)
-                        .executor(executor)
-                        .bus_executor(Executor::default())
-                        .replace_strategy(GraphReplacement);
+        if let Ok(graph_codec) = codec.extract::<PyGraphCodec>() {
+            if let PyGraphCodecInner::Float32(c) = graph_codec.codec {
+                let base_engine = GeneticEngine::builder()
+                    .codec(c)
+                    .executor(executor)
+                    .bus_executor(Executor::default())
+                    .replace_strategy(GraphReplacement);
 
-                    if is_batch {
-                        Graph32(base_engine.raw_batch_fitness_fn(regression))
-                    } else {
-                        Graph32(base_engine.raw_fitness_fn(regression))
-                    }
-                }
-                _ => {
-                    radiate_py_bail!("Unsupported graph codec type for regression problem");
-                }
+                return if is_batch {
+                    Ok(Graph32(base_engine.raw_batch_fitness_fn(regression)))
+                } else {
+                    Ok(Graph32(base_engine.raw_fitness_fn(regression)))
+                };
+            } else {
+                radiate_py_bail!("F64 GraphCodec not supported for F32 Regression Fitness.");
             }
         } else if let Ok(tree_codec) = codec.extract::<PyTreeCodec>() {
-            match tree_codec.codec {
-                PyTreeCodecInner::Float32(c) => {
-                    let base_engine = GeneticEngine::builder()
-                        .codec(c)
-                        .executor(executor)
-                        .bus_executor(Executor::default());
+            if let PyTreeCodecInner::Float32(c) = tree_codec.codec {
+                let base_engine = GeneticEngine::builder()
+                    .codec(c)
+                    .executor(executor)
+                    .bus_executor(Executor::default());
 
-                    if is_batch {
-                        Tree32(base_engine.raw_batch_fitness_fn(regression))
-                    } else {
-                        Tree32(base_engine.raw_fitness_fn(regression))
-                    }
-                }
-                _ => {
-                    radiate_py_bail!(
-                        "Unsupported tree codec type for regression problem: only Float32 trees are supported"
-                    );
-                }
+                return if is_batch {
+                    Ok(Tree32(base_engine.raw_batch_fitness_fn(regression)))
+                } else {
+                    Ok(Tree32(base_engine.raw_fitness_fn(regression)))
+                };
+            } else {
+                radiate_py_bail!("F64 TreeCodec not supported for F32 Regression Fitness.");
             }
         } else {
             radiate_py_bail!("Only Graph or Tree codecs are supported for regression problems");
         };
-
-        Ok(builder)
     }
 
     fn init_regression_builder64<'py>(
@@ -620,53 +617,43 @@ impl PyEngineBuilder {
         use PyFitnessInner::Regression64;
 
         let Regression64(regression, is_batch) = regression else {
-            radiate_py_bail!("init_regression_builder only supports Regression fitness functions")
+            radiate_py_bail!("init_regression_builder64 only supports Regression fitness functions")
         };
 
-        let builder = if let Ok(graph_codec) = codec.extract::<PyGraphCodec>() {
-            match graph_codec.codec {
-                PyGraphCodecInner::Float64(c) => {
-                    let base_engine = GeneticEngine::builder()
-                        .codec(c)
-                        .executor(executor)
-                        .bus_executor(Executor::default())
-                        .replace_strategy(GraphReplacement);
+        if let Ok(graph_codec) = codec.extract::<PyGraphCodec>() {
+            if let PyGraphCodecInner::Float64(c) = graph_codec.codec {
+                let base_engine = GeneticEngine::builder()
+                    .codec(c)
+                    .executor(executor)
+                    .bus_executor(Executor::default())
+                    .replace_strategy(GraphReplacement);
 
-                    if is_batch {
-                        Graph64(base_engine.raw_batch_fitness_fn(regression))
-                    } else {
-                        Graph64(base_engine.raw_fitness_fn(regression))
-                    }
-                }
-                _ => {
-                    radiate_py_bail!(
-                        "Unsupported graph codec type for regression problem: only Float64 graphs are supported"
-                    );
-                }
+                return if is_batch {
+                    Ok(Graph64(base_engine.raw_batch_fitness_fn(regression)))
+                } else {
+                    Ok(Graph64(base_engine.raw_fitness_fn(regression)))
+                };
+            } else {
+                radiate_py_bail!("F32 GraphCodec not supported for F64 Regression Fitness.");
             }
         } else if let Ok(tree_codec) = codec.extract::<PyTreeCodec>() {
-            match tree_codec.codec {
-                PyTreeCodecInner::Float64(c) => {
-                    let base_engine = GeneticEngine::builder()
-                        .codec(c)
-                        .executor(executor)
-                        .bus_executor(Executor::default());
+            if let PyTreeCodecInner::Float64(c) = tree_codec.codec {
+                let base_engine = GeneticEngine::builder()
+                    .codec(c)
+                    .executor(executor)
+                    .bus_executor(Executor::default());
 
-                    if is_batch {
-                        Tree64(base_engine.raw_batch_fitness_fn(regression))
-                    } else {
-                        Tree64(base_engine.raw_fitness_fn(regression))
-                    }
-                }
-                _ => {
-                    radiate_py_bail!("Unsupported tree codec type for regression problem");
-                }
+                return if is_batch {
+                    Ok(Tree64(base_engine.raw_batch_fitness_fn(regression)))
+                } else {
+                    Ok(Tree64(base_engine.raw_fitness_fn(regression)))
+                };
+            } else {
+                radiate_py_bail!("F32 TreeCodec not supported for F64 Regression Fitness.");
             }
         } else {
             radiate_py_bail!("Only Graph or Tree codecs are supported for regression problems");
         };
-
-        Ok(builder)
     }
 
     fn init_novelty_builder<'py>(

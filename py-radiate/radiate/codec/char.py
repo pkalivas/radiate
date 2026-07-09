@@ -26,8 +26,6 @@ def _normalize_char_set(char_set: str | list[str] | set[str] | None) -> str | No
 
 
 class CharCodec[D](CodecBase[str, D], RsObject):
-    gene_type = GeneType.CHAR
-
     @overload
     def __new__(
         cls,
@@ -101,15 +99,12 @@ class CharCodec[D](CodecBase[str, D], RsObject):
             raise TypeError("genotype must be an instance of Genotype.")
         return self.__backend__().decode_py(genotype=genotype.__backend__())
 
+    @property
+    def gene_type(self) -> GeneType:
+        return GeneType.CHAR
+
     @staticmethod
     def _from_genes(genes: AtLeastOne[Gene[str]]) -> CharCodec[list[str]]:
-        """
-        Create a codec for a single chromosome with specified genes.
-        Args:
-            genes: A list or tuple of Gene instances.
-        Returns:
-            A new CharCodec instance with the specified genes.
-        """
         from ..genome import GeneType
 
         if not isinstance(genes, (list, tuple)):
@@ -123,13 +118,6 @@ class CharCodec[D](CodecBase[str, D], RsObject):
     def _from_chromosomes(
         chromosomes: AtLeastOne[Chromosome[str]],
     ) -> CharCodec[list[list[str]]]:
-        """
-        Create a codec for multiple chromosomes.
-        Args:
-            chromosomes: A list or tuple of Chromosome instances.
-        Returns:
-            A new PyCharCodec instance with the specified chromosomes.
-        """
         from ..genome import GeneType
 
         if not isinstance(chromosomes, (list, tuple)):
@@ -150,20 +138,6 @@ class CharCodec[D](CodecBase[str, D], RsObject):
         shape: AtLeastOne[int],
         char_set: set[str] | None = None,
     ) -> PyCharCodec:
-        """
-        Initialize the char codec with number of chromosomes and value bounds.
-        Args:
-            shape: A list of integers specifying the lengths of each chromosome.
-            char_set: A string or list of strings representing the character set.
-        Returns:
-            A new PyCharCodec instance with matrix configuration.
-
-        Example
-        --------
-        >>> rd.CharCodec.matrix(shape=[5, 5], char_set="01")
-        CharCodec(...)
-        """
-
         if isinstance(shape, tuple):
             if len(shape) != 2:
                 raise ValueError("Shape must be a tuple of (rows, cols).")

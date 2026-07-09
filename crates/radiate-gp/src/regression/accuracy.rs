@@ -1,15 +1,15 @@
 use super::{DataSet, Loss};
-use crate::{Eval, EvalMut, Graph, GraphEvaluator, Op, Tree, ops::GpFloat};
+use crate::{Eval, EvalMut, Graph, GraphEvaluator, Op, Tree, ops::OpFloat};
 use std::fmt::Debug;
 
 #[derive(Clone, Default)]
-pub struct Accuracy<'a, F: GpFloat> {
+pub struct Accuracy<'a, F: OpFloat> {
     name: Option<String>,
     data_set: Option<&'a DataSet<F>>,
     loss_fn: Option<Loss>,
 }
 
-impl<'a, F: GpFloat> Accuracy<'a, F> {
+impl<'a, F: OpFloat> Accuracy<'a, F> {
     pub fn named(mut self, name: impl Into<String>) -> Self {
         self.name = Some(name.into());
         self
@@ -269,20 +269,20 @@ impl Debug for AccuracyResult {
     }
 }
 
-impl<T: GpFloat> Eval<Graph<Op<T>>, Option<AccuracyResult>> for Accuracy<'_, T> {
+impl<T: OpFloat> Eval<Graph<Op<T>>, Option<AccuracyResult>> for Accuracy<'_, T> {
     fn eval(&self, graph: &Graph<Op<T>>) -> Option<AccuracyResult> {
         let mut evaluator = GraphEvaluator::new(graph);
         Some(self.calc(&mut evaluator))
     }
 }
 
-impl<T: GpFloat> Eval<Tree<Op<T>>, Option<AccuracyResult>> for Accuracy<'_, T> {
+impl<T: OpFloat> Eval<Tree<Op<T>>, Option<AccuracyResult>> for Accuracy<'_, T> {
     fn eval(&self, tree: &Tree<Op<T>>) -> Option<AccuracyResult> {
         Some(self.calc(&mut tree.clone()))
     }
 }
 
-impl<T: GpFloat> Eval<Vec<Tree<Op<T>>>, Option<AccuracyResult>> for Accuracy<'_, T> {
+impl<T: OpFloat> Eval<Vec<Tree<Op<T>>>, Option<AccuracyResult>> for Accuracy<'_, T> {
     fn eval(&self, trees: &Vec<Tree<Op<T>>>) -> Option<AccuracyResult> {
         let mut cloned_trees = trees.clone();
         Some(self.calc(&mut cloned_trees))

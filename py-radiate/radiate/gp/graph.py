@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING, Any, overload
 from radiate.radiate import PyGraph
 
 from .._bridge import RsObject
-from .._dependancies import _check_for_numpy
 from ..genome.chromosome import Chromosome
+from ..utils._normalize import _to_float_array
 
 if TYPE_CHECKING:
     from .._dependancies import numpy as np
@@ -85,17 +85,23 @@ class Graph(RsObject):
 
         Supports 1D/2D Lists, NumPy arrays, Polars, and Pandas objects.
         """
-        from ..utils._normalize import _to_float_array
-
+        graph_shape = self.shape()
         eval_data = _to_float_array(inputs, columns=columns)
-        if not _check_for_numpy(eval_data):
-            if not isinstance(inputs, (list, tuple)):
-                raise TypeError(
-                    f"Unsupported input type: {type(inputs).__name__}. "
-                    "Supported types are 1D/2D lists, NumPy arrays, Polars DataFrames/Series, and Pandas DataFrames/Series."
+
+        shape = eval_data.shape
+        dims = len(shape)
+        if dims == 1:
+            if graph_shape[0] != shape[0]:
+                raise ValueError(
+                    f"Input length {shape[0]} does not match graph input size {graph_shape[0]}"
+                )
+        elif dims == 2:
+            if graph_shape[0] != shape[1]:
+                raise ValueError(
+                    f"Input width {shape[1]} does not match graph input size {graph_shape[0]}"
                 )
 
-        return self.__backend__().eval(inputs)
+        return self.__backend__().eval(eval_data)
 
     def reset(self):
         """

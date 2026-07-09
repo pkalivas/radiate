@@ -2,7 +2,7 @@ use crate::{InputTransform, PyEngineInput};
 use radiate::{
     BitChromosome, CharChromosome, CosineDistance, Diversity, EuclideanDistance, FloatChromosome,
     GraphChromosome, HammingDistance, IntChromosome, NeatDistance, Op, PermutationChromosome,
-    RadiateResult, TreeChromosome, chromosomes::NumericAllele, ops::GpFloat,
+    RadiateResult, TreeChromosome, chromosomes::NumericAllele, ops::OpFloat,
 };
 use radiate_error::radiate_bail;
 use radiate_utils::{Float, Integer};
@@ -62,7 +62,7 @@ impl InputTransform<RadiateResult<Box<dyn Diversity<PermutationChromosome<usize>
     }
 }
 
-impl<F: GpFloat> InputTransform<RadiateResult<Box<dyn Diversity<TreeChromosome<Op<F>>>>>>
+impl<F: OpFloat> InputTransform<RadiateResult<Box<dyn Diversity<TreeChromosome<Op<F>>>>>>
     for PyEngineInput
 {
     fn transform(&self) -> RadiateResult<Box<dyn Diversity<TreeChromosome<Op<F>>>>> {
@@ -71,7 +71,7 @@ impl<F: GpFloat> InputTransform<RadiateResult<Box<dyn Diversity<TreeChromosome<O
     }
 }
 
-impl<F: GpFloat> InputTransform<RadiateResult<Box<dyn Diversity<GraphChromosome<Op<F>>>>>>
+impl<F: OpFloat> InputTransform<RadiateResult<Box<dyn Diversity<GraphChromosome<Op<F>>>>>>
     for PyEngineInput
 {
     fn transform(&self) -> RadiateResult<Box<dyn Diversity<GraphChromosome<Op<F>>>>> {

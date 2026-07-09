@@ -20,8 +20,7 @@ from .codec import (
     PermutationCodec,
     TreeCodec,
 )
-
-# from .dsl import Filter
+from .codec.graph import GraphType
 from .dsl.dtype import (
     Boolean,
     Char,
@@ -82,7 +81,7 @@ from .genome import (
     Species,
     chromosome,
 )
-from .gp import AccuracyResult, Graph, Op, OpsConfig, Tree, accuracy
+from .gp import AccuracyResult, Graph, Op, Tree, accuracy
 from .operators.alterer import (
     Cross,
     Mutate,
@@ -120,6 +119,7 @@ __all__ = [
     "CharCodec",
     "BitCodec",
     "GraphCodec",
+    "GraphType",
     "TreeCodec",
     # Genome and Population
     "chromosome",
@@ -135,7 +135,6 @@ __all__ = [
     "Graph",
     "Op",
     "accuracy",
-    "OpsConfig",
     "AccuracyResult",
     # Handlers
     "EventHandler",

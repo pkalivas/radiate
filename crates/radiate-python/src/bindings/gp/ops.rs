@@ -3,7 +3,7 @@ use pyo3::{PyAny, PyResult, pyclass, types::PyAnyMethods};
 use pyo3::{exceptions::PyValueError, prelude::FromPyObjectOwned};
 use radiate::{
     Arity, DataType, Eval, Factory, Op,
-    ops::{GpFloat, math_generic},
+    ops::{OpFloat, math},
 };
 use radiate_error::radiate_py_bail;
 
@@ -18,8 +18,8 @@ where
 pub fn _all_ops(dtype: &str) -> PyResult<Vec<PyOp>> {
     let datatype = crate::dtype_from_str(dtype);
     match datatype {
-        DataType::Float32 => _op_collection(math_generic::all_ops::<f32>()),
-        DataType::Float64 => _op_collection(math_generic::all_ops::<f64>()),
+        DataType::Float32 => _op_collection(math::all_ops::<f32>()),
+        DataType::Float64 => _op_collection(math::all_ops::<f64>()),
         _ => radiate_py_bail!("Unsupported data type for ops: {:datatype:?}"),
     }
 }
@@ -28,8 +28,8 @@ pub fn _all_ops(dtype: &str) -> PyResult<Vec<PyOp>> {
 pub fn _activation_ops(dtype: &str) -> PyResult<Vec<PyOp>> {
     let datatype = crate::dtype_from_str(dtype);
     match datatype {
-        DataType::Float32 => _op_collection(math_generic::activation_ops::<f32>()),
-        DataType::Float64 => _op_collection(math_generic::activation_ops::<f64>()),
+        DataType::Float32 => _op_collection(math::activation_ops::<f32>()),
+        DataType::Float64 => _op_collection(math::activation_ops::<f64>()),
         _ => radiate_py_bail!("Unsupported data type for activation ops: {:datatype:?}"),
     }
 }
@@ -38,8 +38,8 @@ pub fn _activation_ops(dtype: &str) -> PyResult<Vec<PyOp>> {
 pub fn _edge_ops(dtype: &str) -> PyResult<Vec<PyOp>> {
     let datatype = crate::dtype_from_str(dtype);
     match datatype {
-        DataType::Float32 => _op_collection(math_generic::edge_ops::<f32>()),
-        DataType::Float64 => _op_collection(math_generic::edge_ops::<f64>()),
+        DataType::Float32 => _op_collection(math::edge_ops::<f32>()),
+        DataType::Float64 => _op_collection(math::edge_ops::<f64>()),
         _ => radiate_py_bail!("Unsupported data type for edge ops: {:datatype:?}"),
     }
 }
@@ -154,7 +154,7 @@ pub fn _create_op<'py>(
 fn build_typed_op<'py, F>(py: Python<'py>, name: &str, params: Option<Py<PyAny>>) -> PyResult<PyOp>
 where
     PyOp: From<Op<F>>,
-    F: FromPyObjectOwned<'py> + GpFloat,
+    F: FromPyObjectOwned<'py> + OpFloat,
 {
     let op = match name {
         "constant" => {

@@ -1,17 +1,17 @@
 use super::{DataSet, Loss};
 use crate::{
     Graph, GraphChromosome, GraphEvaluator, Op, Tree, TreeChromosome, eval::EvalIntoMut,
-    ops::GpFloat,
+    ops::OpFloat,
 };
 use radiate_core::{BatchFitnessFunction, Genotype, Score, fitness::FitnessFunction};
 
 #[derive(Clone)]
-pub struct Regression<F: GpFloat> {
+pub struct Regression<F: OpFloat> {
     data_set: DataSet<F>,
     loss: Loss,
 }
 
-impl<F: GpFloat> Regression<F> {
+impl<F: OpFloat> Regression<F> {
     pub fn new(sample_set: impl Into<DataSet<F>>, loss: Loss) -> Self {
         Regression {
             data_set: sample_set.into(),
@@ -40,7 +40,7 @@ impl<F: GpFloat> Regression<F> {
 
 impl<'a, F> FitnessFunction<&'a Genotype<GraphChromosome<Op<F>>>, F> for Regression<F>
 where
-    F: GpFloat + Into<Score>,
+    F: OpFloat + Into<Score>,
 {
     #[inline]
     fn evaluate(&self, input: &'a Genotype<GraphChromosome<Op<F>>>) -> F {
@@ -51,7 +51,7 @@ where
 
 impl<F> FitnessFunction<Graph<Op<F>>, F> for Regression<F>
 where
-    F: GpFloat + Into<Score>,
+    F: OpFloat + Into<Score>,
 {
     #[inline]
     fn evaluate(&self, input: Graph<Op<F>>) -> F {
@@ -62,7 +62,7 @@ where
 
 impl<F> BatchFitnessFunction<Graph<Op<F>>, F> for Regression<F>
 where
-    F: GpFloat + Into<Score>,
+    F: OpFloat + Into<Score>,
 {
     #[inline]
     fn evaluate(&self, inputs: Vec<Graph<Op<F>>>) -> Vec<F> {
@@ -78,7 +78,7 @@ where
 
 impl<'a, F> BatchFitnessFunction<&'a Genotype<GraphChromosome<Op<F>>>, F> for Regression<F>
 where
-    F: GpFloat + Into<Score>,
+    F: OpFloat + Into<Score>,
 {
     #[inline]
     fn evaluate(&self, inputs: Vec<&'a Genotype<GraphChromosome<Op<F>>>>) -> Vec<F> {
@@ -95,7 +95,7 @@ where
 /// --- Trees ---
 impl<F> FitnessFunction<Tree<Op<F>>, F> for Regression<F>
 where
-    F: GpFloat + Into<Score>,
+    F: OpFloat + Into<Score>,
 {
     #[inline]
     fn evaluate(&self, mut input: Tree<Op<F>>) -> F {
@@ -105,7 +105,7 @@ where
 
 impl<F> FitnessFunction<Vec<Tree<Op<F>>>, F> for Regression<F>
 where
-    F: GpFloat + Into<Score>,
+    F: OpFloat + Into<Score>,
 {
     #[inline]
     fn evaluate(&self, mut input: Vec<Tree<Op<F>>>) -> F {
@@ -115,7 +115,7 @@ where
 
 impl<F> BatchFitnessFunction<Tree<Op<F>>, F> for Regression<F>
 where
-    F: GpFloat + Into<Score>,
+    F: OpFloat + Into<Score>,
 {
     #[inline]
     fn evaluate(&self, mut inputs: Vec<Tree<Op<F>>>) -> Vec<F> {
@@ -130,7 +130,7 @@ where
 
 impl<F> BatchFitnessFunction<Vec<Tree<Op<F>>>, F> for Regression<F>
 where
-    F: GpFloat + Into<Score>,
+    F: OpFloat + Into<Score>,
 {
     #[inline]
     fn evaluate(&self, mut inputs: Vec<Vec<Tree<Op<F>>>>) -> Vec<F> {
@@ -145,7 +145,7 @@ where
 
 impl<'a, F> FitnessFunction<&'a Genotype<TreeChromosome<Op<F>>>, F> for Regression<F>
 where
-    F: GpFloat + Into<Score>,
+    F: OpFloat + Into<Score>,
 {
     #[inline]
     fn evaluate(&self, input: &'a Genotype<TreeChromosome<Op<F>>>) -> F {
@@ -156,7 +156,7 @@ where
 
 impl<'a, F> BatchFitnessFunction<&'a Genotype<TreeChromosome<Op<F>>>, F> for Regression<F>
 where
-    F: GpFloat + Into<Score>,
+    F: OpFloat + Into<Score>,
 {
     #[inline]
     fn evaluate(&self, inputs: Vec<&'a Genotype<TreeChromosome<Op<F>>>>) -> Vec<F> {

@@ -16,8 +16,6 @@ if TYPE_CHECKING:
 class BitCodec[D](CodecBase[bool, D], RsObject):
     """BitCodec for bit-based chromosomes. Encodes/decodes to bit strings."""
 
-    gene_type = GeneType.BIT
-
     @overload
     def __new__(
         cls,
@@ -91,20 +89,12 @@ class BitCodec[D](CodecBase[bool, D], RsObject):
             raise TypeError("genotype must be an instance of Genotype.")
         return self.__backend__().decode_py(genotype.__backend__())
 
+    @property
+    def gene_type(self) -> GeneType:
+        return GeneType.BIT
+
     @staticmethod
     def _matrix(shape: AtLeastOne[int], use_numpy: bool = False) -> BitCodec[Any]:
-        """
-        Initialize the bit codec with a matrix of chromosomes.
-        Args:
-            shape: A list of integers specifying the shape of the matrix.
-        Returns:
-            A new BitCodec instance with matrix configuration.
-
-        Example
-        --------
-        >>> rd.BitCodec.matrix(chromosome_lengths=[5, 5])
-        BitCodec(...)
-        """
         if isinstance(shape, tuple):
             if len(shape) != 2:
                 raise ValueError("Shape must be a tuple of (rows, cols).")
@@ -120,16 +110,4 @@ class BitCodec[D](CodecBase[bool, D], RsObject):
 
     @staticmethod
     def _vector(length: int = 8, use_numpy: bool = False) -> BitCodec[Any]:
-        """
-        Initialize the bit codec with a single chromosome of specified length.
-        Args:
-            length: Length of the chromosome.
-        Returns:
-            A new BitCodec instance with vector configuration.
-
-        Example
-        --------
-        >>> rd.BitCodec.vector(length=5)
-        BitCodec(...)
-        """
         return PyBitCodec.vector(chromosome_length=length, use_numpy=use_numpy)

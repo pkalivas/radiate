@@ -7,7 +7,7 @@ use pyo3::{
     Bound, IntoPyObject, Py, PyAny, PyResult, Python, intern, pyclass, pyfunction, pymethods,
     types::PyAnyMethods,
 };
-use radiate::{Accuracy, AccuracyResult, DataSet, EvalMut, GraphEvaluator, Loss, ops::GpFloat};
+use radiate::{Accuracy, AccuracyResult, DataSet, EvalMut, GraphEvaluator, Loss, ops::OpFloat};
 use radiate_error::radiate_py_bail;
 
 #[pyclass]
@@ -81,14 +81,14 @@ pub fn py_accuracy<'py>(
     if let Ok(mut graph) = predictor.extract::<PyGraph>(py) {
         return match &mut graph.inner {
             PyGraphInner::Float32(graph, _) => {
-                let features = py_object_into_2d_vec::<f32>(py, features)?;
-                let targets = py_object_into_2d_vec::<f32>(py, targets)?;
+                let features = py_object_into_2d_vec::<f32>(features)?;
+                let targets = py_object_into_2d_vec::<f32>(targets)?;
                 let mut evaluator = GraphEvaluator::new(graph);
                 run_accuracy(&mut evaluator, features, targets, loss, name)
             }
             PyGraphInner::Float64(graph, _) => {
-                let features = py_object_into_2d_vec::<f64>(py, features)?;
-                let targets = py_object_into_2d_vec::<f64>(py, targets)?;
+                let features = py_object_into_2d_vec::<f64>(features)?;
+                let targets = py_object_into_2d_vec::<f64>(targets)?;
                 let mut evaluator = GraphEvaluator::new(graph);
                 run_accuracy(&mut evaluator, features, targets, loss, name)
             }
@@ -98,13 +98,13 @@ pub fn py_accuracy<'py>(
     if let Ok(mut tree) = predictor.extract::<PyTree>(py) {
         return match &mut tree.inner {
             PyTreeInner::Float32(trees) => {
-                let features = py_object_into_2d_vec::<f32>(py, features)?;
-                let targets = py_object_into_2d_vec::<f32>(py, targets)?;
+                let features = py_object_into_2d_vec::<f32>(features)?;
+                let targets = py_object_into_2d_vec::<f32>(targets)?;
                 run_accuracy(trees, features, targets, loss, name)
             }
             PyTreeInner::Float64(trees) => {
-                let features = py_object_into_2d_vec::<f64>(py, features)?;
-                let targets = py_object_into_2d_vec::<f64>(py, targets)?;
+                let features = py_object_into_2d_vec::<f64>(features)?;
+                let targets = py_object_into_2d_vec::<f64>(targets)?;
                 run_accuracy(trees, features, targets, loss, name)
             }
         };
@@ -121,7 +121,7 @@ fn run_accuracy<F, E>(
     name: Option<String>,
 ) -> PyResult<PyAccuracy>
 where
-    F: GpFloat,
+    F: OpFloat,
     E: EvalMut<[F], Vec<F>>,
 {
     if features.len() != targets.len() {

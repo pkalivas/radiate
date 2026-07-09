@@ -1,6 +1,6 @@
-use crate::{PyGenotype, PyOp, bindings::gp::PyGraph};
+use crate::{PyGenotype, PyOp, Wrap, bindings::gp::PyGraph};
 use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
-use radiate::{Codec, DataType, GraphCodec, NodeType, Op, dtype_names, ops::GpFloat};
+use radiate::{Codec, DataType, GraphCodec, NodeType, Op, dtype_names, ops::OpFloat};
 use radiate_error::radiate_py_bail;
 use std::collections::HashMap;
 
@@ -23,30 +23,6 @@ pub struct PyGraphCodec {
 
 #[pymethods]
 impl PyGraphCodec {
-    pub fn encode_py(&self) -> PyResult<PyGenotype> {
-        match &self.codec {
-            PyGraphCodecInner::Float32(codec) => Ok(PyGenotype::from(codec.encode())),
-            PyGraphCodecInner::Float64(codec) => Ok(PyGenotype::from(codec.encode())),
-        }
-    }
-
-    pub fn decode_py<'py>(
-        &self,
-        py: Python<'py>,
-        genotype: &PyGenotype,
-    ) -> PyResult<Bound<'py, PyAny>> {
-        let obj_value = match &self.codec {
-            PyGraphCodecInner::Float32(codec) => {
-                PyGraph::from(codec.decode(&genotype.clone().into()))
-            }
-            PyGraphCodecInner::Float64(codec) => {
-                PyGraph::from(codec.decode(&genotype.clone().into()))
-            }
-        };
-
-        obj_value.into_bound_py_any(py)
-    }
-
     #[new]
     #[pyo3(signature = (graph_type=None, input_size=1, output_size=1, ops=None, max_nodes=None, dtype=None))]
     pub fn new(
@@ -81,9 +57,42 @@ impl PyGraphCodec {
             _ => radiate_py_bail!("Unsupported data type for graph codec: {:datatype:?}"),
         }
     }
+
+    pub fn encode_py(&self) -> PyResult<PyGenotype> {
+        match &self.codec {
+            PyGraphCodecInner::Float32(codec) => Ok(PyGenotype::from(codec.encode())),
+            PyGraphCodecInner::Float64(codec) => Ok(PyGenotype::from(codec.encode())),
+        }
+    }
+
+    pub fn decode_py<'py>(
+        &self,
+        py: Python<'py>,
+        genotype: &PyGenotype,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let obj_value = match &self.codec {
+            PyGraphCodecInner::Float32(codec) => {
+                PyGraph::from(codec.decode(&genotype.clone().into()))
+            }
+            PyGraphCodecInner::Float64(codec) => {
+                PyGraph::from(codec.decode(&genotype.clone().into()))
+            }
+        };
+
+        obj_value.into_bound_py_any(py)
+    }
+
+    pub fn dtype<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let dtype = match &self.codec {
+            PyGraphCodecInner::Float32(_) => DataType::Float32,
+            PyGraphCodecInner::Float64(_) => DataType::Float64,
+        };
+
+        Wrap(dtype).into_bound_py_any(py)
+    }
 }
 
-fn build_typed_codec<F: GpFloat>(
+fn build_typed_codec<F: OpFloat>(
     graph_type: Option<&str>,
     input_size: usize,
     output_size: usize,

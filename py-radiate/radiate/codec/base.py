@@ -10,8 +10,6 @@ if TYPE_CHECKING:
 
 
 class CodecBase[T, D](RsObject, ABC):
-    gene_type: "GeneType"
-
     @abstractmethod
     def encode(self) -> "Genotype[T]":
         raise NotImplementedError("encode method must be implemented by subclasses.")
@@ -19,6 +17,12 @@ class CodecBase[T, D](RsObject, ABC):
     @abstractmethod
     def decode(self, genotype: "Genotype[T]") -> D:
         raise NotImplementedError("decode method must be implemented by subclasses.")
+
+    @property
+    def gene_type(self) -> "GeneType":
+        raise NotImplementedError(
+            "gene_type property must be implemented by subclasses."
+        )
 
     def population(self, size: int = 100) -> "Population[T]":
         """

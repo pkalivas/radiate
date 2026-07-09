@@ -1,6 +1,6 @@
 use crate::Arity;
 #[cfg(feature = "serde")]
-use crate::ops::GpFloat;
+use crate::ops::OpFloat;
 use crate::ops::op_names;
 use crate::ops::operation::Op;
 #[cfg(feature = "serde")]
@@ -44,7 +44,7 @@ where
 }
 
 #[cfg(feature = "serde")]
-impl<'de, F: GpFloat + Serialize + Deserialize<'de>> Deserialize<'de> for Op<F> {
+impl<'de, F: OpFloat + Serialize + Deserialize<'de>> Deserialize<'de> for Op<F> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -94,7 +94,7 @@ impl<T: Clone> From<Op<T>> for OpVariant<T> {
     }
 }
 
-impl<F: GpFloat> From<OpVariant<F>> for Result<Op<F>, serde::de::value::Error> {
+impl<F: OpFloat> From<OpVariant<F>> for Result<Op<F>, serde::de::value::Error> {
     fn from(variant: OpVariant<F>) -> Self {
         match variant {
             OpVariant::Fn { name, .. } => {

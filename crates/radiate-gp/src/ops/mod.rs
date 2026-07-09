@@ -1,7 +1,7 @@
 pub mod bool;
 pub mod expr;
 // pub mod math;
-pub mod math_generic;
+pub mod math;
 pub mod mutator;
 pub mod operation;
 mod param;
@@ -13,22 +13,21 @@ use radiate_utils::Float;
 use std::cell::RefCell;
 
 pub use expr::Expression;
-// pub use math::{activation_ops, all_ops, math_ops};
-pub use math_generic::{activation_ops, all_ops, math_ops};
+pub use math::{activation_ops, all_ops, math_ops};
 pub use mutator::OperationMutator;
 pub use operation::*;
 pub use param::Param;
 
-pub trait GpFloat: Float + Send + Sync {
+pub trait OpFloat: Float + Send + Sync {
     const MAX_VALUE: Self;
     const LOG_EPS: Self;
 
     fn with_loss_buffer<R>(f: impl FnOnce(&mut Vec<Self>) -> R) -> R;
 }
 
-macro_rules! impl_gp_float {
+macro_rules! impl_op_float {
     ($t:ty, $max:expr, $log_eps:expr) => {
-        impl GpFloat for $t {
+        impl OpFloat for $t {
             const MAX_VALUE: Self = $max;
             const LOG_EPS: Self = $log_eps;
 
@@ -42,8 +41,8 @@ macro_rules! impl_gp_float {
     };
 }
 
-impl_gp_float!(f32, 1e10_f32, 1e-7_f32);
-impl_gp_float!(f64, 1e10_f64, 1e-7_f64);
+impl_op_float!(f32, 1e10_f32, 1e-7_f32);
+impl_op_float!(f64, 1e10_f64, 1e-7_f64);
 
 pub(crate) mod op_names {
     /// Mathematical operation names

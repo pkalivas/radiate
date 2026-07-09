@@ -2,6 +2,8 @@ from collections.abc import Callable
 from enum import StrEnum
 from typing import TYPE_CHECKING, Final
 
+from radiate._typing import RdDataType
+
 if TYPE_CHECKING:
     from radiate._dependancies import numpy as np
 
@@ -147,6 +149,7 @@ class PyFitnessFn[T]:
     def custom(fitness_fn: Callable[[T], object], is_batch: bool) -> PyFitnessFn: ...
     @staticmethod
     def regression(
+        dtype: RdDataType,
         features: list[list[float]] | "np.ndarray",
         targets: list[list[float]] | "np.ndarray",
         loss: str,

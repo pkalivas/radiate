@@ -26,20 +26,13 @@ for _ in range(-10, 10):
     inputs.append([input])
     answers.append([compute(input)])
 
-x = np.array(inputs, dtype=np.float64)
-y = np.array(answers, dtype=np.float64)
+x = np.array(inputs, dtype=np.float32)
+y = np.array(answers, dtype=np.float32)
 
 
-def fit(graph: rd.Graph) -> np.float64:
+def fit(graph: rd.Graph) -> np.float32:
     predictions = graph.eval(x)
-    return np.mean((predictions - y) ** 2, dtype=np.float64)
-
-
-# @rd.fitness(batch=True)
-# def fit(graph: list[rd.Graph]) -> list[np.float32]:
-#     # raise NotImplementedError("This function is not implemented yet.")
-#     predictions = [g.eval(x) for g in graph]
-#     return [np.mean((pred - y) ** 2, dtype=np.float32) for pred in predictions]
+    return np.mean((predictions - y) ** 2, dtype=np.float32)
 
 
 engine = (
@@ -47,13 +40,9 @@ engine = (
         shape=(1, 1),
         vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
         edge=rd.Op.weight(),
-        output=rd.Op.linear(),
-        dtype=rd.Float64,
-        # output=rd.Op.linear(),
+        dtype=rd.Float32,
     )
-    .fitness(fit)
-    .minimizing()
-    # .regression(x, y, loss=rd.MSE)
+    .regression(x, y, loss=rd.MSE)
     .select(rd.Select.boltzmann(temp=4.0))
     .alters(
         rd.Cross.graph(0.4, 0.5),

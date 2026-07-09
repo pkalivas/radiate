@@ -1,12 +1,12 @@
 use crate::{
-    PyAnyObject, PyNoveltySearch,
+    PyAnyObject, PyNoveltySearch, Wrap,
     bindings::datatype::{FloatMatrixPair, extract_regression_pair},
 };
 use pyo3::{
     Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python, exceptions::PyValueError, pyclass,
     pymethods,
 };
-use radiate::{Loss, RadiateResult, Regression};
+use radiate::{DataType, Loss, RadiateResult, Regression};
 
 #[derive(Clone)]
 pub enum PyFitnessInner {
@@ -57,6 +57,7 @@ impl PyFitnessFn {
     #[staticmethod]
     pub fn regression<'py>(
         py: Python<'py>,
+        dtype: Wrap<DataType>,
         features: &Bound<'py, PyAny>,
         targets: &Bound<'py, PyAny>,
         loss: String,
@@ -75,7 +76,7 @@ impl PyFitnessFn {
             }
         };
 
-        let inner = match extract_regression_pair(py, features, targets)? {
+        let inner = match extract_regression_pair(py, dtype.0, features, targets)? {
             FloatMatrixPair::F32 { features, targets } => {
                 PyFitnessInner::Regression32(Regression::new((features, targets), loss), is_batch)
             }

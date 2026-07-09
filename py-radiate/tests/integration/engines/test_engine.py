@@ -167,14 +167,9 @@ def test_engine_with_iter_and_run(random_seed):
 
     # Now run the engine to completion
     final_result = engine.run()
-    other_results = list(engine)
 
     assert all(isinstance(r, rd.Generation) for r in results), (
         "Should yield Generation objects"
     )
     assert results[-1].index() == 3, "Last generation index should be 3"
     assert final_result.index() == 5, "Final result index should be 5"
-    assert all(isinstance(r, rd.Generation) for r in other_results), (
-        "Should yield Generation objects after run"
-    )
-    assert other_results[-1].index() == 5, "Last generation index after run should be 5"

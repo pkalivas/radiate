@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
 from typing import Any
 
 from radiate.radiate import _all_ops, _create_op
 
 from .._bridge import LazyRsObject
-from .._typing import AtLeastOne, RdDataType
+from .._typing import RdDataType
 from ..dsl.dtype import Float64
 
 
@@ -18,97 +17,20 @@ def _op_factory(name: str):
     return staticmethod(op)
 
 
-@dataclass(frozen=True, slots=True)
-class OpsConfig:
-    vertex: AtLeastOne[Op] | None = None
-    edge: AtLeastOne[Op] | None = None
-    output: AtLeastOne[Op] | None = None
-    leaf: AtLeastOne[Op] | None = None
-    root: AtLeastOne[Op] | None = None
-    values: dict[str, AtLeastOne[Op]] | None = None
-
-    def build_ops_map(
-        self, input_size: int, dtype: RdDataType, fill_invalid: bool = False
-    ) -> dict[str, list[Op]]:
-        def inner():
-            base = {}
-            for i in range(input_size):
-                base.setdefault("input", []).append(Op.var(i, dtype=dtype))
-                base.setdefault("leaf", []).append(Op.var(i, dtype=dtype))
-
-            if self.values is not None:
-                merged = dict(self.values) | base
-
-                result = merged | base
-                {
-                    node_type: [op.__backend__() for op in ops]
-                    for node_type, ops in map(
-                        lambda pair: (
-                            pair[0],
-                            [pair[1]] if isinstance(pair[1], Op) else list(pair[1]),
-                        ),
-                        result.items(),
-                    )
-                }
-
-            ops_map = dict(base)
-            if self.vertex is not None:
-                ops_map["vertex"] = (
-                    [self.vertex] if isinstance(self.vertex, Op) else list(self.vertex)
-                )
-            if self.edge is not None:
-                ops_map["edge"] = (
-                    [self.edge] if isinstance(self.edge, Op) else list(self.edge)
-                )
-            if self.output is not None:
-                ops_map["output"] = (
-                    [self.output] if isinstance(self.output, Op) else list(self.output)
-                )
-            if self.leaf is not None:
-                ops_map["leaf"] = (
-                    [self.leaf] if isinstance(self.leaf, Op) else list(self.leaf)
-                )
-            if self.root is not None:
-                ops_map["root"] = (
-                    [self.root] if isinstance(self.root, Op) else list(self.root)
-                )
-
-            return {
-                node_type: [op.__backend__() for op in ops]
-                for node_type, ops in ops_map.items()
-            }
-
-        ops_map = inner()
-
-        if fill_invalid:
-            if "vertex" not in ops_map:
-                ops_map["vertex"] = [
-                    op.__backend__() for op in Op.default_vertex_ops(dtype=Float64)
-                ]
-            if "edge" not in ops_map:
-                ops_map["edge"] = [
-                    op.__backend__() for op in Op.default_edge_ops(dtype=Float64)
-                ]
-            if "output" not in ops_map:
-                ops_map["output"] = [Op.linear(dtype=Float64).__backend__()]
-
-        return ops_map
-
-
 class OpBuilder:
     def __init__(self, dtype: RdDataType, **kwargs):
         self.dtype = dtype
-        self.ops_map = {}
+        self.ops = {}
 
         for key, op in kwargs.items():
             if op is not None:
                 if isinstance(op, Op):
                     op._dtype = dtype
-                    self.ops_map[key] = [op]
+                    self.ops[key] = [op]
                 elif isinstance(op, (list, tuple)):
                     for o in op:
                         o._dtype = dtype
-                    self.ops_map[key] = list(op)
+                    self.ops[key] = list(op)
 
 
 class Op(LazyRsObject):

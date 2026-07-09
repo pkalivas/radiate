@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Any, Callable
 
 from .._rd import PyEngine, PyEngineBuilder
-from .._typing import Subscriber
+from .._typing import RdDataType, Subscriber
 from ..codec import CodecBase
 from ..dsl.expr import Expr
 from ..genome import GeneType, Population
@@ -47,12 +47,12 @@ class EngineConfig[G, T]:
 
 class EngineBuilder[G, T]:
     @classmethod
-    def _default(cls, gene_type: GeneType, **kwargs) -> "EngineBuilder[G, T]":
+    def _default(cls, codec: CodecBase[G, T], **kwargs) -> "EngineBuilder[G, T]":
         defaults = EngineConfig(**kwargs)
         inst = cls.__new__(cls)
 
         inst._inputs = []
-        inst._gene_type = gene_type
+        inst._gene_type = codec.gene_type
 
         inst.set_population(defaults.population)
         inst.set_offspring_selector(defaults.offspring_selector or Select.tournament(3))
@@ -72,7 +72,7 @@ class EngineBuilder[G, T]:
         inst.set_generation(defaults.generation)
         inst.set_checkpoint_path(defaults.checkpoint_path, ignore_not_found=True)
         inst.set_fitness(defaults.fitness_func)
-        inst.set_codec(defaults.codec)
+        inst.set_codec(codec)
 
         return inst
 
@@ -84,6 +84,18 @@ class EngineBuilder[G, T]:
         input_strs = ", \n".join(repr(inp) for inp in self._inputs)
         return f"EngineBuilder(gene_type={self._gene_type}, inputs=[{input_strs}])"
 
+    @property
+    def inputs(self) -> list[EngineInput]:
+        return self._inputs
+
+    @property
+    def gene_type(self) -> GeneType:
+        return self._gene_type
+
+    @property
+    def codec(self) -> RdDataType:
+        return self.codec
+
     def build(self) -> PyEngine:
         """Build the PyEngine instance."""
         builder = PyEngineBuilder(
@@ -91,9 +103,6 @@ class EngineBuilder[G, T]:
         )
 
         return builder.build()
-
-    def inputs(self) -> list[EngineInput]:
-        return self._inputs
 
     def set_codec(self, codec: CodecBase[G, T] | None = None):
         if codec is None:

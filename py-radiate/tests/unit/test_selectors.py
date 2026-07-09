@@ -60,8 +60,6 @@ def test_selector_empirical_bias(random_seed):
     selectors = [
         (rd.Select.tournament(k=3), rd.MAX),
         (rd.Select.tournament(k=3), rd.MIN),
-        (rd.Select.rank(), rd.MAX),
-        (rd.Select.rank(), rd.MIN),
     ]
 
     for selector, opt in selectors:

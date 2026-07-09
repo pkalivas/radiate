@@ -4,6 +4,7 @@ use pyo3::{
     prelude::FromPyObjectOwned,
     types::{PyAnyMethods, PyList},
 };
+use radiate::DataType;
 use radiate_error::radiate_py_bail;
 use radiate_utils::Float;
 
@@ -19,30 +20,67 @@ pub(crate) enum FloatMatrixPair {
 }
 
 pub(crate) fn extract_regression_pair<'py>(
-    py: Python<'py>,
+    _: Python<'py>,
+    wanted_dtype: DataType,
     features: &Bound<'py, PyAny>,
     targets: &Bound<'py, PyAny>,
 ) -> PyResult<FloatMatrixPair> {
-    let both_f32 =
-        features.cast::<PyArrayDyn<f32>>().is_ok() && targets.cast::<PyArrayDyn<f32>>().is_ok();
+    if let Ok(cast_features) = features.cast::<PyArrayDyn<f32>>()
+        && let Ok(cast_targets) = targets.cast::<PyArrayDyn<f32>>()
+    {
+        let nd_features = py_object_into_2d_vec::<f32>(&cast_features)?;
+        let nd_targets = py_object_into_2d_vec::<f32>(&cast_targets)?;
 
-    if both_f32 {
-        Ok(FloatMatrixPair::F32 {
-            features: py_object_into_2d_vec::<f32>(py, features)?,
-            targets: py_object_into_2d_vec::<f32>(py, targets)?,
-        })
+        return match wanted_dtype {
+            DataType::Float32 => Ok(FloatMatrixPair::F32 {
+                features: nd_features,
+                targets: nd_targets,
+            }),
+            DataType::Float64 => Ok(FloatMatrixPair::F64 {
+                features: nd_features
+                    .into_iter()
+                    .map(|row| row.into_iter().map(|v| v as f64).collect())
+                    .collect(),
+                targets: nd_targets
+                    .into_iter()
+                    .map(|row| row.into_iter().map(|v| v as f64).collect())
+                    .collect(),
+            }),
+            _ => radiate_py_bail!(
+                "Unsupported data type for regression pair extraction: {wanted_dtype:?}"
+            ),
+        };
+    } else if let Ok(cast_features) = features.cast::<PyArrayDyn<f64>>()
+        && let Ok(cast_targets) = targets.cast::<PyArrayDyn<f64>>()
+    {
+        let nd_features = py_object_into_2d_vec::<f64>(&cast_features)?;
+        let nd_targets = py_object_into_2d_vec::<f64>(&cast_targets)?;
+
+        return match wanted_dtype {
+            DataType::Float32 => Ok(FloatMatrixPair::F32 {
+                features: nd_features
+                    .into_iter()
+                    .map(|row| row.into_iter().map(|v| v as f32).collect())
+                    .collect(),
+                targets: nd_targets
+                    .into_iter()
+                    .map(|row| row.into_iter().map(|v| v as f32).collect())
+                    .collect(),
+            }),
+            DataType::Float64 => Ok(FloatMatrixPair::F64 {
+                features: nd_features,
+                targets: nd_targets,
+            }),
+            _ => radiate_py_bail!(
+                "Unsupported data type for regression pair extraction: {wanted_dtype:?}"
+            ),
+        };
     } else {
-        Ok(FloatMatrixPair::F64 {
-            features: py_object_into_2d_vec::<f64>(py, features)?,
-            targets: py_object_into_2d_vec::<f64>(py, targets)?,
-        })
+        radiate_py_bail!("Features and targets must be either 2D NumPy arrays of f32 or f64");
     }
 }
 
-pub(crate) fn py_object_into_2d_vec<'py, F>(
-    _: Python<'py>,
-    obj: &Bound<'py, PyAny>,
-) -> PyResult<Vec<Vec<F>>>
+pub(crate) fn py_object_into_2d_vec<'py, F>(obj: &Bound<'py, PyAny>) -> PyResult<Vec<Vec<F>>>
 where
     F: Float + numpy::Element + FromPyObjectOwned<'py>,
 {

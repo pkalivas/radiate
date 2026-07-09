@@ -15,8 +15,6 @@ if TYPE_CHECKING:
 
 
 class FloatCodec[D](CodecBase[float, D], RsObject):
-    gene_type = GeneType.FLOAT
-
     @overload
     def __new__(
         cls,
@@ -247,6 +245,10 @@ class FloatCodec[D](CodecBase[float, D], RsObject):
         if not isinstance(genotype, Genotype):
             raise TypeError("genotype must be an instance of Genotype.")
         return self.__backend__().decode_py(genotype=genotype.__backend__())
+
+    @property
+    def gene_type(self) -> GeneType:
+        return GeneType.FLOAT
 
     @staticmethod
     def _scalar(

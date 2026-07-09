@@ -96,7 +96,7 @@ pub fn trend_symbol(last: f32, mean: f32) -> &'static str {
     } else if last < mean - eps {
         "↓"
     } else {
-        "→"
+        "-"
     }
 }
 

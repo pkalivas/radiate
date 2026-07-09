@@ -4,6 +4,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Sequence
 
+from radiate.codec.graph import GraphType
 from radiate.radiate import PyEngine
 
 from .._typing import AtLeastOne, Checkpoint, RdDataType, RdLossType, Subscriber
@@ -20,7 +21,7 @@ from ..codec.base import CodecBase
 from ..dsl.dtype import Float64, Int64
 from ..dsl.expr import Expr
 from ..dsl.loss import MSE
-from ..genome import Chromosome, Gene, Population
+from ..genome import Chromosome, Gene, GeneType, Population
 from ..gp import Graph, Op, Tree
 from ..operators import (
     AlterBase,
@@ -78,6 +79,7 @@ class EngineRuntime[G, T]:
 class Engine[G, T]:
     _runtime: EngineRuntime[G, T] | None
     _builder: EngineBuilder[G, T]
+    _codec: CodecBase[G, T]
 
     def __init__(
         self,
@@ -90,7 +92,8 @@ class Engine[G, T]:
             )
 
         self._runtime = None
-        self._builder = EngineBuilder._default(codec.gene_type, codec=codec, **kwargs)
+        self._builder = EngineBuilder._default(codec=codec, **kwargs)
+        self._codec = codec
 
     @staticmethod
     def float(
@@ -230,7 +233,7 @@ class Engine[G, T]:
         edge: Op | list[Op] | None = None,
         output: Op | list[Op] | None = None,
         max_nodes: int | None = None,
-        graph_type: str = "directed",
+        graph_type: GraphType = GraphType.DIRECTED,
         dtype: RdDataType = Float64,
     ) -> Engine[Op, Graph]:
         """Create a genetic engine for optimizing graph structures."""
@@ -457,8 +460,14 @@ class Engine[G, T]:
         ...     loss=rd.MAE,
         ... )
         """
+        if self._codec.gene_type not in (GeneType.GRAPH, GeneType.TREE):
+            raise ValueError(
+                "Regression is only supported for Graph and Tree gene types."
+            )
+
         self._builder.set_fitness(
             Fitness.regression(
+                self._codec.dtype(),
                 features,
                 targets=targets,
                 target_cols=target_cols,

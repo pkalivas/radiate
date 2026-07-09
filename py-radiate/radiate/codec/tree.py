@@ -11,8 +11,6 @@ from .base import CodecBase
 
 
 class TreeCodec(CodecBase[Op, Tree], RsObject):
-    gene_type = GeneType.TREE
-
     def __init__(
         self,
         shape: tuple[int, int] = (1, 1),
@@ -56,17 +54,13 @@ class TreeCodec(CodecBase[Op, Tree], RsObject):
             root=root if root is not None else Op.linear(dtype),
         )
 
-        # ops_config = OpsConfig(
-        #     vertex=vertex, leaf=leaf, root=root, values=values
-        # ).build_ops_map(input_size=input_size, fill_invalid=True)
-
         self._pyobj = PyTreeCodec(
             output_size,
             min_depth,
             max_size,
             ops={
                 key: [op.__backend__() for op in ops]
-                for key, ops in ops_map.ops_map.items()
+                for key, ops in ops_map.ops.items()
             },
         )
 
@@ -79,3 +73,7 @@ class TreeCodec(CodecBase[Op, Tree], RsObject):
         return Tree.from_rust(
             self.__backend__().decode_py(genotype=genotype.__backend__())
         )
+
+    @property
+    def gene_type(self) -> GeneType:
+        return GeneType.TREE

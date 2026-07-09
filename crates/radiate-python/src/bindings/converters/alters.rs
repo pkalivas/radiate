@@ -1,5 +1,5 @@
 use crate::{InputTransform, PyEngineInput, PyEngineInputType, PyExpr};
-use radiate::{chromosomes::NumericAllele, ops::GpFloat, *};
+use radiate::{chromosomes::NumericAllele, ops::OpFloat, *};
 use radiate_utils::{Float, Integer};
 
 type AlterConv<C> = fn(&PyEngineInput) -> RadiateResult<Alterer<C>>;
@@ -207,7 +207,7 @@ fn perm_registry() -> AlterRegistry<PermutationChromosome<usize>> {
 /// ---------------------------------------------------------------------------
 /// GRAPH REGISTRY
 /// ---------------------------------------------------------------------------
-fn graph_registry<F: GpFloat>() -> AlterRegistry<GraphChromosome<Op<F>>> {
+fn graph_registry<F: OpFloat>() -> AlterRegistry<GraphChromosome<Op<F>>> {
     AlterRegistry::new(alter_table! {
         crate::constants::components::GRAPH_CROSSOVER       => convert_graph_crossover,
 
@@ -219,7 +219,7 @@ fn graph_registry<F: GpFloat>() -> AlterRegistry<GraphChromosome<Op<F>>> {
 /// ---------------------------------------------------------------------------
 /// TREE REGISTRY
 /// ---------------------------------------------------------------------------
-fn tree_registry<F: GpFloat>() -> AlterRegistry<TreeChromosome<Op<F>>> {
+fn tree_registry<F: OpFloat>() -> AlterRegistry<TreeChromosome<Op<F>>> {
     AlterRegistry::new(alter_table! {
         crate::constants::components::TREE_CROSSOVER        => convert_tree_crossover,
 

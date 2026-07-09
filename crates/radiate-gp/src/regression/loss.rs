@@ -1,5 +1,5 @@
 use super::DataSet;
-use crate::{EvalMut, ops::GpFloat};
+use crate::{EvalMut, ops::OpFloat};
 
 #[derive(Debug, Clone, Copy)]
 pub enum Loss {
@@ -11,7 +11,7 @@ pub enum Loss {
 
 impl Loss {
     #[inline]
-    pub fn calc<F: GpFloat>(
+    pub fn calc<F: OpFloat>(
         &self,
         data_set: &DataSet<F>,
         eval: &mut impl EvalMut<[F], Vec<F>>,
@@ -33,7 +33,7 @@ impl Loss {
         mut eval_into_buf: E,
     ) -> F
     where
-        F: GpFloat,
+        F: OpFloat,
         E: FnMut(&[F], &mut [F]),
     {
         let n = F::from(data_set.len()).unwrap();

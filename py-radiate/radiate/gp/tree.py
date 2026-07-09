@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, overload
 
-from radiate._dependancies import _check_for_numpy
 from radiate.radiate import PyTree
 
 from .._bridge import RsObject
+from ..utils._normalize import _to_float_array
 
 if TYPE_CHECKING:
     from .._dependancies import numpy as np
@@ -72,13 +72,6 @@ class Tree(RsObject):
         Returns:
             list[list[float]] | list[float]: The output of the graph after evaluation.
         """
-        from ..utils._normalize import _to_float_array
-
-        if not _check_for_numpy(inputs) and not isinstance(inputs, (list, tuple)):
-            raise TypeError(
-                f"Unsupported input type: {type(inputs).__name__}. "
-                "Supported types are 1D/2D lists, NumPy arrays, Polars DataFrames/Series, and Pandas DataFrames/Series."
-            )
         eval_data = _to_float_array(inputs, columns=columns)
 
         return self.__backend__().eval(eval_data)

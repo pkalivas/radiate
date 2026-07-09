@@ -39,10 +39,11 @@ engine = (
         rd.Cross.multipoint(0.75, 2),
         rd.Mutate.uniform(0.05),
     )
+    .limit(rd.Limit.score(0))
 )
 
 
-result = engine.run(rd.Limit.score(0), ui=True)
+result = engine.run(ui=True)
 print(result)
 
 

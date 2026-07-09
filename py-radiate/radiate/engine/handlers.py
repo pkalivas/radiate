@@ -56,7 +56,7 @@ class EngineEvent(RsObject):
         else:
             raise ValueError(f"Unknown event type: {event_type_str}")
 
-    def score(self) -> float | list[float] | None:
+    def score(self) -> list[float] | None:
         """
         Get the score of the event.
         :return: The score of the event.

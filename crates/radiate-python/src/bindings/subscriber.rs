@@ -72,13 +72,7 @@ impl PyEngineEvent {
 
     pub fn score<'py>(&self, py: Python<'py>) -> PyResult<Py<PyAny>> {
         match &self.score {
-            Some(scores) => {
-                if scores.len() == 1 {
-                    scores[0].into_py_any(py)
-                } else {
-                    PyArray1::from_vec(py, scores.clone()).into_py_any(py)
-                }
-            }
+            Some(scores) => PyArray1::from_vec(py, scores.clone()).into_py_any(py),
             None => Ok(py.None()),
         }
     }

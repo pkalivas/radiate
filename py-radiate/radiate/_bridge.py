@@ -15,8 +15,6 @@ class RsObject(ABC):
     """
 
     __slots__ = ["_pyobj", "_cache", "_dtype"]
-    _pyobj: Any
-    _cache: dict[str, Any]
 
     def __new__(cls, *args, **kwargs):
         instance = super().__new__(cls)

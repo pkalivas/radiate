@@ -1,7 +1,8 @@
-use crate::primitives::Primitive;
+use crate::{DataType, primitives::Primitive};
 use num_order::{NumHash, NumOrd};
 
 pub trait Float: Primitive + num_traits::Float + NumHash + NumOrd<Self> {
+    const DTYPE: DataType;
     const THREE: Self;
     const FOUR: Self;
     const FIVE: Self;
@@ -21,7 +22,7 @@ pub trait Float: Primitive + num_traits::Float + NumHash + NumOrd<Self> {
 
 #[macro_export]
 macro_rules! impl_float_scalar {
-    ($t:ty, $eps:expr) => {
+    ($t:ty, $dtype:ident, $eps:expr) => {
         impl Primitive for $t {
             const HALF: Self = 0.5;
             const MIN: Self = <$t>::MIN;
@@ -62,6 +63,7 @@ macro_rules! impl_float_scalar {
         }
 
         impl Float for $t {
+            const DTYPE: DataType = DataType::$dtype;
             const THREE: Self = 3.0;
             const FOUR: Self = 4.0;
             const FIVE: Self = 5.0;
@@ -73,5 +75,5 @@ macro_rules! impl_float_scalar {
     };
 }
 
-impl_float_scalar!(f32, 1e-6_f32);
-impl_float_scalar!(f64, 1e-12_f64);
+impl_float_scalar!(f32, Float32, 1e-6_f32);
+impl_float_scalar!(f64, Float64, 1e-12_f64);

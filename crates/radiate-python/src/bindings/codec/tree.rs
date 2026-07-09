@@ -1,6 +1,6 @@
-use crate::{PyGenotype, PyOp, bindings::gp::PyTree};
+use crate::{PyGenotype, PyOp, Wrap, bindings::gp::PyTree};
 use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
-use radiate::{Codec, DataType, NodeType, Op, Tree, TreeCodec, dtype_names, ops::GpFloat};
+use radiate::{Codec, DataType, NodeType, Op, Tree, TreeCodec, dtype_names, ops::OpFloat};
 use radiate_error::radiate_py_bail;
 use std::collections::HashMap;
 
@@ -45,6 +45,15 @@ impl PyTreeCodec {
         .into_bound_py_any(py)
     }
 
+    pub fn dtype<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let dtype = match &self.codec {
+            PyTreeCodecInner::Float32(_) => DataType::Float32,
+            PyTreeCodecInner::Float64(_) => DataType::Float64,
+        };
+
+        Wrap(dtype).into_bound_py_any(py)
+    }
+
     #[new]
     #[pyo3(signature = (output_size=1, min_depth=1, max_size=30, ops=None, dtype=None))]
     pub fn new(
@@ -81,7 +90,7 @@ impl PyTreeCodec {
 unsafe impl Send for PyTreeCodec {}
 unsafe impl Sync for PyTreeCodec {}
 
-fn build_typed_codec<F: GpFloat>(
+fn build_typed_codec<F: OpFloat>(
     output_size: usize,
     min_depth: usize,
     max_size: usize,

@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from enum import StrEnum
 from functools import wraps
 from typing import Any, Literal, TypeVar, overload
 
-from radiate._typing import RdLossType
+from radiate._typing import RdDataType, RdLossType
 
 from .._rd import PyFitnessFn
 from ..dsl.loss import MSE
@@ -71,15 +72,25 @@ def novelty[T](
     return decorator
 
 
+class FitnessType(StrEnum):
+    CUSTOM = "custom"
+    NOVELTY = "novelty"
+    REGRESSION = "regression"
+
+
 class Fitness[T](EngineInput):
-    def __init__(self, **kwargs):
+    def __init__(self, fitness_type: FitnessType, **kwargs):
         super().__init__(input_type=EngineInputType.FitnessFunction, **kwargs)
+        self.fitness_type = fitness_type
 
     @staticmethod
     def custom(fitness_fn: Callable[[T], object], is_batch: bool = False) -> Fitness:
         if not isinstance(fitness_fn, Callable):
             raise TypeError("fitness_fn must be a callable.")
-        return Fitness(fitness=PyFitnessFn.custom(fitness_fn, is_batch=is_batch))
+        return Fitness(
+            FitnessType.CUSTOM,
+            fitness=PyFitnessFn.custom(fitness_fn, is_batch=is_batch),
+        )
 
     @staticmethod
     def novelty(
@@ -99,6 +110,7 @@ class Fitness[T](EngineInput):
             raise ValueError("Distance function must be provided for novelty search.")
 
         return Fitness(
+            FitnessType.NOVELTY,
             fitness=PyFitnessFn.novelty_search(
                 distance_fn=distance_fn.component,
                 descriptor=descriptor,
@@ -106,11 +118,12 @@ class Fitness[T](EngineInput):
                 threshold=threshold,
                 archive_size=archive_size,
                 is_batch=is_batch,
-            )
+            ),
         )
 
     @staticmethod
     def regression(
+        dtype: RdDataType,
         features: Any,
         targets: Any | None = None,
         *,
@@ -129,12 +142,14 @@ class Fitness[T](EngineInput):
         loss_str = str(loss) if loss is not None else str(MSE)
 
         return Fitness(
+            FitnessType.REGRESSION,
             fitness=PyFitnessFn.regression(
+                dtype=dtype,
                 features=x,
                 targets=y,
                 loss=loss_str,
                 is_batch=batch,
-            )
+            ),
         )
 
 
