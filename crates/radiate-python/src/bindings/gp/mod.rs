@@ -35,9 +35,9 @@ where
     // cast the array to whatever type is requested, so we need to check for
     // the correct type first
     if let Ok(np_array) = inputs.cast::<PyArray<F, Dim<IxDynImpl>>>() {
-        return run_gp_eval_array(py, output_length, &np_array, eval_row);
+        return run_gp_eval_array(py, output_length, np_array, eval_row);
     } else if let Ok(py_list) = inputs.cast::<PyList>() {
-        return run_gp_eval_list(py, output_length, &py_list, eval_row);
+        return run_gp_eval_list(py, output_length, py_list, eval_row);
     }
 
     radiate_py_bail!(format!(

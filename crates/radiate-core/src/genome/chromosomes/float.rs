@@ -105,19 +105,19 @@ impl<F: Float> BoundedGene for FloatGene<F> {
 
 impl<F: Float> NumericGene for FloatGene<F> {
     fn safe_add(&self, other: &Self) -> Self {
-        add_gene(&self, *other.allele())
+        add_gene(self, *other.allele())
     }
 
     fn safe_sub(&self, other: &Self) -> Self {
-        sub_gene(&self, *other.allele())
+        sub_gene(self, *other.allele())
     }
 
     fn safe_mul(&self, other: &Self) -> Self {
-        mul_gene(&self, *other.allele())
+        mul_gene(self, *other.allele())
     }
 
     fn safe_div(&self, other: &Self) -> Self {
-        div_gene(&self, *other.allele())
+        div_gene(self, *other.allele())
     }
 
     fn mean(&self, other: &Self) -> Self {

@@ -33,7 +33,7 @@ impl PyGraphCodec {
         max_nodes: Option<usize>,
         dtype: Option<&str>,
     ) -> PyResult<Self> {
-        let datatype = crate::dtype_from_str(&dtype.unwrap_or_else(|| dtype_names::FLOAT64.into()));
+        let datatype = crate::dtype_from_str(dtype.unwrap_or(dtype_names::FLOAT64));
 
         match datatype {
             DataType::Float32 => Ok(PyGraphCodec {

@@ -92,7 +92,6 @@ pub trait BoundedGene: Gene {
 /// A [Gene] that represents a number. This gene can be used to represent any type of number,
 /// including integers, floats, etc. Essentially, any gene that can `Add`, `Sub`, `Mul`, and `Div`
 /// can be used as a [ArithmeticGene].
-
 pub trait NumericGene:
     Gene + Add<Output = Self> + Sub<Output = Self> + Mul<Output = Self> + Div<Output = Self>
 {

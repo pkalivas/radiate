@@ -580,11 +580,11 @@ impl PyEngineBuilder {
                     .bus_executor(Executor::default())
                     .replace_strategy(GraphReplacement);
 
-                return if is_batch {
+                if is_batch {
                     Ok(Graph32(base_engine.raw_batch_fitness_fn(regression)))
                 } else {
                     Ok(Graph32(base_engine.raw_fitness_fn(regression)))
-                };
+                }
             } else {
                 radiate_py_bail!("F64 GraphCodec not supported for F32 Regression Fitness.");
             }
@@ -595,17 +595,17 @@ impl PyEngineBuilder {
                     .executor(executor)
                     .bus_executor(Executor::default());
 
-                return if is_batch {
+                if is_batch {
                     Ok(Tree32(base_engine.raw_batch_fitness_fn(regression)))
                 } else {
                     Ok(Tree32(base_engine.raw_fitness_fn(regression)))
-                };
+                }
             } else {
                 radiate_py_bail!("F64 TreeCodec not supported for F32 Regression Fitness.");
             }
         } else {
             radiate_py_bail!("Only Graph or Tree codecs are supported for regression problems");
-        };
+        }
     }
 
     fn init_regression_builder64<'py>(
@@ -628,11 +628,11 @@ impl PyEngineBuilder {
                     .bus_executor(Executor::default())
                     .replace_strategy(GraphReplacement);
 
-                return if is_batch {
+                if is_batch {
                     Ok(Graph64(base_engine.raw_batch_fitness_fn(regression)))
                 } else {
                     Ok(Graph64(base_engine.raw_fitness_fn(regression)))
-                };
+                }
             } else {
                 radiate_py_bail!("F32 GraphCodec not supported for F64 Regression Fitness.");
             }
@@ -643,17 +643,17 @@ impl PyEngineBuilder {
                     .executor(executor)
                     .bus_executor(Executor::default());
 
-                return if is_batch {
+                if is_batch {
                     Ok(Tree64(base_engine.raw_batch_fitness_fn(regression)))
                 } else {
                     Ok(Tree64(base_engine.raw_fitness_fn(regression)))
-                };
+                }
             } else {
                 radiate_py_bail!("F32 TreeCodec not supported for F64 Regression Fitness.");
             }
         } else {
             radiate_py_bail!("Only Graph or Tree codecs are supported for regression problems");
-        };
+        }
     }
 
     fn init_novelty_builder<'py>(
