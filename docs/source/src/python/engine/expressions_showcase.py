@@ -13,7 +13,9 @@ import radiate as rd
 target_species = 4.0
 rolling = int(target_species)
 
-spec_count_signal = rd.Expr.select("count.species").rolling(rolling).mean() / target_species
+spec_count_signal = (
+    rd.Expr.select("count.species").rolling(rolling).mean() / target_species
+)
 spec_dist_signal = (
     rd.Expr.select("species.distance").mean().rolling(rolling).mean() / target_species
 )

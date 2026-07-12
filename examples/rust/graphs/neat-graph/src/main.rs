@@ -26,6 +26,10 @@ fn main() {
         .raw_batch_fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
         .parallel()
+        .metrics([
+            expr::score_cv_signal(10).alias("cv"),
+            expr::score_trend_signal(10).alias("trend"),
+        ])
         .diversity(NeatDistance::new(1.0, 1.0, 3.0))
         .target_species(target_species)
         .alter(alters!(

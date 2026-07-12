@@ -13,10 +13,10 @@ pub use bit::PyBitCodec;
 pub use builder::{NumericCodecBuilder, TypedNumericCodec};
 pub use char::PyCharCodec;
 pub use float::PyFloatCodec;
-pub use graph::PyGraphCodec;
+pub use graph::{PyGraphCodec, PyGraphCodecInner};
 pub use int::PyIntCodec;
 pub use permutation::PyPermutationCodec;
-pub use tree::PyTreeCodec;
+pub use tree::{PyTreeCodec, PyTreeCodecInner};
 
 use numpy::{Element, PyArray1};
 use pyo3::{Bound, IntoPyObject, PyAny, PyResult, types::PyList};
@@ -97,56 +97,40 @@ pub(super) fn decode_genotype_to_array<'py, C, G, A>(
 where
     C: Chromosome<Gene = G>,
     G: Gene<Allele = A>,
-    A: Element + IntoPyObject<'py> + IntoPyObjectExt<'py> + Copy + Default,
+    A: Element + IntoPyObject<'py> + Copy + Default,
 {
-    // Scalar branceh: if there's only one gene with one allele, return it directly as a scalar
     if genotype.len() == 1 && genotype[0].len() == 1 {
-        let value = genotype[0].get(0).allele();
-        return Ok(value.into_py_any(py)?.into_bound(py));
+        return match genotype[0].get(0) {
+            Some(gene) => Ok(gene.allele().into_bound_py_any(py)?),
+            None => Err(pyo3::exceptions::PyValueError::new_err(
+                "Genotype has no genes",
+            )),
+        };
     }
 
-    // Single chromosome branch
     if genotype.len() == 1 {
         let chrom = &genotype[0];
-        let mut alleles = Vec::with_capacity(chrom.len());
-
-        for gene in chrom.as_slice() {
-            alleles.push(*gene.allele());
-        }
+        let allele_iter = chrom.as_slice().iter().map(|gene| *gene.allele());
 
         if use_numpy {
-            return Ok(PyArray1::from_vec(py, alleles).into_any());
+            return Ok(PyArray1::from_iter(py, allele_iter).into_any());
         }
 
-        return Ok(PyList::new(py, alleles)?.into_any());
-    }
-
-    // multi-chromosome branches
-    let mut outer = Vec::with_capacity(genotype.len());
-    for chrom in genotype.iter() {
-        let mut alleles = Vec::with_capacity(chrom.len());
-        for gene in chrom.as_slice() {
-            alleles.push(*gene.allele());
-        }
-
-        outer.push(alleles);
+        return Ok(PyList::new(py, allele_iter)?.into_any());
     }
 
     if use_numpy {
-        return Ok(PyList::new(
-            py,
-            outer
-                .into_iter()
-                .map(|chrom| PyArray1::from_vec(py, chrom).into_any()),
-        )?
-        .into_any());
+        let outer_iter = genotype.iter().map(|chrom| {
+            let allele_iter = chrom.as_slice().iter().map(|gene| *gene.allele());
+            PyArray1::from_iter(py, allele_iter)
+        });
+        return Ok(PyList::new(py, outer_iter)?.into_any());
     }
 
-    Ok(PyList::new(
-        py,
-        outer
-            .into_iter()
-            .map(|chrom| PyList::new(py, chrom).unwrap().into_any()),
-    )?
-    .into_any())
+    let outer_iter = genotype.iter().map(|chrom| {
+        let allele_iter = chrom.as_slice().iter().map(|gene| *gene.allele());
+        PyList::new(py, allele_iter).expect("Failed to create inner PyList")
+    });
+
+    Ok(PyList::new(py, outer_iter)?.into_any())
 }

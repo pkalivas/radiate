@@ -133,6 +133,10 @@ impl_into_py_species!(FloatChromosome<f64>);
 
 impl_into_py_species!(BitChromosome);
 impl_into_py_species!(CharChromosome);
-impl_into_py_species!(GraphChromosome<Op<f32>>);
-impl_into_py_species!(TreeChromosome<Op<f32>>);
 impl_into_py_species!(PermutationChromosome<usize>);
+
+impl_into_py_species!(GraphChromosome<Op<f32>>);
+impl_into_py_species!(GraphChromosome<Op<f64>>);
+
+impl_into_py_species!(TreeChromosome<Op<f32>>);
+impl_into_py_species!(TreeChromosome<Op<f64>>);

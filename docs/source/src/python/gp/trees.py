@@ -51,13 +51,11 @@ tree = codec.decode(genotype)
 # --8<-- [start:hoist_mutator]
 import radiate as rd
 
-mutator = rd.HoistMutator(rate=0.1)
 mutator = rd.Mutate.hoist(0.1)  # Using the dsl syntax for mutators
 # --8<-- [end:hoist_mutator]
 
 # --8<-- [start:tree_crossover]
 import radiate as rd
 
-crossover = rd.TreeCrossover(rate=0.1)
 crossover = rd.Cross.tree(0.1)  # Using the dsl syntax for crossover operators
 # --8<-- [end:tree_crossover]

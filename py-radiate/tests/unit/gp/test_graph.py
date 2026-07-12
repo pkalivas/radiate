@@ -1,4 +1,6 @@
+import numpy as np
 import pytest
+
 import radiate as rd
 
 
@@ -14,9 +16,11 @@ def test_gp_graph_creation():
 
     graph = codec.decode(codec.encode())
 
+    inputs = np.array([[1.0, 2.0]])
+
     assert graph is not None
     assert isinstance(graph, rd.Graph)
-    assert graph.eval([[1.0, 2.0]]) is not None
+    assert graph.eval(inputs) is not None
 
 
 @pytest.mark.unit
@@ -32,31 +36,26 @@ def test_gp_graph_eval():
 
     graph = codec.decode(codec.encode())
 
-    single_result = graph.eval([1.0, 2.0, 3.0])
+    single_result = graph.eval(np.array([[1.0, 2.0, 3.0]]))
 
-    assert isinstance(single_result, list)
-    assert len(single_result) == 1
-    assert isinstance(single_result[0], float)
+    assert isinstance(single_result, np.ndarray)
+    assert single_result.shape[0] == 1
+    assert isinstance(single_result[0], np.ndarray)
 
     multi_result = graph.eval(
-        [
-            [1.0, 2.0, 3.0],
-            [4.0, 5.0, 6.0],
-            [7.0, 8.0, 9.0],
-        ]
+        np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]], dtype=float)
     )
 
-    assert isinstance(multi_result, list)
-    assert len(multi_result) == 3
-    assert all(isinstance(r, list) for r in multi_result)
-    assert all(len(r) == 1 for r in multi_result)
-    assert all(isinstance(r[0], float) for r in multi_result)
+    assert isinstance(multi_result, np.ndarray)
+    assert multi_result.shape[0] == 3
+    assert isinstance(multi_result[0], np.ndarray)
+    assert multi_result.shape[1] == 1  # Ensure the output shape is correct
 
 
 @pytest.mark.integration
 def test_graph_from_json(graph_simple_2x1):
     """Test GP Graph creation from JSON."""
-    initial_eval = graph_simple_2x1.eval([[1.0, 2.0]])
+    initial_eval = graph_simple_2x1.eval(np.array([[1.0, 2.0]]))
     json_data = graph_simple_2x1.to_json()
 
     graph = rd.Graph.from_json(json_data)

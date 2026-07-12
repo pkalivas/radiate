@@ -33,7 +33,8 @@ codec = rd.GraphCodec.directed(
 # dataset. Optionally, we can provide a loss function as well - the default is mean squared error (MSE).
 # The last argument is whether to use batch evaluation or not - the default is False. This has minimal impact on performance.
 loss = rd.MSE  # Options are: rd.MSE, rd.MAE, rd.XEnt (CrossEntropy), rd.Diff.
-fitness_func = rd.Regression(inputs, answers, loss=loss, batch=False)
+dtype = rd.Float64
+fitness_func = rd.Fitness.regression(dtype, inputs, answers, loss=loss, batch=False)
 
 engine = (
     rd.Engine(codec)
@@ -56,8 +57,8 @@ result = engine.run(log=True)
 # --8<-- [end:graph_regression]
 
 # --8<-- [start:dataframe_regression]
-import radiate as rd
 import polars as pl
+import radiate as rd
 
 rd.random.seed(518)
 

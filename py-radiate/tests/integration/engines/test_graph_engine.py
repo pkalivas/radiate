@@ -1,5 +1,6 @@
-import radiate as rd
 import pytest
+
+import radiate as rd
 
 
 @pytest.mark.integration
@@ -54,9 +55,10 @@ def test_engine_graph_regression_with_speciation(
             rd.Mutate.op(0.07, 0.05),
             rd.Mutate.graph(0.1, 0.1),
         )
+        .limit(rd.Limit.score(0.1), rd.Limit.generations(500))
     )
 
-    result = engine.run(rd.Limit.score(0.1), rd.Limit.generations(500))
+    result = engine.run()
 
     # Testing in multithreaded mode can lead to slightly different results so we
     # relax the assertion a bit by allowing a few # of species
@@ -150,9 +152,10 @@ def test_engine_graph_recurrent_class_acc(memory_dataset, random_seed):
             rd.Mutate.op(0.1, 0.05),
             rd.Mutate.graph(0.05, 0.05),
         )
+        .limit(rd.Limit.score(0.01), rd.Limit.generations(500))
     )
 
-    result = engine.run(rd.Limit.score(0.01), rd.Limit.generations(500))
+    result = engine.run()
 
     assert result.score()[0] < 0.01
     assert result.index() <= 500

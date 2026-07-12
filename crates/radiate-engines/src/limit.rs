@@ -15,8 +15,9 @@
 
 use crate::{EvolutionContext, Generation, generation::GenerationView, runtime::RuntimeLimit};
 use radiate_core::{
-    AnyValue, Chromosome, Engine, Evaluate, Expr, Metric, Objective, Optimize, Score,
+    AnyValue, Chromosome, Engine, Metric, Objective, Optimize, Score,
     error::RadiateResult,
+    rate::{Evaluate, Expr},
 };
 use radiate_error::radiate_bail;
 use std::{collections::VecDeque, fmt::Debug, sync::Arc, time::Duration};

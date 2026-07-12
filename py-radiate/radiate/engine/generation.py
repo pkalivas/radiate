@@ -2,14 +2,13 @@ from datetime import timedelta
 
 from radiate.radiate import PyGeneration
 
-from radiate.genome.ecosystem import Ecosystem
-from radiate.genome.species import Species
-from radiate.genome.population import Population
-
-from radiate._bridge.wrapper import RsObject
-
-from .metrics import MetricSet
+from .._bridge import RsObject
+from ..genome import GeneType
+from ..genome.ecosystem import Ecosystem
+from ..genome.population import Population
+from ..genome.species import Species
 from .front import Front
+from .metrics import MetricSet
 
 
 class Generation[G, T](RsObject):
@@ -31,7 +30,6 @@ class Generation[G, T](RsObject):
     def to_pickle(self) -> bytes:
         """
         Serialize the generation to a pickle byte string.
-        :param python: The Python interpreter to use for serialization.
         :return: The pickle byte string representation of the generation.
         """
         return self.__backend__().to_pickle()
@@ -55,6 +53,13 @@ class Generation[G, T](RsObject):
 
         return Generation.from_rust(PyGeneration.from_pickle(pickle_bytes))
 
+    def gene_type(self) -> "GeneType":
+        """
+        Get the gene type of the generation.
+        :return: The gene type of the generation.
+        """
+        return GeneType.from_str(self.__backend__().gene_type())
+
     def score(self) -> list[float]:
         """
         Get the fitness of the generation.
@@ -77,8 +82,9 @@ class Generation[G, T](RsObject):
 
         def _get_value():
             from radiate.radiate import PyGraph, PyTree
-            from ..gp.tree import Tree
+
             from ..gp.graph import Graph
+            from ..gp.tree import Tree
 
             val = self.__backend__().value()
 

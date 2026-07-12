@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from typing import overload, Sequence, Any
-
-from radiate.genome.chromosome import Chromosome
-from radiate.genome.gene import Gene
-from .base import CodecBase
+from typing import Any, Sequence, overload
 
 from radiate.radiate import PyCharCodec
-from radiate.genome import Genotype, GeneType
-from radiate._bridge.wrapper import RsObject
-from radiate._typing import AtLeastOne
+
+from .._bridge import RsObject
+from .._typing import AtLeastOne
+from ..genome import GeneType, Genotype
+from ..genome.chromosome import Chromosome
+from ..genome.gene import Gene
+from .base import CodecBase
 
 
 def _normalize_char_set(char_set: str | list[str] | set[str] | None) -> str | None:
@@ -26,8 +26,6 @@ def _normalize_char_set(char_set: str | list[str] | set[str] | None) -> str | No
 
 
 class CharCodec[D](CodecBase[str, D], RsObject):
-    gene_type = GeneType.CHAR
-
     @overload
     def __new__(
         cls,
@@ -69,7 +67,7 @@ class CharCodec[D](CodecBase[str, D], RsObject):
                     length=shape, char_set=_normalize_char_set(char_set)
                 )
             elif isinstance(shape, (tuple, list)):
-                self._pyobj = self.__matrix(
+                self._pyobj = self._matrix(
                     shape=shape,
                     char_set=set(char_set) if char_set is not None else None,
                 )
@@ -78,9 +76,9 @@ class CharCodec[D](CodecBase[str, D], RsObject):
                     "Shape must be an int, tuple of ints, or list of ints."
                 )
         elif genes is not None:
-            self._pyobj = self.__from_genes(genes=genes)
+            self._pyobj = self._from_genes(genes=genes)
         elif chromosomes is not None:
-            self._pyobj = self.__from_chromosomes(chromosomes=chromosomes)
+            self._pyobj = self._from_chromosomes(chromosomes=chromosomes)
         else:
             raise ValueError("Shape must be provided.")
 
@@ -101,16 +99,13 @@ class CharCodec[D](CodecBase[str, D], RsObject):
             raise TypeError("genotype must be an instance of Genotype.")
         return self.__backend__().decode_py(genotype=genotype.__backend__())
 
+    @property
+    def gene_type(self) -> GeneType:
+        return GeneType.CHAR
+
     @staticmethod
-    def __from_genes(genes: AtLeastOne[Gene[str]]) -> CharCodec[list[str]]:
-        """
-        Create a codec for a single chromosome with specified genes.
-        Args:
-            genes: A list or tuple of Gene instances.
-        Returns:
-            A new CharCodec instance with the specified genes.
-        """
-        from radiate.genome import GeneType
+    def _from_genes(genes: AtLeastOne[Gene[str]]) -> CharCodec[list[str]]:
+        from ..genome import GeneType
 
         if not isinstance(genes, (list, tuple)):
             raise TypeError("genes must be a list or tuple of Gene instances.")
@@ -120,17 +115,10 @@ class CharCodec[D](CodecBase[str, D], RsObject):
         return PyCharCodec.from_genes(list(map(lambda g: g.__backend__(), genes)))
 
     @staticmethod
-    def __from_chromosomes(
+    def _from_chromosomes(
         chromosomes: AtLeastOne[Chromosome[str]],
     ) -> CharCodec[list[list[str]]]:
-        """
-        Create a codec for multiple chromosomes.
-        Args:
-            chromosomes: A list or tuple of Chromosome instances.
-        Returns:
-            A new PyCharCodec instance with the specified chromosomes.
-        """
-        from radiate.genome import GeneType
+        from ..genome import GeneType
 
         if not isinstance(chromosomes, (list, tuple)):
             raise TypeError(
@@ -146,24 +134,10 @@ class CharCodec[D](CodecBase[str, D], RsObject):
         )
 
     @staticmethod
-    def __matrix(
+    def _matrix(
         shape: AtLeastOne[int],
         char_set: set[str] | None = None,
     ) -> PyCharCodec:
-        """
-        Initialize the char codec with number of chromosomes and value bounds.
-        Args:
-            shape: A list of integers specifying the lengths of each chromosome.
-            char_set: A string or list of strings representing the character set.
-        Returns:
-            A new PyCharCodec instance with matrix configuration.
-
-        Example
-        --------
-        >>> rd.CharCodec.matrix(shape=[5, 5], char_set="01")
-        CharCodec(...)
-        """
-
         if isinstance(shape, tuple):
             if len(shape) != 2:
                 raise ValueError("Shape must be a tuple of (rows, cols).")

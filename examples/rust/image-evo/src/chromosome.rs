@@ -1,6 +1,6 @@
 use super::polygon::*;
 use image::{Rgba, RgbaImage};
-use radiate::*;
+use radiate::{chromosomes::NumericGene, *};
 use std::ops::{Add, Div, Mul, Sub};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -48,7 +48,7 @@ impl Gene for ImageGene {
     }
 }
 
-impl ArithmeticGene for ImageGene {
+impl NumericGene for ImageGene {
     fn mean(&self, other: &Self) -> Self {
         Self {
             allele: self.allele.mean(&other.allele),

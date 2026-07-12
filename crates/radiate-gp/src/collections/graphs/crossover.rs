@@ -1,22 +1,23 @@
 use crate::collections::GraphChromosome;
 use crate::node::{Node, NodeExt};
-use radiate_core::{AlterContext, AlterResult, Crossover, RdRand, random_provider};
-use radiate_core::{Rate, genome::*};
+use radiate_core::genome::*;
+use radiate_core::{AlterContext, AlterResult, Crossover, Expr, RateSet, RdRand, random_provider};
 use std::cmp::Ordering;
 use std::fmt::Debug;
 
 const NUM_PARENTS: usize = 2;
+const PARENT_RATE: &str = "crossover.graph.rate.parent";
 
 pub struct GraphCrossover {
-    rate: Rate,
-    parent_node_rate: f32,
+    rate: Expr,
+    parent_node_rate: Expr,
 }
 
 impl GraphCrossover {
-    pub fn new(rate: impl Into<Rate>, crossover_parent_node_rate: f32) -> Self {
+    pub fn new(rate: impl Into<Expr>, crossover_parent_node_rate: impl Into<Expr>) -> Self {
         GraphCrossover {
             rate: rate.into(),
-            parent_node_rate: crossover_parent_node_rate,
+            parent_node_rate: crossover_parent_node_rate.into(),
         }
     }
 }
@@ -25,8 +26,8 @@ impl<T> Crossover<GraphChromosome<T>> for GraphCrossover
 where
     T: Clone + PartialEq + Debug,
 {
-    fn rate(&self) -> Rate {
-        self.rate.clone()
+    fn rates(&self) -> RateSet {
+        RateSet::new(self.rate.clone()).push(self.parent_node_rate.clone().alias(PARENT_RATE))
     }
 
     #[inline]
@@ -40,6 +41,7 @@ where
             return AlterResult::empty();
         }
 
+        let parent_rate = ctx.internal_rate(0);
         if let Some((parent_one, parent_two)) = population.get_pair_mut(indexes[0], indexes[1]) {
             let is_speciated = !parent_one.species().is_empty() && !parent_two.species().is_empty();
             let num_crosses = {
@@ -52,9 +54,9 @@ where
                     let chromo_two = geno_two.get(chromo_index).unwrap();
 
                     if is_speciated {
-                        crossover_speciated(chromo_one, chromo_two, self.parent_node_rate, rand)
+                        crossover_speciated(chromo_one, chromo_two, parent_rate, rand)
                     } else {
-                        crossover_uniform(chromo_one, chromo_two, self.parent_node_rate, rand)
+                        crossover_uniform(chromo_one, chromo_two, parent_rate, rand)
                     }
                 })
             };
@@ -85,17 +87,19 @@ where
         let node_one = chromo_one.get_mut(i);
         let node_two = chromo_two.get(i);
 
-        if node_one.arity() != node_two.arity() {
-            continue;
-        }
+        if let Some((node_one, node_two)) = node_one.zip(node_two) {
+            if node_one.arity() != node_two.arity() {
+                continue;
+            }
 
-        if !rand.bool(rate) {
-            continue;
-        }
+            if !rand.bool(rate) {
+                continue;
+            }
 
-        if node_one.value() != node_two.value() {
-            node_one.set_value(node_two.value().clone());
-            crosses += 1;
+            if node_one.value() != node_two.value() {
+                node_one.set_value(node_two.value().clone());
+                crosses += 1;
+            }
         }
     }
 
@@ -118,15 +122,20 @@ where
         let gene_one = chromo_one.get(ia);
         let gene_two = chromo_two.get(ib);
 
+        let Some((gene_one, gene_two)) = gene_one.zip(gene_two) else {
+            break;
+        };
+
         match gene_one.innovation().cmp(&gene_two.innovation()) {
             Ordering::Equal => {
                 if rand.bool(rate) {
-                    let node_two = chromo_two.get(ib);
                     let node_one = chromo_one.get_mut(ia);
 
-                    if node_one.arity() == node_two.arity() && node_one.value() != node_two.value()
+                    if let Some(node_one) = node_one
+                        && node_one.arity() == gene_two.arity()
+                        && node_one.value() != gene_two.value()
                     {
-                        node_one.set_value(node_two.value().clone());
+                        node_one.set_value(gene_two.value().clone());
                         crosses += 1;
                     }
                 }

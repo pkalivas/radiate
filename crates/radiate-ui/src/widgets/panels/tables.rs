@@ -1,10 +1,10 @@
 use crate::state::{AppState, AppTableState, Pane};
 use crate::widgets::AppWidget;
 use radiate_engines::stats::TagType;
-use radiate_engines::{Chromosome, MetricSet, Species, metric_names};
+use radiate_engines::{Chromosome, MetricSet, Objective, Optimize, Species, metric_names};
 use radiate_engines::{Metric, stats::fmt_duration};
 use ratatui::buffer::Buffer;
-use ratatui::text::Line;
+use ratatui::text::{Line, Span};
 use ratatui::widgets::StatefulWidget;
 use ratatui::widgets::{Scrollbar, ScrollbarOrientation, ScrollbarState};
 use ratatui::{
@@ -14,19 +14,10 @@ use ratatui::{
 };
 use std::iter::{once, repeat_n};
 
-pub const STAT_HEADER_CELLS: [&str; 6] = ["Metric", "Last", "Min", "Max", "μ (mean)", "Count"];
-pub const TIME_HEADER_CELLS: [&str; 5] = ["Metric", "Min", "Max", "μ (mean)", "Total"];
-pub const SPECIES_HEADER_CELLS: [&str; 6] =
-    ["ID", "Age", "Size", "Gen. Stag", "Raw Score", "Adj. Score"];
-pub const DIST_HEADER_CELLS: [&str; 7] = [
-    "Metric",
-    "Min",
-    "Max",
-    "μ (mean)",
-    "Std Dev",
-    "Var",
-    "Count",
-];
+pub const STAT_HEADER_CELLS: [&str; 6] = ["Metric", "Last", "Min", "Max", "Mean", "N"];
+pub const TIME_HEADER_CELLS: [&str; 5] = ["Metric", "Total", "Mean", "Last", ""];
+pub const SPECIES_HEADER_CELLS: [&str; 7] = ["ID", "Age", "Size", "Stag", "Raw", "Adj.", "Δ"];
+pub const DIST_HEADER_CELLS: [&str; 7] = ["Metric", "Std Dev", "Min", "Max", "Mean", "Var", "N"];
 
 // --- Metric table ---
 
@@ -55,11 +46,13 @@ impl MetricTableKind {
 
     fn widths(&self) -> Vec<Constraint> {
         match self {
-            Self::Time => vec![Constraint::Fill(1); 5],
-            Self::Stats => once(Constraint::Length(20))
+            Self::Time => once(Constraint::Length(25))
+                .chain(repeat_n(Constraint::Fill(1), 4))
+                .collect(),
+            Self::Stats => once(Constraint::Length(25))
                 .chain(repeat_n(Constraint::Fill(1), 5))
                 .collect(),
-            Self::Distribution => once(Constraint::Length(20))
+            Self::Distribution => once(Constraint::Length(25))
                 .chain(repeat_n(Constraint::Fill(1), 6))
                 .collect(),
         }
@@ -72,9 +65,16 @@ impl MetricTableKind {
         }
     }
 
-    fn build_rows<'a>(&self, items: impl Iterator<Item = &'a Metric>) -> Vec<Row<'a>> {
+    fn build_rows<'a>(
+        &self,
+        items: impl Iterator<Item = &'a Metric>,
+        area_width: usize,
+    ) -> Vec<Row<'a>> {
         match self {
-            Self::Time => metric_to_time_rows(items).collect(),
+            Self::Time => {
+                let v = items.collect::<Vec<_>>();
+                metric_to_time_rows(&v, area_width)
+            }
             Self::Stats => metrics_into_stat_rows(items).collect(),
             Self::Distribution => metrics_into_dist_rows(items).collect(),
         }
@@ -123,14 +123,21 @@ impl<C: Chromosome> AppWidget<C> for MetricTableWidget {
         let focused = state.nav.is_pane_focused(Pane::List);
         let border_style = crate::styles::panel_block(focused);
 
-        let rows = self.kind.build_rows(items.iter().copied());
+        let rows = self
+            .kind
+            .build_rows(items.iter().copied(), area.width as usize);
 
         let table = Table::default()
             .block(border_style)
             .header(header_row(self.kind.headers()))
             .rows(striped_rows(rows))
-            .row_highlight_style(crate::styles::selected_item_style())
+            .column_spacing(1)
+            .style(Color::White)
+            .row_highlight_style(Style::new().on_black().bold())
+            .column_highlight_style(Color::Gray)
+            .cell_highlight_style(Style::new().reversed().yellow())
             .highlight_spacing(ratatui::widgets::HighlightSpacing::Always)
+            .highlight_symbol(Span::styled("▶ ", Style::default().fg(Color::LightGreen)))
             .widths(self.kind.widths());
 
         match self.kind {
@@ -167,14 +174,23 @@ impl<C: Chromosome> AppWidget<C> for SpeciesTableWidget {
         let obj_index = state.evo.pareto.objective_index;
         let generation = state.evo.index;
         let border_style = crate::styles::panel_block(state.nav.is_pane_focused(Pane::List));
-        let rows = species_into_rows(obj_index, generation, items);
+        let is_minimize = matches!(
+            &state.evo.pareto.objective,
+            Objective::Single(Optimize::Minimize)
+        );
+        let rows = species_into_rows(obj_index, generation, is_minimize, items);
 
         let table = Table::default()
             .block(border_style)
             .header(header_row(&SPECIES_HEADER_CELLS))
+            .column_spacing(1)
+            .style(Color::White)
             .rows(striped_rows(rows))
-            .row_highlight_style(crate::styles::selected_item_style())
+            .row_highlight_style(Style::new().on_black().bold())
+            .column_highlight_style(Color::Gray)
+            .cell_highlight_style(Style::new().reversed().yellow())
             .highlight_spacing(ratatui::widgets::HighlightSpacing::Always)
+            .highlight_symbol(Span::styled("▶ ", Style::default().fg(Color::LightGreen)))
             .widths(
                 (0..SPECIES_HEADER_CELLS.len())
                     .map(|_| Constraint::Fill(1))
@@ -187,7 +203,7 @@ impl<C: Chromosome> AppWidget<C> for SpeciesTableWidget {
 
 // --- Shared helpers ---
 
-fn render_scrollable_table<T>(
+pub(super) fn render_scrollable_table<T>(
     buf: &mut Buffer,
     area: Rect,
     table: Table,
@@ -195,6 +211,9 @@ fn render_scrollable_table<T>(
 ) {
     let [tbl, scroll] =
         Layout::horizontal([Constraint::Fill(1), Constraint::Length(1)]).areas(area);
+
+    // 2 border rows + 1 header row
+    state.visible_rows = (tbl.height as usize).saturating_sub(3).max(1);
 
     StatefulWidget::render(&table, tbl, buf, &mut state.state);
 
@@ -221,26 +240,58 @@ pub fn tagged_metrics<'a, C: Chromosome>(
         .iter_tagged(tag)
         .filter(|m| state.metric_matches_search(m))
         .collect::<Vec<_>>();
-    items.sort_unstable_by(|a, b| a.name().cmp(&b.name()));
+    items.sort_unstable_by(|a, b| a.name().cmp(b.name()));
     items
 }
 
 // --- Row builders ---
 
-fn metric_to_time_rows<'a>(
-    metrics: impl Iterator<Item = &'a Metric>,
-) -> impl Iterator<Item = Row<'a>> {
-    metrics.filter_map(|m| {
-        m.times().map(|time| {
-            Row::new(vec![
-                Cell::from(m.name().to_string()),
-                Cell::from(fmt_duration(time.min())),
-                Cell::from(fmt_duration(time.max())),
-                Cell::from(fmt_duration(time.mean())),
-                Cell::from(fmt_duration(time.sum())),
-            ])
+fn metric_to_time_rows<'a>(metrics: &[&'a Metric], area_width: usize) -> Vec<Row<'a>> {
+    let max_nanos = metrics
+        .iter()
+        .filter_map(|m| m.times().map(|t| t.sum().as_nanos()))
+        .fold(0u128, u128::max);
+    let total_times = metrics
+        .iter()
+        .filter_map(|m| m.times().map(|t| t.last().as_nanos()))
+        .sum::<u128>();
+
+    metrics
+        .iter()
+        .filter_map(|m| {
+            m.times().map(|time| {
+                let total = time.sum();
+                let ratio = if max_nanos > 0 {
+                    (total.as_nanos() as f32 / max_nanos as f32).clamp(0.0, 1.0)
+                } else {
+                    0.0
+                };
+
+                let a = if total_times > 0 {
+                    (time.last().as_nanos() as f32 / total_times as f32).clamp(0.0, 1.0)
+                } else {
+                    0.0
+                };
+
+                let cell_width = area_width.saturating_sub(4 * 14);
+                let bar = Span::styled(
+                    crate::styles::delta_bar(a, 1.0, cell_width),
+                    Style::default().fg(crate::styles::sentiment_color(1.0 - ratio, 0.2, 0.6)),
+                );
+
+                Row::new(vec![
+                    Cell::from(m.name().to_string()),
+                    Cell::from(Span::styled(
+                        fmt_duration(total),
+                        Style::default().fg(crate::styles::sentiment_color(1.0 - ratio, 0.2, 0.6)),
+                    )),
+                    Cell::from(fmt_duration(time.mean())),
+                    Cell::from(fmt_duration(time.last())),
+                    Cell::from(bar),
+                ])
+            })
         })
-    })
+        .collect()
 }
 
 fn metrics_into_stat_rows<'a>(
@@ -248,16 +299,33 @@ fn metrics_into_stat_rows<'a>(
 ) -> impl Iterator<Item = Row<'a>> {
     metrics.filter_map(|m| {
         m.stats().map(|stat| {
+            let last = stat.last();
+            let mean = stat.mean();
+            let color = crate::styles::trend_color(last, mean);
+            let symbol = crate::styles::trend_symbol(last, mean);
             Row::new(vec![
                 Cell::from(Line::from(m.name().to_string())),
-                Cell::from(format!("{:.2}", stat.last())),
+                Cell::from(Span::styled(
+                    format!("{} {:.2}", symbol, last),
+                    Style::default().fg(color),
+                )),
                 Cell::from(format!("{:.2}", stat.min())),
                 Cell::from(format!("{:.2}", stat.max())),
-                Cell::from(format!("{:.2}", stat.mean())),
+                Cell::from(format!("{:.2}", mean)),
                 Cell::from(format!("{}", stat.count())),
             ])
         })
     })
+}
+
+#[allow(dead_code)]
+fn position_spark(last: f32, min: f32, max: f32) -> char {
+    let range = max - min;
+    if range <= f32::EPSILON {
+        return crate::styles::SPARK_CHARS[3];
+    }
+    let ratio = ((last - min) / range).clamp(0.0, 1.0);
+    crate::styles::SPARK_CHARS[(ratio * 7.0).round() as usize]
 }
 
 fn metrics_into_dist_rows<'a>(
@@ -265,12 +333,23 @@ fn metrics_into_dist_rows<'a>(
 ) -> impl Iterator<Item = Row<'a>> {
     metrics.filter_map(|m| {
         m.distributions().map(|stat| {
+            let mean = stat.mean();
+            let stddev = stat.stddev();
+            let cv = if mean.abs() > f32::EPSILON {
+                (stddev / mean.abs()).clamp(0.0, 1.0)
+            } else {
+                0.0
+            };
+            let stddev_color = crate::styles::sentiment_color(cv, 0.1, 0.3);
             Row::new(vec![
                 Cell::from(Line::from(m.name().to_string())),
+                Cell::from(Span::styled(
+                    format!("{:.2}", stddev),
+                    Style::default().fg(stddev_color),
+                )),
                 Cell::from(format!("{:.2}", stat.min())),
                 Cell::from(format!("{:.2}", stat.max())),
-                Cell::from(format!("{:.2}", stat.mean())),
-                Cell::from(format!("{:.2}", stat.stddev())),
+                Cell::from(format!("{:.2}", mean)),
                 Cell::from(format!("{:.2}", stat.var())),
                 Cell::from(format!("{}", stat.count())),
             ])
@@ -281,40 +360,78 @@ fn metrics_into_dist_rows<'a>(
 fn species_into_rows<'a, C: Chromosome>(
     obj_index: usize,
     generation: usize,
+    is_minimize: bool,
     species: &[Species<C>],
+) -> Vec<Row<'a>> {
+    let max_adj = species
+        .iter()
+        .filter_map(|s| s.adjusted_score.as_ref().map(|v| v[obj_index]))
+        .fold(0.0_f32, f32::max);
+    let min_adj = species
+        .iter()
+        .filter_map(|s| s.adjusted_score.as_ref().map(|v| v[obj_index]))
+        .fold(f32::INFINITY, f32::min);
+
+    species
+        .iter()
+        .map(move |s| {
+            let stag = s.stagnation();
+            let adj = s
+                .adjusted_score
+                .as_ref()
+                .map(|v| v[obj_index])
+                .unwrap_or(0.0);
+            let adj_ratio = if is_minimize {
+                if adj > min_adj + f32::EPSILON {
+                    min_adj / adj
+                } else {
+                    1.0
+                }
+            } else if max_adj > 0.0 {
+                adj / max_adj
+            } else {
+                0.0
+            };
+            let raw = s.tracker.best.as_ref().map(|v| v[obj_index]).unwrap_or(0.0);
+
+            Row::new(vec![
+                Cell::from(format!("{}", s.id.as_ref())),
+                Cell::from(format!("{}", s.age(generation))),
+                Cell::from(format!("{}", s.size)),
+                Cell::from(Span::styled(
+                    format!("{}", stag),
+                    Style::default().fg(crate::styles::stagnation_color(stag)),
+                )),
+                Cell::from(format!("{:.4}", raw)),
+                Cell::from(Line::from(vec![Span::styled(
+                    format!("{:.4} ", adj),
+                    Style::default().fg(crate::styles::sentiment_color(adj_ratio, 0.1, 0.3)),
+                )])),
+                Cell::from(Line::from(vec![Span::styled(
+                    format!(
+                        " {}{:.4}",
+                        if adj >= raw { "↑" } else { "↓" },
+                        (adj - raw).abs()
+                    ),
+                    Style::default().fg({
+                        let delta = (adj - raw).abs();
+                        let max_delta = (max_adj - min_adj).abs().max(f32::EPSILON);
+                        crate::styles::sentiment_color(delta / max_delta, 0.1, 0.3)
+                    }),
+                )])),
+            ])
+        })
+        .collect()
+}
+
+pub(super) fn striped_rows<'a>(
+    rows: impl IntoIterator<Item = Row<'a>>,
 ) -> impl Iterator<Item = Row<'a>> {
-    species.iter().map(move |s| {
-        Row::new(vec![
-            Cell::from(format!("{}", s.id.as_ref())),
-            Cell::from(format!("{}", s.age(generation))),
-            Cell::from(format!("{}", s.size)),
-            Cell::from(format!("{}", s.stagnation())),
-            Cell::from(format!(
-                "{:.4}",
-                s.tracker
-                    .best
-                    .as_ref()
-                    .map(|vals| vals[obj_index])
-                    .unwrap_or_default()
-            )),
-            Cell::from(format!(
-                "{:.4}",
-                s.adjusted_score
-                    .as_ref()
-                    .map(|vals| vals[obj_index])
-                    .unwrap_or_default()
-            )),
-        ])
-    })
-}
-
-fn striped_rows<'a>(rows: impl IntoIterator<Item = Row<'a>>) -> impl Iterator<Item = Row<'a>> {
     rows.into_iter()
-        .enumerate()
-        .map(|(i, row)| row.style(crate::styles::alternating_row_style(i)))
+        .map(|row| row.style(crate::styles::table_row_style()))
 }
 
-fn header_row<'a>(cols: &'a [&str]) -> Row<'a> {
+pub(super) fn header_row<'a>(cols: &'a [&str]) -> Row<'a> {
     Row::new(cols.iter().copied().map(Cell::from))
         .height(1)
         .style(Style::default().bold().underlined().fg(Color::White))

@@ -1,7 +1,7 @@
 use super::PyCodec;
-use crate::{PyAnyObject, PyGenotype};
-use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, pyclass, pymethods};
-use radiate::{BitChromosome, Codec, Genotype};
+use crate::{PyAnyObject, PyGenotype, Wrap};
+use pyo3::{Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods};
+use radiate::{BitChromosome, Codec, DataType, Genotype};
 
 #[pyclass(from_py_object)]
 #[derive(Clone)]
@@ -23,6 +23,10 @@ impl PyBitCodec {
         self.codec
             .decode_with_py(py, &genotype.clone().into())
             .into_bound_py_any(py)
+    }
+
+    pub fn dtype<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        Wrap(DataType::Boolean).into_bound_py_any(py)
     }
 
     #[staticmethod]

@@ -1,6 +1,6 @@
-import radiate as rd
-import polars as pl
 import matplotlib.pyplot as plt
+import polars as pl
+import radiate as rd
 
 
 def your_fitness_func(x):
@@ -101,11 +101,12 @@ engine = (
     rd.Engine.float(2, init_range=(0.0, 1.0))  # configure your engine as normal
     .fitness(your_fitness_func)
     .subscribe(collector)  # Subscribe the MetricCollector to the engine
+    .limit(rd.Limit.generations(100))  # Set a limit for the run
     # ... other parameters ...
 )
 
 # Run the engine for 100 generations
-engine.run(rd.Limit.generations(100))
+engine.run()
 
 # After the run, you can access the collected metrics
 # Convert collected metric sets to a df where each row is a single metric (includes all collected metrics).
@@ -115,5 +116,5 @@ df = collector.to_polars(lazy=False)  # optional lazy arg - defaults to False
 df = collector.to_pandas()
 
 # Plot specific metrics to a matplotlib line plot
-collector.plot("scores.best", "rate.diversity")
+collector.plot("scores.best", "pct.diversity")
 # --8<-- [end:metric_collector]

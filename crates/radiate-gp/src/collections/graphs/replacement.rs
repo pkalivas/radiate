@@ -34,4 +34,19 @@ where
                 .collect::<Vec<GraphChromosome<T>>>(),
         )
     }
+
+    fn replace_at(
+        &self,
+        index: usize,
+        population: &Population<GraphChromosome<T>>,
+        _: Arc<dyn Fn() -> Genotype<GraphChromosome<T>> + Send + Sync>,
+    ) -> Genotype<GraphChromosome<T>> {
+        Genotype::from(
+            population[index]
+                .genotype()
+                .iter()
+                .map(|chromosome| chromosome.new_instance(None))
+                .collect::<Vec<GraphChromosome<T>>>(),
+        )
+    }
 }

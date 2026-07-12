@@ -1,5 +1,6 @@
-from radiate.radiate import PyRandomProvider
 from typing import Any
+
+from radiate.radiate import PyRandomProvider
 
 
 class RandomProvider:

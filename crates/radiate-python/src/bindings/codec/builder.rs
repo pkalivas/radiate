@@ -262,7 +262,6 @@ where
             })
             .unwrap_or(val_range.clone());
         let lengths = self.shape.clone();
-        let cloned_lengths = lengths.clone();
         let use_numpy = self.use_numpy;
 
         if let Some(genes) = &self.genes {
@@ -291,7 +290,7 @@ where
             PyCodec::new()
                 .with_encoder(move || {
                     Genotype::from(
-                        cloned_lengths
+                        lengths
                             .iter()
                             .map(|len| C::from((*len, val_range.clone(), bound_range.clone())))
                             .collect::<Vec<C>>(),

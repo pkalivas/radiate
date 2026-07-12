@@ -1,16 +1,19 @@
 use crate::{
     state::{AppState, MetricChartType},
     widgets::{
-        AppWidget, EngineStatusPanelWidget, FnWidget, MetricDetailPanelWidget, MetricTableWidget,
-        Panel, ParetoPagingWidget, SearchBarWidget, TabComponent,
+        AppWidget, DeltaBarChartWidget, EngineStatusPanelWidget, FnWidget, FrontEventLogWidget,
+        ImprovementLogWidget, MetricDetailPanelWidget, MetricTableWidget, Panel,
+        ParetoPagingWidget, SearchBarWidget, TabComponent,
         components::{SpeciesPieChartComponent, SpeciesSparklineComponent, TimePieChartComponent},
         panels::{MetricLineChartWidget, tables::SpeciesTableWidget},
     },
 };
-use radiate_engines::{Chromosome, metric_names};
+use radiate_engines::{Chromosome, Objective, metric_names};
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Direction, Layout, Rect},
+    style::{Color, Stylize},
+    text::{Line, Span},
     widgets::Widget,
 };
 
@@ -66,6 +69,7 @@ impl<C: Chromosome> LayoutNode<C> {
             }
             LayoutNode::Tabbed { children } => {
                 let active_tab_idx = state.nav.dashboard_tab_index();
+                let active_objective_idx = state.evo.pareto.objective_index;
 
                 let areas = Layout::default()
                     .direction(Direction::Vertical)
@@ -87,6 +91,17 @@ impl<C: Chromosome> LayoutNode<C> {
                     TabComponent::from(titles).select(select).render(area, buf);
                 }))
                 .render_inside_block(true)
+                .titled(
+                    Line::from(vec![
+                        Span::from(match state.evo.pareto.objective {
+                            Objective::Single(obj) => format!(" {:?} ", obj),
+                            _ => format!(" Obj({}) ", active_objective_idx),
+                        })
+                        .fg(Color::White)
+                        .bold(),
+                    ])
+                    .right_aligned(),
+                )
                 .render(areas[0], buf);
 
                 if let Some(active_child) = children.get(active_tab_idx) {
@@ -215,6 +230,48 @@ impl<C: Chromosome> Default for LayoutNode<C> {
                                             }),
                                             Widget(|a, b, s| {
                                                 SpeciesPieChartComponent::new().render(a, b, s)
+                                            }),
+                                        ],
+                                    },
+                                },
+                                TabNode {
+                                    title: "Improvements",
+                                    condition: |s| !s.evo.is_multi(),
+                                    content: Horizontal {
+                                        constraints: vec![
+                                            Constraint::Fill(1),
+                                            Constraint::Percentage(35),
+                                        ],
+                                        children: vec![
+                                            Widget(|a, b, s| ImprovementLogWidget.render(a, b, s)),
+                                            Widget(|a, b, s| DeltaBarChartWidget.render(a, b, s)),
+                                        ],
+                                    },
+                                },
+                                TabNode {
+                                    title: "Front",
+                                    condition: |s| s.evo.is_multi(),
+                                    content: Horizontal {
+                                        constraints: vec![
+                                            Constraint::Fill(1),
+                                            Constraint::Percentage(25),
+                                            Constraint::Percentage(25),
+                                        ],
+                                        children: vec![
+                                            Widget(|a, b, s| FrontEventLogWidget.render(a, b, s)),
+                                            Widget(|a, b, s| {
+                                                MetricLineChartWidget::new(
+                                                    metric_names::FRONT_SIZE,
+                                                    MetricChartType::Last,
+                                                )
+                                                .render(a, b, s)
+                                            }),
+                                            Widget(|a, b, s| {
+                                                MetricLineChartWidget::new(
+                                                    metric_names::FRONT_ENTROPY,
+                                                    MetricChartType::Last,
+                                                )
+                                                .render(a, b, s)
                                             }),
                                         ],
                                     },

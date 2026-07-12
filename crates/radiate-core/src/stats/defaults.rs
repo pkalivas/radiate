@@ -12,6 +12,8 @@ pub mod metric_names {
     pub const REPLACE_AGE: SmallStr = SmallStr::from_static("replace.age");
     pub const REPLACE_INVALID: SmallStr = SmallStr::from_static("replace.invalid");
 
+    pub const FILTER_UNIQUE_SCORES: SmallStr = SmallStr::from_static("filter.unique.scores");
+
     pub const SPECIES_AGE: SmallStr = SmallStr::from_static("species.age");
     pub const SPECIES_AGE_FAIL: SmallStr = SmallStr::from_static("species.fail.age");
     pub const SPECIES_NEW_RATIO: SmallStr = SmallStr::from_static("species.new.ratio");
@@ -23,6 +25,7 @@ pub mod metric_names {
     pub const LARGEST_SPECIES_SHARE: SmallStr = SmallStr::from_static("species.largest_share");
     pub const SPECIES_THRESHOLD: SmallStr = SmallStr::from_static("species.threshold");
     pub const SPECIES_COUNT: SmallStr = SmallStr::from_static("species.count");
+    pub const SPECIES_ERROR: SmallStr = SmallStr::from_static("species.error");
 
     pub const FRONT_ADDITIONS: SmallStr = SmallStr::from_static("front.additions");
     pub const FRONT_REMOVALS: SmallStr = SmallStr::from_static("front.removals");
@@ -35,12 +38,16 @@ pub mod metric_names {
 
     pub const SURVIVOR_COUNT: SmallStr = SmallStr::from_static("count.survivor");
     pub const EVALUATION_COUNT: SmallStr = SmallStr::from_static("count.evaluation");
+    pub const STAGNATION_COUNT: SmallStr = SmallStr::from_static("count.stagnation");
 
-    pub const CARRYOVER_RATE: SmallStr = SmallStr::from_static("rate.carryover");
-    pub const DIVERSITY_RATIO: SmallStr = SmallStr::from_static("rate.diversity");
+    pub const CARRYOVER_RATIO: SmallStr = SmallStr::from_static("pct.carryover");
+    pub const DIVERSITY_RATIO: SmallStr = SmallStr::from_static("pct.diversity");
+
+    pub const DIVERSITY_RATE: SmallStr = SmallStr::from_static("rate.diversity");
 
     pub const SCORES: SmallStr = SmallStr::from_static("scores");
     pub const BEST_SCORES: SmallStr = SmallStr::from_static("scores.best");
+    pub const SCORES_TREND: SmallStr = SmallStr::from_static("scores.trend");
 
     /// Pielou evenness of the population's fitness distribution, in `[0, 1]`.
     /// Pairs with [`UNIQUE_SCORES`] (richness — *how many* distinct scores) to
@@ -176,11 +183,16 @@ const EXACT_TAGS: &[(&SmallStr, &[TagType])] = &[
         &[TagType::Species, TagType::Age],
     ),
     //
+    (
+        &metric_names::FILTER_UNIQUE_SCORES,
+        &[TagType::Derived, TagType::Failure],
+    ),
+    //
     (&metric_names::UNIQUE_MEMBERS, &[TagType::Derived]),
     (&metric_names::UNIQUE_SCORES, &[TagType::Derived]),
     (&metric_names::NEW_CHILDREN, &[TagType::Derived]),
     (&metric_names::SURVIVOR_COUNT, &[TagType::Derived]),
-    (&metric_names::CARRYOVER_RATE, &[TagType::Derived]),
+    (&metric_names::CARRYOVER_RATIO, &[TagType::Derived]),
     (&metric_names::DIVERSITY_RATIO, &[TagType::Derived]),
     (&metric_names::SCORE_VOLATILITY, &[TagType::Derived]),
     (&metric_names::SCORES_EVENNESS, &[TagType::Derived]),

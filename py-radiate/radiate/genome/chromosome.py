@@ -3,10 +3,10 @@ from __future__ import annotations
 from collections.abc import Iterable, Sequence
 
 from radiate.radiate import PyChromosome
-from radiate._bridge.wrapper import RsObject
-from radiate._typing import RdDataType
-from radiate.dtype import Int64, Float64
 
+from .._bridge import RsObject
+from .._typing import RdDataType
+from ..dsl.dtype import Float64, Int64
 from .gene import Gene, GeneType
 
 

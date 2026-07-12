@@ -87,5 +87,12 @@ SNIPPETS = _discover()
 )
 def test_doc_snippet_runs(path: Path) -> None:
     """A user-guide snippet file must execute top-to-bottom without raising."""
+    import sys
+
+    python_version = sys.version_info
+    if python_version < (3, 10):
+        pytest.skip("User-guide snippets require Python 3.10+")
+    if python_version >= (3, 14):
+        pytest.skip("User-guide snippets require Python < 3.14")
     rd.random.seed(0)  # determinism for any randomized construction
     runpy.run_path(str(path), run_name="__main__")

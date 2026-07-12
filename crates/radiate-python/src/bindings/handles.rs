@@ -1,126 +1,169 @@
 use crate::PyAnyObject;
+use pyo3::PyResult;
 use radiate::{
     BitChromosome, CharChromosome, FloatChromosome, Generation, GeneticEngine,
     GeneticEngineBuilder, Graph, GraphChromosome, IntChromosome, Limit, Op, PermutationChromosome,
     Tree, TreeChromosome,
 };
+use radiate_error::radiate_py_err;
 use serde::{Deserialize, Serialize};
-
-type CustomEngine<C> = GeneticEngine<C, PyAnyObject>;
-type RegressionEngine<C, T> = GeneticEngine<C, T>;
-
-type CustomBuilder<C, T> = GeneticEngineBuilder<C, T>;
-type RegressionBuilder<C, T> = GeneticEngineBuilder<C, T>;
 
 type GenIter<C, T> = Box<dyn Iterator<Item = Generation<C, T>>>;
 
-pub enum EngineBuilderHandle {
-    Empty,
-
-    UInt8(CustomBuilder<IntChromosome<u8>, PyAnyObject>),
-    UInt16(CustomBuilder<IntChromosome<u16>, PyAnyObject>),
-    UInt32(CustomBuilder<IntChromosome<u32>, PyAnyObject>),
-    UInt64(CustomBuilder<IntChromosome<u64>, PyAnyObject>),
-
-    Int8(CustomBuilder<IntChromosome<i8>, PyAnyObject>),
-    Int16(CustomBuilder<IntChromosome<i16>, PyAnyObject>),
-    Int32(CustomBuilder<IntChromosome<i32>, PyAnyObject>),
-    Int64(CustomBuilder<IntChromosome<i64>, PyAnyObject>),
-
-    Float32(CustomBuilder<FloatChromosome<f32>, PyAnyObject>),
-    Float64(CustomBuilder<FloatChromosome<f64>, PyAnyObject>),
-
-    Char(CustomBuilder<CharChromosome, PyAnyObject>),
-    Bit(CustomBuilder<BitChromosome, PyAnyObject>),
-    Permutation(CustomBuilder<PermutationChromosome<usize>, PyAnyObject>),
-    Graph(RegressionBuilder<GraphChromosome<Op<f32>>, Graph<Op<f32>>>),
-    Tree(RegressionBuilder<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>),
-}
-
-pub enum EngineHandle {
-    UInt8(CustomEngine<IntChromosome<u8>>),
-    UInt16(CustomEngine<IntChromosome<u16>>),
-    UInt32(CustomEngine<IntChromosome<u32>>),
-    UInt64(CustomEngine<IntChromosome<u64>>),
-
-    Int8(CustomEngine<IntChromosome<i8>>),
-    Int16(CustomEngine<IntChromosome<i16>>),
-    Int32(CustomEngine<IntChromosome<i32>>),
-    Int64(CustomEngine<IntChromosome<i64>>),
-
-    Float32(CustomEngine<FloatChromosome<f32>>),
-    Float64(CustomEngine<FloatChromosome<f64>>),
-
-    Char(CustomEngine<CharChromosome>),
-    Bit(CustomEngine<BitChromosome>),
-    Permutation(CustomEngine<PermutationChromosome<usize>>),
-    Graph(RegressionEngine<GraphChromosome<Op<f32>>, Graph<Op<f32>>>),
-    Tree(RegressionEngine<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>),
-}
-
-impl EngineHandle {
-    pub fn into_step(self, limits: Vec<Limit>) -> StepHandle {
-        use EngineHandle::*;
-        match self {
-            UInt8(eng) => StepHandle::UInt8(Box::new(eng.iter().limit(limits))),
-            UInt16(eng) => StepHandle::UInt16(Box::new(eng.iter().limit(limits))),
-            UInt32(eng) => StepHandle::UInt32(Box::new(eng.iter().limit(limits))),
-            UInt64(eng) => StepHandle::UInt64(Box::new(eng.iter().limit(limits))),
-            Int8(eng) => StepHandle::Int8(Box::new(eng.iter().limit(limits))),
-            Int16(eng) => StepHandle::Int16(Box::new(eng.iter().limit(limits))),
-            Int32(eng) => StepHandle::Int32(Box::new(eng.iter().limit(limits))),
-            Int64(eng) => StepHandle::Int64(Box::new(eng.iter().limit(limits))),
-            Float32(eng) => StepHandle::Float32(Box::new(eng.iter().limit(limits))),
-            Float64(eng) => StepHandle::Float64(Box::new(eng.iter().limit(limits))),
-            Char(eng) => StepHandle::Char(Box::new(eng.iter().limit(limits))),
-            Bit(eng) => StepHandle::Bit(Box::new(eng.iter().limit(limits))),
-            Permutation(eng) => StepHandle::Permutation(Box::new(eng.iter().limit(limits))),
-            Graph(eng) => StepHandle::Graph(Box::new(eng.iter().limit(limits))),
-            Tree(eng) => StepHandle::Tree(Box::new(eng.iter().limit(limits))),
+/// Single source of truth for every gene-type variant the Python bindings support.
+/// `EngineBuilderHandle`, `EngineHandle`, `StepHandle`, `EpochHandle`, and every
+/// transform between them are generated from this list — adding a gene type means
+/// adding one row here instead of touching four parallel enums by hand.
+macro_rules! gene_variants {
+    ($mac:path) => {
+        $mac! {
+            UInt8       => IntChromosome<u8>,            PyAnyObject;
+            UInt16      => IntChromosome<u16>,           PyAnyObject;
+            UInt32      => IntChromosome<u32>,           PyAnyObject;
+            UInt64      => IntChromosome<u64>,           PyAnyObject;
+            Int8        => IntChromosome<i8>,            PyAnyObject;
+            Int16       => IntChromosome<i16>,           PyAnyObject;
+            Int32       => IntChromosome<i32>,           PyAnyObject;
+            Int64       => IntChromosome<i64>,           PyAnyObject;
+            Float32     => FloatChromosome<f32>,         PyAnyObject;
+            Float64     => FloatChromosome<f64>,         PyAnyObject;
+            Char        => CharChromosome,               PyAnyObject;
+            Bit         => BitChromosome,                PyAnyObject;
+            Permutation => PermutationChromosome<usize>, PyAnyObject;
+            Graph32       => GraphChromosome<Op<f32>>,     Graph<Op<f32>>;
+            Graph64       => GraphChromosome<Op<f64>>,     Graph<Op<f64>>;
+            Tree32        => TreeChromosome<Op<f32>>,      Vec<Tree<Op<f32>>>;
+            Tree64        => TreeChromosome<Op<f64>>,      Vec<Tree<Op<f64>>>;
         }
-    }
+    };
 }
 
-#[derive(Clone, Serialize, Deserialize)]
-pub enum EpochHandle {
-    UInt8(Generation<IntChromosome<u8>, PyAnyObject>),
-    UInt16(Generation<IntChromosome<u16>, PyAnyObject>),
-    UInt32(Generation<IntChromosome<u32>, PyAnyObject>),
-    UInt64(Generation<IntChromosome<u64>, PyAnyObject>),
-
-    Int8(Generation<IntChromosome<i8>, PyAnyObject>),
-    Int16(Generation<IntChromosome<i16>, PyAnyObject>),
-    Int32(Generation<IntChromosome<i32>, PyAnyObject>),
-    Int64(Generation<IntChromosome<i64>, PyAnyObject>),
-
-    Float32(Generation<FloatChromosome<f32>, PyAnyObject>),
-    Float64(Generation<FloatChromosome<f64>, PyAnyObject>),
-
-    Char(Generation<CharChromosome, PyAnyObject>),
-    Bit(Generation<BitChromosome, PyAnyObject>),
-    Permutation(Generation<PermutationChromosome<usize>, PyAnyObject>),
-    Graph(Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>),
-    Tree(Generation<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>),
+#[macro_export]
+macro_rules! match_variant {
+    ($enum_path:path, $handle:expr, $bind:ident => $body:expr) => {{
+        use $enum_path::*;
+        match $handle {
+            UInt8($bind) => $body,
+            UInt16($bind) => $body,
+            UInt32($bind) => $body,
+            UInt64($bind) => $body,
+            Int8($bind) => $body,
+            Int16($bind) => $body,
+            Int32($bind) => $body,
+            Int64($bind) => $body,
+            Float32($bind) => $body,
+            Float64($bind) => $body,
+            Char($bind) => $body,
+            Bit($bind) => $body,
+            Permutation($bind) => $body,
+            Graph32($bind) => $body,
+            Graph64($bind) => $body,
+            Tree32($bind) => $body,
+            Tree64($bind) => $body,
+        }
+    }};
 }
 
-pub enum StepHandle {
-    UInt8(GenIter<IntChromosome<u8>, PyAnyObject>),
-    UInt16(GenIter<IntChromosome<u16>, PyAnyObject>),
-    UInt32(GenIter<IntChromosome<u32>, PyAnyObject>),
-    UInt64(GenIter<IntChromosome<u64>, PyAnyObject>),
-
-    Int8(GenIter<IntChromosome<i8>, PyAnyObject>),
-    Int16(GenIter<IntChromosome<i16>, PyAnyObject>),
-    Int32(GenIter<IntChromosome<i32>, PyAnyObject>),
-    Int64(GenIter<IntChromosome<i64>, PyAnyObject>),
-
-    Float32(GenIter<FloatChromosome<f32>, PyAnyObject>),
-    Float64(GenIter<FloatChromosome<f64>, PyAnyObject>),
-
-    Char(GenIter<CharChromosome, PyAnyObject>),
-    Bit(GenIter<BitChromosome, PyAnyObject>),
-    Permutation(GenIter<PermutationChromosome<usize>, PyAnyObject>),
-
-    Graph(GenIter<GraphChromosome<Op<f32>>, Graph<Op<f32>>>),
-    Tree(GenIter<TreeChromosome<Op<f32>>, Vec<Tree<Op<f32>>>>),
+macro_rules! define_builder_enum {
+    ($($variant:ident => $chrom:ty, $decoded:ty);* $(;)?) => {
+        pub enum EngineBuilderHandle {
+            Empty,
+            $( $variant(GeneticEngineBuilder<$chrom, $decoded>), )*
+        }
+    };
 }
+gene_variants!(define_builder_enum);
+
+macro_rules! define_engine_enum {
+    ($($variant:ident => $chrom:ty, $decoded:ty);* $(;)?) => {
+        pub enum EngineHandle {
+            $( $variant(GeneticEngine<$chrom, $decoded>), )*
+        }
+    };
+}
+gene_variants!(define_engine_enum);
+
+macro_rules! define_step_enum {
+    ($($variant:ident => $chrom:ty, $decoded:ty);* $(;)?) => {
+        pub enum EngineIterHandle{
+            $( $variant(GenIter<$chrom, $decoded>), )*
+        }
+
+        unsafe impl Send for EngineIterHandle {}
+    };
+}
+gene_variants!(define_step_enum);
+
+macro_rules! define_epoch_enum {
+    ($($variant:ident => $chrom:ty, $decoded:ty);* $(;)?) => {
+        #[derive(Clone, Serialize, Deserialize)]
+        pub enum EpochHandle {
+            $( $variant(Generation<$chrom, $decoded>), )*
+        }
+
+        $(
+            impl From<Generation<$chrom, $decoded>> for EpochHandle {
+                fn from(epoch: Generation<$chrom, $decoded>) -> Self {
+                    EpochHandle::$variant(epoch)
+                }
+            }
+
+            impl From<EpochHandle> for Generation<$chrom, $decoded> {
+                fn from(handle: EpochHandle) -> Self {
+                    match handle {
+                        EpochHandle::$variant(epoch) => epoch,
+                        _ => panic!("Invalid epoch handle variant for this type"),
+                    }
+                }
+            }
+
+        )*
+    };
+}
+gene_variants!(define_epoch_enum);
+
+macro_rules! define_try_build {
+    ($($variant:ident => $chrom:ty, $decoded:ty);* $(;)?) => {
+        impl EngineBuilderHandle {
+            pub fn try_build(self) -> PyResult<EngineHandle> {
+                match self {
+                    EngineBuilderHandle::Empty => {
+                        Err(radiate_py_err!("Cannot build an Empty builder"))
+                    }
+                    $( EngineBuilderHandle::$variant(b) => {
+                        Ok(EngineHandle::$variant(b.try_build()?))
+                    } )*
+                }
+            }
+        }
+    };
+}
+gene_variants!(define_try_build);
+
+macro_rules! define_into_step {
+    ($($variant:ident => $chrom:ty, $decoded:ty);* $(;)?) => {
+        impl EngineHandle {
+            pub fn into_iter_handle(self, limits: Vec<Limit>) -> EngineIterHandle {
+                match self {
+                    $( EngineHandle::$variant(eng) => {
+                        EngineIterHandle::$variant(Box::new(eng.iter().limit(limits)))
+                    } )*
+                }
+            }
+        }
+    };
+}
+gene_variants!(define_into_step);
+
+macro_rules! define_step_next {
+    ($($variant:ident => $chrom:ty, $decoded:ty);* $(;)?) => {
+        impl EngineIterHandle {
+            pub fn next_epoch(&mut self) -> Option<EpochHandle> {
+                match self {
+                    $( EngineIterHandle::$variant(it) => it.next().map(EpochHandle::$variant), )*
+                }
+            }
+        }
+    };
+}
+gene_variants!(define_step_next);

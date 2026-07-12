@@ -176,10 +176,9 @@ impl<T: Debug> Debug for Tree<T> {
 #[cfg(test)]
 mod test {
 
-    use radiate_core::{AlterContext, alter::AlterUpdates};
-
     use super::*;
     use crate::{Arity, Node, NodeType, Op, TreeCrossover, TreeIterator};
+    use radiate_core::{AlterContext, alter::AlterUpdates};
 
     #[test]
     fn test_swap_subtrees() {
@@ -200,7 +199,7 @@ mod test {
 
         let mut updates = AlterUpdates::default();
 
-        let mut ctx = AlterContext::new(&mut updates, 0, 1.0);
+        let mut ctx = AlterContext::new(&mut updates, 0, 1.0, &[]);
 
         TreeCrossover::cross_nodes(tree_one.as_mut(), tree_two.as_mut(), usize::MAX, &mut ctx);
 

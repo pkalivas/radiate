@@ -29,7 +29,7 @@ fn main() {
         .codec(FloatCodec::vector(2, -1.0..1.0))
         .fitness_fn(your_fitness_fn)
         .diversity(EuclideanDistance)
-        .species_threshold(Rate::Linear(0.3, 0.9, 100))
+        // .species_threshold(Rate::Linear(0.3, 0.9, 100))
         // ... other parameters ...
         .build();
     // --8<-- [end:dynamic_threshold]

@@ -1,6 +1,5 @@
 import radiate as rd
 
-
 # Setup (not shown): stand-ins for the placeholders referenced in the snippets below.
 your_codec = rd.FloatCodec(shape=2, init_range=(-1.0, 1.0))
 
@@ -21,7 +20,7 @@ engine = (
     .fitness(your_char_fit_func)
     # A distance measure turns speciation on; the threshold sets how close
     # two individuals must be (per the measure) to share a species.
-    .diversity(rd.Dist.hamming(), species_threshold=0.5)
+    .diversity(rd.Dist.hamming(), threshold=0.5)
 )
 # --8<-- [end:threshold]
 
@@ -36,7 +35,6 @@ engine = (
     .fitness(your_fitness_func)
     .diversity(
         rd.Dist.euclidean(),
-        species_threshold=rd.Rate.linear(start=0.3, end=0.9, duration=100),
     )
 )
 # --8<-- [end:dynamic_threshold]
@@ -47,7 +45,7 @@ import radiate as rd
 engine = (
     rd.Engine.float(2)
     .fitness(your_fitness_func)
-    .diversity(rd.Dist.euclidean(), species_threshold=0.5)
+    .diversity(rd.Dist.euclidean(), threshold=0.5)
     # A species that survives this many generations without improving its best
     # score is culled, and its members sit out crossover/mutation that generation.
     .age(max_species_age=25)
@@ -62,7 +60,7 @@ import radiate as rd
 engine = (
     rd.Engine.float(2)
     .fitness(your_fitness_func)
-    .diversity(rd.Dist.euclidean(), target_species=4)
+    .diversity(rd.Dist.euclidean(), target=4)
 )
 
 # This is equivalent to setting the `species_threshold`

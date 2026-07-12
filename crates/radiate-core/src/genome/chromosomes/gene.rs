@@ -1,4 +1,3 @@
-use crate::chromosomes::NumericAllele;
 use std::ops::{Add, Div, Mul, Sub};
 
 /// A [`Valid`] type is a type that can be checked for validity. This is used for checking if a gene
@@ -77,29 +76,40 @@ pub trait Gene: Clone + Valid {
 }
 
 pub trait BoundedGene: Gene {
-    fn min(&self) -> &Self::Allele;
-    fn max(&self) -> &Self::Allele;
-    fn bounds(&self) -> (&Self::Allele, &Self::Allele);
+    fn init_min(&self) -> &Self::Allele;
+
+    fn init_max(&self) -> &Self::Allele;
+
+    fn init_range(&self) -> (Self::Allele, Self::Allele);
+
+    fn bound_min(&self) -> &Self::Allele;
+
+    fn bound_max(&self) -> &Self::Allele;
+
+    fn bound_range(&self) -> (&Self::Allele, &Self::Allele);
 }
 
 /// A [Gene] that represents a number. This gene can be used to represent any type of number,
 /// including integers, floats, etc. Essentially, any gene that can `Add`, `Sub`, `Mul`, and `Div`
 /// can be used as a [ArithmeticGene].
-pub trait ArithmeticGene:
+pub trait NumericGene:
     Gene + Add<Output = Self> + Sub<Output = Self> + Mul<Output = Self> + Div<Output = Self>
 {
     fn mean(&self, other: &Self) -> Self;
-}
 
-pub trait NumericGene: Gene
-where
-    Self::Allele: NumericAllele,
-{
-}
+    fn safe_add(&self, other: &Self) -> Self {
+        self.clone() + other.clone()
+    }
 
-impl<G, T> NumericGene for G
-where
-    G: Gene<Allele = T>,
-    T: NumericAllele,
-{
+    fn safe_sub(&self, other: &Self) -> Self {
+        self.clone() - other.clone()
+    }
+
+    fn safe_mul(&self, other: &Self) -> Self {
+        self.clone() * other.clone()
+    }
+
+    fn safe_div(&self, other: &Self) -> Self {
+        self.clone() / other.clone()
+    }
 }

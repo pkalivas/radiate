@@ -23,9 +23,8 @@ import sys
 from pathlib import Path
 
 import numpy as np  # type: ignore
-from PIL import Image, ImageDraw  # type: ignore
-
 import radiate as rd
+from PIL import Image, ImageDraw  # type: ignore
 
 # --- config -----------------------------------------------------------------
 POLYGONS = 175  # number of polygons (Rust: NUM_GENES)

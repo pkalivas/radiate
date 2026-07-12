@@ -13,8 +13,7 @@ use std::ops::Range;
 /// The default bounds are equal to `min` and `max` values.
 #[derive(Clone)]
 pub struct FloatCodec<F: Float, T = F> {
-    num_chromosomes: usize,
-    num_genes: usize,
+    chrome_sizes: Vec<usize>,
     value_range: Range<F>,
     bounds: Range<F>,
     shapes: Option<Vec<(usize, usize)>>,
@@ -49,13 +48,10 @@ impl<F: Float, T> FloatCodec<F, T> {
             )
         } else {
             Genotype::from(
-                (0..self.num_chromosomes)
-                    .map(|_| {
-                        FloatChromosome::from((
-                            self.num_genes,
-                            self.value_range.clone(),
-                            self.bounds.clone(),
-                        ))
+                self.chrome_sizes
+                    .iter()
+                    .map(|&size| {
+                        FloatChromosome::from((size, self.value_range.clone(), self.bounds.clone()))
                     })
                     .collect::<Vec<FloatChromosome<F>>>(),
             )
@@ -66,8 +62,7 @@ impl<F: Float, T> FloatCodec<F, T> {
 impl<F: Float> FloatCodec<F, Vec<Vec<Vec<F>>>> {
     pub fn tensor(shapes: Vec<(usize, usize)>, range: Range<F>) -> Self {
         FloatCodec {
-            num_chromosomes: shapes.len(),
-            num_genes: 0,
+            chrome_sizes: shapes.iter().map(|(rows, cols)| rows * cols).collect(),
             value_range: range.clone(),
             bounds: range,
             shapes: Some(shapes),
@@ -79,10 +74,9 @@ impl<F: Float> FloatCodec<F, Vec<Vec<Vec<F>>>> {
 impl<F: Float> FloatCodec<F, Vec<Vec<F>>> {
     /// Create a new `FloatCodec` with the given number of chromosomes, genes, min, and max values.
     /// The f_32 values for each `FloatGene` will be randomly generated between the min and max values.
-    pub fn matrix(rows: usize, cols: usize, range: Range<F>) -> Self {
+    pub fn matrix(shapes: Vec<usize>, range: Range<F>) -> Self {
         FloatCodec {
-            num_chromosomes: rows,
-            num_genes: cols,
+            chrome_sizes: shapes,
             value_range: range.clone(),
             bounds: range,
             shapes: None,
@@ -96,8 +90,7 @@ impl<F: Float> FloatCodec<F, Vec<F>> {
     /// The f_32 values for each `FloatGene` will be randomly generated between the min and max values.
     pub fn vector(count: usize, range: Range<F>) -> Self {
         FloatCodec {
-            num_chromosomes: 1,
-            num_genes: count,
+            chrome_sizes: vec![count],
             value_range: range.clone(),
             bounds: range,
             shapes: None,
@@ -111,8 +104,7 @@ impl FloatCodec<f32> {
     /// The f_32 values for each `FloatGene` will be randomly generated between the min and max values.
     pub fn scalar(range: Range<f32>) -> Self {
         FloatCodec {
-            num_chromosomes: 1,
-            num_genes: 1,
+            chrome_sizes: vec![1],
             value_range: range.clone(),
             bounds: range,
             shapes: None,
@@ -189,7 +181,7 @@ impl<F: Float> Codec<FloatChromosome<F>, Vec<Vec<Vec<F>>>> for FloatCodec<F, Vec
 ///
 /// // Create a new FloatCodec with 3 chromosomes and 4 genes
 /// // per chromosome - a 3x4 matrix of f32 values.
-/// let codec = FloatCodec::matrix(3, 4, 0.0_f32..1.0_f32);
+/// let codec = FloatCodec::matrix(vec![3, 4], 0.0_f32..1.0_f32);
 /// let genotype: Genotype<FloatChromosome<f32>> = codec.encode();
 /// let decoded: Vec<Vec<f32>> = codec.decode(&genotype);
 ///

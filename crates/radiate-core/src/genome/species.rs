@@ -1,7 +1,6 @@
 use super::{Chromosome, Phenotype};
-use crate::{
-    Objective, Score, objectives::Scored, phenotype::PhenotypeId, sentry_id, tracker::Tracker,
-};
+use crate::{Objective, Score, objectives::Scored, phenotype::PhenotypeId, tracker::Tracker};
+use radiate_utils::sentry_id;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::{

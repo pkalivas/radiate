@@ -1,11 +1,8 @@
 use crate::{
     Metric, MetricUpdate,
-    stats::{
-        ExprSelector, Meta, Tag, TagType,
-        expression::{MetricField, MetricKind, SelectExpr},
-        fmt,
-    },
+    stats::{Meta, Tag, TagType, fmt},
 };
+pub use radiate_expr::*;
 use radiate_utils::{AnyValue, SmallStr};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -279,41 +276,48 @@ impl<'de> Deserialize<'de> for MetricSet {
     }
 }
 
-#[derive(Debug)]
-pub enum MetricSetUpdate<'a> {
-    Single(SmallStr, MetricUpdate<'a>, Option<TagType>),
-}
+// #[derive(Debug)]
+// pub enum MetricSetUpdate<'a> {
+//     Single(SmallStr, MetricUpdate<'a>, Option<TagType>),
+//     Expression(&'a mut Expr),
+// }
 
-impl<'a, N, U> From<(N, U)> for MetricSetUpdate<'a>
-where
-    N: Into<SmallStr>,
-    U: Into<MetricUpdate<'a>>,
-{
-    fn from((name, update): (N, U)) -> Self {
-        MetricSetUpdate::Single(name.into(), update.into(), None)
-    }
-}
+// impl<'a, N, U> From<(N, U)> for MetricSetUpdate<'a>
+// where
+//     N: Into<SmallStr>,
+//     U: Into<MetricUpdate<'a>>,
+// {
+//     fn from((name, update): (N, U)) -> Self {
+//         MetricSetUpdate::Single(name.into(), update.into(), None)
+//     }
+// }
 
-impl<'a, N, U> From<(TagType, N, U)> for MetricSetUpdate<'a>
-where
-    N: Into<SmallStr>,
-    U: Into<MetricUpdate<'a>>,
-{
-    fn from((tag, name, update): (TagType, N, U)) -> Self {
-        MetricSetUpdate::Single(name.into(), update.into(), Some(tag))
-    }
-}
+// impl<'a, N, U> From<(TagType, N, U)> for MetricSetUpdate<'a>
+// where
+//     N: Into<SmallStr>,
+//     U: Into<MetricUpdate<'a>>,
+// {
+//     fn from((tag, name, update): (TagType, N, U)) -> Self {
+//         MetricSetUpdate::Single(name.into(), update.into(), Some(tag))
+//     }
+// }
 
-impl<'a, N, U> From<(N, U, usize)> for MetricSetUpdate<'a>
-where
-    N: AsRef<str>,
-    U: Into<MetricUpdate<'a>>,
-{
-    fn from((name, update, count): (N, U, usize)) -> Self {
-        let name: SmallStr = format!("{}.{}", name.as_ref(), count).into();
-        MetricSetUpdate::Single(name, update.into(), None)
-    }
-}
+// impl<'a, N, U> From<(N, U, usize)> for MetricSetUpdate<'a>
+// where
+//     N: AsRef<str>,
+//     U: Into<MetricUpdate<'a>>,
+// {
+//     fn from((name, update, count): (N, U, usize)) -> Self {
+//         let name: SmallStr = format!("{}.{}", name.as_ref(), count).into();
+//         MetricSetUpdate::Single(name, update.into(), None)
+//     }
+// }
+
+// impl<'a> From<&'a mut Expr> for MetricSetUpdate<'a> {
+//     fn from(expr: &'a mut Expr) -> Self {
+//         MetricSetUpdate::Expression(expr)
+//     }
+// }
 
 #[cfg(test)]
 mod tests {

@@ -1,5 +1,6 @@
-import radiate as rd
 import pytest
+
+import radiate as rd
 
 
 @pytest.mark.integration
@@ -10,9 +11,10 @@ def test_engine_bit_optimization(random_seed):
         .fitness(lambda x: sum(1 for bit in x if bit))  # Maximize number of ones
         .select(rd.Select.elite())
         .alters(rd.Cross.uniform(0.7), rd.Mutate.uniform(0.1))
+        .limit(rd.Limit.score(10), rd.Limit.generations(100))
     )
 
-    result = engine.run(rd.Limit.score(10), rd.Limit.generations(100))
+    result = engine.run()
 
     assert result.value() == [True] * 10  # All ones
     assert result.score()[0] == 10.0
@@ -33,9 +35,10 @@ def test_engine_bit_matrix_optimization(random_seed):
         .fitness(fitness_func)
         .select(rd.Select.elite())
         .alters(rd.Cross.uniform(0.7), rd.Mutate.uniform(0.1))
+        .limit(rd.Limit.score(rows * cols), rd.Limit.generations(200))
     )
 
-    result = engine.run(rd.Limit.score(rows * cols), rd.Limit.generations(200))
+    result = engine.run()
 
     assert result.value() == [[True] * cols for _ in range(rows)]  # All ones
     assert result.score()[0] == rows * cols
@@ -45,11 +48,13 @@ def test_engine_bit_matrix_optimization(random_seed):
 @pytest.mark.integration
 def test_engine_bit_can_maximize(simple_bit_20_bit_engine, random_seed):
     """Test engine with bit codec for maximizing number of ones."""
-    engine = simple_bit_20_bit_engine.fitness(
-        lambda x: sum(1 for bit in x if bit)
-    ).maximizing()
+    engine = (
+        simple_bit_20_bit_engine.fitness(lambda x: sum(1 for bit in x if bit))
+        .maximizing()
+        .limit(rd.Limit.score(20), rd.Limit.generations(100))
+    )
 
-    result = engine.run(rd.Limit.score(20), rd.Limit.generations(100))
+    result = engine.run()
 
     assert result.value() == [True] * 20  # All ones
     assert result.score()[0] == 20.0

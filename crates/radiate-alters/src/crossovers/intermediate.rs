@@ -1,5 +1,5 @@
 use radiate_core::{
-    AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, FloatGene, Gene, Rate, Valid,
+    AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, Expr, FloatGene, Gene, RateSet,
     random_provider,
 };
 use radiate_utils::Float;
@@ -14,25 +14,22 @@ use radiate_utils::Float;
 /// from the second chromosome, and `alpha` is a value between 0 and 1.
 #[derive(Clone, Debug)]
 pub struct IntermediateCrossover {
-    rate: Rate,
+    rate: Expr,
     alpha: f32,
 }
 
 impl IntermediateCrossover {
     /// Create a new instance of the `IntermediateCrossover` with the given rate and alpha.
     /// The rate must be between 0.0 and 1.0, and the alpha must be between 0.0 and 1.0.
-    pub fn new(rate: impl Into<Rate>, alpha: f32) -> Self {
-        let rate = rate.into();
-
-        if !rate.is_valid() {
-            panic!("Rate {rate:?} is not valid. Must be between 0.0 and 1.0",);
-        }
-
+    pub fn new(rate: impl Into<Expr>, alpha: f32) -> Self {
         if !(0.0..=1.0).contains(&alpha) {
             panic!("Alpha must be between 0 and 1");
         }
 
-        IntermediateCrossover { rate, alpha }
+        IntermediateCrossover {
+            rate: rate.into(),
+            alpha,
+        }
     }
 }
 
@@ -41,8 +38,8 @@ where
     F: Float,
     C: Chromosome<Gene = FloatGene<F>>,
 {
-    fn rate(&self) -> Rate {
-        self.rate.clone()
+    fn rates(&self) -> radiate_core::RateSet {
+        RateSet::new(self.rate.clone())
     }
 
     #[inline]
@@ -61,20 +58,22 @@ where
                     let gene_one = chrom_one.get_mut(i);
                     let gene_two = chrom_two.get_mut(i);
 
-                    let allele_one = *gene_one.allele();
-                    let allele_two = *gene_two.allele();
+                    if let Some((gene_one, gene_two)) = gene_one.zip(gene_two) {
+                        let allele_one = *gene_one.allele();
+                        let allele_two = *gene_two.allele();
 
-                    let alpha = rand.range(F::ZERO..alpha);
-                    let new_allele_one = allele_one * alpha + allele_two * (F::ONE - alpha);
-                    let new_allele_two = allele_two * alpha + allele_one * (F::ONE - alpha);
+                        let alpha = rand.range(F::ZERO..alpha);
+                        let new_allele_one = allele_one * alpha + allele_two * (F::ONE - alpha);
+                        let new_allele_two = allele_two * alpha + allele_one * (F::ONE - alpha);
 
-                    let (one_min, one_max) = gene_one.bounds();
-                    let (two_min, two_max) = gene_two.bounds();
+                        let (one_min, one_max) = gene_one.bound_range();
+                        let (two_min, two_max) = gene_two.bound_range();
 
-                    *gene_one.allele_mut() = new_allele_one.clamp(*one_min, *one_max);
-                    *gene_two.allele_mut() = new_allele_two.clamp(*two_min, *two_max);
+                        *gene_one.allele_mut() = new_allele_one.clamp(*one_min, *one_max);
+                        *gene_two.allele_mut() = new_allele_two.clamp(*two_min, *two_max);
 
-                    cross_count += 1;
+                        cross_count += 1;
+                    }
                 }
             }
         });

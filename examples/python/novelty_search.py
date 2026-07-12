@@ -18,10 +18,11 @@ This is a great example of how novelty search can find diverse solutions
 that traditional fitness-based evolution might miss.
 """
 
-import radiate as rd
-import numpy as np
-import matplotlib.pyplot as plt  # type: ignore
 import math
+
+import matplotlib.pyplot as plt  # type: ignore
+import numpy as np
+import radiate as rd
 
 rd.random.seed(34)
 np.random.seed(23)
@@ -199,9 +200,10 @@ def run_novelty_search_evolution(generations: int = 200) -> rd.Generation:
             rd.Cross.blend(),
             rd.Mutate.gaussian(),
         )
+        .limit(rd.Limit.generations(1000))
     )
 
-    return engine.run(rd.GenerationsLimit(generations), log=True)
+    return engine.run(log=True)
 
 
 def analyze_diverse_behaviors(result: rd.Generation, num_behaviors: int = 6):

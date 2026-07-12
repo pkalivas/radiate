@@ -1,5 +1,5 @@
 use radiate_core::{
-    AlterContext, AlterResult, BoundedGene, Chromosome, FloatGene, Gene, Mutate, Rate, Valid,
+    AlterContext, AlterResult, BoundedGene, Chromosome, Expr, FloatGene, Gene, Mutate, RateSet,
     random_provider,
 };
 use radiate_utils::{Float, Primitive};
@@ -9,20 +9,14 @@ use radiate_utils::{Float, Primitive};
 /// This mutator is for use with any [Chromosome] which holds [FloatGene]s.
 #[derive(Debug, Clone)]
 pub struct GaussianMutator {
-    rate: Rate,
+    rate: Expr,
 }
 
 impl GaussianMutator {
     /// Create a new instance of the `GaussianMutator` with the given rate.
     /// The rate must be between 0.0 and 1.0.
-    pub fn new(rate: impl Into<Rate>) -> Self {
-        let rate = rate.into();
-
-        if !rate.is_valid() {
-            panic!("Rate is not valid: {:?}", rate);
-        }
-
-        GaussianMutator { rate }
+    pub fn new(rate: impl Into<Expr>) -> Self {
+        GaussianMutator { rate: rate.into() }
     }
 }
 
@@ -31,8 +25,8 @@ where
     F: Float + Primitive,
     C: Chromosome<Gene = FloatGene<F>>,
 {
-    fn rate(&self) -> Rate {
-        self.rate.clone()
+    fn rates(&self) -> RateSet {
+        RateSet::new(self.rate.clone())
     }
 
     #[inline]
@@ -45,8 +39,8 @@ where
                     // The reason we use the sampling min/max from the gene here instead of it's
                     // 'bounds' is because this operation is essentially a form of 'local search'
                     // and we want to ensure that the mutated value is not too far from the original value.
-                    let min = gene.min().extract::<f64>().unwrap();
-                    let max = gene.max().extract::<f64>().unwrap();
+                    let min = gene.init_min().extract::<f64>().unwrap();
+                    let max = gene.init_max().extract::<f64>().unwrap();
 
                     let std_dev = (max - min) * 0.25;
                     let value = gene.allele().extract::<f64>().unwrap();

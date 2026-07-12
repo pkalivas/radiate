@@ -195,18 +195,24 @@ where
 
             KeyCode::Down | KeyCode::Char('j') => self.state.move_selection_down(),
             KeyCode::Up | KeyCode::Char('k') => self.state.move_selection_up(),
+            KeyCode::PageDown | KeyCode::Char('d') => self.state.move_selection_page_down(),
+            KeyCode::PageUp | KeyCode::Char('u') => self.state.move_selection_page_up(),
+            KeyCode::Home | KeyCode::Char('g') => self.state.move_selection_to_top(),
+            KeyCode::End | KeyCode::Char('G') => self.state.move_selection_to_bottom(),
 
             KeyCode::Char(']') => self.state.evo.next_objective_pair_page(),
             KeyCode::Char('[') => self.state.evo.previous_objective_pair_page(),
             KeyCode::Char('+') => self.state.evo.expand_objective_pairs(),
             KeyCode::Char('-') => self.state.evo.shrink_objective_pairs(),
 
-            KeyCode::Right | KeyCode::Char('l') => {
-                self.state.nav.next_tab(self.state.evo.has_species())
-            }
-            KeyCode::Left | KeyCode::Char('h') => {
-                self.state.nav.previous_tab(self.state.evo.has_species())
-            }
+            KeyCode::Right | KeyCode::Char('l') => self
+                .state
+                .nav
+                .next_tab(self.state.evo.has_species(), self.state.evo.is_multi()),
+            KeyCode::Left | KeyCode::Char('h') => self
+                .state
+                .nav
+                .previous_tab(self.state.evo.has_species(), self.state.evo.is_multi()),
 
             KeyCode::Tab => self.state.next_chart_view(),
             KeyCode::BackTab => self.state.prev_chart_view(),
@@ -234,15 +240,14 @@ where
     }
 
     fn handle_engine_epoch(&mut self, event: GenerationEvent<C>) {
-        self.state.evo.score = event.score;
-        self.state.evo.index = event.index;
-
+        self.state.evo.update_score(event.score);
+        self.state.evo.update_index(event.index);
         self.state.evo.update_ecosystem(event.ecosystem);
         self.state.evo.update_metrics(event.metrics);
 
         self.state
             .nav
-            .ensure_tab_available(self.state.evo.has_species());
+            .ensure_tab_available(self.state.evo.has_species(), self.state.evo.is_multi());
     }
 
     pub fn handle_engine_start(&mut self, front: Arc<RwLock<Front<Phenotype<C>>>>) {

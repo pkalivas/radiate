@@ -1,10 +1,10 @@
-use crate::state::AppState;
+use crate::state::{AppState, EvoState};
 use crate::widgets::panels::MetricLineChartWidget;
 use crate::widgets::{AppWidget, FnWidget, MetricDetailPanelWidget, Panel, TabComponent};
+use radiate_engines::Chromosome;
 use radiate_engines::stats::fmt_duration;
-use radiate_engines::{Chromosome, MetricSet};
 use ratatui::prelude::*;
-use ratatui::style::{Color, Stylize};
+use ratatui::style::{Color, Style, Stylize};
 use ratatui::widgets::{Paragraph, Row, Table};
 
 pub struct EngineStatusPanelWidget;
@@ -25,9 +25,9 @@ impl<C: Chromosome> AppWidget<C> for EngineStatusPanelWidget {
             .unwrap_or_else(|| "00:00:00.000".to_string());
 
         let rows = if state.evo.pareto.objective.is_single() {
-            get_single_objective_summaries(metrics)
+            get_single_objective_summaries(&state.evo)
         } else {
-            get_multi_objective_summaries(metrics)
+            get_multi_objective_summaries(&state.evo)
         };
 
         let mut title = vec![
@@ -36,8 +36,21 @@ impl<C: Chromosome> AppWidget<C> for EngineStatusPanelWidget {
         ];
 
         if state.evo.pareto.objective.is_single() {
+            let current = state.evo.score.as_f32();
+            let best = state.evo.best_score.as_f32();
+            let at_peak = (current - best).abs() < f32::EPSILON || best == 0.0;
             title.push(" | Score ".fg(Color::Gray).bold());
-            title.push(format!("{:.4} ", state.evo.score.as_f32()).fg(Color::LightGreen));
+            title.push(format!("{:.4}", current).fg(if at_peak {
+                Color::LightGreen
+            } else {
+                Color::Yellow
+            }));
+            if !at_peak {
+                title.push(" / ".fg(Color::Gray));
+                title.push(format!("{:.4} ", best).fg(Color::LightGreen));
+            } else {
+                title.push(" ".into());
+            }
         } else {
             title.push(" | MOGA ".fg(Color::Gray).bold());
         }
@@ -114,30 +127,84 @@ impl<C: Chromosome> AppWidget<C> for MetricModalWidget {
     }
 }
 
-fn get_multi_objective_summaries(metrics: &MetricSet) -> Vec<Row<'static>> {
+fn get_multi_objective_summaries<C: Chromosome>(evo: &EvoState<C>) -> Vec<Row<'static>> {
+    let metrics = &evo.metrics;
     let diversity = metrics.diversity_ratio().map(|m| m.mean()).unwrap_or(0.0);
+    let diversity_last = metrics
+        .diversity_ratio()
+        .map(|m| m.last_value())
+        .unwrap_or(diversity);
     let carryover = metrics.carryover_rate().map(|m| m.mean()).unwrap_or(0.0);
-    let unique_members = metrics.unique_members().map(|m| m.mean()).unwrap_or(0.0);
-    let improvements = metrics.improvements().map(|m| m.count()).unwrap_or(0);
+    let carryover_last = metrics
+        .carryover_rate()
+        .map(|m| m.last_value())
+        .unwrap_or(carryover);
     let survivor_count = metrics.survivor_count().map(|m| m.mean()).unwrap_or(0.0);
     let new_children = metrics.new_children().map(|m| m.mean()).unwrap_or(0.0);
     let front_size = metrics.front_size().map(|m| m.mean()).unwrap_or(0.0);
     let front_entropy = metrics.front_entropy().map(|m| m.mean()).unwrap_or(0.0);
-    let metric_meta = metrics.summary();
+    let front_entropy_last = metrics
+        .front_entropy()
+        .map(|m| m.last_value())
+        .unwrap_or(front_entropy);
+    let front_additions = metrics
+        .front_additions()
+        .map(|m| m.last_value() as usize)
+        .unwrap_or(0);
+    let front_removals = metrics
+        .front_removals()
+        .map(|m| m.last_value() as usize)
+        .unwrap_or(0);
 
-    let rows = vec![
-        Row::new(vec!["Improvements".bold(), improvements.to_string().into()]),
+    let species_count = metrics
+        .species_count()
+        .map(|m| m.last_value() as usize)
+        .unwrap_or(0);
+
+    let mut rows = vec![
+        Row::new(vec![
+            "Front Additions".bold(),
+            Span::styled(
+                format!("{}", front_additions),
+                Style::default().fg(if front_additions > 0 {
+                    crate::styles::TREND_UP_COLOR
+                } else {
+                    Color::DarkGray
+                }),
+            ),
+        ]),
+        Row::new(vec![
+            "Front Removals".bold(),
+            Span::styled(
+                format!("{}", front_removals),
+                Style::default().fg(if front_removals > 0 {
+                    crate::styles::TREND_DOWN_COLOR
+                } else {
+                    Color::DarkGray
+                }),
+            ),
+        ]),
         Row::new(vec![
             "Diversity".bold(),
-            format!("{:.2}%", diversity * 100.0).into(),
+            Span::styled(
+                format!(
+                    "{} {:.2}%",
+                    crate::styles::trend_symbol(diversity_last, diversity),
+                    diversity * 100.0
+                ),
+                Style::default().fg(crate::styles::sentiment_color(diversity, 0.1, 0.3)),
+            ),
         ]),
         Row::new(vec![
             "Carryover".bold(),
-            format!("{:.2}%", carryover * 100.0).into(),
-        ]),
-        Row::new(vec![
-            "Unique Members".bold(),
-            format!("{:.2}", unique_members).into(),
+            Span::styled(
+                format!(
+                    "{} {:.2}%",
+                    crate::styles::trend_symbol(carryover, carryover_last),
+                    carryover * 100.0
+                ),
+                Style::default().fg(crate::styles::sentiment_color(1.0 - carryover, 0.2, 0.5)),
+            ),
         ]),
         Row::new(vec![
             "Front Size".bold(),
@@ -145,7 +212,13 @@ fn get_multi_objective_summaries(metrics: &MetricSet) -> Vec<Row<'static>> {
         ]),
         Row::new(vec![
             "Front Entropy".bold(),
-            format!("{:.4}", front_entropy).into(),
+            Span::styled(
+                format!("{:.4}", front_entropy),
+                Style::default().fg(crate::styles::trend_color(
+                    front_entropy_last,
+                    front_entropy,
+                )),
+            ),
         ]),
         Row::new(vec![
             "Survivor / Gen.".bold(),
@@ -155,48 +228,84 @@ fn get_multi_objective_summaries(metrics: &MetricSet) -> Vec<Row<'static>> {
             "Children / Gen.".bold(),
             format!("{:.2}", new_children).into(),
         ]),
-        Row::new(vec![
-            "Metrics".bold(),
-            format!("{}", metric_meta.metrics).into(),
-        ]),
-        Row::new(vec![
-            "Updates".bold(),
-            format_thousands(metric_meta.updates as usize)
-                .to_string()
-                .into(),
-        ]),
     ];
+
+    if species_count > 0 {
+        rows.push(Row::new(vec![
+            "Species".bold(),
+            format!("{}", species_count).into(),
+        ]));
+    }
 
     rows
 }
 
-fn get_single_objective_summaries(metrics: &MetricSet) -> Vec<Row<'static>> {
+fn get_single_objective_summaries<C: Chromosome>(evo: &EvoState<C>) -> Vec<Row<'static>> {
+    let metrics = &evo.metrics;
     let diversity = metrics.diversity_ratio().map(|m| m.mean()).unwrap_or(0.0);
+    let diversity_last = metrics
+        .diversity_ratio()
+        .map(|m| m.last_value())
+        .unwrap_or(diversity);
     let carryover = metrics.carryover_rate().map(|m| m.mean()).unwrap_or(0.0);
-    let unique_members = metrics.unique_members().map(|m| m.mean()).unwrap_or(0.0);
-    let unique_scores = metrics.unique_scores().map(|m| m.mean()).unwrap_or(0.0);
-    let improvements = metrics.improvements().map(|m| m.count()).unwrap_or(0);
+    let carryover_last = metrics
+        .carryover_rate()
+        .map(|m| m.last_value())
+        .unwrap_or(carryover);
+    let improvements = metrics.improvements().map(|m| m.sum()).unwrap_or(0.0) as usize;
     let survivor_count = metrics.survivor_count().map(|m| m.mean()).unwrap_or(0.0);
     let new_children = metrics.new_children().map(|m| m.mean()).unwrap_or(0.0);
-    let metric_meta = metrics.summary();
+    let avg_score = metrics.score().map(|m| m.mean()).unwrap_or(0.0);
+    let stagnation = metrics
+        .stagnation_count()
+        .map(|m| m.last_value() as usize)
+        .unwrap_or(0);
+    let species_count = metrics
+        .species_count()
+        .map(|m| m.last_value() as usize)
+        .unwrap_or(0);
 
-    let rows = vec![
-        Row::new(vec!["Improvements".bold(), improvements.to_string().into()]),
+    let mut rows = vec![
+        Row::new(vec![
+            "Improvements".bold(),
+            Span::styled(
+                improvements.to_string(),
+                Style::default().fg(if improvements == 0 {
+                    Color::DarkGray
+                } else {
+                    crate::styles::stagnation_dark_color(stagnation)
+                }),
+            ),
+        ]),
+        Row::new(vec![
+            "Stagnation".bold(),
+            Span::styled(
+                format!("{}", stagnation),
+                Style::default().fg(crate::styles::stagnation_dark_color(stagnation)),
+            ),
+        ]),
+        Row::new(vec!["Avg Score".bold(), format!("{:.6}", avg_score).into()]),
         Row::new(vec![
             "Diversity".bold(),
-            format!("{:.2}%", diversity * 100.0).into(),
+            Span::styled(
+                format!(
+                    "{} {:.2}%",
+                    crate::styles::trend_symbol(diversity_last, diversity),
+                    diversity * 100.0
+                ),
+                Style::default().fg(crate::styles::sentiment_color(diversity, 0.1, 0.3)),
+            ),
         ]),
         Row::new(vec![
             "Carryover".bold(),
-            format!("{:.2}%", carryover * 100.0).into(),
-        ]),
-        Row::new(vec![
-            "Unique Members".bold(),
-            format!("{:.2}", unique_members).into(),
-        ]),
-        Row::new(vec![
-            "Unique Scores".bold(),
-            format!("{:.2}", unique_scores).into(),
+            Span::styled(
+                format!(
+                    "{} {:.2}%",
+                    crate::styles::trend_symbol(carryover, carryover_last),
+                    carryover * 100.0
+                ),
+                Style::default().fg(crate::styles::sentiment_color(1.0 - carryover, 0.2, 0.5)),
+            ),
         ]),
         Row::new(vec![
             "Survivor / Gen.".bold(),
@@ -206,28 +315,14 @@ fn get_single_objective_summaries(metrics: &MetricSet) -> Vec<Row<'static>> {
             "Children / Gen.".bold(),
             format!("{:.2}", new_children).into(),
         ]),
-        Row::new(vec![
-            "Metrics".bold(),
-            format!("{}", metric_meta.metrics).into(),
-        ]),
-        Row::new(vec![
-            "Updates".bold(),
-            format_thousands(metric_meta.updates as usize)
-                .to_string()
-                .into(),
-        ]),
     ];
 
-    rows
-}
+    if species_count > 0 {
+        rows.push(Row::new(vec![
+            "Species".bold(),
+            format!("{}", species_count).into(),
+        ]));
+    }
 
-fn format_thousands(n: usize) -> String {
-    n.to_string()
-        .as_bytes()
-        .rchunks(3)
-        .rev()
-        .map(std::str::from_utf8)
-        .collect::<Result<Vec<&str>, _>>()
-        .unwrap()
-        .join(",")
+    rows
 }

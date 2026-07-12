@@ -1,5 +1,6 @@
-import radiate as rd
 import pytest
+
+import radiate as rd
 
 
 @pytest.mark.integration
@@ -17,8 +18,8 @@ def test_generation_metrics(random_seed):
         .metrics()
     )
 
-    assert len(metrics) == 31
-    assert len(metrics.keys()) == 31
+    assert len(metrics) == 32
+    assert len(metrics.keys()) == 32
     for key in metrics.keys():
         assert key in metrics
 
@@ -90,9 +91,10 @@ def test_metrics_from_events(random_seed):
         .fitness(lambda x: sum(x))
         .minimizing()
         .subscribe(MetricSetAssertHandler())
+        .limit(rd.Limit.score(0), rd.Limit.generations(500))
     )
 
-    engine.run(rd.ScoreLimit(0), rd.GenerationsLimit(500))
+    engine.run()
 
 
 @pytest.mark.integration

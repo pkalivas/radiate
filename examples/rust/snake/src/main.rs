@@ -52,7 +52,7 @@ const FOOD_POSITIONS: LazyLock<[(i32, i32); 1000]> = LazyLock::new(|| {
 fn main() {
     let mut args = std::env::args();
     args.next();
-    let engine_type = args.next().unwrap_or_else(|| "g".to_string());
+    let engine_type = args.next().unwrap_or_else(|| "n".to_string());
 
     match engine_type.as_str() {
         "g" => run_graph_engine(),
@@ -82,7 +82,7 @@ fn run_graph_engine() {
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.04, 0.05),
-            GraphMutator::new(0.08, 0.04)
+            GraphMutator::new(0.01, 0.01)
         ))
         .fitness_fn(|g: Graph<Op<f32>>| snake_fitness(SnakeAI::Graph(&g)))
         .build();
@@ -90,10 +90,8 @@ fn run_graph_engine() {
     engine
         .iter()
         .logging()
-        .limit((
-            Limit::Generation(MAX_GENERATIONS),
-            Limit::Seconds(Duration::from_secs_f64(MAX_SECONDS)),
-        ))
+        .until_seconds(MAX_SECONDS)
+        .take(MAX_GENERATIONS)
         .last()
         .inspect(|generation| {
             ascii_snake(SnakeAI::Graph(generation.value()));

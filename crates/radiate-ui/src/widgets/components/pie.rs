@@ -132,7 +132,7 @@ impl<C: Chromosome> AppWidget<C> for TimePieChartComponent {
                 let value = metric
                     .times()
                     .map(|t| t.sum())
-                    .map(|d| d.as_millis() as f64)
+                    .map(|d| d.as_nanos() as f64)
                     .unwrap_or(0.0);
 
                 total += value;

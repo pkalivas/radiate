@@ -72,13 +72,7 @@ impl PyEngineEvent {
 
     pub fn score<'py>(&self, py: Python<'py>) -> PyResult<Py<PyAny>> {
         match &self.score {
-            Some(scores) => {
-                if scores.len() == 1 {
-                    scores[0].into_py_any(py)
-                } else {
-                    PyArray1::from_vec(py, scores.clone()).into_py_any(py)
-                }
-            }
+            Some(scores) => PyArray1::from_vec(py, scores.clone()).into_py_any(py),
             None => Ok(py.None()),
         }
     }
@@ -95,7 +89,7 @@ impl PyEngineEvent {
 impl PyEngineEvent {
     pub fn start() -> PyEngineEvent {
         PyEngineEvent {
-            event_type: crate::names::START_EVENT.into(),
+            event_type: crate::constants::components::START_EVENT.into(),
             index: None,
             best: None,
             score: None,
@@ -111,7 +105,7 @@ impl PyEngineEvent {
         score: Vec<f32>,
     ) -> PyEngineEvent {
         PyEngineEvent {
-            event_type: crate::names::STOP_EVENT.into(),
+            event_type: crate::constants::components::STOP_EVENT.into(),
             index: Some(generation),
             best: Some(best.inner),
             score: Some(score),
@@ -122,7 +116,7 @@ impl PyEngineEvent {
 
     pub fn epoch_start(idx: usize) -> PyEngineEvent {
         PyEngineEvent {
-            event_type: crate::names::EPOCH_START_EVENT.into(),
+            event_type: crate::constants::components::EPOCH_START_EVENT.into(),
             index: Some(idx),
             best: None,
             score: None,
@@ -139,7 +133,7 @@ impl PyEngineEvent {
         objective: Objective,
     ) -> PyEngineEvent {
         PyEngineEvent {
-            event_type: crate::names::EPOCH_COMPLETE_EVENT.into(),
+            event_type: crate::constants::components::EPOCH_COMPLETE_EVENT.into(),
             index: Some(idx),
             best: Some(best.inner),
             score: Some(score),
@@ -150,7 +144,7 @@ impl PyEngineEvent {
 
     pub fn improvement(idx: usize, best: PyAnyObject, score: Vec<f32>) -> PyEngineEvent {
         PyEngineEvent {
-            event_type: crate::names::ENGINE_IMPROVEMENT_EVENT.into(),
+            event_type: crate::constants::components::ENGINE_IMPROVEMENT_EVENT.into(),
             index: Some(idx),
             best: Some(best.inner),
             score: Some(score),

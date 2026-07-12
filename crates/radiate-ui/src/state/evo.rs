@@ -4,7 +4,25 @@ use crate::widgets::num_pairs;
 use radiate_engines::{
     Chromosome, Ecosystem, Front, MetricSet, Objective, Optimize, Phenotype, Score, Species,
 };
+use radiate_utils::WindowBuffer;
 use std::sync::{Arc, RwLock};
+
+const MAX_IMPROVEMENT_LOG: usize = 100;
+
+pub struct ImprovementEntry {
+    pub generation: usize,
+    pub score: f32,
+    pub delta: f32,
+}
+
+pub struct FrontEventEntry {
+    pub generation: usize,
+    pub front_size: usize,
+    pub additions: usize,
+    pub removals: usize,
+    pub comparisons: usize,
+    pub filtered: bool,
+}
 
 pub struct ObjectiveState {
     pub objective: Objective,
@@ -22,10 +40,44 @@ pub struct EvoState<C: Chromosome> {
     pub charts: ChartState,
     pub index: usize,
     pub score: Score,
+    pub best_score: Score,
     pub pareto: ObjectiveState,
+    pub improvement_log: WindowBuffer<ImprovementEntry>,
+    pub front_event_log: WindowBuffer<FrontEventEntry>,
 }
 
 impl<C: Chromosome> EvoState<C> {
+    pub fn update_score(&mut self, new_score: Score) {
+        if self.score.is_empty() {
+            self.score = new_score.clone();
+            return;
+        }
+
+        if self.pareto.objective.is_single() {
+            let prev = self.score.as_f32();
+            let next = new_score.as_f32();
+            let delta = match &self.pareto.objective {
+                Objective::Single(Optimize::Minimize) => prev - next,
+                _ => next - prev,
+            };
+
+            if delta > 0.0 {
+                self.best_score = new_score.clone();
+                self.improvement_log.push_front(ImprovementEntry {
+                    generation: self.index,
+                    score: next,
+                    delta,
+                });
+            }
+        }
+
+        self.score = new_score;
+    }
+
+    pub fn update_index(&mut self, index: usize) {
+        self.index = index;
+    }
+
     pub fn update_ecosystem(&mut self, ecosystem: Ecosystem<C>)
     where
         C: Clone,
@@ -45,6 +97,55 @@ impl<C: Chromosome> EvoState<C> {
         }
 
         self.metrics = metrics;
+        self.update_front_events();
+    }
+
+    fn update_front_events(&mut self) {
+        if self.pareto.objective.is_single() {
+            return;
+        }
+
+        let additions = self
+            .metrics
+            .front_additions()
+            .map(|m| m.last_value() as usize)
+            .unwrap_or(0);
+
+        if additions == 0 {
+            return;
+        }
+        let removals = self
+            .metrics
+            .front_removals()
+            .map(|m| m.last_value() as usize)
+            .unwrap_or(0);
+
+        let front_size = self
+            .metrics
+            .front_size()
+            .map(|m| m.last_value() as usize)
+            .unwrap_or(0);
+
+        let front_comparisons = self
+            .metrics
+            .front_comparisons()
+            .map(|m| m.last_value() as usize)
+            .unwrap_or(0);
+
+        let front_filters = self
+            .metrics
+            .front_filters()
+            .map(|m| m.last_value() > 0.0)
+            .unwrap_or(false);
+
+        self.front_event_log.push_front(FrontEventEntry {
+            generation: self.index,
+            front_size,
+            additions,
+            removals,
+            comparisons: front_comparisons,
+            filtered: front_filters,
+        });
     }
 
     pub fn get_chart_by_key(
@@ -57,6 +158,10 @@ impl<C: Chromosome> EvoState<C> {
 
     pub fn get_species(&self) -> Option<&Vec<Species<C>>> {
         self.ecosystem.as_ref().and_then(|eco| eco.species())
+    }
+
+    pub fn is_multi(&self) -> bool {
+        !self.pareto.objective.is_single()
     }
 
     pub fn has_species(&self) -> bool {
@@ -114,6 +219,9 @@ impl<C: Chromosome> Default for EvoState<C> {
             ecosystem: None,
             index: 0,
             score: Score::default(),
+            best_score: Score::default(),
+            improvement_log: WindowBuffer::with_capacity(MAX_IMPROVEMENT_LOG),
+            front_event_log: WindowBuffer::with_capacity(MAX_IMPROVEMENT_LOG),
             pareto: ObjectiveState {
                 objective: Objective::Single(Optimize::Maximize),
                 charts_visible: 2,

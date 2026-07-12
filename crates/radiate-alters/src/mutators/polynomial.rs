@@ -1,4 +1,6 @@
-use radiate_core::{BoundedGene, Chromosome, FloatGene, Gene, Mutate, Rate, random_provider};
+use radiate_core::{
+    BoundedGene, Chromosome, Expr, FloatGene, Gene, Mutate, RateSet, random_provider,
+};
 use radiate_utils::{Float, Primitive};
 
 // Use it when:
@@ -19,14 +21,16 @@ use radiate_utils::{Float, Primitive};
 // 	- High eta (e.g. 20–100): leads to smaller, fine-grained mutations, good for local search.
 #[derive(Debug, Clone)]
 pub struct PolynomialMutator {
-    rate: Rate,
+    rate: Expr,
     eta: f32,
 }
 
 impl PolynomialMutator {
-    pub fn new(rate: impl Into<Rate>, eta: f32) -> Self {
-        let rate = rate.into();
-        PolynomialMutator { rate, eta }
+    pub fn new(rate: impl Into<Expr>, eta: f32) -> Self {
+        PolynomialMutator {
+            rate: rate.into(),
+            eta,
+        }
     }
 
     fn polynomial_mutation(&self, value: f64, min: f64, max: f64, eta: f64) -> f64 {
@@ -60,22 +64,34 @@ where
     F: Float + Primitive,
     C: Chromosome<Gene = FloatGene<F>>,
 {
-    fn rate(&self) -> Rate {
-        self.rate.clone()
+    fn rates(&self) -> RateSet {
+        RateSet::new(self.rate.clone())
     }
 
     #[inline]
-    fn mutate_gene(&self, gene: &mut C::Gene) -> usize {
-        let (lower, upper) = gene.bounds();
-        let min = lower.extract::<f64>().unwrap();
-        let max = upper.extract::<f64>().unwrap();
-        let value = gene.allele().extract::<f64>().unwrap();
-        let eta = self.eta as f64;
+    fn mutate_chromosome(
+        &mut self,
+        chromosome: &mut C,
+        ctx: &mut radiate_core::prelude::AlterContext,
+    ) -> radiate_core::AlterResult {
+        let mut count = 0;
+        for gene in chromosome.iter_mut() {
+            if random_provider::bool(ctx.rate()) {
+                let (lower, upper) = gene.bound_range();
+                let min = lower.extract::<f64>().unwrap();
+                let max = upper.extract::<f64>().unwrap();
+                let value = gene.allele().extract::<f64>().unwrap();
+                let eta = self.eta as f64;
 
-        let new_value = self.polynomial_mutation(value, min, max, eta);
+                let new_value = self.polynomial_mutation(value, min, max, eta);
 
-        let clamped_value = new_value.clamp(min, max);
-        *gene.allele_mut() = clamped_value.extract::<F>().unwrap();
-        1
+                let clamped_value = new_value.clamp(min, max);
+                *gene.allele_mut() = clamped_value.extract::<F>().unwrap();
+
+                count += 1;
+            }
+        }
+
+        count.into()
     }
 }

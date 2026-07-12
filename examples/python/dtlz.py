@@ -8,9 +8,9 @@ evolve solutions. The results are visualized in a 3D scatter plot.
 """
 
 import matplotlib.pyplot as plt  # type: ignore
-import radiate as rd
 import numpy as np  # type: ignore
-from numba import jit, float64  # type: ignore
+import radiate as rd
+from numba import float64, jit  # type: ignore
 
 rd.random.seed(501)
 
@@ -52,6 +52,7 @@ engine = (
     )
     .limit(rd.Limit.generations(2000))
 )
+
 
 result = engine.run(ui=True)
 print(result.metrics().dashboard())

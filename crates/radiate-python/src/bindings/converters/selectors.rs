@@ -16,38 +16,40 @@ where
             )));
         }
 
-        match self.component.as_str() {
-            crate::names::TOURNAMENT_SELECTOR => {
+        match self.component() {
+            crate::constants::components::TOURNAMENT_SELECTOR => {
                 let tournament_size = self.extract::<i64>("k")?;
                 Ok(Box::new(TournamentSelector::new(tournament_size as usize)))
             }
-            crate::names::ROULETTE_WHEEL_SELECTOR => Ok(Box::new(RouletteSelector::new())),
-            crate::names::RANK_SELECTOR => Ok(Box::new(RankSelector::new())),
-            crate::names::STOCHASTIC_UNIVERSAL_SELECTOR => {
+            crate::constants::components::ROULETTE_WHEEL_SELECTOR => {
+                Ok(Box::new(RouletteSelector::new()))
+            }
+            crate::constants::components::RANK_SELECTOR => Ok(Box::new(RankSelector::new())),
+            crate::constants::components::STOCHASTIC_UNIVERSAL_SELECTOR => {
                 Ok(Box::new(StochasticUniversalSamplingSelector::new()))
             }
-            crate::names::BOLTZMANN_SELECTOR => {
+            crate::constants::components::BOLTZMANN_SELECTOR => {
                 let temp = self.extract::<f64>("temp")?;
                 Ok(Box::new(BoltzmannSelector::new(temp as f32)))
             }
-            crate::names::ELITE_SELECTOR => Ok(Box::new(EliteSelector::new())),
-            crate::names::RANDOM_SELECTOR => Ok(Box::new(RandomSelector::new())),
-            crate::names::NSGA2_SELECTOR => Ok(Box::new(NSGA2Selector::new())),
-            crate::names::NSGA3_SELECTOR => {
+            crate::constants::components::ELITE_SELECTOR => Ok(Box::new(EliteSelector::new())),
+            crate::constants::components::RANDOM_SELECTOR => Ok(Box::new(RandomSelector::new())),
+            crate::constants::components::NSGA2_SELECTOR => Ok(Box::new(NSGA2Selector::new())),
+            crate::constants::components::NSGA3_SELECTOR => {
                 let ref_points = self.extract::<i64>("points")?;
                 Ok(Box::new(NSGA3Selector::new(ref_points as usize)))
             }
-            crate::names::TOURNAMENT_NSGA2_SELECTOR => Ok(Box::new(TournamentNSGA2Selector::new())),
-            crate::names::LINEAR_RANK_SELECTOR => {
+            crate::constants::components::TOURNAMENT_NSGA2_SELECTOR => {
+                Ok(Box::new(TournamentNSGA2Selector::new()))
+            }
+            crate::constants::components::LINEAR_RANK_SELECTOR => {
                 let selection_pressure = self.extract::<f64>("pressure")?;
                 Ok(Box::new(LinearRankSelector::new(selection_pressure as f32)))
             }
-            _ => {
-                Err(radiate_err!(Builder: format!(
-                    "Selector type {} not yet implemented",
-                    self.component
-                )))
-            }
+            _ => Err(radiate_err!(Builder: format!(
+                "Selector type {} not yet implemented",
+                self.component()
+            ))),
         }
     }
 }

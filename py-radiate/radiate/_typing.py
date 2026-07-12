@@ -1,17 +1,15 @@
 from __future__ import annotations
 
-from collections.abc import Sequence, Callable
+from collections.abc import Callable, Sequence
 from pathlib import Path
-from typing import Any, TYPE_CHECKING, Literal
-
+from typing import TYPE_CHECKING, Any, Literal
 
 if TYPE_CHECKING:
-    from radiate.expr import Expr
-    from radiate.operators.rate import Rate
+    from .dsl.dtype import DataType, DataTypeClass
+    from .dsl.expr import Expr
+    from .dsl.loss import LossType, LossTypeClass
     from .engine.handlers import EventHandler
-    from .dtype import DataType, DataTypeClass
-    from radiate.fitness.loss import LossType, LossTypeClass
-    from radiate.engine.option import CheckpointParam
+    from .engine.option import CheckpointParam
 
 type FileType = Literal["pkl", "json"]
 
@@ -23,7 +21,7 @@ type RdLossType = LossType | LossTypeClass
 
 type Subscriber = AtLeastOne[Callable[[Any], None]] | AtLeastOne[EventHandler]
 
-type OperatorRate = float | Rate | Expr
+type OperatorRate = float | Expr
 
 type Checkpoint = (
     bool | str | Path | tuple[int, str | Path, FileType | None] | CheckpointParam

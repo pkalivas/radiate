@@ -158,6 +158,16 @@ impl DataType {
             _ => None,
         }
     }
+
+    pub fn get_field(&self, field_name: &str) -> Option<&DataType> {
+        match self {
+            DataType::Struct(_, fields) => fields
+                .iter()
+                .find(|(name, _)| name.as_str() == field_name)
+                .map(|(_, dtype)| dtype),
+            _ => None,
+        }
+    }
 }
 
 impl From<String> for DataType {

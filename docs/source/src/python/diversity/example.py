@@ -35,7 +35,7 @@ engine = (
         rd.Cross.blend(rate=0.8, alpha=0.5),
     )
     .diversity(
-        diversity, species_threshold=0.5
+        diversity, threshold=0.5
     )  # <- Add the diversity measure and species threshold
     .age(max_species_age=25)  # <- Add the max species age
     .limit(rd.Limit.score(0.01), rd.Limit.generations(1000))

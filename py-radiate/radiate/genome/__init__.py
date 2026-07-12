@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
 from enum import Enum
+from typing import TYPE_CHECKING, Any
 
 from radiate.radiate import PyGeneType as gt
 
@@ -94,13 +94,13 @@ __all__ = [
 
 if TYPE_CHECKING:
     # These are for IDE/type-checker only; no runtime import cycles.
-    from .gene import Gene
     from .chromosome import Chromosome
+    from .ecosystem import Ecosystem
+    from .gene import Gene
     from .genotype import Genotype
     from .phenotype import Phenotype
     from .population import Population
     from .species import Species
-    from .ecosystem import Ecosystem
 
 
 _LAZY = {

@@ -1,7 +1,8 @@
 use crate::node::Node;
 use crate::{Arity, NodeType};
-use radiate_core::{Gene, Valid, sentry_id};
+use radiate_core::{Gene, Valid};
 use radiate_utils::SortedBuffer;
+use radiate_utils::sentry_id;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;

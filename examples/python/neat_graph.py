@@ -33,11 +33,12 @@ engine = (
         output=rd.Op.linear(),
     )
     .select(rd.Select.boltzmann(temp=4.0))
+    .filter(rd.Filter.unique_score())
     .regression(inputs, answers, loss=rd.MSE)
     .diversity(
         rd.Dist.neat(excess=1.0, disjoint=1.0, weight_diff=3.0),
-        species_threshold=0.15,
-        target_species=5,
+        threshold=0.15,
+        target=5,
     )
     .alters(
         rd.Cross.graph(0.4, 0.5),

@@ -1,20 +1,13 @@
 use crate::Chromosome;
 use crate::Generation;
-use crate::GeneticEngineBuilder;
 use crate::builder::EngineParams;
 use crate::builder::evaluators::EvaluationParams;
-use crate::builder::objectives::OptimizeParams;
-use crate::builder::population::PopulationParams;
-use crate::builder::problem::ProblemParams;
-use crate::builder::selectors::SelectionParams;
-use crate::builder::species::SpeciesParams;
 use crate::genome::phenotype::Phenotype;
 use crate::objectives::Objective;
 use crate::{EventHandler, Front, Problem, ReplacementStrategy, Select};
-use radiate_core::Expr;
-use radiate_core::MetricQuery;
-use radiate_core::metric_names;
-use radiate_core::{Alterer, Diversity, Ecosystem, Evaluator, Executor, Genotype, Rate};
+use radiate_core::EcosystemFilter;
+use radiate_core::rate::ExprSet;
+use radiate_core::{Alterer, Diversity, Ecosystem, Evaluator, Executor, Genotype};
 use std::sync::{Arc, Mutex, RwLock};
 
 #[derive(Clone)]
@@ -24,8 +17,8 @@ pub(crate) struct EngineConfig<C: Chromosome, T: Clone> {
     survivor_selector: Arc<dyn Select<C>>,
     offspring_selector: Arc<dyn Select<C>>,
     replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
+    filters: Vec<Arc<Mutex<dyn EcosystemFilter<C>>>>,
     alterers: Vec<Alterer<C>>,
-    species_threshold: Rate,
     diversity: Option<Arc<dyn Diversity<C>>>,
     evaluator: Arc<dyn Evaluator<C, T>>,
     objective: Objective,
@@ -35,7 +28,7 @@ pub(crate) struct EngineConfig<C: Chromosome, T: Clone> {
     offspring_fraction: f32,
     executor: EvaluationParams<C, T>,
     handlers: Vec<Arc<Mutex<dyn EventHandler<T>>>>,
-    exprs: Option<Arc<Mutex<Vec<MetricQuery>>>>,
+    exprs: Option<Arc<Mutex<ExprSet>>>,
     generation: Option<Generation<C, T>>,
 }
 
@@ -70,10 +63,6 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
 
     pub fn max_species_age(&self) -> usize {
         self.max_species_age
-    }
-
-    pub fn species_threshold(&self) -> Rate {
-        self.species_threshold.clone()
     }
 
     pub fn diversity(&self) -> Option<Arc<dyn Diversity<C>>> {
@@ -112,6 +101,10 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
         Arc::clone(&self.problem)
     }
 
+    pub fn filters(&self) -> &[Arc<Mutex<dyn EcosystemFilter<C>>>] {
+        &self.filters
+    }
+
     pub fn generation(&self) -> Option<Generation<C, T>>
     where
         C: Clone,
@@ -129,7 +122,7 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
         Arc::new(move || problem.encode())
     }
 
-    pub fn exprs(&self) -> Option<Arc<Mutex<Vec<MetricQuery>>>> {
+    pub fn exprs(&self) -> Option<Arc<Mutex<ExprSet>>> {
         self.exprs.clone()
     }
 }
@@ -140,22 +133,6 @@ where
     T: Clone + Send + Sync + 'static,
 {
     fn from(params: &EngineParams<C, T>) -> Self {
-        let threshold = if let Some(count) = params.species_params.target_species_count {
-            let curr_threshold = params.species_params.species_threshold.get_by_index(1);
-
-            let index = Expr::select(metric_names::INDEX);
-            let thresh = Expr::select(metric_names::SPECIES_THRESHOLD);
-            let err = Expr::select(metric_names::SPECIES_COUNT).error(count as f32) * 0.05;
-
-            Rate::Expr(
-                Expr::when(index.lt(2))
-                    .then(curr_threshold)
-                    .otherwise(err + thresh),
-            )
-        } else {
-            params.species_params.species_threshold.clone()
-        };
-
         Self {
             ecosystem: params.population_params.ecosystem.clone().unwrap(),
             problem: params.problem_params.problem.clone().unwrap(),
@@ -166,7 +143,6 @@ where
             objective: params.optimization_params.objectives.clone(),
             max_age: params.population_params.max_age,
             max_species_age: params.species_params.max_species_age,
-            species_threshold: threshold,
             diversity: params.species_params.diversity.clone(),
             front: Arc::new(RwLock::new(
                 params.optimization_params.front.clone().unwrap(),
@@ -177,56 +153,7 @@ where
             handlers: params.handlers.clone(),
             generation: params.generation.clone(),
             exprs: params.exprs.clone(),
-        }
-    }
-}
-
-impl<C, T> From<EngineConfig<C, T>> for GeneticEngineBuilder<C, T>
-where
-    C: Chromosome + Clone + 'static,
-    T: Clone + Send + Sync + 'static,
-{
-    fn from(config: EngineConfig<C, T>) -> Self {
-        GeneticEngineBuilder {
-            params: EngineParams {
-                population_params: PopulationParams {
-                    population_size: config.ecosystem.population().len(),
-                    max_age: config.max_age,
-                    ecosystem: Some(config.ecosystem),
-                },
-                species_params: SpeciesParams {
-                    diversity: config.diversity,
-                    species_threshold: config.species_threshold,
-                    max_species_age: config.max_species_age,
-                    target_species_count: None,
-                },
-                evaluation_params: config.executor,
-                selection_params: SelectionParams {
-                    offspring_fraction: config.offspring_fraction,
-                    survivor_selector: config.survivor_selector,
-                    offspring_selector: config.offspring_selector,
-                },
-                optimization_params: OptimizeParams {
-                    objectives: config.objective,
-                    front_range: config.front.read().unwrap().range().clone(),
-                    front: Some(config.front.read().unwrap().clone()),
-                },
-                problem_params: ProblemParams {
-                    codec: None,
-                    problem: Some(config.problem),
-                    fitness_fn: None,
-                    batch_fitness_fn: None,
-                    raw_fitness_fn: None,
-                    raw_batch_fitness_fn: None,
-                },
-
-                replacement_strategy: config.replacement_strategy,
-                alterers: config.alterers,
-                handlers: config.handlers,
-                exprs: config.exprs,
-                generation: config.generation,
-            },
-            errors: Vec::new(),
+            filters: params.filter_params.filters.clone(),
         }
     }
 }

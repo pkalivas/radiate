@@ -22,6 +22,5 @@ var_result = rd.Op.var(0).eval(5.0, 10.0)  # result is 5.0 when evaluated with i
 import radiate as rd
 
 # Create a mutator that has a 10% chance to mutate an op and a 50% chance to replace it with a new one
-mutator = rd.OperationMutator(0.1, 0.5)
 mutator = rd.Mutate.op(0.1, 0.5)  # Using the dsl syntax for mutators
 # --8<-- [end:operation_mutator]

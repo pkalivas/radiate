@@ -14,6 +14,7 @@ pub enum Code {
     Fitness,
     Metric,
     Expr,
+    AnyValue,
     Other,
     Io,
     Python,
@@ -55,6 +56,9 @@ pub enum RadiateError {
     #[error("Multiple errors:\n{0}")]
     Multiple(String),
 
+    #[error("AnyValue error: {0}")]
+    AnyValue(String),
+
     #[error("Other error: {0}")]
     Other(String),
 
@@ -83,6 +87,7 @@ impl RadiateError {
             RadiateError::Metric { .. } => Code::Metric,
             RadiateError::Expr { .. } => Code::Expr,
             RadiateError::Evaluation { .. } => Code::Evaluation,
+            RadiateError::AnyValue { .. } => Code::AnyValue,
             RadiateError::Other(_) => Code::Other,
             #[cfg(feature = "python")]
             RadiateError::Python { .. } => Code::Python,
@@ -164,6 +169,9 @@ macro_rules! radiate_err {
     };
     (Expr: $fmt:literal $(, $arg:expr)* $(,)?) => {
         $crate::__private::must_use($crate::RadiateError::Expr(format!($fmt, $($arg),*)))
+    };
+    (AnyValue: $fmt:literal $(, $arg:expr)* $(,)?) => {
+        $crate::__private::must_use($crate::RadiateError::AnyValue(format!($fmt, $($arg),*)))
     };
 
     // Contextual message

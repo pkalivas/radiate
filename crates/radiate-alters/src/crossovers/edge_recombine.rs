@@ -1,5 +1,5 @@
 use radiate_core::{
-    AlterContext, AlterResult, Chromosome, Crossover, PermutationChromosome, Rate, Valid,
+    AlterContext, AlterResult, Chromosome, Crossover, Expr, PermutationChromosome, RateSet,
     random_provider,
 };
 use std::collections::{HashMap, HashSet};
@@ -9,17 +9,12 @@ use std::collections::{HashMap, HashSet};
 // Offspring: [1,2,4,5,3] (following edges when possible)
 #[derive(Debug, Clone, PartialEq)]
 pub struct EdgeRecombinationCrossover {
-    rate: Rate,
+    rate: Expr,
 }
 
 impl EdgeRecombinationCrossover {
-    pub fn new(rate: impl Into<Rate>) -> Self {
-        let rate = rate.into();
-        if !rate.is_valid() {
-            panic!("Crossover rate must be between 0.0 and 1.0");
-        }
-
-        EdgeRecombinationCrossover { rate }
+    pub fn new(rate: impl Into<Expr>) -> Self {
+        EdgeRecombinationCrossover { rate: rate.into() }
     }
 
     fn build_edge_table(&self, parent1: &[usize], parent2: &[usize]) -> HashMap<usize, Vec<usize>> {
@@ -89,8 +84,8 @@ impl<T> Crossover<PermutationChromosome<T>> for EdgeRecombinationCrossover
 where
     T: PartialEq + Clone,
 {
-    fn rate(&self) -> Rate {
-        self.rate.clone()
+    fn rates(&self) -> RateSet {
+        RateSet::new(self.rate.clone())
     }
 
     #[inline]
@@ -130,7 +125,7 @@ where
         }
 
         for (i, allele) in offspring.iter().enumerate() {
-            chrom_one.set(i, chrom_one.get(i).with_index(*allele));
+            chrom_one.set(i, chrom_one.get(i).unwrap().with_index(*allele));
         }
 
         1.into()
@@ -237,7 +232,7 @@ mod tests {
         let mut chrom_two = PermutationChromosome::new(genes2, Arc::clone(&alleles));
 
         let mut updates = AlterUpdates::default();
-        let mut ctx = AlterContext::new(&mut updates, 0, 1.0);
+        let mut ctx = AlterContext::new(&mut updates, 0, 1.0, &[]);
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
@@ -277,7 +272,7 @@ mod tests {
         let mut chrom_two = PermutationChromosome::new(genes, Arc::clone(&alleles));
 
         let mut updates = AlterUpdates::default();
-        let mut ctx = AlterContext::new(&mut updates, 0, 1.0);
+        let mut ctx = AlterContext::new(&mut updates, 0, 1.0, &[]);
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
@@ -307,7 +302,7 @@ mod tests {
         let mut chrom_two = PermutationChromosome::new(genes, Arc::clone(&alleles));
 
         let mut updates = AlterUpdates::default();
-        let mut ctx = AlterContext::new(&mut updates, 0, 1.0);
+        let mut ctx = AlterContext::new(&mut updates, 0, 1.0, &[]);
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
         assert_eq!(result.count(), 1);
@@ -323,7 +318,7 @@ mod tests {
         let mut chrom_two = PermutationChromosome::new(genes, Arc::clone(&alleles));
 
         let mut updates = AlterUpdates::default();
-        let mut ctx = AlterContext::new(&mut updates, 0, 1.0);
+        let mut ctx = AlterContext::new(&mut updates, 0, 1.0, &[]);
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
         assert_eq!(result.count(), 1);
@@ -364,7 +359,7 @@ mod tests {
             let mut chrom_two = PermutationChromosome::new(genes2, Arc::clone(&alleles));
 
             let mut updates = AlterUpdates::default();
-            let mut ctx = AlterContext::new(&mut updates, 0, 1.0);
+            let mut ctx = AlterContext::new(&mut updates, 0, 1.0, &[]);
 
             let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
@@ -432,7 +427,7 @@ mod tests {
         let mut chrom_two = PermutationChromosome::new(genes2, Arc::clone(&alleles));
 
         let mut updates = AlterUpdates::default();
-        let mut ctx = AlterContext::new(&mut updates, 0, 1.0);
+        let mut ctx = AlterContext::new(&mut updates, 0, 1.0, &[]);
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 

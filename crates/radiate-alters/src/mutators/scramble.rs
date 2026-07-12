@@ -1,4 +1,4 @@
-use radiate_core::{AlterContext, AlterResult, Chromosome, Mutate, Rate, random_provider};
+use radiate_core::{AlterContext, AlterResult, Chromosome, Expr, Mutate, RateSet, random_provider};
 
 /// The [ScrambleMutator] is a simple mutator that scrambles a random section of the [Chromosome].
 ///
@@ -6,19 +6,18 @@ use radiate_core::{AlterContext, AlterResult, Chromosome, Mutate, Rate, random_p
 /// may not be very effective. This mutator is best used with larger [Chromosome]s.
 #[derive(Debug, Clone)]
 pub struct ScrambleMutator {
-    rate: Rate,
+    rate: Expr,
 }
 
 impl ScrambleMutator {
-    pub fn new(rate: impl Into<Rate>) -> Self {
-        let rate = rate.into();
-        ScrambleMutator { rate }
+    pub fn new(rate: impl Into<Expr>) -> Self {
+        ScrambleMutator { rate: rate.into() }
     }
 }
 
 impl<C: Chromosome> Mutate<C> for ScrambleMutator {
-    fn rate(&self) -> Rate {
-        self.rate.clone()
+    fn rates(&self) -> RateSet {
+        RateSet::new(self.rate.clone())
     }
 
     #[inline]

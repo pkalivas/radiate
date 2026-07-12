@@ -1,12 +1,13 @@
-import radiate as rd
 import pytest
+
+import radiate as rd
 
 
 @pytest.mark.unit
 def test_generations_limit(simple_float_engine):
     """Test generations limit functionality."""
     limit = rd.Limit.generations(10)
-    result = simple_float_engine.run(limit)
+    result = simple_float_engine.limit(limit).run()
 
     assert result.index() == 10
 
@@ -15,7 +16,7 @@ def test_generations_limit(simple_float_engine):
 def test_time_limit(simple_float_engine):
     """Test time limit functionality."""
     limit = rd.Limit.seconds(3)
-    result = simple_float_engine.run(limit)
+    result = simple_float_engine.limit(limit).run()
 
     assert abs(result.duration().total_seconds() - 3) < 0.01
 
@@ -24,7 +25,7 @@ def test_time_limit(simple_float_engine):
 def test_score_limit(simple_float_engine):
     """Test score limit functionality."""
     limit = rd.Limit.score(0.01)
-    result = simple_float_engine.run(limit)
+    result = simple_float_engine.limit(limit).run()
 
     assert result.score()[0] <= 0.01
 
@@ -47,9 +48,9 @@ def test_convergence_limit(simple_float_engine, random_seed):
             self.convergence_data.append(generation.score())
 
     handler = Subscriber()
-    simple_float_engine.subscribe(handler).run(
+    simple_float_engine.subscribe(handler).limit(
         rd.Limit.convergence(window_size, threshold)
-    )
+    ).run()
 
     assert len(handler.convergence_data) == window_size
     assert all(
@@ -63,6 +64,6 @@ def test_expr_limit(simple_float_engine):
     """Test expression-based limit."""
     limit = rd.Expr.select("index") >= 10
 
-    result = simple_float_engine.run(rd.Limit.expr(limit))
+    result = simple_float_engine.limit(rd.Limit.expr(limit)).run()
 
     assert result.index() == 10, "Expression limit should stop at index >= 10"

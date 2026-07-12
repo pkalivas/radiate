@@ -1,15 +1,13 @@
 from typing import Any
 
+from radiate.radiate import py_accuracy
+
+from .._bridge import RsObject
+from .._typing import RdLossType
+from ..dsl.loss import MSE
+from ..utils._normalize import _normalize_regression_data
 from .graph import Graph
 from .tree import Tree
-
-from radiate.utils._normalize import _normalize_regression_data
-
-from radiate.fitness.loss import MSE
-from radiate._typing import RdLossType
-from radiate._bridge.wrapper import RsObject
-
-from radiate.radiate import py_accuracy
 
 
 class AccuracyResult(RsObject):

@@ -113,6 +113,10 @@ impl_into_py_ecosystem!(FloatChromosome<f64>);
 
 impl_into_py_ecosystem!(BitChromosome);
 impl_into_py_ecosystem!(CharChromosome);
-impl_into_py_ecosystem!(GraphChromosome<Op<f32>>);
-impl_into_py_ecosystem!(TreeChromosome<Op<f32>>);
 impl_into_py_ecosystem!(PermutationChromosome<usize>);
+
+impl_into_py_ecosystem!(GraphChromosome<Op<f32>>);
+impl_into_py_ecosystem!(GraphChromosome<Op<f64>>);
+
+impl_into_py_ecosystem!(TreeChromosome<Op<f32>>);
+impl_into_py_ecosystem!(TreeChromosome<Op<f64>>);

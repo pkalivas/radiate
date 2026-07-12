@@ -1,51 +1,17 @@
-from typing import Any
+from __future__ import annotations
 
-from radiate._bridge.input import EngineInput, EngineInputType
-
-from radiate.genome.population import Population
-from radiate.genome.gene import GeneType
-from radiate.genome import GENE_TYPE_MAPPING
-
-from .base import ComponentBase
+from .._rd import components
+from ..genome import GENE_TYPE_MAPPING
+from ..genome.population import Population
+from .input import EngineInput, EngineInputType
 
 
-class SelectorBase(ComponentBase):
-    def __init__(
-        self,
-        component: str | None = None,
-        args: dict[str, Any] = {},
-        allowed_genes: set[GeneType] | GeneType = set(GeneType),
-    ):
-        if component is None:
-            component = self.__class__.__name__
-        super().__init__(component=component, args=args)
-        if isinstance(allowed_genes, GeneType):
-            allowed_genes = {allowed_genes}
-        else:
-            allowed_genes = allowed_genes if allowed_genes else GeneType.all()
-        self.allowed_genes = allowed_genes
-
-    def __str__(self):
-        """
-        Return a string representation of the selector.
-        :return: String representation of the selector.
-        """
-        return f"Selector(name={self.component}, args={self.args})"
-
-    def __repr__(self):
-        """
-        Return a detailed string representation of the selector.
-        :return: Detailed string representation of the selector.
-        """
-        return f"SelectorBase(selector={self.component}, args={self.args}, allowed_genes={self.allowed_genes})"
-
-    def __eq__(self, value):
-        if not isinstance(value, SelectorBase):
-            return False
-        return (
-            self.component == value.component
-            and self.args == value.args
-            and self.allowed_genes == value.allowed_genes
+class Select(EngineInput):
+    def __init__(self, component: str, **kwargs):
+        super().__init__(
+            component=component,
+            input_type=EngineInputType.Unknown,
+            **kwargs,
         )
 
     def select(
@@ -62,34 +28,33 @@ class SelectorBase(ComponentBase):
 
         gene_type = population.gene_type()
 
-        selector_input = EngineInput(
-            component=self.component,
-            input_type=EngineInputType.SurvivorSelector,
-            **self.args,
-        ).__backend__()
-
         objectives = objective if isinstance(objective, list) else [objective]
 
         objective_input = EngineInput(
-            component="Objective",
             input_type=EngineInputType.Objective,
-            allowed_genes={gene_type},
             objective=objectives,
         ).__backend__()
 
         return Population.from_rust(
             py_select(
                 gene_type=GENE_TYPE_MAPPING["rs"][gene_type],
-                selector=selector_input,
+                selector=self.to_offspring_selector().__backend__(),
                 objective=objective_input,
                 population=population.__backend__(),
                 count=count,
             )
         )
 
+    def to_survivor_selector(self) -> Select:
+        self._input_type = EngineInputType.SurvivorSelector
+        return self
 
-class TournamentSelector(SelectorBase):
-    def __init__(self, k: int = 3):
+    def to_offspring_selector(self) -> Select:
+        self._input_type = EngineInputType.OffspringSelector
+        return self
+
+    @staticmethod
+    def tournament(k: int = 3) -> Select:
         """
         The `TournamentSelector` is a selection strategy that selects individuals from the `population` by
         holding a series of tournaments. In each tournament, a random subset of size `k` of individuals
@@ -98,11 +63,10 @@ class TournamentSelector(SelectorBase):
 
         :param k: Tournament size.
         """
-        super().__init__(component="TournamentSelector", args={"k": k})
+        return Select(components.TOURNAMENT_SELECTOR, k=k)
 
-
-class RouletteSelector(SelectorBase):
-    def __init__(self):
+    @staticmethod
+    def roulette() -> Select:
         """
         The `RouletteSelector` is a selection strategy that selects individuals from the `population`
         based on their fitness values. The probability of an individual being selected is proportional
@@ -114,33 +78,47 @@ class RouletteSelector(SelectorBase):
         Although the implementation itself is a bit more mathematically complex to ensure accuracy.
         This is an extremely popular selection strategy due to its simplicity and effectiveness.
         """
-        super().__init__(component="RouletteSelector")
+        return Select(components.ROULETTE_WHEEL_SELECTOR)
 
-
-class RankSelector(SelectorBase):
-    def __init__(self):
+    @staticmethod
+    def nsga2() -> Select:
         """
-        The `RankSelector` is a selection strategy that selects individuals from the `population`
-        based on their rank, or index, in the `population`. The fitness values of the individuals are
-        first ranked, and then the selection probabilities are assigned based on these ranks.
-        This helps to maintain diversity in the population and prevent premature convergence by ensuring that
-        all individuals have a chance to be selected, regardless of their fitness values.
+        The `NSGA2Selector` is a selection strategy used in multi-objective optimization problems.
+
+        It is based on the Non-Dominated Sorting Genetic Algorithm II (NSGA-II) and selects
+        individuals based on their Pareto dominance rank and crowding distance. The NSGA-II algorithm
+        is designed to maintain a diverse set of solutions that represent the trade-offs between multiple conflicting objectives.
+
+        * Individuals are first sorted into Pareto fronts based on their dominance relationships.
+        * Individuals in the same front are then ranked based on their crowding distance, which measures the density of solutions around them.
+        * Individuals with lower ranks and higher crowding distances are more likely to be selected.
         """
-        super().__init__(component="RankSelector")
+        return Select(components.NSGA2_SELECTOR)
 
+    @staticmethod
+    def nsga3(points: int = 12) -> Select:
+        """
+        The `NSGA3Selector` is a selection strategy used in multi-objective optimization problems, based on the NSGA-III algorithm. It extends the NSGA-II algorithm by introducing reference points to guide the selection process towards a well-distributed set of solutions across the Pareto front.
 
-class EliteSelector(SelectorBase):
-    def __init__(self):
+        * Individuals are first sorted into Pareto fronts based on their dominance relationships.
+        * Reference points are generated in the objective space to represent desired trade-offs between objectives.
+        * Individuals are selected based on their proximity to these reference points, ensuring a diverse set of solutions across the Pareto front.
+
+        :param points: The number of reference points to use for guiding the selection process.
+        """
+        return Select(components.NSGA3_SELECTOR, points=points)
+
+    @staticmethod
+    def elite() -> Select:
         """
         The `EliteSelector` is a selection strategy that selects the top `n` individuals from the population
         based on their fitness values. This can be useful for preserving the best individuals
         in the population and preventing them from being lost during the selection process.
         """
-        super().__init__(component="EliteSelector")
+        return Select(components.ELITE_SELECTOR)
 
-
-class BoltzmannSelector(SelectorBase):
-    def __init__(self, temp: float = 1.0):
+    @staticmethod
+    def boltzmann(temp: float = 1.0) -> Select:
         """
         The `BoltzmannSelector` is a probabilistic selection strategy inspired by the Boltzmann distribution
         from statistical mechanics, where selection probabilities are scaled based on temperature.
@@ -152,11 +130,39 @@ class BoltzmannSelector(SelectorBase):
 
         :param temp: Temperature for the Boltzmann selector.
         """
-        super().__init__(component="BoltzmannSelector", args={"temp": temp})
+        return Select(components.BOLTZMANN_SELECTOR, temp=temp)
 
+    @staticmethod
+    def rank() -> Select:
+        """
+        The `RankSelector` is a selection strategy that selects individuals from the `population`
+        based on their rank, or index, in the `population`. The fitness values of the individuals are
+        first ranked, and then the selection probabilities are assigned based on these ranks.
+        This helps to maintain diversity in the population and prevent premature convergence by ensuring that
+        all individuals have a chance to be selected, regardless of their fitness values.
+        """
+        return Select(components.RANK_SELECTOR)
 
-class StochasticSamplingSelector(SelectorBase):
-    def __init__(self):
+    @staticmethod
+    def linear_rank(pressure: float = 1.5) -> Select:
+        """
+        The `LinearRankSelector` is a selection strategy that selects individuals from the
+        `population` based on their rank, or index, in the `population`, but with a linear scaling
+        of the selection probabilities. The fitness values of the individuals are first ranked, and
+        then the scaling factor is applied to the ranks. This helps to maintain diversity
+        in the `population` and prevent premature convergence by ensuring that all individuals have a
+        chance to be selected, but with a bias towards fitter individuals. The linear scaling function can be thought of as:
+
+        P(i) = (2 - pressure) / N + (2 * (rank(i) - 1) * (pressure - 1)) / (N * (N - 1))
+
+        A higher `pressure` will result in a stronger bias towards fitter individuals, while a lower value will result in a more uniform selection.
+
+        :param pressure: Pressure for the linear rank selector.
+        """
+        return Select(components.LINEAR_RANK_SELECTOR, pressure=pressure)
+
+    @staticmethod
+    def stochastic_universal_sampling() -> Select:
         """
         Stochastic Universal Sampling (SUS) is a probabilistic selection technique used to ensure that selection is
         proportional to fitness, while maintaining diversity. Some consider it an improvement over roulette wheel selection,
@@ -175,46 +181,10 @@ class StochasticSamplingSelector(SelectorBase):
             * The wheel is spun once, and the pointers are placed on the wheel at random positions.
             * Individuals whose segments are intersected by the pointers are selected.
         """
-        super().__init__(component="StochasticUniversalSamplingSelector")
+        return Select(components.STOCHASTIC_UNIVERSAL_SELECTOR)
 
-
-class LinearRankSelector(SelectorBase):
-    def __init__(self, pressure: float = 0.5):
-        """
-        The `LinearRankSelector` is a selection strategy that selects individuals from the
-        `population` based on their rank, or index, in the `population`, but with a linear scaling
-        of the selection probabilities. The fitness values of the individuals are first ranked, and
-        then the scaling factor is applied to the ranks. This helps to maintain diversity
-        in the `population` and prevent premature convergence by ensuring that all individuals have a
-        chance to be selected, but with a bias towards fitter individuals. The linear scaling function can be thought of as:
-
-        P(i) = (2 - pressure) / N + (2 * (rank(i) - 1) * (pressure - 1)) / (N * (N - 1))
-
-        A higher `pressure` will result in a stronger bias towards fitter individuals, while a lower value will result in a more uniform selection.
-
-        :param pressure: Pressure for the linear rank selector.
-        """
-        super().__init__(component="LinearRankSelector", args={"pressure": pressure})
-
-
-class NSGA2Selector(SelectorBase):
-    def __init__(self):
-        """
-        The `NSGA2Selector` is a selection strategy used in multi-objective optimization problems.
-
-        It is based on the Non-Dominated Sorting Genetic Algorithm II (NSGA-II) and selects
-        individuals based on their Pareto dominance rank and crowding distance. The NSGA-II algorithm
-        is designed to maintain a diverse set of solutions that represent the trade-offs between multiple conflicting objectives.
-
-        * Individuals are first sorted into Pareto fronts based on their dominance relationships.
-        * Individuals in the same front are then ranked based on their crowding distance, which measures the density of solutions around them.
-        * Individuals with lower ranks and higher crowding distances are more likely to be selected.
-        """
-        super().__init__(component="NSGA2Selector")
-
-
-class TournamentNSGA2Selector(SelectorBase):
-    def __init__(self, k: int = 3):
+    @staticmethod
+    def tournament_nsga2(k: int = 3) -> Select:
         """
         The `TournamentNSGA2Selector` is a selection strategy that combines the principles of tournament
         selection with the NSGA-II algorithm. It selects individuals based on their Pareto dominance
@@ -226,18 +196,4 @@ class TournamentNSGA2Selector(SelectorBase):
 
         :param k: Tournament size.
         """
-        super().__init__(component="TournamentNSGA2Selector", args={"k": k})
-
-
-class NSGA3Selector(SelectorBase):
-    def __init__(self, points: int = 12):
-        """
-        The `NSGA3Selector` is a selection strategy used in multi-objective optimization problems, based on the NSGA-III algorithm. It extends the NSGA-II algorithm by introducing reference points to guide the selection process towards a well-distributed set of solutions across the Pareto front.
-
-        * Individuals are first sorted into Pareto fronts based on their dominance relationships.
-        * Reference points are generated in the objective space to represent desired trade-offs between objectives.
-        * Individuals are selected based on their proximity to these reference points, ensuring a diverse set of solutions across the Pareto front.
-
-        :param points: The number of reference points to use for guiding the selection process.
-        """
-        super().__init__(component="NSGA3Selector", args={"points": points})
+        return Select(components.TOURNAMENT_NSGA2_SELECTOR, k=k)

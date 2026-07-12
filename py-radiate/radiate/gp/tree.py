@@ -1,14 +1,16 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, overload, Any
+
+from typing import TYPE_CHECKING, Any, overload
 
 from radiate.radiate import PyTree
-from radiate._bridge.wrapper import RsObject
-from radiate.utils import _normalize_single_chunk
+
+from .._bridge import RsObject
+from ..utils._normalize import _to_float_array
 
 if TYPE_CHECKING:
-    from radiate._dependancies import numpy as np
-    from radiate._dependancies import polars as pl
-    from radiate._dependancies import pandas as pd
+    from .._dependancies import numpy as np
+    from .._dependancies import pandas as pd
+    from .._dependancies import polars as pl
 
 
 class Tree(RsObject):
@@ -70,13 +72,9 @@ class Tree(RsObject):
         Returns:
             list[list[float]] | list[float]: The output of the graph after evaluation.
         """
-        if isinstance(inputs, list) and all(
-            isinstance(row, (int, float)) for row in inputs
-        ):
-            return self.__backend__().eval(inputs)
+        eval_data = _to_float_array(inputs, columns=columns)
 
-        eval_inputs = _normalize_single_chunk(inputs, cols=columns)
-        return self.__backend__().eval(eval_inputs)
+        return self.__backend__().eval(eval_data)
 
     def to_dot(self) -> str:
         """

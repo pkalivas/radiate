@@ -1,14 +1,15 @@
 mod bindings;
 mod checkpoint;
+pub mod constants;
 mod evaluator;
 mod events;
-mod names;
 mod object;
 mod problem;
 mod random;
 
 pub use bindings::*;
 pub use checkpoint::*;
+pub use constants::{components, loss_functions};
 pub use evaluator::FreeThreadPyEvaluator;
 pub use object::*;
 pub use problem::PyProblem;

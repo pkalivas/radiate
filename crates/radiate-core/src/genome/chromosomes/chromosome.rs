@@ -1,4 +1,9 @@
-use super::{Valid, gene::Gene};
+use crate::{
+    Gene,
+    chromosomes::{NumericAllele, NumericGene},
+};
+
+use super::Valid;
 
 /// The [Chromosome] is part of the genetic makeup of an individual.
 /// It is a collection of [Gene] instances, it is essentially a
@@ -20,27 +25,14 @@ pub trait Chromosome: Valid {
     fn as_slice(&self) -> &[Self::Gene];
     fn as_mut_slice(&mut self) -> &mut [Self::Gene];
 
-    /// Retrieves the gene at the specified index.
-    ///
-    /// # Arguments
-    ///
-    /// * `index` - The position of the gene to retrieve.
-    ///
-    fn get(&self, index: usize) -> &Self::Gene {
-        &self.as_slice()[index]
+    fn get(&self, index: usize) -> Option<&Self::Gene> {
+        self.as_slice().get(index)
     }
 
-    fn get_mut(&mut self, index: usize) -> &mut Self::Gene {
-        &mut self.as_mut_slice()[index]
+    fn get_mut(&mut self, index: usize) -> Option<&mut Self::Gene> {
+        self.as_mut_slice().get_mut(index)
     }
 
-    /// Sets the gene at the specified index.
-    ///
-    /// # Arguments
-    ///
-    /// * `index` - The position of the gene to set.
-    /// * [`Gene`] - The gene to replace at the specified index.
-    ///
     fn set(&mut self, index: usize, gene: Self::Gene) {
         self.as_mut_slice()[index] = gene;
     }
@@ -67,4 +59,21 @@ pub trait Chromosome: Valid {
     ) -> impl Iterator<Item = (&'a mut Self::Gene, &'a mut Self::Gene)> {
         self.iter_mut().zip(other.iter_mut())
     }
+
+    fn apply_paired<F>(&mut self, other: &mut Self, mut op: F)
+    where
+        Self: Sized,
+        F: FnMut(&mut Self::Gene, &mut Self::Gene),
+    {
+        for (a, b) in self.iter_mut().zip(other.iter_mut()) {
+            op(a, b);
+        }
+    }
+}
+
+pub trait NumericChromosome<A>: Chromosome
+where
+    Self::Gene: NumericGene<Allele = A>,
+    A: NumericAllele,
+{
 }

@@ -25,6 +25,7 @@ use std::{fmt::Debug, ops::Deref};
 const SOURCE_NODE_TYPES: &[NodeType] = &[NodeType::Input, NodeType::Vertex, NodeType::Edge];
 const TARGET_NODE_TYPES: &[NodeType] = &[NodeType::Output, NodeType::Vertex, NodeType::Edge];
 const MAX_REPAIR_ATTEMPTS: usize = 10;
+const MAX_SOURCE_ATTEMPTS: usize = 10;
 
 /// A single reversible mutation applied during a transaction.
 ///
@@ -402,6 +403,44 @@ impl<'a, T> GraphTransaction<'a, T> {
     #[inline]
     pub fn random_target_node(&self, rand: &mut RdRand) -> Option<&GraphNode<T>> {
         self.random_node_of_type(TARGET_NODE_TYPES, rand)
+    }
+
+    #[inline]
+    pub fn unique_random_source_node(
+        &self,
+        arity: &Arity,
+        rand: &mut RdRand,
+    ) -> Option<Vec<&GraphNode<T>>> {
+        let needed_insertions = match arity {
+            Arity::Exact(n) => *n,
+            _ => 1,
+        };
+
+        if self.graph.len() < needed_insertions {
+            return None;
+        }
+
+        if needed_insertions == 1 {
+            return self.random_source_node(rand).map(|n| vec![n]);
+        }
+
+        let mut sorted = SortedBuffer::new();
+
+        let mut attempts = 0;
+        while sorted.len() < needed_insertions && attempts < MAX_SOURCE_ATTEMPTS {
+            if let Some(node) = self.random_source_node(rand) {
+                SortedBuffer::insert_sorted_unique(&mut sorted, node.index());
+            }
+
+            attempts += 1;
+        }
+
+        Some(
+            sorted
+                .iter()
+                .map(|&idx| &self.graph[idx])
+                .collect::<Vec<&GraphNode<T>>>(),
+        )
     }
 
     /// Get a random target node that satisfies the provided filter function.
