@@ -33,9 +33,6 @@ fn main() {
 }
 
 fn display(result: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>) {
-    // let dot = result.value().to_dot();
-    // // Save the DOT representation to a file
-    // std::fs::write("graph.dot", dot).expect("Unable to write DOT file");
     Accuracy::default()
         .named("Regression Graph")
         .on(&dataset().into())
