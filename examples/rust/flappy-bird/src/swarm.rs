@@ -72,13 +72,19 @@ impl BatchFitnessFunction<Graph<Op<f32>>, f32> for FlappySwarm {
                     .iter()
                     .map(|p| (p.x, p.gap_top, p.gap_bottom))
                     .collect(),
-                best_pipes: world.birds.iter().map(|b| b.pipes_passed).max().unwrap_or(0),
+                best_pipes: world
+                    .birds
+                    .iter()
+                    .map(|b| b.pipes_passed)
+                    .max()
+                    .unwrap_or(0),
                 best_score: None,
             };
+
             // Rendering is best-effort: if the window has closed, the
             // receiver is gone and send() fails — training keeps going
             // headless rather than panicking.
-            let _ = self.tx.send(snapshot);
+            self.tx.send(snapshot).unwrap();
 
             let delay = self.speed.delay();
             if !delay.is_zero() {
@@ -124,7 +130,8 @@ pub fn replay_best(
             best_pipes: world.birds[0].pipes_passed,
             best_score: Some(best_score),
         };
-        let _ = tx.send(snapshot);
+
+        tx.send(snapshot).unwrap();
 
         if world.all_dead() || world.tick >= game::MAX_TICKS {
             break;

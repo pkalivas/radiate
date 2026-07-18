@@ -26,7 +26,12 @@ pub const MAX_FALL_SPEED: f32 = -600.0;
 pub const DT: f32 = 1.0 / 60.0;
 
 pub const PIPE_BONUS: f32 = 100.0;
-pub const MAX_TICKS: u32 = 60 * 60; // 60s cap per generation - the graph's evolve to beat this pretty quick tbh
+pub const MAX_PIPES_DECAY: u32 = 60; // Every 15 `MAX_PIPES_DECAY` is equivalent to 10 game pipes (15 = 10 pipes, 30 = 20 pipes, 60 = 40 pipes, etc., etc.).
+pub const MAX_GAME_SECONDS: u32 = 60; // 60 (game) seconds cap per generation 
+// The max fitness score allowed before the fitness is terminated.
+// This is to prevent the evolution from taking too long.
+// The speed control makes this not real-time, but simulated seconds so evolution still happens very quick.
+pub const MAX_TICKS: u32 = MAX_GAME_SECONDS * MAX_PIPES_DECAY;
 
 #[derive(Clone, Copy)]
 pub struct Bird {

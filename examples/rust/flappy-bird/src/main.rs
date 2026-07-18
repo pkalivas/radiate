@@ -84,20 +84,21 @@ fn run_evolution(tx: mpsc::Sender<Snapshot>, speed: SimSpeed) {
         .batch_fitness_fn(FlappySwarm::new(tx.clone(), speed.clone()))
         .build();
 
-    let final_generation = engine
+    let result = engine
         .iter()
         .until_seconds(MAX_TRAIN_SECONDS)
         .take(MAX_GENERATIONS)
-        .last();
+        .last()
+        .unwrap();
+
+    println!("{result:?}");
+    println!("{}", result.metrics().dashboard());
 
     // `Generation::value()`/`score()` already track the best-ever genome
     // (the engine only updates them on improvement), so the last yielded generation's
     // value *is* the best one found across the whole run.
-    let Ok(final_generation) = final_generation else {
-        return;
-    };
-    let best_graph = final_generation.value().clone();
-    let best_score = final_generation.score().as_f32();
+    let best_graph = result.value().clone();
+    let best_score = result.score().as_f32();
 
     // Keep showing the winner off, looping through fresh courses, so the
     // window ends on a live demo.
@@ -107,6 +108,4 @@ fn run_evolution(tx: mpsc::Sender<Snapshot>, speed: SimSpeed) {
         seed += 1;
         thread::sleep(Duration::from_millis(600));
     }
-
-    println!("{final_generation:?}");
 }

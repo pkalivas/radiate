@@ -6,6 +6,11 @@ use bevy::text::FontSize;
 use std::sync::Mutex;
 use std::sync::mpsc::Receiver;
 
+const BIRD_COLOR_ALIVE: Color = Color::srgb(1.0, 0.85, 0.2);
+const BIRD_COLOR_DEAD: Color = Color::srgba(0.5, 0.5, 0.5, 0.25);
+const PIPE_COLOR: Color = Color::srgb(0.2, 0.7, 0.3);
+const BACKGROUND_COLOR: Color = Color::srgb(0.53, 0.81, 0.92);
+
 /// Owns the receiving end of the worker thread's snapshot channel. Wrapped
 /// in a `Mutex` (rather than `NonSend`) so the drain system can be scheduled
 /// like any other resource-reading system.
@@ -27,11 +32,6 @@ pub(crate) struct GenerationText;
 
 #[derive(Component)]
 pub(crate) struct SpeedText;
-
-const BIRD_COLOR_ALIVE: Color = Color::srgb(1.0, 0.85, 0.2);
-const BIRD_COLOR_DEAD: Color = Color::srgba(0.5, 0.5, 0.5, 0.25);
-const PIPE_COLOR: Color = Color::srgb(0.2, 0.7, 0.3);
-const BACKGROUND_COLOR: Color = Color::srgb(0.53, 0.81, 0.92);
 
 pub fn setup(mut commands: Commands, speed: Res<SimSpeedRes>) {
     commands.spawn(Camera2d);
