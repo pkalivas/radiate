@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, Any, overload
 from radiate.radiate import PyGraph
 
 from .._bridge import RsObject
-from ..genome.chromosome import Chromosome
 from ..utils._normalize import _to_float_array
 
 if TYPE_CHECKING:
@@ -15,10 +14,6 @@ if TYPE_CHECKING:
 
 
 class Graph(RsObject):
-    @classmethod
-    def from_chromosome(cls, chromosome: Chromosome) -> Graph:
-        return cls.from_rust(PyGraph.from_chromosome(chromosome.__backend__()))
-
     def __repr__(self):
         return self.__backend__().__repr__()
 

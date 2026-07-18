@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Any, Callable
 
 from .._rd import PyEngine, PyEngineBuilder
-from .._typing import RdDataType, Subscriber
+from .._typing import Subscriber
 from ..codec import CodecBase
 from ..dsl.expr import Expr
 from ..genome import GeneType, Population
@@ -91,10 +91,6 @@ class EngineBuilder[G, T]:
     @property
     def gene_type(self) -> GeneType:
         return self._gene_type
-
-    @property
-    def codec(self) -> RdDataType:
-        return self.codec
 
     def build(self) -> PyEngine:
         """Build the PyEngine instance."""
