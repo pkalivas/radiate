@@ -60,7 +60,7 @@ fn run_evolution(tx: mpsc::Sender<Snapshot>, speed: SimSpeed) {
         (NodeType::Output, vec![Op::sigmoid()]),
     ];
 
-    let codec = GraphCodec::weighted_directed(INPUT_SIZE, OUTPUT_SIZE, store).with_max_nodes(20);
+    let codec = GraphCodec::weighted_directed(INPUT_SIZE, OUTPUT_SIZE, store).with_max_nodes(30); // Should only need ~10 nodes total, this is just for demonstration.
 
     let engine = GeneticEngine::builder()
         .codec(codec)
