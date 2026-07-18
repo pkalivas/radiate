@@ -210,11 +210,11 @@ You can register named expressions that are evaluated against the `MetricSet` at
 
 ### 3: Dynamic Rates
 
-An expression can also drive an alterer's rate, a species threshold, or any other parameter that accepts a `Rate`. The expression is evaluated against the `MetricSet` each generation, and the result is used as the rate for that step.
+An expression can also drive an alterer's rate, a species threshold, or any other `rate`-typed parameter. The expression is evaluated against the `MetricSet` each generation, and the result is used as the rate for that step. See [Rates](../alters/rate.md) for the full set of recipes.
 
 === ":fontawesome-brands-python: Python"
 
-    Pass `Rate::Expr(expr)` or just a plain `expr` wherever a `Rate` is accepted:
+    Pass the `Expr` directly wherever a rate is accepted:
 
     ```python
     --8<-- "python/engine/expressions.py:dynamic_rates"
@@ -222,7 +222,7 @@ An expression can also drive an alterer's rate, a species threshold, or any othe
 
 === ":fontawesome-brands-rust: Rust"
 
-    Pass `Rate::Expr(expr)` or just a plain `expr` wherever a `Rate` is accepted:
+    Pass the `Expr` directly wherever a rate is accepted:
 
     ```rust
     --8<-- "rust/engine/expressions.rs:dynamic_rates"

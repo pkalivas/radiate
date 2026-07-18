@@ -10,7 +10,7 @@ Alterers are genetic operators that modify the genetic material of individuals i
     ![Mutation vs crossover](../../assets/alters/alterers.svg){ width="560" }
 </figure>
 
-Alterers run during the engine's **recombine** step and are applied only to the **offspring** — the individuals chosen by the [offspring selector](../selectors/index.md). Survivors pass through to the next generation untouched. Each alterer is paired with a [`Rate`](rate.md) that controls how often it fires, so you tune not just *which* operators run but *how aggressively*.
+Alterers run during the engine's **recombine** step and are applied only to the **offspring** — the individuals chosen by the [offspring selector](../selectors/index.md). Survivors pass through to the next generation untouched. Each alterer is paired with a [rate](rate.md) that controls how often it fires, so you tune not just *which* operators run but *how aggressively*.
 
 These operators modify the `population` and are essential for the genetic algorithm to explore the search space effectively. As such, the choice of `alterer` can have a significant impact on the performance of the genetic algorithm, so it is important to choose an `alterer` that is well-suited to the problem being solved.
 
