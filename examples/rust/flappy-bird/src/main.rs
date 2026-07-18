@@ -70,6 +70,7 @@ fn run_evolution(tx: mpsc::Sender<Snapshot>, speed: SimSpeed) {
             OperationMutator::new(0.04, 0.05),
             GraphMutator::new(0.05, 0.05)
         ))
+        // .diversity(NeatDistance::new(3.0, 3.0, 0.4)) // uncomment for NEAT-style speciation. Not necessary, but available
         // Intentionally no `.parallel()` here: the default `Executor::Serial`
         // guarantees `FlappySwarm::evaluate` is called exactly once per
         // generation with every member who _needs_ evaluation, so every bird in a
