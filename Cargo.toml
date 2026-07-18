@@ -8,7 +8,7 @@ members = [
     "examples/rust/DTLZ",
     "examples/rust/min-sum",
     "examples/rust/hello-world",
-    "examples/rust/knapsack",    
+    "examples/rust/knapsack",
     "examples/rust/nqueens",
     "examples/rust/simple-nn",
     "examples/rust/TSP",
@@ -17,6 +17,7 @@ members = [
     "examples/rust/image-evo",
     "examples/rust/novelty_search",
     "examples/rust/snake",
+    "examples/rust/flappy-bird",
 
     "examples/rust/graphs/iris-graph",
     "examples/rust/graphs/regression-graph",
@@ -43,6 +44,7 @@ exclude = [
     "examples/rust/image-evo",
     "examples/rust/novelty_search",
     "examples/rust/snake",
+    "examples/rust/flappy-bird",
 
     "examples/rust/graphs/iris-graph",
     "examples/rust/graphs/xor-graph",
