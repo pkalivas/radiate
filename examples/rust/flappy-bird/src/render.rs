@@ -1,4 +1,5 @@
 use crate::game;
+use crate::speed::SimSpeed;
 use crate::swarm::Snapshot;
 use bevy::prelude::*;
 use bevy::text::FontSize;
@@ -11,6 +12,10 @@ use std::sync::mpsc::Receiver;
 #[derive(Resource)]
 pub struct SnapshotReceiver(pub Mutex<Receiver<Snapshot>>);
 
+/// The Bevy-side handle to the speed dial shared with the worker thread.
+#[derive(Resource)]
+pub struct SimSpeedRes(pub SimSpeed);
+
 /// Marks every entity spawned to represent the current simulation frame
 /// (birds + pipes) so it can be cleared wholesale before the next one is
 /// drawn — simplest possible sync strategy, and cheap at this entity count.
@@ -20,12 +25,15 @@ pub(crate) struct SimEntity;
 #[derive(Component)]
 pub(crate) struct GenerationText;
 
+#[derive(Component)]
+pub(crate) struct SpeedText;
+
 const BIRD_COLOR_ALIVE: Color = Color::srgb(1.0, 0.85, 0.2);
 const BIRD_COLOR_DEAD: Color = Color::srgba(0.5, 0.5, 0.5, 0.25);
 const PIPE_COLOR: Color = Color::srgb(0.2, 0.7, 0.3);
 const BACKGROUND_COLOR: Color = Color::srgb(0.53, 0.81, 0.92);
 
-pub fn setup(mut commands: Commands) {
+pub fn setup(mut commands: Commands, speed: Res<SimSpeedRes>) {
     commands.spawn(Camera2d);
 
     commands.spawn((
@@ -43,6 +51,48 @@ pub fn setup(mut commands: Commands) {
         },
         GenerationText,
     ));
+
+    commands.spawn((
+        Text::new(speed_label(&speed.0)),
+        TextFont {
+            font_size: FontSize::Px(18.0),
+            ..default()
+        },
+        TextColor(Color::BLACK),
+        Node {
+            position_type: PositionType::Absolute,
+            top: Val::Px(40.0),
+            left: Val::Px(10.0),
+            ..default()
+        },
+        SpeedText,
+    ));
+}
+
+fn speed_label(speed: &SimSpeed) -> String {
+    format!("Speed: {}   [ - slower  /  = faster ]", speed.label())
+}
+
+pub fn handle_speed_input(
+    keys: Res<ButtonInput<KeyCode>>,
+    speed: Res<SimSpeedRes>,
+    mut text_query: Query<&mut Text, With<SpeedText>>,
+) {
+    let mut changed = false;
+    if keys.just_pressed(KeyCode::Minus) {
+        speed.0.slower();
+        changed = true;
+    }
+    if keys.just_pressed(KeyCode::Equal) {
+        speed.0.faster();
+        changed = true;
+    }
+
+    if changed {
+        if let Ok(mut text) = text_query.single_mut() {
+            text.0 = speed_label(&speed.0);
+        }
+    }
 }
 
 pub fn sync_snapshot_to_entities(
@@ -97,13 +147,19 @@ pub fn sync_snapshot_to_entities(
 
     let alive = snapshot.birds.iter().filter(|(_, a)| *a).count();
     if let Ok(mut text) = text_query.single_mut() {
-        text.0 = format!(
-            "Generation {}  |  alive {}/{}  |  tick {}",
-            snapshot.generation,
-            alive,
-            snapshot.birds.len(),
-            snapshot.tick
-        );
+        text.0 = match snapshot.best_score {
+            Some(best_score) => format!(
+                "Final replay — best genome (score {:.0})  |  tick {}",
+                best_score, snapshot.tick
+            ),
+            None => format!(
+                "Generation {}  |  alive {}/{}  |  tick {}",
+                snapshot.generation,
+                alive,
+                snapshot.birds.len(),
+                snapshot.tick
+            ),
+        };
     }
 }
 

@@ -1,14 +1,20 @@
 mod game;
 mod render;
+mod speed;
 mod swarm;
 
 use bevy::prelude::*;
 use radiate::ops;
 use radiate::prelude::*;
-use render::{SnapshotReceiver, background_color, setup, sync_snapshot_to_entities};
+use render::{
+    SimSpeedRes, SnapshotReceiver, background_color, handle_speed_input, setup,
+    sync_snapshot_to_entities,
+};
+use speed::SimSpeed;
 use std::sync::Mutex;
 use std::sync::mpsc;
 use std::thread;
+use std::time::Duration;
 use swarm::{FlappySwarm, Snapshot};
 
 const INPUT_SIZE: usize = 5;
@@ -18,8 +24,10 @@ const MAX_TRAIN_SECONDS: f64 = 3600.0;
 
 fn main() {
     let (tx, rx) = mpsc::channel::<Snapshot>();
+    let speed = SimSpeed::new();
 
-    thread::spawn(move || run_evolution(tx));
+    let worker_speed = speed.clone();
+    thread::spawn(move || run_evolution(tx, worker_speed));
 
     App::new()
         .add_plugins(DefaultPlugins.set(WindowPlugin {
@@ -32,12 +40,13 @@ fn main() {
         }))
         .insert_resource(background_color())
         .insert_resource(SnapshotReceiver(Mutex::new(rx)))
+        .insert_resource(SimSpeedRes(speed))
         .add_systems(Startup, setup)
-        .add_systems(Update, sync_snapshot_to_entities)
+        .add_systems(Update, (sync_snapshot_to_entities, handle_speed_input))
         .run();
 }
 
-fn run_evolution(tx: mpsc::Sender<Snapshot>) {
+fn run_evolution(tx: mpsc::Sender<Snapshot>, speed: SimSpeed) {
     let store = vec![
         (NodeType::Input, Op::vars(0..INPUT_SIZE)),
         (NodeType::Edge, vec![Op::weight()]),
@@ -62,13 +71,32 @@ fn run_evolution(tx: mpsc::Sender<Snapshot>) {
         // makes the live "swarm" view in the Bevy window meaningful. Adding
         // `.parallel()` would split the population into per-worker chunks,
         // each running its own disconnected simulation.
-        .batch_fitness_fn(FlappySwarm::new(tx))
+        .batch_fitness_fn(FlappySwarm::new(tx.clone(), speed.clone()))
         .build();
 
-    let _ = engine
+    let final_generation = engine
         .iter()
         .logging()
         .until_seconds(MAX_TRAIN_SECONDS)
         .take(MAX_GENERATIONS)
         .last();
+
+    // `Generation::value()`/`score()` already track the best-ever genome
+    // (the engine only updates them on improvement, see
+    // `radiate-engines/src/context.rs`), so the last yielded generation's
+    // value *is* the best one found across the whole run.
+    let Ok(final_generation) = final_generation else {
+        return;
+    };
+    let best_graph = final_generation.value().clone();
+    let best_score = final_generation.score().as_f32();
+
+    // Keep showing the winner off, looping through fresh courses, so the
+    // window ends on a live demo.
+    let mut seed = MAX_GENERATIONS as u64 + 1;
+    loop {
+        swarm::replay_best(&best_graph, best_score, &tx, &speed, seed);
+        seed += 1;
+        thread::sleep(Duration::from_millis(600));
+    }
 }
