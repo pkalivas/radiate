@@ -331,14 +331,7 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
                 let gene_two = chrom_two.get_mut(i);
 
                 if let Some((gene_one, gene_two)) = gene_one.zip(gene_two) {
-                    // let new_gene_one = gene_one.with_allele(gene_two.allele());
-                    // let new_gene_two = gene_two.with_allele(gene_one.allele());
-
-                    // chrom_one.set(i, gene_two);
-                    // chrom_two.set(i, gene_one);
-
                     std::mem::swap(gene_one, gene_two);
-
                     cross_count += 1;
                 }
             }

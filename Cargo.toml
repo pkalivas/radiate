@@ -77,7 +77,7 @@ thiserror = "2.0.18"
 serde = { version = "1.0.228", features = ["derive", "rc"] }
 serde_json = { version = "1.0.150" }
 serde-pickle = "1.1"
-compact_str = { version = "0.9.1" }
+compact_str = { version = "0.10.0" }
 foldhash = "0.2.0"
 slotmap = "1.0"
 hashbrown = { version = "0.17.1" }
@@ -86,7 +86,6 @@ ratatui = { version = "0.30.2", default-features = false, features = ["crossterm
 tui-piechart = "0.3.3"
 color-eyre = "0.6.3"
 num-traits = "0.2.19"
-bytemuck = { version = "1.25", features = ["derive"] }
 num-order = "1.2.0"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt"] }
