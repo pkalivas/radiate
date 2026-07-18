@@ -153,14 +153,15 @@ pub fn sync_snapshot_to_entities(
     if let Ok(mut text) = text_query.single_mut() {
         text.0 = match snapshot.best_score {
             Some(best_score) => format!(
-                "Final replay — best genome (score {:.0})  |  tick {}",
-                best_score, snapshot.tick
+                "Final replay — best genome (score {:.0})  |  pipes {}  |  tick {}",
+                best_score, snapshot.best_pipes, snapshot.tick
             ),
             None => format!(
-                "Generation {}  |  alive {}/{}  |  tick {}",
+                "Generation {}  |  alive {}/{}  |  pipes {}  |  tick {}",
                 snapshot.generation,
                 alive,
                 snapshot.birds.len(),
+                snapshot.best_pipes,
                 snapshot.tick
             ),
         };

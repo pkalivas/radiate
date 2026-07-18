@@ -12,6 +12,8 @@ pub struct Snapshot {
     pub tick: u32,
     pub birds: Vec<(f32, bool)>,
     pub pipes: Vec<(f32, f32, f32)>,
+    /// Furthest pipe count reached by any bird in this frame.
+    pub best_pipes: u32,
     /// `Some(score)` marks this as a post-training solo replay of the best
     /// genome found, rather than a live training-generation frame.
     pub best_score: Option<f32>,
@@ -70,6 +72,7 @@ impl BatchFitnessFunction<Graph<Op<f32>>, f32> for FlappySwarm {
                     .iter()
                     .map(|p| (p.x, p.gap_top, p.gap_bottom))
                     .collect(),
+                best_pipes: world.birds.iter().map(|b| b.pipes_passed).max().unwrap_or(0),
                 best_score: None,
             };
             // Rendering is best-effort: if the window has closed, the
@@ -118,6 +121,7 @@ pub fn replay_best(
                 .iter()
                 .map(|p| (p.x, p.gap_top, p.gap_bottom))
                 .collect(),
+            best_pipes: world.birds[0].pipes_passed,
             best_score: Some(best_score),
         };
         let _ = tx.send(snapshot);

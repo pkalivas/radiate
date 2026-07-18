@@ -26,7 +26,7 @@ pub const MAX_FALL_SPEED: f32 = -600.0;
 pub const DT: f32 = 1.0 / 60.0;
 
 pub const PIPE_BONUS: f32 = 100.0;
-pub const MAX_TICKS: u32 = 60 * 45; // 45s cap per generation - the graph's evolve to beat this pretty quick tbh
+pub const MAX_TICKS: u32 = 60 * 60; // 60s cap per generation - the graph's evolve to beat this pretty quick tbh
 
 #[derive(Clone, Copy)]
 pub struct Bird {

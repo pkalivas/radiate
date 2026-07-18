@@ -19,8 +19,14 @@ use swarm::{FlappySwarm, Snapshot};
 
 const INPUT_SIZE: usize = 5;
 const OUTPUT_SIZE: usize = 1;
-const MAX_GENERATIONS: usize = 500;
+const MAX_GENERATIONS: usize = 1500;
 const MAX_TRAIN_SECONDS: f64 = 3600.0;
+
+/// By generation 1500, the engine has essentially solved flappy bird. To allow the engine to keep evolving, there is a cap in the
+/// game.rs file called `MAX_TICKS` which limits the number of ticks per generation. This is set to 60 (game) seconds (the speed control makes this not real-time,
+/// but simulated seconds so evolution still happens very quick), but can be adjusted to allow for longer generations if desired. This means
+/// you'll essentially see a 'max pipes' or a 'pipe cap' at 40 right now. Again, this can be raised in game.rs, but honestly after 40ish pipes
+/// the engine has essentially solved the game and will just keep evolving to get there faster and faster. The cap is just to keep the evolution from taking too long.
 
 fn main() {
     let (tx, rx) = mpsc::channel::<Snapshot>();
@@ -62,7 +68,7 @@ fn run_evolution(tx: mpsc::Sender<Snapshot>, speed: SimSpeed) {
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.04, 0.05),
-            GraphMutator::new(0.03, 0.03)
+            GraphMutator::new(0.05, 0.05)
         ))
         // Intentionally no `.parallel()` here: the default `Executor::Serial`
         // guarantees `FlappySwarm::evaluate` is called exactly once per
