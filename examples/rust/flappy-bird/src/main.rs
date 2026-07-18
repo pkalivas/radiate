@@ -66,7 +66,7 @@ fn run_evolution(tx: mpsc::Sender<Snapshot>, speed: SimSpeed) {
         ))
         // Intentionally no `.parallel()` here: the default `Executor::Serial`
         // guarantees `FlappySwarm::evaluate` is called exactly once per
-        // generation with the *whole* population, so every bird in a
+        // generation with every member who _needs_ evaluation, so every bird in a
         // generation shares one clock and one set of pipes -- which is what
         // makes the live "swarm" view in the Bevy window meaningful. Adding
         // `.parallel()` would split the population into per-worker chunks,
@@ -76,14 +76,12 @@ fn run_evolution(tx: mpsc::Sender<Snapshot>, speed: SimSpeed) {
 
     let final_generation = engine
         .iter()
-        .logging()
         .until_seconds(MAX_TRAIN_SECONDS)
         .take(MAX_GENERATIONS)
         .last();
 
     // `Generation::value()`/`score()` already track the best-ever genome
-    // (the engine only updates them on improvement, see
-    // `radiate-engines/src/context.rs`), so the last yielded generation's
+    // (the engine only updates them on improvement), so the last yielded generation's
     // value *is* the best one found across the whole run.
     let Ok(final_generation) = final_generation else {
         return;

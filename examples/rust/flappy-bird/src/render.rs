@@ -119,7 +119,11 @@ pub fn sync_snapshot_to_entities(
     }
 
     for &(y, alive) in &snapshot.birds {
-        let color = if alive { BIRD_COLOR_ALIVE } else { BIRD_COLOR_DEAD };
+        let color = if alive {
+            BIRD_COLOR_ALIVE
+        } else {
+            BIRD_COLOR_DEAD
+        };
         commands.spawn((
             Sprite::from_color(color, Vec2::splat(16.0)),
             Transform::from_xyz(game::BIRD_X, y, 1.0),

@@ -46,7 +46,7 @@ impl BatchFitnessFunction<Graph<Op<f32>>, f32> for FlappySwarm {
         let mut world = World::new(graphs.len(), generation as u64 + 1);
 
         loop {
-            let flaps: Vec<bool> = graphs
+            let flaps = graphs
                 .iter()
                 .enumerate()
                 .map(|(i, graph)| {
@@ -57,7 +57,7 @@ impl BatchFitnessFunction<Graph<Op<f32>>, f32> for FlappySwarm {
                     let outputs = graph.eval(&vec![inputs.to_vec()]);
                     outputs[0][0] > 0.5
                 })
-                .collect();
+                .collect::<Vec<bool>>();
 
             world.step(&flaps);
 
@@ -94,7 +94,13 @@ impl BatchFitnessFunction<Graph<Op<f32>>, f32> for FlappySwarm {
 /// Flies the best-ever genome through a single fresh course, streaming
 /// `Snapshot`s tagged with `best_score` so the renderer can show it as the
 /// final showcase rather than another training generation.
-pub fn replay_best(graph: &Graph<Op<f32>>, best_score: f32, tx: &Sender<Snapshot>, speed: &SimSpeed, seed: u64) {
+pub fn replay_best(
+    graph: &Graph<Op<f32>>,
+    best_score: f32,
+    tx: &Sender<Snapshot>,
+    speed: &SimSpeed,
+    seed: u64,
+) {
     let mut world = World::new(1, seed);
 
     loop {

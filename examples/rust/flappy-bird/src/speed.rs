@@ -5,8 +5,7 @@
 // Slowing this down necessarily slows down training itself, not just the
 // visualization -- the worker thread's tick loop *is* what's computing
 // fitness, so there's no way to decouple "how fast it looks" from "how
-// fast it runs" without simulating twice. That's an intentional trade-off
-// for a live demo, not an oversight.
+// fast it runs" without simulating twice.
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU32, Ordering};
