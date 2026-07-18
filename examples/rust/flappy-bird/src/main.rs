@@ -71,6 +71,10 @@ fn run_evolution(tx: mpsc::Sender<Snapshot>, speed: SimSpeed) {
         // makes the live "swarm" view in the Bevy window meaningful. Adding
         // `.parallel()` would split the population into per-worker chunks,
         // each running its own disconnected simulation.
+        //
+        // This means that you will not see every bird in a generation fly in the Bevy window, only the ones that
+        // need evaluation (ie: the birds that were mutated/crossed over). This is intentional, and is a good demonstration
+        // of how to use radiate to run a simulation in one thread and visualize it in another.
         .batch_fitness_fn(FlappySwarm::new(tx.clone(), speed.clone()))
         .build();
 
@@ -92,9 +96,11 @@ fn run_evolution(tx: mpsc::Sender<Snapshot>, speed: SimSpeed) {
     // Keep showing the winner off, looping through fresh courses, so the
     // window ends on a live demo.
     let mut seed = MAX_GENERATIONS as u64 + 1;
-    loop {
+    for _ in 0..5 {
         swarm::replay_best(&best_graph, best_score, &tx, &speed, seed);
         seed += 1;
         thread::sleep(Duration::from_millis(600));
     }
+
+    println!("{final_generation:?}");
 }

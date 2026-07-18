@@ -1,6 +1,11 @@
 // Headless Flappy Bird simulation. No radiate or bevy dependencies here on
 // purpose — this is pure game logic that both the fitness function and the
 // (separate) renderer read from.
+//
+// This is the best way to go about these things in radiate. Create a shared 'blueprint' of the simulation that
+// both radiate and your renderer/world/environment can use. This keep the simulation logic in one place and
+// allows you to swap out the renderer or the simulation engine without having to rewrite the other. You'll see
+// this same sort of logic in other examples (snake.py/.rs).
 
 pub const WORLD_HALF_HEIGHT: f32 = 300.0;
 pub const GROUND_Y: f32 = -WORLD_HALF_HEIGHT;
