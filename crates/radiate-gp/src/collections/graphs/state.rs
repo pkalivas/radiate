@@ -1,6 +1,4 @@
-use crate::{
-    Eval, EvalInto, EvalIntoMut, EvalMut, Graph, GraphEvaluator, Op, graphs::GraphEvalCache,
-};
+use crate::{Eval, EvalIntoMut, EvalMut, Graph, GraphEvaluator, Op, graphs::GraphEvalCache};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
@@ -20,21 +18,6 @@ impl<T, V> StatefulGraph<T, V> {
         self.state = None;
     }
 }
-
-// impl<T, V> From<Graph<T>> for StatefulGraph<T, V> {
-//     fn from(inner: Graph<T>) -> Self {
-//         StatefulGraph { inner, state: None }
-//     }
-// }
-
-// impl<T, V> From<(Graph<T>, GraphEvalCache<V>)> for StatefulGraph<T, V> {
-//     fn from((inner, state): (Graph<T>, GraphEvalCache<V>)) -> Self {
-//         StatefulGraph {
-//             inner,
-//             state: Some(state),
-//         }
-//     }
-// }
 
 impl<T> From<Graph<Op<T>>> for StatefulGraph<Op<T>, T>
 where
@@ -61,34 +44,19 @@ where
     }
 }
 
-impl<T, V> EvalInto<[Vec<V>], Vec<Vec<V>>> for StatefulGraph<T, V>
+impl<T, V> EvalMut<[V], Vec<V>> for StatefulGraph<T, V>
 where
     T: Eval<[V], V>,
     V: Copy + Default,
 {
-    fn eval_into(&self, input: &[Vec<V>], buffer: &mut Vec<Vec<V>>) {
-        let mut evaluator = match self.state.as_ref() {
-            Some(c) => GraphEvaluator::from((&self.inner, c.clone())),
+    fn eval_mut(&mut self, input: &[V]) -> Vec<V> {
+        let mut evaluator = match self.state.take() {
+            Some(c) => GraphEvaluator::from((&self.inner, c)),
             None => GraphEvaluator::new(&self.inner),
         };
 
-        for i in 0..input.len() {
-            evaluator.eval_into_mut(&input[i], &mut buffer[i]);
-        }
-    }
-}
-
-impl<T, V> Eval<[V], Vec<V>> for StatefulGraph<T, V>
-where
-    T: Eval<[V], V>,
-    V: Copy + Default,
-{
-    fn eval(&self, input: &[V]) -> Vec<V> {
-        let mut evaluator = match self.state.as_ref() {
-            Some(c) => GraphEvaluator::from((&self.inner, c.clone())),
-            None => GraphEvaluator::new(&self.inner),
-        };
-
-        evaluator.eval_mut(input)
+        let result = evaluator.eval_mut(input);
+        self.state = Some(evaluator.take_cache());
+        result
     }
 }

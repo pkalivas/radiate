@@ -47,21 +47,21 @@ impl BatchFitnessFunction<Graph<Op<f32>>, f32> for FlappySwarm {
         let generation = self.generation.fetch_add(1, Ordering::Relaxed);
         let mut world = World::new(graphs.len(), generation as u64 + 1);
 
-        let stateful_graphs = graphs
+        let mut stateful_graphs = graphs
             .into_iter()
             .map(|g| StatefulGraph::from(g))
             .collect::<Vec<_>>();
 
         loop {
             let flaps = stateful_graphs
-                .iter()
+                .iter_mut()
                 .enumerate()
                 .map(|(i, graph)| {
                     if !world.birds[i].alive {
                         return false;
                     }
                     let inputs = world.bird_inputs(i);
-                    let outputs = graph.eval(&inputs.to_vec());
+                    let outputs = graph.eval_mut(&inputs.to_vec());
                     outputs[0] > 0.5
                 })
                 .collect::<Vec<bool>>();
