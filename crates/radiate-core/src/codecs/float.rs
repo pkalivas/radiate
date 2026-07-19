@@ -185,8 +185,8 @@ impl<F: Float> Codec<FloatChromosome<F>, Vec<Vec<Vec<F>>>> for FloatCodec<F, Vec
 /// let genotype: Genotype<FloatChromosome<f32>> = codec.encode();
 /// let decoded: Vec<Vec<f32>> = codec.decode(&genotype);
 ///
-/// assert_eq!(decoded.len(), 3);
-/// assert_eq!(decoded[0].len(), 4);
+/// assert_eq!(decoded.len(), 2);
+/// assert_eq!(decoded[0].len(), 3);
 /// ```
 impl<F: Float> Codec<FloatChromosome<F>, Vec<Vec<F>>> for FloatCodec<F, Vec<Vec<F>>> {
     #[inline]
