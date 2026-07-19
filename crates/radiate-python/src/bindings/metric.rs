@@ -108,7 +108,7 @@ impl PyMetricSet {
     }
 
     pub fn dashboard(&self) -> String {
-        format!("{}", &self.inner)
+        format!("{}", self.inner)
     }
 
     pub fn keys(&self) -> Vec<String> {

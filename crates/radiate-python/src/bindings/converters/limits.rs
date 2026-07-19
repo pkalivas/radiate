@@ -78,15 +78,14 @@ impl InputTransform<Option<Limit>> for PyEngineInput {
             }
             crate::components::EXPR_LIMIT => {
                 let expr_limit = self.get("expr");
-                if let Some(expr_limit) = expr_limit {
+                {
+                    let expr_limit = expr_limit?;
                     return Python::attach(|py| {
                         expr_limit
                             .extract::<PyExpr>(py)
                             .map(|expr| Limit::Expr(expr.into()))
                             .ok()
                     });
-                } else {
-                    return None;
                 }
             }
             _ => return None,
