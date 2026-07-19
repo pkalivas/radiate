@@ -22,12 +22,15 @@ const OUTPUT_SIZE: usize = 1;
 const MAX_GENERATIONS: usize = 1500;
 const MAX_TRAIN_SECONDS: f64 = 3600.0;
 
-/// By generation 1500, the engine has essentially solved flappy bird. To allow the engine to keep evolving, there is a cap in the
+/// By generation like 500, the engine has essentially solved flappy bird. To allow the engine to keep evolving, there is a cap in the
 /// game.rs file called `MAX_TICKS` which limits the number of ticks per generation. This is set to 60 (game) seconds (the speed control makes this not real-time,
 /// but simulated seconds so evolution still happens very quick), but can be adjusted to allow for longer generations if desired. This means
 /// you'll essentially see a 'max pipes' or a 'pipe cap' at 40 right now. Again, this can be raised in game.rs, but honestly after 40ish pipes
 /// the engine has essentially solved the game and will just keep evolving to get there faster and faster. The cap is just to keep the evolution from taking too long.
-
+///
+/// This is an example of how to use radiate to run a simulation in one thread and visualize it in another. This is a common pattern using
+/// game engines like Bevy, where the game engine blocks, but we still want to see state from radiate. We use a channel to send a snapshot of the
+/// fitness state from radiate into Bevy's render loop.
 fn main() {
     let (tx, rx) = mpsc::channel::<Snapshot>();
     let speed = SimSpeed::new();
@@ -95,18 +98,12 @@ fn run_evolution(tx: mpsc::Sender<Snapshot>, speed: SimSpeed) {
     println!("{result:?}");
     println!("{}", result.metrics().dashboard());
 
-    // `Generation::value()`/`score()` already track the best-ever genome
-    // (the engine only updates them on improvement), so the last yielded generation's
-    // value *is* the best one found across the whole run.
-    let best_graph = result.value().clone();
-    let best_score = result.score().as_f32();
-
     // Keep showing the winner off, looping through fresh courses, so the
     // window ends on a live demo.
     let mut seed = MAX_GENERATIONS as u64 + 1;
     for _ in 0..5 {
-        swarm::replay_best(&best_graph, best_score, &tx, &speed, seed);
+        swarm::replay_best(&result, &tx, &speed, seed);
         seed += 1;
-        thread::sleep(Duration::from_millis(600));
+        thread::sleep(Duration::from_millis(500));
     }
 }

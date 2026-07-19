@@ -117,7 +117,7 @@ impl World {
         self.birds.iter().all(|b| !b.alive)
     }
 
-    /// Normalized NEAT input vector for bird `i`:
+    /// Normalized Graph input vector for bird `i`:
     /// [bird_y, bird_vy, dx_to_next_pipe, gap_top, gap_bottom]
     pub fn bird_inputs(&self, i: usize) -> [f32; 5] {
         let bird = &self.birds[i];
