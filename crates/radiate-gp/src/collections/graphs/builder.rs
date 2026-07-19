@@ -12,7 +12,7 @@ impl<T: Clone + Default> Graph<T> {
     /// ```
     /// use radiate_gp::*;
     ///
-    /// let values = vec![
+    /// let values: Vec<(NodeType, Vec<Op<f32>>)> = vec![
     ///     (NodeType::Input, vec![Op::var(0), Op::var(1), Op::var(2)]),
     ///     (NodeType::Output, vec![Op::sigmoid()]),
     /// ];
@@ -60,7 +60,7 @@ impl<T: Clone + Default> Graph<T> {
     /// ```
     /// use radiate_gp::*;
     ///
-    /// let values = vec![
+    /// let values: Vec<(NodeType, Vec<Op<f32>>)> = vec![
     ///   (NodeType::Input, vec![Op::var(0), Op::var(1), Op::var(2)]),
     ///   (NodeType::Vertex, vec![Op::linear()]),
     ///   (NodeType::Output, vec![Op::sigmoid()]),
