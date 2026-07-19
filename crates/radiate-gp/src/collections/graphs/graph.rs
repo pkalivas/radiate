@@ -50,13 +50,13 @@ use std::ops::{Index, IndexMut};
 /// use radiate_gp::{Graph, NodeType, Op};
 ///
 /// // Create a simple graph with one input and one output node
-/// let mut graph = Graph::default();
+/// let mut graph = Graph::<Op<f32>>::default();
 /// let input_idx = graph.insert(NodeType::Input, Op::var(0));
 /// let output_idx = graph.insert(NodeType::Output, Op::linear());
 /// graph.attach(input_idx, output_idx);
 ///
 /// // Create a directed graph with 2 inputs and 2 outputs
-/// let values = vec![
+/// let values: Vec<(NodeType, Vec<Op<f32>>)> = vec![
 ///     (NodeType::Input, vec![Op::var(0), Op::var(1)]),
 ///     (NodeType::Output, vec![Op::sigmoid(), Op::tanh()]),
 /// ];
