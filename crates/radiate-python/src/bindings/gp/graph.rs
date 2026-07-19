@@ -1,10 +1,12 @@
-use crate::{IntoPyAnyObject, PyAnyObject};
+use crate::{IntoPyAnyObject, PyAnyObject, Wrap};
 use numpy::PyArrayDyn;
 use pyo3::{
-    Bound, IntoPyObjectExt, PyAny, PyResult, Python, prelude::FromPyObjectOwned, pyclass, pymethods,
+    Bound, IntoPyObject, IntoPyObjectExt, PyAny, PyResult, Python, prelude::FromPyObjectOwned,
+    pyclass, pymethods,
 };
 use radiate::{
-    EvalMut, Graph, GraphEvaluator, GraphIterator, NodeType, Op, ToDot, graphs::GraphEvalCache,
+    DataType, EvalMut, Graph, GraphEvaluator, GraphIterator, NodeType, Op, ToDot,
+    graphs::GraphEvalCache,
 };
 use radiate_utils::Float;
 use serde::{Deserialize, Serialize};
@@ -84,6 +86,15 @@ impl PyGraph {
             PyGraphInner::Float32(graph, _) => graph.to_dot(),
             PyGraphInner::Float64(graph, _) => graph.to_dot(),
         }
+    }
+
+    pub fn dtype<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let result = match &self.inner {
+            PyGraphInner::Float32(_, _) => DataType::Float32,
+            PyGraphInner::Float64(_, _) => DataType::Float64,
+        };
+
+        Wrap(result).into_pyobject(py)
     }
 
     pub fn reset(&mut self) {

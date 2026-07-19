@@ -1,9 +1,10 @@
-use crate::{IntoPyAnyObject, PyAnyObject};
+use crate::{IntoPyAnyObject, PyAnyObject, Wrap};
 use numpy::PyArrayDyn;
 use pyo3::{
-    Bound, IntoPyObjectExt, PyAny, PyResult, Python, prelude::FromPyObjectOwned, pyclass, pymethods,
+    Bound, IntoPyObject, IntoPyObjectExt, PyAny, PyResult, Python, prelude::FromPyObjectOwned,
+    pyclass, pymethods,
 };
-use radiate::{Eval, Format, Op, ToDot, Tree};
+use radiate::{DataType, Eval, Format, Op, ToDot, Tree};
 use radiate_utils::Float;
 use serde::{Deserialize, Serialize};
 
@@ -97,6 +98,15 @@ impl PyTree {
                 .collect::<Vec<String>>()
                 .join("\n"),
         }
+    }
+
+    pub fn dtype<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let result = match &self.inner {
+            PyTreeInner::Float32(_) => DataType::Float32,
+            PyTreeInner::Float64(_) => DataType::Float64,
+        };
+
+        Wrap(result).into_pyobject(py)
     }
 
     pub fn eval<'py>(
