@@ -1,24 +1,20 @@
 from __future__ import annotations
 
-from typing import Sequence, overload, Any, Literal, TYPE_CHECKING
-
-from .base import CodecBase
+from typing import TYPE_CHECKING, Any, Literal, Sequence, overload
 
 from radiate.radiate import PyFloatCodec
-from radiate.genome import Genotype, Gene, Chromosome, GeneType
-from radiate.dtype import DataType, DataTypeClass, Float64
-from radiate._bridge.wrapper import RsObject
-from radiate._typing import (
-    AtLeastOne,
-)
+
+from .._bridge import RsObject
+from .._typing import AtLeastOne
+from ..dsl.dtype import DataType, DataTypeClass, Float64
+from ..genome import Chromosome, Gene, GeneType, Genotype
+from .base import CodecBase
 
 if TYPE_CHECKING:
-    from radiate._dependancies import numpy as np
+    from .._dependancies import numpy as np
 
 
 class FloatCodec[D](CodecBase[float, D], RsObject):
-    gene_type = GeneType.FLOAT
-
     @overload
     def __new__(
         cls,
@@ -203,7 +199,7 @@ class FloatCodec[D](CodecBase[float, D], RsObject):
 
         if shape is not None:
             if isinstance(shape, int):
-                self._pyobj = self.__vector(
+                self._pyobj = self._vector(
                     length=shape,
                     init_range=init_range,
                     bounds=bounds,
@@ -211,7 +207,7 @@ class FloatCodec[D](CodecBase[float, D], RsObject):
                     dtype=dtype,
                 )
             elif isinstance(shape, (tuple, list)):
-                self._pyobj = self.__matrix(
+                self._pyobj = self._matrix(
                     shape=shape,
                     init_range=init_range,
                     bounds=bounds,
@@ -221,16 +217,15 @@ class FloatCodec[D](CodecBase[float, D], RsObject):
             else:
                 raise TypeError("shape must be an int, tuple[int, int], or list[int].")
         elif genes is not None:
-            self._pyobj = self.__from_genes(genes=genes, use_numpy=use_numpy)
+            self._pyobj = self._from_genes(genes=genes, use_numpy=use_numpy)
         elif chromosomes is not None:
-            self._pyobj = self.__from_chromosomes(
+            self._pyobj = self._from_chromosomes(
                 chromosomes=chromosomes, use_numpy=use_numpy
             )
         else:
-            self._pyobj = self.__scalar(
+            self._pyobj = self._scalar(
                 init_range=init_range,
                 bounds=bounds,
-                use_numpy=use_numpy,
                 dtype=dtype,
             )
 
@@ -251,11 +246,14 @@ class FloatCodec[D](CodecBase[float, D], RsObject):
             raise TypeError("genotype must be an instance of Genotype.")
         return self.__backend__().decode_py(genotype=genotype.__backend__())
 
+    @property
+    def gene_type(self) -> GeneType:
+        return GeneType.FLOAT
+
     @staticmethod
-    def __scalar(
+    def _scalar(
         init_range: tuple[float, float] | None = None,
         bounds: tuple[float, float] | None = None,
-        use_numpy: bool = False,
         dtype: DataTypeClass | DataType | None = None,
     ) -> PyFloatCodec:
         if init_range is not None:
@@ -284,7 +282,7 @@ class FloatCodec[D](CodecBase[float, D], RsObject):
         )
 
     @staticmethod
-    def __vector(
+    def _vector(
         length: int,
         init_range: tuple[float, float] | None = None,
         bounds: tuple[float, float] | None = None,
@@ -322,7 +320,7 @@ class FloatCodec[D](CodecBase[float, D], RsObject):
         )
 
     @staticmethod
-    def __matrix(
+    def _matrix(
         shape: Sequence[int],
         init_range: tuple[float, float] | None = None,
         bounds: tuple[float, float] | None = None,
@@ -366,7 +364,7 @@ class FloatCodec[D](CodecBase[float, D], RsObject):
         )
 
     @staticmethod
-    def __from_genes(
+    def _from_genes(
         genes: Gene[float] | Sequence[Gene[float]] | None = None,
         use_numpy: bool = False,
     ) -> PyFloatCodec:
@@ -381,11 +379,11 @@ class FloatCodec[D](CodecBase[float, D], RsObject):
         )
 
     @staticmethod
-    def __from_chromosomes(
+    def _from_chromosomes(
         chromosomes: AtLeastOne[Chromosome[float]],
         use_numpy: bool = False,
     ) -> PyFloatCodec:
-        from radiate.genome import GeneType
+        from ..genome import GeneType
 
         if isinstance(chromosomes, Chromosome):
             chromosomes = [chromosomes]

@@ -1,26 +1,21 @@
 use radiate_core::{
-    AlterContext, AlterResult, Chromosome, Crossover, PermutationChromosome, Rate, SubsetMode,
-    Valid, math::indexes,
+    AlterContext, AlterResult, Chromosome, Crossover, Expr, PermutationChromosome, RateSet,
+    SubsetMode, math::indexes,
 };
 
 pub struct PMXCrossover {
-    rate: Rate,
+    rate: Expr,
 }
 
 impl PMXCrossover {
-    pub fn new(rate: impl Into<Rate>) -> Self {
-        let rate = rate.into();
-        if !rate.is_valid() {
-            panic!("Rate {rate:?} is not valid. Must be between 0.0 and 1.0",);
-        }
-
-        PMXCrossover { rate }
+    pub fn new(rate: impl Into<Expr>) -> Self {
+        PMXCrossover { rate: rate.into() }
     }
 }
 
 impl<A: PartialEq + Clone> Crossover<PermutationChromosome<A>> for PMXCrossover {
-    fn rate(&self) -> Rate {
-        self.rate.clone()
+    fn rates(&self) -> RateSet {
+        RateSet::new(self.rate.clone())
     }
 
     #[inline]
@@ -55,17 +50,17 @@ impl<A: PartialEq + Clone> Crossover<PermutationChromosome<A>> for PMXCrossover 
 
         for i in 0..length {
             if i < start || i > end {
-                let mut gene_one = chrom_one.get(i);
-                let mut gene_two = chrom_two.get(i);
+                let mut gene_one = chrom_one.get(i).expect("Gene not found in chromosome");
+                let mut gene_two = chrom_two.get(i).expect("Gene not found in chromosome");
 
                 while offspring_one[start..=end].contains(gene_one) {
                     let index = chrom_two.genes.iter().position(|g| g == gene_one).unwrap();
-                    gene_one = chrom_one.get(index);
+                    gene_one = chrom_one.get(index).expect("Gene not found in chromosome");
                 }
 
                 while offspring_two[start..=end].contains(gene_two) {
                     let index = chrom_one.genes.iter().position(|g| g == gene_two).unwrap();
-                    gene_two = chrom_two.get(index);
+                    gene_two = chrom_two.get(index).expect("Gene not found in chromosome");
                 }
 
                 offspring_one[i] = gene_one.clone();

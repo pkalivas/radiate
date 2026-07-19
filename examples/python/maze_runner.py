@@ -9,11 +9,14 @@ This is pretty much a TSP (Traveling Salesman Problem) variant, where the start 
 and we need to find the shortest path through a set of waypoints.
 """
 
+import math
+
+import matplotlib.pyplot as plt  # type: ignore
+import radiate as rd
 from matplotlib.markers import MarkerStyle  # type: ignore
 
-import radiate as rd
-import matplotlib.pyplot as plt  # type: ignore
-import math
+START_POINT = (0, 0)
+GENERATIONS = 250
 
 
 class MazeWaypoint:
@@ -32,150 +35,126 @@ class MazeWaypoint:
         return f"Waypoint({self.name}: {self.x:.1f}, {self.y:.1f})"
 
 
-class MazeSolver:
-    """Maze solving problem using permutation codec."""
+def calculate_path_length(permutation: list[MazeWaypoint]) -> float:
+    """Calculate the total path length for a given permutation."""
+    if not permutation:
+        return float("inf")
 
-    def __init__(
-        self, waypoints: list[MazeWaypoint], start_point: tuple[float, float] = (0, 0)
-    ):
-        self.waypoints = waypoints
-        self.start_x, self.start_y = start_point
-        self.codec = rd.PermutationCodec(self.waypoints)
+    total_distance = 0.0
 
-    def calculate_path_length(self, permutation: list[MazeWaypoint]) -> float:
-        """Calculate the total path length for a given permutation."""
-        if not permutation:
-            return float("inf")
-
-        total_distance = 0.0
-
-        # Distance from start to first waypoint
-        first_waypoint = permutation[0]
-        total_distance += math.sqrt(
-            (self.start_x - first_waypoint.x) ** 2
-            + (self.start_y - first_waypoint.y) ** 2
-        )
-
-        # Distance between waypoints
-        for i in range(len(permutation) - 1):
-            wp1 = permutation[i]
-            wp2 = permutation[i + 1]
-            total_distance += wp1.distance_to(wp2)
-
-        return total_distance
-
-    def visualize_path(self, permutation: list[MazeWaypoint], title: str = "Maze Path"):
-        """Visualize the path through the maze."""
-
-        path_length = self.calculate_path_length(permutation)
-
-        _, ax = plt.subplots(figsize=(10, 8))
-
-        x_coords = [wp.x for wp in self.waypoints]
-        y_coords = [wp.y for wp in self.waypoints]
-        ax.scatter(x_coords, y_coords, c="blue", s=100, alpha=0.6, label="Waypoints")
-
-        ax.scatter(
-            self.start_x,
-            self.start_y,
-            c="green",
-            s=150,
-            marker=MarkerStyle("o"),
-            label="Start",
-        )
-
-        path_x = [self.start_x] + [wp.x for wp in permutation]
-        path_y = [self.start_y] + [wp.y for wp in permutation]
-
-        ax.plot(
-            path_x,
-            path_y,
-            "r-",
-            linewidth=2,
-            alpha=0.8,
-            label=f"Path (Length: {path_length:.2f})",
-        )
-        ax.scatter(path_x[1:], path_y[1:], c="red", s=80, alpha=0.8)
-
-        for i, wp in enumerate(self.waypoints):
-            ax.annotate(f"{i}", (wp.x, wp.y), xytext=(5, 5), textcoords="offset points")
-
-        for i, wp in enumerate(permutation):
-            ax.annotate(
-                f"→{i + 1}",
-                (wp.x, wp.y),
-                xytext=(10, 10),
-                textcoords="offset points",
-                color="red",
-                fontweight="bold",
-            )
-
-        ax.set_xlabel("X Coordinate")
-        ax.set_ylabel("Y Coordinate")
-        ax.set_title(title)
-        ax.legend()
-        ax.grid(True, alpha=0.3)
-        ax.set_aspect("equal")
-
-        plt.tight_layout()
-        plt.show()
-
-
-def run_maze_evolution(
-    maze_solver: MazeSolver, generations: int = 100
-) -> rd.Generation[MazeWaypoint, list[MazeWaypoint]]:
-    engine = rd.Engine(
-        codec=maze_solver.codec,
-        fitness_func=maze_solver.calculate_path_length,
-        survivor_selector=rd.TournamentSelector(3),
-        offspring_selector=rd.BoltzmannSelector(3),
-        objective=rd.MIN,
-        alters=[
-            # PartiallyMappedCrossover and SwapMutator are common for TSP-like problems
-            # where we want to maintain the permutation structure. ie., we don't want to
-            # create duplicates or invalid permutations - we want to keep all waypoints and just
-            # change their order around during crossover/mutation. There are a few other operators
-            # that would also fit this type of problem, such as InversionMutator,
-            # etc. See the For a little more color, check out the docs:
-            # https://pkalivas.github.io/radiate/source/alters/
-            rd.PartiallyMappedCrossover(),
-            rd.SwapMutator(),
-        ],
+    # Distance from start to first waypoint
+    first_waypoint = permutation[0]
+    total_distance += math.sqrt(
+        (START_POINT[0] - first_waypoint.x) ** 2
+        + (START_POINT[1] - first_waypoint.y) ** 2
     )
 
-    return engine.run(rd.GenerationsLimit(generations), log=True)
+    # Distance between waypoints
+    for i in range(len(permutation) - 1):
+        wp1 = permutation[i]
+        wp2 = permutation[i + 1]
+        total_distance += wp1.distance_to(wp2)
+
+    return total_distance
 
 
-if __name__ == "__main__":
-    waypoints = [
-        MazeWaypoint(2, 3, "A"),
-        MazeWaypoint(5, 1, "B"),
-        MazeWaypoint(8, 4, "C"),
-        MazeWaypoint(1, 6, "D"),
-        MazeWaypoint(7, 7, "E"),
-        MazeWaypoint(4, 8, "F"),
-        MazeWaypoint(6, 5, "G"),
-        MazeWaypoint(3, 2, "H"),
-        MazeWaypoint(9, 9, "I"),
-        MazeWaypoint(0, 0, "J"),
-        MazeWaypoint(2, 8, "K"),
-        MazeWaypoint(5, 6, "L"),
-        MazeWaypoint(8, 2, "M"),
-        MazeWaypoint(1, 4, "N"),
-        MazeWaypoint(7, 3, "O"),
-    ]
+@rd.on_stop
+def visualize_path(event: rd.EngineEvent):
+    """Visualize the path through the maze."""
 
-    maze_solver = MazeSolver(waypoints, start_point=(0, 0))
-    result = run_maze_evolution(maze_solver, generations=250)
+    path_length = calculate_path_length(event.value())
 
-    waypoints = result.value()
+    _, ax = plt.subplots(figsize=(10, 8))
 
-    print("\nBest solution found:")
-    print(f"  Generations completed: {result.index()}")
-    print(f"  Path length: {result.score()}")
-    print(f"  Path: Start → {' → '.join([wp.name for wp in waypoints])} → End")
-    print(f"  Permutation: {waypoints}")
+    x_coords = [wp.x for wp in waypoints]
+    y_coords = [wp.y for wp in waypoints]
+    ax.scatter(x_coords, y_coords, c="blue", s=100, alpha=0.6, label="Waypoints")
 
-    maze_solver.visualize_path(
-        waypoints, title=f"Best Maze Path (Length: {result.score()})"
+    ax.scatter(
+        START_POINT[0],
+        START_POINT[1],
+        c="green",
+        s=150,
+        marker=MarkerStyle("o"),
+        label="Start",
     )
+
+    path_x = [START_POINT[0]] + [wp.x for wp in event.value()]
+    path_y = [START_POINT[1]] + [wp.y for wp in event.value()]
+
+    ax.plot(
+        path_x,
+        path_y,
+        "r-",
+        linewidth=2,
+        alpha=0.8,
+        label=f"Path (Length: {path_length:.2f})",
+    )
+    ax.scatter(path_x[1:], path_y[1:], c="red", s=80, alpha=0.8)
+
+    for i, wp in enumerate(waypoints):
+        ax.annotate(f"{i}", (wp.x, wp.y), xytext=(5, 5), textcoords="offset points")
+
+    for i, wp in enumerate(event.value()):
+        ax.annotate(
+            f"→{i + 1}",
+            (wp.x, wp.y),
+            xytext=(10, 10),
+            textcoords="offset points",
+            color="red",
+            fontweight="bold",
+        )
+
+    ax.set_xlabel("X Coordinate")
+    ax.set_ylabel("Y Coordinate")
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    ax.set_aspect("equal")
+
+    plt.tight_layout()
+    plt.show()
+
+
+waypoints = [
+    MazeWaypoint(2, 3, "A"),
+    MazeWaypoint(5, 1, "B"),
+    MazeWaypoint(8, 4, "C"),
+    MazeWaypoint(1, 6, "D"),
+    MazeWaypoint(7, 7, "E"),
+    MazeWaypoint(4, 8, "F"),
+    MazeWaypoint(6, 5, "G"),
+    MazeWaypoint(3, 2, "H"),
+    MazeWaypoint(9, 9, "I"),
+    MazeWaypoint(0, 0, "J"),
+    MazeWaypoint(2, 8, "K"),
+    MazeWaypoint(5, 6, "L"),
+    MazeWaypoint(8, 2, "M"),
+    MazeWaypoint(1, 4, "N"),
+    MazeWaypoint(7, 3, "O"),
+]
+
+
+engine = (
+    rd.Engine.permutation(waypoints)
+    .fitness(calculate_path_length)
+    .minimizing()
+    .subscribe(visualize_path)
+    .alters(
+        # PartiallyMappedCrossover and SwapMutator are common for TSP-like problems
+        # where we want to maintain the permutation structure. ie., we don't want to
+        # create duplicates or invalid permutations - we want to keep all waypoints and just
+        # change their order around during crossover/mutation. There are a few other operators
+        # that would also fit this type of problem, such as InversionMutator,
+        # etc.
+        rd.Cross.pmx(),  # Partially Mapped Crossover
+        rd.Mutate.swap(),  # Swap Mutation
+    )
+    .limit(rd.Limit.generations(GENERATIONS))
+)
+
+result = engine.run(log=True)
+
+print(result)
+
+print("\nBest solution found:")
+print(f"  Path: Start → {' → '.join([wp.name for wp in result.value()])} → End")

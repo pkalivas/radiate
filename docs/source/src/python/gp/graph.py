@@ -1,4 +1,5 @@
 # --8<-- [start:eval]
+import numpy as np
 import radiate as rd
 
 codec = rd.GraphCodec.directed(
@@ -10,13 +11,15 @@ codec = rd.GraphCodec.directed(
 
 graph = codec.decode(codec.encode())
 
-inputs = [1.0, 2.0]
+inputs = np.array([1.0, 2.0])
 outputs = graph.eval(inputs)  # list[float]
 
-multi_inputs = [
-    [1.0, 2.0],
-    [3.0, 4.0],
-]
+multi_inputs = np.array(
+    [
+        [1.0, 2.0],
+        [3.0, 4.0],
+    ]
+)
 multi_outputs = graph.eval(multi_inputs)  # list[list[float]]
 # --8<-- [end:eval]
 
@@ -48,7 +51,7 @@ codec = rd.GraphCodec.gru(shape, vertex=vertex, edge=edge, output=output)
 
 graph = codec.decode(codec.encode())
 
-inputs = [[1.0, 2.0]]
+inputs = np.array([[1.0, 2.0]])
 outputs = graph.eval(inputs)
 # --8<-- [end:variants]
 
@@ -82,7 +85,6 @@ recurrent_graph = codec.decode(genotype)
 import radiate as rd
 
 # Create a mutator that adds vertices and edges with a 10% chance for either
-mutator = rd.GraphMutator(vertex_rate=0.1, edge_rate=0.1, allow_recurrent=False)
 mutator = rd.Mutate.graph(
     vertex_rate=0.1, edge_rate=0.1, allow_recurrent=False
 )  # Using the dsl syntax for mutators
@@ -91,6 +93,5 @@ mutator = rd.Mutate.graph(
 # --8<-- [start:graph_crossover]
 import radiate as rd
 
-crossover = rd.GraphCrossover(0.1, 0.5)
 crossover = rd.Cross.graph(0.1, 0.5)  # Using the dsl syntax for crossover operators
 # --8<-- [end:graph_crossover]

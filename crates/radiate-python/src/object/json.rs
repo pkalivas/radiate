@@ -24,7 +24,7 @@ pub(super) fn try_to_json<'a, 'py>(item: Borrowed<'a, 'py, PyAny>) -> PyResult<S
             }
         }
 
-        return Ok(format!("[{}]", items.join(",")));
+        radiate_py_bail!("Failed to serialize PyAnyObject: list items do not have to_json method");
     } else if let Some(json_str) = try_to_json_fn(&item) {
         return Ok(json_str);
     } else if let Some(json_str) = try_to_json_dumps(&item) {

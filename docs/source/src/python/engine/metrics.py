@@ -35,7 +35,7 @@ df = (
 
 # Access specific metrics
 carry_over = metrics[
-    "rate.carryover"
+    "pct.carryover"
 ].max()  # Maximum carryover rate throughout evolution
 
 scores = metrics["scores"]

@@ -125,6 +125,10 @@ impl_into_py_population!(FloatChromosome<f64>);
 
 impl_into_py_population!(BitChromosome);
 impl_into_py_population!(CharChromosome);
-impl_into_py_population!(GraphChromosome<Op<f32>>);
-impl_into_py_population!(TreeChromosome<Op<f32>>);
 impl_into_py_population!(PermutationChromosome<usize>);
+
+impl_into_py_population!(GraphChromosome<Op<f32>>);
+impl_into_py_population!(GraphChromosome<Op<f64>>);
+
+impl_into_py_population!(TreeChromosome<Op<f32>>);
+impl_into_py_population!(TreeChromosome<Op<f64>>);

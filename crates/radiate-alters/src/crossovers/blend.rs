@@ -1,8 +1,8 @@
 use radiate_core::{
-    AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, Gene, Rate, Valid,
+    AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, Expr, Gene, RateSet,
     random_provider,
 };
-use radiate_utils::{Float, Primitive};
+use radiate_utils::Float;
 
 /// The [BlendCrossover] is a crossover operator that blends [FloatGene] alleles from two parent chromosomes to create offspring.
 /// The blending is controlled by the `alpha` parameter, which determines the extent of blending between the two alleles.
@@ -14,18 +14,15 @@ use radiate_utils::{Float, Primitive};
 /// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct BlendCrossover {
-    rate: Rate,
+    rate: Expr,
     alpha: f32,
 }
 
 impl BlendCrossover {
     /// Create a new instance of the [BlendCrossover] with the given rate and alpha.
     /// The rate must be between 0.0 and 1.0, and the alpha must be between 0.0 and 1.0.
-    pub fn new(rate: impl Into<Rate>, alpha: f32) -> Self {
+    pub fn new(rate: impl Into<Expr>, alpha: f32) -> Self {
         let rate = rate.into();
-        if !rate.is_valid() {
-            panic!("Rate is not valid");
-        }
 
         if !(0.0..=1.0).contains(&alpha) {
             panic!("Alpha must be between 0 and 1");
@@ -37,12 +34,12 @@ impl BlendCrossover {
 
 impl<A, G, C> Crossover<C> for BlendCrossover
 where
-    A: Primitive + Float,
+    A: Float,
     G: Gene<Allele = A> + BoundedGene,
     C: Chromosome<Gene = G>,
 {
-    fn rate(&self) -> Rate {
-        self.rate.clone()
+    fn rates(&self) -> RateSet {
+        RateSet::new(self.rate.clone())
     }
 
     #[inline]
@@ -56,7 +53,7 @@ where
         let alpha = A::from(self.alpha).unwrap();
 
         random_provider::with_rng(|rand| {
-            for (one, two) in chrom_one.zip_mut(chrom_two) {
+            chrom_one.apply_paired(chrom_two, |one, two| {
                 if rand.bool(ctx.rate()) {
                     let allele_one = *one.allele();
                     let allele_two = *two.allele();
@@ -64,15 +61,15 @@ where
                     let new_allele_one = allele_one - (alpha * (allele_two - allele_one));
                     let new_allele_two = allele_two - (alpha * (allele_one - allele_two));
 
-                    let (one_min, one_max) = one.bounds();
-                    let (two_min, two_max) = two.bounds();
+                    let (one_min, one_max) = one.bound_range();
+                    let (two_min, two_max) = two.bound_range();
 
                     *one.allele_mut() = new_allele_one.clamp(*one_min, *one_max);
                     *two.allele_mut() = new_allele_two.clamp(*two_min, *two_max);
 
                     cross_count += 1;
                 }
-            }
+            });
         });
 
         cross_count.into()
@@ -82,7 +79,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use radiate_core::{FloatChromosome, FloatGene, alter::AlterUpdates};
+    use radiate_core::{Chromosome, FloatChromosome, FloatGene, alter::AlterUpdates};
 
     #[test]
     fn test_cross_chromosomes_basic() {
@@ -106,7 +103,7 @@ mod tests {
         let original_two: Vec<f32> = chrom_two.iter().map(|g| *g.allele()).collect();
 
         let mut updates = AlterUpdates::default();
-        let mut ctx = AlterContext::new(&mut updates, 0, 1.0);
+        let mut ctx = AlterContext::new(&mut updates, 0, 1.0, &[]);
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
@@ -121,8 +118,8 @@ mod tests {
             let expected_one = original_one[i] - (alpha * (original_two[i] - original_one[i]));
             let expected_two = original_two[i] - (alpha * (original_one[i] - original_two[i]));
 
-            assert!((chrom_one.get(i).allele() - expected_one).abs() < 1e-6);
-            assert!((chrom_two.get(i).allele() - expected_two).abs() < 1e-6);
+            assert!((chrom_one.get(i).unwrap().allele() - expected_one).abs() < 1e-6);
+            assert!((chrom_two.get(i).unwrap().allele() - expected_two).abs() < 1e-6);
         }
     }
 
@@ -146,7 +143,7 @@ mod tests {
         let original_two: Vec<f32> = chrom_two.iter().map(|g| *g.allele()).collect();
 
         let mut updates = AlterUpdates::default();
-        let mut ctx = AlterContext::new(&mut updates, 0, 0.0);
+        let mut ctx = AlterContext::new(&mut updates, 0, 0.0, &[]);
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
@@ -154,8 +151,8 @@ mod tests {
 
         // Values should remain unchanged
         for i in 0..chrom_one.len() {
-            assert_eq!(*chrom_one.get(i).allele(), original_one[i]);
-            assert_eq!(*chrom_two.get(i).allele(), original_two[i]);
+            assert_eq!(*chrom_one.get(i).unwrap().allele(), original_one[i]);
+            assert_eq!(*chrom_two.get(i).unwrap().allele(), original_two[i]);
         }
     }
 
@@ -177,32 +174,24 @@ mod tests {
         let mut chrom_two = FloatChromosome::new(genes2);
 
         let mut updates = AlterUpdates::default();
-        let mut ctx = AlterContext::new(&mut updates, 0, 1.0);
+        let mut ctx = AlterContext::new(&mut updates, 0, 1.0, &[]);
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
         assert_eq!(result.count(), 2);
 
-        let alpha = 0.3;
-        let expected_one_0 = 1.0 - (alpha * (4.0 - 1.0));
-        let expected_two_0 = 4.0 - (alpha * (1.0 - 4.0));
-        let expected_one_1 = 2.0 - (alpha * (5.0 - 2.0));
-        let expected_two_1 = 5.0 - (alpha * (2.0 - 5.0));
+        let alpha = 0.3_f32;
+        let expected_one_0 = 1.0_f32 - (alpha * (4.0_f32 - 1.0_f32));
+        let expected_two_0 = 4.0_f32 - (alpha * (1.0_f32 - 4.0_f32));
+        let expected_one_1 = 2.0_f32 - (alpha * (5.0_f32 - 2.0_f32));
+        let expected_two_1 = 5.0_f32 - (alpha * (2.0_f32 - 5.0_f32));
 
-        assert!(
-            (chrom_one.get(0).allele().extract::<f32>().unwrap() - expected_one_0).abs() < 1e-6
-        );
-        assert!(
-            (chrom_two.get(0).allele().extract::<f32>().unwrap() - expected_two_0).abs() < 1e-6
-        );
-        assert!(
-            (chrom_one.get(1).allele().extract::<f32>().unwrap() - expected_one_1).abs() < 1e-6
-        );
-        assert!(
-            (chrom_two.get(1).allele().extract::<f32>().unwrap() - expected_two_1).abs() < 1e-6
-        );
+        assert!((*chrom_one.get(0).unwrap().allele() - expected_one_0).abs() < 1e-6);
+        assert!((*chrom_two.get(0).unwrap().allele() - expected_two_0).abs() < 1e-6);
+        assert!((*chrom_one.get(1).unwrap().allele() - expected_one_1).abs() < 1e-6);
+        assert!((*chrom_two.get(1).unwrap().allele() - expected_two_1).abs() < 1e-6);
 
-        assert_eq!(*chrom_one.get(2).allele(), 3.0);
+        assert_eq!(*chrom_one.get(2).unwrap().allele(), 3.0);
     }
 
     #[test]
@@ -225,7 +214,7 @@ mod tests {
         let original_two: Vec<f32> = chrom_two.iter().map(|g| *g.allele()).collect();
 
         let mut updates = AlterUpdates::default();
-        let mut ctx = AlterContext::new(&mut updates, 0, 1.0);
+        let mut ctx = AlterContext::new(&mut updates, 0, 1.0, &[]);
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
@@ -233,8 +222,8 @@ mod tests {
 
         // With alpha = 0, values should remain unchanged
         for i in 0..chrom_one.len() {
-            assert_eq!(*chrom_one.get(i).allele(), original_one[i]);
-            assert_eq!(*chrom_two.get(i).allele(), original_two[i]);
+            assert_eq!(*chrom_one.get(i).unwrap().allele(), original_one[i]);
+            assert_eq!(*chrom_two.get(i).unwrap().allele(), original_two[i]);
         }
     }
 
@@ -255,17 +244,17 @@ mod tests {
         let mut chrom_two = FloatChromosome::new(genes2);
 
         let mut updates = AlterUpdates::default();
-        let mut ctx = AlterContext::new(&mut updates, 0, 1.0);
+        let mut ctx = AlterContext::new(&mut updates, 0, 1.0, &[]);
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
         assert_eq!(result.count(), 2);
 
         // With alpha = 1, values should be swapped
-        assert_eq!(*chrom_one.get(0).allele(), -2.0);
-        assert_eq!(*chrom_two.get(0).allele(), 7.0);
-        assert_eq!(*chrom_one.get(1).allele(), -1.0);
-        assert_eq!(*chrom_two.get(1).allele(), 8.0);
+        assert_eq!(*chrom_one.get(0).unwrap().allele(), -2.0);
+        assert_eq!(*chrom_two.get(0).unwrap().allele(), 7.0);
+        assert_eq!(*chrom_one.get(1).unwrap().allele(), -1.0);
+        assert_eq!(*chrom_two.get(1).unwrap().allele(), 8.0);
     }
 
     #[test]
@@ -281,7 +270,7 @@ mod tests {
         let mut chrom_two = FloatChromosome::new(genes);
 
         let mut updates = AlterUpdates::default();
-        let mut ctx = AlterContext::new(&mut updates, 0, 1.0);
+        let mut ctx = AlterContext::new(&mut updates, 0, 1.0, &[]);
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
@@ -289,7 +278,10 @@ mod tests {
 
         // With identical parents, values should remain the same
         for i in 0..chrom_one.len() {
-            assert_eq!(*chrom_one.get(i).allele(), *chrom_two.get(i).allele());
+            assert_eq!(
+                *chrom_one.get(i).unwrap().allele(),
+                *chrom_two.get(i).unwrap().allele()
+            );
         }
     }
 
@@ -324,7 +316,7 @@ mod tests {
             let original_two: Vec<f32> = chrom_two.iter().map(|g| *g.allele()).collect();
 
             let mut updates = AlterUpdates::default();
-            let mut ctx = AlterContext::new(&mut updates, 0, 1.0);
+            let mut ctx = AlterContext::new(&mut updates, 0, 1.0, &[]);
 
             let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
@@ -335,19 +327,23 @@ mod tests {
                 let expected_one = original_one[i] - (alpha * (original_two[i] - original_one[i]));
                 let expected_two = original_two[i] - (alpha * (original_one[i] - original_two[i]));
 
-                let gene_one = chrom_one.get(i);
-                let gene_two = chrom_two.get(i);
+                let gene_one = chrom_one.get(i).unwrap();
+                let gene_two = chrom_two.get(i).unwrap();
 
-                if expected_one < *gene_one.bounds().0 || expected_one > *gene_one.bounds().1 {
-                    assert!(*gene_one.allele() >= *gene_one.bounds().0);
-                    assert!(*gene_one.allele() <= *gene_one.bounds().1);
+                if expected_one < *gene_one.bound_range().0
+                    || expected_one > *gene_one.bound_range().1
+                {
+                    assert!(*gene_one.allele() >= *gene_one.bound_range().0);
+                    assert!(*gene_one.allele() <= *gene_one.bound_range().1);
                 } else {
                     assert!((gene_one.allele() - expected_one).abs() < 1e-6);
                 }
 
-                if expected_two < *gene_two.bounds().0 || expected_two > *gene_two.bounds().1 {
-                    assert!(*gene_two.allele() >= *gene_two.bounds().0);
-                    assert!(*gene_two.allele() <= *gene_two.bounds().1);
+                if expected_two < *gene_two.bound_range().0
+                    || expected_two > *gene_two.bound_range().1
+                {
+                    assert!(*gene_two.allele() >= *gene_two.bound_range().0);
+                    assert!(*gene_two.allele() <= *gene_two.bound_range().1);
                 } else {
                     assert!((gene_two.allele() - expected_two).abs() < 1e-6);
                 }
@@ -367,7 +363,7 @@ mod tests {
         let mut chrom_two = FloatChromosome::new(genes2);
 
         let mut updates = AlterUpdates::default();
-        let mut ctx = AlterContext::new(&mut updates, 0, 1.0);
+        let mut ctx = AlterContext::new(&mut updates, 0, 1.0, &[]);
 
         let result = crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
@@ -394,7 +390,7 @@ mod tests {
         let mut chrom_two = FloatChromosome::<f32>::new(genes2);
 
         let mut updates = AlterUpdates::default();
-        let mut ctx = AlterContext::new(&mut updates, 0, 1.0);
+        let mut ctx = AlterContext::new(&mut updates, 0, 1.0, &[]);
 
         crossover.cross_chromosomes(&mut chrom_one, &mut chrom_two, &mut ctx);
 
@@ -404,7 +400,7 @@ mod tests {
         let expected_one = 2.0 - (alpha * (8.0 - 2.0));
         let expected_two = 8.0 - (alpha * (2.0 - 8.0));
 
-        assert!((chrom_one.get(0).allele() - expected_one).abs() < 1e-6);
-        assert!((chrom_two.get(0).allele() - expected_two).abs() < 1e-6);
+        assert!((chrom_one.get(0).unwrap().allele() - expected_one).abs() < 1e-6);
+        assert!((chrom_two.get(0).unwrap().allele() - expected_two).abs() < 1e-6);
     }
 }

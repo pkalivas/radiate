@@ -137,7 +137,7 @@ fn main() {
         .codec(FloatCodec::vector(10, -5.0..5.0))
         .minimizing()
         .fitness_fn(my_fitness_fn)
-        .register_metrics(vec![("score_trend", score_trend), ("score_cv", score_cv)])
+        .metrics([score_trend.alias("score_trend"), score_cv.alias("score_cv")])
         .build();
 
     let result = engine.iter().limit(5000).last().unwrap();
@@ -154,10 +154,12 @@ fn main() {
         .codec(FloatCodec::vector(10, -5.0..5.0))
         .minimizing()
         .fitness_fn(my_fitness_fn)
-        .register_metrics(vec![(
-            "score_trend",
-            Expr::select("scores.best").rolling(50).slope(),
-        )])
+        .metrics(
+            Expr::select("scores.best")
+                .rolling(50)
+                .slope()
+                .alias("score_trend"),
+        )
         .build();
 
     let result = engine
@@ -174,7 +176,7 @@ fn main() {
     let dynamic_rate = Expr::select("score.volatility")
         .rolling(20)
         .mean()
-        .clamp(Expr::lit(0.01_f32), Expr::lit(0.5_f32));
+        .clamp(0.01_f32, 0.5_f32);
 
     let engine = GeneticEngine::builder()
         .codec(FloatCodec::vector(10, -5.0..5.0))
@@ -226,7 +228,7 @@ fn main() {
         .raw_batch_fitness_fn(Regression::new(dataset(), Loss::MSE))
         .minimizing()
         .diversity(NeatDistance::new(1.0, 1.0, 3.0))
-        .species_threshold(Rate::Expr(distance_signal))
+        .species_threshold(distance_signal)
         .alter(alters!(
             GraphCrossover::new(0.5, 0.5),
             OperationMutator::new(0.07, 0.05),

@@ -1,12 +1,12 @@
-use pyo3::prelude::*;
+use pyo3::{prelude::*, wrap_pymodule};
 use radiate_python::{
     _activation_ops, _all_ops, _create_op, _edge_ops, _get_dtype_max, _get_dtype_min, PyAccuracy,
     PyBitCodec, PyCharCodec, PyChromosome, PyEcosystem, PyEngine, PyEngineBuilder, PyEngineEvent,
     PyEngineInput, PyEngineInputType, PyEngineRunOption, PyExpr, PyFitnessFn, PyFloatCodec,
     PyFront, PyFrontValue, PyGene, PyGeneType, PyGeneration, PyGenotype, PyGraph, PyGraphCodec,
     PyIntCodec, PyMetric, PyMetricSet, PyOp, PyPermutationCodec, PyPhenotype, PyPopulation,
-    PyRandomProvider, PyRate, PySpecies, PySubscriber, PyTree, PyTreeCodec, py_accuracy, py_alter,
-    py_select,
+    PyRandomProvider, PySpecies, PySubscriber, PyTree, PyTreeCodec, components, loss_functions,
+    py_accuracy, py_alter, py_select,
 };
 
 #[pyfunction]
@@ -62,7 +62,6 @@ fn radiate(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     m.add_class::<PyEngineInputType>()?;
     m.add_class::<PyEngineInput>()?;
-    m.add_class::<PyRate>()?;
     m.add_class::<PyEngineBuilder>()?;
     m.add_class::<PyEngine>()?;
     m.add_class::<PyEngineRunOption>()?;
@@ -73,5 +72,18 @@ fn radiate(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     m.add_class::<PyExpr>()?;
 
+    m.add_wrapped(wrap_pymodule!(_constants))?;
+    Ok(())
+}
+
+#[pymodule(gil_used = false)]
+fn _constants(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    let components_mod = PyModule::new(m.py(), "components")?;
+    components::register(&components_mod)?;
+    m.add_submodule(&components_mod)?;
+
+    let loss_functions_mod = PyModule::new(m.py(), "loss_functions")?;
+    loss_functions::register(&loss_functions_mod)?;
+    m.add_submodule(&loss_functions_mod)?;
     Ok(())
 }

@@ -1,160 +1,177 @@
-use crate::object::Wrap;
-use pyo3::exceptions::PyValueError;
-use pyo3::{Borrowed, Py, PyErr, Python, intern, pyfunction, pymethods};
-use pyo3::{FromPyObject, PyAny, PyResult, pyclass, types::PyAnyMethods};
-use radiate::{Arity, Eval, Factory, Op};
+use pyo3::{Py, Python, intern, pyfunction, pymethods};
+use pyo3::{PyAny, PyResult, pyclass, types::PyAnyMethods};
+use pyo3::{exceptions::PyValueError, prelude::FromPyObjectOwned};
+use radiate::{
+    Arity, DataType, Eval, Factory, Op,
+    ops::{OpFloat, math},
+};
+use radiate_error::radiate_py_bail;
 
-#[pyfunction]
-pub fn _all_ops() -> Vec<PyOp> {
-    vec![
-        Op::constant(0.0),
-        Op::var(0),
-        Op::identity(),
-        Op::weight(),
-        Op::add(),
-        Op::sub(),
-        Op::mul(),
-        Op::div(),
-        Op::sum(),
-        Op::prod(),
-        Op::diff(),
-        Op::pow(),
-        Op::sqrt(),
-        Op::neg(),
-        Op::exp(),
-        Op::log(),
-        Op::sin(),
-        Op::cos(),
-        Op::tan(),
-        Op::ceil(),
-        Op::floor(),
-        Op::max(),
-        Op::min(),
-        Op::abs(),
-        Op::sigmoid(),
-        Op::tanh(),
-        Op::relu(),
-        Op::leaky_relu(),
-        Op::elu(),
-        Op::linear(),
-        Op::mish(),
-        Op::swish(),
-        Op::softplus(),
-    ]
-    .into_iter()
-    .map(PyOp)
-    .collect()
+fn _op_collection<F>(ops: Vec<Op<F>>) -> PyResult<Vec<PyOp>>
+where
+    PyOp: From<Op<F>>,
+{
+    Ok(ops.into_iter().map(PyOp::from).collect())
 }
 
 #[pyfunction]
-pub fn _activation_ops() -> Vec<PyOp> {
-    vec![
-        Op::sigmoid(),
-        Op::tanh(),
-        Op::relu(),
-        Op::leaky_relu(),
-        Op::elu(),
-        Op::linear(),
-        Op::mish(),
-        Op::swish(),
-        Op::softplus(),
-    ]
-    .into_iter()
-    .map(PyOp)
-    .collect()
+pub fn _all_ops(dtype: &str) -> PyResult<Vec<PyOp>> {
+    let datatype = crate::dtype_from_str(dtype);
+    match datatype {
+        DataType::Float32 => _op_collection(math::all_ops::<f32>()),
+        DataType::Float64 => _op_collection(math::all_ops::<f64>()),
+        _ => radiate_py_bail!("Unsupported data type for ops: {:datatype:?}"),
+    }
 }
 
 #[pyfunction]
-pub fn _edge_ops() -> Vec<PyOp> {
-    vec![Op::weight(), Op::identity()]
-        .into_iter()
-        .map(PyOp)
-        .collect()
+pub fn _activation_ops(dtype: &str) -> PyResult<Vec<PyOp>> {
+    let datatype = crate::dtype_from_str(dtype);
+    match datatype {
+        DataType::Float32 => _op_collection(math::activation_ops::<f32>()),
+        DataType::Float64 => _op_collection(math::activation_ops::<f64>()),
+        _ => radiate_py_bail!("Unsupported data type for activation ops: {:datatype:?}"),
+    }
+}
+
+#[pyfunction]
+pub fn _edge_ops(dtype: &str) -> PyResult<Vec<PyOp>> {
+    let datatype = crate::dtype_from_str(dtype);
+    match datatype {
+        DataType::Float32 => _op_collection(math::edge_ops::<f32>()),
+        DataType::Float64 => _op_collection(math::edge_ops::<f64>()),
+        _ => radiate_py_bail!("Unsupported data type for edge ops: {:datatype:?}"),
+    }
+}
+
+#[derive(Clone)]
+pub enum PyOpInner {
+    F32(Op<f32>),
+    F64(Op<f64>),
+}
+
+impl From<PyOp> for Op<f32> {
+    fn from(py_op: PyOp) -> Self {
+        match py_op.0 {
+            PyOpInner::F32(op) => op,
+            PyOpInner::F64(_) => panic!("expected a 32-bit Op, found a 64-bit Op"),
+        }
+    }
+}
+
+impl From<PyOp> for Op<f64> {
+    fn from(py_op: PyOp) -> Self {
+        match py_op.0 {
+            PyOpInner::F32(_) => panic!("expected a 64-bit Op, found a 32-bit Op"),
+            PyOpInner::F64(op) => op,
+        }
+    }
+}
+
+impl From<Op<f32>> for PyOp {
+    fn from(op: Op<f32>) -> Self {
+        PyOp(PyOpInner::F32(op))
+    }
+}
+
+impl From<Op<f64>> for PyOp {
+    fn from(op: Op<f64>) -> Self {
+        PyOp(PyOpInner::F64(op))
+    }
 }
 
 #[pyclass(from_py_object)]
 #[derive(Clone)]
-pub struct PyOp(pub Op<f32>);
+pub struct PyOp(pub PyOpInner);
 
 #[pymethods]
 impl PyOp {
     #[getter]
     pub fn name(&self) -> String {
-        self.0.name().to_string()
+        match &self.0 {
+            PyOpInner::F32(op) => op.name().to_string(),
+            PyOpInner::F64(op) => op.name().to_string(),
+        }
     }
 
     #[getter]
     pub fn arity<'py>(&self, py: Python<'py>) -> PyResult<String> {
-        match self.0.arity() {
+        let arity = match &self.0 {
+            PyOpInner::F32(op) => op.arity(),
+            PyOpInner::F64(op) => op.arity(),
+        };
+        match arity {
             Arity::Zero => Ok(intern!(py, "Zero").to_string()),
             Arity::Exact(n) => Ok(radiate_utils::intern!(format!("Exact({:?})", n)).to_string()),
             Arity::Any => Ok(intern!(py, "Any").to_string()),
         }
     }
 
-    pub fn eval<'py>(&mut self, py: Python<'py>, inputs: Py<PyAny>) -> PyResult<f32> {
-        if let Ok(input_vec) = inputs.extract::<Vec<f32>>(py) {
-            let output = self.0.eval(&input_vec);
-            Ok(output)
-        } else {
-            Err(pyo3::exceptions::PyTypeError::new_err(format!(
+    pub fn eval<'py>(&mut self, py: Python<'py>, inputs: Py<PyAny>) -> PyResult<f64> {
+        let type_err = || {
+            pyo3::exceptions::PyTypeError::new_err(format!(
                 "Input must be either Vec[numeric] or a single numeric value but found: {:?}",
                 inputs,
-            )))
+            ))
+        };
+
+        match &self.0 {
+            PyOpInner::F32(op) => {
+                let input_vec = inputs.extract::<Vec<f32>>(py).map_err(|_| type_err())?;
+                Ok(op.eval(&input_vec) as f64)
+            }
+            PyOpInner::F64(op) => {
+                let input_vec = inputs.extract::<Vec<f64>>(py).map_err(|_| type_err())?;
+                Ok(op.eval(&input_vec))
+            }
         }
     }
 
     pub fn new_instance(&self) -> PyResult<Self> {
-        Ok(PyOp(self.0.new_instance(())))
-    }
-}
-
-impl<'py> FromPyObject<'_, 'py> for Wrap<Vec<Op<f32>>> {
-    type Error = PyErr;
-
-    fn extract(ob: Borrowed<'_, 'py, PyAny>) -> PyResult<Self> {
-        let mut ops = Vec::new();
-        for item in ob.try_iter()? {
-            let wrap: Wrap<Op<f32>> = item?.extract()?;
-            ops.push(wrap.0);
-        }
-        Ok(Wrap(ops))
-    }
-}
-
-impl<'py> FromPyObject<'_, 'py> for Wrap<Op<f32>> {
-    type Error = PyErr;
-
-    fn extract(ob: Borrowed<'_, 'py, PyAny>) -> PyResult<Self> {
-        if ob.is_instance_of::<PyOp>() {
-            let py_op: PyOp = ob.extract()?;
-            return Ok(Wrap(py_op.0));
-        }
-
-        let name = ob.getattr("name")?.extract::<String>()?;
-        let py_op = _create_op(ob.py(), name.as_str(), Some(ob.into()))?;
-        Ok(Wrap(py_op.0))
+        Ok(match &self.0 {
+            PyOpInner::F32(op) => PyOp::from(op.new_instance(())),
+            PyOpInner::F64(op) => PyOp::from(op.new_instance(())),
+        })
     }
 }
 
 #[pyfunction]
-#[pyo3(signature = (name, params=None))]
-pub fn _create_op(py: Python<'_>, name: &str, params: Option<Py<PyAny>>) -> PyResult<PyOp> {
+#[pyo3(signature = (name, dtype, params=None))]
+pub fn _create_op<'py>(
+    py: Python<'py>,
+    name: &str,
+    dtype: &str,
+    params: Option<Py<PyAny>>,
+) -> PyResult<PyOp> {
+    let datatype = crate::dtype_from_str(dtype);
+    match datatype {
+        DataType::Float32 => build_typed_op::<f32>(py, name, params),
+        DataType::Float64 => build_typed_op::<f64>(py, name, params),
+        _ => radiate_py_bail!("Unsupported data type for op creation: {:datatype:?}"),
+    }
+}
+
+fn build_typed_op<'py, F>(py: Python<'py>, name: &str, params: Option<Py<PyAny>>) -> PyResult<PyOp>
+where
+    PyOp: From<Op<F>>,
+    F: FromPyObjectOwned<'py> + OpFloat,
+{
     let op = match name {
         "constant" => {
-            let value: f32 = params
+            let value = params
                 .ok_or_else(|| PyValueError::new_err("Missing parameters for constant Op"))?
-                .bind_borrowed(py)
+                .bind(py)
                 .get_item("value")?
-                .extract()?;
+                .extract::<F>()
+                .map_err(|_| PyValueError::new_err("Invalid value for constant Op"))?;
             Op::constant(value)
         }
         "var" => {
-            let index: usize = params
+            let index = params
                 .ok_or_else(|| PyValueError::new_err("Missing parameters for var Op"))?
                 .bind_borrowed(py)
                 .get_item("index")?
-                .extract()?;
+                .extract::<usize>()?;
             Op::var(index)
         }
         "identity" => Op::identity(),
@@ -188,8 +205,8 @@ pub fn _create_op(py: Python<'_>, name: &str, params: Option<Py<PyAny>>) -> PyRe
         "mish" => Op::mish(),
         "swish" => Op::swish(),
         "softplus" => Op::softplus(),
-        _ => return Err(PyValueError::new_err(format!("Unknown Op name: {}", name))),
+        _ => radiate_py_bail!(format!("Unknown Op name: {:?}", name)),
     };
 
-    Ok(PyOp(op))
+    Ok(PyOp::from(op))
 }

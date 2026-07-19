@@ -108,14 +108,14 @@ impl PyMetricSet {
     }
 
     pub fn dashboard(&self) -> String {
-        format!("{}", &self.inner)
+        format!("{}", self.inner)
     }
 
     pub fn keys(&self) -> Vec<String> {
         self.inner
             .iter()
-            .filter(|(_, metric)| !metric.is_empty())
-            .map(|(key, _)| key.to_string())
+            .filter(|metric| !metric.is_empty())
+            .map(|metric| metric.name().to_string())
             .collect()
     }
 
@@ -126,7 +126,7 @@ impl PyMetricSet {
     ) -> PyResult<Vec<Bound<'py, PyMetric>>> {
         let mut vec = Vec::new();
         for metric in self.inner.iter_tagged(tag.into()) {
-            vec.push(Wrap(metric.1).into_pyobject(py)?);
+            vec.push(Wrap(metric).into_pyobject(py)?);
         }
 
         Ok(vec)
@@ -135,7 +135,7 @@ impl PyMetricSet {
     pub fn values<'py>(&self, py: Python<'py>) -> PyResult<Vec<Bound<'py, PyMetric>>> {
         let mut vec = Vec::with_capacity(self.inner.len());
         for metric in self.inner.iter() {
-            vec.push(Wrap(metric.1).into_pyobject(py)?);
+            vec.push(Wrap(metric).into_pyobject(py)?);
         }
 
         Ok(vec)
@@ -143,8 +143,8 @@ impl PyMetricSet {
 
     pub fn items<'py>(&self, py: Python<'py>) -> PyResult<Vec<(String, Bound<'py, PyMetric>)>> {
         let mut vec = Vec::with_capacity(self.inner.len());
-        for (key, metric) in self.inner.iter() {
-            vec.push(((*key).to_string(), Wrap(metric).into_pyobject(py)?));
+        for metric in self.inner.iter() {
+            vec.push((metric.name().to_string(), Wrap(metric).into_pyobject(py)?));
         }
 
         Ok(vec)
@@ -153,8 +153,8 @@ impl PyMetricSet {
     pub fn to_rows<'py>(&self, py: Python<'py>) -> PyResult<Vec<Bound<'py, PyDict>>> {
         let mut out = Vec::with_capacity(self.inner.len() * 3);
 
-        for (_, m) in self.inner.iter() {
-            out.push(PyMetric::from(m.clone()).to_dict(py)?);
+        for metric in self.inner.iter() {
+            out.push(PyMetric::from(metric.clone()).to_dict(py)?);
         }
 
         Ok(out)

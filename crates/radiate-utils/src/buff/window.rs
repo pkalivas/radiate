@@ -60,6 +60,47 @@ impl<T> WindowBuffer<T> {
     }
 
     #[inline]
+    pub fn push_front(&mut self, item: T) -> bool {
+        let mut resized = false;
+        // check if the buffer is at capacity
+        if self.buffer.len() >= self.cap {
+            // check if the buffer is full
+            if self.buffer.len() >= self.max {
+                if self.start == 0 {
+                    let (front, back) = self.buffer.split_at_mut(self.cap);
+                    front.swap_with_slice(back);
+
+                    self.start = self.cap;
+                    self.end = self.max;
+                }
+                self.buffer[self.start - 1] = item;
+            } else {
+                self.buffer.insert(0, item);
+            }
+
+            resized = true;
+
+            if self.start > 0 {
+                self.start -= 1;
+            }
+            if self.end < self.max {
+                self.end += 1;
+            }
+        } else {
+            self.buffer.insert(0, item);
+            if self.end - self.start > self.cap {
+                if self.start > 0 {
+                    self.start -= 1;
+                }
+            } else {
+                self.end += 1;
+            }
+        }
+
+        resized
+    }
+
+    #[inline]
     pub fn len(&self) -> usize {
         self.buffer.len().saturating_sub(self.start)
     }

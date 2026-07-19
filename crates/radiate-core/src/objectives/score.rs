@@ -106,6 +106,8 @@ impl Debug for Score {
     }
 }
 
+impl Eq for Score {}
+
 impl Hash for Score {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         let mut hash: usize = 0;
@@ -211,6 +213,18 @@ impl From<Vec<f32>> for Score {
 impl From<Vec<f64>> for Score {
     fn from(value: Vec<f64>) -> Self {
         Score::from_vec(value.into_iter().map(|v| v as f32).collect())
+    }
+}
+
+impl From<&[f32]> for Score {
+    fn from(value: &[f32]) -> Self {
+        Score::from_vec(value.to_vec())
+    }
+}
+
+impl From<&[f64]> for Score {
+    fn from(value: &[f64]) -> Self {
+        Score::from_vec(value.iter().map(|&v| v as f32).collect())
     }
 }
 

@@ -1,8 +1,11 @@
 use super::{
     Chromosome,
-    gene::{ArithmeticGene, Gene, Valid},
+    gene::{Gene, Valid},
 };
-use crate::{chromosomes::BoundedGene, random_provider};
+use crate::{
+    chromosomes::{BoundedGene, NumericGene},
+    random_provider,
+};
 use radiate_utils::Integer;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -105,26 +108,54 @@ impl<T: Integer> Valid for IntGene<T> {
 /// Implement the `BoundedGene` trait for [`IntGene`]. This allows parts of radiate to
 /// access the 'min', 'max', and bounds values of the [`IntGene`].
 impl<T: Integer> BoundedGene for IntGene<T> {
-    fn min(&self) -> &Self::Allele {
+    fn init_min(&self) -> &Self::Allele {
         &self.value_range.start
     }
 
-    fn max(&self) -> &Self::Allele {
+    fn init_max(&self) -> &Self::Allele {
         &self.value_range.end
     }
 
-    fn bounds(&self) -> (&Self::Allele, &Self::Allele) {
+    fn init_range(&self) -> (Self::Allele, Self::Allele) {
+        (self.value_range.start, self.value_range.end)
+    }
+
+    fn bound_min(&self) -> &Self::Allele {
+        &self.bounds.start
+    }
+
+    fn bound_max(&self) -> &Self::Allele {
+        &self.bounds.end
+    }
+
+    fn bound_range(&self) -> (&Self::Allele, &Self::Allele) {
         (&self.bounds.start, &self.bounds.end)
     }
 }
 
-/// Implement the `ArithmeticGene` trait for [`IntGene`]. This allows the [`IntGene`] to be used in numeric
-/// operations. The `ArithmeticGene` trait is a superset of the [`Gene`] trait, and adds functionality
-/// for numeric operations such as addition, subtraction, multiplication, division and mean.
-impl<T: Integer> ArithmeticGene for IntGene<T> {
-    fn mean(&self, other: &IntGene<T>) -> IntGene<T> {
+impl<T: Integer> NumericGene for IntGene<T> {
+    fn safe_add(&self, other: &Self) -> Self {
+        add_gene(self, *other.allele())
+    }
+
+    fn safe_sub(&self, other: &Self) -> Self {
+        sub_gene(self, *other.allele())
+    }
+
+    fn safe_mul(&self, other: &Self) -> Self {
+        mul_gene(self, *other.allele())
+    }
+
+    fn safe_div(&self, other: &Self) -> Self {
+        div_gene(self, *other.allele())
+    }
+
+    fn mean(&self, other: &Self) -> Self {
         IntGene {
-            allele: (self.allele.safe_add(other.allele)).safe_div(T::TWO),
+            allele: self
+                .allele
+                .safe_mean(other.allele)
+                .safe_clamp(self.bounds.start, self.bounds.end),
             value_range: self.value_range.clone(),
             bounds: self.bounds.clone(),
         }
@@ -135,14 +166,7 @@ impl<T: Integer> Add for IntGene<T> {
     type Output = IntGene<T>;
 
     fn add(self, other: IntGene<T>) -> IntGene<T> {
-        IntGene {
-            allele: self
-                .allele
-                .safe_add(other.allele)
-                .safe_clamp(self.bounds.start, self.bounds.end),
-            value_range: self.value_range.clone(),
-            bounds: self.bounds.clone(),
-        }
+        add_gene(&self, *other.allele())
     }
 }
 
@@ -150,14 +174,7 @@ impl<T: Integer> Sub for IntGene<T> {
     type Output = IntGene<T>;
 
     fn sub(self, other: IntGene<T>) -> IntGene<T> {
-        IntGene {
-            allele: self
-                .allele
-                .safe_sub(other.allele)
-                .safe_clamp(self.bounds.start, self.bounds.end),
-            value_range: self.value_range.clone(),
-            bounds: self.bounds.clone(),
-        }
+        sub_gene(&self, *other.allele())
     }
 }
 
@@ -165,14 +182,7 @@ impl<T: Integer> Mul for IntGene<T> {
     type Output = IntGene<T>;
 
     fn mul(self, other: IntGene<T>) -> IntGene<T> {
-        IntGene {
-            allele: self
-                .allele
-                .safe_mul(other.allele)
-                .safe_clamp(self.bounds.start, self.bounds.end),
-            value_range: self.value_range.clone(),
-            bounds: self.bounds.clone(),
-        }
+        mul_gene(&self, *other.allele())
     }
 }
 
@@ -180,14 +190,7 @@ impl<T: Integer> Div for IntGene<T> {
     type Output = IntGene<T>;
 
     fn div(self, other: IntGene<T>) -> IntGene<T> {
-        IntGene {
-            allele: self
-                .allele
-                .safe_div(other.allele)
-                .safe_clamp(self.bounds.start, self.bounds.end),
-            value_range: self.value_range.clone(),
-            bounds: self.bounds.clone(),
-        }
+        div_gene(&self, *other.allele())
     }
 }
 
@@ -226,6 +229,38 @@ impl<T: Integer> From<(Range<T>, Range<T>)> for IntGene<T> {
 impl<T: Integer> std::fmt::Display for IntGene<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.allele)
+    }
+}
+
+fn add_gene<I: Integer>(gene: &IntGene<I>, value: I) -> IntGene<I> {
+    IntGene {
+        allele: I::safe_add(*gene.allele(), value).safe_clamp(gene.bounds.start, gene.bounds.end),
+        value_range: gene.value_range.clone(),
+        bounds: gene.bounds.clone(),
+    }
+}
+
+fn sub_gene<I: Integer>(gene: &IntGene<I>, value: I) -> IntGene<I> {
+    IntGene {
+        allele: I::safe_sub(*gene.allele(), value).safe_clamp(gene.bounds.start, gene.bounds.end),
+        value_range: gene.value_range.clone(),
+        bounds: gene.bounds.clone(),
+    }
+}
+
+fn mul_gene<I: Integer>(gene: &IntGene<I>, value: I) -> IntGene<I> {
+    IntGene {
+        allele: I::safe_mul(*gene.allele(), value).safe_clamp(gene.bounds.start, gene.bounds.end),
+        value_range: gene.value_range.clone(),
+        bounds: gene.bounds.clone(),
+    }
+}
+
+fn div_gene<I: Integer>(gene: &IntGene<I>, value: I) -> IntGene<I> {
+    IntGene {
+        allele: I::safe_div(*gene.allele(), value).safe_clamp(gene.bounds.start, gene.bounds.end),
+        value_range: gene.value_range.clone(),
+        bounds: gene.bounds.clone(),
     }
 }
 
@@ -381,17 +416,17 @@ mod tests {
         let gene_one = IntGene::from((0..10, 0..10));
         let gene_two = IntGene::from((0..10, -100..100));
 
-        let (one_min, one_max) = gene_one.bounds();
-        let (two_min, two_max) = gene_two.bounds();
+        let (one_min, one_max) = gene_one.bound_range();
+        let (two_min, two_max) = gene_two.bound_range();
 
         assert_eq!(*one_min, 0);
         assert_eq!(*one_max, 10);
         assert_eq!(*two_min, -100);
         assert_eq!(*two_max, 100);
-        assert_eq!(gene_one.min(), &0);
-        assert_eq!(gene_one.max(), &10);
-        assert_eq!(gene_two.min(), &0);
-        assert_eq!(gene_two.max(), &10);
+        assert_eq!(gene_one.init_min(), &0);
+        assert_eq!(gene_one.init_max(), &10);
+        assert_eq!(gene_two.init_min(), &0);
+        assert_eq!(gene_two.init_max(), &10);
         assert!(gene_one.is_valid());
         assert!(gene_two.is_valid());
     }
@@ -480,8 +515,8 @@ mod tests {
         assert_eq!(chromosome.genes.len(), 10);
         for gene in &chromosome.genes {
             assert!(gene.allele >= 0 && gene.allele <= 10);
-            assert_eq!(*gene.bounds().0, -10);
-            assert_eq!(*gene.bounds().1, 10);
+            assert_eq!(*gene.bound_range().0, -10);
+            assert_eq!(*gene.bound_range().1, 10);
         }
     }
 

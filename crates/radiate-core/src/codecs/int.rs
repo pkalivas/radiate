@@ -15,8 +15,7 @@ use std::ops::Range;
 /// The default bounds are equal to `min` and `max`.
 #[derive(Clone)]
 pub struct IntCodec<T: Integer, D = T> {
-    num_chromosomes: usize,
-    num_genes: usize,
+    chrome_sizes: Vec<usize>,
     value_range: Range<T>,
     bounds: Range<T>,
     _marker: std::marker::PhantomData<D>,
@@ -33,13 +32,10 @@ impl<T: Integer, D> IntCodec<T, D> {
     /// them is the type `D`, which is either a `Vec<Vec<T>>`, `Vec<T>`, or `T`.
     fn encode_common(&self) -> Genotype<IntChromosome<T>> {
         Genotype::from(
-            (0..self.num_chromosomes)
-                .map(|_| {
-                    IntChromosome::from((
-                        self.num_genes,
-                        self.value_range.clone(),
-                        self.bounds.clone(),
-                    ))
+            self.chrome_sizes
+                .iter()
+                .map(|&size| {
+                    IntChromosome::from((size, self.value_range.clone(), self.bounds.clone()))
                 })
                 .collect::<Vec<IntChromosome<T>>>(),
         )
@@ -49,10 +45,9 @@ impl<T: Integer, D> IntCodec<T, D> {
 impl<T: Integer> IntCodec<T, Vec<Vec<T>>> {
     /// Create a new `IntCodec` with the given number of chromosomes, genes, min, and max values.
     /// The f_32 values for each `IntGene` will be randomly generated between the min and max values.
-    pub fn matrix(rows: usize, cols: usize, range: Range<T>) -> Self {
+    pub fn matrix(shapes: Vec<usize>, range: Range<T>) -> Self {
         IntCodec {
-            num_chromosomes: rows,
-            num_genes: cols,
+            chrome_sizes: shapes,
             value_range: range.clone(),
             bounds: range,
             _marker: std::marker::PhantomData,
@@ -65,8 +60,7 @@ impl<T: Integer> IntCodec<T, Vec<T>> {
     /// The f_32 values for each `IntGene` will be randomly generated between the min and max values.
     pub fn vector(count: usize, range: Range<T>) -> Self {
         IntCodec {
-            num_chromosomes: 1,
-            num_genes: count,
+            chrome_sizes: vec![count],
             value_range: range.clone(),
             bounds: range,
             _marker: std::marker::PhantomData,
@@ -79,8 +73,7 @@ impl<T: Integer> IntCodec<T, T> {
     /// The f_32 values for each `IntGene` will be randomly generated between the min and max values.
     pub fn scalar(range: Range<T>) -> Self {
         IntCodec {
-            num_chromosomes: 1,
-            num_genes: 1,
+            chrome_sizes: vec![1],
             value_range: range.clone(),
             bounds: range,
             _marker: std::marker::PhantomData,
@@ -97,7 +90,7 @@ impl<T: Integer> IntCodec<T, T> {
 ///
 /// // Create a new IntCodec with 10 chromosomes with 10 genes
 /// // per chromosome - a matrix of i32 values.
-/// let codec = IntCodec::matrix(10, 10, 0..100);
+/// let codec = IntCodec::matrix(vec![10, 10], 0..100);
 /// let genotype: Genotype<IntChromosome<i32>> = codec.encode();
 /// let decoded: Vec<Vec<i32>> = codec.decode(&genotype);
 /// ```

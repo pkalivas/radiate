@@ -1,25 +1,19 @@
 use radiate_core::{
-    AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, Gene, Rate, Valid,
+    AlterContext, AlterResult, BoundedGene, Chromosome, Crossover, Expr, Gene, RateSet,
     random_provider,
 };
 use radiate_utils::Float;
 
-const NAME: &str = "crossover.sbx";
-
 pub struct SimulatedBinaryCrossover {
-    crossover_rate: Rate,
+    rate: Expr,
     contiguty: f32,
 }
 
 impl SimulatedBinaryCrossover {
-    pub fn new(crossover_rate: impl Into<Rate>, contiguty: f32) -> Self {
-        let crossover_rate = crossover_rate.into();
-        if !crossover_rate.is_valid() {
-            panic!("Rate {crossover_rate:?} is not valid. Must be between 0.0 and 1.0",);
-        }
+    pub fn new(rate: impl Into<Expr>, contiguty: f32) -> Self {
         Self {
+            rate: rate.into(),
             contiguty,
-            crossover_rate,
         }
     }
 }
@@ -31,11 +25,11 @@ where
     C: Chromosome<Gene = G>,
 {
     fn name(&self) -> String {
-        NAME.to_string()
+        "crossover.sbx".to_string()
     }
 
-    fn rate(&self) -> Rate {
-        self.crossover_rate.clone()
+    fn rates(&self) -> RateSet {
+        RateSet::new(self.rate.clone())
     }
 
     #[inline]
@@ -75,7 +69,7 @@ where
                         ((v1 - v2) * A::HALF) + (beta * A::HALF * (v1 - v2).abs())
                     };
 
-                    let (one_min, one_max) = one_slice[i].bounds();
+                    let (one_min, one_max) = one_slice[i].bound_range();
                     let new_gene = v.clamp(*one_min, *one_max);
 
                     count += 1;

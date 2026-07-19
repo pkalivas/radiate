@@ -66,7 +66,7 @@ impl MetricSet {
     }
 
     pub fn carryover_rate(&self) -> Option<&Metric> {
-        self.get(super::metric_names::CARRYOVER_RATE)
+        self.get(super::metric_names::CARRYOVER_RATIO)
     }
 
     pub fn evaluation_count(&self) -> Option<&Metric> {
@@ -147,5 +147,21 @@ impl MetricSet {
 
     pub fn species_threshold(&self) -> Option<&Metric> {
         self.get(super::metric_names::SPECIES_THRESHOLD)
+    }
+
+    pub fn species_error(&self) -> Option<&Metric> {
+        self.get(super::metric_names::SPECIES_ERROR)
+    }
+
+    pub fn stagnation_count(&self) -> Option<&Metric> {
+        self.get(super::metric_names::STAGNATION_COUNT)
+    }
+
+    pub fn scores_trend(&self) -> Option<&Metric> {
+        self.get(super::metric_names::SCORES_TREND)
+    }
+
+    pub fn scores(&self) -> Option<&Metric> {
+        self.get(super::metric_names::SCORES)
     }
 }

@@ -1,25 +1,22 @@
 from __future__ import annotations
-from typing import Sequence, overload, Any, Literal, TYPE_CHECKING
 
-from radiate.genome.chromosome import Chromosome
-from radiate.genome.gene import Gene
+from typing import TYPE_CHECKING, Any, Literal, Sequence, overload
 
-from .base import CodecBase
-from radiate.genome import Genotype, GeneType
-from radiate._bridge.wrapper import RsObject
 from radiate.radiate import PyIntCodec
-from radiate._typing import (
-    AtLeastOne,
-)
-from radiate.dtype import DataTypeClass, DataType, Int64
+
+from .._bridge import RsObject
+from .._typing import AtLeastOne
+from ..dsl.dtype import DataType, DataTypeClass, Int64
+from ..genome import GeneType, Genotype
+from ..genome.chromosome import Chromosome
+from ..genome.gene import Gene
+from .base import CodecBase
 
 if TYPE_CHECKING:
-    from radiate._dependancies import numpy as np
+    from .._dependancies import numpy as np
 
 
 class IntCodec[D](CodecBase[int, D], RsObject):
-    gene_type = GeneType.INT
-
     @overload
     def __new__(
         cls,
@@ -195,7 +192,7 @@ class IntCodec[D](CodecBase[int, D], RsObject):
         """
         if shape is not None:
             if isinstance(shape, int):
-                self._pyobj = self.__vector(
+                self._pyobj = self._vector(
                     length=shape,
                     init_range=init_range,
                     bounds=bounds,
@@ -203,7 +200,7 @@ class IntCodec[D](CodecBase[int, D], RsObject):
                     dtype=dtype,
                 )
             elif isinstance(shape, (tuple, list)):
-                self._pyobj = self.__matrix(
+                self._pyobj = self._matrix(
                     shape=shape,
                     init_range=init_range,
                     bounds=bounds,
@@ -215,13 +212,13 @@ class IntCodec[D](CodecBase[int, D], RsObject):
                     "Shape must be an int, tuple of ints, or list of ints."
                 )
         elif genes is not None:
-            self._pyobj = self.__from_genes(genes=genes, use_numpy=use_numpy)
+            self._pyobj = self._from_genes(genes=genes, use_numpy=use_numpy)
         elif chromosomes is not None:
-            self._pyobj = self.__from_chromosomes(
+            self._pyobj = self._from_chromosomes(
                 chromosomes=chromosomes, use_numpy=use_numpy
             )
         elif shape is None and genes is None and chromosomes is None:
-            self._pyobj = self.__scalar(
+            self._pyobj = self._scalar(
                 init_range=init_range, bounds=bounds, dtype=dtype
             )
         else:
@@ -244,18 +241,15 @@ class IntCodec[D](CodecBase[int, D], RsObject):
             raise TypeError("genotype must be an instance of Genotype.")
         return self.__backend__().decode_py(genotype=genotype.__backend__())
 
+    @property
+    def gene_type(self) -> GeneType:
+        return GeneType.INT
+
     @staticmethod
-    def __from_genes(
+    def _from_genes(
         genes: Gene[int] | Sequence[Gene[int]], use_numpy: bool = False
     ) -> PyIntCodec:
-        """
-        Create a codec for a single chromosome with specified genes.
-        Args:
-            genes: A list or tuple of Gene instances.
-        Returns:
-            A new IntCodec instance with the specified genes.
-        """
-        from radiate.genome import GeneType
+        from ..genome import GeneType
 
         if isinstance(genes, Gene):
             genes = [genes]
@@ -269,18 +263,11 @@ class IntCodec[D](CodecBase[int, D], RsObject):
         )
 
     @staticmethod
-    def __from_chromosomes(
+    def _from_chromosomes(
         chromosomes: Chromosome[int] | Sequence[Chromosome[int]],
         use_numpy: bool = False,
     ) -> PyIntCodec:
-        """
-        Create a codec for multiple chromosomes.
-        Args:
-            chromosomes: A single Chromosome instance or a sequence of Chromosome instances.
-        Returns:
-            A new PyIntCodec instance with the specified chromosomes.
-        """
-        from radiate.genome import GeneType
+        from ..genome import GeneType
 
         if isinstance(chromosomes, Chromosome):
             chromosomes = [chromosomes]
@@ -294,7 +281,7 @@ class IntCodec[D](CodecBase[int, D], RsObject):
         )
 
     @staticmethod
-    def __matrix(
+    def _matrix(
         shape: AtLeastOne[int],
         init_range: tuple[int, int] | None = None,
         bounds: tuple[int, int] | None = None,
@@ -336,7 +323,7 @@ class IntCodec[D](CodecBase[int, D], RsObject):
         )
 
     @staticmethod
-    def __vector(
+    def _vector(
         length: int,
         init_range: tuple[int, int] | None = None,
         bounds: tuple[int, int] | None = None,
@@ -376,7 +363,7 @@ class IntCodec[D](CodecBase[int, D], RsObject):
         )
 
     @staticmethod
-    def __scalar(
+    def _scalar(
         init_range: tuple[int, int] | None = None,
         bounds: tuple[int, int] | None = None,
         dtype: DataTypeClass | DataType | None = None,

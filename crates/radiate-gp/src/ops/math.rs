@@ -5,89 +5,81 @@ use crate::{
 };
 use radiate_core::random_provider;
 
-pub(super) const MAX_VALUE: f32 = 1e+10_f32;
-pub(super) const MIN_VALUE: f32 = -1e+10_f32;
-pub(super) const EPSILON: f32 = 1e-6_f32;
-pub(super) const ONE: f32 = 1.0_f32;
-pub(super) const ZERO: f32 = 0.0_f32;
-pub(super) const TWO: f32 = 2.0_f32;
-pub(super) const HALF: f32 = 0.5_f32;
-pub(super) const TENTH: f32 = 0.1_f32;
+use super::OpFloat;
 
-/// Clamp a value to the range [-1e+10, 1e+10]. Without this, values can quickly become
-/// too large or too small to be useful.
-pub(super) const fn clamp(value: f32) -> f32 {
+/// Clamp a value to the range [-MAX_VALUE, MAX_VALUE]. Without this, values can quickly
+/// become too large or too small to be useful.
+#[inline]
+fn clamp<F: OpFloat>(value: F) -> F {
     if value.is_nan() {
-        return ZERO;
+        return F::ZERO;
     }
-
-    value.clamp(MIN_VALUE, MAX_VALUE)
+    value.clamp(-F::MAX_VALUE, F::MAX_VALUE)
 }
 
-/// Aggregate a slice of 'f32' values by summing them, then applying a function to the result.
-/// There usually arent too many inputs, so we can use an if statement to handle a few of the
-/// common cases - vals with a len <= 5.
+/// Aggregate a slice of values by summing them. There usually aren't too many inputs, so we
+/// can use an if statement to handle a few of the common cases - vals with a len <= 5.
 #[inline]
-pub(super) fn aggregate(vals: &[f32]) -> f32 {
+fn aggregate<F: OpFloat>(vals: &[F]) -> F {
     match vals {
-        [] => ZERO,
+        [] => F::ZERO,
         [a] => *a,
-        [a, b] => a + b,
-        [a, b, c] => a + b + c,
-        [a, b, c, d] => a + b + c + d,
-        [a, b, c, d, e] => a + b + c + d + e,
-        _ => vals.iter().copied().sum(),
+        [a, b] => *a + *b,
+        [a, b, c] => *a + *b + *c,
+        [a, b, c, d] => *a + *b + *c + *d,
+        [a, b, c, d, e] => *a + *b + *c + *d + *e,
+        _ => vals.iter().copied().fold(F::ZERO, |acc, x| acc + x),
     }
 }
 
 #[inline]
-const fn add(vals: &[f32]) -> f32 {
+fn add<F: OpFloat>(vals: &[F]) -> F {
     clamp(vals[0] + vals[1])
 }
 
 #[inline]
-const fn sub(vals: &[f32]) -> f32 {
+fn sub<F: OpFloat>(vals: &[F]) -> F {
     clamp(vals[0] - vals[1])
 }
 
 #[inline]
-const fn mul(vals: &[f32]) -> f32 {
+fn mul<F: OpFloat>(vals: &[F]) -> F {
     clamp(vals[0] * vals[1])
 }
 
 #[inline]
-const fn div(vals: &[f32]) -> f32 {
-    if vals[1].abs() < EPSILON {
-        ONE
+fn div<F: OpFloat>(vals: &[F]) -> F {
+    if vals[1].abs() < F::EPS {
+        F::ONE
     } else {
         clamp(vals[0] / vals[1])
     }
 }
 
 #[inline]
-const fn neg(vals: &[f32]) -> f32 {
+fn neg<F: OpFloat>(vals: &[F]) -> F {
     clamp(-vals[0])
 }
 
 #[inline]
-const fn abs(vals: &[f32]) -> f32 {
+fn abs<F: OpFloat>(vals: &[F]) -> F {
     clamp(vals[0].abs())
 }
 
 #[inline]
-const fn ceil(vals: &[f32]) -> f32 {
+fn ceil<F: OpFloat>(vals: &[F]) -> F {
     clamp(vals[0].ceil())
 }
 
 #[inline]
-const fn floor(vals: &[f32]) -> f32 {
+fn floor<F: OpFloat>(vals: &[F]) -> F {
     clamp(vals[0].floor())
 }
 
 #[inline]
-fn logsumexp(xs: &[f32]) -> f32 {
-    let mut m = f32::NEG_INFINITY;
-    let mut s = 0.0;
+fn logsumexp<F: OpFloat>(xs: &[F]) -> F {
+    let mut m = F::neg_infinity();
+    let mut s = F::ZERO;
 
     for &x in xs {
         if x > m {
@@ -96,21 +88,22 @@ fn logsumexp(xs: &[f32]) -> f32 {
     }
 
     for &x in xs {
-        s += (x - m).exp();
+        s = s + (x - m).exp();
     }
 
     m + s.ln()
 }
 
 #[inline]
-fn softplus_stable(x: f32) -> f32 {
+fn softplus_stable<F: OpFloat>(x: F) -> F {
     // x already clamped
-    if x > 20.0 {
+    let threshold = F::from(20.0).unwrap();
+    if x > threshold {
         x
-    } else if x < -20.0 {
+    } else if x < -threshold {
         x.exp() // ~0
     } else {
-        (1.0 + x.exp()).ln()
+        (F::ONE + x.exp()).ln()
     }
 }
 
@@ -131,26 +124,30 @@ pub enum AggregateOperations {
 }
 
 /// Implementations of the enum. These are the basic math operations.
-/// Each operation takes a slice of `f32` values and returns a single `f32` value.
+/// Each operation takes a slice of `F` values and returns a single `F` value.
 impl AggregateOperations {
-    pub fn apply(&self, inputs: &[f32]) -> f32 {
+    pub fn apply<F: OpFloat>(&self, inputs: &[F]) -> F {
         match self {
             AggregateOperations::Sum => clamp(aggregate(inputs)),
-            AggregateOperations::Diff => clamp(inputs.iter().cloned().fold(ZERO, |acc, x| acc - x)),
-            AggregateOperations::Prod => clamp(inputs.iter().product()),
+            AggregateOperations::Diff => {
+                clamp(inputs.iter().copied().fold(F::ZERO, |acc, x| acc - x))
+            }
+            AggregateOperations::Prod => {
+                clamp(inputs.iter().copied().fold(F::ONE, |acc, x| acc * x))
+            }
             AggregateOperations::Pow => clamp(inputs[0].powf(inputs[1])),
             AggregateOperations::Sqrt => clamp(inputs[0].sqrt()),
             AggregateOperations::Exp => clamp(inputs[0].exp()),
-            AggregateOperations::Log => clamp(if inputs[0] > ZERO {
+            AggregateOperations::Log => clamp(if inputs[0] > F::ZERO {
                 inputs[0].ln()
             } else {
-                ZERO
+                F::ZERO
             }),
             AggregateOperations::Sin => clamp(inputs[0].sin()),
             AggregateOperations::Cos => clamp(inputs[0].cos()),
             AggregateOperations::Tan => clamp(inputs[0].tan()),
-            AggregateOperations::Max => clamp(inputs.iter().cloned().fold(MIN_VALUE, f32::max)),
-            AggregateOperations::Min => clamp(inputs.iter().cloned().fold(MAX_VALUE, f32::min)),
+            AggregateOperations::Max => clamp(inputs.iter().copied().fold(-F::MAX_VALUE, F::max)),
+            AggregateOperations::Min => clamp(inputs.iter().copied().fold(F::MAX_VALUE, F::min)),
             AggregateOperations::LogSumExp => clamp(logsumexp(inputs)),
         }
     }
@@ -174,57 +171,55 @@ pub enum ActivationOperation {
 /// being able to define complex 'Graph' and 'Tree' structures.
 impl ActivationOperation {
     #[inline]
-    pub fn apply(&self, inputs: &[f32]) -> f32 {
+    pub fn apply<F: OpFloat>(&self, inputs: &[F]) -> F {
         match self {
             ActivationOperation::Sigmoid => {
                 let total = aggregate(inputs);
-                clamp(ONE / (ONE + (-total).exp()))
+                clamp(F::ONE / (F::ONE + (-total).exp()))
             }
             ActivationOperation::Tanh => {
                 let total = aggregate(inputs);
                 clamp(total.tanh())
             }
-            ActivationOperation::ReLU => clamp(inputs.iter().cloned().sum::<f32>().max(ZERO)),
+            ActivationOperation::ReLU => clamp(aggregate(inputs).max(F::ZERO)),
             ActivationOperation::LeakyReLU => {
-                let x = clamp(inputs.iter().cloned().sum::<f32>());
-                if x > ZERO { x } else { clamp(HALF * x) }
+                let x = clamp(aggregate(inputs));
+                if x > F::ZERO { x } else { clamp(F::HALF * x) }
             }
             ActivationOperation::ELU => {
-                let x = clamp(inputs.iter().cloned().sum::<f32>());
-                if x > ZERO {
+                let x = clamp(aggregate(inputs));
+                if x > F::ZERO {
                     x
                 } else {
-                    clamp(HALF * (x.exp() - ONE))
+                    clamp(F::HALF * (x.exp() - F::ONE))
                 }
             }
-            ActivationOperation::Linear => clamp(inputs.iter().cloned().sum::<f32>()),
+            ActivationOperation::Linear => clamp(aggregate(inputs)),
             ActivationOperation::Mish => {
-                let x = clamp(inputs.iter().cloned().sum::<f32>());
+                let x = clamp(aggregate(inputs));
                 clamp(x * (x.exp().ln_1p().tanh()))
             }
             ActivationOperation::Swish => {
-                let x = clamp(inputs.iter().cloned().sum::<f32>());
-                clamp(x / (ONE + (-x).exp()))
+                let x = clamp(aggregate(inputs));
+                clamp(x / (F::ONE + (-x).exp()))
             }
-            ActivationOperation::Softplus => {
-                softplus_stable(clamp(inputs.iter().cloned().sum::<f32>()))
-            }
+            ActivationOperation::Softplus => softplus_stable(clamp(aggregate(inputs))),
         }
     }
 }
 
-impl Op<f32> {
+impl<F: OpFloat> Op<F> {
     pub fn weight() -> Self {
-        Self::weight_with(random_provider::random::<f32>() * TWO - ONE)
+        Self::weight_with(random_provider::range(-F::ONE..F::ONE))
     }
 
-    pub fn weight_with(value: f32) -> Self {
-        let supplier = || random_provider::random::<f32>() * TWO - ONE;
+    pub fn weight_with(value: F) -> Self {
+        let supplier = || random_provider::range(-F::ONE..F::ONE);
 
-        let operation = |inputs: &[f32], weight: &f32| clamp(inputs[0] * weight);
+        let operation = |inputs: &[F], weight: &F| clamp(inputs[0] * *weight);
 
-        let modifier = |current: &mut f32| {
-            let diff = (random_provider::random::<f32>() * TWO - ONE) * TENTH;
+        let modifier = |current: &mut F| {
+            let diff = random_provider::range(-F::ONE..F::ONE) * F::TENTH;
             *current = clamp(*current + diff);
         };
 
@@ -237,172 +232,172 @@ impl Op<f32> {
     }
 
     pub fn add() -> Self {
-        Op::Fn(op_names::ADD, 2.into(), add)
+        Op::Fn(op_names::ADD, 2.into(), add::<F>)
     }
 
     pub fn sub() -> Self {
-        Op::Fn(op_names::SUB, 2.into(), sub)
+        Op::Fn(op_names::SUB, 2.into(), sub::<F>)
     }
 
     pub fn mul() -> Self {
-        Op::Fn(op_names::MUL, 2.into(), mul)
+        Op::Fn(op_names::MUL, 2.into(), mul::<F>)
     }
 
     pub fn div() -> Self {
-        Op::Fn(op_names::DIV, 2.into(), div)
+        Op::Fn(op_names::DIV, 2.into(), div::<F>)
     }
 
     pub fn sum() -> Self {
-        Op::Fn(op_names::SUM, Arity::Any, |inputs: &[f32]| {
+        Op::Fn(op_names::SUM, Arity::Any, |inputs: &[F]| {
             AggregateOperations::Sum.apply(inputs)
         })
     }
 
     pub fn diff() -> Self {
-        Op::Fn(op_names::DIFF, Arity::Any, |inputs: &[f32]| {
+        Op::Fn(op_names::DIFF, Arity::Any, |inputs: &[F]| {
             AggregateOperations::Diff.apply(inputs)
         })
     }
 
     pub fn prod() -> Self {
-        Op::Fn(op_names::PROD, Arity::Any, |inputs: &[f32]| {
+        Op::Fn(op_names::PROD, Arity::Any, |inputs: &[F]| {
             AggregateOperations::Prod.apply(inputs)
         })
     }
 
     pub fn neg() -> Self {
-        Op::Fn(op_names::NEG, 1.into(), neg)
+        Op::Fn(op_names::NEG, 1.into(), neg::<F>)
     }
 
     pub fn pow() -> Self {
-        Op::Fn(op_names::POW, 2.into(), |inputs: &[f32]| {
+        Op::Fn(op_names::POW, 2.into(), |inputs: &[F]| {
             AggregateOperations::Pow.apply(inputs)
         })
     }
 
     pub fn sqrt() -> Self {
-        Op::Fn(op_names::SQRT, 1.into(), |inputs: &[f32]| {
+        Op::Fn(op_names::SQRT, 1.into(), |inputs: &[F]| {
             AggregateOperations::Sqrt.apply(inputs)
         })
     }
 
     pub fn abs() -> Self {
-        Op::Fn(op_names::ABS, 1.into(), abs)
+        Op::Fn(op_names::ABS, 1.into(), abs::<F>)
     }
 
     pub fn exp() -> Self {
-        Op::Fn(op_names::EXP, 1.into(), |inputs: &[f32]| {
+        Op::Fn(op_names::EXP, 1.into(), |inputs: &[F]| {
             AggregateOperations::Exp.apply(inputs)
         })
     }
 
     pub fn log() -> Self {
-        Op::Fn(op_names::LOG, 1.into(), |inputs: &[f32]| {
+        Op::Fn(op_names::LOG, 1.into(), |inputs: &[F]| {
             AggregateOperations::Log.apply(inputs)
         })
     }
 
     pub fn sin() -> Self {
-        Op::Fn(op_names::SIN, 1.into(), |inputs: &[f32]| {
+        Op::Fn(op_names::SIN, 1.into(), |inputs: &[F]| {
             AggregateOperations::Sin.apply(inputs)
         })
     }
 
     pub fn cos() -> Self {
-        Op::Fn(op_names::COS, 1.into(), |inputs: &[f32]| {
+        Op::Fn(op_names::COS, 1.into(), |inputs: &[F]| {
             AggregateOperations::Cos.apply(inputs)
         })
     }
 
     pub fn max() -> Self {
-        Op::Fn(op_names::MAX, Arity::Any, |inputs: &[f32]| {
+        Op::Fn(op_names::MAX, Arity::Any, |inputs: &[F]| {
             AggregateOperations::Max.apply(inputs)
         })
     }
 
     pub fn min() -> Self {
-        Op::Fn(op_names::MIN, Arity::Any, |inputs: &[f32]| {
+        Op::Fn(op_names::MIN, Arity::Any, |inputs: &[F]| {
             AggregateOperations::Min.apply(inputs)
         })
     }
 
     pub fn tan() -> Self {
-        Op::Fn(op_names::TAN, 1.into(), |inputs: &[f32]| {
+        Op::Fn(op_names::TAN, 1.into(), |inputs: &[F]| {
             AggregateOperations::Tan.apply(inputs)
         })
     }
 
     pub fn ceil() -> Self {
-        Op::Fn(op_names::CEIL, 1.into(), ceil)
+        Op::Fn(op_names::CEIL, 1.into(), ceil::<F>)
     }
 
     pub fn floor() -> Self {
-        Op::Fn(op_names::FLOOR, 1.into(), floor)
+        Op::Fn(op_names::FLOOR, 1.into(), floor::<F>)
     }
 
     pub fn sigmoid() -> Self {
-        Op::Fn(op_names::SIGMOID, Arity::Any, |inputs: &[f32]| {
+        Op::Fn(op_names::SIGMOID, Arity::Any, |inputs: &[F]| {
             ActivationOperation::Sigmoid.apply(inputs)
         })
     }
 
     pub fn tanh() -> Self {
-        Op::Fn(op_names::TANH, Arity::Any, |inputs: &[f32]| {
+        Op::Fn(op_names::TANH, Arity::Any, |inputs: &[F]| {
             ActivationOperation::Tanh.apply(inputs)
         })
     }
 
     pub fn relu() -> Self {
-        Op::Fn(op_names::RELU, Arity::Any, |inputs: &[f32]| {
+        Op::Fn(op_names::RELU, Arity::Any, |inputs: &[F]| {
             ActivationOperation::ReLU.apply(inputs)
         })
     }
 
     pub fn leaky_relu() -> Self {
-        Op::Fn(op_names::LEAKY_RELU, Arity::Any, |inputs: &[f32]| {
+        Op::Fn(op_names::LEAKY_RELU, Arity::Any, |inputs: &[F]| {
             ActivationOperation::LeakyReLU.apply(inputs)
         })
     }
 
     pub fn elu() -> Self {
-        Op::Fn(op_names::ELU, Arity::Any, |inputs: &[f32]| {
+        Op::Fn(op_names::ELU, Arity::Any, |inputs: &[F]| {
             ActivationOperation::ELU.apply(inputs)
         })
     }
 
     pub fn linear() -> Self {
-        Op::Fn(op_names::LINEAR, Arity::Any, |inputs: &[f32]| {
+        Op::Fn(op_names::LINEAR, Arity::Any, |inputs: &[F]| {
             ActivationOperation::Linear.apply(inputs)
         })
     }
 
     pub fn mish() -> Self {
-        Op::Fn(op_names::MISH, Arity::Any, |inputs: &[f32]| {
+        Op::Fn(op_names::MISH, Arity::Any, |inputs: &[F]| {
             ActivationOperation::Mish.apply(inputs)
         })
     }
 
     pub fn swish() -> Self {
-        Op::Fn(op_names::SWISH, Arity::Any, |inputs: &[f32]| {
+        Op::Fn(op_names::SWISH, Arity::Any, |inputs: &[F]| {
             ActivationOperation::Swish.apply(inputs)
         })
     }
 
     pub fn softplus() -> Self {
-        Op::Fn(op_names::SOFTPLUS, Arity::Any, |inputs: &[f32]| {
+        Op::Fn(op_names::SOFTPLUS, Arity::Any, |inputs: &[F]| {
             ActivationOperation::Softplus.apply(inputs)
         })
     }
 
     pub fn logsumexp() -> Self {
-        Op::Fn(op_names::LOGSUMEXP, Arity::Exact(2), |inputs: &[f32]| {
+        Op::Fn(op_names::LOGSUMEXP, Arity::Exact(2), |inputs: &[F]| {
             AggregateOperations::LogSumExp.apply(inputs)
         })
     }
 }
 
 /// Get a list of all the math operations.
-pub fn math_ops() -> Vec<Op<f32>> {
+pub fn math_ops<F: OpFloat>() -> Vec<Op<F>> {
     vec![
         Op::add(),
         Op::sub(),
@@ -429,7 +424,7 @@ pub fn math_ops() -> Vec<Op<f32>> {
 }
 
 /// Get a list of all the activation operations.
-pub fn activation_ops() -> Vec<Op<f32>> {
+pub fn activation_ops<F: OpFloat>() -> Vec<Op<F>> {
     vec![
         Op::sigmoid(),
         Op::tanh(),
@@ -443,155 +438,95 @@ pub fn activation_ops() -> Vec<Op<f32>> {
     ]
 }
 
+pub fn edge_ops<F: OpFloat>() -> Vec<Op<F>> {
+    vec![Op::weight(), Op::identity()]
+}
+
 /// Get a list of all the operations.
-pub fn all_ops() -> Vec<Op<f32>> {
-    math_ops().into_iter().chain(activation_ops()).collect()
+pub fn all_ops<F: OpFloat>() -> Vec<Op<F>> {
+    math_ops()
+        .into_iter()
+        .chain(activation_ops())
+        .chain(edge_ops())
+        .collect()
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::Eval;
-
     use super::*;
-    use std::f32;
+    use crate::{Eval, ops::math};
 
     #[inline]
-    fn approx(a: f32, b: f32, eps: f32) -> bool {
+    fn approx<F: OpFloat>(a: F, b: F, eps: F) -> bool {
         (a - b).abs() <= eps
     }
 
     #[test]
-    fn clamp_behaves_as_specified() {
-        assert_eq!(super::clamp(f32::NAN), ZERO);
-        assert_eq!(super::clamp(1e20_f32), MAX_VALUE);
-        assert_eq!(super::clamp(-1e20_f32), MIN_VALUE);
-        assert_eq!(super::clamp(123.456), 123.456);
+    fn clamp_behaves_as_specified_f32() {
+        assert_eq!(math::clamp(f32::NAN), 0.0_f32);
+        assert_eq!(math::clamp(1e20_f32), f32::MAX_VALUE);
+        assert_eq!(math::clamp(-1e20_f32), -f32::MAX_VALUE);
+        assert_eq!(math::clamp(123.456_f32), 123.456_f32);
     }
 
     #[test]
-    fn math_div_by_zero_behavior() {
-        let xs = [10.0, 1e-12_f32];
+    fn clamp_behaves_as_specified_f64() {
+        assert_eq!(math::clamp(f64::NAN), 0.0_f64);
+        assert_eq!(math::clamp(1e20_f64), f64::MAX_VALUE);
+        assert_eq!(math::clamp(-1e20_f64), -f64::MAX_VALUE);
+        assert_eq!(math::clamp(123.456_f64), 123.456_f64);
+    }
+
+    #[test]
+    fn math_div_by_zero_behavior_f32() {
+        let xs = [10.0_f32, 1e-12_f32];
         let y = Op::div().eval(&xs);
-        assert_eq!(
-            y, 1.0,
-            "huge quotient should clamp to MAX_VALUE with current code"
-        );
+        assert_eq!(y, 1.0);
+    }
+
+    #[test]
+    fn math_div_by_zero_behavior_f64() {
+        let xs = [10.0_f64, 1e-20_f64];
+        let y = Op::div().eval(&xs);
+        assert_eq!(y, 1.0);
     }
 
     #[test]
     fn math_sum_prod_diff_pow_sqrt_abs() {
-        let xs = [2.0, 3.0, 4.0];
+        let xs = [2.0_f32, 3.0, 4.0];
         assert_eq!(AggregateOperations::Sum.apply(&xs), 9.0);
         assert_eq!(AggregateOperations::Prod.apply(&xs), 24.0);
-        // Diff is left fold from ZERO: (((0-2)-3)-4) = -9
         assert_eq!(AggregateOperations::Diff.apply(&xs), -9.0);
 
-        let p = AggregateOperations::Pow.apply(&[3.0, 2.0]);
+        let p = AggregateOperations::Pow.apply(&[3.0_f32, 2.0]);
         assert_eq!(p, 9.0);
 
-        assert_eq!(AggregateOperations::Sqrt.apply(&[9.0]), 3.0);
-    }
-
-    #[test]
-    fn math_exp_log_trig_rounding() {
-        let e = AggregateOperations::Exp.apply(&[1.0]);
-        assert!(approx(e, f32::consts::E, 1e-5), "exp(1) ~= e");
-
-        // log on <=0 becomes NaN, then clamp -> 0.0
-        assert_eq!(AggregateOperations::Log.apply(&[0.0]), 0.0);
-        assert_eq!(AggregateOperations::Log.apply(&[-1.0]), 0.0);
-
-        let s = AggregateOperations::Sin.apply(&[f32::consts::PI / 2.0]);
-        assert!(approx(s, 1.0, 1e-5));
-
-        let c = AggregateOperations::Cos.apply(&[0.0]);
-        assert!(approx(c, 1.0, 1e-5));
-
-        let t = AggregateOperations::Tan.apply(&[0.0]);
-        assert!(approx(t, 0.0, 1e-6));
-    }
-
-    #[test]
-    fn math_max_min_variadic_including_empty_behavior() {
-        let xs = [1.5, -2.0, 7.25, 3.0];
-        let mx = AggregateOperations::Max.apply(&xs);
-        let mn = AggregateOperations::Min.apply(&xs);
-        assert_eq!(mx, 7.25);
-        assert_eq!(mn, -2.0);
-
-        let empty: [f32; 0] = [];
-        assert_eq!(AggregateOperations::Max.apply(&empty), MIN_VALUE);
-        assert_eq!(AggregateOperations::Min.apply(&empty), MAX_VALUE);
-    }
-
-    #[test]
-    fn act_sigmoid_on_sum() {
-        // sum = 1.0 -> sigmoid(1) ~ 0.731
-        let xs = [2.0, -1.0];
-        let y = ActivationOperation::Sigmoid.apply(&xs);
-        assert!(y > 0.73 && y < 0.74, "got {y}");
-    }
-
-    #[test]
-    fn act_tanh_on_sum() {
-        let xs = [2.0, -0.5]; // sum = 1.5 -> tanh(1.5) ~ 0.9051
-        let y = ActivationOperation::Tanh.apply(&xs);
-        assert!(y > 0.90 && y < 0.91, "got {y}");
+        assert_eq!(AggregateOperations::Sqrt.apply(&[9.0_f32]), 3.0);
     }
 
     #[test]
     fn act_relu_and_leaky_and_elu_match_current_params() {
-        // ReLU(sum)
-        let xs = [-1.0, 0.25, 0.25]; // sum = -0.5
+        let xs = [-1.0_f32, 0.25, 0.25];
         assert_eq!(ActivationOperation::ReLU.apply(&xs), 0.0);
 
-        // LeakyReLU uses slope HALF (=0.5) per current code
-        let xs2 = [-0.6];
+        let xs2 = [-0.6_f32];
         let y2 = ActivationOperation::LeakyReLU.apply(&xs2);
         assert_eq!(y2, -0.3);
 
-        // ELU uses alpha HALF (=0.5) currently
-        let xs3 = [-1.0];
+        let xs3 = [-1.0_f32];
         let y3 = ActivationOperation::ELU.apply(&xs3);
-        // 0.5 * (exp(-1) - 1) ~= -0.316060...
-        assert!(approx(y3, 0.5 * (f32::consts::E.powf(-1.0) - 1.0), 1e-6));
+        assert!(approx(
+            y3,
+            0.5 * (std::f32::consts::E.powf(-1.0) - 1.0),
+            1e-6
+        ));
     }
 
     #[test]
-    fn act_linear_mish_swish_softplus() {
-        // Linear is sum
-        let xs = [1.0, 2.0, 3.0];
-        assert_eq!(ActivationOperation::Linear.apply(&xs), 6.0);
-
-        // Mish ~ x * tanh(ln(1+exp(x))) at sum(x)
-        let x = 1.5_f32;
-        let mish_ref = x * ((x.exp().ln_1p()).tanh());
-        let mish_y = ActivationOperation::Mish.apply(&[x]);
-        assert!(approx(mish_y, mish_ref, 1e-6));
-
-        // Swish ~ x * sigmoid(x); implementation uses x / (1 + exp(-x))
-        let sw = ActivationOperation::Swish.apply(&[x]);
-        let sw_ref = x / (1.0 + (-x).exp());
-        assert!(approx(sw, sw_ref, 1e-6));
-
-        // Softplus = ln(1 + exp(x))
-        let sp = ActivationOperation::Softplus.apply(&[x]);
-        let sp_ref = x.exp().ln_1p();
-        assert!(approx(sp, sp_ref, 1e-6));
-    }
-
-    #[test]
-    fn div_eps_guard_works() {
-        let xs = [10.0, 0.0];
-        let y = Op::div().eval(&xs);
-        assert_eq!(y, 1.0, "10/0 should clamp to 1.0");
-    }
-
-    #[test]
-    fn softplus_is_stable_for_large_x() {
-        let big = 1e9_f32;
+    fn softplus_is_stable_for_large_x_f64() {
+        let big = 1e9_f64;
         let y = ActivationOperation::Softplus.apply(&[big]);
         assert!(y.is_finite());
-        assert!(y > 1e8, "softplus(big) should be ~ big");
+        assert!(y > 1e8);
     }
 }

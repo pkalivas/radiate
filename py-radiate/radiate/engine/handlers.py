@@ -4,8 +4,7 @@ from typing import Any, Callable
 
 from radiate.radiate import PySubscriber
 
-from radiate._bridge.wrapper import RsObject
-
+from .._bridge import RsObject
 from .metrics import MetricSet
 
 
@@ -57,7 +56,7 @@ class EngineEvent(RsObject):
         else:
             raise ValueError(f"Unknown event type: {event_type_str}")
 
-    def score(self) -> float | list[float] | None:
+    def score(self) -> list[float] | None:
         """
         Get the score of the event.
         :return: The score of the event.
@@ -147,13 +146,13 @@ class MetricCollector(EventHandler):
         self.metric_history.append(metrics)
 
     def to_polars(self, lazy: bool = False):
-        from radiate._dependancies import _POLARS_AVAILABLE
+        from .._dependancies import _POLARS_AVAILABLE
 
         if not _POLARS_AVAILABLE:
             raise ImportError(
                 "Polars is not available. Please install it to use this feature."
             )
-        from radiate._dependancies import polars as pl
+        from .._dependancies import polars as pl
 
         if lazy:
             return pl.LazyFrame(
@@ -173,13 +172,13 @@ class MetricCollector(EventHandler):
         )
 
     def to_pandas(self):
-        from radiate._dependancies import _PANDAS_AVAILABLE
+        from .._dependancies import _PANDAS_AVAILABLE
 
         if not _PANDAS_AVAILABLE:
             raise ImportError(
                 "Pandas is not available. Please install it to use this feature."
             )
-        from radiate._dependancies import pandas as pd
+        from .._dependancies import pandas as pd
 
         return pd.DataFrame(
             [
@@ -190,14 +189,14 @@ class MetricCollector(EventHandler):
         )
 
     def plot(self, *names: str):
-        from radiate._dependancies import _MATPLOTLIB_AVAILABLE
+        from .._dependancies import _MATPLOTLIB_AVAILABLE
 
         if not _MATPLOTLIB_AVAILABLE:
             raise ImportError(
                 "Matplotlib is not available. Please install it to use this feature."
             )
 
-        from radiate._dependancies import matplotlib as plt
+        from .._dependancies import matplotlib as plt
 
         vals = {name: [] for name in names}
         for metric_set in self.metric_history:
@@ -215,3 +214,39 @@ class MetricCollector(EventHandler):
         plt.grid(True)
         plt.legend()
         plt.show()
+
+
+def on_epoch(func: Callable[["EngineEvent"], None]) -> CallableEventHandler:
+    """
+    Decorator to register a function as an event handler for the EPOCH_COMPLETE event.
+    :param func: The function to register as an event handler.
+    :return: A CallableEventHandler instance.
+    """
+    return CallableEventHandler(func, EventType.EPOCH_COMPLETE)
+
+
+def on_start(func: Callable[["EngineEvent"], None]) -> CallableEventHandler:
+    """
+    Decorator to register a function as an event handler for the START event.
+    :param func: The function to register as an event handler.
+    :return: A CallableEventHandler instance.
+    """
+    return CallableEventHandler(func, EventType.START)
+
+
+def on_stop(func: Callable[["EngineEvent"], None]) -> CallableEventHandler:
+    """
+    Decorator to register a function as an event handler for the STOP event.
+    :param func: The function to register as an event handler.
+    :return: A CallableEventHandler instance.
+    """
+    return CallableEventHandler(func, EventType.STOP)
+
+
+def on_improvement(func: Callable[["EngineEvent"], None]) -> CallableEventHandler:
+    """
+    Decorator to register a function as an event handler for the ENGINE_IMPROVEMENT event.
+    :param func: The function to register as an event handler.
+    :return: A CallableEventHandler instance.
+    """
+    return CallableEventHandler(func, EventType.ENGINE_IMPROVEMENT)

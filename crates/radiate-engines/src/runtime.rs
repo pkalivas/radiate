@@ -4,7 +4,8 @@ use crate::{Engine, EngineControl, EvolutionContext, Generation, Limit, init_log
 #[cfg(feature = "serde")]
 use crate::{FileWriter, JsonWriter};
 use radiate_core::error::{RadiateResult, Result};
-use radiate_core::{Chromosome, Expr, Metric, Score, radiate_err};
+use radiate_core::rate::Expr;
+use radiate_core::{Chromosome, Metric, Score, radiate_err};
 #[cfg(feature = "serde")]
 use serde::Serialize;
 use std::collections::VecDeque;

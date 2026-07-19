@@ -1,6 +1,7 @@
 mod alters;
 pub(crate) mod config;
 mod evaluators;
+mod filters;
 mod objectives;
 mod population;
 mod problem;
@@ -8,6 +9,7 @@ mod selectors;
 mod species;
 
 use crate::builder::evaluators::EvaluationParams;
+use crate::builder::filters::FilterParams;
 use crate::builder::objectives::OptimizeParams;
 use crate::builder::population::PopulationParams;
 use crate::builder::problem::ProblemParams;
@@ -29,11 +31,14 @@ use crate::{
 use crate::{Generation, Result};
 use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
-use radiate_core::MetricQuery;
-use radiate_core::evaluator::BatchFitnessEvaluator;
-use radiate_core::problem::{BatchEngineProblem, EngineProblem};
-use radiate_core::{Alterer, Ecosystem, Executor, FitnessEvaluator, Rate, Valid};
+use radiate_core::rate::ExprSet;
+use radiate_core::{Alterer, Ecosystem, Executor, Expr, FitnessEvaluator, Valid, metric_names};
 use radiate_core::{RadiateError, ensure, radiate_err};
+use radiate_core::{RateSet, evaluator::BatchFitnessEvaluator};
+use radiate_core::{
+    expr,
+    problem::{BatchEngineProblem, EngineProblem},
+};
 use radiate_utils::VersionedCounts;
 #[cfg(feature = "serde")]
 use serde::Deserialize;
@@ -51,12 +56,13 @@ where
     pub selection_params: SelectionParams<C>,
     pub optimization_params: OptimizeParams<C>,
     pub problem_params: ProblemParams<C, T>,
+    pub filter_params: FilterParams<C>,
 
     pub alterers: Vec<Alterer<C>>,
     pub replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
     pub handlers: Vec<Arc<Mutex<dyn EventHandler<T>>>>,
     pub generation: Option<Generation<C, T>>,
-    pub exprs: Option<Arc<Mutex<Vec<MetricQuery>>>>,
+    pub exprs: Option<Arc<Mutex<ExprSet>>>,
 }
 
 /// Parameters for the genetic engine.
@@ -123,10 +129,10 @@ where
         self
     }
 
-    pub fn register_metrics(mut self, exprs: Vec<impl Into<MetricQuery>>) -> Self {
-        self.params.exprs = Some(Arc::new(Mutex::new(
-            exprs.into_iter().map(|e| e.into()).collect(),
-        )));
+    /// Set the metrics for the engine. This allows you to define custom metrics
+    /// that will be calculated during the evolution process.
+    pub fn metrics(mut self, exprs: impl Into<ExprSet>) -> Self {
+        self.params.exprs = Some(Arc::new(Mutex::new(exprs.into())));
         self
     }
 
@@ -179,6 +185,7 @@ where
         self.build_population()?;
         self.build_alterer()?;
         self.build_front()?;
+        self.build_rates()?;
 
         let config = EngineConfig::<C, T>::from(&self.params);
 
@@ -290,14 +297,6 @@ where
     /// with a 0.5 crossover rate and a 0.1 mutation rate.
     fn build_alterer(&mut self) -> Result<()> {
         if !self.params.alterers.is_empty() {
-            for alter in self.params.alterers.iter_mut() {
-                if !alter.rate().is_valid() {
-                    return Err(radiate_err!(
-                        Builder: "Alterer {} is not valid. Ensure rate {:?} is valid.", alter.name(), alter.rate()
-                    ));
-                }
-            }
-
             return Ok(());
         }
 
@@ -328,6 +327,43 @@ where
             self.params.optimization_params.front_range.clone(),
             front_obj,
         ));
+
+        Ok(())
+    }
+
+    fn build_rates(&mut self) -> Result<()> {
+        let mut exprs = ExprSet::default();
+
+        if self.params.species_params.diversity.is_some() {
+            let curr_threshold = &self.params.species_params.species_threshold;
+            let threshold = if let Some(count) = self.params.species_params.target_species_count {
+                let first_val = f32::try_from(curr_threshold.clone()).unwrap_or(0.5);
+                expr::species_target_control(count, first_val)
+            } else {
+                curr_threshold
+                    .clone()
+                    .alias(metric_names::SPECIES_THRESHOLD)
+            };
+
+            exprs.push(threshold);
+        }
+
+        if let Some(others) = &self.params.exprs {
+            let others = others.lock().unwrap();
+            for (name, expr) in others.iter() {
+                exprs.insert(name.clone(), expr.clone());
+            }
+        }
+
+        for alter in self.params.alterers.iter() {
+            let rates = alter.rates();
+            exprs.push(rates.control.clone());
+            for inner in rates.internal.iter() {
+                exprs.push(inner.clone());
+            }
+        }
+
+        self.params.exprs = Some(Arc::new(Mutex::new(exprs)));
 
         Ok(())
     }
@@ -388,6 +424,7 @@ where
             encoder: config.encoder(),
             max_age: config.max_age(),
             max_species_age: config.max_species_age(),
+            filters: config.filters().to_vec(),
         };
 
         Some(Box::new(filter_step))
@@ -414,9 +451,16 @@ where
 
     fn build_species_step(config: &EngineConfig<C, T>) -> Option<Box<dyn EngineStep<C>>> {
         let diversity = config.diversity()?;
+        let threshold_expr = config.exprs().and_then(|exprs| {
+            exprs
+                .lock()
+                .unwrap()
+                .get(metric_names::SPECIES_THRESHOLD)
+                .cloned()
+        })?;
 
         let species_step = SpeciateStep {
-            threshold: config.species_threshold(),
+            threshold: RateSet::new(threshold_expr),
             distance: diversity,
             executor: config.species_executor(),
             objective: config.objective(),
@@ -443,7 +487,7 @@ where
                 },
                 species_params: SpeciesParams {
                     diversity: None,
-                    species_threshold: Rate::Fixed(0.5),
+                    species_threshold: Expr::lit(0.5),
                     max_species_age: 25,
                     target_species_count: None,
                 },
@@ -470,6 +514,9 @@ where
                     batch_fitness_fn: None,
                     raw_fitness_fn: None,
                     raw_batch_fitness_fn: None,
+                },
+                filter_params: FilterParams {
+                    filters: Vec::new(),
                 },
 
                 replacement_strategy: Arc::new(EncodeReplace),

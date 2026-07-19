@@ -1,13 +1,15 @@
 use crate::steps::EngineStep;
 use radiate_core::{
-    Chromosome, Ecosystem, Genotype, MetricSet, Phenotype, ReplacementStrategy, Valid, metric_names,
+    Chromosome, Ecosystem, EcosystemFilter, Genotype, MetricSet, Phenotype, ReplacementStrategy,
+    Valid, metric_names,
 };
 use radiate_error::Result;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 pub struct FilterStep<C: Chromosome> {
     pub(crate) replacer: Arc<dyn ReplacementStrategy<C>>,
     pub(crate) encoder: Arc<dyn Fn() -> Genotype<C> + Send + Sync>,
+    pub(crate) filters: Vec<Arc<Mutex<dyn EcosystemFilter<C>>>>,
     pub(crate) max_age: usize,
     pub(crate) max_species_age: usize,
 }
@@ -65,6 +67,17 @@ impl<C: Chromosome> EngineStep<C> for FilterStep<C> {
 
         if invalid_count > 0 {
             metrics.upsert(metric_names::REPLACE_INVALID, invalid_count);
+        }
+
+        for filter in &mut self.filters {
+            let mut filter = filter.lock().unwrap();
+            filter.filter(
+                generation,
+                ecosystem,
+                metrics,
+                Arc::clone(&self.replacer),
+                Arc::clone(&self.encoder),
+            )?;
         }
 
         Ok(())

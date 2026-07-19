@@ -1,7 +1,7 @@
 use crate::Chromosome;
 use crate::context::EvolutionContext;
-use radiate_core::MetricQuery;
 use radiate_core::objectives::Scored;
+use radiate_core::rate::ExprSet;
 use radiate_core::{Ecosystem, Front, MetricSet, Objective, Phenotype, Population, Score, Species};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -54,7 +54,7 @@ where
     score: Score,
     objective: Objective,
     front: Option<Arc<Front<Phenotype<C>>>>,
-    exprs: Option<Arc<Mutex<Vec<MetricQuery>>>>,
+    exprs: Option<Arc<Mutex<ExprSet>>>,
 }
 
 impl<C, T> Generation<C, T>
@@ -108,7 +108,7 @@ where
         self.time().as_secs_f64()
     }
 
-    pub fn exprs(&self) -> Option<Arc<Mutex<Vec<MetricQuery>>>> {
+    pub fn exprs(&self) -> Option<Arc<Mutex<ExprSet>>> {
         self.exprs.clone()
     }
 
@@ -257,6 +257,10 @@ where
 
     pub fn value(&self) -> &T {
         &self.context.best
+    }
+
+    pub fn phenotype(&self) -> &Phenotype<C> {
+        &self.context.ecosystem().population()[0]
     }
 
     pub fn index(&self) -> usize {

@@ -58,9 +58,10 @@ def multi_fit(x):
     return [0.0, 0.0]
 
 
+import numpy as np
+
 # --8<-- [start:multi_objective]
 import radiate as rd
-import numpy as np
 
 # Create an engine
 multi_obj_engine: rd.Engine[float, list[np.ndarray]] = (

@@ -10,6 +10,7 @@ mod iter;
 mod mutation;
 mod node;
 mod replacement;
+mod state;
 mod transaction;
 
 pub use aggregate::GraphAggregate;
@@ -24,4 +25,5 @@ pub use iter::GraphIterator;
 pub use mutation::GraphMutator;
 pub use node::{Direction, GraphNode, GraphNodeId, InnovationId};
 pub use replacement::GraphReplacement;
+pub use state::StatefulGraph;
 pub use transaction::GraphTransaction;

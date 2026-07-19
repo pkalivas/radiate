@@ -1,23 +1,19 @@
 from __future__ import annotations
 
-from typing import Any, overload, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, overload
 
 from radiate.radiate import PyGraph
-from radiate._bridge.wrapper import RsObject
-from radiate.utils import _normalize_single_chunk
-from radiate.genome.chromosome import Chromosome
+
+from .._bridge import RsObject
+from ..utils._normalize import _to_float_array
 
 if TYPE_CHECKING:
-    from radiate._dependancies import numpy as np
-    from radiate._dependancies import polars as pl
-    from radiate._dependancies import pandas as pd
+    from .._dependancies import numpy as np
+    from .._dependancies import pandas as pd
+    from .._dependancies import polars as pl
 
 
 class Graph(RsObject):
-    @classmethod
-    def from_chromosome(cls, chromosome: Chromosome) -> Graph:
-        return cls.from_rust(PyGraph.from_chromosome(chromosome.__backend__()))
-
     def __repr__(self):
         return self.__backend__().__repr__()
 
@@ -53,38 +49,54 @@ class Graph(RsObject):
 
     @overload
     def eval(
-        self, inputs: "np.ndarray", *, columns: list[str] | None = None
-    ) -> list[float]: ...
+        self,
+        inputs: "np.typing.NDArray[np.float32]",
+    ) -> (
+        "np.typing.NDArray[np.float32]"
+    ): ...  # Performance upgrade: return array to array users
+
+    @overload
+    def eval(
+        self,
+        inputs: "np.typing.NDArray[np.float64]",
+    ) -> (
+        "np.typing.NDArray[np.float64]"
+    ): ...  # Performance upgrade: return array to array users
 
     @overload
     def eval(
         self, inputs: "pl.DataFrame | pl.Series", *, columns: list[str] | None = None
-    ) -> list[list[float]]: ...
+    ) -> "np.ndarray": ...
 
     @overload
     def eval(
         self, inputs: "pd.DataFrame | pd.Series", *, columns: list[str] | None = None
-    ) -> list[list[float]]: ...
+    ) -> "np.ndarray": ...
 
     def eval(
         self, inputs: Any, *, columns: list[str] | None = None
-    ) -> list[list[float]] | list[float]:
-        """
-        Evaluate the graph with the given inputs. The inputs needs to be a list of
-        lists (for multiple samples).
+    ) -> list[list[float]] | list[float] | "np.ndarray":
+        """Evaluate the graph with the given inputs.
 
-        Args:
-            inputs (list[list[float]] | list[float]): The input data to evaluate the graph on.
-        Returns:
-            list[list[float]] | list[float]: The output of the graph after evaluation.
+        Supports 1D/2D Lists, NumPy arrays, Polars, and Pandas objects.
         """
-        if isinstance(inputs, list) and all(
-            isinstance(row, (int, float)) for row in inputs
-        ):
-            return self.__backend__().eval(inputs)
+        graph_shape = self.shape()
+        eval_data = _to_float_array(inputs, columns=columns)
 
-        eval_inputs = _normalize_single_chunk(inputs, cols=columns)
-        return self.__backend__().eval(eval_inputs)
+        shape = eval_data.shape
+        dims = len(shape)
+        if dims == 1:
+            if graph_shape[0] != shape[0]:
+                raise ValueError(
+                    f"Input length {shape[0]} does not match graph input size {graph_shape[0]}"
+                )
+        elif dims == 2:
+            if graph_shape[0] != shape[1]:
+                raise ValueError(
+                    f"Input width {shape[1]} does not match graph input size {graph_shape[0]}"
+                )
+
+        return self.__backend__().eval(eval_data)
 
     def reset(self):
         """

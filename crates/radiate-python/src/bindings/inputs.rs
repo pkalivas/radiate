@@ -3,13 +3,14 @@ use pyo3::{
     Py, PyAny, PyResult, Python, exceptions::PyKeyError, prelude::FromPyObjectOwned, pyclass,
     pymethods,
 };
+use serde::{Deserialize, Serialize};
 use std::{
     collections::{HashMap, HashSet},
     fmt::Debug,
 };
 
 #[pyclass(from_py_object)]
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Copy)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Copy, Serialize, Deserialize)]
 pub enum PyEngineInputType {
     Alterer,
     OffspringSelector,
@@ -25,6 +26,7 @@ pub enum PyEngineInputType {
     Executor,
     Evaluator,
     SpeciesThreshold,
+    TargetSpecies,
     Population,
     Subscriber,
     Generation,
@@ -32,12 +34,14 @@ pub enum PyEngineInputType {
     Metric,
     Codec,
     FitnessFunction,
+    Filter,
+    Unknown,
 }
 
 #[pyclass(from_py_object)]
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct PyEngineInput {
-    pub component: String,
+    pub component: Option<String>,
     pub input_type: PyEngineInputType,
     pub allowed_genes: HashSet<PyGeneType>,
     pub args: HashMap<String, PyAnyObject>,
@@ -47,8 +51,8 @@ pub struct PyEngineInput {
 impl PyEngineInput {
     #[new]
     pub fn new(
-        component: String,
         input_type: PyEngineInputType,
+        component: Option<String>,
         allowed_genes: HashSet<PyGeneType>,
         args: HashMap<String, Py<PyAny>>,
     ) -> Self {
@@ -56,7 +60,6 @@ impl PyEngineInput {
             component,
             input_type,
             allowed_genes,
-            // rate,
             args: args
                 .into_iter()
                 .map(|(k, v)| (k, PyAnyObject { inner: v }))
@@ -64,8 +67,8 @@ impl PyEngineInput {
         }
     }
 
-    pub fn component(&self) -> String {
-        self.component.clone()
+    pub fn component(&self) -> &str {
+        self.component.as_deref().unwrap_or("")
     }
 
     pub fn input_type(&self) -> PyEngineInputType {
@@ -83,7 +86,12 @@ impl PyEngineInput {
 impl PyEngineInput {
     pub fn extract<T: for<'py> FromPyObjectOwned<'py>>(&self, key: &str) -> PyResult<T> {
         Python::attach(|py| match self.args.get(key) {
-            Some(v) => v.extract(py),
+            Some(v) => v.extract::<T>(py).map_err(|e| {
+                PyKeyError::new_err(format!(
+                    "Failed to extract key '{}' from PyEngineInput args: {}",
+                    key, e
+                ))
+            }),
             None => Err(PyKeyError::new_err(format!(
                 "Key '{}' not found in PyEngineInput args",
                 key
@@ -110,7 +118,7 @@ impl Debug for PyEngineInput {
         }
         write!(
             f,
-            "PyEngineInput {{ \n\tcomponent: {}, \n\tinput_type: {:?}, \n\tallowed_genes: {:?}, \n\targs: {{{}}} \n}}",
+            "PyEngineInput {{ \n\tcomponent: {:?}, \n\tinput_type: {:?}, \n\tallowed_genes: {:?}, \n\targs: {{{}}} \n}}",
             self.component, self.input_type, self.allowed_genes, args
         )
     }

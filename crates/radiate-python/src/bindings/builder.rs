@@ -1,15 +1,21 @@
-use crate::bindings::codec::{PyTreeCodec, TypedNumericCodec};
+use crate::bindings::codec::{PyGraphCodecInner, PyTreeCodecInner};
 use crate::events::PyEventHandler;
 use crate::{
-    EngineBuilderHandle, EngineHandle, FreeThreadPyEvaluator, InputTransform, PickleReader,
-    PyCodec, PyEngine, PyEngineInput, PyEngineInputType, PyExpr, PyFitnessFn, PyFitnessInner,
-    PyPermutationCodec, PyPopulation, PyRate, names, prelude::*, radiate,
+    EngineBuilderHandle, FreeThreadPyEvaluator, InputTransform, PyCodec, PyEngine, PyEngineInput,
+    PyEngineInputType, PyExpr, PyFitnessFn, PyFitnessInner, PyPermutationCodec, PyPopulation,
+    prelude::*, radiate,
+};
+use crate::{
+    PyCheckpointReader,
+    bindings::codec::{PyTreeCodec, TypedNumericCodec},
 };
 use crate::{PyGeneration, PySubscriber};
+use core::panic;
 use pyo3::{Py, PyAny, pyclass, pymethods, types::PyAnyMethods};
 use radiate::prelude::*;
 use radiate_error::{ResultExt, radiate_py_bail, radiate_py_err};
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
 macro_rules! dispatch_builder_typed {
     // ------------------------------------------------------------
@@ -41,8 +47,10 @@ macro_rules! dispatch_builder_typed {
             Char(b) => $call(b).map(Char),
             Bit(b) => $call(b).map(Bit),
             Permutation(b) => $call(b).map(Permutation),
-            Graph(b) => $call(b).map(Graph),
-            Tree(b) => $call(b).map(Tree),
+            Graph32(b) => $call(b).map(Graph32),
+            Graph64(b) => $call(b).map(Graph64),
+            Tree32(b) => $call(b).map(Tree32),
+            Tree64(b) => $call(b).map(Tree64),
             Empty => Err(radiate_py_err!("Cannot apply method to Empty builder"))
         }
     }};
@@ -61,7 +69,6 @@ impl PyEngineBuilder {
     }
 
     pub fn build<'py>(&mut self, py: Python<'py>) -> PyResult<PyEngine> {
-        use EngineBuilderHandle::*;
         let mut inner = self.create_builder(py)?;
 
         let mut accum = HashMap::<PyEngineInputType, Vec<PyEngineInput>>::new();
@@ -81,29 +88,7 @@ impl PyEngineBuilder {
             .map(|inputs| inputs.transform())
             .unwrap_or_default();
 
-        Ok(PyEngine::new(
-            limits,
-            match inner {
-                UInt8(builder) => EngineHandle::UInt8(builder.try_build()?),
-                UInt16(builder) => EngineHandle::UInt16(builder.try_build()?),
-                UInt32(builder) => EngineHandle::UInt32(builder.try_build()?),
-                UInt64(builder) => EngineHandle::UInt64(builder.try_build()?),
-                Int8(builder) => EngineHandle::Int8(builder.try_build()?),
-                Int16(builder) => EngineHandle::Int16(builder.try_build()?),
-                Int32(builder) => EngineHandle::Int32(builder.try_build()?),
-                Int64(builder) => EngineHandle::Int64(builder.try_build()?),
-                Float32(builder) => EngineHandle::Float32(builder.try_build()?),
-                Float64(builder) => EngineHandle::Float64(builder.try_build()?),
-                Char(builder) => EngineHandle::Char(builder.try_build()?),
-                Bit(builder) => EngineHandle::Bit(builder.try_build()?),
-                Permutation(builder) => EngineHandle::Permutation(builder.try_build()?),
-                Graph(builder) => EngineHandle::Graph(builder.try_build()?),
-                Tree(builder) => EngineHandle::Tree(builder.try_build()?),
-                _ => {
-                    radiate_py_bail!("Unsupported builder type for engine creation");
-                }
-            },
-        ))
+        Ok(PyEngine::new(limits, inner.try_build()?))
     }
 }
 
@@ -116,7 +101,8 @@ impl PyEngineBuilder {
         let codec = codec.bind(py);
         match fitness {
             custom @ Custom(..) => Self::init_custom_builder(custom, codec, executor),
-            reg @ Regression(..) => Self::init_regression_builder(reg, codec, executor),
+            reg32 @ Regression32(..) => Self::init_regression_builder32(reg32, codec, executor),
+            reg64 @ Regression64(..) => Self::init_regression_builder64(reg64, codec, executor),
             novelty @ NoveltySearch(..) => Self::init_novelty_builder(novelty, codec, executor),
         }
     }
@@ -143,6 +129,8 @@ impl PyEngineBuilder {
             Generation => Self::process_generation(builder, inputs),
             Checkpoint => Self::process_checkpoint(builder, inputs),
             Metric => Self::process_metrics(builder, inputs),
+            Filter => Self::process_filters(builder, inputs),
+            TargetSpecies => Self::process_target_species(builder, inputs),
             _ => Ok(builder),
         }
     }
@@ -160,17 +148,31 @@ impl PyEngineBuilder {
                     let name = input.extract::<String>("name")?;
                     let expr = input.extract::<PyExpr>("expr")?;
 
-                    metrics.push(MetricQuery::new(
-                        radiate_utils::intern!(name),
-                        expr.inner().clone().compile(),
-                    ));
+                    metrics.push(expr.inner().clone().alias(name));
                 }
 
                 if metrics.is_empty() {
                     return Ok(typed_builder);
                 }
 
-                Ok(typed_builder.register_metrics(metrics))
+                Ok(typed_builder.metrics(metrics))
+            })
+        )
+    }
+
+    fn process_filters(
+        builder: EngineBuilderHandle,
+        inputs: &[PyEngineInput],
+    ) -> PyResult<EngineBuilderHandle> {
+        dispatch_builder_typed!(
+            builder,
+            inputs,
+            Self::process_many_typed(|typed_builder, inputs| {
+                let filters = InputTransform::<
+                    RadiateResult<Vec<Arc<Mutex<dyn EcosystemFilter<_>>>>>,
+                >::transform(&inputs)
+                .context("Failed to transform filter input")?;
+                Ok(typed_builder.filters(filters))
             })
         )
     }
@@ -206,19 +208,10 @@ impl PyEngineBuilder {
                     && let Err(e) = std::fs::metadata(&path)
                     && e.kind() == std::io::ErrorKind::NotFound
                 {
-                    // If the file doesn't exist and we're ignoring not found errors, just return the builder unchanged
                     return Ok(typed_builder);
                 }
 
-                match file_type.as_str() {
-                    names::JSON_FILE_TYPE => Ok(typed_builder.load_checkpoint(path, JsonReader)),
-                    names::PICKLE_FILE_TYPE => {
-                        Ok(typed_builder.load_checkpoint(path, PickleReader))
-                    }
-                    _ => {
-                        radiate_py_bail!(format!("Unsupported checkpoint file type: {}", file_type))
-                    }
-                }
+                Ok(typed_builder.load_checkpoint(path, PyCheckpointReader(file_type)))
             })
         )
     }
@@ -282,20 +275,32 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_single_typed(|typed_builder, input| {
-                let threshold = if let Ok(rate) = input.extract::<PyRate>("threshold") {
-                    rate.rate
-                } else if let Ok(expr) = input.extract::<PyExpr>("threshold") {
-                    Rate::Expr(expr.inner().clone().compile())
+                let threshold = if let Ok(expr) = input.extract::<PyExpr>("threshold") {
+                    expr.inner().clone().compile()
                 } else {
                     let val = input.extract::<f64>("threshold").unwrap_or(0.5);
                     if val <= 0.0 {
                         return Err(radiate_py_err!("Species threshold must be greater than 0."));
                     }
 
-                    Rate::Fixed(val as f32)
+                    Expr::lit(val)
                 };
 
                 Ok(typed_builder.species_threshold(threshold))
+            })
+        )
+    }
+
+    fn process_target_species(
+        builder: EngineBuilderHandle,
+        inputs: &[PyEngineInput],
+    ) -> PyResult<EngineBuilderHandle> {
+        dispatch_builder_typed!(
+            builder,
+            inputs,
+            Self::process_single_typed(|typed_builder, input| {
+                let target_species = input.extract::<i64>("target_species")? as usize;
+                Ok(typed_builder.target_species(target_species))
             })
         )
     }
@@ -388,9 +393,9 @@ impl PyEngineBuilder {
             builder,
             inputs,
             Self::process_many_typed(|typed_builder, alter_inputs| {
-                let alters = alter_inputs
-                    .transform()
-                    .context("Failed to transform alterers input")?;
+                let alters =
+                    InputTransform::<RadiateResult<Vec<Alterer<_>>>>::transform(&alter_inputs)
+                        .context("Failed to transform alterers input")?;
                 Ok(typed_builder.alter(alters))
             })
         )
@@ -521,11 +526,33 @@ impl PyEngineBuilder {
         } else if let Ok(perm_codec) = codec.extract::<PyPermutationCodec>() {
             Permutation(Self::new_builder(fitness, perm_codec.codec, executor))
         } else if let Ok(graph_codec) = codec.extract::<PyGraphCodec>() {
-            let py_codec = Self::wrapped_codec(graph_codec.codec);
-            Graph(Self::new_builder(fitness, py_codec, executor).replace_strategy(GraphReplacement))
+            match graph_codec.codec {
+                PyGraphCodecInner::Float32(c) => {
+                    let py_codec = Self::wrapped_codec(c);
+                    Graph32(
+                        Self::new_builder(fitness, py_codec, executor)
+                            .replace_strategy(GraphReplacement),
+                    )
+                }
+                PyGraphCodecInner::Float64(c) => {
+                    let py_codec = Self::wrapped_codec(c);
+                    Graph64(
+                        Self::new_builder(fitness, py_codec, executor)
+                            .replace_strategy(GraphReplacement),
+                    )
+                }
+            }
         } else if let Ok(tree_codec) = codec.extract::<PyTreeCodec>() {
-            let py_codec = Self::wrapped_codec(tree_codec.codec);
-            Tree(Self::new_builder(fitness, py_codec, executor))
+            match tree_codec.codec {
+                PyTreeCodecInner::Float32(c) => {
+                    let py_codec = Self::wrapped_codec(c);
+                    Tree32(Self::new_builder(fitness, py_codec, executor))
+                }
+                PyTreeCodecInner::Float64(c) => {
+                    let py_codec = Self::wrapped_codec(c);
+                    Tree64(Self::new_builder(fitness, py_codec, executor))
+                }
+            }
         } else {
             radiate_py_bail!("Unsupported codec type for custom fitness function");
         };
@@ -533,46 +560,100 @@ impl PyEngineBuilder {
         Ok(builder)
     }
 
-    fn init_regression_builder<'py>(
+    fn init_regression_builder32<'py>(
         regression: PyFitnessInner,
         codec: &Bound<'py, PyAny>,
         executor: Executor,
     ) -> PyResult<EngineBuilderHandle> {
         use EngineBuilderHandle::*;
-        use PyFitnessInner::Regression;
+        use PyFitnessInner::Regression32;
 
-        let Regression(regression, is_batch) = regression else {
+        let Regression32(regression, is_batch) = regression else {
             radiate_py_bail!("init_regression_builder only supports Regression fitness functions")
         };
 
-        let builder = if let Ok(graph_codec) = codec.extract::<PyGraphCodec>() {
-            let base_engine = GeneticEngine::builder()
-                .codec(graph_codec.codec)
-                .executor(executor)
-                .bus_executor(Executor::default())
-                .replace_strategy(GraphReplacement);
+        if let Ok(graph_codec) = codec.extract::<PyGraphCodec>() {
+            if let PyGraphCodecInner::Float32(c) = graph_codec.codec {
+                let base_engine = GeneticEngine::builder()
+                    .codec(c)
+                    .executor(executor)
+                    .bus_executor(Executor::default())
+                    .replace_strategy(GraphReplacement);
 
-            if is_batch {
-                Graph(base_engine.raw_batch_fitness_fn(regression))
+                if is_batch {
+                    Ok(Graph32(base_engine.raw_batch_fitness_fn(regression)))
+                } else {
+                    Ok(Graph32(base_engine.raw_fitness_fn(regression)))
+                }
             } else {
-                Graph(base_engine.raw_fitness_fn(regression))
+                radiate_py_bail!("F64 GraphCodec not supported for F32 Regression Fitness.");
             }
         } else if let Ok(tree_codec) = codec.extract::<PyTreeCodec>() {
-            let base_engine = GeneticEngine::builder()
-                .codec(tree_codec.codec)
-                .executor(executor)
-                .bus_executor(Executor::default());
+            if let PyTreeCodecInner::Float32(c) = tree_codec.codec {
+                let base_engine = GeneticEngine::builder()
+                    .codec(c)
+                    .executor(executor)
+                    .bus_executor(Executor::default());
 
-            if is_batch {
-                Tree(base_engine.raw_batch_fitness_fn(regression))
+                if is_batch {
+                    Ok(Tree32(base_engine.raw_batch_fitness_fn(regression)))
+                } else {
+                    Ok(Tree32(base_engine.raw_fitness_fn(regression)))
+                }
             } else {
-                Tree(base_engine.raw_fitness_fn(regression))
+                radiate_py_bail!("F64 TreeCodec not supported for F32 Regression Fitness.");
             }
         } else {
             radiate_py_bail!("Only Graph or Tree codecs are supported for regression problems");
+        }
+    }
+
+    fn init_regression_builder64<'py>(
+        regression: PyFitnessInner,
+        codec: &Bound<'py, PyAny>,
+        executor: Executor,
+    ) -> PyResult<EngineBuilderHandle> {
+        use EngineBuilderHandle::*;
+        use PyFitnessInner::Regression64;
+
+        let Regression64(regression, is_batch) = regression else {
+            radiate_py_bail!("init_regression_builder64 only supports Regression fitness functions")
         };
 
-        Ok(builder)
+        if let Ok(graph_codec) = codec.extract::<PyGraphCodec>() {
+            if let PyGraphCodecInner::Float64(c) = graph_codec.codec {
+                let base_engine = GeneticEngine::builder()
+                    .codec(c)
+                    .executor(executor)
+                    .bus_executor(Executor::default())
+                    .replace_strategy(GraphReplacement);
+
+                if is_batch {
+                    Ok(Graph64(base_engine.raw_batch_fitness_fn(regression)))
+                } else {
+                    Ok(Graph64(base_engine.raw_fitness_fn(regression)))
+                }
+            } else {
+                radiate_py_bail!("F32 GraphCodec not supported for F64 Regression Fitness.");
+            }
+        } else if let Ok(tree_codec) = codec.extract::<PyTreeCodec>() {
+            if let PyTreeCodecInner::Float64(c) = tree_codec.codec {
+                let base_engine = GeneticEngine::builder()
+                    .codec(c)
+                    .executor(executor)
+                    .bus_executor(Executor::default());
+
+                if is_batch {
+                    Ok(Tree64(base_engine.raw_batch_fitness_fn(regression)))
+                } else {
+                    Ok(Tree64(base_engine.raw_fitness_fn(regression)))
+                }
+            } else {
+                radiate_py_bail!("F32 TreeCodec not supported for F64 Regression Fitness.");
+            }
+        } else {
+            radiate_py_bail!("Only Graph or Tree codecs are supported for regression problems");
+        }
     }
 
     fn init_novelty_builder<'py>(
@@ -620,11 +701,27 @@ impl PyEngineBuilder {
                 executor,
             ))
         } else if let Ok(graph_codec) = codec.extract::<PyGraphCodec>() {
-            let py_codec = Self::wrapped_codec(graph_codec.codec);
-            Graph(Self::new_builder(fitness, py_codec, executor).replace_strategy(GraphReplacement))
+            match graph_codec.codec {
+                PyGraphCodecInner::Float32(c) => Graph32(
+                    Self::new_builder(fitness, Self::wrapped_codec(c), executor)
+                        .replace_strategy(GraphReplacement),
+                ),
+                PyGraphCodecInner::Float64(c) => Graph64(
+                    Self::new_builder(fitness, Self::wrapped_codec(c), executor)
+                        .replace_strategy(GraphReplacement),
+                ),
+            }
         } else if let Ok(tree_codec) = codec.extract::<PyTreeCodec>() {
-            let py_codec = Self::wrapped_codec(tree_codec.codec);
-            Tree(Self::new_builder(fitness, py_codec, executor))
+            match tree_codec.codec {
+                PyTreeCodecInner::Float32(c) => {
+                    let py_codec = Self::wrapped_codec(c);
+                    Tree32(Self::new_builder(fitness, py_codec, executor))
+                }
+                PyTreeCodecInner::Float64(c) => {
+                    let py_codec = Self::wrapped_codec(c);
+                    Tree64(Self::new_builder(fitness, py_codec, executor))
+                }
+            }
         } else {
             radiate_py_bail!("Unsupported codec type for novelty search problem");
         };
@@ -716,7 +813,10 @@ impl PyEngineBuilder {
             .map(InputTransform::<RadiateResult<Executor>>::transform)
             .unwrap_or(Ok(Executor::Serial))?;
 
-        if executor.is_parallel() && gil_enabled && !matches!(problem.inner, Regression(_, _)) {
+        if executor.is_parallel()
+            && gil_enabled
+            && !matches!(problem.inner, Regression32(_, _) | Regression64(_, _))
+        {
             radiate_py_bail!(
                 "Parallel execution is not supported for non-regression fitness functions
                  when the GIL is enabled. Please disable the GIL or use the 'Executor.Serial()' executor."

@@ -197,8 +197,10 @@ impl Metric {
             MetricUpdate::Bool(value) => {
                 self.update_statistic(if value { 1.0 } else { 0.0 });
             }
+
         }
     }
+
 
     fn update_statistic(&mut self, value: f32) {
         self.inner.add(value);
@@ -309,7 +311,7 @@ impl Hash for Metric {
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive( PartialEq, Debug)]
 pub enum MetricUpdate<'a> {
     Float(f32),
     Usize(usize),
@@ -423,6 +425,8 @@ impl<'a> TryFrom<AnyValue<'a>> for MetricUpdate<'a> {
 
                 Ok(MetricUpdate::OwnedDistribution(out))
             }
+
+            AnyValue::Bool(bool) => Ok(MetricUpdate::Bool(bool)),
 
             other => Err(radiate_err!(Metric: "cannot convert AnyValue of type `{}` into MetricUpdate", other.type_name())),
         }

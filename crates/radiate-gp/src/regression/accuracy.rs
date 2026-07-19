@@ -1,21 +1,21 @@
 use super::{DataSet, Loss};
-use crate::{Eval, EvalMut, Graph, GraphEvaluator, Op, Tree};
+use crate::{Eval, EvalMut, Graph, GraphEvaluator, Op, Tree, ops::OpFloat};
 use std::fmt::Debug;
 
 #[derive(Clone, Default)]
-pub struct Accuracy<'a> {
+pub struct Accuracy<'a, F: OpFloat> {
     name: Option<String>,
-    data_set: Option<&'a DataSet<f32>>,
+    data_set: Option<&'a DataSet<F>>,
     loss_fn: Option<Loss>,
 }
 
-impl<'a> Accuracy<'a> {
+impl<'a, F: OpFloat> Accuracy<'a, F> {
     pub fn named(mut self, name: impl Into<String>) -> Self {
         self.name = Some(name.into());
         self
     }
 
-    pub fn on(mut self, data_set: &'a DataSet<f32>) -> Self {
+    pub fn on(mut self, data_set: &'a DataSet<F>) -> Self {
         self.data_set = Some(data_set);
         self
     }
@@ -25,7 +25,7 @@ impl<'a> Accuracy<'a> {
         self
     }
 
-    pub fn calc(&self, eval: &mut impl EvalMut<[f32], Vec<f32>>) -> AccuracyResult {
+    pub fn calc(&self, eval: &mut impl EvalMut<[F], Vec<F>>) -> AccuracyResult {
         let data_set = self
             .data_set
             .expect("DataSet reference must be provided for accuracy calculation");
@@ -38,32 +38,36 @@ impl<'a> Accuracy<'a> {
 
     pub fn calc_internal(
         &self,
-        eval: &mut impl EvalMut<[f32], Vec<f32>>,
-        data_set: &DataSet<f32>,
+        eval: &mut impl EvalMut<[F], Vec<F>>,
+        data_set: &DataSet<F>,
         loss_fn: Loss,
     ) -> AccuracyResult {
         let mut outputs = Vec::new();
-        let mut total_samples = 0.0;
-        let mut correct_predictions = 0.0;
+        let mut total_samples = F::ZERO;
+        let mut correct_predictions = F::ZERO;
         let mut is_regression = true;
 
-        let mut mae = 0.0;
-        let mut mse = 0.0;
-        let mut min_output = f32::MAX;
-        let mut max_output = f32::MIN;
-        let mut ss_total = 0.0;
-        let mut ss_residual = 0.0;
-        let mut y_mean = 0.0;
+        let mut mae = F::ZERO;
+        let mut mse = F::ZERO;
+        let mut min_output = F::MAX;
+        let mut max_output = F::MIN;
+        let mut ss_total = F::ZERO;
+        let mut ss_residual = F::ZERO;
+        let mut y_mean = F::ZERO;
 
-        let mut tp = 0.0;
-        let mut fp = 0.0;
-        let mut fn_ = 0.0;
+        let mut tp = F::ZERO;
+        let mut fp = F::ZERO;
+        let mut fn_ = F::ZERO;
 
         let loss = loss_fn.calc(data_set, eval);
 
         let total_values = data_set.len();
         if total_values > 0 {
-            y_mean = data_set.iter().map(|row| row.output()[0]).sum::<f32>() / total_values as f32;
+            let mut sum = F::ZERO;
+            for row in data_set.iter() {
+                sum = sum + row.output()[0];
+            }
+            y_mean = sum / F::from(total_values).unwrap();
         }
 
         for row in data_set.iter() {
@@ -75,14 +79,14 @@ impl<'a> Accuracy<'a> {
                 let y_true = row.output()[0];
                 let y_pred = output[0];
 
-                mae += (y_true - y_pred).abs();
-                mse += (y_true - y_pred).powi(2);
-                ss_residual += (y_true - y_pred).powi(2);
-                ss_total += (y_true - y_mean).powi(2);
+                mae = mae + (y_true - y_pred).abs();
+                mse = mse + (y_true - y_pred).powi(2);
+                ss_residual = ss_residual + (y_true - y_pred).powi(2);
+                ss_total = ss_total + (y_true - y_mean).powi(2);
 
                 min_output = min_output.min(y_true);
                 max_output = max_output.max(y_true);
-                total_samples += 1.0;
+                total_samples = total_samples + F::ONE;
             } else {
                 is_regression = false;
                 if let Some((max_idx, _)) = output
@@ -90,16 +94,16 @@ impl<'a> Accuracy<'a> {
                     .enumerate()
                     .max_by(|a, b| a.1.partial_cmp(b.1).unwrap())
                 {
-                    if let Some(target) = row.output().iter().position(|&x| x == 1.0) {
-                        total_samples += 1.0;
+                    if let Some(target) = row.output().iter().position(|&x| x == F::ONE) {
+                        total_samples = total_samples + F::ONE;
                         if max_idx == target {
-                            correct_predictions += 1.0;
-                            tp += 1.0;
+                            correct_predictions = correct_predictions + F::ONE;
+                            tp = tp + F::ONE;
                         } else {
-                            fp += 1.0;
+                            fp = fp + F::ONE;
                         }
                     } else {
-                        fn_ += 1.0;
+                        fn_ = fn_ + F::ONE;
                     }
                 }
             }
@@ -107,42 +111,50 @@ impl<'a> Accuracy<'a> {
 
         // Compute final accuracy
         let accuracy = if is_regression {
-            if total_samples > 0.0 && (max_output - min_output) > 0.0 {
-                1.0 - (mae / total_samples) / (max_output - min_output)
+            if total_samples > F::ZERO && (max_output - min_output) > F::ZERO {
+                F::ONE - (mae / total_samples) / (max_output - min_output)
             } else {
-                0.0
+                F::ZERO
             }
-        } else if total_samples > 0.0 {
+        } else if total_samples > F::ZERO {
             correct_predictions / total_samples
         } else {
-            0.0
+            F::ZERO
         };
 
         // Compute classification metrics only if it's a classification task
         let (precision, recall, f1_score) = if is_regression {
-            (0.0, 0.0, 0.0) // Not applicable for regression
+            (F::ZERO, F::ZERO, F::ZERO) // Not applicable for regression
         } else {
-            let precision = if tp + fp > 0.0 { tp / (tp + fp) } else { 0.0 };
-            let recall = if tp + fn_ > 0.0 { tp / (tp + fn_) } else { 0.0 };
-            let f1_score = if precision + recall > 0.0 {
-                2.0 * (precision * recall) / (precision + recall)
+            let precision = if tp + fp > F::ZERO {
+                tp / (tp + fp)
             } else {
-                0.0
+                F::ZERO
+            };
+            let recall = if tp + fn_ > F::ZERO {
+                tp / (tp + fn_)
+            } else {
+                F::ZERO
+            };
+            let f1_score = if precision + recall > F::ZERO {
+                F::TWO * (precision * recall) / (precision + recall)
+            } else {
+                F::ZERO
             };
             (precision, recall, f1_score)
         };
 
-        let rmse = if total_samples > 0.0 {
+        let rmse = if total_samples > F::ZERO {
             (mse / total_samples).sqrt()
         } else {
-            0.0
+            F::ZERO
         };
 
         // Compute R² score
-        let r_squared = if ss_total > 0.0 {
-            1.0 - (ss_residual / ss_total)
+        let r_squared = if ss_total > F::ZERO {
+            F::ONE - (ss_residual / ss_total)
         } else {
-            0.0
+            F::ZERO
         };
 
         AccuracyResult {
@@ -156,13 +168,13 @@ impl<'a> Accuracy<'a> {
                     }
                 }
             },
-            accuracy,
-            precision,
-            recall,
-            f1_score,
-            rmse,
-            r_squared,
-            loss,
+            accuracy: accuracy.extract().unwrap_or(0.0),
+            precision: precision.extract().unwrap_or(0.0),
+            recall: recall.extract().unwrap_or(0.0),
+            f1_score: f1_score.extract().unwrap_or(0.0),
+            rmse: rmse.extract().unwrap_or(0.0),
+            r_squared: r_squared.extract().unwrap_or(0.0),
+            loss: loss.extract().unwrap_or(0.0),
             loss_fn,
             sample_count: data_set.len(),
             is_regression,
@@ -257,21 +269,21 @@ impl Debug for AccuracyResult {
     }
 }
 
-impl Eval<Graph<Op<f32>>, Option<AccuracyResult>> for Accuracy<'_> {
-    fn eval(&self, graph: &Graph<Op<f32>>) -> Option<AccuracyResult> {
+impl<T: OpFloat> Eval<Graph<Op<T>>, Option<AccuracyResult>> for Accuracy<'_, T> {
+    fn eval(&self, graph: &Graph<Op<T>>) -> Option<AccuracyResult> {
         let mut evaluator = GraphEvaluator::new(graph);
         Some(self.calc(&mut evaluator))
     }
 }
 
-impl Eval<Tree<Op<f32>>, Option<AccuracyResult>> for Accuracy<'_> {
-    fn eval(&self, tree: &Tree<Op<f32>>) -> Option<AccuracyResult> {
+impl<T: OpFloat> Eval<Tree<Op<T>>, Option<AccuracyResult>> for Accuracy<'_, T> {
+    fn eval(&self, tree: &Tree<Op<T>>) -> Option<AccuracyResult> {
         Some(self.calc(&mut tree.clone()))
     }
 }
 
-impl Eval<Vec<Tree<Op<f32>>>, Option<AccuracyResult>> for Accuracy<'_> {
-    fn eval(&self, trees: &Vec<Tree<Op<f32>>>) -> Option<AccuracyResult> {
+impl<T: OpFloat> Eval<Vec<Tree<Op<T>>>, Option<AccuracyResult>> for Accuracy<'_, T> {
+    fn eval(&self, trees: &Vec<Tree<Op<T>>>) -> Option<AccuracyResult> {
         let mut cloned_trees = trees.clone();
         Some(self.calc(&mut cloned_trees))
     }

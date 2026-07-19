@@ -25,3 +25,5 @@ pyrightconfig.json
 docs.md
 site/
 examples/data/results/*
+*.mypy_cache
+*examples/data/scratch/*

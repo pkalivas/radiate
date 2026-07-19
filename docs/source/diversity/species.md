@@ -33,7 +33,7 @@ Every generation the engine runs a speciation step that re-forms species from sc
 
 ```mermaid
 flowchart TD
-    A[Pick a new mascot at random<br/>for each existing species] --> B[Resolve the current threshold<br/>from its Rate schedule]
+    A[Pick a new mascot at random<br/>for each existing species] --> B[Resolve the current threshold<br/>from its rate expression]
     B --> C{For each individual:<br/>distance to a mascot &lt; threshold?}
     C -->|yes| D[Join that species<br/>first match wins]
     C -->|no| E[Find nearest species<br/>within threshold]
@@ -46,7 +46,7 @@ flowchart TD
 ```
 
 1. **Mascots are refreshed.** Each existing species picks a new mascot uniformly at random from its current members.
-2. **The threshold is resolved.** `species_threshold` is a [`Rate`](../alters/rate.md), so it may be a constant or change over generations (see [Adaptive thresholds](#adaptive-thresholds)).
+2. **The threshold is resolved.** `species_threshold` is a [rate](../alters/rate.md) — a constant or an `Expr` — so it may be fixed or change over generations (see [Adaptive thresholds](#adaptive-thresholds)).
 3. **Individuals are assigned.** Each individual is compared to the mascots; the *first* species whose mascot is within `species_threshold` claims it. This can run in parallel depending on the configured [executor](../executors.md).
 4. **Leftovers settle.** An unassigned individual joins its single nearest species if one sits within the threshold; otherwise it **founds a new species** and becomes its mascot.
 5. **Dead and stale species are removed.** Species with no members disappear, and the [filter step](../genome/index.md) culls any species whose age exceeds `max_species_age`.
@@ -105,7 +105,7 @@ Because the right value is measure-dependent, the practical approach is to set i
 
 ### Adaptive thresholds
 
-Since `species_threshold` accepts a [`Rate`](../alters/rate.md), it can change over the run — for example starting tight to explore many niches, then widening to let the population consolidate:
+Since `species_threshold` accepts a [rate](../alters/rate.md) — anything that converts to an `Expr` — it can change over the run — for example starting tight to explore many niches, then widening to let the population consolidate:
 
 === ":fontawesome-brands-python: Python"
 
@@ -123,7 +123,7 @@ The threshold can also be driven by live metrics via an expression — see [Expr
 
 ### Target Species Count
 
-The engine's `target_species_count` acts as a soft target for the number of species to maintain. Internally, it replaces the `species_threshold` with an `Expression` that nudges the threshold up or down based on how many species are currently active — if there are too many species, the threshold rises to encourage consolidation; if there are too few, it drops to encourage diversification.
+The engine's `target_species_count` acts as a soft target for the number of species to maintain. Internally, it replaces the `species_threshold` with an `Expr` that nudges the threshold up or down based on how many species are currently active — if there are too many species, the threshold rises to encourage consolidation; if there are too few, it drops to encourage diversification. The engine builds this internal expression for you — all you have to do is specify the `target` species count. The full expression is included below too, for visibility into what's actually running.
 
 === ":fontawesome-brands-python: Python"
 
@@ -153,7 +153,7 @@ A species that goes `max_species_age` generations without improving its best sco
 	--8<-- "rust/diversity/species.rs:age"
 	```
 
-The default is **`25`** generations. Increase it for hard problems that need more time to refine a niche; decrease it to clear out stagnant clusters faster.
+The default is **`25`** generations in Rust and **`20`** in Python. Increase it for hard problems that need more time to refine a niche; decrease it to clear out stagnant clusters faster.
 
 ---
 

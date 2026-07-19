@@ -1,5 +1,6 @@
-import radiate as rd
 import pytest
+
+import radiate as rd
 
 
 def calc_population_diversity(population: rd.Population[float]) -> float:
@@ -25,7 +26,7 @@ def test_engine_is_novel(random_seed):
     engine = (
         rd.Engine.float(6, init_range=(-100.0, 100.0))
         .fitness(
-            rd.NoveltySearch(
+            rd.Fitness.novelty(
                 descriptor=lambda x: x,
                 distance=rd.Dist.cosine(),
                 k=15,
@@ -35,9 +36,10 @@ def test_engine_is_novel(random_seed):
         .size(100)
         .select(rd.Select.tournament(3))
         .alters(rd.Cross.uniform(0.5), rd.Mutate.gaussian(0.1))
+        .limit(rd.Limit.generations(100))
     )
 
-    result = engine.run(rd.Limit.generations(100))
+    result = engine.run()
 
     assert calc_population_diversity(result.population()) > 0.85, (
         "Population should have diversity"

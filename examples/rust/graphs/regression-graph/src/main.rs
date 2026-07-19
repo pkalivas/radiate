@@ -3,7 +3,7 @@ use radiate::prelude::*;
 const MIN_SCORE: f32 = 0.001;
 
 fn main() {
-    random_provider::seed(90);
+    random_provider::seed(33);
 
     let store = vec![
         (NodeType::Input, vec![Op::var(0)]),
@@ -24,7 +24,7 @@ fn main() {
         ))
         .build();
 
-    radiate::ui(engine)
+    radiate::ui((engine, true))
         .iter()
         .until_score(MIN_SCORE)
         .last()

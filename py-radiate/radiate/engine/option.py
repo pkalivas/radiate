@@ -1,9 +1,11 @@
 from __future__ import annotations
+
 from pathlib import Path
 
 from radiate.radiate import PyEngineRunOption
-from radiate._bridge.wrapper import RsObject
-from radiate._typing import Checkpoint
+
+from .._bridge import RsObject
+from .._typing import Checkpoint
 
 
 class RunParam(RsObject):

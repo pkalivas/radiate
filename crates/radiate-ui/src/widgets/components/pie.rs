@@ -109,7 +109,7 @@ impl<C: Chromosome> AppWidget<C> for TimePieChartComponent {
     fn render(&self, area: Rect, buf: &mut Buffer, state: &mut AppState<C>) {
         let items = tagged_metrics(&state.evo.metrics, state, TagType::Time)
             .iter()
-            .filter(|met| met.0 != metric_names::TIME)
+            .filter(|met| met.name() != &metric_names::TIME)
             .copied()
             .collect::<Vec<_>>();
 
@@ -126,12 +126,13 @@ impl<C: Chromosome> AppWidget<C> for TimePieChartComponent {
         let slices = items
             .iter()
             .enumerate()
-            .map(|(index, (label, metric))| {
+            .map(|(index, metric)| {
+                let label = metric.name();
                 let color = selected_chart_color(index, Some(selected_name), label);
                 let value = metric
                     .times()
                     .map(|t| t.sum())
-                    .map(|d| d.as_millis() as f64)
+                    .map(|d| d.as_nanos() as f64)
                     .unwrap_or(0.0);
 
                 total += value;

@@ -1,5 +1,7 @@
 use crate::{Chromosome, Gene, Genotype, math::indexes, random_provider};
-use crate::{GetPairMut, MetricSet, Phenotype, Rate};
+use crate::{GetPairMut, MetricSet, Phenotype};
+use crate::{RateSet, error::RadiateResult};
+pub use radiate_expr::*;
 use radiate_utils::{SmallStr, ToSnakeCase, intern};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -76,20 +78,31 @@ impl AlterUpdates {
 pub struct AlterContext<'a> {
     alter_counts: &'a mut AlterUpdates,
     generation: usize,
-    rate: f32,
+    control_rate: f32,
+    internal_rates: &'a [f32],
 }
 
 impl<'a> AlterContext<'a> {
-    pub fn new(alter_counts: &'a mut AlterUpdates, generation: usize, rate: f32) -> Self {
+    pub fn new(
+        alter_counts: &'a mut AlterUpdates,
+        generation: usize,
+        control_rate: f32,
+        internal_rates: &'a [f32],
+    ) -> Self {
         AlterContext {
             alter_counts,
             generation,
-            rate,
+            control_rate,
+            internal_rates,
         }
     }
 
     pub fn rate(&self) -> f32 {
-        self.rate
+        self.control_rate
+    }
+
+    pub fn internal_rate(&self, index: usize) -> f32 {
+        self.internal_rates.get(index).copied().unwrap_or(0.0)
     }
 
     pub fn generation(&self) -> usize {
@@ -112,41 +125,44 @@ pub enum AlterInner<C: Chromosome> {
 /// population - It can be either a mutation or a crossover operation.
 #[derive(Clone)]
 pub struct Alterer<C: Chromosome> {
-    name: SmallStr,
     time_name: SmallStr,
-    rate_name: SmallStr,
-    rate: Rate,
+    name: SmallStr,
     inner: AlterInner<C>,
     alter_counts: AlterUpdates,
+    rate_set: RateSet,
 }
 
 impl<C: Chromosome> Alterer<C> {
-    pub fn mutation(name: &'static str, rate: Rate, m: Arc<dyn Mutate<C>>) -> Self {
-        let name = SmallStr::from_static(name);
+    pub fn mutation(name: &'static str, m: Arc<dyn Mutate<C>>) -> Self {
+        Self::build_internal(name, AlterInner::Mutate(m))
+    }
+
+    pub fn crossover(name: &'static str, c: Arc<dyn Crossover<C>>) -> Self {
+        Self::build_internal(name, AlterInner::Crossover(c))
+    }
+
+    fn build_internal(name: impl Into<SmallStr>, inner: AlterInner<C>) -> Self {
+        let name = name.into();
+
+        let time_name = SmallStr::from_string(format!("{}.time", name));
+        let control_rate_name = SmallStr::from_string(format!("{}.rate", name));
+
+        let rate_set = match &inner {
+            AlterInner::Mutate(m) => m.rates().alias(control_rate_name.clone()),
+            AlterInner::Crossover(c) => c.rates().alias(control_rate_name.clone()),
+        };
+
         Self {
-            time_name: SmallStr::from_string(format!("{}.time", name)),
-            rate_name: SmallStr::from_string(format!("{}.rate", name)),
+            time_name,
             name,
-            rate,
-            inner: AlterInner::Mutate(m),
+            inner,
             alter_counts: AlterUpdates::new(),
+            rate_set,
         }
     }
 
-    pub fn crossover(name: &'static str, rate: Rate, c: Arc<dyn Crossover<C>>) -> Self {
-        let name = SmallStr::from_static(name);
-        Self {
-            time_name: SmallStr::from_string(format!("{}.time", name)),
-            rate_name: SmallStr::from_string(format!("{}.rate", name)),
-            name,
-            rate,
-            inner: AlterInner::Crossover(c),
-            alter_counts: AlterUpdates::new(),
-        }
-    }
-
-    pub fn rate(&self) -> &Rate {
-        &self.rate
+    pub fn rates(&self) -> &RateSet {
+        &self.rate_set
     }
 
     pub fn name(&self) -> &str {
@@ -158,16 +174,16 @@ impl<C: Chromosome> Alterer<C> {
         population: &mut [Phenotype<C>],
         metrics: &mut MetricSet,
         generation: usize,
-    ) {
-        let rate = self.rate.get(generation, metrics);
+    ) -> RadiateResult<()> {
+        let rates = self.rate_set.calculate_rates(generation, metrics)?;
 
-        metrics.upsert(self.rate_name.clone(), rate);
         self.alter_counts.clear();
 
         let mut ctx = AlterContext {
             alter_counts: &mut self.alter_counts,
             generation,
-            rate,
+            control_rate: rates[0],
+            internal_rates: &rates[1..],
         };
 
         match &mut self.inner {
@@ -196,6 +212,8 @@ impl<C: Chromosome> Alterer<C> {
                 }
             }
         }
+
+        Ok(())
     }
 }
 
@@ -237,15 +255,15 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
         new_name.join(".")
     }
 
-    fn rate(&self) -> Rate {
-        Rate::default()
+    fn rates(&self) -> RateSet {
+        RateSet::default()
     }
 
     fn alterer(self) -> Alterer<C>
     where
         Self: Sized + 'static,
     {
-        Alterer::crossover(intern!(self.name()), self.rate(), Arc::new(self))
+        Alterer::crossover(intern!(self.name()), Arc::new(self))
     }
 
     #[inline]
@@ -309,16 +327,13 @@ pub trait Crossover<C: Chromosome>: Send + Sync {
 
         for i in 0..std::cmp::min(chrom_one.len(), chrom_two.len()) {
             if random_provider::bool(ctx.rate()) {
-                let gene_one = chrom_one.get(i);
-                let gene_two = chrom_two.get(i);
+                let gene_one = chrom_one.get_mut(i);
+                let gene_two = chrom_two.get_mut(i);
 
-                let new_gene_one = gene_one.with_allele(gene_two.allele());
-                let new_gene_two = gene_two.with_allele(gene_one.allele());
-
-                chrom_one.set(i, new_gene_one);
-                chrom_two.set(i, new_gene_two);
-
-                cross_count += 1;
+                if let Some((gene_one, gene_two)) = gene_one.zip(gene_two) {
+                    std::mem::swap(gene_one, gene_two);
+                    cross_count += 1;
+                }
             }
         }
 
@@ -345,15 +360,15 @@ pub trait Mutate<C: Chromosome>: Send + Sync {
         new_name.join(".")
     }
 
-    fn rate(&self) -> Rate {
-        Rate::default()
+    fn rates(&self) -> RateSet {
+        RateSet::default()
     }
 
     fn alterer(self) -> Alterer<C>
     where
         Self: Sized + 'static,
     {
-        Alterer::mutation(intern!(self.name()), self.rate(), Arc::new(self))
+        Alterer::mutation(intern!(self.name()), Arc::new(self))
     }
 
     #[inline]
@@ -394,16 +409,11 @@ pub trait Mutate<C: Chromosome>: Send + Sync {
         let mut count = 0;
         for gene in chromosome.iter_mut() {
             if random_provider::bool(ctx.rate()) {
-                count += self.mutate_gene(gene);
+                *gene = gene.new_instance();
+                count += 1;
             }
         }
 
         count.into()
-    }
-
-    #[inline]
-    fn mutate_gene(&self, gene: &mut C::Gene) -> usize {
-        *gene = gene.new_instance();
-        1
     }
 }

@@ -8,6 +8,7 @@ pub struct TableStates {
     pub stats: AppTableState<SmallStr>,
     pub dist: AppTableState<SmallStr>,
     pub species: AppTableState<SpeciesId>,
+    pub log: AppTableState<usize>,
 }
 
 impl TableStates {
@@ -17,6 +18,7 @@ impl TableStates {
             DashboardTab::Time => Self::scroll_down(&mut self.time),
             DashboardTab::Distribution => Self::scroll_down(&mut self.dist),
             DashboardTab::Species => Self::scroll_down(&mut self.species),
+            DashboardTab::Log | DashboardTab::Front => Self::scroll_down(&mut self.log),
         }
     }
 
@@ -26,6 +28,62 @@ impl TableStates {
             DashboardTab::Time => Self::scroll_up(&mut self.time),
             DashboardTab::Distribution => Self::scroll_up(&mut self.dist),
             DashboardTab::Species => Self::scroll_up(&mut self.species),
+            DashboardTab::Log | DashboardTab::Front => Self::scroll_up(&mut self.log),
+        }
+    }
+
+    pub fn move_page_down(&mut self, tab: DashboardTab) {
+        match tab {
+            DashboardTab::Stats => Self::scroll_page_down(&mut self.stats),
+            DashboardTab::Time => Self::scroll_page_down(&mut self.time),
+            DashboardTab::Distribution => Self::scroll_page_down(&mut self.dist),
+            DashboardTab::Species => Self::scroll_page_down(&mut self.species),
+            DashboardTab::Log | DashboardTab::Front => Self::scroll_page_down(&mut self.log),
+        }
+    }
+
+    pub fn move_page_up(&mut self, tab: DashboardTab) {
+        match tab {
+            DashboardTab::Stats => Self::scroll_page_up(&mut self.stats),
+            DashboardTab::Time => Self::scroll_page_up(&mut self.time),
+            DashboardTab::Distribution => Self::scroll_page_up(&mut self.dist),
+            DashboardTab::Species => Self::scroll_page_up(&mut self.species),
+            DashboardTab::Log | DashboardTab::Front => Self::scroll_page_up(&mut self.log),
+        }
+    }
+
+    pub fn move_to_top(&mut self, tab: DashboardTab) {
+        match tab {
+            DashboardTab::Stats => Self::scroll_to(&mut self.stats, 0),
+            DashboardTab::Time => Self::scroll_to(&mut self.time, 0),
+            DashboardTab::Distribution => Self::scroll_to(&mut self.dist, 0),
+            DashboardTab::Species => Self::scroll_to(&mut self.species, 0),
+            DashboardTab::Log | DashboardTab::Front => Self::scroll_to(&mut self.log, 0),
+        }
+    }
+
+    pub fn move_to_bottom(&mut self, tab: DashboardTab) {
+        match tab {
+            DashboardTab::Stats => {
+                let last = self.stats.row_count.saturating_sub(1);
+                Self::scroll_to(&mut self.stats, last);
+            }
+            DashboardTab::Time => {
+                let last = self.time.row_count.saturating_sub(1);
+                Self::scroll_to(&mut self.time, last);
+            }
+            DashboardTab::Distribution => {
+                let last = self.dist.row_count.saturating_sub(1);
+                Self::scroll_to(&mut self.dist, last);
+            }
+            DashboardTab::Species => {
+                let last = self.species.row_count.saturating_sub(1);
+                Self::scroll_to(&mut self.species, last);
+            }
+            DashboardTab::Log | DashboardTab::Front => {
+                let last = self.log.row_count.saturating_sub(1);
+                Self::scroll_to(&mut self.log, last);
+            }
         }
     }
 
@@ -34,8 +92,38 @@ impl TableStates {
             DashboardTab::Time => self.time.selected_value.as_deref(),
             DashboardTab::Stats => self.stats.selected_value.as_deref(),
             DashboardTab::Distribution => self.dist.selected_value.as_deref(),
-            DashboardTab::Species => None,
+            DashboardTab::Species | DashboardTab::Log | DashboardTab::Front => None,
         }
+    }
+
+    fn scroll_to<T>(t: &mut AppTableState<T>, target: usize) {
+        if t.row_count == 0 {
+            return;
+        }
+        let i = target.min(t.row_count - 1);
+        t.state.select(Some(i));
+        t.selected_row = i;
+        t.scroll_bar = t.scroll_bar.as_mut().map(|sb| sb.position(i));
+    }
+
+    fn scroll_page_down<T>(t: &mut AppTableState<T>) {
+        if t.row_count == 0 {
+            return;
+        }
+        let current = t.state.selected().unwrap_or(0);
+        let page = t.visible_rows.max(1);
+        let next = (current + page).min(t.row_count - 1);
+        Self::scroll_to(t, next);
+    }
+
+    fn scroll_page_up<T>(t: &mut AppTableState<T>) {
+        if t.row_count == 0 {
+            return;
+        }
+        let current = t.state.selected().unwrap_or(0);
+        let page = t.visible_rows.max(1);
+        let next = current.saturating_sub(page);
+        Self::scroll_to(t, next);
     }
 
     fn scroll_down<T>(t: &mut AppTableState<T>) {
@@ -79,6 +167,7 @@ impl Default for TableStates {
             stats: AppTableState::new(),
             dist: AppTableState::new(),
             species: AppTableState::new(),
+            log: AppTableState::new(),
         }
     }
 }
@@ -90,6 +179,7 @@ pub struct AppTableState<T> {
     pub selected_row: usize,
     pub row_count: usize,
     pub prev_row_count: usize,
+    pub visible_rows: usize,
 }
 
 impl<T> AppTableState<T> {
@@ -101,6 +191,7 @@ impl<T> AppTableState<T> {
             row_count: 0,
             prev_row_count: 0,
             selected_value: None,
+            visible_rows: 0,
         }
     }
 

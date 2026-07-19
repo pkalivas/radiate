@@ -4,7 +4,6 @@ fn main() {
     // --8<-- [start:uniform_mutator]
     // rate
     let mutator = UniformMutator::new(0.1);
-    let mutator = UniformMutator::new(Rate::Fixed(0.1));
     // --8<-- [end:uniform_mutator]
 
     // --8<-- [start:gaussian_mutator]

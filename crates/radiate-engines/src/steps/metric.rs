@@ -1,7 +1,7 @@
 use crate::steps::EngineStep;
 use radiate_core::{
-    Chromosome, Ecosystem, Evaluate, MetricQuery, MetricSet, MetricUpdate, Objective, Score,
-    SmallStr, math::distribution, metric_names, phenotype::PhenotypeId, stats::TagType,
+    Chromosome, Ecosystem, Evaluate, MetricSet, MetricUpdate, Objective, Score, SmallStr,
+    math::distribution, metric_names, phenotype::PhenotypeId, rate::ExprSet, stats::TagType,
 };
 use radiate_error::Result;
 use std::{
@@ -17,7 +17,7 @@ pub struct MetricStep {
     objective: Objective,
     best_score: Option<Score>,
 
-    expressions: Option<Arc<Mutex<Vec<MetricQuery>>>>,
+    expressions: Option<Arc<Mutex<ExprSet>>>,
 
     score_dist_per_dim: Vec<Vec<f32>>,
     unique_scores_per_dim: Vec<Vec<f32>>,
@@ -39,10 +39,12 @@ pub struct MetricStep {
     gini_names: Vec<SmallStr>,
     corr_names: Vec<SmallStr>,
     best_score_names: Vec<SmallStr>,
+
+    stagnation_count: usize,
 }
 
 impl MetricStep {
-    pub fn new(objective: Objective, expressions: Option<Arc<Mutex<Vec<MetricQuery>>>>) -> Self {
+    pub fn new(objective: Objective, expressions: Option<Arc<Mutex<ExprSet>>>) -> Self {
         Self {
             objective,
             expressions,
@@ -68,7 +70,7 @@ impl MetricStep {
 
         std::mem::swap(&mut self.curr_ids, &mut self.last_gen_ids);
 
-        metrics.upsert(metric_names::CARRYOVER_RATE, carryover_rate);
+        metrics.upsert(metric_names::CARRYOVER_RATIO, carryover_rate);
         metrics.upsert(metric_names::SURVIVOR_COUNT, survivor_count);
     }
 
@@ -123,6 +125,13 @@ impl MetricStep {
             best_improved = true;
         }
 
+        if best_improved {
+            self.stagnation_count = 0;
+        } else {
+            self.stagnation_count += 1;
+        }
+
+        metrics.upsert(metric_names::STAGNATION_COUNT, self.stagnation_count);
         metrics.upsert(metric_names::BEST_SCORE_IMPROVEMENT, best_improved);
 
         if let Some(score) = &self.best_score {
@@ -141,10 +150,10 @@ impl MetricStep {
     fn calc_expression_metrics(&mut self, metrics: &mut MetricSet) -> Result<()> {
         if let Some(exprs) = &self.expressions {
             let mut exprs = exprs.lock().unwrap();
-            for expr in exprs.iter_mut() {
-                let (name, exp) = expr.pair();
-                let update = MetricUpdate::try_from(exp.eval(metrics)?)?;
 
+            for (name, expr) in exprs.iter_mut() {
+                let value = expr.eval(metrics)?;
+                let update = MetricUpdate::try_from(value)?;
                 metrics.upsert_tagged(name, update, TagType::Expr);
             }
         }

@@ -1,20 +1,76 @@
-use crate::{IntoPyAnyObject, PyAnyObject};
-use pyo3::{Bound, IntoPyObject, IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
-use radiate::{Eval, Format, Op, ToDot, Tree};
+use crate::{IntoPyAnyObject, PyAnyObject, Wrap};
+use numpy::PyArrayDyn;
+use pyo3::{
+    Bound, IntoPyObject, IntoPyObjectExt, PyAny, PyResult, Python, prelude::FromPyObjectOwned,
+    pyclass, pymethods,
+};
+use radiate::{DataType, Eval, Format, Op, ToDot, Tree};
+use radiate_utils::Float;
 use serde::{Deserialize, Serialize};
+
+fn eval_trees<'py, F>(
+    py: Python<'py>,
+    trees: &[Tree<Op<F>>],
+    output_len: usize,
+    inputs: &Bound<'py, PyAny>,
+) -> PyResult<Bound<'py, PyArrayDyn<F>>>
+where
+    F: Float + numpy::Element + FromPyObjectOwned<'py>,
+{
+    super::generic_eval_runner(py, output_len, inputs, |slice| {
+        trees
+            .iter()
+            .map(|tree| tree.eval(slice))
+            .collect::<Vec<F>>()
+    })
+}
 
 impl IntoPyAnyObject for Vec<Tree<Op<f32>>> {
     fn into_py<'py>(self, py: Python<'py>) -> PyAnyObject {
         PyAnyObject {
-            inner: PyTree { inner: self }.into_py_any(py).unwrap(),
+            inner: PyTree {
+                inner: PyTreeInner::Float32(self),
+            }
+            .into_py_any(py)
+            .unwrap(),
         }
+    }
+}
+
+impl IntoPyAnyObject for Vec<Tree<Op<f64>>> {
+    fn into_py<'py>(self, py: Python<'py>) -> PyAnyObject {
+        PyAnyObject {
+            inner: PyTree {
+                inner: PyTreeInner::Float64(self),
+            }
+            .into_py_any(py)
+            .unwrap(),
+        }
+    }
+}
+
+#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub enum PyTreeInner {
+    Float32(Vec<Tree<Op<f32>>>),
+    Float64(Vec<Tree<Op<f64>>>),
+}
+
+impl From<Vec<Tree<Op<f32>>>> for PyTreeInner {
+    fn from(trees: Vec<Tree<Op<f32>>>) -> Self {
+        PyTreeInner::Float32(trees)
+    }
+}
+
+impl From<Vec<Tree<Op<f64>>>> for PyTreeInner {
+    fn from(trees: Vec<Tree<Op<f64>>>) -> Self {
+        PyTreeInner::Float64(trees)
     }
 }
 
 #[pyclass(from_py_object)]
 #[derive(Clone, Serialize, Deserialize)]
 pub struct PyTree {
-    pub inner: Vec<Tree<Op<f32>>>,
+    pub inner: PyTreeInner,
 }
 
 #[pymethods]
@@ -30,35 +86,59 @@ impl PyTree {
     }
 
     pub fn to_dot(&self) -> String {
-        self.inner
-            .iter()
-            .map(|tree| tree.to_dot())
-            .collect::<Vec<String>>()
-            .join("\n")
+        match &self.inner {
+            PyTreeInner::Float32(trees) => trees
+                .iter()
+                .map(|tree| tree.to_dot())
+                .collect::<Vec<String>>()
+                .join("\n"),
+            PyTreeInner::Float64(trees) => trees
+                .iter()
+                .map(|tree| tree.to_dot())
+                .collect::<Vec<String>>()
+                .join("\n"),
+        }
     }
 
-    pub fn eval<'py>(&mut self, py: Python<'py>, inputs: Py<PyAny>) -> PyResult<Bound<'py, PyAny>> {
-        if let Ok(input_mat) = inputs.extract::<Vec<Vec<f32>>>(py) {
-            let outputs = input_mat
-                .into_iter()
-                .map(|input| self.inner.eval(&input))
-                .collect::<Vec<Vec<f32>>>();
-            outputs.into_pyobject(py)
-        } else if let Ok(input_vec) = inputs.extract::<Vec<f32>>(py) {
-            let output = self.inner.eval(&input_vec);
-            output.into_pyobject(py)
-        } else {
-            Err(pyo3::exceptions::PyTypeError::new_err(
-                "Input must be Vec[Vec[float]] or Vec[float].",
-            ))
+    pub fn dtype<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let result = match &self.inner {
+            PyTreeInner::Float32(_) => DataType::Float32,
+            PyTreeInner::Float64(_) => DataType::Float64,
+        };
+
+        Wrap(result).into_pyobject(py)
+    }
+
+    pub fn eval<'py>(
+        &self,
+        py: Python<'py>,
+        inputs: &Bound<'py, PyAny>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let output_len = self.__len__();
+        match &self.inner {
+            PyTreeInner::Float32(trees) => {
+                Ok(eval_trees(py, trees, output_len, inputs)?.into_any())
+            }
+            PyTreeInner::Float64(trees) => {
+                Ok(eval_trees(py, trees, output_len, inputs)?.into_any())
+            }
         }
     }
 
     pub fn __repr__(&self) -> String {
         let mut result = String::new();
         result.push_str("Tree(\n");
-        for tree in self.inner.iter() {
-            result.push_str(tree.format().as_str());
+        match &self.inner {
+            PyTreeInner::Float32(trees) => {
+                for tree in trees {
+                    result.push_str(tree.format().as_str());
+                }
+            }
+            PyTreeInner::Float64(trees) => {
+                for tree in trees {
+                    result.push_str(tree.format().as_str());
+                }
+            }
         }
         result.push(')');
 
@@ -68,8 +148,17 @@ impl PyTree {
     pub fn __str__(&self) -> String {
         let mut result = String::new();
         result.push_str("Tree(\n");
-        for node in self.inner.iter() {
-            result.push_str(&format!("{:?}\n", node));
+        match &self.inner {
+            PyTreeInner::Float32(trees) => {
+                for tree in trees {
+                    result.push_str(&format!("{:?}\n", tree));
+                }
+            }
+            PyTreeInner::Float64(trees) => {
+                for tree in trees {
+                    result.push_str(&format!("{:?}\n", tree));
+                }
+            }
         }
         result.push(')');
 
@@ -77,10 +166,28 @@ impl PyTree {
     }
 
     pub fn __len__(&self) -> usize {
-        self.inner.len()
+        match &self.inner {
+            PyTreeInner::Float32(trees) => trees.len(),
+            PyTreeInner::Float64(trees) => trees.len(),
+        }
     }
 
     pub fn __eq__(&self, other: &PyTree) -> bool {
         self.inner == other.inner
+    }
+}
+
+impl From<Vec<Tree<Op<f32>>>> for PyTree {
+    fn from(trees: Vec<Tree<Op<f32>>>) -> Self {
+        PyTree {
+            inner: PyTreeInner::Float32(trees),
+        }
+    }
+}
+impl From<Vec<Tree<Op<f64>>>> for PyTree {
+    fn from(trees: Vec<Tree<Op<f64>>>) -> Self {
+        PyTree {
+            inner: PyTreeInner::Float64(trees),
+        }
     }
 }

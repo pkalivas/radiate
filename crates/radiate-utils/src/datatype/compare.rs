@@ -120,7 +120,12 @@ impl<'a> AnyValue<'a> {
                 va.len().cmp(&vb.len())
             }
 
-            _ => unreachable!("cmp_same_variant called with different variants"),
+            (Usize(a), Usize(b)) => a.cmp(b),
+
+            _ => unreachable!(
+                "cmp_same_variant called with different variants: {:?} and {:?}",
+                self, other
+            ),
         }
     }
 

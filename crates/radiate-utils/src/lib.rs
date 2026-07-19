@@ -2,6 +2,7 @@ mod array;
 mod buff;
 mod datatype;
 mod fmt;
+mod id;
 mod intern;
 mod lru;
 mod primitives;

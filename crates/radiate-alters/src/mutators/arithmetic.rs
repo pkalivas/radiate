@@ -1,5 +1,6 @@
 use radiate_core::{
-    AlterContext, AlterResult, ArithmeticGene, Chromosome, Mutate, Rate, Valid, random_provider,
+    AlterContext, AlterResult, Chromosome, Expr, Mutate, RateSet, chromosomes::NumericGene,
+    random_provider,
 };
 
 /// Arithmetic Mutator. Mutates genes by performing arithmetic operations on them.
@@ -11,29 +12,24 @@ use radiate_core::{
 /// `Add`, `Sub`, `Mul`, and `Div` traits - [ArithmeticGene] is a good example.
 #[derive(Debug, Clone)]
 pub struct ArithmeticMutator {
-    rate: Rate,
+    rate: Expr,
 }
 
 impl ArithmeticMutator {
     /// Create a new instance of the `ArithmeticMutator` with the given rate.
     /// The rate must be between 0.0 and 1.0.
-    pub fn new(rate: impl Into<Rate>) -> Self {
-        let rate = rate.into();
-        if !rate.is_valid() {
-            panic!("Rate {rate:?} is not valid. Must be between 0.0 and 1.0",);
-        }
-
-        Self { rate }
+    pub fn new(rate: impl Into<Expr>) -> Self {
+        Self { rate: rate.into() }
     }
 }
 
-impl<G, C> Mutate<C> for ArithmeticMutator
+impl<C, G, A> Mutate<C> for ArithmeticMutator
 where
-    G: ArithmeticGene,
     C: Chromosome<Gene = G>,
+    G: NumericGene<Allele = A>,
 {
-    fn rate(&self) -> Rate {
-        self.rate.clone()
+    fn rates(&self) -> RateSet {
+        RateSet::new(self.rate.clone())
     }
 
     /// Mutate a gene by performing an arithmetic operation on it.
@@ -48,10 +44,10 @@ where
                 let operator = random_provider::range(0..4);
 
                 let new_gene = match operator {
-                    0 => gene.clone() + gene.new_instance(),
-                    1 => gene.clone() - gene.new_instance(),
-                    2 => gene.clone() * gene.new_instance(),
-                    3 => gene.clone() / gene.new_instance(),
+                    0 => gene.safe_add(&gene.new_instance()),
+                    1 => gene.safe_sub(&gene.new_instance()),
+                    2 => gene.safe_mul(&gene.new_instance()),
+                    3 => gene.safe_div(&gene.new_instance()),
                     _ => panic!("Invalid operator - this shouldn't happen: {}", operator),
                 };
 

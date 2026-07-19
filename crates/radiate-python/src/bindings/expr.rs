@@ -1,5 +1,5 @@
 use pyo3::prelude::*;
-use radiate::{AnyValue, Evaluate, Expr};
+use radiate::{AnyValue, Evaluate, Expr, expr};
 use radiate_error::radiate_py_bail;
 
 use crate::{PyMetricSet, Wrap, dtype_from_str};
@@ -12,7 +12,7 @@ fn dtype_is_duration(dtype_str: &str) -> bool {
 #[repr(transparent)]
 #[derive(Clone)]
 pub struct PyExpr {
-    inner: Expr,
+    pub(crate) inner: Expr,
 }
 
 impl PyExpr {
@@ -79,6 +79,12 @@ impl PyExpr {
             .into()
     }
 
+    #[staticmethod]
+    #[pyo3(signature = (min, max, window))]
+    pub fn diversity_rate(min: f32, max: f32, window: usize) -> Self {
+        expr::diversity_signal(window, min, max).into()
+    }
+
     pub fn evaluate(&mut self, metrics: &PyMetricSet) -> PyResult<Wrap<AnyValue<'_>>> {
         match self.inner.eval(metrics.inner()) {
             Ok(value) => Ok(Wrap(value)),
@@ -94,6 +100,10 @@ impl PyExpr {
 
     pub fn __str__(&self) -> String {
         format!("{:?}", self.inner)
+    }
+
+    pub fn genome_size_rate(&self, target_size: usize) -> Self {
+        expr::genome_size_throttle(self.inner.clone(), target_size).into()
     }
 
     pub fn cast(&self, to: String) -> Self {

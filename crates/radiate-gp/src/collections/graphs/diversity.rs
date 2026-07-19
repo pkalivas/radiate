@@ -2,6 +2,7 @@ use super::GraphChromosome;
 use super::node::InnovationId;
 use crate::{GraphNode, Node, Op};
 use radiate_core::{Diversity, Novelty, Phenotype, diversity::Distance};
+use radiate_utils::Float;
 use std::cmp::Ordering;
 
 /// NEAT compatibility distance that aligns genes by [`InnovationId`].
@@ -39,7 +40,7 @@ impl NeatDistance {
     }
 
     #[inline]
-    fn graph_distance<G: AsRef<[GraphNode<Op<f32>>]>>(&self, one: &G, two: &G) -> f32 {
+    fn graph_distance<F: Float, G: AsRef<[GraphNode<Op<F>>]>>(&self, one: &G, two: &G) -> f32 {
         let one = one.as_ref();
         let two = two.as_ref();
 
@@ -58,7 +59,7 @@ impl NeatDistance {
         let mut excess = 0.0_f32;
         let mut disjoint = 0.0_f32;
         let mut matching = 0.0_f32;
-        let mut weight_diff = 0.0_f32;
+        let mut weight_diff = F::zero();
 
         let mut idx_one = 0;
         let mut idx_two = 0;
@@ -86,7 +87,7 @@ impl NeatDistance {
                         if let (Op::Value(_, _, a_op, _), Op::Value(_, _, b_op, _)) =
                             (one_node.value(), two_node.value())
                         {
-                            weight_diff += (a_op.data() - b_op.data()).abs();
+                            weight_diff = weight_diff + (*a_op.data() - *b_op.data()).abs();
                         }
 
                         idx_one += 1;
@@ -113,9 +114,9 @@ impl NeatDistance {
             }
         }
 
-        let inv_max = 1.0 / (max_genes as f32);
+        let inv_max = 1_f32 / max_genes as f32;
         let avg_weight_diff = if matching > 0.0 {
-            weight_diff / matching
+            weight_diff.extract::<f32>().unwrap() / matching
         } else {
             0.0
         };
@@ -135,11 +136,11 @@ fn bump(id: InnovationId, cutoff: Option<InnovationId>, excess: &mut f32, disjoi
     }
 }
 
-impl Diversity<GraphChromosome<Op<f32>>> for NeatDistance {
+impl<F: Float> Diversity<GraphChromosome<Op<F>>> for NeatDistance {
     fn measure(
         &self,
-        one: &Phenotype<GraphChromosome<Op<f32>>>,
-        two: &Phenotype<GraphChromosome<Op<f32>>>,
+        one: &Phenotype<GraphChromosome<Op<F>>>,
+        two: &Phenotype<GraphChromosome<Op<F>>>,
     ) -> f32 {
         one.genotype()
             .iter()

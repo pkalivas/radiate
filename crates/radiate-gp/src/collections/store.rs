@@ -372,7 +372,7 @@ mod tests {
 
     #[test]
     fn test_node_store() {
-        let store = NodeStore::from(ops::all_ops());
+        let store = NodeStore::<Op<f32>>::from(ops::all_ops());
 
         store.add(Op::vars(0..3));
 

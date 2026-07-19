@@ -59,7 +59,7 @@ pub fn render_dashboard(metrics: &MetricSet) -> io::Result<String> {
         }
     };
 
-    push_val(&metric_names::CARRYOVER_RATE, "carryover");
+    push_val(&metric_names::CARRYOVER_RATIO, "carryover");
     push_val(&metric_names::DIVERSITY_RATIO, "diversity");
 
     let mut push_int = |name: &SmallStr, label: &str| {
@@ -176,10 +176,10 @@ fn render_tagged(ms: &MetricSet, tag: TagType, title: &str) -> io::Result<String
     out = render_table_header(out)?;
 
     let mut items: Vec<_> = ms.iter_tagged(tag).collect();
-    items.sort_by(|a, b| a.0.cmp(b.0));
+    items.sort_by(|a, b| a.name().cmp(b.name()));
 
-    for (name, m) in items {
-        render_metric_rows_full(&mut out, name, m, tag)?;
+    for m in items {
+        render_metric_rows_full(&mut out, m.name().as_str(), m, tag)?;
     }
 
     Ok(out)
@@ -216,11 +216,11 @@ pub fn fmt_duration(d: Duration) -> String {
     } else if ns < 1_000 {
         format!("{ns}ns")
     } else if ns < 1_000_000 {
-        format!("{:.3}µs", ns as f64 / 1e3)
+        format!("{:.2}µs", ns as f64 / 1e3)
     } else if ns < 1_000_000_000 {
-        format!("{:.3}ms", ns as f64 / 1e6)
+        format!("{:.2}ms", ns as f64 / 1e6)
     } else {
-        format!("{:.3}s", ns as f64 / 1e9)
+        format!("{:.2}s", ns as f64 / 1e9)
     }
 }
 

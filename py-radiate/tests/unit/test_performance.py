@@ -1,5 +1,6 @@
-import pytest
 import gc
+
+import pytest
 
 import radiate as rd
 
@@ -51,18 +52,18 @@ class TestEnginePerformance:
         def fitness_func(x: list[float]) -> float:
             return sum(xi**2 for xi in x)
 
-        engine = rd.Engine(
-            codec=rd.FloatCodec(shape=10, init_range=(-1.0, 1.0)),
-            fitness_func=fitness_func,
-            objective=rd.MIN,
-            population_size=100,
-            offspring_selector=rd.TournamentSelector(3),
-            survivor_selector=rd.EliteSelector(),
-            alters=[rd.UniformCrossover(0.7), rd.ArithmeticMutator(0.1)],
+        engine = (
+            rd.Engine.float(shape=10, init_range=(-1.0, 1.0))
+            .fitness(fitness_func)
+            .minimizing()
+            .size(100)
+            .select(rd.Select.tournament(k=3), rd.Select.elite())
+            .alters(rd.Cross.uniform(rate=0.7), rd.Mutate.arithmetic(rate=0.1))
+            .limit(rd.Limit.generations(50))
         )
 
         def engine_run():
-            return engine.run(rd.GenerationsLimit(50))
+            return engine.run()
 
         result, execution_time = performance_benchmark.time_function(engine_run)
 
@@ -76,18 +77,18 @@ class TestEnginePerformance:
         def fitness_func(x: list[float]) -> float:
             return sum(xi**2 for xi in x)
 
-        engine = rd.Engine(
-            codec=rd.FloatCodec(shape=20, init_range=(-1.0, 1.0)),
-            fitness_func=fitness_func,
-            objective=rd.MIN,
-            population_size=1000,
-            offspring_selector=rd.TournamentSelector(3),
-            survivor_selector=rd.EliteSelector(),
-            alters=[rd.UniformCrossover(0.7), rd.ArithmeticMutator(0.1)],
+        engine = (
+            rd.Engine.float(shape=20, init_range=(-1.0, 1.0))
+            .fitness(fitness_func)
+            .minimizing()
+            .size(1000)
+            .select(rd.Select.tournament(k=3), rd.Select.elite())
+            .alters(rd.Cross.uniform(rate=0.7), rd.Mutate.arithmetic(rate=0.1))
+            .limit(rd.Limit.generations(10))
         )
 
         def engine_run():
-            return engine.run(rd.GenerationsLimit(10))
+            return engine.run()
 
         result, execution_time = performance_benchmark.time_function(engine_run)
 
@@ -112,11 +113,12 @@ class TestMemoryPerformance:
             .fitness(fitness_func)
             .minimizing()
             .size(100)
-            .select(rd.TournamentSelector(3), rd.EliteSelector())
-            .alters(rd.UniformCrossover(0.7), rd.ArithmeticMutator(0.1))
+            .select(rd.Select.tournament(k=3), rd.Select.elite())
+            .alters(rd.Cross.uniform(rate=0.7), rd.Mutate.arithmetic(rate=0.1))
+            .limit(rd.Limit.generations(50))
         )
 
-        engine.run(rd.GenerationsLimit(50))
+        engine.run()
 
         final_memory = performance_benchmark.memory_usage()
 
@@ -140,11 +142,12 @@ class TestMemoryPerformance:
                 .fitness(fitness_func)
                 .minimizing()
                 .size(200)
-                .select(rd.TournamentSelector(3), rd.EliteSelector())
-                .alters(rd.UniformCrossover(0.7), rd.ArithmeticMutator(0.1))
+                .select(rd.Select.tournament(k=3), rd.Select.elite())
+                .alters(rd.Cross.uniform(rate=0.7), rd.Mutate.arithmetic(rate=0.1))
+                .limit(rd.Limit.generations(10))
             )
 
-            engine.run(rd.GenerationsLimit(10))
+            engine.run()
             del engine  # Explicitly delete engine
 
         # Force garbage collection
@@ -163,6 +166,7 @@ class TestScalabilityPerformance:
     @pytest.mark.performance
     def test_scalability_chromosome_length(self, performance_benchmark):
         """Test how performance scales with chromosome length."""
+        ...
         lengths = [10, 50, 100, 500]
         execution_times = []
 
@@ -170,18 +174,18 @@ class TestScalabilityPerformance:
             return sum(xi**2 for xi in x)
 
         for length in lengths:
-            engine = rd.Engine(
-                codec=rd.FloatCodec(shape=length, init_range=(-1.0, 1.0)),
-                fitness_func=fitness_func,
-                objective=rd.MIN,
-                population_size=100,
-                offspring_selector=rd.TournamentSelector(3),
-                survivor_selector=rd.EliteSelector(),
-                alters=[rd.UniformCrossover(0.7), rd.ArithmeticMutator(0.1)],
+            engine = (
+                rd.Engine.float(shape=length, init_range=(-1.0, 1.0))
+                .fitness(fitness_func)
+                .minimizing()
+                .size(100)
+                .select(rd.Select.tournament(k=3), rd.Select.elite())
+                .alters(rd.Cross.uniform(rate=0.7), rd.Mutate.arithmetic(rate=0.1))
+                .limit(rd.Limit.generations(20))
             )
 
             _, execution_time = performance_benchmark.time_function(
-                engine.run, rd.GenerationsLimit(20)
+                engine.run,
             )
             execution_times.append(execution_time)
 

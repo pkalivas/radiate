@@ -319,8 +319,8 @@ mod tests {
 
         fn decode(&self, genotype: &Genotype<FloatChromosome<f32>>) -> MockPhenotype {
             MockPhenotype {
-                x: *genotype[0].get(0).allele(),
-                y: *genotype[1].get(0).allele(),
+                x: *genotype[0].get(0).unwrap().allele(),
+                y: *genotype[1].get(0).unwrap().allele(),
             }
         }
     }

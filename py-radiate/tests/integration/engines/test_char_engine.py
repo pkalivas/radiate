@@ -1,5 +1,6 @@
-import radiate as rd
 import pytest
+
+import radiate as rd
 
 
 @pytest.mark.integration
@@ -14,9 +15,10 @@ def test_engine_char_vector():
         .fitness(fitness_func)
         .select(rd.Select.boltzmann(4))
         .alters(rd.Cross.uniform(0.5), rd.Mutate.uniform(0.1))
+        .limit(rd.Limit.score(len(target)), rd.Limit.generations(1000))
     )
 
-    result = engine.run(rd.Limit.score(len(target)), rd.Limit.generations(1000))
+    result = engine.run()
 
     assert result.value() == list(target)
     assert result.score() == [len(target)]
@@ -41,11 +43,10 @@ def test_engine_char_matrix(random_seed):
         .fitness(fit)
         .select(survivor=rd.Select.elite())
         .alters(rd.Cross.uniform(0.7), rd.Mutate.uniform(0.1))
+        .limit(rd.Limit.score(sum(len(t) for t in target)), rd.Limit.generations(2000))
     )
 
-    result = engine.run(
-        rd.Limit.score(sum(len(t) for t in target)), rd.Limit.generations(2000)
-    )
+    result = engine.run()
 
     assert result.value() == [list(t) for t in target]
     assert result.score() == [sum(len(t) for t in target)]

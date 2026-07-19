@@ -1,10 +1,12 @@
-from typing import Any, Dict
-from .base import ComponentBase
+from .._rd import components
+from .input import EngineInput, EngineInputType
 
 
-class Executor(ComponentBase):
-    def __init__(self, component: str, args: Dict[str, Any] = {}):
-        super().__init__(component=component, args=args)
+class Executor(EngineInput):
+    def __init__(self, component: str, **kwargs):
+        super().__init__(
+            component=component, input_type=EngineInputType.Executor, **kwargs
+        )
 
     @staticmethod
     def Serial() -> "Executor":
@@ -12,7 +14,7 @@ class Executor(ComponentBase):
         Single-threaded executor.
         :return: An Executor instance configured for single-threaded execution.
         """
-        return Executor(component="Serial")
+        return Executor(component=components.SERIAL_EXECUTOR)
 
     @staticmethod
     def WorkerPool() -> "Executor":
@@ -20,7 +22,7 @@ class Executor(ComponentBase):
         Worker pool executor.
         :return: An Executor instance configured for worker pool execution.
         """
-        return Executor(component="WorkerPool")
+        return Executor(component=components.WORKER_POOL_EXECUTOR)
 
     @staticmethod
     def FixedSizedWorkerPool(num_workers: int = 1) -> "Executor":
@@ -30,5 +32,6 @@ class Executor(ComponentBase):
         :return: An Executor instance configured for a fixed-sized worker pool.
         """
         return Executor(
-            component="FixedSizedWorkerPool", args={"num_workers": num_workers}
+            component=components.FIXED_SIZED_WORKER_POOL_EXECUTOR,
+            num_workers=num_workers,
         )

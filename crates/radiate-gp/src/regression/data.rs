@@ -1,4 +1,5 @@
 use radiate_core::random_provider;
+use radiate_utils::Float;
 
 #[derive(Debug, Clone, Default)]
 pub struct Row<T> {
@@ -115,25 +116,25 @@ impl<T> DataSet<T> {
     }
 }
 
-impl DataSet<f32> {
+impl<F: Float> DataSet<F> {
     pub fn standardize(mut self) -> Self {
-        let mut means = vec![0.0; self.rows[0].input.len()];
-        let mut stds = vec![0.0; self.rows[0].input.len()];
+        let mut means = vec![F::ZERO; self.rows[0].input.len()];
+        let mut stds = vec![F::ZERO; self.rows[0].input.len()];
 
         for sample in self.rows.iter() {
             for (i, &val) in sample.input.iter().enumerate() {
-                means[i] += val;
+                means[i] = means[i] + val;
             }
         }
 
-        let n = self.len() as f32;
+        let n = F::from(self.len()).unwrap();
         for mean in means.iter_mut() {
-            *mean /= n;
+            *mean = *mean / n;
         }
 
         for sample in self.rows.iter() {
             for (i, &val) in sample.input.iter().enumerate() {
-                stds[i] += (val - means[i]).powi(2);
+                stds[i] = stds[i] + (val - means[i]).powi(2);
             }
         }
 
@@ -151,8 +152,8 @@ impl DataSet<f32> {
     }
 
     pub fn normalize(mut self) -> Self {
-        let mut mins = vec![f32::MAX; self.rows[0].input.len()];
-        let mut maxs = vec![f32::MIN; self.rows[0].input.len()];
+        let mut mins = vec![F::MAX; self.rows[0].input.len()];
+        let mut maxs = vec![F::MIN; self.rows[0].input.len()];
 
         for sample in self.rows.iter() {
             for (i, &val) in sample.input.iter().enumerate() {

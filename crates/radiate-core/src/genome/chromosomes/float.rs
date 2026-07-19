@@ -1,8 +1,8 @@
 use super::{
     Chromosome,
-    gene::{ArithmeticGene, BoundedGene, Gene, Valid},
+    gene::{BoundedGene, Gene, Valid},
 };
-use crate::random_provider;
+use crate::{chromosomes::NumericGene, random_provider};
 use radiate_utils::Float;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -49,17 +49,6 @@ impl<F: Float> FloatGene<F> {
     }
 }
 
-/// Implement the [`Valid`] trait for the [`FloatGene`].
-///
-/// The `is_valid` method checks if the `allele` of the [`FloatGene`] is between the `min` and `max` values.
-/// The `GeneticEngine` will check the validity of the [`Chromosome`] and `Phenotype` and remove any
-/// invalid individuals from the population, replacing them with new individuals at the given generation.
-impl<F: Float> Valid for FloatGene<F> {
-    fn is_valid(&self) -> bool {
-        self.allele >= self.bounds.start && self.allele <= self.bounds.end
-    }
-}
-
 impl<F: Float> Gene for FloatGene<F> {
     type Allele = F;
 
@@ -89,27 +78,68 @@ impl<F: Float> Gene for FloatGene<F> {
 }
 
 impl<F: Float> BoundedGene for FloatGene<F> {
-    fn min(&self) -> &Self::Allele {
+    fn init_min(&self) -> &Self::Allele {
         &self.value_range.start
     }
 
-    fn max(&self) -> &Self::Allele {
+    fn init_max(&self) -> &Self::Allele {
         &self.value_range.end
     }
 
-    fn bounds(&self) -> (&Self::Allele, &Self::Allele) {
+    fn init_range(&self) -> (Self::Allele, Self::Allele) {
+        (self.value_range.start, self.value_range.end)
+    }
+
+    fn bound_min(&self) -> &Self::Allele {
+        &self.bounds.start
+    }
+
+    fn bound_max(&self) -> &Self::Allele {
+        &self.bounds.end
+    }
+
+    fn bound_range(&self) -> (&Self::Allele, &Self::Allele) {
         (&self.bounds.start, &self.bounds.end)
     }
 }
 
-impl<F: Float> ArithmeticGene for FloatGene<F> {
-    fn mean(&self, other: &FloatGene<F>) -> FloatGene<F> {
+impl<F: Float> NumericGene for FloatGene<F> {
+    fn safe_add(&self, other: &Self) -> Self {
+        add_gene(self, *other.allele())
+    }
+
+    fn safe_sub(&self, other: &Self) -> Self {
+        sub_gene(self, *other.allele())
+    }
+
+    fn safe_mul(&self, other: &Self) -> Self {
+        mul_gene(self, *other.allele())
+    }
+
+    fn safe_div(&self, other: &Self) -> Self {
+        div_gene(self, *other.allele())
+    }
+
+    fn mean(&self, other: &Self) -> Self {
         FloatGene {
-            allele: F::safe_mul(F::safe_add(*self.allele(), *other.allele()), F::HALF)
+            allele: self
+                .allele
+                .safe_mean(other.allele)
                 .safe_clamp(self.bounds.start, self.bounds.end),
             value_range: self.value_range.clone(),
             bounds: self.bounds.clone(),
         }
+    }
+}
+
+// Implement the [`Valid`] trait for the [`FloatGene`].
+///
+/// The `is_valid` method checks if the `allele` of the [`FloatGene`] is between the `min` and `max` values.
+/// The `GeneticEngine` will check the validity of the [`Chromosome`] and `Phenotype` and remove any
+/// invalid individuals from the population, replacing them with new individuals at the given generation.
+impl<F: Float> Valid for FloatGene<F> {
+    fn is_valid(&self) -> bool {
+        self.allele >= self.bounds.start && self.allele <= self.bounds.end
     }
 }
 
@@ -117,12 +147,7 @@ impl<F: Float> Add for FloatGene<F> {
     type Output = FloatGene<F>;
 
     fn add(self, other: FloatGene<F>) -> FloatGene<F> {
-        FloatGene {
-            allele: F::safe_add(self.allele, other.allele)
-                .safe_clamp(self.bounds.start, self.bounds.end),
-            value_range: self.value_range.clone(),
-            bounds: self.bounds.clone(),
-        }
+        add_gene(&self, *other.allele())
     }
 }
 
@@ -130,12 +155,7 @@ impl<F: Float> Sub for FloatGene<F> {
     type Output = FloatGene<F>;
 
     fn sub(self, other: FloatGene<F>) -> FloatGene<F> {
-        FloatGene {
-            allele: F::safe_sub(self.allele, other.allele)
-                .safe_clamp(self.bounds.start, self.bounds.end),
-            value_range: self.value_range.clone(),
-            bounds: self.bounds.clone(),
-        }
+        sub_gene(&self, *other.allele())
     }
 }
 
@@ -143,12 +163,7 @@ impl<F: Float> Mul for FloatGene<F> {
     type Output = FloatGene<F>;
 
     fn mul(self, other: FloatGene<F>) -> FloatGene<F> {
-        FloatGene {
-            allele: F::safe_mul(self.allele, other.allele)
-                .safe_clamp(self.bounds.start, self.bounds.end),
-            value_range: self.value_range.clone(),
-            bounds: self.bounds.clone(),
-        }
+        mul_gene(&self, *other.allele())
     }
 }
 
@@ -156,12 +171,7 @@ impl<F: Float> Div for FloatGene<F> {
     type Output = FloatGene<F>;
 
     fn div(self, other: FloatGene<F>) -> FloatGene<F> {
-        FloatGene {
-            allele: F::safe_div(self.allele, other.allele)
-                .safe_clamp(self.bounds.start, self.bounds.end),
-            value_range: self.value_range.clone(),
-            bounds: self.bounds.clone(),
-        }
+        div_gene(&self, *other.allele())
     }
 }
 
@@ -214,6 +224,38 @@ impl<F: Float> From<(Range<F>, Range<F>)> for FloatGene<F> {
 impl<F: Float> Display for FloatGene<F> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.allele)
+    }
+}
+
+fn add_gene<F: Float>(gene: &FloatGene<F>, value: F) -> FloatGene<F> {
+    FloatGene {
+        allele: F::safe_add(*gene.allele(), value).safe_clamp(gene.bounds.start, gene.bounds.end),
+        value_range: gene.value_range.clone(),
+        bounds: gene.bounds.clone(),
+    }
+}
+
+fn sub_gene<F: Float>(gene: &FloatGene<F>, value: F) -> FloatGene<F> {
+    FloatGene {
+        allele: F::safe_sub(*gene.allele(), value).safe_clamp(gene.bounds.start, gene.bounds.end),
+        value_range: gene.value_range.clone(),
+        bounds: gene.bounds.clone(),
+    }
+}
+
+fn mul_gene<F: Float>(gene: &FloatGene<F>, value: F) -> FloatGene<F> {
+    FloatGene {
+        allele: F::safe_mul(*gene.allele(), value).safe_clamp(gene.bounds.start, gene.bounds.end),
+        value_range: gene.value_range.clone(),
+        bounds: gene.bounds.clone(),
+    }
+}
+
+fn div_gene<F: Float>(gene: &FloatGene<F>, value: F) -> FloatGene<F> {
+    FloatGene {
+        allele: F::safe_div(*gene.allele(), value).safe_clamp(gene.bounds.start, gene.bounds.end),
+        value_range: gene.value_range.clone(),
+        bounds: gene.bounds.clone(),
     }
 }
 
@@ -361,22 +403,22 @@ mod tests {
         let gene_three = FloatGene::new(10.0, (MIN * 10.0)..(MAX * 10.0), -1000.0..1000.0);
 
         // assert_eq!(*gene_one.min(), 0_f32);
-        assert_eq!(*gene_one.max(), 1_f32);
-        assert_eq!(gene_one.bounds().0, &0_f32);
-        assert_eq!(gene_one.bounds().1, &1_f32);
+        assert_eq!(*gene_one.init_max(), 1_f32);
+        assert_eq!(gene_one.bound_range().0, &0_f32);
+        assert_eq!(gene_one.bound_range().1, &1_f32);
         assert!(gene_one.is_valid());
 
         // assert_eq!(*gene_two.min(), -1.0);
-        assert_eq!(*gene_two.max(), 1.0);
-        assert_eq!(gene_two.bounds().0, &-100.0);
-        assert_eq!(gene_two.bounds().1, &100.0);
+        assert_eq!(*gene_two.init_max(), 1.0);
+        assert_eq!(gene_two.bound_range().0, &-100.0);
+        assert_eq!(gene_two.bound_range().1, &100.0);
         assert!(gene_two.is_valid());
 
         assert_eq!(*gene_three.allele(), 10.0);
         // assert_eq!(*gene_three.min(), MIN);
-        assert_eq!(*gene_three.max(), MAX * 10.0);
-        assert_eq!(gene_three.bounds().0, &-1000.0);
-        assert_eq!(gene_three.bounds().1, &1000.0);
+        assert_eq!(*gene_three.init_max(), MAX * 10.0);
+        assert_eq!(gene_three.bound_range().0, &-1000.0);
+        assert_eq!(gene_three.bound_range().1, &1000.0);
     }
 
     #[test]

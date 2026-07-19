@@ -1,15 +1,13 @@
 from __future__ import annotations
 
-from .base import CodecBase
-
 from radiate.radiate import PyPermutationCodec
-from radiate.genome import Genotype, GeneType
-from radiate._bridge.wrapper import RsObject
+
+from .._bridge import RsObject
+from ..genome import GeneType, Genotype
+from .base import CodecBase
 
 
 class PermutationCodec[T](CodecBase[T, list[T]], RsObject):
-    gene_type = GeneType.PERMUTATION
-
     def __init__(self, alleles: list[T]):
         """
         Initialize the permutation codec with a PyPermutationCodec instance.
@@ -32,3 +30,7 @@ class PermutationCodec[T](CodecBase[T, list[T]], RsObject):
         :return: The decoded permutation representation of the Genotype.
         """
         return self._pyobj.decode_py(genotype=genotype.__backend__())
+
+    @property
+    def gene_type(self) -> GeneType:
+        return GeneType.PERMUTATION

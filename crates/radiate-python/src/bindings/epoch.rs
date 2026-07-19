@@ -1,8 +1,11 @@
 use super::PyGenotype;
-use crate::bindings::gp::{PyGraph, PyTree};
 use crate::{
     EpochHandle, IntoPyAnyObject, PyAnyObject, PyEcosystem, PyFront, PyMetricSet, PyPopulation,
-    PySpecies,
+    PySpecies, match_variant,
+};
+use crate::{
+    PyGeneType,
+    bindings::gp::{PyGraph, PyTree},
 };
 
 use pyo3::{
@@ -11,29 +14,6 @@ use pyo3::{
 };
 use radiate::prelude::*;
 use std::time::Duration;
-
-macro_rules! match_epoch {
-    ($handle:expr, $epoch:ident => $body:expr) => {{
-        use crate::EpochHandle::*;
-        match $handle {
-            UInt8($epoch) => $body,
-            UInt16($epoch) => $body,
-            UInt32($epoch) => $body,
-            UInt64($epoch) => $body,
-            Int8($epoch) => $body,
-            Int16($epoch) => $body,
-            Int32($epoch) => $body,
-            Int64($epoch) => $body,
-            Float32($epoch) => $body,
-            Float64($epoch) => $body,
-            Char($epoch) => $body,
-            Bit($epoch) => $body,
-            Permutation($epoch) => $body,
-            Graph($epoch) => $body,
-            Tree($epoch) => $body,
-        }
-    }};
-}
 
 #[pyclass(from_py_object)]
 pub struct PyGeneration {
@@ -90,11 +70,11 @@ impl PyGeneration {
     }
 
     pub fn index(&self) -> usize {
-        match_epoch!(&self.inner, epoch => epoch.index())
+        match_variant!(EpochHandle, &self.inner, epoch => epoch.index())
     }
 
     pub fn score<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyList>> {
-        let inner_score = match_epoch!(&self.inner, epoch => epoch.score());
+        let inner_score = match_variant!(EpochHandle, &self.inner, epoch => epoch.score());
         let score = inner_score.iter().cloned().collect::<Vec<f32>>();
 
         Ok(PyList::new(py, score)?.into_bound())
@@ -117,49 +97,48 @@ impl PyGeneration {
             Char(epoch) => get_value(py, epoch),
             Bit(epoch) => get_value(py, epoch),
             Permutation(epoch) => get_value(py, epoch),
-            Graph(epoch) => PyGraph {
-                inner: epoch.value().clone(),
-                eval_cache: None,
-            }
-            .into_bound_py_any(py),
-            Tree(epoch) => PyTree {
-                inner: epoch.value().clone(),
-            }
-            .into_bound_py_any(py),
+            Graph32(epoch) => PyGraph::from(epoch.value().clone()).into_bound_py_any(py),
+            Graph64(epoch) => PyGraph::from(epoch.value().clone()).into_bound_py_any(py),
+            Tree32(epoch) => PyTree::from(epoch.value().clone()).into_bound_py_any(py),
+            Tree64(epoch) => PyTree::from(epoch.value().clone()).into_bound_py_any(py),
         }
     }
 
     pub fn front(&self) -> PyResult<PyFront> {
-        match_epoch!(&self.inner, epoch => get_front(epoch))
+        match_variant!(EpochHandle, &self.inner, epoch => get_front(epoch))
     }
 
     pub fn metrics(&self) -> PyResult<PyMetricSet> {
-        let metrics = match_epoch!(&self.inner, epoch => epoch.metrics());
+        let metrics = match_variant!(EpochHandle, &self.inner, epoch => epoch.metrics());
         Ok(PyMetricSet::from(metrics.clone()))
     }
 
     pub fn ecosystem(&self) -> PyEcosystem {
-        match_epoch!(&self.inner, epoch => PyEcosystem::from(epoch.ecosystem().clone()))
+        match_variant!(EpochHandle, &self.inner, epoch => PyEcosystem::from(epoch.ecosystem().clone()))
     }
 
     pub fn species(&self) -> Option<Vec<PySpecies>> {
-        match_epoch!(&self.inner, epoch => epoch.species().map(|s| s.iter().cloned().map(PySpecies::from).collect()))
+        match_variant!(EpochHandle, &self.inner, epoch => epoch.species().map(|s| s.iter().cloned().map(PySpecies::from).collect()))
     }
 
     pub fn population(&self) -> PyPopulation {
-        match_epoch!(&self.inner, epoch => PyPopulation::from(epoch.population()))
+        match_variant!(EpochHandle, &self.inner, epoch => PyPopulation::from(epoch.population()))
     }
 
     pub fn duration(&self) -> Duration {
-        match_epoch!(&self.inner, epoch => epoch.time())
+        match_variant!(EpochHandle, &self.inner, epoch => epoch.time())
     }
 
     pub fn objective(&self) -> Vec<String> {
-        match_epoch!(&self.inner, epoch => get_objective_names(epoch.objective()))
+        match_variant!(EpochHandle, &self.inner, epoch => get_objective_names(epoch.objective()))
     }
 
     pub fn dtype<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         self.population().dtype(py)
+    }
+
+    pub fn gene_type(&self) -> PyGeneType {
+        self.population().gene_type()
     }
 
     pub fn __repr__(&self, py: Python) -> PyResult<String> {
@@ -169,7 +148,7 @@ impl PyGeneration {
         let dtype = self.dtype(py)?;
 
         let (objective, index) =
-            match_epoch!(&self.inner, epoch => (epoch.objective(), epoch.index()));
+            match_variant!(EpochHandle, &self.inner, epoch => (epoch.objective(), epoch.index()));
 
         Ok(format!(
             "Generation(\n\tindex={},\n\tscore={},\n\tdtype={},\n\t{},\n\tvalue={}\n)",

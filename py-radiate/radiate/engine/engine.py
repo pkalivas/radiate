@@ -1,55 +1,85 @@
 from __future__ import annotations
 
-from typing import Any, Sequence
 from collections.abc import Callable
 from pathlib import Path
+from typing import TYPE_CHECKING, Any, Sequence
 
-from radiate.expr import Expr
-from radiate.codec import (
-    FloatCodec,
-    IntCodec,
-    CharCodec,
+from radiate.codec.graph import GraphType
+from radiate.radiate import PyEngine
+
+from .._typing import AtLeastOne, Checkpoint, RdDataType, RdLossType, Subscriber
+from ..codec import (
     BitCodec,
+    CharCodec,
+    FloatCodec,
     GraphCodec,
-    TreeCodec,
+    IntCodec,
     PermutationCodec,
+    TreeCodec,
 )
-
-from radiate.operators import (
-    SelectorBase,
+from ..codec.base import CodecBase
+from ..dsl.dtype import Float64, Int64
+from ..dsl.expr import Expr
+from ..dsl.loss import MSE
+from ..genome import Chromosome, Gene, GeneType, Population
+from ..gp import Graph, Op, Tree
+from ..operators import (
     AlterBase,
-    DistanceBase,
     Executor,
-    LimitBase,
-    Rate,
-    ExprLimit,
+    Fitness,
 )
-from radiate.fitness import FitnessBase, Regression, MSE
-from radiate.genome import Population, GeneType, Gene, Chromosome
-from radiate.gp import Graph, Tree, Op
-from radiate.dtype import Float64, Int64
-from radiate.codec.base import CodecBase
-
-from radiate._bridge.input import EngineInput, EngineInputType
-from radiate._typing import (
-    AtLeastOne,
-    Checkpoint,
-    Subscriber,
-    RdDataType,
-    RdLossType,
-)
-
+from ..operators.distance import Dist
+from ..operators.filter import Filter
+from ..operators.limit import Limit
+from ..operators.selector import Select
 from .builder import EngineBuilder
 from .generation import Generation
 from .option import LogParam, UiParam, normalize_checkpoint_params
 
+if TYPE_CHECKING:
+    from radiate._rd import PyEngine
+
+
+class EngineRuntime[G, T]:
+    _engine: PyEngine
+
+    def __init__(self, engine: PyEngine):
+        self._engine = engine
+
+    def __iter__(self):
+        inner_iter = iter(self._engine)
+        while generation := next(inner_iter):
+            yield Generation.from_rust(generation)
+
+    def __next__(self) -> Generation[G, T]:
+        """Get the next generation from the engine. Supports next(engine)."""
+        generation = next(self._engine)
+        return Generation.from_rust(generation)
+
+    def run(
+        self,
+        log: bool = False,
+        ui: bool = False,
+        checkpoint: Checkpoint | None = None,
+    ) -> Generation[G, T]:
+        """Run the engine and return the resulting generation."""
+        log_option = LogParam(enable=log)
+        checkpoint_option = normalize_checkpoint_params(checkpoint)
+        ui_option = UiParam() if ui else None
+
+        options = [
+            opt.__backend__()
+            for opt in [log_option, checkpoint_option, ui_option]
+            if opt is not None
+        ]
+
+        return Generation.from_rust(self._engine.run(options))
+
 
 class Engine[G, T]:
-    """
-    Genetic Engine for optimization problems.
-    This class serves as the main interface for running genetic algorithms, allowing
-    the customization of various parameters of the engine.
-    """
+    _runtime: EngineRuntime[G, T] | None
+    _builder: EngineBuilder[G, T]
+    _codec: CodecBase[G, T]
 
     def __init__(
         self,
@@ -61,8 +91,9 @@ class Engine[G, T]:
                 "Input to engine must have an instance of CodecBase to be constructed"
             )
 
-        self._engine = None
-        self._builder = EngineBuilder._default(codec.gene_type, codec=codec, **kwargs)
+        self._runtime = None
+        self._builder = EngineBuilder._default(codec=codec, **kwargs)
+        self._codec = codec
 
     @staticmethod
     def float(
@@ -191,7 +222,7 @@ class Engine[G, T]:
         return Engine(codec=BitCodec(shape, use_numpy=use_numpy))
 
     @staticmethod
-    def permutation(items: list[T]) -> Engine[T, list[T]]:
+    def permutation[P](items: list[P]) -> Engine[P, list[P]]:
         """Create a genetic engine for optimizing permutations of a list of items."""
         return Engine(codec=PermutationCodec(items))
 
@@ -201,9 +232,9 @@ class Engine[G, T]:
         vertex: Op | list[Op] | None = None,
         edge: Op | list[Op] | None = None,
         output: Op | list[Op] | None = None,
-        values: dict[str, AtLeastOne[Op]] | None = None,
         max_nodes: int | None = None,
-        graph_type: str = "directed",
+        graph_type: GraphType = GraphType.DIRECTED,
+        dtype: RdDataType = Float64,
     ) -> Engine[Op, Graph]:
         """Create a genetic engine for optimizing graph structures."""
         codec = GraphCodec(
@@ -212,8 +243,8 @@ class Engine[G, T]:
             vertex=vertex,
             edge=edge,
             output=output,
-            values=values,
             max_nodes=max_nodes,
+            dtype=dtype,
         )
 
         return Engine(codec=codec)
@@ -226,7 +257,7 @@ class Engine[G, T]:
         vertex: Op | list[Op] | None = None,
         leaf: Op | list[Op] | None = None,
         root: Op | list[Op] | None = None,
-        values: dict[str, AtLeastOne[Op]] | None = None,
+        dtype: RdDataType = Float64,
     ) -> Engine[Op, Tree]:
         """Create a genetic engine for optimizing tree structures."""
         return Engine(
@@ -237,47 +268,32 @@ class Engine[G, T]:
                 vertex=vertex,
                 leaf=leaf,
                 root=root,
-                values=values,
+                dtype=dtype,
             )
         )
 
     def __iter__(self):
         """
-        Iterate over generations produced by the engine. I mean, all this really does is let you use the
-        engine as an iterator. Pretty self explanitory.
-
-        Example:
-        ---------
-        >>> import radiate as rd
-        >>> engine = (
-        ...     rd.Engine.int(5)
-        ...     .fitness(lambda indv: sum(indv))
-        ...     .minimizing()
-        ...     .limit(rd.Limit.generations(10))
-        ... )
-        >>> # iterate the engine for 10 generations and print out the index and score of each generation
-        >>> for generation in engine:
-        ...     print(generation.index(), generation.score())
+        Prepares the engine for looping. If the user breaks and restarts,
+        it automatically triggers a fresh run.
         """
-        return self
+        return EngineRuntime(self._builder.build())
 
     def __next__(self) -> Generation[G, T]:
-        """Get the next generation from the engine."""
-        if self._engine is None:
-            self._engine = self._builder.build()
+        """Get the next generation from the engine. Supports next(engine)."""
+        if self._runtime is None:
+            self._runtime = EngineRuntime(self._builder.build())
 
         try:
-            generation = self._engine.step_next()
-            return Generation.from_rust(generation)
+            return next(self._runtime)
         except StopIteration:
-            self._engine = None
-            raise
+            self._runtime = None
+            raise StopIteration
 
     def run(
         self,
-        *limits: LimitBase,
-        log: bool | LogParam = False,
-        ui: bool | UiParam = False,
+        log: bool = False,
+        ui: bool = False,
         checkpoint: Checkpoint | None = None,
     ) -> Generation[G, T]:
         """Run the engine with the given limits.
@@ -297,45 +313,18 @@ class Engine[G, T]:
         ---------
         >>> engine.run(log=True)
         >>> engine.run(ui=True)
-        >>> engine.run(rd.Limit.score(0.0001), log=True)
-        >>> engine.run(limit)
-        >>> engine.run(limit, checkpoint=True)
-        >>> engine.run(limit, checkpoint="checkpoints")
-        >>> engine.run(limit, checkpoint=(50, "checkpoints"))
+        >>> engine.run()
+        >>> engine.run(checkpoint=True)
+        >>> engine.run(checkpoint="checkpoints")
+        >>> engine.run(checkpoint=(50, "checkpoints"))
         >>> engine.run(
         ...     checkpoint=rd.EngineCheckpoint(50, "checkpoints", file_type="json"),
         ... )
         """
-
         engine = self._builder.build()
+        return EngineRuntime(engine).run(log=log, ui=ui, checkpoint=checkpoint)
 
-        limit_inputs = [
-            EngineInput(
-                input_type=EngineInputType.Limit,
-                component=lim.component,
-                allowed_genes=GeneType.all(),
-                **lim.args,
-            ).__backend__()
-            for lim in limits
-        ]
-
-        log_option = log if isinstance(log, LogParam) else LogParam(enable=log)
-        checkpoint_option = normalize_checkpoint_params(checkpoint)
-        ui_option = UiParam() if isinstance(ui, UiParam) or ui is True else None
-
-        options = list(
-            [
-                opt.__backend__()
-                for opt in [log_option, checkpoint_option, ui_option]
-                if opt is not None
-            ]
-        )
-
-        return Generation.from_rust(engine.run(limit_inputs, options))
-
-    def fitness(
-        self, fitness_func: Callable[[T], Any] | FitnessBase[T]
-    ) -> Engine[G, T]:
+    def fitness(self, fitness_func: Callable[[T], Any] | Fitness[T]) -> Engine[G, T]:
         """
         Set the fitness function for the engine.
 
@@ -471,10 +460,16 @@ class Engine[G, T]:
         ...     loss=rd.MAE,
         ... )
         """
+        if self._codec.gene_type not in (GeneType.GRAPH, GeneType.TREE):
+            raise ValueError(
+                "Regression is only supported for Graph and Tree gene types."
+            )
+
         self._builder.set_fitness(
-            Regression(
+            Fitness.regression(
+                self._codec.dtype(),
                 features,
-                targets,
+                targets=targets,
                 target_cols=target_cols,
                 feature_cols=feature_cols,
                 loss=loss,
@@ -486,8 +481,8 @@ class Engine[G, T]:
 
     def select(
         self,
-        offspring: SelectorBase | None = None,
-        survivor: SelectorBase | None = None,
+        offspring: Select | None = None,
+        survivor: Select | None = None,
         frac: float | None = None,
     ) -> Engine[G, T]:
         """
@@ -585,16 +580,16 @@ class Engine[G, T]:
 
     def diversity(
         self,
-        diversity: DistanceBase,
-        species_threshold: Rate | Expr | float = 0.5,
-        target_species: int | None = None,
+        diversity: Dist,
+        threshold: Expr | float = 0.5,
+        target: int | None = None,
     ) -> Engine[G, T]:
         """
         Set the diversity measure and species threshold for speciation in the engine.
 
         This method allows you to specify a distance-based diversity measure to promote genetic diversity in the population,
         as well as a species threshold that determines how individuals are grouped into species based on their genetic distance.
-        The default for this is None, so without specifiying a distance (diversity) measure, the engine will not perform speciation.
+        The default for this is None, so without specifying a distance (diversity) measure, the engine will not perform speciation.
         If a diversity measure is provided, the engine will use it to calculate genetic distances between individuals
         and group them into species based on the specified threshold. It should be noted that this increases the computational
         overhead of the engine, so it is recommended to use this feature when maintaining diversity is a concern for the problem at hand.
@@ -604,8 +599,9 @@ class Engine[G, T]:
         - Species Threshold: 0.5
         Args:
             diversity: A distance-based diversity measure to promote genetic diversity.
-            species_threshold: A threshold for grouping individuals into species based on genetic distance. Must be greater than 0.
-            target_species: If provided, the engine will dynamically adjust the species threshold to try to maintain the specified number of species in the population. Must be greater than 0.
+            threshold: A threshold for grouping individuals into species based on genetic distance. Must be greater than 0.
+            target: If provided, the engine will dynamically adjust the species threshold to try to maintain the specified
+                number of species in the population. Must be greater than 0.
         Returns:
             Engine: The engine instance with the diversity measure and species threshold set.
 
@@ -617,36 +613,14 @@ class Engine[G, T]:
         ...     rd.Engine.float(shape=[2, 2], init_range=(0.0, 10.0))
         ...     .fitness(my_fitness_function)
         ...     .diversity(
-        ...         rd.Dist.euclidean(), species_threshold=0.7
+        ...         rd.Dist.euclidean(), threshold=0.7
         ...     )  # <- use Euclidean distance for speciation with a threshold of 0.7
         ... )
         """
-        if target_species is not None:
-            if target_species <= 0:
-                raise ValueError("Target species must be greater than 0.")
-            initial_threshold = (
-                species_threshold
-                if isinstance(species_threshold, (int, float))
-                else 0.5
-            )
-
-            index = Expr.select("index")
-            thresh = Expr.select("species.threshold")
-            err = Expr.select("species.count").error(target_species) * 0.05
-
-            species_threshold = (
-                Expr.when(index < 2).then(initial_threshold).otherwise(err + thresh)
-            )
-
-        if isinstance(species_threshold, (int, float)):
-            if species_threshold <= 0:
-                raise ValueError("Species threshold must be greater than 0.")
-            species_threshold = Rate.fixed(species_threshold)
-
-        self._builder.set_diversity(diversity, species_threshold)
+        self._builder.set_diversity(diversity, threshold, target)
         return self
 
-    def limit(self, *limits: LimitBase | Expr) -> Engine[G, T]:
+    def limit(self, *limits: Limit | Expr) -> Engine[G, T]:
         """
         Set the limits for the engine.
 
@@ -699,13 +673,27 @@ class Engine[G, T]:
         """
         processed_limits = []
         for lim in limits:
-            if isinstance(lim, LimitBase):
+            if isinstance(lim, Limit):
                 processed_limits.append(lim)
             elif isinstance(lim, Expr):
-                processed_limits.append(ExprLimit(lim))
+                processed_limits.append(Limit.expr(lim))
             else:
-                raise ValueError("Limits must be instances of LimitBase or Expr.")
+                raise ValueError("Limits must be instances of Limit or Expr.")
         self._builder.set_limits(list(processed_limits))
+        return self
+
+    def filter(self, *filters: Filter) -> Engine[G, T]:
+        """
+        Set the filters for the engine.
+
+        This method allows you to specify one or more filters that will be applied during the evolution process.
+        Filters can be used to enforce constraints on the population, such as removing individuals that do not meet certain criteria.
+        If no filters are provided, the engine will not apply any filtering to the population.
+
+        Args:
+            *filters: One or more filters to apply during evolution.
+        """
+        self._builder.set_filters(list(filters))
         return self
 
     def size(self, size: int) -> Engine[G, T]:

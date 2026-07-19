@@ -1,5 +1,5 @@
 use radiate_core::{
-    AlterContext, AlterResult, BoundedGene, Chromosome, FloatGene, Gene, Mutate, Rate, Valid,
+    AlterContext, AlterResult, BoundedGene, Chromosome, Expr, FloatGene, Gene, Mutate, RateSet,
     random_provider,
 };
 use radiate_utils::Float;
@@ -13,16 +13,13 @@ use radiate_utils::Float;
 /// magnitudes will result in larger changes.
 #[derive(Debug, Clone)]
 pub struct JitterMutator {
-    rate: Rate,
+    rate: Expr,
     magnitude: f32,
 }
 
 impl JitterMutator {
-    pub fn new(rate: impl Into<Rate>, magnitude: f32) -> Self {
+    pub fn new(rate: impl Into<Expr>, magnitude: f32) -> Self {
         let rate = rate.into();
-        if !rate.is_valid() {
-            panic!("Rate is not valid: {:?}", rate);
-        }
 
         if magnitude <= 0.0 {
             panic!("Magnitude must be greater than 0");
@@ -37,8 +34,8 @@ where
     F: Float,
     C: Chromosome<Gene = FloatGene<F>>,
 {
-    fn rate(&self) -> Rate {
-        self.rate.clone()
+    fn rates(&self) -> RateSet {
+        RateSet::new(self.rate.clone())
     }
 
     #[inline]
@@ -51,7 +48,7 @@ where
                 if rand.bool(ctx.rate()) {
                     let change = rand.range(-F::ONE..F::ONE) * mag;
                     let new_allele = *gene.allele() + change;
-                    let (min, max) = gene.bounds();
+                    let (min, max) = gene.bound_range();
 
                     (*gene.allele_mut()) = new_allele.clamp(*min, *max);
                     count += 1;

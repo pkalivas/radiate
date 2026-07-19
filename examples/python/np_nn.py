@@ -5,15 +5,16 @@ It implements a simple feedforward neural network with 3 layers (input, hidden, 
 The network weights are evolved using a float codec.
 """
 
-import radiate as rd
-import numpy as np  # type: ignore
 from pathlib import Path
+
+import numpy as np  # type: ignore
+import radiate as rd
 
 rd.random.seed(123)
 
-ROOT = Path(__file__).parent
-WRITE_DIR = ROOT / "results"
-READ_DIR = ROOT / "results" / "chckpnt_440.pkl"
+ROOT = Path(__file__).parent.parent
+WRITE_DIR = ROOT / "data" / "scratch"
+READ_DIR = ROOT / "data" / "scratch" / "chckpnt_50.json"
 
 
 def compute(x: float) -> float:
@@ -56,9 +57,15 @@ def fit(weights: list[np.ndarray]) -> float:
     return float(np.mean((yhat - Y) ** 2, dtype=np.float32))
 
 
+@rd.on_stop
+def metrics_dashboard(event: rd.EngineEvent):
+    print(event.metrics().dashboard())
+
+
 engine = (
     rd.Engine.float(
-        # Create an engine that evolves genomes with 3 chromosomes, one for each layer's weights, 1 with 16 genes, 1 with 64 genes, and 1 with 8 genes
+        # Create an engine that evolves genomes with 3 chromosomes, one for each
+        # layer's weights, 1 with 16 genes, 1 with 64 genes, and 1 with 8 genes
         shape=[16, 64, 8],
         # Each gene is initialized randomly in the range [-1, 1]
         init_range=(-1.0, 1.0),
@@ -66,27 +73,25 @@ engine = (
         bounds=(-3.0, 3.0),
         # Decode radiate's backend (rust) chromosomes into numpy arrays for the fitness function
         use_numpy=True,
-        # Use 32-bit floats in radiate's backend (rust side) - note the numpy arrays will also be float32, so we avoid unnecessary up/down casting
+        # Use 32-bit floats in radiate's backend (rust side) - note the numpy
+        # arrays will also be float32, so we avoid unnecessary up/down casting
         dtype=rd.Float32,
     )
     .fitness(fit)
     .minimizing()
+    .subscribe(metrics_dashboard)
     .select(rd.Select.boltzmann(temp=4.0))
     .alters(rd.Cross.blend(0.7, 0.4), rd.Mutate.gaussian(0.1))
     .limit(rd.Limit.score(0.01), rd.Limit.generations(500))
 )
 
-result = engine.run(ui=True)
-metrics = result.metrics()
 
-print(result)
-print(metrics.dashboard())
+for epoch in engine:
+    print(f"Epoch {epoch.index()}: Best score = {epoch.score()}")
 
-# .load_checkpoint(
-#     READ_DIR, ignore_not_found=True
-# )  # Load from a previous checkpoint if it exists
 
-# checkpoint = (50, WRITE_DIR, "pkl")
+# # .load_checkpoint(
+# #     READ_DIR, ignore_not_found=True
+# # )  # Load from a previous checkpoint if it exists
 
-# for metric in metrics.values_by_tag(rd.Tag.DERIVED):
-#     print(metric)
+# # checkpoint = (50, WRITE_DIR, "pkl")

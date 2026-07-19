@@ -1,0 +1,8 @@
+[package]
+name = "flappy-bird"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+radiate = { workspace = true, features = ["gp"] }
+bevy = "0.19"

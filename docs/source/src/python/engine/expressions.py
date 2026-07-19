@@ -123,7 +123,7 @@ engine = rd.Engine.float(10, init_range=(-5.0, 5.0)).fitness(my_fitness_fn).mini
 # Stop when the best score has been below 0.01 on average over the last 50 generations
 stop_expr = rd.Expr.select("scores.best").rolling(50).mean() < 0.01
 
-result = engine.run(rd.Limit.expr(stop_expr))
+result = engine.limit(rd.Limit.expr(stop_expr)).run()
 # --8<-- [end:limit_expr]
 
 # Rebuild the engine + stop_expr (not shown) so the combined-limit snippet below is runnable.
@@ -131,16 +131,16 @@ engine = rd.Engine.float(10, init_range=(-5.0, 5.0)).fitness(my_fitness_fn).mini
 stop_expr = rd.Expr.select("scores.best").rolling(50).mean() < 0.01
 
 # --8<-- [start:limit_combined]
-result = engine.run(
+result = engine.limit(
     rd.Limit.expr(stop_expr),
     rd.Limit.generations(5000),  # hard ceiling
-)
+).run()
 # --8<-- [end:limit_combined]
 
 # --8<-- [start:derived_metrics]
 import radiate as rd
 
-score_trend = rd.Expr.select("scores.best").rolling(20).slope()
+score_trend = rd.Expr.select("scores.best").rolling(20).slope().debug()
 score_cv = (
     rd.Expr.select("scores.best").rolling(20).stddev()
     / rd.Expr.select("scores.best").rolling(20).mean()
@@ -154,10 +154,11 @@ engine = (
         score_trend=score_trend,
         score_cv=score_cv,
     )
+    .limit(rd.Limit.generations(500))
 )
 
 # These metrics are now available in every generation result
-result = engine.run(rd.Limit.generations(500))
+result = engine.run()
 metrics = result.metrics()
 print(metrics["score_trend"].value_last())
 print(metrics["score_cv"].value_last())
@@ -170,12 +171,13 @@ engine = (
     .fitness(my_fitness_fn)
     .minimizing()
     .metrics(score_trend=rd.Expr.select("scores.best").rolling(50).slope())
+    .limit(
+        rd.Limit.expr(abs(rd.Expr.select("score_trend")) < 0.0001),
+        rd.Limit.generations(5000),
+    )
 )
 
-result = engine.run(
-    rd.Limit.expr(abs(rd.Expr.select("score_trend")) < 0.0001),
-    rd.Limit.generations(5000),
-)
+result = engine.run()
 # --8<-- [end:derived_metrics_limit]
 
 # --8<-- [start:dynamic_rates]

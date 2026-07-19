@@ -1,9 +1,13 @@
-use crate::{PyGraph, PyTree, Wrap};
+use crate::bindings::datatype::py_object_into_2d_vec;
+use crate::{
+    PyGraph, PyTree, Wrap,
+    bindings::gp::{graph::PyGraphInner, tree::PyTreeInner},
+};
 use pyo3::{
     Bound, IntoPyObject, Py, PyAny, PyResult, Python, intern, pyclass, pyfunction, pymethods,
     types::PyAnyMethods,
 };
-use radiate::{Accuracy, AccuracyResult, DataSet, Eval, Loss};
+use radiate::{Accuracy, AccuracyResult, DataSet, EvalMut, GraphEvaluator, Loss, ops::OpFloat};
 use radiate_error::radiate_py_bail;
 
 #[pyclass]
@@ -58,8 +62,7 @@ impl PyAccuracy {
     }
 
     pub fn loss_fn<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-        let wrap = Wrap(self.inner.loss_fn());
-        wrap.into_pyobject(py)
+        Wrap(self.inner.loss_fn()).into_pyobject(py)
     }
 }
 
@@ -68,47 +71,88 @@ impl PyAccuracy {
 pub fn py_accuracy<'py>(
     py: Python<'py>,
     predictor: Py<PyAny>,
-    features: Vec<Vec<f32>>,
-    targets: Vec<Vec<f32>>,
+    features: &Bound<'py, PyAny>,
+    targets: &Bound<'py, PyAny>,
     loss: Option<String>,
     name: Option<String>,
 ) -> PyResult<PyAccuracy> {
-    if !features.len().eq(&targets.len()) {
+    let loss = parse_loss(loss)?;
+
+    if let Ok(mut graph) = predictor.extract::<PyGraph>(py) {
+        return match &mut graph.inner {
+            PyGraphInner::Float32(graph, _) => {
+                let features = py_object_into_2d_vec::<f32>(features)?;
+                let targets = py_object_into_2d_vec::<f32>(targets)?;
+                let mut evaluator = GraphEvaluator::new(graph);
+                run_accuracy(&mut evaluator, features, targets, loss, name)
+            }
+            PyGraphInner::Float64(graph, _) => {
+                let features = py_object_into_2d_vec::<f64>(features)?;
+                let targets = py_object_into_2d_vec::<f64>(targets)?;
+                let mut evaluator = GraphEvaluator::new(graph);
+                run_accuracy(&mut evaluator, features, targets, loss, name)
+            }
+        };
+    }
+
+    if let Ok(mut tree) = predictor.extract::<PyTree>(py) {
+        return match &mut tree.inner {
+            PyTreeInner::Float32(trees) => {
+                let features = py_object_into_2d_vec::<f32>(features)?;
+                let targets = py_object_into_2d_vec::<f32>(targets)?;
+                run_accuracy(trees, features, targets, loss, name)
+            }
+            PyTreeInner::Float64(trees) => {
+                let features = py_object_into_2d_vec::<f64>(features)?;
+                let targets = py_object_into_2d_vec::<f64>(targets)?;
+                run_accuracy(trees, features, targets, loss, name)
+            }
+        };
+    }
+
+    radiate_py_bail!("Unsupported predictor type for accuracy calculation");
+}
+
+fn run_accuracy<F, E>(
+    evaluator: &mut E,
+    features: Vec<Vec<F>>,
+    targets: Vec<Vec<F>>,
+    loss: Loss,
+    name: Option<String>,
+) -> PyResult<PyAccuracy>
+where
+    F: OpFloat,
+    E: EvalMut<[F], Vec<F>>,
+{
+    if features.len() != targets.len() {
         radiate_py_bail!("Accuracy: Features and targets must have the same number of samples");
     }
 
-    let data_set = DataSet::new(features, targets);
-    let loss = match loss {
-        Some(loss_name) => match loss_name.to_lowercase().trim() {
-            crate::names::MSE_LOSS => Loss::MSE,
-            crate::names::MAE_LOSS => Loss::MAE,
-            crate::names::CROSS_ENTROPY_LOSS => Loss::XEnt,
-            crate::names::DIFF_LOSS => Loss::Diff,
-            _ => panic!("Unsupported loss function: {}", loss_name),
+    let dataset = DataSet::new(features, targets);
+    let mut accuracy = Accuracy::<F>::default().loss(loss);
+
+    if let Some(name) = name {
+        accuracy = accuracy.named(name);
+    }
+
+    let accuracy = accuracy.on(&dataset);
+    let result = accuracy.calc(evaluator);
+
+    Ok(PyAccuracy { inner: result })
+}
+
+fn parse_loss(loss: Option<String>) -> PyResult<Loss> {
+    match loss {
+        None => Ok(Loss::MSE),
+        Some(loss) => match loss.trim().to_ascii_lowercase().as_str() {
+            crate::constants::loss_functions::MSE_LOSS => Ok(Loss::MSE),
+            crate::constants::loss_functions::MAE_LOSS => Ok(Loss::MAE),
+            crate::constants::loss_functions::CROSS_ENTROPY_LOSS => Ok(Loss::XEnt),
+            crate::constants::loss_functions::DIFF_LOSS => Ok(Loss::Diff),
+            _ => {
+                radiate_py_bail!("Unsupported loss function: {:loss?}");
+            }
         },
-        None => Loss::MSE,
-    };
-
-    let accuracy = match name {
-        Some(named_acc) => Accuracy::default()
-            .named(named_acc)
-            .loss(loss)
-            .on(&data_set),
-        None => Accuracy::default().loss(loss).on(&data_set),
-    };
-
-    if let Ok(graph) = predictor.extract::<PyGraph>(py) {
-        match accuracy.eval(&graph.inner) {
-            Some(result) => Ok(PyAccuracy { inner: result }),
-            None => radiate_py_bail!("Accuracy calculation for Graph failed during evaluation"),
-        }
-    } else if let Ok(tree) = predictor.extract::<PyTree>(py) {
-        match accuracy.eval(&tree.inner) {
-            Some(result) => Ok(PyAccuracy { inner: result }),
-            None => radiate_py_bail!("Accuracy calculation for Tree failed during evaluation"),
-        }
-    } else {
-        radiate_py_bail!("Unsupported predictor type for accuracy calculation");
     }
 }
 
@@ -119,25 +163,16 @@ impl<'py> IntoPyObject<'py> for &Wrap<Loss> {
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         use crate::bindings::radiate;
+
         let rd = radiate(py).bind(py);
 
-        match self.0 {
-            Loss::MSE => {
-                let class = rd.getattr(intern!(py, "MSE"))?;
-                class.call0()
-            }
-            Loss::MAE => {
-                let class = rd.getattr(intern!(py, "MAE"))?;
-                class.call0()
-            }
-            Loss::XEnt => {
-                let class = rd.getattr(intern!(py, "XEnt"))?;
-                class.call0()
-            }
-            Loss::Diff => {
-                let class = rd.getattr(intern!(py, "Diff"))?;
-                class.call0()
-            }
-        }
+        let class = match self.0 {
+            Loss::MSE => rd.getattr(intern!(py, "MSE"))?,
+            Loss::MAE => rd.getattr(intern!(py, "MAE"))?,
+            Loss::XEnt => rd.getattr(intern!(py, "XEnt"))?,
+            Loss::Diff => rd.getattr(intern!(py, "Diff"))?,
+        };
+
+        class.call0()
     }
 }

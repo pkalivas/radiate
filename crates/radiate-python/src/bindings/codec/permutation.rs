@@ -1,7 +1,11 @@
 use super::PyCodec;
-use crate::{PyAnyObject, PyGenotype};
-use pyo3::{Bound, IntoPyObjectExt, Py, PyAny, PyResult, pyclass, pymethods, types::PyList};
-use radiate::{Chromosome, Codec, Gene, PermutationChromosome, PermutationGene, random_provider};
+use crate::{PyAnyObject, PyGenotype, Wrap};
+use pyo3::{
+    Bound, IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods, types::PyList,
+};
+use radiate::{
+    Chromosome, Codec, DataType, Gene, PermutationChromosome, PermutationGene, random_provider,
+};
 use std::sync::Arc;
 
 #[pyclass(from_py_object)]
@@ -25,6 +29,10 @@ impl PyPermutationCodec {
         self.codec
             .decode_with_py(py, &genotype.clone().into())
             .into_bound_py_any(py)
+    }
+
+    pub fn dtype<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        Wrap(DataType::Usize).into_bound_py_any(py)
     }
 
     #[new]

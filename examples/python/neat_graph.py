@@ -6,6 +6,7 @@ engine construction is the addition of the NEAT distance function and species
 threshold in the `.diversity(...)` method.
 """
 
+import numpy as np
 import radiate as rd
 
 rd.random.seed(514)
@@ -24,6 +25,8 @@ for _ in range(-10, 10):
     inputs.append([input])
     answers.append([compute(input)])
 
+inputs = np.array(inputs, dtype=np.float32)  # (N, 1)
+answers = np.array(answers, dtype=np.float32)  # (N, 1)
 
 engine = (
     rd.Engine.graph(
@@ -31,13 +34,14 @@ engine = (
         vertex=[rd.Op.sub(), rd.Op.mul(), rd.Op.linear()],
         edge=rd.Op.weight(),
         output=rd.Op.linear(),
+        dtype=rd.Float32,  # specify the dtype of the underlying graph node's Op's dtype T (Op<T>) - input data (X, Y) must match this dtype
     )
     .select(rd.Select.boltzmann(temp=4.0))
+    # .filter(rd.Filter.unique_score()). # uncomment to filter out phenotypes with duplicate scores each generation
     .regression(inputs, answers, loss=rd.MSE)
     .diversity(
         rd.Dist.neat(excess=1.0, disjoint=1.0, weight_diff=3.0),
-        species_threshold=0.15,
-        target_species=5,
+        target=5,
     )
     .alters(
         rd.Cross.graph(0.4, 0.5),
@@ -55,3 +59,4 @@ accuracy = rd.accuracy(result.value(), inputs, answers, loss=rd.MSE)
 print(result)
 print(result.metrics().dashboard())
 print(accuracy)
+print(f"Graph Dtype: {result.value().dtype()}")

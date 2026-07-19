@@ -1,10 +1,10 @@
 use super::PyCodec;
-use crate::{PyAnyObject, PyChromosome, PyGene, PyGenotype};
+use crate::{PyAnyObject, PyChromosome, PyGene, PyGenotype, Wrap};
 use pyo3::{
-    Bound, IntoPyObjectExt, PyAny, PyResult, pyclass, pymethods,
+    Bound, IntoPyObjectExt, PyAny, PyResult, Python, pyclass, pymethods,
     types::{PyList, PyListMethods},
 };
-use radiate::{CharChromosome, CharGene, Chromosome, Codec, Gene, Genotype};
+use radiate::{CharChromosome, CharGene, Chromosome, Codec, DataType, Gene, Genotype};
 
 #[pyclass(from_py_object)]
 #[derive(Clone)]
@@ -26,6 +26,10 @@ impl PyCharCodec {
         self.codec
             .decode_with_py(py, &genotype.clone().into())
             .into_bound_py_any(py)
+    }
+
+    pub fn dtype<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        Wrap(DataType::Char).into_bound_py_any(py)
     }
 
     #[staticmethod]

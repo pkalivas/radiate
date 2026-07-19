@@ -14,6 +14,7 @@ impl From<RadiateError> for PyErr {
             RadiateError::Metric(message) => PyRuntimeError::new_err(message),
             RadiateError::Expr(message) => PyRuntimeError::new_err(message),
             RadiateError::Other(message) => PyRuntimeError::new_err(message),
+            RadiateError::AnyValue(message) => PyRuntimeError::new_err(message),
             RadiateError::Multiple(m) => PyRuntimeError::new_err(m),
             // Context wraps another error; classify by the root cause so the
             // exception type reflects what went wrong, while the message keeps

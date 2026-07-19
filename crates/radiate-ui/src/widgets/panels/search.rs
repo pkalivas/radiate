@@ -36,9 +36,14 @@ impl<'a, C: Chromosome> Widget for SearchBarWidget<'a, C> {
         let border_style = crate::styles::panel_block(self.state.nav.is_search_focused());
 
         let total_renders = self.state.run.render_count;
+        let metric_summary = self.state.evo.metrics.summary();
 
         let renders = vec![
-            " Renders: ".fg(Color::Gray).bold(),
+            " Metrics: ".fg(Color::Gray).bold(),
+            format!("{}", metric_summary.metrics).fg(Color::LightGreen),
+            ", ".fg(Color::Gray).bold(),
+            format!("{} ", metric_summary.updates).fg(Color::LightGreen),
+            "| Renders: ".fg(Color::Gray).bold(),
             format!("{} ", total_renders).fg(Color::LightGreen),
         ];
 

@@ -16,6 +16,7 @@ pub mod stats;
 
 use radiate_error::Result;
 pub use radiate_error::{RadiateError, ensure, radiate_err};
+pub use radiate_expr::*;
 
 pub use alter::{AlterContext, AlterResult, Alterer, Crossover, Mutate};
 pub use codecs::{
@@ -33,12 +34,13 @@ pub use genome::*;
 pub use objectives::{Front, Objective, Optimize, Score, pareto};
 pub use problem::Problem;
 pub use radiate_utils::{AnyValue, DataType, SmallStr, dtype, dtype_names, value};
-pub use rate::Rate;
-pub use replacement::{EncodeReplace, PopulationSampleReplace, ReplacementStrategy};
+pub use rate::RateSet;
+pub use replacement::{
+    EcosystemFilter, EncodeReplace, PopulationSampleReplace, ReplacementStrategy, UniqueScoreFilter,
+};
 pub use selector::Select;
 pub use stats::{
-    Evaluate, Expr, Metric, MetricQuery, MetricSet, MetricUpdate, SelectExpr, metric_names,
-    render_dashboard, render_full,
+    Metric, MetricSet, MetricUpdate, expr, metric_names, render_dashboard, render_full,
 };
 
 pub mod prelude {
@@ -57,14 +59,15 @@ pub mod prelude {
         BatchFitnessFunction, BatchedFn, CompositeFitnessFn, FitnessFunction, NoveltySearch,
     };
     pub use super::genome::{
-        ArithmeticGene, BitChromosome, BitGene, BoundedGene, CharChromosome, CharGene, Chromosome,
-        FloatChromosome, FloatGene, Gene, IntChromosome, IntGene, Valid,
+        BitChromosome, BitGene, BoundedGene, CharChromosome, CharGene, Chromosome, FloatChromosome,
+        FloatGene, Gene, IntChromosome, IntGene, Valid,
     };
     pub use super::objectives::{Front, Objective, Optimize, Score, pareto};
     pub use super::problem::Problem;
-    pub use super::replacement::{EncodeReplace, PopulationSampleReplace, ReplacementStrategy};
-    pub use super::selector::Select;
-    pub use super::stats::{
-        Evaluate, Expr, Metric, MetricQuery, MetricSet, SelectExpr, metric_names,
+    pub use super::replacement::{
+        EcosystemFilter, EncodeReplace, PopulationSampleReplace, ReplacementStrategy,
+        UniqueScoreFilter,
     };
+    pub use super::selector::Select;
+    pub use super::stats::{Metric, MetricSet, expr, metric_names};
 }
