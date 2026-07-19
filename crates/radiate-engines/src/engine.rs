@@ -21,7 +21,7 @@ use radiate_core::error::Result;
 /// use radiate_engines::*;
 ///
 /// // Define a codec that encodes and decodes individuals in the population, in this case using floats.
-/// let codec = FloatCodec::matrix(1, 5, 0.0..100.0);
+/// let codec = FloatCodec::matrix(vec![5], 0.0..100.0);
 /// // This codec will encode Genotype instances with 1 Chromosome and 5 FloatGenes,
 /// // with random alleles between 0.0 and 100.0. It will decode into a Vec<Vec<f32>>.
 /// // eg: [[1.0, 2.0, 3.0, 4.0, 5.0]]

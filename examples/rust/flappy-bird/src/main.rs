@@ -38,7 +38,7 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
-                title: "Radiate — Flappy Bird NEAT".into(),
+                title: "Radiate — Flappy Bird".into(),
                 resolution: (900_u32, 700_u32).into(),
                 ..default()
             }),
