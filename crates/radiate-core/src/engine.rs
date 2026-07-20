@@ -87,39 +87,33 @@ pub trait Engine {
     /// - Convergence metrics
     /// - Any other state information needed for monitoring or decision-making
     type Epoch;
+    /// The type representing the context of the engine, which may include configuration,
+    /// state, and other relevant information. This allows external systems to inspect
+    /// the engine's state without needing to clone or modify it.
     type Ctx;
 
-    /// Advances the engine to the next epoch or generation.
-    ///
-    /// This method encapsulates one complete iteration of the evolutionary algorithm.
-    /// It should perform all necessary operations to progress the population from
-    /// the current state to the next generation, including:
-    /// - Fitness evaluation
-    /// - Selection
-    /// - Reproduction (crossover and mutation)
-    /// - Population replacement
-    /// - Any other evolutionary operators
-    ///
-    /// # Returns
-    ///
-    /// An instance of `Self::Epoch` representing the new state after the evolution step
-    ///
-    /// # Side Effects
-    ///
-    /// This method is mutable for allowance of modification of the internal state of the engine,
-    /// advancing the evolutionary process. The engine should maintain its state between calls
-    /// to allow for continuous evolution over multiple generations.
-    ///
-    /// # Performance
-    ///
-    /// This method is called repeatedly during execution, so it should be
-    /// optimized for performance.
+    /// Returns a reference to the current context of the engine. This is meant to
+    /// provide a read-only view of the engine's internal state, to allow external systems
+    /// close to the engine level, to inspect the engine without cloning anything.
     fn context(&self) -> &Self::Ctx;
-
+    /// Returns an epoch of the engine, which is intended to be a snapshot of the current state, or
+    /// the current context. The `Epoch` here can be given to iterators, callers, or anyone else who needs it.
+    /// Essentially to say, this shouldn't borrow anything from the engine, but instead be an owned snapshot
+    /// of the engine
     fn epoch(&self) -> Self::Epoch;
-
+    /// Advances the engine by one step, performing the necessary computations to progress
+    /// the evolutionary algorithm. This may include evaluating fitness, selecting individuals,
+    /// applying genetic operators, and updating the population. This intentionally does not return anything,
+    /// that is left up to the `epoch()` method or the `next()` method. It's done this way so we
+    /// can advance the engine without having to clone or create any new data, and possibly perform operations
+    /// outside of the engine which don't require a snapshot of the engine state.
     fn step(&mut self) -> Result<()>;
-
+    /// Advances the engine by one step and returns the resulting epoch. This method combines
+    /// the functionality of `step()` and `epoch()`, allowing for a single call to
+    /// progress the engine and retrieve the current state. This is useful for iterating
+    /// through generations in a loop or for implementing custom termination conditions. Keep in mind, though,
+    /// that because this method returns an epoch immediately after stepping, it may not be as efficient
+    /// as calling `step()` and `epoch()` separately, especially if the epoch is expensive to construct.
     fn next(&mut self) -> Result<Self::Epoch> {
         self.step().map(|_| self.epoch())
     }

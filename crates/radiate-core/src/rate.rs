@@ -1,9 +1,8 @@
+use crate::{MetricSet, error::RadiateResult};
 use radiate_error::radiate_bail;
 pub use radiate_expr::*;
 use radiate_utils::SmallStr;
 use smallvec::SmallVec;
-
-use crate::{MetricSet, error::RadiateResult};
 
 const DEFAULT_VALUE: f32 = 1.0;
 
