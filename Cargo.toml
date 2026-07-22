@@ -75,9 +75,9 @@ numpy ="0.29.0"
 rayon = "1.12.0"
 itertools = "0.15.0"
 smallvec = { version = "1.15.2", features = ["serde"] }
-thiserror = "2.0.18"
-serde = { version = "1.0.228", features = ["derive", "rc"] }
-serde_json = { version = "1.0.150" }
+thiserror = "2.0.19"
+serde = { version = "1.0.229", features = ["derive", "rc"] }
+serde_json = { version = "1.0.151" }
 serde-pickle = "1.1"
 compact_str = { version = "0.10.0" }
 foldhash = "0.2.0"
