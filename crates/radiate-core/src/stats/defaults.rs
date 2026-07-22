@@ -43,8 +43,6 @@ pub mod metric_names {
     pub const CARRYOVER_RATIO: SmallStr = SmallStr::from_static("pct.carryover");
     pub const DIVERSITY_RATIO: SmallStr = SmallStr::from_static("pct.diversity");
 
-    pub const DIVERSITY_RATE: SmallStr = SmallStr::from_static("rate.diversity");
-
     pub const SCORES: SmallStr = SmallStr::from_static("scores");
     pub const BEST_SCORES: SmallStr = SmallStr::from_static("scores.best");
     pub const SCORES_TREND: SmallStr = SmallStr::from_static("scores.trend");

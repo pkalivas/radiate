@@ -15,7 +15,7 @@ A `metric` is essentially a statistic with a name and some extra metadata attach
 
 There are a few different types of metrics that can be collected:
 
-1. **Numeric Metric**: A plain old metric that collects single point numeric data each generation and aggregates it over the _entire_ evolutionary run. For example, the `rate.diversity` metric collects the diversity rate each generation and adds it to the previous generation's metrics. 
+1. **Numeric Metric**: A plain old metric that collects single point numeric data each generation and aggregates it over the _entire_ evolutionary run. For example, the `pct.diversity` metric collects the diversity ratio each generation and folds it into the running statistic alongside every prior generation's value. 
 2. **Duration Metric**: A metric that collects timing information for various components of the engine. For example, the `time.evaluation` metric collects the time taken to perform evaluations each generation and adds it to the previous generation's metrics. When accessed, it should be noted that when calling `metric.time()` the underlying statistic will convert the numerical data to a `Duration` object, which provides methods for accessing the time in different units (e.g., seconds, milliseconds, etc.).
 3. **Distribution Metric**: A metric that collects a distribution of data each generation, replacing the previous generation's data. For example, the `scores` metric collects the scores of all individuals in the population each generation, replacing the previous generation's scores. This means that each generation, the metric reflects only the _current_ generation's state, nothing before it.
 
@@ -41,21 +41,23 @@ Metrics collected by default (always included):
 | `genome.size`       | The size of each genome over the evolution process. This is usually static and doesn't change. |
 | `replace.age`       | The number of individuals replaced based on age. |
 | `replace.invalid`   | The number of individuals replaced based on invalid structure (e.g. Bounds). |
-| `unique.members`   | The number of unique members in the `Ecosystem`. |
+| `unique.members`   | The number of individuals in the `Ecosystem` with a distinct identity this generation. This is not about score or genotype equality — it drops below population size only when the same individual occupies more than one population slot (e.g. selection with replacement cloning a survivor into multiple spots). |
 | `unique.scores`    | The number of unique scores in the `Ecosystem`. |
 | `new.children`     | The number of new children created each generation through either mutation or crossover (or both). |
 | `count.survivor`   | The number of individuals that survived to the next generation - summation throughout the evolution process. |
 | `count.evaluation` | The total number of evaluations performed per generation. |
-| `rate.carryover`   | The rate at which unique individuals are carried over to the next generation - `survivor_count` per generation / population size. |
-| `rate.diversity`  | The ratio of unique scores to the size of the `Ecosystem`. |
-| `score.volatility` | The volatility of the scores in the `Ecosystem`. This is calculated as the standard deviation of the scores / mean. |
+| `count.stagnation` | The number of consecutive generations since the best score last improved. Resets to `0` on any improvement. |
+| `pct.carryover`   | The rate at which unique individuals are carried over to the next generation - `survivor_count` per generation / population size. |
+| `pct.diversity`  | The ratio of `unique.members` to the size of the `Ecosystem` — not a score-based measure; see `unique.members` above. |
+| `score.volatility` | The volatility of the scores in the `Ecosystem`. This is calculated as the standard deviation of the scores / mean. **Only emitted for single-objective runs** — under multi-objective optimization the underlying bare `scores` metric isn't populated (it's written per-dimension instead), so this metric is omitted entirely rather than suffixed. |
 | `score.improvement` | The improvement of the best score from the previous generation to the current generation - either a 1 or 0 each generation. |
 
-A few default metrics are only collected when the relevant data exists:
+A few default metrics are only collected when the relevant data exists or a specific feature is opted into:
 
 | Name                | Description                                                                 |
 |---------------------|-----------------------------------------------------------------------------|
 | `genome.size.score.corr` | Pearson correlation between genome size and fitness across the population, in `[-1, 1]` — the bloat signal. Only emitted when genome length actually varies (variable-length GP genomes); for fixed-length genomes there is no size variance and the metric is omitted. |
+| `filter.unique.scores` | The number of individuals replaced this generation by a `UniqueScoreFilter` — an opt-in stagnation-recovery filter that, once the best score has gone stagnant past a configured threshold, replaces individuals whose score duplicates another member's. `0` whenever the filter isn't registered or hasn't triggered. |
 
 !!! note "Multi-objective naming"
 

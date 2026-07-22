@@ -74,7 +74,7 @@ pub fn diversity_signal(window: usize, min: f32, max: f32) -> Expr {
         .mul(max - min)
         .add(min)
         .clamp(min, max)
-        .alias(format!("{}.[{}]", metric_names::DIVERSITY_RATE, window))
+        .alias(format!("{}.[{}]", metric_names::DIVERSITY_RATIO, window))
 }
 
 // True when best score hasn't meaningfully moved in `window` generations
