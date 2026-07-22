@@ -27,5 +27,3 @@ site/
 examples/data/results/*
 *.mypy_cache
 *examples/data/scratch/*
-
-26.md
