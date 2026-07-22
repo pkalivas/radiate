@@ -52,6 +52,41 @@ engine = (
 # --8<-- [end:handler_subclass]
 
 
+# --8<-- [start:decorator_handlers]
+import radiate as rd
+
+
+# Each decorator pins the handler to a single EventType, so you skip the
+# subclass-and-override boilerplate for single-purpose handlers.
+@rd.on_start
+def log_start(event: rd.EngineEvent) -> None:
+    print("Evolution has started!")
+
+
+@rd.on_epoch  # NOTE: maps to EPOCH_COMPLETE, not EPOCH_START
+def log_epoch(event: rd.EngineEvent) -> None:
+    print(f"Epoch {event.index()}: best score = {event.score()}")
+
+
+@rd.on_improvement
+def log_improvement(event: rd.EngineEvent) -> None:
+    print(f"New best found at epoch {event.index()}: {event.score()}")
+
+
+@rd.on_stop
+def log_stop(event: rd.EngineEvent) -> None:
+    print(event.metrics().dashboard())
+
+
+# Each decorated function is already a full handler, so subscribe them directly
+engine = (
+    rd.Engine.int(10, init_range=(0, 100))
+    .fitness(your_fitness_func)
+    .subscribe(log_start, log_epoch, log_improvement, log_stop)
+    # ... other parameters ...
+)
+# --8<-- [end:decorator_handlers]
+
 # --8<-- [start:score_plotter]
 class ScorePlotterHandler(rd.EventHandler):
     """

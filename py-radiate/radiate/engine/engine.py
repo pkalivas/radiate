@@ -748,7 +748,7 @@ class Engine[G, T]:
 
         Defaults:
         - **max_phenotype_age**: 20
-        - **max_species_age**: 20
+        - **max_species_age**: 25
 
         Args:
             max_phenotype_age: The maximum age for phenotypes (individuals) in the population. Must be greater than 0. If None, the default will be used.
