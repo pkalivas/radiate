@@ -31,14 +31,14 @@ fn main() {
     // --8<-- [start:metric_tags]
     // Create the evolution engine
 
-    let mut engine = GeneticEngine::builder()
+    let engine = GeneticEngine::builder()
         .codec(IntCodec::vector(10, 0..100))
         .minimizing()
         .fitness_fn(|geno: Vec<i32>| geno.iter().sum::<i32>())
         .build();
 
-    // Run the engine
-    let result = engine.run(|generation| generation.index() >= 1000);
+    // Run the engine for 1000 generations
+    let result = engine.iter().until_generation(1000).last().unwrap();
 
     // Access the metrics from the result
     let metrics: &MetricSet = result.metrics();

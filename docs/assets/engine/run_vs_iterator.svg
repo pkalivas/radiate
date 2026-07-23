@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="400" viewBox="0 0 680 400" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">
+  <defs>
+    <marker id="ah" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#57606a"/>
+    </marker>
+  </defs>
+
+  <rect x="0.5" y="0.5" width="679" height="399" rx="12" fill="#ffffff" stroke="#d0d7de"/>
+
+  <!-- ===== Panel 1: Limit-driven run()/last() ===== -->
+  <text x="24" y="38" font-size="15" font-weight="700" fill="#1f2328">Limit-driven — EngineRuntime::run() / .last()</text>
+  <text x="24" y="56" font-size="11" fill="#57606a">inherent methods, no closure — epoch() built ONCE, only after the loop ends</text>
+
+  <path d="M 214,74 Q 239,26 264,74" fill="none" stroke="#57606a" stroke-width="2" marker-end="url(#ah)"/>
+  <text x="239" y="20" text-anchor="middle" font-size="10" fill="#57606a">loop while Limits pass</text>
+
+  <rect x="20" y="74" width="130" height="40" rx="8" fill="#f6f8fa" stroke="#d0d7de"/>
+  <text x="85" y="98" text-anchor="middle" font-size="12" fill="#1f2328">EngineRuntime</text>
+
+  <line x1="150" y1="94" x2="186" y2="94" stroke="#57606a" stroke-width="2" marker-end="url(#ah)"/>
+
+  <rect x="188" y="74" width="90" height="40" rx="8" fill="#ddf4ff" stroke="#54aeff"/>
+  <text x="233" y="98" text-anchor="middle" font-size="12" fill="#0a3069">step()</text>
+
+  <line x1="278" y1="94" x2="330" y2="94" stroke="#57606a" stroke-width="2" marker-end="url(#ah)"/>
+  <text x="304" y="84" text-anchor="middle" font-size="10" fill="#57606a">done</text>
+
+  <rect x="332" y="74" width="100" height="40" rx="8" fill="#fff8c5" stroke="#d4a72c"/>
+  <text x="382" y="94" text-anchor="middle" font-size="12" fill="#7d4e00">epoch()</text>
+  <text x="382" y="108" text-anchor="middle" font-size="9" fill="#7d4e00">called ONCE</text>
+
+  <line x1="432" y1="94" x2="472" y2="94" stroke="#57606a" stroke-width="2" marker-end="url(#ah)"/>
+
+  <rect x="474" y="74" width="120" height="40" rx="8" fill="#dafbe1" stroke="#2da44e"/>
+  <text x="534" y="98" text-anchor="middle" font-size="12" font-weight="700" fill="#1a7f37">Generation</text>
+
+  <text x="24" y="130" font-size="10" font-style="italic" fill="#57606a">e.g. engine.iter().take(100).last() — .iter() alone does not change this; .last() is what matters</text>
+
+  <line x1="24" y1="150" x2="656" y2="150" stroke="#eaeef2"/>
+
+  <!-- ===== Panel 2: closure run() or Iterator::next() ===== -->
+  <text x="24" y="182" font-size="15" font-weight="700" fill="#1f2328">Needs the epoch — closure run(), or Iterator::next()</text>
+  <text x="24" y="200" font-size="11" fill="#57606a">GeneticEngine::run(closure) and for-loops/next() both cost the same: epoch() every call</text>
+
+  <rect x="20" y="218" width="130" height="40" rx="8" fill="#f6f8fa" stroke="#d0d7de"/>
+  <text x="85" y="242" text-anchor="middle" font-size="12" fill="#1f2328">Engine / Runtime</text>
+
+  <line x1="150" y1="238" x2="186" y2="238" stroke="#57606a" stroke-width="2" marker-end="url(#ah)"/>
+
+  <rect x="188" y="218" width="90" height="40" rx="8" fill="#ddf4ff" stroke="#54aeff"/>
+  <text x="233" y="242" text-anchor="middle" font-size="12" fill="#0a3069">step()</text>
+
+  <line x1="278" y1="238" x2="330" y2="238" stroke="#57606a" stroke-width="2" marker-end="url(#ah)"/>
+
+  <rect x="332" y="218" width="100" height="40" rx="8" fill="#fff8c5" stroke="#d4a72c"/>
+  <text x="382" y="238" text-anchor="middle" font-size="12" fill="#7d4e00">epoch()</text>
+  <text x="382" y="252" text-anchor="middle" font-size="9" fill="#7d4e00">called EVERY call</text>
+
+  <line x1="432" y1="238" x2="472" y2="238" stroke="#57606a" stroke-width="2" marker-end="url(#ah)"/>
+
+  <rect x="474" y="218" width="120" height="40" rx="8" fill="#dafbe1" stroke="#2da44e"/>
+  <text x="534" y="242" text-anchor="middle" font-size="12" font-weight="700" fill="#1a7f37">Generation</text>
+
+  <path d="M 534,258 Q 300,326 85,258" fill="none" stroke="#57606a" stroke-width="2" marker-end="url(#ah)"/>
+  <text x="310" y="322" text-anchor="middle" font-size="10" fill="#57606a">closure/for-loop checks it, then calls again</text>
+
+  <text x="24" y="352" font-size="11" fill="#57606a">e.g. engine.run(|gen| gen.index() &gt;= 100), or for epoch in engine.iter() { ... }</text>
+  <text x="24" y="380" font-size="11" fill="#57606a">a Generation clones the ecosystem to build — use Limits (top) when you only need the final result</text>
+</svg>

@@ -1,9 +1,5 @@
 # Expressions
 
-!!! warning ":construction: Under Construction :construction:"
-
-    As of `05/18/2026`: These docs are a work in progress and may not be complete or fully accurate. Please check back later for updates. This feature is currently in active development and subject to change.
-
 Radiate includes a composable expression system that lets you query and transform the engine's metric state at runtime. Expressions are stateful, lazily-evaluated trees — each call to `.apply()` or an internal engine dispatch consumes one "tick" of any stateful nodes (rolling windows, schedules, etc.). This system was designed to be extremely similar to [polars' expression API](https://pola-rs.github.io/polars/py-polars/html/reference/expressions/index.html) to leverage the same mental model of lazy evaluation and chaining, but adapted to radiate's needs.
 
 Expressions are used in three places within the engine:
@@ -130,7 +126,7 @@ Expressions support standard comparison and boolean operators. These always prod
 
 Expressions are evaluated against the engine's `MetricSet`. Meaning any metric inside the metric set can be selected and transformed with expressions. The most commonly used metrics are documented in the [Metrics reference](../engine/metrics.md), but you can also select any custom metric you've registered via `register_metrics` or that the engine produces internally.
 
-Additional metrics are available when the engine is configured for [species-based diversity](../diversity/index.md) (`count.species`, `age.species`, etc.) or [multi-objective optimization](../objectives.md) (`size.front`, `front.entropy`, etc.).
+Additional metrics are available when the engine is configured for [species-based diversity](../diversity/index.md) (`species.count`, `species.age`, etc.) or [multi-objective optimization](../objectives.md) (`front.size`, `front.entropy`, etc.).
 
 By default `expr::select("metric_name")` reads `last_value`. To interpret the value as a duration, chain `.time()` before the aggregation:
 

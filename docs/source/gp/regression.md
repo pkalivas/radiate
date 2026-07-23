@@ -37,6 +37,6 @@ Let's take a quick look at how we would put together a regression problem using 
     ```
 
 
-More robust examples can be found in the next section or in the [tree](https://github.com/pkalivas/radiate/tree/master/examples/trees) and [graph](https://github.com/pkalivas/radiate/tree/master/examples/graphs) examples in the git repository.
+More robust examples can be found in the next section or in the [tree](https://github.com/pkalivas/radiate/tree/master/examples/trees) and [graph](https://github.com/pkalivas/radiate/tree/master/examples/rust/graphs) examples in the git repository.
 
 ---

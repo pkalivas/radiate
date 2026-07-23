@@ -16,7 +16,7 @@ pub use context::EvolutionContext;
 pub use control::EngineControl;
 pub use engine::GeneticEngine;
 pub use events::{EngineEvent, EngineEventInner, EventBus, EventHandler};
-pub use generation::Generation;
+pub use generation::{Generation, GenerationView};
 pub use io::{FileReader, FileWriter, JsonReader, JsonWriter};
 pub use limit::Limit;
 pub use runtime::EngineRuntime;

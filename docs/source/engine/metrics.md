@@ -11,12 +11,12 @@ The `MetricSet` is an object (struct) provided to the user in two main forms:
 1. On the engine's `Generation` - given to the user after each epoch or each pass of the evolution process.
 2. Through the engine's eventing system. Various events emit metric data allowing the user to track metrics or derive their own in real-time.
 
-A `metric` is essentially a statistic with a name and some extra metadata attached to it. The `Statistic` exposes a number of different statistical measures that can be used to summarize the data, such as, `last_value`, `count`, `min`, `max`, `mean`, `sum`, `variance`, `std_dev`, `skewness`, and `kurtosis`.
+A `metric` is essentially a statistic with a name and some extra metadata attached to it. Each one exposes the usual summary statistics — last value, count, min, max, mean, sum, standard deviation, variance, and skewness. Kurtosis is also available on the Rust side; the Python binding doesn't expose it.
 
 There are a few different types of metrics that can be collected:
 
 1. **Numeric Metric**: A plain old metric that collects single point numeric data each generation and aggregates it over the _entire_ evolutionary run. For example, the `pct.diversity` metric collects the diversity ratio each generation and folds it into the running statistic alongside every prior generation's value. 
-2. **Duration Metric**: A metric that collects timing information for various components of the engine. For example, the `time.evaluation` metric collects the time taken to perform evaluations each generation and adds it to the previous generation's metrics. When accessed, it should be noted that when calling `metric.time()` the underlying statistic will convert the numerical data to a `Duration` object, which provides methods for accessing the time in different units (e.g., seconds, milliseconds, etc.).
+2. **Duration Metric**: A metric that collects timing information for a step of the pipeline, named `step.<phase>.time` (e.g. `step.evaluate.time`, `step.recombine.time`). Each generation's timing is folded into the running statistic alongside every prior generation's. Duration metrics expose their values as a `Duration` through a dedicated set of accessors (`time_sum`/`time_mean`/`time_stddev`/… in Python, `Metric::times()` in Rust) rather than the plain numeric ones described below.
 3. **Distribution Metric**: A metric that collects a distribution of data each generation, replacing the previous generation's data. For example, the `scores` metric collects the scores of all individuals in the population each generation, replacing the previous generation's scores. This means that each generation, the metric reflects only the _current_ generation's state, nothing before it.
 
 ## Collection

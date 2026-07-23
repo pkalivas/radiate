@@ -202,7 +202,7 @@ fn main() {
     let target_species = 4.0;
     let rolling = target_species as usize;
 
-    let spec_count_signal = Expr::select("count.species")
+    let spec_count_signal = Expr::select("species.count")
         .rolling(rolling)
         .mean()
         .div(target_species);

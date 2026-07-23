@@ -104,6 +104,22 @@ name = "engine-index"
 path = "engine/index.rs"
 
 [[bin]]
+name = "engine-runtime"
+path = "engine/runtime.rs"
+
+[[bin]]
+name = "engine-generations"
+path = "engine/generations.rs"
+
+[[bin]]
+name = "engine-limits"
+path = "engine/limits.rs"
+
+[[bin]]
+name = "engine-example"
+path = "engine/example.rs"
+
+[[bin]]
 name = "engine-metrics"
 path = "engine/metrics.rs"
 
