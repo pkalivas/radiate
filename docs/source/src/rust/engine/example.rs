@@ -36,7 +36,7 @@ fn main() {
     let engine = build_engine();
     let result = engine
         .iter()
-        .until(|view: GenerationView<FloatChromosome<f32>, f32>| {
+        .until(|view: GenerationView<'_, FloatChromosome<f32>, f32>| {
             view.index() >= 20 && view.score().as_f32() < 0.05
         })
         .last()

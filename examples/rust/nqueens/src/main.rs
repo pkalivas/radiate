@@ -9,8 +9,10 @@ fn main() {
         .codec(IntChromosome::from((N_QUEENS, 0..N_QUEENS as i8)))
         .minimizing()
         .offspring_selector(BoltzmannSelector::new(4.0))
-        .crossover(MultiPointCrossover::new(0.75, 2))
-        .mutator(UniformMutator::new(0.05))
+        .alter(alters!(
+            MultiPointCrossover::new(0.75, 2),
+            UniformMutator::new(0.05)
+        ))
         .fitness_fn(|queens: Vec<i8>| {
             let mut score = 0;
 

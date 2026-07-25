@@ -2,22 +2,7 @@
 
 ___
 
-Advancing the engine happens in two conceptually separate steps: stepping its internal state forward one generation, and separately snapshotting that state as a `Generation`. Radiate keeps these apart on purpose — building a `Generation` clones the ecosystem, and depending on your population size and genome, that isn't free. How you drive the engine decides whether that snapshot gets built once, at the very end, or on every single generation.
-
----
-
-## Two paths, one runtime
-
-The distinction comes down to **whether your stopping condition needs to inspect the snapshot itself**:
-
-- **Declared up front** — a target score, a generation count, a time budget, or any combination — never needs to see a `Generation` to decide whether to keep going, so it's checked directly against the engine's live state. No `Generation` is built until the very end, once, to hand back the result.
-- **Inspecting the result as you go** — a custom stop condition that reads the decoded value or score directly, or code that observes/acts on every generation as it happens — forces a fresh `Generation` on every single generation, because that's the only way to give you something to look at.
-
-<figure markdown="span">
-    ![Limit-driven path vs anything that needs the snapshot](../../assets/engine/run_vs_iterator.svg){ width="640" }
-</figure>
-
-Prefer the first kind whenever you only care about the final result. Reach for the second only when you actually need to observe (or act on) the real per-generation state along the way — see the [Example](example.md) page for a case where that's genuinely necessary.
+The engine can be driven two ways: as a plain iterator, or through `run()`/`.last()` against attached [`Limit`s](limits.md). Prefer limits whenever you only care about the final result — they're checked against the engine's live state directly, with no per-generation `Generation` snapshot built along the way. Reach for the iterator when you actually need to observe or act on every generation as it happens — see the [Example](example.md) page for a case where that's genuinely necessary.
 
 === ":fontawesome-brands-python: Python"
 
@@ -33,7 +18,7 @@ Prefer the first kind whenever you only care about the final result. Reach for t
     --8<-- "python/engine/runtime.py:iterator_next"
     ```
 
-    [`engine.run()`](#convenience-run) takes the cheap, condition-driven path instead. Python requires at least one [`Limit`](limits.md) to be attached either way — there's no closure-based stop condition here.
+    [`engine.run()`](#convenience-run) takes the `Limit`-driven path instead. Python requires at least one [`Limit`](limits.md) to be attached either way — there's no closure-based stop condition here.
 
 === ":fontawesome-brands-rust: Rust"
 
@@ -43,13 +28,13 @@ Prefer the first kind whenever you only care about the final result. Reach for t
     --8<-- "rust/engine/runtime.rs:iterator_basic"
     ```
 
-    That same runtime also has its own `run()`/`.last()`, driven by attached [`Limit`s](limits.md) instead of by iterating — and it stays on the cheap path no matter how you got there. A closure passed straight to the engine's own `run(closure)`, without going through `.iter()` first, takes the expensive path instead, since the closure needs a real `Generation` to decide whether to stop:
+    That same runtime also has its own `run()`/`.last()`, driven by attached [`Limit`s](limits.md) instead of by iterating. A closure passed straight to the engine's own `run(closure)`, without going through `.iter()` first, works too, but re-evaluates against a fresh `Generation` on every generation:
 
     ```rust
     --8<-- "rust/engine/runtime.rs:iterator_run"
     ```
 
-    A closure over a borrowed [`GenerationView`](generations.md#generationview) via `.until(closure)` is the cheap middle ground — condition-driven, so it never forces a `Generation` to be built either.
+    A closure over a borrowed [`GenerationView`](generations.md#generationview) via `.until(closure)` lets you write an ad-hoc stop condition without needing a full `Generation` — see [Generations](generations.md#generationview).
 
 !!! warning "Always attach a stopping condition"
 

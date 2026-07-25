@@ -1,6 +1,6 @@
 # Genetic Engine
 
-The `GeneticEngine` is the core component. Once built, it manages the entire evolutionary process, including population management, fitness evaluation, and genetic operations. The engine itself is essentially a large iterator that produces `Generation` objects representing each generation.
+The `GeneticEngine` is the core component. Once built, it manages the entire evolutionary process, including population management, fitness evaluation, and genetic operations. The engine itself is essentially a large iterator that produces `Generation` objects representing each step or epoch.
 
 ---
 
@@ -39,13 +39,13 @@ So a minimal engine with just a codec and a fitness function will do the followi
 
 ---
 
-## Life of a Generation
+## Life of an epoch
 
-Each time the engine advances one generation, it runs a fixed pipeline of steps. Two of them are conditional — `Front` only runs for multi-objective problems, and `Speciate` only when you've configured a [diversity measure](../diversity/index.md):
+Each time the engine advances one step, it runs a fixed pipeline of steps. Two of them are conditional — `Front` only runs for multi-objective problems, and `Speciate` only when you've configured a [diversity measure](../diversity/index.md):
 
 ```mermaid
 flowchart TD
-    S[Next generation] --> E1[Evaluate — score unscored individuals]
+    S[Next epoch] --> E1[Evaluate — score unscored individuals]
     E1 --> R[Recombine — select survivors, breed offspring via crossover + mutation]
     R --> F[Filter — replace individuals past max_age or with invalid genomes]
     F --> E2[Evaluate — re-score the individuals whose genomes changed]
@@ -56,7 +56,7 @@ flowchart TD
     DV -->|yes| SP[Speciate — cluster the population into species by distance]
     DV -->|no| AU[Metrics — collect generation's metrics]
     SP --> AU
-    AU --> G[Emit a Generation epoch]
+    AU --> G[Repeat until stopping limit reached]
     G --> S
 ```
 
@@ -90,6 +90,6 @@ The engine evaluates twice per generation. The first pass ranks the current popu
 1. **No stopping limit**: an engine with no [limit](limits.md) attached runs forever in Rust (you must `break`/`return` or attach one) and raises immediately in Python (at least one `Limit` is mandatory there).
 2. **Reusing a consumed Rust engine**: `.iter()` consumes the `GeneticEngine` — once you've built an `EngineRuntime` from it, that engine value is gone. `run(closure)` doesn't consume it, so it's safe to call more than once.
 3. **Assuming Python's `.run()` resumes**: Python's `Engine` is a reusable *builder*, not a live engine — every `.run()` call constructs a fresh engine from scratch. See [Runtime](runtime.md) for the Rust/Python distinction.
-4. **Materializing a `Generation` you don't need**: a stop condition that has to inspect the actual per-generation result (a custom callback, or an actual loop over each generation) forces a fresh clone every generation. If you only want the final result, drive the stop condition with [`Limit`s](limits.md) instead and skip the per-generation cost entirely — see [Runtime](runtime.md) for exactly which calls stay on the cheap path in each language.
+4. **Materializing a `Generation` you don't need**: a stop condition that has to inspect the actual per-generation result (a custom callback, or an actual loop over each generation) forces a fresh clone every generation. If you only want the final result, drive the stop condition with [`Limit`s](limits.md) instead and skip the per-generation cost entirely — see [Runtime](runtime.md) for the Rust/Python calls that take each path.
 
 ---

@@ -16,7 +16,7 @@ fn build_engine() -> GeneticEngine<FloatChromosome<f32>, f32> {
 
 fn main() {
     // --8<-- [start:iterator_basic]
-    // `iter()` consumes the engine and hands back an `EngineRuntime`, which implements
+    // `iter()` consumes the engine and hands back an `EngineRuntime`, which imple¬ments
     // the standard `Iterator` trait - so a plain for loop works directly. `take(n)` here
     // is `EngineRuntime`'s own method (an alias for `until_generation(n)`), not
     // `std::iter::Iterator::take` - it appends a `Limit::Generation(n)` to the runtime's

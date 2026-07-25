@@ -12,7 +12,7 @@
 use radiate_error::Result;
 
 /// A trait representing an evolutionary computation engine.
-//
+///
 /// The [Engine] trait defines the fundamental interface for evolutionary algorithms.
 /// Implementors define how the algorithm progresses from one generation/epoch to the
 /// next, encapsulating the core evolutionary logic.
