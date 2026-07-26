@@ -1,4 +1,4 @@
-use crate::{Eval, EvalIntoMut, EvalMut, Graph, GraphEvaluator, Op, graphs::GraphEvalCache};
+use crate::{Eval, EvalIntoMut, EvalMut, Graph, GraphEvaluator, graphs::GraphEvalCache};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
@@ -19,11 +19,11 @@ impl<T, V> StatefulGraph<T, V> {
     }
 }
 
-impl<T> From<Graph<Op<T>>> for StatefulGraph<Op<T>, T>
+impl<T, V> From<Graph<T>> for StatefulGraph<T, V>
 where
-    T: Copy + Default,
+    T: Eval<[V], V>,
 {
-    fn from(inner: Graph<Op<T>>) -> Self {
+    fn from(inner: Graph<T>) -> Self {
         StatefulGraph { inner, state: None }
     }
 }

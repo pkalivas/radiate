@@ -15,11 +15,11 @@ use std::sync::Arc;
 use std::time::Duration;
 
 pub trait RuntimeLimit<E: Engine> {
-    fn proceed(&mut self, snapshot: &E::Ctx) -> RadiateResult<bool>;
+    fn proceed(&mut self, context: &E::Ctx) -> RadiateResult<bool>;
 }
 
 pub trait RuntimeAction<E: Engine> {
-    fn execute(&mut self, guard: &E::Ctx) -> RadiateResult<()>;
+    fn execute(&mut self, context: &E::Ctx) -> RadiateResult<()>;
 }
 
 pub struct EngineRuntime<E: Engine> {
@@ -55,7 +55,7 @@ impl<E: Engine> EngineRuntime<E> {
     #[inline]
     fn step(&mut self) -> Result<()> {
         if self.done {
-            return Err(radiate_err!("Engine has already completed"));
+            return Err(radiate_err!(Engine: "Engine has already completed"));
         }
 
         if let Some(control) = &self.control

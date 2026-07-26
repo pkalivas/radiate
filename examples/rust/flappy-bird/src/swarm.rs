@@ -19,6 +19,33 @@ pub struct Snapshot {
     pub best_score: Option<f32>,
 }
 
+impl Snapshot {
+    pub fn new(generation: usize, world: &World) -> Self {
+        Snapshot {
+            generation,
+            tick: world.tick,
+            birds: world.birds.iter().map(|b| (b.y, b.alive)).collect(),
+            pipes: world
+                .pipes
+                .iter()
+                .map(|p| (p.x, p.gap_top, p.gap_bottom))
+                .collect(),
+            best_pipes: world
+                .birds
+                .iter()
+                .map(|b| b.pipes_passed)
+                .max()
+                .unwrap_or(0),
+            best_score: None,
+        }
+    }
+
+    pub fn with_best_score(mut self, score: f32) -> Self {
+        self.best_score = Some(score);
+        self
+    }
+}
+
 /// Evaluates an entire generation's population in one shared simulation —
 /// all birds fly against the same pipes on the same clock, which is what
 /// lets the renderer show a live "swarm" rather than N independent replays.
@@ -60,6 +87,7 @@ impl BatchFitnessFunction<Graph<Op<f32>>, f32> for FlappySwarm {
                     if !world.birds[i].alive {
                         return false;
                     }
+
                     let inputs = world.bird_inputs(i);
                     let outputs = graph.eval_mut(&inputs.to_vec());
                     outputs[0] > 0.5
@@ -68,28 +96,10 @@ impl BatchFitnessFunction<Graph<Op<f32>>, f32> for FlappySwarm {
 
             world.step(&flaps);
 
-            let snapshot = Snapshot {
-                generation,
-                tick: world.tick,
-                birds: world.birds.iter().map(|b| (b.y, b.alive)).collect(),
-                pipes: world
-                    .pipes
-                    .iter()
-                    .map(|p| (p.x, p.gap_top, p.gap_bottom))
-                    .collect(),
-                best_pipes: world
-                    .birds
-                    .iter()
-                    .map(|b| b.pipes_passed)
-                    .max()
-                    .unwrap_or(0),
-                best_score: None,
-            };
-
             // Rendering is best-effort: if the window has closed, the
             // receiver is gone and send() fails — training keeps going
             // headless rather than panicking.
-            self.tx.send(snapshot).unwrap();
+            self.tx.send(Snapshot::new(generation, &world)).unwrap();
 
             let delay = self.speed.delay();
             if !delay.is_zero() {
@@ -109,34 +119,25 @@ impl BatchFitnessFunction<Graph<Op<f32>>, f32> for FlappySwarm {
 /// `Snapshot`s tagged with `best_score` so the renderer can show it as the
 /// final showcase rather than another training generation.
 pub fn replay_best(
-    graph: &Graph<Op<f32>>,
-    best_score: f32,
+    generation: &Generation<GraphChromosome<Op<f32>>, Graph<Op<f32>>>,
     tx: &Sender<Snapshot>,
     speed: &SimSpeed,
     seed: u64,
 ) {
     let mut world = World::new(1, seed);
 
+    let mut graph = StatefulGraph::from(generation.value().clone());
+    let best_score = generation.score().as_f32();
+
     loop {
         let inputs = world.bird_inputs(0);
-        let outputs = graph.eval(&vec![inputs.to_vec()]);
-        let flap = outputs[0][0] > 0.5;
+        let outputs = graph.eval_mut(&inputs.to_vec());
+        let flap = outputs[0] > 0.5;
+
         world.step(&[flap]);
 
-        let snapshot = Snapshot {
-            generation: 0,
-            tick: world.tick,
-            birds: world.birds.iter().map(|b| (b.y, b.alive)).collect(),
-            pipes: world
-                .pipes
-                .iter()
-                .map(|p| (p.x, p.gap_top, p.gap_bottom))
-                .collect(),
-            best_pipes: world.birds[0].pipes_passed,
-            best_score: Some(best_score),
-        };
-
-        tx.send(snapshot).unwrap();
+        tx.send(Snapshot::new(0, &world).with_best_score(best_score))
+            .unwrap();
 
         if world.all_dead() || world.tick >= game::MAX_TICKS {
             break;

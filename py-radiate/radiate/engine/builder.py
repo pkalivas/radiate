@@ -33,7 +33,7 @@ class EngineConfig[G, T]:
     population_size: int = 100
     offspring_fraction: float = 0.8
     max_phenotype_age: int = 20
-    max_species_age: int = 20
+    max_species_age: int = 25
     species_threshold: Expr | float = 0.5
     target_species: int | None = None
 

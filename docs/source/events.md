@@ -168,6 +168,30 @@ For more complex event handling, you can create a custom event handler class:
     --8<-- "rust/events.rs:handler"
     ```
 
+### Decorator Shortcuts
+
+For single-purpose handlers, four decorators skip the subclass-and-override boilerplate by pinning a plain function to one `EventType`. Each one just wraps your function in a `CallableEventHandler`, so the result is still a normal handler you pass to `.subscribe()`.
+
+| Decorator | Fires on |
+|---|---|
+| `on_start` | `EventType.START` |
+| `on_epoch` | `EventType.EPOCH_COMPLETE` |
+| `on_improvement` | `EventType.ENGINE_IMPROVEMENT` |
+| `on_stop` | `EventType.STOP` |
+
+!!! note "No shortcut for `EPOCH_START`"
+
+    There isn't an `on_epoch_start` decorator — of the five event types, only these four have a decorator. Use a lambda or an `EventHandler` subclass if you need to react to `EPOCH_START` specifically. Also note `on_epoch` maps to `EPOCH_COMPLETE`, not `EPOCH_START`.
+
+=== ":fontawesome-brands-python: Python"
+
+    ```python
+    --8<-- "python/events.py:decorator_handlers"
+    ```
+
+=== ":fontawesome-brands-rust: Rust"
+
+    Decorators are a Python-only convenience; use the callback or `EventHandler` forms above in Rust.
 
 ## Built in Handlers
 

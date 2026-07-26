@@ -98,7 +98,8 @@ class Select(EngineInput):
     @staticmethod
     def nsga3(points: int = 12) -> Select:
         """
-        The `NSGA3Selector` is a selection strategy used in multi-objective optimization problems, based on the NSGA-III algorithm. It extends the NSGA-II algorithm by introducing reference points to guide the selection process towards a well-distributed set of solutions across the Pareto front.
+        The `NSGA3Selector` is a selection strategy used in multi-objective optimization problems, based on the NSGA-III algorithm.
+        It extends the NSGA-II algorithm by introducing reference points to guide the selection process towards a well-distributed set of solutions across the Pareto front.
 
         * Individuals are first sorted into Pareto fronts based on their dominance relationships.
         * Reference points are generated in the objective space to represent desired trade-offs between objectives.

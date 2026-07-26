@@ -1,4 +1,4 @@
-use radiate::*;
+use radiate::prelude::*;
 
 const MIN_SCORE: i32 = 0;
 

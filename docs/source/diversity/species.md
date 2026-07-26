@@ -153,7 +153,7 @@ A species that goes `max_species_age` generations without improving its best sco
 	--8<-- "rust/diversity/species.rs:age"
 	```
 
-The default is **`25`** generations in Rust and **`20`** in Python. Increase it for hard problems that need more time to refine a niche; decrease it to clear out stagnant clusters faster.
+The default is **`25`** generations. Increase it for hard problems that need more time to refine a niche; decrease it to clear out stagnant clusters faster.
 
 ---
 

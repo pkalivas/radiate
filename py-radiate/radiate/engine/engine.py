@@ -748,7 +748,7 @@ class Engine[G, T]:
 
         Defaults:
         - **max_phenotype_age**: 20
-        - **max_species_age**: 20
+        - **max_species_age**: 25
 
         Args:
             max_phenotype_age: The maximum age for phenotypes (individuals) in the population. Must be greater than 0. If None, the default will be used.
@@ -1195,7 +1195,7 @@ class Engine[G, T]:
 
         >>> import radiate as rd
         >>> ...
-        >>> rolling_diversirty = rd.Expr.select("rate.diversity").rolling(50).mean()
+        >>> rolling_diversirty = rd.Expr.select("pct.diversity").rolling(50).mean()
         >>> engine = (
         ...     rd.Engine.float(shape=10, init_range=(0.0, 1.0))
         ...     .fitness(my_fitness_function)

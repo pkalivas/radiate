@@ -31,8 +31,12 @@ nav:
       - Events: source/events.md
   - Engine:
     - source/engine/index.md
+    - Runtime: source/engine/runtime.md
+    - Generations: source/engine/generations.md
+    - Limits: source/engine/limits.md
     - Metrics: source/engine/metrics.md
     - Exprs: source/engine/expressions.md
+    - Example: source/engine/example.md
   - GP: 
     - source/gp/index.md
     - Ops: source/gp/op.md
