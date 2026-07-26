@@ -298,3 +298,13 @@ where
         self.time().as_secs_f64()
     }
 }
+
+impl<'a, C, T> Into<Generation<C, T>> for GenerationView<'a, C, T>
+where
+    C: Chromosome + Clone,
+    T: Clone,
+{
+    fn into(self) -> Generation<C, T> {
+        Generation::from(self.context)
+    }
+}
