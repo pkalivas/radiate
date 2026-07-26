@@ -155,8 +155,8 @@ where
     C: Chromosome + Clone,
     T: Clone + Send + Sync + 'static,
 {
-    type Ctx = EvolutionContext<C, T>;
     type Epoch = Generation<C, T>;
+    type Ctx = EvolutionContext<C, T>;
 
     fn context(&self) -> &Self::Ctx {
         &self.context
