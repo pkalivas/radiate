@@ -193,6 +193,10 @@ where
         }
     }
 
+    pub fn take(self, count: usize) -> EngineRuntime<E> {
+        self.until_generation(count)
+    }
+
     pub fn logging(self) -> EngineRuntime<E> {
         self.log_every(1)
     }
