@@ -153,9 +153,11 @@ impl<C: Chromosome> Ecosystem<C> {
 
             let total_score = adjusted_scores.iter().sum::<Score>();
             for (i, spec) in species.iter_mut().enumerate() {
+                // Scores are backed by an Arc<[f32]> so these clones are cheap
                 let raw_score = raw_scores[i].clone();
                 let spec_score = adjusted_scores[i].clone();
                 let adjusted_score = spec_score / total_score.clone();
+
                 spec.update_score(raw_score, adjusted_score, objective);
             }
 

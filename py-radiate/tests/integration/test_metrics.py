@@ -10,7 +10,7 @@ def test_generation_metrics(random_seed):
     metrics = (
         (
             rd.Engine.int(num_genes, init_range=(0, 10))
-            .fitness(lambda x: sum(x))
+            .fitness(sum)
             .minimizing()
             .limit(rd.Limit.score(0), rd.Limit.generations(500))
         )
@@ -88,7 +88,7 @@ def test_metrics_from_events(random_seed):
 
     engine = (
         rd.Engine.int(5, init_range=(0, 10))
-        .fitness(lambda x: sum(x))
+        .fitness(sum)
         .minimizing()
         .subscribe(MetricSetAssertHandler())
         .limit(rd.Limit.score(0), rd.Limit.generations(500))
@@ -101,7 +101,7 @@ def test_metrics_from_events(random_seed):
 def test_metric_times_are_correct(random_seed):
     result = (
         rd.Engine.int(5, init_range=(0, 10))
-        .fitness(lambda x: sum(x))
+        .fitness(sum)
         .minimizing()
         .limit(rd.Limit.score(0), rd.Limit.generations(500))
     ).run()
@@ -121,7 +121,7 @@ def test_metric_times_are_correct(random_seed):
 def test_metric_tags(random_seed):
     engine = (
         rd.Engine.int(5, init_range=(0, 10))
-        .fitness(lambda x: sum(x))
+        .fitness(sum)
         .minimizing()
         .limit(rd.Limit.score(0), rd.Limit.generations(500))
     )

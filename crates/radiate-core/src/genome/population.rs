@@ -102,22 +102,6 @@ impl<C: Chromosome> Population<C> {
     pub fn swap_remove(&mut self, index: usize) -> Phenotype<C> {
         self.individuals.swap_remove(index)
     }
-
-    pub fn get_pair_mut(
-        &mut self,
-        first: usize,
-        second: usize,
-    ) -> Option<(&mut Phenotype<C>, &mut Phenotype<C>)> {
-        if first == second {
-            None
-        } else if first < second {
-            let (left, right) = self.individuals.split_at_mut(second);
-            Some((&mut left[first], &mut right[0]))
-        } else {
-            let (left, right) = self.individuals.split_at_mut(first);
-            Some((&mut right[0], &mut left[second]))
-        }
-    }
 }
 
 impl<C: Chromosome + Clone> From<&Population<C>> for Population<C> {
