@@ -1,0 +1,155 @@
+import matplotlib.pyplot as plt
+import polars as pl
+import radiate as rd
+
+
+def your_fitness_func(x):
+    return sum(x)
+
+
+# --8<-- [start:lambda_subscribe]
+import radiate as rd
+
+engine = (
+    rd.Engine.int(10, init_range=(0, 100))
+    .fitness(your_fitness_func)
+    .subscribe(
+        lambda event: print(event)
+    )  # Subscribe to all events using a lambda function
+    # ... other parameters ...
+)
+
+# --8<-- [end:lambda_subscribe]
+
+# --8<-- [start:handler_subclass]
+import radiate as rd
+
+
+# Inherit from EventHandler, tell the super class which event you'd like to subscribe to,
+# then override the on_event method
+class MySubscriber(rd.EventHandler):
+    """
+    If no `rd.EventType` is passed to the super constructor, this handler will subscribe to all events.
+    Otherwise, it will only subscribe to the specified event type.
+    """
+
+    def __init__(self):
+        super().__init__(rd.EventType.EPOCH_COMPLETE)
+
+    def on_event(self, event: rd.EngineEvent) -> None:
+        print(f"Event: {event}")
+
+
+# Create an instance of your event handler
+handler = MySubscriber()
+
+engine = (
+    rd.Engine.int(10, init_range=(0, 100))
+    .fitness(your_fitness_func)
+    .subscribe(handler)  # Add your handler here
+    # ... other parameters ...
+)
+# --8<-- [end:handler_subclass]
+
+
+# --8<-- [start:decorator_handlers]
+import radiate as rd
+
+
+# Each decorator pins the handler to a single EventType, so you skip the
+# subclass-and-override boilerplate for single-purpose handlers.
+@rd.on_start
+def log_start(event: rd.EngineEvent) -> None:
+    print("Evolution has started!")
+
+
+@rd.on_epoch  # NOTE: maps to EPOCH_COMPLETE, not EPOCH_START
+def log_epoch(event: rd.EngineEvent) -> None:
+    print(f"Epoch {event.index()}: best score = {event.score()}")
+
+
+@rd.on_improvement
+def log_improvement(event: rd.EngineEvent) -> None:
+    print(f"New best found at epoch {event.index()}: {event.score()}")
+
+
+@rd.on_stop
+def log_stop(event: rd.EngineEvent) -> None:
+    print(event.metrics().dashboard())
+
+
+# Each decorated function is already a full handler, so subscribe them directly
+engine = (
+    rd.Engine.int(10, init_range=(0, 100))
+    .fitness(your_fitness_func)
+    .subscribe(log_start, log_epoch, log_improvement, log_stop)
+    # ... other parameters ...
+)
+# --8<-- [end:decorator_handlers]
+
+# --8<-- [start:score_plotter]
+class ScorePlotterHandler(rd.EventHandler):
+    """
+    An event handler that collects best scores over epochs and plots them at the end.
+    1. On EPOCH_COMPLETE, it appends the best score to a list.
+    2. On STOP, it creates a DataFrame and plots the scores over generations.
+    """
+
+    def __init__(self):
+        super().__init__()  # Not specifying an event type to listen to all events
+        self.scores = []
+
+    def on_event(self, event: rd.EngineEvent) -> None:
+        if event.event_type() == rd.EventType.EPOCH_COMPLETE:
+            best_score = event.score()
+            self.scores.append(best_score)
+        elif event.event_type() == rd.EventType.STOP:
+            df = pl.DataFrame(
+                {"Generation": list(range(len(self.scores))), "Score": self.scores}
+            )
+            plt.plot(df["Generation"], df["Score"])
+            plt.xlabel("Generation")
+            plt.ylabel("Best Score")
+            plt.title("Best Score over Generations")
+            plt.grid(True)
+            plt.show()
+
+
+# Create an instance of your event handler
+handler = ScorePlotterHandler()
+
+engine = (
+    rd.Engine.int(10, init_range=(0, 100))
+    .fitness(your_fitness_func)
+    .subscribe(handler)  # Add your handler here
+    # ... other parameters ...
+)
+# --8<-- [end:score_plotter]
+
+# --8<-- [start:metric_collector]
+import radiate as rd
+
+# Create an instance of the MetricCollector
+collector = rd.MetricCollector()
+
+engine = (
+    rd.Engine.float(2, init_range=(0.0, 1.0))  # configure your engine as normal
+    .fitness(your_fitness_func)
+    .subscribe(collector)  # Subscribe the MetricCollector to the engine
+    .limit(rd.Limit.generations(100))  # Set a limit for the run
+    # ... other parameters ...
+)
+
+# Run the engine for 100 generations
+engine.run()
+
+# After the run, you can access the collected metrics
+# Convert collected metric sets to a df where each row is a single metric (includes all collected metrics).
+df = collector.to_polars(lazy=False)  # optional lazy arg - defaults to False
+
+# Same as above but with pandas instead of polars
+df = collector.to_pandas()
+
+# Plot specific metrics to a matplotlib line plot
+collector.plot("scores.best", "pct.diversity")
+# --8<-- [end:metric_collector]
