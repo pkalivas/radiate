@@ -1,12 +1,27 @@
 use crate::{IntoPyAnyObject, PyAnyObject, Wrap};
 use numpy::PyArrayDyn;
 use pyo3::{
-    Bound, IntoPyObject, IntoPyObjectExt, PyAny, PyResult, Python, prelude::FromPyObjectOwned,
-    pyclass, pymethods,
+    Bound, IntoPyObject, IntoPyObjectExt, Py, PyAny, PyResult, Python, intern,
+    prelude::FromPyObjectOwned, pyclass, pymethods, sync::PyOnceLock, types::PyAnyMethods,
 };
-use radiate::{DataType, Eval, Format, Op, ToDot, Tree};
+use radiate::{DataType, Eval, Format, Op, RadiateResult, ToDot, Tree};
 use radiate_utils::Float;
 use serde::{Deserialize, Serialize};
+
+static TREE_FROM_RUST: PyOnceLock<Py<PyAny>> = PyOnceLock::new();
+
+fn tree_from_rust(py: Python<'_>) -> &Py<PyAny> {
+    TREE_FROM_RUST.get_or_init(py, || {
+        use crate::bindings::radiate;
+        radiate(py)
+            .bind(py)
+            .getattr(intern!(py, "Tree"))
+            .unwrap()
+            .getattr(intern!(py, "from_rust"))
+            .unwrap()
+            .unbind()
+    })
+}
 
 fn eval_trees<'py, F>(
     py: Python<'py>,
@@ -23,30 +38,6 @@ where
             .map(|tree| tree.eval(slice))
             .collect::<Vec<F>>()
     })
-}
-
-impl IntoPyAnyObject for Vec<Tree<Op<f32>>> {
-    fn into_py<'py>(self, py: Python<'py>) -> PyAnyObject {
-        PyAnyObject {
-            inner: PyTree {
-                inner: PyTreeInner::Float32(self),
-            }
-            .into_py_any(py)
-            .unwrap(),
-        }
-    }
-}
-
-impl IntoPyAnyObject for Vec<Tree<Op<f64>>> {
-    fn into_py<'py>(self, py: Python<'py>) -> PyAnyObject {
-        PyAnyObject {
-            inner: PyTree {
-                inner: PyTreeInner::Float64(self),
-            }
-            .into_py_any(py)
-            .unwrap(),
-        }
-    }
 }
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
@@ -189,5 +180,35 @@ impl From<Vec<Tree<Op<f64>>>> for PyTree {
         PyTree {
             inner: PyTreeInner::Float64(trees),
         }
+    }
+}
+
+impl IntoPyAnyObject for Vec<Tree<Op<f32>>> {
+    fn into_py<'py>(self, py: Python<'py>) -> RadiateResult<PyAnyObject> {
+        let inner = tree_from_rust(py).call1(
+            py,
+            (PyTree {
+                inner: PyTreeInner::Float32(self),
+            }
+            .into_bound_py_any(py)
+            .unwrap(),),
+        )?;
+
+        Ok(PyAnyObject { inner })
+    }
+}
+
+impl IntoPyAnyObject for Vec<Tree<Op<f64>>> {
+    fn into_py<'py>(self, py: Python<'py>) -> RadiateResult<PyAnyObject> {
+        let inner = tree_from_rust(py).call1(
+            py,
+            (PyTree {
+                inner: PyTreeInner::Float64(self),
+            }
+            .into_bound_py_any(py)
+            .unwrap(),),
+        )?;
+
+        Ok(PyAnyObject { inner })
     }
 }

@@ -59,45 +59,46 @@ impl<T> WindowBuffer<T> {
         resized
     }
 
-    #[inline]
     pub fn push_front(&mut self, item: T) -> bool {
-        let mut resized = false;
-        // check if the buffer is at capacity
-        if self.buffer.len() >= self.cap {
-            // check if the buffer is full
-            if self.buffer.len() >= self.max {
-                if self.start == 0 {
-                    let (front, back) = self.buffer.split_at_mut(self.cap);
-                    front.swap_with_slice(back);
-
-                    self.start = self.cap;
-                    self.end = self.max;
-                }
-                self.buffer[self.start - 1] = item;
-            } else {
-                self.buffer.insert(0, item);
-            }
-
-            resized = true;
-
-            if self.start > 0 {
-                self.start -= 1;
-            }
-            if self.end < self.max {
-                self.end += 1;
-            }
-        } else {
+        if self.buffer.len() < self.cap {
+            // Buffer isn't full yet.
             self.buffer.insert(0, item);
-            if self.end - self.start > self.cap {
-                if self.start > 0 {
-                    self.start -= 1;
-                }
-            } else {
-                self.end += 1;
-            }
+            self.end += 1;
+            return false;
         }
 
-        resized
+        if self.buffer.len() < self.max {
+            // Grow toward the front.
+            self.buffer.insert(0, item);
+
+            // Everything shifted right.
+            self.end += 1;
+
+            // Keep only the newest `cap` items.
+            if self.end - self.start > self.cap {
+                self.end -= 1;
+                self.buffer.pop();
+            }
+
+            return true;
+        }
+
+        // Buffer has reached max allocation.
+        if self.start == 0 {
+            // Make room at the front.
+            let (front, back) = self.buffer.split_at_mut(self.cap);
+            front.swap_with_slice(back);
+
+            self.start = self.cap;
+            self.end = self.max;
+        }
+
+        self.start -= 1;
+        self.end -= 1;
+
+        self.buffer[self.start] = item;
+
+        true
     }
 
     #[inline]
@@ -165,7 +166,13 @@ mod tests {
     fn ring_buffer_works() {
         let mut buffer = WindowBuffer::with_capacity(5);
         for i in 0..20 {
-            buffer.push(i);
+            buffer.push_front(i);
+            println!(
+                "Buffer: {:?} - {:?}, {:?}",
+                buffer.values(),
+                buffer.start,
+                buffer.end
+            );
         }
     }
 }

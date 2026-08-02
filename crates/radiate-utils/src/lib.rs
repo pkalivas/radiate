@@ -14,10 +14,8 @@ pub use buff::{SortedBuffer, Value, VersionedCounts, WindowBuffer};
 pub use datatype::{
     AnyValue, DType, DataType, dedup_slice, dtype, dtype_names, pow_anyvalue, value,
 };
-pub use fmt::{ToSnakeCase, intern_kv_pair, short_type_name};
-pub use intern::{
-    STR_CACHE, STR_INTERN_CACHE, is_str_cached, is_str_interned, try_get_interned_str,
-};
+pub use fmt::{ToSnakeCase, short_type_name};
+pub use intern::{STR_INTERN_CACHE, is_str_interned};
 pub use lru::LruCache;
 pub use primitives::{Float, Integer, Primitive};
 pub use stats::{Distribution, MinMax, Quantile, Slope, Statistic};

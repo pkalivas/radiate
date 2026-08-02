@@ -1,9 +1,5 @@
-use crate::{
-    Gene,
-    chromosomes::{NumericAllele, NumericGene},
-};
-
 use super::Valid;
+use crate::Gene;
 
 /// The [Chromosome] is part of the genetic makeup of an individual.
 /// It is a collection of [Gene] instances, it is essentially a
@@ -69,11 +65,4 @@ pub trait Chromosome: Valid {
             op(a, b);
         }
     }
-}
-
-pub trait NumericChromosome<A>: Chromosome
-where
-    Self::Gene: NumericGene<Allele = A>,
-    A: NumericAllele,
-{
 }

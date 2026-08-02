@@ -15,12 +15,12 @@
 
 use crate::{EvolutionContext, Generation, generation::GenerationView, runtime::RuntimeLimit};
 use radiate_core::{
-    AnyValue, Chromosome, Engine, Metric, Objective, Optimize, Score,
+    AnyValue, Chromosome, Engine, Objective, Optimize, Score,
     error::RadiateResult,
     rate::{Evaluate, Expr},
 };
 use radiate_error::radiate_bail;
-use std::{collections::VecDeque, fmt::Debug, sync::Arc, time::Duration};
+use std::{collections::VecDeque, fmt::Debug, time::Duration};
 
 /// Defines various types of limits for controlling genetic algorithm execution.
 ///
@@ -107,7 +107,6 @@ pub enum Limit {
     Score(Score),
     Convergence(usize, f32, VecDeque<f32>),
     Combined(Vec<Limit>),
-    Metric(String, Arc<dyn Fn(&Metric) -> bool + Send + Sync>),
     Expr(Expr),
 }
 
@@ -198,11 +197,6 @@ where
                 .map(|limit| <Limit as RuntimeLimit<E>>::proceed(limit, ctx))
                 .collect::<RadiateResult<Vec<bool>>>()
                 .map(|proceed| proceed.iter().all(|&p| p)),
-            Limit::Metric(name, predicate) => Ok(if let Some(metric) = ctx.metrics.get(name) {
-                predicate(metric)
-            } else {
-                true
-            }),
             Limit::Expr(expr) => {
                 let metrics = &ctx.metrics;
                 let result = expr.eval(metrics).unwrap_or(AnyValue::Null);
@@ -256,15 +250,6 @@ impl From<Expr> for Limit {
     }
 }
 
-impl<F> From<(&str, F)> for Limit
-where
-    F: Fn(&Metric) -> bool + Send + Sync + 'static,
-{
-    fn from(value: (&str, F)) -> Self {
-        Limit::Metric(value.0.to_string(), Arc::new(value.1))
-    }
-}
-
 impl From<Vec<Limit>> for Limit {
     fn from(value: Vec<Limit>) -> Self {
         Limit::Combined(value)
@@ -299,7 +284,6 @@ impl Debug for Limit {
                 write!(f, "Convergence(window: {window}, epsilon: {epsilon})")
             }
             Limit::Combined(limits) => write!(f, "Combined({limits:?})"),
-            Limit::Metric(name, _) => write!(f, "MetricLimit({name})"),
             Limit::Expr(expr) => write!(f, "ExprLimit({expr:?})"),
         }
     }

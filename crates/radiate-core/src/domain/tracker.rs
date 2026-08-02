@@ -13,15 +13,6 @@ where
     pub stagnation: usize,
 }
 
-impl<T> Default for Tracker<T>
-where
-    T: Clone + PartialOrd,
-{
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl<T> Tracker<T>
 where
     T: Clone + PartialOrd,
@@ -60,5 +51,14 @@ where
 
     pub fn current(&self) -> Option<&T> {
         self.current.as_ref()
+    }
+}
+
+impl<T> Default for Tracker<T>
+where
+    T: Clone + PartialOrd,
+{
+    fn default() -> Self {
+        Self::new()
     }
 }

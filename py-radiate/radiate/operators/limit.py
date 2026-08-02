@@ -56,16 +56,5 @@ class Limit(EngineInput):
         return Limit(components.CONVERGENCE_LIMIT, window=window, epsilon=threshold)
 
     @staticmethod
-    def metric(
-        name: str = "count.evaluation", limit=lambda metric: metric.sum() > 1000
-    ) -> Limit:
-        def _wrap(metric):
-            from ..engine.metrics import Metric as _Metric
-
-            return limit(_Metric.from_rust(metric))
-
-        return Limit(components.METRIC_LIMIT, name=name, limit=_wrap)
-
-    @staticmethod
     def expr(expr: Expr) -> Limit:
         return Limit(components.EXPR_LIMIT, expr=expr)

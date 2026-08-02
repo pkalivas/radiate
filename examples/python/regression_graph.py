@@ -31,7 +31,7 @@ y = np.array(answers, dtype=np.float32)
 
 
 def fit(graph: rd.Graph) -> np.float32:
-    predictions = graph.eval(x)
+    predictions = graph.eval(x, unchecked=True)
     return np.mean((predictions - y) ** 2, dtype=np.float32)
 
 
@@ -64,3 +64,7 @@ print(result)
 print(result.metrics().dashboard())
 print(accuracy)
 print(result.dtype())
+
+graph = result.value()
+out = graph.eval([2.2], unchecked=True)
+print(type(out), out)

@@ -1,5 +1,6 @@
 mod json;
 mod wrap;
+use radiate::RadiateResult;
 pub use wrap::*;
 
 use pyo3::prelude::FromPyObjectOwned;
@@ -10,12 +11,12 @@ use std::fmt::{Display, Formatter};
 use std::hash::{Hash, Hasher};
 
 pub trait IntoPyAnyObject {
-    fn into_py<'py>(self, py: Python<'py>) -> PyAnyObject;
+    fn into_py<'py>(self, py: Python<'py>) -> RadiateResult<PyAnyObject>;
 }
 
 impl IntoPyAnyObject for PyAnyObject {
-    fn into_py<'py>(self, _: Python<'py>) -> PyAnyObject {
-        self
+    fn into_py<'py>(self, _: Python<'py>) -> RadiateResult<PyAnyObject> {
+        Ok(self)
     }
 }
 

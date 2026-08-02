@@ -113,6 +113,30 @@ impl FloatCodec<f32> {
     }
 }
 
+impl<F: Float, const N: usize> From<[usize; N]> for FloatCodec<F, Vec<Vec<F>>> {
+    fn from(chrome_sizes: [usize; N]) -> Self {
+        FloatCodec {
+            chrome_sizes: chrome_sizes.to_vec(),
+            value_range: F::default()..F::default(),
+            bounds: F::default()..F::default(),
+            shapes: None,
+            _marker: std::marker::PhantomData,
+        }
+    }
+}
+
+impl<F: Float, const N: usize> From<([usize; N], Range<F>)> for FloatCodec<F, Vec<Vec<F>>> {
+    fn from((chrome_sizes, range): ([usize; N], Range<F>)) -> Self {
+        FloatCodec {
+            chrome_sizes: chrome_sizes.to_vec(),
+            value_range: range.clone(),
+            bounds: range,
+            shapes: None,
+            _marker: std::marker::PhantomData,
+        }
+    }
+}
+
 /// Implement the [Codec] for a `FloatCodec` with a `Vec<Vec<Vec<f32>>>` type.
 /// Unlike the other impls, this will decode to a 3D tensor of `f32` values.
 ///

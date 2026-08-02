@@ -196,7 +196,7 @@ impl<C: Chromosome, T: IntoPyAnyObject> Problem<C, T> for PyProblem<C, T> {
 
     fn eval(&self, individual: &Genotype<C>) -> RadiateResult<Score> {
         Python::attach(|py| {
-            let phenotype = self.codec.decode_with_py(py, individual).into_py(py);
+            let phenotype = self.codec.decode_with_py(py, individual).into_py(py)?;
             self.call_fitness(py, phenotype)
         })
     }
@@ -207,17 +207,19 @@ impl<C: Chromosome, T: IntoPyAnyObject> Problem<C, T> for PyProblem<C, T> {
                 individuals
                     .iter()
                     .map(|ind| {
-                        let phenotype = self.codec.decode_with_py(py, ind).into_py(py);
+                        let phenotype = self.codec.decode_with_py(py, ind).into_py(py)?;
                         self.call_fitness(py, phenotype)
                     })
                     .collect()
             } else {
                 let phenotypes = PyList::new(
                     py,
-                    individuals
-                        .iter()
-                        .map(|ind| self.codec.decode_with_py(py, ind).into_py(py))
-                        .map(|p| p.inner),
+                    individuals.iter().map(|ind| {
+                        match self.codec.decode_with_py(py, ind).into_py(py) {
+                            Ok(p) => p.inner,
+                            Err(_) => py.None(),
+                        }
+                    }),
                 )?;
 
                 self.call_batch_fitness(py, phenotypes.into())

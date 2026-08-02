@@ -39,47 +39,66 @@ class Graph(RsObject):
 
     @overload
     def eval(
-        self, inputs: list[list[float]], *, columns: list[str] | None = None
+        self,
+        inputs: list[list[float]],
+        *,
+        columns: list[str] | None = None,
+        unchecked: bool = False,
     ) -> list[list[float]]: ...
 
     @overload
     def eval(
-        self, inputs: list[float], *, columns: list[str] | None = None
+        self,
+        inputs: list[float],
+        *,
+        columns: list[str] | None = None,
+        unchecked: bool = False,
     ) -> list[float]: ...
 
     @overload
     def eval(
-        self,
-        inputs: "np.typing.NDArray[np.float32]",
+        self, inputs: "np.typing.NDArray[np.float32]", *, unchecked: bool = False
     ) -> (
         "np.typing.NDArray[np.float32]"
     ): ...  # Performance upgrade: return array to array users
 
     @overload
     def eval(
-        self,
-        inputs: "np.typing.NDArray[np.float64]",
+        self, inputs: "np.typing.NDArray[np.float64]", *, unchecked: bool = False
     ) -> (
         "np.typing.NDArray[np.float64]"
     ): ...  # Performance upgrade: return array to array users
 
     @overload
     def eval(
-        self, inputs: "pl.DataFrame | pl.Series", *, columns: list[str] | None = None
+        self,
+        inputs: "pl.DataFrame | pl.Series",
+        *,
+        columns: list[str] | None = None,
+        unchecked: bool = False,
     ) -> "np.ndarray": ...
 
     @overload
     def eval(
-        self, inputs: "pd.DataFrame | pd.Series", *, columns: list[str] | None = None
+        self,
+        inputs: "pd.DataFrame | pd.Series",
+        *,
+        columns: list[str] | None = None,
+        unchecked: bool = False,
     ) -> "np.ndarray": ...
 
     def eval(
-        self, inputs: Any, *, columns: list[str] | None = None
+        self, inputs: Any, *, columns: list[str] | None = None, unchecked: bool = False
     ) -> list[list[float]] | list[float] | "np.ndarray":
         """Evaluate the graph with the given inputs.
 
         Supports 1D/2D Lists, NumPy arrays, Polars, and Pandas objects.
         """
+        is_list = isinstance(inputs, list)
+        if unchecked:
+            result = self.__backend__().eval(inputs)
+            return result if not is_list else result.tolist()
+
         graph_shape = self.shape()
         eval_data = _to_float_array(inputs, columns=columns)
 
@@ -96,7 +115,8 @@ class Graph(RsObject):
                     f"Input width {shape[1]} does not match graph input size {graph_shape[0]}"
                 )
 
-        return self.__backend__().eval(eval_data)
+        result = self.__backend__().eval(eval_data)
+        return result if not is_list else result.tolist()
 
     def reset(self):
         """

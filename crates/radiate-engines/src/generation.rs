@@ -299,12 +299,12 @@ where
     }
 }
 
-impl<'a, C, T> Into<Generation<C, T>> for GenerationView<'a, C, T>
+impl<'a, C, T> From<GenerationView<'a, C, T>> for Generation<C, T>
 where
     C: Chromosome + Clone,
     T: Clone,
 {
-    fn into(self) -> Generation<C, T> {
-        Generation::from(self.context)
+    fn from(val: GenerationView<'a, C, T>) -> Self {
+        Generation::from(val.context)
     }
 }

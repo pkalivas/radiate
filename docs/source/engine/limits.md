@@ -13,10 +13,6 @@ A `Limit` is a condition checked once after every generation to decide whether t
 | Expr | a metric expression evaluates to `true` — see [Expressions](expressions.md#1-expression-limits) for the full recipe | `Limit::Expr(Expr)` / `.until_expr(expr)` | `rd.Limit.expr(expr)` |
 | Combined | any one of a set of sub-limits trips | `Limit::Combined(vec![...])` / `.limit((a, b, c))` | `.limit(a, b, c)` |
 
-!!! note "Metric-based limits"
-
-    A predicate-based limit keyed to a named metric also exists (`Limit::Metric`/`until_metric` in Rust, `rd.Limit.metric(...)` in Python), but is intentionally left out of this page for now pending a closer look at its stop/continue polarity.
-
 ---
 
 ## Each limit on its own

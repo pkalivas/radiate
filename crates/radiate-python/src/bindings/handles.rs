@@ -70,18 +70,39 @@ macro_rules! define_builder_enum {
             Empty,
             $( $variant(GeneticEngineBuilder<$chrom, $decoded>), )*
         }
+
+        impl EngineBuilderHandle {
+            pub fn try_build(self) -> PyResult<EngineHandle> {
+                match self {
+                    EngineBuilderHandle::Empty => {
+                        Err(radiate_py_err!("Cannot build an Empty builder"))
+                    }
+                    $( EngineBuilderHandle::$variant(b) => {
+                        Ok(EngineHandle::$variant(b.try_build()?))
+                    } )*
+                }
+            }
+        }
     };
 }
-gene_variants!(define_builder_enum);
 
 macro_rules! define_engine_enum {
     ($($variant:ident => $chrom:ty, $decoded:ty);* $(;)?) => {
         pub enum EngineHandle {
             $( $variant(GeneticEngine<$chrom, $decoded>), )*
         }
+
+        impl EngineHandle {
+            pub fn into_iter_handle(self, limits: Vec<Limit>) -> EngineIterHandle {
+                match self {
+                    $( EngineHandle::$variant(eng) => {
+                        EngineIterHandle::$variant(Box::new(eng.iter().limit(limits)))
+                    } )*
+                }
+            }
+        }
     };
 }
-gene_variants!(define_engine_enum);
 
 macro_rules! define_step_enum {
     ($($variant:ident => $chrom:ty, $decoded:ty);* $(;)?) => {
@@ -89,10 +110,17 @@ macro_rules! define_step_enum {
             $( $variant(GenIter<$chrom, $decoded>), )*
         }
 
+        impl EngineIterHandle {
+            pub fn next_epoch(&mut self) -> Option<EpochHandle> {
+                match self {
+                    $( EngineIterHandle::$variant(it) => it.next().map(EpochHandle::$variant), )*
+                }
+            }
+        }
+
         unsafe impl Send for EngineIterHandle {}
     };
 }
-gene_variants!(define_step_enum);
 
 macro_rules! define_epoch_enum {
     ($($variant:ident => $chrom:ty, $decoded:ty);* $(;)?) => {
@@ -120,50 +148,8 @@ macro_rules! define_epoch_enum {
         )*
     };
 }
+
+gene_variants!(define_builder_enum);
+gene_variants!(define_engine_enum);
+gene_variants!(define_step_enum);
 gene_variants!(define_epoch_enum);
-
-macro_rules! define_try_build {
-    ($($variant:ident => $chrom:ty, $decoded:ty);* $(;)?) => {
-        impl EngineBuilderHandle {
-            pub fn try_build(self) -> PyResult<EngineHandle> {
-                match self {
-                    EngineBuilderHandle::Empty => {
-                        Err(radiate_py_err!("Cannot build an Empty builder"))
-                    }
-                    $( EngineBuilderHandle::$variant(b) => {
-                        Ok(EngineHandle::$variant(b.try_build()?))
-                    } )*
-                }
-            }
-        }
-    };
-}
-gene_variants!(define_try_build);
-
-macro_rules! define_into_step {
-    ($($variant:ident => $chrom:ty, $decoded:ty);* $(;)?) => {
-        impl EngineHandle {
-            pub fn into_iter_handle(self, limits: Vec<Limit>) -> EngineIterHandle {
-                match self {
-                    $( EngineHandle::$variant(eng) => {
-                        EngineIterHandle::$variant(Box::new(eng.iter().limit(limits)))
-                    } )*
-                }
-            }
-        }
-    };
-}
-gene_variants!(define_into_step);
-
-macro_rules! define_step_next {
-    ($($variant:ident => $chrom:ty, $decoded:ty);* $(;)?) => {
-        impl EngineIterHandle {
-            pub fn next_epoch(&mut self) -> Option<EpochHandle> {
-                match self {
-                    $( EngineIterHandle::$variant(it) => it.next().map(EpochHandle::$variant), )*
-                }
-            }
-        }
-    };
-}
-gene_variants!(define_step_next);

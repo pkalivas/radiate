@@ -67,14 +67,14 @@ pub fn genome_size_throttle(base_rate: impl Into<Expr>, target_size: usize) -> E
 
 // Higher mutation when diversity is low, lower when healthy
 pub fn diversity_signal(window: usize, min: f32, max: f32) -> Expr {
-    let diversity = Expr::select(metric_names::DIVERSITY_RATIO)
+    let diversity = Expr::select(metric_names::PCT_DIVERSITY)
         .rolling(window)
         .mean();
     (Expr::lit(1.0_f32) - diversity)
         .mul(max - min)
         .add(min)
         .clamp(min, max)
-        .alias(format!("{}.[{}]", metric_names::DIVERSITY_RATIO, window))
+        .alias(format!("{}.[{}]", metric_names::PCT_DIVERSITY, window))
 }
 
 // True when best score hasn't meaningfully moved in `window` generations

@@ -65,7 +65,6 @@ pub mod components {
         GENERATIONS_LIMIT = "GenerationsLimit";
         SECONDS_LIMIT = "SecondsLimit";
         CONVERGENCE_LIMIT = "ConvergenceLimit";
-        METRIC_LIMIT = "MetricLimit";
         EXPR_LIMIT = "ExprLimit";
 
         ALL_EVENTS = "all";

@@ -70,7 +70,7 @@ impl MetricStep {
 
         std::mem::swap(&mut self.curr_ids, &mut self.last_gen_ids);
 
-        metrics.upsert(metric_names::CARRYOVER_RATIO, carryover_rate);
+        metrics.upsert(metric_names::PCT_CARRYOVER, carryover_rate);
         metrics.upsert(metric_names::SURVIVOR_COUNT, survivor_count);
     }
 
@@ -103,7 +103,7 @@ impl MetricStep {
             0.0
         };
 
-        metrics.upsert(metric_names::DIVERSITY_RATIO, diversity_ratio);
+        metrics.upsert(metric_names::PCT_DIVERSITY, diversity_ratio);
     }
 
     #[inline]

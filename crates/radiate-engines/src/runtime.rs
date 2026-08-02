@@ -3,15 +3,17 @@ use crate::generation::GenerationView;
 use crate::{Engine, EngineControl, EvolutionContext, Generation, Limit, init_logging};
 #[cfg(feature = "serde")]
 use crate::{FileWriter, JsonWriter};
-use radiate_core::error::{RadiateResult, Result};
-use radiate_core::rate::Expr;
-use radiate_core::{Chromosome, Metric, Score, radiate_err};
+use radiate_core::{Chromosome, Score, radiate_err};
+use radiate_core::{Ecosystem, rate::Expr};
+use radiate_core::{
+    MetricSet,
+    error::{RadiateResult, Result},
+};
 #[cfg(feature = "serde")]
 use serde::Serialize;
 use std::collections::VecDeque;
 #[cfg(feature = "serde")]
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 use std::time::Duration;
 
 pub trait RuntimeLimit<E: Engine> {
@@ -87,14 +89,6 @@ impl<E: Engine> EngineRuntime<E> {
         Ok(())
     }
 
-    pub fn chain_if(self, condition: bool, action_fn: impl FnOnce(Self) -> Self) -> Self {
-        if condition { action_fn(self) } else { self }
-    }
-
-    pub fn last(self) -> Result<E::Epoch> {
-        self.run()
-    }
-
     fn add_limit<L>(&mut self, limit: L)
     where
         L: RuntimeLimit<E> + 'static,
@@ -120,6 +114,36 @@ impl<E: Engine> EngineRuntime<E> {
     }
 }
 
+/// General iter fns for the `EngineRuntime` struct, allowing for a more ergonomic and fluent interface when configuring the runtime.
+impl<C, T, E> EngineRuntime<E>
+where
+    E: Engine<Epoch = Generation<C, T>, Ctx = EvolutionContext<C, T>>,
+    C: Chromosome + Clone + 'static,
+    T: Clone + Send + Sync + 'static,
+{
+    pub fn chain_if(self, condition: bool, action_fn: impl FnOnce(Self) -> Self) -> Self {
+        if condition { action_fn(self) } else { self }
+    }
+
+    pub fn last(self) -> Result<E::Epoch> {
+        self.run()
+    }
+
+    pub fn to_best(self) -> Result<T> {
+        self.run().map(|epoch| epoch.value().clone())
+    }
+
+    pub fn to_metrics(self) -> Result<MetricSet> {
+        self.run().map(|epoch| epoch.metrics().clone())
+    }
+
+    pub fn to_ecosystem(self) -> Result<Ecosystem<C>> {
+        self.run().map(|epoch| epoch.ecosystem().clone())
+    }
+}
+
+/// Limit configuration methods for the `EngineRuntime` struct, allowing users to specify various
+/// stopping conditions for the evolutionary process.
 impl<C, T, E> EngineRuntime<E>
 where
     E: Engine<Epoch = Generation<C, T>, Ctx = EvolutionContext<C, T>>,
@@ -160,15 +184,6 @@ where
         self
     }
 
-    pub fn until_metric(
-        mut self,
-        name: &str,
-        predicate: Arc<dyn Fn(&Metric) -> bool + Send + Sync>,
-    ) -> EngineRuntime<E> {
-        self.add_limit(Limit::Metric(name.into(), predicate));
-        self
-    }
-
     pub fn until<F>(mut self, limit: F) -> EngineRuntime<E>
     where
         C: 'static,
@@ -186,7 +201,6 @@ where
             Limit::Score(score) => self.until_score(score),
             Limit::Convergence(window, epsilon, _) => self.until_convergence(window, epsilon),
             Limit::Expr(expr) => self.until_expr(expr),
-            Limit::Metric(name, predicate) => self.until_metric(&name, predicate),
             Limit::Combined(lims) => lims
                 .into_iter()
                 .fold(self, |runtime, limit| runtime.limit(limit)),
@@ -196,7 +210,16 @@ where
     pub fn take(self, count: usize) -> EngineRuntime<E> {
         self.until_generation(count)
     }
+}
 
+/// Action based configuration methods for the `EngineRuntime` struct, allowing users to specify various
+/// actions to be executed during the evolutionary process.
+impl<C, T, E> EngineRuntime<E>
+where
+    E: Engine<Epoch = Generation<C, T>, Ctx = EvolutionContext<C, T>>,
+    C: Chromosome + Clone + 'static,
+    T: Clone + Send + Sync + 'static,
+{
     pub fn logging(self) -> EngineRuntime<E> {
         self.log_every(1)
     }

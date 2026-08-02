@@ -47,13 +47,13 @@ impl PyEventHandler {
         match event.inner() {
             EngineEventInner::Start => PyEngineEvent::start(),
             EngineEventInner::Stop(index, best, metrics, score) => {
-                let best = best.clone().into_py(py);
+                let best = best.clone().into_py(py).expect("Failed to convert event.");
                 let metrics = PyMetricSet::from(metrics.clone());
                 PyEngineEvent::stop(*index, best, metrics, score.as_ref().to_vec())
             }
             EngineEventInner::EpochStart(index) => PyEngineEvent::epoch_start(*index),
             EngineEventInner::EpochComplete(index, best, metrics, score, objective) => {
-                let best = best.clone().into_py(py);
+                let best = best.clone().into_py(py).expect("Failed to convert event.");
                 let metrics = PyMetricSet::from(metrics.clone());
                 PyEngineEvent::epoch_complete(
                     *index,
@@ -64,7 +64,7 @@ impl PyEventHandler {
                 )
             }
             EngineEventInner::Improvement(index, best, score) => {
-                let best = best.clone().into_py(py);
+                let best = best.clone().into_py(py).expect("Failed to convert event.");
                 PyEngineEvent::improvement(*index, best, score.as_ref().to_vec())
             }
         }

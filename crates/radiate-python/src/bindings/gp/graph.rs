@@ -1,15 +1,30 @@
 use crate::{IntoPyAnyObject, PyAnyObject, Wrap};
 use numpy::PyArrayDyn;
 use pyo3::{
-    Bound, IntoPyObject, IntoPyObjectExt, PyAny, PyResult, Python, prelude::FromPyObjectOwned,
-    pyclass, pymethods,
+    Bound, IntoPyObject, IntoPyObjectExt, Py, PyAny, PyResult, Python, intern,
+    prelude::FromPyObjectOwned, pyclass, pymethods, sync::PyOnceLock, types::PyAnyMethods,
 };
 use radiate::{
-    DataType, EvalMut, Graph, GraphEvaluator, GraphIterator, NodeType, Op, ToDot,
+    DataType, EvalMut, Graph, GraphEvaluator, GraphIterator, NodeType, Op, RadiateResult, ToDot,
     graphs::GraphEvalCache,
 };
 use radiate_utils::Float;
 use serde::{Deserialize, Serialize};
+
+static GRAPH_FROM_RUST: PyOnceLock<Py<PyAny>> = PyOnceLock::new();
+
+fn graph_from_rust(py: Python<'_>) -> &Py<PyAny> {
+    GRAPH_FROM_RUST.get_or_init(py, || {
+        use crate::bindings::radiate;
+        radiate(py)
+            .bind(py)
+            .getattr(intern!(py, "Graph"))
+            .unwrap()
+            .getattr(intern!(py, "from_rust"))
+            .unwrap()
+            .unbind()
+    })
+}
 
 fn eval_graph<'py, F>(
     py: Python<'py>,
@@ -31,30 +46,6 @@ where
 
     *cache = Some(evaluator.take_cache());
     result
-}
-
-impl IntoPyAnyObject for Graph<Op<f32>> {
-    fn into_py<'py>(self, py: Python<'py>) -> PyAnyObject {
-        PyAnyObject {
-            inner: PyGraph {
-                inner: PyGraphInner::Float32(self, None),
-            }
-            .into_py_any(py)
-            .unwrap(),
-        }
-    }
-}
-
-impl IntoPyAnyObject for Graph<Op<f64>> {
-    fn into_py<'py>(self, py: Python<'py>) -> PyAnyObject {
-        PyAnyObject {
-            inner: PyGraph {
-                inner: PyGraphInner::Float64(self, None),
-            }
-            .into_py_any(py)
-            .unwrap(),
-        }
-    }
 }
 
 #[derive(Clone, Serialize, Deserialize, PartialEq)]
@@ -210,5 +201,35 @@ impl Clone for PyGraph {
         PyGraph {
             inner: self.inner.clone(),
         }
+    }
+}
+
+impl IntoPyAnyObject for Graph<Op<f32>> {
+    fn into_py<'py>(self, py: Python<'py>) -> RadiateResult<PyAnyObject> {
+        let inner = graph_from_rust(py).call1(
+            py,
+            (PyGraph {
+                inner: PyGraphInner::Float32(self, None),
+            }
+            .into_bound_py_any(py)
+            .unwrap(),),
+        )?;
+
+        Ok(PyAnyObject { inner })
+    }
+}
+
+impl IntoPyAnyObject for Graph<Op<f64>> {
+    fn into_py<'py>(self, py: Python<'py>) -> RadiateResult<PyAnyObject> {
+        let inner = graph_from_rust(py).call1(
+            py,
+            (PyGraph {
+                inner: PyGraphInner::Float64(self, None),
+            }
+            .into_bound_py_any(py)
+            .unwrap(),),
+        )?;
+
+        Ok(PyAnyObject { inner })
     }
 }

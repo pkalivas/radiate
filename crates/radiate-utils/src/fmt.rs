@@ -1,10 +1,3 @@
-use crate::intern;
-
-#[inline]
-pub fn intern_kv_pair(name: &'static str, value: &'static str) -> &'static str {
-    crate::intern_str_cache!(name, value)
-}
-
 #[inline]
 pub fn short_type_name<T: ?Sized>() -> String {
     // Walk the full type name and strip the module path of every segment, not
