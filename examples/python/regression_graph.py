@@ -42,6 +42,8 @@ engine = (
         edge=rd.Op.weight(),
         dtype=rd.Float32,
     )
+    # .fitness(fit)
+    # .minimizing()
     .regression(x, y, loss=rd.MSE)
     .select(rd.Select.boltzmann(temp=4.0))
     .alters(

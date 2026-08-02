@@ -201,7 +201,6 @@ impl Metric {
         }
     }
 
-
     fn update_statistic(&mut self, value: f32) {
         self.inner.add(value);
         self.add_tag(TagType::Statistic);

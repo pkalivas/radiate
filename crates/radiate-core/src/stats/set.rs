@@ -78,10 +78,10 @@ impl MetricSet {
     #[inline]
     pub(crate) fn upsert_at<'a>(&mut self, idx: MetricIdx, update: impl Into<MetricUpdate<'a>>) {
         let generation = self.meta.generation;
-        let mmetric = &mut self.metrics[idx.as_usize()];
+        let metric = &mut self.metrics[idx.as_usize()];
 
-        mmetric.set_generation(generation);
-        mmetric.apply_update(update.into());
+        metric.set_generation(generation);
+        metric.apply_update(update.into());
 
         self.meta.update_count += 1;
     }
@@ -275,49 +275,6 @@ impl<'de> Deserialize<'de> for MetricSet {
         })
     }
 }
-
-// #[derive(Debug)]
-// pub enum MetricSetUpdate<'a> {
-//     Single(SmallStr, MetricUpdate<'a>, Option<TagType>),
-//     Expression(&'a mut Expr),
-// }
-
-// impl<'a, N, U> From<(N, U)> for MetricSetUpdate<'a>
-// where
-//     N: Into<SmallStr>,
-//     U: Into<MetricUpdate<'a>>,
-// {
-//     fn from((name, update): (N, U)) -> Self {
-//         MetricSetUpdate::Single(name.into(), update.into(), None)
-//     }
-// }
-
-// impl<'a, N, U> From<(TagType, N, U)> for MetricSetUpdate<'a>
-// where
-//     N: Into<SmallStr>,
-//     U: Into<MetricUpdate<'a>>,
-// {
-//     fn from((tag, name, update): (TagType, N, U)) -> Self {
-//         MetricSetUpdate::Single(name.into(), update.into(), Some(tag))
-//     }
-// }
-
-// impl<'a, N, U> From<(N, U, usize)> for MetricSetUpdate<'a>
-// where
-//     N: AsRef<str>,
-//     U: Into<MetricUpdate<'a>>,
-// {
-//     fn from((name, update, count): (N, U, usize)) -> Self {
-//         let name: SmallStr = format!("{}.{}", name.as_ref(), count).into();
-//         MetricSetUpdate::Single(name, update.into(), None)
-//     }
-// }
-
-// impl<'a> From<&'a mut Expr> for MetricSetUpdate<'a> {
-//     fn from(expr: &'a mut Expr) -> Self {
-//         MetricSetUpdate::Expression(expr)
-//     }
-// }
 
 #[cfg(test)]
 mod tests {
