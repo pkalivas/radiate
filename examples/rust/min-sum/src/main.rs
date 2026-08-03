@@ -13,6 +13,16 @@ fn main() {
         .mutator(SwapMutator::new(0.05))
         .crossover(UniformCrossover::new(0.5))
         .fitness_fn(|geno: Vec<i32>| geno.iter().sum::<i32>())
+        .on_epoch_complete(|event: OnEpochEvent<'_, Vec<i32>>| {
+            println!(
+                "Epoch {}: best = {:?}, score = {}, metrics = {:?}, objective = {:?}",
+                event.index,
+                event.best,
+                event.score.as_i32(),
+                event.metrics,
+                event.objective
+            );
+        })
         .build();
 
     let result = engine

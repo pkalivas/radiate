@@ -176,16 +176,19 @@ where
         }
 
         if matches!(self.context.index, 0) {
-            self.bus.publish(EngineMessage::<C, T>::Start);
+            self.bus
+                .publish(EngineMessage::<C, T>::Start(&mut self.context));
         }
 
-        self.bus.publish(EngineMessage::EpochStart(&self.context));
+        self.bus
+            .publish(EngineMessage::EpochStart(&mut self.context));
         self.pipeline.run(&mut self.context)?;
         if self.context.try_advance_one()? {
-            self.bus.publish(EngineMessage::Improvement(&self.context));
+            self.bus
+                .publish(EngineMessage::Improvement(&mut self.context));
         }
 
-        self.bus.publish(EngineMessage::EpochEnd(&self.context));
+        self.bus.publish(EngineMessage::EpochEnd(&mut self.context));
 
         Ok(EngineState::Running)
     }
@@ -241,6 +244,6 @@ where
     T: Clone + Send + Sync + 'static,
 {
     fn drop(&mut self) {
-        self.bus.publish(EngineMessage::Stop(&self.context));
+        self.bus.publish(EngineMessage::Stop(&mut self.context));
     }
 }

@@ -1,6 +1,7 @@
 mod alters;
 pub(crate) mod config;
 mod evaluators;
+mod events;
 mod filters;
 mod objectives;
 mod population;
@@ -25,8 +26,8 @@ use crate::steps::{
 };
 use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use crate::{
-    Crossover, EncodeReplace, EventBus, EventHandler, Front, Mutate, ReplacementStrategy,
-    RouletteSelector, TournamentSelector, context::EvolutionContext,
+    Crossover, EncodeReplace, EventBus, Front, Mutate, ReplacementStrategy, RouletteSelector,
+    TournamentSelector, context::EvolutionContext,
 };
 use crate::{Generation, Result};
 use config::EngineConfig;
@@ -60,7 +61,7 @@ where
 
     pub alterers: Vec<Alterer<C>>,
     pub replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
-    pub handlers: Vec<Arc<Mutex<dyn EventHandler<T>>>>,
+    pub bus: EventBus<T>,
     pub generation: Option<Generation<C, T>>,
     pub exprs: Option<Arc<Mutex<ExprSet>>>,
 }
@@ -107,18 +108,6 @@ where
     /// be using the `Codec` to encode a new individual from scratch.
     pub fn replace_strategy<R: ReplacementStrategy<C> + 'static>(mut self, replace: R) -> Self {
         self.params.replacement_strategy = Arc::new(replace);
-        self
-    }
-
-    /// Subscribe to engine events with the given event handler.
-    /// The event handler will be called whenever an event is emitted by the engine.
-    /// You can use this to log events, or to perform custom actions
-    /// based on the events emitted by the engine.
-    pub fn subscribe<H>(mut self, handler: H) -> Self
-    where
-        H: EventHandler<T> + 'static,
-    {
-        self.params.handlers.push(Arc::new(Mutex::new(handler)));
         self
     }
 
@@ -199,7 +188,7 @@ where
         pipeline.add_step(Self::build_species_step(&config));
         pipeline.add_step(Self::build_audit_step(&config));
 
-        let event_bus = EventBus::new(config.bus_executor(), config.handlers());
+        let event_bus = EventBus::new(config.bus_executor(), config.bus().handlers());
         let context = EvolutionContext::from(config);
 
         Ok(GeneticEngine::<C, T>::new(context, pipeline, event_bus))
@@ -521,7 +510,7 @@ where
 
                 replacement_strategy: Arc::new(EncodeReplace),
                 alterers: Vec::new(),
-                handlers: Vec::new(),
+                bus: EventBus::default(),
                 exprs: None,
                 generation: None,
             },

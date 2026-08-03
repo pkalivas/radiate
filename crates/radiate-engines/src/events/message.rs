@@ -1,17 +1,43 @@
 use crate::context::EvolutionContext;
-use radiate_core::{Chromosome, MetricSet, Objective, Score};
+use radiate_core::{Chromosome, MetricSet, Objective, Score, ThreadSync};
 use std::{fmt::Debug, sync::Arc};
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum EventType {
+    Start,
+    Stop,
+    EpochStart,
+    EpochComplete,
+    Improvement,
+    All,
+}
 
 pub enum EngineMessage<'a, C, T>
 where
     C: Chromosome,
     T: Clone,
 {
-    Start,
-    Stop(&'a EvolutionContext<C, T>),
-    EpochStart(&'a EvolutionContext<C, T>),
-    EpochEnd(&'a EvolutionContext<C, T>),
-    Improvement(&'a EvolutionContext<C, T>),
+    Start(&'a mut EvolutionContext<C, T>),
+    Stop(&'a mut EvolutionContext<C, T>),
+    EpochStart(&'a mut EvolutionContext<C, T>),
+    EpochEnd(&'a mut EvolutionContext<C, T>),
+    Improvement(&'a mut EvolutionContext<C, T>),
+}
+
+impl<'a, C, T> EngineMessage<'a, C, T>
+where
+    C: Chromosome,
+    T: Clone,
+{
+    pub fn event_type(&self) -> EventType {
+        match self {
+            EngineMessage::Start(_) => EventType::Start,
+            EngineMessage::Stop(_) => EventType::Stop,
+            EngineMessage::EpochStart(_) => EventType::EpochStart,
+            EngineMessage::EpochEnd(_) => EventType::EpochComplete,
+            EngineMessage::Improvement(_) => EventType::Improvement,
+        }
+    }
 }
 
 pub enum EngineEventInner<T> {
@@ -47,18 +73,27 @@ impl<T: Debug> Debug for EngineEventInner<T> {
 }
 
 pub struct EngineEvent<T> {
+    sync: ThreadSync,
     inner: Arc<EngineEventInner<T>>,
 }
 
 impl<T> EngineEvent<T> {
-    pub fn new(inner: EngineEventInner<T>) -> Self {
+    pub fn new(sync: ThreadSync, inner: EngineEventInner<T>) -> Self {
         EngineEvent {
+            sync,
             inner: Arc::new(inner),
         }
     }
 
     pub fn inner(&self) -> &EngineEventInner<T> {
         self.inner.as_ref()
+    }
+
+    /// A handle back to the engine's own pause/stop/step primitive — lets a
+    /// handler act on what it just observed (e.g. stop the run from an
+    /// `on_improvement` callback) instead of only ever reading state.
+    pub fn sync(&self) -> &ThreadSync {
+        &self.sync
     }
 
     pub fn is_start(&self) -> bool {
@@ -85,6 +120,7 @@ impl<T> EngineEvent<T> {
 impl<T> Clone for EngineEvent<T> {
     fn clone(&self) -> Self {
         EngineEvent {
+            sync: self.sync.clone(),
             inner: Arc::clone(&self.inner),
         }
     }

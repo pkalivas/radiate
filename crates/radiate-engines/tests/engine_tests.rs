@@ -222,11 +222,8 @@ mod engine_tests {
 
         let handle = thread::spawn(move || {
             let mut runtime = engine.iter().limit(1000);
-            loop {
-                match runtime.next() {
-                    Some(epoch) => last_index2.store(epoch.index(), Ordering::SeqCst),
-                    None => break,
-                }
+            while let Some(epoch) = runtime.next() {
+                last_index2.store(epoch.index(), Ordering::SeqCst);
             }
         });
 

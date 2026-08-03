@@ -13,7 +13,10 @@ mod steps;
 pub use builder::GeneticEngineBuilder;
 pub use context::EvolutionContext;
 pub use engine::GeneticEngine;
-pub use events::{EngineEvent, EngineEventInner, EventBus, EventHandler};
+pub use events::{
+    EngineEvent, EngineEventInner, EventBus, EventHandler, EventType, OnEpochComplete,
+    OnEpochEvent, OnEpochStart, OnImprovement, OnStart, OnStop,
+};
 pub use generation::{Generation, GenerationView};
 pub use io::{FileReader, FileWriter, JsonReader, JsonWriter};
 pub use limit::Limit;
