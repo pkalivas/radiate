@@ -1,10 +1,10 @@
 use crate::builder::config::EngineConfig;
 use crate::{Chromosome, ThreadSync};
-use radiate_core::rate::ExprSet;
 use radiate_core::{ActorSystem, error::RadiateResult};
 use radiate_core::{
     Ecosystem, Front, MetricSet, Objective, Phenotype, Problem, Score, metric, metric_names,
 };
+use radiate_core::{Message, rate::ExprSet};
 use std::sync::{Arc, Mutex, RwLock};
 
 pub struct EvolutionContext<C: Chromosome, T> {
@@ -44,6 +44,10 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
 
     pub fn event_system(&self) -> &ActorSystem {
         &self.event_system
+    }
+
+    pub fn send<M: Message + Clone>(&self, message: M) {
+        self.event_system.send(message);
     }
 
     pub fn get_or_create_control(&mut self) -> ThreadSync {

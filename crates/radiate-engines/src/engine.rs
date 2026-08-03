@@ -123,7 +123,6 @@ where
     /// The iterator consumes the engine, so you can only iterate once. If you need
     /// to run the engine multiple times, create a new instance using the builder.
     pub fn iter(self) -> EngineRuntime<Self> {
-        self.bus.send(String::from("HI"));
         EngineRuntime::new(self)
     }
 
@@ -188,8 +187,6 @@ where
         if matches!(self.context.index, 0) {
             self.bus.publish(EngineMessage::Start(&self.context));
         }
-
-        self.bus.send(String::from("AHHHHHH"));
 
         self.bus.publish(EngineMessage::EpochStart(&self.context));
         self.pipeline.run(&mut self.context)?;

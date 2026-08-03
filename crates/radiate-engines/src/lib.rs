@@ -2,7 +2,7 @@ mod actions;
 pub mod builder;
 pub mod context;
 pub mod engine;
-mod events;
+pub mod events;
 mod generation;
 mod io;
 mod limit;

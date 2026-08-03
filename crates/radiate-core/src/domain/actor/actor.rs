@@ -2,11 +2,32 @@ use super::handler::{EventContext, EventHandler};
 use super::message::Message;
 use crate::Executor;
 use radiate_utils::sentry_id;
+use std::any::Any;
 use std::collections::VecDeque;
+use std::fmt;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
 sentry_id!(ActorId);
+
+/// Type-erased handle to an `Actor<M>` for a caller that no longer has `M`
+/// in scope (`ActorSystem`'s registry holds actors for many different
+/// message types side by side). `dyn Any` alone gets you back to the
+/// concrete type via `downcast`, but its own `Debug` impl only ever prints
+/// an opaque placeholder — it has no way to reach `Actor<M>`'s real one.
+/// This trait is the fix: `as_any_arc` recovers the concrete `Arc<Actor<M>>`
+/// for dispatch, `debug_actor` recovers real `Debug` output through the same
+/// erasure.
+pub(super) trait AnyActor: Send + Sync {
+    fn as_any_arc(self: Arc<Self>) -> Arc<dyn Any + Send + Sync>;
+    fn debug_actor(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result;
+}
+
+impl fmt::Debug for dyn AnyActor {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.debug_actor(f)
+    }
+}
 
 /// A single subscriber's mailbox. `tell` enqueues (message, context) pairs
 /// and, if nobody is currently draining this actor, schedules a drain on the
@@ -79,10 +100,21 @@ impl<M: Message> Actor<M> {
     }
 }
 
-impl<M: Message> std::fmt::Debug for Actor<M> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl<M: Message> AnyActor for Actor<M> {
+    fn as_any_arc(self: Arc<Self>) -> Arc<dyn Any + Send + Sync> {
+        self
+    }
+
+    fn debug_actor(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Debug::fmt(self, f)
+    }
+}
+
+impl<M: Message> fmt::Debug for Actor<M> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Actor")
             .field("id", &self.id)
+            .field("message_type", &std::any::type_name::<M>())
             .field("scheduled", &self.scheduled.load(Ordering::Acquire))
             .field("mailbox_size", &self.mailbox.lock().unwrap().len())
             .field("num_processed", &self.num_processed.load(Ordering::Acquire))

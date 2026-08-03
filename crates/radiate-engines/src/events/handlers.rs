@@ -1,4 +1,4 @@
-use crate::{events::EpochCompleted, init_logging};
+use crate::events::EpochCompleted;
 use radiate_core::{EventContext, EventHandler, MetricSet};
 use std::sync::{Arc, Mutex};
 
@@ -67,13 +67,6 @@ pub struct Debug(pub String);
 
 #[derive(Clone, Default)]
 pub struct LoggingHandler;
-
-impl LoggingHandler {
-    pub fn new() -> Self {
-        init_logging();
-        Self::default()
-    }
-}
 
 impl EventHandler<Info> for LoggingHandler {
     fn handle(&mut self, message: Info, _ctx: &EventContext) {

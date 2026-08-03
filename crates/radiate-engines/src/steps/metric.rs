@@ -1,7 +1,9 @@
+use crate::events::Warn;
 use crate::steps::EngineStep;
 use radiate_core::{
-    Chromosome, Ecosystem, Evaluate, MetricSet, MetricUpdate, Objective, Score, SmallStr,
-    math::distribution, metric_names, phenotype::PhenotypeId, rate::ExprSet, stats::TagType,
+    ActorSystem, Chromosome, Ecosystem, Evaluate, MetricSet, MetricUpdate, Objective, Score,
+    SmallStr, math::distribution, metric_names, phenotype::PhenotypeId, rate::ExprSet,
+    stats::TagType,
 };
 use radiate_error::Result;
 use std::{
@@ -12,12 +14,19 @@ use std::{
 
 const EPS: f32 = 1e-9;
 
+// Placeholder threshold — fires once per stagnant streak, not configurable
+// yet. Worth revisiting if/when stagnation warnings want to be tunable the
+// same way `UniqueScoreFilter`'s `max_stagnation` already is.
+const STAGNATION_WARNING_THRESHOLD: usize = 50;
+
 #[derive(Default)]
 pub struct MetricStep {
     objective: Objective,
     best_score: Option<Score>,
 
     expressions: Option<Arc<Mutex<ExprSet>>>,
+    event_system: ActorSystem,
+    warned_this_streak: bool,
 
     score_dist_per_dim: Vec<Vec<f32>>,
     unique_scores_per_dim: Vec<Vec<f32>>,
@@ -44,10 +53,15 @@ pub struct MetricStep {
 }
 
 impl MetricStep {
-    pub fn new(objective: Objective, expressions: Option<Arc<Mutex<ExprSet>>>) -> Self {
+    pub fn new(
+        objective: Objective,
+        expressions: Option<Arc<Mutex<ExprSet>>>,
+        event_system: ActorSystem,
+    ) -> Self {
         Self {
             objective,
             expressions,
+            event_system,
             ..Default::default()
         }
     }
@@ -127,8 +141,17 @@ impl MetricStep {
 
         if best_improved {
             self.stagnation_count = 0;
+            self.warned_this_streak = false;
         } else {
             self.stagnation_count += 1;
+
+            if !self.warned_this_streak && self.stagnation_count >= STAGNATION_WARNING_THRESHOLD {
+                self.event_system.send(Warn(format!(
+                    "no improvement in {} generations",
+                    self.stagnation_count
+                )));
+                self.warned_this_streak = true;
+            }
         }
 
         metrics.upsert(metric_names::STAGNATION_COUNT, self.stagnation_count);

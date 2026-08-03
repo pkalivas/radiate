@@ -436,6 +436,7 @@ where
         Some(Box::new(MetricStep::new(
             config.objective().clone(),
             config.exprs().clone(),
+            config.event_system(),
         )))
     }
 

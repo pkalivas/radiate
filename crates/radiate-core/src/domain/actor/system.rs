@@ -1,13 +1,31 @@
-use super::actor::Actor;
+use super::actor::{AnyActor, Actor};
 use super::handler::{EventContext, EventHandler};
 use super::message::Message;
 use crate::Executor;
 use crate::ThreadSync;
-use std::any::{Any, TypeId};
+use std::any::TypeId;
 use std::collections::HashMap;
+use std::fmt;
 use std::sync::{Arc, Mutex};
 
-type ActorRegistry = Arc<Mutex<HashMap<TypeId, Vec<Arc<dyn Any + Send + Sync>>>>>;
+/// Everyone subscribed to one concrete message type. `type_name` is captured
+/// once, at first subscription, purely for `Debug` — `TypeId` alone prints
+/// as an opaque hash, telling you nothing about which message kind you're
+/// looking at.
+struct Subscription {
+    type_name: &'static str,
+    actors: Vec<Arc<dyn AnyActor>>,
+}
+
+impl fmt::Debug for Subscription {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct(self.type_name)
+            .field("actors", &self.actors)
+            .finish()
+    }
+}
+
+type ActorRegistry = Arc<Mutex<HashMap<TypeId, Subscription>>>;
 
 /// A small, generic actor system: subscribers are keyed by the concrete
 /// message type they registered for, each with its own mailbox. Sending an
@@ -72,12 +90,16 @@ impl ActorSystem {
         M: Message,
         H: EventHandler<M> + 'static,
     {
-        let actor: Arc<dyn Any + Send + Sync> = Actor::new(Box::new(handler));
+        let actor: Arc<dyn AnyActor> = Actor::new(Box::new(handler));
         self.actors
             .lock()
             .unwrap()
             .entry(TypeId::of::<M>())
-            .or_default()
+            .or_insert_with(|| Subscription {
+                type_name: std::any::type_name::<M>(),
+                actors: Vec::new(),
+            })
+            .actors
             .push(actor);
     }
 
@@ -90,7 +112,7 @@ impl ActorSystem {
             .lock()
             .unwrap()
             .get(&TypeId::of::<M>())
-            .is_some_and(|subs| !subs.is_empty())
+            .is_some_and(|sub| !sub.actors.is_empty())
     }
 
     /// Send a message. Only actors subscribed to `TypeId::of::<M>()` are
@@ -98,14 +120,14 @@ impl ActorSystem {
     /// lookup, no payload cloning happens.
     pub fn send<M: Message + Clone>(&self, message: M) {
         let actors = self.actors.lock().unwrap();
-        let Some(subscribers) = actors.get(&TypeId::of::<M>()) else {
+        let Some(sub) = actors.get(&TypeId::of::<M>()) else {
             return;
         };
 
         let executor = self.current_executor();
         let ctx = self.current_context();
-        for erased in subscribers {
-            if let Ok(actor) = Arc::clone(erased).downcast::<Actor<M>>() {
+        for erased in &sub.actors {
+            if let Ok(actor) = Arc::clone(erased).as_any_arc().downcast::<Actor<M>>() {
                 actor.tell(message.clone(), ctx.clone(), &executor);
             }
         }
@@ -118,10 +140,11 @@ impl Default for ActorSystem {
     }
 }
 
-impl std::fmt::Debug for ActorSystem {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Debug for ActorSystem {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let actors = self.actors.lock().unwrap();
         f.debug_struct("ActorSystem")
-            .field("actors", &self.actors.lock().unwrap())
+            .field("subscriptions", &actors.values().collect::<Vec<_>>())
             .field("executor", &self.executor.lock().unwrap())
             .finish()
     }

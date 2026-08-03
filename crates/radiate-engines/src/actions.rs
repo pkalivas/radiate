@@ -6,7 +6,6 @@ use radiate_core::{Chromosome, Engine, Objective, error::RadiateResult};
 use serde::Serialize;
 #[cfg(feature = "serde")]
 use std::path::PathBuf;
-use tracing::info;
 
 pub(crate) struct LoggingAction(pub usize);
 
@@ -36,26 +35,16 @@ where
                     time
                 );
 
-                ctx.event_system().send(crate::events::Info(str));
-                // info!(
-                //     "Epoch {:<4} | Score: {:>8.4} | Time: {:>5.2?}",
-                //     ctx.index,
-                //     ctx.score.as_ref().unwrap().as_f32(),
-                //     time
-                // );
+                ctx.send(crate::events::Info(str));
             }
             Objective::Multi(_) => {
                 let front_size = ctx.metrics.front_size();
                 let front_size_value = front_size.map(|ent| ent.last_value()).unwrap_or(0.0);
 
-                ctx.event_system().send(crate::events::Info(format!(
+                ctx.send(crate::events::Info(format!(
                     "Epoch {:<4} | Front Size: {:.3} | Time: {:>5.2?}",
                     ctx.index, front_size_value, time
                 )));
-                // info!(
-                //     "Epoch {:<4} | Front Size: {:.3} | Time: {:>5.2?}",
-                //     ctx.index, front_size_value, time
-                // );
             }
         }
 

@@ -281,6 +281,40 @@ mod engine_tests {
         assert_eq!(history.lock().unwrap().len(), BUDGET);
     }
 
+    #[test]
+    fn metric_step_publishes_stagnation_warning() {
+        use radiate_engines::events::Warn;
+        use std::sync::{Arc, Mutex};
+
+        let seen = Arc::new(Mutex::new(Vec::new()));
+        let seen2 = Arc::clone(&seen);
+
+        // A fitness function that ignores the genotype entirely means every
+        // individual scores identically forever — the first generation sets
+        // the "best" (an improvement over nothing), and every generation
+        // after that is guaranteed stagnant, so this deterministically
+        // crosses the warning threshold rather than depending on chance.
+        let engine = GeneticEngine::builder()
+            .codec(FloatCodec::vector(4, -5.0..5.0))
+            .fitness_fn(|_geno: Vec<f32>| 1.0)
+            .subscribe_typed::<Warn, _>(move |w: Warn, _ctx: &EventContext| {
+                seen2.lock().unwrap().push(w.0);
+            })
+            .build();
+
+        const BUDGET: usize = 30;
+        let _ = engine.iter().limit(BUDGET).last().unwrap();
+
+        let warnings = seen.lock().unwrap();
+        assert_eq!(
+            warnings.len(),
+            1,
+            "expected exactly one stagnation warning, got {:?}",
+            *warnings
+        );
+        assert!(warnings[0].contains("no improvement"));
+    }
+
     #[rstest]
     #[case(101, 0.05, 300)]
     #[case(202, 0.05, 300)]

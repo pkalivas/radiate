@@ -24,23 +24,6 @@ impl<T> EventBus<T> {
         }
     }
 
-    /// Rebind the executor used for future dispatch without disturbing any
-    /// subscriber already registered — used by the builder, which collects
-    /// subscribers before the real executor is known.
-    pub fn set_executor(self, executor: Arc<Executor>) -> Self {
-        self.core.set_executor(executor);
-        self
-    }
-
-    /// Rebind the `ThreadSync` handed to actors from this point on — used by
-    /// the builder to bind this bus to the same control primitive the
-    /// engine's `EvolutionContext` ends up using, so `ctx.sync` in any
-    /// handler and `engine.control()` are the same object.
-    pub fn set_sync(self, sync: ThreadSync) -> Self {
-        self.core.set_sync(sync);
-        self
-    }
-
     pub fn subscribe<M, H>(&self, handler: H)
     where
         M: Message + 'static,
@@ -182,16 +165,26 @@ mod tests {
         }
     }
 
-    // Registration now happens on the raw `ActorSystem` (mirroring what
-    // `GeneticEngineBuilder` actually does), and only gets wrapped into an
-    // `EventBus` afterward — `EventBus` itself no longer offers a subscribe
-    // API, it's purely `publish`/`send` over an already-populated system.
     fn bus_with<M, H>(handler: H) -> EventBus<Vec<bool>>
     where
         M: Message,
         H: EventHandler<M> + 'static,
     {
         let system = ActorSystem::default();
+        system.subscribe::<M, _>(handler);
+        EventBus::from(system)
+    }
+
+    // `EventBus` no longer has `set_sync` (it was dead in production —
+    // `build_event_system()` binds the `ThreadSync` on the raw `ActorSystem`
+    // before it's ever wrapped), so tests that need a specific `ThreadSync`
+    // build the `ActorSystem` with it directly instead.
+    fn bus_with_sync<M, H>(sync: ThreadSync, handler: H) -> EventBus<Vec<bool>>
+    where
+        M: Message,
+        H: EventHandler<M> + 'static,
+    {
+        let system = ActorSystem::with_sync(Arc::new(Executor::default()), sync);
         system.subscribe::<M, _>(handler);
         EventBus::from(system)
     }
@@ -289,7 +282,9 @@ mod tests {
         let signal = Arc::new((StdMutex::new(0), Condvar::new()));
         let signal_clone = Arc::clone(&signal);
 
-        let bus = bus_with::<EngineEvent<Vec<bool>>, _>(
+        let sync = ThreadSync::new();
+        let bus = bus_with_sync::<EngineEvent<Vec<bool>>, _>(
+            sync.clone(),
             move |_event: EngineEvent<Vec<bool>>, ctx: &EventContext| {
                 ctx.sync.stop();
                 let (n, cv) = &*signal_clone;
@@ -297,9 +292,6 @@ mod tests {
                 cv.notify_all();
             },
         );
-
-        let sync = ThreadSync::new();
-        let bus = bus.set_sync(sync.clone());
         assert!(!sync.is_stopped());
 
         let ctx = test_context();
@@ -314,7 +306,9 @@ mod tests {
         let signal = Arc::new((StdMutex::new(0), Condvar::new()));
         let signal_clone = Arc::clone(&signal);
 
-        let bus = bus_with::<Improved<Vec<bool>>, _>(
+        let sync = ThreadSync::new();
+        let bus = bus_with_sync::<Improved<Vec<bool>>, _>(
+            sync.clone(),
             move |_msg: Improved<Vec<bool>>, ctx: &EventContext| {
                 ctx.sync.stop();
                 let (n, cv) = &*signal_clone;
@@ -322,9 +316,6 @@ mod tests {
                 cv.notify_all();
             },
         );
-
-        let sync = ThreadSync::new();
-        let bus = bus.set_sync(sync.clone());
 
         let ctx = test_context();
         bus.publish(EngineMessage::Improvement(&ctx));
@@ -345,16 +336,14 @@ mod tests {
 
         let seen2 = Arc::clone(&seen);
         let signal2 = Arc::clone(&signal);
-        let bus = bus_with::<Warning, _>(move |w: Warning, ctx: &EventContext| {
+        let sync = ThreadSync::new();
+        let bus = bus_with_sync::<Warning, _>(sync.clone(), move |w: Warning, ctx: &EventContext| {
             seen2.lock().unwrap().push(w.text);
             ctx.sync.stop();
             let (n, cv) = &*signal2;
             *n.lock().unwrap() += 1;
             cv.notify_all();
         });
-
-        let sync = ThreadSync::new();
-        let bus = bus.set_sync(sync.clone());
 
         bus.send(Warning {
             text: "population diversity collapsing",

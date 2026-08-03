@@ -209,10 +209,10 @@ where
         init_logging();
         let system = self.engine.context().event_system();
 
-        system.subscribe::<crate::events::Info, LoggingHandler>(LoggingHandler::new());
-        system.subscribe::<crate::events::Warn, LoggingHandler>(LoggingHandler::new());
-        system.subscribe::<crate::events::Error, LoggingHandler>(LoggingHandler::new());
-        system.subscribe::<crate::events::Debug, LoggingHandler>(LoggingHandler::new());
+        system.subscribe::<crate::events::Info, LoggingHandler>(LoggingHandler);
+        system.subscribe::<crate::events::Warn, LoggingHandler>(LoggingHandler);
+        system.subscribe::<crate::events::Error, LoggingHandler>(LoggingHandler);
+        system.subscribe::<crate::events::Debug, LoggingHandler>(LoggingHandler);
 
         let action = LoggingAction(every);
         self.add_action(action);
