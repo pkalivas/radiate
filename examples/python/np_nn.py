@@ -62,15 +62,6 @@ def metrics_dashboard(event: rd.EngineEvent):
     print(event.metrics().dashboard())
 
 
-class TempHandler(rd.EventHandler):
-    def __init__(self):
-        super().__init__(rd.EventType.EPOCH_COMPLETE)
-
-    def on_event(self, event: rd.EngineEvent):
-        print(event.event_type())
-        pass
-
-
 engine = (
     rd.Engine.float(
         # Create an engine that evolves genomes with 3 chromosomes, one for each
@@ -88,17 +79,15 @@ engine = (
     )
     .fitness(fit)
     .minimizing()
-    .subscribe(metrics_dashboard, TempHandler())
+    .subscribe(metrics_dashboard)
     .select(rd.Select.boltzmann(temp=4.0))
     .alters(rd.Cross.blend(0.7, 0.4), rd.Mutate.gaussian(0.1))
     .limit(rd.Limit.score(0.01), rd.Limit.generations(500))
 )
 
-t = engine.run(log=True)
 
-
-# for epoch in engine:
-#     print(f"Epoch {epoch.index()}: Best score = {epoch.score()}")
+for epoch in engine:
+    print(f"Epoch {epoch.index()}: Best score = {epoch.score()}")
 
 
 # # .load_checkpoint(

@@ -1,5 +1,4 @@
 use crate::app::{App, GenerationEvent, InputEvent};
-use crate::state::LogLevel;
 use color_eyre::{Result, eyre::Context};
 use radiate_engines::{
     Chromosome, Engine, EngineState, EngineStream, EventContext, Generation, GenerationView,
@@ -86,13 +85,7 @@ where
             .on::<Log>()
             .handle(move |msg: &Log, _: &EventContext| {
                 dispatch
-                    .send(InputEvent::Log(
-                        match msg.level() {
-                            radiate_engines::events::LogLevel::Info => LogLevel::Info,
-                            radiate_engines::events::LogLevel::Warn => LogLevel::Warn,
-                        },
-                        msg.message().to_string(),
-                    ))
+                    .send(InputEvent::Log(msg.level(), msg.message().to_string()))
                     .unwrap();
             });
     }

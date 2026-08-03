@@ -2,10 +2,21 @@ use crate::{IntoPyAnyObject, PyAnyObject, PyMetricSet, bindings::subscriber};
 use numpy::PyArray1;
 use pyo3::{IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
-    EpochComplete, EventContext, EventHandler, LimitTriggered, Message, MessageBroker, Objective,
+    Chromosome, EpochComplete, EventContext, EventHandler, GeneticEngineBuilder, LimitTriggered,
+    Objective,
     events::{EngineStart, EngineStop, EpochStart, Improvement, Log},
 };
 use std::fmt::Debug;
+
+const EVENT_TYPES: &[&str] = &[
+    crate::constants::components::START_EVENT,
+    crate::constants::components::STOP_EVENT,
+    crate::constants::components::EPOCH_START_EVENT,
+    crate::constants::components::EPOCH_COMPLETE_EVENT,
+    crate::constants::components::ENGINE_IMPROVEMENT_EVENT,
+    crate::constants::components::LIMIT_TRIGGERED_EVENT,
+    crate::constants::components::LOG_EVENT,
+];
 
 #[pyclass(from_py_object)]
 #[derive(Clone)]
@@ -163,6 +174,59 @@ impl EventHandler<Log> for PySubscriber {
                 .expect("Failed to call subscriber function");
         })
     }
+}
+
+pub(crate) fn subscribe_python<C, T>(
+    mut builder: GeneticEngineBuilder<C, T>,
+    subscribers: Vec<PySubscriber>,
+) -> GeneticEngineBuilder<C, T>
+where
+    C: Chromosome + PartialEq + Clone,
+    T: IntoPyAnyObject + Send + Sync + Clone + 'static,
+{
+    use crate::constants::components;
+
+    let equals_or_all = |name: &str, target: &str| name == target || name == components::ALL_EVENTS;
+
+    for subscriber in subscribers {
+        let event_type = subscriber
+            .event_name()
+            .map(|name| name.to_string())
+            .unwrap_or_else(|| components::ALL_EVENTS.to_string());
+
+        for &event_name in EVENT_TYPES {
+            builder = if equals_or_all(&event_type, event_name) {
+                match event_name {
+                    components::START_EVENT => {
+                        builder.subscribe::<PySubscriber, EngineStart>(subscriber.clone())
+                    }
+                    components::STOP_EVENT => {
+                        builder.subscribe::<PySubscriber, EngineStop<T>>(subscriber.clone())
+                    }
+                    components::EPOCH_START_EVENT => {
+                        builder.subscribe::<PySubscriber, EpochStart>(subscriber.clone())
+                    }
+                    components::EPOCH_COMPLETE_EVENT => {
+                        builder.subscribe::<PySubscriber, EpochComplete<T>>(subscriber.clone())
+                    }
+                    components::ENGINE_IMPROVEMENT_EVENT => {
+                        builder.subscribe::<PySubscriber, Improvement<T>>(subscriber.clone())
+                    }
+                    components::LIMIT_TRIGGERED_EVENT => {
+                        builder.subscribe::<PySubscriber, LimitTriggered>(subscriber.clone())
+                    }
+                    components::LOG_EVENT => {
+                        builder.subscribe::<PySubscriber, Log>(subscriber.clone())
+                    }
+                    _ => builder,
+                }
+            } else {
+                builder
+            };
+        }
+    }
+
+    builder
 }
 
 #[pyclass]

@@ -1,10 +1,10 @@
 use super::tables::{header_row, render_scrollable_table, striped_rows};
 use crate::widgets::AppWidget;
 use crate::{
-    state::{AppState, LogLevel, Pane},
+    state::{AppState, Pane},
     styles::delta_bar,
 };
-use radiate_engines::{Chromosome, Objective, Optimize};
+use radiate_engines::{Chromosome, Objective, Optimize, events::LogLevel};
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Rect};
 use ratatui::style::{Color, Style};

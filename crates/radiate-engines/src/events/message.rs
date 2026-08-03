@@ -32,7 +32,7 @@ impl<T: Send + Sync + 'static> EngineMessage for EpochComplete<T> {}
 impl<T: Send + Sync + 'static> sealed::Sealed for EngineStop<T> {}
 impl<T: Send + Sync + 'static> EngineMessage for EngineStop<T> {}
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum LogLevel {
     Info,
     Warn,

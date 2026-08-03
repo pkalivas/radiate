@@ -170,14 +170,6 @@ impl MetricStep {
     }
 
     #[inline]
-    fn calc_actor_system_metrics(&self, metrics: &mut MetricSet) {
-        let stats = self.event_system.stats();
-        metrics.upsert(metric_names::ACTOR_SUBSCRIPTIONS, stats.subscriptions);
-        metrics.upsert(metric_names::ACTOR_QUEUED, stats.queued);
-        metrics.upsert(metric_names::ACTOR_PROCESSED, stats.processed as usize);
-    }
-
-    #[inline]
     fn calc_expression_metrics(&mut self, metrics: &mut MetricSet) -> Result<()> {
         if let Some(exprs) = &self.expressions {
             let mut exprs = exprs.lock().unwrap();
@@ -375,7 +367,6 @@ impl<C: Chromosome> EngineStep<C> for MetricStep {
         self.calc_membership_metrics(metrics, ecosystem);
         Self::calc_derived_metrics(metrics, ecosystem);
         self.calc_improvement_metrics(generation, metrics, ecosystem);
-        self.calc_actor_system_metrics(metrics);
         self.calc_expression_metrics(metrics)?;
 
         Ok(())

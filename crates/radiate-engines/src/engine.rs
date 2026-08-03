@@ -3,7 +3,7 @@ use crate::pipeline::Pipeline;
 use crate::{Chromosome, EngineRuntime, Generation, ThreadSync};
 use crate::{GenerationView, builder::GeneticEngineBuilder};
 use crate::{context::EvolutionContext, events::EngineStart};
-use radiate_core::{Engine, MessageBroker, actor::SubscriptionBuilder, engine::EngineState};
+use radiate_core::{Engine, MessageBroker, engine::EngineState, notify::SubscriptionBuilder};
 use radiate_core::{EngineStream, error::Result};
 
 /// The [GeneticEngine] is the core component of the Radiate library's genetic algorithm implementation.
@@ -125,6 +125,11 @@ where
         EngineRuntime::new(self)
     }
 
+    /// Subscribes to messages of type `M` emitted by the engine.
+    ///
+    /// This method returns a [SubscriptionBuilder] that allows you to define
+    /// how to handle messages of type `M`. You can use this to listen for events
+    /// such as epoch completions, improvements, or custom messages emitted during the evolutionary process.
     pub fn on<M>(&self) -> SubscriptionBuilder<'_, M>
     where
         M: EngineMessage,

@@ -1,4 +1,4 @@
-use crate::actor::message::EventContext;
+use crate::notify::message::EventContext;
 
 pub trait EventHandler<M>: Send + Sync {
     fn handle(&mut self, message: &M, ctx: &EventContext);

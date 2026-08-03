@@ -1,13 +1,13 @@
-pub mod actor;
 pub mod executor;
 pub mod math;
+pub mod notify;
 pub mod random_provider;
 pub mod sync;
 pub mod tracker;
 
-pub use actor::{MessageBroker, ActorSystemStats, Envelope, EventContext, EventHandler, Message};
 pub use executor::Executor;
 pub use math::SubsetMode;
 pub use math::subset;
+pub use notify::{Envelope, EventContext, EventHandler, Message, MessageBroker, MessageBrokerMeta};
 pub use random_provider::RdRand;
 pub use sync::{CommandChannel, ThreadSync, WaitGroup, WaitGuard, get_thread_pool};

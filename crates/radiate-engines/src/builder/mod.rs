@@ -9,6 +9,7 @@ mod problem;
 mod selectors;
 mod species;
 
+use crate::builder::evaluators::EvaluationParams;
 use crate::builder::filters::FilterParams;
 use crate::builder::objectives::OptimizeParams;
 use crate::builder::population::PopulationParams;
@@ -28,7 +29,6 @@ use crate::{
     Crossover, EncodeReplace, Front, Mutate, ReplacementStrategy, RouletteSelector,
     TournamentSelector, context::EvolutionContext,
 };
-use crate::{EngineEvent, builder::evaluators::EvaluationParams};
 use crate::{Generation, Result};
 use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
@@ -203,10 +203,6 @@ where
         let executor = self.params.evaluation_params.broker_executor.clone();
 
         let new_broker = MessageBroker::from((executor, sync, subscribers));
-
-        if new_broker.has_subscribers::<EngineEvent<T>>() {
-            crate::events::event_relay::<T>(&new_broker);
-        }
 
         self.params.broker = new_broker;
 

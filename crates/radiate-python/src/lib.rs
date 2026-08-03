@@ -2,7 +2,6 @@ mod bindings;
 mod checkpoint;
 pub mod constants;
 mod evaluator;
-mod events;
 mod object;
 mod problem;
 mod random;

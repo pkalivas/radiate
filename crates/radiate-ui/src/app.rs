@@ -1,10 +1,10 @@
-use crate::state::{AppState, LogLevel, RunState, UiMode};
+use crate::state::{AppState, RunState, UiMode};
 use crate::widgets::{AppWidget, HelpPanelWidget, LayoutNode, MetricModalWidget, ModalWidget};
 use color_eyre::Result;
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use radiate_engines::{
     Chromosome, CommandChannel, Ecosystem, EvolutionContext, Front, MetricSet, Phenotype, Score,
-    ThreadSync,
+    ThreadSync, events::LogLevel,
 };
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;

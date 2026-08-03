@@ -1,6 +1,6 @@
 use crate::{
     Envelope, Executor, Message,
-    actor::{actor::Actor, message::EventContext},
+    notify::{actor::Actor, message::EventContext},
 };
 use std::{
     any::Any,

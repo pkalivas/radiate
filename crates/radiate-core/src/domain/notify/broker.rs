@@ -3,7 +3,7 @@ use super::handler::EventHandler;
 use super::message::Message;
 use crate::{
     Envelope, ThreadSync,
-    actor::{
+    notify::{
         message::EventId,
         subscriber::{AnySubscription, Subscription},
     },
@@ -18,17 +18,10 @@ type ActorRegistry = Arc<RwLock<HashMap<TypeId, Box<dyn AnySubscription>>>>;
 
 /// System-wide snapshot returned by [`ActorSystem::stats`].
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub struct ActorSystemStats {
-    /// Distinct message kinds with at least one subscriber.
+pub struct MessageBrokerMeta {
     pub subscriptions: usize,
-    /// Total actors across all subscriptions (a kind with 3 subscribers
-    /// counts 3 here).
     pub actors: usize,
-    /// Messages currently sitting in a mailbox, summed across every actor.
     pub queued: usize,
-    /// Messages processed since each actor was created, summed across
-    /// every actor. Monotonically increasing per actor, so this only ever
-    /// grows (or resets to 0 if actors are re-subscribed from scratch).
     pub processed: u64,
 }
 
@@ -122,7 +115,7 @@ impl MessageBroker {
     /// from `std::any::type_name::<M>()`, which is fine for `Debug` but not
     /// something worth turning into a metric name (full module paths,
     /// mangled generics).
-    pub fn stats(&self) -> ActorSystemStats {
+    pub fn stats(&self) -> MessageBrokerMeta {
         let registry = self.actors.read().unwrap();
 
         let mut actors = 0usize;
@@ -135,7 +128,7 @@ impl MessageBroker {
             processed += sub.processed();
         }
 
-        ActorSystemStats {
+        MessageBrokerMeta {
             subscriptions: registry.len(),
             actors,
             queued,
@@ -225,7 +218,7 @@ impl Default for MessageBroker {
 impl fmt::Debug for MessageBroker {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let actors = self.actors.read().unwrap();
-        f.debug_struct("ActorSystem")
+        f.debug_struct("MessageBroker")
             .field("subscriptions", &actors.values().collect::<Vec<_>>())
             .field("executor", &self.executor)
             .finish()

@@ -7,7 +7,7 @@ pub mod tables;
 use radiate_engines::{Chromosome, Metric};
 
 pub use chart::MetricChartType;
-pub use evo::{EvoState, LogLevel};
+pub use evo::EvoState;
 pub use nav::{NavState, Pane, UiMode};
 pub use run::RunState;
 pub use tables::{AppTableState, TableStates};

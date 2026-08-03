@@ -1,6 +1,6 @@
 use super::handler::EventHandler;
 use super::message::Message;
-use crate::{Envelope, Executor, actor::message::EventContext};
+use crate::{Envelope, Executor, notify::message::EventContext};
 use radiate_utils::sentry_id;
 use std::collections::VecDeque;
 use std::fmt;
