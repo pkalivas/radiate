@@ -2,9 +2,9 @@ use super::actor::Actor;
 use super::handler::EventHandler;
 use super::message::Message;
 use crate::{
-    Envelope, ThreadSync,
+    ActorId, Envelope, ThreadSync,
     notify::{
-        message::EventId,
+        message::{ActorSubscribed, EventId},
         subscriber::{AnySubscription, Subscription},
     },
 };
@@ -16,13 +16,24 @@ use std::{collections::HashMap, marker::PhantomData};
 
 type ActorRegistry = Arc<RwLock<HashMap<TypeId, Box<dyn AnySubscription>>>>;
 
-/// System-wide snapshot returned by [`ActorSystem::stats`].
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub struct MessageBrokerMeta {
-    pub subscriptions: usize,
-    pub actors: usize,
+pub struct ActorMeta {
+    pub id: ActorId,
     pub queued: usize,
     pub processed: u64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct SubscriptionMeta {
+    pub type_name: &'static str,
+    pub actors: Vec<ActorMeta>,
+}
+
+/// System-wide snapshot returned by [`MessageBroker::stats`].
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct MessageBrokerMeta {
+    pub subscriptions: usize,
+    pub actor_meta: Vec<SubscriptionMeta>,
 }
 
 pub struct SubscriptionBuilder<'a, M: Message> {
@@ -88,23 +99,41 @@ impl MessageBroker {
     /// ActorSystem` needed, so an `ActorSystem` can be freely shared (e.g.
     /// via `Clone`) and subscribed to from multiple places without
     /// coordination.
+    ///
+    /// Emits an [`ActorSubscribed`] lifecycle event once the new actor is
+    /// registered. That send happens *after* the registry's write guard
+    /// below is dropped — a write lock is never reentrant, so sending while
+    /// still holding it would deadlock the moment anyone subscribed to
+    /// `ActorSubscribed` itself.
     pub fn subscribe<M, H>(&self, handler: H)
     where
         M: Message + Debug,
         H: EventHandler<M> + 'static,
     {
-        let mut registry = self.actors.write().unwrap();
+        let (actor_id, subscriber_count) = {
+            let mut registry = self.actors.write().unwrap();
 
-        let sub = registry
-            .entry(TypeId::of::<M>())
-            .or_insert_with(|| {
-                Box::new(Subscription::<M> { actors: Vec::new() }) as Box<dyn AnySubscription>
-            })
-            .as_any_mut()
-            .downcast_mut::<Subscription<M>>()
-            .unwrap();
+            let sub = registry
+                .entry(TypeId::of::<M>())
+                .or_insert_with(|| {
+                    Box::new(Subscription::<M> { actors: Vec::new() }) as Box<dyn AnySubscription>
+                })
+                .as_any_mut()
+                .downcast_mut::<Subscription<M>>()
+                .unwrap();
 
-        sub.actors.push(Actor::new(Box::new(handler)));
+            let actor = Actor::new(Box::new(handler));
+            let actor_id = actor.id();
+            sub.actors.push(actor);
+
+            (actor_id, sub.actors.len())
+        };
+
+        self.send(ActorSubscribed {
+            message_type: std::any::type_name::<M>(),
+            actor_id,
+            subscriber_count,
+        });
     }
 
     /// A system-wide health snapshot: how many message kinds have at least
@@ -118,21 +147,16 @@ impl MessageBroker {
     pub fn stats(&self) -> MessageBrokerMeta {
         let registry = self.actors.read().unwrap();
 
-        let mut actors = 0usize;
-        let mut queued = 0usize;
-        let mut processed = 0u64;
+        let mut actor_meta = Vec::new();
 
         for sub in registry.values() {
-            actors += sub.num_actors();
-            queued += sub.queued();
-            processed += sub.processed();
+            let meta = sub.meta();
+            actor_meta.push(meta);
         }
 
         MessageBrokerMeta {
             subscriptions: registry.len(),
-            actors,
-            queued,
-            processed,
+            actor_meta,
         }
     }
 
@@ -228,6 +252,7 @@ impl fmt::Debug for MessageBroker {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::{Condvar, Mutex};
     use std::time::Duration;
 
@@ -269,7 +294,7 @@ mod tests {
         let seen = Arc::new(Mutex::new(Vec::new()));
         let signal = Arc::new((Mutex::new(0), Condvar::new()));
 
-        bus.subscribe::<Counted, _>(Recorder {
+        bus.on::<Counted>().handle(Recorder {
             seen: Arc::clone(&seen),
             signal: Arc::clone(&signal),
         });
@@ -286,7 +311,7 @@ mod tests {
         let seen = Arc::new(Mutex::new(Vec::new()));
         let signal = Arc::new((Mutex::new(0), Condvar::new()));
 
-        bus.subscribe::<Counted, _>(Recorder {
+        bus.on::<Counted>().handle(Recorder {
             seen: Arc::clone(&seen),
             signal: Arc::clone(&signal),
         });
@@ -307,11 +332,11 @@ mod tests {
         let signal_a = Arc::new((Mutex::new(0), Condvar::new()));
         let signal_b = Arc::new((Mutex::new(0), Condvar::new()));
 
-        bus.subscribe::<Counted, _>(Recorder {
+        bus.on::<Counted>().handle(Recorder {
             seen: Arc::clone(&seen_a),
             signal: Arc::clone(&signal_a),
         });
-        bus.subscribe::<Counted, _>(Recorder {
+        bus.on::<Counted>().handle(Recorder {
             seen: Arc::clone(&seen_b),
             signal: Arc::clone(&signal_b),
         });
@@ -330,7 +355,7 @@ mod tests {
         let seen = Arc::new(Mutex::new(Vec::new()));
         let signal = Arc::new((Mutex::new(0), Condvar::new()));
 
-        bus.subscribe::<Counted, _>(Recorder {
+        bus.on::<Counted>().handle(Recorder {
             seen: Arc::clone(&seen),
             signal: Arc::clone(&signal),
         });
@@ -343,6 +368,52 @@ mod tests {
 
         let expected: Vec<i32> = (0..N as i32).collect();
         assert_eq!(*seen.lock().unwrap(), expected);
+    }
+
+    #[test]
+    fn independent_actors_run_concurrently_under_parallel_executor() {
+        // The complement to `ordering_preserved_per_actor_under_parallel_executor`:
+        // that test proves a *single* actor is never concurrent with itself
+        // (the FIFO guarantee). This one proves the executor's parallelism
+        // is real across *independent* actors — N separate subscribers to
+        // the same message type, each with its own mailbox/drain, should be
+        // able to have their handlers in flight on different threads at the
+        // same time.
+        let bus = MessageBroker::new(Arc::new(Executor::FixedSizedWorkerPool(4)));
+
+        const N: usize = 4;
+        let in_flight = Arc::new(AtomicUsize::new(0));
+        let max_in_flight = Arc::new(AtomicUsize::new(0));
+        let signal = Arc::new((Mutex::new(0), Condvar::new()));
+
+        for _ in 0..N {
+            let in_flight = Arc::clone(&in_flight);
+            let max_in_flight = Arc::clone(&max_in_flight);
+            let signal = Arc::clone(&signal);
+            bus.subscribe::<Counted, _>(move |_msg: &Counted, _ctx: &EventContext| {
+                let now = in_flight.fetch_add(1, Ordering::SeqCst) + 1;
+                max_in_flight.fetch_max(now, Ordering::SeqCst);
+
+                // Widen the window so overlapping handlers actually get a
+                // chance to be observed running at the same time.
+                std::thread::sleep(Duration::from_millis(50));
+
+                in_flight.fetch_sub(1, Ordering::SeqCst);
+                let (count, cv) = &*signal;
+                *count.lock().unwrap() += 1;
+                cv.notify_all();
+            });
+        }
+
+        // One send fans out to all N actors at once.
+        bus.send(Counted(1));
+        wait_for(&signal, N);
+
+        assert_eq!(
+            max_in_flight.load(Ordering::SeqCst),
+            N,
+            "expected all {N} independent actors to be handling their message at the same time"
+        );
     }
 
     #[test]
@@ -377,7 +448,8 @@ mod tests {
         let bus = MessageBroker::default();
         assert!(!bus.has_subscribers::<Counted>());
 
-        bus.subscribe::<Counted, _>(|_msg: &Counted, _ctx: &EventContext| {});
+        bus.on::<Counted>()
+            .handle(|_msg: &Counted, _ctx: &EventContext| {});
         assert!(bus.has_subscribers::<Counted>());
         assert!(!bus.has_subscribers::<Warning>());
     }
@@ -391,12 +463,13 @@ mod tests {
 
         assert!(!sync.is_stopped());
 
-        bus.subscribe::<Counted, _>(move |_msg: &Counted, ctx: &EventContext| {
-            ctx.sync.stop();
-            let (n, cv) = &*signal_clone;
-            *n.lock().unwrap() += 1;
-            cv.notify_all();
-        });
+        bus.on::<Counted>()
+            .handle(move |_msg: &Counted, ctx: &EventContext| {
+                ctx.sync.stop();
+                let (n, cv) = &*signal_clone;
+                *n.lock().unwrap() += 1;
+                cv.notify_all();
+            });
 
         bus.send(Counted(1));
         wait_for(&signal, 1);
@@ -425,12 +498,13 @@ mod tests {
 
         let warnings_seen2 = Arc::clone(&warnings_seen);
         let signal3 = Arc::clone(&signal);
-        bus.subscribe::<Counted, _>(move |_msg: &Counted, _ctx: &EventContext| {
-            *warnings_seen2.lock().unwrap() += 1;
-            let (n, cv) = &*signal3;
-            *n.lock().unwrap() += 1;
-            cv.notify_all();
-        });
+        bus.on::<Counted>()
+            .handle(move |_msg: &Counted, _ctx: &EventContext| {
+                *warnings_seen2.lock().unwrap() += 1;
+                let (n, cv) = &*signal3;
+                *n.lock().unwrap() += 1;
+                cv.notify_all();
+            });
 
         bus.send(Warning("disk almost full"));
         // Both the Warning handler and the Counted handler it triggers
@@ -449,12 +523,13 @@ mod tests {
 
         let seen2 = Arc::clone(&seen);
         let signal2 = Arc::clone(&signal);
-        bus.subscribe::<Counted, _>(move |_msg: &Counted, ctx: &EventContext| {
-            *seen2.lock().unwrap() = ctx.has_subscribers::<Warning>();
-            let (n, cv) = &*signal2;
-            *n.lock().unwrap() += 1;
-            cv.notify_all();
-        });
+        bus.on::<Counted>()
+            .handle(move |_msg: &Counted, ctx: &EventContext| {
+                *seen2.lock().unwrap() = ctx.has_subscribers::<Warning>();
+                let (n, cv) = &*signal2;
+                *n.lock().unwrap() += 1;
+                cv.notify_all();
+            });
 
         // Nobody subscribed to Warning yet.
         bus.send(Counted(1));
@@ -469,45 +544,70 @@ mod tests {
     }
 
     #[test]
-    fn stats_reflects_subscriptions_and_processed_count() {
+    fn subscribing_emits_actor_subscribed_event() {
         let bus = MessageBroker::default();
-
-        let empty = bus.stats();
-        assert_eq!(empty.subscriptions, 0);
-        assert_eq!(empty.actors, 0);
-        assert_eq!(empty.queued, 0);
-        assert_eq!(empty.processed, 0);
-
+        let seen = Arc::new(Mutex::new(Vec::new()));
         let signal = Arc::new((Mutex::new(0), Condvar::new()));
+
+        let seen2 = Arc::clone(&seen);
         let signal2 = Arc::clone(&signal);
-        bus.subscribe::<Counted, _>(move |_msg: &Counted, _ctx: &EventContext| {
-            let (n, cv) = &*signal2;
-            *n.lock().unwrap() += 1;
-            cv.notify_all();
-        });
-        bus.subscribe::<Warning, _>(|_w: &Warning, _ctx: &EventContext| {});
+        bus.on::<ActorSubscribed>()
+            .handle(move |msg: &ActorSubscribed, _ctx: &EventContext| {
+                println!("msg: {:?}", msg);
+                seen2
+                    .lock()
+                    .unwrap()
+                    .push((msg.message_type, msg.subscriber_count));
+                let (n, cv) = &*signal2;
+                *n.lock().unwrap() += 1;
+                cv.notify_all();
+            });
 
-        let registered = bus.stats();
-        assert_eq!(
-            registered.subscriptions, 2,
-            "Counted and Warning both registered"
-        );
-        assert_eq!(registered.actors, 2);
-        assert_eq!(registered.queued, 0);
-        assert_eq!(registered.processed, 0);
+        // Registering the ActorSubscribed listener above is itself a
+        // subscribe() call, so it immediately fires one event about itself
+        // before any of the assertions below run.
+        wait_for(&signal, 1);
 
-        const N: usize = 5;
-        for i in 0..N as i32 {
-            bus.send(Counted(i));
-        }
-        wait_for(&signal, N);
+        bus.on::<Counted>()
+            .handle(|_msg: &Counted, _ctx: &EventContext| {});
+        wait_for(&signal, 2);
 
-        // Draining is single-flight and batches the whole mailbox under one
-        // lock (see `Actor::drain`), so there's no reliable in-between state
-        // to observe here — only that everything sent eventually gets
-        // processed and nothing is left queued once it has.
-        let done = bus.stats();
-        assert_eq!(done.queued, 0);
-        assert_eq!(done.processed, N as u64);
+        bus.on::<Counted>()
+            .handle(|_msg: &Counted, _ctx: &EventContext| {});
+        wait_for(&signal, 3);
+
+        let events = seen.lock().unwrap();
+        assert_eq!(events[0].0, std::any::type_name::<ActorSubscribed>());
+        assert_eq!(events[0].1, 1);
+        assert_eq!(events[1], (std::any::type_name::<Counted>(), 1));
+        assert_eq!(events[2], (std::any::type_name::<Counted>(), 2));
+    }
+
+    #[test]
+    fn actor_subscribed_carries_a_unique_actor_id() {
+        let bus = MessageBroker::default();
+        let ids = Arc::new(Mutex::new(Vec::new()));
+        let signal = Arc::new((Mutex::new(0), Condvar::new()));
+
+        let ids2 = Arc::clone(&ids);
+        let signal2 = Arc::clone(&signal);
+        bus.on::<ActorSubscribed>()
+            .handle(move |msg: &ActorSubscribed, _ctx: &EventContext| {
+                ids2.lock().unwrap().push(msg.actor_id);
+                let (n, cv) = &*signal2;
+                *n.lock().unwrap() += 1;
+                cv.notify_all();
+            });
+        wait_for(&signal, 1); // the listener above observing its own registration
+
+        bus.on::<Counted>()
+            .handle(|_msg: &Counted, _ctx: &EventContext| {});
+        bus.on::<Counted>()
+            .handle(|_msg: &Counted, _ctx: &EventContext| {});
+        wait_for(&signal, 3);
+
+        let ids = ids.lock().unwrap();
+        assert_eq!(ids.len(), 3);
+        assert_ne!(ids[1], ids[2], "distinct actors get distinct ids");
     }
 }

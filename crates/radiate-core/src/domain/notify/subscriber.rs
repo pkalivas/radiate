@@ -1,6 +1,10 @@
 use crate::{
     Envelope, Executor, Message,
-    notify::{actor::Actor, message::EventContext},
+    notify::{
+        actor::Actor,
+        broker::{ActorMeta, SubscriptionMeta},
+        message::EventContext,
+    },
 };
 use std::{
     any::Any,
@@ -9,7 +13,6 @@ use std::{
 };
 
 pub trait AnySubscription: Send + Sync + fmt::Debug {
-    #[allow(dead_code)]
     fn type_name(&self) -> &'static str;
 
     fn as_any_mut(&mut self) -> &mut dyn Any;
@@ -21,6 +24,7 @@ pub trait AnySubscription: Send + Sync + fmt::Debug {
     fn queued(&self) -> usize;
 
     fn processed(&self) -> u64;
+    fn meta(&self) -> SubscriptionMeta;
 }
 
 #[derive(Debug)]
@@ -58,5 +62,22 @@ impl<M: Message + Debug> AnySubscription for Subscription<M> {
 
     fn processed(&self) -> u64 {
         self.actors.iter().map(|a| a.num_processed()).sum()
+    }
+
+    fn meta(&self) -> SubscriptionMeta {
+        let actors = self
+            .actors
+            .iter()
+            .map(|actor| ActorMeta {
+                id: actor.id(),
+                queued: actor.mailbox_len(),
+                processed: actor.num_processed(),
+            })
+            .collect();
+
+        SubscriptionMeta {
+            type_name: self.type_name(),
+            actors,
+        }
     }
 }

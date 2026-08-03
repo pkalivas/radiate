@@ -17,8 +17,9 @@ use std::sync::{Arc, Mutex};
 /// let engine = GeneticEngine::builder()
 ///     .codec(FloatCodec::vector(4, -5.0..5.0))
 ///     .fitness_fn(|geno: Vec<f32>| geno.iter().sum::<f32>())
-///     .on_epoch_complete(collector)
 ///     .build();
+///
+/// engine.on::<EpochComplete<Vec<f32>>>(collector.clone());
 ///
 /// let result = engine.run(|epoch| epoch.index() >= 5);
 /// assert_eq!(history.lock().unwrap().len(), 5);

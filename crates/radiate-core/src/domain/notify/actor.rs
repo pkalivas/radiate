@@ -1,9 +1,14 @@
 use super::handler::EventHandler;
 use super::message::Message;
-use crate::{Envelope, Executor, notify::message::EventContext};
+use crate::{
+    Envelope, Executor,
+    notify::message::{ActorPanicked, EventContext},
+};
 use radiate_utils::sentry_id;
+use std::any::{Any, TypeId};
 use std::collections::VecDeque;
 use std::fmt;
+use std::panic::{self, AssertUnwindSafe};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
@@ -36,6 +41,10 @@ impl<M: Message> Actor<M> {
             scheduled: AtomicBool::new(false),
             num_processed: AtomicU64::new(0),
         })
+    }
+
+    pub(super) fn id(&self) -> ActorId {
+        self.id
     }
 
     pub(super) fn mailbox_len(&self) -> usize {
@@ -87,10 +96,37 @@ impl<M: Message> Actor<M> {
 
             let mut handler = self.handler.lock().unwrap();
             for (message, ctx) in batch {
-                handler.handle(&*message, &ctx);
+                // `handler` is held by this frame, not by the closure below,
+                // so if the closure panics and `catch_unwind` stops the
+                // unwind right here, the guard is never dropped mid-unwind —
+                // `self.handler`'s `Mutex` is never poisoned, and this actor
+                // keeps handling the rest of the batch and every message
+                // after it.
+                let outcome =
+                    panic::catch_unwind(AssertUnwindSafe(|| handler.handle(&*message, &ctx)));
                 self.num_processed.fetch_add(1, Ordering::AcqRel);
+
+                if let Err(payload) = outcome
+                    && TypeId::of::<M>() != TypeId::of::<ActorPanicked>()
+                {
+                    ctx.send(ActorPanicked {
+                        message_type: std::any::type_name::<M>(),
+                        actor_id: self.id,
+                        panic_message: panic_payload_to_string(payload),
+                    });
+                }
             }
         }
+    }
+}
+
+fn panic_payload_to_string(payload: Box<dyn Any + Send>) -> String {
+    if let Some(msg) = payload.downcast_ref::<&str>() {
+        msg.to_string()
+    } else if let Some(msg) = payload.downcast_ref::<String>() {
+        msg.clone()
+    } else {
+        "actor handler panicked with a non-string payload".to_string()
     }
 }
 
