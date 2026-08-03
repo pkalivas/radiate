@@ -1,4 +1,8 @@
-use crate::{Engine, EvolutionContext, Generation, Limit, events::Log, init_logging};
+use crate::{
+    Engine, EvolutionContext, Generation, Limit,
+    events::{LimitProgress, Log},
+    init_logging,
+};
 #[cfg(feature = "serde")]
 use crate::{FileWriter, JsonWriter};
 use crate::{LimitTriggered, generation::GenerationView};
@@ -210,10 +214,13 @@ where
 
     pub fn log_every(mut self, every: usize) -> EngineRuntime<E> {
         init_logging();
-        let system = self.engine.context().broker();
 
-        system.on::<Log>().handle(LoggingHandler);
-        system
+        let action = LoggingAction(every);
+        self.add_action(action);
+
+        let broker = self.engine.context().broker();
+        broker.on::<Log>().handle(LoggingHandler);
+        broker
             .on::<LimitTriggered>()
             .handle(move |msg: &LimitTriggered, ctx: &EventContext| {
                 ctx.send(Log::info(
@@ -225,8 +232,12 @@ where
                 ));
             });
 
-        let action = LoggingAction(every);
-        self.add_action(action);
+        broker
+            .on::<LimitProgress>()
+            .handle(move |msg: &LimitProgress, ctx: &EventContext| {
+                ctx.send(Log::info(Some(msg.index()), msg.description()));
+            });
+
         self
     }
 
@@ -236,7 +247,7 @@ where
         E: Engine + 'static,
         E::Epoch: Serialize,
     {
-        use crate::actions::CheckpointAction;
+        use crate::{actions::CheckpointAction, events::CheckpointSaved};
 
         let path_without_extension = folder_path
             .as_ref()
@@ -252,6 +263,16 @@ where
 
         self.add_action(action);
 
+        let broker = self.engine.context().broker();
+        broker
+            .on::<CheckpointSaved>()
+            .handle(move |msg: &CheckpointSaved, ctx: &EventContext| {
+                ctx.send(Log::info(
+                    Some(msg.index),
+                    format!("Checkpoint saved at index {}: {}", msg.index, msg.path),
+                ));
+            });
+
         self
     }
 
@@ -266,7 +287,7 @@ where
         E: Engine + 'static,
         E::Epoch: Serialize,
     {
-        use crate::actions::CheckpointAction;
+        use crate::{actions::CheckpointAction, events::CheckpointSaved};
 
         let path_without_extension = folder_path
             .as_ref()
@@ -281,6 +302,17 @@ where
         };
 
         self.add_action(action);
+
+        let broker = self.engine.context().broker();
+        broker
+            .on::<CheckpointSaved>()
+            .handle(move |msg: &CheckpointSaved, ctx: &EventContext| {
+                ctx.send(Log::info(
+                    Some(msg.index),
+                    format!("Checkpoint saved at index {}: {}", msg.index, msg.path),
+                ));
+            });
+
         self
     }
 }

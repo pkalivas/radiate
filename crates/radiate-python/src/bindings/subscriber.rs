@@ -4,7 +4,9 @@ use pyo3::{IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
 use radiate::{
     Chromosome, EpochComplete, EventContext, EventHandler, GeneticEngineBuilder, LimitTriggered,
     Objective,
-    events::{EngineStart, EngineStop, EpochStart, Improvement, Log},
+    events::{
+        CheckpointSaved, EngineStart, EngineStop, EpochStart, Improvement, LimitProgress, Log,
+    },
 };
 use std::fmt::Debug;
 
@@ -16,6 +18,8 @@ const EVENT_TYPES: &[&str] = &[
     crate::constants::components::ENGINE_IMPROVEMENT_EVENT,
     crate::constants::components::LIMIT_TRIGGERED_EVENT,
     crate::constants::components::LOG_EVENT,
+    crate::constants::components::CHECKPOINT_SAVED_EVENT,
+    crate::constants::components::LIMIT_PROGRESS_EVENT,
 ];
 
 #[pyclass(from_py_object)]
@@ -176,6 +180,30 @@ impl EventHandler<Log> for PySubscriber {
     }
 }
 
+impl EventHandler<CheckpointSaved> for PySubscriber {
+    fn handle(&mut self, event: &CheckpointSaved, _: &EventContext) {
+        Python::attach(|py| {
+            let py_event = PyEngineEvent::checkpoint_saved(event.index, event.path.clone());
+            self.function
+                .inner
+                .call1(py, (py_event,))
+                .expect("Failed to call subscriber function");
+        })
+    }
+}
+
+impl EventHandler<LimitProgress> for PySubscriber {
+    fn handle(&mut self, event: &LimitProgress, _: &EventContext) {
+        Python::attach(|py| {
+            let py_event = PyEngineEvent::limit_progress_event(event.clone());
+            self.function
+                .inner
+                .call1(py, (py_event,))
+                .expect("Failed to call subscriber function");
+        })
+    }
+}
+
 pub(crate) fn subscribe_python<C, T>(
     mut builder: GeneticEngineBuilder<C, T>,
     subscribers: Vec<PySubscriber>,
@@ -218,6 +246,12 @@ where
                     components::LOG_EVENT => {
                         builder.subscribe::<PySubscriber, Log>(subscriber.clone())
                     }
+                    components::CHECKPOINT_SAVED_EVENT => {
+                        builder.subscribe::<PySubscriber, CheckpointSaved>(subscriber.clone())
+                    }
+                    components::LIMIT_PROGRESS_EVENT => {
+                        builder.subscribe::<PySubscriber, LimitProgress>(subscriber.clone())
+                    }
                     _ => builder,
                 }
             } else {
@@ -229,6 +263,11 @@ where
     builder
 }
 
+pub struct PyLimitEvent {
+    pub kind: String,
+    pub progress: f32,
+}
+
 #[pyclass]
 pub struct PyEngineEvent {
     pub event_type: String,
@@ -238,6 +277,7 @@ pub struct PyEngineEvent {
     pub metrics: Option<PyMetricSet>,
     pub objective: Option<Vec<&'static str>>,
     pub description: Option<String>,
+    pub limit_progress: Option<PyLimitEvent>,
 }
 
 #[pymethods]
@@ -275,6 +315,18 @@ impl PyEngineEvent {
     pub fn objective(&self) -> Option<Vec<&'static str>> {
         self.objective.as_ref().cloned()
     }
+
+    pub fn description(&self) -> Option<&str> {
+        self.description.as_deref()
+    }
+
+    pub fn limit(&self) -> Option<String> {
+        self.limit_progress.as_ref().map(|lim| lim.kind.clone())
+    }
+
+    pub fn limit_progress(&self) -> Option<f32> {
+        self.limit_progress.as_ref().map(|lim| lim.progress)
+    }
 }
 
 impl PyEngineEvent {
@@ -287,6 +339,7 @@ impl PyEngineEvent {
             metrics: None,
             objective: None,
             description: None,
+            limit_progress: None,
         }
     }
 
@@ -304,6 +357,7 @@ impl PyEngineEvent {
             metrics: Some(metrics),
             objective: None,
             description: None,
+            limit_progress: None,
         }
     }
 
@@ -316,6 +370,7 @@ impl PyEngineEvent {
             metrics: None,
             objective: None,
             description: None,
+            limit_progress: None,
         }
     }
 
@@ -334,6 +389,7 @@ impl PyEngineEvent {
             metrics: Some(metrics),
             objective: Some(objective.into()),
             description: None,
+            limit_progress: None,
         }
     }
 
@@ -346,6 +402,7 @@ impl PyEngineEvent {
             metrics: None,
             objective: None,
             description: None,
+            limit_progress: None,
         }
     }
 
@@ -358,6 +415,7 @@ impl PyEngineEvent {
             metrics: None,
             objective: None,
             description,
+            limit_progress: None,
         }
     }
 
@@ -370,6 +428,36 @@ impl PyEngineEvent {
             metrics: None,
             objective: None,
             description: Some(description),
+            limit_progress: None,
+        }
+    }
+
+    pub fn checkpoint_saved(idx: usize, path: String) -> PyEngineEvent {
+        PyEngineEvent {
+            event_type: crate::constants::components::CHECKPOINT_SAVED_EVENT.into(),
+            index: Some(idx),
+            best: None,
+            score: None,
+            metrics: None,
+            objective: None,
+            description: Some(path),
+            limit_progress: None,
+        }
+    }
+
+    pub fn limit_progress_event(lim: LimitProgress) -> PyEngineEvent {
+        PyEngineEvent {
+            event_type: crate::constants::components::LIMIT_PROGRESS_EVENT.into(),
+            index: Some(lim.index()),
+            best: None,
+            score: None,
+            metrics: None,
+            objective: None,
+            description: Some(lim.description()),
+            limit_progress: Some(PyLimitEvent {
+                kind: lim.kind().to_string(),
+                progress: lim.progress(),
+            }),
         }
     }
 }

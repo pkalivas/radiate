@@ -2,7 +2,7 @@ use crate::context::EvolutionContext;
 use radiate_core::{
     ActorPanicked, ActorSubscribed, Chromosome, Message, MetricSet, Objective, Score,
 };
-use std::fmt::Debug;
+use std::{fmt::Debug, time::Duration};
 
 mod sealed {
     pub trait Sealed {}
@@ -26,7 +26,9 @@ engine_message!(
     EngineStart,
     EpochStart,
     LimitTriggered,
+    LimitProgress,
     Log,
+    CheckpointSaved,
     ActorSubscribed,
     ActorPanicked
 );
@@ -39,6 +41,12 @@ impl<T: Send + Sync + 'static> EngineMessage for EpochComplete<T> {}
 impl<T: Send + Sync + 'static> sealed::Sealed for EngineStop<T> {}
 impl<T: Send + Sync + 'static> EngineMessage for EngineStop<T> {}
 
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct CheckpointSaved {
+    pub index: usize,
+    pub path: String,
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum LogLevel {
     Info,
@@ -50,6 +58,7 @@ pub struct Log {
     pub level: LogLevel,
     pub index: Option<usize>,
     pub message: String,
+    pub title: Option<String>,
 }
 
 impl Log {
@@ -58,6 +67,7 @@ impl Log {
             level: LogLevel::Info,
             index,
             message: msg.into(),
+            title: None,
         }
     }
 
@@ -66,7 +76,13 @@ impl Log {
             level: LogLevel::Warn,
             index,
             message: msg.into(),
+            title: None,
         }
+    }
+
+    pub fn with_title<S: Into<String>>(mut self, title: S) -> Self {
+        self.title = Some(title.into());
+        self
     }
 
     pub fn level(&self) -> LogLevel {
@@ -80,6 +96,16 @@ impl Log {
     pub fn message(&self) -> &str {
         &self.message
     }
+
+    pub fn line(&self) -> String {
+        let mut start = String::new();
+        start
+        // start +
+        // match self.title.as_ref() {
+        //     Some(title) => format!("[{}] {}", title, self.message),
+        //     None => self.message.clone(),
+        // }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -90,6 +116,14 @@ pub struct LimitTriggered {
 }
 
 impl LimitTriggered {
+    pub fn new<S: Into<String>>(generation: usize, kind: &'static str, description: S) -> Self {
+        LimitTriggered {
+            generation,
+            kind,
+            description: description.into(),
+        }
+    }
+
     pub fn index(&self) -> usize {
         self.generation
     }
@@ -100,6 +134,140 @@ impl LimitTriggered {
 
     pub fn description(&self) -> &str {
         &self.description
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum LimitProgress {
+    Generations {
+        current: usize,
+        limit: usize,
+    },
+    Time {
+        generation: usize,
+        elapsed: Duration,
+        limit: Duration,
+    },
+    Score {
+        generation: usize,
+        current: Score,
+        limit: Score,
+    },
+    Convergence {
+        generation: usize,
+        window: usize,
+        epsilon: f32,
+        diff: f32,
+    },
+}
+
+impl LimitProgress {
+    pub fn generations(current: usize, limit: usize) -> Self {
+        LimitProgress::Generations { current, limit }
+    }
+
+    pub fn time(generation: usize, elapsed: Duration, limit: Duration) -> Self {
+        LimitProgress::Time {
+            generation,
+            elapsed,
+            limit,
+        }
+    }
+
+    pub fn score(generation: usize, current: Score, limit: Score) -> Self {
+        LimitProgress::Score {
+            generation,
+            current,
+            limit,
+        }
+    }
+
+    pub fn convergence(generation: usize, window: usize, epsilon: f32, diff: f32) -> Self {
+        LimitProgress::Convergence {
+            generation,
+            window,
+            epsilon,
+            diff,
+        }
+    }
+
+    pub fn index(&self) -> usize {
+        match self {
+            LimitProgress::Generations { current, .. } => *current,
+            LimitProgress::Time { generation, .. } => *generation,
+            LimitProgress::Score { generation, .. } => *generation,
+            LimitProgress::Convergence { generation, .. } => *generation,
+        }
+    }
+
+    pub fn kind(&self) -> &'static str {
+        match self {
+            LimitProgress::Generations { .. } => "Generations",
+            LimitProgress::Time { .. } => "Time",
+            LimitProgress::Score { .. } => "Score",
+            LimitProgress::Convergence { .. } => "Convergence",
+        }
+    }
+
+    pub fn description(&self) -> String {
+        match self {
+            LimitProgress::Generations { current, limit } => {
+                format!("[LIMIT] Generation progress: {current}/{limit}")
+            }
+            LimitProgress::Time {
+                generation,
+                elapsed,
+                limit,
+            } => {
+                format!("[LIMIT] Time progress: {elapsed:?}/{limit:?} (Generation {generation})")
+            }
+            LimitProgress::Score {
+                generation,
+                current,
+                limit,
+            } => {
+                format!("[LIMIT] Score progress: {current:?}/{limit:?} (Generation {generation})")
+            }
+            LimitProgress::Convergence {
+                generation,
+                window,
+                epsilon,
+                diff,
+            } => format!(
+                "[LIMIT] Convergence progress: |delta|={:.6} <= epsilon={epsilon} over window={window} (Generation {generation})",
+                diff
+            ),
+        }
+    }
+
+    pub fn progress(&self) -> f32 {
+        match self {
+            LimitProgress::Generations { current, limit } => *current as f32 / *limit as f32,
+            LimitProgress::Time {
+                generation: _,
+                elapsed,
+                limit,
+            } => elapsed.as_secs_f32() / limit.as_secs_f32(),
+            LimitProgress::Score {
+                generation: _,
+                current,
+                limit,
+            } => {
+                let mut total = 0.0;
+
+                for (c, l) in current.iter().zip(limit.iter()) {
+                    total += l - c;
+                }
+                if total == 0.0 { 0.0 } else { total }
+            }
+            LimitProgress::Convergence { diff, epsilon, .. } => {
+                if *epsilon == 0.0 {
+                    0.0
+                } else {
+                    diff / epsilon
+                }
+            }
+        }
     }
 }
 

@@ -75,6 +75,8 @@ pub mod components {
         ENGINE_IMPROVEMENT_EVENT = "engine_improvement_event";
         LIMIT_TRIGGERED_EVENT = "limit_triggered_event";
         LOG_EVENT = "log_event";
+        CHECKPOINT_SAVED_EVENT = "checkpoint_saved_event";
+        LIMIT_PROGRESS_EVENT = "limit_progress_event";
 
     }
 }

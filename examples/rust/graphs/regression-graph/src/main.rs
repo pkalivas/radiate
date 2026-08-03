@@ -25,7 +25,7 @@ fn main() {
         .build();
 
     engine.on::<EpochComplete<Graph<Op<f32>>>>().handle(
-        |event: &EpochComplete<Graph<Op<f32>>>, _ctx: &EventContext| {
+        |event: &EpochComplete<Graph<Op<f32>>>, _: &EventContext| {
             println!(
                 "Epoch {} completed: score={:?}, objective={:?}",
                 event.index, event.score, event.objective
@@ -33,7 +33,8 @@ fn main() {
         },
     );
 
-    radiate::ui((engine, true))
+    // radiate::ui((engine, true))
+    engine
         .iter()
         .logging()
         .until_score(MIN_SCORE)

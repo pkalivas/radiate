@@ -7,8 +7,12 @@ from .handlers import (
     EventHandler,
     EventType,
     MetricCollector,
+    on_checkpoint_saved,
     on_epoch,
     on_improvement,
+    on_limit_progress,
+    on_limit_triggered,
+    on_log,
     on_start,
     on_stop,
 )
@@ -35,4 +39,8 @@ __all__ = [
     "on_improvement",
     "on_start",
     "on_stop",
+    "on_limit_triggered",
+    "on_limit_progress",
+    "on_checkpoint_saved",
+    "on_log",
 ]

@@ -1,6 +1,6 @@
-#[cfg(feature = "serde")]
-use crate::FileWriter;
 use crate::{EvolutionContext, Generation, events::Log, runtime::RuntimeAction};
+#[cfg(feature = "serde")]
+use crate::{FileWriter, events::CheckpointSaved};
 use radiate_core::{Chromosome, Engine, Objective, error::RadiateResult};
 #[cfg(feature = "serde")]
 use serde::Serialize;
@@ -74,15 +74,18 @@ where
     T: Clone + Send + Sync,
     E::Epoch: Serialize,
 {
-    fn execute(&mut self, guard: &E::Ctx) -> RadiateResult<()> {
-        if guard.index.is_multiple_of(self.interval) {
-            let file_path = self.path.join(format!(
-                "chckpnt_{}.{}",
-                guard.index,
-                self.writer.extension()
-            ));
+    fn execute(&mut self, ctx: &E::Ctx) -> RadiateResult<()> {
+        if ctx.index.is_multiple_of(self.interval) {
+            let file_path =
+                self.path
+                    .join(format!("chckpnt_{}.{}", ctx.index, self.writer.extension()));
 
-            self.writer.write(file_path, &E::Epoch::from(guard))?;
+            self.writer.write(file_path.clone(), &E::Epoch::from(ctx))?;
+
+            ctx.send(CheckpointSaved {
+                index: ctx.index,
+                path: file_path.to_string_lossy().to_string(),
+            });
         }
 
         Ok(())
