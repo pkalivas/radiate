@@ -41,6 +41,11 @@ pub(crate) const COLOR_WHEEL_400: [Color; 8] = [
 pub const SELECTED_GREEN: Color = material::GREEN.c300;
 pub const BORDER_GREEN: Color = material::GREEN.c400;
 
+pub const LOG_INFO_COLOR: Color = material::BLUE.c200;
+pub const LOG_WARN_COLOR: Color = material::YELLOW.c400;
+pub const LOG_ERROR_COLOR: Color = material::RED.c300;
+pub const LOG_DEBUG_COLOR: Color = material::GRAY.c500;
+
 pub fn table_row_style() -> ratatui::style::Style {
     ratatui::style::Style::new()
         .bg(ALT_BG_COLOR)

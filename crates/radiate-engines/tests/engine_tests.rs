@@ -302,7 +302,7 @@ mod engine_tests {
             })
             .build();
 
-        const BUDGET: usize = 30;
+        const BUDGET: usize = 60;
         let _ = engine.iter().limit(BUDGET).last().unwrap();
 
         let warnings = seen.lock().unwrap();
@@ -409,5 +409,45 @@ mod engine_tests {
             assert_population_speciated(result.ecosystem(), "speciated small population");
             assert_eq!(result.population().len(), POP_SIZE);
         });
+    }
+
+    /// As a speciated population converges toward the sphere optimum, every
+    /// individual crowds into the same neighborhood and species collapse
+    /// down to one — SpeciateStep should publish exactly the kind of
+    /// diversity-collapse warning this whole event was designed to surface.
+    #[test]
+    fn speciate_step_publishes_diversity_collapse_warning() {
+        use radiate_engines::events::Warn;
+        use std::sync::{Arc, Mutex};
+
+        let seen = Arc::new(Mutex::new(Vec::new()));
+        let seen2 = Arc::clone(&seen);
+
+        seeded(2024, || {
+            let problem = Sphere::new(2, 10.0);
+            let engine = GeneticEngine::builder()
+                .problem(problem)
+                .minimizing()
+                .population_size(50)
+                .diversity(EuclideanDistance)
+                .species_threshold(0.05)
+                .alter(alters![
+                    BlendCrossover::new(0.5, 0.5),
+                    GaussianMutator::new(0.05)
+                ])
+                .subscribe_typed::<Warn, _>(move |w: Warn, _ctx: &EventContext| {
+                    seen2.lock().unwrap().push(w.0);
+                })
+                .build();
+
+            let _ = engine.iter().limit(200).last().unwrap();
+        });
+
+        let warnings = seen.lock().unwrap();
+        assert!(
+            warnings.iter().any(|w| w.contains("collapsed")),
+            "expected a species-collapse warning as the population converged, got: {:?}",
+            *warnings
+        );
     }
 }

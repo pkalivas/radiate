@@ -577,7 +577,7 @@ impl PyEngineBuilder {
                 let base_engine = GeneticEngine::builder()
                     .codec(c)
                     .executor(executor)
-                    .bus_executor(Executor::default())
+                    .event_executor(Executor::default())
                     .replace_strategy(GraphReplacement);
 
                 if is_batch {
@@ -593,7 +593,7 @@ impl PyEngineBuilder {
                 let base_engine = GeneticEngine::builder()
                     .codec(c)
                     .executor(executor)
-                    .bus_executor(Executor::default());
+                    .event_executor(Executor::default());
 
                 if is_batch {
                     Ok(Tree32(base_engine.raw_batch_fitness_fn(regression)))
@@ -625,7 +625,7 @@ impl PyEngineBuilder {
                 let base_engine = GeneticEngine::builder()
                     .codec(c)
                     .executor(executor)
-                    .bus_executor(Executor::default())
+                    .event_executor(Executor::default())
                     .replace_strategy(GraphReplacement);
 
                 if is_batch {
@@ -641,7 +641,7 @@ impl PyEngineBuilder {
                 let base_engine = GeneticEngine::builder()
                     .codec(c)
                     .executor(executor)
-                    .bus_executor(Executor::default());
+                    .event_executor(Executor::default());
 
                 if is_batch {
                     Ok(Tree64(base_engine.raw_batch_fitness_fn(regression)))
@@ -744,7 +744,7 @@ impl PyEngineBuilder {
             .problem(problem)
             .executor(executor.clone())
             .evaluator(FreeThreadPyEvaluator::new(executor))
-            .bus_executor(Executor::default())
+            .event_executor(Executor::default())
     }
 
     fn wrapped_codec<C, T, PC>(original: PC) -> PyCodec<C, T>

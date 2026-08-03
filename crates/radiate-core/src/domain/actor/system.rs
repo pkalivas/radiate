@@ -1,4 +1,4 @@
-use super::actor::{AnyActor, Actor};
+use super::actor::{Actor, AnyActor};
 use super::handler::{EventContext, EventHandler};
 use super::message::Message;
 use crate::Executor;

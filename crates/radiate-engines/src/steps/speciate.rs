@@ -1,7 +1,8 @@
+use crate::events::Warn;
 use crate::steps::EngineStep;
 use radiate_core::{
-    Chromosome, Ecosystem, Executor, MetricSet, Objective, Phenotype, Population, RateSet, Species,
-    diversity::Diversity, math::distribution, metric_names, random_provider,
+    ActorSystem, Chromosome, Ecosystem, Executor, MetricSet, Objective, Phenotype, Population,
+    RateSet, Species, diversity::Diversity, math::distribution, metric_names, random_provider,
 };
 use radiate_error::Result;
 use std::sync::{Arc, Mutex, RwLock};
@@ -18,6 +19,9 @@ where
     pub(crate) executor: Arc<Executor>,
     pub(crate) distances: Vec<f32>,
     pub(crate) assignments: Arc<Mutex<SpeciesAssignments>>,
+    pub(crate) event_system: ActorSystem,
+    pub(crate) prev_species_count: usize,
+    pub(crate) warned_collapsed: bool,
 }
 
 impl<C: Chromosome> SpeciateStep<C> {
@@ -26,6 +30,7 @@ impl<C: Chromosome> SpeciateStep<C> {
         objective: Objective,
         distance: Arc<dyn Diversity<C>>,
         executor: Arc<Executor>,
+        event_system: ActorSystem,
     ) -> Self {
         Self {
             threshold: threshold.into(),
@@ -34,6 +39,9 @@ impl<C: Chromosome> SpeciateStep<C> {
             executor,
             distances: Vec::new(),
             assignments: Arc::new(Mutex::new(Vec::new())),
+            event_system,
+            prev_species_count: 0,
+            warned_collapsed: false,
         }
     }
 }
@@ -237,7 +245,12 @@ where
         )
     }
 
-    fn calc_species_metrics(generation: usize, ecosystem: &Ecosystem<C>, metrics: &mut MetricSet) {
+    fn calc_species_metrics(
+        &mut self,
+        generation: usize,
+        ecosystem: &Ecosystem<C>,
+        metrics: &mut MetricSet,
+    ) {
         let Some(species) = ecosystem.species() else {
             return;
         };
@@ -278,6 +291,19 @@ where
         metrics.upsert(metric_names::SPECIES_EVENNESS, evenness);
         metrics.upsert(metric_names::SPECIES_NEW_RATIO, churn);
         metrics.upsert(metric_names::LARGEST_SPECIES_SHARE, largest_share);
+
+        if self.prev_species_count > 1 && s_count <= 1 {
+            if !self.warned_collapsed {
+                self.event_system.send(Warn(format!(
+                    "species diversity collapsed from {} species to {} (population size {})",
+                    self.prev_species_count, s_count, pop_len
+                )));
+                self.warned_collapsed = true;
+            }
+        } else if s_count > 1 {
+            self.warned_collapsed = false;
+        }
+        self.prev_species_count = s_count;
     }
 }
 
@@ -323,7 +349,7 @@ where
         metrics.upsert(metric_names::SPECIES_DISTANCE_DIST, &self.distances);
         metrics.upsert(metric_names::SPECIES_DIED, rm_species_count);
 
-        Self::calc_species_metrics(generation, ecosystem, metrics);
+        self.calc_species_metrics(generation, ecosystem, metrics);
 
         ecosystem.fitness_share(&self.objective);
 

@@ -199,7 +199,7 @@ where
 
     fn build_event_system(&mut self) -> Result<()> {
         let system = self.params.event_system.clone();
-        system.set_executor(self.params.evaluation_params.bus_executor.clone());
+        system.set_executor(self.params.evaluation_params.event_executor.clone());
         system.set_sync(self.params.evaluation_params.sync.clone());
 
         self.params.event_system = system;
@@ -469,6 +469,9 @@ where
             objective: config.objective(),
             distances: Vec::new(),
             assignments: Arc::new(Mutex::new(Vec::new())),
+            event_system: config.event_system(),
+            prev_species_count: 0,
+            warned_collapsed: false,
         };
 
         Some(Box::new(species_step))
@@ -498,7 +501,7 @@ where
                     evaluator: Arc::new(FitnessEvaluator::default()),
                     fitness_executor: Arc::new(Executor::default()),
                     species_executor: Arc::new(Executor::default()),
-                    bus_executor: Arc::new(Executor::default()),
+                    event_executor: Arc::new(Executor::default()),
                     sync: ThreadSync::new(),
                 },
                 selection_params: SelectionParams {

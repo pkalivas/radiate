@@ -337,13 +337,14 @@ mod tests {
         let seen2 = Arc::clone(&seen);
         let signal2 = Arc::clone(&signal);
         let sync = ThreadSync::new();
-        let bus = bus_with_sync::<Warning, _>(sync.clone(), move |w: Warning, ctx: &EventContext| {
-            seen2.lock().unwrap().push(w.text);
-            ctx.sync.stop();
-            let (n, cv) = &*signal2;
-            *n.lock().unwrap() += 1;
-            cv.notify_all();
-        });
+        let bus =
+            bus_with_sync::<Warning, _>(sync.clone(), move |w: Warning, ctx: &EventContext| {
+                seen2.lock().unwrap().push(w.text);
+                ctx.sync.stop();
+                let (n, cv) = &*signal2;
+                *n.lock().unwrap() += 1;
+                cv.notify_all();
+            });
 
         bus.send(Warning {
             text: "population diversity collapsing",

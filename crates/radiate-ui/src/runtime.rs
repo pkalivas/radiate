@@ -1,8 +1,10 @@
 use crate::app::{App, GenerationEvent, InputEvent};
+use crate::state::LogLevel;
 use color_eyre::{Result, eyre::Context};
+use radiate_engines::events::{Debug as EngineDebug, Error as EngineError, Info, Warn};
 use radiate_engines::{
-    Chromosome, Engine, EngineState, EngineStream, Generation, GenerationView, GeneticEngine,
-    error::RadiateResult, sync::ArcExt,
+    Chromosome, Engine, EngineState, EngineStream, EventContext, Generation, GenerationView,
+    GeneticEngine, error::RadiateResult, sync::ArcExt,
 };
 use radiate_engines::{EngineRuntime, EvolutionContext, ThreadSync};
 use std::{
@@ -35,6 +37,8 @@ where
 
         let (dispatch_one, dispatch_two) = app.dispatcher().into_pair();
         let stop_flag = control.stop_flag();
+
+        inner = Self::wire_event_log(inner, Arc::clone(&dispatch_one));
 
         let app_thread = std::thread::spawn(move || {
             let terminal = ratatui::init();
@@ -72,6 +76,32 @@ where
 
     pub fn iter(self) -> EngineRuntime<Self> {
         EngineRuntime::new(self)
+    }
+
+    fn wire_event_log(
+        engine: GeneticEngine<C, T>,
+        dispatcher: Arc<mpsc::Sender<InputEvent<C>>>,
+    ) -> GeneticEngine<C, T> {
+        let d = Arc::clone(&dispatcher);
+        let engine = engine.subscribe::<Warn, _>(move |msg: Warn, _: &EventContext| {
+            d.send(InputEvent::Log(LogLevel::Warn, msg.0)).unwrap();
+        });
+
+        let d = Arc::clone(&dispatcher);
+        let engine = engine.subscribe::<Info, _>(move |msg: Info, _: &EventContext| {
+            d.send(InputEvent::Log(LogLevel::Info, msg.0)).unwrap();
+        });
+
+        let d = Arc::clone(&dispatcher);
+        let engine =
+            engine.subscribe::<EngineError, _>(move |msg: EngineError, _: &EventContext| {
+                d.send(InputEvent::Log(LogLevel::Error, msg.0)).unwrap();
+            });
+
+        let d = Arc::clone(&dispatcher);
+        engine.subscribe::<EngineDebug, _>(move |msg: EngineDebug, _: &EventContext| {
+            d.send(InputEvent::Log(LogLevel::Debug, msg.0)).unwrap();
+        })
     }
 }
 
