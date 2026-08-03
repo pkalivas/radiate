@@ -315,6 +315,52 @@ mod engine_tests {
         assert!(warnings[0].contains("no improvement"));
     }
 
+    #[test]
+    fn metric_step_publishes_actor_system_health() {
+        // `on_epoch_complete` subscribes an actor to `EpochCompleted<T>`,
+        // which the engine actually dispatches every single generation
+        // (unlike `Warn`, which only fires past the stagnation threshold) —
+        // that's what gives this test real processed-message traffic to
+        // observe within a small budget.
+        let engine = GeneticEngine::builder()
+            .codec(FloatCodec::vector(4, -5.0..5.0))
+            .fitness_fn(|_geno: Vec<f32>| 1.0)
+            .on_epoch_complete(|_event: EpochCompleted<Vec<f32>>, _ctx: &EventContext| {})
+            .build();
+
+        const BUDGET: usize = 5;
+        let result = engine.iter().limit(BUDGET).last().unwrap();
+        let metrics = result.metrics();
+
+        let subscriptions = metrics
+            .get(metric_names::ACTOR_SUBSCRIPTIONS)
+            .expect("actor.subscriptions metric should be present")
+            .last_value();
+        assert!(
+            subscriptions >= 1.0,
+            "expected at least the EpochCompleted subscription registered, got {subscriptions}"
+        );
+
+        let queued = metrics
+            .get(metric_names::ACTOR_QUEUED)
+            .expect("actor.queued metric should be present")
+            .last_value();
+        assert_eq!(queued, 0.0, "mailbox should be fully drained between generations");
+
+        // The metric snapshot for a generation is taken mid-pipeline, before
+        // that same generation's own `EpochEnd` dispatch — so this lags one
+        // generation behind, but should still be solidly positive by the
+        // end of a 5-generation run.
+        let processed = metrics
+            .get(metric_names::ACTOR_PROCESSED)
+            .expect("actor.processed metric should be present")
+            .last_value();
+        assert!(
+            processed > 0.0,
+            "expected at least one EpochCompleted event to have been processed, got {processed}"
+        );
+    }
+
     #[rstest]
     #[case(101, 0.05, 300)]
     #[case(202, 0.05, 300)]

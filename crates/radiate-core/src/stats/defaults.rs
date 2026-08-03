@@ -105,6 +105,14 @@ pub mod metric_names {
     pub const UNIQUE_MEMBERS: SmallStr = SmallStr::from_static("unique.members");
     pub const UNIQUE_SCORES: SmallStr = SmallStr::from_static("unique.scores");
     pub const NEW_CHILDREN: SmallStr = SmallStr::from_static("new.children");
+
+    /// System-wide, aggregated across every message kind and actor — see
+    /// `ActorSystem::stats`. Not broken out per message kind: the only
+    /// per-kind name available is `std::any::type_name::<M>()`, which is
+    /// fine for `Debug` but not something worth turning into a metric name.
+    pub const ACTOR_SUBSCRIPTIONS: SmallStr = SmallStr::from_static("actor.subscriptions");
+    pub const ACTOR_QUEUED: SmallStr = SmallStr::from_static("actor.queued");
+    pub const ACTOR_PROCESSED: SmallStr = SmallStr::from_static("actor.processed");
 }
 
 pub mod metric_tags {
@@ -136,6 +144,8 @@ pub mod metric_tags {
     pub const STEP: &str = "step";
 
     pub const EXPR: &str = "expr";
+
+    pub const ACTOR: &str = "actor";
 }
 
 const RULES: &[(&str, &[TagType])] = &[
@@ -156,6 +166,7 @@ const RULES: &[(&str, &[TagType])] = &[
     (metric_tags::RATE, &[TagType::Rate]),
     (metric_tags::STEP, &[TagType::Step]),
     (metric_tags::EXPR, &[TagType::Expr]),
+    (metric_tags::ACTOR, &[TagType::Actor]),
 ];
 
 const EXACT_TAGS: &[(&SmallStr, &[TagType])] = &[

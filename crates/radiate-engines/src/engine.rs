@@ -1,5 +1,7 @@
 use crate::context::EvolutionContext;
-use crate::events::EngineMessage;
+use crate::events::{
+    dispatch_epoch_end, dispatch_epoch_start, dispatch_improvement, dispatch_start, dispatch_stop,
+};
 use crate::pipeline::Pipeline;
 use crate::{Chromosome, EngineRuntime, Generation, ThreadSync};
 use crate::{GenerationView, builder::GeneticEngineBuilder};
@@ -182,16 +184,16 @@ where
         }
 
         if matches!(self.context.index, 0) {
-            EngineMessage::Start(&self.context).dispatch(&self.event_system);
+            dispatch_start(&self.context, &self.event_system);
         }
 
-        EngineMessage::EpochStart(&self.context).dispatch(&self.event_system);
+        dispatch_epoch_start(&self.context, &self.event_system);
         self.pipeline.run(&mut self.context)?;
         if self.context.try_advance_one()? {
-            EngineMessage::Improvement(&self.context).dispatch(&self.event_system);
+            dispatch_improvement(&self.context, &self.event_system);
         }
 
-        EngineMessage::EpochEnd(&self.context).dispatch(&self.event_system);
+        dispatch_epoch_end(&self.context, &self.event_system);
 
         Ok(EngineState::Running)
     }
@@ -247,6 +249,6 @@ where
     T: Clone + Send + Sync + 'static,
 {
     fn drop(&mut self) {
-        EngineMessage::Stop(&self.context).dispatch(&self.event_system);
+        dispatch_stop(&self.context, &self.event_system);
     }
 }

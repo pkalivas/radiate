@@ -21,6 +21,8 @@ sentry_id!(ActorId);
 pub(super) trait AnyActor: Send + Sync {
     fn as_any_arc(self: Arc<Self>) -> Arc<dyn Any + Send + Sync>;
     fn debug_actor(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result;
+    fn num_processed(&self) -> u64;
+    fn mailbox_len(&self) -> usize;
 }
 
 impl fmt::Debug for dyn AnyActor {
@@ -116,6 +118,14 @@ impl<M: Message> AnyActor for Actor<M> {
 
     fn debug_actor(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Debug::fmt(self, f)
+    }
+
+    fn num_processed(&self) -> u64 {
+        self.num_processed.load(Ordering::Acquire)
+    }
+
+    fn mailbox_len(&self) -> usize {
+        self.mailbox.lock().unwrap().len()
     }
 }
 

@@ -111,6 +111,7 @@ pub enum TagType {
     Rate,
     Step,
     Expr,
+    Actor,
 }
 
 impl TagType {
@@ -136,6 +137,7 @@ impl TagType {
             14 => Rate,
             15 => Step,
             16 => Expr,
+            17 => Actor,
             _ => return None,
         })
     }
@@ -166,6 +168,7 @@ impl TagType {
             Rate => "Rate",
             Step => "Step",
             Expr => "Expr",
+            Actor => "Actor",
         }
     }
 }
@@ -204,6 +207,7 @@ impl From<String> for TagType {
             metric_tags::RATE => Rate,
             metric_tags::STEP => Step,
             metric_tags::EXPR => Expr,
+            metric_tags::ACTOR => Actor,
             _ => Other,
         }
     }

@@ -2,99 +2,108 @@ use crate::context::EvolutionContext;
 use radiate_core::{ActorSystem, Chromosome, Envelope, MetricSet, Objective, Score};
 use std::fmt::Debug;
 
-/// Internal, borrowed carrier used only inside `GeneticEngine::step()`/
-/// `Drop` — cheap to construct since it doesn't clone anything out of the
-/// context. `EngineMessage::dispatch` is what turns this into real message
-/// payloads, and only for the specific kinds anyone's actually subscribed
-/// to.
-pub enum EngineMessage<'a, C, T>
+/// Checks `has_subscribers` for both the specific kind `D` and the
+/// `EngineEvent<T>` wildcard *before* building anything — `build` only runs
+/// (and only clones out of the context) if at least one of the two is
+/// actually true. Shared by the five `dispatch_*` functions below, each of
+/// which just supplies its own `build`/`wrap` for one event kind.
+fn dispatch_kind<T, D, F, W>(system: &ActorSystem, build: F, wrap: W)
 where
-    C: Chromosome,
-    T: Clone,
+    T: Clone + Send + Sync + 'static,
+    D: Send + Sync + 'static,
+    F: FnOnce() -> D,
+    W: FnOnce(Envelope<D>) -> EngineEvent<T>,
 {
-    Start(&'a EvolutionContext<C, T>),
-    Stop(&'a EvolutionContext<C, T>),
-    EpochStart(&'a EvolutionContext<C, T>),
-    EpochEnd(&'a EvolutionContext<C, T>),
-    Improvement(&'a EvolutionContext<C, T>),
+    let want_specific = system.has_subscribers::<Envelope<D>>();
+    let want_wildcard = system.has_subscribers::<EngineEvent<T>>();
+    if !want_specific && !want_wildcard {
+        return;
+    }
+
+    let payload = Envelope::new(build());
+    if want_specific {
+        system.send(payload.clone());
+    }
+    if want_wildcard {
+        system.send(wrap(payload));
+    }
 }
 
-impl<'a, C, T> EngineMessage<'a, C, T>
+/// Announces the run has started. Dispatched once, the first time
+/// `GeneticEngine::step()` runs.
+pub(crate) fn dispatch_start<C, T>(_ctx: &EvolutionContext<C, T>, system: &ActorSystem)
 where
     C: Chromosome,
     T: Clone + Send + Sync + 'static,
 {
-    /// Delivers this event onto `system`, lazily: the concrete payload for
-    /// each kind (`StartedData`, `StoppedData<T>`, ...) is only constructed
-    /// if something is actually subscribed to it — either the specific kind
-    /// or the `EngineEvent<T>` wildcard.
-    pub fn dispatch(self, system: &ActorSystem) {
-        match self {
-            EngineMessage::Start(_ctx) => {
-                Self::dispatch_kind(system, || StartedData, EngineEvent::Started)
-            }
-            EngineMessage::Stop(ctx) => Self::dispatch_kind(
-                system,
-                || StoppedData {
-                    index: ctx.index,
-                    best: ctx.best.clone(),
-                    metrics: ctx.metrics.clone(),
-                    score: ctx.score.clone().unwrap_or_default(),
-                },
-                EngineEvent::Stopped,
-            ),
-            EngineMessage::EpochStart(ctx) => Self::dispatch_kind(
-                system,
-                || EpochStartedData { index: ctx.index },
-                EngineEvent::EpochStarted,
-            ),
-            EngineMessage::EpochEnd(ctx) => Self::dispatch_kind(
-                system,
-                || EpochCompletedData {
-                    index: ctx.index,
-                    best: ctx.best.clone(),
-                    metrics: ctx.metrics.clone(),
-                    score: ctx.score.clone().unwrap_or_default(),
-                    objective: ctx.objective.clone(),
-                },
-                EngineEvent::EpochCompleted,
-            ),
-            EngineMessage::Improvement(ctx) => Self::dispatch_kind(
-                system,
-                || ImprovedData {
-                    index: ctx.index,
-                    best: ctx.best.clone(),
-                    score: ctx.score.clone().unwrap_or_default(),
-                },
-                EngineEvent::Improved,
-            ),
-        }
-    }
+    dispatch_kind::<T, _, _, _>(system, || StartedData, EngineEvent::Started)
+}
 
-    /// Checks `has_subscribers` for both the specific kind `D` and the
-    /// `EngineEvent<T>` wildcard *before* building anything — `build` only
-    /// runs (and only clones out of the context) if at least one of the two
-    /// is actually true.
-    fn dispatch_kind<D, F, W>(system: &ActorSystem, build: F, wrap: W)
-    where
-        D: Send + Sync + 'static,
-        F: FnOnce() -> D,
-        W: FnOnce(Envelope<D>) -> EngineEvent<T>,
-    {
-        let want_specific = system.has_subscribers::<Envelope<D>>();
-        let want_wildcard = system.has_subscribers::<EngineEvent<T>>();
-        if !want_specific && !want_wildcard {
-            return;
-        }
+/// Announces the run has stopped. Dispatched from `GeneticEngine`'s `Drop`.
+pub(crate) fn dispatch_stop<C, T>(ctx: &EvolutionContext<C, T>, system: &ActorSystem)
+where
+    C: Chromosome,
+    T: Clone + Send + Sync + 'static,
+{
+    dispatch_kind::<T, _, _, _>(
+        system,
+        || StoppedData {
+            index: ctx.index,
+            best: ctx.best.clone(),
+            metrics: ctx.metrics.clone(),
+            score: ctx.score.clone().unwrap_or_default(),
+        },
+        EngineEvent::Stopped,
+    )
+}
 
-        let payload = Envelope::new(build());
-        if want_specific {
-            system.send(payload.clone());
-        }
-        if want_wildcard {
-            system.send(wrap(payload));
-        }
-    }
+/// Announces a generation is about to run.
+pub(crate) fn dispatch_epoch_start<C, T>(ctx: &EvolutionContext<C, T>, system: &ActorSystem)
+where
+    C: Chromosome,
+    T: Clone + Send + Sync + 'static,
+{
+    dispatch_kind::<T, _, _, _>(
+        system,
+        || EpochStartedData { index: ctx.index },
+        EngineEvent::EpochStarted,
+    )
+}
+
+/// Announces a generation has finished.
+pub(crate) fn dispatch_epoch_end<C, T>(ctx: &EvolutionContext<C, T>, system: &ActorSystem)
+where
+    C: Chromosome,
+    T: Clone + Send + Sync + 'static,
+{
+    dispatch_kind::<T, _, _, _>(
+        system,
+        || EpochCompletedData {
+            index: ctx.index,
+            best: ctx.best.clone(),
+            metrics: ctx.metrics.clone(),
+            score: ctx.score.clone().unwrap_or_default(),
+            objective: ctx.objective.clone(),
+        },
+        EngineEvent::EpochCompleted,
+    )
+}
+
+/// Announces the best individual improved this generation.
+pub(crate) fn dispatch_improvement<C, T>(ctx: &EvolutionContext<C, T>, system: &ActorSystem)
+where
+    C: Chromosome,
+    T: Clone + Send + Sync + 'static,
+{
+    dispatch_kind::<T, _, _, _>(
+        system,
+        || ImprovedData {
+            index: ctx.index,
+            best: ctx.best.clone(),
+            score: ctx.score.clone().unwrap_or_default(),
+        },
+        EngineEvent::Improved,
+    )
 }
 
 pub struct StartedData;
@@ -276,7 +285,7 @@ mod tests {
         });
 
         let ctx = test_context();
-        EngineMessage::Start(&ctx).dispatch(&system);
+        dispatch_start(&ctx, &system);
 
         wait_for(&signal, 1);
         assert_eq!(hits.load(Ordering::SeqCst), 1);
@@ -301,7 +310,7 @@ mod tests {
         });
 
         let ctx = test_context();
-        EngineMessage::EpochStart(&ctx).dispatch(&system);
+        dispatch_epoch_start(&ctx, &system);
 
         wait_for(&signal, 1);
         assert_eq!(epoch_hits.load(Ordering::SeqCst), 1);
@@ -323,7 +332,7 @@ mod tests {
         );
 
         let ctx = test_context();
-        EngineMessage::Start(&ctx).dispatch(&system);
+        dispatch_start(&ctx, &system);
 
         wait_for(&signal, 1);
         assert_eq!(hits.load(Ordering::SeqCst), 1);
@@ -333,7 +342,7 @@ mod tests {
     fn dispatch_with_no_subscribers_does_not_panic() {
         let system = ActorSystem::default();
         let ctx = test_context();
-        EngineMessage::Start(&ctx).dispatch(&system);
+        dispatch_start(&ctx, &system);
     }
 
     #[test]
@@ -354,7 +363,7 @@ mod tests {
         assert!(!sync.is_stopped());
 
         let ctx = test_context();
-        EngineMessage::Start(&ctx).dispatch(&system);
+        dispatch_start(&ctx, &system);
 
         wait_for(&signal, 1);
         assert!(sync.is_stopped());
@@ -377,7 +386,7 @@ mod tests {
         );
 
         let ctx = test_context();
-        EngineMessage::Improvement(&ctx).dispatch(&system);
+        dispatch_improvement(&ctx, &system);
 
         wait_for(&signal, 1);
         assert!(sync.is_stopped());

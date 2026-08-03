@@ -27,6 +27,22 @@ impl fmt::Debug for Subscription {
 
 type ActorRegistry = Arc<RwLock<HashMap<TypeId, Subscription>>>;
 
+/// System-wide snapshot returned by [`ActorSystem::stats`].
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct ActorSystemStats {
+    /// Distinct message kinds with at least one subscriber.
+    pub subscriptions: usize,
+    /// Total actors across all subscriptions (a kind with 3 subscribers
+    /// counts 3 here).
+    pub actors: usize,
+    /// Messages currently sitting in a mailbox, summed across every actor.
+    pub queued: usize,
+    /// Messages processed since each actor was created, summed across
+    /// every actor. Monotonically increasing per actor, so this only ever
+    /// grows (or resets to 0 if actors are re-subscribed from scratch).
+    pub processed: u64,
+}
+
 /// A small, generic actor system: subscribers are keyed by the concrete
 /// message type they registered for, each with its own mailbox. Sending an
 /// `M` only ever touches actors that subscribed to `M` — unrelated message
@@ -124,6 +140,37 @@ impl ActorSystem {
             .unwrap()
             .get(&TypeId::of::<M>())
             .is_some_and(|sub| !sub.actors.is_empty())
+    }
+
+    /// A system-wide health snapshot: how many message kinds have at least
+    /// one subscriber, how many actors that spans, how many messages are
+    /// currently sitting in a mailbox waiting to be drained, and how many
+    /// have been processed since each actor was created. Aggregated rather
+    /// than broken out per message kind — `Subscription`'s `type_name` comes
+    /// from `std::any::type_name::<M>()`, which is fine for `Debug` but not
+    /// something worth turning into a metric name (full module paths,
+    /// mangled generics).
+    pub fn stats(&self) -> ActorSystemStats {
+        let registry = self.actors.read().unwrap();
+
+        let mut actors = 0usize;
+        let mut queued = 0usize;
+        let mut processed = 0u64;
+
+        for sub in registry.values() {
+            actors += sub.actors.len();
+            for actor in &sub.actors {
+                queued += actor.mailbox_len();
+                processed += actor.num_processed();
+            }
+        }
+
+        ActorSystemStats {
+            subscriptions: registry.len(),
+            actors,
+            queued,
+            processed,
+        }
     }
 
     /// Send a message. Only actors subscribed to `TypeId::of::<M>()` are
@@ -415,6 +462,49 @@ mod tests {
         bus.send(Counted(2));
         wait_for(&signal, 2);
         assert!(*seen.lock().unwrap());
+    }
+
+    #[test]
+    fn stats_reflects_subscriptions_and_processed_count() {
+        let bus = ActorSystem::default();
+
+        let empty = bus.stats();
+        assert_eq!(empty.subscriptions, 0);
+        assert_eq!(empty.actors, 0);
+        assert_eq!(empty.queued, 0);
+        assert_eq!(empty.processed, 0);
+
+        let signal = Arc::new((Mutex::new(0), Condvar::new()));
+        let signal2 = Arc::clone(&signal);
+        bus.subscribe::<Counted, _>(move |_msg: Counted, _ctx: &EventContext| {
+            let (n, cv) = &*signal2;
+            *n.lock().unwrap() += 1;
+            cv.notify_all();
+        });
+        bus.subscribe::<Warning, _>(|_w: Warning, _ctx: &EventContext| {});
+
+        let registered = bus.stats();
+        assert_eq!(
+            registered.subscriptions, 2,
+            "Counted and Warning both registered"
+        );
+        assert_eq!(registered.actors, 2);
+        assert_eq!(registered.queued, 0);
+        assert_eq!(registered.processed, 0);
+
+        const N: usize = 5;
+        for i in 0..N as i32 {
+            bus.send(Counted(i));
+        }
+        wait_for(&signal, N);
+
+        // Draining is single-flight and batches the whole mailbox under one
+        // lock (see `Actor::drain`), so there's no reliable in-between state
+        // to observe here — only that everything sent eventually gets
+        // processed and nothing is left queued once it has.
+        let done = bus.stats();
+        assert_eq!(done.queued, 0);
+        assert_eq!(done.processed, N as u64);
     }
 
     #[test]
