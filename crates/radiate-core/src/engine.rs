@@ -10,6 +10,16 @@
 //! while providing a common interface for execution control.
 
 use radiate_error::Result;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub enum EngineState {
+    Running,
+    Paused,
+    Stopped,
+}
 
 /// A trait representing an evolutionary computation engine.
 ///
@@ -107,16 +117,17 @@ pub trait Engine {
     /// that is left up to the `epoch()` method or the `next()` method. It's done this way so we
     /// can advance the engine without having to clone or create any new data, and possibly perform operations
     /// outside of the engine which don't require a snapshot of the engine state.
-    fn step(&mut self) -> Result<()>;
-    /// Advances the engine by one step and returns the resulting epoch. This method combines
-    /// the functionality of `step()` and `epoch()`, allowing for a single call to
-    /// progress the engine and retrieve the current state. This is useful for iterating
-    /// through generations in a loop or for implementing custom termination conditions. Keep in mind, though,
-    /// that because this method returns an epoch immediately after stepping, it may not be as efficient
-    /// as calling `step()` and `epoch()` separately, especially if the epoch is expensive to construct.
-    fn next(&mut self) -> Result<Self::Epoch> {
-        self.step().map(|_| self.epoch())
-    }
+    fn step(&mut self) -> Result<EngineState>;
+}
+
+pub trait EngineStream: Engine {
+    type View<'a>
+    where
+        Self: 'a;
+
+    fn run<F>(self, limit: F) -> Result<Self::Epoch>
+    where
+        F: Fn(&Self::View<'_>) -> bool;
 }
 
 /// Extension trait providing convenient methods for running engines with custom logic.
@@ -172,6 +183,11 @@ pub trait EngineExt<E: Engine> {
     /// Be careful to ensure that your termination condition will eventually be met,
     /// especially when using complex logic. An infinite loop will cause the program
     /// to hang indefinitely.
+    #[deprecated(
+        since = "1.3.1",
+        note = "Use the `EngineStream` trait instead, which provides a more flexible and \
+        efficient way to run engines with custom termination conditions."
+    )]
     fn run<F>(&mut self, limit: F) -> E::Epoch
     where
         F: Fn(&E::Epoch) -> bool;
@@ -197,7 +213,7 @@ where
         F: Fn(&E::Epoch) -> bool,
     {
         loop {
-            match self.next() {
+            match self.step().map(|_| self.epoch()) {
                 Ok(epoch) => {
                     if limit(&epoch) {
                         return epoch;
@@ -240,9 +256,34 @@ mod tests {
             }
         }
 
-        fn step(&mut self) -> Result<()> {
+        fn step(&mut self) -> Result<EngineState> {
             self.generation += 1;
-            Ok(())
+            Ok(EngineState::Running)
+        }
+    }
+
+    impl EngineStream for MockEngine {
+        type View<'a>
+            = MockEpoch
+        where
+            Self: 'a;
+
+        fn run<F>(mut self, limit: F) -> Result<Self::Epoch>
+        where
+            F: Fn(&Self::View<'_>) -> bool,
+        {
+            loop {
+                match self.step().map(|_| self.epoch()) {
+                    Ok(epoch) => {
+                        if limit(&epoch) {
+                            return Ok(epoch);
+                        }
+                    }
+                    Err(e) => {
+                        return Err(e);
+                    }
+                }
+            }
         }
     }
 
@@ -250,20 +291,20 @@ mod tests {
     fn test_engine_next() {
         let mut engine = MockEngine::default();
 
-        let epoch1 = engine.next().unwrap();
+        let epoch1 = engine.step().map(|_| engine.epoch()).unwrap();
         assert_eq!(epoch1.generation, 1);
         assert_eq!(epoch1.fitness, 1.0);
 
-        let epoch2 = engine.next().unwrap();
+        let epoch2 = engine.step().map(|_| engine.epoch()).unwrap();
         assert_eq!(epoch2.generation, 2);
         assert_eq!(epoch2.fitness, 0.5);
     }
 
     #[test]
     fn test_engine_ext_run_generation_limit() {
-        let mut engine = MockEngine::default();
+        let engine = MockEngine::default();
 
-        let final_epoch = engine.run(|epoch| epoch.generation >= 3);
+        let final_epoch = engine.run(|epoch| epoch.generation >= 3).unwrap();
 
         assert_eq!(final_epoch.generation, 3);
         assert_eq!(final_epoch.fitness, 1.0 / 3.0);
@@ -271,9 +312,9 @@ mod tests {
 
     #[test]
     fn test_engine_ext_run_fitness_limit() {
-        let mut engine = MockEngine::default();
+        let engine = MockEngine::default();
 
-        let final_epoch = engine.run(|epoch| epoch.fitness < 0.3);
+        let final_epoch = engine.run(|epoch| epoch.fitness < 0.3).unwrap();
 
         // Should stop when fitness drops below 0.3
         // 1/4 = 0.25, so it should stop at generation 4
@@ -283,9 +324,11 @@ mod tests {
 
     #[test]
     fn test_engine_ext_run_complex_condition() {
-        let mut engine = MockEngine::default();
+        let engine = MockEngine::default();
 
-        let final_epoch = engine.run(|epoch| epoch.generation >= 5 || epoch.fitness < 0.2);
+        let final_epoch = engine
+            .run(|epoch| epoch.generation >= 5 || epoch.fitness < 0.2)
+            .unwrap();
 
         // Should stop at generation 5 due to generation limit
         // (fitness at gen 5 is 0.2, which doesn't meet the fitness condition)
@@ -295,9 +338,9 @@ mod tests {
 
     #[test]
     fn test_engine_ext_run_immediate_termination() {
-        let mut engine = MockEngine::default();
+        let engine = MockEngine::default();
 
-        let final_epoch = engine.run(|_| true);
+        let final_epoch = engine.run(|_| true).unwrap();
 
         // Should stop immediately after first epoch
         assert_eq!(final_epoch.generation, 1);
@@ -306,23 +349,11 @@ mod tests {
 
     #[test]
     fn test_engine_ext_run_zero_generations() {
-        let mut engine = MockEngine::default();
+        let engine = MockEngine::default();
 
-        let final_epoch = engine.run(|epoch| epoch.generation > 0);
+        let final_epoch = engine.run(|epoch| epoch.generation > 0).unwrap();
 
         // Should run at least one generation
         assert_eq!(final_epoch.generation, 1);
-    }
-
-    #[test]
-    fn test_engine_ext_method_chaining() {
-        let mut engine = MockEngine::default();
-
-        // Test that we can call run multiple times on the same engine
-        let epoch1 = engine.run(|epoch| epoch.generation >= 2);
-        assert_eq!(epoch1.generation, 2);
-
-        let epoch2 = engine.run(|epoch| epoch.generation >= 4);
-        assert_eq!(epoch2.generation, 4);
     }
 }

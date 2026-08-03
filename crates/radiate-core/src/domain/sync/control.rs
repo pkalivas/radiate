@@ -10,12 +10,12 @@ struct State {
 }
 
 #[derive(Clone, Default)]
-pub struct EngineControl {
+pub struct ThreadSync {
     stop_flag: Arc<AtomicBool>,
     inner: Arc<(Mutex<State>, Condvar)>,
 }
 
-impl EngineControl {
+impl ThreadSync {
     pub fn new() -> Self {
         Self {
             stop_flag: Arc::new(AtomicBool::new(false)),
@@ -81,10 +81,15 @@ impl EngineControl {
 
     #[inline]
     pub fn step_once(&self) {
+        self.step_n(1);
+    }
+
+    #[inline]
+    pub fn step_n(&self, n: usize) {
         let (lock, cv) = &*self.inner;
         let mut st = lock.lock().unwrap();
         st.paused = true;
-        st.permits += 1;
+        st.permits += n;
         cv.notify_all();
     }
 
@@ -112,5 +117,39 @@ impl EngineControl {
     pub fn is_paused(&self) -> bool {
         let (lock, _) = &*self.inner;
         lock.lock().unwrap().paused
+    }
+}
+
+#[cfg(test)]
+mod diag_tests {
+    use super::*;
+    use std::sync::atomic::AtomicUsize;
+    use std::time::Duration;
+
+    #[test]
+    fn step_n_blocks_after_permits_exhausted() {
+        let control = ThreadSync::new();
+        control.step_n(10);
+
+        let count = Arc::new(AtomicUsize::new(0));
+        let count2 = Arc::clone(&count);
+        let control2 = control.clone();
+
+        let handle = std::thread::spawn(move || {
+            for _ in 0..15 {
+                control2.wait();
+                count2.fetch_add(1, Ordering::SeqCst);
+            }
+        });
+
+        std::thread::sleep(Duration::from_millis(300));
+        let progressed = count.load(Ordering::SeqCst);
+        println!("progressed before stop: {progressed}");
+        control.stop();
+        handle.join().unwrap();
+        let after_stop = count.load(Ordering::SeqCst);
+        println!("progressed after stop: {after_stop}");
+
+        assert_eq!(progressed, 10, "expected exactly 10 waits to return before blocking");
     }
 }

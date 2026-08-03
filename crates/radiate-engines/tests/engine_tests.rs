@@ -31,8 +31,10 @@ mod engine_tests {
         const BUDGET: usize = 500;
 
         seeded(43, || {
-            let mut engine = onemax_engine(20);
-            let result = engine.run(|ctx| ctx.score().as_usize() == EXPECTED_SUM);
+            let engine = onemax_engine(20);
+            let result = engine
+                .run(|ctx| ctx.score().as_usize() == EXPECTED_SUM)
+                .unwrap();
 
             assert_eq!(result.value().iter().filter(|&&x| x).count(), EXPECTED_SUM);
             assert!(
@@ -49,7 +51,7 @@ mod engine_tests {
         const BUDGET: usize = 200;
 
         seeded(44, || {
-            let mut engine = GeneticEngine::builder()
+            let engine = GeneticEngine::builder()
                 .minimizing()
                 .codec(IntCodec::vector(TARGET.len(), 0..10))
                 .fitness_fn(move |geno: Vec<i32>| {
@@ -61,7 +63,7 @@ mod engine_tests {
                 })
                 .build();
 
-            let result = engine.run(|ctx| ctx.score().as_i32() == 0);
+            let result = engine.run(|ctx| ctx.score().as_i32() == 0).unwrap();
 
             assert_eq!(result.value(), &vec![1, 2, 3, 4, 5]);
             assert!(
@@ -83,7 +85,7 @@ mod engine_tests {
         const BUDGET: usize = 300;
 
         seeded(45, || {
-            let mut engine = GeneticEngine::builder()
+            let engine = GeneticEngine::builder()
                 .codec(IntChromosome::from((5, 0..100)))
                 .minimizing()
                 // The way the engine's workflow is setup, only individuals (phenotypes) which have been invalidated
@@ -113,7 +115,7 @@ mod engine_tests {
                 })
                 .build();
 
-            let result = engine.run(|ctx| ctx.score().as_i32() == 0);
+            let result = engine.run(|ctx| ctx.score().as_i32() == 0).unwrap();
 
             assert_eq!(result.value().iter().sum::<i32>(), 0);
             assert!(
@@ -202,6 +204,42 @@ mod engine_tests {
         thread::sleep(Duration::from_millis(500));
         control.set_paused(false);
         handle.join().unwrap();
+    }
+
+    #[test]
+    fn diag_test_engine_control_step_n() {
+        use std::sync::Arc;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::thread;
+        use std::time::Duration;
+
+        let mut engine = onemax_engine(5);
+        let control = engine.control();
+        control.step_n(10);
+
+        let last_index = Arc::new(AtomicUsize::new(0));
+        let last_index2 = Arc::clone(&last_index);
+
+        let handle = thread::spawn(move || {
+            let mut runtime = engine.iter().limit(1000);
+            loop {
+                match runtime.next() {
+                    Some(epoch) => last_index2.store(epoch.index(), Ordering::SeqCst),
+                    None => break,
+                }
+            }
+        });
+
+        thread::sleep(Duration::from_millis(500));
+        let observed_at_500ms = last_index.load(Ordering::SeqCst);
+        println!("index observed 500ms after step_n(10), before forcing stop: {observed_at_500ms}");
+
+        control.stop();
+        handle.join().unwrap();
+        println!(
+            "final index after forced stop: {}",
+            last_index.load(Ordering::SeqCst)
+        );
     }
 
     #[test]

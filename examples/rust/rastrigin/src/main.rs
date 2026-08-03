@@ -7,7 +7,7 @@ const RANGE: f32 = 5.12;
 const N_GENES: usize = 2;
 
 fn main() {
-    let mut engine = GeneticEngine::builder()
+    let engine = GeneticEngine::builder()
         .codec(FloatChromosome::from((N_GENES, -RANGE..RANGE)))
         .minimizing()
         .population_size(500)

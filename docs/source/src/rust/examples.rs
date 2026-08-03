@@ -4,7 +4,7 @@ use radiate::prelude::*;
 fn minsum() {
     const MIN_SCORE: i32 = 0;
 
-    let mut engine = GeneticEngine::builder()
+    let engine = GeneticEngine::builder()
         .codec(IntCodec::vector(10, 0..100))
         .minimizing()
         .offspring_selector(EliteSelector::new())
@@ -79,7 +79,7 @@ fn rastrigin() {
     const RANGE: f32 = 5.12;
     const N_GENES: usize = 2;
 
-    let mut engine = GeneticEngine::builder()
+    let engine = GeneticEngine::builder()
         .codec(FloatCodec::vector(N_GENES, -RANGE..RANGE))
         .minimizing()
         .population_size(500)
@@ -138,7 +138,7 @@ fn dtlz1() {
 
     let codec = FloatCodec::vector(VARIABLES, 0_f32..1_f32).with_bounds(-100.0..100.0);
 
-    let mut engine = GeneticEngine::builder()
+    let engine = GeneticEngine::builder()
         .codec(codec)
         .multi_objective(vec![Optimize::Minimize; OBJECTIVES])
         .offspring_selector(TournamentSelector::new(5))
@@ -150,10 +150,12 @@ fn dtlz1() {
         .fitness_fn(|geno: Vec<f32>| dtlz_1(&geno))
         .build();
 
-    let result = engine.run(|ctx| {
-        println!("[ {:?} ]", ctx.index());
-        ctx.index() > 1000
-    });
+    let result = engine
+        .run(|ctx| {
+            println!("[ {:?} ]", ctx.index());
+            ctx.index() > 1000
+        })
+        .unwrap();
 
     // When running an MO problem, we can get the resulting pareto from from the
     // engine's epoch result. This is stored in the 'front()' field of the result here:
@@ -243,7 +245,7 @@ fn tree() {
     let tree_codec = TreeCodec::single(3, store).constraint(|root| root.size() < 30);
     let regression = Regression::new(get_dataset(), Loss::MSE);
 
-    let mut engine = GeneticEngine::builder()
+    let engine = GeneticEngine::builder()
         .codec(tree_codec)
         .fitness_fn(regression)
         .minimizing()
@@ -251,10 +253,12 @@ fn tree() {
         .crossover(TreeCrossover::new(0.7))
         .build();
 
-    let result = engine.run(|ctx| {
-        println!("[ {:?} ]: {:?}", ctx.index(), ctx.score().as_f32());
-        ctx.score().as_f32() < MIN_SCORE || ctx.seconds() > MAX_SECONDS
-    });
+    let result = engine
+        .run(|ctx| {
+            println!("[ {:?} ]: {:?}", ctx.index(), ctx.score().as_f32());
+            ctx.score().as_f32() < MIN_SCORE || ctx.seconds() > MAX_SECONDS
+        })
+        .unwrap();
 
     display(&result);
 

@@ -3,7 +3,7 @@ use radiate::stats::TagType;
 
 fn main() {
     // Engine for the basic_metrics example (built outside the shown slice).
-    let mut engine = GeneticEngine::builder()
+    let engine = GeneticEngine::builder()
         .codec(IntCodec::vector(10, 0..100))
         .minimizing()
         .fitness_fn(|geno: Vec<i32>| geno.iter().sum::<i32>())
@@ -12,14 +12,16 @@ fn main() {
     // --8<-- [start:basic_metrics]
     // --- set up the engine ---
 
-    let result = engine.run(|generation| {
-        // get the score metric from the generation context
-        let temp = generation.metrics().get("scores").unwrap();
-        // get the standard deviation of the score distribution
-        let std = temp.stddev();
+    let result = engine
+        .run(|generation| {
+            // get the score metric from the generation context
+            let temp = generation.metrics().get("scores").unwrap();
+            // get the standard deviation of the score distribution
+            let std = temp.stddev();
 
-        std < 0.01 // Example condition to stop the engine
-    });
+            std < 0.01 // Example condition to stop the engine
+        })
+        .unwrap();
 
     // Access the metrics from the result
     let metrics: &MetricSet = result.metrics();

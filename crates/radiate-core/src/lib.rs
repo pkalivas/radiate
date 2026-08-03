@@ -24,7 +24,7 @@ pub use codecs::{
 };
 pub use diversity::{CosineDistance, Diversity, EuclideanDistance, HammingDistance};
 pub use domain::*;
-pub use engine::{Engine, EngineExt};
+pub use engine::{Engine, EngineExt, EngineState, EngineStream};
 pub use evaluator::{BatchFitnessEvaluator, Evaluator, FitnessEvaluator};
 pub use executor::Executor;
 pub use fitness::{
@@ -38,6 +38,7 @@ pub use rate::RateSet;
 pub use replacement::{
     EcosystemFilter, EncodeReplace, PopulationSampleReplace, ReplacementStrategy, UniqueScoreFilter,
 };
+
 pub use selector::Select;
 pub use stats::{
     Metric, MetricSet, MetricUpdate, expr, metric_names, render_dashboard, render_full,
@@ -52,7 +53,7 @@ pub mod prelude {
     };
     pub use super::diversity::{CosineDistance, Diversity, EuclideanDistance, HammingDistance};
     pub use super::domain::random_provider;
-    pub use super::engine::{Engine, EngineExt};
+    pub use super::engine::{Engine, EngineExt, EngineState, EngineStream};
     pub use super::evaluator::{BatchFitnessEvaluator, Evaluator, FitnessEvaluator};
     pub use super::executor::Executor;
     pub use super::fitness::{

@@ -1,9 +1,10 @@
 use crate::app::{App, GenerationEvent, InputEvent};
 use color_eyre::{Result, eyre::Context};
 use radiate_engines::{
-    Chromosome, Engine, Generation, GeneticEngine, error::RadiateResult, sync::ArcExt,
+    Chromosome, Engine, EngineState, EngineStream, Generation, GenerationView, GeneticEngine,
+    error::RadiateResult, sync::ArcExt,
 };
-use radiate_engines::{EngineControl, EngineRuntime, EvolutionContext};
+use radiate_engines::{EngineRuntime, EvolutionContext, ThreadSync};
 use std::{
     sync::{Arc, atomic::Ordering, mpsc},
     time::Duration,
@@ -17,7 +18,7 @@ where
     T: Clone + Send + Sync + 'static,
 {
     inner: GeneticEngine<C, T>,
-    control: EngineControl,
+    control: ThreadSync,
     dispatcher: Arc<mpsc::Sender<InputEvent<C>>>,
     app_thread: Option<std::thread::JoinHandle<Result<()>>>,
     key_thread: Option<std::thread::JoinHandle<Result<()>>>,
@@ -56,7 +57,8 @@ where
         });
 
         if manual {
-            control.set_paused(true);
+            // control.set_paused(true);
+            control.step_n(10);
         }
 
         Self {
@@ -69,8 +71,7 @@ where
     }
 
     pub fn iter(self) -> EngineRuntime<Self> {
-        let control = self.control.clone();
-        EngineRuntime::new(self, Some(control))
+        EngineRuntime::new(self)
     }
 }
 
@@ -91,12 +92,12 @@ where
     }
 
     #[inline]
-    fn step(&mut self) -> RadiateResult<()> {
-        self.inner.step()?;
+    fn step(&mut self) -> RadiateResult<EngineState> {
+        let state = self.inner.step()?;
         let current = self.inner.context();
 
-        if self.control.is_stopped() {
-            return Ok(());
+        if matches!(state, EngineState::Stopped) {
+            return Ok(state);
         }
 
         if current.index() == 1 {
@@ -110,7 +111,36 @@ where
             .send(InputEvent::EpochComplete(event))
             .unwrap();
 
-        Ok(())
+        Ok(EngineState::Running)
+    }
+}
+
+impl<C, T> EngineStream for TuiEngine<C, T>
+where
+    C: Chromosome + Clone + 'static,
+    T: Clone + Send + Sync + 'static,
+{
+    type View<'a>
+        = GenerationView<'a, C, T>
+    where
+        Self: 'a;
+
+    fn run<F>(mut self, limit: F) -> RadiateResult<Self::Epoch>
+    where
+        F: Fn(&Self::View<'_>) -> bool,
+    {
+        loop {
+            let epoch = self.step()?;
+            if matches!(epoch, EngineState::Stopped) {
+                break Ok(self.epoch());
+            }
+
+            let current = self.inner.context();
+
+            if limit(&GenerationView::new(current)) {
+                break Ok(self.epoch());
+            }
+        }
     }
 }
 

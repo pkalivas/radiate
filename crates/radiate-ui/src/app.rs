@@ -3,7 +3,7 @@ use crate::widgets::{AppWidget, HelpPanelWidget, LayoutNode, MetricModalWidget, 
 use color_eyre::Result;
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use radiate_engines::{
-    Chromosome, CommandChannel, Ecosystem, EngineControl, EvolutionContext, Front, MetricSet,
+    Chromosome, CommandChannel, Ecosystem, ThreadSync, EvolutionContext, Front, MetricSet,
     Phenotype, Score,
 };
 use ratatui::buffer::Buffer;
@@ -60,7 +60,7 @@ pub(crate) struct App<C>
 where
     C: Chromosome,
 {
-    control: EngineControl,
+    control: ThreadSync,
     channel: CommandChannel<InputEvent<C>>,
     state: AppState<C>,
     layout: LayoutNode<C>,
@@ -70,7 +70,7 @@ impl<C> App<C>
 where
     C: Chromosome + Clone,
 {
-    pub fn new(render_interval: Duration, control: EngineControl) -> Self {
+    pub fn new(render_interval: Duration, control: ThreadSync) -> Self {
         Self {
             control,
             channel: CommandChannel::new(),

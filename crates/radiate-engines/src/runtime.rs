@@ -1,14 +1,11 @@
 use crate::actions::LoggingAction;
 use crate::generation::GenerationView;
-use crate::{Engine, EngineControl, EvolutionContext, Generation, Limit, init_logging};
+use crate::{Engine, EvolutionContext, Generation, Limit, init_logging};
 #[cfg(feature = "serde")]
 use crate::{FileWriter, JsonWriter};
-use radiate_core::{Chromosome, Score, radiate_err};
-use radiate_core::{Ecosystem, rate::Expr};
-use radiate_core::{
-    MetricSet,
-    error::{RadiateResult, Result},
-};
+use radiate_core::error::{RadiateResult, Result};
+use radiate_core::rate::Expr;
+use radiate_core::{Chromosome, EngineState, Score, radiate_err};
 #[cfg(feature = "serde")]
 use serde::Serialize;
 use std::collections::VecDeque;
@@ -26,17 +23,15 @@ pub trait RuntimeAction<E: Engine> {
 
 pub struct EngineRuntime<E: Engine> {
     engine: E,
-    control: Option<EngineControl>,
     actions: Option<Vec<Box<dyn RuntimeAction<E>>>>,
     limits: Option<Vec<Box<dyn RuntimeLimit<E>>>>,
     done: bool,
 }
 
 impl<E: Engine> EngineRuntime<E> {
-    pub fn new(engine: E, control: Option<EngineControl>) -> Self {
+    pub fn new(engine: E) -> Self {
         Self {
             engine,
-            control,
             actions: None,
             limits: None,
             done: false,
@@ -60,14 +55,12 @@ impl<E: Engine> EngineRuntime<E> {
             return Err(radiate_err!(Engine: "Engine has already completed"));
         }
 
-        if let Some(control) = &self.control
-            && control.is_stopped()
-        {
+        let state = self.engine.step()?;
+
+        if matches!(state, EngineState::Stopped) {
             self.done = true;
             return Ok(());
         }
-
-        self.engine.step()?;
 
         if let Some(actions) = &mut self.actions {
             let ctx = self.engine.context();
@@ -127,18 +120,6 @@ where
 
     pub fn last(self) -> Result<E::Epoch> {
         self.run()
-    }
-
-    pub fn to_best(self) -> Result<T> {
-        self.run().map(|epoch| epoch.value().clone())
-    }
-
-    pub fn to_metrics(self) -> Result<MetricSet> {
-        self.run().map(|epoch| epoch.metrics().clone())
-    }
-
-    pub fn to_ecosystem(self) -> Result<Ecosystem<C>> {
-        self.run().map(|epoch| epoch.ecosystem().clone())
     }
 }
 

@@ -1,11 +1,11 @@
-use crate::builder::GeneticEngineBuilder;
 use crate::context::EvolutionContext;
 use crate::events::EngineMessage;
 use crate::pipeline::Pipeline;
-use crate::{Chromosome, EngineControl, EngineRuntime};
+use crate::{Chromosome, EngineRuntime, ThreadSync};
 use crate::{EventBus, Generation};
-use radiate_core::Engine;
-use radiate_core::error::Result;
+use crate::{GenerationView, builder::GeneticEngineBuilder};
+use radiate_core::{Engine, engine::EngineState};
+use radiate_core::{EngineStream, error::Result};
 
 /// The [GeneticEngine] is the core component of the Radiate library's genetic algorithm implementation.
 /// The engine is designed to be fast, flexible and extensible, allowing users to
@@ -98,7 +98,7 @@ where
     /// The control interface allows for pausing, resuming, and stopping the engine's execution
     /// from external contexts. If the control interface has not been initialized yet, this method
     /// will create a new instance.
-    pub fn control(&mut self) -> EngineControl {
+    pub fn control(&mut self) -> ThreadSync {
         self.context.get_or_create_control()
     }
 
@@ -123,8 +123,7 @@ where
     /// The iterator consumes the engine, so you can only iterate once. If you need
     /// to run the engine multiple times, create a new instance using the builder.
     pub fn iter(self) -> EngineRuntime<Self> {
-        let control = self.context.control.clone();
-        EngineRuntime::new(self, control)
+        EngineRuntime::new(self)
     }
 }
 
@@ -167,11 +166,13 @@ where
     }
 
     #[inline]
-    fn step(&mut self) -> Result<()> {
-        if let Some(control) = &self.context.control
-            && control.is_paused()
-        {
-            control.wait();
+    fn step(&mut self) -> Result<EngineState> {
+        if let Some(control) = &self.context.control {
+            if control.is_stopped() {
+                return Ok(EngineState::Stopped);
+            } else if control.is_paused() {
+                control.wait();
+            }
         }
 
         if matches!(self.context.index, 0) {
@@ -186,7 +187,37 @@ where
 
         self.bus.publish(EngineMessage::EpochEnd(&self.context));
 
-        Ok(())
+        Ok(EngineState::Running)
+    }
+}
+
+/// Implementation of the [EngineStream] trait for [GeneticEngine].
+impl<C, T> EngineStream for GeneticEngine<C, T>
+where
+    C: Chromosome + Clone + 'static,
+    T: Clone + Send + Sync,
+{
+    type View<'a>
+        = GenerationView<'a, C, T>
+    where
+        Self: 'a;
+
+    fn run<F>(mut self, limit: F) -> Result<Self::Epoch>
+    where
+        F: Fn(&Self::View<'_>) -> bool,
+    {
+        loop {
+            match self.step().map(|_| GenerationView::new(&self.context)) {
+                Ok(epoch) => {
+                    if limit(&epoch) {
+                        return Ok(epoch.into());
+                    }
+                }
+                Err(e) => {
+                    return Err(e);
+                }
+            }
+        }
     }
 }
 

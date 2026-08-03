@@ -18,7 +18,7 @@ fn main() {
     let codec = TreeCodec::multi_root(3, 4, store).constraint(|node| node.size() < 40);
     let regression = Regression::new(train.clone(), Loss::MSE);
 
-    let mut engine = GeneticEngine::builder()
+    let engine = GeneticEngine::builder()
         .codec(codec)
         .fitness_fn(regression)
         .minimizing()
@@ -27,10 +27,12 @@ fn main() {
         .mutator(OperationMutator::new(0.03, 0.02))
         .build();
 
-    let result = engine.run(|ctx| {
-        println!("[ {:?} ]: {:?}", ctx.index(), ctx.score().as_f32());
-        ctx.score().as_f32() < MIN_SCORE || ctx.seconds() > MAX_SECONDS
-    });
+    let result = engine
+        .run(|ctx| {
+            println!("[ {:?} ]: {:?}", ctx.index(), ctx.score().as_f32());
+            ctx.score().as_f32() < MIN_SCORE || ctx.seconds() > MAX_SECONDS
+        })
+        .unwrap();
 
     display(&train, &test, &result);
 }

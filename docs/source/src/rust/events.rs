@@ -6,7 +6,7 @@ fn your_fitness_fn(genotype: Vec<f32>) -> f32 {
 
 fn main() {
     // --8<-- [start:callback]
-    let mut engine = GeneticEngine::builder()
+    let engine = GeneticEngine::builder()
         .codec(FloatCodec::vector(6, -5.0..5.0))
         .fitness_fn(your_fitness_fn)
         .subscribe(|event: &EngineEvent<Vec<f32>>| {
@@ -37,7 +37,7 @@ fn main() {
     }
 
     // Create and configure the engine
-    let mut engine = GeneticEngine::builder()
+    let engine = GeneticEngine::builder()
         .codec(FloatCodec::vector(6, -5.0..5.0))
         .subscribe(MyHandler) // Add your handler here
         .fitness_fn(your_fitness_fn)

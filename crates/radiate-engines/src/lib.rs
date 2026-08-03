@@ -1,19 +1,17 @@
 mod actions;
 pub mod builder;
 pub mod context;
-mod control;
 pub mod engine;
 mod events;
 mod generation;
 mod io;
 mod limit;
 mod pipeline;
-mod runtime;
+pub mod runtime;
 mod steps;
 
 pub use builder::GeneticEngineBuilder;
 pub use context::EvolutionContext;
-pub use control::EngineControl;
 pub use engine::GeneticEngine;
 pub use events::{EngineEvent, EngineEventInner, EventBus, EventHandler};
 pub use generation::{Generation, GenerationView};

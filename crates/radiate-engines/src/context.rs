@@ -1,5 +1,5 @@
 use crate::builder::config::EngineConfig;
-use crate::{Chromosome, EngineControl};
+use crate::{Chromosome, ThreadSync};
 use radiate_core::error::RadiateResult;
 use radiate_core::rate::ExprSet;
 use radiate_core::{
@@ -16,7 +16,7 @@ pub struct EvolutionContext<C: Chromosome, T> {
     pub(crate) front: Arc<RwLock<Front<Phenotype<C>>>>,
     pub(crate) objective: Objective,
     pub(crate) problem: Arc<dyn Problem<C, T>>,
-    pub(crate) control: Option<EngineControl>,
+    pub(crate) control: Option<ThreadSync>,
     pub(crate) exprs: Option<Arc<Mutex<ExprSet>>>,
 }
 
@@ -41,9 +41,9 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
         self.front.clone()
     }
 
-    pub fn get_or_create_control(&mut self) -> EngineControl {
+    pub fn get_or_create_control(&mut self) -> ThreadSync {
         if self.control.is_none() {
-            let (one, two) = EngineControl::pair();
+            let (one, two) = ThreadSync::pair();
             self.control = Some(one);
             return two;
         }
