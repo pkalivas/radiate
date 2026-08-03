@@ -35,13 +35,13 @@ where
                     time
                 );
 
-                ctx.send(crate::events::Info(str));
+                ctx.send(crate::events::LogInfo(str));
             }
             Objective::Multi(_) => {
                 let front_size = ctx.metrics.front_size();
                 let front_size_value = front_size.map(|ent| ent.last_value()).unwrap_or(0.0);
 
-                ctx.send(crate::events::Info(format!(
+                ctx.send(crate::events::LogInfo(format!(
                     "Epoch {:<4} | Front Size: {:.3} | Time: {:>5.2?}",
                     ctx.index, front_size_value, time
                 )));

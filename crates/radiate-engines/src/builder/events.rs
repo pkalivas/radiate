@@ -1,6 +1,6 @@
 use crate::{
-    EngineEvent, EpochCompleted, EpochStarted, EventHandler, GeneticEngineBuilder, Improved,
-    Started, Stopped,
+    EngineEvent, EpochCompleted, EventHandler, GeneticEngineBuilder,
+    events::{EngineImproved, EngineStart, EngineStopped, EpochStart},
 };
 use radiate_core::{Chromosome, Message};
 
@@ -23,7 +23,7 @@ where
 
     pub fn on_start<H>(self, handler: H) -> Self
     where
-        H: EventHandler<Started> + 'static,
+        H: EventHandler<EngineStart> + 'static,
     {
         self.params.event_system.subscribe(handler);
         self
@@ -31,7 +31,7 @@ where
 
     pub fn on_stop<H>(self, handler: H) -> Self
     where
-        H: EventHandler<Stopped<T>> + 'static,
+        H: EventHandler<EngineStopped<T>> + 'static,
         T: Send + Sync + 'static,
     {
         self.params.event_system.subscribe(handler);
@@ -40,7 +40,7 @@ where
 
     pub fn on_epoch_start<H>(self, handler: H) -> Self
     where
-        H: EventHandler<EpochStarted> + 'static,
+        H: EventHandler<EpochStart> + 'static,
     {
         self.params.event_system.subscribe(handler);
         self
@@ -57,7 +57,7 @@ where
 
     pub fn on_improvement<H>(self, handler: H) -> Self
     where
-        H: EventHandler<Improved<T>> + 'static,
+        H: EventHandler<EngineImproved<T>> + 'static,
         T: Send + Sync + 'static,
     {
         self.params.event_system.subscribe(handler);

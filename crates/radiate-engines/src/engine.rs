@@ -1,11 +1,9 @@
-use crate::context::EvolutionContext;
-use crate::events::{
-    dispatch_epoch_end, dispatch_epoch_start, dispatch_improvement, dispatch_start, dispatch_stop,
-};
+use crate::events::{EngineImproved, EngineStopped, EpochCompleted, EpochStart};
 use crate::pipeline::Pipeline;
 use crate::{Chromosome, EngineRuntime, Generation, ThreadSync};
 use crate::{GenerationView, builder::GeneticEngineBuilder};
-use radiate_core::{ActorSystem, Engine, EventContext, Message, engine::EngineState};
+use crate::{context::EvolutionContext, events::EngineStart};
+use radiate_core::{Engine, EventContext, EventSystem, Message, engine::EngineState};
 use radiate_core::{EngineStream, error::Result};
 
 /// The [GeneticEngine] is the core component of the Radiate library's genetic algorithm implementation.
@@ -61,7 +59,7 @@ where
 {
     context: EvolutionContext<C, T>,
     pipeline: Pipeline<C>,
-    event_system: ActorSystem,
+    event_system: EventSystem,
 }
 
 impl<C, T> GeneticEngine<C, T>
@@ -76,7 +74,7 @@ where
     pub(crate) fn new(
         context: EvolutionContext<C, T>,
         pipeline: Pipeline<C>,
-        event_system: ActorSystem,
+        event_system: EventSystem,
     ) -> Self {
         GeneticEngine {
             context,
@@ -184,16 +182,20 @@ where
         }
 
         if matches!(self.context.index, 0) {
-            dispatch_start(&self.context, &self.event_system);
+            self.event_system.send(EngineStart);
         }
 
-        dispatch_epoch_start(&self.context, &self.event_system);
+        self.event_system.send(EpochStart {
+            index: self.context.index,
+        });
         self.pipeline.run(&mut self.context)?;
         if self.context.try_advance_one()? {
-            dispatch_improvement(&self.context, &self.event_system);
+            self.event_system
+                .lazy_send(|| EngineImproved::from(&self.context));
         }
 
-        dispatch_epoch_end(&self.context, &self.event_system);
+        self.event_system
+            .lazy_send(|| EpochCompleted::from(&self.context));
 
         Ok(EngineState::Running)
     }
@@ -249,6 +251,7 @@ where
     T: Clone + Send + Sync + 'static,
 {
     fn drop(&mut self) {
-        dispatch_stop(&self.context, &self.event_system);
+        self.event_system
+            .lazy_send(|| EngineStopped::from(&self.context));
     }
 }

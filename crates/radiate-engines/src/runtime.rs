@@ -212,10 +212,10 @@ where
         init_logging();
         let system = self.engine.context().event_system();
 
-        system.subscribe::<crate::events::Info, LoggingHandler>(LoggingHandler);
-        system.subscribe::<crate::events::Warn, LoggingHandler>(LoggingHandler);
-        system.subscribe::<LimitTriggered, _>(move |msg: LimitTriggered, _ctx: &EventContext| {
-            _ctx.send(crate::events::Info(format!(
+        system.subscribe::<crate::events::LogInfo, LoggingHandler>(LoggingHandler);
+        system.subscribe::<crate::events::LogWarn, LoggingHandler>(LoggingHandler);
+        system.subscribe::<LimitTriggered, _>(move |msg: LimitTriggered, ctx: &EventContext| {
+            ctx.send(crate::events::LogInfo(format!(
                 "{:?} triggered [{}]: {}",
                 msg.kind, msg.generation, msg.description
             )));

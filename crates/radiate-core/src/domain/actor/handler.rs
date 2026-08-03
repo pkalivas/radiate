@@ -1,5 +1,5 @@
 use super::message::Message;
-use super::system::ActorSystem;
+use super::system::EventSystem;
 use crate::ThreadSync;
 
 /// Handed to every actor alongside the message it's processing. Carries the
@@ -17,11 +17,11 @@ use crate::ThreadSync;
 #[derive(Clone)]
 pub struct EventContext {
     pub(crate) sync: ThreadSync,
-    pub(crate) system: ActorSystem,
+    pub(crate) system: EventSystem,
 }
 
 impl EventContext {
-    pub fn new(sync: ThreadSync, system: ActorSystem) -> Self {
+    pub fn new(sync: ThreadSync, system: EventSystem) -> Self {
         Self { sync, system }
     }
 

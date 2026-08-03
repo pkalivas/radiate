@@ -33,43 +33,38 @@ impl MetricCollector {
         Self::default()
     }
 
-    /// A shared handle to the collected history — the same storage the
-    /// handler writes to, not a snapshot. Safe to read while the engine is
-    /// still running.
     pub fn history(&self) -> Arc<Mutex<Vec<MetricSet>>> {
         Arc::clone(&self.history)
     }
 
-    /// Convenience for the common case: a point-in-time copy instead of the
-    /// raw shared handle.
     pub fn snapshot(&self) -> Vec<MetricSet> {
         self.history.lock().unwrap().clone()
     }
 }
 
 impl<T: Send + Sync + 'static> EventHandler<EpochCompleted<T>> for MetricCollector {
-    fn handle(&mut self, message: EpochCompleted<T>, _ctx: &EventContext) {
+    fn handle(&mut self, message: EpochCompleted<T>, _: &EventContext) {
         self.history.lock().unwrap().push(message.metrics.clone());
     }
 }
 
 #[derive(Clone)]
-pub struct Info(pub String);
+pub struct LogInfo(pub String);
 
 #[derive(Clone)]
-pub struct Warn(pub String);
+pub struct LogWarn(pub String);
 
 #[derive(Clone, Default)]
 pub struct LoggingHandler;
 
-impl EventHandler<Info> for LoggingHandler {
-    fn handle(&mut self, message: Info, _ctx: &EventContext) {
+impl EventHandler<LogInfo> for LoggingHandler {
+    fn handle(&mut self, message: LogInfo, _ctx: &EventContext) {
         tracing::info!("{}", message.0);
     }
 }
 
-impl EventHandler<Warn> for LoggingHandler {
-    fn handle(&mut self, message: Warn, _ctx: &EventContext) {
+impl EventHandler<LogWarn> for LoggingHandler {
+    fn handle(&mut self, message: LogWarn, _ctx: &EventContext) {
         tracing::warn!("{}", message.0);
     }
 }

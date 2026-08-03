@@ -79,6 +79,14 @@ impl PyEventHandler {
                     .expect("Failed to convert event.");
                 PyEngineEvent::improvement(s.index, best, s.score.as_ref().to_vec())
             }
+            _ => PyEngineEvent {
+                event_type: crate::constants::components::ALL_EVENTS.into(),
+                index: None,
+                best: None,
+                score: None,
+                metrics: None,
+                objective: None,
+            },
         }
     }
 }

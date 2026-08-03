@@ -5,7 +5,7 @@ pub mod random_provider;
 pub mod sync;
 pub mod tracker;
 
-pub use actor::{ActorSystem, ActorSystemStats, Envelope, EventContext, EventHandler, Message};
+pub use actor::{EventSystem, ActorSystemStats, Envelope, EventContext, EventHandler, Message};
 pub use executor::Executor;
 pub use math::SubsetMode;
 pub use math::subset;

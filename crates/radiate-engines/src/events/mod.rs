@@ -1,12 +1,10 @@
 mod handlers;
 mod message;
+mod relay;
 
+pub use handlers::{LogInfo, LogWarn, LoggingHandler, MetricCollector};
 pub use message::{
-    EngineEvent, EpochCompleted, EpochCompletedData, EpochStarted, EpochStartedData, Improved,
-    ImprovedData, LimitTriggered, Started, StartedData, Stopped, StoppedData,
+    EngineEvent, EngineImproved, EngineStart, EngineStopped, EpochCompleted, EpochStart,
+    LimitTriggered,
 };
-pub(crate) use message::{
-    dispatch_epoch_end, dispatch_epoch_start, dispatch_improvement, dispatch_start, dispatch_stop,
-};
-
-pub use handlers::{Info, LoggingHandler, MetricCollector, Warn};
+pub(crate) use relay::event_relay;

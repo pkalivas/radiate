@@ -5,4 +5,4 @@ mod system;
 
 pub use handler::{EventContext, EventHandler};
 pub use message::{Envelope, Message};
-pub use system::{ActorSystem, ActorSystemStats};
+pub use system::{EventSystem, ActorSystemStats};

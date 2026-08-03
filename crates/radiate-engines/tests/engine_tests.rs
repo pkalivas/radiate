@@ -283,7 +283,7 @@ mod engine_tests {
 
     #[test]
     fn metric_step_publishes_stagnation_warning() {
-        use radiate_engines::events::Warn;
+        use radiate_engines::events::LogWarn;
         use std::sync::{Arc, Mutex};
 
         let seen = Arc::new(Mutex::new(Vec::new()));
@@ -297,7 +297,7 @@ mod engine_tests {
         let engine = GeneticEngine::builder()
             .codec(FloatCodec::vector(4, -5.0..5.0))
             .fitness_fn(|_geno: Vec<f32>| 1.0)
-            .subscribe_typed::<Warn, _>(move |w: Warn, _ctx: &EventContext| {
+            .subscribe_typed::<LogWarn, _>(move |w: LogWarn, _ctx: &EventContext| {
                 seen2.lock().unwrap().push(w.0);
             })
             .build();
@@ -463,7 +463,7 @@ mod engine_tests {
     /// diversity-collapse warning this whole event was designed to surface.
     #[test]
     fn speciate_step_publishes_diversity_collapse_warning() {
-        use radiate_engines::events::Warn;
+        use radiate_engines::events::LogWarn;
         use std::sync::{Arc, Mutex};
 
         let seen = Arc::new(Mutex::new(Vec::new()));
@@ -481,7 +481,7 @@ mod engine_tests {
                     BlendCrossover::new(0.5, 0.5),
                     GaussianMutator::new(0.05)
                 ])
-                .subscribe_typed::<Warn, _>(move |w: Warn, _ctx: &EventContext| {
+                .subscribe_typed::<LogWarn, _>(move |w: LogWarn, _ctx: &EventContext| {
                     seen2.lock().unwrap().push(w.0);
                 })
                 .build();

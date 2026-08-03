@@ -1,7 +1,7 @@
 use crate::app::{App, GenerationEvent, InputEvent};
 use crate::state::LogLevel;
 use color_eyre::{Result, eyre::Context};
-use radiate_engines::events::{Info, Warn};
+use radiate_engines::events::{LogInfo, LogWarn};
 use radiate_engines::{
     Chromosome, Engine, EngineState, EngineStream, EventContext, Generation, GenerationView,
     GeneticEngine, error::RadiateResult, sync::ArcExt,
@@ -83,12 +83,12 @@ where
         dispatcher: Arc<mpsc::Sender<InputEvent<C>>>,
     ) {
         let d = Arc::clone(&dispatcher);
-        engine.subscribe::<Warn>(move |msg: Warn, _: &EventContext| {
+        engine.subscribe::<LogWarn>(move |msg: LogWarn, _: &EventContext| {
             d.send(InputEvent::Log(LogLevel::Warn, msg.0)).unwrap();
         });
 
         let d = Arc::clone(&dispatcher);
-        engine.subscribe::<Info>(move |msg: Info, _: &EventContext| {
+        engine.subscribe::<LogInfo>(move |msg: LogInfo, _: &EventContext| {
             d.send(InputEvent::Log(LogLevel::Info, msg.0)).unwrap();
         });
     }

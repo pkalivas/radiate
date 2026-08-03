@@ -9,7 +9,6 @@ mod problem;
 mod selectors;
 mod species;
 
-use crate::builder::evaluators::EvaluationParams;
 use crate::builder::filters::FilterParams;
 use crate::builder::objectives::OptimizeParams;
 use crate::builder::population::PopulationParams;
@@ -29,11 +28,12 @@ use crate::{
     Crossover, EncodeReplace, Front, Mutate, ReplacementStrategy, RouletteSelector,
     TournamentSelector, context::EvolutionContext,
 };
+use crate::{EngineEvent, builder::evaluators::EvaluationParams};
 use crate::{Generation, Result};
 use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::{
-    ActorSystem, Alterer, Ecosystem, Executor, Expr, FitnessEvaluator, Valid, metric_names,
+    Alterer, Ecosystem, EventSystem, Executor, Expr, FitnessEvaluator, Valid, metric_names,
 };
 use radiate_core::{RadiateError, ensure, radiate_err};
 use radiate_core::{RateSet, evaluator::BatchFitnessEvaluator};
@@ -63,7 +63,7 @@ where
 
     pub alterers: Vec<Alterer<C>>,
     pub replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
-    pub event_system: ActorSystem,
+    pub event_system: EventSystem,
     pub generation: Option<Generation<C, T>>,
     pub exprs: Option<Arc<Mutex<ExprSet>>>,
 }
@@ -201,6 +201,10 @@ where
         let system = self.params.event_system.clone();
         system.set_executor(self.params.evaluation_params.event_executor.clone());
         system.set_sync(self.params.evaluation_params.sync.clone());
+
+        if system.has_subscribers::<EngineEvent<T>>() {
+            crate::events::event_relay::<T>(&system);
+        }
 
         self.params.event_system = system;
 
@@ -528,7 +532,7 @@ where
 
                 replacement_strategy: Arc::new(EncodeReplace),
                 alterers: Vec::new(),
-                event_system: ActorSystem::default(),
+                event_system: EventSystem::default(),
                 exprs: None,
                 generation: None,
             },

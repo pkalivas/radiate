@@ -57,19 +57,19 @@ pub struct ActorSystemStats {
 /// all of that read-mostly traffic behind one lock regardless of message
 /// type or thread.
 #[derive(Clone)]
-pub struct ActorSystem {
+pub struct EventSystem {
     actors: ActorRegistry,
     executor: Arc<RwLock<Arc<Executor>>>,
     sync: Arc<RwLock<ThreadSync>>,
 }
 
-impl ActorSystem {
+impl EventSystem {
     pub fn new(executor: Arc<Executor>) -> Self {
-        ActorSystem::with_sync(executor, ThreadSync::new())
+        EventSystem::with_sync(executor, ThreadSync::new())
     }
 
     pub fn with_sync(executor: Arc<Executor>, sync: ThreadSync) -> Self {
-        ActorSystem {
+        EventSystem {
             actors: Arc::new(RwLock::new(HashMap::new())),
             executor: Arc::new(RwLock::new(executor)),
             sync: Arc::new(RwLock::new(sync)),
@@ -203,15 +203,22 @@ impl ActorSystem {
             actor.tell(message.clone(), ctx.clone(), &executor);
         }
     }
-}
 
-impl Default for ActorSystem {
-    fn default() -> Self {
-        ActorSystem::new(Arc::new(Executor::default()))
+    pub fn lazy_send<M: Message + Clone>(&self, func: impl FnOnce() -> M) {
+        if self.has_subscribers::<M>() {
+            let message = func();
+            self.send(message);
+        }
     }
 }
 
-impl fmt::Debug for ActorSystem {
+impl Default for EventSystem {
+    fn default() -> Self {
+        EventSystem::new(Arc::new(Executor::default()))
+    }
+}
+
+impl fmt::Debug for EventSystem {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let actors = self.actors.read().unwrap();
         f.debug_struct("ActorSystem")
@@ -261,7 +268,7 @@ mod tests {
 
     #[test]
     fn subscribe_and_publish_delivers_message() {
-        let bus = ActorSystem::default();
+        let bus = EventSystem::default();
         let seen = Arc::new(Mutex::new(Vec::new()));
         let signal = Arc::new((Mutex::new(0), Condvar::new()));
 
@@ -278,7 +285,7 @@ mod tests {
 
     #[test]
     fn unrelated_message_types_do_not_cross_wires() {
-        let bus = ActorSystem::default();
+        let bus = EventSystem::default();
         let seen = Arc::new(Mutex::new(Vec::new()));
         let signal = Arc::new((Mutex::new(0), Condvar::new()));
 
@@ -297,7 +304,7 @@ mod tests {
 
     #[test]
     fn multiple_subscribers_of_same_type_all_receive() {
-        let bus = ActorSystem::default();
+        let bus = EventSystem::default();
         let seen_a = Arc::new(Mutex::new(Vec::new()));
         let seen_b = Arc::new(Mutex::new(Vec::new()));
         let signal_a = Arc::new((Mutex::new(0), Condvar::new()));
@@ -322,7 +329,7 @@ mod tests {
 
     #[test]
     fn ordering_preserved_per_actor_under_parallel_executor() {
-        let bus = ActorSystem::new(Arc::new(Executor::FixedSizedWorkerPool(4)));
+        let bus = EventSystem::new(Arc::new(Executor::FixedSizedWorkerPool(4)));
         let seen = Arc::new(Mutex::new(Vec::new()));
         let signal = Arc::new((Mutex::new(0), Condvar::new()));
 
@@ -343,13 +350,13 @@ mod tests {
 
     #[test]
     fn publish_with_no_subscribers_does_not_panic() {
-        let bus = ActorSystem::default();
+        let bus = EventSystem::default();
         bus.send(Counted(1));
     }
 
     #[test]
     fn closures_work_as_handlers() {
-        let bus = ActorSystem::default();
+        let bus = EventSystem::default();
         let seen = Arc::new(Mutex::new(Vec::new()));
         let signal = Arc::new((Mutex::new(0), Condvar::new()));
 
@@ -370,7 +377,7 @@ mod tests {
 
     #[test]
     fn has_subscribers_reflects_registration_state() {
-        let bus = ActorSystem::default();
+        let bus = EventSystem::default();
         assert!(!bus.has_subscribers::<Counted>());
 
         bus.subscribe::<Counted, _>(|_msg: Counted, _ctx: &EventContext| {});
@@ -381,7 +388,7 @@ mod tests {
     #[test]
     fn handler_receives_shared_thread_sync_via_context() {
         let sync = ThreadSync::new();
-        let bus = ActorSystem::with_sync(Arc::new(Executor::default()), sync.clone());
+        let bus = EventSystem::with_sync(Arc::new(Executor::default()), sync.clone());
         let signal = Arc::new((Mutex::new(0), Condvar::new()));
         let signal_clone = Arc::clone(&signal);
 
@@ -402,7 +409,7 @@ mod tests {
 
     #[test]
     fn handler_can_publish_further_messages_via_context() {
-        let bus = ActorSystem::default();
+        let bus = EventSystem::default();
         let warnings_seen = Arc::new(Mutex::new(0));
         let escalated = Arc::new(Mutex::new(Vec::new()));
         let signal = Arc::new((Mutex::new(0), Condvar::new()));
@@ -439,7 +446,7 @@ mod tests {
 
     #[test]
     fn context_has_subscribers_reflects_live_registration_state() {
-        let bus = ActorSystem::default();
+        let bus = EventSystem::default();
         let seen = Arc::new(Mutex::new(false));
         let signal = Arc::new((Mutex::new(0), Condvar::new()));
 
@@ -466,7 +473,7 @@ mod tests {
 
     #[test]
     fn stats_reflects_subscriptions_and_processed_count() {
-        let bus = ActorSystem::default();
+        let bus = EventSystem::default();
 
         let empty = bus.stats();
         assert_eq!(empty.subscriptions, 0);
@@ -509,7 +516,7 @@ mod tests {
 
     #[test]
     fn set_sync_rebinds_context_for_future_sends() {
-        let bus = ActorSystem::default();
+        let bus = EventSystem::default();
         let seen_stopped = Arc::new(Mutex::new(false));
         let signal = Arc::new((Mutex::new(0), Condvar::new()));
 
