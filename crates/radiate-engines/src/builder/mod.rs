@@ -26,7 +26,7 @@ use crate::steps::{
 };
 use crate::{Chromosome, EvaluateStep, GeneticEngine};
 use crate::{
-    Crossover, EncodeReplace, EventBus, Front, Mutate, ReplacementStrategy, RouletteSelector,
+    Crossover, EncodeReplace, Front, Mutate, ReplacementStrategy, RouletteSelector,
     TournamentSelector, context::EvolutionContext,
 };
 use crate::{Generation, Result};
@@ -191,10 +191,10 @@ where
         pipeline.add_step(Self::build_species_step(&config));
         pipeline.add_step(Self::build_audit_step(&config));
 
-        let event_bus = EventBus::<T>::from(config.event_system());
+        let event_system = config.event_system();
         let context = EvolutionContext::from(config);
 
-        Ok(GeneticEngine::<C, T>::new(context, pipeline, event_bus))
+        Ok(GeneticEngine::<C, T>::new(context, pipeline, event_system))
     }
 
     fn build_event_system(&mut self) -> Result<()> {

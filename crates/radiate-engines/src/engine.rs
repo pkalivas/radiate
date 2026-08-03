@@ -1,10 +1,9 @@
 use crate::context::EvolutionContext;
 use crate::events::EngineMessage;
 use crate::pipeline::Pipeline;
-use crate::{Chromosome, EngineRuntime, ThreadSync};
-use crate::{EventBus, Generation};
+use crate::{Chromosome, EngineRuntime, Generation, ThreadSync};
 use crate::{GenerationView, builder::GeneticEngineBuilder};
-use radiate_core::{Engine, EventContext, Message, engine::EngineState};
+use radiate_core::{ActorSystem, Engine, EventContext, Message, engine::EngineState};
 use radiate_core::{EngineStream, error::Result};
 
 /// The [GeneticEngine] is the core component of the Radiate library's genetic algorithm implementation.
@@ -60,7 +59,7 @@ where
 {
     context: EvolutionContext<C, T>,
     pipeline: Pipeline<C>,
-    bus: EventBus<T>,
+    event_system: ActorSystem,
 }
 
 impl<C, T> GeneticEngine<C, T>
@@ -75,12 +74,12 @@ where
     pub(crate) fn new(
         context: EvolutionContext<C, T>,
         pipeline: Pipeline<C>,
-        bus: EventBus<T>,
+        event_system: ActorSystem,
     ) -> Self {
         GeneticEngine {
             context,
             pipeline,
-            bus,
+            event_system,
         }
     }
 
@@ -126,12 +125,11 @@ where
         EngineRuntime::new(self)
     }
 
-    pub fn subscribe<M>(self, handler: impl FnMut(M, &EventContext) + Send + Sync + 'static) -> Self
+    pub fn subscribe<M>(&mut self, handler: impl FnMut(M, &EventContext) + Send + Sync + 'static)
     where
         M: Message,
     {
-        self.bus.subscribe::<M, _>(handler);
-        self
+        self.event_system.subscribe::<M, _>(handler);
     }
 }
 
@@ -184,16 +182,16 @@ where
         }
 
         if matches!(self.context.index, 0) {
-            self.bus.publish(EngineMessage::Start(&self.context));
+            EngineMessage::Start(&self.context).dispatch(&self.event_system);
         }
 
-        self.bus.publish(EngineMessage::EpochStart(&self.context));
+        EngineMessage::EpochStart(&self.context).dispatch(&self.event_system);
         self.pipeline.run(&mut self.context)?;
         if self.context.try_advance_one()? {
-            self.bus.publish(EngineMessage::Improvement(&self.context));
+            EngineMessage::Improvement(&self.context).dispatch(&self.event_system);
         }
 
-        self.bus.publish(EngineMessage::EpochEnd(&self.context));
+        EngineMessage::EpochEnd(&self.context).dispatch(&self.event_system);
 
         Ok(EngineState::Running)
     }
@@ -249,6 +247,6 @@ where
     T: Clone + Send + Sync + 'static,
 {
     fn drop(&mut self) {
-        self.bus.publish(EngineMessage::Stop(&self.context));
+        EngineMessage::Stop(&self.context).dispatch(&self.event_system);
     }
 }

@@ -20,8 +20,8 @@ pub use context::EvolutionContext;
 pub use engine::GeneticEngine;
 pub use events::{
     EngineEvent, EngineMessage, EpochCompleted, EpochCompletedData, EpochStarted, EpochStartedData,
-    EventBus, Improved, ImprovedData, LoggingHandler, MetricCollector, Started, StartedData,
-    Stopped, StoppedData,
+    Improved, ImprovedData, LoggingHandler, MetricCollector, Started, StartedData, Stopped,
+    StoppedData,
 };
 pub use generation::{Generation, GenerationView};
 pub use io::{FileReader, FileWriter, JsonReader, JsonWriter};

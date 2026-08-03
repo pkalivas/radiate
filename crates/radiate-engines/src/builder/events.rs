@@ -65,10 +65,10 @@ where
     }
 
     /// Subscribe to a message type this engine doesn't know about (a custom
-    /// `Warning`, a `LogMessage`, ...). It rides the same bus as the built-in
-    /// engine events — same executor, same shared `ThreadSync` — but nothing
-    /// here publishes `M`; that's on whoever owns it, via the engine's
-    /// `EventBus::send`.
+    /// `Warning`, a `LogMessage`, ...). It rides the same `ActorSystem` as
+    /// the built-in engine events — same executor, same shared `ThreadSync`
+    /// — but nothing here publishes `M`; that's on whoever owns it, via
+    /// `ActorSystem::send` (or `EventContext::send` from inside a handler).
     pub fn subscribe_typed<M, H>(self, handler: H) -> Self
     where
         M: Message,

@@ -38,7 +38,7 @@ where
         let (dispatch_one, dispatch_two) = app.dispatcher().into_pair();
         let stop_flag = control.stop_flag();
 
-        inner = Self::wire_event_log(inner, Arc::clone(&dispatch_one));
+        Self::setup_subscriptions(&mut inner, Arc::clone(&dispatch_one));
 
         let app_thread = std::thread::spawn(move || {
             let terminal = ratatui::init();
@@ -78,29 +78,29 @@ where
         EngineRuntime::new(self)
     }
 
-    fn wire_event_log(
-        engine: GeneticEngine<C, T>,
+    fn setup_subscriptions(
+        engine: &mut GeneticEngine<C, T>,
         dispatcher: Arc<mpsc::Sender<InputEvent<C>>>,
-    ) -> GeneticEngine<C, T> {
+    ) {
         let d = Arc::clone(&dispatcher);
-        let engine = engine.subscribe::<Warn>(move |msg: Warn, _: &EventContext| {
+        engine.subscribe::<Warn>(move |msg: Warn, _: &EventContext| {
             d.send(InputEvent::Log(LogLevel::Warn, msg.0)).unwrap();
         });
 
         let d = Arc::clone(&dispatcher);
-        let engine = engine.subscribe::<Info>(move |msg: Info, _: &EventContext| {
+        engine.subscribe::<Info>(move |msg: Info, _: &EventContext| {
             d.send(InputEvent::Log(LogLevel::Info, msg.0)).unwrap();
         });
 
         let d = Arc::clone(&dispatcher);
-        let engine = engine.subscribe::<EngineError>(move |msg: EngineError, _: &EventContext| {
+        engine.subscribe::<EngineError>(move |msg: EngineError, _: &EventContext| {
             d.send(InputEvent::Log(LogLevel::Error, msg.0)).unwrap();
         });
 
         let d = Arc::clone(&dispatcher);
         engine.subscribe::<EngineDebug>(move |msg: EngineDebug, _: &EventContext| {
             d.send(InputEvent::Log(LogLevel::Debug, msg.0)).unwrap();
-        })
+        });
     }
 }
 

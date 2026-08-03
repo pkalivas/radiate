@@ -264,9 +264,9 @@ mod engine_tests {
         // `EngineParams::event_system` — every `.on_start()`/
         // `.on_epoch_complete()`/`.subscribe()` registered during the
         // builder chain was silently discarded at `try_build()` time, so no
-        // handler ever fired on a real, built engine (only on an `EventBus`
-        // constructed and driven directly, which is why the unit tests in
-        // `engine_events::bus` didn't catch it).
+        // handler ever fired on a real, built engine (only on an
+        // `ActorSystem` constructed and driven directly, which is why the
+        // unit tests in `events::message` didn't catch it).
         let collector = MetricCollector::new();
         let history = collector.history();
 

@@ -95,8 +95,8 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
     }
 
     /// The single `ThreadSync` this engine (and every actor subscribed on
-    /// its `EventBus`) shares — always set by `EngineConfig::from`, so this
-    /// never has to lazily create one.
+    /// its `ActorSystem`) shares — always set by `EngineConfig::from`, so
+    /// this never has to lazily create one.
     pub fn sync(&self) -> ThreadSync {
         self.sync
             .clone()
