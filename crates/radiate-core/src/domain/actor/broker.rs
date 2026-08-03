@@ -1,31 +1,20 @@
-use super::actor::{Actor, AnyActor};
-use super::handler::{EventContext, EventHandler};
+use super::actor::Actor;
+use super::handler::EventHandler;
 use super::message::Message;
-use crate::Executor;
-use crate::ThreadSync;
-use std::any::TypeId;
-use std::collections::HashMap;
+use crate::{
+    Envelope, ThreadSync,
+    actor::{
+        message::EventId,
+        subscriber::{AnySubscription, Subscription},
+    },
+};
+use crate::{EventContext, Executor};
 use std::fmt;
 use std::sync::{Arc, RwLock};
+use std::{any::TypeId, fmt::Debug};
+use std::{collections::HashMap, marker::PhantomData};
 
-/// Everyone subscribed to one concrete message type. `type_name` is captured
-/// once, at first subscription, purely for `Debug` — `TypeId` alone prints
-/// as an opaque hash, telling you nothing about which message kind you're
-/// looking at.
-struct Subscription {
-    type_name: &'static str,
-    actors: Vec<Arc<dyn AnyActor>>,
-}
-
-impl fmt::Debug for Subscription {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct(self.type_name)
-            .field("actors", &self.actors)
-            .finish()
-    }
-}
-
-type ActorRegistry = Arc<RwLock<HashMap<TypeId, Subscription>>>;
+type ActorRegistry = Arc<RwLock<HashMap<TypeId, Box<dyn AnySubscription>>>>;
 
 /// System-wide snapshot returned by [`ActorSystem::stats`].
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -43,91 +32,47 @@ pub struct ActorSystemStats {
     pub processed: u64,
 }
 
-/// A small, generic actor system: subscribers are keyed by the concrete
+pub trait EventSubscriber {
+    fn on<M: Message + Debug>(&self) -> SubscriptionBuilder<'_, M>;
+}
+
+pub struct SubscriptionBuilder<'a, M: Message> {
+    pub(crate) system: &'a MessageBroker,
+    pub(crate) _marker: PhantomData<M>,
+}
+
+impl<M: Message + Debug> SubscriptionBuilder<'_, M> {
+    pub fn handle<H>(self, handler: H)
+    where
+        H: EventHandler<M> + 'static,
+    {
+        self.system.subscribe::<M, H>(handler);
+    }
+}
+
+/// A small, generic actor system/message broker: subscribers are keyed by the concrete
 /// message type they registered for, each with its own mailbox. Sending an
 /// `M` only ever touches actors that subscribed to `M` — unrelated message
 /// types (a different `M2`) live under a different `TypeId` and are never
 /// even looked at.
-///
-/// The registry, executor, and sync handle are all `RwLock`, not `Mutex`:
-/// every one of them is read on every `send` (from potentially many
-/// producer threads concurrently) but written only rarely — `subscribe`
-/// typically only during setup, `set_executor`/`set_sync` typically exactly
-/// once, early, before real traffic starts. A plain `Mutex` would serialize
-/// all of that read-mostly traffic behind one lock regardless of message
-/// type or thread.
 #[derive(Clone)]
-pub struct EventSystem {
+pub struct MessageBroker {
     actors: ActorRegistry,
-    executor: Arc<RwLock<Arc<Executor>>>,
-    sync: Arc<RwLock<ThreadSync>>,
+    executor: Arc<Executor>,
+    sync: ThreadSync,
 }
 
-impl EventSystem {
+impl MessageBroker {
     pub fn new(executor: Arc<Executor>) -> Self {
-        EventSystem::with_sync(executor, ThreadSync::new())
-    }
-
-    pub fn with_sync(executor: Arc<Executor>, sync: ThreadSync) -> Self {
-        EventSystem {
+        MessageBroker {
             actors: Arc::new(RwLock::new(HashMap::new())),
-            executor: Arc::new(RwLock::new(executor)),
-            sync: Arc::new(RwLock::new(sync)),
+            executor,
+            sync: ThreadSync::new(),
         }
     }
 
-    /// Swap the executor used for future dispatch. Existing subscribers are
-    /// untouched — this only changes how `send` schedules drains from this
-    /// point on.
-    pub fn set_executor(&self, executor: Arc<Executor>) {
-        *self.executor.write().unwrap() = executor;
-    }
-
-    /// Swap the `ThreadSync` handed to actors from this point on. Used to
-    /// bind an `ActorSystem` built with a placeholder (e.g. during a builder
-    /// chain) to the same control primitive the owning engine ends up using,
-    /// so `ctx.sync` in any handler and `engine.control()` are the same
-    /// object.
-    pub fn set_sync(&self, sync: ThreadSync) {
-        *self.sync.write().unwrap() = sync;
-    }
-
-    pub fn sync(&self) -> ThreadSync {
-        self.sync.read().unwrap().clone()
-    }
-
-    fn current_executor(&self) -> Arc<Executor> {
-        Arc::clone(&self.executor.read().unwrap())
-    }
-
-    fn current_context(&self) -> EventContext {
-        EventContext {
-            sync: self.sync(),
-            system: self.clone(),
-        }
-    }
-
-    /// Register a handler for message type `M`. Takes `&self` — subscribing
-    /// is just inserting into the actor registry under its lock, no `&mut
-    /// ActorSystem` needed, so an `ActorSystem` can be freely shared (e.g.
-    /// via `Clone`) and subscribed to from multiple places without
-    /// coordination.
-    pub fn subscribe<M, H>(&self, handler: H)
-    where
-        M: Message,
-        H: EventHandler<M> + 'static,
-    {
-        let actor: Arc<dyn AnyActor> = Actor::new(Box::new(handler));
-        self.actors
-            .write()
-            .unwrap()
-            .entry(TypeId::of::<M>())
-            .or_insert_with(|| Subscription {
-                type_name: std::any::type_name::<M>(),
-                actors: Vec::new(),
-            })
-            .actors
-            .push(actor);
+    pub fn subscribers(&self) -> ActorRegistry {
+        Arc::clone(&self.actors)
     }
 
     /// Cheap, payload-free check: does anyone care about `M` at all? Callers
@@ -139,7 +84,31 @@ impl EventSystem {
             .read()
             .unwrap()
             .get(&TypeId::of::<M>())
-            .is_some_and(|sub| !sub.actors.is_empty())
+            .is_some_and(|sub| sub.num_actors() > 0)
+    }
+
+    /// Register a handler for message type `M`. Takes `&self` — subscribing
+    /// is just inserting into the actor registry under its lock, no `&mut
+    /// ActorSystem` needed, so an `ActorSystem` can be freely shared (e.g.
+    /// via `Clone`) and subscribed to from multiple places without
+    /// coordination.
+    pub fn subscribe<M, H>(&self, handler: H)
+    where
+        M: Message + Debug,
+        H: EventHandler<M> + 'static,
+    {
+        let mut registry = self.actors.write().unwrap();
+
+        let sub = registry
+            .entry(TypeId::of::<M>())
+            .or_insert_with(|| {
+                Box::new(Subscription::<M> { actors: Vec::new() }) as Box<dyn AnySubscription>
+            })
+            .as_any_mut()
+            .downcast_mut::<Subscription<M>>()
+            .unwrap();
+
+        sub.actors.push(Actor::new(Box::new(handler)));
     }
 
     /// A system-wide health snapshot: how many message kinds have at least
@@ -158,11 +127,9 @@ impl EventSystem {
         let mut processed = 0u64;
 
         for sub in registry.values() {
-            actors += sub.actors.len();
-            for actor in &sub.actors {
-                queued += actor.mailbox_len();
-                processed += actor.num_processed();
-            }
+            actors += sub.num_actors();
+            queued += sub.queued();
+            processed += sub.processed();
         }
 
         ActorSystemStats {
@@ -184,46 +151,89 @@ impl EventSystem {
     /// into this same `ActorSystem` would then try to re-lock a lock this
     /// thread already holds, which deadlocks instead of blocking briefly
     /// (neither `Mutex` nor `RwLock` in `std` are reentrant).
-    pub fn send<M: Message + Clone>(&self, message: M) {
-        let actors = {
-            let registry = self.actors.read().unwrap();
-            match registry.get(&TypeId::of::<M>()) {
-                Some(sub) => sub
-                    .actors
-                    .iter()
-                    .filter_map(|actor| Arc::clone(actor).as_any_arc().downcast::<Actor<M>>().ok())
-                    .collect::<Vec<_>>(),
-                None => return,
-            }
+    #[inline]
+    pub fn send<M: Message>(&self, message: M) {
+        let ctx = EventContext {
+            sync: self.sync.clone(),
+            system: self.clone(),
+            id: EventId::new(),
         };
-
-        let executor = self.current_executor();
-        let ctx = self.current_context();
-        for actor in actors.iter() {
-            actor.tell(message.clone(), ctx.clone(), &executor);
-        }
+        let envelope = Envelope::new(message);
+        self.send_internal(envelope, ctx);
     }
 
-    pub fn lazy_send<M: Message + Clone>(&self, func: impl FnOnce() -> M) {
+    #[inline]
+    pub fn lazy_send<M: Message>(&self, func: impl FnOnce() -> M) {
         if self.has_subscribers::<M>() {
             let message = func();
             self.send(message);
         }
     }
-}
 
-impl Default for EventSystem {
-    fn default() -> Self {
-        EventSystem::new(Arc::new(Executor::default()))
+    #[inline]
+    pub fn trace_send<M: Message>(&self, message: M, id: EventId) {
+        let ctx = EventContext {
+            sync: self.sync.clone(),
+            system: self.clone(),
+            id,
+        };
+
+        let envelope = Envelope::new(message);
+        self.send_internal(envelope, ctx);
+    }
+
+    #[inline]
+    fn send_internal<M: Message>(&self, envelope: Envelope<M>, ctx: EventContext) {
+        let executor = Arc::clone(&self.executor);
+        let registry = self.actors.read().unwrap();
+
+        if let Some(sub) = registry.get(&TypeId::of::<M>()) {
+            sub.send(&envelope, ctx, &executor);
+        }
     }
 }
 
-impl fmt::Debug for EventSystem {
+impl EventSubscriber for MessageBroker {
+    fn on<M: Message + Debug>(&self) -> SubscriptionBuilder<'_, M> {
+        SubscriptionBuilder {
+            system: self,
+            _marker: PhantomData,
+        }
+    }
+}
+
+impl From<(Arc<Executor>, ThreadSync)> for MessageBroker {
+    fn from((executor, sync): (Arc<Executor>, ThreadSync)) -> Self {
+        MessageBroker {
+            actors: Arc::new(RwLock::new(HashMap::new())),
+            executor,
+            sync,
+        }
+    }
+}
+
+impl From<(Arc<Executor>, ThreadSync, ActorRegistry)> for MessageBroker {
+    fn from((executor, sync, actors): (Arc<Executor>, ThreadSync, ActorRegistry)) -> Self {
+        MessageBroker {
+            executor,
+            sync,
+            actors,
+        }
+    }
+}
+
+impl Default for MessageBroker {
+    fn default() -> Self {
+        MessageBroker::new(Arc::new(Executor::default()))
+    }
+}
+
+impl fmt::Debug for MessageBroker {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let actors = self.actors.read().unwrap();
         f.debug_struct("ActorSystem")
             .field("subscriptions", &actors.values().collect::<Vec<_>>())
-            .field("executor", &self.executor.read().unwrap())
+            .field("executor", &self.executor)
             .finish()
     }
 }
@@ -246,7 +256,7 @@ mod tests {
     }
 
     impl EventHandler<Counted> for Recorder {
-        fn handle(&mut self, message: Counted, _ctx: &EventContext) {
+        fn handle(&mut self, message: &Counted, _ctx: &EventContext) {
             self.seen.lock().unwrap().push(message.0);
             let (count, cv) = &*self.signal;
             *count.lock().unwrap() += 1;
@@ -268,7 +278,7 @@ mod tests {
 
     #[test]
     fn subscribe_and_publish_delivers_message() {
-        let bus = EventSystem::default();
+        let bus = MessageBroker::default();
         let seen = Arc::new(Mutex::new(Vec::new()));
         let signal = Arc::new((Mutex::new(0), Condvar::new()));
 
@@ -285,7 +295,7 @@ mod tests {
 
     #[test]
     fn unrelated_message_types_do_not_cross_wires() {
-        let bus = EventSystem::default();
+        let bus = MessageBroker::default();
         let seen = Arc::new(Mutex::new(Vec::new()));
         let signal = Arc::new((Mutex::new(0), Condvar::new()));
 
@@ -304,7 +314,7 @@ mod tests {
 
     #[test]
     fn multiple_subscribers_of_same_type_all_receive() {
-        let bus = EventSystem::default();
+        let bus = MessageBroker::default();
         let seen_a = Arc::new(Mutex::new(Vec::new()));
         let seen_b = Arc::new(Mutex::new(Vec::new()));
         let signal_a = Arc::new((Mutex::new(0), Condvar::new()));
@@ -329,7 +339,7 @@ mod tests {
 
     #[test]
     fn ordering_preserved_per_actor_under_parallel_executor() {
-        let bus = EventSystem::new(Arc::new(Executor::FixedSizedWorkerPool(4)));
+        let bus = MessageBroker::new(Arc::new(Executor::FixedSizedWorkerPool(4)));
         let seen = Arc::new(Mutex::new(Vec::new()));
         let signal = Arc::new((Mutex::new(0), Condvar::new()));
 
@@ -350,19 +360,19 @@ mod tests {
 
     #[test]
     fn publish_with_no_subscribers_does_not_panic() {
-        let bus = EventSystem::default();
+        let bus = MessageBroker::default();
         bus.send(Counted(1));
     }
 
     #[test]
     fn closures_work_as_handlers() {
-        let bus = EventSystem::default();
+        let bus = MessageBroker::default();
         let seen = Arc::new(Mutex::new(Vec::new()));
         let signal = Arc::new((Mutex::new(0), Condvar::new()));
 
         let seen2 = Arc::clone(&seen);
         let signal2 = Arc::clone(&signal);
-        bus.subscribe::<Warning, _>(move |w: Warning, _ctx: &EventContext| {
+        bus.subscribe::<Warning, _>(move |w: &Warning, _ctx: &EventContext| {
             seen2.lock().unwrap().push(w.0);
             let (count, cv) = &*signal2;
             *count.lock().unwrap() += 1;
@@ -377,10 +387,10 @@ mod tests {
 
     #[test]
     fn has_subscribers_reflects_registration_state() {
-        let bus = EventSystem::default();
+        let bus = MessageBroker::default();
         assert!(!bus.has_subscribers::<Counted>());
 
-        bus.subscribe::<Counted, _>(|_msg: Counted, _ctx: &EventContext| {});
+        bus.subscribe::<Counted, _>(|_msg: &Counted, _ctx: &EventContext| {});
         assert!(bus.has_subscribers::<Counted>());
         assert!(!bus.has_subscribers::<Warning>());
     }
@@ -388,13 +398,13 @@ mod tests {
     #[test]
     fn handler_receives_shared_thread_sync_via_context() {
         let sync = ThreadSync::new();
-        let bus = EventSystem::with_sync(Arc::new(Executor::default()), sync.clone());
+        let bus = MessageBroker::from((Arc::new(Executor::default()), sync.clone()));
         let signal = Arc::new((Mutex::new(0), Condvar::new()));
         let signal_clone = Arc::clone(&signal);
 
         assert!(!sync.is_stopped());
 
-        bus.subscribe::<Counted, _>(move |_msg: Counted, ctx: &EventContext| {
+        bus.subscribe::<Counted, _>(move |_msg: &Counted, ctx: &EventContext| {
             ctx.sync.stop();
             let (n, cv) = &*signal_clone;
             *n.lock().unwrap() += 1;
@@ -409,14 +419,14 @@ mod tests {
 
     #[test]
     fn handler_can_publish_further_messages_via_context() {
-        let bus = EventSystem::default();
+        let bus = MessageBroker::default();
         let warnings_seen = Arc::new(Mutex::new(0));
         let escalated = Arc::new(Mutex::new(Vec::new()));
         let signal = Arc::new((Mutex::new(0), Condvar::new()));
 
         let escalated2 = Arc::clone(&escalated);
         let signal2 = Arc::clone(&signal);
-        bus.subscribe::<Warning, _>(move |w: Warning, ctx: &EventContext| {
+        bus.subscribe::<Warning, _>(move |w: &Warning, ctx: &EventContext| {
             escalated2.lock().unwrap().push(w.0);
             let (n, cv) = &*signal2;
             *n.lock().unwrap() += 1;
@@ -428,7 +438,7 @@ mod tests {
 
         let warnings_seen2 = Arc::clone(&warnings_seen);
         let signal3 = Arc::clone(&signal);
-        bus.subscribe::<Counted, _>(move |_msg: Counted, _ctx: &EventContext| {
+        bus.subscribe::<Counted, _>(move |_msg: &Counted, _ctx: &EventContext| {
             *warnings_seen2.lock().unwrap() += 1;
             let (n, cv) = &*signal3;
             *n.lock().unwrap() += 1;
@@ -446,13 +456,13 @@ mod tests {
 
     #[test]
     fn context_has_subscribers_reflects_live_registration_state() {
-        let bus = EventSystem::default();
+        let bus = MessageBroker::default();
         let seen = Arc::new(Mutex::new(false));
         let signal = Arc::new((Mutex::new(0), Condvar::new()));
 
         let seen2 = Arc::clone(&seen);
         let signal2 = Arc::clone(&signal);
-        bus.subscribe::<Counted, _>(move |_msg: Counted, ctx: &EventContext| {
+        bus.subscribe::<Counted, _>(move |_msg: &Counted, ctx: &EventContext| {
             *seen2.lock().unwrap() = ctx.has_subscribers::<Warning>();
             let (n, cv) = &*signal2;
             *n.lock().unwrap() += 1;
@@ -464,7 +474,7 @@ mod tests {
         wait_for(&signal, 1);
         assert!(!*seen.lock().unwrap());
 
-        bus.subscribe::<Warning, _>(|_w: Warning, _ctx: &EventContext| {});
+        bus.subscribe::<Warning, _>(|_w: &Warning, _ctx: &EventContext| {});
 
         bus.send(Counted(2));
         wait_for(&signal, 2);
@@ -473,7 +483,7 @@ mod tests {
 
     #[test]
     fn stats_reflects_subscriptions_and_processed_count() {
-        let bus = EventSystem::default();
+        let bus = MessageBroker::default();
 
         let empty = bus.stats();
         assert_eq!(empty.subscriptions, 0);
@@ -483,12 +493,12 @@ mod tests {
 
         let signal = Arc::new((Mutex::new(0), Condvar::new()));
         let signal2 = Arc::clone(&signal);
-        bus.subscribe::<Counted, _>(move |_msg: Counted, _ctx: &EventContext| {
+        bus.subscribe::<Counted, _>(move |_msg: &Counted, _ctx: &EventContext| {
             let (n, cv) = &*signal2;
             *n.lock().unwrap() += 1;
             cv.notify_all();
         });
-        bus.subscribe::<Warning, _>(|_w: Warning, _ctx: &EventContext| {});
+        bus.subscribe::<Warning, _>(|_w: &Warning, _ctx: &EventContext| {});
 
         let registered = bus.stats();
         assert_eq!(
@@ -512,30 +522,5 @@ mod tests {
         let done = bus.stats();
         assert_eq!(done.queued, 0);
         assert_eq!(done.processed, N as u64);
-    }
-
-    #[test]
-    fn set_sync_rebinds_context_for_future_sends() {
-        let bus = EventSystem::default();
-        let seen_stopped = Arc::new(Mutex::new(false));
-        let signal = Arc::new((Mutex::new(0), Condvar::new()));
-
-        let seen_stopped2 = Arc::clone(&seen_stopped);
-        let signal2 = Arc::clone(&signal);
-        bus.subscribe::<Counted, _>(move |_msg: Counted, ctx: &EventContext| {
-            *seen_stopped2.lock().unwrap() = ctx.sync.is_stopped();
-            let (n, cv) = &*signal2;
-            *n.lock().unwrap() += 1;
-            cv.notify_all();
-        });
-
-        let real_sync = ThreadSync::new();
-        real_sync.stop();
-        bus.set_sync(real_sync);
-
-        bus.send(Counted(1));
-        wait_for(&signal, 1);
-
-        assert!(*seen_stopped.lock().unwrap());
     }
 }

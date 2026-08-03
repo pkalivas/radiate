@@ -1,4 +1,4 @@
-use crate::events::EpochCompleted;
+use crate::events::{EpochCompleted, LogInfo, LogWarn};
 use radiate_core::{EventContext, EventHandler, MetricSet};
 use std::sync::{Arc, Mutex};
 
@@ -43,28 +43,22 @@ impl MetricCollector {
 }
 
 impl<T: Send + Sync + 'static> EventHandler<EpochCompleted<T>> for MetricCollector {
-    fn handle(&mut self, message: EpochCompleted<T>, _: &EventContext) {
+    fn handle(&mut self, message: &EpochCompleted<T>, _: &EventContext) {
         self.history.lock().unwrap().push(message.metrics.clone());
     }
 }
-
-#[derive(Clone)]
-pub struct LogInfo(pub String);
-
-#[derive(Clone)]
-pub struct LogWarn(pub String);
 
 #[derive(Clone, Default)]
 pub struct LoggingHandler;
 
 impl EventHandler<LogInfo> for LoggingHandler {
-    fn handle(&mut self, message: LogInfo, _ctx: &EventContext) {
+    fn handle(&mut self, message: &LogInfo, _ctx: &EventContext) {
         tracing::info!("{}", message.0);
     }
 }
 
 impl EventHandler<LogWarn> for LoggingHandler {
-    fn handle(&mut self, message: LogWarn, _ctx: &EventContext) {
+    fn handle(&mut self, message: &LogWarn, _ctx: &EventContext) {
         tracing::warn!("{}", message.0);
     }
 }

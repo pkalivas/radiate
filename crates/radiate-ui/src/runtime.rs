@@ -83,13 +83,15 @@ where
         dispatcher: Arc<mpsc::Sender<InputEvent<C>>>,
     ) {
         let d = Arc::clone(&dispatcher);
-        engine.subscribe::<LogWarn>(move |msg: LogWarn, _: &EventContext| {
-            d.send(InputEvent::Log(LogLevel::Warn, msg.0)).unwrap();
+        engine.subscribe::<LogWarn>(move |msg: &LogWarn, _: &EventContext| {
+            d.send(InputEvent::Log(LogLevel::Warn, msg.0.clone()))
+                .unwrap();
         });
 
         let d = Arc::clone(&dispatcher);
-        engine.subscribe::<LogInfo>(move |msg: LogInfo, _: &EventContext| {
-            d.send(InputEvent::Log(LogLevel::Info, msg.0)).unwrap();
+        engine.subscribe::<LogInfo>(move |msg: &LogInfo, _: &EventContext| {
+            d.send(InputEvent::Log(LogLevel::Info, msg.0.clone()))
+                .unwrap();
         });
     }
 }

@@ -3,8 +3,8 @@ use crate::{Chromosome, ThreadSync};
 use radiate_core::{
     Ecosystem, Front, MetricSet, Objective, Phenotype, Problem, Score, metric, metric_names,
 };
-use radiate_core::{EventSystem, error::RadiateResult};
 use radiate_core::{Message, rate::ExprSet};
+use radiate_core::{MessageBroker, error::RadiateResult};
 use std::sync::{Arc, Mutex, RwLock};
 
 pub struct EvolutionContext<C: Chromosome, T> {
@@ -18,7 +18,7 @@ pub struct EvolutionContext<C: Chromosome, T> {
     pub(crate) problem: Arc<dyn Problem<C, T>>,
     pub(crate) control: Option<ThreadSync>,
     pub(crate) exprs: Option<Arc<Mutex<ExprSet>>>,
-    pub(crate) event_system: EventSystem,
+    pub(crate) broker: MessageBroker,
 }
 
 impl<C: Chromosome, T> EvolutionContext<C, T> {
@@ -42,12 +42,12 @@ impl<C: Chromosome, T> EvolutionContext<C, T> {
         self.front.clone()
     }
 
-    pub fn event_system(&self) -> &EventSystem {
-        &self.event_system
+    pub fn broker(&self) -> &MessageBroker {
+        &self.broker
     }
 
-    pub fn send<M: Message + Clone>(&self, message: M) {
-        self.event_system.send(message);
+    pub fn send<M: Message>(&self, message: M) {
+        self.broker.send(message);
     }
 
     pub fn get_or_create_control(&mut self) -> ThreadSync {
@@ -103,7 +103,7 @@ where
                 problem: config.problem().clone(),
                 control: sync,
                 exprs: generation.exprs(),
-                event_system: config.event_system(),
+                broker: config.broker(),
             };
         }
 
@@ -123,7 +123,7 @@ where
             problem: config.problem().clone(),
             control: sync,
             exprs: config.exprs(),
-            event_system: config.event_system().clone(),
+            broker: config.broker().clone(),
         }
     }
 }

@@ -5,9 +5,9 @@ use crate::builder::evaluators::EvaluationParams;
 use crate::genome::phenotype::Phenotype;
 use crate::objectives::Objective;
 use crate::{Front, Problem, ReplacementStrategy, Select};
-use radiate_core::{EventSystem, rate::ExprSet};
 use radiate_core::{Alterer, Diversity, Ecosystem, Evaluator, Executor, Genotype};
 use radiate_core::{EcosystemFilter, ThreadSync};
+use radiate_core::{MessageBroker, rate::ExprSet};
 use std::sync::{Arc, Mutex, RwLock};
 
 #[derive(Clone)]
@@ -30,7 +30,7 @@ pub(crate) struct EngineConfig<C: Chromosome, T: Clone> {
     exprs: Option<Arc<Mutex<ExprSet>>>,
     generation: Option<Generation<C, T>>,
     sync: Option<ThreadSync>,
-    event_system: EventSystem,
+    broker: MessageBroker,
 }
 
 impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
@@ -90,8 +90,8 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
         Arc::clone(&self.executor.species_executor)
     }
 
-    pub fn event_system(&self) -> EventSystem {
-        self.event_system.clone()
+    pub fn broker(&self) -> MessageBroker {
+        self.broker.clone()
     }
 
     /// The single `ThreadSync` this engine (and every actor subscribed on
@@ -160,7 +160,7 @@ where
             exprs: params.exprs.clone(),
             filters: params.filter_params.filters.clone(),
             sync: Some(params.evaluation_params.sync.clone()),
-            event_system: params.event_system.clone(),
+            broker: params.broker.clone(),
         }
     }
 }

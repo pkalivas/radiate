@@ -1,7 +1,7 @@
 use crate::events::LogWarn;
 use crate::steps::EngineStep;
 use radiate_core::{
-    Chromosome, Ecosystem, EventSystem, Executor, MetricSet, Objective, Phenotype, Population,
+    Chromosome, Ecosystem, MessageBroker, Executor, MetricSet, Objective, Phenotype, Population,
     RateSet, Species, diversity::Diversity, math::distribution, metric_names, random_provider,
 };
 use radiate_error::Result;
@@ -19,7 +19,7 @@ where
     pub(crate) executor: Arc<Executor>,
     pub(crate) distances: Vec<f32>,
     pub(crate) assignments: Arc<Mutex<SpeciesAssignments>>,
-    pub(crate) event_system: EventSystem,
+    pub(crate) event_system: MessageBroker,
     pub(crate) prev_species_count: usize,
     pub(crate) warned_collapsed: bool,
 }
@@ -30,7 +30,7 @@ impl<C: Chromosome> SpeciateStep<C> {
         objective: Objective,
         distance: Arc<dyn Diversity<C>>,
         executor: Arc<Executor>,
-        event_system: EventSystem,
+        event_system: MessageBroker,
     ) -> Self {
         Self {
             threshold: threshold.into(),

@@ -297,8 +297,8 @@ mod engine_tests {
         let engine = GeneticEngine::builder()
             .codec(FloatCodec::vector(4, -5.0..5.0))
             .fitness_fn(|_geno: Vec<f32>| 1.0)
-            .subscribe_typed::<LogWarn, _>(move |w: LogWarn, _ctx: &EventContext| {
-                seen2.lock().unwrap().push(w.0);
+            .subscribe_typed::<LogWarn, _>(move |w: &LogWarn, _ctx: &EventContext| {
+                seen2.lock().unwrap().push(w.0.clone());
             })
             .build();
 
@@ -325,7 +325,7 @@ mod engine_tests {
         let engine = GeneticEngine::builder()
             .codec(FloatCodec::vector(4, -5.0..5.0))
             .fitness_fn(|_geno: Vec<f32>| 1.0)
-            .on_epoch_complete(|_event: EpochCompleted<Vec<f32>>, _ctx: &EventContext| {})
+            .on_epoch_complete(|_event: &EpochCompleted<Vec<f32>>, _ctx: &EventContext| {})
             .build();
 
         const BUDGET: usize = 5;
@@ -345,7 +345,10 @@ mod engine_tests {
             .get(metric_names::ACTOR_QUEUED)
             .expect("actor.queued metric should be present")
             .last_value();
-        assert_eq!(queued, 0.0, "mailbox should be fully drained between generations");
+        assert_eq!(
+            queued, 0.0,
+            "mailbox should be fully drained between generations"
+        );
 
         // The metric snapshot for a generation is taken mid-pipeline, before
         // that same generation's own `EpochEnd` dispatch — so this lags one
@@ -481,8 +484,8 @@ mod engine_tests {
                     BlendCrossover::new(0.5, 0.5),
                     GaussianMutator::new(0.05)
                 ])
-                .subscribe_typed::<LogWarn, _>(move |w: LogWarn, _ctx: &EventContext| {
-                    seen2.lock().unwrap().push(w.0);
+                .subscribe_typed::<LogWarn, _>(move |w: &LogWarn, _ctx: &EventContext| {
+                    seen2.lock().unwrap().push(w.0.clone());
                 })
                 .build();
 

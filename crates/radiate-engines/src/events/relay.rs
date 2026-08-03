@@ -1,4 +1,4 @@
-use radiate_core::{EventContext, EventSystem};
+use radiate_core::{EventContext, MessageBroker, actor::EventSubscriber};
 
 use crate::events::{
     EngineEvent, EngineImproved, EngineStart, EngineStopped, EpochCompleted, EpochStart,
@@ -15,39 +15,55 @@ use crate::events::{
 /// Only worth paying for if something actually wants the aggregate view —
 /// call once, gated on `has_subscribers::<EngineEvent<T>>()`, from wherever
 /// the event system is finalized at build time. Not per-message.
-pub(crate) fn event_relay<T>(system: &EventSystem)
+pub(crate) fn event_relay<T>(system: &MessageBroker)
 where
     T: Clone + Send + Sync + 'static,
 {
-    system.subscribe::<EngineStart, _>(|msg: EngineStart, ctx: &EventContext| {
-        ctx.send(EngineEvent::<T>::Started(msg));
-    });
+    system
+        .on::<EngineStart>()
+        .handle(|msg: &EngineStart, ctx: &EventContext| {
+            ctx.send(EngineEvent::<T>::Started(msg.clone()));
+        });
 
-    system.subscribe::<EpochStart, _>(|msg: EpochStart, ctx: &EventContext| {
-        ctx.send(EngineEvent::<T>::EpochStarted(msg));
-    });
+    system
+        .on::<EpochStart>()
+        .handle(|msg: &EpochStart, ctx: &EventContext| {
+            ctx.send(EngineEvent::<T>::EpochStarted(msg.clone()));
+        });
 
-    system.subscribe::<EngineImproved<T>, _>(|msg: EngineImproved<T>, ctx: &EventContext| {
-        ctx.send(EngineEvent::Improved(msg));
-    });
+    system
+        .on::<EngineImproved<T>>()
+        .handle(|msg: &EngineImproved<T>, ctx: &EventContext| {
+            ctx.send(EngineEvent::<T>::Improved(msg.clone()));
+        });
 
-    system.subscribe::<EpochCompleted<T>, _>(|msg: EpochCompleted<T>, ctx: &EventContext| {
-        ctx.send(EngineEvent::EpochCompleted(msg));
-    });
+    system
+        .on::<EpochCompleted<T>>()
+        .handle(|msg: &EpochCompleted<T>, ctx: &EventContext| {
+            ctx.send(EngineEvent::<T>::EpochCompleted(msg.clone()));
+        });
 
-    system.subscribe::<EngineStopped<T>, _>(|msg: EngineStopped<T>, ctx: &EventContext| {
-        ctx.send(EngineEvent::Stopped(msg));
-    });
+    system
+        .on::<EngineStopped<T>>()
+        .handle(|msg: &EngineStopped<T>, ctx: &EventContext| {
+            ctx.send(EngineEvent::<T>::Stopped(msg.clone()));
+        });
 
-    system.subscribe::<LimitTriggered, _>(|msg: LimitTriggered, ctx: &EventContext| {
-        ctx.send(EngineEvent::<T>::LimitTriggered(msg));
-    });
+    system
+        .on::<LimitTriggered>()
+        .handle(|msg: &LimitTriggered, ctx: &EventContext| {
+            ctx.send(EngineEvent::<T>::LimitTriggered(msg.clone()));
+        });
 
-    system.subscribe::<LogInfo, _>(|msg: LogInfo, ctx: &EventContext| {
-        ctx.send(EngineEvent::<T>::LogInfo(msg.0));
-    });
+    system
+        .on::<LogInfo>()
+        .handle(|msg: &LogInfo, ctx: &EventContext| {
+            ctx.send(EngineEvent::<T>::LogInfo(msg.0.clone()));
+        });
 
-    system.subscribe::<LogWarn, _>(|msg: LogWarn, ctx: &EventContext| {
-        ctx.send(EngineEvent::<T>::LogWarn(msg.0))
-    });
+    system
+        .on::<LogWarn>()
+        .handle(|msg: &LogWarn, ctx: &EventContext| {
+            ctx.send(EngineEvent::<T>::LogWarn(msg.0.clone()));
+        });
 }

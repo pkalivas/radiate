@@ -1,8 +1,8 @@
 use crate::{
     EngineEvent, EpochCompleted, EventHandler, GeneticEngineBuilder,
-    events::{EngineImproved, EngineStart, EngineStopped, EpochStart},
+    events::{EngineImproved, EngineMessage, EngineStart, EngineStopped, EpochStart},
 };
-use radiate_core::{Chromosome, Message};
+use radiate_core::Chromosome;
 
 impl<C, T> GeneticEngineBuilder<C, T>
 where
@@ -17,7 +17,7 @@ where
         H: EventHandler<EngineEvent<T>> + 'static,
         T: Send + Sync + 'static,
     {
-        self.params.event_system.subscribe(handler);
+        self.params.broker.subscribe(handler);
         self
     }
 
@@ -25,7 +25,7 @@ where
     where
         H: EventHandler<EngineStart> + 'static,
     {
-        self.params.event_system.subscribe(handler);
+        self.params.broker.subscribe(handler);
         self
     }
 
@@ -34,7 +34,7 @@ where
         H: EventHandler<EngineStopped<T>> + 'static,
         T: Send + Sync + 'static,
     {
-        self.params.event_system.subscribe(handler);
+        self.params.broker.subscribe(handler);
         self
     }
 
@@ -42,7 +42,7 @@ where
     where
         H: EventHandler<EpochStart> + 'static,
     {
-        self.params.event_system.subscribe(handler);
+        self.params.broker.subscribe(handler);
         self
     }
 
@@ -51,7 +51,7 @@ where
         H: EventHandler<EpochCompleted<T>> + 'static,
         T: Send + Sync + 'static,
     {
-        self.params.event_system.subscribe(handler);
+        self.params.broker.subscribe(handler);
         self
     }
 
@@ -60,7 +60,7 @@ where
         H: EventHandler<EngineImproved<T>> + 'static,
         T: Send + Sync + 'static,
     {
-        self.params.event_system.subscribe(handler);
+        self.params.broker.subscribe(handler);
         self
     }
 
@@ -71,10 +71,10 @@ where
     /// `ActorSystem::send` (or `EventContext::send` from inside a handler).
     pub fn subscribe_typed<M, H>(self, handler: H) -> Self
     where
-        M: Message,
+        M: EngineMessage,
         H: EventHandler<M> + 'static,
     {
-        self.params.event_system.subscribe(handler);
+        self.params.broker.subscribe(handler);
         self
     }
 }

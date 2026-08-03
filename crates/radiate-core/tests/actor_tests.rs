@@ -11,7 +11,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-#[derive(Clone)]
+#[derive(Debug)]
 struct Counted(u64);
 
 fn wait_until<F: Fn() -> bool>(timeout: Duration, cond: F) -> bool {
@@ -29,11 +29,11 @@ fn wait_until<F: Fn() -> bool>(timeout: Duration, cond: F) -> bool {
 fn single_actor_serial_executor_throughput() {
     const N: u64 = 50_000;
 
-    let system = EventSystem::new(Arc::new(Executor::Serial));
+    let system = MessageBroker::new(Arc::new(Executor::Serial));
     let received = Arc::new(AtomicU64::new(0));
     let received2 = Arc::clone(&received);
 
-    system.subscribe::<Counted, _>(move |_msg: Counted, _ctx: &EventContext| {
+    system.subscribe::<Counted, _>(move |_msg: &Counted, _ctx: &EventContext| {
         received2.fetch_add(1, Ordering::Relaxed);
     });
 
@@ -53,13 +53,13 @@ fn single_actor_serial_executor_throughput() {
 fn single_actor_parallel_executor_throughput_preserves_order() {
     const N: u64 = 500_000;
 
-    let system = EventSystem::new(Arc::new(Executor::FixedSizedWorkerPool(4)));
+    let system = MessageBroker::new(Arc::new(Executor::FixedSizedWorkerPool(4)));
     let received = Arc::new(AtomicU64::new(0));
     let order = Arc::new(Mutex::new(Vec::with_capacity(N as usize)));
 
     let received2 = Arc::clone(&received);
     let order2 = Arc::clone(&order);
-    system.subscribe::<Counted, _>(move |msg: Counted, _ctx: &EventContext| {
+    system.subscribe::<Counted, _>(move |msg: &Counted, _ctx: &EventContext| {
         order2.lock().unwrap().push(msg.0);
         received2.fetch_add(1, Ordering::Relaxed);
     });
@@ -98,12 +98,12 @@ fn fan_out_to_many_subscribers_throughput() {
     const N: u64 = 20_000;
     const SUBSCRIBERS: usize = 50;
 
-    let system = EventSystem::new(Arc::new(Executor::FixedSizedWorkerPool(4)));
+    let system = MessageBroker::new(Arc::new(Executor::FixedSizedWorkerPool(4)));
     let total_received = Arc::new(AtomicU64::new(0));
 
     for _ in 0..SUBSCRIBERS {
         let total = Arc::clone(&total_received);
-        system.subscribe::<Counted, _>(move |_msg: Counted, _ctx: &EventContext| {
+        system.subscribe::<Counted, _>(move |_msg: &Counted, _ctx: &EventContext| {
             total.fetch_add(1, Ordering::Relaxed);
         });
     }
@@ -137,11 +137,11 @@ fn concurrent_producers_lose_no_messages() {
     const PER_PRODUCER: u64 = 10_000;
     const N: u64 = PRODUCERS * PER_PRODUCER;
 
-    let system = EventSystem::new(Arc::new(Executor::FixedSizedWorkerPool(4)));
+    let system = MessageBroker::new(Arc::new(Executor::FixedSizedWorkerPool(4)));
     let received = Arc::new(AtomicU64::new(0));
     let received2 = Arc::clone(&received);
 
-    system.subscribe::<Counted, _>(move |_msg: Counted, _ctx: &EventContext| {
+    system.subscribe::<Counted, _>(move |_msg: &Counted, _ctx: &EventContext| {
         received2.fetch_add(1, Ordering::Relaxed);
     });
 

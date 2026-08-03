@@ -1,35 +1,13 @@
-use super::handler::{EventContext, EventHandler};
+use super::handler::EventHandler;
 use super::message::Message;
-use crate::Executor;
+use crate::{Envelope, Executor, actor::message::EventContext};
 use radiate_utils::sentry_id;
-use std::any::Any;
 use std::collections::VecDeque;
 use std::fmt;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
 sentry_id!(ActorId);
-
-/// Type-erased handle to an `Actor<M>` for a caller that no longer has `M`
-/// in scope (`ActorSystem`'s registry holds actors for many different
-/// message types side by side). `dyn Any` alone gets you back to the
-/// concrete type via `downcast`, but its own `Debug` impl only ever prints
-/// an opaque placeholder — it has no way to reach `Actor<M>`'s real one.
-/// This trait is the fix: `as_any_arc` recovers the concrete `Arc<Actor<M>>`
-/// for dispatch, `debug_actor` recovers real `Debug` output through the same
-/// erasure.
-pub(super) trait AnyActor: Send + Sync {
-    fn as_any_arc(self: Arc<Self>) -> Arc<dyn Any + Send + Sync>;
-    fn debug_actor(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result;
-    fn num_processed(&self) -> u64;
-    fn mailbox_len(&self) -> usize;
-}
-
-impl fmt::Debug for dyn AnyActor {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.debug_actor(f)
-    }
-}
 
 /// A single subscriber's mailbox. `tell` enqueues (message, context) pairs
 /// and, if nobody is currently draining this actor, schedules a drain on the
@@ -44,7 +22,7 @@ impl fmt::Debug for dyn AnyActor {
 pub(super) struct Actor<M: Message> {
     id: ActorId,
     handler: Mutex<Box<dyn EventHandler<M>>>,
-    mailbox: Mutex<VecDeque<(M, EventContext)>>,
+    mailbox: Mutex<VecDeque<(Envelope<M>, EventContext)>>,
     scheduled: AtomicBool,
     num_processed: AtomicU64,
 }
@@ -60,7 +38,21 @@ impl<M: Message> Actor<M> {
         })
     }
 
-    pub(super) fn tell(self: &Arc<Self>, message: M, ctx: EventContext, executor: &Executor) {
+    pub(super) fn mailbox_len(&self) -> usize {
+        self.mailbox.lock().unwrap().len()
+    }
+
+    pub(super) fn num_processed(&self) -> u64 {
+        self.num_processed.load(Ordering::Acquire)
+    }
+
+    #[inline]
+    pub(super) fn tell(
+        self: &Arc<Self>,
+        message: Envelope<M>,
+        ctx: EventContext,
+        executor: &Executor,
+    ) {
         self.mailbox.lock().unwrap().push_back((message, ctx));
 
         if self
@@ -73,6 +65,7 @@ impl<M: Message> Actor<M> {
         }
     }
 
+    #[inline]
     fn drain(self: Arc<Self>) {
         loop {
             let batch = std::mem::take(&mut *self.mailbox.lock().unwrap());
@@ -94,28 +87,10 @@ impl<M: Message> Actor<M> {
 
             let mut handler = self.handler.lock().unwrap();
             for (message, ctx) in batch {
-                handler.handle(message, &ctx);
+                handler.handle(&*message, &ctx);
                 self.num_processed.fetch_add(1, Ordering::AcqRel);
             }
         }
-    }
-}
-
-impl<M: Message> AnyActor for Actor<M> {
-    fn as_any_arc(self: Arc<Self>) -> Arc<dyn Any + Send + Sync> {
-        self
-    }
-
-    fn debug_actor(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Debug::fmt(self, f)
-    }
-
-    fn num_processed(&self) -> u64 {
-        self.num_processed.load(Ordering::Acquire)
-    }
-
-    fn mailbox_len(&self) -> usize {
-        self.mailbox.lock().unwrap().len()
     }
 }
 

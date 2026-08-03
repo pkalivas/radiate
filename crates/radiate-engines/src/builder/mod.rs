@@ -33,7 +33,7 @@ use crate::{Generation, Result};
 use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::{
-    Alterer, Ecosystem, EventSystem, Executor, Expr, FitnessEvaluator, Valid, metric_names,
+    Alterer, Ecosystem, Executor, Expr, FitnessEvaluator, MessageBroker, Valid, metric_names,
 };
 use radiate_core::{RadiateError, ensure, radiate_err};
 use radiate_core::{RateSet, evaluator::BatchFitnessEvaluator};
@@ -63,7 +63,7 @@ where
 
     pub alterers: Vec<Alterer<C>>,
     pub replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
-    pub event_system: EventSystem,
+    pub broker: MessageBroker,
     pub generation: Option<Generation<C, T>>,
     pub exprs: Option<Arc<Mutex<ExprSet>>>,
 }
@@ -177,7 +177,7 @@ where
         self.build_alterer()?;
         self.build_front()?;
         self.build_rates()?;
-        self.build_event_system()?;
+        self.build_message_broker()?;
 
         let config = EngineConfig::<C, T>::from(&self.params);
 
@@ -191,22 +191,30 @@ where
         pipeline.add_step(Self::build_species_step(&config));
         pipeline.add_step(Self::build_audit_step(&config));
 
-        let event_system = config.event_system();
+        let event_system = config.broker();
         let context = EvolutionContext::from(config);
 
         Ok(GeneticEngine::<C, T>::new(context, pipeline, event_system))
     }
 
-    fn build_event_system(&mut self) -> Result<()> {
-        let system = self.params.event_system.clone();
-        system.set_executor(self.params.evaluation_params.event_executor.clone());
-        system.set_sync(self.params.evaluation_params.sync.clone());
+    fn build_message_broker(&mut self) -> Result<()> {
+        let subscribers = self.params.broker.subscribers();
+        let sync = self.params.evaluation_params.sync.clone();
+        let executor = self.params.evaluation_params.event_executor.clone();
 
-        if system.has_subscribers::<EngineEvent<T>>() {
-            crate::events::event_relay::<T>(&system);
+        let new_executor = if !executor.is_parallel() {
+            Arc::new(Executor::new_parallel())
+        } else {
+            executor.clone()
+        };
+
+        let new_broker = MessageBroker::from((new_executor, sync, subscribers));
+
+        if new_broker.has_subscribers::<EngineEvent<T>>() {
+            crate::events::event_relay::<T>(&new_broker);
         }
 
-        self.params.event_system = system;
+        self.params.broker = new_broker;
 
         Ok(())
     }
@@ -440,7 +448,7 @@ where
         Some(Box::new(MetricStep::new(
             config.objective().clone(),
             config.exprs().clone(),
-            config.event_system(),
+            config.broker(),
         )))
     }
 
@@ -473,7 +481,7 @@ where
             objective: config.objective(),
             distances: Vec::new(),
             assignments: Arc::new(Mutex::new(Vec::new())),
-            event_system: config.event_system(),
+            event_system: config.broker(),
             prev_species_count: 0,
             warned_collapsed: false,
         };
@@ -532,7 +540,7 @@ where
 
                 replacement_strategy: Arc::new(EncodeReplace),
                 alterers: Vec::new(),
-                event_system: EventSystem::default(),
+                broker: MessageBroker::default(),
                 exprs: None,
                 generation: None,
             },

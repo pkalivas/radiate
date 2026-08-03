@@ -1,7 +1,7 @@
 use crate::events::LogWarn;
 use crate::steps::EngineStep;
 use radiate_core::{
-    Chromosome, Ecosystem, Evaluate, EventSystem, MetricSet, MetricUpdate, Objective, Score,
+    Chromosome, Ecosystem, Evaluate, MessageBroker, MetricSet, MetricUpdate, Objective, Score,
     SmallStr, math::distribution, metric_names, phenotype::PhenotypeId, rate::ExprSet,
     stats::TagType,
 };
@@ -25,7 +25,7 @@ pub struct MetricStep {
     best_score: Option<Score>,
 
     expressions: Option<Arc<Mutex<ExprSet>>>,
-    event_system: EventSystem,
+    event_system: MessageBroker,
     warned_this_streak: bool,
 
     score_dist_per_dim: Vec<Vec<f32>>,
@@ -56,7 +56,7 @@ impl MetricStep {
     pub fn new(
         objective: Objective,
         expressions: Option<Arc<Mutex<ExprSet>>>,
-        event_system: EventSystem,
+        event_system: MessageBroker,
     ) -> Self {
         Self {
             objective,

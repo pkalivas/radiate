@@ -1,9 +1,15 @@
-use crate::events::{EngineImproved, EngineStopped, EpochCompleted, EpochStart};
+use std::fmt::Debug;
+
+use crate::events::{EngineImproved, EngineMessage, EngineStopped, EpochCompleted, EpochStart};
 use crate::pipeline::Pipeline;
 use crate::{Chromosome, EngineRuntime, Generation, ThreadSync};
 use crate::{GenerationView, builder::GeneticEngineBuilder};
 use crate::{context::EvolutionContext, events::EngineStart};
-use radiate_core::{Engine, EventContext, EventSystem, Message, engine::EngineState};
+use radiate_core::{
+    Engine, EventContext, Message, MessageBroker,
+    actor::{EventSubscriber, SubscriptionBuilder},
+    engine::EngineState,
+};
 use radiate_core::{EngineStream, error::Result};
 
 /// The [GeneticEngine] is the core component of the Radiate library's genetic algorithm implementation.
@@ -59,7 +65,7 @@ where
 {
     context: EvolutionContext<C, T>,
     pipeline: Pipeline<C>,
-    event_system: EventSystem,
+    broker: MessageBroker,
 }
 
 impl<C, T> GeneticEngine<C, T>
@@ -74,12 +80,12 @@ where
     pub(crate) fn new(
         context: EvolutionContext<C, T>,
         pipeline: Pipeline<C>,
-        event_system: EventSystem,
+        broker: MessageBroker,
     ) -> Self {
         GeneticEngine {
             context,
             pipeline,
-            event_system,
+            broker,
         }
     }
 
@@ -125,11 +131,11 @@ where
         EngineRuntime::new(self)
     }
 
-    pub fn subscribe<M>(&mut self, handler: impl FnMut(M, &EventContext) + Send + Sync + 'static)
+    pub fn subscribe<M>(&mut self, handler: impl FnMut(&M, &EventContext) + Send + Sync + 'static)
     where
-        M: Message,
+        M: EngineMessage,
     {
-        self.event_system.subscribe::<M, _>(handler);
+        self.broker.on::<M>().handle(handler);
     }
 }
 
@@ -182,19 +188,17 @@ where
         }
 
         if matches!(self.context.index, 0) {
-            self.event_system.send(EngineStart);
+            self.broker.send(EngineStart);
         }
 
-        self.event_system.send(EpochStart {
-            index: self.context.index,
-        });
+        self.broker.send(EpochStart::from(&self.context));
         self.pipeline.run(&mut self.context)?;
         if self.context.try_advance_one()? {
-            self.event_system
+            self.broker
                 .lazy_send(|| EngineImproved::from(&self.context));
         }
 
-        self.event_system
+        self.broker
             .lazy_send(|| EpochCompleted::from(&self.context));
 
         Ok(EngineState::Running)
@@ -231,6 +235,16 @@ where
     }
 }
 
+impl<C, T> EventSubscriber for GeneticEngine<C, T>
+where
+    C: Chromosome + Clone,
+    T: Clone + Send + Sync + 'static,
+{
+    fn on<M: Message + Debug>(&self) -> SubscriptionBuilder<'_, M> {
+        self.broker.on::<M>()
+    }
+}
+
 /// Custom drop implementation for proper cleanup and event emission.
 ///
 /// When the engine is dropped, it emits a stop event to notify any listeners
@@ -251,7 +265,6 @@ where
     T: Clone + Send + Sync + 'static,
 {
     fn drop(&mut self) {
-        self.event_system
-            .lazy_send(|| EngineStopped::from(&self.context));
+        self.broker.lazy_send(|| EngineStopped::from(&self.context));
     }
 }

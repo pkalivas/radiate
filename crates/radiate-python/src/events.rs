@@ -80,7 +80,7 @@ impl PyEventHandler {
                 PyEngineEvent::improvement(s.index, best, s.score.as_ref().to_vec())
             }
             _ => PyEngineEvent {
-                event_type: crate::constants::components::ALL_EVENTS.into(),
+                event_type: crate::constants::components::START_EVENT.into(),
                 index: None,
                 best: None,
                 score: None,
@@ -95,7 +95,7 @@ impl<T> EventHandler<EngineEvent<T>> for PyEventHandler
 where
     T: IntoPyAnyObject + Clone,
 {
-    fn handle(&mut self, event: EngineEvent<T>, _ctx: &EventContext) {
+    fn handle(&mut self, event: &EngineEvent<T>, _: &EventContext) {
         let subscribers = self.get_valid_handlers(&event);
 
         if subscribers.is_empty() {

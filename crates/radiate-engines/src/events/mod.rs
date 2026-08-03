@@ -2,9 +2,9 @@ mod handlers;
 mod message;
 mod relay;
 
-pub use handlers::{LogInfo, LogWarn, LoggingHandler, MetricCollector};
+pub use handlers::{LoggingHandler, MetricCollector};
 pub use message::{
-    EngineEvent, EngineImproved, EngineStart, EngineStopped, EpochCompleted, EpochStart,
-    LimitTriggered,
+    EngineEvent, EngineImproved, EngineMessage, EngineStart, EngineStopped, EpochCompleted,
+    EpochStart, LimitTriggered, LogInfo, LogWarn,
 };
 pub(crate) use relay::event_relay;

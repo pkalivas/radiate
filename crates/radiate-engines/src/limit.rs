@@ -121,7 +121,7 @@ where
 {
     fn proceed(&mut self, ctx: &E::Ctx) -> RadiateResult<bool> {
         let announce = |kind: &'static str, description: String| {
-            ctx.event_system().send(LimitTriggered {
+            ctx.broker().send(LimitTriggered {
                 generation: ctx.index,
                 kind,
                 description,
@@ -342,7 +342,7 @@ where
         let view = GenerationView::new(ctx);
         let proceed = !(self)(view);
         if !proceed {
-            ctx.event_system().send(LimitTriggered {
+            ctx.broker().send(LimitTriggered {
                 generation: ctx.index,
                 kind: "Custom",
                 description: "custom `.until(...)` closure limit triggered".to_string(),

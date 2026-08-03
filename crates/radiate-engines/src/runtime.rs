@@ -1,14 +1,18 @@
-use crate::{Engine, EvolutionContext, Generation, Limit, init_logging};
+use crate::{
+    Engine, EvolutionContext, Generation, Limit,
+    events::{LogInfo, LogWarn},
+    init_logging,
+};
 #[cfg(feature = "serde")]
 use crate::{FileWriter, JsonWriter};
 use crate::{LimitTriggered, generation::GenerationView};
 use crate::{LoggingHandler, actions::LoggingAction};
-use radiate_core::rate::Expr;
 use radiate_core::{Chromosome, EngineState, Score, radiate_err};
 use radiate_core::{
     EventContext,
     error::{RadiateResult, Result},
 };
+use radiate_core::{actor::EventSubscriber, rate::Expr};
 #[cfg(feature = "serde")]
 use serde::Serialize;
 use std::collections::VecDeque;
@@ -210,16 +214,18 @@ where
 
     pub fn log_every(mut self, every: usize) -> EngineRuntime<E> {
         init_logging();
-        let system = self.engine.context().event_system();
+        let system = self.engine.context().broker();
 
-        system.subscribe::<crate::events::LogInfo, LoggingHandler>(LoggingHandler);
-        system.subscribe::<crate::events::LogWarn, LoggingHandler>(LoggingHandler);
-        system.subscribe::<LimitTriggered, _>(move |msg: LimitTriggered, ctx: &EventContext| {
-            ctx.send(crate::events::LogInfo(format!(
-                "{:?} triggered [{}]: {}",
-                msg.kind, msg.generation, msg.description
-            )));
-        });
+        system.on::<LogInfo>().handle(LoggingHandler);
+        system.on::<LogWarn>().handle(LoggingHandler);
+        system
+            .on::<LimitTriggered>()
+            .handle(move |msg: &LimitTriggered, ctx: &EventContext| {
+                ctx.send(crate::events::LogInfo(format!(
+                    "{:?} triggered [{}]: {}",
+                    msg.kind, msg.generation, msg.description
+                )));
+            });
 
         let action = LoggingAction(every);
         self.add_action(action);
