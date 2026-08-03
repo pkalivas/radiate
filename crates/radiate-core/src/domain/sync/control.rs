@@ -150,6 +150,9 @@ mod diag_tests {
         let after_stop = count.load(Ordering::SeqCst);
         println!("progressed after stop: {after_stop}");
 
-        assert_eq!(progressed, 10, "expected exactly 10 waits to return before blocking");
+        assert_eq!(
+            progressed, 10,
+            "expected exactly 10 waits to return before blocking"
+        );
     }
 }

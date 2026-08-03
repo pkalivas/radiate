@@ -1,4 +1,3 @@
-mod actor;
 mod channel;
 mod control;
 mod group;
@@ -6,7 +5,6 @@ mod thread_pool;
 
 use std::sync::Arc;
 
-pub use actor::{ActorSystem, Envelope, EventContext, EventHandler, Message};
 pub use channel::CommandChannel;
 pub use control::ThreadSync;
 pub use group::{WaitGroup, WaitGuard};

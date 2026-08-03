@@ -164,7 +164,7 @@ where
             exprs: params.exprs.clone(),
             filters: params.filter_params.filters.clone(),
             sync: Some(ThreadSync::new()),
-            event_system: ActorSystem::default(),
+            event_system: params.event_system.clone(),
         }
     }
 }

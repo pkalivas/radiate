@@ -257,6 +257,30 @@ mod engine_tests {
         handle.join().unwrap();
     }
 
+    #[test]
+    fn subscribers_registered_on_the_builder_actually_fire() {
+        // Regression test: `EngineConfig::from` used to build a fresh, empty
+        // `ActorSystem::default()` instead of carrying over
+        // `EngineParams::event_system` — every `.on_start()`/
+        // `.on_epoch_complete()`/`.subscribe()` registered during the
+        // builder chain was silently discarded at `try_build()` time, so no
+        // handler ever fired on a real, built engine (only on an `EventBus`
+        // constructed and driven directly, which is why the unit tests in
+        // `engine_events::bus` didn't catch it).
+        let collector = MetricCollector::new();
+        let history = collector.history();
+
+        let engine = GeneticEngine::builder()
+            .problem(OneMax::new(5))
+            .on_epoch_complete(collector)
+            .build();
+
+        const BUDGET: usize = 10;
+        let _ = engine.iter().limit(BUDGET).last().unwrap();
+
+        assert_eq!(history.lock().unwrap().len(), BUDGET);
+    }
+
     #[rstest]
     #[case(101, 0.05, 300)]
     #[case(202, 0.05, 300)]
