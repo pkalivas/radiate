@@ -1,8 +1,12 @@
 use crate::Executor;
 use crate::domain::sync::control::ThreadSync;
+use radiate_utils::sentry_id;
+#[allow(unused_imports)]
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use std::any::{Any, TypeId};
 use std::collections::{HashMap, VecDeque};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
 /// Anything that can ride the bus. Blanket-implemented — the only real
@@ -15,19 +19,19 @@ impl<M: Send + Sync + 'static> Message for M {}
 /// `ActorSystem`) uses for pause/stop/step — so any actor can act back on
 /// the thing it's observing, not just read it.
 #[derive(Clone)]
-pub struct ActorContext {
+pub struct EventContext {
     pub sync: ThreadSync,
 }
 
 pub trait EventHandler<M>: Send + Sync {
-    fn handle(&mut self, message: M, ctx: &ActorContext);
+    fn handle(&mut self, message: M, ctx: &EventContext);
 }
 
 impl<M, F> EventHandler<M> for F
 where
-    F: FnMut(M, &ActorContext) + Send + Sync,
+    F: FnMut(M, &EventContext) + Send + Sync,
 {
-    fn handle(&mut self, message: M, ctx: &ActorContext) {
+    fn handle(&mut self, message: M, ctx: &EventContext) {
         self(message, ctx)
     }
 }
@@ -58,6 +62,8 @@ impl<D> std::ops::Deref for Envelope<D> {
     }
 }
 
+sentry_id!(ActorId);
+
 /// A single subscriber's mailbox. `tell` enqueues (message, context) pairs
 /// and, if nobody is currently draining this actor, schedules a drain on the
 /// executor. `scheduled` guarantees at most one in-flight drain per actor,
@@ -69,21 +75,25 @@ impl<D> std::ops::Deref for Envelope<D> {
 /// only ever happens once, early, before real traffic starts, so this is
 /// just the simplest thing that's still correct.
 struct Actor<M: Message> {
+    id: ActorId,
     handler: Mutex<Box<dyn EventHandler<M>>>,
-    mailbox: Mutex<VecDeque<(M, ActorContext)>>,
+    mailbox: Mutex<VecDeque<(M, EventContext)>>,
     scheduled: AtomicBool,
+    num_processed: AtomicU64,
 }
 
 impl<M: Message> Actor<M> {
     fn new(handler: Box<dyn EventHandler<M>>) -> Arc<Self> {
         Arc::new(Actor {
+            id: ActorId::new(),
             handler: Mutex::new(handler),
             mailbox: Mutex::new(VecDeque::new()),
             scheduled: AtomicBool::new(false),
+            num_processed: AtomicU64::new(0),
         })
     }
 
-    fn tell(self: &Arc<Self>, message: M, ctx: ActorContext, executor: &Executor) {
+    fn tell(self: &Arc<Self>, message: M, ctx: EventContext, executor: &Executor) {
         self.mailbox.lock().unwrap().push_back((message, ctx));
 
         if self
@@ -100,7 +110,10 @@ impl<M: Message> Actor<M> {
         loop {
             let next = self.mailbox.lock().unwrap().pop_front();
             match next {
-                Some((message, ctx)) => self.handler.lock().unwrap().handle(message, &ctx),
+                Some((message, ctx)) => {
+                    self.handler.lock().unwrap().handle(message, &ctx);
+                    self.num_processed.fetch_add(1, Ordering::AcqRel);
+                }
                 None => {
                     self.scheduled.store(false, Ordering::Release);
 
@@ -122,6 +135,17 @@ impl<M: Message> Actor<M> {
     }
 }
 
+impl<M: Message> std::fmt::Debug for Actor<M> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Actor")
+            .field("id", &self.id)
+            .field("scheduled", &self.scheduled.load(Ordering::Acquire))
+            .field("mailbox_size", &self.mailbox.lock().unwrap().len())
+            .field("num_processed", &self.num_processed.load(Ordering::Acquire))
+            .finish()
+    }
+}
+
 type ActorRegistry = Arc<Mutex<HashMap<TypeId, Vec<Arc<dyn Any + Send + Sync>>>>>;
 
 /// A small, generic actor system: subscribers are keyed by the concrete
@@ -132,10 +156,6 @@ type ActorRegistry = Arc<Mutex<HashMap<TypeId, Vec<Arc<dyn Any + Send + Sync>>>>
 #[derive(Clone)]
 pub struct ActorSystem {
     actors: ActorRegistry,
-    // Mutex, not a plain Arc<Executor>/ThreadSync: callers often need to
-    // collect subscribers before the real executor/sync are known (e.g. a
-    // builder that binds them last), and swapping either shouldn't require
-    // rebuilding the actor registry.
     executor: Arc<Mutex<Arc<Executor>>>,
     sync: Arc<Mutex<ThreadSync>>,
 }
@@ -177,8 +197,8 @@ impl ActorSystem {
         Arc::clone(&self.executor.lock().unwrap())
     }
 
-    fn current_context(&self) -> ActorContext {
-        ActorContext { sync: self.sync() }
+    fn current_context(&self) -> EventContext {
+        EventContext { sync: self.sync() }
     }
 
     /// Register a handler for message type `M`. Takes `&self` — subscribing
@@ -237,6 +257,15 @@ impl Default for ActorSystem {
     }
 }
 
+impl std::fmt::Debug for ActorSystem {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ActorSystem")
+            .field("actors", &self.actors.lock().unwrap())
+            .field("executor", &self.executor.lock().unwrap())
+            .finish()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -255,7 +284,7 @@ mod tests {
     }
 
     impl EventHandler<Counted> for Recorder {
-        fn handle(&mut self, message: Counted, _ctx: &ActorContext) {
+        fn handle(&mut self, message: Counted, _ctx: &EventContext) {
             self.seen.lock().unwrap().push(message.0);
             let (count, cv) = &*self.signal;
             *count.lock().unwrap() += 1;
@@ -371,7 +400,7 @@ mod tests {
 
         let seen2 = Arc::clone(&seen);
         let signal2 = Arc::clone(&signal);
-        bus.subscribe::<Warning, _>(move |w: Warning, _ctx: &ActorContext| {
+        bus.subscribe::<Warning, _>(move |w: Warning, _ctx: &EventContext| {
             seen2.lock().unwrap().push(w.0);
             let (count, cv) = &*signal2;
             *count.lock().unwrap() += 1;
@@ -389,7 +418,7 @@ mod tests {
         let bus = ActorSystem::default();
         assert!(!bus.has_subscribers::<Counted>());
 
-        bus.subscribe::<Counted, _>(|_msg: Counted, _ctx: &ActorContext| {});
+        bus.subscribe::<Counted, _>(|_msg: Counted, _ctx: &EventContext| {});
         assert!(bus.has_subscribers::<Counted>());
         assert!(!bus.has_subscribers::<Warning>());
     }
@@ -403,7 +432,7 @@ mod tests {
 
         assert!(!sync.is_stopped());
 
-        bus.subscribe::<Counted, _>(move |_msg: Counted, ctx: &ActorContext| {
+        bus.subscribe::<Counted, _>(move |_msg: Counted, ctx: &EventContext| {
             ctx.sync.stop();
             let (n, cv) = &*signal_clone;
             *n.lock().unwrap() += 1;
@@ -424,7 +453,7 @@ mod tests {
 
         let seen_stopped2 = Arc::clone(&seen_stopped);
         let signal2 = Arc::clone(&signal);
-        bus.subscribe::<Counted, _>(move |_msg: Counted, ctx: &ActorContext| {
+        bus.subscribe::<Counted, _>(move |_msg: Counted, ctx: &EventContext| {
             *seen_stopped2.lock().unwrap() = ctx.sync.is_stopped();
             let (n, cv) = &*signal2;
             *n.lock().unwrap() += 1;

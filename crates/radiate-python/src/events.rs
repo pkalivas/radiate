@@ -1,7 +1,7 @@
 use crate::PySubscriber;
 use crate::{PyEngineEvent, PyMetricSet, prelude::*};
 use pyo3::Python;
-use radiate::{ActorContext, EngineEvent, EventHandler};
+use radiate::{EngineEvent, EventContext, EventHandler};
 
 pub struct PyEventHandler {
     handlers: Vec<PySubscriber>,
@@ -87,7 +87,7 @@ impl<T> EventHandler<EngineEvent<T>> for PyEventHandler
 where
     T: IntoPyAnyObject + Clone,
 {
-    fn handle(&mut self, event: EngineEvent<T>, _ctx: &ActorContext) {
+    fn handle(&mut self, event: EngineEvent<T>, _ctx: &EventContext) {
         let subscribers = self.get_valid_handlers(&event);
 
         if subscribers.is_empty() {

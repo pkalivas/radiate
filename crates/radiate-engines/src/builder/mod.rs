@@ -33,7 +33,9 @@ use crate::{Generation, Result};
 use config::EngineConfig;
 use radiate_alters::{UniformCrossover, UniformMutator};
 use radiate_core::rate::ExprSet;
-use radiate_core::{Alterer, Ecosystem, Executor, Expr, FitnessEvaluator, Valid, metric_names};
+use radiate_core::{
+    ActorSystem, Alterer, Ecosystem, Executor, Expr, FitnessEvaluator, Valid, metric_names,
+};
 use radiate_core::{RadiateError, ensure, radiate_err};
 use radiate_core::{RateSet, evaluator::BatchFitnessEvaluator};
 use radiate_core::{
@@ -61,7 +63,7 @@ where
 
     pub alterers: Vec<Alterer<C>>,
     pub replacement_strategy: Arc<dyn ReplacementStrategy<C>>,
-    pub bus: EventBus<T>,
+    pub event_system: ActorSystem,
     pub generation: Option<Generation<C, T>>,
     pub exprs: Option<Arc<Mutex<ExprSet>>>,
 }
@@ -188,9 +190,14 @@ where
         pipeline.add_step(Self::build_species_step(&config));
         pipeline.add_step(Self::build_audit_step(&config));
 
-        let event_bus = config.bus();
-        event_bus.set_executor(config.bus_executor());
-        event_bus.set_sync(config.sync());
+        let event_bus = EventBus::<T>::from(config.event_system())
+            .set_executor(config.bus_executor())
+            .set_sync(config.sync());
+
+        // event_bus.subscribe_typed(|event: String, _ctx: &EventContext| {
+        //     println!("{:?}", event);
+        // });
+
         let context = EvolutionContext::from(config);
 
         Ok(GeneticEngine::<C, T>::new(context, pipeline, event_bus))
@@ -512,7 +519,7 @@ where
 
                 replacement_strategy: Arc::new(EncodeReplace),
                 alterers: Vec::new(),
-                bus: EventBus::default(),
+                event_system: ActorSystem::default(),
                 exprs: None,
                 generation: None,
             },

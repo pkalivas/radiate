@@ -2,7 +2,7 @@ use crate::{
     EngineEvent, EpochCompleted, EpochStarted, EventHandler, GeneticEngineBuilder, Improved,
     Started, Stopped,
 };
-use radiate_core::Chromosome;
+use radiate_core::{Chromosome, Message};
 
 impl<C, T> GeneticEngineBuilder<C, T>
 where
@@ -17,7 +17,7 @@ where
         H: EventHandler<EngineEvent<T>> + 'static,
         T: Send + Sync + 'static,
     {
-        self.params.bus.subscribe(handler);
+        self.params.event_system.subscribe(handler);
         self
     }
 
@@ -25,7 +25,7 @@ where
     where
         H: EventHandler<Started> + 'static,
     {
-        self.params.bus.on_start(handler);
+        self.params.event_system.subscribe(handler);
         self
     }
 
@@ -34,7 +34,7 @@ where
         H: EventHandler<Stopped<T>> + 'static,
         T: Send + Sync + 'static,
     {
-        self.params.bus.on_stop(handler);
+        self.params.event_system.subscribe(handler);
         self
     }
 
@@ -42,7 +42,7 @@ where
     where
         H: EventHandler<EpochStarted> + 'static,
     {
-        self.params.bus.on_epoch_start(handler);
+        self.params.event_system.subscribe(handler);
         self
     }
 
@@ -51,7 +51,7 @@ where
         H: EventHandler<EpochCompleted<T>> + 'static,
         T: Send + Sync + 'static,
     {
-        self.params.bus.on_epoch_complete(handler);
+        self.params.event_system.subscribe(handler);
         self
     }
 
@@ -60,7 +60,21 @@ where
         H: EventHandler<Improved<T>> + 'static,
         T: Send + Sync + 'static,
     {
-        self.params.bus.on_improvement(handler);
+        self.params.event_system.subscribe(handler);
+        self
+    }
+
+    /// Subscribe to a message type this engine doesn't know about (a custom
+    /// `Warning`, a `LogMessage`, ...). It rides the same bus as the built-in
+    /// engine events — same executor, same shared `ThreadSync` — but nothing
+    /// here publishes `M`; that's on whoever owns it, via the engine's
+    /// `EventBus::send`.
+    pub fn subscribe_typed<M, H>(self, handler: H) -> Self
+    where
+        M: Message,
+        H: EventHandler<M> + 'static,
+    {
+        self.params.event_system.subscribe(handler);
         self
     }
 }

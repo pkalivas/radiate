@@ -1,5 +1,7 @@
 use crate::events::message::*;
-use radiate_core::{ActorSystem, Chromosome, Envelope, EventHandler, Executor, ThreadSync};
+use radiate_core::{
+    ActorSystem, Chromosome, Envelope, EventHandler, Executor, Message, ThreadSync,
+};
 use std::marker::PhantomData;
 use std::sync::Arc;
 
@@ -25,16 +27,18 @@ impl<T> EventBus<T> {
     /// Rebind the executor used for future dispatch without disturbing any
     /// subscriber already registered — used by the builder, which collects
     /// subscribers before the real executor is known.
-    pub fn set_executor(&self, executor: Arc<Executor>) {
+    pub fn set_executor(self, executor: Arc<Executor>) -> Self {
         self.core.set_executor(executor);
+        self
     }
 
     /// Rebind the `ThreadSync` handed to actors from this point on — used by
     /// the builder to bind this bus to the same control primitive the
     /// engine's `EvolutionContext` ends up using, so `ctx.sync` in any
     /// handler and `engine.control()` are the same object.
-    pub fn set_sync(&self, sync: ThreadSync) {
+    pub fn set_sync(self, sync: ThreadSync) -> Self {
         self.core.set_sync(sync);
+        self
     }
 
     pub fn subscribe<H>(&self, handler: H)
@@ -43,6 +47,24 @@ impl<T> EventBus<T> {
         T: Send + Sync + 'static,
     {
         self.core.subscribe::<EngineEvent<T>, _>(handler);
+    }
+
+    /// Escape hatch for message types this engine doesn't know about (a
+    /// custom `Warning`, a `LogMessage`, ...) that still want to ride the
+    /// same `ActorSystem` — same executor, same shared `ThreadSync` — as
+    /// `Started`/`EpochCompleted`/etc. Whoever owns publishing `M` calls
+    /// `send::<M>` directly; nothing about `M` needs to be known to
+    /// `EventBus` itself.
+    pub fn subscribe_typed<M, H>(&self, handler: H)
+    where
+        M: Message,
+        H: EventHandler<M> + 'static,
+    {
+        self.core.subscribe::<M, _>(handler);
+    }
+
+    pub fn send<M: Message + Clone>(&self, message: M) {
+        self.core.send(message);
     }
 
     pub fn on_start<H>(&self, handler: H)
@@ -81,32 +103,6 @@ impl<T> EventBus<T> {
         T: Send + Sync + 'static,
     {
         self.core.subscribe::<Improved<T>, _>(handler);
-    }
-
-    /// Checks `has_subscribers` for both the specific kind `D` and the
-    /// `EngineEvent<T>` wildcard *before* building anything — `build` only
-    /// runs (and only clones out of the context) if at least one of the two
-    /// is actually true.
-    fn dispatch<D, F, W>(&self, build: F, wrap: W)
-    where
-        D: Send + Sync + 'static,
-        F: FnOnce() -> D,
-        W: FnOnce(Envelope<D>) -> EngineEvent<T>,
-        T: Clone + Send + Sync + 'static,
-    {
-        let want_specific = self.core.has_subscribers::<Envelope<D>>();
-        let want_wildcard = self.core.has_subscribers::<EngineEvent<T>>();
-        if !want_specific && !want_wildcard {
-            return;
-        }
-
-        let payload = Envelope::new(build());
-        if want_specific {
-            self.core.send(payload.clone());
-        }
-        if want_wildcard {
-            self.core.send(wrap(payload));
-        }
     }
 
     pub fn publish<C>(&self, message: EngineMessage<C, T>)
@@ -149,6 +145,32 @@ impl<T> EventBus<T> {
             ),
         }
     }
+
+    /// Checks `has_subscribers` for both the specific kind `D` and the
+    /// `EngineEvent<T>` wildcard *before* building anything — `build` only
+    /// runs (and only clones out of the context) if at least one of the two
+    /// is actually true.
+    fn dispatch<D, F, W>(&self, build: F, wrap: W)
+    where
+        D: Send + Sync + 'static,
+        F: FnOnce() -> D,
+        W: FnOnce(Envelope<D>) -> EngineEvent<T>,
+        T: Clone + Send + Sync + 'static,
+    {
+        let want_specific = self.core.has_subscribers::<Envelope<D>>();
+        let want_wildcard = self.core.has_subscribers::<EngineEvent<T>>();
+        if !want_specific && !want_wildcard {
+            return;
+        }
+
+        let payload = Envelope::new(build());
+        if want_specific {
+            self.core.send(payload.clone());
+        }
+        if want_wildcard {
+            self.core.send(wrap(payload));
+        }
+    }
 }
 
 impl<T> Default for EventBus<T> {
@@ -157,12 +179,21 @@ impl<T> Default for EventBus<T> {
     }
 }
 
+impl<T> From<ActorSystem> for EventBus<T> {
+    fn from(core: ActorSystem) -> Self {
+        EventBus {
+            core,
+            _marker: PhantomData,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::EvolutionContext;
     use radiate_core::{
-        ActorContext, BitChromosome, Ecosystem, Front, Objective, Optimize, Phenotype, Problem,
+        BitChromosome, Ecosystem, EventContext, Front, Objective, Optimize, Phenotype, Problem,
     };
     use radiate_test::OneMax;
     use std::sync::Condvar;
@@ -215,7 +246,7 @@ mod tests {
 
         let hits2 = Arc::clone(&hits);
         let signal2 = Arc::clone(&signal);
-        bus.on_start(move |_msg: Started, _ctx: &ActorContext| {
+        bus.on_start(move |_msg: Started, _ctx: &EventContext| {
             hits2.fetch_add(1, Ordering::SeqCst);
             let (n, cv) = &*signal2;
             *n.lock().unwrap() += 1;
@@ -233,7 +264,7 @@ mod tests {
     fn typed_subscriber_does_not_receive_unrelated_event_kinds() {
         let bus: EventBus<Vec<bool>> = EventBus::default();
 
-        bus.on_start(|_msg: Started, _ctx: &ActorContext| {
+        bus.on_start(|_msg: Started, _ctx: &EventContext| {
             panic!("on_start handler should not fire for an EpochStart event");
         });
 
@@ -241,7 +272,7 @@ mod tests {
         let signal = Arc::new((StdMutex::new(0), Condvar::new()));
         let epoch_hits2 = Arc::clone(&epoch_hits);
         let signal2 = Arc::clone(&signal);
-        bus.on_epoch_start(move |_msg: EpochStarted, _ctx: &ActorContext| {
+        bus.on_epoch_start(move |_msg: EpochStarted, _ctx: &EventContext| {
             epoch_hits2.fetch_add(1, Ordering::SeqCst);
             let (n, cv) = &*signal2;
             *n.lock().unwrap() += 1;
@@ -263,7 +294,7 @@ mod tests {
         let signal = Arc::new((StdMutex::new(0), Condvar::new()));
         let hits_clone = Arc::clone(&hits);
         let signal_clone = Arc::clone(&signal);
-        bus.subscribe(move |_event: EngineEvent<Vec<bool>>, _ctx: &ActorContext| {
+        bus.subscribe(move |_event: EngineEvent<Vec<bool>>, _ctx: &EventContext| {
             hits_clone.fetch_add(1, Ordering::SeqCst);
             let (n, cv) = &*signal_clone;
             *n.lock().unwrap() += 1;
@@ -286,11 +317,11 @@ mod tests {
 
     #[test]
     fn handler_can_stop_the_run_via_actor_context() {
-        let bus: EventBus<Vec<bool>> = EventBus::default();
+        let mut bus: EventBus<Vec<bool>> = EventBus::default();
         let signal = Arc::new((StdMutex::new(0), Condvar::new()));
         let signal_clone = Arc::clone(&signal);
 
-        bus.subscribe(move |_event: EngineEvent<Vec<bool>>, ctx: &ActorContext| {
+        bus.subscribe(move |_event: EngineEvent<Vec<bool>>, ctx: &EventContext| {
             ctx.sync.stop();
             let (n, cv) = &*signal_clone;
             *n.lock().unwrap() += 1;
@@ -298,7 +329,7 @@ mod tests {
         });
 
         let sync = ThreadSync::new();
-        bus.set_sync(sync.clone());
+        bus = bus.set_sync(sync.clone());
         assert!(!sync.is_stopped());
 
         let ctx = test_context();
@@ -310,11 +341,11 @@ mod tests {
 
     #[test]
     fn specific_kind_handler_also_reaches_shared_sync() {
-        let bus: EventBus<Vec<bool>> = EventBus::default();
+        let mut bus: EventBus<Vec<bool>> = EventBus::default();
         let signal = Arc::new((StdMutex::new(0), Condvar::new()));
         let signal_clone = Arc::clone(&signal);
 
-        bus.on_improvement(move |_msg: Improved<Vec<bool>>, ctx: &ActorContext| {
+        bus.on_improvement(move |_msg: Improved<Vec<bool>>, ctx: &EventContext| {
             ctx.sync.stop();
             let (n, cv) = &*signal_clone;
             *n.lock().unwrap() += 1;
@@ -322,12 +353,51 @@ mod tests {
         });
 
         let sync = ThreadSync::new();
-        bus.set_sync(sync.clone());
+        bus = bus.set_sync(sync.clone());
 
         let ctx = test_context();
         bus.publish(EngineMessage::Improvement(&ctx));
 
         wait_for(&signal, 1);
+        assert!(sync.is_stopped());
+    }
+
+    #[test]
+    fn subscribe_typed_rides_the_same_bus_as_engine_events() {
+        #[derive(Clone)]
+        struct Warning {
+            text: &'static str,
+        }
+
+        let mut bus: EventBus<Vec<bool>> = EventBus::default();
+        let seen = Arc::new(StdMutex::new(Vec::new()));
+        let signal = Arc::new((StdMutex::new(0), Condvar::new()));
+
+        let seen2 = Arc::clone(&seen);
+        let signal2 = Arc::clone(&signal);
+        bus.subscribe_typed::<Warning, _>(move |w: Warning, ctx: &EventContext| {
+            seen2.lock().unwrap().push(w.text);
+            ctx.sync.stop();
+            let (n, cv) = &*signal2;
+            *n.lock().unwrap() += 1;
+            cv.notify_all();
+        });
+
+        let sync = ThreadSync::new();
+        bus = bus.set_sync(sync.clone());
+
+        bus.send(Warning {
+            text: "population diversity collapsing",
+        });
+
+        wait_for(&signal, 1);
+        assert_eq!(
+            *seen.lock().unwrap(),
+            vec!["population diversity collapsing"]
+        );
+        // Same ThreadSync as everything else on this bus, not an
+        // independent one — proves it's the same ActorSystem, not a
+        // parallel, disconnected one.
         assert!(sync.is_stopped());
     }
 }

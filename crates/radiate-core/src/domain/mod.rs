@@ -9,6 +9,6 @@ pub use math::SubsetMode;
 pub use math::subset;
 pub use random_provider::RdRand;
 pub use sync::{
-    ActorContext, ActorSystem, CommandChannel, Envelope, EventHandler, Message, ThreadSync,
+    ActorSystem, CommandChannel, Envelope, EventContext, EventHandler, Message, ThreadSync,
     WaitGroup, WaitGuard, get_thread_pool,
 };
