@@ -1,11 +1,14 @@
-use crate::generation::GenerationView;
 use crate::{Engine, EvolutionContext, Generation, Limit, init_logging};
 #[cfg(feature = "serde")]
 use crate::{FileWriter, JsonWriter};
+use crate::{LimitTriggered, generation::GenerationView};
 use crate::{LoggingHandler, actions::LoggingAction};
-use radiate_core::error::{RadiateResult, Result};
 use radiate_core::rate::Expr;
 use radiate_core::{Chromosome, EngineState, Score, radiate_err};
+use radiate_core::{
+    EventContext,
+    error::{RadiateResult, Result},
+};
 #[cfg(feature = "serde")]
 use serde::Serialize;
 use std::collections::VecDeque;
@@ -211,8 +214,12 @@ where
 
         system.subscribe::<crate::events::Info, LoggingHandler>(LoggingHandler);
         system.subscribe::<crate::events::Warn, LoggingHandler>(LoggingHandler);
-        system.subscribe::<crate::events::Error, LoggingHandler>(LoggingHandler);
-        system.subscribe::<crate::events::Debug, LoggingHandler>(LoggingHandler);
+        system.subscribe::<LimitTriggered, _>(move |msg: LimitTriggered, _ctx: &EventContext| {
+            _ctx.send(crate::events::Info(format!(
+                "{:?} triggered [{}]: {}",
+                msg.kind, msg.generation, msg.description
+            )));
+        });
 
         let action = LoggingAction(every);
         self.add_action(action);

@@ -20,8 +20,6 @@ pub struct ImprovementEntry {
 pub enum LogLevel {
     Info,
     Warn,
-    Error,
-    Debug,
 }
 
 pub struct EventLogEntry {

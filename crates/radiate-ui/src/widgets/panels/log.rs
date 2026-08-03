@@ -200,8 +200,6 @@ impl<C: Chromosome> AppWidget<C> for EventLogWidget {
                 let (label, color) = match entry.level {
                     LogLevel::Info => ("INFO", crate::styles::LOG_INFO_COLOR),
                     LogLevel::Warn => ("WARN", crate::styles::LOG_WARN_COLOR),
-                    LogLevel::Error => ("ERROR", crate::styles::LOG_ERROR_COLOR),
-                    LogLevel::Debug => ("DEBUG", crate::styles::LOG_DEBUG_COLOR),
                 };
 
                 Row::new(vec![

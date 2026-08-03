@@ -73,13 +73,6 @@ impl<M: Message> Actor<M> {
         }
     }
 
-    /// Drains in batches rather than one `pop_front` per message: each pass
-    /// swaps the *entire* current mailbox out under a single lock, then
-    /// processes it without holding that lock at all. Locking per-message
-    /// instead would mean every message fights concurrent `tell` calls (from
-    /// any producer thread) for the same `Mutex` — under load that
-    /// contention dominates, since this is the one lock every producer and
-    /// the drain itself both need.
     fn drain(self: Arc<Self>) {
         loop {
             let batch = std::mem::take(&mut *self.mailbox.lock().unwrap());
@@ -87,9 +80,6 @@ impl<M: Message> Actor<M> {
             if batch.is_empty() {
                 self.scheduled.store(false, Ordering::Release);
 
-                // Something may have been pushed between the take above
-                // returning empty and clearing `scheduled`. Re-claim the
-                // slot and keep draining if so, otherwise we're done.
                 let more_arrived = !self.mailbox.lock().unwrap().is_empty();
                 if !more_arrived
                     || self

@@ -13,7 +13,10 @@
 //! - **Convergence Detection**: Stop when improvement rate falls below threshold
 //! - **Combined Limits**: Apply multiple limits simultaneously
 
-use crate::{EvolutionContext, Generation, generation::GenerationView, runtime::RuntimeLimit};
+use crate::{
+    EvolutionContext, Generation, events::LimitTriggered, generation::GenerationView,
+    runtime::RuntimeLimit,
+};
 use radiate_core::{
     AnyValue, Chromosome, Engine, Objective, Optimize, Score,
     error::RadiateResult,
@@ -117,22 +120,40 @@ where
     T: Clone + Send + Sync,
 {
     fn proceed(&mut self, ctx: &E::Ctx) -> RadiateResult<bool> {
+        let announce = |kind: &'static str, description: String| {
+            ctx.event_system().send(LimitTriggered {
+                generation: ctx.index,
+                kind,
+                description,
+            });
+        };
+
         match self {
-            Limit::Generation(gens) => Ok(ctx.index < *gens),
+            Limit::Generation(gens) => {
+                let proceed = ctx.index < *gens;
+                if !proceed {
+                    announce("Generation", format!("reached generation limit of {gens}"));
+                }
+                Ok(proceed)
+            }
             Limit::Seconds(secs) => {
                 let total_time = ctx
                     .metrics
                     .time()
                     .and_then(|m| m.times().map(|t| t.sum()))
                     .unwrap_or_default();
-                Ok(total_time < *secs)
+                let proceed = total_time < *secs;
+                if !proceed {
+                    announce("Seconds", format!("reached time limit of {total_time:?}"));
+                }
+                Ok(proceed)
             }
             Limit::Score(limit) => {
                 let Some(score) = &ctx.score else {
                     return Ok(true);
                 };
 
-                Ok(match &ctx.objective {
+                let proceed = match &ctx.objective {
                     Objective::Single(obj) => match obj {
                         Optimize::Minimize => score > limit,
                         Optimize::Maximize => score < limit,
@@ -153,7 +174,15 @@ where
 
                         all_pass
                     }
-                })
+                };
+
+                if !proceed {
+                    announce(
+                        "Score",
+                        format!("reached score limit of {:?} (score: {:?})", limit, score),
+                    );
+                }
+                Ok(proceed)
             }
             Limit::Convergence(window, epsilon, history) => {
                 let Some(current_score) = &ctx.score else {
@@ -190,7 +219,17 @@ where
                     }
                 };
 
-                Ok(improved.abs() > *epsilon)
+                let proceed = improved.abs() > *epsilon;
+                if !proceed {
+                    announce(
+                        "Convergence",
+                        format!(
+                            "converged: |delta|={:.6} <= epsilon={epsilon} over window={window}",
+                            improved.abs()
+                        ),
+                    );
+                }
+                Ok(proceed)
             }
             Limit::Combined(limits) => limits
                 .iter_mut()
@@ -202,7 +241,11 @@ where
                 let result = expr.eval(metrics).unwrap_or(AnyValue::Null);
 
                 if let AnyValue::Bool(b) = result {
-                    Ok(!b)
+                    let proceed = !b;
+                    if !proceed {
+                        announce("Expr", format!("expression limit triggered: {expr:?}"));
+                    }
+                    Ok(proceed)
                 } else {
                     radiate_bail!(Engine: format!(
                         "Expression did not evaluate to a boolean value: {:?}",
@@ -297,7 +340,15 @@ where
 {
     fn proceed(&mut self, ctx: &E::Ctx) -> RadiateResult<bool> {
         let view = GenerationView::new(ctx);
-        Ok(!(self)(view))
+        let proceed = !(self)(view);
+        if !proceed {
+            ctx.event_system().send(LimitTriggered {
+                generation: ctx.index,
+                kind: "Custom",
+                description: "custom `.until(...)` closure limit triggered".to_string(),
+            });
+        }
+        Ok(proceed)
     }
 }
 

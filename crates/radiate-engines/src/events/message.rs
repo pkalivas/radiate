@@ -106,6 +106,13 @@ where
     )
 }
 
+#[derive(Clone, Debug)]
+pub struct LimitTriggered {
+    pub generation: usize,
+    pub kind: &'static str,
+    pub description: String,
+}
+
 pub struct StartedData;
 pub type Started = Envelope<StartedData>;
 

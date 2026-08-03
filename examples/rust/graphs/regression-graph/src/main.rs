@@ -1,4 +1,4 @@
-use radiate::{events::Warn, prelude::*};
+use radiate::prelude::*;
 
 const MIN_SCORE: f32 = 0.001;
 
@@ -22,17 +22,6 @@ fn main() {
             OperationMutator::new(0.07, 0.05),
             GraphMutator::new(0.1, 0.1).allow_recurrent(false)
         ))
-        .subscribe(
-            |event: EngineEvent<Graph<Op<f32>>>, _ctx: &EventContext| match event {
-                EngineEvent::EpochCompleted(epoch) => {
-                    _ctx.send(Warn(format!(
-                        "Epoch {} complete: score = {:?}",
-                        epoch.index, epoch.score
-                    )));
-                }
-                _ => {}
-            },
-        )
         .build();
 
     // radiate::ui((engine, true))
