@@ -1,7 +1,7 @@
 use crate::PySubscriber;
 use crate::{PyEngineEvent, PyMetricSet, prelude::*};
 use pyo3::Python;
-use radiate::{EngineEvent, EngineEventInner, EventHandler};
+use radiate::{ActorContext, EngineEvent, EventHandler};
 
 pub struct PyEventHandler {
     handlers: Vec<PySubscriber>,
@@ -44,38 +44,50 @@ impl PyEventHandler {
     where
         T: IntoPyAnyObject + Clone,
     {
-        match event.inner() {
-            EngineEventInner::Start => PyEngineEvent::start(),
-            EngineEventInner::Stop(index, best, metrics, score) => {
-                let best = best.clone().into_py(py).expect("Failed to convert event.");
-                let metrics = PyMetricSet::from(metrics.clone());
-                PyEngineEvent::stop(*index, best, metrics, score.as_ref().to_vec())
+        match event {
+            EngineEvent::Started(_) => PyEngineEvent::start(),
+            EngineEvent::Stopped(s) => {
+                let best = s
+                    .best
+                    .clone()
+                    .into_py(py)
+                    .expect("Failed to convert event.");
+                let metrics = PyMetricSet::from(s.metrics.clone());
+                PyEngineEvent::stop(s.index, best, metrics, s.score.as_ref().to_vec())
             }
-            EngineEventInner::EpochStart(index) => PyEngineEvent::epoch_start(*index),
-            EngineEventInner::EpochComplete(index, best, metrics, score, objective) => {
-                let best = best.clone().into_py(py).expect("Failed to convert event.");
-                let metrics = PyMetricSet::from(metrics.clone());
+            EngineEvent::EpochStarted(s) => PyEngineEvent::epoch_start(s.index),
+            EngineEvent::EpochCompleted(s) => {
+                let best = s
+                    .best
+                    .clone()
+                    .into_py(py)
+                    .expect("Failed to convert event.");
+                let metrics = PyMetricSet::from(s.metrics.clone());
                 PyEngineEvent::epoch_complete(
-                    *index,
+                    s.index,
                     best,
                     metrics,
-                    score.as_ref().to_vec(),
-                    objective.clone(),
+                    s.score.as_ref().to_vec(),
+                    s.objective.clone(),
                 )
             }
-            EngineEventInner::Improvement(index, best, score) => {
-                let best = best.clone().into_py(py).expect("Failed to convert event.");
-                PyEngineEvent::improvement(*index, best, score.as_ref().to_vec())
+            EngineEvent::Improved(s) => {
+                let best = s
+                    .best
+                    .clone()
+                    .into_py(py)
+                    .expect("Failed to convert event.");
+                PyEngineEvent::improvement(s.index, best, s.score.as_ref().to_vec())
             }
         }
     }
 }
 
-impl<T> EventHandler<T> for PyEventHandler
+impl<T> EventHandler<EngineEvent<T>> for PyEventHandler
 where
     T: IntoPyAnyObject + Clone,
 {
-    fn handle(&mut self, event: EngineEvent<T>) {
+    fn handle(&mut self, event: EngineEvent<T>, _ctx: &ActorContext) {
         let subscribers = self.get_valid_handlers(&event);
 
         if subscribers.is_empty() {

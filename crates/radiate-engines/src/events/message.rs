@@ -1,133 +1,111 @@
 use crate::context::EvolutionContext;
-use radiate_core::{Chromosome, MetricSet, Objective, Score, ThreadSync};
-use std::{fmt::Debug, sync::Arc};
+use radiate_core::{Chromosome, Envelope, MetricSet, Objective, Score};
+use std::fmt::Debug;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum EventType {
-    Start,
-    Stop,
-    EpochStart,
-    EpochComplete,
-    Improvement,
-    All,
-}
-
+/// Internal, borrowed carrier used only inside `GeneticEngine::step()`/
+/// `Drop` — cheap to construct since it doesn't clone anything out of the
+/// context. `EventBus::publish` is what turns this into real message
+/// payloads, and only for the specific kinds anyone's actually subscribed
+/// to.
 pub enum EngineMessage<'a, C, T>
 where
     C: Chromosome,
     T: Clone,
 {
-    Start(&'a mut EvolutionContext<C, T>),
-    Stop(&'a mut EvolutionContext<C, T>),
-    EpochStart(&'a mut EvolutionContext<C, T>),
-    EpochEnd(&'a mut EvolutionContext<C, T>),
-    Improvement(&'a mut EvolutionContext<C, T>),
+    Start(&'a EvolutionContext<C, T>),
+    Stop(&'a EvolutionContext<C, T>),
+    EpochStart(&'a EvolutionContext<C, T>),
+    EpochEnd(&'a EvolutionContext<C, T>),
+    Improvement(&'a EvolutionContext<C, T>),
 }
 
-impl<'a, C, T> EngineMessage<'a, C, T>
-where
-    C: Chromosome,
-    T: Clone,
-{
-    pub fn event_type(&self) -> EventType {
-        match self {
-            EngineMessage::Start(_) => EventType::Start,
-            EngineMessage::Stop(_) => EventType::Stop,
-            EngineMessage::EpochStart(_) => EventType::EpochStart,
-            EngineMessage::EpochEnd(_) => EventType::EpochComplete,
-            EngineMessage::Improvement(_) => EventType::Improvement,
-        }
-    }
-}
+pub struct StartedData;
+pub type Started = Envelope<StartedData>;
 
-pub enum EngineEventInner<T> {
-    Start,
-    Stop(usize, T, MetricSet, Score),
-    EpochStart(usize),
-    EpochComplete(usize, T, MetricSet, Score, Objective),
-    Improvement(usize, T, Score),
+pub struct StoppedData<T> {
+    pub index: usize,
+    pub best: T,
+    pub metrics: MetricSet,
+    pub score: Score,
 }
+pub type Stopped<T> = Envelope<StoppedData<T>>;
 
-impl<T: Debug> Debug for EngineEventInner<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            EngineEventInner::Start => write!(f, "Start"),
-            EngineEventInner::Stop(index, best, metrics, score) => write!(
-                f,
-                "Stop(index={}, best={:?}, metrics={:?}, score={:?})",
-                index, best, metrics, score
-            ),
-            EngineEventInner::EpochStart(index) => write!(f, "EpochStart(index={})", index),
-            EngineEventInner::EpochComplete(index, best, metrics, score, objective) => write!(
-                f,
-                "EpochComplete(index={}, best={:?}, metrics={:?}, score={:?}, objective={:?})",
-                index, best, metrics, score, objective
-            ),
-            EngineEventInner::Improvement(index, best, score) => write!(
-                f,
-                "Improvement(index={}, best={:?}, score={:?})",
-                index, best, score
-            ),
-        }
-    }
+pub struct EpochStartedData {
+    pub index: usize,
 }
+pub type EpochStarted = Envelope<EpochStartedData>;
 
-pub struct EngineEvent<T> {
-    sync: ThreadSync,
-    inner: Arc<EngineEventInner<T>>,
+pub struct EpochCompletedData<T> {
+    pub index: usize,
+    pub best: T,
+    pub metrics: MetricSet,
+    pub score: Score,
+    pub objective: Objective,
+}
+pub type EpochCompleted<T> = Envelope<EpochCompletedData<T>>;
+
+pub struct ImprovedData<T> {
+    pub index: usize,
+    pub best: T,
+    pub score: Score,
+}
+pub type Improved<T> = Envelope<ImprovedData<T>>;
+
+/// The "give me every kind of engine event" umbrella — one type, so a single
+/// wildcard subscription still works, at the cost of a second `send` (gated
+/// by its own `has_subscribers` check, same as the specific-kind path) when
+/// both a wildcard and a specific-kind subscriber exist for the same event.
+#[derive(Clone)]
+pub enum EngineEvent<T> {
+    Started(Started),
+    Stopped(Stopped<T>),
+    EpochStarted(EpochStarted),
+    EpochCompleted(EpochCompleted<T>),
+    Improved(Improved<T>),
 }
 
 impl<T> EngineEvent<T> {
-    pub fn new(sync: ThreadSync, inner: EngineEventInner<T>) -> Self {
-        EngineEvent {
-            sync,
-            inner: Arc::new(inner),
-        }
-    }
-
-    pub fn inner(&self) -> &EngineEventInner<T> {
-        self.inner.as_ref()
-    }
-
-    /// A handle back to the engine's own pause/stop/step primitive — lets a
-    /// handler act on what it just observed (e.g. stop the run from an
-    /// `on_improvement` callback) instead of only ever reading state.
-    pub fn sync(&self) -> &ThreadSync {
-        &self.sync
-    }
-
     pub fn is_start(&self) -> bool {
-        matches!(self.inner(), EngineEventInner::Start)
+        matches!(self, EngineEvent::Started(_))
     }
 
     pub fn is_stop(&self) -> bool {
-        matches!(self.inner(), EngineEventInner::Stop(..))
+        matches!(self, EngineEvent::Stopped(_))
     }
 
     pub fn is_epoch_start(&self) -> bool {
-        matches!(self.inner(), EngineEventInner::EpochStart(..))
+        matches!(self, EngineEvent::EpochStarted(_))
     }
 
     pub fn is_epoch_complete(&self) -> bool {
-        matches!(self.inner(), EngineEventInner::EpochComplete(..))
+        matches!(self, EngineEvent::EpochCompleted(_))
     }
 
     pub fn is_improvement(&self) -> bool {
-        matches!(self.inner(), EngineEventInner::Improvement(..))
-    }
-}
-
-impl<T> Clone for EngineEvent<T> {
-    fn clone(&self) -> Self {
-        EngineEvent {
-            sync: self.sync.clone(),
-            inner: Arc::clone(&self.inner),
-        }
+        matches!(self, EngineEvent::Improved(_))
     }
 }
 
 impl<T: Debug> Debug for EngineEvent<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "EngineEvent::{:?}", self.inner())
+        match self {
+            EngineEvent::Started(_) => write!(f, "Started"),
+            EngineEvent::Stopped(s) => write!(
+                f,
+                "Stopped(index={}, best={:?}, score={:?})",
+                s.index, s.best, s.score
+            ),
+            EngineEvent::EpochStarted(s) => write!(f, "EpochStarted(index={})", s.index),
+            EngineEvent::EpochCompleted(s) => write!(
+                f,
+                "EpochCompleted(index={}, best={:?}, score={:?}, objective={:?})",
+                s.index, s.best, s.score, s.objective
+            ),
+            EngineEvent::Improved(s) => write!(
+                f,
+                "Improved(index={}, best={:?}, score={:?})",
+                s.index, s.best, s.score
+            ),
+        }
     }
 }

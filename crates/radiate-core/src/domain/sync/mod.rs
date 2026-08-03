@@ -6,7 +6,7 @@ mod thread_pool;
 
 use std::sync::Arc;
 
-pub use bus::{Bus, EventHandler, Message};
+pub use bus::{ActorContext, ActorSystem, Envelope, EventHandler, Message};
 pub use channel::CommandChannel;
 pub use control::ThreadSync;
 pub use group::{WaitGroup, WaitGuard};

@@ -1,4 +1,5 @@
 use crate::Executor;
+use crate::domain::sync::control::ThreadSync;
 use std::any::{Any, TypeId};
 use std::collections::{HashMap, VecDeque};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -9,27 +10,67 @@ use std::sync::{Arc, Mutex};
 pub trait Message: Send + Sync + 'static {}
 impl<M: Send + Sync + 'static> Message for M {}
 
+/// Handed to every actor alongside the message it's processing. Carries the
+/// same `ThreadSync` the owning engine (or whatever else set up this
+/// `ActorSystem`) uses for pause/stop/step — so any actor can act back on
+/// the thing it's observing, not just read it.
+#[derive(Clone)]
+pub struct ActorContext {
+    pub sync: ThreadSync,
+}
+
 pub trait EventHandler<M>: Send + Sync {
-    fn handle(&mut self, message: M);
+    fn handle(&mut self, message: M, ctx: &ActorContext);
 }
 
 impl<M, F> EventHandler<M> for F
 where
-    F: FnMut(M) + Send + Sync,
+    F: FnMut(M, &ActorContext) + Send + Sync,
 {
-    fn handle(&mut self, message: M) {
-        self(message)
+    fn handle(&mut self, message: M, ctx: &ActorContext) {
+        self(message, ctx)
     }
 }
 
-/// A single subscriber's mailbox. `tell` enqueues and, if nobody is
-/// currently draining this actor, schedules a drain on the executor.
-/// `scheduled` guarantees at most one in-flight drain per actor, which is
-/// what gives every actor FIFO delivery and non-concurrent handling
+/// A cheaply-clonable message envelope: wraps `D` in an `Arc` so fanning a
+/// message out to many subscribed actors clones a pointer per actor, not the
+/// payload itself. Most concrete message types on the bus should be a type
+/// alias over this rather than hand-rolling their own `Arc` wrapper.
+pub struct Envelope<D>(Arc<D>);
+
+impl<D> Envelope<D> {
+    pub fn new(data: D) -> Self {
+        Envelope(Arc::new(data))
+    }
+}
+
+impl<D> Clone for Envelope<D> {
+    fn clone(&self) -> Self {
+        Envelope(Arc::clone(&self.0))
+    }
+}
+
+impl<D> std::ops::Deref for Envelope<D> {
+    type Target = D;
+
+    fn deref(&self) -> &D {
+        &self.0
+    }
+}
+
+/// A single subscriber's mailbox. `tell` enqueues (message, context) pairs
+/// and, if nobody is currently draining this actor, schedules a drain on the
+/// executor. `scheduled` guarantees at most one in-flight drain per actor,
+/// which is what gives every actor FIFO delivery and non-concurrent handling
 /// regardless of how many worker threads the executor itself has.
+///
+/// The context is captured per-message at `tell` time (same as the
+/// executor), not looked up fresh at drain time — `ActorSystem::set_sync`
+/// only ever happens once, early, before real traffic starts, so this is
+/// just the simplest thing that's still correct.
 struct Actor<M: Message> {
     handler: Mutex<Box<dyn EventHandler<M>>>,
-    mailbox: Mutex<VecDeque<M>>,
+    mailbox: Mutex<VecDeque<(M, ActorContext)>>,
     scheduled: AtomicBool,
 }
 
@@ -42,8 +83,8 @@ impl<M: Message> Actor<M> {
         })
     }
 
-    fn tell(self: &Arc<Self>, message: M, executor: &Executor) {
-        self.mailbox.lock().unwrap().push_back(message);
+    fn tell(self: &Arc<Self>, message: M, ctx: ActorContext, executor: &Executor) {
+        self.mailbox.lock().unwrap().push_back((message, ctx));
 
         if self
             .scheduled
@@ -59,7 +100,7 @@ impl<M: Message> Actor<M> {
         loop {
             let next = self.mailbox.lock().unwrap().pop_front();
             match next {
-                Some(message) => self.handler.lock().unwrap().handle(message),
+                Some((message, ctx)) => self.handler.lock().unwrap().handle(message, &ctx),
                 None => {
                     self.scheduled.store(false, Ordering::Release);
 
@@ -84,28 +125,67 @@ impl<M: Message> Actor<M> {
 type ActorRegistry = Arc<Mutex<HashMap<TypeId, Vec<Arc<dyn Any + Send + Sync>>>>>;
 
 /// A small, generic actor system: subscribers are keyed by the concrete
-/// message type they registered for, each with its own mailbox. Publishing a
+/// message type they registered for, each with its own mailbox. Sending an
 /// `M` only ever touches actors that subscribed to `M` — unrelated message
 /// types (a different `M2`) live under a different `TypeId` and are never
 /// even looked at.
 #[derive(Clone)]
-pub struct Bus {
+pub struct ActorSystem {
     actors: ActorRegistry,
-    executor: Arc<Executor>,
+    // Mutex, not a plain Arc<Executor>/ThreadSync: callers often need to
+    // collect subscribers before the real executor/sync are known (e.g. a
+    // builder that binds them last), and swapping either shouldn't require
+    // rebuilding the actor registry.
+    executor: Arc<Mutex<Arc<Executor>>>,
+    sync: Arc<Mutex<ThreadSync>>,
 }
 
-impl Bus {
+impl ActorSystem {
     pub fn new(executor: Arc<Executor>) -> Self {
-        Bus {
+        ActorSystem::with_sync(executor, ThreadSync::new())
+    }
+
+    pub fn with_sync(executor: Arc<Executor>, sync: ThreadSync) -> Self {
+        ActorSystem {
             actors: Arc::new(Mutex::new(HashMap::new())),
-            executor,
+            executor: Arc::new(Mutex::new(executor)),
+            sync: Arc::new(Mutex::new(sync)),
         }
+    }
+
+    /// Swap the executor used for future dispatch. Existing subscribers are
+    /// untouched — this only changes how `send` schedules drains from this
+    /// point on.
+    pub fn set_executor(&self, executor: Arc<Executor>) {
+        *self.executor.lock().unwrap() = executor;
+    }
+
+    /// Swap the `ThreadSync` handed to actors from this point on. Used to
+    /// bind an `ActorSystem` built with a placeholder (e.g. during a builder
+    /// chain) to the same control primitive the owning engine ends up using,
+    /// so `ctx.sync` in any handler and `engine.control()` are the same
+    /// object.
+    pub fn set_sync(&self, sync: ThreadSync) {
+        *self.sync.lock().unwrap() = sync;
+    }
+
+    pub fn sync(&self) -> ThreadSync {
+        self.sync.lock().unwrap().clone()
+    }
+
+    fn current_executor(&self) -> Arc<Executor> {
+        Arc::clone(&self.executor.lock().unwrap())
+    }
+
+    fn current_context(&self) -> ActorContext {
+        ActorContext { sync: self.sync() }
     }
 
     /// Register a handler for message type `M`. Takes `&self` — subscribing
     /// is just inserting into the actor registry under its lock, no `&mut
-    /// Bus` needed, so a `Bus` can be freely shared (e.g. via `Arc<Bus>` or
-    /// `Clone`) and subscribed to from multiple places without coordination.
+    /// ActorSystem` needed, so an `ActorSystem` can be freely shared (e.g.
+    /// via `Clone`) and subscribed to from multiple places without
+    /// coordination.
     pub fn subscribe<M, H>(&self, handler: H)
     where
         M: Message,
@@ -120,26 +200,40 @@ impl Bus {
             .push(actor);
     }
 
-    /// Publish a message. Only actors subscribed to `TypeId::of::<M>()` are
+    /// Cheap, payload-free check: does anyone care about `M` at all? Callers
+    /// that construct an expensive `M` should check this first and skip
+    /// construction entirely when nobody's listening — `send` alone can't
+    /// help with that since by the time it's called, `M` already exists.
+    pub fn has_subscribers<M: Message>(&self) -> bool {
+        self.actors
+            .lock()
+            .unwrap()
+            .get(&TypeId::of::<M>())
+            .is_some_and(|subs| !subs.is_empty())
+    }
+
+    /// Send a message. Only actors subscribed to `TypeId::of::<M>()` are
     /// touched — if nobody's listening for this kind, this is just a map
     /// lookup, no payload cloning happens.
-    pub fn publish<M: Message + Clone>(&self, message: M) {
+    pub fn send<M: Message + Clone>(&self, message: M) {
         let actors = self.actors.lock().unwrap();
         let Some(subscribers) = actors.get(&TypeId::of::<M>()) else {
             return;
         };
 
+        let executor = self.current_executor();
+        let ctx = self.current_context();
         for erased in subscribers {
             if let Ok(actor) = Arc::clone(erased).downcast::<Actor<M>>() {
-                actor.tell(message.clone(), &self.executor);
+                actor.tell(message.clone(), ctx.clone(), &executor);
             }
         }
     }
 }
 
-impl Default for Bus {
+impl Default for ActorSystem {
     fn default() -> Self {
-        Bus::new(Arc::new(Executor::default()))
+        ActorSystem::new(Arc::new(Executor::default()))
     }
 }
 
@@ -161,7 +255,7 @@ mod tests {
     }
 
     impl EventHandler<Counted> for Recorder {
-        fn handle(&mut self, message: Counted) {
+        fn handle(&mut self, message: Counted, _ctx: &ActorContext) {
             self.seen.lock().unwrap().push(message.0);
             let (count, cv) = &*self.signal;
             *count.lock().unwrap() += 1;
@@ -183,7 +277,7 @@ mod tests {
 
     #[test]
     fn subscribe_and_publish_delivers_message() {
-        let bus = Bus::default();
+        let bus = ActorSystem::default();
         let seen = Arc::new(Mutex::new(Vec::new()));
         let signal = Arc::new((Mutex::new(0), Condvar::new()));
 
@@ -192,7 +286,7 @@ mod tests {
             signal: Arc::clone(&signal),
         });
 
-        bus.publish(Counted(42));
+        bus.send(Counted(42));
         wait_for(&signal, 1);
 
         assert_eq!(*seen.lock().unwrap(), vec![42]);
@@ -200,7 +294,7 @@ mod tests {
 
     #[test]
     fn unrelated_message_types_do_not_cross_wires() {
-        let bus = Bus::default();
+        let bus = ActorSystem::default();
         let seen = Arc::new(Mutex::new(Vec::new()));
         let signal = Arc::new((Mutex::new(0), Condvar::new()));
 
@@ -210,8 +304,8 @@ mod tests {
         });
 
         // Nobody subscribed to Warning, so this should be a silent no-op.
-        bus.publish(Warning("disk almost full"));
-        bus.publish(Counted(1));
+        bus.send(Warning("disk almost full"));
+        bus.send(Counted(1));
         wait_for(&signal, 1);
 
         assert_eq!(*seen.lock().unwrap(), vec![1]);
@@ -219,7 +313,7 @@ mod tests {
 
     #[test]
     fn multiple_subscribers_of_same_type_all_receive() {
-        let bus = Bus::default();
+        let bus = ActorSystem::default();
         let seen_a = Arc::new(Mutex::new(Vec::new()));
         let seen_b = Arc::new(Mutex::new(Vec::new()));
         let signal_a = Arc::new((Mutex::new(0), Condvar::new()));
@@ -234,7 +328,7 @@ mod tests {
             signal: Arc::clone(&signal_b),
         });
 
-        bus.publish(Counted(7));
+        bus.send(Counted(7));
         wait_for(&signal_a, 1);
         wait_for(&signal_b, 1);
 
@@ -244,7 +338,7 @@ mod tests {
 
     #[test]
     fn ordering_preserved_per_actor_under_parallel_executor() {
-        let bus = Bus::new(Arc::new(Executor::FixedSizedWorkerPool(4)));
+        let bus = ActorSystem::new(Arc::new(Executor::FixedSizedWorkerPool(4)));
         let seen = Arc::new(Mutex::new(Vec::new()));
         let signal = Arc::new((Mutex::new(0), Condvar::new()));
 
@@ -255,7 +349,7 @@ mod tests {
 
         const N: usize = 500;
         for i in 0..N as i32 {
-            bus.publish(Counted(i));
+            bus.send(Counted(i));
         }
         wait_for(&signal, N);
 
@@ -265,28 +359,85 @@ mod tests {
 
     #[test]
     fn publish_with_no_subscribers_does_not_panic() {
-        let bus = Bus::default();
-        bus.publish(Counted(1));
+        let bus = ActorSystem::default();
+        bus.send(Counted(1));
     }
 
     #[test]
     fn closures_work_as_handlers() {
-        let bus = Bus::default();
+        let bus = ActorSystem::default();
         let seen = Arc::new(Mutex::new(Vec::new()));
         let signal = Arc::new((Mutex::new(0), Condvar::new()));
 
         let seen2 = Arc::clone(&seen);
         let signal2 = Arc::clone(&signal);
-        bus.subscribe::<Warning, _>(move |w: Warning| {
+        bus.subscribe::<Warning, _>(move |w: Warning, _ctx: &ActorContext| {
             seen2.lock().unwrap().push(w.0);
             let (count, cv) = &*signal2;
             *count.lock().unwrap() += 1;
             cv.notify_all();
         });
 
-        bus.publish(Warning("low disk space"));
+        bus.send(Warning("low disk space"));
         wait_for(&signal, 1);
 
         assert_eq!(*seen.lock().unwrap(), vec!["low disk space"]);
+    }
+
+    #[test]
+    fn has_subscribers_reflects_registration_state() {
+        let bus = ActorSystem::default();
+        assert!(!bus.has_subscribers::<Counted>());
+
+        bus.subscribe::<Counted, _>(|_msg: Counted, _ctx: &ActorContext| {});
+        assert!(bus.has_subscribers::<Counted>());
+        assert!(!bus.has_subscribers::<Warning>());
+    }
+
+    #[test]
+    fn handler_receives_shared_thread_sync_via_context() {
+        let sync = ThreadSync::new();
+        let bus = ActorSystem::with_sync(Arc::new(Executor::default()), sync.clone());
+        let signal = Arc::new((Mutex::new(0), Condvar::new()));
+        let signal_clone = Arc::clone(&signal);
+
+        assert!(!sync.is_stopped());
+
+        bus.subscribe::<Counted, _>(move |_msg: Counted, ctx: &ActorContext| {
+            ctx.sync.stop();
+            let (n, cv) = &*signal_clone;
+            *n.lock().unwrap() += 1;
+            cv.notify_all();
+        });
+
+        bus.send(Counted(1));
+        wait_for(&signal, 1);
+
+        assert!(sync.is_stopped());
+    }
+
+    #[test]
+    fn set_sync_rebinds_context_for_future_sends() {
+        let bus = ActorSystem::default();
+        let seen_stopped = Arc::new(Mutex::new(false));
+        let signal = Arc::new((Mutex::new(0), Condvar::new()));
+
+        let seen_stopped2 = Arc::clone(&seen_stopped);
+        let signal2 = Arc::clone(&signal);
+        bus.subscribe::<Counted, _>(move |_msg: Counted, ctx: &ActorContext| {
+            *seen_stopped2.lock().unwrap() = ctx.sync.is_stopped();
+            let (n, cv) = &*signal2;
+            *n.lock().unwrap() += 1;
+            cv.notify_all();
+        });
+
+        let real_sync = ThreadSync::new();
+        real_sync.stop();
+        bus.set_sync(real_sync);
+
+        bus.send(Counted(1));
+        wait_for(&signal, 1);
+
+        assert!(*seen_stopped.lock().unwrap());
     }
 }

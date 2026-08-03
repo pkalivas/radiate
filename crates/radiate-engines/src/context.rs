@@ -80,6 +80,8 @@ where
     T: Clone,
 {
     fn from(config: EngineConfig<C, T>) -> Self {
+        let sync = Some(config.sync());
+
         if let Some(generation) = config.generation() {
             return EvolutionContext {
                 ecosystem: generation.ecosystem().clone(),
@@ -90,7 +92,7 @@ where
                 front: config.front(),
                 objective: config.objective().clone(),
                 problem: config.problem().clone(),
-                control: None,
+                control: sync,
                 exprs: generation.exprs(),
             };
         }
@@ -109,7 +111,7 @@ where
             front: config.front(),
             objective: config.objective().clone(),
             problem: config.problem().clone(),
-            control: None,
+            control: sync,
             exprs: config.exprs(),
         }
     }

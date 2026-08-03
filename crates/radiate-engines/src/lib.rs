@@ -14,8 +14,9 @@ pub use builder::GeneticEngineBuilder;
 pub use context::EvolutionContext;
 pub use engine::GeneticEngine;
 pub use events::{
-    EngineEvent, EngineEventInner, EventBus, EventHandler, EventType, OnEpochComplete,
-    OnEpochEvent, OnEpochStart, OnImprovement, OnStart, OnStop,
+    EngineEvent, EngineMessage, EpochCompleted, EpochCompletedData, EpochStarted,
+    EpochStartedData, EventBus, Improved, ImprovedData, Started, StartedData, Stopped,
+    StoppedData,
 };
 pub use generation::{Generation, GenerationView};
 pub use io::{FileReader, FileWriter, JsonReader, JsonWriter};

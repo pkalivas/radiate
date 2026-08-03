@@ -188,7 +188,9 @@ where
         pipeline.add_step(Self::build_species_step(&config));
         pipeline.add_step(Self::build_audit_step(&config));
 
-        let event_bus = EventBus::new(config.bus_executor(), config.bus().handlers());
+        let event_bus = config.bus();
+        event_bus.set_executor(config.bus_executor());
+        event_bus.set_sync(config.sync());
         let context = EvolutionContext::from(config);
 
         Ok(GeneticEngine::<C, T>::new(context, pipeline, event_bus))

@@ -98,6 +98,15 @@ impl<C: Chromosome, T: Clone> EngineConfig<C, T> {
         self.bus.clone()
     }
 
+    /// The single `ThreadSync` this engine (and every actor subscribed on
+    /// its `EventBus`) shares — always set by `EngineConfig::from`, so this
+    /// never has to lazily create one.
+    pub fn sync(&self) -> ThreadSync {
+        self.sync
+            .clone()
+            .expect("EngineConfig::from always sets sync")
+    }
+
     pub fn problem(&self) -> Arc<dyn Problem<C, T>> {
         Arc::clone(&self.problem)
     }
@@ -155,7 +164,7 @@ where
             generation: params.generation.clone(),
             exprs: params.exprs.clone(),
             filters: params.filter_params.filters.clone(),
-            sync: None,
+            sync: Some(ThreadSync::new()),
         }
     }
 }

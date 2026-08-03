@@ -9,12 +9,11 @@ fn main() {
     let engine = GeneticEngine::builder()
         .codec(FloatCodec::vector(6, -5.0..5.0))
         .fitness_fn(your_fitness_fn)
-        .subscribe(|event: &EngineEvent<Vec<f32>>| {
-            if let EngineEventInner::EpochComplete(index, best, metrics, score, objective) =
-                event.inner()
-            {
-                println!("Printing from event handler! [ {:?} ]: {:?}", index, score);
-            }
+        .on_epoch_complete(|event: EpochCompleted<Vec<f32>>, _ctx: &ActorContext| {
+            println!(
+                "Printing from event handler! [ {:?} ]: {:?}",
+                event.index, event.score
+            );
         })
         // ... other parameters ...
         .build();
@@ -26,20 +25,19 @@ fn main() {
     // --8<-- [start:handler]
     struct MyHandler;
 
-    impl EventHandler<Vec<f32>> for MyHandler {
-        fn handle(&mut self, event: EngineEvent<Vec<f32>>) {
-            if let EngineEventInner::EpochComplete(index, best, metrics, score, objective) =
-                event.inner()
-            {
-                println!("Printing from event handler! [ {:?} ]: {:?}", index, score);
-            }
+    impl EventHandler<EpochCompleted<Vec<f32>>> for MyHandler {
+        fn handle(&mut self, event: EpochCompleted<Vec<f32>>, _ctx: &ActorContext) {
+            println!(
+                "Printing from event handler! [ {:?} ]: {:?}",
+                event.index, event.score
+            );
         }
     }
 
     // Create and configure the engine
     let engine = GeneticEngine::builder()
         .codec(FloatCodec::vector(6, -5.0..5.0))
-        .subscribe(MyHandler) // Add your handler here
+        .on_epoch_complete(MyHandler) // Add your handler here
         .fitness_fn(your_fitness_fn)
         // ... other parameters ...
         .build();
