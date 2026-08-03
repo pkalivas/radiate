@@ -6,7 +6,7 @@ mod styles;
 mod widgets;
 
 use crate::runtime::TuiEngine;
-use radiate_engines::{Chromosome, GeneticEngine};
+use radiate_engines::{Chromosome, GeneticEngine, disable_logging};
 use std::time::Duration;
 
 pub const DEFAULT_RENDER_INTERVAL: Duration = Duration::from_millis(100);
@@ -16,6 +16,7 @@ where
     C: Chromosome + Clone + 'static,
     T: Clone + Send + Sync,
 {
+    disable_logging();
     let (engine, render_interval, manual) = match engine.into() {
         UiInput::Engine(e) => (e, DEFAULT_RENDER_INTERVAL, false),
         UiInput::EngineRenderInterval(e, d) => (e, d, false),

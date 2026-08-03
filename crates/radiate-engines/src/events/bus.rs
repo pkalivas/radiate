@@ -286,7 +286,7 @@ mod tests {
         let bus = bus_with_sync::<EngineEvent<Vec<bool>>, _>(
             sync.clone(),
             move |_event: EngineEvent<Vec<bool>>, ctx: &EventContext| {
-                ctx.sync.stop();
+                ctx.stop();
                 let (n, cv) = &*signal_clone;
                 *n.lock().unwrap() += 1;
                 cv.notify_all();
@@ -310,7 +310,7 @@ mod tests {
         let bus = bus_with_sync::<Improved<Vec<bool>>, _>(
             sync.clone(),
             move |_msg: Improved<Vec<bool>>, ctx: &EventContext| {
-                ctx.sync.stop();
+                ctx.stop();
                 let (n, cv) = &*signal_clone;
                 *n.lock().unwrap() += 1;
                 cv.notify_all();
@@ -340,7 +340,7 @@ mod tests {
         let bus =
             bus_with_sync::<Warning, _>(sync.clone(), move |w: Warning, ctx: &EventContext| {
                 seen2.lock().unwrap().push(w.text);
-                ctx.sync.stop();
+                ctx.stop();
                 let (n, cv) = &*signal2;
                 *n.lock().unwrap() += 1;
                 cv.notify_all();

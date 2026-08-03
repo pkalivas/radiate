@@ -71,30 +71,39 @@ impl<M: Message> Actor<M> {
         }
     }
 
+    /// Drains in batches rather than one `pop_front` per message: each pass
+    /// swaps the *entire* current mailbox out under a single lock, then
+    /// processes it without holding that lock at all. Locking per-message
+    /// instead would mean every message fights concurrent `tell` calls (from
+    /// any producer thread) for the same `Mutex` — under load that
+    /// contention dominates, since this is the one lock every producer and
+    /// the drain itself both need.
     fn drain(self: Arc<Self>) {
         loop {
-            let next = self.mailbox.lock().unwrap().pop_front();
-            match next {
-                Some((message, ctx)) => {
-                    self.handler.lock().unwrap().handle(message, &ctx);
-                    self.num_processed.fetch_add(1, Ordering::AcqRel);
-                }
-                None => {
-                    self.scheduled.store(false, Ordering::Release);
+            let batch = std::mem::take(&mut *self.mailbox.lock().unwrap());
 
-                    // Something may have been pushed between the pop above
-                    // returning `None` and clearing `scheduled`. Re-claim the
-                    // slot and keep draining if so, otherwise we're done.
-                    let more_arrived = !self.mailbox.lock().unwrap().is_empty();
-                    if !more_arrived
-                        || self
-                            .scheduled
-                            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
-                            .is_err()
-                    {
-                        return;
-                    }
+            if batch.is_empty() {
+                self.scheduled.store(false, Ordering::Release);
+
+                // Something may have been pushed between the take above
+                // returning empty and clearing `scheduled`. Re-claim the
+                // slot and keep draining if so, otherwise we're done.
+                let more_arrived = !self.mailbox.lock().unwrap().is_empty();
+                if !more_arrived
+                    || self
+                        .scheduled
+                        .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+                        .is_err()
+                {
+                    return;
                 }
+                continue;
+            }
+
+            let mut handler = self.handler.lock().unwrap();
+            for (message, ctx) in batch {
+                handler.handle(message, &ctx);
+                self.num_processed.fetch_add(1, Ordering::AcqRel);
             }
         }
     }

@@ -26,7 +26,7 @@ fn main() {
 
     radiate::ui((engine, true))
         .iter()
-        // .logging()
+        .logging()
         .until_score(MIN_SCORE)
         .last()
         .inspect(display)

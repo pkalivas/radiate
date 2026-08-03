@@ -22,7 +22,7 @@ fn main() {
             //     event.metrics,
             //     event.objective
             // );
-            _ctx.sync.stop();
+            _ctx.stop();
         })
         .build();
 

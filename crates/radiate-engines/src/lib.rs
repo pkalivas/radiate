@@ -10,7 +10,10 @@ mod pipeline;
 pub mod runtime;
 mod steps;
 
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{
+    Mutex,
+    atomic::{AtomicBool, Ordering},
+};
 
 pub use builder::GeneticEngineBuilder;
 pub use context::EvolutionContext;
@@ -38,16 +41,24 @@ pub use radiate_utils::Shape;
 
 pub(crate) type Result<T> = std::result::Result<T, RadiateError>;
 
-pub fn init_logging() {
-    pub use std::sync::Once;
-    static INIT_LOGGING: Once = Once::new();
-    static LOGGING_INITIALIZED: AtomicBool = AtomicBool::new(false);
+pub use std::sync::Once;
+static INIT_LOGGING: Mutex<Once> = Mutex::new(Once::new());
+static LOGGING_INITIALIZED: AtomicBool = AtomicBool::new(false);
 
+pub fn disable_logging() {
+    LOGGING_INITIALIZED.store(true, Ordering::SeqCst);
+    INIT_LOGGING.lock().unwrap().call_once(|| {
+        tracing::subscriber::set_global_default(tracing::subscriber::NoSubscriber::default())
+            .expect("Failed to set global subscriber");
+    });
+}
+
+pub fn init_logging() {
     if LOGGING_INITIALIZED.load(Ordering::SeqCst) {
         return;
     }
 
-    INIT_LOGGING.call_once(|| {
+    INIT_LOGGING.lock().unwrap().call_once(|| {
         use tracing_subscriber::fmt::format::FmtSpan;
         use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 

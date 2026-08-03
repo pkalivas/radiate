@@ -77,7 +77,10 @@ impl ActorSystem {
     }
 
     fn current_context(&self) -> EventContext {
-        EventContext { sync: self.sync() }
+        EventContext {
+            sync: self.sync(),
+            system: self.clone(),
+        }
     }
 
     /// Register a handler for message type `M`. Takes `&self` — subscribing
@@ -118,18 +121,34 @@ impl ActorSystem {
     /// Send a message. Only actors subscribed to `TypeId::of::<M>()` are
     /// touched — if nobody's listening for this kind, this is just a map
     /// lookup, no payload cloning happens.
+    ///
+    /// The registry lock is dropped before any actor is told about the
+    /// message — under a `Serial` executor, `tell` drains the actor's
+    /// mailbox (and so runs the handler) inline, on this same call stack.
+    /// A handler that calls `EventContext::send`/`has_subscribers` back
+    /// into this same `ActorSystem` would then try to re-lock a `Mutex`
+    /// this thread already holds, which deadlocks instead of blocking
+    /// briefly (`std::sync::Mutex` isn't reentrant).
+    /// Send a message. Only actors subscribed to `TypeId::of::<M>()` are
+    /// touched — if nobody's listening for this kind, this is just a map
+    /// lookup, no payload cloning happens.
     pub fn send<M: Message + Clone>(&self, message: M) {
-        let actors = self.actors.lock().unwrap();
-        let Some(sub) = actors.get(&TypeId::of::<M>()) else {
-            return;
+        let actors = {
+            let registry = self.actors.lock().unwrap();
+            match registry.get(&TypeId::of::<M>()) {
+                Some(sub) => sub
+                    .actors
+                    .iter()
+                    .filter_map(|actor| Arc::clone(actor).as_any_arc().downcast::<Actor<M>>().ok())
+                    .collect::<Vec<_>>(),
+                None => return,
+            }
         };
 
         let executor = self.current_executor();
         let ctx = self.current_context();
-        for erased in &sub.actors {
-            if let Ok(actor) = Arc::clone(erased).as_any_arc().downcast::<Actor<M>>() {
-                actor.tell(message.clone(), ctx.clone(), &executor);
-            }
+        for actor in actors.iter() {
+            actor.tell(message.clone(), ctx.clone(), &executor);
         }
     }
 }
@@ -327,6 +346,70 @@ mod tests {
         wait_for(&signal, 1);
 
         assert!(sync.is_stopped());
+    }
+
+    #[test]
+    fn handler_can_publish_further_messages_via_context() {
+        let bus = ActorSystem::default();
+        let warnings_seen = Arc::new(Mutex::new(0));
+        let escalated = Arc::new(Mutex::new(Vec::new()));
+        let signal = Arc::new((Mutex::new(0), Condvar::new()));
+
+        let escalated2 = Arc::clone(&escalated);
+        let signal2 = Arc::clone(&signal);
+        bus.subscribe::<Warning, _>(move |w: Warning, ctx: &EventContext| {
+            escalated2.lock().unwrap().push(w.0);
+            let (n, cv) = &*signal2;
+            *n.lock().unwrap() += 1;
+            cv.notify_all();
+            // Escalate: republish as a plain Counted "alert raised" signal
+            // on the same system, via the context handed to this handler.
+            ctx.send(Counted(1));
+        });
+
+        let warnings_seen2 = Arc::clone(&warnings_seen);
+        let signal3 = Arc::clone(&signal);
+        bus.subscribe::<Counted, _>(move |_msg: Counted, _ctx: &EventContext| {
+            *warnings_seen2.lock().unwrap() += 1;
+            let (n, cv) = &*signal3;
+            *n.lock().unwrap() += 1;
+            cv.notify_all();
+        });
+
+        bus.send(Warning("disk almost full"));
+        // Both the Warning handler and the Counted handler it triggers
+        // signal on the same counter, so wait for both to have fired.
+        wait_for(&signal, 2);
+
+        assert_eq!(*escalated.lock().unwrap(), vec!["disk almost full"]);
+        assert_eq!(*warnings_seen.lock().unwrap(), 1);
+    }
+
+    #[test]
+    fn context_has_subscribers_reflects_live_registration_state() {
+        let bus = ActorSystem::default();
+        let seen = Arc::new(Mutex::new(false));
+        let signal = Arc::new((Mutex::new(0), Condvar::new()));
+
+        let seen2 = Arc::clone(&seen);
+        let signal2 = Arc::clone(&signal);
+        bus.subscribe::<Counted, _>(move |_msg: Counted, ctx: &EventContext| {
+            *seen2.lock().unwrap() = ctx.has_subscribers::<Warning>();
+            let (n, cv) = &*signal2;
+            *n.lock().unwrap() += 1;
+            cv.notify_all();
+        });
+
+        // Nobody subscribed to Warning yet.
+        bus.send(Counted(1));
+        wait_for(&signal, 1);
+        assert!(!*seen.lock().unwrap());
+
+        bus.subscribe::<Warning, _>(|_w: Warning, _ctx: &EventContext| {});
+
+        bus.send(Counted(2));
+        wait_for(&signal, 2);
+        assert!(*seen.lock().unwrap());
     }
 
     #[test]
