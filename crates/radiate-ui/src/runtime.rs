@@ -3,7 +3,7 @@ use crate::state::LogLevel;
 use color_eyre::{Result, eyre::Context};
 use radiate_engines::{
     Chromosome, Engine, EngineState, EngineStream, EventContext, Generation, GenerationView,
-    GeneticEngine, error::RadiateResult, events::LogEvent, sync::ArcExt,
+    GeneticEngine, error::RadiateResult, events::Log, sync::ArcExt,
 };
 use radiate_engines::{EngineRuntime, EvolutionContext, ThreadSync};
 use std::{
@@ -83,8 +83,8 @@ where
     ) {
         let dispatch = Arc::clone(&dispatcher);
         engine
-            .on::<LogEvent>()
-            .handle(move |msg: &LogEvent, _: &EventContext| {
+            .on::<Log>()
+            .handle(move |msg: &Log, _: &EventContext| {
                 dispatch
                     .send(InputEvent::Log(
                         match msg.level() {

@@ -4,7 +4,7 @@ mod relay;
 
 pub use handlers::{LoggingHandler, MetricCollector};
 pub use message::{
-    EngineEvent, EngineImproved, EngineMessage, EngineStart, EngineStopped, EpochCompleted,
-    EpochStart, LimitTriggered, LogEvent, LogLevel,
+    EngineEvent, EngineMessage, EngineStart, EngineStop, EpochComplete, EpochStart, Improvement,
+    LimitTriggered, Log, LogLevel,
 };
 pub(crate) use relay::event_relay;

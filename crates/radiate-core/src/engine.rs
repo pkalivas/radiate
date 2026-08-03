@@ -36,7 +36,7 @@ pub enum EngineState {
 /// # Examples
 ///
 /// ```rust
-/// use radiate_core::engine::{Engine, EngineExt};
+/// use radiate_core::engine::{Engine, EngineExt, EngineState};
 /// use radiate_error::RadiateError;
 ///
 /// #[derive(Default)]
@@ -66,11 +66,11 @@ pub enum EngineState {
 ///         }
 ///     }
 ///
-///     fn step(&mut self) -> Result<(), RadiateError> {
+///     fn step(&mut self) -> Result<EngineState, RadiateError> {
 ///         // Perform one generation of evolution
-///         // ... evolve population ...  
+///         // ... evolve population ...
 ///         self.generation += 1;
-///         Ok(())
+///         Ok(EngineState::Running)
 ///     }
 /// }
 ///

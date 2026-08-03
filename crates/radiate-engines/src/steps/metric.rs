@@ -1,4 +1,4 @@
-use crate::{events::LogEvent, steps::EngineStep};
+use crate::{events::Log, steps::EngineStep};
 use radiate_core::{
     Chromosome, Ecosystem, Evaluate, MessageBroker, MetricSet, MetricUpdate, Objective, Score,
     SmallStr, math::distribution, metric_names, phenotype::PhenotypeId, rate::ExprSet,
@@ -122,6 +122,7 @@ impl MetricStep {
     #[inline]
     fn calc_improvement_metrics<C: Chromosome>(
         &mut self,
+        generation: usize,
         metrics: &mut MetricSet,
         ecosystem: &Ecosystem<C>,
     ) {
@@ -145,10 +146,10 @@ impl MetricStep {
             self.stagnation_count += 1;
 
             if !self.warned_this_streak && self.stagnation_count >= STAGNATION_WARNING_THRESHOLD {
-                self.event_system.send(LogEvent::warn(format!(
-                    "no improvement in {} generations",
-                    self.stagnation_count
-                )));
+                self.event_system.send(Log::warn(
+                    Some(generation),
+                    format!("no improvement in {} generations", self.stagnation_count),
+                ));
                 self.warned_this_streak = true;
             }
         }
@@ -373,7 +374,7 @@ impl<C: Chromosome> EngineStep<C> for MetricStep {
 
         self.calc_membership_metrics(metrics, ecosystem);
         Self::calc_derived_metrics(metrics, ecosystem);
-        self.calc_improvement_metrics(metrics, ecosystem);
+        self.calc_improvement_metrics(generation, metrics, ecosystem);
         self.calc_actor_system_metrics(metrics);
         self.calc_expression_metrics(metrics)?;
 

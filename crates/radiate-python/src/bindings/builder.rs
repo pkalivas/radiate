@@ -1,4 +1,7 @@
-use crate::bindings::codec::{PyGraphCodecInner, PyTreeCodecInner};
+use crate::bindings::{
+    codec::{PyGraphCodecInner, PyTreeCodecInner},
+    subscriber,
+};
 use crate::events::PyEventHandler;
 use crate::{
     EngineBuilderHandle, FreeThreadPyEvaluator, InputTransform, PyCodec, PyEngine, PyEngineInput,
@@ -239,8 +242,17 @@ impl PyEngineBuilder {
             inputs,
             Self::process_many_typed(|typed_builder, sub_inputs| {
                 let mut subs = Vec::with_capacity(sub_inputs.len());
+                let mut broker = MessageBroker::default();
+
                 for input in sub_inputs {
-                    subs.push(input.extract::<PySubscriber>("subscriber")?);
+                    let subscriber = input.extract::<PySubscriber>("subscriber")?;
+                    match subscriber.event_name().unwrap() {
+                        crate::constants::components::START_EVENT => {
+                            subs.push(subscriber);
+                        }
+                    }
+
+                    // subs.push(input.extract::<PySubscriber>("subscriber")?);
                 }
 
                 if subs.is_empty() {
@@ -577,7 +589,7 @@ impl PyEngineBuilder {
                 let base_engine = GeneticEngine::builder()
                     .codec(c)
                     .executor(executor)
-                    .event_executor(Executor::default())
+                    .broker_executor(Executor::default())
                     .replace_strategy(GraphReplacement);
 
                 if is_batch {
@@ -593,7 +605,7 @@ impl PyEngineBuilder {
                 let base_engine = GeneticEngine::builder()
                     .codec(c)
                     .executor(executor)
-                    .event_executor(Executor::default());
+                    .broker_executor(Executor::default());
 
                 if is_batch {
                     Ok(Tree32(base_engine.raw_batch_fitness_fn(regression)))
@@ -625,7 +637,7 @@ impl PyEngineBuilder {
                 let base_engine = GeneticEngine::builder()
                     .codec(c)
                     .executor(executor)
-                    .event_executor(Executor::default())
+                    .broker_executor(Executor::default())
                     .replace_strategy(GraphReplacement);
 
                 if is_batch {
@@ -641,7 +653,7 @@ impl PyEngineBuilder {
                 let base_engine = GeneticEngine::builder()
                     .codec(c)
                     .executor(executor)
-                    .event_executor(Executor::default());
+                    .broker_executor(Executor::default());
 
                 if is_batch {
                     Ok(Tree64(base_engine.raw_batch_fitness_fn(regression)))
@@ -744,7 +756,7 @@ impl PyEngineBuilder {
             .problem(problem)
             .executor(executor.clone())
             .evaluator(FreeThreadPyEvaluator::new(executor))
-            .event_executor(Executor::default())
+            .broker_executor(Executor::default())
     }
 
     fn wrapped_codec<C, T, PC>(original: PC) -> PyCodec<C, T>

@@ -1,4 +1,4 @@
-use crate::{Engine, EvolutionContext, Generation, Limit, events::LogEvent, init_logging};
+use crate::{Engine, EvolutionContext, Generation, Limit, events::Log, init_logging};
 #[cfg(feature = "serde")]
 use crate::{FileWriter, JsonWriter};
 use crate::{LimitTriggered, generation::GenerationView};
@@ -212,14 +212,17 @@ where
         init_logging();
         let system = self.engine.context().broker();
 
-        system.on::<LogEvent>().handle(LoggingHandler);
+        system.on::<Log>().handle(LoggingHandler);
         system
             .on::<LimitTriggered>()
             .handle(move |msg: &LimitTriggered, ctx: &EventContext| {
-                ctx.send(LogEvent::info(format!(
-                    "{:?} triggered [{}]: {}",
-                    msg.kind, msg.generation, msg.description
-                )));
+                ctx.send(Log::info(
+                    Some(msg.generation),
+                    format!(
+                        "{:?} triggered [{}]: {}",
+                        msg.kind, msg.generation, msg.description
+                    ),
+                ));
             });
 
         let action = LoggingAction(every);

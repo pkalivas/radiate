@@ -22,15 +22,15 @@ macro_rules! engine_message {
         impl EngineMessage for $t {}
     )* };
 }
-engine_message!(EngineStart, EpochStart, LimitTriggered, LogEvent);
-impl<T: Send + Sync + 'static> sealed::Sealed for EngineImproved<T> {}
-impl<T: Send + Sync + 'static> EngineMessage for EngineImproved<T> {}
+engine_message!(EngineStart, EpochStart, LimitTriggered, Log);
+impl<T: Send + Sync + 'static> sealed::Sealed for Improvement<T> {}
+impl<T: Send + Sync + 'static> EngineMessage for Improvement<T> {}
 
-impl<T: Send + Sync + 'static> sealed::Sealed for EpochCompleted<T> {}
-impl<T: Send + Sync + 'static> EngineMessage for EpochCompleted<T> {}
+impl<T: Send + Sync + 'static> sealed::Sealed for EpochComplete<T> {}
+impl<T: Send + Sync + 'static> EngineMessage for EpochComplete<T> {}
 
-impl<T: Send + Sync + 'static> sealed::Sealed for EngineStopped<T> {}
-impl<T: Send + Sync + 'static> EngineMessage for EngineStopped<T> {}
+impl<T: Send + Sync + 'static> sealed::Sealed for EngineStop<T> {}
+impl<T: Send + Sync + 'static> EngineMessage for EngineStop<T> {}
 
 #[derive(Clone, Debug)]
 pub enum LogLevel {
@@ -39,23 +39,39 @@ pub enum LogLevel {
 }
 
 #[derive(Clone, Debug)]
-pub struct LogEvent(pub LogLevel, pub String);
+pub struct Log {
+    pub level: LogLevel,
+    pub index: Option<usize>,
+    pub message: String,
+}
 
-impl LogEvent {
-    pub fn info<S: Into<String>>(msg: S) -> Self {
-        LogEvent(LogLevel::Info, msg.into())
+impl Log {
+    pub fn info<S: Into<String>>(index: Option<usize>, msg: S) -> Self {
+        Log {
+            level: LogLevel::Info,
+            index,
+            message: msg.into(),
+        }
     }
 
-    pub fn warn<S: Into<String>>(msg: S) -> Self {
-        LogEvent(LogLevel::Warn, msg.into())
+    pub fn warn<S: Into<String>>(index: Option<usize>, msg: S) -> Self {
+        Log {
+            level: LogLevel::Warn,
+            index,
+            message: msg.into(),
+        }
     }
 
     pub fn level(&self) -> LogLevel {
-        self.0.clone()
+        self.level.clone()
+    }
+
+    pub fn index(&self) -> Option<usize> {
+        self.index
     }
 
     pub fn message(&self) -> &str {
-        &self.1
+        &self.message
     }
 }
 
@@ -99,25 +115,25 @@ where
 }
 
 #[derive(Clone)]
-pub struct EngineImproved<T> {
+pub struct Improvement<T> {
     pub index: usize,
     pub best: T,
     pub score: Score,
 }
 
-impl<T> Debug for EngineImproved<T> {
+impl<T> Debug for Improvement<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Improved(index={}, score={:?})", self.index, self.score)
     }
 }
 
-impl<C, T> From<&EvolutionContext<C, T>> for EngineImproved<T>
+impl<C, T> From<&EvolutionContext<C, T>> for Improvement<T>
 where
     C: Chromosome,
     T: Clone,
 {
     fn from(ctx: &EvolutionContext<C, T>) -> Self {
-        EngineImproved {
+        Improvement {
             index: ctx.index,
             best: ctx.best.clone(),
             score: ctx.score.clone().unwrap_or_default(),
@@ -126,7 +142,7 @@ where
 }
 
 #[derive(Clone)]
-pub struct EpochCompleted<T> {
+pub struct EpochComplete<T> {
     pub index: usize,
     pub best: T,
     pub metrics: MetricSet,
@@ -134,13 +150,13 @@ pub struct EpochCompleted<T> {
     pub objective: Objective,
 }
 
-impl<C, T> From<&EvolutionContext<C, T>> for EpochCompleted<T>
+impl<C, T> From<&EvolutionContext<C, T>> for EpochComplete<T>
 where
     C: Chromosome,
     T: Clone,
 {
     fn from(ctx: &EvolutionContext<C, T>) -> Self {
-        EpochCompleted {
+        EpochComplete {
             index: ctx.index,
             best: ctx.best.clone(),
             metrics: ctx.metrics.clone(),
@@ -150,7 +166,7 @@ where
     }
 }
 
-impl<T> Debug for EpochCompleted<T> {
+impl<T> Debug for EpochComplete<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -161,20 +177,20 @@ impl<T> Debug for EpochCompleted<T> {
 }
 
 #[derive(Clone)]
-pub struct EngineStopped<T> {
+pub struct EngineStop<T> {
     pub index: usize,
     pub best: T,
     pub metrics: MetricSet,
     pub score: Score,
 }
 
-impl<C, T> From<&EvolutionContext<C, T>> for EngineStopped<T>
+impl<C, T> From<&EvolutionContext<C, T>> for EngineStop<T>
 where
     C: Chromosome,
     T: Clone,
 {
     fn from(ctx: &EvolutionContext<C, T>) -> Self {
-        EngineStopped {
+        EngineStop {
             index: ctx.index,
             best: ctx.best.clone(),
             metrics: ctx.metrics.clone(),
@@ -183,7 +199,7 @@ where
     }
 }
 
-impl<T> Debug for EngineStopped<T> {
+impl<T> Debug for EngineStop<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -196,12 +212,12 @@ impl<T> Debug for EngineStopped<T> {
 #[derive(Clone)]
 pub enum EngineEvent<T> {
     Started(EngineStart),
-    Stopped(EngineStopped<T>),
+    Stopped(EngineStop<T>),
     EpochStarted(EpochStart),
-    EpochCompleted(EpochCompleted<T>),
-    Improved(EngineImproved<T>),
+    EpochCompleted(EpochComplete<T>),
+    Improved(Improvement<T>),
     LimitTriggered(LimitTriggered),
-    Log(LogEvent),
+    Log(Log),
 }
 
 impl<T> EngineEvent<T> {
@@ -224,31 +240,60 @@ impl<T> EngineEvent<T> {
     pub fn is_improvement(&self) -> bool {
         matches!(self, EngineEvent::Improved(_))
     }
+
+    /// The variant name, independent of the payload it carries — the
+    /// "kind" half of the generic (kind, index, description) view any
+    /// listener can pull without matching all seven variants.
+    pub fn kind(&self) -> &'static str {
+        match self {
+            EngineEvent::Started(_) => "Started",
+            EngineEvent::Stopped(_) => "Stopped",
+            EngineEvent::EpochStarted(_) => "EpochStarted",
+            EngineEvent::EpochCompleted(_) => "EpochCompleted",
+            EngineEvent::Improved(_) => "Improved",
+            EngineEvent::LimitTriggered(_) => "LimitTriggered",
+            EngineEvent::Log(_) => "Log",
+        }
+    }
+
+    /// The generation this event pertains to, where one exists. `None`
+    /// only for `Started` — every other variant, including `Log`, carries
+    /// the generation it was emitted from.
+    pub fn index(&self) -> Option<usize> {
+        match self {
+            EngineEvent::Started(_) => None,
+            EngineEvent::Stopped(s) => Some(s.index),
+            EngineEvent::EpochStarted(s) => Some(s.index),
+            EngineEvent::EpochCompleted(s) => Some(s.index),
+            EngineEvent::Improved(s) => Some(s.index),
+            EngineEvent::LimitTriggered(l) => Some(l.generation),
+            EngineEvent::Log(l) => l.index,
+        }
+    }
+
+    /// A human-readable summary of the payload, where the payload has
+    /// anything beyond its `kind`/`index` worth surfacing generically.
+    pub fn description(&self) -> Option<String> {
+        match self {
+            EngineEvent::Started(_) | EngineEvent::EpochStarted(_) => None,
+            EngineEvent::Stopped(s) => Some(format!("score={:?}", s.score)),
+            EngineEvent::EpochCompleted(s) => {
+                Some(format!("score={:?}, objective={:?}", s.score, s.objective))
+            }
+            EngineEvent::Improved(s) => Some(format!("score={:?}", s.score)),
+            EngineEvent::LimitTriggered(l) => Some(format!("{}: {}", l.kind, l.description)),
+            EngineEvent::Log(l) => Some(l.message.clone()),
+        }
+    }
 }
 
 impl<T> Debug for EngineEvent<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            EngineEvent::Started(_) => write!(f, "Started"),
-            EngineEvent::Stopped(s) => write!(f, "Stopped(index={}, score={:?})", s.index, s.score),
-            EngineEvent::EpochStarted(s) => write!(f, "EpochStarted(index={})", s.index),
-            EngineEvent::EpochCompleted(s) => write!(
-                f,
-                "EpochCompleted(index={}, score={:?}, objective={:?})",
-                s.index, s.score, s.objective
-            ),
-            EngineEvent::Improved(s) => {
-                write!(f, "Improved(index={}, score={:?})", s.index, s.score)
-            }
-            EngineEvent::LimitTriggered(l) => write!(
-                f,
-                "LimitTriggered(generation={}, kind={}, description={})",
-                l.generation, l.kind, l.description
-            ),
-            EngineEvent::Log(msg) => match msg.0 {
-                crate::events::LogLevel::Info => write!(f, "LogInfo({})", msg.1),
-                crate::events::LogLevel::Warn => write!(f, "LogWarn({})", msg.1),
-            },
+        match (self.index(), self.description()) {
+            (Some(i), Some(d)) => write!(f, "{}(index={}, {})", self.kind(), i, d),
+            (Some(i), None) => write!(f, "{}(index={})", self.kind(), i),
+            (None, Some(d)) => write!(f, "{}({})", self.kind(), d),
+            (None, None) => write!(f, "{}", self.kind()),
         }
     }
 }

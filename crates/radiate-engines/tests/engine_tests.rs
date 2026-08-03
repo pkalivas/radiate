@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod engine_tests {
     use radiate_core::*;
-    use radiate_engines::{events::LogEvent, *};
+    use radiate_engines::{events::Log, *};
     use radiate_test::*;
     use rstest::*;
     use std::time::Duration;
@@ -270,10 +270,9 @@ mod engine_tests {
         let collector = MetricCollector::new();
         let history = collector.history();
 
-        let engine = GeneticEngine::builder()
-            .problem(OneMax::new(5))
-            .on_epoch_complete(collector)
-            .build();
+        let engine = GeneticEngine::builder().problem(OneMax::new(5)).build();
+
+        engine.on::<EpochComplete<Vec<bool>>>().handle(collector);
 
         const BUDGET: usize = 10;
         let _ = engine.iter().limit(BUDGET).last().unwrap();
@@ -296,10 +295,16 @@ mod engine_tests {
         let engine = GeneticEngine::builder()
             .codec(FloatCodec::vector(4, -5.0..5.0))
             .fitness_fn(|_geno: Vec<f32>| 1.0)
-            .subscribe_typed::<LogEvent, _>(move |w: &LogEvent, _ctx: &EventContext| {
-                seen2.lock().unwrap().push(w.message().to_string());
-            })
+            // .subscribe_typed::<Log, _>(move |w: &Log, _ctx: &EventContext| {
+            //     seen2.lock().unwrap().push(w.message().to_string());
+            // })
             .build();
+
+        engine
+            .on::<Log>()
+            .handle(move |msg: &Log, _: &EventContext| {
+                seen2.lock().unwrap().push(msg.message().to_string());
+            });
 
         const BUDGET: usize = 60;
         let _ = engine.iter().limit(BUDGET).last().unwrap();
@@ -324,8 +329,14 @@ mod engine_tests {
         let engine = GeneticEngine::builder()
             .codec(FloatCodec::vector(4, -5.0..5.0))
             .fitness_fn(|_geno: Vec<f32>| 1.0)
-            .on_epoch_complete(|_event: &EpochCompleted<Vec<f32>>, _ctx: &EventContext| {})
             .build();
+
+        engine.on::<EpochComplete<Vec<f32>>>().handle(
+            |_: &EpochComplete<Vec<f32>>, _ctx: &EventContext| {
+                // no-op, just to ensure the subscription is registered and the
+                // actor has something to do
+            },
+        );
 
         const BUDGET: usize = 5;
         let result = engine.iter().limit(BUDGET).last().unwrap();
@@ -482,10 +493,13 @@ mod engine_tests {
                     BlendCrossover::new(0.5, 0.5),
                     GaussianMutator::new(0.05)
                 ])
-                .subscribe_typed::<LogEvent, _>(move |w: &LogEvent, _ctx: &EventContext| {
-                    seen2.lock().unwrap().push(w.message().to_string());
-                })
                 .build();
+
+            engine
+                .on::<Log>()
+                .handle(move |msg: &Log, _: &EventContext| {
+                    seen2.lock().unwrap().push(msg.message().to_string());
+                });
 
             let _ = engine.iter().limit(200).last().unwrap();
         });

@@ -200,7 +200,7 @@ where
     fn build_message_broker(&mut self) -> Result<()> {
         let subscribers = self.params.broker.subscribers();
         let sync = self.params.evaluation_params.sync.clone();
-        let executor = self.params.evaluation_params.event_executor.clone();
+        let executor = self.params.evaluation_params.broker_executor.clone();
 
         let new_broker = MessageBroker::from((executor, sync, subscribers));
 
@@ -507,7 +507,7 @@ where
                     evaluator: Arc::new(FitnessEvaluator::default()),
                     fitness_executor: Arc::new(Executor::default()),
                     species_executor: Arc::new(Executor::default()),
-                    event_executor: Arc::new(Executor::default()),
+                    broker_executor: Arc::new(Executor::default()),
                     sync: ThreadSync::new(),
                 },
                 selection_params: SelectionParams {

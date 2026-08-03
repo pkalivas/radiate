@@ -1,6 +1,6 @@
 use crate::events::{
-    EngineEvent, EngineImproved, EngineStart, EngineStopped, EpochCompleted, EpochStart,
-    LimitTriggered, LogEvent,
+    EngineEvent, EngineStart, EngineStop, EpochComplete, EpochStart, Improvement, LimitTriggered,
+    Log,
 };
 use radiate_core::{EventContext, MessageBroker};
 
@@ -31,20 +31,20 @@ where
         });
 
     system
-        .on::<EngineImproved<T>>()
-        .handle(|msg: &EngineImproved<T>, ctx: &EventContext| {
+        .on::<Improvement<T>>()
+        .handle(|msg: &Improvement<T>, ctx: &EventContext| {
             ctx.send(EngineEvent::<T>::Improved(msg.clone()));
         });
 
     system
-        .on::<EpochCompleted<T>>()
-        .handle(|msg: &EpochCompleted<T>, ctx: &EventContext| {
+        .on::<EpochComplete<T>>()
+        .handle(|msg: &EpochComplete<T>, ctx: &EventContext| {
             ctx.send(EngineEvent::<T>::EpochCompleted(msg.clone()));
         });
 
     system
-        .on::<EngineStopped<T>>()
-        .handle(|msg: &EngineStopped<T>, ctx: &EventContext| {
+        .on::<EngineStop<T>>()
+        .handle(|msg: &EngineStop<T>, ctx: &EventContext| {
             ctx.send(EngineEvent::<T>::Stopped(msg.clone()));
         });
 
@@ -54,9 +54,7 @@ where
             ctx.send(EngineEvent::<T>::LimitTriggered(msg.clone()));
         });
 
-    system
-        .on::<LogEvent>()
-        .handle(|msg: &LogEvent, ctx: &EventContext| {
-            ctx.send(EngineEvent::<T>::Log(msg.clone()));
-        });
+    system.on::<Log>().handle(|msg: &Log, ctx: &EventContext| {
+        ctx.send(EngineEvent::<T>::Log(msg.clone()));
+    });
 }

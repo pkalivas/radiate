@@ -1,4 +1,4 @@
-use crate::events::{EngineImproved, EngineMessage, EngineStopped, EpochCompleted, EpochStart};
+use crate::events::{EngineMessage, EngineStop, EpochComplete, EpochStart, Improvement};
 use crate::pipeline::Pipeline;
 use crate::{Chromosome, EngineRuntime, Generation, ThreadSync};
 use crate::{GenerationView, builder::GeneticEngineBuilder};
@@ -188,12 +188,10 @@ where
         self.broker.send(EpochStart::from(&self.context));
         self.pipeline.run(&mut self.context)?;
         if self.context.try_advance_one()? {
-            self.broker
-                .lazy_send(|| EngineImproved::from(&self.context));
+            self.broker.lazy_send(|| Improvement::from(&self.context));
         }
 
-        self.broker
-            .lazy_send(|| EpochCompleted::from(&self.context));
+        self.broker.lazy_send(|| EpochComplete::from(&self.context));
 
         Ok(EngineState::Running)
     }
@@ -216,7 +214,7 @@ where
     {
         loop {
             let view = self.step().map(|_| GenerationView::new(&self.context))?;
-            if !limit(&view) {
+            if limit(&view) {
                 break Ok(self.epoch());
             }
         }
@@ -243,6 +241,6 @@ where
     T: Clone + Send + Sync + 'static,
 {
     fn drop(&mut self) {
-        self.broker.lazy_send(|| EngineStopped::from(&self.context));
+        self.broker.send(EngineStop::from(&self.context));
     }
 }

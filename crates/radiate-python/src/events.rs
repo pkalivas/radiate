@@ -83,7 +83,7 @@ impl PyEventHandler {
                 trigger.index(),
                 Some(trigger.description().to_string()),
             ),
-            EngineEvent::Log(log) => PyEngineEvent::log_event(log.1.to_owned()),
+            EngineEvent::Log(log) => PyEngineEvent::log_event(log.message().to_owned()),
         }
     }
 }
