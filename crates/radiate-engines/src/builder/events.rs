@@ -1,5 +1,7 @@
+use std::fmt::Debug;
+
 use crate::{EngineEvent, EventHandler, GeneticEngineBuilder};
-use radiate_core::Chromosome;
+use radiate_core::{Chromosome, Message};
 
 impl<C, T> GeneticEngineBuilder<C, T>
 where
@@ -13,6 +15,15 @@ where
     where
         H: EventHandler<EngineEvent<T>> + 'static,
         T: Send + Sync + 'static,
+    {
+        self.params.broker.subscribe(handler);
+        self
+    }
+
+    pub fn subscribe_to<H, E>(self, handler: H) -> Self
+    where
+        H: EventHandler<E> + 'static,
+        E: Message + Debug,
     {
         self.params.broker.subscribe(handler);
         self

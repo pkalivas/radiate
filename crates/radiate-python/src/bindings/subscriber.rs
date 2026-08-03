@@ -1,7 +1,10 @@
-use crate::{PyAnyObject, PyMetricSet};
+use crate::{IntoPyAnyObject, PyAnyObject, PyMetricSet, bindings::subscriber};
 use numpy::PyArray1;
 use pyo3::{IntoPyObjectExt, Py, PyAny, PyResult, Python, pyclass, pymethods};
-use radiate::Objective;
+use radiate::{
+    EpochComplete, EventContext, EventHandler, LimitTriggered, Message, MessageBroker, Objective,
+    events::{EngineStart, EngineStop, EpochStart, Improvement, Log},
+};
 use std::fmt::Debug;
 
 #[pyclass(from_py_object)]
@@ -36,6 +39,129 @@ impl Debug for PySubscriber {
         f.debug_struct("PySubscriber")
             .field("event_name", &self.event_name)
             .finish()
+    }
+}
+
+impl EventHandler<EngineStart> for PySubscriber {
+    fn handle(&mut self, _: &EngineStart, _: &EventContext) {
+        Python::attach(|py| {
+            let py_event = subscriber::PyEngineEvent::start();
+            self.function
+                .inner
+                .call1(py, (py_event,))
+                .expect("Failed to call subscriber function");
+        })
+    }
+}
+
+impl<T> EventHandler<EngineStop<T>> for PySubscriber
+where
+    T: IntoPyAnyObject + Clone,
+{
+    fn handle(&mut self, event: &EngineStop<T>, _: &EventContext) {
+        Python::attach(|py| {
+            let py_event = subscriber::PyEngineEvent::stop(
+                event.index,
+                event
+                    .best
+                    .clone()
+                    .into_py(py)
+                    .expect("Failed to convert event."),
+                subscriber::PyMetricSet::from(event.metrics.clone()),
+                event.score.as_ref().to_vec(),
+            );
+            self.function
+                .inner
+                .call1(py, (py_event,))
+                .expect("Failed to call subscriber function");
+        })
+    }
+}
+
+impl EventHandler<EpochStart> for PySubscriber {
+    fn handle(&mut self, event: &EpochStart, _: &EventContext) {
+        Python::attach(|py| {
+            let py_event = subscriber::PyEngineEvent::epoch_start(event.index);
+            self.function
+                .inner
+                .call1(py, (py_event,))
+                .expect("Failed to call subscriber function");
+        })
+    }
+}
+
+impl<T> EventHandler<EpochComplete<T>> for PySubscriber
+where
+    T: IntoPyAnyObject + Clone,
+{
+    fn handle(&mut self, event: &EpochComplete<T>, _: &EventContext) {
+        Python::attach(|py| {
+            let py_event = subscriber::PyEngineEvent::epoch_complete(
+                event.index,
+                event
+                    .best
+                    .clone()
+                    .into_py(py)
+                    .expect("Failed to convert event."),
+                subscriber::PyMetricSet::from(event.metrics.clone()),
+                event.score.as_ref().to_vec(),
+                event.objective.clone(),
+            );
+            self.function
+                .inner
+                .call1(py, (py_event,))
+                .expect("Failed to call subscriber function");
+        })
+    }
+}
+
+impl<T> EventHandler<Improvement<T>> for PySubscriber
+where
+    T: IntoPyAnyObject + Clone,
+{
+    fn handle(&mut self, event: &Improvement<T>, _: &EventContext) {
+        Python::attach(|py| {
+            let py_event = subscriber::PyEngineEvent::improvement(
+                event.index,
+                event
+                    .best
+                    .clone()
+                    .into_py(py)
+                    .expect("Failed to convert event."),
+                event.score.as_ref().to_vec(),
+            );
+            self.function
+                .inner
+                .call1(py, (py_event,))
+                .expect("Failed to call subscriber function");
+        })
+    }
+}
+
+impl EventHandler<LimitTriggered> for PySubscriber {
+    fn handle(&mut self, event: &LimitTriggered, _: &EventContext) {
+        Python::attach(|py| {
+            let py_event = subscriber::PyEngineEvent::limit_triggered(
+                event.index(),
+                Some(event.description().to_string()),
+            );
+            self.function
+                .inner
+                .call1(py, (py_event,))
+                .expect("Failed to call subscriber function");
+        })
+    }
+}
+
+impl EventHandler<Log> for PySubscriber {
+    fn handle(&mut self, event: &Log, _: &EventContext) {
+        Python::attach(|py| {
+            let py_event = subscriber::PyEngineEvent::log_event(event.message().to_string());
+            self.function
+                .inner
+                .call1(py, (py_event,))
+                .expect("Failed to call subscriber function");
+        })
     }
 }
 

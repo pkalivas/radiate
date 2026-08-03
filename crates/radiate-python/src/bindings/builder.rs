@@ -1,7 +1,3 @@
-use crate::bindings::{
-    codec::{PyGraphCodecInner, PyTreeCodecInner},
-    subscriber,
-};
 use crate::events::PyEventHandler;
 use crate::{
     EngineBuilderHandle, FreeThreadPyEvaluator, InputTransform, PyCodec, PyEngine, PyEngineInput,
@@ -12,10 +8,20 @@ use crate::{
     PyCheckpointReader,
     bindings::codec::{PyTreeCodec, TypedNumericCodec},
 };
+use crate::{
+    PyEngineEvent,
+    bindings::{
+        codec::{PyGraphCodecInner, PyTreeCodecInner},
+        subscriber,
+    },
+};
 use crate::{PyGeneration, PySubscriber};
 use core::panic;
 use pyo3::{Py, PyAny, pyclass, pymethods, types::PyAnyMethods};
-use radiate::prelude::*;
+use radiate::{
+    events::{EngineStart, EngineStop, EpochStart, Improvement, Log},
+    prelude::*,
+};
 use radiate_error::{ResultExt, radiate_py_bail, radiate_py_err};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -240,27 +246,52 @@ impl PyEngineBuilder {
         dispatch_builder_typed!(
             builder,
             inputs,
-            Self::process_many_typed(|typed_builder, sub_inputs| {
-                let mut subs = Vec::with_capacity(sub_inputs.len());
-                let mut broker = MessageBroker::default();
-
+            Self::process_many_typed(|mut typed_builder, sub_inputs| {
                 for input in sub_inputs {
                     let subscriber = input.extract::<PySubscriber>("subscriber")?;
+                    // subs.push(subscriber);
                     match subscriber.event_name().unwrap() {
                         crate::constants::components::START_EVENT => {
-                            subs.push(subscriber);
+                            typed_builder = typed_builder
+                                .subscribe_to::<PySubscriber, EngineStart>(subscriber.clone());
                         }
+                        crate::constants::components::STOP_EVENT => {
+                            typed_builder = typed_builder
+                                .subscribe_to::<PySubscriber, EngineStop<PyAnyObject>>(
+                                    subscriber.clone(),
+                                );
+                        }
+                        crate::constants::components::EPOCH_START_EVENT => {
+                            typed_builder = typed_builder
+                                .subscribe_to::<PySubscriber, EpochStart>(subscriber.clone());
+                        }
+                        crate::constants::components::EPOCH_COMPLETE_EVENT => {
+                            typed_builder = typed_builder
+                                .subscribe_to::<PySubscriber, EpochComplete<PyAnyObject>>(
+                                    subscriber.clone(),
+                                );
+                        }
+                        crate::constants::components::ENGINE_IMPROVEMENT_EVENT => {
+                            typed_builder = typed_builder
+                                .subscribe_to::<PySubscriber, Improvement<PyAnyObject>>(
+                                    subscriber.clone(),
+                                );
+                        }
+                        crate::constants::components::LIMIT_TRIGGERED_EVENT => {
+                            typed_builder = typed_builder
+                                .subscribe_to::<PySubscriber, LimitTriggered>(subscriber.clone());
+                        }
+                        crate::constants::components::LOG_EVENT => {
+                            typed_builder =
+                                typed_builder.subscribe_to::<PySubscriber, Log>(subscriber.clone());
+                        }
+                        _ => panic!(
+                            "Only LIMIT_TRIGGERED and LOG_EVENT subscribers are currently supported in the Python bindings"
+                        ),
                     }
-
-                    // subs.push(input.extract::<PySubscriber>("subscriber")?);
                 }
 
-                if subs.is_empty() {
-                    return Ok(typed_builder);
-                }
-
-                let handler = PyEventHandler::new(subs);
-                Ok(typed_builder.subscribe(handler))
+                return Ok(typed_builder);
             })
         )
     }

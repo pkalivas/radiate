@@ -64,7 +64,7 @@ def metrics_dashboard(event: rd.EngineEvent):
 
 class TempHandler(rd.EventHandler):
     def __init__(self):
-        super().__init__()
+        super().__init__(rd.EventType.EPOCH_COMPLETE)
 
     def on_event(self, event: rd.EngineEvent):
         print(event.event_type())
